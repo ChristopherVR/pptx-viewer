@@ -1,5 +1,6 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import {
 	beginShapeAdjustment,
 	buildInlineTextCommitPatch,
@@ -59,6 +60,8 @@ export interface UseCanvasInteractionsInput {
 	setMarqueeSelectionState: React.Dispatch<React.SetStateAction<MarqueeSelectionState | null>>;
 	setSnapLines: React.Dispatch<React.SetStateAction<Array<{ axis: string; position: number }>>>;
 	inlineEditingText: string;
+	inlineEditingTextRef?: React.MutableRefObject<string>;
+	inlineEditingSnapshotRef?: React.MutableRefObject<InlineTextEditSnapshot | undefined>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
 	presentationHandleAction: (action: Record<string, unknown>) => void;
@@ -118,6 +121,8 @@ export function useCanvasInteractions(
 		setMarqueeSelectionState,
 		setSnapLines,
 		inlineEditingText,
+		inlineEditingTextRef,
+		inlineEditingSnapshotRef,
 		ops,
 		history,
 		presentationHandleAction,
@@ -140,10 +145,13 @@ export function useCanvasInteractions(
 		const el = elementLookup.get(editId);
 		if (el && hasTextProperties(el)) {
 			// AutoCorrect runs on the typed text before it becomes segments.
-			const committedText = transformCommittedText
-				? transformCommittedText(inlineEditingText)
-				: inlineEditingText;
-			const textPatch = buildInlineTextCommitPatch(el, committedText);
+			const liveText = inlineEditingTextRef?.current ?? inlineEditingText;
+			const committedText = transformCommittedText ? transformCommittedText(liveText) : liveText;
+			const textPatch = buildInlineTextCommitPatch(
+				el,
+				committedText,
+				inlineEditingSnapshotRef?.current,
+			);
 			if (!textPatch) {
 				setInlineEditingElementId(null);
 				setInlineEditingText('');

@@ -2,7 +2,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import {
 	CHARACTER_SPACING_OPTIONS,
-	getInlineEditorSelection,
+	getInlineEditorSelectionResult,
 	selectedParagraphBulletKind,
 	OFFICE_COLOR_SWATCHES,
 	textFontSizePtToPx,
@@ -95,8 +95,20 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 		if (!p.canEdit || !p.selectedElement || !hasTextProperties(p.selectedElement)) {
 			return;
 		}
-		const selection = getInlineEditorSelection(p.selectedElement.textSegments);
-		const current = selectedParagraphBulletKind(p.selectedElement, selection);
+		const result = getInlineEditorSelectionResult(p.selectedElement.textSegments);
+		if (
+			result.kind === 'unsupported' ||
+			(result.snapshot && result.snapshot.elementId !== p.selectedElement.id)
+		) {
+			return;
+		}
+		const current = selectedParagraphBulletKind(
+			{
+				...p.selectedElement,
+				textSegments: result.snapshot?.textSegments ?? p.selectedElement.textSegments,
+			},
+			result.selection,
+		);
 		p.onUpdateTextStyle({ listType: current === kind ? 'none' : kind });
 	};
 

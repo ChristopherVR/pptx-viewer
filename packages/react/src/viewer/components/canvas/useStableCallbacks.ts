@@ -1,4 +1,5 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React, { useCallback, useRef } from 'react';
 
 import type { ShapeAdjustmentHandleDescriptor, TableCellEditorState } from '../../types';
@@ -19,7 +20,7 @@ interface ParentCallbacks {
 		descriptor: ShapeAdjustmentHandleDescriptor,
 	) => void;
 	onRotate?: (elementId: string, rotationDeg: number) => void;
-	onInlineEditChange: (text: string) => void;
+	onInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;
 	onTableCellSelect: (
@@ -46,7 +47,7 @@ export interface StableCallbacks {
 		descriptor: ShapeAdjustmentHandleDescriptor,
 	) => void;
 	stableRotate: (elementId: string, rotationDeg: number) => void;
-	stableInlineEditChange: (text: string) => void;
+	stableInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	stableInlineEditCommit: () => void;
 	stableInlineEditCancel: () => void;
 	stableTableCellSelect: (cell: TableCellEditorState | null, elementId: string) => void;
@@ -88,7 +89,10 @@ export function useStableCallbacks(callbacks: ParentCallbacks): StableCallbacks 
 	);
 
 	const stableInlineEditChange = useCallback(
-		(text: string) => cbRef.current.onInlineEditChange(text),
+		(text: string, snapshot?: InlineTextEditSnapshot) =>
+			snapshot
+				? cbRef.current.onInlineEditChange(text, snapshot)
+				: cbRef.current.onInlineEditChange(text),
 		[],
 	);
 

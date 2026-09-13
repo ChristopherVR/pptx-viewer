@@ -7,6 +7,7 @@ import {
 	resolveParagraphRtl,
 } from 'pptx-viewer-shared';
 import type {
+	InlineListSeed,
 	ParagraphRun,
 	PlaceholderPromptDescriptor,
 	RenderParagraph,
@@ -16,6 +17,7 @@ import React from 'react';
 import type { ElementAnimationState } from './animation-timeline';
 import { wrapWithTextBuildAnimation } from './text-animation';
 import type { FieldSubstitutionContext } from './text-field-substitution';
+import { renderSeededListRun } from './text-inline-list-render';
 import type { ElementFindHighlights } from './text-segment-helpers';
 import { renderParagraphRun } from './text-segment-render';
 import type { RunRenderContext } from './text-segment-render';
@@ -63,6 +65,8 @@ export function renderTextSegments(
 	 * export never show one.
 	 */
 	placeholderPrompt?: PlaceholderPromptDescriptor | null,
+	/** Seeded only for an uncontrolled list editor, never for view mode. */
+	inlineListSeed?: InlineListSeed,
 ): React.ReactNode {
 	if (!hasTextProperties(element)) {
 		return emptyFallback || null;
@@ -78,7 +82,12 @@ export function renderTextSegments(
 		return element.text || emptyFallback || '';
 	}
 
-	const paragraphs = buildParagraphs(element, fieldContext, segmentOverrides);
+	const paragraphs = buildParagraphs(
+		element,
+		fieldContext,
+		segmentOverrides,
+		inlineListSeed ? { preserveTrailingEmpty: true } : undefined,
+	);
 	const ctx: Omit<RunRenderContext, 'paragraphRtl'> = {
 		element,
 		fallbackColor,
@@ -88,7 +97,15 @@ export function renderTextSegments(
 	};
 
 	return paragraphs.map((para, paraIndex) =>
-		renderParagraph(para, paraIndex, paragraphs.length, segments, ctx, subElementAnimStates),
+		renderParagraph(
+			para,
+			paraIndex,
+			paragraphs.length,
+			segments,
+			ctx,
+			subElementAnimStates,
+			inlineListSeed,
+		),
 	);
 }
 
@@ -124,13 +141,15 @@ function renderParagraph(
 	segments: readonly TextSegment[],
 	ctx: Omit<RunRenderContext, 'paragraphRtl'>,
 	subElementAnimStates: ReadonlyMap<string, ElementAnimationState> | undefined,
+	inlineListSeed?: InlineListSeed,
 ): React.ReactNode {
 	const element = ctx.element;
 	const runCtx: RunRenderContext = { ...ctx, paragraphRtl: para.rtl };
 	const runs = joinRunsBySegment(para.runs);
-	const renderedRuns = runs.map((run) =>
-		renderParagraphRun(run, segments[run.segmentIndex ?? -1], runCtx),
-	);
+	const listParagraph = inlineListSeed?.paragraphs[paraIndex];
+	const renderedRuns = listParagraph
+		? listParagraph.runs.map((run) => renderSeededListRun(run, runs, segments, runCtx))
+		: runs.map((run) => renderParagraphRun(run, segments[run.segmentIndex ?? -1], runCtx));
 
 	const paraStyle: React.CSSProperties = {
 		// `text-align`, BiDi `direction` / `unicode-bidi` and the kinsoku
@@ -181,7 +200,8 @@ function renderParagraph(
 			),
 	);
 
-	const needsWrapper = Object.keys(paraStyle).length > 0 || marker !== null;
+	const needsWrapper =
+		Boolean(listParagraph) || Object.keys(paraStyle).length > 0 || marker !== null;
 	if (!needsWrapper) {
 		return (
 			<React.Fragment key={`${element.id}-para-${paraIndex}`}>
@@ -192,13 +212,17 @@ function renderParagraph(
 	}
 
 	return (
-		<div key={`${element.id}-para-${paraIndex}`} style={paraStyle}>
+		<div
+			key={`${element.id}-para-${paraIndex}`}
+			style={paraStyle}
+			data-pptx-list-paragraph={listParagraph?.token}
+		>
 			{marker}
 			{/* An authored blank line (`<a:p><a:endParaRPr/></a:p>`) has no runs, so
 			    its wrapper would collapse to zero height and the gap a deck uses to
 			    separate a heading from its bullet list would disappear. A `<br>`
 			    gives it a line box without adding to `textContent` (issue #131). */}
-			{para.isEmpty ? <br /> : wrappedContent}
+			{para.isEmpty && !listParagraph ? <br /> : wrappedContent}
 		</div>
 	);
 }

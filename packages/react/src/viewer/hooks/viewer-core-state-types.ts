@@ -22,16 +22,7 @@ import type {
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
 import type { CollaborationLivePatcher, SlideSizeEmu } from 'pptx-viewer-shared';
-/**
- * Type definitions for the useViewerCoreState hook.
- *
- * Extracted to keep the main hook file under the 300-line limit.
- * These types describe the shape of the core viewer state: the primary
- * refs, state values, setters, and derived fields that together form
- * the foundation every other hook in the viewer depends upon.
- *
- * @module viewer-core-state-types
- */
+/** Document refs, state, setters, and derived values for useViewerCoreState. */
 import type React from 'react';
 
 import type {
@@ -44,6 +35,7 @@ import type {
 	SupportedShapeType,
 } from '../types';
 import type { ViewerMode } from '../types-core';
+import type { InlineEditingState } from './useInlineEditingState';
 
 /* ------------------------------------------------------------------ */
 /*  Input                                                             */
@@ -71,7 +63,7 @@ export interface UseViewerCoreStateInput {
  * that comprises the core viewer state. It is merged with {@link ViewerUIState}
  * inside {@link useViewerState} to produce the unified {@link ViewerState}.
  */
-export interface ViewerCoreState {
+export interface ViewerCoreState extends InlineEditingState {
 	// ── Refs ──────────────────────────────────────────────────────────
 
 	/** Ref to the outermost container `<div>` wrapping the viewer. */
@@ -82,10 +74,6 @@ export interface ViewerCoreState {
 	mediaInputRef: React.RefObject<HTMLInputElement | null>;
 	/** Mutable ref mirroring `activeSlideIndex` for use in event handlers that must not re-subscribe on index change. */
 	activeSlideIndexRef: React.MutableRefObject<number>;
-	/** Mutable ref mirroring `inlineEditingElementId`: always current without waiting for a re-render. */
-	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
-	/** Mutable ref mirroring `inlineEditingText`: always current without waiting for a re-render. */
-	inlineEditingTextRef: React.MutableRefObject<string>;
 	/** Tracks the in-progress drag operation (move) for element(s). */
 	dragStateRef: React.MutableRefObject<DragState | null>;
 	/** Tracks the in-progress resize operation for an element. */
@@ -162,12 +150,6 @@ export interface ViewerCoreState {
 	/** Whether unsaved changes exist in the presentation. */
 	isDirty: boolean;
 	setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
-	/** ID of the element whose text is currently being edited inline on the canvas. */
-	inlineEditingElementId: string | null;
-	setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>>;
-	/** The current inline-editing text content (mirrored from the editor). */
-	inlineEditingText: string;
-	setInlineEditingText: React.Dispatch<React.SetStateAction<string>>;
 	/** Whether the user is editing template/layout elements rather than slide elements. */
 	editTemplateMode: boolean;
 	setEditTemplateMode: React.Dispatch<React.SetStateAction<boolean>>;

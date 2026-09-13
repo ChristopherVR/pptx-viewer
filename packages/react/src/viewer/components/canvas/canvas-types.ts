@@ -9,6 +9,7 @@ import type {
 	ShapePptxElement,
 	TextStyle,
 } from 'pptx-viewer-core';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React from 'react';
 
 import type {
@@ -96,7 +97,7 @@ export interface SlideCanvasProps {
 	) => void;
 	/** Commit a new rotation (degrees) when the on-canvas rotate handle is dragged. */
 	onRotate?: (elementId: string, rotationDeg: number) => void;
-	onInlineEditChange: (text: string) => void;
+	onInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;
 	onTableCellSelect: (

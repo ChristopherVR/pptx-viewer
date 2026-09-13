@@ -16,8 +16,13 @@ import type {
 	PptxSaveFormat,
 	ParsedTableStyleMap,
 } from 'pptx-viewer-core';
-import { guidePxToEmu, hasTextProperties } from 'pptx-viewer-core';
-import type { DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
+import { guidePxToEmu } from 'pptx-viewer-core';
+import type {
+	DeckSavePurpose,
+	InlineTextEditSnapshot,
+	MasterViewTarget,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 import {
 	buildDeckSaveOptions,
 	resolveSlideSizeSelection,
@@ -32,8 +37,8 @@ import { useCallback } from 'react';
 import type React from 'react';
 
 import type { CanvasSize } from '../types';
-import { remapTextToSegments } from '../utils/remap-text';
 import { buildSaveSlides } from '../utils/template-editing';
+import { overlayPendingInlineEdit } from './serialize-inline-edit';
 
 // ---------------------------------------------------------------------------
 // Input
@@ -44,6 +49,8 @@ export interface UseSerializeInput {
 	/** Separated master/layout (template) elements, merged back at save time. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	activeSlideIndex: number;
+	editTemplateMode?: boolean;
+	masterViewTarget?: MasterViewTarget | null;
 	/** The pixel canvas the raw Slide Size W/H inputs edit. */
 	canvasSize: CanvasSize;
 	/**
@@ -97,6 +104,8 @@ export interface UseSerializeInput {
 	handlerRef: React.RefObject<PptxHandler | null>;
 	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
 	inlineEditingTextRef: React.MutableRefObject<string>;
+	inlineEditingSnapshotRef?: React.MutableRefObject<InlineTextEditSnapshot | undefined>;
+	transformCommittedText?: (text: string) => string;
 	password?: string;
 	/**
 	 * File > Fonts > "Embed fonts in the file". `false` passes
@@ -138,6 +147,8 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 		slides,
 		templateElementsBySlideId,
 		activeSlideIndex,
+		editTemplateMode,
+		masterViewTarget,
 		canvasSize,
 		slideSizeEmu,
 		guides,
@@ -159,6 +170,8 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 		handlerRef,
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
+		inlineEditingSnapshotRef,
+		transformCommittedText,
 		password,
 		embedFonts = true,
 		purpose,
@@ -176,28 +189,27 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 			// been blurred yet (e.g. Ctrl+S while typing inside a text box).
 			const pendingEditId = inlineEditingElementIdRef.current;
 			const pendingEditText = inlineEditingTextRef.current;
+			const pendingSnapshot = inlineEditingSnapshotRef?.current;
 
-			const slidesWithGuides = slides.map((slide, idx) => {
-				// Apply the pending inline edit to the element being edited.
-				let processedSlide = slide;
-				if (pendingEditId) {
-					const updatedElements = slide.elements.map((el) => {
-						if (el.id !== pendingEditId || !hasTextProperties(el)) {
-							return el;
-						}
-						return {
-							...el,
-							text: pendingEditText,
-							textSegments: remapTextToSegments(pendingEditText, el.textSegments, el.textStyle),
-						};
-					});
-					if (updatedElements.some((el, i) => el !== slide.elements[i])) {
-						processedSlide = { ...slide, elements: updatedElements };
-					}
-				}
-
+			const pending = overlayPendingInlineEdit(
+				{
+					slides,
+					templateElementsBySlideId,
+					activeSlideIndex,
+					editTemplateMode,
+					masterViewTarget,
+					slideMasters,
+					notesMaster,
+					handoutMaster,
+				},
+				pendingEditId,
+				pendingEditText,
+				pendingSnapshot,
+				transformCommittedText,
+			);
+			const slidesWithGuides = pending.slides.map((slide, idx) => {
 				if (idx !== activeSlideIndex) {
-					return processedSlide;
+					return slide;
 				}
 				const pptxGuides = guides.map((g) => ({
 					id: g.id,
@@ -205,14 +217,14 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 					positionEmu: guidePxToEmu(g.position),
 				}));
 				return {
-					...processedSlide,
+					...slide,
 					guides: pptxGuides.length > 0 ? pptxGuides : undefined,
 				};
 			});
 
 			// Merge the separated template (master/layout) elements back into each
 			// slide so edits made in edit-template mode persist to the shared part.
-			const slidesToSave = buildSaveSlides(slidesWithGuides, templateElementsBySlideId);
+			const slidesToSave = buildSaveSlides(slidesWithGuides, pending.templateElementsBySlideId);
 
 			const saveOptions = buildDeckSaveOptions({
 				// Without this the Slide Size card edited a viewer-only pixel value and
@@ -228,9 +240,9 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 				appProperties,
 				customProperties,
 				tagCollections,
-				slideMasters,
-				notesMaster,
-				handoutMaster,
+				slideMasters: [...pending.slideMasters],
+				notesMaster: pending.notesMaster,
+				handoutMaster: pending.handoutMaster,
 				tableStyleMap,
 				tableStylesDefaultId,
 				tableStylesToDelete,
@@ -265,9 +277,13 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 			handoutMaster,
 			guides,
 			activeSlideIndex,
+			editTemplateMode,
+			masterViewTarget,
 			handlerRef,
 			inlineEditingElementIdRef,
 			inlineEditingTextRef,
+			inlineEditingSnapshotRef,
+			transformCommittedText,
 			password,
 			embedFonts,
 			purpose,
