@@ -39,6 +39,7 @@ import {
 	textStyleOf,
 	transformSelectedTextCase,
 } from './ribbon-text-helpers';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 
 /**
  * The Home/Text tab's size dropdown + grow/shrink ladder. Sourced from shared
@@ -311,6 +312,7 @@ const CHANGE_CASE_OPTIONS = [
 })
 export class RibbonFontControlsComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
@@ -411,7 +413,14 @@ export class RibbonFontControlsComponent {
 
 	protected setChangeCase(event: Event): void {
 		const value = (event.target as HTMLSelectElement).value as ChangeCaseMode;
-		transformSelectedTextCase(this.editor, this.slideIndex(), this.selectedElement(), value);
+		transformSelectedTextCase(
+			this.editor,
+			this.slideIndex(),
+			this.selectedElement(),
+			value,
+			this.inlineEditing?.readInlineSnapshot(),
+			() => this.inlineEditing?.endInlineListSession(),
+		);
 		(event.target as HTMLSelectElement).selectedIndex = 0;
 	}
 
@@ -444,6 +453,11 @@ export class RibbonFontControlsComponent {
 		if (!element || !isTextElement(element)) {
 			return;
 		}
+		const snapshot = this.inlineEditing?.readInlineSnapshot();
+		if (snapshot?.elementId === element.id && snapshot.textSegments) {
+			this.patch({ fontSize });
+			return;
+		}
 		this.editor.updateElement(this.slideIndex(), element.id, textFontSizePatch(element, fontSize));
 	}
 	/** Clear character formatting (bold/italic/underline/strikethrough) on the selection. */
@@ -452,6 +466,13 @@ export class RibbonFontControlsComponent {
 	}
 
 	private patch(patch: Parameters<typeof patchTextStyle>[3]): void {
-		patchTextStyle(this.editor, this.slideIndex(), this.selectedElement(), patch);
+		patchTextStyle(
+			this.editor,
+			this.slideIndex(),
+			this.selectedElement(),
+			patch,
+			this.inlineEditing?.readInlineSnapshot(),
+			(next) => this.inlineEditing?.formatInlineSnapshot(next) ?? false,
+		);
 	}
 }

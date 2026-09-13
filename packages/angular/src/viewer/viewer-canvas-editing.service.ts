@@ -25,9 +25,12 @@ import type {
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import { buildInlineTextCommitPatch, publishLiveInlineText } from '../internal/shared';
+import type { InlineListController, InlineTextEditSnapshot } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
 import { EditorStateService } from './editor-state.service';
+import { InlineListSession } from './inline-list-session';
 import { textStylePatch } from './inspector-helpers';
+import { patchTextStyle } from './ribbon-text-helpers';
 import { setCellText } from './table-data-helpers';
 import type { TableCellCommit } from './table-renderer.component';
 import { ViewerDialogsService } from './viewer-dialogs.service';
@@ -54,6 +57,32 @@ export class ViewerCanvasEditingService {
 
 	/** Id of the element being inline text-edited, or null. */
 	readonly editingId = signal<string | null>(null);
+	private inlineSnapshot: InlineTextEditSnapshot | undefined;
+	private readonly listSession = new InlineListSession(
+		() =>
+			this.host && this.editingId() ? this.findElement(this.host, this.editingId()!) : undefined,
+		() => {
+			this.inlineSnapshot = undefined;
+			this.editingId.set(null);
+		},
+	);
+	onListSession(event: { controller: InlineListController; active: boolean }): void {
+		this.listSession.register(event);
+	}
+	formatInlineSnapshot(snapshot: InlineTextEditSnapshot): boolean {
+		return this.listSession.format(snapshot);
+	}
+	endInlineListSession(): void {
+		this.listSession.end();
+	}
+
+	readInlineSnapshot(): InlineTextEditSnapshot | undefined {
+		const current = this.listSession.read();
+		if (current && this.editingId()) {
+			return current;
+		}
+		return this.inlineSnapshot?.elementId === this.editingId() ? this.inlineSnapshot : undefined;
+	}
 	/** Open editor context-menu position (client coords), or null. */
 	readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
 
@@ -88,6 +117,7 @@ export class ViewerCanvasEditingService {
 	 * of the inline text editor (mirrors React's dbl-click-to-edit-equation).
 	 */
 	onTextEditStart(id: string): void {
+		this.inlineSnapshot = undefined;
 		const host = this.requireHost();
 		const element = this.findElement(host, id);
 		const segments = element && 'textSegments' in element ? element.textSegments : undefined;
@@ -109,11 +139,21 @@ export class ViewerCanvasEditingService {
 		if (!element) {
 			return;
 		}
-		this.editor.updateElement(
-			host.activeSlideIndex(),
-			event.id,
-			textStylePatch(element, event.updates),
-		);
+		const snapshot = this.readInlineSnapshot();
+		if (snapshot) {
+			patchTextStyle(
+				this.editor,
+				host.activeSlideIndex(),
+				element,
+				event.updates,
+				snapshot,
+				(next) => this.formatInlineSnapshot(next),
+			);
+			return;
+		}
+		this.editor.updateElement(host.activeSlideIndex(), event.id, {
+			...textStylePatch(element, event.updates),
+		});
 	}
 
 	/**
@@ -122,7 +162,21 @@ export class ViewerCanvasEditingService {
 	 * without this peers saw nothing until the editor blurred. No-op when not
 	 * collaborating.
 	 */
-	onTextInput(event: { id: string; text: string }): void {
+	onTextInput(event: { id: string; text: string; snapshot?: InlineTextEditSnapshot }): void {
+		const current = this.listSession.read();
+		if (event.id !== this.editingId()) {
+			return;
+		}
+		if (current) {
+			event = { id: event.id, text: current.text, snapshot: current };
+		}
+		this.inlineSnapshot =
+			event.id === this.editingId() &&
+			event.snapshot?.elementId === event.id &&
+			event.snapshot.text === event.text &&
+			event.snapshot.textSegments
+				? event.snapshot
+				: undefined;
 		publishLiveInlineText(
 			this.collab.livePatcher,
 			this.requireHost().activeSlide(),
@@ -135,6 +189,7 @@ export class ViewerCanvasEditingService {
 	onTextCommit(event: {
 		id: string;
 		text: string;
+		snapshot?: InlineTextEditSnapshot;
 		height?: number;
 		autoFitFontScale?: number;
 		autoFitLineSpacingReduction?: number;
@@ -144,7 +199,8 @@ export class ViewerCanvasEditingService {
 		// committed text and revert it.
 		this.collab.livePatcher.flush();
 		const element = this.findElement(host, event.id);
-		const textPatch = buildInlineTextCommitPatch(element, event.text);
+		const textPatch = buildInlineTextCommitPatch(element, event.text, event.snapshot);
+		this.inlineSnapshot = undefined;
 		const hasShrink = event.autoFitFontScale !== undefined;
 		if (!textPatch && event.height === undefined && !hasShrink) {
 			this.editingId.set(null);

@@ -1,10 +1,11 @@
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { elementBulletKind } from '../internal/shared';
 import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
+import { componentSource } from './component-source.test-support';
 import { EditorStateService } from './editor-state.service';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
 import { patchTextStyle, transformSelectedTextCase } from './ribbon-text-helpers';
@@ -34,6 +35,69 @@ function service(el: PptxElement): EditorStateService {
 }
 
 describe('patchTextStyle list commands', () => {
+	it.each(['bullet', 'numbered'])('retains native editor focus before the %s command', (kind) => {
+		const source = componentSource(import.meta.dirname, 'ribbon-paragraph-controls.component.ts');
+		const button = [...source.matchAll(/<button\b[^>]*>/gu)].find(([markup]) =>
+			markup.includes(`(click)="toggleList('${kind}')"`),
+		)?.[0];
+		expect(button).toBeDefined();
+		expect(button).toContain('(mousedown)="$event.preventDefault()"');
+		expect(button).toContain('[disabled]="!canEdit() || !isText()"');
+	});
+
+	it('does not commit a rich format when the current surface rejects it', () => {
+		const source = textElement();
+		const svc = service(source);
+		const snapshot = {
+			elementId: source.id,
+			text: 'Current',
+			textSegments: [{ text: 'Current', style: {} }],
+		};
+		patchTextStyle(svc, 0, source, { bold: true }, snapshot, () => false);
+		expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+		expect(svc.canUndo()).toBeFalsy();
+	});
+
+	it('paints current rich formatting before making its undoable model change', () => {
+		const source = textElement();
+		const svc = service(source);
+		const snapshot = {
+			elementId: source.id,
+			text: 'Current',
+			textSegments: [{ text: 'Current', style: { italic: true } }],
+		};
+		let painted = false;
+		patchTextStyle(svc, 0, source, { bold: true }, snapshot, (next) => {
+			expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+			expect(next.textSegments?.[0].style).toMatchObject({ italic: true, bold: true });
+			painted = true;
+			return true;
+		});
+		expect(painted).toBeTruthy();
+		expect(svc.slides()[0].elements[0]).toMatchObject({
+			text: 'Current',
+			textSegments: [{ style: { bold: true, italic: true } }],
+		});
+		svc.undo();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+	});
+
+	it('uses the current rich draft for a font change without losing its list level', () => {
+		const source = textElement();
+		const svc = service(source);
+		const snapshot = {
+			elementId: source.id,
+			text: 'Current body',
+			textSegments: [{ text: 'Current body', style: { italic: true }, paragraphLevel: 1 }],
+		};
+		patchTextStyle(svc, 0, source, { bold: true }, snapshot);
+		expect(svc.slides()[0].elements[0]).toMatchObject({
+			text: 'Current body',
+			textStyle: { bold: true },
+			textSegments: [{ text: 'Current body', style: { italic: true }, paragraphLevel: 1 }],
+		});
+	});
+
 	it('guards list buttons in read-only mode even when a text selection remains', () => {
 		class Controls extends RibbonParagraphControlsComponent {
 			applyList(): void {
@@ -147,6 +211,34 @@ describe('patchTextStyle list commands', () => {
 });
 
 describe('transformSelectedTextCase', () => {
+	it('ends the native list session before changing body characters without changing its marker', () => {
+		const source = textElement();
+		const svc = service(source);
+		const snapshot = {
+			elementId: source.id,
+			text: 'lower',
+			textSegments: [
+				{
+					text: 'iii. ',
+					style: {},
+					bulletInfo: { autoNumType: 'romanLcPeriod', autoNumStartAt: 3, paragraphIndex: 0 },
+				},
+				{ text: 'lower', style: { italic: true } },
+			],
+		};
+		const end = vi.fn(() => {
+			expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+		});
+		transformSelectedTextCase(svc, 0, source, 'upper', snapshot, end);
+		expect(end).toHaveBeenCalledOnce();
+		expect(svc.slides()[0].elements[0]).toMatchObject({
+			text: 'LOWER',
+			textSegments: [{ text: 'iii. ' }, { text: 'LOWER', style: { italic: true } }],
+		});
+		svc.undo();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(source);
+	});
+
 	it.each([false, true])(
 		'honors explicit formatting before runless typing (with list=%s)',
 		(withList) => {

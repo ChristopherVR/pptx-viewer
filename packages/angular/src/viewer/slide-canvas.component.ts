@@ -29,12 +29,26 @@ import type {
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import type {
+	InlineListController,
+	InlineListSeed,
+	InlineTextEditSnapshot,
+	CanvasSize,
+	ConnectorEndpointKind,
+	ElementInteraction,
+	RulerUnit,
+	ShapeAdjustmentDragState,
+	Tick,
+	ViewportFitPadding,
+} from '../internal/shared';
 import {
 	actionAffordanceLabels,
 	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
 	canInteractWithElement,
 	collectConnectorSiteCandidates,
+	createInlineListSeed,
+	inlineListBodyText,
 	editorNudgeDelta,
 	findConnectorSiteNear,
 	getConnectorEndpointHandles,
@@ -44,15 +58,6 @@ import {
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
 	visibleTemplateElements as filterVisibleTemplateElements,
-} from '../internal/shared';
-import type {
-	CanvasSize,
-	ConnectorEndpointKind,
-	ElementInteraction,
-	RulerUnit,
-	ShapeAdjustmentDragState,
-	Tick,
-	ViewportFitPadding,
 } from '../internal/shared';
 import type { AiCanvasHighlight, AiChangeBatch } from '../internal/shared-ai';
 import { resolveContextMenuElementId } from '../internal/shared-src/render/context-menu-target';
@@ -70,6 +75,7 @@ import {
 	resolveCommitTextAutoFitHeight,
 	resolveCommitTextNormAutofitShrink,
 } from './inline-edit-autofit-commit';
+import { InlineListEditorComponent } from './inline-list-editor.component';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
@@ -181,6 +187,7 @@ function plainText(el: PptxElement): string {
 		AiFocusHighlightOverlayComponent,
 		AiChangeOverlayComponent,
 		ActiveXControlsOverlayComponent,
+		InlineListEditorComponent,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',
@@ -385,6 +392,7 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly textCommit = output<{
 		id: string;
 		text: string;
+		snapshot?: InlineTextEditSnapshot;
 		height?: number;
 		autoFitFontScale?: number;
 		autoFitLineSpacingReduction?: number;
@@ -394,11 +402,12 @@ export class SlideCanvasComponent implements SlideContext {
 	 * only thing that touches editor state/history; this feeds the collaboration
 	 * live preview so peers see typing before the edit commits.
 	 */
-	readonly textInput = output<{ id: string; text: string }>();
+	readonly textInput = output<{ id: string; text: string; snapshot?: InlineTextEditSnapshot }>();
 	/** Emitted when an inline edit is cancelled (Escape). */
 	readonly textCancel = output<void>();
 	/** Emitted on Ctrl/Cmd+B/I/U while inline-editing (parity with React/Vue). */
 	readonly textFormat = output<{ id: string; updates: Partial<TextStyle> }>();
+	readonly listSession = output<{ controller: InlineListController; active: boolean }>();
 	/** Emitted during a rotate gesture with the new rotation (degrees). */
 	readonly rotateUpdate = output<{ id: string; rotation: number }>();
 	/** Emitted on marquee release with the ids of enclosed/overlapping elements. */
@@ -445,6 +454,10 @@ export class SlideCanvasComponent implements SlideContext {
 	protected readonly rulerGuidesSvc = inject(RulerGuidesService);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
+	private readonly listEditor = viewChild(InlineListEditorComponent);
+	readonly inlineListSeed = signal<InlineListSeed | undefined>(undefined);
+	readonly listActivationSelection = signal<{ start: number; end: number } | undefined>(undefined);
+	private listSessionId: string | null = null;
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
 	private readonly viewportRef = viewChild<ElementRef<HTMLElement>>('viewport');
 
@@ -465,6 +478,29 @@ export class SlideCanvasComponent implements SlideContext {
 	private lastGuideCommandId = 0;
 
 	constructor() {
+		effect(() => {
+			const id = this.editable() ? this.editingId() : null;
+			if (id === this.listSessionId && this.inlineListSeed()) {
+				return;
+			}
+			const previousId = this.listSessionId;
+			this.listSessionId = id;
+			const element = id ? this.allElements().find((candidate) => candidate.id === id) : undefined;
+			const seed = element ? createInlineListSeed(element) : undefined;
+			const textarea = this.textEditor()?.nativeElement;
+			const body =
+				element && hasTextProperties(element) ? inlineListBodyText(element.textSegments) : '';
+			if (previousId === id && seed && textarea && textarea.value !== body) {
+				this.textCancel.emit();
+				return;
+			}
+			this.listActivationSelection.set(
+				previousId === id && seed && textarea?.value === body
+					? { start: textarea.selectionStart, end: textarea.selectionEnd }
+					: undefined,
+			);
+			this.inlineListSeed.set(seed);
+		});
 		// Seed + focus the inline editor exactly once when it first appears for a
 		// given element. The textarea is UNCONTROLLED (no `[value]` binding): if
 		// Angular rewrote `value` on every change-detection pass the caret would
@@ -777,6 +813,7 @@ export class SlideCanvasComponent implements SlideContext {
 		// is unreliable on touch.
 		if (this.editingId()) {
 			this.textEditor()?.nativeElement.blur();
+			this.listEditor()?.blur();
 		}
 
 		// ── DRAW BRANCH: must come before the select/marquee/drag path ─────────
@@ -876,6 +913,7 @@ export class SlideCanvasComponent implements SlideContext {
 		// Flush any in-progress inline edit synchronously, matching onStagePointerDown.
 		if (this.editingId()) {
 			this.textEditor()?.nativeElement.blur();
+			this.listEditor()?.blur();
 		}
 		this.backgroundClick.emit();
 	}
@@ -890,7 +928,15 @@ export class SlideCanvasComponent implements SlideContext {
 		if (!el) {
 			return null;
 		}
-		return { id: el.id, x: el.x, y: el.y, width: el.width, height: el.height, text: plainText(el) };
+		return {
+			id: el.id,
+			x: el.x,
+			y: el.y,
+			width: el.width,
+			height: el.height,
+			text: plainText(el),
+			element: el,
+		};
 	});
 
 	/**
@@ -989,6 +1035,9 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 
 	commitText(event: Event, id: string): void {
+		if (this.inlineListSeed()) {
+			return;
+		} // The explicit list activation replaces this textarea.
 		if (this.editCancelled) {
 			this.editCancelled = false;
 			this.textCancel.emit();

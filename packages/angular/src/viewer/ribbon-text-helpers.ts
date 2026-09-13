@@ -7,7 +7,14 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
-import { setElementBullets } from '../internal/shared';
+import {
+	buildInlineListStylePatch,
+	getInlineEditorSelectionResult,
+	readEditableText,
+	setElementBullets,
+	transformInlineListCase,
+} from '../internal/shared';
+import type { ElementBulletPatch, InlineTextEditSnapshot } from '../internal/shared';
 import { INLINE_EDITOR_SELECTOR } from '../internal/shared-src/render/context-menu-target';
 import { textStylePatch } from '../internal/shared-src/render/inspector-helpers';
 import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
@@ -27,8 +34,12 @@ function currentInlineEditorText(): string | undefined {
 	if (typeof document === 'undefined') {
 		return undefined;
 	}
-	const editor = document.querySelector<HTMLTextAreaElement>(INLINE_EDITOR_SELECTOR);
-	return editor ? editor.value : undefined;
+	const editor = document.querySelector<HTMLElement>(INLINE_EDITOR_SELECTOR);
+	return editor instanceof HTMLTextAreaElement
+		? editor.value
+		: editor
+			? readEditableText(editor)
+			: undefined;
 }
 
 /** The selection's text style, or null when the element carries no text props. */
@@ -42,27 +53,66 @@ export function isTextElement(el: PptxElement | null): boolean {
 }
 
 /** Merge `patch` into the selection's text style and commit via the editor. */
+export function formatInlineListStyle(
+	el: PptxElement,
+	patch: Partial<TextStyle>,
+	draft: InlineTextEditSnapshot,
+	formatSnapshot: (snapshot: InlineTextEditSnapshot) => boolean,
+): (ElementBulletPatch & { text: string }) | undefined {
+	if (!hasTextProperties(el) || draft.elementId !== el.id || !draft.textSegments) {
+		return undefined;
+	}
+	const selection = getInlineEditorSelectionResult(draft.textSegments);
+	if (selection.kind !== 'supported') {
+		return undefined;
+	}
+	const changes = buildInlineListStylePatch(
+		{ ...el, text: draft.text, textSegments: draft.textSegments },
+		patch,
+		selection.selection,
+	);
+	if (!changes?.textSegments || !formatSnapshot({ ...draft, textSegments: changes.textSegments })) {
+		return undefined;
+	}
+	return { text: draft.text, ...changes };
+}
+
 export function patchTextStyle(
 	editor: EditorStateService,
 	slideIndex: number,
 	el: PptxElement | null,
 	patch: Partial<TextStyle>,
+	snapshot?: InlineTextEditSnapshot,
+	formatSnapshot?: (snapshot: InlineTextEditSnapshot) => boolean,
 ): void {
 	if (!el || !hasTextProperties(el)) {
 		return;
 	}
 	const { listType, ...stylePatch } = patch;
+	const draft = snapshot?.elementId === el.id && snapshot.textSegments ? snapshot : undefined;
+	if (snapshot && formatSnapshot && !draft) {
+		return;
+	}
+	if (draft && formatSnapshot) {
+		const changes = formatInlineListStyle(el, patch, draft, formatSnapshot);
+		if (changes) {
+			editor.updateElement(slideIndex, el.id, changes);
+		}
+		return;
+	}
 	if (listType !== undefined) {
-		const liveText = currentInlineEditorText();
+		const liveText = draft?.text ?? currentInlineEditorText();
 		const base =
 			liveText === undefined
 				? el
 				: {
 						...el,
 						text: liveText,
-						textSegments: el.textSegments
-							? remapTextToSegments(liveText, el.textSegments, el.textStyle)
-							: undefined,
+						textSegments:
+							draft?.textSegments ??
+							(el.textSegments
+								? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+								: undefined),
 					};
 		const listed = { ...base, ...setElementBullets(base, listType) };
 		if (!hasTextProperties(listed)) {
@@ -75,7 +125,11 @@ export function patchTextStyle(
 		});
 		return;
 	}
-	editor.updateElement(slideIndex, el.id, textStylePatch(el, patch));
+	const current = draft ? { ...el, text: draft.text, textSegments: draft.textSegments } : el;
+	editor.updateElement(slideIndex, el.id, {
+		...(draft ? { text: draft.text, textSegments: draft.textSegments } : {}),
+		...textStylePatch(current, patch),
+	});
 }
 
 /**
@@ -87,6 +141,8 @@ export function transformSelectedTextCase(
 	slideIndex: number,
 	el: PptxElement | null,
 	mode: ChangeCaseMode,
+	snapshot?: InlineTextEditSnapshot,
+	endSession?: () => void,
 ): void {
 	if (!el || !hasTextProperties(el)) {
 		return;
@@ -95,11 +151,25 @@ export function transformSelectedTextCase(
 	// commit path uses): case-transforming a stale snapshot leaves whatever the
 	// user typed since untransformed once the edit session commits. See
 	// `currentInlineEditorText`.
-	const liveText = currentInlineEditorText();
+	const draft = snapshot?.elementId === el.id && snapshot.textSegments ? snapshot : undefined;
+	if (snapshot && endSession) {
+		if (!draft) {
+			return;
+		}
+		const next = transformInlineListCase(draft, null, mode);
+		if (next === draft) {
+			return;
+		}
+		endSession();
+		editor.updateElement(slideIndex, el.id, { text: next.text, textSegments: next.textSegments });
+		return;
+	}
+	const liveText = draft?.text ?? currentInlineEditorText();
 	const baseSegments =
-		liveText !== undefined && el.textSegments
+		draft?.textSegments ??
+		(liveText !== undefined && el.textSegments
 			? remapTextToSegments(liveText, el.textSegments, el.textStyle)
-			: el.textSegments;
+			: el.textSegments);
 	const baseText = liveText ?? el.text;
 
 	const updates: Partial<PptxElement> = {};
