@@ -66,10 +66,12 @@ interface Harness {
  * in-progress edit session where the user has typed past what `textSegments`
  * on the model still reflects.
  */
-function mount(inlineEditingElementId: string | null, inlineEditingText: string): Harness {
-	let slides: PptxSlide[] = [
-		{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [textElement()] },
-	];
+function mount(
+	inlineEditingElementId: string | null,
+	inlineEditingText: string,
+	element = textElement(),
+): Harness {
+	let slides: PptxSlide[] = [{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [element] }];
 	let latest: ElementOperations | undefined;
 
 	function Probe(): null {
@@ -136,6 +138,29 @@ describe('updateSelectedTextStyle mid-edit race', () => {
 				.flatMap((paragraph) => paragraph.runs)
 				.every((run) => run.style.fontWeight === 'bold'),
 		).toBeTruthy();
+	});
+
+	it('preserves an unchanged suffix when Bold reconciles a pending paragraph insertion', () => {
+		const last = {
+			text: 'Last',
+			style: { color: '#006600' },
+			paragraphProperties: { paragraphSpacingAfter: 10 },
+		};
+		const element = {
+			...textElement(),
+			text: 'First\nLast',
+			textSegments: [
+				{ text: 'First', style: {}, paragraphProperties: { paragraphSpacingAfter: 20 } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				last,
+			],
+		} as PptxElement;
+		const harness = mount('shape-1', 'First\nInserted\nLast', element);
+		act(() => harness.ops().updateSelectedTextStyle({ bold: true }));
+		expect(harness.slides()[0].elements[0]).toMatchObject({
+			text: 'First\nInserted\nLast',
+			textSegments: expect.arrayContaining([{ ...last, style: { ...last.style, bold: true } }]),
+		});
 	});
 
 	it('applies to the live typed text, not the stale model segments, while inline-editing', () => {

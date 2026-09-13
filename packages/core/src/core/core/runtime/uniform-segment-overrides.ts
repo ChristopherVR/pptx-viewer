@@ -35,6 +35,14 @@ export function computeUniformSegmentOverrides(
 		if (nextValue === undefined) {
 			return;
 		}
+		// A parsed element's resolved default is not an editing command. Text
+		// commits can make run styles uniform while that default stays unchanged.
+		// Use the existing authored/inherited split to recognize actual edits;
+		// SDK-built styles without a baseline retain the legacy override behavior.
+		const baseline = textStyle?.inheritedRunStyle;
+		if (baseline && nextValue === (textStyle?.authoredRunStyle?.[styleKey] ?? baseline[styleKey])) {
+			return;
+		}
 		const firstValue = textSegments[0]?.style?.[styleKey];
 		const isUniform = textSegments.every((segment) => segment.style?.[styleKey] === firstValue);
 		if (isUniform) {

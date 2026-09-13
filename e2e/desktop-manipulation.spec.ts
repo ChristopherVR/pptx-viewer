@@ -31,8 +31,11 @@
  *
  * Run: bunx playwright test desktop-manipulation
  */
+import { readFile, writeFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 import { goToSlide } from './support/context-menu';
 import {
@@ -104,6 +107,78 @@ async function rotationOf(target: Locator): Promise<number | null> {
 }
 
 test.describe('desktop manipulation (mouse)', () => {
+	for (const [operation, body] of [
+		['middle insertion', 'First\nInserted\nLast'],
+		['first paragraph deletion', 'Last'],
+	] as const) {
+		test(`inline ${operation} preserves the unchanged last paragraph's spacing`, async ({
+			page,
+		}, testInfo) => {
+			// Reuse the existing two-shape deck; author distinguishable paragraph
+			// spacing in its TARGET, without a new fixture or binding-only hook.
+			const zip = await JSZip.loadAsync(await readFile(SHAPES_DECK));
+			const path = 'ppt/slides/slide1.xml';
+			const xml = await zip.file(path)!.async('string');
+			const paragraphs = (['First', 'Last'] as const)
+				.map(
+					(text, index) =>
+						`<a:p><a:pPr><a:spcAft><a:spcPts val="${index ? 750 : 1500}"/></a:spcAft></a:pPr>` +
+						`<a:r><a:rPr sz="1800"/><a:t>${text}</a:t></a:r></a:p>`,
+				)
+				.join('');
+			zip.file(
+				path,
+				xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/gu, (shape) =>
+					shape.includes('>TARGET<') ? shape.replace(/<a:p>[\s\S]*?<\/a:p>/u, paragraphs) : shape,
+				),
+			);
+			const deckPath = testInfo.outputPath('paragraph-spacing.pptx');
+			await writeFile(deckPath, await zip.generateAsync({ type: 'nodebuffer' }));
+			await loadDeck(page, deckPath);
+			const target = slideElements(page).filter({ hasText: 'Last' }).first();
+			const source = slideElements(page).filter({ hasText: 'SOURCE' }).first();
+			const spacing = () =>
+				target.evaluate((element) =>
+					Math.max(
+						0,
+						...[...element.querySelectorAll<HTMLElement>('*')]
+							.filter(
+								(node) =>
+									node.textContent?.includes('Last') &&
+									!node.textContent.includes('First') &&
+									!node.textContent.includes('Inserted'),
+							)
+							.map((node) => Number.parseFloat(getComputedStyle(node).marginBottom) || 0),
+					),
+				);
+			await expect.poll(spacing).toBe(10);
+			await target.dblclick();
+			const editor = page.locator('[data-inline-editor]');
+			await expect(editor).toBeVisible();
+			await editor.fill(body);
+			await source.click();
+			await expect(editor).toBeHidden();
+			await expect.poll(spacing).toBe(10);
+			await expect(target).toContainText('Last');
+			if (operation === 'middle insertion') {
+				await expect(target).toContainText('Inserted');
+			} else {
+				await expect(target).not.toContainText('First');
+			}
+			await page.keyboard.press('Control+z');
+			await expect(target).toContainText('First');
+			await expect(target).not.toContainText('Inserted');
+			await expect.poll(spacing).toBe(10);
+			await page.keyboard.press('Control+y');
+			await expect.poll(spacing).toBe(10);
+			if (operation === 'middle insertion') {
+				await expect(target).toContainText('Inserted');
+			} else {
+				await expect(target).not.toContainText('First');
+			}
+		});
+	}
+
 	test('resize: dragging the SE corner handle grows the shape, Ctrl+Z restores it', async ({
 		page,
 	}) => {

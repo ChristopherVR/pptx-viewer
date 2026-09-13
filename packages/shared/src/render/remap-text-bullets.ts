@@ -1,7 +1,43 @@
 import type { TextSegment } from 'pptx-viewer-core';
+import { breakAutoNumberRun, createAutoNumberSequence, nextAutoNumber } from 'pptx-viewer-core';
 
 import { resolveParagraphBullet } from './bullet-list';
 import { isBulletMarkerSegment } from './bullet-toggle';
+import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
+
+/** Refresh only derived ordinals after existing paragraphs have moved. */
+export function renumberRemappedParagraphs(segments: TextSegment[]): TextSegment[] {
+	const sequence = createAutoNumberSequence();
+	let first = true;
+	return segments.map((segment) => {
+		const paragraphStart = first;
+		first = isParagraphSeparatorSegment(segment);
+		if (!paragraphStart) {
+			return segment;
+		}
+		const info = segment.bulletInfo;
+		const level = segment.paragraphLevel ?? 0;
+		if (!info?.autoNumType || !resolveParagraphBullet(segment)?.isNumbered) {
+			breakAutoNumberRun(sequence, level);
+			return segment;
+		}
+		const ordinal =
+			nextAutoNumber(sequence, level, info.autoNumType, info.autoNumStartAt ?? 1) -
+			(info.autoNumStartAt ?? 1);
+		// An unknown runtime index may accompany literal marker-like body text.
+		if (info.paragraphIndex === undefined || info.paragraphIndex === ordinal) {
+			return segment;
+		}
+		const updated = { ...segment, bulletInfo: { ...info, paragraphIndex: ordinal } };
+		if (isBulletMarkerSegment(segment)) {
+			const resolved = resolveParagraphBullet(updated);
+			if (resolved) {
+				updated.text = resolved.marker + (segment.text.match(/\s+$/u)?.[0] ?? '');
+			}
+		}
+		return updated;
+	});
+}
 
 /** Remove a display-only marker from editor text before remapping its content. */
 export function withoutRenderedBulletPrefix(
