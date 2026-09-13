@@ -172,9 +172,8 @@ describe('stage interactions: touch inline editing', () => {
 		replace(textElement('el-1', 'Replacement'));
 		expect(interactions.readPendingInlineTextEdit!()).toBeUndefined();
 		expect(editorSurface()).toBeNull();
-		expect(
-			'text' in store.get().slides[0].elements[0] && store.get().slides[0].elements[0].text,
-		).toBe('Replacement');
+		const replaced = store.get().slides[0].elements[0];
+		expect('text' in replaced && replaced.text).toBe('Replacement');
 		cleanup();
 	});
 

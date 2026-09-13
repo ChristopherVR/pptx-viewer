@@ -95,10 +95,12 @@ describe('createInspectorActions text', () => {
 				],
 			}),
 		);
-		expect('text' in selectedEl(store) && selectedEl(store).text).toBe('Typed');
+		const formatted = selectedEl(store);
+		expect('text' in formatted && formatted.text).toBe('Typed');
 		apply(() => ({ textSegments: [{ text: 'TYPED', style: {} }] }));
 		expect(ops.cancelInlineList).toHaveBeenCalledOnce();
-		expect('text' in selectedEl(store) && selectedEl(store).text).toBe('TYPED');
+		const rewritten = selectedEl(store);
+		expect('text' in rewritten && rewritten.text).toBe('TYPED');
 	});
 
 	it('does not run a format builder or write history for an unsupported list draft', () => {
