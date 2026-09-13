@@ -16,6 +16,7 @@
 
 // ── Viewer ─────────────────────────────────────────────────────────────
 export { createPptxViewer, PptxViewer } from './viewer';
+export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
 export type { PptxViewerCallbacks, PptxViewerInstance, PptxViewerOptions } from './viewer';
 export type { PptxViewerSource } from './viewer';
 export type { ViewerState, ZoomLevel } from './viewer';

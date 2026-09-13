@@ -1716,6 +1716,8 @@ defineExpose<PowerPointViewerExpose>(
 						:canvas-size="canvasSize"
 						:media-data-urls="mediaDataUrls"
 						:zoom="effectiveZoom"
+						:fit-padding="props.fitPadding"
+						:max-fit-scale="props.maxFitScale"
 						:show-rulers="showRulers && !presentation.presenting.value"
 						:ruler-selected-bounds="selection.rulerSelectedBounds.value"
 						:can-drag-guides="canEditEffective && !presentation.presenting.value"

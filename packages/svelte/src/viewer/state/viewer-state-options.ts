@@ -49,6 +49,8 @@ export function toViewerStateOptions(
 		getAreaChart3D: () => getProps().areaChart3D ?? false,
 		getPieChart3D: () => getProps().pieChart3D ?? false,
 		getEditable: () => getProps().editable ?? false,
+		getFitPadding: () => getProps().fitPadding,
+		getMaxFitScale: () => getProps().maxFitScale,
 		getFileName: () => getProps().fileName,
 		getAiEnabled: () => Boolean(getProps().ai),
 		get collaboration() {

@@ -22,6 +22,7 @@ export type {
 
 // ── Shared API types ──
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
+export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
 
 // ── Slide template gallery (New Slide starter slides) ──
 export { SlideTemplateGalleryDialog } from './viewer/components/SlideTemplateGalleryDialog';

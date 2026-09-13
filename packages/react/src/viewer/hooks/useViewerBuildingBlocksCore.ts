@@ -10,7 +10,7 @@ import type { PptxHandler, PptxSlide } from 'pptx-viewer-core';
  * corresponding section of `PowerPointViewer.tsx`.
  */
 import { buildThemeColorMap } from 'pptx-viewer-core';
-import type { ViewerOptions } from 'pptx-viewer-shared';
+import type { ViewerOptions, ViewportFitOptions } from 'pptx-viewer-shared';
 import { resolveHistoryDepth, resolveImageResolutionScale } from 'pptx-viewer-shared';
 import { useCallback, useMemo } from 'react';
 
@@ -31,7 +31,7 @@ import { useZoomViewport } from './useZoomViewport';
 // Input / Output
 // ---------------------------------------------------------------------------
 
-export interface UseViewerBuildingBlocksCoreInput {
+export interface UseViewerBuildingBlocksCoreInput extends ViewportFitOptions {
 	content: ArrayBuffer | Uint8Array | null;
 	canEdit: boolean;
 }
@@ -109,7 +109,12 @@ export function useViewerBuildingBlocksCore(
 		],
 	);
 
-	const zoom = useZoomViewport({ canvasSize, selectedElements: state.selectedElements });
+	const zoom = useZoomViewport({
+		canvasSize,
+		selectedElements: state.selectedElements,
+		fitPadding: input.fitPadding,
+		maxFitScale: input.maxFitScale,
+	});
 
 	// Read here (not only inside `PowerPointViewer`) so the headless
 	// building-blocks API's undo stack honors Advanced > "Maximum number of

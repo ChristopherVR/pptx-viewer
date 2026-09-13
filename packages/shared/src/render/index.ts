@@ -1577,3 +1577,4 @@ export * from './foreign-object-style-inline';
 export * from './foreign-object-font-embed';
 export * from './foreign-object-image-embed';
 export * from './foreign-object-svg-document';
+export * from './viewport-fit';

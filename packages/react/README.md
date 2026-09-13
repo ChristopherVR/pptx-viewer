@@ -168,6 +168,18 @@ import { renderToCanvas } from 'pptx-react-viewer';
 const canvas = await renderToCanvas(element, options); // => HTMLCanvasElement
 ```
 
+### Viewport fit options
+
+```tsx
+<PowerPointViewer content={content} fitPadding={0} maxFitScale={null} />
+```
+
+`fitPadding` accepts a per-side CSS-pixel number or `{ horizontal, vertical }`.
+`maxFitScale` accepts a positive ceiling or `null` for unlimited enlargement.
+Omission preserves React's 4 px horizontal / 16 px vertical padding and fit
+ceiling of 1. These host options do not change the document or user zoom; ruler
+space and surrounding chrome remain separate. See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
+
 ### Composing a custom viewer shell
 
 `<PowerPointViewer>` bundles a full editor chrome (toolbar, canvas, side panels, dialogs, presentation mode). If you only need the toolbar and slide canvas, with your own layout around them, `Toolbar` and `SlideCanvas` are exported as standalone components, and `useViewerBuildingBlocks` wires up the same state and hooks `PowerPointViewer` uses internally, mapped into the flat props those two components expect:
@@ -180,19 +192,26 @@ function MyCustomViewer({ content }: { content: Uint8Array }) {
 	const { toolbarProps, canvasProps, loading, error } = useViewerBuildingBlocks({
 		content,
 		canEdit: true,
+		fitPadding: 0,
+		maxFitScale: null,
 	});
 
 	if (loading) return <p>Loading…</p>;
 	if (error) return <p>Failed to load: {error}</p>;
 
 	return (
-		<div className='my-custom-layout'>
+		<div style={{ display: 'flex', flexDirection: 'column', height: 540, minHeight: 0 }}>
 			<Toolbar {...toolbarProps} />
-			<SlideCanvas {...canvasProps} />
+			<SlideCanvas {...canvasProps} showRulers={false} />
 		</div>
 	);
 }
 ```
+
+The example disables rulers for edge-aligned fitting. Existing ruler offsets are
+unchanged when rulers are enabled; `fitPadding: 0` does not remove those offsets.
+The toolbar also uses part of the host height, so the canvas fits its remaining
+viewport rather than the whole 540 px host.
 
 `useViewerBuildingBlocks` accepts the same `content` / `canEdit` / `filePath` / `hiddenActions` / `onDirtyChange`-style inputs as `PowerPointViewer`, plus `onOpenSettings` / `onOpenHeaderFooter` / `onOpenShareDialog` callbacks (fired by the corresponding toolbar buttons) since this composition doesn't render those dialogs itself. It's an additive alternative, not a replacement: dialogs, presentation-mode overlays, mobile chrome, resizable side panels, and real-time collaboration are all part of `PowerPointViewer` and are out of scope for these building blocks. Reach for `PowerPointViewer` when you need the full editor; reach for `useViewerBuildingBlocks` when you're assembling your own chrome around just the toolbar and canvas.
 

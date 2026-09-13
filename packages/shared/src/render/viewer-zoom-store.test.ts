@@ -132,6 +132,16 @@ describe('zoom notification cost', () => {
 		expect(onScale).toHaveBeenCalledTimes(2);
 	});
 
+	it('keeps enlargement separate from the user zoom limits', () => {
+		const store = createViewerZoomStore();
+		store.dispatch({ type: 'set-fit-scale', fitScale: 2 }, { type: 'set-zoom', zoom: 1.5 });
+		expect(effectiveZoomScale(store.getState())).toBe(3);
+		expect(store.getState().zoom).toBe(1.5);
+		store.dispatch({ type: 'set-zoom', zoom: 10 });
+		expect(store.getState().zoom).toBe(5);
+		expect(effectiveZoomScale(store.getState())).toBe(10);
+	});
+
 	it('lands a fit measurement and a zoom reset as one notification', () => {
 		const store = createViewerZoomStore({ zoom: 2, manual: true });
 		const listener = vi.fn();

@@ -1,8 +1,10 @@
+import type { ViewportFitOptions } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ViewerStateBag } from './create-viewer-state-types';
 import CreateViewerStateHarness from './CreateViewerStateHarness.svelte';
+import { toViewerStateOptions } from './viewer-state-options';
 
 /**
  * Runtime proof that `createViewerState` actually works under Svelte's
@@ -33,6 +35,8 @@ interface HarnessProps {
 	filePath?: string;
 	editable?: boolean;
 	onautosavetoggle?: (enabled: boolean) => void;
+	viewport?: { width: number; height: number };
+	fitOptions?: ViewportFitOptions;
 }
 
 function renderHarness(props: HarnessProps = {}): ViewerStateBag {
@@ -57,6 +61,50 @@ function renderHarness(props: HarnessProps = {}): ViewerStateBag {
 }
 
 describe('createViewerState', () => {
+	it('reads the public fit props through live getters', () => {
+		let props: ViewportFitOptions = { fitPadding: 0, maxFitScale: null };
+		const options = toViewerStateOptions(() => props, {
+			t: (key) => key,
+			getRootEl: () => undefined,
+			getStageHolderEl: () => undefined,
+			getViewportWidth: () => 960,
+			getViewportHeight: () => 540,
+			getMasterScale: () => 1,
+		});
+		expect(options.getFitPadding?.()).toBe(0);
+		expect(options.getMaxFitScale?.()).toBeNull();
+		props = { fitPadding: { horizontal: 4, vertical: 8 }, maxFitScale: 1.25 };
+		expect(options.getFitPadding?.()).toStrictEqual({ horizontal: 4, vertical: 8 });
+		expect(options.getMaxFitScale?.()).toBe(1.25);
+	});
+
+	it('updates host fit policy without changing manual zoom or fullscreen fit', () => {
+		const viewport = $state({ width: 1920, height: 1080 });
+		const fitOptions: ViewportFitOptions = $state({ fitPadding: 0, maxFitScale: null });
+		const state = renderHarness({ viewport, fitOptions });
+		state.loader.canvasSize = { width: 960, height: 540 };
+		flushSync();
+		expect(state.scale).toBe(2);
+		state.viewer.zoomPercent = 150;
+		flushSync();
+		expect(state.scale).toBe(3);
+		fitOptions.maxFitScale = 1.25;
+		flushSync();
+		expect(state.scale).toBe(1.875);
+		expect(state.viewer.zoomPercent).toBe(150);
+		state.viewer.isFullscreen = true;
+		flushSync();
+		expect(state.scale).toBe(2);
+		state.viewer.isFullscreen = false;
+		viewport.width = 960;
+		viewport.height = 540;
+		fitOptions.fitPadding = undefined;
+		fitOptions.maxFitScale = undefined;
+		flushSync();
+		expect(state.scale).toBeCloseTo((492 / 540) * 1.5);
+		expect(state.editor.dirty).toBeFalsy();
+	});
+
 	it('mounts without throwing and constructs every controller', () => {
 		const state = renderHarness();
 

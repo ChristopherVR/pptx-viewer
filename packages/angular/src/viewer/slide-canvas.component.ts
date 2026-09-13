@@ -52,6 +52,7 @@ import type {
 	RulerUnit,
 	ShapeAdjustmentDragState,
 	Tick,
+	ViewportFitPadding,
 } from '../internal/shared';
 import type { AiCanvasHighlight, AiChangeBatch } from '../internal/shared-ai';
 import { resolveContextMenuElementId } from '../internal/shared-src/render/context-menu-target';
@@ -194,6 +195,10 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly zoom = input<number>(1);
+	/** Unscaled padding on each side; omission keeps the existing fit allowance. */
+	readonly fitPadding = input<ViewportFitPadding | undefined>(undefined);
+	/** Fit-factor ceiling, independent of user zoom; null permits enlargement. */
+	readonly maxFitScale = input<number | null | undefined>(undefined);
 	/** When true, elements are selectable and drag/resize handles are shown. */
 	readonly editable = input<boolean>(false);
 	/**
@@ -493,11 +498,14 @@ export class SlideCanvasComponent implements SlideContext {
 			autoFit: () => this.autoFit(),
 			viewportElement: () => this.viewportRef()?.nativeElement,
 			canvasSize: () => this.canvasSize(),
+			fitOptions: () => ({ fitPadding: this.fitPadding(), maxFitScale: this.maxFitScale() }),
 		});
 
 		// Re-fit whenever the authored slide size changes (e.g. switching decks).
 		effect(() => {
 			this.canvasSize();
+			this.fitPadding();
+			this.maxFitScale();
 			this.canvasFit.recompute();
 		});
 

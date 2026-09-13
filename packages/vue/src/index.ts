@@ -21,6 +21,8 @@ export {
 } from './viewer';
 export type {
 	PowerPointViewerProps,
+	ViewportFitOptions,
+	ViewportFitPadding,
 	PowerPointViewerEmits,
 	PowerPointViewerExpose,
 	CollaborationConfig,

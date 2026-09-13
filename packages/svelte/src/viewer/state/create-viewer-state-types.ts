@@ -6,6 +6,7 @@ import type {
 	FieldSubstitutionContext,
 	MobileSheetKey,
 	ViewerMode,
+	ViewportFitPadding,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n/translator';
@@ -104,6 +105,8 @@ export interface CreateViewerStateOptions {
 	getRootEl: () => HTMLDivElement | undefined;
 	getViewportWidth: () => number;
 	getViewportHeight: () => number;
+	getFitPadding?: () => ViewportFitPadding | undefined;
+	getMaxFitScale?: () => number | null | undefined;
 	/** Master/layout workspace zoom, assigned by `MasterViewBody`. */
 	getMasterScale: () => number;
 }

@@ -1,4 +1,4 @@
-import type { CanvasSize } from 'pptx-viewer-shared';
+import type { CanvasSize, ViewportFitPadding } from 'pptx-viewer-shared';
 
 import { fitScale } from './navigation';
 
@@ -8,6 +8,8 @@ export interface LayoutStateDeps {
 	isFullscreen(): boolean;
 	/** Manual zoom percent, or `null` for fit-to-viewport. */
 	getZoomPercent(): number | null;
+	getFitPadding?(): ViewportFitPadding | undefined;
+	getMaxFitScale?(): number | null | undefined;
 }
 
 /**
@@ -41,7 +43,8 @@ export class LayoutState {
 			this.viewportHeight,
 			width,
 			height,
-			this.#deps.isFullscreen() ? 0 : 24,
+			this.#deps.isFullscreen() ? 0 : this.#deps.getFitPadding?.(),
+			this.#deps.isFullscreen() ? null : this.#deps.getMaxFitScale?.(),
 		);
 	}
 

@@ -45,6 +45,33 @@ test.use({ viewport: { width: 1440, height: 900 } });
 
 const CANVAS_DECK = fixture('canvas-interaction.pptx');
 
+// The demos omit the host fit options. Keep their existing automatic-fit path
+// covered across bindings without introducing a demo-only configuration API.
+// Explicit host options are exercised by each binding's public API unit tests.
+test('default fitting follows viewport resize without changing authored geometry', async ({
+	page,
+}) => {
+	await loadDeck(page, CANVAS_DECK);
+	const target = shape(page, 'Box A');
+	await expect(target).toBeVisible();
+	const authored = await geomOf(target);
+	const original = (await target.boundingBox())!;
+
+	await page.setViewportSize({ width: 1100, height: 650 });
+	await expect
+		.poll(async () => (await target.boundingBox())!.width)
+		.toBeLessThan(original.width - 1);
+	const smaller = (await target.boundingBox())!;
+	expect(smaller.width / smaller.height).toBeCloseTo(original.width / original.height, 2);
+	expect(await geomOf(target)).toStrictEqual(authored);
+
+	await page.setViewportSize({ width: 1440, height: 900 });
+	await expect
+		.poll(async () => Math.abs((await target.boundingBox())!.width - original.width))
+		.toBeLessThan(1);
+	expect(await geomOf(target)).toStrictEqual(authored);
+});
+
 /** Layout geometry in the stage's unscaled slide-coordinate space. */
 function geomOf(locator: Locator) {
 	return locator.evaluate((el) => {
