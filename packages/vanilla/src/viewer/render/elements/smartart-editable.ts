@@ -35,9 +35,13 @@ export function enableSmartArtEditing(
 	let editor: HTMLTextAreaElement | null = null;
 	let swatches: HTMLDivElement | null = null;
 
-	const closeEditor = (): void => {
-		editor?.remove();
+	const closeEditor = (input = editor): void => {
+		if (!input || input !== editor) {
+			return;
+		}
+		// Settle before removal can synchronously dispatch blur.
 		editor = null;
+		input.remove();
 	};
 
 	chrome.addEventListener('dblclick', (event) => {
@@ -56,7 +60,7 @@ export function enableSmartArtEditing(
 		}
 		closeEditor();
 		swatches?.remove();
-		editor = createEl(chrome.ownerDocument, 'textarea', 'pptxv-smartart-node-editor', {
+		const input = createEl(chrome.ownerDocument, 'textarea', 'pptxv-smartart-node-editor', {
 			position: 'absolute',
 			left: `${rect.left - 4}px`,
 			top: `${rect.top - 4}px`,
@@ -73,28 +77,30 @@ export function enableSmartArtEditing(
 			color: '#111827',
 			textAlign: 'center',
 		});
-		editor.value = findSmartArtNodeText(data, nodeId) ?? '';
+		editor = input;
+		input.value = findSmartArtNodeText(data, nodeId) ?? '';
 		const commit = (): void => {
-			if (!editor) {
+			if (input !== editor) {
 				return;
 			}
-			context.onSmartArtNodeTextChange?.(element, nodeId, editor.value);
-			closeEditor();
+			const value = input.value;
+			closeEditor(input);
+			context.onSmartArtNodeTextChange?.(element, nodeId, value);
 		};
-		editor.addEventListener('blur', commit, { once: true });
-		editor.addEventListener('keydown', (keyEvent) => {
+		input.addEventListener('blur', commit, { once: true });
+		input.addEventListener('keydown', (keyEvent) => {
 			if (keyEvent.key === 'Escape') {
 				keyEvent.preventDefault();
-				closeEditor();
+				closeEditor(input);
 			} else if (keyEvent.key === 'Enter' && !keyEvent.shiftKey) {
 				keyEvent.preventDefault();
 				commit();
 			}
 		});
-		editor.addEventListener('pointerdown', (pointerEvent) => pointerEvent.stopPropagation());
-		chrome.appendChild(editor);
-		editor.focus();
-		editor.select();
+		input.addEventListener('pointerdown', (pointerEvent) => pointerEvent.stopPropagation());
+		chrome.appendChild(input);
+		input.focus();
+		input.select();
 	});
 
 	chrome.addEventListener('mouseover', (event) => {

@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
 // @vitest-environment happy-dom
 /**
@@ -24,6 +25,7 @@ import type { ViewerBuildingBlocksResult } from './useViewerBuildingBlocks';
 
 let fixtureBytes: Uint8Array;
 let twoSlideFixtureBytes: Uint8Array;
+let embeddedFixtureBytes: Uint8Array;
 
 const { autosaveInputs } = vi.hoisted(() => ({ autosaveInputs: [] as UseAutosaveInput[] }));
 
@@ -43,6 +45,13 @@ beforeAll(async () => {
 		initialSlideCount: 1,
 	});
 	fixtureBytes = await oneSlide.handler.save(oneSlide.data.slides);
+	// Match core's embedded-font-list round-trip fixture: a minimal sfnt header
+	// in a GUID-named part that the loader recognizes as an embedded font.
+	const rawFontData = new Uint8Array(64);
+	rawFontData.set([0, 1, 0, 0]);
+	embeddedFixtureBytes = await oneSlide.handler.save(oneSlide.data.slides, {
+		embeddedFonts: [{ name: 'Sample Font', dataUrl: '', rawFontData, format: 'truetype' }],
+	});
 	oneSlide.handler.dispose();
 
 	const twoSlides = await PptxHandler.create({
@@ -178,6 +187,53 @@ describe('useViewerBuildingBlocks', () => {
 		expect(handle.current?.isDirty()).toBeFalsy();
 		expect(latestAutosaveDirty()).toBeFalsy();
 	}, 15_000);
+
+	it('preserves embedded fonts through getContent after switching decks', async () => {
+		const embeddedBytes = embeddedFixtureBytes;
+		const loader = new PptxHandler();
+		const parsed = await loader.load(embeddedBytes.buffer as ArrayBuffer);
+		expect(parsed.embeddedFonts?.map((font) => font.name)).toStrictEqual(['Sample Font']);
+		loader.dispose();
+		const original = await JSZip.loadAsync(embeddedBytes);
+		const fontPaths = Object.keys(original.files).filter((name) => name.endsWith('.fntdata'));
+		expect(fontPaths).toHaveLength(1);
+		const handle = createRef<PowerPointViewerHandle>();
+		async function loadAndSave(content: Uint8Array): Promise<JSZip> {
+			await act(async () => {
+				root.render(React.createElement(Harness, { content, handle }));
+			});
+			await flushUntil(() => latest?.loading === false);
+			expect(latest?.loading).toBeFalsy();
+			expect(latest?.error).toBeNull();
+			let savedBytes: Uint8Array | undefined;
+			await act(async () => {
+				savedBytes = await handle.current?.getContent();
+			});
+			expect(savedBytes).toBeDefined();
+			return JSZip.loadAsync(savedBytes!);
+		}
+		for (const content of [fixtureBytes, embeddedBytes, fixtureBytes, embeddedBytes]) {
+			const saved = await loadAndSave(content);
+			const expectedPaths = content === embeddedBytes ? fontPaths : [];
+			expect(
+				Object.keys(saved.files)
+					.filter((name) => name.endsWith('.fntdata'))
+					.sort(),
+			).toStrictEqual([...expectedPaths].sort());
+			const presentation = await saved.file('ppt/presentation.xml')!.async('string');
+			const relationships = await saved.file('ppt/_rels/presentation.xml.rels')!.async('string');
+			expect(presentation.includes('embeddedFontLst')).toBe(content === embeddedBytes);
+			expect([...relationships.matchAll(/Type="[^"]*\/font"/gu)]).toHaveLength(
+				expectedPaths.length,
+			);
+			for (const fontPath of expectedPaths) {
+				await expect(saved.file(fontPath)!.async('uint8array')).resolves.toStrictEqual(
+					await original.file(fontPath)!.async('uint8array'),
+				);
+				expect(relationships).toContain(`Target="${fontPath.substring(4)}"`);
+			}
+		}
+	}, 30_000);
 
 	it('loads a real PPTX buffer and produces working toolbar/canvas props', async () => {
 		await act(async () => {

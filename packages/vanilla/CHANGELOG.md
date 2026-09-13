@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.16.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.6) - 2026-09-12
+
+### Bug Fixes
+
+- **shared:** Measure SmartArt overlays in local SVG coordinates (by @Sudhansh6) ([e79f3b5](https://github.com/ChristopherVR/pptx-viewer/commit/e79f3b5c5f0ac99835e3206f6262c005e576454f))
+- **vanilla:** Position SmartArt editors and swatches locally (by @Sudhansh6) ([0120103](https://github.com/ChristopherVR/pptx-viewer/commit/0120103b9b1ea6980cccea43f911b67b68844e5d))
+- **core:** Preserve edited table column widths on save (by @Sudhansh6) ([fe4539f](https://github.com/ChristopherVR/pptx-viewer/commit/fe4539f0aead4ea773ef1aa4426debba40c39f16))
+
+### Chores
+
+- Merge main and preserve SmartArt editing coverage (by @Sudhansh6) ([f3c32b4](https://github.com/ChristopherVR/pptx-viewer/commit/f3c32b473e9677b61590dbd8503ba64cdc34bd86))
+
 ## [2.16.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.5) - 2026-09-12
 
 ### Bug Fixes
