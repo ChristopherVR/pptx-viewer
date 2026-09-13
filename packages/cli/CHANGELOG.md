@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.13.8](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.8) - 2026-09-13
+
+### Bug Fixes
+
+- **react:** Preserve embedded fonts in headless saves (by @Sudhansh6) ([f1d2ac6](https://github.com/ChristopherVR/pptx-viewer/commit/f1d2ac6357f698605bac7ff7a4d6a6db4c68d68d))
+- **react:** Record click-away text edits in history (by @Sudhansh6) ([3bc665f](https://github.com/ChristopherVR/pptx-viewer/commit/3bc665f5f10ef8dc4b0b6718ce81ce7b10263c37))
+
+### Testing
+
+- **react:** Cover paragraph insertion and pending text edits (by @Sudhansh6) ([a8b21a0](https://github.com/ChristopherVR/pptx-viewer/commit/a8b21a0ed984e31d053f8d7985d54bd8a006b071))
+
+### Chores
+
+- Merge updated SmartArt geometry coverage (by @Sudhansh6) ([d0364a9](https://github.com/ChristopherVR/pptx-viewer/commit/d0364a9169fc8520b91ccd73ac30962cbbf520d2))
+- Merge main before SmartArt cancellation contribution (by @Sudhansh6) ([4581de6](https://github.com/ChristopherVR/pptx-viewer/commit/4581de613b294edc07534bd4721c0e1e1afe2ebb))
+
 ## [2.13.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.13.7) - 2026-09-12
 
 ### Bug Fixes

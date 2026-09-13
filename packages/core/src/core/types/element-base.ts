@@ -107,6 +107,19 @@ export interface PptxElementBase {
 	widthEmu?: number;
 	/** The exact EMU integer `height` was parsed from (`a:ext/@_cy`). See {@link xEmu}. */
 	heightEmu?: number;
+	/** Resolved load-time transform for a shape with no own a:xfrm. Used only to detect edits. */
+	inheritedTransform?: Pick<
+		PptxElementBase,
+		| 'x'
+		| 'y'
+		| 'width'
+		| 'height'
+		| 'rotation'
+		| 'skewX'
+		| 'skewY'
+		| 'flipHorizontal'
+		| 'flipVertical'
+	>;
 	rotation?: number;
 	/** Skew along the X axis in degrees (parsed from `@_skewX` in 1/60000ths of a degree). */
 	skewX?: number;

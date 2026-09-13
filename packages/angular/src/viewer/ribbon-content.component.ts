@@ -135,6 +135,7 @@ import type { RibbonTab } from './ribbon-types';
 				/>
 				<span class="pptx-rb-sep"></span>
 				<pptx-ribbon-paragraph-controls
+					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 				/>

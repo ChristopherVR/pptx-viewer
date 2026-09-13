@@ -1,3 +1,4 @@
+import { resolveConnectorShapeIds } from '../../services';
 import type {
 	PptxElement,
 	PptxSlide,
@@ -128,6 +129,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			elements,
 		};
 		const ctx: SaveSlideContext = {
+			connectorShapeIds: resolveConnectorShapeIds(elements, this.maxCnvPrId(spTree)),
 			slide,
 			slideRelationships: relationships,
 			slideRelationshipRegistry: relationshipRegistry,

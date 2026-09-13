@@ -1,9 +1,11 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import { remapTextToSegments, toggleElementBullets } from 'pptx-viewer-shared';
 
 import { canFormatText, readTextFormatState } from './editor-format-mutations';
+import { currentInlineEditorText } from './inline-text-editor';
 
 /**
- * Pure paragraph-level formatting-patch builders for the vanilla editor
+ * Paragraph-level formatting-patch builders for the vanilla editor
  * (list type, indent, alignment, line spacing). Split out of
  * `editor-format-mutations.ts` (character-level formatting) to keep both
  * files within the project's file-size budget; same whole-element scope note
@@ -31,8 +33,22 @@ export function toggleListType(
 	el: PptxElement,
 	kind: Exclude<TextStyle['listType'], 'none' | undefined>,
 ): Partial<PptxElement> {
-	const current = readTextFormatState(el).listType;
-	return patchTextStyle(el, { listType: current === kind ? 'none' : kind });
+	if (!canFormatText(el)) {
+		return {};
+	}
+	const liveText = currentInlineEditorText();
+	const current =
+		liveText === undefined
+			? el
+			: {
+					...el,
+					text: liveText,
+					textSegments: remapTextToSegments(liveText, el.textSegments, el.textStyle),
+				};
+	return {
+		...(liveText === undefined ? {} : { text: liveText }),
+		...toggleElementBullets(current, kind),
+	};
 }
 
 /** Step the paragraph left margin (indent) by `deltaSteps` * {@link INDENT_STEP_PX}, clamped >= 0. */

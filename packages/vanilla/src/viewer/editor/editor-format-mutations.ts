@@ -11,6 +11,7 @@ import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import {
 	applyCaseTransformToSegments,
+	elementBulletKind,
 	remapTextToSegments,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
@@ -115,7 +116,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 		colorRef: ts?.colorRef ?? firstRun?.colorRef,
 		highlightColor: ts?.highlightColor ?? firstRun?.highlightColor,
 		characterSpacing: ts?.characterSpacing ?? firstRun?.characterSpacing ?? 0,
-		listType: ts?.listType ?? firstRun?.listType,
+		listType: canFormatText(el) ? elementBulletKind(el) : 'none',
 		align: ts?.align ?? firstRun?.align,
 		paragraphMarginLeft: ts?.paragraphMarginLeft ?? firstRun?.paragraphMarginLeft ?? 0,
 		lineSpacing: ts?.lineSpacing ?? firstRun?.lineSpacing,

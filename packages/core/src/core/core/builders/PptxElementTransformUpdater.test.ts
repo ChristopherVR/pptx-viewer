@@ -215,6 +215,139 @@ describe('pptxElementTransformUpdater', () => {
 		expect((shape['p:spPr'] as XmlObject)['a:xfrm']).toBeUndefined();
 	});
 
+	it('materializes a changed inherited shape while keeping property siblings and native EMUs', () => {
+		const geometry = { '@_prst': 'rect' };
+		const shape: XmlObject = { 'p:nvSpPr': {}, 'p:spPr': { 'a:prstGeom': geometry } };
+		const element = makeElement({ x: 10, y: 20, width: 100, height: 100, yEmu: 190501 });
+		element.inheritedTransform = { x: 0, y: 20, width: 100, height: 100 };
+		const baseline = structuredClone(element.inheritedTransform);
+		updater.applyTransform(shape, structuredClone(element), EMU_PER_PX);
+		const properties = shape['p:spPr'] as XmlObject;
+		const transform = properties['a:xfrm'] as XmlObject;
+		expect(Object.keys(properties)).toStrictEqual(['a:xfrm', 'a:prstGeom']);
+		expect(properties['a:prstGeom']).toBe(geometry);
+		expect(transform['a:off']).toStrictEqual({ '@_x': '95250', '@_y': '190501' });
+		expect(element.inheritedTransform).toStrictEqual(baseline);
+	});
+
+	it('does not pin an inherited transform after an edit is undone', () => {
+		const shape: XmlObject = { 'p:nvSpPr': {}, 'p:spPr': '' };
+		const element = makeElement({ x: 10, rotation: 45, flipHorizontal: true });
+		element.inheritedTransform = {
+			x: element.x,
+			y: element.y,
+			width: element.width,
+			height: element.height,
+			rotation: 45,
+			flipHorizontal: true,
+		};
+		element.x += 20;
+		element.x -= 20;
+		element.rotation = 0;
+		element.rotation = 45;
+		element.flipHorizontal = false;
+		element.flipHorizontal = true;
+		updater.applyTransform(shape, element, EMU_PER_PX);
+		expect(shape['p:spPr']).toBe('');
+	});
+
+	it.each([Number.NaN, Number.POSITIVE_INFINITY, -1])(
+		'does not materialize invalid width %s',
+		(width) => {
+			const shape: XmlObject = { 'p:nvSpPr': {}, 'p:spPr': '' };
+			const element = makeElement({ width });
+			element.inheritedTransform = { x: 0, y: 0, width: 100, height: 100 };
+			updater.applyTransform(shape, element, EMU_PER_PX);
+			expect(shape['p:spPr']).toBe('');
+		},
+	);
+
+	it('allows zero inherited extent without pinning it until another coordinate changes', () => {
+		const shape: XmlObject = { 'p:nvSpPr': {}, 'p:spPr': '' };
+		const element = makeElement({ width: 0 });
+		element.inheritedTransform = { x: 0, y: 0, width: 0, height: 100 };
+		updater.applyTransform(shape, element, EMU_PER_PX);
+		expect(shape['p:spPr']).toBe('');
+		element.x = 10;
+		updater.applyTransform(shape, element, EMU_PER_PX);
+		const transform = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+		expect(transform['a:ext']).toStrictEqual({ '@_cx': '0', '@_cy': '952500' });
+	});
+
+	it.each(['p:nvPicPr', 'p:nvGraphicFramePr', 'p:nvGrpSpPr'])(
+		'does not synthesize a shape transform for %s',
+		(envelope) => {
+			const shape: XmlObject = { [envelope]: {}, 'p:spPr': '' };
+			const element = makeElement({ x: 10 });
+			element.inheritedTransform = { x: 0, y: 0, width: 100, height: 100 };
+			updater.applyTransform(shape, element, EMU_PER_PX);
+			expect(shape['p:spPr']).toBe('');
+		},
+	);
+
+	it.each(['0', 'false'])(
+		'preserves an authored false flip override %s on repeated saves',
+		(flag) => {
+			const shape = makeShapeXml();
+			const transform = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+			transform['@_flipH'] = flag;
+			transform['@_flipV'] = flag;
+			updater.applyTransform(
+				shape,
+				makeElement({ flipHorizontal: false, flipVertical: false }),
+				EMU_PER_PX,
+			);
+			expect(transform['@_flipH']).toBe(flag);
+			expect(transform['@_flipV']).toBe(flag);
+		},
+	);
+
+	it.each(['p:nvSpPr', 'p:nvPicPr'])(
+		'keeps an explicit false override when clearing a %s placeholder flip',
+		(envelope) => {
+			const shape = makeShapeXml();
+			shape[envelope] = { 'p:nvPr': { 'p:ph': '' } };
+			const transform = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+			transform['@_flipH'] = '1';
+			transform['@_flipV'] = '1';
+			updater.applyTransform(
+				shape,
+				makeElement({ flipHorizontal: false, flipVertical: false }),
+				EMU_PER_PX,
+			);
+			expect(transform['@_flipH']).toBe('0');
+			expect(transform['@_flipV']).toBe('0');
+		},
+	);
+
+	it('retains the existing resize anchor when inherited rotation has not changed', () => {
+		const shape: XmlObject = { 'p:nvSpPr': {}, 'p:spPr': '' };
+		const element = makeElement({
+			x: 400,
+			y: 133,
+			width: 400,
+			height: 107,
+			rotation: 25,
+			xEmu: 3810000,
+			yEmu: 1270000,
+			widthEmu: 2540000,
+			heightEmu: 1016000,
+		});
+		element.inheritedTransform = { x: 400, y: 133, width: 267, height: 107, rotation: 25 };
+		updater.applyTransform(shape, element, EMU_PER_PX);
+		const transform = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+		expect(transform['a:off']).toStrictEqual({ '@_x': '3750505', '@_y': '1538363' });
+	});
+
+	it('does not add false flip attributes to an unchanged placeholder', () => {
+		const shape = makeShapeXml();
+		shape['p:nvSpPr'] = { 'p:nvPr': { 'p:ph': '' } };
+		const transform = (shape['p:spPr'] as XmlObject)['a:xfrm'] as XmlObject;
+		updater.applyTransform(shape, makeElement({}), EMU_PER_PX);
+		expect(transform['@_flipH']).toBeUndefined();
+		expect(transform['@_flipV']).toBeUndefined();
+	});
+
 	// ── Creates a:off / a:ext if missing ─────────────────────────────────
 
 	it('creates a:off and a:ext nodes if they are missing from xfrm', () => {

@@ -10,6 +10,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import {
+	applyListStyleUpdate,
 	masterViewElements as resolveMasterViewElements,
 	remapTextToSegments,
 	replaceMasterViewElements,
@@ -275,6 +276,19 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 
 			// Check if there's an active text selection in the inline editor
 			const inlineSel = getInlineEditorSelection(currentSegments);
+			if (updates.listType) {
+				const result = applyListStyleUpdate(
+					{ ...selectedElement, textSegments: currentSegments },
+					updates,
+					inlineSel,
+				);
+				setPendingSelectionRestore(result.selection);
+				updateSelectedElement({
+					...result.patch,
+					...(isLiveEditing ? { text: inlineEditingText } : {}),
+				});
+				return;
+			}
 			if (inlineSel && currentSegments) {
 				// Apply formatting only to the selected segment range
 				const { newSegments, newSelection } = applyStyleToSelectedSegments(

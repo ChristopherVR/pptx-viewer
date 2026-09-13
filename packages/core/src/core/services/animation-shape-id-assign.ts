@@ -17,30 +17,7 @@
  * @module services/animation-shape-id-assign
  */
 import type { PptxElement, PptxElementAnimation } from '../types';
-
-/** Flatten an element tree (following group children) into a single list. */
-function flattenElements(elements: readonly PptxElement[], out: PptxElement[]): void {
-	for (const el of elements) {
-		out.push(el);
-		if (el.type === 'group' && Array.isArray(el.children)) {
-			flattenElements(el.children, out);
-		}
-	}
-}
-
-/** Largest numeric `shapeId` currently present across all elements. */
-function maxShapeId(elements: readonly PptxElement[]): number {
-	let max = 0;
-	for (const el of elements) {
-		if (el.shapeId !== undefined) {
-			const n = Number.parseInt(el.shapeId, 10);
-			if (Number.isFinite(n) && n > max) {
-				max = n;
-			}
-		}
-	}
-	return max;
-}
+import { createShapeIdResolver } from './shape-id-resolver';
 
 /**
  * Remap a slide's editor animations so their shape references use native cNvPr
@@ -61,28 +38,7 @@ export function remapEditorAnimationsToShapeIds(
 	animations: readonly PptxElementAnimation[],
 	reservedMaxId: number = 0,
 ): PptxElementAnimation[] {
-	const flat: PptxElement[] = [];
-	flattenElements(elements, flat);
-
-	const byId = new Map<string, PptxElement>();
-	for (const el of flat) {
-		byId.set(el.id, el);
-	}
-
-	let nextId = Math.max(maxShapeId(flat), reservedMaxId) + 1;
-
-	/** Resolve an `element.id` reference to a native cNvPr id, minting if needed. */
-	const resolve = (elementId: string): string | undefined => {
-		const el = byId.get(elementId);
-		if (!el) {
-			return undefined;
-		}
-		if (el.shapeId === undefined) {
-			el.shapeId = String(nextId);
-			nextId += 1;
-		}
-		return el.shapeId;
-	};
+	const resolve = createShapeIdResolver(elements, reservedMaxId);
 
 	return animations.map((anim) => {
 		const resolvedElement = resolve(anim.elementId);

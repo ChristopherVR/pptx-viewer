@@ -1,14 +1,12 @@
 <script lang="ts">
 	/**
 	 * ParagraphGroup: bullet / numbered list, indent, alignment, and line
-	 * spacing for the Home tab's Paragraph group. Reads/writes the element's
-	 * `textStyle` (the base every paragraph inherits from), matching
-	 * `editor-paragraph-mutations.ts`'s convention. Disabled whenever the
-	 * selection has no text properties.
+	 * spacing for the Home tab's Paragraph group. List state comes from semantic
+	 * paragraph bullets; other formatting uses the element's base text style.
 	 */
 	import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
+	import { elementBulletKind, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -23,8 +21,9 @@
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
-	const active = $derived(el !== undefined && hasTextProperties(el));
+	const active = $derived(editor.editable && el !== undefined && hasTextProperties(el));
 	const style = $derived<TextStyle>(el && hasTextProperties(el) ? (el.textStyle ?? {}) : {});
+	const listKind = $derived(el && hasTextProperties(el) ? elementBulletKind(el) : 'none');
 
 	function apply(patch: Partial<PptxElement>): void {
 		editor.patchSelected(patch);
@@ -42,9 +41,9 @@
 	<button
 		type="button"
 		class="pptx-svelte-para-btn"
-		class:pptx-svelte-para-on={style.listType === 'bullet'}
+		class:pptx-svelte-para-on={listKind === 'bullet'}
 		disabled={!active}
-		aria-pressed={style.listType === 'bullet'}
+		aria-pressed={listKind === 'bullet'}
 		aria-label={t('pptx.text.bulletList')}
 		title={t('pptx.text.bulletList')}
 		onclick={() => el && apply(toggleListTypePatch(el, 'bullet'))}
@@ -54,9 +53,9 @@
 	<button
 		type="button"
 		class="pptx-svelte-para-btn"
-		class:pptx-svelte-para-on={style.listType === 'numbered'}
+		class:pptx-svelte-para-on={listKind === 'numbered'}
 		disabled={!active}
-		aria-pressed={style.listType === 'numbered'}
+		aria-pressed={listKind === 'numbered'}
 		aria-label={t('pptx.text.numberedList')}
 		title={t('pptx.text.numberedList')}
 		onclick={() => el && apply(toggleListTypePatch(el, 'numbered'))}

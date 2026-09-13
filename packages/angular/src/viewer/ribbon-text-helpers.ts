@@ -7,6 +7,7 @@
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 
+import { setElementBullets } from '../internal/shared';
 import { INLINE_EDITOR_SELECTOR } from '../internal/shared-src/render/context-menu-target';
 import { textStylePatch } from '../internal/shared-src/render/inspector-helpers';
 import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
@@ -48,6 +49,30 @@ export function patchTextStyle(
 	patch: Partial<TextStyle>,
 ): void {
 	if (!el || !hasTextProperties(el)) {
+		return;
+	}
+	const { listType, ...stylePatch } = patch;
+	if (listType !== undefined) {
+		const liveText = currentInlineEditorText();
+		const base =
+			liveText === undefined
+				? el
+				: {
+						...el,
+						text: liveText,
+						textSegments: el.textSegments
+							? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+							: undefined,
+					};
+		const listed = { ...base, ...setElementBullets(base, listType) };
+		if (!hasTextProperties(listed)) {
+			return;
+		}
+		editor.updateElement(slideIndex, el.id, {
+			...(liveText !== undefined ? { text: liveText } : {}),
+			textSegments: listed.textSegments,
+			...textStylePatch(listed, stylePatch),
+		});
 		return;
 	}
 	editor.updateElement(slideIndex, el.id, textStylePatch(el, patch));

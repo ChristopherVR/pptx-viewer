@@ -7,6 +7,29 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.16.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.16.7) - 2026-09-13
+
+### Bug Fixes
+
+- **react:** Preserve embedded fonts in headless saves (by @Sudhansh6) ([f1d2ac6](https://github.com/ChristopherVR/pptx-viewer/commit/f1d2ac6357f698605bac7ff7a4d6a6db4c68d68d))
+- **shared:** Preserve paragraph properties across text insertion (by @Sudhansh6) ([624c880](https://github.com/ChristopherVR/pptx-viewer/commit/624c880ed0a1396b91a4203334bb59a409b9eec0))
+- **react:** Record click-away text edits in history (by @Sudhansh6) ([3bc665f](https://github.com/ChristopherVR/pptx-viewer/commit/3bc665f5f10ef8dc4b0b6718ce81ce7b10263c37))
+- **core:** Preserve run styles after text-only edits (by @Sudhansh6) ([3cb843c](https://github.com/ChristopherVR/pptx-viewer/commit/3cb843c0a3bf609da00007036ec601274214890c))
+- **core:** Size percentage bullets from the first text run (by @Sudhansh6) ([51e26e1](https://github.com/ChristopherVR/pptx-viewer/commit/51e26e1ace134a48ae7eb74207ac12a11ee44ea1))
+
+### Refactor
+
+- **core:** Expose numbering sequence for paragraph edits (by @Sudhansh6) ([a27fb46](https://github.com/ChristopherVR/pptx-viewer/commit/a27fb465f8b7bbb9b373106fbc3051709329a5bf))
+
+### Testing
+
+- **react:** Cover paragraph insertion and pending text edits (by @Sudhansh6) ([a8b21a0](https://github.com/ChristopherVR/pptx-viewer/commit/a8b21a0ed984e31d053f8d7985d54bd8a006b071))
+
+### Chores
+
+- Merge updated SmartArt geometry coverage (by @Sudhansh6) ([d0364a9](https://github.com/ChristopherVR/pptx-viewer/commit/d0364a9169fc8520b91ccd73ac30962cbbf520d2))
+- Merge main before SmartArt cancellation contribution (by @Sudhansh6) ([4581de6](https://github.com/ChristopherVR/pptx-viewer/commit/4581de613b294edc07534bd4721c0e1e1afe2ebb))
+
 ## [3.16.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@3.16.6) - 2026-09-12
 
 ### Bug Fixes

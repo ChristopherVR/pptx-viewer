@@ -1,6 +1,7 @@
 /* oxlint-disable eslint/one-var -- many independent `it()` blocks, each with
    its own short arrange/act/assert consts. */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../i18n';
@@ -58,6 +59,37 @@ function elementById(
 }
 
 describe('createEditActions formatting', () => {
+	it('records one semantic list command and restores markers and body through undo/redo', () => {
+		const { store, ops, actions } = setup();
+		const original = structuredClone(store.get().slides);
+		actions.toggleBulletList();
+		const listed = elementById(store, 'a')!;
+		expect(buildParagraphs(listed)[0].bulletMarker).toBe('•');
+		expect(
+			buildParagraphs(listed)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('hi');
+		expect(elementById(store, 'b')).toStrictEqual(original[0].elements[1]);
+		expect(ops.canUndo()).toBeTruthy();
+		ops.undo();
+		expect(store.get().slides).toStrictEqual(original);
+		expect(ops.canUndo()).toBeFalsy();
+		ops.redo();
+		expect(elementById(store, 'a')).toStrictEqual(listed);
+	});
+
+	it.each([{ editable: false }, { selectedElementId: null }])(
+		'does not record a list command without edit permission and selection: %j',
+		(overrides) => {
+			const { store, ops, actions } = setup(overrides);
+			const before = structuredClone(store.get().slides);
+			actions.toggleBulletList();
+			expect(store.get().slides).toStrictEqual(before);
+			expect(ops.canUndo()).toBeFalsy();
+		},
+	);
+
 	it('toggles bold with history, and undo reverts it', () => {
 		const { store, ops, actions } = setup();
 		actions.toggleBold();

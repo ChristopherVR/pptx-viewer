@@ -135,6 +135,40 @@ function slideGroup(slide: { elements: PptxElement[] }): GroupPptxElement {
 }
 
 describe('template group editing round-trip', () => {
+	it('keeps loaded layout native IDs and numeric connector targets when editing a group', async () => {
+		const zip = await JSZip.loadAsync(await buildDeckWithLayoutGroup());
+		const xml = await zip.file(LAYOUT_PATH)!.async('string');
+		zip.file(
+			LAYOUT_PATH,
+			xml.replace(
+				'<p:cNvCxnSpPr/>',
+				'<p:cNvCxnSpPr><a:stCxn id="201" idx="3"/><a:endCxn id="203" idx="1"/></p:cNvCxnSpPr>',
+			),
+		);
+		const bytes = await zip.generateAsync({ type: 'uint8array' });
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const layout = data.slideMasters![0].layouts!.find((entry) => entry.path === LAYOUT_PATH)!;
+		const group = layout.elements?.find((element) => element.type === 'group');
+		if (!group) {
+			throw new Error('expected native layout group');
+		}
+		expect(group.shapeId).toBe('200');
+		expect(group.children[0].shapeId).toBe('201');
+		group.name = 'Edited layout group';
+		const saved = await handler.save(data.slides, { slideMasters: data.slideMasters });
+		const tree = layoutSpTree(await savedPart(saved, LAYOUT_PATH));
+		const nativeGroup = groupNode(tree)!;
+		expect((nativeGroup['p:nvGrpSpPr'] as XmlObject)['p:cNvPr']['@_id']).toBe('200');
+		expect(
+			asArray(nativeGroup['p:cxnSp'])[0]['p:nvCxnSpPr']['p:cNvCxnSpPr']['a:stCxn']['@_id'],
+		).toBe('201');
+		expect(asArray(nativeGroup['p:sp'])[0]['p:nvSpPr']['p:cNvPr']['@_id']).toBe('201');
+		handler.dispose();
+	});
+
 	it('writes a moved + retyped layout group back into the layout part', async () => {
 		const handler = new PptxHandler();
 		const data = await handler.load(await buildDeckWithLayoutGroup());

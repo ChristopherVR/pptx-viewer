@@ -8,6 +8,37 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-13
+
+_Releases: pptx-viewer-core@3.14.5, pptx-react-viewer@3.16.7, pptx-vue-viewer@3.16.7, pptx-angular-viewer@3.16.7, pptx-vanilla-viewer@2.16.7, pptx-svelte-viewer@3.17.7, @christophervr/pptx-viewer@2.13.8_
+
+### Bug Fixes
+
+- **react:** Preserve embedded fonts in headless saves (by @Sudhansh6) ([f1d2ac6](https://github.com/ChristopherVR/pptx-viewer/commit/f1d2ac6357f698605bac7ff7a4d6a6db4c68d68d))
+- **vanilla:** Settle SmartArt node edits before closing (by @Sudhansh6) ([b2614f1](https://github.com/ChristopherVR/pptx-viewer/commit/b2614f119aed855d120d98aa037b5eac0e912830))
+- **shared:** Preserve paragraph properties across text insertion (by @Sudhansh6) ([624c880](https://github.com/ChristopherVR/pptx-viewer/commit/624c880ed0a1396b91a4203334bb59a409b9eec0))
+- **react:** Record click-away text edits in history (by @Sudhansh6) ([3bc665f](https://github.com/ChristopherVR/pptx-viewer/commit/3bc665f5f10ef8dc4b0b6718ce81ce7b10263c37))
+- **core:** Preserve run styles after text-only edits (by @Sudhansh6) ([3cb843c](https://github.com/ChristopherVR/pptx-viewer/commit/3cb843c0a3bf609da00007036ec601274214890c))
+- **core:** Size percentage bullets from the first text run (by @Sudhansh6) ([51e26e1](https://github.com/ChristopherVR/pptx-viewer/commit/51e26e1ace134a48ae7eb74207ac12a11ee44ea1))
+
+### Refactor
+
+- **core:** Expose numbering sequence for paragraph edits (by @Sudhansh6) ([a27fb46](https://github.com/ChristopherVR/pptx-viewer/commit/a27fb465f8b7bbb9b373106fbc3051709329a5bf))
+
+### Testing
+
+- **react:** Cover paragraph insertion and pending text edits (by @Sudhansh6) ([a8b21a0](https://github.com/ChristopherVR/pptx-viewer/commit/a8b21a0ed984e31d053f8d7985d54bd8a006b071))
+- **vue:** Cover paragraph insertion through inline commits (by @Sudhansh6) ([b20dfa5](https://github.com/ChristopherVR/pptx-viewer/commit/b20dfa5f9b803f0e5064c9f9d9e9e434685fb4db))
+- **angular:** Cover paragraph insertion and edit history (by @Sudhansh6) ([21d3a12](https://github.com/ChristopherVR/pptx-viewer/commit/21d3a12f72b3c9cd087092a36c8e23665d98e563))
+- **svelte:** Cover paragraph insertion and edit history (by @Sudhansh6) ([695b266](https://github.com/ChristopherVR/pptx-viewer/commit/695b2663c15dfaf141c92b01d01ee77466bb3058))
+- **vanilla:** Cover paragraph insertion and edit history (by @Sudhansh6) ([18ae358](https://github.com/ChristopherVR/pptx-viewer/commit/18ae358f3f08247dbcc14393716330099a57055d))
+- **e2e:** Cover paragraph insertion and deletion history (by @Sudhansh6) ([bad40dd](https://github.com/ChristopherVR/pptx-viewer/commit/bad40ddccb173b2ebab36997f44044de3d2a1b30))
+
+### Chores
+
+- Merge updated SmartArt geometry coverage (by @Sudhansh6) ([d0364a9](https://github.com/ChristopherVR/pptx-viewer/commit/d0364a9169fc8520b91ccd73ac30962cbbf520d2))
+- Merge main before SmartArt cancellation contribution (by @Sudhansh6) ([4581de6](https://github.com/ChristopherVR/pptx-viewer/commit/4581de613b294edc07534bd4721c0e1e1afe2ebb))
+
 ## 2026-09-12
 
 _Releases: pptx-viewer-core@3.14.4, pptx-react-viewer@3.16.6, pptx-vue-viewer@3.16.6, pptx-angular-viewer@3.16.6, pptx-vanilla-viewer@2.16.6, pptx-svelte-viewer@3.17.6, @christophervr/pptx-viewer@2.13.7_

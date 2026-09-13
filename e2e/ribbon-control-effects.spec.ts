@@ -26,9 +26,64 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { SAMPLE_DECK, inspector, loadDeck, slideElements, slideStage } from './support/deck';
+import {
+	SAMPLE_DECK,
+	fixture,
+	inspector,
+	loadDeck,
+	slideElements,
+	slideStage,
+} from './support/deck';
 
 test.describe.configure({ timeout: 120_000 });
+
+test.describe('paragraph list commands render their edits', () => {
+	for (const [name, marker] of [
+		['Bullet List', '•'],
+		['Numbered List', '1.'],
+	] as const) {
+		test(`${name} toggles a loaded text box and participates in history`, async ({ page }) => {
+			await loadDeck(page, fixture('text-style-emphasis.pptx'));
+			await openRibbonTab(page, 'Home');
+			const id = await slideElements(page)
+				.filter({ hasText: 'Emphasis Bold Target' })
+				.first()
+				.getAttribute('data-element-id');
+			expect(id).toBeTruthy();
+			const target = slideStage(page).locator(`[data-element-id="${id}"]`);
+			const commitTarget = slideElements(page)
+				.filter({ hasText: 'Text Style Emphasis Slide' })
+				.first();
+			await target.click();
+			const list = page.getByRole('button', { name: new RegExp(`^${name}$`, 'iu') }).first();
+			await list.click();
+			await expect(list).toHaveAttribute('aria-pressed', 'true');
+			await commitTarget.click();
+			await expect(target).toContainText(marker);
+			await expect(target).toContainText('Emphasis Bold Target');
+			await page
+				.getByRole('button', { name: /^Undo\b/u })
+				.first()
+				.click();
+			await expect(target).not.toContainText(marker);
+			await page
+				.getByRole('button', { name: /^Redo\b/u })
+				.first()
+				.click();
+			await expect(target).toContainText(marker);
+			await target.click();
+			await list.click();
+			await expect(list).toHaveAttribute('aria-pressed', 'false');
+			await commitTarget.click();
+			await expect(target).not.toContainText(marker);
+			await expect(target).toContainText('Emphasis Bold Target');
+			await target.click();
+			await list.click();
+			await commitTarget.click();
+			await expect(target).toContainText(marker);
+		});
+	}
+});
 
 interface ExportedSlide {
 	transition?: {

@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.14.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.5) - 2026-09-13
+
+### Bug Fixes
+
+- **core:** Preserve run styles after text-only edits (by @Sudhansh6) ([3cb843c](https://github.com/ChristopherVR/pptx-viewer/commit/3cb843c0a3bf609da00007036ec601274214890c))
+- **core:** Size percentage bullets from the first text run (by @Sudhansh6) ([51e26e1](https://github.com/ChristopherVR/pptx-viewer/commit/51e26e1ace134a48ae7eb74207ac12a11ee44ea1))
+
+### Refactor
+
+- **core:** Expose numbering sequence for paragraph edits (by @Sudhansh6) ([a27fb46](https://github.com/ChristopherVR/pptx-viewer/commit/a27fb465f8b7bbb9b373106fbc3051709329a5bf))
+
+### Chores
+
+- Merge main before SmartArt cancellation contribution (by @Sudhansh6) ([4581de6](https://github.com/ChristopherVR/pptx-viewer/commit/4581de613b294edc07534bd4721c0e1e1afe2ebb))
+
 ## [3.14.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.14.4) - 2026-09-12
 
 ### Bug Fixes

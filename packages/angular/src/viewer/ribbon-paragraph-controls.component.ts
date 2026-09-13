@@ -19,6 +19,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { elementBulletKind } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 
@@ -59,8 +60,9 @@ const COLUMN_OPTIONS = [1, 2, 3];
 			<button
 				type="button"
 				class="pptx-rb-gb"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.listType === 'bullet' ? 'bg-accent' : ''"
+				[disabled]="!canEdit() || !isText()"
+				[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
+				[attr.aria-pressed]="listKind() === 'bullet'"
 				[title]="'pptx.ribbon.bulletList' | translate"
 				(click)="toggleList('bullet')"
 			>
@@ -69,8 +71,9 @@ const COLUMN_OPTIONS = [1, 2, 3];
 			<button
 				type="button"
 				class="pptx-rb-gl"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.listType === 'numbered' ? 'bg-accent' : ''"
+				[disabled]="!canEdit() || !isText()"
+				[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
+				[attr.aria-pressed]="listKind() === 'numbered'"
 				[title]="'pptx.notes.numberedList' | translate"
 				(click)="toggleList('numbered')"
 			>
@@ -183,6 +186,7 @@ export class RibbonParagraphControlsComponent {
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
+	readonly canEdit = input<boolean>(false);
 
 	protected readonly lineSpacingOptions = LINE_SPACING_OPTIONS;
 	protected readonly textDirectionOptions = TEXT_DIRECTION_OPTIONS;
@@ -194,6 +198,10 @@ export class RibbonParagraphControlsComponent {
 
 	/** Current text style of the selection (for active-state highlighting). */
 	protected readonly curStyle = computed(() => textStyleOf(this.selectedElement()));
+	protected readonly listKind = computed(() => {
+		const element = this.selectedElement();
+		return element ? elementBulletKind(element) : 'none';
+	});
 
 	/** Current line spacing multiplier. */
 	protected curLineSpacing(): number {
@@ -210,7 +218,10 @@ export class RibbonParagraphControlsComponent {
 
 	/** Toggle the paragraph list style (bullet / numbered) off when already set. */
 	protected toggleList(kind: 'bullet' | 'numbered'): void {
-		this.patch({ listType: this.curStyle()?.listType === kind ? 'none' : kind });
+		if (!this.canEdit()) {
+			return;
+		}
+		this.patch({ listType: this.listKind() === kind ? 'none' : kind });
 	}
 	/** Step the paragraph left-indent by `deltaPx` (clamped at 0). */
 	protected changeIndent(deltaPx: number): void {

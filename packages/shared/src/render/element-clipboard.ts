@@ -124,10 +124,40 @@ export function cloneElementForPaste(
 ): PptxElement {
 	const clone = structuredClone(element);
 	const intoTemplate = options.intoTemplate ?? false;
-	clone.id = makeCloneId(intoTemplate, element.id);
+	const modelIds = new Map<string, string>();
+	const nativeIds = new Map<string, string>();
+	const mintId = (node: PptxElement): string => {
+		const id = makeCloneId(intoTemplate, element.id);
+		modelIds.set(node.id, id);
+		if (node.shapeId !== undefined) {
+			nativeIds.set(node.shapeId, id);
+		}
+		// A clone is a new native shape too; save allocates IDs for its targets.
+		delete node.shapeId;
+		return id;
+	};
+	clone.id = mintId(clone);
 	// The root's ORIGINAL id decides the template store for the whole subtree,
 	// so a descendant that carries no prefix of its own cannot vote it elsewhere.
-	reassignDescendantIds(clone, () => makeCloneId(intoTemplate, element.id));
+	reassignDescendantIds(clone, mintId);
+	const remapConnections = (node: PptxElement): void => {
+		if (node.type === 'group') {
+			node.children.forEach(remapConnections);
+		}
+		if (node.type !== 'connector') {
+			return;
+		}
+		for (const ref of [
+			node.shapeStyle?.connectorStartConnection,
+			node.shapeStyle?.connectorEndConnection,
+		]) {
+			if (!ref?.shapeId) {
+				continue;
+			}
+			ref.shapeId = modelIds.get(ref.shapeId) ?? nativeIds.get(ref.shapeId) ?? ref.shapeId;
+		}
+	};
+	remapConnections(clone);
 	clone.x += options.offsetX ?? PASTE_OFFSET_PX;
 	clone.y += options.offsetY ?? PASTE_OFFSET_PX;
 	return clone;

@@ -104,3 +104,48 @@ describe('textSection font-size stepper', () => {
 		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(20 * (96 / 72));
 	});
 });
+
+describe('textSection list controls', () => {
+	it.each(['bullet', 'numbered'] as const)(
+		'reads loaded %s state and toggles it off',
+		async (kind) => {
+			const onUpdateTextStyle = vi.fn();
+			const bulletInfo =
+				kind === 'bullet' ? { char: '◆' } : { autoNumType: 'romanUcPeriod', paragraphIndex: 0 };
+			const wrapper = mountSection({
+				onUpdateTextStyle,
+				selectedElement: textShape({
+					textSegments: [{ text: 'body', style: {}, bulletInfo }],
+				}),
+			});
+			const button = wrapper.find(
+				`button[title="${kind === 'bullet' ? 'Bullet List' : 'Numbered List'}"]`,
+			);
+			expect(button.attributes('aria-pressed')).toBe('true');
+			await button.trigger('click');
+			expect(onUpdateTextStyle).toHaveBeenCalledWith({ listType: 'none' });
+			await wrapper.setProps({ selectedElement: textShape() });
+			expect(button.attributes('aria-pressed')).toBe('false');
+			await button.trigger('click');
+			expect(onUpdateTextStyle).toHaveBeenLastCalledWith({ listType: kind });
+		},
+	);
+
+	it('disables unsupported table list commands without disabling ordinary cell formatting', () => {
+		const wrapper = mountSection({
+			selectedElement: {
+				id: 'table',
+				type: 'table',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 40,
+				tableData: { rows: [{ cells: [{ text: 'cell', style: {} }] }], columnWidths: [1] },
+			},
+			tableEditorState: { elementId: 'table', rowIndex: 0, columnIndex: 0 },
+		});
+		expect(wrapper.find('button[title="Bullet List"]').attributes('disabled')).toBeDefined();
+		expect(wrapper.find('button[title="Numbered List"]').attributes('disabled')).toBeDefined();
+		expect(wrapper.find('button[title="Bold"]').attributes('disabled')).toBeUndefined();
+	});
+});

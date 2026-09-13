@@ -57,6 +57,26 @@ function roundTripSlide(slide: PptxSlide): PptxSlide {
 }
 
 describe('collaboration-sync: element field coverage', () => {
+	it('keeps the inherited transform baseline when a peer receives an edited placeholder', () => {
+		const element: PptxElement = {
+			type: 'shape',
+			id: 'placeholder',
+			x: 40,
+			y: 20,
+			width: 100,
+			height: 100,
+			inheritedTransform: {
+				x: 0,
+				y: 20,
+				width: 100,
+				height: 100,
+				rotation: 45,
+				flipHorizontal: true,
+			},
+		};
+		expect(roundTripElement(element)).toStrictEqual(element);
+	});
+
 	it('round-trips OLE fields, including binary payloads via the asset map', () => {
 		const ole: PptxElement = {
 			type: 'ole',
