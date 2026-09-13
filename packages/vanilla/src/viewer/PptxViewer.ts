@@ -40,6 +40,7 @@ import {
 	mayLeaveSlideShow,
 	parsePresentationSessionId,
 	placeAudienceWindow,
+	prepareElementForInsertion,
 	PRESENTATION_CHANNEL_NAME,
 	PRESENTATION_MESSAGE_ORIGIN,
 	readStoredViewerPrefs,
@@ -862,6 +863,24 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.getElements(index).find((element) => element.id === id);
 	updateElement = (id: string, updates: Partial<PptxElement>): void =>
 		this.editor.applyElementPatch(id, updates);
+	addElement = (element: PptxElement): string | undefined => {
+		const state = this.store.get();
+		const prepared = prepareElementForInsertion(element, {
+			canEdit:
+				state.editable &&
+				!state.protectedView &&
+				!(state.readOnlyRecommendation?.defaultReadOnly && !state.readOnlyBannerDismissed),
+			mode: this.getMode(),
+			hasActiveSlide: !state.loading && !state.error && Boolean(state.slides[state.currentSlide]),
+			editTemplateMode: state.editTemplateMode,
+		});
+		if (!prepared) {
+			return undefined;
+		}
+		this.container.querySelector<HTMLElement>('[data-inline-editor]')?.blur();
+		this.editor.getEditActions().insertElement(prepared);
+		return prepared.id;
+	};
 	deleteElements = (ids: string[]): void => {
 		this.editor.selectElements(ids);
 		this.editor.deleteSelected();

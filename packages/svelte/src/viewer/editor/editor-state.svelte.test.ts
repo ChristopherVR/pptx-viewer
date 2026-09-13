@@ -11,6 +11,9 @@ import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
 import ParagraphGroup from '../components/ribbon/home/ParagraphGroup.svelte';
+import { ViewerState } from '../state/viewer-state.svelte';
+import { createDeckApi } from './deck-api';
+import type { DeckApiDeps } from './deck-api';
 import { EditorState } from './editor-state.svelte';
 
 /**
@@ -54,6 +57,10 @@ function make(
 }
 
 describe('editorState selection + geometry', () => {
+	it('exposes element insertion on the public deck API', () => {
+		expect(createDeckApi({} as DeckApiDeps).addElement).toBeTypeOf('function');
+	});
+
 	it('setSlides seeds the working slides and resets selection/history/dirty', () => {
 		const { editor } = make();
 		editor.select('x');
@@ -97,6 +104,86 @@ describe('editorState selection + geometry', () => {
 		editor.patchGeometry('e1', { x: 1, y: 2, width: 3, height: 4, rotation: 5 });
 		expect(editor.slides[0].elements[0].x).toBe(1);
 		expect(editor.canUndo).toBeFalsy();
+	});
+});
+
+describe('public deck element insertion', () => {
+	function harness() {
+		const { editor } = make();
+		const viewer = new ViewerState();
+		editor.setSlides([slide('a', [shape('source')])]);
+		editor.select('source');
+		const deps: DeckApiDeps = {
+			editor,
+			viewer,
+			getZoomPercent: () => 100,
+			getMode: () => 'edit',
+			canEdit: () => editor.editable,
+			isLoaded: () => true,
+			commitPendingText: vi.fn(),
+			toggleFullscreen: vi.fn(),
+			setEditable: vi.fn(),
+		};
+		return { editor, viewer, deps, api: createDeckApi(deps) };
+	}
+
+	it('inserts defensive copies at supplied coordinates, selects and supports dirty/undo/redo', () => {
+		const { editor, api } = harness();
+		const input = shape('caller');
+		const first = api.addElement(input),
+			second = api.addElement(input);
+		expect(first).toBeTruthy();
+		expect(second).not.toBe(first);
+		expect(api.getElements().map((el) => el.id)).toStrictEqual(['source', first, second]);
+		expect(api.getElementById(first!)!).toMatchObject({ x: 10, y: 20, width: 100, height: 50 });
+		expect(api.getElementById(first!)).not.toBe(input);
+		expect(input.id).toBe('caller');
+		expect(api.getSelectedElementIds()).toStrictEqual([second]);
+		expect(api.isDirty()).toBeTruthy();
+		editor.undo();
+		expect(api.getElements()).toHaveLength(2);
+		editor.redo();
+		expect(api.getElements()).toHaveLength(3);
+	});
+
+	it('commits pending text before the existing insertion history transaction', () => {
+		const { editor, deps, api } = harness();
+		deps.commitPendingText = () => editor.commitInlineText('source', 'Latest body');
+		api.addElement(shape('caller'));
+		expect(api.getElementById('source')).toMatchObject({ text: 'Latest body' });
+		editor.undo();
+		expect(api.getElements()).toHaveLength(1);
+		expect(api.getElementById('source')).toMatchObject({ text: 'Latest body' });
+	});
+
+	it.each([
+		'readonly',
+		'preview',
+		'present',
+		'master',
+		'template',
+		'missing',
+		'unavailable',
+	] as const)('rejects %s without effects', (condition) => {
+		const { editor, viewer, deps, api } = harness();
+		if (condition === 'readonly') {
+			deps.canEdit = () => false;
+		} else if (condition === 'unavailable') {
+			deps.isLoaded = () => false;
+		} else if (condition === 'template') {
+			editor.editTemplateMode = true;
+		} else if (condition === 'missing') {
+			viewer.current = 9;
+		} else {
+			deps.getMode = () => condition;
+		}
+		const before = editor.slides;
+		expect(api.addElement(shape('caller'))).toBeUndefined();
+		expect(editor.slides).toBe(before);
+		expect(api.getSelectedElementIds()).toStrictEqual(['source']);
+		expect(api.isDirty()).toBeFalsy();
+		expect(editor.canUndo).toBeFalsy();
+		expect(deps.commitPendingText).not.toHaveBeenCalled();
 	});
 });
 

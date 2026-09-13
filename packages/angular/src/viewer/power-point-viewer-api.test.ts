@@ -1,3 +1,4 @@
+import type { PptxElement } from 'pptx-viewer-core';
 /**
  * The Angular viewer's conformance to the cross-binding `PowerPointViewerAPI`.
  *
@@ -15,7 +16,10 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import type { ElementInsertionTarget } from '../internal/shared';
 import { componentSource } from './component-source.test-support';
+import { EditorStateService } from './editor-state.service';
+import { insertPublicElement } from './viewer-public-insertion';
 
 const source = componentSource(import.meta.dirname, 'power-point-viewer.component.ts');
 
@@ -50,6 +54,7 @@ const API_MEMBERS = [
 	'toggleHideSlides',
 	'getElements',
 	'getElementById',
+	'addElement',
 	'updateElement',
 	'deleteElements',
 	'duplicateElement',
@@ -59,6 +64,15 @@ const API_MEMBERS = [
 ] as const;
 
 describe('powerPointViewerComponent API conformance', () => {
+	it('routes public insertion through effective permission and its own canvas commit boundary', () => {
+		expect(source).toContain('return insertPublicElement(');
+		expect(source).toContain('canEdit: this.canEdit()');
+		expect(source).toContain('mode: this.getMode()');
+		expect(source).toContain('!this.loader.loading() && !this.loader.error()');
+		expect(source).toContain('editTemplateMode: this.editor.editTemplateMode()');
+		expect(source).toContain("querySelector<HTMLElement>('[data-inline-editor]')");
+	});
+
 	it('declares the shared contract, so the compiler checks it', () => {
 		expect(source).toContain(
 			'export class PowerPointViewerComponent implements PowerPointViewerAPI',
@@ -79,5 +93,85 @@ describe('powerPointViewerComponent API conformance', () => {
 		expect(source).toContain('getMode(): ViewerMode {');
 		expect(source).toContain('setMode(mode: ViewerMode): void {');
 		expect(source).toContain('readonly modeChange = output<ViewerMode>();');
+	});
+});
+
+describe('public insertion transaction', () => {
+	const element: PptxElement = {
+		id: 'source',
+		type: 'text',
+		text: 'Before',
+		x: 12,
+		y: 34,
+		width: 100,
+		height: 40,
+	};
+	const target: ElementInsertionTarget = {
+		canEdit: true,
+		mode: 'edit',
+		hasActiveSlide: true,
+		editTemplateMode: false,
+	};
+	function editor() {
+		const service = new EditorStateService();
+		service.setSlides([{ id: 's1', rId: 'r1', slideNumber: 1, elements: [element] }]);
+		service.selectedIds.set(['source']);
+		return service;
+	}
+
+	it('preserves supplied geometry and both synchronous insertions with dirty, selection and undo/redo', () => {
+		const service = editor();
+		const first = insertPublicElement(element, target, service, 0, () => {});
+		const second = insertPublicElement(element, target, service, 0, () => {});
+		expect(first).toBeTruthy();
+		expect(second).not.toBe(first);
+		expect(service.slides()[0].elements.map((el) => el.id)).toStrictEqual([
+			'source',
+			first,
+			second,
+		]);
+		expect(service.selectedIds()).toStrictEqual([second]);
+		expect(service.slides()[0].elements[1]).toMatchObject({ x: 12, y: 34, width: 100, height: 40 });
+		expect(service.slides()[0].elements[1]).not.toBe(element);
+		expect(element.id).toBe('source');
+		expect(service.dirty()).toBeTruthy();
+		service.undo();
+		expect(service.slides()[0].elements).toHaveLength(2);
+		service.redo();
+		expect(service.slides()[0].elements).toHaveLength(3);
+	});
+
+	it('runs the pending commit before the insertion snapshot', () => {
+		const service = editor();
+		insertPublicElement(element, target, service, 0, () =>
+			service.updateElement(0, 'source', { text: 'Latest body' }),
+		);
+		expect(service.slides()[0].elements[0]).toMatchObject({ text: 'Latest body' });
+		service.undo();
+		expect(service.slides()[0].elements).toHaveLength(1);
+		expect(service.slides()[0].elements[0]).toMatchObject({ text: 'Latest body' });
+	});
+
+	it.each<Partial<ElementInsertionTarget>>([
+		{ canEdit: false },
+		{ mode: 'preview' },
+		{ mode: 'present' },
+		{ mode: 'master' },
+		{ editTemplateMode: true },
+		{ hasActiveSlide: false },
+	])('rejects invalid target %j without effects', (override) => {
+		const service = editor();
+		const before = service.slides();
+		let committed = false;
+		expect(
+			insertPublicElement(element, { ...target, ...override }, service, 0, () => {
+				committed = true;
+			}),
+		).toBeUndefined();
+		expect(committed).toBeFalsy();
+		expect(service.slides()).toBe(before);
+		expect(service.selectedIds()).toStrictEqual(['source']);
+		expect(service.dirty()).toBeFalsy();
+		expect(service.canUndo()).toBeFalsy();
 	});
 });

@@ -1,6 +1,11 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { cloneSlide } from 'pptx-viewer-core';
-import { clampZoomScale, createBlankSlide, makeSlideId } from 'pptx-viewer-shared';
+import {
+	clampZoomScale,
+	createBlankSlide,
+	makeSlideId,
+	prepareElementForInsertion,
+} from 'pptx-viewer-shared';
 import type { PowerPointViewerAPI, ViewerMode } from 'pptx-viewer-shared';
 
 import type { ViewerState } from '../state/viewer-state.svelte';
@@ -24,6 +29,10 @@ export interface DeckApiDeps {
 	getZoomPercent(): number;
 	/** The viewer's resolved mode, so `getMode()` matches what the chrome shows. */
 	getMode(): ViewerMode;
+	/** Effective permission, including protected view and read-only recommendations. */
+	canEdit(): boolean;
+	isLoaded(): boolean;
+	commitPendingText(): void;
 	/** Enter/leave presentation mode (the same handler the ribbon button uses). */
 	toggleFullscreen(): void;
 	/** Flip the host-facing `editable` flag (`setMode('edit' | 'master')`). */
@@ -144,6 +153,19 @@ export function createDeckApi(deps: DeckApiDeps): DeckApi {
 			getElements(slideIndex).find((element) => element.id === id),
 
 		updateElement: (id, updates) => editor.applyElementPatch(id, updates),
+		addElement: (element) => {
+			const prepared = prepareElementForInsertion(element, {
+				canEdit: deps.canEdit(),
+				mode: editor.masterViewTarget ? 'master' : deps.getMode(),
+				hasActiveSlide: deps.isLoaded() && Boolean(editor.slides[viewer.current]),
+				editTemplateMode: editor.editTemplateMode,
+			});
+			if (!prepared) {
+				return undefined;
+			}
+			deps.commitPendingText();
+			return editor.insertElement(prepared) ?? undefined;
+		},
 		deleteElements: (ids) => {
 			editor.selection.setAll(ids);
 			editor.deleteSelected();

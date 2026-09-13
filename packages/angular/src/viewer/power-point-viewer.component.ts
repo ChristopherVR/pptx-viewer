@@ -182,6 +182,7 @@ import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
 import { ViewerOptionsService } from './viewer-options.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
+import { insertPublicElement } from './viewer-public-insertion';
 import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 import { ViewerTouchGesturesService } from './viewer-touch-gestures.service';
 import { ViewerZoomService } from './viewer-zoom.service';
@@ -3054,6 +3055,26 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		const idx = slideIndex ?? this.activeSlideIndex();
 		const s = this.displaySlides()[idx];
 		return s?.elements.find((e) => e.id === elementId);
+	}
+
+	/** Insert a defensive copy into the active ordinary editable slide. */
+	addElement(element: PptxElement): string | undefined {
+		return insertPublicElement(
+			element,
+			{
+				canEdit: this.canEdit(),
+				mode: this.getMode(),
+				hasActiveSlide:
+					!this.loader.loading() && !this.loader.error() && Boolean(this.activeSlide()),
+				editTemplateMode: this.editor.editTemplateMode(),
+			},
+			this.editor,
+			this.activeSlideIndex(),
+			() => {
+				// Blur synchronously emits the existing canvas textCommit before insertion.
+				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur();
+			},
+		);
 	}
 
 	/** Update one or more properties of an element by ID. */

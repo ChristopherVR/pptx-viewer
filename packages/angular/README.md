@@ -284,8 +284,11 @@ following slide/element manipulation methods are also available:
 `getActiveSlide()`, `addSlide(afterIndex?)`, `deleteSlides(indexes)`,
 `duplicateSlides(indexes)`, `moveSlide(from, to)`, `toggleHideSlides(indexes)`,
 `getElements(slideIndex?)`, `getElementById(id, slideIndex?)`,
-`updateElement(id, patch)`, `deleteElements(ids)`, and
+`addElement(element)`, `updateElement(id, patch)`, `deleteElements(ids)`, and
 `duplicateElement(id)`.
+
+See [element insertion](https://christophervr.github.io/pptx-viewer/angular/api#add-element)
+for the `addElement` contract and a core-factory example.
 
 ### Exported components & helpers
 

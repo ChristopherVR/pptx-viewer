@@ -1,5 +1,7 @@
 import JSZip from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
+import { createViewerOptionsStore } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * Live sanity check for `useViewerBuildingBlocks`: renders a component that
@@ -27,6 +29,7 @@ let fixtureBytes: Uint8Array;
 let twoSlideFixtureBytes: Uint8Array;
 let embeddedFixtureBytes: Uint8Array;
 let textEditingFixtureBytes: Uint8Array;
+let readOnlyFixtureBytes: Uint8Array;
 
 const { autosaveInputs } = vi.hoisted(() => ({ autosaveInputs: [] as UseAutosaveInput[] }));
 
@@ -46,6 +49,9 @@ beforeAll(async () => {
 		initialSlideCount: 1,
 	});
 	fixtureBytes = await oneSlide.handler.save(oneSlide.data.slides);
+	readOnlyFixtureBytes = await oneSlide.handler.save(oneSlide.data.slides, {
+		customProperties: [{ name: '_MarkAsFinal', value: 'true', type: 'bool' }],
+	});
 	// Match core's embedded-font-list round-trip fixture: a minimal sfnt header
 	// in a GUID-named part that the loader recognizes as an embedded font.
 	const rawFontData = new Uint8Array(64);
@@ -83,12 +89,14 @@ function Harness({
 	content,
 	handle,
 	onDirtyChange,
+	canEdit = true,
 }: {
 	content: Uint8Array;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
 	onDirtyChange?: (dirty: boolean) => void;
+	canEdit?: boolean;
 }): React.ReactElement {
-	const result = useViewerBuildingBlocks({ content, canEdit: true, handle, onDirtyChange });
+	const result = useViewerBuildingBlocks({ content, canEdit, handle, onDirtyChange });
 	latest = result;
 	return React.createElement('div', { 'data-testid': 'harness' });
 }
@@ -310,6 +318,237 @@ describe('useViewerBuildingBlocks', () => {
 		});
 		expect(handle.current!.getElementById(first.id)).toStrictEqual(first);
 		expect(handle.current!.canUndo()).toBeFalsy();
+	});
+
+	const insertion: PptxElement = {
+		id: 'caller-owned',
+		type: 'text',
+		x: 25,
+		y: 30,
+		width: 200,
+		height: 60,
+		text: 'Inserted text',
+		textStyle: { fontSize: 24 },
+	};
+
+	it('inserts a selected defensive copy with ordinary Undo and Redo', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		const original = structuredClone(insertion);
+		let id: string | undefined;
+		await act(async () => {
+			id = handle.current?.addElement(insertion);
+		});
+		await flushUntil(() => handle.current?.canUndo() === true);
+		expect(id).toBeTypeOf('string');
+		expect(id).not.toBe(insertion.id);
+		expect(handle.current?.getElementById(id!)).toStrictEqual({ ...insertion, id });
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([id]);
+		expect(handle.current?.isDirty()).toBeTruthy();
+		expect(insertion).toStrictEqual(original);
+		await act(async () => {
+			handle.current?.undo();
+		});
+		expect(handle.current?.getElementById(id!)).toBeUndefined();
+		await flush();
+		await act(async () => {
+			handle.current?.redo();
+		});
+		expect(handle.current?.getElementById(id!)).toStrictEqual({ ...insertion, id });
+	});
+
+	it('keeps both insertions made synchronously with distinct IDs', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		const ids: (string | undefined)[] = [];
+		await act(async () => {
+			ids.push(handle.current?.addElement(insertion), handle.current?.addElement(insertion));
+		});
+		expect(ids[0]).toBeTypeOf('string');
+		expect(ids[1]).toBeTypeOf('string');
+		expect(ids[0]).not.toBe(ids[1]);
+		expect(handle.current?.getElements().map((element) => element.id)).toStrictEqual(
+			expect.arrayContaining(ids),
+		);
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([ids[1]]);
+	});
+
+	it.each(['preview', 'present', 'master'] as const)('does not insert in %s mode', async (mode) => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		await act(async () => {
+			handle.current?.setMode(mode);
+		});
+		let id: string | undefined;
+		await act(async () => {
+			id = handle.current?.addElement(insertion);
+		});
+		expect(id).toBeUndefined();
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([]);
+	});
+
+	it('does not insert without host edit permission', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle, canEdit: false }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		await act(async () => {
+			handle.current?.setMode('edit');
+		});
+		expect(handle.current?.addElement(insertion)).toBeUndefined();
+		expect(handle.current?.isDirty()).toBeFalsy();
+	});
+
+	it('commits pending inline text before inserting another element', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		let firstId: string | undefined;
+		await act(async () => {
+			firstId = handle.current?.addElement(insertion);
+		});
+		await act(async () => {
+			latest?.canvasProps.onDoubleClick(
+				firstId!,
+				new MouseEvent('dblclick') as unknown as React.MouseEvent,
+			);
+		});
+		await act(async () => {
+			latest?.canvasProps.onInlineEditChange('Latest pending text');
+		});
+		let secondId: string | undefined;
+		await act(async () => {
+			secondId = handle.current?.addElement(insertion);
+		});
+		const edited = handle.current?.getElementById(firstId!);
+		expect(edited?.type === 'text' && edited.text).toBe('Latest pending text');
+		expect(handle.current?.getElementById(secondId!)).toBeDefined();
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([secondId]);
+		expect(latest?.canvasProps.inlineEditingElementId).toBeNull();
+	});
+
+	it('does not insert before load or while editing a template', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		expect(handle.current?.addElement(insertion)).toBeUndefined();
+		await flushUntil(() => latest?.loading === false);
+		await act(async () => {
+			latest?.toolbarProps.onSetEditTemplateMode(true);
+		});
+		expect(handle.current?.addElement(insertion)).toBeUndefined();
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([]);
+	});
+
+	it('honors a loaded read-only recommendation even when the headless host permits editing', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: readOnlyFixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		expect(handle.current?.addElement(insertion)).toBeUndefined();
+		expect(handle.current?.isDirty()).toBeFalsy();
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([]);
+	});
+
+	it('does not insert when the persisted viewer option enables Protected View', async () => {
+		const options = createViewerOptionsStore();
+		options.setValue('trust', 'openInProtectedView', true);
+		const handle = createRef<PowerPointViewerHandle>();
+		try {
+			await act(async () => {
+				root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+			});
+			await flushUntil(() => latest?.loading === false);
+			expect(handle.current?.addElement(insertion)).toBeUndefined();
+			expect(handle.current?.isDirty()).toBeFalsy();
+		} finally {
+			options.setValue('trust', 'openInProtectedView', false);
+		}
+	});
+
+	it.each([false, true])(
+		'saves and reloads a self-contained image after Undo/Redo=%s',
+		async (undoRedo) => {
+			const handle = createRef<PowerPointViewerHandle>();
+			await act(async () => {
+				root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+			});
+			await flushUntil(() => latest?.loading === false);
+			const image: PptxElement = {
+				id: 'caller-image',
+				type: 'image',
+				name: 'Inserted image',
+				x: 12,
+				y: 34,
+				width: 48,
+				height: 56,
+				imageData:
+					'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl2ZJkAAAAASUVORK5CYII=',
+			};
+			await act(async () => {
+				handle.current?.addElement(image);
+			});
+			if (undoRedo) {
+				await flushUntil(() => handle.current?.canUndo() === true);
+				await act(async () => {
+					handle.current?.undo();
+				});
+				expect(
+					handle.current?.getElements().some((element) => element.name === image.name),
+				).toBeFalsy();
+				await flush();
+				await act(async () => {
+					handle.current?.redo();
+				});
+				expect(
+					handle.current?.getElements().some((element) => element.name === image.name),
+				).toBeTruthy();
+			}
+			const saved = await handle.current!.getContent();
+			const handler = new PptxHandler();
+			try {
+				const reloaded = await handler.load(
+					saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+				);
+				const restored = reloaded.slides[0].elements.find((element) => element.name === image.name);
+				expect(restored).toMatchObject({ x: 12, y: 34, width: 48, height: 56 });
+				expect(restored?.type === 'image' || restored?.type === 'picture').toBeTruthy();
+				if (restored?.type === 'image' || restored?.type === 'picture') {
+					const zip = await JSZip.loadAsync(saved);
+					expect(restored.imagePath).toBeTypeOf('string');
+					await expect(zip.file(restored.imagePath!)?.async('base64')).resolves.toBe(
+						image.imageData!.split(',')[1],
+					);
+				}
+			} finally {
+				handler.dispose();
+			}
+		},
+	);
+
+	it('exposes public element insertion on the headless handle', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		expect(handle.current).toHaveProperty('addElement', expect.any(Function));
 	});
 
 	it('loads a real PPTX buffer and produces working toolbar/canvas props', async () => {

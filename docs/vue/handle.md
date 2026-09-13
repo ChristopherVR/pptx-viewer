@@ -138,6 +138,32 @@ table, chart, connector, group, etc.) with complete type-specific properties.
 | `deleteElements`   | `(ids: string[]) => void`                             | Delete elements by ID.             |
 | `duplicateElement` | `(id: string) => string \| undefined`                 | Duplicate; returns new element ID. |
 
+### Inserting an element {#add-element}
+
+`addElement(element: PptxElement): string | undefined` appends a defensive copy
+to the active editable slide and selects it, returning its fresh ID. Coordinates
+are preserved; group descendants also receive fresh IDs. Pending text is
+committed through the existing editor path, with normal dirty-state and
+Undo/Redo behavior. Synchronous edits may share a history entry, but all insertions
+are retained. It returns `undefined` while loading, after a load error, without
+an active slide, or in read-only/protected, preview, presentation, or
+template/master editing modes.
+
+Use a self-contained model or one from the current document. With a loaded
+viewer in edit mode:
+
+```ts
+import { createImageElement } from 'pptx-viewer-core';
+
+const image = createImageElement(pngDataUrl, { x: 40, y: 40, width: 160, height: 90 });
+const insertedId = viewer.value?.addElement(image);
+```
+
+This method does not install clipboard listeners, fetch remote URLs, choose
+image dimensions, or import another document's relationships. A host-owned paste
+handler can read an image and call it. For a new data-URL image, use the factory
+above without inventing an `imagePath`, which denotes an existing archive part.
+
 ### Selection
 
 | Method                  | Signature                 | Description                             |

@@ -1,6 +1,8 @@
+import type { PptxElement } from 'pptx-viewer-core';
 import { MAX_ZOOM_SCALE, MIN_ZOOM_SCALE } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { openInlineEditor } from './editor/inline-text-editor';
 import { createPptxViewer, PptxViewer } from './PptxViewer';
 import type { PptxViewerInstance } from './types';
 
@@ -26,6 +28,10 @@ afterEach(() => {
 });
 
 describe('createPptxViewer', () => {
+	it('exposes element insertion on the public viewer instance', () => {
+		expect(mount().viewer.addElement).toBeTypeOf('function');
+	});
+
 	it('builds the chrome (toolbar, thumbnails, viewport) and injects styles once', () => {
 		const { container } = mount();
 		expect(container.querySelector('.pptxv')).toBeTruthy();
@@ -213,5 +219,111 @@ describe('createPptxViewer', () => {
 		// `presentation-auto-advance` reads exactly this field, so the checkbox
 		// now really does stop the show advancing on its own.
 		expect(concrete.store.get().presentationProperties.advanceMode).toBe('manual');
+	});
+});
+
+describe('public addElement', () => {
+	const input: PptxElement = {
+		id: 'caller',
+		type: 'text',
+		text: 'Before',
+		x: 10,
+		y: 20,
+		width: 100,
+		height: 50,
+	};
+	function setup() {
+		const { viewer, container } = mount({ editable: true });
+		const concrete = viewer as PptxViewer;
+		concrete.store.set({
+			slides: [{ id: 's1', rId: 'r1', slideNumber: 1, elements: [{ ...input, id: 'source' }] }],
+		});
+		viewer.selectElements(['source']);
+		return { viewer, container, concrete };
+	}
+
+	it('defensively inserts twice at supplied coordinates, selects, marks dirty and supports undo/redo', () => {
+		const { viewer } = setup();
+		const first = viewer.addElement(input),
+			second = viewer.addElement(input);
+		expect(first).toBeTruthy();
+		expect(second).not.toBe(first);
+		expect(viewer.getElements().map((el) => el.id)).toStrictEqual(['source', first, second]);
+		expect(viewer.getElementById(first!)!).toMatchObject({ x: 10, y: 20, width: 100, height: 50 });
+		expect(viewer.getElementById(first!)).not.toBe(input);
+		expect(input.id).toBe('caller');
+		expect(viewer.getSelectedElementIds()).toStrictEqual([second]);
+		expect(viewer.isDirty()).toBeTruthy();
+		viewer.undo();
+		expect(viewer.getElements()).toHaveLength(2);
+		viewer.redo();
+		expect(viewer.getElements()).toHaveLength(3);
+	});
+
+	it('blurs the actual inline editor before inserting and preserves its committed body', () => {
+		const { viewer, container } = setup();
+		const pending = openInlineEditor({
+			doc: document,
+			overlayRoot: container,
+			box: { ...input, rotation: 0 },
+			scale: 1,
+			element: viewer.getElementById('source')!,
+			onCommit: (text) => viewer.updateElement('source', { text }),
+			onClose: vi.fn(),
+		});
+		pending.el.textContent = 'Latest body';
+		pending.el.tabIndex = 0;
+		pending.el.focus();
+		viewer.addElement(input);
+		expect(viewer.getElementById('source')).toMatchObject({ text: 'Latest body' });
+		expect(container.querySelector('[data-inline-editor]')).toBeNull();
+		viewer.undo();
+		expect(viewer.getElements()).toHaveLength(1);
+		expect(viewer.getElementById('source')).toMatchObject({ text: 'Latest body' });
+	});
+
+	it.each([
+		'readonly',
+		'protected',
+		'recommendation',
+		'loading',
+		'error',
+		'present',
+		'master',
+		'template',
+		'missing',
+	] as const)('rejects %s without mutation', (condition) => {
+		const { viewer, concrete } = setup();
+		if (condition === 'readonly') {
+			concrete.store.set({ editable: false });
+		} else if (condition === 'loading') {
+			concrete.store.set({ loading: true });
+		} else if (condition === 'error') {
+			concrete.store.set({ error: 'Replacement failed' });
+		} else if (condition === 'protected') {
+			concrete.store.set({ protectedView: true });
+		} else if (condition === 'recommendation') {
+			concrete.store.set({
+				readOnlyRecommendation: {
+					kind: 'markedFinal',
+					messageKey: 'pptx.readOnly.markedFinal',
+					defaultReadOnly: true,
+					requiresPassword: false,
+				},
+			});
+		} else if (condition === 'present') {
+			concrete.store.set({ presenting: true });
+		} else if (condition === 'master') {
+			concrete.store.set({ masterViewTarget: { masterIndex: 0, layoutIndex: null } });
+		} else if (condition === 'template') {
+			concrete.store.set({ editTemplateMode: true });
+		} else {
+			concrete.store.set({ currentSlide: 9 });
+		}
+		const before = concrete.store.get();
+		expect(viewer.addElement(input)).toBeUndefined();
+		expect(concrete.store.get()).toBe(before);
+		expect(viewer.isDirty()).toBeFalsy();
+		expect(viewer.canUndo()).toBeFalsy();
 	});
 });

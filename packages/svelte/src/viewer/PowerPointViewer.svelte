@@ -142,6 +142,7 @@
 	export const getActiveSlide = vm.deck.getActiveSlide;
 	export const getElements = vm.deck.getElements;
 	export const getElementById = vm.deck.getElementById;
+	export const addElement = vm.deck.addElement;
 	export const updateElement = vm.deck.updateElement;
 	export const deleteElements = vm.deck.deleteElements;
 	export const duplicateElement = vm.deck.duplicateElement;

@@ -1,9 +1,164 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it, vi } from 'vitest';
-import { ref, shallowRef } from 'vue';
+import { describe, expect, it, onTestFinished, test, vi } from 'vitest';
+import { computed, effectScope, ref, shallowRef } from 'vue';
 
+import { useAutosave } from './useAutosave';
+import { useEditorHistory } from './useEditorHistory';
 import type { EditorOperations } from './useEditorOperations';
+import { useEditorOperations } from './useEditorOperations';
 import { useElementInsertion } from './useElementInsertion';
+import { useInlineEditing } from './useInlineEditing';
+import { useViewerApi } from './useViewerApi';
+import type { UseViewerApiOptions } from './useViewerApi';
+
+test('exposes caller-owned element insertion on the public API', () => {
+	expect(useViewerApi({} as UseViewerApiOptions).addElement).toBeTypeOf('function');
+});
+
+describe('public addElement', () => {
+	function harness() {
+		const scope = effectScope();
+		onTestFinished(() => scope.stop());
+		return scope.run(() => {
+			const original: PptxElement = {
+				id: 'original',
+				type: 'text',
+				text: 'Before',
+				x: 10,
+				y: 20,
+				width: 100,
+				height: 50,
+			};
+			const slides = shallowRef<PptxSlide[]>([
+				{ id: 's1', rId: 'r1', slideNumber: 1, elements: [original] },
+			]);
+			const activeSlideIndex = ref(0),
+				selectedElementIds = ref(['original']);
+			const history = useEditorHistory(slides);
+			const ops = useEditorOperations({
+				slides,
+				activeSlideIndex,
+				selectedElementIds,
+				pushHistory: history.pushHistory,
+			});
+			const canEdit = ref(true),
+				editTemplateMode = ref(false);
+			const inline = useInlineEditing({
+				canEdit: () => canEdit.value,
+				findActiveElement: (id) => ops.activeSlide.value?.elements.find((el) => el.id === id),
+				ops,
+			});
+			const autosave = useAutosave({ slides, enabled: false, intervalMs: 1000, onSave: vi.fn() });
+			const options: UseViewerApiOptions = {
+				slides,
+				activeSlide: ops.activeSlide,
+				activeSlideIndex,
+				slideCount: computed(() => slides.value.length),
+				selectedElementIds,
+				zoom: ref(1),
+				isDirty: autosave.isDirty,
+				presenting: ref(false),
+				showMasterView: ref(false),
+				mode: ref('edit'),
+				canEdit,
+				loading: ref(false),
+				error: ref(null),
+				editTemplateMode,
+				commitInlineEdit: inline.commitInlineEdit,
+				getContent: async () => new Uint8Array(),
+				goTo: vi.fn(),
+				goPrev: vi.fn(),
+				goNext: vi.fn(),
+				zoomIn: vi.fn(),
+				zoomOut: vi.fn(),
+				zoomReset: vi.fn(),
+				startPresenting: vi.fn(),
+				history,
+				slideOps: {
+					addSlide: vi.fn(),
+					deleteSlide: vi.fn(),
+					duplicateSlide: vi.fn(),
+					moveSlide: vi.fn(),
+				},
+				toggleSlideHidden: vi.fn(),
+				elementOps: ops,
+			};
+			return { api: useViewerApi(options), options, inline, original };
+		})!;
+	}
+
+	it('clones at the supplied position, selects, marks dirty and retains two synchronous calls', () => {
+		const { api, original } = harness();
+		const first = api.addElement(original),
+			second = api.addElement(original);
+		expect(first).toBeTruthy();
+		expect(second).not.toBe(first);
+		expect(api.getElements().map((el) => el.id)).toStrictEqual(['original', first, second]);
+		expect(api.getSelectedElementIds()).toStrictEqual([second]);
+		expect(api.getElementById(first!)!).toMatchObject({ x: 10, y: 20, width: 100, height: 50 });
+		expect(api.getElementById(first!)).not.toBe(original);
+		expect(original.id).toBe('original');
+		expect(api.isDirty()).toBeTruthy();
+		expect(api.canUndo()).toBeTruthy();
+		api.undo();
+		expect(api.getElements()).toHaveLength(2);
+		api.redo();
+		expect(api.getElements()).toHaveLength(3);
+	});
+
+	it('commits the real pending inline text before inserting without losing it on insertion undo', () => {
+		const { api, inline, original } = harness();
+		inline.enterInlineEdit('original');
+		inline.updateInlineText('Latest typed body');
+		const id = api.addElement(original);
+		expect(inline.inlineEditingElementId.value).toBeNull();
+		expect(api.getElementById('original')).toMatchObject({ text: 'Latest typed body' });
+		expect(api.getSelectedElementIds()).toStrictEqual([id]);
+		api.undo();
+		expect(api.getElements()).toHaveLength(1);
+		expect(api.getElementById('original')).toMatchObject({ text: 'Latest typed body' });
+	});
+
+	it.each([
+		'readonly',
+		'preview',
+		'present',
+		'presenting',
+		'master',
+		'template',
+		'missing',
+		'loading',
+		'error',
+	] as const)('rejects %s without committing pending text or changing state', (condition) => {
+		const { api, options, inline, original } = harness();
+		inline.enterInlineEdit('original');
+		inline.updateInlineText('Pending');
+		if (condition === 'readonly') {
+			options.canEdit.value = false;
+		} else if (condition === 'loading') {
+			options.loading.value = true;
+		} else if (condition === 'error') {
+			options.error.value = 'Replacement failed';
+		} else if (condition === 'presenting') {
+			options.presenting.value = true;
+		} else if (condition === 'template') {
+			options.editTemplateMode.value = true;
+		} else if (condition === 'master') {
+			options.showMasterView.value = true;
+		} else if (condition === 'missing') {
+			options.activeSlideIndex.value = 9;
+		} else {
+			options.mode.value = condition;
+		}
+		const before = options.slides.value;
+		expect(api.addElement(original)).toBeUndefined();
+		expect(options.slides.value).toBe(before);
+		expect(api.getSelectedElementIds()).toStrictEqual(['original']);
+		expect(api.canUndo()).toBeFalsy();
+		expect(api.isDirty()).toBeFalsy();
+		expect(inline.inlineEditingElementId.value).toBe('original');
+	});
+});
 
 describe('useElementInsertion fields', () => {
 	it('inserts a centred dynamic field and selects it', () => {

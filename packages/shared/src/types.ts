@@ -120,6 +120,14 @@ export interface PowerPointViewerAPI {
 
 	// -- Element manipulation --
 	/**
+	 * Append and select a deep copy on the active ordinary editable slide.
+	 * Assigns fresh element IDs without offsetting the supplied geometry.
+	 * Returns the new root ID, or undefined when insertion is unavailable.
+	 * Uses normal Undo/Redo grouping. Models must be self-contained or refer to
+	 * assets in this document; this does not import foreign PPTX relationships.
+	 */
+	addElement: (element: PptxElement) => string | undefined;
+	/**
 	 * Update one or more properties of an element by ID on the active slide.
 	 * Accepts a `Partial<PptxElement>` patch (e.g. `{ x: 100, width: 300 }`).
 	 */
