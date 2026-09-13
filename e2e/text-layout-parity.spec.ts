@@ -31,8 +31,11 @@
  *
  * Run: bunx playwright test text-layout-parity
  */
+import { readFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture, loadDeck, loadDeckAt, slideStage, thumbnail } from './support/deck';
@@ -55,6 +58,8 @@ const CJK = fixture('Japanese_10_Slides_1_8_MB_bbd4090b55.pptx');
 const BLANK_PARAGRAPHS = fixture('solution-explorer.pptx');
 /** PowerPoint-authored title whose body uses a:spAutoFit. */
 const SHAPE_AUTOFIT = fixture('animation-builds-color.pptx');
+/** Synthetic nested Roman list with distinct paragraph spacing and literal body text. */
+const NESTED_LIST = fixture('nested-list-continuation.pptx');
 
 /** Load `deck`, show slide `slideNumber`, and measure every run on it. */
 async function runsOfSlide(
@@ -244,6 +249,80 @@ test.describe('cross-binding text layout', () => {
 			.then((text) => text.replace(/\s+/gu, ''));
 
 		expect(afterReload).toContain(`5.${appendedText.replace(/\s+/gu, '')}`);
+	});
+
+	test('an inserted middle list item keeps its nesting through save and reload', async ({
+		page,
+	}) => {
+		await loadDeck(page, NESTED_LIST);
+		const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
+		if ((await autoSave.getAttribute('aria-checked')) === 'true') {
+			await autoSave.click();
+		}
+		await expect(autoSave).toHaveAttribute('aria-checked', 'false');
+		const list = page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Nested middle' })
+			.first();
+		await list.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+		// Five short, unwrapped paragraphs: move from the end to the second one.
+		// Use native keyboard selection, not framework-specific DOM mutations.
+		await editor.press('ControlOrMeta+End');
+		await editor.press('ArrowUp');
+		await editor.press('ArrowUp');
+		await editor.press('ArrowUp');
+		await editor.press('End');
+		const beforeCaret = await editor.evaluate((node) => {
+			if (node instanceof HTMLTextAreaElement) {
+				return node.value.slice(0, node.selectionStart);
+			}
+			const selection = window.getSelection();
+			if (!selection?.rangeCount || !node.contains(selection.anchorNode)) {
+				return '';
+			}
+			const range = selection.getRangeAt(0).cloneRange();
+			range.selectNodeContents(node);
+			range.setEnd(selection.anchorNode!, selection.anchorOffset);
+			return range.toString();
+		});
+		expect(beforeCaret.replace(/\s+/gu, '')).toMatch(/Nestedmiddle$/u);
+		// Same insertion gesture in all bindings; Angular's plain Enter commits.
+		await editor.press('Shift+Enter');
+		await page.keyboard.type('Browser inserted item');
+		const stageBox = (await slideStage(page).boundingBox())!;
+		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
+		await expect(editor).toBeHidden();
+		// AutoCorrect may capitalize the literal word; it must not consume "1.".
+		const expectedText =
+			/^III\.RomanfirstIII\.NestedmiddleIV\.BrowserinserteditemV\.NestednextIV\.RomanlastV\.1\.[Ll]iteralbody$/u;
+		await expect
+			.poll(async () => (await list.innerText()).replace(/\s+/gu, ''))
+			.toMatch(expectedText);
+
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath).not.toBeNull();
+		const zip = await JSZip.loadAsync(await readFile(savedPath!));
+		const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		const savedList = xml
+			.match(/<p:sp>[\s\S]*?<\/p:sp>/gu)
+			?.find((shape) => shape.includes('name="RomanMiddleTarget"'));
+		expect(savedList).toBeDefined();
+		const properties = [...savedList!.matchAll(/<a:pPr\b[^>]*>[\s\S]*?<\/a:pPr>/gu)].map(
+			(match) => match[0],
+		);
+		expect(
+			properties.map((props) => Number(props.match(/\blvl="(\d+)"/u)?.[1] ?? 0)),
+		).toStrictEqual([0, 1, 1, 1, 0, 0]);
+		expect(
+			properties.map((props) => props.match(/<a:spcAft><a:spcPts val="(\d+)"/u)?.[1]),
+		).toStrictEqual(['450', '900', undefined, '1650', '600', '375']);
+		await loadDeck(page, savedPath!);
+		await expect
+			.poll(async () => (await list.innerText()).replace(/\s+/gu, ''))
+			.toMatch(expectedText);
 	});
 
 	test('a hyperlink and an inline equation reach the DOM in every binding', async ({

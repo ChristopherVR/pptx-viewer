@@ -9,7 +9,7 @@ import { isBulletMarkerSegment } from './bullet-toggle';
 import { remapEmptyParagraph } from './remap-empty-paragraph';
 import { alignParagraphSources, restoreParagraphMetadata } from './remap-paragraph-sources';
 import {
-	continueAutoNumberedParagraph,
+	continueListParagraph,
 	renumberRemappedParagraphs,
 	withoutRenderedBulletPrefix,
 } from './remap-text-bullets';
@@ -43,7 +43,10 @@ function isAtomicOriginalSegment(seg: TextSegment): boolean {
  * slide-number/date field degrades to frozen plain text. Hyperlink and other
  * style-level properties already survive via the copied `style` object.
  */
-function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
+function copySegmentMetadata(from: TextSegment | undefined, to: TextSegment): TextSegment {
+	if (!from) {
+		return to;
+	}
 	if (from.equationXml !== undefined) {
 		to.equationXml = from.equationXml;
 	}
@@ -69,7 +72,7 @@ function copySegmentMetadata(from: TextSegment, to: TextSegment): TextSegment {
  * Strategy:
  * 1. Split both original segments and new text into paragraphs by "\n".
  * 2. Distribute new characters proportionally across segments.
- * 3. Extra chars go to last segment, extra paragraphs inherit last style.
+ * 3. Extra chars go to the last segment; new paragraphs use their preceding context.
  * 4. Re-insert paragraph-break markers between paragraphs.
  */
 export function remapTextToSegments(
@@ -108,7 +111,11 @@ export function remapTextToSegments(
 		? { ...firstContentSeg.style }
 		: fallbackStyle;
 
-	function remapParagraph(paraNewText: string, paraOrigSegments: TextSegment[]): TextSegment[] {
+	function remapParagraph(
+		paraNewText: string,
+		paraOrigSegments: TextSegment[],
+		isOriginalParagraph = true,
+	): TextSegment[] {
 		if (paraOrigSegments.length === 0) {
 			return paraNewText.length > 0
 				? [{ text: paraNewText, style: { ...baseFallbackStyle } }]
@@ -124,14 +131,13 @@ export function remapTextToSegments(
 				: undefined;
 		if (dedicatedMarker) {
 			const contentSegments = paraOrigSegments.slice(1);
-			const contentText = withoutRenderedBulletPrefix(
-				paraNewText,
-				paraOrigSegments,
-				dedicatedMarker,
-			);
+			// A new paragraph has no prior display marker to strip from authored text.
+			const contentText = isOriginalParagraph
+				? withoutRenderedBulletPrefix(paraNewText, paraOrigSegments, dedicatedMarker)
+				: paraNewText;
 			const content =
 				contentSegments.length > 0
-					? remapParagraph(contentText, contentSegments)
+					? remapParagraph(contentText, contentSegments, isOriginalParagraph)
 					: [{ text: contentText, style: { ...dedicatedMarker.style } }];
 			return [dedicatedMarker, ...content];
 		}
@@ -151,7 +157,7 @@ export function remapTextToSegments(
 
 		if (totalOrigLen === 0) {
 			const result: TextSegment[] = [
-				copySegmentMetadata(paraOrigSegments[0], {
+				copySegmentMetadata(isOriginalParagraph ? paraOrigSegments[0] : undefined, {
 					text: paraNewText,
 					style: { ...paraOrigSegments[0].style },
 				}),
@@ -170,7 +176,9 @@ export function remapTextToSegments(
 			// An atomic (field/equation) segment never gets the "last segment
 			// absorbs everything left over" treatment, even when it IS the last
 			// segment - see `isAtomicOriginalSegment`.
-			const isLastSeg = i === paraOrigSegments.length - 1 && !isAtomicOriginalSegment(origSeg);
+			const isLastSeg =
+				i === paraOrigSegments.length - 1 &&
+				(!isOriginalParagraph || !isAtomicOriginalSegment(origSeg));
 			const origLen = origSeg.text.length;
 
 			if (newPos >= paraNewText.length) {
@@ -185,7 +193,7 @@ export function remapTextToSegments(
 			}
 
 			if (segText.length > 0) {
-				const outSeg: TextSegment = copySegmentMetadata(origSeg, {
+				const outSeg: TextSegment = copySegmentMetadata(isOriginalParagraph ? origSeg : undefined, {
 					text: segText,
 					style: { ...origSeg.style },
 				});
@@ -212,10 +220,13 @@ export function remapTextToSegments(
 		}
 
 		if (remapped.length === 0) {
-			const fallback: TextSegment = copySegmentMetadata(paraOrigSegments[0], {
-				text: paraNewText,
-				style: { ...paraOrigSegments[0].style },
-			});
+			const fallback: TextSegment = copySegmentMetadata(
+				isOriginalParagraph ? paraOrigSegments[0] : undefined,
+				{
+					text: paraNewText,
+					style: { ...paraOrigSegments[0].style },
+				},
+			);
 			if (paragraphBulletInfo) {
 				fallback.bulletInfo = paragraphBulletInfo;
 			}
@@ -227,13 +238,7 @@ export function remapTextToSegments(
 
 	const output: TextSegment[] = [];
 	const lastOrigPara = originalParagraphs[originalParagraphs.length - 1]?.segments;
-	const lastSourceOffset = [...paragraphSources]
-		.reverse()
-		.findIndex((source) => source !== undefined);
-	const appendStart = Math.max(
-		originalParagraphs.length,
-		lastSourceOffset < 0 ? 0 : paragraphSources.length - lastSourceOffset,
-	);
+	let precedingParagraph: TextSegment[] | undefined;
 
 	for (let pi = 0; pi < newParagraphTexts.length; pi++) {
 		if (pi > 0) {
@@ -250,23 +255,20 @@ export function remapTextToSegments(
 		}
 
 		const originalParagraph = originalParagraphs[paragraphSources[pi] ?? -1];
-		const origPara = originalParagraph?.segments ?? lastOrigPara ?? [];
+		const origPara = originalParagraph?.segments ?? precedingParagraph ?? lastOrigPara ?? [];
 		let paraSegments = restoreParagraphMetadata(
 			originalParagraph?.segments[0] ?? originalParagraph?.terminator,
 			(originalParagraph &&
 				remapEmptyParagraph(newParagraphTexts[pi], origPara, originalParagraph.terminator)) ??
-				remapParagraph(newParagraphTexts[pi], origPara),
+				remapParagraph(newParagraphTexts[pi], origPara, originalParagraph !== undefined),
 		);
-		// Only true tail appends use the historical numbering continuation rule.
-		// An unmatched middle paragraph has no donor paragraph metadata.
-		if (!originalParagraph && pi >= appendStart) {
-			paraSegments = continueAutoNumberedParagraph(
-				paraSegments,
-				lastOrigPara ?? [],
-				pi - originalParagraphs.length + 1,
-			);
+		// New items follow their local list, without inheriting paragraph spacing
+		// or end-run properties reserved for an aligned original paragraph.
+		if (!originalParagraph && precedingParagraph) {
+			paraSegments = continueListParagraph(paraSegments, precedingParagraph);
 		}
 		output.push(...paraSegments);
+		precedingParagraph = paraSegments;
 	}
 
 	if (paragraphSources.some((source, index) => source !== undefined && source !== index)) {
