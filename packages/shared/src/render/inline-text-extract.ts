@@ -69,6 +69,11 @@ export function readEditableText(root: Node): string {
 			const isBlock = child.tagName === 'DIV' || child.tagName === 'P';
 			if (isBlock && out.length > 0 && !out.endsWith('\n')) {
 				out += '\n';
+				// A new empty block already supplied its break. Its sole nested BR
+				// is the native caret placeholder, not an additional empty paragraph.
+				if (hasOnlyCaretPlaceholder(child)) {
+					continue;
+				}
 			}
 			walk(child);
 		}

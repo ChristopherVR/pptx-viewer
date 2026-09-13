@@ -46,6 +46,24 @@ describe('segmentStyleToCss', () => {
 });
 
 describe('buildParagraphs autofit + bullet typeface', () => {
+	it('preserves trailing empty caret paragraphs only when the editable caller opts in', () => {
+		const element = textEl([
+			{ text: 'Item', style: {}, bulletInfo: { char: '◆' } },
+			{ text: '\n', style: {}, isParagraphBreak: true },
+			{ text: '', style: {}, bulletInfo: { char: '◆' } },
+		]);
+		expect(buildParagraphs(element)).toHaveLength(1);
+		expect(
+			buildParagraphs(element, undefined, undefined, { preserveTrailingEmpty: false }),
+		).toHaveLength(1);
+		const editable = buildParagraphs(element, undefined, undefined, {
+			preserveTrailingEmpty: true,
+		});
+		expect(editable).toHaveLength(2);
+		expect(editable[0]).toStrictEqual(buildParagraphs(element)[0]);
+		expect(editable[1].runs.every((run) => run.text === '')).toBeTruthy();
+	});
+
 	it("scales every authored run size by the body's normAutofit font scale", () => {
 		const paras = buildParagraphs(
 			textEl([{ text: 'Title', style: { fontSize: 53.33 } }], {

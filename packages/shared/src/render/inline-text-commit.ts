@@ -1,6 +1,8 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { reconcileInlineListSnapshot } from './inline-list-reconcile';
+import type { InlineTextEditSnapshot } from './inline-list-types';
 import { remapTextToSegments } from './remap-text';
 
 /**
@@ -14,9 +16,22 @@ import { remapTextToSegments } from './remap-text';
 export function buildInlineTextCommitPatch(
 	element: PptxElement | undefined,
 	text: string,
+	snapshot?: InlineTextEditSnapshot,
 ): Partial<PptxElement> | undefined {
 	if (!element || !hasTextProperties(element)) {
 		return undefined;
+	}
+	const currentSnapshot =
+		snapshot?.elementId === element.id && snapshot.textSegments
+			? reconcileInlineListSnapshot(snapshot, text)
+			: undefined;
+	if (currentSnapshot?.textSegments) {
+		// List semantics can change without changing the authored body. Conversely,
+		// excluding display-only markers must not make an untouched blur dirty.
+		if (JSON.stringify(currentSnapshot.textSegments) === JSON.stringify(element.textSegments)) {
+			return undefined;
+		}
+		return { text, textSegments: currentSnapshot.textSegments } as Partial<PptxElement>;
 	}
 	const currentText = element.textSegments?.length
 		? element.textSegments
