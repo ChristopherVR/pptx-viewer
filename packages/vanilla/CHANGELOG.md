@@ -7,6 +7,28 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.16.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.7) - 2026-09-13
+
+### Bug Fixes
+
+- **vanilla:** Settle SmartArt node edits before closing (by @Sudhansh6) ([b2614f1](https://github.com/ChristopherVR/pptx-viewer/commit/b2614f119aed855d120d98aa037b5eac0e912830))
+- **shared:** Preserve paragraph properties across text insertion (by @Sudhansh6) ([624c880](https://github.com/ChristopherVR/pptx-viewer/commit/624c880ed0a1396b91a4203334bb59a409b9eec0))
+- **core:** Preserve run styles after text-only edits (by @Sudhansh6) ([3cb843c](https://github.com/ChristopherVR/pptx-viewer/commit/3cb843c0a3bf609da00007036ec601274214890c))
+- **core:** Size percentage bullets from the first text run (by @Sudhansh6) ([51e26e1](https://github.com/ChristopherVR/pptx-viewer/commit/51e26e1ace134a48ae7eb74207ac12a11ee44ea1))
+
+### Refactor
+
+- **core:** Expose numbering sequence for paragraph edits (by @Sudhansh6) ([a27fb46](https://github.com/ChristopherVR/pptx-viewer/commit/a27fb465f8b7bbb9b373106fbc3051709329a5bf))
+
+### Testing
+
+- **vanilla:** Cover paragraph insertion and edit history (by @Sudhansh6) ([18ae358](https://github.com/ChristopherVR/pptx-viewer/commit/18ae358f3f08247dbcc14393716330099a57055d))
+
+### Chores
+
+- Merge updated SmartArt geometry coverage (by @Sudhansh6) ([d0364a9](https://github.com/ChristopherVR/pptx-viewer/commit/d0364a9169fc8520b91ccd73ac30962cbbf520d2))
+- Merge main before SmartArt cancellation contribution (by @Sudhansh6) ([4581de6](https://github.com/ChristopherVR/pptx-viewer/commit/4581de613b294edc07534bd4721c0e1e1afe2ebb))
+
 ## [2.16.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.16.6) - 2026-09-12
 
 ### Bug Fixes
