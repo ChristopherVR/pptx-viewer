@@ -67,3 +67,4 @@ export type {
 	PptxJsonConverterOptions,
 	PptxJsonSerializeOptions,
 } from './converter';
+export { ELEMENT_PARAGRAPH_GEOMETRY_KEYS } from './core/core/runtime/element-paragraph-geometry';
