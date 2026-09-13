@@ -40,13 +40,21 @@ async function buildDeck(): Promise<Uint8Array> {
 }
 
 /** Mount the real factory over `source` and wait for the load to commit. */
-async function loadHarness(source: Uint8Array): Promise<ViewerStateBag> {
+async function loadHarness(
+	source: Uint8Array,
+	callbacks: {
+		oncontentchange?: (bytes: Uint8Array) => void;
+		onerror?: (message: string) => void;
+	} = {},
+): Promise<ViewerStateBag> {
 	let captured: ViewerStateBag | undefined;
 	const target = document.createElement('div');
 	const instance = mount(CreateViewerStateHarness, {
 		target,
 		props: {
+			...callbacks,
 			source,
+			autosave: false,
 			editable: true,
 			onready: (state: ViewerStateBag) => {
 				captured = state;
@@ -70,6 +78,82 @@ async function loadHarness(source: Uint8Array): Promise<ViewerStateBag> {
 }
 
 describe('svelte deck view preferences', () => {
+	it('keeps dirty and reports a failed content serialization without emitting bytes', async () => {
+		const oncontentchange = vi.fn();
+		const onerror = vi.fn();
+		const state = await loadHarness(await buildDeck(), { oncontentchange, onerror });
+		vi.spyOn(state.loader.handler!, 'save').mockRejectedValueOnce(
+			new Error('serialization failed'),
+		);
+		state.editor.insertElement({ type: 'shape', id: '', x: 10, y: 20, width: 100, height: 50 });
+		await vi.waitFor(() => expect(onerror).toHaveBeenCalledWith('serialization failed'));
+		expect(oncontentchange).not.toHaveBeenCalled();
+		expect(state.editor.dirty).toBeTruthy();
+		expect(state.editor.canUndo).toBeTruthy();
+	}, 60_000);
+
+	it('does not clear a newer edit when a notification finishes', async () => {
+		const oncontentchange = vi.fn();
+		const state = await loadHarness(await buildDeck(), { oncontentchange });
+		const bytes = await state.editor.save();
+		let finish!: (bytes: Uint8Array) => void;
+		const pending = new Promise<Uint8Array>((resolve) => {
+			finish = resolve;
+		});
+		vi.spyOn(state.loader.handler!, 'save').mockReturnValue(pending);
+		state.editor.insertElement({ type: 'shape', id: '', x: 10, y: 20, width: 100, height: 50 });
+		state.editor.commitInlineText(state.editor.slides[0].elements[0].id, 'Newer body');
+		finish(bytes);
+		await vi.waitFor(() => expect(oncontentchange).toHaveBeenCalledTimes(2));
+		expect(state.editor.dirty).toBeTruthy();
+		expect(state.editor.slides[0].elements[0].text).toBe('Newer body');
+	}, 60_000);
+
+	it('keeps committed edits dirty without serializing an absent content callback', async () => {
+		const state = await loadHarness(await buildDeck());
+		const serialize = vi.spyOn(state.loader.handler!, 'save');
+		state.editor.insertElement({ type: 'shape', id: '', x: 10, y: 20, width: 100, height: 50 });
+		flushSync();
+		expect(state.autosaveEnabled).toBeFalsy();
+		await Promise.all(serialize.mock.results.map((result) => result.value));
+		expect(serialize).not.toHaveBeenCalled();
+		expect(state.editor.dirty).toBeTruthy();
+	}, 60_000);
+
+	it('notifies committed inline content without acknowledging a save', async () => {
+		const oncontentchange = vi.fn<(bytes: Uint8Array) => void>();
+		const state = await loadHarness(await buildDeck(), { oncontentchange });
+		state.editor.insertElement({
+			type: 'shape',
+			id: '',
+			x: 10,
+			y: 20,
+			width: 100,
+			height: 50,
+			text: 'Before',
+		});
+		await vi.waitFor(() => expect(oncontentchange).toHaveBeenCalledOnce());
+		const id = state.editor.slides[0].elements[0].id;
+		state.editor.commitInlineText(id, 'Committed body');
+		await vi.waitFor(() => expect(oncontentchange).toHaveBeenCalledTimes(2));
+		expect(state.editor.dirty).toBeTruthy();
+		expect(state.editor.canUndo).toBeTruthy();
+		const handler = new PptxHandler();
+		try {
+			const bytes = oncontentchange.mock.calls[1][0];
+			const saved = await handler.load(bytes.buffer as ArrayBuffer);
+			expect(saved.slides[0].elements[0].text).toBe('Committed body');
+			expect(saved.viewProperties?.slideViewPr).toMatchObject({
+				snapToGrid: false,
+				showGuides: true,
+			});
+		} finally {
+			handler.dispose();
+		}
+		await state.editingApi.save();
+		expect(state.editor.dirty).toBeFalsy();
+	}, 60_000);
+
 	it('seeds snapToGrid/snapToShape/showGuides from ppt/viewProps.xml on load', async () => {
 		const state = await loadHarness(await buildDeck());
 

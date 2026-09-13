@@ -30,7 +30,8 @@ export interface UseViewerApiOptions {
 	loading: Ref<boolean>;
 	error: Ref<string | null>;
 	editTemplateMode: Ref<boolean>;
-	commitInlineEdit: () => void;
+	setEditingRequested: (editable: boolean) => void;
+	commitPendingText: () => void;
 	getContent: () => Promise<Uint8Array>;
 	goTo: (index: number) => void;
 	goPrev: () => void;
@@ -97,6 +98,15 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 		zoomReset: options.zoomReset,
 		getMode: () => options.mode.value,
 		setMode: (newMode) => {
+			if (
+				newMode === 'preview' &&
+				(options.mode.value === 'edit' || options.mode.value === 'master')
+			) {
+				options.commitPendingText();
+			}
+			if (newMode !== 'present') {
+				options.setEditingRequested(newMode !== 'preview');
+			}
 			if (newMode === 'present') {
 				options.startPresenting();
 			} else if (newMode === 'master') {
@@ -153,7 +163,7 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 			if (!prepared) {
 				return undefined;
 			}
-			options.commitInlineEdit();
+			options.commitPendingText();
 			elementOps.addElement(prepared);
 			return prepared.id;
 		},
