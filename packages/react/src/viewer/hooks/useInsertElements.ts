@@ -34,6 +34,7 @@ export interface UseInsertElementsInput {
 }
 
 export interface InsertElementHandlers {
+	addElement: (element: PptxElement) => void;
 	handleAddTextBox: () => void;
 	handleAddShape: () => void;
 	handleAddTable: () => void;
@@ -174,6 +175,7 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 	};
 
 	return {
+		addElement,
 		handleAddTextBox,
 		handleAddShape,
 		handleAddTable,

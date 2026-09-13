@@ -21,6 +21,7 @@ import {
 	reassignDescendantIds,
 	serializeElementClipboard,
 } from './element-clipboard';
+import { prepareElementForInsertion } from './element-insertion';
 
 function makeElement(overrides: Partial<PptxElement> & { id: string }): PptxElement {
 	return {
@@ -274,6 +275,43 @@ describe('cloned connected groups', () => {
 			}
 		},
 	);
+});
+
+describe('prepareElementForInsertion', () => {
+	const target = {
+		canEdit: true,
+		mode: 'edit' as const,
+		hasActiveSlide: true,
+		editTemplateMode: false,
+	};
+
+	it.each([
+		{ canEdit: false },
+		{ mode: 'preview' as const },
+		{ mode: 'present' as const },
+		{ mode: 'master' as const },
+		{ hasActiveSlide: false },
+		{ editTemplateMode: true },
+	])('does not prepare an element for an unavailable target %j', (overrides) => {
+		expect(prepareElementForInsertion(nestedGroup(), { ...target, ...overrides })).toBeUndefined();
+	});
+
+	it('preserves geometry and opaque XML while isolating every descendant', () => {
+		const source = nestedGroup();
+		source.rawXml = { 'p:sp': { '@_relationship': 'rIdForeign' } };
+		const original = structuredClone(source);
+		const first = prepareElementForInsertion(source, target)!;
+		const second = prepareElementForInsertion(source, target)!;
+		expect([first.x, first.y, first.width, first.height]).toStrictEqual([10, 20, 100, 100]);
+		expect(first.rawXml).toStrictEqual(source.rawXml);
+		expect(first.rawXml).not.toBe(source.rawXml);
+		const ids = [...collectIds(source), ...collectIds(first), ...collectIds(second)];
+		expect(new Set(ids).size).toBe(ids.length);
+		if (first.type === 'group') {
+			first.children[0].width = 200;
+		}
+		expect(source).toStrictEqual(original);
+	});
 });
 
 // The clipboard used to carry its own copies of these two, so a paste and a

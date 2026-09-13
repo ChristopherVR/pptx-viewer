@@ -108,6 +108,8 @@ export interface EditActions
 	insert(kind: InsertKind, shapeType?: ShapePresetType): void;
 	insertImage(): Promise<void>;
 	insertMedia(): Promise<void>;
+	/** Existing history-tracked insertion transaction for a prepared element. */
+	insertElement(element: PptxElement): void;
 	/** Insert a default chart for the given dropdown entry (defaults to Column). */
 	insertChart(chartKind?: InsertChartKind): void;
 	insertSmartArt(layout: SmartArtLayout, defaultItems: string[]): void;
@@ -176,6 +178,7 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 	};
 
 	return {
+		insertElement,
 		...createTextActions(store, applyToSelected),
 		...createArrangeActions({ store, ops, applyToSelected }),
 		...createClipboardActions({ store, ops }),

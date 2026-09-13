@@ -4,7 +4,7 @@ import type {
 	ReadOnlyRecommendation,
 	ViewerMode,
 } from 'pptx-viewer-shared';
-import { clampZoomScale } from 'pptx-viewer-shared';
+import { clampZoomScale, prepareElementForInsertion } from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
  * I/O, annotations, recovery, imperative handle, parent callbacks,
@@ -72,6 +72,8 @@ export interface UseViewerIntegrationInput {
 	/** Forwarded to `useContentLifecycle` -> `useLoadContent`: see `useCompatibilityToastsState`. */
 	setCompatToasts: Dispatch<SetStateAction<CompatibilityWarningToast[]>>;
 	canEdit: boolean;
+	/** Additional insertion gate for a headless host's loaded read-only recommendation. */
+	canInsertElement?: boolean;
 	/**
 	 * Options > Advanced > "Prompt to keep ink annotations when exiting"
 	 * (default true). When false, exiting a slide show with annotations
@@ -163,6 +165,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		setModifyVerifier,
 		setCompatToasts,
 		canEdit,
+		canInsertElement = true,
 		promptKeepInkAnnotations,
 		imageExportScale,
 		imageResolutionScale,
@@ -421,6 +424,21 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				return s?.elements.find((e) => e.id === elementId);
 			},
 			// -- Element manipulation --
+			addElement(element: PptxElement) {
+				const inserted = prepareElementForInsertion(element, {
+					canEdit: canEdit && canInsertElement,
+					mode,
+					hasActiveSlide: !loading && !error && Boolean(activeSlide),
+					editTemplateMode: state.editTemplateMode,
+				});
+				if (!inserted) {
+					return undefined;
+				}
+				editorOps.canvasHandlers.handleInlineEditCommit();
+				editorOps.insertHandlers.addElement(inserted);
+				editorOps.ops.applySelection(inserted.id, [inserted.id]);
+				return inserted.id;
+			},
 			updateElement(elementId: string, updates: Partial<PptxElement>) {
 				editorOps.ops.updateElementById(elementId, updates);
 			},
@@ -441,6 +459,11 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			onContentChange,
 			slides,
 			activeSlideIndex,
+			activeSlide,
+			canEdit,
+			canInsertElement,
+			loading,
+			error,
 			state,
 			history,
 			zoom,

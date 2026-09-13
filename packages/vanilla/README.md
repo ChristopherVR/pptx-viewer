@@ -131,8 +131,13 @@ The handle returned by `createPptxViewer` implements the shared
 Svelte bindings: `getContent`, `goTo`, `undo`/`redo`, zoom and mode getters/
 setters, `getSlides`/`getSlide`/`getActiveSlide`, `addSlide`/`deleteSlides`/
 `duplicateSlides`/`moveSlide`/`toggleHideSlides`, `getElements`/
-`getElementById`/`updateElement`/`deleteElements`/`duplicateElement`, and the
-selection methods) plus vanilla-specific methods:
+`getElementById`/`addElement`/`updateElement`/`deleteElements`/`duplicateElement`, and the
+selection methods).
+
+See [element insertion](https://christophervr.github.io/pptx-viewer/vanilla/api#add-element)
+for the `addElement` contract and a core-factory example.
+
+Additional vanilla-specific methods:
 
 - **Loading**: `loadFile(bytesOrBlob)`, `loadUrl(url)`.
 - **Navigation / zoom**: `next()`, `prev()`, `goToSlide(index)`,

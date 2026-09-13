@@ -42,6 +42,10 @@ function useHarness(initialSlides: PptxSlide[] = []) {
 		presenting,
 		showMasterView,
 		mode,
+		canEdit,
+		loading: ref(false),
+		error: ref<string | null>(null),
+		editTemplateMode: ref(false),
 		setEditingRequested: (value: boolean) => {
 			editingRequested.value = value;
 		},
@@ -70,6 +74,27 @@ function useHarness(initialSlides: PptxSlide[] = []) {
 }
 
 describe('public viewer mode', () => {
+	it('gates public insertion by the live requested mode and never lifts permission', () => {
+		const element = createTextElement('Insertion source', { x: 20, y: 30, width: 200, height: 50 });
+		const { api, permission, commitPendingText } = useHarness([
+			{ id: 'slide', rId: 'rId1', slideNumber: 1, elements: [element] },
+		]);
+		api.setMode('preview');
+		commitPendingText.mockClear();
+		expect(api.addElement(element)).toBeUndefined();
+		expect(api.getElements()).toHaveLength(1);
+		expect(commitPendingText).not.toHaveBeenCalled();
+		api.setMode('edit');
+		expect(api.addElement(element)).toBeTruthy();
+		expect(api.getElements()).toHaveLength(2);
+		expect(commitPendingText).toHaveBeenCalledOnce();
+		permission.value = false;
+		api.setMode('edit');
+		expect(api.getMode()).toBe('preview');
+		expect(api.addElement(element)).toBeUndefined();
+		expect(api.getElements()).toHaveLength(2);
+	});
+
 	it('switches permitted edit and preview without a host prop update', () => {
 		const { api, canEdit } = useHarness();
 		expect(api.getMode()).toBe('edit');

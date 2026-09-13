@@ -1346,6 +1346,7 @@ export * from './theme-editor-presets';
 // string codec (binary-safe) for round-tripping elements through the system
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
+export * from './element-insertion';
 export * from './header-footer-dialog';
 export * from './media-file-type';
 export * from './template-background-rows';

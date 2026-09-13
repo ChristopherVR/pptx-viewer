@@ -9,7 +9,7 @@
  * Building it here also makes the contract diffable against the other bindings.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { clampZoomScale } from 'pptx-viewer-shared';
+import { clampZoomScale, prepareElementForInsertion } from 'pptx-viewer-shared';
 import type { ViewerMode } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
@@ -26,6 +26,10 @@ export interface UseViewerApiOptions {
 	presenting: Ref<boolean>;
 	showMasterView: Ref<boolean>;
 	mode: Ref<ViewerMode> | ComputedRef<ViewerMode>;
+	canEdit: Ref<boolean> | ComputedRef<boolean>;
+	loading: Ref<boolean>;
+	error: Ref<string | null>;
+	editTemplateMode: Ref<boolean>;
 	setEditingRequested: (editable: boolean) => void;
 	commitPendingText: () => void;
 	getContent: () => Promise<Uint8Array>;
@@ -50,6 +54,7 @@ export interface UseViewerApiOptions {
 	};
 	toggleSlideHidden: (index: number) => void;
 	elementOps: {
+		addElement: (element: PptxElement) => void;
 		updateElement: (id: string, updates: Partial<PptxElement>) => void;
 		removeElement: (id: string) => void;
 		duplicateElement: (id: string) => string | undefined;
@@ -143,6 +148,25 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 		getElementById: (elementId: string, slideIndex?: number) =>
 			slideAt(slideIndex)?.elements.find((e) => e.id === elementId),
 		// -- Element manipulation --
+		addElement: (element: PptxElement) => {
+			const prepared = prepareElementForInsertion(element, {
+				canEdit: options.canEdit.value,
+				mode: options.presenting.value
+					? 'present'
+					: options.showMasterView.value
+						? 'master'
+						: options.mode.value,
+				hasActiveSlide:
+					!options.loading.value && !options.error.value && Boolean(activeSlide.value),
+				editTemplateMode: options.editTemplateMode.value,
+			});
+			if (!prepared) {
+				return undefined;
+			}
+			options.commitPendingText();
+			elementOps.addElement(prepared);
+			return prepared.id;
+		},
 		updateElement: (elementId: string, updates: Partial<PptxElement>) => {
 			elementOps.updateElement(elementId, updates);
 		},

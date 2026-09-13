@@ -176,11 +176,14 @@ editing and export methods (the `PowerPointViewerApi` type):
 - **Slides / elements**: `getSlides()`, `getSlide(index)`, `getActiveSlide()`,
   `addSlide(afterIndex?)`, `deleteSlides(indexes)`, `duplicateSlides(indexes)`,
   `moveSlide(from, to)`, `toggleHideSlides(indexes)`, `getElements(slideIndex?)`,
-  `getElementById(id, slideIndex?)`, `updateElement(id, patch)`,
+  `getElementById(id, slideIndex?)`, `addElement(element)`, `updateElement(id, patch)`,
   `deleteElements(ids)`, `duplicateElement(id)`.
 - **Export / print**: `exportSlidePng(index?)`, `copySlideAsImage(index?)`,
   `exportPdf(options?)`, `exportGif(options?)`, `exportVideo(options?)`,
   `print(options?)`.
+
+See [element insertion](https://christophervr.github.io/pptx-viewer/svelte/api#add-element)
+for the `addElement` contract and a core-factory example.
 
 See the [full docs](https://christophervr.github.io/pptx-viewer/svelte/) for
 the complete props/events contract, theming, and localization guides.

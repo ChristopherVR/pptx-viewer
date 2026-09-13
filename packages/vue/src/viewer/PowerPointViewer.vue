@@ -1481,6 +1481,10 @@ defineExpose<PowerPointViewerExpose>(
 		presenting: presentation.presenting,
 		showMasterView: masterView.showMasterView,
 		mode: ribbonMode,
+		canEdit: canEditEffective,
+		loading,
+		error,
+		editTemplateMode,
 		setEditingRequested: (editable) => {
 			editingRequested.value = editable;
 		},

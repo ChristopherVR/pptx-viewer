@@ -208,6 +208,7 @@ export function useViewerBuildingBlocksState(
 		allowExternalImages: viewerOptions.trust.allowExternalContent,
 		setReadOnlyRecommendation: readOnlyRec.setRecommendation,
 		setModifyVerifier: readOnlyRec.setModifyVerifier,
+		canInsertElement: !readOnlyRec.locked && !viewerOptions.trust.openInProtectedView,
 		setCompatToasts: compatToastsState.setToasts,
 		canEdit,
 		promptKeepInkAnnotations: viewerOptions.advanced.slideShowPromptKeepInkAnnotations,
