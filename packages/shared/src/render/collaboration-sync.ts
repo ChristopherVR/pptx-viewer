@@ -225,6 +225,7 @@ export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
 	children: '_ch',
 	paragraphIndents: '_pi',
 	rawXml: '_rx',
+	inheritedTransform: '_it',
 	extLstXml: '_elx',
 	actionClick: '_ac',
 	actionHover: '_av',

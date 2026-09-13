@@ -57,11 +57,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Exact EMU alongside the rounded pixel value, for `resolveXfrmEmu`
 			// (xfrm-emu-resolution.ts) to re-emit byte-identical `a:off`/`a:ext`
 			// on save when this shape has not moved/resized. `off`/`ext` here
-			// are the EFFECTIVE (placeholder-merged) transform, but the save
-			// writer only ever patches THIS shape's own `a:xfrm` (a no-op when
-			// it has none), so a value inherited from a layout/master is
-			// harmless to record: it is never written unless the slide shape
-			// already carries its own `a:xfrm` to patch.
+			// are the EFFECTIVE (placeholder-merged) transform. A shape with no
+			// own a:xfrm keeps a scalar baseline below: only an actual transform
+			// edit may turn its inherited geometry into a slide-level override.
 			const xEmu = parseInt(xmlAttr(off, 'x') || '0');
 			const yEmu = parseInt(xmlAttr(off, 'y') || '0');
 			const widthEmu = parseInt(xmlAttr(ext, 'cx') || '0');
@@ -403,6 +401,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				skewY,
 				flipHorizontal,
 				flipVertical,
+				inheritedTransform:
+					!spPr?.['a:xfrm'] && xfrm && off && ext
+						? { x, y, width, height, rotation, skewX, skewY, flipHorizontal, flipVertical }
+						: undefined,
 				actionClick,
 				actionHover,
 				locks,
