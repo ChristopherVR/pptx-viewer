@@ -18,6 +18,7 @@
  * LIVE `inlineEditingText`, not the stale model segments.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { buildParagraphs, elementBulletKind } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -106,6 +107,39 @@ function mount(
 }
 
 describe('updateSelectedTextStyle mid-edit race', () => {
+	it('authors real bullets and keeps a repeated explicit setter on', () => {
+		const harness = mount(null, '');
+		for (let call = 0; call < 2; call++) {
+			act(() => harness.ops().updateSelectedTextStyle({ listType: 'bullet' }));
+			const element = harness.slides()[0].elements[0];
+			expect(elementBulletKind(element)).toBe('bullet');
+			expect(buildParagraphs(element)[0].bulletMarker).toBe('•');
+			expect(
+				buildParagraphs(element)[0]
+					.runs.map((run) => run.text)
+					.join(''),
+			).toBe('Hello');
+		}
+		act(() => harness.ops().updateSelectedTextStyle({ listType: 'none' }));
+		expect(elementBulletKind(harness.slides()[0].elements[0])).toBe('none');
+	});
+
+	it('lists the current typed paragraphs and applies accompanying character formatting', () => {
+		const harness = mount('shape-1', 'Hello there\nNext item');
+		act(() => harness.ops().updateSelectedTextStyle({ listType: 'numbered', bold: true }));
+		const element = harness.slides()[0].elements[0];
+		const paragraphs = buildParagraphs(element);
+		expect(paragraphs.map((paragraph) => paragraph.bulletMarker)).toStrictEqual(['1.', '2.']);
+		expect(
+			paragraphs.map((paragraph) => paragraph.runs.map((run) => run.text).join('')),
+		).toStrictEqual(['Hello there', 'Next item']);
+		expect(
+			paragraphs
+				.flatMap((paragraph) => paragraph.runs)
+				.every((run) => run.style.fontWeight === 'bold'),
+		).toBeTruthy();
+	});
+
 	it('preserves an unchanged suffix when Bold reconciles a pending paragraph insertion', () => {
 		const last = {
 			text: 'Last',

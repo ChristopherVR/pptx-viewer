@@ -2,6 +2,8 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import {
 	CHARACTER_SPACING_OPTIONS,
+	getInlineEditorSelection,
+	selectedParagraphBulletKind,
 	OFFICE_COLOR_SWATCHES,
 	textFontSizePtToPx,
 } from 'pptx-viewer-shared';
@@ -26,6 +28,7 @@ import { ThemeColorSwatchGrid } from '../inspector/ThemeColorSwatchGrid';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
+import { useParagraphListKind } from './useParagraphListKind';
 
 /**
  * Returns the text style currently in effect for toolbar toggles:
@@ -87,6 +90,15 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	// Enable formatting for text elements AND table cells
 	const canFormat = isTextEl || isTable;
 	const effectiveTs = getEffectiveTextStyle(p.selectedElement, p.tableEditorState);
+	const listKind = useParagraphListKind(p.selectedElement);
+	const toggleList = (kind: 'bullet' | 'numbered') => {
+		if (!p.canEdit || !p.selectedElement || !hasTextProperties(p.selectedElement)) {
+			return;
+		}
+		const selection = getInlineEditorSelection(p.selectedElement.textSegments);
+		const current = selectedParagraphBulletKind(p.selectedElement, selection);
+		p.onUpdateTextStyle({ listType: current === kind ? 'none' : kind });
+	};
 
 	const currentColor =
 		isTextEl && p.selectedElement && hasTextProperties(p.selectedElement)
@@ -565,35 +577,23 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 					<div className={grp}>
 						<button
 							type='button'
-							disabled={!canMut}
+							disabled={!canMut || !isTextEl}
 							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => {
-								if (!canFormat || !p.selectedElement) {
-									return;
-								}
-								p.onUpdateTextStyle({
-									listType: effectiveTs?.listType === 'bullet' ? 'none' : 'bullet',
-								});
-							}}
+							onClick={() => toggleList('bullet')}
 							className={gB}
 							title={t('pptx.text.bulletList')}
+							aria-pressed={listKind === 'bullet'}
 						>
 							<LuList className={ic} />
 						</button>
 						<button
 							type='button'
-							disabled={!canMut}
+							disabled={!canMut || !isTextEl}
 							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => {
-								if (!canFormat || !p.selectedElement) {
-									return;
-								}
-								p.onUpdateTextStyle({
-									listType: effectiveTs?.listType === 'numbered' ? 'none' : 'numbered',
-								});
-							}}
+							onClick={() => toggleList('numbered')}
 							className={gL}
 							title={t('pptx.text.numberedList')}
+							aria-pressed={listKind === 'numbered'}
 						>
 							<LuListOrdered className={ic} />
 						</button>

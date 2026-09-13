@@ -23,7 +23,11 @@ import {
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { OFFICE_COLOR_SWATCH_HEXES, textFontSizePtToPx } from 'pptx-viewer-shared';
+import {
+	elementBulletKind,
+	OFFICE_COLOR_SWATCH_HEXES,
+	textFontSizePtToPx,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -98,6 +102,9 @@ const isTextEl = computed(
 const isTable = computed(() => hasSel.value && props.selectedElement?.type === 'table');
 // Enable formatting for text elements AND table cells
 const canFormat = computed(() => isTextEl.value || isTable.value);
+const listKind = computed(() =>
+	props.selectedElement ? elementBulletKind(props.selectedElement) : 'none',
+);
 const effectiveTs = computed(() =>
 	getEffectiveTextStyle(props.selectedElement, props.tableEditorState),
 );
@@ -193,20 +200,20 @@ function handleClearFormatting(): void {
 }
 
 function handleBulletList(): void {
-	if (!canFormat.value || !props.selectedElement) {
+	if (!canMut.value || !isTextEl.value) {
 		return;
 	}
 	props.onUpdateTextStyle({
-		listType: effectiveTs.value?.listType === 'bullet' ? 'none' : 'bullet',
+		listType: listKind.value === 'bullet' ? 'none' : 'bullet',
 	});
 }
 
 function handleNumberedList(): void {
-	if (!canFormat.value || !props.selectedElement) {
+	if (!canMut.value || !isTextEl.value) {
 		return;
 	}
 	props.onUpdateTextStyle({
-		listType: effectiveTs.value?.listType === 'numbered' ? 'none' : 'numbered',
+		listType: listKind.value === 'numbered' ? 'none' : 'numbered',
 	});
 }
 
@@ -496,8 +503,9 @@ function handleChangeCase(value: string): void {
 			<div :class="grp">
 				<button
 					type="button"
-					:disabled="!canMut"
-					:class="gB"
+					:disabled="!canMut || !isTextEl"
+					:class="[gB, listKind === 'bullet' ? 'bg-accent' : '']"
+					:aria-pressed="listKind === 'bullet'"
 					:title="t('pptx.text.bulletList')"
 					@mousedown.prevent
 					@click="handleBulletList"
@@ -506,8 +514,9 @@ function handleChangeCase(value: string): void {
 				</button>
 				<button
 					type="button"
-					:disabled="!canMut"
-					:class="gL"
+					:disabled="!canMut || !isTextEl"
+					:class="[gL, listKind === 'numbered' ? 'bg-accent' : '']"
+					:aria-pressed="listKind === 'numbered'"
 					:title="t('pptx.text.numberedList')"
 					@mousedown.prevent
 					@click="handleNumberedList"

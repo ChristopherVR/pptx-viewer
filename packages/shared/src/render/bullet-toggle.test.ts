@@ -4,6 +4,8 @@
  * `TextStyle.listType` every binding used to write.
  */
 
+import JSZip from 'jszip';
+import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
@@ -104,7 +106,7 @@ describe('toggleParagraphBullet', () => {
 		const next = toggleParagraphBullet(loadedBullet('Item'), 'none');
 		expect(next).toHaveLength(1);
 		expect(next[0].text).toBe('Item');
-		expect(next[0].bulletInfo).toStrictEqual({ none: true });
+		expect(next[0].bulletInfo).toStrictEqual({ char: '•', none: true });
 		expect(paragraphBulletKind(next)).toBe('none');
 	});
 
@@ -128,6 +130,250 @@ describe('toggleParagraphBullet', () => {
 });
 
 describe('setElementBullets / toggleElementBullets', () => {
+	it('keeps same-kind marker styling and authored percentage/body size through live off/on', async () => {
+		const paragraphProperties = {
+			paragraphSpacingBefore: 6,
+			paragraphSpacingAfter: 14,
+			lineSpacing: 1.25,
+		};
+		const seed = {
+			...textElement([
+				seg('Item', {
+					style: { fontSize: 22 },
+					bulletInfo: { char: '◆', sizePercent: 75 },
+					paragraphProperties,
+				}),
+			]),
+			textStyle: { fontSize: 22 },
+		};
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		const bytes = await handler.save([{ ...data.slides[0], elements: [seed], isDirty: true }]);
+		const loaded = await new PptxHandler().load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const el = loaded.slides[0].elements[0];
+		const before = buildParagraphs(el)[0].bulletStyle.fontSize;
+		const on = { ...el, ...setElementBullets(el, 'bullet') } as PptxElement;
+		expect(buildParagraphs(on)[0].bulletStyle.fontSize).toBe(before);
+		const off = { ...on, ...setElementBullets(on, 'none') } as PptxElement;
+		const back = { ...off, ...setElementBullets(off, 'bullet') } as PptxElement;
+		expect((back as { textSegments: TextSegment[] }).textSegments[0].bulletInfo?.sizePercent).toBe(
+			75,
+		);
+		expect(
+			buildParagraphs(back)[0]
+				.runs.filter((run) => run.text)
+				.map((run) => [run.text, run.style.fontSize]),
+		).toStrictEqual([['Item', '22px']]);
+		expect(
+			(back as { textSegments: TextSegment[] }).textSegments[0].paragraphProperties,
+		).toStrictEqual(paragraphProperties);
+	});
+
+	it('preserves an authored glyph and formatting across explicit set and live off/on', () => {
+		const info = { char: '»', fontFamily: 'Wingdings', sizePercent: 80, color: '#AABBCC' };
+		const el = textElement([seg('» ', { bulletInfo: info }), seg('Item')]);
+		const on = { ...el, ...setElementBullets(el, 'bullet') } as PptxElement;
+		expect(buildParagraphs(on)[0].bulletMarker).toBe('»');
+		const off = { ...on, ...setElementBullets(on, 'none') } as PptxElement;
+		const back = { ...off, ...setElementBullets(off, 'bullet') } as PptxElement;
+		expect((back as { textSegments: TextSegment[] }).textSegments[0].bulletInfo).toStrictEqual(
+			info,
+		);
+		expect(setElementBullets(back, 'bullet')).toStrictEqual(setElementBullets(on, 'bullet'));
+	});
+
+	it('does not remove literal numbered text without a runtime marker index', () => {
+		const para = [seg('1.', { bulletInfo: { autoNumType: 'arabicPeriod' } }), seg(' Item')];
+		expect(toggleParagraphBullet(para, 'none').map((s) => s.text)).toStrictEqual(['1.', ' Item']);
+	});
+
+	it('removes only the leading synthetic marker, not marker-like later content', () => {
+		const para = [...loadedBullet('Item'), seg('• ', { bulletInfo: { char: '•' } })];
+		expect(toggleParagraphBullet(para, 'none').map((s) => s.text)).toStrictEqual(['Item', '• ']);
+	});
+
+	it('recognizes a suppressed marker without losing its authored glyph', () => {
+		const para = [
+			seg('» ', { bulletInfo: { char: '»' }, style: { listType: 'none' } }),
+			seg('Item'),
+		];
+		expect(toggleParagraphBullet(para, 'bullet').map((s) => s.text)).toStrictEqual(['» ', 'Item']);
+	});
+
+	it('retains picture bullets and removes their loaded display placeholder on disable', () => {
+		const info = {
+			imageRelId: 'rId7',
+			imageDataUrl: 'data:image/png;base64,AA==',
+			imageBlipFillXml: { 'a:blip': { '@_r:embed': 'rId7' }, 'a:stretch': {} },
+		};
+		const para = [seg('📎 ', { bulletInfo: info }), seg('Item')];
+		const on = toggleParagraphBullet(para, 'bullet');
+		expect(on[0].bulletInfo).toStrictEqual(info);
+		expect(on.map((s) => s.text)).toStrictEqual(['Item']);
+		expect(buildParagraphs(textElement(on))[0].runs.map((run) => run.text)).toStrictEqual(['Item']);
+		expect(toggleParagraphBullet(on, 'none').map((s) => s.text)).toStrictEqual(['Item']);
+	});
+
+	it('turns off a marker-only paragraph while retaining its paragraph metadata', () => {
+		const para = [
+			seg('• ', {
+				bulletInfo: { char: '•' },
+				paragraphLevel: 2,
+				paragraphProperties: { paragraphSpacingAfter: 12 },
+			}),
+		];
+		const next = toggleParagraphBullet(para, 'none');
+		expect(next[0].text).toBe('');
+		expect(next[0].bulletInfo?.none).toBeTruthy();
+		expect(next[0].paragraphLevel).toBe(2);
+		expect(next[0].paragraphProperties).toStrictEqual({ paragraphSpacingAfter: 12 });
+	});
+
+	it('uses the core per-level numbering sequence instead of a flat ordinal', () => {
+		const el = textElement([
+			seg('A', { paragraphLevel: 0 }),
+			brk(),
+			seg('B', { paragraphLevel: 1 }),
+			brk(),
+			seg('C', { paragraphLevel: 1 }),
+			brk(),
+			seg('D', { paragraphLevel: 0 }),
+		]);
+		const next = { ...el, ...setElementBullets(el, 'numbered') } as PptxElement;
+		expect(buildParagraphs(next).map((p) => p.bulletMarker)).toStrictEqual([
+			'1.',
+			'1.',
+			'2.',
+			'2.',
+		]);
+	});
+
+	it('preserves a numbered list scheme and custom start on explicit set', () => {
+		const el = textElement([
+			seg('IV.', {
+				bulletInfo: { autoNumType: 'romanUcPeriod', autoNumStartAt: 4, paragraphIndex: 0 },
+			}),
+			seg('Item'),
+		]);
+		const next = { ...el, ...setElementBullets(el, 'numbered') } as PptxElement;
+		expect(buildParagraphs(next)[0].bulletMarker).toBe('IV.');
+	});
+
+	it('does not add text properties to a non-text element', () => {
+		expect(setElementBullets({ type: 'image', id: 'i' } as PptxElement, 'bullet')).toStrictEqual(
+			{},
+		);
+	});
+
+	it('only changes requested paragraphs but updates downstream derived numbering', () => {
+		const plain = textElement([seg('A'), brk(), seg('B'), brk(), seg('C')]);
+		const numbered = { ...plain, ...setElementBullets(plain, 'numbered') } as PptxElement;
+		const off = {
+			...numbered,
+			...setElementBullets(numbered, 'none', { startParagraph: 1, endParagraph: 1 }),
+		} as PptxElement;
+		expect(buildParagraphs(off).map((p) => p.bulletMarker)).toStrictEqual(['1.', undefined, '1.']);
+		const on = {
+			...off,
+			...setElementBullets(off, 'numbered', { startParagraph: 1, endParagraph: 1 }),
+		} as PptxElement;
+		expect(buildParagraphs(on).map((p) => p.bulletMarker)).toStrictEqual(['1.', '2.', '3.']);
+		expect(buildParagraphs(on).map((p) => p.runs.map((r) => r.text).join(''))).toStrictEqual([
+			'A',
+			'B',
+			'C',
+		]);
+	});
+
+	it('keeps unselected paragraph properties and run identity for ordinary bullet edits', () => {
+		const before = seg('Untouched', { paragraphProperties: { paragraphSpacingBefore: 8 } });
+		const after = seg('Also untouched');
+		const el = textElement([before, brk(), seg('Edit'), brk(), after]);
+		const patch = setElementBullets(el, 'bullet', { startParagraph: 1, endParagraph: 1 }) as {
+			textSegments: TextSegment[];
+		};
+		expect(patch.textSegments[0]).toBe(before);
+		expect(patch.textSegments.at(-1)).toBe(after);
+		expect(
+			buildParagraphs({ ...el, ...patch } as PptxElement).map((p) => p.bulletMarker),
+		).toStrictEqual([undefined, '•', undefined]);
+	});
+
+	it('retains soft breaks, empty paragraphs and separator-carried geometry', () => {
+		const empty = {
+			...brk(),
+			paragraphLevel: 2,
+			paragraphProperties: { paragraphSpacingAfter: 10 },
+		};
+		const el = textElement([
+			seg('First'),
+			seg('\n', { isLineBreak: true }),
+			seg('line'),
+			brk(),
+			empty,
+			seg('Last'),
+			brk(),
+		]);
+		const patch = setElementBullets(el, 'bullet') as { textSegments: TextSegment[] };
+		expect(patch.textSegments.filter((s) => s.isParagraphBreak)).toHaveLength(3);
+		expect(patch.textSegments.filter((s) => s.isLineBreak)).toHaveLength(1);
+		const carrier = patch.textSegments.find((s) => s.text === '• ' && s.paragraphLevel === 2);
+		expect(carrier?.paragraphProperties).toStrictEqual({ paragraphSpacingAfter: 10 });
+		expect(patch.textSegments.filter((s) => s.text === '• ')).toHaveLength(4);
+	});
+
+	it('does not mutate source runs or their bullet definitions', () => {
+		const info = Object.freeze({ char: '»', sizePercent: 80 });
+		const marker = Object.freeze(seg('» ', { bulletInfo: info }));
+		const body = Object.freeze(seg('Item'));
+		const el = textElement([marker, body]);
+		setElementBullets(el, 'none');
+		expect(marker.bulletInfo).toBe(info);
+		expect(info).toStrictEqual({ char: '»', sizePercent: 80 });
+	});
+
+	it('writes native custom bullets and buNone without display glyphs in saved body text', async () => {
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		const el = textElement([
+			seg('» ', {
+				bulletInfo: { char: '»', fontFamily: 'Arial', sizePercent: 90 },
+				paragraphProperties: { paragraphSpacingAfter: 12 },
+			}),
+			seg('Item'),
+		]);
+		let current = { ...el, ...setElementBullets(el, 'bullet') } as PptxElement;
+		async function saveAndReload(): Promise<{ xml: string; element: PptxElement }> {
+			const bytes = await handler.save([{ ...data.slides[0], isDirty: true, elements: [current] }]);
+			const zip = await JSZip.loadAsync(bytes);
+			const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+			const loaded = await new PptxHandler().load(
+				bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+			);
+			return {
+				xml,
+				element:
+					loaded.slides[0].elements.find((candidate) => candidate.id === 't1') ??
+					loaded.slides[0].elements[0],
+			};
+		}
+		const on = await saveAndReload();
+		expect(on.xml).toContain('<a:buChar char="»"');
+		expect(on.xml).toContain('<a:t>Item</a:t>');
+		expect(on.xml).not.toContain('<a:t>»');
+		expect(buildParagraphs(on.element)[0].bulletMarker).toBe('»');
+		current = { ...current, ...setElementBullets(current, 'none') } as PptxElement;
+		const off = await saveAndReload();
+		expect(off.xml).toContain('<a:buNone');
+		expect(off.xml).not.toContain('<a:buChar');
+		expect(buildParagraphs(off.element)[0].bulletMarker).toBeUndefined();
+		expect(
+			buildParagraphs(off.element)[0]
+				.runs.map((r) => r.text)
+				.join(''),
+		).toBe('Item');
+	});
+
 	it('numbers every paragraph consecutively and clears the element listType', () => {
 		const el = textElement([seg('A'), brk(), seg('B'), brk(), seg('C')], 'none');
 		const patch = setElementBullets(el, 'numbered');

@@ -1,8 +1,12 @@
+import { Injector, runInInjectionContext, signal } from '@angular/core';
+import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { elementBulletKind } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
-import { transformSelectedTextCase } from './ribbon-text-helpers';
+import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
+import { patchTextStyle, transformSelectedTextCase } from './ribbon-text-helpers';
 
 function textElement(): PptxElement {
 	return {
@@ -27,6 +31,119 @@ function service(el: PptxElement): EditorStateService {
 	svc.setSlides([slide([el])]);
 	return svc;
 }
+
+describe('patchTextStyle list commands', () => {
+	it('guards list buttons in read-only mode even when a text selection remains', () => {
+		class Controls extends RibbonParagraphControlsComponent {
+			applyList(): void {
+				this.toggleList('bullet');
+			}
+		}
+		const original = textElement();
+		const svc = service(original);
+		const controls = runInInjectionContext(
+			Injector.create({ providers: [{ provide: EditorStateService, useValue: svc }] }),
+			() => new Controls(),
+		);
+		const editable = signal(false);
+		Object.defineProperty(controls, 'canEdit', { value: editable });
+		Object.defineProperty(controls, 'selectedElement', { value: signal(original) });
+		controls.applyList();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(original);
+		editable.set(true);
+		controls.applyList();
+		expect(elementBulletKind(svc.slides()[0].elements[0])).toBe('bullet');
+	});
+
+	it('creates markers for plain multiline text without segments', () => {
+		const source = textElement();
+		if (!hasTextProperties(source)) {
+			throw new Error('expected text');
+		}
+		delete source.textSegments;
+		source.text = 'first\nsecond';
+		const svc = service(source);
+		patchTextStyle(svc, 0, source, { listType: 'bullet' });
+		const result = svc.slides()[0].elements[0];
+		if (!hasTextProperties(result)) {
+			throw new Error('expected text');
+		}
+		expect(result.textSegments?.filter((segment) => segment.bulletInfo?.char)).toHaveLength(2);
+		expect(
+			result.textSegments
+				?.filter((segment) => !segment.bulletInfo)
+				.map((segment) => segment.text)
+				.join(''),
+		).toBe('first\nsecond');
+	});
+
+	it.each(['bullet', 'numbered'] as const)('sets %s semantics with one undoable update', (kind) => {
+		const original = textElement();
+		const svc = service(original);
+		patchTextStyle(svc, 0, svc.slides()[0].elements[0], { listType: kind, bold: true });
+		const listed = svc.slides()[0].elements[0];
+		expect(elementBulletKind(listed)).toBe(kind);
+		if (!hasTextProperties(listed)) {
+			throw new Error('expected text');
+		}
+		expect(listed.textSegments?.[0].bulletInfo).toBeDefined();
+		expect(
+			listed.textSegments
+				?.slice(1)
+				.map((segment) => segment.text)
+				.join(''),
+		).toBe('hello world');
+		expect(listed.textStyle?.bold).toBeTruthy();
+		svc.undo();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(original);
+		svc.redo();
+		expect(svc.slides()[0].elements[0]).toStrictEqual(listed);
+		patchTextStyle(svc, 0, listed, { listType: kind });
+		expect(svc.slides()[0].elements[0]).toStrictEqual(listed);
+		patchTextStyle(svc, 0, svc.slides()[0].elements[0], { listType: 'none' });
+		expect(elementBulletKind(svc.slides()[0].elements[0])).toBe('none');
+	});
+
+	it('keeps pending textarea content when creating a list', () => {
+		const editor = document.createElement('textarea');
+		editor.dataset.inlineEditor = '';
+		editor.value = 'hello world, typed more';
+		document.body.appendChild(editor);
+		try {
+			const svc = service(textElement());
+			patchTextStyle(svc, 0, svc.slides()[0].elements[0], { listType: 'bullet' });
+			const result = svc.slides()[0].elements[0];
+			if (!hasTextProperties(result)) {
+				throw new Error('expected text');
+			}
+			expect(result.text).toBe(editor.value);
+			expect(
+				result.textSegments
+					?.slice(1)
+					.map((segment) => segment.text)
+					.join(''),
+			).toBe(editor.value);
+		} finally {
+			editor.remove();
+		}
+	});
+
+	it('ignores absent selections and unsupported tables', () => {
+		const table: PptxElement = {
+			id: 'table',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			tableData: { rows: [{ cells: [{ text: 'cell', style: {} }] }], columnWidths: [1] },
+		};
+		const svc = service(table);
+		patchTextStyle(svc, 0, null, { listType: 'bullet' });
+		patchTextStyle(svc, 0, table, { listType: 'bullet' });
+		expect(svc.slides()[0].elements[0]).toStrictEqual(table);
+	});
+});
 
 describe('transformSelectedTextCase', () => {
 	it('rewrites run text per a change-case mode', () => {

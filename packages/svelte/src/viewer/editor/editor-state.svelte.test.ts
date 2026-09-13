@@ -6,8 +6,11 @@ import type {
 	PptxSlide,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
+import { buildParagraphs } from 'pptx-viewer-shared';
+import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 
+import ParagraphGroup from '../components/ribbon/home/ParagraphGroup.svelte';
 import { EditorState } from './editor-state.svelte';
 
 /**
@@ -98,6 +101,49 @@ describe('editorState selection + geometry', () => {
 });
 
 describe('editorState history-tracked mutations', () => {
+	it('toggles loaded bullets from the real ribbon with one undo/redo entry', async () => {
+		const { editor } = make();
+		const loaded = shape('e1', {
+			textSegments: [
+				{ text: '» ', style: {}, bulletInfo: { char: '»' } },
+				{ text: 'hi', style: {} },
+			],
+		});
+		editor.setSlides([slide('a', [loaded, shape('e2')])]);
+		editor.select('e1');
+		const target = document.createElement('div');
+		document.body.append(target);
+		const mounted = mount(ParagraphGroup, { target, props: { editor } });
+		try {
+			flushSync();
+			const button = target.querySelector<HTMLButtonElement>('button')!;
+			expect(button.getAttribute('aria-pressed')).toBe('true');
+			button.click();
+			flushSync();
+			expect(button.getAttribute('aria-pressed')).toBe('false');
+			expect(buildParagraphs(editor.selectedElement!)[0].bulletMarker).toBeUndefined();
+			expect(
+				buildParagraphs(editor.selectedElement!)[0]
+					.runs.map((run) => run.text)
+					.join(''),
+			).toBe('hi');
+			expect(editor.slides[0].elements[1]).toStrictEqual(shape('e2'));
+			expect(editor.canUndo).toBeTruthy();
+			editor.undo();
+			flushSync();
+			expect(buildParagraphs(editor.slides[0].elements[0])[0].bulletMarker).toBe('»');
+			expect(editor.canUndo).toBeFalsy();
+			editor.redo();
+			expect(buildParagraphs(editor.slides[0].elements[0])[0].bulletMarker).toBeUndefined();
+			editor.editable = false;
+			flushSync();
+			expect(button.disabled).toBeTruthy();
+		} finally {
+			await unmount(mounted);
+			target.remove();
+		}
+	});
+
 	it('reopens an existing equation and updates its OMML in place', () => {
 		const { editor } = make();
 		const original = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };

@@ -7,7 +7,12 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { AlignEdge, ChangeCaseMode } from 'pptx-viewer-shared';
-import { readEditableText, remapTextToSegments, transformTextCase } from 'pptx-viewer-shared';
+import {
+	readEditableText,
+	remapTextToSegments,
+	setElementBullets,
+	transformTextCase,
+} from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -117,30 +122,55 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 
 	function ribbonUpdateTextStyle(updates: Partial<TextStyle>): void {
 		const id = selectedElementIds.value[0];
-		if (!id) {
+		if (!id || !canEdit()) {
 			return;
 		}
 		const el = activeSlide.value?.elements.find((e) => e.id === id);
 		if (!el) {
 			return;
 		}
-		// Tables route to the selected cell's style; other elements to their textStyle.
+		const { listType, ...styleUpdates } = updates;
+		// Table cells have no shape-text bullet model; other cell formatting stays supported.
 		if (el.type === 'table') {
-			applyCellTextStyle(el, updates);
+			if (Object.keys(styleUpdates).length > 0) {
+				applyCellTextStyle(el, styleUpdates);
+			}
 			return;
 		}
 		if (!hasTextProperties(el)) {
 			return;
 		}
-		const textStyle = { ...el.textStyle, ...updates };
+		// Reconcile uncontrolled inline text before the paragraph command, as Change Case does.
+		const liveEditor =
+			listType !== undefined && typeof document !== 'undefined'
+				? document.querySelector<HTMLElement>('[data-inline-editor]')
+				: null;
+		const liveText = liveEditor ? readEditableText(liveEditor) : undefined;
+		const base =
+			liveText === undefined
+				? el
+				: {
+						...el,
+						text: liveText,
+						textSegments: el.textSegments
+							? remapTextToSegments(liveText, el.textSegments, el.textStyle)
+							: undefined,
+					};
+		const listed =
+			listType === undefined ? base : { ...base, ...setElementBullets(base, listType) };
+		if (!hasTextProperties(listed)) {
+			return;
+		}
+		const textStyle = { ...listed.textStyle, ...styleUpdates };
 		const segments =
-			el.textSegments && el.textSegments.length > 0
-				? el.textSegments.map((s) => ({ ...s, style: { ...s.style, ...updates } }))
+			listed.textSegments && listed.textSegments.length > 0
+				? listed.textSegments.map((s) => ({ ...s, style: { ...s.style, ...styleUpdates } }))
 				: undefined;
-		ops.updateElement(
-			id,
-			(segments ? { textStyle, textSegments: segments } : { textStyle }) as Partial<PptxElement>,
-		);
+		ops.updateElement(id, {
+			...(liveText !== undefined ? { text: liveText } : {}),
+			textStyle,
+			...(segments ? { textSegments: segments } : {}),
+		});
 	}
 
 	/**

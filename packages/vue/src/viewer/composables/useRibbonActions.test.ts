@@ -1,4 +1,6 @@
+import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { elementBulletKind } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
 
@@ -23,33 +25,139 @@ function slideWith(element: PptxElement): PptxSlide {
 	return { id: 's1', rId: 's1', slideNumber: 1, elements: [element] };
 }
 
-function useHarness(element: PptxElement) {
-	let currentSlide = slideWith(element);
+function useHarness(element: PptxElement, canEdit = true) {
+	const currentSlide = ref(slideWith(element));
 	const updateElement = vi.fn((elementId: string, updates: Partial<PptxElement>) => {
-		currentSlide = {
-			...currentSlide,
-			elements: currentSlide.elements.map((el) =>
+		currentSlide.value = {
+			...currentSlide.value,
+			elements: currentSlide.value.elements.map((el) =>
 				el.id === elementId ? ({ ...el, ...updates } as PptxElement) : el,
 			),
 		};
 	});
 
 	const actions = useRibbonActions({
-		canEdit: () => true,
+		canEdit: () => canEdit,
 		presenting: ref(false),
 		showMasterView: ref(false),
-		tableSelection: ref(null),
-		selectedElements: computed(() => currentSlide.elements),
+		tableSelection: ref(
+			element.type === 'table' ? { elementId: element.id, rowIndex: 0, columnIndex: 0 } : null,
+		),
+		selectedElements: computed(() => currentSlide.value.elements),
 		selectedElementIds: ref([element.id]),
-		activeSlide: computed(() => currentSlide),
+		activeSlide: computed(() => currentSlide.value),
 		activeSlideIndex: ref(0),
-		slides: ref([currentSlide]),
+		slides: ref([currentSlide.value]),
 		pushHistory: vi.fn(),
 		ops: { updateElement } as unknown as EditorOperations,
 	});
 
-	return { actions, element: () => currentSlide.elements[0] };
+	return { actions, element: () => currentSlide.value.elements[0], updateElement };
 }
+
+describe('ribbonUpdateTextStyle list commands', () => {
+	it('creates markers for plain multiline text without segments', () => {
+		const source = textElement();
+		if (!hasTextProperties(source)) {
+			throw new Error('expected text');
+		}
+		delete source.textSegments;
+		source.text = 'first\nsecond';
+		const { actions, element } = useHarness(source);
+		actions.ribbonUpdateTextStyle({ listType: 'bullet' });
+		const result = element();
+		if (!hasTextProperties(result)) {
+			throw new Error('expected text');
+		}
+		expect(result.textSegments?.filter((segment) => segment.bulletInfo?.char)).toHaveLength(2);
+		expect(
+			result.textSegments
+				?.filter((segment) => !segment.bulletInfo)
+				.map((segment) => segment.text)
+				.join(''),
+		).toBe('first\nsecond');
+	});
+
+	it.each(['bullet', 'numbered'] as const)(
+		'sets %s semantics and preserves accompanying formatting',
+		(kind) => {
+			const source = textElement();
+			const { actions, element, updateElement } = useHarness(source);
+			actions.ribbonUpdateTextStyle({ listType: kind, bold: true });
+			expect(elementBulletKind(element())).toBe(kind);
+			const first = element();
+			if (!hasTextProperties(first)) {
+				throw new Error('expected text');
+			}
+			expect(first.textSegments?.[0].bulletInfo).toBeDefined();
+			expect(
+				first.textSegments
+					?.slice(1)
+					.map((segment) => segment.text)
+					.join(''),
+			).toBe('hello world');
+			expect(first.textSegments?.at(-1)?.style.bold).toBeTruthy();
+			expect(updateElement).toHaveBeenCalledOnce();
+			actions.ribbonUpdateTextStyle({ listType: kind });
+			expect(element()).toStrictEqual(first);
+			actions.ribbonUpdateTextStyle({ listType: 'none' });
+			expect(elementBulletKind(element())).toBe('none');
+			expect(source).toStrictEqual(textElement());
+		},
+	);
+
+	it('preserves uncommitted inline text when adding a list', () => {
+		const editor = document.createElement('div');
+		editor.dataset.inlineEditor = '';
+		editor.textContent = 'hello world, typed more';
+		document.body.appendChild(editor);
+		try {
+			const { actions, element } = useHarness(textElement());
+			actions.ribbonUpdateTextStyle({ listType: 'bullet' });
+			const result = element();
+			if (!hasTextProperties(result)) {
+				throw new Error('expected text');
+			}
+			expect(result.text).toBe(editor.textContent);
+			expect(
+				result.textSegments
+					?.slice(1)
+					.map((segment) => segment.text)
+					.join(''),
+			).toBe(editor.textContent);
+		} finally {
+			editor.remove();
+		}
+	});
+
+	it('does not change read-only selections', () => {
+		const { actions, updateElement } = useHarness(textElement(), false);
+		actions.ribbonUpdateTextStyle({ listType: 'bullet' });
+		expect(updateElement).not.toHaveBeenCalled();
+	});
+
+	it('ignores unsupported table lists while applying other requested cell styles', () => {
+		const table: PptxElement = {
+			id: 'table',
+			type: 'table',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 40,
+			tableData: { rows: [{ cells: [{ text: 'cell', style: {} }] }], columnWidths: [1] },
+		};
+		const { actions, element, updateElement } = useHarness(table);
+		actions.ribbonUpdateTextStyle({ listType: 'bullet' });
+		expect(updateElement).not.toHaveBeenCalled();
+		actions.ribbonUpdateTextStyle({ listType: 'bullet', bold: true });
+		const result = element();
+		if (result.type !== 'table') {
+			throw new Error('expected table');
+		}
+		expect(result.tableData?.rows[0].cells[0].style).toStrictEqual({ bold: true });
+		expect('textSegments' in result).toBeFalsy();
+	});
+});
 
 describe('ribbonUpdateTextCase', () => {
 	it('rewrites run text per a change-case mode', () => {

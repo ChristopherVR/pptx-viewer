@@ -1,6 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { buildParagraphs } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it } from 'vitest';
 
+import { renderTextBlock } from '../render/elements/text-block';
+import { readTextFormatState } from './editor-format-mutations';
 import {
 	adjustIndent,
 	setLineSpacing,
@@ -23,21 +26,56 @@ function textElement(): PptxElement {
 }
 
 describe('editor-paragraph-mutations', () => {
-	it('toggles bullet list on then off', () => {
-		const on = toggleListType(textElement(), 'bullet') as { textStyle: { listType?: string } };
-		expect(on.textStyle.listType).toBe('bullet');
-
-		const el = textElement() as PptxElement & { textStyle: { listType?: string } };
-		el.textStyle.listType = 'bullet';
-		const off = toggleListType(el, 'bullet') as { textStyle: { listType?: string } };
-		expect(off.textStyle.listType).toBe('none');
+	afterEach(() => {
+		document.body.innerHTML = '';
 	});
 
-	it('switches from bullet to numbered directly', () => {
-		const el = textElement() as PptxElement & { textStyle: { listType?: string } };
-		el.textStyle.listType = 'bullet';
-		const patch = toggleListType(el, 'numbered') as { textStyle: { listType?: string } };
-		expect(patch.textStyle.listType).toBe('numbered');
+	it('toggles one rendered bullet on, off, and on without changing its body', () => {
+		let el = textElement();
+		for (const marker of ['•', undefined, '•']) {
+			el = { ...el, ...toggleListType(el, 'bullet') } as PptxElement;
+			const paragraphs = buildParagraphs(el);
+			expect(paragraphs[0].bulletMarker).toBe(marker);
+			expect(paragraphs[0].runs.map((run) => run.text).join('')).toBe('hi');
+			const rendered = renderTextBlock(document, paragraphs, {});
+			expect(rendered.querySelectorAll('.pptxv-bullet')).toHaveLength(marker ? 1 : 0);
+			expect(readTextFormatState(el).listType).toBe(marker ? 'bullet' : 'none');
+		}
+	});
+
+	it('reads loaded semantic bullets and switches directly to rendered numbering', () => {
+		const el = {
+			...textElement(),
+			textSegments: [
+				{ text: '» ', style: {}, bulletInfo: { char: '»' } },
+				{ text: 'hi', style: { bold: true } },
+			],
+		} as PptxElement;
+		expect(readTextFormatState(el).listType).toBe('bullet');
+		const next = { ...el, ...toggleListType(el, 'numbered') } as PptxElement;
+		expect(buildParagraphs(next)[0].bulletMarker).toBe('1.');
+		expect(
+			buildParagraphs(next)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('hi');
+		expect(readTextFormatState(next).listType).toBe('numbered');
+	});
+
+	it('keeps pending inline text when the ribbon command runs before blur', () => {
+		const surface = document.createElement('div');
+		surface.dataset.inlineEditor = '';
+		surface.textContent = 'pending body';
+		document.body.append(surface);
+		const el = textElement();
+		const next = { ...el, ...toggleListType(el, 'bullet') } as PptxElement;
+		expect('text' in next && next.text).toBe('pending body');
+		expect(
+			buildParagraphs(next)[0]
+				.runs.map((run) => run.text)
+				.join(''),
+		).toBe('pending body');
+		expect(buildParagraphs(next)[0].bulletMarker).toBe('•');
 	});
 
 	it('increases and clamps indent at zero', () => {
