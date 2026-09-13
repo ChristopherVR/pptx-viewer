@@ -57,6 +57,7 @@ export function readInlineListRuns(
 							node,
 							(index === undefined ? undefined : session.runCss.get(index)) ??
 								(originalIndex === undefined ? '' : session.runCss.get(originalIndex)),
+							{ ...(source?.style ?? inherited), ...inheritedDelta }.color,
 						),
 					};
 		const style = { ...(source?.style ?? inherited), ...delta };

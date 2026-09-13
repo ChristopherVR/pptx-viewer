@@ -86,6 +86,34 @@ const literalMarkers: Array<{ literal: string; bulletInfo: BulletInfo }> = [
 ];
 
 describe('list editor session snapshots', () => {
+	it.each(['#172033', '#CC00AA'])(
+		'preserves theme color only for matching native FONT color %s',
+		(color) => {
+			const colorRef = { scheme: 'accent1' as const };
+			const colorXml = { 'a:schemeClr': { '@_val': 'accent1' } };
+			const { seed, root } = mount(
+				element([
+					{ text: '• ', style: {}, bulletInfo: { char: '•' } },
+					{
+						text: 'Body',
+						style: { fontSize: 24, color: '#172033', colorRef, colorXml, fontFamily: 'Arial' },
+					},
+				]),
+			);
+			root.firstElementChild!.innerHTML = `<font color="${color}" face="Arial, Liberation Sans, sans-serif">Replacement</font>`;
+			const read = readInlineListSnapshot(seed, root);
+			expect(read.kind).toBe('supported');
+			if (read.kind !== 'supported') {
+				throw new Error(read.reason);
+			}
+			const style = read.snapshot.textSegments![0].style;
+			expect(style.color).toBe(color);
+			expect(style.fontFamily).toBe('Arial');
+			expect(style.colorRef).toStrictEqual(color === '#172033' ? colorRef : undefined);
+			expect(style.colorXml).toStrictEqual(color === '#172033' ? colorXml : undefined);
+		},
+	);
+
 	it.each(['III. ', 'Replacement body'])(
 		'reads native full-body replacement without run tokens: %s',
 		(body) => {

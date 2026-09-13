@@ -1,10 +1,19 @@
 import type { TextStyle } from 'pptx-viewer-core';
 
 /** Only supported authored inline changes, not computed browser defaults. */
-export function inlineListStyleDelta(node: HTMLElement, baseline = ''): TextStyle {
+export function inlineListStyleDelta(
+	node: HTMLElement,
+	baseline = '',
+	inheritedColor?: string,
+): TextStyle {
 	const style: TextStyle = {};
 	const original = node.ownerDocument.createElement('span').style;
 	original.cssText = baseline;
+	if (node.tagName === 'FONT' && !original.color) {
+		// A native wrapper preserving the current resolved color is not a new
+		// color command. Keep the validated body's authored theme reference.
+		original.color = inheritedColor ?? '';
+	}
 	const css = node.ownerDocument.createElement('span').style;
 	if (node.tagName === 'FONT') {
 		// Chromium can preserve native typing color/face with legacy FONT nodes
