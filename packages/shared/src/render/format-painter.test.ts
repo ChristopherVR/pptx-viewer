@@ -1,8 +1,9 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import { copyFormatFromElement, applyFormatToElement, hasCopyableFormat } from './format-painter';
 import type { CopiedFormat } from './format-painter';
+import { remapTextToSegments } from './remap-text';
 
 function makeShapeElement(shapeStyle: Record<string, unknown> = {}): PptxElement {
 	return {
@@ -45,6 +46,30 @@ function makeTextElement(textStyle: Record<string, unknown> = {}): PptxElement {
 }
 
 describe('copyFormatFromElement', () => {
+	it('paints future empty-paragraph text without overwriting the custom marker', () => {
+		const source: TextSegment = {
+			text: '◆ ',
+			style: { fontFamily: 'Wingdings', color: '#FF0000' },
+			bulletInfo: { char: '◆' },
+			paragraphInsertionStyle: {
+				fontFamily: 'Courier New',
+				fontSize: 40,
+				color: '#007000',
+				bold: true,
+			},
+		};
+		const target = { ...makeTextElement(), text: '', textSegments: [source] } as PptxElement;
+		const updated = applyFormatToElement(target, {
+			textStyle: { bold: false, color: '#000000', fontSize: undefined },
+		}) as PptxElement & { textSegments: TextSegment[] };
+		expect(updated.textSegments[0].style).toStrictEqual(source.style);
+		expect(remapTextToSegments('Typed', updated.textSegments, {}).at(-1)?.style).toMatchObject({
+			bold: false,
+			color: '#000000',
+			fontSize: 40,
+		});
+	});
+
 	it('copies shape style properties from a shape element', () => {
 		const element = makeShapeElement({
 			fillColor: '#00FF00',

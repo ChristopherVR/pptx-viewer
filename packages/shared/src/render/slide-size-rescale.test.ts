@@ -1,6 +1,7 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { remapTextToSegments } from './remap-text';
 import { resolveSlideSizeRescaleTransform, scaleSlidesForSizeChange } from './slide-size-rescale';
 
 // A 4:3 deck (9144000 x 6858000 EMU) going to 16:9 widescreen (12192000 x
@@ -75,6 +76,34 @@ function makeSlide(): PptxSlide {
 }
 
 describe('scaleSlidesForSizeChange', () => {
+	it('scales insertion font size independently of the marker, retaining its baseline', () => {
+		const baseline = { fontSize: 40 };
+		const source: TextSegment = {
+			text: '◆ ',
+			style: { fontSize: 18 },
+			bulletInfo: { char: '◆' },
+			paragraphInsertionStyle: {
+				fontSize: 40,
+				authoredRunStyle: baseline,
+				inheritedRunStyle: { fontSize: 24 },
+			},
+		};
+		const slide = makeSlide();
+		Object.assign(slide.elements[0], { text: '', textSegments: [source] });
+		const [scaled] = scaleSlidesForSizeChange(
+			[slide],
+			FOUR_THREE,
+			{ widthEmu: FOUR_THREE.widthEmu * 2, heightEmu: FOUR_THREE.heightEmu * 2 },
+			'ensureFit',
+		);
+		const segments = (scaled.elements[0] as { textSegments: TextSegment[] }).textSegments;
+		expect(segments[0].style.fontSize).toBe(36);
+		expect(segments[0].paragraphInsertionStyle?.fontSize).toBe(80);
+		expect(segments[0].paragraphInsertionStyle?.authoredRunStyle).toBe(baseline);
+		expect(remapTextToSegments('Typed', segments, {}).at(-1)?.style.fontSize).toBe(80);
+		expect(source.paragraphInsertionStyle?.fontSize).toBe(40);
+	});
+
 	it('scales top-level element frames and font sizes', () => {
 		const [scaled] = scaleSlidesForSizeChange([makeSlide()], FOUR_THREE, SIXTEEN_NINE, 'ensureFit');
 		const title = scaled.elements[0] as unknown as {

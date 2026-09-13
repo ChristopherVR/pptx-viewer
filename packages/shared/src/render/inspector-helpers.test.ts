@@ -1,12 +1,14 @@
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { applyStyleToSelectedSegments } from './inline-selection-utils';
 import {
 	fontSizeOf,
 	shapeStylePatch,
 	textFontSizePatch,
 	textStylePatch,
 } from './inspector-helpers';
+import { remapTextToSegments } from './remap-text';
 
 function textElement(fontSize?: number): PptxElement {
 	return {
@@ -67,6 +69,60 @@ describe('fontSizeOf', () => {
 });
 
 describe('textFontSizePatch', () => {
+	it('updates future body formatting without restyling an explicit custom marker', () => {
+		const source: TextSegment = {
+			text: '◆ ',
+			style: { fontFamily: 'Wingdings', color: '#FF0000' },
+			bulletInfo: { char: '◆' },
+			paragraphInsertionStyle: {
+				fontSize: 40,
+				bold: true,
+				fontFamily: 'Courier New',
+				color: '#007000',
+			},
+		};
+		const element = { ...textElement(), textSegments: [source] } as PptxElement;
+		const updates = { fontSize: 24, bold: false, fontFamily: 'Arial', color: '#000000' };
+		const patch = textStylePatch(element, updates) as { textSegments: TextSegment[] };
+		expect(patch.textSegments[0].style).toStrictEqual(source.style);
+		expect(remapTextToSegments('Typed', patch.textSegments, {}).at(-1)?.style).toMatchObject(
+			updates,
+		);
+		expect(source.paragraphInsertionStyle?.bold).toBeTruthy();
+	});
+
+	it.each(['', '◆ '])(
+		'updates insertion formatting only on the selected runless carrier %j',
+		(text) => {
+			const hint = { fontSize: 40, bold: true };
+			const segments: TextSegment[] = [
+				{
+					text,
+					style: { fontFamily: 'Wingdings', color: '#FF0000' },
+					...(text ? { bulletInfo: { char: '◆' } } : {}),
+					paragraphInsertionStyle: hint,
+				},
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: '', style: {}, paragraphInsertionStyle: hint },
+			];
+			const styled = applyStyleToSelectedSegments(
+				segments,
+				{ startSegIdx: 0, startOffset: 0, endSegIdx: 0, endOffset: 0 },
+				{ bold: false },
+			);
+			expect(styled.newSegments[0].paragraphInsertionStyle?.bold).toBeFalsy();
+			expect(styled.newSegments.at(-1)?.paragraphInsertionStyle?.bold).toBeTruthy();
+			expect(styled.newSegments).toHaveLength(3);
+			expect(styled.newSegments[0].text).toBe(text);
+			expect(styled.newSegments[0].style).toStrictEqual(segments[0].style);
+			expect(
+				remapTextToSegments('Typed\n', styled.newSegments, {}).find(
+					(segment) => segment.text === 'Typed',
+				)?.style.bold,
+			).toBeFalsy();
+		},
+	);
+
 	it('updates the element style and every ordinary text run', () => {
 		const element = textElement(16) as Extract<PptxElement, { textStyle?: unknown }>;
 		(element as { textSegments?: unknown }).textSegments = [

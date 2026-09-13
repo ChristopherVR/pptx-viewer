@@ -1,9 +1,10 @@
 import { Injector, runInInjectionContext, signal } from '@angular/core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { elementBulletKind } from '../internal/shared';
+import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
 import { EditorStateService } from './editor-state.service';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
 import { patchTextStyle, transformSelectedTextCase } from './ribbon-text-helpers';
@@ -146,6 +147,33 @@ describe('patchTextStyle list commands', () => {
 });
 
 describe('transformSelectedTextCase', () => {
+	it.each([false, true])(
+		'honors explicit formatting before runless typing (with list=%s)',
+		(withList) => {
+			const initial = {
+				...textElement(),
+				text: '',
+				textSegments: [
+					{
+						text: '',
+						style: {},
+						paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+					},
+				],
+			} as PptxElement;
+			const svc = service(initial);
+			const updates = { bold: false, color: '#000000', fontSize: 24 };
+			patchTextStyle(svc, 0, initial, {
+				...updates,
+				...(withList ? { listType: 'numbered' as const } : {}),
+			});
+			const element = svc.slides()[0].elements[0] as PptxElement & { textSegments: TextSegment[] };
+			const typed = remapTextToSegments('Typed', element.textSegments, {});
+			expect(typed.at(-1)?.style).toMatchObject(updates);
+			expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+		},
+	);
+
 	it('rewrites run text per a change-case mode', () => {
 		const svc = service(textElement());
 		transformSelectedTextCase(svc, 0, svc.slides()[0].elements[0], 'upper');

@@ -1,5 +1,6 @@
-import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import { remapTextToSegments } from 'pptx-viewer-shared';
+import { describe, expect, it, test } from 'vitest';
 
 import {
 	adjustFontSize,
@@ -30,6 +31,28 @@ function textElement(): PptxElement {
 		textSegments: [{ text: 'hi', style: { fontSize: 18 } }],
 	} as PptxElement;
 }
+
+test('honors explicit formatting before typing into a runless paragraph', () => {
+	let element = {
+		...textElement(),
+		text: '',
+		textStyle: { bold: true },
+		textSegments: [
+			{
+				text: '',
+				style: {},
+				paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+			},
+		],
+	} as PptxElement;
+	element = { ...element, ...toggleTextProp(element, 'bold') } as PptxElement;
+	element = { ...element, ...setTextColor(element, '#000000') } as PptxElement;
+	element = { ...element, ...setFontSize(element, 18) } as PptxElement;
+	expect(
+		remapTextToSegments('Typed', (element as { textSegments: TextSegment[] }).textSegments, {})[0]
+			.style,
+	).toMatchObject({ bold: false, color: '#000000', fontSize: 24 });
+});
 
 function tableElement(): PptxElement {
 	return {

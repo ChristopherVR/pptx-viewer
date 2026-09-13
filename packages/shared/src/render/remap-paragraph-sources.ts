@@ -8,6 +8,41 @@ export interface RemapSourceParagraph {
 	terminator?: TextSegment;
 }
 
+/**
+ * Restore paragraph-scoped metadata on the first remapped run. Core and the
+ * save writer deliberately carry these values on that run only; remapping the
+ * characters must not turn an authored paragraph back into a default one.
+ */
+export function restoreParagraphMetadata(
+	from: TextSegment | undefined,
+	segments: TextSegment[],
+): TextSegment[] {
+	if (segments.length === 0) {
+		return segments;
+	}
+	const [first, ...rest] = segments;
+	const restored = { ...first };
+	// `remapParagraph` may itself return a donor segment. Clear its paragraph
+	// fields first so an extra paragraph cannot accidentally inherit metadata
+	// merely because it reused the final paragraph for run styling.
+	delete restored.paragraphLevel;
+	delete restored.paragraphProperties;
+	delete restored.endParaRunProperties;
+	if (!from) {
+		delete restored.paragraphInsertionStyle;
+	}
+	if (from?.paragraphLevel !== undefined) {
+		restored.paragraphLevel = from.paragraphLevel;
+	}
+	if (from?.paragraphProperties !== undefined) {
+		restored.paragraphProperties = from.paragraphProperties;
+	}
+	if (from?.endParaRunProperties !== undefined) {
+		restored.endParaRunProperties = from.endParaRunProperties;
+	}
+	return [restored, ...rest];
+}
+
 function matches(text: string, paragraph: RemapSourceParagraph): boolean {
 	const first = paragraph.segments[0];
 	const marker =

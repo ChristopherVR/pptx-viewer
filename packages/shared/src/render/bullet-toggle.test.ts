@@ -19,6 +19,8 @@ import {
 	toggleElementBullets,
 	toggleParagraphBullet,
 } from './bullet-toggle';
+import { remapTextToSegments } from './remap-text';
+import { applyListStyleUpdate } from './text-list-style-update';
 import { buildParagraphs } from './text-paragraphs';
 
 const seg = (text: string, extra: Partial<TextSegment> = {}): TextSegment => ({
@@ -49,6 +51,104 @@ const textElement = (segments: TextSegment[], listType?: 'bullet' | 'none'): Ppt
 	}) as unknown as PptxElement;
 
 describe('bulletInfoForKind', () => {
+	it('keeps a shifted blank paragraph style through a scoped list command and later typing', () => {
+		const hint = { fontFamily: 'Courier New', fontSize: 40, bold: true };
+		const shifted = remapTextToSegments(
+			'Inserted\nFirst\n\nLast',
+			[seg('First'), brk(), { ...brk(), paragraphInsertionStyle: hint }, seg('Last')],
+			{},
+		);
+		const listed = setElementBullets(textElement(shifted), 'numbered', {
+			startParagraph: 2,
+			endParagraph: 2,
+		});
+		const typed = remapTextToSegments('Inserted\nFirst\nTyped\nLast', listed.textSegments, {});
+		expect(typed.find((segment) => segment.text === 'Typed')?.style).toStrictEqual(hint);
+		expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+	});
+
+	it.each([null, { startSegIdx: 0, startOffset: 0, endSegIdx: 0, endOffset: 0 }])(
+		'keeps insertion formatting through scoped list style commands: %j',
+		(selection) => {
+			const initial = textElement([
+				seg('◆ ', {
+					bulletInfo: { char: '◆' },
+					paragraphInsertionStyle: { fontSize: 40, bold: true, color: '#007000' },
+				}),
+			]);
+			const updates = {
+				listType: 'numbered' as const,
+				fontSize: 24,
+				bold: false,
+				color: '#000000',
+			};
+			const changed = { ...initial, ...applyListStyleUpdate(initial, updates, selection).patch };
+			const segments = (changed as { textSegments: TextSegment[] }).textSegments;
+			expect(segments).toHaveLength(1);
+			expect(segments[0].paragraphInsertionStyle).toMatchObject({
+				fontSize: 24,
+				bold: false,
+				color: '#000000',
+			});
+			const typed = remapTextToSegments('Typed', segments, {});
+			expect(typed.at(-1)?.style).toMatchObject({ fontSize: 24, bold: false, color: '#000000' });
+			expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+		},
+	);
+
+	it.each([
+		{
+			text: '◆ ',
+			kind: 'bullet' as const,
+			info: { char: '◆', fontFamily: 'Wingdings', color: '#CC0000' },
+		},
+		{
+			text: 'IV.',
+			kind: 'numbered' as const,
+			info: {
+				autoNumType: 'romanUcPeriod',
+				autoNumStartAt: 4,
+				paragraphIndex: 0,
+				color: '#CC0000',
+			},
+		},
+		{
+			text: '',
+			kind: 'bullet' as const,
+			info: { imageDataUrl: 'data:image/png;base64,AA==', color: '#CC0000' },
+		},
+	])('preserves authored runless marker metadata through off/on: %j', ({ text, kind, info }) => {
+		const hint = { fontFamily: 'Calibri', fontSize: 40 };
+		const source = seg(text, { bulletInfo: info, paragraphInsertionStyle: hint });
+		const on = toggleParagraphBullet(toggleParagraphBullet([source], 'none'), kind);
+		expect(on).toHaveLength(1);
+		expect(on[0]).toMatchObject({ text, bulletInfo: info, paragraphInsertionStyle: hint });
+		const typed = remapTextToSegments('Typed', on, {});
+		expect(typed.at(-1)?.style).toStrictEqual(hint);
+		expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+	});
+
+	it('keeps runless insertion formatting through list off/on without adding a body run', () => {
+		const insertion = { fontFamily: 'Calibri', fontSize: 40, color: '#000000' };
+		const original = [
+			seg('◆ ', {
+				style: { fontFamily: 'Wingdings', color: '#FF0000' },
+				bulletInfo: { char: '◆' },
+				paragraphInsertionStyle: insertion,
+			}),
+		];
+		const off = toggleParagraphBullet(original, 'none');
+		expect(off).toHaveLength(1);
+		expect(off[0].text).toBe('');
+		expect(off[0].paragraphInsertionStyle).toBe(insertion);
+		const on = toggleParagraphBullet(off, 'numbered');
+		expect(on).toHaveLength(1);
+		expect(on[0].paragraphInsertionStyle).toBe(insertion);
+		const typed = remapTextToSegments('Typed', on, {});
+		expect(typed.at(-1)?.style).toStrictEqual(insertion);
+		expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+	});
+
 	it('authors the three OOXML bullet forms', () => {
 		expect(bulletInfoForKind('bullet')).toStrictEqual({ char: '•' });
 		expect(bulletInfoForKind('numbered', 2)).toStrictEqual({

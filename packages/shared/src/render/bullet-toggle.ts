@@ -114,12 +114,31 @@ export function toggleParagraphBullet(
 	if (!source) {
 		return [];
 	}
+	if (
+		paragraph.length === 1 &&
+		source.paragraphInsertionStyle &&
+		(source.text === '' || isBulletMarkerSegment(source))
+	) {
+		const info = infoForParagraph(source.bulletInfo, kind, ordinal);
+		const picture = info.imageRelId || info.imageDataUrl || info.imageBlipFillXml;
+		return [
+			{
+				...source,
+				text: kind === 'none' || picture ? '' : markerText(info),
+				style: withoutListType(source.style),
+				bulletInfo: info,
+			},
+		];
+	}
 	const content = isBulletMarkerSegment(source) ? paragraph.slice(1) : [...paragraph];
 	const first = content[0] ?? { text: '', style: source.style };
 	const meta = {
 		...(source.paragraphLevel !== undefined ? { paragraphLevel: source.paragraphLevel } : {}),
 		...(source.paragraphProperties ? { paragraphProperties: source.paragraphProperties } : {}),
 		...(source.endParaRunProperties ? { endParaRunProperties: source.endParaRunProperties } : {}),
+		...(source.paragraphInsertionStyle
+			? { paragraphInsertionStyle: source.paragraphInsertionStyle }
+			: {}),
 	};
 	const info = infoForParagraph(source.bulletInfo, kind, ordinal);
 	const body = { ...first, ...meta, style: withoutListType(first.style) };
@@ -136,6 +155,7 @@ export function toggleParagraphBullet(
 		return [{ ...body, bulletInfo: info }, ...rest];
 	}
 	delete body.bulletInfo;
+	delete body.paragraphInsertionStyle;
 	const markerStyle =
 		isBulletMarkerSegment(source) && paragraphBulletKind([source]) === kind
 			? source.style

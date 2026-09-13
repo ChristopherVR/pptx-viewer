@@ -65,10 +65,19 @@ export function resolveSlideSizeRescaleTransform(
 
 /** Scale every font size an element's own text style carries, in place on a shallow copy. */
 function scaleTextSegment(segment: TextSegment, scale: number): TextSegment {
-	if (typeof segment.style.fontSize !== 'number') {
+	const insertion = segment.paragraphInsertionStyle;
+	if (typeof segment.style.fontSize !== 'number' && typeof insertion?.fontSize !== 'number') {
 		return segment;
 	}
-	return { ...segment, style: { ...segment.style, fontSize: segment.style.fontSize * scale } };
+	return {
+		...segment,
+		...(typeof segment.style.fontSize === 'number'
+			? { style: { ...segment.style, fontSize: segment.style.fontSize * scale } }
+			: {}),
+		...(typeof insertion?.fontSize === 'number'
+			? { paragraphInsertionStyle: { ...insertion, fontSize: insertion.fontSize * scale } }
+			: {}),
+	};
 }
 
 /**

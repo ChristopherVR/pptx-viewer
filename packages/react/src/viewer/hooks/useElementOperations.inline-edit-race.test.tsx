@@ -17,8 +17,8 @@
  * style/case change made while `inlineEditingElementId` is set reflects the
  * LIVE `inlineEditingText`, not the stale model segments.
  */
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { buildParagraphs, elementBulletKind } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
+import { buildParagraphs, elementBulletKind, remapTextToSegments } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -69,9 +69,11 @@ interface Harness {
 function mount(
 	inlineEditingElementId: string | null,
 	inlineEditingText: string,
-	element = textElement(),
+	initialElement = textElement(),
 ): Harness {
-	let slides: PptxSlide[] = [{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [element] }];
+	let slides: PptxSlide[] = [
+		{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [initialElement] },
+	];
 	let latest: ElementOperations | undefined;
 
 	function Probe(): null {
@@ -107,6 +109,37 @@ function mount(
 }
 
 describe('updateSelectedTextStyle mid-edit race', () => {
+	it.each([false, true])(
+		'honors explicit formatting before runless typing (with list=%s)',
+		(withList) => {
+			const initial = {
+				...textElement(),
+				text: '',
+				textSegments: [
+					{
+						text: '',
+						style: {},
+						paragraphInsertionStyle: { bold: true, color: '#007000', fontSize: 40 },
+					},
+				],
+			} as PptxElement;
+			const harness = mount(null, '', initial);
+			const updates = { bold: false, color: '#000000', fontSize: 24 };
+			act(() =>
+				harness.ops().updateSelectedTextStyle({
+					...updates,
+					...(withList ? { listType: 'numbered' as const } : {}),
+				}),
+			);
+			const element = harness.slides()[0].elements[0] as PptxElement & {
+				textSegments: TextSegment[];
+			};
+			const typed = remapTextToSegments('Typed', element.textSegments, {});
+			expect(typed.at(-1)?.style).toMatchObject(updates);
+			expect(typed.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+		},
+	);
+
 	it('authors real bullets and keeps a repeated explicit setter on', () => {
 		const harness = mount(null, '');
 		for (let call = 0; call < 2; call++) {

@@ -1,6 +1,7 @@
 import { XmlObject, TextStyle, TextSegment } from '../../types';
 import type { BulletInfo } from '../../types';
 import { formatAutoNumberMarker } from '../../utils/auto-number-format';
+import { updateEndParagraphProperties } from './paragraph-insertion-style';
 import {
 	buildParagraphPropertiesXml,
 	assembleParagraphXml,
@@ -13,8 +14,17 @@ import { toRunScopedTextStyle } from './run-scoped-text-style';
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	private isRenderedBulletMarker(segment: TextSegment): boolean {
 		const bullet = segment.bulletInfo;
-		if (!bullet) {
+		if (!bullet || bullet.none) {
 			return false;
+		}
+		if (
+			segment.text === '' &&
+			(bullet.imageRelId || bullet.imageDataUrl) &&
+			!segment.fieldType &&
+			!segment.equationXml &&
+			segment.rubyText === undefined
+		) {
+			return true;
 		}
 		if (bullet.autoNumType) {
 			if (bullet.paragraphIndex === undefined) {
@@ -222,6 +232,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (segment.endParaRunProperties) {
 						currentEndParaRunProperties = segment.endParaRunProperties;
 					}
+					currentEndParaRunProperties = updateEndParagraphProperties(
+						currentEndParaRunProperties as XmlObject | undefined,
+						segment.paragraphInsertionStyle,
+						(style) => this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
+					);
 					if (segment.paragraphProperties) {
 						currentParagraphProperties = segment.paragraphProperties;
 					}
@@ -262,7 +277,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					return;
 				}
 
-				const segmentText = String(segment.text ?? '');
+				const segmentText = segment.isParagraphBreak ? '\n' : String(segment.text ?? '');
+				if (
+					segmentText === '' &&
+					segment.paragraphInsertionStyle &&
+					!segment.fieldType &&
+					segment.rubyText === undefined
+				) {
+					// Runless end-paragraph and picture-marker carriers author no a:r.
+					return;
+				}
 				const lineParts = segmentText.split('\n');
 				// A paragraph-break segment is the literal "\n", which splits into
 				// two empty halves. Emitting a run for each of them appended one
@@ -306,7 +330,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				});
 			});
 
-			if (currentRuns.length > 0 || paragraphs.length === 0) {
+			if (currentRuns.length > 0 || paragraphs.length === 0 || capturedParagraphMeta) {
 				pushParagraph();
 			}
 

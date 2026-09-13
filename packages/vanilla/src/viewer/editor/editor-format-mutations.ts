@@ -15,6 +15,7 @@ import {
 	remapTextToSegments,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
+	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 
 import { currentInlineEditorText } from './inline-text-editor';
@@ -128,10 +129,9 @@ function patchTextStyle(el: PptxElement, patch: Partial<TextStyle>): Partial<Ppt
 		return {};
 	}
 	const textStyle: TextStyle = { ...el.textStyle, ...patch };
-	const segments: TextSegment[] | undefined = el.textSegments?.map((seg) => ({
-		...seg,
-		style: { ...seg.style, ...patch },
-	}));
+	const segments: TextSegment[] | undefined = el.textSegments?.map((seg) =>
+		updateTextSegmentStyle(seg, patch),
+	);
 	return segments ? { textStyle, textSegments: segments } : { textStyle };
 }
 

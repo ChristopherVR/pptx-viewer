@@ -765,6 +765,93 @@ const richEndParaRPr: XmlObject = {
 };
 
 describe('collectShapeParagraphContent - empty paragraph metadata (real runtime)', () => {
+	it.each([
+		['plain', {}],
+		['character', { 'a:buChar': { '@_char': '◆' } }],
+		['numbered', { 'a:buAutoNum': { '@_type': 'romanUcPeriod' } }],
+		['picture', { 'a:buBlip': { 'a:blip': { '@_r:embed': 'rId7' } } }],
+	] as const)(
+		'resolves insertion formatting for a runless %s paragraph without adding a run',
+		(_kind, bullet) => {
+			const runtime = new ParagraphContentRuntime();
+			const paragraph: XmlObject = {
+				'a:pPr': bullet,
+				'a:endParaRPr': {
+					'@_sz': '3000',
+					'@_b': '1',
+					'a:latin': { '@_typeface': 'Courier New' },
+					'a:solidFill': { 'a:srgbClr': { '@_val': '007000' } },
+				},
+			};
+			const before = runtime.collect({ ...paragraph, 'a:endParaRPr': { '@_lang': 'en-US' } }, 0, 2);
+			for (const count of [1, 2]) {
+				const result = runtime.collect(paragraph, 0, count);
+				expect(result.segments[0].paragraphInsertionStyle).toMatchObject({
+					fontSize: 40,
+					fontFamily: 'Courier New',
+					color: '#007000',
+					bold: true,
+				});
+				expect(result.segments[0].paragraphInsertionStyle?.authoredRunStyle).toMatchObject({
+					fontSize: 40,
+					bold: true,
+				});
+				if (result.segments[0].bulletInfo) {
+					expect(result.segments[0].style).toStrictEqual(before.segments[0].style);
+					expect(result.segments).toHaveLength(count === 1 ? 1 : 2);
+				}
+			}
+			expect(
+				runtime.collect({ ...paragraph, 'a:r': { 'a:t': '', 'a:rPr': { '@_sz': '1650' } } }, 0, 2)
+					.segments[0].paragraphInsertionStyle,
+			).toBeUndefined();
+			expect(
+				runtime.collect({ 'a:pPr': bullet }, 0, 2).segments[0].paragraphInsertionStyle
+					?.authoredRunStyle,
+			).toStrictEqual({});
+		},
+	);
+
+	it('uses inherited body defaults rather than an explicit marker font when end properties are absent', () => {
+		const result = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': {
+					'a:buChar': { '@_char': '◆' },
+					'a:buFont': { '@_typeface': 'Wingdings' },
+					'a:buClr': { 'a:srgbClr': { '@_val': 'FF0000' } },
+					'a:buSzPct': { '@_val': '75000' },
+				},
+			},
+			0,
+			1,
+			createAutoNumberSequence(),
+			{ fontFamily: 'Calibri', fontSize: 24, color: '#000000' },
+		);
+		expect(result.segments[0].bulletInfo).toMatchObject({
+			fontFamily: 'Wingdings',
+			color: '#FF0000',
+		});
+		expect(result.segments[0].paragraphInsertionStyle).toMatchObject({
+			fontFamily: 'Calibri',
+			fontSize: 24,
+			color: '#000000',
+			authoredRunStyle: {},
+		});
+		expect(result.segments[0].bulletInfo?.sizePercent).toBe(75);
+	});
+
+	it.each(['a:r', 'a:fld', 'a:br', 'a14:m'])(
+		'does not replace authored %s content formatting with end properties',
+		(tag) => {
+			const result = new ParagraphContentRuntime().collect(
+				{ [tag]: { 'a:t': '', 'a:rPr': { '@_sz': '1650' } }, 'a:endParaRPr': richEndParaRPr },
+				0,
+				2,
+			);
+			expect(result.segments.every((segment) => !segment.paragraphInsertionStyle)).toBeTruthy();
+		},
+	);
+
 	it('captures endParaRPr attributes AND children for a body of one empty paragraph', () => {
 		const { segments, parts } = new ParagraphContentRuntime().collect(
 			{ 'a:pPr': { '@_algn': 'ctr' }, 'a:endParaRPr': richEndParaRPr },

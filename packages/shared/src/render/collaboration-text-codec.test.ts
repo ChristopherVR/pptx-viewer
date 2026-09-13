@@ -15,6 +15,27 @@ function liveText(): YTextLike {
 }
 
 describe('encodeTextBody / decodeTextBody', () => {
+	it('preserves insertion formatting on an empty carrier and a paragraph terminator', () => {
+		const paragraphInsertionStyle = {
+			fontSize: 40,
+			bold: true,
+			authoredRunStyle: { bold: true },
+			inheritedRunStyle: { fontSize: 40 },
+		};
+		const segments = [
+			{ text: '', style: {}, paragraphInsertionStyle },
+			{ text: '\n', style: {}, isParagraphBreak: true, paragraphInsertionStyle },
+		];
+		const ytext = liveText();
+		encodeTextBody(segments, ytext);
+		expect(decodeTextBody(ytext)).toStrictEqual(
+			segments.map((segment) => ({ ...segment, text: '' })),
+		);
+		expect(
+			decodeDelta([{ insert: 'Body', attributes: { pi: '{invalid' } }])[0].paragraphInsertionStyle,
+		).toBeUndefined();
+	});
+
 	it('round-trips plain and styled segments', () => {
 		const segments = [
 			{ text: 'Hello ', style: { bold: true } },
