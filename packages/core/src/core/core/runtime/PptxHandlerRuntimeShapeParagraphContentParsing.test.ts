@@ -5,7 +5,8 @@ import { describe, it, expect } from 'vitest';
 
 import { requireFixture } from '../../../__tests__/require-fixture';
 import { PptxHandler } from '../../PptxHandler';
-import type { TextSegment, XmlObject } from '../../types';
+import type { TextSegment, TextStyle, XmlObject } from '../../types';
+import { PptxRuntimeDependencyFactory } from '../factories/PptxRuntimeDependencyFactory';
 import {
 	breakAutoNumberRun,
 	createAutoNumberSequence,
@@ -525,8 +526,9 @@ class ParagraphContentRuntime extends PptxHandlerRuntime {
 		pIdx: number,
 		paraCount: number,
 		sequence = createAutoNumberSequence(),
+		defaultStyle: TextStyle = {},
 	) {
-		return this.collectShapeParagraphContent(p, pIdx, paraCount, 'left', {}, {
+		return this.collectShapeParagraphContent(p, pIdx, paraCount, 'left', defaultStyle, {
 			txBody: undefined,
 			inheritedTxBody: undefined,
 			bodyDefaultRunStyle: {},
@@ -546,6 +548,120 @@ const pictureBulletParagraph: XmlObject = {
 };
 
 describe('collectShapeParagraphContent - bullet markers (real runtime)', () => {
+	it.each([
+		{
+			name: 'a leading field before a later run',
+			content:
+				'<a:fld><a:rPr sz="1200"/><a:t>First</a:t></a:fld>' +
+				'<a:r><a:rPr sz="3000"/><a:t> later</a:t></a:r>',
+			expectedSize: 16,
+		},
+		{
+			name: 'an inherited first field before an explicitly sized run',
+			content: '<a:fld><a:t>First</a:t></a:fld><a:r><a:rPr sz="3000"/><a:t> later</a:t></a:r>',
+			expectedSize: 24,
+		},
+		{
+			name: 'an inherited first run before an explicitly sized field',
+			content: '<a:r><a:t>First</a:t></a:r><a:fld><a:rPr sz="3000"/><a:t> later</a:t></a:fld>',
+			expectedSize: 24,
+		},
+		{
+			name: 'a first run with unrelated properties before an explicitly sized field',
+			content:
+				'<a:r><a:rPr lang="en-US"/><a:t>First</a:t></a:r>' +
+				'<a:fld><a:rPr sz="3000"/><a:t> later</a:t></a:fld>',
+			expectedSize: 24,
+		},
+	])('uses $name as the percentage bullet base', ({ content, expectedSize }) => {
+		const xml =
+			'<p:txBody><a:p><a:pPr><a:buChar char="◆"/><a:buSzPct val="75000"/>' +
+			`</a:pPr>${content}</a:p></p:txBody>`;
+		const parsed = new PptxRuntimeDependencyFactory().createParser().parse(xml) as XmlObject;
+		const paragraph = (parsed['p:txBody'] as XmlObject)['a:p'] as XmlObject;
+		const { segments } = new ParagraphContentRuntime().collect(paragraph, 0, 1, undefined, {
+			fontSize: 24,
+		});
+		expect(segments[0].style.fontSize).toBe(expectedSize);
+		expect(segments[0].bulletInfo?.sizePercent).toBe(75);
+		expect(segments[1].text).toBe('First');
+		expect(segments[1].style.fontSize).toBe(expectedSize);
+		expect(segments[2].style.fontSize).toBe(40);
+	});
+
+	it.each(['a:r', 'a:fld'])('bases percentage bullets on the first %s font size', (tag) => {
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buChar': { '@_char': '◆' }, 'a:buSzPct': { '@_val': '75000' } },
+				[tag]: { 'a:rPr': { '@_sz': '1650' }, 'a:t': 'Item' },
+			},
+			0,
+			1,
+			undefined,
+			{ fontSize: 24 },
+		);
+		expect(segments[0].style.fontSize).toBe(22);
+		expect(segments[0].bulletInfo?.sizePercent).toBe(75);
+		expect(segments[1].style.fontSize).toBe(22);
+	});
+
+	it('uses the first run for percentage numbering without changing later run sizes', () => {
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': {
+					'a:buAutoNum': { '@_type': 'romanUcPeriod' },
+					'a:buSzPct': { '@_val': '125000' },
+				},
+				'a:r': [
+					{ 'a:rPr': { '@_sz': '1200' }, 'a:t': 'First' },
+					{ 'a:rPr': { '@_sz': '3000' }, 'a:t': ' larger' },
+				],
+			},
+			0,
+			1,
+			undefined,
+			{ fontSize: 24 },
+		);
+		expect(segments[0].style.fontSize).toBe(16);
+		expect(segments[0].bulletInfo?.sizePercent).toBe(125);
+		expect(segments[1].style.fontSize).toBe(16);
+		expect(segments[2].style.fontSize).toBe(40);
+	});
+
+	it.each([{ 'a:r': { 'a:t': 'Inherited size' } }, {}])(
+		'keeps the resolved paragraph default when no run authors a size: %j',
+		(content) => {
+			const { segments } = new ParagraphContentRuntime().collect(
+				{
+					'a:pPr': { 'a:buChar': { '@_char': '◆' }, 'a:buSzPct': { '@_val': '75000' } },
+					...content,
+				},
+				0,
+				1,
+				undefined,
+				{ fontSize: 24 },
+			);
+			expect(segments[0].style.fontSize).toBe(24);
+			expect(segments[0].bulletInfo?.sizePercent).toBe(75);
+		},
+	);
+
+	it('keeps absolute bullet sizing independent of the body font size', () => {
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buChar': { '@_char': '◆' }, 'a:buSzPts': { '@_val': '900' } },
+				'a:r': { 'a:rPr': { '@_sz': '1650' }, 'a:t': 'Item' },
+			},
+			0,
+			1,
+			undefined,
+			{ fontSize: 24 },
+		);
+		expect(segments[0].style.fontSize).toBe(24);
+		expect(segments[0].bulletInfo?.sizePts).toBe(9);
+		expect(segments[1].style.fontSize).toBe(22);
+	});
+
 	it('stamps no display glyph for a picture bullet, only the bullet metadata', () => {
 		const { segments, parts } = new ParagraphContentRuntime().collect(pictureBulletParagraph, 0, 1);
 
