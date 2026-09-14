@@ -11,8 +11,8 @@ describe('isHorizontalPrimaryAxis', () => {
 		expect(isHorizontalPrimaryAxis(200, 50)).toBeTruthy();
 	});
 
-	it('picks vertical when the box is taller than it is wide (shapes stacked)', () => {
-		expect(isHorizontalPrimaryAxis(50, 200)).toBeFalsy();
+	it('keeps the OOXML horizontal primary axis for a tall box', () => {
+		expect(isHorizontalPrimaryAxis(50, 200)).toBeTruthy();
 	});
 
 	it('breaks an exact tie in favour of horizontal (historical default)', () => {
@@ -20,7 +20,7 @@ describe('isHorizontalPrimaryAxis', () => {
 	});
 });
 
-describe('elbowWaypoints: orientation adapts to the connector box shape', () => {
+describe('elbowWaypoints: OOXML preset axis', () => {
 	it('a wide box (side-by-side shapes) bends around a VERTICAL mid-line', () => {
 		const pts = elbowWaypoints(0, 0, 200, 50, 200, 50, 3, 0.5, 0.5, 0.5);
 		expect(pts).toStrictEqual([
@@ -31,38 +31,33 @@ describe('elbowWaypoints: orientation adapts to the connector box shape', () => 
 		]);
 	});
 
-	it('a tall box (stacked shapes) bends around a HORIZONTAL mid-line instead', () => {
-		// Same connector, transposed: this is the bug the fix targets. The old
-		// implementation always positioned the bend at `width * adj1`
-		// regardless of the box being far taller than it is wide; the fix
-		// recognises the dominant axis is now height and bends around a
-		// horizontal mid-line instead.
+	it('a tall box retains the horizontal-first preset path', () => {
 		const pts = elbowWaypoints(0, 0, 50, 200, 50, 200, 3, 0.5, 0.5, 0.5);
 		expect(pts).toStrictEqual([
 			[0, 0],
-			[0, 100],
-			[50, 100],
+			[25, 0],
+			[25, 200],
 			[50, 200],
 		]);
 	});
 
-	it('honours a non-default adj1 along whichever axis is primary', () => {
+	it('honours a non-default adj1 along the x axis', () => {
 		const horizontal = elbowWaypoints(0, 0, 200, 50, 200, 50, 3, 0.25, 0.5, 0.5);
 		expect(horizontal[1]).toStrictEqual([50, 0]);
 		expect(horizontal[2]).toStrictEqual([50, 50]);
 
 		const vertical = elbowWaypoints(0, 0, 50, 200, 50, 200, 3, 0.25, 0.5, 0.5);
-		expect(vertical[1]).toStrictEqual([0, 50]);
-		expect(vertical[2]).toStrictEqual([50, 50]);
+		expect(vertical[1]).toStrictEqual([12.5, 0]);
+		expect(vertical[2]).toStrictEqual([12.5, 200]);
 	});
 
 	it('builds a 4-segment staircase (bentConnector4) through both adj1 and adj2, stacked box', () => {
 		const pts = elbowWaypoints(0, 0, 100, 200, 100, 200, 4, 0.5, 0.5, 0.5);
 		expect(pts).toStrictEqual([
 			[0, 0],
-			[0, 100],
+			[50, 0],
 			[50, 100],
-			[50, 200],
+			[100, 100],
 			[100, 200],
 		]);
 	});
@@ -71,10 +66,10 @@ describe('elbowWaypoints: orientation adapts to the connector box shape', () => 
 		const pts = elbowWaypoints(0, 0, 100, 200, 100, 200, 5, 0.3, 0.4, 0.7);
 		expect(pts).toStrictEqual([
 			[0, 0],
-			[0, 60],
-			[40, 60],
-			[40, 140],
-			[100, 140],
+			[30, 0],
+			[30, 80],
+			[70, 80],
+			[70, 200],
 			[100, 200],
 		]);
 	});
@@ -98,30 +93,30 @@ describe('elbowCurveSegments: same orientation/segment logic, smooth instead of 
 		]);
 	});
 
-	it('renders a single smooth cubic for curvedConnector3, tall box (vertical-primary)', () => {
+	it('renders a horizontal-first smooth curve for curvedConnector3 on a tall box', () => {
 		const segs = elbowCurveSegments(0, 0, 50, 200, 50, 200, 3, 0.5, 0.5, 0.5);
 		expect(segs).toStrictEqual([
-			{ control: [0, 100], end: [25, 100] },
-			{ control: [50, 100], end: [50, 200] },
+			{ control: [25, 0], end: [25, 100] },
+			{ control: [25, 200], end: [50, 200] },
 		]);
 	});
 
 	it('renders a differentiated 3-curve path for curvedConnector4, tall box', () => {
 		const segs = elbowCurveSegments(0, 0, 100, 200, 100, 200, 4, 0.5, 0.5, 0.5);
 		expect(segs).toStrictEqual([
-			{ control: [0, 100], end: [25, 100] },
-			{ control: [50, 100], end: [50, 150] },
-			{ control: [50, 200], end: [100, 200] },
+			{ control: [50, 0], end: [50, 50] },
+			{ control: [50, 100], end: [75, 100] },
+			{ control: [100, 100], end: [100, 200] },
 		]);
 	});
 
 	it('renders a differentiated 4-curve path for curvedConnector5, tall box', () => {
 		const segs = elbowCurveSegments(0, 0, 100, 200, 100, 200, 5, 0.3, 0.4, 0.7);
 		expect(segs).toStrictEqual([
-			{ control: [0, 60], end: [20, 60] },
-			{ control: [40, 60], end: [40, 100] },
-			{ control: [40, 140], end: [70, 140] },
-			{ control: [100, 140], end: [100, 200] },
+			{ control: [30, 0], end: [30, 40] },
+			{ control: [30, 80], end: [50, 80] },
+			{ control: [70, 80], end: [70, 140] },
+			{ control: [70, 200], end: [100, 200] },
 		]);
 	});
 });

@@ -1,24 +1,14 @@
 /**
- * Orientation-aware bend geometry for multi-segment elbow connectors
+ * OOXML preset bend geometry for multi-segment elbow connectors
  * (`bentConnector3/4/5`, `curvedConnector3/4/5`).
  *
  * PowerPoint's elbow connectors do NOT avoid obstacles (obstacle-avoiding A*
  * routing lives in `connector-router.ts` and is applied separately by
  * `connector-path.ts`, only when a binding supplies an obstacle list; that is
- * out of scope here). What they DO is pick the bend axis from the actual
- * relative position of the two connection points: a connector between shapes
- * that sit roughly side-by-side bends around a vertical mid-line (an
- * "H-V-H" Z-shape), while one between vertically-stacked shapes bends around
- * a horizontal mid-line (a "V-H-V" S-shape). The ECMA-376 `bentConnector3/4/5`
- * / `curvedConnector3/4/5` preset-geometry formulas are always expressed
- * against the connector's own local box (an `adj1` fraction of `w`, etc), so
- * the same numeric formula is reused here for both orientations; only which
- * axis plays the "primary" (adjustment-driven) role changes. This mirrors the
- * segment-count differentiation `packages/core/src/core/geometry/connector-geometry.ts`
- * already applies (2/3/4/5-segment paths from `adj1`/`adj2`/`adj3`), extended
- * with the orientation choice so a connector between stacked shapes no longer
- * renders the exact same "always exits sideways" shape as one between shapes
- * side by side.
+ * out of scope here). The ECMA-376 `bentConnector3/4/5` and
+ * `curvedConnector3/4/5` paths are always authored horizontal-first against
+ * their local box. `a:xfrm/@flipH` and `@flipV` orient that stored path; the
+ * bounding-box aspect ratio does not transpose its axes.
  *
  * No framework imports.
  */
@@ -81,16 +71,10 @@ export function elbowSegmentCount(lowerShapeType: string): ElbowSegments {
 }
 
 /**
- * True when the primary bend axis should run along x, i.e. the two endpoints
- * differ more in x than in y. There is no explicit connection-site "side"
- * (top/bottom/left/right) available at this layer (see `connector-path.ts`
- * module docs), so the dominant axis of the resolved endpoints is the
- * tractable, well-behaved proxy: shapes mostly side by side get a
- * vertical-mid-line route, shapes mostly stacked get a horizontal-mid-line
- * route. Ties favour horizontal, matching the historical (pre-fix) behaviour.
+ * OOXML connector preset paths always use x as their primary bend axis.
  */
-export function isHorizontalPrimary(x1: number, y1: number, x2: number, y2: number): boolean {
-	return Math.abs(x2 - x1) >= Math.abs(y2 - y1);
+export function isHorizontalPrimary(_x1: number, _y1: number, _x2: number, _y2: number): boolean {
+	return true;
 }
 
 /** `(u, v)` -> `(x, y)`, transposed when the secondary axis is horizontal. */
@@ -157,7 +141,7 @@ function curveTo(ctrl: RouterPoint, end: RouterPoint): string {
 /**
  * Render the same `segments`-segment elbow as a smooth path: cubic Beziers
  * whose control points sit on the elbow's own corners, so curved connectors
- * get the same orientation-aware, segment-count-aware routing as
+ * get the same horizontal-first, segment-count-aware routing as
  * {@link elbowWaypoints} while never producing a sharp corner.
  *
  * `segments === 3` emits a single cubic Bezier through the two corner points

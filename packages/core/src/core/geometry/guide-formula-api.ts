@@ -17,8 +17,8 @@ import { ANGLE_SCALE, parseFormula, evaluateFormula, resolveOperand } from './gu
  *
  * Built-in variables are defined by the OOXML spec (ISO/IEC 29500-1 section 20.1.9):
  * - **Position/size:** `w`, `h`, `l`, `t`, `r`, `b`, `hc` (horizontal center), `vc` (vertical center)
- * - **Width fractions:** `wd2` through `wd12` (width divided by N)
- * - **Height fractions:** `hd2` through `hd12` (height divided by N)
+ * - **Width fractions:** `wd2` through `wd32` (width divided by the standard divisors)
+ * - **Height fractions:** `hd2` through `hd32` (height divided by the standard divisors)
  * - **Short/long side:** `ss`, `ls`, `ssd2` through `ssd32`
  * - **Angular constants:** `cd2` (180 degrees), `cd4` (90 degrees), `cd8` (45 degrees), etc.
  *
@@ -42,13 +42,13 @@ export function createBuiltinVariables(ctx: GeometryContext): Map<string, number
 	vars.set('vc', h / 2);
 
 	// Width divided by N
-	const widthDivisors = [2, 3, 4, 5, 6, 8, 10, 12] as const;
+	const widthDivisors = [2, 3, 4, 5, 6, 8, 10, 12, 16, 32] as const;
 	for (const d of widthDivisors) {
 		vars.set(`wd${d}`, w / d);
 	}
 
 	// Height divided by N
-	const heightDivisors = [2, 3, 4, 5, 6, 8, 10, 12] as const;
+	const heightDivisors = [2, 3, 4, 5, 6, 8, 10, 12, 16, 32] as const;
 	for (const d of heightDivisors) {
 		vars.set(`hd${d}`, h / d);
 	}

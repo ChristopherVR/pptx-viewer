@@ -12,16 +12,11 @@
  */
 
 import type { PptxElement } from 'pptx-viewer-core';
-import { hasShapeProperties } from 'pptx-viewer-core';
+import { getConnectorPathGeometry, hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
 import { buildDashArray } from './connector-dash';
-import {
-	connectorAdjustmentFraction,
-	curvedElbowPathD,
-	elbowSegmentCount,
-	elbowWaypoints,
-} from './connector-elbow-geometry';
+import { curvedElbowPathD, elbowSegmentCount, elbowWaypoints } from './connector-elbow-geometry';
 import { connectorHitStrokeWidth } from './connector-hit-target';
 import { markerPath, normalizeArrow } from './connector-markers';
 import type { MarkerShape } from './connector-markers';
@@ -130,16 +125,13 @@ export function buildConnectorGeometry(
 	const svgW = Math.max(element.width, 1);
 	const svgH = Math.max(element.height, 1);
 
-	const x1 = element.flipHorizontal ? svgW : 0;
-	const y1 = element.flipVertical ? svgH : 0;
-	const x2 = element.flipHorizontal ? 0 : svgW;
-	const y2 = element.flipVertical ? 0 : svgH;
-
 	const shapeType = (element as { shapeType?: string }).shapeType;
-	const bend1 = connectorAdjustmentFraction(element, 'adj1', 0.5);
-	const bend2 = connectorAdjustmentFraction(element, 'adj2', 0.5);
-	const bend3 = connectorAdjustmentFraction(element, 'adj3', 0.5);
-	let pathD = buildConnectorPathD(shapeType, x1, y1, x2, y2, bend1, bend2, bend3);
+	const coreGeometry = hasShapeProperties(element) ? getConnectorPathGeometry(element) : undefined;
+	const x1 = coreGeometry?.startX ?? 0;
+	const y1 = coreGeometry?.startY ?? 0;
+	const x2 = coreGeometry?.endX ?? svgW;
+	const y2 = coreGeometry?.endY ?? svgH;
+	let pathD = connectorKind(shapeType) === 'straight' ? undefined : coreGeometry?.pathData;
 
 	// Obstacle-avoiding A* routing for bent connectors. Routes in absolute slide
 	// coordinates (so it can detour outside the connector's own bounding box;
@@ -219,20 +211,16 @@ export function buildConnectorGeometry(
  *
  * PowerPoint's elbow connectors do not avoid obstacles (that A* routing is
  * applied separately by {@link buildConnectorGeometry} when a binding
- * supplies an obstacle list). What they DO is pick the bend axis from the
- * actual relative position of the two endpoints, and use the OOXML preset's
- * full segment count and adjustment values rather than collapsing every
- * `bentConnector3/4/5` (and `curvedConnector3/4/5`) into the same shape; see
- * `connector-elbow-geometry.ts` for the orientation/segment-count formulas
- * (mirroring `packages/core/src/core/geometry/connector-geometry.ts`'s
- * per-segment-count treatment, extended with the orientation choice):
+ * supplies an obstacle list). These fallback helpers keep the stored
+ * horizontal-first axis and preserve each preset's segment count and
+ * adjustments. The main renderer delegates to core's normative preset path
+ * evaluator in {@link buildConnectorGeometry}.
  *  - **bent**: orthogonal elbow polyline. `bentConnector2` is a single L-bend;
  *    `bentConnector3` is a 2-bend Z routed through one adjustment (`adj1`);
  *    `bentConnector4` is a 3-bend staircase (`adj1`, `adj2`); `bentConnector5`
  *    is a 4-bend staircase (`adj1`, `adj2`, `adj3`).
- *  - **curved**: `curvedConnector2` is a quadratic Bezier; `curvedConnector3/4/5`
- *    are the same elbow shapes rendered as smooth cubic Beziers instead of
- *    sharp corners.
+ *  - **curved**: fallback Bezier approximations for callers that build paths
+ *    directly rather than through {@link buildConnectorGeometry}.
  *
  * `bend2`/`bend3` are optional so existing 6-argument call sites (which only
  * ever needed `bentConnector2/3` / `curvedConnector2/3`) keep compiling and
