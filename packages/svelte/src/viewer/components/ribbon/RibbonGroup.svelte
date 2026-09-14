@@ -41,6 +41,7 @@
 		position: relative;
 		display: flex;
 		flex: none;
+		align-self: stretch;
 		flex-direction: column;
 		justify-content: space-between;
 		min-height: 78px;
