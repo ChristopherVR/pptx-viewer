@@ -56,25 +56,45 @@ export async function fetchAsDataUrl(url: string): Promise<string | null> {
 }
 
 /**
- * Matches one `url(...)` reference, as a double-quoted, single-quoted, or bare
- * token. The three forms are matched as separate alternatives (rather than one
- * `["']?...["']?` wrapped around a single content group) so the surrounding
- * `\s*` never shares characters with the content group: a naive
- * `\s*["']?([^"')]+)["']?\s*` lets whitespace be split between the leading
- * `\s*` and the content group in exponentially many equivalent ways, which is
- * polynomial-time (`js/polynomial-redos`) on an unclosed `url(` followed by
- * many tabs/spaces. Each alternative here has a fixed, non-overlapping
- * character class, so there is only one way to match.
+ * Extract one `url(...)` reference without a regular expression. CSS values
+ * can originate in a presentation, so a bounded linear scan avoids the
+ * backtracking ambiguity that can make a permissive URL-matching pattern slow
+ * on malformed input containing long whitespace runs.
  */
-const CSS_URL_PATTERN = /url\(\s*(?:"([^"]*)"|'([^']*)'|([^"')\s]+))\s*\)/u;
-
-/** Extract a `url(...)` reference from a CSS value; returns `null` when none is present. */
 export function extractCssUrl(value: string): string | null {
-	const match = CSS_URL_PATTERN.exec(value);
-	if (!match) {
+	const start = value.indexOf('url(');
+	if (start === -1) {
 		return null;
 	}
-	return match[1] ?? match[2] ?? match[3] ?? null;
+
+	const contents = value.slice(start + 'url('.length).trimStart();
+	const quote = contents[0];
+	if (quote === '"' || quote === "'") {
+		const end = contents.indexOf(quote, 1);
+		if (
+			end === -1 ||
+			!contents
+				.slice(end + 1)
+				.trimStart()
+				.startsWith(')')
+		) {
+			return null;
+		}
+		return contents.slice(1, end);
+	}
+
+	const end = contents.indexOf(')');
+	if (end === -1) {
+		return null;
+	}
+	const url = contents.slice(0, end).trimEnd();
+	return url &&
+		!url.includes('"') &&
+		!url.includes("'") &&
+		!url.includes(' ') &&
+		!url.includes('\t')
+		? url
+		: null;
 }
 
 function needsEmbedding(url: string): boolean {

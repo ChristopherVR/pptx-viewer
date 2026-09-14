@@ -137,27 +137,17 @@ export async function rasterizeElementTiles(
  * canvas stitch) so the row/col grouping is written once.
  */
 export function groupTilesByRow(tiles: readonly RasterizedTile[]): RasterizedTile[][] {
-	const rowCount = tiles.reduce((max, t) => Math.max(max, t.row), 0) + 1;
-	const rows: RasterizedTile[][] = Array.from({ length: rowCount }, () => []);
-	for (const tile of tiles) {
-		// `row`/`col` are declared as `number`, but this is a public export: a
-		// caller could pass a `RasterizedTile[]` built from untrusted data whose
-		// `row`/`col` are, at runtime, a string like `__proto__`. Indexing an
-		// array with that string resolves through `Array.prototype` (itself
-		// inherited from `Object.prototype`), so `rows[tile.row][tile.col] = tile`
-		// would assign onto `Array.prototype` rather than `rows`, polluting every
-		// array in the process. Requiring a genuine non-negative integer index
-		// closes that off without changing behaviour for any real tile, which is
-		// always produced by `computeExportTilePlan`'s integer loop counters.
-		if (
-			!Number.isInteger(tile.row) ||
-			!Number.isInteger(tile.col) ||
-			tile.row < 0 ||
-			tile.col < 0
-		) {
-			continue;
-		}
-		rows[tile.row][tile.col] = tile;
-	}
-	return rows;
+	const validTiles = tiles.filter(
+		(tile) =>
+			Number.isInteger(tile.row) && Number.isInteger(tile.col) && tile.row >= 0 && tile.col >= 0,
+	);
+	const rowCount = validTiles.reduce((max, tile) => Math.max(max, tile.row), 0) + 1;
+	return Array.from({ length: rowCount }, (_rowIndex, row) => {
+		const tilesInRow = validTiles.filter((tile) => tile.row === row);
+		const colCount = tilesInRow.reduce((max, tile) => Math.max(max, tile.col), -1) + 1;
+		return Array.from(
+			{ length: colCount },
+			(_columnIndex, col) => tilesInRow.find((tile) => tile.col === col) as RasterizedTile,
+		);
+	});
 }
