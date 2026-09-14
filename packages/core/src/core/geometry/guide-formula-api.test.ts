@@ -24,6 +24,8 @@ describe('createBuiltinVariables', () => {
 		expect(vars.get('wd8')).toBe(300);
 		expect(vars.get('wd10')).toBe(240);
 		expect(vars.get('wd12')).toBe(200);
+		expect(vars.get('wd16')).toBe(150);
+		expect(vars.get('wd32')).toBe(75);
 	});
 
 	it('computes all height divisor variables', () => {
@@ -36,6 +38,8 @@ describe('createBuiltinVariables', () => {
 		expect(vars.get('hd8')).toBe(150);
 		expect(vars.get('hd10')).toBe(120);
 		expect(vars.get('hd12')).toBe(100);
+		expect(vars.get('hd16')).toBe(75);
+		expect(vars.get('hd32')).toBe(37.5);
 	});
 
 	it('computes all short-side divisor variables', () => {
@@ -91,13 +95,13 @@ describe('createBuiltinVariables', () => {
 	it('returns a Map with the expected number of entries', () => {
 		const vars = createBuiltinVariables({ w: 100, h: 100 });
 		// Position/size: w, h, l, t, r, b, hc, vc = 8
-		// Width divisors: wd2..wd12 (8 values) = 8
-		// Height divisors: hd2..hd12 (8 values) = 8
+		// Width divisors: wd2..wd32 (10 values) = 10
+		// Height divisors: hd2..hd32 (10 values) = 10
 		// ss, ls = 2
 		// ssd2..ssd32 (6 values) = 6
 		// Angular: cd2, cd4, cd8, 3cd4, 3cd8, 5cd8, 7cd8 = 7
-		// Total = 39
-		expect(vars.size).toBe(39);
+		// Total = 43
+		expect(vars.size).toBe(43);
 	});
 });
 
@@ -132,7 +136,7 @@ describe('evaluateGuides — additional scenarios', () => {
 		expect(vars.get('w')).toBe(100);
 		expect(vars.get('h')).toBe(200);
 		// Should have only built-in variables
-		expect(vars.size).toBe(39);
+		expect(vars.size).toBe(43);
 	});
 
 	it('uses built-in variables in guide formulas', () => {

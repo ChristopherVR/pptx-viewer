@@ -4,6 +4,17 @@ import { evaluatePresetShape, lookupPresetShape } from './preset-shape-evaluator
 import { getShapeClipPathFromPreset } from './shape-geometry';
 
 describe('evaluatePresetShape', () => {
+	it('keeps every cloud arc whose radius uses wd16 or hd16', () => {
+		const evaluated = evaluatePresetShape('cloud', 356.14, 152.33);
+		const definition = lookupPresetShape('cloud');
+		const officialArcCount = definition?.pathLst[0]?.commands.filter(
+			(command) => command.kind === 'arcTo',
+		).length;
+
+		expect(officialArcCount).toBe(8);
+		expect(evaluated?.svgPath.match(/A /gu)).toHaveLength(8);
+	});
+
 	it('returns undefined for unknown shape names', () => {
 		expect(evaluatePresetShape('definitelyNotAShape', 100, 100)).toBeUndefined();
 		expect(lookupPresetShape('definitelyNotAShape')).toBeUndefined();
