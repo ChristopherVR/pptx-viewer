@@ -2,7 +2,7 @@
  * Animation preset names must be real, translated names in EVERY shipped
  * locale.
  *
- * `locales.test.ts` already proves the four dictionaries agree on their key
+ * `locales.test.ts` already proves the dictionaries agree on their key
  * sets. This suite is the preset-specific half, and it exists because a preset
  * name is where a dictionary gap does the most damage: the demos' missing-key
  * handler (`keyToLabel`) turns an absent key into a plausible-looking guess
@@ -20,7 +20,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { translationsDe, translationsEs, translationsFr } from '.';
+import { translationsDe, translationsEs, translationsFr, translationsZhCN } from '.';
 import { ALL_ANIMATION_PRESETS } from '../../core/src/core/utils/animation-preset-catalog';
 import { translationsEn } from '../../shared/src/i18n';
 import {
@@ -40,7 +40,12 @@ const PRESET_KEYS: readonly string[] = [
 	...MOTION_PATH_PRESETS.map((preset) => motionPathPresetLabelKey(preset.id)),
 ];
 
-const translated = { de: translationsDe, es: translationsEs, fr: translationsFr };
+const translated = {
+	de: translationsDe,
+	es: translationsEs,
+	fr: translationsFr,
+	'zh-CN': translationsZhCN,
+};
 
 /**
  * Names that are legitimately spelled the same in English and the target

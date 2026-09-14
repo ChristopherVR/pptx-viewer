@@ -19,4 +19,5 @@ export const LOCALE_CATALOG: readonly LocaleCatalogEntry[] = [
 	{ code: 'fr', label: 'French', nativeLabel: 'Français' },
 	{ code: 'es', label: 'Spanish', nativeLabel: 'Español' },
 	{ code: 'de', label: 'German', nativeLabel: 'Deutsch' },
+	{ code: 'zh-CN', label: 'Chinese (Simplified)', nativeLabel: '简体中文' },
 ];

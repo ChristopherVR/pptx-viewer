@@ -21,6 +21,8 @@ const SECTION_DEFINITIONS = [
 			'common',
 			'viewer',
 			'mode',
+			'readOnly',
+			'compatibility',
 			'overflow',
 		],
 	},
@@ -47,6 +49,8 @@ const SECTION_DEFINITIONS = [
 			'mobileMenu',
 			'mobileToolbar',
 			'notesToolbar',
+			'outline',
+			'layoutGallery',
 		],
 	},
 	{
@@ -57,6 +61,7 @@ const SECTION_DEFINITIONS = [
 		name: 'accessibility-print-and-export',
 		prefixes: [
 			'accessibility',
+			'elementAccessibility',
 			'headerFooter',
 			'print',
 			'export',
@@ -86,6 +91,7 @@ const SECTION_DEFINITIONS = [
 			'keepAnnotations',
 			'transition',
 			'transitionPresets',
+			'record',
 		],
 	},
 	{
@@ -103,6 +109,7 @@ const SECTION_DEFINITIONS = [
 			'textWarp',
 			'equation',
 			'fonts',
+			'font',
 			'text',
 			'paragraph',
 			'textAdvanced',
@@ -137,6 +144,7 @@ const SECTION_DEFINITIONS = [
 			'design',
 			'element',
 			'drawing',
+			'group',
 			'editing',
 			'arrowhead',
 			'connectorOptions',
@@ -152,6 +160,7 @@ const SECTION_DEFINITIONS = [
 		name: 'fills-and-strokes',
 		prefixes: [
 			'fill',
+			'colorPicker',
 			'gradient',
 			'stroke',
 			'fillAdvanced',
@@ -161,7 +170,7 @@ const SECTION_DEFINITIONS = [
 			'strokeOptions',
 		],
 	},
-	{ name: 'tables', prefixes: ['table', 'tableCell', 'tableDataEditor'] },
+	{ name: 'tables', prefixes: ['table', 'tableCell', 'tableDataEditor', 'tableStyleEditor'] },
 	{
 		name: 'editing-and-review',
 		prefixes: [
@@ -179,6 +188,7 @@ const SECTION_DEFINITIONS = [
 			'review',
 			'file',
 			'properties',
+			'format',
 		],
 	},
 	{
@@ -191,6 +201,9 @@ const SECTION_DEFINITIONS = [
 			'themeEditor',
 			'themeOverride',
 			'themeGallery',
+			'themes',
+			'theme',
+			'themeColor',
 			'slideBackground',
 			'slideInspector',
 			'slideSize',
@@ -198,10 +211,14 @@ const SECTION_DEFINITIONS = [
 			'slides',
 		],
 	},
+	{ name: 'ai-assistant', prefixes: ['ai'] },
+	{ name: 'backstage', prefixes: ['backstage'] },
+	{ name: 'viewer-options', prefixes: ['options'] },
+	{ name: 'slide-templates', prefixes: ['slideTemplates'] },
 	{ name: 'ribbon', prefixes: ['ribbon', 'home', 'insert'] },
 ] as const;
 
-export const MAX_LOCALE_SECTION_ENTRIES = 275;
+export const MAX_LOCALE_SECTION_ENTRIES = 180;
 
 export function localeSectionNameForKey(key: string): string {
 	const prefix = key.split('.')[1];

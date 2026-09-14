@@ -1,10 +1,15 @@
 import { describe, expect, it } from 'vitest';
 
-import { translationsDe, translationsEs, translationsFr } from '.';
+import { translationsDe, translationsEs, translationsFr, translationsZhCN } from '.';
 import { translationsEn } from '../../shared/src/i18n';
 
 const PLACEHOLDER_RE = /\{\{[^}]+\}\}/gu;
-const locales = { de: translationsDe, es: translationsEs, fr: translationsFr };
+const locales = {
+	de: translationsDe,
+	es: translationsEs,
+	fr: translationsFr,
+	'zh-CN': translationsZhCN,
+};
 
 describe('complete locale dictionaries', () => {
 	for (const [locale, translations] of Object.entries(locales)) {

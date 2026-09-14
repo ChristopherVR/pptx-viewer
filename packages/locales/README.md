@@ -1,6 +1,6 @@
 # Locale reference dictionaries
 
-This private workspace package contains the complete French, Spanish, and German
+This private workspace package contains the complete French, Spanish, German, and Simplified Chinese
 UI dictionaries used by every demo application in this repository. It is not
 published to npm and is not a runtime dependency of any viewer binding.
 
@@ -10,6 +10,7 @@ Repository workspaces reference the dictionaries by package name:
 import { translationsFr } from 'pptx-viewer-locales/fr';
 import { translationsEs } from 'pptx-viewer-locales/es';
 import { translationsDe } from 'pptx-viewer-locales/de';
+import { translationsZhCN } from 'pptx-viewer-locales/zh-CN';
 ```
 
 Each language has its own entry point, and each dictionary contains every
@@ -24,7 +25,7 @@ coverage is tested; native-speaker terminology review is still welcome.
 ## How to help
 
 Native and fluent speakers can review one semantic file at a time under
-`src/fr`, `src/es`, or `src/de`. Files are organized by product area, such as
+`src/fr`, `src/es`, `src/de`, or `src/zh-CN`. Files are organized by product area, such as
 `charts.ts`, `presenting-and-slide-show.ts`, and `text-and-equations.ts`.
 
 1. Find the same key in `packages/shared/src/i18n/translations-en.ts` to confirm
