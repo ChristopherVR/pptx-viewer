@@ -103,6 +103,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 	const ts: TextStyle | undefined = canFormatText(el) ? el.textStyle : undefined;
 	const firstRun = canFormatText(el) ? el.textSegments?.find((s) => s.text)?.style : undefined;
 	const fontSizePx = ts?.fontSize ?? firstRun?.fontSize;
+	const listKind = canFormatText(el) ? elementBulletKind(el) : 'none';
 	return {
 		bold: Boolean(ts?.bold ?? firstRun?.bold),
 		italic: Boolean(ts?.italic ?? firstRun?.italic),
@@ -116,7 +117,7 @@ export function readTextFormatState(el: PptxElement | undefined): TextFormatStat
 		colorRef: ts?.colorRef ?? firstRun?.colorRef,
 		highlightColor: ts?.highlightColor ?? firstRun?.highlightColor,
 		characterSpacing: ts?.characterSpacing ?? firstRun?.characterSpacing ?? 0,
-		listType: canFormatText(el) ? elementBulletKind(el) : 'none',
+		listType: listKind === 'mixed' ? 'none' : listKind,
 		align: ts?.align ?? firstRun?.align,
 		paragraphMarginLeft: ts?.paragraphMarginLeft ?? firstRun?.paragraphMarginLeft ?? 0,
 		lineSpacing: ts?.lineSpacing ?? firstRun?.lineSpacing,

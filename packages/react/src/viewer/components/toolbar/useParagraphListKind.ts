@@ -5,7 +5,7 @@ import {
 	getInlineEditorSelection,
 	selectedParagraphBulletKind,
 } from 'pptx-viewer-shared';
-import type { ParagraphBulletKind } from 'pptx-viewer-shared';
+import type { ElementBulletKind } from 'pptx-viewer-shared';
 import { useCallback, useSyncExternalStore } from 'react';
 
 function subscribe(onChange: () => void): () => void {
@@ -14,7 +14,7 @@ function subscribe(onChange: () => void): () => void {
 }
 
 /** Match list-button state to the same paragraph scope used by its command. */
-export function useParagraphListKind(element: PptxElement | null): ParagraphBulletKind {
+export function useParagraphListKind(element: PptxElement | null): ElementBulletKind {
 	const read = useCallback(() => {
 		if (!element || !hasTextProperties(element)) {
 			return 'none' as const;
