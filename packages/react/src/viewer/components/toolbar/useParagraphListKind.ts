@@ -23,7 +23,7 @@ export function useParagraphListKind(element: PptxElement | null): ElementBullet
 		if (!element || !hasTextProperties(element)) {
 			return 'none' as const;
 		}
-		const result = getInlineEditorSelectionResult(element.textSegments);
+		const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
 		if (
 			result.kind === 'unsupported' ||
 			(result.snapshot && result.snapshot.elementId !== element.id)

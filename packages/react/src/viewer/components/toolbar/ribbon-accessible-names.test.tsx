@@ -51,6 +51,7 @@ describe('list command state', () => {
 				selectedElement,
 				canEdit,
 				onUpdateTextStyle: vi.fn(),
+				onToggleBullets: vi.fn(),
 				onTransformTextCase: vi.fn(),
 			}),
 		);
@@ -75,12 +76,8 @@ describe('list command state', () => {
 		expect(button(html, 'Numbered List')).toContain('aria-pressed="false"');
 	});
 
-	it('disables list commands for missing selection, read-only mode and table cells', () => {
-		for (const html of [
-			renderLists(null),
-			renderLists(listed, false),
-			renderLists({ type: 'table', id: 'table', x: 0, y: 0, width: 100, height: 80 }),
-		]) {
+	it('disables list commands for missing selection and read-only mode', () => {
+		for (const html of [renderLists(null), renderLists(listed, false)]) {
 			expect(button(html, 'Bullet List')).toContain('disabled=""');
 			expect(button(html, 'Numbered List')).toContain('disabled=""');
 		}
@@ -104,6 +101,7 @@ describe('list command state', () => {
 		document.body.append(target, editor);
 		const root = createRoot(target);
 		const update = vi.fn();
+		const toggle = vi.fn();
 		const draw = async (element: PptxElement | null, canEdit = true) => {
 			await act(async () =>
 				root.render(
@@ -111,16 +109,17 @@ describe('list command state', () => {
 						selectedElement: element,
 						canEdit,
 						onUpdateTextStyle: update,
+						onToggleBullets: toggle,
 						onTransformTextCase: vi.fn(),
 					}),
 				),
 			);
 		};
-		const select = async (index: number) => {
+		const select = async (index: number, collapsed = false) => {
 			const node = editor.querySelector(`[data-seg-idx="${index}"]`)!.firstChild!;
 			const range = document.createRange();
 			range.setStart(node, 0);
-			range.setEnd(node, 2);
+			range.setEnd(node, collapsed ? 0 : 2);
 			await act(async () => {
 				window.getSelection()!.removeAllRanges();
 				window.getSelection()!.addRange(range);
@@ -131,20 +130,23 @@ describe('list command state', () => {
 			await draw(mixed);
 			const bullet = target.querySelector<HTMLButtonElement>('button[title="Bullet List"]')!;
 			expect(bullet.getAttribute('aria-pressed')).toBe('false');
-			await select(3);
+			await select(3, true);
 			expect(bullet.getAttribute('aria-pressed')).toBe('true');
 			await act(async () => bullet.click());
-			expect(update).toHaveBeenLastCalledWith({ listType: 'none' });
+			expect(toggle).toHaveBeenLastCalledWith('bullet');
+			expect(update).not.toHaveBeenCalled();
 			await select(0);
 			expect(bullet.getAttribute('aria-pressed')).toBe('false');
 			await act(async () => bullet.click());
-			expect(update).toHaveBeenLastCalledWith({ listType: 'bullet' });
-			update.mockClear();
+			expect(toggle).toHaveBeenLastCalledWith('bullet');
+			expect(update).not.toHaveBeenCalled();
+			toggle.mockClear();
 			await draw(mixed, false);
 			await select(3);
 			expect(bullet.disabled).toBeTruthy();
 			await act(async () => bullet.click());
 			expect(update).not.toHaveBeenCalled();
+			expect(toggle).not.toHaveBeenCalled();
 			await draw(null);
 			expect(bullet.disabled).toBeTruthy();
 			expect(bullet.getAttribute('aria-pressed')).toBe('false');

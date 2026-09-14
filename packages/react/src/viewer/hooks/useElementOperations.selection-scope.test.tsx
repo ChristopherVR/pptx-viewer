@@ -209,6 +209,18 @@ describe('merged style scope with a current native list draft', () => {
 			},
 		]);
 
+	it.each([0, 6])('toggles only the native caret paragraph at offset %i', (offset) => {
+		const source = draft();
+		const h = mount(source, true);
+		nativeList(source, 1, offset, offset);
+		act(() => h.ops().toggleSelectedBullets('bullet'));
+		const segments = h.element().textSegments!;
+		expect(segments.find((segment) => segment.text === 'First')?.bulletInfo?.none).toBeFalsy();
+		expect(
+			segments.find((segment) => segment.text === 'Typed words')?.bulletInfo?.none,
+		).toBeTruthy();
+	});
+
 	it('combines body and selected-run updates without losing fresh text or paragraph provenance', () => {
 		const h = mount(textElement([{ text: 'Old model', style: {} }]), true);
 		const { controller } = nativeList(draft(), 1, 6, 11);

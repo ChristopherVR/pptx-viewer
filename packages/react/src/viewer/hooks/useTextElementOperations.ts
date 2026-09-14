@@ -75,7 +75,9 @@ export function useTextElementOperations(input: TextOperationsInput) {
 
 			const isLiveEditing = selectedElement.id === inlineEditingElementId;
 			let currentSegments = liveTextSegments();
-			const selectionResult = getInlineEditorSelectionResult(currentSegments);
+			const selectionResult = getInlineEditorSelectionResult(currentSegments, {
+				preserveCaret: updates.listType !== undefined,
+			});
 			if (
 				selectionResult.kind === 'unsupported' ||
 				(selectionResult.snapshot &&
@@ -155,7 +157,7 @@ export function useTextElementOperations(input: TextOperationsInput) {
 				return;
 			}
 			const currentSegments = liveTextSegments();
-			const result = getInlineEditorSelectionResult(currentSegments);
+			const result = getInlineEditorSelectionResult(currentSegments, { preserveCaret: true });
 			if (
 				result.kind === 'unsupported' ||
 				(result.snapshot &&

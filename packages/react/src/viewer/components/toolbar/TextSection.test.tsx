@@ -21,6 +21,7 @@ import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsProvider } from '../inspector/RecentColorsContext';
+import { textSectionBulletKind } from './text-section-state';
 import { TextSection } from './TextSection';
 import type { TextSectionProps } from './TextSection';
 
@@ -83,6 +84,24 @@ function buttonTitled(...titles: string[]): HTMLButtonElement {
 }
 
 describe('textSection decoration toggles', () => {
+	it('reads list kind from the caret paragraph without changing character toggle scope', () => {
+		const element = textElement([
+			{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+			{ text: '\n', style: {}, isParagraphBreak: true },
+			{ text: 'Last', style: {} },
+		]);
+		const seed = createInlineListSeed(element)!;
+		const editor = document.createElement('div');
+		document.body.append(editor);
+		initializeInlineListDom(editor, seed);
+		const controller = attachInlineListController(editor, seed);
+		const node = editor.lastElementChild!.firstElementChild!.firstChild!;
+		window.getSelection()!.setBaseAndExtent(node, 0, node, 0);
+		expect(textSectionBulletKind(element, undefined)).toBe('none');
+		controller.dispose();
+		editor.remove();
+	});
+
 	it('decides from the current rich selection rather than stale model runs', () => {
 		const model = textElement([{ text: 'Old', style: {} }]);
 		const { onUpdateTextStyle } = renderSection({ selectedElement: model });

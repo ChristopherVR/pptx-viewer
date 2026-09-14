@@ -8,6 +8,7 @@ import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	elementBulletKind,
+	selectionBulletKind,
 	getInlineEditorSelectionResult,
 	getSelectionTextStyleFlags,
 	TEXT_DECORATION_FLAGS,
@@ -93,7 +94,11 @@ export function textSectionBulletKind(
 	tableEditorState: TableCellEditorState | null | undefined,
 ): ElementBulletKind {
 	if (element && hasTextProperties(element)) {
-		return elementBulletKind(element);
+		const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
+		return result.kind === 'supported' &&
+			(!result.snapshot || result.snapshot.elementId === element.id)
+			? selectionBulletKind(element, result.selection, result.snapshot?.textSegments)
+			: elementBulletKind(element);
 	}
 	return getEffectiveTextStyle(element, tableEditorState)?.listType ?? 'none';
 }
