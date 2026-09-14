@@ -46,12 +46,13 @@ for pkg in "${packages[@]}"; do
   tmpfile=$(mktemp)
   pkg_start=$(date +%s)
 
-  # Run vitest with verbose reporter so we get per-test output.
+  # Run the package test script so package-specific setup is not skipped.
+  # Pass Vitest's verbose reporter through for per-test output.
   # Pipe through awk which suppresses raw output (saves to tmpfile)
   # and renders a compact in-place progress display.
-  (cd "$pkg" && bun vitest run --reporter=verbose 2>&1) | awk -v outfile="$tmpfile" -v total_files="$total_test_files" '
+  (cd "$pkg" && bun run test -- --reporter=verbose 2>&1) | awk -v outfile="$tmpfile" -v total_files="$total_test_files" '
   BEGIN {
-    passed = 0; failed = 0; test_count = 0
+    passed = 0; failed = 0; skipped = 0; test_count = 0
     prev_desc = ""; prev_icon = ""
     curr_desc = ""; curr_icon = ""
     files_seen = 0
@@ -71,17 +72,21 @@ for pkg in "${packages[@]}"; do
     # They contain .test./.spec. AND " > " (suite separator)
     # Exclude stderr capture lines from vitest
     if (clean ~ /\.(test|spec)\./ && clean ~ / > / && clean !~ /^[[:space:]]*stderr/) {
-      test_count++
-
       # Prefer the result symbol because Vitest may use different ANSI green
       # variants (for example 32m or 92m) across versions and terminals.
       if (clean ~ /^[[:space:]]*(✓|√)/ || $0 ~ /\033\[(32|92)m/) {
         passed++
         icon = "\033[32m\342\234\223\033[0m"
-      } else {
+      } else if (clean ~ /^[[:space:]]*(×|✗)/) {
         failed++
         icon = "\033[31m\342\234\227\033[0m"
+      } else if (clean ~ /^[[:space:]]*(↓|↷)/) {
+        skipped++
+        icon = "\033[2m\342\206\223\033[0m"
+      } else {
+        next
       }
+      test_count++
 
       # Extract description from cleaned line
       desc = clean
@@ -135,6 +140,7 @@ for pkg in "${packages[@]}"; do
       # Line 5: running totals
       printf "\033[2K  \342\224\200\342\224\200 %d/%d files | \033[32m%d passed\033[0m", files_seen, total_files, passed
       if (failed > 0) printf " | \033[31m%d failed\033[0m", failed
+      if (skipped > 0) printf " | \033[2m%d skipped\033[0m", skipped
       printf " | %d tests \342\224\200\342\224\200\n", test_count
 
       fflush()
