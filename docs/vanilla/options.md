@@ -83,10 +83,12 @@ dictionary of dotted `pptx.*` keys. Theme and locale can be changed later via
 
 ## Extension
 
-| Option       | Type                      | Default                   | Description                                                                                                                                                                                                                                                  |
-| ------------ | ------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `registry`   | `ElementRendererRegistry` | `createDefaultRegistry()` | Custom element-renderer registry; pass your own (or mutate the default via `getRegistry()`) to add or override element renderers. See [Element Renderers](/vanilla/renderers).                                                                               |
-| `smartArt3D` | `boolean`                 | `false`                   | Opt-in WebGL SmartArt renderer: renders `smartArt` elements as an extruded Three.js scene. `three` is an optional peer dependency, lazily imported only when `true`; if unavailable, the SVG renderer is used. Set once at construction (no runtime setter). |
+| Option                                                                     | Type                      | Default                   | Description                                                                                                                                                                                                                                                  |
+| -------------------------------------------------------------------------- | ------------------------- | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `registry`                                                                 | `ElementRendererRegistry` | `createDefaultRegistry()` | Custom element-renderer registry; pass your own (or mutate the default via `getRegistry()`) to add or override element renderers. See [Element Renderers](/vanilla/renderers).                                                                               |
+| `smartArt3D`                                                               | `boolean`                 | `false`                   | Opt-in WebGL SmartArt renderer: renders `smartArt` elements as an extruded Three.js scene. `three` is an optional peer dependency, lazily imported only when `true`; if unavailable, the SVG renderer is used. Set once at construction (no runtime setter). |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`                 | `false`                   | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds. Each falls back to SVG when `three` is unavailable or the chart cannot render as a WebGL scene.                                                                      |
+| `ai`                                                                       | `PptxAiConfig`            | -                         | Enables the optional AI assistant. Its SDK peer loads only when the panel is opened; omit this option to leave the assistant unavailable.                                                                                                                    |
 
 ## Autosave
 
@@ -213,6 +215,12 @@ interface PptxViewerOptions extends PptxViewerCallbacks {
 	hiddenActions?: ToolbarActionId[];
 	registry?: ElementRendererRegistry;
 	smartArt3D?: boolean;
+	surfaceChart3D?: boolean;
+	barChart3D?: boolean;
+	lineChart3D?: boolean;
+	areaChart3D?: boolean;
+	pieChart3D?: boolean;
+	ai?: PptxAiConfig;
 	autosave?: boolean;
 	onToggleAutosave?: (enabled: boolean) => void;
 	autosaveIntervalMs?: number;

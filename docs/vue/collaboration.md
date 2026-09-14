@@ -165,14 +165,13 @@ import {
 	FollowModeBar,
 	RemoteSelectionOverlay,
 	useCollaboration,
-	useCollaborationWiring,
 } from 'pptx-vue-viewer/viewer';
 ```
 
 These stable exports provide the Vue equivalents of React's collaboration hooks and presence UI.
-Use `useCollaboration` for a custom session composition, or `useCollaborationWiring` when matching
-the full viewer's Share and Broadcast lifecycle. The presentational components accept the reactive
-presence data returned by those composables.
+Use `useCollaboration` for a custom session composition. The presentational components accept the
+reactive presence data it returns. The full viewer's Share and Broadcast lifecycle is internal
+(`useCollaborationWiring` from `pptx-vue-viewer/internals`) and is not covered by semver.
 
 ## Server side
 

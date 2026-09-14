@@ -29,7 +29,7 @@ The pipeline (in `PptxHandlerRuntimeSavePipeline`) runs these stages in order:
 8. **Presentation-level parts** - `presentation.xml` (sections, custom shows, photo album, kinsoku, modify verifier, slide size), `presProps.xml`, `viewProps.xml`, `tableStyles.xml`, document properties (`docProps/core.xml`, `app.xml`, `custom.xml`), tag collections, notes/handout masters.
 9. **Charts, SmartArt, OLE** - pending chart/diagram/SmartArt XML updates are flushed and their content types ensured.
 10. **Preservation passes** - custom XML parts, the thumbnail, and the VBA project are carried forward untouched; **digital signatures are stripped** (an edited package would fail validation anyway).
-11. **Output format overrides** - `.ppsx` / `.pptm` content-type switches if requested.
+11. **Output format overrides** - `.ppsx` / `.pptm` content-type switches if requested, or legacy `.ppt` serialization when requested.
 12. **Strict conversion** - if the effective conformance is Strict, all parts are converted from Transitional back to Strict namespace URIs.
 13. **ZIP hygiene** - JSZip's auto-created directory entries are removed (ISO/IEC 29500-2 forbids folder entries as parts; PowerPoint's OPC loader shows the repair dialog otherwise), then the archive is generated as a `Uint8Array`.
 
@@ -90,7 +90,8 @@ The Open Packaging Conventions namespaces (ISO/IEC 29500-2: content types, relat
 | `modifyVerifier`                                        | `PptxModifyVerifier \| null`               | Write-protection verifier; `null` removes it, `undefined` preserves the existing one.                              |
 | `tableStyles`                                           | `ParsedTableStyleMap`                      | Table-style edits for `ppt/tableStyles.xml` (unmodelled XML preserved).                                            |
 | `embeddedFonts` / `embeddedFontList`                    | `PptxEmbeddedFont[]` / `... \| null`       | Override or remove embedded fonts; default is lossless re-embedding.                                               |
-| `outputFormat`                                          | `'pptx' \| 'ppsx' \| 'pptm'`               | Standard, slide-show, or macro-enabled output (see below).                                                         |
+| `outputFormat`                                          | `'pptx' \| 'ppsx' \| 'pptm' \| 'ppt'`      | Standard, slide-show, macro-enabled, or legacy binary output (see below).                                          |
+| `pptPassword`                                           | `string`                                   | RC4 CryptoAPI password for `outputFormat: 'ppt'`; ignored for OpenXML formats.                                     |
 | `conformance`                                           | `'strict' \| 'transitional' \| 'preserve'` | OOXML conformance class of the output (default `'preserve'`).                                                      |
 
 ```ts
@@ -105,11 +106,21 @@ const bytes = await handler.save(data.slides, {
 
 The return type is always a plain `Uint8Array`, directly writable with `node:fs`, `Bun.write`, or a browser `Blob`.
 
-| `outputFormat` | Extension | Behaviour                                                        |
-| -------------- | --------- | ---------------------------------------------------------------- |
-| `'pptx'`       | `.pptx`   | Standard presentation (default).                                 |
-| `'ppsx'`       | `.ppsx`   | Slide-show file; opens straight into presentation mode.          |
-| `'pptm'`       | `.pptm`   | Macro-enabled presentation; requires the loaded file's VBA data. |
+| `outputFormat` | Extension | Behaviour                                                                                                                     |
+| -------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `'pptx'`       | `.pptx`   | Standard presentation (default).                                                                                              |
+| `'ppsx'`       | `.ppsx`   | Slide-show file; opens straight into presentation mode.                                                                       |
+| `'pptm'`       | `.pptm`   | Macro-enabled presentation; requires the loaded file's VBA data.                                                              |
+| `'ppt'`        | `.ppt`    | PowerPoint 97-2003 binary file. Unsupported element kinds degrade to a preview or placeholder and add compatibility warnings. |
+
+For legacy output, pass `outputFormat: 'ppt'`; `pptPassword` applies RC4 CryptoAPI protection to that binary stream. This path does not use the OpenXML ZIP save stages or `saveEncrypted()`. For a legacy save, `pptPassword` is the only `PptxHandlerSaveOptions` field the writer consults.
+
+```ts
+const bytes = await handler.save(data.slides, {
+	outputFormat: 'ppt',
+	pptPassword: 'legacy-password',
+});
+```
 
 ## Writing the result
 

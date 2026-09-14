@@ -52,27 +52,29 @@ import { PowerPointViewer, type PptxAiConfig } from 'pptx-react-viewer';
 
 const ai: PptxAiConfig = { connection: { kind: 'endpoint', api: '/api/ai/chat' } };
 
-<PowerPointViewer src={deck} ai={ai} />;
+<PowerPointViewer content={deck} ai={ai} />;
 ```
 
 ```vue
 <!-- Vue -->
-<PowerPointViewer :src="deck" :ai="ai" />
+<PowerPointViewer :content="deck" :ai="ai" />
 ```
 
 ```html
 <!-- Angular -->
-<pptx-power-point-viewer [src]="deck" [ai]="ai" />
+<pptx-viewer [content]="deck" [ai]="ai" />
 ```
 
 ```svelte
 <!-- Svelte -->
-<PowerPointViewer {src} {ai} />
+<PowerPointViewer source={deck} {ai} />
 ```
 
 ```ts
 // Vanilla
-new PptxViewer(container, { src: deck, ai });
+import { createPptxViewer } from 'pptx-vanilla-viewer';
+
+createPptxViewer(container, { source: deck, ai });
 ```
 
 ## Connection modes

@@ -49,6 +49,9 @@ Requires Svelte 5 (runes) as a peer. The `pptx-viewer-core` engine is
 install automatically, so you don't install anything separately unless you
 want to call the SDK directly.
 
+Install `three` only when you enable a 3D SmartArt or 3D chart prop. The viewer falls back to
+SVG when it is absent. Install `yjs` with `y-websocket` or `y-webrtc` only for collaboration.
+
 Component styles ship as a real stylesheet, not runtime-injected CSS (which
 proved unreliable in real SvelteKit apps: SSR, a strict CSP, or the host's own
 global CSS could all cause it to silently not apply). Import it once at your
@@ -99,33 +102,35 @@ or fullscreen fitting. See the [cross-binding defaults](../../docs/guide/viewpor
 
 ## Props
 
-| Prop                 | Type                                 | Default | Description                                                                                                            |
-| -------------------- | ------------------------------------ | ------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `source`             | `Uint8Array \| ArrayBuffer \| null`  | -       | Raw `.pptx` bytes.                                                                                                     |
-| `theme`              | `ViewerTheme`                        | -       | Color/radius/CSS-var overrides.                                                                                        |
-| `fonts`              | `ViewerFontSource[]`                 | `[]`    | Licensed font sources supplied by the host application.                                                                |
-| `locale`             | `string`                             | `'en'`  | UI locale (see `pptx-svelte-viewer/i18n`).                                                                             |
-| `initialSlide`       | `number`                             | `0`     | Slide shown after load (0-based).                                                                                      |
-| `showThumbnails`     | `boolean`                            | `true`  | Thumbnail sidebar.                                                                                                     |
-| `showToolbar`        | `boolean`                            | `true`  | Navigation/zoom/fullscreen toolbar.                                                                                    |
-| `showNotes`          | `boolean`                            | `true`  | Speaker-notes panel and its toolbar toggle.                                                                            |
-| `hiddenActions`      | `ToolbarActionId[]`                  | -       | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar. |
-| `editable`           | `boolean`                            | `false` | Ribbon editing, insertion, arrange, and save.                                                                          |
-| `smartArt3D`         | `boolean`                            | `false` | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                  |
-| `class`              | `string`                             | -       | Class applied to the root element.                                                                                     |
-| `fileName`           | `string`                             | -       | Display name shown in the desktop title bar.                                                                           |
-| `autosave`           | `boolean`                            | `false` | Debounced crash-recovery autosave to IndexedDB (requires `filePath`; fires `onautosave`).                              |
-| `filePath`           | `string`                             | -       | IndexedDB record key for autosave; autosave is inert without it.                                                       |
-| `autosaveIntervalMs` | `number`                             | `2000`  | Autosave debounce window in milliseconds.                                                                              |
-| `collaboration`      | `CollaborationConfig`                | -       | Yjs real-time collaboration config (y-websocket or serverless y-webrtc room, role).                                    |
-| `shareDefaults`      | `{ roomId?, userName?, serverUrl? }` | -       | Prefilled values for the Share/Broadcast dialogs.                                                                      |
-| `defaultThemeKey`    | `string`                             | -       | Initial File > Options > Appearance selection when no persisted preference exists.                                     |
-| `availableThemes`    | `ThemeCatalogEntry[]`                | -       | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                               |
-| `onThemeChange`      | `(key: string) => void`              | -       | Host hook for the appearance picker; when set, the host owns persisting the choice.                                    |
-| `defaultLocale`      | `string`                             | -       | Initial File > Options > Language selection when no persisted preference exists.                                       |
-| `availableLocales`   | `LocaleCatalogEntry[]`               | -       | Locale choices offered by File > Options > Language (defaults to the registered dictionaries).                         |
-| `onLocaleChange`     | `(code: string) => void`             | -       | Host hook for the language picker; when set, the host owns persisting the switch.                                      |
-| `accountAuth`        | `AccountAuthConfig`                  | -       | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                      |
+| Prop                                                                       | Type                                 | Default                | Description                                                                                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `source`                                                                   | `Uint8Array \| ArrayBuffer \| null`  | -                      | Raw `.pptx` bytes.                                                                                                                        |
+| `theme`                                                                    | `ViewerTheme`                        | -                      | Color/radius/CSS-var overrides.                                                                                                           |
+| `fonts`                                                                    | `ViewerFontSource[]`                 | `[]`                   | Licensed font sources supplied by the host application.                                                                                   |
+| `locale`                                                                   | `string`                             | `'en'`                 | UI locale (see `pptx-svelte-viewer/i18n`).                                                                                                |
+| `initialSlide`                                                             | `number`                             | `0`                    | Slide shown after load (0-based).                                                                                                         |
+| `showThumbnails`                                                           | `boolean`                            | `true`                 | Thumbnail sidebar.                                                                                                                        |
+| `showToolbar`                                                              | `boolean`                            | `true`                 | Navigation/zoom/fullscreen toolbar.                                                                                                       |
+| `showNotes`                                                                | `boolean`                            | `true`                 | Speaker-notes panel and its toolbar toggle.                                                                                               |
+| `hiddenActions`                                                            | `ToolbarActionId[]`                  | -                      | Toolbar buttons/ribbon tabs to hide individually (e.g. `['share', 'broadcast']`), instead of hiding the whole toolbar.                    |
+| `editable`                                                                 | `boolean`                            | `false`                | Ribbon editing, insertion, arrange, and save.                                                                                             |
+| `smartArt3D`                                                               | `boolean`                            | `false`                | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                                     |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`                            | `false`                | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds; each falls back to SVG when WebGL is unavailable. |
+| `ai`                                                                       | `PptxAiConfig`                       | n/a                    | Optional AI assistant configuration. The SDK peers load only when its panel is opened.                                                    |
+| `class`                                                                    | `string`                             | -                      | Class applied to the root element.                                                                                                        |
+| `fileName`                                                                 | `string`                             | -                      | Display name shown in the desktop title bar.                                                                                              |
+| `autosave`                                                                 | `boolean`                            | `true`                 | Debounced crash-recovery autosave to IndexedDB (requires `filePath`; fires `onautosave`).                                                 |
+| `filePath`                                                                 | `string`                             | -                      | IndexedDB record key for autosave; autosave is inert without it.                                                                          |
+| `autosaveIntervalMs`                                                       | `number`                             | File > Options cadence | Autosave debounce window in milliseconds.                                                                                                 |
+| `collaboration`                                                            | `CollaborationConfig`                | -                      | Yjs real-time collaboration config (y-websocket or serverless y-webrtc room, role).                                                       |
+| `shareDefaults`                                                            | `{ roomId?, userName?, serverUrl? }` | -                      | Prefilled values for the Share/Broadcast dialogs.                                                                                         |
+| `defaultThemeKey`                                                          | `string`                             | -                      | Initial File > Options > Appearance selection when no persisted preference exists.                                                        |
+| `availableThemes`                                                          | `ThemeCatalogEntry[]`                | -                      | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                                                  |
+| `onThemeChange`                                                            | `(key: string) => void`              | -                      | Host hook for the appearance picker; when set, the host owns persisting the choice.                                                       |
+| `defaultLocale`                                                            | `string`                             | -                      | Initial File > Options > Language selection when no persisted preference exists.                                                          |
+| `availableLocales`                                                         | `LocaleCatalogEntry[]`               | -                      | Locale choices offered by File > Options > Language (defaults to the registered dictionaries).                                            |
+| `onLocaleChange`                                                           | `(code: string) => void`             | -                      | Host hook for the language picker; when set, the host owns persisting the switch.                                                         |
+| `accountAuth`                                                              | `AccountAuthConfig`                  | -                      | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                                         |
 
 ### Callbacks
 

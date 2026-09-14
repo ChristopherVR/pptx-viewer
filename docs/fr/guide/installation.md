@@ -19,7 +19,7 @@ Node.js **18 ou superieur** est requis pour la compilation TypeScript et pour ex
 | Vue 3                        | `pptx-vue-viewer`     | Meme moteur et meme ensemble de fonctionnalites              |
 | Angular                      | `pptx-angular-viewer` | Meme moteur et meme ensemble de fonctionnalites              |
 | Headless (Node / navigateur) | `pptx-viewer-core`    | Aucune interface, aucune dependance de framework             |
-| Outils IA / MCP              | `pptx-viewer-mcp`     | 25 outils MCP + CLI + codec Y.Doc                            |
+| Outils IA / MCP              | `pptx-viewer-mcp`     | 73 outils MCP + CLI + codec Y.Doc                            |
 
 ## Installation depuis npm
 
@@ -125,7 +125,7 @@ bun add pptx-viewer-core
 
 ### Serveur MCP et outils
 
-25 fonctions d'outils de manipulation PPTX, un serveur MCP pour agents IA et le codec de collaboration Y.Doc.
+73 fonctions d'outils de manipulation PPTX, un serveur MCP pour agents IA et le codec de collaboration Y.Doc.
 
 ::: code-group
 

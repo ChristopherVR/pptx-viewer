@@ -3,8 +3,8 @@
 ## Supported versions
 
 Each published package in this monorepo is versioned and released independently
-(see [CLAUDE.md](./CLAUDE.md#commit-conventions) for the release process). Security
-fixes are only backported to the **latest published version of each package**; we do
+(see [CONTRIBUTING.md](./CONTRIBUTING.md#commit-conventions) for the release process). Security
+fixes target the **latest release line of each package**; we do
 not maintain long-lived security-fix branches for older majors.
 
 | Package            | npm name                     |
@@ -13,6 +13,8 @@ not maintain long-lived security-fix branches for older majors.
 | `packages/react`   | `pptx-react-viewer`          |
 | `packages/vue`     | `pptx-vue-viewer`            |
 | `packages/angular` | `pptx-angular-viewer`        |
+| `packages/svelte`  | `pptx-svelte-viewer`         |
+| `packages/vanilla` | `pptx-vanilla-viewer`        |
 | `packages/cli`     | `@christophervr/pptx-viewer` |
 | `packages/tools`   | `pptx-viewer-mcp`            |
 
@@ -84,7 +86,7 @@ Out of scope:
 
 ## Automated scanning
 
-This repository runs GitHub CodeQL code scanning on every push to `main`.
+Dependency update configuration lives in `.github/dependabot.yml`. Code-scanning alerts, when available, can be reviewed on GitHub; the checked-in workflows do not define a CodeQL job.
 Findings are triaged and fixed as part of normal development; you don't need
 to separately report something that's already visible in the repository's
 public [code scanning alerts](https://github.com/ChristopherVR/pptx-viewer/security/code-scanning),

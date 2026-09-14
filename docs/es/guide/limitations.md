@@ -6,7 +6,7 @@ description: Lo que no se admite en el motor principal y los enlaces de visualiz
 # Limitaciones
 
 ::: warning Lea esto antes de adoptar
-`pptx-viewer` cubre una gran superficie de la especificacion OpenXML, pero algunas cosas son aproximadas, de solo lectura, o estan limitadas por la plataforma del navegador. Esta pagina solo lista lo que **no puede** hacer, o solo puede hacer parcialmente. Todo lo que no aparece aqui carga, edita, renderiza y guarda sin problemas; vea [Conformidad OpenXML](/architecture/openxml-conformance) para el manifiesto formal de cobertura.
+`pptx-viewer` cubre una gran superficie de la especificacion OpenXML, pero algunas cosas son aproximadas, de solo lectura, o estan limitadas por la plataforma del navegador. Esta pagina recoge limitaciones conocidas; no es una garantia exhaustiva de compatibilidad con todas las funciones de Office o extensiones de terceros. Revise `data.warnings` despues de cargar un archivo y vea [Conformidad OpenXML](/architecture/openxml-conformance) para el manifiesto formal de cobertura.
 :::
 
 ## Motor principal (`pptx-viewer-core`)

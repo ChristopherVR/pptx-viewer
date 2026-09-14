@@ -6,7 +6,7 @@ description: What is not supported across the core engine and the viewer binding
 # Limitations
 
 ::: warning Read this before adopting
-`pptx-viewer` covers a large surface of the OpenXML specification, but some things are approximated, read-only, or bounded by the browser platform. This page lists only what you **cannot** do, or can only do partially. Anything not listed here loads, edits, renders and saves; see [OpenXML conformance](/architecture/openxml-conformance) for the formal coverage manifest.
+`pptx-viewer` covers a large surface of the OpenXML specification, but some things are approximated, read-only, or bounded by the browser platform. This page records known limitations; it is not an exhaustive compatibility guarantee for every Office feature or third-party extension. Check `data.warnings` after loading a deck and see [OpenXML conformance](/architecture/openxml-conformance) for the formal coverage manifest.
 :::
 
 ## Core engine (`pptx-viewer-core`)

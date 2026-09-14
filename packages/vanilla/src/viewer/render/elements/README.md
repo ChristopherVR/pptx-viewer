@@ -5,6 +5,10 @@ One file per `PptxElement` type. The stage dispatches every element through an
 by registering a renderer, WITHOUT touching the stage, the registry, or the
 existing renderer files.
 
+The stage passes renderer variant flags through `ElementRenderContext`: `smartArt3D` and the five
+3D chart flags (`surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D`). A
+renderer should honour its relevant flag and retain its SVG fallback when Three.js is unavailable.
+
 ## Current status
 
 | Type               | Renderer                                               |

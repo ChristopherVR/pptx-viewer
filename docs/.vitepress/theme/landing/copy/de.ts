@@ -19,7 +19,7 @@ export const de: LandingCopy = {
 		title: 'Was Sie bekommen.',
 		items: [
 			{
-				title: 'Originalgetreues Rendering',
+				title: 'Detailgetreues Rendering',
 				copy: 'Uber 187 vordefinierte Formen, 23 Diagrammtypen, SmartArt, Animationen, Morph-Ubergange, eingebettete Schriften, EMF- und WMF-Metadateien und 3D-Modelle, alle als HTML, CSS und SVG gezeichnet. Text bleibt markierbar und Screenreader funktionieren weiter.',
 				link: { text: 'Rendering', href: '/de/guide/architecture' },
 			},
@@ -63,7 +63,7 @@ export const de: LandingCopy = {
 	agents: {
 		kicker: 'Automatisierung',
 		title: '.pptx, bearbeitet von Agenten.',
-		copy: 'pptx-viewer-mcp stellt uber das Model Context Protocol 50+ PPTX-Werkzeuge mit Zod-Schemas bereit, sodass Claude, Cursor und Copilot Prasentationen direkt lesen, bearbeiten und konvertieren konnen. Dieselben Funktionen laufen headless in Node, Bun oder Serverless-Umgebungen, und eine CLI deckt einmalige Konvertierungen ab.',
+		copy: 'pptx-viewer-mcp stellt uber das Model Context Protocol 73 PPTX-Werkzeuge mit Zod-Schemas bereit, sodass Claude, Cursor und Copilot Prasentationen direkt lesen, bearbeiten und konvertieren konnen. Dieselben Funktionen laufen headless in Node, Bun oder Serverless-Umgebungen, und eine CLI deckt einmalige Konvertierungen ab.',
 		link: { text: 'MCP und Werkzeuge', href: '/packages/mcp' },
 	},
 	quickstart: {
@@ -88,7 +88,7 @@ export const de: LandingCopy = {
 		soloHint:
 			'Alles lauft clientseitig: Parsen, Rendern, Bearbeiten und Speichern passieren in diesem Tab, und das Deck verlasst nie Ihren Browser. Offnen Sie die vollstandige App, um ein eigenes Deck hineinzuziehen.',
 		collabHint:
-			'Zwei getrennte Live-Apps teilen sich ein Deck uber eine serverlose CRDT-Sitzung (y-webrtc, Peer-to-Peer). Verschieben Sie eine Form oder bearbeiten Sie Text in einem Bereich, und der andere folgt, auch uber verschiedene Frameworks hinweg.',
+			'Zwei getrennte Live-Apps teilen sich ein Deck uber eine Peer-to-Peer-Yjs-CRDT-Sitzung. Der Transport nutzt y-webrtc-Signalisierung; verschieben Sie eine Form oder bearbeiten Sie Text in einem Bereich, und der andere folgt, auch uber verschiedene Frameworks hinweg.',
 	},
 	faq: {
 		kicker: 'FAQ',
@@ -112,7 +112,7 @@ export const de: LandingCopy = {
 			},
 			{
 				q: 'Braucht die Kollaboration Infrastruktur?',
-				a: 'Standardmassig nicht. Der mitgelieferte Transport ist Peer-to-Peer (y-webrtc) und funktioniert von statischem Hosting aus. Fur Persistenz und Authentifizierung konnen Sie ihn auf ein y-websocket-Relay zeigen lassen.',
+				a: 'Der mitgelieferte Peer-to-Peer-Transport nutzt y-webrtc-Signalisierungsinfrastruktur. Fur Persistenz, Authentifizierung oder kontrollierte Netzwerke stellen Sie einen Kollaborationsdienst wie ein y-websocket-Relay bereit.',
 				link: { text: 'Kollaboration', href: '/react/collaboration' },
 			},
 			{
@@ -121,11 +121,11 @@ export const de: LandingCopy = {
 			},
 			{
 				q: 'Welche Frameworks werden unterstutzt?',
-				a: 'React 19, Vue 3, Angular, Svelte 5 und ein frameworkfreier Vanilla-Build. Jedes Paket bundelt denselben Kern, das Rendering ist also uberall identisch.',
+				a: 'React 18/19, Vue 3, Angular, Svelte 5 und ein frameworkfreier Vanilla-Build. Sie teilen den Kern und frameworkneutrale Rendering-Logik, wahrend jedes Binding seine eigene View-Schicht bereitstellt.',
 			},
 			{
 				q: 'Was sind die Grenzen?',
-				a: 'OLE-Objekte sind schreibgeschutzt und einige visuelle Effekte werden auf dem Bildschirm angenahert. Die Seite zu den Einschrankungen listet genau auf, was zu erwarten ist.',
+				a: 'OLE-Inhalte konnen ersetzt werden; unterstutzte eingebettete Tabellen, Dokumente und verschachtelte Deck-Titel lassen sich bearbeiten. Einige visuelle Effekte werden auf dem Bildschirm angenahert. Die Seite zu den Einschrankungen listet genau auf, was zu erwarten ist.',
 				link: { text: 'Einschrankungen', href: '/de/guide/limitations' },
 			},
 		],

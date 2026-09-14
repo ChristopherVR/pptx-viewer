@@ -64,12 +64,14 @@ callback-prop shape rather than the emit convention used elsewhere in this compo
 
 ## Presentation / authoring
 
-| Prop         | Type         | Default | Description                                                                                                                                 |
-| ------------ | ------------ | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authorName` | `string`     | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
-| `class`      | `string`     | -       | Optional class name applied to the viewer root element (props key is `class`, not `className`).                                             |
-| `smartArt3D` | `boolean`    | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.   |
-| `onOpenFile` | `() => void` | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` prop instead.           |
+| Prop                                                                       | Type           | Default | Description                                                                                                                                                                             |
+| -------------------------------------------------------------------------- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorName`                                                               | `string`       | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`.                                             |
+| `class`                                                                    | `string`       | -       | Optional class name applied to the viewer root element (props key is `class`, not `className`).                                                                                         |
+| `smartArt3D`                                                               | `boolean`      | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.                                               |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`      | `false` | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds. Each falls back to SVG when `three` is unavailable or the chart cannot render as a WebGL scene. |
+| `ai`                                                                       | `PptxAiConfig` | -       | Enables the optional AI assistant. Its SDK peers load only when the panel is opened; omit this prop to leave the assistant unavailable.                                                 |
+| `onOpenFile`                                                               | `() => void`   | -       | Host override for the File > Open action: bypasses the built-in file picker; the host then supplies a new `content` prop instead.                                                       |
 
 ## Theming
 
@@ -114,6 +116,12 @@ interface PowerPointViewerProps {
 	shareDefaults?: { roomId?: string; userName?: string; serverUrl?: string };
 	onOpenFile?: () => void;
 	smartArt3D?: boolean;
+	surfaceChart3D?: boolean;
+	barChart3D?: boolean;
+	lineChart3D?: boolean;
+	areaChart3D?: boolean;
+	pieChart3D?: boolean;
+	ai?: PptxAiConfig;
 }
 
 interface PowerPointViewerEmits {

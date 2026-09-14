@@ -131,14 +131,17 @@ export class DeckComponent {
 
 const viewer = createPptxViewer(document.getElementById('host')!, {
   source: '/deck.pptx',
-  onLoad: ({ slideCount }) => console.log(slideCount, 'slides'),
+  onLoad: ({ slideCount }) => {
+    console.log(slideCount, 'slides');
+    // The source is ready now, so instance navigation is safe.
+    viewer.goToSlide(3);
+    viewer.zoomToFit();
+  },
   onError: (message) => console.error(message),
 });
 
-// Everything the toolbar does is on the instance too
-viewer.goToSlide(3);
-viewer.setZoom('fit');
-await viewer.enterPresentation();`,
+// Everything the toolbar does is on the instance too. Invoke enterPresentation()
+// from a click handler because browsers gate the Fullscreen API.`,
 	},
 ];
 
@@ -154,11 +157,18 @@ export const MCP_CONFIG_SAMPLE = `{
 export const HEADLESS_SAMPLE = `import { PptxHandler } from 'pptx-viewer-core';
 
 const handler = new PptxHandler();
-const deck = await handler.load(bytes);
+const deck = await handler.load(pptxArrayBuffer);
 
 // Every element is a typed, discriminated union
 for (const el of deck.slides[0].elements) {
-  if (el.type === 'text') el.text = rebrand(el.text);
+  if (el.type === 'text') {
+    // Edit runs so bold, font, links, and paragraph breaks survive.
+    el.textSegments = el.textSegments?.map((run) => ({
+      ...run,
+      text: run.isParagraphBreak ? run.text : rebrand(run.text),
+    }));
+    el.text = rebrand(el.text);
+  }
 }
 
 // Serialize straight back to a valid .pptx

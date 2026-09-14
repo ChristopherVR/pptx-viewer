@@ -6,7 +6,7 @@ description: Was im Core-Engine und den Viewer-Bindungen nicht unterstuzt wird -
 # Einschrankungen
 
 ::: warning Vor der Einfuhrung lesen
-`pptx-viewer` deckt einen grossen Teil der OpenXML-Spezifikation ab, aber einiges ist approximiert, schreibgeschutzt oder durch die Browser-Plattform begrenzt. Diese Seite listet nur auf, was Sie **nicht** oder nur teilweise tun konnen. Alles andere ladt, bearbeitet, rendert und speichert einwandfrei; siehe [OpenXML-Konformitat](/architecture/openxml-conformance) fur das formale Abdeckungsmanifest.
+`pptx-viewer` deckt einen grossen Teil der OpenXML-Spezifikation ab, aber einiges ist approximiert, schreibgeschutzt oder durch die Browser-Plattform begrenzt. Diese Seite dokumentiert bekannte Einschrankungen; sie ist keine vollstandige Kompatibilitatsgarantie fur jede Office-Funktion oder Erweiterung von Drittanbietern. Prufen Sie `data.warnings` nach dem Laden einer Datei und lesen Sie [OpenXML-Konformitat](/architecture/openxml-conformance) fur das formale Abdeckungsmanifest.
 :::
 
 ## Core-Engine (`pptx-viewer-core`)

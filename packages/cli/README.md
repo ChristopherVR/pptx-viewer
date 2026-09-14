@@ -74,18 +74,18 @@ const bytes = await viewerRef.current?.getContent(); // Uint8Array of a valid .p
 
 ## Features
 
-| Feature            | Description                                                                                                                                    |
-| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| **View**           | Render slides with 16 element types: shapes, text, images, tables, 23 chart types, SmartArt, connectors, media, ink, OLE, 3D models, zoom      |
-| **Edit**           | Insert/move/resize/delete elements, edit text inline, modify styles, manage slides                                                             |
-| **Present**        | Fullscreen slideshow with 39 animation presets and 26 motion paths, 57 transitions (including morph), speaker notes, presenter view with timer |
-| **Export**         | PNG/SVG/PDF/GIF/video/JSON slide export, save-as PPTX                                                                                          |
-| **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                             |
-| **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                           |
-| **Annotate**       | Pen/highlighter/laser pointer tools during presentations                                                                                       |
-| **Find & Replace** | Cross-slide text search with regex support                                                                                                     |
-| **Accessibility**  | Keyboard navigation, alt-text audit panel, screen reader support                                                                               |
-| **3D**             | GLB/GLTF model rendering via Three.js, 3D surface charts, CSS 3D shape/text extrusion                                                          |
+| Feature            | Description                                                                                                                            |
+| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **View**           | Render shapes, text, images, tables, charts, SmartArt, connectors, media, ink, OLE objects, and 3D models with zoom                    |
+| **Edit**           | Insert, move, resize, and delete elements; edit text inline; modify styles; manage slides                                              |
+| **Present**        | Fullscreen slideshow with animation presets, motion paths, transitions including morph, speaker notes, and presenter view with a timer |
+| **Export**         | PNG/SVG/PDF/GIF/video/JSON slide export, save-as PPTX                                                                                  |
+| **Collaborate**    | Real-time multi-user editing (powered by Yjs) with live presence, remote cursors, and user avatars                                     |
+| **Print**          | Print dialog with handout layouts and notes page formatting with overflow pagination                                                   |
+| **Annotate**       | Pen/highlighter/laser pointer tools during presentations                                                                               |
+| **Find & Replace** | Cross-slide text search with regex support                                                                                             |
+| **Accessibility**  | Keyboard navigation, alt-text audit panel, screen reader support                                                                       |
+| **3D**             | GLB/GLTF model rendering via Three.js, 3D surface charts, CSS 3D shape/text extrusion                                                  |
 
 See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete API reference (props, ref handle, hooks), styling/theming, and localization guides - they apply to `@christophervr/pptx-viewer` exactly as written, since it re-exports the same component.
 
@@ -95,11 +95,11 @@ See the [full docs](https://christophervr.github.io/pptx-viewer/) for the comple
 
 `@christophervr/pptx-viewer` is the name most people search or guess first, so as well as being the `npx` installer described below, **the package itself, imported as a library, re-exports `pptx-react-viewer` directly.** Everything [`pptx-react-viewer`](https://www.npmjs.com/package/pptx-react-viewer) exports (`PowerPointViewer`, `Toolbar`, `SlideCanvas`, theme helpers, and the rest) is re-exported from this package's root too, so the two names are interchangeable as a dependency. What differs is what you get from each command:
 
-| You run/import                                 | What you get                                                                          |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------- |
-| `npx @christophervr/pptx-viewer`               | The interactive installer/scaffolder (see below) - no code runs, nothing is imported. |
-| `import ... from '@christophervr/pptx-viewer'` | The React viewer component, re-exported from `pptx-react-viewer`.                     |
-| `import ... from 'pptx-react-viewer'` directly | The exact same component, one dependency lighter (no installer code pulled in).       |
+| You run/import                                 | What you get                                                                               |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `npx @christophervr/pptx-viewer`               | The interactive installer/scaffolder (see below). It does not import the viewer component. |
+| `import ... from '@christophervr/pptx-viewer'` | The React viewer component, re-exported from `pptx-react-viewer`.                          |
+| `import ... from 'pptx-react-viewer'` directly | The exact same component, one dependency lighter (no installer code pulled in).            |
 
 If you're building for Vue, Angular, Svelte, or vanilla JS instead, use the matching package from the table below directly - the re-export here is React-only.
 

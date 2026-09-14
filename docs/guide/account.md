@@ -79,7 +79,7 @@ const viewer = createPptxViewer(host, {
 
 ```svelte
 <!-- Svelte -->
-<PowerPointViewer {content} accountAuth={{ enabled: true, onSignIn: startOAuthFlow, signedInUser: user }} />
+<PowerPointViewer source={content} accountAuth={{ enabled: true, onSignIn: startOAuthFlow, signedInUser: user }} />
 ```
 
 The shape is identical across all five bindings.

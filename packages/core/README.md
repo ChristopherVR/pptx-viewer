@@ -8,6 +8,8 @@
 
 Hand it the bytes of a `.pptx` file and it gives you back a structured, fully typed object that describes every slide: text, shapes, images, charts, tables, and more. Change anything in that object and write it back to a valid `.pptx`. You can also build new presentations from scratch with a simple chainable API, or turn a deck into Markdown.
 
+For portable interchange, `PptxJsonConverter` exports that model as a versioned, self-contained `pptx-viewer-json` document. `PptxHandler.load()` recognizes those JSON bytes as well as `.pptx` and legacy `.ppt` input, then prepares a normal in-memory archive so you can edit and save it as a `.pptx`.
+
 There is no UI here: this is the engine on its own. Use it directly when you need to process `.pptx` files without a screen, for example on a server, in a script, or in a build step. The same engine powers the [React](https://www.npmjs.com/package/pptx-react-viewer), [Vue](https://www.npmjs.com/package/pptx-vue-viewer), [Angular](https://www.npmjs.com/package/pptx-angular-viewer), [Svelte](https://www.npmjs.com/package/pptx-svelte-viewer), and [Vanilla JavaScript](https://www.npmjs.com/package/pptx-vanilla-viewer) viewers.
 
 ![The core engine loading a PPTX into a typed slide model, then saving or converting it](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/core-engine.svg)
@@ -26,16 +28,16 @@ npm install pptx-viewer-core
 
 ## What it does
 
-| Capability  | Description                                                                                                                                                                                                                                                                                                                        |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Read**    | Open a `.pptx` and pull out slides, text, shapes, images, charts, tables, SmartArt, themes, comments, animations, transitions, and document info                                                                                                                                                                                   |
-| **Import**  | Open a legacy binary `.ppt` (PowerPoint 97-2003) too: `load()` detects the compound file and converts it, so you get the same `PptxData`.                                                                                                                                                                                          |
-| **Export**  | `save({ format: 'ppt' })` writes a real binary `.ppt` (MS-PPT/OfficeArt records in an OLE2 container), optionally RC4-encrypted via `pptPassword`; see the [Limitations](https://christophervr.github.io/pptx-viewer/guide/limitations) page for current fidelity notes. Saving without an explicit `format` still writes `.pptx`. |
-| **Edit**    | Change the data in memory: add, remove, or reorder slides; insert elements; edit text; restyle; switch themes                                                                                                                                                                                                                      |
-| **Save**    | Write the changed data back to a valid `.pptx`, leaving everything you did not touch untouched                                                                                                                                                                                                                                     |
-| **Convert** | Turn a deck into Markdown, optionally pulling the images out alongside it                                                                                                                                                                                                                                                          |
-| **Split**   | Save any subset of slides as its own standalone `.pptx` by passing just those slides to `save()`                                                                                                                                                                                                                                   |
-| **Protect** | Open and save password-protected files (AES-128/256 encryption)                                                                                                                                                                                                                                                                    |
+| Capability  | Description                                                                                                                                                                                                                                                                                                                                            |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Read**    | Open a `.pptx` and pull out slides, text, shapes, images, charts, tables, SmartArt, themes, comments, animations, transitions, and document info                                                                                                                                                                                                       |
+| **Import**  | Open a legacy binary `.ppt` (PowerPoint 97-2003) too: `load()` detects the compound file and converts it, so you get the same `PptxData`.                                                                                                                                                                                                              |
+| **Export**  | `save(slides, { outputFormat: 'ppt' })` writes a real binary `.ppt` (MS-PPT/OfficeArt records in an OLE2 container), optionally RC4-encrypted via `pptPassword`; see the [Limitations](https://christophervr.github.io/pptx-viewer/guide/limitations) page for current fidelity notes. Saving without an explicit `outputFormat` still writes `.pptx`. |
+| **Edit**    | Change the data in memory: add, remove, or reorder slides; insert elements; edit text; restyle; switch themes                                                                                                                                                                                                                                          |
+| **Save**    | Write the changed data back to a valid `.pptx`, leaving everything you did not touch untouched                                                                                                                                                                                                                                                         |
+| **Convert** | Turn a deck into Markdown, optionally pulling the images out alongside it                                                                                                                                                                                                                                                                              |
+| **Split**   | Save any subset of slides as its own standalone `.pptx` by passing just those slides to `save()`                                                                                                                                                                                                                                                       |
+| **Protect** | Open and save password-protected files (AES-128/256 encryption)                                                                                                                                                                                                                                                                                        |
 
 Positions and sizes use PowerPoint's own internal unit, the EMU (English Metric Unit): 1 inch = 914,400 EMU, 1 point = 12,700 EMU, and 1 pixel = 9,525 EMU at 96 DPI. You rarely deal with the raw numbers: helpers (`inches`, `cm`, `mm`, `pt`) let you work in familiar units instead.
 
@@ -130,6 +132,21 @@ const markdown = await converter.convert(data); // => the Markdown text
 ```
 
 To write files to disk, pass a `FileSystemAdapter` (an object with `writeFile`, `writeBinaryFile`, and `createFolder` methods); this keeps the converter free of any assumptions about where it runs. By default it keeps each element where it sat on the slide (absolutely positioned HTML); set `semanticMode: true` to get clean headings, paragraphs, and lists instead.
+
+### Exchange a deck as JSON
+
+```typescript
+import { PptxHandler, PptxJsonConverter } from 'pptx-viewer-core';
+
+const json = PptxJsonConverter.toJson(data, { pretty: true, generator: 'my-app' });
+
+// `load()` detects the format marker and returns a normal editable model.
+const imported = new PptxHandler();
+const restored = await imported.load(new TextEncoder().encode(json).buffer);
+const bytes = await imported.save(restored.slides);
+```
+
+The JSON document has a `format: "pptx-viewer-json"` marker and version number. It embeds binary model data as tagged base64, so it is self-contained; it is intended for model interchange, not a byte-for-byte copy of the source ZIP archive.
 
 ---
 

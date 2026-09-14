@@ -10,7 +10,7 @@ Diese Seite erklart, wie die Schichten von `pptx-viewer` zusammenpassen.
 ## Schichtenubersicht
 
 ```
-Framework viewers (React / Vue / Angular)
+Framework viewers (React / Vue / Angular / Svelte / Vanilla JS)
          │
 pptx-viewer-shared      ← framework-unabhangige Render-Logik
          │
@@ -39,7 +39,7 @@ Das Core-Paket (`pptx-viewer-core`) ist ein reiner TypeScript-Engine, der in jed
 
 ## Die Viewer-Pakete
 
-Jedes Viewer-Paket (React, Vue, Angular) enthalt:
+Jedes Viewer-Paket (React, Vue, Angular, Svelte und Vanilla JS) enthalt:
 
 - **Rendering-Komponenten** - konvertieren `PptxElement` in HTML/CSS/SVG.
 - **Reaktiver Zustand** - Verwaltung von Auswahl, Zoom, Bearbeitungsverlauf.

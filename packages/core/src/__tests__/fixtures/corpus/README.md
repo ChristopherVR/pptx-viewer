@@ -1,6 +1,6 @@
 # Real-world corpus
 
-Five `.pptx` decks authored by PowerPoint itself (COM automation against a
+Nine `.pptx` decks authored by PowerPoint itself (COM automation against a
 real `PowerPoint.Application`, `SaveAs` format 24 / `ppSaveAsOpenXMLPresentation`),
 not hand-built via `PresentationBuilder`. They exist so the round-trip suite in
 `../../integration/real-world-corpus-roundtrip.test.ts` exercises the markup

@@ -346,7 +346,7 @@ and order-sensitivity case for the COM-pinned numbers.
 
 ## `.ppt` export ceiling
 
-`save({ format: 'ppt' })` writes a real MS-PPT/OfficeArt record stream in an OLE2 (CFB) container (`packages/core/src/core/ppt/writer/`), not a stub. It round-trips slide count, shape geometry, text/run formatting, pictures, groups, tables (as PowerPoint 2003's own grouped-rectangle model) and backgrounds losslessly, both plaintext and RC4 CryptoAPI password-protected (`pptPassword`); a from-scratch deck built purely through the SDK opens in real PowerPoint 16.0 over COM with matching slide/shape counts and text (COM-verified, `scripts/com-acceptance-ppt.mjs`).
+`save(slides, { outputFormat: 'ppt' })` writes a real MS-PPT/OfficeArt record stream in an OLE2 (CFB) container (`packages/core/src/core/ppt/writer/`), not a stub. It round-trips slide count, shape geometry, text/run formatting, pictures, groups, tables (as PowerPoint 2003's own grouped-rectangle model) and backgrounds losslessly, both plaintext and RC4 CryptoAPI password-protected (`pptPassword`); a from-scratch deck built purely through the SDK opens in real PowerPoint 16.0 over COM with matching slide/shape counts and text (COM-verified, `scripts/com-acceptance-ppt.mjs`).
 
 **Done, COM-verified:**
 
@@ -370,9 +370,9 @@ One unrelated, COM-verified fix did come out of this investigation: the `wzName`
 
 When a `.pptx` carries PowerPoint's own pre-computed drawing part, that exact layout is used, placed at its raw offsets the way PowerPoint places it (verified live over COM). Otherwise a DiagramML interpreter (all ten `dgm:alg` types, `constrLst`/`ruleLst` including `dgm:choose`-gated entries, relative constraints, `presLayoutVars`) rebuilds it.
 
-That interpreter is measured against a 227-fixture gallery of every built-in layout authored by PowerPoint itself over COM (`packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`, run locally and skipped in CI until it is green):
+That interpreter is measured against a 229-fixture gallery of every built-in layout authored by PowerPoint itself over COM (`packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`, run locally and skipped in CI until it is green):
 
-- 226 of the 227 fixtures produce PowerPoint's exact set of text-bearing shapes.
+- 227 of the 229 fixtures produce PowerPoint's exact set of text-bearing shapes.
 - The cycle, radial, hierarchy, horizontal-hierarchy, organization-chart and pyramid families reproduce PowerPoint's geometry within 1% on their flat datasets.
 - Text autofit follows the measured rules: whole-point sizes, the real frame margins and rounded-corner insets, and a fixed 0.78 ratio for folded child paragraphs.
 - Org charts are additionally pinned by `smartart-orgchart-genuine-fixture.test.ts` (topology, hanging-tail offset, fan-vs-column choice).

@@ -35,7 +35,7 @@ Le monorepo publie six packages independants.
 | **React**        | `pptx-react-viewer`          | Visualiseur, editeur et presentateur React avec barre d'outils, inspecteur, collaboration et export. |
 | **Vue 3**        | `pptx-vue-viewer`            | Visualiseur/editeur Vue 3 construit sur le meme moteur, avec le meme ensemble de fonctionnalites.    |
 | **Angular**      | `pptx-angular-viewer`        | Visualiseur/editeur Angular construit sur le meme moteur, avec le meme ensemble de fonctionnalites.  |
-| **Outils / MCP** | `pptx-viewer-mcp`            | 25 fonctions d'outils PPTX, un serveur MCP pour les agents IA et le codec de collaboration Y.Doc.    |
+| **Outils / MCP** | `pptx-viewer-mcp`            | 73 fonctions d'outils PPTX, un serveur MCP pour les agents IA et le codec de collaboration Y.Doc.    |
 | **Installateur** | `@christophervr/pptx-viewer` | CLI interactif qui integre le bon package de visualiseur dans votre projet.                          |
 
 ### Graphe de dependances
@@ -55,7 +55,7 @@ pptx-angular-viewer ┘                               ├── emf-converter
 - **Developpeurs Vue 3** - utilisez `pptx-vue-viewer`. Meme moteur et meme ensemble de fonctionnalites que la liaison React.
 - **Developpeurs Angular** - utilisez `pptx-angular-viewer`. Meme histoire : meme moteur, meme ensemble de fonctionnalites.
 - **Developpeurs automatisant ou incorporant PowerPoint en mode headless** - utilisez [`pptx-viewer-core`](/core/). Aucune interface, aucune dependance de framework. Fonctionne dans un onglet de navigateur, une fonction serverless, un script de construction Node.js ou un Web Worker.
-- **Workflows IA / LLM** - utilisez [`pptx-viewer-mcp`](/packages/mcp). Le serveur MCP expose les 25 fonctions d'outils a tout client compatible MCP (Claude Desktop, Cursor, VS Code Copilot).
+- **Workflows IA / LLM** - utilisez [`pptx-viewer-mcp`](/packages/mcp). Le serveur MCP expose les 73 fonctions d'outils a tout client compatible MCP (Claude Desktop, Cursor, VS Code Copilot).
 
 ## Etapes suivantes
 
