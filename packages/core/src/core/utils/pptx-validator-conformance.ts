@@ -1,15 +1,15 @@
 import type JSZip from 'jszip';
 
-import {
-	directChildren,
-	ECMA_NAMESPACES as NS,
-	elementXml,
-	namespaces,
-	rootTag,
-} from './pptx-validator-conformance-xml';
+import { ECMA_NAMESPACES as NS, namespaces, rootTag } from './pptx-validator-conformance-xml';
+import { issue, validateOrder } from './pptx-validator-content-order';
 import { validateSimpleTypeFacets } from './pptx-validator-facets';
 import { readZipText } from './pptx-validator-helpers';
 import { validateMce } from './pptx-validator-mce';
+import {
+	validateSlide,
+	validateSlideLayout,
+	validateSlideMaster,
+} from './pptx-validator-slide-parts';
 import { validateSlideTransitions } from './pptx-validator-transitions';
 import type { ValidationConformance, ValidationIssue } from './pptx-validator-types';
 
@@ -42,64 +42,6 @@ const PRESENTATION_ORDER = [
 	'modifyVerifier',
 	'extLst',
 ];
-const SLIDE_ORDER = ['cSld', 'clrMapOvr', 'transition', 'timing', 'extLst'];
-const COMMON_SLIDE_ORDER = ['bg', 'spTree', 'custDataLst', 'controls', 'extLst'];
-const SHAPE_TREE_START = ['nvGrpSpPr', 'grpSpPr'];
-
-function issue(
-	issues: ValidationIssue[],
-	path: string,
-	code: string,
-	message: string,
-	severity: ValidationIssue['severity'] = 'error',
-): void {
-	issues.push({ severity, code, message, path });
-}
-
-function validateOrder(
-	xml: string,
-	allowed: string[],
-	path: string,
-	context: string,
-	issues: ValidationIssue[],
-): void {
-	let last = -1;
-	for (const child of directChildren(xml)) {
-		const index = allowed.indexOf(child);
-		if (index < 0) {
-			continue;
-		}
-		if (index < last) {
-			issue(
-				issues,
-				path,
-				'INVALID_CONTENT_ORDER',
-				`${context} child <${child}> is out of ECMA-376 sequence order`,
-			);
-			return;
-		}
-		last = index;
-	}
-}
-
-function validateShapeTree(xml: string, path: string, issues: ValidationIssue[]): void {
-	const tree = elementXml(xml, 'spTree');
-	if (!tree) {
-		issue(issues, path, 'MISSING_REQUIRED_ELEMENT', '<p:cSld> must contain <p:spTree>');
-		return;
-	}
-	const children = directChildren(tree);
-	for (let i = 0; i < SHAPE_TREE_START.length; i++) {
-		if (children[i] !== SHAPE_TREE_START[i]) {
-			issue(
-				issues,
-				path,
-				'INVALID_SHAPE_TREE',
-				`<p:spTree> child ${i + 1} must be <p:${SHAPE_TREE_START[i]}>`,
-			);
-		}
-	}
-}
 
 function validatePresentation(xml: string, path: string, issues: ValidationIssue[]): void {
 	if (!/:presentation\b/.test(rootTag(xml) ?? '')) {
@@ -133,21 +75,6 @@ function validatePresentation(xml: string, path: string, issues: ValidationIssue
 				`Slide id "${match[1]}" is outside the ECMA-376 range 256 through 2147483647`,
 			);
 		}
-	}
-}
-
-function validateSlide(xml: string, path: string, issues: ValidationIssue[]): void {
-	if (!/:sld\b/.test(rootTag(xml) ?? '')) {
-		issue(issues, path, 'INVALID_SLIDE_ROOT', 'Slide part must have a p:sld root');
-		return;
-	}
-	validateOrder(xml, SLIDE_ORDER, path, '<p:sld>', issues);
-	const common = elementXml(xml, 'cSld');
-	if (!common) {
-		issue(issues, path, 'MISSING_REQUIRED_ELEMENT', '<p:sld> must contain <p:cSld>');
-	} else {
-		validateOrder(common, COMMON_SLIDE_ORDER, path, '<p:cSld>', issues);
-		validateShapeTree(common, path, issues);
 	}
 }
 
@@ -221,6 +148,12 @@ export async function validateEcmaRules(
 		}
 		if (/^ppt\/slides\/slide\d+\.xml$/.test(path)) {
 			validateSlide(xml, path, issues);
+		}
+		if (/^ppt\/slideLayouts\/slideLayout\d+\.xml$/.test(path)) {
+			validateSlideLayout(xml, path, issues);
+		}
+		if (/^ppt\/slideMasters\/slideMaster\d+\.xml$/.test(path)) {
+			validateSlideMaster(xml, path, issues);
 		}
 	}
 	const dialect: Dialect =

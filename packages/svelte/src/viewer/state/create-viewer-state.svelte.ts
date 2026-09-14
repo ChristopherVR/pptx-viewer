@@ -128,6 +128,9 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// identity); once the raw W/H inputs disagree, the pixels win.
 		getSlideSize: () =>
 			resolveSlideSizeSelection({ current: loader.slideSize, canvas: loader.canvasSize }).size,
+		// Home > Arrange: a lone element aligns to the slide, so the arrange
+		// controller needs the pixel canvas.
+		getCanvasSize: () => loader.canvasSize,
 		// Table style DEFINITION editor edits, folded back into
 		// `ppt/tableStyles.xml` on every save (`saveEditorState`).
 		getTableStyleOptions: () =>

@@ -112,7 +112,10 @@ function ScaledSlidePreviewImpl({
  * Memo comparator: re-render only when slide identity, dirty/hidden state,
  * elements, template elements, canvas size, or className change.
  */
-function arePropsEqual(prev: ScaledSlidePreviewProps, next: ScaledSlidePreviewProps): boolean {
+export function scaledSlidePreviewPropsEqual(
+	prev: ScaledSlidePreviewProps,
+	next: ScaledSlidePreviewProps,
+): boolean {
 	if (prev.slide.id !== next.slide.id) {
 		return false;
 	}
@@ -123,6 +126,13 @@ function arePropsEqual(prev: ScaledSlidePreviewProps, next: ScaledSlidePreviewPr
 		return false;
 	}
 	if (prev.slide.elements !== next.slide.elements) {
+		return false;
+	}
+	// `visibleTemplateElements` drops the inherited layout/master artwork
+	// entirely when this is `false`, so toggling "Hide Background Graphics"
+	// must invalidate the memo even though `elements`/`templateElements`
+	// themselves haven't changed.
+	if (prev.slide.showMasterShapes !== next.slide.showMasterShapes) {
 		return false;
 	}
 	if (prev.slide.backgroundColor !== next.slide.backgroundColor) {
@@ -149,4 +159,4 @@ function arePropsEqual(prev: ScaledSlidePreviewProps, next: ScaledSlidePreviewPr
 	return true;
 }
 
-export const ScaledSlidePreview = React.memo(ScaledSlidePreviewImpl, arePropsEqual);
+export const ScaledSlidePreview = React.memo(ScaledSlidePreviewImpl, scaledSlidePreviewPropsEqual);

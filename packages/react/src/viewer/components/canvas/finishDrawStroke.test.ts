@@ -87,7 +87,7 @@ describe('finishDrawStroke', () => {
 		expect(ink.inkPointTiltY).toStrictEqual([[0, -15]]);
 	});
 
-	it('builds a closed custom-geometry shape for the freeform tool', () => {
+	it('builds an OPEN custom-geometry shape for a freeform stroke that trails off', () => {
 		const result = finishDrawStroke({
 			tool: 'freeform',
 			points: [
@@ -105,8 +105,31 @@ describe('finishDrawStroke', () => {
 		const shape = result?.element as ShapePptxElement;
 		expect(shape.shapeType).toBe('custom');
 		expect(shape.shapeStyle?.strokeColor).toBe('#00ff00');
+		// Padded by the stroke width, like the ink branch.
+		expect(shape.x).toBe(-1);
+		expect(shape.width).toBe(12);
 		const segments = shape.customGeometryPaths?.[0].segments ?? [];
-		expect(segments.at(0)?.type).toBe('moveTo');
-		expect(segments.at(-1)?.type).toBe('close');
+		// No spurious straight edge from the last point back to the first.
+		expect(segments.map((s) => s.type)).toStrictEqual(['moveTo', 'lineTo', 'lineTo']);
+	});
+
+	it('closes the freeform path only when the stroke ends back on its start point', () => {
+		const result = finishDrawStroke({
+			tool: 'freeform',
+			points: [
+				{ x: 0, y: 0 },
+				{ x: 20, y: 0 },
+				{ x: 20, y: 20 },
+				{ x: 0, y: 20 },
+				{ x: 1, y: 2 },
+			],
+			pressures: [],
+			tiltX: [],
+			tiltY: [],
+			color: '#00ff00',
+			width: 1,
+		});
+		const shape = result?.element as ShapePptxElement;
+		expect(shape.customGeometryPaths?.[0].segments.at(-1)?.type).toBe('close');
 	});
 });

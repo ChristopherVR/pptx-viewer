@@ -3,9 +3,9 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { ElementBulletPatch } from './bullet-toggle';
 import { isBulletMarkerSegment } from './bullet-toggle';
-import { applyStyleToSelectedSegments } from './inline-selection-utils';
 import type { InlineTextSelection } from './inline-selection-utils';
 import { applyListStyleUpdate, restoreParagraphMetadata } from './text-list-style-update';
+import { applyTextStyleUpdate } from './text-style-update';
 import { updateTextSegmentStyle } from './update-text-segment-style';
 
 /** Format the current rich draft. The caller must reconcile its live DOM before committing. */
@@ -24,17 +24,22 @@ export function buildInlineListStylePatch(
 			...('textSegments' in patch ? { textSegments: patch.textSegments } : {}),
 		};
 	}
+	if (selection) {
+		const { patch } = applyTextStyleUpdate(element, updates, selection);
+		return {
+			...('textStyle' in patch ? { textStyle: patch.textStyle } : {}),
+			textSegments: restoreParagraphMetadata(
+				element.textSegments,
+				('textSegments' in patch ? patch.textSegments : undefined) ?? element.textSegments,
+			),
+		};
+	}
 	return {
-		textSegments: selection
-			? restoreParagraphMetadata(
-					element.textSegments,
-					applyStyleToSelectedSegments(element.textSegments, selection, updates).newSegments,
-				)
-			: element.textSegments.map((segment) =>
-					updateTextSegmentStyle(segment, updates, {
-						updateBodyStyle: !(segment.paragraphInsertionStyle && isBulletMarkerSegment(segment)),
-					}),
-				),
-		...(selection ? {} : { textStyle: { ...element.textStyle, ...updates } }),
+		textSegments: element.textSegments.map((segment) =>
+			updateTextSegmentStyle(segment, updates, {
+				updateBodyStyle: !(segment.paragraphInsertionStyle && isBulletMarkerSegment(segment)),
+			}),
+		),
+		textStyle: { ...element.textStyle, ...updates },
 	};
 }

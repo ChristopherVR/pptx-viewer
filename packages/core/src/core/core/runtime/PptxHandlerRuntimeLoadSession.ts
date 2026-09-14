@@ -117,6 +117,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.savedSlideFingerprints.clear();
 		this.layoutCache.clear();
 		this.masterCache.clear();
+		this.templateElementBaselines.reset();
 		this.layoutXmlMap.clear();
 		this.masterXmlMap.clear();
 		this.masterTxStylesCache.clear();

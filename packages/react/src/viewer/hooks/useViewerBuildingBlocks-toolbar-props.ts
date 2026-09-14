@@ -254,6 +254,7 @@ export function buildToolbarProps(input: BuildToolbarPropsInput): ToolbarProps {
 		onOpenReadingView: () => s.setShowReadingView(true),
 		onOpenOutlineView: () => s.setShowOutlineView(true),
 		onUpdateTextStyle: ops.updateSelectedTextStyle,
+		onToggleBullets: ops.toggleSelectedBullets,
 		onTransformTextCase: ops.updateSelectedTextCase,
 		isOverflowMenuOpen: s.isOverflowMenuOpen,
 		onSetOverflowMenuOpen: s.setIsOverflowMenuOpen,

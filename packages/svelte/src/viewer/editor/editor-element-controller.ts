@@ -155,9 +155,14 @@ export class EditorElementController {
 			return;
 		}
 		this.#editor.pushHistory();
-		const activeSlide = { id: 'active', elements: this.#editor.activeElements } as never;
-		const next = reorderElement([activeSlide], 0, id, direction);
-		this.#editor.replaceActiveElements(next[0].elements);
+		// Route by the element's own store, not the edit-template flag: a slide
+		// element selected while template editing is on lives in the slide list.
+		const owningLayer = {
+			id: 'active',
+			elements: this.#editor.templateOps.elementsOwning(id),
+		} as never;
+		const next = reorderElement([owningLayer], 0, id, direction);
+		this.#editor.templateOps.replaceOwning(id, next[0].elements);
 		this.#editor.commitChange();
 	}
 

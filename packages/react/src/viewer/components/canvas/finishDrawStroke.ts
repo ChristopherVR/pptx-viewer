@@ -1,5 +1,5 @@
-import type { CustomGeometrySegment, InkPptxElement, ShapePptxElement } from 'pptx-viewer-core';
-import { hasTiltData } from 'pptx-viewer-shared';
+import type { InkPptxElement, ShapePptxElement } from 'pptx-viewer-core';
+import { buildFreeformShapeElement, hasTiltData } from 'pptx-viewer-shared';
 
 import type { DrawingTool } from '../../types-ui';
 import { buildCanvasPathD } from './canvas-path';
@@ -34,6 +34,13 @@ export function finishDrawStroke(input: FinishDrawStrokeInput): FinishedDrawStro
 	if (points.length < 2) {
 		return null;
 	}
+	if (tool === 'freeform') {
+		// The shared builder pads the box by the stroke width exactly as the ink
+		// path below does, and closes the path only when the stroke ends back on
+		// its start point (PowerPoint's Freeform/Scribble leaves it open otherwise).
+		const element = buildFreeformShapeElement(points, { color, width });
+		return element ? { kind: 'freeform', element } : null;
+	}
 
 	let minX = Infinity;
 	let minY = Infinity;
@@ -61,13 +68,6 @@ export function finishDrawStroke(input: FinishDrawStrokeInput): FinishedDrawStro
 	const w = Math.max(maxX - minX, 1);
 	const h = Math.max(maxY - minY, 1);
 	const relPoints = points.map((pt) => ({ x: pt.x - minX, y: pt.y - minY }));
-
-	if (tool === 'freeform') {
-		return {
-			kind: 'freeform',
-			element: buildFreeformShape(relPoints, { x: minX, y: minY, w, h }, color, width),
-		};
-	}
 	return {
 		kind: 'ink',
 		element: buildInkElement(
@@ -86,40 +86,6 @@ interface StrokeBox {
 	y: number;
 	w: number;
 	h: number;
-}
-
-function buildFreeformShape(
-	relPoints: CanvasPoint[],
-	box: StrokeBox,
-	color: string,
-	width: number,
-): ShapePptxElement {
-	const COORD_SCALE = 100;
-	const segments: CustomGeometrySegment[] = [];
-	for (let i = 0; i < relPoints.length; i++) {
-		const scaledPt = {
-			x: Math.round(relPoints[i].x * COORD_SCALE),
-			y: Math.round(relPoints[i].y * COORD_SCALE),
-		};
-		segments.push(i === 0 ? { type: 'moveTo', pt: scaledPt } : { type: 'lineTo', pt: scaledPt });
-	}
-	// Close the path for a proper freeform polygon.
-	if (segments.length > 2) {
-		segments.push({ type: 'close' });
-	}
-	return {
-		id: `shape-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-		type: 'shape',
-		x: box.x,
-		y: box.y,
-		width: box.w,
-		height: box.h,
-		shapeType: 'custom',
-		shapeStyle: { fillColor: 'transparent', strokeColor: color, strokeWidth: width },
-		customGeometryPaths: [
-			{ width: Math.round(box.w * COORD_SCALE), height: Math.round(box.h * COORD_SCALE), segments },
-		],
-	};
 }
 
 function buildInkElement(

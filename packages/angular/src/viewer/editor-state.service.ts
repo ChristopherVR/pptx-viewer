@@ -536,10 +536,14 @@ export class EditorStateService {
 
 	// ── Align / distribute (multi-selection) ─────────────────────────────────
 
-	/** Align the selected elements within their group bounds (one history entry). */
+	/**
+	 * Align the selected elements (one history entry): two or more against their
+	 * shared bounds, a lone element against the slide, as in PowerPoint.
+	 */
 	alignSelected(slideIndex: number, mode: AlignMode): void {
+		const slideSize = this.loader?.canvasSize();
 		this.applyPositionMap(slideIndex, this.t('pptx.undoAction.align', { mode }), (boxes) =>
-			computeAlign(boxes, mode),
+			computeAlign(boxes, mode, { slideSize }),
 		);
 	}
 

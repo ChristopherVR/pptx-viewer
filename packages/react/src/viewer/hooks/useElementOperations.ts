@@ -148,14 +148,15 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		[selectedElement, updateSelectedElement],
 	);
 
-	const { updateSelectedTextStyle, updateSelectedTextCase } = useTextElementOperations({
-		selectedElement,
-		inlineEditingElementId,
-		inlineEditingText,
-		inlineEditingSnapshotRef,
-		setInlineEditingElementId,
-		updateSelectedElement,
-	});
+	const { updateSelectedTextStyle, updateSelectedTextCase, toggleSelectedBullets } =
+		useTextElementOperations({
+			selectedElement,
+			inlineEditingElementId,
+			inlineEditingText,
+			inlineEditingSnapshotRef,
+			setInlineEditingElementId,
+			updateSelectedElement,
+		});
 
 	// ── Slide-level helpers ───────────────────────────────────────────
 	const updateSlides = useCallback(
@@ -234,6 +235,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		updateSelectedElement,
 		updateSelectedShapeStyle,
 		updateSelectedTextStyle,
+		toggleSelectedBullets,
 		updateSelectedTextCase,
 		updateSlides,
 		activeElements,

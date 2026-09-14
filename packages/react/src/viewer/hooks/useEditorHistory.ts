@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { CanvasSize, EditorHistorySnapshot } from '../types';
 import { cloneHistorySnapshot, cloneSlide, cloneTemplateElementsBySlideId } from '../utils/clone';
+import { usePointerReleaseWakeup } from './usePointerReleaseWakeup';
 
 // ---------------------------------------------------------------------------
 // Input / output interfaces
@@ -160,6 +161,14 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 	 * makes every commit distinguishable.
 	 */
 	const [editCommitNonce, setEditCommitNonce] = useState(0);
+	/**
+	 * Re-runs the tracking effect once a pointer interaction it deferred behind
+	 * has ended. `pointerCommitNonce` only covers a pointer-up that MOVED
+	 * something; see `usePointerReleaseWakeup` for the click-away case.
+	 */
+	const { pointerReleaseNonce, deferUntilPointerReleased } = usePointerReleaseWakeup(
+		hasActivePointerInteraction,
+	);
 
 	// -- Helpers ------------------------------------------------------------
 
@@ -325,6 +334,10 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			return;
 		}
 		if (hasActivePointerInteraction()) {
+			// Defer, but make sure this run happens once the gesture ends: a
+			// plain click never bumps `pointerCommitNonce`, so without this the
+			// pending change waited for the NEXT edit and undid with it.
+			deferUntilPointerReleased();
 			return;
 		}
 
@@ -341,10 +354,13 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		//     `markDirty()` that each edit choke point already calls: inspector
 		//     fields, ribbon formatting, inline-text commits, table and theme
 		//     edits. Without it none of those armed Undo.
+		//   - `pointerReleaseNonce` covers a run this effect deferred behind an
+		//     active pointer interaction (a click-away commit; see
+		//     `usePointerReleaseWakeup`), which no other nonce re-opens.
 		// Opening the gate only costs a stringify; the serialized comparison
 		// below still rejects a commit that changed nothing, so a handler that
 		// calls `markDirty()` without touching the deck pushes no entry.
-		const cheapHash = `${pointerCommitNonce}|${editCommitNonce}|${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
+		const cheapHash = `${pointerCommitNonce}|${editCommitNonce}|${pointerReleaseNonce}|${slides.length}|${activeSlideIndex}|${canvasSize.width}x${canvasSize.height}|${slides
 			.map((s) => `${s.id}:${s.elements.length}`)
 			.join('/')}`;
 		if (cheapHash === lastCheapHashRef.current) {
@@ -401,12 +417,14 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		buildHistorySnapshot,
 		canvasSize.height,
 		canvasSize.width,
+		deferUntilPointerReleased,
 		editCommitNonce,
 		error,
 		hasActivePointerInteraction,
 		loading,
 		maxHistoryEntries,
 		pointerCommitNonce,
+		pointerReleaseNonce,
 		slides,
 		updateHistoryAvailability,
 	]);

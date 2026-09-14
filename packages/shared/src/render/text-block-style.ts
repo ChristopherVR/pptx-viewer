@@ -143,12 +143,23 @@ export function buildTextBlockStyle(
 	const bodyMarginLeft = hasParagraphIndents ? 0 : ts?.paragraphMarginLeft || 0;
 	const bodyMarginRight = hasParagraphIndents ? 0 : ts?.paragraphMarginRight || 0;
 
+	// CSS cannot let a nested run span CANCEL an ancestor's `text-decoration`:
+	// the line is drawn by the decorating box and shows through descendants
+	// regardless of their own `text-decoration-line`, so an element-level
+	// underline/strikethrough here would bleed onto every run even when a
+	// specific run's segment style says `underline: false`. Only a fallback
+	// for segmentless text, exactly like `highlightColor` below: with
+	// segments, each run already emits its own decoration
+	// (`segmentStyleToCss` in `text-run-style.ts`).
+	const hasTextSegments = (element.textSegments?.length ?? 0) > 0;
 	const decorations: string[] = [];
-	if (ts?.underline || ts?.hyperlink) {
-		decorations.push('underline');
-	}
-	if (ts?.strikethrough) {
-		decorations.push('line-through');
+	if (!hasTextSegments) {
+		if (ts?.underline || ts?.hyperlink) {
+			decorations.push('underline');
+		}
+		if (ts?.strikethrough) {
+			decorations.push('line-through');
+		}
 	}
 
 	const style: TextBlockStyle = {};
@@ -182,7 +193,7 @@ export function buildTextBlockStyle(
 		: normalizeHexColor(ts?.color, fallbackColor);
 	// An element-level highlight is only a fallback for segmentless text; with
 	// segments each run carries its own `backgroundColor`.
-	if ((element.textSegments?.length ?? 0) === 0 && ts?.highlightColor) {
+	if (!hasTextSegments && ts?.highlightColor) {
 		style.backgroundColor = normalizeHexColor(ts.highlightColor, undefined);
 	}
 	style.textAlign = resolveCssTextAlign(ts?.align, isRtl) ?? 'left';
@@ -209,7 +220,7 @@ export function buildTextBlockStyle(
 	style.fontWeight = ts?.bold ? 700 : 400;
 	style.fontStyle = ts?.italic ? 'italic' : 'normal';
 	style.textDecorationLine = decorations.length > 0 ? decorations.join(' ') : 'none';
-	if (ts?.strikethrough && ts?.strikeType === 'dblStrike') {
+	if (!hasTextSegments && ts?.strikethrough && ts?.strikeType === 'dblStrike') {
 		style.textDecorationStyle = 'double';
 	}
 	style.lineHeight = resolveLineHeight(ts, italic);

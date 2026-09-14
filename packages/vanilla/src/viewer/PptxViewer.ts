@@ -231,7 +231,14 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			// already has content (`this.sessions` is constructed later, hence
 			// the lazy optional access).
 			onContentApplying: (origin) => this.sessions?.beginCollaborationContentLoad(origin),
-			onContentApplied: (origin) => this.sessions?.notifyCollaborationContentLoaded(origin),
+			onContentApplied: (origin) => {
+				this.sessions?.notifyCollaborationContentLoaded(origin);
+				// A source supplied when mounting is meant to open directly into the
+				// deck. The File backstage is the initial shell, so without this the
+				// successful load remains hidden behind it until the host reaches into
+				// our private DOM and clicks the Back button.
+				this.lifecycle?.chrome.ribbon?.showDefaultTab();
+			},
 			// Trust Center > "Allow external content"; the options controller is
 			// constructed after this one, hence the lazy read (see its own comment).
 			getAllowExternalContent: () =>

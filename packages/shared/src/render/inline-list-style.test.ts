@@ -44,8 +44,41 @@ describe('current list style patch', () => {
 			paragraphProperties: { spaceAfter: 12 },
 			endParaRunProperties: { '@_sz': '2400' },
 		});
-		expect(patch?.textStyle).toBeUndefined();
+		expect(patch?.textStyle).toStrictEqual({ fontSize: 20 });
 		expect(element).toStrictEqual(before);
+	});
+
+	it('applies body-level formatting to the body while styling only the selected text', () => {
+		const patch = buildInlineListStylePatch(
+			element,
+			{ vAlign: 'bottom', paragraphMarginLeft: 18, bold: true },
+			{ startSegIdx: 0, startOffset: 1, endSegIdx: 0, endOffset: 3 },
+		);
+		expect(patch?.textStyle).toMatchObject({ vAlign: 'bottom', paragraphMarginLeft: 18 });
+		expect(patch?.textSegments?.map((segment) => segment.style.bold)).toStrictEqual([
+			undefined,
+			true,
+			undefined,
+		]);
+		expect(
+			patch?.textSegments?.every((segment) => segment.style.vAlign === undefined),
+		).toBeTruthy();
+		expect(patch?.textSegments?.[0].paragraphLevel).toBe(1);
+	});
+
+	it('removes inherited underline only from the selected text', () => {
+		const patch = buildInlineListStylePatch(
+			{ ...element, textStyle: { underline: true } },
+			{ underline: false },
+			{ startSegIdx: 0, startOffset: 1, endSegIdx: 0, endOffset: 3 },
+		);
+		expect(patch?.textStyle?.underline).toBeUndefined();
+		expect(patch?.textSegments?.map((segment) => segment.style.underline)).toStrictEqual([
+			true,
+			false,
+			true,
+		]);
+		expect(patch?.textSegments?.[0].bulletInfo).toStrictEqual({ char: '◆' });
 	});
 
 	it('combines explicit list and character formatting on the current body', () => {

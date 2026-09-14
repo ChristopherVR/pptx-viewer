@@ -15,6 +15,9 @@ import { resolveParagraphBullet } from './bullet-list';
 import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
 
 export type ParagraphBulletKind = 'bullet' | 'numbered' | 'none';
+
+/** The list state of several paragraphs: `'mixed'` when they disagree. */
+export type ElementBulletKind = ParagraphBulletKind | 'mixed';
 export const DEFAULT_BULLET_CHAR = '•';
 export const DEFAULT_AUTONUM_TYPE = 'arabicPeriod';
 
@@ -59,7 +62,8 @@ export function paragraphBulletKind(paragraph: readonly TextSegment[]): Paragrap
 	return resolved ? (resolved.isNumbered ? 'numbered' : 'bullet') : 'none';
 }
 
-function withoutListType(style: TextStyle | undefined): TextStyle {
+/** Copy of `style` without the inert `listType` flag. */
+export function withoutListType(style: TextStyle | undefined): TextStyle {
 	const next = { ...style };
 	delete next.listType;
 	return next;
@@ -194,31 +198,58 @@ function elementSegments(element: PptxElement): TextSegment[] {
 		]);
 }
 
-function splitParagraphs(
-	segments: readonly TextSegment[],
-): Array<{ segments: TextSegment[]; terminator?: TextSegment }> {
-	const paragraphs: Array<{ segments: TextSegment[]; terminator?: TextSegment }> = [
-		{ segments: [] },
-	];
-	for (const segment of segments) {
+/** One paragraph of a segment list, with each segment's index in the source. */
+export interface BulletParagraph {
+	segments: TextSegment[];
+	indices: number[];
+	terminator?: TextSegment;
+}
+
+/** Split a segment list into paragraphs, keeping each paragraph's terminator. */
+export function splitBulletParagraphs(segments: readonly TextSegment[]): BulletParagraph[] {
+	const paragraphs: BulletParagraph[] = [{ segments: [], indices: [] }];
+	for (const [index, segment] of segments.entries()) {
 		if (isParagraphSeparatorSegment(segment)) {
 			paragraphs[paragraphs.length - 1].terminator = segment;
-			paragraphs.push({ segments: [] });
+			paragraphs.push({ segments: [], indices: [] });
 		} else {
 			paragraphs[paragraphs.length - 1].segments.push(segment);
+			paragraphs[paragraphs.length - 1].indices.push(index);
 		}
 	}
 	return paragraphs;
 }
 
-/** Existing element-wide toggle convention: use its first nonempty paragraph. */
-export function elementBulletKind(element: PptxElement): ParagraphBulletKind {
-	for (const paragraph of splitParagraphs(elementSegments(element))) {
-		if (paragraph.segments.length) {
-			return paragraphBulletKind(paragraph.segments);
-		}
+/** The segments a list operation acts on, optionally from a live inline edit. */
+export function resolveBulletSegments(
+	element: PptxElement,
+	override?: readonly TextSegment[],
+): TextSegment[] {
+	if (override?.length) {
+		return [...override];
 	}
-	return 'none';
+	return elementSegments(element);
+}
+
+/** The common list state of non-empty paragraphs, or `'mixed'`. */
+export function paragraphsBulletKind(paragraphs: readonly BulletParagraph[]): ElementBulletKind {
+	let kind: ElementBulletKind | undefined;
+	for (const paragraph of paragraphs) {
+		if (paragraph.segments.length === 0) {
+			continue;
+		}
+		const current = paragraphBulletKind(paragraph.segments);
+		if (kind !== undefined && kind !== current) {
+			return 'mixed';
+		}
+		kind = current;
+	}
+	return kind ?? 'none';
+}
+
+/** The list state an element's ribbon buttons should show. */
+export function elementBulletKind(element: PptxElement): ElementBulletKind {
+	return paragraphsBulletKind(splitBulletParagraphs(resolveBulletSegments(element)));
 }
 
 /**
@@ -243,7 +274,7 @@ export function setElementBullets(
 	) {
 		return {};
 	}
-	const paragraphs = splitParagraphs(elementSegments(element));
+	const paragraphs = splitBulletParagraphs(elementSegments(element));
 	if (range && range.startParagraph >= paragraphs.length) {
 		return {};
 	}

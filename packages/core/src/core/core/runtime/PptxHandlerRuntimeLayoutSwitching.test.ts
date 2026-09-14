@@ -692,6 +692,73 @@ describe('placeholder re-mapping (GAP-E4 layout switching)', () => {
 		expect(title.height).toBe(Math.round(1200000 / EMU_PER_PX));
 	});
 
+	it('lets a ctrTitle claim the new layout title slot instead of duplicating it', () => {
+		// Title Slide -> Title and Content is the most common switch there is.
+		// The centred title scored zero against the `title` slot (no idx, a
+		// different spelling, not a preferred type), so it stayed put and an
+		// empty second title box was fabricated next to it.
+		const titleEl = makePhElement('t1', 'ctrTitle', undefined, 258, 63, 650, 376, 'Algebra');
+		const newLayout = makeLayoutXml([
+			{ phType: 'title', xEmu: 457200, yEmu: 100000, cxEmu: 8229600, cyEmu: 1300000 },
+			{ phType: 'body', phIdx: '1', xEmu: 457200, yEmu: 1600000, cxEmu: 8229600, cyEmu: 4500000 },
+		]);
+
+		const result = remapElementsToNewLayout([titleEl], newLayout);
+
+		const title = result.find((e) => e.id === 't1')!;
+		expect(title.x).toBe(Math.round(457200 / EMU_PER_PX));
+		expect(title.y).toBe(Math.round(100000 / EMU_PER_PX));
+		// The model follows the rewritten `p:ph`, not only the raw XML.
+		expect((title as { placeholderType?: string }).placeholderType).toBe('title');
+		expect(result.filter((e) => e.id.startsWith('ph-title-'))).toHaveLength(0);
+		// The unmatched body slot still yields exactly one prompt box.
+		expect(result.filter((e) => e.id.startsWith('ph-body-'))).toHaveLength(1);
+	});
+
+	it('does not fabricate text boxes for picture, chart, table or media slots', () => {
+		const newLayout = makeLayoutXml([
+			{ phType: 'title', xEmu: 100000, yEmu: 100000, cxEmu: 5000000, cyEmu: 1000000 },
+			{ phType: 'pic', phIdx: '1', xEmu: 100000, yEmu: 1200000, cxEmu: 8000000, cyEmu: 5000000 },
+			{ phType: 'chart', phIdx: '2', xEmu: 100000, yEmu: 1200000, cxEmu: 4000000, cyEmu: 3000000 },
+			{ phType: 'tbl', phIdx: '3', xEmu: 100000, yEmu: 1200000, cxEmu: 4000000, cyEmu: 3000000 },
+			{ phType: 'media', phIdx: '4', xEmu: 100000, yEmu: 1200000, cxEmu: 4000000, cyEmu: 3000000 },
+		]);
+
+		const result = remapElementsToNewLayout([], newLayout);
+
+		// A picture slot has no text to prompt for; a full-bleed one used to
+		// become an invisible text box that swallowed every click beneath it.
+		expect(result.map((e) => e.id.replace(/-\d+$/u, ''))).toStrictEqual([
+			'ph-title-0-ppt/slideLayouts/target.xml-0',
+		]);
+	});
+
+	it('places fabricated prompt boxes behind the content the slide keeps', () => {
+		const freeText = makePhElement('s1', 'subTitle', undefined, 10, 70, 100, 50, 'Kept');
+		const newLayout = makeLayoutXml([
+			{ phType: 'body', phIdx: '1', xEmu: 0, yEmu: 0, cxEmu: 9144000, cyEmu: 6858000 },
+		]);
+
+		const result = remapElementsToNewLayout([freeText], newLayout);
+
+		// The subtitle claims the body slot here; add a title-only case where
+		// nothing matches so the fabricated box has to be ordered explicitly.
+		expect(result[0]?.id).toBe('s1');
+
+		const titleOnly = makeLayoutXml([
+			{ phType: 'title', xEmu: 0, yEmu: 0, cxEmu: 9144000, cyEmu: 6858000 },
+		]);
+		const picture = {
+			...makePhElement('p1', 'pic', '5', 10, 10, 100, 100, ''),
+			type: 'image',
+		} as PptxElement;
+		const ordered = remapElementsToNewLayout([picture], titleOnly);
+		expect(ordered.map((e) => (e.id === 'p1' ? 'kept' : 'generated'))).toStrictEqual([
+			'generated',
+			'kept',
+		]);
+	});
+
 	it('leaves the element at its own position when neither layout nor master has geometry', () => {
 		const titleEl = makePhElement('t1', 'title', undefined, 10, 10, 100, 50, 'My Title');
 		const newLayout = makeLayoutXml([
@@ -740,8 +807,8 @@ describe('placeholder re-mapping (GAP-E4 layout switching)', () => {
 		const result = remapElementsToNewLayout([titleEl], newLayout);
 
 		expect(result).toHaveLength(2);
-		expect(result[0].id).toBe('t1'); // existing title kept
-		const newBody = result[1];
+		expect(result.some((e) => e.id === 't1')).toBeTruthy(); // existing title kept
+		const newBody = result.find((e) => e.id !== 't1')!;
 		expect(newBody.text).toBe(''); // empty placeholder
 		expect(newBody.x).toBe(Math.round(100000 / EMU_PER_PX));
 		expect(newBody.width).toBe(Math.round(5000000 / EMU_PER_PX));
@@ -1007,7 +1074,7 @@ describe('placeholder re-mapping (GAP-E4 layout switching)', () => {
 
 		// Element without rawXml is treated as non-placeholder, kept as-is
 		expect(result).toHaveLength(2); // 1 kept + 1 empty title added
-		expect(result[0].id).toBe('no-raw');
-		expect(result[0].x).toBe(50);
+		const kept = result.find((e) => e.id === 'no-raw')!;
+		expect(kept.x).toBe(50);
 	});
 });

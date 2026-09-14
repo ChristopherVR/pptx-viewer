@@ -84,6 +84,12 @@ export interface EditorStateDeps {
 	 */
 	getSlideSize?: () => PptxSlideSize | undefined;
 	/**
+	 * The slide canvas in px, the bounds a lone element aligns against
+	 * (PowerPoint's "Align to Slide"). Optional for out-of-tree mounts and the
+	 * unit tests, where a single-element align is then a no-op.
+	 */
+	getCanvasSize?: () => { width: number; height: number } | undefined;
+	/**
 	 * The `tableStyles`/`tableStylesDefaultId`/`tableStylesToDelete` save
 	 * options (see `pptx-viewer-shared`'s `tableStyleSaveOptions`). Table style
 	 * DEFINITION edits live on the loader (like slide size), not the undo
@@ -333,6 +339,11 @@ export class EditorState {
 	 */
 	getSlideSize(): PptxSlideSize | undefined {
 		return this.#deps.getSlideSize?.();
+	}
+
+	/** The slide canvas in px (see {@link EditorStateDeps.getCanvasSize}). */
+	getCanvasSize(): { width: number; height: number } | undefined {
+		return this.#deps.getCanvasSize?.();
 	}
 
 	/**

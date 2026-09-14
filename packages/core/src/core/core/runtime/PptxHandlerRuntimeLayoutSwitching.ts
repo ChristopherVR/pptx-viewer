@@ -301,14 +301,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				matched: false,
 			}));
 
-		const resultElements: PptxElement[] = [];
+		// Slots are claimed content-first. An untouched prompt (an empty text box
+		// still bound to a placeholder, typically one an earlier switch fabricated)
+		// is role-compatible with the content slots too, so processed in tree
+		// order it took the body slot away from the slide's real body text merely
+		// by sitting earlier in the tree. The output keeps the original order.
+		const claimOrder = [
+			...elements.filter((element) => !this.isUntouchedPlaceholderPrompt(element)),
+			...elements.filter((element) => this.isUntouchedPlaceholderPrompt(element)),
+		];
+		const remappedByElement = new Map<PptxElement, PptxElement | null>();
 
-		for (const element of elements) {
+		for (const element of claimOrder) {
 			const phInfo = this.getElementPlaceholderInfo(element);
 
 			if (!phInfo) {
 				// Non-placeholder element: keep as-is
-				resultElements.push(element);
+				remappedByElement.set(element, element);
 				continue;
 			}
 
@@ -365,34 +374,49 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				if (updatedElement.rawXml) {
 					retargetPlaceholder(updatedElement.rawXml, resolvedLayoutPh.phInfo);
 				}
+				// The model's own placeholder type must follow the `p:ph` rewrite:
+				// renderers and the theme-font resolver read it, and a `ctrTitle`
+				// that now sits in a `title` slot is a title.
+				const retyped = updatedElement as PptxElement & { placeholderType?: string };
+				if (resolvedLayoutPh.phInfo.type) {
+					retyped.placeholderType = resolvedLayoutPh.phInfo.type;
+				} else {
+					delete retyped.placeholderType;
+				}
 
-				resultElements.push(updatedElement);
-			} else if (!this.isUntouchedPlaceholderPrompt(element)) {
+				remappedByElement.set(element, updatedElement);
+			} else {
 				// No slot for this content in the new layout. PowerPoint keeps
 				// genuine content on the slide as free-standing rather than
 				// deleting it, and so do we: dropping it would silently lose the
 				// user's work.
-				resultElements.push(element);
+				//
+				// An untouched placeholder prompt (never edited -- including one
+				// an earlier switch generated for a layout the slide has since
+				// left) carries no real content. Keeping it as free-standing
+				// clutter is how repeated A->B->A switching accumulated empty
+				// leftover shapes; PowerPoint itself drops the prompt the moment
+				// its slot is gone, so we do too.
+				remappedByElement.set(element, this.isUntouchedPlaceholderPrompt(element) ? null : element);
 			}
-			// An untouched placeholder prompt (never edited -- including one an
-			// earlier switch generated for a layout the slide has since left)
-			// carries no real content. Keeping it as free-standing clutter is
-			// how repeated A->B->A switching accumulated empty leftover shapes;
-			// PowerPoint itself drops the prompt the moment its slot is gone, so
-			// we do too.
+		}
+
+		const resultElements: PptxElement[] = [];
+		for (const element of elements) {
+			const remapped = remappedByElement.get(element);
+			if (remapped) {
+				resultElements.push(remapped);
+			}
 		}
 
 		// Add empty placeholders from the new layout that were not matched
 		let slotIndex = 0;
+		const generatedElements: PptxElement[] = [];
 		for (const lp of targets) {
 			if (lp.matched) {
 				continue;
 			}
-			// Skip footers, date-time, and slide number placeholders -- they
-			// are rendered from the layout/master and don't need slide-level
-			// elements.
-			const skipTypes = new Set(['dt', 'ftr', 'sldnum', 'hdr']);
-			if (lp.phInfo.type && skipTypes.has(lp.phInfo.type)) {
+			if (lp.phInfo.type && NON_MATERIALIZED_PLACEHOLDER_TYPES.has(lp.phInfo.type)) {
 				continue;
 			}
 
@@ -406,10 +430,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				`${newLayoutPath}-${slotIndex++}-${Date.now()}`,
 			);
 			if (emptyElement) {
-				resultElements.push(emptyElement);
+				generatedElements.push(emptyElement);
 			}
 		}
 
-		return resultElements;
+		// Empty prompts go BEHIND the slide's own content. A layout's body or
+		// content slot often spans most of the slide, and appended on top it
+		// covered every free-standing text box the switch had just kept and
+		// swallowed their clicks.
+		return [...generatedElements, ...resultElements];
 	}
 }
+
+/**
+ * Layout placeholder types that are never materialised as empty text boxes.
+ *
+ * Header, footer, date and slide-number render from the layout itself. A
+ * picture, chart, table, diagram, media or clip-art slot has no text to
+ * prompt for, and fabricating a text element for it produced an invisible,
+ * often full-bleed box that stole clicks from the content beneath it.
+ */
+const NON_MATERIALIZED_PLACEHOLDER_TYPES: ReadonlySet<string> = new Set([
+	'dt',
+	'ftr',
+	'sldnum',
+	'hdr',
+	'pic',
+	'clipart',
+	'chart',
+	'tbl',
+	'dgm',
+	'media',
+	'sldimg',
+]);

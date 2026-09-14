@@ -77,6 +77,8 @@ export interface ElementOperations {
 	updateSelectedElement: (updates: Partial<PptxElement>) => void;
 	updateSelectedShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	updateSelectedTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Toggle the selected paragraphs, or every paragraph without a text selection. */
+	toggleSelectedBullets: (kind: 'bullet' | 'numbered') => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	updateSelectedTextCase: (mode: ChangeCaseMode) => void;
 	updateSlides: (updater: (s: PptxSlide[]) => PptxSlide[]) => void;

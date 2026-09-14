@@ -6,6 +6,7 @@ import type {
 	PptxSlideMaster,
 	XmlObject,
 } from '../../types';
+import { remapElementShapeIds } from '../../utils/shape-ids';
 import { PptxSlideRelationshipRegistry, PptxShapeIdValidator } from '../builders';
 import type { IPptxSlideRelationshipRegistry, PptxSaveState } from '../builders';
 import type { PptxSaveConstants } from '../factories';
@@ -156,7 +157,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		this.publishMasterCollectors(partPath, spTree, collectors);
 		this.reapplyAlternateContentEnvelopes(spTree, collectors);
-		shapeIdValidator.validateAndDeduplicateIds(spTree, (value) => this.ensureArray(value));
+		// The part root is the reference root so a master / layout `p:timing`
+		// target follows a renumbered shape; the map is replayed onto the
+		// live elements so the next save starts from the repaired ids.
+		const idRepair = shapeIdValidator.repairShapeIds(
+			spTree,
+			(value) => this.ensureArray(value),
+			root,
+		);
+		remapElementShapeIds(elements, idRepair.ids);
 		rememberTemplateSpTreePositions(this, partPath, spTree, (node) => childOrder.positionOf(node));
 
 		relsRoot['Relationship'] = relationships;

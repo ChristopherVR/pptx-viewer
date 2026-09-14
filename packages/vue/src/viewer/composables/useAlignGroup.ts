@@ -17,6 +17,8 @@ export interface UseAlignGroupInput {
 	selectedElementIds: Ref<string[]>;
 	activeSlideIndex: Ref<number>;
 	slides: Ref<PptxSlide[]>;
+	/** Slide bounds in px; a lone element aligns against these (Align to Slide). */
+	canvasSize?: Ref<{ width: number; height: number }>;
 	pushHistory: () => void;
 }
 
@@ -26,7 +28,14 @@ export interface UseAlignGroupInput {
  * from `PowerPointViewer.vue`.
  */
 export function useAlignGroup(input: UseAlignGroupInput) {
-	const { selectedElements, selectedElementIds, activeSlideIndex, slides, pushHistory } = input;
+	const {
+		selectedElements,
+		selectedElementIds,
+		activeSlideIndex,
+		slides,
+		canvasSize,
+		pushHistory,
+	} = input;
 
 	const canGroup = computed(
 		() =>
@@ -78,7 +87,10 @@ export function useAlignGroup(input: UseAlignGroupInput) {
 		slides.value = nextSlides;
 	}
 	function onAlign(edge: AlignEdge): void {
-		applyPositionMap(alignElements(selectedElements.value, edge));
+		// Two or more objects align to each other; a single object aligns to the
+		// slide, as in PowerPoint. Without the slide size a lone selection was a
+		// silent no-op behind an enabled button.
+		applyPositionMap(alignElements(selectedElements.value, edge, { slideSize: canvasSize?.value }));
 	}
 	function onDistribute(axis: DistributeAxis): void {
 		applyPositionMap(distributeElements(selectedElements.value, axis));

@@ -126,6 +126,76 @@ describe('eCMA-376 rule validation', () => {
 		expect(result.valid).toBeFalsy();
 	});
 
+	const SHAPE_TREE_CODES = [
+		'MISSING_REQUIRED_ELEMENT',
+		'INVALID_CONTENT_ORDER',
+		'INVALID_SHAPE_TREE',
+		'INVALID_SHAPE_CONTAINER',
+	];
+
+	function shapeTreeCodes(result: Awaited<ReturnType<typeof validatePptx>>): string[] {
+		return codes(result).filter((code) => SHAPE_TREE_CODES.includes(code));
+	}
+
+	/**
+	 * `p:sldLayout` and `p:sldMaster` carry the same `p:cSld` as `p:sld`
+	 * (`CT_CommonSlideData`), so the presence, order and shape-tree rules apply
+	 * to all three roots, not just `ppt/slides/`.
+	 */
+	it('applies the common slide data rules to slide layouts and masters', async () => {
+		const ns = `xmlns:p="${TRANSITIONAL.p}" xmlns:a="${TRANSITIONAL.a}" xmlns:r="${TRANSITIONAL.r}"`;
+		const tree =
+			'<p:spTree><p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/></p:spTree>';
+		const missing = await validatePptx(
+			await packageWith(presentationXml(), {
+				'ppt/slideLayouts/slideLayout1.xml': `<p:sldLayout ${ns}><p:clrMapOvr/></p:sldLayout>`,
+			}),
+		);
+		expect(shapeTreeCodes(missing)).toStrictEqual(['MISSING_REQUIRED_ELEMENT']);
+		expect(missing.issues.find((item) => item.code === 'MISSING_REQUIRED_ELEMENT')?.message).toBe(
+			'<p:sldLayout> must contain <p:cSld>',
+		);
+
+		const misordered = await validatePptx(
+			await packageWith(presentationXml(), {
+				'ppt/slideMasters/slideMaster1.xml': `<p:sldMaster ${ns}><p:cSld>${tree}<p:bg/></p:cSld><p:clrMap/></p:sldMaster>`,
+			}),
+		);
+		expect(shapeTreeCodes(misordered)).toStrictEqual(['INVALID_CONTENT_ORDER']);
+
+		const valid = await validatePptx(
+			await packageWith(presentationXml(), {
+				'ppt/slideMasters/slideMaster1.xml': `<p:sldMaster ${ns}><p:cSld><p:bg/>${tree}</p:cSld><p:clrMap/><p:sldLayoutIdLst/><p:txStyles/></p:sldMaster>`,
+				'ppt/slideLayouts/slideLayout1.xml': `<p:sldLayout ${ns}><p:cSld>${tree}</p:cSld><p:clrMapOvr/><p:hf/></p:sldLayout>`,
+			}),
+		);
+		expect(shapeTreeCodes(valid)).toStrictEqual([]);
+	});
+
+	/**
+	 * `CT_Shape` must begin with `p:nvSpPr`. A `<p:sp>` wrapping a group's
+	 * `p:nvGrpSpPr` is well-formed XML that PowerPoint repairs or rejects; the
+	 * same child under `<p:grpSp>` is the normal group shape and must pass.
+	 */
+	it('rejects a group payload wrapped in a p:sp container', async () => {
+		const ns = `xmlns:p="${TRANSITIONAL.p}" xmlns:a="${TRANSITIONAL.a}"`;
+		const nvGrp = '<p:nvGrpSpPr><p:cNvPr id="2" name="g"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>';
+		const lead = `<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr/>`;
+		const wrapped = await validatePptx(
+			await packageWith(presentationXml(), {
+				'ppt/slides/slide1.xml': `<p:sld ${ns}><p:cSld><p:spTree>${lead}<p:sp>\n ${nvGrp}<p:grpSpPr/></p:sp></p:spTree></p:cSld></p:sld>`,
+			}),
+		);
+		expect(shapeTreeCodes(wrapped)).toStrictEqual(['INVALID_SHAPE_CONTAINER']);
+
+		const grouped = await validatePptx(
+			await packageWith(presentationXml(), {
+				'ppt/slides/slide1.xml': `<p:sld ${ns}><p:cSld><p:spTree>${lead}<p:grpSp>${nvGrp}<p:grpSpPr/></p:grpSp><p:sp><p:nvSpPr><p:cNvPr id="3" name="s"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr/></p:sp></p:spTree></p:cSld></p:sld>`,
+			}),
+		);
+		expect(shapeTreeCodes(grouped)).toStrictEqual([]);
+	});
+
 	it('checks DrawingML colour and extent datatypes', async () => {
 		const theme = `<a:theme xmlns:a="${TRANSITIONAL.a}">
 			<a:themeElements><a:srgbClr val="GG00FF"/><a:ext cx="-1" cy="abc"/></a:themeElements>

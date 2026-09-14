@@ -266,6 +266,26 @@ export function remapTextToSegments(
 		// or end-run properties reserved for an aligned original paragraph.
 		if (!originalParagraph && precedingParagraph) {
 			paraSegments = continueListParagraph(paraSegments, precedingParagraph);
+			const donor = precedingParagraph[0];
+			if (
+				(donor?.paragraphProperties as { alignment?: unknown } | undefined)?.alignment !==
+					undefined &&
+				paraSegments[0]
+			) {
+				paraSegments = [
+					{
+						...paraSegments[0],
+						paragraphLevel: donor.paragraphLevel,
+						paragraphProperties: donor.paragraphProperties,
+					},
+					...paraSegments.slice(1),
+				];
+			}
+		} else if (!originalParagraph && pi === 0 && paraSegments[0]) {
+			const firstOriginal = originalParagraphs[0]?.segments[0];
+			if (firstOriginal?.paragraphLevel !== undefined) {
+				paraSegments = [{ ...paraSegments[0], paragraphLevel: firstOriginal.paragraphLevel }];
+			}
 		}
 		output.push(...paraSegments);
 		precedingParagraph = paraSegments;

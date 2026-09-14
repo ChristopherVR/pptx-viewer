@@ -23,8 +23,12 @@ function positions(segments: readonly TextSegment[]): Array<{
 	let offset = 0;
 	let paragraph = 0;
 	let first = true;
-	return segments.map((segment) => {
+	return segments.map((segment, index) => {
 		const marker = first && isBulletMarkerSegment(segment);
+		const emptyCarrier =
+			marker &&
+			segment.paragraphInsertionStyle &&
+			(!segments[index + 1] || isParagraphBreak(segments[index + 1]));
 		const start = offset;
 		if (!marker) {
 			offset += segment.text.length;
@@ -33,7 +37,7 @@ function positions(segments: readonly TextSegment[]): Array<{
 			start,
 			end: offset,
 			paragraph,
-			editable: !marker && !isParagraphBreak(segment),
+			editable: (!marker || Boolean(emptyCarrier)) && !isParagraphBreak(segment),
 		};
 		first = isParagraphBreak(segment);
 		if (first) {
@@ -46,7 +50,6 @@ function positions(segments: readonly TextSegment[]): Array<{
 function restorePoint(
 	segments: readonly TextSegment[],
 	offset: number,
-	end: boolean,
 ): { index: number; offset: number } {
 	const entries = positions(segments);
 	let fallback = { index: 0, offset: 0 };
@@ -55,7 +58,7 @@ function restorePoint(
 			continue;
 		}
 		fallback = { index, offset: segments[index].text.length };
-		if (end ? offset <= entry.end : offset < entry.end) {
+		if (offset <= entry.end) {
 			return { index, offset: Math.max(0, offset - entry.start) };
 		}
 	}
@@ -96,7 +99,8 @@ export function selectedParagraphBulletKind(
 	selection: InlineTextSelection | null,
 ): ParagraphBulletKind {
 	if (!selection || !hasTextProperties(element) || !element.textSegments) {
-		return elementBulletKind(element);
+		const kind = elementBulletKind(element);
+		return kind === 'mixed' ? 'none' : kind;
 	}
 	let first = selection.startSegIdx;
 	while (first > 0 && !isParagraphBreak(element.textSegments[first - 1])) {
@@ -149,15 +153,15 @@ export function applyListStyleUpdate(
 	const lastSelected = [...entries].reverse().find((entry) => entry.start < endOffset);
 	const patch = setElementBullets(working, listType, {
 		startParagraph: startEntry.paragraph,
-		endParagraph: lastSelected?.paragraph ?? endEntry.paragraph,
+		endParagraph: Math.max(startEntry.paragraph, lastSelected?.paragraph ?? endEntry.paragraph),
 	});
 	const next = { ...working, ...patch };
 	const nextSegments = hasTextProperties(next) ? next.textSegments : undefined;
 	if (!nextSegments) {
 		return { patch, selection: null };
 	}
-	const start = restorePoint(nextSegments, startOffset, false);
-	const end = restorePoint(nextSegments, endOffset, true);
+	const start = restorePoint(nextSegments, startOffset);
+	const end = restorePoint(nextSegments, endOffset);
 	return {
 		patch,
 		selection: {

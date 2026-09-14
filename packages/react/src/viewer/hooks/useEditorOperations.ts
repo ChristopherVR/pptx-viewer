@@ -241,6 +241,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		selectedElementIdSet: state.selectedElementIdSet,
 		elementLookup: state.elementLookup,
 		editTemplateMode: state.editTemplateMode,
+		canvasSize,
 		clipboardPayload: state.clipboardPayload,
 		setClipboardPayload: state.setClipboardPayload,
 		setSelectedElementIds: state.setSelectedElementIds,

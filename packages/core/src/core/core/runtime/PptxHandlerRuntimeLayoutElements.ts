@@ -267,6 +267,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			const allElements = [...masterElements, ...elements];
 
+			// These objects are handed to EVERY slide on this layout and share one
+			// `rawXml` node each. Remember how they looked as parsed so the save
+			// writer can tell an edited copy from a sibling slide's untouched one.
+			this.templateElementBaselines.recordBaselines(allElements);
 			this.layoutCache.set(layoutPath, allElements);
 			return allElements;
 		} catch (e) {

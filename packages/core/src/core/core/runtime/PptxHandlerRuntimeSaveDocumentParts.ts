@@ -11,9 +11,9 @@ import type {
 } from '../../types';
 import {
 	applySmartArtLayoutDefinition,
+	containsConvertibleStrictNamespaceAttribute,
 	convertXmlToStrict,
 	decomposeSmartArt,
-	isTransitionalNamespaceUri,
 } from '../../utils';
 import { writeCustomerDataScopes } from '../../utils/customer-data-package';
 import type { CustomerDataScope } from '../../utils/customer-data-package';
@@ -929,12 +929,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// needless reparse/rebuild cycle rather than reformatting the part
 			// (self-closing tags, whitespace, attribute quoting) for no reason.
 			const isPresentationXml = path === 'ppt/presentation.xml';
-			if (!isPresentationXml) {
-				const candidateUris = xmlText.match(/https?:\/\/[^"'<>\s]+/gu);
-				const hasConvertibleUri = candidateUris?.some((uri) => isTransitionalNamespaceUri(uri));
-				if (!hasConvertibleUri) {
-					continue;
-				}
+			if (!isPresentationXml && !containsConvertibleStrictNamespaceAttribute(xmlText)) {
+				continue;
 			}
 
 			try {

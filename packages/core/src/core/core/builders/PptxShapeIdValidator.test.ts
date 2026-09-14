@@ -182,4 +182,113 @@ describe('pptxShapeIdValidator', () => {
 		const uniqueIds = new Set(ids);
 		expect(uniqueIds.size).toBe(3);
 	});
+
+	it('remaps a connector endpoint bound to a reassigned duplicate id', () => {
+		// Pasting a shape together with a connector that targets it clones both
+		// with the same id. Deduplicating the shape without also updating the
+		// connector's `a:stCxn`/`a:endCxn` reference detaches the connector's
+		// endpoint from the very shape it was pasted with.
+		const spTree: XmlObject = {
+			'p:sp': [
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '2', '@_name': 'Shape 1' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '2', '@_name': 'Pasted shape' } } },
+			],
+			'p:cxnSp': {
+				'p:nvCxnSpPr': {
+					'p:cNvPr': { '@_id': '3', '@_name': 'Connector 1' },
+					'p:cNvCxnSpPr': {
+						'a:stCxn': { '@_id': '2', '@_idx': '0' },
+						'a:endCxn': { '@_id': '99', '@_idx': '2' },
+					},
+				},
+			},
+		};
+		const result = validator.validateAndDeduplicateIds(spTree, ensureArray);
+		expect(result).toBe(1);
+
+		const shapes = spTree['p:sp'] as XmlObject[];
+		const reassignedId = (shapes[1]['p:nvSpPr'] as XmlObject)['p:cNvPr']['@_id'];
+		expect(reassignedId).not.toBe('2');
+
+		const cxnSp = spTree['p:cxnSp'] as XmlObject;
+		const cNvCxnSpPr = (cxnSp['p:nvCxnSpPr'] as XmlObject)['p:cNvCxnSpPr'] as XmlObject;
+		// The connector was pasted alongside the duplicate, so its stCxn
+		// reference follows the reassignment; the untouched endCxn (bound to an
+		// id no shape in this tree carries) is left alone.
+		expect((cNvCxnSpPr['a:stCxn'] as XmlObject)['@_id']).toBe(reassignedId);
+		expect((cNvCxnSpPr['a:endCxn'] as XmlObject)['@_id']).toBe('99');
+	});
+
+	const idsOf = (spTree: XmlObject): string[] =>
+		(spTree['p:sp'] as XmlObject[]).map((s) =>
+			String((s['p:nvSpPr'] as XmlObject)['p:cNvPr']['@_id']),
+		);
+
+	it('treats an out-of-range id as invalid rather than as the running maximum', () => {
+		// `ST_DrawingElementId` is a UInt32. A timestamp-sized id used to be
+		// accepted as the "max so far" and every later reassignment was
+		// incremented from it, writing more schema-invalid ids.
+		const spTree: XmlObject = {
+			'p:sp': [
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '1788524999615', '@_name': 'Stamped' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '4', '@_name': 'Fine' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '4', '@_name': 'Duplicate' } } },
+			],
+		};
+		expect(validator.validateAndDeduplicateIds(spTree, ensureArray)).toBe(2);
+		expect(idsOf(spTree)).toStrictEqual(['5', '4', '6']);
+	});
+
+	it('reassigns non-integer, negative, decimal and 4294967296 ids', () => {
+		const spTree: XmlObject = {
+			'p:sp': [
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': 'abc' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '-3' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '2.5' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '4294967296' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '7' } } },
+			],
+		};
+		expect(validator.validateAndDeduplicateIds(spTree, ensureArray)).toBe(4);
+		expect(idsOf(spTree)).toStrictEqual(['8', '9', '10', '11', '7']);
+	});
+
+	it('keeps the UInt32 ceiling and wraps into free gaps once it is reached', () => {
+		const spTree: XmlObject = {
+			'p:sp': [
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '4294967295' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '4294967295' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '1' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '0' } } },
+			],
+		};
+		expect(validator.validateAndDeduplicateIds(spTree, ensureArray)).toBe(2);
+		expect(idsOf(spTree)).toStrictEqual(['4294967295', '2', '1', '3']);
+	});
+
+	it('returns the reassignment map and remaps timing targets under the reference root', () => {
+		const spTree: XmlObject = {
+			'p:sp': [
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '2' } } },
+				{ 'p:nvSpPr': { 'p:cNvPr': { '@_id': '2' } } },
+			],
+		};
+		const root: XmlObject = {
+			'p:cSld': { 'p:spTree': spTree },
+			'p:timing': { 'p:tgtEl': { 'p:spTgt': { '@_spid': '2' } }, 'p:cTn': { '@_id': '2' } },
+		};
+		const result = validator.repairShapeIds(spTree, ensureArray, root);
+		expect(result.reassigned).toBe(1);
+		expect(Array.from(result.ids.entries())).toStrictEqual([['2', '3']]);
+		const timing = root['p:timing'] as XmlObject;
+		expect(((timing['p:tgtEl'] as XmlObject)['p:spTgt'] as XmlObject)['@_spid']).toBe('3');
+		expect((timing['p:cTn'] as XmlObject)['@_id']).toBe('2');
+	});
+
+	it('does not record a missing id as a remappable key', () => {
+		const spTree: XmlObject = { 'p:sp': [{ 'p:nvSpPr': { 'p:cNvPr': { '@_name': 'No id' } } }] };
+		const result = validator.repairShapeIds(spTree, ensureArray);
+		expect(result.reassigned).toBe(1);
+		expect(result.ids.size).toBe(0);
+	});
 });

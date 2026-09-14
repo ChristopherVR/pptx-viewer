@@ -193,6 +193,19 @@ export const FONT_SUBSTITUTION_MAP: Record<string, readonly string[]> = {
 	// fallbacks must stay condensed, or short numeric labels sized to the
 	// narrow face overflow their text boxes and wrap (issue #132, "77%").
 	'Bebas Neue': ['Oswald', 'Arial Narrow', 'Impact', 'sans-serif'],
+	// Office stores named Source Sans weights as separate family names (e.g. a
+	// theme authored with "Source Sans Pro ExtraLight" as its own face), while
+	// Google Fonts and most local installs expose the base family with a
+	// weight axis instead. Keep the authored face first for a browser that
+	// does have it installed under that exact name, then fall back to the
+	// metrically compatible base family before generic sans-serif.
+	'Source Sans Pro ExtraLight': [
+		'Source Sans Pro',
+		'Calibri Light',
+		'Segoe UI Light',
+		'Arial',
+		'sans-serif',
+	],
 	'Century Gothic': ['URW Gothic', 'Futura', 'sans-serif'],
 	Oswald: ['Agency FB', 'Arial Narrow', 'sans-serif'],
 	'Franklin Gothic': ['Liberation Sans', 'Helvetica Neue', 'sans-serif'],

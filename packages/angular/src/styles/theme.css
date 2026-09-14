@@ -70,6 +70,11 @@
  * is pinned by `theme-tokens.test.ts`.
  */
 .pptx-ng-viewer {
+	/* Text autosizing: the viewer scales the whole slide as one unit, so a
+	 * mobile browser must not inflate the glyphs alone (it changes wrapping
+	 * and clips text). Mirrors the React `theme.css` rule. */
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
 	--pptx-inspector-bg: var(--pptx-card, #1e1e1e);
 	--pptx-inspector-fg: var(--pptx-card-foreground, #e0e0e0);
 	--pptx-inspector-border: var(--pptx-border, #444);

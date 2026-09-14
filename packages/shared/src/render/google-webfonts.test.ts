@@ -52,6 +52,14 @@ describe('collectReferencedFontFamilies', () => {
 		expect([...collectReferencedFontFamilies([slide(group)])]).toStrictEqual(['ADLaM Display']);
 	});
 
+	it('counts an element-level fontFamily on segment-less text', () => {
+		const bodyStyled = {
+			type: 'text',
+			textStyle: { fontFamily: 'Roboto' },
+		} as unknown as PptxElement;
+		expect([...collectReferencedFontFamilies([slide(bodyStyled)])]).toStrictEqual(['Roboto']);
+	});
+
 	it('skips segments without a family and empty decks', () => {
 		expect(collectReferencedFontFamilies([slide(textEl())]).size).toBe(0);
 		expect(collectReferencedFontFamilies([]).size).toBe(0);

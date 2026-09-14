@@ -4,17 +4,22 @@ import { strokeToFreeformShape } from './editor-freeform';
 
 /**
  * `strokeToFreeformShape` tests: the Draw tab's Freeform tool turns a stroke
- * into a closed custom-geometry SHAPE (fillable, outline-styleable, reshapeable)
+ * into a custom-geometry SHAPE (fillable, outline-styleable, reshapeable)
  * rather than into ink markup, which is the whole reason the tool exists
- * separately from the pen.
+ * separately from the pen. The path is closed only when the stroke ends back
+ * on its start point, as PowerPoint's Freeform/Scribble does.
  */
 
-const SQUARE = [
+/** Three sides of a square: the stroke ends 20px from where it started. */
+const OPEN_SQUARE = [
 	{ x: 10, y: 10 },
 	{ x: 30, y: 10 },
 	{ x: 30, y: 30 },
 	{ x: 10, y: 30 },
 ];
+
+/** The same square with the stroke brought back to (near) its start point. */
+const SQUARE = [...OPEN_SQUARE, { x: 11, y: 12 }];
 
 describe('strokeToFreeformShape', () => {
 	it('discards a tap', () => {
@@ -38,11 +43,22 @@ describe('strokeToFreeformShape', () => {
 		expect(shape?.height).toBe(28);
 	});
 
-	it('opens with a moveTo, continues with lineTo, and closes the path', () => {
+	it('closes the path when the stroke ends back on its start point', () => {
 		const segments = strokeToFreeformShape(SQUARE, '#000000', 1)?.customGeometryPaths?.[0].segments;
 		expect(segments?.[0].type).toBe('moveTo');
 		expect(segments?.slice(1, -1).every((segment) => segment.type === 'lineTo')).toBeTruthy();
 		expect(segments?.at(-1)?.type).toBe('close');
+	});
+
+	it('leaves a stroke that trails off OPEN: no straight edge back to the start', () => {
+		const segments = strokeToFreeformShape(OPEN_SQUARE, '#000000', 1)?.customGeometryPaths?.[0]
+			.segments;
+		expect(segments?.map((segment) => segment.type)).toStrictEqual([
+			'moveTo',
+			'lineTo',
+			'lineTo',
+			'lineTo',
+		]);
 	});
 
 	it('leaves a two-point stroke open, since closing a line means nothing', () => {

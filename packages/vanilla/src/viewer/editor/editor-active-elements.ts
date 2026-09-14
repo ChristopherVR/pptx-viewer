@@ -1,5 +1,9 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { masterViewElements, replaceMasterViewElements } from 'pptx-viewer-shared';
+import {
+	isTemplateElementId,
+	masterViewElements,
+	replaceMasterViewElements,
+} from 'pptx-viewer-shared';
 import type { MasterViewDocument, MasterViewTarget } from 'pptx-viewer-shared';
 
 import type { ViewerState } from '../state';
@@ -39,6 +43,35 @@ export function getActiveElements(state: ViewerState): PptxElement[] {
 	return state.editTemplateMode
 		? (state.templateElementsBySlideId[slide.id] ?? [])
 		: slide.elements;
+}
+
+/**
+ * The element collection that OWNS `elementId`. Slide elements stay selectable
+ * while edit-template mode is on, so resolving the store from the mode flag
+ * handed a slide element's z-order op the template store, where it does not
+ * exist, and the command silently did nothing.
+ */
+export function getElementsOwning(state: ViewerState, elementId: string): PptxElement[] {
+	if (masterViewOf(state) || !state.editTemplateMode || isTemplateElementId(elementId)) {
+		return getActiveElements(state);
+	}
+	return state.slides[state.currentSlide]?.elements ?? [];
+}
+
+/** Replace the element collection that owns `elementId` (see {@link getElementsOwning}). */
+export function replaceElementsOwning(
+	state: ViewerState,
+	elementId: string,
+	elements: PptxElement[],
+): ReturnType<typeof replaceActiveElements> {
+	if (masterViewOf(state) || !state.editTemplateMode || isTemplateElementId(elementId)) {
+		return replaceActiveElements(state, elements);
+	}
+	return {
+		slides: state.slides.map((item, index): PptxSlide =>
+			index === state.currentSlide ? { ...item, elements } : item,
+		),
+	};
 }
 
 /** Replace the active element collection in its slide or template store. */

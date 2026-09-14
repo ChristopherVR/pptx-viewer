@@ -13,9 +13,10 @@
 	 * (`editor-ink-gesture.ts`); this tab only edits tool/colour/width state,
 	 * matching the thin-presentation split every other ribbon tab follows.
 	 *
-	 * Freeform shares the pen's gesture but commits a closed custom-geometry
-	 * `shape` instead of an `ink` stroke, so the result can be filled, outlined
-	 * and reshaped like any other shape afterwards (`editor-freeform.ts`).
+	 * Freeform shares the pen's gesture but commits a custom-geometry `shape`
+	 * instead of an `ink` stroke (closed only when the stroke ends back on its
+	 * start point), so the result can be filled, outlined and reshaped like any
+	 * other shape afterwards (`editor-freeform.ts`).
 	 */
 	import { useTranslator } from '../../../../i18n/context';
 	import type { InkDrawTool } from '../../../editor/editor-ink-controller.svelte';

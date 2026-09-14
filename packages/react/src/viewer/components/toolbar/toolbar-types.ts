@@ -165,6 +165,8 @@ export interface ToolbarProps {
 	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
 	onOpenOutlineView: () => void;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Bullets / Numbering for the selected text element (shared paragraph bullet toggle). */
+	onToggleBullets: (kind: 'bullet' | 'numbered') => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;
 	isOverflowMenuOpen: boolean;

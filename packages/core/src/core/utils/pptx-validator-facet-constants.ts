@@ -2,29 +2,32 @@
  * Colour-transform percentage facets, per ECMA-376 Part 1 `EG_ColorTransform`
  * (§20.1.2.3.x) and the simple types in §20.1.10.
  *
- * The three sets below are NOT interchangeable, and getting them wrong makes
+ * The four sets below are NOT interchangeable, and getting them wrong makes
  * the validator reject genuine PowerPoint output. Only the members of
- * {@link POSITIVE_PERCENT} are capped at 100000; the members of
- * {@link UNBOUNDED_PERCENT} are `CT_Percentage`, whose `ST_Percentage` value
- * space is the full signed integer range. PowerPoint's own default Office
- * theme emits `<a:satMod val="300000"/>` (300 percent) in its gradient fills
- * and `<a:lumMod val="110000"/>` in its chart styles, so capping those at
- * 100000 fails every real deck: it fired 695 times across 32 of the 37
- * readable fixtures in this repo, including all five PowerPoint-COM-authored
- * corpus decks.
+ * {@link POSITIVE_FIXED_PERCENT} and {@link FIXED_PERCENT} carry a 100000
+ * ceiling. {@link POSITIVE_PERCENT} (`ST_PositivePercentage`) has a lower
+ * bound of 0 and NO upper bound, and the members of {@link UNBOUNDED_PERCENT}
+ * are `CT_Percentage`, whose `ST_Percentage` value space is the full signed
+ * integer range. PowerPoint's own default Office theme emits
+ * `<a:satMod val="300000"/>` (300 percent) in its gradient fills and
+ * `<a:lumMod val="110000"/>` in its chart styles, so capping those at 100000
+ * fails every real deck: it fired 695 times across 32 of the 37 readable
+ * fixtures in this repo, including all five PowerPoint-COM-authored corpus
+ * decks.
  */
 
-/** `CT_PositiveFixedPercentage`: 0 through 100000 inclusive. */
-export const POSITIVE_PERCENT = new Set(['alpha', 'tint', 'shade']);
+/** `CT_PositiveFixedPercentage` (`ST_PositiveFixedPercentage`): 0 through 100000 inclusive. */
+export const POSITIVE_FIXED_PERCENT = new Set(['alpha', 'tint', 'shade']);
 
-/** `CT_FixedPercentage`: -100000 through 100000 inclusive. */
+/** `CT_FixedPercentage` (`ST_FixedPercentage`): -100000 through 100000 inclusive. */
 export const FIXED_PERCENT = new Set(['alphaOff']);
 
 /**
- * `CT_PositivePercentage`: 0 through the `xsd:int` maximum. A modulation is a
- * multiplier, so values above 100 percent are ordinary and expected.
+ * `CT_PositivePercentage` (`ST_PositivePercentage`): 0 through the `xsd:int`
+ * maximum. A modulation is a multiplier, so values above 100 percent are
+ * ordinary and expected.
  */
-export const POSITIVE_UNBOUNDED_PERCENT = new Set(['alphaMod', 'hueMod']);
+export const POSITIVE_PERCENT = new Set(['alphaMod', 'hueMod']);
 
 /**
  * `CT_Percentage`: the full signed `xsd:int` range. Every saturation,

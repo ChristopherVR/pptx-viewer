@@ -2,19 +2,17 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import {
 	applyListStyleUpdate,
+	applyTextStyleUpdate,
 	applyActiveInlineListFormatting,
 	buildInlineListStylePatch,
 	getInlineEditorSelectionResult,
 	transformInlineListCase,
 	remapTextToSegments,
-	updateTextSegmentStyle,
+	toggleSelectionBullets,
 } from 'pptx-viewer-shared';
 import { useCallback } from 'react';
 
-import {
-	applyStyleToSelectedSegments,
-	setPendingSelectionRestore,
-} from '../utils/inline-selection-utils';
+import { setPendingSelectionRestore } from '../utils/inline-selection-utils';
 import { applyCaseTransformToSegments, transformTextCase } from '../utils/text-case-transform';
 import type { ChangeCaseMode } from '../utils/text-case-transform';
 import type { UseElementOperationsInput } from './useElementOperations';
@@ -80,7 +78,8 @@ export function useTextElementOperations(input: TextOperationsInput) {
 			const selectionResult = getInlineEditorSelectionResult(currentSegments);
 			if (
 				selectionResult.kind === 'unsupported' ||
-				(selectionResult.snapshot && selectionResult.snapshot.elementId !== selectedElement.id)
+				(selectionResult.snapshot &&
+					(!isLiveEditing || selectionResult.snapshot.elementId !== selectedElement.id))
 			) {
 				return;
 			}
@@ -127,28 +126,17 @@ export function useTextElementOperations(input: TextOperationsInput) {
 				});
 				return;
 			}
-			if (inlineSel && currentSegments) {
-				// Apply formatting only to the selected segment range
-				const { newSegments, newSelection } = applyStyleToSelectedSegments(
-					currentSegments,
-					inlineSel,
-					updates,
-				);
-				// Store restore info so InlineTextEditor can restore the cursor
+			const { patch, newSelection } = applyTextStyleUpdate(
+				selectedElement,
+				updates,
+				inlineSel,
+				currentSegments,
+			);
+			if (newSelection) {
 				setPendingSelectionRestore(newSelection);
-				updateSelectedElement({
-					textSegments: newSegments,
-					...(isLiveEditing ? { text: inlineEditingText } : {}),
-				} as Partial<PptxElement>);
-				return;
 			}
-
-			// No inline selection: apply to the entire element (existing behavior)
-			const newTextStyle = { ...selectedElement.textStyle, ...updates };
-			const newSegments = currentSegments?.map((seg) => updateTextSegmentStyle(seg, updates));
 			updateSelectedElement({
-				textStyle: newTextStyle,
-				textSegments: newSegments,
+				...patch,
 				...(isLiveEditing ? { text: inlineEditingText } : {}),
 			} as Partial<PptxElement>);
 		},
@@ -158,6 +146,63 @@ export function useTextElementOperations(input: TextOperationsInput) {
 			inlineEditingElementId,
 			inlineEditingText,
 			liveTextSegments,
+		],
+	);
+
+	const toggleSelectedBullets = useCallback(
+		(kind: 'bullet' | 'numbered') => {
+			if (!selectedElement || !hasTextProperties(selectedElement)) {
+				return;
+			}
+			const currentSegments = liveTextSegments();
+			const result = getInlineEditorSelectionResult(currentSegments);
+			if (
+				result.kind === 'unsupported' ||
+				(result.snapshot &&
+					(selectedElement.id !== inlineEditingElementId ||
+						result.snapshot.elementId !== selectedElement.id))
+			) {
+				return;
+			}
+			const draft = result.snapshot;
+			const { patch, newSelection } = toggleSelectionBullets(
+				selectedElement,
+				kind,
+				result.selection,
+				draft?.textSegments ?? currentSegments,
+			);
+			if (draft) {
+				if (!('textSegments' in patch) || !patch.textSegments) {
+					return;
+				}
+				const formatted = applyActiveInlineListFormatting({
+					...draft,
+					textSegments: patch.textSegments,
+				});
+				if (formatted?.kind !== 'supported') {
+					return;
+				}
+				updateSelectedElement({
+					...patch,
+					text: draft.text,
+					textSegments: formatted.snapshot.textSegments,
+				} as Partial<PptxElement>);
+				return;
+			}
+			if (newSelection) {
+				setPendingSelectionRestore(newSelection);
+			}
+			updateSelectedElement({
+				...patch,
+				...(selectedElement.id === inlineEditingElementId ? { text: inlineEditingText } : {}),
+			} as Partial<PptxElement>);
+		},
+		[
+			selectedElement,
+			liveTextSegments,
+			updateSelectedElement,
+			inlineEditingElementId,
+			inlineEditingText,
 		],
 	);
 
@@ -172,7 +217,8 @@ export function useTextElementOperations(input: TextOperationsInput) {
 			const selectionResult = getInlineEditorSelectionResult(currentSegments);
 			if (
 				selectionResult.kind === 'unsupported' ||
-				(selectionResult.snapshot && selectionResult.snapshot.elementId !== selectedElement.id)
+				(selectionResult.snapshot &&
+					(!isLiveEditing || selectionResult.snapshot.elementId !== selectedElement.id))
 			) {
 				return;
 			}
@@ -223,5 +269,5 @@ export function useTextElementOperations(input: TextOperationsInput) {
 		],
 	);
 
-	return { updateSelectedTextStyle, updateSelectedTextCase };
+	return { updateSelectedTextStyle, updateSelectedTextCase, toggleSelectedBullets };
 }

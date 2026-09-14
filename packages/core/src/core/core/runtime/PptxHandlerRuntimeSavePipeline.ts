@@ -7,7 +7,7 @@ import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
 import { applyHeaderFooterToMaster } from './header-footer-parts';
 import { slidesPerPageToPrintOutput } from './pptx-print-properties';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveLegacyPpt';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveStructuralIds';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
@@ -64,9 +64,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Process each slide (this may embed new media files that register
 		// extensions in usedMediaPaths, so content-types must be updated after).
+		this.templateElementBaselines.beginSave();
 		for (const slide of slides) {
 			await this.processSlideForSave(slide, saveSession, saveConstants);
 		}
+		// The layout/master parts patched above are flushed further down; from
+		// here on the copies written this save are what those parts hold.
+		this.templateElementBaselines.commitSave();
 
 		// Update [Content_Types].xml with slide overrides and media Defaults.
 		// This runs AFTER slide processing so that newly-embedded media (e.g. a
@@ -302,6 +306,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const outputFormat = options?.outputFormat ?? 'pptx';
 		await this.applyOutputFormatOverrides(outputFormat);
+		await this.repairStructuralIdsBeforeExport(slides);
 
 		// ── Strict conformance conversion ────────────────────────
 		// If the effective conformance is Strict, we need to convert all

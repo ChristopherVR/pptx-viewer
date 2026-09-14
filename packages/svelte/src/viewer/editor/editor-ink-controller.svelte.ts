@@ -15,9 +15,10 @@ import type { EditorState } from './editor-state.svelte';
  * stage's normal selection/drag/resize gestures own the pointer, matching
  * React's `DrawingTool` / Angular's `DrawTool`.
  *
- * `freeform` shares the pen's gesture but commits a closed custom-geometry
- * SHAPE rather than an ink stroke, so the result is editable/fillable like any
- * other shape; see `editor-freeform.ts`.
+ * `freeform` shares the pen's gesture but commits a custom-geometry SHAPE
+ * rather than an ink stroke (closed only when the stroke ends back on its
+ * start point), so the result is editable/fillable like any other shape; see
+ * `editor-freeform.ts`.
  */
 export type InkDrawTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';
 
@@ -112,7 +113,7 @@ export class EditorInkController {
 	 * Finalise the in-progress stroke (undoable via `EditorState.insertElement`),
 	 * or discard it silently when too short (a plain tap) or the tool changed
 	 * mid-gesture. Pen/highlighter commit an `ink` element; freeform commits a
-	 * closed custom-geometry `shape`.
+	 * custom-geometry `shape` (closed only when the stroke returns to its start).
 	 */
 	commitStroke(points: readonly InkPoint[]): void {
 		this.livePathD = '';

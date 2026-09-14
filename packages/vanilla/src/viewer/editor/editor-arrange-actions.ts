@@ -10,7 +10,12 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { getActiveElements, replaceActiveElements } from './editor-active-elements';
+import {
+	getActiveElements,
+	getElementsOwning,
+	replaceActiveElements,
+	replaceElementsOwning,
+} from './editor-active-elements';
 import type { ApplyToSelected } from './editor-apply-to-selected';
 import {
 	alignSelection,
@@ -55,15 +60,17 @@ export function createArrangeActions(deps: ArrangeActionsDeps): ArrangeActions {
 	const reorder = (transform: (els: readonly PptxElement[], id: string) => PptxElement[]): void => {
 		const state = store.get();
 		const id = state.selectedElementId;
-		const elements = getActiveElements(state);
-		if (!state.editable || !id || !elements) {
+		if (!state.editable || !id) {
 			return;
 		}
+		// Route by the element's own store, not the edit-template flag: a slide
+		// element selected while template editing is on lives in the slide list.
+		const elements = getElementsOwning(state, id);
 		if (transform(elements, id) === elements) {
 			return;
 		}
 		ops.pushHistory();
-		store.set(replaceActiveElements(state, transform(elements, id)));
+		store.set(replaceElementsOwning(state, id, transform(elements, id)));
 		ops.commitChange();
 	};
 

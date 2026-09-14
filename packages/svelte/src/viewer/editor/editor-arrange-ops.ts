@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
+import type { AlignEdge, AlignSlideSize, DistributeAxis } from 'pptx-viewer-shared';
 import {
 	alignElements,
 	canInteractWithElement,
@@ -21,17 +21,22 @@ import {
  * reads (mirrors `editor-mutations.ts` / `editor-zorder.ts`).
  */
 
-/** Align every selected element to a common edge (needs >= 2 ids). Null when a no-op. */
+/**
+ * Align every selected element to a common edge. Two or more ids align to
+ * each other; a single id aligns to the slide when `slideSize` is supplied
+ * (PowerPoint's default for a lone object). Null when a no-op.
+ */
 export function alignSelectedOnSlide(
 	slides: readonly PptxSlide[],
 	slideIndex: number,
 	ids: readonly string[],
 	edge: AlignEdge,
+	slideSize?: AlignSlideSize,
 ): PptxSlide[] | null {
 	let changed = false;
 	const next = mapSlideElements(slides, slideIndex, (elements) => {
 		const targets = elements.filter((el) => ids.includes(el.id));
-		const positions = alignElements(targets, edge);
+		const positions = alignElements(targets, edge, { slideSize });
 		if (positions.size === 0) {
 			return elements;
 		}
