@@ -34,12 +34,52 @@
 		"./internals": {
 			"types": "./types/pptx-angular-viewer.d.ts",
 			"default": "./fesm2022/pptx-angular-viewer.mjs"
+		},
+		"./i18n/fr": {
+			"import": {
+				"types": "./i18n/fr.d.mts",
+				"default": "./i18n/fr.mjs"
+			},
+			"require": {
+				"types": "./i18n/fr.d.cts",
+				"default": "./i18n/fr.cjs"
+			}
+		},
+		"./i18n/es": {
+			"import": {
+				"types": "./i18n/es.d.mts",
+				"default": "./i18n/es.mjs"
+			},
+			"require": {
+				"types": "./i18n/es.d.cts",
+				"default": "./i18n/es.cjs"
+			}
+		},
+		"./i18n/de": {
+			"import": {
+				"types": "./i18n/de.d.mts",
+				"default": "./i18n/de.mjs"
+			},
+			"require": {
+				"types": "./i18n/de.d.cts",
+				"default": "./i18n/de.cjs"
+			}
+		},
+		"./i18n/zh-CN": {
+			"import": {
+				"types": "./i18n/zh-CN.d.mts",
+				"default": "./i18n/zh-CN.mjs"
+			},
+			"require": {
+				"types": "./i18n/zh-CN.d.cts",
+				"default": "./i18n/zh-CN.cjs"
+			}
 		}
 	},
 	"scripts": {
 		"inline-shared": "node ./scripts/inline-shared.mjs",
 		"finalize-dist": "node ./scripts/finalize-dist.mjs",
-		"build": "bun run inline-shared && ng-packagr -p ng-package.json -c tsconfig.lib.json && bun run finalize-dist && bun run build:css",
+		"build": "bun run inline-shared && ng-packagr -p ng-package.json -c tsconfig.lib.json && bun run finalize-dist && bun run build:css && node ../locales/scripts/copy-subpaths.mjs",
 		"build:css": "tailwindcss -i src/styles/pptx-angular-viewer.css -o dist/pptx-angular-viewer.css --minify",
 		"dev": "bun run inline-shared && ng-packagr -p ng-package.json -c tsconfig.lib.json --watch",
 		"typecheck": "bun run inline-shared && tsc --noEmit -p tsconfig.lib.json",

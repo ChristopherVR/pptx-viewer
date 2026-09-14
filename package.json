@@ -56,7 +56,8 @@
 		"e2e:ui": "playwright test --ui",
 		"docs:screenshots": "playwright test --config=playwright.capture.config.ts e2e/capture-user-guide-assets.spec.ts e2e/capture-user-guide-gifs.spec.ts",
 		"prepare": "husky",
-		"test:scripts": "node --test scripts/*.test.mjs"
+		"test:scripts": "node --test scripts/*.test.mjs",
+		"test:locale-subpaths": "node scripts/check-locale-subpaths.mjs"
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.47",

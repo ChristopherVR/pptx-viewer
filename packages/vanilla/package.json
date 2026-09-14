@@ -44,10 +44,50 @@
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
 		},
-		"./styles.css": "./dist/styles.css"
+		"./styles.css": "./dist/styles.css",
+		"./i18n/fr": {
+			"import": {
+				"types": "./dist/i18n/fr.d.mts",
+				"default": "./dist/i18n/fr.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/fr.d.cts",
+				"default": "./dist/i18n/fr.cjs"
+			}
+		},
+		"./i18n/es": {
+			"import": {
+				"types": "./dist/i18n/es.d.mts",
+				"default": "./dist/i18n/es.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/es.d.cts",
+				"default": "./dist/i18n/es.cjs"
+			}
+		},
+		"./i18n/de": {
+			"import": {
+				"types": "./dist/i18n/de.d.mts",
+				"default": "./dist/i18n/de.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/de.d.cts",
+				"default": "./dist/i18n/de.cjs"
+			}
+		},
+		"./i18n/zh-CN": {
+			"import": {
+				"types": "./dist/i18n/zh-CN.d.mts",
+				"default": "./dist/i18n/zh-CN.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/zh-CN.d.cts",
+				"default": "./dist/i18n/zh-CN.cjs"
+			}
+		}
 	},
 	"scripts": {
-		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && bun scripts/build-styles.ts",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && bun scripts/build-styles.ts && node ../locales/scripts/copy-subpaths.mjs",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
 		"test": "vitest run",

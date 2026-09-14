@@ -281,6 +281,20 @@ Two caveats if you go this route:
   of the same wiring rather than calling `createViewerState` itself, so treat
   the factory as accurate-today rather than the single source of truth yet.
 
+## Reference translations
+
+Optional French, Spanish, German, and Simplified Chinese dictionaries ship with
+this package. Import only the language you need:
+
+```ts
+import { translationsZhCN } from 'pptx-svelte-viewer/i18n/zh-CN';
+```
+
+The other subpaths are `i18n/fr` (`translationsFr`), `i18n/es`
+(`translationsEs`), and `i18n/de` (`translationsDe`). See the
+[localization guide](https://christophervr.github.io/pptx-viewer/guide/localization)
+for registration and runtime switching. Existing English imports are unchanged.
+
 ## License
 
 Apache-2.0. See `LICENSE` and `NOTICE`.

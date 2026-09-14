@@ -54,10 +54,50 @@
 			"import": "./dist/i18n.js"
 		},
 		"./styles": "./dist/pptx-svelte-viewer.css",
-		"./styles.css": "./dist/pptx-svelte-viewer.css"
+		"./styles.css": "./dist/pptx-svelte-viewer.css",
+		"./i18n/fr": {
+			"import": {
+				"types": "./dist/i18n/fr.d.mts",
+				"default": "./dist/i18n/fr.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/fr.d.cts",
+				"default": "./dist/i18n/fr.cjs"
+			}
+		},
+		"./i18n/es": {
+			"import": {
+				"types": "./dist/i18n/es.d.mts",
+				"default": "./dist/i18n/es.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/es.d.cts",
+				"default": "./dist/i18n/es.cjs"
+			}
+		},
+		"./i18n/de": {
+			"import": {
+				"types": "./dist/i18n/de.d.mts",
+				"default": "./dist/i18n/de.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/de.d.cts",
+				"default": "./dist/i18n/de.cjs"
+			}
+		},
+		"./i18n/zh-CN": {
+			"import": {
+				"types": "./dist/i18n/zh-CN.d.mts",
+				"default": "./dist/i18n/zh-CN.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/zh-CN.d.cts",
+				"default": "./dist/i18n/zh-CN.cjs"
+			}
+		}
 	},
 	"scripts": {
-		"build": "vite build && rollup -c rollup.dts.config.mjs && node ../../scripts/merge-declarations.mjs .types-bundle",
+		"build": "vite build && rollup -c rollup.dts.config.mjs && node ../../scripts/merge-declarations.mjs .types-bundle && node ../locales/scripts/copy-subpaths.mjs",
 		"dev": "vite build --watch",
 		"typecheck": "svelte-check --tsconfig ./tsconfig.json",
 		"test": "vitest run",

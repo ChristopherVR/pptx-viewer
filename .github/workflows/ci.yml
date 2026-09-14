@@ -118,7 +118,7 @@ jobs:
         run: bun install
 
       # Foundation packages: hard failure if any of these break.
-      # pptx-viewer-locales is demo-support: every demo app imports it, so the
+      # pptx-viewer-locales supplies the published locale subpaths and demos, so the
       # e2e web servers 500 on startup when its dist is missing from the
       # artifact.
       - name: Build foundation packages
@@ -132,27 +132,37 @@ jobs:
       # Framework bindings: each can fail independently without blocking others.
       - name: Build React
         id: build-react
-        run: bun run --filter 'pptx-react-viewer' build
+        run: |
+          bun run --filter 'pptx-react-viewer' build
+          bun run test:locale-subpaths react
         continue-on-error: true
 
       - name: Build Vue
         id: build-vue
-        run: bun run --filter 'pptx-vue-viewer' build
+        run: |
+          bun run --filter 'pptx-vue-viewer' build
+          bun run test:locale-subpaths vue
         continue-on-error: true
 
       - name: Build Angular
         id: build-angular
-        run: bun run --filter 'pptx-angular-viewer' build
+        run: |
+          bun run --filter 'pptx-angular-viewer' build
+          bun run test:locale-subpaths angular
         continue-on-error: true
 
       - name: Build Vanilla
         id: build-vanilla
-        run: bun run --filter 'pptx-vanilla-viewer' build
+        run: |
+          bun run --filter 'pptx-vanilla-viewer' build
+          bun run test:locale-subpaths vanilla
         continue-on-error: true
 
       - name: Build Svelte
         id: build-svelte
-        run: bun run --filter 'pptx-svelte-viewer' build
+        run: |
+          bun run --filter 'pptx-svelte-viewer' build
+          bun run test:locale-subpaths svelte
         continue-on-error: true
 
       # `continue-on-error` above is deliberate: it lets one run surface EVERY

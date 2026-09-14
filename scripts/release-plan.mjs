@@ -26,6 +26,8 @@
  * Dependency model (what forces a dependent to re-release):
  *   - `shared` (private, never published) is inlined/vendored into react, vue
  *     and angular, so a shared change re-releases all three.
+ *   - `locales` (private) is copied into per-language entry points in all five
+ *     viewers, so dictionary or locale packaging changes re-release them.
  *   - `core` is bundled into react, vue, and angular, so a core change
  *     re-releases all three.
  *   - `cli` holds a real (non-bundled) npm dependency on react (see its
@@ -102,31 +104,31 @@ const PACKAGES = {
 		dir: 'packages/react',
 		npm: 'pptx-react-viewer',
 		packDir: 'packages/react',
-		triggers: [SHARED_DIR, 'packages/core'],
+		triggers: [SHARED_DIR, 'packages/core', 'packages/locales'],
 	},
 	vue: {
 		dir: 'packages/vue',
 		npm: 'pptx-vue-viewer',
 		packDir: 'packages/vue',
-		triggers: [SHARED_DIR, 'packages/core'],
+		triggers: [SHARED_DIR, 'packages/core', 'packages/locales'],
 	},
 	angular: {
 		dir: 'packages/angular',
 		npm: 'pptx-angular-viewer',
 		packDir: 'packages/angular/dist',
-		triggers: [SHARED_DIR, 'packages/core'],
+		triggers: [SHARED_DIR, 'packages/core', 'packages/locales'],
 	},
 	vanilla: {
 		dir: 'packages/vanilla',
 		npm: 'pptx-vanilla-viewer',
 		packDir: 'packages/vanilla',
-		triggers: [SHARED_DIR, 'packages/core'],
+		triggers: [SHARED_DIR, 'packages/core', 'packages/locales'],
 	},
 	svelte: {
 		dir: 'packages/svelte',
 		npm: 'pptx-svelte-viewer',
 		packDir: 'packages/svelte',
-		triggers: [SHARED_DIR, 'packages/core'],
+		triggers: [SHARED_DIR, 'packages/core', 'packages/locales'],
 	},
 	tools: {
 		dir: 'packages/tools',

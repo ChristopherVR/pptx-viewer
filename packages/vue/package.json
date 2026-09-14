@@ -62,10 +62,50 @@
 			"require": "./dist/i18n.cjs"
 		},
 		"./styles": "./dist/pptx-vue-viewer.css",
-		"./styles.css": "./dist/pptx-vue-viewer.css"
+		"./styles.css": "./dist/pptx-vue-viewer.css",
+		"./i18n/fr": {
+			"import": {
+				"types": "./dist/i18n/fr.d.mts",
+				"default": "./dist/i18n/fr.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/fr.d.cts",
+				"default": "./dist/i18n/fr.cjs"
+			}
+		},
+		"./i18n/es": {
+			"import": {
+				"types": "./dist/i18n/es.d.mts",
+				"default": "./dist/i18n/es.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/es.d.cts",
+				"default": "./dist/i18n/es.cjs"
+			}
+		},
+		"./i18n/de": {
+			"import": {
+				"types": "./dist/i18n/de.d.mts",
+				"default": "./dist/i18n/de.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/de.d.cts",
+				"default": "./dist/i18n/de.cjs"
+			}
+		},
+		"./i18n/zh-CN": {
+			"import": {
+				"types": "./dist/i18n/zh-CN.d.mts",
+				"default": "./dist/i18n/zh-CN.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/zh-CN.d.cts",
+				"default": "./dist/i18n/zh-CN.cjs"
+			}
+		}
 	},
 	"scripts": {
-		"build": "vite build && node ../../scripts/vue-css-merge.mjs save dist/pptx-vue-viewer.css && npx @tailwindcss/cli -i src/styles/pptx-vue-viewer.css -o dist/pptx-vue-viewer.css --minify && node ../../scripts/vue-css-merge.mjs merge dist/pptx-vue-viewer.css && node ../../scripts/compress-dist.mjs dist",
+		"build": "vite build && node ../../scripts/vue-css-merge.mjs save dist/pptx-vue-viewer.css && npx @tailwindcss/cli -i src/styles/pptx-vue-viewer.css -o dist/pptx-vue-viewer.css --minify && node ../../scripts/vue-css-merge.mjs merge dist/pptx-vue-viewer.css && node ../locales/scripts/copy-subpaths.mjs && node ../../scripts/compress-dist.mjs dist",
 		"dev": "vite build --watch",
 		"typecheck": "vue-tsc --noEmit -p tsconfig.json",
 		"test": "vitest run",
