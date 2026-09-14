@@ -26,6 +26,7 @@ import {
 	fetchGoogleWebfontOutlineBytes,
 	resolveGoogleWebfontHref,
 	selectGoogleWebfontFamilies,
+	syncGoogleWebfontStylesheet,
 } from '../internal/shared';
 import { glyphOutlineFontCache, glyphOutlineFontsTick } from './glyph-outline-cache';
 
@@ -67,17 +68,7 @@ export class GoogleWebfontsService {
 			if (token !== this.syncToken || !hasDomSupport()) {
 				return null;
 			}
-			if (!href) {
-				this.removeLinkElement();
-				return null;
-			}
-			if (!this.linkEl || !this.linkEl.parentNode) {
-				this.linkEl = document.createElement('link');
-				this.linkEl.id = GOOGLE_WEBFONTS_LINK_ID;
-				document.head.appendChild(this.linkEl);
-			}
-			this.linkEl.rel = 'stylesheet';
-			this.linkEl.href = href;
+			this.linkEl = syncGoogleWebfontStylesheet(document, GOOGLE_WEBFONTS_LINK_ID, href);
 			return href;
 		});
 		this.syncOutlineBytes(slides ?? [], embeddedFonts ?? [], token);

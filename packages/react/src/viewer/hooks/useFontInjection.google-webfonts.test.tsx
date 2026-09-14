@@ -81,6 +81,36 @@ function stubNetwork(): void {
 }
 
 describe('useFontInjection google webfonts fallback', () => {
+	it('retains the loaded stylesheet without mutations during slide edits', async () => {
+		stubNetwork();
+		render([slide(textEl('ADLaM Display'))], []);
+		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
+		const link = document.getElementById(LINK_ID);
+		const mutations: MutationRecord[] = [];
+		const observer = new MutationObserver((records) => mutations.push(...records));
+		observer.observe(document.head, { childList: true, attributes: true, subtree: true });
+		render([slide({ ...textEl('ADLaM Display'), x: 200, text: 'Edited' })], []);
+		expect(document.getElementById(LINK_ID)).toBe(link);
+		await act(async () => {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+		});
+		observer.disconnect();
+		expect(mutations).toHaveLength(0);
+		expect(document.getElementById(LINK_ID)).toBe(link);
+	});
+
+	it('updates the URL when the referenced family changes', async () => {
+		stubNetwork();
+		render([slide(textEl('ADLaM Display'))], []);
+		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
+		const link = document.getElementById(LINK_ID);
+		render([slide(textEl('Roboto'))], []);
+		await vi.waitFor(() => expect(link?.getAttribute('href')).toContain('family=Roboto'));
+		expect(document.getElementById(LINK_ID)).toBe(link);
+	});
+
 	it('injects a Google Fonts link for a catalogue family', async () => {
 		stubNetwork();
 		render([slide(textEl('ADLaM Display'))], []);

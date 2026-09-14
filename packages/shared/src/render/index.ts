@@ -1029,6 +1029,7 @@ export * from './embedded-fonts';
 // known-family selection, and CSS2 href building (the managed <link> id +
 // injection stay per-binding).
 export * from './google-webfonts';
+export * from './google-webfonts-link';
 // Pure slide text search: per-element/-slide text collection + case-insensitive
 // substring search with match counts and context snippets.
 export * from './slide-search';

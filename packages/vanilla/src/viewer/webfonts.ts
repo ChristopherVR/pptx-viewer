@@ -13,23 +13,14 @@
  * and a superseded deck's late result never applies.
  */
 
+import { syncGoogleWebfontStylesheet } from 'pptx-viewer-shared';
+
 /** DOM id of the managed `<link>` element (distinct from the other bindings'). */
 export const VANILLA_GOOGLE_FONTS_LINK_ID = 'pptx-vanilla-google-fonts';
 
 /** Create / update / remove the managed `<link>` element to match `href`. */
 export function syncGoogleWebfontsLink(doc: Document, href: string | null): void {
-	const existing = doc.getElementById(VANILLA_GOOGLE_FONTS_LINK_ID);
-	if (!href) {
-		existing?.remove();
-		return;
-	}
-	const link = existing instanceof HTMLLinkElement ? existing : doc.createElement('link');
-	link.id = VANILLA_GOOGLE_FONTS_LINK_ID;
-	link.rel = 'stylesheet';
-	link.href = href;
-	if (link !== existing) {
-		doc.head.appendChild(link);
-	}
+	syncGoogleWebfontStylesheet(doc, VANILLA_GOOGLE_FONTS_LINK_ID, href);
 }
 
 /** Remove the managed `<link>` element (viewer teardown). */

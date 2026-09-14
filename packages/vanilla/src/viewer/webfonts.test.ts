@@ -32,6 +32,18 @@ afterEach(() => {
 });
 
 describe('syncGoogleWebfontsLink', () => {
+	it('does not rewrite a loaded stylesheet with the same URL', () => {
+		const href = 'https://fonts.googleapis.com/css2?family=X';
+		syncGoogleWebfontsLink(document, href);
+		const link = document.getElementById(VANILLA_GOOGLE_FONTS_LINK_ID)!;
+		const observer = new MutationObserver(() => {});
+		observer.observe(document.head, { childList: true, attributes: true, subtree: true });
+		syncGoogleWebfontsLink(document, href);
+		expect(observer.takeRecords()).toHaveLength(0);
+		expect(document.getElementById(VANILLA_GOOGLE_FONTS_LINK_ID)).toBe(link);
+		observer.disconnect();
+	});
+
 	it('injects a stylesheet link into <head>', () => {
 		syncGoogleWebfontsLink(document, 'https://fonts.googleapis.com/css2?family=X&display=swap');
 		const link = document.getElementById(VANILLA_GOOGLE_FONTS_LINK_ID);

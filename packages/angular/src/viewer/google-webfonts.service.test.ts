@@ -70,6 +70,25 @@ function makeService(): { svc: GoogleWebfontsService; destroy: () => void } {
 }
 
 describe('googleWebfontsService', () => {
+	it('does not mutate the loaded stylesheet for unchanged families', async () => {
+		stubNetwork();
+		const { svc, destroy } = makeService();
+		svc.sync([slide(textEl('ADLaM Display'))], []);
+		await vi.waitFor(() => expect(document.getElementById(GOOGLE_WEBFONTS_LINK_ID)).not.toBeNull());
+		const link = document.getElementById(GOOGLE_WEBFONTS_LINK_ID);
+		const mutations: MutationRecord[] = [];
+		const observer = new MutationObserver((records) => mutations.push(...records));
+		observer.observe(document.head, { childList: true, attributes: true, subtree: true });
+		svc.sync([slide(textEl('ADLaM Display'))], []);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		observer.disconnect();
+		expect(mutations).toHaveLength(0);
+		expect(document.getElementById(GOOGLE_WEBFONTS_LINK_ID)).toBe(link);
+		destroy();
+	});
+
 	it('injects no <link> before a deck is synced', () => {
 		const { destroy } = makeService();
 		expect(document.getElementById(GOOGLE_WEBFONTS_LINK_ID)).toBeNull();

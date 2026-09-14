@@ -4,6 +4,7 @@ import {
 	fetchGoogleWebfontOutlineBytes,
 	resolveGoogleWebfontHref,
 	selectGoogleWebfontFamilies,
+	syncGoogleWebfontStylesheet,
 } from 'pptx-viewer-shared';
 /**
  * useFontInjection: Injects @font-face declarations for embedded PPTX fonts
@@ -141,25 +142,16 @@ export function useFontInjection({ embeddedFonts, slides }: UseFontInjectionInpu
 			if (cancelled) {
 				return null;
 			}
-			if (!href || document.getElementById(GOOGLE_FONTS_LINK_ID)) {
-				return null;
-			}
-			const linkEl = document.createElement('link');
-			linkEl.id = GOOGLE_FONTS_LINK_ID;
-			linkEl.rel = 'stylesheet';
-			linkEl.href = href;
-			document.head.appendChild(linkEl);
+			syncGoogleWebfontStylesheet(document, GOOGLE_FONTS_LINK_ID, href);
 			return href;
 		});
 
 		return () => {
 			cancelled = true;
-			const existing = document.getElementById(GOOGLE_FONTS_LINK_ID);
-			if (existing) {
-				document.head.removeChild(existing);
-			}
 		};
 	}, [embeddedFonts, slides]);
+	// Updates cancel stale resolutions; only unmount removes the loaded link.
+	useEffect(() => () => document.getElementById(GOOGLE_FONTS_LINK_ID)?.remove(), []);
 
 	// ── Best-effort glyph-outline bytes for catalogue webfonts ───────
 	// A WordArt envelope glyph (inflate/deflate/can) in a referenced (not

@@ -4,6 +4,7 @@ import {
 	fetchGoogleWebfontOutlineBytes,
 	resolveGoogleWebfontHref,
 	selectGoogleWebfontFamilies,
+	syncGoogleWebfontStylesheet,
 } from 'pptx-viewer-shared';
 import { onScopeDispose, toValue, watchEffect } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
@@ -41,26 +42,13 @@ export function useGoogleWebfonts(
 		let cancelled = false;
 		onCleanup(() => {
 			cancelled = true;
-			document.getElementById(LINK_ELEMENT_ID)?.remove();
 		});
 		void resolveGoogleWebfontHref(toValue(slides) ?? [], toValue(embeddedFonts) ?? []).then(
 			(href) => {
 				if (cancelled) {
 					return null;
 				}
-				const existing = document.getElementById(LINK_ELEMENT_ID);
-				if (!href) {
-					existing?.remove();
-					return null;
-				}
-				const link =
-					existing instanceof HTMLLinkElement ? existing : document.createElement('link');
-				link.id = LINK_ELEMENT_ID;
-				link.rel = 'stylesheet';
-				link.href = href;
-				if (link !== existing) {
-					document.head.appendChild(link);
-				}
+				syncGoogleWebfontStylesheet(document, LINK_ELEMENT_ID, href);
 				return href;
 			},
 		);

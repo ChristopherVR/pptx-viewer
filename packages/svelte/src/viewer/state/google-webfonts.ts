@@ -1,5 +1,5 @@
 import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import { resolveGoogleWebfontHref } from 'pptx-viewer-shared';
+import { resolveGoogleWebfontHref, syncGoogleWebfontStylesheet } from 'pptx-viewer-shared';
 
 /**
  * Google Fonts webfont fallback for the Svelte binding.
@@ -28,18 +28,7 @@ export function resolveWebfontHref(
 
 /** Create / update / remove the managed `<link>` element to match `href`. */
 export function syncGoogleWebfontsLink(doc: Document, href: string | null): void {
-	const existing = doc.getElementById(SVELTE_GOOGLE_FONTS_LINK_ID);
-	if (!href) {
-		existing?.remove();
-		return;
-	}
-	const link = existing instanceof HTMLLinkElement ? existing : doc.createElement('link');
-	link.id = SVELTE_GOOGLE_FONTS_LINK_ID;
-	link.rel = 'stylesheet';
-	link.href = href;
-	if (link !== existing) {
-		doc.head.appendChild(link);
-	}
+	syncGoogleWebfontStylesheet(doc, SVELTE_GOOGLE_FONTS_LINK_ID, href);
 }
 
 /** Remove the managed `<link>` element (effect teardown). */

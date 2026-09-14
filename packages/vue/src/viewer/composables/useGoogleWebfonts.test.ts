@@ -52,6 +52,27 @@ function withScope<T>(fn: () => T): { result: T; stop: () => void } {
 }
 
 describe('useGoogleWebfonts', () => {
+	it('retains the loaded stylesheet without mutations during slide edits', async () => {
+		stubNetwork();
+		const slides = ref([slide(textEl('ADLaM Display'))]);
+		const { stop } = withScope(() => useGoogleWebfonts(slides, ref([])));
+		await vi.waitFor(() => expect(document.getElementById(LINK_ID)).not.toBeNull());
+		const link = document.getElementById(LINK_ID);
+		const mutations: MutationRecord[] = [];
+		const observer = new MutationObserver((records) => mutations.push(...records));
+		observer.observe(document.head, { childList: true, attributes: true, subtree: true });
+		slides.value = [slide({ ...textEl('ADLaM Display'), x: 200, text: 'Edited' })];
+		await nextTick();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		observer.disconnect();
+		expect(mutations).toHaveLength(0);
+		expect(document.getElementById(LINK_ID)).toBe(link);
+		stop();
+		expect(document.getElementById(LINK_ID)).toBeNull();
+	});
+
 	it('injects a Google Fonts link for a catalogue family', async () => {
 		stubNetwork();
 		const slides = ref([slide(textEl('ADLaM Display'))]);

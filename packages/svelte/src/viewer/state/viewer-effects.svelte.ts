@@ -166,9 +166,10 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 			});
 			return () => {
 				cancelled = true;
-				removeGoogleWebfontsLink(document);
 			};
 		});
+		// Keep the stylesheet through reactive updates; remove it on teardown.
+		$effect(() => () => removeGoogleWebfontsLink(document));
 
 		// Best-effort glyph-outline bytes for catalogue webfonts. A WordArt
 		// envelope glyph (inflate/deflate/can) in a referenced (not embedded)
