@@ -13,7 +13,7 @@
  *
  * @module e2e/support/keyboard
  */
-import type { Locator, Page, TestInfo } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 
 import { slideStage } from './deck';
 
@@ -30,10 +30,9 @@ export const SLIDE_WIDTH_PX = 1280;
 /** What had to happen for the next keystroke to reach the viewer. */
 export type FocusState = 'kept' | 'repaired' | 'unfocusable';
 
-/** Insert a paragraph using each editor's public gesture, not a soft line break. */
-export async function insertInlineParagraph(editor: Locator, testInfo: TestInfo): Promise<void> {
-	// Angular reserves Enter for commit; its list editor uses Shift+Enter.
-	await editor.press(testInfo.project.name === 'angular' ? 'Shift+Enter' : 'Enter');
+/** Insert a paragraph with the native Enter gesture, not a soft line break. */
+export async function insertInlineParagraph(editor: Locator): Promise<void> {
+	await editor.press('Enter');
 }
 
 /**

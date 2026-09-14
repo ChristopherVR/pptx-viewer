@@ -210,7 +210,7 @@ test.describe('cross-binding text layout', () => {
 
 	test('an appended numbered-list paragraph continues through save and reload', async ({
 		page,
-	}, testInfo) => {
+	}) => {
 		const appendedText = 'Browser appended item';
 		await loadDeck(page, CJK);
 		await thumbnail(page, 5).click();
@@ -224,7 +224,7 @@ test.describe('cross-binding text layout', () => {
 		const editor = page.locator('[data-inline-editor]');
 		await editor.waitFor();
 
-		await insertInlineParagraph(editor, testInfo);
+		await insertInlineParagraph(editor);
 		await page.keyboard.type(appendedText);
 		const stageBox = (await slideStage(page).boundingBox())!;
 		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
@@ -252,7 +252,7 @@ test.describe('cross-binding text layout', () => {
 
 	test('a live middle list item keeps markers, spacing and native history through save and reload', async ({
 		page,
-	}, testInfo) => {
+	}) => {
 		await loadDeck(page, NESTED_LIST);
 		const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
 		if ((await autoSave.getAttribute('aria-checked')) === 'true') {
@@ -287,34 +287,75 @@ test.describe('cross-binding text layout', () => {
 			return range.toString();
 		});
 		expect(beforeCaret.replace(/\s+/gu, '')).toMatch(/Nestedmiddle$/u);
-		await insertInlineParagraph(editor, testInfo);
-		const paragraphs = editor.locator(':scope > :is(div,p)');
+		const paragraphs = editor.locator('[data-pptx-list-paragraph]');
+		const historyState = () =>
+			paragraphs.evaluateAll((nodes) =>
+				nodes.map((node) => ({
+					// Keep trailing spaces as native Undo steps; browsers may paint them as NBSP.
+					body: (node.textContent ?? '').replace(/\u00a0/gu, ' '),
+					marker: getComputedStyle(node, '::before').content.replace(/^"|"$/gu, '').trim(),
+					spacing: getComputedStyle(node).marginBottom,
+				})),
+			);
 		const markers = async (): Promise<string[]> =>
 			paragraphs.evaluateAll((nodes) =>
 				nodes.map((node) =>
 					getComputedStyle(node, '::before').content.replace(/^"|"$/gu, '').trim(),
 				),
 			);
+		const original = await historyState();
+		expect(original).toHaveLength(5);
+		expect(original.map((paragraph) => paragraph.marker)).toStrictEqual([
+			'III.',
+			'III.',
+			'IV.',
+			'IV.',
+			'V.',
+		]);
+		await insertInlineParagraph(editor);
 		await expect(paragraphs).toHaveCount(6);
 		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'V.', 'IV.', 'V.']);
 		await expect(paragraphs.nth(2)).toHaveCSS('margin-bottom', '12px');
 		await expect(paragraphs.nth(3)).toHaveCSS('margin-bottom', '22px');
-		await page.keyboard.type('Browser inserted item');
-		await expect
-			.poll(async () => (await paragraphs.nth(2).innerText()).trim())
-			.toBe('Browser inserted item');
+		const split = await historyState();
+		// Test the structural transaction before typing can be coalesced with it.
 		await editor.press('ControlOrMeta+z');
-		await expect.poll(async () => (await paragraphs.nth(2).innerText()).trim()).toBe('');
-		await expect(paragraphs).toHaveCount(6);
-		await editor.press('ControlOrMeta+z');
-		await expect(paragraphs).toHaveCount(5);
-		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'IV.', 'V.']);
+		await expect.poll(historyState).toStrictEqual(original);
 		await editor.press('ControlOrMeta+Shift+z');
-		await expect(paragraphs).toHaveCount(6);
-		await editor.press('ControlOrMeta+Shift+z');
-		await expect
-			.poll(async () => (await paragraphs.nth(2).innerText()).trim())
-			.toBe('Browser inserted item');
+		await expect.poll(historyState).toStrictEqual(split);
+		const insertedText = 'Browser inserted item';
+		await page.keyboard.type(insertedText);
+		await expect.poll(async () => (await paragraphs.nth(2).innerText()).trim()).toBe(insertedText);
+		const typed = split.map((paragraph, index) =>
+			index === 2 ? { ...paragraph, body: insertedText } : paragraph,
+		);
+		await expect.poll(historyState).toStrictEqual(typed);
+		// Native typing may form one transaction or several. Require progress on
+		// every Undo, preserve untouched paragraphs, and replay every exact state.
+		const states = [typed];
+		while (states[states.length - 1].length !== original.length) {
+			expect(states.length).toBeLessThanOrEqual(insertedText.length + 1);
+			const previous = states[states.length - 1];
+			await editor.press('ControlOrMeta+z');
+			await expect.poll(historyState).not.toStrictEqual(previous);
+			const current = await historyState();
+			if (current.length === original.length) {
+				expect(current).toStrictEqual(original);
+			} else {
+				expect(current).toHaveLength(split.length);
+				expect(current.filter((_paragraph, index) => index !== 2)).toStrictEqual(
+					split.filter((_paragraph, index) => index !== 2),
+				);
+				expect(current[2]).toStrictEqual({ ...split[2], body: current[2].body });
+				expect(previous[2].body.startsWith(current[2].body)).toBe(true);
+				expect(current[2].body.length).toBeLessThan(previous[2].body.length);
+			}
+			states.push(current);
+		}
+		for (let index = states.length - 2; index >= 0; index -= 1) {
+			await editor.press('ControlOrMeta+Shift+z');
+			await expect.poll(historyState).toStrictEqual(states[index]);
+		}
 		await expect.poll(markers).toStrictEqual(['III.', 'III.', 'IV.', 'V.', 'IV.', 'V.']);
 		// Backstage moves focus and commits. Pending-save-without-blur is covered
 		// by the public API's binding tests; this demo exposes no active-save ref.
@@ -350,6 +391,137 @@ test.describe('cross-binding text layout', () => {
 		await expect
 			.poll(async () => (await list.innerText()).replace(/\s+/gu, ''))
 			.toMatch(expectedText);
+	});
+
+	test('list off and on targets the caret paragraph, including a new empty item', async ({
+		page,
+	}) => {
+		await loadDeck(page, NESTED_LIST);
+		const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
+		if ((await autoSave.getAttribute('aria-checked')) === 'true') {
+			await autoSave.click();
+		}
+		await expect(autoSave).toHaveAttribute('aria-checked', 'false');
+		await page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Nested middle' })
+			.first()
+			.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+		const paragraphs = editor.locator('[data-pptx-list-paragraph]');
+		await expect(paragraphs).toHaveCount(5);
+		const state = () =>
+			paragraphs.evaluateAll((nodes) =>
+				nodes.map((node) => ({
+					body: (node.textContent ?? '').replace(/\u00a0/gu, ' '),
+					marker: getComputedStyle(node, '::before').content.replace(/^"|"$/gu, '').trim(),
+				})),
+			);
+		const originalBodies = (await state()).map((paragraph) => paragraph.body);
+		const check = async (markers: string[], bodies = originalBodies) => {
+			await expect.poll(state).toStrictEqual(
+				markers.map((marker, index) => ({
+					body: bodies[index],
+					marker,
+				})),
+			);
+		};
+		const caretIn = async (index: number) => {
+			await expect
+				.poll(() =>
+					paragraphs.nth(index).evaluate((node) => {
+						const selection = window.getSelection();
+						return Boolean(selection?.isCollapsed && node.contains(selection.anchorNode));
+					}),
+				)
+				.toBe(true);
+		};
+		const originalMarkers = ['III.', 'III.', 'IV.', 'IV.', 'V.'];
+		await check(originalMarkers);
+		// A run hit places a native caret; paragraph padding can hit another row.
+		await paragraphs.nth(1).locator('[data-pptx-list-run]').first().click();
+		await caretIn(1);
+		const numbered = page.getByRole('button', { name: /^Numbered list$/iu });
+		await numbered.click();
+		await check(['III.', 'none', 'III.', 'IV.', 'V.']);
+		await caretIn(1);
+		await numbered.click();
+		await check(originalMarkers);
+		await caretIn(1);
+		await editor.press('ControlOrMeta+End');
+		await insertInlineParagraph(editor);
+		const emptyBodies = [...originalBodies, ''];
+		await check([...originalMarkers, 'VI.'], emptyBodies);
+		await caretIn(5);
+		await numbered.click();
+		await check([...originalMarkers, 'none'], emptyBodies);
+		await caretIn(5);
+		await numbered.click();
+		await check([...originalMarkers, 'VI.'], emptyBodies);
+		await caretIn(5);
+	});
+
+	test('a soft break stays inside one live list item through save and reload', async ({ page }) => {
+		await loadDeck(page, NESTED_LIST);
+		const autoSave = page.getByRole('switch', { name: 'Toggle AutoSave', exact: true });
+		if ((await autoSave.getAttribute('aria-checked')) === 'true') {
+			await autoSave.click();
+		}
+		await expect(autoSave).toHaveAttribute('aria-checked', 'false');
+		const list = page
+			.locator('[data-pptx-viewport] [data-element-id]')
+			.filter({ hasText: 'Nested middle' })
+			.first();
+		await list.dblclick();
+		const editor = page.locator('[data-inline-editor]');
+		await editor.waitFor();
+		await editor.press('ControlOrMeta+End');
+		await insertInlineParagraph(editor);
+		await page.keyboard.type('Soft break before');
+		await editor.press('Shift+Enter');
+		await page.keyboard.type('Soft break after');
+		const paragraphs = editor.locator('[data-pptx-list-paragraph]');
+		const body = 'Soft break before\nSoft break after';
+		const checkItem = async () => {
+			await expect(paragraphs).toHaveCount(6);
+			await expect.poll(async () => (await paragraphs.nth(5).innerText()).trim()).toBe(body);
+			await expect
+				.poll(() =>
+					paragraphs.evaluateAll((nodes) =>
+						nodes.map((node) =>
+							getComputedStyle(node, '::before').content.replace(/^"|"$/gu, '').trim(),
+						),
+					),
+				)
+				.toStrictEqual(['III.', 'III.', 'IV.', 'IV.', 'V.', 'VI.']);
+		};
+		await checkItem();
+		const stageBox = (await slideStage(page).boundingBox())!;
+		await page.mouse.click(stageBox.x + stageBox.width * 0.97, stageBox.y + stageBox.height * 0.97);
+		await expect(editor).toBeHidden();
+		const download = await savePptxViaBackstage(page);
+		const savedPath = await download.path();
+		expect(savedPath).not.toBeNull();
+		const zip = await JSZip.loadAsync(await readFile(savedPath!));
+		const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		const savedList = xml
+			.match(/<p:sp>[\s\S]*?<\/p:sp>/gu)
+			?.find((shape) => shape.includes('name="RomanMiddleTarget"'));
+		expect(savedList).toBeDefined();
+		const savedParagraphs = savedList!.match(/<a:p\b[^>]*>[\s\S]*?<\/a:p>/gu) ?? [];
+		expect(savedParagraphs).toHaveLength(6);
+		const parts = savedParagraphs[5].split(/<a:br\b[^>]*>/u);
+		expect(parts).toHaveLength(2);
+		expect(
+			parts.map((part) =>
+				[...part.matchAll(/<a:t\b[^>]*>([\s\S]*?)<\/a:t>/gu)].map((match) => match[1]).join(''),
+			),
+		).toStrictEqual(['Soft break before', 'Soft break after']);
+		await loadDeck(page, savedPath!);
+		await list.dblclick();
+		await editor.waitFor();
+		await checkItem();
 	});
 
 	test('a hyperlink and an inline equation reach the DOM in every binding', async ({
