@@ -308,8 +308,13 @@ describe('exportCanvasesToGif', () => {
 		);
 	});
 
-	it('does not downscale a frame already within the default 1920px cap', () => {
-		const canvases = [fakeCanvas(800, 600)];
+	// Keep real encoding cheap while covering below-cap and exact-cap dimensions.
+	it.each([
+		[80, 60],
+		[1920, 1],
+		[1, 1920],
+	])('does not downscale a %dx%d frame within the default 1920px cap', (width, height) => {
+		const canvases = [fakeCanvas(width, height)];
 		const createElement = vi.spyOn(document, 'createElement');
 
 		new ExportService().exportCanvasesToGif(canvases, 2000, 'deck.gif');
