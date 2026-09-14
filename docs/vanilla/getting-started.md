@@ -12,7 +12,94 @@ presentation mode.
 Install the package first, see [Overview > Installation](/vanilla/#installation).
 :::
 
-## 1. Mount a viewer
+## 1. Create a complete app
+
+The quickest reliable setup uses Vite. Create a folder with this exact structure, then put the
+PowerPoint file you want to open in `public/presentation.pptx`:
+
+```text
+my-pptx-app/
+  index.html
+  package.json
+  public/
+    presentation.pptx
+  src/
+    main.js
+```
+
+Install the package and Vite:
+
+```bash
+npm init -y
+npm install pptx-vanilla-viewer
+npm install -D vite
+```
+
+Set the `scripts` entry in `package.json` to:
+
+```json
+{
+	"scripts": {
+		"dev": "vite"
+	}
+}
+```
+
+Then run `npm run dev` and open the local URL Vite prints. Vite serves files in `public/` from
+the site root, so `public/presentation.pptx` is available as `/presentation.pptx`.
+
+### `index.html`
+
+```html
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>PPTX Viewer</title>
+		<style>
+			html,
+			body,
+			#host {
+				height: 100%;
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="host"></div>
+		<script type="module" src="/src/main.js"></script>
+	</body>
+</html>
+```
+
+### `src/main.js`
+
+```js
+import { createPptxViewer, vermilionDarkTheme } from 'pptx-vanilla-viewer';
+
+const host = document.getElementById('host');
+
+createPptxViewer(host, {
+	// This is served from public/presentation.pptx by Vite.
+	source: '/presentation.pptx',
+	theme: vermilionDarkTheme,
+	editable: true,
+	showToolbar: true,
+	showThumbnails: true,
+	fileName: 'presentation.pptx',
+	onLoad: ({ slideCount }) => console.log(`Loaded ${slideCount} slides`),
+	onError: (message) => console.error(message),
+});
+```
+
+When `source` loads successfully, the viewer now opens the presentation automatically. Do not
+query or click the viewer's internal Backstage controls from `onLoad`.
+
+If you host a `.pptx` on another domain instead, that server must permit your site with CORS. A
+file in `public/` avoids that requirement while developing.
+
+## 2. Mount a viewer
 
 `createPptxViewer(container, options)` builds the viewer chrome inside `container` and returns a
 [`PptxViewerInstance`](/vanilla/api). The viewer fills its container, so give the container an
@@ -22,10 +109,13 @@ explicit size.
 <div id="host" style="height: 100vh"></div>
 ```
 
-```ts
+```js
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 
-const viewer = createPptxViewer(document.getElementById('host')!, {
+const host = document.getElementById('host');
+if (!host) throw new Error('Missing #host element');
+
+const viewer = createPptxViewer(host, {
 	source: '/presentation.pptx',
 	onLoad: ({ slideCount, canvasSize }) => {
 		console.log(`${slideCount} slides at ${canvasSize.width}x${canvasSize.height}`);
@@ -37,22 +127,28 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 `source` accepts a **URL string** (fetched for you), an **`ArrayBuffer`**, a **`Uint8Array`**, or a
 **`Blob`/`File`**. Omit it to start empty and load later.
 
-## 2. Loading from a file `<input>`
+## 3. Loading from a file `<input>`
 
 ```html
 <input type="file" id="file" accept=".pptx,.ppt" />
 <div id="host" style="height: 80vh"></div>
 ```
 
-```ts
+```js
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 
-const viewer = createPptxViewer(document.getElementById('host')!, {
+const host = document.getElementById('host');
+const fileInput = document.getElementById('file');
+if (!host || !(fileInput instanceof HTMLInputElement)) {
+	throw new Error('Missing #host or #file element');
+}
+
+const viewer = createPptxViewer(host, {
 	onSlideChange: (index) => console.log('slide', index + 1),
 });
 
-document.getElementById('file')!.addEventListener('change', async (e) => {
-	const file = (e.target as HTMLInputElement).files?.[0];
+fileInput.addEventListener('change', async (event) => {
+	const file = event.currentTarget.files?.[0];
 	if (file) {
 		await viewer.loadFile(file); // Blob | ArrayBuffer | Uint8Array
 	}
@@ -62,7 +158,7 @@ document.getElementById('file')!.addEventListener('change', async (e) => {
 `loadFile` and `loadUrl` replace the current presentation; the `onLoad` callback fires again for
 each successful load.
 
-## 3. Navigation, zoom, and presentation
+## 4. Navigation, zoom, and presentation
 
 All toolbar operations are also available as instance methods:
 

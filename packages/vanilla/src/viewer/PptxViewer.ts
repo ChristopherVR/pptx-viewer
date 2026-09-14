@@ -233,6 +233,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onContentApplying: (origin) => this.sessions?.beginCollaborationContentLoad(origin),
 			onContentApplied: (origin) => {
 				this.sessions?.notifyCollaborationContentLoaded(origin);
+				if (origin !== 'bootstrap') {
+					return;
+				}
 				// A source supplied when mounting is meant to open directly into the
 				// deck. The File backstage is the initial shell, so without this the
 				// successful load remains hidden behind it until the host reaches into
