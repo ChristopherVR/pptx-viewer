@@ -21,18 +21,18 @@ describe('inspector-pane-constants', () => {
 			expect(keys).toContain('comments');
 		});
 
-		it('every entry has key, label, and icon', () => {
+		it('every entry has key, label key, and icon', () => {
 			for (const tab of INSPECTOR_TABS) {
 				expectTypeOf(tab.key).toBeString();
 				expect(tab.key.length).toBeGreaterThan(0);
-				expectTypeOf(tab.label).toBeString();
-				expect(tab.label.length).toBeGreaterThan(0);
+				expectTypeOf(tab.labelKey).toBeString();
+				expect(tab.labelKey.length).toBeGreaterThan(0);
 				expect(tab.icon).toBeDefined();
 			}
 		});
 
-		it('has no duplicate labels', () => {
-			const labels = INSPECTOR_TABS.map((t) => t.label);
+		it('has no duplicate label keys', () => {
+			const labels = INSPECTOR_TABS.map((t) => t.labelKey);
 			expect(new Set(labels).size).toBe(labels.length);
 		});
 	});

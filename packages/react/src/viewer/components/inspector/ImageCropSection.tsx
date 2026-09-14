@@ -49,7 +49,7 @@ export function ImageCropSection({
 				const key = `crop${side}` as keyof PptxElement;
 				return (
 					<label key={side} className='flex flex-col gap-1 text-[11px]'>
-						<span className='text-muted-foreground'>Crop {side}</span>
+						<span className='text-muted-foreground'>{t(`pptx.image.crop${side}`)}</span>
 						<input
 							type='range'
 							min={0}

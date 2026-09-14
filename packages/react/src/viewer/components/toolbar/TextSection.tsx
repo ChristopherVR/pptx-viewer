@@ -565,7 +565,9 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						</RibbonMenu>
 					</div>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Font</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.font')}
+				</span>
 			</div>
 
 			{sep}
@@ -686,7 +688,9 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						onUpdateTextStyle={p.onUpdateTextStyle}
 					/>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Paragraph</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.paragraph')}
+				</span>
 			</div>
 		</>
 	);
