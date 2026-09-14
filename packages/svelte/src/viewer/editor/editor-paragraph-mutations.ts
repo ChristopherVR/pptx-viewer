@@ -1,6 +1,12 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { readEditableText, remapTextToSegments, toggleElementBullets } from 'pptx-viewer-shared';
+import {
+	getInlineEditorSelectionResult,
+	readEditableText,
+	remapTextToSegments,
+	toggleSelectionBullets,
+} from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 
 /**
  * Paragraph-level patch builders for the Home tab's Paragraph group:
@@ -20,6 +26,7 @@ function textStyleBase(el: PptxElement): TextStyle {
 export function toggleListTypePatch(
 	el: PptxElement,
 	kind: 'bullet' | 'numbered',
+	snapshot?: InlineTextEditSnapshot,
 ): Partial<PptxElement> {
 	if (!hasTextProperties(el)) {
 		return {};
@@ -28,18 +35,23 @@ export function toggleListTypePatch(
 		typeof document === 'undefined'
 			? null
 			: document.querySelector<HTMLElement>('[data-inline-editor]');
-	const liveText = surface ? readEditableText(surface) : undefined;
+	const liveText = snapshot?.text ?? (surface ? readEditableText(surface) : undefined);
 	const current =
 		liveText === undefined
 			? el
 			: {
 					...el,
 					text: liveText,
-					textSegments: remapTextToSegments(liveText, el.textSegments, el.textStyle),
+					textSegments:
+						snapshot?.textSegments ?? remapTextToSegments(liveText, el.textSegments, el.textStyle),
 				};
+	const result = getInlineEditorSelectionResult(current.textSegments, { preserveCaret: true });
+	if (result.kind !== 'supported' || (result.snapshot && result.snapshot.elementId !== el.id)) {
+		return {};
+	}
 	return {
 		...(liveText === undefined ? {} : { text: liveText }),
-		...toggleElementBullets(current, kind),
+		...toggleSelectionBullets(current, kind, result.selection, result.snapshot?.textSegments).patch,
 	};
 }
 

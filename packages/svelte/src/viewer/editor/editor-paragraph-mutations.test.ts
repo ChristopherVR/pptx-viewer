@@ -1,5 +1,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { buildParagraphs, elementBulletKind } from 'pptx-viewer-shared';
+import {
+	buildParagraphs,
+	elementBulletKind,
+	createInlineListSeed,
+	initializeInlineListDom,
+	attachInlineListController,
+} from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import {
@@ -26,6 +32,35 @@ function textEl(textStyle: PptxElement['textStyle'] = {}): PptxElement {
 describe('editor-paragraph-mutations toggleListTypePatch', () => {
 	afterEach(() => {
 		document.body.innerHTML = '';
+	});
+
+	it('toggles only the live caret paragraph, including at its start', () => {
+		const source = {
+			...textEl(),
+			text: 'First\nLast',
+			textSegments: [
+				{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'Last', style: {}, bulletInfo: { char: '◆' } },
+			],
+		} as PptxElement;
+		const seed = createInlineListSeed(source)!;
+		const root = document.createElement('div');
+		document.body.append(root);
+		initializeInlineListDom(root, seed);
+		const controller = attachInlineListController(root, seed);
+		const node = root.lastElementChild!.firstElementChild!.firstChild!;
+		window.getSelection()!.setBaseAndExtent(node, 0, node, 0);
+		const read = controller.read();
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		const next = {
+			...source,
+			...toggleListTypePatch(source, 'bullet', read.snapshot),
+		} as PptxElement;
+		expect(buildParagraphs(next).map((p) => p.bulletMarker)).toStrictEqual(['◆', undefined]);
+		controller.dispose();
 	});
 
 	it('renders a bullet on, off, and on without changing the body', () => {

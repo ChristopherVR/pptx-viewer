@@ -6,7 +6,7 @@
 	 */
 	import type { TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { elementBulletKind, LINE_SPACING_OPTIONS, toggleElementBullets } from 'pptx-viewer-shared';
+	import { elementBulletKind, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -47,7 +47,7 @@
 		aria-label={t('pptx.text.bulletList')}
 		title={t('pptx.text.bulletList')}
 		onmousedown={(event) => event.preventDefault()}
-	onclick={() => el && apply((current, snapshot) => snapshot ? toggleElementBullets(current, 'bullet') : toggleListTypePatch(current, 'bullet'))}
+	onclick={() => el && apply((current, snapshot) => toggleListTypePatch(current, 'bullet', snapshot))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1" fill="currentColor" /><circle cx="3" cy="8" r="1" fill="currentColor" /><circle cx="3" cy="12" r="1" fill="currentColor" /><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
@@ -60,7 +60,7 @@
 		aria-label={t('pptx.text.numberedList')}
 		title={t('pptx.text.numberedList')}
 		onmousedown={(event) => event.preventDefault()}
-	onclick={() => el && apply((current, snapshot) => snapshot ? toggleElementBullets(current, 'numbered') : toggleListTypePatch(current, 'numbered'))}
+	onclick={() => el && apply((current, snapshot) => toggleListTypePatch(current, 'numbered', snapshot))}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><text x="1" y="5.5" font-size="4" fill="currentColor">1</text><text x="1" y="9.5" font-size="4" fill="currentColor">2</text><text x="1" y="13.5" font-size="4" fill="currentColor">3</text><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
