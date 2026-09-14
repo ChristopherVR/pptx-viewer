@@ -79,7 +79,7 @@
 		"tailwindcss": "^4.3.3",
 		"three": "^0.185.1",
 		"typescript": "6.0.3",
-		"vitest": "^4.1.11",
+		"vitest": "^5.0.0",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32",
