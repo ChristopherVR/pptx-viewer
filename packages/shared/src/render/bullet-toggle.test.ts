@@ -523,3 +523,12 @@ describe('setElementBullets / toggleElementBullets', () => {
 		expect(segments.map((s) => s.text)).toStrictEqual(['• ', 'One', '\n', '• ', 'Two']);
 	});
 });
+
+describe('elementBulletKind across paragraphs', () => {
+	it('is mixed when non-empty paragraphs disagree, and a toggle then applies the kind', () => {
+		const el = textElement([...loadedBullet('A'), brk(), seg('B')]);
+		expect(elementBulletKind(el)).toBe('mixed');
+		const next = { ...el, ...toggleElementBullets(el, 'bullet') } as PptxElement;
+		expect(elementBulletKind(next)).toBe('bullet');
+	});
+});

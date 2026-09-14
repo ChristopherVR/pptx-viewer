@@ -13,10 +13,17 @@ import type { PptxSection, PptxLayoutOption } from '../../types';
 import { parseEmbeddedFontList } from '../../utils/embedded-font-list';
 import { parsePresentationDrawingGuides } from '../../utils/guide-utils';
 import { resolveLayoutDisplayName } from '../../utils/layout-display-name';
+import { partRelsPath } from '../../utils/part-rels-path';
 import { parsePresentationSmartTags } from '../../utils/smart-tags-parser';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
 import { PptxLoadDataBuilder } from '../builders';
 import type { PptxHandlerLoadOptions } from '../types';
+import {
+	rememberSlideBackgroundOrigin,
+	slideBackgroundIsPurelyInherited,
+	slideBackgroundOrigin,
+} from './authored-slide-background';
+import { enrichEmptyPlaceholderPrompts } from './layout-switch-placeholder-prompts';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLoadSession';
 import { recordSlideFingerprints } from './slide-fingerprint';
 
@@ -258,6 +265,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.externalRelsMap.clear();
 		this.layoutCache.clear();
 		this.masterCache.clear();
+		this.templateElementBaselines.reset();
 		this.layoutXmlMap.clear();
 		this.masterXmlMap.clear();
 		this.masterTxStylesCache.clear();
@@ -587,15 +595,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 		}
+		// A slide inserted during the session has no `.rels` part yet, so
+		// nothing above registered its layout. Every slide-to-layout lookup
+		// below (background, placeholder defaults, later the template artwork
+		// the bindings fetch) walks `slideRelsMap`, so give it the one entry it
+		// needs. The save pipeline builds a new slide's rels from scratch and
+		// only ever reads this map for rId lookups, so the entry is harmless.
+		if (!this.slideRelsMap.has(slidePath)) {
+			this.slideRelsMap.set(
+				slidePath,
+				new Map([['rId1', `../slideLayouts/${layoutPath.split('/').pop()}`]]),
+			);
+		}
 
 		// ── 2. Invalidate layout element cache for the old layout ───────
 		this.layoutCache.delete(layoutPath);
+		// Parse the target layout (and its master) now. Besides the artwork the
+		// bindings fetch right after this call, that parse is what fills the
+		// placeholder-defaults caches, and a layout no loaded slide had used
+		// yet has none: its prompts and fonts would resolve to nothing below.
+		await this.getLayoutElements(slidePath);
 
 		// ── 3. Remap placeholder elements to the new layout ─────────────
-		const remappedElements = this.remapElementsToNewLayout(
-			slide.elements,
-			layoutXml as XmlObject,
-			layoutPath,
+		// The relationships now point at the new layout, so the empty
+		// placeholders the remap fabricated can take their prompt text and
+		// inherited font from it; without that they render as nothing.
+		const remappedElements = enrichEmptyPlaceholderPrompts(
+			this.remapElementsToNewLayout(slide.elements, layoutXml as XmlObject, layoutPath),
+			{
+				resolveDefaults: (element) => {
+					const phInfo = this.getElementPlaceholderInfo(element);
+					return phInfo ? this.lookupPlaceholderDefaults(slidePath, phInfo) : undefined;
+				},
+				placeholderType: (element) => this.getElementPlaceholderInfo(element)?.type,
+				applyBodyDefaults: (textStyle, defaults) =>
+					this.applyPlaceholderBodyDefaults(textStyle, defaults),
+				applyLevelDefaults: (textStyle, level) =>
+					this.applyPlaceholderLevelDefaults(textStyle, level),
+			},
 		);
 
 		// ── 4. Resolve layout name and background ───────────────────────
@@ -603,9 +640,6 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const layoutName =
 			String((sldLayout?.['p:cSld'] as XmlObject | undefined)?.['@_name'] || '').trim() ||
 			layoutPath;
-
-		// Try to resolve background from the new layout
-		const layoutBgColor = this.extractBackgroundColor(layoutXml, 'p:sldLayout');
 
 		// ── 5. Update the slide object ──────────────────────────────────
 		const updated: PptxSlide = {
@@ -616,11 +650,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			isDirty: true,
 		};
 
-		// Apply layout background if slide doesn't have its own
-		if (!slide.rawXml || !this.extractBackgroundColor(slide.rawXml)) {
-			if (layoutBgColor) {
-				updated.backgroundColor = layoutBgColor;
-			}
+		// A slide that inherits its background follows the new layout, and all
+		// three facets have to move together: the model carries the OLD layout's
+		// resolved picture and gradient too, and only swapping the colour left
+		// that picture painted under the new layout (or wiped a picture layout to
+		// the master's flat colour). A slide that authored its own `p:bg`, or
+		// whose background the user changed since load, keeps it.
+		const origin = slideBackgroundOrigin(this, slidePath);
+		const inheritsBackground = origin
+			? slideBackgroundIsPurelyInherited(origin, slide)
+			: !slide.rawXml || !this.extractBackgroundColor(slide.rawXml);
+		if (inheritsBackground) {
+			// The colour and gradient getters fall back to the master through the
+			// LAYOUT's rels, which are only loaded for layouts a parsed slide has
+			// already used.
+			await this.loadSlideRelationships(layoutPath, partRelsPath(layoutPath));
+			const [color, gradient, image] = await Promise.all([
+				this.getLayoutBackgroundColor(slidePath),
+				this.getLayoutBackgroundGradient(slidePath),
+				this.getLayoutBackgroundImage(slidePath),
+			]);
+			updated.backgroundColor = color ?? slide.backgroundColor;
+			updated.backgroundGradient = gradient;
+			updated.backgroundImage = image;
+			// Re-baseline what "inherited" now means, so a save keeps deferring
+			// to the layout instead of freezing these values into a slide `p:bg`.
+			rememberSlideBackgroundOrigin(this, slidePath, {
+				authored: false,
+				color: updated.backgroundColor,
+				gradient,
+				image,
+			});
 		}
 
 		slides[slideIndex] = updated;

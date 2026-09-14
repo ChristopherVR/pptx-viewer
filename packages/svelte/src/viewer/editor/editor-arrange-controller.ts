@@ -35,10 +35,11 @@ export class EditorArrangeController {
 		}
 	}
 
-	/** Align every selected element to `edge` (needs >= 2 selected). */
+	/** Align the selection to `edge`: to each other, or a lone element to the slide. */
 	alignSelected(edge: AlignEdge): void {
 		const ids = this.#editor.selection.ids;
-		this.#mutate((slides) => alignSelectedOnSlide(slides, 0, ids, edge));
+		const slideSize = this.#editor.getCanvasSize();
+		this.#mutate((slides) => alignSelectedOnSlide(slides, 0, ids, edge, slideSize));
 	}
 
 	/** Distribute the selected elements evenly along `axis` (needs >= 3 selected). */

@@ -478,6 +478,33 @@ export function isTransitionalNamespaceUri(uri: string): boolean {
 }
 
 /**
+ * Check whether raw part XML contains a Transitional URI in an attribute that
+ * a Strict-conformance conversion is actually able to rewrite: a namespace
+ * declaration (`xmlns`/`xmlns:*`), a relationship `Type`, or an extension
+ * `uri`. `convertXmlToStrict` only ever touches those three attribute kinds
+ * (see its doc comment), so this mirrors that surface exactly.
+ *
+ * A plain substring/URI scan is too broad: a Strict SmartArt data part
+ * commonly carries a Transitional URI inside unrelated compatibility
+ * metadata such as `minVer`. Matching that value triggered a needless
+ * reparse/rebuild of an otherwise untouched diagram part, and fast-xml-parser
+ * does not preserve the authored order of heterogeneous diagram children
+ * (`dgm:pt`/`dgm:cxn` siblings), so the rebuild could silently reorder them
+ * and change the rendered diagram even though nothing in the part actually
+ * needed Strict conversion.
+ */
+export function containsConvertibleStrictNamespaceAttribute(xml: string): boolean {
+	const convertibleAttribute =
+		/(?:\sxmlns(?::[A-Za-z_][\w.-]*)?|\sType|\suri)\s*=\s*(["'])(.*?)\1/gu;
+	for (const match of xml.matchAll(convertibleAttribute)) {
+		if (isTransitionalNamespaceUri(match[2])) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * Recursively convert all Transitional namespace URIs within a parsed XML
  * object tree to their Strict equivalents.
  *

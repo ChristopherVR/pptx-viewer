@@ -736,6 +736,7 @@ const {
 	selectedElementIds,
 	activeSlideIndex,
 	slides,
+	canvasSize,
 	pushHistory: history.pushHistory,
 });
 

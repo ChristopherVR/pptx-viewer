@@ -20,7 +20,8 @@
 	const t = useTranslator();
 
 	const count = $derived(editor.selection.size);
-	const canAlign = $derived(editor.editable && count >= 2);
+	// One element aligns to the slide, two or more to each other (PowerPoint).
+	const canAlign = $derived(editor.editable && count >= 1);
 	const canDistribute = $derived(editor.editable && count >= 3);
 	const canFlip = $derived(editor.editable && count >= 1);
 	// G10: mirrors the a:spLocks/@noGrp guard editor.arrangeOps.groupSelected

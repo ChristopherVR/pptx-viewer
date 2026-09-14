@@ -16,6 +16,8 @@ export interface UseElementManipulationInput {
 	selectedElementIdSet: Set<string>;
 	elementLookup: Map<string, PptxElement>;
 	editTemplateMode: boolean;
+	/** Slide bounds in px; a lone element aligns against these (Align to Slide). */
+	canvasSize?: { width: number; height: number };
 	clipboardPayload: { element: PptxElement; isTemplate: boolean } | null;
 	setClipboardPayload: React.Dispatch<
 		React.SetStateAction<{ element: PptxElement; isTemplate: boolean } | null>

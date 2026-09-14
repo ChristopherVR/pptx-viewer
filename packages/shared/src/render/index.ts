@@ -573,6 +573,10 @@ export * from './bullet-autonum';
 export * from './bullet-list';
 // Ribbon Bullets / Numbering toggle: authors real `bulletInfo`, not `listType`.
 export * from './bullet-toggle';
+export * from './bullet-toggle-selection';
+export * from './selection-format-state';
+export * from './text-style-scope';
+export * from './text-style-update';
 export * from './text-list-style-update';
 // Rich speaker-notes editor: segment/paragraph maths, contentEditable HTML
 // serialise/parse, caret-aware toolbar commands, and the print-notes document

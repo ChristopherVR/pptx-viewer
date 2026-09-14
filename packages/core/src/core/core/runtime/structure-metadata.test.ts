@@ -40,9 +40,10 @@ describe('placeholder-validation', () => {
 		expect(normalizePlaceholderType('  ')).toBe('body');
 	});
 
-	it('should normalize case-insensitively', () => {
+	it('should normalize case-insensitively to the canonical schema spelling', () => {
 		expect(normalizePlaceholderType('Title')).toBe('title');
 		expect(normalizePlaceholderType('BODY')).toBe('body');
+		expect(normalizePlaceholderType('ctrtitle')).toBe('ctrTitle');
 	});
 
 	it('should return a complete set of valid types', () => {

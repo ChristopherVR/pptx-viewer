@@ -31,6 +31,7 @@ import type {
 } from '../types';
 import { THEME_COLOR_SCHEME_KEYS } from '../types/theme';
 import { ooxmlGradientAngleToCssDegrees } from './gradient-angle';
+import { reResolveSlideFonts } from './theme-font-switching';
 
 // ---------------------------------------------------------------------------
 // Internal helpers
@@ -66,7 +67,14 @@ function buildColorRemapTable(
 	for (const key of allKeys) {
 		const oldVal = normalizeHex(oldColorMap[key]);
 		const newVal = normalizeHex(newColorMap[key]);
-		if (oldVal && newVal && oldVal !== newVal) {
+		// A scheme may give two slots the same RGB value (a deck whose dk2 and
+		// accent6 are both authored as one navy is a real case). Once parsing has
+		// flattened the token to hex the slots are indistinguishable by value,
+		// so the first slot to claim a colour keeps it: dk/lt before the
+		// accents, then the aliases. Letting a later slot overwrite the entry
+		// made the winner depend on key order and split a visually uniform deck
+		// into two different colours after a theme switch.
+		if (oldVal && newVal && oldVal !== newVal && !remap.has(oldVal)) {
 			// Map both with and without # prefix
 			remap.set(oldVal, `#${newVal}`);
 			remap.set(`#${oldVal}`, `#${newVal}`);
@@ -528,7 +536,13 @@ export function applyThemeToData(
 ): PptxData {
 	const oldColorMap = data.themeColorMap ?? {};
 	const newColorMap = buildThemeColorMap(newColorScheme);
-	const newSlides = reResolveSlideColors(data.slides, oldColorMap, newColorScheme);
+	const recolouredSlides = reResolveSlideColors(data.slides, oldColorMap, newColorScheme);
+	// Fonts are flattened at parse time just like colours, so a font scheme
+	// that only lands on `theme.fontScheme` changes nothing on screen until the
+	// deck is reloaded. Re-resolve the faces in place as well.
+	const newSlides = newFontScheme
+		? reResolveSlideFonts(recolouredSlides, data.theme?.fontScheme, newFontScheme)
+		: recolouredSlides;
 
 	const newTheme = {
 		...data.theme,

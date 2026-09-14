@@ -802,10 +802,20 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// user had scrolled/zoomed during editing would open the presentation on a
 		// sub-region instead of the whole slide. Reset all of it so presentations
 		// start clean: unselected, fit-to-view, scrolled to the slide origin.
+		// The editing zoom is remembered across the show: the fit-to-view reset
+		// used to be permanent, so leaving Slide Show dropped the user back at
+		// 100% instead of the zoom they were working at.
+		const zoomBeforePresentRef = useRef<number | null>(null);
 		useEffect(() => {
 			if (mode !== 'present') {
+				const remembered = zoomBeforePresentRef.current;
+				if (remembered !== null) {
+					zoomBeforePresentRef.current = null;
+					zoom.setScale(remembered);
+				}
 				return;
 			}
+			zoomBeforePresentRef.current = zoom.scale;
 			state.setSelectedElementId(null);
 			state.setSelectedElementIds([]);
 			state.setInlineEditingElementId(null);

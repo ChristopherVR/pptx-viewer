@@ -68,6 +68,27 @@ describe('selected ECMA-376 simple-type facets', () => {
 		expect(issues).toStrictEqual([]);
 	});
 
+	/**
+	 * `ST_PositiveFixedPercentage` (`alpha`, `tint`, `shade`) is 0 through
+	 * 100000; `ST_PositivePercentage` (`alphaMod`, `hueMod`) shares the lower
+	 * bound of 0 but has no ceiling; the luminance/saturation/channel
+	 * modulations are signed and unbounded. Each must be told apart from the
+	 * others, otherwise a theme-issued `lumMod val="120000"` is reported as
+	 * invalid while a genuinely broken `alpha val="120000"` is not.
+	 */
+	it('distinguishes fixed, positive and unbounded percentage domains', async () => {
+		await expect(facetIssues('<a:lumMod val="120000"/>')).resolves.toStrictEqual([]);
+		await expect(facetIssues('<a:tint val="50000"/>')).resolves.toStrictEqual([]);
+
+		const alpha = await facetIssues('<a:alpha val="120000"/>');
+		expect(alpha).toHaveLength(1);
+		expect(alpha[0].message).toContain('from 0 through 100000');
+
+		const alphaMod = await facetIssues('<a:alphaMod val="-1"/>');
+		expect(alphaMod).toHaveLength(1);
+		expect(alphaMod[0].message).toContain('0 or more');
+	});
+
 	it('validates angle and coordinate facets including universal measures', async () => {
 		const issues = await facetIssues(
 			'<a:xfrm rot="2147483648"><a:off x="-27273042329601" y="1cm"/><a:ext cx="-1mm" cy="27273042316901"/></a:xfrm><a:lin ang="21600000"/>',

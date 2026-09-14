@@ -244,6 +244,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							selectedElement={p.selectedElement}
 							tableEditorState={p.tableEditorState}
 							onUpdateTextStyle={p.onUpdateTextStyle}
+							onToggleBullets={p.onToggleBullets}
 							onTransformTextCase={p.onTransformTextCase}
 						/>
 					)}

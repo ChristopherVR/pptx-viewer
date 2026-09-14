@@ -1336,6 +1336,171 @@ describe('remapTextToSegments', () => {
 		});
 	});
 
+	describe('content-based paragraph matching', () => {
+		const levelOne = { alignment: 'right' };
+		const levelTwo = { paragraphSpacingBefore: 6 };
+		function threeLevels(): TextSegment[] {
+			return [
+				{ text: 'Top level', style: { bold: true }, paragraphLevel: 0 },
+				breakSeg(),
+				{
+					text: 'Middle level',
+					style: { italic: true },
+					paragraphLevel: 1,
+					paragraphProperties: levelOne,
+				},
+				breakSeg(),
+				{
+					text: 'Deep level',
+					style: { underline: true },
+					paragraphLevel: 2,
+					paragraphProperties: levelTwo,
+				},
+			];
+		}
+		function paragraphsOf(segments: TextSegment[]): TextSegment[][] {
+			const paragraphs: TextSegment[][] = [[]];
+			for (const segment of segments) {
+				if (segment.isParagraphBreak) {
+					paragraphs.push([]);
+				} else {
+					paragraphs[paragraphs.length - 1].push(segment);
+				}
+			}
+			return paragraphs;
+		}
+
+		it('gives both halves of a mid-list Enter the split paragraph metadata and keeps the rest', () => {
+			const result = paragraphsOf(
+				remapTextToSegments('Top level\nMiddle\n level\nDeep level', threeLevels(), {}),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].text)).toStrictEqual([
+				'Top level',
+				'Middle',
+				' level',
+				'Deep level',
+			]);
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 1, 1, 2]);
+			expect(result[1][0].paragraphProperties).toBe(levelOne);
+			expect(result[2][0].paragraphProperties).toBe(levelOne);
+			expect(result[2][0].style.italic).toBeTruthy();
+			expect(result[3][0].paragraphProperties).toBe(levelTwo);
+			expect(result[3][0].style.underline).toBeTruthy();
+		});
+
+		it('keeps later paragraph metadata when a middle paragraph is deleted', () => {
+			const result = paragraphsOf(remapTextToSegments('Top level\nDeep level', threeLevels(), {}));
+
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 2]);
+			expect(result[1][0].paragraphProperties).toBe(levelTwo);
+			expect(result[1][0].style.underline).toBeTruthy();
+		});
+
+		it('lets paragraphs inserted in the middle inherit from the paragraph above them', () => {
+			const result = paragraphsOf(
+				remapTextToSegments(
+					'Top level\nMiddle level\nNew one\nNew two\nDeep level',
+					threeLevels(),
+					{},
+				),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 1, 1, 1, 2]);
+			expect(result[2][0].paragraphProperties).toBe(levelOne);
+			expect(result[3][0].paragraphProperties).toBe(levelOne);
+			expect(result[3][0].style.italic).toBeTruthy();
+			expect(result[4][0].paragraphProperties).toBe(levelTwo);
+		});
+
+		it('keeps a partially retyped paragraph paired with its original', () => {
+			const result = paragraphsOf(
+				remapTextToSegments('Top level\nMiddle tier\nDeep level', threeLevels(), {}),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 1, 2]);
+			expect(result[1][0].paragraphProperties).toBe(levelOne);
+		});
+
+		it('keeps a fully retyped paragraph in its slot', () => {
+			const result = paragraphsOf(
+				remapTextToSegments('Top level\nSomething else\nDeep level', threeLevels(), {}),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 1, 2]);
+			expect(result[1][0].paragraphProperties).toBe(levelOne);
+		});
+
+		it('gives a paragraph opened above the first one that paragraph metadata', () => {
+			const result = paragraphsOf(
+				remapTextToSegments('\nTop level\nMiddle level\nDeep level', threeLevels(), {}),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].paragraphLevel)).toStrictEqual([0, 0, 1, 2]);
+			expect(result[0][0].text).toBe('');
+			expect(result[3][0].paragraphProperties).toBe(levelTwo);
+		});
+
+		it('renumbers the rest of a numbered list after a mid-list Enter', () => {
+			const item = (index: number, text: string): TextSegment[] => [
+				{
+					text: `${index + 1}. `,
+					style: {},
+					bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: index },
+				},
+				seg(text),
+			];
+			const original: TextSegment[] = [
+				...item(0, 'Alpha'),
+				breakSeg(),
+				...item(1, 'Beta'),
+				breakSeg(),
+				...item(2, 'Gamma'),
+			];
+
+			const result = paragraphsOf(
+				remapTextToSegments('1. Alpha\n2. Be\nta\n3. Gamma', original, {}),
+			);
+
+			expect(result.map((paragraph) => paragraph[0].text)).toStrictEqual([
+				'1. ',
+				'2. ',
+				'3. ',
+				'4. ',
+			]);
+			expect(result.map((paragraph) => paragraph[0].bulletInfo?.paragraphIndex)).toStrictEqual([
+				0, 1, 2, 3,
+			]);
+			expect(result.map((paragraph) => paragraph[1].text)).toStrictEqual([
+				'Alpha',
+				'Be',
+				'ta',
+				'Gamma',
+			]);
+		});
+
+		it('renumbers the rest of a numbered list after a middle item is deleted', () => {
+			const original: TextSegment[] = [
+				{ text: '1.', style: {}, bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 0 } },
+				seg('Alpha'),
+				breakSeg(),
+				{ text: '2.', style: {}, bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 1 } },
+				seg('Beta'),
+				breakSeg(),
+				{ text: '3.', style: {}, bulletInfo: { autoNumType: 'arabicPeriod', paragraphIndex: 2 } },
+				seg('Gamma'),
+			];
+
+			const result = paragraphsOf(remapTextToSegments('1.Alpha\n3.Gamma', original, {}));
+
+			expect(result.map((paragraph) => paragraph[0].text)).toStrictEqual(['1.', '2.']);
+			expect(result.map((paragraph) => paragraph[0].bulletInfo?.paragraphIndex)).toStrictEqual([
+				0, 1,
+			]);
+			expect(result[1][1].text).toBe('Gamma');
+		});
+	});
+
 	describe('segment metadata preservation', () => {
 		it('preserves equationXml on an untouched commit (click in, click away)', () => {
 			const omml = { 'm:oMath': { 'm:r': { 'm:t': 'x' } } };

@@ -1,3 +1,4 @@
+import { parseOoxmlPercent } from '../../color/color-primitives';
 import { parseStructuredCustomGeometry } from '../../geometry/custom-geometry-parser';
 import {
 	parseGuideDefinitions,
@@ -20,6 +21,21 @@ import type {
 } from '../../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimePlaceholderLookup';
 import { evaluatePresetAdjustmentFormula } from './preset-avlst-fmla';
+
+/**
+ * Parse a signed `ST_Percentage` rect offset to a fraction, accepting both
+ * lexical forms: the transitional thousandths (`18665` = 18.665%) and the
+ * strict literal (`18.665%`). Reading the literal form as thousandths made a
+ * strict-conformance crop of 18.665% collapse to 0.018% and the picture render
+ * uncropped. The magnitude is capped at 10x the frame to bound hostile input.
+ */
+function parseBoundedRectFraction(value: unknown): number | undefined {
+	const fraction = parseOoxmlPercent(value);
+	if (fraction === undefined) {
+		return undefined;
+	}
+	return Math.max(-10, Math.min(10, fraction));
+}
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected parseGeometryAdjustments(
@@ -476,11 +492,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * hostile input.
 	 */
 	protected parseCropFraction(value: unknown): number | undefined {
-		const raw = Number.parseInt(String(value ?? ''), 10);
-		if (!Number.isFinite(raw)) {
-			return undefined;
-		}
-		return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
+		return parseBoundedRectFraction(value);
 	}
 
 	protected readImageCropFromBlipFill(
@@ -539,11 +551,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * magnitude is capped at 10x the frame to bound hostile input.
 	 */
 	protected parseSignedRectFraction(value: unknown): number | undefined {
-		const raw = Number.parseInt(String(value ?? ''), 10);
-		if (!Number.isFinite(raw)) {
-			return undefined;
-		}
-		return Math.max(-1000000, Math.min(1000000, raw)) / 100000;
+		return parseBoundedRectFraction(value);
 	}
 
 	protected extractShapeStyle(spPr: XmlObject | undefined, styleNode?: XmlObject): ShapeStyle {

@@ -10,13 +10,13 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import {
-	applyListStyleUpdate,
+	applyTextStyleUpdate,
 	masterViewElements as resolveMasterViewElements,
 	remapTextToSegments,
 	replaceMasterViewElements,
+	toggleSelectionBullets,
 	updateElement as updateSlideElement,
 	updateMasterViewElement,
-	updateTextSegmentStyle,
 } from 'pptx-viewer-shared';
 import type { MasterViewTarget, MasterViewWrite } from 'pptx-viewer-shared';
 /**
@@ -30,7 +30,6 @@ import { useCallback } from 'react';
 import { isTemplateElementId } from '../utils';
 import {
 	getInlineEditorSelection,
-	applyStyleToSelectedSegments,
 	setPendingSelectionRestore,
 } from '../utils/inline-selection-utils';
 import { applyCaseTransformToSegments, transformTextCase } from '../utils/text-case-transform';
@@ -105,6 +104,11 @@ export interface ElementOperations {
 	updateSelectedElement: (updates: Partial<PptxElement>) => void;
 	updateSelectedShapeStyle: (updates: Partial<ShapeStyle>) => void;
 	updateSelectedTextStyle: (updates: Partial<TextStyle>) => void;
+	/**
+	 * Ribbon Bullets / Numbering: toggle the paragraphs the inline selection
+	 * intersects (every paragraph without one) via the shared bullet toggle.
+	 */
+	toggleSelectedBullets: (kind: 'bullet' | 'numbered') => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	updateSelectedTextCase: (mode: ChangeCaseMode) => void;
 	updateSlides: (updater: (s: PptxSlide[]) => PptxSlide[]) => void;
@@ -274,43 +278,52 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 			const isLiveEditing = selectedElement.id === inlineEditingElementId;
 			const currentSegments = liveTextSegments();
 
-			// Check if there's an active text selection in the inline editor
-			const inlineSel = getInlineEditorSelection(currentSegments);
-			if (updates.listType) {
-				const result = applyListStyleUpdate(
-					{ ...selectedElement, textSegments: currentSegments },
-					updates,
-					inlineSel,
-				);
-				setPendingSelectionRestore(result.selection);
-				updateSelectedElement({
-					...result.patch,
-					...(isLiveEditing ? { text: inlineEditingText } : {}),
-				});
-				return;
-			}
-			if (inlineSel && currentSegments) {
-				// Apply formatting only to the selected segment range
-				const { newSegments, newSelection } = applyStyleToSelectedSegments(
-					currentSegments,
-					inlineSel,
-					updates,
-				);
+			// Shared decides the patch: with an inline selection the run-level keys
+			// are scoped to the selected characters while body-level keys (indent,
+			// vAlign, columns...) still reach `textStyle`; without one everything
+			// applies element-wide.
+			const { patch, newSelection } = applyTextStyleUpdate(
+				selectedElement,
+				updates,
+				getInlineEditorSelection(currentSegments),
+				currentSegments,
+			);
+			if (newSelection) {
 				// Store restore info so InlineTextEditor can restore the cursor
 				setPendingSelectionRestore(newSelection);
-				updateSelectedElement({
-					textSegments: newSegments,
-					...(isLiveEditing ? { text: inlineEditingText } : {}),
-				} as Partial<PptxElement>);
+			}
+			updateSelectedElement({
+				...patch,
+				...(isLiveEditing ? { text: inlineEditingText } : {}),
+			} as Partial<PptxElement>);
+		},
+		[
+			selectedElement,
+			updateSelectedElement,
+			inlineEditingElementId,
+			inlineEditingText,
+			liveTextSegments,
+		],
+	);
+
+	const toggleSelectedBullets = useCallback(
+		(kind: 'bullet' | 'numbered') => {
+			if (!selectedElement || !hasTextProperties(selectedElement)) {
 				return;
 			}
-
-			// No inline selection: apply to the entire element (existing behavior)
-			const newTextStyle = { ...selectedElement.textStyle, ...updates };
-			const newSegments = currentSegments?.map((seg) => updateTextSegmentStyle(seg, updates));
+			const isLiveEditing = selectedElement.id === inlineEditingElementId;
+			const currentSegments = liveTextSegments();
+			const { patch, newSelection } = toggleSelectionBullets(
+				selectedElement,
+				kind,
+				getInlineEditorSelection(currentSegments),
+				currentSegments,
+			);
+			if (newSelection) {
+				setPendingSelectionRestore(newSelection);
+			}
 			updateSelectedElement({
-				textStyle: newTextStyle,
-				textSegments: newSegments,
+				...patch,
 				...(isLiveEditing ? { text: inlineEditingText } : {}),
 			} as Partial<PptxElement>);
 		},
@@ -443,6 +456,7 @@ export function useElementOperations(input: UseElementOperationsInput): ElementO
 		updateSelectedElement,
 		updateSelectedShapeStyle,
 		updateSelectedTextStyle,
+		toggleSelectedBullets,
 		updateSelectedTextCase,
 		updateSlides,
 		activeElements,

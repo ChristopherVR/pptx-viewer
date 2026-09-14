@@ -285,6 +285,11 @@
 		width: 100%;
 		height: 100%;
 		min-height: 240px;
+		/* Text autosizing: the viewer scales the whole slide as one unit, so a
+		 * mobile browser must not inflate the glyphs alone (it changes wrapping
+		 * and clips text). Mirrors the React `theme.css` rule. */
+		-webkit-text-size-adjust: none;
+		text-size-adjust: none;
 		background: var(--pptx-background, #11111b);
 		color: var(--pptx-foreground, #e2e8f0);
 		outline: none;

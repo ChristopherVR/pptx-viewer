@@ -333,6 +333,19 @@ describe('hasDirectSubstitution', () => {
 		expect(hasDirectSubstitution('Times New Roman')).toBeTruthy();
 	});
 
+	it('resolves a named Source Sans weight to the base family, then a metrically compatible fallback', () => {
+		// Office stores "Source Sans Pro ExtraLight" as its own family name;
+		// most installs only expose the base family with a weight axis.
+		expect(hasDirectSubstitution('Source Sans Pro ExtraLight')).toBeTruthy();
+		expect(FONT_SUBSTITUTION_MAP['Source Sans Pro ExtraLight']).toStrictEqual([
+			'Source Sans Pro',
+			'Calibri Light',
+			'Segoe UI Light',
+			'Arial',
+			'sans-serif',
+		]);
+	});
+
 	it('returns false for unknown fonts', () => {
 		expect(hasDirectSubstitution('TotallyUnknown')).toBeFalsy();
 		expect(hasDirectSubstitution('')).toBeFalsy();

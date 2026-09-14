@@ -268,6 +268,18 @@ describe('createRibbon', () => {
 		expect(backstage?.querySelectorAll('.pptxv-bs-actions svg')).toHaveLength(5);
 	});
 
+	it('returns to the default tab when a presentation has loaded', () => {
+		const ribbon = createRibbon(document, createTranslator(), buildHandlers());
+		Array.from(ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab'))
+			.find((button) => button.textContent === 'File')
+			?.click();
+		expect(ribbon.el.querySelector<HTMLElement>('.pptxv-backstage')?.hidden).toBeFalsy();
+
+		ribbon.showDefaultTab();
+		expect(ribbon.el.querySelector<HTMLElement>('.pptxv-backstage')?.hidden).toBeTruthy();
+		expect(ribbon.el.querySelector<HTMLElement>('.pptxv-ribbon-home-content')?.hidden).toBeFalsy();
+	});
+
 	it('offers a PowerPoint 97-2003 (.ppt) card on the Save As page', () => {
 		const t = createTranslator();
 		const handlers = buildHandlers();

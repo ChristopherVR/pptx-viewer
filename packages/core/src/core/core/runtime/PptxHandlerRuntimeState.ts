@@ -64,6 +64,7 @@ import type {
 	IPptxTableDataParser,
 } from '../builders';
 import type { IPptxRuntimeDependencyFactory } from '../factories';
+import { TemplateElementBaselineTracker } from './template-element-baselines';
 
 /**
  * Root state class for the PptxHandlerRuntime mixin chain.
@@ -114,6 +115,14 @@ export class PptxHandlerRuntime {
 
 	/** Cached parsed master elements keyed by master archive path. */
 	protected masterCache: Map<string, PptxElement[]> = new Map();
+
+	/**
+	 * As-parsed signatures of the `layout-` / `master-` element copies merged
+	 * into slides, plus the copies a later edit has superseded. Lets the save
+	 * writer patch a shared template `rawXml` node only from the copy that was
+	 * actually edited; see `template-element-baselines.ts`.
+	 */
+	protected templateElementBaselines = new TemplateElementBaselineTracker();
 
 	/** Raw parsed layout XML objects keyed by layout archive path. */
 	protected layoutXmlMap: Map<string, XmlObject> = new Map();

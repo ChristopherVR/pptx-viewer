@@ -46,6 +46,32 @@ export function masterPartElementSignature(elements: PptxElement[] | undefined):
 	}
 }
 
+/**
+ * Keys dropped from a SINGLE inherited element's signature. The part-level
+ * skip list applies as-is; `shapeId` joins it because the save writer
+ * reconciles `p:cNvPr/@id` itself and a renumbered id is not a user edit.
+ */
+const TEMPLATE_ELEMENT_SKIP_KEYS: ReadonlySet<string> = new Set([
+	...SIGNATURE_SKIP_KEYS,
+	'shapeId',
+]);
+
+/**
+ * Structural signature of ONE layout/master element as a slide holds it.
+ * Used to tell an edited copy of an inherited shape from a sibling slide's
+ * untouched copy of the same shape; see `template-element-baselines.ts`.
+ * Returns `''` when the element cannot be serialised.
+ */
+export function templateElementSignature(element: PptxElement): string {
+	try {
+		return JSON.stringify(element, (key, value: unknown) =>
+			TEMPLATE_ELEMENT_SKIP_KEYS.has(key) ? undefined : value,
+		);
+	} catch {
+		return '';
+	}
+}
+
 export function rememberMasterPartElementSignature(
 	runtime: object,
 	partPath: string,

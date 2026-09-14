@@ -24,9 +24,18 @@ describe('editor-arrange-ops alignSelectedOnSlide', () => {
 		expect(next[0].elements.map((e) => e.x)).toStrictEqual([10, 10]);
 	});
 
-	it('returns null (no-op) with fewer than 2 selected ids', () => {
+	it('returns null (no-op) for a single id when the slide size is unknown', () => {
 		const slides = [slide([el('a', 10, 0)])];
 		expect(alignSelectedOnSlide(slides, 0, ['a'], 'left')).toBeNull();
+	});
+
+	it('aligns a single id to the slide when the slide size is supplied', () => {
+		// PowerPoint aligns a lone object to the slide; this was a silent no-op.
+		const slides = [slide([el('a', 10, 0), el('b', 30, 5)])];
+		const size = { width: 960, height: 540 };
+		expect(alignSelectedOnSlide(slides, 0, ['a'], 'centerH', size)![0].elements[0].x).toBe(475);
+		expect(alignSelectedOnSlide(slides, 0, ['a'], 'bottom', size)![0].elements[0].y).toBe(530);
+		expect(alignSelectedOnSlide(slides, 0, ['a'], 'bottom', size)![0].elements[1].y).toBe(5);
 	});
 });
 

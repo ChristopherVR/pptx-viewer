@@ -328,4 +328,66 @@ describe('applyThemeToData', () => {
 		const result = applyThemeToData(data, ION_COLORS, fontScheme, 'Ion');
 		expect(result.theme?.fontScheme?.majorFont?.latin).toBe('Century Gothic');
 	});
+
+	it('re-resolves flattened theme fonts on the slides, not only the theme metadata', () => {
+		const data: PptxData = {
+			slides: [
+				makeSlide([
+					makeTextElement({
+						textStyle: { fontFamily: 'Calibri Light', latinFontThemeToken: '+mj-lt' },
+						textSegments: [
+							{ text: 'Hi', style: { fontFamily: 'Calibri Light', latinFontThemeToken: '+mj-lt' } },
+						],
+					} as Partial<PptxElement>),
+				]),
+			],
+			themeColorMap: makeOldColorMap(),
+			theme: {
+				colorScheme: OFFICE_COLORS,
+				fontScheme: { majorFont: { latin: 'Calibri Light' }, minorFont: { latin: 'Calibri' } },
+			},
+		} as PptxData;
+
+		const result = applyThemeToData(
+			data,
+			ION_COLORS,
+			{ majorFont: { latin: 'Century Gothic' }, minorFont: { latin: 'Century Gothic' } },
+			'Ion',
+		);
+
+		const el = result.slides[0].elements[0] as {
+			textStyle?: { fontFamily?: string };
+			textSegments?: TextSegment[];
+		};
+		expect(el.textStyle?.fontFamily).toBe('Century Gothic');
+		expect(el.textSegments?.[0]?.style.fontFamily).toBe('Century Gothic');
+	});
+});
+
+describe('buildColorRemapTable collisions', () => {
+	it('keeps every slide on one colour when two old slots shared a value', () => {
+		const oldScheme: PptxThemeColorScheme = {
+			...OFFICE_COLORS,
+			dk2: '#0F253E',
+			accent6: '#0F253E',
+		};
+		const newScheme: PptxThemeColorScheme = {
+			...ION_COLORS,
+			dk2: '#262626',
+			accent6: '#9B6BF2',
+		};
+		const slides = [
+			makeSlide([makeShapeElement({ shapeStyle: { fillColor: '#0F253E' } })]),
+			makeSlide([makeShapeElement({ shapeStyle: { fillColor: '#0F253E' } })]),
+		];
+
+		const result = reResolveSlideColors(slides, buildThemeColorMap(oldScheme), newScheme);
+		const fills = result.map(
+			(slide) =>
+				(slide.elements[0] as { shapeStyle?: { fillColor?: string } }).shapeStyle?.fillColor,
+		);
+
+		// dk2 is visited before accent6, so the darker slot wins for both slides.
+		expect(fills).toStrictEqual(['#262626', '#262626']);
+	});
 });

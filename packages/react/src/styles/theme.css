@@ -75,6 +75,16 @@
 	scroll-behavior: auto !important;
 }
 
+/* ── Text autosizing. Slide text is laid out against fixed PowerPoint canvas
+ * geometry and the viewer scales the whole slide as one unit. Mobile browsers
+ * (and responsive iframes) may otherwise inflate only the glyphs, which
+ * changes line wrapping and clips text even though the deck is correct.
+ */
+[data-pptx-viewer] {
+	-webkit-text-size-adjust: none;
+	text-size-adjust: none;
+}
+
 /* ── Hardware acceleration (Options > Advanced > "Disable hardware
  * graphics acceleration"). Strips the GPU-compositing hints (will-change,
  * backface-visibility, perspective) transitions/3D effects rely on, for

@@ -41,6 +41,9 @@ interface GroupAlignLayerInput {
 	effectiveSelectedIds: string[];
 	selectedElements: PptxElement[];
 	elementLookup: Map<string, PptxElement>;
+	/** Slide bounds in px; a lone element aligns against these (Align to Slide). */
+	canvasSize?: { width: number; height: number };
+	editTemplateMode?: boolean;
 	setSelectedElementIds: React.Dispatch<React.SetStateAction<string[]>>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
@@ -54,10 +57,34 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 		effectiveSelectedIds,
 		selectedElements,
 		elementLookup,
+		canvasSize,
+		editTemplateMode = false,
 		setSelectedElementIds,
 		ops,
 		history,
 	} = input;
+
+	/**
+	 * Rewrite the element list that OWNS `elementId`. Slide elements stay
+	 * interactive while edit-template mode is on, so routing a layer op through
+	 * `updateActiveElements` (which follows the mode flag) sent a slide element's
+	 * reorder to the template store, where the element does not exist, and the
+	 * button silently did nothing. Route by the id's store instead.
+	 */
+	const updateElementsOwning = (
+		elementId: string,
+		updater: (els: PptxElement[]) => PptxElement[],
+	): void => {
+		if (editTemplateMode && !isTemplateElementId(elementId)) {
+			ops.updateSlides((prev) =>
+				prev.map((slide, index) =>
+					index === activeSlideIndex ? { ...slide, elements: updater(slide.elements) } : slide,
+				),
+			);
+			return;
+		}
+		ops.updateActiveElements(updater);
+	};
 
 	const handleGroupElements = () => {
 		const ids = effectiveSelectedIds;
@@ -127,14 +154,14 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 	};
 
 	const handleAlignElements = (align: string) => {
-		if (selectedElements.length < 2) {
-			return;
-		}
 		const edge = ALIGN_EDGE_BY_KEY[align];
-		if (!edge) {
+		if (!edge || selectedElements.length === 0) {
 			return;
 		}
-		const positions = alignElements(selectedElements, edge);
+		// Two or more objects align to each other; a single object aligns to the
+		// slide, as in PowerPoint. The button used to be enabled for one object
+		// and do nothing with it.
+		const positions = alignElements(selectedElements, edge, { slideSize: canvasSize });
 		for (const [id, pos] of positions) {
 			const el = elementLookup.get(id);
 			if (!el) {
@@ -180,7 +207,7 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 			return;
 		}
 		const id = selectedElement.id;
-		ops.updateActiveElements((els) =>
+		updateElementsOwning(id, (els) =>
 			direction === 'forward'
 				? bringForward(els, id)
 				: direction === 'backward'
@@ -195,7 +222,7 @@ export function useGroupAlignLayerHandlers(input: GroupAlignLayerInput): GroupAl
 			return;
 		}
 		const id = selectedElement.id;
-		ops.updateActiveElements((els) =>
+		updateElementsOwning(id, (els) =>
 			direction === 'front' ? bringToFront(els, id) : sendToBack(els, id),
 		);
 		history.markDirty();

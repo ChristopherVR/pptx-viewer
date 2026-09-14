@@ -26,7 +26,7 @@ function shape(id: string, overrides: Partial<PptxElement> = {}): PptxElement {
 	} as unknown as PptxElement;
 }
 
-function setup(elements: PptxElement[]) {
+function setup(elements: PptxElement[], canvasSize?: { width: number; height: number }) {
 	const slides = ref<PptxSlide[]>([{ id: 's1', elements } as unknown as PptxSlide]);
 	const selectedElementIds = ref<string[]>(elements.map((el) => el.id));
 	const activeSlideIndex = ref(0);
@@ -41,10 +41,35 @@ function setup(elements: PptxElement[]) {
 		selectedElementIds,
 		activeSlideIndex,
 		slides,
+		canvasSize: canvasSize ? ref(canvasSize) : undefined,
 		pushHistory: () => pushed++,
 	});
 	return { api, slides, selectedElementIds, pushed: () => pushed };
 }
+
+describe('onAlign with a single element', () => {
+	// PowerPoint aligns a lone object to the slide; this used to be a silent
+	// no-op behind an enabled button because the slide size never reached the
+	// shared align helper.
+	it('aligns a lone element to the slide when the canvas size is known', () => {
+		const { api, slides, pushed } = setup([shape('a', { x: 30, y: 20 })], {
+			width: 960,
+			height: 540,
+		});
+		api.onAlign('centerH');
+		expect(slides.value[0]?.elements[0]?.x).toBe(430);
+		api.onAlign('bottom');
+		expect(slides.value[0]?.elements[0]?.y).toBe(490);
+		expect(pushed()).toBe(2);
+	});
+
+	it('stays a no-op without a canvas size', () => {
+		const { api, slides, pushed } = setup([shape('a', { x: 30, y: 20 })]);
+		api.onAlign('left');
+		expect(slides.value[0]?.elements[0]?.x).toBe(30);
+		expect(pushed()).toBe(0);
+	});
+});
 
 describe('onGroup with a:spLocks/@noGrouping', () => {
 	it('rejects the whole grouping attempt when any selected shape is locked', () => {

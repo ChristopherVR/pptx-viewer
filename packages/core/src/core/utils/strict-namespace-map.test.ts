@@ -7,6 +7,7 @@ import {
 	normalizeStrictXml,
 	toStrictNamespaceUri,
 	isTransitionalNamespaceUri,
+	containsConvertibleStrictNamespaceAttribute,
 	convertXmlToStrict,
 } from './strict-namespace-map';
 
@@ -449,6 +450,47 @@ describe('isTransitionalNamespaceUri', () => {
 				'http://schemas.microsoft.com/office/2006/relationships/vbaProject',
 			),
 		).toBeFalsy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// containsConvertibleStrictNamespaceAttribute
+// ---------------------------------------------------------------------------
+
+describe('containsConvertibleStrictNamespaceAttribute', () => {
+	it('returns true for a Transitional xmlns declaration', () => {
+		const xml = '<p:sld xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>';
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeTruthy();
+	});
+
+	it('returns true for a Transitional relationship Type attribute', () => {
+		const xml =
+			'<Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide" Id="rId1" Target="slide1.xml"/>';
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeTruthy();
+	});
+
+	it('returns true for a Transitional extension uri attribute', () => {
+		const xml = '<a:ext uri="http://schemas.openxmlformats.org/drawingml/2006/main"/>';
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeTruthy();
+	});
+
+	it('ignores a Transitional URI sitting in an unrelated attribute', () => {
+		// A Strict SmartArt data part routinely carries a Transitional URI in
+		// compatibility metadata unrelated to namespace/type declarations, e.g.
+		// `minVer`. Rebuilding the part for that alone risks reordering its
+		// heterogeneous diagram children for no actual Strict-conversion need.
+		const xml =
+			'<dgm:dataModel minVer="http://schemas.openxmlformats.org/drawingml/2006/diagram"/>';
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeFalsy();
+	});
+
+	it('returns false when nothing in the XML is convertible', () => {
+		const xml = '<p:sld xmlns:p="http://purl.oclc.org/ooxml/presentationml/main"/>';
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeFalsy();
+	});
+
+	it('returns false for an empty string', () => {
+		expect(containsConvertibleStrictNamespaceAttribute('')).toBeFalsy();
 	});
 });
 

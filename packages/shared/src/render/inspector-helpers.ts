@@ -14,6 +14,7 @@ import type {
 } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 
+import { textStyleFlagsOf } from './selection-format-state';
 import { textFontSizePxToPt } from './text-format-presets';
 import { updateTextSegmentStyle } from './update-text-segment-style';
 
@@ -77,28 +78,24 @@ export function fontSizeOf(el: PptxElement, presentationDefault?: PlaceholderDef
 	return deckDefault === undefined ? DEFAULT_FONT_SIZE : textFontSizePxToPt(deckDefault);
 }
 
-/** Returns whether the element's text is bold (false when absent). */
+/**
+ * Returns whether the element's text is bold: every content run effectively
+ * bold (run style, else the body style), false when absent. Derived from the
+ * runs, not the body alone, so a box whose runs are all bold at run level
+ * reads as bold and a mixed box does not (see `selection-format-state`).
+ */
 export function isBold(el: PptxElement): boolean {
-	if (hasTextProperties(el)) {
-		return el.textStyle?.bold ?? false;
-	}
-	return false;
+	return textStyleFlagsOf(el).bold === 'on';
 }
 
-/** Returns whether the element's text is italic (false when absent). */
+/** Returns whether the element's text is italic (see {@link isBold} for the run rule). */
 export function isItalic(el: PptxElement): boolean {
-	if (hasTextProperties(el)) {
-		return el.textStyle?.italic ?? false;
-	}
-	return false;
+	return textStyleFlagsOf(el).italic === 'on';
 }
 
-/** Returns whether the element's text has underline (false when absent). */
+/** Returns whether the element's text has underline (see {@link isBold} for the run rule). */
 export function isUnderline(el: PptxElement): boolean {
-	if (hasTextProperties(el)) {
-		return el.textStyle?.underline ?? false;
-	}
-	return false;
+	return textStyleFlagsOf(el).underline === 'on';
 }
 
 /**

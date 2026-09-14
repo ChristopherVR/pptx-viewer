@@ -385,8 +385,8 @@ export class EditorToolbarComponent {
 
 	protected readonly editor = inject(EditorStateService);
 
-	/** Align needs ≥2 selected elements; distribute needs ≥3. */
-	protected readonly canAlign = computed(() => this.editor.selectedIds().length >= 2);
+	/** Align needs a selection (a lone element aligns to the slide); distribute needs ≥3. */
+	protected readonly canAlign = computed(() => this.editor.selectedIds().length >= 1);
 	protected readonly canDistribute = computed(() => this.editor.selectedIds().length >= 3);
 	/** Group/ungroup, including the `a:spLocks`/`a:grpSpLocks` `@noGrp` lock (`group-lock-guard.ts`). */
 	protected readonly canGroup = computed(() =>

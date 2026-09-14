@@ -13,6 +13,7 @@ import type { PptxSaveConstants } from '../factories';
 import { slideBackgroundOrigin } from './authored-slide-background';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementWriter';
 import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntimeSaveElementWriter';
+import { applyShapeIdMapToSlide } from './save-structural-id-gate';
 import { fingerprintSlide, slideMatchesFingerprint } from './slide-fingerprint';
 import { buildOrderedSlideXml, SpTreeChildOrderTracker } from './slide-save-xml-order';
 import { reconcileSlideTransition } from './slide-transition-reconcile';
@@ -473,11 +474,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.wrapNewModel3DEnvelopes(spTree, collectors.model3ds);
 		this.wrapNewZoomEnvelopes(spTree, collectors.zooms);
 
-		// Validate and deduplicate shape IDs to prevent MS Office corruption
-		const reassigned = shapeIdValidator.validateAndDeduplicateIds(spTree, (v) =>
-			this.ensureArray(v),
+		// Validate and deduplicate shape IDs to prevent MS Office corruption. The
+		// whole part is the reference root so `p:timing` targets and the
+		// `pptx:animation` extension follow a renumbered shape; the map is then
+		// replayed onto the live model (elements, `rawTiming`, ActiveX controls,
+		// the last of which is serialized from the typed model further below).
+		const { reassigned, ids: reassignedIds } = shapeIdValidator.repairShapeIds(
+			spTree,
+			(v) => this.ensureArray(v),
+			xmlObj,
 		);
 		if (reassigned > 0) {
+			applyShapeIdMapToSlide(slide, reassignedIds);
 			this.compatibilityService.reportWarning({
 				code: 'SHAPE_ID_DEDUPLICATED',
 				message: `Reassigned ${reassigned} duplicate shape ID(s) on slide '${slide.id}'.`,

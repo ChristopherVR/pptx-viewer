@@ -1,6 +1,6 @@
 import { buildContextMenuEntries } from 'pptx-viewer-shared';
 import type React from 'react';
-import { Fragment } from 'react';
+import { Fragment, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
@@ -20,8 +20,25 @@ import type { ContextMenuProps } from './context-menu-types';
 export function ContextMenu(props: ContextMenuProps): React.ReactElement | null {
 	const { contextMenuState, mode, onClose } = props;
 	const { t } = useTranslation();
+	const open = Boolean(contextMenuState) && mode === 'edit';
 
-	if (!contextMenuState || mode !== 'edit') {
+	// Escape dismisses the menu, as it does in the other four bindings; this
+	// one only closed on an outside click.
+	useEffect(() => {
+		if (!open) {
+			return;
+		}
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.key === 'Escape') {
+				event.preventDefault();
+				onClose();
+			}
+		};
+		document.addEventListener('keydown', onKeyDown);
+		return () => document.removeEventListener('keydown', onKeyDown);
+	}, [open, onClose]);
+
+	if (!open) {
 		return null;
 	}
 

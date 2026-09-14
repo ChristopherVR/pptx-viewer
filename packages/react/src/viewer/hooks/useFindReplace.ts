@@ -6,7 +6,7 @@ import {
 	mapEditorKey,
 } from 'pptx-viewer-shared';
 import type { FindResult } from 'pptx-viewer-shared';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // The match descriptor and the search / replace implementations are shared with
 // the other bindings; this hook is the React state around them.
@@ -59,6 +59,20 @@ export function useFindReplace({
 	const [findMatchCase, setFindMatchCase] = useState(false);
 	const [findResults, setFindResults] = useState<FindResult[]>([]);
 	const [findResultIndex, setFindResultIndex] = useState(-1);
+	/** Set by a replace so the search re-runs once the replaced slides land. */
+	const pendingRefindRef = useRef(false);
+
+	// Closing the bar drops the matches. They also drive the canvas highlight
+	// overlay, which is not gated on `findReplaceOpen`, so leaving them set
+	// kept the match boxes painted on the slide after the bar was gone.
+	useEffect(() => {
+		if (findReplaceOpen) {
+			return;
+		}
+		setFindResults([]);
+		setFindResultIndex(-1);
+		pendingRefindRef.current = false;
+	}, [findReplaceOpen]);
 
 	// ── Search ────────────────────────────────────────────────────────────
 	const performFind = useCallback(() => {
@@ -120,9 +134,8 @@ export function useFindReplace({
 			return;
 		}
 		applyReplacements([findResults[findResultIndex]]);
-		// Re-run search after replace to refresh results
-		setTimeout(performFind, 0);
-	}, [findResults, findResultIndex, applyReplacements, performFind]);
+		pendingRefindRef.current = true;
+	}, [findResults, findResultIndex, applyReplacements]);
 
 	// ── Replace all ───────────────────────────────────────────────────────
 	const handleReplaceAll = useCallback(() => {
@@ -130,9 +143,22 @@ export function useFindReplace({
 			return;
 		}
 		applyReplacements(findResults);
-		// Re-run search after replace to refresh results
-		setTimeout(performFind, 0);
-	}, [findResults, applyReplacements, performFind]);
+		pendingRefindRef.current = true;
+	}, [findResults, applyReplacements]);
+
+	// Re-run the search once the replaced slides have actually landed in state.
+	// A `setTimeout(performFind, 0)` in the replace handlers called the
+	// `performFind` of the render that scheduled it, whose closure still held
+	// the pre-replace `slides`, so it re-counted the old text and the "n of m"
+	// counter never moved after Replace / Replace All. Gated on the pending
+	// flag so ordinary edits with the bar open do not re-navigate to match 1.
+	useEffect(() => {
+		if (!pendingRefindRef.current) {
+			return;
+		}
+		pendingRefindRef.current = false;
+		performFind();
+	}, [performFind]);
 
 	// ── Keyboard shortcut: Ctrl/Cmd+F toggles the find bar ────────────────
 	// The chord itself is decided by the shared editor keymap, not here. This

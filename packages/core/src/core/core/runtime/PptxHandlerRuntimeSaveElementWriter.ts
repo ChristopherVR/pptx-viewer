@@ -457,6 +457,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		collectors: SlideShapeCollectors,
 		ctx: SaveSlideContext,
 	): void {
+		// An inherited layout/master shape is written back by patching the
+		// `rawXml` node it SHARES with every sibling slide on the same layout, and
+		// almost every step below mutates that node in place. Bindings update
+		// state immutably, so an edit on one slide leaves the other slides holding
+		// the pristine copy; writing those back too let whichever slide came last
+		// overwrite the edit inside the part. A copy that still matches what the
+		// part holds (or one a committed edit has superseded) is skipped here,
+		// before anything touches the shared node.
+		if (this.isOwnTemplateElement(el, ctx) && !this.templateElementBaselines.shouldWriteBack(el)) {
+			return;
+		}
+
 		let shape = el.rawXml as XmlObject | undefined;
 
 		// Image embedding

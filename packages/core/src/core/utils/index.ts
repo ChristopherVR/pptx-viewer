@@ -460,6 +460,7 @@ export {
 	normalizeStrictXml,
 	toStrictNamespaceUri,
 	isTransitionalNamespaceUri,
+	containsConvertibleStrictNamespaceAttribute,
 	convertXmlToStrict,
 	type OoxmlConformanceClass,
 } from './strict-namespace-map';
@@ -468,6 +469,14 @@ export { VML_SHAPE_TAGS, parseVmlElement, parseVmlElements } from './vml-parser'
 
 export { parseActiveXControlsFromSlide } from './activex-parser';
 export { applyActiveXControlsToSlide, buildActiveXControlNode } from './activex-serializer';
+export {
+	MAX_SHAPE_ID,
+	parseShapeId,
+	remapShapeIdReferences,
+	remapElementShapeIds,
+	visitXmlObjects,
+	findCnvPrNode,
+} from './shape-ids';
 
 export { parseKinsoku, applyKinsokuToXml } from './kinsoku-parser';
 
@@ -529,6 +538,7 @@ export {
 	applyThemeToData,
 	buildThemeColorMap,
 } from './theme-switching';
+export { reResolveSlideFonts, reResolveElementFonts } from './theme-font-switching';
 export { applyThemeOverrideToSlide } from './slide-theme-override';
 
 export {

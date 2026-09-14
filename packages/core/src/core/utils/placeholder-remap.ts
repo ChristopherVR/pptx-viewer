@@ -93,9 +93,10 @@ export interface PlaceholderIdentity {
  * Score how well a target layout placeholder suits an element currently held
  * by `source`.
  *
- * @returns A score where higher is better, or a negative number when the
- *   target cannot accept this element at all. Callers pick the highest-scoring
- *   unclaimed target and must treat every negative result as "no match".
+ * @returns A score where higher is better (at least 1 for any compatible
+ *   target), or a negative number when the target cannot accept this element
+ *   at all. Callers pick the highest-scoring unclaimed target and must treat
+ *   every non-positive result as "no match".
  */
 export function scorePlaceholderMatch(
 	element: PptxElement,
@@ -108,7 +109,12 @@ export function scorePlaceholderMatch(
 
 	const sourceType = normalizeType(source.type);
 	const targetType = normalizeType(target.type);
-	let score = 0;
+	// A role-compatible slot is always claimable. Without this floor a title
+	// authored as `ctrTitle` scored exactly zero against a layout's `title`
+	// slot (no idx, different spelling, not a preferred type), and callers
+	// that only accept a positive score left the title where it was and
+	// fabricated a second, empty title box next to it.
+	let score = 1;
 
 	// An idx match is the strongest signal available: it identifies the very
 	// same slot when both decks descend from the same master family.

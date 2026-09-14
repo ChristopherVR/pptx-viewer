@@ -1,11 +1,13 @@
 import type { XmlObject } from '../../types';
+import { MAX_SHAPE_ID, parseShapeId, remapShapeIdReferences } from '../../utils/shape-ids';
 
 /**
  * Shape ID uniqueness validator for OOXML slide shape trees.
  *
  * OpenXML requires that every `p:cNvPr/@id` within a single slide's
- * `p:spTree` is unique. Duplicate IDs can corrupt files in MS Office.
- * This validator scans the tree and reassigns duplicate IDs.
+ * `p:spTree` is unique and a UInt32 (`ST_DrawingElementId`). Duplicate or
+ * out-of-range IDs can corrupt files in MS Office. This validator scans the
+ * tree and reassigns every duplicate, unassigned (`0`) or invalid ID.
  */
 
 /** Recursively collect all cNvPr nodes from a shape tree. */
@@ -65,8 +67,59 @@ function collectCnvPrNodes(
 	}
 }
 
+/** Outcome of one shape-tree repair. */
+export interface ShapeIdRepairResult {
+	/** Number of `p:cNvPr/@id` declarations that were rewritten. */
+	reassigned: number;
+	/**
+	 * Old raw id text -> fresh id, one entry per rewritten declaration. A
+	 * later duplicate of the same old id overwrites the earlier entry, so a
+	 * reference to a duplicated id follows the LAST shape renumbered (the one
+	 * a paste brought in alongside its connector).
+	 */
+	ids: Map<string, string>;
+}
+
 export interface IPptxShapeIdValidator {
-	validateAndDeduplicateIds(spTree: XmlObject, ensureArray: (value: unknown) => unknown[]): number;
+	validateAndDeduplicateIds(
+		spTree: XmlObject,
+		ensureArray: (value: unknown) => unknown[],
+		referenceRoot?: XmlObject,
+	): number;
+	repairShapeIds(
+		spTree: XmlObject,
+		ensureArray: (value: unknown) => unknown[],
+		referenceRoot?: XmlObject,
+	): ShapeIdRepairResult;
+}
+
+/**
+ * Hands out fresh ids above the largest valid one already in the tree and,
+ * once the UInt32 ceiling is reached, falls back to the lowest free gap.
+ */
+class ShapeIdAllocator {
+	private gapCursor = 1;
+
+	constructor(
+		private readonly used: Set<number>,
+		private maxId: number,
+	) {}
+
+	next(): number {
+		if (this.maxId < MAX_SHAPE_ID) {
+			this.maxId += 1;
+			this.used.add(this.maxId);
+			return this.maxId;
+		}
+		while (this.gapCursor <= MAX_SHAPE_ID && this.used.has(this.gapCursor)) {
+			this.gapCursor += 1;
+		}
+		if (this.gapCursor > MAX_SHAPE_ID) {
+			throw new Error('No free DrawingML shape id left in this shape tree.');
+		}
+		this.used.add(this.gapCursor);
+		return this.gapCursor;
+	}
 }
 
 /**
@@ -77,42 +130,68 @@ export class PptxShapeIdValidator implements IPptxShapeIdValidator {
 	public validateAndDeduplicateIds(
 		spTree: XmlObject,
 		ensureArray: (value: unknown) => unknown[],
+		referenceRoot: XmlObject = spTree,
 	): number {
+		return this.repairShapeIds(spTree, ensureArray, referenceRoot).reassigned;
+	}
+
+	/**
+	 * Same repair, but also returns the old-id -> new-id map so a caller can
+	 * replay it onto state that lives outside `referenceRoot` (the live element
+	 * model, a cached `rawTiming`, typed ActiveX controls).
+	 */
+	public repairShapeIds(
+		spTree: XmlObject,
+		ensureArray: (value: unknown) => unknown[],
+		referenceRoot: XmlObject = spTree,
+	): ShapeIdRepairResult {
+		const ids = new Map<string, string>();
 		const cNvPrNodes: XmlObject[] = [];
 		collectCnvPrNodes(spTree, cNvPrNodes, ensureArray);
 
 		if (cNvPrNodes.length === 0) {
-			return 0;
+			return { reassigned: 0, ids };
 		}
 
-		// Collect all used IDs and find duplicates
+		// Collect all valid, unique IDs; everything else gets a fresh one. A
+		// non-integer, negative, decimal or > 0xFFFFFFFF value is schema-invalid
+		// (`ST_DrawingElementId` is a UInt32) and must never seed the "max so
+		// far": a timestamp-sized id would otherwise be incremented into more
+		// invalid ids.
 		const usedIds = new Set<number>();
-		const duplicates: XmlObject[] = [];
+		const invalid: XmlObject[] = [];
 		let maxId = 0;
 
 		for (const cNvPr of cNvPrNodes) {
-			const idRaw = Number.parseInt(String(cNvPr['@_id'] ?? '0'), 10);
-			const id = Number.isFinite(idRaw) ? idRaw : 0;
+			const id = parseShapeId(cNvPr['@_id'], true);
+			if (id === undefined || id === 0 || usedIds.has(id)) {
+				invalid.push(cNvPr);
+				continue;
+			}
+			usedIds.add(id);
 			if (id > maxId) {
 				maxId = id;
 			}
+		}
 
-			if (id === 0 || usedIds.has(id)) {
-				duplicates.push(cNvPr);
-			} else {
-				usedIds.add(id);
+		// Reassign. A connector bound to one of these shapes (`a:stCxn` /
+		// `a:endCxn` @_id) or an animation targeting it (`p:spTgt/@spid`)
+		// references the OLD id, so every reassignment is remembered and
+		// replayed onto `referenceRoot`; otherwise a dedup here silently
+		// detaches the connector's endpoint or drops the effect (or worse,
+		// re-targets it at whatever shape now holds the old id).
+		const allocator = new ShapeIdAllocator(usedIds, maxId);
+		for (const cNvPr of invalid) {
+			const oldId = String(cNvPr['@_id'] ?? '').trim();
+			const fresh = String(allocator.next());
+			cNvPr['@_id'] = fresh;
+			if (oldId.length > 0) {
+				ids.set(oldId, fresh);
 			}
 		}
 
-		// Reassign duplicate IDs
-		let reassigned = 0;
-		for (const cNvPr of duplicates) {
-			maxId += 1;
-			cNvPr['@_id'] = String(maxId);
-			usedIds.add(maxId);
-			reassigned += 1;
-		}
+		remapShapeIdReferences(referenceRoot, ids);
 
-		return reassigned;
+		return { reassigned: invalid.length, ids };
 	}
 }

@@ -3,8 +3,8 @@ import {
 	BLACK_WHITE,
 	ENUMS,
 	FIXED_PERCENT,
+	POSITIVE_FIXED_PERCENT,
 	POSITIVE_PERCENT,
-	POSITIVE_UNBOUNDED_PERCENT,
 	UNBOUNDED_PERCENT,
 } from './pptx-validator-facet-constants';
 import type { ValidationIssue } from './pptx-validator-types';
@@ -59,14 +59,14 @@ const INT_MAX = 2147483647;
 
 /** The facet bounds and prose label for a percentage element, if it has any. */
 function percentageFacet(local: string): { min: number; max: number; label: string } | undefined {
-	if (POSITIVE_PERCENT.has(local)) {
+	if (POSITIVE_FIXED_PERCENT.has(local)) {
 		return { min: 0, max: 100000, label: 'a positive fixed percentage from 0 through 100000' };
 	}
 	if (FIXED_PERCENT.has(local)) {
 		return { min: -100000, max: 100000, label: 'a fixed percentage from -100000 through 100000' };
 	}
-	if (POSITIVE_UNBOUNDED_PERCENT.has(local)) {
-		return { min: 0, max: INT_MAX, label: 'a non-negative percentage' };
+	if (POSITIVE_PERCENT.has(local)) {
+		return { min: 0, max: INT_MAX, label: 'a positive percentage of 0 or more (no upper bound)' };
 	}
 	if (UNBOUNDED_PERCENT.has(local)) {
 		return { min: INT_MIN, max: INT_MAX, label: 'a percentage in the signed 32-bit range' };

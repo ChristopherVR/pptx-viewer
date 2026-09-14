@@ -24,6 +24,7 @@ import { ensureXmlChild } from '../../utils/xml-access';
 import type { PptxSaveState, IPptxSlideRelationshipRegistry } from '../builders';
 import type { GroupChildSpaceOwner } from './group-xfrm-preservation';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveTextWriter';
+import { shouldWritePictureGeometry } from './save-picture-geometry-gate';
 
 /** Context passed to per-element save processing. */
 export interface SaveSlideContext {
@@ -132,7 +133,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// absent; the custom-geometry write below then vanished, so a shape edited
 		// into a freeform saved with its original geometry. See `ensureXmlChild`.
 		const spPr = ensureXmlChild(shape, 'p:spPr');
-		if (!spPr) {
+		if (!spPr || !shouldWritePictureGeometry(el, spPr)) {
 			return;
 		}
 		const elWithPaths = el as ShapePptxElement | ImagePptxElement | PicturePptxElement;

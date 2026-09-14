@@ -72,6 +72,8 @@ export interface Ribbon {
 	 * remaining tab).
 	 */
 	setHiddenOptionTabs(tabIds: readonly string[]): void;
+	/** Leave the File backstage and show the normal default ribbon tab. */
+	showDefaultTab(): void;
 	/** Apply Options > General ScreenTip style to the tab-bar tooltips. */
 	applyScreenTips(tip: (label: string) => string | undefined): void;
 }
@@ -193,10 +195,11 @@ export function createRibbon(
 		}
 	}
 
-	let activeTab: RibbonTabId =
+	const defaultVisibleTab: RibbonTabId =
 		visibleTabs.find((tab) => tab.id === DEFAULT_RIBBON_TAB)?.id ??
 		visibleTabs[0]?.id ??
 		DEFAULT_RIBBON_TAB;
+	let activeTab = defaultVisibleTab;
 	function setActiveTab(tab: RibbonTabId): void {
 		if (!panes[tab]) {
 			return;
@@ -301,6 +304,7 @@ export function createRibbon(
 		},
 		toggleFindReplace: () => findReplace.toggle(),
 		openEquationEditor: (id, omml) => equationPanel.openEdit(id, omml),
+		showDefaultTab: () => setActiveTab(defaultVisibleTab),
 		setHiddenOptionTabs,
 		applyScreenTips: (tip) => tabBar.applyScreenTips(tip),
 		updateSelection(selectedElement, extra) {

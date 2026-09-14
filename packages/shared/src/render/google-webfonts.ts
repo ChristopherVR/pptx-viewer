@@ -43,11 +43,11 @@
  * already did.
  */
 
-import type { PptxElement, PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
-import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxEmbeddedFont, PptxSlide } from 'pptx-viewer-core';
 
 import { findGoogleFontsFamily } from './google-fonts-lookup';
 import { findMetricCompatibleGoogleFontsFamily } from './google-webfonts-metric-clones';
+import { collectFontsFromElement } from './used-fonts';
 
 export { findGoogleFontsFamily } from './google-fonts-lookup';
 export { findMetricCompatibleGoogleFontsFamily } from './google-webfonts-metric-clones';
@@ -67,27 +67,20 @@ export const GOOGLE_WEBFONT_AXIS = 'ital,wght@0,400;0,700;1,400;1,700';
 const DISPLAY_PARAM = 'display=swap';
 
 /**
- * Collect all unique font family names referenced across slide elements'
- * text segments, recursing into group children.
+ * Collect all unique font family names referenced across slide elements,
+ * recursing into group children.
+ *
+ * Delegates to the same walker the Fonts inspector uses, so the element-level
+ * `textStyle.fontFamily` counts too: segment-less text (a title whose face is
+ * set once on the body rather than per run) used to be skipped here, so its
+ * webfont was never requested and it painted in the fallback face.
  */
 export function collectReferencedFontFamilies(slides: readonly PptxSlide[]): Set<string> {
 	const families = new Set<string>();
-	const visit = (elements: readonly PptxElement[]): void => {
-		for (const el of elements) {
-			if (el.type === 'group') {
-				visit(el.children);
-			}
-			if (hasTextProperties(el) && el.textSegments) {
-				for (const seg of el.textSegments) {
-					if (seg.style.fontFamily) {
-						families.add(seg.style.fontFamily);
-					}
-				}
-			}
-		}
-	};
 	for (const slide of slides) {
-		visit(slide.elements);
+		for (const el of slide.elements) {
+			collectFontsFromElement(el, families);
+		}
 	}
 	return families;
 }

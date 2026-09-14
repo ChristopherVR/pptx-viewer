@@ -23,6 +23,12 @@ npm install pptx-vanilla-viewer
 
 ## Usage
 
+For a copy-paste Vite project, including the `index.html`, `src/main.js`, and `public/` file
+layout, see [the Vanilla Getting Started guide](https://christophervr.github.io/pptx-viewer/vanilla/getting-started/).
+Place a local deck in `public/` and reference it with a root URL such as `/presentation.pptx`.
+The viewer opens a successfully loaded `source` automatically; `onLoad` is for your application
+code and does not need to click internal viewer controls.
+
 ```ts
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 

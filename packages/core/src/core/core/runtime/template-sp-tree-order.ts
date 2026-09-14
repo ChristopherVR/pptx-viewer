@@ -165,7 +165,7 @@ export function orderedTemplatePartXml(options: {
 	runtime: object;
 	partPath: string;
 	xmlObj: XmlObject;
-	rootTag: MasterPartRootTag;
+	rootTag: MasterPartRootTag | 'p:sld' | 'p:notes';
 	/** The part as it was loaded, used when the tree was not rebuilt. */
 	sourceXml: string | undefined;
 	getLocalName: (key: string) => string;

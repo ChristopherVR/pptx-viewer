@@ -142,6 +142,29 @@ describe('buildTextBlockStyle', () => {
 		expect(style.textDecorationLine).toBe('underline');
 	});
 
+	it('does not let an element-level underline/strikethrough bleed onto segmented runs', () => {
+		// CSS cannot let a nested run span cancel an ancestor's
+		// `text-decoration`, so an element-level decoration here would paint
+		// through every run regardless of that run's own segment style. With
+		// segments present, each run emits its own decoration instead.
+		const style = buildTextBlockStyle(
+			textEl(
+				{ underline: true, strikethrough: true },
+				{ textSegments: [{ text: 'Hello', style: { underline: false } }] },
+			),
+		);
+		expect(style.textDecorationLine).toBe('none');
+		expect(style.textDecorationStyle).toBeUndefined();
+	});
+
+	it('still applies element-level underline/strikethrough for segmentless text', () => {
+		const style = buildTextBlockStyle(
+			textEl({ underline: true, strikethrough: true, strikeType: 'dblStrike' }),
+		);
+		expect(style.textDecorationLine).toBe('underline line-through');
+		expect(style.textDecorationStyle).toBe('double');
+	});
+
 	it('resolves alignment, RTL direction and vertical writing modes', () => {
 		expect(buildTextBlockStyle(textEl({ align: 'dist' })).textAlign).toBe('justify');
 		const rtl = buildTextBlockStyle(textEl({ rtl: true }));

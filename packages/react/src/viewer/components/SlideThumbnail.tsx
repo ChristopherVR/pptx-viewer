@@ -12,7 +12,7 @@ import { deriveSlideFieldContext } from './slide-field-context';
 import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
-interface SlideThumbnailProps {
+export interface SlideThumbnailProps {
 	slide: PptxSlide;
 	templateElements: PptxElement[];
 	canvasSize: CanvasSize;
@@ -96,7 +96,10 @@ function SlideThumbnailImpl({
  * underlying elements reference, template elements reference, or canvas size
  * changes. Avoids burning frames on parent re-renders that don't change props.
  */
-function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): boolean {
+export function slideThumbnailPropsEqual(
+	prev: SlideThumbnailProps,
+	next: SlideThumbnailProps,
+): boolean {
 	if (prev.slide.id !== next.slide.id) {
 		return false;
 	}
@@ -107,6 +110,13 @@ function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): bo
 		return false;
 	}
 	if (prev.slide.elements !== next.slide.elements) {
+		return false;
+	}
+	// `buildPreviewElements` -> `visibleTemplateElements` drops the inherited
+	// layout/master artwork entirely when this is `false`, so toggling "Hide
+	// Background Graphics" must invalidate the memo even though `elements`
+	// and `templateElements` themselves haven't changed.
+	if (prev.slide.showMasterShapes !== next.slide.showMasterShapes) {
 		return false;
 	}
 	if (prev.slide.backgroundColor !== next.slide.backgroundColor) {
@@ -139,4 +149,4 @@ function arePropsEqual(prev: SlideThumbnailProps, next: SlideThumbnailProps): bo
 	return true;
 }
 
-export const SlideThumbnail = React.memo(SlideThumbnailImpl, arePropsEqual);
+export const SlideThumbnail = React.memo(SlideThumbnailImpl, slideThumbnailPropsEqual);

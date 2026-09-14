@@ -498,6 +498,30 @@ describe('editorState format / insert / z-order operations', () => {
 		editor.reorderSelected('back');
 		expect(editor.canUndo).toBeFalsy();
 	});
+
+	it('reorderSelected routes a slide element to the slide list while template editing is on', () => {
+		// Slide elements stay selectable in template mode; the reorder used to
+		// follow the mode flag into the template store and silently do nothing.
+		const { editor } = make();
+		editor.setSlides([
+			slide('a', [shape('layout-back'), shape('layout-front'), shape('e1'), shape('e2')]),
+		]);
+		editor.setTemplateEditing(true);
+		editor.select('e1');
+		editor.reorderSelected('front');
+		expect(editor.slides[0].elements.map((e) => e.id)).toStrictEqual(['e2', 'e1']);
+		expect(editor.templateElementsBySlideId.a.map((e) => e.id)).toStrictEqual([
+			'layout-back',
+			'layout-front',
+		]);
+		editor.select('layout-back');
+		editor.reorderSelected('front');
+		expect(editor.templateElementsBySlideId.a.map((e) => e.id)).toStrictEqual([
+			'layout-front',
+			'layout-back',
+		]);
+		expect(editor.slides[0].elements.map((e) => e.id)).toStrictEqual(['e2', 'e1']);
+	});
 });
 
 describe('editorState save', () => {

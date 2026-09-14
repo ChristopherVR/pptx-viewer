@@ -2,8 +2,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import {
 	CHARACTER_SPACING_OPTIONS,
-	getInlineEditorSelection,
-	selectedParagraphBulletKind,
+	nextToggleValue,
 	OFFICE_COLOR_SWATCHES,
 	textFontSizePtToPx,
 } from 'pptx-viewer-shared';
@@ -27,37 +26,16 @@ import { RecentColorsRow } from '../inspector/RecentColorsRow';
 import { ThemeColorSwatchGrid } from '../inspector/ThemeColorSwatchGrid';
 import { ColumnsDropdown, LineSpacingDropdown, TextDirectionDropdown } from './ParagraphDropdowns';
 import { RibbonMenu } from './RibbonMenu';
+import {
+	getEffectiveTextStyle,
+	isTextDecorationFlag,
+	textSectionBulletKind,
+	textSectionFlags,
+} from './text-section-state';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
-import { useParagraphListKind } from './useParagraphListKind';
 
-/**
- * Returns the text style currently in effect for toolbar toggles:
- * - For text/shape/connector elements, the element's own `textStyle`.
- * - For tables with a focused cell, that cell's style (a superset of the
- *   relevant `TextStyle` fields like `bold`/`italic`/`underline`/`fontSize`).
- * - `undefined` otherwise.
- *
- * Without this lookup, table-cell toggles always read `undefined` (since
- * `hasTextProperties` is false for tables) and `!undefined === true`, so
- * re-clicking Bold/Italic/Underline never turns the formatting off.
- */
-function getEffectiveTextStyle(
-	element: PptxElement | null,
-	tableEditorState: TableCellEditorState | null | undefined,
-): Partial<TextStyle> | undefined {
-	if (!element) {
-		return undefined;
-	}
-	if (hasTextProperties(element)) {
-		return element.textStyle;
-	}
-	if (element.type === 'table' && tableEditorState && element.tableData) {
-		const cell =
-			element.tableData.rows[tableEditorState.rowIndex]?.cells[tableEditorState.columnIndex];
-		return cell?.style as Partial<TextStyle> | undefined;
-	}
-	return undefined;
-}
+/** Pressed look for a toggle whose state is on. */
+const ON = 'bg-primary/20 ring-1 ring-primary';
 
 const HIGHLIGHT_COLOR_PRESETS = [
 	'#ffff00',
@@ -77,6 +55,8 @@ export interface TextSectionProps {
 	selectedElement: PptxElement | null;
 	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Bullets / Numbering for a text element: the shared paragraph bullet toggle. */
+	onToggleBullets: (kind: 'bullet' | 'numbered') => void;
 	/** Rewrite the selected text's characters (PowerPoint's Aa "Change Case" dropdown). */
 	onTransformTextCase: (mode: ChangeCaseMode) => void;
 }
@@ -90,14 +70,20 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	// Enable formatting for text elements AND table cells
 	const canFormat = isTextEl || isTable;
 	const effectiveTs = getEffectiveTextStyle(p.selectedElement, p.tableEditorState);
-	const listKind = useParagraphListKind(p.selectedElement);
-	const toggleList = (kind: 'bullet' | 'numbered') => {
-		if (!p.canEdit || !p.selectedElement || !hasTextProperties(p.selectedElement)) {
+	// Pressed state over the whole element (the DOM selection is only read at
+	// click time, since the ribbon does not re-render as the caret moves).
+	const pressedFlags = textSectionFlags(p.selectedElement, p.tableEditorState, false);
+	const bulletKind = textSectionBulletKind(p.selectedElement, p.tableEditorState);
+	const toggleBullets = (kind: 'bullet' | 'numbered'): void => {
+		if (!canFormat || !p.selectedElement) {
 			return;
 		}
-		const selection = getInlineEditorSelection(p.selectedElement.textSegments);
-		const current = selectedParagraphBulletKind(p.selectedElement, selection);
-		p.onUpdateTextStyle({ listType: current === kind ? 'none' : kind });
+		if (hasTextProperties(p.selectedElement)) {
+			p.onToggleBullets(kind);
+			return;
+		}
+		// Table cells keep their cell-style path.
+		p.onUpdateTextStyle({ listType: effectiveTs?.listType === kind ? 'none' : kind });
 	};
 
 	const currentColor =
@@ -155,38 +141,27 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 				<div className='flex items-center gap-1'>
 					<div className={grp}>
 						{FMT.map((b, i, a) => {
+							const flag = isTextDecorationFlag(b.id) ? b.id : undefined;
 							const handleClick = () => {
-								if (!canFormat || !p.selectedElement) {
+								if (!canFormat || !p.selectedElement || !flag) {
 									return;
 								}
-								const ts = effectiveTs;
-								switch (b.id) {
-									case 'bold':
-										p.onUpdateTextStyle({ bold: !ts?.bold });
-										break;
-									case 'italic':
-										p.onUpdateTextStyle({ italic: !ts?.italic });
-										break;
-									case 'underline':
-										p.onUpdateTextStyle({
-											underline: !ts?.underline,
-										});
-										break;
-									case 'strikethrough':
-										p.onUpdateTextStyle({
-											strikethrough: !ts?.strikethrough,
-										});
-										break;
-								}
+								// Decide from the runs the user selected (shared tri-state),
+								// not from the body style: `!ts?.bold` could never un-bold a
+								// run-level bold word.
+								const flags = textSectionFlags(p.selectedElement, p.tableEditorState, true);
+								p.onUpdateTextStyle({ [flag]: nextToggleValue(flags[flag]) });
 							};
+							const pressed = flag !== undefined && pressedFlags[flag] === 'on';
 							return (
 								<button
 									key={b.id}
 									type='button'
 									disabled={!canMut}
+									aria-pressed={pressed}
 									onMouseDown={(e) => e.preventDefault()}
 									onClick={handleClick}
-									className={i < a.length - 1 ? gB : gL}
+									className={`${i < a.length - 1 ? gB : gL}${pressed ? ` ${ON}` : ''}`}
 									title={t(b.labelKey)}
 								>
 									{b.i}
@@ -565,9 +540,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						</RibbonMenu>
 					</div>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
-					{t('pptx.ribbon.font')}
-				</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>Font</span>
 			</div>
 
 			{sep}
@@ -579,23 +552,23 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 					<div className={grp}>
 						<button
 							type='button'
-							disabled={!canMut || !isTextEl}
+							disabled={!canMut}
+							aria-pressed={bulletKind === 'bullet'}
 							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => toggleList('bullet')}
-							className={gB}
+							onClick={() => toggleBullets('bullet')}
+							className={`${gB}${bulletKind === 'bullet' ? ` ${ON}` : ''}`}
 							title={t('pptx.text.bulletList')}
-							aria-pressed={listKind === 'bullet'}
 						>
 							<LuList className={ic} />
 						</button>
 						<button
 							type='button'
-							disabled={!canMut || !isTextEl}
+							disabled={!canMut}
+							aria-pressed={bulletKind === 'numbered'}
 							onMouseDown={(e) => e.preventDefault()}
-							onClick={() => toggleList('numbered')}
-							className={gL}
+							onClick={() => toggleBullets('numbered')}
+							className={`${gL}${bulletKind === 'numbered' ? ` ${ON}` : ''}`}
 							title={t('pptx.text.numberedList')}
-							aria-pressed={listKind === 'numbered'}
 						>
 							<LuListOrdered className={ic} />
 						</button>
@@ -688,9 +661,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						onUpdateTextStyle={p.onUpdateTextStyle}
 					/>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
-					{t('pptx.ribbon.paragraph')}
-				</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>Paragraph</span>
 			</div>
 		</>
 	);

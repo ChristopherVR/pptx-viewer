@@ -31,6 +31,40 @@ function service(): EditorStateService {
 	return svc;
 }
 
+describe('editorStateService align', () => {
+	// PowerPoint aligns a lone object to the slide. Outside DI the service has
+	// no loader (and so no canvas size), which is the "unknown slide size" case;
+	// the loader is stubbed to cover the wired-up case.
+	it('aligns a lone element to the slide when the loader knows the canvas size', () => {
+		const svc = new EditorStateService();
+		Object.assign(svc, {
+			loader: {
+				canvasSize: () => ({ width: 960, height: 540 }),
+				headerFooter: () => ({}),
+				theme: () => undefined,
+				getHandler: () => null,
+			},
+		});
+		svc.setSlides([slide('s1', [element('a', 30, 20), element('b', 300, 200)])]);
+		svc.selectedIds.set(['a']);
+		svc.alignSelected(0, 'centerH');
+		expect(svc.slides()[0].elements[0].x).toBe(430);
+		svc.alignSelected(0, 'bottom');
+		expect(svc.slides()[0].elements[0].y).toBe(490);
+		expect(svc.slides()[0].elements[1]).toMatchObject({ x: 300, y: 200 });
+		expect(svc.canUndo()).toBeTruthy();
+	});
+
+	it('leaves a lone element alone when the slide size is unknown', () => {
+		const svc = new EditorStateService();
+		svc.setSlides([slide('s1', [element('a', 30, 20)])]);
+		svc.selectedIds.set(['a']);
+		svc.alignSelected(0, 'left');
+		expect(svc.slides()[0].elements[0].x).toBe(30);
+		expect(svc.canUndo()).toBeFalsy();
+	});
+});
+
 describe('editorStateService', () => {
 	it.each(['First\nInserted\nLast', 'Last'])(
 		'keeps suffix spacing through the inline commit/history composition for %s',
