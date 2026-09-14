@@ -85,7 +85,7 @@
 		"fake-indexeddb": "^6.2.5",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-mcp": "workspace:*",
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"tsdown": "^0.23.0",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
@@ -97,7 +97,7 @@
 		"ai": ">=6.0.0 <8",
 		"pptx-viewer-core": "workspace:*",
 		"pptx-viewer-mcp": "workspace:*",
-		"three": "^0.185.1"
+		"three": "^0.186.0"
 	},
 	"peerDependenciesMeta": {
 		"ai": {
