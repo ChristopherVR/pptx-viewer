@@ -10,6 +10,53 @@ dated sections beneath it are generated from
 
 ## 2026-09-14
 
+_Releases: pptx-viewer-core@3.15.1, @christophervr/pptx-viewer@2.16.0_
+
+### Features
+
+- **shared:** Preserve native list editing and pending snapshots (by @Sudhansh6) ([ef82b95](https://github.com/ChristopherVR/pptx-viewer/commit/ef82b95b52d12a40c1cd20a4df3b431e3c5db50c))
+- **react:** Keep live list paragraphs through formatting and save (by @Sudhansh6) ([6d4437f](https://github.com/ChristopherVR/pptx-viewer/commit/6d4437f81699f8f3da8298947538a145df8b914b))
+- **vue:** Preserve live list drafts in slide and master editors (by @Sudhansh6) ([69c9f8d](https://github.com/ChristopherVR/pptx-viewer/commit/69c9f8dd1a05903932ce4418dce826492775f04d))
+- **svelte:** Preserve live lists through text commands and save (by @Sudhansh6) ([0db1161](https://github.com/ChristopherVR/pptx-viewer/commit/0db11613dcb31724df7f3430dc6e4253b7b7e1ac))
+- **vanilla:** Retain live list editing across stage updates (by @Sudhansh6) ([8dc4d98](https://github.com/ChristopherVR/pptx-viewer/commit/8dc4d985cb2556b758af6d76b9caec1083994391))
+- **angular:** Support live list drafts and pending export (by @Sudhansh6) ([96f1c0e](https://github.com/ChristopherVR/pptx-viewer/commit/96f1c0e4edcbd5bb95e9f0d6f5381e6d326f90b3))
+- **i18n:** Export locale subpaths from viewer packages (by @yunfeizhu) ([65003c5](https://github.com/ChristopherVR/pptx-viewer/commit/65003c5af3ecf2e8e4e1daad1a3bcd3f5ee35481))
+
+### Bug Fixes
+
+- **shared:** Preserve theme colors in native list replacement (by @Sudhansh6) ([1b302b3](https://github.com/ChristopherVR/pptx-viewer/commit/1b302b3db65e8f87794b022e07808cd2b9383875))
+- Preserve live list editing through upstream merge (by @Sudhansh6) ([3f8b4f4](https://github.com/ChristopherVR/pptx-viewer/commit/3f8b4f4dce22d2f822e1c706474f946b7c20c3c7))
+- **shared:** Preserve caret scope and native list breaks (by @Sudhansh6) ([f19179b](https://github.com/ChristopherVR/pptx-viewer/commit/f19179b93b85c3486b6f7458c9debe79d3fe7d6c))
+- **react:** Retain caret list scope and selection affinity (by @Sudhansh6) ([41651e1](https://github.com/ChristopherVR/pptx-viewer/commit/41651e16bfe2f9a891a82c012eb5b50167ffedbc))
+- **vue:** Scope list toggles to the active paragraph (by @Sudhansh6) ([0d9e552](https://github.com/ChristopherVR/pptx-viewer/commit/0d9e552ffa1f459c6b64a61d8ac60c60d3e6f5b0))
+- **angular:** Align live list caret and paragraph keys (by @Sudhansh6) ([bc457b1](https://github.com/ChristopherVR/pptx-viewer/commit/bc457b117945de472bccfb6d52a4dc676f5989bb))
+- **svelte:** Scope live list commands to the caret (by @Sudhansh6) ([5502112](https://github.com/ChristopherVR/pptx-viewer/commit/550211212e17d1d55531c98a40e74e9f1c457ff8))
+- **vanilla:** Scope live list commands to the caret (by @Sudhansh6) ([2a7343e](https://github.com/ChristopherVR/pptx-viewer/commit/2a7343ec8fda39fb817bbed493c42c67556778e6))
+
+### Refactor
+
+- **core:** Expose paragraph geometry keys for editing (by @Sudhansh6) ([da5b8f5](https://github.com/ChristopherVR/pptx-viewer/commit/da5b8f595c2c68d0cf354f92c2ec4d14a89618ea))
+
+### Documentation
+
+- **site:** Add simplified chinese documentation (by @yunfeizhu) ([5878bb4](https://github.com/ChristopherVR/pptx-viewer/commit/5878bb476eca5d6a37e3b8a5b7f2ee6a3abb25d3))
+
+### Testing
+
+- **e2e:** Cover live list markers spacing and native history (by @Sudhansh6) ([f1c81dc](https://github.com/ChristopherVR/pptx-viewer/commit/f1c81dcf91a41eb12cc553faadb217f1ca95bed8))
+- **vanilla:** Narrow captured elements before text assertions (by @Sudhansh6) ([58c5e2d](https://github.com/ChristopherVR/pptx-viewer/commit/58c5e2d10aaeb9c6bfafe46d440aea7b1b7a84c5))
+- **core:** Register the nested list roundtrip fixture (by @Sudhansh6) ([857e0b2](https://github.com/ChristopherVR/pptx-viewer/commit/857e0b2dc589a237266a5c31944b34d0173b2d82))
+- **e2e:** Cover caret lists and native paragraph history (by @Sudhansh6) ([554ae85](https://github.com/ChristopherVR/pptx-viewer/commit/554ae85736000f721e5d7a792b84878491cd13ed))
+- **angular:** Keep GIF cap checks lightweight (by @Sudhansh6) ([cc9e436](https://github.com/ChristopherVR/pptx-viewer/commit/cc9e4364e13cc74b3fb22b924362590e655a2bb2))
+
+### Chores
+
+- Merge main into live list editing (by @Sudhansh6) ([a9b760d](https://github.com/ChristopherVR/pptx-viewer/commit/a9b760d9c051b39066731665824af3230b8797db))
+- Sync upstream validation and ribbon updates (by @Sudhansh6) ([c70516c](https://github.com/ChristopherVR/pptx-viewer/commit/c70516c0389efd29e2dde70aeb041053fe9bd17b))
+- Merge main and resolve locale documentation conflicts (by @yunfeizhu) ([ac9123d](https://github.com/ChristopherVR/pptx-viewer/commit/ac9123d4fa531cd591898a721bd690cca25b2cf6))
+
+## 2026-09-14
+
 _Releases: pptx-viewer-core@3.15.0, pptx-react-viewer@3.18.0, pptx-vue-viewer@3.18.0, pptx-angular-viewer@3.18.0, pptx-vanilla-viewer@2.18.0, pptx-svelte-viewer@3.19.0, pptx-viewer-mcp@2.5.2, @christophervr/pptx-viewer@2.15.0_
 
 ### Features

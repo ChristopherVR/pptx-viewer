@@ -7,6 +7,26 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.15.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.1) - 2026-09-14
+
+### Bug Fixes
+
+- Preserve live list editing through upstream merge (by @Sudhansh6) ([3f8b4f4](https://github.com/ChristopherVR/pptx-viewer/commit/3f8b4f4dce22d2f822e1c706474f946b7c20c3c7))
+
+### Refactor
+
+- **core:** Expose paragraph geometry keys for editing (by @Sudhansh6) ([da5b8f5](https://github.com/ChristopherVR/pptx-viewer/commit/da5b8f595c2c68d0cf354f92c2ec4d14a89618ea))
+
+### Testing
+
+- **core:** Register the nested list roundtrip fixture (by @Sudhansh6) ([857e0b2](https://github.com/ChristopherVR/pptx-viewer/commit/857e0b2dc589a237266a5c31944b34d0173b2d82))
+
+### Chores
+
+- Merge main into live list editing (by @Sudhansh6) ([a9b760d](https://github.com/ChristopherVR/pptx-viewer/commit/a9b760d9c051b39066731665824af3230b8797db))
+- Sync upstream validation and ribbon updates (by @Sudhansh6) ([c70516c](https://github.com/ChristopherVR/pptx-viewer/commit/c70516c0389efd29e2dde70aeb041053fe9bd17b))
+- Merge main and resolve locale documentation conflicts (by @yunfeizhu) ([ac9123d](https://github.com/ChristopherVR/pptx-viewer/commit/ac9123d4fa531cd591898a721bd690cca25b2cf6))
+
 ## [3.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.0) - 2026-09-14
 
 ### Features
