@@ -44,7 +44,7 @@ only if you also want to use the framework-agnostic engine directly.
 
 **Optional dependencies** (only needed for specific features):
 
-- `three` - GLB/GLTF 3D models and 3D surface charts
+- `three` - GLB/GLTF 3D models plus opt-in 3D SmartArt and 3D chart renderers
 - `yjs`, `y-websocket` - real-time collaboration (relay transport)
 - `y-webrtc` - serverless peer-to-peer collaboration
 

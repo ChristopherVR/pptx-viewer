@@ -1,6 +1,6 @@
 # SmartArt gallery ground-truth corpus
 
-227 `.pptx` fixtures, one SmartArt diagram each, generated via PowerPoint COM
+229 `.pptx` fixtures, one SmartArt diagram each, generated via PowerPoint COM
 automation (`scripts/make-smartart-gallery.ps1`) covering all 176 built-in
 SmartArt layouts this PowerPoint install reports through
 `Application.SmartArtLayouts` (the classic 2016-era
@@ -99,16 +99,15 @@ the interpreter found and fixed six real, previously-unknown bugs:
    measured numbers.
 
 **Despite those six fixes, `smartart-gallery-ground-truth.test.ts` fails for
-all 227 fixtures against the full acceptance gate** (same shape count,
+all 229 fixtures against the full acceptance gate** (same shape count,
 preset, font size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
-last regeneration): of the 124/227 fixtures where the interpreter at least
-gets the matched SHAPE COUNT right, only 7 are within 5% geometry deviation,
-9 within 10%, 65 within 50%. 103/227 fail structurally (wrong shape count
-before geometry is even compared).
+last regeneration): 227/229 fixtures have matching text-bearing shape counts;
+59 are within 5% geometry deviation, 73 within 10%, and 156 within 50%.
+Two fixtures fail structurally before geometry is compared.
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
-227 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
+229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
 `cycle` 25, `hierarchy` 19, `composite` 14, `UNRECOGNIZED` (falls through to
 the legacy heuristic entirely) 7, `pyramid` 4.
 
@@ -141,7 +140,7 @@ Concrete, measured, NOT-yet-fixed blockers (exact fixtures + construct):
   the item's own, coincidentally-closer, self-scoped value). Not re-chased
   further in the time available; flagged here rather than silently
   regressed-and-hidden.
-- **Every `text`-bucketed and `UNRECOGNIZED`-bucketed fixture** (43 of 227):
+- **Every `text`-bucketed and `UNRECOGNIZED`-bucketed fixture** (43 of 229):
   `discoverArrangement` finds no structural (`lin`/`cycle`/`pyra`/`snake`)
   algorithm and falls back to either a single-point `tx` leaf or the fully
   legacy heuristic - these need the SAME kind of `dgm:choose`/constraint

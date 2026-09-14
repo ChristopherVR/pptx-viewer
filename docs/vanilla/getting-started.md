@@ -72,7 +72,7 @@ viewer.prev();
 viewer.goToSlide(3); // zero-based, clamped
 
 viewer.setZoom(1.5); // explicit scale (1 = 100%)
-viewer.setZoom('fit'); // fit-to-viewport
+viewer.zoomToFit(); // fit-to-viewport
 viewer.zoomIn();
 viewer.zoomOut();
 viewer.zoomToFit();

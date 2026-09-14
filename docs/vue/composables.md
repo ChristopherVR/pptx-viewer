@@ -48,8 +48,9 @@ concern.
 ## Public composables
 
 The following are exported from `pptx-vue-viewer/viewer` and are safe to import. They are opt-in
-and tree-shakeable. The root `pptx-vue-viewer` entry re-exports only the collaboration pair
-(`useCollaboration`, `useCollaborationWiring`); the rest come from the `/viewer` subpath.
+and tree-shakeable. The root `pptx-vue-viewer` entry re-exports the collaboration composables
+(`useCollaboration`, `useYjsProvider`, `usePresenceTracking`, `useCollaborativeState`, and
+`useCollaborativeHistory`); the complete curated surface comes from the `/viewer` subpath.
 
 ```ts
 import {
@@ -154,7 +155,7 @@ The operations returned by `useEditorOperations` handle this for you; only call 
 manually when you mutate `slides` yourself.
 :::
 
-### `useCollaboration` and `useCollaborationWiring`
+### `useCollaboration`
 
 `useCollaboration` manages a Yjs session, presence, cursors, and elected-writer synchronization
 without the viewer component. See [Collaboration](/vue/collaboration) for the full guide.
@@ -189,8 +190,9 @@ await collab.start({
 });
 ```
 
-`useCollaborationWiring` is the higher-level variant the component itself uses: the full viewer
-collaboration + broadcast dialog lifecycle.
+The component's Share and Broadcast dialog lifecycle is wired by the internal
+`useCollaborationWiring` composable. It is available from `pptx-vue-viewer/internals`, not from
+the stable root or `/viewer` entries.
 
 ### Helper functions
 

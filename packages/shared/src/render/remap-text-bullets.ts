@@ -5,6 +5,10 @@ import { resolveParagraphBullet } from './bullet-list';
 import { isBulletMarkerSegment } from './bullet-toggle';
 import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
 
+function trailingWhitespace(text: string): string {
+	return text.slice(text.trimEnd().length);
+}
+
 /** Refresh only derived ordinals after existing paragraphs have moved. */
 export function renumberRemappedParagraphs(segments: TextSegment[]): TextSegment[] {
 	const sequence = createAutoNumberSequence();
@@ -32,7 +36,7 @@ export function renumberRemappedParagraphs(segments: TextSegment[]): TextSegment
 		if (isBulletMarkerSegment(segment)) {
 			const resolved = resolveParagraphBullet(updated);
 			if (resolved) {
-				updated.text = resolved.marker + (segment.text.match(/\s+$/u)?.[0] ?? '');
+				updated.text = resolved.marker + trailingWhitespace(segment.text);
 			}
 		}
 		return updated;
@@ -62,8 +66,7 @@ export function withAutoNumberIndex(
 	if (isMarker) {
 		const resolved = resolveParagraphBullet(next);
 		if (resolved) {
-			const trailingWhitespace = first.text.match(/\s+$/u)?.[0] ?? '';
-			next.text = `${resolved.marker}${trailingWhitespace}`;
+			next.text = `${resolved.marker}${trailingWhitespace(first.text)}`;
 		}
 	}
 	return next;
@@ -149,8 +152,7 @@ export function continueListParagraph(
 	) {
 		const resolved = resolveParagraphBullet(continued);
 		if (resolved) {
-			const trailingWhitespace = donor.text.match(/\s+$/u)?.[0] ?? '';
-			continued.text = `${resolved.marker}${trailingWhitespace}`;
+			continued.text = `${resolved.marker}${trailingWhitespace(donor.text)}`;
 		}
 	}
 

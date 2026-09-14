@@ -17,6 +17,7 @@ export default defineConfig({
 	},
 	test: {
 		globals: true,
+		maxWorkers: 4,
 		include: ['src/**/*.test.{ts,tsx}'],
 	},
 });

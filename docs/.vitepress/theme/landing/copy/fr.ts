@@ -19,7 +19,7 @@ export const fr: LandingCopy = {
 		title: 'Ce que vous obtenez.',
 		items: [
 			{
-				title: 'Rendu haute fidelite',
+				title: 'Rendu de haute fidelite',
 				copy: "Plus de 187 formes predefinies, 23 types de graphiques, SmartArt, animations, transitions morph, polices embarquees, metafichiers EMF et WMF et modeles 3D, tous dessines en HTML, CSS et SVG. Le texte reste selectionnable et les lecteurs d'ecran continuent de fonctionner.",
 				link: { text: 'Rendu', href: '/fr/guide/architecture' },
 			},
@@ -63,7 +63,7 @@ export const fr: LandingCopy = {
 	agents: {
 		kicker: 'Automatisation',
 		title: '.pptx, edite par des agents.',
-		copy: 'pptx-viewer-mcp expose plus de 50 outils PPTX avec des schemas Zod via le Model Context Protocol : Claude, Cursor et Copilot peuvent lire, modifier et convertir des presentations directement. Les memes fonctions tournent en headless dans Node, Bun ou en serverless, et une CLI couvre les conversions ponctuelles.',
+		copy: 'pptx-viewer-mcp expose 73 outils PPTX avec des schemas Zod via le Model Context Protocol : Claude, Cursor et Copilot peuvent lire, modifier et convertir des presentations directement. Les memes fonctions tournent en headless dans Node, Bun ou en serverless, et une CLI couvre les conversions ponctuelles.',
 		link: { text: 'MCP et outils', href: '/packages/mcp' },
 	},
 	quickstart: {
@@ -88,7 +88,7 @@ export const fr: LandingCopy = {
 		soloHint:
 			"Tout s'execute cote client : analyse, rendu, edition et enregistrement se font dans cet onglet, et le deck ne quitte jamais votre navigateur. Ouvrez l'application complete pour y glisser un de vos decks.",
 		collabHint:
-			"Deux applications distinctes partagent un meme deck via une session CRDT sans serveur (y-webrtc, pair-a-pair). Deplacez une forme ou modifiez du texte dans un panneau et regardez l'autre suivre, y compris entre frameworks differents.",
+			"Deux applications distinctes partagent un meme deck via une session CRDT Yjs pair-a-pair. Le transport utilise la signalisation y-webrtc ; deplacez une forme ou modifiez du texte dans un panneau et regardez l'autre suivre, y compris entre frameworks differents.",
 	},
 	faq: {
 		kicker: 'FAQ',
@@ -112,7 +112,7 @@ export const fr: LandingCopy = {
 			},
 			{
 				q: 'La collaboration demande-t-elle une infrastructure ?',
-				a: "Pas par defaut. Le transport fourni est pair-a-pair (y-webrtc) et fonctionne depuis un hebergement statique. Pour la persistance et l'authentification, vous pouvez le pointer vers un relais y-websocket.",
+				a: "Le transport pair-a-pair fourni utilise une infrastructure de signalisation y-webrtc. Pour la persistance, l'authentification ou un reseau controle, fournissez un service de collaboration tel qu'un relais y-websocket.",
 				link: { text: 'Collaboration', href: '/react/collaboration' },
 			},
 			{
@@ -121,11 +121,11 @@ export const fr: LandingCopy = {
 			},
 			{
 				q: 'Quels frameworks sont pris en charge ?',
-				a: 'React 19, Vue 3, Angular, Svelte 5 et une version vanilla sans framework. Chaque package embarque le meme moteur, le rendu est donc identique partout.',
+				a: 'React 18/19, Vue 3, Angular, Svelte 5 et une version vanilla sans framework. Ils partagent le moteur et la logique de rendu neutre au framework, chaque binding fournissant sa propre couche de vue.',
 			},
 			{
 				q: 'Quelles sont les limites ?',
-				a: "Les objets OLE sont en lecture seule et quelques effets visuels sont approximes a l'ecran. La page des limitations detaille exactement quoi attendre.",
+				a: "Le contenu OLE peut etre remplace, et les feuilles, documents et titres de decks imbriques pris en charge peuvent etre modifies. Quelques effets visuels sont approximes a l'ecran. La page des limitations detaille exactement quoi attendre.",
 				link: { text: 'Limitations', href: '/fr/guide/limitations' },
 			},
 		],

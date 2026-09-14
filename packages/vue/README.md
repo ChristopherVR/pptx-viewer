@@ -53,7 +53,7 @@ npm install vue vue-i18n jszip fast-xml-parser
 ```
 
 **Optional:** `three` enables interactive GLB/GLTF 3D models and the
-`smartArt3D` renderer; without it those elements fall back to poster images /
+`smartArt3D` and 3D chart renderers; without it those elements fall back to poster images /
 flat SVG.
 
 The `pptx-viewer-core` engine is **bundled in**, so you don't install it
@@ -178,30 +178,32 @@ See the [cross-binding defaults](../../docs/guide/viewport-fit.md).
 
 ### Props
 
-| Prop                 | Type                                 | Default | Description                                                                                                               |
-| -------------------- | ------------------------------------ | ------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `content`            | `Uint8Array \| ArrayBuffer`          | n/a     | The `.pptx` bytes to render. **Required.**                                                                                |
-| `theme`              | `ViewerTheme`                        | n/a     | Color/radius overrides applied as CSS custom properties. Always wins over the File > Options theme picker.                |
-| `class`              | `string`                             | n/a     | Class applied to the root element.                                                                                        |
-| `canEdit`            | `boolean`                            | `false` | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                         |
-| `filePath`           | `string`                             | n/a     | Original file path, used for autosave recovery and version history.                                                       |
-| `fileName`           | `string`                             | n/a     | Display name of the open document, shown in the title bar.                                                                |
-| `fonts`              | `ViewerFontSource[]`                 | n/a     | Licensed font sources supplied by the host application.                                                                   |
-| `autosave`           | `boolean`                            | `false` | Enables debounced autosave (emits `@autosave` with serialised bytes).                                                     |
-| `autosaveIntervalMs` | `number`                             | `2000`  | Autosave debounce window in milliseconds.                                                                                 |
-| `authorName`         | `string`                             | n/a     | Author name for comments/annotations and collaboration presence.                                                          |
-| `collaboration`      | `CollaborationConfig`                | n/a     | Yjs real-time collaboration config (server URL, room, role).                                                              |
-| `shareDefaults`      | `{ roomId?, userName?, serverUrl? }` | n/a     | Seed values for the Share dialog fields.                                                                                  |
-| `onOpenFile`         | `() => void`                         | n/a     | Host override for File > Open; bypasses the built-in file picker.                                                         |
-| `smartArt3D`         | `boolean`                            | `false` | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                     |
-| `hiddenActions`      | `ToolbarActionId[]`                  | n/a     | Individual toolbar buttons and/or ribbon tabs to hide (e.g. `['share', 'broadcast', 'insert']`). Omit to show everything. |
-| `defaultThemeKey`    | `string`                             | n/a     | Initial File > Options > Appearance selection when no persisted preference exists.                                        |
-| `availableThemes`    | `ThemeCatalogEntry[]`                | n/a     | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                                  |
-| `onThemeChange`      | `(key: string) => void`              | n/a     | Host hook for the appearance picker; when set, the host owns persisting the choice.                                       |
-| `defaultLocale`      | `string`                             | n/a     | Initial locale code when no persisted preference exists.                                                                  |
-| `availableLocales`   | `LocaleCatalogEntry[]`               | n/a     | Locale choices offered by File > Options > Language (defaults to the host `vue-i18n` locales).                            |
-| `onLocaleChange`     | `(code: string) => void`             | n/a     | Host hook for the language picker; when set, the host owns applying/persisting the switch.                                |
-| `accountAuth`        | `AccountAuthConfig`                  | n/a     | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                         |
+| Prop                                                                       | Type                                 | Default                | Description                                                                                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------ | ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`                                                                  | `Uint8Array \| ArrayBuffer`          | n/a                    | The `.pptx` bytes to render. **Required.**                                                                                                |
+| `theme`                                                                    | `ViewerTheme`                        | n/a                    | Color/radius overrides applied as CSS custom properties. Always wins over the File > Options theme picker.                                |
+| `class`                                                                    | `string`                             | n/a                    | Class applied to the root element.                                                                                                        |
+| `canEdit`                                                                  | `boolean`                            | `false`                | Enables the editor toolbar, inspector, and drag-and-drop editing.                                                                         |
+| `filePath`                                                                 | `string`                             | n/a                    | Original file path, used for autosave recovery and version history.                                                                       |
+| `fileName`                                                                 | `string`                             | n/a                    | Display name of the open document, shown in the title bar.                                                                                |
+| `fonts`                                                                    | `ViewerFontSource[]`                 | n/a                    | Licensed font sources supplied by the host application.                                                                                   |
+| `autosave`                                                                 | `boolean`                            | `true`                 | Enables debounced autosave (emits `@autosave` with serialised bytes).                                                                     |
+| `autosaveIntervalMs`                                                       | `number`                             | File > Options cadence | Autosave debounce window in milliseconds.                                                                                                 |
+| `authorName`                                                               | `string`                             | n/a                    | Author name for comments/annotations and collaboration presence.                                                                          |
+| `collaboration`                                                            | `CollaborationConfig`                | n/a                    | Yjs real-time collaboration config (server URL, room, role).                                                                              |
+| `shareDefaults`                                                            | `{ roomId?, userName?, serverUrl? }` | n/a                    | Seed values for the Share dialog fields.                                                                                                  |
+| `onOpenFile`                                                               | `() => void`                         | n/a                    | Host override for File > Open; bypasses the built-in file picker.                                                                         |
+| `smartArt3D`                                                               | `boolean`                            | `false`                | Opt-in Three.js 3D SmartArt renderer (needs the optional `three` peer; falls back to SVG without it).                                     |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`                            | `false`                | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds; each falls back to SVG when WebGL is unavailable. |
+| `ai`                                                                       | `PptxAiConfig`                       | n/a                    | Optional AI assistant configuration. The SDK peers load only when its panel is opened.                                                    |
+| `hiddenActions`                                                            | `ToolbarActionId[]`                  | n/a                    | Individual toolbar buttons and/or ribbon tabs to hide (e.g. `['share', 'broadcast', 'insert']`). Omit to show everything.                 |
+| `defaultThemeKey`                                                          | `string`                             | n/a                    | Initial File > Options > Appearance selection when no persisted preference exists.                                                        |
+| `availableThemes`                                                          | `ThemeCatalogEntry[]`                | n/a                    | Theme choices offered by File > Options > Appearance (defaults to the built-in catalog).                                                  |
+| `onThemeChange`                                                            | `(key: string) => void`              | n/a                    | Host hook for the appearance picker; when set, the host owns persisting the choice.                                                       |
+| `defaultLocale`                                                            | `string`                             | n/a                    | Initial locale code when no persisted preference exists.                                                                                  |
+| `availableLocales`                                                         | `LocaleCatalogEntry[]`               | n/a                    | Locale choices offered by File > Options > Language (defaults to the host `vue-i18n` locales).                                            |
+| `onLocaleChange`                                                           | `(code: string) => void`             | n/a                    | Host hook for the language picker; when set, the host owns applying/persisting the switch.                                                |
+| `accountAuth`                                                              | `AccountAuthConfig`                  | n/a                    | Optional sign-in hook point for File > Account (disabled unless `enabled: true`).                                                         |
 
 ### Events
 

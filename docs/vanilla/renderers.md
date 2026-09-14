@@ -58,8 +58,9 @@ placeholder fallback:
 The fallback renders a typed placeholder box positioned exactly where the element belongs,
 labelled with the element type and carrying `data-element-id` and `data-element-type` attributes.
 
-Two context flags select renderer variants: `smartArt3D` (opt-in Three.js extruded SmartArt, see
-[`PptxViewerOptions.smartArt3D`](/vanilla/options)) and `presenting` (media autoplays, Zoom tiles
+The context carries opt-in renderer flags: `smartArt3D` plus `surfaceChart3D`, `barChart3D`,
+`lineChart3D`, `areaChart3D`, and `pieChart3D` (interactive Three.js variants; see
+[`PptxViewerOptions`](/vanilla/options)), and `presenting` (media autoplays, Zoom tiles
 navigate) are threaded through the context automatically.
 
 ## The renderer contract
@@ -98,24 +99,25 @@ The contract (documented on `ElementRenderer` in the source):
 
 Every renderer call receives an immutable context:
 
-| Field                                          | What it is                                                                         |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `document`                                     | Document used for all DOM creation.                                                |
-| `slide`                                        | The slide being rendered.                                                          |
-| `slides?`, `currentSlideIndex?`                | Full deck + active index, used by Zoom elements to resolve their target preview.   |
-| `canvasSize`                                   | Full slide canvas size in CSS px (elements are positioned in this space).          |
-| `scale`                                        | Stage render scale (1 = 100%); informational, e.g. for raster density decisions.   |
-| `mediaDataUrls`                                | Archive-path to displayable-URL map for media and poster frames.                   |
-| `colorScheme?`                                 | Presentation theme colour scheme for theme-aware render helpers.                   |
-| `tableStyleMap?`                               | Parsed `ppt/tableStyles.xml` definitions for table band/header styling.            |
-| `fieldContext?`                                | Field substitution context (slide number, date fields).                            |
-| `t`                                            | Shared-dictionary translator (`pptx.*` keys).                                      |
-| `smartArt3D`                                   | Opt-in WebGL SmartArt flag (mirrors the viewer option).                            |
-| `presenting`                                   | True only on the live presentation stage (media autoplay, Zoom navigation).        |
-| `onZoomClick?`                                 | Presentation-only Zoom tile activation callback.                                   |
-| `onSmartArtNodeTextChange?` / `...FillChange?` | Inline SmartArt editing callbacks.                                                 |
-| `registry`                                     | The registry in effect, for renderers that need to inspect it.                     |
-| `renderElement(element, zIndex)`               | Render a child element through the registry (the group renderer's recursion hook). |
+| Field                                                                          | What it is                                                                         |
+| ------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------- |
+| `document`                                                                     | Document used for all DOM creation.                                                |
+| `slide`                                                                        | The slide being rendered.                                                          |
+| `slides?`, `currentSlideIndex?`                                                | Full deck + active index, used by Zoom elements to resolve their target preview.   |
+| `canvasSize`                                                                   | Full slide canvas size in CSS px (elements are positioned in this space).          |
+| `scale`                                                                        | Stage render scale (1 = 100%); informational, e.g. for raster density decisions.   |
+| `mediaDataUrls`                                                                | Archive-path to displayable-URL map for media and poster frames.                   |
+| `colorScheme?`                                                                 | Presentation theme colour scheme for theme-aware render helpers.                   |
+| `tableStyleMap?`                                                               | Parsed `ppt/tableStyles.xml` definitions for table band/header styling.            |
+| `fieldContext?`                                                                | Field substitution context (slide number, date fields).                            |
+| `t`                                                                            | Shared-dictionary translator (`pptx.*` keys).                                      |
+| `smartArt3D`                                                                   | Opt-in WebGL SmartArt flag (mirrors the viewer option).                            |
+| `surfaceChart3D` / `barChart3D` / `lineChart3D` / `areaChart3D` / `pieChart3D` | Opt-in WebGL chart flags, each mirroring its viewer option.                        |
+| `presenting`                                                                   | True only on the live presentation stage (media autoplay, Zoom navigation).        |
+| `onZoomClick?`                                                                 | Presentation-only Zoom tile activation callback.                                   |
+| `onSmartArtNodeTextChange?` / `...FillChange?`                                 | Inline SmartArt editing callbacks.                                                 |
+| `registry`                                                                     | The registry in effect, for renderers that need to inspect it.                     |
+| `renderElement(element, zIndex)`                                               | Render a child element through the registry (the group renderer's recursion hook). |
 
 ## The registry API
 

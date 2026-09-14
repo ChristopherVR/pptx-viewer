@@ -23,7 +23,7 @@ The SDK provides nine core capabilities:
 8. **Collaborate** in real time via Yjs CRDT with presence tracking.
 9. **Encrypt/Decrypt** password-protected PPTX files (AES-128/256).
 
-The engine handles the full OpenXML specification including 16 element types, all 187 `ST_ShapeType` preset shapes, 23 chart types, 74 built-in table styles, SmartArt, 3D models, animations, 57 transition effects (including morph), themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink, digital signatures, encryption, VBA macro preservation, and OOXML Strict conformance.
+The engine handles presentation elements, hundreds of `ST_ShapeType` preset shapes, charts, built-in table styles, SmartArt, 3D models, animations and transitions including morph, themes, slide masters, embedded media, EMF/WMF metafiles, OLE objects, digital ink, digital signatures, encryption, VBA macro preservation, and OOXML Strict conformance.
 
 ## Who is it for
 
@@ -60,7 +60,7 @@ The monorepo ships eight published packages.
 | [**Angular**](/angular/)         | `pptx-angular-viewer`        | Angular viewer/editor built on the same engine, with the same feature set.                                 |
 | [**Vanilla JS**](/vanilla/)      | `pptx-vanilla-viewer`        | Zero-framework binding built on the same engine: plain DOM, one factory function, no framework dependency. |
 | [**Svelte**](/svelte/)           | `pptx-svelte-viewer`         | Svelte 5 component built on the same engine, with the same feature set.                                    |
-| [**Tools / MCP**](/packages/mcp) | `pptx-viewer-mcp`            | 50+ PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.                   |
+| [**Tools / MCP**](/packages/mcp) | `pptx-viewer-mcp`            | 73 PPTX tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec.                    |
 | **Installer**                    | `@christophervr/pptx-viewer` | Interactive CLI that scaffolds the right viewer package into your project.                                 |
 
 ### How the pieces fit

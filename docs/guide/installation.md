@@ -21,7 +21,7 @@ Node.js **18 or newer** is required for TypeScript compilation and for running t
 | Svelte 5                  | `pptx-svelte-viewer`  | Same engine and feature set as the React binding       |
 | No framework              | `pptx-vanilla-viewer` | Same engine, plain DOM: no framework dependency at all |
 | Headless (Node / browser) | `pptx-viewer-core`    | No UI, no framework dependency                         |
-| AI / MCP tooling          | `pptx-viewer-mcp`     | 67 MCP tools + CLI + Y.Doc codec                       |
+| AI / MCP tooling          | `pptx-viewer-mcp`     | 73 MCP tools + CLI + Y.Doc codec                       |
 
 ## Installing from npm
 
@@ -228,7 +228,7 @@ bun add pptx-viewer-core
 
 ### MCP server and tools
 
-25 PPTX manipulation tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec - all built on the core engine.
+73 PPTX manipulation tool functions, an MCP server for AI agents, and the Y.Doc collaboration codec - all built on the core engine.
 
 ::: code-group
 

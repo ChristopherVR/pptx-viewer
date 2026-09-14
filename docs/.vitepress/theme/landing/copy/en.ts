@@ -19,7 +19,7 @@ export const en: LandingCopy = {
 		title: 'What you get.',
 		items: [
 			{
-				title: 'Full-fidelity rendering',
+				title: 'High-fidelity rendering',
 				copy: '187+ preset shapes, 23 chart types, SmartArt, animations, morph transitions, embedded fonts, EMF and WMF metafiles, and 3D models, all drawn as HTML, CSS, and SVG. Text stays selectable and screen readers keep working.',
 				link: { text: 'Rendering', href: '/guide/architecture' },
 			},
@@ -63,7 +63,7 @@ export const en: LandingCopy = {
 	agents: {
 		kicker: 'Automation',
 		title: '.pptx, edited by agents.',
-		copy: 'pptx-viewer-mcp exposes 50+ PPTX tools with Zod schemas over the Model Context Protocol, so Claude, Cursor, and Copilot can read, edit, and convert presentations directly. The same functions run headlessly in Node, Bun, or serverless runtimes, and a CLI covers one-off conversions.',
+		copy: 'pptx-viewer-mcp exposes 73 PPTX tools with Zod schemas over the Model Context Protocol, so Claude, Cursor, and Copilot can read, edit, and convert presentations directly. The same functions run headlessly in Node, Bun, or serverless runtimes, and a CLI covers one-off conversions.',
 		link: { text: 'MCP and tools', href: '/packages/mcp' },
 	},
 	quickstart: {
@@ -88,7 +88,7 @@ export const en: LandingCopy = {
 		soloHint:
 			'Everything runs client-side: parsing, rendering, editing, and saving happen in this tab, and the deck never leaves your browser. Open the full app to drop in a deck of your own.',
 		collabHint:
-			'Two separate live apps sharing one deck over a serverless CRDT session (y-webrtc, peer-to-peer). Drag a shape or edit text in either pane and watch the other follow, including across different frameworks.',
+			'Two separate live apps sharing one deck through a peer-to-peer Yjs CRDT session. The transport uses y-webrtc signaling; drag a shape or edit text in either pane and watch the other follow, including across different frameworks.',
 	},
 	faq: {
 		kicker: 'FAQ',
@@ -112,7 +112,7 @@ export const en: LandingCopy = {
 			},
 			{
 				q: 'Does collaboration need infrastructure?',
-				a: 'Not by default. The bundled transport is peer-to-peer (y-webrtc), which works from static hosting. For persistence and authentication you can point it at a y-websocket relay instead.',
+				a: 'The bundled peer-to-peer transport uses y-webrtc signaling infrastructure. For persistence, authentication, or controlled networking, provide a collaboration service such as a y-websocket relay.',
 				link: { text: 'Collaboration', href: '/react/collaboration' },
 			},
 			{
@@ -121,11 +121,11 @@ export const en: LandingCopy = {
 			},
 			{
 				q: 'Which frameworks are supported?',
-				a: 'React 19, Vue 3, Angular, Svelte 5, and a zero-framework vanilla build. Each package bundles the same core engine, so rendering is identical everywhere.',
+				a: 'React 18/19, Vue 3, Angular, Svelte 5, and a zero-framework vanilla build. They share the core engine and framework-neutral rendering logic, with each binding providing its own view layer.',
 			},
 			{
 				q: 'What are the limitations?',
-				a: 'OLE objects are read-only and a few visual effects are approximated on screen. The limitations page lists exactly what to expect.',
+				a: 'OLE content can be replaced, and supported embedded sheets, documents, and nested deck titles can be edited. A few visual effects are approximated on screen. The limitations page lists exactly what to expect.',
 				link: { text: 'Limitations', href: '/guide/limitations' },
 			},
 		],

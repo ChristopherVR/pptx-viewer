@@ -32,6 +32,7 @@ export default defineConfig({
 	test: {
 		globals: true,
 		environment: 'happy-dom',
+		maxWorkers: 4,
 		include: ['src/**/*.test.ts'],
 		// The component suite parses a real .pptx fixture per test.
 		testTimeout: 30000,

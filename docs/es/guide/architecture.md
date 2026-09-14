@@ -10,7 +10,7 @@ Esta pagina explica como encajan las capas de `pptx-viewer` entre si.
 ## Descripcion de las capas
 
 ```
-Framework viewers (React / Vue / Angular)
+Framework viewers (React / Vue / Angular / Svelte / Vanilla JS)
          │
 pptx-viewer-shared      ← logica de renderizado independiente del framework
          │
@@ -39,7 +39,7 @@ El paquete Core (`pptx-viewer-core`) es un motor TypeScript puro que se ejecuta 
 
 ## Los paquetes de visualizacion
 
-Cada paquete de visualizacion (React, Vue, Angular) contiene:
+Cada paquete de visualizacion (React, Vue, Angular, Svelte y Vanilla JS) contiene:
 
 - **Componentes de renderizado** - convierten `PptxElement` en HTML/CSS/SVG.
 - **Estado reactivo** - gestion de seleccion, zoom, historial de edicion.

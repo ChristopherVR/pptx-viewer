@@ -128,8 +128,7 @@ and `E` to navigation and screen commands.
 
 ::: info Coverage of the two chrome chords
 **Ctrl+H** (hide the slideshow toolbar) and **Ctrl+S** (Show All Slides) are recognised by the
-shared slideshow keymap in every viewer, but only the React and Vue viewers currently act on
-them; the other three ignore the chord rather than doing something different with it.
+shared slideshow keymap and handled by every viewer.
 :::
 
 The highlighter has no keyboard shortcut; use the slideshow toolbar. Presenter view is a

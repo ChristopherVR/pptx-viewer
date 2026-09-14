@@ -144,7 +144,7 @@ describe('getConnectorPathGeometry: bentConnector3', () => {
 		expect(geo.pathData).not.toMatch(/[CQA]/u);
 	});
 
-	it('bends around a horizontal mid-line (not vertical) when the shapes are stacked', () => {
+	it('keeps the OOXML horizontal-first route when the shapes are stacked', () => {
 		// A connector between vertically-stacked shapes is taller than it is
 		// wide. Before the fix, this still bent around a vertical mid-line at
 		// `width * adj1` ('M 0 0 L 25 0 L 25 200 L 50 200'), so the connector
@@ -155,7 +155,7 @@ describe('getConnectorPathGeometry: bentConnector3', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'bentConnector3', width: 50, height: 200 }),
 		);
-		expect(geo.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+		expect(geo.pathData).toBe('M 0 0 L 25 0 L 25 200 L 50 200');
 	});
 });
 
@@ -186,11 +186,11 @@ describe('getConnectorPathGeometry: bentConnector5', () => {
 // ── getConnectorPathGeometry: curvedConnector2 ───────────────────────────────
 
 describe('getConnectorPathGeometry: curvedConnector2', () => {
-	it('produces a quadratic Bezier (Q command)', () => {
+	it('produces the OOXML cubic path', () => {
 		const geo = getConnectorPathGeometry(
 			makeConnector({ shapeType: 'curvedConnector2', width: 200, height: 100 }),
 		);
-		expect(geo.pathData).toMatch(/Q/u);
+		expect(geo.pathData).toMatch(/C/u);
 		expect(geo.pathData).not.toMatch(/L/u);
 	});
 });

@@ -13,6 +13,7 @@ Verwenden Sie `PptxHandler.create()`, um ein neues Deck zu starten, bauen Sie Fo
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { writeFile } from 'node:fs/promises';
 
 const { handler, data, createSlide } = await PptxHandler.create({
 	title: 'Meine Prasentation',
@@ -32,17 +33,20 @@ const slide = createSlide()
 data.slides.push(slide);
 
 const output = await handler.save(data.slides);
-await fs.writeFile('prasentation.pptx', Buffer.from(output));
+await writeFile('prasentation.pptx', output);
 ```
 
 ## 2. Eine vorhandene Prasentation analysieren und bearbeiten
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const handler = new PptxHandler();
-const buffer = await fs.readFile('prasentation.pptx');
-const data = await handler.load(buffer.buffer);
+const buffer = await readFile('prasentation.pptx');
+const data = await handler.load(
+	buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+);
 
 console.log(`${data.slides.length} Folien geladen`);
 
@@ -56,7 +60,7 @@ for (const slide of data.slides) {
 
 data.slides[0].elements[0].text = 'Aktualisierter Titel';
 const output = await handler.save(data.slides);
-await fs.writeFile('ausgabe.pptx', Buffer.from(output));
+await writeFile('ausgabe.pptx', output);
 ```
 
 ::: tip Elemente einengen

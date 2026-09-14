@@ -22,18 +22,19 @@ bun add pptx-viewer-core
 
 ## Capability map
 
-| Capability          | Entry point                                      | Description                                                                                                                                                    |
-| ------------------- | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Parse**           | `handler.load(buffer, options?)`                 | Unzip, parse XML, and extract slides, elements, themes, masters, layouts, media, charts, SmartArt, comments, animations, transitions, and document properties. |
-| **Create**          | `PptxHandler.create()` / `Presentation`          | Build presentations from scratch with a fluent builder API ([/core/builder](/core/builder)).                                                                   |
-| **Edit**            | mutate `data.slides` / `PptxXmlBuilder`          | Add/remove/reorder slides, insert elements, modify text, change styles, update themes ([/core/editing](/core/editing)).                                        |
-| **Save**            | `handler.save(slides, options?)`                 | Serialize the data model back into a valid `.pptx` (or `.ppsx` / `.pptm`) ZIP archive with full round-trip fidelity ([/core/saving](/core/saving)).            |
-| **Convert**         | `PptxMarkdownConverter`                          | Transform parsed PPTX into Markdown with media extraction, notes, and metadata ([/core/converter](/core/converter)).                                           |
-| **Export**          | `SvgExporter`                                    | Headless SVG rendering of slides, one `<svg>` string per slide, no browser needed ([/core/svg-export](/core/svg-export)).                                      |
-| **Encrypt/Decrypt** | `load({ password })` / `handler.saveEncrypted()` | Read password-protected PPTX (standard and agile schemes) and write agile AES-128/AES-256 output ([/core/encryption](/core/encryption)).                       |
-| **Theme ops**       | `handler.switchTheme()` / `switchThemePreset()`  | Swap colour/font schemes live; 8 built-in presets in `THEME_PRESETS`.                                                                                          |
-| **Text ops**        | `findText` / `replaceText` / `mergePresentation` | Deck-wide search, replace, and slide merging (also exposed via the [CLI](/core/cli)).                                                                          |
-| **Validate**        | signature and conformance utilities              | Digital-signature detection, OOXML Strict handling, accessibility and validator helpers.                                                                       |
+| Capability          | Entry point                                      | Description                                                                                                                                                                                                     |
+| ------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Parse**           | `handler.load(buffer, options?)`                 | Open a PPTX/PPT archive or a portable `pptx-viewer-json` document, then return slides, elements, themes, masters, layouts, media, charts, SmartArt, comments, animations, transitions, and document properties. |
+| **Create**          | `PptxHandler.create()` / `Presentation`          | Build presentations from scratch with a fluent builder API ([/core/builder](/core/builder)).                                                                                                                    |
+| **Edit**            | mutate `data.slides` / `PptxXmlBuilder`          | Add/remove/reorder slides, insert elements, modify text, change styles, update themes ([/core/editing](/core/editing)).                                                                                         |
+| **Save**            | `handler.save(slides, options?)`                 | Serialize the data model as `.pptx`, `.ppsx`, `.pptm`, or legacy `.ppt` bytes with round-trip fidelity ([/core/saving](/core/saving)).                                                                          |
+| **Convert**         | `PptxMarkdownConverter`                          | Transform parsed PPTX into Markdown with media extraction, notes, and metadata ([/core/converter](/core/converter)).                                                                                            |
+| **Portable JSON**   | `PptxJsonConverter`                              | Serialize the presentation model to a versioned, self-contained JSON document and import it again without the original archive.                                                                                 |
+| **Export**          | `SvgExporter`                                    | Headless SVG rendering of slides, one `<svg>` string per slide, no browser needed ([/core/svg-export](/core/svg-export)).                                                                                       |
+| **Encrypt/Decrypt** | `load({ password })` / `handler.saveEncrypted()` | Read password-protected PPTX (standard and agile schemes) and write agile AES-128/AES-256 output ([/core/encryption](/core/encryption)).                                                                        |
+| **Theme ops**       | `handler.switchTheme()` / `switchThemePreset()`  | Swap colour/font schemes live; 8 built-in presets in `THEME_PRESETS`.                                                                                                                                           |
+| **Text ops**        | `findText` / `replaceText` / `mergePresentation` | Deck-wide search, replace, and slide merging (also exposed via the [CLI](/core/cli)).                                                                                                                           |
+| **Validate**        | signature and conformance utilities              | Digital-signature detection, OOXML Strict handling, accessibility and validator helpers.                                                                                                                        |
 
 ## Runtime support
 
@@ -58,7 +59,7 @@ The only platform-conditional pieces are:
                  new PptxHandler()
                         |
         ArrayBuffer --> load(buffer, { password? })
-                        |        (detect OLE2 -> decrypt -> unzip -> parse XML
+                        |        (detect JSON, OLE2/PPT, or ZIP -> decrypt if needed -> parse
                         |         -> resolve theme/master/layout inheritance)
                         v
                     PptxData  { slides, theme, width, height, ... }
@@ -148,6 +149,7 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 | `ThemePresets`, `THEME_PRESETS`, `SlideSizes`                                                                                     | consts    | 8 builder theme presets; 8 switchable viewer presets; 7 standard slide dimensions (EMU). |
 | `inches`, `cm`, `mm`, `pt` (to pixels); `inchesToEmu`, `cmToEmu`, `pixelsToEmu` (to EMU)                                          | functions | Unit-conversion helpers.                                                                 |
 | `PptxMarkdownConverter`                                                                                                           | class     | PPTX to Markdown converter ([/core/converter](/core/converter)).                         |
+| `PptxJsonConverter`                                                                                                               | class     | Versioned, self-contained deck-model JSON converter.                                     |
 | `SvgExporter`                                                                                                                     | class     | Headless SVG export ([/core/svg-export](/core/svg-export)).                              |
 | `decryptPptx`, `encryptPptx`, `verifyPassword`, `detectFileFormat`                                                                | functions | Low-level crypto ([/core/encryption](/core/encryption)).                                 |
 | `findText`, `replaceText`, `mergePresentation`                                                                                    | functions | Deck-wide text search/replace and merge.                                                 |
@@ -158,7 +160,7 @@ Everything is re-exported from the package root (`pptx-viewer-core`). Import fro
 ## Architecture at a glance
 
 - **`PptxHandler`** wraps `PptxHandlerCore`, which delegates to an injectable `IPptxHandlerRuntime` (you can pass your own via `new PptxHandler({ runtime })` for testing).
-- The **runtime** is assembled from 96 focused mixin modules (theme loading, element parsing, save pipeline, etc.).
+- The **runtime** is assembled from 102 focused mixin modules (theme loading, element parsing, save pipeline, etc.).
 - The **type system** centres on `PptxElement`, a discriminated union of 16 variants (`text`, `shape`, `connector`, `image`, `picture`, `table`, `chart`, `smartArt`, `ole`, `media`, `group`, `ink`, `contentPart`, `zoom`, `model3d`, `unknown`) narrowed by `element.type`. See [/guide/data-model](/guide/data-model).
 - **EMU** (English Metric Units) is the native OOXML coordinate system: `1 inch = 914,400 EMU`, `1 point = 12,700 EMU`, `1 pixel = 9,525 EMU` at 96 DPI. The parsed model exposes pixel values (`data.width`/`data.height`) alongside raw EMU (`widthEmu`/`heightEmu`).
 

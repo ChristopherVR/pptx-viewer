@@ -68,11 +68,13 @@ on demand instead, use the handle's [`getContent()`](/react/handle).
 
 ## Presentation / authoring
 
-| Prop         | Type      | Default | Description                                                                                                                                 |
-| ------------ | --------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `authorName` | `string`  | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`. |
-| `className`  | `string`  | -       | Optional class name applied to the viewer root element.                                                                                     |
-| `smartArt3D` | `boolean` | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.   |
+| Prop                                                                       | Type           | Default | Description                                                                                                                                                                                               |
+| -------------------------------------------------------------------------- | -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorName`                                                               | `string`       | -       | Display name used as the author for comments and annotations. Falls back to `collaboration.userName` when collaborating, otherwise `'You'`.                                                               |
+| `className`                                                                | `string`       | -       | Optional class name applied to the viewer root element.                                                                                                                                                   |
+| `smartArt3D`                                                               | `boolean`      | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.                                                                 |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`      | `false` | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds. Each falls back to its SVG renderer when `three` is unavailable or the chart cannot be rendered as a WebGL scene. |
+| `ai`                                                                       | `PptxAiConfig` | -       | Enables the optional AI assistant. Its SDK peers load only when the panel is opened; omit this prop to leave the assistant unavailable.                                                                   |
 
 ## Theming
 
@@ -131,6 +133,12 @@ interface PowerPointViewerProps {
 	className?: string;
 	authorName?: string;
 	smartArt3D?: boolean;
+	surfaceChart3D?: boolean;
+	barChart3D?: boolean;
+	lineChart3D?: boolean;
+	areaChart3D?: boolean;
+	pieChart3D?: boolean;
+	ai?: PptxAiConfig;
 
 	theme?: ViewerTheme;
 

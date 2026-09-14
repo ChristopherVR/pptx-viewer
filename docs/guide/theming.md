@@ -146,11 +146,11 @@ For sharing one theme across multiple viewers, React exports `ViewerThemeProvide
 
 The viewer UI references `--pptx-*` custom properties for every visual token, which allows three styling setups (in increasing order of control):
 
-| Mode                      | Setup                                                                                                                                                                              |
-| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Tailwind CSS v4 host      | No CSS import needed; the viewer's classes resolve through your existing config. Override values with the `theme` prop/input.                                                      |
-| Bundled stylesheet        | `import 'pptx-react-viewer/styles'` (same `/styles` or `/styles.css` subpath on the Vue, Angular, and Svelte packages). Ships all required utility classes plus the dark defaults. |
-| Raw CSS custom properties | Define the `--pptx-*` properties yourself (see `defaultCssVars()` for the full list) and skip both.                                                                                |
+| Mode                      | Setup                                                                                                                                                                                                                              |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tailwind CSS v4 host      | No CSS import needed; the viewer's classes resolve through your existing config. Override values with the `theme` prop/input.                                                                                                      |
+| Bundled stylesheet        | `import 'pptx-react-viewer/styles'` (the Vue and Angular packages also expose `/styles` and `/styles.css`). The Svelte package compiles its styles into its components. Ships all required utility classes plus the dark defaults. |
+| Raw CSS custom properties | Define the `--pptx-*` properties yourself (see `defaultCssVars()` for the full list) and skip both.                                                                                                                                |
 
 The vanilla binding is the exception: `createPptxViewer` injects its own scoped stylesheet automatically (idempotent, `#pptx-vanilla-viewer-styles`). Hosts with a strict CSP can pre-render the string from `getViewerCss()` instead.
 

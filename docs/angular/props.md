@@ -90,12 +90,14 @@ viewer raises a **"Recover unsaved changes?"** dialog offering Restore or Discar
 
 ## Presentation / authoring
 
-| Input        | Type                        | Default | Description                                                                                                                                                  |
-| ------------ | --------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `authorName` | `string \| undefined`       | -       | Display name used as the author for comments/annotations and as the broadcast owner's name. Falls back to `collaboration.userName` or `'You'`/`'Presenter'`. |
-| `class`      | `string`                    | `''`    | Optional class name applied to the viewer's root element.                                                                                                    |
-| `smartArt3D` | `boolean`                   | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.                    |
-| `onOpenFile` | `(() => void) \| undefined` | -       | Host override for the File ▸ Open action: bypasses the built-in native file picker; the host then supplies a new `content` value instead.                    |
+| Input                                                                      | Type                        | Default | Description                                                                                                                                                                             |
+| -------------------------------------------------------------------------- | --------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `authorName`                                                               | `string \| undefined`       | -       | Display name used as the author for comments/annotations and as the broadcast owner's name. Falls back to `collaboration.userName` or `'You'`/`'Presenter'`.                            |
+| `class`                                                                    | `string`                    | `''`    | Optional class name applied to the viewer's root element.                                                                                                                               |
+| `smartArt3D`                                                               | `boolean`                   | `false` | Opt in to the Three.js SmartArt renderer (extruded 3D blocks on WebGL). Requires the optional `three` peer; falls back to SVG without it.                                               |
+| `surfaceChart3D`, `barChart3D`, `lineChart3D`, `areaChart3D`, `pieChart3D` | `boolean`                   | `false` | Independently opt in to interactive Three.js renderers for the matching 3D chart kinds. Each falls back to SVG when `three` is unavailable or the chart cannot render as a WebGL scene. |
+| `ai`                                                                       | `PptxAiConfig`              | -       | Enables the optional AI assistant. Its SDK peer loads only when the panel is opened; omit this input to leave the assistant unavailable.                                                |
+| `onOpenFile`                                                               | `(() => void) \| undefined` | -       | Host override for the File ▸ Open action: bypasses the built-in native file picker; the host then supplies a new `content` value instead.                                               |
 
 ## Theming
 
@@ -143,6 +145,12 @@ class PowerPointViewerComponent {
 	>(undefined);
 	readonly onOpenFile = input<(() => void) | undefined>(undefined);
 	readonly smartArt3D = input<boolean>(false);
+	readonly surfaceChart3D = input<boolean>(false);
+	readonly barChart3D = input<boolean>(false);
+	readonly lineChart3D = input<boolean>(false);
+	readonly areaChart3D = input<boolean>(false);
+	readonly pieChart3D = input<boolean>(false);
+	readonly ai = input<PptxAiConfig | undefined>(undefined);
 
 	// Outputs
 	readonly activeSlideChange = output<number>();
