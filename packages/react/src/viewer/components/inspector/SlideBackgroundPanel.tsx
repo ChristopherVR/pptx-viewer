@@ -44,11 +44,13 @@ export function SlideBackgroundPanel({
 		<>
 			{/* Slide Background */}
 			<div className={cn(CARD, 'space-y-2')}>
-				<div className={HEADING}>Background</div>
+				<div className={HEADING}>{t('pptx.viewer.background')}</div>
 
 				{/* Solid colour */}
 				<label className='flex items-center gap-2 text-[11px]'>
-					<span className='text-muted-foreground w-10 shrink-0'>Colour</span>
+					<span className='text-muted-foreground w-10 shrink-0'>
+						{t('pptx.slideBackground.colour')}
+					</span>
 					<DebouncedColorInput
 						value={normalizeHexColor(activeSlide.backgroundColor, '#ffffff')}
 						disabled={!canEdit}
@@ -63,7 +65,9 @@ export function SlideBackgroundPanel({
 				{/* Background image */}
 				<div className='space-y-1'>
 					<div className='flex items-center gap-2 text-[11px]'>
-						<span className='text-muted-foreground w-10 shrink-0'>Image</span>
+						<span className='text-muted-foreground w-10 shrink-0'>
+							{t('pptx.slideBackground.image')}
+						</span>
 						<input
 							ref={bgImageInputRef}
 							type='file'

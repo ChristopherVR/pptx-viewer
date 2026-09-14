@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import type { AlignEdge } from 'pptx-viewer-shared';
+import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -38,11 +39,8 @@ export interface ArrangeGroup {
 }
 
 /**
- * Align buttons carry two directions on purpose: `edge` is the value this
- * binding's `alignElements` expects (`centerH`), while `label` is the word
- * React interpolates into `pptx.arrange.align`. They used to be the same
- * value, which shipped an "Align centerH" accessible name no user would ever
- * search for and which no other binding renders.
+ * Keep the operation's edge separate from the shared label direction:
+ * horizontal centering uses `centerH` internally and `center` for its label.
  */
 const ALIGN_BUTTONS: ReadonlyArray<{ edge: AlignEdge; label: string; icon: IconName }> = [
 	{ edge: 'left', label: 'left', icon: 'align-left' },
@@ -80,7 +78,7 @@ export function createArrangeGroup(
 
 	const alignButtons = ALIGN_BUTTONS.map((def) =>
 		makeButton(doc, {
-			label: t('pptx.arrange.align', { direction: def.label }),
+			label: t(ALIGNMENT_LABEL_KEYS[def.label]),
 			icon: def.icon,
 			onClick: () => handlers.alignElements(def.edge),
 		}),

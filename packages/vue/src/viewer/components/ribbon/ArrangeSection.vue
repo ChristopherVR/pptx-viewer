@@ -14,6 +14,7 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, Copy, Paintbrush, Trash2 } from 'lucide-vue-next';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -60,7 +61,7 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 			type="button"
 			:class="i < ALIGN_BTNS.length - 1 ? gB : gL"
 			:disabled="!canMut"
-			:title="t('pptx.arrange.align', { direction: a.k })"
+			:title="t(ALIGNMENT_LABEL_KEYS[a.k])"
 			@click="props.onAlignElements(a.k)"
 		>
 			<component :is="a.icon" :class="[ic, a.rotate && 'rotate-90']" />

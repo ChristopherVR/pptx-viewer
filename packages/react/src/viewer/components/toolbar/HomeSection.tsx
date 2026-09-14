@@ -272,7 +272,9 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						)}
 					</div>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Font</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.font')}
+				</span>
 			</div>
 
 			{sep}
