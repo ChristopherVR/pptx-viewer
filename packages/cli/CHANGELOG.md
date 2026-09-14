@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.1) - 2026-09-14
+
+### Bug Fixes
+
+- **shared:** Retain loaded webfonts during slide edits (by @ChristopherVR) ([4f81eb0](https://github.com/ChristopherVR/pptx-viewer/commit/4f81eb062431a273cf714cafc751cc4b8446f30c))
+- **tests:** Numerous test issues (by @ChristopherVR) ([c5b8260](https://github.com/ChristopherVR/pptx-viewer/commit/c5b826079078371191b48e04db0e7e4e6877435c))
+
 ## [2.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.0) - 2026-09-14
 
 ### Features

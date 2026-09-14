@@ -10,6 +10,17 @@ dated sections beneath it are generated from
 
 ## 2026-09-14
 
+_Releases: @christophervr/pptx-viewer@2.16.1_
+
+### Bug Fixes
+
+- **vanilla:** Open bootstrap source after loading (by @ChristopherVR) ([4c94ab3](https://github.com/ChristopherVR/pptx-viewer/commit/4c94ab31e78a0f3eeaed08b8f4db25bbefc5480c))
+- **shared:** Retain loaded webfonts during slide edits (by @ChristopherVR) ([4f81eb0](https://github.com/ChristopherVR/pptx-viewer/commit/4f81eb062431a273cf714cafc751cc4b8446f30c))
+- **ci:** Honor package test setup (by @ChristopherVR) ([d5e22d1](https://github.com/ChristopherVR/pptx-viewer/commit/d5e22d129b67a6aedd5453a1b89f284e6fa0d15b))
+- **tests:** Numerous test issues (by @ChristopherVR) ([c5b8260](https://github.com/ChristopherVR/pptx-viewer/commit/c5b826079078371191b48e04db0e7e4e6877435c))
+
+## 2026-09-14
+
 _Releases: pptx-viewer-core@3.15.1, @christophervr/pptx-viewer@2.16.0_
 
 ### Features
