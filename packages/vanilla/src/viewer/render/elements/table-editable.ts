@@ -128,14 +128,14 @@ export function enableTableResize(
 			return;
 		}
 		active.handleEl.style.transform = '';
-		if (active.type === 'col' && active.initialWidths) {
+		if (event.clientX !== active.startPos && active.type === 'col' && active.initialWidths) {
 			const rect = container.getBoundingClientRect();
 			const deltaProp = (event.clientX - active.startPos) / (rect.width || 1);
 			context.onTableResizeColumns?.(
 				element,
 				computeResizedColumnWidths(active.initialWidths, active.index, deltaProp),
 			);
-		} else if (active.type === 'row') {
+		} else if (event.clientY !== active.startPos && active.type === 'row') {
 			const deltaY = event.clientY - active.startPos;
 			context.onTableResizeRow?.(
 				element,

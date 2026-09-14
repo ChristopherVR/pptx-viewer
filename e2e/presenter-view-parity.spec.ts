@@ -38,6 +38,9 @@ import { fixture, loadDeckAt } from './support/deck';
 import { acrossFrameworks, splitReference } from './support/parity';
 
 test.use({ viewport: { width: 1440, height: 900 } });
+// The reference project loads and presents five real decks in one comparison.
+// CI runs reached 60 seconds while still making progress through those loads.
+test.setTimeout(120_000);
 
 const DECK = fixture('solution-explorer.pptx');
 

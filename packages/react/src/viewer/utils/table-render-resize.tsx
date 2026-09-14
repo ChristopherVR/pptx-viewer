@@ -93,10 +93,15 @@ export function TableResizeOverlay({
 
 			const rect = containerRef.current.getBoundingClientRect();
 
-			if (drag.type === 'col' && drag.initialWidths && onResizeColumns) {
+			if (
+				e.clientX !== drag.startPos &&
+				drag.type === 'col' &&
+				drag.initialWidths &&
+				onResizeColumns
+			) {
 				const deltaProp = (e.clientX - drag.startPos) / rect.width;
 				onResizeColumns(computeResizedColumnWidths(drag.initialWidths, drag.index, deltaProp));
-			} else if (drag.type === 'row' && onResizeRow) {
+			} else if (e.clientY !== drag.startPos && drag.type === 'row' && onResizeRow) {
 				const deltaY = e.clientY - drag.startPos;
 				const newHeight = computeResizedRowHeight(
 					drag.initialRowHeight ?? DEFAULT_ROW_HEIGHT,

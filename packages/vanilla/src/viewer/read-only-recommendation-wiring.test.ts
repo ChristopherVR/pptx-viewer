@@ -15,7 +15,7 @@ import {
 	createSaltlessModifyVerifierForTesting,
 	PptxHandler,
 } from 'pptx-viewer-core';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createPptxViewer } from './PptxViewer';
 import type { PptxViewerInstance } from './types';
@@ -66,9 +66,18 @@ async function buildSaltlessPasswordProtectedDeck(password: string): Promise<Uin
 }
 
 describe('vanilla read-only recommendation password prompt', () => {
+	let protectedDeck: Uint8Array;
+	let saltlessDeck: Uint8Array;
+	// Build the real archives once. Rebuilding them inside every test consumed
+	// most of the five-second budget on CI before the prompt was exercised.
+	beforeAll(async () => {
+		protectedDeck = await buildPasswordProtectedDeck('right-password');
+		saltlessDeck = await buildSaltlessPasswordProtectedDeck('right-password');
+	}, 30_000);
+
 	it('locks editing and shows the banner for a password-protected deck', async () => {
 		const { container, viewer } = mount();
-		await viewer.loadFile(await buildPasswordProtectedDeck('right-password'));
+		await viewer.loadFile(protectedDeck);
 
 		const banner = container.querySelector<HTMLElement>('[data-testid="pptx-readonly-banner"]');
 		expect(banner?.hidden).toBeFalsy();
@@ -78,7 +87,7 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 	it('"Edit anyway" opens the password prompt instead of unlocking', async () => {
 		const { container, viewer } = mount();
-		await viewer.loadFile(await buildPasswordProtectedDeck('right-password'));
+		await viewer.loadFile(protectedDeck);
 
 		container
 			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
@@ -93,7 +102,7 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 	it('a wrong password stays read-only and reports the error', async () => {
 		const { container, viewer } = mount();
-		await viewer.loadFile(await buildPasswordProtectedDeck('right-password'));
+		await viewer.loadFile(protectedDeck);
 		container
 			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
 			.click();
@@ -108,7 +117,8 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 		await vi.waitFor(() => {
 			const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
-			expect((error as HTMLElement | null)?.hidden).toBeFalsy();
+			expect(error).not.toBeNull();
+			expect((error as HTMLElement).hidden).toBeFalsy();
 		});
 		expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
 		expect(
@@ -118,7 +128,7 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 	it('the correct password unlocks editing and closes the prompt', async () => {
 		const { container, viewer } = mount();
-		await viewer.loadFile(await buildPasswordProtectedDeck('right-password'));
+		await viewer.loadFile(protectedDeck);
 		container
 			.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
 			.click();
@@ -142,7 +152,7 @@ describe('vanilla read-only recommendation password prompt', () => {
 	describe('salt-less modifyVerifier (no saltData attribute at all)', () => {
 		it('"Edit anyway" still opens the password prompt, not an unconditional unlock', async () => {
 			const { container, viewer } = mount();
-			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+			await viewer.loadFile(saltlessDeck);
 
 			container
 				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
@@ -157,7 +167,7 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 		it('a wrong password stays read-only', async () => {
 			const { container, viewer } = mount();
-			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+			await viewer.loadFile(saltlessDeck);
 			container
 				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
 				.click();
@@ -172,14 +182,15 @@ describe('vanilla read-only recommendation password prompt', () => {
 
 			await vi.waitFor(() => {
 				const error = container.querySelector('[data-testid="pptx-readonly-password-error"]');
-				expect((error as HTMLElement | null)?.hidden).toBeFalsy();
+				expect(error).not.toBeNull();
+				expect((error as HTMLElement).hidden).toBeFalsy();
 			});
 			expect(container.querySelector('.pptxv')?.classList.contains('pptxv-editable')).toBeFalsy();
 		});
 
 		it('the correct password unlocks editing', async () => {
 			const { container, viewer } = mount();
-			await viewer.loadFile(await buildSaltlessPasswordProtectedDeck('right-password'));
+			await viewer.loadFile(saltlessDeck);
 			container
 				.querySelector<HTMLButtonElement>('[data-testid="pptx-readonly-edit-anyway"]')!
 				.click();

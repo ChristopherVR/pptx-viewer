@@ -129,7 +129,11 @@ test.describe('desktop manipulation (mouse)', () => {
 			zip.file(
 				path,
 				xml.replace(/<p:sp>[\s\S]*?<\/p:sp>/gu, (shape) =>
-					shape.includes('>TARGET<') ? shape.replace(/<a:p>[\s\S]*?<\/a:p>/u, paragraphs) : shape,
+					shape.includes('>TARGET<')
+						? shape
+								.replace(/<a:bodyPr\b/u, '<a:bodyPr spcFirstLastPara="1"')
+								.replace(/<a:p>[\s\S]*?<\/a:p>/u, paragraphs)
+						: shape,
 				),
 			);
 			const deckPath = testInfo.outputPath('paragraph-spacing.pptx');

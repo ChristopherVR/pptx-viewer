@@ -91,6 +91,19 @@ describe('svelte table drag-resize', () => {
 		document.body.replaceChildren();
 	});
 
+	it.each([
+		[200, 10],
+		[10, 40],
+	])('ignores a boundary click at %s, %s without a drag', (x, y) => {
+		const { controller, commitColumns, commitRow } = makeController();
+		press(controller, x, y);
+		release(x, y);
+		expect(commitColumns).not.toHaveBeenCalled();
+		expect(commitRow).not.toHaveBeenCalled();
+		expect(controller.dragType).toBeNull();
+		controller.destroy();
+	});
+
 	it('measures column boundaries as percentages and row boundaries as pixel offsets', () => {
 		const { controller } = makeController();
 		expect(controller.colBoundaries).toStrictEqual([50, 80]);

@@ -149,13 +149,13 @@ export class TableResizeController {
 		if (!active) {
 			return;
 		}
-		if (active.type === 'col' && active.initialWidths) {
+		if (event.clientX !== active.startPos && active.type === 'col' && active.initialWidths) {
 			const rect = this.#root()?.getBoundingClientRect();
 			const deltaProp = (event.clientX - active.startPos) / (rect?.width || 1);
 			this.#commitColumns(
 				computeResizedColumnWidths(active.initialWidths, active.index, deltaProp),
 			);
-		} else if (active.type === 'row') {
+		} else if (event.clientY !== active.startPos && active.type === 'row') {
 			const deltaY = event.clientY - active.startPos;
 			this.#commitRow(
 				active.index,

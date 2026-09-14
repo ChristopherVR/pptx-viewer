@@ -610,6 +610,32 @@ describe('openInlineEditor input handling', () => {
 });
 
 describe('openInlineEditor commit ordering', () => {
+	it.each(['commit', 'cancel'] as const)('restores viewer keyboard focus after %s', (action) => {
+		const overlayRoot = document.createElement('div');
+		overlayRoot.tabIndex = 0;
+		document.body.appendChild(overlayRoot);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			// Model commits can synchronously replace the editor overlay.
+			onCommit: () => overlayRoot.replaceChildren(),
+			onClose: vi.fn(),
+		});
+		// happy-dom does not focus contenteditable divs; a focused descendant
+		// exercises the same departing-surface ownership check.
+		session.el.textContent = 'CHANGED';
+		const caret = document.createElement('input');
+		session.el.appendChild(caret);
+		caret.focus();
+		expect(document.activeElement).toBe(caret);
+		session[action]();
+		expect(document.activeElement).toBe(overlayRoot);
+		overlayRoot.remove();
+	});
+
 	it('fires onCommit while the surface is still attached and [data-inline-editor]-tagged', () => {
 		// `a:spAutoFit` needs to measure the live editor node from inside
 		// `onCommit` (see `resolveInlineTextAutoFitHeight`'s doc comment); a

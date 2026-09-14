@@ -9,6 +9,7 @@ import {
 	getInlineEditorSelection,
 	placeCaretAtEnd,
 	readEditableText,
+	restoreEditorKeyboardFocus,
 } from 'pptx-viewer-shared';
 import type {
 	InlineListController,
@@ -181,6 +182,11 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 			commitText = snapshot.text;
 		}
 		closed = true;
+		// A synchronous commit can replace the overlay before close returns.
+		// Restore focus while the surface still has its viewer ancestor.
+		if (surface.contains(doc.activeElement)) {
+			restoreEditorKeyboardFocus(surface);
+		}
 		// `onCommit` fires BEFORE the surface is removed: `a:spAutoFit`
 		// ("Resize shape to fit text") needs to measure the still-mounted,
 		// still-`[data-inline-editor]`-attributed node from inside that

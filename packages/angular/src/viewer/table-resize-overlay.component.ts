@@ -247,14 +247,14 @@ export class TableResizeOverlayComponent {
 		}
 		drag.handle.style.transform = '';
 
-		if (drag.type === 'col' && drag.initialWidths) {
+		if (event.clientX !== drag.startPos && drag.type === 'col' && drag.initialWidths) {
 			const rect = this.container()?.getBoundingClientRect();
 			const width = rect?.width ?? 1;
 			const deltaProp = (event.clientX - drag.startPos) / width;
 			this.resizeColumns.emit(
 				computeResizedColumnWidths(drag.initialWidths, drag.index, deltaProp),
 			);
-		} else if (drag.type === 'row') {
+		} else if (event.clientY !== drag.startPos && drag.type === 'row') {
 			const deltaY = event.clientY - drag.startPos;
 			const height = computeResizedRowHeight(drag.initialRowHeight ?? DEFAULT_ROW_HEIGHT, deltaY);
 			this.resizeRow.emit({ index: drag.index, height });

@@ -406,8 +406,8 @@ function canvasCellAt(page: Page, row: number, column: number): Locator {
  * Select and invoke a cell command through the context menu.
  *
  * Right-click the cell first. If that opens the table-level menu, dismiss it
- * without clearing the table selection, then one left click selects the cell
- * before the second right-click. Re-measure because the inspector moves it.
+ * then select the table and its cell before the second right-click. Re-measure
+ * between clicks because opening the inspector moves the canvas.
  */
 async function chooseTableCommand(page: Page, cell: Locator, label: string): Promise<void> {
 	const box = await cell.boundingBox();
@@ -423,10 +423,12 @@ async function chooseTableCommand(page: Page, cell: Locator, label: string): Pro
 
 	await page.keyboard.press('Escape');
 	await expect.poll(() => menuIsOpen(page)).toBe(false);
-	const movedBox = await cell.boundingBox();
-	expect(movedBox, 'the cell should remain laid out after dismissing the menu').not.toBeNull();
-	await page.mouse.click(movedBox!.x + movedBox!.width / 4, movedBox!.y + movedBox!.height / 2);
-	await page.waitForTimeout(350);
+	for (let press = 0; press < 2; press += 1) {
+		const movedBox = await cell.boundingBox();
+		expect(movedBox, 'the cell should remain laid out after dismissing the menu').not.toBeNull();
+		await page.mouse.click(movedBox!.x + movedBox!.width / 4, movedBox!.y + movedBox!.height / 2);
+		await page.waitForTimeout(350);
+	}
 	const selectedBox = await cell.boundingBox();
 	expect(selectedBox, 'the selected cell should remain laid out').not.toBeNull();
 	const selectedMenu = await openMenuAt(page, {

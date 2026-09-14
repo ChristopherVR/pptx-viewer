@@ -123,7 +123,9 @@ test.describe('editor keyboard shortcuts', () => {
 				'keydown',
 				(event) => {
 					if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'v') {
-						queueMicrotask(() => {
+						// Native event dispatch can run microtasks between listeners.
+						// Observe cancellation after every binding's listener has run.
+						setTimeout(() => {
 							document.body.dataset.pasteKeyPrevented = String(event.defaultPrevented);
 						});
 					}

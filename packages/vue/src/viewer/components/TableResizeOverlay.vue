@@ -96,10 +96,10 @@ function onMouseUp(event: MouseEvent): void {
 		return;
 	}
 	const rect = container.getBoundingClientRect();
-	if (drag.type === 'col' && drag.initialWidths) {
+	if (event.clientX !== drag.startPos && drag.type === 'col' && drag.initialWidths) {
 		const deltaProp = (event.clientX - drag.startPos) / rect.width;
 		emit('resizeColumns', computeResizedColumnWidths(drag.initialWidths, drag.index, deltaProp));
-	} else if (drag.type === 'row') {
+	} else if (event.clientY !== drag.startPos && drag.type === 'row') {
 		const deltaY = event.clientY - drag.startPos;
 		emit(
 			'resizeRow',

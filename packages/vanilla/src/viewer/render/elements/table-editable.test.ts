@@ -95,6 +95,16 @@ describe('enableTableResize', () => {
 		vi.restoreAllMocks();
 	});
 
+	it.each([
+		[200, 10],
+		[10, 40],
+	])('ignores a boundary click at %s, %s without a drag', (x, y) => {
+		const { container, onTableResizeColumns, onTableResizeRow } = mountResizableTable();
+		drag(container, [x, y], [x, y]);
+		expect(onTableResizeColumns).not.toHaveBeenCalled();
+		expect(onTableResizeRow).not.toHaveBeenCalled();
+	});
+
 	it('does not wire drag handlers when no resize callback is present', () => {
 		const registry = createElementRendererRegistry();
 		registerTableChartRenderers(registry);
