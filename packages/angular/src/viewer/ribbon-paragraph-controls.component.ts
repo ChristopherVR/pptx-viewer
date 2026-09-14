@@ -18,8 +18,13 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 
-import { elementBulletKind } from '../internal/shared';
+import {
+	elementBulletKind,
+	getInlineEditorSelectionResult,
+	selectionBulletKind,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
@@ -225,7 +230,19 @@ export class RibbonParagraphControlsComponent {
 		if (!this.canEdit()) {
 			return;
 		}
-		this.patch({ listType: this.listKind() === kind ? 'none' : kind });
+		const element = this.selectedElement();
+		if (!element || !hasTextProperties(element)) {
+			return;
+		}
+		const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
+		if (
+			result.kind !== 'supported' ||
+			(result.snapshot && result.snapshot.elementId !== element.id)
+		) {
+			return;
+		}
+		const current = selectionBulletKind(element, result.selection, result.snapshot?.textSegments);
+		this.patch({ listType: current === kind ? 'none' : kind });
 	}
 	/** Step the paragraph left-indent by `deltaPx` (clamped at 0). */
 	protected changeIndent(deltaPx: number): void {

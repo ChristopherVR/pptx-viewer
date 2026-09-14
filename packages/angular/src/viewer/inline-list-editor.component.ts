@@ -175,13 +175,9 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 			event.preventDefault();
 			this.cancelled = true;
 			this.blur();
-		} else if (event.key === 'Enter') {
+		} else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
-			if (event.shiftKey) {
-				this.editor().nativeElement.ownerDocument.execCommand('insertParagraph');
-			} else {
-				this.blur();
-			}
+			this.blur();
 		} else if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
 			const key = event.key.toLowerCase();
 			if (key !== 'b' && key !== 'i' && key !== 'u') {

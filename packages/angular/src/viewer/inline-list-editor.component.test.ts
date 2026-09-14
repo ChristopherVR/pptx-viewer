@@ -173,20 +173,28 @@ describe('angular list editor', () => {
 		}
 	});
 
-	it('keeps Enter as commit and Shift+Enter as a native paragraph command, ignoring IME', () => {
+	it.each([false, true])('leaves native Enter insertion to the browser (shift=%s)', (shiftKey) => {
 		const editor = mountedEditor();
 		const previous = Object.getOwnPropertyDescriptor(document, 'execCommand');
 		const command = vi.fn(() => true);
 		Object.defineProperty(document, 'execCommand', { configurable: true, value: command });
 		const blur = vi.spyOn(editor.component, 'blur');
 		try {
-			editor.handlers.onKeyDown(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true }));
-			expect(command).toHaveBeenCalledExactlyOnceWith('insertParagraph');
+			editor.root.addEventListener('keydown', (event) => editor.handlers.onKeyDown(event));
+			const event = new KeyboardEvent('keydown', {
+				key: 'Enter',
+				shiftKey,
+				bubbles: true,
+				cancelable: true,
+			});
+			const before = editor.root.innerHTML;
+			editor.root.dispatchEvent(event);
+			expect(event.defaultPrevented).toBeFalsy();
+			expect(command).not.toHaveBeenCalled();
 			expect(blur).not.toHaveBeenCalled();
-			editor.handlers.onKeyDown(new KeyboardEvent('keydown', { key: 'Enter', isComposing: true }));
-			expect(blur).not.toHaveBeenCalled();
-			editor.handlers.onKeyDown(new KeyboardEvent('keydown', { key: 'Enter' }));
-			expect(blur).toHaveBeenCalledOnce();
+			expect(editor.commits).not.toHaveBeenCalled();
+			// The handler does not rewrite editable children or emulate browser insertion.
+			expect(editor.root.innerHTML).toBe(before);
 		} finally {
 			if (previous) {
 				Object.defineProperty(document, 'execCommand', previous);
@@ -196,6 +204,55 @@ describe('angular list editor', () => {
 			editor.cleanup();
 		}
 	});
+
+	it.each([{ ctrlKey: true }, { metaKey: true }])(
+		'retains explicit modified Enter commit: %j',
+		(modifier) => {
+			const editor = mountedEditor();
+			const blur = vi.spyOn(editor.component, 'blur');
+			try {
+				editor.root.addEventListener('keydown', (event) => editor.handlers.onKeyDown(event));
+				const event = new KeyboardEvent('keydown', {
+					key: 'Enter',
+					...modifier,
+					bubbles: true,
+					cancelable: true,
+				});
+				editor.root.dispatchEvent(event);
+				expect(event.defaultPrevented).toBeTruthy();
+				expect(blur).toHaveBeenCalledOnce();
+			} finally {
+				editor.cleanup();
+			}
+		},
+	);
+
+	it.each([false, true])(
+		'does not intercept IME Enter, including commit modifiers (shift=%s)',
+		(shiftKey) => {
+			const editor = mountedEditor();
+			const blur = vi.spyOn(editor.component, 'blur');
+			try {
+				editor.root.addEventListener('keydown', (event) => editor.handlers.onKeyDown(event));
+				for (const ctrlKey of [false, true]) {
+					const event = new KeyboardEvent('keydown', {
+						key: 'Enter',
+						shiftKey,
+						ctrlKey,
+						isComposing: true,
+						bubbles: true,
+						cancelable: true,
+					});
+					editor.root.dispatchEvent(event);
+					expect(event.defaultPrevented).toBeFalsy();
+				}
+				expect(blur).not.toHaveBeenCalled();
+				expect(editor.commits).not.toHaveBeenCalled();
+			} finally {
+				editor.cleanup();
+			}
+		},
+	);
 
 	it('rejects old callbacks after the same element gets a different seed', () => {
 		const editor = mountedEditor();

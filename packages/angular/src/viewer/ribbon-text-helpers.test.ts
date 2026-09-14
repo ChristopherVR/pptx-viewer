@@ -3,12 +3,22 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { elementBulletKind } from '../internal/shared';
+import {
+	elementBulletKind,
+	buildParagraphs,
+	createInlineListSeed,
+	initializeInlineListDom,
+	attachInlineListController,
+} from '../internal/shared';
 import { remapTextToSegments } from '../internal/shared-src/render/remap-text';
 import { componentSource } from './component-source.test-support';
 import { EditorStateService } from './editor-state.service';
 import { RibbonParagraphControlsComponent } from './ribbon-paragraph-controls.component';
-import { patchTextStyle, transformSelectedTextCase } from './ribbon-text-helpers';
+import {
+	patchTextStyle,
+	transformSelectedTextCase,
+	formatInlineListStyle,
+} from './ribbon-text-helpers';
 
 function textElement(): PptxElement {
 	return {
@@ -35,6 +45,40 @@ function service(el: PptxElement): EditorStateService {
 }
 
 describe('patchTextStyle list commands', () => {
+	it('applies a list command only to the live caret paragraph', () => {
+		const source = textElement();
+		Object.assign(source, {
+			text: 'First\nLast',
+			textSegments: [
+				{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'Last', style: {}, bulletInfo: { char: '◆' } },
+			],
+		});
+		const seed = createInlineListSeed(source)!;
+		const root = document.createElement('div');
+		document.body.append(root);
+		initializeInlineListDom(root, seed);
+		const controller = attachInlineListController(root, seed);
+		const node = root.lastElementChild!.firstElementChild!.firstChild!;
+		window.getSelection()!.setBaseAndExtent(node, 0, node, 0);
+		const read = controller.read();
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		const patch = formatInlineListStyle(
+			source,
+			{ listType: 'none' },
+			read.snapshot,
+			(snapshot) => controller.format(snapshot).kind === 'supported',
+		);
+		expect(
+			buildParagraphs({ ...source, ...patch } as PptxElement).map((p) => p.bulletMarker),
+		).toStrictEqual(['◆', undefined]);
+		controller.dispose();
+		root.remove();
+	});
+
 	it.each(['bullet', 'numbered'])('retains native editor focus before the %s command', (kind) => {
 		const source = componentSource(import.meta.dirname, 'ribbon-paragraph-controls.component.ts');
 		const button = [...source.matchAll(/<button\b[^>]*>/gu)].find(([markup]) =>

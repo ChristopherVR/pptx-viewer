@@ -62,7 +62,9 @@ export function formatInlineListStyle(
 	if (!hasTextProperties(el) || draft.elementId !== el.id || !draft.textSegments) {
 		return undefined;
 	}
-	const selection = getInlineEditorSelectionResult(draft.textSegments);
+	const selection = getInlineEditorSelectionResult(draft.textSegments, {
+		preserveCaret: patch.listType !== undefined,
+	});
 	if (selection.kind !== 'supported') {
 		return undefined;
 	}
