@@ -31,7 +31,16 @@ export function readInlineListRuns(
 				if (!inherited) {
 					unsupported = true;
 				} else {
-					runs.push({ text: node.nodeValue, style: { ...inherited, ...parentDelta } });
+					const style = { ...inherited, ...parentDelta };
+					// Native soft breaks can be text-node newlines rather than BR elements.
+					for (const [index, text] of node.nodeValue.split('\n').entries()) {
+						if (index > 0) {
+							runs.push({ text: '\n', style: { ...style }, isLineBreak: true });
+						}
+						if (text) {
+							runs.push({ text, style: { ...style } });
+						}
+					}
 				}
 			}
 			return;

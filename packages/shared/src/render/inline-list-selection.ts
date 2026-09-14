@@ -45,6 +45,13 @@ function modelPoint(
 		const marker = first && isBulletMarkerSegment(segment);
 		first = isParagraphSeparatorSegment(segment);
 		if (marker) {
+			if (
+				offset === position &&
+				segment.paragraphInsertionStyle &&
+				(!segments[index + 1] || isParagraphSeparatorSegment(segments[index + 1]))
+			) {
+				return { index, offset: 0 };
+			}
 			continue;
 		}
 		const next = position + segment.text.length;
@@ -121,7 +128,7 @@ export function readInlineListSelection(
 		return { kind: 'unsupported', reason: 'unknown-selection-boundary' };
 	}
 	const from = modelPoint(snapshot.textSegments!, start, false);
-	const to = modelPoint(snapshot.textSegments!, end, true);
+	const to = start === end ? from : modelPoint(snapshot.textSegments!, end, true);
 	return {
 		kind: 'supported',
 		snapshot,

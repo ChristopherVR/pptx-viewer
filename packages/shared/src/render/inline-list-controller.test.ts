@@ -2,6 +2,8 @@
 import type { BulletInfo, TextPptxElement } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { setSelectionBullets } from './bullet-toggle-selection';
+import { getInlineEditorSelectionResult } from './inline-editor-selection';
 import { inlineListBodyText } from './inline-list-body';
 import { attachInlineListController, getActiveInlineListSelection } from './inline-list-controller';
 import { initializeInlineListDom } from './inline-list-dom';
@@ -60,6 +62,84 @@ afterEach(() => {
 });
 
 describe('native list presentation controller', () => {
+	it('targets an authored empty listed paragraph without moving the caret to its neighbour', () => {
+		const element: TextPptxElement = {
+			id: 'empty',
+			type: 'text',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 100,
+			textSegments: [
+				{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{
+					text: '◆ ',
+					style: {},
+					bulletInfo: { char: '◆' },
+					paragraphInsertionStyle: { fontSize: 32 },
+				},
+			],
+		};
+		const seed = createInlineListSeed(element)!;
+		const root = document.createElement('div');
+		document.body.append(root);
+		initializeInlineListDom(root, seed);
+		const controller = attachInlineListController(root, seed);
+		const body = root.lastElementChild!.firstElementChild!;
+		window.getSelection()!.setBaseAndExtent(body, 0, body, 0);
+		const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
+		expect(result).toMatchObject({
+			kind: 'supported',
+			selection: { startSegIdx: 2, startOffset: 0, endSegIdx: 2, endOffset: 0 },
+		});
+		controller.dispose();
+	});
+
+	it.each([0, 2])(
+		'keeps caret paragraph for list commands at offset %i, not character formatting',
+		(offset) => {
+			const { root, seed } = mount();
+			const controller = attachInlineListController(root, seed);
+			const text = root.lastElementChild!.firstElementChild!.firstChild!;
+			window.getSelection()!.setBaseAndExtent(text, offset, text, offset);
+			expect(getInlineEditorSelectionResult(undefined)).toMatchObject({
+				kind: 'supported',
+				selection: null,
+			});
+			const result = getInlineEditorSelectionResult(undefined, { preserveCaret: true });
+			expect(result.kind).toBe('supported');
+			if (result.kind !== 'supported' || !result.snapshot?.textSegments) {
+				throw new Error('Missing list snapshot');
+			}
+			expect(result.selection).toStrictEqual({
+				startSegIdx: 2,
+				startOffset: offset,
+				endSegIdx: 2,
+				endOffset: offset,
+			});
+			const patch = setSelectionBullets(
+				{
+					id: seed.elementId,
+					type: 'text',
+					x: 0,
+					y: 0,
+					width: 100,
+					height: 100,
+					textSegments: result.snapshot.textSegments,
+				},
+				'none',
+				result.selection,
+			).patch;
+			if (!('textSegments' in patch)) {
+				throw new Error('Missing list patch');
+			}
+			expect(patch.textSegments![0].bulletInfo?.none).not.toBeTruthy();
+			expect(patch.textSegments!.at(-1)!.bulletInfo?.none).toBeTruthy();
+			controller.dispose();
+		},
+	);
+
 	it('projects inherited decoration without authoring it and observes only successful explicit formatting', () => {
 		const element: TextPptxElement = {
 			id: 'decorated',

@@ -86,6 +86,71 @@ const literalMarkers: Array<{ literal: string; bulletInfo: BulletInfo }> = [
 ];
 
 describe('list editor session snapshots', () => {
+	it.each(['Before\nAfter', '\nBefore', 'Before\n', 'Before\n\nAfter', '\n'])(
+		'reads native text-node newlines as soft breaks within the paragraph: %j',
+		(body) => {
+			const { seed, root } = mount();
+			root.firstElementChild!.firstElementChild!.textContent = body;
+			const read = readInlineListSnapshot(seed, root);
+			if (read.kind !== 'supported') {
+				throw new Error(read.reason);
+			}
+			const segments = read.snapshot.textSegments!;
+			expect(segments.filter((segment) => segment.isLineBreak)).toHaveLength(
+				body.split('\n').length - 1,
+			);
+			expect(segments.filter((segment) => segment.isParagraphBreak)).toHaveLength(1);
+			expect(
+				segments
+					.filter((segment) => segment.isLineBreak)
+					.every(
+						(segment) =>
+							segment.style.fontSize === 32 &&
+							segment.style.bold === true &&
+							segment.style.color === '#CC00AA',
+					),
+			).toBeTruthy();
+			expect(read.snapshot.text).toBe(`${body}\nLast`);
+		},
+	);
+
+	it('saves newly read text-node soft breaks inside one OOXML paragraph and reloads them', async () => {
+		const { seed, root } = mount();
+		root.firstElementChild!.firstElementChild!.textContent = 'Soft break before\nSoft break after';
+		const read = readInlineListSnapshot(seed, root);
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const slide = createSlide('Blank')
+			.addText('Body', { x: 40, y: 40, width: 400, height: 300 })
+			.build();
+		slide.elements[0] = {
+			...slide.elements[0],
+			text: read.snapshot.text,
+			textSegments: read.snapshot.textSegments,
+		} as TextPptxElement;
+		data.slides.push(slide);
+		const bytes = await handler.save(data.slides);
+		const xml = await (await JSZip.loadAsync(bytes)).file('ppt/slides/slide1.xml')!.async('string');
+		const paragraphs = [...xml.matchAll(/<a:p>[\s\S]*?<\/a:p>/gu)].map((match) => match[0]);
+		const paragraph = paragraphs.find((part) => part.includes('Soft break before'))!;
+		expect(paragraph).toContain('Soft break after');
+		expect(paragraph).toMatch(/<a:br\b/u);
+		expect(paragraphs.filter((part) => /Soft break (before|after)/u.test(part))).toHaveLength(1);
+		const reopened = await new PptxHandler().load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		const shape = reopened.slides[0].elements[0];
+		if (!hasTextProperties(shape)) {
+			throw new Error('Expected text');
+		}
+		expect(shape.textSegments?.filter((segment) => segment.isLineBreak)).toHaveLength(1);
+		expect(
+			shape.textSegments?.find((segment) => segment.text === 'Soft break after')?.style,
+		).toMatchObject({ fontSize: 32, bold: true, color: '#CC00AA' });
+	});
+
 	it.each(['#172033', '#CC00AA'])(
 		'preserves theme color only for matching native FONT color %s',
 		(color) => {

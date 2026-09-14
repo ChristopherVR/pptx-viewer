@@ -50,6 +50,7 @@ function positions(segments: readonly TextSegment[]): Array<{
 function restorePoint(
 	segments: readonly TextSegment[],
 	offset: number,
+	preferRunStart = false,
 ): { index: number; offset: number } {
 	const entries = positions(segments);
 	let fallback = { index: 0, offset: 0 };
@@ -58,7 +59,10 @@ function restorePoint(
 			continue;
 		}
 		fallback = { index, offset: segments[index].text.length };
-		if (offset <= entry.end) {
+		if (
+			offset < entry.end ||
+			(offset === entry.end && (!preferRunStart || entry.start === entry.end))
+		) {
 			return { index, offset: Math.max(0, offset - entry.start) };
 		}
 	}
@@ -160,8 +164,8 @@ export function applyListStyleUpdate(
 	if (!nextSegments) {
 		return { patch, selection: null };
 	}
-	const start = restorePoint(nextSegments, startOffset);
-	const end = restorePoint(nextSegments, endOffset);
+	const start = restorePoint(nextSegments, startOffset, workingSelection.startOffset === 0);
+	const end = startOffset === endOffset ? start : restorePoint(nextSegments, endOffset);
 	return {
 		patch,
 		selection: {

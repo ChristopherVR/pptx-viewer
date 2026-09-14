@@ -12,10 +12,12 @@ export type InlineEditorSelectionResult =
 /** A rich editor's unsupported selection must not mean format the whole element. */
 export function getInlineEditorSelectionResult(
 	segments: TextSegment[] | undefined,
+	options: { preserveCaret?: boolean } = {},
 ): InlineEditorSelectionResult {
 	const active = getActiveInlineListSelection();
 	if (
 		active?.kind === 'supported' &&
+		!options.preserveCaret &&
 		active.bodyRange &&
 		active.bodyRange.start === active.bodyRange.end
 	) {
@@ -24,7 +26,10 @@ export function getInlineEditorSelectionResult(
 	if (active) {
 		return active;
 	}
-	return { kind: 'supported', selection: getInlineEditorSelection(segments) };
+	return {
+		kind: 'supported',
+		selection: readInlineEditorSelection(segments, options.preserveCaret),
+	};
 }
 
 interface SegmentPosition {
@@ -44,24 +49,43 @@ interface SegmentPosition {
 export function getInlineEditorSelection(
 	segments: TextSegment[] | undefined,
 ): InlineTextSelection | null {
-	if (!segments?.length) {
+	return readInlineEditorSelection(segments, false);
+}
+
+function readInlineEditorSelection(
+	segments: TextSegment[] | undefined,
+	preserveCaret = false,
+): InlineTextSelection | null {
+	if (!segments?.length || typeof window === 'undefined') {
 		return null;
 	}
 	const selection = window.getSelection();
-	if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+	if (!selection || selection.rangeCount === 0 || (selection.isCollapsed && !preserveCaret)) {
 		return null;
 	}
 
 	// A Range is always in document order, including for a backwards selection.
 	const range = selection.getRangeAt(0);
 	const editor = findEditorContainer(range.startContainer);
-	if (!editor || !editor.contains(range.endContainer) || range.toString().length === 0) {
+	if (
+		!editor ||
+		!editor.contains(range.endContainer) ||
+		(!preserveCaret && range.toString().length === 0)
+	) {
 		return null;
 	}
 	const start = getSegmentPosition(editor, range.startContainer, range.startOffset, segments);
 	const end = getSegmentPosition(editor, range.endContainer, range.endOffset, segments);
 	if (!start || !end) {
 		return null;
+	}
+	if (selection.isCollapsed) {
+		return {
+			startSegIdx: start.segIdx,
+			startOffset: start.offset,
+			endSegIdx: start.segIdx,
+			endOffset: start.offset,
+		};
 	}
 
 	const renderedSpans = Array.from(editor.querySelectorAll('[data-seg-idx]'));

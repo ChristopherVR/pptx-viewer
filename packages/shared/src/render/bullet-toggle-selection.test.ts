@@ -69,6 +69,28 @@ describe('selectionBulletKind', () => {
 });
 
 describe('toggleSelectionBullets', () => {
+	it.each([
+		{ index: 0, offset: 1, expectedIndex: 1, expectedOffset: 1 },
+		{ index: 1, offset: 0, expectedIndex: 2, expectedOffset: 0 },
+	])(
+		'retains explicit run-boundary affinity at $index/$offset',
+		({ index, offset, expectedIndex, expectedOffset }) => {
+			const el = textElement([seg('A'), seg('B', { style: { bold: true } })]);
+			const { newSelection } = setSelectionBullets(el, 'bullet', {
+				startSegIdx: index,
+				startOffset: offset,
+				endSegIdx: index,
+				endOffset: offset,
+			});
+			expect(newSelection).toStrictEqual({
+				startSegIdx: expectedIndex,
+				startOffset: expectedOffset,
+				endSegIdx: expectedIndex,
+				endOffset: expectedOffset,
+			});
+		},
+	);
+
 	it('keeps a selected empty item caret on that item after changing its marker', () => {
 		const el = textElement([
 			seg('A'),
