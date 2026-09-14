@@ -98,8 +98,8 @@ describe('save: structural shape-id gate on untouched parts', () => {
 		const renumbered = idOfNamed(slide1, 'DupB');
 		expect(renumbered).toBeDefined();
 		expect(renumbered).not.toBe('5');
-		expect(slide1).toContain(`<p:spTgt spid="${renumbered}"/>`);
-		expect(slide1).not.toContain('<p:spTgt spid="5"/>');
+		expect(slide1).toMatch(new RegExp(`<p:spTgt spid="${renumbered}"(?:\\/>|><\\/p:spTgt>)`, 'u'));
+		expect(slide1).not.toMatch(/<p:spTgt spid="5"(?:\/>|><\/p:spTgt>)/u);
 
 		// The live model followed the repair, so a second save of the same handler
 		// (still untouched) is stable and stays valid.
@@ -160,7 +160,7 @@ describe('save: structural shape-id gate on untouched parts', () => {
 		});
 		const { zip } = await saveUntouched(buffer);
 		const slide1 = await zip.file(SLIDE1)!.async('string');
-		expect(slide1).toContain('<p:ph type="ctrTitle"/>');
+		expect(slide1).toMatch(/<p:ph type="ctrTitle"(?:\/>|><\/p:ph>)/u);
 		expect(slide1).not.toContain('ctrtitle');
 	});
 });

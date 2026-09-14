@@ -200,6 +200,17 @@ export function remapElementShapeIds(
 	}
 
 	const keptKeys = new Set<string>();
+	// A live element commonly shares its raw XML node with the parsed tree that
+	// the structural-id gate repaired. When one duplicate has already changed
+	// in place, its sibling that still declares the old id is the retained
+	// declaration, not a detached stale holder to rewrite as well.
+	const inPlaceRepairedIds = new Set<string>();
+	for (const element of flat) {
+		const rawId = findCnvPrNode(element.rawXml as XmlObject | undefined)?.['@_id'];
+		if (rawId !== undefined) {
+			inPlaceRepairedIds.add(String(rawId).trim());
+		}
+	}
 	let changed = 0;
 	for (const element of flat) {
 		const rawXml = element.rawXml as XmlObject | undefined;
@@ -211,8 +222,9 @@ export function remapElementShapeIds(
 		if (declared !== undefined && ids.has(declared)) {
 			// Detached declaration still carrying an old id: a lone holder is
 			// renumbered, the first of several keeps it, the rest are renumbered.
-			if ((holders.get(declared) ?? 0) === 1 || keptKeys.has(declared)) {
-				const fresh = ids.get(declared) as string;
+			const fresh = ids.get(declared) as string;
+			const retainsOldId = inPlaceRepairedIds.has(fresh);
+			if (!retainsOldId && ((holders.get(declared) ?? 0) === 1 || keptKeys.has(declared))) {
 				if (cNvPr && rawId !== undefined) {
 					cNvPr['@_id'] = fresh;
 				}
@@ -220,7 +232,7 @@ export function remapElementShapeIds(
 					element.shapeId = fresh;
 				}
 				touched = true;
-			} else {
+			} else if (!retainsOldId) {
 				keptKeys.add(declared);
 			}
 		} else if (rawId !== undefined && element.shapeId !== undefined && element.shapeId !== rawId) {
