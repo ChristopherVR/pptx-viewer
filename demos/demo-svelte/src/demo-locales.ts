@@ -79,3 +79,21 @@ export const demoStringsDe = {
 	'demo.export.print': 'Drucken',
 	'demo.editToggle.label': 'Bearbeiten',
 };
+
+export const demoStringsZhCN = {
+	'demo.dropzone.hint': '将 .pptx 或 .ppt 文件拖到此处，或单击浏览',
+	'demo.dropzone.processed': '文件完全在浏览器中处理',
+	'demo.dropzone.browse': '浏览文件',
+	'demo.dropzone.newPresentation': '或新建演示文稿',
+	'demo.dropzone.creating': '正在创建…',
+	'demo.dropzone.uploadAriaLabel': '上传演示文稿',
+	'demo.viewer.loadError': '无法加载演示文稿',
+	'demo.pickers.switchTheme': '切换主题',
+	'demo.pickers.switchLanguage': '切换语言',
+	'demo.export.png': '导出 PNG',
+	'demo.export.pdf': '导出 PDF',
+	'demo.export.gif': '导出 GIF 动画',
+	'demo.export.video': '导出视频',
+	'demo.export.print': '打印',
+	'demo.editToggle.label': '编辑',
+} satisfies Record<keyof typeof demoStringsEn, string>;

@@ -70,7 +70,7 @@ async function loadGenerated(locale: string): Promise<Record<string, string>> {
 	const directory = resolve(ROOT, 'packages', 'locales', 'src', locale);
 	try {
 		const sectionFiles = (await readdir(directory)).filter(
-			(file) => file.endsWith('.ts') && file !== 'index.ts',
+			(file) => file.endsWith('.ts') && !file.endsWith('.d.ts') && file !== 'index.ts',
 		);
 		const values = await Promise.all(
 			sectionFiles.map((file) => loadLiteralObject(resolve(directory, file), 'translations')),
@@ -91,6 +91,11 @@ const locales = [
 		code: 'es',
 		exportName: 'translationsEs',
 		curated: { ...(await loadCurated('translationsEs')), ...(await loadGenerated('es')) },
+	},
+	{
+		code: 'zh-CN',
+		exportName: 'translationsZhCN',
+		curated: await loadGenerated('zh-CN'),
 	},
 	{
 		code: 'de',
@@ -190,24 +195,23 @@ async function generateLocale(locale: (typeof locales)[number]): Promise<void> {
 		section.push([key, completed.get(key)!]);
 		sections.set(sectionName, section);
 	}
-	for (const [name, section] of sections) {
-		if (section.length > MAX_LOCALE_SECTION_ENTRIES) {
-			throw new Error(
-				`${name} contains ${section.length} entries; split the section before generating`,
-			);
-		}
-	}
 	const oldSectionFiles = (await readdir(output)).filter(
-		(file) => file.endsWith('.ts') && file !== 'index.ts',
+		(file) => file.endsWith('.ts') && !file.endsWith('.d.ts') && file !== 'index.ts',
 	);
 	await Promise.all(oldSectionFiles.map((file) => rm(resolve(output, file))));
 	const imports: string[] = [];
 	const spreads: string[] = [];
 	for (const [name, section] of sections) {
-		const identifier = name.replaceAll('-', '_');
-		await Bun.write(resolve(output, `${name}.ts`), moduleSource(section));
-		imports.push(`import { translations as ${identifier} } from './${name}';`);
-		spreads.push(`\t...${identifier},`);
+		for (let offset = 0; offset < section.length; offset += MAX_LOCALE_SECTION_ENTRIES) {
+			const part = offset === 0 ? name : `${name}-${offset / MAX_LOCALE_SECTION_ENTRIES + 1}`;
+			const identifier = part.replaceAll('-', '_');
+			await Bun.write(
+				resolve(output, `${part}.ts`),
+				moduleSource(section.slice(offset, offset + MAX_LOCALE_SECTION_ENTRIES)),
+			);
+			imports.push(`import { translations as ${identifier} } from './${part}';`);
+			spreads.push(`\t...${identifier},`);
+		}
 	}
 	await Bun.write(
 		resolve(output, 'index.ts'),
@@ -221,5 +225,5 @@ for (const locale of locales) {
 
 await Bun.write(
 	resolve(ROOT, 'packages', 'locales', 'src', 'index.ts'),
-	"export { translationsFr } from './fr';\nexport { translationsEs } from './es';\nexport { translationsDe } from './de';\n",
+	`${locales.map(({ code, exportName }) => `export { ${exportName} } from './${code}';`).join('\n')}\n`,
 );

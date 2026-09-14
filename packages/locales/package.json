@@ -36,6 +36,11 @@
 			"types": "./dist/de/index.d.ts",
 			"import": "./dist/de/index.js",
 			"require": "./dist/de/index.cjs"
+		},
+		"./zh-CN": {
+			"types": "./dist/zh-CN/index.d.ts",
+			"import": "./dist/zh-CN/index.js",
+			"require": "./dist/zh-CN/index.cjs"
 		}
 	},
 	"scripts": {

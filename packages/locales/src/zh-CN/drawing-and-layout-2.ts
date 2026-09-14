@@ -1,0 +1,15 @@
+export const translations = {
+	'pptx.shapePresets.sun': '太阳',
+	'pptx.shapePresets.teardrop': '泪珠',
+	'pptx.shapePresets.trapezoid': '梯形',
+	'pptx.shapePresets.upArrow': '向上箭头',
+	'pptx.shape.roundness': '圆度',
+	'pptx.connectorArrows.startArrow': '开始箭头',
+	'pptx.connectorArrows.endArrow': '结束箭头',
+	'pptx.connectorArrows.startWidth': '起始宽度',
+	'pptx.connectorArrows.endWidth': '端部宽度',
+	'pptx.connectorArrows.startLength': '起始长度',
+	'pptx.connectorArrows.endLength': '末端长度',
+	'pptx.shape.shadowDistance': '阴影距离',
+	'pptx.shape.softEdges': '软边',
+} as const;

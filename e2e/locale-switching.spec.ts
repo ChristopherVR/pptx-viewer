@@ -7,7 +7,7 @@
  * accessible names, so before this spec a locale regression was structurally
  * invisible: a binding could stop translating entirely and the suite would go
  * greener, not redder. The expected strings are imported from
- * `pptx-viewer-locales` (de/es/fr) and the shared English dictionary rather
+ * `pptx-viewer-locales` (de/es/fr/zh-CN) and the shared English dictionary rather
  * than restated here, so the spec cannot drift from what the demos register.
  *
  * The asserted keys are deliberately few and deliberately chosen: the ribbon
@@ -15,7 +15,7 @@
  * renders, the status bar's "Slide 1 of 7" is the highest-traffic interpolated
  * string in the chrome, and live probing confirmed all five bindings translate
  * them immediately on switch. Each translated value also differs from its
- * English one in all three locales, so an accidental English fallback fails
+ * English one in all four reference locales, so an accidental English fallback fails
  * instead of passing by coincidence. The much broader missing-translation
  * fallout (hundreds of keys in some bindings) is MEASURED and reported via a
  * test annotation, not asserted - see {@link measureEnglishFallout}.
@@ -29,7 +29,12 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { translationsDe, translationsEs, translationsFr } from '../packages/locales/src';
+import {
+	translationsDe,
+	translationsEs,
+	translationsFr,
+	translationsZhCN,
+} from '../packages/locales/src';
 import { LOCALE_CATALOG } from '../packages/shared/src/i18n/locale-catalog';
 import { translationsEn } from '../packages/shared/src/i18n/translations-en';
 import { loadDeck, resetTabSession } from './support/deck';
@@ -52,6 +57,7 @@ const LOCALES: readonly LocaleUnderTest[] = [
 	{ code: 'de', dictionary: translationsDe },
 	{ code: 'fr', dictionary: translationsFr },
 	{ code: 'es', dictionary: translationsEs },
+	{ code: 'zh-CN', dictionary: translationsZhCN },
 ];
 
 /** Ribbon tabs asserted per locale (shared `TOOLBAR_TABS` label keys). */
@@ -190,7 +196,7 @@ test.describe('File > Options > Language switching', () => {
 		const dialog = await openOptionsDialog(page, OPTIONS_TITLES);
 		await optionsCategory(dialog, entry(translationsEn, 'pptx.settings.language')).click();
 
-		const { code, dictionary } = LOCALES[0];
+		const { code, dictionary } = LOCALES.find((locale) => locale.code === 'zh-CN')!;
 		await pickOptionsEntry(dialog, nativeLabel(code));
 		await expectChromeLanguage(page, dictionary);
 		await expect.poll(async () => (await readViewerPrefs(page)).localeCode).toBe(code);

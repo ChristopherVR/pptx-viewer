@@ -1,8 +1,19 @@
 import type { TranslationMessages } from 'pptx-vanilla-viewer';
 import { createTranslator } from 'pptx-vanilla-viewer';
-import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
+import {
+	translationsDe,
+	translationsEs,
+	translationsFr,
+	translationsZhCN,
+} from 'pptx-viewer-locales';
 
-import { demoStringsDe, demoStringsEn, demoStringsEs, demoStringsFr } from './demo-locales';
+import {
+	demoStringsZhCN,
+	demoStringsDe,
+	demoStringsEn,
+	demoStringsEs,
+	demoStringsFr,
+} from './demo-locales';
 import type { LanguageCode } from './languages';
 import { languageKeys } from './languages';
 
@@ -23,6 +34,7 @@ export const viewerMessages: TranslationMessages = {
 	fr: { ...translationsFr, ...demoStringsFr },
 	es: { ...translationsEs, ...demoStringsEs },
 	de: { ...translationsDe, ...demoStringsDe },
+	'zh-CN': { ...translationsZhCN, ...demoStringsZhCN },
 };
 
 export function readStoredLanguage(): LanguageCode {

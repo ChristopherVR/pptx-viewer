@@ -1,7 +1,18 @@
 import { registerTranslations, translate } from 'pptx-svelte-viewer/i18n';
-import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
+import {
+	translationsDe,
+	translationsEs,
+	translationsFr,
+	translationsZhCN,
+} from 'pptx-viewer-locales';
 
-import { demoStringsDe, demoStringsEn, demoStringsEs, demoStringsFr } from './demo-locales';
+import {
+	demoStringsZhCN,
+	demoStringsDe,
+	demoStringsEn,
+	demoStringsEs,
+	demoStringsFr,
+} from './demo-locales';
 import type { LanguageCode } from './languages';
 import { languageKeys } from './languages';
 
@@ -9,7 +20,7 @@ import { languageKeys } from './languages';
  * Demo i18n wiring (runes module, no external i18n library).
  *
  * The viewer's own strings are translated by the binding: registering the
- * French / Spanish / German dictionaries here and passing `locale` to
+ * French / Spanish / German / Simplified Chinese dictionaries here and passing `locale` to
  * `<PowerPointViewer>` is all it takes. The demo chrome (dropzone, pickers)
  * shares the same registry: its `demo.*` keys are registered per language and
  * read through {@link t}, which tracks the reactive current language.
@@ -22,6 +33,7 @@ registerTranslations('en', demoStringsEn);
 registerTranslations('fr', { ...translationsFr, ...demoStringsFr });
 registerTranslations('es', { ...translationsEs, ...demoStringsEs });
 registerTranslations('de', { ...translationsDe, ...demoStringsDe });
+registerTranslations('zh-CN', { ...translationsZhCN, ...demoStringsZhCN });
 
 function readStoredLanguage(): LanguageCode {
 	try {
