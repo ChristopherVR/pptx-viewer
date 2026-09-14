@@ -54,6 +54,7 @@ export interface LandingCopy {
 		scroll: string;
 		frameCaption: string;
 		frameTry: string;
+		frameAlt: string;
 		copyLabel: string;
 		copiedLabel: string;
 	};

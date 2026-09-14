@@ -1,5 +1,8 @@
 import { defineConfig } from 'vitepress';
 
+import { zh } from './locales/zh';
+import { localizeChineseMarkdown } from './locales/zh-markdown';
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
 	title: 'pptx-viewer',
@@ -18,6 +21,7 @@ export default defineConfig({
 	// landing page's code cards), so use a dark token palette everywhere.
 	markdown: {
 		theme: { light: 'vitesse-dark', dark: 'vitesse-dark' },
+		config: localizeChineseMarkdown,
 	},
 
 	locales: {
@@ -187,6 +191,7 @@ export default defineConfig({
 				],
 			},
 		},
+		zh,
 	},
 
 	head: [

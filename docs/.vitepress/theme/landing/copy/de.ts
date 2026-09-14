@@ -11,6 +11,8 @@ export const de: LandingCopy = {
 		scroll: 'Scrollen',
 		frameCaption: 'sample-deck.pptx · live im Browser',
 		frameTry: 'Ausprobieren',
+		frameAlt:
+			'Der pptx-Viewer bearbeitet eine Praesentation: Folien wechseln, ein Element verschieben und ein Diagramm anzeigen',
 		copyLabel: 'Kopieren',
 		copiedLabel: 'Kopiert',
 	},

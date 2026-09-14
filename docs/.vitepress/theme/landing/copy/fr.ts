@@ -11,6 +11,8 @@ export const fr: LandingCopy = {
 		scroll: 'Defiler',
 		frameCaption: 'sample-deck.pptx · en direct dans le navigateur',
 		frameTry: 'Essayer',
+		frameAlt:
+			"Le lecteur pptx modifie une presentation : changement de diapositive, deplacement d'un element et affichage d'un graphique",
 		copyLabel: 'Copier',
 		copiedLabel: 'Copie',
 	},

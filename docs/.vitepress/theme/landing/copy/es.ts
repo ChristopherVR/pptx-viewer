@@ -11,6 +11,8 @@ export const es: LandingCopy = {
 		scroll: 'Desplazar',
 		frameCaption: 'sample-deck.pptx · en vivo en el navegador',
 		frameTry: 'Probar',
+		frameAlt:
+			'El visor pptx edita una presentacion: cambia diapositivas, arrastra un elemento y muestra un grafico',
 		copyLabel: 'Copiar',
 		copiedLabel: 'Copiado',
 	},

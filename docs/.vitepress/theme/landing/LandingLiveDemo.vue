@@ -97,7 +97,7 @@ const {
 				<LiveDemoPane
 					:key="activeKey"
 					:src="soloSrc"
-					:title="`${activeLabel} · pptx-viewer live demo`"
+					:title="`${activeLabel} · pptx-viewer ${copy.demos.kicker}`"
 					:caption="`${activeLabel} · sample-deck.pptx`"
 					:open-label="copy.demos.openFull"
 					:loading-label="copy.demos.loading"
