@@ -1,7 +1,13 @@
 import { defineConfig } from 'tsdown';
 
 export default defineConfig((options) => ({
-	entry: ['src/index.ts', 'src/fr/index.ts', 'src/es/index.ts', 'src/de/index.ts'],
+	entry: [
+		'src/index.ts',
+		'src/fr/index.ts',
+		'src/es/index.ts',
+		'src/de/index.ts',
+		'src/zh-CN/index.ts',
+	],
 	format: ['esm', 'cjs'],
 	outDir: '.types',
 	dts: { emitDtsOnly: true },

@@ -99,7 +99,7 @@ export function ImagePropertiesPanel({
 				{/* Grayscale + Duotone */}
 				<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 					<label className='flex items-center justify-between gap-2'>
-						<span className='text-muted-foreground'>Grayscale</span>
+						<span className='text-muted-foreground'>{t('pptx.image.grayscale')}</span>
 						<input
 							type='checkbox'
 							disabled={!canEdit}

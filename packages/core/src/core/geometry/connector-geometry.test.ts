@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import type { PptxElementWithShapeStyle } from '../types';
 import { getConnectorAdjustment, getConnectorPathGeometry } from './connector-geometry';
+import { evaluatePresetShape } from './preset-shape-evaluator';
 
 // Helper to create a minimal connector element.
 function makeConnector(
@@ -22,6 +23,17 @@ function makeConnector(
 		shapeType: overrides.shapeType ?? 'straightConnector1',
 		shapeAdjustments: overrides.shapeAdjustments,
 	} as unknown as PptxElementWithShapeStyle;
+}
+
+function expectPresetPath(element: PptxElementWithShapeStyle, pathData: string): void {
+	expect(pathData).toBe(
+		evaluatePresetShape(
+			element.shapeType ?? '',
+			element.width,
+			element.height,
+			element.shapeAdjustments,
+		)?.svgPath,
+	);
 }
 
 // ---------------------------------------------------------------------------
@@ -180,7 +192,7 @@ describe('getConnectorPathGeometry — curvedConnector2', () => {
 			height: 100,
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 Q 200 0 200 100');
+		expectPresetPath(el, result.pathData);
 	});
 });
 
@@ -196,8 +208,7 @@ describe('getConnectorPathGeometry — curvedConnector3', () => {
 			height: 100,
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=0.5 → midX=100, midY=50
-		expect(result.pathData).toBe('M 0 0 C 100 0 100 0 100 50 C 100 100 100 100 200 100');
+		expectPresetPath(el, result.pathData);
 	});
 });
 
@@ -213,10 +224,7 @@ describe('getConnectorPathGeometry — curvedConnector4', () => {
 			height: 100,
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=0.5 → midX=100, adj2=0.5 → midY=50
-		expect(result.pathData).toBe(
-			'M 0 0 C 100 0 100 0 100 25 C 100 50 100 50 150 50 C 200 50 200 50 200 100',
-		);
+		expectPresetPath(el, result.pathData);
 		expect(result.startX).toBe(0);
 		expect(result.startY).toBe(0);
 		expect(result.endX).toBe(200);
@@ -231,10 +239,7 @@ describe('getConnectorPathGeometry — curvedConnector4', () => {
 			shapeAdjustments: { adj1: 25000, adj2: 75000 },
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=0.25 → midX=100, adj2=0.75 → midY=150
-		expect(result.pathData).toBe(
-			'M 0 0 C 100 0 100 0 100 75 C 100 150 100 150 250 150 C 400 150 400 150 400 200',
-		);
+		expectPresetPath(el, result.pathData);
 	});
 });
 
@@ -250,10 +255,7 @@ describe('getConnectorPathGeometry — curvedConnector5', () => {
 			height: 100,
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=adj2=adj3=0.5, x1=100, yMid=50, x2=100
-		expect(result.pathData).toBe(
-			'M 0 0 C 100 0 100 0 100 25 C 100 50 100 50 100 50 C 100 50 100 50 100 75 C 100 100 100 100 200 100',
-		);
+		expectPresetPath(el, result.pathData);
 		expect(result.startX).toBe(0);
 		expect(result.startY).toBe(0);
 		expect(result.endX).toBe(200);
@@ -268,57 +270,48 @@ describe('getConnectorPathGeometry — curvedConnector5', () => {
 			shapeAdjustments: { adj1: 30000, adj2: 40000, adj3: 70000 },
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=0.3 → x1=90, adj2=0.4 → yMid=80, adj3=0.7 → x2=210
-		const x1 = 90;
-		const yMid = 80;
-		const x2 = 210;
-		const midXBetween = Math.round((x1 + x2) / 2); // 150
-		const midYBetween = Math.round((yMid + 200) / 2); // 140
-		expect(result.pathData).toBe(
-			`M 0 0 C ${x1} 0 ${x1} 0 ${x1} ${Math.round(yMid * 0.5)} C ${x1} ${yMid} ${x1} ${yMid} ${midXBetween} ${yMid} C ${x2} ${yMid} ${x2} ${yMid} ${x2} ${midYBetween} C ${x2} 200 ${x2} 200 300 200`,
-		);
+		expectPresetPath(el, result.pathData);
 	});
 });
 
 // ---------------------------------------------------------------------------
-// Minimum dimension clamping
+// Zero-dimension preservation
 // ---------------------------------------------------------------------------
 
-describe('getConnectorPathGeometry — dimension clamping', () => {
-	it('enforces minimum 1px dimensions', () => {
+describe('getConnectorPathGeometry: zero dimensions', () => {
+	it('preserves a zero-size straight connector', () => {
 		const el = makeConnector({
 			shapeType: 'straightConnector1',
 			width: 0,
 			height: 0,
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.endX).toBe(1);
-		expect(result.endY).toBe(1);
-		expect(result.pathData).toBe('M 0 0 L 1 1');
+		expect(result.endX).toBe(0);
+		expect(result.endY).toBe(0);
+		expect(result.pathData).toBe('M 0 0 L 0 0');
 	});
 
-	it('enforces minimum 1px for bent connectors too', () => {
+	it('preserves zero dimensions for bent connectors', () => {
 		const el = makeConnector({
 			shapeType: 'bentConnector3',
 			width: 0,
 			height: 0,
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.endX).toBe(1);
-		expect(result.endY).toBe(1);
-		// midX = 1 * 0.5 = 0.5, rounded to 1
+		expect(result.endX).toBe(0);
+		expect(result.endY).toBe(0);
 		expect(result.pathData).toMatch(/^M 0 0/);
 	});
 
-	it('enforces minimum 1px for curved connectors', () => {
+	it('preserves zero dimensions for curved connectors', () => {
 		const el = makeConnector({
 			shapeType: 'curvedConnector3',
 			width: 0,
 			height: 0,
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.endX).toBe(1);
-		expect(result.endY).toBe(1);
+		expect(result.endX).toBe(0);
+		expect(result.endY).toBe(0);
 		expect(result.pathData).toMatch(/^M 0 0 C/);
 	});
 });
@@ -397,7 +390,7 @@ describe('getConnectorPathGeometry — various dimensions (orientation)', () => 
 			height: 300,
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 Q 5 0 5 300');
+		expectPresetPath(el, result.pathData);
 	});
 
 	it('curvedConnector3 with square dimensions', () => {
@@ -407,8 +400,7 @@ describe('getConnectorPathGeometry — various dimensions (orientation)', () => 
 			height: 100,
 		});
 		const result = getConnectorPathGeometry(el);
-		// midX = 50, midY = 50
-		expect(result.pathData).toBe('M 0 0 C 50 0 50 0 50 50 C 50 100 50 100 100 100');
+		expectPresetPath(el, result.pathData);
 	});
 });
 
@@ -519,11 +511,11 @@ describe('getConnectorPathGeometry — segment counts', () => {
 		expect(lCount).toBe(5);
 	});
 
-	it('curvedConnector2 has exactly 1 Q command', () => {
+	it('curvedConnector2 has exactly 1 C command', () => {
 		const el = makeConnector({ shapeType: 'curvedConnector2', width: 200, height: 100 });
 		const result = getConnectorPathGeometry(el);
-		const qCount = result.pathData.split(' ').filter((t) => t === 'Q').length;
-		expect(qCount).toBe(1);
+		const cCount = result.pathData.split(' ').filter((t) => t === 'C').length;
+		expect(cCount).toBe(1);
 	});
 
 	it('curvedConnector3 has exactly 2 C commands', () => {
@@ -595,7 +587,7 @@ describe('getConnectorPathGeometry — case insensitivity', () => {
 	it('handles mixed-case connector type names', () => {
 		const el = makeConnector({ shapeType: 'CurvedConnector2', width: 200, height: 100 });
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 Q 200 0 200 100');
+		expectPresetPath(el, result.pathData);
 	});
 });
 
@@ -604,27 +596,29 @@ describe('getConnectorPathGeometry — case insensitivity', () => {
 // ---------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------
-// Orientation-aware routing: stacked shapes (height > width) bend around a
-// horizontal mid-line instead of always treating width as the primary axis.
+// OOXML preset routing: connector paths stay horizontal-first regardless of
+// bounding-box aspect ratio. Transform flips provide their orientation.
 // ---------------------------------------------------------------------------
 
-describe('getConnectorPathGeometry — orientation-aware routing (stacked shapes)', () => {
-	it('bentConnector3 on a tall box bends around a horizontal mid-line (V-H-V), not a vertical one', () => {
-		const el = makeConnector({ shapeType: 'bentConnector3', width: 50, height: 200 });
+describe('getConnectorPathGeometry: OOXML preset routing', () => {
+	it('matches the stored bentConnector3 path for a tall box', () => {
+		const el = makeConnector({
+			shapeType: 'bentConnector3',
+			width: 144.19,
+			height: 192.85,
+			shapeAdjustments: { adj1: 50000 },
+		});
 		const result = getConnectorPathGeometry(el);
-		// Before the fix this always produced 'M 0 0 L 25 0 L 25 200 L 50 200'
-		// (a vertical mid-line at width*0.5), regardless of the box being far
-		// taller than it is wide.
-		expect(result.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+		expect(result.pathData).toBe('M 0 0 L 72.095 0 L 72.095 192.85 L 144.19 192.85');
 	});
 
-	it('bentConnector4 on a tall box routes through height-driven adj1 and width-driven adj2', () => {
+	it('bentConnector4 on a tall box keeps adj1 on x and adj2 on y', () => {
 		const el = makeConnector({ shapeType: 'bentConnector4', width: 100, height: 200 });
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 L 0 100 L 50 100 L 50 200 L 100 200');
+		expect(result.pathData).toBe('M 0 0 L 50 0 L 50 100 L 100 100 L 100 200');
 	});
 
-	it('bentConnector5 on a tall box honours adj1/adj2/adj3 independently along the swapped axes', () => {
+	it('bentConnector5 on a tall box keeps adj1/adj3 on x and adj2 on y', () => {
 		const el = makeConnector({
 			shapeType: 'bentConnector5',
 			width: 100,
@@ -632,24 +626,22 @@ describe('getConnectorPathGeometry — orientation-aware routing (stacked shapes
 			shapeAdjustments: { adj1: 30000, adj2: 40000, adj3: 70000 },
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 L 0 60 L 40 60 L 40 140 L 100 140 L 100 200');
+		expect(result.pathData).toBe('M 0 0 L 30 0 L 30 80 L 70 80 L 70 200 L 100 200');
 	});
 
-	it('curvedConnector3 on a tall box curves around a horizontal mid-line', () => {
+	it('curvedConnector3 on a tall box remains horizontal-first', () => {
 		const el = makeConnector({ shapeType: 'curvedConnector3', width: 100, height: 200 });
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe('M 0 0 C 0 100 0 100 50 100 C 100 100 100 100 100 200');
+		expectPresetPath(el, result.pathData);
 	});
 
-	it('curvedConnector4 on a tall box produces a height-driven 3-curve path', () => {
+	it('curvedConnector4 on a tall box remains horizontal-first', () => {
 		const el = makeConnector({ shapeType: 'curvedConnector4', width: 100, height: 200 });
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe(
-			'M 0 0 C 0 100 0 100 25 100 C 50 100 50 100 50 150 C 50 200 50 200 100 200',
-		);
+		expectPresetPath(el, result.pathData);
 	});
 
-	it('curvedConnector5 on a tall box honours adj1/adj2/adj3 along the swapped axes', () => {
+	it('curvedConnector5 on a tall box retains the preset adjustment axes', () => {
 		const el = makeConnector({
 			shapeType: 'curvedConnector5',
 			width: 100,
@@ -657,9 +649,7 @@ describe('getConnectorPathGeometry — orientation-aware routing (stacked shapes
 			shapeAdjustments: { adj1: 30000, adj2: 40000, adj3: 70000 },
 		});
 		const result = getConnectorPathGeometry(el);
-		expect(result.pathData).toBe(
-			'M 0 0 C 0 60 0 60 20 60 C 40 60 40 60 40 100 C 40 140 40 140 70 140 C 100 140 100 140 100 200',
-		);
+		expectPresetPath(el, result.pathData);
 	});
 
 	it('an exact square (width === height) still ties toward the historical horizontal routing', () => {
@@ -708,7 +698,6 @@ describe('getConnectorPathGeometry — extreme adjustments', () => {
 			shapeAdjustments: { adj1: 0 },
 		});
 		const result = getConnectorPathGeometry(el);
-		// adj1=0 → midX=0, midY=50
-		expect(result.pathData).toBe('M 0 0 C 0 0 0 0 0 50 C 0 100 0 100 200 100');
+		expectPresetPath(el, result.pathData);
 	});
 });

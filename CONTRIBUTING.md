@@ -127,7 +127,7 @@ does not open is almost never framework-specific.
 ### i18n
 
 Adding an English key to `packages/shared/src/i18n/translations-en.ts` requires
-matching entries under `packages/locales/src/{de,es,fr}/`.
+matching entries under `packages/locales/src/{de,es,fr,zh-CN}/`.
 `packages/locales/src/locales.test.ts` fails the build if any locale is missing
 a canonical key. Never hardcode a user-visible string: route it through
 `t()` / `translate`.

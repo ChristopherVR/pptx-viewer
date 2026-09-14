@@ -159,31 +159,31 @@ describe('getConnectorPathGeometry', () => {
 		const geom = getConnectorPathGeometry(el);
 		expect(geom.pathData).toContain('M 0 0');
 		expect(geom.pathData).toContain('L 300 100');
-		// bentconnector3 has more intermediate points than simple bent
+		// OOXML bentConnector3 has three line segments.
 		const segments = geom.pathData.split('L');
-		expect(segments.length).toBeGreaterThanOrEqual(5);
+		expect(segments).toHaveLength(4);
 	});
 
-	it('generates bentconnector3 path (vertical dominant)', () => {
+	it('keeps bentconnector3 horizontal-first for a tall box', () => {
 		const el = makeElement({
 			width: 100,
 			height: 300,
 			shapeType: 'bentConnector3',
 		});
 		const geom = getConnectorPathGeometry(el);
-		expect(geom.pathData).toContain('M 0 0');
+		expect(geom.pathData).toBe('M 0 0 L 50 0 L 50 300 L 100 300');
 	});
 
 	// ── Curved connector ──────────────────────────────────────────────────
 
-	it('generates curved connector with Q command', () => {
+	it('generates curved connector from the preset cubic path', () => {
 		const el = makeElement({
 			width: 200,
 			height: 100,
 			shapeType: 'curvedConnector2',
 		});
 		const geom = getConnectorPathGeometry(el);
-		expect(geom.pathData).toContain('Q');
+		expect(geom.pathData).toContain('C');
 		expect(geom.pathData).toContain('M 0 0');
 	});
 
@@ -211,7 +211,7 @@ describe('getConnectorPathGeometry', () => {
 		const geom = getConnectorPathGeometry(el);
 		// Should match bentconnector3 case-insensitively
 		const segments = geom.pathData.split('L');
-		expect(segments.length).toBeGreaterThanOrEqual(5);
+		expect(segments).toHaveLength(4);
 	});
 
 	// ── Empty shape type ──────────────────────────────────────────────────

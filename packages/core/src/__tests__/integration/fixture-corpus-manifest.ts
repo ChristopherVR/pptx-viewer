@@ -534,7 +534,7 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		dir: 'e2e',
 		provenance: 'synthetic',
 		status: 'roundtrip',
-		note: 'Synthetic nested Roman list with distinct paragraph spacing and literal numbered body text; the middle-insertion regression fixture in text-layout-parity.spec.ts.',
+		note: 'Regression fixture for preserving nested list state after inserting text into the middle of a list.',
 	},
 	{
 		file: 'ole-embed.pptx',

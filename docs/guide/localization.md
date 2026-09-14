@@ -5,7 +5,7 @@ description: How pptx-viewer's UI strings work across React, Vue 3, Angular, Van
 
 # Localization (i18n)
 
-**The viewer looks up every UI label through a `pptx.*` translation key; your app supplies the dictionary.** Each binding ships English. This repository also maintains complete French, Spanish, and German reference dictionaries in the private `pptx-viewer-locales` workspace for its demos and translation QA. That workspace is not published to npm. React, Vue, and Angular delegate to their host framework's own i18n library; Vanilla and Svelte ship a small built-in translator:
+**The viewer looks up every UI label through a `pptx.*` translation key; your app supplies the dictionary.** Each binding ships English. This repository also maintains complete French, Spanish, German, and Simplified Chinese reference dictionaries in the private `pptx-viewer-locales` workspace for its demos and translation QA. That workspace is not published to npm. React, Vue, and Angular delegate to their host framework's own i18n library; Vanilla and Svelte ship a small built-in translator:
 
 | Binding | Translation call the viewer makes                        | Library you provide                                                               |
 | ------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -41,7 +41,7 @@ import { translationsEn, keyToLabel } from 'pptx-vanilla-viewer';
 import { translationsEn, keyToLabel } from 'pptx-svelte-viewer/i18n';
 ```
 
-`translationsEn` is a flat `Record<string, string>` of every `pptx.*` key (3,396 of them), e.g. `'pptx.statusBar.allSaved': 'All saved'`. Values with dynamic content use `{{token}}` interpolation placeholders, e.g. `'pptx.statusBar.slideOf': 'Slide {{current}} of {{total}}'` - your i18n library substitutes these from the `opts` passed to `t()`/`translate()`.
+`translationsEn` is a flat `Record<string, string>` of every `pptx.*` key, e.g. `'pptx.statusBar.allSaved': 'All saved'`. Values with dynamic content use `{{token}}` interpolation placeholders, e.g. `'pptx.statusBar.slideOf': 'Slide {{current}} of {{total}}'` - your i18n library substitutes these from the `opts` passed to `t()`/`translate()`.
 
 `keyToLabel(key)` derives a readable label from a key's last segment when no dictionary entry matches it (`"pptx.slideSorter.zoomIn"` → `"Zoom In"`). Wire it in as your library's missing-key handler so any key you haven't translated yet still renders something reasonable instead of the raw key string.
 
@@ -216,9 +216,32 @@ Every binding's Settings dialog also has a **Language** tab: a list of locales t
 | Vanilla | the `messages` dictionary passed to `createPptxViewer`, plus `'en'`           |
 | Svelte  | every locale passed to `registerTranslations`                                 |
 
-So if you've only ever registered `en` and `fr`, the Language tab offers exactly those two - never a locale with no dictionary behind it. Codes are labeled via the shared `LOCALE_CATALOG` (English/French/Spanish/German display names) when recognized, or shown as the raw code otherwise.
+So if you've only ever registered `en` and `fr`, the Language tab offers exactly those two - never a locale with no dictionary behind it. Codes are labeled via the shared `LOCALE_CATALOG` (English/French/Spanish/German/Simplified Chinese display names) when recognized, or shown as the raw code otherwise.
 
 Precedence mirrors the Appearance tab: a picked locale applies immediately by calling into your i18n instance directly (`i18n.changeLanguage`, `locale.value =`, `TranslateService.use`, etc.) and persists to `localStorage` (`pptx-viewer-prefs`) - unless you pass `onLocaleChange`, in which case the viewer never touches your i18n instance itself and only calls that callback, leaving persistence and application entirely up to you. See [Theming](/guide/theming) for the full `defaultLocale`/`availableLocales`/`onLocaleChange` prop reference (same shape as the theme props, documented there once rather than twice).
+
+## Simplified Chinese
+
+The demos offer **简体中文** (`zh-CN`) in **File > Options > Language**. The
+reference dictionary covers the same keys and `{{placeholders}}` as English.
+It translates the editor interface; it does not translate text in your slides.
+
+For an external application, copy `packages/locales/src/zh-CN/` into your own
+translations directory and import `translationsZhCN` from its `index.ts`.
+Register it with your binding using the same integration shown above:
+
+| Binding | Register the copied dictionary                                             | Switch language                             |
+| ------- | -------------------------------------------------------------------------- | ------------------------------------------- |
+| React   | `i18n.addResourceBundle('zh-CN', 'translation', translationsZhCN)`         | `i18n.changeLanguage('zh-CN')`              |
+| Vue     | `i18n.global.setLocaleMessage('zh-CN', toVueI18nSyntax(translationsZhCN))` | `i18n.global.locale.value = 'zh-CN'`        |
+| Angular | `translate.setTranslation('zh-CN', translationsZhCN)`                      | `translate.use('zh-CN')`                    |
+| Vanilla | `messages: { 'zh-CN': translationsZhCN }` in the viewer options            | `viewer.setLocale('zh-CN')`                 |
+| Svelte  | `registerTranslations('zh-CN', translationsZhCN)`                          | Set the viewer's `locale` prop to `'zh-CN'` |
+
+For Vue, import `toVueI18nSyntax` from `pptx-vue-viewer/i18n`; it converts the
+reference dictionary's `{{name}}` placeholders to Vue's `{name}` syntax.
+The language picker recognizes `zh-CN` and displays **简体中文** once the
+application registers the dictionary.
 
 ## Adding a language in your app
 
@@ -246,7 +269,7 @@ Each language is organized into named product-area files such as `charts.ts`,
 
 Native and fluent speakers can help without reviewing an entire dictionary:
 
-1. Pick one product-area file under `packages/locales/src/fr`, `src/es`, or `src/de`.
+1. Pick one product-area file under `packages/locales/src/fr`, `src/es`, `src/de`, or `src/zh-CN`.
 2. Compare each value with the matching key in `packages/shared/src/i18n/translations-en.ts`.
 3. Improve translated values while leaving dotted keys and every `{{token}}` placeholder unchanged.
 4. Prefer terminology from the localized Microsoft PowerPoint UI, especially for SmartArt, morph transitions, charts, and master views.
@@ -264,7 +287,7 @@ enforced by `packages/locales/src/locales.test.ts`.
 
 ## Try it in the demos
 
-The [React](https://christophervr.github.io/pptx-viewer/demo/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/), Vanilla, and Svelte demos each include a language picker that switches between English, French, Spanish, and German. All three non-English dictionaries cover every canonical viewer key through the repository's private locale workspace.
+The [React](https://christophervr.github.io/pptx-viewer/demo/), [Vue](https://christophervr.github.io/pptx-viewer/demo-vue/), [Angular](https://christophervr.github.io/pptx-viewer/demo-angular/), Vanilla, and Svelte demos each include a language picker that switches between English, French, Spanish, German, and Simplified Chinese. All four non-English dictionaries cover every canonical viewer key through the repository's private locale workspace.
 
 The picker wiring is demo code; the dictionaries are referenced from `packages/locales` through the Bun workspace:
 

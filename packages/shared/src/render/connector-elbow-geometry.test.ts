@@ -14,8 +14,8 @@ describe('isHorizontalPrimary', () => {
 		expect(isHorizontalPrimary(0, 0, 200, 50)).toBeTruthy();
 	});
 
-	it('picks vertical when shapes are stacked (dy dominates)', () => {
-		expect(isHorizontalPrimary(0, 0, 50, 200)).toBeFalsy();
+	it('keeps the OOXML horizontal primary axis when shapes are stacked', () => {
+		expect(isHorizontalPrimary(0, 0, 50, 200)).toBeTruthy();
 	});
 
 	it('breaks an exact tie in favour of horizontal (historical default)', () => {
@@ -59,7 +59,7 @@ describe('connectorAdjustmentFraction / connectorBendFraction', () => {
 	});
 });
 
-describe('elbowWaypoints: orientation adapts to where the shapes actually are', () => {
+describe('elbowWaypoints: OOXML preset axis', () => {
 	it('side-by-side shapes (width > height) bend around a VERTICAL mid-line', () => {
 		// Two shapes roughly level with each other, far apart horizontally.
 		const pts = elbowWaypoints(0, 0, 200, 50, 3, 0.5, 0.5, 0.5);
@@ -71,28 +71,24 @@ describe('elbowWaypoints: orientation adapts to where the shapes actually are', 
 		]);
 	});
 
-	it('stacked shapes (height > width) bend around a HORIZONTAL mid-line instead', () => {
-		// Same connector, transposed: this is the bug the fix targets. The old
-		// implementation always produced a vertical mid-axis (`x=25`) regardless
-		// of the connector being far taller than it is wide; the fix recognises
-		// the dominant axis is now y and bends around a horizontal mid-line.
+	it('stacked shapes retain the horizontal-first preset path', () => {
 		const pts = elbowWaypoints(0, 0, 50, 200, 3, 0.5, 0.5, 0.5);
 		expect(pts).toStrictEqual([
 			{ x: 0, y: 0 },
-			{ x: 0, y: 100 },
-			{ x: 50, y: 100 },
+			{ x: 25, y: 0 },
+			{ x: 25, y: 200 },
 			{ x: 50, y: 200 },
 		]);
 	});
 
-	it('honours a non-default adj1 along whichever axis is primary', () => {
+	it('honours a non-default adj1 along the x axis', () => {
 		const horizontal = elbowWaypoints(0, 0, 200, 50, 3, 0.25, 0.5, 0.5);
 		expect(horizontal[1]).toStrictEqual({ x: 50, y: 0 });
 		expect(horizontal[2]).toStrictEqual({ x: 50, y: 50 });
 
 		const vertical = elbowWaypoints(0, 0, 50, 200, 3, 0.25, 0.5, 0.5);
-		expect(vertical[1]).toStrictEqual({ x: 0, y: 50 });
-		expect(vertical[2]).toStrictEqual({ x: 50, y: 50 });
+		expect(vertical[1]).toStrictEqual({ x: 12.5, y: 0 });
+		expect(vertical[2]).toStrictEqual({ x: 12.5, y: 200 });
 	});
 
 	it('mirrors correctly when the connector is flip-adjusted (start at the far corner)', () => {
@@ -162,8 +158,8 @@ describe('curvedElbowPathD: same orientation/segment logic, smooth instead of sh
 		expect(curvedElbowPathD(0, 0, 200, 50, 3, 0.5, 0.5, 0.5)).toBe('M0,0 C100,0 100,50 200,50');
 	});
 
-	it('renders a single smooth cubic for curvedConnector3, vertical-primary (transposed)', () => {
-		expect(curvedElbowPathD(0, 0, 50, 200, 3, 0.5, 0.5, 0.5)).toBe('M0,0 C0,100 50,100 50,200');
+	it('renders a horizontal-first cubic for curvedConnector3 on a tall box', () => {
+		expect(curvedElbowPathD(0, 0, 50, 200, 3, 0.5, 0.5, 0.5)).toBe('M0,0 C25,0 25,200 50,200');
 	});
 
 	it('renders a differentiated 3-curve path for curvedConnector4 (adj1 + adj2)', () => {

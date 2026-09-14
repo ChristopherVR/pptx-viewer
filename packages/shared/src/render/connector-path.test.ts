@@ -113,13 +113,12 @@ describe('connector pointer hit target', () => {
 });
 
 // ---------------------------------------------------------------------------
-// buildConnectorPathD: orientation-aware bent/curved elbow routing
+// buildConnectorPathD: OOXML preset bent/curved elbow routing
 //
 // PowerPoint's elbow connectors do not avoid obstacles (out of scope; see
 // `connector-router.ts` for that, applied separately). What this covers: the
-// bend axis now comes from the actual relative position of the two endpoints
-// (side-by-side vs stacked) instead of always assuming a horizontal Z-shape,
-// and `bentConnector4`/`bentConnector5` (and their curved counterparts) no
+// bend axis remains horizontal-first as authored in the preset path list,
+// regardless of the connector box aspect ratio. `bentConnector4`/`bentConnector5` (and their curved counterparts) no
 // longer collapse into the exact same 3-segment shape as `bentConnector3`.
 // See `connector-elbow-geometry.test.ts` for the underlying formula tests
 // with hand-computed bend points; these exercise the same behaviour through
@@ -135,12 +134,9 @@ describe('buildConnectorPathD: bent/curved routing', () => {
 		);
 	});
 
-	it('routes through a horizontal mid-line, not a vertical one, for a tall (stacked) bentConnector3', () => {
-		// This is the reported bug: the old implementation always bent around a
-		// vertical mid-axis, producing a path that visually exits the start shape
-		// sideways even when the two shapes are stacked one above the other.
+	it('retains the horizontal-first preset path for a tall bentConnector3', () => {
 		expect(buildConnectorPathD('bentConnector3', 0, 0, 50, 200, 0.5)).toBe(
-			'M0,0 L0,100 L50,100 L50,200',
+			'M0,0 L25,0 L25,200 L50,200',
 		);
 	});
 
@@ -165,9 +161,9 @@ describe('buildConnectorPathD: bent/curved routing', () => {
 		);
 	});
 
-	it('transposes the curve for a tall (stacked) curvedConnector3', () => {
+	it('retains the horizontal-first curve for a tall curvedConnector3', () => {
 		expect(buildConnectorPathD('curvedConnector3', 0, 0, 50, 200, 0.5)).toBe(
-			'M0,0 C0,100 50,100 50,200',
+			'M0,0 C25,0 25,200 50,200',
 		);
 	});
 
@@ -194,7 +190,7 @@ describe('buildConnectorPathD: bent/curved routing', () => {
 		);
 		// Matches the hand-computed bentConnector5 case in
 		// connector-elbow-geometry.test.ts for the same adjustments.
-		expect(geo.pathD).toBe('M0,0 L50,0 L50,50 L150,50 L150,100 L200,100');
+		expect(geo.pathD).toBe('M 0 0 L 50 0 L 50 50 L 150 50 L 150 100 L 200 100');
 	});
 
 	it('does not crash and still produces a monotonic route for diagonally offset shapes', () => {
@@ -210,7 +206,7 @@ describe('buildConnectorPathD: bent/curved routing', () => {
 			} as PptxElement,
 			1,
 		);
-		expect(geo.pathD).toBe('M0,0 L68.5,0 L68.5,89 L137,89');
+		expect(geo.pathD).toBe('M 0 0 L 68.5 0 L 68.5 89 L 137 89');
 	});
 });
 

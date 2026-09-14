@@ -2,7 +2,7 @@
  * i18next configuration for the pptx-viewer demo.
  *
  * The viewer components use react-i18next for UI labels. This initialises
- * an i18n instance with English, French, and Spanish resource bundles (the
+ * an i18n instance with English and the reference locale bundles (the
  * language picker in main.tsx switches between them via `changeLanguage`)
  * and a fallback that derives display text from dotted keys for any key not
  * covered by the active translation (e.g. "pptx.sections.addSlide" →
@@ -10,10 +10,21 @@
  */
 import { createInstance } from 'i18next';
 import { keyToLabel, translationsEn } from 'pptx-react-viewer/i18n';
-import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
+import {
+	translationsDe,
+	translationsEs,
+	translationsFr,
+	translationsZhCN,
+} from 'pptx-viewer-locales';
 import { initReactI18next } from 'react-i18next';
 
-import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
+import {
+	demoStringsZhCN,
+	demoStringsDe,
+	demoStringsEn,
+	demoStringsFr,
+	demoStringsEs,
+} from './demo-locales';
 
 const i18nInstance = createInstance();
 
@@ -23,6 +34,7 @@ i18nInstance.use(initReactI18next).init({
 		fr: { translation: { ...translationsFr, ...demoStringsFr } },
 		es: { translation: { ...translationsEs, ...demoStringsEs } },
 		de: { translation: { ...translationsDe, ...demoStringsDe } },
+		'zh-CN': { translation: { ...translationsZhCN, ...demoStringsZhCN } },
 	},
 	lng: 'en',
 	fallbackLng: 'en',

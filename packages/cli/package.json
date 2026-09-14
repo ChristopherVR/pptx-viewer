@@ -1,6 +1,6 @@
 {
 	"name": "@christophervr/pptx-viewer",
-	"version": "2.14.0",
+	"version": "2.14.1",
 	"description": "Interactive installer for the pptx-viewer family of packages (React, Vue, Angular, Svelte, vanilla JS, the core engine, the MCP server). Also a drop-in for pptx-react-viewer: importing this package re-exports the React component.",
 	"keywords": [
 		"angular",
@@ -70,7 +70,7 @@
 		"tsdown": "^0.23.0",
 		"tsup": "^8.5.1",
 		"typescript": "^7.0.2",
-		"vitest": "^4.1.11"
+		"vitest": "^5.0.0"
 	},
 	"peerDependencies": {
 		"@ai-sdk/react": "^4.0.59",

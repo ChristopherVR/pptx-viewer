@@ -249,7 +249,9 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						<LuSparkles className={ic} />
 					</button>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Drawing</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.groupDrawing')}
+				</span>
 			</div>
 
 			{sep}

@@ -77,6 +77,18 @@ describe('connector flipH/flipV routing (G-H3)', () => {
 		);
 		expect(geo.startX).toBe(100);
 		expect(geo.endX).toBe(0);
-		expect(geo.pathData.startsWith('M 100 0')).toBeTruthy();
+		expect(geo.pathData).toBe('M 100 0 C 50 0 0 25 0 50');
+	});
+
+	it('falls back to the authored xfrm flip when the typed field is absent', () => {
+		const geo = getConnectorPathGeometry(
+			makeConnector({
+				flipHorizontal: undefined,
+				rawXml: { 'p:spPr': { 'a:xfrm': { '@_flipH': '1' } } },
+			}),
+		);
+		expect(geo.startX).toBe(100);
+		expect(geo.endX).toBe(0);
+		expect(geo.pathData).toBe('M 100 0 L 50 0 L 50 50 L 0 50');
 	});
 });

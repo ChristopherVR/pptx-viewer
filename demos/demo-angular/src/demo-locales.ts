@@ -60,3 +60,16 @@ export const demoStringsDe = {
 	'demo.dropzone.joiningSession': 'Zusammenarbeitssitzung beitreten:',
 	'demo.dropzone.uploadAriaLabel': 'Praesentation hochladen',
 };
+
+export const demoStringsZhCN = {
+	'demo.dropzone.hint': '将 .pptx 或 .ppt 文件拖到此处，或单击浏览',
+	'demo.dropzone.hintCollab': '将 .pptx 或 .ppt 文件拖到此处，或单击浏览以开始协作',
+	'demo.dropzone.processed': '文件完全在浏览器中处理',
+	'demo.dropzone.browse': '浏览文件',
+	'demo.dropzone.newPresentation': '或新建演示文稿',
+	'demo.dropzone.creating': '正在创建…',
+	'demo.dropzone.joiningBroadcast': '正在加入广播：',
+	'demo.dropzone.loadingBroadcast': '正在从广播者加载演示文稿…',
+	'demo.dropzone.joiningSession': '正在加入协作会话：',
+	'demo.dropzone.uploadAriaLabel': '上传演示文稿',
+} satisfies Record<keyof typeof demoStringsEn, string>;

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.17.1) - 2026-09-14
+
+### Bug Fixes
+
+- **i18n:** Localize inspector and ribbon controls (by @yunfeizhu) ([a657a76](https://github.com/ChristopherVR/pptx-viewer/commit/a657a766d653106f04d50f7b13a94a6c12c77f1e))
+
 ## [3.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.17.0) - 2026-09-13
 
 ### Features

@@ -1,6 +1,6 @@
 {
 	"name": "pptx-angular-viewer",
-	"version": "3.17.0",
+	"version": "3.17.1",
 	"description": "Angular PowerPoint viewer and editor component: render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"angular",
@@ -48,7 +48,7 @@
 		"pack": "bun run build && cd dist && bun pm pack"
 	},
 	"dependencies": {
-		"@lucide/angular": "^1.43.0",
+		"@lucide/angular": "^1.44.0",
 		"dompurify": "^3.4.15",
 		"fast-xml-parser": "^5.11.1",
 		"html2canvas-pro": "^2.4.2",
@@ -77,9 +77,9 @@
 		"pptx-viewer-core": "workspace:*",
 		"rxjs": "^7.8.2",
 		"tailwindcss": "^4.3.3",
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"typescript": "6.0.3",
-		"vitest": "^4.1.11",
+		"vitest": "^5.0.0",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32",
@@ -91,7 +91,7 @@
 		"@ngx-translate/core": "^18.0.0",
 		"ai": ">=6 <8",
 		"rxjs": "^7.8.0",
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
