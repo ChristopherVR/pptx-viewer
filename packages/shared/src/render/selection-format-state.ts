@@ -56,11 +56,26 @@ export function contentSegmentsInSelection(
 	if (!segments) {
 		return [];
 	}
-	return segments.filter(
-		(segment, index) =>
-			isContentSegment(segment) &&
-			(!selection || (index >= selection.startSegIdx && index <= selection.endSegIdx)),
-	);
+	return segments.filter((segment, index) => {
+		if (!isContentSegment(segment)) {
+			return false;
+		}
+		if (!selection) {
+			return true;
+		}
+		if (index < selection.startSegIdx || index > selection.endSegIdx) {
+			return false;
+		}
+		if (
+			selection.startSegIdx === selection.endSegIdx &&
+			selection.startOffset === selection.endOffset
+		) {
+			return true;
+		}
+		const start = index === selection.startSegIdx ? selection.startOffset : 0;
+		const end = index === selection.endSegIdx ? selection.endOffset : segment.text.length;
+		return end > start;
+	});
 }
 
 function flagState(values: readonly boolean[]): TextStyleFlagState {

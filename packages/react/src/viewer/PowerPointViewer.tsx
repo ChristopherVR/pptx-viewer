@@ -868,6 +868,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			handlerRef,
 			loadVersion,
 		} = useViewerIntegration({
+			transformCommittedText: (text) => applyAutoCorrect(text, viewerOptions.proofing),
 			state,
 			zoom,
 			history,

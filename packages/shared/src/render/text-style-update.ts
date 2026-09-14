@@ -18,6 +18,7 @@ import { applyStyleToSelectedSegments } from './inline-selection-utils';
 import type { TextDecorationFlag } from './selection-format-state';
 import { TEXT_DECORATION_FLAGS } from './selection-format-state';
 import { reconcileDecorationFlags, splitTextStyleUpdate } from './text-style-scope';
+import { updateTextSegmentStyle } from './update-text-segment-style';
 
 /** What a text-style update hands back to the binding. */
 export interface TextStyleUpdateResult {
@@ -66,10 +67,7 @@ export function applyTextStyleUpdate(
 	}
 
 	const textStyle: TextStyle = { ...element.textStyle, ...updates };
-	const textSegments = current?.map((segment) => ({
-		...segment,
-		style: { ...segment.style, ...updates },
-	}));
+	const textSegments = current?.map((segment) => updateTextSegmentStyle(segment, updates));
 	return {
 		patch: (textSegments ? { textStyle, textSegments } : { textStyle }) as Partial<PptxElement>,
 		newSelection: null,

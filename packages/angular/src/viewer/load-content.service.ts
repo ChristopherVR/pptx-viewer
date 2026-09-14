@@ -43,6 +43,8 @@ import {
 	collectMediaElements,
 	createPresentationLoadResources,
 	describeFontEmbedding,
+	overlayInlineTextSnapshot,
+	overlayMasterViewInlineSnapshot,
 	resolveMediaElementSource,
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
@@ -50,7 +52,12 @@ import {
 	saveDeckWithPassword,
 	slideSizeToCanvasPx,
 } from '../internal/shared';
-import type { CanvasSize, DeckSaveIntent, SlideSizeEmu } from '../internal/shared';
+import type {
+	CanvasSize,
+	DeckSaveIntent,
+	PendingInlineTextEdit,
+	SlideSizeEmu,
+} from '../internal/shared';
 import { ViewerOptionsService } from './viewer-options.service';
 
 /**
@@ -72,6 +79,11 @@ import { ViewerOptionsService } from './viewer-options.service';
  */
 @Injectable()
 export class LoadContentService {
+	private pendingInlineEditReader?: () => PendingInlineTextEdit | undefined;
+	/** Viewer-scoped current list session. Saving never commits or blurs it. */
+	bindPendingInlineEdit(reader: () => PendingInlineTextEdit | undefined): void {
+		this.pendingInlineEditReader = reader;
+	}
 	/** Parsed slides (with image Blob URLs patched in). */
 	readonly slides = signal<PptxSlide[]>([]);
 	/**
@@ -276,18 +288,42 @@ export class LoadContentService {
 		const customProperties = this.customProperties();
 		const tags = this.tagCollections();
 		const customShows = this.customShows();
+		const pending = this.pendingInlineEditReader?.();
+		const masterWrite =
+			pending && 'masterView' in pending.target
+				? overlayMasterViewInlineSnapshot(
+						{
+							slideMasters: this.slideMasters(),
+							notesMaster: this.notesMaster(),
+							handoutMaster: this.handoutMaster(),
+						},
+						pending.target.masterView,
+						pending.snapshot,
+						pending.text,
+					)
+				: null;
+		const saveSlides = slides.map((slide) =>
+			pending && 'slideId' in pending.target && slide.id === pending.target.slideId
+				? {
+						...slide,
+						elements: [
+							...overlayInlineTextSnapshot(slide.elements, pending.snapshot, pending.text),
+						],
+					}
+				: slide,
+		);
 		// Shared decision (see `deck-save-encryption` in `pptx-viewer-shared`): a
 		// password set in the protection dialog routes through `saveEncrypted`, so
 		// the produced file is a real encrypted OLE2 container.
 		return saveDeckWithPassword(
 			this.handler,
-			[...slides],
+			saveSlides,
 			buildDeckSaveOptions({
 				headerFooter: this.headerFooter(),
 				presentationProperties: this.presentationProperties(),
-				slideMasters: this.slideMasters(),
-				notesMaster: this.notesMaster(),
-				handoutMaster: this.handoutMaster(),
+				slideMasters: masterWrite?.slideMasters ?? this.slideMasters(),
+				notesMaster: masterWrite?.notesMaster ?? this.notesMaster(),
+				handoutMaster: masterWrite?.handoutMaster ?? this.handoutMaster(),
 				sections,
 				// Without this the Custom Shows dialog was write-only: shows created
 				// in it never reached `p:custShowLst`, and a deck that arrived with

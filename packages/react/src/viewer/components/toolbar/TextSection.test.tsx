@@ -9,13 +9,19 @@
  *   `bulletInfo`), not a `listType` text-style patch nothing renders; table
  *   cells keep their cell-style path.
  */
-import type { PptxElement, TextSegment } from 'pptx-viewer-core';
+import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import {
+	attachInlineListController,
+	createInlineListSeed,
+	initializeInlineListDom,
+} from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { RecentColorsProvider } from '../inspector/RecentColorsContext';
+import { textSectionBulletKind } from './text-section-state';
 import { TextSection } from './TextSection';
 import type { TextSectionProps } from './TextSection';
 
@@ -33,7 +39,7 @@ afterEach(() => {
 	container.remove();
 });
 
-function textElement(segments: TextSegment[], textStyle: PptxElement['textStyle'] = {}) {
+function textElement(segments: TextSegment[], textStyle: TextStyle = {}) {
 	return {
 		id: 't1',
 		type: 'text',
@@ -78,6 +84,48 @@ function buttonTitled(...titles: string[]): HTMLButtonElement {
 }
 
 describe('textSection decoration toggles', () => {
+	it('reads list kind from the caret paragraph without changing character toggle scope', () => {
+		const element = textElement([
+			{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+			{ text: '\n', style: {}, isParagraphBreak: true },
+			{ text: 'Last', style: {} },
+		]);
+		const seed = createInlineListSeed(element)!;
+		const editor = document.createElement('div');
+		document.body.append(editor);
+		initializeInlineListDom(editor, seed);
+		const controller = attachInlineListController(editor, seed);
+		const node = editor.lastElementChild!.firstElementChild!.firstChild!;
+		window.getSelection()!.setBaseAndExtent(node, 0, node, 0);
+		expect(textSectionBulletKind(element, undefined)).toBe('none');
+		controller.dispose();
+		editor.remove();
+	});
+
+	it('decides from the current rich selection rather than stale model runs', () => {
+		const model = textElement([{ text: 'Old', style: {} }]);
+		const { onUpdateTextStyle } = renderSection({ selectedElement: model });
+		const seed = createInlineListSeed(
+			textElement([{ text: 'Typed', style: { bold: true }, bulletInfo: { char: '◆' } }]),
+		)!;
+		const editor = document.createElement('div');
+		document.body.append(editor);
+		initializeInlineListDom(editor, seed);
+		const controller = attachInlineListController(editor, seed);
+		try {
+			const range = document.createRange();
+			range.selectNodeContents(editor.querySelector('[data-pptx-list-run]')!);
+			window.getSelection()!.removeAllRanges();
+			window.getSelection()!.addRange(range);
+			act(() => buttonTitled('Bold', 'pptx.textPanel.bold').click());
+			expect(onUpdateTextStyle).toHaveBeenCalledWith({ bold: false });
+		} finally {
+			controller.dispose();
+			editor.remove();
+			window.getSelection()?.removeAllRanges();
+		}
+	});
+
 	it('un-bolds a box whose runs are bold at run level while the body is not', () => {
 		const { onUpdateTextStyle } = renderSection({
 			selectedElement: textElement([{ text: 'Hello', style: { bold: true } }]),

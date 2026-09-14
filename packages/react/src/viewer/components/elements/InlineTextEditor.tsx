@@ -1,6 +1,12 @@
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import { getInlineEditorSelection, placeCaretAtEnd, readEditableText } from 'pptx-viewer-shared';
+import {
+	getInlineEditorSelectionResult,
+	isBulletMarkerSegment,
+	placeCaretAtEnd,
+	readEditableText,
+} from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../../constants';
@@ -9,15 +15,16 @@ import {
 	getPendingSelectionRestore,
 	restoreSegmentSelection,
 } from '../../utils/inline-selection-utils';
+import { useInlineListEditor } from './useInlineListEditor';
 
 /**
  * Rich inline text editor: uses a `contentEditable` div that renders the same
  * rich text segments as view mode so formatting (per-run fonts, sizes, colors,
  * bullets, paragraph indentation, text effects) is preserved while editing.
  *
- * The editor extracts plain text on commit via `innerText` and passes it to the
- * parent's `onEditChange` callback, which feeds into `remapTextToSegments` to
- * redistribute the edited text across the original rich segments.
+ * Listed text publishes an authored-body snapshot from the native DOM so
+ * paragraph and run formatting survive editing and pending Save. Other text
+ * keeps the existing plain-text callback and segment-remapping path.
  *
  * The outer wrapper matches the view-mode text container exactly:
  * - `getTextLayoutStyle` for flex vertical alignment, body-inset padding, columns
@@ -51,11 +58,12 @@ export function InlineTextEditor({
 	element: PptxElement;
 	onCommit: () => void;
 	onCancel: () => void;
-	onEditChange: (t: string) => void;
+	onEditChange: (t: string, snapshot?: InlineTextEditSnapshot) => void;
 	/** Called when the user applies formatting via keyboard shortcut (Ctrl+B/I/U). */
 	onFormatText?: (updates: Partial<TextStyle>) => void;
 }) {
 	const editorRef = useRef<HTMLDivElement>(null);
+	const list = useInlineListEditor(element, editorRef, onEditChange, onCancel);
 
 	// The editor is UNCONTROLLED: its content is seeded exactly once (below) and
 	// the DOM owns the text from then on. `initialText` is updated by the parent
@@ -87,8 +95,10 @@ export function InlineTextEditor({
 
 	// Sync text to parent on every input via ref (no re-render)
 	const handleInput = useCallback(() => {
-		onEditChange(extractText());
-	}, [extractText, onEditChange]);
+		if (!list.publish()) {
+			onEditChange(extractText());
+		}
+	}, [extractText, list, onEditChange]);
 
 	// When the caret sits at a soft word-wrap boundary (no explicit line break,
 	// just CSS wrapping), the space that separates the two words is still part
@@ -141,7 +151,7 @@ export function InlineTextEditor({
 			return;
 		}
 		const pending = getPendingSelectionRestore();
-		if (!pending || !editorRef.current) {
+		if (!pending || !editorRef.current || list.seed) {
 			return;
 		}
 		restoreSegmentSelection(
@@ -175,22 +185,34 @@ export function InlineTextEditor({
 		transformOrigin: warpStyle?.transformOrigin || 'center',
 	};
 
-	const nextInlineStyleValue = (property: 'bold' | 'italic' | 'underline'): boolean => {
+	const nextInlineStyleValue = (property: 'bold' | 'italic' | 'underline'): boolean | undefined => {
 		if (!hasTextProperties(element)) {
 			return true;
 		}
 		// Range formatting is based on the first selected run, not the first run
 		// in the text box. Keep the existing first-run fallback for a collapsed caret.
-		const selection = getInlineEditorSelection(element.textSegments);
+		const result = getInlineEditorSelectionResult(element.textSegments);
+		if (
+			result.kind === 'unsupported' ||
+			(result.snapshot && result.snapshot.elementId !== element.id)
+		) {
+			return;
+		}
+		const selection = result.selection;
+		const segments = result.snapshot?.textSegments ?? element.textSegments;
 		const segment = selection
-			? element.textSegments?.[selection.startSegIdx]
-			: element.textSegments?.[0];
-		const style = segment?.style ?? element.textStyle;
-		return !style?.[property];
+			? segments?.[selection.startSegIdx]
+			: list.seed
+				? segments?.find(
+						(run) => !isBulletMarkerSegment(run) && !run.isParagraphBreak && run.text !== '\n',
+					)
+				: segments?.[0];
+		return !(segment?.style?.[property] ?? element.textStyle?.[property]);
 	};
 
 	return (
 		<div
+			key={list.seed?.paragraphs[0].token ?? 'plain'}
 			ref={editorRef}
 			contentEditable
 			suppressContentEditableWarning
@@ -200,6 +222,7 @@ export function InlineTextEditor({
 			className='relative z-10 w-full h-full whitespace-pre-wrap break-words leading-[1.3] outline-none'
 			style={{
 				...wrapperStyle,
+				...(list.seed ? { textDecoration: 'none', textDecorationLine: 'none' } : {}),
 				cursor: 'text',
 				minHeight: '1em',
 			}}
@@ -210,9 +233,12 @@ export function InlineTextEditor({
 			onPointerDown={(e) => e.stopPropagation()}
 			onMouseDown={(e) => e.stopPropagation()}
 			onClick={(e) => e.stopPropagation()}
-			onInput={handleInput}
+			onInput={list.seed ? undefined : handleInput}
 			onBlur={() => {
-				onEditChange(extractText());
+				if (!list.canCommit()) {
+					return;
+				}
+				handleInput();
 				onCommit();
 			}}
 			onKeyDown={(e) => {
@@ -222,28 +248,26 @@ export function InlineTextEditor({
 					if (key === 'b' || key === 'i' || key === 'u') {
 						e.preventDefault();
 						e.stopPropagation();
-						switch (key) {
-							case 'b':
-								onFormatText({ bold: nextInlineStyleValue('bold') });
-								break;
-							case 'i':
-								onFormatText({ italic: nextInlineStyleValue('italic') });
-								break;
-							case 'u':
-								onFormatText({ underline: nextInlineStyleValue('underline') });
-								break;
+						const property = key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline';
+						const value = nextInlineStyleValue(property);
+						if (value !== undefined) {
+							onFormatText({ [property]: value });
 						}
 						return;
 					}
 				}
 				if (e.key === 'Escape') {
 					e.preventDefault();
+					list.retire();
 					onCancel();
 					return;
 				}
 				if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
 					e.preventDefault();
-					onEditChange(extractText());
+					if (!list.canCommit()) {
+						return;
+					}
+					handleInput();
 					onCommit();
 					return;
 				}
@@ -258,7 +282,11 @@ export function InlineTextEditor({
 				document.execCommand('insertText', false, text);
 			}}
 		>
-			{seed.hasRichSegments ? renderTextSegments(element, DEFAULT_TEXT_COLOR) : seed.initialText}
+			{list.seed
+				? list.children
+				: seed.hasRichSegments
+					? renderTextSegments(element, DEFAULT_TEXT_COLOR)
+					: seed.initialText}
 		</div>
 	);
 }

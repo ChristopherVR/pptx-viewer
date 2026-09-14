@@ -1,19 +1,25 @@
-import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	canInteractWithElement,
+	attachInlineListController,
+	buildInlineTextCommitPatch,
+	createInlineListSeed,
+	initializeInlineListDom,
 	getInlineEditorSelection,
-	isBulletMarkerSegment,
 	placeCaretAtEnd,
 	readEditableText,
-	remapTextToSegments,
-	resolveInlineEditAutoFitHeight,
-	resolveInlineEditNormAutofitShrink,
 } from 'pptx-viewer-shared';
-import type { InlineTextSelection, NormAutofitShrinkResult } from 'pptx-viewer-shared';
+import type {
+	InlineListController,
+	InlineTextEditSnapshot,
+	InlineTextSelection,
+} from 'pptx-viewer-shared';
 
 import { createEl, getTextBlockStyle } from '../render';
+import { activateInlineTextList } from './inline-text-list-activation';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
+import { seedPlainInlineText } from './inline-text-seed';
 import type { OverlayBox } from './selection-overlay';
 
 /**
@@ -38,18 +44,12 @@ export function canInlineEditElement(element: PptxElement | undefined): boolean 
 	return !element.textSegments?.some((seg) => seg.equationXml);
 }
 
-/** Remap edited plain text back onto the element's original segments. */
-export function remapInlineText(
-	element: PptxElement,
-	text: string,
-): { text: string; textSegments: TextSegment[] } {
-	const withText = hasTextProperties(element) ? element : undefined;
-	const segments: TextSegment[] | undefined = withText?.textSegments;
-	const style: TextStyle | undefined = withText?.textStyle;
-	return { text, textSegments: remapTextToSegments(text, segments, style) };
-}
-
 export { readEditableText };
+export {
+	remapInlineText,
+	resolveInlineTextAutoFitHeight,
+	resolveInlineTextNormAutofitShrink,
+} from './inline-text-commit';
 
 /**
  * The live (uncommitted) plain text of the currently open inline editor, or
@@ -74,54 +74,12 @@ export function currentInlineEditorText(): string | undefined {
 	return surface ? readEditableText(surface) : undefined;
 }
 
-/**
- * `a:spAutoFit` ("Resize shape to fit text") editor-commit resize: decide the
- * element's new height from its text style, current height, and the live
- * (still-mounted) editor DOM node - `undefined` when the element carries no
- * text properties, autofit isn't `'shrink'`, or the measured height did not
- * meaningfully change.
- *
- * `EditorOperations.commitInlineText` calls this before it replaces the
- * element; `editorEl` there is found via
- * `document.querySelector('[data-inline-editor]')`, which resolves to the
- * live surface because `close()` (above) fires `onCommit` - the call that
- * reaches `commitInlineText` - BEFORE `surface.remove()`.
- */
-export function resolveInlineTextAutoFitHeight(
-	element: PptxElement,
-	editorEl: HTMLElement | null,
-): number | undefined {
-	if (!hasTextProperties(element)) {
-		return undefined;
-	}
-	return resolveInlineEditAutoFitHeight(element.textStyle, element.height, editorEl);
-}
-
-/**
- * `a:normAutofit` ("Shrink text on overflow") editor-commit recompute: decide
- * the element's new `fontScale`/`lnSpcReduction` from its text style, current
- * (fixed) height, and the live editor DOM node - `'unchanged'` when the
- * element carries no text properties, autofit isn't `'normal'`, or the
- * measured height did not meaningfully change. Mutually exclusive with
- * {@link resolveInlineTextAutoFitHeight} (`a:spAutoFit`); both read
- * `autoFitMode`, only one mode is ever set.
- *
- * `EditorOperations.commitInlineText` calls this before it replaces the
- * element, for the same reason (and at the same point) it calls
- * {@link resolveInlineTextAutoFitHeight}.
- */
-export function resolveInlineTextNormAutofitShrink(
-	element: PptxElement,
-	editorEl: HTMLElement | null,
-): NormAutofitShrinkResult {
-	if (!hasTextProperties(element)) {
-		return 'unchanged';
-	}
-	return resolveInlineEditNormAutofitShrink(element.textStyle, element.height, editorEl);
-}
-
 export interface InlineEditorSession {
 	el: HTMLElement;
+	activateList(element: PptxElement): boolean | undefined;
+	readSnapshot(): InlineTextEditSnapshot | undefined;
+	readList(): import('pptx-viewer-shared').InlineListReadResult | undefined;
+	formatSnapshot(snapshot: InlineTextEditSnapshot): boolean;
 	/** Commit the current text (fires `onCommit` when changed) and close. */
 	commit(): void;
 	/** Close without committing. */
@@ -138,12 +96,12 @@ export interface OpenInlineEditorOptions {
 	element: PptxElement;
 	spellCheck?: boolean;
 	/** Called with the edited text on commit (only when it changed). */
-	onCommit(text: string): void;
+	onCommit(text: string, snapshot?: InlineTextEditSnapshot): void;
 	/**
 	 * Called with the edited text on EVERY keystroke. Used for the collaboration
 	 * live preview only: it must not touch editor state or history.
 	 */
-	onInput?(text: string): void;
+	onInput?(text: string, snapshot?: InlineTextEditSnapshot): void;
 	onSelectionChange?(selection: InlineTextSelection | null): void;
 	/** Called after the surface closes (commit or cancel). */
 	onClose(): void;
@@ -193,41 +151,16 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	surface.dataset.inlineEditor = '';
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
-	let textContainer = surface;
-	if (withText?.textSegments?.length) {
-		// The text-block style makes the surface a flex column so vertical
-		// alignment applies to paragraphs. Keep rich-text runs inside one flex
-		// item; direct flex children are blockified onto separate rows.
-		const textFlow = doc.createElement('div');
-		textFlow.dataset.pptxTextFlow = '';
-		textContainer = textFlow;
-		const segments = withText.textSegments;
-		segments.forEach((segment, index) => {
-			const span = doc.createElement('span');
-			span.dataset.segIdx = String(index);
-			if (isBulletMarkerSegment(segment)) {
-				span.dataset.pptxBulletMarker = '';
-				span.contentEditable = 'false';
-			}
-			const precedingMarker = index > 0 && isBulletMarkerSegment(segments[index - 1]);
-			const carriesList = segment.bulletInfo && !segment.bulletInfo.none;
-			if (
-				segment.text.length === 0 &&
-				index === segments.length - 1 &&
-				(precedingMarker || carriesList)
-			) {
-				// An empty inline span after a non-editable list marker has no caret
-				// position. A display-only BR lets that pending list item receive text.
-				span.dataset.pptxEmptyRun = '';
-				span.appendChild(doc.createElement('br'));
-			} else {
-				span.textContent = segment.text;
-			}
-			textFlow.appendChild(span);
-		});
-		surface.appendChild(textFlow);
+	let textContainer: HTMLElement = surface;
+	const listSeed = createInlineListSeed(element);
+	let listController: InlineListController | undefined;
+	if (listSeed) {
+		textContainer = doc.createElement('div');
+		textContainer.dataset.pptxTextFlow = '';
+		initializeInlineListDom(textContainer, listSeed);
+		surface.append(textContainer);
 	} else {
-		surface.textContent = initialText;
+		textContainer = seedPlainInlineText(surface, withText?.textSegments, initialText);
 	}
 	// Compare commits against the same authored-text projection used on close.
 	// `element.text` can include core-generated bullet markers, while the editor
@@ -235,9 +168,17 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	const initialEditableText = readEditableText(surface);
 
 	let closed = false;
+	const readSnapshot = (): InlineTextEditSnapshot | undefined => {
+		const read = listController?.read();
+		return read?.kind === 'supported' ? read.snapshot : undefined;
+	};
 	const close = (commitText: string | null): void => {
 		if (closed) {
 			return;
+		}
+		const snapshot = readSnapshot();
+		if (commitText !== null && snapshot) {
+			commitText = snapshot.text;
 		}
 		closed = true;
 		// `onCommit` fires BEFORE the surface is removed: `a:spAutoFit`
@@ -245,14 +186,28 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		// still-`[data-inline-editor]`-attributed node from inside that
 		// callback (`EditorOperations.commitInlineText`), and a detached node
 		// reports `offsetWidth: 0`, which would break the measurement.
-		if (commitText !== null && commitText !== initialEditableText) {
-			options.onCommit(commitText);
+		if (
+			commitText !== null &&
+			(snapshot
+				? buildInlineTextCommitPatch(element, commitText, snapshot)
+				: commitText !== initialEditableText)
+		) {
+			if (snapshot) {
+				options.onCommit(commitText, snapshot);
+			} else {
+				options.onCommit(commitText);
+			}
 		}
+		listController?.dispose();
 		surface.remove();
 		options.onClose();
 	};
 
 	surface.addEventListener('input', (event) => {
+		if (listController) {
+			listController.refresh();
+			return;
+		}
 		// Chrome can represent Enter between rich-run spans as a cloned sibling
 		// span. Its placeholder BR disappears as soon as the user types, leaving
 		// no delimiter for commit, so annotate the browser-created span itself.
@@ -272,12 +227,36 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		}
 	});
 	surface.addEventListener('pointerdown', (event) => event.stopPropagation());
-	const notifySelection = (): void =>
-		options.onSelectionChange?.(getInlineEditorSelection(withText?.textSegments));
+	const notifySelection = (): void => {
+		const list = listController?.readSelection();
+		options.onSelectionChange?.(
+			list
+				? list.kind === 'supported'
+					? list.selection
+					: null
+				: getInlineEditorSelection(withText?.textSegments),
+		);
+	};
 	surface.addEventListener('keyup', notifySelection);
 	surface.addEventListener('pointerup', notifySelection);
 
+	const attachList = (root: HTMLElement, seed: NonNullable<typeof listSeed>) => {
+		surface.style.textDecoration = 'none';
+		surface.style.textDecorationLine = 'none';
+		textContainer = root;
+		listController = attachInlineListController(root, seed, {
+			isCurrent: () => !closed && surface.isConnected,
+			onRead: (read) =>
+				options.onInput?.(
+					read.kind === 'supported' ? read.snapshot.text : read.text,
+					read.kind === 'supported' ? read.snapshot : undefined,
+				),
+		});
+	};
 	overlayRoot.appendChild(surface);
+	if (listSeed) {
+		attachList(textContainer, listSeed);
+	}
 	surface.focus();
 	// Caret at the END of the seeded text so typing appends (the contract the
 	// other bindings follow; focus alone leaves the caret at the start).
@@ -285,6 +264,11 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 
 	return {
 		el: surface,
+		activateList: (model) =>
+			!closed && (Boolean(listController) || activateInlineTextList(surface, model, attachList)),
+		readSnapshot,
+		readList: () => listController?.read(),
+		formatSnapshot: (snapshot) => listController?.format(snapshot).kind === 'supported',
 		commit: () => close(readEditableText(surface)),
 		cancel: () => close(null),
 	};

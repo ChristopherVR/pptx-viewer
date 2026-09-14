@@ -89,6 +89,22 @@ describe('applyTextStyleUpdate with an inline selection', () => {
 });
 
 describe('applyTextStyleUpdate without a selection', () => {
+	it('updates future typing style in an empty paragraph', () => {
+		const el = textElement([
+			{
+				text: '',
+				style: { fontSize: 20 },
+				paragraphInsertionStyle: { fontSize: 30, italic: true },
+			},
+		]);
+		const { patch } = applyTextStyleUpdate(el, { fontSize: 40, bold: true }, null);
+		expect((patch as TextPatch).textSegments?.[0].paragraphInsertionStyle).toStrictEqual({
+			fontSize: 40,
+			italic: true,
+			bold: true,
+		});
+	});
+
 	it('applies every key to the body and to every run, as before', () => {
 		const el = textElement([seg('a'), seg('b')], { fontSize: 18 });
 		const { patch, newSelection } = applyTextStyleUpdate(

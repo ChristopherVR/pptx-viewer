@@ -62,12 +62,15 @@ import { resolveAutoFitFontScale } from './text-style-helpers';
  * it (see `getOverflowSegments`). It mirrors React's `renderTextSegments`
  * `segmentOverrides` argument, so all five bindings resolve a chain identically.
  * Everything downstream (autofit scale, paragraph indents, bullets) still comes
- * from the element, exactly as React does.
+ * from the element, exactly as React does. Inline editors opt into preserving
+ * trailing empty paragraphs because these are editable caret destinations;
+ * static rendering keeps its established trailing-separator trimming policy.
  */
 export function buildParagraphs(
 	element: PptxElement,
 	fieldContext?: FieldSubstitutionContext,
 	segmentOverrides?: readonly TextSegment[],
+	options?: { preserveTrailingEmpty?: boolean },
 ): RenderParagraph[] {
 	if (!hasTextProperties(element)) {
 		return [];
@@ -252,8 +255,10 @@ export function buildParagraphs(
 			lastContent = i;
 		}
 	}
-	if (lastContent < 0) {
+	if (lastContent < 0 && !options?.preserveTrailingEmpty) {
 		return result.length === 1 ? result : [];
 	}
-	return result.slice(0, lastContent + 1).map((p) => (hasContent(p) ? p : { ...p, isEmpty: true }));
+	return (options?.preserveTrailingEmpty ? result : result.slice(0, lastContent + 1)).map((p) =>
+		hasContent(p) ? p : { ...p, isEmpty: true },
+	);
 }

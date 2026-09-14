@@ -25,6 +25,8 @@ import {
 	cloneSlides,
 	cloneTemplateElementsBySlideId,
 	copyFormatFromElement,
+	overlayInlineTextSnapshot,
+	overlayMasterViewInlineSnapshot,
 	EditorHistory,
 	resolveSlideSizeSelection,
 	saveDeckWithPassword,
@@ -62,9 +64,16 @@ export interface EditorOpsDeps {
 	onHistoryChange(): void;
 	/** Options > Proofing > AutoCorrect, applied to committed inline-edit text. */
 	transformCommittedText?: (text: string) => string;
+	getPendingInlineTextEdit?: () => import('pptx-viewer-shared').PendingInlineTextEdit | undefined;
+	readInlineList?: () => import('pptx-viewer-shared').InlineListReadResult | undefined;
+	formatInlineList?: (snapshot: import('pptx-viewer-shared').InlineTextEditSnapshot) => boolean;
+	cancelInlineList?: () => void;
 }
 
 export interface EditorOps {
+	readInlineList?: () => import('pptx-viewer-shared').InlineListReadResult | undefined;
+	formatInlineList?: (snapshot: import('pptx-viewer-shared').InlineTextEditSnapshot) => boolean;
+	cancelInlineList?: () => void;
 	/** The selected element resolved against (optionally provided) state. */
 	selectedElement(state?: ViewerState): PptxElement | undefined;
 	select(id: string | null, ids?: string[]): void;
@@ -77,7 +86,11 @@ export interface EditorOps {
 	deleteSelected(): void;
 	duplicateSelected(): string | null;
 	nudgeSelected(dx: number, dy: number): void;
-	commitInlineText(id: string, text: string): void;
+	commitInlineText(
+		id: string,
+		text: string,
+		snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot,
+	): void;
 	/** Commit speaker notes and optional rich segments onto the current slide. */
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	/** Change the handout master layout with full undo/save integration. */
@@ -203,6 +216,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 	});
 
 	return {
+		readInlineList: deps.readInlineList,
+		formatInlineList: deps.formatInlineList,
+		cancelInlineList: deps.cancelInlineList,
 		selectedElement,
 		select,
 		pushHistory,
@@ -277,7 +293,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			commitChange();
 		},
 
-		commitInlineText(id, rawText) {
+		commitInlineText(id, rawText, richSnapshot) {
 			const state = store.get();
 			const target = findActiveElement(state, id);
 			if (!target) {
@@ -306,7 +322,7 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 						element.id === id
 							? ({
 									...element,
-									...remapInlineText(target, text),
+									...remapInlineText(target, text, richSnapshot),
 									...(newHeight !== undefined ? { height: newHeight } : {}),
 									...(shrink !== 'unchanged'
 										? {
@@ -438,12 +454,35 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 				throw new Error('No presentation is loaded.');
 			}
 			const state = store.get();
+			const pending = deps.getPendingInlineTextEdit?.();
+			const pendingText = pending
+				? (deps.transformCommittedText?.(pending.snapshot.text) ?? pending.snapshot.text)
+				: undefined;
+			const masterWrite =
+				pending && 'masterView' in pending.target
+					? overlayMasterViewInlineSnapshot(
+							state,
+							pending.target.masterView,
+							pending.snapshot,
+							pendingText,
+						)
+					: null;
+			const slides = buildSaveSlides(state.slides, state.templateElementsBySlideId).map((slide) =>
+				pending && 'slideId' in pending.target && slide.id === pending.target.slideId
+					? {
+							...slide,
+							elements: [
+								...overlayInlineTextSnapshot(slide.elements, pending.snapshot, pendingText),
+							],
+						}
+					: slide,
+			);
 			// File > Info > Protect Presentation: the shared decision routes a
 			// protected deck through `saveEncrypted`, so the downloaded file is an
 			// encrypted OLE2 container rather than a plain ZIP.
 			const bytes = await saveDeckWithPassword(
 				handler,
-				buildSaveSlides(state.slides, state.templateElementsBySlideId),
+				slides,
 				buildDeckSaveOptions({
 					sections: state.sections,
 					coreProperties: state.coreProperties,
@@ -459,9 +498,9 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 					viewProperties: state.viewProperties,
 					customShows: state.customShows,
 					tagCollections: state.tagCollections,
-					slideMasters: state.slideMasters,
-					notesMaster: state.notesMaster,
-					handoutMaster: state.handoutMaster,
+					slideMasters: masterWrite?.slideMasters ?? state.slideMasters,
+					notesMaster: masterWrite?.notesMaster ?? state.notesMaster,
+					handoutMaster: masterWrite?.handoutMaster ?? state.handoutMaster,
 					tableStyleMap: state.tableStyleMap,
 					tableStylesDefaultId: state.tableStylesDefaultId,
 					tableStylesToDelete: state.tableStylesToDelete,

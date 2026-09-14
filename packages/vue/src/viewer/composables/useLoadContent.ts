@@ -34,11 +34,18 @@ import {
 	decodeXmlEntities,
 	parseSignatureXml,
 } from 'pptx-viewer-core';
-import type { DeckSaveIntent, DeckSavePurpose, SlideSizeEmu } from 'pptx-viewer-shared';
+import type {
+	DeckSaveIntent,
+	DeckSavePurpose,
+	PendingInlineTextEdit,
+	SlideSizeEmu,
+} from 'pptx-viewer-shared';
 import {
 	createPresentationLoadResources,
 	applyImagePathPatches,
 	buildDeckSaveOptions,
+	overlayInlineTextSnapshot,
+	overlayMasterViewInlineSnapshot,
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
@@ -259,6 +266,8 @@ export interface UseLoadContentResult {
 }
 
 export interface UseLoadContentOptions {
+	/** Current list edit only; serialization does not blur or commit the editor. */
+	getPendingInlineEdit?: () => PendingInlineTextEdit | undefined;
 	/**
 	 * Called after a parse fully applies to viewer state (slides & co.).
 	 * Collaboration uses this to re-adopt the shared doc's slides when a local
@@ -571,6 +580,32 @@ export function useLoadContent(
 		if (!handler.value) {
 			throw new Error('No presentation is loaded.');
 		}
+		const pending = options?.getPendingInlineEdit?.();
+		const document = {
+			slideMasters: slideMasters.value,
+			notesMaster: notesMaster.value,
+			handoutMaster: handoutMaster.value,
+		};
+		const masterWrite =
+			pending && 'masterView' in pending.target
+				? overlayMasterViewInlineSnapshot(
+						document,
+						pending.target.masterView,
+						pending.snapshot,
+						pending.text,
+					)
+				: null;
+		const saveSlides = buildSaveSlides(slides.value, templateElementsBySlideId.value).map(
+			(slide) =>
+				pending && 'slideId' in pending.target && slide.id === pending.target.slideId
+					? {
+							...slide,
+							elements: [
+								...overlayInlineTextSnapshot(slide.elements, pending.snapshot, pending.text),
+							],
+						}
+					: slide,
+		);
 		// Merge the separately-stored template (master/layout) elements back in
 		// front of (behind) each slide's content before serialising, so template
 		// edits persist. Persist edited document metadata (core properties,
@@ -583,7 +618,7 @@ export function useLoadContent(
 		// (see `deck-save-encryption` in `pptx-viewer-shared`).
 		return saveDeckWithPassword(
 			handler.value,
-			buildSaveSlides(slides.value, templateElementsBySlideId.value),
+			saveSlides,
 			buildDeckSaveOptions({
 				coreProperties: coreProperties.value,
 				customProperties: customProperties.value,
@@ -599,9 +634,9 @@ export function useLoadContent(
 					current: slideSize.value,
 					canvas: canvasSize.value,
 				}).size,
-				slideMasters: slideMasters.value,
-				notesMaster: notesMaster.value,
-				handoutMaster: handoutMaster.value,
+				slideMasters: masterWrite?.slideMasters ?? slideMasters.value,
+				notesMaster: masterWrite?.notesMaster ?? notesMaster.value,
+				handoutMaster: masterWrite?.handoutMaster ?? handoutMaster.value,
 				tagCollections: tagCollections.value,
 				// Without this core falls back to `viewProps.xml` as it was FIRST
 				// opened, so every View-ribbon grid/guide/snap toggle silently

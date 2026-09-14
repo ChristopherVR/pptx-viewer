@@ -11,6 +11,12 @@
  */
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import type { InlineTextSelection } from 'pptx-viewer-shared';
+import {
+	attachInlineListController,
+	createInlineListSeed,
+	initializeInlineListDom,
+	inlineListBodyText,
+} from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -22,9 +28,19 @@ import type { ElementOperations } from './useElementOperations';
 
 const selectionMock = vi.hoisted(() => ({ current: null as InlineTextSelection | null }));
 
-vi.mock(import('../utils/inline-selection-utils'), async (importOriginal) => {
-	const actual = await importOriginal<typeof import('../utils/inline-selection-utils')>();
-	return { ...actual, getInlineEditorSelection: () => selectionMock.current };
+vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
+	const actual = await importOriginal<typeof import('pptx-viewer-shared')>();
+	return {
+		...actual,
+		getInlineEditorSelectionResult: (
+			...args: Parameters<typeof actual.getInlineEditorSelectionResult>
+		) => {
+			const result = actual.getInlineEditorSelectionResult(...args);
+			return result.kind === 'supported' && !result.snapshot
+				? { ...result, selection: selectionMock.current }
+				: result;
+		},
+	};
 });
 
 type TextEl = PptxElement & {
@@ -49,6 +65,7 @@ function textElement(segments: TextSegment[]): PptxElement {
 
 let container: HTMLDivElement;
 let root: Root;
+const listCleanups: Array<() => void> = [];
 
 beforeEach(() => {
 	container = document.createElement('div');
@@ -58,11 +75,39 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+	listCleanups.splice(0).forEach((cleanup) => cleanup());
+	window.getSelection()?.removeAllRanges();
 	act(() => root.unmount());
 	container.remove();
 });
 
-function mount(element: PptxElement): { ops: () => ElementOperations; element: () => TextEl } {
+function nativeList(element: PptxElement, paragraph: number, start: number, end: number) {
+	const seed = createInlineListSeed(element);
+	if (!seed) {
+		throw new Error('Expected a list seed');
+	}
+	const editor = document.createElement('div');
+	editor.contentEditable = 'true';
+	document.body.append(editor);
+	expect(initializeInlineListDom(editor, seed)).toBeTruthy();
+	const controller = attachInlineListController(editor, seed);
+	listCleanups.push(() => {
+		controller.dispose();
+		editor.remove();
+	});
+	const text = editor.children[paragraph].querySelector('[data-pptx-list-run]')!.firstChild!;
+	const range = document.createRange();
+	range.setStart(text, start);
+	range.setEnd(text, end);
+	window.getSelection()!.removeAllRanges();
+	window.getSelection()!.addRange(range);
+	return { editor, controller };
+}
+
+function mount(
+	element: PptxElement,
+	editing = false,
+): { ops: () => ElementOperations; element: () => TextEl } {
 	let slides: PptxSlide[] = [{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [element] }];
 	let latest: ElementOperations | undefined;
 
@@ -85,7 +130,7 @@ function mount(element: PptxElement): { ops: () => ElementOperations; element: (
 			setSelectedElementIds: vi.fn(),
 			setInlineEditingElementId: vi.fn(),
 			setContextMenuState: vi.fn(),
-			inlineEditingElementId: null,
+			inlineEditingElementId: editing ? element.id : null,
 			inlineEditingText: '',
 		});
 		return null;
@@ -142,5 +187,92 @@ describe('toggleSelectedBullets', () => {
 		]);
 		act(() => h.ops().toggleSelectedBullets('numbered'));
 		expect(h.element().textSegments?.map((s) => s.text)).toStrictEqual(['A', '\n', 'B']);
+	});
+});
+
+describe('merged style scope with a current native list draft', () => {
+	const draft = () =>
+		textElement([
+			{
+				text: 'First',
+				style: { fontSize: 18 },
+				bulletInfo: { char: '◆' },
+				paragraphProperties: { paragraphSpacingAfter: 12 },
+			},
+			{ text: '\n', style: {}, isParagraphBreak: true },
+			{
+				text: 'Typed words',
+				style: { fontSize: 32 },
+				bulletInfo: { char: '◆' },
+				paragraphLevel: 1,
+				paragraphProperties: { paragraphSpacingAfter: 22 },
+			},
+		]);
+
+	it.each([0, 6])('toggles only the native caret paragraph at offset %i', (offset) => {
+		const source = draft();
+		const h = mount(source, true);
+		nativeList(source, 1, offset, offset);
+		act(() => h.ops().toggleSelectedBullets('bullet'));
+		const segments = h.element().textSegments!;
+		expect(segments.find((segment) => segment.text === 'First')?.bulletInfo?.none).toBeFalsy();
+		expect(
+			segments.find((segment) => segment.text === 'Typed words')?.bulletInfo?.none,
+		).toBeTruthy();
+	});
+
+	it('combines body and selected-run updates without losing fresh text or paragraph provenance', () => {
+		const h = mount(textElement([{ text: 'Old model', style: {} }]), true);
+		const { controller } = nativeList(draft(), 1, 6, 11);
+		act(() => h.ops().updateSelectedTextStyle({ bold: true, vAlign: 'bottom' }));
+		expect(h.element()).toMatchObject({
+			text: 'First\nTyped words',
+			textStyle: { vAlign: 'bottom' },
+		});
+		const read = controller.read();
+		expect(read.kind).toBe('supported');
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		expect(read.snapshot.textSegments).toStrictEqual(h.element().textSegments);
+		expect(h.element().textSegments?.find((run) => run.text === 'words')?.style.bold).toBeTruthy();
+		expect(h.element().textSegments?.find((run) => run.text === 'Typed ')?.style.bold).toBeFalsy();
+		expect(
+			h.element().textSegments?.find((run) => run.paragraphLevel === 1)?.paragraphProperties,
+		).toStrictEqual({ paragraphSpacingAfter: 22 });
+	});
+
+	it('toggles only the fresh selected paragraph and rejects a composing draft before a model write', () => {
+		const original = textElement([{ text: 'Old model', style: {} }]);
+		const h = mount(original, true);
+		const { editor, controller } = nativeList(draft(), 1, 0, 11);
+		act(() => h.ops().toggleSelectedBullets('bullet'));
+		const read = controller.read();
+		expect(read.kind).toBe('supported');
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		expect(read.paragraphs.map((paragraph) => paragraph.bulletMarker)).toStrictEqual([
+			'◆',
+			undefined,
+		]);
+		expect(inlineListBodyText(read.snapshot.textSegments!)).toBe('First\nTyped words');
+		expect(h.element().textSegments).toStrictEqual(read.snapshot.textSegments);
+		const before = h.element();
+		editor.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+		act(() => h.ops().toggleSelectedBullets('numbered'));
+		expect(h.element()).toBe(before);
+	});
+
+	it('rejects another live controller with the same element ID when this hook is not editing', () => {
+		const original = textElement([{ text: 'Inactive viewer', style: {} }]);
+		const h = mount(original);
+		nativeList(draft(), 1, 0, 11);
+		act(() => {
+			h.ops().updateSelectedTextStyle({ bold: true });
+			h.ops().toggleSelectedBullets('numbered');
+			h.ops().updateSelectedTextCase('upper');
+		});
+		expect(h.element()).toBe(original);
 	});
 });

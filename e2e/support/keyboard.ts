@@ -30,6 +30,11 @@ export const SLIDE_WIDTH_PX = 1280;
 /** What had to happen for the next keystroke to reach the viewer. */
 export type FocusState = 'kept' | 'repaired' | 'unfocusable';
 
+/** Insert a paragraph with the native Enter gesture, not a soft line break. */
+export async function insertInlineParagraph(editor: Locator): Promise<void> {
+	await editor.press('Enter');
+}
+
 /**
  * Ensure the next keystroke is delivered inside the viewer.
  *

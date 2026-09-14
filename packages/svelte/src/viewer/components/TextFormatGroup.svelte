@@ -35,18 +35,18 @@
 
 	function toggle(flag: 'bold' | 'italic' | 'underline'): void {
 		if (el) {
-			editor.patchSelected(toggleTextFlagPatch(el, flag));
+			editor.patchSelected((current) => toggleTextFlagPatch(current, flag));
 		}
 	}
 	function step(delta: number): void {
 		if (el) {
-			editor.patchSelected(adjustFontSizePatch(el, delta));
+			editor.patchSelected((current) => adjustFontSizePatch(current, delta));
 		}
 	}
 	function setSize(value: string): void {
 		const n = Number(value);
 		if (el && Number.isFinite(n)) {
-			editor.patchSelected(setFontSizePatch(el, n));
+			editor.patchSelected((current) => setFontSizePatch(current, n));
 		}
 	}
 </script>

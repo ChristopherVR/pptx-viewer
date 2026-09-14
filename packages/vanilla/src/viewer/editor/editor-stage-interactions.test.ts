@@ -105,6 +105,78 @@ function setup() {
 }
 
 describe('stage interactions: touch inline editing', () => {
+	it('activates a plain editor once after a list command and retains the body caret', () => {
+		const { store, interactions, el1, doubleTap, editorSurface, cleanup } = setup();
+		doubleTap(el1);
+		const surface = editorSurface()!;
+		const range = document.createRange();
+		range.setStart(surface.querySelector('[data-seg-idx]')!.firstChild!, 3);
+		range.collapse(true);
+		window.getSelection()!.removeAllRanges();
+		window.getSelection()!.addRange(range);
+		const element = store.get().slides[0].elements[0];
+		store.set({
+			slides: [
+				{
+					...store.get().slides[0],
+					elements: [
+						{
+							...element,
+							textSegments: [{ text: 'TARGET', style: {}, bulletInfo: { char: '◆' } }],
+						} as PptxElement,
+					],
+				},
+			],
+		});
+		const read = interactions.readInlineList!();
+		expect(read?.kind).toBe('supported');
+		const first = surface.querySelector('[data-pptx-list-paragraph]');
+		expect(first).not.toBeNull();
+		expect(window.getSelection()!.anchorOffset).toBe(3);
+		interactions.readInlineList!();
+		expect(surface.querySelector('[data-pptx-list-paragraph]')).toBe(first);
+		cleanup();
+	});
+
+	it('reconciles same-body style Undo and retires replaced list text before pending save', () => {
+		const { store, interactions, el1, doubleTap, editorSurface, cleanup } = setup();
+		const original = {
+			...textElement('el-1', 'TARGET'),
+			textSegments: [{ text: 'TARGET', style: { bold: false }, bulletInfo: { char: '◆' } }],
+		} as PptxElement;
+		const replace = (element: PptxElement) =>
+			store.set({ slides: [{ ...store.get().slides[0], elements: [element] }] });
+		replace(original);
+		doubleTap(el1);
+		const first = editorSurface()!.querySelector('[data-pptx-list-paragraph]');
+		const read = interactions.readInlineList!();
+		if (read?.kind !== 'supported') {
+			throw new Error('supported fixture');
+		}
+		const formatted = {
+			...read.snapshot,
+			textSegments: read.snapshot.textSegments!.map((segment) => ({
+				...segment,
+				style: { ...segment.style, bold: true },
+			})),
+		};
+		expect(interactions.formatInlineList!(formatted)).toBeTruthy();
+		replace({ ...original, textSegments: formatted.textSegments } as PptxElement);
+		// Same-tick model Undo, before a store subscriber has read the formatted model.
+		replace(original);
+		const undone = interactions.readPendingInlineTextEdit!();
+		expect(
+			undone?.snapshot.textSegments?.some((segment) => segment.style.bold === true),
+		).toBeFalsy();
+		expect(editorSurface()!.querySelector('[data-pptx-list-paragraph]')).toBe(first);
+		replace(textElement('el-1', 'Replacement'));
+		expect(interactions.readPendingInlineTextEdit!()).toBeUndefined();
+		expect(editorSurface()).toBeNull();
+		const replaced = store.get().slides[0].elements[0];
+		expect('text' in replaced && replaced.text).toBe('Replacement');
+		cleanup();
+	});
+
 	it('opens the inline editor on a touch double-tap (no native dblclick)', () => {
 		const { interactions, el1, doubleTap, editorSurface, cleanup } = setup();
 		doubleTap(el1);

@@ -42,6 +42,17 @@ const texts = (patch: Partial<PptxElement>): string[] =>
 	(patch as { textSegments: TextSegment[] }).textSegments.map((s) => s.text);
 
 describe('selectionBulletKind', () => {
+	it('does not include the next paragraph when the range ends at its start', () => {
+		const el = textElement([...loadedBullet('A'), brk(), seg('B')]);
+		const selection = { startSegIdx: 1, startOffset: 0, endSegIdx: 3, endOffset: 0 };
+		expect(selectionBulletKind(el, selection)).toBe('bullet');
+		expect(texts(toggleSelectionBullets(el, 'bullet', selection).patch)).toStrictEqual([
+			'A',
+			'\n',
+			'B',
+		]);
+	});
+
 	it('reads the paragraphs the selection intersects, mixed when they disagree', () => {
 		const el = textElement([...loadedBullet('A'), brk(), seg('B'), brk(), seg('C')]);
 		expect(
@@ -58,6 +69,69 @@ describe('selectionBulletKind', () => {
 });
 
 describe('toggleSelectionBullets', () => {
+	it.each([
+		{ index: 0, offset: 1, expectedIndex: 1, expectedOffset: 1 },
+		{ index: 1, offset: 0, expectedIndex: 2, expectedOffset: 0 },
+	])(
+		'retains explicit run-boundary affinity at $index/$offset',
+		({ index, offset, expectedIndex, expectedOffset }) => {
+			const el = textElement([seg('A'), seg('B', { style: { bold: true } })]);
+			const { newSelection } = setSelectionBullets(el, 'bullet', {
+				startSegIdx: index,
+				startOffset: offset,
+				endSegIdx: index,
+				endOffset: offset,
+			});
+			expect(newSelection).toStrictEqual({
+				startSegIdx: expectedIndex,
+				startOffset: expectedOffset,
+				endSegIdx: expectedIndex,
+				endOffset: expectedOffset,
+			});
+		},
+	);
+
+	it('keeps a selected empty item caret on that item after changing its marker', () => {
+		const el = textElement([
+			seg('A'),
+			brk(),
+			seg('◆ ', {
+				bulletInfo: { char: '◆' },
+				paragraphInsertionStyle: { fontSize: 30 },
+			}),
+		]);
+		const { patch, newSelection } = setSelectionBullets(el, 'numbered', {
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 0,
+		});
+		expect(texts(patch)).toStrictEqual(['A', '\n', '1.']);
+		expect(newSelection).toStrictEqual({
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 0,
+		});
+	});
+
+	it('can apply an explicit collapsed selection at the start of a later paragraph', () => {
+		const el = textElement([seg('A'), brk(), seg('B')]);
+		const { patch, newSelection } = setSelectionBullets(el, 'bullet', {
+			startSegIdx: 2,
+			startOffset: 0,
+			endSegIdx: 2,
+			endOffset: 0,
+		});
+		expect(texts(patch)).toStrictEqual(['A', '\n', '• ', 'B']);
+		expect(newSelection).toStrictEqual({
+			startSegIdx: 3,
+			startOffset: 0,
+			endSegIdx: 3,
+			endOffset: 0,
+		});
+	});
+
 	it('bullets only the selected paragraph and shifts the selection past its marker', () => {
 		const el = textElement([seg('A'), brk(), seg('B'), brk(), seg('C')]);
 		const { patch, newSelection } = toggleSelectionBullets(el, 'bullet', {
@@ -108,7 +182,74 @@ describe('toggleSelectionBullets', () => {
 			endOffset: 1,
 		});
 		const segments = (patch as { textSegments: TextSegment[] }).textSegments;
-		expect(segments[3].bulletInfo).toStrictEqual({ none: true });
+		expect(segments[3].bulletInfo).toStrictEqual({ char: '•', none: true });
+	});
+
+	it('numbers nested paragraphs independently at each level', () => {
+		const el = textElement([
+			seg('A', { paragraphLevel: 0 }),
+			brk(),
+			seg('B', { paragraphLevel: 1 }),
+			brk(),
+			seg('C', { paragraphLevel: 1 }),
+			brk(),
+			seg('D', { paragraphLevel: 0 }),
+		]);
+		const { patch } = setSelectionBullets(el, 'numbered', null);
+		expect(texts(patch)).toStrictEqual([
+			'1.',
+			'A',
+			'\n',
+			'1.',
+			'B',
+			'\n',
+			'2.',
+			'C',
+			'\n',
+			'2.',
+			'D',
+		]);
+	});
+
+	it('converts an empty listed paragraph and retains its insertion style', () => {
+		const el = textElement([
+			seg('◆ ', {
+				bulletInfo: { char: '◆' },
+				paragraphInsertionStyle: { fontSize: 30, italic: true },
+			}),
+		]);
+		const { patch } = setSelectionBullets(el, 'numbered', null);
+		expect(texts(patch)).toStrictEqual(['1.']);
+		expect(
+			'textSegments' in patch && patch.textSegments?.[0].paragraphInsertionStyle,
+		).toStrictEqual({
+			fontSize: 30,
+			italic: true,
+		});
+	});
+
+	it('restores custom marker metadata when toggling a selection off and on', () => {
+		const el = textElement([
+			seg('◆ ', { bulletInfo: { char: '◆', fontFamily: 'Wingdings', sizePercent: 75 } }),
+			seg('Body'),
+		]);
+		const off = toggleSelectionBullets(el, 'bullet', {
+			startSegIdx: 1,
+			startOffset: 0,
+			endSegIdx: 1,
+			endOffset: 4,
+		});
+		const on = toggleSelectionBullets(
+			{ ...el, ...off.patch } as PptxElement,
+			'bullet',
+			off.newSelection,
+		);
+		expect(texts(on.patch)).toStrictEqual(['◆ ', 'Body']);
+		expect('textSegments' in on.patch && on.patch.textSegments?.[0].bulletInfo).toMatchObject({
+			char: '◆',
+			fontFamily: 'Wingdings',
+			sizePercent: 75,
+		});
 	});
 
 	it('applies the kind to a mixed selection rather than turning it off', () => {

@@ -34,6 +34,49 @@ function trigger(el: HTMLElement, label: string): HTMLButtonElement {
 const formattable = { canFormat: true, editable: true, text: {} as never };
 
 describe('createParagraphGroup', () => {
+	it('keeps inline focus and selection before pointer list commands', () => {
+		const surface = document.createElement('div');
+		surface.contentEditable = 'true';
+		surface.tabIndex = 0;
+		surface.textContent = 'Body';
+		const blur = vi.fn();
+		surface.addEventListener('blur', blur);
+		const handlers = paragraphHandlers();
+		const t = createTranslator();
+		const group = createParagraphGroup(document, t, handlers);
+		group.update(formattable);
+		document.body.append(surface, group.el);
+		surface.focus();
+		const range = document.createRange();
+		range.setStart(surface.firstChild!, 2);
+		range.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(range);
+		try {
+			for (const label of ['pptx.text.bulletList', 'pptx.text.numberedList']) {
+				const button = trigger(group.el, t(label));
+				const down = new MouseEvent('mousedown', { bubbles: true, cancelable: true });
+				button.dispatchEvent(down);
+				// Model the native focus default which jsdom does not perform.
+				if (!down.defaultPrevented) {
+					button.focus();
+				}
+				button.click();
+				expect(down.defaultPrevented).toBeTruthy();
+				expect(document.activeElement).toBe(surface);
+				expect(selection.anchorNode).toBe(surface.firstChild);
+				expect(selection.anchorOffset).toBe(2);
+			}
+			expect(blur).not.toHaveBeenCalled();
+			expect(handlers.toggleBulletList).toHaveBeenCalledOnce();
+			expect(handlers.toggleNumberedList).toHaveBeenCalledOnce();
+		} finally {
+			surface.remove();
+			group.el.remove();
+		}
+	});
+
 	it('reads loaded bullets and updates real markers and pressed state on clicks', () => {
 		let element = {
 			type: 'text',

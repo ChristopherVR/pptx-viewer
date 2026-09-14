@@ -196,12 +196,14 @@ defineProps<{
 
 	<InlineTextEditor
 		v-if="canEdit && inlineEdit.inlineEditingElement.value"
+		:key="inlineEdit.inlineEditingElement.value.id"
 		:element="inlineEdit.inlineEditingElement.value"
 		:spell-check="spellCheckEnabled"
 		@change="inlineEdit.updateInlineText"
 		@commit="inlineEdit.commitInlineEdit"
 		@cancel="inlineEdit.cancelInlineEdit"
 		@format="onFormat"
+		@list-session="inlineEdit.onListSession"
 	/>
 
 	<CollaborationCursors

@@ -51,6 +51,22 @@ describe('contentSegmentsInSelection', () => {
 });
 
 describe('getSelectionTextStyleFlags', () => {
+	it('ignores zero-width endpoints when deciding whether to turn formatting off', () => {
+		const segments = [seg('off'), seg('BOLD', { bold: true }), seg('off')];
+		const flags = getSelectionTextStyleFlags(
+			segments,
+			{
+				startSegIdx: 0,
+				startOffset: 3,
+				endSegIdx: 2,
+				endOffset: 0,
+			},
+			{},
+		);
+		expect(flags.bold).toBe('on');
+		expect(nextToggleValue(flags.bold)).toBeFalsy();
+	});
+
 	it('reads a run-level bold the body does not carry as on', () => {
 		const segments = [seg('Hello '), seg('world', { bold: true })];
 		const flags = getSelectionTextStyleFlags(

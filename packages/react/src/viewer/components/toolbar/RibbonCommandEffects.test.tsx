@@ -184,6 +184,7 @@ describe('text > font size stepper', () => {
 					}
 					onUpdateTextStyle={onUpdateTextStyle}
 					onTransformTextCase={() => {}}
+					onToggleBullets={() => {}}
 				/>,
 			);
 		});
@@ -214,6 +215,7 @@ describe('text > font size stepper', () => {
 					}
 					onUpdateTextStyle={onUpdateTextStyle}
 					onTransformTextCase={() => {}}
+					onToggleBullets={() => {}}
 				/>,
 			);
 		});

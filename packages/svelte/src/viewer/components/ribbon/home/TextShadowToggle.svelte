@@ -29,7 +29,7 @@
 	aria-pressed={on}
 	aria-label={t('pptx.textEffects.shadow')}
 	title={t('pptx.textEffects.shadow')}
-	onclick={() => el && editor.patchSelected(toggleTextShadowPatch(el))}
+	onclick={() => el && editor.patchSelected((current) => toggleTextShadowPatch(current))}
 >
 	<svg viewBox="0 0 16 16" aria-hidden="true">
 		<text x="3.5" y="12" font-size="11" font-weight="700" fill="currentColor" opacity="0.35">A</text>

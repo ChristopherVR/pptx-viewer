@@ -9,7 +9,11 @@ import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { isBulletMarkerSegment } from './bullet-toggle';
 import { updateTextSegmentStyle } from './update-text-segment-style';
 
-export { getInlineEditorSelection } from './inline-editor-selection';
+export {
+	getInlineEditorSelection,
+	getInlineEditorSelectionResult,
+} from './inline-editor-selection';
+export type { InlineEditorSelectionResult } from './inline-editor-selection';
 
 /** Describes which segments (and offsets within them) are selected. */
 export interface InlineTextSelection {

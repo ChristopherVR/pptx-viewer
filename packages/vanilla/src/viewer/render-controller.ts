@@ -292,7 +292,25 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		const scale = effectiveScaleFor(pageSize);
 		chrome.stageWrap.style.width = `${pageSize.width * scale}px`;
 		chrome.stageWrap.style.height = `${pageSize.height * scale}px`;
-		chrome.stageWrap.replaceChildren();
+		// A live list owns native selection/history. Repaint its model underneath
+		// the existing overlay without detaching (or re-appending) that surface.
+		const liveOverlay =
+			hasContent && state.editable && !state.presenting && !state.loading
+				? Array.from(chrome.stageWrap.children).find(
+						(node) =>
+							node.classList.contains('pptxv-editor-overlay') &&
+							node.querySelector('[data-pptx-list-session]'),
+					)
+				: undefined;
+		if (liveOverlay) {
+			for (const child of Array.from(chrome.stageWrap.childNodes)) {
+				if (child !== liveOverlay) {
+					child.remove();
+				}
+			}
+		} else {
+			chrome.stageWrap.replaceChildren();
+		}
 		let stageNode: HTMLElement | null = null;
 		if (specialMaster) {
 			const selectedMaster =
@@ -350,7 +368,7 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 			}
 		}
 		if (stageNode && slide) {
-			chrome.stageWrap.appendChild(stageNode);
+			chrome.stageWrap.insertBefore(stageNode, liveOverlay ?? null);
 		}
 		// React shows zoom relative to fit-to-viewport (fit === 100%), so the
 		// default reads 100% instead of the raw stage scale factor.

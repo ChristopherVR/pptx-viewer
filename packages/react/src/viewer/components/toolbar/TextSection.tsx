@@ -33,6 +33,7 @@ import {
 	textSectionFlags,
 } from './text-section-state';
 import { gB, gL, grp, FMT, ATXT, pill, ic, sep } from './toolbar-constants';
+import { useParagraphListKind } from './useParagraphListKind';
 
 /** Pressed look for a toggle whose state is on. */
 const ON = 'bg-primary/20 ring-1 ring-primary';
@@ -73,9 +74,12 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	// Pressed state over the whole element (the DOM selection is only read at
 	// click time, since the ribbon does not re-render as the caret moves).
 	const pressedFlags = textSectionFlags(p.selectedElement, p.tableEditorState, false);
-	const bulletKind = textSectionBulletKind(p.selectedElement, p.tableEditorState);
+	const selectedListKind = useParagraphListKind(p.selectedElement);
+	const bulletKind = isTextEl
+		? selectedListKind
+		: textSectionBulletKind(p.selectedElement, p.tableEditorState);
 	const toggleBullets = (kind: 'bullet' | 'numbered'): void => {
-		if (!canFormat || !p.selectedElement) {
+		if (!p.canEdit || !canFormat || !p.selectedElement) {
 			return;
 		}
 		if (hasTextProperties(p.selectedElement)) {

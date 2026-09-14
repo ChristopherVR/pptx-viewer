@@ -18,10 +18,16 @@ import {
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
+import { hasTextProperties } from 'pptx-viewer-core';
 
-import { elementBulletKind } from '../internal/shared';
+import {
+	elementBulletKind,
+	getInlineEditorSelectionResult,
+	selectionBulletKind,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 
 /** Line spacing multiplier presets. */
 const LINE_SPACING_OPTIONS = [1.0, 1.15, 1.5, 2.0, 2.5, 3.0];
@@ -64,6 +70,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
 				[attr.aria-pressed]="listKind() === 'bullet'"
 				[title]="'pptx.ribbon.bulletList' | translate"
+				(mousedown)="$event.preventDefault()"
 				(click)="toggleList('bullet')"
 			>
 				<svg lucideList class="h-4 w-4"></svg>
@@ -75,6 +82,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
 				[attr.aria-pressed]="listKind() === 'numbered'"
 				[title]="'pptx.notes.numberedList' | translate"
+				(mousedown)="$event.preventDefault()"
 				(click)="toggleList('numbered')"
 			>
 				<svg lucideListOrdered class="h-4 w-4"></svg>
@@ -183,6 +191,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 })
 export class RibbonParagraphControlsComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
@@ -221,7 +230,19 @@ export class RibbonParagraphControlsComponent {
 		if (!this.canEdit()) {
 			return;
 		}
-		this.patch({ listType: this.listKind() === kind ? 'none' : kind });
+		const element = this.selectedElement();
+		if (!element || !hasTextProperties(element)) {
+			return;
+		}
+		const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
+		if (
+			result.kind !== 'supported' ||
+			(result.snapshot && result.snapshot.elementId !== element.id)
+		) {
+			return;
+		}
+		const current = selectionBulletKind(element, result.selection, result.snapshot?.textSegments);
+		this.patch({ listType: current === kind ? 'none' : kind });
 	}
 	/** Step the paragraph left-indent by `deltaPx` (clamped at 0). */
 	protected changeIndent(deltaPx: number): void {
@@ -242,6 +263,13 @@ export class RibbonParagraphControlsComponent {
 	}
 
 	private patch(patch: Parameters<typeof patchTextStyle>[3]): void {
-		patchTextStyle(this.editor, this.slideIndex(), this.selectedElement(), patch);
+		patchTextStyle(
+			this.editor,
+			this.slideIndex(),
+			this.selectedElement(),
+			patch,
+			this.inlineEditing?.readInlineSnapshot(),
+			(next) => this.inlineEditing?.formatInlineSnapshot(next) ?? false,
+		);
 	}
 }

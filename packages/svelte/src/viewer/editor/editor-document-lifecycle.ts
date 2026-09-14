@@ -13,7 +13,11 @@ import type {
 	PptxSlideMaster,
 	PptxTagCollection,
 } from 'pptx-viewer-core';
-import { partitionTemplateElements } from 'pptx-viewer-shared';
+import {
+	overlayInlineTextSnapshot,
+	overlayMasterViewInlineSnapshot,
+	partitionTemplateElements,
+} from 'pptx-viewer-shared';
 
 import { createEditorSnapshot, saveEditorDocument } from './editor-document-state';
 import type { EditorSnapshot } from './editor-document-state';
@@ -92,6 +96,10 @@ export function loadEditorDocument(state: EditorState, ...args: LoadDocumentArgs
 
 /** Clear the editing session (selection, history, dirty flag) without touching content. */
 export function resetEditorSession(state: EditorState): void {
+	state.cancelInlineListEdit?.();
+	state.cancelInlineListEdit = undefined;
+	state.readPendingInlineTextEdit = undefined;
+	state.inlineListController = undefined;
 	state.masterViewTarget = null;
 	state.selection.clear();
 	state.editTemplateMode = false;
@@ -209,9 +217,28 @@ export async function serializeEditorState(
 	if (!handler) {
 		throw new Error('No presentation is loaded.');
 	}
+	const pending = state.readPendingInlineTextEdit?.();
+	const document = state.snapshot();
+	const masterWrite =
+		pending && 'masterView' in pending.target
+			? overlayMasterViewInlineSnapshot(
+					document,
+					pending.target.masterView,
+					pending.snapshot,
+					pending.text,
+				)
+			: null;
+	const slides = state.renderedSlides.map((slide) =>
+		pending && 'slideId' in pending.target && pending.target.slideId === slide.id
+			? {
+					...slide,
+					elements: [...overlayInlineTextSnapshot(slide.elements, pending.snapshot, pending.text)],
+				}
+			: slide,
+	);
 	return saveEditorDocument(
 		handler,
-		{ ...state.snapshot(), slides: state.renderedSlides },
+		{ ...document, ...masterWrite, slides },
 		format,
 		// File ▸ Info ▸ Protect Presentation: encrypts the output when set.
 		state.saveIntent(),

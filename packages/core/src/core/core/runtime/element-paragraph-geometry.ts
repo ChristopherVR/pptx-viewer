@@ -45,7 +45,7 @@ import type { TextStyle, XmlObject } from '../../types';
  * style. `a:defRPr` and `a:extLst` are deliberately absent: they are opaque
  * subtrees captured per paragraph and are left on the paragraph writer.
  */
-const ELEMENT_PARAGRAPH_GEOMETRY_KEYS = [
+export const ELEMENT_PARAGRAPH_GEOMETRY_KEYS = [
 	'align',
 	'rtl',
 	'paragraphMarginLeft',

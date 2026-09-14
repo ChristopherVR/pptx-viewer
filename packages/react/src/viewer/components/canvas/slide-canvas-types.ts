@@ -11,6 +11,7 @@ import type {
 /**
  * SlideCanvas: Type definitions for the canvas component props.
  */
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type {
@@ -68,7 +69,7 @@ export interface SlideCanvasProps {
 		e: React.MouseEvent,
 		descriptor: ShapeAdjustmentHandleDescriptor,
 	) => void;
-	onInlineEditChange: (text: string) => void;
+	onInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	onInlineEditCommit: () => void;
 	onInlineEditCancel: () => void;
 	onTableCellSelect: (

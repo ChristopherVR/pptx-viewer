@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
-import type { PlaceholderPromptMode } from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot, PlaceholderPromptMode } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { TableCellEditorState } from '../../types';
@@ -36,7 +36,7 @@ export interface RenderBodyOptions {
 	doGrp: boolean;
 	/** Optional rich read-only dispatcher for children inside a grouped element. */
 	renderGroupChild?: (child: PptxElement, index: number) => React.ReactNode;
-	onEditChange: (t: string) => void;
+	onEditChange: (t: string, snapshot?: InlineTextEditSnapshot) => void;
 	onCommit: () => void;
 	onCancel: () => void;
 	onCellSel?: (c: TableCellEditorState | null) => void;

@@ -1,4 +1,5 @@
 import { isAdditiveSelectionPress } from 'pptx-viewer-shared';
+import type { PendingInlineTextEdit } from 'pptx-viewer-shared';
 
 import { findActiveElement } from './editor-active-elements';
 import {
@@ -15,6 +16,11 @@ import { createElementDoubleTapRecognizer } from './element-double-tap';
 import { resolveTopLevelElementId } from './element-hit';
 import type { InlineEditorSession } from './inline-text-editor';
 import { canInlineEditElement, openInlineEditor } from './inline-text-editor';
+import {
+	inlineTextTargetIsCurrent,
+	observeInlineTextModel,
+	pendingInlineTextModel,
+} from './inline-text-model';
 import { createShapeAdjustGesture } from './shape-adjust-gesture';
 import { handleStructuredDblClick } from './structured-dblclick';
 import type { TableCellEditorSession } from './table-cell-editor';
@@ -23,6 +29,8 @@ import { bindTableTouchEditor } from './table-touch-editor';
 export function createStageInteractions(deps: StageInteractionsDeps): StageInteractions {
 	const { doc, store, ops } = deps;
 	let inline: InlineEditorSession | null = null;
+	let inlineTarget: PendingInlineTextEdit['target'] | undefined;
+	let modelObserver: ReturnType<typeof observeInlineTextModel> | undefined;
 	let tableInline: TableCellEditorSession | null = null;
 	const disposeTableTouch = bindTableTouchEditor({
 		doc,
@@ -63,12 +71,16 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		tableInline = null;
 		const session = inline;
 		inline = null;
+		inlineTarget = undefined;
+		modelObserver = undefined;
 		if (commit) {
 			session?.commit();
 		} else {
 			session?.cancel();
 		}
 	};
+
+	const readInlineList = () => modelObserver?.read() ?? inline?.readList();
 
 	/**
 	 * Find this element's own rendered node on the stage (not the inline
@@ -101,6 +113,11 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		ops.select(id);
 		overlay.setEditing(true);
 		setStaticTextSuppressed(id, true);
+		inlineTarget = state.masterViewTarget
+			? { masterView: { tab: state.masterViewTab, ...state.masterViewTarget } }
+			: state.slides[state.currentSlide]
+				? { slideId: state.slides[state.currentSlide].id }
+				: undefined;
 		inline = openInlineEditor({
 			doc,
 			overlayRoot: overlay.root,
@@ -109,19 +126,29 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			element: el,
 			spellCheck: state.spellCheckEnabled,
 			onInput: (text) => deps.onInlineTextInput?.(id, text),
-			onCommit: (text) => {
+			onCommit: (text, snapshot) => {
 				// Flush the queued live-preview frame first so it cannot land after
 				// the committed text and revert it.
 				deps.flushInlineTextInput?.();
-				ops.commitInlineText(id, text);
+				ops.commitInlineText(id, text, snapshot);
 			},
 			onSelectionChange: (selection) => store.set({ selectedTextRange: selection }),
 			onClose() {
 				inline = null;
+				inlineTarget = undefined;
 				deps.getOverlay()?.setEditing(false);
 				setStaticTextSuppressed(id, false);
 			},
 		});
+		modelObserver = observeInlineTextModel(
+			el,
+			() => inline,
+			() => findActiveElement(store.get(), id),
+			() => closeInline(false),
+			() =>
+				inlineTextTargetIsCurrent(store.get(), inlineTarget) &&
+				state.editTemplateMode === store.get().editTemplateMode,
+		);
 	};
 
 	/** Shared dblclick / touch-double-tap activation: structured editors first, then inline text. */
@@ -253,6 +280,10 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		},
 		beginAdjustGesture: (event, descriptor) => adjustGesture.begin(event, descriptor),
 		closeInline,
+		readInlineList,
+		formatInlineList: (snapshot) => modelObserver?.format(snapshot) ?? false,
+		readPendingInlineTextEdit: () =>
+			pendingInlineTextModel(store.get(), inlineTarget, readInlineList()),
 		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {
 			closeInline(false);

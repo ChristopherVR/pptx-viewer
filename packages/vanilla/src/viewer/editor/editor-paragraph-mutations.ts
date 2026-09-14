@@ -1,5 +1,10 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
-import { remapTextToSegments, toggleElementBullets } from 'pptx-viewer-shared';
+import {
+	getInlineEditorSelectionResult,
+	remapTextToSegments,
+	toggleSelectionBullets,
+} from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 
 import { canFormatText, readTextFormatState } from './editor-format-mutations';
 import { currentInlineEditorText } from './inline-text-editor';
@@ -8,9 +13,8 @@ import { currentInlineEditorText } from './inline-text-editor';
  * Paragraph-level formatting-patch builders for the vanilla editor
  * (list type, indent, alignment, line spacing). Split out of
  * `editor-format-mutations.ts` (character-level formatting) to keep both
- * files within the project's file-size budget; same whole-element scope note
- * applies (see that module's docs): there is no per-paragraph selection model
- * in this binding, so these toggles apply element-wide.
+ * files within the project's file-size budget. List commands use the active
+ * paragraph selection or caret; the other controls retain whole-element scope.
  */
 
 /** Indent step in px applied by the increase/decrease indent buttons. */
@@ -28,26 +32,32 @@ function patchTextStyle(el: PptxElement, patch: Partial<TextStyle>): Partial<Ppt
 	return segments ? { textStyle, textSegments: segments } : { textStyle };
 }
 
-/** Toggle the paragraph list type (bullet/numbered) element-wide; re-clicking clears it. */
+/** Toggle the selected paragraphs' list type; without an inline selection, target the element. */
 export function toggleListType(
 	el: PptxElement,
 	kind: Exclude<TextStyle['listType'], 'none' | undefined>,
+	snapshot?: InlineTextEditSnapshot,
 ): Partial<PptxElement> {
 	if (!canFormatText(el)) {
 		return {};
 	}
-	const liveText = currentInlineEditorText();
+	const liveText = snapshot?.text ?? currentInlineEditorText();
 	const current =
 		liveText === undefined
 			? el
 			: {
 					...el,
 					text: liveText,
-					textSegments: remapTextToSegments(liveText, el.textSegments, el.textStyle),
+					textSegments:
+						snapshot?.textSegments ?? remapTextToSegments(liveText, el.textSegments, el.textStyle),
 				};
+	const result = getInlineEditorSelectionResult(current.textSegments, { preserveCaret: true });
+	if (result.kind !== 'supported' || (result.snapshot && result.snapshot.elementId !== el.id)) {
+		return {};
+	}
 	return {
 		...(liveText === undefined ? {} : { text: liveText }),
-		...toggleElementBullets(current, kind),
+		...toggleSelectionBullets(current, kind, result.selection, result.snapshot?.textSegments).patch,
 	};
 }
 

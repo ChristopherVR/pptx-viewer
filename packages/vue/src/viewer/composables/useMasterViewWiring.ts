@@ -15,6 +15,7 @@ import type {
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
 import {
+	buildInlineTextCommitPatch,
 	deleteMasterViewElements,
 	masterViewBackgroundColor,
 	masterViewElements,
@@ -22,7 +23,12 @@ import {
 	setMasterViewBackgroundColor,
 	updateMasterViewElement,
 } from 'pptx-viewer-shared';
-import type { MasterViewDocument, MasterViewTarget, MasterViewWrite } from 'pptx-viewer-shared';
+import type {
+	InlineTextEditSnapshot,
+	MasterViewDocument,
+	MasterViewTarget,
+	MasterViewWrite,
+} from 'pptx-viewer-shared';
 import type { ComputedRef, ShallowRef } from 'vue';
 import { computed } from 'vue';
 
@@ -58,7 +64,11 @@ export interface UseMasterViewWiringResult extends UseMasterViewStateResult {
 	 * Commit inline-edited text onto a master/layout shape, remapping the typed
 	 * plain text over the element's existing runs so per-run styling survives.
 	 */
-	onMasterViewTextCommit: (elementId: string, text: string) => void;
+	onMasterViewTextCommit: (
+		elementId: string,
+		text: string,
+		snapshot?: InlineTextEditSnapshot,
+	) => void;
 	/** Remove master/layout shapes, each from whichever part owns it. */
 	onMasterViewElementDelete: (elementIds: readonly string[]) => void;
 	/** The background colour of the master or layout the sidebar has selected. */
@@ -142,11 +152,22 @@ export function useMasterViewWiring(
 		applyWrite(updateMasterViewElement(masterViewDocument(), masterViewTarget(), elementId, patch));
 	}
 
-	function onMasterViewTextCommit(elementId: string, text: string): void {
+	function onMasterViewTextCommit(
+		elementId: string,
+		text: string,
+		snapshot?: InlineTextEditSnapshot,
+	): void {
 		const element = activeMasterViewElements.value.find(
 			(candidate) => candidate.id === elementId,
 		) as (PptxElement & { text?: string; textSegments?: unknown; textStyle?: unknown }) | undefined;
 		if (!element) {
+			return;
+		}
+		if (snapshot?.elementId === elementId && snapshot.text === text && snapshot.textSegments) {
+			const patch = buildInlineTextCommitPatch(element, text, snapshot);
+			if (patch) {
+				onMasterViewElementUpdate(elementId, patch);
+			}
 			return;
 		}
 		// Clicking in and straight back out is not an edit. Committing anyway

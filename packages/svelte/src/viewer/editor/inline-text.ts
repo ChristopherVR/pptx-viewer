@@ -1,9 +1,10 @@
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { NormAutofitShrinkResult } from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot, NormAutofitShrinkResult } from 'pptx-viewer-shared';
 import {
 	canInteractWithElement,
 	remapTextToSegments,
+	reconcileInlineListSnapshot,
 	resolveInlineEditAutoFitHeight,
 	resolveInlineEditNormAutofitShrink,
 } from 'pptx-viewer-shared';
@@ -40,11 +41,14 @@ export function canInlineEditElement(element: PptxElement | undefined): boolean 
 export function remapInlineText(
 	element: PptxElement,
 	text: string,
+	snapshot?: InlineTextEditSnapshot,
 ): { text: string; textSegments: TextSegment[] } {
 	const withText = hasTextProperties(element) ? element : undefined;
 	const segments: TextSegment[] | undefined = withText?.textSegments;
 	const style: TextStyle | undefined = withText?.textStyle;
-	return { text, textSegments: remapTextToSegments(text, segments, style) };
+	const rich =
+		snapshot?.elementId === element.id ? reconcileInlineListSnapshot(snapshot, text) : undefined;
+	return { text, textSegments: rich?.textSegments ?? remapTextToSegments(text, segments, style) };
 }
 
 /**

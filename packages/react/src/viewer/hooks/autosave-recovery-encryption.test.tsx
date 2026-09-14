@@ -87,12 +87,14 @@ function viewerState(): ViewerState {
 		appProperties: undefined,
 		customProperties: [],
 		tagCollections: [],
+		slideMasters: [],
 		notesMaster: undefined,
 		handoutMaster: undefined,
 		embeddedFonts: [],
 		isDirty: true,
 		inlineEditingElementIdRef: { current: null },
 		inlineEditingTextRef: { current: '' },
+		inlineEditingSnapshotRef: { current: undefined },
 	} as unknown as ViewerState;
 }
 

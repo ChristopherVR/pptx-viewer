@@ -155,6 +155,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setContextMenuState: state.setContextMenuState,
 		inlineEditingElementId: state.inlineEditingElementId,
 		inlineEditingText: state.inlineEditingText,
+		inlineEditingSnapshotRef: state.inlineEditingSnapshotRef,
 	});
 
 	const sectionOps = useSectionOperations({
@@ -210,7 +211,9 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setMarqueeSelectionState: state.setMarqueeSelectionState,
 		setSnapLines: state.setSnapLines,
 		inlineEditingText: state.inlineEditingText,
+		inlineEditingSnapshotRef: state.inlineEditingSnapshotRef,
 		ops,
+		inlineEditingTextRef: state.inlineEditingTextRef,
 		history,
 		presentationHandleAction: presentation.handlePresentationAction,
 		setEditingEquationOmml: dialogs.setEditingEquationOmml,

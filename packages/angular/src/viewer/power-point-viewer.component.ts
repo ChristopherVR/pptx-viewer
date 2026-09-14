@@ -564,6 +564,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							(textCommit)="canvasEditing.onTextCommit($event)"
 							(textCancel)="canvasEditing.editingId.set(null)"
 							(textFormat)="canvasEditing.onTextFormat($event)"
+							(listSession)="canvasEditing.onListSession($event)"
 							(inkStrokeComplete)="canvasEditing.onInkStrokeComplete($event)"
 							(eraserHit)="canvasEditing.onEraserHit($event)"
 							(cellCommit)="canvasEditing.onTableCellCommit($event)"
@@ -1453,6 +1454,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	private readonly destroyRef = inject(DestroyRef);
 	protected readonly dialogs = inject(ViewerDialogsService);
 	protected readonly viewerOpts = inject(ViewerOptionsService);
+	private readonly masterInlineEditor = viewChild(MasterViewCanvasComponent);
 	private readonly compareSvc = inject(ViewerCompareService);
 	protected readonly xport = inject(ViewerExportService);
 	protected readonly findReplace = inject(ViewerFindReplaceService);
@@ -2446,6 +2448,34 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 					void deleteAutosaveSnapshot(filePath);
 				}
 			},
+		});
+		this.loader.bindPendingInlineEdit(() => {
+			if (!this.canEdit()) {
+				return undefined;
+			}
+			const masterSnapshot = this.masterInlineEditor()?.readInlineSnapshot();
+			if (this.showMasterView() && masterSnapshot) {
+				return {
+					snapshot: masterSnapshot,
+					text: this.viewerOpts.autoCorrect(masterSnapshot.text),
+					target: {
+						masterView: {
+							tab: this.masterViewTab(),
+							masterIndex: this.activeMasterIndex(),
+							layoutIndex: this.activeLayoutIndex(),
+						},
+					},
+				};
+			}
+			const snapshot = this.canvasEditing.readInlineSnapshot();
+			const slide = this.activeSlide();
+			return snapshot && slide
+				? {
+						snapshot,
+						text: this.viewerOpts.autoCorrect(snapshot.text),
+						target: { slideId: slide.id },
+					}
+				: undefined;
 		});
 
 		// File > Options > Save > "cache retention": a one-time sweep per mount is

@@ -12,9 +12,19 @@
  * (via `remapTextToSegments`) so per-run styling is preserved.
  */
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
-import { placeCaretAtEnd } from 'pptx-viewer-shared';
+import {
+	attachInlineListController,
+	createInlineListSeed,
+	initializeInlineListDom,
+	inlineListBodyText,
+	placeCaretAtEnd,
+	readEditableText,
+	readListActivationSelection,
+	restoreInlineListBodySelection,
+} from 'pptx-viewer-shared';
+import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 const { t } = useI18n();
@@ -29,14 +39,50 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-	change: [text: string];
+	change: [text: string, snapshot?: InlineTextEditSnapshot];
 	commit: [];
 	cancel: [];
 	/** Ctrl/Cmd+B/I/U formatting toggle while editing (parity with React). */
 	format: [updates: Partial<TextStyle>];
+	listSession: [event: { controller: InlineListController; active: boolean }];
 }>();
 
 const editorRef = ref<HTMLDivElement | null>(null);
+const listSeed = shallowRef(createInlineListSeed(toRaw(props.element)));
+let listController: InlineListController | undefined;
+let disposed = false;
+let activatingList = false;
+watch(
+	() => props.element,
+	async (element) => {
+		if (listSeed.value) {
+			return;
+		}
+		const seed = createInlineListSeed(toRaw(element));
+		if (!seed) {
+			return;
+		}
+		const body = inlineListBodyText('textSegments' in element ? element.textSegments : undefined);
+		if (editorRef.value && readEditableText(editorRef.value) !== body) {
+			disposed = true;
+			emit('cancel');
+			return;
+		}
+		const selection = editorRef.value
+			? readListActivationSelection(
+					editorRef.value,
+					inlineListBodyText('textSegments' in element ? element.textSegments : undefined),
+				)
+			: undefined;
+		activatingList = true;
+		listSeed.value = seed;
+		await nextTick();
+		if (!disposed) {
+			initializeEditor(selection);
+		}
+		activatingList = false;
+	},
+);
 
 /** The element's current plain text (seed value). */
 function seedText(): string {
@@ -60,7 +106,7 @@ const editorStyle = computed<CSSProperties>(() => {
 		top: `${el.y}px`,
 		width: `${el.width}px`,
 		height: `${el.height}px`,
-		display: 'flex',
+		display: listSeed.value ? 'block' : 'flex',
 		flexDirection: 'column',
 		justifyContent: 'center',
 		boxSizing: 'border-box',
@@ -79,6 +125,7 @@ const editorStyle = computed<CSSProperties>(() => {
 		fontSize: fontSize ?? 'inherit',
 		fontWeight: style.bold ? 700 : 'normal',
 		fontStyle: style.italic ? 'italic' : 'normal',
+		...(listSeed.value ? { textDecoration: 'none', textDecorationLine: 'none' } : {}),
 		textAlign: align ?? 'left',
 		overflow: 'hidden',
 		whiteSpace: 'pre-wrap',
@@ -87,23 +134,60 @@ const editorStyle = computed<CSSProperties>(() => {
 	};
 });
 
-onMounted(() => {
+function initializeEditor(selection?: { start: number; end: number }): void {
 	const node = editorRef.value;
 	if (!node) {
 		return;
 	}
-	node.innerText = seedText();
+	const seed = listSeed.value;
+	if (seed && initializeInlineListDom(node, seed)) {
+		listController = attachInlineListController(node, seed, {
+			isCurrent: () => !disposed && props.element.id === seed.elementId && editorRef.value === node,
+			onRead: (result) =>
+				emit(
+					'change',
+					result.kind === 'supported' ? result.snapshot.text : result.text,
+					result.kind === 'supported' ? result.snapshot : undefined,
+				),
+		});
+		emit('listSession', { controller: listController, active: true });
+	} else {
+		node.innerText = seedText();
+	}
 	node.focus();
 	// Place the caret at the end of the seeded text (shared contract helper).
 	placeCaretAtEnd(node);
+	if (seed && selection) {
+		restoreInlineListBodySelection(seed, node, selection);
+	}
+}
+onMounted(() => initializeEditor());
+onBeforeUnmount(() => {
+	disposed = true;
+	listController?.dispose();
+	if (listController) {
+		emit('listSession', { controller: listController, active: false });
+	}
 });
 
 function onInput(): void {
-	emit('change', extractText());
+	if (!listController) {
+		emit('change', extractText());
+	}
 }
 
 function onBlur(): void {
-	emit('change', extractText());
+	if (activatingList) {
+		return;
+	}
+	if (disposed) {
+		return;
+	}
+	if (listController) {
+		listController.refresh();
+	} else {
+		emit('change', extractText());
+	}
 	emit('commit');
 }
 
@@ -113,7 +197,20 @@ function currentTextStyle(): TextStyle | undefined {
 		textSegments?: Array<{ style?: TextStyle }>;
 		textStyle?: TextStyle;
 	};
-	return el.textSegments?.[0]?.style ?? el.textStyle;
+	if (!listController) {
+		return el.textSegments?.[0]?.style ?? el.textStyle;
+	}
+	const current = listController.readSelection();
+	const style =
+		current.kind === 'supported'
+			? current.snapshot.textSegments?.[current.selection?.startSegIdx ?? 0]?.style
+			: el.textSegments?.[0]?.style;
+	return {
+		...style,
+		bold: style?.bold ?? el.textStyle?.bold,
+		italic: style?.italic ?? el.textStyle?.italic,
+		underline: style?.underline ?? el.textStyle?.underline,
+	};
 }
 
 /**
@@ -146,6 +243,9 @@ function trimTrailingSpaceBeforeCaret(): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
+	if (listController && event.isComposing) {
+		return;
+	}
 	// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching the React editor.
 	if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
 		const key = event.key.toLowerCase();
@@ -165,10 +265,14 @@ function onKeydown(event: KeyboardEvent): void {
 	}
 	if (event.key === 'Escape') {
 		event.preventDefault();
+		if (listController) {
+			disposed = true;
+			listController.dispose();
+		}
 		emit('cancel');
 		return;
 	}
-	if (event.key === 'Enter') {
+	if (event.key === 'Enter' && !listController) {
 		trimTrailingSpaceBeforeCaret();
 	}
 }
@@ -176,6 +280,7 @@ function onKeydown(event: KeyboardEvent): void {
 
 <template>
 	<div
+		:key="listSeed ? 'list' : 'plain'"
 		ref="editorRef"
 		class="pptx-vue-inline-editor"
 		data-inline-editor

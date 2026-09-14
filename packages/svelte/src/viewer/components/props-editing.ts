@@ -56,9 +56,14 @@ export interface InlineTextEditorProps {
 	scale: number;
 	spellCheck?: boolean;
 	/** Called with the edited plain text on every keystroke (live preview only). */
-	oninput?: (text: string) => void;
+	oninput?: (text: string, snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot) => void;
 	/** Called with the edited plain text on commit (only when it changed). */
-	oncommit: (text: string) => void;
+	oncommit: (text: string, snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot) => void;
+	/** Current reader, scoped to this mounted editor session; absent after close. */
+	onregister?: (
+		controller: import('pptx-viewer-shared').InlineListController | undefined,
+		cancel?: () => void,
+	) => void;
 	/** Called after the surface closes (commit or cancel). */
 	onclose: () => void;
 }

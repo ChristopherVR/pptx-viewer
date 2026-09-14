@@ -88,7 +88,7 @@ function infoForParagraph(
 	ordinal?: number,
 ): BulletInfo {
 	if (kind === 'none') {
-		return { none: true };
+		return { ...previous, none: true };
 	}
 	const sameKind =
 		previous &&

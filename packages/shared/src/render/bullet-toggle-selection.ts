@@ -5,7 +5,7 @@
  *
  * `toggleSelectionBullets` is the one decision every binding's Bullets /
  * Numbering click routes through: it rewrites only the in-scope paragraphs
- * via {@link toggleParagraphBullet} and remaps the inline selection over the
+ * via the existing paragraph-range setter and remaps the inline selection over the
  * marker segments it inserted or removed, so the binding can restore the
  * caret exactly where the user had it.
  */
@@ -15,14 +15,12 @@ import { hasTextProperties } from 'pptx-viewer-core';
 
 import type { BulletParagraph, ElementBulletKind, ParagraphBulletKind } from './bullet-toggle';
 import {
-	isBulletMarkerSegment,
 	paragraphsBulletKind,
 	resolveBulletSegments,
 	splitBulletParagraphs,
-	toggleParagraphBullet,
-	withoutListType,
 } from './bullet-toggle';
 import type { InlineTextSelection } from './inline-selection-utils';
+import { applyListStyleUpdate } from './text-list-style-update';
 
 /** What a selection-scoped bullet edit hands back to the binding. */
 export interface BulletToggleResult {
@@ -38,7 +36,11 @@ function inScope(paragraph: BulletParagraph, selection: InlineTextSelection | nu
 		return true;
 	}
 	return paragraph.indices.some(
-		(index) => index >= selection.startSegIdx && index <= selection.endSegIdx,
+		(index) =>
+			index >= selection.startSegIdx &&
+			(index < selection.endSegIdx ||
+				(index === selection.endSegIdx &&
+					(selection.endOffset > 0 || selection.startSegIdx === selection.endSegIdx))),
 	);
 }
 
@@ -75,46 +77,12 @@ export function setSelectionBullets(
 		return { patch: {}, newSelection: selection };
 	}
 	const source = resolveBulletSegments(element, segments);
-	const next: TextSegment[] = [];
-	/** Source index -> index in `next`, for every segment that survives. */
-	const indexMap = new Map<number, number>();
-	let ordinal = 0;
-	for (const paragraph of splitBulletParagraphs(source)) {
-		const content = paragraph.indices.filter(
-			(_index, position) => !isBulletMarkerSegment(paragraph.segments[position]),
-		);
-		if (paragraph.segments.length > 0 && content.length > 0 && inScope(paragraph, selection)) {
-			const rewritten = toggleParagraphBullet(paragraph.segments, kind, ordinal);
-			ordinal += 1;
-			// `toggleParagraphBullet` keeps the content runs in order, dropping
-			// any old marker and (for a list kind) placing one new marker first.
-			const contentStart = next.length + (kind === 'none' ? 0 : 1);
-			for (const [position, index] of content.entries()) {
-				indexMap.set(index, contentStart + position);
-			}
-			next.push(...rewritten);
-		} else {
-			for (const [position, index] of paragraph.indices.entries()) {
-				indexMap.set(index, next.length + position);
-			}
-			next.push(...paragraph.segments);
-		}
-		// A selection never starts or ends on a separator (the DOM reader skips
-		// them), so terminators need no entry in the map.
-		if (paragraph.terminator) {
-			next.push(paragraph.terminator);
-		}
-	}
-	const textStyle = withoutListType(element.textStyle);
-	const newSelection = selection
-		? {
-				startSegIdx: indexMap.get(selection.startSegIdx) ?? selection.startSegIdx,
-				startOffset: selection.startOffset,
-				endSegIdx: indexMap.get(selection.endSegIdx) ?? selection.endSegIdx,
-				endOffset: selection.endOffset,
-			}
-		: null;
-	return { patch: { textSegments: next, textStyle } as Partial<PptxElement>, newSelection };
+	const result = applyListStyleUpdate(
+		{ ...element, textSegments: source },
+		{ listType: kind },
+		selection,
+	);
+	return { patch: result.patch, newSelection: result.selection };
 }
 
 /**

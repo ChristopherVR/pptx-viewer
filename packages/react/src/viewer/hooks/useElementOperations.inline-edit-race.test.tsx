@@ -19,6 +19,7 @@
  */
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
 import { buildParagraphs, elementBulletKind, remapTextToSegments } from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -70,6 +71,7 @@ function mount(
 	inlineEditingElementId: string | null,
 	inlineEditingText: string,
 	initialElement = textElement(),
+	snapshot?: InlineTextEditSnapshot,
 ): Harness {
 	let slides: PptxSlide[] = [
 		{ id: 'slide-1', rId: 'rId2', slideNumber: 1, elements: [initialElement] },
@@ -97,6 +99,7 @@ function mount(
 			setContextMenuState: vi.fn(),
 			inlineEditingElementId,
 			inlineEditingText,
+			inlineEditingSnapshotRef: { current: snapshot },
 		});
 		return null;
 	}
@@ -109,6 +112,39 @@ function mount(
 }
 
 describe('updateSelectedTextStyle mid-edit race', () => {
+	it('formats the live list runs rather than spreading the original run pattern', () => {
+		const snapshot: InlineTextEditSnapshot = {
+			elementId: 'shape-1',
+			text: 'Hello\nNew',
+			textSegments: [
+				{ text: 'Hello', style: { fontSize: 18 }, bulletInfo: { char: '•' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{
+					text: 'New',
+					style: { fontSize: 32, color: '#cc00aa' },
+					bulletInfo: { char: '•' },
+					paragraphLevel: 1,
+				},
+			],
+		};
+		const harness = mount('shape-1', snapshot.text, textElement(), snapshot);
+		act(() => harness.ops().updateSelectedTextStyle({ bold: true }));
+		expect(harness.slides()[0].elements[0]).toMatchObject({
+			textSegments: [
+				expect.objectContaining({
+					text: 'Hello',
+					style: expect.objectContaining({ fontSize: 18, bold: true }),
+				}),
+				expect.objectContaining({ isParagraphBreak: true }),
+				expect.objectContaining({
+					text: 'New',
+					paragraphLevel: 1,
+					style: expect.objectContaining({ fontSize: 32, color: '#cc00aa', bold: true }),
+				}),
+			],
+		});
+	});
+
 	it.each([false, true])(
 		'honors explicit formatting before runless typing (with list=%s)',
 		(withList) => {

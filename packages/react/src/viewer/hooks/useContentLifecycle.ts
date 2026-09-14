@@ -48,6 +48,7 @@ export interface UseContentLifecycleInput {
 	actionSoundHandlerRef: React.MutableRefObject<PptxHandler | null>;
 	setIsEncryptedDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 	password?: string;
+	transformCommittedText?: (text: string) => string;
 	/** Forwarded to {@link useLoadContent}: fires after a parse applies. */
 	onContentApplied?: () => void;
 	/** Forwarded to {@link useLoadContent}: File > Options > Trust Center > "Allow external content". */
@@ -167,6 +168,15 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		slides,
 		templateElementsBySlideId: state.templateElementsBySlideId,
 		activeSlideIndex: state.activeSlideIndex,
+		editTemplateMode: state.editTemplateMode,
+		masterViewTarget:
+			state.mode === 'master'
+				? {
+						tab: state.masterViewTab,
+						masterIndex: state.activeMasterIndex,
+						layoutIndex: state.activeLayoutIndex,
+					}
+				: null,
 		canvasSize: state.canvasSize,
 		slideSizeEmu: state.slideSizeEmu,
 		guides: state.guides,
@@ -188,6 +198,8 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		handlerRef,
 		inlineEditingElementIdRef: state.inlineEditingElementIdRef,
 		inlineEditingTextRef: state.inlineEditingTextRef,
+		inlineEditingSnapshotRef: state.inlineEditingSnapshotRef,
+		transformCommittedText: input.transformCommittedText,
 		password,
 		embedFonts,
 	};
@@ -229,6 +241,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 			password,
 			state.inlineEditingElementIdRef.current,
 			state.inlineEditingTextRef.current,
+			state.inlineEditingSnapshotRef.current,
 		],
 	});
 

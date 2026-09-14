@@ -36,6 +36,7 @@ import type { ViewerDialogsResult } from './viewer-dialog-types';
 // ---------------------------------------------------------------------------
 
 export interface UseViewerIntegrationInput {
+	transformCommittedText?: (text: string) => string;
 	state: ViewerState;
 	zoom: UseZoomViewportResult;
 	history: EditorHistoryResult;
@@ -234,6 +235,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			state,
 			history,
 			ops: editorOps.ops,
+			transformCommittedText: input.transformCommittedText,
 			actionSoundHandlerRef,
 			setIsEncryptedDialogOpen,
 			password: dialogs.presentationPassword ?? undefined,

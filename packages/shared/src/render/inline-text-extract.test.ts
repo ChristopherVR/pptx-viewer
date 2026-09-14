@@ -28,6 +28,27 @@ describe('readEditableText', () => {
 		expect(readEditableText(elementFromHtml('<p>a</p><p>b</p>'))).toBe('a\nb');
 	});
 
+	it('counts a new block with a nested metric-run caret placeholder exactly once', () => {
+		expect(
+			readEditableText(
+				elementFromHtml(
+					'<div><span data-seg-idx="0">Title</span></div><div><span data-seg-idx="0">Second</span></div><div><span data-seg-idx="0"><span style="letter-spacing: 0px"><br></span></span></div>',
+				),
+			),
+		).toBe('Title\nSecond\n');
+	});
+
+	it('preserves consecutive empty blocks and authored breaks inside nonempty blocks', () => {
+		expect(
+			readEditableText(
+				elementFromHtml('<div>Title</div><div><span><br></span></div><div><span><br></span></div>'),
+			),
+		).toBe('Title\n\n');
+		expect(
+			readEditableText(elementFromHtml('<div>Title</div><div><span>Second<br>line</span></div>')),
+		).toBe('Title\nSecond\nline');
+	});
+
 	it('does not double a newline already present before a block', () => {
 		expect(readEditableText(elementFromHtml('line1<br><div>line2</div>'))).toBe('line1\nline2');
 	});

@@ -1,6 +1,9 @@
+import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
+import { shallowRef } from 'vue';
 
+import InlineTextEditor from '../components/InlineTextEditor.vue';
 import type { EditorOperations } from './useEditorOperations';
 import { useInlineEditing } from './useInlineEditing';
 
@@ -50,6 +53,94 @@ function useHarness(element: PptxElement): Harness {
 }
 
 describe('commitInlineEdit', () => {
+	it('invalidates a mounted stale list body on model undo without cancelling geometry-only changes', async () => {
+		const source = makeElement({
+			text: '◆ Original',
+			textSegments: [
+				{ text: '◆ ', style: {}, bulletInfo: { char: '◆' } },
+				{ text: 'Original', style: {} },
+			],
+		});
+		const current = shallowRef(source);
+		const updateElement = vi.fn();
+		const editing = useInlineEditing({
+			canEdit: () => true,
+			findActiveElement: () => current.value,
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+		editing.enterInlineEdit(source.id);
+		const wrapper = mount(InlineTextEditor, {
+			attachTo: document.body,
+			props: {
+				element: source,
+				onChange: editing.updateInlineText,
+				onListSession: editing.onListSession,
+			},
+		});
+		try {
+			const surface = wrapper.get('[data-inline-editor]');
+			surface.element.querySelector('span')!.textContent = 'Current';
+			await surface.trigger('input');
+			current.value = { ...source, x: 20 };
+			expect(editing.readInlineSnapshot()?.text).toBe('Current');
+			current.value = {
+				...source,
+				text: 'Current',
+				textSegments: editing.readInlineSnapshot()!.textSegments,
+			};
+			expect(editing.inlineEditingElementId.value).toBe(source.id);
+			current.value = source;
+			expect(editing.inlineEditingElementId.value).toBeNull();
+			expect(editing.readInlineSnapshot()).toBeUndefined();
+			editing.commitInlineEdit();
+			expect(updateElement).not.toHaveBeenCalled();
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
+	it('commits current list segments even when the body text is unchanged', () => {
+		const element = makeElement();
+		const { editing, updateElement } = useHarness(element);
+		const textSegments = [{ text: 'Box A', style: { bold: true }, paragraphLevel: 1 }];
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('Box A', { elementId: element.id, text: 'Box A', textSegments });
+		editing.commitInlineEdit();
+		expect(updateElement).toHaveBeenCalledExactlyOnceWith(element.id, {
+			text: 'Box A',
+			textSegments,
+		});
+	});
+
+	it('does not reuse a rich snapshot after a later plain fallback input', () => {
+		const element = makeElement();
+		const { editing, updateElement } = useHarness(element);
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('Draft', {
+			elementId: element.id,
+			text: 'Draft',
+			textSegments: [{ text: 'Draft', style: { bold: true } }],
+		});
+		editing.updateInlineText('Fallback');
+		editing.commitInlineEdit();
+		expect(updateElement.mock.calls[0][1].textSegments).toStrictEqual([
+			{ text: 'Fallback', style: {} },
+		]);
+	});
+
+	it('ignores a snapshot belonging to another edited element', () => {
+		const element = makeElement();
+		const { editing, updateElement } = useHarness(element);
+		editing.enterInlineEdit(element.id);
+		editing.updateInlineText('Box A', {
+			elementId: 'other',
+			text: 'Box A',
+			textSegments: [{ text: 'Box A', style: { bold: true } }],
+		});
+		editing.commitInlineEdit();
+		expect(updateElement).not.toHaveBeenCalled();
+	});
+
 	it.each(['First\nInserted\nLast', 'Last'])(
 		'records one changed commit preserving suffix spacing for %s',
 		(text) => {
