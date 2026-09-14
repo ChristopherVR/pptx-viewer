@@ -25,6 +25,8 @@ import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import {
 	elementBulletKind,
+	getInlineEditorSelectionResult,
+	selectionBulletKind,
 	OFFICE_COLOR_SWATCH_HEXES,
 	textFontSizePtToPx,
 } from 'pptx-viewer-shared';
@@ -199,12 +201,28 @@ function handleClearFormatting(): void {
 	});
 }
 
+function currentListKind() {
+	const element = props.selectedElement;
+	if (!element || !hasTextProperties(element)) {
+		return 'none';
+	}
+	const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
+	return result.kind === 'supported' &&
+		(!result.snapshot || result.snapshot.elementId === element.id)
+		? selectionBulletKind(element, result.selection, result.snapshot?.textSegments)
+		: undefined;
+}
+
 function handleBulletList(): void {
 	if (!canMut.value || !isTextEl.value) {
 		return;
 	}
+	const current = currentListKind();
+	if (current === undefined) {
+		return;
+	}
 	props.onUpdateTextStyle({
-		listType: listKind.value === 'bullet' ? 'none' : 'bullet',
+		listType: current === 'bullet' ? 'none' : 'bullet',
 	});
 }
 
@@ -212,8 +230,12 @@ function handleNumberedList(): void {
 	if (!canMut.value || !isTextEl.value) {
 		return;
 	}
+	const current = currentListKind();
+	if (current === undefined) {
+		return;
+	}
 	props.onUpdateTextStyle({
-		listType: listKind.value === 'numbered' ? 'none' : 'numbered',
+		listType: current === 'numbered' ? 'none' : 'numbered',
 	});
 }
 

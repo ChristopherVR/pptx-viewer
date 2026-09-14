@@ -28,7 +28,9 @@ export function useMasterInlineEditing(
 		) {
 			return;
 		}
-		const selection = getInlineEditorSelectionResult(snapshot.textSegments);
+		const selection = getInlineEditorSelectionResult(snapshot.textSegments, {
+			preserveCaret: updates.listType !== undefined,
+		});
 		if (selection.kind !== 'supported') {
 			return;
 		}

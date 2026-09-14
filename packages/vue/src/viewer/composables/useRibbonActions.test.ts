@@ -1,7 +1,14 @@
 import { mount } from '@vue/test-utils';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextSegment } from 'pptx-viewer-core';
-import { elementBulletKind, remapTextToSegments } from 'pptx-viewer-shared';
+import {
+	elementBulletKind,
+	remapTextToSegments,
+	buildParagraphs,
+	createInlineListSeed,
+	initializeInlineListDom,
+	attachInlineListController,
+} from 'pptx-viewer-shared';
 import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 import { computed, ref } from 'vue';
@@ -68,6 +75,42 @@ function useHarness(
 }
 
 describe('ribbonUpdateTextStyle list commands', () => {
+	it('applies a list command only to the live caret paragraph', () => {
+		const source = textElement();
+		Object.assign(source, {
+			text: 'First\nLast',
+			textSegments: [
+				{ text: 'First', style: {}, bulletInfo: { char: '◆' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'Last', style: {}, bulletInfo: { char: '◆' } },
+			],
+		});
+		const seed = createInlineListSeed(source)!;
+		const root = document.createElement('div');
+		document.body.append(root);
+		initializeInlineListDom(root, seed);
+		const controller = attachInlineListController(root, seed);
+		const node = root.lastElementChild!.firstElementChild!.firstChild!;
+		window.getSelection()!.setBaseAndExtent(node, 0, node, 0);
+		const read = controller.read();
+		if (read.kind !== 'supported') {
+			throw new Error(read.reason);
+		}
+		const harness = useHarness(
+			source,
+			true,
+			() => read.snapshot,
+			(snapshot) => controller.format(snapshot).kind === 'supported',
+		);
+		harness.actions.ribbonUpdateTextStyle({ listType: 'none' });
+		expect(buildParagraphs(harness.element()).map((p) => p.bulletMarker)).toStrictEqual([
+			'◆',
+			undefined,
+		]);
+		controller.dispose();
+		root.remove();
+	});
+
 	it('formats the mounted live body and refuses model-only changes during composition', async () => {
 		const source = textElement();
 		Object.assign(source, {

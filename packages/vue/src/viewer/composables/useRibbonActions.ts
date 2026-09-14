@@ -166,7 +166,9 @@ export function useRibbonActions(input: UseRibbonActionsInput) {
 								: undefined),
 					};
 		if (snapshot?.textSegments && input.formatInlineSnapshot) {
-			const selected = getInlineEditorSelectionResult(snapshot.textSegments);
+			const selected = getInlineEditorSelectionResult(snapshot.textSegments, {
+				preserveCaret: updates.listType !== undefined,
+			});
 			if (selected.kind === 'unsupported') {
 				return;
 			}
