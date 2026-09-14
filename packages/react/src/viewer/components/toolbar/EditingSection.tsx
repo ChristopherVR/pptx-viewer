@@ -86,7 +86,9 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 						)}
 					</div>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Editing</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.editing')}
+				</span>
 			</div>
 		</>
 	);

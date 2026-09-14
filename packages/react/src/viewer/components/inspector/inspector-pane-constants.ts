@@ -9,12 +9,12 @@ import type { InspectorTab } from './inspector-pane-types';
 
 export const INSPECTOR_TABS: Array<{
 	key: InspectorTab;
-	label: string;
+	labelKey: string;
 	icon: React.ComponentType<{ className?: string }>;
 }> = [
-	{ key: 'elements', label: 'Elements', icon: LuLayers },
-	{ key: 'properties', label: 'Properties', icon: LuSettings2 },
-	{ key: 'comments', label: 'Comments', icon: LuMessageSquare },
+	{ key: 'elements', labelKey: 'pptx.documentProperties.statistics.elements', icon: LuLayers },
+	{ key: 'properties', labelKey: 'pptx.inspector.properties', icon: LuSettings2 },
+	{ key: 'comments', labelKey: 'pptx.toolbar.comments', icon: LuMessageSquare },
 ];
 
 // ---------------------------------------------------------------------------

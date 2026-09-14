@@ -1,6 +1,6 @@
 {
 	"name": "pptx-vue-viewer",
-	"version": "3.17.0",
+	"version": "3.17.1",
 	"description": "Vue 3 PowerPoint viewer and editor component: render, edit, and export PPTX slides in the browser.",
 	"keywords": [
 		"editor",
@@ -98,11 +98,11 @@
 		"pptx-viewer-shared": "workspace:*",
 		"tailwindcss": "^4.3.3",
 		"terser": "^5.51.2",
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"typescript": "6.0.3",
-		"vite": "^8.2.2",
+		"vite": "^8.3.0",
 		"vite-plugin-dts": "^5.1.0",
-		"vitest": "^4.1.11",
+		"vitest": "^5.0.0",
 		"vue-tsc": "^3.3.11",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
@@ -113,7 +113,7 @@
 		"ai": ">=6 <8",
 		"fast-xml-parser": "^5.10.1",
 		"jszip": "^3.10.1",
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"vue": "^3.5.39",
 		"vue-i18n": "^11.4.6"
 	},
@@ -129,7 +129,7 @@
 		}
 	},
 	"optionalDependencies": {
-		"three": "^0.185.1",
+		"three": "^0.186.0",
 		"y-webrtc": "^10.3.0",
 		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"

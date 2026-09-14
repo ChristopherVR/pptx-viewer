@@ -49,7 +49,7 @@ not that you assumed. Reviewers care more about an accurate map than a clean one
       per binding
 - [ ] Implemented in **all five** bindings
 - [ ] User-visible copy is routed through `t()` / `translate` with keys added to
-      `translations-en.ts` **and** `packages/locales/src/{de,es,fr}/`
+      `translations-en.ts` **and** `packages/locales/src/{de,es,fr,zh-CN}/`
 
 ### UI fix
 

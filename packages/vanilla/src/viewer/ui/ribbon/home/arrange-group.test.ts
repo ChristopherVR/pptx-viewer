@@ -66,6 +66,54 @@ const selected = {
 };
 
 describe('createArrangeGroup', () => {
+	for (const [locale, dictionary] of Object.entries({
+		de: {
+			'pptx.ribbon.alignLeft': 'Linksbundig ausrichten',
+			'pptx.ribbon.alignCenter': 'Zentriert ausrichten',
+			'pptx.ribbon.alignRight': 'Rechtsbundig ausrichten',
+			'pptx.ribbon.alignTop': 'Oben ausrichten',
+			'pptx.ribbon.alignMiddle': 'Mittig ausrichten',
+			'pptx.ribbon.alignBottom': 'Unten ausrichten',
+		},
+		es: {
+			'pptx.ribbon.alignLeft': 'Alinear a la izquierda',
+			'pptx.ribbon.alignCenter': 'Centrar',
+			'pptx.ribbon.alignRight': 'Alinear a la derecha',
+			'pptx.ribbon.alignTop': 'Alinear arriba',
+			'pptx.ribbon.alignMiddle': 'Alinear en medio',
+			'pptx.ribbon.alignBottom': 'Alinear abajo',
+		},
+		fr: {
+			'pptx.ribbon.alignLeft': 'Aligner à gauche',
+			'pptx.ribbon.alignCenter': 'Centrer',
+			'pptx.ribbon.alignRight': 'Aligner à droite',
+			'pptx.ribbon.alignTop': 'Aligner en haut',
+			'pptx.ribbon.alignMiddle': 'Aligner au milieu',
+			'pptx.ribbon.alignBottom': 'Aligner en bas',
+		},
+	} as Record<string, Record<string, string>>)) {
+		it(`${locale} translates complete alignment actions without changing edge values`, () => {
+			const actions = handlers();
+			const group = createArrangeGroup(
+				document,
+				createTranslator(locale, { [locale]: dictionary }),
+				actions,
+			);
+			group.update(selected);
+			for (const [direction, edge] of [
+				['Left', 'left'],
+				['Center', 'centerH'],
+				['Right', 'right'],
+				['Top', 'top'],
+				['Middle', 'middle'],
+				['Bottom', 'bottom'],
+			]) {
+				button(group, dictionary[`pptx.ribbon.align${direction}`]).click();
+				expect(actions.alignElements).toHaveBeenLastCalledWith(edge);
+			}
+		});
+	}
+
 	it('names the horizontal-centre align button after its direction, not its edge id', () => {
 		const t = createTranslator();
 		const group = createArrangeGroup(document, t, handlers());

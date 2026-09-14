@@ -1,4 +1,5 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuChevronUp, LuCopy, LuPaintbrush, LuTrash2 } from 'react-icons/lu';
@@ -46,7 +47,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 							onClick={() => p.onAlignElements(a.k)}
 							disabled={!canMut}
 							className={i < arr.length - 1 ? gB : gL}
-							title={t('pptx.arrange.align', { direction: a.k })}
+							title={t(ALIGNMENT_LABEL_KEYS[a.k])}
 						>
 							{a.el}
 						</button>

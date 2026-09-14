@@ -20,7 +20,12 @@ import {
 import type { CollaborationConfig, PptxAiConfig, ViewerTheme } from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 import 'pptx-angular-viewer/styles';
-import { translationsDe, translationsEs, translationsFr } from 'pptx-viewer-locales';
+import {
+	translationsDe,
+	translationsEs,
+	translationsFr,
+	translationsZhCN,
+} from 'pptx-viewer-locales';
 
 import { buildDemoAiConfig, readStoredAiFields } from './ai-config';
 import {
@@ -30,7 +35,13 @@ import {
 	randomCursorColor,
 	resolveDefaultServerUrl,
 } from './collab-utils';
-import { demoStringsDe, demoStringsEn, demoStringsFr, demoStringsEs } from './demo-locales';
+import {
+	demoStringsZhCN,
+	demoStringsDe,
+	demoStringsEn,
+	demoStringsFr,
+	demoStringsEs,
+} from './demo-locales';
 import { DropzoneComponent } from './dropzone.component';
 import { restoreLanguageKey } from './languages';
 import { restoreThemeKey, THEMES } from './themes';
@@ -201,6 +212,7 @@ export class AppComponent {
 		this.translate.setTranslation('fr', { ...translationsFr, ...demoStringsFr });
 		this.translate.setTranslation('es', { ...translationsEs, ...demoStringsEs });
 		this.translate.setTranslation('de', { ...translationsDe, ...demoStringsDe });
+		this.translate.setTranslation('zh-CN', { ...translationsZhCN, ...demoStringsZhCN });
 		this.translate.use(this.languageKey());
 
 		this.autoConnectFromUrl();

@@ -1,7 +1,25 @@
 import { describe, expect, it } from 'vitest';
 import { createI18n } from 'vue-i18n';
 
-import { translationsEn } from './i18n';
+import { translationsZhCN } from '../../locales/src/zh-CN';
+import { toVueI18nSyntax, translationsEn } from './i18n';
+
+describe('simplified Chinese messages', () => {
+	it('compiles the entire dictionary and interpolates slide counters', () => {
+		const { t } = createI18n({
+			legacy: false,
+			locale: 'zh-CN',
+			messages: { 'zh-CN': toVueI18nSyntax(translationsZhCN) },
+			missingWarn: false,
+			fallbackWarn: false,
+		}).global;
+		for (const key of Object.keys(translationsZhCN)) {
+			expect(() => t(key)).not.toThrow();
+		}
+		expect(t('pptx.statusBar.slideOf', { current: 2, total: 7 })).toBe('第 2 张，共 7 张');
+		expect(t('pptx.comments.mentionPlaceholder')).toBe('输入 @ 提及他人');
+	});
+});
 
 describe('translationsEn (vue-i18n syntax adapter)', () => {
 	it('contains no double-brace interpolation placeholders', () => {

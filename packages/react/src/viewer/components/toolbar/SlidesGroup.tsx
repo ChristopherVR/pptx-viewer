@@ -183,7 +183,9 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						{t('pptx.sections.sectionButtonLabel')}
 					</button>
 				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>Slides</span>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.slides')}
+				</span>
 			</div>
 
 			{sep}

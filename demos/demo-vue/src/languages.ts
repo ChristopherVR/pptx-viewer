@@ -1,4 +1,4 @@
-export const LANGUAGE_CODES = ['en', 'fr', 'es', 'de'] as const;
+export const LANGUAGE_CODES = ['en', 'fr', 'es', 'de', 'zh-CN'] as const;
 export type LanguageCode = (typeof LANGUAGE_CODES)[number];
 
 export interface LanguageOption {
@@ -6,16 +6,13 @@ export interface LanguageOption {
 	label: string;
 }
 
-/**
- * Languages the demo's language picker offers, mirrored across all three
- * demos (see demos/demo-react/languages.ts and
- * demos/demo-angular/src/languages.ts).
- */
+/** Languages offered by the demo, with matching registered dictionaries. */
 export const languages: LanguageOption[] = [
 	{ code: 'en', label: 'English' },
 	{ code: 'fr', label: 'Français' },
 	{ code: 'es', label: 'Español' },
 	{ code: 'de', label: 'Deutsch' },
+	{ code: 'zh-CN', label: '简体中文' },
 ];
 
 export const languageKeys = languages.map((language) => language.code);

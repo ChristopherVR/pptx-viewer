@@ -26,11 +26,11 @@ export function InspectorPaneHeader({
 	return (
 		<div className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'>
 			<div className='flex items-center gap-1 rounded bg-muted p-0.5'>
-				{INSPECTOR_TABS.map(({ key, label, icon: Icon }) => (
+				{INSPECTOR_TABS.map(({ key, labelKey, icon: Icon }) => (
 					<button
 						key={key}
 						type='button'
-						title={label}
+						title={t(labelKey)}
 						style={touchBtnStyle}
 						className={cn(
 							'flex items-center justify-center gap-1 px-2 py-1 rounded text-[11px] transition-colors',
@@ -41,7 +41,7 @@ export function InspectorPaneHeader({
 						onClick={() => onSetActiveTab(key)}
 					>
 						<Icon className='w-3.5 h-3.5' />
-						<span className='hidden sm:inline'>{label}</span>
+						<span className='hidden sm:inline'>{t(labelKey)}</span>
 					</button>
 				))}
 			</div>
