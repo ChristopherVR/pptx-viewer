@@ -125,8 +125,8 @@ describe('connectorView pointer hit target', () => {
 
 		expect(path.getAttribute('stroke')).toBe('transparent');
 		expect(path.getAttribute('stroke-width')).toBe('14');
-		// The shared geometry clamps a zero-height connector's box to 1px.
-		expect(path.getAttribute('d')).toBe('M0,0 L120,1');
+		// The shared geometry preserves a zero-height connector as horizontal.
+		expect(path.getAttribute('d')).toBe('M0,0 L120,0');
 		expect(path.getAttribute('style')).toContain('pointer-events: stroke');
 	});
 

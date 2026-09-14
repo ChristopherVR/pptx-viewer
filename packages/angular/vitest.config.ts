@@ -13,6 +13,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
 	test: {
 		environment: 'happy-dom',
+		maxWorkers: 4,
 		include: ['src/**/*.test.ts'],
 		globals: true,
 		setupFiles: ['./vitest-setup.ts'],

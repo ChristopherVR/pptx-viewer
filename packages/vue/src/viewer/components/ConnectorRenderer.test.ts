@@ -229,7 +229,7 @@ describe('connectorRenderer - bent connectors', () => {
 		expect(path.attributes('stroke')).toBe('#0000ff');
 	});
 
-	it('bends around a horizontal mid-line, not a vertical one, when the shapes are stacked', () => {
+	it('keeps the OOXML horizontal-first route when the shapes are stacked', () => {
 		// A connector between vertically-stacked shapes is taller than it is
 		// wide (height > width). Before the fix, the SVG path bent around a
 		// vertical mid-line at `width * adj1` regardless of orientation, so the
@@ -248,7 +248,7 @@ describe('connectorRenderer - bent connectors', () => {
 			},
 		});
 		const path = wrapper.get('path:not(.pptx-vue-connector-hit)');
-		expect(path.attributes('d')).toBe('M 0 0 L 0 100 L 50 100 L 50 200');
+		expect(path.attributes('d')).toBe('M 0 0 L 25 0 L 25 200 L 50 200');
 	});
 });
 
@@ -283,7 +283,7 @@ describe('connectorRenderer - hit target', () => {
 // ── Curved connector routing ──────────────────────────────────────────────────
 
 describe('connectorRenderer - curved connectors', () => {
-	it('renders a <path> with Q (quadratic Bezier) for curvedConnector2', () => {
+	it('renders the OOXML cubic path for curvedConnector2', () => {
 		const wrapper = mount(ConnectorRenderer, {
 			props: {
 				element: connector({
@@ -295,7 +295,7 @@ describe('connectorRenderer - curved connectors', () => {
 			},
 		});
 		const path = wrapper.get('path');
-		expect(path.attributes('d')).toMatch(/Q/u);
+		expect(path.attributes('d')).toMatch(/C/u);
 		expect(wrapper.find('line').exists()).toBeFalsy();
 	});
 
