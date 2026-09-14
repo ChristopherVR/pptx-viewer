@@ -492,6 +492,13 @@ describe('containsConvertibleStrictNamespaceAttribute', () => {
 	it('returns false for an empty string', () => {
 		expect(containsConvertibleStrictNamespaceAttribute('')).toBeFalsy();
 	});
+
+	it('handles malformed repeated uri attributes in linear time', () => {
+		const xml = `\turi="${'a\turi="'.repeat(50_000)}`;
+		const start = performance.now();
+		expect(containsConvertibleStrictNamespaceAttribute(xml)).toBeFalsy();
+		expect(performance.now() - start).toBeLessThan(1_000);
+	});
 });
 
 // ---------------------------------------------------------------------------

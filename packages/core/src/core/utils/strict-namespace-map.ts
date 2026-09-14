@@ -477,6 +477,19 @@ export function isTransitionalNamespaceUri(uri: string): boolean {
 	return TRANSITIONAL_TO_STRICT_NS.has(uri) || deriveStrictUri(uri) !== undefined;
 }
 
+function isXmlWhitespace(char: string): boolean {
+	return char.trim().length === 0;
+}
+
+function isConvertibleAttributeName(name: string): boolean {
+	return (
+		name === 'Type' ||
+		name === 'uri' ||
+		name === 'xmlns' ||
+		(name.startsWith('xmlns:') && /^[A-Za-z_][\w.-]*$/u.test(name.slice('xmlns:'.length)))
+	);
+}
+
 /**
  * Check whether raw part XML contains a Transitional URI in an attribute that
  * a Strict-conformance conversion is actually able to rewrite: a namespace
@@ -494,12 +507,48 @@ export function isTransitionalNamespaceUri(uri: string): boolean {
  * needed Strict conversion.
  */
 export function containsConvertibleStrictNamespaceAttribute(xml: string): boolean {
-	const convertibleAttribute =
-		/(?:\sxmlns(?::[A-Za-z_][\w.-]*)?|\sType|\suri)\s*=\s*(["'])(.*?)\1/gu;
-	for (const match of xml.matchAll(convertibleAttribute)) {
-		if (isTransitionalNamespaceUri(match[2])) {
+	let index = 0;
+	while (index < xml.length) {
+		while (index < xml.length && !isXmlWhitespace(xml[index])) {
+			index++;
+		}
+		while (index < xml.length && isXmlWhitespace(xml[index])) {
+			index++;
+		}
+
+		const nameStart = index;
+		while (index < xml.length && !isXmlWhitespace(xml[index]) && xml[index] !== '=') {
+			index++;
+		}
+		const name = xml.slice(nameStart, index);
+		if (!isConvertibleAttributeName(name)) {
+			continue;
+		}
+
+		while (index < xml.length && isXmlWhitespace(xml[index])) {
+			index++;
+		}
+		if (xml[index] !== '=') {
+			continue;
+		}
+		index++;
+		while (index < xml.length && isXmlWhitespace(xml[index])) {
+			index++;
+		}
+
+		const quote = xml[index];
+		if (quote !== '"' && quote !== "'") {
+			continue;
+		}
+		const valueStart = ++index;
+		const valueEnd = xml.indexOf(quote, valueStart);
+		if (valueEnd === -1) {
+			return false;
+		}
+		if (isTransitionalNamespaceUri(xml.slice(valueStart, valueEnd))) {
 			return true;
 		}
+		index = valueEnd + 1;
 	}
 	return false;
 }
