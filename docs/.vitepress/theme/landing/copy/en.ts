@@ -11,6 +11,8 @@ export const en: LandingCopy = {
 		scroll: 'Scroll',
 		frameCaption: 'sample-deck.pptx · live in the browser',
 		frameTry: 'Try it',
+		frameAlt:
+			'The pptx viewer editing a real deck: flipping slides, dragging an element, and rendering a chart',
 		copyLabel: 'Copy',
 		copiedLabel: 'Copied',
 	},

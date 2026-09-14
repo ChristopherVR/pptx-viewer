@@ -7,12 +7,14 @@ import { en } from './en';
 import { es } from './es';
 import { fr } from './fr';
 import type { LandingCopy } from './types';
+import { zh } from './zh';
 
 const dictionaries: Record<string, LandingCopy> = {
 	'en-US': en,
 	'fr-FR': fr,
 	'es-ES': es,
 	'de-DE': de,
+	'zh-CN': zh,
 };
 
 /** Returns the landing copy for the active VitePress locale (en fallback). */

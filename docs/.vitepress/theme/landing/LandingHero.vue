@@ -38,7 +38,7 @@ const copy = useLandingCopy();
 					</span>
 					<img
 						:src="withBase('/hero-viewer.gif')"
-						alt="The pptx viewer editing a real deck: flipping slides, dragging an element, and rendering a chart"
+						:alt="copy.hero.frameAlt"
 						width="960"
 						height="540"
 						fetchpriority="high"
@@ -90,6 +90,16 @@ const copy = useLandingCopy();
 	font-style: italic;
 	font-weight: 460;
 	color: var(--pv-accent);
+}
+
+.pv-hero__title:lang(zh-CN) {
+	font-size: clamp(2.2rem, 4.8vw, 4rem);
+	line-height: 1.25;
+	letter-spacing: 0;
+}
+
+.pv-hero__title:lang(zh-CN) em {
+	font-style: normal;
 }
 
 .pv-hero__sub {

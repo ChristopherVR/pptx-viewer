@@ -72,6 +72,12 @@
 	max-width: 30rem;
 }
 
+.pv-h2:lang(zh-CN),
+.pv-finale__title:lang(zh-CN) {
+	line-height: 1.3;
+	letter-spacing: 0;
+}
+
 .pv-link {
 	display: inline-flex;
 	align-items: center;
