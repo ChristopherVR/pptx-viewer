@@ -267,7 +267,11 @@ export function remapTextToSegments(
 		if (!originalParagraph && precedingParagraph) {
 			paraSegments = continueListParagraph(paraSegments, precedingParagraph);
 			const donor = precedingParagraph[0];
-			if (donor?.paragraphProperties?.alignment !== undefined && paraSegments[0]) {
+			if (
+				(donor?.paragraphProperties as { alignment?: unknown } | undefined)?.alignment !==
+					undefined &&
+				paraSegments[0]
+			) {
 				paraSegments = [
 					{
 						...paraSegments[0],

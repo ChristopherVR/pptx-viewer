@@ -39,6 +39,36 @@ export function renumberRemappedParagraphs(segments: TextSegment[]): TextSegment
 	});
 }
 
+/** Returns the editor-only display marker that begins a listed paragraph. */
+export function dedicatedBulletMarker(
+	paragraphSegments: readonly TextSegment[],
+): TextSegment | undefined {
+	const first = paragraphSegments[0];
+	if (!first || !isBulletMarkerSegment(first)) {
+		return undefined;
+	}
+	return !first.bulletInfo?.autoNumType || first.bulletInfo.paragraphIndex !== undefined
+		? first
+		: undefined;
+}
+
+/** Updates an auto-number's derived ordinal and its display marker text. */
+export function withAutoNumberIndex(
+	first: TextSegment,
+	paragraphIndex: number,
+	isMarker: boolean = isBulletMarkerSegment(first),
+): TextSegment {
+	const next: TextSegment = { ...first, bulletInfo: { ...first.bulletInfo, paragraphIndex } };
+	if (isMarker) {
+		const resolved = resolveParagraphBullet(next);
+		if (resolved) {
+			const trailingWhitespace = first.text.match(/\s+$/u)?.[0] ?? '';
+			next.text = `${resolved.marker}${trailingWhitespace}`;
+		}
+	}
+	return next;
+}
+
 /** Remove a display-only marker from editor text before remapping its content. */
 export function withoutRenderedBulletPrefix(
 	text: string,

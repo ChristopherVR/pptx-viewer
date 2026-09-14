@@ -93,7 +93,8 @@ export function selectedParagraphBulletKind(
 	selection: InlineTextSelection | null,
 ): ParagraphBulletKind {
 	if (!selection || !hasTextProperties(element) || !element.textSegments) {
-		return elementBulletKind(element);
+		const kind = elementBulletKind(element);
+		return kind === 'mixed' ? 'none' : kind;
 	}
 	let first = selection.startSegIdx;
 	while (first > 0 && !isParagraphBreak(element.textSegments[first - 1])) {
