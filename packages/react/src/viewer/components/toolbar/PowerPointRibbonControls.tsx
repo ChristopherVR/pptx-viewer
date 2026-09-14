@@ -14,7 +14,7 @@ export function RibbonGroup({
 	return (
 		<section
 			className={cn(
-				'relative flex min-h-[78px] shrink-0 items-start gap-1 border-r border-border/60 px-2 pb-4 pt-1 last:border-r-0',
+				'relative flex min-h-[78px] self-stretch shrink-0 items-start gap-1 border-r border-border/60 px-2 pb-4 pt-1 last:border-r-0',
 				className,
 			)}
 			aria-label={label}

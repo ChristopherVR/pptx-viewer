@@ -19,7 +19,7 @@ Node.js **18 oder neuer** ist fur die TypeScript-Kompilierung und fur die Ausfuh
 | Vue 3                     | `pptx-vue-viewer`     | Gleicher Engine und Funktionsumfang                             |
 | Angular                   | `pptx-angular-viewer` | Gleicher Engine und Funktionsumfang                             |
 | Headless (Node / Browser) | `pptx-viewer-core`    | Keine UI, keine Framework-Abhangigkeit                          |
-| KI / MCP-Werkzeuge        | `pptx-viewer-mcp`     | 25 MCP-Tools + CLI + Y.Doc-Codec                                |
+| KI / MCP-Werkzeuge        | `pptx-viewer-mcp`     | 73 MCP-Tools + CLI + Y.Doc-Codec                                |
 
 ## Von npm installieren
 
@@ -125,7 +125,7 @@ bun add pptx-viewer-core
 
 ### MCP-Server und Werkzeuge
 
-25 PPTX-Manipulations-Tool-Funktionen, ein MCP-Server fur KI-Agenten und der Y.Doc-Zusammenarbeit-Codec.
+73 PPTX-Manipulations-Tool-Funktionen, ein MCP-Server fur KI-Agenten und der Y.Doc-Zusammenarbeit-Codec.
 
 ::: code-group
 

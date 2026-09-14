@@ -10,7 +10,7 @@ Cette page explique comment les couches de `pptx-viewer` s'articulent entre elle
 ## Apercu des couches
 
 ```
-Framework viewers (React / Vue / Angular)
+Framework viewers (React / Vue / Angular / Svelte / Vanilla JS)
          │
 pptx-viewer-shared      ← logique de rendu independante du framework
          │
@@ -39,11 +39,11 @@ Le package Core (`pptx-viewer-core`) est un moteur purement TypeScript qui s'exe
 
 ## La composition par mixins du Runtime
 
-`PptxHandlerRuntime` est compose de 50+ modules de mixins, chacun gerant un aspect specifique (parsing de texte, graphiques, animations, etc.). Ce pattern maintient les modules petits et concentres.
+`PptxHandlerRuntime` est compose de plus de 90 modules de mixins, chacun gerant un aspect specifique (parsing de texte, graphiques, animations, etc.). Ce pattern maintient les modules petits et concentres.
 
 ## Les packages de visualiseur
 
-Chaque package de visualiseur (React, Vue, Angular) contient :
+Chaque package de visualiseur (React, Vue, Angular, Svelte et Vanilla JS) contient :
 
 - **Composants de rendu** - convertissent `PptxElement` en HTML/CSS/SVG.
 - **Etat reactif** - gestion de la selection, du zoom, de l'historique d'edition.

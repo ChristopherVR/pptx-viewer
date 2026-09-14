@@ -200,9 +200,11 @@ the full ribbon.
 
 ## 6. Autosave and crash recovery {#autosave}
 
-With `autosave` and a `filePath` (the IndexedDB record key, typically the file name), every
-committed edit is debounced (default 2000 ms) and serialized to `.pptx` bytes in a shared
-IndexedDB recovery store; `onautosave` fires with the bytes after each successful snapshot.
+With autosave permitted (the default) and a `filePath` (the IndexedDB record key, typically the
+file name), committed edits are debounced and serialized to `.pptx` bytes in a shared IndexedDB
+recovery store. An explicit `autosaveIntervalMs` sets the cadence; otherwise the user's File >
+Options AutoRecover setting decides it. `onautosave` fires with the bytes after each successful
+snapshot.
 
 ```svelte
 <PowerPointViewer
@@ -214,8 +216,8 @@ IndexedDB recovery store; `onautosave` fires with the bytes after each successfu
 />
 ```
 
-The viewer never restores automatically; recovery is a host concern. The store helpers are
-re-exported from the package root:
+When a newer snapshot exists for the same key, the viewer offers its built-in Restore or Discard
+recovery prompt after loading. The store helpers remain available for a host-owned recovery flow:
 
 ```ts
 import {

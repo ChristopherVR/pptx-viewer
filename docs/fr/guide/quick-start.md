@@ -13,6 +13,7 @@ Utilisez `PptxHandler.create()` pour demarrer un nouveau deck, construisez des d
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { writeFile } from 'node:fs/promises';
 
 const { handler, data, createSlide } = await PptxHandler.create({
 	title: 'Ma Presentation',
@@ -32,7 +33,7 @@ const slide = createSlide()
 data.slides.push(slide);
 
 const output = await handler.save(data.slides);
-await fs.writeFile('presentation.pptx', Buffer.from(output));
+await writeFile('presentation.pptx', output);
 ```
 
 ## 2. Analyser et editer une presentation existante
@@ -41,10 +42,13 @@ Construisez un `PptxHandler`, `load()` un `ArrayBuffer`, parcourez le [modele de
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const handler = new PptxHandler();
-const buffer = await fs.readFile('presentation.pptx');
-const data = await handler.load(buffer.buffer);
+const buffer = await readFile('presentation.pptx');
+const data = await handler.load(
+	buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+);
 
 console.log(`Charge ${data.slides.length} diapositives`);
 
@@ -58,7 +62,7 @@ for (const slide of data.slides) {
 
 data.slides[0].elements[0].text = 'Titre modifie';
 const output = await handler.save(data.slides);
-await fs.writeFile('sortie.pptx', Buffer.from(output));
+await writeFile('sortie.pptx', output);
 ```
 
 ::: tip Affiner les elements

@@ -26,21 +26,21 @@ vulnerability rather than a bug? Do **not** open a public issue: see
 ## Getting set up
 
 **Prerequisites:** [Bun](https://bun.sh/) (package manager and runtime) and
-Node.js 22+.
+Node.js 22+. On Windows, the root test runner also needs Bash (for example, Git Bash), including its standard Unix utilities.
 
 ```bash
 git clone https://github.com/ChristopherVR/pptx-viewer.git
 cd pptx-viewer
 
 bun install
-bun run build      # core -> shared -> locales -> mcp -> the five bindings
+bun run build      # foundations, bindings, installer, and React demo
 bun run test
 bun run typecheck
 bun run lint
 bun run fmt:check
 ```
 
-Build order matters: `core -> shared -> locales -> mcp -> react / vue / angular / vanilla / svelte`.
+The root build runs `core -> shared -> locales -> tools -> react -> vue -> angular -> vanilla -> svelte -> cli -> React demo`. Vue, Angular, Vanilla, and Svelte demo production builds are separate scripts in their demo packages. `emf-converter` and `mtx-decompressor` are external npm dependencies.
 
 External contributors work on a fork: fork the repo, branch off `main`, and open
 a PR back to `ChristopherVR/pptx-viewer:main`. (Maintainers with write access
@@ -58,7 +58,7 @@ This project ships **the same viewer/editor through five bindings**:
 | `packages/vue`     | `pptx-vue-viewer`     | Vue 3     |
 | `packages/angular` | `pptx-angular-viewer` | Angular   |
 | `packages/svelte`  | `pptx-svelte-viewer`  | Svelte 5  |
-| `packages/vanilla` | `pptx-vanilla-viewer` | Zero-deps |
+| `packages/vanilla` | `pptx-vanilla-viewer` | Plain DOM |
 
 A user on Svelte is entitled to exactly the feature set a user on React gets.
 Divergence between bindings is the single most expensive kind of debt in this
@@ -111,13 +111,13 @@ the drift.
 
 ### Decision table
 
-| Change                                           | Where the logic lives | Bindings to touch       | Tests required                                 |
-| ------------------------------------------------ | --------------------- | ----------------------- | ---------------------------------------------- |
-| New UI feature (control, dialog, panel, gesture) | `pptx-viewer-shared`  | **All five**            | Unit per binding + shared unit + e2e spec      |
-| UI fix reproducible in >1 binding                | `pptx-viewer-shared`  | **All affected**        | Regression test per affected binding (+ e2e)   |
-| UI fix genuinely specific to one framework       | That binding          | Just that one           | Regression test in that binding; PR says why   |
-| Parsing / serialization / geometry               | `pptx-viewer-core`    | None (bindings inherit) | Unit in `packages/core`, round-trip if on save |
-| Docs, README, examples                           | n/a                   | n/a                     | n/a                                            |
+| Change                                           | Where the logic lives | Bindings to touch       | Tests required                                  |
+| ------------------------------------------------ | --------------------- | ----------------------- | ----------------------------------------------- |
+| New UI feature (control, dialog, panel, gesture) | `pptx-viewer-shared`  | **All five**            | Unit per binding + shared unit + e2e spec       |
+| UI fix reproducible in >1 binding                | `pptx-viewer-shared`  | **All affected**        | Regression test per affected binding (+ e2e)    |
+| UI fix genuinely specific to one framework       | That binding          | Just that one           | Regression test in that binding; PR says why    |
+| Parsing / serialization / geometry               | `pptx-viewer-core`    | None (bindings inherit) | Unit in `packages/core`, round-trip if on save  |
+| Docs, README, examples                           | n/a                   | n/a                     | Documentation build and relevant example checks |
 
 "Genuinely specific to one framework" means something like Angular change
 detection, Svelte 5 runes, or a React `useEffect` ordering issue. A wrong
@@ -128,7 +128,7 @@ does not open is almost never framework-specific.
 
 Adding an English key to `packages/shared/src/i18n/translations-en.ts` requires
 matching entries under `packages/locales/src/{de,es,fr,zh-CN}/`.
-`packages/locales/src/locales.test.ts` fails the build if any locale is missing
+`packages/locales/src/locales.test.ts` fails the test suite if any locale is missing
 a canonical key. Never hardcode a user-visible string: route it through
 `t()` / `translate`.
 
@@ -140,7 +140,7 @@ a canonical key. Never hardcode a user-visible string: route it through
 packages/
   core/      pptx-viewer-core     Parse, edit, serialize PPTX (framework-agnostic)
   shared/    pptx-viewer-shared   Framework-agnostic viewer logic (PRIVATE, bundled into each binding)
-  locales/   pptx-viewer-locales  de/es/fr dictionaries (PRIVATE)
+  locales/   pptx-viewer-locales  de/es/fr/zh-CN dictionaries (PRIVATE)
   react/     pptx-react-viewer    React binding
   vue/       pptx-vue-viewer      Vue 3 binding
   angular/   pptx-angular-viewer  Angular binding
@@ -228,6 +228,14 @@ If a feature is worth adding to five bindings, it is worth one neutral spec.
 
 ---
 
+## Documentation
+
+The VitePress site in `docs/` is separate from the root Bun workspace. See
+[the documentation maintenance guide](docs/README.md) for setup, validation,
+translation coverage, and generated release pages. Documentation changes should
+be checked against public exports and source types, then built with
+`bun run docs:build`.
+
 ## Running the demos
 
 ```bash
@@ -238,7 +246,7 @@ bun run demo:vanilla   # VanillaJS :4176
 bun run demo:svelte    # Svelte 5  :4177
 ```
 
-The demos serve `e2e/fixtures` as their public dir, and the landing page's
+The Vanilla and Svelte demos serve `e2e/fixtures` as their public dir; the other demos use their default `public/` directory. The landing page's
 "or create a New Presentation" button gives you an editable deck without needing
 a file.
 
@@ -250,7 +258,7 @@ decides whether your edit is live on reload or needs a build first.
 | Specifier                     | react      | vue        | angular      | vanilla    | svelte     |
 | ----------------------------- | ---------- | ---------- | ------------ | ---------- | ---------- |
 | the binding (`pptx-*-viewer`) | source     | source     | **`dist`**   | source     | source     |
-| `pptx-viewer-core`            | source     | source     | source       | source     | source     |
+| `pptx-viewer-core`            | source     | source     | **`dist`**   | source     | source     |
 | `pptx-viewer-shared`          | **`dist`** | source     | **vendored** | source     | source     |
 | `pptx-viewer-locales`         | source     | source     | **`dist`**   | source     | source     |
 | `pptx-viewer-mcp`             | **`dist`** | **`dist`** | **`dist`**   | **`dist`** | **`dist`** |
@@ -260,7 +268,9 @@ until you build that package**:
 
 - **Angular** reads `packages/angular/dist` (ng-packagr). Editing
   `packages/angular/src` changes nothing on screen until you run `bun run build`
-  in `packages/angular`. This is the most common way to waste an hour concluding
+  in `packages/angular`. Core also resolves to built output in this demo: run
+  `bun run --filter pptx-viewer-core build` after core changes. Shared source is
+  vendored during the Angular build, so shared edits require rebuilding Angular. This is the most common way to waste an hour concluding
   "my change does not work in Angular".
 - **`pptx-viewer-mcp`** is aliased by no demo but is imported by
   `packages/shared/src/ai/tools/mcp-registry.ts`, so a stale
@@ -347,7 +357,7 @@ House rules:
 - **EMU units.** PowerPoint measures in English Metric Units; constants live in
   `core/constants.ts` (`EMU_PER_INCH = 914400`, `EMU_PER_POINT = 12700`,
   `EMU_PER_PIXEL = 9525`).
-- **No em-dashes.** Never write `-` U+2014 anywhere: source, comments, JSDoc,
+- **No em-dashes.** Never write U+2014 anywhere: source, comments, JSDoc,
   docs, commit messages, or UI copy. Use a colon, comma, semicolon, parentheses,
   or a spaced hyphen. The only exception is functional content that
   intentionally renders or asserts the character.
@@ -373,7 +383,7 @@ What gets a PR sent back, in rough order of frequency:
 1. A UI feature or fix in one binding with no statement about the other four.
 2. Pure logic duplicated into a binding instead of extracted to `shared`.
 3. A non-conforming commit message (it will mis-version a release).
-4. New English i18n keys with no `de`/`es`/`fr` entries.
+4. New English i18n keys with no `de`/`es`/`fr`/`zh-CN` entries.
 5. A source file pushed well past 300 LOC instead of split.
 6. Em-dashes.
 

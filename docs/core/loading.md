@@ -1,11 +1,11 @@
 ---
 title: Loading & Parsing
-description: Construct a PptxHandler, load a .pptx ArrayBuffer into the structured PptxData model, and walk slides, elements, theme, and metadata.
+description: Construct a PptxHandler, load a PPTX, legacy PPT, or portable JSON ArrayBuffer into the structured PptxData model, and walk slides, elements, theme, and metadata.
 ---
 
 # Loading & Parsing
 
-Loading turns raw `.pptx` bytes into a fully resolved, typed [`PptxData`](/guide/data-model) object. All parsing happens in memory - no temporary files, no native code.
+Loading turns raw `.pptx`, legacy `.ppt`, or `pptx-viewer-json` bytes into a fully resolved, typed [`PptxData`](/guide/data-model) object. All parsing happens in memory - no temporary files, no native code.
 
 ## Construct a handler and load
 
@@ -19,7 +19,7 @@ console.log(`${data.slides.length} slides loaded`);
 console.log(`Canvas: ${data.width} x ${data.height}`);
 ```
 
-`handler.load(data, options?)` accepts an `ArrayBuffer` and returns `Promise<PptxData>`.
+`handler.load(data, options?)` accepts an `ArrayBuffer` and returns `Promise<PptxData>`. It recognizes OpenXML ZIP packages, legacy OLE2 PowerPoint files, and a JSON object carrying the `"format": "pptx-viewer-json"` marker.
 
 ::: tip Keep the handler
 The handler holds the in-memory ZIP. Use the **same** handler instance to later `save()` or fetch media via `getImageData()` / `getMediaArrayBuffer()`.
@@ -56,7 +56,7 @@ const data = await handler.load(buffer as ArrayBuffer);
 
 When you call `load()`, the runtime:
 
-1. Detects the file format. Encrypted (OLE2/CFB) files are decrypted first when a password is supplied.
+1. Detects the file format. Portable JSON is validated and overlaid on a generated blank archive. Encrypted OpenXML OLE2/CFB files are decrypted first when a password is supplied, and legacy binary PowerPoint files are converted to the model.
 2. Opens the ZIP with JSZip and parses `[Content_Types].xml` and `ppt/presentation.xml`.
 3. Parses each slide master, its theme, colour map, and layouts.
 4. For each slide, parses the shape tree and resolves the **layout → master → theme** style chain (see [/guide/architecture](/guide/architecture)).
@@ -64,6 +64,21 @@ When you call `load()`, the runtime:
 6. Parses comments, document properties, and embedded fonts.
 
 The result is a single `PptxData` object holding everything needed to render, edit, or convert the deck.
+
+## Portable deck JSON
+
+`PptxJsonConverter` produces a versioned, self-contained `pptx-viewer-json` document. It carries the presentation model and binary model fields as tagged base64, so it can be transferred without the original archive. `load()` recognizes its format marker automatically and prepares a minimal archive so ordinary editing and `save()` continue to work.
+
+```ts
+import { PptxHandler, PptxJsonConverter } from 'pptx-viewer-core';
+
+const json = PptxJsonConverter.toJson(data, { pretty: true, generator: 'my-app' });
+const imported = new PptxHandler();
+const restored = await imported.load(new TextEncoder().encode(json).buffer);
+const bytes = await imported.save(restored.slides); // valid .pptx bytes
+```
+
+The current format is version 1. Use `PptxJsonConverter.parse()` when you need validation without rebuilding `PptxData`, or `fromJson()` when you only need the model.
 
 ## Load options
 

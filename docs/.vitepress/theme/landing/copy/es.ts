@@ -19,7 +19,7 @@ export const es: LandingCopy = {
 		title: 'Lo que obtienes.',
 		items: [
 			{
-				title: 'Renderizado de alta fidelidad',
+				title: 'Renderizado de gran fidelidad',
 				copy: 'Mas de 187 formas predefinidas, 23 tipos de graficos, SmartArt, animaciones, transiciones morph, fuentes incrustadas, metarchivos EMF y WMF y modelos 3D, todos dibujados como HTML, CSS y SVG. El texto sigue siendo seleccionable y los lectores de pantalla siguen funcionando.',
 				link: { text: 'Renderizado', href: '/es/guide/architecture' },
 			},
@@ -63,7 +63,7 @@ export const es: LandingCopy = {
 	agents: {
 		kicker: 'Automatizacion',
 		title: '.pptx, editado por agentes.',
-		copy: 'pptx-viewer-mcp expone mas de 50 herramientas PPTX con esquemas Zod sobre el Model Context Protocol, de modo que Claude, Cursor y Copilot pueden leer, editar y convertir presentaciones directamente. Las mismas funciones corren en headless en Node, Bun o entornos serverless, y una CLI cubre las conversiones puntuales.',
+		copy: 'pptx-viewer-mcp expone 73 herramientas PPTX con esquemas Zod sobre el Model Context Protocol, de modo que Claude, Cursor y Copilot pueden leer, editar y convertir presentaciones directamente. Las mismas funciones corren en headless en Node, Bun o entornos serverless, y una CLI cubre las conversiones puntuales.',
 		link: { text: 'MCP y herramientas', href: '/packages/mcp' },
 	},
 	quickstart: {
@@ -88,7 +88,7 @@ export const es: LandingCopy = {
 		soloHint:
 			'Todo se ejecuta en el cliente: el analisis, el renderizado, la edicion y el guardado ocurren en esta pestana, y el deck nunca sale de tu navegador. Abre la aplicacion completa para arrastrar un deck tuyo.',
 		collabHint:
-			'Dos aplicaciones independientes comparten un mismo deck mediante una sesion CRDT sin servidor (y-webrtc, par a par). Arrastra una forma o edita texto en un panel y mira como el otro lo sigue, incluso entre frameworks distintos.',
+			'Dos aplicaciones independientes comparten un mismo deck mediante una sesion CRDT de Yjs entre pares. El transporte usa senalizacion de y-webrtc; arrastra una forma o edita texto en un panel y mira como el otro lo sigue, incluso entre frameworks distintos.',
 	},
 	faq: {
 		kicker: 'FAQ',
@@ -112,7 +112,7 @@ export const es: LandingCopy = {
 			},
 			{
 				q: 'La colaboracion necesita infraestructura?',
-				a: 'Por defecto, no. El transporte incluido es entre pares (y-webrtc) y funciona desde hosting estatico. Para persistencia y autenticacion puedes apuntarlo a un relay y-websocket.',
+				a: 'El transporte entre pares incluido usa infraestructura de senalizacion de y-webrtc. Para persistencia, autenticacion o redes controladas, proporciona un servicio de colaboracion como un relay y-websocket.',
 				link: { text: 'Colaboracion', href: '/react/collaboration' },
 			},
 			{
@@ -121,11 +121,11 @@ export const es: LandingCopy = {
 			},
 			{
 				q: 'Que frameworks estan soportados?',
-				a: 'React 19, Vue 3, Angular, Svelte 5 y una version vanilla sin framework. Cada paquete incluye el mismo motor, asi que el renderizado es identico en todos.',
+				a: 'React 18/19, Vue 3, Angular, Svelte 5 y una version vanilla sin framework. Comparten el motor y la logica de renderizado neutral al framework, mientras cada binding aporta su propia capa de vista.',
 			},
 			{
 				q: 'Cuales son las limitaciones?',
-				a: 'Los objetos OLE son de solo lectura y algunos efectos visuales se aproximan en pantalla. La pagina de limitaciones detalla exactamente que esperar.',
+				a: 'El contenido OLE se puede reemplazar, y se pueden editar hojas, documentos y titulos de decks anidados compatibles. Algunos efectos visuales se aproximan en pantalla. La pagina de limitaciones detalla exactamente que esperar.',
 				link: { text: 'Limitaciones', href: '/es/guide/limitations' },
 			},
 		],

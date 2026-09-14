@@ -22,7 +22,7 @@ A live [Svelte demo](https://christophervr.github.io/pptx-viewer/demo-svelte/) i
 | **Presentation**    | Fullscreen presentation mode via the real Fullscreen API, with transition/animation playback and a presenter view (audience window).       |
 | **Export**          | PNG, PDF, GIF, WebM video, SVG, print (slides / handouts / notes / outline), and `.pptx` / `.ppsx` / `.pptm` save-as.                      |
 | **Collaboration**   | Optional real-time co-editing over Yjs (y-websocket or serverless y-webrtc), with presence, remote cursors, and Share/Broadcast dialogs.   |
-| **Autosave**        | Opt-in debounced crash-recovery snapshots in IndexedDB, plus re-exported helpers for host-driven restore.                                  |
+| **Autosave**        | Debounced crash-recovery snapshots in IndexedDB when editing has a `filePath`; the host can disable them with `autosave={false}`.          |
 | **Theming**         | The shared `ViewerTheme` system (`--pptx-*` CSS custom properties), including the vermilion presets. See [Theming](/svelte/theming).       |
 | **i18n**            | English built in; register more locales via `pptx-svelte-viewer/i18n`. See [Localization](/svelte/i18n).                                   |
 
@@ -44,7 +44,7 @@ automatically with the package.
 Two features have optional dependencies, installed only when you use them:
 
 ```bash
-npm i three                    # opt-in 3D SmartArt renderer (smartArt3D prop)
+npm i three                    # opt-in 3D SmartArt and 3D chart renderers
 npm i yjs y-websocket          # collaboration, server-based transport
 npm i yjs y-webrtc             # collaboration, serverless peer-to-peer transport
 ```

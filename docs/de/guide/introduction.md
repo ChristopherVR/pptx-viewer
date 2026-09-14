@@ -35,7 +35,7 @@ Das Monorepo stellt sechs veroffentlichte Pakete bereit.
 | **React**       | `pptx-react-viewer`          | React-Viewer, -Editor und -Presenter mit Symbolleiste, Inspektor, Zusammenarbeit und Export.           |
 | **Vue 3**       | `pptx-vue-viewer`            | Vue-3-Viewer/Editor auf demselben Engine aufgebaut, mit demselben Funktionsumfang.                     |
 | **Angular**     | `pptx-angular-viewer`        | Angular-Viewer/Editor auf demselben Engine aufgebaut, mit demselben Funktionsumfang.                   |
-| **Tools / MCP** | `pptx-viewer-mcp`            | 25 PPTX-Tool-Funktionen, ein MCP-Server fur KI-Agenten und der Y.Doc-Zusammenarbeit-Codec.             |
+| **Tools / MCP** | `pptx-viewer-mcp`            | 73 PPTX-Tool-Funktionen, ein MCP-Server fur KI-Agenten und der Y.Doc-Zusammenarbeit-Codec.             |
 | **Installer**   | `@christophervr/pptx-viewer` | Interaktive CLI, die das richtige Viewer-Paket in Ihr Projekt einbindet.                               |
 
 ### Abhangigkeitsgraph
@@ -55,7 +55,7 @@ pptx-angular-viewer ┘                               ├── emf-converter
 - **Vue-3-Entwickler** - verwenden Sie `pptx-vue-viewer`. Gleicher Engine und gleicher Funktionsumfang wie die React-Bindung.
 - **Angular-Entwickler** - verwenden Sie `pptx-angular-viewer`. Gleiche Geschichte: gleicher Engine, gleicher Funktionsumfang.
 - **Entwickler, die PowerPoint headless automatisieren oder einbetten** - verwenden Sie [`pptx-viewer-core`](/core/). Keine Oberflache, keine Framework-Abhangigkeit. Lauft identisch in einem Browser-Tab, einer Serverless-Funktion, einem Node.js-Build-Skript oder einem Web Worker.
-- **KI / LLM-Workflows** - verwenden Sie [`pptx-viewer-mcp`](/packages/mcp). Der MCP-Server stellt alle 25 Tool-Funktionen fur jeden MCP-kompatiblen Client (Claude Desktop, Cursor, VS Code Copilot) bereit.
+- **KI / LLM-Workflows** - verwenden Sie [`pptx-viewer-mcp`](/packages/mcp). Der MCP-Server stellt alle 73 Tool-Funktionen fur jeden MCP-kompatiblen Client (Claude Desktop, Cursor, VS Code Copilot) bereit.
 
 ## Nachste Schritte
 

@@ -35,7 +35,7 @@ El monorepo publica seis paquetes independientes.
 | **React**              | `pptx-react-viewer`          | Visualizador, editor y presentador React con barra de herramientas, inspector, colaboracion y exportacion. |
 | **Vue 3**              | `pptx-vue-viewer`            | Visualizador/editor Vue 3 construido sobre el mismo motor, con el mismo conjunto de funciones.             |
 | **Angular**            | `pptx-angular-viewer`        | Visualizador/editor Angular construido sobre el mismo motor, con el mismo conjunto de funciones.           |
-| **Herramientas / MCP** | `pptx-viewer-mcp`            | 25 funciones de herramientas PPTX, un servidor MCP para agentes IA y el codec de colaboracion Y.Doc.       |
+| **Herramientas / MCP** | `pptx-viewer-mcp`            | 73 funciones de herramientas PPTX, un servidor MCP para agentes IA y el codec de colaboracion Y.Doc.       |
 | **Instalador**         | `@christophervr/pptx-viewer` | CLI interactivo que integra el paquete de visualizacion correcto en su proyecto.                           |
 
 ### Grafo de dependencias
@@ -55,7 +55,7 @@ pptx-angular-viewer ┘                               ├── emf-converter
 - **Desarrolladores Vue 3** - use `pptx-vue-viewer`. Mismo motor y conjunto de funciones que el enlace React.
 - **Desarrolladores Angular** - use `pptx-angular-viewer`. Misma historia: mismo motor, mismo conjunto de funciones.
 - **Desarrolladores que automatizan o incrustan PowerPoint sin interfaz** - use [`pptx-viewer-core`](/core/). Sin interfaz, sin dependencia de framework. Funciona en una pestana del navegador, una funcion serverless, un script de construccion Node.js o un Web Worker.
-- **Flujos de trabajo de IA / LLM** - use [`pptx-viewer-mcp`](/packages/mcp). El servidor MCP expone las 25 funciones de herramientas a cualquier cliente compatible con MCP (Claude Desktop, Cursor, VS Code Copilot).
+- **Flujos de trabajo de IA / LLM** - use [`pptx-viewer-mcp`](/packages/mcp). El servidor MCP expone las 73 funciones de herramientas a cualquier cliente compatible con MCP (Claude Desktop, Cursor, VS Code Copilot).
 
 ## Proximos pasos
 

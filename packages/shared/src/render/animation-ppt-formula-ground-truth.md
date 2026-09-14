@@ -85,22 +85,18 @@ against a real authored file.
 
 ## What is now played vs. still falls back
 
-The shared formula evaluator (`animation-ppt-formula.ts`) can compute a
-formula exactly without knowing the shape's real geometry ONLY when the
-formula is affine (linear) in its OWN target attribute and does not depend on
-the other three geometry variables: this covers every `ppt_x`/`ppt_y` offset
-form (`#ppt_x`, `#ppt_x+.4`, `#ppt_x-0.0242`, ...) and every `ppt_w`/`ppt_h`
-scale form (`#ppt_w`, `#ppt_w*.05`, literal `0`, ...) observed above, which is
-Bounce, Boomerang, Float, and the position/size components of the other
-sampled effects in full. `animation-attribute-transform.ts` detects this by
-evaluating the formula at three probe points; formulas that are not affine in
-their own axis, or that vary when a DIFFERENT geometry variable is probed
-(Grow And Turn's `-#ppt_w/2` on a `ppt_x` node, and its `by` wobble mixing
-`ppt_h` and `ppt_w`) are correctly rejected rather than guessed, because they
-would need the shape's real rendered box, which is not threaded into the
-animation timeline builder (a deliberate scope boundary, not an oversight:
-threading it would mean changing the signature of `PresentationAnimationController.fromSlide`
-and, therefore, its one call site in each of the five bindings, for a case
-this ground-truth run shows affects one effect family, not most of them).
-A rejected component falls back to that effect's canned preset timing exactly
-as before, so no formula is ever guessed in the wrong direction.
+The shared formula evaluator (`animation-ppt-formula.ts`) resolves every
+supported geometry formula directly when the animation render context has the
+shape's authored box. `PresentationAnimationController.fromSlide` now builds
+that context from the slide's flattened elements and canvas size, so a
+cross-axis expression such as Grow And Turn's `-#ppt_w/2` on a `ppt_x` node,
+and its `by` wobble mixing `ppt_h` and `ppt_w`, resolve to real transform
+values rather than falling back.
+
+When a caller has no box, the fallback remains deliberately conservative. It
+only accepts a formula that is affine in its own target attribute and does not
+depend on the other three geometry variables. That still covers the observed
+`ppt_x`/`ppt_y` offsets (`#ppt_x`, `#ppt_x+.4`, `#ppt_x-0.0242`, ...) and
+`ppt_w`/`ppt_h` scale forms (`#ppt_w`, `#ppt_w*.05`, literal `0`, ...). An
+unresolvable component rejects the complete generic transform model, allowing
+the effect's canned preset timing to play instead of guessing a direction.

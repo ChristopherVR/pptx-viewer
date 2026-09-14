@@ -13,6 +13,7 @@ Use `PptxHandler.create()` para iniciar un nuevo deck, construya diapositivas co
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { writeFile } from 'node:fs/promises';
 
 const { handler, data, createSlide } = await PptxHandler.create({
 	title: 'Mi Presentacion',
@@ -32,17 +33,20 @@ const slide = createSlide()
 data.slides.push(slide);
 
 const output = await handler.save(data.slides);
-await fs.writeFile('presentacion.pptx', Buffer.from(output));
+await writeFile('presentacion.pptx', output);
 ```
 
 ## 2. Analizar y editar una presentacion existente
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const handler = new PptxHandler();
-const buffer = await fs.readFile('presentacion.pptx');
-const data = await handler.load(buffer.buffer);
+const buffer = await readFile('presentacion.pptx');
+const data = await handler.load(
+	buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+);
 
 console.log(`Cargadas ${data.slides.length} diapositivas`);
 
@@ -56,7 +60,7 @@ for (const slide of data.slides) {
 
 data.slides[0].elements[0].text = 'Titulo actualizado';
 const output = await handler.save(data.slides);
-await fs.writeFile('salida.pptx', Buffer.from(output));
+await writeFile('salida.pptx', output);
 ```
 
 ::: tip Estrechar los elementos

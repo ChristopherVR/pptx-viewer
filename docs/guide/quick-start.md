@@ -13,6 +13,7 @@ Use `PptxHandler.create()` to start a new deck, build slides with the fluent sli
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { writeFile } from 'node:fs/promises';
 
 const { handler, data, createSlide } = await PptxHandler.create({
 	title: 'My Presentation',
@@ -35,7 +36,7 @@ data.slides.push(slide);
 
 // Save to .pptx (returns a Uint8Array)
 const output = await handler.save(data.slides);
-await fs.writeFile('presentation.pptx', Buffer.from(output));
+await writeFile('presentation.pptx', output);
 ```
 
 ## 2. Parse and edit an existing presentation
@@ -44,10 +45,13 @@ Construct a `PptxHandler`, `load()` an `ArrayBuffer`, walk the [data model](/gui
 
 ```ts
 import { PptxHandler } from 'pptx-viewer-core';
+import { readFile, writeFile } from 'node:fs/promises';
 
 const handler = new PptxHandler();
-const buffer = await fs.readFile('presentation.pptx');
-const data = await handler.load(buffer.buffer);
+const buffer = await readFile('presentation.pptx');
+const data = await handler.load(
+	buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+);
 
 console.log(`Loaded ${data.slides.length} slides`);
 console.log(`Theme: ${data.theme?.name}`);
@@ -64,11 +68,11 @@ for (const slide of data.slides) {
 // Modify and save
 data.slides[0].elements[0].text = 'Updated Title';
 const output = await handler.save(data.slides);
-await fs.writeFile('output.pptx', Buffer.from(output));
+await writeFile('output.pptx', output);
 ```
 
 ::: tip Narrowing elements
-`slide.elements` is an array of the [`PptxElement`](/guide/data-model) discriminated union. Always check `element.type` before accessing variant-specific fields - see [Core Concepts](/guide/concepts#the-element-model).
+`slide.elements` is an array of the [`PptxElement`](/guide/data-model) discriminated union. Always check `element.type` before accessing variant-specific fields.
 :::
 
 ## 3. Convert to Markdown
@@ -77,9 +81,13 @@ await fs.writeFile('output.pptx', Buffer.from(output));
 
 ```ts
 import { PptxHandler, PptxMarkdownConverter } from 'pptx-viewer-core';
+import { readFile } from 'node:fs/promises';
 
 const handler = new PptxHandler();
-const data = await handler.load(buffer);
+const buffer = await readFile('presentation.pptx');
+const data = await handler.load(
+	buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength),
+);
 
 const converter = new PptxMarkdownConverter('./output', {
 	sourceName: 'presentation.pptx',
@@ -132,4 +140,4 @@ Using Vue, Angular, Svelte, or no framework at all? See the [Vue](/vue/getting-s
 - [Core package overview](/core/) - the full handler, builder, and converter APIs.
 - [React package overview](/react/) - viewer props, editing, presenting, and export.
 - [The PptxData Model](/guide/data-model) - the shape of parsed presentations.
-- [Core Concepts](/guide/concepts) - EMU units, the element model, and theme resolution.
+- [The PptxData Model](/guide/data-model#units-emu-and-pixels) - EMU units, the element model, and theme resolution.
