@@ -90,7 +90,7 @@
 		"husky": "^9.1.7",
 		"jszip": "^3.10.2",
 		"lib0": "^0.2.117",
-		"lint-staged": "^17.5.0",
+		"lint-staged": "^17.5.1",
 		"oxfmt": "0.66.0",
 		"oxlint": "^1.82.0",
 		"pptx-react-viewer": "workspace:*",
