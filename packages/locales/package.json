@@ -2,7 +2,7 @@
 	"name": "pptx-viewer-locales",
 	"version": "0.1.0",
 	"private": true,
-	"description": "Internal complete locale dictionaries referenced by the pptx-viewer demos",
+	"description": "Internal reference locale dictionaries bundled into the viewer packages",
 	"keywords": [
 		"i18n",
 		"localization",

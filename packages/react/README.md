@@ -268,6 +268,20 @@ A small curated set of those hooks is exported from `pptx-react-viewer/viewer` w
 
 CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds and path gradients approximate as elliptical radials, while `mix-blend-mode` and CSS 3D transforms render natively on screen but flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes with a live reflow engine for structural edits. Charts are editable directly on the canvas (hover a mark for its tooltip, click to select, drag it to a new value, double-click the title to rename), except for stacked/percent-stacked, pie, radar, surface and map kinds, which are click-to-select and edited in the inspector data grid. 3D models need the optional Three.js peer. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.
 
+## Reference translations
+
+Optional French, Spanish, German, and Simplified Chinese dictionaries ship with
+this package. Import only the language you need:
+
+```ts
+import { translationsZhCN } from 'pptx-react-viewer/i18n/zh-CN';
+```
+
+The other subpaths are `i18n/fr` (`translationsFr`), `i18n/es`
+(`translationsEs`), and `i18n/de` (`translationsDe`). See the
+[localization guide](https://christophervr.github.io/pptx-viewer/guide/localization)
+for registration and runtime switching. Existing English imports are unchanged.
+
 ## License
 
 [Apache-2.0](LICENSE). Please keep the [`NOTICE`](NOTICE) file with redistributions.

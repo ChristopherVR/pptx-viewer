@@ -351,6 +351,20 @@ bun run typecheck  # tsc against tsconfig.lib.json
 bun run test       # vitest
 ```
 
+## Reference translations
+
+Optional French, Spanish, German, and Simplified Chinese dictionaries ship with
+this package. Import only the language you need:
+
+```ts
+import { translationsZhCN } from 'pptx-angular-viewer/i18n/zh-CN';
+```
+
+The other subpaths are `i18n/fr` (`translationsFr`), `i18n/es`
+(`translationsEs`), and `i18n/de` (`translationsDe`). See the
+[localization guide](https://christophervr.github.io/pptx-viewer/guide/localization)
+for registration and runtime switching. Existing English imports are unchanged.
+
 ## License
 
 [Apache-2.0](LICENSE). Please keep the [`NOTICE`](NOTICE) file with redistributions.

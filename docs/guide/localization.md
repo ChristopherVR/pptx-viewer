@@ -5,7 +5,7 @@ description: How pptx-viewer's UI strings work across React, Vue 3, Angular, Van
 
 # Localization (i18n)
 
-**The viewer looks up every UI label through a `pptx.*` translation key; your app supplies the dictionary.** Each binding ships English. This repository also maintains complete French, Spanish, German, and Simplified Chinese reference dictionaries in the private `pptx-viewer-locales` workspace for its demos and translation QA. That workspace is not published to npm. React, Vue, and Angular delegate to their host framework's own i18n library; Vanilla and Svelte ship a small built-in translator:
+**The viewer looks up every UI label through a `pptx.*` translation key; your app supplies the dictionary.** Each binding ships English. Complete French, Spanish, German, and Simplified Chinese reference dictionaries are also shipped through each viewer package's `i18n/<locale>` subpaths. Their source is maintained once in the private `pptx-viewer-locales` workspace, which is bundled into the viewer packages and does not need to be installed separately. React, Vue, and Angular delegate to their host framework's own i18n library; Vanilla and Svelte ship a small built-in translator:
 
 | Binding | Translation call the viewer makes                        | Library you provide                                                               |
 | ------- | -------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -226,11 +226,23 @@ The demos offer **简体中文** (`zh-CN`) in **File > Options > Language**. The
 reference dictionary covers the same keys and `{{placeholders}}` as English.
 It translates the editor interface; it does not translate text in your slides.
 
-For an external application, copy `packages/locales/src/zh-CN/` into your own
-translations directory and import `translationsZhCN` from its `index.ts`.
-Register it with your binding using the same integration shown above:
+Import the Chinese dictionary directly from the viewer package you already use:
 
-| Binding | Register the copied dictionary                                             | Switch language                             |
+```ts
+import { translationsZhCN } from 'pptx-react-viewer/i18n/zh-CN';
+// Other bindings expose the same subpath:
+// 'pptx-vue-viewer/i18n/zh-CN'
+// 'pptx-angular-viewer/i18n/zh-CN'
+// 'pptx-svelte-viewer/i18n/zh-CN'
+// 'pptx-vanilla-viewer/i18n/zh-CN'
+```
+
+Each subpath contains one standalone dictionary with ESM, CommonJS, and
+TypeScript declarations. Importing it does not load the viewer or other
+languages. The existing English exports remain available at their usual entry
+points. Register the dictionary with your binding:
+
+| Binding | Register the imported dictionary                                           | Switch language                             |
 | ------- | -------------------------------------------------------------------------- | ------------------------------------------- |
 | React   | `i18n.addResourceBundle('zh-CN', 'translation', translationsZhCN)`         | `i18n.changeLanguage('zh-CN')`              |
 | Vue     | `i18n.global.setLocaleMessage('zh-CN', toVueI18nSyntax(translationsZhCN))` | `i18n.global.locale.value = 'zh-CN'`        |
@@ -242,6 +254,26 @@ For Vue, import `toVueI18nSyntax` from `pptx-vue-viewer/i18n`; it converts the
 reference dictionary's `{{name}}` placeholders to Vue's `{name}` syntax.
 The language picker recognizes `zh-CN` and displays **简体中文** once the
 application registers the dictionary.
+
+## Other reference languages
+
+All five viewer packages provide the same optional locale subpaths:
+
+| Locale             | Subpath      | Export             |
+| ------------------ | ------------ | ------------------ |
+| French             | `i18n/fr`    | `translationsFr`   |
+| Spanish            | `i18n/es`    | `translationsEs`   |
+| German             | `i18n/de`    | `translationsDe`   |
+| Simplified Chinese | `i18n/zh-CN` | `translationsZhCN` |
+
+For example, `import { translationsFr } from 'pptx-vue-viewer/i18n/fr'`.
+Vue applications should pass these dictionaries through `toVueI18nSyntax`
+before registering them, just like the Chinese example above. The dictionaries
+retain the canonical `{{name}}` placeholders used by the other bindings.
+
+These translations ship with the viewer version, so updating the component also
+updates the reference dictionaries. They are opt-in and are not re-exported
+from the package root or the existing English i18n entry point.
 
 ## Adding a language in your app
 
@@ -263,7 +295,7 @@ This is the pattern used by all five demo apps. See [Try it in the demos](#try-i
 
 ## Contributing a translation upstream
 
-The private `packages/locales` workspace holds complete reference dictionaries.
+The private `packages/locales` workspace holds the source for the reference dictionaries shipped by all five viewer packages. Build it before building a binding; each binding copies its standalone artifacts into its own `dist/i18n` directory. Run `bun run test:locale-subpaths` after building all five bindings to check the actual npm tarballs, imports, and declarations.
 Each language is organized into named product-area files such as `charts.ts`,
 `presenting-and-slide-show.ts`, and `text-and-equations.ts`.
 

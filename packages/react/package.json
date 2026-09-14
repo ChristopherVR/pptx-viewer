@@ -61,10 +61,50 @@
 		},
 		"./styles": "./dist/pptx-viewer.css",
 		"./styles.css": "./dist/pptx-viewer.css",
-		"./theme.css": "./src/styles/theme.css"
+		"./theme.css": "./src/styles/theme.css",
+		"./i18n/fr": {
+			"import": {
+				"types": "./dist/i18n/fr.d.mts",
+				"default": "./dist/i18n/fr.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/fr.d.cts",
+				"default": "./dist/i18n/fr.cjs"
+			}
+		},
+		"./i18n/es": {
+			"import": {
+				"types": "./dist/i18n/es.d.mts",
+				"default": "./dist/i18n/es.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/es.d.cts",
+				"default": "./dist/i18n/es.cjs"
+			}
+		},
+		"./i18n/de": {
+			"import": {
+				"types": "./dist/i18n/de.d.mts",
+				"default": "./dist/i18n/de.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/de.d.cts",
+				"default": "./dist/i18n/de.cjs"
+			}
+		},
+		"./i18n/zh-CN": {
+			"import": {
+				"types": "./dist/i18n/zh-CN.d.mts",
+				"default": "./dist/i18n/zh-CN.mjs"
+			},
+			"require": {
+				"types": "./dist/i18n/zh-CN.d.cts",
+				"default": "./dist/i18n/zh-CN.cjs"
+			}
+		}
 	},
 	"scripts": {
-		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n internals && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../../scripts/compress-dist.mjs dist",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n internals && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../locales/scripts/copy-subpaths.mjs && node ../../scripts/compress-dist.mjs dist",
 		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",
