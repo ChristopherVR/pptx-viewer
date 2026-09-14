@@ -7,6 +7,44 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.18.0) - 2026-09-14
+
+### Features
+
+- **i18n:** Add Simplified Chinese reference locale (by @yunfeizhu) ([4f65031](https://github.com/ChristopherVR/pptx-viewer/commit/4f650313634f2dd3f9ca30a01f742ea4a5349b0f))
+- **core:** Preserve smart art diagram parts (by @ChristopherVR) ([187e0e1](https://github.com/ChristopherVR/pptx-viewer/commit/187e0e17c4e8446fb1b745bb77e96fd44710ed34))
+
+### Bug Fixes
+
+- **angular:** CSS not matching React (by @ChristopherVR) ([1b8113e](https://github.com/ChristopherVR/pptx-viewer/commit/1b8113e9fb42bb23831320995bc3cd49e0a07420))
+- **shared:** Retain list state after upstream rebase (by @ChristopherVR) ([268a1f1](https://github.com/ChristopherVR/pptx-viewer/commit/268a1f132b664a6fec4df127a3588cf0e7748ff1))
+- **core:** Retain original duplicate shape ids (by @ChristopherVR) ([74d595c](https://github.com/ChristopherVR/pptx-viewer/commit/74d595cbc380af69faf6cd47932475d33b139943))
+- **shared:** Restore paragraph remap helpers (by @ChristopherVR) ([e07554c](https://github.com/ChristopherVR/pptx-viewer/commit/e07554c9bffbd86a4a1c273a35572f2a3a77e0bf))
+- **shared:** Expose freeform geometry helpers (by @ChristopherVR) ([96e54a5](https://github.com/ChristopherVR/pptx-viewer/commit/96e54a523e185a09e94d8d15ed5cf8b06b47a8b8))
+- **core:** Evaluate connector and cloud preset geometry (by @ChristopherVR) ([5f34ed5](https://github.com/ChristopherVR/pptx-viewer/commit/5f34ed520cc1c86721b059d5b9a5e7e1e6277b49))
+- **core:** Evaluate connector and cloud preset geometry (by @ChristopherVR) ([8e2608a](https://github.com/ChristopherVR/pptx-viewer/commit/8e2608a397160c8640bb6801da6cfdc273beb60a))
+- **shared:** Remove code scanning findings (by @ChristopherVR) ([ccf02f2](https://github.com/ChristopherVR/pptx-viewer/commit/ccf02f2d1065e4fda3233fe517e06d95ec1a5c0e))
+- **core:** Avoid namespace scan backtracking (by @ChristopherVR) ([2c3f038](https://github.com/ChristopherVR/pptx-viewer/commit/2c3f038420d96af57c01a26da5fbc5752c1147c9))
+
+### Documentation
+
+- **repo:** Sync guides and references with implementation (by @ChristopherVR) ([70440f6](https://github.com/ChristopherVR/pptx-viewer/commit/70440f6f10297ba7847662361c6d6f23d35ad9e2))
+
+### Testing
+
+- **core:** Stabilize the Vitest 5 suite (by @ChristopherVR) ([83b4cc5](https://github.com/ChristopherVR/pptx-viewer/commit/83b4cc53b4846da72494e4b81d8530546e9ad888))
+- **repo:** Stabilize Vitest 5 concurrency (by @ChristopherVR) ([6b151b3](https://github.com/ChristopherVR/pptx-viewer/commit/6b151b352ba8c7b78013696e91c3040fb95a929f))
+
+### Dependencies
+
+- **deps:** Bump the minor-and-patch group with 2 updates (by @dependabot[bot]) ([7bed5e5](https://github.com/ChristopherVR/pptx-viewer/commit/7bed5e56a34cbffbe7e8604a76344a33a05e7f12))
+- **deps:** Bump @lucide/angular from 1.46.0 to 1.44.0 (by @dependabot[bot]) ([14c2f51](https://github.com/ChristopherVR/pptx-viewer/commit/14c2f51d22c1674c1f447c78fbc89299f63f3d12))
+- **deps:** Rebase lint-staged update (by @ChristopherVR) ([c2a649e](https://github.com/ChristopherVR/pptx-viewer/commit/c2a649ee2df1e29a963aec29cb109d9c70ead6ff))
+
+### Chores
+
+- **deps-dev:** Bump vitest from 4.1.11 to 5.0.0 (by @dependabot[bot]) ([5f8fe4f](https://github.com/ChristopherVR/pptx-viewer/commit/5f8fe4f851d33a02545556fd63238a55cf5f868a))
+
 ## [3.17.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.17.1) - 2026-09-14
 
 ### Bug Fixes

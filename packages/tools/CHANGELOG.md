@@ -7,6 +7,20 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.5.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.2) - 2026-09-14
+
+### Documentation
+
+- **repo:** Sync guides and references with implementation (by @ChristopherVR) ([70440f6](https://github.com/ChristopherVR/pptx-viewer/commit/70440f6f10297ba7847662361c6d6f23d35ad9e2))
+
+### Dependencies
+
+- **deps:** Rebase lint-staged update (by @ChristopherVR) ([c2a649e](https://github.com/ChristopherVR/pptx-viewer/commit/c2a649ee2df1e29a963aec29cb109d9c70ead6ff))
+
+### Chores
+
+- **deps-dev:** Bump vitest from 4.1.11 to 5.0.0 (by @dependabot[bot]) ([5f8fe4f](https://github.com/ChristopherVR/pptx-viewer/commit/5f8fe4f851d33a02545556fd63238a55cf5f868a))
+
 ## [2.5.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.1) - 2026-09-10
 
 ### Bug Fixes

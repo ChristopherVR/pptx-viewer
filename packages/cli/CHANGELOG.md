@@ -7,6 +7,36 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.15.0) - 2026-09-14
+
+### Features
+
+- **core:** Preserve smart art diagram parts (by @ChristopherVR) ([187e0e1](https://github.com/ChristopherVR/pptx-viewer/commit/187e0e17c4e8446fb1b745bb77e96fd44710ed34))
+
+### Bug Fixes
+
+- **shared:** Expose freeform geometry helpers (by @ChristopherVR) ([96e54a5](https://github.com/ChristopherVR/pptx-viewer/commit/96e54a523e185a09e94d8d15ed5cf8b06b47a8b8))
+- **core:** Evaluate connector and cloud preset geometry (by @ChristopherVR) ([5f34ed5](https://github.com/ChristopherVR/pptx-viewer/commit/5f34ed520cc1c86721b059d5b9a5e7e1e6277b49))
+- **core:** Evaluate connector and cloud preset geometry (by @ChristopherVR) ([8e2608a](https://github.com/ChristopherVR/pptx-viewer/commit/8e2608a397160c8640bb6801da6cfdc273beb60a))
+- **ui:** Keep ribbon controls compact across bindings (by @ChristopherVR) ([79ec521](https://github.com/ChristopherVR/pptx-viewer/commit/79ec5212c41796b9a73cc6bf5d918ea8e8d51c51))
+
+### Documentation
+
+- **repo:** Sync guides and references with implementation (by @ChristopherVR) ([70440f6](https://github.com/ChristopherVR/pptx-viewer/commit/70440f6f10297ba7847662361c6d6f23d35ad9e2))
+
+### Testing
+
+- **repo:** Stabilize Vitest 5 concurrency (by @ChristopherVR) ([6b151b3](https://github.com/ChristopherVR/pptx-viewer/commit/6b151b352ba8c7b78013696e91c3040fb95a929f))
+
+### Dependencies
+
+- **deps:** Bump the minor-and-patch group with 2 updates (by @dependabot[bot]) ([7bed5e5](https://github.com/ChristopherVR/pptx-viewer/commit/7bed5e56a34cbffbe7e8604a76344a33a05e7f12))
+- **deps:** Rebase lint-staged update (by @ChristopherVR) ([c2a649e](https://github.com/ChristopherVR/pptx-viewer/commit/c2a649ee2df1e29a963aec29cb109d9c70ead6ff))
+
+### Chores
+
+- **deps-dev:** Bump vitest from 4.1.11 to 5.0.0 (by @dependabot[bot]) ([5f8fe4f](https://github.com/ChristopherVR/pptx-viewer/commit/5f8fe4f851d33a02545556fd63238a55cf5f868a))
+
 ## [2.14.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.14.1) - 2026-09-14
 
 ### Bug Fixes
