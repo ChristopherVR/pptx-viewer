@@ -4,6 +4,7 @@ export default defineConfig({
 	test: {
 		globals: true,
 		include: ['src/**/*.test.{ts,tsx}'],
+		maxWorkers: 4,
 		/**
 		 * Well above vitest's 5s default, because this package's integration
 		 * tests load real multi-megabyte decks (`solution-explorer.pptx` and
