@@ -1,6 +1,6 @@
 import type { PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import { toggleElementBullets, transformInlineListCase } from 'pptx-viewer-shared';
+import { transformInlineListCase } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ApplyToSelected } from './editor-apply-to-selected';
@@ -89,13 +89,9 @@ export function createTextActions(
 			}),
 		clearFormatting: () => applyToSelected((el) => clearFormatting(el)),
 		toggleBulletList: () =>
-			applyToSelected((el, snapshot) =>
-				snapshot ? toggleElementBullets(el, 'bullet') : toggleListType(el, 'bullet'),
-			),
+			applyToSelected((el, snapshot) => toggleListType(el, 'bullet', snapshot)),
 		toggleNumberedList: () =>
-			applyToSelected((el, snapshot) =>
-				snapshot ? toggleElementBullets(el, 'numbered') : toggleListType(el, 'numbered'),
-			),
+			applyToSelected((el, snapshot) => toggleListType(el, 'numbered', snapshot)),
 		increaseIndent: () => applyToSelected((el) => adjustIndent(el, 1)),
 		decreaseIndent: () => applyToSelected((el) => adjustIndent(el, -1)),
 		setTextAlign: (align) => applyToSelected((el) => setTextAlign(el, align)),
