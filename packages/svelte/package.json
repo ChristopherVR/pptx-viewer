@@ -65,7 +65,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"@lucide/svelte": "^1.43.0",
+		"@lucide/svelte": "^1.44.0",
 		"fast-xml-parser": "^5.11.1",
 		"html2canvas-pro": "^2.4.2",
 		"jspdf": "^4.2.1",
