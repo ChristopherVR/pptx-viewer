@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-14
+
+_Releases: pptx-react-viewer@3.17.1, pptx-vue-viewer@3.17.1, pptx-angular-viewer@3.17.1, pptx-vanilla-viewer@2.17.1, pptx-svelte-viewer@3.18.1, @christophervr/pptx-viewer@2.14.1_
+
+### Bug Fixes
+
+- **i18n:** Localize inspector and ribbon controls (by @yunfeizhu) ([a657a76](https://github.com/ChristopherVR/pptx-viewer/commit/a657a766d653106f04d50f7b13a94a6c12c77f1e))
+
 ## 2026-09-13
 
 _Releases: pptx-viewer-core@3.14.6, pptx-react-viewer@3.17.0, pptx-vue-viewer@3.17.0, pptx-angular-viewer@3.17.0, pptx-vanilla-viewer@2.17.0, pptx-svelte-viewer@3.18.0, @christophervr/pptx-viewer@2.14.0_
