@@ -8,6 +8,25 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-15
+
+_Releases: @christophervr/pptx-viewer@2.16.2_
+
+### Bug Fixes
+
+- **vanilla:** Open bootstrap source after loading (by @ChristopherVR) ([4c94ab3](https://github.com/ChristopherVR/pptx-viewer/commit/4c94ab31e78a0f3eeaed08b8f4db25bbefc5480c))
+- **shared:** Retain loaded webfonts during slide edits (by @ChristopherVR) ([4f81eb0](https://github.com/ChristopherVR/pptx-viewer/commit/4f81eb062431a273cf714cafc751cc4b8446f30c))
+- **ci:** Honor package test setup (by @ChristopherVR) ([d5e22d1](https://github.com/ChristopherVR/pptx-viewer/commit/d5e22d129b67a6aedd5453a1b89f284e6fa0d15b))
+- **tests:** Numerous test issues (by @ChristopherVR) ([c5b8260](https://github.com/ChristopherVR/pptx-viewer/commit/c5b826079078371191b48e04db0e7e4e6877435c))
+- **vue:** Bundle public declarations with the current plugin options (by @Sudhansh6) ([8625d4e](https://github.com/ChristopherVR/pptx-viewer/commit/8625d4e3b2260c368d407f7ac92c45b9344a8304))
+- **react:** Exempt resize handles from the button size floor (by @Sudhansh6) ([1ef252e](https://github.com/ChristopherVR/pptx-viewer/commit/1ef252e5ed33cc5781623863b1508a895bd4d78d))
+- **angular:** Exempt selection controls from the button size floor (by @Sudhansh6) ([24afa77](https://github.com/ChristopherVR/pptx-viewer/commit/24afa777ecbacc41673b50fa08f1922b6c2b6ad9))
+
+### Testing
+
+- **vue:** Capture declaration options after per-test mock cleanup (by @Sudhansh6) ([64f76ab](https://github.com/ChristopherVR/pptx-viewer/commit/64f76ab424b6129524cf508ff9e0295d4bb3f0a6))
+- **e2e:** Keep selection control centers on shape corners (by @Sudhansh6) ([4484daf](https://github.com/ChristopherVR/pptx-viewer/commit/4484daf557c9c3e226d703de2e992dea01e722db))
+
 ## 2026-09-14
 
 _Releases: @christophervr/pptx-viewer@2.16.1_
