@@ -101,10 +101,7 @@
 	>
 		<span aria-hidden="true">A-</span>
 	</button>
-	<!-- Never disabled, matching React: the size box shows the ribbon's current
-	     type size whether or not something is selected, and `setSize` is a
-	     no-op without a text element. Greying it out made Svelte the only
-	     binding whose Font group looked dead on an empty selection. -->
+	<!-- This edits selected text; it does not configure future inserted text. -->
 	<input
 		class="pptx-svelte-fmt-size"
 		type="number"
@@ -112,6 +109,7 @@
 		max="400"
 		step="any"
 		aria-label={t('pptx.ribbon.fontSize')}
+		disabled={!editor.editable || !active}
 		title={t('pptx.ribbon.fontSize')}
 		value={fontSize}
 		onchange={(e) => setSize(e.currentTarget.value)}
