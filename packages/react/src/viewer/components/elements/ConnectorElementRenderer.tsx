@@ -116,6 +116,8 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 					top: el.y,
 					width: boxWidth,
 					height: boxHeight,
+					['--pptx-selection-width' as string]: `${boxWidth}px`,
+					['--pptx-selection-height' as string]: `${boxHeight}px`,
 					transform: connectorWrapperTransform(el),
 					transformOrigin: 'center',
 					background: 'transparent',
