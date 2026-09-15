@@ -309,6 +309,8 @@ describe('native image paste insertion', () => {
 		main.append(canvas);
 		root.append(main);
 		document.body.append(root);
+		const rootNode = signal<HTMLElement | undefined>(root);
+		const mainNode = signal<HTMLElement | undefined>(main);
 		const loadedSlides = signal<PptxSlide[]>([
 			{ id: 'slide-1', elements: [] },
 			{ id: 'slide-2', elements: [] },
@@ -355,8 +357,8 @@ describe('native image paste insertion', () => {
 		runInInjectionContext(injector, () =>
 			setupViewerImagePaste(
 				{
-					rootElement: () => root,
-					mainElement: () => main,
+					rootElement: rootNode,
+					mainElement: mainNode,
 					canEdit: editable,
 					blocked,
 					activeSlide: () => editor.slides()[index()],
@@ -395,7 +397,20 @@ describe('native image paste insertion', () => {
 			target.dispatchEvent(event);
 			return event;
 		};
-		return { root, canvas, loader, editor, index, editable, blocked, flush, destroy, paste };
+		return {
+			root,
+			rootNode,
+			mainNode,
+			canvas,
+			loader,
+			editor,
+			index,
+			editable,
+			blocked,
+			flush,
+			destroy,
+			paste,
+		};
 	}
 
 	afterEach(() => {
@@ -577,4 +592,74 @@ describe('native image paste insertion', () => {
 		await Promise.resolve();
 		expect(h.editor.slides()[0].elements).toStrictEqual([image]);
 	});
+
+	it('keeps a paste accepted after click-away before the eligibility effect runs', async () => {
+		const h = harness();
+		h.blocked.set(true);
+		h.flush();
+		h.blocked.set(false);
+		let finish!: (value: ImagePptxElement) => void;
+		vi.mocked(createImageElementFromFile).mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve;
+				}),
+		);
+		expect(h.paste().defaultPrevented).toBeTruthy();
+		const abortSignal = vi.mocked(createImageElementFromFile).mock.calls[0][2];
+		h.flush();
+		expect(abortSignal?.aborted).toBeFalsy();
+		finish(image);
+		await Promise.resolve();
+		expect(h.editor.slides()[0].elements).toStrictEqual([image]);
+	});
+
+	it('cancels and disposes each binding once when the root is replaced and destroyed', async () => {
+		const h = harness();
+		let finish!: (value: ImagePptxElement) => void;
+		vi.mocked(createImageElementFromFile).mockImplementation(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve;
+				}),
+		);
+		h.paste();
+		const abortSignal = vi.mocked(createImageElementFromFile).mock.calls[0][2];
+		const oldRemove = vi.spyOn(h.root, 'removeEventListener');
+		const replacement = document.createElement('div');
+		document.body.append(replacement);
+		cleanups.push(() => replacement.remove());
+		h.rootNode.set(replacement);
+		h.flush();
+		expect(abortSignal?.aborted).toBeTruthy();
+		expect(oldRemove.mock.calls.filter(([name]) => name === 'paste')).toHaveLength(1);
+		expect(h.root.hasAttribute('data-pptx-image-paste-root')).toBeFalsy();
+		expect(replacement.hasAttribute('data-pptx-image-paste-root')).toBeTruthy();
+		const newRemove = vi.spyOn(replacement, 'removeEventListener');
+		h.destroy();
+		expect(newRemove.mock.calls.filter(([name]) => name === 'paste')).toHaveLength(1);
+		expect(replacement.hasAttribute('data-pptx-image-paste-root')).toBeFalsy();
+		finish(image);
+		await Promise.resolve();
+		expect(h.editor.canUndo()).toBeFalsy();
+	});
+
+	it.each(['root', 'main'] as const)(
+		'rejects a replaced %s before lifecycle effects flush',
+		async (target) => {
+			const h = harness();
+			let finish!: (value: ImagePptxElement) => void;
+			vi.mocked(createImageElementFromFile).mockImplementation(
+				() =>
+					new Promise((resolve) => {
+						finish = resolve;
+					}),
+			);
+			h.paste();
+			(target === 'root' ? h.rootNode : h.mainNode).set(undefined);
+			finish(image);
+			await Promise.resolve();
+			expect(h.editor.canUndo()).toBeFalsy();
+		},
+	);
 });
