@@ -81,6 +81,20 @@ function connectorOf(editor: EditorState, id: string): PptxElement {
 }
 
 describe('rerouteConnectorsAfterGesture', () => {
+	it('rotates relative to the initial grab and preserves one undo entry', () => {
+		const { host, editor } = makeHost([{ ...shape('box', 0, 0), height: 100, rotation: 43 }]);
+		const gestures = createTransformGestures(host);
+		gestures.begin('rotate', 'box', pointer('pointerdown', 60, 0));
+		window.dispatchEvent(pointer('pointermove', 100, 0));
+		expect(connectorOf(editor, 'box').rotation).toBeCloseTo(76.6900675);
+		window.dispatchEvent(pointer('pointerup', 100, 0));
+		editor.undo();
+		expect(connectorOf(editor, 'box').rotation).toBe(43);
+		editor.redo();
+		expect(connectorOf(editor, 'box').rotation).toBeCloseTo(76.6900675);
+		gestures.dispose();
+	});
+
 	it('reads the real clipboard for native handoff and still pastes copied elements', () => {
 		const { host, editor } = makeHost([shape('box', 0, 0)]);
 		const handler = createEditorKeydown(host);
