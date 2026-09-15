@@ -164,10 +164,53 @@ describe('createGestureController: resize', () => {
 });
 
 describe('createGestureController: rotate', () => {
+	it('snaps the relative rotation and releases the snap during the same drag', () => {
+		const { deps, recorded } = makeDeps(box({ height: 100, rotation: 43 }));
+		const controller = createGestureController(deps);
+		controller.begin('rotate', 'el1', pointer({ clientX: 60, clientY: 0 }));
+		dispatchWindowPointer('pointermove', pointer({ clientX: 100, clientY: 0, shiftKey: true }));
+		expect(recorded.previews[0].transform.rotation).toBe(75);
+		dispatchWindowPointer('pointermove', pointer({ clientX: 100, clientY: 0 }));
+		expect(recorded.previews[1].transform.rotation).toBeCloseTo(76.6900675);
+		dispatchWindowPointer('pointercancel', pointer());
+		expect(recorded.ends).toHaveLength(1);
+		expect(controller.isActive()).toBeFalsy();
+	});
+
+	it('does not start history for a tap, dead-zone motion, or a foreign pointer', () => {
+		const { deps, recorded } = makeDeps(box({ height: 100, rotation: 43 }));
+		const controller = createGestureController(deps);
+		controller.begin('rotate', 'el1', pointer({ clientX: 60, clientY: 0 }));
+		dispatchWindowPointer('pointermove', pointer({ clientX: 61, clientY: 1 }));
+		dispatchWindowPointer('pointermove', pointer({ clientX: 100, clientY: 0, pointerId: 2 }));
+		dispatchWindowPointer('pointerup', pointer());
+		expect(recorded.starts).toHaveLength(0);
+		expect(recorded.previews).toHaveLength(0);
+		expect(recorded.ends).toStrictEqual([{ transform: null, moved: false, id: 'el1' }]);
+	});
+
+	it.each([0.5, 1, 2])(
+		'keeps the grab offset at scale %s and preserves authored rotation',
+		(scale) => {
+			const { deps, recorded } = makeDeps(box({ height: 100, rotation: 43 }), {
+				getScale: () => scale,
+				getStageOrigin: () => ({ left: 100, top: 200 }),
+			});
+			const controller = createGestureController(deps);
+			controller.begin('rotate', 'el1', pointer({ clientX: 100 + 60 * scale, clientY: 200 }));
+			dispatchWindowPointer('pointermove', pointer({ clientX: 100 + 100 * scale, clientY: 200 }));
+			dispatchWindowPointer('pointerup', pointer());
+			// The pointer traverses 45 - atan2(10, 50), not an absolute 45 degrees.
+			expect(recorded.previews[0].transform.rotation).toBeCloseTo(76.6900675);
+			expect(recorded.ends[0].transform?.rotation).toBeCloseTo(76.6900675);
+			expect(recorded.starts).toHaveLength(1);
+		},
+	);
+
 	it('computes the rotation angle from the pointer position relative to the box center', () => {
 		const { deps, recorded } = makeDeps(box({ x: 0, y: 0, width: 100, height: 100 }));
 		const controller = createGestureController(deps);
-		controller.begin('rotate', 'el1', pointer({ pointerId: 1, clientX: 50, clientY: 50 }));
+		controller.begin('rotate', 'el1', pointer({ pointerId: 1, clientX: 50, clientY: 0 }));
 		// Pointer directly to the right of center (50,50) -> 90deg.
 		dispatchWindowPointer('pointermove', pointer({ pointerId: 1, clientX: 200, clientY: 50 }));
 		expect(recorded.previews[0].transform.rotation).toBeCloseTo(90);
@@ -176,7 +219,7 @@ describe('createGestureController: rotate', () => {
 	it('snaps the rotation to 15deg steps when shift is held', () => {
 		const { deps, recorded } = makeDeps(box({ x: 0, y: 0, width: 100, height: 100 }));
 		const controller = createGestureController(deps);
-		controller.begin('rotate', 'el1', pointer({ pointerId: 1, clientX: 50, clientY: 50 }));
+		controller.begin('rotate', 'el1', pointer({ pointerId: 1, clientX: 50, clientY: 0 }));
 		dispatchWindowPointer(
 			'pointermove',
 			pointer({ pointerId: 1, clientX: 200, clientY: 55, shiftKey: true }),
