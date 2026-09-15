@@ -126,11 +126,12 @@ import type { PowerPointViewerAPI, ViewerMode } from 'pptx-angular-viewer';
 
 ### 操作元素 {#element-manipulation}
 
-| 方法               | 签名                                                         | 说明                      |
-| ------------------ | ------------------------------------------------------------ | ------------------------- |
-| `updateElement`    | `(elementId: string, updates: Partial<PptxElement>) => void` | 局部更新元素属性。        |
-| `deleteElements`   | `(elementIds: string[]) => void`                             | 按 ID 删除元素。          |
-| `duplicateElement` | `(elementId: string) => string \| undefined`                 | 复制元素并返回新元素 ID。 |
+| 方法               | 签名                                                                                   | 说明                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `updateElement`    | `(elementId: string, updates: Partial<PptxElement>) => void`                           | 局部更新元素属性。                                                               |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [跨页批量更新元素，整批修改占用一个撤销步骤](/zh/guide/element-update-batches)。 |
+| `deleteElements`   | `(elementIds: string[]) => void`                                                       | 按 ID 删除元素。                                                                 |
+| `duplicateElement` | `(elementId: string) => string \| undefined`                                           | 复制元素并返回新元素 ID。                                                        |
 
 ### 插入元素 {#add-element}
 
