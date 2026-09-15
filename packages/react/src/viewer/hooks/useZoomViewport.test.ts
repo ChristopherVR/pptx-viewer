@@ -6,7 +6,7 @@ import { calculateViewportFit } from 'pptx-viewer-shared';
  * We test the math functions (fitScale, zoom clamp, zoom-to-selection
  * bounding-box computation) without mounting React or needing DOM refs.
  */
-import { act, createElement } from 'react';
+import { act, createElement, StrictMode, useCallback } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -29,23 +29,45 @@ describe('useZoomViewport measured fit', () => {
 	let resized: () => void;
 	let frames: Map<number, FrameRequestCallback>;
 	let nextFrame: number;
+	let observed: Set<Element>;
 	const canvasSize = { width: 960, height: 540 };
 
-	function Harness(props: { mounted?: boolean; fitPadding?: number; maxFitScale?: number | null }) {
+	function createWheelEvent(ctrlKey = true) {
+		const event = new WheelEvent('wheel', { deltaY: -100, cancelable: true });
+		// Happy DOM's WheelEvent omits the inherited mouse modifier properties.
+		Object.defineProperty(event, 'ctrlKey', { value: ctrlKey });
+		return event;
+	}
+
+	function Harness(props: {
+		mounted?: boolean;
+		fitPadding?: number;
+		maxFitScale?: number | null;
+		notifyNode?: boolean;
+		nodeKey?: string;
+	}) {
 		zoom = useZoomViewport({ canvasSize, selectedElements: [], ...props });
+		const objectRef = zoom.canvasViewportRef;
+		const notifyNode = props.notifyNode ? zoom.setCanvasViewportNode : undefined;
+		const attach = useCallback(
+			(node: HTMLDivElement | null) => {
+				if (node) {
+					Object.defineProperty(node, 'clientWidth', { configurable: true, get: () => width });
+					Object.defineProperty(node, 'clientHeight', { configurable: true, get: () => height });
+				}
+				if (notifyNode) {
+					notifyNode(node);
+				} else {
+					objectRef.current = node;
+				}
+			},
+			[notifyNode, objectRef],
+		);
 		return props.mounted === false
 			? null
 			: createElement('div', {
-					ref: (node: HTMLDivElement | null) => {
-						zoom.canvasViewportRef.current = node;
-						if (node) {
-							Object.defineProperty(node, 'clientWidth', { configurable: true, get: () => width });
-							Object.defineProperty(node, 'clientHeight', {
-								configurable: true,
-								get: () => height,
-							});
-						}
-					},
+					ref: attach,
+					key: props.nodeKey,
 				});
 	}
 
@@ -54,6 +76,7 @@ describe('useZoomViewport measured fit', () => {
 		height = 540;
 		frames = new Map();
 		nextFrame = 0;
+		observed = new Set();
 		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 		vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
 			frames.set(++nextFrame, callback);
@@ -63,11 +86,19 @@ describe('useZoomViewport measured fit', () => {
 		vi.stubGlobal(
 			'ResizeObserver',
 			class {
+				private node: Element | null = null;
 				constructor(callback: () => void) {
 					resized = callback;
 				}
-				observe() {}
-				disconnect() {}
+				observe(node: Element) {
+					this.node = node;
+					observed.add(node);
+				}
+				disconnect() {
+					if (this.node) {
+						observed.delete(this.node);
+					}
+				}
 			},
 		);
 		host = document.createElement('div');
@@ -79,6 +110,87 @@ describe('useZoomViewport measured fit', () => {
 		act(() => root.unmount());
 		host.remove();
 		vi.unstubAllGlobals();
+	});
+
+	it('rebinds native wheel zoom and observation to a replacement node under StrictMode', () => {
+		const render = (nodeKey: string, mounted = true) =>
+			act(() =>
+				root.render(
+					createElement(
+						StrictMode,
+						null,
+						createElement(Harness, {
+							notifyNode: true,
+							nodeKey,
+							mounted,
+							fitPadding: 0,
+							maxFitScale: null,
+						}),
+					),
+				),
+			);
+		render('first');
+		const first = zoom.canvasViewportRef.current!;
+		const objectRef = zoom.canvasViewportRef;
+		const notifyNode = zoom.setCanvasViewportNode;
+		expect(observed).toStrictEqual(new Set([first]));
+		const wheel = (node: HTMLDivElement, ctrlKey = true) => {
+			const event = createWheelEvent(ctrlKey);
+			act(() => {
+				node.dispatchEvent(event);
+			});
+			return event;
+		};
+		expect(wheel(first).defaultPrevented).toBeTruthy();
+		expect(zoom.scale).toBeCloseTo(1.15);
+		width = 480;
+		height = 270;
+		render('second');
+		const second = zoom.canvasViewportRef.current!;
+		expect(second).not.toBe(first);
+		expect(zoom.canvasViewportRef).toBe(objectRef);
+		expect(zoom.setCanvasViewportNode).toBe(notifyNode);
+		expect(zoom.fitScale).toBe(0.5);
+		expect(zoom.scale).toBeCloseTo(1.15);
+		expect(zoom.editorScale).toBeCloseTo(0.575);
+		expect(observed).toStrictEqual(new Set([second]));
+		expect(wheel(first).defaultPrevented).toBeFalsy();
+		expect(zoom.scale).toBeCloseTo(1.15);
+		expect(wheel(second, false).defaultPrevented).toBeFalsy();
+		expect(zoom.scale).toBeCloseTo(1.15);
+		expect(wheel(second).defaultPrevented).toBeTruthy();
+		expect(zoom.scale).toBeCloseTo(1.3);
+		render('second', false);
+		expect(zoom.canvasViewportRef.current).toBeNull();
+		expect(observed.size).toBe(0);
+		expect(frames.size).toBe(0);
+		expect(wheel(second).defaultPrevented).toBeFalsy();
+	});
+
+	it('still retries an initially null object ref assigned after the owner commits', () => {
+		act(() => root.render(createElement(Harness, { mounted: false, fitPadding: 0 })));
+		const node = document.createElement('div');
+		Object.defineProperties(node, { clientWidth: { value: 480 }, clientHeight: { value: 270 } });
+		host.append(node);
+		zoom.canvasViewportRef.current = node;
+		act(() => {
+			const pending = [...frames.values()];
+			frames.clear();
+			pending.forEach((callback) => callback(0));
+		});
+		expect(zoom.fitScale).toBe(0.5);
+		const event = createWheelEvent();
+		act(() => {
+			node.dispatchEvent(event);
+		});
+		expect(event.defaultPrevented).toBeTruthy();
+		expect(zoom.scale).toBeCloseTo(1.15);
+		act(() => root.render(null));
+		expect(observed.size).toBe(0);
+		expect(frames.size).toBe(0);
+		const afterUnmount = createWheelEvent();
+		node.dispatchEvent(afterUnmount);
+		expect(afterUnmount.defaultPrevented).toBeFalsy();
 	});
 
 	it('preserves default fit, then reacts to explicit zero padding and unlimited enlargement', () => {
@@ -115,6 +227,46 @@ describe('useZoomViewport measured fit', () => {
 		act(() => resized());
 		expect(zoom.editorDimensions).toBe(previous);
 		expect(zoom.fitScale).toBeCloseTo(508 / 540);
+	});
+
+	it('keeps the last fit while a replacement viewport has zero size, then measures it when visible', () => {
+		act(() =>
+			root.render(createElement(Harness, { notifyNode: true, nodeKey: 'first', fitPadding: 0 })),
+		);
+		const previous = zoom.editorDimensions;
+		width = 0;
+		height = 0;
+		act(() =>
+			root.render(createElement(Harness, { notifyNode: true, nodeKey: 'second', fitPadding: 0 })),
+		);
+		expect(zoom.editorDimensions).toBe(previous);
+		expect(zoom.fitScale).toBe(1);
+		expect(observed).toStrictEqual(new Set([zoom.canvasViewportRef.current]));
+		width = 480;
+		height = 270;
+		act(() => resized());
+		expect(zoom.fitScale).toBe(0.5);
+	});
+
+	it('reconciles a legacy object-ref replacement when its hook owner commits', () => {
+		act(() => root.render(createElement(Harness, { nodeKey: 'first', fitPadding: 0 })));
+		const first = zoom.canvasViewportRef.current!;
+		width = 480;
+		height = 270;
+		act(() => root.render(createElement(Harness, { nodeKey: 'second', fitPadding: 0 })));
+		const second = zoom.canvasViewportRef.current!;
+		expect(second).not.toBe(first);
+		expect(observed).toStrictEqual(new Set([second]));
+		expect(zoom.fitScale).toBe(0.5);
+		const oldWheel = createWheelEvent();
+		const newWheel = createWheelEvent();
+		act(() => {
+			first.dispatchEvent(oldWheel);
+			second.dispatchEvent(newWheel);
+		});
+		expect(oldWheel.defaultPrevented).toBeFalsy();
+		expect(newWheel.defaultPrevented).toBeTruthy();
+		expect(zoom.scale).toBeCloseTo(1.15);
 	});
 
 	it('measures a viewport mounted after the initial hook render', () => {
