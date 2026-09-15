@@ -256,8 +256,8 @@ export function createFontGroup(
 			fontColor.setThemeColorMap(themeColorMap);
 			fontColor.setSelectedRef(text.colorRef);
 
-			fontFamily.setDisabled(!editable);
-			fontSize.setDisabled(!editable);
+			fontFamily.setDisabled(!editable || !canFormat);
+			fontSize.setDisabled(!editable || !canFormat);
 			for (const c of gated) {
 				c.setDisabled(!editable || !canFormat);
 			}
