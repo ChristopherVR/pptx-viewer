@@ -12,12 +12,13 @@
 	 * handles / rotate knob do, so a click on empty box interior still reaches
 	 * the element beneath and drives a move gesture.
 	 */
-	import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
+	import { getResizeHandleHitAreaStyle, RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
 	import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { DEFAULT_SELECTION_INTERACTIVITY } from '../editor/editor-selection-interactivity';
 	import type { SelectionOverlayProps } from './props';
+	import { styleToString } from '../style';
 
 	const { box, scale, snapLines, editing = false, selectionCount = 1, marquee = null, interactivity = DEFAULT_SELECTION_INTERACTIVITY, onhandlepointerdown, onrotatepointerdown, onadjustpointerdown }:
 		SelectionOverlayProps = $props();
@@ -60,11 +61,13 @@
 >
 	<!-- Rendered even while `editing` is true (PowerPoint keeps a text box's
 	     handles live and draggable mid-edit): `.pptx-svelte-sel-box` and this
-	     host are both `pointer-events: none`, so only the handle buttons
-	     themselves (pointer-events: auto) can intercept a click, leaving caret
+	     host are both `pointer-events: none`, so only the handle hit regions
+	     (pointer-events: auto) can intercept a click, leaving caret
 	     placement in the text underneath unaffected. -->
 	{#if box}
-		<div class="pptx-svelte-sel-box" style={boxStyle}>
+		<div class="pptx-svelte-sel-box" style={boxStyle}
+			style:--pptx-selection-width={`${box.width * scale}px`}
+			style:--pptx-selection-height={`${box.height * scale}px`}>
 			{#if showRotate}<div
 				class="pptx-svelte-rotate-stem"
 				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px`}
@@ -96,7 +99,7 @@
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact
 					onpointerdown={(event) => onhandlepointerdown(handle, event)}
-				></button>
+				><span style={styleToString(getResizeHandleHitAreaStyle(handle))}></span></button>
 			{/each}{/if}
 		</div>
 	{/if}
@@ -152,7 +155,7 @@
 		border: 1px solid var(--pptx-ring, #6366f1);
 		border-radius: 2px;
 		background: var(--pptx-background, #ffffff);
-		pointer-events: auto;
+		pointer-events: none;
 		/* The handle must own its touch gesture (no scroll/zoom stealing). */
 		touch-action: none;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
