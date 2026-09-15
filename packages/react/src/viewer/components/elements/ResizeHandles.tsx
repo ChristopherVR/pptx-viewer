@@ -3,9 +3,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRotateCw } from 'react-icons/lu';
 
-import type { ResizeHandle, ShapeAdjustmentHandleDescriptor } from '../../types';
+import type { ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
 import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
+import { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
+
+export { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
 
 export interface ResizeHandlesProps {
 	elementId: string;
@@ -37,75 +40,6 @@ export interface ResizeHandlesProps {
  * handle button alongside the pointer-down wiring below.
  */
 const HANDLE_TOUCH_ACTION = { touchAction: 'none' as const };
-
-// Corner handle positions and cursors.
-//
-// The cursor and corner of each handle are the shared `RESIZE_HANDLE_GEOMETRY`
-// contract; they are spelled out as literal Tailwind classes here rather than
-// derived from it because Tailwind extracts class names statically, so a
-// `cursor-${...}` template would be purged and the handle would show the
-// default arrow. `ResizeHandles.test.tsx` asserts these literals still agree
-// with the shared table, which is the part a refactor can silently break.
-export const CORNER_HANDLES: {
-	handle: ResizeHandle;
-	posClass: string;
-	cursor: string;
-}[] = [
-	{
-		handle: 'nw',
-		posClass: '-left-1.5 -top-1.5 max-md:-left-2.5 max-md:-top-2.5',
-		cursor: 'cursor-nwse-resize',
-	},
-	{
-		handle: 'ne',
-		posClass: '-right-1.5 -top-1.5 max-md:-right-2.5 max-md:-top-2.5',
-		cursor: 'cursor-nesw-resize',
-	},
-	{
-		handle: 'sw',
-		posClass: '-left-1.5 -bottom-1.5 max-md:-left-2.5 max-md:-bottom-2.5',
-		cursor: 'cursor-nesw-resize',
-	},
-	{
-		handle: 'se',
-		posClass: '-right-1.5 -bottom-1.5 max-md:-right-2.5 max-md:-bottom-2.5',
-		cursor: 'cursor-nwse-resize',
-	},
-];
-
-// Edge midpoint handle positions and cursors (see CORNER_HANDLES on why the
-// class names are literal).
-export const EDGE_HANDLES: {
-	handle: ResizeHandle;
-	posClass: string;
-	cursor: string;
-	sizeClass: string;
-}[] = [
-	{
-		handle: 'n',
-		posClass: 'top-0 left-1/2 -translate-x-1/2 -translate-y-1/2',
-		cursor: 'cursor-ns-resize',
-		sizeClass: 'w-5 h-2 max-md:w-8 max-md:h-3 rounded-sm',
-	},
-	{
-		handle: 's',
-		posClass: 'bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2',
-		cursor: 'cursor-ns-resize',
-		sizeClass: 'w-5 h-2 max-md:w-8 max-md:h-3 rounded-sm',
-	},
-	{
-		handle: 'e',
-		posClass: 'right-0 top-1/2 translate-x-1/2 -translate-y-1/2',
-		cursor: 'cursor-ew-resize',
-		sizeClass: 'w-2 h-5 max-md:w-3 max-md:h-8 rounded-sm',
-	},
-	{
-		handle: 'w',
-		posClass: 'left-0 top-1/2 -translate-x-1/2 -translate-y-1/2',
-		cursor: 'cursor-ew-resize',
-		sizeClass: 'w-2 h-5 max-md:w-3 max-md:h-8 rounded-sm',
-	},
-];
 
 export function ResizeHandles({
 	elementId,
@@ -209,6 +143,7 @@ export function ResizeHandles({
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
+					data-pptx-compact
 					className={cn('absolute z-10 group', posClass, cursor)}
 					style={peStyle}
 					onPointerDown={(e) => handleResizePointer(e, handle)}
@@ -230,6 +165,7 @@ export function ResizeHandles({
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
+					data-pptx-compact
 					className={cn('absolute z-10', posClass, cursor)}
 					style={peStyle}
 					onPointerDown={(e) => handleResizePointer(e, handle)}
