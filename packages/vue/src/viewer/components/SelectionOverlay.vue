@@ -28,6 +28,7 @@
  * `transformEnd` as the commit point for history/undo.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { getResizeHandleHitAreaStyle } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -183,7 +184,9 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 					:style="handleStyle(meta, box)"
 					:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
 					@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
-				/>
+				>
+					<span :style="getResizeHandleHitAreaStyle(meta.id)" />
+				</button>
 			</template>
 
 			<!-- Shape adjustment handles (amber diamonds): one per `a:avLst` guide -->
@@ -245,7 +248,7 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 .pptx-vue-resize-handle {
 	position: absolute;
 	/* Sized against the inverse stage zoom (--pptx-vue-hs) so the on-screen
-	   hit area stays 10px regardless of zoom; see `inverseZoom` above. */
+	   indicator stays 10px regardless of zoom; see `inverseZoom` above. */
 	width: calc(10px * var(--pptx-vue-hs, 1));
 	height: calc(10px * var(--pptx-vue-hs, 1));
 	margin: calc(-5px * var(--pptx-vue-hs, 1)) 0 0 calc(-5px * var(--pptx-vue-hs, 1));
@@ -254,7 +257,7 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	border-radius: 9999px;
 	background: var(--pptx-vue-selection-color, #3b82f6);
 	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	pointer-events: auto;
+	pointer-events: none;
 	/* Resize handles must own their touch gesture (no scroll/zoom stealing). */
 	touch-action: none;
 }

@@ -25,6 +25,24 @@ vi.mock(import('react-i18next'), () => ({
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('inverse-scales resize, rotation and adjustment controls about their anchors', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[{ key: 'adj', left: 20, top: 10, value: 10000, cursor: 'ew-resize' }]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				onRotate={vi.fn()}
+			/>,
+		);
+		const buttons = [...container.querySelectorAll('button')];
+		expect(buttons).toHaveLength(10);
+		for (const button of buttons) {
+			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
+		}
+	});
+
 	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
 		const container = document.createElement('div');
 		container.innerHTML = renderToStaticMarkup(
@@ -46,6 +64,35 @@ describe('resize handles', () => {
 
 	it('renders every handle the shared contract defines, exactly once', () => {
 		expect(ALL.map((entry) => entry.handle).sort()).toStrictEqual([...RESIZE_HANDLES].sort());
+	});
+
+	it('lets bounded hit areas own resize presses without making the buttons unfocusable', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				forcePointerEvents
+			/>,
+		);
+		for (const [index, button] of [...container.querySelectorAll('button')].entries()) {
+			const { fx, fy } = RESIZE_HANDLE_GEOMETRY[ALL[index].handle];
+			const hitArea = button.lastElementChild as HTMLElement;
+			expect(button.style.pointerEvents).toBe('none');
+			expect(button.tabIndex).toBe(0);
+			expect(hitArea.className).toContain('pointer-events-auto');
+			for (const [side, limited] of [
+				['left', fx > 0],
+				['right', fx < 1],
+				['top', fy > 0],
+				['bottom', fy < 1],
+			] as const) {
+				// happy-dom does not retain this valid CSS math in CSSStyleDeclaration.
+				expect(hitArea.getAttribute('style')?.includes(`${side}:max(`)).toBe(limited);
+			}
+		}
 	});
 
 	it.each(ALL)('gives $handle the shared cursor', ({ handle, cursor }) => {

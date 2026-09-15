@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
 import { ResizeHandles } from './ResizeHandles';
 
 vi.mock(import('react-i18next'), () => ({
@@ -52,6 +53,7 @@ function mountViewport(): {
 }
 
 beforeEach(() => {
+	globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 	// The other instance comes FIRST in the document, so an unscoped
 	// `document.querySelector` would land on it rather than on ours.
 	const other = mountViewport();
@@ -68,9 +70,47 @@ beforeEach(() => {
 afterEach(() => {
 	act(() => root.unmount());
 	document.body.replaceChildren();
+	globalThis.IS_REACT_ACT_ENVIRONMENT = false;
 });
 
 describe('resize handles live rotation', () => {
+	it('updates nested connector hit bounds without a detached overlay', () => {
+		handleHost.remove();
+		syncSelectionHandleOverlay(elementHost, 'shape-1', { width: 320, height: 24 });
+		expect(elementHost.style.getPropertyValue('--pptx-selection-width')).toBe('320px');
+		expect(elementHost.style.getPropertyValue('--pptx-selection-height')).toBe('24px');
+		expect(otherElementHost.style.getPropertyValue('--pptx-selection-width')).toBe('');
+	});
+
+	it('retains touch capture and mouse dispatch through the hit area', () => {
+		const onResize = vi.fn();
+		act(() =>
+			root.render(
+				<ResizeHandles
+					elementId='shape-1'
+					adjustmentHandles={[]}
+					onResizePointerDown={onResize}
+					onAdjustmentPointerDown={vi.fn()}
+					forcePointerEvents
+				/>,
+			),
+		);
+		const button = container.querySelector<HTMLButtonElement>('button')!;
+		const hitArea = button.lastElementChild!;
+		const capture = vi.spyOn(button, 'setPointerCapture').mockImplementation(() => {});
+		hitArea.dispatchEvent(
+			new PointerEvent('pointerdown', { bubbles: true, pointerType: 'touch', pointerId: 7 }),
+		);
+		expect(capture).toHaveBeenCalledWith(7);
+		expect(onResize).toHaveBeenLastCalledWith('shape-1', expect.anything(), 'nw');
+		onResize.mockClear();
+		hitArea.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerType: 'mouse' }));
+		expect(onResize).not.toHaveBeenCalled();
+		hitArea.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+		expect(onResize).toHaveBeenCalledOnce();
+		expect(onResize).toHaveBeenLastCalledWith('shape-1', expect.anything(), 'nw');
+	});
+
 	it('rotates the element and detached selection handles together', () => {
 		const onRotate = vi.fn();
 		act(() => {

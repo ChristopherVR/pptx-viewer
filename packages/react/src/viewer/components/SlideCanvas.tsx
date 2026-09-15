@@ -253,6 +253,7 @@ export function SlideCanvas({
 						height: canvasSize.height,
 						transform: `scale(${zoom.editorScale})`,
 						transformOrigin: 'top left',
+						['--pptx-handle-inverse-scale' as string]: 1 / zoom.editorScale,
 						// Motion-path keyframes translate by a fraction of the SLIDE, so
 						// the stage publishes its own size for those calc() offsets.
 						['--pptx-slide-w' as string]: `${canvasSize.width}px`,

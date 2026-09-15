@@ -375,7 +375,7 @@ pptx-slide-canvas {
 	background: #ffffff;
 	border: 1px solid #4f86ff;
 	border-radius: 2px;
-	pointer-events: auto;
+	pointer-events: none;
 	touch-action: none;
 	z-index: 10001;
 }

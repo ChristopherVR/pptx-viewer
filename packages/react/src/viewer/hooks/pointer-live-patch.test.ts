@@ -179,6 +179,10 @@ describe('selection handle overlay preview', () => {
 		expect(handleHost.style.top).toBe('100px');
 		expect(handleHost.style.width).toBe('250px');
 		expect(handleHost.style.height).toBe('180px');
+		for (const node of [domEl, handleHost]) {
+			expect(node.style.getPropertyValue('--pptx-selection-width')).toBe('250px');
+			expect(node.style.getPropertyValue('--pptx-selection-height')).toBe('180px');
+		}
 	});
 
 	it('moves only the handles of the viewer the drag is happening in', () => {
