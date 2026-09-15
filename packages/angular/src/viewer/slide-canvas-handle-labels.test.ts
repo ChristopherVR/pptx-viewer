@@ -14,6 +14,15 @@ import { describe, expect, it } from 'vitest';
 const template = readFileSync(join(__dirname, 'slide-canvas.component.html'), 'utf8');
 
 describe('slide-canvas handle accessible names', () => {
+	it.each(['pptx-ng-handle', 'pptx-ng-rotate-handle', 'pptx-ng-adjust-handle'])(
+		'keeps the theme button-size floor off the explicitly sized %s control',
+		(className) => {
+			const button = template.match(new RegExp(`<button[^>]*class="${className}"[^>]*>`))?.[0];
+			expect(button).toBeDefined();
+			expect(button).toContain('data-pptx-compact');
+		},
+	);
+
 	it('labels resize handles from the shared key with the handle param', () => {
 		expect(template).toContain(
 			`[attr.aria-label]="'pptx.selectionOverlay.resize' | translate: { handle: h.handle }"`,

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * React's handles must agree with the table the other four bindings read.
  *
@@ -11,13 +12,38 @@
  * wrong under the hand).
  */
 import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES } from 'pptx-viewer-shared';
-import { describe, expect, it } from 'vitest';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { describe, expect, it, vi } from 'vitest';
 
-import { CORNER_HANDLES, EDGE_HANDLES } from './ResizeHandles';
+import { CORNER_HANDLES, EDGE_HANDLES, ResizeHandles } from './ResizeHandles';
+
+vi.mock(import('react-i18next'), () => ({
+	useTranslation: vi.fn().mockReturnValue({ t: (key: string) => key }),
+}));
 
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+			/>,
+		);
+		const buttons = [...container.querySelectorAll('button')];
+		expect(buttons).toHaveLength(8);
+		for (const button of buttons) {
+			expect(button.hasAttribute('data-pptx-compact')).toBeTruthy();
+			expect(button.style.touchAction).toBe('none');
+			expect(button.lastElementChild?.className).toContain('-inset-');
+		}
+	});
+
 	it('renders every handle the shared contract defines, exactly once', () => {
 		expect(ALL.map((entry) => entry.handle).sort()).toStrictEqual([...RESIZE_HANDLES].sort());
 	});

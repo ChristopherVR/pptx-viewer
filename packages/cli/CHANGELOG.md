@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.16.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.2) - 2026-09-15
+
+### Bug Fixes
+
+- **react:** Exempt resize handles from the button size floor (by @Sudhansh6) ([1ef252e](https://github.com/ChristopherVR/pptx-viewer/commit/1ef252e5ed33cc5781623863b1508a895bd4d78d))
+
 ## [2.16.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.1) - 2026-09-14
 
 ### Bug Fixes
