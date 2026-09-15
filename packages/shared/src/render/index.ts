@@ -1353,6 +1353,7 @@ export * from './theme-editor-presets';
 export * from './element-clipboard';
 export * from './element-insertion';
 export * from './image-file-insertion';
+export * from './editor-image-paste';
 export * from './header-footer-dialog';
 export * from './media-file-type';
 export * from './template-background-rows';
