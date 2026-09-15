@@ -1,12 +1,7 @@
 import { lockResizeAspect } from './editor-geometry';
-import type { InteractionBox, ResizeHandleId } from './element-interaction';
-import {
-	applyDragDelta,
-	applyResize,
-	boxCenter,
-	computeRotation,
-	snapAngle,
-} from './element-interaction';
+import type { InteractionBox, Point, ResizeHandleId } from './element-interaction';
+import { applyDragDelta, applyResize, boxCenter, snapAngle } from './element-interaction';
+import { createRotationDrag } from './rotation-drag';
 import type { SnapGuideInput, SnapLine, SnapSibling } from './snap-guides';
 import { computeSnapToShape, snapToGridStep } from './snap-guides';
 
@@ -14,7 +9,7 @@ import { computeSnapToShape, snapToGridStep } from './snap-guides';
  * Pointer gesture driver for the editing overlay: move / resize / rotate.
  *
  * All geometry math comes from the shared `element-interaction` helpers
- * (`applyDragDelta`, `applyResize`, `computeRotation`, `snapAngle`) plus the
+ * (`applyDragDelta`, `applyResize`, `snapAngle`) and `createRotationDrag` plus the
  * shared `computeSnapToShape` snap model during moves; this module only owns
  * the pointer-event lifecycle (dead-zone, window listeners, cancel). Extracted
  * from the byte-for-byte-equivalent Svelte / Vanilla `editor/editor-gestures`
@@ -98,6 +93,7 @@ interface ActiveGesture {
 	startClientX: number;
 	startClientY: number;
 	startBox: InteractionBox;
+	rotate?: (pointer: Point) => number;
 	handle?: ResizeHandleId;
 	moved: boolean;
 	last: GestureTransform | null;
@@ -158,14 +154,17 @@ export function createGestureController(deps: GestureDeps): GestureController {
 		return toTransform(g.id, box);
 	}
 
-	function computeRotate(g: ActiveGesture, pointer: PointerLike): GestureTransform {
+	function stagePoint(pointer: PointerLike): Point {
 		const scale = deps.getScale() || 1;
 		const origin = deps.getStageOrigin();
-		const point = {
+		return {
 			x: (pointer.clientX - origin.left) / scale,
 			y: (pointer.clientY - origin.top) / scale,
 		};
-		let angle = computeRotation(boxCenter(g.startBox), point);
+	}
+
+	function computeRotate(g: ActiveGesture, pointer: PointerLike): GestureTransform {
+		let angle = g.rotate?.(stagePoint(pointer)) ?? g.startBox.rotation ?? 0;
 		if (pointer.shiftKey) {
 			angle = snapAngle(angle);
 		}
@@ -228,6 +227,10 @@ export function createGestureController(deps: GestureDeps): GestureController {
 				startClientX: pointer.clientX,
 				startClientY: pointer.clientY,
 				startBox: { ...box },
+				rotate:
+					kind === 'rotate'
+						? createRotationDrag(boxCenter(box), stagePoint(pointer), box.rotation ?? 0)
+						: undefined,
 				handle,
 				moved: false,
 				last: null,

@@ -53,8 +53,9 @@ export default defineConfig({
 		}),
 		dts({
 			tsconfigPath: resolve(__dirname, 'tsconfig.build.json'),
-			rollupTypes: true,
-			bundledPackages: INTERNAL_BUNDLED,
+			bundleTypes: {
+				bundledPackages: INTERNAL_BUNDLED,
+			},
 			exclude: ['**/*.test.ts', 'vite.config.ts', 'vitest.config.ts'],
 		}),
 	],
