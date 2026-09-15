@@ -28,6 +28,18 @@ Verwenden Sie die Registerkarte **Einfugen** der Symbolleiste:
 - **Tabelle** - fugen Sie eine Tabelle mit gewahlter Zeilen- und Spaltenzahl ein.
 - **Diagramm** - fugen Sie ein Diagramm ein; ziehen Sie Balken oder Punkte direkt auf der Folie, um Werte zu andern, oder bearbeiten Sie die Daten im Inspektor.
 
+Um ein Bild aus einer anderen App einzufügen, kopieren Sie das Bild selbst,
+klicken Sie auf die Folie und drücken Sie **Strg+V** (**Cmd+V** unter macOS).
+Wenn der Browser eine Bilddatei bereitstellt, wird sie mittig eingefügt, an die
+Foliengrenzen angepasst und ausgewählt. Das Einfügen ist ein einzelner
+Rückgängig-Schritt. Beim Bearbeiten von Text oder einer Tabellenzelle bleibt das
+Einfügen im jeweiligen Editor und erzeugt kein separates Folienbild. Reine
+Bild-URLs und HTML werden mit diesem Kürzel nicht importiert.
+
+Die interne Zwischenablage behält Vorrang: Wenn Sie in diesem Viewer
+Folienelemente kopiert haben, fügt **Strg+V** weiterhin diese Elemente ein.
+Verwenden Sie dann **Einfügen > Bild**, um eine externe Bilddatei auszuwählen.
+
 ## Mit dem Inspektor formatieren
 
 Das **Inspektionsfeld** (rechts) ist kontextsensitiv.
