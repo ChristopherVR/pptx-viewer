@@ -93,6 +93,7 @@
 				<button
 					type="button"
 					class="pptx-ng-handle"
+					data-pptx-compact
 					[attr.aria-label]="'pptx.selectionOverlay.resize' | translate: { handle: h.handle }"
 					[style.left.px]="h.left"
 					[style.top.px]="h.top"
@@ -125,6 +126,7 @@
 				<button
 					type="button"
 					class="pptx-ng-rotate-handle"
+					data-pptx-compact
 					[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
 					[style.left.px]="rh.left"
 					[style.top.px]="rh.top"
@@ -147,6 +149,7 @@
 				<button
 					type="button"
 					class="pptx-ng-adjust-handle"
+					data-pptx-compact
 					[attr.data-pptx-adjust-key]="ah.key"
 					[attr.aria-label]="'pptx.selectionOverlay.adjust' | translate"
 					[style.left.px]="ah.left"
