@@ -100,9 +100,13 @@
 					[style.width.px]="h.size"
 					[style.height.px]="h.size"
 					[style.cursor]="h.cursor"
+					[style.--pptx-selection-width.px]="singleSelected()?.width"
+					[style.--pptx-selection-height.px]="singleSelected()?.height"
 					(pointerdown)="onHandlePointerDown($event, h.handle)"
 					(keydown)="onResizeHandleKeydown($event, h.handle)"
-				></button>
+				>
+					<span [ngStyle]="resizeHitAreaStyle(h.handle)"></span>
+				</button>
 			}
 			@if (marqueeRect(); as mr) {
 				<div
