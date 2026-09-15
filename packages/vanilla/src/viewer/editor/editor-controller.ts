@@ -91,6 +91,7 @@ export interface EditorController {
 	selectElements(ids: string[]): void;
 	applyElementPatch(id: string, patch: Partial<PptxElement>): void;
 	commitSlides(slides: PptxSlide[], currentSlide?: number): void;
+	commitElementUpdates(slides: PptxSlide[], label?: string): void;
 	/** Switch the Draw ribbon tab's active tool (also clears selection when leaving `'select'`). */
 	setDrawTool(tool: DrawTool): void;
 	/** Set the pen/highlighter stroke colour used by the next committed stroke. */
@@ -504,6 +505,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					),
 				),
 			);
+			ops.commitChange();
+		},
+		commitElementUpdates(slides, label) {
+			ops.pushHistory(label);
+			store.set({ slides });
 			ops.commitChange();
 		},
 		commitSlides(slides, currentSlide = store.get().currentSlide) {

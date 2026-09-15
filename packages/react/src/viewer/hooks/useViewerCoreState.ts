@@ -9,7 +9,6 @@ import type {
 	MasterViewTab,
 	PptxModernCommentAuthor,
 	PptxNotesMaster,
-	PptxSlide,
 	PptxSlideMaster,
 	PptxTheme,
 	PptxThemeOption,
@@ -48,6 +47,7 @@ import type {
 import type { ViewerMode } from '../types-core';
 import { useDerivedElementState } from './useDerivedElementState';
 import { useInlineEditingState } from './useInlineEditingState';
+import { useSlideState } from './useSlideState';
 import type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
 
 export type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
@@ -92,14 +92,12 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	// hands it a connected doc.
 	const livePatcher = useMemo(() => createCollaborationLivePatcher(), []);
 	useEffect(() => () => livePatcher.dispose(), [livePatcher]);
-	/** Latest slides, read by the inline-edit live publisher without re-binding it. */
-	const slidesRef = useRef<PptxSlide[]>([]);
 
 	// ── Core State ────────────────────────────────────────────────────
 	const [mode, setMode] = useState<ViewerMode>('edit');
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [slides, setSlides] = useState<PptxSlide[]>([]);
+	const { slides, setSlides, slidesRef } = useSlideState();
 	const [templateElementsBySlideId, setTemplateElementsBySlideId] = useState<
 		Record<string, PptxElement[]>
 	>({});
@@ -124,7 +122,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 				text,
 			);
 		},
-		[livePatcher],
+		[livePatcher, slidesRef],
 	);
 	const inlineEditing = useInlineEditingState(publishInlineText);
 	const [editTemplateMode, setEditTemplateMode] = useState(false);
@@ -167,10 +165,6 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 	const [masterViewTab, setMasterViewTab] = useState<MasterViewTab>('slides');
 	const [handoutSlidesPerPage, setHandoutSlidesPerPage] = useState(4);
 
-	// Mirror slides into a ref so the inline-edit live publisher (a stable
-	// callback) can read the current deck without re-binding every edit.
-	slidesRef.current = slides;
-
 	// ── Derived State ─────────────────────────────────────────────────
 	const derived = useDerivedElementState({
 		slides,
@@ -206,6 +200,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		error,
 		setError,
 		slides,
+		slidesRef,
 		setSlides,
 		templateElementsBySlideId,
 		setTemplateElementsBySlideId,

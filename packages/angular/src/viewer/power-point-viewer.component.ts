@@ -29,6 +29,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import {
+	commitElementUpdateBatch,
 	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
 	buildDeckSaveOptions,
@@ -59,6 +60,8 @@ import {
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
+	ElementUpdate,
+	ElementUpdateOptions,
 	AccountAuthConfig,
 	DeckViewPreferences,
 	MasterViewCrudActionId,
@@ -3120,6 +3123,24 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur();
 			},
 		);
+	}
+
+	async updateElements(
+		updates: readonly ElementUpdate[],
+		options?: ElementUpdateOptions,
+	): Promise<void> {
+		commitElementUpdateBatch(updates, options, {
+			getTarget: () => ({
+				canEdit: this.canEdit(),
+				mode: this.getMode(),
+				loaded: !this.loader.loading() && !this.loader.error(),
+				editTemplateMode: this.editor.editTemplateMode(),
+			}),
+			getSlides: () => this.editor.slides(),
+			commitPendingText: () =>
+				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
+			commitSlides: (next, label) => this.editor.applyReplacement(next, label),
+		});
 	}
 
 	/** Update one or more properties of an element by ID. */

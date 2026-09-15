@@ -1,6 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { cloneSlide } from 'pptx-viewer-core';
 import {
+	commitElementUpdateBatch,
 	clampZoomScale,
 	createBlankSlide,
 	makeSlideId,
@@ -152,6 +153,19 @@ export function createDeckApi(deps: DeckApiDeps): DeckApi {
 		getElementById: (id, slideIndex = viewer.current) =>
 			getElements(slideIndex).find((element) => element.id === id),
 
+		updateElements: async (updates, options) => {
+			commitElementUpdateBatch(updates, options, {
+				getTarget: () => ({
+					canEdit: deps.canEdit(),
+					mode: editor.masterViewTarget ? 'master' : deps.getMode(),
+					loaded: deps.isLoaded(),
+					editTemplateMode: editor.editTemplateMode,
+				}),
+				getSlides: () => editor.slides,
+				commitPendingText: deps.commitPendingText,
+				commitSlides: (next, label) => editor.commitSlides(next, label),
+			});
+		},
 		updateElement: (id, updates) => editor.applyElementPatch(id, updates),
 		addElement: (element) => {
 			const prepared = prepareElementForInsertion(element, {

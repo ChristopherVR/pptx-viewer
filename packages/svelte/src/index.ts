@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from 'pptx-viewer-shared';
 /**
  * pptx-svelte-viewer: Svelte 5 PowerPoint viewer component.
  *
