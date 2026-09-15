@@ -25,6 +25,24 @@ vi.mock(import('react-i18next'), () => ({
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('inverse-scales resize, rotation and adjustment controls about their anchors', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[{ key: 'adj', left: 20, top: 10, value: 10000, cursor: 'ew-resize' }]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				onRotate={vi.fn()}
+			/>,
+		);
+		const buttons = [...container.querySelectorAll('button')];
+		expect(buttons).toHaveLength(10);
+		for (const button of buttons) {
+			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
+		}
+	});
+
 	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
 		const container = document.createElement('div');
 		container.innerHTML = renderToStaticMarkup(

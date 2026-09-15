@@ -39,7 +39,12 @@ export interface ResizeHandlesProps {
  * pinch-zoom) over a handle so a finger drag becomes a resize. Applied to every
  * handle button alongside the pointer-down wiring below.
  */
-const HANDLE_TOUCH_ACTION = { touchAction: 'none' as const };
+const HANDLE_TOUCH_ACTION = {
+	touchAction: 'none' as const,
+	// Keep both the visible indicator and its expanded hit area in screen pixels.
+	// Only the button scales; its center and the overlay remain in slide coordinates.
+	scale: 'var(--pptx-handle-inverse-scale, 1)',
+};
 
 export function ResizeHandles({
 	elementId,
