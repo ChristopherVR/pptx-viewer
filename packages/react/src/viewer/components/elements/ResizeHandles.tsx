@@ -1,4 +1,4 @@
-import { elementIdSelector } from 'pptx-viewer-shared';
+import { createRotationDrag, elementIdSelector } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRotateCw } from 'react-icons/lu';
@@ -70,11 +70,14 @@ export function ResizeHandles({
 	};
 
 	// ── Rotate handle (self-contained) ───────────────────────────────────
-	// Dragging the knob rotates the element about its centre. We compute the
-	// absolute angle from the element centre to the pointer (so the gesture
-	// is robust to the current rotation), preview live by mutating the wrapper
+	// Dragging the knob rotates from its initial press and authored angle,
+	// keeping off-center grabs stable. Preview live by mutating the wrapper
 	// transform, then commit the final degrees on release. Shift snaps to 15°.
-	const startRotate = (btn: HTMLElement, pointerId?: number): void => {
+	const startRotate = (
+		btn: HTMLElement,
+		pointer: { clientX: number; clientY: number },
+		pointerId?: number,
+	): void => {
 		// Resolve the REAL element node directly by id, not via `closest`: since
 		// selection handles now live in a stage-level overlay that is a SIBLING of
 		// `ElementRenderer` (not its parent), `data-element-id` is never an
@@ -103,6 +106,11 @@ export function ResizeHandles({
 		// preview matches the resting `getElementTransform` order (rotate first).
 		const base = nonRotationTransform ? ` ${nonRotationTransform}` : '';
 		const startDeg = rotation ?? 0;
+		const dragRotation = createRotationDrag(
+			{ x: cx, y: cy },
+			{ x: pointer.clientX, y: pointer.clientY },
+			startDeg,
+		);
 		let last = startDeg;
 		if (pointerId !== undefined) {
 			btn.setPointerCapture?.(pointerId);
@@ -111,7 +119,7 @@ export function ResizeHandles({
 		// matching the rest of the canvas (usePointerHandlers). A plain
 		// `mousemove` listener would miss the touch drag entirely.
 		const apply = (clientX: number, clientY: number, shift: boolean): void => {
-			let deg = (Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI + 90;
+			let deg = dragRotation({ x: clientX, y: clientY });
 			if (shift) {
 				deg = Math.round(deg / 15) * 15;
 			}
@@ -193,15 +201,13 @@ export function ResizeHandles({
 					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
 					style={peStyle}
 					onPointerDown={(e) => {
-						if (e.pointerType === 'mouse') {
-							return;
-						}
+						// Keep the same subpixel coordinates as pointermove; legacy
+						// mousedown rounds them and can shift a short shape's anchor.
 						e.stopPropagation();
-						startRotate(e.currentTarget, e.pointerId);
+						startRotate(e.currentTarget, e, e.pointerId);
 					}}
 					onMouseDown={(e) => {
 						e.stopPropagation();
-						startRotate(e.currentTarget);
 					}}
 				>
 					<LuRotateCw className='w-3 h-3 max-md:w-4 max-md:h-4' />
