@@ -113,6 +113,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:on-insert-slide-from-template="props.onInsertSlideFromTemplate"
 						:template-scheme="props.templateScheme"
 						:selected-element="props.selectedElement"
+						:table-editor-state="props.tableEditorState"
 						:on-update-text-style="props.onUpdateTextStyle"
 					/>
 				</div>
