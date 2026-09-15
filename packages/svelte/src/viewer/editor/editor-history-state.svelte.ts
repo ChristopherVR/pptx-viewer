@@ -49,8 +49,8 @@ export class EditorHistoryState {
 		this.sync();
 	}
 
-	record(snapshot: EditorSnapshot): void {
-		this.#history.record(snapshot, '');
+	record(snapshot: EditorSnapshot, label = ''): void {
+		this.#history.record(snapshot, label);
 		this.sync();
 	}
 

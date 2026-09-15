@@ -9,7 +9,11 @@
  * Building it here also makes the contract diffable against the other bindings.
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { clampZoomScale, prepareElementForInsertion } from 'pptx-viewer-shared';
+import {
+	commitElementUpdateBatch,
+	clampZoomScale,
+	prepareElementForInsertion,
+} from 'pptx-viewer-shared';
 import type { ViewerMode } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
@@ -41,6 +45,7 @@ export interface UseViewerApiOptions {
 	zoomReset: () => void;
 	startPresenting: () => void;
 	history: {
+		pushHistory: (label?: string) => void;
 		undo: () => void;
 		redo: () => void;
 		canUndo: ComputedRef<boolean> | Ref<boolean>;
@@ -166,6 +171,27 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 			options.commitPendingText();
 			elementOps.addElement(prepared);
 			return prepared.id;
+		},
+		updateElements: async (updates, batchOptions) => {
+			commitElementUpdateBatch(updates, batchOptions, {
+				getTarget: () => ({
+					canEdit: options.canEdit.value,
+					mode: options.presenting.value
+						? 'present'
+						: options.showMasterView.value
+							? 'master'
+							: options.mode.value,
+					loaded: !options.loading.value && !options.error.value,
+					editTemplateMode: options.editTemplateMode.value,
+				}),
+				getSlides: () => slides.value,
+				commitPendingText: options.commitPendingText,
+				commitSlides: (next, label) => {
+					history.pushHistory(label);
+					slides.value = next;
+					options.isDirty.value = true;
+				},
+			});
 		},
 		updateElement: (elementId: string, updates: Partial<PptxElement>) => {
 			elementOps.updateElement(elementId, updates);

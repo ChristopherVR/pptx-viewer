@@ -14,7 +14,7 @@ import {
 	restoreSessionDeck,
 	themeToCssVars,
 } from 'pptx-vue-viewer';
-import type { CollaborationConfig } from 'pptx-vue-viewer';
+import type { CollaborationConfig, PowerPointViewerExpose } from 'pptx-vue-viewer';
 import 'pptx-vue-viewer/styles';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watchEffect } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -38,6 +38,21 @@ import { themes } from './themes';
  * The viewer fills the screen; there is no demo header (download lives in the
  * viewer's File menu). URL params drive collaboration / broadcast / audience joins.
  */
+
+const viewerRef = shallowRef<PowerPointViewerExpose>();
+onMounted(() => {
+	if (import.meta.env.DEV) {
+		Object.defineProperty(window, '__pptxViewer', {
+			configurable: true,
+			get: () => viewerRef.value,
+		});
+	}
+});
+onBeforeUnmount(() => {
+	if (import.meta.env.DEV) {
+		Reflect.deleteProperty(window, '__pptxViewer');
+	}
+});
 
 const content = shallowRef<Uint8Array | null>(null);
 const fileName = ref('');
@@ -529,6 +544,7 @@ function onZoneClick(e: MouseEvent): void {
 <template>
 	<main v-if="content" class="demo-shell">
 		<PowerPointViewer
+			ref="viewerRef"
 			:content="content"
 			:file-name="fileName"
 			autosave

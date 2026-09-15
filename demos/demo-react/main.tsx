@@ -1,3 +1,4 @@
+import type { PowerPointViewerHandle } from 'pptx-react-viewer';
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s per hook/handler, several separated
    by comments or guard clauses); merging them isn't a style choice here. */
@@ -915,6 +916,20 @@ function App() {
 	);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const viewerRef = useRef<PowerPointViewerHandle>(null);
+	useEffect(() => {
+		if (!import.meta.env.DEV) {
+			return;
+		}
+		// Expose the public handle for development and cross-binding API tests.
+		Object.defineProperty(window, '__pptxViewer', {
+			configurable: true,
+			get: () => viewerRef.current,
+		});
+		return () => {
+			Reflect.deleteProperty(window, '__pptxViewer');
+		};
+	}, []);
 
 	/** Open the native picker from the explicit Browse control. */
 	const openFilePicker = useCallback(() => {
@@ -945,6 +960,7 @@ function App() {
 				    explicit interval is a host policy that outranks the File > Options
 				    AutoRecover cadence the viewer otherwise follows (2 minutes). */}
 				<PowerPointViewer
+					ref={viewerRef}
 					content={content}
 					fileName={fileName}
 					filePath={fileName}

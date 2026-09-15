@@ -16,16 +16,8 @@ import type {
 	PptxSlide,
 	PptxTheme,
 } from 'pptx-viewer-core';
-import type {
-	PresentationSnapshot,
-	Rendering3DFlags,
-	RunProgramNotice,
-	ThemeCatalogEntry,
-	ViewerMode,
-	ViewerQuickAccessOptions,
-	ViewerTheme,
-} from 'pptx-viewer-shared';
 import {
+	commitElementUpdateBatch,
 	buildDeckSaveOptions,
 	buildPresentationAudienceUrl,
 	buildUserFontFaceStyles,
@@ -75,6 +67,17 @@ import {
 	shouldDiscardAutosaveOnSuccessfulSave,
 	THEME_CATALOG,
 	writeStoredViewerPrefs,
+} from 'pptx-viewer-shared';
+import type {
+	ElementUpdate,
+	ElementUpdateOptions,
+	PresentationSnapshot,
+	Rendering3DFlags,
+	RunProgramNotice,
+	ThemeCatalogEntry,
+	ViewerMode,
+	ViewerQuickAccessOptions,
+	ViewerTheme,
 } from 'pptx-viewer-shared';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
@@ -872,6 +875,29 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.getSlide(index)?.elements ?? [];
 	getElementById = (id: string, index = this.getCurrentSlide()): PptxElement | undefined =>
 		this.getElements(index).find((element) => element.id === id);
+	updateElements = async (
+		updates: readonly ElementUpdate[],
+		options?: ElementUpdateOptions,
+	): Promise<void> => {
+		commitElementUpdateBatch(updates, options, {
+			getTarget: () => {
+				const state = this.store.get();
+				return {
+					canEdit:
+						state.editable &&
+						!state.protectedView &&
+						!(state.readOnlyRecommendation?.defaultReadOnly && !state.readOnlyBannerDismissed),
+					mode: this.getMode(),
+					loaded: !state.loading && !state.error,
+					editTemplateMode: state.editTemplateMode,
+				};
+			},
+			getSlides: () => this.store.get().slides,
+			commitPendingText: () =>
+				this.container.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
+			commitSlides: (next, label) => this.editor.commitElementUpdates(next, label),
+		});
+	};
 	updateElement = (id: string, updates: Partial<PptxElement>): void =>
 		this.editor.applyElementPatch(id, updates);
 	addElement = (element: PptxElement): string | undefined => {

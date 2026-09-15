@@ -1,6 +1,8 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
+	viewChild,
 	computed,
 	effect,
 	inject,
@@ -116,6 +118,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	`,
 })
 export class AppComponent {
+	readonly viewerRef = viewChild(PowerPointViewerComponent);
 	readonly content = signal<DemoContent | null>(null);
 	readonly fileName = signal<string>('');
 	readonly themeKey = signal<string>(restoreThemeKey());
@@ -189,6 +192,15 @@ export class AppComponent {
 	private appliedRootVarKeys: string[] = [];
 
 	constructor() {
+		if (import.meta.env.DEV) {
+			Object.defineProperty(window, '__pptxViewer', {
+				configurable: true,
+				get: () => this.viewerRef(),
+			});
+			inject(DestroyRef).onDestroy(() => {
+				Reflect.deleteProperty(window, '__pptxViewer');
+			});
+		}
 		// Mirror the React demo's `useRootTheme`: write the active theme's
 		// `--pptx-*` / `--color-*` custom properties onto `document.documentElement`
 		// so BOTH the landing dropzone and the mounted viewer chrome track the

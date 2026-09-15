@@ -6,7 +6,7 @@
 	 * `?room=<id>` URL param joins a serverless (y-webrtc P2P) collaboration
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
-	import type { CollaborationConfig, PptxAiConfig } from 'pptx-svelte-viewer';
+	import type { CollaborationConfig, PptxAiConfig, PowerPointViewerApi } from 'pptx-svelte-viewer';
 	// The openable-file allow list comes from the binding's public surface, not
 	// a local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop
 	// that the viewer's own File > Open accepted.
@@ -28,6 +28,14 @@
 	import { language, t } from './demo-i18n.svelte';
 	import { readStoredTheme, themes } from './themes';
 
+	let viewerRef: PowerPointViewerApi | undefined = $state();
+	$effect(() => {
+		if (!import.meta.env.DEV) {return;}
+		Object.defineProperty(window, '__pptxViewer', {
+			configurable: true, get: () => viewerRef,
+		});
+		return () => { Reflect.deleteProperty(window, '__pptxViewer'); };
+	});
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
 	// Built from the persisted demo AI settings when a deck opens; undefined
@@ -307,6 +315,7 @@
 	     once the presentation chrome is mounted. -->
 	<main class="demo-shell" data-pptx-viewer>
 		<PowerPointViewer
+			bind:this={viewerRef}
 			source={bytes}
 			locale={language.current}
 			{smartArt3D}

@@ -144,6 +144,7 @@
 	export const getElementById = vm.deck.getElementById;
 	export const addElement = vm.deck.addElement;
 	export const updateElement = vm.deck.updateElement;
+	export const updateElements = vm.deck.updateElements;
 	export const deleteElements = vm.deck.deleteElements;
 	export const duplicateElement = vm.deck.duplicateElement;
 	export const getSelectedElementIds = vm.deck.getSelectedElementIds;

@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from 'pptx-viewer-shared';
 // ── Vue 3 PowerPoint viewer/editor ──
 export {
 	PowerPointViewer,

@@ -76,13 +76,14 @@ viewer?.setMode('present'); // start presenting; Esc exits
 
 ## 访问与操作元素 {#element-access-and-manipulation}
 
-| 方法               | 签名                                                            | 说明                                              |
-| ------------------ | --------------------------------------------------------------- | ------------------------------------------------- |
-| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`               | 某张幻灯片上的元素，默认使用当前幻灯片。          |
-| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined` | 按 ID 获取单个元素。                              |
-| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。 |
-| `deleteElements`   | `(ids: string[]) => void`                                       | 按 ID 从当前幻灯片中删除元素。                    |
-| `duplicateElement` | `(id: string) => string \| undefined`                           | 复制元素，返回新元素的 ID。                       |
+| 方法               | 签名                                                                                   | 说明                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`                                      | 某张幻灯片上的元素，默认使用当前幻灯片。                                         |
+| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined`                        | 按 ID 获取单个元素。                                                             |
+| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`                                  | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。                                |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [跨页批量更新元素，整批修改占用一个撤销步骤](/zh/guide/element-update-batches)。 |
+| `deleteElements`   | `(ids: string[]) => void`                                                              | 按 ID 从当前幻灯片中删除元素。                                                   |
+| `duplicateElement` | `(id: string) => string \| undefined`                                                  | 复制元素，返回新元素的 ID。                                                      |
 
 ## 插入元素 {#add-element}
 
