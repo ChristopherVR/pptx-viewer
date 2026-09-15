@@ -20,6 +20,7 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { goToSlide } from './support/context-menu';
 import {
 	elementWithText,
 	fixture,
@@ -27,6 +28,7 @@ import {
 	SAMPLE_DECK,
 	selectElement,
 	slideElements,
+	slideStage,
 	thumbnail,
 } from './support/deck';
 import {
@@ -92,6 +94,65 @@ function expectSlideX(actual: number, expected: number, what: string): void {
 }
 
 test.describe('editor keyboard shortcuts', () => {
+	test('native image paste follows a canvas click and is one undoable insertion', async ({
+		page,
+		context,
+	}) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await openWithSelection(page);
+		await copyTestImage(page);
+		// No focus repair or synthetic paste event: use the browser's actual clipboard path.
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(3);
+		await page.keyboard.press('ControlOrMeta+z');
+		await expect(slideElements(page)).toHaveCount(2);
+		await page.keyboard.press('ControlOrMeta+Shift+z');
+		await expect(slideElements(page)).toHaveCount(3);
+	});
+
+	test('native image paste works after ribbon focus, inline click-away and a resize gesture', async ({
+		page,
+		context,
+	}) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		const source = await openWithSelection(page);
+		await copyTestImage(page);
+		await page.getByRole('button', { name: 'Bold', exact: true }).first().click();
+		const target = elementWithText(page, 'TARGET');
+		await target.click();
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(3);
+		await source.dblclick();
+		await page.keyboard.type(' edited');
+		await slideStage(page).click({ position: { x: 8, y: 8 } });
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(4);
+		await target.click();
+		const box = (await target.boundingBox())!;
+		await page.mouse.move(box.x + box.width - 3, box.y + box.height - 3);
+		await page.mouse.down();
+		await page.mouse.move(box.x + box.width + 24, box.y + box.height + 16, { steps: 6 });
+		await page.mouse.up();
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(5);
+	});
+
+	test('native image paste leaves an inline table-cell input alone', async ({ page, context }) => {
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await loadDeck(page, SAMPLE_DECK);
+		await goToSlide(page, 5);
+		await copyTestImage(page);
+		const before = await slideElements(page).count();
+		await slideElements(page).filter({ hasText: 'Starter' }).first().click();
+		await slideStage(page).getByText('Starter', { exact: true }).first().dblclick();
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(before);
+		await page.keyboard.type(' still editing');
+		await slideStage(page).click({ position: { x: 8, y: 8 } });
+		await expect(slideStage(page)).toContainText('still editing');
+		await page.keyboard.press('ControlOrMeta+v');
+		await expect(slideElements(page)).toHaveCount(before + 1);
+	});
 	test('a canvas click alone is enough for the next keystroke to reach the editor', async ({
 		page,
 	}) => {
@@ -272,6 +333,22 @@ test.describe('editor keyboard shortcuts', () => {
 		await expect(shortcutReference(page), 'Escape must close it again').toBeHidden();
 	});
 });
+
+/** Put a tiny locally generated PNG on the browser clipboard, without changing DOM focus. */
+async function copyTestImage(page: Page): Promise<void> {
+	await page.evaluate(async () => {
+		const canvas = document.createElement('canvas');
+		canvas.width = 24;
+		canvas.height = 16;
+		const context = canvas.getContext('2d')!;
+		context.fillStyle = '#ff0000';
+		context.fillRect(0, 0, 24, 16);
+		const blob = await new Promise<Blob>((resolve) => {
+			canvas.toBlob((image) => resolve(image!), 'image/png');
+		});
+		await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+	});
+}
 
 /**
  * The slide sorter is a second editing surface with its own keyboard, and it

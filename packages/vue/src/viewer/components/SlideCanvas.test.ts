@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import Viewer from '../PowerPointViewer.vue';
 import type { CanvasSize } from '../types';
 import SlideCanvas from './SlideCanvas.vue';
 
@@ -61,8 +62,7 @@ describe('slideCanvas background inheritance', () => {
 });
 
 describe('slideCanvas viewport fit policy', () => {
-	it('declares host fit options as runtime props on the public viewer', async () => {
-		const { default: Viewer } = await import('../PowerPointViewer.vue');
+	it('declares host fit options as runtime props on the public viewer', () => {
 		expect(Viewer.props).toHaveProperty('fitPadding');
 		expect(Viewer.props).toHaveProperty('maxFitScale');
 	});

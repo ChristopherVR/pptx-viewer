@@ -11,6 +11,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { ViewerMode, CanvasSize } from '../types';
 import type { CopiedFormat } from '../utils/format-painter';
 import { copyFormatFromElement, applyFormatToElement } from '../utils/format-painter';
+import { useCanvasImagePaste } from './useCanvasImagePaste';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import type { CanvasInteractionHandlers } from './useCanvasInteractions';
 import { useComments } from './useComments';
@@ -231,6 +232,13 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		ops,
 		history,
 	});
+	const imagePaste = useCanvasImagePaste({
+		state,
+		mode,
+		canEdit,
+		handlerRef,
+		insertElement: insertHandlers.addElement,
+	});
 
 	const manipulation = useElementManipulation({
 		activeSlide,
@@ -370,7 +378,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		findReplace,
 		comments,
 		canvasHandlers: formatPainterCanvasHandlers,
-		insertHandlers,
+		insertHandlers: { ...insertHandlers, imagePaste },
 		manipulation,
 		slideOps,
 		tableOps,

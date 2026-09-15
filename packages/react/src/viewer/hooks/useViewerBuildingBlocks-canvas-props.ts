@@ -157,6 +157,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 	};
 
 	return {
+		imagePaste: insertHandlers.imagePaste,
 		activeSlide: effectiveSlide,
 		templateElements: effectiveTemplateElements,
 		canvasSize,

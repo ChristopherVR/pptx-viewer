@@ -1352,6 +1352,8 @@ export * from './theme-editor-presets';
 // clipboard. Each binding's cut/copy/paste handlers are thin wrappers on this.
 export * from './element-clipboard';
 export * from './element-insertion';
+export * from './image-file-insertion';
+export * from './editor-image-paste';
 export * from './header-footer-dialog';
 export * from './media-file-type';
 export * from './template-background-rows';

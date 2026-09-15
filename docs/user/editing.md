@@ -202,6 +202,17 @@ Every edit is captured as a step you can walk backward and forward through. Cont
 
 The same commands appear when you right-click an element. See the full list on the [Keyboard Shortcuts](/user/shortcuts) page.
 
+To paste an image from another app, copy the image itself, click the slide canvas,
+then press **Ctrl+V** (**Cmd+V** on macOS). When the browser supplies an image file,
+it is inserted in the centre of the slide, fitted within its bounds, and selected.
+The insertion is one undo step. Pasting while editing text or a table cell stays
+with that editor; it does not insert a separate slide image. Image URLs and HTML
+alone are not imported by this shortcut.
+
+The editor's existing internal element clipboard keeps priority. If you have
+copied slide elements in this viewer, **Ctrl+V** continues to paste those elements
+instead. Use **Insert > Image** to choose an external image file in that case.
+
 ## Autosave and recovery
 
 - The **AutoSave** switch in the title bar turns periodic snapshots on or off. When on, the app saves a recovery copy of your work to the browser's local storage every couple of minutes while there are unsaved changes.

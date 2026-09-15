@@ -99,6 +99,7 @@ import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosaveRecovery } from './composables/useAutosaveRecovery';
 import { useAutosaveWiring } from './composables/useAutosaveWiring';
+import { useCanvasImagePaste } from './composables/useCanvasImagePaste';
 import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
 import { useCommandDispatch } from './composables/useCommandDispatch';
@@ -1501,6 +1502,32 @@ const { handleCommandSearch, handleQuickAccessCommand } = useCommandDispatch({
 });
 
 // -- Imperative surface (implements the shared PowerPointViewerAPI) ----
+useCanvasImagePaste(viewerRootRef, {
+	getCanvas: () => mainRef.value,
+	getTarget: () => {
+		if (
+			!canEditEffective.value ||
+			loading.value ||
+			error.value ||
+			presentation.presenting.value ||
+			masterView.showMasterView.value ||
+			editTemplateMode.value ||
+			inlineEdit.inlineEditingElementId.value ||
+			activeTool.value !== 'select' ||
+			contextMenu.value?.open ||
+			!activeSlide.value ||
+			!handler.value
+		)
+			return null;
+		return {
+			documentId: handler.value,
+			slideId: activeSlide.value.id,
+			canvasSize: canvasSize.value,
+		};
+	},
+	insertElement: ops.addElement,
+});
+
 defineExpose<PowerPointViewerExpose>(
 	useViewerApi({
 		slides,
