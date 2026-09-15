@@ -6,7 +6,7 @@ import { createInitialViewerState, createStore } from '../state';
 import { attachCanvasImagePaste } from './editor-image-paste';
 
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
-	...(await importOriginal<typeof import('pptx-viewer-shared')>()),
+	...(await importOriginal()),
 	attachEditorImagePaste: vi.fn(),
 }));
 const cleanups: (() => void)[] = [];
@@ -22,13 +22,14 @@ afterEach(() => {
 });
 
 function setup() {
+	const slides: PptxSlide[] = [
+		{ id: 'slide-1', rId: 'rId1', slideNumber: 1, elements: [] },
+		{ id: 'slide-2', rId: 'rId2', slideNumber: 2, elements: [] },
+	];
 	const store = createStore({
 		...createInitialViewerState(),
 		editable: true,
-		slides: [
-			{ id: 'slide-1', elements: [] },
-			{ id: 'slide-2', elements: [] },
-		] as PptxSlide[],
+		slides,
 	});
 	const root = document.createElement('div');
 	const canvas = document.createElement('div');
