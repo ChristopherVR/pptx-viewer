@@ -12,6 +12,7 @@ import type {
 import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React from 'react';
 
+import type { CanvasImagePasteHandlers } from '../../hooks/useCanvasImagePaste';
 import type {
 	CanvasSize,
 	MarqueeSelectionState,
@@ -57,6 +58,8 @@ export function getElementIdFromEvent(e: React.MouseEvent): string | null {
 /* ------------------------------------------------------------------ */
 
 export interface SlideCanvasProps {
+	/** Native image paste commands supplied by the stock or headless editor. */
+	imagePaste?: CanvasImagePasteHandlers;
 	activeSlide: PptxSlide | undefined;
 	templateElements: PptxElement[];
 	canvasSize: CanvasSize;
