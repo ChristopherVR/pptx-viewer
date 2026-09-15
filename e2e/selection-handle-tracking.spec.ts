@@ -84,6 +84,31 @@ async function expectKnobOnShape(knob: Locator, target: Locator, what: string): 
 }
 
 test.describe('selection handles track the live gesture', () => {
+	test('corner controls remain centred on the shape corners', async ({ page }) => {
+		const target = await openTarget(page);
+		await select(page, target);
+		const shape = (await target.boundingBox())!;
+
+		for (const [handle, xFraction, yFraction] of [
+			['nw', 0, 0],
+			['ne', 1, 0],
+			['sw', 0, 1],
+			['se', 1, 1],
+		] as const) {
+			const control = viewport(page).getByRole('button', {
+				name: new RegExp(`^resize ${handle}$`, 'iu'),
+			});
+			await expect(control).toBeVisible();
+			const box = (await control.boundingBox())!;
+			// A general button minimum size must not enlarge the hit box on only
+			// one side of its visible dot, displacing its centre from the corner.
+			expect(Math.abs(box.x + box.width / 2 - (shape.x + shape.width * xFraction))).toBeLessThan(2);
+			expect(Math.abs(box.y + box.height / 2 - (shape.y + shape.height * yFraction))).toBeLessThan(
+				2,
+			);
+		}
+	});
+
 	test('the handles ride along with a body drag before pointer-up', async ({ page }) => {
 		const target = await openTarget(page);
 		const knob = await select(page, target);

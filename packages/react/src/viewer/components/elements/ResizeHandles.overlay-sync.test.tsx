@@ -6,6 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ResizeHandles } from './ResizeHandles';
 
+vi.mock(import('react-i18next'), () => ({
+	useTranslation: vi.fn().mockReturnValue({ t: (key: string) => key }),
+}));
+
 let container: HTMLDivElement;
 let elementHost: HTMLDivElement;
 let handleHost: HTMLDivElement;
@@ -81,7 +85,9 @@ describe('resize handles live rotation', () => {
 			);
 		});
 
-		const rotateButton = container.querySelector<HTMLButtonElement>('[data-pptx-compact]');
+		const rotateButton = container.querySelector<HTMLButtonElement>(
+			'[aria-label="pptx.selectionOverlay.rotate"]',
+		);
 		expect(rotateButton).not.toBeNull();
 		rotateButton!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
 		window.dispatchEvent(
