@@ -175,3 +175,60 @@ describe('public viewer mode', () => {
 		},
 	);
 });
+
+describe('public cross-slide batches', () => {
+	function useBatchHarness() {
+		return useHarness(
+			[0, 1].map((index) => ({
+				id: `slide-${index}`,
+				rId: `r${index}`,
+				slideNumber: index + 1,
+				elements: [
+					{ id: 'title', type: 'text', x: 67, y: 40, width: 200, height: 60, text: 'Title' },
+				],
+			})),
+		);
+	}
+
+	it('preserves selection and separates consecutive batches and ordinary edits', async () => {
+		const { api, options } = useBatchHarness();
+		api.selectElements(['title']);
+		const changes = (x: number) =>
+			[0, 1].map((index) => ({ slideId: `slide-${index}`, elementId: 'title', patch: { x } }));
+		const positions = () => api.getSlides().map((slide) => slide.elements[0].x);
+		api.updateElement('title', { x: 70 });
+		await api.updateElements(changes(84));
+		await api.updateElements(changes(90));
+		expect(api.getActiveSlideIndex()).toBe(0);
+		expect(api.getSelectedElementIds()).toStrictEqual(['title']);
+		expect(options.isDirty.value).toBeTruthy();
+		api.undo();
+		expect(positions()).toStrictEqual([84, 84]);
+		api.undo();
+		expect(positions()).toStrictEqual([70, 67]);
+		api.undo();
+		expect(positions()).toStrictEqual([67, 67]);
+		api.redo();
+		api.redo();
+		expect(positions()).toStrictEqual([84, 84]);
+	});
+
+	it('keeps invalid, no-op and read-only batches out of history', async () => {
+		const { api, permission, commitPendingText } = useBatchHarness();
+		await api.updateElements([]);
+		await api.updateElements([{ slideId: 'slide-0', elementId: 'title', patch: { x: 67 } }]);
+		await expect(
+			api.updateElements([
+				{ slideId: 'slide-0', elementId: 'title', patch: { x: 84 } },
+				{ slideId: 'missing', elementId: 'title', patch: { x: 90 } },
+			]),
+		).rejects.toThrow();
+		permission.value = false;
+		await expect(
+			api.updateElements([{ slideId: 'slide-0', elementId: 'title', patch: { x: 84 } }]),
+		).rejects.toThrow();
+		expect(api.getSlides().map((slide) => slide.elements[0].x)).toStrictEqual([67, 67]);
+		expect(api.canUndo()).toBeFalsy();
+		expect(commitPendingText).not.toHaveBeenCalled();
+	});
+});

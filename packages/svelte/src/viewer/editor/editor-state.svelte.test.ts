@@ -180,6 +180,38 @@ describe('public deck element insertion', () => {
 		return { editor, viewer, deps, api: createDeckApi(deps) };
 	}
 
+	it('applies isolated cross-slide batches without moving the viewport or selection', async () => {
+		const { editor, viewer, api } = harness();
+		editor.setSlides([
+			slide('a', [{ ...shape('title'), x: 67 }]),
+			slide('b', [{ ...shape('title'), x: 67 }]),
+		]);
+		api.selectElements(['title']);
+		const changes = (x: number) =>
+			['a', 'b'].map((slideId) => ({ slideId, elementId: 'title', patch: { x } }));
+		const positions = () => api.getSlides().map((page) => page.elements[0].x);
+		api.updateElement('title', { x: 70 });
+		await api.updateElements(changes(84));
+		await api.updateElements(changes(90));
+		expect(viewer.current).toBe(0);
+		expect(api.getSelectedElementIds()).toStrictEqual(['title']);
+		editor.undo();
+		expect(positions()).toStrictEqual([84, 84]);
+		editor.undo();
+		expect(positions()).toStrictEqual([70, 67]);
+		editor.undo();
+		expect(positions()).toStrictEqual([67, 67]);
+		await api.updateElements(changes(67));
+		await expect(
+			api.updateElements([...changes(84), { slideId: 'missing', elementId: 'title', patch: {} }]),
+		).rejects.toThrow();
+		expect(positions()).toStrictEqual([67, 67]);
+		expect(editor.canUndo).toBeFalsy();
+		editor.redo();
+		editor.redo();
+		expect(positions()).toStrictEqual([84, 84]);
+	});
+
 	it('inserts defensive copies at supplied coordinates, selects and supports dirty/undo/redo', () => {
 		const { editor, api } = harness();
 		const input = shape('caller');
