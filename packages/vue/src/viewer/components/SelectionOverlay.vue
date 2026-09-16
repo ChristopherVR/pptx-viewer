@@ -36,6 +36,7 @@ import { useSelectionAffordances } from '../composables/element-lock-guards';
 import { useSelectionGesture } from '../composables/selection-gesture';
 import { getShapeAdjustmentHandleDescriptors } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
+import { vRotateHandlePlacement } from './rotate-handle-placement';
 import {
 	adjustHandleStyle as adjustHandleStyleFor,
 	boxStyle,
@@ -55,6 +56,8 @@ const props = defineProps<{
 	elements: PptxElement[];
 	selectedIds: string[];
 	zoom: number;
+	/** Keep handles above the active editor without changing connector layering. */
+	inlineEditing?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -144,7 +147,7 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	<div
 		ref="rootEl"
 		class="pptx-vue-selection-overlay"
-		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER }"
+		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER, 'is-inline-editing': inlineEditing }"
 		data-testid="selection-overlay"
 		:style="{ '--pptx-vue-hs': String(inverseZoom) }"
 	>
@@ -160,8 +163,10 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 
 			<!-- Rotate stem + knob. Hidden by `a:spLocks/@noRotation`. -->
 			<template v-if="canRotate(box.id)">
-				<div class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
+				<div data-pptx-rotate-stem class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
 				<button
+					v-rotate-handle-placement
+					data-pptx-handle-kind="rotate"
 					type="button"
 					class="pptx-vue-rotate-knob"
 					data-pptx-compact
@@ -181,11 +186,12 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 					:class="`pptx-vue-resize-${meta.id}`"
 					data-pptx-compact
 					:data-handle="meta.id"
+					data-pptx-handle-kind="resize"
 					:style="handleStyle(meta, box)"
 					:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
 					@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
 				>
-					<span :style="getResizeHandleHitAreaStyle(meta.id)" />
+					<span data-pptx-handle-hit :style="getResizeHandleHitAreaStyle(meta.id)" />
 				</button>
 			</template>
 
@@ -197,6 +203,7 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 				class="pptx-vue-adjust-handle"
 				data-pptx-compact
 				:data-pptx-adjust-key="descriptor.key"
+				data-pptx-handle-kind="adjust"
 				:style="adjustHandleStyle(descriptor)"
 				:aria-label="t('pptx.selectionOverlay.adjust')"
 				@pointerdown="(e) => beginAdjust(box.id, descriptor, e)"
@@ -232,6 +239,11 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	border: 1px solid var(--pptx-vue-selection-color, #3b82f6);
 	transform-origin: center center;
 	pointer-events: none;
+}
+
+.pptx-vue-selection-overlay.is-inline-editing {
+	/* The editor is at 60; only handles intercept input, never the box body. */
+	z-index: 61;
 }
 
 .pptx-vue-selection-body {

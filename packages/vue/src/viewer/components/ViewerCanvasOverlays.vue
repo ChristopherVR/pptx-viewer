@@ -163,13 +163,14 @@ defineProps<{
 	     handles live and draggable mid-edit): every non-handle region of this
 	     overlay is `pointer-events: none` (see `SelectionOverlay.vue`), so
 	     caret placement in the editor beneath it is unaffected, and the
-	     overlay's own `z-index: 55` (InlineTextEditor has none) keeps its
-	     handles on top and clickable. -->
+	     editing-only layer keeps inward handles above the editor. Normal
+	     connector endpoint precedence remains unchanged. -->
 	<SelectionOverlay
 		v-if="canEdit && !presenting"
 		:elements="selectedElements"
 		:selected-ids="selectedElementIds"
 		:zoom="effectiveZoom"
+		:inline-editing="Boolean(inlineEdit.inlineEditingElement.value)"
 		@transform-start="drag.onTransformStart"
 		@transform="drag.onTransform"
 		@transform-end="drag.onTransformEnd"
