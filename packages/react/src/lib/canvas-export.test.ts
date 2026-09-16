@@ -1,6 +1,32 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+// @vitest-environment happy-dom
+import html2canvasPro from 'html2canvas-pro';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { _testing } from './canvas-export';
+import { _testing, renderToCanvas } from './canvas-export';
+
+vi.mock(import('html2canvas-pro'), () => ({ default: vi.fn() }));
+
+describe('renderToCanvas export clone', () => {
+	it('prepares selection-free authored paint before the caller onclone without changing the live element', async () => {
+		const source = document.createElement('div');
+		source.innerHTML =
+			'<div data-export-ignore="true">Rotate</div><div data-export-original-box-shadow="2px 3px 4px black" style="box-shadow: 0 0 0 2px blue">Content</div>';
+		const original = source.outerHTML;
+		const clone = source.cloneNode(true) as HTMLElement;
+		const canvas = document.createElement('canvas');
+		vi.mocked(html2canvasPro).mockImplementationOnce(async (_element, options) => {
+			await options!.onclone!(document, clone);
+			return canvas;
+		});
+		const onclone = vi.fn((_doc: Document, element: HTMLElement) => {
+			expect(element.textContent).toBe('Content');
+			expect((element.firstElementChild as HTMLElement).style.boxShadow).toBe('2px 3px 4px black');
+		});
+		await expect(renderToCanvas(source, { onclone })).resolves.toBe(canvas);
+		expect(onclone).toHaveBeenCalledOnce();
+		expect(source.outerHTML).toBe(original);
+	});
+});
 
 const {
 	UNSUPPORTED_COLOR_RE,

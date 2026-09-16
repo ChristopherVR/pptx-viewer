@@ -1,3 +1,4 @@
+import { prepareExportClone } from './export-clone';
 import { collectExternalFontFaceCss, collectFontFaceCss } from './foreign-object-font-embed';
 import type { FontStyleDocumentLike, LinkStyleDocumentLike } from './foreign-object-font-embed';
 /**
@@ -75,6 +76,9 @@ export async function buildForeignObjectSvgBody(
 
 	const clone = element.cloneNode(true) as HTMLElement;
 	inlineComputedStylesOnClone(element, clone, readComputedStyle);
+	// Keep the trees aligned while copying styles, then omit editor-only nodes
+	// before embedding resources. The live editor tree is never changed.
+	prepareExportClone(clone);
 
 	const [{ allEmbedded: imagesEmbedded }, externalFonts] = await Promise.all([
 		embedImagesOnClone(clone),

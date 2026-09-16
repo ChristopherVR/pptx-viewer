@@ -12,6 +12,7 @@ import { jsPDF } from 'jspdf';
 
 import {
 	canvasToJpegData,
+	isExportIgnoredElement,
 	placeTileOnPage,
 	rasterizeElement,
 	rasterizeElementTiledToCanvas,
@@ -37,6 +38,7 @@ export function html2canvasFallbackFor(
 ): (sourceRect: RasterSourceRect, outputSize: RasterOutputSize) => Promise<HTMLCanvasElement> {
 	return (sourceRect, outputSize) =>
 		renderToCanvas(el, {
+			ignoreElements: isExportIgnoredElement,
 			scale: outputSize.width / (sourceRect.width || 1),
 			x: sourceRect.x,
 			y: sourceRect.y,

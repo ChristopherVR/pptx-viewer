@@ -246,6 +246,17 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			: undefined;
 
 		const isFocusable = effectiveCanInteract || isActionable;
+		const containerStyle = getContainerStyle({
+			el,
+			isFullscreenMedia,
+			isImg: isImg || isModel3D,
+			zIndex,
+			opacity,
+			animationState,
+			shapeVisualStyle: backgroundAnimationState ? {} : ss,
+			has3DExtrusion: extrusionData.hasExtrusion,
+			templateEditing,
+		});
 		const interactionProps = getElementInteractionProps({
 			element: el,
 			isEditableText: isTxt,
@@ -261,6 +272,11 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			<div
 				data-pptx-element='true'
 				data-element-id={el.id}
+				// Export restores authored paint without changing the live selection
+				// ring or dropping a real shape shadow on this same wrapper.
+				data-export-original-outline={containerStyle.outline ?? 'none'}
+				data-export-original-outline-offset={containerStyle.outlineOffset ?? '0px'}
+				data-export-original-box-shadow={containerStyle.boxShadow ?? 'none'}
 				// The neutral marker `PRESENTATION_INERT_CLICK_SELECTOR` keys off, so
 				// a tap or swipe on an action shape never ALSO steps the show on.
 				// `StaticElementRenderer` and the four non-React bindings' DOM pass
@@ -301,17 +317,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
 				)}
 				style={{
-					...getContainerStyle({
-						el,
-						isFullscreenMedia,
-						isImg: isImg || isModel3D,
-						zIndex,
-						opacity,
-						animationState,
-						shapeVisualStyle: backgroundAnimationState ? {} : ss,
-						has3DExtrusion: extrusionData.hasExtrusion,
-						templateEditing,
-					}),
+					...containerStyle,
 					...(isSelected ? selectionOutlineStyle(selClr) : {}),
 				}}
 				{...interactionProps}

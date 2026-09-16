@@ -121,6 +121,7 @@ describe('resize handles', () => {
 		expect(buttons).toHaveLength(10);
 		for (const button of buttons) {
 			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
+			expect(button.dataset.exportIgnore).toBe('true');
 			expect(ignoreExportOverlayElements(button)).toBeTruthy();
 		}
 		// The handle-only marker must not hide the parent connector or shape.

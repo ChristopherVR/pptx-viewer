@@ -13,7 +13,12 @@ import type { Options as Html2CanvasOptions } from 'html2canvas-pro';
  * imports `html2canvas-pro` stays here. `_testing` is re-exported so the
  * colocated unit tests keep their historical import path.
  */
-import { normalizeColorsForCapture, preprocessCssForCapture, _testing } from 'pptx-viewer-shared';
+import {
+	normalizeColorsForCapture,
+	prepareExportClone,
+	preprocessCssForCapture,
+	_testing,
+} from 'pptx-viewer-shared';
 
 export { _testing };
 
@@ -43,6 +48,7 @@ export async function renderToCanvas(
 	return html2canvasPro(element, {
 		...options,
 		onclone: async (doc: Document, clonedEl: HTMLElement) => {
+			prepareExportClone(clonedEl);
 			await normalizeColorsForCapture(doc, clonedEl);
 			preprocessCssForCapture(clonedEl);
 

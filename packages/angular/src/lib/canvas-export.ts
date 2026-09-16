@@ -19,6 +19,7 @@ import {
 	_testing,
 } from '../internal/shared-src/export/canvas-color-fix';
 import { preprocessCssForCapture } from '../internal/shared-src/export/css-preprocessing';
+import { prepareExportClone } from '../internal/shared-src/render/export-clone';
 
 export { _testing };
 
@@ -44,6 +45,7 @@ export async function renderToCanvas(
 	return html2canvasPro(element, {
 		...options,
 		onclone: async (doc: Document, clonedEl: HTMLElement) => {
+			prepareExportClone(clonedEl);
 			await normalizeColorsForCapture(doc, clonedEl);
 			preprocessCssForCapture(clonedEl);
 
