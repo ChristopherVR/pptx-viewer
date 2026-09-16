@@ -74,6 +74,7 @@ function mountViewport(): {
 }
 
 beforeEach(() => {
+	globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 	// The other instance comes FIRST in the document, so an unscoped
 	// `document.querySelector` would land on it rather than on ours.
 	const other = mountViewport();
@@ -90,6 +91,7 @@ beforeEach(() => {
 afterEach(() => {
 	act(() => root.unmount());
 	document.body.replaceChildren();
+	globalThis.IS_REACT_ACT_ENVIRONMENT = false;
 });
 
 describe('resize handles live rotation', () => {
