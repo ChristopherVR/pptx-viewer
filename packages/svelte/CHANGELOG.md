@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.20.1) - 2026-09-16
+
+### Bug Fixes
+
+- **shared:** Omit editor chrome from raster export clones (by @Sudhansh6) ([fe033c4](https://github.com/ChristopherVR/pptx-viewer/commit/fe033c4e9da31b0b30482b2f3e82f98f9adfde9c))
+- **export:** Reconcile selection cleanup with current main (by @Sudhansh6) ([a292a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a292a8c9416ca0759bad3b49db14b14779d0c3bd))
+
 ## [3.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.20.0) - 2026-09-16
 
 ### Features

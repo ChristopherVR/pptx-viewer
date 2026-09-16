@@ -10,6 +10,23 @@ dated sections beneath it are generated from
 
 ## 2026-09-16
 
+_Releases: pptx-react-viewer@3.19.1, pptx-vue-viewer@3.19.1, pptx-angular-viewer@3.19.1, pptx-vanilla-viewer@2.19.1, pptx-svelte-viewer@3.20.1, @christophervr/pptx-viewer@2.19.1_
+
+### Bug Fixes
+
+- **ci:** Run e2e with 1 worker to stop vue/svelte/vanilla runner kills (by @ChristopherVR) ([970c75a](https://github.com/ChristopherVR/pptx-viewer/commit/970c75ac0c7cf2912884a610fc18b7a241ea876b))
+- **ci:** Retry the e2e step once on a whole-runner kill (by @ChristopherVR) ([0bf4413](https://github.com/ChristopherVR/pptx-viewer/commit/0bf44138a29bf49f64675609cc14020a45821732))
+- **shared:** Omit editor chrome from raster export clones (by @Sudhansh6) ([fe033c4](https://github.com/ChristopherVR/pptx-viewer/commit/fe033c4e9da31b0b30482b2f3e82f98f9adfde9c))
+- **react:** Exclude selection decoration from exported slides (by @Sudhansh6) ([b6659cb](https://github.com/ChristopherVR/pptx-viewer/commit/b6659cb47bdcc843e704c994b03d45312527569c))
+- **angular:** Omit editor overlays from live-stage exports (by @Sudhansh6) ([34bb6a6](https://github.com/ChristopherVR/pptx-viewer/commit/34bb6a64c0e55a9361655f60f8be3d98f5a7309e))
+- **export:** Reconcile selection cleanup with current main (by @Sudhansh6) ([a292a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a292a8c9416ca0759bad3b49db14b14779d0c3bd))
+
+### Testing
+
+- **e2e:** Keep selected slide exports free of editor chrome (by @Sudhansh6) ([1ec1179](https://github.com/ChristopherVR/pptx-viewer/commit/1ec1179d27dc842eca13368e725624ad705cfed6))
+
+## 2026-09-16
+
 _Releases: pptx-react-viewer@3.19.0, pptx-vue-viewer@3.19.0, pptx-angular-viewer@3.19.0, pptx-vanilla-viewer@2.19.0, pptx-svelte-viewer@3.20.0_
 
 ### Bug Fixes

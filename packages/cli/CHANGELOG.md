@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.1) - 2026-09-16
+
+### Bug Fixes
+
+- **react:** Exclude selection decoration from exported slides (by @Sudhansh6) ([b6659cb](https://github.com/ChristopherVR/pptx-viewer/commit/b6659cb47bdcc843e704c994b03d45312527569c))
+- **export:** Reconcile selection cleanup with current main (by @Sudhansh6) ([a292a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a292a8c9416ca0759bad3b49db14b14779d0c3bd))
+
 ## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.0) - 2026-09-16
 
 ### Features
