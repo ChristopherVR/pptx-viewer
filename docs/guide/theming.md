@@ -154,6 +154,65 @@ The viewer UI references `--pptx-*` custom properties for every visual token, wh
 
 The vanilla binding is the exception: `createPptxViewer` injects its own scoped stylesheet automatically (idempotent, `#pptx-vanilla-viewer-styles`). Hosts with a strict CSP can pre-render the string from `getViewerCss()` instead.
 
+## Selection-control artwork
+
+Selection artwork uses the existing `ViewerTheme.cssVars` field, not a separate
+theme object or component prop, in all five bindings. These optional tokens do not change a binding's
+default appearance when omitted. They affect editor controls, not slide content,
+font sizes, authored geometry, or exported documents.
+
+| CSS custom property                    | Controls                                   |
+| -------------------------------------- | ------------------------------------------ |
+| `--pptx-selection-corner-size`         | Corner artwork width and height            |
+| `--pptx-selection-corner-radius`       | Corner artwork border radius               |
+| `--pptx-selection-edge-length`         | Edge artwork length parallel to the edge   |
+| `--pptx-selection-edge-thickness`      | Edge artwork thickness across the edge     |
+| `--pptx-selection-edge-radius`         | Edge artwork border radius                 |
+| `--pptx-selection-handle-fill`         | Resize artwork fill                        |
+| `--pptx-selection-handle-border-color` | Resize and Rotate artwork border color     |
+| `--pptx-selection-outline-color`       | Selection outline and existing Rotate stem |
+| `--pptx-selection-rotate-size`         | Circular Rotate artwork diameter           |
+| `--pptx-selection-rotate-fill`         | Rotate artwork fill                        |
+| `--pptx-selection-rotate-foreground`   | Rotate glyph color, where a glyph is drawn |
+
+Use positive pixel lengths such as `6px` for sizes, CSS lengths or percentages
+for radii, and valid CSS colors for colors. A `var()` fallback handles an omitted
+token, not an arbitrary invalid CSS value. The viewer does not parse or sanitize
+these CSS strings. Remove an override to restore the binding's own default.
+Radius values use the control's local CSS coordinates, like its existing border
+and shadow; they are not separately compensated for stage zoom. Use `0px` for
+square corners or `50%` for a proportional round shape across bindings.
+
+```ts
+const theme = {
+	cssVars: {
+		'--pptx-selection-corner-size': '6px',
+		'--pptx-selection-corner-radius': '0px',
+		'--pptx-selection-edge-length': '6px',
+		'--pptx-selection-edge-thickness': '6px',
+		'--pptx-selection-edge-radius': '0px',
+		'--pptx-selection-handle-fill': '#ffffff',
+		'--pptx-selection-handle-border-color': '#6366f1',
+		'--pptx-selection-outline-color': '#6366f1',
+		'--pptx-selection-rotate-fill': '#ffffff',
+		'--pptx-selection-rotate-foreground': '#6366f1',
+	},
+};
+```
+
+Pass this same theme through the binding-specific examples above. For a custom
+shell, apply `themeToCssVars(theme)` to the common ancestor of the slide and its
+selection controls. Do not target private child classes or assume handles are
+nested inside the selected shape.
+
+Artwork remains centered on the existing anchors. Smaller artwork does not
+shrink the original invisible mouse or touch target. Larger artwork expands its
+frame, but existing neighbor-hit partitioning still applies on tiny shapes;
+oversized visuals can overlap without taking another handle's input region.
+This contract does not expose hit sizes or Rotate offsets. Keep large custom
+artwork practical for the shapes being edited. Adjustment diamonds and connector
+endpoint indicators retain their distinct meanings and appearance.
+
 ## File > Options > Appearance
 
 Every binding's Settings dialog has an **Appearance** tab: a small gallery of built-in theme presets (Default, Light, Vermilion Light, Vermilion Dark) a user can click through at runtime, defined by the `THEME_CATALOG` export:
