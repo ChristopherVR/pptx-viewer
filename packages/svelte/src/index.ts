@@ -7,6 +7,7 @@
  */
 export { PowerPointViewer } from './viewer/component';
 export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
+export { createImageElementFromFile } from 'pptx-viewer-shared';
 export type {
 	ExportGifOptions,
 	ExportPdfOptions,

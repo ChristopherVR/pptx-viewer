@@ -16,6 +16,21 @@ const ribbonSource = componentSource(import.meta.dirname, 'ribbon-font-controls.
 const inspectorSource = componentSource(import.meta.dirname, 'inspector-panel.component.ts');
 
 describe('ribbonFontControlsComponent FONT_SIZES', () => {
+	it.each(['fontFamily', 'fontSize'])('requires an editable text selection for %s', (label) => {
+		const select = ribbonSource.match(new RegExp(`<select[^>]*pptx.ribbon.${label}[^>]*>`))?.[0];
+		expect(select).toBeDefined();
+		expect(select).toContain('[disabled]="!canEdit() || !isText()"');
+	});
+
+	it.each(['ribbon-home-section.component.ts', 'ribbon-content.component.ts'])(
+		'passes read-only eligibility through %s',
+		(file) => {
+			const source = componentSource(import.meta.dirname, file);
+			const control = source.match(/<pptx-ribbon-font-controls[^>]*>/u)?.[0];
+			expect(control).toContain('[canEdit]="canEdit()"');
+		},
+	);
+
 	it('matches the shared font-size ladder exactly', () => {
 		expect(FONT_SIZES).toStrictEqual(COMMON_FONT_SIZES);
 	});

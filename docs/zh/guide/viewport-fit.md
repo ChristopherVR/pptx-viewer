@@ -44,6 +44,8 @@ const { canvasProps, toolbarProps } = useViewerBuildingBlocks({
 
 按常规方式渲染返回的属性即可。适配使用实际测量的画布视口尺寸，不会将工具栏所在的整个宿主容器算入。已有的标尺偏移仍然生效；如果自定义 `SlideCanvas` 必须与视口边缘直接对齐，请设置 `showRulers={false}`。
 
+`SlideCanvas` 会自动跟踪视口，即使组合钩子保持挂载而画布被条件卸载后重新挂载。如果将从 `pptx-react-viewer/internals` 导入的 `useZoomViewport` 用于自定义视口元素，请绑定 `ref={zoom.setCanvasViewportNode ?? zoom.canvasViewportRef}`，使适配和原生滚轮缩放跟随当前元素。现有的 `canvasViewportRef` 对象仍可用于读取视口。
+
 ### Vue {#vue}
 
 ```vue

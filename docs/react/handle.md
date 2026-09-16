@@ -162,6 +162,30 @@ image dimensions, or import another document's relationships. A host-owned paste
 handler can read an image and call it. For a new data-URL image, use the factory
 above without inventing an `imagePath`, which denotes an existing archive part.
 
+#### Loading a local image {#image-file}
+
+The package also exports `createImageElementFromFile(file, canvasSize, signal?)`.
+Given a local `File` or `Blob`, the slide size in pixels, and an optional
+`AbortSignal`:
+
+```ts
+import { createImageElementFromFile } from 'pptx-react-viewer';
+
+const image = await createImageElementFromFile(file, canvasSize, signal);
+```
+
+The helper preserves the image bytes and returns a centred `ImagePptxElement`,
+fitted to the slide without upscaling. It resolves `null` for invalid/unreadable
+images or dimensions, cancellation, or unavailable browser APIs. The helper
+does not use browser APIs until called; decoding requires those APIs.
+
+This only constructs an element: it does not change a deck, history, selection,
+or clipboard. After `await`, verify that the same document and destination slide
+are still active and editable, then pass a non-null result to `addElement`.
+Abort pending work when that destination is abandoned. A slide ID alone is not
+a document identity, and decoding success does not guarantee that every browser
+image format round-trips in PowerPoint. No automatic paste listener is installed.
+
 ### Selection
 
 | Method                  | Signature                 | Description                             |
