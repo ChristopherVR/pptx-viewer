@@ -57,7 +57,13 @@ const ALPHA_MOD_FIX_MATRIX_TAIL = `0 0 0 ${ALPHA_MOD_FIX_OPACITY} 0`;
 interface PictureAlphaFacts {
 	/** Both pictures' `<img>` computed `opacity`, in authoring/DOM order. */
 	opacities: number[];
-	/** How many `imgalpha-*` SVG `<filter>` defs exist anywhere on the page. */
+	/** Both pictures' `<img>` computed `filter`, in the same order. */
+	filters: string[];
+	/**
+	 * How many `imgalpha-*` SVG `<filter>` defs exist anywhere on the page.
+	 * Informational only: thumbnails and previews render the same picture
+	 * again with their own def, so the count is per binding, not per picture.
+	 */
 	alphaFilterCount: number;
 	/** Combined inner markup of every `imgalpha-*` filter (for the matrix check). */
 	alphaFilterMarkup: string;
@@ -74,21 +80,26 @@ async function readImageAlphaFacts(page: Page, origin: string): Promise<PictureA
 	const wrappers = slideElements(page).filter({ has: page.locator('img') });
 	const count = await wrappers.count();
 	const opacities: number[] = [];
+	const filters: string[] = [];
 	for (let i = 0; i < count; i++) {
 		const img = wrappers.nth(i).locator('img').first();
-		const opacity = await img.evaluate((el) => getComputedStyle(el).opacity);
-		opacities.push(Number(opacity));
+		const style = await img.evaluate((el) => {
+			const computed = getComputedStyle(el);
+			return { opacity: computed.opacity, filter: computed.filter };
+		});
+		opacities.push(Number(style.opacity));
+		filters.push(style.filter);
 	}
 
 	const { alphaFilterCount, alphaFilterMarkup } = await page.evaluate(() => {
-		const filters = [...document.querySelectorAll('filter[id*="imgalpha"]')];
+		const filterDefs = [...document.querySelectorAll('filter[id*="imgalpha"]')];
 		return {
-			alphaFilterCount: filters.length,
-			alphaFilterMarkup: filters.map((f) => f.innerHTML).join('\n'),
+			alphaFilterCount: filterDefs.length,
+			alphaFilterMarkup: filterDefs.map((f) => f.innerHTML).join('\n'),
 		};
 	});
 
-	return { opacities, alphaFilterCount, alphaFilterMarkup };
+	return { opacities, filters, alphaFilterCount, alphaFilterMarkup };
 }
 
 test.describe('alphaModFix applied exactly once (issue #286)', () => {
@@ -127,13 +138,23 @@ test.describe('alphaModFix applied exactly once (issue #286)', () => {
 					`"${COMBINED_PICTURE_NAME}" opacity is ${opacity}, expected ~${ALPHA_MOD_FIX_OPACITY}`,
 				);
 			}
-			// biLevel genuinely needs the imgalpha SVG filter, so exactly one such
-			// filter def must exist (from the combined picture; the alone picture
-			// must not have one of its own).
-			if (value.alphaFilterCount !== 1) {
+			// biLevel genuinely needs the imgalpha SVG filter, so the combined
+			// picture's <img> must reference one, and the alone picture's must
+			// not (its alphaModFix is plain CSS opacity). Checked per image, not
+			// as a page-wide def count: the thumbnail strip renders the same
+			// picture again with its own filter def.
+			if (!value.filters[1]?.includes('imgalpha')) {
 				problems.push(
-					`expected exactly 1 imgalpha SVG filter on the page, found ${value.alphaFilterCount}`,
+					`"${COMBINED_PICTURE_NAME}" img filter is "${value.filters[1]}", expected an imgalpha url()`,
 				);
+			}
+			if (value.filters[0]?.includes('imgalpha')) {
+				problems.push(
+					`"${ALONE_PICTURE_NAME}" img filter is "${value.filters[0]}", expected no imgalpha filter`,
+				);
+			}
+			if (value.alphaFilterCount < 1) {
+				problems.push('expected at least one imgalpha SVG filter def on the page, found none');
 			}
 			// The filter is legitimately built (for biLevel's own primitives), but
 			// must not ALSO carry alphaModFix's multiplier: that would be the
