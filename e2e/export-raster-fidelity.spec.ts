@@ -35,8 +35,14 @@
  */
 import { expect, test } from '@playwright/test';
 
-import { fixture, loadDeck } from './support/deck';
-import { downloadBytes, downloadViaCard, openBackstageExport, PNG_CARD } from './support/exports';
+import { fixture, loadDeck, slideElements, viewport } from './support/deck';
+import {
+	backstage,
+	downloadBytes,
+	downloadViaCard,
+	openBackstageExport,
+	PNG_CARD,
+} from './support/exports';
 import {
 	collectRasterFallbackWarnings,
 	countForcedFallbacks,
@@ -56,6 +62,65 @@ test.use({ viewport: VIEWPORT, deviceScaleFactor: 2 });
 // Two cold exports (the first html2canvas/foreignObject capture of a page
 // warms fonts and stylesheets) plus three in-page pixel diffs.
 test.describe.configure({ timeout: 240_000 });
+
+test.describe('selection chrome is absent from raster exports', () => {
+	test.use({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1 });
+	// These elements exercise the rounded shape, clipped shape, and connector
+	// renderers without adding a new fixture or touching the authored content.
+	for (const fallback of [false, true]) {
+		for (const label of ['Rounded', 'Arrow', 'connector']) {
+			test(`${label} selection is absent from ${fallback ? 'fallback' : 'default'} PNG export`, async ({
+				page,
+			}, testInfo) => {
+				if (fallback) {
+					await forceHtml2CanvasFallback(page);
+				}
+				await observeHtml2CanvasRuns(page);
+				await loadDeck(page, fixture('canvas-interaction.pptx'));
+				await openBackstageExport(page);
+				const unselectedDownload = await downloadViaCard(page, PNG_CARD);
+				await unselectedDownload.saveAs(testInfo.outputPath('unselected.png'));
+				const unselected = await downloadBytes(unselectedDownload);
+				await page.keyboard.press('Escape');
+				await expect(backstage(page)).not.toBeVisible();
+
+				const target =
+					label === 'connector'
+						? viewport(page).locator('[aria-roledescription="connector line"]').first()
+						: slideElements(page).filter({ hasText: label }).first();
+				const box = await target.boundingBox();
+				expect(box).not.toBeNull();
+				await page.mouse.click(box!.x + box!.width / 2, box!.y + box!.height / 2);
+				const handle = viewport(page).getByRole('button', { name: 'Resize nw', exact: true });
+				await expect(handle).toBeVisible();
+				await openBackstageExport(page);
+				// Keep the selection throughout capture: an equal image must not
+				// merely prove that File deselected the element before exporting.
+				await expect(handle).toBeAttached();
+				const selectedDownload = await downloadViaCard(page, PNG_CARD);
+				await selectedDownload.saveAs(testInfo.outputPath('selected.png'));
+				const selected = await downloadBytes(selectedDownload);
+				await expect(handle).toBeAttached();
+				const diff = await pixelDiff(page, unselected, selected, { channelThreshold: 8 });
+				await testInfo.attach('unselected.png', {
+					path: testInfo.outputPath('unselected.png'),
+					contentType: 'image/png',
+				});
+				await testInfo.attach('selected.png', {
+					path: testInfo.outputPath('selected.png'),
+					contentType: 'image/png',
+				});
+				expect(diff.diffPixelFraction, JSON.stringify(diff)).toBeLessThan(0.0001);
+				if (fallback) {
+					expect(await countForcedFallbacks(page)).toBeGreaterThan(0);
+					expect(await countHtml2CanvasRuns(page)).toBeGreaterThan(0);
+				} else {
+					expect(await countHtml2CanvasRuns(page)).toBe(0);
+				}
+			});
+		}
+	}
+});
 
 test.describe('raster export fidelity: foreignObject vs html2canvas vs on-screen', () => {
 	test('measures pixel agreement of each raster path against the live on-screen render', async ({
