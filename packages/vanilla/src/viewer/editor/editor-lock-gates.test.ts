@@ -185,6 +185,13 @@ describe('canvas lock enforcement', () => {
 		overlay.setHandleVisibility(verdict);
 		const handles = overlay.root.querySelectorAll<HTMLElement>('.pptxv-sel-handle');
 		expect(handles).toHaveLength(8);
+		for (const handle of handles) {
+			expect(handle.querySelector('span')?.style.pointerEvents).toBe('auto');
+		}
+		overlay.setBox({ x: 10, y: 20, width: 350, height: 32, rotation: 0 }, 0.5);
+		const box = overlay.root.querySelector<HTMLElement>('.pptxv-sel-box');
+		expect(box?.style.getPropertyValue('--pptx-selection-width')).toBe('175px');
+		expect(box?.style.getPropertyValue('--pptx-selection-height')).toBe('16px');
 		expect([...handles].every((handle) => handle.hidden)).toBeTruthy();
 		expect(overlay.root.querySelector<HTMLElement>('.pptxv-rotate-knob')?.hidden).toBeFalsy();
 

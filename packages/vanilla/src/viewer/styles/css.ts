@@ -481,7 +481,7 @@ const CHROME_CSS = `
 	border: 1px solid var(--pptx-ring);
 	border-radius: 2px;
 	background: #fff;
-	pointer-events: auto;
+	pointer-events: none;
 	/* The handle must own its touch gesture (no scroll/zoom stealing). */
 	touch-action: none;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);

@@ -103,6 +103,8 @@ export function SelectionHandleOverlay({
 				top: element.y,
 				width: Math.max(element.width, MIN_ELEMENT_SIZE),
 				height: Math.max(element.height, MIN_ELEMENT_SIZE),
+				['--pptx-selection-width' as string]: `${Math.max(element.width, MIN_ELEMENT_SIZE)}px`,
+				['--pptx-selection-height' as string]: `${Math.max(element.height, MIN_ELEMENT_SIZE)}px`,
 				// Every slide element carries an explicit numeric `zIndex` (see
 				// `getContainerStyle`), so a sibling with no z-index at all paints
 				// at the CSS "z-index: 0" level regardless of DOM order: any
@@ -119,7 +121,7 @@ export function SelectionHandleOverlay({
 				// Transparent everywhere a handle button is not, so a click that
 				// misses every handle still reaches the shape (or whatever is
 				// behind it) exactly as if this host did not exist. `ResizeHandles`
-				// renders with `forcePointerEvents` so its own buttons opt back in.
+				// opts its resize hit regions and rotation/adjustment buttons back in.
 				pointerEvents: 'none',
 			}}
 			onClick={(e) => onClick(element.id, e)}

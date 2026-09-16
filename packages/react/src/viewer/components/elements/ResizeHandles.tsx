@@ -1,4 +1,8 @@
-import { createRotationDrag, elementIdSelector } from 'pptx-viewer-shared';
+import {
+	createRotationDrag,
+	elementIdSelector,
+	getResizeHandleHitAreaStyle,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuRotateCw } from 'react-icons/lu';
@@ -60,6 +64,10 @@ export function ResizeHandles({
 	const peStyle = forcePointerEvents
 		? { ...HANDLE_TOUCH_ACTION, pointerEvents: 'auto' as const }
 		: HANDLE_TOUCH_ACTION;
+	// The bounded child owns the press, which still bubbles through its semantic
+	// button for focus, mouse/touch dispatch and pointer capture. Neither the
+	// indicator nor an unbounded button box may steal a neighboring handle.
+	const resizeStyle = { ...HANDLE_TOUCH_ACTION, pointerEvents: 'none' as const };
 
 	// Touch/pen presses start the resize via Pointer Events (mouse keeps using
 	// onMouseDown so desktop behaviour is unchanged and never double-fires). The
@@ -158,7 +166,7 @@ export function ResizeHandles({
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact
 					className={cn('absolute z-10 group', posClass, cursor)}
-					style={peStyle}
+					style={resizeStyle}
 					onPointerDown={(e) => handleResizePointer(e, handle)}
 					onMouseDown={(e) => {
 						e.stopPropagation();
@@ -168,7 +176,10 @@ export function ResizeHandles({
 					{/* Visible dot */}
 					<div className='w-3 h-3 max-md:w-5.5 max-md:h-5.5 rounded-full border border-white bg-primary shadow' />
 					{/* Invisible expanded hit area */}
-					<div className='absolute -inset-1.5 max-md:-inset-1' />
+					<div
+						className='absolute -inset-1.5 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-6px] max-md:[--pptx-handle-hit-inset:-4px]'
+						style={getResizeHandleHitAreaStyle(handle)}
+					/>
 				</button>
 			))}
 
@@ -180,7 +191,7 @@ export function ResizeHandles({
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact
 					className={cn('absolute z-10', posClass, cursor)}
-					style={peStyle}
+					style={resizeStyle}
 					onPointerDown={(e) => handleResizePointer(e, handle)}
 					onMouseDown={(e) => {
 						e.stopPropagation();
@@ -190,7 +201,10 @@ export function ResizeHandles({
 					{/* Visible indicator */}
 					<div className={cn(sizeClass, 'border border-white bg-primary shadow')} />
 					{/* Invisible expanded hit area */}
-					<div className='absolute -inset-2 max-md:-inset-1' />
+					<div
+						className='absolute -inset-2 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-8px] max-md:[--pptx-handle-hit-inset:-4px]'
+						style={getResizeHandleHitAreaStyle(handle)}
+					/>
 				</button>
 			))}
 

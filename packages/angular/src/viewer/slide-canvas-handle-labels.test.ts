@@ -14,6 +14,14 @@ import { describe, expect, it } from 'vitest';
 const template = readFileSync(join(__dirname, 'slide-canvas.component.html'), 'utf8');
 
 describe('slide-canvas handle accessible names', () => {
+	it('uses the shared bounded target without replacing the focusable button or its handlers', () => {
+		expect(template).toContain('<span [ngStyle]="resizeHitAreaStyle(h.handle)">');
+		expect(template).toContain('[style.--pptx-selection-width.px]="singleSelected()?.width"');
+		expect(template).toContain('[style.--pptx-selection-height.px]="singleSelected()?.height"');
+		expect(template).toContain('(pointerdown)="onHandlePointerDown($event, h.handle)"');
+		expect(template).toContain('(keydown)="onResizeHandleKeydown($event, h.handle)"');
+	});
+
 	it.each(['pptx-ng-handle', 'pptx-ng-rotate-handle', 'pptx-ng-adjust-handle'])(
 		'keeps the theme button-size floor off the explicitly sized %s control',
 		(className) => {

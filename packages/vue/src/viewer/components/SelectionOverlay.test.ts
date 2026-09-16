@@ -46,6 +46,9 @@ describe('selectionOverlay', () => {
 			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
 		});
 		expect(wrapper.findAll('.pptx-vue-resize-handle')).toHaveLength(8);
+		for (const button of wrapper.findAll('.pptx-vue-resize-handle')) {
+			expect(button.find('span').attributes('style')).toContain('pointer-events: auto');
+		}
 		expect(wrapper.find('.pptx-vue-rotate-knob').exists()).toBeTruthy();
 	});
 
@@ -62,6 +65,8 @@ describe('selectionOverlay', () => {
 		expect(style).toContain('top: 40px');
 		expect(style).toContain('width: 80px');
 		expect(style).toContain('height: 60px');
+		expect(style).toContain('--pptx-selection-width: 80px');
+		expect(style).toContain('--pptx-selection-height: 60px');
 	});
 
 	it('emits transformStart then live transform then transformEnd for a move', async () => {

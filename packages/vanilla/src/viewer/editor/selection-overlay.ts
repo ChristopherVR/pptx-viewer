@@ -1,5 +1,10 @@
 import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
-import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
+import {
+	getResizeHandleHitAreaStyle,
+	RESIZE_HANDLE_GEOMETRY,
+	RESIZE_HANDLES,
+	ROTATE_STEM_PX,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -107,6 +112,7 @@ export function createSelectionOverlay(
 		btn.dataset.handle = handle;
 		btn.setAttribute('aria-label', t('pptx.selectionOverlay.resize', { handle }));
 		btn.addEventListener('pointerdown', (event) => hooks.onHandlePointerDown(handle, event));
+		btn.appendChild(createEl(doc, 'span', undefined, getResizeHandleHitAreaStyle(handle)));
 		box.appendChild(btn);
 		resizeHandles.push(btn);
 	}
@@ -165,6 +171,8 @@ export function createSelectionOverlay(
 			box.style.top = `${nextBox.y * scale}px`;
 			box.style.width = `${nextBox.width * scale}px`;
 			box.style.height = `${nextBox.height * scale}px`;
+			box.style.setProperty('--pptx-selection-width', `${nextBox.width * scale}px`);
+			box.style.setProperty('--pptx-selection-height', `${nextBox.height * scale}px`);
 			// Scale the outline width by the stage scale so the selection border
 			// tracks the zoom the same way React's does (its border/ring live
 			// inside the scaled stage). Without this the unscaled overlay draws a

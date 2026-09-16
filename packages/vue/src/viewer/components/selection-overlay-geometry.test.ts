@@ -38,6 +38,8 @@ describe('selection overlay geometry', () => {
 			top: '80px',
 			width: '200px',
 			height: '100px',
+			'--pptx-selection-width': '200px',
+			'--pptx-selection-height': '100px',
 			transform: 'none',
 		});
 	});

@@ -14,8 +14,31 @@
 import { describe, expect, it } from 'vitest';
 
 import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from './element-interaction';
+import { getResizeHandleHitAreaStyle } from './resize-handle-hit-area';
 
 describe('resize handle geometry', () => {
+	it.each([...RESIZE_HANDLES])(
+		'bounds only the sides of %s facing neighboring anchors',
+		(handle) => {
+			const style = getResizeHandleHitAreaStyle(handle);
+			const { fx, fy } = RESIZE_HANDLE_GEOMETRY[handle];
+			expect(style).toMatchObject({ position: 'absolute', pointerEvents: 'auto' });
+			expect(style.inset).toBe('var(--pptx-handle-hit-inset, -1px)');
+			for (const [side, limited] of [
+				['left', fx > 0],
+				['right', fx < 1],
+				['top', fy > 0],
+				['bottom', fy < 1],
+			] as const) {
+				expect(style[side]?.startsWith('max(') ?? false).toBe(limited);
+				if (limited) {
+					expect(style[side]).toContain(' / 4)');
+					expect(style[side]).toContain('--pptx-handle-inverse-scale');
+				}
+			}
+		},
+	);
+
 	it('covers every handle exactly once', () => {
 		expect(Object.keys(RESIZE_HANDLE_GEOMETRY).sort()).toStrictEqual([...RESIZE_HANDLES].sort());
 	});

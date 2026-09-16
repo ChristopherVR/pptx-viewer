@@ -59,6 +59,19 @@ export function syncSelectionHandleOverlay(
 	geometry: SelectionHandleOverlayGeometry,
 ): void {
 	const host = findSelectionHandleHost(elementNode, elementId);
+	// Connectors nest handles inside the element instead of a detached overlay.
+	// Both paths need live extents for overlapping resize hit-area ownership.
+	for (const node of [elementNode, host]) {
+		if (!(node instanceof HTMLElement)) {
+			continue;
+		}
+		if (geometry.width !== undefined) {
+			node.style.setProperty('--pptx-selection-width', `${geometry.width}px`);
+		}
+		if (geometry.height !== undefined) {
+			node.style.setProperty('--pptx-selection-height', `${geometry.height}px`);
+		}
+	}
 	if (!host) {
 		return;
 	}

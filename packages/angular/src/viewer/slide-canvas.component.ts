@@ -52,6 +52,7 @@ import {
 	editorNudgeDelta,
 	findConnectorSiteNear,
 	getConnectorEndpointHandles,
+	getResizeHandleHitAreaStyle,
 	isTemplateElement,
 	resolveConnectorEndpointUpdate,
 	withConnectorEndpointUpdate,
@@ -694,6 +695,7 @@ export class SlideCanvasComponent implements SlideContext {
 			this.effectiveScale(),
 		),
 	);
+	readonly resizeHitAreaStyle = getResizeHandleHitAreaStyle;
 
 	/**
 	 * Rotation-handle box (stage coords) above the single selection, or null (also

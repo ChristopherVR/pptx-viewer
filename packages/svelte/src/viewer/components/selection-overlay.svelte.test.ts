@@ -59,6 +59,11 @@ describe('selectionOverlay', () => {
 		// box geometry multiplied by the stage scale (2).
 		expect(box?.style.left).toBe('20px');
 		expect(box?.style.width).toBe('200px');
+		expect(box?.style.getPropertyValue('--pptx-selection-width')).toBe('200px');
+		expect(box?.style.getPropertyValue('--pptx-selection-height')).toBe('100px');
+		for (const button of target.querySelectorAll('.pptx-svelte-sel-handle')) {
+			expect(button.querySelector('span')?.style.pointerEvents).toBe('auto');
+		}
 	});
 
 	it('still draws the box + handles while inline editing', () => {
@@ -77,7 +82,7 @@ describe('selectionOverlay', () => {
 	it('forwards handle and rotate pointerdown events', () => {
 		const { target, props } = mountOverlay();
 		target
-			.querySelector<HTMLElement>('.pptx-svelte-sel-handle[data-handle="se"]')
+			.querySelector<HTMLElement>('.pptx-svelte-sel-handle[data-handle="se"] span')
 			?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
 		target
 			.querySelector<HTMLElement>('.pptx-svelte-rotate-knob')
