@@ -140,6 +140,7 @@ const { visibleTabs } = useToolbarVisibility(
 				:on-reset-slide="props.onResetSlide"
 				:on-add-section="props.onAddSection"
 				:selected-element="props.selectedElement"
+				:table-editor-state="props.tableEditorState"
 				:on-update-text-style="props.onUpdateTextStyle"
 			/>
 

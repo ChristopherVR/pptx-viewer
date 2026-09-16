@@ -200,6 +200,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 							templateScheme={p.templateScheme}
 							selectedElement={p.selectedElement}
+							tableEditorState={p.tableEditorState}
 							onUpdateTextStyle={p.onUpdateTextStyle}
 							onResetSlide={p.onResetSlide}
 							onAddSection={p.onAddSection}

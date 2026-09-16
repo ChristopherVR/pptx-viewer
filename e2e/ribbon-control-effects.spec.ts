@@ -232,6 +232,49 @@ test.describe('transitions tab writes to the deck', () => {
 });
 
 test.describe('home tab commands act on the deck', () => {
+	test('font pickers follow text selection without disabling slide actions', async ({ page }) => {
+		await loadDeck(page, fixture('format-painter.pptx'));
+		await openRibbonTab(page, 'Home');
+		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+		const pickers = ['Font family', 'Font size'].map((name) =>
+			toolbar.getByLabel(name, { exact: true }).first(),
+		);
+		for (const picker of pickers) {
+			await expect(picker).toBeDisabled();
+		}
+		await expect(
+			toolbar.getByRole('button', { name: 'New Slide', exact: true }).first(),
+		).toBeEnabled();
+		const target = slideElements(page).filter({ hasText: 'TARGET' }).first();
+		await target.click();
+		for (const picker of pickers) {
+			await expect(picker).toBeEnabled();
+		}
+		const stage = slideStage(page);
+		const bounds = (await stage.boundingBox())!;
+		await stage.click({ position: { x: bounds.width - 5, y: bounds.height - 5 } });
+		for (const picker of pickers) {
+			await expect(picker).toBeDisabled();
+		}
+		await target.click();
+		for (const picker of pickers) {
+			await expect(picker).toBeEnabled();
+		}
+	});
+
+	test('font pickers stay disabled for a selected picture', async ({ page }) => {
+		await loadDeck(page, fixture('roundrect-crop.pptx'));
+		await openRibbonTab(page, 'Home');
+		await slideElements(page)
+			.filter({ has: page.locator('img') })
+			.first()
+			.click();
+		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
+		for (const name of ['Font family', 'Font size']) {
+			await expect(toolbar.getByLabel(name, { exact: true }).first()).toBeDisabled();
+		}
+	});
+
 	test('Select > Select All really selects every element', async ({ page }) => {
 		await loadDeck(page, SAMPLE_DECK);
 		await openRibbonTab(page, 'Home');

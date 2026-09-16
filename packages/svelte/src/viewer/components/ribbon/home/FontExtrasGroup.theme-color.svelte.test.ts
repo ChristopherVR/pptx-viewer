@@ -76,6 +76,22 @@ function mountGroup(editor: EditorState): HTMLElement {
 }
 
 describe('fontExtrasGroup theme font colour (W3-G2)', () => {
+	it.each([
+		['empty selection', false, true, true],
+		['read-only selection', true, false, true],
+		['editable selection', true, true, false],
+	] as const)('gates the family picker for %s', (_name, selected, editable, disabled) => {
+		const editor = makeEditor(textEl());
+		if (!selected) {
+			editor.select(null);
+		}
+		editor.editable = editable;
+		const target = mountGroup(editor);
+		expect(target.querySelector<HTMLSelectElement>('[aria-label="Font family"]')?.disabled).toBe(
+			disabled,
+		);
+	});
+
 	it('clicking the font-colour trigger then a theme swatch commits both hex and ref', () => {
 		const editor = makeEditor(textEl());
 		const target = mountGroup(editor);

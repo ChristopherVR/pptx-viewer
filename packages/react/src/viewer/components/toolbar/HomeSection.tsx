@@ -11,7 +11,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
 
-import type { ElementClipboardPayload } from '../../types';
+import type { ElementClipboardPayload, TableCellEditorState } from '../../types';
 import { cn } from '../../utils';
 import { FontFamilyMenu } from './FontFamilyMenu';
 import { RibbonMenu } from './RibbonMenu';
@@ -39,6 +39,7 @@ export interface HomeSectionProps {
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
+	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle?: (style: Record<string, unknown>) => void;
 	/** Theme major/minor latin faces, leading the font dropdown. */
 	themeFonts?: { heading?: string; body?: string };
@@ -98,6 +99,20 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 	// no-ops. They used to render live anyway, which offered the user a button
 	// that could not do anything and disagreed with the Svelte binding.
 	const hasSelection = Boolean(p.selectedElement);
+	const canFormat =
+		p.canEdit &&
+		Boolean(p.onUpdateTextStyle) &&
+		Boolean(
+			p.selectedElement &&
+			(hasTextProperties(p.selectedElement) ||
+				(p.selectedElement.type === 'table' && p.tableEditorState)),
+		);
+	useEffect(() => {
+		if (!canFormat) {
+			setFontMenuOpen(false);
+			setSizeMenuOpen(false);
+		}
+	}, [canFormat]);
 
 	// Close font menu on outside click
 	useEffect(() => {
@@ -213,16 +228,17 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						<button
 							type='button'
 							onClick={() => setFontMenuOpen((v) => !v)}
+							disabled={!canFormat}
 							// Named explicitly: the trigger's only text is the CURRENT font, so
 							// without this it announces itself as "Segoe UI" and neither a screen
 							// reader nor a role+name query can find the control it actually is.
 							aria-label={t('pptx.ribbon.fontFamily')}
-							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate hover:bg-accent/40 transition-colors cursor-pointer'
+							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
 						>
 							<span className='truncate'>{fontFamily}</span>
 							<LuChevronDown className='w-3 h-3 ml-1 shrink-0 text-muted-foreground' />
 						</button>
-						{fontMenuOpen && (
+						{fontMenuOpen && canFormat && (
 							<FontFamilyMenu
 								anchorRef={fontMenuRef}
 								themeFonts={p.themeFonts}
@@ -239,14 +255,15 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 						<button
 							type='button'
 							onClick={() => setSizeMenuOpen((v) => !v)}
+							disabled={!canFormat}
 							// Same reason as the font trigger above: its text is the current size.
 							aria-label={t('pptx.ribbon.fontSize')}
-							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center hover:bg-accent/40 transition-colors cursor-pointer'
+							className='inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed'
 						>
 							<span className='truncate'>{fontSize}</span>
 							<LuChevronDown className='w-3 h-3 ml-1 shrink-0 text-muted-foreground' />
 						</button>
-						{sizeMenuOpen && (
+						{sizeMenuOpen && canFormat && (
 							<RibbonMenu anchorRef={sizeMenuRef} className='flex flex-col w-48 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{COMMON_FONT_SIZES.map((s) => (
