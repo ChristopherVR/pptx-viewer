@@ -34,8 +34,9 @@
  * Run: bunx playwright test export-raster-fidelity
  */
 import { expect, test } from '@playwright/test';
+import type { Page } from '@playwright/test';
 
-import { fixture, loadDeck } from './support/deck';
+import { fixture, loadDeck, slideStage } from './support/deck';
 import { downloadBytes, downloadViaCard, openBackstageExport, PNG_CARD } from './support/exports';
 import {
 	collectRasterFallbackWarnings,
@@ -56,6 +57,59 @@ test.use({ viewport: VIEWPORT, deviceScaleFactor: 2 });
 // Two cold exports (the first html2canvas/foreignObject capture of a page
 // warms fonts and stylesheets) plus three in-page pixel diffs.
 test.describe.configure({ timeout: 240_000 });
+
+/** The fixture authors a red connector and navy outline strokes, not editor UI. */
+async function authoredStrokePixels(page: Page, bytes: Uint8Array) {
+	return page.evaluate(async (base64) => {
+		const bitmap = await createImageBitmap(
+			await (await fetch(`data:image/png;base64,${base64}`)).blob(),
+		);
+		const canvas = document.createElement('canvas');
+		canvas.width = bitmap.width;
+		canvas.height = bitmap.height;
+		const context = canvas.getContext('2d')!;
+		context.drawImage(bitmap, 0, 0);
+		bitmap.close();
+		const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+		let red = 0;
+		let navy = 0;
+		for (let i = 0; i < pixels.length; i += 4) {
+			if (Math.abs(pixels[i] - 192) < 10 && pixels[i + 1] < 10 && pixels[i + 2] < 10) {
+				red++;
+			}
+			if (
+				Math.abs(pixels[i] - 31) < 10 &&
+				Math.abs(pixels[i + 1] - 56) < 10 &&
+				Math.abs(pixels[i + 2] - 100) < 10
+			) {
+				navy++;
+			}
+		}
+		return { red, navy };
+	}, Buffer.from(bytes).toString('base64'));
+}
+
+test('default raster export retains the authored SVG connector and shape strokes', async ({
+	page,
+}, testInfo) => {
+	await observeHtml2CanvasRuns(page);
+	await loadDeck(page, fixture('canvas-interaction.pptx'));
+	await page.mouse.move(0, 0);
+	const onScreen = new Uint8Array(await slideStage(page).screenshot());
+	const live = await authoredStrokePixels(page, onScreen);
+	expect(live.red).toBeGreaterThan(100);
+	expect(live.navy).toBeGreaterThan(100);
+	await openBackstageExport(page);
+	const download = await downloadViaCard(page, PNG_CARD);
+	await download.saveAs(testInfo.outputPath('authored-svg-strokes.png'));
+	const exported = await authoredStrokePixels(page, await downloadBytes(download));
+	expect(
+		await countHtml2CanvasRuns(page),
+		'the default browser raster path must actually run',
+	).toBe(0);
+	expect(exported.red, 'the authored connector must still be visible').toBeGreaterThan(100);
+	expect(exported.navy, 'the authored outline strokes must still be visible').toBeGreaterThan(100);
+});
 
 test.describe('raster export fidelity: foreignObject vs html2canvas vs on-screen', () => {
 	test('measures pixel agreement of each raster path against the live on-screen render', async ({
