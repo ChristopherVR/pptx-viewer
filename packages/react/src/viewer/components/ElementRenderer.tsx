@@ -36,6 +36,7 @@ import { shapeParams } from './elements/element-shape-params';
 import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
+import { selectionOutlineStyle } from './elements/selection-control-artwork';
 import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
@@ -287,17 +288,20 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					// so the four non-Tailwind bindings reveal it the same way.
 					actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
 				)}
-				style={getContainerStyle({
-					el,
-					isFullscreenMedia,
-					isImg: isImg || isModel3D,
-					zIndex,
-					opacity,
-					animationState,
-					shapeVisualStyle: backgroundAnimationState ? {} : ss,
-					has3DExtrusion: extrusionData.hasExtrusion,
-					templateEditing,
-				})}
+				style={{
+					...getContainerStyle({
+						el,
+						isFullscreenMedia,
+						isImg: isImg || isModel3D,
+						zIndex,
+						opacity,
+						animationState,
+						shapeVisualStyle: backgroundAnimationState ? {} : ss,
+						has3DExtrusion: extrusionData.hasExtrusion,
+						templateEditing,
+					}),
+					...(isSelected ? selectionOutlineStyle(selClr) : {}),
+				}}
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}

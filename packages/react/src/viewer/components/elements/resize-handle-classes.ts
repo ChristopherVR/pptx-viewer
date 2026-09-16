@@ -10,22 +10,22 @@ export const CORNER_HANDLES: {
 }[] = [
 	{
 		handle: 'nw',
-		posClass: '-left-1.5 -top-1.5 max-md:-left-2.5 max-md:-top-2.5',
+		posClass: 'left-0 top-0 -translate-x-1/2 -translate-y-1/2 max-md:left-px max-md:top-px',
 		cursor: 'cursor-nwse-resize',
 	},
 	{
 		handle: 'ne',
-		posClass: '-right-1.5 -top-1.5 max-md:-right-2.5 max-md:-top-2.5',
+		posClass: 'right-0 top-0 translate-x-1/2 -translate-y-1/2 max-md:right-px max-md:top-px',
 		cursor: 'cursor-nesw-resize',
 	},
 	{
 		handle: 'sw',
-		posClass: '-left-1.5 -bottom-1.5 max-md:-left-2.5 max-md:-bottom-2.5',
+		posClass: 'left-0 bottom-0 -translate-x-1/2 translate-y-1/2 max-md:left-px max-md:bottom-px',
 		cursor: 'cursor-nesw-resize',
 	},
 	{
 		handle: 'se',
-		posClass: '-right-1.5 -bottom-1.5 max-md:-right-2.5 max-md:-bottom-2.5',
+		posClass: 'right-0 bottom-0 translate-x-1/2 translate-y-1/2 max-md:right-px max-md:bottom-px',
 		cursor: 'cursor-nwse-resize',
 	},
 ];

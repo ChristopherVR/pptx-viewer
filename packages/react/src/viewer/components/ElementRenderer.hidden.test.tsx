@@ -83,6 +83,21 @@ function makeProps(element: PptxElement): ElementRendererProps {
 }
 
 describe('hidden elements on the interactive canvas', () => {
+	it('themes both selected outline and translucent ring, then clears them on deselection', () => {
+		const props = makeProps(shape());
+		act(() => root.render(<ElementRenderer {...props} isSelected />));
+		const element = container.querySelector<HTMLElement>('[data-element-id]')!;
+		expect(element.style.outlineColor).toBe(
+			'var(--pptx-selection-outline-color, var(--color-blue-500))',
+		);
+		expect(element.style.getPropertyValue('--tw-ring-color')).toBe(
+			'color-mix(in oklab, var(--pptx-selection-outline-color, var(--color-blue-500)) 50%, transparent)',
+		);
+		act(() => root.render(<ElementRenderer {...props} />));
+		expect(element.style.outlineColor).toBe('');
+		expect(element.style.getPropertyValue('--tw-ring-color')).toBe('');
+	});
+
 	it('renders a visible element', () => {
 		act(() => {
 			root.render(<ElementRenderer {...makeProps(shape())} />);
