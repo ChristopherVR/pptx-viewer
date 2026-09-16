@@ -21,10 +21,14 @@ export function RotateHandleArtwork() {
 			>
 				<LuRotateCw className='w-3 h-3 max-md:w-4 max-md:h-4' />
 			</span>
-			{/* The old inset included the button's 1px border, now on the artwork. */}
+			{/* The old inset included the button's 1px border, now on the artwork.
+			    The larger touch-friendly pad is `max-md:`-only: unconditionally
+			    applying it also on a fine-pointer desktop let Rotate's hit region
+			    reach into nearby in-shape content (see the matching note on the
+			    resize handles' hit div in ResizeHandles.tsx). */}
 			<span
 				data-pptx-handle-hit
-				className='absolute -inset-1.75 max-md:-inset-0.75'
+				className='absolute -inset-0.75 max-md:-inset-1.75'
 				aria-hidden='true'
 			/>
 		</>

@@ -200,14 +200,19 @@ export function ResizeHandles({
 							className='border shadow'
 							style={styles.artwork}
 						/>
-						{/* Invisible expanded hit area */}
+						{/* Invisible expanded hit area. The larger touch-friendly pad is
+						    `max-md:`-only (this repo's touch proxy, see toolbar-constants.tsx):
+						    unconditionally applying it also on a fine-pointer desktop let an
+						    edge handle's 6-8px inward reach cover nearby in-shape content
+						    (e.g. a chart title sitting close to the top edge), intercepting
+						    clicks meant for that content instead of the handle. */}
 						<div
 							data-pptx-handle-hit
 							className={cn(
-								'absolute max-md:-inset-1 pointer-events-auto max-md:[--pptx-handle-hit-inset:-4px]',
+								'absolute -inset-px pointer-events-auto [--pptx-handle-hit-inset:-1px]',
 								corner
-									? '-inset-1.5 [--pptx-handle-hit-inset:-6px]'
-									: '-inset-2 [--pptx-handle-hit-inset:-8px]',
+									? 'max-md:-inset-1.5 max-md:[--pptx-handle-hit-inset:-6px]'
+									: 'max-md:-inset-2 max-md:[--pptx-handle-hit-inset:-8px]',
 							)}
 							style={getResizeHandleHitAreaStyle(handle)}
 						/>
