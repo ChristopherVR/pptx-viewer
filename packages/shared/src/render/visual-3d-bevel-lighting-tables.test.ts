@@ -122,6 +122,7 @@ describe('bevel_profile_height_map measured-curve pin (2026-09 cross-section cam
 				morphologyFactor: 0.5,
 				surfaceScaleFactor: 1.5,
 				measuredUniform: false,
+				heightTransferTable: [0.671, 0.958, 1.0, 0.975, 0.0, 0.32, 0.839, 0.924, 0.924, 0.924],
 			},
 			divot: { blurFactor: 0.18, surfaceScaleFactor: 0.5, measuredUniform: false },
 			angle: {
@@ -154,14 +155,79 @@ describe('bevel_profile_height_map measured-curve pin (2026-09 cross-section cam
 				morphologyFactor: 0.5,
 				surfaceScaleFactor: 1.5,
 				measuredUniform: true,
+				heightTransferTable: [0.519, 1.0, 0.967, 0.96, 0.0, 0.426, 0.1, 0.96, 0.96, 0.96],
 			},
 			hardEdge: {
 				blurFactor: 0.55,
 				morphologyFactor: 0.5,
 				surfaceScaleFactor: 1.5,
 				measuredUniform: true,
+				heightTransferTable: [0.279, 1.0, 0.938, 0.938, 0.0, 0.04, 0.793, 0.938, 0.938, 0.938],
 			},
 		});
+	});
+
+	it('heightTransferTable is derived by normalising each profile pin above to [0, 1]', () => {
+		// Proves the tables in BEVEL_PROFILE_HEIGHT_MAP are not hand-invented:
+		// they are (brightness - min) / (max - min) of this file's own pinned
+		// MEASURED_24PT_CURVES, so a future re-measurement that edits the pin
+		// above and forgets to re-derive the transfer table is caught here.
+		for (const profile of ['relaxedInset', 'slope', 'hardEdge'] as const) {
+			const curve = MEASURED_24PT_CURVES[profile].brightness;
+			const min = Math.min(...curve);
+			const max = Math.max(...curve);
+			const expected = curve.map((b) => Number(((b - min) / (max - min)).toFixed(3)));
+			const actual = BEVEL_PROFILE_HEIGHT_MAP[profile].heightTransferTable;
+			expect(actual).toBeDefined();
+			for (const [i, v] of expected.entries()) {
+				expect(actual![i]).toBeCloseTo(v, 2);
+			}
+		}
+	});
+
+	it('heightTransferTable is non-monotonic (a real two-lobe height remap) for relaxedInset/slope/hardEdge', () => {
+		// The whole point of the fix: a table that only ever rises (or only
+		// ever falls) would still leave the height field's response
+		// monotonic-in-position, the exact limitation this table exists to
+		// close. Require an interior PEAK (the argmax, not the first or last
+		// stop) followed later by a MEANINGFUL trough (the argmin among the
+		// remaining stops, at least 0.3 below the peak on this table's own 0-1
+		// scale), matching the measured rise-then-peak-then-trough-then-recover
+		// shape and ruling out a plateau being mistaken for a real dip.
+		for (const profile of ['relaxedInset', 'slope', 'hardEdge'] as const) {
+			const table = BEVEL_PROFILE_HEIGHT_MAP[profile].heightTransferTable!;
+			let peakIndex = 0;
+			for (let i = 1; i < table.length; i++) {
+				if (table[i] > table[peakIndex]) {
+					peakIndex = i;
+				}
+			}
+			expect(peakIndex).toBeGreaterThan(0);
+			expect(peakIndex).toBeLessThan(table.length - 1);
+
+			let troughIndex = peakIndex + 1;
+			for (let i = peakIndex + 1; i < table.length; i++) {
+				if (table[i] < table[troughIndex]) {
+					troughIndex = i;
+				}
+			}
+			expect(troughIndex).toBeGreaterThan(peakIndex);
+			expect(table[peakIndex] - table[troughIndex]).toBeGreaterThanOrEqual(0.3);
+
+			// Recovery: the final stop climbs back up from the trough, matching
+			// every measured curve settling back near the flat-interior
+			// baseline rather than staying depressed.
+			expect(table.at(-1)!).toBeGreaterThan(table[troughIndex] + 0.3);
+		}
+	});
+
+	it('the other 9 profiles carry no heightTransferTable (unchanged single-ramp behaviour)', () => {
+		for (const profile of Object.keys(BEVEL_PROFILE_HEIGHT_MAP)) {
+			if (profile === 'relaxedInset' || profile === 'slope' || profile === 'hardEdge') {
+				continue;
+			}
+			expect(BEVEL_PROFILE_HEIGHT_MAP[profile].heightTransferTable).toBeUndefined();
+		}
 	});
 
 	it('getBevelProfileHeightMap looks up every profile from the table', () => {

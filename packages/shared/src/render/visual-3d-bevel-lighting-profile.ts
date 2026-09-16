@@ -27,6 +27,50 @@ export interface BevelProfileHeightMap {
 	 * rather than re-deriving it from the two factors above.
 	 */
 	measuredUniform: boolean;
+	/**
+	 * Non-monotonic height REMAP for the three profiles (`relaxedInset`,
+	 * `slope`, `hardEdge`) whose COM cross-section is a genuine
+	 * bright-bump-then-dark-trough double transition (see this module's doc
+	 * comment), which the `blurFactor`/`morphologyFactor`/`surfaceScaleFactor`
+	 * ramp above cannot reproduce on its own: that ramp only ever builds a
+	 * single monotonic height field (alpha blurred, optionally eroded), so its
+	 * diffuse/specular response can rise-then-settle but never
+	 * rise-then-undershoot-then-settle.
+	 *
+	 * When present, `visual-3d-bevel-lighting.ts` feeds the monotonic ramp
+	 * through an SVG `feComponentTransfer`/`feFuncA type="table"` BEFORE
+	 * lighting it: `feFuncA` linearly interpolates between these stops across
+	 * the input domain `[0, 1]`, so a table that rises then falls then rises
+	 * again reshapes the height field's spatial derivative (and therefore its
+	 * surface normal, and therefore its diffuse/specular brightness) into a
+	 * genuine two-lobe profile, even though the INPUT ramp it remaps is still
+	 * monotonic. This is the "genuinely non-monotonic (two-lobe) height-map"
+	 * the pre-2026-09-16 doc comment below flagged as out of scope; it is
+	 * cheap to build this way because `feComponentTransfer` remaps a value
+	 * pointwise, so it needs no new geometry primitive, just a reshaping stage
+	 * between the existing blur/erode step and `feDiffuseLighting`.
+	 *
+	 * Each profile's table is the profile's own pinned 24pt COM cross-section
+	 * curve (`visual-3d-bevel-lighting-tables.test.ts`'s
+	 * `MEASURED_24PT_CURVES`, 10 points from the top edge inward), normalised
+	 * to `[0, 1]` via `(brightness - min) / (max - min)`. This is a deliberate
+	 * choice, not a claim of a rigorously inverted lighting model: for a
+	 * gently-curved, primarily-diffuse height field the rendered brightness
+	 * tracks the local height fairly directly, so reusing the MEASURED
+	 * brightness curve's own shape as the height-remap curve reproduces the
+	 * measured peak/trough/recovery POSITIONS closely without solving the
+	 * (non-invertible in closed form) diffuse/specular equations backwards.
+	 * Verified structurally (`visual-3d-bevel-lighting.test.ts`): each table
+	 * is non-monotonic (has an interior local max followed by an interior
+	 * local min before recovering), and the generated filter markup carries
+	 * the `feComponentTransfer` stage only for these three profiles. NOT
+	 * independently re-verified against a fresh COM render (no new
+	 * `Slide.Export` measurement was taken for this change; the existing 2026-
+	 * 09 pins above are the ground truth reused here), so treat the exact
+	 * on-screen brightness as an analytical/geometric fit against already-
+	 * measured data, not a newly pixel-verified match.
+	 */
+	heightTransferTable?: readonly number[];
 }
 
 /**
@@ -52,17 +96,32 @@ export interface BevelProfileHeightMap {
  * transition partway through the ramp (e.g. `hardEdge` at 24pt: baseline 133
  * -> peaks ~139 -> drops to 67 -> recovers), which this filter's single
  * monotonic blur(+erode) height map (one bell-shaped slope lobe) cannot
- * reproduce - the fit pushes `surfaceScaleFactor` to the largest tested
- * value trying to reach the trough depth, landing the LARGEST relief factor
- * of any profile, the opposite of the pre-2026-09 "slope/hardEdge are
- * low-relief" assumption (`slope`/`hardEdge` were previously reasoned as
- * "steep/narrow" with REDUCED relief; `relaxedInset` was previously grouped
- * as "curved" with full relief and no erode at all). Their factors below are
- * therefore the closest achievable fit within this 3-parameter chain, not a
- * claim of a clean match (RMSE 12-19, versus 1-7 for the other 9); a proper
- * fix needs a genuinely non-monotonic (two-lobe) height-map primitive chain,
- * out of scope for this pass - see `docs/guide/limitations.md`. The
- * direction-independence these three still show (`measuredUniform`) is
+ * reproduce on its own - the original 3-parameter fit pushed
+ * `surfaceScaleFactor` to the largest tested value trying to reach the
+ * trough depth, landing the LARGEST relief factor of any profile, the
+ * opposite of the pre-2026-09 "slope/hardEdge are low-relief" assumption
+ * (`slope`/`hardEdge` were previously reasoned as "steep/narrow" with
+ * REDUCED relief; `relaxedInset` was previously grouped as "curved" with
+ * full relief and no erode at all), but still only reached RMSE 12-19
+ * against the measured curve (versus 1-7 for the other 9).
+ *
+ * **2026-09-16: closed via a height-remap stage.** These three profiles now
+ * also carry a `heightTransferTable` (see that field's own doc comment
+ * above): an `feComponentTransfer`/`feFuncA type="table"` reshaping stage,
+ * inserted between the existing blur(+erode) ramp and the lighting
+ * primitives, remaps the monotonic ramp through each profile's own measured
+ * bright-bump-then-dark-trough curve shape. The three factors below (blur/
+ * morphology/surfaceScale) are UNCHANGED and still control the underlying
+ * ramp's width and crispness; the new field supplies the genuinely
+ * non-monotonic (two-lobe) height response this doc comment previously
+ * flagged as needing a new primitive chain, without actually needing one.
+ * This was NOT re-verified against a fresh COM render (see
+ * `heightTransferTable`'s doc comment); it is an analytical/geometric fit
+ * against the SAME measured curves pinned below, not a new measurement - see
+ * `docs/guide/limitations.md` and `docs/guide/visual-effects.md` for the
+ * current framing.
+ *
+ * The direction-independence these three still show (`measuredUniform`) is
  * unaffected: it is a separate, already-COM-confirmed finding (see
  * `visual-3d-bevel-light.ts`'s module doc comment) about which CARDINAL EDGE
  * lights up, not about the cross-section ramp shape this campaign measures.
@@ -98,6 +157,13 @@ export const BEVEL_PROFILE_HEIGHT_MAP: Record<string, BevelProfileHeightMap> = {
 		morphologyFactor: 0.5,
 		surfaceScaleFactor: 1.5,
 		measuredUniform: false,
+		// Normalised (0-1) directly from the pinned 24pt COM cross-section
+		// curve (`visual-3d-bevel-lighting-tables.test.ts`'s
+		// `MEASURED_24PT_CURVES.relaxedInset`, brightness 113.0/135.7/139.0/
+		// 137.0/60.0/85.3/126.3/133.0/133.0/133.0): peaks at stop 2, troughs at
+		// stop 4, recovers to flat by stop 6. See `heightTransferTable`'s doc
+		// comment.
+		heightTransferTable: [0.671, 0.958, 1.0, 0.975, 0.0, 0.32, 0.839, 0.924, 0.924, 0.924],
 	},
 	divot: { blurFactor: 0.18, surfaceScaleFactor: 0.5, measuredUniform: false },
 	angle: {
@@ -131,24 +197,32 @@ export const BEVEL_PROFILE_HEIGHT_MAP: Record<string, BevelProfileHeightMap> = {
 	},
 	// `relaxedInset`/`slope`/`hardEdge` (see this table's doc comment): COM
 	// measured a genuine BRIGHT-BUMP-THEN-DARK-TROUGH double transition for
-	// all three, which a single monotonic blur(+erode) ramp cannot reproduce
-	// (its height field has one bell-shaped slope lobe, so the diffuse/
-	// specular response can only rise-then-settle, never rise-then-undershoot-
-	// then-settle). These factors are the closest achievable fit within the
-	// existing 3-parameter primitive chain (the grid search pushed
-	// `surfaceScaleFactor` to its upper bound trying to reach the measured
-	// trough depth), not a claim of a clean match; see the doc comment.
+	// all three, which the blur(+erode) ramp's ORIGINAL 3 factors alone cannot
+	// reproduce (its height field has one bell-shaped slope lobe, so the
+	// diffuse/specular response can only rise-then-settle, never
+	// rise-then-undershoot-then-settle). These 3 factors are kept as the
+	// closest achievable fit for the underlying ramp's width/crispness; each
+	// profile's `heightTransferTable` (see that field's doc comment) supplies
+	// the actual non-monotonic double transition on top of that ramp.
 	slope: {
 		blurFactor: 0.55,
 		morphologyFactor: 0.5,
 		surfaceScaleFactor: 1.5,
 		measuredUniform: true,
+		// Normalised from `MEASURED_24PT_CURVES.slope` (114.0/134.7/133.3/
+		// 133.0/91.7/110.0/96.0/133.0/133.0/133.0): peaks at stop 1, dips at
+		// stop 4, a second shallower dip at stop 6, recovers by stop 7.
+		heightTransferTable: [0.519, 1.0, 0.967, 0.96, 0.0, 0.426, 0.1, 0.96, 0.96, 0.96],
 	},
 	hardEdge: {
 		blurFactor: 0.55,
 		morphologyFactor: 0.5,
 		surfaceScaleFactor: 1.5,
 		measuredUniform: true,
+		// Normalised from `MEASURED_24PT_CURVES.hardEdge` (111.7/135.0/133.0/
+		// 133.0/102.7/104.0/128.3/133.0/133.0/133.0): peaks at stop 1, troughs
+		// at stop 4, recovers by stop 6.
+		heightTransferTable: [0.279, 1.0, 0.938, 0.938, 0.0, 0.04, 0.793, 0.938, 0.938, 0.938],
 	},
 };
 

@@ -134,6 +134,26 @@
  * specular-band-masking attempt at the saturation defect above was measured
  * and made things WORSE (`visual-3d-bevel-lighting-routing.ts`'s doc).
  *
+ * ## 2026-09-16: non-monotonic height-remap for relaxedInset/slope/hardEdge
+ *
+ * `renderLayerPrimitives` below now inserts an `feComponentTransfer`/
+ * `feFuncA type="table"` stage between the blur(+erode) height ramp and the
+ * lighting primitives whenever the resolved layer carries a
+ * `heightTransferTable` (`visual-3d-bevel-lighting-profile.ts`'s
+ * `BEVEL_PROFILE_HEIGHT_MAP` entries for `relaxedInset`/`slope`/`hardEdge`
+ * only). This closes the bevel-profile-shape gap the cross-section campaign
+ * above left open: the monotonic ramp is reshaped through each profile's own
+ * measured bright-bump-then-dark-trough curve, giving a genuine two-lobe
+ * height response instead of forcing the OLD 3-parameter (blur/erode/
+ * surfaceScale) chain to approximate one. This is an analytical fit against
+ * the ALREADY-pinned COM cross-section curves above, not a fresh COM
+ * re-measurement; see `BevelProfileHeightMap.heightTransferTable`'s doc
+ * comment for exactly what was and was not re-verified. The SEPARATE
+ * specular/diffuse coupling defect (metal oversaturating under a
+ * high-elevation rig) is UNCHANGED by this pass: both prior remediation
+ * attempts documented above are still the state of the art, and remain open;
+ * see `docs/guide/limitations.md`.
+ *
  * @module render/visual-3d-bevel-lighting
  */
 
@@ -186,6 +206,20 @@ function renderLayerPrimitives(
 		parts.push(
 			`<feMorphology in="${heightIn}" operator="erode" radius="${layer.morphologyRadius.toFixed(2)}" result="${heightResult}"/>`,
 		);
+	}
+	if (layer.heightTransferTable && layer.heightTransferTable.length > 0) {
+		// Reshape the (still monotonic) blur/erode ramp through a non-monotonic
+		// remap curve: `feFuncA`'s linear interpolation between these stops
+		// makes the height field's own spatial derivative change sign, giving
+		// a genuine two-lobe (bright-bump-then-dark-trough) cross section
+		// without a new geometry primitive. See `BevelProfileHeightMap
+		// .heightTransferTable`'s doc comment.
+		const shapedResult = `bevelShaped${i}`;
+		const tableValues = layer.heightTransferTable.map((v) => v.toFixed(3)).join(' ');
+		parts.push(
+			`<feComponentTransfer in="${heightResult}" result="${shapedResult}"><feFuncA type="table" tableValues="${tableValues}"/></feComponentTransfer>`,
+		);
+		heightResult = shapedResult;
 	}
 	const light = `<feDistantLight azimuth="${layer.azimuthDeg.toFixed(1)}" elevation="${layer.elevationDeg.toFixed(1)}"/>`;
 	parts.push(
