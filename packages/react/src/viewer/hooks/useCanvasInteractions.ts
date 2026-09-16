@@ -420,6 +420,17 @@ export function useCanvasInteractions(
 		// Rotation changes no element counts; bump the pointer-commit nonce so
 		// the history hook records it as an undo step.
 		setPointerCommitNonce?.((n) => n + 1);
+		// The rotate knob is a self-contained gesture (its own window pointerup
+		// listener in ResizeHandles.tsx), not routed through pointer-up-handlers.ts,
+		// so it never set this guard the way move/resize do. Its trailing native
+		// `click` bubbles from the knob through the per-element handle host (which
+		// carries the element's own `data-pptx-element`/`data-element-id`, see
+		// `getElementIdFromEvent`), so the stage's click delegation attributes it to
+		// this element - misread, without the guard, as "re-click an already
+		// selected element", which opened inline text editing (and, with focus now
+		// on that contentEditable, silently ate every keyboard shortcut including
+		// Ctrl+Z) after every rotate.
+		justInteractedRef.current = true;
 	};
 
 	// Commit an inline (on-canvas) SmartArt or chart edit. Routes through the
