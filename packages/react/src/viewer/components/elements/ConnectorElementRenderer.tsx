@@ -6,7 +6,7 @@ import {
 } from 'pptx-viewer-shared';
 import React from 'react';
 
-import { DEFAULT_STROKE_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
+import { DEFAULT_STROKE_COLOR } from '../../constants';
 import {
 	colorWithOpacity,
 	getSvgStrokeDasharray,
@@ -46,19 +46,25 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 		textStyleOverrideCss,
 	}) {
 		const shapeEl = hasShapeProperties(el) ? el : undefined;
-		// The wrapper is padded out to `MIN_ELEMENT_SIZE` so a zero-width vertical
-		// (or zero-height horizontal) connector still has something to grab. The
-		// SVG user space has to be the PADDED box, not the authored extent: a
-		// `viewBox="0 0 1 145"` stretched across a 12px-wide box under
-		// `preserveAspectRatio="none"` scales x by 12 and y by ~0.9, which tilts
-		// the line off vertical and smears its round `a:headEnd`/`a:tailEnd`
-		// markers into bars. Matching the viewBox to the box keeps the mapping
-		// 1:1, and the geometry still starts at 0 so the line lands exactly where
-		// it was authored, with the padding hanging off to the right/bottom.
-		const boxWidth = Math.max(el.width, MIN_ELEMENT_SIZE);
-		const boxHeight = Math.max(el.height, MIN_ELEMENT_SIZE);
+		// The wrapper keeps the AUTHORED extent (matching every other binding,
+		// and what the shared `buildWrapperStyle`/parity fingerprint expect): a
+		// degenerate connector must not measure taller/wider than PowerPoint
+		// itself paints it. Grabbability for a zero-extent connector comes from
+		// `hitTargetWidth` below (a widened invisible stroke), not from
+		// inflating the box.
+		//
+		// The nested `<svg>` still needs its OWN width/height to exactly match
+		// its viewBox: a `viewBox="0 0 1 145"` stretched across a wider/shorter
+		// CSS box under `preserveAspectRatio="none"` scales one axis
+		// disproportionately, which tilts the line off vertical and smears its
+		// round `a:headEnd`/`a:tailEnd` markers into bars (issue #132). Floor
+		// both at 1, matching the other four bindings, so a still-degenerate
+		// (but never distorted) 1x145 SVG sits inside a 0x145 wrapper without
+		// inflating what the wrapper measures.
 		const viewWidth = Math.max(el.width, 0);
 		const viewHeight = Math.max(el.height, 0);
+		const svgWidth = Math.max(el.width, 1);
+		const svgHeight = Math.max(el.height, 1);
 		const ss = shapeEl?.shapeStyle;
 		const strokeWidth = Math.max(0, ss?.strokeWidth ?? 2);
 		const strokeColor = normalizeHexColor(ss?.strokeColor, DEFAULT_STROKE_COLOR);
@@ -118,10 +124,10 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 				style={{
 					left: el.x,
 					top: el.y,
-					width: boxWidth,
-					height: boxHeight,
-					['--pptx-selection-width' as string]: `${boxWidth}px`,
-					['--pptx-selection-height' as string]: `${boxHeight}px`,
+					width: viewWidth,
+					height: viewHeight,
+					['--pptx-selection-width' as string]: `${viewWidth}px`,
+					['--pptx-selection-height' as string]: `${viewHeight}px`,
 					transform: connectorWrapperTransform(el),
 					transformOrigin: 'center',
 					background: 'transparent',
@@ -140,8 +146,9 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 				    reach. See `animation-text-style-css.ts`. */}
 				{textStyleOverrideCss && <style>{textStyleOverrideCss}</style>}
 				<svg
-					viewBox={`0 0 ${boxWidth} ${boxHeight}`}
-					className='w-full h-full'
+					width={svgWidth}
+					height={svgHeight}
+					viewBox={`0 0 ${svgWidth} ${svgHeight}`}
 					preserveAspectRatio='none'
 					style={{ overflow: 'visible', pointerEvents: 'none' }}
 				>
