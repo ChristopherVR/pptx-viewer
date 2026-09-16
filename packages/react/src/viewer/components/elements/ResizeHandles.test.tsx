@@ -11,12 +11,23 @@
  * (a cursor pointing along the wrong diagonal looks fine in a screenshot and
  * wrong under the hand).
  */
-import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES } from 'pptx-viewer-shared';
-import React from 'react';
+import {
+	attachRotateHandlePlacement,
+	RESIZE_HANDLE_GEOMETRY,
+	RESIZE_HANDLES,
+} from 'pptx-viewer-shared';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ignoreExportOverlayElements } from '../../utils/export-helpers';
 import { CORNER_HANDLES, EDGE_HANDLES, ResizeHandles } from './ResizeHandles';
+
+vi.mock(import('pptx-viewer-shared'), async (original) => ({
+	...(await original()),
+	attachRotateHandlePlacement: vi.fn(() => vi.fn()),
+}));
 
 vi.mock(import('react-i18next'), () => ({
 	useTranslation: vi.fn().mockReturnValue({ t: (key: string) => key }),
@@ -25,6 +36,31 @@ vi.mock(import('react-i18next'), () => ({
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('attaches placement to the mounted Rotate button and cleans up when it disappears', async () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		const root = createRoot(container);
+		const cleanup = vi.fn();
+		vi.mocked(attachRotateHandlePlacement).mockReturnValue(cleanup);
+		const props = {
+			elementId: 'one',
+			adjustmentHandles: [],
+			onResizePointerDown: vi.fn(),
+			onAdjustmentPointerDown: vi.fn(),
+			onRotate: vi.fn(),
+		};
+		await act(() => root.render(<ResizeHandles {...props} />));
+		expect(attachRotateHandlePlacement).toHaveBeenLastCalledWith(
+			container.querySelector('[data-pptx-handle-kind="rotate"]'),
+			{ stem: container.querySelector('[data-pptx-rotate-stem]') },
+		);
+		await act(() => root.render(<ResizeHandles {...props} onRotate={undefined} />));
+		expect(cleanup).toHaveBeenCalledOnce();
+		await act(() => root.unmount());
+		expect(cleanup).toHaveBeenCalledOnce();
+		container.remove();
+	});
+
 	it('inverse-scales resize, rotation and adjustment controls about their anchors', () => {
 		const container = document.createElement('div');
 		container.innerHTML = renderToStaticMarkup(
@@ -40,7 +76,10 @@ describe('resize handles', () => {
 		expect(buttons).toHaveLength(10);
 		for (const button of buttons) {
 			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
+			expect(ignoreExportOverlayElements(button)).toBeTruthy();
 		}
+		// The handle-only marker must not hide the parent connector or shape.
+		expect(ignoreExportOverlayElements(container)).toBeFalsy();
 	});
 
 	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
