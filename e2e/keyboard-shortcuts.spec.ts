@@ -177,8 +177,13 @@ test.describe('editor keyboard shortcuts', () => {
 
 	test('paste yields an empty clipboard shortcut and claims a populated internal clipboard', async ({
 		page,
+		context,
 	}) => {
 		await openWithSelection(page);
+		// Native clipboard data survives browser contexts, including earlier image-paste tests.
+		// This case starts with no external content as well as no internal copied element.
+		await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+		await page.evaluate(() => navigator.clipboard.writeText(''));
 		await page.evaluate(() => {
 			document.addEventListener(
 				'keydown',
