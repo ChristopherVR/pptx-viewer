@@ -87,6 +87,52 @@ async function expectKnobOnShape(knob: Locator, target: Locator, what: string): 
 }
 
 test.describe('selection handles track the live gesture', () => {
+	test('selection controls keep their screen size as slide zoom changes', async ({ page }) => {
+		const target = await openTarget(page);
+		await select(page, target);
+		const controls = viewport(page).getByRole('button', {
+			name: /^(?:resize [nesw]{1,2}|rotate element)$/iu,
+		});
+		const sizes = () =>
+			controls.evaluateAll((buttons) =>
+				buttons.map((button) => {
+					const { width, height } = button.getBoundingClientRect();
+					return { width, height };
+				}),
+			);
+		const before = await sizes();
+		expect(before).toHaveLength(9);
+		const initialWidth = (await target.boundingBox())!.width;
+		for (let index = 0; index < 2; index++) {
+			await page
+				.getByRole('button', { name: /^zoom in$/iu })
+				.first()
+				.click();
+		}
+		await expect
+			.poll(async () => (await target.boundingBox())!.width)
+			.toBeGreaterThan(initialWidth * 1.1);
+		for (const direction of ['in', 'out'] as const) {
+			if (direction === 'out') {
+				for (let index = 0; index < 3; index++) {
+					await page
+						.getByRole('button', { name: /^zoom out$/iu })
+						.first()
+						.click();
+				}
+				await expect
+					.poll(async () => (await target.boundingBox())!.width)
+					.toBeLessThan(initialWidth);
+			}
+			const after = await sizes();
+			expect(after).toHaveLength(before.length);
+			for (let index = 0; index < before.length; index++) {
+				expect(Math.abs(after[index].width - before[index].width)).toBeLessThan(0.5);
+				expect(Math.abs(after[index].height - before[index].height)).toBeLessThan(0.5);
+			}
+		}
+	});
+
 	test('corner controls remain centred on the shape corners', async ({ page }) => {
 		const target = await openTarget(page);
 		await select(page, target);
