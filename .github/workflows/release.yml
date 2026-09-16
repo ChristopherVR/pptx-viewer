@@ -64,11 +64,19 @@ jobs:
         run: node scripts/release-plan.mjs --write
 
       # Foundation packages must always build cleanly before framework builds.
+      # Order matches the root `build` script: core -> shared -> locales -> mcp
+      # -> cli. Each framework binding's own build script ends with
+      # `packages/locales/scripts/copy-subpaths.mjs`, which copies compiled
+      # locale JS out of `pptx-viewer-locales`'s dist into the binding's own
+      # dist/i18n. A missing locales build here fails every framework build
+      # with `ENOENT ... packages/locales/dist/<lang>/index.js`, silently
+      # dropped by `continue-on-error: true` below (issue #305).
       - name: Build foundation packages
         if: steps.plan.outputs.any_changed == 'true'
         run: |
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-locales' build
           bun run --filter 'pptx-viewer-mcp' build
           bun run --filter '@christophervr/pptx-viewer' build
 
@@ -466,11 +474,15 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      # Always build foundation packages regardless of which frameworks were released.
+      # Always build foundation packages regardless of which frameworks were
+      # released. Order matches the root `build` script and the release job's
+      # own foundation step above: core -> shared -> locales -> mcp -> cli
+      # (see the comment there - issue #305).
       - name: Build foundation packages
         run: |
           bun run --filter 'pptx-viewer-core' build
           bun run --filter 'pptx-viewer-shared' build
+          bun run --filter 'pptx-viewer-locales' build
           bun run --filter 'pptx-viewer-mcp' build
           bun run --filter '@christophervr/pptx-viewer' build
 
