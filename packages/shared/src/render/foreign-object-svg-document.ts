@@ -95,7 +95,8 @@ export async function buildForeignObjectSvgBody(
 		bgRect,
 		`<foreignObject x="0" y="0" width="${width}" height="${height}">`,
 		`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden;">`,
-		clone.outerHTML,
+		// This becomes XML, not HTML: retain nested SVG namespaces and close void elements.
+		new XMLSerializer().serializeToString(clone),
 		'</div>',
 		'</foreignObject>',
 	].join('');
