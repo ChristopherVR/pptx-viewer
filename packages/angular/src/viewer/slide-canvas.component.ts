@@ -421,6 +421,16 @@ export class SlideCanvasComponent implements SlideContext {
 	/** Emitted when a structural table change (drag-resize) should be persisted. */
 	readonly tableChange = output<{ id: string; tableData: PptxTableData }>();
 
+	hasActivePointerInteraction(): boolean {
+		return Boolean(
+			this.drag ||
+			this.adjustDrag ||
+			this.marquee ||
+			this.connectorEndpointDrag() ||
+			this.inkDrawing.active(),
+		);
+	}
+
 	private drag: DragState | null = null;
 	/** Live shape-adjustment gesture (amber diamond), or null when idle. */
 	private adjustDrag: ShapeAdjustmentDragState | null = null;
@@ -1393,6 +1403,7 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 
 	@HostListener('document:pointerup')
+	@HostListener('document:pointercancel')
 	onPointerUp(): void {
 		// ── GUIDE DRAG ────────────────────────────────────────────────────────
 		if (this.rulerGuidesSvc.handlePointerUp()) {

@@ -33,6 +33,7 @@ export interface DeckApiDeps {
 	/** Effective permission, including protected view and read-only recommendations. */
 	canEdit(): boolean;
 	isLoaded(): boolean;
+	hasActivePointerInteraction(): boolean;
 	commitPendingText(): void;
 	/** Enter/leave presentation mode (the same handler the ribbon button uses). */
 	toggleFullscreen(): void;
@@ -157,11 +158,12 @@ export function createDeckApi(deps: DeckApiDeps): DeckApi {
 			commitElementUpdateBatch(updates, options, {
 				getTarget: () => ({
 					canEdit: deps.canEdit(),
-					mode: editor.masterViewTarget ? 'master' : deps.getMode(),
+					mode: deps.getMode(),
 					loaded: deps.isLoaded(),
 					editTemplateMode: editor.editTemplateMode,
 				}),
 				getSlides: () => editor.slides,
+				hasActivePointerInteraction: deps.hasActivePointerInteraction,
 				commitPendingText: deps.commitPendingText,
 				commitSlides: (next, label) => editor.commitSlides(next, label),
 			});

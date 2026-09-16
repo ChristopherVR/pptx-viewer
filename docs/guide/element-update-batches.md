@@ -67,7 +67,8 @@ viewer.redo(); // Reapply both updates in one step.
   In React, reacquire `ref.current` when reading through the public handle.
 - Pending inline text is committed separately before an effective batch.
   Submit batches between completed pointer interactions, rather than during a
-  drag or resize; React rejects a batch while a pointer interaction is active.
+  drag or resize; all five bindings reject a batch while a pointer interaction is active.
+  A rejected batch leaves pending text, document state, and undo history untouched.
 - Empty batches and batches with no net change leave history and dirty state
   unchanged. Rejected batches preserve the document and undo/redo stacks.
 - The existing `updateElement` method keeps its current-slide, individual-edit

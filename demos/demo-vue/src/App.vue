@@ -15,10 +15,11 @@ import {
 	themeToCssVars,
 } from 'pptx-vue-viewer';
 import type { CollaborationConfig, PowerPointViewerExpose } from 'pptx-vue-viewer';
-import 'pptx-vue-viewer/styles';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watchEffect } from 'vue';
+import 'pptx-vue-viewer/styles';
 import { useI18n } from 'vue-i18n';
 
+import { installDevViewerHandle } from '../../dev-viewer-handle';
 import { useDemoAiConfig } from './ai-config';
 import {
 	isTrustedServerUrl,
@@ -40,19 +41,11 @@ import { themes } from './themes';
  */
 
 const viewerRef = shallowRef<PowerPointViewerExpose>();
+let removeDevViewerHandle: (() => void) | undefined;
 onMounted(() => {
-	if (import.meta.env.DEV) {
-		Object.defineProperty(window, '__pptxViewer', {
-			configurable: true,
-			get: () => viewerRef.value,
-		});
-	}
+	removeDevViewerHandle = installDevViewerHandle(() => viewerRef.value, import.meta.env.DEV);
 });
-onBeforeUnmount(() => {
-	if (import.meta.env.DEV) {
-		Reflect.deleteProperty(window, '__pptxViewer');
-	}
-});
+onBeforeUnmount(() => removeDevViewerHandle?.());
 
 const content = shallowRef<Uint8Array | null>(null);
 const fileName = ref('');

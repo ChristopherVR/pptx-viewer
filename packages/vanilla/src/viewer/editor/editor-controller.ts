@@ -69,6 +69,7 @@ export interface EditorControllerDeps {
 }
 
 export interface EditorController {
+	hasActivePointerInteraction(): boolean;
 	/** (Re)wire listeners + overlay into the current chrome (after mount). */
 	attachChrome(): void;
 	detachChrome(): void;
@@ -453,6 +454,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				syncOverlay();
 			}
 		},
+		hasActivePointerInteraction: () =>
+			interactions.hasActivePointerInteraction() ||
+			drawMode.isActive() ||
+			Boolean(connectorEndpoints?.isActive()),
 		capturesKeyboard() {
 			const state = store.get();
 			return state.editable && (state.selectedElementId !== null || interactions.inlineActive());

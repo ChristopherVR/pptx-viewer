@@ -518,6 +518,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 					<main class="pptx-ng-main" #mainEl (pointermove)="collabCursor.onPointerMove($event)">
 						<pptx-slide-canvas
+							#editorCanvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
@@ -1503,6 +1504,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		}
 	});
 
+	private readonly editorCanvas = viewChild<SlideCanvasComponent>('editorCanvas');
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
 
@@ -3137,6 +3139,8 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				editTemplateMode: this.editor.editTemplateMode(),
 			}),
 			getSlides: () => this.editor.slides(),
+			hasActivePointerInteraction: () =>
+				this.editorCanvas()?.hasActivePointerInteraction() ?? false,
 			commitPendingText: () =>
 				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
 			commitSlides: (next, label) => this.editor.applyReplacement(next, label),

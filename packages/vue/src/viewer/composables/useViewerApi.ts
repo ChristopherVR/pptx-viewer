@@ -35,6 +35,7 @@ export interface UseViewerApiOptions {
 	error: Ref<string | null>;
 	editTemplateMode: Ref<boolean>;
 	setEditingRequested: (editable: boolean) => void;
+	hasActivePointerInteraction: () => boolean;
 	commitPendingText: () => void;
 	getContent: () => Promise<Uint8Array>;
 	goTo: (index: number) => void;
@@ -185,6 +186,7 @@ export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpo
 					editTemplateMode: options.editTemplateMode.value,
 				}),
 				getSlides: () => slides.value,
+				hasActivePointerInteraction: () => options.hasActivePointerInteraction(),
 				commitPendingText: options.commitPendingText,
 				commitSlides: (next, label) => {
 					history.pushHistory(label);

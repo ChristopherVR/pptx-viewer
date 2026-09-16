@@ -33,6 +33,7 @@ import {
 	listAutosaveSnapshots,
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
+import { installDevViewerHandle } from '../dev-viewer-handle';
 import { useDemoAiConfig } from './ai-config';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
@@ -917,19 +918,7 @@ function App() {
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const viewerRef = useRef<PowerPointViewerHandle>(null);
-	useEffect(() => {
-		if (!import.meta.env.DEV) {
-			return;
-		}
-		// Expose the public handle for development and cross-binding API tests.
-		Object.defineProperty(window, '__pptxViewer', {
-			configurable: true,
-			get: () => viewerRef.current,
-		});
-		return () => {
-			Reflect.deleteProperty(window, '__pptxViewer');
-		};
-	}, []);
+	useEffect(() => installDevViewerHandle(() => viewerRef.current, import.meta.env.DEV), []);
 
 	/** Open the native picker from the explicit Browse control. */
 	const openFilePicker = useCallback(() => {

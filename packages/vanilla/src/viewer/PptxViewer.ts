@@ -893,6 +893,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				};
 			},
 			getSlides: () => this.store.get().slides,
+			hasActivePointerInteraction: () => this.editor.hasActivePointerInteraction(),
 			commitPendingText: () =>
 				this.container.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
 			commitSlides: (next, label) => this.editor.commitElementUpdates(next, label),

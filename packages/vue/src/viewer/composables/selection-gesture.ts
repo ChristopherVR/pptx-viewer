@@ -76,6 +76,7 @@ export interface SelectionGestureContext {
 
 /** The handlers `SelectionOverlay.vue` binds to its handles. */
 export interface SelectionGesture {
+	hasActivePointerInteraction(): boolean;
 	beginGesture: (
 		kind: GestureKind,
 		id: string,
@@ -232,5 +233,9 @@ export function useSelectionGesture(context: SelectionGestureContext): Selection
 		window.removeEventListener('pointercancel', onAdjustPointerUp);
 	}
 
-	return { beginGesture, beginAdjust };
+	return {
+		beginGesture,
+		beginAdjust,
+		hasActivePointerInteraction: () => controller.isActive() || adjustGesture !== null,
+	};
 }

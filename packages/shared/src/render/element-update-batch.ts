@@ -130,6 +130,7 @@ export function prepareElementUpdateBatch(
 
 export interface ElementUpdateHost {
 	getTarget(): ElementUpdateTarget;
+	hasActivePointerInteraction(): boolean;
 	getSlides(): readonly PptxSlide[];
 	commitPendingText(): void;
 	commitSlides(slides: PptxSlide[], label?: string): void;
@@ -143,6 +144,11 @@ export function commitElementUpdateBatch(
 ): void {
 	const owned = cloneElementUpdates(updates);
 	assertElementUpdateTarget(host.getTarget());
+	// Gesture previews can write into the same slides and commit from an older
+	// snapshot. Keep the entire batch outside that gesture's history boundary.
+	if (host.hasActivePointerInteraction()) {
+		throw new Error('Finish the current pointer interaction before updating elements.');
+	}
 	if (!prepareElementUpdateBatch(host.getSlides(), owned)) {
 		return;
 	}

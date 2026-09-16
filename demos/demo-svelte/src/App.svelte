@@ -26,16 +26,11 @@
 	import { buildViewerAiConfig } from './ai-config';
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
 	import { language, t } from './demo-i18n.svelte';
+	import { installDevViewerHandle } from '../../dev-viewer-handle';
 	import { readStoredTheme, themes } from './themes';
 
 	let viewerRef: PowerPointViewerApi | undefined = $state();
-	$effect(() => {
-		if (!import.meta.env.DEV) {return;}
-		Object.defineProperty(window, '__pptxViewer', {
-			configurable: true, get: () => viewerRef,
-		});
-		return () => { Reflect.deleteProperty(window, '__pptxViewer'); };
-	});
+	$effect(() => installDevViewerHandle(() => viewerRef, import.meta.env.DEV));
 	let bytes = $state<Uint8Array | null>(null);
 	let fileName = $state('');
 	// Built from the persisted demo AI settings when a deck opens; undefined

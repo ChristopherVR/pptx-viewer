@@ -40,6 +40,7 @@ export interface ConnectorEndpointOverlayDeps {
 }
 
 export interface ConnectorEndpointOverlay {
+	isActive(): boolean;
 	root: HTMLElement;
 	mount(host: HTMLElement): void;
 	/** Re-render from the current state. */
@@ -187,6 +188,7 @@ export function createConnectorEndpointOverlay(
 
 	return {
 		root,
+		isActive: () => drag !== null,
 		mount(host) {
 			host.appendChild(root);
 			render();
