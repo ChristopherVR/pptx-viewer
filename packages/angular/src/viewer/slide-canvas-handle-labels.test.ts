@@ -53,6 +53,12 @@ describe('slide-canvas handle accessible names', () => {
 		expect(template).toContain(`[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"`);
 	});
 
+	it('keeps the inward Rotate target above the inline editor without raising other controls', () => {
+		const rotate = template.match(/<button[^>]*class="pptx-ng-rotate-handle"[^>]*>/u)?.[0];
+		expect(rotate).toContain('[style.z-index]="editingBox() ? 10003 : null"');
+		expect(template.match(/\[style\.z-index\]/gu)).toHaveLength(1);
+	});
+
 	it('connects shared placement to the current stage and marks the actual obstacles', () => {
 		expect(template).toContain('[pptxRotateHandleFor]="singleSelected()?.id"');
 		expect(template).toContain('[pptxRotateHandleStage]="stage"');

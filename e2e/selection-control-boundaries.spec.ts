@@ -74,7 +74,10 @@ async function selectTarget(page: Page, target: Locator): Promise<Locator> {
 
 for (const coarse of [false, true]) {
 	test.describe(coarse ? 'coarse boundary controls' : 'fine boundary controls', () => {
-		test.use({ hasTouch: coarse, viewport: { width: 1440, height: 600 } });
+		test.use({
+			hasTouch: coarse,
+			viewport: coarse ? { width: 760, height: 1000 } : { width: 1440, height: 600 },
+		});
 		for (const [name, x, y, width, height, rotation] of [
 			['top', 450, 0, 300, 80, 0],
 			['right', 1110, 300, 300, 80, 90],
@@ -102,13 +105,34 @@ for (const coarse of [false, true]) {
 				const deck = testInfo.outputPath('boundary.pptx');
 				await writeFile(deck, await zip.generateAsync({ type: 'nodebuffer' }));
 				await loadDeck(page, deck);
-				const target = slideElements(page).filter({ hasText: 'TARGET' }).first();
+				// Inline editing suppresses the static text in some bindings, so
+				// keep locating the same authored element by its stable identity.
+				const targetId = await slideElements(page)
+					.filter({ hasText: 'TARGET' })
+					.first()
+					.getAttribute('data-element-id');
+				const target = viewport(page).locator(`[data-element-id="${targetId}"]`).first();
+				// Loading the first element precedes each demo's responsive fit pass.
+				let previousBox: string | undefined;
+				await expect
+					.poll(async () => {
+						const next = JSON.stringify(await target.boundingBox());
+						const settled = next === previousBox;
+						previousBox = next;
+						return settled;
+					})
+					.toBeTruthy();
 				const geometry = () =>
 					target.evaluate((element) => {
 						const style = (element as HTMLElement).style;
 						return [style.left, style.top, style.width, style.height];
 					});
 				const before = await geometry();
+				const angle = () =>
+					target.evaluate((element) => {
+						const matrix = new DOMMatrix(getComputedStyle(element).transform);
+						return ((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI + 360) % 360;
+					});
 				const shapeBefore = (await target.boundingBox())!;
 				const knob = await selectTarget(page, target);
 				await reachable(knob);
@@ -156,6 +180,7 @@ for (const coarse of [false, true]) {
 					.getByRole('button', { name: /^undo$/iu })
 					.first()
 					.click();
+				await expect.poll(angle).toBeCloseTo(rotation, 0);
 				if (!(await knob.isVisible())) {
 					await selectTarget(page, target);
 				}
@@ -163,7 +188,7 @@ for (const coarse of [false, true]) {
 				expect(await geometry()).toEqual(before);
 				if (name === 'top') {
 					await target.dblclick();
-					const editor = viewport(page).locator('[data-inline-editor][contenteditable="true"]');
+					const editor = viewport(page).locator('[data-inline-editor]');
 					await expect(editor).toBeVisible();
 					await editor.fill('TARGET edited');
 					await editor.click();
@@ -177,7 +202,16 @@ for (const coarse of [false, true]) {
 						control.y + control.height / 2 + 4,
 					);
 					await page.mouse.up();
-					await expect(viewport(page)).toContainText('TARGET edited');
+					await expect.poll(angle).not.toBeCloseTo(rotation, 0);
+					// Some bindings intentionally keep the text session open while
+					// transforming; clicking empty canvas must still commit its draft.
+					if (await editor.isVisible()) {
+						const canvas = (await viewport(page).boundingBox())!;
+						await viewport(page).click({ position: { x: 10, y: canvas.height * 0.8 } });
+					}
+					await expect(editor).toBeHidden();
+					await expect(target).toContainText('TARGET edited');
+					await expect.poll(angle).not.toBeCloseTo(rotation, 0);
 				}
 			});
 		}

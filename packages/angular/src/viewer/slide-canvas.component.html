@@ -131,6 +131,7 @@
 				<button
 					type="button"
 					class="pptx-ng-rotate-handle"
+					[style.z-index]="editingBox() ? 10003 : null"
 					data-pptx-compact
 					data-pptx-handle-kind="rotate"
 					[pptxRotateHandleFor]="singleSelected()?.id"
