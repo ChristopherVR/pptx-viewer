@@ -547,6 +547,38 @@ describe('toolbar - tab navigation', () => {
 // ===========================================================================
 
 describe('toolbar - Home tab', () => {
+	it.each([
+		['empty selection', null, true, undefined, true],
+		['image selection', { type: 'image', id: 'i1' }, true, undefined, true],
+		['read-only text', { type: 'text', id: 't1' }, false, undefined, true],
+		['text selection', { type: 'text', id: 't1' }, true, undefined, false],
+		['empty shape', { type: 'shape', id: 's1' }, true, undefined, false],
+		['table without a selected cell', { type: 'table', id: 'tb1' }, true, undefined, true],
+		[
+			'selected table cell',
+			{ type: 'table', id: 'tb1' },
+			true,
+			{ rowIndex: 0, columnIndex: 0 },
+			false,
+		],
+	] as const)('gates font pickers for %s', (_name, element, canEdit, cell, disabled) => {
+		const html = render(
+			React.createElement(
+				Toolbar,
+				createMockToolbarProps({
+					selectedElement: element as ToolbarProps['selectedElement'],
+					canEdit,
+					tableEditorState: cell,
+				}),
+			),
+		);
+		for (const label of ['Font family', 'Font size']) {
+			const button = html.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
+			expect(button).toBeDefined();
+			expect(button?.includes('disabled=""')).toBe(disabled);
+		}
+	});
+
 	it('renders clipboard group with Paste, Cut, Copy, Format Painter', () => {
 		const html = render(
 			React.createElement(HomeSection, {

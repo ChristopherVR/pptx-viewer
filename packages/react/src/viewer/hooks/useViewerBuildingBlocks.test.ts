@@ -15,7 +15,7 @@ import { createViewerOptionsStore } from 'pptx-viewer-shared';
  * follows the same manual `createRoot` + `act` harness pattern used by
  * `CollaborationProvider.remount.test.tsx`.
  */
-import React, { act, createRef } from 'react';
+import React, { act, createRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -315,6 +315,78 @@ describe('useViewerBuildingBlocks', () => {
 			decode.mockRestore();
 		}
 	}, 30_000);
+
+	it('refits a headless canvas remounted by a child without remounting its hook owner', async () => {
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		let width = 960;
+		const observed = new Map<Element, () => void>();
+		const prototype = HTMLElement.prototype;
+		const widthSpy = vi.spyOn(prototype, 'clientWidth', 'get').mockImplementation(() => width);
+		const heightSpy = vi.spyOn(prototype, 'clientHeight', 'get').mockReturnValue(540);
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				private node: Element | null = null;
+				constructor(private callback: () => void) {}
+				observe(node: Element) {
+					this.node = node;
+					observed.set(node, this.callback);
+				}
+				disconnect() {
+					if (this.node) {
+						observed.delete(this.node);
+					}
+				}
+			},
+		);
+		const handle = createRef<PowerPointViewerHandle>();
+		let toggleCanvas: (shown: boolean) => void = () => {};
+		function CanvasChild({ result }: { result: ViewerBuildingBlocksResult }) {
+			const [shown, setShown] = useState(true);
+			toggleCanvas = setShown;
+			return shown && !result.loading
+				? React.createElement(SlideCanvas, { ...result.canvasProps, showRulers: false })
+				: null;
+		}
+		function HeadlessHarness() {
+			const result = useViewerBuildingBlocks({
+				content: fixtureBytes,
+				handle,
+				canEdit: true,
+				fitPadding: 0,
+				maxFitScale: null,
+			});
+			latest = result;
+			return React.createElement(CanvasChild, { result });
+		}
+		try {
+			await act(async () => root.render(React.createElement(HeadlessHarness)));
+			await flushUntil(() => latest?.loading === false);
+			const first = container.querySelector('[data-pptx-viewport]')!;
+			expect(first).not.toBeNull();
+			const slideWidth = latest!.canvasProps.canvasSize.width;
+			expect(latest!.canvasProps.zoom.editorScale).toBeCloseTo(960 / slideWidth);
+			act(() => toggleCanvas(false));
+			width = 480;
+			act(() => toggleCanvas(true));
+			const second = container.querySelector('[data-pptx-viewport]')!;
+			expect(second).not.toBe(first);
+			expect(latest!.canvasProps.zoom.editorScale).toBeCloseTo(480 / slideWidth);
+			expect(observed.has(first)).toBeFalsy();
+			expect(observed.has(second)).toBeTruthy();
+			width = 720;
+			act(() => observed.get(second)!());
+			expect(latest!.canvasProps.zoom.editorScale).toBeCloseTo(720 / slideWidth);
+			act(() => handle.current!.setMode('preview'));
+			expect(latest!.canvasProps.zoom.editorScale).toBeCloseTo(720 / slideWidth);
+			act(() => handle.current!.setMode('edit'));
+			expect(latest!.canvasProps.zoom.editorScale).toBeCloseTo(720 / slideWidth);
+			expect(handle.current!.isDirty()).toBeFalsy();
+		} finally {
+			widthSpy.mockRestore();
+			heightSpy.mockRestore();
+		}
+	}, 15_000);
 
 	it('forwards opt-in viewport fit without marking the loaded deck dirty', async () => {
 		vi.stubGlobal(

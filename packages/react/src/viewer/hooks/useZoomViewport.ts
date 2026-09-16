@@ -12,6 +12,7 @@ import { MIN_ELEMENT_SIZE, ZOOM_TO_SELECTION_PADDING } from '../constants';
 import type { CanvasSize } from '../types';
 import { useViewerStore } from './useViewerStore';
 import { useViewportFit } from './useViewportFit';
+import { useViewportNode } from './useViewportNode';
 
 /** Module scope so the selector identity is stable across renders. */
 const selectZoom = (state: ViewerZoomState): number => state.zoom;
@@ -34,6 +35,8 @@ export interface UseZoomViewportResult {
 	editWrapperRef: React.RefObject<HTMLDivElement | null>;
 	canvasStageRef: React.RefObject<HTMLDivElement | null>;
 	canvasViewportRef: React.RefObject<HTMLDivElement | null>;
+	/** Bind to a custom viewport's ref to track mounts independently of the hook owner. */
+	setCanvasViewportNode?: React.RefCallback<HTMLDivElement>;
 	renderScaleRef: React.MutableRefObject<number>;
 	// State
 	scale: number;
@@ -63,7 +66,7 @@ export function useZoomViewport({
 	// ── Refs ──────────────────────────────────────────────────────────────
 	const editWrapperRef = useRef<HTMLDivElement>(null);
 	const canvasStageRef = useRef<HTMLDivElement>(null);
-	const canvasViewportRef = useRef<HTMLDivElement>(null);
+	const { viewportRef: canvasViewportRef, viewportNode, setCanvasViewportNode } = useViewportNode();
 	const renderScaleRef = useRef(1);
 	// Partial wheel charge, shared with the editing-wheel mapper.
 	const wheelBufferRef = useRef(createWheelStepBuffer());
@@ -82,7 +85,7 @@ export function useZoomViewport({
 		[store],
 	);
 	const { editorDimensions, setEditorDimensions, effectiveEditorDimensions, fitScale } =
-		useViewportFit(canvasSize, canvasViewportRef, { fitPadding, maxFitScale });
+		useViewportFit(canvasSize, canvasViewportRef, { fitPadding, maxFitScale }, viewportNode);
 
 	const editorScale = fitScale * scale;
 
@@ -123,11 +126,10 @@ export function useZoomViewport({
 				behavior: 'smooth',
 			});
 		},
-		[fitScale],
+		[canvasViewportRef, fitScale],
 	);
 
-	// The step itself lives in pptx-viewer-shared so all five bindings move the
-	// stage by the same amount per press (two of them stepped by 1.25x instead).
+	// The shared zoom store keeps each step identical across bindings.
 	const handleZoomIn = useCallback(() => {
 		store.dispatch({ type: 'zoom-in' });
 	}, [store]);
@@ -229,17 +231,15 @@ export function useZoomViewport({
 	// Attach the wheel listener natively with { passive: false } so that
 	// preventDefault() works. React's onWheel is passive since React 17+.
 	//
-	// The viewport does not exist on the viewer's first commit (with no deck
-	// loaded `SlideCanvas` is unmounted), and `handleWheel` is stable because
-	// `store` is a ref, so a plain effect ran ONCE against a null ref and never
-	// re-ran: the listener was never attached at all and Ctrl+wheel zoom was
-	// dead. Retry on an animation frame until the node exists, exactly as the
-	// ResizeObserver above does.
+	// Follow remounted canvases; retain initial frame retries for object-ref users.
 	useEffect(() => {
+		if (viewportNode === null) {
+			return;
+		}
 		let raf = 0;
 		let attached: HTMLDivElement | null = null;
 		const attach = (): void => {
-			const viewport = canvasViewportRef.current;
+			const viewport = viewportNode ?? canvasViewportRef.current;
 			if (!viewport) {
 				raf = requestAnimationFrame(attach);
 				return;
@@ -252,7 +252,7 @@ export function useZoomViewport({
 			cancelAnimationFrame(raf);
 			attached?.removeEventListener('wheel', handleWheel);
 		};
-	}, [handleWheel]);
+	}, [canvasViewportRef, viewportNode, handleWheel]);
 
 	const getCanvasPointFromClient = useCallback(
 		(clientX: number, clientY: number): { x: number; y: number } | null => {
@@ -280,6 +280,7 @@ export function useZoomViewport({
 		editWrapperRef,
 		canvasStageRef,
 		canvasViewportRef,
+		setCanvasViewportNode,
 		renderScaleRef,
 		scale,
 		setScale,

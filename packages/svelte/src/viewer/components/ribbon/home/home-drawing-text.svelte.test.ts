@@ -163,6 +163,19 @@ describe('home text shadow toggle', () => {
 });
 
 describe('home text font size', () => {
+	it.each([
+		['empty selection', false, true, true],
+		['read-only selection', true, false, true],
+		['editable selection', true, true, false],
+	] as const)('gates the size input for %s', (_name, withText, editable, disabled) => {
+		const editor = makeEditor(withText);
+		editor.editable = editable;
+		const target = mountComponent(TextFormatGroup, editor);
+		expect(target.querySelector<HTMLInputElement>('[aria-label="Font size"]')?.disabled).toBe(
+			disabled,
+		);
+	});
+
 	it('shows points and converts fractional point edits back to model pixels', () => {
 		const editor = makeEditor(true, 48.1 * (96 / 72));
 		const target = mountComponent(TextFormatGroup, editor);

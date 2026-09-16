@@ -27,6 +27,7 @@ function mountHome(overrides: Record<string, unknown> = {}) {
 			onPaste: vi.fn(),
 			layoutOptions: [],
 			onInsertSlideFromLayout: vi.fn(),
+			onUpdateTextStyle: vi.fn(),
 			...overrides,
 		},
 	});
@@ -39,6 +40,59 @@ function mountHome(overrides: Record<string, unknown> = {}) {
  * ribbon box rather than only unit-testing the shared function.
  */
 describe('homeSection - font size box (shared fontSizeOf)', () => {
+	it.each([
+		['Font family', 'deselection'],
+		['Font family', 'read-only mode'],
+		['Font size', 'deselection'],
+		['Font size', 'read-only mode'],
+	] as const)('closes %s on %s and re-enables without reopening', async (label, reason) => {
+		const onUpdateTextStyle = vi.fn();
+		const wrapper = mountHome({ selectedElement: textShape(), onUpdateTextStyle });
+		const picker = wrapper.get(`[aria-label="${label}"]`);
+		const popup = () => picker.element.parentElement!.querySelector(':scope > div');
+		await picker.trigger('click');
+		expect(popup()).not.toBeNull();
+		await wrapper.setProps(
+			reason === 'deselection' ? { selectedElement: null } : { canEdit: false },
+		);
+		expect((picker.element as HTMLButtonElement).disabled).toBeTruthy();
+		expect(popup()).toBeNull();
+		expect(onUpdateTextStyle).not.toHaveBeenCalled();
+		await wrapper.setProps({ selectedElement: textShape(), canEdit: true });
+		expect((picker.element as HTMLButtonElement).disabled).toBeFalsy();
+		expect(popup()).toBeNull();
+		await picker.trigger('click');
+		expect(popup()).not.toBeNull();
+	});
+
+	it('does not format a table with stale cell state from another table', () => {
+		const wrapper = mountHome({
+			selectedElement: { type: 'table', id: 'table-2' },
+			tableEditorState: { elementId: 'table-1', rowIndex: 0, columnIndex: 0 },
+		});
+		for (const label of ['Font family', 'Font size']) {
+			expect(
+				(wrapper.get(`[aria-label="${label}"]`).element as HTMLButtonElement).disabled,
+			).toBeTruthy();
+		}
+	});
+
+	it.each([
+		['empty selection', null, true, true],
+		['image selection', { type: 'image', id: 'i1' }, true, true],
+		['read-only text', textShape(), false, true],
+		['text selection', textShape(), true, false],
+		['empty shape', { ...textShape(), type: 'shape', text: '' }, true, false],
+		['table without a selected cell', { type: 'table', id: 'tb1' }, true, true],
+	] as const)('gates font pickers for %s', (_name, selectedElement, canEdit, disabled) => {
+		const wrapper = mountHome({ selectedElement, canEdit });
+		for (const label of ['Font family', 'Font size']) {
+			expect((wrapper.get(`[aria-label="${label}"]`).element as HTMLButtonElement).disabled).toBe(
+				disabled,
+			);
+		}
+	});
+
 	it("shows 18pt (PowerPoint's real default) with nothing selected, not the old hardcoded 24", () => {
 		const wrapper = mountHome({ selectedElement: null });
 		expect(wrapper.find('[aria-label="Font size"]').text()).toBe('18');
@@ -92,6 +146,7 @@ describe('homeSection - font size box (shared fontSizeOf)', () => {
 				tableData: { rows: [], columnWidths: [] },
 			} as PptxElement,
 			onUpdateTextStyle,
+			tableEditorState: { elementId: 'table-cell-font-size', rowIndex: 0, columnIndex: 0 },
 		});
 		await wrapper.find('[aria-label="Font size"]').trigger('click');
 		const option = wrapper.findAll('button').find((button) => button.text().trim() === '10');

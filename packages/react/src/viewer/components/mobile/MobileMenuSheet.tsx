@@ -147,6 +147,7 @@ function MobileSectionBody({
 						onInsertSlideFromTemplate={p.onInsertSlideFromTemplate}
 						templateScheme={p.templateScheme}
 						selectedElement={p.selectedElement}
+						tableEditorState={p.tableEditorState}
 						onUpdateTextStyle={p.onUpdateTextStyle}
 					/>
 				</div>

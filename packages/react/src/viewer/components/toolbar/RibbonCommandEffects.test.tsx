@@ -77,6 +77,61 @@ describe('design > Slide Size', () => {
 });
 
 describe('home > font size', () => {
+	it.each([
+		['fontFamily', 'deselection'],
+		['fontFamily', 'read-only mode'],
+		['fontSize', 'deselection'],
+		['fontSize', 'read-only mode'],
+	] as const)('closes %s on %s and re-enables without reopening', (control, reason) => {
+		const props: import('./HomeSection').HomeSectionProps = {
+			canEdit: true,
+			clipboardPayload: null,
+			onCopy: vi.fn(),
+			onCut: vi.fn(),
+			onPaste: vi.fn(),
+			layoutOptions: [],
+			onInsertSlideFromLayout: vi.fn(),
+			selectedElement: {
+				type: 'text',
+				id: 'text',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 20,
+				text: 'Hello',
+			},
+			onUpdateTextStyle: vi.fn(),
+		};
+		const render = (enabled: boolean) =>
+			act(() =>
+				root.render(
+					<HomeSection
+						{...props}
+						canEdit={reason === 'read-only mode' ? enabled : true}
+						selectedElement={reason === 'deselection' && !enabled ? null : props.selectedElement}
+					/>,
+				),
+			);
+		render(true);
+		const picker = container.querySelector<HTMLButtonElement>(
+			`button[aria-label="pptx.ribbon.${control}"]`,
+		)!;
+		const popup = () => picker.parentElement!.querySelector('.fixed');
+		act(() => picker.click());
+		expect(popup()).not.toBeNull();
+
+		render(false);
+		expect(picker.disabled).toBeTruthy();
+		expect(popup()).toBeNull();
+		expect(props.onUpdateTextStyle).not.toHaveBeenCalled();
+
+		render(true);
+		expect(picker.disabled).toBeFalsy();
+		expect(popup()).toBeNull();
+		act(() => picker.click());
+		expect(popup()).not.toBeNull();
+	});
+
 	it('converts a selected point size to model pixels', () => {
 		const onUpdateTextStyle = vi.fn();
 		act(() => {
@@ -145,6 +200,7 @@ describe('home > font size', () => {
 							tableData: { rows: [], columnWidths: [] },
 						} as import('pptx-viewer-core').PptxElement
 					}
+					tableEditorState={{ rowIndex: 0, columnIndex: 0 }}
 					onUpdateTextStyle={onUpdateTextStyle}
 				/>,
 			);

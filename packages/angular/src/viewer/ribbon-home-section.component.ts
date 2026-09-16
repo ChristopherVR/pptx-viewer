@@ -259,6 +259,7 @@ export function performResetSlide(
 		<div class="flex flex-col items-center gap-0.5">
 			<div class="flex items-center gap-1">
 				<pptx-ribbon-font-controls
+					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 				/>

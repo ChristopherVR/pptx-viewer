@@ -120,6 +120,28 @@ function setup() {
 }
 
 describe('connectors follow the shape they are attached to', () => {
+	it('preserves the rotate grab offset and records a single undo entry', () => {
+		const { store, ops, interactions, elementById, cleanup } = setup();
+		store.set({
+			selectedElementIds: ['box-a'],
+			slides: [{ ...store.get().slides[0], elements: [{ ...shape('box-a', 0, 0), rotation: 43 }] }],
+		});
+		ops.select('box-a');
+		interactions.beginHandleGesture('rotate', {
+			...pointerDown(document.body),
+			clientX: 60,
+			clientY: 0,
+		});
+		dispatchWindowPointer('pointermove', 100, 0);
+		dispatchWindowPointer('pointerup', 100, 0);
+		expect(elementById('box-a')?.rotation).toBeCloseTo(76.6900675);
+		ops.undo();
+		expect(elementById('box-a')?.rotation).toBe(43);
+		ops.redo();
+		expect(elementById('box-a')?.rotation).toBeCloseTo(76.6900675);
+		cleanup();
+	});
+
 	it('reroutes a bound connector when its shape is dragged', () => {
 		const { dragBoxA, elementById, cleanup } = setup();
 
