@@ -19,6 +19,7 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 import { useColorChangeImage } from '../composables/use-color-change-image';
 import type { ClrChangeEffect } from '../composables/use-color-change-image';
@@ -31,6 +32,8 @@ const props = defineProps<{
 	interactive?: boolean;
 	/** Emit the data-pptx-element marker even when not interactive (template layer). */
 	marked?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 /**
@@ -113,6 +116,17 @@ const { displaySrc } = useColorChangeImage({ src: imageSrc, clrChange });
 const rootPointerEvents = computed<CSSProperties | null>(() =>
 	props.interactive ? null : { pointerEvents: 'none' },
 );
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) picture:
+ * see `ElementRenderer`'s `hitTargetStyle` doc comment (issue #285). Never
+ * rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
+);
 </script>
 
 <template>
@@ -122,6 +136,13 @@ const rootPointerEvents = computed<CSSProperties | null>(() =>
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
+		<!-- Interaction-only hit-target for a degenerate picture; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
 		<svg
 			v-for="f in imageFx.svgFilters"

@@ -16,9 +16,9 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import {
 	getContainerStyle,
-	getElementHitTargetStyle,
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
@@ -329,15 +329,17 @@ const isRendered = computed(() => isElementRendered(props.element));
 const isBeingInlineEdited = computed(() => props.element.id === props.inlineEditingElementId);
 
 /**
- * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) shape: a
- * bigger, invisible, centred click/drag target, kept separate from the
- * painted box (`shapeDivStyle`, now always the authored size) so a thin
- * authored line never paints as a thick bar in read-only rendering (issue
- * #285). Never rendered while presenting: nothing on the show stage is
- * draggable or selectable.
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+ * text/shape/group: a bigger, invisible, centred click/drag target, kept
+ * separate from the painted box (`shapeDivStyle`, now always the authored
+ * size) so a thin authored line never paints as a thick bar in read-only
+ * rendering (issue #285). Never rendered while presenting: nothing on the
+ * show stage is draggable or selectable.
  */
-const hitTargetStyle = computed<CSSProperties | undefined>(() =>
-	props.interactive && !props.presenting ? getElementHitTargetStyle(props.element) : undefined,
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 </script>
 
@@ -356,6 +358,13 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>
+		<!-- Interaction-only hit-target for a degenerate group; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!-- A group has no fill/outline/soft-edge of its own to paint here (see
 		     `ShapeEffectOverlay`'s doc comment), but `p:grpSpPr/a:effectLst/a:reflection`
 		     mirrors the whole group subtree, so this still needs mounting. -->
@@ -382,6 +391,7 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:class="templateClass"
 	/>
 
@@ -426,6 +436,7 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<ChartRenderer
@@ -435,6 +446,7 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:animation-state="animationState"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
@@ -443,6 +455,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:replay="presenting"
 		:text-style="animationState?.textStyle"
 		:text-style-override-css="textStyleOverrideCss"
@@ -455,6 +469,7 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:animation-state="animationState"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
@@ -463,6 +478,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:replay="presenting"
 		:data-pptx-element="elementMarker"
 	/>
@@ -470,6 +487,7 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		v-else-if="element.type === 'contentPart'"
 		:element="element"
 		:z-index="zIndex"
+		:interactive="interactive"
 		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
@@ -478,6 +496,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 	<Model3DRenderer
@@ -485,6 +505,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 	<ZoomRenderer
@@ -492,6 +514,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 
@@ -501,6 +525,8 @@ const hitTargetStyle = computed<CSSProperties | undefined>(() =>
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 

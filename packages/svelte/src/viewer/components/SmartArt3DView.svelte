@@ -26,18 +26,36 @@
 	 */
 	import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
 	import type { SmartArt3DModel } from 'pptx-viewer-shared';
+	import { shouldRenderHitTarget } from 'pptx-viewer-shared';
 	import { onDestroy, tick } from 'svelte';
 
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import { buildSmartArt3DViewModel } from '../render';
 	import type { ElementRendererProps } from './props';
 	import SmartArtView from './SmartArtView.svelte';
 
-	const { element, mediaDataUrls, zIndex, animationState, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		mediaDataUrls,
+		zIndex,
+		animationState,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	/** Active font-style emphasis override for every node caption, if any. */
 	const textStyle = $derived(animationState?.textStyle);
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * SmartArt diagram; see `ElementRenderer`'s identical `hitTarget` doc
+	 * (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	/** `true` once the WebGL scene has mounted; otherwise render the SVG fallback. */
 	let mounted = $state(false);
@@ -114,10 +132,14 @@
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 		data-testid={`smartart-${element.type === 'smartArt' ? element.smartArtData?.layout ?? 'diagram' : 'diagram'}`}
 	>
+		<!-- Interaction-only hit target for a degenerate SmartArt; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<canvas bind:this={canvasEl} class="pptx-svelte-smartart-3d-canvas"></canvas>
 	</div>
 {:else}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} {interactive} {editable} {presenting} />
 {/if}
 
 <style>

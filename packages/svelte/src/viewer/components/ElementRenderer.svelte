@@ -7,7 +7,7 @@
 	 * `unknown` still falls through to the typed placeholder.
 	 */
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-	import { build3DExtrusionData, buildParagraphs, buildTextStyleOverrideCss, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
+	import { build3DExtrusionData, buildParagraphs, buildTextStyleOverrideCss, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getElementHitTargetStyle, getShapeBoxStyle, getShapeFillStrokeStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
@@ -246,7 +246,9 @@
 	 * draggable or selectable. `undefined` on a read-only surface (`editable`
 	 * false) and when the authored box already meets the minimum size.
 	 */
-	const hitTarget = $derived(editable && !presenting ? getElementHitTargetStyle(element) : undefined);
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 </script>
 
 {#if isHidden}
@@ -278,47 +280,51 @@
 		     `getShapeFillStrokeStyle`) and a reflection (parsed onto
 		     `groupEffectStyle`) that mirrors the whole group subtree, so this
 		     still needs mounting. -->
+		<!-- Interaction-only hit target for a degenerate group; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<ShapeEffectOverlay {element} {mediaDataUrls} {zIndex} />
 		{#each element.children ?? [] as child, i (child.id)}
 			<ElementRenderer element={child} {mediaDataUrls} zIndex={i} {presenting} {interactive} {marked} {editTemplateMode} {editingElementId} {editable} {selectedElementIds} parentGroupFill={childParentGroupFill} {ontablecellcommit} {onsmartartnodecommit} {onsmartartnodefill} {onchartpointcommit} {ontableresizecolumns} {ontableresizerow} />
 		{/each}
 	</div>
 {:else if isImageLike}
-	<ImageBox {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<ImageBox {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {:else if element.type === 'connector'}
 	<ConnectorView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
 {:else if element.type === 'table'}
-	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {ontablecellcommit} {ontableresizecolumns} {ontableresizerow} />
+	<TableView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {ontablecellcommit} {ontableresizecolumns} {ontableresizerow} {editable} {presenting} />
 {:else if element.type === 'chart' && surfaceChart3D && isSurfaceChart}
-	<SurfaceChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+	<SurfaceChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'chart' && barChart3D && isBarChart3D}
-	<Bar3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+	<Bar3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'chart' && lineChart3D && isLineChart3D}
-	<Line3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+	<Line3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'chart' && areaChart3D && isAreaChart3D}
-	<Area3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+	<Area3DChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'chart' && pieChart3D && isPieChart3D}
-	<PieChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} />
+	<PieChart3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'chart'}
-	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} selected={isSelected} {onchartpointcommit} />
+	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} selected={isSelected} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'smartArt' && smartArt3D}
-	<SmartArt3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} />
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {:else if element.type === 'smartArt'}
-	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {animationState} {onsmartartnodecommit} {onsmartartnodefill} />
+	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {animationState} {onsmartartnodecommit} {onsmartartnodefill} {editable} {presenting} />
 {:else if element.type === 'media'}
-	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
+	<MediaBox {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} {editable} />
 {:else if element.type === 'ink'}
-	<InkView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
+	<InkView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} {editable} />
 {:else if element.type === 'ole'}
-	<OleView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<OleView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {:else if element.type === 'contentPart'}
-	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
+	<ContentPartView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} {editable} />
 {:else if element.type === 'zoom'}
-	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} />
+	<ZoomView {element} {mediaDataUrls} {zIndex} {presenting} interactive={elementInteractive} marked={elementMarked} {editable} />
 {:else if element.type === 'model3d'}
-	<Model3dView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<Model3dView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {:else if hasEquation}
-	<EquationView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<EquationView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {:else if isShapeLike}
 	<!-- Text / shape: shared fill/stroke/effects/geometry + rich text block. -->
 	<div
@@ -364,7 +370,7 @@
 		{/if}
 	</div>
 {:else}
-	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} />
+	<PlaceholderElement {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
 {/if}
 
 <!--

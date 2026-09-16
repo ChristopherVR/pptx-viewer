@@ -19,9 +19,11 @@ import {
 	actionAffordanceLabels,
 	applyElementActionAffordances,
 	applyRenderedElementAccessibility,
+	elementHitTargetStyle,
 	getSlideBackgroundStyle,
 	isElementRendered,
 	isTemplateElementId,
+	shouldRenderHitTarget,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -208,6 +210,31 @@ export function renderSlideStage(options: SlideStageOptions): HTMLElement {
 					node.style.pointerEvents = 'none';
 				}
 				node.setAttribute('data-pptx-element', 'true');
+			}
+			// Interaction-only hit-target overlay for a degenerate
+			// (sub-MIN_ELEMENT_SIZE) element of ANY type (issue #285 follow-up):
+			// this choke point is the one place every element, of every type,
+			// passes through (including group children, recursively), so it is
+			// the single wiring point for every type EXCEPT the two that already
+			// carry their own copy of this affordance: `text`/`shape`
+			// (`renderTextShapeElement`, whose overlay sits INSIDE the fill/stroke
+			// box rather than appended after the fact) and `connector` (its own,
+			// unrelated `connectorHitStrokeWidth` mechanism widens the stroke
+			// itself, which already makes a hairline connector grabbable).
+			if (
+				node &&
+				element.type !== 'text' &&
+				element.type !== 'shape' &&
+				element.type !== 'connector' &&
+				shouldRenderHitTarget(interactive, options.presenting ?? false)
+			) {
+				const hitTargetStyle = elementHitTargetStyle(element);
+				if (hitTargetStyle) {
+					const hitTarget = createEl(doc, 'div', undefined, hitTargetStyle);
+					hitTarget.setAttribute('aria-hidden', 'true');
+					hitTarget.setAttribute('data-pptx-hit-target', 'true');
+					node.appendChild(hitTarget);
+				}
 			}
 			return node;
 		},

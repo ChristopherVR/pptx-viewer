@@ -5,6 +5,7 @@ import { buildInkGroupStrokes, getInkReplayStyles, INK_REPLAY_KEYFRAMES } from '
 import type { CSSProperties } from 'vue';
 import { computed, watchEffect } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { DEFAULT_STROKE_COLOR } from '../constants';
 
@@ -33,10 +34,25 @@ const props = defineProps<{
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
 	replay?: boolean;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) ink
+ * stroke box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 const ink = computed<InkPptxElement | undefined>(() =>
@@ -82,6 +98,13 @@ function replayStyle(index: number): CSSProperties | undefined {
 
 <template>
 	<div class="pptx-vue-element pptx-vue-ink" :style="containerStyle" :data-element-id="element.id">
+		<!-- Interaction-only hit-target for a degenerate ink stroke; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<svg
 			v-if="strokes.length > 0"
 			class="pptx-vue-ink-svg"

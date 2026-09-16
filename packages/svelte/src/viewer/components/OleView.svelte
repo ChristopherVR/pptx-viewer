@@ -11,15 +11,30 @@
 	 *   browser-renderable MIME types, and a compact size caption; the full
 	 *   info caption doubles as the tooltip.
 	 */
-	import { openUrlInNewTab } from 'pptx-viewer-shared';
+	import { openUrlInNewTab, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildOleView, getOleIconShapes } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE) OLE
+	 * object; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const view = $derived(element.type === 'ole' ? buildOleView(element) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
@@ -43,6 +58,10 @@
 		aria-label={view.ariaLabel}
 		title={view.titleText}
 	>
+		<!-- Interaction-only hit target for a degenerate OLE object; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if view.previewSrc}
 			<div class="pptx-svelte-ole-preview">
 				<img class="pptx-svelte-ole-img" src={view.previewSrc} alt={view.ariaLabel} draggable="false" />

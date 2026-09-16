@@ -496,4 +496,36 @@ describe('chartRenderer: c:dPt/c:pictureOptions picture fill', () => {
 			.find((r) => r.attributes('fill') === `url(#${patternId})`);
 		expect(filledRect).toBeDefined();
 	});
+
+	describe('degenerate-size hit target (issue #285)', () => {
+		function thinChart(): PptxElement {
+			return chartElement(data('bar'), { width: 400, height: 1 });
+		}
+
+		it('adds a padded, pointer-events:auto hit target only when interactive and not presenting', () => {
+			const wrapper = mount(ChartRenderer, {
+				props: { element: thinChart(), zIndex: 1, interactive: true, presenting: false },
+			});
+			const hitTarget = wrapper.find('[data-pptx-hit-target]');
+			expect(hitTarget.exists()).toBeTruthy();
+			expect(hitTarget.attributes('style')).toContain('height: 12px');
+			expect(hitTarget.attributes('style')).toContain('pointer-events: auto');
+			// The painted box itself stays at the authored (unpadded) size.
+			expect(wrapper.attributes('style')).toContain('height: 1px');
+		});
+
+		it('never adds the hit target on a read-only (non-interactive) render', () => {
+			const wrapper = mount(ChartRenderer, {
+				props: { element: thinChart(), zIndex: 1, interactive: false },
+			});
+			expect(wrapper.find('[data-pptx-hit-target]').exists()).toBeFalsy();
+		});
+
+		it('never adds the hit target while presenting', () => {
+			const wrapper = mount(ChartRenderer, {
+				props: { element: thinChart(), zIndex: 1, interactive: true, presenting: true },
+			});
+			expect(wrapper.find('[data-pptx-hit-target]').exists()).toBeFalsy();
+		});
+	});
 });

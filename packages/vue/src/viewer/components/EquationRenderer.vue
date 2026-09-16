@@ -6,6 +6,7 @@ import { convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
@@ -25,10 +26,25 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+ * equation box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 /** One rendered equation: sanitised MathML markup + optional equation number. */
@@ -76,6 +92,13 @@ const hasEquationContent = computed(() => equations.value.length > 0);
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
+		<!-- Interaction-only hit-target for a degenerate equation box; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<template v-if="hasEquationContent">
 			<template v-for="eq in equations" :key="eq.key">
 				<!-- Numbered equation: centered with the number right-aligned. -->

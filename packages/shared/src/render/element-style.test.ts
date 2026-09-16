@@ -17,6 +17,7 @@ import {
 	getImageOverflow,
 	getImageSrc,
 	paintedElementSize,
+	shouldRenderHitTarget,
 } from './element-style';
 
 function picture(overrides: Partial<PptxElement> = {}): PptxElement {
@@ -265,5 +266,26 @@ describe('elementHitTargetStyle', () => {
 			height: '12px',
 			pointerEvents: 'auto',
 		});
+	});
+});
+
+describe('shouldRenderHitTarget', () => {
+	// The single source of truth every binding's per-type renderer (shape,
+	// image, chart, table, media, ole, model3d, smartArt, equation, zoom,
+	// contentPart, ink, group, connector) must gate the overlay on.
+	it('is true only when interactive and not presenting', () => {
+		expect(shouldRenderHitTarget(true, false)).toBeTruthy();
+	});
+
+	it('is false while read-only', () => {
+		expect(shouldRenderHitTarget(false, false)).toBeFalsy();
+	});
+
+	it('is false while presenting, even if interactive', () => {
+		expect(shouldRenderHitTarget(true, true)).toBeFalsy();
+	});
+
+	it('is false when neither interactive nor presenting', () => {
+		expect(shouldRenderHitTarget(false, true)).toBeFalsy();
 	});
 });

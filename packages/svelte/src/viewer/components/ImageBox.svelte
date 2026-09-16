@@ -15,13 +15,29 @@
 		getImageTilingStyle,
 		resolveColorChangedImageSource,
 		resolveShapeGeometry,
+		shouldRenderHitTarget,
 	} from 'pptx-viewer-shared';
 
-	import { getContainerStyle, getImageSrc, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 	import ShapeEffectOverlay from './ShapeEffectOverlay.svelte';
 
-	const { element, mediaDataUrls, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		mediaDataUrls,
+		zIndex,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * picture; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	/**
 	 * The mask the picture's own shape geometry (`p:spPr/a:prstGeom` /
@@ -118,6 +134,10 @@
 </script>
 
 <div class="pptx-svelte-element pptx-svelte-image" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+	<!-- Interaction-only hit target for a degenerate picture; see `hitTarget`. -->
+	{#if hitTarget}
+		<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+	{/if}
 	<!-- SVG <filter> defs for duotone / advanced-alpha / artistic image effects. -->
 	{#each imageFx.svgFilters as f (f.id)}
 		<svg width="0" height="0" aria-hidden="true" style="position: absolute; width: 0; height: 0; overflow: hidden">

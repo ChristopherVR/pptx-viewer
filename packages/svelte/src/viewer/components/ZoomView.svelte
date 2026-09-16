@@ -14,10 +14,10 @@
 	 * thumbnails use the target slide's background, number, and section label.
 	 */
 	import { useTranslator } from '../../i18n/context';
-	import { buildSummaryZoomView } from 'pptx-viewer-shared';
+	import { buildSummaryZoomView, shouldRenderHitTarget } from 'pptx-viewer-shared';
 	import { resolveZoomView } from '../render';
 	import { resolveZoomTargetInfo, useZoomNavigation } from '../state/zoom-navigation-context';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	// The `interactive` prop is aliased to `markElement` here to keep it apart
@@ -31,9 +31,18 @@
 		presenting = false,
 		interactive: markElement = false,
 		marked = false,
+		editable = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
 	const navigation = useZoomNavigation();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE) zoom
+	 * tile; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const zoom = $derived(element.type === 'zoom' ? element : undefined);
 	const view = $derived(zoom ? resolveZoomView(zoom) : undefined);
@@ -110,6 +119,10 @@
 		onclick={onClick}
 		onkeydown={onKeydown}
 	>
+		<!-- Interaction-only hit target for a degenerate zoom tile; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if summaryView}
 			<div class="pptx-svelte-summary-zoom" style={styleToString(summaryView.containerStyle)}>
 				{#each summaryView.tiles as tile (tile.key)}

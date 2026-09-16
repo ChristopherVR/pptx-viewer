@@ -22,18 +22,33 @@
 	 * disposed when the component unmounts.
 	 */
 	import type { Model3DHandle } from 'pptx-viewer-shared';
-	import { mountModel3D } from 'pptx-viewer-shared';
+	import { mountModel3D, shouldRenderHitTarget } from 'pptx-viewer-shared';
 	import { onDestroy, tick } from 'svelte';
 
 	import { useTranslator } from '../../i18n/context';
 	import { modelDataToBlobUrl } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	type ViewState = 'idle' | 'loading' | 'mounted' | 'failed';
 
-	const { element, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE) 3D
+	 * model box; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const model = $derived(element.type === 'model3d' ? element : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
@@ -107,6 +122,10 @@
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
+		<!-- Interaction-only hit target for a degenerate 3D model box; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if viewState !== 'mounted'}
 			{#if posterSrc}
 				<img class="pptx-svelte-model3d-poster" src={posterSrc} alt={label} draggable="false" />

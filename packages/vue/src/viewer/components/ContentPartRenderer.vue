@@ -9,6 +9,7 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed, watchEffect } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { useSafeTranslate } from '../composables/useSafeTranslate';
 
@@ -29,12 +30,25 @@ const props = defineProps<{
 	element: PptxElement;
 	zIndex: number;
 	presenting?: boolean;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
 }>();
 
 const t = useSafeTranslate();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) content
+ * part ink box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 const contentPart = computed<ContentPartPptxElement | undefined>(() =>
@@ -85,6 +99,13 @@ function replayStyle(index: number): CSSProperties | undefined {
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
+		<!-- Interaction-only hit-target for a degenerate content part; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<svg
 			v-if="strokes.length > 0"
 			class="pptx-vue-contentpart-svg"

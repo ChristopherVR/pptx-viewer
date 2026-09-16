@@ -10,6 +10,7 @@ import {
 	elementHitTargetStyle,
 	getOverflowSegments,
 	placeholderPromptDescriptor,
+	shouldRenderHitTarget,
 	strokeOutlineViewBox,
 } from '../internal/shared';
 import type {
@@ -145,7 +146,9 @@ export class ElementRendererShapeComponent {
 	 * false) and when the authored box already meets the minimum size.
 	 */
 	readonly hitTargetStyle = computed(() =>
-		this.editable() && !this.presenting() ? elementHitTargetStyle(this.element()) : undefined,
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	/**

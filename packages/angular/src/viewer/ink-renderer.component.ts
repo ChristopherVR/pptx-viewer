@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import type { PptxElement } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
 
+import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
 import {
 	getInkReplayStyles,
 	INK_REPLAY_KEYFRAMES,
@@ -45,6 +46,10 @@ import type { InkStroke } from './ink-renderer-helpers';
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate ink stroke; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			@if (strokes().length > 0) {
 				<svg
 					class="pptx-ng-ink-svg"
@@ -107,6 +112,8 @@ export class InkRendererComponent {
 	readonly zIndex = input<number>(0);
 	readonly mediaDataUrls = input<Map<string, string>>(new Map());
 	readonly replay = input<boolean>(false);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
 	/**
 	 * Emit the neutral element marker (`data-pptx-element="true"`) on this
 	 * renderer's root, the node that also carries `data-element-id`.
@@ -136,6 +143,17 @@ export class InkRendererComponent {
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		buildInkContainerStyle(this.element(), this.zIndex()),
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate ink element; `replay()` is
+	 * this renderer's own name for `presenting` (see its doc). See
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.replay())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	readonly strokes = computed<InkStroke[]>(() => buildInkStrokes(this.element()));

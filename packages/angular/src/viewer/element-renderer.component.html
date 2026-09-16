@@ -62,6 +62,10 @@
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="elementMarked() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate group; see `hitTargetStyle`. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			<!-- A group paints no fill/outline of its own, but `p:grpSpPr/a:effectLst`
 			     DOES carry a shadow/glow/soft-edge for the group's own composite
 			     raster (the `filter`/`overflow` merged into `shapeContainerStyle()`
@@ -97,6 +101,8 @@
 			[mediaDataUrls]="mediaDataUrls()"
 			[zIndex]="zIndex()"
 			[interactive]="interactive()"
+			[editable]="editable()"
+			[presenting]="presenting()"
 			[marked]="elementMarked()"
 			[exposeElementId]="exposeElementId()"
 		/>

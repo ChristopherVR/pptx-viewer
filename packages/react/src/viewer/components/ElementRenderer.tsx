@@ -9,6 +9,7 @@ import {
 	inlineElementPointerEvents,
 	LINK_TOOLTIP_HOST_CLASS,
 	resolveElementInteractivity,
+	shouldRenderHitTarget,
 } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
 import type { CSSProperties } from 'react';
@@ -240,8 +241,9 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		// from the painted box so a thin authored line never paints as a thick
 		// bar in read-only rendering (issue #285). Never rendered while
 		// presenting: nothing on the show stage is draggable or selectable.
-		const hitTargetStyle =
-			effectiveCanInteract && !isPresentationPassive ? elementHitTargetStyle(el) : undefined;
+		const hitTargetStyle = shouldRenderHitTarget(effectiveCanInteract, isPresentationPassive)
+			? elementHitTargetStyle(el)
+			: undefined;
 
 		const isFocusable = effectiveCanInteract || isActionable;
 		const interactionProps = getElementInteractionProps({

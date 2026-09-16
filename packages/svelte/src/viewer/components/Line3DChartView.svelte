@@ -23,21 +23,39 @@
 	 */
 	import type { ChartPptxElement } from 'pptx-viewer-core';
 	import type { LineChart3DHandle } from 'pptx-viewer-shared';
-	import { buildLineChart3DDataForElement, canDrillDown, mountLineChart3D } from 'pptx-viewer-shared';
+	import { buildLineChart3DDataForElement, canDrillDown, mountLineChart3D, shouldRenderHitTarget } from 'pptx-viewer-shared';
 	import { onDestroy, tick } from 'svelte';
 
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 	import { Chart3DInteractionController } from './chart-3d-interaction.svelte';
 	import ChartView from './ChartView.svelte';
 
-	const { element, mediaDataUrls, zIndex, animationState, interactive = false, marked = false, onchartpointcommit }: ElementRendererProps = $props();
+	const {
+		element,
+		mediaDataUrls,
+		zIndex,
+		animationState,
+		interactive = false,
+		marked = false,
+		onchartpointcommit,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
 	/** Active font-style emphasis override for the axis labels, if any. */
 	const textStyle = $derived(animationState?.textStyle);
-	/** See `Bar3DChartView`'s `editable` doc; identical gate for a line3D chart's points. */
-	const editable = $derived(interactive && Boolean(onchartpointcommit) && canDrillDown(element));
+	/**
+	 * See `Bar3DChartView`'s `chartEditable` doc; identical gate for a line3D
+	 * chart's points. Named apart from the `editable` prop above, which gates
+	 * the degenerate-element hit target instead (issue #285).
+	 */
+	const chartEditable = $derived(interactive && Boolean(onchartpointcommit) && canDrillDown(element));
+	/** Interaction-only hit target for a degenerate chart; see `ElementRenderer`'s doc. */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	/** `true` once the WebGL scene has mounted; otherwise render the SVG fallback. */
 	let mounted = $state(false);
@@ -70,7 +88,7 @@
 			mounted = false;
 			return;
 		}
-		const result = editable
+		const result = chartEditable
 			? await mountLineChart3D(
 					sceneHost,
 					{ ...options, textStyle },
@@ -129,18 +147,22 @@
 	     2D marks: the shared 3D pointer wiring asks `isChartInteractionArmed` before
 	     it owns a mark press (select / value drag) instead of letting it bubble. -->
 	<div
-		class={`pptx-svelte-element pptx-svelte-line-chart-3d${editable ? ' pptx-chart-interactive' : ''}`}
+		class={`pptx-svelte-element pptx-svelte-line-chart-3d${chartEditable ? ' pptx-chart-interactive' : ''}`}
 		style={containerStyle}
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
+		<!-- Interaction-only hit target for a degenerate chart; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<div bind:this={sceneHost} class="pptx-svelte-line-chart-3d-scene"></div>
 		{#if interactionController.dragLabel !== null}
 			<div class="pptx-svelte-line-chart-3d-drag-badge">{interactionController.dragLabel}</div>
 		{/if}
 	</div>
 {:else}
-	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} {interactive} {marked} {onchartpointcommit} />
+	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} {interactive} {marked} {onchartpointcommit} {editable} {presenting} />
 {/if}
 
 <style>

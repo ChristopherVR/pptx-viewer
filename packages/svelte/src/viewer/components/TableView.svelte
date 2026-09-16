@@ -8,16 +8,33 @@
 	 * pattern fills, diagonal borders (SVG overlay), and rich per-run text.
 	 * All style resolution lives in `render/table-view.ts` + shared helpers.
 	 */
-	import { canDrillDown } from 'pptx-viewer-shared';
+	import { canDrillDown, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { buildTableRows, columnWidthStyles, tableRootStyle } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import { useTableStyleContext } from '../state/render-context';
 	import { useTableCellSelection } from '../state/table-cell-selection-context';
 	import type { ElementRendererProps } from './props';
 	import { TableResizeController } from './table-resize.svelte';
 
-	const { element, zIndex, interactive = false, marked = false, ontablecellcommit, ontableresizecolumns, ontableresizerow }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive = false,
+		marked = false,
+		ontablecellcommit,
+		ontableresizecolumns,
+		ontableresizerow,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * table; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const tableData = $derived(element.type === 'table' ? element.tableData : undefined);
 	const tableStyleContext = $derived(useTableStyleContext());
@@ -110,6 +127,10 @@
 	     the table inspector's width/height controls, as in the other four
 	     bindings. -->
 	<div bind:this={containerEl} class="pptx-svelte-element pptx-svelte-table" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined} onpointerdown={resizable ? resize.onpointerdown : undefined}>
+		<!-- Interaction-only hit target for a degenerate table; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<!-- Load-bearing family: an unstyled cell otherwise inherits the HOST
 		     chrome's font; all five bindings declare the same shared default. -->
 		<table class="pptx-svelte-table-grid" style={tableStyle}>

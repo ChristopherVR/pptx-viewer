@@ -33,6 +33,7 @@ import type { CSSProperties } from 'vue';
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import {
 	nodeIdsInRenderOrder,
@@ -81,6 +82,8 @@ const props = defineProps<{
 	interactive?: boolean;
 	/** Emit the data-pptx-element marker even when not interactive (template layer). */
 	marked?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 	/**
 	 * Native-animation playback state. A staged diagram build
 	 * (`build.kind === 'diagram'`) reveals the leading nodes / drawing shapes for
@@ -153,6 +156,17 @@ const containerStyle = computed<CSSProperties>(() =>
  */
 const rootPointerEvents = computed<CSSProperties | null>(() =>
 	props.interactive ? null : { pointerEvents: 'none' },
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+ * SmartArt: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 /**
@@ -409,6 +423,13 @@ function onEditorKeydown(event: KeyboardEvent): void {
 		:data-pptx-element="props.interactive || props.marked ? 'true' : undefined"
 		aria-roledescription="diagram"
 	>
+		<!-- Interaction-only hit-target for a degenerate SmartArt; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			`<style>` is a forbidden side-effect tag in an SFC template, so the
 			override is rendered through the dynamic `<component :is>` escape

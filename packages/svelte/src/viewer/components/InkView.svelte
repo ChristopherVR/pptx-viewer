@@ -11,10 +11,10 @@
 	 * lean, taking priority over plain pressure circles, matching
 	 * `ContentPartView.svelte`'s loaded-`p:contentPart` counterpart.
 	 */
-	import { INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
+	import { INK_REPLAY_KEYFRAMES, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { buildInkStrokes, inkViewBox } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	const {
@@ -23,7 +23,16 @@
 		presenting = false,
 		interactive = false,
 		marked = false,
+		editable = false,
 	}: ElementRendererProps = $props();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE) ink
+	 * element; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const ink = $derived(element.type === 'ink' ? element : undefined);
 	const strokes = $derived(ink ? buildInkStrokes(ink, presenting) : []);
@@ -33,6 +42,10 @@
 
 {#if ink}
 	<div class="pptx-svelte-element pptx-svelte-ink" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+		<!-- Interaction-only hit target for a degenerate ink element; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if strokes.length > 0}
 			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
 				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}

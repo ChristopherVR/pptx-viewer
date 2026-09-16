@@ -87,6 +87,22 @@ export function elementHitTargetStyle(el: PptxElement): CssStyleMap | undefined 
 }
 
 /**
+ * Whether a binding should render {@link elementHitTargetStyle}'s overlay at
+ * all, for ANY element type (shape/text, image, chart, table, media, ole,
+ * model3d, smartArt, equation, zoom, contentPart, ink, group, connector).
+ *
+ * The single source of truth for the interaction gate every binding's
+ * per-type renderer must apply: interactive/editable AND not on the live
+ * presentation stage. Centralising this (rather than each binding repeating
+ * `interactive && !presenting` at each of its ~11 call sites) is what keeps a
+ * future gate change (or a binding's copy of it) from drifting per element
+ * type (issue #285 follow-up).
+ */
+export function shouldRenderHitTarget(interactive: boolean, presenting: boolean): boolean {
+	return interactive && !presenting;
+}
+
+/**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
  * Mirrors the essentials of the React `getContainerStyle`.
  */

@@ -25,6 +25,7 @@ import {
 import type { ComponentPublicInstance, CSSProperties } from 'vue';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { injectTableCellEdit } from '../composables/table-edit';
 import { injectTableSelection, useTableCellSelection } from '../composables/table-selection';
@@ -66,6 +67,8 @@ const props = withDefaults(
 		interactive?: boolean;
 		/** Emit the data-pptx-element marker even when not interactive (template layer). */
 		marked?: boolean;
+		/** True only on the live presentation stage; see `hitTargetStyle`. */
+		presenting?: boolean;
 		/**
 		 * PPTX theme colour scheme from the active presentation theme.
 		 * When supplied, band / header emphasis colours are resolved against
@@ -103,6 +106,17 @@ const containerStyle = computed<CSSProperties>(() =>
  */
 const rootPointerEvents = computed<CSSProperties | null>(() =>
 	props.interactive ? null : { pointerEvents: 'none' },
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) table:
+ * see `ElementRenderer`'s `hitTargetStyle` doc comment (issue #285). Never
+ * rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 // Viewer-root-provided theme context (colour scheme / table-style map), used as
@@ -497,6 +511,13 @@ onBeforeUnmount(() => {
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
+		<!-- Interaction-only hit-target for a degenerate table; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			`<style>` is a forbidden side-effect tag in an SFC template, so the
 			override is rendered through the dynamic `<component :is>` escape

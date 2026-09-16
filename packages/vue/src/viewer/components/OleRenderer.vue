@@ -17,6 +17,7 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 
 /**
@@ -42,12 +43,27 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) OLE
+ * object box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 const ole = computed<OlePptxElement | undefined>(() =>
@@ -155,6 +171,13 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 		:aria-label="ariaLabel"
 		:title="infoTitle"
 	>
+		<!-- Interaction-only hit-target for a degenerate OLE object; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!-- Preview image with type badge overlay -->
 		<div v-if="previewSrc" class="pptx-vue-ole-preview">
 			<img :src="previewSrc" :alt="ariaLabel" class="pptx-vue-ole-img" draggable="false" />

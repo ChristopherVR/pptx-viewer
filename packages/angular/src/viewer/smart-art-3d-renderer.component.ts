@@ -16,6 +16,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
 import type { SmartArt3DModel, TextStyleAnimationDescriptor } from '../internal/shared';
 // Type-only import of the scene runtime; the implementation (which pulls the
 // optional `three` peer) is loaded lazily via dynamic import so it never lands
@@ -72,6 +73,10 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	 * SVG fallback branch is drawn into. Set only by the main interactive canvas.
 	 */
 	readonly markElement = input<boolean>(false);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
+	/** True only on the live presentation stage; see `ElementRendererComponent.presenting`. */
+	readonly presenting = input<boolean>(false);
 	/**
 	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
 	 * Change Font Style/Size) for every node's caption, driven by native-
@@ -107,6 +112,16 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate 3D SmartArt; see
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	private readonly smartArtData = computed(() => getSmartArtData(this.element()));

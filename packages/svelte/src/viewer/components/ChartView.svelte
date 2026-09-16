@@ -12,18 +12,38 @@
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
 	import type { ChartPptxElement } from 'pptx-viewer-core';
-	import { canDrillDown, resolveRevealedChartData } from 'pptx-viewer-shared';
+	import { canDrillDown, resolveRevealedChartData, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import { BarFacePictureSampleVersion } from './bar-face-picture-sample.svelte';
 	import ChartSvgView from './ChartSvgView.svelte';
 	import { ChartDragController } from './chart-drag.svelte';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, animationState, interactive = false, marked = false, selected = false, onchartpointcommit }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		animationState,
+		interactive = false,
+		marked = false,
+		selected = false,
+		onchartpointcommit,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * chart; see `ElementRenderer`'s identical `hitTarget` doc (issue #285).
+	 * Named apart from `chartEditable` below: this `editable` prop means "on
+	 * the main editing canvas", not "this chart's points are drilldown-editable".
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	/**
 	 * Direct on-canvas editing is live only on the editable canvas: the stage
@@ -34,7 +54,7 @@
 	let titleInputEl = $state<HTMLInputElement | null>(null);
 	// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
 	// individual parts (title, series, data points) for editing.
-	const editable = $derived(
+	const chartEditable = $derived(
 		interactive && Boolean(onchartpointcommit) && element.type === 'chart' && canDrillDown(element),
 	);
 	/**
@@ -47,7 +67,7 @@
 	 * click on an unselected chart now falls through and selects it like any
 	 * other element, exactly as clicking a bar in React does.
 	 */
-	const interactiveArmed = $derived(editable && selected);
+	const interactiveArmed = $derived(chartEditable && selected);
 	const drag = new ChartDragController({
 		element: () => element as ChartPptxElement,
 		root: () => rootEl,
@@ -119,6 +139,10 @@
 		onpointerdown={interactiveArmed ? drag.onpointerdown : undefined}
 		ondblclick={interactiveArmed ? drag.ondblclick : undefined}
 	>
+		<!-- Interaction-only hit target for a degenerate chart; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if view.kind === 'chart'}
 			<ChartSvgView vm={view.vm} preserveAspectRatio={view.preserveAspectRatio} {legendItems} />
 		{:else}

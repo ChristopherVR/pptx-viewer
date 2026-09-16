@@ -25,16 +25,36 @@
 		measureSvgViewportRect,
 		findSmartArtNodeText,
 		resolvePalette,
+		shouldRenderHitTarget,
 		smartArtConnectorPaint,
 		smartArtNodeLabel,
 	} from 'pptx-viewer-shared';
 	import type { RenderedNode } from 'pptx-viewer-shared';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 	import SmartArtDrawingView from './SmartArtDrawingView.svelte';
 
-	const { element, zIndex, interactive, marked = false, animationState, onsmartartnodecommit, onsmartartnodefill }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive,
+		marked = false,
+		animationState,
+		onsmartartnodecommit,
+		onsmartartnodefill,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * SmartArt diagram; see `ElementRenderer`'s identical `hitTarget` doc
+	 * (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const smartArt = $derived(element.type === 'smartArt' ? element : undefined);
 	const view = $derived(smartArt ? buildSmartArtView(smartArt, animationState) : undefined);
@@ -138,6 +158,10 @@
 		data-testid={`smartart-${smartArt?.smartArtData?.layout ?? 'diagram'}`}
 		aria-roledescription="diagram"
 	>
+		<!-- Interaction-only hit target for a degenerate SmartArt; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<div
 			bind:this={chromeEl}
 			class="pptx-svelte-smartart-chrome"

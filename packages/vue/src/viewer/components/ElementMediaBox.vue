@@ -24,6 +24,7 @@ import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { registerCrossSlideAudio } from '../composables/cross-slide-audio';
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 
 const props = defineProps<{
@@ -219,6 +220,17 @@ const fallbackLabelKey = computed(() => mediaFallbackLabelKey(fallback.value, me
 const rootPointerEvents = computed<CSSProperties | null>(() =>
 	props.interactive ? null : { pointerEvents: 'none' },
 );
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) media
+ * box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue #285).
+ * Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
+);
 </script>
 
 <template>
@@ -228,6 +240,13 @@ const rootPointerEvents = computed<CSSProperties | null>(() =>
 		:data-element-id="element.id"
 		:data-pptx-element="interactive || marked ? 'true' : undefined"
 	>
+		<!-- Interaction-only hit-target for a degenerate media box; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<video
 			v-if="mediaSrc && mediaKind === 'video'"
 			ref="mediaEl"

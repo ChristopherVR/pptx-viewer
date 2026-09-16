@@ -14,10 +14,12 @@ import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import {
 	applyMediaPlaybackAttributes,
+	elementHitTargetStyle,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaTransportVisible,
 	scheduleMediaTrimAndFade,
+	shouldRenderHitTarget,
 	startMediaAutoplay,
 } from '../internal/shared';
 import type { MediaFallbackVisual, MediaSurface } from '../internal/shared';
@@ -80,6 +82,10 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate media element; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			@if (mediaSrc(); as src) {
 				@if (mediaKind() === 'audio') {
 					<audio
@@ -238,6 +244,12 @@ export class MediaRendererComponent {
 	/** Keep the data-pptx-element marker on interaction-locked template elements. */
 	readonly marked = input<boolean>(false);
 	/**
+	 * Whether inline editing (drag/resize) is enabled on this surface. Distinct
+	 * from {@link interactive} above, which gates the transport/pointer-events
+	 * inertness and has its own, already-established semantics.
+	 */
+	readonly editable = input<boolean>(false);
+	/**
 	 * When true (default), the rendered node carries `data-element-id`. The
 	 * miniature surfaces that paint every slide at once turn it off so one
 	 * element id resolves to exactly one node in the document; see
@@ -369,6 +381,16 @@ export class MediaRendererComponent {
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		getContainerStyle(this.element(), this.zIndex()),
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate media element; see
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	/** Poster / preview frame data-URL (also used as the `<video poster>`). */

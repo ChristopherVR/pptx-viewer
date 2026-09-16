@@ -9,6 +9,10 @@
 		[attr.data-element-id]="element().id"
 		[attr.data-pptx-element]="markElement() ? 'true' : null"
 	>
+		<!-- Interaction-only hit target for a degenerate SmartArt; see `hitTargetStyle`. -->
+		@if (hitTargetStyle(); as hit) {
+			<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+		}
 		<pptx-smart-art-renderer [element]="element()" />
 	</div>
 } @else {
@@ -19,6 +23,10 @@
 		[attr.data-element-id]="element().id"
 		[attr.data-pptx-element]="markElement() ? 'true' : null"
 	>
+		<!-- Interaction-only hit target for a degenerate SmartArt; see `hitTargetStyle`. -->
+		@if (hitTargetStyle(); as hit) {
+			<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+		}
 		<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
 		@if (canEdit()) {
 			<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
