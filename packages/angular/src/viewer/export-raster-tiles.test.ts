@@ -58,12 +58,28 @@ describe('html2canvasFallbackFor', () => {
 
 		expect(result).toBe(canvas);
 		expect(renderToCanvas).toHaveBeenCalledWith(el, {
+			ignoreElements: expect.any(Function),
 			scale: 2,
 			x: 10,
 			y: 20,
 			width: 100,
 			height: 50,
 		});
+	});
+
+	it('excludes only explicitly marked HTML or SVG editor nodes in the fallback', async () => {
+		vi.mocked(renderToCanvas).mockResolvedValue(document.createElement('canvas'));
+		await html2canvasFallbackFor(document.createElement('div'))(
+			{ x: 0, y: 0, width: 100, height: 50 },
+			{ width: 100, height: 50 },
+		);
+		const ignore = vi.mocked(renderToCanvas).mock.calls[0][1]!.ignoreElements!;
+		const marked = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+		marked.setAttribute('data-export-ignore', 'true');
+		expect(ignore(marked)).toBeTruthy();
+		marked.setAttribute('data-export-ignore', 'false');
+		expect(ignore(marked)).toBeFalsy();
+		expect(ignore(document.createElement('div'))).toBeFalsy();
 	});
 
 	it('falls back to a scale of the output width when the source rect is zero-width', async () => {

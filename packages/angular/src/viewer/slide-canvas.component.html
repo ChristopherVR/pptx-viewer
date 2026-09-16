@@ -83,6 +83,7 @@
 			@for (box of selectionBoxes(); track box.id) {
 				<div
 					class="pptx-ng-selection"
+					data-export-ignore="true"
 					[style.left.px]="box.x"
 					[style.top.px]="box.y"
 					[style.width.px]="box.width"
@@ -93,6 +94,7 @@
 				<button
 					type="button"
 					class="pptx-ng-handle"
+					data-export-ignore="true"
 					data-pptx-compact
 					[attr.aria-label]="'pptx.selectionOverlay.resize' | translate: { handle: h.handle }"
 					[style.left.px]="h.left"
@@ -107,6 +109,7 @@
 			@if (marqueeRect(); as mr) {
 				<div
 					class="pptx-ng-marquee"
+					data-export-ignore="true"
 					[style.left.px]="mr.x"
 					[style.top.px]="mr.y"
 					[style.width.px]="mr.width"
@@ -116,6 +119,7 @@
 			@for (g of snapGuides(); track $index) {
 				<div
 					class="pptx-ng-snap-guide"
+					data-export-ignore="true"
 					[style.left.px]="g.axis === 'x' ? g.pos : g.start"
 					[style.top.px]="g.axis === 'x' ? g.start : g.pos"
 					[style.width.px]="g.axis === 'x' ? 0 : g.end - g.start"
@@ -126,6 +130,7 @@
 				<button
 					type="button"
 					class="pptx-ng-rotate-handle"
+					data-export-ignore="true"
 					data-pptx-compact
 					[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
 					[style.left.px]="rh.left"
@@ -149,6 +154,7 @@
 				<button
 					type="button"
 					class="pptx-ng-adjust-handle"
+					data-export-ignore="true"
 					data-pptx-compact
 					[attr.data-pptx-adjust-key]="ah.key"
 					[attr.aria-label]="'pptx.selectionOverlay.adjust' | translate"
@@ -169,6 +175,7 @@
 			@for (site of connectorSiteCandidates(); track site.key) {
 				<div
 					class="pptx-ng-connection-site"
+					data-export-ignore="true"
 					[class.is-snapped]="site.snapped"
 					data-pptx-connection-site
 					aria-hidden="true"
@@ -182,6 +189,7 @@
 				<button
 					type="button"
 					class="pptx-ng-connector-endpoint"
+					data-export-ignore="true"
 					[class.is-attached]="ep.attached"
 					[attr.data-pptx-connector-endpoint]="ep.kind"
 					[attr.data-pptx-connector-attached]="ep.attached"
@@ -240,6 +248,7 @@
 			@if (interactive() && showGrid()) {
 				<svg
 					class="pptx-ng-overlay-grid"
+					data-export-ignore="true"
 					aria-hidden="true"
 					[attr.width]="canvasSize().width"
 					[attr.height]="canvasSize().height"
@@ -275,6 +284,7 @@
 				-->
 				<svg
 					class="pptx-ng-overlay-guides"
+					data-export-ignore="true"
 					aria-hidden="true"
 					[attr.width]="canvasSize().width"
 					[attr.height]="canvasSize().height"
@@ -318,6 +328,7 @@
 					<!-- Guide line body: pointer-events:none -->
 					<div
 						class="pptx-ng-ruler-guide-line"
+						data-export-ignore="true"
 						[style.left.px]="g.axis === 'x' ? g.pos : 0"
 						[style.top.px]="g.axis === 'y' ? g.pos : 0"
 						[style.width]="g.axis === 'x' ? '1px' : '100%'"
@@ -326,6 +337,7 @@
 					<!-- Drag handle: pointer-events:auto -->
 					<div
 						class="pptx-ng-ruler-guide-handle"
+						data-export-ignore="true"
 						[style.left.px]="g.axis === 'x' ? g.pos - 4 : 0"
 						[style.top.px]="g.axis === 'y' ? g.pos - 4 : 0"
 						[style.width]="g.axis === 'x' ? '9px' : '100%'"
@@ -352,6 +364,7 @@
 			@if (inkDrawing.active() && inkDrawing.liveStrokeView() && drawTool() !== 'select') {
 				<svg
 					class="pptx-ng-ink-preview"
+					data-export-ignore="true"
 					aria-hidden="true"
 					[attr.width]="canvasSize().width"
 					[attr.height]="canvasSize().height"

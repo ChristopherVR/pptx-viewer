@@ -1,6 +1,31 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import html2canvasPro from 'html2canvas-pro';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import { _testing } from './canvas-export';
+import { _testing, renderToCanvas } from './canvas-export';
+
+vi.mock(import('html2canvas-pro'), () => ({ default: vi.fn() }));
+
+describe('renderToCanvas export clone', () => {
+	it('omits selection controls before the caller onclone without changing the live stage', async () => {
+		const source = document.createElement('div');
+		source.innerHTML =
+			'<div data-export-ignore="true">Rotate</div><div style="box-shadow: 2px 3px 4px black">Content</div>';
+		const original = source.outerHTML;
+		const clone = source.cloneNode(true) as HTMLElement;
+		const canvas = document.createElement('canvas');
+		vi.mocked(html2canvasPro).mockImplementationOnce(async (_element, options) => {
+			await options!.onclone!(document, clone);
+			return canvas;
+		});
+		const onclone = vi.fn((_doc: Document, element: HTMLElement) => {
+			expect(element.textContent).toBe('Content');
+			expect((element.firstElementChild as HTMLElement).style.boxShadow).toBe('2px 3px 4px black');
+		});
+		await expect(renderToCanvas(source, { onclone })).resolves.toBe(canvas);
+		expect(onclone).toHaveBeenCalledOnce();
+		expect(source.outerHTML).toBe(original);
+	});
+});
 
 const {
 	UNSUPPORTED_COLOR_RE,
