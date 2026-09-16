@@ -10,6 +10,7 @@
 		getComputedImageStyle,
 		getCropShapeClipPath,
 		getImageColorWashStyle,
+		getImageFillCounterTransform,
 		getImageFitStyle,
 		getImageOverflow,
 		getImageTilingStyle,
@@ -123,12 +124,23 @@
 				})
 			: '',
 	);
+	// `a:blipFill/@rotWithShape="0"`: keep the picture's pixels upright/fixed to
+	// the page frame while `containerStyle`'s clip-path still carries the
+	// shape's own rotate/flip. `undefined` (no-op) in the overwhelming majority
+	// of cases; see `getImageFillCounterTransform`.
+	const imageFitStyle = $derived(getImageFitStyle(element));
+	const fillCounterTransform = $derived(
+		getImageFillCounterTransform(element, Boolean(imageFitStyle.transform)),
+	);
 	const imgStyle = $derived(
 		styleToString({
-			...getImageFitStyle(element),
+			...imageFitStyle,
 			display: 'block',
 			...(imageFx.filter ? { filter: imageFx.filter } : {}),
 			...(imageFx.opacity !== undefined ? { opacity: imageFx.opacity } : {}),
+			...(fillCounterTransform
+				? { transform: fillCounterTransform, transformOrigin: 'center' }
+				: {}),
 		}),
 	);
 </script>

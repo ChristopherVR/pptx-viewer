@@ -3,6 +3,7 @@ import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
 import {
 	getComputedFillStyle,
 	getCropShapeClipPath as sharedGetCropShapeClipPath,
+	getImageFillCounterTransform,
 	getImageFitStyle,
 	getImageTilingStyle as sharedGetImageTilingStyle,
 	resolveShapeGeometry,
@@ -34,14 +35,24 @@ export function getImageMaskStyle(element: PptxElement): React.CSSProperties | u
  * The fit half lives in `pptx-viewer-shared` because every binding needs the
  * identical `<a:srcRect>` maths; only the mask (which depends on React's
  * resolved-clip-path helpers) stays here.
+ *
+ * `rotWithShape="0"` counter-transform: when the shared resolver decides the
+ * image content must stay upright against the frame's own rotate/flip (see
+ * `getImageFillCounterTransform`), the mask is dropped from THIS element
+ * (it would double-flip along with the counter-transform) - `ElementBody`'s
+ * `getImageSurfaceMaskStyle` wrapper already carries the identical mask
+ * unconditionally, so clipping is unaffected.
  */
 export function getImageRenderStyle(element: PptxElement): React.CSSProperties {
 	const fit = getImageFitStyle(element) as React.CSSProperties;
+	const counterTransform = getImageFillCounterTransform(element, Boolean(fit.transform));
 	return {
-		// A translated/scaled crop must be masked by its stationary wrapper, not
-		// by the moving bitmap itself.
-		...(fit.transform ? {} : getImageMaskStyle(element) || {}),
+		// A translated/scaled crop, or a rotWithShape=false counter-transform,
+		// must be masked by the stationary wrapper, not by the moving/counter-
+		// transformed bitmap itself.
+		...(fit.transform || counterTransform ? {} : getImageMaskStyle(element) || {}),
 		...fit,
+		...(counterTransform ? { transform: counterTransform, transformOrigin: 'center' } : {}),
 	};
 }
 

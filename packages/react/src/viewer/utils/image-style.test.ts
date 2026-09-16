@@ -361,6 +361,57 @@ describe('getImageRenderStyle', () => {
 		const style = getImageRenderStyle(el);
 		expect(style.transformOrigin).toBe('top left');
 	});
+
+	// Regression: a custGeom shape with `flipV="1"` and a `blipFill` whose
+	// `@rotWithShape="0"` used to render its photo upside down, because the
+	// element's own flip transform was applied to the whole picture including
+	// its pixel content. The picture's `<img>` must now carry the exact inverse
+	// transform so the bitmap stays upright while the outer frame (which owns
+	// the shape's geometry clip) still flips.
+	describe('rotWithShape=false counter-transform (issue: flipped picture fill)', () => {
+		it('counter-flips the img when fillImageRotWithShape is false', () => {
+			const el = makeImageElement({
+				flipVertical: true,
+				shapeType: 'custom',
+				shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+			} as Partial<PptxElement>);
+			const style = getImageRenderStyle(el);
+			expect(style.transform).toBe('scaleY(-1)');
+			expect(style.transformOrigin).toBe('center');
+		});
+
+		it('leaves the img untransformed when rotWithShape is unset (default true)', () => {
+			const el = makeImageElement({
+				flipVertical: true,
+				shapeStyle: { fillMode: 'image' },
+			} as Partial<PptxElement>);
+			const style = getImageRenderStyle(el);
+			expect(style.transform).toBeUndefined();
+		});
+
+		it('does not apply the counter-transform alongside a competing crop transform', () => {
+			const el = makeImageElement({
+				flipVertical: true,
+				cropLeft: 0.1,
+				shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+			} as Partial<PptxElement>);
+			const style = getImageRenderStyle(el);
+			// The crop transform wins; it must not be clobbered or combined.
+			expect(style.transform).toContain('translate');
+			expect(style.transformOrigin).toBe('top left');
+		});
+
+		it('drops the redundant per-img clip-path when counter-transforming (it would double-flip)', () => {
+			const el = makeImageElement({
+				flipVertical: true,
+				shapeType: 'ellipse',
+				shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+			} as Partial<PptxElement>);
+			const style = getImageRenderStyle(el);
+			expect(style.borderRadius).toBeUndefined();
+			expect(style.clipPath).toBeUndefined();
+		});
+	});
 });
 
 describe('getImageSurfaceMaskStyle', () => {

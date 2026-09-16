@@ -59,3 +59,45 @@ describe('imageBox reflection (regression: ShapeEffectOverlay was never mounted 
 		expect(target.querySelector('.pptx-svelte-reflection')).toBeNull();
 	});
 });
+
+describe('imageBox rotWithShape=false counter-transform (issue: flipped picture fill)', () => {
+	it('counter-flips the img when a blipFill disables rotWithShape', () => {
+		// Regression: a custGeom trapezoid with flipV="1" whose blipFill carries
+		// `rotWithShape="0"` used to render its photo upside down, because only
+		// the container's transform flipped the whole picture. The `<img>` must
+		// carry the exact inverse transform so the bitmap stays upright while
+		// the container's clip-path (the shape's own geometry) still flips.
+		const target = render({
+			type: 'picture',
+			id: 'pic-rotwithshape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			shapeType: 'custom',
+			imageData: 'data:image/png;base64,AAAA',
+			shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+		} as unknown as PptxElement);
+		const img = target.querySelector<HTMLImageElement>('img');
+		expect(img?.style.transform).toBe('scaleY(-1)');
+		const container = target.querySelector<HTMLElement>('.pptx-svelte-image');
+		expect(container?.style.transform).toContain('scaleY(-1)');
+	});
+
+	it('does not counter-flip the img when rotWithShape is unset (default true)', () => {
+		const target = render({
+			type: 'picture',
+			id: 'pic-rotwithshape-default',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			imageData: 'data:image/png;base64,AAAA',
+			shapeStyle: { fillMode: 'image' },
+		} as unknown as PptxElement);
+		const img = target.querySelector<HTMLImageElement>('img');
+		expect(img?.style.transform).not.toContain('scaleY(-1)');
+	});
+});

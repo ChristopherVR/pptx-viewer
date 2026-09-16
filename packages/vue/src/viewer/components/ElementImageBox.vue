@@ -11,6 +11,7 @@ import {
 	getComputedImageStyle,
 	getCropShapeClipPath,
 	getImageColorWashStyle,
+	getImageFillCounterTransform,
 	getImageFitStyle,
 	getImageOverflow,
 	getImageTilingStyle,
@@ -80,6 +81,13 @@ const containerStyle = computed<CSSProperties>(() => ({
 }));
 const imageFitStyle = computed<CSSProperties>(
 	() => getImageFitStyle(props.element) as CSSProperties,
+);
+// `a:blipFill/@rotWithShape="0"`: keep the picture's PIXELS upright/fixed to
+// the page frame while the container above (which owns the geometry clip)
+// still carries the shape's own rotate/flip. `undefined` (no-op) in the
+// overwhelming majority of cases; see `getImageFillCounterTransform`.
+const fillCounterTransform = computed<string | undefined>(() =>
+	getImageFillCounterTransform(props.element, Boolean(imageFitStyle.value.transform)),
 );
 // `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express, so
 // the picture paints as a repeating background layer instead. `undefined` for a
@@ -170,6 +178,9 @@ const hitTargetStyle = useElementHitTargetStyle(
 				display: 'block',
 				filter: imageFx.filter,
 				opacity: imageFx.opacity,
+				...(fillCounterTransform
+					? { transform: fillCounterTransform, transformOrigin: 'center' }
+					: {}),
 			}"
 		/>
 		<div

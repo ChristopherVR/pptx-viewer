@@ -261,6 +261,41 @@ describe('pptxShapeStyleExtractor', () => {
 			expect(style.fillMode).toBe('image');
 			expect(style.fillColor).toBe('transparent');
 		});
+
+		it('leaves fillImageRotWithShape undefined when @rotWithShape is absent (schema default true)', () => {
+			const spPr: XmlObject = {
+				'a:blipFill': {
+					'a:blip': { '@_r:embed': 'rId1' },
+				},
+			};
+			const style = extractor.extractShapeStyle(spPr);
+			expect(style.fillImageRotWithShape).toBeUndefined();
+		});
+
+		it('extracts fillImageRotWithShape=false from a:blipFill/@rotWithShape="0"', () => {
+			// Reproduces the slide 12 shape from the reported bug: a custGeom
+			// trapezoid with flipV="1" whose blipFill disables rotWithShape so the
+			// photo inside must stay upright while the outline flips.
+			const spPr: XmlObject = {
+				'a:blipFill': {
+					'@_rotWithShape': '0',
+					'a:blip': { '@_r:embed': 'rId8' },
+				},
+			};
+			const style = extractor.extractShapeStyle(spPr);
+			expect(style.fillImageRotWithShape).toBeFalsy();
+		});
+
+		it('extracts fillImageRotWithShape=true from a:blipFill/@rotWithShape="1"', () => {
+			const spPr: XmlObject = {
+				'a:blipFill': {
+					'@_rotWithShape': '1',
+					'a:blip': { '@_r:embed': 'rId1' },
+				},
+			};
+			const style = extractor.extractShapeStyle(spPr);
+			expect(style.fillImageRotWithShape).toBeTruthy();
+		});
 	});
 
 	// ── Group fill ───────────────────────────────────────────────────────

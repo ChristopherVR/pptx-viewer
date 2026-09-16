@@ -5,6 +5,7 @@ import {
 	getComputedImageStyle,
 	getCropShapeClipPath,
 	getImageColorWashStyle,
+	getImageFillCounterTransform,
 	getImageFitStyle,
 	getImageTilingStyle,
 	resolveShapeGeometry,
@@ -98,6 +99,18 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	}
 	if (computed.opacity !== undefined) {
 		imageStyle.opacity = computed.opacity;
+	}
+	// `a:blipFill/@rotWithShape="0"`: keep the picture's pixels upright/fixed to
+	// the page frame while `frameGeometryMask`'s container still carries the
+	// shape's own rotate/flip. `undefined` (no-op) in the overwhelming majority
+	// of cases; see `getImageFillCounterTransform`.
+	const fillCounterTransform = getImageFillCounterTransform(
+		element,
+		Boolean(imageStyle['transform']),
+	);
+	if (fillCounterTransform) {
+		imageStyle['transform'] = fillCounterTransform;
+		imageStyle['transform-origin'] = 'center';
 	}
 	const frameGeometryMask = buildAngularImageContainerMask(element);
 

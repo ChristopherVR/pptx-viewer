@@ -46,6 +46,56 @@ describe('element image box', () => {
 		expect(wrapper.get('img').attributes('src')).toBe('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=');
 	});
 
+	it('counter-flips the img when a blipFill disables rotWithShape (issue: flipped picture fill)', () => {
+		// Regression: a custGeom trapezoid with flipV="1" whose blipFill carries
+		// `rotWithShape="0"` used to render its photo upside down, because only
+		// the outer container's transform flipped the whole picture. The `<img>`
+		// must carry the exact inverse transform so the bitmap stays upright
+		// while the container's clip-path (the shape's own geometry) still flips.
+		const element = {
+			type: 'picture',
+			id: 'pic-rotwithshape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			shapeType: 'custom',
+			imageData: 'data:image/png;base64,AA==',
+			shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+		const style = wrapper.get('img').attributes('style') ?? '';
+
+		expect(style).toContain('transform: scaleY(-1)');
+		// The container (not the img) still carries the shape's own flip.
+		expect(wrapper.attributes('style') ?? '').toContain('scaleY(-1)');
+	});
+
+	it('does not counter-flip the img when rotWithShape is unset (default true)', () => {
+		const element = {
+			type: 'picture',
+			id: 'pic-rotwithshape-default',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			imageData: 'data:image/png;base64,AA==',
+			shapeStyle: { fillMode: 'image' },
+		} as unknown as ImagePptxElement;
+
+		const wrapper = mount(ElementImageBox, {
+			props: { element, mediaDataUrls: new Map(), zIndex: 0 },
+		});
+		const style = wrapper.get('img').attributes('style') ?? '';
+
+		expect(style).not.toContain('scaleY(-1)');
+	});
+
 	it('applies the authored source crop rather than fitting the whole bitmap', () => {
 		// Regression: a hard-coded `object-fit: contain` ignored `<a:srcRect>`, so
 		// an inset cropped out of a wide composite showed the whole composite.

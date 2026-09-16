@@ -60,6 +60,7 @@ export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
 // transform strings (flip/rotation/skew), and OOXML drawing-percent parsing.
 export * from './element-style-transform';
+export * from './image-fill-counter-transform';
 // OOXML drawing-colour resolution: colour-choice parsing (srgb/scrgb/sys/scheme/
 // hsl/preset), the 26 colour transforms via core, scheme inheritance, alpha.
 export * from './drawing-color';

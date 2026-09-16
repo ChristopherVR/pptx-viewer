@@ -3,6 +3,7 @@ import {
 	getContainerStyle,
 	getCropShapeClipPath,
 	getImageColorWashStyle,
+	getImageFillCounterTransform,
 	getImageFitStyle,
 	getImageOverflow,
 	getImageSrc,
@@ -104,9 +105,16 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		return el;
 	}
 
+	const fit = getImageFitStyle(element);
+	// `a:blipFill/@rotWithShape="0"`: keep the picture's pixels upright/fixed to
+	// the page frame while `el`'s clip-path still carries the shape's own
+	// rotate/flip. `undefined` (no-op) in the overwhelming majority of cases;
+	// see `getImageFillCounterTransform`.
+	const fillCounterTransform = getImageFillCounterTransform(element, Boolean(fit.transform));
 	const img = createEl(doc, 'img', undefined, {
-		...getImageFitStyle(element),
+		...fit,
 		display: 'block',
+		...(fillCounterTransform ? { transform: fillCounterTransform, transformOrigin: 'center' } : {}),
 	});
 	img.src = src;
 	img.alt = '';

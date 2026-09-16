@@ -47,6 +47,48 @@ describe('renderImageElement source effects', () => {
 		expect(wash.style.opacity).toBe('0.35');
 	});
 
+	it('counter-flips the img when a blipFill disables rotWithShape (issue: flipped picture fill)', () => {
+		// Regression: a custGeom trapezoid with flipV="1" whose blipFill carries
+		// `rotWithShape="0"` used to render its photo upside down, because only
+		// the outer container's transform flipped the whole picture. The
+		// `<img>` must carry the exact inverse transform so the bitmap stays
+		// upright while the container's clip-path (the shape's own geometry)
+		// still flips.
+		const element = {
+			type: 'picture',
+			id: 'pic-rotwithshape',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			shapeType: 'custom',
+			imageData: 'data:image/png;base64,source',
+			shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+		} as unknown as ImagePptxElement;
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+		expect(img.style.transform).toBe('scaleY(-1)');
+		expect(node.style.transform).toContain('scaleY(-1)');
+	});
+
+	it('does not counter-flip the img when rotWithShape is unset (default true)', () => {
+		const element = {
+			type: 'picture',
+			id: 'pic-rotwithshape-default',
+			x: 0,
+			y: 0,
+			width: 100,
+			height: 60,
+			flipVertical: true,
+			imageData: 'data:image/png;base64,source',
+			shapeStyle: { fillMode: 'image' },
+		} as unknown as ImagePptxElement;
+		const node = renderImageElement(element, 0, context()) as HTMLElement;
+		const img = node.querySelector('img') as HTMLImageElement;
+		expect(img.style.transform).not.toContain('scaleY(-1)');
+	});
+
 	it('applies a clip-path when the picture has a crop shape', () => {
 		const element: ImagePptxElement = {
 			type: 'image',

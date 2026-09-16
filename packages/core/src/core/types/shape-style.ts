@@ -121,6 +121,13 @@ export interface ShapeStyle {
 	fillImageUrl?: string;
 	/** How the image is sized within the shape: stretch to fill, or tile/repeat. */
 	fillImageMode?: 'stretch' | 'tile';
+	/** Whether the image fill rotates/flips with the shape (`a:blipFill/@rotWithShape`).
+	 *  Defaults to true per the schema; preserved for round-trip when the source
+	 *  authored the attribute explicitly. When false, the shape's own geometry
+	 *  (clip-path/outline) still carries the shape's rotation/flip, but the
+	 *  picture content inside stays fixed to the page frame (upright), matching
+	 *  PowerPoint. See `pptx-viewer-shared`'s `getImageFillCounterTransform`. */
+	fillImageRotWithShape?: boolean;
 	fillGradientStops?: Array<{
 		color: string;
 		position: number;

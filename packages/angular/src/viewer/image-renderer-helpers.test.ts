@@ -51,6 +51,33 @@ describe('buildAngularImageRenderView', () => {
 		expect(markup).toContain(`slope="${tint.slope}" intercept="${tint.intercept}"`);
 	});
 
+	it('counter-flips the img when a blipFill disables rotWithShape (issue: flipped picture fill)', () => {
+		// Regression: a custGeom trapezoid with flipV="1" whose blipFill carries
+		// `rotWithShape="0"` used to render its photo upside down, because only
+		// the frame container's transform flipped the whole picture. The `<img>`
+		// must carry the exact inverse transform so the bitmap stays upright
+		// while the frame's own clip-path (the shape's geometry) still flips.
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				flipVertical: true,
+				shapeType: 'custom',
+				shapeStyle: { fillMode: 'image', fillImageRotWithShape: false },
+			} as Partial<PptxElement>),
+		);
+		expect(view.imageStyle['transform']).toBe('scaleY(-1)');
+		expect(view.imageStyle['transform-origin']).toBe('center');
+	});
+
+	it('does not counter-flip the img when rotWithShape is unset (default true)', () => {
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				flipVertical: true,
+				shapeStyle: { fillMode: 'image' },
+			} as Partial<PptxElement>),
+		);
+		expect(view.imageStyle['transform']).toBeUndefined();
+	});
+
 	it('applies alphaModFix alone as opacity only, with no alpha SVG filter', () => {
 		// Regression for issue #286: alphaModFix alone must not also reference
 		// the imgalpha-<id> SVG filter (there would be no filter def to match it,

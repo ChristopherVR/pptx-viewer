@@ -151,6 +151,18 @@ export class PptxShapeStyleExtractor implements IPptxShapeStyleExtractor {
 			style.fillMode = 'image';
 			style.fillColor = 'transparent';
 			style.fillOpacity = 0;
+			// `a:blipFill/@rotWithShape` (default true): when explicitly false, the
+			// picture content must stay fixed to the page frame while the shape's own
+			// geometry still rotates/flips (issue: a custGeom trapezoid with
+			// flipV="1" and rotWithShape="0" rendered its photo upside down).
+			const blipRotToken = String(blipFill['@_rotWithShape'] ?? '')
+				.trim()
+				.toLowerCase();
+			if (blipRotToken === '1' || blipRotToken === 'true') {
+				style.fillImageRotWithShape = true;
+			} else if (blipRotToken === '0' || blipRotToken === 'false') {
+				style.fillImageRotWithShape = false;
+			}
 		} else if (shapeProps['a:grpFill'] !== undefined) {
 			style.fillMode = 'group';
 		} else if (styleNode?.['a:fillRef']) {
