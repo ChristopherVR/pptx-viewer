@@ -101,6 +101,23 @@ import { useViewerState, useEditorHistory } from 'pptx-react-viewer/internals';
 | `usePresenterWindow`         | 演讲者窗口与观众窗口消息通信。   |
 | `useAudienceMode`            | 观众窗口的渲染模式。             |
 
+## 幻灯片过渡辅助函数 {#slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包：它从不发布到 npm，因此该 monorepo 之外的代码无法直接 `import` 它。如果宿主搭建了自己的放映舞台（自定义 `SlideStage`，而非完整的 `PowerPointViewer`），仍然需要用到过渡解析器和关键帧，因此这里把整套接口重新导出：
+
+| 导出项                                                                                                                                                          | 职责                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition`                                                                                                                                        | 将 `PptxSlideTransition` 解析为退出层/进入层的 CSS `animation` 简写属性。                     |
+| `resolveTransitionDurationMs`                                                                                                                                   | 计算过渡的有效时长（毫秒），会考虑手动设置的时长、旧版 `spd` 取值和 PowerPoint 自身的默认值。 |
+| `getSlideTransitionAnimations`                                                                                                                                  | `resolveSlideTransition` 内部调用的底层解析函数（经典二维过渡系列）。                         |
+| `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                                                                               | 分别对应 Office 2013+（p15）影院级过渡系列和 Office 2010（p14）特效/三维过渡系列。            |
+| `SLIDE_TRANSITION_KEYFRAMES`（别名 `SLIDE_TRANSITION_KEYFRAMES_CSS`）                                                                                           | 上述所有解析出的动画名称所引用的完整 `@keyframes` 代码块。只需通过 `<style>` 标签注入一次。   |
+| `CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`                                                                                               | 已经并入 `SLIDE_TRANSITION_KEYFRAMES` 的关键帧子代码块；同时也单独导出。                      |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation`                                                                                                 | 将 OOXML 的 `dir` / `orient` 取值归一化为已解析的方向/朝向。                                  |
+| `resolveWheelSpokeCount`                                                                                                                                        | 将手动设置的 Wheel（车轮）辐条数吸附到 PowerPoint 提供的最接近取值。                          |
+| `RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_TRANSITION_DURATION_MS`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS` | 上述解析函数使用的辅助常量。                                                                  |
+| `PresentationTransitionOverlay`、`MorphTransitionOverlay`、`SlideLayer`、`FragmentedTransitionLayer`                                                            | 放映模式过渡叠加层组件本身，供需要整个渲染叠加层（而不只是 CSS 解析结果）的宿主使用。         |
+
 ## 协作 {#collaboration}
 
 公共子集见[协作](/zh/react/collaboration)，完整内部集合如下：

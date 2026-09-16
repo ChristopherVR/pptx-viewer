@@ -313,6 +313,23 @@ if (handler) {
 }
 ```
 
+### `pptx-vanilla-viewer/internals`：幻灯片过渡辅助函数 {#pptx-vanilla-viewer-internals-slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包：它从不发布到 npm，因此该 monorepo 之外的代码无法直接 `import` 它。宿主如果搭建了自己的放映界面，仍然需要用到过渡解析器/关键帧和 DOM 级叠加层驱动函数，因此它们改从 `pptx-vanilla-viewer/internals` 子路径重新导出：
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	playTransitionOverlay,
+} from 'pptx-vanilla-viewer/internals';
+```
+
+`resolveSlideTransition` 将 `PptxSlideTransition` 映射为退出层/进入层的 CSS `animation` 简写属性；`resolveTransitionDurationMs` 计算其有效时长（毫秒），会考虑手动设置的时长、旧版 `spd` 取值和 PowerPoint 自身的默认值；`SLIDE_TRANSITION_KEYFRAMES`（别名 `SLIDE_TRANSITION_KEYFRAMES_CSS`）是这些动画名称所引用的 `@keyframes` 代码块。`playTransitionOverlay` 是 Vanilla 绑定中对应其他绑定过渡叠加层组件的 DOM 驱动实现（这里没有组件模型可供渲染）：它会堆叠退出层/进入层的舞台快照并直接驱动 CSS 动画。同时导出的还有：`getSlideTransitionAnimations`、`getCinematicTransitionAnimations`、`getP14TransitionAnimations`、`CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`、`resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`，以及辅助常量（`RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_TRANSITION_DURATION_MS`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS`）。
+
+和其他绑定的 `internals` 入口一样，这里**不受语义化版本兼容保证约束**：只有当公开的 `pptx-vanilla-viewer` API 确实无法满足需求时才使用，并在依赖它时锁定精确版本。
+
 ## 销毁 {#teardown}
 
 | 方法      | 签名         | 说明                                      |
