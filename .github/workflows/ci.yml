@@ -484,8 +484,28 @@ jobs:
       - name: Install Playwright browsers
         run: bun run e2e:install
 
+      # Retries the whole `bun run e2e` invocation (not just individual
+      # Playwright tests, which already get `retries: 2` from the config) up
+      # to once more on a hard failure. This exists for a specific, observed
+      # failure mode: on 2026-09-16/17 the vue/vanilla/svelte legs' shard 4/12
+      # got killed outright with "the runner has received a shutdown signal"
+      # (exit 143) partway through, sometimes before a single test finished -
+      # never react/angular, never reproducible locally, and which binding
+      # failed varied run to run. That shape (whole-runner kill, no
+      # deterministic test, no local repro) is CI-runner flakiness, not a
+      # product bug Playwright's own per-test retries can catch, since the
+      # runner dying takes the whole process (and its retry state) with it. A
+      # fresh process invocation is what actually recovers from it.
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/12)
-        run: bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/12 --workers=1 --reporter=list,html,github
+        run: |
+          for attempt in 1 2; do
+            bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/12 --workers=1 --reporter=list,html,github
+            status=$?
+            [ $status -eq 0 ] && exit 0
+            echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/12 failed (exit $status)"
+            sleep 15
+          done
+          exit $status
 
       # Failures used to be visible only by downloading an artifact, which meant
       # nobody looked. Put the failing spec names in the run summary instead.
