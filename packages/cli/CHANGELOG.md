@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.17.0) - 2026-09-16
+
+### Features
+
+- **bindings:** Expose the shared image file construction helper (by @Sudhansh6) ([14f3f08](https://github.com/ChristopherVR/pptx-viewer/commit/14f3f084e39bd6b5c822a3af8d7f572e55533bef))
+
+### Bug Fixes
+
+- **react:** Preserve the rotation grab offset for all pointer types (by @Sudhansh6) ([768ee79](https://github.com/ChristopherVR/pptx-viewer/commit/768ee79204788e13c9b1fa0b77d1644ae5316754))
+- **react:** Follow remounted canvas viewport nodes (by @Sudhansh6) ([6cda987](https://github.com/ChristopherVR/pptx-viewer/commit/6cda987084b74ab1fa28cdf5553e5effdaa53569))
+- **react:** Disable font pickers without an editable text target (by @Sudhansh6) ([22a5c9a](https://github.com/ChristopherVR/pptx-viewer/commit/22a5c9ae5d62ec7255cf6d91708145384d358d02))
+- **react:** Keep selection controls screen-sized while zooming (by @Sudhansh6) ([b743f17](https://github.com/ChristopherVR/pptx-viewer/commit/b743f179713d1ada767b14ca112b5cac234ca0a9))
+
 ## [2.16.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.2) - 2026-09-15
 
 ### Bug Fixes

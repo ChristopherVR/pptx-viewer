@@ -8,6 +8,46 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-16
+
+_Releases: @christophervr/pptx-viewer@2.17.0_
+
+### Features
+
+- **shared:** Construct image elements from local image files (by @Sudhansh6) ([562fb4a](https://github.com/ChristopherVR/pptx-viewer/commit/562fb4acf0fd2f7c3031542da05454bcfcd87ab3))
+- **bindings:** Expose the shared image file construction helper (by @Sudhansh6) ([14f3f08](https://github.com/ChristopherVR/pptx-viewer/commit/14f3f084e39bd6b5c822a3af8d7f572e55533bef))
+
+### Bug Fixes
+
+- **vanilla:** Open bootstrap source after loading (by @ChristopherVR) ([4c94ab3](https://github.com/ChristopherVR/pptx-viewer/commit/4c94ab31e78a0f3eeaed08b8f4db25bbefc5480c))
+- **shared:** Retain loaded webfonts during slide edits (by @ChristopherVR) ([4f81eb0](https://github.com/ChristopherVR/pptx-viewer/commit/4f81eb062431a273cf714cafc751cc4b8446f30c))
+- **ci:** Honor package test setup (by @ChristopherVR) ([d5e22d1](https://github.com/ChristopherVR/pptx-viewer/commit/d5e22d129b67a6aedd5453a1b89f284e6fa0d15b))
+- **tests:** Numerous test issues (by @ChristopherVR) ([c5b8260](https://github.com/ChristopherVR/pptx-viewer/commit/c5b826079078371191b48e04db0e7e4e6877435c))
+- **vue:** Bundle public declarations with the current plugin options (by @Sudhansh6) ([8625d4e](https://github.com/ChristopherVR/pptx-viewer/commit/8625d4e3b2260c368d407f7ac92c45b9344a8304))
+- **react:** Exempt resize handles from the button size floor (by @Sudhansh6) ([1ef252e](https://github.com/ChristopherVR/pptx-viewer/commit/1ef252e5ed33cc5781623863b1508a895bd4d78d))
+- **angular:** Exempt selection controls from the button size floor (by @Sudhansh6) ([24afa77](https://github.com/ChristopherVR/pptx-viewer/commit/24afa777ecbacc41673b50fa08f1922b6c2b6ad9))
+- **shared:** Anchor rotation gestures to their initial press (by @Sudhansh6) ([798c83c](https://github.com/ChristopherVR/pptx-viewer/commit/798c83c91cb7cf0ebafd1f2c206ec02f701c5ecc))
+- **react:** Preserve the rotation grab offset for all pointer types (by @Sudhansh6) ([768ee79](https://github.com/ChristopherVR/pptx-viewer/commit/768ee79204788e13c9b1fa0b77d1644ae5316754))
+- **react:** Follow remounted canvas viewport nodes (by @Sudhansh6) ([6cda987](https://github.com/ChristopherVR/pptx-viewer/commit/6cda987084b74ab1fa28cdf5553e5effdaa53569))
+- **react:** Disable font pickers without an editable text target (by @Sudhansh6) ([22a5c9a](https://github.com/ChristopherVR/pptx-viewer/commit/22a5c9ae5d62ec7255cf6d91708145384d358d02))
+- **vue:** Match font picker availability to formatting commands (by @Sudhansh6) ([ec2f991](https://github.com/ChristopherVR/pptx-viewer/commit/ec2f9912187162619a1a1bd94317bb7aca7dc44a))
+- **angular:** Gate font controls on editable text selection (by @Sudhansh6) ([3fe14c7](https://github.com/ChristopherVR/pptx-viewer/commit/3fe14c71e922e1113091fcbfd01b476edcd94da7))
+- **svelte:** Disable font pickers when their commands cannot act (by @Sudhansh6) ([978c2fd](https://github.com/ChristopherVR/pptx-viewer/commit/978c2fdc0278eb9b540a32ffce2295cba47d6352))
+- **vanilla:** Reuse text eligibility for font pickers (by @Sudhansh6) ([19fec71](https://github.com/ChristopherVR/pptx-viewer/commit/19fec7121dc7da5aa255bfb54b88616761d3d60d))
+- **react:** Keep selection controls screen-sized while zooming (by @Sudhansh6) ([b743f17](https://github.com/ChristopherVR/pptx-viewer/commit/b743f179713d1ada767b14ca112b5cac234ca0a9))
+
+### Documentation
+
+- Describe local image construction across bindings (by @Sudhansh6) ([1c8916f](https://github.com/ChristopherVR/pptx-viewer/commit/1c8916f808ff5b3b3cae000cfae77aa4fc57ba34))
+
+### Testing
+
+- **vue:** Capture declaration options after per-test mock cleanup (by @Sudhansh6) ([64f76ab](https://github.com/ChristopherVR/pptx-viewer/commit/64f76ab424b6129524cf508ff9e0295d4bb3f0a6))
+- **e2e:** Keep selection control centers on shape corners (by @Sudhansh6) ([4484daf](https://github.com/ChristopherVR/pptx-viewer/commit/4484daf557c9c3e226d703de2e992dea01e722db))
+- Cover off-center rotation across viewer bindings (by @Sudhansh6) ([c243cde](https://github.com/ChristopherVR/pptx-viewer/commit/c243cde22295803ec2f9faecd9ca58471a3b119f))
+- **e2e:** Verify font picker selection eligibility across bindings (by @Sudhansh6) ([ea266a9](https://github.com/ChristopherVR/pptx-viewer/commit/ea266a9b5209f4791b41737bfd6640c3beece029))
+- **e2e:** Keep selection handle sizes stable across zoom levels (by @Sudhansh6) ([52ee1c2](https://github.com/ChristopherVR/pptx-viewer/commit/52ee1c2020e856331bb67c4f02b45cc5e7ee5ff5))
+
 ## 2026-09-15
 
 _Releases: @christophervr/pptx-viewer@2.16.2_
