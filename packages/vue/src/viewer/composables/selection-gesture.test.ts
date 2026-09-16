@@ -178,12 +178,23 @@ describe('useSelectionGesture: resize', () => {
 });
 
 describe('useSelectionGesture: rotate', () => {
+	it('preserves the initial grab angle in both preview and commit', () => {
+		const { gesture, onTransform, onTransformEnd } = setup({
+			a: box({ x: 0, y: 0, rotation: 43 }),
+		});
+		gesture.beginGesture('rotate', 'a', pointer('pointerdown', { clientX: 60, clientY: 0 }));
+		window.dispatchEvent(pointer('pointermove', { clientX: 100, clientY: 0 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 100, clientY: 0 }));
+		expect(onTransform.mock.calls[0]?.[0].rotation).toBeCloseTo(76.6900675);
+		expect(onTransformEnd.mock.calls[0]?.[0].rotation).toBeCloseTo(76.6900675);
+	});
+
 	it('snaps to the nearest 15deg step only when shift is held', () => {
 		const { gesture, onTransformEnd } = setup({ a: box({ x: 0, y: 0, width: 100, height: 100 }) });
 
 		// Center is (50, 50); pointer at (110, -30) is ~36.87deg clockwise from
 		// straight up, which is within the 7.5deg snap tolerance of 30deg.
-		gesture.beginGesture('rotate', 'a', pointer('pointerdown', { clientX: 0, clientY: 0 }));
+		gesture.beginGesture('rotate', 'a', pointer('pointerdown', { clientX: 50, clientY: 0 }));
 		window.dispatchEvent(pointer('pointermove', { clientX: 110, clientY: -30 }));
 		window.dispatchEvent(pointer('pointerup', { clientX: 110, clientY: -30 }));
 
@@ -194,7 +205,7 @@ describe('useSelectionGesture: rotate', () => {
 	it('snaps with shift held', () => {
 		const { gesture, onTransformEnd } = setup({ a: box({ x: 0, y: 0, width: 100, height: 100 }) });
 
-		gesture.beginGesture('rotate', 'a', pointer('pointerdown', { clientX: 0, clientY: 0 }));
+		gesture.beginGesture('rotate', 'a', pointer('pointerdown', { clientX: 50, clientY: 0 }));
 		window.dispatchEvent(pointer('pointermove', { clientX: 110, clientY: -30, shiftKey: true }));
 		window.dispatchEvent(pointer('pointerup', { clientX: 110, clientY: -30, shiftKey: true }));
 
