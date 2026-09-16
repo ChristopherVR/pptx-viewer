@@ -289,6 +289,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * background. Returns the preset name plus resolved fg/bg colours so
 	 * renderers can draw a real SVG pattern instead of a flat fill.
 	 *
+	 * `a:alpha` (or `a:alphaMod`/`a:alphaOff`) on either `a:fgClr` or
+	 * `a:bgClr` is composited onto white the same way the flat-colour
+	 * fallback in {@link extractBackgroundColor} already does, matching how
+	 * PowerPoint renders a semi-transparent pattern colour: always against
+	 * white, never against whatever backdrop happens to sit behind the
+	 * stage. See issue #288.
+	 *
 	 * ECMA-376 §20.1.8.47.
 	 */
 	protected extractBackgroundPattern(
@@ -304,8 +311,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!preset) {
 				return undefined;
 			}
-			const fgColor = this.parseColor(xmlChild(pattFill, 'a:fgClr'));
-			const bgColor = this.parseColor(xmlChild(pattFill, 'a:bgClr'));
+			const fgClrNode = xmlChild(pattFill, 'a:fgClr');
+			const bgClrNode = xmlChild(pattFill, 'a:bgClr');
+			const fgColor = this.blendBackgroundColorOntoWhite(
+				this.parseColor(fgClrNode),
+				this.extractColorOpacity(fgClrNode),
+			);
+			const bgColor = this.blendBackgroundColorOntoWhite(
+				this.parseColor(bgClrNode),
+				this.extractColorOpacity(bgClrNode),
+			);
 			return {
 				preset,
 				fgColor,

@@ -106,6 +106,44 @@ function extractBackgroundColor(
 	return undefined;
 }
 
+// --- Extracted from extractBackgroundPattern ---
+function extractBackgroundPattern(
+	slideXml: Record<string, unknown>,
+	rootElement: string = 'p:sld',
+): { preset: string; fgColor?: string; bgColor?: string } | undefined {
+	try {
+		const root = slideXml[rootElement] as Record<string, unknown> | undefined;
+		const bgPr = (
+			(root?.['p:cSld'] as Record<string, unknown> | undefined)?.['p:bg'] as
+				| Record<string, unknown>
+				| undefined
+		)?.['p:bgPr'] as Record<string, unknown> | undefined;
+		const pattFill = bgPr?.['a:pattFill'] as Record<string, unknown> | undefined;
+		if (!pattFill) {
+			return undefined;
+		}
+		const preset = String(pattFill['@_prst'] ?? '').trim();
+		if (!preset) {
+			return undefined;
+		}
+		const fgClrNode = pattFill['a:fgClr'] as Record<string, unknown> | undefined;
+		const bgClrNode = pattFill['a:bgClr'] as Record<string, unknown> | undefined;
+		const fgColorRaw = parseColor(fgClrNode);
+		const bgColorRaw = parseColor(bgClrNode);
+		return {
+			preset,
+			fgColor: fgColorRaw
+				? blendColorOntoWhite(fgColorRaw, extractColorOpacity(fgClrNode))
+				: fgColorRaw,
+			bgColor: bgColorRaw
+				? blendColorOntoWhite(bgColorRaw, extractColorOpacity(bgClrNode))
+				: bgColorRaw,
+		};
+	} catch {
+		return undefined;
+	}
+}
+
 // --- Extracted: check if background has a gradient fill ---
 function hasBackgroundGradient(
 	slideXml: Record<string, unknown>,
@@ -363,6 +401,131 @@ describe('extractBackgroundColor', () => {
 			},
 		});
 		expect(result).toBe(blendColorOntoWhite('#4472C4', 0.5));
+	});
+});
+
+// ---------------------------------------------------------------------------
+// extractBackgroundPattern
+// ---------------------------------------------------------------------------
+// Issue #288 follow-up: the tiled-pattern path (PptxSlideBackgroundPattern,
+// rendered as a real SVG pattern) ignored a:alpha on both a:fgClr and
+// a:bgClr, the same gap the flat extractBackgroundColor fallback had before
+// the original fix.
+describe('extractBackgroundPattern', () => {
+	it('should return undefined when there is no pattern fill', () => {
+		expect(
+			extractBackgroundPattern({
+				'p:sld': { 'p:cSld': { 'p:bg': { 'p:bgPr': {} } } },
+			}),
+		).toBeUndefined();
+	});
+
+	it('should return undefined when the pattern has no preset', () => {
+		expect(
+			extractBackgroundPattern({
+				'p:sld': {
+					'p:cSld': {
+						'p:bg': {
+							'p:bgPr': {
+								'a:pattFill': {
+									'a:fgClr': { 'a:srgbClr': { '@_val': 'FF0000' } },
+								},
+							},
+						},
+					},
+				},
+			}),
+		).toBeUndefined();
+	});
+
+	it('extracts preset and colours unchanged when neither colour has alpha', () => {
+		const result = extractBackgroundPattern({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:pattFill': {
+								'@_prst': 'ltUpDiag',
+								'a:fgClr': { 'a:srgbClr': { '@_val': 'FF0000' } },
+								'a:bgClr': { 'a:srgbClr': { '@_val': '0000FF' } },
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result).toStrictEqual({ preset: 'ltUpDiag', fgColor: '#FF0000', bgColor: '#0000FF' });
+	});
+
+	it('blends a:alpha onto white for the pattern foreground colour', () => {
+		const result = extractBackgroundPattern({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:pattFill': {
+								'@_prst': 'pct50',
+								'a:fgClr': {
+									'a:srgbClr': {
+										'@_val': 'CEE0F3',
+										'a:alpha': { '@_val': '43211' },
+									},
+								},
+								'a:bgClr': { 'a:srgbClr': { '@_val': 'FFFFFF' } },
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result?.fgColor).toBe('#EAF2FA');
+		expect(result?.bgColor).toBe('#FFFFFF');
+	});
+
+	it('blends a:alpha onto white for the pattern background colour', () => {
+		const result = extractBackgroundPattern({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:pattFill': {
+								'@_prst': 'pct50',
+								'a:fgClr': { 'a:srgbClr': { '@_val': '000000' } },
+								'a:bgClr': {
+									'a:srgbClr': {
+										'@_val': 'CEE0F3',
+										'a:alpha': { '@_val': '43211' },
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result?.fgColor).toBe('#000000');
+		expect(result?.bgColor).toBe('#EAF2FA');
+	});
+
+	it('leaves both colours unchanged when a:alpha is 100000 (fully opaque)', () => {
+		const result = extractBackgroundPattern({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:pattFill': {
+								'@_prst': 'pct50',
+								'a:fgClr': {
+									'a:srgbClr': { '@_val': 'CEE0F3', 'a:alpha': { '@_val': '100000' } },
+								},
+								'a:bgClr': { 'a:srgbClr': { '@_val': 'FFFFFF' } },
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result?.fgColor).toBe('#CEE0F3');
 	});
 });
 

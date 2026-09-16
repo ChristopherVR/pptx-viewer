@@ -44,6 +44,28 @@ async function fixtureWithSemiTransparentBackground(): Promise<ArrayBuffer> {
 	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
 }
 
+/**
+ * Second slide's background swapped from `a:solidFill` to a semi-transparent
+ * `a:pattFill`: `a:fgClr` carries the same #CEE0F3 @ 43211 alpha as the solid
+ * case above, `a:bgClr` is a fully opaque white. Targets slide 2 (not slide 1,
+ * used by the solid-fill test above) so the two fixtures stay independent.
+ */
+async function fixtureWithSemiTransparentPatternBackground(): Promise<ArrayBuffer> {
+	const zip = await JSZip.loadAsync(fixtureBytes());
+	const slidePath = 'ppt/slides/slide2.xml';
+	const xml = await zip.file(slidePath)!.async('string');
+	const bgMatch = /<p:bg>[\s\S]*?<\/p:bg>/u.exec(xml);
+	expect(bgMatch).not.toBeNull();
+	const patternBg =
+		'<p:bg><p:bgPr><a:pattFill prst="pct50">' +
+		'<a:fgClr><a:srgbClr val="CEE0F3"><a:alpha val="43211"/></a:srgbClr></a:fgClr>' +
+		'<a:bgClr><a:srgbClr val="FFFFFF"></a:srgbClr></a:bgClr>' +
+		'</a:pattFill><a:effectLst></a:effectLst></p:bgPr></p:bg>';
+	zip.file(slidePath, xml.replace(bgMatch![0], patternBg));
+	const bytes = await zip.generateAsync({ type: 'uint8array' });
+	return bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer;
+}
+
 describe('background a:solidFill a:alpha', () => {
 	it('blends the alpha onto white for slide.backgroundColor', async () => {
 		const handler = new PptxHandler();
@@ -75,5 +97,39 @@ describe('background a:solidFill a:alpha', () => {
 			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
 		);
 		expect(reloaded.slides[0]?.backgroundColor).toBe('#EAF2FA');
+	});
+});
+
+describe('background a:pattFill a:alpha', () => {
+	it('blends a:alpha onto white for both pattern colours', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await fixtureWithSemiTransparentPatternBackground());
+		const slide = data.slides[1]!;
+		expect(slide.backgroundPattern?.preset).toBe('pct50');
+		expect(slide.backgroundPattern?.fgColor).toBe('#EAF2FA');
+		expect(slide.backgroundPattern?.bgColor).toBe('#FFFFFF');
+	});
+
+	it('round-trips a:alpha through a full save/reload of an untouched pattern background', async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await fixtureWithSemiTransparentPatternBackground());
+		const slide = data.slides[1]!;
+		expect(slide.backgroundPattern?.fgColor).toBe('#EAF2FA');
+
+		// Same "untouched background, edited slide" scenario as the solid-fill
+		// round-trip above: mark dirty without touching the background.
+		slide.isDirty = true;
+		const saved = await handler.save(data.slides);
+
+		const savedZip = await JSZip.loadAsync(saved);
+		const savedXml = await savedZip.file('ppt/slides/slide2.xml')!.async('string');
+		expect(savedXml).toContain('<a:pattFill prst="pct50">');
+		expect(savedXml).toContain('<a:srgbClr val="CEE0F3">');
+		expect(savedXml).toContain('<a:alpha val="43211"');
+
+		const reloaded = await new PptxHandler().load(
+			saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer,
+		);
+		expect(reloaded.slides[1]?.backgroundPattern?.fgColor).toBe('#EAF2FA');
 	});
 });
