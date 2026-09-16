@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
+import { isExportIgnoredElement, prepareExportClone } from './export-clone';
 import { buildForeignObjectSvgBody, wrapForeignObjectSvg } from './foreign-object-svg-document';
 
 describe('wrapForeignObjectSvg', () => {
@@ -35,6 +36,99 @@ describe('wrapForeignObjectSvg', () => {
 });
 
 describe('buildForeignObjectSvgBody', () => {
+	it('restores explicit authored paint after style copying without erasing shape decoration', async () => {
+		const el = document.createElement('div');
+		el.innerHTML = '<div id="shape">Authored text</div><div id="unmarked">Shadow</div>';
+		const shape = el.firstElementChild as HTMLElement;
+		shape.style.cssText =
+			'outline: 2px solid blue; outline-offset: -1px; box-shadow: 0 0 0 2px blue; border: 3px solid red; border-radius: 8px; clip-path: polygon(0 0, 100% 0, 0 100%); filter: drop-shadow(1px 2px 3px black)';
+		shape.dataset.exportOriginalOutline = 'none';
+		shape.dataset.exportOriginalOutlineOffset = '0px';
+		shape.dataset.exportOriginalBoxShadow = 'inset 0 0 0 3px red, 2px 3px 4px black';
+		shape.dataset.exportOriginalBorder = 'none';
+		(el.lastElementChild as HTMLElement).style.boxShadow = '4px 5px 6px black';
+		document.body.appendChild(el);
+		const original = el.outerHTML;
+		try {
+			const body = await buildForeignObjectSvgBody(el, document, { width: 100, height: 50 });
+			const parsed = document.createElement('div');
+			parsed.innerHTML = body.bodyMarkup;
+			const exported = parsed.querySelector<HTMLElement>('#shape')!;
+			expect(exported.style.outline).toBe('none');
+			expect(exported.style.outlineOffset).toBe('0px');
+			expect(exported.style.boxShadow).toBe(shape.dataset.exportOriginalBoxShadow);
+			expect(exported.style.border).toBe(getComputedStyle(shape).border);
+			expect(exported.style.borderRadius).toBe('8px');
+			expect(exported.style.clipPath).toBe(shape.style.clipPath);
+			expect(exported.style.filter).toBe(shape.style.filter);
+			expect(parsed.querySelector<HTMLElement>('#unmarked')!.style.boxShadow).toBe(
+				'4px 5px 6px black',
+			);
+			expect(el.outerHTML).toBe(original);
+		} finally {
+			el.remove();
+		}
+	});
+
+	it('prepares a fallback clone including paint recorded on its root', () => {
+		const clone = document.createElement('div');
+		clone.style.outline = '2px solid blue';
+		clone.dataset.exportOriginalOutline = '1px dashed orange';
+		clone.innerHTML =
+			'<svg><circle data-export-ignore="true"/><path/></svg><div data-export-ignore="false">Keep</div>';
+		expect(isExportIgnoredElement(clone.querySelector('circle')!)).toBeTruthy();
+		expect(isExportIgnoredElement(clone.lastElementChild!)).toBeFalsy();
+		expect(isExportIgnoredElement(clone)).toBeFalsy();
+		prepareExportClone(clone);
+		expect(clone.style.outline).toBe('1px dashed orange');
+		expect(clone.querySelector('circle')).toBeNull();
+		expect(clone.querySelector('path')).not.toBeNull();
+		expect(clone.textContent).toBe('Keep');
+	});
+
+	it('omits marked HTML and SVG editor nodes without changing content or the live tree', async () => {
+		const el = document.createElement('div');
+		el.innerHTML =
+			'<div data-export-ignore="true">Resize<button>Rotate</button></div>' +
+			'<div data-export-ignore="false">Authored text</div>' +
+			'<svg><path data-export-ignore="true" d="M0 0L1 1"/><path d="M1 1L2 2"/></svg>';
+		document.body.appendChild(el);
+		const original = el.outerHTML;
+
+		try {
+			const body = await buildForeignObjectSvgBody(el, document, { width: 100, height: 50 });
+			expect(body.bodyMarkup).not.toContain('Resize');
+			expect(body.bodyMarkup).not.toContain('Rotate');
+			expect(body.bodyMarkup).not.toContain('M0 0L1 1');
+			expect(body.bodyMarkup).toContain('Authored text');
+			expect(body.bodyMarkup).toContain('M1 1L2 2');
+			expect(el.outerHTML).toBe(original);
+		} finally {
+			el.remove();
+		}
+	});
+
+	it('preserves following sibling styles and skips resources in omitted editor nodes', async () => {
+		const el = document.createElement('div');
+		el.innerHTML =
+			'<div data-export-ignore="true"><img src="https://example.invalid/editor-icon.png"/></div>' +
+			'<span style="color: rgb(1, 2, 3)">Authored content</span>';
+		document.body.appendChild(el);
+		const fetchSpy = vi.spyOn(globalThis, 'fetch');
+
+		try {
+			const body = await buildForeignObjectSvgBody(el, document, { width: 100, height: 50 });
+			expect(body.bodyMarkup).toContain('color:rgb(1, 2, 3)');
+			expect(body.bodyMarkup).toContain('Authored content');
+			expect(body.bodyMarkup).not.toContain('editor-icon');
+			expect(body.allEmbedded).toBeTruthy();
+			expect(fetchSpy).not.toHaveBeenCalled();
+		} finally {
+			fetchSpy.mockRestore();
+			el.remove();
+		}
+	});
+
 	it('inlines computed styles, embeds fonts already present via @font-face <style>, and wraps content in foreignObject', async () => {
 		document.body.innerHTML = '';
 		const fontStyle = document.createElement('style');

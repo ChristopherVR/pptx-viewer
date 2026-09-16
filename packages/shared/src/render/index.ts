@@ -1621,3 +1621,4 @@ export { readInlineListSelection, restoreInlineListBodySelection } from './inlin
 export type { InlineListSelectionResult } from './inline-list-selection';
 export { reconcileInlineListFormatting } from './inline-list-format';
 export * from './freeform-stroke-geometry';
+export { isExportIgnoredElement, prepareExportClone } from './export-clone';
