@@ -106,7 +106,11 @@ export function ConnectorEndpointOverlay({
 	}, [drag, candidates, connector, elements, onUpdateElement, toSlidePoint]);
 
 	return (
-		<div className='absolute inset-0 z-[56] pointer-events-none' data-pptx-connector-endpoints>
+		<div
+			className='absolute inset-0 z-[56] pointer-events-none'
+			data-pptx-connector-endpoints
+			data-export-ignore='true'
+		>
 			{/* Candidate connection points, revealed only while an end is in flight
 			    so they never obscure the deck at rest. */}
 			{drag

@@ -1,4 +1,6 @@
+// @vitest-environment happy-dom
 import type { PptxElement } from 'pptx-viewer-core';
+import { prepareExportClone } from 'pptx-viewer-shared';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
@@ -32,7 +34,7 @@ function flippedBentConnector(): PptxElement {
 	} as unknown as PptxElement;
 }
 
-function render(el: PptxElement): string {
+function render(el: PptxElement, overrides: Partial<ConnectorRendererProps> = {}): string {
 	const props = {
 		el,
 		isSelected: false,
@@ -42,11 +44,32 @@ function render(el: PptxElement): string {
 		selectionColorClass: 'blue-500',
 		opacity: 1,
 		zIndex: 3,
+		...overrides,
 	} as unknown as ConnectorRendererProps;
 	return renderToStaticMarkup(<ConnectorElementRenderer {...props} />);
 }
 
 describe('flipped connector wrapper transform', () => {
+	it.each([{ isSelected: true }, { showHoverBorder: true }])(
+		'omits connector selection and hover decoration but keeps the authored path: %j',
+		(state) => {
+			const container = document.createElement('div');
+			container.innerHTML = render(flippedBentConnector(), { canInteract: true, ...state });
+			const authoredPaths = [...container.querySelectorAll('path:not([data-export-ignore])')].map(
+				(path) => path.outerHTML,
+			);
+			expect(container.querySelector('[data-export-ignore="true"]')).not.toBeNull();
+			const clone = container.cloneNode(true) as HTMLElement;
+			prepareExportClone(clone);
+			expect(clone.querySelector('[data-export-ignore="true"]')).toBeNull();
+			expect(clone.querySelector('circle')).toBeNull();
+			expect([...clone.querySelectorAll('path')].map((path) => path.outerHTML)).toStrictEqual(
+				authoredPaths,
+			);
+			expect(clone.innerHTML).toContain('rotate(30deg)');
+		},
+	);
+
 	it('carries rotation only; no scale that would cancel the endpoint flip', () => {
 		const markup = render(flippedBentConnector());
 		expect(markup).toContain('rotate(30deg)');

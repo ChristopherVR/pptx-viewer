@@ -169,6 +169,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 
 					{isSelected && (
 						<path
+							data-export-ignore='true'
 							d={pathGeometry.pathData}
 							fill='none'
 							stroke={selColor}
@@ -183,6 +184,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 
 					{!isSelected && showHoverBorder && (
 						<path
+							data-export-ignore='true'
 							d={pathGeometry.pathData}
 							fill='none'
 							stroke='#93c5fd'
@@ -243,7 +245,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 					))}
 
 					{isSelected && (
-						<>
+						<g data-export-ignore='true'>
 							<circle
 								cx={pathGeometry.startX}
 								cy={pathGeometry.startY}
@@ -262,7 +264,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 								strokeWidth={1.5}
 								style={{ pointerEvents: 'none' }}
 							/>
-						</>
+						</g>
 					)}
 				</svg>
 

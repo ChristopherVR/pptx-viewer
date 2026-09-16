@@ -153,6 +153,7 @@ export function ResizeHandles({
 			{/* Corner handles: circular dots */}
 			{CORNER_HANDLES.map(({ handle, posClass, cursor }) => (
 				<button
+					data-export-ignore='true'
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
@@ -175,6 +176,7 @@ export function ResizeHandles({
 			{/* Edge midpoint handles: small rectangles */}
 			{EDGE_HANDLES.map(({ handle, posClass, cursor, sizeClass }) => (
 				<button
+					data-export-ignore='true'
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
@@ -200,6 +202,7 @@ export function ResizeHandles({
 			    extension enlarges the finger target without moving the visual. */}
 			{onRotate ? (
 				<button
+					data-export-ignore='true'
 					type='button'
 					aria-label={t('pptx.selectionOverlay.rotate')}
 					data-pptx-compact
@@ -228,6 +231,7 @@ export function ResizeHandles({
 			    on the element-local point shared measured off the preset geometry. */}
 			{adjustmentHandles.map((adjH) => (
 				<button
+					data-export-ignore='true'
 					key={adjH.key}
 					type='button'
 					aria-label={t('pptx.canvas.adjustShape')}

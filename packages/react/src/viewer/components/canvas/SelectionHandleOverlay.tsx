@@ -92,6 +92,7 @@ export function SelectionHandleOverlay({
 	const allow = resolveElementInteractivity(element);
 	return (
 		<div
+			data-export-ignore='true'
 			// NOT `data-element-id`: that selector is how every spec and the stage's
 			// own delegation address the element itself, and a second node carrying it
 			// makes those locators ambiguous (Playwright strict mode fails outright).

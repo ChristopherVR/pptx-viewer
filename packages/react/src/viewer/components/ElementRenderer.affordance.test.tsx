@@ -20,12 +20,15 @@ import {
 	ACTION_INDICATOR_CLASS,
 	LINK_TOOLTIP_CLASS,
 	LINK_TOOLTIP_HOST_CLASS,
+	prepareExportClone,
 } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
+import { ConnectorEndpointOverlay } from './canvas/ConnectorEndpointOverlay';
+import { SelectionHandleOverlay } from './canvas/SelectionHandleOverlay';
 import { ElementRenderer } from './ElementRenderer';
 import type { ElementRendererProps } from './elements/element-renderer-types';
 
@@ -133,6 +136,95 @@ describe('elementRenderer action affordances', () => {
 		render(makeProps({ element: shape({ actionClick: { url: 'https://example.test' } }) }));
 		render(makeProps({ element: shape({ id: 'sp_2', actionClick: { url: 'https://b.test' } }) }));
 		expect(document.querySelectorAll('#pptx-action-affordance-styles')).toHaveLength(1);
+	});
+});
+
+describe('elementRenderer export affordances', () => {
+	it.each(['roundRect', 'rightArrow'])(
+		'preserves %s geometry and authored paint while omitting its selection ring',
+		(shapeType) => {
+			const element = shape({
+				shapeType,
+				shapeStyle: {
+					fillColor: '#00aa00',
+					strokeColor: '#ff0000',
+					strokeWidth: 3,
+					lineAlignment: 'in',
+					lineShadowColor: '#333333',
+					lineShadowOffsetX: 3,
+					lineShadowOffsetY: 4,
+				},
+			});
+			render(makeProps({ element }));
+			const unselected = container.firstElementChild as HTMLElement;
+			const baseline = unselected.style.cssText;
+			const shadow = unselected.style.boxShadow;
+			expect(shadow).not.toBe('');
+			render(makeProps({ element, isSelected: true }));
+			const selected = container.firstElementChild as HTMLElement;
+			expect(selected.style.cssText).toBe(baseline);
+			expect(selected.className).toContain('ring-2');
+			expect(selected.dataset.exportOriginalBoxShadow).toBe(shadow);
+			const clone = selected.cloneNode(true) as HTMLElement;
+			// Simulate computed selection CSS already copied into the export clone.
+			clone.style.outline = '2px solid blue';
+			clone.style.outlineOffset = '-1px';
+			clone.style.boxShadow = '0 0 0 2px blue';
+			prepareExportClone(clone);
+			expect(clone.style.outlineStyle).toBe('none');
+			expect(clone.style.outlineOffset).toBe('0px');
+			expect(clone.style.boxShadow).toBe(shadow);
+			for (const property of ['border', 'border-radius', 'clip-path', 'filter']) {
+				expect(clone.style.getPropertyValue(property)).toBe(
+					selected.style.getPropertyValue(property),
+				);
+			}
+			expect(clone.dataset.elementId).toBe(element.id);
+			expect(selected.style.cssText).toBe(baseline);
+		},
+	);
+
+	it('marks standalone manipulation and connector endpoint overlays, not authored elements', () => {
+		const element = shape();
+		const connector = shape({ id: 'conn', type: 'connector', shapeType: 'line' });
+		act(() =>
+			root.render(
+				<>
+					<ElementRenderer {...makeProps({ element })} />
+					<SelectionHandleOverlay
+						element={element}
+						adjustmentHandles={[]}
+						onResizePointerDown={vi.fn()}
+						onAdjustmentPointerDown={vi.fn()}
+						onClick={vi.fn()}
+						onDoubleClick={vi.fn()}
+						onContextMenu={vi.fn()}
+					/>
+					<ConnectorEndpointOverlay
+						connector={connector}
+						elements={[element, connector]}
+						editorScale={1}
+						canvasStageRef={{ current: null }}
+						onUpdateElement={vi.fn()}
+					/>
+				</>,
+			),
+		);
+		expect(
+			container
+				.querySelector('[data-pptx-selection-handle-host]')
+				?.getAttribute('data-export-ignore'),
+		).toBe('true');
+		expect(
+			container
+				.querySelector('[data-pptx-connector-endpoints]')
+				?.getAttribute('data-export-ignore'),
+		).toBe('true');
+		const clone = container.cloneNode(true) as HTMLElement;
+		prepareExportClone(clone);
+		expect(clone.querySelector('[data-element-id="sp_1"]')).not.toBeNull();
+		expect(clone.querySelector('[data-pptx-selection-handle-host]')).toBeNull();
+		expect(clone.querySelector('[data-pptx-connector-endpoints]')).toBeNull();
 	});
 });
 

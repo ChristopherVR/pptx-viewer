@@ -40,7 +40,9 @@ describe('resize handles', () => {
 		expect(buttons).toHaveLength(10);
 		for (const button of buttons) {
 			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
+			expect(button.dataset.exportIgnore).toBe('true');
 		}
+		expect(container.hasAttribute('data-export-ignore')).toBeFalsy();
 	});
 
 	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
