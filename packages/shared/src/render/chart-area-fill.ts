@@ -5,16 +5,26 @@
  * SVG. PowerPoint decks routinely write `<c:spPr><a:noFill/></c:spPr>` on
  * `c:chartSpace` and `c:plotArea` precisely so the chart floats on the slide;
  * the wash boxed every such chart into a visible grey panel that is not in the
- * source. Honouring the authored fill is the fix, and keeping the wash as the
- * fallback leaves charts that say nothing looking exactly as they did.
+ * source. Honouring the authored fill (an explicit `<a:noFill/>`) was the
+ * first fix, but a chart with NO `c:spPr` at all (the common case: only a
+ * deliberately-styled chart writes one) still fell back to the same synthetic
+ * wash, which is just as wrong: real PowerPoint never paints a highlight box
+ * behind an unstyled chart, it is fully transparent like the `noFill` case.
+ * Measured against a real-world deck (a plain single-series bar chart with no
+ * `c:chartSpace/c:spPr` at all) PowerPoint's own export shows no grey
+ * anywhere; this module now treats "no fill recorded" the same whether the
+ * source said `noFill` explicitly or said nothing, matching `plotAreaFill`
+ * below, which never had a synthetic default in the first place.
  */
 
 import type { PptxChartData } from 'pptx-viewer-core';
 
 /**
- * The wash the bindings have always painted when a chart declares no fill of
- * its own. Kept as the default so an unstyled chart still reads as a distinct
- * surface against the slide.
+ * The wash the bindings used to paint whenever a chart declared no fill of
+ * its own. No longer used as an automatic default for real chart data (see
+ * the module doc comment); kept only for `buildFallbackViewModel`'s
+ * unsupported/empty-chart placeholder, which has no chart data to read a fill
+ * from and still wants a visible box to represent "a chart goes here".
  */
 export const DEFAULT_CHART_AREA_FILL = '#0f172a11';
 
@@ -28,10 +38,11 @@ function resolve(fill: string | undefined, fallback: string | undefined): string
 
 /**
  * SVG `fill` for the chart-area rect, or `undefined` when nothing should be
- * painted (the source declared `a:noFill`).
+ * painted: the source declared `a:noFill`, or (matching real PowerPoint)
+ * simply never wrote a `c:chartSpace/c:spPr` at all.
  */
 export function chartAreaFill(chartData: PptxChartData | undefined): string | undefined {
-	return resolve(chartData?.style?.chartAreaFill, DEFAULT_CHART_AREA_FILL);
+	return resolve(chartData?.style?.chartAreaFill, undefined);
 }
 
 /**

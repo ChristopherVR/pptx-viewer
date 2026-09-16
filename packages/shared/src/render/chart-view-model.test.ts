@@ -253,6 +253,24 @@ describe('computePlotLayout', () => {
 		expect(withTr.plotRight).toBe(withoutLegend.plotRight);
 		expect(withR.plotRight).toBeLessThan(withoutLegend.plotRight);
 	});
+
+	// A `c:catAx` with `c:axPos val="t"` as the ONLY category axis (no `c:axPos
+	// val="b"` counterpart): PowerPoint draws its tick labels above the plot,
+	// not below it. `categoryAxisAtTop` in `computeLayoutOptions`
+	// (chart-axis.ts) is how a caller flags this; without it the label band was
+	// reserved at the bottom regardless, leaving no room above the plot and
+	// clipping the labels against the SVG's own top edge (real-world repro: a
+	// single-series bar chart with `c:catAx/c:axPos val="t"` and no bottom
+	// axis).
+	it('reserves the category-label band at the top when categoryAxisAtTop is set', () => {
+		const top = computePlotLayout(400, 300, baseData, true, { categoryAxisAtTop: true });
+		const bottom = computePlotLayout(400, 300, baseData, true);
+		// The top-axis layout must free up space above the plot...
+		expect(top.plotTop).toBeGreaterThan(bottom.plotTop);
+		// ...and must NOT also waste space reserving the (unused) bottom band.
+		expect(top.plotBottom).toBeGreaterThan(bottom.plotBottom);
+		expect(top.plotBottom).toBe(300 - 8);
+	});
 });
 
 describe('buildLegend', () => {

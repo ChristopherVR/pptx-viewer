@@ -36,6 +36,8 @@ export interface PlotLayout {
 export interface PlotLayoutOptions {
 	hasSecondaryValueAxis?: boolean;
 	hasSecondaryCategoryAxis?: boolean;
+	/** The primary (only, in the common case) category axis sits at the top. */
+	categoryAxisAtTop?: boolean;
 	hasDataTable?: boolean;
 	dataTableRowCount?: number;
 }

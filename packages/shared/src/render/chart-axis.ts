@@ -105,6 +105,8 @@ export function formatAxisValueWithUnits(value: number, axis?: PptxChartAxisForm
 export interface LayoutOptions {
 	hasSecondaryValueAxis?: boolean;
 	hasSecondaryCategoryAxis?: boolean;
+	/** The primary (only, in the common case) category axis sits at the top. */
+	categoryAxisAtTop?: boolean;
 	hasDataTable?: boolean;
 	dataTableRowCount?: number;
 }
@@ -117,12 +119,36 @@ export function hasSecondaryValueAxis(axes: PptxChartAxisFormatting[] | undefine
 	return axes.some((a) => a.axisType === 'valAx' && a.axPos === 'r');
 }
 
-/** Check whether any axis in the list is a secondary category axis (position "t"). */
+function categoryAxes(axes: PptxChartAxisFormatting[] | undefined): PptxChartAxisFormatting[] {
+	return axes?.filter((a) => a.axisType === 'catAx' || a.axisType === 'dateAx') ?? [];
+}
+
+/**
+ * Check whether the chart has a genuine SECOND category axis positioned at the
+ * top (a combo chart with one bottom + one top category axis). A single
+ * category axis that itself carries `axPos="t"` (the only axis, just
+ * relocated) is NOT a secondary axis: see `isPrimaryCategoryAxisAtTop`.
+ */
 export function hasSecondaryCategoryAxis(axes: PptxChartAxisFormatting[] | undefined): boolean {
-	if (!axes) {
+	const cats = categoryAxes(axes);
+	return cats.length > 1 && cats.some((a) => a.axPos === 't');
+}
+
+/**
+ * Check whether the chart's PRIMARY (and, in the common case, only) category
+ * axis is positioned at the top of the plot area (`c:catAx/c:axPos val="t"`).
+ * Mirrors the axis selection in `chart-category-axis.ts`'s
+ * `primaryCategoryAxis`: prefer a non-top axis when one exists (the top one is
+ * then the genuine secondary axis, handled separately), otherwise fall back to
+ * the first category axis, which is the only one there is.
+ */
+export function isPrimaryCategoryAxisAtTop(axes: PptxChartAxisFormatting[] | undefined): boolean {
+	const cats = categoryAxes(axes);
+	if (cats.length === 0) {
 		return false;
 	}
-	return axes.some((a) => (a.axisType === 'catAx' || a.axisType === 'dateAx') && a.axPos === 't');
+	const primary = cats.find((a) => a.axPos !== 't') ?? cats[0];
+	return primary.axPos === 't';
 }
 
 /** Get the secondary value axis formatting, if present. */
@@ -154,6 +180,7 @@ export function computeLayoutOptions(
 	return {
 		hasSecondaryValueAxis: hasSecondaryValueAxis(axes),
 		hasSecondaryCategoryAxis: hasSecondaryCategoryAxis(axes),
+		categoryAxisAtTop: isPrimaryCategoryAxisAtTop(axes),
 		hasDataTable: Boolean(dataTable),
 		dataTableRowCount: dataTable ? seriesCount : undefined,
 	};
