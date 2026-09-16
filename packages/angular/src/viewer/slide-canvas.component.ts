@@ -80,6 +80,7 @@ import { InlineListEditorComponent } from './inline-list-editor.component';
 import { RotateHandlePlacementDirective } from './rotate-handle-placement.directive';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
+import { selectionControlArtwork } from './selection-control-artwork';
 import {
 	computeResizeHandleBoxes,
 	computeRotateHandleBox,
@@ -698,6 +699,7 @@ export class SlideCanvasComponent implements SlideContext {
 		),
 	);
 	readonly resizeHitAreaStyle = getResizeHandleHitAreaStyle;
+	readonly selectionControlArtwork = selectionControlArtwork;
 
 	/**
 	 * Rotation-handle box (stage coords) above the single selection, or null (also

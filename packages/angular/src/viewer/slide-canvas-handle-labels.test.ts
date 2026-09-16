@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { attachRotateHandlePlacement } from '../internal/shared';
 import { RotateHandlePlacementDirective } from './rotate-handle-placement.directive';
+import { selectionControlArtwork } from './selection-control-artwork';
 
 vi.mock(import('../internal/shared'), async (importOriginal) => ({
 	...(await importOriginal()),
@@ -23,6 +24,13 @@ vi.mock(import('../internal/shared'), async (importOriginal) => ({
 const template = readFileSync(join(__dirname, 'slide-canvas.component.html'), 'utf8');
 
 describe('slide-canvas handle accessible names', () => {
+	it('renders optional artwork separately from the semantic and pointer targets', () => {
+		expect(template).toContain('@let controlArtwork = selectionControlArtwork(h, h.handle);');
+		expect(template).toContain('[ngStyle]="controlArtwork.frame"');
+		expect(template).toContain('[ngStyle]="rotateArtwork.frame"');
+		expect(template).toMatch(/aria-hidden="true"\s+class="pptx-ng-control-artwork"/);
+	});
+
 	it('uses the shared bounded target without replacing the focusable button or its handlers', () => {
 		expect(template).toContain(
 			'<span data-pptx-handle-hit [ngStyle]="resizeHitAreaStyle(h.handle)">',
@@ -61,6 +69,40 @@ describe('slide-canvas handle accessible names', () => {
 		}
 		expect(template).toContain('(pointerdown)="onRotatePointerDown($event)"');
 		expect(template).toContain('(keydown)="onRotateHandleKeydown($event)"');
+	});
+});
+
+describe('angular selection artwork styles', () => {
+	it.each([0.5, 1, 2])('converts optional screen sizes once at scale %s', (scale) => {
+		const size = 24 / scale;
+		const result = selectionControlArtwork(
+			{ left: 100 - size / 2, top: 50 - size / 2, size },
+			'nw',
+		);
+		expect(result.frame.left).toBe(`calc(100px - ${result.frame.width} / 2)`);
+		expect(result.frame.top).toBe(`calc(50px - ${result.frame.height} / 2)`);
+		expect(result.artwork.width).toBe(
+			scale === 1
+				? 'var(--pptx-selection-corner-size, 24px)'
+				: `calc(var(--pptx-selection-corner-size, 24px) * ${1 / scale})`,
+		);
+		expect(result.artwork.pointerEvents).toBe('none');
+		expect(result.artwork.borderColor).toBe('var(--pptx-selection-handle-border-color, #4f86ff)');
+		expect(result.artwork.background).toBe('var(--pptx-selection-handle-fill, #ffffff)');
+	});
+
+	it('maps rectangular edge artwork and preserves round Rotate defaults', () => {
+		const box = { left: 0, top: 0, size: 24 };
+		const horizontal = selectionControlArtwork(box, 'n'),
+			vertical = selectionControlArtwork(box, 'w');
+		expect(horizontal.artwork.width).toContain('--pptx-selection-edge-length');
+		expect(horizontal.artwork.height).toContain('--pptx-selection-edge-thickness');
+		expect(vertical.artwork.width).toContain('--pptx-selection-edge-thickness');
+		expect(vertical.artwork.height).toContain('--pptx-selection-edge-length');
+		expect(selectionControlArtwork(box).artwork.width).toBe(
+			'var(--pptx-selection-rotate-size, 24px)',
+		);
+		expect(selectionControlArtwork(box).artwork.borderRadius).toBe('50%');
 	});
 });
 

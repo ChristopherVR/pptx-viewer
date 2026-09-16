@@ -90,16 +90,14 @@
 				></div>
 			}
 			@for (h of handleBoxes(); track h.handle) {
+				@let controlArtwork = selectionControlArtwork(h, h.handle);
 				<button
 					type="button"
 					class="pptx-ng-handle"
 					data-pptx-compact
 					data-pptx-handle-kind="resize"
 					[attr.aria-label]="'pptx.selectionOverlay.resize' | translate: { handle: h.handle }"
-					[style.left.px]="h.left"
-					[style.top.px]="h.top"
-					[style.width.px]="h.size"
-					[style.height.px]="h.size"
+					[ngStyle]="controlArtwork.frame"
 					[style.cursor]="h.cursor"
 					[style.--pptx-selection-width.px]="singleSelected()?.width"
 					[style.--pptx-selection-height.px]="singleSelected()?.height"
@@ -107,6 +105,12 @@
 					(keydown)="onResizeHandleKeydown($event, h.handle)"
 				>
 					<span data-pptx-handle-hit [ngStyle]="resizeHitAreaStyle(h.handle)"></span>
+					<span
+						aria-hidden="true"
+						class="pptx-ng-control-artwork"
+						data-pptx-handle-artwork
+						[ngStyle]="controlArtwork.artwork"
+					></span>
 				</button>
 			}
 			@if (marqueeRect(); as mr) {
@@ -128,21 +132,27 @@
 				></div>
 			}
 			@if (rotateHandle(); as rh) {
+				@let rotateArtwork = selectionControlArtwork(rh);
 				<button
 					type="button"
 					class="pptx-ng-rotate-handle"
+					[style.z-index]="editingBox() ? 10003 : null"
 					data-pptx-compact
 					data-pptx-handle-kind="rotate"
 					[pptxRotateHandleFor]="singleSelected()?.id"
 					[pptxRotateHandleStage]="stage"
 					[attr.aria-label]="'pptx.selectionOverlay.rotate' | translate"
-					[style.left.px]="rh.left"
-					[style.top.px]="rh.top"
-					[style.width.px]="rh.size"
-					[style.height.px]="rh.size"
+					[ngStyle]="rotateArtwork.frame"
 					(pointerdown)="onRotatePointerDown($event)"
 					(keydown)="onRotateHandleKeydown($event)"
-				></button>
+				>
+					<span
+						aria-hidden="true"
+						class="pptx-ng-control-artwork"
+						data-pptx-handle-artwork
+						[ngStyle]="rotateArtwork.artwork"
+					></span>
+				</button>
 			}
 			<!--
 				Shape-adjustment affordances (amber diamonds), ONE per `a:avLst`
