@@ -175,8 +175,19 @@ test.describe('mobile manipulation (Pixel 7 touch)', () => {
 		const hx = handleBox.x + handleBox.width / 2;
 		const hy = handleBox.y + handleBox.height / 2;
 
-		// Swing the handle from "up" to the element's right side ⇒ ~90° rotation.
-		await drag(page, hx, hy, cx + 120, cy);
+		// The knob does not always start directly "above" the element: on a
+		// short shape near the slide's top edge, the shared placement helper
+		// (rotate-handle-attachment.ts) may relocate it sideways to keep its
+		// full hit target inside the clipped stage. Swing a quarter turn from
+		// wherever the knob actually is, at its own radius from the rotation
+		// center, so the test's ~90° expectation holds regardless of where the
+		// knob started.
+		const radius = Math.hypot(hx - cx, hy - cy);
+		const startBearing = Math.atan2(hy - cy, hx - cx);
+		const targetBearing = startBearing + Math.PI / 2;
+		const targetX = cx + radius * Math.cos(targetBearing);
+		const targetY = cy + radius * Math.sin(targetBearing);
+		await drag(page, hx, hy, targetX, targetY);
 		await page.waitForTimeout(250);
 
 		const transform = await target.evaluate((el) => (el as HTMLElement).style.transform);
