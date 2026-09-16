@@ -130,6 +130,7 @@ import type { RibbonTab } from './ribbon-types';
 			}
 			@case ('text') {
 				<pptx-ribbon-font-controls
+					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 				/>

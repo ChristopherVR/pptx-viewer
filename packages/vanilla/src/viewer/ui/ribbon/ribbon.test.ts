@@ -6,6 +6,7 @@ import type { FindReplaceActions } from '../../editor/editor-find-replace-action
 import { readTextFormatState } from '../../editor/editor-format-mutations';
 import { createTranslator } from '../../i18n';
 import { createFontGroup } from './home/font-group';
+import type { FontGroupHandlers } from './home/font-group';
 import { createRibbon } from './ribbon';
 import { buildOverflowMenuItems } from './ribbon-primary-menus';
 import type { RibbonHandlers, RibbonInsertHandlers } from './ribbon-types';
@@ -437,6 +438,20 @@ describe('createRibbon', () => {
 });
 
 describe('home font size', () => {
+	it.each([
+		['empty selection', false, true, true],
+		['read-only selection', true, false, true],
+		['editable selection', true, true, false],
+	] as const)('gates font pickers for %s', (_name, canFormat, editable, disabled) => {
+		const group = createFontGroup(document, createTranslator(), fakeActions<FontGroupHandlers>());
+		group.update({ canFormat, editable, text: readTextFormatState(undefined) });
+		for (const label of ['Font family', 'Font size']) {
+			expect(group.el.querySelector<HTMLButtonElement>(`[aria-label="${label}"]`)?.disabled).toBe(
+				disabled,
+			);
+		}
+	});
+
 	it('shows points and sends a point preset to the format action', () => {
 		const t = createTranslator();
 		const setFontSize = vi.fn();

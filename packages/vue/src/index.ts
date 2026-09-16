@@ -56,6 +56,7 @@ export type {
 } from './viewer';
 
 // ── Shared API types ──
+export { createImageElementFromFile } from 'pptx-viewer-shared';
 export type {
 	ViewerMode,
 	PowerPointViewerAPI,
