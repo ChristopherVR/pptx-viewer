@@ -12,6 +12,7 @@ export function useViewportFit(
 	canvasSize: CanvasSize,
 	viewportRef: RefObject<HTMLDivElement | null>,
 	options: ViewportFitOptions,
+	viewportNode?: HTMLDivElement | null,
 ) {
 	const [editorDimensions, setEditorDimensions] = useState<CanvasSize | null>(null);
 	const { fitPadding, maxFitScale } = resolveViewportFitOptions(options, DEFAULT_FIT);
@@ -28,6 +29,9 @@ export function useViewportFit(
 	// Preserve the stock decorative allowance unless the host supplies one.
 	// Rulers and the host's actual toolbar/sidebar footprint are separate layout.
 	useEffect(() => {
+		if (viewportNode === null) {
+			return;
+		}
 		let observer: ResizeObserver | null = null;
 		let raf = 0;
 		const measure = (element: HTMLElement) => {
@@ -44,7 +48,7 @@ export function useViewportFit(
 			}
 		};
 		const attach = () => {
-			const element = viewportRef.current;
+			const element = viewportNode ?? viewportRef.current;
 			if (!element) {
 				raf = requestAnimationFrame(attach);
 				return;
@@ -58,7 +62,7 @@ export function useViewportFit(
 			cancelAnimationFrame(raf);
 			observer?.disconnect();
 		};
-	}, [viewportRef, canvasSize.width, canvasSize.height, horizontal, vertical]);
+	}, [viewportRef, viewportNode, canvasSize.width, canvasSize.height, horizontal, vertical]);
 
 	return { editorDimensions, setEditorDimensions, effectiveEditorDimensions, fitScale };
 }

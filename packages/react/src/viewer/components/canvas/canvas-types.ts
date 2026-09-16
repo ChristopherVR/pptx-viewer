@@ -31,6 +31,8 @@ import type { RulerUnit } from './ruler-utils';
 
 export interface ZoomViewport {
 	canvasViewportRef: React.RefObject<HTMLDivElement | null>;
+	/** Optional mount notification for hook-owned fit and wheel listeners. */
+	setCanvasViewportNode?: React.RefCallback<HTMLDivElement>;
 	editWrapperRef: React.RefObject<HTMLDivElement | null>;
 	canvasStageRef: React.RefObject<HTMLDivElement | null>;
 	editorScale: number;

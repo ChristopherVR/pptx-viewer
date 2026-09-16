@@ -218,7 +218,7 @@ export function SlideCanvas({
 
 	return (
 		<div
-			ref={zoom.canvasViewportRef}
+			ref={zoom.setCanvasViewportNode ?? zoom.canvasViewportRef}
 			data-pptx-viewport
 			className='flex-1 flex overflow-auto relative'
 			style={{ touchAction: 'pan-x pan-y' }}
