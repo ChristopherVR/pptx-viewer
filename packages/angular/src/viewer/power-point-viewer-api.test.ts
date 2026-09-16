@@ -332,6 +332,7 @@ describe('public cross-slide batches', () => {
 			getMode: () => 'edit',
 			loader: { loading: () => false, error: () => null },
 			mainEl: () => undefined,
+			editorCanvas: () => undefined,
 		};
 		const update = (updates: import('../internal/shared').ElementUpdate[]) =>
 			PowerPointViewerComponent.prototype.updateElements.call(

@@ -17,6 +17,15 @@ async function positions(page: Page): Promise<number[]> {
 	return page.evaluate(() => window.__pptxViewer.getSlides().map((slide) => slide.elements[0].x));
 }
 
+async function geometry(page: Page) {
+	return page.evaluate(() =>
+		window.__pptxViewer.getSlides().map((slide) => {
+			const { x, y, width, height } = slide.elements[0];
+			return { x, y, width, height };
+		}),
+	);
+}
+
 async function undo(page: Page, expected: number[]): Promise<void> {
 	await page.getByRole('button', { name: /^undo/iu }).first().click();
 	await expect.poll(() => positions(page)).toEqual(expected);
@@ -51,6 +60,104 @@ test.beforeEach(async ({ page }) => {
 	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor();
 	await expect.poll(() => positions(page)).toEqual([67, 67]);
 });
+
+for (const [gesture, end] of [
+	['move', 'release'],
+	['move', 'cancel'],
+	['resize', 'release'],
+	['resize', 'cancel'],
+] as const) {
+	test(`rejects batches during ${gesture} and recovers after ${end}`, async ({ page }) => {
+		const originalGeometry = await geometry(page);
+		const element = page.locator('[data-pptx-viewport] [data-element-id]').first();
+		if (gesture === 'resize') {
+			await page.evaluate(() => {
+				const api = window.__pptxViewer;
+				api.selectElements([api.getSlides()[0].elements[0].id]);
+			});
+		}
+		const handle =
+			gesture === 'resize'
+				? page
+						.locator('[data-pptx-viewport]')
+						.getByRole('button', { name: /^resize se$/iu })
+						.first()
+				: element;
+		await expect(handle).toBeVisible();
+		const box = await handle.boundingBox();
+		expect(box).not.toBeNull();
+		const x = box!.x + box!.width / 2;
+		const y = box!.y + box!.height / 2;
+		const rejectBatch = async () => {
+			const result = await page.evaluate(async () => {
+				const api = window.__pptxViewer;
+				const snapshot = () =>
+					JSON.stringify({
+						slides: api.getSlides(),
+						dirty: api.isDirty(),
+						canUndo: api.canUndo(),
+					});
+				const before = snapshot();
+				let error = '';
+				try {
+					await api.updateElements(
+						api.getSlides().map((slide) => ({
+							slideId: slide.id,
+							elementId: slide.elements[0].id,
+							patch: { x: 200 },
+						})),
+					);
+				} catch (reason) {
+					error = String(reason);
+				}
+				return { error, unchanged: before === snapshot() };
+			});
+			expect(result.error).toContain('pointer interaction');
+			expect(result.unchanged).toBe(true);
+		};
+		await page.mouse.move(x, y);
+		await page.mouse.down();
+		try {
+			await rejectBatch();
+			await page.mouse.move(x + 45, y + 20, { steps: 4 });
+			await rejectBatch();
+			if (end === 'cancel') {
+				await page
+					.locator('[data-pptx-viewport]')
+					.first()
+					.dispatchEvent('pointercancel', { pointerId: 1 });
+				await page.evaluate(() => window.__pptxViewer.updateElements([]));
+			}
+		} finally {
+			await page.mouse.up();
+		}
+		const released = await positions(page);
+		const releasedGeometry = await geometry(page);
+		await page.evaluate(async () => {
+			const api = window.__pptxViewer;
+			await api.updateElements(
+				api.getSlides().map((slide) => ({
+					slideId: slide.id,
+					elementId: slide.elements[0].id,
+					patch: { x: 200 },
+				})),
+			);
+		});
+		await expect.poll(() => positions(page)).toEqual([200, 200]);
+		await undo(page, released);
+		await expect.poll(() => geometry(page)).toEqual(releasedGeometry);
+		if (end === 'release') {
+			if (gesture === 'move') {
+				expect(released[0]).not.toBe(67);
+			}
+			if (gesture === 'resize') {
+				expect(releasedGeometry[0].width).toBeGreaterThan(originalGeometry[0].width);
+			}
+			await undo(page, [67, 67]);
+			await expect.poll(() => geometry(page)).toEqual(originalGeometry);
+		}
+	});
+}
 
 test('adjusts titles across slides without navigating, then undoes and redoes the batch once', async ({
 	page,

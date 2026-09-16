@@ -87,6 +87,7 @@ describe('element update batches', () => {
 		const calls: string[] = [];
 		const host = {
 			getSlides: makeSlides,
+			hasActivePointerInteraction: () => false,
 			getTarget: () => ({
 				canEdit: true,
 				loaded: true,
@@ -109,5 +110,21 @@ describe('element update batches', () => {
 			),
 		).toThrow();
 		expect(calls).toStrictEqual([]);
+		host.hasActivePointerInteraction = () => true;
+		expect(() =>
+			commitElementUpdateBatch(
+				[{ slideId: 'slide-0', elementId: 'title', patch: { x: 84 } }],
+				undefined,
+				host,
+			),
+		).toThrow('pointer interaction');
+		expect(calls).toStrictEqual([]);
+		host.hasActivePointerInteraction = () => false;
+		commitElementUpdateBatch(
+			[{ slideId: 'slide-0', elementId: 'title', patch: { x: 84 } }],
+			undefined,
+			host,
+		);
+		expect(calls).toStrictEqual(['text', 'batch']);
 	});
 });

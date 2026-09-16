@@ -5,6 +5,7 @@ import { computed, ref, shallowRef } from 'vue';
 
 import { useEditorHistory } from './useEditorHistory';
 import { useEditorOperations } from './useEditorOperations';
+import { useElementDrag } from './useElementDrag';
 import { useInlineEditing } from './useInlineEditing';
 import { useViewerApi } from './useViewerApi';
 
@@ -50,6 +51,7 @@ function useHarness(initialSlides: PptxSlide[] = []) {
 			editingRequested.value = value;
 		},
 		commitPendingText,
+		hasActivePointerInteraction: () => false,
 		getContent: vi.fn<() => Promise<Uint8Array>>(async () => new Uint8Array()),
 		goTo: vi.fn(),
 		goPrev: vi.fn(),
@@ -189,6 +191,48 @@ describe('public cross-slide batches', () => {
 			})),
 		);
 	}
+
+	it('rejects a batch during a live drag without changing its document or undo boundary', async () => {
+		const { api, options, slides, commitPendingText } = useBatchHarness();
+		const drag = useElementDrag({
+			findActiveElement: (id) => slides.value[0].elements.find((element) => element.id === id),
+			pushHistory: options.history.pushHistory,
+			effectiveZoom: computed(() => 1),
+			activeTemplateElements: computed(() => []),
+			activeSlide: options.activeSlide,
+			activeSlideIndex: options.activeSlideIndex,
+			slides,
+			templateElementsBySlideId: ref({}),
+			canvasSize: ref({ width: 960, height: 540 }),
+			enterInlineEdit: vi.fn(),
+		});
+		options.hasActivePointerInteraction = () => drag.hasActivePointerInteraction();
+		const pointer = (type: string, clientX: number) =>
+			new MouseEvent(type, { bubbles: true, clientX, clientY: 0 }) as PointerEvent;
+		const positions = () => api.getSlides().map((slide) => slide.elements[0].x);
+		const changes = api.getSlides().map((slide) => ({
+			slideId: slide.id,
+			elementId: 'title',
+			patch: { x: 200 },
+		}));
+		drag.startElementDrag('title', pointer('pointerdown', 0), false);
+		window.dispatchEvent(pointer('pointermove', 30));
+		const dragged = positions();
+		expect(dragged[0]).not.toBe(67);
+		try {
+			await expect(api.updateElements(changes)).rejects.toThrow('pointer interaction');
+			expect(positions()).toStrictEqual(dragged);
+			expect(commitPendingText).not.toHaveBeenCalled();
+		} finally {
+			window.dispatchEvent(pointer('pointerup', 30));
+		}
+		await api.updateElements(changes);
+		expect(positions()).toStrictEqual([200, 200]);
+		api.undo();
+		expect(positions()).toStrictEqual(dragged);
+		api.undo();
+		expect(positions()).toStrictEqual([67, 67]);
+	});
 
 	it('preserves selection and separates consecutive batches and ordinary edits', async () => {
 		const { api, options } = useBatchHarness();

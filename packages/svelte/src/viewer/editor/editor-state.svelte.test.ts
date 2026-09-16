@@ -173,6 +173,7 @@ describe('public deck element insertion', () => {
 			getMode: () => 'edit',
 			canEdit: () => editor.editable,
 			isLoaded: () => true,
+			hasActivePointerInteraction: () => false,
 			commitPendingText: vi.fn(),
 			toggleFullscreen: vi.fn(),
 			setEditable: vi.fn(),
