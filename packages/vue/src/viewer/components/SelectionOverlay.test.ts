@@ -34,6 +34,35 @@ afterEach(() => {
 });
 
 describe('selectionOverlay', () => {
+	it('renders noninteractive artwork inside semantic controls without changing resize dispatch', async () => {
+		const wrapper = mount(SelectionOverlay, {
+			attachTo: document.body,
+			props: { elements: [el()], selectedIds: ['s1'], zoom: 0.5 },
+		});
+		const artwork = wrapper.findAll('[data-pptx-handle-artwork]');
+		expect(artwork).toHaveLength(9);
+		for (const visual of artwork) {
+			expect(visual.attributes('aria-hidden')).toBe('true');
+			expect(visual.attributes('style')).toContain('pointer-events: none');
+			expect(visual.attributes('style')).toContain('translate(-50%, -50%)');
+			expect(visual.attributes('style')).not.toContain('scale:');
+		}
+		expect(
+			wrapper.find('[data-handle="n"] [data-pptx-handle-artwork]').attributes('style'),
+		).toContain('--pptx-selection-edge-length');
+		expect(
+			wrapper.find('[data-handle="e"] [data-pptx-handle-artwork]').attributes('style'),
+		).toContain('--pptx-selection-edge-thickness');
+		wrapper
+			.find('[data-handle="se"] [data-pptx-handle-hit]')
+			.element.dispatchEvent(pointer('pointerdown', { clientX: 0, clientY: 0 }));
+		window.dispatchEvent(pointer('pointermove', { clientX: 20, clientY: 10 }));
+		await wrapper.vm.$nextTick();
+		expect(wrapper.emitted('transformStart')?.[0]?.[0]).toStrictEqual({ id: 's1' });
+		window.dispatchEvent(pointer('pointerup', { clientX: 0, clientY: 0 }));
+		wrapper.unmount();
+	});
+
 	it('raises only active inline-edit chrome without changing ordinary connector layers', async () => {
 		const wrapper = mount(SelectionOverlay, {
 			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
