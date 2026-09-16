@@ -264,6 +264,14 @@ You only need the `<PowerPointViewer>` component; everything else is internal. B
 
 A small curated set of those hooks is exported from `pptx-react-viewer/viewer` with a stable API; the complete set (80+) is also importable from `pptx-react-viewer/internals` for advanced integrations. The `internals` subpath is **not covered by semver**: prefer the stable root exports. See the [Hooks reference](https://christophervr.github.io/pptx-viewer/react/hooks-reference) for the full list.
 
+The bulk of that cross-framework logic (colour/geometry/connector/animation/chart math, slide
+transitions, and more) actually lives in `pptx-viewer-shared`, an internal package that is
+**never published to npm**. If you need one of those framework-neutral helpers directly, for
+example the slide-transition resolver/keyframes (`resolveSlideTransition`,
+`resolveTransitionDurationMs`, `SLIDE_TRANSITION_KEYFRAMES`) or the `PresentationTransitionOverlay`
+component behind presentation mode, they are re-exported from `pptx-react-viewer/internals` too,
+so you never need `pptx-viewer-shared` yourself.
+
 ## Limitations
 
 CSS-based rendering trades a few visual effects for crisp text, accessibility, and DOM interactivity: `backdrop-filter` becomes semi-transparent backgrounds and path gradients approximate as elliptical radials, while `mix-blend-mode` and CSS 3D transforms render natively on screen but flatten in raster export. Text uses fonts available in the browser (embedded fonts are injected when present). Media playback depends on browser codec support. SmartArt is decomposed into editable shapes with a live reflow engine for structural edits. Charts are editable directly on the canvas (hover a mark for its tooltip, click to select, drag it to a new value, double-click the title to rename), except for stacked/percent-stacked, pie, radar, surface and map kinds, which are click-to-select and edited in the inspector data grid. 3D models need the optional Three.js peer. See the [full docs](https://christophervr.github.io/pptx-viewer/) for the complete list.

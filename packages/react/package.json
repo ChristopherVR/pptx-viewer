@@ -104,7 +104,7 @@
 		}
 	},
 	"scripts": {
-		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n internals && node ../../scripts/merge-declarations.mjs .types-bundle && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../locales/scripts/copy-subpaths.mjs && node ../../scripts/compress-dist.mjs dist",
+		"build": "tsup && tsdown && node ../../scripts/merge-declarations.mjs && node ../../scripts/bundle-declarations.mjs index viewer/index i18n internals && node ../../scripts/merge-declarations.mjs .types-bundle && node ../../scripts/prune-stray-declarations.mjs dist index.d.ts viewer/index.d.ts i18n.d.ts internals.d.ts && npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify && node ../locales/scripts/copy-subpaths.mjs && node ../../scripts/compress-dist.mjs dist",
 		"build:css": "npx @tailwindcss/cli -i src/styles/pptx-viewer.css -o dist/pptx-viewer.css --minify",
 		"dev": "tsup --watch",
 		"typecheck": "tsc --noEmit --pretty",

@@ -21,3 +21,18 @@ export * from './types';
 export * from './constants';
 export * from './render';
 export * from './export';
+
+// `slide-transition-cinematic` (the Office 2013+ p15 cinematic transition
+// family: cube/box/flip/rotate/orbit/fallOver/drape/curtains/wind/prestige/
+// fracture/crush/peelOff/pageCurlSingle/pageCurlDouble/airplane/origami) is
+// consumed internally by `render/slide-transition-css` but was never itself
+// re-exported from `render/index.ts` (issue #290), so a consumer of this
+// module's public surface (via a binding's `internals` entry) could resolve
+// the classic/exotic transition families but not this one. Exported directly
+// here, alongside the rest of `./render`, without editing files under
+// `render/` (out of scope for this change; see the `render/index.ts` barrel
+// for the rest of the transition family's exports).
+export {
+	getCinematicTransitionAnimations,
+	CINEMATIC_TRANSITION_KEYFRAMES,
+} from './render/slide-transition-cinematic';

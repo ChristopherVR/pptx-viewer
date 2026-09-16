@@ -135,6 +135,7 @@ jobs:
         run: |
           bun run --filter 'pptx-react-viewer' build
           bun run test:locale-subpaths react
+          bun run check:published-types react
         continue-on-error: true
 
       - name: Build Vue
@@ -142,6 +143,7 @@ jobs:
         run: |
           bun run --filter 'pptx-vue-viewer' build
           bun run test:locale-subpaths vue
+          bun run check:published-types vue
         continue-on-error: true
 
       - name: Build Angular
@@ -149,6 +151,7 @@ jobs:
         run: |
           bun run --filter 'pptx-angular-viewer' build
           bun run test:locale-subpaths angular
+          bun run check:published-types angular
         continue-on-error: true
 
       - name: Build Vanilla
@@ -156,6 +159,7 @@ jobs:
         run: |
           bun run --filter 'pptx-vanilla-viewer' build
           bun run test:locale-subpaths vanilla
+          bun run check:published-types vanilla
         continue-on-error: true
 
       - name: Build Svelte
@@ -163,6 +167,7 @@ jobs:
         run: |
           bun run --filter 'pptx-svelte-viewer' build
           bun run test:locale-subpaths svelte
+          bun run check:published-types svelte
         continue-on-error: true
 
       # `continue-on-error` above is deliberate: it lets one run surface EVERY

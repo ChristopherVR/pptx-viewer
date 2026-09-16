@@ -85,3 +85,52 @@ export type {
 	UseZoomNavigationInput,
 	UseZoomNavigationResult,
 } from './viewer/hooks/presentation-mode';
+
+// ── Slide-transition helpers (issue #290) ──────────────────────────────
+//
+// `pptx-viewer-shared` is a private, unpublished workspace package (see
+// `packages/shared/README.md`), so a host embedding its own presentation
+// stage cannot reach the framework-neutral transition resolver/keyframes it
+// bundles. Re-exported here, verbatim, so `pptx-react-viewer/internals` is
+// the one place every binding's transition surface is reachable from.
+export {
+	getSlideTransitionAnimations,
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	resolveDirection,
+	resolveDirection8,
+	resolveOrientation,
+	resolveWheelSpokeCount,
+	getCinematicTransitionAnimations,
+	getP14TransitionAnimations,
+	SLIDE_TRANSITION_KEYFRAMES,
+	SLIDE_TRANSITION_KEYFRAMES_CSS,
+	RANDOM_ELIGIBLE_TYPES,
+	INSTANT,
+	DEFAULT_TRANSITION_DURATION_MS,
+	DEFAULT_MORPH_DURATION_MS,
+	TRANSITION_SPEED_DURATION_MS,
+	EASE,
+	WHEEL_SPOKE_COUNTS,
+	CINEMATIC_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES_2,
+	P14_TRANSITION_KEYFRAMES_ALL,
+} from 'pptx-viewer-shared';
+export type {
+	SlideTransitionAnimations,
+	ResolvedDirection,
+	ResolvedDirection8,
+} from 'pptx-viewer-shared';
+
+// The presentation-mode transition overlay components themselves (not just the
+// resolver they call), for a host embedding its own `SlideStage` / presentation
+// surface instead of the full `PowerPointViewer`.
+export { PresentationTransitionOverlay } from './viewer/components/PresentationTransitionOverlay';
+export type { PresentationTransitionOverlayProps } from './viewer/components/PresentationTransitionOverlay';
+export { MorphTransitionOverlay } from './viewer/components/MorphTransitionOverlay';
+export type { MorphTransitionOverlayProps } from './viewer/components/MorphTransitionOverlay';
+export { SlideLayer } from './viewer/components/SlideTransitionSlideLayer';
+export type { SlideLayerProps } from './viewer/components/SlideTransitionSlideLayer';
+export { FragmentedTransitionLayer } from './viewer/components/FragmentedTransitionLayer';
+export type { FragmentedTransitionLayerProps } from './viewer/components/FragmentedTransitionLayer';

@@ -49,6 +49,11 @@
 			"svelte": "./dist/viewer/index.js",
 			"import": "./dist/viewer/index.js"
 		},
+		"./internals": {
+			"types": "./dist/internals.d.ts",
+			"svelte": "./dist/internals.js",
+			"import": "./dist/internals.js"
+		},
 		"./i18n": {
 			"types": "./dist/i18n.d.ts",
 			"import": "./dist/i18n.js"
@@ -97,7 +102,7 @@
 		}
 	},
 	"scripts": {
-		"build": "vite build && rollup -c rollup.dts.config.mjs && node ../../scripts/merge-declarations.mjs .types-bundle && node ../locales/scripts/copy-subpaths.mjs",
+		"build": "vite build && rollup -c rollup.dts.config.mjs && node ../../scripts/merge-declarations.mjs .types-bundle && node ../../scripts/prune-stray-declarations.mjs dist index.d.ts viewer/index.d.ts i18n.d.ts internals.d.ts && node ../locales/scripts/copy-subpaths.mjs",
 		"dev": "vite build --watch",
 		"typecheck": "svelte-check --tsconfig ./tsconfig.json",
 		"test": "vitest run",

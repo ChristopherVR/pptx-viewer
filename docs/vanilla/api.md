@@ -364,6 +364,40 @@ if (handler) {
 }
 ```
 
+### `pptx-vanilla-viewer/internals`: slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package: it is never on npm, so code outside this monorepo cannot `import`
+from it directly. A host embedding its own presentation surface still needs the transition
+resolver/keyframes and the DOM-level overlay driver, so they are re-exported from the
+`pptx-vanilla-viewer/internals` subpath instead:
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	playTransitionOverlay,
+} from 'pptx-vanilla-viewer/internals';
+```
+
+`resolveSlideTransition` maps a `PptxSlideTransition` to the CSS `animation` shorthands for the
+outgoing/incoming layers; `resolveTransitionDurationMs` resolves its effective duration (ms), honoring
+an authored duration, the legacy `spd` token, and PowerPoint's own defaults; `SLIDE_TRANSITION_KEYFRAMES`
+(alias `SLIDE_TRANSITION_KEYFRAMES_CSS`) is the `@keyframes` block those animation names reference.
+`playTransitionOverlay` is the Vanilla binding's DOM-driven equivalent of the other bindings'
+transition overlay component (there is no component model to render one against here): it stacks
+the outgoing/incoming stage snapshots and drives the CSS animation directly. Also exported:
+`getSlideTransitionAnimations`, `getCinematicTransitionAnimations`, `getP14TransitionAnimations`,
+`CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`, `resolveDirection` /
+`resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`, and the supporting constants
+(`RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_TRANSITION_DURATION_MS`, `DEFAULT_MORPH_DURATION_MS`,
+`TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS`).
+
+As with every other binding's `internals` entry, this is not covered by semver: reach for it only
+when the public `pptx-vanilla-viewer` API genuinely cannot do what you need, and pin an exact
+version if you depend on it.
+
 ## Teardown
 
 | Method    | Signature    | Description                                                |

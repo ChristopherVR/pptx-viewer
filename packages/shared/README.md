@@ -11,6 +11,18 @@ Framework-agnostic viewer logic shared by all five `pptx-viewer` UI bindings:
 Everything here is **pure TypeScript with no framework imports**. The goal is one
 canonical copy of cross-framework logic instead of five drifting duplicates.
 
+> **This package is private and is never published to npm** (`"private": true` in
+> `package.json`). It is bundled/inlined into each binding's own published output at build time
+> (see each binding's `package.json` `build` script), so `npm install pptx-viewer-shared` will
+> never work and no other package should ever declare a runtime dependency on it. If you need one
+> of these framework-neutral helpers (for example the slide-transition resolver/keyframes) outside
+> this monorepo, reach it through the consuming binding's `internals` subpath instead:
+> `pptx-react-viewer/internals`, `pptx-vue-viewer/internals`, `pptx-angular-viewer/internals`,
+> `pptx-svelte-viewer/internals`, or `pptx-vanilla-viewer/internals`. Each re-exports the relevant
+> surface with its shared types already inlined, so the published `.d.ts` never references this
+> package (see `scripts/check-published-shared-refs.mjs`, which fails a binding's build if one
+> ever does).
+
 ![One framework-neutral rendering layer feeding React, Vue, Angular, Svelte, and Vanilla JavaScript](https://raw.githubusercontent.com/ChristopherVR/pptx-viewer/main/.github/assets/packages/shared-rendering.svg)
 
 ## What lives here
