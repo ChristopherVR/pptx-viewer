@@ -10,6 +10,18 @@ dated sections beneath it are generated from
 
 ## 2026-09-16
 
+_Releases: pptx-react-viewer@3.19.0, pptx-vue-viewer@3.19.0, pptx-angular-viewer@3.19.0, pptx-vanilla-viewer@2.19.0, pptx-svelte-viewer@3.20.0_
+
+### Bug Fixes
+
+- **ci:** Build pptx-viewer-locales before framework bindings in release (by @ChristopherVR) ([a512fc3](https://github.com/ChristopherVR/pptx-viewer/commit/a512fc30a90d50c740afba46949980898b554fc8))
+
+### Testing
+
+- **e2e:** Poll for fragment geometry instead of sampling once (by @ChristopherVR) ([f0a9580](https://github.com/ChristopherVR/pptx-viewer/commit/f0a9580ba74c08b6b8f76dcae9804e9f68a4e10a))
+
+## 2026-09-16
+
 _Releases: pptx-viewer-core@3.15.2, @christophervr/pptx-viewer@2.19.0_
 
 ### Features

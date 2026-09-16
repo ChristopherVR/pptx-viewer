@@ -7,6 +7,75 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.19.0) - 2026-09-16
+
+### Features
+
+- **shared:** Preserve native list editing and pending snapshots (by @Sudhansh6) ([ef82b95](https://github.com/ChristopherVR/pptx-viewer/commit/ef82b95b52d12a40c1cd20a4df3b431e3c5db50c))
+- **angular:** Support live list drafts and pending export (by @Sudhansh6) ([96f1c0e](https://github.com/ChristopherVR/pptx-viewer/commit/96f1c0e4edcbd5bb95e9f0d6f5381e6d326f90b3))
+- **i18n:** Export locale subpaths from viewer packages (by @yunfeizhu) ([65003c5](https://github.com/ChristopherVR/pptx-viewer/commit/65003c5af3ecf2e8e4e1daad1a3bcd3f5ee35481))
+- **shared:** Construct image elements from local image files (by @Sudhansh6) ([562fb4a](https://github.com/ChristopherVR/pptx-viewer/commit/562fb4acf0fd2f7c3031542da05454bcfcd87ab3))
+- **bindings:** Expose the shared image file construction helper (by @Sudhansh6) ([14f3f08](https://github.com/ChristopherVR/pptx-viewer/commit/14f3f084e39bd6b5c822a3af8d7f572e55533bef))
+- **shared:** Handle native images on the focused canvas (by @Sudhansh6) ([20c9d66](https://github.com/ChristopherVR/pptx-viewer/commit/20c9d669bca8d97f32841a5e3a31a5c3f0512ffb))
+- **angular:** Preserve canvas focus for native image paste (by @Sudhansh6) ([0797e7b](https://github.com/ChristopherVR/pptx-viewer/commit/0797e7b43201a3e9a668cb2e55aba57e6d6a8b3d))
+- **shared:** Add optional selection artwork tokens (by @Sudhansh6) ([9fe6015](https://github.com/ChristopherVR/pptx-viewer/commit/9fe60154bc8e5eb314f187a42cbd4af510c714ca))
+- **angular:** Support selection control artwork themes (by @Sudhansh6) ([7c1a15c](https://github.com/ChristopherVR/pptx-viewer/commit/7c1a15c9ff68a618b86ebfb506dd66d6fc2e17ac))
+- Expose slide-transition helpers from every binding's internals entry (by @ChristopherVR) ([d232ffb](https://github.com/ChristopherVR/pptx-viewer/commit/d232ffba626b4088c2ee7f3acbb5cfa00452490d))
+- Add atomic cross-slide element batches (by @yunfeizhu) ([1157b68](https://github.com/ChristopherVR/pptx-viewer/commit/1157b68784672c6273d40c7fcee6c0c11b3216a3))
+
+### Bug Fixes
+
+- **shared:** Preserve theme colors in native list replacement (by @Sudhansh6) ([1b302b3](https://github.com/ChristopherVR/pptx-viewer/commit/1b302b3db65e8f87794b022e07808cd2b9383875))
+- Preserve live list editing through upstream merge (by @Sudhansh6) ([3f8b4f4](https://github.com/ChristopherVR/pptx-viewer/commit/3f8b4f4dce22d2f822e1c706474f946b7c20c3c7))
+- **shared:** Preserve caret scope and native list breaks (by @Sudhansh6) ([f19179b](https://github.com/ChristopherVR/pptx-viewer/commit/f19179b93b85c3486b6f7458c9debe79d3fe7d6c))
+- **angular:** Align live list caret and paragraph keys (by @Sudhansh6) ([bc457b1](https://github.com/ChristopherVR/pptx-viewer/commit/bc457b117945de472bccfb6d52a4dc676f5989bb))
+- **shared:** Retain loaded webfonts during slide edits (by @ChristopherVR) ([4f81eb0](https://github.com/ChristopherVR/pptx-viewer/commit/4f81eb062431a273cf714cafc751cc4b8446f30c))
+- **tests:** Numerous test issues (by @ChristopherVR) ([c5b8260](https://github.com/ChristopherVR/pptx-viewer/commit/c5b826079078371191b48e04db0e7e4e6877435c))
+- **angular:** Exempt selection controls from the button size floor (by @Sudhansh6) ([24afa77](https://github.com/ChristopherVR/pptx-viewer/commit/24afa777ecbacc41673b50fa08f1922b6c2b6ad9))
+- **shared:** Anchor rotation gestures to their initial press (by @Sudhansh6) ([798c83c](https://github.com/ChristopherVR/pptx-viewer/commit/798c83c91cb7cf0ebafd1f2c206ec02f701c5ecc))
+- **angular:** Gate font controls on editable text selection (by @Sudhansh6) ([3fe14c7](https://github.com/ChristopherVR/pptx-viewer/commit/3fe14c71e922e1113091fcbfd01b476edcd94da7))
+- **shared:** Preserve SVG namespaces in raster exports (by @Sudhansh6) ([1e3fdaf](https://github.com/ChristopherVR/pptx-viewer/commit/1e3fdaf5b08a4bdae98662067f9460958aaf8b0f))
+- **shared:** Bound resize hit areas between neighboring anchors (by @Sudhansh6) ([61d735d](https://github.com/ChristopherVR/pptx-viewer/commit/61d735d66644cd5ed3b6e87e7c6ff4c8dfeb9c99))
+- **angular:** Keep neighboring resize handles reachable (by @Sudhansh6) ([d801214](https://github.com/ChristopherVR/pptx-viewer/commit/d80121413b58dbf7286164d40a8db766afe7d27f))
+- **angular:** Retain accepted paste when editing becomes available (by @Sudhansh6) ([639821f](https://github.com/ChristopherVR/pptx-viewer/commit/639821fd96beb4e54b2e221dbde6ac1bb349a095))
+- **shared:** Keep rotate controls inside visible canvas (by @Sudhansh6) ([df584e9](https://github.com/ChristopherVR/pptx-viewer/commit/df584e90335c8b8da92cf8dd25c6e5a9695f7b1b))
+- **angular:** Keep rotation controls within canvas bounds (by @Sudhansh6) ([546d98b](https://github.com/ChristopherVR/pptx-viewer/commit/546d98b55a8f5fff6248259422f235bc53103f71))
+- **angular:** Keep inward rotation reachable during text editing (by @Sudhansh6) ([da50e91](https://github.com/ChristopherVR/pptx-viewer/commit/da50e91d40670e7537df0779f425e47b1aeb0be5))
+- **shared:** Apply picture alphaModFix once, not filter times opacity (by @ChristopherVR) ([3fd154b](https://github.com/ChristopherVR/pptx-viewer/commit/3fd154bda6958725bda279f81c001a99f55bd485))
+- **shared:** Stop padding the painted element box to MIN_ELEMENT_SIZE (by @ChristopherVR) ([4caef83](https://github.com/ChristopherVR/pptx-viewer/commit/4caef831004ff52da1fa816970226567e7e2bef9))
+- **core:** Honour a:alpha on solid slide backgrounds and keep it on save (by @ChristopherVR) ([3b50c7a](https://github.com/ChristopherVR/pptx-viewer/commit/3b50c7a28f8a64fcbc14eea4c2f47564b9515942))
+- Guard element batches during active pointer gestures (by @yunfeizhu) ([da3bf49](https://github.com/ChristopherVR/pptx-viewer/commit/da3bf490851c95ed3e165cb0139ee5fa5c9f4408))
+- **core:** Blend a:alpha on pattern background colours onto white (by @ChristopherVR) ([893a261](https://github.com/ChristopherVR/pptx-viewer/commit/893a261811f96f5078a9e505630414b005ab3735))
+- Render the degenerate-shape hit target for every element type (by @ChristopherVR) ([49a15a4](https://github.com/ChristopherVR/pptx-viewer/commit/49a15a40cf612ae8cbb51b9e4ceeb20e644b4936))
+- **shared:** Model relaxedInset/slope/hardEdge as non-monotonic bevel profiles (by @ChristopherVR) ([e3ef9fb](https://github.com/ChristopherVR/pptx-viewer/commit/e3ef9fb33bd991d93153daee3876aebf575128a8))
+
+### Refactor
+
+- **core:** Expose paragraph geometry keys for editing (by @Sudhansh6) ([da5b8f5](https://github.com/ChristopherVR/pptx-viewer/commit/da5b8f595c2c68d0cf354f92c2ec4d14a89618ea))
+
+### Documentation
+
+- **shared:** Document the foreignObject SVG string's safe-sink boundary (by @ChristopherVR) ([c3446d8](https://github.com/ChristopherVR/pptx-viewer/commit/c3446d8316632644db8827ba3c7cd7e39c487014))
+
+### Testing
+
+- **core:** Register the nested list roundtrip fixture (by @Sudhansh6) ([857e0b2](https://github.com/ChristopherVR/pptx-viewer/commit/857e0b2dc589a237266a5c31944b34d0173b2d82))
+- **angular:** Keep GIF cap checks lightweight (by @Sudhansh6) ([cc9e436](https://github.com/ChristopherVR/pptx-viewer/commit/cc9e4364e13cc74b3fb22b924362590e655a2bb2))
+- Cover batch update history across viewer bindings (by @yunfeizhu) ([fff49e8](https://github.com/ChristopherVR/pptx-viewer/commit/fff49e83203008bd4c01ac531791ad550006a4ab))
+- Cover gesture isolation and demo handle lifecycle (by @yunfeizhu) ([62331e2](https://github.com/ChristopherVR/pptx-viewer/commit/62331e27dd5d542db57d7ec3642757f27010df0b))
+
+### Chores
+
+- Merge main into live list editing (by @Sudhansh6) ([a9b760d](https://github.com/ChristopherVR/pptx-viewer/commit/a9b760d9c051b39066731665824af3230b8797db))
+- Sync upstream validation and ribbon updates (by @Sudhansh6) ([c70516c](https://github.com/ChristopherVR/pptx-viewer/commit/c70516c0389efd29e2dde70aeb041053fe9bd17b))
+- Merge main and resolve locale documentation conflicts (by @yunfeizhu) ([ac9123d](https://github.com/ChristopherVR/pptx-viewer/commit/ac9123d4fa531cd591898a721bd690cca25b2cf6))
+- **shared:** Merge main into resize hit ownership (by @Sudhansh6) ([f6d6336](https://github.com/ChristopherVR/pptx-viewer/commit/f6d63362dce076f497a9c350fd93501515634ab5))
+- Sync main for native paste validation (by @Sudhansh6) ([29f5fb3](https://github.com/ChristopherVR/pptx-viewer/commit/29f5fb33b0115f528731b9412f4769600b243c0c))
+- Merge main into native canvas image paste (by @Sudhansh6) ([0ebf261](https://github.com/ChristopherVR/pptx-viewer/commit/0ebf261014cc30d3422b4c87ac6def51352951e8))
+- Integrate rotation and selection-control prerequisites (by @Sudhansh6) ([e6f9cde](https://github.com/ChristopherVR/pptx-viewer/commit/e6f9cde524570b7aab4f8e95cff3756e27e45811))
+- **shared:** Align boundary controls with current main (by @Sudhansh6) ([7fbfc4c](https://github.com/ChristopherVR/pptx-viewer/commit/7fbfc4c3ae6df408035d3f21e7a6321f8323c74f))
+- **shared:** Align selection artwork with boundary controls (by @Sudhansh6) ([3b971d3](https://github.com/ChristopherVR/pptx-viewer/commit/3b971d3bb0a647d3d9158a8e23d2ec6e91e58791))
+
 ## [3.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.18.0) - 2026-09-14
 
 ### Features
