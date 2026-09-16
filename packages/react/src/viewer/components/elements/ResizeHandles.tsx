@@ -5,12 +5,18 @@ import {
 } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuRotateCw } from 'react-icons/lu';
 
 import type { ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
 import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
 import { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
+import { RotateHandleArtwork } from './RotateHandleArtwork';
+import {
+	RESIZE_ARTWORK,
+	RESIZE_DEFAULT_CLASSES,
+	ROTATE_ARTWORK,
+	ROTATE_DEFAULT_CLASSES,
+} from './selection-control-artwork';
 import { useRotateHandlePlacement } from './use-rotate-handle-placement';
 
 export { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
@@ -160,61 +166,54 @@ export function ResizeHandles({
 
 	return (
 		<>
-			{/* Corner handles: circular dots */}
-			{CORNER_HANDLES.map(({ handle, posClass, cursor }) => (
-				<button
-					data-export-ignore='true'
-					key={handle}
-					type='button'
-					aria-label={t('pptx.selectionOverlay.resize', { handle })}
-					data-pptx-handle-kind='resize'
-					data-pptx-compact
-					className={cn('absolute z-10 group', posClass, cursor)}
-					style={resizeStyle}
-					onPointerDown={(e) => handleResizePointer(e, handle)}
-					onMouseDown={(e) => {
-						e.stopPropagation();
-						onResizePointerDown(elementId, e, handle);
-					}}
-				>
-					{/* Visible dot */}
-					<div className='w-3 h-3 max-md:w-5.5 max-md:h-5.5 rounded-full border border-white bg-primary shadow' />
-					{/* Invisible expanded hit area */}
-					<div
-						data-pptx-handle-hit
-						className='absolute -inset-1.5 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-6px] max-md:[--pptx-handle-hit-inset:-4px]'
-						style={getResizeHandleHitAreaStyle(handle)}
-					/>
-				</button>
-			))}
-
-			{/* Edge midpoint handles: small rectangles */}
-			{EDGE_HANDLES.map(({ handle, posClass, cursor, sizeClass }) => (
-				<button
-					data-export-ignore='true'
-					key={handle}
-					type='button'
-					aria-label={t('pptx.selectionOverlay.resize', { handle })}
-					data-pptx-handle-kind='resize'
-					data-pptx-compact
-					className={cn('absolute z-10', posClass, cursor)}
-					style={resizeStyle}
-					onPointerDown={(e) => handleResizePointer(e, handle)}
-					onMouseDown={(e) => {
-						e.stopPropagation();
-						onResizePointerDown(elementId, e, handle);
-					}}
-				>
-					{/* Visible indicator */}
-					<div className={cn(sizeClass, 'border border-white bg-primary shadow')} />
-					{/* Invisible expanded hit area */}
-					<div
-						data-pptx-handle-hit
-						className='absolute -inset-2 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-8px] max-md:[--pptx-handle-hit-inset:-4px]'
-						style={getResizeHandleHitAreaStyle(handle)}
-					/>
-				</button>
-			))}
+			{/* The semantic frame keeps the bounded hit region; artwork never owns presses. */}
+			{[...CORNER_HANDLES, ...EDGE_HANDLES].map(({ handle, posClass, cursor }) => {
+				const corner = handle.length === 2;
+				const styles =
+					RESIZE_ARTWORK[
+						corner ? 'corner' : handle === 'n' || handle === 's' ? 'horizontal' : 'vertical'
+					];
+				return (
+					<button
+						data-export-ignore='true'
+						key={handle}
+						type='button'
+						aria-label={t('pptx.selectionOverlay.resize', { handle })}
+						data-pptx-handle-kind='resize'
+						data-pptx-compact
+						className={cn(
+							'absolute z-10 group border-0 bg-transparent p-0',
+							RESIZE_DEFAULT_CLASSES,
+							posClass,
+							cursor,
+						)}
+						style={{ ...resizeStyle, ...styles.frame }}
+						onPointerDown={(e) => handleResizePointer(e, handle)}
+						onMouseDown={(e) => {
+							e.stopPropagation();
+							onResizePointerDown(elementId, e, handle);
+						}}
+					>
+						<div
+							data-pptx-handle-artwork
+							aria-hidden='true'
+							className='border shadow'
+							style={styles.artwork}
+						/>
+						{/* Invisible expanded hit area */}
+						<div
+							data-pptx-handle-hit
+							className={cn(
+								'absolute max-md:-inset-1 pointer-events-auto max-md:[--pptx-handle-hit-inset:-4px]',
+								corner
+									? '-inset-1.5 [--pptx-handle-hit-inset:-6px]'
+									: '-inset-2 [--pptx-handle-hit-inset:-8px]',
+							)}
+							style={getResizeHandleHitAreaStyle(handle)}
+						/>
+					</button>
+				);
+			})}
 
 			{/* Rotate is separate from the North resize target. The placement hook
 			    keeps its complete pointer target inside the visible canvas. */}
@@ -226,8 +225,15 @@ export function ResizeHandles({
 					aria-label={t('pptx.selectionOverlay.rotate')}
 					data-pptx-handle-kind='rotate'
 					data-pptx-compact
-					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
-					style={{ ...peStyle, top: 'calc(-24px * var(--pptx-handle-inverse-scale, 1))' }}
+					className={cn(
+						'absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 border-0 bg-transparent p-0 cursor-grab active:cursor-grabbing',
+						ROTATE_DEFAULT_CLASSES,
+					)}
+					style={{
+						...peStyle,
+						...ROTATE_ARTWORK.frame,
+						top: 'calc(-24px * var(--pptx-handle-inverse-scale, 1))',
+					}}
 					onPointerDown={(e) => {
 						// Keep the same subpixel coordinates as pointermove; legacy
 						// mousedown rounds them and can shift a short shape's anchor.
@@ -238,17 +244,7 @@ export function ResizeHandles({
 						e.stopPropagation();
 					}}
 				>
-					<span
-						data-pptx-rotate-stem
-						className='pointer-events-none absolute top-full left-1/2 h-3.5 max-md:h-2.5 w-px bg-primary'
-						aria-hidden='true'
-					/>
-					<LuRotateCw className='w-3 h-3 max-md:w-4 max-md:h-4' />
-					<span
-						data-pptx-handle-hit
-						className='absolute -inset-2 max-md:-inset-1'
-						aria-hidden='true'
-					/>
+					<RotateHandleArtwork />
 				</button>
 			) : null}
 

@@ -37,6 +37,7 @@ import { useSelectionGesture } from '../composables/selection-gesture';
 import { getShapeAdjustmentHandleDescriptors } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
 import { vRotateHandlePlacement } from './rotate-handle-placement';
+import { controlArtwork } from './selection-overlay-artwork';
 import {
 	adjustHandleStyle as adjustHandleStyleFor,
 	boxStyle,
@@ -170,10 +171,16 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 					type="button"
 					class="pptx-vue-rotate-knob"
 					data-pptx-compact
-					:style="rotateKnobStyle(box)"
+					:style="{ ...rotateKnobStyle(box), ...controlArtwork('rotate', inverseZoom).frame }"
 					:aria-label="t('pptx.selectionOverlay.rotate')"
 					@pointerdown="(e) => beginGesture('rotate', box.id, e)"
-				/>
+				>
+					<span
+						data-pptx-handle-artwork
+						aria-hidden="true"
+						:style="controlArtwork('rotate', inverseZoom).artwork"
+					/>
+				</button>
 			</template>
 
 			<!-- Resize handles. Hidden by `a:spLocks/@noResize`. -->
@@ -187,11 +194,16 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 					data-pptx-compact
 					:data-handle="meta.id"
 					data-pptx-handle-kind="resize"
-					:style="handleStyle(meta, box)"
+					:style="{ ...handleStyle(meta, box), ...controlArtwork(meta.id, inverseZoom).frame }"
 					:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
 					@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
 				>
 					<span data-pptx-handle-hit :style="getResizeHandleHitAreaStyle(meta.id)" />
+					<span
+						data-pptx-handle-artwork
+						aria-hidden="true"
+						:style="controlArtwork(meta.id, inverseZoom).artwork"
+					/>
 				</button>
 			</template>
 

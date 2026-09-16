@@ -45,10 +45,10 @@ function verticalConnector(): PptxElement {
 	} as unknown as PptxElement;
 }
 
-function render(el: PptxElement): string {
+function render(el: PptxElement, isSelected = false): string {
 	const props = {
 		el,
-		isSelected: false,
+		isSelected,
 		canInteract: false,
 		showResizeHandles: false,
 		showHoverBorder: false,
@@ -60,6 +60,14 @@ function render(el: PptxElement): string {
 }
 
 describe('connector with a zero extent on one axis', () => {
+	it('themes the selection halo without recoloring authored strokes or endpoint markers', () => {
+		const markup = render(verticalConnector(), true);
+		expect(markup).toContain('stroke="var(--pptx-selection-outline-color, #3b82f6)"');
+		expect(markup).toContain('stroke-opacity="0.35"');
+		expect(markup).toContain('stroke="#595959"');
+		expect(markup).toContain('fill="#595959"');
+	});
+
 	it('maps the viewBox 1:1 onto the padded wrapper box', () => {
 		const markup = render(verticalConnector());
 		expect(markup).toContain(`viewBox="0 0 ${MIN_ELEMENT_SIZE} 145"`);

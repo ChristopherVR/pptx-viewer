@@ -36,6 +36,139 @@ const SHAPES_DECK = fixture('format-painter.pptx');
 /** How far the knob's centre may sit from the shape's centre line, in screen px. */
 const ALIGN_TOLERANCE = 6;
 
+test.describe('optional selection artwork', () => {
+	for (const coarse of [false, true]) {
+		test.describe(coarse ? 'coarse artwork' : 'fine artwork', () => {
+			test.use({ hasTouch: coarse, viewport: { width: coarse ? 760 : 1440, height: 1000 } });
+			test('changes artwork without shrinking targets and restores defaults', async ({ page }) => {
+				const target = await openTarget(page);
+				await select(page, target);
+				const controls = viewport(page).getByRole('button', {
+					name: /^(?:resize [nesw]{1,2}|rotate element)$/iu,
+				});
+				const measurements = () =>
+					controls.evaluateAll((buttons) =>
+						buttons
+							.map((button) => {
+								const art = button.querySelector('[data-pptx-handle-artwork]')!;
+								const frame = button.getBoundingClientRect();
+								const artwork = art.getBoundingClientRect();
+								const style = getComputedStyle(art);
+								return {
+									label: button.getAttribute('aria-label')!,
+									frame: [frame.width, frame.height],
+									artwork: [artwork.width, artwork.height],
+									fill: style.backgroundColor,
+									border: style.borderColor,
+								};
+							})
+							.sort((a, b) => a.label.localeCompare(b.label)),
+					);
+				const initial = await measurements();
+				expect(initial).toHaveLength(9);
+				for (const large of [false, true]) {
+					// CSS inheritance is the public contract used by custom/headless shells.
+					await page.evaluate((larger) => {
+						const values = {
+							'corner-size': larger ? '30px' : '6px',
+							'corner-radius': '0px',
+							'edge-length': larger ? '40px' : '14px',
+							'edge-thickness': larger ? '16px' : '4px',
+							'edge-radius': '0px',
+							'rotate-size': larger ? '34px' : '14px',
+							'handle-fill': '#15803d',
+							'handle-border-color': '#ffffff',
+							'outline-color': '#15803d',
+							'rotate-fill': '#ffffff',
+							'rotate-foreground': '#15803d',
+						};
+						for (const [name, value] of Object.entries(values)) {
+							document.documentElement.style.setProperty(`--pptx-selection-${name}`, value);
+						}
+					}, large);
+					await expect.poll(async () => (await measurements())[0].fill).toBe('rgb(21, 128, 61)');
+					const current = await measurements();
+					for (const [index, control] of current.entries()) {
+						const handle = control.label.replace(/^resize /iu, '').toLowerCase();
+						const size = /rotate/iu.test(handle) ? (large ? 34 : 14) : large ? 30 : 6;
+						const expected = /^[ns]$/u.test(handle)
+							? [large ? 40 : 14, large ? 16 : 4]
+							: /^[ew]$/u.test(handle)
+								? [large ? 16 : 4, large ? 40 : 14]
+								: [size, size];
+						for (let axis = 0; axis < 2; axis++) {
+							expect(Math.abs(control.artwork[axis] - expected[axis]), control.label).toBeLessThan(
+								0.6,
+							);
+							expect(control.frame[axis], control.label).toBeGreaterThanOrEqual(
+								initial[index].frame[axis] - 0.6,
+							);
+						}
+						expect(control.fill).toBe(
+							/rotate/iu.test(handle) ? 'rgb(255, 255, 255)' : 'rgb(21, 128, 61)',
+						);
+						expect(control.border).toBe('rgb(255, 255, 255)');
+					}
+					for (const control of await controls.all()) {
+						expect(
+							await control.evaluate((button) => {
+								const box = button.getBoundingClientRect();
+								return (
+									document
+										.elementFromPoint(box.x + box.width / 2, box.y + box.height / 2)
+										?.closest('button') === button
+								);
+							}),
+						).toBeTruthy();
+					}
+				}
+				// The compact layout hides the desktop zoom controls. Exercise their
+				// public UI in the fine-pointer case; both layouts still cover reset.
+				if (!coarse) {
+					const largeSizes = await measurements();
+					const widthBeforeZoom = (await target.boundingBox())!.width;
+					await page
+						.getByRole('button', { name: /^zoom in$/iu })
+						.first()
+						.click();
+					await page
+						.getByRole('button', { name: /^zoom in$/iu })
+						.first()
+						.click();
+					await expect
+						.poll(async () => (await target.boundingBox())!.width)
+						.toBeGreaterThan(widthBeforeZoom * 1.05);
+					const zoomed = await measurements();
+					for (const [index, control] of zoomed.entries()) {
+						for (let axis = 0; axis < 2; axis++) {
+							expect(
+								Math.abs(control.artwork[axis] - largeSizes[index].artwork[axis]),
+							).toBeLessThan(0.6);
+						}
+					}
+				}
+				await page.evaluate(() => {
+					for (const name of Array.from(document.documentElement.style)) {
+						if (name.startsWith('--pptx-selection-')) {
+							document.documentElement.style.removeProperty(name);
+						}
+					}
+				});
+				await expect.poll(async () => (await measurements())[0].fill).toBe(initial[0].fill);
+				const restored = await measurements();
+				for (const [index, control] of restored.entries()) {
+					for (let axis = 0; axis < 2; axis++) {
+						expect(Math.abs(control.artwork[axis] - initial[index].artwork[axis])).toBeLessThan(
+							0.6,
+						);
+						expect(Math.abs(control.frame[axis] - initial[index].frame[axis])).toBeLessThan(0.6);
+					}
+				}
+			});
+		});
+	}
+});
+
 async function openTarget(page: Page): Promise<Locator> {
 	await loadDeck(page, SHAPES_DECK);
 	const target = slideElements(page).filter({ hasText: 'TARGET' }).first();

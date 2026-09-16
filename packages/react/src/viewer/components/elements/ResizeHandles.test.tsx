@@ -36,6 +36,51 @@ vi.mock(import('react-i18next'), () => ({
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('centers optional artwork within growing frames while keeping pointer ownership on the bounded targets', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				onRotate={vi.fn()}
+			/>,
+		);
+		const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')];
+		for (const [index, button] of buttons.entries()) {
+			const artwork = button.querySelector<HTMLElement>('[data-pptx-handle-artwork]')!;
+			expect(artwork.getAttribute('aria-hidden')).toBe('true');
+			expect(artwork.style.pointerEvents).toBe('none');
+			expect(artwork.style.transform).toBe('translate(-50%, -50%)');
+			expect(artwork.style.scale).toBe('');
+			expect(button.getAttribute('style')).toContain('width:max(');
+			expect(button.className).toContain('translate-x-1/2');
+			expect(button.className).toContain('translate-y-1/2');
+			expect(button.className).not.toMatch(/\bshadow\b/);
+			const token =
+				index < 4
+					? 'corner-size'
+					: index < 6
+						? 'edge-length'
+						: index < 8
+							? 'edge-thickness'
+							: 'rotate-size';
+			expect(artwork.style.width).toContain(`--pptx-selection-${token}`);
+			if (index < 8) {
+				expect(button.style.pointerEvents).toBe('none');
+			}
+		}
+		const rotate = buttons[8];
+		expect(rotate.querySelector<HTMLElement>('[data-pptx-handle-artwork]')!.style.color).toContain(
+			'--pptx-selection-rotate-foreground',
+		);
+		expect(rotate.querySelector('svg')!.getAttribute('stroke')).toBe('currentColor');
+		expect(rotate.querySelector('[data-pptx-rotate-stem]')!.getAttribute('style')).toContain(
+			'--pptx-selection-outline-color',
+		);
+	});
+
 	it('attaches placement to the mounted Rotate button and cleans up when it disappears', async () => {
 		const container = document.createElement('div');
 		document.body.append(container);

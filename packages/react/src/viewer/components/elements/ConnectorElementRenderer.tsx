@@ -1,5 +1,9 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
-import { connectorWrapperTransform, svgLineCap } from 'pptx-viewer-shared';
+import {
+	connectorWrapperTransform,
+	getSelectionOutlineColor,
+	svgLineCap,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_STROKE_COLOR, MIN_ELEMENT_SIZE } from '../../constants';
@@ -173,7 +177,7 @@ export const ConnectorElementRenderer: React.FC<ConnectorRendererProps> = React.
 						<path
 							d={pathGeometry.pathData}
 							fill='none'
-							stroke={selColor}
+							stroke={getSelectionOutlineColor(selColor)}
 							strokeWidth={Math.max(strokeWidth, 2) + 6}
 							strokeOpacity={0.35}
 							strokeLinecap='round'

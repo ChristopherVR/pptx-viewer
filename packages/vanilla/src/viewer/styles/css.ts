@@ -473,17 +473,18 @@ const CHROME_CSS = `
 	transform-origin: center;
 }
 .pptxv-sel-handle {
+	--pptx-handle-hit-inset: 0px;
 	position: absolute;
-	width: 10px;
-	height: 10px;
-	margin: -5px 0 0 -5px;
 	padding: 0;
-	border: 1px solid var(--pptx-ring);
-	border-radius: 2px;
-	background: #fff;
+	border: 0;
+	background: transparent;
 	pointer-events: none;
 	/* The handle must own its touch gesture (no scroll/zoom stealing). */
 	touch-action: none;
+}
+.pptxv-control-artwork {
+	box-sizing: border-box;
+	border: 1px solid;
 	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 /*
@@ -530,18 +531,13 @@ const CHROME_CSS = `
 .pptxv-rotate-knob {
 	position: absolute;
 	left: 50%;
-	width: 12px;
-	height: 12px;
-	margin: -6px 0 0 -6px;
 	padding: 0;
-	border: 1px solid var(--pptx-ring);
-	border-radius: 50%;
-	background: #fff;
+	border: 0;
+	background: transparent;
 	cursor: grab;
 	pointer-events: auto;
 	/* The knob must own its touch gesture (no scroll/zoom stealing). */
 	touch-action: none;
-	box-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
 }
 /* PowerPoint's shape-adjustment handle: the amber diamond that reshapes a
    preset (a:avLst) instead of resizing its box. Rotated 45deg rather than
@@ -565,8 +561,8 @@ const CHROME_CSS = `
 /* On coarse (touch) pointers a 10px handle is far too small to grab reliably;
    grow the resize/rotate/adjust hit targets to a finger-friendly size. */
 @media (pointer: coarse) {
-	.pptxv-sel-handle { width: 22px; height: 22px; margin: -11px 0 0 -11px; }
-	.pptxv-rotate-knob { width: 24px; height: 24px; margin: -12px 0 0 -12px; }
+	.pptxv-sel-handle { --pptxv-resize-size: 22px; }
+	.pptxv-rotate-knob { --pptxv-rotate-size: 24px; }
 	.pptxv-adjust-handle { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
 }
 /* Connector endpoint authoring: the two handles on a selected connector, and

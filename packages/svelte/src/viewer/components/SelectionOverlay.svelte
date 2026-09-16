@@ -12,18 +12,21 @@
 	 * handles / rotate knob do, so a click on empty box interior still reaches
 	 * the element beneath and drives a move gesture.
 	 */
-	import { attachRotateHandlePlacement, getResizeHandleHitAreaStyle, RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
+	import { attachRotateHandlePlacement, getResizeHandleHitAreaStyle, getSelectionOutlineColor, RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
 	import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { DEFAULT_SELECTION_INTERACTIVITY } from '../editor/editor-selection-interactivity';
 	import type { SelectionOverlayProps } from './props';
 	import { styleToString } from '../style';
+	import { selectionControlArtwork } from './selection-control-artwork';
 
 	const { box, scale, snapLines, editing = false, selectionCount = 1, marquee = null, interactivity = DEFAULT_SELECTION_INTERACTIVITY, onhandlepointerdown, onrotatepointerdown, onadjustpointerdown }:
 		SelectionOverlayProps = $props();
 
 	const t = useTranslator();
+	const rotateArtwork = selectionControlArtwork();
+	const outlineColor = getSelectionOutlineColor('var(--pptx-ring, #6366f1)');
 	const placeRotate = (button: HTMLElement) => ({ destroy: attachRotateHandlePlacement(button, {
 		stem: button.parentElement?.querySelector('[data-pptx-rotate-stem]'),
 	}) });
@@ -68,24 +71,24 @@
 	     (pointer-events: auto) can intercept a click, leaving caret
 	     placement in the text underneath unaffected. -->
 	{#if box}
-		<div class="pptx-svelte-sel-box" style={boxStyle}
+		<div class="pptx-svelte-sel-box" style={boxStyle} style:border-color={outlineColor}
 			style:--pptx-selection-width={`${box.width * scale}px`}
 			style:--pptx-selection-height={`${box.height * scale}px`}>
 			{#if showRotate}<div
 				data-pptx-rotate-stem
 				class="pptx-svelte-rotate-stem"
-				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px`}
+				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px;background:${outlineColor}`}
 			></div>
 			<button
 				use:placeRotate
 				data-pptx-handle-kind="rotate"
 				type="button"
 				class="pptx-svelte-rotate-knob"
-				style={`top:${-ROTATE_STEM_PX}px`}
+				style={styleToString({ ...rotateArtwork.frame, top: `${-ROTATE_STEM_PX}px` })}
 				aria-label={t('pptx.selectionOverlay.rotate')}
 				data-pptx-compact
 				onpointerdown={onrotatepointerdown}
-			></button>{/if}
+			><span data-pptx-handle-artwork aria-hidden="true" class="pptx-svelte-control-artwork" style={styleToString(rotateArtwork.artwork)}></span></button>{/if}
 			{#each adjust as descriptor (descriptor.key)}<button
 				type="button"
 				class="pptx-svelte-adjust-handle"
@@ -98,16 +101,17 @@
 				onpointerdown={(event) => onadjustpointerdown?.(event, descriptor)}
 			></button>{/each}
 			{#if showResize}{#each RESIZE_HANDLES as handle (handle)}
+				{@const controlArtwork = selectionControlArtwork(handle)}
 				<button
 					type="button"
 					class="pptx-svelte-sel-handle"
-					style={`left:${RESIZE_HANDLE_GEOMETRY[handle].fx * 100}%;top:${RESIZE_HANDLE_GEOMETRY[handle].fy * 100}%;cursor:${RESIZE_HANDLE_GEOMETRY[handle].cursor}`}
+					style={styleToString({ ...controlArtwork.frame, left: `${RESIZE_HANDLE_GEOMETRY[handle].fx * 100}%`, top: `${RESIZE_HANDLE_GEOMETRY[handle].fy * 100}%`, cursor: RESIZE_HANDLE_GEOMETRY[handle].cursor })}
 					data-handle={handle}
 					data-pptx-handle-kind="resize"
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact
 					onpointerdown={(event) => onhandlepointerdown(handle, event)}
-					><span data-pptx-handle-hit style={styleToString(getResizeHandleHitAreaStyle(handle))}></span></button>
+					><span data-pptx-handle-hit style={styleToString(getResizeHandleHitAreaStyle(handle))}></span><span data-pptx-handle-artwork aria-hidden="true" class="pptx-svelte-control-artwork" style={styleToString(controlArtwork.artwork)}></span></button>
 			{/each}{/if}
 		</div>
 	{/if}
@@ -155,17 +159,19 @@
 	}
 
 	.pptx-svelte-sel-handle {
+		--pptx-handle-hit-inset: 0px;
 		position: absolute;
-		width: 10px;
-		height: 10px;
-		margin: -5px 0 0 -5px;
 		padding: 0;
-		border: 1px solid var(--pptx-ring, #6366f1);
-		border-radius: 2px;
-		background: var(--pptx-background, #ffffff);
+		border: 0;
+		background: transparent;
 		pointer-events: none;
 		/* The handle must own its touch gesture (no scroll/zoom stealing). */
 		touch-action: none;
+	}
+
+	.pptx-svelte-control-artwork {
+		box-sizing: border-box;
+		border: 1px solid;
 		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	}
 
@@ -198,33 +204,24 @@
 	.pptx-svelte-rotate-knob {
 		position: absolute;
 		left: 50%;
-		width: 12px;
-		height: 12px;
-		margin: -6px 0 0 -6px;
 		padding: 0;
-		border: 1px solid var(--pptx-ring, #6366f1);
-		border-radius: 50%;
-		background: var(--pptx-background, #ffffff);
+		border: 0;
+		background: transparent;
 		cursor: grab;
 		pointer-events: auto;
 		/* The knob must own its touch gesture (no scroll/zoom stealing). */
 		touch-action: none;
-		box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
 	}
 
 	/* On coarse (touch) pointers a 10px handle is far too small to grab reliably;
 	   grow the resize/rotate hit targets to a finger-friendly size. */
 	@media (pointer: coarse) {
 		.pptx-svelte-sel-handle {
-			width: 22px;
-			height: 22px;
-			margin: -11px 0 0 -11px;
+			--pptx-svelte-resize-size: 22px;
 		}
 
 		.pptx-svelte-rotate-knob {
-			width: 24px;
-			height: 24px;
-			margin: -12px 0 0 -12px;
+			--pptx-svelte-rotate-size: 24px;
 		}
 
 		.pptx-svelte-adjust-handle {
