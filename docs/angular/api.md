@@ -135,11 +135,12 @@ chart, connector, group, etc.) with complete type-specific properties.
 
 ### Element manipulation
 
-| Method             | Signature                                                    | Description                        |
-| ------------------ | ------------------------------------------------------------ | ---------------------------------- |
-| `updateElement`    | `(elementId: string, updates: Partial<PptxElement>) => void` | Patch element properties.          |
-| `deleteElements`   | `(elementIds: string[]) => void`                             | Delete elements by ID.             |
-| `duplicateElement` | `(elementId: string) => string \| undefined`                 | Duplicate; returns new element ID. |
+| Method             | Signature                                                                              | Description                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `updateElement`    | `(elementId: string, updates: Partial<PptxElement>) => void`                           | Patch element properties.                                                        |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`   | `(elementIds: string[]) => void`                                                       | Delete elements by ID.                                                           |
+| `duplicateElement` | `(elementId: string) => string \| undefined`                                           | Duplicate; returns new element ID.                                               |
 
 ### Inserting an element {#add-element}
 

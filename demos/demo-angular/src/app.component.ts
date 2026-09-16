@@ -1,6 +1,8 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	DestroyRef,
+	viewChild,
 	computed,
 	effect,
 	inject,
@@ -19,14 +21,15 @@ import {
 } from 'pptx-angular-viewer';
 import type { CollaborationConfig, PptxAiConfig, ViewerTheme } from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
-import 'pptx-angular-viewer/styles';
 import {
 	translationsDe,
 	translationsEs,
 	translationsFr,
 	translationsZhCN,
 } from 'pptx-viewer-locales';
+import 'pptx-angular-viewer/styles';
 
+import { installDevViewerHandle } from '../../dev-viewer-handle';
 import { buildDemoAiConfig, readStoredAiFields } from './ai-config';
 import {
 	ensureAutoRoomId,
@@ -116,6 +119,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 	`,
 })
 export class AppComponent {
+	readonly viewerRef = viewChild(PowerPointViewerComponent);
 	readonly content = signal<DemoContent | null>(null);
 	readonly fileName = signal<string>('');
 	readonly themeKey = signal<string>(restoreThemeKey());
@@ -189,6 +193,9 @@ export class AppComponent {
 	private appliedRootVarKeys: string[] = [];
 
 	constructor() {
+		inject(DestroyRef).onDestroy(
+			installDevViewerHandle(() => this.viewerRef(), import.meta.env.DEV),
+		);
 		// Mirror the React demo's `useRootTheme`: write the active theme's
 		// `--pptx-*` / `--color-*` custom properties onto `document.documentElement`
 		// so BOTH the landing dropzone and the mounted viewer chrome track the

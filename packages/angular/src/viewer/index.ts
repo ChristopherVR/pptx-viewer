@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from '../internal/shared';
 export { PowerPointViewerComponent } from './power-point-viewer.component';
 export { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 export * from './ai';

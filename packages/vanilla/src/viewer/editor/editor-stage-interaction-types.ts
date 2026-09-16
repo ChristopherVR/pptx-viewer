@@ -25,6 +25,7 @@ export interface StageInteractionsDeps {
 }
 
 export interface StageInteractions {
+	hasActivePointerInteraction(): boolean;
 	readPendingInlineTextEdit?(): import('pptx-viewer-shared').PendingInlineTextEdit | undefined;
 	readInlineList?(): import('pptx-viewer-shared').InlineListReadResult | undefined;
 	formatInlineList?(snapshot: import('pptx-viewer-shared').InlineTextEditSnapshot): boolean;

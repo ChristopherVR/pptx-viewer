@@ -413,8 +413,8 @@ export class EditorState {
 		this.history.setDepth(depth);
 	}
 
-	pushHistory(): void {
-		this.history.record(this.snapshot());
+	pushHistory(label?: string): void {
+		this.history.record(this.snapshot(), label);
 		this.elementOps.resetNudge();
 	}
 
@@ -443,11 +443,11 @@ export class EditorState {
 	 * and find/replace all route through this so every change is a single
 	 * undoable step). No-op when not editable.
 	 */
-	commitSlides(next: PptxSlide[]): void {
+	commitSlides(next: PptxSlide[], label?: string): void {
 		if (!this.editable) {
 			return;
 		}
-		this.pushHistory();
+		this.pushHistory(label);
 		this.slides = next;
 		this.commitChange();
 	}

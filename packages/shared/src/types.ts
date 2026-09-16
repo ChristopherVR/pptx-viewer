@@ -1,3 +1,4 @@
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 /**
  * Framework-agnostic public types shared by the viewer bindings.
  *
@@ -6,7 +7,7 @@
  * framework-specific prop/event/handle types on top of these.
  */
 
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ElementUpdate, ElementUpdateOptions } from './render/element-update-batch';
 
 /** Canvas dimensions in pixels. */
 export interface CanvasSize {
@@ -132,6 +133,11 @@ export interface PowerPointViewerAPI {
 	 * Accepts a `Partial<PptxElement>` patch (e.g. `{ x: 100, width: 300 }`).
 	 */
 	updateElement: (elementId: string, updates: Partial<PptxElement>) => void;
+	/** Atomically patch ordinary slide elements as one independent undo step. Rejects invalid batches. */
+	updateElements: (
+		updates: readonly ElementUpdate[],
+		options?: ElementUpdateOptions,
+	) => Promise<void>;
 	/** Delete elements by their IDs from the active slide. */
 	deleteElements: (elementIds: string[]) => void;
 	/**

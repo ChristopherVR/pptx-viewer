@@ -20,6 +20,7 @@ import type { AutosaveStatus } from './useAutosave';
 import { useContentLifecycle } from './useContentLifecycle';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { EditorOperationsResult } from './useEditorOperations';
+import { useElementUpdateBatch } from './useElementUpdateBatch';
 import type { IOHandlersResult } from './useIOHandlers';
 import { useIOHandlers } from './useIOHandlers';
 import { useKeyboardShortcutWiring } from './useKeyboardShortcutWiring';
@@ -297,6 +298,8 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		onRestore: setContent,
 	});
 
+	const updateElements = useElementUpdateBatch(input);
+
 	// ── Imperative handle ─────────────────────────────────────────
 	useImperativeHandle(
 		ref,
@@ -441,6 +444,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				editorOps.ops.applySelection(inserted.id, [inserted.id]);
 				return inserted.id;
 			},
+			updateElements,
 			updateElement(elementId: string, updates: Partial<PptxElement>) {
 				editorOps.ops.updateElementById(elementId, updates);
 			},
@@ -457,6 +461,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			},
 		}),
 		[
+			updateElements,
 			serializeSlides,
 			onContentChange,
 			slides,

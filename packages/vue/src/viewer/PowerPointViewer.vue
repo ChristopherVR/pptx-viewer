@@ -1071,6 +1071,7 @@ const { keyboardInset } = useKeyboardInsets();
 // framework-agnostic (pptx-viewer-shared); this composable owns only the
 // native-listener lifecycle. Swipe navigation keeps its own handlers (above).
 const mainRef = ref<HTMLElement | null>(null);
+const canvasOverlaysRef = ref<InstanceType<typeof ViewerCanvasOverlays> | null>(null);
 useTouchGestures({
 	targetRef: mainRef,
 	currentScale: zoom,
@@ -1547,6 +1548,10 @@ defineExpose<PowerPointViewerExpose>(
 		setEditingRequested: (editable) => {
 			editingRequested.value = editable;
 		},
+		hasActivePointerInteraction: () =>
+			drag.hasActivePointerInteraction() ||
+			marquee.value !== null ||
+			Boolean(canvasOverlaysRef.value?.hasActivePointerInteraction()),
 		commitPendingText: inlineEdit.commitInlineEdit,
 		getContent,
 		goTo,
@@ -1802,6 +1807,7 @@ defineExpose<PowerPointViewerExpose>(
 						@create-guide="drag.addGuide"
 					>
 						<ViewerCanvasOverlays
+							ref="canvasOverlaysRef"
 							:can-edit="canEditEffective"
 							:presenting="presentation.presenting.value"
 							:canvas-size="canvasSize"

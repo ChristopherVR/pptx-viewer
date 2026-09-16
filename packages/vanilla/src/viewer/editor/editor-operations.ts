@@ -78,7 +78,7 @@ export interface EditorOps {
 	selectedElement(state?: ViewerState): PptxElement | undefined;
 	select(id: string | null, ids?: string[]): void;
 	/** Snapshot the current slides onto the undo stack (before a mutation). */
-	pushHistory(): void;
+	pushHistory(label?: string): void;
 	/** Mark dirty + notify host after a committed mutation. */
 	commitChange(): void;
 	/** Patch geometry WITHOUT history (live gesture preview frames). */
@@ -166,8 +166,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 		customShows: structuredClone(store.get().customShows),
 	});
 
-	const pushHistory = (): void => {
-		history.record(snapshot(), '');
+	const pushHistory = (label = ''): void => {
+		history.record(snapshot(), label);
 		lastNudgeAt = 0;
 		deps.onHistoryChange();
 	};

@@ -228,24 +228,25 @@ interface SvgExportOptions {
 
 这是供宿主自行构建界面的共享数据接口。幻灯片 getter 返回实际的、带类型的 `PptxSlide[]` / `PptxElement[]` 模型只读快照；修改只能通过操作方法回写，这些方法会纳入撤销和重做，并触发 `onChange`。
 
-| 方法                    | 签名                                                                   | 说明                                              |
-| ----------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
-| `getSlides`             | `() => readonly PptxSlide[]`                                           | 完整的幻灯片数组。                                |
-| `getSlide`              | `(index: number) => PptxSlide \| undefined`                            | 按从 0 开始的索引获取单张幻灯片。                 |
-| `getActiveSlide`        | `() => PptxSlide \| undefined`                                         | 当前活动幻灯片。                                  |
-| `addSlide`              | `(afterIndex?: number) => void`                                        | 在给定索引之后添加空白幻灯片，默认添加到末尾。    |
-| `deleteSlides`          | `(indexes: number[]) => void`                                          | 删除给定索引的幻灯片，至少保留一张。              |
-| `duplicateSlides`       | `(indexes: number[]) => void`                                          | 复制给定索引的幻灯片。                            |
-| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                         | 将幻灯片移动到新位置。                            |
-| `toggleHideSlides`      | `(indexes: number[]) => void`                                          | 切换指定幻灯片的隐藏标记。                        |
-| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                      | 某张幻灯片上的元素，默认使用当前幻灯片。          |
-| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined` | 按 ID 获取单个元素。                              |
-| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。 |
-| `deleteElements`        | `(elementIds: string[]) => void`                                       | 按 ID 从当前幻灯片中删除元素。                    |
-| `duplicateElement`      | `(elementId: string) => string \| undefined`                           | 复制元素，返回新元素的 ID。                       |
-| `getSelectedElementIds` | `() => string[]`                                                       | 当前选中元素的 ID。                               |
-| `selectElements`        | `(ids: string[]) => void`                                              | 通过代码选择元素。                                |
-| `clearSelection`        | `() => void`                                                           | 清空选区。                                        |
+| 方法                    | 签名                                                                                   | 说明                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getSlides`             | `() => readonly PptxSlide[]`                                                           | 完整的幻灯片数组。                                                               |
+| `getSlide`              | `(index: number) => PptxSlide \| undefined`                                            | 按从 0 开始的索引获取单张幻灯片。                                                |
+| `getActiveSlide`        | `() => PptxSlide \| undefined`                                                         | 当前活动幻灯片。                                                                 |
+| `addSlide`              | `(afterIndex?: number) => void`                                                        | 在给定索引之后添加空白幻灯片，默认添加到末尾。                                   |
+| `deleteSlides`          | `(indexes: number[]) => void`                                                          | 删除给定索引的幻灯片，至少保留一张。                                             |
+| `duplicateSlides`       | `(indexes: number[]) => void`                                                          | 复制给定索引的幻灯片。                                                           |
+| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                                         | 将幻灯片移动到新位置。                                                           |
+| `toggleHideSlides`      | `(indexes: number[]) => void`                                                          | 切换指定幻灯片的隐藏标记。                                                       |
+| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                                      | 某张幻灯片上的元素，默认使用当前幻灯片。                                         |
+| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined`                 | 按 ID 获取单个元素。                                                             |
+| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`                           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。                                |
+| `updateElements`        | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [跨页批量更新元素，整批修改占用一个撤销步骤](/zh/guide/element-update-batches)。 |
+| `deleteElements`        | `(elementIds: string[]) => void`                                                       | 按 ID 从当前幻灯片中删除元素。                                                   |
+| `duplicateElement`      | `(elementId: string) => string \| undefined`                                           | 复制元素，返回新元素的 ID。                                                      |
+| `getSelectedElementIds` | `() => string[]`                                                                       | 当前选中元素的 ID。                                                              |
+| `selectElements`        | `(ids: string[]) => void`                                                              | 通过代码选择元素。                                                               |
+| `clearSelection`        | `() => void`                                                                           | 清空选区。                                                                       |
 
 ## 插入元素 {#add-element}
 

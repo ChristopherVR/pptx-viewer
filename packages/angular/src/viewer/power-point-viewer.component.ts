@@ -29,6 +29,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import {
+	commitElementUpdateBatch,
 	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
 	buildDeckSaveOptions,
@@ -59,6 +60,8 @@ import {
 	writeStoredViewerPrefs,
 } from '../internal/shared';
 import type {
+	ElementUpdate,
+	ElementUpdateOptions,
 	AccountAuthConfig,
 	DeckViewPreferences,
 	MasterViewCrudActionId,
@@ -519,6 +522,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 					<main class="pptx-ng-main" #mainEl (pointermove)="collabCursor.onPointerMove($event)">
 						<pptx-slide-canvas
+							#editorCanvas
 							[slide]="activeSlide()"
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
@@ -1504,6 +1508,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		}
 	});
 
+	private readonly editorCanvas = viewChild<SlideCanvasComponent>('editorCanvas');
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
 	private readonly viewerRoot = viewChild<ElementRef<HTMLElement>>('viewerRoot');
@@ -3148,6 +3153,26 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur();
 			},
 		);
+	}
+
+	async updateElements(
+		updates: readonly ElementUpdate[],
+		options?: ElementUpdateOptions,
+	): Promise<void> {
+		commitElementUpdateBatch(updates, options, {
+			getTarget: () => ({
+				canEdit: this.canEdit(),
+				mode: this.getMode(),
+				loaded: !this.loader.loading() && !this.loader.error(),
+				editTemplateMode: this.editor.editTemplateMode(),
+			}),
+			getSlides: () => this.editor.slides(),
+			hasActivePointerInteraction: () =>
+				this.editorCanvas()?.hasActivePointerInteraction() ?? false,
+			commitPendingText: () =>
+				this.mainEl()?.nativeElement.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
+			commitSlides: (next, label) => this.editor.applyReplacement(next, label),
+		});
 	}
 
 	/** Update one or more properties of an element by ID. */

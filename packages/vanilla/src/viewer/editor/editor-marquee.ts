@@ -30,6 +30,7 @@ export interface MarqueeControllerDeps {
 }
 
 export interface MarqueeController {
+	isActive(): boolean;
 	/** Start a band from a pointerdown on empty canvas. */
 	begin(event: PointerEvent): void;
 	/** Tear down any in-flight band and its window listeners. */
@@ -100,6 +101,7 @@ export function createMarqueeController(deps: MarqueeControllerDeps): MarqueeCon
 	}
 
 	return {
+		isActive: () => marquee !== null,
 		begin(event) {
 			const point = deps.stagePoint(event);
 			const overlayRoot = deps.getOverlayRoot();

@@ -3,6 +3,10 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 
 import type { CanvasSize, EditorHistorySnapshot } from '../types';
 import { cloneHistorySnapshot, cloneSlide, cloneTemplateElementsBySlideId } from '../utils/clone';
+import {
+	recordExplicitSlideUpdate,
+	serializeHistoryDocument as serializeDocument,
+} from './explicit-slide-history';
 import { usePointerReleaseWakeup } from './usePointerReleaseWakeup';
 
 // ---------------------------------------------------------------------------
@@ -51,6 +55,7 @@ export interface EditorHistoryInput {
 }
 
 export interface EditorHistoryResult {
+	commitSlides: (slides: PptxSlide[], label?: string, beforeSlides?: PptxSlide[]) => void;
 	canUndo: boolean;
 	canRedo: boolean;
 	undoLabel: string | undefined;
@@ -67,37 +72,6 @@ export interface EditorHistoryResult {
 // ---------------------------------------------------------------------------
 
 const DEFAULT_MAX_HISTORY_ENTRIES = 120;
-
-// ---------------------------------------------------------------------------
-// Change detection
-// ---------------------------------------------------------------------------
-
-/**
- * The part of a history snapshot that IS the document.
- *
- * `activeSlideIndex` is deliberately excluded. It rides along in the STORED
- * snapshot so undo/redo return the user to the slide the edit happened on, but
- * it must never take part in deciding whether the deck changed: clicking a
- * thumbnail reassigns nothing but the index, and comparing the whole snapshot
- * made that read as a document mutation. The consequences were both visible to
- * the user - the deck was marked dirty, so autosave wrote a crash-recovery
- * snapshot and the next visit offered to "recover unsaved changes" for a deck
- * that had only been read, and every slide click pushed an undo entry, so
- * Ctrl+Z walked back through navigation instead of edits. Angular and Vanilla
- * raise dirty from explicit commit choke points and never had either symptom.
- *
- * Note this is only the CHANGE GATE: an edit still announces itself through
- * `markDirty()` the moment it commits, so narrowing the comparison cannot
- * swallow an edit made immediately after a navigation.
- */
-function serializeDocument(snapshot: EditorHistorySnapshot): string {
-	return JSON.stringify({
-		width: snapshot.width,
-		height: snapshot.height,
-		slides: snapshot.slides,
-		templateElementsBySlideId: snapshot.templateElementsBySlideId,
-	});
-}
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -252,7 +226,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			return;
 		}
 
-		const currentSnapshot = buildHistorySnapshot();
+		const currentSnapshot = buildHistorySnapshot(previousSnapshot.actionLabel);
 		historyFutureRef.current.push(currentSnapshot);
 		isApplyingHistoryRef.current = true;
 		const nextSnapshot = cloneHistorySnapshot(previousSnapshot);
@@ -276,7 +250,7 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 			return;
 		}
 
-		const currentSnapshot = buildHistorySnapshot();
+		const currentSnapshot = buildHistorySnapshot(nextSnapshot.actionLabel);
 		historyPastRef.current.push(currentSnapshot);
 		isApplyingHistoryRef.current = true;
 		const targetSnapshot = cloneHistorySnapshot(nextSnapshot);
@@ -431,7 +405,27 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 
 	// -- Public API ---------------------------------------------------------
 
+	const commitSlides = (nextSlides: PptxSlide[], label?: string, beforeSlides = slides): void => {
+		const before = { ...buildHistorySnapshot(), slides: beforeSlides.map(cloneSlide) };
+		const after = { ...before, slides: nextSlides.map(cloneSlide) };
+		recordExplicitSlideUpdate(
+			historyPastRef.current,
+			historyFutureRef.current,
+			lastHistorySnapshotRef.current,
+			before,
+			label,
+			maxHistoryEntries,
+		);
+		lastHistorySnapshotRef.current = cloneHistorySnapshot(after);
+		lastHistorySerializedRef.current = serializeDocument(after);
+		isApplyingHistoryRef.current = false;
+		setSlides(nextSlides);
+		onDirtyRef.current?.();
+		updateHistoryAvailability();
+	};
+
 	return {
+		commitSlides,
 		canUndo,
 		canRedo,
 		undoLabel,

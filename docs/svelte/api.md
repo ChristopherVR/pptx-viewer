@@ -83,13 +83,14 @@ viewer?.setMode('present'); // start presenting; Esc exits
 
 ## Element access and manipulation
 
-| Method             | Signature                                                       | Description                                              |
-| ------------------ | --------------------------------------------------------------- | -------------------------------------------------------- |
-| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`               | Elements on a slide (defaults to the active slide).      |
-| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined` | A single element by id.                                  |
-| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`           | Patch element properties, e.g. `{ x: 100, width: 300 }`. |
-| `deleteElements`   | `(ids: string[]) => void`                                       | Delete elements by id from the active slide.             |
-| `duplicateElement` | `(id: string) => string \| undefined`                           | Duplicate an element; returns the new element's id.      |
+| Method             | Signature                                                                              | Description                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`                                      | Elements on a slide (defaults to the active slide).                              |
+| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined`                        | A single element by id.                                                          |
+| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`                                  | Patch element properties, e.g. `{ x: 100, width: 300 }`.                         |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`   | `(ids: string[]) => void`                                                              | Delete elements by id from the active slide.                                     |
+| `duplicateElement` | `(id: string) => string \| undefined`                                                  | Duplicate an element; returns the new element's id.                              |
 
 ## Inserting an element {#add-element}
 

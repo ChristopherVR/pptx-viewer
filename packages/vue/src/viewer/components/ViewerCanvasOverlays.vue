@@ -15,6 +15,7 @@
  */
 import type { PptxComment, PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { useTemplateRef } from 'vue';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
@@ -82,6 +83,17 @@ defineProps<{
 	onRequestEdit: (id: string) => void;
 	onFormat: (patch: Partial<TextStyle>) => void;
 }>();
+const selectionOverlay = useTemplateRef('selectionOverlay');
+const drawingOverlay = useTemplateRef('drawingOverlay');
+const connectorOverlay = useTemplateRef('connectorOverlay');
+defineExpose({
+	hasActivePointerInteraction: () =>
+		Boolean(
+			selectionOverlay.value?.hasActivePointerInteraction() ||
+			drawingOverlay.value?.hasActivePointerInteraction() ||
+			connectorOverlay.value?.hasActivePointerInteraction(),
+		),
+});
 </script>
 
 <template>
@@ -117,6 +129,7 @@ defineProps<{
 
 	<!-- Ink capture (Draw tab) -->
 	<DrawingOverlay
+		ref="drawingOverlay"
 		v-if="canEdit"
 		:canvas-size="canvasSize"
 		:active="drawingActive"
@@ -166,6 +179,7 @@ defineProps<{
 	     editing-only layer keeps inward handles above the editor. Normal
 	     connector endpoint precedence remains unchanged. -->
 	<SelectionOverlay
+		ref="selectionOverlay"
 		v-if="canEdit && !presenting"
 		:elements="selectedElements"
 		:selected-ids="selectedElementIds"
@@ -183,6 +197,7 @@ defineProps<{
 	<!-- Connector endpoint authoring, above the selection chrome so its handles
 	     win the hit test against the connector's own resize handles. -->
 	<ConnectorEndpointOverlay
+		ref="connectorOverlay"
 		v-if="
 			canEdit &&
 			!presenting &&
