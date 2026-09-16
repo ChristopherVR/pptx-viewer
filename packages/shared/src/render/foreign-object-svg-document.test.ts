@@ -35,6 +35,45 @@ describe('wrapForeignObjectSvg', () => {
 });
 
 describe('buildForeignObjectSvgBody', () => {
+	it('preserves nested SVG namespaces and valid XML for authored paths, references and HTML', async () => {
+		const element = document.createElement('div');
+		element.innerHTML =
+			'<svg id="art" viewBox="0 0 100 50"><defs><linearGradient id="paint"><stop offset="0" stop-color="red"/></linearGradient><path id="line" d="M0 0L100 50"/></defs><use href="#line" stroke="url(#paint)"/><foreignObject width="100" height="50"><div id="caption">A &amp; B &lt; C<br>Next<img src="data:image/png;base64,AA=="></div></foreignObject></svg>';
+		document.body.appendChild(element);
+		element
+			.querySelector('use')!
+			.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', '#line');
+		const original = element.outerHTML;
+		try {
+			const body = await buildForeignObjectSvgBody(element, document, { width: 100, height: 50 });
+			const xml = wrapForeignObjectSvg(body.bodyMarkup, {
+				viewBoxX: 0,
+				viewBoxY: 0,
+				viewBoxWidth: 100,
+				viewBoxHeight: 50,
+				outputWidth: 100,
+				outputHeight: 50,
+			});
+			const parsed = new DOMParser().parseFromString(xml, 'image/svg+xml');
+			expect(parsed.querySelector('parsererror')).toBeNull();
+			for (const selector of ['#art', '#paint', '#line', 'use', 'stop']) {
+				expect(parsed.querySelector(selector)?.namespaceURI).toBe('http://www.w3.org/2000/svg');
+			}
+			expect(parsed.querySelector('use')?.getAttribute('href')).toBe('#line');
+			expect(
+				parsed.querySelector('use')?.getAttributeNS('http://www.w3.org/1999/xlink', 'href'),
+			).toBe('#line');
+			expect(parsed.querySelector('#line')?.getAttribute('d')).toBe('M0 0L100 50');
+			for (const selector of ['#caption', 'br', 'img']) {
+				expect(parsed.querySelector(selector)?.namespaceURI).toBe('http://www.w3.org/1999/xhtml');
+			}
+			expect(parsed.querySelector('#caption')?.textContent).toBe('A & B < CNext');
+			expect(element.outerHTML).toBe(original);
+		} finally {
+			element.remove();
+		}
+	});
+
 	it('inlines computed styles, embeds fonts already present via @font-face <style>, and wraps content in foreignObject', async () => {
 		document.body.innerHTML = '';
 		const fontStyle = document.createElement('style');
