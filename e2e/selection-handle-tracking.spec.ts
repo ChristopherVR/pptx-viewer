@@ -322,3 +322,102 @@ test.describe('selection handles track the live gesture', () => {
 		await expectKnobOnShape(knob, target, 'after commit');
 	});
 });
+
+test.describe('rotation keeps the initial grab offset', () => {
+	for (const coarse of [false, true]) {
+		test.describe(coarse ? 'coarse controls' : 'fine controls', () => {
+			test.use({ hasTouch: coarse, viewport: { width: coarse ? 760 : 1440, height: 1000 } });
+			for (const rotation of [0, 43, 359]) {
+				test(`off-center grab on a ${rotation} degree short text box`, async ({
+					page,
+				}, testInfo) => {
+					const zip = await JSZip.loadAsync(await readFile(SHAPES_DECK));
+					const path = 'ppt/slides/slide1.xml';
+					zip.file(
+						path,
+						(await zip.file(path)!.async('string')).replace(/<p:sp>[\s\S]*?<\/p:sp>/gu, (shape) =>
+							shape.includes('>TARGET<')
+								? shape
+										.replace(/<a:xfrm\b[^>]*>/u, `<a:xfrm rot="${rotation * 60000}">`)
+										.replace(/<a:off\b[^>]*>/u, `<a:off x="${350 * 9525}" y="${250 * 9525}">`)
+										.replace(/<a:ext\b[^>]*>/u, `<a:ext cx="${350 * 9525}" cy="${32 * 9525}">`)
+								: shape,
+						),
+					);
+					const deck = testInfo.outputPath('rotate-grab.pptx');
+					await writeFile(deck, await zip.generateAsync({ type: 'nodebuffer' }));
+					await loadDeck(page, deck);
+					const target = slideElements(page).filter({ hasText: 'TARGET' }).first();
+					const knob = viewport(page)
+						.getByRole('button', { name: /^rotate element$/iu })
+						.first();
+					const angle = () =>
+						target.evaluate((element) => {
+							const matrix = new DOMMatrix(getComputedStyle(element).transform);
+							return ((Math.atan2(matrix.b, matrix.a) * 180) / Math.PI + 360) % 360;
+						});
+					const expectAngle = async (expected: number) => {
+						await expect
+							.poll(async () => Math.abs((((await angle()) - expected + 540) % 360) - 180))
+							.toBeLessThan(1.5);
+					};
+					// Compact layouts do not all expose toolbar zoom controls.
+					for (const zoom of coarse ? ['fit'] : ['fit', 'in', 'out']) {
+						if (zoom !== 'fit') {
+							await page
+								.getByRole('button', { name: zoom === 'in' ? /^zoom in$/iu : /^zoom out$/iu })
+								.first()
+								.click();
+							if (zoom === 'out') {
+								// Undo the zoom-in step, then exercise a scale below fit.
+								await page
+									.getByRole('button', { name: /^zoom out$/iu })
+									.first()
+									.click();
+							}
+							await page.waitForTimeout(150);
+						}
+						// Undo may clear selection; reselect before measuring the next zoom.
+						if (!(await knob.isVisible())) {
+							await select(page, target);
+						}
+						const shape = (await target.boundingBox())!;
+						const control = (await knob.boundingBox())!;
+						const center = { x: shape.x + shape.width / 2, y: shape.y + shape.height / 2 };
+						const start = {
+							x: control.x + control.width / 2 + Math.min(5, control.width / 4),
+							y: control.y + control.height / 2,
+						};
+						const ownsPress = await knob.evaluate(
+							(button, point) =>
+								document.elementFromPoint(point.x, point.y)?.closest('button') === button,
+							start,
+						);
+						expect(ownsPress).toBe(true);
+						// An off-center tap is not a rotation gesture.
+						await page.mouse.click(start.x, start.y);
+						await expectAngle(rotation);
+						const end = { x: start.x + 8, y: start.y + 4 };
+						const delta =
+							((Math.atan2(end.y - center.y, end.x - center.x) -
+								Math.atan2(start.y - center.y, start.x - center.x)) *
+								180) /
+							Math.PI;
+						const expected = (((rotation + delta) % 360) + 360) % 360;
+						await page.mouse.move(start.x, start.y);
+						await page.mouse.down();
+						await page.mouse.move(end.x, end.y);
+						await expectAngle(expected);
+						await page.mouse.up();
+						await expectAngle(expected);
+						await page
+							.getByRole('button', { name: /^undo$/iu })
+							.first()
+							.click();
+						await expectAngle(rotation);
+					}
+				});
+			}
+		});
+	}
+});

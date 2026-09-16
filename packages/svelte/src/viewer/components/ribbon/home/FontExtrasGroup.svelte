@@ -8,10 +8,8 @@
 	 */
 	import { hasTextProperties } from 'pptx-viewer-core';
 	import {
-		buildFontCatalog,
 		CHANGE_CASE_OPTIONS,
 		CHARACTER_SPACING_OPTIONS,
-		resolveDefaultFontFamily,
 		textColorOf,
 		transformInlineListCase,
 	} from 'pptx-viewer-shared';
@@ -24,11 +22,11 @@
 		clearFormattingPatch,
 		highlightColorOf,
 		setCharacterSpacingPatch,
-		setFontFamilyPatch,
 		setHighlightColorPatch,
 		setTextColorPatch,
 		toggleStrikethroughPatch,
 	} from '../../../editor';
+	import FontFamilySelect from './FontFamilySelect.svelte';
 	import SwatchColorPicker from '../SwatchColorPicker.svelte';
 
 	const { editor }: { editor: EditorState } = $props();
@@ -51,33 +49,6 @@
 
 	const el = $derived(editor.selectedElement);
 	const active = $derived(el !== undefined && hasTextProperties(el));
-	/**
-	 * The dropdown's contents, grouped the way PowerPoint groups them: theme
-	 * fonts first, then anything the deck embeds, then fonts added this session
-	 * via File > Options > Fonts, then the full catalogue.
-	 */
-	const themeFonts = $derived({
-		heading: editor.theme?.fontScheme?.majorFont?.latin,
-		body: editor.theme?.fontScheme?.minorFont?.latin,
-	});
-	const fontGroups = $derived(
-		buildFontCatalog({
-			themeFonts,
-			embeddedFonts: editor.embeddedFontFamilies,
-			customFonts: editor.customFontFamilies,
-		}),
-	);
-
-	// With nothing overriding it on the element, the box shows the family the
-	// deck would actually render rather than a hardcoded "Segoe UI", which
-	// misreported every themed deck.
-	const fontFamily = $derived(
-		(el && hasTextProperties(el) ? el.textStyle?.fontFamily : undefined) ??
-			resolveDefaultFontFamily(
-				(el as { placeholderType?: string } | undefined)?.placeholderType,
-				themeFonts,
-			),
-	);
 	const strikethrough = $derived(
 		el && hasTextProperties(el) ? Boolean(el.textStyle?.strikethrough) : false,
 	);
@@ -93,28 +64,7 @@
 </script>
 
 <div class="pptx-svelte-fontx" role="group" aria-label={t('pptx.ribbon.font')}>
-	<!-- Never disabled, for the same reason as the size box in
-	     `TextFormatGroup.svelte`: React leaves the font pickers live and the
-	     patch below is a no-op without a text element. -->
-	<select
-		class="pptx-svelte-ribbon-select pptx-svelte-fontx-family"
-		aria-label={t('pptx.ribbon.fontFamily')}
-		title={t('pptx.ribbon.fontFamily')}
-		value={fontFamily}
-		onchange={(e) => el && apply((current) => setFontFamilyPatch(current, e.currentTarget.value))}
-	>
-		{#each fontGroups as group (group.id)}
-			<optgroup label={t(group.labelKey)}>
-				{#each group.entries as entry (entry.family)}
-					<option value={entry.family} style:font-family={entry.family}
-						>{entry.family}{entry.themeRole
-							? ` (${t(`pptx.font.role.${entry.themeRole}`)})`
-							: ''}</option
-					>
-				{/each}
-			</optgroup>
-		{/each}
-	</select>
+	<FontFamilySelect {editor} />
 
 	<button
 		type="button"
@@ -250,12 +200,6 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 3px;
-	}
-
-	/* Look and feel comes from the shared `.pptx-svelte-ribbon-select` class
-	   (defined once in Ribbon.svelte); only the width cap is local. */
-	.pptx-svelte-fontx-family {
-		max-width: 120px;
 	}
 
 	.pptx-svelte-fontx-btn {

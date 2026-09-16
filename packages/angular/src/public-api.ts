@@ -56,3 +56,4 @@ export {
 } from './internal/shared';
 export type { SavedPresentationFormat } from './internal/shared';
 export type { ViewportFitOptions, ViewportFitPadding } from './internal/shared';
+export { createImageElementFromFile } from './internal/shared';

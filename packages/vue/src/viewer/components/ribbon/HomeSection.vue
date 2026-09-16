@@ -18,7 +18,7 @@ import {
 	textFontSizePxToPt,
 } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -35,7 +35,7 @@ import {
 	pill,
 	SEP,
 } from './ribbon-constants';
-import type { ElementClipboardPayload, LayoutOption } from './ribbon-types';
+import type { ElementClipboardPayload, LayoutOption, TableCellEditorState } from './ribbon-types';
 import SlidesGroup from './SlidesGroup.vue';
 import { useDropdown } from './use-dropdown';
 
@@ -61,6 +61,7 @@ interface Props {
 	onResetSlide?: () => void;
 	onAddSection?: () => void;
 	selectedElement?: PptxElement | null;
+	tableEditorState?: TableCellEditorState | null;
 	onUpdateTextStyle?: (style: Partial<TextStyle>) => void;
 	/** Theme major/minor latin faces, leading the font dropdown. */
 	themeFonts?: { heading?: string; body?: string };
@@ -112,11 +113,28 @@ const fontInfo = computed(() => extractFontInfo(props.selectedElement));
 // Cut and Copy act on the selection, so with nothing selected they are no-ops.
 // They used to render live anyway, offering a button that could not do anything.
 const hasSelection = computed(() => Boolean(props.selectedElement));
+const canFormat = computed(
+	() =>
+		props.canEdit &&
+		Boolean(props.onUpdateTextStyle) &&
+		Boolean(
+			props.selectedElement &&
+			(hasTextProperties(props.selectedElement) ||
+				(props.selectedElement.type === 'table' &&
+					props.tableEditorState?.elementId === props.selectedElement.id)),
+		),
+);
 const fontFamily = computed(() => fontInfo.value.fontFamily);
 const fontSize = computed(() => fontInfo.value.fontSize);
 
 const fontMenu = useDropdown();
 const sizeMenu = useDropdown();
+watch(canFormat, (enabled) => {
+	if (!enabled) {
+		fontMenu.close();
+		sizeMenu.close();
+	}
+});
 
 const copiedFeedback = ref(false);
 const cutFeedback = ref(false);
@@ -229,14 +247,15 @@ function handlePickSize(s: number): void {
 				<button
 					type="button"
 					:aria-label="t('pptx.ribbon.fontFamily')"
-					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate hover:bg-accent/40 transition-colors cursor-pointer"
+					:disabled="!canFormat"
+					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
 					@click="fontMenu.toggle()"
 				>
 					<span class="truncate">{{ fontFamily }}</span>
 					<ChevronDown class="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
 				</button>
 				<FontFamilyMenu
-					v-if="fontMenu.open.value"
+					v-if="fontMenu.open.value && canFormat"
 					:anchor="fontMenu.root.value"
 					:theme-fonts="props.themeFonts"
 					:embedded-fonts="props.embeddedFontFamilies"
@@ -248,14 +267,15 @@ function handlePickSize(s: number): void {
 				<button
 					type="button"
 					:aria-label="t('pptx.ribbon.fontSize')"
-					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center hover:bg-accent/40 transition-colors cursor-pointer"
+					:disabled="!canFormat"
+					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
 					@click="sizeMenu.toggle()"
 				>
 					<span class="truncate">{{ fontSize }}</span>
 					<ChevronDown class="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
 				</button>
 				<div
-					v-if="sizeMenu.open.value"
+					v-if="sizeMenu.open.value && canFormat"
 					class="z-50 flex flex-col w-48 pt-1"
 					v-anchored-popup="{ anchor: sizeMenu.root.value }"
 				>

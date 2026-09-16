@@ -19,6 +19,27 @@ let otherElementHost: HTMLDivElement;
 let otherHandleHost: HTMLDivElement;
 let root: Root;
 
+/** Include compatibility mousedown, whose coordinates lose subpixel precision. */
+function pressRotate(
+	button: HTMLButtonElement,
+	clientX: number,
+	clientY: number,
+	pointerType = 'mouse',
+): void {
+	button.dispatchEvent(
+		new PointerEvent('pointerdown', { bubbles: true, pointerId: 1, pointerType, clientX, clientY }),
+	);
+	if (pointerType === 'mouse') {
+		button.dispatchEvent(
+			new MouseEvent('mousedown', {
+				bubbles: true,
+				clientX: Math.floor(clientX),
+				clientY: Math.floor(clientY),
+			}),
+		);
+	}
+}
+
 /**
  * One viewer instance: `[data-pptx-viewport]` wrapping the element node, its
  * handle host and (for the instance under test) the React root the handles
@@ -53,7 +74,6 @@ function mountViewport(): {
 }
 
 beforeEach(() => {
-	globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 	// The other instance comes FIRST in the document, so an unscoped
 	// `document.querySelector` would land on it rather than on ours.
 	const other = mountViewport();
@@ -70,7 +90,6 @@ beforeEach(() => {
 afterEach(() => {
 	act(() => root.unmount());
 	document.body.replaceChildren();
-	globalThis.IS_REACT_ACT_ENVIRONMENT = false;
 });
 
 describe('resize handles live rotation', () => {
@@ -111,6 +130,95 @@ describe('resize handles live rotation', () => {
 		expect(onResize).toHaveBeenLastCalledWith('shape-1', expect.anything(), 'nw');
 	});
 
+	it('keeps relative Shift snapping and releases it during the same drag', () => {
+		const onRotate = vi.fn();
+		act(() =>
+			root.render(
+				<ResizeHandles
+					elementId='shape-1'
+					adjustmentHandles={[]}
+					onResizePointerDown={vi.fn()}
+					onAdjustmentPointerDown={vi.fn()}
+					rotation={43}
+					onRotate={onRotate}
+				/>,
+			),
+		);
+		const button = container.querySelector<HTMLButtonElement>(
+			'[aria-label="pptx.selectionOverlay.rotate"]',
+		)!;
+		pressRotate(button, 60, 0);
+		window.dispatchEvent(
+			new PointerEvent('pointermove', { clientX: 100, clientY: 0, shiftKey: true }),
+		);
+		expect(elementHost.style.transform).toBe('rotate(75deg)');
+		window.dispatchEvent(new PointerEvent('pointermove', { clientX: 100, clientY: 0 }));
+		expect(elementHost.style.transform).toBe('rotate(77deg)');
+		window.dispatchEvent(new PointerEvent('pointerup'));
+		expect(onRotate).toHaveBeenCalledExactlyOnceWith('shape-1', 77);
+	});
+
+	it.each([false, true])(
+		'does not commit an unchanged off-center grab (radial movement: %s)',
+		(move) => {
+			const onRotate = vi.fn();
+			act(() =>
+				root.render(
+					<ResizeHandles
+						elementId='shape-1'
+						adjustmentHandles={[]}
+						onResizePointerDown={vi.fn()}
+						onAdjustmentPointerDown={vi.fn()}
+						rotation={43}
+						onRotate={onRotate}
+					/>,
+				),
+			);
+			const button = container.querySelector<HTMLButtonElement>(
+				'[aria-label="pptx.selectionOverlay.rotate"]',
+			)!;
+			pressRotate(button, 60, 0);
+			if (move) {
+				window.dispatchEvent(new PointerEvent('pointermove', { clientX: 70, clientY: -50 }));
+				expect(elementHost.style.transform).toBe('rotate(43deg)');
+			}
+			window.dispatchEvent(new PointerEvent('pointerup'));
+			expect(onRotate).not.toHaveBeenCalled();
+		},
+	);
+
+	it.each(['mouse', 'touch', 'pen'])(
+		'anchors an off-center %s grab without losing flips',
+		(pointerType) => {
+			const onRotate = vi.fn();
+			act(() =>
+				root.render(
+					<ResizeHandles
+						elementId='shape-1'
+						adjustmentHandles={[]}
+						onResizePointerDown={vi.fn()}
+						onAdjustmentPointerDown={vi.fn()}
+						rotation={43}
+						nonRotationTransform='scaleX(-1)'
+						onRotate={onRotate}
+					/>,
+				),
+			);
+			const button = container.querySelector<HTMLButtonElement>(
+				'[aria-label="pptx.selectionOverlay.rotate"]',
+			)!;
+			pressRotate(button, 60.75, 0.25, pointerType);
+			window.dispatchEvent(
+				new PointerEvent('pointermove', { clientX: 100, clientY: 0, pointerId: 1 }),
+			);
+			expect(elementHost.style.transform).toBe('rotate(76deg) scaleX(-1)');
+			expect(handleHost.style.transform).toBe('rotate(76deg) scaleX(-1)');
+			expect(otherElementHost.style.transform).toBe('');
+			window.dispatchEvent(new PointerEvent('pointerup', { pointerId: 1 }));
+			expect(onRotate).toHaveBeenCalledExactlyOnceWith('shape-1', 76);
+		},
+	);
+
 	it('rotates the element and detached selection handles together', () => {
 		const onRotate = vi.fn();
 		act(() => {
@@ -129,7 +237,7 @@ describe('resize handles live rotation', () => {
 			'[aria-label="pptx.selectionOverlay.rotate"]',
 		);
 		expect(rotateButton).not.toBeNull();
-		rotateButton!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+		pressRotate(rotateButton!, 50, 0);
 		window.dispatchEvent(
 			new PointerEvent('pointermove', { clientX: 150, clientY: 50, bubbles: true }),
 		);

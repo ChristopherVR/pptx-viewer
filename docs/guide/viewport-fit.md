@@ -60,6 +60,13 @@ not the entire host including its toolbar. Existing ruler offsets remain in
 effect. Set `showRulers={false}` on a custom `SlideCanvas` when it must align
 directly with the viewport edges.
 
+`SlideCanvas` tracks its viewport automatically, including conditional unmounts
+and remounts while the building-block hook stays mounted. If you use
+`useZoomViewport` from `pptx-react-viewer/internals` with your own viewport element, bind
+`ref={zoom.setCanvasViewportNode ?? zoom.canvasViewportRef}` so fitting and native
+wheel zoom follow the current element. The existing `canvasViewportRef` object
+remains available for reading the viewport.
+
 ### Vue
 
 ```vue
