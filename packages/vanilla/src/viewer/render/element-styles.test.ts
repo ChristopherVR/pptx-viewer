@@ -95,10 +95,10 @@ describe('stroke-only preset geometry', () => {
 		expect(style['clipPath']).toBeUndefined();
 	});
 
-	it('strokes the evaluated geometry over the padded box', () => {
+	it('strokes the evaluated geometry over the authored (painted) box', () => {
 		const svg = renderStrokeOutline(document, rule());
 		expect(svg).not.toBeNull();
-		expect(svg?.getAttribute('viewBox')).toBe('0 0 400 12');
+		expect(svg?.getAttribute('viewBox')).toBe('0 0 400 0');
 		const path = svg?.querySelector('path');
 		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 1');
 		expect(path?.getAttribute('stroke')).toBe('#000000');

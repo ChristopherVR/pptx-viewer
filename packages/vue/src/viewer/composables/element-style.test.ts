@@ -1,7 +1,12 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { getContainerStyle, getShapeFillStrokeStyle, getTextBlockStyle } from './element-style';
+import {
+	getContainerStyle,
+	getElementHitTargetStyle,
+	getShapeFillStrokeStyle,
+	getTextBlockStyle,
+} from './element-style';
 
 function shape(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -30,6 +35,29 @@ describe('getContainerStyle', () => {
 		const style = getContainerStyle(shape({ rotation: 45, flipHorizontal: true }), 0);
 		expect(style.transform).toContain('rotate(45deg)');
 		expect(style.transform).toContain('scaleX(-1)');
+	});
+
+	// Read-only rendering (SlideStage/SSR) must never pad the painted box: a
+	// 1-pt horizontal rule authored ~1.25px tall painted as a 12-15px solid bar
+	// once the fill rode on this same box's `background-color` (issue #285).
+	it('keeps a sub-pixel authored height exactly, never padding it to a minimum', () => {
+		const style = getContainerStyle(shape({ width: 400, height: 1.25 }), 0);
+		expect(style.height).toBe('1.25px');
+	});
+});
+
+describe('getElementHitTargetStyle', () => {
+	it('returns undefined for a normally sized element', () => {
+		expect(getElementHitTargetStyle(shape())).toBeUndefined();
+	});
+
+	it('centres a padded, pointer-events:auto target over a degenerate rule', () => {
+		const style = getElementHitTargetStyle(shape({ width: 400, height: 1.25 }));
+		expect(style).toBeDefined();
+		expect(style!.width).toBe('400px');
+		expect(style!.height).toBe('12px');
+		expect(style!.position).toBe('absolute');
+		expect(style!.pointerEvents).toBe('auto');
 	});
 });
 

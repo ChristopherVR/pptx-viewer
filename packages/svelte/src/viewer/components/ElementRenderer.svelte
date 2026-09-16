@@ -9,7 +9,7 @@
 	import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 	import { build3DExtrusionData, buildParagraphs, buildTextStyleOverrideCss, getGroupChildParentFill, getOverflowSegments, hasTextWarp, inlineElementPointerEvents, isElementHidden, isEquationOnlyText, isTemplateElement, placeholderPromptDescriptor, resolveChartKind } from 'pptx-viewer-shared';
 
-	import { getContainerStyle, getShapeBoxStyle, getShapeFillStrokeStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, getShapeBoxStyle, getShapeFillStrokeStyle, getTextBlockStyle, mergeStyles, styleToString } from '../style';
 	import { getFieldContextGetter } from '../state/field-context';
 	import { getSlideElementsGetter } from '../state/slide-elements';
 	import { useAreaChart3D } from '../state/area-chart-3d-context';
@@ -237,6 +237,16 @@
 			element.height,
 		);
 	});
+	/**
+	 * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) shape:
+	 * a bigger, invisible, centred click/drag target, kept separate from the
+	 * painted box (`getShapeBoxStyle`, now always the authored size) so a thin
+	 * authored line never paints as a thick bar in read-only rendering (issue
+	 * #285). Never rendered while presenting: nothing on the show stage is
+	 * draggable or selectable. `undefined` on a read-only surface (`editable`
+	 * false) and when the authored box already meets the minimum size.
+	 */
+	const hitTarget = $derived(editable && !presenting ? getElementHitTargetStyle(element) : undefined);
 </script>
 
 {#if isHidden}
@@ -318,6 +328,10 @@
 		data-pptx-element={elementMarked ? 'true' : undefined}
 	>
 		<DuotoneFilterDefs {element} {mediaDataUrls} {zIndex} />
+		<!-- Interaction-only hit target for a degenerate shape; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		<!-- A font-style emphasis effect (Bold Flash, Bold Reveal, Underline,
 		     Change Font Style/Size) overrides the runs' own inline
 		     bold/italic/underline/size, which plain CSS inheritance cannot reach

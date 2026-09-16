@@ -49,6 +49,14 @@ describe('getContainerStyle', () => {
 		expect(style['opacity']).toBe(0.5);
 		expect(style['display']).toBe('none');
 	});
+
+	// Read-only rendering must never pad the painted box: a 1-pt horizontal
+	// rule authored ~1.25px tall painted as a 12-15px solid bar once its fill
+	// rode on this same box's `background-color` (issue #285).
+	it('keeps a sub-pixel authored height exactly, never padding it to a minimum', () => {
+		const style = getContainerStyle(baseElement({ width: 400, height: 1.25 }), 0);
+		expect(style['height']).toBe('1.25px');
+	});
 });
 
 describe('getShapeFillStrokeStyle', () => {

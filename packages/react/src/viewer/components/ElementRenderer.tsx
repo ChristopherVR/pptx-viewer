@@ -1,6 +1,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextStyleOverrideCss,
+	elementHitTargetStyle,
 	getGroupChildParentFill,
 	isHollowShapeElement,
 	resolveElementAriaAttributes,
@@ -10,6 +11,7 @@ import {
 	resolveElementInteractivity,
 } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../constants';
 import {
@@ -233,6 +235,14 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
+		// Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+		// shape: a bigger, invisible, centred click/drag target, kept separate
+		// from the painted box so a thin authored line never paints as a thick
+		// bar in read-only rendering (issue #285). Never rendered while
+		// presenting: nothing on the show stage is draggable or selectable.
+		const hitTargetStyle =
+			effectiveCanInteract && !isPresentationPassive ? elementHitTargetStyle(el) : undefined;
+
 		const isFocusable = effectiveCanInteract || isActionable;
 		const interactionProps = getElementInteractionProps({
 			element: el,
@@ -306,6 +316,13 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 			>
 				{renderDagDuotoneFilterForElement(el)}
 				{textStyleOverrideCss && <style>{textStyleOverrideCss}</style>}
+				{hitTargetStyle && (
+					<div
+						aria-hidden='true'
+						data-pptx-hit-target='true'
+						style={hitTargetStyle as CSSProperties}
+					/>
+				)}
 				{backgroundAnimationState ? (
 					<div
 						data-pptx-animation-layer='background'

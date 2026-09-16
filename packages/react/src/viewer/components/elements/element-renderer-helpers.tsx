@@ -1,9 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import { paintedElementSize } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
-import { MIN_ELEMENT_SIZE } from '../../constants';
 import {
 	getElementTransform,
 	getCropShapeClipPath,
@@ -90,11 +90,18 @@ export function getContainerStyle({
 				? ('hidden' as const)
 				: undefined;
 
+	// The painted box is the element's authored extent (see shared
+	// `paintedElementSize`): it must never be padded past that in read-only
+	// rendering, or a solid-filled degenerate shape (a thin horizontal rule)
+	// paints as a thick bar instead of its authored 1-2px line (issue #285).
+	// Grabbability for a degenerate shape is a SEPARATE, interactive-only
+	// affordance; see `elementHitTargetStyle`, rendered by `ElementRenderer`.
+	const painted = paintedElementSize(el);
 	return {
 		left: isFullscreenMedia ? 0 : el.x,
 		top: isFullscreenMedia ? 0 : el.y,
-		width: isFullscreenMedia ? '100%' : Math.max(el.width, MIN_ELEMENT_SIZE),
-		height: isFullscreenMedia ? '100%' : Math.max(el.height, MIN_ELEMENT_SIZE),
+		width: isFullscreenMedia ? '100%' : painted.width,
+		height: isFullscreenMedia ? '100%' : painted.height,
 		transform: isFullscreenMedia ? 'none' : getElementTransform(el),
 		transformOrigin: 'center',
 		overflow: overflowValue,

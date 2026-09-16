@@ -18,6 +18,7 @@ import { computed } from 'vue';
 
 import {
 	getContainerStyle,
+	getElementHitTargetStyle,
 	getShapeFillStrokeStyle,
 	getTextBlockStyle,
 } from '../composables/element-style';
@@ -326,6 +327,18 @@ const isRendered = computed(() => isElementRendered(props.element));
 
 /** This exact element is open in the element-level inline text editor right now. */
 const isBeingInlineEdited = computed(() => props.element.id === props.inlineEditingElementId);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) shape: a
+ * bigger, invisible, centred click/drag target, kept separate from the
+ * painted box (`shapeDivStyle`, now always the authored size) so a thin
+ * authored line never paints as a thick bar in read-only rendering (issue
+ * #285). Never rendered while presenting: nothing on the show stage is
+ * draggable or selectable.
+ */
+const hitTargetStyle = computed<CSSProperties | undefined>(() =>
+	props.interactive && !props.presenting ? getElementHitTargetStyle(props.element) : undefined,
+);
 </script>
 
 <template>
@@ -501,6 +514,13 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:data-pptx-element="elementMarker"
 	>
 		<DuotoneFilterDefs :element="element" />
+		<!-- Interaction-only hit-target for a degenerate shape; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			`<style>` is a forbidden side-effect tag in an SFC template (the compiler
 			rejects it even behind `v-if`), so the override is rendered through the

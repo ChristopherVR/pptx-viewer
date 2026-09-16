@@ -48,14 +48,27 @@ describe('getContainerStyle', () => {
 		expect(style.height).toBe(150);
 	});
 
-	it('enforces minimum element size for small elements', () => {
+	it('never pads a small element past its authored size (issue #285)', () => {
+		// A degenerate shape (a horizontal rule authored a few px tall) must keep
+		// its authored size in read-only rendering: padding it up made a
+		// solid-filled rule paint as a thick bar instead of a hairline. Any
+		// grabbability padding is a separate, interactive-only affordance (see
+		// `elementHitTargetStyle`), not part of this painted box.
 		const style = getContainerStyle({
 			...BASE_PARAMS,
 			el: makeElement({ width: 1, height: 2 }),
 		});
-		// MIN_ELEMENT_SIZE is 12
-		expect(style.width).toBe(12);
-		expect(style.height).toBe(12);
+		expect(style.width).toBe(1);
+		expect(style.height).toBe(2);
+	});
+
+	it('keeps a sub-pixel authored height exactly, matching a real 1-pt rule', () => {
+		const style = getContainerStyle({
+			...BASE_PARAMS,
+			el: makeElement({ width: 400, height: 1.25 }),
+		});
+		expect(style.width).toBe(400);
+		expect(style.height).toBe(1.25);
 	});
 
 	it('sets zIndex from parameter', () => {

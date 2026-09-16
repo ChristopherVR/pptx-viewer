@@ -274,10 +274,12 @@ describe('buildStrokeOutline stroke-only ("open") presets', () => {
 		expect(compound.strands[0].offset).not.toBe(compound.strands[1].offset);
 	});
 
-	it('takes the overlay viewBox from the PAINTED box, not the authored extent', () => {
-		// A 1-EMU rule is padded to MIN_ELEMENT_SIZE; a viewBox of the authored
-		// extent would be stretched 12x vertically and tilt the rule into a diagonal.
-		expect(strokeOutlineViewBox(line())).toBe('0 0 400 12');
+	it('takes the overlay viewBox from the PAINTED (authored) box, matching the wrapper', () => {
+		// The viewBox must equal the wrapper's own CSS box (its authored extent):
+		// the overlay <svg> is displayed at 100%/100% of that wrapper, so a
+		// viewBox padded past the authored size (the old MIN_ELEMENT_SIZE
+		// behaviour) would stretch the outline non-uniformly (issue #285).
+		expect(strokeOutlineViewBox(line())).toBe('0 0 400 0');
 		expect(strokeOutlineViewBox(line({ width: 200, height: 120 }))).toBe('0 0 200 120');
 	});
 

@@ -33,7 +33,7 @@
  * bindings supply only the ~10 lines of view layer.
  */
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
-import { MIN_ELEMENT_SIZE, getShapeType, hasShapeProperties } from 'pptx-viewer-core';
+import { getShapeType, hasShapeProperties } from 'pptx-viewer-core';
 
 import { DEFAULT_STROKE_COLOR } from '../constants';
 import { getCompoundLineOffsets, getCompoundLineWidths, svgLineCap } from './connector-style';
@@ -339,19 +339,21 @@ export function buildStrokeOutline(element: PptxElement): StrokeOutline | undefi
 
 /**
  * The `viewBox` a binding must give the outline overlay: the element's PAINTED
- * box, which is padded out to {@link MIN_ELEMENT_SIZE} for degenerate shapes
- * (see shared `getContainerStyle`).
+ * box, i.e. its authored extent (see shared `getContainerStyle` /
+ * `paintedElementSize`), floored at zero.
  *
- * Matching the viewBox to the painted box rather than to the authored extent
- * keeps the user-space mapping 1:1 under `preserveAspectRatio="none"`. A
- * 1-EMU-tall horizontal rule authored as `viewBox="0 0 700 1"` and stretched
- * across the 12px-tall padded box would otherwise be scaled 12x vertically and
- * come out as a diagonal; with the padded viewBox the geometry stays where it
- * was authored and the padding hangs off the bottom/right.
+ * Matching the viewBox to the painted box rather than to some other extent
+ * keeps the user-space mapping 1:1 under `preserveAspectRatio="none"`: the
+ * overlay `<svg>` is displayed at exactly the wrapper's own CSS width/height
+ * (100%/100%), so its `viewBox` must equal the same box the wrapper itself
+ * uses or the outline would be non-uniformly scaled. This used to be the
+ * INTERACTIVE-only padded box (see `elementHitTargetStyle`); painting the
+ * outline at that padded size in read-only rendering stretched a hairline
+ * rule's border across a much taller box than it was authored at (issue #285).
  */
 export function strokeOutlineViewBox(element: PptxElement): string {
-	const width = Math.max(element.width, MIN_ELEMENT_SIZE);
-	const height = Math.max(element.height, MIN_ELEMENT_SIZE);
+	const width = Math.max(element.width, 0);
+	const height = Math.max(element.height, 0);
 	return `0 0 ${width} ${height}`;
 }
 
