@@ -1,12 +1,17 @@
-import type { PicturePptxElement, PptxImageEffects, PptxSlide } from 'pptx-viewer-core';
+import type { PicturePptxElement, PptxSlide } from 'pptx-viewer-core';
 import React from 'react';
 
-import { getImageEffectsFilter, getImageRenderStyle } from '../utils';
+import { getImageEffectsFilter, getImageEffectsOpacity, getImageRenderStyle } from '../utils';
 import { renderImg } from './elements/ImageRenderer';
 
 /**
  * Paint a slide background image as an image layer instead of a CSS
  * `background-image`, so crop, tiling and blip effects survive rendering.
+ *
+ * `imageEffects` is passed through unmodified: `getImageEffectsFilter` /
+ * `getImageEffectsOpacity` (shared) already guarantee an `alphaModFix` is
+ * applied exactly once (as CSS `opacity`, never also folded into the
+ * `imgalpha-<id>` SVG filter), so this no longer needs to strip it out itself.
  */
 export function SlideBackgroundImageLayer({
 	slide,
@@ -18,17 +23,6 @@ export function SlideBackgroundImageLayer({
 	}
 
 	const properties = slide.backgroundImageProperties ?? {};
-	const originalEffects = properties.imageEffects;
-	const renderEffects: PptxImageEffects | undefined = originalEffects
-		? { ...originalEffects }
-		: undefined;
-	// The simple multiplier is applied as opacity on the image node. Leaving it
-	// in the SVG-effect pipeline as well would halve the alpha twice.
-	if (renderEffects) {
-		delete renderEffects.alphaModFix;
-		delete renderEffects.alphaModFixRawXml;
-	}
-
 	const idPart = String(slide.id || 'slide').replace(/[^A-Za-z0-9_-]/gu, '-');
 	const backgroundElement: PicturePptxElement = {
 		id: `slide-background-${idPart}`,
@@ -39,12 +33,7 @@ export function SlideBackgroundImageLayer({
 		height: 1,
 		...properties,
 		imageData: slide.backgroundImage,
-		imageEffects: renderEffects,
 	};
-	const opacity =
-		typeof originalEffects?.alphaModFix === 'number'
-			? Math.max(0, Math.min(1, originalEffects.alphaModFix / 100))
-			: undefined;
 
 	return (
 		<div
@@ -57,7 +46,7 @@ export function SlideBackgroundImageLayer({
 				getImageRenderStyle(backgroundElement),
 				getImageEffectsFilter(backgroundElement),
 				'',
-				opacity,
+				getImageEffectsOpacity(backgroundElement),
 			)}
 		</div>
 	);

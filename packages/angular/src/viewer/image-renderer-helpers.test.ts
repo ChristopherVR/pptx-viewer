@@ -36,6 +36,11 @@ describe('buildAngularImageRenderView', () => {
 		expect(view.svgFilters).toHaveLength(1);
 		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
 		const markup = view.svgFilters[0].markup;
+		// Regression for issue #286: alphaModFix must be applied exactly once, as
+		// `imageStyle.opacity` above, never ALSO folded into this SVG filter's
+		// own feColorMatrix multiply even though the filter is built anyway (for
+		// biLevel/hsl/tint here).
+		expect(markup).not.toContain('0 0 0 0.4 0');
 		expect(markup).toContain(`tableValues="${buildImageBiLevelTable(30)}"`);
 		expect(markup).toContain('type="hueRotate" values="45"');
 		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
@@ -44,6 +49,17 @@ describe('buildAngularImageRenderView', () => {
 		// oxlint-disable-next-line eslint/one-var -- interleaved with expect() calls
 		const tint = buildImageLuminanceTransfer(-25);
 		expect(markup).toContain(`slope="${tint.slope}" intercept="${tint.intercept}"`);
+	});
+
+	it('applies alphaModFix alone as opacity only, with no alpha SVG filter', () => {
+		// Regression for issue #286: alphaModFix alone must not also reference
+		// the imgalpha-<id> SVG filter (there would be no filter def to match it,
+		// since alphaModFix carries no primitive of its own).
+		const view = buildAngularImageRenderView(image({ alphaModFix: 15 }));
+
+		expect(view.imageStyle.opacity).toBe(0.15);
+		expect(String(view.imageStyle.filter ?? '')).not.toContain('imgalpha-');
+		expect(view.svgFilters).toStrictEqual([]);
 	});
 
 	it('preserves shared effects when clrChange selects the processed-image path', () => {
