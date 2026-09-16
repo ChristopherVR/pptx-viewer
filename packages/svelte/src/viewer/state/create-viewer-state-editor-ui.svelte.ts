@@ -9,6 +9,7 @@ import { untrack } from 'svelte';
 
 import type { CollaborationController } from '../collab';
 import type { StageContextMenu } from '../components/props';
+import { useCanvasImagePaste } from '../editor/canvas-image-paste.svelte';
 import { EditorController } from '../editor/editor-controller.svelte';
 import { FindReplaceState } from '../editor/editor-find-replace.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
@@ -125,6 +126,35 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		// `findReplace` is constructed just below; the closure only runs on a real
 		// key press, long after this function has returned.
 		toggleFind: () => findReplace.toggle(),
+	});
+
+	// oxlint-disable-next-line react-hooks/rules-of-hooks
+	useCanvasImagePaste(() => options.getRootEl() ?? null, {
+		getCanvas: () => options.getStageHolderEl() ?? null,
+		getTarget: () => {
+			const slide = editor.slides[viewer.current];
+			if (
+				!deps.getEditable() ||
+				readOnlyRec.locked ||
+				!editor.editable ||
+				loader.loading ||
+				loader.error ||
+				viewer.isFullscreen ||
+				editor.masterViewTarget ||
+				editor.editTemplateMode ||
+				controller.editing ||
+				editor.inkOps.isDrawing ||
+				stageContextMenu ||
+				!slide ||
+				!loader.handler
+			) {
+				return null;
+			}
+			return { documentId: loader.handler, slideId: slide.id, canvasSize: loader.canvasSize };
+		},
+		insertElement: (element) => {
+			editor.insertElement(element);
+		},
 	});
 
 	const findReplace = new FindReplaceState({

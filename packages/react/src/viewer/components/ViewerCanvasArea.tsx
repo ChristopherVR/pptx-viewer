@@ -487,6 +487,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				/>
 			) : (
 				<SlideCanvas
+					imagePaste={insertHandlers.imagePaste}
 					onUpdateSlideAnimations={props.onUpdateSlideAnimations}
 					activeSlide={effectiveSlide}
 					templateElements={effectiveTemplateElements}

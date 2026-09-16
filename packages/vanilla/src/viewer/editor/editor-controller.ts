@@ -35,6 +35,7 @@ import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
 import type { FindReplaceActions } from './editor-find-replace-actions';
 import { createFindReplaceActions } from './editor-find-replace-actions';
+import { attachCanvasImagePaste } from './editor-image-paste';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import { selectionInteractivity } from './editor-lock-gates';
 import { createEditorOps } from './editor-operations';
@@ -348,7 +349,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		drawMode.onStagePointerDown(event);
 	};
 
+	let detachImagePaste: (() => void) | undefined;
 	const detachChrome = (): void => {
+		detachImagePaste?.();
+		detachImagePaste = undefined;
 		interactions.closeInline(true);
 		attachedWrap?.removeEventListener('pointerdown', onStagePointerDown);
 		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
@@ -434,6 +438,12 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
+			detachImagePaste = attachCanvasImagePaste(attachedRoot, attachedWrap, {
+				store,
+				getHandler: deps.getHandler,
+				isEditing: interactions.inlineActive,
+				insertElement: editActions.insertElement,
+			});
 			attachedWrap.addEventListener('pointerdown', onStagePointerDown);
 			attachedWrap.addEventListener('pointermove', interactions.onStagePointerMove);
 			attachedWrap.addEventListener('dblclick', drawMode.onStageDblClick);

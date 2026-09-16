@@ -28,6 +28,18 @@ Utilisez l'onglet **Insertion** de la barre d'outils :
 - **Tableau** - inseser un tableau avec un nombre de lignes et colonnes choisi.
 - **Graphique** - inserez un graphique; faites glisser les barres ou les points directement sur la diapositive pour changer les valeurs, ou editez les donnees dans l'inspecteur.
 
+Pour coller une image depuis une autre application, copiez l'image elle-même,
+cliquez sur la diapositive, puis appuyez sur **Ctrl+V** (**Cmd+V** sur macOS).
+Si le navigateur fournit un fichier image, il est centré, ajusté aux limites de
+la diapositive et sélectionné. L'insertion correspond à une seule étape
+d'annulation. Pendant la saisie de texte ou l'édition d'une cellule, le collage
+reste dans cet éditeur et n'ajoute pas d'image séparée. Les URL d'images et le
+HTML seuls ne sont pas importés.
+
+Le presse-papiers interne conserve la priorité : si vous avez copié des éléments
+de diapositive dans cette visionneuse, **Ctrl+V** continue à coller ces éléments.
+Utilisez alors **Insertion > Image** pour choisir un fichier image externe.
+
 ## Formater avec l'inspecteur
 
 Le panneau **Inspecteur** (a droite) est contextuel - il change selon ce qui est selectionne.

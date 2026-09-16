@@ -28,6 +28,17 @@ Use la pestana **Insertar** de la barra de herramientas:
 - **Tabla** - inserte una tabla con un numero de filas y columnas elegido.
 - **Grafico** - inserte un grafico; arrastre barras o puntos directamente en la diapositiva para cambiar valores, o edite los datos en el inspector.
 
+Para pegar una imagen desde otra aplicación, copie la propia imagen, haga clic
+en la diapositiva y pulse **Ctrl+V** (**Cmd+V** en macOS). Si el navegador entrega
+un archivo de imagen, se inserta centrado, ajustado a los límites de la
+diapositiva y seleccionado. La inserción ocupa un solo paso de deshacer.
+Al editar texto o una celda, el pegado permanece en ese editor y no añade una
+imagen independiente. Este atajo no importa solo URL de imágenes ni HTML.
+
+El portapapeles interno conserva la prioridad: si ha copiado elementos de
+diapositiva en este visor, **Ctrl+V** sigue pegando esos elementos. En ese caso,
+use **Insertar > Imagen** para elegir un archivo de imagen externo.
+
 ## Formatear con el inspector
 
 El panel **Inspector** (a la derecha) es contextual.

@@ -19,6 +19,7 @@ import { SelectionHandleOverlay } from './canvas/SelectionHandleOverlay';
 import { useCanvasEventHandlers } from './canvas/useCanvasEventHandlers';
 import { useConnectorCreation } from './canvas/useConnectorCreation';
 import { useDrawingOverlay } from './canvas/useDrawingOverlay';
+import { useSlideCanvasImagePaste } from './canvas/useSlideCanvasImagePaste';
 import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
 import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
@@ -34,6 +35,7 @@ const EMPTY_ADJUSTMENT_HANDLES: ShapeAdjustmentHandleDescriptor[] = [];
 export type { SlideCanvasProps } from './canvas/canvas-types';
 
 export function SlideCanvas({
+	imagePaste,
 	activeSlide,
 	templateElements,
 	canvasSize,
@@ -107,6 +109,17 @@ export function SlideCanvas({
 	// are live). Drives touch-action: none and the touch pointer-down wiring so
 	// finger gestures manipulate elements instead of scrolling the page.
 	const isEditableCanvas = (mode === 'edit' || mode === 'master') && canEdit;
+	useSlideCanvasImagePaste({
+		imagePaste,
+		zoom,
+		mode,
+		canEdit,
+		activeSlide,
+		editTemplateMode,
+		inlineEditingElementId,
+		tableEditorState,
+		activeTool,
+	});
 
 	/* ── Stable callback refs ──────────────────────────────────────── */
 	const {

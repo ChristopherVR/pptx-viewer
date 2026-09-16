@@ -161,6 +161,7 @@ import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
 import { SurfaceChart3DService } from './surface-chart-3d.service';
+import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { resolveBelowRibbonQuickAccess, TitleBarComponent } from './title-bar.component';
@@ -178,6 +179,7 @@ import { ViewerExtraDialogsComponent } from './viewer-extra-dialogs.component';
 import { ViewerFileIOService } from './viewer-file-io.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { setupViewerImagePaste } from './viewer-image-paste';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerMobileSheetService } from './viewer-mobile-sheet.service';
@@ -266,7 +268,9 @@ import { ZoomTargetService } from './zoom-target.service';
 	],
 	template: `
 		<div
+			#viewerRoot
 			class="pptx-ng-viewer"
+			tabindex="0"
 			[ngClass]="rootClasses()"
 			[ngStyle]="rootStyle()"
 			[attr.aria-busy]="loader.loading()"
@@ -1502,6 +1506,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
+	private readonly viewerRoot = viewChild<ElementRef<HTMLElement>>('viewerRoot');
 
 	/**
 	 * Whether the CURRENT document's Protected View lock was lifted via the
@@ -2507,6 +2512,29 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			activeSlideIndex: () => this.activeSlideIndex(),
 			activeTemplateElements: () => this.activeTemplateElements(),
 		});
+
+		const tableSelection = inject(TableSelectionService);
+		setupViewerImagePaste(
+			{
+				rootElement: () => this.viewerRoot()?.nativeElement,
+				mainElement: () => this.mainEl()?.nativeElement,
+				canEdit: () => this.canEdit(),
+				activeSlide: () => this.activeSlide(),
+				activeSlideIndex: () => this.activeSlideIndex(),
+				blocked: () =>
+					this.presentationMode.presenting() ||
+					this.showMasterView() ||
+					this.editor.editTemplateMode() ||
+					this.showSorter() ||
+					this.showReadingView() ||
+					this.showOutlineView() ||
+					this.activeDrawTool() !== 'select' ||
+					this.canvasEditing.editingId() !== null ||
+					tableSelection.selection()?.isEditing === true,
+			},
+			this.loader,
+			this.editor,
+		);
 
 		// Hand the collab-cursor controller the accessors it alone needs from the
 		// component (the slide stage, canvas size, active-slide-index).
