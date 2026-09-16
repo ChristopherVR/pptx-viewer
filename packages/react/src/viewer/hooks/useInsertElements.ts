@@ -20,6 +20,7 @@ import type { CanvasSize, SupportedShapeType } from '../types';
 import { generateElementId } from '../utils/generate-id';
 import { createFileHandlers } from './insert-file-handlers';
 import { createStructuredElementHandlers } from './insert-structured-elements';
+import type { CanvasImagePasteHandlers } from './useCanvasImagePaste';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
 
@@ -34,6 +35,7 @@ export interface UseInsertElementsInput {
 }
 
 export interface InsertElementHandlers {
+	imagePaste?: CanvasImagePasteHandlers;
 	addElement: (element: PptxElement) => void;
 	handleAddTextBox: () => void;
 	handleAddShape: () => void;
@@ -69,7 +71,7 @@ export function useInsertElements(input: UseInsertElementsInput): InsertElementH
 				i === activeSlideIndex ? { ...s, elements: [...s.elements, element] } : s,
 			),
 		);
-		ops.applySelection(element.id);
+		ops.applySelection(element.id, [element.id]);
 		history.markDirty();
 	};
 

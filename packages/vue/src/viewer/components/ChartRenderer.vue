@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n';
 import { useBarFacePictureSampleVersion } from '../composables/bar-face-picture-sample-version';
 import { useChart3DSceneSelection } from '../composables/chart-3d-scene-selection';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import Area3DChartRenderer from './Area3DChartRenderer.vue';
 import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
@@ -31,16 +32,10 @@ import SurfaceChart3DRenderer from './SurfaceChart3DRenderer.vue';
  * engine in `pptx-viewer-shared` through `ChartViewModelSvg`. This component
  * decides nothing about geometry; it resolves the palette (via
  * `buildVueChartViewModel`), applies any staged animation reveal, and asks
- * shared which aspect-ratio policy the kind wants.
- *
- * Until this change, six kinds (waterfall / combo / stock / surface / treemap /
- * regionMap) were drawn by bespoke Vue components ported from a set of private
- * React renderers. They emitted no `data-chart-part` attributes, so on-canvas
- * mark selection silently did nothing for exactly those kinds while it worked
- * in Angular, Svelte and Vanilla; and two of them were plain wrong (the
- * waterfall scaled cumulative bars against the RAW value range, so its bars ran
- * off the top of the plot, and the treemap ignored ChartEx category levels so a
- * hierarchical treemap came out flat).
+ * shared which aspect-ratio policy the kind wants. All kinds render through
+ * this single shared engine (no bespoke per-kind Vue components), so
+ * `data-chart-part` mark selection and the value maths stay identical across
+ * every chart kind and every binding.
  */
 const props = defineProps<{
 	element: PptxElement;
@@ -50,6 +45,8 @@ const props = defineProps<{
 	interactive?: boolean;
 	/** Emit the data-pptx-element marker even when not interactive (template layer). */
 	marked?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 	/**
 	 * Native-animation playback state. When it carries a staged chart build
 	 * (`build.kind === 'chart'`, or the authored-index `chartReveal`) the chart
@@ -70,6 +67,13 @@ const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/** Degenerate-size hit-target overlay; see `ElementRenderer`'s doc comment (issue #285). */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 // ── Direct on-canvas editing ─────────────────────────────────────
@@ -97,11 +101,7 @@ const {
 	buildViewModel: buildVueChartViewModel,
 });
 
-/**
- * The chart element with its data trimmed to the stages revealed at the current
- * build progress (drag preview wins first). Whole-chart / no-build renders return
- * the element unchanged. Mirrors React's `ChartElementView` `renderedElement`.
- */
+/** Chart data trimmed to the revealed build stage (drag preview wins first). */
 const revealedElement = computed<PptxElement>(() => {
 	const el = renderedElement.value;
 	if (el.type !== 'chart' || !el.chartData) {
@@ -168,19 +168,12 @@ const viewModel = computed<ChartViewModel | undefined>(() => {
 	return isPlaceholder.value ? undefined : buildVueChartViewModel(revealedElement.value);
 });
 
-/**
- * Aspect-ratio policy, decided by shared rather than by a local kind chain.
- * Vue's own chain had drifted: it letterboxed sunburst, which the other four
- * bindings stretch.
- */
+/** Aspect-ratio policy, decided by shared so it cannot drift per binding. */
 const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 
 /**
- * Active text-style emphasis override, threaded into the 3D chart renderers'
- * own `textStyle` prop: they apply it via their mounted handle's
- * `setTextStyle` (a DOM CSS override, i.e. `textStyleOverrideCss` above,
- * cannot reach a WebGL canvas). Pie3D draws no axis labels, so it does not
- * take this prop.
+ * Active text-style emphasis, threaded into the 3D chart renderers' own
+ * `textStyle` prop: the DOM CSS override above cannot reach a WebGL canvas.
  */
 const textStyle = computed(() => props.animationState?.textStyle);
 </script>
@@ -198,6 +191,13 @@ const textStyle = computed(() => props.animationState?.textStyle);
 		@pointerup="onPointerup"
 		@dblclick="onDblclick"
 	>
+		<!-- Interaction-only hit-target for a degenerate chart; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			`<style>` is a forbidden side-effect tag in an SFC template, so the
 			override is rendered through the dynamic `<component :is>` escape

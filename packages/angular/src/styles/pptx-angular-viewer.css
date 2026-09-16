@@ -362,7 +362,7 @@ pptx-slide-canvas {
 .pptx-ng-selection {
 	position: absolute;
 	box-sizing: border-box;
-	outline: 2px solid #4f86ff;
+	outline: 2px solid var(--pptx-selection-outline-color, #4f86ff);
 	outline-offset: 1px;
 	background: rgba(79, 134, 255, 0.08);
 	pointer-events: none;
@@ -370,12 +370,13 @@ pptx-slide-canvas {
 }
 
 .pptx-ng-handle {
+	--pptx-handle-hit-inset: 0px;
 	position: absolute;
 	box-sizing: border-box;
-	background: #ffffff;
-	border: 1px solid #4f86ff;
-	border-radius: 2px;
-	pointer-events: auto;
+	background: transparent;
+	border: 0;
+	padding: 0;
+	pointer-events: none;
 	touch-action: none;
 	z-index: 10001;
 }
@@ -426,13 +427,18 @@ pptx-slide-canvas {
 .pptx-ng-rotate-handle {
 	position: absolute;
 	box-sizing: border-box;
-	background: #ffffff;
-	border: 1px solid #4f86ff;
-	border-radius: 50%;
+	background: transparent;
+	border: 0;
+	padding: 0;
 	cursor: grab;
 	pointer-events: auto;
 	touch-action: none;
 	z-index: 10001;
+}
+
+.pptx-ng-control-artwork {
+	box-sizing: border-box;
+	border: 1px solid;
 }
 
 .pptx-ng-adjust-handle {

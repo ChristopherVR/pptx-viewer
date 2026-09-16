@@ -11,12 +11,23 @@
  * (a cursor pointing along the wrong diagonal looks fine in a screenshot and
  * wrong under the hand).
  */
-import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES } from 'pptx-viewer-shared';
-import React from 'react';
+import {
+	attachRotateHandlePlacement,
+	RESIZE_HANDLE_GEOMETRY,
+	RESIZE_HANDLES,
+} from 'pptx-viewer-shared';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+import { ignoreExportOverlayElements } from '../../utils/export-helpers';
 import { CORNER_HANDLES, EDGE_HANDLES, ResizeHandles } from './ResizeHandles';
+
+vi.mock(import('pptx-viewer-shared'), async (original) => ({
+	...(await original()),
+	attachRotateHandlePlacement: vi.fn(() => vi.fn()),
+}));
 
 vi.mock(import('react-i18next'), () => ({
 	useTranslation: vi.fn().mockReturnValue({ t: (key: string) => key }),
@@ -25,6 +36,76 @@ vi.mock(import('react-i18next'), () => ({
 const ALL = [...CORNER_HANDLES, ...EDGE_HANDLES];
 
 describe('resize handles', () => {
+	it('centers optional artwork within growing frames while keeping pointer ownership on the bounded targets', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				onRotate={vi.fn()}
+			/>,
+		);
+		const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')];
+		for (const [index, button] of buttons.entries()) {
+			const artwork = button.querySelector<HTMLElement>('[data-pptx-handle-artwork]')!;
+			expect(artwork.getAttribute('aria-hidden')).toBe('true');
+			expect(artwork.style.pointerEvents).toBe('none');
+			expect(artwork.style.transform).toBe('translate(-50%, -50%)');
+			expect(artwork.style.scale).toBe('');
+			expect(button.getAttribute('style')).toContain('width:max(');
+			expect(button.className).toContain('translate-x-1/2');
+			expect(button.className).toContain('translate-y-1/2');
+			expect(button.className).not.toMatch(/\bshadow\b/);
+			const token =
+				index < 4
+					? 'corner-size'
+					: index < 6
+						? 'edge-length'
+						: index < 8
+							? 'edge-thickness'
+							: 'rotate-size';
+			expect(artwork.style.width).toContain(`--pptx-selection-${token}`);
+			if (index < 8) {
+				expect(button.style.pointerEvents).toBe('none');
+			}
+		}
+		const rotate = buttons[8];
+		expect(rotate.querySelector<HTMLElement>('[data-pptx-handle-artwork]')!.style.color).toContain(
+			'--pptx-selection-rotate-foreground',
+		);
+		expect(rotate.querySelector('svg')!.getAttribute('stroke')).toBe('currentColor');
+		expect(rotate.querySelector('[data-pptx-rotate-stem]')!.getAttribute('style')).toContain(
+			'--pptx-selection-outline-color',
+		);
+	});
+
+	it('attaches placement to the mounted Rotate button and cleans up when it disappears', async () => {
+		const container = document.createElement('div');
+		document.body.append(container);
+		const root = createRoot(container);
+		const cleanup = vi.fn();
+		vi.mocked(attachRotateHandlePlacement).mockReturnValue(cleanup);
+		const props = {
+			elementId: 'one',
+			adjustmentHandles: [],
+			onResizePointerDown: vi.fn(),
+			onAdjustmentPointerDown: vi.fn(),
+			onRotate: vi.fn(),
+		};
+		await act(() => root.render(<ResizeHandles {...props} />));
+		expect(attachRotateHandlePlacement).toHaveBeenLastCalledWith(
+			container.querySelector('[data-pptx-handle-kind="rotate"]'),
+			{ stem: container.querySelector('[data-pptx-rotate-stem]') },
+		);
+		await act(() => root.render(<ResizeHandles {...props} onRotate={undefined} />));
+		expect(cleanup).toHaveBeenCalledOnce();
+		await act(() => root.unmount());
+		expect(cleanup).toHaveBeenCalledOnce();
+		container.remove();
+	});
+
 	it('inverse-scales resize, rotation and adjustment controls about their anchors', () => {
 		const container = document.createElement('div');
 		container.innerHTML = renderToStaticMarkup(
@@ -41,8 +122,10 @@ describe('resize handles', () => {
 		for (const button of buttons) {
 			expect(button.style.scale).toBe('var(--pptx-handle-inverse-scale, 1)');
 			expect(button.dataset.exportIgnore).toBe('true');
+			expect(ignoreExportOverlayElements(button)).toBeTruthy();
 		}
-		expect(container.hasAttribute('data-export-ignore')).toBeFalsy();
+		// The handle-only marker must not hide the parent connector or shape.
+		expect(ignoreExportOverlayElements(container)).toBeFalsy();
 	});
 
 	it('keeps the theme button-size floor off handles with their own expanded hit areas', () => {
@@ -66,6 +149,35 @@ describe('resize handles', () => {
 
 	it('renders every handle the shared contract defines, exactly once', () => {
 		expect(ALL.map((entry) => entry.handle).sort()).toStrictEqual([...RESIZE_HANDLES].sort());
+	});
+
+	it('lets bounded hit areas own resize presses without making the buttons unfocusable', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderToStaticMarkup(
+			<ResizeHandles
+				elementId='shape-1'
+				adjustmentHandles={[]}
+				onResizePointerDown={vi.fn()}
+				onAdjustmentPointerDown={vi.fn()}
+				forcePointerEvents
+			/>,
+		);
+		for (const [index, button] of [...container.querySelectorAll('button')].entries()) {
+			const { fx, fy } = RESIZE_HANDLE_GEOMETRY[ALL[index].handle];
+			const hitArea = button.lastElementChild as HTMLElement;
+			expect(button.style.pointerEvents).toBe('none');
+			expect(button.tabIndex).toBe(0);
+			expect(hitArea.className).toContain('pointer-events-auto');
+			for (const [side, limited] of [
+				['left', fx > 0],
+				['right', fx < 1],
+				['top', fy > 0],
+				['bottom', fy < 1],
+			] as const) {
+				// happy-dom does not retain this valid CSS math in CSSStyleDeclaration.
+				expect(hitArea.getAttribute('style')?.includes(`${side}:max(`)).toBe(limited);
+			}
+		}
 	});
 
 	it.each(ALL)('gives $handle the shared cursor', ({ handle, cursor }) => {

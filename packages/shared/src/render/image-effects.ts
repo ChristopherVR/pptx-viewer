@@ -162,8 +162,20 @@ export function needsSvgArtisticFilter(effectName: string | undefined): boolean 
  * Returns true when the element has any blip-side alpha primitive or advanced
  * colour effect that CSS filters can't express (alphaInv, alphaCeiling,
  * alphaFloor, alphaRepl, alphaBiLevel, biLevel, lum, hsl with sat, tint,
- * clrRepl, alphaModFix, alphaMod). Brightness/contrast/saturation/grayscale/
- * duotone are still handled via CSS filters in {@link getImageFilterCss}.
+ * clrRepl, alphaMod). Brightness/contrast/saturation/grayscale/duotone are
+ * still handled via CSS filters in {@link getImageFilterCss}.
+ *
+ * `alphaModFix` is deliberately NOT part of this predicate even though it is
+ * an alpha primitive: it always has an exact, simpler CSS representation
+ * (plain `opacity`, computed by {@link getImageEffectsOpacity}), so it never
+ * needs to route through the `imgalpha-<id>` SVG filter this predicate gates.
+ * CSS `opacity` is applied by the browser as a final compositing step AFTER
+ * any `filter`, so it multiplies correctly with whatever this predicate's
+ * other primitives already do to the image's alpha channel; folding
+ * alphaModFix into the SVG filter as well would apply it a second time (see
+ * `getComputedImageStyle`'s "applies alphaModFix exactly once" tests, and
+ * GitHub issue #286, where a 15% alphaModFix rendered at ~2% because both the
+ * filter and `opacity` carried the same 0.15 multiplier).
  */
 export function hasAdvancedImageAlphaEffects(element: PptxElement): boolean {
 	const e = getEffects(element);
@@ -171,7 +183,6 @@ export function hasAdvancedImageAlphaEffects(element: PptxElement): boolean {
 		return false;
 	}
 	return Boolean(
-		typeof e.alphaModFix === 'number' ||
 		e.alphaInv ||
 		e.alphaCeiling ||
 		e.alphaFloor ||
@@ -360,6 +371,13 @@ function buildSimpleArtisticCss(effect: string, radius: number): string {
 /**
  * Extract overall image opacity from the `alphaModFix` effect.
  * Returns a 0–1 value for CSS `opacity`, or `undefined` if not set.
+ *
+ * This is the ONLY place `alphaModFix` is applied: `getImageFilterCss` /
+ * `hasAdvancedImageAlphaEffects` deliberately never fold it into the
+ * `imgalpha-<id>` SVG filter (even when that filter is built for OTHER
+ * primitives, e.g. `biLevel`), so combining `alphaModFix` with any other
+ * advanced alpha effect still applies the alpha multiply exactly once: once
+ * as this CSS `opacity`, composing on top of whatever the filter did.
  */
 export function getImageEffectsOpacity(element: PptxElement): number | undefined {
 	const effects = getEffects(element);
@@ -440,18 +458,14 @@ function buildImageAlphaFilterMarkup(effects: PptxImageEffects): string | undefi
 		inputRef = output;
 	};
 
-	if (typeof effects.alphaModFix === 'number') {
-		const mul = clamp(effects.alphaModFix / 100, 0, 1);
-		next(
-			(inp, out) =>
-				`<feColorMatrix in="${inp}" result="${out}" type="matrix" ` +
-				`values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 ${mul} 0"/>`,
-		);
-	}
+	// Note: `effects.alphaModFix` intentionally has NO primitive here. It is
+	// applied exclusively as CSS `opacity` (see `getImageEffectsOpacity` and
+	// `hasAdvancedImageAlphaEffects`'s doc comment) so it is never multiplied
+	// twice alongside whatever other primitives this filter builds below.
 
 	// a:alphaMod: multiplicative alpha from the nested a:alphaModFix inside its
-	// a:cont container (see PptxImageEffects.alphaMod.amt). Distinct from, and
-	// composable with, the sibling alphaModFix effect above.
+	// a:cont container (see PptxImageEffects.alphaMod.amt). Distinct from the
+	// sibling alphaModFix effect (handled via CSS opacity, not here).
 	if (typeof effects.alphaMod?.amt === 'number') {
 		const mul = clamp(effects.alphaMod.amt / 100, 0, 1);
 		next(

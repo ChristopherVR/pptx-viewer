@@ -36,12 +36,13 @@
 		mediaSurfaceOf,
 		mediaTransportVisible,
 		scheduleMediaTrimAndFade,
+		shouldRenderHitTarget,
 		startMediaAutoplay,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { registerCrossSlideAudio, resolveMediaView } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	const {
@@ -51,8 +52,12 @@
 		presenting = false,
 		interactive = false,
 		marked = false,
+		editable = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/** Interaction-only hit target for a degenerate media box (issue #285); see `ElementRenderer`. */
+	const hitTarget = $derived(shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined);
 
 	const media = $derived(element.type === 'media' ? element : undefined);
 	const view = $derived(media ? resolveMediaView(media, mediaDataUrls) : undefined);
@@ -147,7 +152,13 @@
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
-		{#if view.mediaSrc && media.mediaType === 'video'}
+		<!-- Interaction-only hit target for a degenerate media box; see `hitTarget`.
+		     Joined tight against the next block: a bare newline between two
+		     top-level `{#if}`s survives as a real, permanently-rendered space
+		     text node (neither block is then at the children-list edge), which
+		     broke the empty-textContent assertion for a media element with no
+		     playable source and no fallback chrome. -->
+		{#if hitTarget}<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>{/if}{#if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->
 			<video
 				bind:this={mediaEl}

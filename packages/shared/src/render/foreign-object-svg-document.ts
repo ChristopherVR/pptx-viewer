@@ -99,7 +99,8 @@ export async function buildForeignObjectSvgBody(
 		bgRect,
 		`<foreignObject x="0" y="0" width="${width}" height="${height}">`,
 		`<div xmlns="http://www.w3.org/1999/xhtml" style="width:${width}px;height:${height}px;overflow:hidden;">`,
-		clone.outerHTML,
+		// This becomes XML, not HTML: retain nested SVG namespaces and close void elements.
+		new XMLSerializer().serializeToString(clone),
 		'</div>',
 		'</foreignObject>',
 	].join('');
@@ -128,6 +129,15 @@ export interface ForeignObjectTileWindow {
  * windowed for one output tile. For the common non-tiled case, pass a window
  * covering the full natural size with `outputWidth`/`outputHeight` at the
  * desired export scale.
+ *
+ * SECURITY: `bodyMarkup` carries DOM-derived text (cloned slide content, font
+ * CSS), so the returned string must only reach a non-executing sink: an
+ * `<img>` `data:image/svg+xml` source ({@link foreignObjectSvgToDataUrl} in
+ * `export/rasterize-foreign-object.ts`, the only production caller) or an
+ * XML-mode `DOMParser().parseFromString(xml, 'image/svg+xml')`. Both render
+ * SVG in "image" context, which never executes embedded scripts. Never pass
+ * this string to `innerHTML`/`outerHTML`, `document.write`, or an HTML-mode
+ * parse.
  */
 export function wrapForeignObjectSvg(bodyMarkup: string, tile: ForeignObjectTileWindow): string {
 	const { viewBoxX, viewBoxY, viewBoxWidth, viewBoxHeight, outputWidth, outputHeight } = tile;

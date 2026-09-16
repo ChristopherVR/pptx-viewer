@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from '../internal/shared';
 export { PowerPointViewerComponent } from './power-point-viewer.component';
 export { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 export * from './ai';
@@ -386,8 +387,36 @@ export {
 	getSlideTransitionAnimations,
 	resolveTransitionDuration,
 	SLIDE_TRANSITION_KEYFRAMES,
+	resolveDirection,
+	resolveDirection8,
+	resolveOrientation,
+	RANDOM_ELIGIBLE_TYPES,
+	INSTANT,
+	DEFAULT_MORPH_DURATION_MS,
+	// The rest of the framework-neutral transition surface (issue #290): see
+	// `transition-helpers.ts` for why `DEFAULT_TRANSITION_DURATION_MS` stays
+	// Angular's own value here and shared's is exposed under
+	// `SHARED_DEFAULT_TRANSITION_DURATION_MS` instead.
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	getCinematicTransitionAnimations,
+	getP14TransitionAnimations,
+	SLIDE_TRANSITION_KEYFRAMES_CSS,
+	CINEMATIC_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES_2,
+	P14_TRANSITION_KEYFRAMES_ALL,
+	TRANSITION_SPEED_DURATION_MS,
+	EASE,
+	WHEEL_SPOKE_COUNTS,
+	resolveWheelSpokeCount,
+	SHARED_DEFAULT_TRANSITION_DURATION_MS,
 } from './transition-helpers';
-export type { SlideTransitionAnimations } from './transition-helpers';
+export type {
+	SlideTransitionAnimations,
+	ResolvedDirection,
+	ResolvedDirection8,
+} from './transition-helpers';
 // `computeTimerProgress` / `TimerProgress` / `TIMER_SEGMENT_MS` were an Angular
 // re-derivation of the console's five-minute progress segment; they are now the
 // shared `presenterTimerProgress` / `PresenterTimerProgress` /

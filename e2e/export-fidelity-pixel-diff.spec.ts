@@ -114,17 +114,20 @@ test('foreignObject export fidelity beats html2canvas against the on-screen rend
 	expect(Number.isFinite(newPathDiff.meanChannelDiff)).toBeTruthy();
 	expect(Number.isFinite(html2canvasDiff.meanChannelDiff)).toBeTruthy();
 	// The new path must not be materially worse than html2canvas on content
-	// it was specifically built to preserve. Known gap (2026-09-11, measured
-	// on a clean checkout, network state irrelevant): the test harness injects
-	// a large explicit CSS perspective transform on top of the deck, and the
-	// foreignObject path (an SVG data: URL decoded through an <img>) rasterises
-	// that transformed subtree worse than html2canvas does (meanChannelDiff
-	// 83.80 vs 72.61 on shape-3d-compound; without the injected transform the
-	// foreignObject path wins, 6.41 vs 15.60). The allowance below pins that
-	// measured gap so a further regression still fails; see the "Raster export
-	// of large CSS 3-D transforms" limitation row.
-	const KNOWN_LARGE_TRANSFORM_GAP = 15;
-	expect(newPathDiff.meanChannelDiff).toBeLessThanOrEqual(
-		html2canvasDiff.meanChannelDiff + KNOWN_LARGE_TRANSFORM_GAP,
-	);
+	// it was specifically built to preserve. A gap was measured here once
+	// (2026-09-11: meanChannelDiff 83.80 vs html2canvas's 72.61 on
+	// shape-3d-compound, attributed to Chromium decoding the injected
+	// perspective-transformed subtree from the SVG image at lower quality) and
+	// pinned with a 15-unit allowance. That gap is gone as of the SVG-namespace
+	// serialization fix (1e3fdaf5b, 2026-09-15): `buildForeignObjectSvgBody`
+	// now serializes the cloned subtree with `XMLSerializer` instead of
+	// `outerHTML`, and the malformed nested-SVG markup the old HTML
+	// serialization produced was almost certainly what Chromium's decoder
+	// choked on. Re-measured 2026-09-16 on this checkout (react project, with
+	// and without `--disable-gpu --use-gl=swiftshader`, identical to several
+	// decimal places both ways): meanChannelDiff 2.91 vs html2canvas's 54.42,
+	// i.e. foreignObject now wins by a wide margin even with the injected
+	// transform. Restored to the original small allowance so a real
+	// regression still fails.
+	expect(newPathDiff.meanChannelDiff).toBeLessThanOrEqual(html2canvasDiff.meanChannelDiff + 5);
 });

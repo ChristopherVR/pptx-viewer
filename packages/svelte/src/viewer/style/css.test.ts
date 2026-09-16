@@ -2,7 +2,11 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { cssPropertyName, mergeStyles, styleToString } from './css';
-import { getContainerStyle, getShapeFillStrokeStyle } from './element-style';
+import {
+	getContainerStyle,
+	getElementHitTargetStyle,
+	getShapeFillStrokeStyle,
+} from './element-style';
 import { getTextBlockStyle } from './text-style';
 
 describe('cssPropertyName', () => {
@@ -41,6 +45,28 @@ describe('element styles (shared render helpers)', () => {
 		expect(style.top).toBe('6px');
 		expect(style.width).toBe('100px');
 		expect(style.zIndex).toBe(7);
+	});
+
+	// Read-only rendering must never pad the painted box: a 1-pt horizontal
+	// rule authored ~1.25px tall painted as a 12-15px solid bar once its fill
+	// rode on this same box's `background-color` (issue #285).
+	it('keeps a sub-pixel authored height exactly, never padding it to a minimum', () => {
+		const style = getContainerStyle({ ...base, type: 'shape', height: 1.25 } as PptxElement, 0);
+		expect(style.height).toBe('1.25px');
+	});
+
+	it('getElementHitTargetStyle centres a padded, auto-pointer-events target over a degenerate rule', () => {
+		expect(getElementHitTargetStyle({ ...base, type: 'shape' } as PptxElement)).toBeUndefined();
+		const style = getElementHitTargetStyle({
+			...base,
+			type: 'shape',
+			height: 1.25,
+		} as PptxElement);
+		expect(style).toBeDefined();
+		expect(style!.width).toBe('100px');
+		expect(style!.height).toBe('12px');
+		expect(style!.position).toBe('absolute');
+		expect(style!.pointerEvents).toBe('auto');
 	});
 
 	it('renders ellipse shapes with a full border radius', () => {

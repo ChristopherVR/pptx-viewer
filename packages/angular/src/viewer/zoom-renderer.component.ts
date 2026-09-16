@@ -3,7 +3,11 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { buildSummaryZoomView } from '../internal/shared';
+import {
+	buildSummaryZoomView,
+	elementHitTargetStyle,
+	shouldRenderHitTarget,
+} from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { ZoomNavigationService } from './zoom-navigation.service';
 import {
@@ -70,6 +74,10 @@ import { ZoomTargetService } from './zoom-target.service';
 			(click)="onClick($event)"
 			(keydown)="onKeydown($event)"
 		>
+			<!-- Interaction-only hit target for a degenerate zoom tile; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			<div
 				style="position:relative;width:100%;height:100%;overflow:hidden;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,0.15)"
 			>
@@ -148,9 +156,23 @@ export class ZoomRendererComponent {
 	 * click-to-jump, which only happens inside a running presentation).
 	 */
 	readonly markElement = input<boolean>(false);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
+	/** True only on the live presentation stage; see `ElementRendererComponent.presenting`. */
+	readonly presenting = input<boolean>(false);
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		buildZoomContainerStyle(this.element(), this.zIndex()),
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate zoom tile; see
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	/**

@@ -16,6 +16,7 @@ import {
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import {
 	getContainerStyle,
 	getShapeFillStrokeStyle,
@@ -326,6 +327,20 @@ const isRendered = computed(() => isElementRendered(props.element));
 
 /** This exact element is open in the element-level inline text editor right now. */
 const isBeingInlineEdited = computed(() => props.element.id === props.inlineEditingElementId);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+ * text/shape/group: a bigger, invisible, centred click/drag target, kept
+ * separate from the painted box (`shapeDivStyle`, now always the authored
+ * size) so a thin authored line never paints as a thick bar in read-only
+ * rendering (issue #285). Never rendered while presenting: nothing on the
+ * show stage is draggable or selectable.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
+);
 </script>
 
 <template>
@@ -343,6 +358,13 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:data-element-id="element.id"
 		:data-pptx-element="elementMarker"
 	>
+		<!-- Interaction-only hit-target for a degenerate group; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!-- A group has no fill/outline/soft-edge of its own to paint here (see
 		     `ShapeEffectOverlay`'s doc comment), but `p:grpSpPr/a:effectLst/a:reflection`
 		     mirrors the whole group subtree, so this still needs mounting. -->
@@ -369,6 +391,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:class="templateClass"
 	/>
 
@@ -413,6 +436,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<ChartRenderer
@@ -422,6 +446,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:animation-state="animationState"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
@@ -430,6 +455,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:replay="presenting"
 		:text-style="animationState?.textStyle"
 		:text-style-override-css="textStyleOverrideCss"
@@ -442,6 +469,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:z-index="zIndex"
 		:interactive="interactive"
 		:marked="marked"
+		:presenting="presenting"
 		:animation-state="animationState"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
@@ -450,6 +478,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:replay="presenting"
 		:data-pptx-element="elementMarker"
 	/>
@@ -457,6 +487,7 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		v-else-if="element.type === 'contentPart'"
 		:element="element"
 		:z-index="zIndex"
+		:interactive="interactive"
 		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
@@ -465,6 +496,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 	<Model3DRenderer
@@ -472,6 +505,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 	<ZoomRenderer
@@ -479,6 +514,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 
@@ -488,6 +525,8 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:data-pptx-element="elementMarker"
 	/>
 
@@ -501,6 +540,13 @@ const isBeingInlineEdited = computed(() => props.element.id === props.inlineEdit
 		:data-pptx-element="elementMarker"
 	>
 		<DuotoneFilterDefs :element="element" />
+		<!-- Interaction-only hit-target for a degenerate shape; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			`<style>` is a forbidden side-effect tag in an SFC template (the compiler
 			rejects it even behind `v-if`), so the override is rendered through the

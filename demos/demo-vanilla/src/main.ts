@@ -14,6 +14,7 @@ import {
 } from 'pptx-vanilla-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 
+import { installDevViewerHandle } from '../../dev-viewer-handle';
 import { buildViewerAiConfig } from './ai-config';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
@@ -41,6 +42,8 @@ const app: HTMLElement = appRoot;
 
 const themeKey = readStoredTheme();
 let viewer: PptxViewerInstance | null = null;
+const removeDevViewerHandle = installDevViewerHandle(() => viewer, import.meta.env.DEV);
+import.meta.hot?.dispose(removeDevViewerHandle);
 let appliedVarKeys: string[] = [];
 
 // A demo-generated display name, offered to the viewer's built-in Share and
@@ -181,8 +184,6 @@ function openViewer(
 			showError(message || t('demo.viewer.loadError'));
 		},
 	});
-	// e2e/debug seam: expose the live viewer handle for scripted verification.
-	(window as unknown as { __pptxViewer?: PptxViewerInstance }).__pptxViewer = viewer;
 }
 
 function showLanding(): void {

@@ -33,6 +33,7 @@ import { computed, nextTick, ref, toRef } from 'vue';
 import type { CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { inlineEditorRect, useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
@@ -44,6 +45,10 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 	/**
 	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
 	 * Change Font Style/Size), applied to every node caption via the mounted
@@ -120,6 +125,17 @@ const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
 );
 
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) 3D
+ * SmartArt scene: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
+);
+
 // ── Inline editing (injection-based, mirrors SmartArtRenderer.vue) ──────────
 
 const nodeEdit = injectSmartArtNodeEdit();
@@ -183,6 +199,8 @@ function commitEdit(): void {
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
+		:interactive="interactive"
+		:presenting="presenting"
 		:text-style-override-css="textStyleOverrideCss"
 	/>
 	<div
@@ -192,6 +210,13 @@ function commitEdit(): void {
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
+		<!-- Interaction-only hit-target for a degenerate 3D SmartArt; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<canvas ref="canvasRef" class="pptx-vue-smartart-3d-canvas" />
 
 		<template v-if="canEdit">

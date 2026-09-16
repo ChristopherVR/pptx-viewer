@@ -99,6 +99,7 @@ import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosaveRecovery } from './composables/useAutosaveRecovery';
 import { useAutosaveWiring } from './composables/useAutosaveWiring';
+import { useCanvasImagePaste } from './composables/useCanvasImagePaste';
 import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
 import { useCommandDispatch } from './composables/useCommandDispatch';
@@ -1070,6 +1071,7 @@ const { keyboardInset } = useKeyboardInsets();
 // framework-agnostic (pptx-viewer-shared); this composable owns only the
 // native-listener lifecycle. Swipe navigation keeps its own handlers (above).
 const mainRef = ref<HTMLElement | null>(null);
+const canvasOverlaysRef = ref<InstanceType<typeof ViewerCanvasOverlays> | null>(null);
 useTouchGestures({
 	targetRef: mainRef,
 	currentScale: zoom,
@@ -1501,6 +1503,32 @@ const { handleCommandSearch, handleQuickAccessCommand } = useCommandDispatch({
 });
 
 // -- Imperative surface (implements the shared PowerPointViewerAPI) ----
+useCanvasImagePaste(viewerRootRef, {
+	getCanvas: () => mainRef.value,
+	getTarget: () => {
+		if (
+			!canEditEffective.value ||
+			loading.value ||
+			error.value ||
+			presentation.presenting.value ||
+			masterView.showMasterView.value ||
+			editTemplateMode.value ||
+			inlineEdit.inlineEditingElementId.value ||
+			activeTool.value !== 'select' ||
+			contextMenu.value?.open ||
+			!activeSlide.value ||
+			!handler.value
+		)
+			return null;
+		return {
+			documentId: handler.value,
+			slideId: activeSlide.value.id,
+			canvasSize: canvasSize.value,
+		};
+	},
+	insertElement: ops.addElement,
+});
+
 defineExpose<PowerPointViewerExpose>(
 	useViewerApi({
 		slides,
@@ -1520,6 +1548,10 @@ defineExpose<PowerPointViewerExpose>(
 		setEditingRequested: (editable) => {
 			editingRequested.value = editable;
 		},
+		hasActivePointerInteraction: () =>
+			drag.hasActivePointerInteraction() ||
+			marquee.value !== null ||
+			Boolean(canvasOverlaysRef.value?.hasActivePointerInteraction()),
 		commitPendingText: inlineEdit.commitInlineEdit,
 		getContent,
 		goTo,
@@ -1775,6 +1807,7 @@ defineExpose<PowerPointViewerExpose>(
 						@create-guide="drag.addGuide"
 					>
 						<ViewerCanvasOverlays
+							ref="canvasOverlaysRef"
 							:can-edit="canEditEffective"
 							:presenting="presentation.presenting.value"
 							:canvas-size="canvasSize"

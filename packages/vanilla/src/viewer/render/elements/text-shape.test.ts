@@ -85,3 +85,60 @@ describe('renderTextShapeElement placeholder prompt', () => {
 		expect(node.querySelector('.pptxv-placeholder-prompt')).toBeNull();
 	});
 });
+
+describe('renderTextShapeElement degenerate (issue #285)', () => {
+	/** A 1-pt horizontal rule: ~1.25px tall, solid-filled as a plain rect. */
+	function thinRule(): PptxElement {
+		return {
+			type: 'shape',
+			id: 'rule-1',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 1.25,
+			shapeType: 'rect',
+			shapeStyle: { fillColor: '#000000' },
+		} as unknown as PptxElement;
+	}
+
+	it('paints the wrapper at the authored height, never padded to a solid bar', () => {
+		const node = renderTextShapeElement(
+			thinRule(),
+			0,
+			makeContext({ interactive: false, presenting: false }),
+		) as HTMLElement;
+		expect(node.style.height).toBe('1.25px');
+	});
+
+	it('adds an invisible, bigger hit target only on the interactive canvas', () => {
+		const interactiveNode = renderTextShapeElement(
+			thinRule(),
+			0,
+			makeContext({ interactive: true, presenting: false }),
+		) as HTMLElement;
+		const hitTarget = interactiveNode.querySelector('[data-pptx-hit-target]') as HTMLElement | null;
+		expect(hitTarget).not.toBeNull();
+		expect(hitTarget!.style.height).toBe('12px');
+		expect(hitTarget!.style.pointerEvents).toBe('auto');
+		// The wrapper's own painted box stays at the authored (unpadded) size.
+		expect(interactiveNode.style.height).toBe('1.25px');
+	});
+
+	it('never adds the hit target on a read-only surface', () => {
+		const node = renderTextShapeElement(
+			thinRule(),
+			0,
+			makeContext({ interactive: false, presenting: false }),
+		) as HTMLElement;
+		expect(node.querySelector('[data-pptx-hit-target]')).toBeNull();
+	});
+
+	it('never adds the hit target while presenting', () => {
+		const node = renderTextShapeElement(
+			thinRule(),
+			0,
+			makeContext({ interactive: true, presenting: true }),
+		) as HTMLElement;
+		expect(node.querySelector('[data-pptx-hit-target]')).toBeNull();
+	});
+});

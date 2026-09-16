@@ -76,13 +76,14 @@ viewer?.setMode('present'); // start presenting; Esc exits
 
 ## 访问与操作元素 {#element-access-and-manipulation}
 
-| 方法               | 签名                                                            | 说明                                              |
-| ------------------ | --------------------------------------------------------------- | ------------------------------------------------- |
-| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`               | 某张幻灯片上的元素，默认使用当前幻灯片。          |
-| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined` | 按 ID 获取单个元素。                              |
-| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。 |
-| `deleteElements`   | `(ids: string[]) => void`                                       | 按 ID 从当前幻灯片中删除元素。                    |
-| `duplicateElement` | `(id: string) => string \| undefined`                           | 复制元素，返回新元素的 ID。                       |
+| 方法               | 签名                                                                                   | 说明                                                                             |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`                                      | 某张幻灯片上的元素，默认使用当前幻灯片。                                         |
+| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined`                        | 按 ID 获取单个元素。                                                             |
+| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`                                  | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。                                |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [跨页批量更新元素，整批修改占用一个撤销步骤](/zh/guide/element-update-batches)。 |
+| `deleteElements`   | `(ids: string[]) => void`                                                              | 按 ID 从当前幻灯片中删除元素。                                                   |
+| `duplicateElement` | `(id: string) => string \| undefined`                                                  | 复制元素，返回新元素的 ID。                                                      |
 
 ## 插入元素 {#add-element}
 
@@ -185,6 +186,23 @@ const image = await createImageElementFromFile(file, canvasSize, signal);
 ## 底层构建模块 {#lower-level-building-blocks}
 
 `pptx-svelte-viewer/viewer` 入口还导出查看器内部不依赖框架的状态辅助接口：`ViewerState`、`PresentationLoader`、`clampSlideIndex`、`fitScale`、`resolveNavigationKey`、`zoomInPercent`、`zoomOutPercent`，供宿主基于相同基础能力构建自定义界面。这些接口比组件 API 更底层，常规嵌入场景无需使用。
+
+### `pptx-svelte-viewer/internals`：幻灯片过渡辅助函数 {#pptx-svelte-viewer-internals-slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包：它从不发布到 npm，因此该 monorepo 之外的代码无法直接 `import` 它。宿主如果搭建了自己的放映界面（自定义舞台，而非完整的 `PowerPointViewer`），仍然需要用到过渡解析器/关键帧和叠加层组件，因此它们改从 `pptx-svelte-viewer/internals` 子路径重新导出：
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	PresentationTransitionOverlay,
+} from 'pptx-svelte-viewer/internals';
+```
+
+`resolveSlideTransition` 将 `PptxSlideTransition` 映射为退出层/进入层的 CSS `animation` 简写属性；`resolveTransitionDurationMs` 计算其有效时长（毫秒），会考虑手动设置的时长、旧版 `spd` 取值和 PowerPoint 自身的默认值；`SLIDE_TRANSITION_KEYFRAMES`（别名 `SLIDE_TRANSITION_KEYFRAMES_CSS`）是这些动画名称所引用的 `@keyframes` 代码块，只需通过 `<style>` 元素注入一次。同时导出的还有：`getSlideTransitionAnimations`、`getCinematicTransitionAnimations`、`getP14TransitionAnimations`（经典/影院级/特效三类子解析函数）、`CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`（它们各自的关键帧子代码块）、`resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`，以及辅助常量（`RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_TRANSITION_DURATION_MS`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS`），以及 `PresentationTransitionOverlay` 组件本身。
+
+和其他绑定的 `internals` 入口一样，这里**不受语义化版本兼容保证约束**：只有当精选的 `pptx-svelte-viewer` / `pptx-svelte-viewer/viewer` 导出确实无法满足需求时才使用，并在依赖它时锁定精确版本。
 
 ## 可打开的文件类型 {#openable-file-kinds}
 

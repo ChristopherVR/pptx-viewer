@@ -196,11 +196,19 @@ describe('getImageAlphaFilter', () => {
 		expect(f?.filterMarkup).toContain('<feFuncA type="linear" slope="0.4" intercept="0"/>');
 	});
 
-	it('composes a:alphaMod alongside the sibling alphaModFix effect', () => {
+	it('composes a:alphaMod without also folding in the sibling alphaModFix effect', () => {
+		// alphaModFix is applied exclusively via CSS opacity (see
+		// getImageEffectsOpacity), never via this SVG filter, so its own
+		// feColorMatrix multiply must NOT appear here even when alphaMod (a
+		// distinct effect) forces the filter to be built anyway. Regression for
+		// issue #286 (alpha applied twice: SVG filter x CSS opacity).
 		const f = getImageAlphaFilter(image({ alphaModFix: 80, alphaMod: { amt: 50 } }));
-		// alphaModFix's feColorMatrix primitive, then alphaMod's feFuncA multiply.
-		expect(f?.filterMarkup).toContain('0 0 0 0.8 0');
+		expect(f?.filterMarkup).not.toContain('0 0 0 0.8 0');
 		expect(f?.filterMarkup).toContain('<feFuncA type="linear" slope="0.5" intercept="0"/>');
+	});
+
+	it('returns undefined for alphaModFix alone (it never triggers this filter)', () => {
+		expect(getImageAlphaFilter(image({ alphaModFix: 40 }))).toBeUndefined();
 	});
 });
 
@@ -215,6 +223,14 @@ describe('hasAdvancedImageAlphaEffects', () => {
 	it('returns false for plain recolour effects', () => {
 		expect(hasAdvancedImageAlphaEffects(image({ brightness: 10, grayscale: true }))).toBeFalsy();
 		expect(hasAdvancedImageAlphaEffects(shape())).toBeFalsy();
+	});
+
+	it('returns false for alphaModFix alone (it has its own CSS-opacity path, not this filter)', () => {
+		expect(hasAdvancedImageAlphaEffects(image({ alphaModFix: 15 }))).toBeFalsy();
+	});
+
+	it('returns true when alphaModFix is combined with another advanced primitive', () => {
+		expect(hasAdvancedImageAlphaEffects(image({ alphaModFix: 15, biLevel: 30 }))).toBeTruthy();
 	});
 
 	it('ignores an a:alphaMod with no resolved amt (e.g. an unrecognised cont child)', () => {
@@ -308,6 +324,50 @@ describe('getComputedImageStyle', () => {
 	it('surfaces alphaModFix opacity', () => {
 		const style = getComputedImageStyle(image({ alphaModFix: 40 }));
 		expect(style.opacity).toBe(0.4);
+	});
+
+	// Regression for issue #286: a picture with `a:alphaModFix` rendered almost
+	// invisible because the CSS `opacity` AND the `imgalpha-<id>` SVG filter
+	// both carried the same alpha multiplier, so the effective alpha was
+	// squared (e.g. 0.15 x 0.15 = 0.0225 instead of 0.15).
+	describe('applies alphaModFix exactly once', () => {
+		it('alone: opacity is set and no alpha SVG filter is emitted', () => {
+			const style = getComputedImageStyle(image({ alphaModFix: 15 }));
+			expect(style.opacity).toBe(0.15);
+			expect(style.filter).toBeUndefined();
+			expect(style.svgFilters).toStrictEqual([]);
+		});
+
+		it(
+			'combined with another advanced alpha effect: opacity still applies once, ' +
+				"and the SVG filter's own markup does not also carry alphaModFix's multiplier",
+			() => {
+				const style = getComputedImageStyle(image({ alphaModFix: 15, biLevel: 30 }));
+				expect(style.opacity).toBe(0.15);
+				expect(style.filter).toContain(`url(#${getImageAlphaFilterId('img1')})`);
+				expect(style.svgFilters).toHaveLength(1);
+				// The alphaModFix feColorMatrix primitive is `... 0 0 0 <mul> 0"` with
+				// mul = 0.15; it must be absent even though the filter was built (for
+				// biLevel's own primitives).
+				expect(style.svgFilters[0].markup).not.toContain('0 0 0 0.15 0');
+			},
+		);
+
+		it('combined with a colour-only advanced effect (clrRepl): still exactly once', () => {
+			const style = getComputedImageStyle(
+				image({ alphaModFix: 40, clrRepl: { color: '#ff0000' } }),
+			);
+			expect(style.opacity).toBe(0.4);
+			expect(style.svgFilters).toHaveLength(1);
+			expect(style.svgFilters[0].markup).not.toContain('0 0 0 0.4 0');
+		});
+
+		it('no alpha effect at all: opacity is undefined and no alpha filter is referenced', () => {
+			const style = getComputedImageStyle(image({ brightness: 10 }));
+			expect(style.opacity).toBeUndefined();
+			expect(style.filter).toBe('brightness(1.1)');
+			expect(style.svgFilters).toStrictEqual([]);
+		});
 	});
 });
 

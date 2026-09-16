@@ -275,6 +275,14 @@ building-blocks entry point `pptx-vue-viewer/internals`) that assembles its
 props. The `internals` subpath is not covered by semver; prefer the stable
 root exports, and pin your version when relying on `internals`.
 
+Most of that cross-framework logic (colour/geometry/connector/animation/chart math, slide
+transitions, and more) actually lives in `pptx-viewer-shared`, an internal package that is
+**never published to npm**. If you need one of those framework-neutral helpers directly, for
+example the slide-transition resolver/keyframes (`resolveSlideTransition`,
+`resolveTransitionDurationMs`, `SLIDE_TRANSITION_KEYFRAMES`) or the `PresentationTransitionOverlay`
+component behind presentation mode, they are re-exported from `pptx-vue-viewer/internals` too, so
+you never need `pptx-viewer-shared` yourself.
+
 ```vue
 <script setup lang="ts">
 import { SlideCanvas, RibbonToolbar } from 'pptx-vue-viewer';

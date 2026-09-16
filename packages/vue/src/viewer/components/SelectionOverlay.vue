@@ -28,6 +28,7 @@
  * `transformEnd` as the commit point for history/undo.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import { getResizeHandleHitAreaStyle } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -35,6 +36,8 @@ import { useSelectionAffordances } from '../composables/element-lock-guards';
 import { useSelectionGesture } from '../composables/selection-gesture';
 import { getShapeAdjustmentHandleDescriptors } from '../composables/shape-adjustment';
 import type { ShapeAdjustmentHandleDescriptor } from '../composables/shape-adjustment';
+import { vRotateHandlePlacement } from './rotate-handle-placement';
+import { controlArtwork } from './selection-overlay-artwork';
 import {
 	adjustHandleStyle as adjustHandleStyleFor,
 	boxStyle,
@@ -54,6 +57,8 @@ const props = defineProps<{
 	elements: PptxElement[];
 	selectedIds: string[];
 	zoom: number;
+	/** Keep handles above the active editor without changing connector layering. */
+	inlineEditing?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -114,7 +119,7 @@ function adjustDescriptorsFor(id: string): ShapeAdjustmentHandleDescriptor[] {
 	return el ? getShapeAdjustmentHandleDescriptors(el) : [];
 }
 
-const { beginGesture, beginAdjust } = useSelectionGesture({
+const { beginGesture, beginAdjust, hasActivePointerInteraction } = useSelectionGesture({
 	zoom: () => props.zoom,
 	boxForId,
 	elementForId,
@@ -137,13 +142,14 @@ const rotateKnobStyle = (box: SelectedBox): Record<string, string> =>
 	rotateKnobStyleFor(box, props.zoom);
 const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<string, string> =>
 	adjustHandleStyleFor(descriptor);
+defineExpose({ hasActivePointerInteraction });
 </script>
 
 <template>
 	<div
 		ref="rootEl"
 		class="pptx-vue-selection-overlay"
-		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER }"
+		:class="{ 'is-coarse-pointer': IS_COARSE_POINTER, 'is-inline-editing': inlineEditing }"
 		data-testid="selection-overlay"
 		:style="{ '--pptx-vue-hs': String(inverseZoom) }"
 	>
@@ -159,15 +165,23 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 
 			<!-- Rotate stem + knob. Hidden by `a:spLocks/@noRotation`. -->
 			<template v-if="canRotate(box.id)">
-				<div class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
+				<div data-pptx-rotate-stem class="pptx-vue-rotate-stem" :style="rotateStemStyle(box)" />
 				<button
+					v-rotate-handle-placement
+					data-pptx-handle-kind="rotate"
 					type="button"
 					class="pptx-vue-rotate-knob"
 					data-pptx-compact
-					:style="rotateKnobStyle(box)"
+					:style="{ ...rotateKnobStyle(box), ...controlArtwork('rotate', inverseZoom).frame }"
 					:aria-label="t('pptx.selectionOverlay.rotate')"
 					@pointerdown="(e) => beginGesture('rotate', box.id, e)"
-				/>
+				>
+					<span
+						data-pptx-handle-artwork
+						aria-hidden="true"
+						:style="controlArtwork('rotate', inverseZoom).artwork"
+					/>
+				</button>
 			</template>
 
 			<!-- Resize handles. Hidden by `a:spLocks/@noResize`. -->
@@ -180,10 +194,18 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 					:class="`pptx-vue-resize-${meta.id}`"
 					data-pptx-compact
 					:data-handle="meta.id"
-					:style="handleStyle(meta, box)"
+					data-pptx-handle-kind="resize"
+					:style="{ ...handleStyle(meta, box), ...controlArtwork(meta.id, inverseZoom).frame }"
 					:aria-label="t('pptx.selectionOverlay.resize', { handle: meta.id })"
 					@pointerdown="(e) => beginGesture('resize', box.id, e, meta.id)"
-				/>
+				>
+					<span data-pptx-handle-hit :style="getResizeHandleHitAreaStyle(meta.id)" />
+					<span
+						data-pptx-handle-artwork
+						aria-hidden="true"
+						:style="controlArtwork(meta.id, inverseZoom).artwork"
+					/>
+				</button>
 			</template>
 
 			<!-- Shape adjustment handles (amber diamonds): one per `a:avLst` guide -->
@@ -194,6 +216,7 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 				class="pptx-vue-adjust-handle"
 				data-pptx-compact
 				:data-pptx-adjust-key="descriptor.key"
+				data-pptx-handle-kind="adjust"
 				:style="adjustHandleStyle(descriptor)"
 				:aria-label="t('pptx.selectionOverlay.adjust')"
 				@pointerdown="(e) => beginAdjust(box.id, descriptor, e)"
@@ -202,121 +225,4 @@ const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<
 	</div>
 </template>
 
-<style scoped>
-.pptx-vue-selection-overlay {
-	position: absolute;
-	inset: 0;
-	/* The overlay container itself never intercepts pointer events; only the
-	   handles and the per-box drag body (which are re-enabled below) do.
-	   50 left a slide with 50+ elements able to paint its topmost elements
-	   above this host, hiding the selected element's own handles behind its
-	   own fill; bumped for headroom, but capped at 55, NOT 58 like the other
-	   bindings: a connector's own selection box still renders its
-	   `pptx-vue-selection-body` move-drag hit area (every selected element
-	   gets one, connectors included), and going to 58 put that above
-	   ConnectorEndpointOverlay (56) - it then swallowed `elementFromPoint` at
-	   the drop coordinates during endpoint authoring, so dropping an
-	   endpoint on empty canvas (inside the connector's own bounding box,
-	   between the shapes it spans) read back whatever site the endpoint
-	   started on instead of detaching. */
-	pointer-events: none;
-	z-index: 55;
-}
-
-.pptx-vue-selection-box {
-	position: absolute;
-	box-sizing: border-box;
-	border: 1px solid var(--pptx-vue-selection-color, #3b82f6);
-	transform-origin: center center;
-	pointer-events: none;
-}
-
-.pptx-vue-selection-body {
-	position: absolute;
-	inset: 0;
-	/* The body never intercepts pointer events; move + inline-edit entry are
-	   driven from the element itself (host pointer delegation), so taps reach the
-	   underlying element (required for e2e actionability + double-tap-to-edit).
-	   Only the resize/rotate/adjust handles capture. */
-	pointer-events: none;
-	cursor: move;
-}
-
-.pptx-vue-resize-handle {
-	position: absolute;
-	/* Sized against the inverse stage zoom (--pptx-vue-hs) so the on-screen
-	   hit area stays 10px regardless of zoom; see `inverseZoom` above. */
-	width: calc(10px * var(--pptx-vue-hs, 1));
-	height: calc(10px * var(--pptx-vue-hs, 1));
-	margin: calc(-5px * var(--pptx-vue-hs, 1)) 0 0 calc(-5px * var(--pptx-vue-hs, 1));
-	padding: 0;
-	border: 1px solid #ffffff;
-	border-radius: 9999px;
-	background: var(--pptx-vue-selection-color, #3b82f6);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	pointer-events: auto;
-	/* Resize handles must own their touch gesture (no scroll/zoom stealing). */
-	touch-action: none;
-}
-
-/*
- * On coarse (touch) pointers a 10px handle is far too small to grab reliably.
- * Grow the resize/rotate hit targets to a finger-friendly size; the visual
- * footprint stays modest but the tappable area is large.
- */
-.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-resize-handle {
-	width: calc(22px * var(--pptx-vue-hs, 1));
-	height: calc(22px * var(--pptx-vue-hs, 1));
-	margin: calc(-11px * var(--pptx-vue-hs, 1)) 0 0 calc(-11px * var(--pptx-vue-hs, 1));
-}
-
-.pptx-vue-rotate-stem {
-	position: absolute;
-	width: 1px;
-	margin-left: -0.5px;
-	background: var(--pptx-vue-selection-color, #3b82f6);
-	pointer-events: none;
-}
-
-.pptx-vue-rotate-knob {
-	position: absolute;
-	width: calc(12px * var(--pptx-vue-hs, 1));
-	height: calc(12px * var(--pptx-vue-hs, 1));
-	margin: calc(-6px * var(--pptx-vue-hs, 1)) 0 0 calc(-6px * var(--pptx-vue-hs, 1));
-	padding: 0;
-	border: 1px solid #ffffff;
-	border-radius: 9999px;
-	background: var(--pptx-vue-selection-color, #3b82f6);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	cursor: grab;
-	pointer-events: auto;
-	touch-action: none;
-}
-
-.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-rotate-knob {
-	width: calc(24px * var(--pptx-vue-hs, 1));
-	height: calc(24px * var(--pptx-vue-hs, 1));
-	margin: calc(-12px * var(--pptx-vue-hs, 1)) 0 0 calc(-12px * var(--pptx-vue-hs, 1));
-}
-
-/* Shape-adjustment handle: amber diamond (rotate 45°), mirrors React. */
-.pptx-vue-adjust-handle {
-	position: absolute;
-	width: calc(10px * var(--pptx-vue-hs, 1));
-	height: calc(10px * var(--pptx-vue-hs, 1));
-	margin: calc(-5px * var(--pptx-vue-hs, 1)) 0 0 calc(-5px * var(--pptx-vue-hs, 1));
-	padding: 0;
-	border: 1px solid #ffffff;
-	background: #fcd34d;
-	transform: rotate(45deg);
-	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-	pointer-events: auto;
-	touch-action: none;
-}
-
-.pptx-vue-selection-overlay.is-coarse-pointer .pptx-vue-adjust-handle {
-	width: calc(22px * var(--pptx-vue-hs, 1));
-	height: calc(22px * var(--pptx-vue-hs, 1));
-	margin: calc(-11px * var(--pptx-vue-hs, 1)) 0 0 calc(-11px * var(--pptx-vue-hs, 1));
-}
-</style>
+<style scoped src="./selection-overlay.css" />

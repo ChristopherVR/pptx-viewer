@@ -286,6 +286,23 @@ Two caveats if you go this route:
   of the same wiring rather than calling `createViewerState` itself, so treat
   the factory as accurate-today rather than the single source of truth yet.
 
+### Internal building blocks & slide-transition helpers
+
+Most of this package's cross-framework logic (colour/geometry/connector/animation/chart math,
+slide transitions, and more) lives in `pptx-viewer-shared`, an internal package that is **never
+published to npm**. The framework-neutral slide-transition resolver/keyframes
+(`resolveSlideTransition`, `resolveTransitionDurationMs`, `SLIDE_TRANSITION_KEYFRAMES`) and the
+`PresentationTransitionOverlay` component behind presentation mode are re-exported from the
+`pptx-svelte-viewer/internals` subpath, not covered by semver, so you never need
+`pptx-viewer-shared` yourself:
+
+```ts
+import {
+	resolveSlideTransition,
+	PresentationTransitionOverlay,
+} from 'pptx-svelte-viewer/internals';
+```
+
 ## Reference translations
 
 Optional French, Spanish, German, and Simplified Chinese dictionaries ship with

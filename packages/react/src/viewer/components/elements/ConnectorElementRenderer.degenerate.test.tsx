@@ -2,7 +2,6 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, it, expect } from 'vitest';
 
-import { MIN_ELEMENT_SIZE } from '../../constants';
 import { ConnectorElementRenderer } from './ConnectorElementRenderer';
 import type { ConnectorRendererProps } from './element-renderer-types';
 
@@ -11,20 +10,24 @@ import type { ConnectorRendererProps } from './element-renderer-types';
  *
  * The reporter's deck draws its elbows out of three separate straight `line`
  * connectors, each authored with one extent at zero (`<a:ext cx="0" cy="..."/>`
- * for the verticals). React pads such a connector's wrapper out to
- * `MIN_ELEMENT_SIZE` so it stays grabbable, but kept the SVG `viewBox` at the
- * AUTHORED extent, clamped up to 1. Under `preserveAspectRatio="none"` that maps
- * one user unit onto twelve device pixels: the line tilted by the full pad width
- * over its length, and its round `a:headEnd`/`a:tailEnd` markers - sized in
- * `strokeWidth` units and therefore subject to the same transform - stretched
- * into horizontal bars. PowerPoint draws a plumb line with round dots.
+ * for the verticals). React used to pad such a connector's WRAPPER out to
+ * `MIN_ELEMENT_SIZE` (12px) so it stayed grabbable, while the SVG kept the
+ * authored extent clamped only to 1. Under `preserveAspectRatio="none"` that
+ * mapped one user unit onto twelve device pixels: the line tilted by the full
+ * pad width over its length, and its round `a:headEnd`/`a:tailEnd` markers -
+ * sized in `strokeWidth` units and therefore subject to the same transform -
+ * stretched into horizontal bars. PowerPoint draws a plumb line with round
+ * dots.
  *
- * The viewBox now matches the padded box, so the mapping is 1:1. Geometry still
- * starts at 0, which keeps the line exactly where it was authored and hangs the
- * padding off to the right.
- *
- * The other four bindings size their `<svg>` to the same numbers they put in the
- * viewBox and were never distorted.
+ * Fixed two ways at once: the nested `<svg>` now sizes itself (width, height,
+ * viewBox) to the SAME authored-extent-clamped-to-1 numbers, so the mapping
+ * stays 1:1 and nothing distorts, matching what the other four bindings
+ * already did. And the WRAPPER keeps the true authored extent (0 for a
+ * degenerate axis) instead of padding to `MIN_ELEMENT_SIZE`: that padding had
+ * made a degenerate connector measurably taller/wider than PowerPoint paints
+ * it, which a cross-binding render-parity fixture caught (the other four
+ * bindings never padded their wrapper this way). Grabbability comes from the
+ * connector's own widened hit stroke, not from the wrapper's box.
  */
 
 function verticalConnector(): PptxElement {
@@ -45,10 +48,10 @@ function verticalConnector(): PptxElement {
 	} as unknown as PptxElement;
 }
 
-function render(el: PptxElement): string {
+function render(el: PptxElement, isSelected = false): string {
 	const props = {
 		el,
-		isSelected: false,
+		isSelected,
 		canInteract: false,
 		showResizeHandles: false,
 		showHoverBorder: false,
@@ -60,10 +63,18 @@ function render(el: PptxElement): string {
 }
 
 describe('connector with a zero extent on one axis', () => {
-	it('maps the viewBox 1:1 onto the padded wrapper box', () => {
+	it('themes the selection halo without recoloring authored strokes or endpoint markers', () => {
+		const markup = render(verticalConnector(), true);
+		expect(markup).toContain('stroke="var(--pptx-selection-outline-color, #3b82f6)"');
+		expect(markup).toContain('stroke-opacity="0.35"');
+		expect(markup).toContain('stroke="#595959"');
+		expect(markup).toContain('fill="#595959"');
+	});
+
+	it('maps the SVG viewBox 1:1 onto its own size, without inflating the wrapper', () => {
 		const markup = render(verticalConnector());
-		expect(markup).toContain(`viewBox="0 0 ${MIN_ELEMENT_SIZE} 145"`);
-		expect(markup).toContain(`width:${MIN_ELEMENT_SIZE}px`);
+		expect(markup).toContain('viewBox="0 0 1 145"');
+		expect(markup).toContain('width:0px');
 		expect(markup).toContain('height:145px');
 	});
 
@@ -82,10 +93,11 @@ describe('connector with a zero extent on one axis', () => {
 		expect(markup).toContain('d="M 0 0 L 300 200"');
 	});
 
-	it('pads a zero-height horizontal connector the same way', () => {
+	it('floors the SVG the same way for a zero-height horizontal connector', () => {
 		const el = { ...verticalConnector(), width: 400, height: 0 } as PptxElement;
 		const markup = render(el);
-		expect(markup).toContain(`viewBox="0 0 400 ${MIN_ELEMENT_SIZE}"`);
+		expect(markup).toContain('viewBox="0 0 400 1"');
+		expect(markup).toContain('height:0px');
 		expect(markup).toContain('d="M 0 0 L 400 0"');
 	});
 

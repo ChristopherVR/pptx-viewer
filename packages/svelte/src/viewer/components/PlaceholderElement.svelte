@@ -8,12 +8,29 @@
 	 * To port a type for real: add a dedicated component and branch to it from
 	 * `ElementRenderer` before the placeholder fallback.
 	 */
-	import { getContainerStyle, styleToString } from '../style';
+	import { shouldRenderHitTarget } from 'pptx-viewer-shared';
+
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
 
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * unmatched-type placeholder; see `ElementRenderer`'s identical `hitTarget`
+	 * doc (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 </script>
 
 <div
@@ -23,6 +40,10 @@
 	data-element-type={element.type}
 	data-pptx-element={interactive || marked ? 'true' : undefined}
 >
+	<!-- Interaction-only hit target for a degenerate placeholder; see `hitTarget`. -->
+	{#if hitTarget}
+		<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+	{/if}
 	<span class="pptx-svelte-placeholder-label">{element.type}</span>
 </div>
 

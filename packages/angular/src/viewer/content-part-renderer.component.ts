@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input } from '@an
 import { TranslateService } from '@ngx-translate/core';
 import type { ContentPartPptxElement, PptxElement } from 'pptx-viewer-core';
 
+import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
 import type { ContentPartStrokeView } from '../internal/shared-src/render/content-part-strokes';
 import {
 	buildContentPartStrokes,
@@ -41,6 +42,10 @@ import { buildInkContainerStyle } from './ink-renderer-helpers';
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate ink stroke; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			@if (strokes().length > 0) {
 				@if (replay()) {
 					<pptx-dynamic-style [css]="replayKeyframes" />
@@ -129,6 +134,8 @@ export class ContentPartRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
 	readonly replay = input<boolean>(false);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
 	/**
 	 * Emit the neutral element marker on this renderer's root, the node that
 	 * also carries `data-element-id`. Same reasoning as `InkRendererComponent`:
@@ -155,6 +162,17 @@ export class ContentPartRendererComponent {
 
 	readonly containerStyle = computed<StyleMap>(() =>
 		buildInkContainerStyle(this.element(), this.zIndex()),
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate content part; `replay()` is
+	 * this renderer's own name for `presenting` (see its doc). See
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.replay())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	private readonly contentPart = computed<ContentPartPptxElement | undefined>(() => {

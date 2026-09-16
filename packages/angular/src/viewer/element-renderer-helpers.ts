@@ -1,5 +1,6 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 
+import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
 import { getContainerStyle, getShapeFillStrokeStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import { showsTemplateAffordance } from './template-mode';
@@ -83,4 +84,30 @@ export function buildShapeContainerStyle(
 		merged['transform'] = `${String(container['transform'])} ${String(shape['transform'])}`;
 	}
 	return merged;
+}
+
+/**
+ * Interaction-only hit-target overlay for a degenerate (sub-`MIN_ELEMENT_SIZE`)
+ * element: editable and not on the live presentation stage. See
+ * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+ * Extracted here (rather than inlined per caller) so `ElementRendererComponent`
+ * and `ElementRendererGraphicsComponent`, both already near the file-size
+ * guideline, need only one line each.
+ */
+export function buildHitTargetOverlayStyle(
+	element: PptxElement,
+	editable: boolean,
+	presenting: boolean,
+): StyleMap | undefined {
+	return shouldRenderHitTarget(editable, presenting) ? elementHitTargetStyle(element) : undefined;
+}
+
+/** `text`/`shape` elements, routed to `ElementRendererShapeComponent`. */
+export function isShapeLikeElement(element: PptxElement): boolean {
+	return element.type === 'text' || element.type === 'shape';
+}
+
+/** `picture`/`image` elements, routed to `ImageRendererComponent`. */
+export function isImageLikeElement(element: PptxElement): boolean {
+	return element.type === 'picture' || element.type === 'image';
 }

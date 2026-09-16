@@ -284,6 +284,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		formatInlineList: (snapshot) => modelObserver?.format(snapshot) ?? false,
 		readPendingInlineTextEdit: () =>
 			pendingInlineTextModel(store.get(), inlineTarget, readInlineList()),
+		hasActivePointerInteraction: () =>
+			gestures.isActive() || adjustGesture.isActive() || marquee.isActive(),
 		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {
 			closeInline(false);

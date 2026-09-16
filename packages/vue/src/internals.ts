@@ -104,3 +104,20 @@ export * from './viewer/composables/useTouchGestures';
 export * from './viewer/composables/useVersionHistory';
 export * from './viewer/composables/useVersionHistoryWiring';
 export * from './viewer/composables/useViewerSettingsDialog';
+
+// ── Slide-transition helpers (issue #290) ──────────────────────────────
+//
+// Not a `use*()` composable (see the header comment above for why those are
+// otherwise the only non-`use*` exclusion), so it is named explicitly: the
+// framework-neutral transition resolver/keyframes surface `pptx-viewer-shared`
+// (a private, unpublished package) bundles, re-exported here for a host
+// embedding its own presentation stage instead of the full `PowerPointViewer`.
+export * from './viewer/composables/slide-transition-css';
+
+export * from './viewer/composables/use-morph-transition-overlay';
+
+// The presentation-mode transition overlay components themselves (not just the
+// resolver they call).
+export { default as PresentationTransitionOverlay } from './viewer/components/PresentationTransitionOverlay.vue';
+export { default as MorphExtraLayers } from './viewer/components/MorphExtraLayers.vue';
+export { default as FragmentedTransitionLayer } from './viewer/components/FragmentedTransitionLayer.vue';

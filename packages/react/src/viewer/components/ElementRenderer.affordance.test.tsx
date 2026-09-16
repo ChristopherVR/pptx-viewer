@@ -157,13 +157,16 @@ describe('elementRenderer export affordances', () => {
 			});
 			render(makeProps({ element }));
 			const unselected = container.firstElementChild as HTMLElement;
-			const baseline = unselected.style.cssText;
+			const outline = unselected.style.outline || 'none';
+			const outlineOffset = unselected.style.outlineOffset || '0px';
 			const shadow = unselected.style.boxShadow;
 			expect(shadow).not.toBe('');
 			render(makeProps({ element, isSelected: true }));
 			const selected = container.firstElementChild as HTMLElement;
-			expect(selected.style.cssText).toBe(baseline);
-			expect(selected.className).toContain('ring-2');
+			const selectedStyle = selected.style.cssText;
+			expect(selectedStyle).toContain('--pptx-selection-outline-color');
+			expect(selected.dataset.exportOriginalOutline).toBe(outline);
+			expect(selected.dataset.exportOriginalOutlineOffset).toBe(outlineOffset);
 			expect(selected.dataset.exportOriginalBoxShadow).toBe(shadow);
 			const clone = selected.cloneNode(true) as HTMLElement;
 			// Simulate computed selection CSS already copied into the export clone.
@@ -172,7 +175,7 @@ describe('elementRenderer export affordances', () => {
 			clone.style.boxShadow = '0 0 0 2px blue';
 			prepareExportClone(clone);
 			expect(clone.style.outlineStyle).toBe('none');
-			expect(clone.style.outlineOffset).toBe('0px');
+			expect(clone.style.outlineOffset).toBe(outlineOffset);
 			expect(clone.style.boxShadow).toBe(shadow);
 			for (const property of ['border', 'border-radius', 'clip-path', 'filter']) {
 				expect(clone.style.getPropertyValue(property)).toBe(
@@ -180,7 +183,7 @@ describe('elementRenderer export affordances', () => {
 				);
 			}
 			expect(clone.dataset.elementId).toBe(element.id);
-			expect(selected.style.cssText).toBe(baseline);
+			expect(selected.style.cssText).toBe(selectedStyle);
 		},
 	);
 

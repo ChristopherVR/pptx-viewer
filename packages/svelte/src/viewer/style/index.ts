@@ -1,6 +1,7 @@
 export { cssPropertyName, mergeStyles, styleToString } from './css';
 export {
 	getContainerStyle,
+	getElementHitTargetStyle,
 	getImageSrc,
 	getShapeBoxStyle,
 	getShapeFillStrokeStyle,

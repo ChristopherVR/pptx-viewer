@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from 'pptx-viewer-shared';
 // ── React-based PowerPoint viewer/editor ──
 export { PowerPointViewer, getAnimationInitialStyle } from './viewer/PowerPointViewer';
 export type { PowerPointViewerProps, PowerPointViewerHandle } from './viewer/PowerPointViewer';

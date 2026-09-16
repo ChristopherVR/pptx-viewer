@@ -13,6 +13,21 @@ interface StrokePayload {
 }
 
 describe('drawingOverlay', () => {
+	it.each(['pointerup', 'pointercancel'])('clears the active interaction on %s', async (end) => {
+		const wrapper = mount(DrawingOverlay, { props: { ...base, active: true, tool: 'pen' } });
+		const svg = wrapper.get('svg');
+		expect(wrapper.vm.hasActivePointerInteraction()).toBeFalsy();
+		await svg.trigger('pointerdown', { clientX: 10, clientY: 10, pointerId: 1 });
+		expect(wrapper.vm.hasActivePointerInteraction()).toBeTruthy();
+		await svg.trigger('pointermove', { clientX: 20, clientY: 15, pointerId: 1 });
+		await svg.trigger(end, { pointerId: 1 });
+		expect(wrapper.vm.hasActivePointerInteraction()).toBeFalsy();
+		expect(wrapper.emitted('stroke')).toHaveLength(1);
+		await svg.trigger('pointerup', { pointerId: 1 });
+		expect(wrapper.emitted('stroke')).toHaveLength(1);
+		wrapper.unmount();
+	});
+
 	it('emits a stroke from a pen pointer down/move/up sequence', async () => {
 		const wrapper = mount(DrawingOverlay, { props: { ...base, active: true, tool: 'pen' } });
 		const svg = wrapper.get('svg');

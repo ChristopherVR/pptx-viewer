@@ -4,6 +4,7 @@ import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { selectionInteractivity } from '../editor/editor-selection-interactivity';
+import { selectionControlArtwork } from './selection-control-artwork';
 import SelectionOverlay from './SelectionOverlay.svelte';
 
 /**
@@ -141,5 +142,60 @@ describe('selectionOverlay lock-driven chrome', () => {
 		expect(target.querySelector('.pptx-svelte-rotate-knob')).toBeNull();
 		expect(target.querySelector('.pptx-svelte-rotate-stem')).toBeNull();
 		expect(target.querySelectorAll('[data-handle]')).toHaveLength(8);
+	});
+});
+
+describe('selectionOverlay optional artwork', () => {
+	it.each([0.5, 1, 2])(
+		'keeps artwork independent of slide scale %s and preserves hit ownership',
+		(scale) => {
+			const target = mountOverlay([plainRect()], scale);
+			const button = target.querySelector<HTMLButtonElement>('[data-handle="nw"]')!;
+			const artwork = button.querySelector<HTMLElement>('.pptx-svelte-control-artwork')!;
+			// happy-dom does not parse max() widths; the browser spec measures the frame.
+			expect(selectionControlArtwork('nw').frame.width).toContain(
+				'max(var(--pptx-svelte-resize-size, 10px), var(--pptx-selection-corner-size',
+			);
+			expect(selectionControlArtwork('nw').frame.marginLeft).toContain('/ -2');
+			expect(artwork.getAttribute('aria-hidden')).toBe('true');
+			expect(artwork.style.pointerEvents).toBe('none');
+			expect(artwork.style.width).toBe(
+				'var(--pptx-selection-corner-size, var(--pptx-svelte-resize-size, 10px))',
+			);
+			expect(button.querySelector<HTMLElement>('[data-pptx-handle-hit]')?.style.pointerEvents).toBe(
+				'auto',
+			);
+			expect(target.querySelectorAll('.pptx-svelte-control-artwork')).toHaveLength(9);
+		},
+	);
+
+	it('maps side artwork axes and retains local responsive defaults', () => {
+		const horizontal = selectionControlArtwork('n'),
+			vertical = selectionControlArtwork('e');
+		expect(horizontal.artwork.width).toContain('--pptx-selection-edge-length');
+		expect(horizontal.artwork.height).toContain('--pptx-selection-edge-thickness');
+		expect(vertical.artwork.width).toContain('--pptx-selection-edge-thickness');
+		expect(vertical.artwork.height).toContain('--pptx-selection-edge-length');
+		expect(horizontal.artwork.borderRadius).toBe('var(--pptx-selection-edge-radius, 2px)');
+		expect(horizontal.artwork.background).toBe(
+			'var(--pptx-selection-handle-fill, var(--pptx-background, #ffffff))',
+		);
+		expect(selectionControlArtwork().artwork.width).toBe(
+			'var(--pptx-selection-rotate-size, var(--pptx-svelte-rotate-size, 12px))',
+		);
+	});
+
+	it('themes the real outline and stem without making artwork interactive', () => {
+		const target = mountOverlay([plainRect()]);
+		expect(target.querySelector<HTMLElement>('.pptx-svelte-sel-box')?.style.borderColor).toBe(
+			'var(--pptx-selection-outline-color, var(--pptx-ring, #6366f1))',
+		);
+		expect(target.querySelector<HTMLElement>('.pptx-svelte-rotate-stem')?.style.background).toBe(
+			'var(--pptx-selection-outline-color, var(--pptx-ring, #6366f1))',
+		);
+		expect(
+			target.querySelector<HTMLElement>('.pptx-svelte-rotate-knob .pptx-svelte-control-artwork')
+				?.style.pointerEvents,
+		).toBe('none');
 	});
 });

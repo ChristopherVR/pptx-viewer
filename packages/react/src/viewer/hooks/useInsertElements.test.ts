@@ -9,7 +9,8 @@ import { createDefaultChartElement, INSERT_CHART_TYPES, newTableElement } from '
 import { describe, it, expect, vi } from 'vitest';
 
 import { DEFAULT_TABLE_ROWS, DEFAULT_TABLE_COLUMNS, DEFAULT_TEXT_FONT_SIZE } from '../constants';
-import type { InsertElementHandlers } from './useInsertElements';
+import { useInsertElements } from './useInsertElements';
+import type { InsertElementHandlers, UseInsertElementsInput } from './useInsertElements';
 
 // ---------------------------------------------------------------------------
 // useInsertElements creates handlers for inserting elements into slides.
@@ -42,6 +43,39 @@ function makeSlide(id: string, elements: PptxElement[] = []): PptxSlide {
 		elements,
 	} as PptxSlide;
 }
+
+describe('useInsertElements selection', () => {
+	it.each(['handleAddTextBox', 'handleAddShape'] as const)(
+		'%s selects the inserted element in both selection representations',
+		(handler) => {
+			let slides = [makeSlide('s1'), makeSlide('s2')];
+			const applySelection = vi.fn();
+			const markDirty = vi.fn();
+			const input: UseInsertElementsInput = {
+				activeSlide: slides[1],
+				activeSlideIndex: 1,
+				canvasSize: { width: 960, height: 540 },
+				newShapeType: 'rect',
+				selectedElements: [],
+				ops: {
+					updateSlides: (update: (previous: PptxSlide[]) => PptxSlide[]) => {
+						slides = update(slides);
+					},
+					applySelection,
+				} as UseInsertElementsInput['ops'],
+				history: { markDirty } as UseInsertElementsInput['history'],
+			};
+
+			useInsertElements(input)[handler]();
+
+			expect(slides[0].elements).toHaveLength(0);
+			expect(slides[1].elements).toHaveLength(1);
+			const inserted = slides[1].elements[0];
+			expect(applySelection).toHaveBeenCalledExactlyOnceWith(inserted.id, [inserted.id]);
+			expect(markDirty).toHaveBeenCalledOnce();
+		},
+	);
+});
 
 describe('simulateAddElement', () => {
 	it('adds element to the correct slide', () => {

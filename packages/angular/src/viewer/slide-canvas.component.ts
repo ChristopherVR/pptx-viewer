@@ -52,6 +52,7 @@ import {
 	editorNudgeDelta,
 	findConnectorSiteNear,
 	getConnectorEndpointHandles,
+	getResizeHandleHitAreaStyle,
 	isTemplateElement,
 	resolveConnectorEndpointUpdate,
 	withConnectorEndpointUpdate,
@@ -76,8 +77,10 @@ import {
 	resolveCommitTextNormAutofitShrink,
 } from './inline-edit-autofit-commit';
 import { InlineListEditorComponent } from './inline-list-editor.component';
+import { RotateHandlePlacementDirective } from './rotate-handle-placement.directive';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
+import { selectionControlArtwork } from './selection-control-artwork';
 import {
 	computeResizeHandleBoxes,
 	computeRotateHandleBox,
@@ -188,6 +191,7 @@ function plainText(el: PptxElement): string {
 		AiChangeOverlayComponent,
 		ActiveXControlsOverlayComponent,
 		InlineListEditorComponent,
+		RotateHandlePlacementDirective,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',
@@ -420,6 +424,16 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();
 	/** Emitted when a structural table change (drag-resize) should be persisted. */
 	readonly tableChange = output<{ id: string; tableData: PptxTableData }>();
+
+	hasActivePointerInteraction(): boolean {
+		return Boolean(
+			this.drag ||
+			this.adjustDrag ||
+			this.marquee ||
+			this.connectorEndpointDrag() ||
+			this.inkDrawing.active(),
+		);
+	}
 
 	private drag: DragState | null = null;
 	/** Live shape-adjustment gesture (amber diamond), or null when idle. */
@@ -694,6 +708,8 @@ export class SlideCanvasComponent implements SlideContext {
 			this.effectiveScale(),
 		),
 	);
+	readonly resizeHitAreaStyle = getResizeHandleHitAreaStyle;
+	readonly selectionControlArtwork = selectionControlArtwork;
 
 	/**
 	 * Rotation-handle box (stage coords) above the single selection, or null (also
@@ -1393,6 +1409,7 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 
 	@HostListener('document:pointerup')
+	@HostListener('document:pointercancel')
 	onPointerUp(): void {
 		// ── GUIDE DRAG ────────────────────────────────────────────────────────
 		if (this.rulerGuidesSvc.handlePointerUp()) {

@@ -18,11 +18,11 @@
 	 *   other bindings' fallback.
 	 * - Presentation mode progressively replays constant-width paths.
 	 */
-	import { getContentPartReplayStyles, INK_REPLAY_KEYFRAMES } from 'pptx-viewer-shared';
+	import { getContentPartReplayStyles, INK_REPLAY_KEYFRAMES, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildContentPartStrokes, contentPartViewBox } from '../render';
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
 	const {
@@ -31,8 +31,18 @@
 		presenting = false,
 		interactive = false,
 		marked = false,
+		editable = false,
 	}: ElementRendererProps = $props();
 	const t = useTranslator();
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * content part; see `ElementRenderer`'s identical `hitTarget` doc
+	 * (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 
 	const contentPart = $derived(element.type === 'contentPart' ? element : undefined);
 	const strokes = $derived(contentPart ? buildContentPartStrokes(contentPart) : []);
@@ -49,6 +59,10 @@
 		data-element-id={element.id}
 		data-pptx-element={interactive || marked ? 'true' : undefined}
 	>
+		<!-- Interaction-only hit target for a degenerate content part; see `hitTarget`. -->
+		{#if hitTarget}
+			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+		{/if}
 		{#if strokes.length > 0}
 			<svg
 				class="pptx-svelte-contentpart-svg"

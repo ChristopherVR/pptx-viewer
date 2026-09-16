@@ -83,13 +83,14 @@ viewer?.setMode('present'); // start presenting; Esc exits
 
 ## Element access and manipulation
 
-| Method             | Signature                                                       | Description                                              |
-| ------------------ | --------------------------------------------------------------- | -------------------------------------------------------- |
-| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`               | Elements on a slide (defaults to the active slide).      |
-| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined` | A single element by id.                                  |
-| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`           | Patch element properties, e.g. `{ x: 100, width: 300 }`. |
-| `deleteElements`   | `(ids: string[]) => void`                                       | Delete elements by id from the active slide.             |
-| `duplicateElement` | `(id: string) => string \| undefined`                           | Duplicate an element; returns the new element's id.      |
+| Method             | Signature                                                                              | Description                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getElements`      | `(slideIndex?: number) => readonly PptxElement[]`                                      | Elements on a slide (defaults to the active slide).                              |
+| `getElementById`   | `(id: string, slideIndex?: number) => PptxElement \| undefined`                        | A single element by id.                                                          |
+| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`                                  | Patch element properties, e.g. `{ x: 100, width: 300 }`.                         |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`   | `(ids: string[]) => void`                                                              | Delete elements by id from the active slide.                                     |
+| `duplicateElement` | `(id: string) => string \| undefined`                                                  | Duplicate an element; returns the new element's id.                              |
 
 ## Inserting an element {#add-element}
 
@@ -220,6 +221,39 @@ framework-free state helpers (`ViewerState`, `PresentationLoader`, `clampSlideIn
 `fitScale`, `resolveNavigationKey`, `zoomInPercent`, `zoomOutPercent`) for hosts building
 custom chrome on the same primitives. These are lower-level than the component API and not
 needed for typical embedding.
+
+### `pptx-svelte-viewer/internals`: slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package: it is never on npm, so code outside this monorepo cannot `import`
+from it directly. A host embedding its own presentation surface (a custom stage, outside the full
+`PowerPointViewer`) still needs the transition resolver/keyframes and overlay component, so they
+are re-exported from the `pptx-svelte-viewer/internals` subpath instead:
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	PresentationTransitionOverlay,
+} from 'pptx-svelte-viewer/internals';
+```
+
+`resolveSlideTransition` maps a `PptxSlideTransition` to the CSS `animation` shorthands for the
+outgoing/incoming layers; `resolveTransitionDurationMs` resolves its effective duration (ms), honoring
+an authored duration, the legacy `spd` token, and PowerPoint's own defaults; `SLIDE_TRANSITION_KEYFRAMES`
+(alias `SLIDE_TRANSITION_KEYFRAMES_CSS`) is the `@keyframes` block those animation names reference,
+injected once via a `<style>` element. Also exported: `getSlideTransitionAnimations`,
+`getCinematicTransitionAnimations`, `getP14TransitionAnimations` (the classic / cinematic / exotic
+sub-resolvers), `CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL` (their keyframe
+sub-blocks), `resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`,
+the supporting constants (`RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_TRANSITION_DURATION_MS`,
+`DEFAULT_MORPH_DURATION_MS`, `TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS`), and the
+`PresentationTransitionOverlay` component itself.
+
+As with every other binding's `internals` entry, this is not covered by semver: reach for it only
+when the curated `pptx-svelte-viewer` / `pptx-svelte-viewer/viewer` exports genuinely cannot do
+what you need, and pin an exact version if you depend on it.
 
 ## Openable file kinds {#openable-file-kinds}
 

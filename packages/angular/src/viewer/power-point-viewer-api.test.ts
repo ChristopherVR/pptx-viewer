@@ -63,6 +63,7 @@ const API_MEMBERS = [
 	'getElementById',
 	'addElement',
 	'updateElement',
+	'updateElements',
 	'deleteElements',
 	'duplicateElement',
 	'getSelectedElementIds',
@@ -308,5 +309,57 @@ describe('public viewer mode transitions', () => {
 		expect(editor.slides()[0].elements[0]).toMatchObject({ text: 'Original mode text' });
 		editor.redo();
 		expect(editor.slides()[0].elements[0]).toMatchObject({ text: 'Pending mode text' });
+	});
+});
+
+describe('public cross-slide batches', () => {
+	it('preserves selection, validates first, and records a separate snapshot for each batch', async () => {
+		const editor = new EditorStateService();
+		editor.setSlides(
+			[0, 1].map((index) => ({
+				id: `slide-${index}`,
+				rId: `r${index}`,
+				slideNumber: index + 1,
+				elements: [
+					{ id: 'title', type: 'text', x: 67, y: 40, width: 200, height: 60, text: 'Title' },
+				],
+			})),
+		);
+		editor.selectedIds.set(['title']);
+		const context = {
+			editor,
+			canEdit: () => true,
+			getMode: () => 'edit',
+			loader: { loading: () => false, error: () => null },
+			mainEl: () => undefined,
+			editorCanvas: () => undefined,
+		};
+		const update = (updates: import('../internal/shared').ElementUpdate[]) =>
+			PowerPointViewerComponent.prototype.updateElements.call(
+				context as unknown as PowerPointViewerComponent,
+				updates,
+			);
+		const changes = (x: number) =>
+			[0, 1].map((index) => ({ slideId: `slide-${index}`, elementId: 'title', patch: { x } }));
+		const positions = () => editor.slides().map((slide) => slide.elements[0].x);
+		editor.updateElement(0, 'title', { x: 70 });
+		await update(changes(84));
+		await update(changes(90));
+		expect(editor.selectedIds()).toStrictEqual(['title']);
+		editor.undo();
+		expect(positions()).toStrictEqual([84, 84]);
+		editor.undo();
+		expect(positions()).toStrictEqual([70, 67]);
+		editor.undo();
+		expect(positions()).toStrictEqual([67, 67]);
+		await update(changes(67));
+		await expect(
+			update([...changes(84), { slideId: 'missing', elementId: 'title', patch: {} }]),
+		).rejects.toThrow();
+		expect(positions()).toStrictEqual([67, 67]);
+		expect(editor.canUndo()).toBeFalsy();
+		editor.redo();
+		editor.redo();
+		expect(positions()).toStrictEqual([84, 84]);
 	});
 });

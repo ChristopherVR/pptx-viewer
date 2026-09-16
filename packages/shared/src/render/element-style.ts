@@ -29,26 +29,77 @@ export function px(n: number): string {
 }
 
 /**
- * The box an element is PAINTED in: its authored extent, padded out to
- * {@link MIN_ELEMENT_SIZE} in either axis.
+ * The box an element is PAINTED in: its authored extent, unmodified (floored
+ * at zero to guard against a negative/NaN size reaching CSS).
  *
- * PowerPoint decks contain degenerate shapes - a horizontal rule authored as
- * `<a:prstGeom prst="line"/>` with `cy="1"` EMU is the canonical one - whose box
- * rounds to zero pixels. A zero-sized box cannot be hovered, clicked or dragged,
- * so every binding pads it; React has always done so (`getContainerStyle`, and
- * again in its connector renderer), and the other four did not, which is one
- * half of why the same slide measured a different height in each.
+ * This used to pad the box out to {@link MIN_ELEMENT_SIZE} in either axis, so
+ * that a degenerate shape - a horizontal rule authored as
+ * `<a:prstGeom prst="line"/>` with `cy="1"` EMU is the canonical one, whose box
+ * rounds to a fraction of a pixel - stayed hoverable, clickable and draggable.
+ * That padding was applied unconditionally, including in read-only rendering,
+ * where nothing is hoverable or draggable at all: a solid-filled rect (or any
+ * shape whose fill paints as the wrapper's `background-color`) got PADDED
+ * FILL, so a 1-2px authored rule rendered as a 12-15px solid bar (issue #285).
  *
- * The padding never moves the paint: the shape's geometry is still resolved at
- * the authored extent and the extra pixels hang off the right/bottom, which is
- * why the stroke overlay takes its viewBox from this box
- * ({@link strokeOutlineViewBox}) rather than from the authored size.
+ * The padding survives, but only as a separate, interaction-only affordance:
+ * see {@link elementHitTargetStyle}, which a binding renders as an extra
+ * transparent overlay ONLY while the element is interactive/editable, and
+ * which never changes this function's return value or the visible paint.
  */
 export function paintedElementSize(el: PptxElement): { width: number; height: number } {
 	return {
-		width: Math.max(el.width, MIN_ELEMENT_SIZE),
-		height: Math.max(el.height, MIN_ELEMENT_SIZE),
+		width: Math.max(el.width, 0),
+		height: Math.max(el.height, 0),
 	};
+}
+
+/**
+ * A transparent hit-target overlay for an element whose authored extent is
+ * smaller than {@link MIN_ELEMENT_SIZE} in either axis, centred over the
+ * element's (possibly sub-pixel) painted box. `undefined` when the authored
+ * box already meets the minimum in both axes, which is the overwhelmingly
+ * common case.
+ *
+ * A binding renders this as an extra sibling INSIDE the element's own
+ * wrapper, absolutely positioned (so it can extend past the wrapper's own,
+ * now-authored-size, bounds) and ONLY while the element is interactive/
+ * editable: a click or drag landing on this transparent overlay bubbles to
+ * the same ancestor handlers the (tiny) wrapper itself would receive a click
+ * on, exactly reproducing the old always-padded box's grabbability without
+ * ever enlarging the painted fill/stroke a read-only render shows (issue
+ * #285). Never render this outside an interactive/editable surface: a
+ * read-only viewer has nothing for it to make grabbable.
+ */
+export function elementHitTargetStyle(el: PptxElement): CssStyleMap | undefined {
+	const targetWidth = Math.max(el.width, MIN_ELEMENT_SIZE);
+	const targetHeight = Math.max(el.height, MIN_ELEMENT_SIZE);
+	if (targetWidth <= el.width && targetHeight <= el.height) {
+		return undefined;
+	}
+	return {
+		position: 'absolute',
+		left: px((el.width - targetWidth) / 2),
+		top: px((el.height - targetHeight) / 2),
+		width: px(targetWidth),
+		height: px(targetHeight),
+		pointerEvents: 'auto',
+	};
+}
+
+/**
+ * Whether a binding should render {@link elementHitTargetStyle}'s overlay at
+ * all, for ANY element type (shape/text, image, chart, table, media, ole,
+ * model3d, smartArt, equation, zoom, contentPart, ink, group, connector).
+ *
+ * The single source of truth for the interaction gate every binding's
+ * per-type renderer must apply: interactive/editable AND not on the live
+ * presentation stage. Centralising this (rather than each binding repeating
+ * `interactive && !presenting` at each of its ~11 call sites) is what keeps a
+ * future gate change (or a binding's copy of it) from drifting per element
+ * type (issue #285 follow-up).
+ */
+export function shouldRenderHitTarget(interactive: boolean, presenting: boolean): boolean {
+	return interactive && !presenting;
 }
 
 /**

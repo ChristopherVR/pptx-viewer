@@ -1,12 +1,27 @@
 <script lang="ts">
 	import { hasTextProperties } from 'pptx-viewer-core';
 	import type { OmmlNode } from 'pptx-viewer-shared';
-	import { convertOmmlToMathMl, sanitizeMathMl } from 'pptx-viewer-shared';
+	import { convertOmmlToMathMl, sanitizeMathMl, shouldRenderHitTarget } from 'pptx-viewer-shared';
 
-	import { getContainerStyle, styleToString } from '../style';
+	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
 
-	const { element, zIndex, interactive = false, marked = false }: ElementRendererProps = $props();
+	const {
+		element,
+		zIndex,
+		interactive = false,
+		marked = false,
+		editable = false,
+		presenting = false,
+	}: ElementRendererProps = $props();
+	/**
+	 * Interaction-only hit target for a degenerate (sub-MIN_ELEMENT_SIZE)
+	 * equation box; see `ElementRenderer`'s identical `hitTarget` doc
+	 * (issue #285).
+	 */
+	const hitTarget = $derived(
+		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
+	);
 	const equations = $derived.by(() => {
 		if (!hasTextProperties(element)) {
 			return [];
@@ -25,6 +40,10 @@
 </script>
 
 <div class="pptx-svelte-element pptx-svelte-equation-wrapper" style={containerStyle} data-element-id={element.id} data-pptx-element={interactive || marked ? 'true' : undefined}>
+	<!-- Interaction-only hit target for a degenerate equation box; see `hitTarget`. -->
+	{#if hitTarget}
+		<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
+	{/if}
 	{#each equations as equation (equation.key)}
 		{#if equation.number}
 			<span class="pptx-svelte-equation-numbered">

@@ -1,6 +1,7 @@
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextStyleOverrideCss,
+	elementHitTargetStyle,
 	getGroupChildParentFill,
 	isHollowShapeElement,
 	resolveElementAriaAttributes,
@@ -8,8 +9,10 @@ import {
 	inlineElementPointerEvents,
 	LINK_TOOLTIP_HOST_CLASS,
 	resolveElementInteractivity,
+	shouldRenderHitTarget,
 } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useMemo } from 'react';
+import type { CSSProperties } from 'react';
 
 import { DEFAULT_TEXT_COLOR } from '../constants';
 import {
@@ -36,6 +39,7 @@ import { shapeParams } from './elements/element-shape-params';
 import { renderBody } from './elements/ElementBody';
 import { Extrusion3DOverlay } from './elements/Extrusion3DOverlay';
 import { getScopedElementHandlers } from './elements/scoped-element-handlers';
+import { selectionOutlineStyle } from './elements/selection-control-artwork';
 import { ShapeEffectOverlay } from './elements/ShapeEffectOverlay';
 import { StaticElementRenderer } from './StaticElementRenderer';
 
@@ -232,6 +236,15 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		const isFullscreenMedia =
 			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
 
+		// Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
+		// shape: a bigger, invisible, centred click/drag target, kept separate
+		// from the painted box so a thin authored line never paints as a thick
+		// bar in read-only rendering (issue #285). Never rendered while
+		// presenting: nothing on the show stage is draggable or selectable.
+		const hitTargetStyle = shouldRenderHitTarget(effectiveCanInteract, isPresentationPassive)
+			? elementHitTargetStyle(el)
+			: undefined;
+
 		const isFocusable = effectiveCanInteract || isActionable;
 		const containerStyle = getContainerStyle({
 			el,
@@ -303,11 +316,21 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 					// so the four non-Tailwind bindings reveal it the same way.
 					actionAffordance.showLinkTooltip && LINK_TOOLTIP_HOST_CLASS,
 				)}
-				style={containerStyle}
+				style={{
+					...containerStyle,
+					...(isSelected ? selectionOutlineStyle(selClr) : {}),
+				}}
 				{...interactionProps}
 			>
 				{renderDagDuotoneFilterForElement(el)}
 				{textStyleOverrideCss && <style>{textStyleOverrideCss}</style>}
+				{hitTargetStyle && (
+					<div
+						aria-hidden='true'
+						data-pptx-hit-target='true'
+						style={hitTargetStyle as CSSProperties}
+					/>
+				)}
 				{backgroundAnimationState ? (
 					<div
 						data-pptx-animation-layer='background'

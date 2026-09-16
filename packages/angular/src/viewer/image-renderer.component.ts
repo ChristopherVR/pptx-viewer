@@ -4,7 +4,7 @@ import type { SafeHtml } from '@angular/platform-browser';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { getImageOverflow } from '../internal/shared';
+import { elementHitTargetStyle, getImageOverflow, shouldRenderHitTarget } from '../internal/shared';
 import { ColorChangedImageComponent } from './color-changed-image.component';
 import { getReflectionOverlay } from './element-effect-defs';
 import type { ReflectionOverlay } from './element-effect-defs';
@@ -25,6 +25,10 @@ import { ReflectionMirrorContentComponent } from './reflection-mirror-content.co
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="interactive() || marked() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate picture; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			@for (filter of safeFilters(); track filter.id) {
 				<svg
 					width="0"
@@ -86,10 +90,25 @@ export class ImageRendererComponent {
 	 * `ElementRendererComponent.exposeElementId`.
 	 */
 	readonly exposeElementId = input<boolean>(true);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
+	/** True only on the live presentation stage; see `ElementRendererComponent.presenting`. */
+	readonly presenting = input<boolean>(false);
 
 	/** `data-element-id` for this element, or null on a miniature surface. */
 	readonly elementIdAttr = computed<string | null>(() =>
 		this.exposeElementId() ? this.element().id : null,
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-`MIN_ELEMENT_SIZE`)
+	 * picture; see `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc
+	 * (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	/**

@@ -48,6 +48,14 @@ export interface BevelFilterLayer {
 	index: number;
 	blurStdDev: number;
 	morphologyRadius?: number;
+	/**
+	 * `feFuncA type="table"` stops reshaping the blur(+erode) height ramp into
+	 * a non-monotonic (two-lobe) profile before it is lit, for the 3 profiles
+	 * whose COM cross-section needs one (see `BevelProfileHeightMap
+	 * .heightTransferTable`'s doc comment). `undefined` for every other
+	 * profile, which lights the blur(+erode) ramp directly, unchanged.
+	 */
+	heightTransferTable?: readonly number[];
 	surfaceScale: number;
 	azimuthDeg: number;
 	elevationDeg: number;
@@ -80,6 +88,7 @@ export function resolveLayer(
 			heightMap.morphologyFactor !== undefined
 				? Math.max(0.3, avgDim * heightMap.morphologyFactor)
 				: undefined,
+		heightTransferTable: heightMap.heightTransferTable,
 		surfaceScale: Math.max(
 			0.5,
 			avgDim * heightMap.surfaceScaleFactor * (isBottom ? 0.8 : 1) * mat.surfaceScaleMultiplier,

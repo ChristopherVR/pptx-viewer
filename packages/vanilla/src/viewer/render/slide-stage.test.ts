@@ -340,4 +340,101 @@ describe('renderSlideStage', () => {
 		expect(stage.style.backgroundImage).not.toContain(gradient);
 		expect(stage.style.backgroundImage).toContain('data:image/svg+xml');
 	});
+
+	describe('degenerate element hit target (issue #285 follow-up)', () => {
+		// The overlay used to be wired only into the shape/text wrapper; a
+		// sub-MIN_ELEMENT_SIZE element of any OTHER type (image, chart, table,
+		// media, ole, model3d, smartArt, equation, zoom, contentPart, ink,
+		// group) painted at its authored (unpadded) size but had nothing to
+		// grab. `renderSlideStage`'s `renderElement` choke point now appends the
+		// same shared overlay to every type it dispatches, except `text`/`shape`
+		// (own copy inside the fill/stroke box) and `connector` (its own
+		// `connectorHitStrokeWidth` mechanism).
+		function degenerateSlide(): PptxSlide {
+			return {
+				id: 'slide-1',
+				rId: 'rId1',
+				slideNumber: 1,
+				elements: [
+					{
+						type: 'image',
+						id: 'el-thin-image',
+						x: 0,
+						y: 0,
+						width: 400,
+						height: 1,
+						imageData: PNG_DATA_URL,
+					},
+					{
+						type: 'chart',
+						id: 'el-thin-chart',
+						x: 0,
+						y: 50,
+						width: 400,
+						height: 1,
+						chartData: {
+							chartType: 'bar',
+							categories: ['A', 'B', 'C'],
+							series: [{ name: 'S1', values: [1, 2, 3] }],
+						},
+					},
+				] as PptxSlide['elements'],
+			};
+		}
+
+		it('adds the hit target to a degenerate image and chart on the interactive canvas', () => {
+			const stage = renderSlideStage({
+				document,
+				slide: degenerateSlide(),
+				canvasSize: { width: 1280, height: 720 },
+				mediaDataUrls: new Map<string, string>(),
+				registry: createDefaultRegistry(),
+				t: createTranslator(),
+				interactive: true,
+			});
+			const image = stage.querySelector('[data-element-id="el-thin-image"]');
+			const chart = stage.querySelector('[data-element-id="el-thin-chart"]');
+			expect(image?.querySelector('[data-pptx-hit-target]')).toBeTruthy();
+			expect(chart?.querySelector('[data-pptx-hit-target]')).toBeTruthy();
+		});
+
+		it('never adds the hit target on a read-only (non-interactive) surface', () => {
+			const stage = renderStage(degenerateSlide());
+			const image = stage.querySelector('[data-element-id="el-thin-image"]');
+			const chart = stage.querySelector('[data-element-id="el-thin-chart"]');
+			expect(image?.querySelector('[data-pptx-hit-target]')).toBeNull();
+			expect(chart?.querySelector('[data-pptx-hit-target]')).toBeNull();
+		});
+
+		it('never adds the hit target while presenting, even if interactive', () => {
+			const stage = renderSlideStage({
+				document,
+				slide: degenerateSlide(),
+				canvasSize: { width: 1280, height: 720 },
+				mediaDataUrls: new Map<string, string>(),
+				registry: createDefaultRegistry(),
+				t: createTranslator(),
+				interactive: true,
+				presenting: true,
+			});
+			const image = stage.querySelector('[data-element-id="el-thin-image"]');
+			const chart = stage.querySelector('[data-element-id="el-thin-chart"]');
+			expect(image?.querySelector('[data-pptx-hit-target]')).toBeNull();
+			expect(chart?.querySelector('[data-pptx-hit-target]')).toBeNull();
+		});
+
+		it('leaves the painted box at its authored (unpadded) size', () => {
+			const stage = renderSlideStage({
+				document,
+				slide: degenerateSlide(),
+				canvasSize: { width: 1280, height: 720 },
+				mediaDataUrls: new Map<string, string>(),
+				registry: createDefaultRegistry(),
+				t: createTranslator(),
+				interactive: true,
+			});
+			const image = stage.querySelector<HTMLElement>('[data-element-id="el-thin-image"]');
+			expect(image?.style.height).toBe('1px');
+		});
+	});
 });

@@ -17,6 +17,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 // Type-only import of the shared scene controller; the implementation (which
 // pulls the optional `three` peer) is loaded lazily via dynamic import so it
 // never lands in the main bundle.
+import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
 import type { Model3DHandle, mountModel3D as MountModel3D } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import {
@@ -62,6 +63,10 @@ type MountFn = typeof MountModel3D;
 			[attr.data-element-id]="elementIdAttr()"
 			[attr.data-pptx-element]="markElement() ? 'true' : null"
 		>
+			<!-- Interaction-only hit target for a degenerate model; see hitTargetStyle below. -->
+			@if (hitTargetStyle(); as hit) {
+				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+			}
 			@if (showScene()) {
 				<div #scene class="pptx-ng-model3d-scene"></div>
 			} @else if (vm().posterSrc) {
@@ -131,10 +136,24 @@ export class Model3DRendererComponent implements OnDestroy {
 	 * `ElementRendererComponent.exposeElementId`.
 	 */
 	readonly exposeElementId = input<boolean>(true);
+	/** Whether inline editing (drag/resize) is enabled on this surface. */
+	readonly editable = input<boolean>(false);
+	/** True only on the live presentation stage; see `ElementRendererComponent.presenting`. */
+	readonly presenting = input<boolean>(false);
 
 	/** `data-element-id` for this element, or null on a miniature surface. */
 	readonly elementIdAttr = computed<string | null>(() =>
 		this.exposeElementId() ? this.element().id : null,
+	);
+
+	/**
+	 * Interaction-only hit target for a degenerate 3D model; see
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
 	);
 
 	private readonly sceneRef = viewChild<ElementRef<HTMLDivElement>>('scene');

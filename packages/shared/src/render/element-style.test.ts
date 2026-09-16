@@ -11,11 +11,13 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	elementHitTargetStyle,
 	getContainerStyle,
 	getImageFitStyle,
 	getImageOverflow,
 	getImageSrc,
 	paintedElementSize,
+	shouldRenderHitTarget,
 } from './element-style';
 
 function picture(overrides: Partial<PptxElement> = {}): PptxElement {
@@ -32,13 +34,21 @@ function picture(overrides: Partial<PptxElement> = {}): PptxElement {
 
 describe('getContainerStyle degenerate boxes', () => {
 	// A `<a:prstGeom prst="line"/>` rule authored with `cy="1"` EMU rounds to a
-	// zero-pixel box. React has always padded such a box to MIN_ELEMENT_SIZE so it
-	// stays hoverable and grabbable; the other four did not, so the same slide
-	// measured a different height in each.
-	it('pads a zero-height element to the minimum element size', () => {
+	// tiny (sub-MIN_ELEMENT_SIZE, sometimes zero) pixel box. The painted box must
+	// keep the AUTHORED size in read-only rendering: padding it to
+	// MIN_ELEMENT_SIZE turned a 1-2px horizontal rule into a 12-15px solid bar
+	// once a solid fill paints as the wrapper's own `background-color` (issue
+	// #285). Any grabbability padding now lives only in `elementHitTargetStyle`,
+	// rendered separately and only while the element is interactive/editable.
+	it('never pads a zero-height element: the painted box stays at the authored size', () => {
 		const style = getContainerStyle(picture({ width: 400, height: 0 }), 3);
 		expect(style['width']).toBe('400px');
-		expect(style['height']).toBe('12px');
+		expect(style['height']).toBe('0px');
+	});
+
+	it('keeps a sub-pixel authored height exactly: a 1.25px rule is not padded to a bar', () => {
+		const style = getContainerStyle(picture({ width: 400, height: 1.25 }), 3);
+		expect(style['height']).toBe('1.25px');
 	});
 
 	it('leaves a normally sized element alone', () => {
@@ -47,10 +57,14 @@ describe('getContainerStyle degenerate boxes', () => {
 		expect(style['height']).toBe('300px');
 	});
 
-	it('exposes the painted box so the stroke overlay can match its viewBox', () => {
+	it('exposes the painted box as the authored size, unpadded', () => {
 		expect(paintedElementSize(picture({ width: 0, height: 0 }))).toStrictEqual({
-			width: 12,
-			height: 12,
+			width: 0,
+			height: 0,
+		});
+		expect(paintedElementSize(picture({ width: 400, height: 1.25 }))).toStrictEqual({
+			width: 400,
+			height: 1.25,
 		});
 	});
 
@@ -219,5 +233,59 @@ describe('getImageOverflow', () => {
 			shapeStyle: { blurGrow: false, blurRadius: 8 },
 		} as unknown as Partial<PptxElement>);
 		expect(getImageOverflow(el)).toBe('hidden');
+	});
+});
+
+describe('elementHitTargetStyle', () => {
+	// The interaction-only affordance for issue #285: a bigger, invisible,
+	// centred click/drag target for a degenerate shape, kept entirely separate
+	// from the (now always-authored-size) painted box.
+	it('returns undefined for an element already at or above the minimum size', () => {
+		expect(elementHitTargetStyle(picture({ width: 400, height: 300 }))).toBeUndefined();
+		expect(elementHitTargetStyle(picture({ width: 12, height: 12 }))).toBeUndefined();
+	});
+
+	it('centres a padded target over a sub-pixel-tall rule', () => {
+		const style = elementHitTargetStyle(picture({ width: 400, height: 1.25 }));
+		expect(style).toBeDefined();
+		expect(style!['width']).toBe('400px');
+		expect(style!['height']).toBe('12px');
+		expect(style!['top']).toBe(`${(1.25 - 12) / 2}px`);
+		expect(style!['left']).toBe('0px');
+		expect(style!['position']).toBe('absolute');
+		expect(style!['pointerEvents']).toBe('auto');
+	});
+
+	it('pads both axes for a fully degenerate (0x0) element', () => {
+		const style = elementHitTargetStyle(picture({ width: 0, height: 0 }));
+		expect(style).toStrictEqual({
+			position: 'absolute',
+			left: '-6px',
+			top: '-6px',
+			width: '12px',
+			height: '12px',
+			pointerEvents: 'auto',
+		});
+	});
+});
+
+describe('shouldRenderHitTarget', () => {
+	// The single source of truth every binding's per-type renderer (shape,
+	// image, chart, table, media, ole, model3d, smartArt, equation, zoom,
+	// contentPart, ink, group, connector) must gate the overlay on.
+	it('is true only when interactive and not presenting', () => {
+		expect(shouldRenderHitTarget(true, false)).toBeTruthy();
+	});
+
+	it('is false while read-only', () => {
+		expect(shouldRenderHitTarget(false, false)).toBeFalsy();
+	});
+
+	it('is false while presenting, even if interactive', () => {
+		expect(shouldRenderHitTarget(true, true)).toBeFalsy();
+	});
+
+	it('is false when neither interactive nor presenting', () => {
+		expect(shouldRenderHitTarget(false, true)).toBeFalsy();
 	});
 });

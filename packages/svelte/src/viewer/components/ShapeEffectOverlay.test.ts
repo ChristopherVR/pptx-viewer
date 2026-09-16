@@ -104,9 +104,10 @@ describe('shapeEffectOverlay', () => {
 		const path = target.querySelector('svg path');
 		expect(path?.getAttribute('d')).toBe('M 0 0 L 400 1');
 		expect(path?.getAttribute('stroke')).toBe('#000000');
-		// The viewBox is the PAINTED box (padded to MIN_ELEMENT_SIZE), so the rule
-		// is not stretched into a diagonal.
-		expect(target.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 400 12');
+		// The viewBox is the PAINTED (authored) box, matching the wrapper's own
+		// CSS size 1:1, so the rule is not stretched into a diagonal or padded
+		// into a thick bar (issue #285).
+		expect(target.querySelector('svg')?.getAttribute('viewBox')).toBe('0 0 400 0');
 		expect(target.querySelector('svg defs')).toBeNull();
 	});
 

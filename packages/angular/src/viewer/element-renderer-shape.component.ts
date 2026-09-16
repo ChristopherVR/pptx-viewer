@@ -7,8 +7,10 @@ import {
 	build3DExtrusionData,
 	buildHollowHitOutline,
 	buildTextBody3DSceneStyle,
+	elementHitTargetStyle,
 	getOverflowSegments,
 	placeholderPromptDescriptor,
+	shouldRenderHitTarget,
 	strokeOutlineViewBox,
 } from '../internal/shared';
 import type {
@@ -133,6 +135,21 @@ export class ElementRendererShapeComponent {
 
 	/** viewBox in the element's PAINTED box, which the path data is authored in. */
 	readonly outlineViewBox = computed(() => strokeOutlineViewBox(this.element()));
+
+	/**
+	 * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) shape:
+	 * a bigger, invisible, centred click/drag target, kept separate from
+	 * `shapeContainerStyle` (now always the element's authored size) so a thin
+	 * authored line never paints as a thick bar in read-only rendering (issue
+	 * #285). Never rendered while presenting: nothing on the show stage is
+	 * draggable or selectable. `undefined` on a read-only surface (`editable`
+	 * false) and when the authored box already meets the minimum size.
+	 */
+	readonly hitTargetStyle = computed(() =>
+		shouldRenderHitTarget(this.editable(), this.presenting())
+			? elementHitTargetStyle(this.element())
+			: undefined,
+	);
 
 	/**
 	 * Transparent outline hit band for an unfilled, textless shape. Its container

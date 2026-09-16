@@ -21,8 +21,11 @@ import type { ReflectionOverlay, SoftEdgeFilterDef } from './element-effect-defs
 import { ElementRendererGraphicsComponent } from './element-renderer-graphics.component';
 import {
 	buildElementContainerStyle,
+	buildHitTargetOverlayStyle,
 	buildShapeContainerStyle,
 	GRAPHICS_ELEMENT_TYPES,
+	isImageLikeElement,
+	isShapeLikeElement,
 } from './element-renderer-helpers';
 import { ElementRendererShapeComponent } from './element-renderer-shape.component';
 import { getDuotoneFilterDef } from './element-style';
@@ -276,15 +279,15 @@ export class ElementRendererComponent {
 		getGroupChildParentFill(this.element(), this.parentGroupFill()),
 	);
 
-	readonly isShapeLike = computed(
-		() => this.element().type === 'text' || this.element().type === 'shape',
-	);
-	readonly isImageLike = computed(
-		() => this.element().type === 'picture' || this.element().type === 'image',
-	);
+	readonly isShapeLike = computed(() => isShapeLikeElement(this.element()));
+	readonly isImageLike = computed(() => isImageLikeElement(this.element()));
 
 	/** Element kinds routed to `ElementRendererGraphicsComponent`; see `GRAPHICS_ELEMENT_TYPES`. */
 	readonly isGraphicsElement = computed(() => GRAPHICS_ELEMENT_TYPES.has(this.element().type));
+	/** Hit target for a degenerate `group`; other branches compute their own (issue #285). */
+	readonly hitTargetStyle = computed(() =>
+		buildHitTargetOverlayStyle(this.element(), this.editable(), this.presenting()),
+	);
 
 	readonly placeholderLabel = computed(() => {
 		const map: Record<string, string> = {

@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.15.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.2) - 2026-09-16
+
+### Bug Fixes
+
+- **core:** Honour a:alpha on solid slide backgrounds and keep it on save (by @ChristopherVR) ([3b50c7a](https://github.com/ChristopherVR/pptx-viewer/commit/3b50c7a28f8a64fcbc14eea4c2f47564b9515942))
+- **core:** Blend a:alpha on pattern background colours onto white (by @ChristopherVR) ([893a261](https://github.com/ChristopherVR/pptx-viewer/commit/893a261811f96f5078a9e505630414b005ab3735))
+
 ## [3.15.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.1) - 2026-09-14
 
 ### Bug Fixes

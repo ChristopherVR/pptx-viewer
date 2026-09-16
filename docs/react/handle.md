@@ -128,11 +128,12 @@ table, chart, connector, group, etc.) with complete type-specific properties.
 
 ### Element Manipulation
 
-| Method             | Signature                                             | Description                        |
-| ------------------ | ----------------------------------------------------- | ---------------------------------- |
-| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void` | Patch element properties.          |
-| `deleteElements`   | `(ids: string[]) => void`                             | Delete elements by ID.             |
-| `duplicateElement` | `(id: string) => string \| undefined`                 | Duplicate; returns new element ID. |
+| Method             | Signature                                                                              | Description                                                                      |
+| ------------------ | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `updateElement`    | `(id: string, updates: Partial<PptxElement>) => void`                                  | Patch element properties.                                                        |
+| `updateElements`   | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`   | `(ids: string[]) => void`                                                              | Delete elements by ID.                                                           |
+| `duplicateElement` | `(id: string) => string \| undefined`                                                  | Duplicate; returns new element ID.                                               |
 
 ### Inserting an element {#add-element}
 

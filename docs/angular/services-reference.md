@@ -149,6 +149,26 @@ Composed by `RibbonComponent`, itself composed by `PowerPointViewerComponent`.
 | `zoom-renderer-helpers` exports         | Helpers backing the curated `ZoomRendererComponent`.                     |
 | `shortcut-reference` exports            | The keyboard-shortcut cheat-sheet data backing `ShortcutPanelComponent`. |
 
+### Slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package, so a host embedding its own presentation stage cannot `import`
+from it directly. Unlike the rest of this page, these are exported from `transition-helpers.ts`
+via the CURATED `pptx-angular-viewer` root (`viewer/index.ts`), not only `internals`: ng-packagr
+compiles this library from a single entry file, so `pptx-angular-viewer/internals` is the exact
+same built bundle as the root (see `src/internals.ts`'s own header comment) and both resolve to
+these same names.
+
+| Export                                                                                                                            | Concern                                                                                                                                                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition` / `resolveTransitionDurationMs`                                                                          | Resolve a `PptxSlideTransition` to CSS `animation` shorthands, and its effective duration (ms).                                                                                                   |
+| `getSlideTransitionAnimations` / `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                | The classic, Office 2013+ cinematic, and Office 2010 exotic/3-D transition family resolvers.                                                                                                      |
+| `SLIDE_TRANSITION_KEYFRAMES` / `SLIDE_TRANSITION_KEYFRAMES_CSS`, `CINEMATIC_TRANSITION_KEYFRAMES`, `P14_TRANSITION_KEYFRAMES_ALL` | The `@keyframes` blocks the resolved animation names reference.                                                                                                                                   |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`                                        | Normalize an OOXML `dir`/`orient`/`spokes` token.                                                                                                                                                 |
+| `RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_MORPH_DURATION_MS`, `TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS`     | Supporting constants used by the resolvers above.                                                                                                                                                 |
+| `SHARED_DEFAULT_TRANSITION_DURATION_MS`                                                                                           | Shared's React/Vue-parity 1000ms default, aliased because Angular's own `DEFAULT_TRANSITION_DURATION_MS` (320ms, floored) is a distinct, already-public constant kept for backward compatibility. |
+| `PresentationTransitionOverlayComponent`                                                                                          | The presentation-mode transition overlay component itself.                                                                                                                                        |
+
 ## Collaboration internals
 
 The full internal set behind `CollaborationService` ([Collaboration](/angular/collaboration) covers

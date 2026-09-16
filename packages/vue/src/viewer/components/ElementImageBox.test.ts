@@ -209,4 +209,56 @@ describe('element image box', () => {
 		const reflection = wrapper.get('.pptx-vue-reflection');
 		expect(reflection.find('img').attributes('src')).toBe('data:image/png;base64,AAAA');
 	});
+
+	describe('degenerate-size hit target (issue #285)', () => {
+		function thinImage(): ImagePptxElement {
+			return {
+				type: 'image',
+				id: 'image-thin',
+				x: 0,
+				y: 0,
+				width: 400,
+				height: 1,
+				imageData: 'data:image/png;base64,AA==',
+			};
+		}
+
+		it('adds a padded, pointer-events:auto hit target only when interactive and not presenting', () => {
+			const wrapper = mount(ElementImageBox, {
+				props: {
+					element: thinImage(),
+					mediaDataUrls: new Map(),
+					zIndex: 0,
+					interactive: true,
+					presenting: false,
+				},
+			});
+			const hitTarget = wrapper.find('[data-pptx-hit-target]');
+			expect(hitTarget.exists()).toBeTruthy();
+			expect(hitTarget.attributes('style')).toContain('height: 12px');
+			expect(hitTarget.attributes('style')).toContain('pointer-events: auto');
+			// The painted box itself stays at the authored (unpadded) size.
+			expect(wrapper.attributes('style')).toContain('height: 1px');
+		});
+
+		it('never adds the hit target on a read-only (non-interactive) render', () => {
+			const wrapper = mount(ElementImageBox, {
+				props: { element: thinImage(), mediaDataUrls: new Map(), zIndex: 0, interactive: false },
+			});
+			expect(wrapper.find('[data-pptx-hit-target]').exists()).toBeFalsy();
+		});
+
+		it('never adds the hit target while presenting', () => {
+			const wrapper = mount(ElementImageBox, {
+				props: {
+					element: thinImage(),
+					mediaDataUrls: new Map(),
+					zIndex: 0,
+					interactive: true,
+					presenting: true,
+				},
+			});
+			expect(wrapper.find('[data-pptx-hit-target]').exists()).toBeFalsy();
+		});
+	});
 });

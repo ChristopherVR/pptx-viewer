@@ -5,6 +5,7 @@ import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
 import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
+import { generateDegenerateShapeFixture } from './fixtures/generate-degenerate-shape-fixture';
 import { generateFixture as generateEffectSoundGalleryFixture } from './fixtures/generate-effect-sound-gallery-fixture';
 import { generateFixture as generateFidelityShowcaseFixture } from './fixtures/generate-fidelity-showcase-fixture';
 import { generateFieldSubstitutionFixture } from './fixtures/generate-field-substitution-fixture';
@@ -44,6 +45,7 @@ export default async function globalSetup() {
 	await generateBar3DPictureFillFixture();
 	await generatePie3DFixture();
 	await generateFieldSubstitutionFixture();
+	await generateDegenerateShapeFixture();
 	await generateTransitionsAnimationsFixture();
 	await generateEffectSoundGalleryFixture();
 	await generateBoxCubeTransitionFixture();

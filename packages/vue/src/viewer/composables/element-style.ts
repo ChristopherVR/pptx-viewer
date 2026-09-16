@@ -2,6 +2,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import {
 	buildTextBlockStyle,
+	elementHitTargetStyle as sharedElementHitTargetStyle,
 	getComputedEffectStyle,
 	getComputedFillStyle,
 	getComputedStrokeStyle,
@@ -39,6 +40,20 @@ import { getComputed3dStyle, merge3dStyle } from './visual-3d';
  */
 export function getContainerStyle(el: PptxElement, zIndex: number): CSSProperties {
 	return sharedGetContainerStyle(el, zIndex) as CSSProperties;
+}
+
+/**
+ * A transparent, centred hit-target overlay for a degenerate (sub-
+ * MIN_ELEMENT_SIZE) element, or `undefined` when the authored box already
+ * meets the minimum in both axes. Render this ONLY while the element is
+ * interactive/editable: `getContainerStyle`'s box is the element's authored
+ * size, unpadded, so a solid-filled thin shape paints at its true size; this
+ * overlay is the separate, interaction-only affordance that keeps a
+ * degenerate shape grabbable without changing what a read-only render paints
+ * (issue #285).
+ */
+export function getElementHitTargetStyle(el: PptxElement): CSSProperties | undefined {
+	return sharedElementHitTargetStyle(el) as CSSProperties | undefined;
 }
 
 /**

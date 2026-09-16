@@ -7,6 +7,66 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.0) - 2026-09-16
+
+### Features
+
+- Expose slide-transition helpers from every binding's internals entry (by @ChristopherVR) ([d232ffb](https://github.com/ChristopherVR/pptx-viewer/commit/d232ffba626b4088c2ee7f3acbb5cfa00452490d))
+
+### Bug Fixes
+
+- **shared:** Apply picture alphaModFix once, not filter times opacity (by @ChristopherVR) ([3fd154b](https://github.com/ChristopherVR/pptx-viewer/commit/3fd154bda6958725bda279f81c001a99f55bd485))
+- **shared:** Stop padding the painted element box to MIN_ELEMENT_SIZE (by @ChristopherVR) ([4caef83](https://github.com/ChristopherVR/pptx-viewer/commit/4caef831004ff52da1fa816970226567e7e2bef9))
+- Render the degenerate-shape hit target for every element type (by @ChristopherVR) ([49a15a4](https://github.com/ChristopherVR/pptx-viewer/commit/49a15a40cf612ae8cbb51b9e4ceeb20e644b4936))
+- **react:** Stop rotating a shape from silently opening its text editor (by @ChristopherVR) ([bec4af2](https://github.com/ChristopherVR/pptx-viewer/commit/bec4af25cbf71119084e301472ea3553e29f9502))
+- **react:** Stop inflating a degenerate connector's wrapper box (by @ChristopherVR) ([1d0b39c](https://github.com/ChristopherVR/pptx-viewer/commit/1d0b39ced8762ca471b072d1a7534437e27f5e5b))
+
+### Refactor
+
+- **react:** Drop the unused image alpha filter duplicates (by @ChristopherVR) ([5572f51](https://github.com/ChristopherVR/pptx-viewer/commit/5572f511d1a96409cf5b8c6fdd19a3714a164e1e))
+
+## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.18.0) - 2026-09-16
+
+### Features
+
+- **react:** Wire native image paste through public canvas composition (by @Sudhansh6) ([0470290](https://github.com/ChristopherVR/pptx-viewer/commit/04702908d23b3a428bcec3c39ebb5ff53549e9ce))
+- **react:** Support selection control artwork themes (by @Sudhansh6) ([3cb31b0](https://github.com/ChristopherVR/pptx-viewer/commit/3cb31b0475c0232a89d7e230b6d095d2d799e6d9))
+- Add atomic cross-slide element batches (by @yunfeizhu) ([1157b68](https://github.com/ChristopherVR/pptx-viewer/commit/1157b68784672c6273d40c7fcee6c0c11b3216a3))
+
+### Bug Fixes
+
+- **react:** Keep neighboring resize handles reachable (by @Sudhansh6) ([b7c6385](https://github.com/ChristopherVR/pptx-viewer/commit/b7c63854803df9400a5e518feaabe30daebd8614))
+- **react:** Use boundary-aware rotation controls (by @Sudhansh6) ([ca8080c](https://github.com/ChristopherVR/pptx-viewer/commit/ca8080c05dae0f84796a7a5311b6d8fede435fcb))
+- **react:** Stop the fine-pointer handle hit area covering nearby content (by @ChristopherVR) ([77f372e](https://github.com/ChristopherVR/pptx-viewer/commit/77f372ec98f5fdf97fba4c1a768a78dc6c4c329c))
+- Guard element batches during active pointer gestures (by @yunfeizhu) ([da3bf49](https://github.com/ChristopherVR/pptx-viewer/commit/da3bf490851c95ed3e165cb0139ee5fa5c9f4408))
+
+### Testing
+
+- **react:** Retain explicit act environment in overlay tests (by @Sudhansh6) ([f0703a3](https://github.com/ChristopherVR/pptx-viewer/commit/f0703a35a083d685b0ce4ac6d782e3a67b2f92f5))
+- Cover batch update history across viewer bindings (by @yunfeizhu) ([fff49e8](https://github.com/ChristopherVR/pptx-viewer/commit/fff49e83203008bd4c01ac531791ad550006a4ab))
+
+### Chores
+
+- **shared:** Merge main into resize hit ownership (by @Sudhansh6) ([f6d6336](https://github.com/ChristopherVR/pptx-viewer/commit/f6d63362dce076f497a9c350fd93501515634ab5))
+- Sync main for native paste validation (by @Sudhansh6) ([29f5fb3](https://github.com/ChristopherVR/pptx-viewer/commit/29f5fb33b0115f528731b9412f4769600b243c0c))
+- Merge main into native canvas image paste (by @Sudhansh6) ([0ebf261](https://github.com/ChristopherVR/pptx-viewer/commit/0ebf261014cc30d3422b4c87ac6def51352951e8))
+- Integrate rotation and selection-control prerequisites (by @Sudhansh6) ([e6f9cde](https://github.com/ChristopherVR/pptx-viewer/commit/e6f9cde524570b7aab4f8e95cff3756e27e45811))
+- **shared:** Align boundary controls with current main (by @Sudhansh6) ([7fbfc4c](https://github.com/ChristopherVR/pptx-viewer/commit/7fbfc4c3ae6df408035d3f21e7a6321f8323c74f))
+- **shared:** Align selection artwork with boundary controls (by @Sudhansh6) ([3b971d3](https://github.com/ChristopherVR/pptx-viewer/commit/3b971d3bb0a647d3d9158a8e23d2ec6e91e58791))
+
+## [2.17.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.17.0) - 2026-09-16
+
+### Features
+
+- **bindings:** Expose the shared image file construction helper (by @Sudhansh6) ([14f3f08](https://github.com/ChristopherVR/pptx-viewer/commit/14f3f084e39bd6b5c822a3af8d7f572e55533bef))
+
+### Bug Fixes
+
+- **react:** Preserve the rotation grab offset for all pointer types (by @Sudhansh6) ([768ee79](https://github.com/ChristopherVR/pptx-viewer/commit/768ee79204788e13c9b1fa0b77d1644ae5316754))
+- **react:** Follow remounted canvas viewport nodes (by @Sudhansh6) ([6cda987](https://github.com/ChristopherVR/pptx-viewer/commit/6cda987084b74ab1fa28cdf5553e5effdaa53569))
+- **react:** Disable font pickers without an editable text target (by @Sudhansh6) ([22a5c9a](https://github.com/ChristopherVR/pptx-viewer/commit/22a5c9ae5d62ec7255cf6d91708145384d358d02))
+- **react:** Keep selection controls screen-sized while zooming (by @Sudhansh6) ([b743f17](https://github.com/ChristopherVR/pptx-viewer/commit/b743f179713d1ada767b14ca112b5cac234ca0a9))
+
 ## [2.16.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.16.2) - 2026-09-15
 
 ### Bug Fixes

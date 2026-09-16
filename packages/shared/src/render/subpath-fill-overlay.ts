@@ -41,7 +41,6 @@ import type {
 	PptxElement,
 } from 'pptx-viewer-core';
 import {
-	MIN_ELEMENT_SIZE,
 	customGeometryPathsToSvgSubpaths,
 	evaluateCustomGeometryPaths,
 	evaluatePresetShape,
@@ -53,16 +52,20 @@ import type { SubpathPaint } from './vector-subpath-paint';
 import { buildSubpathPaints } from './vector-subpath-paint';
 
 /**
- * The box a preset is evaluated at: the element's authored extent, padded out
- * to {@link MIN_ELEMENT_SIZE}. Matches `getContainerStyle`'s `paintedElementSize`
- * (not imported directly, to avoid a `fill-style.ts` <-> `element-style.ts` <->
+ * The box a preset is evaluated at: the element's authored extent, floored at
+ * zero. Matches `getContainerStyle`'s `paintedElementSize` (not imported
+ * directly, to avoid a `fill-style.ts` <-> `element-style.ts` <->
  * `subpath-fill-overlay.ts` import cycle: `fill-style.ts` consumes
  * {@link suppressesCssFill} and `element-style.ts` consumes `fill-style.ts`).
+ * This used to pad out to `MIN_ELEMENT_SIZE`, which stretched a degenerate
+ * shape's per-sub-path fill overlay past its authored extent in read-only
+ * rendering (issue #285); any interaction-only padding now lives solely in
+ * `elementHitTargetStyle`, which never touches paint.
  */
 function paintedSize(element: PptxElement): { width: number; height: number } {
 	return {
-		width: Math.max(element.width, MIN_ELEMENT_SIZE),
-		height: Math.max(element.height, MIN_ELEMENT_SIZE),
+		width: Math.max(element.width, 0),
+		height: Math.max(element.height, 0),
 	};
 }
 

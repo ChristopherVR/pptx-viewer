@@ -469,3 +469,46 @@ describe('public addElement', () => {
 		expect(viewer.canUndo()).toBeFalsy();
 	});
 });
+
+describe('public cross-slide batches', () => {
+	it('keeps batches atomic, individually undoable and separate from ordinary edits', async () => {
+		const { viewer } = mount({ editable: true });
+		(viewer as PptxViewer).store.set({
+			slides: [0, 1].map((index) => ({
+				id: `slide-${index}`,
+				rId: `r${index}`,
+				slideNumber: index + 1,
+				elements: [
+					{ id: 'title', type: 'text', x: 67, y: 40, width: 200, height: 60, text: 'Title' },
+				],
+			})),
+		});
+		viewer.selectElements(['title']);
+		const changes = (x: number) =>
+			[0, 1].map((index) => ({ slideId: `slide-${index}`, elementId: 'title', patch: { x } }));
+		const positions = () => viewer.getSlides().map((slide) => slide.elements[0].x);
+		viewer.updateElement('title', { x: 70 });
+		await viewer.updateElements(changes(84));
+		await viewer.updateElements(changes(90));
+		expect(viewer.getActiveSlideIndex()).toBe(0);
+		expect(viewer.getSelectedElementIds()).toStrictEqual(['title']);
+		viewer.undo();
+		expect(positions()).toStrictEqual([84, 84]);
+		viewer.undo();
+		expect(positions()).toStrictEqual([70, 67]);
+		viewer.undo();
+		expect(positions()).toStrictEqual([67, 67]);
+		await viewer.updateElements(changes(67));
+		await expect(
+			viewer.updateElements([
+				...changes(84),
+				{ slideId: 'missing', elementId: 'title', patch: {} },
+			]),
+		).rejects.toThrow();
+		expect(positions()).toStrictEqual([67, 67]);
+		expect(viewer.canUndo()).toBeFalsy();
+		viewer.redo();
+		viewer.redo();
+		expect(positions()).toStrictEqual([84, 84]);
+	});
+});

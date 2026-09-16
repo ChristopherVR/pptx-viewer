@@ -132,6 +132,19 @@ import { useEditorHistory, useAlignGroup } from 'pptx-vue-viewer/internals';
 | `usePresentationAnnotations` | 放映时使用画笔、荧光笔和激光笔进行标注。   |
 | `useRehearseTimings`         | 排练时记录各页时长。                       |
 
+### 幻灯片过渡辅助函数 {#slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包：它从不发布到 npm，因此该 monorepo 之外的代码无法直接 `import` 它。宿主如果搭建了自己的放映舞台，仍然需要用到过渡解析器和关键帧，因此这里改为重新导出整套接口（源自 `./viewer/composables/slide-transition-css`）：
+
+| 导出项                                                                                                                                                          | 职责                                                                                          |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition` / `resolveTransitionDurationMs`                                                                                                        | 将 `PptxSlideTransition` 解析为 CSS `animation` 简写属性，以及计算其有效时长（毫秒）。        |
+| `getSlideTransitionAnimations` / `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                                              | 分别对应经典过渡系列、Office 2013+ 影院级过渡系列和 Office 2010 特效/三维过渡系列的解析函数。 |
+| `SLIDE_TRANSITION_KEYFRAMES`（别名 `SLIDE_TRANSITION_KEYFRAMES_CSS`）、`CINEMATIC_TRANSITION_KEYFRAMES`、`P14_TRANSITION_KEYFRAMES_ALL`                         | 解析出的动画名称所引用的 `@keyframes` 代码块。                                                |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`                                                                      | 将 OOXML 的 `dir` / `orient` / `spokes` 取值归一化。                                          |
+| `RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_TRANSITION_DURATION_MS`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS` | 上述解析函数使用的辅助常量。                                                                  |
+| `PresentationTransitionOverlay`、`MorphExtraLayers`、`FragmentedTransitionLayer`（组件）、`useMorphTransitionOverlay`                                           | 过渡叠加层组件本身及其 Morph 播放方案组合式函数。                                             |
+
 ## 协作 {#collaboration}
 
 由属性驱动的流程请参见[实时协作](/zh/vue/collaboration)。完整内部接口如下：

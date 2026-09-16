@@ -36,6 +36,36 @@ export {
 	SLIDE_TRANSITION_KEYFRAMES,
 	getSlideTransitionAnimations,
 } from '../internal/shared';
+// The rest of the framework-neutral slide-transition surface (issue #290):
+// `resolveSlideTransition` / `resolveTransitionDurationMs` (the whole-transition
+// convenience wrappers), the p14/cinematic sub-resolvers and their keyframe
+// blocks, and the remaining duration/direction constants. `resolveOverlayDurationMs`
+// below already calls `resolveTransitionDurationMs`; it is re-exported here too
+// so `pptx-angular-viewer` (and `pptx-angular-viewer/internals`, which is the
+// same compiled bundle, see `src/internals.ts`) exposes it under its own name
+// like every other binding.
+//
+// `DEFAULT_TRANSITION_DURATION_MS` is intentionally NOT re-exported from
+// `../internal/shared` here: this file already exports a same-named constant
+// below with Angular's own (smaller, floored) default, and the two must not
+// collide. Shared's value is exposed under `SHARED_DEFAULT_TRANSITION_DURATION_MS`
+// instead.
+export {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	getCinematicTransitionAnimations,
+	getP14TransitionAnimations,
+	SLIDE_TRANSITION_KEYFRAMES_CSS,
+	CINEMATIC_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES,
+	P14_TRANSITION_KEYFRAMES_2,
+	P14_TRANSITION_KEYFRAMES_ALL,
+	TRANSITION_SPEED_DURATION_MS,
+	EASE,
+	WHEEL_SPOKE_COUNTS,
+	resolveWheelSpokeCount,
+	DEFAULT_TRANSITION_DURATION_MS as SHARED_DEFAULT_TRANSITION_DURATION_MS,
+} from '../internal/shared';
 
 // ---------------------------------------------------------------------------
 // Legacy local duration policy (no longer used by the overlay)

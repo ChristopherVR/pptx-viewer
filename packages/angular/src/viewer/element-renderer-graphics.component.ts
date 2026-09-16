@@ -1,11 +1,12 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
 
 import type { ElementAnimationState } from '../internal/shared';
 import { ChartElementViewComponent } from './chart-element-view.component';
 import { ContentPartRendererComponent } from './content-part-renderer.component';
 import { DynamicStyleComponent } from './dynamic-style.component';
+import { buildHitTargetOverlayStyle } from './element-renderer-helpers';
 import type { StyleMap } from './element-style';
 import { InkRendererComponent } from './ink-renderer.component';
 import { MediaRendererComponent } from './media-renderer.component';
@@ -68,6 +69,18 @@ export class ElementRendererGraphicsComponent {
 	/** Whether the host opted into the Three.js SmartArt renderer. */
 	readonly smartArt3D = input<boolean>(false);
 	readonly placeholderLabel = input<string>('');
+
+	/**
+	 * Interaction-only hit target for a degenerate (sub-`MIN_ELEMENT_SIZE`)
+	 * `smartArt`/`ole`/`chart`/`table` element (the four kinds that paint their
+	 * own container div in this component's template). The `ink`/`contentPart`/
+	 * `zoom`/`model3d`/`smartArt3D`/`media` kinds compute their own copy inside
+	 * their own component, since their root is not this component's markup; see
+	 * `ElementRendererShapeComponent.hitTargetStyle`'s fuller doc (issue #285).
+	 */
+	readonly hitTargetStyle = computed(() =>
+		buildHitTargetOverlayStyle(this.element(), this.editable(), this.presenting()),
+	);
 
 	/** Emitted when a table cell's text edit is committed. */
 	readonly cellCommit = output<{ id: string; commit: TableCellCommit }>();

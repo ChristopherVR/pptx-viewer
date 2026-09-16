@@ -1,5 +1,6 @@
 import {
 	buildParagraphs,
+	elementHitTargetStyle,
 	getContainerStyle,
 	getOverflowSegments,
 	placeholderPromptDescriptor,
@@ -49,6 +50,21 @@ export const renderTextShapeElement: ElementRenderer = (element, zIndex, context
 
 	const el = createEl(context.document, 'div', 'pptxv-element pptxv-shape', merged);
 	el.dataset.elementId = element.id;
+
+	// Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) shape:
+	// a bigger, invisible, centred click/drag target, kept separate from the
+	// painted box above (now always the authored size) so a thin authored line
+	// never paints as a thick bar in read-only rendering (issue #285). Never
+	// rendered while presenting: nothing on the show stage is draggable.
+	if (context.interactive && !context.presenting) {
+		const hitTargetStyle = elementHitTargetStyle(element);
+		if (hitTargetStyle) {
+			const hitTarget = createEl(context.document, 'div', undefined, hitTargetStyle);
+			hitTarget.setAttribute('aria-hidden', 'true');
+			hitTarget.setAttribute('data-pptx-hit-target', 'true');
+			el.appendChild(hitTarget);
+		}
+	}
 
 	// Per-sub-path fill overlay: a multi-sub-path preset or custom geometry whose
 	// sub-paths cannot share one CSS background-color. Painted first (bottom-most)

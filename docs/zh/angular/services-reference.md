@@ -140,6 +140,20 @@ import { AutosaveService, ViewerExportService } from 'pptx-angular-viewer/intern
 | `zoom-renderer-helpers` 的导出         | 为精选组件 `ZoomRendererComponent` 提供支持的辅助函数。    |
 | `shortcut-reference` 的导出            | 为 `ShortcutPanelComponent` 提供键盘快捷键速查表数据。     |
 
+### 幻灯片过渡辅助函数 {#slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包，因此搭建自己放映舞台的宿主无法直接 `import` 它。与本页其余内容不同，以下符号是通过精选的 `pptx-angular-viewer` 根入口（`viewer/index.ts`）从 `transition-helpers.ts` 导出的，而不只是 `internals`：ng-packagr 会把这个库编译成单一入口文件，因此 `pptx-angular-viewer/internals` 与根入口是完全相同的构建产物（参见 `src/internals.ts` 自身的头部注释），两者都能解析到下列同名符号。
+
+| 导出项                                                                                                                            | 职责                                                                                                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition` / `resolveTransitionDurationMs`                                                                          | 将 `PptxSlideTransition` 解析为 CSS `animation` 简写属性，以及计算其有效时长（毫秒）。                                                                                       |
+| `getSlideTransitionAnimations` / `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                | 分别对应经典过渡系列、Office 2013+ 影院级过渡系列和 Office 2010 特效/三维过渡系列的解析函数。                                                                                |
+| `SLIDE_TRANSITION_KEYFRAMES` / `SLIDE_TRANSITION_KEYFRAMES_CSS`、`CINEMATIC_TRANSITION_KEYFRAMES`、`P14_TRANSITION_KEYFRAMES_ALL` | 解析出的动画名称所引用的 `@keyframes` 代码块。                                                                                                                               |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`                                        | 将 OOXML 的 `dir` / `orient` / `spokes` 取值归一化。                                                                                                                         |
+| `RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS`     | 上述解析函数使用的辅助常量。                                                                                                                                                 |
+| `SHARED_DEFAULT_TRANSITION_DURATION_MS`                                                                                           | 与 React/Vue 保持一致的共享默认值 1000 毫秒，改用别名是因为 Angular 自己的 `DEFAULT_TRANSITION_DURATION_MS`（取整为 320 毫秒）是一个独立的、已公开的常量，为向后兼容而保留。 |
+| `PresentationTransitionOverlayComponent`                                                                                          | 放映模式过渡叠加层组件本身。                                                                                                                                                 |
+
 ## 协作内部接口 {#collaboration-internals}
 
 `CollaborationService` 背后的完整内部接口。精选公开接口请参见[实时协作](/zh/angular/collaboration)。

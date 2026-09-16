@@ -228,24 +228,25 @@ interface SvgExportOptions {
 
 这是供宿主自行构建界面的共享数据接口。幻灯片 getter 返回实际的、带类型的 `PptxSlide[]` / `PptxElement[]` 模型只读快照；修改只能通过操作方法回写，这些方法会纳入撤销和重做，并触发 `onChange`。
 
-| 方法                    | 签名                                                                   | 说明                                              |
-| ----------------------- | ---------------------------------------------------------------------- | ------------------------------------------------- |
-| `getSlides`             | `() => readonly PptxSlide[]`                                           | 完整的幻灯片数组。                                |
-| `getSlide`              | `(index: number) => PptxSlide \| undefined`                            | 按从 0 开始的索引获取单张幻灯片。                 |
-| `getActiveSlide`        | `() => PptxSlide \| undefined`                                         | 当前活动幻灯片。                                  |
-| `addSlide`              | `(afterIndex?: number) => void`                                        | 在给定索引之后添加空白幻灯片，默认添加到末尾。    |
-| `deleteSlides`          | `(indexes: number[]) => void`                                          | 删除给定索引的幻灯片，至少保留一张。              |
-| `duplicateSlides`       | `(indexes: number[]) => void`                                          | 复制给定索引的幻灯片。                            |
-| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                         | 将幻灯片移动到新位置。                            |
-| `toggleHideSlides`      | `(indexes: number[]) => void`                                          | 切换指定幻灯片的隐藏标记。                        |
-| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                      | 某张幻灯片上的元素，默认使用当前幻灯片。          |
-| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined` | 按 ID 获取单个元素。                              |
-| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。 |
-| `deleteElements`        | `(elementIds: string[]) => void`                                       | 按 ID 从当前幻灯片中删除元素。                    |
-| `duplicateElement`      | `(elementId: string) => string \| undefined`                           | 复制元素，返回新元素的 ID。                       |
-| `getSelectedElementIds` | `() => string[]`                                                       | 当前选中元素的 ID。                               |
-| `selectElements`        | `(ids: string[]) => void`                                              | 通过代码选择元素。                                |
-| `clearSelection`        | `() => void`                                                           | 清空选区。                                        |
+| 方法                    | 签名                                                                                   | 说明                                                                             |
+| ----------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getSlides`             | `() => readonly PptxSlide[]`                                                           | 完整的幻灯片数组。                                                               |
+| `getSlide`              | `(index: number) => PptxSlide \| undefined`                                            | 按从 0 开始的索引获取单张幻灯片。                                                |
+| `getActiveSlide`        | `() => PptxSlide \| undefined`                                                         | 当前活动幻灯片。                                                                 |
+| `addSlide`              | `(afterIndex?: number) => void`                                                        | 在给定索引之后添加空白幻灯片，默认添加到末尾。                                   |
+| `deleteSlides`          | `(indexes: number[]) => void`                                                          | 删除给定索引的幻灯片，至少保留一张。                                             |
+| `duplicateSlides`       | `(indexes: number[]) => void`                                                          | 复制给定索引的幻灯片。                                                           |
+| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                                         | 将幻灯片移动到新位置。                                                           |
+| `toggleHideSlides`      | `(indexes: number[]) => void`                                                          | 切换指定幻灯片的隐藏标记。                                                       |
+| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                                      | 某张幻灯片上的元素，默认使用当前幻灯片。                                         |
+| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined`                 | 按 ID 获取单个元素。                                                             |
+| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`                           | 部分更新元素属性，例如 `{ x: 100, width: 300 }`。                                |
+| `updateElements`        | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [跨页批量更新元素，整批修改占用一个撤销步骤](/zh/guide/element-update-batches)。 |
+| `deleteElements`        | `(elementIds: string[]) => void`                                                       | 按 ID 从当前幻灯片中删除元素。                                                   |
+| `duplicateElement`      | `(elementId: string) => string \| undefined`                                           | 复制元素，返回新元素的 ID。                                                      |
+| `getSelectedElementIds` | `() => string[]`                                                                       | 当前选中元素的 ID。                                                              |
+| `selectElements`        | `(ids: string[]) => void`                                                              | 通过代码选择元素。                                                               |
+| `clearSelection`        | `() => void`                                                                           | 清空选区。                                                                       |
 
 ## 插入元素 {#add-element}
 
@@ -311,6 +312,23 @@ if (handler) {
 	const bytes = await handler.save(handler.pptxData!.slides); // Uint8Array
 }
 ```
+
+### `pptx-vanilla-viewer/internals`：幻灯片过渡辅助函数 {#pptx-vanilla-viewer-internals-slide-transition-helpers}
+
+`pptx-viewer-shared`（所有绑定共用的框架无关逻辑）是一个私有的、未发布的工作区包：它从不发布到 npm，因此该 monorepo 之外的代码无法直接 `import` 它。宿主如果搭建了自己的放映界面，仍然需要用到过渡解析器/关键帧和 DOM 级叠加层驱动函数，因此它们改从 `pptx-vanilla-viewer/internals` 子路径重新导出：
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	playTransitionOverlay,
+} from 'pptx-vanilla-viewer/internals';
+```
+
+`resolveSlideTransition` 将 `PptxSlideTransition` 映射为退出层/进入层的 CSS `animation` 简写属性；`resolveTransitionDurationMs` 计算其有效时长（毫秒），会考虑手动设置的时长、旧版 `spd` 取值和 PowerPoint 自身的默认值；`SLIDE_TRANSITION_KEYFRAMES`（别名 `SLIDE_TRANSITION_KEYFRAMES_CSS`）是这些动画名称所引用的 `@keyframes` 代码块。`playTransitionOverlay` 是 Vanilla 绑定中对应其他绑定过渡叠加层组件的 DOM 驱动实现（这里没有组件模型可供渲染）：它会堆叠退出层/进入层的舞台快照并直接驱动 CSS 动画。同时导出的还有：`getSlideTransitionAnimations`、`getCinematicTransitionAnimations`、`getP14TransitionAnimations`、`CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`、`resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`，以及辅助常量（`RANDOM_ELIGIBLE_TYPES`、`INSTANT`、`DEFAULT_TRANSITION_DURATION_MS`、`DEFAULT_MORPH_DURATION_MS`、`TRANSITION_SPEED_DURATION_MS`、`EASE`、`WHEEL_SPOKE_COUNTS`）。
+
+和其他绑定的 `internals` 入口一样，这里**不受语义化版本兼容保证约束**：只有当公开的 `pptx-vanilla-viewer` API 确实无法满足需求时才使用，并在依赖它时锁定精确版本。
 
 ## 销毁 {#teardown}
 

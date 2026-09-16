@@ -256,24 +256,25 @@ The shared data surface for hosts that build their own UI. Slide getters return 
 `PptxSlide[]` / `PptxElement[]` model as read-only snapshots; mutations only flow back through the
 manipulation methods (which participate in undo/redo and fire `onChange`).
 
-| Method                  | Signature                                                              | Description                                                      |
-| ----------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `getSlides`             | `() => readonly PptxSlide[]`                                           | The full slide array.                                            |
-| `getSlide`              | `(index: number) => PptxSlide \| undefined`                            | One slide by zero-based index.                                   |
-| `getActiveSlide`        | `() => PptxSlide \| undefined`                                         | The currently active slide.                                      |
-| `addSlide`              | `(afterIndex?: number) => void`                                        | Add a blank slide after the given index (default: at the end).   |
-| `deleteSlides`          | `(indexes: number[]) => void`                                          | Delete slides at the given indexes (at least one slide is kept). |
-| `duplicateSlides`       | `(indexes: number[]) => void`                                          | Duplicate slides at the given indexes.                           |
-| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                         | Move a slide to a new position.                                  |
-| `toggleHideSlides`      | `(indexes: number[]) => void`                                          | Toggle the hidden flag on slides.                                |
-| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                      | Elements on a slide (default: active slide).                     |
-| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined` | One element by id.                                               |
-| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`           | Patch element properties (e.g. `{ x: 100, width: 300 }`).        |
-| `deleteElements`        | `(elementIds: string[]) => void`                                       | Delete elements by id from the active slide.                     |
-| `duplicateElement`      | `(elementId: string) => string \| undefined`                           | Duplicate an element; returns the new element's id.              |
-| `getSelectedElementIds` | `() => string[]`                                                       | Ids of the currently selected elements.                          |
-| `selectElements`        | `(ids: string[]) => void`                                              | Programmatically select elements.                                |
-| `clearSelection`        | `() => void`                                                           | Clear the selection.                                             |
+| Method                  | Signature                                                                              | Description                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getSlides`             | `() => readonly PptxSlide[]`                                                           | The full slide array.                                                            |
+| `getSlide`              | `(index: number) => PptxSlide \| undefined`                                            | One slide by zero-based index.                                                   |
+| `getActiveSlide`        | `() => PptxSlide \| undefined`                                                         | The currently active slide.                                                      |
+| `addSlide`              | `(afterIndex?: number) => void`                                                        | Add a blank slide after the given index (default: at the end).                   |
+| `deleteSlides`          | `(indexes: number[]) => void`                                                          | Delete slides at the given indexes (at least one slide is kept).                 |
+| `duplicateSlides`       | `(indexes: number[]) => void`                                                          | Duplicate slides at the given indexes.                                           |
+| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                                         | Move a slide to a new position.                                                  |
+| `toggleHideSlides`      | `(indexes: number[]) => void`                                                          | Toggle the hidden flag on slides.                                                |
+| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                                      | Elements on a slide (default: active slide).                                     |
+| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined`                 | One element by id.                                                               |
+| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`                           | Patch element properties (e.g. `{ x: 100, width: 300 }`).                        |
+| `updateElements`        | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`        | `(elementIds: string[]) => void`                                                       | Delete elements by id from the active slide.                                     |
+| `duplicateElement`      | `(elementId: string) => string \| undefined`                                           | Duplicate an element; returns the new element's id.                              |
+| `getSelectedElementIds` | `() => string[]`                                                                       | Ids of the currently selected elements.                                          |
+| `selectElements`        | `(ids: string[]) => void`                                                              | Programmatically select elements.                                                |
+| `clearSelection`        | `() => void`                                                                           | Clear the selection.                                                             |
 
 ## Inserting an element {#add-element}
 
@@ -363,6 +364,40 @@ if (handler) {
 	const bytes = await handler.save(handler.pptxData!.slides); // Uint8Array
 }
 ```
+
+### `pptx-vanilla-viewer/internals`: slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package: it is never on npm, so code outside this monorepo cannot `import`
+from it directly. A host embedding its own presentation surface still needs the transition
+resolver/keyframes and the DOM-level overlay driver, so they are re-exported from the
+`pptx-vanilla-viewer/internals` subpath instead:
+
+```ts
+import {
+	resolveSlideTransition,
+	resolveTransitionDurationMs,
+	SLIDE_TRANSITION_KEYFRAMES,
+	playTransitionOverlay,
+} from 'pptx-vanilla-viewer/internals';
+```
+
+`resolveSlideTransition` maps a `PptxSlideTransition` to the CSS `animation` shorthands for the
+outgoing/incoming layers; `resolveTransitionDurationMs` resolves its effective duration (ms), honoring
+an authored duration, the legacy `spd` token, and PowerPoint's own defaults; `SLIDE_TRANSITION_KEYFRAMES`
+(alias `SLIDE_TRANSITION_KEYFRAMES_CSS`) is the `@keyframes` block those animation names reference.
+`playTransitionOverlay` is the Vanilla binding's DOM-driven equivalent of the other bindings'
+transition overlay component (there is no component model to render one against here): it stacks
+the outgoing/incoming stage snapshots and drives the CSS animation directly. Also exported:
+`getSlideTransitionAnimations`, `getCinematicTransitionAnimations`, `getP14TransitionAnimations`,
+`CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`, `resolveDirection` /
+`resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`, and the supporting constants
+(`RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_TRANSITION_DURATION_MS`, `DEFAULT_MORPH_DURATION_MS`,
+`TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS`).
+
+As with every other binding's `internals` entry, this is not covered by semver: reach for it only
+when the public `pptx-vanilla-viewer` API genuinely cannot do what you need, and pin an exact
+version if you depend on it.
 
 ## Teardown
 

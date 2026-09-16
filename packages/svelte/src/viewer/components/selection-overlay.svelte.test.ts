@@ -1,9 +1,15 @@
 import type { SnapLine } from 'pptx-viewer-shared';
+import { attachRotateHandlePlacement } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { OverlayBox } from '../editor/types';
 import SelectionOverlay from './SelectionOverlay.svelte';
+
+vi.mock(import('pptx-viewer-shared'), async (original) => ({
+	...(await original()),
+	attachRotateHandlePlacement: vi.fn(() => vi.fn()),
+}));
 
 /**
  * SelectionOverlay tests: renders the box, its 8 resize handles + rotate knob
@@ -51,6 +57,19 @@ afterEach(() => {
 });
 
 describe('selectionOverlay', () => {
+	it('disposes placement when the selected box is removed', () => {
+		const dispose = vi.fn();
+		vi.mocked(attachRotateHandlePlacement).mockReturnValue(dispose);
+		const { target, props } = mountOverlay();
+		expect(attachRotateHandlePlacement).toHaveBeenLastCalledWith(
+			target.querySelector('[data-pptx-handle-kind="rotate"]'),
+			{ stem: target.querySelector('[data-pptx-rotate-stem]') },
+		);
+		props.box = null;
+		flushSync();
+		expect(dispose).toHaveBeenCalledOnce();
+	});
+
 	it('renders 8 resize handles and a rotate knob positioned by scale', () => {
 		const { target } = mountOverlay();
 		expect(target.querySelectorAll('.pptx-svelte-sel-handle')).toHaveLength(8);
@@ -59,6 +78,11 @@ describe('selectionOverlay', () => {
 		// box geometry multiplied by the stage scale (2).
 		expect(box?.style.left).toBe('20px');
 		expect(box?.style.width).toBe('200px');
+		expect(box?.style.getPropertyValue('--pptx-selection-width')).toBe('200px');
+		expect(box?.style.getPropertyValue('--pptx-selection-height')).toBe('100px');
+		for (const button of target.querySelectorAll('.pptx-svelte-sel-handle')) {
+			expect(button.querySelector('span')?.style.pointerEvents).toBe('auto');
+		}
 	});
 
 	it('still draws the box + handles while inline editing', () => {
@@ -77,7 +101,7 @@ describe('selectionOverlay', () => {
 	it('forwards handle and rotate pointerdown events', () => {
 		const { target, props } = mountOverlay();
 		target
-			.querySelector<HTMLElement>('.pptx-svelte-sel-handle[data-handle="se"]')
+			.querySelector<HTMLElement>('.pptx-svelte-sel-handle[data-handle="se"] span')
 			?.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
 		target
 			.querySelector<HTMLElement>('.pptx-svelte-rotate-knob')

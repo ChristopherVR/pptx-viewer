@@ -292,6 +292,16 @@ export class EditorController {
 
 	// ── Connector endpoint authoring ─────────────────────────────────────────
 
+	hasActivePointerInteraction(): boolean {
+		return (
+			this.#gestures.isActive() ||
+			this.#ink.isActive() ||
+			this.#selectionGestures.isActive() ||
+			this.#adjust.isActive() ||
+			this.connectorEndpointDrag !== null
+		);
+	}
+
 	/** Live connector-endpoint drag position in SLIDE px, or null when idle. */
 	connectorEndpointDrag = $state<{ kind: ConnectorEndpointKind; x: number; y: number } | null>(
 		null,

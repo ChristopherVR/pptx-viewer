@@ -6,6 +6,7 @@ import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { injectZoomNavigation } from '../composables/zoom-navigation';
 import { injectZoomTargetLookup } from '../composables/zoom-target';
@@ -30,12 +31,29 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) zoom
+ * tile: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue #285).
+ * Never rendered while presenting. Distinct from the local `zoomNavActive`
+ * below, which governs click-to-navigate inside a running show, not
+ * editable-canvas gating.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 const zoom = computed<ZoomPptxElement | undefined>(() =>
@@ -84,8 +102,11 @@ const ariaLabel = computed(() => {
 });
 
 // Present only inside a running presentation; absent (static tile) otherwise.
+// Named distinctly from the `interactive` prop above (editable-canvas
+// gating): this governs whether the tile responds to click/Enter/Space to
+// jump to its target slide, which only happens inside a running show.
 const zoomNav = injectZoomNavigation();
-const interactive = computed(() => Boolean(zoomNav && zoom.value));
+const zoomNavActive = computed(() => Boolean(zoomNav && zoom.value));
 
 function activate(target = targetSlideIndex.value): void {
 	if (!zoomNav || !zoom.value) {
@@ -95,7 +116,7 @@ function activate(target = targetSlideIndex.value): void {
 }
 
 function activateSummary(event: Event, target: number): void {
-	if (!interactive.value) {
+	if (!zoomNavActive.value) {
 		return;
 	}
 	event.preventDefault();
@@ -104,7 +125,7 @@ function activateSummary(event: Event, target: number): void {
 }
 
 function onClick(event: MouseEvent): void {
-	if (!interactive.value) {
+	if (!zoomNavActive.value) {
 		return;
 	}
 	// Stop the stage's click-to-advance from also firing.
@@ -113,7 +134,7 @@ function onClick(event: MouseEvent): void {
 }
 
 function onKeydown(event: KeyboardEvent): void {
-	if (!interactive.value || (event.key !== 'Enter' && event.key !== ' ')) {
+	if (!zoomNavActive.value || (event.key !== 'Enter' && event.key !== ' ')) {
 		return;
 	}
 	event.preventDefault();
@@ -125,17 +146,24 @@ function onKeydown(event: KeyboardEvent): void {
 <template>
 	<div
 		class="pptx-vue-element pptx-vue-zoom"
-		:class="{ 'pptx-vue-zoom-interactive': interactive }"
+		:class="{ 'pptx-vue-zoom-interactive': zoomNavActive }"
 		:style="containerStyle"
 		:data-element-id="element.id"
 		:data-zoom-type="zoomType"
 		:data-zoom-target="targetSlideIndex"
 		:aria-label="summaryView?.ariaLabel ?? ariaLabel"
-		:role="summaryView ? 'group' : interactive ? 'button' : undefined"
-		:tabindex="!summaryView && interactive ? 0 : undefined"
+		:role="summaryView ? 'group' : zoomNavActive ? 'button' : undefined"
+		:tabindex="!summaryView && zoomNavActive ? 0 : undefined"
 		@click="onClick"
 		@keydown="onKeydown"
 	>
+		<!-- Interaction-only hit-target for a degenerate zoom tile; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<div v-if="summaryView" class="pptx-vue-summary-zoom" :style="summaryView.containerStyle">
 			<div
 				v-for="tile in summaryView.tiles"
@@ -145,8 +173,8 @@ function onKeydown(event: KeyboardEvent): void {
 				:data-zoom-target="tile.targetSlideIndex"
 				:data-section-id="tile.sectionId"
 				:aria-label="tile.ariaLabel"
-				:role="interactive ? 'button' : undefined"
-				:tabindex="interactive ? 0 : undefined"
+				:role="zoomNavActive ? 'button' : undefined"
+				:tabindex="zoomNavActive ? 0 : undefined"
 				@click="activateSummary($event, tile.targetSlideIndex)"
 				@keydown.enter="activateSummary($event, tile.targetSlideIndex)"
 				@keydown.space="activateSummary($event, tile.targetSlideIndex)"

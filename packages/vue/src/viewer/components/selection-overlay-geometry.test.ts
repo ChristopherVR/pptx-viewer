@@ -10,6 +10,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
+import { controlArtwork } from './selection-overlay-artwork';
 import {
 	adjustHandleStyle,
 	boxStyle,
@@ -27,6 +28,21 @@ import type { SelectedBox } from './selection-overlay-geometry';
 const box: SelectedBox = { id: 'el-1', x: 40, y: 80, width: 200, height: 100, rotation: 0 };
 
 describe('selection overlay geometry', () => {
+	it.each([0.5, 1, 2])(
+		'recenters growing artwork frames with exactly one inverse zoom at %s',
+		(zoom) => {
+			for (const handle of ['nw', 'n', 'e', 'rotate'] as const) {
+				const { frame, artwork } = controlArtwork(handle, inverseZoom(zoom));
+				expect(frame.width).toContain('max(');
+				expect(frame.marginLeft).toBe(`calc(${frame.width} / -2)`);
+				expect(frame.marginTop).toBe(`calc(${frame.height} / -2)`);
+				expect(artwork.width.match(/ \* /g)?.length ?? 0).toBe(zoom === 1 ? 0 : 1);
+				expect(artwork.background).toContain('var(--pptx-vue-selection-color, #3b82f6)');
+				expect(artwork.borderRadius).not.toContain(' * ');
+			}
+		},
+	);
+
 	it('renders all eight handles', () => {
 		expect(HANDLE_LIST).toHaveLength(8);
 		expect(HANDLE_LIST.map((meta) => meta.id)).toContain('nw');
@@ -38,6 +54,8 @@ describe('selection overlay geometry', () => {
 			top: '80px',
 			width: '200px',
 			height: '100px',
+			'--pptx-selection-width': '200px',
+			'--pptx-selection-height': '100px',
 			transform: 'none',
 		});
 	});

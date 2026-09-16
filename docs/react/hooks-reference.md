@@ -107,6 +107,27 @@ import { useViewerState, useEditorHistory } from 'pptx-react-viewer/internals';
 | `usePresenterWindow`         | Presenter-window <-> audience-window messaging.                    |
 | `useAudienceMode`            | Audience-window-side rendering mode.                               |
 
+## Slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package: it is never on npm, so code outside this monorepo cannot
+`import` from it directly. A host embedding its own presentation stage (a custom `SlideStage`
+instead of the full `PowerPointViewer`) still needs the transition resolver/keyframes, so the
+whole surface is re-exported here instead:
+
+| Export                                                                                                                                                          | Concern                                                                                                                                             |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition`                                                                                                                                        | Resolve a `PptxSlideTransition` to CSS `animation` shorthands for the outgoing/incoming layers.                                                     |
+| `resolveTransitionDurationMs`                                                                                                                                   | Effective duration (ms) for a transition, honoring an authored duration, the legacy `spd` token, and PowerPoint's own defaults.                     |
+| `getSlideTransitionAnimations`                                                                                                                                  | Lower-level resolver `resolveSlideTransition` calls internally (classic 2-D transition family).                                                     |
+| `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                                                                               | The Office 2013+ (p15) cinematic family and the Office 2010 (p14) exotic/3-D family, respectively.                                                  |
+| `SLIDE_TRANSITION_KEYFRAMES` (alias `SLIDE_TRANSITION_KEYFRAMES_CSS`)                                                                                           | The full `@keyframes` block every resolved animation name above references. Inject once via a `<style>` tag.                                        |
+| `CINEMATIC_TRANSITION_KEYFRAMES` / `P14_TRANSITION_KEYFRAMES_ALL`                                                                                               | The keyframe sub-blocks already folded into `SLIDE_TRANSITION_KEYFRAMES`; exported individually too.                                                |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation`                                                                                                 | Normalize an OOXML `dir`/`orient` token to a resolved direction/orientation.                                                                        |
+| `resolveWheelSpokeCount`                                                                                                                                        | Snap an authored Wheel spoke count to the nearest PowerPoint-offered value.                                                                         |
+| `RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_TRANSITION_DURATION_MS`, `DEFAULT_MORPH_DURATION_MS`, `TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS` | Supporting constants used by the resolvers above.                                                                                                   |
+| `PresentationTransitionOverlay`, `MorphTransitionOverlay`, `SlideLayer`, `FragmentedTransitionLayer`                                                            | The presentation-mode transition overlay components themselves, for a host that wants the whole rendered overlay rather than just the CSS resolver. |
+
 ## Collaboration
 
 See [Collaboration](/react/collaboration) for the curated public subset. The full internal set:

@@ -1,3 +1,4 @@
+import { blendColorOntoWhite } from '../../color/color-primitives';
 import type { PptxImageProperties, PptxSlideBackgroundPattern, XmlObject } from '../../types';
 import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
@@ -116,16 +117,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (bgPr) {
 				const solidFill = xmlChild(bgPr, 'a:solidFill');
 				if (solidFill) {
-					return this.parseColor(solidFill);
+					return this.blendBackgroundColorOntoWhite(
+						this.parseColor(solidFill),
+						this.extractColorOpacity(solidFill),
+					);
 				}
 				// Pattern fill foreground colour as fallback for solid rendering
 				const pattFill = xmlChild(bgPr, 'a:pattFill');
 				if (pattFill) {
-					const fgClr = this.parseColor(xmlChild(pattFill, 'a:fgClr'));
+					const fgClrNode = xmlChild(pattFill, 'a:fgClr');
+					const fgClr = this.blendBackgroundColorOntoWhite(
+						this.parseColor(fgClrNode),
+						this.extractColorOpacity(fgClrNode),
+					);
 					if (fgClr) {
 						return fgClr;
 					}
-					const bgClr = this.parseColor(xmlChild(pattFill, 'a:bgClr'));
+					const bgClrNode = xmlChild(pattFill, 'a:bgClr');
+					const bgClr = this.blendBackgroundColorOntoWhite(
+						this.parseColor(bgClrNode),
+						this.extractColorOpacity(bgClrNode),
+					);
 					if (bgClr) {
 						return bgClr;
 					}
@@ -141,6 +153,55 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Ignore background parsing errors
 		}
 		return undefined;
+	}
+
+	/**
+	 * Composite a resolved background colour with its `a:alpha` (or
+	 * `a:alphaMod`/`a:alphaOff`) opacity onto opaque white.
+	 *
+	 * PowerPoint renders a semi-transparent slide/layout/master background
+	 * against white, never against whatever happens to sit behind the
+	 * viewer's stage (a white canvas, a dark presentation-mode backdrop, a
+	 * thumbnail strip). Blending once here keeps `backgroundColor` a plain
+	 * `#RRGGBB` value that looks the same on every backdrop, matching
+	 * PowerPoint rather than emitting `rgba()` and letting alpha bleed
+	 * through whatever the stage happens to be. See issue #288.
+	 */
+	private blendBackgroundColorOntoWhite(
+		color: string | undefined,
+		opacity: number | undefined,
+	): string | undefined {
+		return color ? blendColorOntoWhite(color, opacity) : color;
+	}
+
+	/**
+	 * A deep-cloned snapshot of the slide's own `<p:bgPr>`, exactly as parsed,
+	 * for the save writer to restore verbatim when nothing about the
+	 * background changed (see {@link AuthoredSlideBackground.rawBgPr}).
+	 *
+	 * Deep-cloned rather than returned by reference: `extractBackgroundColor`
+	 * flattens this same node into a single colour string that survives on
+	 * the model across an arbitrary number of saves in one handler session,
+	 * while `slideXml` here is the cached parse of the ORIGINAL part, which
+	 * later saves mutate in place. A live reference would go stale the moment
+	 * a save touched the slide for an unrelated reason.
+	 */
+	protected extractOwnBackgroundNode(
+		slideXml: XmlObject,
+		rootElement: string = 'p:sld',
+	): XmlObject | undefined {
+		try {
+			const bgPr = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg', 'p:bgPr');
+			if (!bgPr) {
+				return undefined;
+			}
+			if (typeof structuredClone === 'function') {
+				return structuredClone(bgPr);
+			}
+			return JSON.parse(JSON.stringify(bgPr)) as XmlObject;
+		} catch {
+			return undefined;
+		}
 	}
 
 	/**
@@ -170,11 +231,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Direct solid fill child overrides any matrix lookup
 		const solidFill = xmlChild(bgRef, 'a:solidFill');
 		if (solidFill) {
-			return this.parseColor(solidFill);
+			return this.blendBackgroundColorOntoWhite(
+				this.parseColor(solidFill),
+				this.extractColorOpacity(solidFill),
+			);
 		}
 
 		// The colour choice on bgRef itself acts as the phClr supplier.
-		const overrideColor = this.parseColor(bgRef);
+		const overrideColor = this.blendBackgroundColorOntoWhite(
+			this.parseColor(bgRef),
+			this.extractColorOpacity(bgRef),
+		);
 
 		if (this.themeFormatScheme) {
 			let fillDef = undefined as (typeof this.themeFormatScheme)['fillStyles'][number] | undefined;
@@ -185,15 +252,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 
 			if (fillDef) {
+				const fillColor = this.blendBackgroundColorOntoWhite(fillDef.color, fillDef.opacity);
 				switch (fillDef.kind) {
 					case 'none':
 						return undefined;
 					case 'solid':
-						return overrideColor || fillDef.color;
+						return overrideColor || fillColor;
 					case 'gradient':
-						return overrideColor || fillDef.color;
+						return overrideColor || fillColor;
 					case 'pattern':
-						return overrideColor || fillDef.color || fillDef.patternBackgroundColor;
+						return overrideColor || fillColor || fillDef.patternBackgroundColor;
 				}
 			}
 		}
@@ -221,6 +289,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 * background. Returns the preset name plus resolved fg/bg colours so
 	 * renderers can draw a real SVG pattern instead of a flat fill.
 	 *
+	 * `a:alpha` (or `a:alphaMod`/`a:alphaOff`) on either `a:fgClr` or
+	 * `a:bgClr` is composited onto white the same way the flat-colour
+	 * fallback in {@link extractBackgroundColor} already does, matching how
+	 * PowerPoint renders a semi-transparent pattern colour: always against
+	 * white, never against whatever backdrop happens to sit behind the
+	 * stage. See issue #288.
+	 *
 	 * ECMA-376 §20.1.8.47.
 	 */
 	protected extractBackgroundPattern(
@@ -236,8 +311,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (!preset) {
 				return undefined;
 			}
-			const fgColor = this.parseColor(xmlChild(pattFill, 'a:fgClr'));
-			const bgColor = this.parseColor(xmlChild(pattFill, 'a:bgClr'));
+			const fgClrNode = xmlChild(pattFill, 'a:fgClr');
+			const bgClrNode = xmlChild(pattFill, 'a:bgClr');
+			const fgColor = this.blendBackgroundColorOntoWhite(
+				this.parseColor(fgClrNode),
+				this.extractColorOpacity(fgClrNode),
+			);
+			const bgColor = this.blendBackgroundColorOntoWhite(
+				this.parseColor(bgClrNode),
+				this.extractColorOpacity(bgClrNode),
+			);
 			return {
 				preset,
 				fgColor,

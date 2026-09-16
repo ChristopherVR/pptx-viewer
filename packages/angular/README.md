@@ -314,6 +314,27 @@ for the `addElement` contract and a core-factory example.
 for using `RibbonComponent` and `SlideCanvasComponent` outside
 `PowerPointViewerComponent`.
 
+### Internal building blocks & slide-transition helpers
+
+Most of this package's cross-framework logic (colour/geometry/connector/animation/chart math,
+slide transitions, and more) lives in `pptx-viewer-shared`, an internal package that is **never
+published to npm**. Everything not part of the curated API above (~150 internal services,
+components, and helpers) is importable from `pptx-angular-viewer/internals` instead, not covered
+by semver. That includes the slide-transition resolver/keyframes
+(`resolveSlideTransition`, `resolveTransitionDurationMs`, `SLIDE_TRANSITION_KEYFRAMES`) and the
+`PresentationTransitionOverlayComponent` behind presentation mode, so you never need
+`pptx-viewer-shared` yourself:
+
+```ts
+import {
+	resolveSlideTransition,
+	PresentationTransitionOverlayComponent,
+} from 'pptx-angular-viewer/internals';
+```
+
+See the [services reference](https://christophervr.github.io/pptx-viewer/angular/services-reference)
+for the full list.
+
 ## Localization (i18n)
 
 UI labels go through [@ngx-translate/core](https://github.com/ngx-translate/core) with dotted keys such as `pptx.statusBar.allSaved`. Provide it with `provideTranslateService()` (the demo's `src/i18n.ts` shows a minimal config, including a `MissingTranslationHandler` that derives Title Case labels for any key you don't explicitly translate):

@@ -1,5 +1,5 @@
 import JSZip from 'jszip';
-import { PptxHandler } from 'pptx-viewer-core';
+import { createImageElement, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { createViewerOptionsStore } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
@@ -20,7 +20,9 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import * as imageInsertion from '../../../../shared/src/render/image-file-insertion';
 import { SlideCanvas } from '../components/SlideCanvas';
+import type { SlideCanvasProps } from '../components/SlideCanvas';
 import type { PowerPointViewerHandle } from '../types';
 import type { UseAutosaveInput } from './useAutosave';
 import { useViewerBuildingBlocks } from './useViewerBuildingBlocks';
@@ -94,6 +96,7 @@ function Harness({
 	fitPadding,
 	maxFitScale,
 	measuredViewport,
+	mountedCanvas,
 }: {
 	content: Uint8Array;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
@@ -102,6 +105,7 @@ function Harness({
 	fitPadding?: number;
 	maxFitScale?: number | null;
 	measuredViewport?: { width: number; height: number };
+	mountedCanvas?: { key: string; overrides?: Partial<SlideCanvasProps> };
 }): React.ReactElement {
 	const result = useViewerBuildingBlocks({
 		content,
@@ -112,6 +116,13 @@ function Harness({
 		maxFitScale,
 	});
 	latest = result;
+	if (mountedCanvas) {
+		return React.createElement(SlideCanvas, {
+			...result.canvasProps,
+			...mountedCanvas.overrides,
+			key: mountedCanvas.key,
+		});
+	}
 	return React.createElement('div', {
 		'data-testid': 'harness',
 		ref: (node: HTMLDivElement | null) => {
@@ -176,6 +187,135 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('reports the full selection after a toolbar text-box insertion', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		await act(async () => {
+			root.render(React.createElement(Harness, { content: fixtureBytes, handle }));
+		});
+		await flushUntil(() => latest?.loading === false);
+		await act(async () => {
+			latest?.toolbarProps.onAddTextBox();
+		});
+		const added = handle.current?.getElements().at(-1);
+		expect(added?.type).toBe('text');
+		expect(handle.current?.getSelectedElementIds()).toStrictEqual([added?.id]);
+		await flushUntil(() => handle.current?.canUndo() === true);
+		expect(handle.current?.canUndo()).toBeTruthy();
+	}, 15_000);
+
+	it('owns native image paste on a mounted public canvas without a private viewer shell', async () => {
+		const handle = createRef<PowerPointViewerHandle>();
+		const image = createImageElement('data:image/png;base64,aQ==', {
+			x: 20,
+			y: 30,
+			width: 40,
+			height: 30,
+		});
+		const decode = vi.spyOn(imageInsertion, 'createImageElementFromFile').mockResolvedValue(image);
+		vi.stubGlobal(
+			'ResizeObserver',
+			class {
+				observe() {}
+				disconnect() {}
+			},
+		);
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		async function mount(key: string, overrides?: Partial<SlideCanvasProps>): Promise<void> {
+			await act(async () => {
+				root.render(
+					React.createElement(Harness, {
+						content: fixtureBytes,
+						handle,
+						mountedCanvas: { key, overrides },
+					}),
+				);
+			});
+			await flushUntil(() => latest?.loading === false);
+		}
+		async function paste(): Promise<ClipboardEvent> {
+			const stage = latest?.canvasProps.zoom.canvasStageRef.current;
+			expect(stage).not.toBeNull();
+			const clipboard = new DataTransfer();
+			clipboard.items.add(new File(['image'], 'clipboard.png', { type: 'image/png' }));
+			const event = new ClipboardEvent('paste', {
+				bubbles: true,
+				cancelable: true,
+				clipboardData: clipboard,
+			});
+			await act(async () => {
+				stage!.dispatchEvent(
+					new PointerEvent('pointerdown', { bubbles: true, button: 0, pointerType: 'mouse' }),
+				);
+				stage!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }));
+				stage!.dispatchEvent(
+					new PointerEvent('pointerup', { bubbles: true, button: 0, pointerType: 'mouse' }),
+				);
+				stage!.dispatchEvent(new MouseEvent('mouseup', { bubbles: true, button: 0 }));
+			});
+			await flush();
+			await act(async () => {
+				document.activeElement!.dispatchEvent(event);
+			});
+			return event;
+		}
+		try {
+			await mount('canvas');
+			expect(container.querySelectorAll('[data-pptx-image-paste-root]')).toHaveLength(1);
+			const first = await paste();
+			expect(first.defaultPrevented).toBeTruthy();
+			expect(decode).toHaveBeenCalledOnce();
+			await flushUntil(() => handle.current?.canUndo() === true);
+			expect(
+				handle.current?.getElements().filter((element) => element.type === 'image'),
+			).toHaveLength(1);
+			expect(handle.current?.getSelectedElementIds()).toHaveLength(1);
+			expect(handle.current?.isDirty()).toBeTruthy();
+			await act(async () => {
+				handle.current?.undo();
+			});
+			expect(
+				handle.current?.getElements().filter((element) => element.type === 'image'),
+			).toHaveLength(0);
+			await flush();
+			await act(async () => {
+				handle.current?.redo();
+			});
+			expect(
+				handle.current?.getElements().filter((element) => element.type === 'image'),
+			).toHaveLength(1);
+			for (const overrides of [{ canEdit: false }, { mode: 'preview' as const }]) {
+				await mount('canvas', overrides);
+				expect((await paste()).defaultPrevented).toBeFalsy();
+			}
+			expect(decode).toHaveBeenCalledOnce();
+			await mount('canvas');
+			let finish: ((value: typeof image) => void) | undefined;
+			decode.mockImplementationOnce(
+				() =>
+					new Promise((resolve) => {
+						finish = resolve;
+					}),
+			);
+			expect((await paste()).defaultPrevented).toBeTruthy();
+			const signal = decode.mock.calls.at(-1)?.[2];
+			await mount('remounted-canvas');
+			expect(signal?.aborted).toBeTruthy();
+			await act(async () => {
+				finish?.(image);
+			});
+			expect(
+				handle.current?.getElements().filter((element) => element.type === 'image'),
+			).toHaveLength(1);
+			expect((await paste()).defaultPrevented).toBeTruthy();
+			expect(decode).toHaveBeenCalledTimes(3);
+			expect(
+				handle.current?.getElements().filter((element) => element.type === 'image'),
+			).toHaveLength(2);
+		} finally {
+			decode.mockRestore();
+		}
+	}, 30_000);
+
 	it('refits a headless canvas remounted by a child without remounting its hook owner', async () => {
 		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 		let width = 960;

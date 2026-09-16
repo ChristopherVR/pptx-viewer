@@ -10,6 +10,10 @@
 	     bold/italic/underline/size, which plain CSS inheritance cannot
 	     reach (the runs declare those unconditionally). -->
 	<pptx-dynamic-style [css]="textStyleOverrideCss()" />
+	<!-- Interaction-only hit target for a degenerate shape; see `hitTargetStyle`. -->
+	@if (hitTargetStyle(); as hit) {
+		<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
+	}
 	<!-- Per-sub-path fill overlay: a multi-sub-path preset (`smileyFace`'s
 	     open eyes, `actionButtonBlank`'s darkened bevel well) or custom
 	     geometry whose sub-paths cannot share one CSS background-color. -->

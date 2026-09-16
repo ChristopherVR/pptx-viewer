@@ -340,6 +340,20 @@ Be aware of what this buys you and what it doesn't:
   not reusing the bundled editor logic; `createPptxViewer` remains the
   supported path for a complete, batteries-included editor.
 
+### Internal building blocks & slide-transition helpers
+
+Most of this package's cross-framework logic (colour/geometry/connector/animation/chart math,
+slide transitions, and more) lives in `pptx-viewer-shared`, an internal package that is **never
+published to npm**. The framework-neutral slide-transition resolver/keyframes
+(`resolveSlideTransition`, `resolveTransitionDurationMs`, `SLIDE_TRANSITION_KEYFRAMES`) and
+`playTransitionOverlay` (the DOM-level driver behind presentation mode's slide-change animation)
+are re-exported from the `pptx-vanilla-viewer/internals` subpath, not covered by semver, so you
+never need `pptx-viewer-shared` yourself:
+
+```ts
+import { resolveSlideTransition, playTransitionOverlay } from 'pptx-vanilla-viewer/internals';
+```
+
 ## Reference translations
 
 Optional French, Spanish, German, and Simplified Chinese dictionaries ship with

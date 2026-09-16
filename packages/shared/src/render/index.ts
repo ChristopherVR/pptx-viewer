@@ -501,7 +501,10 @@ export * from './clone';
 export * from './element';
 export * from './element-align';
 export * from './element-interaction';
+export * from './resize-handle-hit-area';
+export * from './selection-control-artwork';
 export * from './rotation-drag';
+export * from './rotate-handle-attachment';
 // Authored `p:gridSpacing` (EMU, from `viewProperties`) -> CSS pixel step,
 // used by snap-to-grid and the grid overlay in every binding.
 export * from './grid-spacing';
@@ -1354,6 +1357,7 @@ export * from './theme-editor-presets';
 export * from './element-clipboard';
 export * from './element-insertion';
 export * from './image-file-insertion';
+export * from './editor-image-paste';
 export * from './header-footer-dialog';
 export * from './media-file-type';
 export * from './template-background-rows';
@@ -1622,3 +1626,5 @@ export type { InlineListSelectionResult } from './inline-list-selection';
 export { reconcileInlineListFormatting } from './inline-list-format';
 export * from './freeform-stroke-geometry';
 export { isExportIgnoredElement, prepareExportClone } from './export-clone';
+
+export * from './element-update-batch';

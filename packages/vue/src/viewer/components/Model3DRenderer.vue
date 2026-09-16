@@ -4,6 +4,7 @@ import type { CSSProperties } from 'vue';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
 import { useModel3dScene } from '../composables/useModel3dScene';
 
@@ -26,12 +27,27 @@ const props = defineProps<{
 	element: PptxElement;
 	mediaDataUrls?: Map<string, string>;
 	zIndex: number;
+	/** True only on the main editable canvas; see `hitTargetStyle`. */
+	interactive?: boolean;
+	/** True only on the live presentation stage; see `hitTargetStyle`. */
+	presenting?: boolean;
 }>();
 
 const { t } = useI18n();
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
+);
+
+/**
+ * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) 3D
+ * model box: see `ElementRenderer`'s `hitTargetStyle` doc comment (issue
+ * #285). Never rendered while presenting.
+ */
+const hitTargetStyle = useElementHitTargetStyle(
+	() => props.element,
+	() => props.interactive,
+	() => props.presenting,
 );
 
 const model = computed<Model3DPptxElement | undefined>(() =>
@@ -47,20 +63,21 @@ const posterSrc = computed<string | undefined>(() => {
 	return el.posterImage ?? el.imageData;
 });
 
-// Interactive scene wiring. No presentation-mode prop reaches this component,
-// so orbit controls default on (interactive viewing); this matches React's
-// non-presentation default and avoids editing the root viewer / dispatcher.
+// Orbit-control scene wiring, distinct from the `interactive` prop above
+// (editable-canvas gating): no presentation-mode input governs this, so orbit
+// controls default on, matching React's non-presentation default and
+// avoiding editing the root viewer / dispatcher.
 const sceneContainer = ref<HTMLElement | null>(null);
 const sceneWidth = computed(() => model.value?.width ?? 0);
 const sceneHeight = computed(() => model.value?.height ?? 0);
-const interactive = ref(true);
+const orbitInteractive = ref(true);
 
 const { mounted } = useModel3dScene({
 	container: sceneContainer,
 	element: model,
 	width: sceneWidth,
 	height: sceneHeight,
-	interactive,
+	interactive: orbitInteractive,
 });
 
 /** Show the poster whenever an interactive scene is not mounted. */
@@ -73,6 +90,13 @@ const showPoster = computed(() => !mounted.value);
 		:style="containerStyle"
 		:data-element-id="element.id"
 	>
+		<!-- Interaction-only hit-target for a degenerate 3D model box; see `hitTargetStyle`. -->
+		<div
+			v-if="hitTargetStyle"
+			aria-hidden="true"
+			data-pptx-hit-target="true"
+			:style="hitTargetStyle"
+		/>
 		<!--
 			Always present so the scene can mount into it (v-show, not v-if, keeps
 			the ref attached). Hidden while the poster fallback is showing.

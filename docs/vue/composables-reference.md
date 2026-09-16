@@ -139,6 +139,23 @@ import { useEditorHistory, useAlignGroup } from 'pptx-vue-viewer/internals';
 | `usePresentationAnnotations` | Pen / highlighter / laser-pointer annotations while presenting.      |
 | `useRehearseTimings`         | Records per-slide timings during a rehearsal pass.                   |
 
+### Slide-transition helpers
+
+`pptx-viewer-shared` (the framework-agnostic logic every binding bundles) is a private,
+unpublished workspace package: it is never on npm, so code outside this monorepo cannot `import`
+from it directly. A host embedding its own presentation stage still needs the transition
+resolver/keyframes, so the whole surface is re-exported here (from
+`./viewer/composables/slide-transition-css`) instead:
+
+| Export                                                                                                                                                          | Concern                                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `resolveSlideTransition` / `resolveTransitionDurationMs`                                                                                                        | Resolve a `PptxSlideTransition` to CSS `animation` shorthands, and its effective duration (ms). |
+| `getSlideTransitionAnimations` / `getCinematicTransitionAnimations` / `getP14TransitionAnimations`                                                              | The classic, Office 2013+ cinematic, and Office 2010 exotic/3-D transition family resolvers.    |
+| `SLIDE_TRANSITION_KEYFRAMES` (alias `SLIDE_TRANSITION_KEYFRAMES_CSS`), `CINEMATIC_TRANSITION_KEYFRAMES`, `P14_TRANSITION_KEYFRAMES_ALL`                         | The `@keyframes` blocks the resolved animation names reference.                                 |
+| `resolveDirection` / `resolveDirection8` / `resolveOrientation` / `resolveWheelSpokeCount`                                                                      | Normalize an OOXML `dir`/`orient`/`spokes` token.                                               |
+| `RANDOM_ELIGIBLE_TYPES`, `INSTANT`, `DEFAULT_TRANSITION_DURATION_MS`, `DEFAULT_MORPH_DURATION_MS`, `TRANSITION_SPEED_DURATION_MS`, `EASE`, `WHEEL_SPOKE_COUNTS` | Supporting constants used by the resolvers above.                                               |
+| `PresentationTransitionOverlay`, `MorphExtraLayers`, `FragmentedTransitionLayer` (components), `useMorphTransitionOverlay`                                      | The transition overlay component itself and its Morph-plan composable.                          |
+
 ## Collaboration
 
 See [Collaboration](/vue/collaboration) for the prop-driven flow. The full internal set:

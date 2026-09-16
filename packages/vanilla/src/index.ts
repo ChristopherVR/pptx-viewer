@@ -1,3 +1,4 @@
+export type { ElementUpdate, ElementUpdateOptions } from 'pptx-viewer-shared';
 /**
  * pptx-vanilla-viewer: a zero-framework PowerPoint viewer.
  *

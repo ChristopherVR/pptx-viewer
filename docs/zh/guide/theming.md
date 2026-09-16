@@ -154,6 +154,59 @@ viewer.setTheme({ colors: { primary: '#38bdf8' } });
 
 Vanilla 组件有所不同：`createPptxViewer` 会自动且幂等地注入自身的作用域样式表（`#pptx-vanilla-viewer-styles`）。采用严格 CSP 的宿主可以改为预先渲染 `getViewerCss()` 返回的字符串。
 
+## 选择控件外观 {#selection-control-artwork}
+
+五种框架的选择控件均使用现有的 `ViewerTheme.cssVars` 字段，不需要新的主题对象或组件属性。
+省略这些可选令牌时，各框架保留自己的默认外观。它们只影响编辑器控件，
+不会修改幻灯片内容、字号、文档几何信息或导出的文档。
+
+| CSS 自定义属性                         | 用途                           |
+| -------------------------------------- | ------------------------------ |
+| `--pptx-selection-corner-size`         | 角部图形的宽度和高度           |
+| `--pptx-selection-corner-radius`       | 角部图形的圆角                 |
+| `--pptx-selection-edge-length`         | 边缘图形沿边方向的长度         |
+| `--pptx-selection-edge-thickness`      | 边缘图形垂直于边的厚度         |
+| `--pptx-selection-edge-radius`         | 边缘图形的圆角                 |
+| `--pptx-selection-handle-fill`         | 缩放图形的填充颜色             |
+| `--pptx-selection-handle-border-color` | 缩放和旋转图形的边框颜色       |
+| `--pptx-selection-outline-color`       | 选择轮廓和现有旋转连接线的颜色 |
+| `--pptx-selection-rotate-size`         | 圆形旋转图形的直径             |
+| `--pptx-selection-rotate-fill`         | 旋转图形的填充颜色             |
+| `--pptx-selection-rotate-foreground`   | 绘制旋转图标时的图标颜色       |
+
+尺寸应使用 `6px` 等正像素长度，圆角使用有效 CSS 长度或百分比，颜色使用有效
+CSS 颜色。`var()` 仅在令牌省略时使用回退值，不会修复任意无效的 CSS 值。
+查看器不会解析或清理这些 CSS 字符串。删除覆盖值即可恢复该框架的默认值。
+圆角与现有边框和阴影一样，使用控件本地 CSS 坐标，不会单独补偿舞台缩放。
+可使用 `0px` 设置直角，或使用 `50%` 在各框架中保持按比例的圆形外观。
+
+```ts
+const theme = {
+	cssVars: {
+		'--pptx-selection-corner-size': '6px',
+		'--pptx-selection-corner-radius': '0px',
+		'--pptx-selection-edge-length': '6px',
+		'--pptx-selection-edge-thickness': '6px',
+		'--pptx-selection-edge-radius': '0px',
+		'--pptx-selection-handle-fill': '#ffffff',
+		'--pptx-selection-handle-border-color': '#6366f1',
+		'--pptx-selection-outline-color': '#6366f1',
+		'--pptx-selection-rotate-fill': '#ffffff',
+		'--pptx-selection-rotate-foreground': '#6366f1',
+	},
+};
+```
+
+通过上文各框架的方式传入同一个主题。自定义外壳可将 `themeToCssVars(theme)`
+应用到幻灯片与选择控件的共同祖先元素。不要依赖内部子元素类名，也不要假设
+控件一定嵌套在被选中的形状内部。
+
+可见图形始终以现有锚点为中心。缩小图形不会缩小原有的鼠标或触摸命中区域。
+较大的图形会扩大自身框体，但小形状上仍保留相邻控件的命中区域划分；过大的
+图形可能在视觉上重叠，但不能夺取另一控件的输入区域。本约定不提供命中尺寸
+或旋转偏移量配置。自定义图形应保持适合所编辑形状的尺寸。调整菱形和连接线
+端点指示器保留其不同含义与外观。
+
 ## 文件 > 选项 > 外观 {#file-options-appearance}
 
 每个组件的设置对话框都有**外观**选项卡，提供默认、浅色、朱红浅色和朱红深色等内置预设，用户可以在运行时点击切换。这些预设由 `THEME_CATALOG` 导出定义：

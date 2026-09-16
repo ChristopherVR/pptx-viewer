@@ -3,7 +3,7 @@ import { fileURLToPath } from 'node:url';
 
 import { dts } from 'rollup-plugin-dts';
 
-const entries = ['index', 'viewer/index', 'i18n'];
+const entries = ['index', 'viewer/index', 'i18n', 'internals'];
 const bundledPackages = ['pptx-viewer-core', 'pptx-viewer-shared'];
 const packageDirectory = dirname(fileURLToPath(import.meta.url));
 const internalTypes = new Map([

@@ -35,6 +35,7 @@ import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
 import type { FindReplaceActions } from './editor-find-replace-actions';
 import { createFindReplaceActions } from './editor-find-replace-actions';
+import { attachCanvasImagePaste } from './editor-image-paste';
 import { createEditorKeydownHandler } from './editor-keyboard';
 import { selectionInteractivity } from './editor-lock-gates';
 import { createEditorOps } from './editor-operations';
@@ -69,6 +70,7 @@ export interface EditorControllerDeps {
 }
 
 export interface EditorController {
+	hasActivePointerInteraction(): boolean;
 	/** (Re)wire listeners + overlay into the current chrome (after mount). */
 	attachChrome(): void;
 	detachChrome(): void;
@@ -91,6 +93,7 @@ export interface EditorController {
 	selectElements(ids: string[]): void;
 	applyElementPatch(id: string, patch: Partial<PptxElement>): void;
 	commitSlides(slides: PptxSlide[], currentSlide?: number): void;
+	commitElementUpdates(slides: PptxSlide[], label?: string): void;
 	/** Switch the Draw ribbon tab's active tool (also clears selection when leaving `'select'`). */
 	setDrawTool(tool: DrawTool): void;
 	/** Set the pen/highlighter stroke colour used by the next committed stroke. */
@@ -348,7 +351,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		drawMode.onStagePointerDown(event);
 	};
 
+	let detachImagePaste: (() => void) | undefined;
 	const detachChrome = (): void => {
+		detachImagePaste?.();
+		detachImagePaste = undefined;
 		interactions.closeInline(true);
 		attachedWrap?.removeEventListener('pointerdown', onStagePointerDown);
 		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
@@ -434,6 +440,12 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
+			detachImagePaste = attachCanvasImagePaste(attachedRoot, attachedWrap, {
+				store,
+				getHandler: deps.getHandler,
+				isEditing: interactions.inlineActive,
+				insertElement: editActions.insertElement,
+			});
 			attachedWrap.addEventListener('pointerdown', onStagePointerDown);
 			attachedWrap.addEventListener('pointermove', interactions.onStagePointerMove);
 			attachedWrap.addEventListener('dblclick', drawMode.onStageDblClick);
@@ -452,6 +464,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				syncOverlay();
 			}
 		},
+		hasActivePointerInteraction: () =>
+			interactions.hasActivePointerInteraction() ||
+			drawMode.isActive() ||
+			Boolean(connectorEndpoints?.isActive()),
 		capturesKeyboard() {
 			const state = store.get();
 			return state.editable && (state.selectedElementId !== null || interactions.inlineActive());
@@ -504,6 +520,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 					),
 				),
 			);
+			ops.commitChange();
+		},
+		commitElementUpdates(slides, label) {
+			ops.pushHistory(label);
+			store.set({ slides });
 			ops.commitChange();
 		},
 		commitSlides(slides, currentSlide = store.get().currentSlide) {

@@ -222,10 +222,12 @@ describe('shapeEffectOverlay stroke-only preset', () => {
 		expect(html).not.toContain('<linearGradient');
 	});
 
-	it('sizes the viewBox to the padded box so the rule stays horizontal', () => {
-		// The authored extent (400x0) stretched over the 12px-tall padded box
-		// would tilt the rule into a diagonal.
-		expect(markup(rule())).toContain('viewBox="0 0 400 12"');
+	it('sizes the viewBox to the PAINTED (authored) box, matching the wrapper 1:1', () => {
+		// The viewBox must equal the wrapper's own CSS box (its authored extent,
+		// unpadded since issue #285): the overlay <svg> is displayed at 100%/100%
+		// of that wrapper, so a viewBox padded past it would stretch the rule
+		// non-uniformly instead of keeping it horizontal.
+		expect(markup(rule())).toContain('viewBox="0 0 400 0"');
 	});
 
 	it('drops the container fill, border and clip-path', () => {

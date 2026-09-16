@@ -124,6 +124,8 @@ export function boxStyle(box: SelectedBox): Record<string, string> {
 		top: `${box.y}px`,
 		width: `${box.width}px`,
 		height: `${box.height}px`,
+		'--pptx-selection-width': `${box.width}px`,
+		'--pptx-selection-height': `${box.height}px`,
 		transform: rotation ? `rotate(${rotation}deg)` : 'none',
 	};
 }

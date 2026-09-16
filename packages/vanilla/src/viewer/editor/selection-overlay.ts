@@ -1,8 +1,16 @@
 import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
-import { RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
+import {
+	attachRotateHandlePlacement,
+	getResizeHandleHitAreaStyle,
+	getSelectionOutlineColor,
+	RESIZE_HANDLE_GEOMETRY,
+	RESIZE_HANDLES,
+	ROTATE_STEM_PX,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { appendSelectionControlArtwork } from './selection-control-artwork';
 
 /**
  * The selection overlay: a screen-space layer positioned over the slide stage
@@ -74,6 +82,7 @@ export function createSelectionOverlay(
 	// The box itself never intercepts pointers (CSS `pointer-events: none`);
 	// drag-to-move is driven from the underlying element so clicks reach it.
 	const box = createEl(doc, 'div', 'pptxv-sel-box');
+	box.style.borderColor = getSelectionOutlineColor('var(--pptx-ring)');
 	box.hidden = true;
 	root.appendChild(box);
 
@@ -81,6 +90,7 @@ export function createSelectionOverlay(
 		left: '50%',
 		top: `${-ROTATE_STEM_PX}px`,
 		height: `${ROTATE_STEM_PX}px`,
+		background: getSelectionOutlineColor('var(--pptx-ring)'),
 	});
 	box.appendChild(stem);
 
@@ -90,9 +100,13 @@ export function createSelectionOverlay(
 	});
 	knob.type = 'button';
 	knob.setAttribute('data-pptx-compact', '');
+	knob.dataset.pptxHandleKind = 'rotate';
 	knob.setAttribute('aria-label', t('pptx.selectionOverlay.rotate'));
 	knob.addEventListener('pointerdown', (event) => hooks.onRotatePointerDown(event));
+	appendSelectionControlArtwork(knob);
 	box.appendChild(knob);
+	let detachPlacement: (() => void) | undefined;
+	let placementHost: HTMLElement | undefined;
 
 	const resizeHandles: HTMLElement[] = [];
 	for (const handle of RESIZE_HANDLES) {
@@ -105,8 +119,12 @@ export function createSelectionOverlay(
 		btn.type = 'button';
 		btn.setAttribute('data-pptx-compact', '');
 		btn.dataset.handle = handle;
+		btn.dataset.pptxHandleKind = 'resize';
 		btn.setAttribute('aria-label', t('pptx.selectionOverlay.resize', { handle }));
 		btn.addEventListener('pointerdown', (event) => hooks.onHandlePointerDown(handle, event));
+		btn.appendChild(createEl(doc, 'span', undefined, getResizeHandleHitAreaStyle(handle)));
+		btn.firstElementChild?.setAttribute('data-pptx-handle-hit', '');
+		appendSelectionControlArtwork(btn, handle);
 		box.appendChild(btn);
 		resizeHandles.push(btn);
 	}
@@ -128,6 +146,7 @@ export function createSelectionOverlay(
 		const button = createEl(doc, 'button', 'pptxv-adjust-handle');
 		button.type = 'button';
 		button.setAttribute('data-pptx-compact', '');
+		button.dataset.pptxHandleKind = 'adjust';
 		button.setAttribute('aria-label', t('pptx.selectionOverlay.adjust'));
 		button.addEventListener('pointerdown', (event) => {
 			const descriptor = currentAdjustDescriptors[index];
@@ -150,6 +169,13 @@ export function createSelectionOverlay(
 		mount(host) {
 			if (root.parentElement !== host) {
 				host.appendChild(root);
+				// A stage render temporarily detaches the same overlay. Preserve its
+				// active pointer/placement while reattaching to the same host.
+				if (placementHost !== host) {
+					detachPlacement?.();
+					placementHost = host;
+					detachPlacement = attachRotateHandlePlacement(knob, { stem });
+				}
 			} else if (host.lastElementChild !== root) {
 				// Keep the overlay above a freshly re-rendered stage.
 				host.appendChild(root);
@@ -165,6 +191,8 @@ export function createSelectionOverlay(
 			box.style.top = `${nextBox.y * scale}px`;
 			box.style.width = `${nextBox.width * scale}px`;
 			box.style.height = `${nextBox.height * scale}px`;
+			box.style.setProperty('--pptx-selection-width', `${nextBox.width * scale}px`);
+			box.style.setProperty('--pptx-selection-height', `${nextBox.height * scale}px`);
 			// Scale the outline width by the stage scale so the selection border
 			// tracks the zoom the same way React's does (its border/ring live
 			// inside the scaled stage). Without this the unscaled overlay draws a
@@ -221,8 +249,12 @@ export function createSelectionOverlay(
 		},
 		setEditing(editing) {
 			root.classList.toggle('is-editing', editing);
+			// The inline text surface shares this overlay at z-index 6. Keep
+			// inward handles above it; the selection box never intercepts input.
+			box.style.zIndex = editing ? '7' : '';
 		},
 		destroy() {
+			detachPlacement?.();
 			root.remove();
 		},
 	};

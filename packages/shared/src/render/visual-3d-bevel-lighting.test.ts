@@ -190,6 +190,51 @@ describe('getBevelLightingFilterMarkup', () => {
 		expect(notRouted).toBeDefined();
 	});
 
+	it('inserts a non-monotonic feComponentTransfer height-remap for relaxedInset/slope/hardEdge only', () => {
+		// 2026-09-16 fix: these three profiles' COM cross-section is a real
+		// bright-bump-then-dark-trough double transition (see
+		// visual-3d-bevel-lighting-profile.ts's heightTransferTable doc
+		// comment); every other profile keeps lighting the blur(+erode) ramp
+		// directly, unchanged.
+		for (const bevelTopType of ['relaxedInset', 'slope', 'hardEdge']) {
+			const def = getBevelLightingFilterMarkup('el1', { bevelTopType }, undefined);
+			expect(def?.filterMarkup).toContain('<feComponentTransfer');
+			expect(def?.filterMarkup).toContain('<feFuncA type="table" tableValues="');
+			// The remap must feed the lighting primitives, not be a dead-end
+			// branch: feDiffuseLighting/feSpecularLighting read the SAME
+			// bevelShaped0 result the feComponentTransfer produced.
+			expect(def?.filterMarkup).toContain('result="bevelShaped0"');
+			expect(def?.filterMarkup).toContain('in="bevelShaped0" surfaceScale=');
+		}
+		for (const bevelTopType of [
+			'circle',
+			'convex',
+			'softRound',
+			'divot',
+			'angle',
+			'cross',
+			'coolSlant',
+			'riblet',
+			'artDeco',
+		]) {
+			const def = getBevelLightingFilterMarkup('el1', { bevelTopType }, undefined);
+			expect(def?.filterMarkup).not.toContain('feComponentTransfer');
+		}
+	});
+
+	it('the feFuncA tableValues for hardEdge are a genuine non-monotonic sequence (rises, then falls, then rises)', () => {
+		const def = getBevelLightingFilterMarkup('el1', { bevelTopType: 'hardEdge' }, undefined);
+		const match = /tableValues="([^"]+)"/u.exec(def?.filterMarkup ?? '');
+		expect(match).not.toBeNull();
+		const values = match![1].split(' ').map(Number);
+		const peakIndex = values.indexOf(Math.max(...values));
+		const troughIndex = values.indexOf(Math.min(...values.slice(peakIndex + 1)), peakIndex + 1);
+		expect(peakIndex).toBeGreaterThan(0);
+		expect(peakIndex).toBeLessThan(values.length - 1);
+		expect(troughIndex).toBeGreaterThan(peakIndex);
+		expect(values[peakIndex] - values[troughIndex]).toBeGreaterThan(0.3);
+	});
+
 	it('gives slope/hardEdge a heavy erode, matching their COM cross-section (a crisp facet, not a smooth ramp)', () => {
 		// slope/hardEdge get a heavier morphologyFactor than circle's pure-blur
 		// ramp (see visual-3d-bevel-lighting-tables's 2026-09 cross-section
