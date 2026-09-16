@@ -52,8 +52,6 @@ const SETTLE_BUFFER_MS = 50;
 const POLL_SLACK_MS = 2000;
 const TRANSITION_SETTLE_TIMEOUT_MS =
 	CINEMATIC_FRAGMENTS_DURATION_MS + SETTLE_BUFFER_MS + POLL_SLACK_MS;
-/** Sampled a quarter of the way through, well inside the fragment animations. */
-const MID_TRANSITION_SAMPLE_MS = Math.round(CINEMATIC_FRAGMENTS_DURATION_MS / 4);
 
 /** Same "pick the on-screen, largest-by-area match" technique other transition specs use. */
 async function primaryMatch(page: Page, locator: Locator, minAreaPx = 5000): Promise<Locator> {
@@ -141,28 +139,46 @@ async function sampleFragments(
 	// The fragment layer(s) mount as part of the same render as the overlay
 	// itself, but under CI load a binding's change detection (Angular's
 	// `computed()`/`@if` chain in particular) can take a few extra ticks to
-	// flush after the overlay's own host element exists. Wait for at least
-	// one fragment to actually be in the DOM before sampling, rather than
-	// assuming a fixed `MID_TRANSITION_SAMPLE_MS` since `advance()` was
-	// always enough: sampling too early read as "0 fragments" under load
-	// (every preset in `PRESETS` is one of the seven fragmented transitions,
-	// so this never waits out a preset that legitimately has none).
-	await overlay
-		.locator('[data-pptx-transition-fragment]')
-		.first()
-		.waitFor({ timeout: TRANSITION_SETTLE_TIMEOUT_MS });
-	await page.waitForTimeout(MID_TRANSITION_SAMPLE_MS);
+	// flush after the overlay's own host element exists.
+	//
+	// This used to wait for one fragment then sample once after a fixed delay
+	// (a quarter of the authored duration), on the assumption that wall-clock
+	// time tracks the animation's own progress closely enough. Under heavy CI
+	// load it does not: the same contention that delays a binding's fragment
+	// mount can just as easily delay (or, via dropped rAF frames, effectively
+	// skip past) the teardown, so a sample taken well after the first fragment
+	// appeared could land after the whole transition had already finished and
+	// torn down, reading back zero fragments despite an earlier check having
+	// proven at least one existed moments before. Poll instead: keep
+	// re-sampling every short interval, starting immediately once the overlay
+	// is up, until more than one fragment is actually observed (what the
+	// caller's own assertion checks for), rather than betting everything on
+	// one read at a guessed instant.
 	const layers = overlay.locator('[data-pptx-transition-fragments]');
-	const keyframesNames = await layers.evaluateAll((els) =>
-		els.map((el) => el.getAttribute('data-pptx-transition-fragments') ?? ''),
-	);
 	const fragments = overlay.locator('[data-pptx-transition-fragment]');
-	const fragmentGeometry = await fragments.evaluateAll((els) =>
-		els.map((el) => {
-			const style = getComputedStyle(el as HTMLElement);
-			return `${(el as HTMLElement).style.clipPath}|${style.transformOrigin}`;
-		}),
-	);
+	let keyframesNames: string[] = [];
+	let fragmentGeometry: string[] = [];
+	const sample = async (): Promise<number> => {
+		keyframesNames = await layers.evaluateAll((els) =>
+			els.map((el) => el.getAttribute('data-pptx-transition-fragments') ?? ''),
+		);
+		fragmentGeometry = await fragments.evaluateAll((els) =>
+			els.map((el) => {
+				const style = getComputedStyle(el as HTMLElement);
+				return `${(el as HTMLElement).style.clipPath}|${style.transformOrigin}`;
+			}),
+		);
+		return fragmentGeometry.length;
+	};
+	try {
+		await expect
+			.poll(sample, { timeout: TRANSITION_SETTLE_TIMEOUT_MS, intervals: [20, 40, 80, 150] })
+			.toBeGreaterThan(1);
+	} catch {
+		// Let the caller's own assertion (with its preset-specific message)
+		// report the failure against whatever the last sample captured, rather
+		// than this helper throwing a less informative polling timeout.
+	}
 
 	await expect(await slideTitle(page, nextTitle)).toBeVisible();
 	await expect(overlay).toHaveCount(0, { timeout: TRANSITION_SETTLE_TIMEOUT_MS });
