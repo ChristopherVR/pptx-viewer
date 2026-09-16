@@ -146,6 +146,20 @@ const insertedId = ref.current?.addElement(image);
 
 此方法不会安装剪贴板监听器、请求远程 URL、决定图片尺寸或导入其他文档的关系。宿主自己的粘贴处理器可以读取图片后调用它。对于新的 data URL 图片，使用上面的工厂函数即可，不要编造 `imagePath`，因为该字段表示归档中已有的部件。
 
+#### 加载本地图片 {#image-file}
+
+此包还导出 `createImageElementFromFile(file, canvasSize, signal?)`。传入本地 `File` 或 `Blob`、以像素为单位的幻灯片尺寸，以及可选的 `AbortSignal`：
+
+```ts
+import { createImageElementFromFile } from 'pptx-react-viewer';
+
+const image = await createImageElementFromFile(file, canvasSize, signal);
+```
+
+此函数保留图片字节，返回居中且等比例缩小至幻灯片范围内的 `ImagePptxElement`，不会放大小图。图片或尺寸无效、读取或解码失败、取消操作或缺少浏览器 API 时，返回 `null`。此辅助函数只会在调用时使用浏览器 API；解码需要这些 API。
+
+它只构造元素，不会修改文档、历史记录、选择状态或剪贴板。`await` 后，必须确认仍是同一文档和当前目标幻灯片，且仍有编辑权限，然后将非空结果传给 `addElement`。放弃目标时应取消等待中的操作。仅凭幻灯片 ID 不能确认文档身份；浏览器解码成功也不保证所有图片格式在 PowerPoint 中均能正确保存并重新打开。此函数不会自动安装粘贴监听器。
+
 ### 选择 {#selection}
 
 | 方法                    | 签名                      | 说明                    |
