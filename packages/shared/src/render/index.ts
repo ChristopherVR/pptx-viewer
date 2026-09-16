@@ -503,6 +503,7 @@ export * from './element-align';
 export * from './element-interaction';
 export * from './resize-handle-hit-area';
 export * from './rotation-drag';
+export * from './rotate-handle-attachment';
 // Authored `p:gridSpacing` (EMU, from `viewProperties`) -> CSS pixel step,
 // used by snap-to-grid and the grid overlay in every binding.
 export * from './grid-spacing';

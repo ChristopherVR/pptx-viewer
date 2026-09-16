@@ -77,6 +77,7 @@ import {
 	resolveCommitTextNormAutofitShrink,
 } from './inline-edit-autofit-commit';
 import { InlineListEditorComponent } from './inline-list-editor.component';
+import { RotateHandlePlacementDirective } from './rotate-handle-placement.directive';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
 import {
@@ -189,6 +190,7 @@ function plainText(el: PptxElement): string {
 		AiChangeOverlayComponent,
 		ActiveXControlsOverlayComponent,
 		InlineListEditorComponent,
+		RotateHandlePlacementDirective,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',

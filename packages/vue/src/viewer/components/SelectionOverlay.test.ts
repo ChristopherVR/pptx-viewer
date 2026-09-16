@@ -1,8 +1,14 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
+import { attachRotateHandlePlacement } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import SelectionOverlay from './SelectionOverlay.vue';
+
+vi.mock(import('pptx-viewer-shared'), async (original) => ({
+	...(await original()),
+	attachRotateHandlePlacement: vi.fn(() => vi.fn()),
+}));
 
 function el(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -28,6 +34,34 @@ afterEach(() => {
 });
 
 describe('selectionOverlay', () => {
+	it('raises only active inline-edit chrome without changing ordinary connector layers', async () => {
+		const wrapper = mount(SelectionOverlay, {
+			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
+		});
+		expect(wrapper.classes()).not.toContain('is-inline-editing');
+		await wrapper.setProps({ inlineEditing: true });
+		expect(wrapper.classes()).toContain('is-inline-editing');
+		await wrapper.setProps({ inlineEditing: false });
+		expect(wrapper.classes()).not.toContain('is-inline-editing');
+		wrapper.unmount();
+	});
+
+	it('disposes placement when a selected control is removed', async () => {
+		const cleanup = vi.fn();
+		vi.mocked(attachRotateHandlePlacement).mockReturnValue(cleanup);
+		const wrapper = mount(SelectionOverlay, {
+			props: { elements: [el()], selectedIds: ['s1'], zoom: 1 },
+		});
+		expect(attachRotateHandlePlacement).toHaveBeenLastCalledWith(
+			wrapper.find('[data-pptx-handle-kind="rotate"]').element,
+			{ stem: wrapper.find('[data-pptx-rotate-stem]').element },
+		);
+		await wrapper.setProps({ selectedIds: [] });
+		expect(cleanup).toHaveBeenCalledOnce();
+		wrapper.unmount();
+		expect(cleanup).toHaveBeenCalledOnce();
+	});
+
 	it('renders a selection box only for selected elements', () => {
 		const wrapper = mount(SelectionOverlay, {
 			props: {

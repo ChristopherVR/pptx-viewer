@@ -97,6 +97,7 @@ export function SelectionHandleOverlay({
 			// makes those locators ambiguous (Playwright strict mode fails outright).
 			data-pptx-handle-for={element.id}
 			data-pptx-selection-handle-host='true'
+			data-export-ignore='true'
 			style={{
 				position: 'absolute',
 				left: element.x,

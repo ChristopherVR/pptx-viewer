@@ -12,7 +12,7 @@
 	 * handles / rotate knob do, so a click on empty box interior still reaches
 	 * the element beneath and drives a move gesture.
 	 */
-	import { getResizeHandleHitAreaStyle, RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
+	import { attachRotateHandlePlacement, getResizeHandleHitAreaStyle, RESIZE_HANDLE_GEOMETRY, RESIZE_HANDLES, ROTATE_STEM_PX } from 'pptx-viewer-shared';
 	import type { ResizeHandleId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -24,6 +24,9 @@
 		SelectionOverlayProps = $props();
 
 	const t = useTranslator();
+	const placeRotate = (button: HTMLElement) => ({ destroy: attachRotateHandlePlacement(button, {
+		stem: button.parentElement?.querySelector('[data-pptx-rotate-stem]'),
+	}) });
 
 	// Lock verdicts arrive decided (see `editor-selection-interactivity`); this
 	// component only chooses what to paint. A `noResize` shape draws no resize
@@ -69,10 +72,13 @@
 			style:--pptx-selection-width={`${box.width * scale}px`}
 			style:--pptx-selection-height={`${box.height * scale}px`}>
 			{#if showRotate}<div
+				data-pptx-rotate-stem
 				class="pptx-svelte-rotate-stem"
 				style={`height:${ROTATE_STEM_PX}px;top:${-ROTATE_STEM_PX}px`}
 			></div>
 			<button
+				use:placeRotate
+				data-pptx-handle-kind="rotate"
 				type="button"
 				class="pptx-svelte-rotate-knob"
 				style={`top:${-ROTATE_STEM_PX}px`}
@@ -86,6 +92,7 @@
 				style={`left:${descriptor.left * scale}px;top:${descriptor.top * scale}px;cursor:${descriptor.cursor}`}
 				data-pptx-adjust-handle
 				data-pptx-adjust-key={descriptor.key}
+				data-pptx-handle-kind="adjust"
 				aria-label={t('pptx.selectionOverlay.adjust')}
 				data-pptx-compact
 				onpointerdown={(event) => onadjustpointerdown?.(event, descriptor)}
@@ -96,10 +103,11 @@
 					class="pptx-svelte-sel-handle"
 					style={`left:${RESIZE_HANDLE_GEOMETRY[handle].fx * 100}%;top:${RESIZE_HANDLE_GEOMETRY[handle].fy * 100}%;cursor:${RESIZE_HANDLE_GEOMETRY[handle].cursor}`}
 					data-handle={handle}
+					data-pptx-handle-kind="resize"
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
 					data-pptx-compact
 					onpointerdown={(event) => onhandlepointerdown(handle, event)}
-				><span style={styleToString(getResizeHandleHitAreaStyle(handle))}></span></button>
+					><span data-pptx-handle-hit style={styleToString(getResizeHandleHitAreaStyle(handle))}></span></button>
 			{/each}{/if}
 		</div>
 	{/if}

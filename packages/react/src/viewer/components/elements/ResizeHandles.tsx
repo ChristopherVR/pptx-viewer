@@ -11,6 +11,7 @@ import type { ShapeAdjustmentHandleDescriptor } from '../../types';
 import { cn } from '../../utils';
 import { syncSelectionHandleOverlay } from '../../utils/selection-handle-overlay';
 import { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
+import { useRotateHandlePlacement } from './use-rotate-handle-placement';
 
 export { CORNER_HANDLES, EDGE_HANDLES } from './resize-handle-classes';
 
@@ -61,6 +62,7 @@ export function ResizeHandles({
 	onRotate,
 }: ResizeHandlesProps) {
 	const { t } = useTranslation();
+	const rotateRef = useRotateHandlePlacement(elementId, Boolean(onRotate));
 	const peStyle = forcePointerEvents
 		? { ...HANDLE_TOUCH_ACTION, pointerEvents: 'auto' as const }
 		: HANDLE_TOUCH_ACTION;
@@ -161,9 +163,11 @@ export function ResizeHandles({
 			{/* Corner handles: circular dots */}
 			{CORNER_HANDLES.map(({ handle, posClass, cursor }) => (
 				<button
+					data-export-ignore='true'
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
+					data-pptx-handle-kind='resize'
 					data-pptx-compact
 					className={cn('absolute z-10 group', posClass, cursor)}
 					style={resizeStyle}
@@ -177,6 +181,7 @@ export function ResizeHandles({
 					<div className='w-3 h-3 max-md:w-5.5 max-md:h-5.5 rounded-full border border-white bg-primary shadow' />
 					{/* Invisible expanded hit area */}
 					<div
+						data-pptx-handle-hit
 						className='absolute -inset-1.5 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-6px] max-md:[--pptx-handle-hit-inset:-4px]'
 						style={getResizeHandleHitAreaStyle(handle)}
 					/>
@@ -186,9 +191,11 @@ export function ResizeHandles({
 			{/* Edge midpoint handles: small rectangles */}
 			{EDGE_HANDLES.map(({ handle, posClass, cursor, sizeClass }) => (
 				<button
+					data-export-ignore='true'
 					key={handle}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.resize', { handle })}
+					data-pptx-handle-kind='resize'
 					data-pptx-compact
 					className={cn('absolute z-10', posClass, cursor)}
 					style={resizeStyle}
@@ -202,23 +209,25 @@ export function ResizeHandles({
 					<div className={cn(sizeClass, 'border border-white bg-primary shadow')} />
 					{/* Invisible expanded hit area */}
 					<div
+						data-pptx-handle-hit
 						className='absolute -inset-2 max-md:-inset-1 pointer-events-auto [--pptx-handle-hit-inset:-8px] max-md:[--pptx-handle-hit-inset:-4px]'
 						style={getResizeHandleHitAreaStyle(handle)}
 					/>
 				</button>
 			))}
 
-			{/* Rotate handle: knob straddling the top-centre edge. It overlaps the
-			    element box (bottom half inside) so it stays reliably hit-testable;
-			    children positioned entirely outside the box are not. An invisible
-			    extension enlarges the finger target without moving the visual. */}
+			{/* Rotate is separate from the North resize target. The placement hook
+			    keeps its complete pointer target inside the visible canvas. */}
 			{onRotate ? (
 				<button
+					data-export-ignore='true'
+					ref={rotateRef}
 					type='button'
 					aria-label={t('pptx.selectionOverlay.rotate')}
+					data-pptx-handle-kind='rotate'
 					data-pptx-compact
 					className='absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 z-20 flex items-center justify-center w-5 h-5 max-md:w-7 max-md:h-7 rounded-full border border-white bg-primary text-white shadow cursor-grab active:cursor-grabbing'
-					style={peStyle}
+					style={{ ...peStyle, top: 'calc(-24px * var(--pptx-handle-inverse-scale, 1))' }}
 					onPointerDown={(e) => {
 						// Keep the same subpixel coordinates as pointermove; legacy
 						// mousedown rounds them and can shift a short shape's anchor.
@@ -229,9 +238,17 @@ export function ResizeHandles({
 						e.stopPropagation();
 					}}
 				>
+					<span
+						data-pptx-rotate-stem
+						className='pointer-events-none absolute top-full left-1/2 h-3.5 max-md:h-2.5 w-px bg-primary'
+						aria-hidden='true'
+					/>
 					<LuRotateCw className='w-3 h-3 max-md:w-4 max-md:h-4' />
-					{/* Expanded invisible hit area (kept inside the element box). */}
-					<span className='absolute -inset-2 max-md:-inset-1' aria-hidden='true' />
+					<span
+						data-pptx-handle-hit
+						className='absolute -inset-2 max-md:-inset-1'
+						aria-hidden='true'
+					/>
 				</button>
 			) : null}
 
@@ -242,10 +259,12 @@ export function ResizeHandles({
 			    on the element-local point shared measured off the preset geometry. */}
 			{adjustmentHandles.map((adjH) => (
 				<button
+					data-export-ignore='true'
 					key={adjH.key}
 					type='button'
 					aria-label={t('pptx.canvas.adjustShape')}
 					data-pptx-adjust-key={adjH.key}
+					data-pptx-handle-kind='adjust'
 					data-pptx-compact
 					className='absolute h-2.5 w-2.5 max-md:h-4 max-md:w-4 rotate-45 border border-amber-700 bg-amber-300 shadow z-10'
 					style={{
