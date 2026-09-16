@@ -3,7 +3,10 @@ import type JSZip from 'jszip';
 import type { PptxSlide, XmlObject } from '../../types';
 import { BLIP_FILL_ORDER, reorderObjectKeys } from '../../utils/xml-reorder';
 import type { AuthoredSlideBackground } from '../runtime/authored-slide-background';
-import { slideBackgroundIsPurelyInherited } from '../runtime/authored-slide-background';
+import {
+	key as backgroundColorKey,
+	slideBackgroundIsPurelyInherited,
+} from '../runtime/authored-slide-background';
 import type { PptxSaveState } from './PptxSaveSessionBuilder';
 import type { IPptxSlideRelationshipRegistry } from './PptxSlideRelationshipRegistry';
 
@@ -100,6 +103,57 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 			// OOXML CT_CommonSlideData requires child order: bg, spTree, ...
 			// Reorder cSld so p:bg comes first while preserving the raw node.
 			this.reorderCSldBgFirst(cSld, existingBg!);
+			init.slideNode['p:cSld'] = cSld;
+			return;
+		}
+
+		// A slide-authored solid/pattern-fill `<p:bgPr>` (no `a:blipFill`) that
+		// has not changed on colour, gradient, or image since load: restore the
+		// snapshot of it captured at load rather than rebuilding `<a:solidFill>`
+		// from `slide.backgroundColor` alone. The flat model has nowhere to
+		// carry `a:alpha`, scheme-colour references, or pattern fills, so
+		// rebuilding on every untouched save silently dropped them (issue #288:
+		// a semi-transparent background lost its `a:alpha` the moment the deck
+		// round-tripped, even when nobody touched the background).
+		//
+		// Deliberately a SNAPSHOT (authoredBackground.rawBgPr), not the live
+		// existingBgPr read above: this.slideMap caches and reuses the same
+		// parsed slide XML object across every save in a handler session, and
+		// applyBackground mutates p:cSld in place, so a second save (e.g. after
+		// an edit was reverted) would otherwise see the FIRST save's output as
+		// 'existing', not what the file actually authored.
+		//
+		// Only a slide the loader actually parsed carries a record to compare
+		// against; an SDK-built slide with no record is never treated as
+		// 'unchanged', so a caller placing a fresh <p:bg> on a slide it built
+		// from scratch still goes through the normal build/embed path below.
+		const authoredBgPrSnapshot = init.authoredBackground?.rawBgPr;
+		const backgroundColorUnchangedFromAuthored =
+			init.authoredBackground !== undefined &&
+			backgroundColorKey(init.slide.backgroundColor) ===
+				backgroundColorKey(init.authoredBackground.color);
+		const backgroundGradientUnchangedFromAuthored =
+			init.authoredBackground !== undefined &&
+			(init.slide.backgroundGradient ?? '') === (init.authoredBackground.gradient ?? '');
+		if (
+			authoredBgPrSnapshot !== undefined &&
+			authoredBgPrSnapshot['a:blipFill'] === undefined &&
+			!hasDataUrlBackgroundImage &&
+			backgroundImageUnchangedFromAuthored &&
+			backgroundColorUnchangedFromAuthored &&
+			backgroundGradientUnchangedFromAuthored
+		) {
+			const restoredBgPr =
+				typeof structuredClone === 'function'
+					? structuredClone(authoredBgPrSnapshot)
+					: (JSON.parse(JSON.stringify(authoredBgPrSnapshot)) as XmlObject);
+			// Assign BEFORE reordering: reorderCSldBgFirst's fast path assumes
+			// cSld['p:bg'] already holds the value the caller wants and only
+			// fixes key order, so it no-ops (dropping the restored value) when
+			// p:bg happens to already be the first key, which it always is
+			// after any prior regenerate on this same cached slide XML object.
+			cSld['p:bg'] = { 'p:bgPr': restoredBgPr };
+			this.reorderCSldBgFirst(cSld, cSld['p:bg'] as XmlObject);
 			init.slideNode['p:cSld'] = cSld;
 			return;
 		}

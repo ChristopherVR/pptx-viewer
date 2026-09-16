@@ -60,6 +60,7 @@ function loaderParams(
 		enrichMediaElementsWithTiming: vi.fn(async () => {}),
 		enrichOleElementsWithEmbeddedData: vi.fn(async () => {}),
 		extractBackgroundColor: vi.fn(() => undefined),
+		extractOwnBackgroundNode: vi.fn(() => undefined),
 		getLayoutBackgroundColor: vi.fn(async () => undefined),
 		extractBackgroundGradient: vi.fn(() => undefined),
 		getLayoutBackgroundGradient: vi.fn(async () => undefined),

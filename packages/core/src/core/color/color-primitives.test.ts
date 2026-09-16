@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 
 import {
+	blendColorOntoWhite,
 	clampUnitInterval,
 	normalizeHexColor,
 	hexToRgbChannels,
@@ -126,6 +127,42 @@ describe('colorWithOpacity', () => {
 
 	it('handles zero opacity', () => {
 		expect(colorWithOpacity('#0000FF', 0)).toBe('rgba(0, 0, 255, 0)');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// blendColorOntoWhite
+// ---------------------------------------------------------------------------
+
+describe('blendColorOntoWhite', () => {
+	it('returns the original hex color when opacity is undefined', () => {
+		expect(blendColorOntoWhite('#CEE0F3', undefined)).toBe('#CEE0F3');
+	});
+
+	it('returns the original hex color when opacity is fully opaque', () => {
+		expect(blendColorOntoWhite('#CEE0F3', 1)).toBe('#CEE0F3');
+	});
+
+	it('matches the issue #288 example: a:alpha val="43211" on #CEE0F3 blends to #EAF2FA', () => {
+		// 43211 / 100000 = 0.43211; PowerPoint composites the fill over white.
+		expect(blendColorOntoWhite('#CEE0F3', 0.43211)).toBe('#EAF2FA');
+	});
+
+	it('blends toward white as opacity decreases', () => {
+		expect(blendColorOntoWhite('#FF0000', 0.5)).toBe('#FF8080');
+		expect(blendColorOntoWhite('#FF0000', 0)).toBe('#FFFFFF');
+	});
+
+	it('clamps opacity above 1 to fully opaque (no blend)', () => {
+		expect(blendColorOntoWhite('#CEE0F3', 1.5)).toBe('#CEE0F3');
+	});
+
+	it('clamps opacity below 0 to fully transparent (white)', () => {
+		expect(blendColorOntoWhite('#123456', -0.5)).toBe('#FFFFFF');
+	});
+
+	it('returns the original color when hex is invalid', () => {
+		expect(blendColorOntoWhite('notahex', 0.5)).toBe('notahex');
 	});
 });
 

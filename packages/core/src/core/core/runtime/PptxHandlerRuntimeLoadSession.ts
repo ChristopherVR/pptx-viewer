@@ -453,6 +453,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			enrichOleElementsWithEmbeddedData: (elements, slidePath) =>
 				this.enrichOleElementsWithEmbeddedData(elements, slidePath),
 			extractBackgroundColor: (slideXml) => this.extractBackgroundColor(slideXml),
+			extractOwnBackgroundNode: (slideXml) => this.extractOwnBackgroundNode(slideXml),
 			getLayoutBackgroundColor: (slidePath) => this.getLayoutBackgroundColor(slidePath),
 			extractBackgroundGradient: (slideXml) => this.extractBackgroundGradient(slideXml),
 			getLayoutBackgroundGradient: (slidePath) => this.getLayoutBackgroundGradient(slidePath),

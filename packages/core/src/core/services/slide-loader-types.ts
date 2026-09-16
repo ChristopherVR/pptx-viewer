@@ -125,6 +125,13 @@ export interface PptxSlideLoaderParams {
 	enrichOleElementsWithEmbeddedData: (elements: PptxElement[], slidePath: string) => Promise<void>;
 	/** Extract solid background color from slide XML. */
 	extractBackgroundColor: (slideXml: XmlObject) => string | undefined;
+	/**
+	 * A deep-cloned snapshot of the slide's own `<p:bgPr>` (undefined when the
+	 * slide authored no `p:bg`, or authored one with no `p:bgPr`), kept so a
+	 * later save can restore it verbatim when nothing about the background
+	 * changed. See {@link AuthoredSlideBackground.rawBgPr}.
+	 */
+	extractOwnBackgroundNode: (slideXml: XmlObject) => XmlObject | undefined;
 	/** Get background color from the slide's layout (fallback). */
 	getLayoutBackgroundColor: (slidePath: string) => Promise<string | undefined>;
 	/** Extract gradient background CSS from slide XML. */

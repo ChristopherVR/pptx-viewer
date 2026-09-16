@@ -1,22 +1,51 @@
 import { describe, it, expect } from 'vitest';
 
+import { blendColorOntoWhite } from '../../color/color-primitives';
+
 // Since extractBackgroundColor is a protected method on a deeply chained mixin,
 // we extract its pure-logic portion and test it directly.
-// The method delegates to this.parseColor() for actual colour resolution,
-// so we test the structural XML navigation and fallback logic.
+// The method delegates to this.parseColor() / this.extractColorOpacity() for
+// actual colour/opacity resolution, so we test the structural XML navigation,
+// alpha-blending, and fallback logic. `blendColorOntoWhite` itself is the real
+// implementation from `color-primitives.ts` (its own unit coverage lives in
+// `color-primitives.test.ts`), so this file exercises the real blend maths as
+// wired into the background-resolution structure.
 
-// --- Minimal parseColor stub: returns hex from a:srgbClr ---
+// --- Minimal scheme-colour resolver stub used only by the schemeClr test ---
+const THEME_COLORS: Record<string, string> = { accent1: '4472C4' };
+
+// --- Minimal parseColor stub: returns hex from a:srgbClr / a:schemeClr ---
 function parseColor(node: Record<string, unknown> | undefined): string | undefined {
 	if (!node) {
 		return undefined;
 	}
-	const solidFill = node as Record<string, unknown>;
-	const srgb = solidFill['a:srgbClr'] as Record<string, unknown> | undefined;
+	const srgb = node['a:srgbClr'] as Record<string, unknown> | undefined;
 	if (srgb) {
 		const val = String(srgb['@_val'] || '').trim();
 		return val.length > 0 ? `#${val}` : undefined;
 	}
+	const scheme = node['a:schemeClr'] as Record<string, unknown> | undefined;
+	if (scheme) {
+		const val = String(scheme['@_val'] || '').trim();
+		return THEME_COLORS[val] ? `#${THEME_COLORS[val]}` : undefined;
+	}
 	return undefined;
+}
+
+// --- Minimal extractColorOpacity stub: reads a:alpha/@_val (thousandths of a percent) ---
+function extractColorOpacity(node: Record<string, unknown> | undefined): number | undefined {
+	if (!node) {
+		return undefined;
+	}
+	const choice =
+		(node['a:srgbClr'] as Record<string, unknown> | undefined) ??
+		(node['a:schemeClr'] as Record<string, unknown> | undefined);
+	const alpha = choice?.['a:alpha'] as Record<string, unknown> | undefined;
+	if (!alpha) {
+		return undefined;
+	}
+	const raw = Number.parseInt(String(alpha['@_val'] ?? ''), 10);
+	return Number.isFinite(raw) ? Math.min(1, Math.max(0, raw / 100000)) : undefined;
 }
 
 // --- Extracted from extractBackgroundColor ---
@@ -38,18 +67,21 @@ function extractBackgroundColor(
 		if (bgPr) {
 			const solidFill = bgPr['a:solidFill'] as Record<string, unknown> | undefined;
 			if (solidFill) {
-				return parseColor(solidFill);
+				const color = parseColor(solidFill);
+				return color ? blendColorOntoWhite(color, extractColorOpacity(solidFill)) : color;
 			}
 			// Pattern fill foreground colour as fallback
 			const pattFill = bgPr['a:pattFill'] as Record<string, unknown> | undefined;
 			if (pattFill) {
-				const fgClr = parseColor(pattFill['a:fgClr'] as Record<string, unknown> | undefined);
+				const fgClrNode = pattFill['a:fgClr'] as Record<string, unknown> | undefined;
+				const fgClr = parseColor(fgClrNode);
 				if (fgClr) {
-					return fgClr;
+					return blendColorOntoWhite(fgClr, extractColorOpacity(fgClrNode));
 				}
-				const bgClr = parseColor(pattFill['a:bgClr'] as Record<string, unknown> | undefined);
+				const bgClrNode = pattFill['a:bgClr'] as Record<string, unknown> | undefined;
+				const bgClr = parseColor(bgClrNode);
 				if (bgClr) {
-					return bgClr;
+					return blendColorOntoWhite(bgClr, extractColorOpacity(bgClrNode));
 				}
 			}
 		}
@@ -59,11 +91,12 @@ function extractBackgroundColor(
 		if (bgRef) {
 			const solidFill = bgRef['a:solidFill'] as Record<string, unknown> | undefined;
 			if (solidFill) {
-				return parseColor(solidFill);
+				const color = parseColor(solidFill);
+				return color ? blendColorOntoWhite(color, extractColorOpacity(solidFill)) : color;
 			}
 			const refColor = parseColor(bgRef);
 			if (refColor) {
-				return refColor;
+				return blendColorOntoWhite(refColor, extractColorOpacity(bgRef));
 			}
 			return '#FFFFFF';
 		}
@@ -246,6 +279,90 @@ describe('extractBackgroundColor', () => {
 			},
 		});
 		expect(result).toBeUndefined();
+	});
+
+	// -------------------------------------------------------------------------
+	// Issue #288: a:alpha on a background a:solidFill was ignored, rendering a
+	// semi-transparent background fully opaque.
+	// -------------------------------------------------------------------------
+
+	it('blends a:alpha onto white for a solid fill background (issue #288)', () => {
+		const result = extractBackgroundColor({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:solidFill': {
+								'a:srgbClr': {
+									'@_val': 'CEE0F3',
+									'a:alpha': { '@_val': '43211' },
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+		// PowerPoint composites the semi-transparent fill over white; COM/manual
+		// verification (see the issue) puts the rendered colour at #EAF2FA.
+		expect(result).toBe('#EAF2FA');
+	});
+
+	it('leaves the colour unchanged when the solid fill has no a:alpha', () => {
+		const result = extractBackgroundColor({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:solidFill': {
+								'a:srgbClr': { '@_val': 'CEE0F3' },
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result).toBe('#CEE0F3');
+	});
+
+	it('leaves the colour unchanged when a:alpha is 100000 (fully opaque)', () => {
+		const result = extractBackgroundColor({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:solidFill': {
+								'a:srgbClr': {
+									'@_val': 'CEE0F3',
+									'a:alpha': { '@_val': '100000' },
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result).toBe('#CEE0F3');
+	});
+
+	it('blends a:alpha onto white for a scheme colour background', () => {
+		const result = extractBackgroundColor({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:solidFill': {
+								'a:schemeClr': {
+									'@_val': 'accent1',
+									'a:alpha': { '@_val': '50000' },
+								},
+							},
+						},
+					},
+				},
+			},
+		});
+		expect(result).toBe(blendColorOntoWhite('#4472C4', 0.5));
 	});
 });
 

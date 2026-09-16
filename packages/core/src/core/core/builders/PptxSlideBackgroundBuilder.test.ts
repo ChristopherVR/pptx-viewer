@@ -402,6 +402,156 @@ describe('pptxSlideBackgroundBuilder', () => {
 		expect((bgPr['a:blipFill'] as XmlObject)['a:blip']).toStrictEqual({ '@_r:embed': 'rId4' });
 	});
 
+	// ── Untouched solid/pattern background round-trip (issue #288) ────────
+
+	it('preserves a:alpha on an untouched solid-fill background across save', async () => {
+		// The loader blends a:alpha onto white before it ever reaches
+		// slide.backgroundColor (see PptxHandlerRuntimeBackgroundParsing), so an
+		// unedited slide's model colour is the BLENDED value, not the raw
+		// srgbClr. Rebuilding a:solidFill from that blended value alone would
+		// silently drop a:alpha on every save of an untouched slide.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:solidFill': {
+					'a:srgbClr': { '@_val': 'CEE0F3', 'a:alpha': { '@_val': '43211' } },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = {
+			...createInput({ backgroundColor: '#EAF2FA' }, slideNode),
+			authoredBackground: {
+				authored: true,
+				color: '#EAF2FA',
+				rawBgPr: originalBg['p:bgPr'] as XmlObject,
+			},
+		};
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		const solidFill = bgPr['a:solidFill'] as XmlObject;
+		const srgbClr = solidFill['a:srgbClr'] as XmlObject;
+		expect(srgbClr['@_val']).toBe('CEE0F3');
+		expect((srgbClr['a:alpha'] as XmlObject)['@_val']).toBe('43211');
+	});
+
+	it('preserves a:alpha across a save that reverts an earlier, already-applied colour change', async () => {
+		// Regression: PptxSlideBackgroundBuilder mutates slideNode['p:cSld'] in
+		// place, and the SAME parsed slide XML object is reused across every
+		// save in one handler session (this.slideMap). A prior save that
+		// changed the colour must not leave stale state that a later "revert"
+		// save mistakes for the untouched original: the restore must come from
+		// the immutable authoredBackground.rawBgPr snapshot, not from
+		// whatever p:cSld/p:bg currently holds.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:solidFill': {
+					'a:srgbClr': { '@_val': 'CEE0F3', 'a:alpha': { '@_val': '43211' } },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const authoredBackground = {
+			authored: true,
+			color: '#EAF2FA',
+			rawBgPr: originalBg['p:bgPr'] as XmlObject,
+		};
+
+		// First save: an actual colour change, mutates slideNode in place.
+		await builder.applyBackground({
+			...createInput({ backgroundColor: '#112233' }, slideNode),
+			authoredBackground,
+		});
+		const changedSolidFill = (
+			((slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
+		)['a:solidFill'] as XmlObject;
+		expect(changedSolidFill['a:srgbClr']).toStrictEqual({ '@_val': '112233' });
+
+		// Second save on the SAME slideNode: reverted back to the loaded colour.
+		await builder.applyBackground({
+			...createInput({ backgroundColor: '#EAF2FA' }, slideNode),
+			authoredBackground,
+		});
+		const revertedSolidFill = (
+			((slideNode['p:cSld'] as XmlObject)['p:bg'] as XmlObject)['p:bgPr'] as XmlObject
+		)['a:solidFill'] as XmlObject;
+		const revertedSrgbClr = revertedSolidFill['a:srgbClr'] as XmlObject;
+		expect(revertedSrgbClr['@_val']).toBe('CEE0F3');
+		expect((revertedSrgbClr['a:alpha'] as XmlObject)['@_val']).toBe('43211');
+	});
+
+	it('regenerates a plain solid fill (dropping alpha) when the colour actually changed', async () => {
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:solidFill': {
+					'a:srgbClr': { '@_val': 'CEE0F3', 'a:alpha': { '@_val': '43211' } },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = {
+			...createInput({ backgroundColor: '#112233' }, slideNode),
+			authoredBackground: {
+				authored: true,
+				color: '#EAF2FA',
+				rawBgPr: originalBg['p:bgPr'] as XmlObject,
+			},
+		};
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		const solidFill = bgPr['a:solidFill'] as XmlObject;
+		expect(solidFill['a:srgbClr']).toStrictEqual({ '@_val': '112233' });
+	});
+
+	it('does not preserve a solid fill verbatim when there is no authored-background record', async () => {
+		// Slides this handler never parsed (SDK-built decks) carry no origin
+		// record; treating "no record" as "unchanged" would let a caller's
+		// freshly assembled p:bg node go unexamined.
+		const originalBg: XmlObject = {
+			'p:bgPr': {
+				'a:solidFill': {
+					'a:srgbClr': { '@_val': 'CEE0F3', 'a:alpha': { '@_val': '43211' } },
+				},
+				'a:effectLst': {},
+			},
+		};
+		const slideNode: XmlObject = {
+			'p:cSld': {
+				'p:bg': originalBg,
+				'p:spTree': { 'p:sp': [] },
+			},
+		};
+		const input = createInput({ backgroundColor: '#EAF2FA' }, slideNode);
+		await builder.applyBackground(input);
+
+		const cSld = slideNode['p:cSld'] as XmlObject;
+		const bgPr = (cSld['p:bg'] as XmlObject)['p:bgPr'] as XmlObject;
+		const solidFill = bgPr['a:solidFill'] as XmlObject;
+		// Regenerated from the flat model colour, so the alpha node is gone.
+		expect(solidFill['a:srgbClr']).toStrictEqual({ '@_val': 'EAF2FA' });
+	});
+
 	// ── Schema child order ────────────────────────────────────────────────
 
 	it('places p:bg before p:spTree in p:cSld when adding a background', async () => {

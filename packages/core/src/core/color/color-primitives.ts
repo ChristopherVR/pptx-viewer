@@ -84,6 +84,41 @@ export function colorWithOpacity(color: string, opacity: number | undefined): st
 	return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${clampUnitInterval(opacity)})`;
 }
 
+/**
+ * Composite a colour with the given opacity onto an opaque white backdrop,
+ * returning a flat `#RRGGBB` hex colour rather than an `rgba()` string.
+ *
+ * PowerPoint has no "page behind the page": a semi-transparent slide/layout/
+ * master background is always shown against white, so `a:alpha` on a
+ * background `a:solidFill` is not really transparency in the rendered deck,
+ * it is a recipe for a flatter colour. `slide.backgroundColor` (and the
+ * layout/master equivalents) is a single flat value painted behind every
+ * binding's stage, which can itself sit on a white canvas, a dark
+ * presentation-mode backdrop, or a thumbnail strip; emitting `rgba()` there
+ * would let alpha show through those different backdrops, which PowerPoint
+ * never does. Blending onto white once, here, keeps the value a plain hex
+ * colour that renders identically everywhere. See issue #288.
+ *
+ * @param color - A `#RRGGBB` hex colour string.
+ * @param opacity - Opacity in [0, 1]. `undefined` or `>= 1` returns `color` unchanged (nothing to blend).
+ * @returns The blended `#RRGGBB` hex colour, or `color` unchanged when there is nothing to blend.
+ */
+export function blendColorOntoWhite(color: string, opacity: number | undefined): string {
+	if (opacity === undefined) {
+		return color;
+	}
+	const clamped = clampUnitInterval(opacity);
+	if (clamped >= 1) {
+		return color;
+	}
+	const rgb = hexToRgbChannels(color);
+	if (!rgb) {
+		return color;
+	}
+	const blendChannel = (channel: number): string => toHex(channel * clamped + 255 * (1 - clamped));
+	return `#${blendChannel(rgb.r)}${blendChannel(rgb.g)}${blendChannel(rgb.b)}`;
+}
+
 // ---------------------------------------------------------------------------
 // Drawing‑percent helper (OpenXML uses 100 000 = 100 %)
 // ---------------------------------------------------------------------------

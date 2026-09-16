@@ -36,6 +36,8 @@
  * @see authored-run-style.ts - the run-scope twin.
  */
 
+import type { XmlObject } from '../../types';
+
 /** What one slide authored, and what it would inherit if it authored nothing. */
 export interface AuthoredSlideBackground {
 	/** True when the slide's own `p:sld/p:cSld/p:bg` produced any of these. */
@@ -44,12 +46,31 @@ export interface AuthoredSlideBackground {
 	color?: string | undefined;
 	gradient?: string | undefined;
 	image?: string | undefined;
+	/**
+	 * A deep-cloned snapshot of the slide's own `<p:bgPr>` exactly as parsed at
+	 * load, when it authored one. `color` above is the flattened, alpha-blended
+	 * value put on the model (issue #288); this is the source XML that value
+	 * was derived from, kept so the save writer can restore it verbatim
+	 * (`a:alpha`, scheme-colour references, pattern fills, …) instead of
+	 * rebuilding `<a:solidFill>` from the flat colour alone when nothing about
+	 * the background changed. A snapshot, not a live reference: the same
+	 * parsed slide XML object is reused and mutated across repeated saves in
+	 * one handler session, so reading `p:cSld/p:bg` live at save time can see
+	 * an earlier save's output rather than what was actually authored.
+	 */
+	rawBgPr?: XmlObject | undefined;
 }
 
 const originsByRuntime = new WeakMap<object, Map<string, AuthoredSlideBackground>>();
 
-/** Case- and `#`-insensitive comparison key for a colour. */
-function key(value: string | undefined): string {
+/**
+ * Case- and `#`-insensitive comparison key for a colour. Exported so the
+ * slide-level background writer ({@link PptxSlideBackgroundBuilder}) can use
+ * the same "did this actually change" comparison to decide whether to
+ * preserve a solid/pattern-fill `<p:bgPr>` verbatim (keeping `a:alpha` and
+ * other detail the flat model does not carry) instead of regenerating it.
+ */
+export function key(value: string | undefined): string {
 	return value === undefined ? '' : value.trim().replace(/^#/, '').toUpperCase();
 }
 
