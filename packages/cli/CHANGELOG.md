@@ -7,6 +7,24 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.0) - 2026-09-16
+
+### Features
+
+- Expose slide-transition helpers from every binding's internals entry (by @ChristopherVR) ([d232ffb](https://github.com/ChristopherVR/pptx-viewer/commit/d232ffba626b4088c2ee7f3acbb5cfa00452490d))
+
+### Bug Fixes
+
+- **shared:** Apply picture alphaModFix once, not filter times opacity (by @ChristopherVR) ([3fd154b](https://github.com/ChristopherVR/pptx-viewer/commit/3fd154bda6958725bda279f81c001a99f55bd485))
+- **shared:** Stop padding the painted element box to MIN_ELEMENT_SIZE (by @ChristopherVR) ([4caef83](https://github.com/ChristopherVR/pptx-viewer/commit/4caef831004ff52da1fa816970226567e7e2bef9))
+- Render the degenerate-shape hit target for every element type (by @ChristopherVR) ([49a15a4](https://github.com/ChristopherVR/pptx-viewer/commit/49a15a40cf612ae8cbb51b9e4ceeb20e644b4936))
+- **react:** Stop rotating a shape from silently opening its text editor (by @ChristopherVR) ([bec4af2](https://github.com/ChristopherVR/pptx-viewer/commit/bec4af25cbf71119084e301472ea3553e29f9502))
+- **react:** Stop inflating a degenerate connector's wrapper box (by @ChristopherVR) ([1d0b39c](https://github.com/ChristopherVR/pptx-viewer/commit/1d0b39ced8762ca471b072d1a7534437e27f5e5b))
+
+### Refactor
+
+- **react:** Drop the unused image alpha filter duplicates (by @ChristopherVR) ([5572f51](https://github.com/ChristopherVR/pptx-viewer/commit/5572f511d1a96409cf5b8c6fdd19a3714a164e1e))
+
 ## [2.18.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.18.0) - 2026-09-16
 
 ### Features
