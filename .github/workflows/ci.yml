@@ -379,9 +379,17 @@ jobs:
   #
   # ribbon-tab-parity.spec.ts opens the React reference plus the binding owned
   # by each project so every framework retains the same no-wrap comparison.
-  # `--workers=2` avoids saturating the single dev server per leg (observed
-  # spurious timeouts/HMR contention with the default higher worker count
-  # against one Vite dev server).
+  # `--workers=1` (was 2, dropped 2026-09-17): 2 workers avoided saturating
+  # the single dev server per leg (spurious timeouts/HMR contention with the
+  # default higher worker count), but still let two heavy tests run at once,
+  # e.g. `export-raster-tiling.spec.ts`'s video/GIF-encoding tests landing in
+  # the same shard as another export-heavy file. On the CI runner (not
+  # reproducible locally, where the same shard passes in 3.6 minutes at
+  # workers=2) that concurrent pair reliably killed the vue/svelte/vanilla
+  # runner mid-job with "the runner has received a shutdown signal" - 3/3 on
+  # shard 4/12, never on react/angular. Serial execution is slower per shard
+  # but every observed shard still finishes in single-digit minutes, well
+  # under the 25-minute ceiling.
   #
   # The matrix comes from `scope`, which also decides whether this job runs at
   # all: Playwright is skipped for fork pull requests (add the `full-ci` label to
@@ -477,7 +485,7 @@ jobs:
         run: bun run e2e:install
 
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/12)
-        run: bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/12 --workers=2 --reporter=list,html,github
+        run: bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/12 --workers=1 --reporter=list,html,github
 
       # Failures used to be visible only by downloading an artifact, which meant
       # nobody looked. Put the failing spec names in the run summary instead.
