@@ -292,14 +292,14 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 		const scale = effectiveScaleFor(pageSize);
 		chrome.stageWrap.style.width = `${pageSize.width * scale}px`;
 		chrome.stageWrap.style.height = `${pageSize.height * scale}px`;
-		// A live list owns native selection/history. Repaint its model underneath
+		// A live editor owns native selection/history. Repaint its model underneath
 		// the existing overlay without detaching (or re-appending) that surface.
 		const liveOverlay =
 			hasContent && state.editable && !state.presenting && !state.loading
 				? Array.from(chrome.stageWrap.children).find(
 						(node) =>
 							node.classList.contains('pptxv-editor-overlay') &&
-							node.querySelector('[data-pptx-list-session]'),
+							node.querySelector('[data-inline-editor]'),
 					)
 				: undefined;
 		if (liveOverlay) {
