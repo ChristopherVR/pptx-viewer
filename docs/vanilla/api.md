@@ -256,24 +256,25 @@ The shared data surface for hosts that build their own UI. Slide getters return 
 `PptxSlide[]` / `PptxElement[]` model as read-only snapshots; mutations only flow back through the
 manipulation methods (which participate in undo/redo and fire `onChange`).
 
-| Method                  | Signature                                                              | Description                                                      |
-| ----------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `getSlides`             | `() => readonly PptxSlide[]`                                           | The full slide array.                                            |
-| `getSlide`              | `(index: number) => PptxSlide \| undefined`                            | One slide by zero-based index.                                   |
-| `getActiveSlide`        | `() => PptxSlide \| undefined`                                         | The currently active slide.                                      |
-| `addSlide`              | `(afterIndex?: number) => void`                                        | Add a blank slide after the given index (default: at the end).   |
-| `deleteSlides`          | `(indexes: number[]) => void`                                          | Delete slides at the given indexes (at least one slide is kept). |
-| `duplicateSlides`       | `(indexes: number[]) => void`                                          | Duplicate slides at the given indexes.                           |
-| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                         | Move a slide to a new position.                                  |
-| `toggleHideSlides`      | `(indexes: number[]) => void`                                          | Toggle the hidden flag on slides.                                |
-| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                      | Elements on a slide (default: active slide).                     |
-| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined` | One element by id.                                               |
-| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`           | Patch element properties (e.g. `{ x: 100, width: 300 }`).        |
-| `deleteElements`        | `(elementIds: string[]) => void`                                       | Delete elements by id from the active slide.                     |
-| `duplicateElement`      | `(elementId: string) => string \| undefined`                           | Duplicate an element; returns the new element's id.              |
-| `getSelectedElementIds` | `() => string[]`                                                       | Ids of the currently selected elements.                          |
-| `selectElements`        | `(ids: string[]) => void`                                              | Programmatically select elements.                                |
-| `clearSelection`        | `() => void`                                                           | Clear the selection.                                             |
+| Method                  | Signature                                                                              | Description                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| `getSlides`             | `() => readonly PptxSlide[]`                                                           | The full slide array.                                                            |
+| `getSlide`              | `(index: number) => PptxSlide \| undefined`                                            | One slide by zero-based index.                                                   |
+| `getActiveSlide`        | `() => PptxSlide \| undefined`                                                         | The currently active slide.                                                      |
+| `addSlide`              | `(afterIndex?: number) => void`                                                        | Add a blank slide after the given index (default: at the end).                   |
+| `deleteSlides`          | `(indexes: number[]) => void`                                                          | Delete slides at the given indexes (at least one slide is kept).                 |
+| `duplicateSlides`       | `(indexes: number[]) => void`                                                          | Duplicate slides at the given indexes.                                           |
+| `moveSlide`             | `(fromIndex: number, toIndex: number) => void`                                         | Move a slide to a new position.                                                  |
+| `toggleHideSlides`      | `(indexes: number[]) => void`                                                          | Toggle the hidden flag on slides.                                                |
+| `getElements`           | `(slideIndex?: number) => readonly PptxElement[]`                                      | Elements on a slide (default: active slide).                                     |
+| `getElementById`        | `(elementId: string, slideIndex?: number) => PptxElement \| undefined`                 | One element by id.                                                               |
+| `updateElement`         | `(elementId: string, updates: Partial<PptxElement>) => void`                           | Patch element properties (e.g. `{ x: 100, width: 300 }`).                        |
+| `updateElements`        | `(updates: readonly ElementUpdate[], options?: ElementUpdateOptions) => Promise<void>` | [Update elements across slides in one undo step](/guide/element-update-batches). |
+| `deleteElements`        | `(elementIds: string[]) => void`                                                       | Delete elements by id from the active slide.                                     |
+| `duplicateElement`      | `(elementId: string) => string \| undefined`                                           | Duplicate an element; returns the new element's id.                              |
+| `getSelectedElementIds` | `() => string[]`                                                                       | Ids of the currently selected elements.                                          |
+| `selectElements`        | `(ids: string[]) => void`                                                              | Programmatically select elements.                                                |
+| `clearSelection`        | `() => void`                                                                           | Clear the selection.                                                             |
 
 ## Inserting an element {#add-element}
 

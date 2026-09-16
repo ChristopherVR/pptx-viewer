@@ -258,6 +258,7 @@ export function useElementDrag(input: UseElementDragInput) {
 
 	return {
 		...snap,
+		hasActivePointerInteraction: () => elementDragController.isActive(),
 		startElementDrag,
 		onTransformStart,
 		onTransform,

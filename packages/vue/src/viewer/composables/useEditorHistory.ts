@@ -56,7 +56,7 @@ export interface EditorHistoryResult {
 	 * Snapshot the current `slides.value` onto the undo stack and clear the redo
 	 * stack. Call this immediately **before** committing a mutating change.
 	 */
-	pushHistory: () => void;
+	pushHistory: (label?: string) => void;
 	/** Revert to the previous snapshot, pushing the current state onto redo. */
 	undo: () => void;
 	/** Re-apply the next snapshot, pushing the current state back onto undo. */
@@ -149,8 +149,8 @@ export function useEditorHistory(
 		return stack.canRedo;
 	});
 
-	const pushHistory = (): void => {
-		stack.record(snapshot(), '');
+	const pushHistory = (label = ''): void => {
+		stack.record(snapshot(), label);
 		bump();
 	};
 

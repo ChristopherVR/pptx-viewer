@@ -119,7 +119,7 @@ function adjustDescriptorsFor(id: string): ShapeAdjustmentHandleDescriptor[] {
 	return el ? getShapeAdjustmentHandleDescriptors(el) : [];
 }
 
-const { beginGesture, beginAdjust } = useSelectionGesture({
+const { beginGesture, beginAdjust, hasActivePointerInteraction } = useSelectionGesture({
 	zoom: () => props.zoom,
 	boxForId,
 	elementForId,
@@ -142,6 +142,7 @@ const rotateKnobStyle = (box: SelectedBox): Record<string, string> =>
 	rotateKnobStyleFor(box, props.zoom);
 const adjustHandleStyle = (descriptor: ShapeAdjustmentHandleDescriptor): Record<string, string> =>
 	adjustHandleStyleFor(descriptor);
+defineExpose({ hasActivePointerInteraction });
 </script>
 
 <template>

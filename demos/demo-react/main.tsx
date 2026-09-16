@@ -1,3 +1,4 @@
+import type { PowerPointViewerHandle } from 'pptx-react-viewer';
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s per hook/handler, several separated
    by comments or guard clauses); merging them isn't a style choice here. */
@@ -32,6 +33,7 @@ import {
 	listAutosaveSnapshots,
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
+import { installDevViewerHandle } from '../dev-viewer-handle';
 import { useDemoAiConfig } from './ai-config';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
@@ -915,6 +917,8 @@ function App() {
 	);
 
 	const fileInputRef = useRef<HTMLInputElement>(null);
+	const viewerRef = useRef<PowerPointViewerHandle>(null);
+	useEffect(() => installDevViewerHandle(() => viewerRef.current, import.meta.env.DEV), []);
 
 	/** Open the native picker from the explicit Browse control. */
 	const openFilePicker = useCallback(() => {
@@ -945,6 +949,7 @@ function App() {
 				    explicit interval is a host policy that outranks the File > Options
 				    AutoRecover cadence the viewer otherwise follows (2 minutes). */}
 				<PowerPointViewer
+					ref={viewerRef}
 					content={content}
 					fileName={fileName}
 					filePath={fileName}

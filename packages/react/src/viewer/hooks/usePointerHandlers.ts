@@ -97,9 +97,11 @@ export function usePointerHandlers(input: UsePointerHandlersInput): void {
 
 		document.addEventListener('pointermove', handlePointerMove);
 		document.addEventListener('pointerup', handlePointerUp);
+		document.addEventListener('pointercancel', handlePointerUp);
 		return () => {
 			document.removeEventListener('pointermove', handlePointerMove);
 			document.removeEventListener('pointerup', handlePointerUp);
+			document.removeEventListener('pointercancel', handlePointerUp);
 			if (tracker.rafId !== 0) {
 				cancelAnimationFrame(tracker.rafId);
 			}

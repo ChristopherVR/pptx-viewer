@@ -120,6 +120,7 @@ const liveStrokeView = computed<InkStrokeView | null>(() =>
 		tool: props.tool === 'freeform' ? 'freeform' : isHighlighter.value ? 'highlighter' : 'pen',
 	}),
 );
+defineExpose({ hasActivePointerInteraction: () => drawing.value });
 </script>
 
 <template>
@@ -133,6 +134,7 @@ const liveStrokeView = computed<InkStrokeView | null>(() =>
 		@pointerdown="onDown"
 		@pointermove="onMove"
 		@pointerup="onUp"
+		@pointercancel="onUp"
 		@pointerleave="onUp"
 	>
 		<!--

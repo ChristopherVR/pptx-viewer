@@ -330,6 +330,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getMode: () => derived.viewerMode,
 		canEdit: () => getEditable() && !editorUi.readOnlyRec.locked,
 		isLoaded: () => !loader.loading && !loader.error,
+		hasActivePointerInteraction: () => editorUi.controller.hasActivePointerInteraction(),
 		commitPendingText: () =>
 			options.getRootEl()?.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
 		toggleFullscreen: presentationCluster.onFullscreenToggle,

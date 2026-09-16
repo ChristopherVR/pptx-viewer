@@ -123,6 +123,8 @@ export interface ViewerCoreState extends InlineEditingState {
 	/** The ordered array of all slides in the presentation. */
 	slides: PptxSlide[];
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
+	/** Latest logical deck, including edits queued before an explicit batch. */
+	slidesRef: React.MutableRefObject<PptxSlide[]>;
 	/** Layout/master placeholder elements keyed by slide id, used for template rendering. */
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setTemplateElementsBySlideId: React.Dispatch<React.SetStateAction<Record<string, PptxElement[]>>>;

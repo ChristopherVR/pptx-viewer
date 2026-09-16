@@ -109,6 +109,7 @@ function handleStyle(handle: { kind: ConnectorEndpointKind; x: number; y: number
 		transform: `translate(-50%, -50%) scale(${inverseZoom.value})`,
 	};
 }
+defineExpose({ hasActivePointerInteraction: () => drag.value !== null });
 </script>
 
 <template>

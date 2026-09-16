@@ -182,6 +182,7 @@ export function createSelectionGestureController(deps: SelectionGestureDeps) {
 			attach();
 			return true;
 		},
+		isActive: () => active !== null,
 		dispose(): void {
 			detach();
 			active = null;

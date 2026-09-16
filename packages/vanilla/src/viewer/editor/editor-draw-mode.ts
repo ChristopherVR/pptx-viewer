@@ -38,6 +38,7 @@ export interface DrawModeDeps {
 }
 
 export interface DrawModeController {
+	isActive(): boolean;
 	/** Routes to the drawing gesture controller or the normal `interactions`. */
 	onStagePointerDown(event: PointerEvent): void;
 	/** Suppresses inline-edit while drawing; otherwise routes to `interactions`. */
@@ -92,6 +93,7 @@ export function createDrawModeController(deps: DrawModeDeps): DrawModeController
 		state.editable && !state.presenting && state.drawTool !== 'select';
 
 	return {
+		isActive: () => drawGestures.isActive(),
 		onStagePointerDown(event) {
 			if (drawingActive(store.get())) {
 				drawGestures.onStagePointerDown(event);
