@@ -177,18 +177,22 @@ test.describe('raster export fidelity: foreignObject vs html2canvas vs on-screen
 		);
 
 		// The new path must not regress vs the documented fallback: it should
-		// disagree with the live render no more than html2canvas does. Known
-		// gap (2026-09-11, measured on a clean checkout, network state
-		// irrelevant): the harness injects a large explicit CSS perspective
-		// transform, which the foreignObject path rasterises worse than
-		// html2canvas (diffPixelFraction 0.1798 vs 0.1479 on
-		// fidelity-showcase). The allowance pins that measured gap so a further
-		// regression still fails; see the "Raster export of large CSS 3-D
-		// transforms" limitation row.
-		const KNOWN_LARGE_TRANSFORM_GAP = 0.05;
+		// disagree with the live render no more than html2canvas does. A gap was
+		// measured here once (2026-09-11: diffPixelFraction 0.1798 vs
+		// html2canvas's 0.1479 on fidelity-showcase, attributed to Chromium
+		// decoding an injected large CSS perspective transform from the SVG
+		// image at lower quality) and pinned with a 0.05 allowance. That gap is
+		// gone as of the SVG-namespace serialization fix (1e3fdaf5b,
+		// 2026-09-15): `buildForeignObjectSvgBody` now serializes the cloned
+		// subtree with `XMLSerializer` instead of `outerHTML`, and the malformed
+		// nested-SVG markup the old HTML serialization produced was almost
+		// certainly what Chromium's decoder choked on. Re-measured 2026-09-16 on
+		// this checkout (react project): foreignObject 0.0091 vs html2canvas's
+		// 0.1752. Restored to the original small allowance so a real regression
+		// still fails.
 		expect(
 			foreignObjectVsScreen.diffPixelFraction,
 			'foreignObject must not be a worse match to the live render than html2canvas is',
-		).toBeLessThanOrEqual(html2canvasVsScreen.diffPixelFraction + KNOWN_LARGE_TRANSFORM_GAP);
+		).toBeLessThanOrEqual(html2canvasVsScreen.diffPixelFraction + 0.02);
 	});
 });
