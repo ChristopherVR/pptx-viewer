@@ -502,6 +502,7 @@ export * from './element';
 export * from './element-align';
 export * from './element-interaction';
 export * from './resize-handle-hit-area';
+export * from './selection-control-artwork';
 export * from './rotation-drag';
 export * from './rotate-handle-attachment';
 // Authored `p:gridSpacing` (EMU, from `viewProperties`) -> CSS pixel step,
