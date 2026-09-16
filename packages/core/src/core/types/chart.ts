@@ -303,6 +303,17 @@ export interface PptxChartDataPoint {
 	/** Per-point picture-fill flags (`c:dPt/c:pictureOptions`). */
 	picture?: PptxChartDataPointPicture;
 	/**
+	 * A picture fill implied by a bare `c:dPt/c:spPr/a:blipFill` with NO
+	 * sibling `c:pictureOptions` at all: still a fully legal "stretch, no
+	 * stack" picture fill, just one PowerPoint's format pane never touched the
+	 * stack settings for. Render-derived only: unlike {@link picture}, this is
+	 * never written back on save (the original, untouched `c:spPr` already
+	 * round-trips verbatim), so populating it can never desync the saved file
+	 * from what was authored. See `chart-datapoint-picture.ts`'s
+	 * `parseImplicitBlipPictureFill`.
+	 */
+	impliedPicture?: PptxChartDataPointPicture;
+	/**
 	 * This point's identity GUID (`c:dPt/c:extLst/c:ext/c16:uniqueId/@val`,
 	 * the Office 2014+ `{C3380CC4-5D6E-409C-BE32-E72D297353CC}` chart
 	 * extension), read-only here: an edited point keeps its existing
@@ -710,6 +721,13 @@ export interface PptxChartSeries {
 	 * when the point has none of its own.
 	 */
 	picture?: PptxChartDataPointPicture;
+	/**
+	 * A picture fill implied by a bare `c:ser/c:spPr/a:blipFill` with NO
+	 * sibling `c:pictureOptions` at all. See
+	 * {@link PptxChartDataPoint.impliedPicture}'s doc comment: same
+	 * render-only, never-serialized-back convention, at the series level.
+	 */
+	impliedPicture?: PptxChartDataPointPicture;
 	/**
 	 * This series' identity GUID (`c:ser/c:extLst/c:ext/c16:uniqueId/@val`,
 	 * the Office 2014+ `{C3380CC4-5D6E-409C-BE32-E72D297353CC}` chart

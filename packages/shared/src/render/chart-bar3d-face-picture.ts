@@ -15,11 +15,11 @@
  * @module chart-bar3d-face-picture
  */
 import { resolveBarFacePicturePixelColor } from './chart-bar3d-face-picture-sample';
-import type { ChartSeriesLike } from './chart-datapoint-style';
 import {
 	resolveActiveDataPointPicture,
 	resolveDataPointPictureFill,
-} from './chart-datapoint-style';
+} from './chart-datapoint-picture-resolve';
+import type { ChartSeriesLike } from './chart-datapoint-style';
 import { shade, tint } from './chart-palette';
 import { buildPictureFillPatternDef, polygonBoundingBox } from './chart-picture-pattern-def';
 import type { ChartSvgDef, SvgRect } from './chart-view-model-types';

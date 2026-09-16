@@ -70,6 +70,10 @@ export function parseChartDataPointPicture(
 	if (Number.isFinite(stackUnit)) {
 		result.pictureStackUnit = stackUnit;
 	}
+	const opacity = parseBlipOpacity(dPtNode, xmlLookup);
+	if (opacity !== undefined) {
+		result.opacity = opacity;
+	}
 	return Object.keys(result).length > 0 ? result : undefined;
 }
 
@@ -90,6 +94,54 @@ export function parseChartDataPointPictureBlipRel(
 	const blip = xmlLookup.getChildByLocalName(blipFill, 'blip');
 	const relId = String(blip?.['@_r:embed'] ?? blip?.['@_r:link'] ?? '').trim();
 	return relId.length > 0 ? relId : undefined;
+}
+
+/**
+ * Parse `a:blipFill/a:blip/a:alphaModFix/@amt` (thousandths of a percent, so
+ * `amt="60000"` is `0.6`) off a `c:dPt`/`c:ser`'s `c:spPr`. Used for BOTH the
+ * `c:pictureOptions` path and the bare-`blipFill` implicit path
+ * ({@link parseImplicitBlipPictureFill}): the opacity lives on the blip
+ * itself, a sibling of `c:pictureOptions`, not inside it, so either path
+ * reads it the same way.
+ */
+function parseBlipOpacity(
+	dPtOrSerNode: XmlObject,
+	xmlLookup: PictureOptionsXmlLookupLike,
+): number | undefined {
+	const spPr = xmlLookup.getChildByLocalName(dPtOrSerNode, 'spPr');
+	const blipFill = xmlLookup.getChildByLocalName(spPr, 'blipFill');
+	const blip = xmlLookup.getChildByLocalName(blipFill, 'blip');
+	const alphaModFix = xmlLookup.getChildByLocalName(blip, 'alphaModFix');
+	const amt = Number.parseFloat(String(alphaModFix?.['@_amt'] ?? ''));
+	return Number.isFinite(amt) ? Math.min(Math.max(amt / 100000, 0), 1) : undefined;
+}
+
+/**
+ * Parse a picture fill implied by a bare `c:spPr/a:blipFill` with NO sibling
+ * `c:pictureOptions` at all: PowerPoint's own default "stretch, no stack"
+ * when a picture fill is applied and the format pane's stack settings are
+ * never touched (the common case for a plain "fill this bar with a photo").
+ * Populates {@link PptxChartDataPoint.impliedPicture} /
+ * {@link PptxChartSeries.impliedPicture}, a render-only field distinct from
+ * {@link parseChartDataPointPicture}'s `picture` (never written back on
+ * save, see that field's doc comment). Returns `undefined` when the node has
+ * no direct blip fill, OR when it already has a `c:pictureOptions` (that
+ * case is {@link parseChartDataPointPicture}'s to parse instead).
+ */
+export function parseImplicitBlipPictureFill(
+	dPtOrSerNode: XmlObject,
+	xmlLookup: PictureOptionsXmlLookupLike,
+): PptxChartDataPointPicture | undefined {
+	const pictureOptions = xmlLookup.getChildByLocalName(dPtOrSerNode, 'pictureOptions');
+	if (pictureOptions) {
+		return undefined;
+	}
+	const relId = parseChartDataPointPictureBlipRel(dPtOrSerNode, xmlLookup);
+	if (!relId) {
+		return undefined;
+	}
+	const opacity = parseBlipOpacity(dPtOrSerNode, xmlLookup);
+	return { pictureFormat: 'stretch', ...(opacity !== undefined ? { opacity } : {}) };
 }
 
 /**

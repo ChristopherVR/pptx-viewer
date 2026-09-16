@@ -5,7 +5,7 @@
  * `c:pictureOptions` picture fill vs. a plain/derived colour.
  *
  * Mirrors the flat SVG oblique-projection bar3D renderer's own face-targeting
- * decision (`chart-datapoint-style.ts`'s `resolveActiveDataPointPicture` /
+ * decision (`chart-datapoint-picture-resolve.ts`'s `resolveActiveDataPointPicture` /
  * `resolveBarFaceTargets` / `resolveDataPointPictureFill`,
  * `chart-bar3d-face-picture.ts`'s `resolveUntargetedBarFaceFill`), so the
  * true-3D scene and its 2D fallback always agree on WHICH face gets a
@@ -32,11 +32,11 @@
  */
 import type { BarChart3DBox } from './bar-chart-3d-layout';
 import { resolveUntargetedBarFaceFill } from './chart-bar3d-face-picture';
-import type { ChartSeriesLike } from './chart-datapoint-style';
 import {
 	resolveActiveDataPointPicture,
 	resolveDataPointPictureFill,
-} from './chart-datapoint-style';
+} from './chart-datapoint-picture-resolve';
+import type { ChartSeriesLike } from './chart-datapoint-style';
 
 /** One face-group's resolved fill: a plain colour, or a picture with texture-repeat maths already resolved. */
 export type BarBoxFaceFill =

@@ -1,4 +1,5 @@
 import { assertDistFreshness } from './dist-freshness';
+import { generateBarPictureFillHillFixture } from './fixtures/generate-bar-picture-fill-hill-fixture';
 import { generateBar3DHorizontalFixture } from './fixtures/generate-bar3d-horizontal-fixture';
 import { generateBar3DPictureFillFixture } from './fixtures/generate-bar3d-picture-fill-fixture';
 import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/generate-box-cube-transition-fixture';
@@ -43,6 +44,7 @@ export default async function globalSetup() {
 	await generateChartUserShapeGroupFixture();
 	await generateBar3DHorizontalFixture();
 	await generateBar3DPictureFillFixture();
+	await generateBarPictureFillHillFixture();
 	await generatePie3DFixture();
 	await generateFieldSubstitutionFixture();
 	await generateDegenerateShapeFixture();

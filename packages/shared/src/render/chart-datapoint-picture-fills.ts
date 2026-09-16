@@ -3,7 +3,7 @@
  * pure pattern descriptor onto an already-built primitive list (C2-G9 render
  * half).
  *
- * `resolveDataPointPictureFill` (`chart-datapoint-style.ts`) resolves WHAT
+ * `resolveDataPointPictureFill` (`chart-datapoint-picture-resolve.ts`) resolves WHAT
  * picture, in WHAT format, a data point wants; it has no geometry, so it
  * cannot size the `<pattern>` it describes. This module is the one place that
  * has both: it walks the finished `SvgRect` primitives every bar/column
@@ -18,7 +18,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
-import { resolveDataPointPictureFill } from './chart-datapoint-style';
+import { resolveDataPointPictureFill } from './chart-datapoint-picture-resolve';
 import { buildPictureFillPatternDef } from './chart-picture-pattern-def';
 import type { ChartSvgDef, SvgPrimitive, SvgRect } from './chart-view-model-types';
 
@@ -80,7 +80,11 @@ export function applyDataPointPictureFills(
 				resolved.tileHeightPx,
 			),
 		);
-		return { ...primitive, fill: `url(#${patternId})` } satisfies SvgRect;
+		return {
+			...primitive,
+			fill: `url(#${patternId})`,
+			...(resolved.opacity !== undefined ? { opacity: resolved.opacity } : {}),
+		} satisfies SvgRect;
 	});
 	return { primitives: next, defs };
 }

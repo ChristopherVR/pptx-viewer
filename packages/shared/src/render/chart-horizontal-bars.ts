@@ -86,11 +86,16 @@ export function buildHorizontalBarViewModel(
 
 	if (!isStacked) {
 		const seriesCount = Math.max(series.length, 1),
+			// See chart-cartesian-bars.ts's `buildBars` (clustered branch) for the
+			// COM-verified reasoning: the bar's own size must divide the gap-reduced
+			// band by how many bar-heights the OVERLAPPED cluster spans, not by the
+			// raw series count, or a high-overlap cluster renders far too thin.
+			overlap = chartData.barOverlap ?? 0,
+			overlapSpan = 1 + (seriesCount - 1) * (1 - overlap / 100),
 			singleBarHeight =
 				chartData.barGapWidth !== undefined
-					? band / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
+					? band / ((1 + Math.max(chartData.barGapWidth, 0) / 100) * overlapSpan)
 					: (band * 0.7) / seriesCount,
-			overlap = chartData.barOverlap ?? 0,
 			step = singleBarHeight * (1 - overlap / 100),
 			clusterHeight = singleBarHeight + step * (seriesCount - 1),
 			groupOffset = (band - clusterHeight) / 2;

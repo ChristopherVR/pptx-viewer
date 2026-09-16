@@ -100,15 +100,33 @@ export function buildBars(
 	if (grouping === 'clustered') {
 		const seriesCount = Math.max(series.length, 1),
 			barGroupWidth = layout.plotWidth / Math.max(catCount, 1),
+			// Honour c:overlap (% overlap between adjacent series). overlap=0 reproduces
+			// the original side-by-side layout exactly. Read before singleBarWidth: a
+			// gapWidth-based bar width must size itself so the OVERLAPPED cluster (not
+			// seriesCount side-by-side bars) fills the gap-reduced group width; see the
+			// comment below.
+			overlap = chartData.barOverlap ?? 0,
 			// Honour c:gapWidth (gap between clusters, % of a bar width) when parsed;
 			// otherwise keep the legacy 0.7-of-group heuristic byte-for-byte.
+			//
+			// COM-verified ground truth (PowerPoint Object 16, single category, six
+			// series, gapWidth=5, overlap=23): dividing by seriesCount alone (the
+			// pre-existing formula) sizes every bar as if the cluster were laid out
+			// SIDE BY SIDE, then shrinks it further by overlap when computing `step`
+			// below - so at high overlap the bars render far too NARROW (in the
+			// limit, overlap=100 should make every bar in a cluster the same width
+			// as a single-series bar, independent of seriesCount, since they fully
+			// coincide; the old formula kept shrinking by 1/seriesCount regardless).
+			// The fix: first shrink the group width by the gap (exactly as before),
+			// then divide by how many bar-widths the OVERLAPPED cluster actually
+			// spans (`1 + (seriesCount - 1) * (1 - overlap / 100)`, the same
+			// relationship `clusterWidth` below re-derives from `step`), not by the
+			// raw series count.
+			overlapSpan = 1 + (seriesCount - 1) * (1 - overlap / 100),
 			singleBarWidth =
 				chartData.barGapWidth !== undefined
-					? barGroupWidth / (seriesCount + Math.max(chartData.barGapWidth, 0) / 100)
+					? barGroupWidth / ((1 + Math.max(chartData.barGapWidth, 0) / 100) * overlapSpan)
 					: (barGroupWidth * 0.7) / seriesCount,
-			// Honour c:overlap (% overlap between adjacent series). overlap=0 reproduces
-			// the original side-by-side layout exactly.
-			overlap = chartData.barOverlap ?? 0,
 			step = singleBarWidth * (1 - overlap / 100),
 			clusterWidth = singleBarWidth + step * (seriesCount - 1),
 			groupOffset = (barGroupWidth - clusterWidth) / 2;

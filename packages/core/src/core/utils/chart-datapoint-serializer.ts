@@ -20,6 +20,7 @@ import { writeChartShapeProps } from './chart-shape-props-writer';
 export {
 	parseChartDataPointPicture,
 	parseChartDataPointPictureBlipRel,
+	parseImplicitBlipPictureFill,
 } from './chart-datapoint-picture';
 
 type GetLocalName = (key: string) => string;

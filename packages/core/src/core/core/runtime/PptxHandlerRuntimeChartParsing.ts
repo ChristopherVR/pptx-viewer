@@ -35,7 +35,10 @@ import {
 	parseSeriesDataLabels,
 } from '../../utils/chart-data-label-parser';
 import { parseDataTable } from '../../utils/chart-data-table-parser';
-import { parseChartDataPointPicture } from '../../utils/chart-datapoint-picture';
+import {
+	parseChartDataPointPicture,
+	parseImplicitBlipPictureFill,
+} from '../../utils/chart-datapoint-picture';
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseFilteredTitles } from '../../utils/chart-ext-titles';
 import { parseFilteredSeries } from '../../utils/chart-filtered-series';
@@ -353,11 +356,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 
-			// Resolve any c:dPt/c:ser c:pictureOptions picture fill to an actual
-			// image URL (C2-G9 render half). Cheap early-exit: only re-walks the
-			// raw nodes when at least one series or data point actually carries
+			// Resolve any c:dPt/c:ser c:pictureOptions picture fill (or a bare
+			// c:spPr/a:blipFill with no c:pictureOptions, see impliedPicture) to an
+			// actual image URL (C2-G9 render half). Cheap early-exit: only re-walks
+			// the raw nodes when at least one series or data point actually carries
 			// picture flags.
-			if (finalSeries.some((s) => s.picture || s.dataPoints?.some((dp) => dp.picture))) {
+			if (
+				finalSeries.some(
+					(s) =>
+						s.picture ||
+						s.impliedPicture ||
+						s.dataPoints?.some((dp) => dp.picture || dp.impliedPicture),
+				)
+			) {
 				await resolveDataPointPictureImages(
 					this.xmlLookupService,
 					this.readChartRels.bind(this),
@@ -802,6 +813,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// once relationship/zip access is available (see the `finalSeries.some`
 			// check below and `resolveDataPointPictureImages`).
 			const seriesPicture = parseChartDataPointPicture(seriesNode, this.xmlLookupService);
+			// A bare c:ser/c:spPr/a:blipFill with NO c:pictureOptions sibling: still
+			// a legal picture fill (PowerPoint's own default stretch/no-stack), just
+			// one the parser above requires c:pictureOptions to notice. Render-only
+			// (see PptxChartSeries.impliedPicture's doc comment): never written back
+			// on save, so this cannot desync the saved file from what was authored.
+			const impliedSeriesPicture = seriesPicture
+				? undefined
+				: parseImplicitBlipPictureFill(seriesNode, this.xmlLookupService);
 
 			// Per-series x values (c:xVal) and bubble sizes (c:bubbleSize). Both are
 			// declared PER SERIES by CT_ScatterSer / CT_BubbleSer, so neither can be
@@ -880,6 +899,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(dataLabels.length > 0 ? { dataLabels } : {}),
 				...(explosion !== undefined ? { explosion } : {}),
 				...(seriesPicture ? { picture: seriesPicture } : {}),
+				...(impliedSeriesPicture ? { impliedPicture: impliedSeriesPicture } : {}),
 				...(invertIfNegative !== undefined ? { invertIfNegative } : {}),
 				...(smooth !== undefined ? { smooth } : {}),
 				...(axisId !== undefined ? { axisId } : {}),

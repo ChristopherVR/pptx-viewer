@@ -105,6 +105,7 @@ export * from './chart-trendlines';
 export * from './chart-axis';
 export * from './chart-palette';
 export * from './chart-datapoint-picture-fills';
+export * from './chart-datapoint-picture-resolve';
 export * from './chart-datapoint-style';
 // `bar3D` extrusion-face (side/end) picture-fill targeting + the untargeted-
 // face tint/shade fallback every solid-filled bar already used (C2-G9 3-D

@@ -5,7 +5,10 @@ import type {
 	PptxChartShapeProps,
 	XmlObject,
 } from '../types';
-import { parseChartDataPointPicture } from './chart-datapoint-serializer';
+import {
+	parseChartDataPointPicture,
+	parseImplicitBlipPictureFill,
+} from './chart-datapoint-serializer';
 import { parseChartUniqueId } from './chart-series-identity';
 
 /** Resolve a possibly-prefixed XML key to its local name (`c:idx` -> `idx`). */
@@ -178,6 +181,11 @@ export function parseSeriesDataPoints(
 			const picture = parseChartDataPointPicture(node, xmlLookup);
 			if (picture) {
 				result.picture = picture;
+			} else {
+				const impliedPicture = parseImplicitBlipPictureFill(node, xmlLookup);
+				if (impliedPicture) {
+					result.impliedPicture = impliedPicture;
+				}
 			}
 
 			const explosionNode = xmlLookup.getChildByLocalName(node, 'explosion');

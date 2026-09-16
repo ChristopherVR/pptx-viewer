@@ -16,6 +16,13 @@ export type PptxChartPictureFormat = 'stretch' | 'stack' | 'stackScale';
  * "Picture or texture fill" with "Stack"/"Stretch" semantics on a bar/column
  * data point, distinct from the point's plain `c:spPr` solid/gradient fill.
  *
+ * `c:pictureOptions` is optional: a point/series whose `c:spPr` carries a bare
+ * `a:blipFill` with NO `c:pictureOptions` sibling at all is still a fully
+ * legal, common picture fill (PowerPoint's own default "stretch, no stack"
+ * when the format pane never touched the stack settings); `parseChartDataPointPicture`
+ * synthesizes this descriptor (`pictureFormat: 'stretch'`) in that case so the
+ * SAME render pipeline resolves it, rather than silently dropping the fill.
+ *
  * The flags parse purely (`parseChartDataPointPicture` in
  * `utils/chart-datapoint-serializer.ts`); {@link imageUrl} is a separate,
  * later addition populated by the runtime (`PptxHandlerRuntimeChartParsing.ts`)
@@ -41,4 +48,10 @@ export interface PptxChartDataPointPicture {
 	 * when the point has no picture fill or the image could not be resolved.
 	 */
 	imageUrl?: string;
+	/**
+	 * Effective opacity (0-1) from the blip's `a:alphaModFix/@amt` (a
+	 * thousandths-of-a-percent value, so `amt="60000"` is `0.6`). `undefined`
+	 * when the blip carries no `alphaModFix`, meaning fully opaque.
+	 */
+	opacity?: number;
 }

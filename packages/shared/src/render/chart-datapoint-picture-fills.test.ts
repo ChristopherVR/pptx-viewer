@@ -132,6 +132,67 @@ describe('applyDataPointPictureFills', () => {
 		expect((result.primitives[0] as SvgRect).fill).toBe(`url(#${result.defs[0].id})`);
 	});
 
+	it('sets opacity on the rect from a:alphaModFix, leaving it unset when absent', () => {
+		const withOpacity: PptxChartData = {
+			chartType: 'bar',
+			categories: ['A', 'B'],
+			series: [
+				{
+					name: 'Series 1',
+					values: [1, 2],
+					dataPoints: [
+						{
+							idx: 1,
+							picture: {
+								imageUrl: 'data:image/png;base64,AAA',
+								pictureFormat: 'stretch',
+								opacity: 0.6,
+							},
+						},
+					],
+				},
+			],
+		};
+		const opaque = applyDataPointPictureFills(chartDataWithPicture('stretch'), 'chart-1', [
+			dataPointRect,
+		]);
+		expect((opaque.primitives[0] as SvgRect).opacity).toBeUndefined();
+
+		const translucent = applyDataPointPictureFills(withOpacity, 'chart-1', [dataPointRect]);
+		expect((translucent.primitives[0] as SvgRect).opacity).toBeCloseTo(0.6, 6);
+	});
+
+	// Real-world "hill silhouette" construct: a bare c:spPr/a:blipFill with no
+	// c:pictureOptions sibling, parsed into impliedPicture (never picture).
+	it('paints a picture fill sourced from impliedPicture (no c:pictureOptions authored)', () => {
+		const chartData: PptxChartData = {
+			chartType: 'bar',
+			categories: ['A', 'B'],
+			series: [
+				{
+					name: 'Series 1',
+					values: [1, 2],
+					dataPoints: [
+						{
+							idx: 1,
+							impliedPicture: {
+								imageUrl: 'data:image/png;base64,BBB',
+								pictureFormat: 'stretch',
+								opacity: 0.67,
+							},
+						},
+					],
+				},
+			],
+		};
+		const result = applyDataPointPictureFills(chartData, 'chart-1', [dataPointRect]);
+		expect(result.defs).toHaveLength(1);
+		const rect = result.primitives[0] as SvgRect;
+		expect(rect.fill).toBe(`url(#${result.defs[0].id})`);
+		expect(rect.opacity).toBeCloseTo(0.67, 6);
+		expect(result.defs[0].href).toBe('data:image/png;base64,BBB');
+	});
+
 	it('ignores non-rect and non-dataPoint primitives', () => {
 		const line: SvgPrimitive = {
 			kind: 'line',

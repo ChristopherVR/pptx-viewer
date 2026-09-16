@@ -61,9 +61,11 @@ export async function resolveDataPointPictureImages(
 			continue;
 		}
 
-		// Series-level c:pictureOptions (CT_BarSer): the same blip lookup as a
-		// c:dPt, just rooted at the c:ser node instead of a c:dPt child.
-		const seriesPicture = series[si].picture;
+		// Series-level c:pictureOptions (CT_BarSer), or a bare c:spPr/a:blipFill
+		// with no c:pictureOptions sibling (impliedPicture, see its doc comment):
+		// the same blip lookup either way, just rooted at the c:ser node instead
+		// of a c:dPt child.
+		const seriesPicture = series[si].picture ?? series[si].impliedPicture;
 		if (seriesPicture) {
 			const seriesRelId = parseChartDataPointPictureBlipRel(seriesNode, xmlLookup);
 			if (seriesRelId) {
@@ -90,7 +92,8 @@ export async function resolveDataPointPictureImages(
 				10,
 			);
 			const dataPoint = dataPoints.find((dp) => dp.idx === idx);
-			if (!dataPoint?.picture) {
+			const dataPointPicture = dataPoint?.picture ?? dataPoint?.impliedPicture;
+			if (!dataPointPicture) {
 				continue;
 			}
 			const relId = parseChartDataPointPictureBlipRel(dPtNode, xmlLookup);
@@ -105,7 +108,7 @@ export async function resolveDataPointPictureImages(
 			const imagePath = resolveImagePath(chartPartPath, rel.target);
 			const imageUrl = await getImageData(imagePath);
 			if (imageUrl) {
-				dataPoint.picture.imageUrl = imageUrl;
+				dataPointPicture.imageUrl = imageUrl;
 			}
 		}
 	}
