@@ -25,6 +25,10 @@ npm i yjs y-webrtc      # serverless peer-to-peer
 
 ## Enabling it: the `collaboration` prop
 
+Already own a Yjs provider? Supply `collaboration.externalSession` instead of letting
+the viewer create one. See [Host-owned collaboration](/guide/host-owned-collaboration)
+for the lifecycle, readiness and persistence contract.
+
 Pass a `CollaborationConfig` to the `collaboration` prop. When present, the viewer wraps its content
 in a collaboration provider and wires up presence tracking, remote cursors, and CRDT sync.
 
