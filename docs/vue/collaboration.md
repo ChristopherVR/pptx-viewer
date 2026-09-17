@@ -28,7 +28,9 @@ const collab = useCollaboration({
 	canEdit: () => hostMayEdit,
 	sourcePending: () => Boolean(source) && loading.value,
 	sourceError: () => Boolean(source) && Boolean(error.value),
-	onRemoteSlides: (next) => { slides.value = next; },
+	onRemoteSlides: (next) => {
+		slides.value = next;
+	},
 	loadVersion,
 	getLoadOrigin: () => lastLoadOrigin,
 	// Optional elected-owner persistence: reuse the full retained loader serializer.
@@ -44,6 +46,12 @@ Use its `canEdit` to gate custom controls and edit handlers; a role alone cannot
 you whether a host session is synced. Existing manual `start`, `stop` and `retry`
 calls remain supported. `loadVersion` must advance after applying a load, and
 `getLoadOrigin` distinguishes a bootstrap deck from an explicit user-open operation.
+
+When reusing `loader.getContent()` for elected-owner persistence, also pass
+`getPendingInlineEdit` to `useLoadContent`. Read the current
+`useInlineEditing.readInlineSnapshot()` and its target slide ID there, while editing
+is allowed. This includes an active draft in a saved snapshot without committing or
+closing the editor; otherwise the snapshot only contains the last committed model.
 
 Compose `SlideCanvas`, `SelectionOverlay`, `useElementDrag`, `InlineTextEditor`, `useInlineEditing`, `useLoadContent` and
 the editor composables from `pptx-vue-viewer/viewer` for a custom editor. Commit and

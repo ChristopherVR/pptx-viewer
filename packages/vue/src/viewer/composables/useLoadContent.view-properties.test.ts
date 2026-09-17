@@ -11,10 +11,11 @@
  */
 import type { PptxElement, PptxHandler, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 import { PptxHandler as RealPptxHandler } from 'pptx-viewer-core';
-import type { PendingInlineTextEdit } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
+import { useEditorOperations } from './useEditorOperations';
+import { useInlineEditing } from './useInlineEditing';
 import { useLoadContent } from './useLoadContent';
 
 async function settle(deck: ReturnType<typeof useLoadContent>): Promise<void> {
@@ -53,7 +54,6 @@ function recordingHandler(): { handler: PptxHandler; seen: PptxHandlerSaveOption
 describe('view properties reach the save call', () => {
 	it('serializes a current list draft without committing the live model', async () => {
 		const scope = effectScope();
-		let pending: PendingInlineTextEdit | undefined;
 		try {
 			const bytes = await newDeckBytes([
 				{
@@ -68,27 +68,43 @@ describe('view properties reach the save call', () => {
 				},
 			]);
 			await scope.run(async () => {
-				const deck = useLoadContent(() => bytes, { getPendingInlineEdit: () => pending });
+				const deck = useLoadContent(() => bytes, {
+					getPendingInlineEdit: () => {
+						const snapshot = editing.readInlineSnapshot();
+						return snapshot && ops.activeSlide.value
+							? { snapshot, target: { slideId: ops.activeSlide.value.id } }
+							: undefined;
+					},
+				});
+				const ops = useEditorOperations({
+					slides: deck.slides,
+					activeSlideIndex: ref(0),
+					pushHistory: () => {},
+				});
+				const editing = useInlineEditing({
+					canEdit: () => true,
+					findActiveElement: (id) =>
+						ops.activeSlide.value?.elements.find((element) => element.id === id),
+					ops,
+				});
 				await settle(deck);
 				expect(deck.loading.value).toBeFalsy();
 				expect(deck.error.value).toBeNull();
 				const source = deck.slides.value[0].elements[0];
 				expect(source.rawXml).toBeDefined();
-				pending = {
-					target: { slideId: deck.slides.value[0].id },
-					snapshot: {
-						elementId: source.id,
-						text: 'Current body',
-						textSegments: [
-							{
-								text: 'Current body',
-								style: { fontSize: 30 },
-								paragraphLevel: 1,
-								bulletInfo: { char: '◆' },
-							},
-						],
-					},
-				};
+				editing.enterInlineEdit(source.id);
+				editing.updateInlineText('Current body', {
+					elementId: source.id,
+					text: 'Current body',
+					textSegments: [
+						{
+							text: 'Current body',
+							style: { fontSize: 30 },
+							paragraphLevel: 1,
+							bulletInfo: { char: '◆' },
+						},
+					],
+				});
 				const reader = new RealPptxHandler();
 				try {
 					const result = await reader.load(await deck.getContent());
@@ -105,7 +121,7 @@ describe('view properties reach the save call', () => {
 					);
 					expect(deck.slides.value[0].elements[0]).toBe(source);
 					expect(source.text).toBe('Original');
-					pending = undefined;
+					editing.cancelInlineEdit();
 					const unchanged = await reader.load(await deck.getContent());
 					expect(unchanged.slides[0].elements[0].text).toBe('Original');
 				} finally {

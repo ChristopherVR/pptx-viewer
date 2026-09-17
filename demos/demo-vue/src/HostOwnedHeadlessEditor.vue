@@ -28,6 +28,15 @@ const scale = ref(1);
 const current = ref(0);
 const loadVersion = ref(0);
 const content = useLoadContent(() => props.host.source, {
+	getPendingInlineEdit: () => {
+		if (!shellState.value.canEdit) {
+			return undefined;
+		}
+		const snapshot = edit.readInlineSnapshot();
+		return snapshot && ops.activeSlide.value
+			? { snapshot, target: { slideId: ops.activeSlide.value.id } }
+			: undefined;
+	},
 	onContentApplied: () => {
 		loadVersion.value++;
 	},
