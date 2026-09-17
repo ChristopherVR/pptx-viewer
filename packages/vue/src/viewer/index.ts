@@ -6,6 +6,10 @@ export type {
 	CollaborationShellState,
 	ConnectionStatus,
 	SanitizedPresence,
+	InlineTextEditSnapshot,
+	InlineListController,
+	InlineListReadResult,
+	PendingInlineTextEdit,
 } from 'pptx-viewer-shared';
 export { default as SlideCanvas } from './components/SlideCanvas.vue';
 export { default as SlideStage } from './components/SlideStage.vue';
