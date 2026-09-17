@@ -21,14 +21,28 @@
  * `colorPalette` (which the doc comment on that field already says takes
  * priority over the styleId-derived one), and also mirrors `style.styleId`
  * so the 3-D engine and the "which preset is applied" check stay consistent.
- * A series' own explicit `color` override (set via the per-series colour
- * picker) still wins over the palette, exactly as it does today: applying a
- * style preset does not clear per-series overrides, matching PowerPoint's own
- * "Change Colors" behaviour.
+ *
+ * `seriesColor()` (`chart-view-model-scale.ts`) and `resolveDataPointFill()`
+ * (`chart-datapoint-style.ts`) both prefer an explicit per-series/per-point
+ * colour over the palette, and virtually every chart authored by PowerPoint,
+ * Excel or WPS sets one (`c:ser/c:spPr` and/or `c:marker/c:spPr`), because
+ * that is how "no palette, pick your own colours" charts are normally
+ * authored. Writing only `colorPalette` therefore left the whole feature a
+ * no-op for real-world decks: the freshly-written palette was always shadowed
+ * by the pre-existing explicit colours, and clicking a preset visibly changed
+ * nothing (reported after this shipped). A "Chart Styles" click is meant to
+ * be a one-click WHOLE-CHART recolour, matching PowerPoint's own behaviour
+ * for its Style/Colour gallery, so {@link applyChartStylePreset} also clears
+ * every series' `color` and its marker's `spPr.fillColor`, plus every
+ * per-point `c:dPt` fill override (`dataPoints[].spPr.fillColor` and
+ * `dataPoints[].marker.spPr.fillColor`), so nothing is left shadowing the new
+ * palette. Only fill colours are cleared: marker symbol/size, stroke/border
+ * colours (e.g. a marker's white ring), dash styles, and everything else
+ * about the series/point are left untouched.
  *
  * @module render/chart-quick-action-styles
  */
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartDataPoint, PptxChartSeries } from 'pptx-viewer-core';
 
 import { getChartStylePalette } from './chart-helpers';
 
@@ -83,12 +97,35 @@ export function buildChartStylePresets(
 	});
 }
 
+/** Drop a data point's own fill override, keeping every other field. */
+function clearDataPointFill(point: PptxChartDataPoint): PptxChartDataPoint {
+	const { spPr, marker, ...rest } = point;
+	const nextSpPr = spPr && { ...spPr, fillColor: undefined };
+	const nextMarker = marker?.spPr && {
+		...marker,
+		spPr: { ...marker.spPr, fillColor: undefined },
+	};
+	return { ...rest, ...(spPr && { spPr: nextSpPr }), ...(nextMarker && { marker: nextMarker }) };
+}
+
+/** Drop a series' own colour overrides (and its points'), keeping shape/symbol/size. */
+function clearSeriesColor(series: PptxChartSeries): PptxChartSeries {
+	const { color: _color, marker, dataPoints, ...rest } = series;
+	const nextMarker = marker?.spPr && { ...marker, spPr: { ...marker.spPr, fillColor: undefined } };
+	return {
+		...rest,
+		...(marker && { marker: nextMarker ?? marker }),
+		...(dataPoints && { dataPoints: dataPoints.map(clearDataPointFill) }),
+	};
+}
+
 /**
  * Apply a "Chart Styles" preset by id: resolves its palette via
- * `getChartStylePalette` and writes it onto `colorPalette` (also mirroring
- * `style.styleId`, see this module's header). Returns `null` for an unknown
- * preset id so a caller can no-op instead of silently clearing the chart's
- * palette.
+ * `getChartStylePalette`, writes it onto `colorPalette` (also mirroring
+ * `style.styleId`), and clears every series'/data-point's own explicit fill
+ * so the new palette is not immediately shadowed by pre-existing colours
+ * (see this module's header). Returns `null` for an unknown preset id so a
+ * caller can no-op instead of silently clearing the chart's palette.
  */
 export function applyChartStylePreset(
 	chartData: PptxChartData,
@@ -103,5 +140,6 @@ export function applyChartStylePreset(
 		...chartData,
 		colorPalette: colors,
 		style: { ...chartData.style, styleId: preset.styleId },
+		series: chartData.series.map(clearSeriesColor),
 	};
 }
