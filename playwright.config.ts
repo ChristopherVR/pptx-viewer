@@ -52,6 +52,25 @@ export default defineConfig({
 	use: {
 		trace: 'retain-on-failure',
 		actionTimeout: 10_000,
+		// CI-only: GitHub Actions' ubuntu-latest runners have no real GPU, and
+		// Chromium's software-GL (SwiftShader) compositing path is what actually
+		// crashes under sustained canvas/video load there - `--disable-gpu` (not
+		// `--disable-dev-shm-usage` alone, which was tried first and did not
+		// help) is what fixes it. Root-caused by reproducing on a real Linux VM
+		// constrained to the runner's actual 4 vCPU / 16 GB (a Windows or
+		// over-provisioned Linux box never reproduces this): after ~30-50 tests
+		// share one worker's Chromium instance, `export-raster-tiling.spec.ts`'s
+		// video-recording test (canvas capture + MediaRecorder, GPU-accelerated
+		// by default) reliably hit "Error: page.waitForEvent: Page crashed" -
+		// a real Chromium renderer crash, not a timeout or a product bug. This
+		// was the actual cause of the "the runner has received a shutdown
+		// signal" e2e failures on vue/svelte/vanilla shards (2026-09-16/17):
+		// neither shard count nor worker count fixed it because it depends on
+		// cumulative load on one Chromium instance, not on any single test or on
+		// peak concurrency. Left on for local dev too where isCI is false is
+		// unnecessary (a real GPU is available and faster), so this only
+		// applies in CI.
+		launchOptions: isCI ? { args: ['--disable-dev-shm-usage', '--disable-gpu'] } : undefined,
 	},
 	projects: [
 		{

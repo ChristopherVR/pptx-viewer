@@ -382,24 +382,26 @@ jobs:
   # `--workers=2` avoids saturating the single dev server per leg (spurious
   # timeouts/HMR contention with the default higher worker count).
   #
-  # 2026-09-16/17 incident: shard 4/12 repeatedly killed the vue/svelte/vanilla
+  # 2026-09-16/17 incident: shards repeatedly killed the vue/svelte/vanilla
   # runners outright ("the runner has received a shutdown signal", exit 143),
-  # never react/angular, never reproducible locally. Root cause: every
+  # never react/angular, never reproducible on Windows or an over-provisioned
+  # Linux box. Along the way, a real (separate) bug got found and fixed: every
   # binding's `recordWebm` driver called `recorder.stop()` but never stopped
-  # the underlying `captureStream()` `MediaStream`'s tracks, so each video
-  # export left a live capture track compositing frames from the recording
-  # canvas indefinitely - a real per-export leak in the product, not a test
-  # artifact (a user exporting video more than once in a session leaked one
-  # track per export). Fixed once in `pptx-viewer-shared`'s `stopCaptureStream`
-  # and wired into all five bindings' recorders (`finally` blocks covering the
-  # success, error, and abort paths alike). Temporarily dropping to
-  # `--workers=1` and splitting shards 6 -> 12 masked the symptom by cutting
-  # concurrent heavy-test contention and shrinking each shard's blast radius;
-  # with the leak fixed, both are dialled back down (`--workers=2`, 8 shards)
-  # to cut total job volume while keeping the per-shard time budget the same
-  # split bought (12-shard/workers=2 shards finished in 6-12 minutes, far under
-  # the 25-minute ceiling, so 8 shards' larger per-shard share still has
-  # comfortable headroom).
+  # the underlying `captureStream()` track, leaking one live capture per video
+  # export (`pptx-viewer-shared`'s `stopCaptureStream`, wired into all five
+  # bindings). That fix landed but the runner kills persisted, so shard count
+  # and `--workers` got tuned through 6/12/8 and 1/2/4 chasing it without
+  # success - neither lever was the actual cause. Root-caused by reproducing on
+  # a real Linux VM constrained to the runner's actual 4 vCPU/16 GB: Chromium's
+  # GPU-accelerated software-GL compositing crashes outright
+  # ("page.waitForEvent: Page crashed") after enough canvas/video-heavy tests
+  # share one worker's browser instance, hitting `export-raster-tiling.spec.ts`'s
+  # video-recording test hardest. Fixed at the source in `playwright.config.ts`
+  # (`--disable-gpu` in CI only). With the actual crash fixed, 8 shards /
+  # `--workers=2` is a plain throughput/job-count balance, not a mitigation:
+  # 12-shard/workers=2 shards finished in 6-12 minutes, far under the
+  # 25-minute ceiling, so 8 shards' larger per-shard share still has
+  # comfortable headroom.
   #
   # The matrix comes from `scope`, which also decides whether this job runs at
   # all: Playwright is skipped for fork pull requests (add the `full-ci` label to
@@ -419,15 +421,18 @@ jobs:
     # work - it is the parity REFERENCE, so its parity specs sweep all five
     # demos. The suite has since grown again, to 623 tests across 149 spec
     # files (2026-09-17), thinning the margin a fixed 6-shard split left under
-    # this ceiling. Separately (see the `--workers=2` comment above for detail)
-    # a captureStream leak, not wall-clock overrun, was the actual cause of the
-    # vue/svelte/vanilla runner kills on 2026-09-16/17 - those died in ~9
-    # minutes, nowhere near this 25-minute ceiling. With that leak fixed and
-    # concurrency restored, 8 shards (up from 6, down from the 12 used while
-    # diagnosing the leak) rebuilds the margin the suite's growth had eaten
-    # without the job-count cost of 12. The lever for genuine wall-clock
-    # overrun is SHARD COUNT, not this number: raise it again if the suite
-    # keeps growing, instead of ratcheting this timeout.
+    # this ceiling. Separately (see the `--workers=2` comment above for the
+    # full incident) a Chromium GPU-compositing crash, not wall-clock overrun,
+    # was the actual cause of the vue/svelte/vanilla runner kills on
+    # 2026-09-16/17 - those died in under 10 minutes, nowhere near this
+    # 25-minute ceiling, and no amount of sharding fixed it because it scales
+    # with cumulative canvas/video test load on one browser instance, not with
+    # wall-clock time. With that crash fixed at the source (`--disable-gpu`),
+    # 8 shards (up from 6, down from the 12 used while diagnosing it) is a
+    # plain throughput/job-count balance restoring the margin the suite's
+    # growth had eaten. The lever for genuine wall-clock overrun is SHARD
+    # COUNT, not this number: raise it again if the suite keeps growing,
+    # instead of ratcheting this timeout.
     timeout-minutes: 25
     strategy:
       fail-fast: false
@@ -504,12 +509,14 @@ jobs:
       # outright with "the runner has received a shutdown signal" (exit 143)
       # partway through a shard, sometimes before a single test finished -
       # never react/angular, and which binding failed varied run to run. That
-      # was tracked down to a real captureStream leak (see the `--workers=2`
-      # comment above), now fixed, but a whole-runner kill takes the retry
-      # state of Playwright's own `retries: 2` down with it regardless of
-      # cause, so a fresh process invocation stays as a cheap, low-frequency
-      # safety net for whatever residual CI-runner flakiness this or any
-      # future incident leaves behind.
+      # was root-caused to a Chromium GPU-compositing crash under sustained
+      # canvas/video load (see the `--workers=2` comment above) and fixed at
+      # the source in `playwright.config.ts` (`--disable-gpu`), but a
+      # whole-runner kill takes the retry state of Playwright's own
+      # `retries: 2` down with it regardless of cause, so a fresh process
+      # invocation stays as a cheap, low-frequency safety net for whatever
+      # residual CI-runner flakiness this or any future incident leaves
+      # behind.
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
         run: |
           for attempt in 1 2; do
