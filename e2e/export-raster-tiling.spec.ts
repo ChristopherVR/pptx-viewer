@@ -103,12 +103,19 @@ import { acrossFrameworks } from './support/parity';
  * 35273232488) the video-recording tests below reliably took the whole
  * runner down ("the runner has received a shutdown signal", exit 143) after
  * the shared worker browser had already accumulated ~65+ other tests' worth
- * of memory - never in isolation, and never on an under-loaded box. Giving
- * every test here a dedicated browser (closed immediately after) removes
- * that accumulated load regardless of whichever specific leak or Chromium
- * bug is actually triggered by it, at the cost of one extra browser launch
- * per test (a few seconds against tests that already take 10-30s of real
- * capture/download time).
+ * of memory. Giving every test here a dedicated browser (closed immediately
+ * after) was meant to remove that accumulated load, at the cost of one extra
+ * browser launch per test (a few seconds against tests that already take
+ * 10-30s of real capture/download time).
+ *
+ * It did NOT stop the runner kill: run 35277367338 died the same way with
+ * the video test alone in a brand-new browser, which rules out accumulated
+ * worker memory as the cause (as `--disable-gpu` and disabling accelerated
+ * video encode/decode were ruled out before it). The real-time video tests
+ * are therefore tagged `@local-only` and excluded from CI (see
+ * playwright.config.ts). The isolation stays because it is cheap and keeps
+ * the heaviest file in the suite from leaning on, or leaking into, whatever
+ * else shares its worker.
  *
  * Playwright refuses to change a built-in fixture's scope (`browser` is
  * worker-scoped) via `.extend()`, so a same-scope `context` override handles
@@ -413,124 +420,146 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 		).toBeCloseTo(stageAspect, 1);
 	});
 
-	test('video export records at the stage aspect ratio without a corrupted frame', async ({
-		page,
-	}) => {
-		await maximizeExportResolution(page);
-		await stubLowCanvasCap(page);
-		await spyRecordingCanvasSize(page);
-		await loadDeck(page, EXPORT_DECK);
-		await openBackstageExport(page);
+	test(
+		'video export records at the stage aspect ratio without a corrupted frame',
+		// Real-time MediaRecorder/captureStream video capture reliably takes
+		// down the whole hosted CI runner (exit 143, "the runner has received
+		// a shutdown signal") on shard 3/8 for vue/vanilla/svelte, seen across
+		// four consecutive runs (35264552331, 35270077379, 35273232488,
+		// 35277367338); see this file's top-level comment for the full
+		// history and the mitigations already tried and rejected. Excluded
+		// from CI via `grepInvert` in playwright.config.ts; run it locally
+		// (or via the pre-push hook, `bun run e2e:local-only`) instead.
+		{ tag: '@local-only' },
+		async ({ page }) => {
+			await maximizeExportResolution(page);
+			await stubLowCanvasCap(page);
+			await spyRecordingCanvasSize(page);
+			await loadDeck(page, EXPORT_DECK);
+			await openBackstageExport(page);
 
-		const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
-		expect(stageBox).not.toBeNull();
-		const stageAspect = stageBox!.width / stageBox!.height;
+			const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
+			expect(stageBox).not.toBeNull();
+			const stageAspect = stageBox!.width / stageBox!.height;
 
-		const download = await downloadViaCard(page, VIDEO_CARD, 90_000);
-		const bytes = await downloadBytes(download);
-		expect(bytes.byteLength, 'a recorded video must not be an empty file').toBeGreaterThan(0);
+			const download = await downloadViaCard(page, VIDEO_CARD, 90_000);
+			const bytes = await downloadBytes(download);
+			expect(bytes.byteLength, 'a recorded video must not be an empty file').toBeGreaterThan(0);
 
-		const recorded = await lastCapturedCanvasSize(page);
-		expect(
-			recorded,
-			'video export must have called captureStream() on a recording canvas',
-		).not.toBe(undefined);
-		expect(recorded!.width, 'recording canvas width must be non-degenerate').toBeGreaterThan(0);
-		expect(recorded!.height, 'recording canvas height must be non-degenerate').toBeGreaterThan(0);
-		expect(
-			recorded!.width / recorded!.height,
-			'the recording canvas must preserve the slide aspect ratio (proves the tiled/stitched frame was not distorted before being drawn into it)',
-		).toBeCloseTo(stageAspect, 1);
-	});
+			const recorded = await lastCapturedCanvasSize(page);
+			expect(
+				recorded,
+				'video export must have called captureStream() on a recording canvas',
+			).not.toBe(undefined);
+			expect(recorded!.width, 'recording canvas width must be non-degenerate').toBeGreaterThan(0);
+			expect(recorded!.height, 'recording canvas height must be non-degenerate').toBeGreaterThan(0);
+			expect(
+				recorded!.width / recorded!.height,
+				'the recording canvas must preserve the slide aspect ratio (proves the tiled/stitched frame was not distorted before being drawn into it)',
+			).toBeCloseTo(stageAspect, 1);
+		},
+	);
 
-	test('every binding produces a valid, aspect-correct GIF and video recording canvas', async ({
-		isolatedBrowser,
-	}, testInfo) => {
-		// The file-wide 90s default (above) fits the single-binding tiling tests,
-		// but this one runs a GIF capture *and* a real-time video recording for
-		// all five bindings sequentially (`concurrency: 'sequential'` below): at
-		// this file's own single-binding numbers (~7s GIF, ~19s video) that is
-		// already ~130s in the best case, before per-binding page-load/backstage
-		// overhead. Match the budget the other multi-download export specs use
-		// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts).
-		test.setTimeout(240_000);
-		const results = await acrossFrameworks(
-			isolatedBrowser,
-			testInfo,
-			async (page, origin) => {
-				// No `maximizeExportResolution()`: this test is about basic pipeline
-				// validity at the default capture scale, not the Default Resolution
-				// option; see the "Default Resolution" describe block below for that.
-				await stubLowCanvasCap(page);
-				await spyRecordingCanvasSize(page);
-				await loadDeckAt(page, origin, EXPORT_DECK);
-				await openBackstageExport(page);
+	test(
+		'every binding produces a valid, aspect-correct GIF and video recording canvas',
+		// Sits right after the test above in this file and records real-time
+		// video (MediaRecorder/captureStream) for all five bindings
+		// sequentially, so it has never actually been reached on the CI legs
+		// that die on the single-binding video test first (runs 35264552331,
+		// 35270077379, 35273232488, 35277367338). Same exclusion: runs via
+		// `grepInvert` in playwright.config.ts, locally or via the pre-push
+		// hook (`bun run e2e:local-only`) instead of CI.
+		{ tag: '@local-only' },
+		async ({ isolatedBrowser }, testInfo) => {
+			// The file-wide 90s default (above) fits the single-binding tiling tests,
+			// but this one runs a GIF capture *and* a real-time video recording for
+			// all five bindings sequentially (`concurrency: 'sequential'` below): at
+			// this file's own single-binding numbers (~7s GIF, ~19s video) that is
+			// already ~130s in the best case, before per-binding page-load/backstage
+			// overhead. Match the budget the other multi-download export specs use
+			// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts).
+			test.setTimeout(240_000);
+			const results = await acrossFrameworks(
+				isolatedBrowser,
+				testInfo,
+				async (page, origin) => {
+					// No `maximizeExportResolution()`: this test is about basic pipeline
+					// validity at the default capture scale, not the Default Resolution
+					// option; see the "Default Resolution" describe block below for that.
+					await stubLowCanvasCap(page);
+					await spyRecordingCanvasSize(page);
+					await loadDeckAt(page, origin, EXPORT_DECK);
+					await openBackstageExport(page);
 
-				const stageBox = await page.locator('[aria-roledescription="slide"]').first().boundingBox();
-				const stageAspect = stageBox ? stageBox.width / stageBox.height : 0;
+					const stageBox = await page
+						.locator('[aria-roledescription="slide"]')
+						.first()
+						.boundingBox();
+					const stageAspect = stageBox ? stageBox.width / stageBox.height : 0;
 
-				const gifDownload = await downloadViaCard(page, GIF_CARD, 60_000);
-				const gifBytes = await downloadBytes(gifDownload);
-				const gifDims = gifDimensions(gifBytes);
+					const gifDownload = await downloadViaCard(page, GIF_CARD, 60_000);
+					const gifBytes = await downloadBytes(gifDownload);
+					const gifDims = gifDimensions(gifBytes);
 
-				// Clicking any export card closes the whole File backstage
-				// (`FileSection`'s `run()` calls `onClose()` right after invoking the
-				// card's handler, same as every other binding's equivalent close-on-
-				// action wiring), so the dialog from the GIF download above is gone
-				// by now. Every other spec that downloads more than once in a test
-				// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts)
-				// re-opens it before each card click; do the same here.
-				await openBackstageExport(page);
-				const videoDownload = await downloadViaCard(page, VIDEO_CARD, 90_000);
-				const videoBytes = await downloadBytes(videoDownload);
-				const recordedCanvas = await lastCapturedCanvasSize(page);
+					// Clicking any export card closes the whole File backstage
+					// (`FileSection`'s `run()` calls `onClose()` right after invoking the
+					// card's handler, same as every other binding's equivalent close-on-
+					// action wiring), so the dialog from the GIF download above is gone
+					// by now. Every other spec that downloads more than once in a test
+					// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts)
+					// re-opens it before each card click; do the same here.
+					await openBackstageExport(page);
+					const videoDownload = await downloadViaCard(page, VIDEO_CARD, 90_000);
+					const videoBytes = await downloadBytes(videoDownload);
+					const recordedCanvas = await lastCapturedCanvasSize(page);
 
-				return {
-					isGif: isGif(gifBytes),
-					gifAspect: gifDims.width / gifDims.height,
-					gifNonDegenerate: gifDims.width > 0 && gifDims.height > 0,
-					videoNonEmpty: videoBytes.byteLength > 0,
-					videoAspect: recordedCanvas ? recordedCanvas.width / recordedCanvas.height : 0,
-					videoCanvasSeen: recordedCanvas !== undefined,
-					stageAspect,
-				};
-			},
-			// Video recording is real-time (slideDurationMs per slide) and
-			// CPU/GPU-heavy on top of the GIF capture in the same scenario; five
-			// pages recording at once is exactly the contention
-			// `AcrossFrameworksOptions.concurrency` warns about, so run one at a
-			// time like the other CPU-heavy parity specs do.
-			{ viewport: VIEWPORT, concurrency: 'sequential' },
-		);
+					return {
+						isGif: isGif(gifBytes),
+						gifAspect: gifDims.width / gifDims.height,
+						gifNonDegenerate: gifDims.width > 0 && gifDims.height > 0,
+						videoNonEmpty: videoBytes.byteLength > 0,
+						videoAspect: recordedCanvas ? recordedCanvas.width / recordedCanvas.height : 0,
+						videoCanvasSeen: recordedCanvas !== undefined,
+						stageAspect,
+					};
+				},
+				// Video recording is real-time (slideDurationMs per slide) and
+				// CPU/GPU-heavy on top of the GIF capture in the same scenario; five
+				// pages recording at once is exactly the contention
+				// `AcrossFrameworksOptions.concurrency` warns about, so run one at a
+				// time like the other CPU-heavy parity specs do.
+				{ viewport: VIEWPORT, concurrency: 'sequential' },
+			);
 
-		const problems = byBinding(results).flatMap(({ name, value }) => {
-			const issues: string[] = [];
-			if (!value.isGif) {
-				issues.push(`${name}: GIF export did not produce a valid GIF`);
-			}
-			if (!value.gifNonDegenerate) {
-				issues.push(`${name}: GIF export produced a degenerate (zero-size) frame`);
-			}
-			if (Math.abs(value.gifAspect - value.stageAspect) > 0.1) {
-				issues.push(
-					`${name}: GIF aspect ratio ${value.gifAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
-				);
-			}
-			if (!value.videoNonEmpty) {
-				issues.push(`${name}: video export produced an empty file`);
-			}
-			if (!value.videoCanvasSeen) {
-				issues.push(`${name}: video export never called captureStream() on a recording canvas`);
-			} else if (Math.abs(value.videoAspect - value.stageAspect) > 0.1) {
-				issues.push(
-					`${name}: video recording canvas aspect ratio ${value.videoAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
-				);
-			}
-			return issues;
-		});
+			const problems = byBinding(results).flatMap(({ name, value }) => {
+				const issues: string[] = [];
+				if (!value.isGif) {
+					issues.push(`${name}: GIF export did not produce a valid GIF`);
+				}
+				if (!value.gifNonDegenerate) {
+					issues.push(`${name}: GIF export produced a degenerate (zero-size) frame`);
+				}
+				if (Math.abs(value.gifAspect - value.stageAspect) > 0.1) {
+					issues.push(
+						`${name}: GIF aspect ratio ${value.gifAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
+					);
+				}
+				if (!value.videoNonEmpty) {
+					issues.push(`${name}: video export produced an empty file`);
+				}
+				if (!value.videoCanvasSeen) {
+					issues.push(`${name}: video export never called captureStream() on a recording canvas`);
+				} else if (Math.abs(value.videoAspect - value.stageAspect) > 0.1) {
+					issues.push(
+						`${name}: video recording canvas aspect ratio ${value.videoAspect.toFixed(3)} does not match the on-screen stage ${value.stageAspect.toFixed(3)}`,
+					);
+				}
+				return issues;
+			});
 
-		expect(problems.join('\n')).toBe('');
-	});
+			expect(problems.join('\n')).toBe('');
+		},
+	);
 });
 
 test.describe('GIF export honors Default Resolution identically across bindings', () => {
