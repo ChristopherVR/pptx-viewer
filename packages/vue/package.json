@@ -155,7 +155,8 @@
 		"jszip": "^3.10.1",
 		"three": "^0.186.0",
 		"vue": "^3.5.39",
-		"vue-i18n": "^11.4.6"
+		"vue-i18n": "^11.4.6",
+		"yjs": "^13.6.32"
 	},
 	"peerDependenciesMeta": {
 		"@ai-sdk/vue": {
@@ -166,12 +167,14 @@
 		},
 		"three": {
 			"optional": true
+		},
+		"yjs": {
+			"optional": true
 		}
 	},
 	"optionalDependencies": {
 		"three": "^0.186.0",
 		"y-webrtc": "^10.3.0",
-		"y-websocket": "^3.1.0",
-		"yjs": "^13.6.32"
+		"y-websocket": "^3.1.0"
 	}
 }

@@ -1,4 +1,5 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { PptxHandler } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
@@ -18,6 +19,7 @@ afterEach(() => {
 		dispose();
 	}
 	vi.useRealTimers();
+	vi.restoreAllMocks();
 });
 const factories = {
 	createMap: () => new Y.Map(),
@@ -85,6 +87,7 @@ function mount(
 	h: ReturnType<typeof host>,
 	initial = [slide('bootstrap')],
 	extra: Partial<CollaborationConfig> = {},
+	getSourceBytes?: () => Uint8Array,
 ) {
 	const scope = effectScope();
 	cleanup.push(() => scope.stop());
@@ -99,6 +102,7 @@ function mount(
 			},
 			loadVersion,
 			getLoadOrigin: () => loadOrigin,
+			getSourceBytes,
 		}),
 	)!;
 	const config: CollaborationConfig = {
@@ -121,6 +125,77 @@ function mount(
 }
 
 describe('useCollaboration external sessions', () => {
+	it('persists remote-only changes on the elected owner without a local edit', async () => {
+		vi.useFakeTimers();
+		const bytes = new Uint8Array([7]);
+		vi.spyOn(PptxHandler.prototype, 'load').mockResolvedValue({} as never);
+		const save = vi.spyOn(PptxHandler.prototype, 'save').mockResolvedValue(bytes);
+		const onWriteBack = vi.fn();
+		const h = host([slide('room')]);
+		const m = mount(
+			h,
+			[slide('bootstrap')],
+			{
+				role: 'owner',
+				onWriteBack,
+				writeBackDebounceMs: 0,
+			},
+			() => bytes,
+		);
+		await m.collab.start(m.config);
+		await vi.advanceTimersByTimeAsync(0);
+		onWriteBack.mockClear();
+		save.mockClear();
+		reconcileSlidesInYDoc([slide('room', 42)], h.doc, factories, 'peer');
+		await nextTick();
+		await vi.advanceTimersByTimeAsync(0);
+		expect(m.slides.value[0].elements[0].x).toBe(42);
+		expect(save).toHaveBeenCalledOnce();
+		expect(save.mock.calls[0][0][0].elements[0].x).toBe(42);
+		expect(onWriteBack).toHaveBeenCalledWith(bytes);
+	});
+
+	it('keeps editing disabled and ignores partial room content until synced', async () => {
+		const h = host([slide('partial')], { status: 'connected', synced: false });
+		const m = mount(h);
+		await m.collab.start(m.config);
+		expect(m.collab.readOnly?.value).toBeTruthy();
+		expect(m.slides.value[0].id).toBe('bootstrap');
+		reconcileSlidesInYDoc([slide('room')], h.doc, factories, 'peer');
+		expect(m.slides.value[0].id).toBe('bootstrap');
+		h.publish({ status: 'connected', synced: true });
+		expect(m.collab.readOnly.value).toBeFalsy();
+		expect(m.slides.value[0].id).toBe('room');
+		h.publish({ status: 'connecting', synced: false });
+		expect(m.collab.readOnly.value).toBeTruthy();
+		m.collab.stop();
+		expect(m.collab.readOnly.value).toBeFalsy();
+	});
+
+	it('does not detach the host session when beforeunload is cancelled', async () => {
+		const h = host([slide('room')]);
+		const m = mount(h);
+		await m.collab.start(m.config);
+		window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+		expect(m.collab.active.value).toBeTruthy();
+		expect(h.listeners.size).toBe(1);
+		reconcileSlidesInYDoc([slide('room', 42)], h.doc, factories, 'peer');
+		expect(m.slides.value[0].elements[0].x).toBe(42);
+		window.dispatchEvent(new Event('pagehide'));
+		expect(m.collab.active.value).toBeFalsy();
+		expect(h.listeners.size).toBe(0);
+	});
+
+	it('re-adopts authoritative content after a delayed bootstrap load', async () => {
+		const h = host([slide('room')]);
+		const m = mount(h);
+		await m.collab.start(m.config);
+		m.load([slide('late-bootstrap')], 'bootstrap');
+		await nextTick();
+		expect(m.slides.value[0].id).toBe('room');
+		expect(h.read()[0].id).toBe('room');
+	});
+
 	it('adopts an already-synced room before publishing and keeps the host alive on stop', async () => {
 		const h = host([slide('room', 12)]);
 		const destroy = vi.spyOn(h.doc, 'destroy');

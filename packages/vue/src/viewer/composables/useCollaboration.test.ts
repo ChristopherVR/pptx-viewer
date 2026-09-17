@@ -419,6 +419,9 @@ describe('useCollaboration', () => {
 		const collab = scope.run(() => useCollaboration({ slides, onRemoteSlides: vi.fn() }))!;
 		await collab.start({ ...config, role: 'viewer' });
 
+		expect(collab.readOnly.value).toBeTruthy();
+		expect(collab.livePatcher.isActive()).toBeFalsy();
+		expect(state.slidesArray?.length).toBe(0);
 		expect(collab.broadcasterSlideIndex.value).toBeNull();
 
 		// A peer with the owner (broadcaster) role publishes their active slide.
@@ -426,6 +429,7 @@ describe('useCollaboration', () => {
 		state.awarenessChange?.();
 		expect(collab.broadcasterSlideIndex.value).toBe(5);
 		scope.stop();
+		expect(collab.readOnly.value).toBeFalsy();
 	});
 
 	it('clamps and sanitises incoming cursor + colour', async () => {

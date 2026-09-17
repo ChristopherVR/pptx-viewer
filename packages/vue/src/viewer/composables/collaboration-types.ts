@@ -79,6 +79,8 @@ export interface UseCollaborationResult {
 	remotePresences: Ref<RemotePresence[]>;
 	connectedCount: ComputedRef<number>;
 	active: Ref<boolean>;
+	/** Blocks edits only while a session is read-only or awaiting host sync. */
+	readOnly: Ref<boolean>;
 	/** The local user's role in the active session (undefined when stopped). */
 	activeRole: Ref<CollaborationRole | undefined>;
 	followedClientId: Ref<number | null>;

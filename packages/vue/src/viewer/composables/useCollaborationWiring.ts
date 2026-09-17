@@ -130,7 +130,7 @@ export function useCollaborationWiring(
 			if (config && config !== activeCollaboration.value) {
 				activeCollaboration.value = config;
 				void collab.start(config);
-			} else if (!config && collab.active.value) {
+			} else if (!config && activeCollaboration.value) {
 				activeCollaboration.value = null;
 				collab.stop();
 			}

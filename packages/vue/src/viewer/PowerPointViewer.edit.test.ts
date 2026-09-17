@@ -1,10 +1,12 @@
 import { flushPromises, mount } from '@vue/test-utils';
 import type { CollaborationConfig, ExternalCollaborationSession } from 'pptx-viewer-shared';
+import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
-import { Doc } from 'yjs';
+import { Doc, Map as YMap, Array as YArray, Text as YText } from 'yjs';
 
 import ComparePanel from './components/ComparePanel.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
+import ViewerCanvasOverlays from './components/ViewerCanvasOverlays.vue';
 import PowerPointViewer from './PowerPointViewer.vue';
 import type { PowerPointViewerExpose } from './types';
 
@@ -17,6 +19,8 @@ import type { PowerPointViewerExpose } from './types';
 describe('powerPointViewer editing wiring', () => {
 	it('keeps a host-owned viewer session locally read-only and restores collaborator editing', async () => {
 		const doc = new Doc();
+		let synced = true;
+		const listeners = new Set<() => void>();
 		const externalSession: ExternalCollaborationSession = {
 			doc,
 			awareness: {
@@ -28,8 +32,13 @@ describe('powerPointViewer editing wiring', () => {
 				on: () => {},
 				off: () => {},
 			},
-			getSnapshot: () => ({ status: 'connected', synced: true }),
-			subscribe: () => () => {},
+			getSnapshot: () => ({ status: 'connected', synced }),
+			subscribe: (listener) => {
+				listeners.add(listener);
+				return () => {
+					listeners.delete(listener);
+				};
+			},
 		};
 		const collaboration: CollaborationConfig = {
 			roomId: 'external',
@@ -75,6 +84,76 @@ describe('powerPointViewer editing wiring', () => {
 					rotation: 0,
 				}),
 			).toBeTruthy();
+			await flushPromises();
+			const textId = viewer.addElement({
+				type: 'text',
+				id: 'draft',
+				x: 0,
+				y: 0,
+				width: 200,
+				height: 50,
+				text: 'Original',
+			});
+			await flushPromises();
+			const inlineEdit = wrapper.getComponent(ViewerCanvasOverlays).props('inlineEdit');
+			inlineEdit.enterInlineEdit(textId!);
+			await flushPromises();
+			const draftNode = wrapper.get('[data-inline-editor]').element as HTMLElement;
+			draftNode.innerText = 'Accepted draft';
+			draftNode.dispatchEvent(new Event('input', { bubbles: true }));
+			synced = false;
+			for (const listener of listeners) {
+				listener();
+			}
+			await flushPromises();
+			expect(viewer.getElements().find((element) => element.id === textId)).toMatchObject({
+				text: 'Accepted draft',
+			});
+			expect(wrapper.find('[data-inline-editor]').exists()).toBeFalsy();
+			expect(wrapper.find('.pptx-vue-main').classes()).not.toContain('is-editable');
+			expect(
+				viewer.addElement({
+					type: 'shape',
+					id: 'unsynced-shape',
+					x: 0,
+					y: 0,
+					width: 40,
+					height: 40,
+				}),
+			).toBeUndefined();
+			const remote = readSlidesFromYDoc(doc);
+			const remoteText = remote
+				.flatMap((slide) => slide.elements)
+				.find((element) => element.id === textId)!;
+			Object.assign(remoteText, {
+				text: 'Remote replacement',
+				textSegments: [{ text: 'Remote replacement', style: {} }],
+			});
+			reconcileSlidesInYDoc(
+				remote,
+				doc,
+				{
+					createMap: () => new YMap(),
+					createArray: () => new YArray(),
+					createText: () => new YText(),
+				},
+				'peer',
+			);
+			synced = true;
+			for (const listener of listeners) {
+				listener();
+			}
+			await flushPromises();
+			draftNode.dispatchEvent(new Event('blur'));
+			await flushPromises();
+			expect(viewer.getElements().find((element) => element.id === textId)).toMatchObject({
+				text: 'Remote replacement',
+			});
+			expect(wrapper.find('.pptx-vue-main').classes()).toContain('is-editable');
+			await wrapper.setProps({ collaboration: undefined });
+			await flushPromises();
+			expect(wrapper.find('.pptx-vue-main').classes()).toContain('is-editable');
+			expect(listeners.size).toBe(0);
 		} finally {
 			wrapper.unmount();
 			doc.destroy();
