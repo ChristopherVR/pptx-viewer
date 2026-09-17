@@ -1,20 +1,48 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 
-import { checkDist, inspectYjsRuntime } from './check-published-yjs.mjs';
+import { checkDist, inspectYjsManifest, inspectYjsRuntime } from './check-published-yjs.mjs';
 
 test('recognizes external ESM, dynamic imports and CommonJS', () => {
 	for (const source of [
 		"import { Map } from 'yjs';",
 		"const Y = await import('yjs');",
 		'const Y=require("yjs");',
+		'import{Map}from"yjs";',
 	]) {
 		assert.deepEqual(inspectYjsRuntime(source), { external: true, bundled: false });
 	}
 });
+
+test('accepts only an optional application-owned Yjs peer', () => {
+	const valid = {
+		peerDependencies: { yjs: '^13.6.32' },
+		peerDependenciesMeta: { yjs: { optional: true } },
+	};
+	assert.deepEqual(inspectYjsManifest(valid), []);
+	for (const invalid of [
+		{},
+		{ ...valid, peerDependencies: { yjs: '' } },
+		{ ...valid, peerDependenciesMeta: {} },
+		{ ...valid, dependencies: { yjs: '^13.6.32' } },
+		{ ...valid, optionalDependencies: { yjs: '^13.6.32' } },
+	]) {
+		assert.notEqual(inspectYjsManifest(invalid).length, 0);
+	}
+	assert.deepEqual(inspectYjsManifest({ ...valid, devDependencies: { yjs: '^13.6.32' } }), []);
+});
+
+for (const binding of ['react', 'vue', 'angular', 'vanilla', 'svelte']) {
+	test(`${binding} declares the external runtime as an optional peer`, () => {
+		const manifest = JSON.parse(
+			readFileSync(new URL(`../packages/${binding}/package.json`, import.meta.url), 'utf8'),
+		);
+		assert.deepEqual(inspectYjsManifest(manifest), []);
+	});
+}
 
 test('detects a bundled runtime even when an external import also exists', () => {
 	assert.deepEqual(

@@ -14,8 +14,26 @@ export function inspectYjsRuntime(source) {
 	return {
 		// Yjs deliberately emits this sentinel to diagnose constructor mismatches.
 		bundled: source.includes('Yjs was already imported.'),
-		external: /(?:from\s+|import\s*\(|require\s*\()\s*["']yjs["']/u.test(source),
+		external: /(?:\bfrom\s*|\bimport\s*\(|\brequire\s*\()\s*["']yjs["']/u.test(source),
 	};
+}
+
+/** An external runtime must be supplied by the application, never installed privately. */
+export function inspectYjsManifest(manifest) {
+	const errors = [];
+	if (typeof manifest.peerDependencies?.yjs !== 'string' || !manifest.peerDependencies.yjs.trim()) {
+		errors.push('declare yjs as a peer dependency');
+	}
+	if (manifest.peerDependenciesMeta?.yjs?.optional !== true) {
+		errors.push('mark the yjs peer optional for non-collaborative consumers');
+	}
+	if (
+		manifest.dependencies?.yjs !== undefined ||
+		manifest.optionalDependencies?.yjs !== undefined
+	) {
+		errors.push('do not install a private yjs runtime as a dependency');
+	}
+	return errors;
 }
 
 export function checkDist(directory) {
@@ -41,9 +59,18 @@ export function main() {
 			throw new Error(`Unknown binding: ${binding}`);
 		}
 		const result = checkDist(resolve(ROOT, 'packages', binding, 'dist'));
-		if (result.bundled.length || !result.external) {
+		// Angular publishes from dist; the other bindings publish their package root.
+		const manifestPath = resolve(
+			ROOT,
+			'packages',
+			binding,
+			...(binding === 'angular' ? ['dist'] : []),
+			'package.json',
+		);
+		const manifestErrors = inspectYjsManifest(JSON.parse(readFileSync(manifestPath, 'utf8')));
+		if (result.bundled.length || !result.external || manifestErrors.length) {
 			console.error(
-				`[check-published-yjs] ${binding}: keep yjs external; bundled files: ${result.bundled.join(', ') || 'none'}; external reference: ${result.external}.`,
+				`[check-published-yjs] ${binding}: keep yjs external; bundled files: ${result.bundled.join(', ') || 'none'}; external reference: ${result.external}; manifest: ${manifestErrors.join('; ') || 'valid optional peer'}.`,
 			);
 			process.exitCode = 1;
 		} else {
