@@ -84,6 +84,13 @@ export function ChartQuickActionsOverlay({
 			data-pptx-chart-quick-actions='true'
 			data-export-ignore='true'
 			style={{ position: 'absolute', left: 0, top: 0, zIndex: 59 }}
+			// The canvas stage deselects on a mousedown that lands outside any
+			// `data-pptx-element` node (see `SelectionHandleOverlay`'s own doc
+			// comment on the same hazard). This host is deliberately not marked
+			// that way, so without stopping propagation here every click on a
+			// quick-action button or popover control first deselected the chart
+			// (dropping this whole overlay) before its own onClick/onChange ran.
+			onMouseDown={(e) => e.stopPropagation()}
 		>
 			{descriptor.buttons.map((button) => (
 				<React.Fragment key={button.id}>
