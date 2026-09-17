@@ -10,6 +10,7 @@
  */
 import React, { useEffect, useRef } from 'react';
 
+import type { CollaborationContextValue } from '../../hooks/collaboration/types';
 import { useCollaboration } from './CollaborationProvider';
 import { RemoteUserCursors } from './RemoteUserCursors';
 
@@ -18,6 +19,8 @@ import { RemoteUserCursors } from './RemoteUserCursors';
 // ---------------------------------------------------------------------------
 
 export interface CollaborationCursorOverlayProps {
+	/** Headless hosts can supply the same state without mounting another provider. */
+	collaboration?: CollaborationContextValue | null;
 	activeSlideIndex: number;
 	canvasWidth: number;
 	canvasHeight: number;
@@ -30,12 +33,14 @@ export interface CollaborationCursorOverlayProps {
 // ---------------------------------------------------------------------------
 
 export function CollaborationCursorOverlay({
+	collaboration,
 	activeSlideIndex,
 	canvasWidth,
 	canvasHeight,
 	selectedElementId,
 }: CollaborationCursorOverlayProps): React.ReactElement | null {
-	const collab = useCollaboration();
+	const context = useCollaboration();
+	const collab = collaboration === undefined ? context : collaboration;
 	const containerRef = useRef<HTMLDivElement>(null);
 
 	// Broadcast selectedElementId changes to remote users

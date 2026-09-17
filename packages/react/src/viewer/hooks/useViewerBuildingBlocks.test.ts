@@ -1,7 +1,8 @@
 import JSZip from 'jszip';
 import { createImageElement, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { createViewerOptionsStore } from 'pptx-viewer-shared';
+import { createViewerOptionsStore, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
+import type { CollaborationConfig, ExternalCollaborationSession } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * Live sanity check for `useViewerBuildingBlocks`: renders a component that
@@ -19,6 +20,8 @@ import React, { act, createRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Awareness } from 'y-protocols/awareness';
+import * as Y from 'yjs';
 
 import * as imageInsertion from '../../../../shared/src/render/image-file-insertion';
 import { SlideCanvas } from '../components/SlideCanvas';
@@ -89,6 +92,7 @@ let root: Root;
 let latest: ViewerBuildingBlocksResult | null = null;
 
 function Harness({
+	collaboration,
 	content,
 	handle,
 	onDirtyChange,
@@ -98,6 +102,7 @@ function Harness({
 	measuredViewport,
 	mountedCanvas,
 }: {
+	collaboration?: CollaborationConfig;
 	content: Uint8Array;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
 	onDirtyChange?: (dirty: boolean) => void;
@@ -108,6 +113,7 @@ function Harness({
 	mountedCanvas?: { key: string; overrides?: Partial<SlideCanvasProps> };
 }): React.ReactElement {
 	const result = useViewerBuildingBlocks({
+		collaboration,
 		content,
 		canEdit,
 		handle,
@@ -187,6 +193,102 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('synchronizes two host-owned peers through the public headless API and saves their final deck', async () => {
+		const firstDoc = new Y.Doc(),
+			secondDoc = new Y.Doc();
+		const firstAwareness = new Awareness(firstDoc),
+			secondAwareness = new Awareness(secondDoc);
+		const firstHandle = createRef<PowerPointViewerHandle>(),
+			secondHandle = createRef<PowerPointViewerHandle>();
+		const peerContainer = document.createElement('div');
+		document.body.append(peerContainer);
+		const peerRoot = createRoot(peerContainer);
+		const original = new PptxHandler();
+		const data = await original.load(textEditingFixtureBytes.buffer as ArrayBuffer);
+		data.slides[0].elements[0].x = 45;
+		reconcileSlidesInYDoc(data.slides, firstDoc, {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+		});
+		Y.applyUpdate(secondDoc, Y.encodeStateAsUpdate(firstDoc));
+		firstDoc.on('update', (update: Uint8Array, origin: unknown) => {
+			if (origin !== 'peer') {
+				Y.applyUpdate(secondDoc, update, 'peer');
+			}
+		});
+		secondDoc.on('update', (update: Uint8Array, origin: unknown) => {
+			if (origin !== 'peer') {
+				Y.applyUpdate(firstDoc, update, 'peer');
+			}
+		});
+		const config = (doc: Y.Doc, awareness: Awareness): CollaborationConfig => ({
+			roomId: 'headless-test',
+			serverUrl: '',
+			userName: 'Participant',
+			sessionIntent: 'join',
+			externalSession: {
+				doc,
+				awareness,
+				getSnapshot: () => ({ status: 'connected', synced: true }),
+				subscribe: () => () => {},
+			} satisfies ExternalCollaborationSession,
+		});
+		try {
+			await act(async () => {
+				root.render(
+					React.createElement(Harness, {
+						content: textEditingFixtureBytes,
+						handle: firstHandle,
+						collaboration: config(firstDoc, firstAwareness),
+					}),
+				);
+				peerRoot.render(
+					React.createElement(Harness, {
+						content: textEditingFixtureBytes,
+						handle: secondHandle,
+						collaboration: config(secondDoc, secondAwareness),
+					}),
+				);
+			});
+			await flushUntil(
+				() =>
+					firstHandle.current?.getElements().length === 2 &&
+					secondHandle.current?.getElements().length === 2,
+			);
+			await flushUntil(() => latest?.loading === false);
+			expect(latest?.error).toBeNull();
+			expect(firstHandle.current!.getElements()[0].x).toBe(45);
+			expect(secondHandle.current!.getElements()[0].x).toBe(45);
+			const [first, second] = firstHandle.current!.getElements();
+			await act(async () => firstHandle.current!.updateElement(first.id, { x: 90 }));
+			await flushUntil(() => secondHandle.current!.getElements()[0].x === 90);
+			await act(async () => secondHandle.current!.updateElement(second.id, { y: 180 }));
+			await flushUntil(() => firstHandle.current!.getElements()[1].y === 180);
+			expect(secondHandle.current!.getSlides()).toStrictEqual(firstHandle.current!.getSlides());
+			const saved = await firstHandle.current!.getContent();
+			const reopened = new PptxHandler();
+			const result = await reopened.load(saved.buffer as ArrayBuffer);
+			expect(result.slides[0].elements[0].x).toBe(90);
+			expect(result.slides[0].elements[1].y).toBe(180);
+			reopened.dispose();
+			await act(async () => {
+				root.render(null);
+				peerRoot.render(null);
+			});
+			expect(firstDoc.isDestroyed).toBeFalsy();
+			expect(secondDoc.isDestroyed).toBeFalsy();
+		} finally {
+			await act(async () => peerRoot.unmount());
+			peerContainer.remove();
+			firstAwareness.destroy();
+			secondAwareness.destroy();
+			firstDoc.destroy();
+			secondDoc.destroy();
+			original.dispose();
+		}
+	}, 30_000);
+
 	it('reports the full selection after a toolbar text-box insertion', async () => {
 		const handle = createRef<PowerPointViewerHandle>();
 		await act(async () => {

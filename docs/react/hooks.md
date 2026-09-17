@@ -57,6 +57,31 @@ That shape only makes sense inside the component's composition; for standalone u
 
 ## Public hooks
 
+### Custom editor collaboration
+
+`useViewerBuildingBlocks` accepts the same optional `collaboration` configuration
+as `PowerPointViewer`, including a [host-owned Yjs session](/guide/host-owned-collaboration).
+It returns `collaboration` connection/presence state for a custom status bar and
+includes the cursor overlay in `canvasProps`. No extra collaboration provider is needed.
+
+```tsx
+import { SlideCanvas, Toolbar, useViewerBuildingBlocks } from 'pptx-react-viewer';
+
+function Editor({ content, collaboration }) {
+	const blocks = useViewerBuildingBlocks({ content, collaboration, canEdit: true });
+	return (
+		<>
+			<Toolbar {...blocks.toolbarProps} />
+			<SlideCanvas {...blocks.canvasProps} />
+		</>
+	);
+}
+```
+
+The hook uses the bundled editor's document sync, readiness gates and write-back
+path. `role: 'viewer'` disables editing. This does not change its existing undo
+semantics or add separate host comments integration.
+
 The following are exported from `pptx-react-viewer/viewer` and are safe to import. They are opt-in
 and tree-shakeable. Note these come from the **`/viewer`** entry; the root `pptx-react-viewer`
 entry exports the component, `renderToCanvas`, theme utilities (including the `useViewerTheme`

@@ -78,6 +78,13 @@ export default defineConfig({
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REACT_PORT}` },
 		},
 		{
+			// Reuse React's server, but exercise the public custom-shell integration.
+			name: 'react-headless',
+			metadata: { headless: true },
+			testMatch: '**/host-owned-collaboration.spec.ts',
+			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${REACT_PORT}` },
+		},
+		{
 			name: 'vue',
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${VUE_PORT}` },
 		},

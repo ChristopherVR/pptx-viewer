@@ -526,8 +526,13 @@ jobs:
       # behind.
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
         run: |
+          e2e_projects=(--project=${{ matrix.key }})
+          if [ "${{ matrix.key }}" = "react" ]; then
+            # This project contains only the custom-shell collaboration spec.
+            e2e_projects+=(--project=react-headless)
+          fi
           for attempt in 1 2; do
-            bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
+            bun run e2e -- "${e2e_projects[@]}" --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
             status=$?
             [ $status -eq 0 ] && exit 0
             echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/8 failed (exit $status)"
