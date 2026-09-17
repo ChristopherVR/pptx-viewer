@@ -40,7 +40,17 @@ async function chartSvg(page: Page) {
 
 interface LegendSwatch {
 	label: string;
-	hasRect: boolean;
+	/**
+	 * Whether a `<rect>` in this swatch is the OLD unconditional 10x10 colour
+	 * swatch (`x=0,y=-7,width=10,height=10`, drawn instead of a line+marker
+	 * sample). A `<rect>` can legitimately appear as part of a correct
+	 * line+marker sample too: `automaticMarkerSymbol` (chart-marker-shape.ts)
+	 * cycles a no-`c:symbol` series through Diamond/Square/Triangle/... keyed by
+	 * `c:idx`, and Square/Dash both resolve to a small `<rect>` marker
+	 * (`w/h <= 6`, positioned near the swatch centre) rather than the 10x10
+	 * fallback swatch, so this must not be confused with `hasRect`.
+	 */
+	hasDefaultRectSwatch: boolean;
 	hasLine: boolean;
 	hasMarker: boolean;
 	lineStroke: string | null;
@@ -53,7 +63,9 @@ async function legendSwatches(svg: ReturnType<Page['locator']>): Promise<LegendS
 			const line = g.querySelector('line');
 			return {
 				label: g.querySelector('text')?.textContent?.trim() ?? '',
-				hasRect: g.querySelector('rect') !== null,
+				hasDefaultRectSwatch: Array.from(g.querySelectorAll('rect')).some(
+					(r) => r.getAttribute('width') === '10' && r.getAttribute('height') === '10',
+				),
 				hasLine: line !== null,
 				hasMarker: g.querySelector('circle, polygon, path, rect') !== null,
 				lineStroke: line?.getAttribute('stroke') ?? null,
@@ -81,7 +93,10 @@ test.describe('stacked line chart: polylines + legend line swatch', () => {
 		const swatches = await legendSwatches(svg);
 		expect(swatches.map((s) => s.label)).toStrictEqual(['A', 'B']);
 		for (const swatch of swatches) {
-			expect(swatch.hasRect, `${swatch.label}'s swatch must not be the default rect`).toBe(false);
+			expect(
+				swatch.hasDefaultRectSwatch,
+				`${swatch.label}'s swatch must not be the default rect`,
+			).toBe(false);
 			expect(swatch.hasLine, `${swatch.label}'s swatch must draw a connecting line`).toBe(true);
 			expect(swatch.hasMarker, `${swatch.label}'s swatch must draw a marker`).toBe(true);
 		}
