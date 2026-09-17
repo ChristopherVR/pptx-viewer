@@ -14,6 +14,8 @@
 
 import type { PptxChartDataPointPicture, PptxChartMarkerSymbol } from 'pptx-viewer-core';
 
+import { automaticMarkerSymbol } from './chart-marker-shape';
+
 /** Minimal shape props subset needed to resolve a point fill. */
 interface PointShapeProps {
 	fillColor?: string;
@@ -47,6 +49,14 @@ export interface ChartSeriesLike {
 	color?: string;
 	marker?: ChartMarkerLike;
 	dataPoints?: ChartDataPointLike[];
+	/**
+	 * This series' `c:ser/c:idx/@val` (mirrors `PptxChartSeries.idx`). Used to
+	 * key the automatic marker-symbol cycle so a chart with non-sequential or
+	 * gapped indices (a deleted/filtered series) still lands on the same shape
+	 * PowerPoint does; falls back to the caller-supplied array position when
+	 * absent.
+	 */
+	idx?: number;
 	/**
 	 * Series-level picture-fill flags (`c:ser/c:pictureOptions`): paints every
 	 * point in the series with one picture unless a `c:dPt` resolves its own
@@ -133,14 +143,30 @@ export function resolveDataPointExplosion(
  * looked at `series.marker`, so editing a point marker changed the file and
  * left the canvas untouched. Resolving it here fixes every binding at once,
  * since they all paint the same shared view model.
+ *
+ * A resolved symbol of `'auto'` (or a marker present with no `c:symbol` at
+ * all, which the core parser also normalises to `'auto'`) is resolved to a
+ * concrete shape via {@link automaticMarkerSymbol}, keyed by `series.idx`
+ * (falling back to `seriesPosition`, the series' array index, when the chart
+ * carries no `c:idx`). A series/point with NO marker element at all
+ * (`marker` and `point` both `undefined`) keeps `symbol: undefined`
+ * unchanged: that is a chart type that draws no marker at all, not an
+ * automatic one, and must not start cycling shapes.
  */
 export function resolveDataPointMarker(
 	series: ChartSeriesLike,
 	pointIndex: number,
+	seriesPosition = 0,
 ): ResolvedPointMarker {
 	const point = findDataPoint(series, pointIndex)?.marker;
+	const hasMarker = point !== undefined || series.marker !== undefined;
+	const rawSymbol = point?.symbol ?? series.marker?.symbol;
+	const symbol =
+		hasMarker && (rawSymbol === undefined || rawSymbol === 'auto')
+			? automaticMarkerSymbol(series.idx ?? seriesPosition)
+			: rawSymbol;
 	return {
-		symbol: point?.symbol ?? series.marker?.symbol,
+		symbol,
 		size: point?.size ?? series.marker?.size,
 		fill: point?.spPr?.fillColor ?? series.marker?.spPr?.fillColor,
 	};

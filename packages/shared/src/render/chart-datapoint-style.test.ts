@@ -108,6 +108,48 @@ describe('chart-datapoint-style', () => {
 			};
 			expect(resolveDataPointMarker(hidden, 0).symbol).toBe('none');
 		});
+
+		// Regression for a real-world stacked line chart: two series with a
+		// `c:marker` present but no `c:symbol` (PowerPoint's "automatic" marker
+		// authoring), carrying NON-SEQUENTIAL `c:idx` (1 and 2, not 0 and 1). Real
+		// PowerPoint (COM-measured, `SeriesCollection(i).MarkerStyle` read back
+		// after save/reopen) resolved idx 1 to Square and idx 2 to Triangle,
+		// matching `AUTOMATIC_MARKER_CYCLE`'s [1]/[2] entries.
+		describe('automatic marker-symbol cycling (c:marker present, no c:symbol)', () => {
+			it('cycles by the series c:idx, not by array position', () => {
+				const seriesA = { marker: { symbol: 'auto' as const }, idx: 1 };
+				const seriesB = { marker: { symbol: 'auto' as const }, idx: 2 };
+				expect(resolveDataPointMarker(seriesA, 0, 0).symbol).toBe('square');
+				expect(resolveDataPointMarker(seriesB, 0, 1).symbol).toBe('triangle');
+			});
+
+			it('falls back to the array position when the series has no c:idx', () => {
+				expect(resolveDataPointMarker({ marker: { symbol: 'auto' as const } }, 0, 0).symbol).toBe(
+					'diamond',
+				);
+				expect(resolveDataPointMarker({ marker: { symbol: 'auto' as const } }, 0, 5).symbol).toBe(
+					'circle',
+				);
+			});
+
+			it('treats a marker present with no symbol at all the same as an explicit auto', () => {
+				const autoSeries = { marker: {}, idx: 2 };
+				expect(resolveDataPointMarker(autoSeries, 0, 0).symbol).toBe('triangle');
+			});
+
+			it('does NOT cycle a series with no marker element at all (no marker intended)', () => {
+				expect(resolveDataPointMarker({ idx: 1 }, 0, 0).symbol).toBeUndefined();
+			});
+
+			it('a per-point dPt marker present with no symbol also cycles off the series idx', () => {
+				// The point's own empty `c:dPt/c:marker` (present, but no `c:symbol`)
+				// requests automatic just like a series-level one would; there is no
+				// series-level marker here to fall back to, so this only passes if
+				// the point marker's OWN presence, not the series', drives the cycle.
+				const pointMarkerSeries = { idx: 2, dataPoints: [{ idx: 4, marker: {} }] };
+				expect(resolveDataPointMarker(pointMarkerSeries, 4, 0).symbol).toBe('triangle');
+			});
+		});
 	});
 
 	describe('upsertDataPoint', () => {

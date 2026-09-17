@@ -44,7 +44,7 @@ export function buildLegend(
 		return {
 			color,
 			label: s.name,
-			...(kind === 'line' ? { lineSwatch: buildLineLegendSwatch(s, color) } : {}),
+			...(kind === 'line' ? { lineSwatch: buildLineLegendSwatch(s, color, i) } : {}),
 		};
 	});
 

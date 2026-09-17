@@ -616,6 +616,17 @@ export interface PptxChartTreemapOptions {
  */
 export interface PptxChartSeries {
 	name: string;
+	/**
+	 * This series' own `c:ser/c:idx/@val`. PowerPoint keys per-series identity
+	 * (data-point picking, and the automatic marker-symbol cycle when no
+	 * `c:marker/c:symbol` is authored) off this value, NOT off the series'
+	 * position in this array: a series can be reordered (`c:order`) without its
+	 * `idx` changing, and a chart with a deleted/filtered series leaves a gap
+	 * (e.g. idx 1, 2 with no idx 0). Absent only for chart kinds this parser
+	 * does not tag (rare); render code that needs it should fall back to the
+	 * array position.
+	 */
+	idx?: number;
 	values: number[];
 	/**
 	 * Per-series x values from `c:ser/c:xVal` (scatter and bubble series only).

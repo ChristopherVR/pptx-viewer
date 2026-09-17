@@ -131,11 +131,31 @@ describe('parseMarker', () => {
 		}
 	});
 
-	it('should return undefined for unknown symbol', () => {
+	it('resolves an unrecognised symbol value to auto instead of discarding the marker', () => {
 		const marker: XmlObject = {
 			'c:symbol': { '@_val': 'unknownType' },
 		};
-		expect(parseMarker(marker, xmlLookup, colorParser)).toBeUndefined();
+		expect(parseMarker(marker, xmlLookup, colorParser)).toStrictEqual({ symbol: 'auto' });
+	});
+
+	// Regression: a `<c:marker>` with NO `c:symbol` child at all (the common
+	// "automatic" authoring PowerPoint itself writes, e.g.
+	// `<c:marker><c:spPr>...</c:spPr></c:marker>`) used to be treated as "no
+	// marker" and discarded whole, losing its `c:spPr`/`c:size` along with it.
+	// It must resolve to `symbol: 'auto'` (the shared renderer's
+	// `automaticMarkerSymbol` then cycles a concrete shape by series `c:idx`),
+	// keeping every other authored property.
+	it('resolves a marker with no c:symbol child to auto, preserving spPr/size', () => {
+		const marker: XmlObject = {
+			'c:size': { '@_val': '7' },
+			'c:spPr': { 'a:solidFill': { 'a:srgbClr': { '@_val': 'AABB00' } } },
+		};
+		const result = parseMarker(marker, xmlLookup, colorParser);
+		expect(result).toStrictEqual({
+			symbol: 'auto',
+			size: 7,
+			spPr: { fillColor: '#AABB00' },
+		});
 	});
 
 	it('should return undefined for undefined input', () => {

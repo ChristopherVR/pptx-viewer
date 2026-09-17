@@ -121,12 +121,16 @@ export function parseMarker(
 		return undefined;
 	}
 
+	// `<c:marker>` with no `c:symbol` child at all (the common "automatic"
+	// authoring, e.g. `<c:marker><c:spPr>...</c:spPr></c:marker>`) is NOT "no
+	// marker": PowerPoint still draws one, cycling a fixed shape sequence keyed
+	// by the series' `c:idx` (see `chart-marker-shape.ts`'s
+	// `automaticMarkerSymbol` in the shared render package). Treating an absent
+	// or unrecognised `c:symbol` as 'auto' instead of discarding the whole
+	// marker used to drop this element's `c:spPr`/`c:size` along with it.
 	const symbolNode = xmlLookup.getChildByLocalName(markerNode, 'symbol');
 	const rawSymbol = String(symbolNode?.['@_val'] || '').trim();
-	const symbol = MARKER_SYMBOL_MAP[rawSymbol];
-	if (!symbol) {
-		return undefined;
-	}
+	const symbol = MARKER_SYMBOL_MAP[rawSymbol] ?? 'auto';
 
 	const result: PptxChartMarker = { symbol };
 

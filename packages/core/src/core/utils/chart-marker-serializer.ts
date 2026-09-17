@@ -86,7 +86,18 @@ export function buildChartMarkerXml(
 		throw new RangeError('marker size must be an integer from 2 through 72');
 	}
 	const node: XmlObject = {};
-	node['c:symbol'] = { '@_val': marker.symbol };
+	// `'auto'` is written by OMITTING `c:symbol`, matching how PowerPoint itself
+	// authors an "automatic" marker (`<c:marker><c:spPr>.../></c:marker>` with
+	// no `c:symbol` child at all) and how the parser now reads that construct
+	// back (see `chart-series-detail-parser.ts`'s `parseMarker`). Writing an
+	// explicit `val="auto"` is also legal OOXML, but doing so unconditionally
+	// would rewrite the `c:marker` element of every automatic-marker series on
+	// every save that touches this chart at all, not just one where a marker
+	// was actually edited, purely because parsing now resolves a symbol-less
+	// marker to a defined value instead of dropping the whole element.
+	if (marker.symbol !== 'auto') {
+		node['c:symbol'] = { '@_val': marker.symbol };
+	}
 	if (marker.size !== undefined) {
 		node['c:size'] = { '@_val': String(marker.size) };
 	}

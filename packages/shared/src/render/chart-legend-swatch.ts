@@ -82,10 +82,11 @@ export function resolveLegendSwatchKind(kind: SupportedChartKind): LegendSwatchK
  * regardless of how large the plotted markers are.
  */
 export function buildLineLegendSwatch(
-	series: Pick<PptxChartSeries, 'marker' | 'color' | 'lineNoFill' | 'dataPoints'>,
+	series: Pick<PptxChartSeries, 'marker' | 'color' | 'lineNoFill' | 'dataPoints' | 'idx'>,
 	color: string,
+	seriesPosition = 0,
 ): LegendLineSwatch {
-	const resolved = resolveDataPointMarker(series, -1),
+	const resolved = resolveDataPointMarker(series, -1, seriesPosition),
 		primitives: SvgPrimitive[] = [];
 	if (!series.lineNoFill) {
 		primitives.push({

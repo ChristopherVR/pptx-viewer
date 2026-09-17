@@ -33,6 +33,49 @@ export interface MarkerShapeInput {
 	part?: ChartPartRef;
 }
 
+/**
+ * PowerPoint's automatic marker-symbol cycle: the fixed shape sequence a
+ * "Line/Scatter with Markers" chart cycles through when a series' `c:marker`
+ * carries no `c:symbol` (only its fill/line colour is "automatic"; the shape
+ * itself was assumed to always be a circle before this was measured).
+ *
+ * COM-measured ground truth (`PowerPoint.Application`, a stacked
+ * Line-with-Markers chart, N series each with `<c:marker><c:spPr>.../></c:marker>`
+ * and no `c:symbol`, `SeriesCollection(i).MarkerStyle` read back after a real
+ * save/reopen round trip): idx 0..8 resolved to
+ * Diamond, Square, Triangle, X, Star, Circle, Plus, Dot, Dash - a clean
+ * 9-element cycle with no partial/ambiguous entries across 9 independent
+ * series (this is ALSO what the chart-style-driven, explicit-symbol path a
+ * modern "Line with Markers" preset writes on save resolves every series to a
+ * uniform Circle, so that path is unrelated: this cycle is specifically
+ * what PowerPoint's renderer falls back to for a chart with no `c:symbol` at
+ * all). Confirmed against a real-world deck: series `c:idx="1"`/`"2"` (a
+ * gapped, 1-based pair, not `0`/`1`) resolved to Square/Triangle exactly as
+ * this cycle predicts (`AUTOMATIC_MARKER_CYCLE[1]` / `[2]`).
+ */
+const AUTOMATIC_MARKER_CYCLE: readonly PptxChartMarkerSymbol[] = [
+	'diamond',
+	'square',
+	'triangle',
+	'x',
+	'star',
+	'circle',
+	'plus',
+	'dot',
+	'dash',
+];
+
+/**
+ * Resolve the automatic marker shape for a series with no authored
+ * `c:symbol`, keyed by the series' `c:idx` (or its array position when the
+ * chart has none): {@link AUTOMATIC_MARKER_CYCLE} repeats every 9 series.
+ */
+export function automaticMarkerSymbol(seriesIdx: number): PptxChartMarkerSymbol {
+	const length = AUTOMATIC_MARKER_CYCLE.length;
+	const normalized = ((seriesIdx % length) + length) % length;
+	return AUTOMATIC_MARKER_CYCLE[normalized];
+}
+
 /** Resolve the drawn radius (px) from the parsed point size or the default. */
 function markerRadius(size: number | undefined, defaultRadius: number): number {
 	if (size === undefined || !Number.isFinite(size) || size <= 0) {

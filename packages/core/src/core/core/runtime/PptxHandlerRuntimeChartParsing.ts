@@ -700,6 +700,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): PptxChartData['series'] {
 		return seriesList.map((seriesNode, seriesIndex) => {
 			const seriesName = this.extractChartSeriesName(seriesNode);
+			// `c:idx/@val`: PowerPoint's own series identity, independent of array
+			// position (see PptxChartSeries.idx's doc comment).
+			const rawIdx = this.xmlLookupService.getChildByLocalName(seriesNode, 'idx')?.['@_val'];
+			const parsedIdx = rawIdx !== undefined ? Number.parseInt(String(rawIdx), 10) : Number.NaN;
+			const idx = Number.isFinite(parsedIdx) ? parsedIdx : undefined;
 			const valNode =
 				this.xmlLookupService.getChildByLocalName(seriesNode, 'val') ||
 				this.xmlLookupService.getChildByLocalName(seriesNode, 'yVal');
@@ -882,6 +887,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			return {
 				name: seriesName.trim().length > 0 ? seriesName : `Series ${seriesIndex + 1}`,
+				...(idx !== undefined ? { idx } : {}),
 				values: fallbackValues,
 				...(blanks ? { blanks } : {}),
 				...(xValues.length > 0 ? { xValues } : {}),

@@ -90,8 +90,9 @@ export function pushMarker(
 	part: ChartPartRef,
 	opacity?: number,
 	title?: string,
+	seriesPosition = part.seriesIndex ?? 0,
 ): void {
-	const marker = resolveDataPointMarker(series, pointIndex),
+	const marker = resolveDataPointMarker(series, pointIndex, seriesPosition),
 		m = buildMarkerPrimitive({
 			symbol: marker.symbol,
 			size: marker.size,
