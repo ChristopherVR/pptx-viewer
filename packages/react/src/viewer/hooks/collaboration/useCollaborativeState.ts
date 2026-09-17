@@ -1,4 +1,5 @@
 import { sanitizeColor } from 'pptx-viewer-shared';
+import { useMemo } from 'react';
 
 /**
  * useCollaborativeState: Composes the Yjs provider and presence tracking
@@ -62,18 +63,11 @@ export function useCollaborativeState({
 	// Collaboration inactive: all the hooks above ran (and stayed dormant) so the
 	// provider keeps a stable tree, but expose a null context value so
 	// `useCollaboration()` reports "not collaborating", exactly as before.
-	if (!config) {
-		return null;
-	}
-
-	return {
-		status,
-		remoteUsers,
-		broadcastPresence,
-		connectedCount,
-		config,
-		doc,
-		synced,
-		retry,
-	};
+	return useMemo(
+		() =>
+			config
+				? { status, remoteUsers, broadcastPresence, connectedCount, config, doc, synced, retry }
+				: null,
+		[status, remoteUsers, broadcastPresence, connectedCount, config, doc, synced, retry],
+	);
 }

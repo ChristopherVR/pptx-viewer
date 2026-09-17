@@ -19,7 +19,12 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
-import type { CollaborationConfig } from '../../hooks/collaboration/types';
+import type {
+	CollaborationConfig,
+	CollaborationContextValue,
+} from '../../hooks/collaboration/types';
+
+const { retry } = vi.hoisted(() => ({ retry: () => {} }));
 
 // Mock the transport layer so the provider never opens a real Yjs connection
 // (no dynamic yjs/y-webrtc import, no network); we only care about tree shape.
@@ -31,12 +36,13 @@ vi.mock(import('../../hooks/collaboration/useYjsProvider'), () => ({
 		doc: null,
 		clientId: null,
 		synced: true,
-		retry: () => {},
+		retry,
 	}),
 	isMixedContentBlocked: () => false,
 }));
 
 const { CollaborationProvider, useCollaboration } = await import('./CollaborationProvider');
+const { CollaborationCursorOverlay } = await import('./CollaborationCursorOverlay');
 
 const CONFIG: CollaborationConfig = {
 	roomId: 'room-1',
@@ -47,9 +53,11 @@ const CONFIG: CollaborationConfig = {
 let container: HTMLDivElement;
 let root: Root;
 let mountCount = 0;
+let contextValue: CollaborationContextValue | null = null;
 
 function Child(): React.ReactElement {
 	const collab = useCollaboration();
+	contextValue = collab;
 	React.useEffect(() => {
 		mountCount += 1;
 	}, []);
@@ -85,6 +93,58 @@ afterEach(() => {
 });
 
 describe('collaborationProvider tree stability', () => {
+	it('keeps pointer subscriptions stable but publishes active-slide changes', () => {
+		const broadcastPresence = vi.fn();
+		const renderOverlay = (activeSlideIndex: number): void => {
+			act(() => {
+				root.render(
+					<div data-testid='canvas'>
+						<CollaborationCursorOverlay
+							collaboration={{
+								config: CONFIG,
+								status: 'connected',
+								synced: true,
+								doc: null,
+								remoteUsers: [],
+								connectedCount: 1,
+								retry,
+								broadcastPresence,
+							}}
+							activeSlideIndex={activeSlideIndex}
+							canvasWidth={960}
+							canvasHeight={540}
+							selectedElementId='shape-1'
+						/>
+					</div>,
+				);
+			});
+		};
+		renderOverlay(0);
+		const canvas = container.querySelector('[data-testid="canvas"]')!;
+		const addListener = vi.spyOn(canvas, 'addEventListener');
+		const removeListener = vi.spyOn(canvas, 'removeEventListener');
+		broadcastPresence.mockClear();
+		renderOverlay(0);
+		expect(addListener).not.toHaveBeenCalled();
+		expect(removeListener).not.toHaveBeenCalled();
+		expect(broadcastPresence).not.toHaveBeenCalled();
+		renderOverlay(1);
+		expect(broadcastPresence).toHaveBeenCalledWith({
+			selectedElementId: 'shape-1',
+			activeSlideIndex: 1,
+		});
+		expect(addListener).toHaveBeenCalledOnce();
+		expect(removeListener).toHaveBeenCalledOnce();
+	});
+
+	it('retains the context identity across unrelated parent renders', () => {
+		renderWith(CONFIG);
+		const previous = contextValue;
+		renderWith(CONFIG);
+		expect(contextValue).toBe(previous);
+		expect(contextValue).not.toBeNull();
+	});
+
 	it('exposes a null context and mounts the child once when config is absent', () => {
 		renderWith(undefined);
 		expect(mountCount).toBe(1);
