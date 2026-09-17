@@ -30,7 +30,6 @@ import type {
 import {
 	applyAutoCorrect,
 	applyPreferenceToOptions,
-	buildDeckSaveOptions,
 	buildUserFontFaceStyles,
 	deleteAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -103,13 +102,8 @@ import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
 import { useAiBridge } from './hooks/ai/useAiBridge';
 import { useAiPanelController } from './hooks/ai/useAiPanelController';
-import {
-	useYjsDocumentSync,
-	useCollaborationLivePatch,
-	useBroadcastFollower,
-	useFollowMode,
-} from './hooks/collaboration';
-import type { CollaborationConfig } from './hooks/collaboration';
+import { useBroadcastFollower, useFollowMode } from './hooks/collaboration';
+import { useCollaborationDocumentSync } from './hooks/collaboration/useCollaborationDocumentSync';
 import { useCompatibilityToastsState } from './hooks/useCompatibilityToastsState';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
@@ -367,7 +361,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// ── Run-program notices (`ppaction://program`, running show only) ──
 		const runProgramNoticesState = useRunProgramNoticesState();
 
-		const canEdit = hostCanEdit && !isProtectedView && !readOnlyRec.locked;
+		const canEdit =
+			hostCanEdit && collaboration?.role !== 'viewer' && !isProtectedView && !readOnlyRec.locked;
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -1519,7 +1514,6 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 														slides={slides}
 														templateElementsBySlideId={templateElementsBySlideId}
 														setSlides={state.setSlides}
-														config={collaboration}
 														content={content}
 														loadVersion={loadVersion}
 														loadOrigin={loadOrigin}
@@ -1599,7 +1593,6 @@ function CollaborationDocumentSync({
 	slides,
 	templateElementsBySlideId,
 	setSlides,
-	config,
 	content,
 	loadVersion,
 	loadOrigin,
@@ -1609,7 +1602,6 @@ function CollaborationDocumentSync({
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
 	setSlides: React.Dispatch<React.SetStateAction<PptxSlide[]>>;
-	config?: CollaborationConfig;
 	content: ArrayBuffer | Uint8Array | null;
 	loadVersion: number;
 	loadOrigin: CollabLoadOrigin;
@@ -1623,47 +1615,16 @@ function CollaborationDocumentSync({
 	deckSaveState: DeckSaveState;
 }) {
 	const collab = useCollaboration();
-	// Retain the loaded source bytes so the elected writer (role 'owner') can
-	// re-serialize a durable PPTX snapshot for `onWriteBack`. A ref keeps the
-	// latest buffer without re-subscribing the sync effect on every edit.
-	const contentRef = useRef(content);
-	contentRef.current = content;
-	const getSourceBytes = useCallback((): Uint8Array | null => {
-		const bytes = contentRef.current;
-		if (!bytes) {
-			return null;
-		}
-		return bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
-	}, []);
-
-	// Same ref-indirection trick as `contentRef`: `deckSaveState` changes on
-	// every keystroke that touches ANY session-level field, but `getSaveOptions`
-	// itself must stay referentially stable so it does not re-subscribe the
-	// write-back scheduler on every edit.
-	const deckSaveStateRef = useRef(deckSaveState);
-	deckSaveStateRef.current = deckSaveState;
-	const getSaveOptions = useCallback(() => buildDeckSaveOptions(deckSaveStateRef.current), []);
-
-	useYjsDocumentSync({
-		doc: collab?.doc ?? null,
+	useCollaborationDocumentSync({
+		collaboration: collab,
 		slides,
 		templateElementsBySlideId,
 		setSlides,
-		isConnected: collab?.status === 'connected',
-		isSynced: collab?.synced ?? true,
-		config,
-		getSourceBytes,
-		getSaveOptions,
+		content,
 		loadVersion,
 		loadOrigin,
-	});
-	// Interim (mid-gesture / mid-typing) writes bypass the slides state, so the
-	// channel needs the doc directly. Dormant unless connected + synced.
-	useCollaborationLivePatch({
-		patcher: livePatcher,
-		doc: collab?.doc ?? null,
-		isConnected: collab?.status === 'connected',
-		isSynced: collab?.synced ?? true,
+		livePatcher,
+		deckSaveState,
 	});
 	return null;
 }

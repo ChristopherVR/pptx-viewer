@@ -23,7 +23,11 @@ import {
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
-import type { DepartureChannel, SyncGate } from 'pptx-viewer-shared';
+import type {
+	BorrowedCollaborationAwareness,
+	DepartureChannel,
+	SyncGate,
+} from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebrtcProvider } from 'y-webrtc';
@@ -31,6 +35,7 @@ import type { WebsocketProvider } from 'y-websocket';
 import type { Doc as YDoc } from 'yjs';
 
 import type { CollaborationConfig, ConnectionStatus } from './types';
+import { useExternalYjsSession } from './useExternalYjsSession';
 
 /**
  * The two provider transports share only the surface this hook relies on:
@@ -62,7 +67,7 @@ export interface UseYjsProviderResult {
 	/** Current WebSocket connection status. */
 	status: ConnectionStatus;
 	/** The Yjs awareness instance (null until connected). */
-	awareness: Awareness | null;
+	awareness: Awareness | BorrowedCollaborationAwareness | null;
 	/** The Yjs document (null until initialised). */
 	doc: YDoc | null;
 	/** Local awareness client ID. */
@@ -95,7 +100,9 @@ export interface UseYjsProviderResult {
  * The Yjs packages are dynamically imported so they are fully
  * tree-shaken when collaboration is not enabled.
  */
-export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderResult {
+export function useYjsProvider({ config: inputConfig }: UseYjsProviderInput): UseYjsProviderResult {
+	const external = useExternalYjsSession(inputConfig?.externalSession);
+	const config = inputConfig?.externalSession ? undefined : inputConfig;
 	const [status, setStatus] = useState<ConnectionStatus>('disconnected');
 	const [awareness, setAwareness] = useState<Awareness | null>(null);
 	const [doc, setDoc] = useState<YDoc | null>(null);
@@ -104,6 +111,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 
 	// Keep a ref to cleanup functions so we can teardown on unmount or config change
 	const cleanupRef = useRef<(() => void) | null>(null);
+	const generationRef = useRef(0);
 	const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	// Synchronous departure announcement (see the shared collaboration-departure
 	// module): the provider's own awareness removal is broadcast a microtask
@@ -121,6 +129,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	}
 
 	const teardown = useCallback(() => {
+		generationRef.current += 1;
 		if (timeoutRef.current) {
 			clearTimeout(timeoutRef.current);
 			timeoutRef.current = null;
@@ -157,6 +166,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 	);
 
 	const initWebrtc = useCallback(async () => {
+		const generation = generationRef.current;
 		if (!config) {
 			return;
 		}
@@ -164,6 +174,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		try {
 			// Dynamic imports: zero bundle cost when unused.
 			const [Y, { WebrtcProvider }] = await Promise.all([import('yjs'), import('y-webrtc')]);
+			if (generation !== generationRef.current) {
+				return;
+			}
 
 			const yDoc: YDoc = new Y.Doc();
 			// Only pass options that are actually set; y-webrtc applies its own
@@ -220,6 +233,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 				baseCleanup();
 			};
 		} catch (err) {
+			if (generation !== generationRef.current) {
+				return;
+			}
 			console.warn(
 				'[pptx-viewer] WebRTC collaboration packages not available:',
 				err instanceof Error ? err.message : err,
@@ -237,6 +253,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		// y-webrtc throws if the same room is opened twice in one page, so the
 		// previous provider must be destroyed before creating the next.
 		teardown();
+		const generation = generationRef.current;
 
 		// Collaboration inactive: stay dormant, do not open any transport. This
 		// keeps the provider (and thus the surrounding React tree) mounted with a
@@ -275,6 +292,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		try {
 			// Dynamic imports: zero bundle cost when unused
 			const [Y, { WebsocketProvider }] = await Promise.all([import('yjs'), import('y-websocket')]);
+			if (generation !== generationRef.current) {
+				return;
+			}
 
 			const yDoc: YDoc = new Y.Doc();
 			const provider: WebsocketProvider = new WebsocketProvider(config.serverUrl, roomId, yDoc, {
@@ -365,6 +385,9 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 				setStatus('disconnected');
 			};
 		} catch (err) {
+			if (generation !== generationRef.current) {
+				return;
+			}
 			// If yjs or y-websocket are not installed, degrade gracefully
 			console.warn(
 				'[pptx-viewer] Collaboration packages not available:',
@@ -405,5 +428,7 @@ export function useYjsProvider({ config }: UseYjsProviderInput): UseYjsProviderR
 		init();
 	}, [init]);
 
-	return { status, awareness, doc, clientId, synced, retry };
+	return inputConfig?.externalSession
+		? external
+		: { status, awareness, doc, clientId, synced, retry };
 }

@@ -39,6 +39,11 @@ import type { Doc as YDoc } from 'yjs';
  * `collaboration` prop.
  */
 export type { CollaborationConfig, CollaborationRole, CollaborationTransport };
+export type {
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
 
 // ---------------------------------------------------------------------------
 // Connection state
