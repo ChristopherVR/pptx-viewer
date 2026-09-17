@@ -24,7 +24,11 @@ const viewer: PptxViewerInstance = createPptxViewer(host, { source });
 The shell reuses the existing collaboration controller, not a second provider.
 
 ```ts
-import { createCollaborationShell, createInitialViewerState, createStore } from 'pptx-vanilla-viewer';
+import {
+	createCollaborationShell,
+	createInitialViewerState,
+	createStore,
+} from 'pptx-vanilla-viewer';
 
 const store = createStore(createInitialViewerState());
 const shell = createCollaborationShell({
