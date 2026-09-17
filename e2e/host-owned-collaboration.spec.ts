@@ -15,6 +15,10 @@ async function open(page: Page, room: string, extra: Record<string, string> = {}
 	await page.goto(hostOwnedSessionUrl(room, extra));
 	await expect(state(page)).toContainText('Host: connected', { timeout: 30_000 });
 	await expect(elements(page).first()).toBeVisible({ timeout: 30_000 });
+	const headlessSave = page.getByRole('button', { name: 'Save shared snapshot', exact: true });
+	if (await headlessSave.count()) {
+		await expect(headlessSave).toBeEnabled({ timeout: 30_000 });
+	}
 }
 
 async function identity(page: Page): Promise<string> {

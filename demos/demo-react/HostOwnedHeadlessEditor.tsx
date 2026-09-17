@@ -40,12 +40,19 @@ export function HostOwnedHeadlessEditor({
 		setTimeout(() => URL.revokeObjectURL(url), 0);
 	};
 	return (
-		<section style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+		<section
+			aria-busy={blocks.loading}
+			style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+		>
 			<div role='status' aria-label='Headless collaboration'>
 				Custom shell: {blocks.collaboration?.status ?? 'inactive'}; synced:{' '}
 				{String(blocks.collaboration?.synced ?? false)}
 			</div>
-			<button type='button' disabled={blocks.loading} onClick={() => void save()}>
+			<button
+				type='button'
+				disabled={blocks.loading || Boolean(blocks.error)}
+				onClick={() => void save()}
+			>
 				Save shared snapshot
 			</button>
 			<Toolbar {...blocks.toolbarProps} />

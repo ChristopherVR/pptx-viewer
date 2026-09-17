@@ -135,7 +135,7 @@ export function useViewerBuildingBlocks(
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 	} = input;
-	const canEdit = requestedCanEdit && input.collaboration?.role !== 'viewer';
+	const authorizedCanEdit = requestedCanEdit && input.collaboration?.role !== 'viewer';
 	const { t } = useTranslation();
 
 	// Local content state, synced from the incoming prop but able to diverge
@@ -169,7 +169,7 @@ export function useViewerBuildingBlocks(
 
 	const core = useViewerBuildingBlocksCore({
 		content,
-		canEdit,
+		canEdit: authorizedCanEdit,
 		fitPadding: input.fitPadding,
 		maxFitScale: input.maxFitScale,
 	});
@@ -189,6 +189,8 @@ export function useViewerBuildingBlocks(
 		gridSpacingPx,
 		viewerOptions,
 	} = core;
+	// Shared slides can arrive before their original PPTX resources finish loading.
+	const canEdit = authorizedCanEdit && !loading && !error;
 
 	const {
 		dialogs,

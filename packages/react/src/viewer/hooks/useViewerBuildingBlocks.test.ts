@@ -103,7 +103,7 @@ function Harness({
 	mountedCanvas,
 }: {
 	collaboration?: CollaborationConfig;
-	content: Uint8Array;
+	content: Uint8Array | null;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
 	onDirtyChange?: (dirty: boolean) => void;
 	canEdit?: boolean;
@@ -193,6 +193,114 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it.each([
+		{ canEdit: true, role: 'collaborator' as const, editableAfterLoad: true },
+		{ canEdit: false, role: 'collaborator' as const, editableAfterLoad: false },
+		{ canEdit: true, role: 'viewer' as const, editableAfterLoad: false },
+	])(
+		'keeps collaborative editing disabled until the original PPTX finishes loading ($role, canEdit=$canEdit)',
+		async ({ canEdit, role, editableAfterLoad }) => {
+			const original = new PptxHandler();
+			const data = await original.load(textEditingFixtureBytes.buffer as ArrayBuffer);
+			const doc = new Y.Doc();
+			const awareness = new Awareness(doc);
+			reconcileSlidesInYDoc(data.slides, doc, {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+			});
+			const collaboration: CollaborationConfig = {
+				roomId: 'delayed-headless-load',
+				serverUrl: '',
+				userName: 'Participant',
+				role,
+				sessionIntent: 'join',
+				externalSession: {
+					doc,
+					awareness,
+					getSnapshot: () => ({ status: 'connected', synced: true }),
+					subscribe: () => () => {},
+				},
+			};
+			let releaseLoad!: () => void;
+			const loadGate = new Promise<void>((resolve) => {
+				releaseLoad = resolve;
+			});
+			const realLoad = PptxHandler.prototype.load;
+			const delayedLoad = vi
+				.spyOn(PptxHandler.prototype, 'load')
+				.mockImplementation(async function (this: PptxHandler, ...args) {
+					const parsed = await realLoad.apply(this, args);
+					await loadGate;
+					return parsed;
+				});
+			const handle = createRef<PowerPointViewerHandle>();
+			try {
+				await act(async () =>
+					root.render(
+						React.createElement(Harness, {
+							content: textEditingFixtureBytes,
+							collaboration,
+							handle,
+							canEdit,
+						}),
+					),
+				);
+				await flushUntil(() => handle.current?.getElements().length === 2);
+				expect(delayedLoad).toHaveBeenCalledWith(expect.any(ArrayBuffer), expect.any(Object));
+				expect(latest!.canvasProps.activeSlide?.elements).toHaveLength(2);
+				expect(latest!.loading).toBeTruthy();
+				expect(latest!.canvasProps.canEdit).toBeFalsy();
+				expect(latest!.toolbarProps.canEdit).toBeFalsy();
+				await act(async () => releaseLoad());
+				await flushUntil(() => latest?.loading === false);
+				expect(latest!.error).toBeNull();
+				expect(latest!.canvasProps.canEdit).toBe(editableAfterLoad);
+				expect(latest!.toolbarProps.canEdit).toBe(editableAfterLoad);
+				if (editableAfterLoad) {
+					const first = handle.current!.getElements()[0];
+					await act(async () =>
+						latest!.canvasProps.onDoubleClick(
+							first.id,
+							new MouseEvent('dblclick') as unknown as React.MouseEvent,
+						),
+					);
+					await flush();
+					expect(latest!.canvasProps.inlineEditingElementId).toBe(first.id);
+				}
+			} finally {
+				releaseLoad();
+				delayedLoad.mockRestore();
+				await act(async () => root.render(null));
+				awareness.destroy();
+				doc.destroy();
+				original.dispose();
+			}
+		},
+	);
+
+	it('keeps editing disabled when no original PPTX is loaded or its loading fails', async () => {
+		await act(async () => root.render(React.createElement(Harness, { content: null })));
+		expect(latest!.loading).toBeTruthy();
+		expect(latest!.canvasProps.canEdit).toBeFalsy();
+		expect(latest!.toolbarProps.canEdit).toBeFalsy();
+		const failedLoad = vi
+			.spyOn(PptxHandler.prototype, 'load')
+			.mockRejectedValue(new Error('Invalid presentation'));
+		const loadError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			await act(async () => root.render(React.createElement(Harness, { content: fixtureBytes })));
+			await flushUntil(() => latest?.loading === false);
+			expect(latest!.loading).toBeFalsy();
+			expect(latest!.error).toBe('Invalid presentation');
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			expect(latest!.toolbarProps.canEdit).toBeFalsy();
+		} finally {
+			failedLoad.mockRestore();
+			loadError.mockRestore();
+		}
+	});
+
 	it('synchronizes two host-owned peers through the public headless API and saves their final deck', async () => {
 		const firstDoc = new Y.Doc(),
 			secondDoc = new Y.Doc();
