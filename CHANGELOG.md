@@ -10,6 +10,46 @@ dated sections beneath it are generated from
 
 ## 2026-09-17
 
+_Releases: pptx-viewer-core@3.15.4, pptx-react-viewer@3.20.0, pptx-vue-viewer@3.20.0, pptx-angular-viewer@3.20.0, pptx-vanilla-viewer@2.20.0, pptx-svelte-viewer@3.21.0, @christophervr/pptx-viewer@2.20.0_
+
+### Features
+
+- **shared:** Chart quick-actions descriptor (Elements/Styles/Filters) (by @ChristopherVR) ([90ea1ff](https://github.com/ChristopherVR/pptx-viewer/commit/90ea1ffeff956f7401c6edd2123d92e5f3065e2d))
+- **react,shared:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([4c9f9e7](https://github.com/ChristopherVR/pptx-viewer/commit/4c9f9e79a20f92ca77fd40208007a0b8f1ecc044))
+- **vue:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([b6ba47e](https://github.com/ChristopherVR/pptx-viewer/commit/b6ba47ed06580a8b0cf66d7bf16b51641bab9cc4))
+- **angular:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([4acdcd8](https://github.com/ChristopherVR/pptx-viewer/commit/4acdcd8c4239b5e796b457c92cb1fa68b6833e88))
+- **svelte:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([d7b0e12](https://github.com/ChristopherVR/pptx-viewer/commit/d7b0e12f5cf98d7c9a1f7570c67e4667518c13f6))
+- **vanilla:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([1195c36](https://github.com/ChristopherVR/pptx-viewer/commit/1195c36963edfe3db2fa705bcee66b279d66a4cc))
+
+### Bug Fixes
+
+- **shared:** Scale chart auto axis bounds by plot height, not a fixed constant (by @ChristopherVR) ([fc56a8a](https://github.com/ChristopherVR/pptx-viewer/commit/fc56a8afc70f7e0109be712b19b0d7e34a3b31a1))
+- **shared:** Cycle PowerPoint's automatic marker-symbol sequence per series idx (by @ChristopherVR) ([f55afb4](https://github.com/ChristopherVR/pptx-viewer/commit/f55afb45ad0533a5370bff27f0ba80e33e22eff2))
+- **shared:** Honor a chart-level default legend text style (by @ChristopherVR) ([1807bd3](https://github.com/ChristopherVR/pptx-viewer/commit/1807bd30d2f1961f8ad58478cf8066cabfd11d31))
+- **vanilla:** Retain inline focus during peer updates (by @Sudhansh6) ([a9a7548](https://github.com/ChristopherVR/pptx-viewer/commit/a9a75485c08f46dc6a5187371bafcac766cd512c))
+- **core:** Treat a bare c:majorGridlines/minorGridlines as present (by @ChristopherVR) ([2e06cee](https://github.com/ChristopherVR/pptx-viewer/commit/2e06ceeb007873d7960c982e3454267b9e530173))
+- **e2e:** Assert the chart title on the page, not inside the chart element (by @ChristopherVR) ([40ae008](https://github.com/ChristopherVR/pptx-viewer/commit/40ae008ad7ffaf36c39af255e12661eedf0c4638))
+- **react:** Stop propagation on chart quick-action interactions (by @ChristopherVR) ([ba6efd2](https://github.com/ChristopherVR/pptx-viewer/commit/ba6efd24fc743d14fb7588c86ee5ad5b01e93235))
+- **shared:** Clear per-series colour overrides when applying a chart style preset (by @ChristopherVR) ([1417f28](https://github.com/ChristopherVR/pptx-viewer/commit/1417f28060858b7a490f9bc33773fa3eb4e1e462))
+- **react,vue,angular,svelte,vanilla:** Use opaque colours for chart quick-action buttons (by @ChristopherVR) ([9d1df11](https://github.com/ChristopherVR/pptx-viewer/commit/9d1df116b2e8959fe97ad12865f694e1c5f8316d))
+- **ci:** Disable GPU compositing to stop Chromium crashes in e2e (by @ChristopherVR) ([7f29145](https://github.com/ChristopherVR/pptx-viewer/commit/7f291455a548c26df9155b75602f2efb03d9cf32))
+- **shared:** Stop the Chart Filters list and series order reshuffling on toggle (by @ChristopherVR) ([4a9546f](https://github.com/ChristopherVR/pptx-viewer/commit/4a9546fa6b17a7d8952cde345ad38d67ad54f509))
+- **core,shared:** Preserve series formatting across a Chart Filters hide/restore round trip (by @ChristopherVR) ([6555181](https://github.com/ChristopherVR/pptx-viewer/commit/6555181fea70e6c80fa079c1866c6aa8c8ec97cb))
+- **core:** Make editor ids collision-free within a process (by @ChristopherVR) ([04a61a0](https://github.com/ChristopherVR/pptx-viewer/commit/04a61a096b48fee63c433fac5b5d6690734cbc44))
+
+### Testing
+
+- **e2e:** Framework-neutral spec for gridlines/marker-cycle/legend-font (by @ChristopherVR) ([d14e373](https://github.com/ChristopherVR/pptx-viewer/commit/d14e37365d51f998670451adecb43a35ce63feb7))
+- **e2e:** Framework-neutral spec for chart quick-actions (by @ChristopherVR) ([9d78c89](https://github.com/ChristopherVR/pptx-viewer/commit/9d78c8978398828313a19a39c264709794b00d25))
+- **core:** Register the missing chart-stacked-line-markers fixture in the corpus manifest (by @ChristopherVR) ([2d7c886](https://github.com/ChristopherVR/pptx-viewer/commit/2d7c88618042dac64e60c09c827b73b409976f1f))
+- **core:** Register the stacked line marker fixture (by @Sudhansh6) ([87a8423](https://github.com/ChristopherVR/pptx-viewer/commit/87a8423047db0df204b8db2d8c155624bb190d26))
+
+### Build & CI
+
+- Cancel superseded CI runs on main as well as on pull requests (by @ChristopherVR) ([f04a210](https://github.com/ChristopherVR/pptx-viewer/commit/f04a210f7ff0d12608b9227652fe31a734257971))
+
+## 2026-09-17
+
 _Releases: pptx-viewer-core@3.15.3, pptx-react-viewer@3.19.2, pptx-vue-viewer@3.19.2, pptx-angular-viewer@3.19.2, pptx-vanilla-viewer@2.19.2, pptx-svelte-viewer@3.20.2, @christophervr/pptx-viewer@2.19.2_
 
 ### Bug Fixes

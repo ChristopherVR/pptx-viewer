@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.20.0) - 2026-09-17
+
+### Features
+
+- **react,shared:** Chart quick-action icons (Elements/Styles/Filters) (by @ChristopherVR) ([4c9f9e7](https://github.com/ChristopherVR/pptx-viewer/commit/4c9f9e79a20f92ca77fd40208007a0b8f1ecc044))
+
+### Bug Fixes
+
+- **react:** Stop propagation on chart quick-action interactions (by @ChristopherVR) ([ba6efd2](https://github.com/ChristopherVR/pptx-viewer/commit/ba6efd24fc743d14fb7588c86ee5ad5b01e93235))
+- **react,vue,angular,svelte,vanilla:** Use opaque colours for chart quick-action buttons (by @ChristopherVR) ([9d1df11](https://github.com/ChristopherVR/pptx-viewer/commit/9d1df116b2e8959fe97ad12865f694e1c5f8316d))
+
 ## [2.19.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.2) - 2026-09-17
 
 ### Bug Fixes

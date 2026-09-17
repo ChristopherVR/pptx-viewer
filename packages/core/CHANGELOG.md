@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.15.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.4) - 2026-09-17
+
+### Bug Fixes
+
+- **shared:** Cycle PowerPoint's automatic marker-symbol sequence per series idx (by @ChristopherVR) ([f55afb4](https://github.com/ChristopherVR/pptx-viewer/commit/f55afb45ad0533a5370bff27f0ba80e33e22eff2))
+- **shared:** Honor a chart-level default legend text style (by @ChristopherVR) ([1807bd3](https://github.com/ChristopherVR/pptx-viewer/commit/1807bd30d2f1961f8ad58478cf8066cabfd11d31))
+- **core:** Treat a bare c:majorGridlines/minorGridlines as present (by @ChristopherVR) ([2e06cee](https://github.com/ChristopherVR/pptx-viewer/commit/2e06ceeb007873d7960c982e3454267b9e530173))
+- **core,shared:** Preserve series formatting across a Chart Filters hide/restore round trip (by @ChristopherVR) ([6555181](https://github.com/ChristopherVR/pptx-viewer/commit/6555181fea70e6c80fa079c1866c6aa8c8ec97cb))
+- **core:** Make editor ids collision-free within a process (by @ChristopherVR) ([04a61a0](https://github.com/ChristopherVR/pptx-viewer/commit/04a61a096b48fee63c433fac5b5d6690734cbc44))
+
+### Testing
+
+- **core:** Register the missing chart-stacked-line-markers fixture in the corpus manifest (by @ChristopherVR) ([2d7c886](https://github.com/ChristopherVR/pptx-viewer/commit/2d7c88618042dac64e60c09c827b73b409976f1f))
+- **core:** Register the stacked line marker fixture (by @Sudhansh6) ([87a8423](https://github.com/ChristopherVR/pptx-viewer/commit/87a8423047db0df204b8db2d8c155624bb190d26))
+
 ## [3.15.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.3) - 2026-09-17
 
 ### Bug Fixes
