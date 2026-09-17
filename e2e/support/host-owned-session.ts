@@ -18,8 +18,16 @@ export async function expectHostOwnedShell(page: Page): Promise<void> {
 }
 
 /** Remote slide content can appear before the shell finishes loading its source. */
-export async function waitForHostEditing(page: Page): Promise<void> {
-	if (!test.info().project.metadata.headless) {
+export async function waitForHostEditing(
+	page: Page,
+	scenario: Record<string, string>,
+): Promise<void> {
+	if (
+		!test.info().project.metadata.headless ||
+		scenario.paused === '1' ||
+		scenario.role === 'viewer' ||
+		scenario.editable === '0'
+	) {
 		return;
 	}
 	const status = page.getByRole('status', { name: 'Collaboration status', exact: true });

@@ -21,6 +21,7 @@ async function open(page: Page, room: string, extra: Record<string, string> = {}
 	await expect(state(page)).toContainText('Host: connected', { timeout: 30_000 });
 	await expect(elements(page).first()).toBeVisible({ timeout: 30_000 });
 	await expectHostOwnedShell(page);
+	await waitForHostEditing(page, extra);
 	const headlessSave = page.getByRole('button', { name: 'Save shared snapshot', exact: true });
 	if (await headlessSave.count()) {
 		await expect(headlessSave).toBeEnabled({ timeout: 30_000 });
@@ -75,7 +76,6 @@ async function samePosition(first: Locator, second: Locator): Promise<void> {
 }
 
 async function replaceText(page: Page, original: string, replacement: string): Promise<void> {
-	await waitForHostEditing(page);
 	await elements(page).filter({ hasText: original }).dblclick();
 	const editor = page.locator('[data-inline-editor]').first();
 	await expect(editor).toBeVisible();
