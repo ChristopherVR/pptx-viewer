@@ -24,7 +24,14 @@ describe('hideChartSeries', () => {
 		const result = hideChartSeries(chart(), 1);
 		expect(result?.series.map((s) => s.name)).toStrictEqual(['Series A']);
 		expect(result?.filteredSeries).toStrictEqual([
-			{ idx: 1, order: 1, name: 'Series B', categories: ['Cat1', 'Cat2'], values: [3, 4] },
+			{
+				idx: 1,
+				order: 1,
+				name: 'Series B',
+				categories: ['Cat1', 'Cat2'],
+				values: [3, 4],
+				originalSeries: { name: 'Series B', values: [3, 4] },
+			},
 		]);
 	});
 
@@ -128,6 +135,37 @@ describe('restoreFilteredSeries', () => {
 		expect(restored.series[1]?.idx).toBe(1);
 		const reHidden = hideChartSeries(restored, 1);
 		expect(reHidden?.filteredSeries?.[0]?.idx).toBe(1);
+	});
+
+	it('restores full series formatting (picture fill, marker, ...), not just name/values (regression: reported as "triangle turns into a bar")', () => {
+		// A real-world shape: a column series styled with a picture fill (e.g.
+		// slide 17's "mountain" triangle graphic) or a distinctive marker
+		// instead of plain defaults. The bare name/values/idx reconstruction
+		// used to silently drop this, so a hidden-then-reshown series always
+		// rendered with plain default formatting regardless of the original.
+		const twoSeries = chart({
+			series: [
+				{ name: 'A', values: [1, 2] },
+				{
+					name: 'B',
+					values: [3, 4],
+					idx: 1,
+					marker: { symbol: 'triangle', size: 8, spPr: { fillColor: '#00B0F0' } },
+					smooth: true,
+					invertIfNegative: true,
+				},
+			],
+		});
+		const afterHide = hideChartSeries(twoSeries, 1)!;
+		const afterRestore = restoreFilteredSeries(afterHide, 0)!;
+		const restoredB = afterRestore.series[1]!;
+		expect(restoredB.marker).toStrictEqual({
+			symbol: 'triangle',
+			size: 8,
+			spPr: { fillColor: '#00B0F0' },
+		});
+		expect(restoredB.smooth).toBeTruthy();
+		expect(restoredB.invertIfNegative).toBeTruthy();
 	});
 });
 

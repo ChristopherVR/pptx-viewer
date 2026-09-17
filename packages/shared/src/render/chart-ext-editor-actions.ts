@@ -65,6 +65,11 @@ export function hideChartSeries(data: PptxChartData, seriesIndex: number): PptxC
 		categories: data.categories,
 		values: series.values,
 		...(series.uniqueId ? { uniqueId: series.uniqueId } : {}),
+		// Full snapshot so restoreFilteredSeries can bring back everything
+		// (fill/line formatting, marker, data labels, ...), not just name and
+		// values: this used to silently reset a series with a picture fill
+		// or any other non-default formatting to plain defaults on restore.
+		originalSeries: series,
 	};
 	return {
 		...data,
@@ -100,12 +105,22 @@ export function restoreFilteredSeries(
 		filtered.values ??
 		(filtered.categories ?? data.filteredCategoryTitle)?.map(() => 0) ??
 		categories.map(() => 0);
-	const restored: PptxChartSeries = {
-		name,
-		values,
-		idx: filtered.idx,
-		...(filtered.uniqueId ? { uniqueId: filtered.uniqueId } : {}),
-	};
+	// A series hidden by hideChartSeries this session carries a full
+	// originalSeries snapshot: use it as-is (fill/line formatting, marker,
+	// data labels, everything) rather than the bare name/values reconstruction
+	// below, which used to reset a series with a picture fill or any other
+	// non-default formatting to plain defaults on restore. A filtered series
+	// that came from parsing the file (already hidden when opened) has no
+	// snapshot to draw on, since the parser only reads name/cat/val/uniqueId
+	// off the real c15:ser node; that case keeps the bare reconstruction.
+	const restored: PptxChartSeries = filtered.originalSeries
+		? { ...filtered.originalSeries, idx: filtered.idx }
+		: {
+				name,
+				values,
+				idx: filtered.idx,
+				...(filtered.uniqueId ? { uniqueId: filtered.uniqueId } : {}),
+			};
 	// The first currently-visible series whose own idx sorts after the
 	// restored one; splicing in there reproduces its original relative
 	// position. A series with no idx info at all falls back to its array

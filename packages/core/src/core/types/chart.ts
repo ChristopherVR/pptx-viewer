@@ -778,6 +778,24 @@ export interface PptxChartFilteredSeries {
 	values?: number[];
 	/** This hidden series' own identity GUID (`c16:uniqueId`), when present. */
 	uniqueId?: string;
+	/**
+	 * A full snapshot of the series as it looked the moment it was hidden
+	 * (`render/chart-ext-editor-actions.ts`'s `hideChartSeries`), so
+	 * `restoreFilteredSeries` can bring it back exactly as it was: full fill/
+	 * line formatting, marker, data-label options, everything, not just the
+	 * bare name/values/idx the other fields above capture.
+	 *
+	 * NOT derived from XML and NEVER written to disk (the save writer,
+	 * `chart-filtered-series-writer.ts`, only reads the named fields above):
+	 * this exists purely for the live "Chart Filters" hide/show round-trip
+	 * within one editing session. A filtered series read from an actually
+	 * parsed file (one that was already hidden when opened) has no snapshot
+	 * to draw on, since real PowerPoint's `c15:ser` node is parsed only for
+	 * the fields above (`chart-filtered-series.ts`'s `parseOneFilteredSeries`);
+	 * `restoreFilteredSeries` falls back to reconstructing a bare series from
+	 * those for that case, same as before this field existed.
+	 */
+	originalSeries?: PptxChartSeries;
 }
 
 /**
