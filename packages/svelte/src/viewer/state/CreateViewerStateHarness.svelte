@@ -10,7 +10,7 @@
 	 * assert on it right after `mount()` returns.
 	 */
 	import { onDestroy } from 'svelte';
-	import type { ViewportFitOptions } from 'pptx-viewer-shared';
+	import type { CollaborationConfig, ViewportFitOptions } from 'pptx-viewer-shared';
 
 	import { createViewerState } from './create-viewer-state.svelte';
 	import type { ViewerStateBag } from './create-viewer-state-types';
@@ -26,6 +26,9 @@
 		onerror,
 		viewport,
 		fitOptions,
+		getCollaboration,
+		getEditable,
+		getSource,
 	}: {
 		onready: (state: ViewerStateBag) => void;
 		/** Optional deck bytes, so a test can exercise the real load pipeline. */
@@ -42,10 +45,14 @@
 		onerror?: (message: string) => void;
 		viewport?: { width: number; height: number };
 		fitOptions?: ViewportFitOptions;
+		getCollaboration?: () => CollaborationConfig | undefined;
+		getEditable?: () => boolean;
+		getSource?: () => Uint8Array | undefined;
 	} = $props();
 
 	const state = createViewerState({
-		getSource: () => source,
+		getSource: () => getSource ? getSource() : source,
+		get collaboration() { return getCollaboration?.(); },
 		getAutosave: () => autosave,
 		getFilePath: () => filePath,
 		getInitialSlide: () => 0,
@@ -56,7 +63,7 @@
 		getLineChart3D: () => false,
 		getAreaChart3D: () => false,
 		getPieChart3D: () => false,
-		getEditable: () => editable,
+		getEditable: () => getEditable ? getEditable() : editable,
 		onautosavetoggle: (enabled) => onautosavetoggle?.(enabled),
 		get oncontentchange() {
 			return oncontentchange;

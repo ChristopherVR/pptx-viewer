@@ -176,7 +176,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		collab: collabCluster.collab,
 		options,
 		getScale: () => derived.scale,
-		getEditable,
+		getEditable: () => collabCluster.shellState.canEdit,
 		// A newly opened document is protected again even if the previous one
 		// was unlocked via "Enable Editing" this session.
 		onNewDocumentLoaded: () => {
@@ -237,7 +237,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		editor,
 		collab: collabCluster.collab,
 		options,
-		getEditable,
+		getEditable: () => collabCluster.shellState.canEdit,
 	});
 
 	/**
@@ -384,6 +384,9 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		findReplace: editorUi.findReplace,
 		collab: collabCluster.collab,
 		dialogs: collabCluster.dialogs,
+		get shellState() {
+			return collabCluster.shellState;
+		},
 		autosaveCtl: collabCluster.autosaveCtl,
 		autosaveRecovery: collabCluster.autosaveRecovery,
 		presentation: presentationCluster.presentation,

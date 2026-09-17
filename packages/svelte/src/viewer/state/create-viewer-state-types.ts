@@ -3,6 +3,7 @@ import type {
 	AutosaveDisabledReason,
 	CanvasSize,
 	CollaborationConfig,
+	CollaborationShellState,
 	FieldSubstitutionContext,
 	MobileSheetKey,
 	ViewerMode,
@@ -134,6 +135,8 @@ export interface ViewerStateBag {
 	readonly chromeUi: ChromeUiState;
 	readonly findReplace: FindReplaceState;
 	readonly collab: CollaborationController;
+	/** Shared authorization, canonical session readiness, status and presence for host chrome. */
+	readonly shellState: CollaborationShellState;
 	readonly dialogs: CollaborationDialogsState;
 	readonly autosaveCtl: AutosaveController;
 	/** The "recover unsaved changes?" probe + prompt for the loaded deck. */

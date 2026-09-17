@@ -195,6 +195,15 @@ the complete props/events contract, theming, and localization guides.
 
 ### Composing a custom viewer shell
 
+Pass the existing `createViewerState` collaboration option through a getter to
+keep a host-owned configuration reactive. Its `shellState` exposes effective
+`canEdit`, connection status, sanitized remote users and connected count, and
+uses the same editability rule as the native editor. `EditorLayer`,
+`CollaborationCursors`, `RemoteSelectionOverlay` and their prop types are exported
+from `/viewer` for composing the real editing and presence layers with `SlideCanvas`.
+See the [custom-shell collaboration guide](https://christophervr.github.io/pptx-viewer/svelte/collaboration#custom-host-chrome)
+and `demos/demo-svelte/src/HostOwnedHeadlessEditor.svelte` for complete wiring.
+
 `<PowerPointViewer>` bundles the slide canvas, ribbon, thumbnail rail,
 inspector, and every dialog into one component. If you only want a subset,
 for example your own chrome around just the ribbon and the slide canvas,
