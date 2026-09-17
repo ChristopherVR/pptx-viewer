@@ -37,6 +37,15 @@ function slideElements(page: Page) {
 	return page.locator('[data-pptx-viewport] [data-pptx-element="true"]');
 }
 
+async function beginTextEdit(page: Page, original: string, replacement: string) {
+	await slideElements(page).filter({ hasText: original }).dblclick();
+	const editor = page.locator('[data-inline-editor]').first();
+	await expect(editor).toBeVisible();
+	await editor.press('ControlOrMeta+A');
+	await page.keyboard.type(replacement);
+	return editor;
+}
+
 test.describe('collaboration sync', () => {
 	test.setTimeout(120_000);
 
@@ -120,6 +129,43 @@ test.describe('collaboration sync', () => {
 			const peerAfter = (await peerTarget.boundingBox())!;
 			expect(Math.abs(peerAfter.x - peerBefore!.x - hostDelta.x)).toBeLessThanOrEqual(3);
 			expect(Math.abs(peerAfter.y - peerBefore!.y - hostDelta.y)).toBeLessThanOrEqual(3);
+		} finally {
+			await peer.close();
+		}
+	});
+
+	test('different text boxes retain concurrent edits during a remote update', async ({
+		page,
+	}, testInfo) => {
+		const peer = await page.context().newPage();
+		const roomId = `e2e-text-${testInfo.project.name}-${Date.now()}`;
+		try {
+			await openCollaborativeDeck(page, roomId, 'host', true);
+			await openCollaborativeDeck(peer, roomId, 'peer');
+			await expect(collaborationReady(page)).toBeVisible({ timeout: 15_000 });
+			await expect(collaborationReady(peer)).toBeVisible({ timeout: 15_000 });
+			await expect(slideElements(peer).filter({ hasText: 'Q2 2026' })).toBeVisible();
+
+			const [, peerEditor] = await Promise.all([
+				beginTextEdit(page, 'Product Overview', 'Shared browser edit'),
+				beginTextEdit(peer, 'Q2 2026', 'Peer text'),
+			]);
+			// Commit one box while the other is still being edited. The incoming
+			// repaint must preserve the other editor, its focus, and its draft.
+			await collaborationReady(page).click();
+			await expect(slideElements(peer).filter({ hasText: 'Shared browser edit' })).toBeVisible();
+			await expect(peerEditor).toBeFocused();
+			await peer.keyboard.type(' continued');
+			await collaborationReady(peer).click();
+
+			for (const participant of [page, peer]) {
+				await expect(
+					slideElements(participant).filter({ hasText: 'Shared browser edit' }),
+				).toBeVisible();
+				await expect(
+					slideElements(participant).filter({ hasText: 'Peer text continued' }),
+				).toBeVisible();
+			}
 		} finally {
 			await peer.close();
 		}
