@@ -33,6 +33,8 @@ export default defineConfig((options) => ({
 		'tailwind-merge',
 		'i18next',
 		'react-i18next',
+		// Shared types inserted into a host-owned Y.Doc must use its Yjs runtime.
+		'yjs',
 		// Optional AI SDK peers, reachable only through the lazily-loaded AI
 		// chat panel / `pptx-viewer-shared/ai` subpath. Kept external so the
 		// dynamic `import('ai')` inside shared stays a real optional runtime
