@@ -612,6 +612,98 @@ const CHROME_CSS = `
 	inset: 0;
 	pointer-events: none;
 }
+/* PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart Filters"
+   quick-action icons, shown just outside a selected chart's top-right
+   corner. Unscaled, like the connector-endpoint layer above: geometry is
+   already resolved to screen px by the shared descriptor before it reaches
+   this stylesheet. */
+.pptxv-chart-quick-actions {
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	z-index: 6;
+}
+.pptxv-chart-quick-btn {
+	position: absolute;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: auto;
+	border-radius: 4px;
+	border: 1px solid var(--pptx-border, #444);
+	background: var(--pptx-muted, #2a2a3d);
+	color: inherit;
+	cursor: pointer;
+}
+.pptxv-chart-quick-btn svg {
+	width: 14px;
+	height: 14px;
+}
+.pptxv-chart-quick-btn:hover {
+	background: var(--pptx-accent, #3a3a5a);
+}
+.pptxv-chart-quick-btn:disabled {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+.pptxv-chart-quick-card {
+	position: absolute;
+	pointer-events: auto;
+	z-index: 10;
+	display: flex;
+	flex-direction: column;
+	gap: 0.35rem;
+	min-width: 11rem;
+	padding: 0.5rem;
+	border-radius: 6px;
+	border: 1px solid var(--pptx-border, #444);
+	background: var(--pptx-muted, #2a2a3d);
+	box-shadow: 0 4px 16px rgb(0 0 0 / 0.35);
+}
+.pptxv-chart-quick-card h5 {
+	font-size: 10px;
+	font-weight: 600;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	margin: 0;
+}
+.pptxv-chart-quick-card .row {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-chart-quick-card .name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+.pptxv-chart-quick-styles {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 0.35rem;
+	min-width: 12rem;
+}
+.pptxv-chart-quick-swatch {
+	border-radius: 4px;
+	overflow: hidden;
+	border: 1px solid var(--pptx-border, #444);
+	padding: 0;
+	cursor: pointer;
+}
+.pptxv-chart-quick-swatch.is-applied {
+	border-color: var(--pptx-primary, #6a8dff);
+	box-shadow: 0 0 0 1px var(--pptx-primary, #6a8dff);
+}
+.pptxv-chart-quick-swatch .swatch-row {
+	display: flex;
+	height: 20px;
+	width: 100%;
+}
+.pptxv-chart-quick-swatch .swatch-row > span {
+	flex: 1 1 auto;
+}
 .pptxv-snap-line { position: absolute; background: var(--pptx-destructive); }
 .pptxv-snap-v { top: 0; bottom: 0; width: 1px; }
 .pptxv-snap-h { left: 0; right: 0; height: 1px; }

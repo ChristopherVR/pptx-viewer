@@ -25,6 +25,8 @@ import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { syncAlignmentGuides } from './alignment-guide-view';
+import { createChartQuickActionsOverlay } from './chart-quick-actions-overlay';
+import type { ChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import { createConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import type { ConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import { createEditingChromeSync } from './editing-chrome-sync';
@@ -133,6 +135,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	const { doc, store } = deps;
 	let overlay: SelectionOverlay | null = null;
 	let connectorEndpoints: ConnectorEndpointOverlay | null = null;
+	let chartQuickActions: ChartQuickActionsOverlay | null = null;
 	let attachedWrap: HTMLElement | null = null;
 	let attachedRoot: HTMLElement | null = null;
 
@@ -270,6 +273,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		overlay.setHandleVisibility({ resizable: allowed.resizable, rotatable: allowed.rotatable });
 		overlay.setAdjustHandles(selectedAdjustmentDescriptors(state), deps.getScale());
 		connectorEndpoints?.sync();
+		chartQuickActions?.sync();
 		// View > Guides hides the overlay, never the model: `state.guides` stays
 		// whole so snapping and saving still see every guide.
 		syncAlignmentGuides(
@@ -366,6 +370,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		overlay = null;
 		connectorEndpoints?.dispose();
 		connectorEndpoints = null;
+		chartQuickActions?.dispose();
+		chartQuickActions = null;
 		motionPath.detach();
 	};
 
@@ -437,6 +443,13 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 							: 'pptx.canvas.connectorEndpointEnd',
 					),
 			});
+			chartQuickActions = createChartQuickActionsOverlay({
+				doc,
+				t: deps.getTranslator(),
+				store,
+				ops,
+				getScale: deps.getScale,
+			});
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
@@ -452,6 +465,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			attachedRoot.addEventListener('keydown', onKeyDown);
 			overlay.mount(attachedWrap);
 			connectorEndpoints.mount(attachedWrap);
+			chartQuickActions.mount(attachedWrap);
 			updateToolbar();
 			drawMode.syncCursor(attachedWrap);
 			syncOverlay();
@@ -461,6 +475,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			if (overlay && attachedWrap) {
 				overlay.mount(attachedWrap);
 				connectorEndpoints?.mount(attachedWrap);
+				chartQuickActions?.mount(attachedWrap);
 				syncOverlay();
 			}
 		},
