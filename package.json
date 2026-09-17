@@ -102,6 +102,7 @@
 		"typescript": "^6.0.3",
 		"unrun": "^0.3.1",
 		"y-protocols": "^1.0.7",
+		"y-websocket": "^3.1.0",
 		"yjs": "^13.6.32"
 	},
 	"optionalDependencies": {

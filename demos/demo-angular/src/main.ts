@@ -12,9 +12,11 @@ import 'zone.js';
 import '@angular/compiler';
 import { bootstrapApplication } from '@angular/platform-browser';
 
+import { externalSessionRequested } from '../../shared/host-owned-collaboration';
 import { AppComponent } from './app.component';
+import { HostOwnedDemoComponent } from './host-owned-demo.component';
 import { i18nProviders } from './i18n';
 
-bootstrapApplication(AppComponent, { providers: [i18nProviders] }).catch((err) =>
-	console.error(err),
-);
+bootstrapApplication(externalSessionRequested() ? HostOwnedDemoComponent : AppComponent, {
+	providers: [i18nProviders],
+}).catch((err) => console.error(err));

@@ -96,6 +96,15 @@ export default defineConfig({
 	],
 	webServer: [
 		{
+			// Host-owned collaboration tests use the real relay, not BroadcastChannel.
+			command: 'bun demos/demo-react/collab-server.mjs',
+			port: 1234,
+			reuseExistingServer: !isCI,
+			timeout: 30_000,
+			stdout: 'ignore',
+			stderr: 'pipe',
+		},
+		{
 			command: `npx vite --force --port ${REACT_PORT} --strictPort`,
 			cwd: 'demos/demo-react',
 			url: `http://localhost:${REACT_PORT}`,

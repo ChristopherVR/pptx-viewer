@@ -1,6 +1,8 @@
 import { mount } from 'svelte';
 
+import { externalSessionRequested } from '../../shared/host-owned-collaboration';
 import App from './App.svelte';
+import HostOwnedDemo from './HostOwnedDemo.svelte';
 
 import './styles.css';
 
@@ -10,4 +12,4 @@ if (!appRoot) {
 	throw new Error('missing #app root');
 }
 
-mount(App, { target: appRoot });
+mount(externalSessionRequested() ? HostOwnedDemo : App, { target: appRoot });
