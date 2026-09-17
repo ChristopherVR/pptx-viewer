@@ -47,6 +47,14 @@ export default defineConfig({
 	expect: { timeout: 10_000 },
 	fullyParallel: false,
 	forbidOnly: isCI,
+	// Tests tagged `@local-only` do real-time video capture
+	// (MediaRecorder/canvas.captureStream()) that reliably takes down the
+	// whole hosted CI runner (exit 143, "the runner has received a shutdown
+	// signal") rather than merely failing; see export-raster-tiling.spec.ts
+	// for the incident history. They still run locally (`bun run e2e` or
+	// `bun run e2e:local-only`) and via the pre-push hook
+	// (.husky/pre-push, scripts/pre-push-local-e2e.mjs).
+	grepInvert: isCI ? /@local-only/ : undefined,
 	retries: isCI ? 2 : 0,
 	reporter: isCI ? [['list'], ['html', { open: 'never' }]] : 'list',
 	use: {
