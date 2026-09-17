@@ -16,6 +16,7 @@ export type {
 } from './collab/components/props';
 export type { RibbonProps } from './components/ribbon/ribbon-types';
 export type { SlideCanvasProps, ViewerToolbarProps, EditorLayerProps } from './components/props';
+export type { EditorController } from './editor/editor-controller.svelte';
 export type {
 	ExportGifOptions,
 	ExportPdfOptions,
@@ -56,6 +57,9 @@ export type {
 	ConnectionStatus,
 	RemoteCursor,
 	SanitizedPresence,
+	InlineTextEditSnapshot,
+	InlineListController,
+	InlineListReadResult,
 } from 'pptx-viewer-shared';
 export { createSvelteAiBridge } from './ai';
 export {
