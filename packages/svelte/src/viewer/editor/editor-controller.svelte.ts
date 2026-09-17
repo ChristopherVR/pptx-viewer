@@ -7,12 +7,14 @@ import type {
 	SnapLine,
 	InlineTextEditSnapshot,
 	InlineListController,
+	CollaborationInlineEditor,
 } from 'pptx-viewer-shared';
 import {
 	armEditorKeyboard,
 	collectConnectorSiteCandidates,
 	findConnectorSiteNear,
 	inlineListBodyText,
+	overlayInlineTextSnapshot,
 	publishLiveInlineText,
 	resolveConnectorEndpointUpdate,
 	resolveContextMenuElementId,
@@ -58,6 +60,7 @@ export class EditorController {
 	readonly #selectionGestures;
 	readonly #adjust: AdjustGestureController;
 	readonly #handles: HandleHandlers;
+	#inlineSource?: { nonce: number; slideId?: string };
 
 	// Touch double-tap detection (mirrors React/Vue/Angular canvas-level
 	// detection). On mobile, native `dblclick` is not reliably synthesised from
@@ -484,6 +487,18 @@ export class EditorController {
 		publishLiveInlineText(this.#deps.getLivePatcher?.(), this.#deps.getActiveSlide?.(), id, text);
 	}
 
+	/** Native editor capability stays scoped to this controller's active slide. */
+	get inlineCollaboration() {
+		const patcher = this.#deps.getLivePatcher?.();
+		const slide = this.#deps.getActiveSlide?.();
+		return patcher?.isActive() &&
+			slide &&
+			!this.#editor.masterViewTarget &&
+			slide.elements.some((candidate) => candidate.id === this.editingId)
+			? { patcher, slideId: slide.id }
+			: undefined;
+	}
+
 	/** Commit the inline editor's text onto the element and close it. */
 	commitInline(id: string, text: string, snapshot?: InlineTextEditSnapshot): void {
 		// Flush any queued interim frame first so it cannot land after the
@@ -493,10 +508,17 @@ export class EditorController {
 	}
 
 	/** Register a live reader with this viewer's document and editing session. */
-	registerInlineReader(id: string, controller?: InlineListController, cancel?: () => void): void {
+	registerInlineReader(
+		id: string,
+		controller?: InlineListController | CollaborationInlineEditor,
+		cancel?: () => void,
+	): void {
 		const editor = this.#editor;
 		editor.inlineListController = controller;
 		editor.cancelInlineListEdit = cancel;
+		this.#inlineSource = controller
+			? { nonce: editor.seedNonce, slideId: editor.slides[editor.currentSlideIndex]?.id }
+			: undefined;
 		if (!controller) {
 			editor.readPendingInlineTextEdit = undefined;
 			return;
@@ -525,10 +547,27 @@ export class EditorController {
 				cancel?.();
 				return undefined;
 			}
+			if (
+				'checkModel' in controller &&
+				!controller.checkModel(editor.activeElements.find((candidate) => candidate.id === id))
+			) {
+				return undefined;
+			}
 			const result = controller.read();
+			if (
+				'checkModel' in controller &&
+				result.kind === 'unsupported' &&
+				(result.reason === 'composition-active' || result.reason === 'input-active')
+			) {
+				throw new Error('Finish the current text input before saving.');
+			}
 			const snapshot = result.kind === 'supported' ? result.snapshot : undefined;
 			const currentBody = body();
-			if (currentBody !== lastBody && currentBody !== snapshot?.text) {
+			if (
+				!('checkModel' in controller) &&
+				currentBody !== lastBody &&
+				currentBody !== snapshot?.text
+			) {
 				cancel?.();
 				return undefined;
 			}
@@ -540,8 +579,32 @@ export class EditorController {
 		};
 	}
 
+	/** Retain authoritative accepted text before a host-only permission veto. */
+	retainAcceptedInlineText(permissionLossOnly = false): boolean {
+		if (permissionLossOnly && this.#deps.getEditable?.() !== false) return false;
+		const editor = this.#editor;
+		const native = editor.inlineListController;
+		if (!native || !('readAccepted' in native)) return false;
+		const controller = native as CollaborationInlineEditor;
+		const slide = editor.slides[editor.currentSlideIndex];
+		if (this.#inlineSource?.nonce !== editor.seedNonce || this.#inlineSource?.slideId !== slide?.id)
+			return true;
+		const element = slide?.elements.find((candidate) => candidate.id === this.editingId);
+		if (editor.masterViewTarget || !controller.checkModel(element)) return true;
+		const snapshot = controller.readAccepted();
+		if (snapshot && slide) {
+			const elements = overlayInlineTextSnapshot(slide.elements, snapshot);
+			if (elements !== slide.elements)
+				editor.slides = editor.slides.map((candidate) =>
+					candidate === slide ? { ...slide, elements: [...elements] } : candidate,
+				);
+		}
+		return true;
+	}
+
 	/** Close the inline editor without further mutation. */
 	closeInline(): void {
+		this.#inlineSource = undefined;
 		this.#editor.inlineListController = undefined;
 		this.#editor.cancelInlineListEdit = undefined;
 		this.#editor.readPendingInlineTextEdit = undefined;

@@ -59,7 +59,7 @@ export function useViewerEffects(deps: ViewerEffectsDeps): void {
 		untrack(() => {
 			if (!editable) {
 				if (deps.editor.editable) {
-					deps.commitPendingText?.();
+					if (!deps.controller.retainAcceptedInlineText?.()) deps.commitPendingText?.();
 				}
 				deps.controller.closeInline();
 				deps.editor.select(null);

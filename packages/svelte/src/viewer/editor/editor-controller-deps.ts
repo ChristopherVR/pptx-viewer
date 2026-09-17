@@ -7,6 +7,8 @@ export interface EditorControllerDeps {
 	getScale(): number;
 	getCurrent(): number;
 	getPresenting(): boolean;
+	/** Synchronous host permission, before reactive teardown clears the native editor. */
+	getEditable?(): boolean;
 	getStageRoot(): Element | null;
 	getHolderEl(): HTMLElement | null;
 	/**

@@ -55,6 +55,11 @@ export interface InlineTextEditorProps {
 	/** Stage scale (screen px per element px). */
 	scale: number;
 	spellCheck?: boolean;
+	/** Existing session channel; omitted outside connected slide editing. */
+	collaboration?: {
+		patcher: import('pptx-viewer-shared').CollaborationLivePatcher;
+		slideId?: string;
+	};
 	/** Called with the edited plain text on every keystroke (live preview only). */
 	oninput?: (text: string, snapshot?: import('pptx-viewer-shared').InlineTextEditSnapshot) => void;
 	/** Called with the edited plain text on commit (only when it changed). */
@@ -64,6 +69,8 @@ export interface InlineTextEditorProps {
 		controller: import('pptx-viewer-shared').InlineListController | undefined,
 		cancel?: () => void,
 	) => void;
+	/** Retain accepted connected text before framework-driven unmount, without a commit. */
+	onretire?: () => void;
 	/** Called after the surface closes (commit or cancel). */
 	onclose: () => void;
 }

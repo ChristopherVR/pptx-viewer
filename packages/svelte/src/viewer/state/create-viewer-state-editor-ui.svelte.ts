@@ -98,6 +98,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getScale: () => (editor.masterViewTarget ? options.getMasterScale() : deps.getScale()),
 		getCurrent: () => viewer.current,
 		getPresenting: () => viewer.isFullscreen,
+		getEditable: () => deps.getEditable() && !collab.readOnly && !readOnlyRec.locked,
 		getStageRoot: () => options.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => options.getStageHolderEl() ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),

@@ -5,9 +5,16 @@
  * which is the parity bug this pins.
  */
 import type { PptxElement } from 'pptx-viewer-core';
-import type { InlineListController } from 'pptx-viewer-shared';
+import type { InlineListController, YjsFactories } from 'pptx-viewer-shared';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { EditorState } from '../editor/editor-state.svelte';
 import InlineTextEditor from './InlineTextEditor.svelte';
@@ -27,6 +34,108 @@ function textElement(): PptxElement {
 }
 
 describe('inline text editor caret placement', () => {
+	it.each(['commit', 'composition', 'readonly'] as const)(
+		'reads merged native text and safely closes during %s',
+		(closing) => {
+			const doc = new Y.Doc();
+			const factories: YjsFactories = {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener: () => void) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
+			};
+			const element = textElement();
+			reconcileSlidesInYDoc(
+				[{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [element] }],
+				doc,
+				factories,
+			);
+			const patcher = createCollaborationLivePatcher();
+			patcher.configure(doc, factories, true);
+			const host = document.createElement('div');
+			document.body.append(host);
+			const oninput = vi.fn();
+			const oncommit = vi.fn();
+			const onclose = vi.fn();
+			let controller: InlineListController | undefined;
+			const component = mount(InlineTextEditor, {
+				target: host,
+				props: {
+					element,
+					box: { x: 0, y: 0, width: 200, height: 50 },
+					scale: 1,
+					collaboration: { patcher, slideId: 's1' },
+					oninput,
+					oncommit,
+					onclose,
+					onregister: (value) => {
+						controller = value;
+					},
+				},
+			});
+			flushSync();
+			try {
+				const root = host.querySelector<HTMLElement>('[data-inline-editor]')!;
+				const node = root.querySelector('span')!.firstChild as Text;
+				const range = document.createRange();
+				range.setStart(node, 3);
+				range.collapse(true);
+				window.getSelection()!.removeAllRanges();
+				window.getSelection()!.addRange(range);
+				const before = new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' });
+				Object.defineProperty(before, 'getTargetRanges', { value: () => [range.cloneRange()] });
+				root.dispatchEvent(before);
+				const text = findElementYMap(doc, 's1', element.id)!.get('textBody') as Y.Text;
+				text.insert(0, 'R', {});
+				node.data = 'TARXGET';
+				root.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+				expect(text.toString()).toBe('RTARXGET');
+				expect(controller?.read()).toMatchObject({
+					kind: 'supported',
+					snapshot: { text: 'RTARXGET' },
+				});
+				expect(oninput).not.toHaveBeenCalled();
+				if (closing === 'composition') {
+					root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+					root.querySelector('span')!.textContent = 'Unaccepted IME draft';
+					root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+				} else if (closing === 'readonly') {
+					patcher.configure(null, null);
+				}
+				root.dispatchEvent(new FocusEvent('blur'));
+				if (closing === 'commit') {
+					expect(oncommit).toHaveBeenCalledWith(
+						'RTARXGET',
+						expect.objectContaining({ text: 'RTARXGET' }),
+					);
+				} else {
+					expect(oncommit).not.toHaveBeenCalled();
+					expect(text.toString()).toBe('RTARXGET');
+					if (closing === 'composition') {
+						expect(onclose).not.toHaveBeenCalled();
+						expect(controller?.read()).toMatchObject({
+							kind: 'unsupported',
+							reason: 'composition-active',
+						});
+					}
+				}
+			} finally {
+				void unmount(component);
+				patcher.dispose();
+				doc.destroy();
+				host.remove();
+			}
+		},
+	);
+
 	it('keeps the live editor and caret through pointer list toggles', () => {
 		const host = document.createElement('div');
 		document.body.append(host);

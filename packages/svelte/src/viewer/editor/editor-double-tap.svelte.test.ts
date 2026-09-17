@@ -1,5 +1,7 @@
 import type { PptxElement, PptxTableData } from 'pptx-viewer-core';
-import { afterEach, describe, expect, it } from 'vitest';
+import { createCollaborationLivePatcher } from 'pptx-viewer-shared';
+import type { CollaborationInlineEditor } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditorControllerDeps } from './editor-controller-deps';
 import { EditorController } from './editor-controller.svelte';
@@ -44,7 +46,10 @@ function makeEditor(elements: PptxElement[]): EditorState {
 	return editor;
 }
 
-function makeController(editor: EditorState): { controller: EditorController; root: HTMLElement } {
+function makeController(
+	editor: EditorState,
+	overrides: Partial<EditorControllerDeps> = {},
+): { controller: EditorController; root: HTMLElement } {
 	const root = document.createElement('div');
 	document.body.append(root);
 	const controller = new EditorController(editor, {
@@ -53,6 +58,7 @@ function makeController(editor: EditorState): { controller: EditorController; ro
 		getStageRoot: () => root,
 		getRootEl: () => root,
 		getPresenting: () => false,
+		...overrides,
 	} as unknown as EditorControllerDeps);
 	return { controller, root };
 }
@@ -85,6 +91,74 @@ afterEach(() => {
 });
 
 describe('svelte canvas touch double-tap', () => {
+	it('retains only canonical accepted text on host veto without creating history', () => {
+		const editor = makeEditor([shape('a')]);
+		const { controller, root } = makeController(editor);
+		cleanup = () => {
+			controller.destroy();
+			root.remove();
+		};
+		controller.editingId = 'a';
+		let accepted:
+			| { elementId: string; text: string; textSegments: { text: string; style: {} }[] }
+			| undefined = {
+			elementId: 'a',
+			text: 'Accepted peer text',
+			textSegments: [{ text: 'Accepted peer text', style: {} }],
+		};
+		controller.registerInlineReader('a', {
+			checkModel: () => true,
+			read: () => ({ kind: 'unsupported', reason: 'composition-active', text: 'UNACCEPTED' }),
+			readAccepted: () => accepted,
+		} as CollaborationInlineEditor);
+		expect(controller.retainAcceptedInlineText()).toBeTruthy();
+		expect(editor.slides[0].elements[0]).toMatchObject({ text: 'Accepted peer text' });
+		expect(editor.canUndo).toBeFalsy();
+		accepted = undefined;
+		expect(controller.retainAcceptedInlineText()).toBeTruthy();
+		expect(editor.slides[0].elements[0]).toMatchObject({ text: 'Accepted peer text' });
+	});
+
+	it.each(['composition-active', 'input-active'])(
+		'blocks Save while connected %s owns unfinished text',
+		(reason) => {
+			const editor = makeEditor([shape('a')]);
+			const { controller, root } = makeController(editor);
+			cleanup = () => {
+				controller.destroy();
+				root.remove();
+			};
+			controller.editingId = 'a';
+			controller.registerInlineReader('a', {
+				checkModel: () => true,
+				read: () => ({ kind: 'unsupported', reason, text: 'Draft' }),
+			} as CollaborationInlineEditor);
+			expect(() => editor.readPendingInlineTextEdit?.()).toThrow('Finish the current text input');
+			editor.editable = false;
+			expect(editor.readPendingInlineTextEdit?.()).toBeUndefined();
+		},
+	);
+
+	it('offers connected native editing only for the actual slide, not inherited templates', () => {
+		const editor = makeEditor([shape('a'), shape('layout-title')]);
+		const patcher = createCollaborationLivePatcher();
+		vi.spyOn(patcher, 'isActive').mockReturnValue(true);
+		const { controller, root } = makeController(editor, {
+			getActiveSlide: () => editor.slides[0],
+			getLivePatcher: () => patcher,
+		});
+		cleanup = () => {
+			controller.destroy();
+			root.remove();
+			patcher.dispose();
+		};
+		editor.setTemplateEditing(true);
+		controller.editingId = 'layout-title';
+		expect(controller.inlineCollaboration).toBeUndefined();
+		controller.editingId = 'a';
+		expect(controller.inlineCollaboration).toEqual({ patcher, slideId: 's1' });
+	});
+
 	it('a single tap selects the element without entering edit mode', () => {
 		const editor = makeEditor([shape('a')]);
 		const { controller, root } = makeController(editor);
