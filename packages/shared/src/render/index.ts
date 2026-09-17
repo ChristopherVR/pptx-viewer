@@ -148,6 +148,13 @@ export * from './chart-data-grid-ops';
 // Hide/restore a Chart-Filters series (c15:filteredSeries + filteredSeriesTitle/
 // filteredCategoryTitle fallback) and edit a c15:datalabelsRange cached label.
 export * from './chart-ext-editor-actions';
+// PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart Filters" quick
+// actions shown outside a selected chart's top-right corner: the pure
+// descriptor (button anchors + checklist/gallery/filter state) and its
+// mutation helpers (axis visibility/title toggles, style-preset apply).
+export * from './chart-quick-actions';
+export * from './chart-quick-action-toggles';
+export * from './chart-quick-action-styles';
 // What a data label SAYS: the c:showVal / c:showCatName / c:showSerName /
 // c:showPercent / c:separator cascade (per-point -> series -> chart-type).
 export * from './chart-data-label-text';
