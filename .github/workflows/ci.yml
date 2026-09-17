@@ -15,11 +15,13 @@ on:
 permissions:
   contents: read
 
-# Superseded runs on the same PR are cancelled rather than left to finish, which
-# matters most for the five-way e2e matrix.
+# A superseded run is cancelled rather than left to finish, on main as well as
+# on a pull request: trunk-based pushes land minutes apart, and only the newest
+# commit's result says anything about the branch. This matters most for the
+# five-way e2e matrix.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: true
 
 jobs:
   # ── Scope ───────────────────────────────────────────────────────────────────
