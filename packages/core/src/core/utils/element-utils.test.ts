@@ -1,4 +1,4 @@
-import { describe, it, expect, expectTypeOf } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi } from 'vitest';
 
 import type { PptxElement } from '../types';
 import {
@@ -332,6 +332,27 @@ describe('createEditorId', () => {
 			ids.add(createEditorId('el'));
 		}
 		expect(ids.size).toBe(5000);
+	});
+
+	// The burst test above passed ~199 runs in 200 on randomness alone and failed
+	// the rest (4,999 distinct ids). With the clock and the random source pinned,
+	// only the per-process sequence is left to separate the ids.
+	it('stays unique even when the clock and the random source repeat', () => {
+		const now = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+		const random = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+		try {
+			const ids = new Set<string>();
+			for (let index = 0; index < 100; index++) {
+				ids.add(createEditorId('el'));
+			}
+			expect(ids.size).toBe(100);
+			for (const id of ids) {
+				expect(id).toMatch(/^el-\d+-[a-z0-9]+$/u);
+			}
+		} finally {
+			now.mockRestore();
+			random.mockRestore();
+		}
 	});
 });
 

@@ -169,6 +169,8 @@ export function createUniformTextSegments(
 // ID generation
 // ---------------------------------------------------------------------------
 
+let nextEditorIdSequence = 0;
+
 /**
  * Generate a unique editor element ID using a prefix, timestamp, and
  * random suffix. The format is `"{prefix}-{timestamp}-{random}"`.
@@ -181,11 +183,20 @@ export function createUniformTextSegments(
  * `p:spTgt/@spid` name two shapes at once. Pasting or ungrouping a group mints
  * one id per descendant in a single tick, which is exactly the burst case.
  *
+ * Randomness alone still collides: 5000 ids in one tick clash about once in
+ * 200 runs (the birthday bound over 36^6), which is what made the burst test
+ * flaky in CI. A per-process counter is appended to the suffix so ids minted
+ * here can never repeat; the random part keeps separating ids minted at the
+ * same moment by different collaborators.
+ *
  * @param prefix - A human-readable prefix (e.g. `"shape"`, `"text"`).
  * @returns A unique ID string.
  */
 export function createEditorId(prefix: string): string {
-	return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+	// Fixed width, so a short random part cannot borrow digits from the sequence.
+	const random = Math.random().toString(36).slice(2, 8).padEnd(6, '0');
+	const sequence = (nextEditorIdSequence++).toString(36);
+	return `${prefix}-${Date.now()}-${random}${sequence}`;
 }
 
 /**
