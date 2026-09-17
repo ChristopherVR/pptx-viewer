@@ -45,6 +45,7 @@ export function useCollaborationDocumentSync(input: CollaborationDocumentSyncInp
 	});
 	useCollaborationLivePatch({
 		patcher: state.livePatcher,
+		externalSession: config?.externalSession,
 		doc: collaboration?.doc ?? null,
 		isConnected: isConnected && config?.role !== 'viewer',
 		isSynced: collaboration?.synced ?? false,

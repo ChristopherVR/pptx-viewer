@@ -11,6 +11,7 @@ import {
 	LOCAL_SYNC_ORIGIN,
 	readSlidesFromYDoc,
 	observeYDocSlides,
+	observeExternalCollaborationSession,
 	shouldRoomSlidesReplaceLoad,
 } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef } from 'react';
@@ -56,7 +57,8 @@ export function useYjsDocumentSync({
 	loadVersion = 0,
 	loadOrigin = 'user',
 }: UseYjsDocumentSyncInput): void {
-	const external = Boolean(config?.externalSession);
+	const externalSession = config?.externalSession;
+	const external = Boolean(externalSession);
 	const sessionIntent = useRef(config?.sessionIntent);
 	sessionIntent.current = config?.sessionIntent;
 	const lastSynced = useRef('');
@@ -124,7 +126,10 @@ export function useYjsDocumentSync({
 			return;
 		}
 		const handleChange = (_events?: unknown, transaction?: YTransactionLike): void => {
-			if (transaction?.origin === LOCAL_SYNC_ORIGIN) {
+			if (
+				transaction?.origin === LOCAL_SYNC_ORIGIN ||
+				(externalSession && !externalSession.getSnapshot().synced)
+			) {
 				return;
 			}
 			const remoteSlides = readSlidesFromYDoc(doc);
@@ -142,15 +147,36 @@ export function useYjsDocumentSync({
 			scheduleWriteBack();
 		};
 		const unobserve = observeYDocSlides(doc, handleChange);
-		if (!initialized.current) {
-			const remoteSlides = readSlidesFromYDoc(doc);
-			if (remoteSlides.length > 0 || (external && established.current)) {
-				adopt(remoteSlides);
+		const initialize = (): void => {
+			if (!initialized.current) {
+				const remoteSlides = readSlidesFromYDoc(doc);
+				if (remoteSlides.length > 0 || (external && established.current)) {
+					adopt(remoteSlides);
+				}
+				initialized.current = true;
 			}
-			initialized.current = true;
+		};
+		const unsubscribe = externalSession
+			? observeExternalCollaborationSession(externalSession, ({ synced }) => {
+					if (!synced) {
+						// React may batch a false/true pulse into one render. Revoke
+						// pending writes now, then adopt the room before resuming.
+						initialized.current = false;
+						writeRevision.current += 1;
+					} else {
+						initialize();
+					}
+				})
+			: undefined;
+		if (!externalSession) {
+			initialize();
 		}
-		return unobserve;
-	}, [doc, isConnected, isSynced, external, adopt, scheduleWriteBack]);
+		return () => {
+			unsubscribe?.();
+			unobserve();
+			writeRevision.current += 1;
+		};
+	}, [doc, isConnected, isSynced, external, externalSession, adopt, scheduleWriteBack]);
 
 	// A late bootstrap parse yields to the room. Explicit File > Open clears
 	// only the initial join latch and intentionally replaces the shared slides.
@@ -162,20 +188,26 @@ export function useYjsDocumentSync({
 		if (loadOrigin === 'user') {
 			awaitingJoin.current = false;
 		}
-		if (!doc || !isConnected || (external && !isSynced)) {
+		if (
+			!doc ||
+			!isConnected ||
+			(external && !isSynced) ||
+			(externalSession && !externalSession.getSnapshot().synced)
+		) {
 			return;
 		}
 		const roomSlides = readSlidesFromYDoc(doc);
 		if (shouldRoomSlidesReplaceLoad(loadOrigin, roomSlides.length)) {
 			adopt(roomSlides);
 		}
-	}, [loadVersion, loadOrigin, doc, isConnected, isSynced, external, adopt]);
+	}, [loadVersion, loadOrigin, doc, isConnected, isSynced, external, externalSession, adopt]);
 
 	useEffect(() => {
 		if (
 			!doc ||
 			!isConnected ||
 			!isSynced ||
+			(externalSession && !externalSession.getSnapshot().synced) ||
 			config?.role === 'viewer' ||
 			awaitingJoin.current ||
 			slides === supersededSlides.current ||
@@ -194,6 +226,7 @@ export function useYjsDocumentSync({
 			// A remote transaction or replaced session may arrive during import.
 			if (
 				cancelled ||
+				(externalSession && !externalSession.getSnapshot().synced) ||
 				revision !== writeRevision.current ||
 				loadVersion !== lastLoadVersion.current
 			) {
@@ -213,6 +246,7 @@ export function useYjsDocumentSync({
 		isConnected,
 		isSynced,
 		external,
+		externalSession,
 		config?.role,
 		getFactories,
 		scheduleWriteBack,

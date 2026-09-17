@@ -79,6 +79,12 @@ The viewer owns `pptx:slides` and its nested Yjs types. Give all participants th
 source PPTX for package resources, themes and media. Other application data can occupy
 separate Yjs keys. Do not independently reconcile complete slide snapshots from the host.
 
+Check the host's message and persistence limits against representative decks, including
+the initial document update and `Y.encodeStateAsUpdate(doc)` after editing. A compressed
+PPTX file's size is not its Yjs snapshot size: the shared schema also carries parsed XML,
+shape/group metadata and asset payloads. Moving images out of the document alone may
+not be sufficient. This session API does not add transport chunking or change host limits.
+
 It does not add comments-backend integration, a new local-only undo implementation,
 or synchronization for every deck-level field. Validate those workflows separately
 before exposing them in a collaborative product. A native PowerPoint reopen is also
