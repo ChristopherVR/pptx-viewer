@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.19.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.19.2) - 2026-09-17
+
+### Bug Fixes
+
+- **core:** Honor blipFill rotWithShape for picture-filled shapes (by @ChristopherVR) ([3a28d90](https://github.com/ChristopherVR/pptx-viewer/commit/3a28d904603086c64efb188b36d2b057d2a33e2b))
+- **core,shared:** Recognize implied blipFill picture fills and correct clustered bar overlap width (by @ChristopherVR) ([4cbb83d](https://github.com/ChristopherVR/pptx-viewer/commit/4cbb83d2990c7b83750c50f6ec59f435670673b8))
+- **shared:** Reserve axis label space on top and stop defaulting chart-area fill to grey (by @ChristopherVR) ([1e9b167](https://github.com/ChristopherVR/pptx-viewer/commit/1e9b16784ad72d29307f45dee90dc75e630930cb))
+- **shared:** Stop leaked captureStream tracks after video export (by @ChristopherVR) ([c0d3cc6](https://github.com/ChristopherVR/pptx-viewer/commit/c0d3cc6265d2ea69368eb3cd5005695d73b755de))
+- **shared:** Draw a line and marker legend swatch for line-drawn series (by @ChristopherVR) ([7b6837b](https://github.com/ChristopherVR/pptx-viewer/commit/7b6837b7db46c2013d27699a9a319c385a1a5a94))
+
 ## [3.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.19.1) - 2026-09-16
 
 ### Bug Fixes

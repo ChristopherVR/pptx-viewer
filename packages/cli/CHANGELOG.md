@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.19.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.2) - 2026-09-17
+
+### Bug Fixes
+
+- **core:** Honor blipFill rotWithShape for picture-filled shapes (by @ChristopherVR) ([3a28d90](https://github.com/ChristopherVR/pptx-viewer/commit/3a28d904603086c64efb188b36d2b057d2a33e2b))
+- **shared:** Stop leaked captureStream tracks after video export (by @ChristopherVR) ([c0d3cc6](https://github.com/ChristopherVR/pptx-viewer/commit/c0d3cc6265d2ea69368eb3cd5005695d73b755de))
+- **shared:** Draw a line and marker legend swatch for line-drawn series (by @ChristopherVR) ([7b6837b](https://github.com/ChristopherVR/pptx-viewer/commit/7b6837b7db46c2013d27699a9a319c385a1a5a94))
+
 ## [2.19.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.19.1) - 2026-09-16
 
 ### Bug Fixes
