@@ -69,6 +69,13 @@ for (const { dictionary, nativeLabel } of [
 			await expect(command).toBeVisible();
 			await expect(command).toHaveText(dictionary[key]);
 		}
+		await expect(
+			page
+				.getByRole('button')
+				.filter({ hasText: dictionary['pptx.customShows.addShow'] })
+				.or(page.getByRole('button', { name: dictionary['pptx.ribbon.customShows'], exact: true }))
+				.first(),
+		).toBeVisible();
 		if (nativeLabel === '简体中文') {
 			await page.screenshot({ path: test.info().outputPath('record-zh-CN.png') });
 		}

@@ -9,6 +9,7 @@ import { createFontGroup } from './home/font-group';
 import type { FontGroupHandlers } from './home/font-group';
 import { createRibbon } from './ribbon';
 import { buildOverflowMenuItems } from './ribbon-primary-menus';
+import { createRibbonPrimaryRow } from './ribbon-primary-row';
 import type { RibbonHandlers, RibbonInsertHandlers } from './ribbon-types';
 
 /** A fake action bag: every method access returns a fresh `vi.fn()`, memoised. */
@@ -111,6 +112,21 @@ function buildHandlers(): RibbonHandlers {
 }
 
 describe('createRibbon', () => {
+	it('uses host translations for the custom-show quick action without changing its callback', () => {
+		const messages = {
+			'pptx.customShows.addShow': '+ 自定义放映',
+			'pptx.customShows.createTooltip': '创建自定义放映',
+		};
+		const t = createTranslator('zh-CN', { 'zh-CN': messages });
+		const handlers = buildHandlers();
+		const row = createRibbonPrimaryRow(document, t, handlers);
+		const button = row.el.querySelector<HTMLButtonElement>('.pptxv-show-btn')!;
+		expect(button.textContent).toBe(messages['pptx.customShows.addShow']);
+		expect(button.title).toBe(messages['pptx.customShows.createTooltip']);
+		button.click();
+		expect(handlers.slideShow.openCustomShows).toHaveBeenCalledOnce();
+	});
+
 	it('defaults to the Home tab visible, others hidden', () => {
 		const t = createTranslator();
 		const ribbon = createRibbon(document, t, buildHandlers());
