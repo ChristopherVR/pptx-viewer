@@ -18,8 +18,11 @@ import type { InlineEditorSession } from './inline-text-editor';
 import { canInlineEditElement, openInlineEditor } from './inline-text-editor';
 import {
 	inlineTextTargetIsCurrent,
+	inlineTextEditTarget,
+	inlineTextCollaboration,
 	observeInlineTextModel,
 	pendingInlineTextModel,
+	retainAcceptedInlineTextModel,
 } from './inline-text-model';
 import { createShapeAdjustGesture } from './shape-adjust-gesture';
 import { handleStructuredDblClick } from './structured-dblclick';
@@ -70,9 +73,6 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		tableInline?.close(commit);
 		tableInline = null;
 		const session = inline;
-		inline = null;
-		inlineTarget = undefined;
-		modelObserver = undefined;
 		if (commit) {
 			session?.commit();
 		} else {
@@ -113,11 +113,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		ops.select(id);
 		overlay.setEditing(true);
 		setStaticTextSuppressed(id, true);
-		inlineTarget = state.masterViewTarget
-			? { masterView: { tab: state.masterViewTab, ...state.masterViewTarget } }
-			: state.slides[state.currentSlide]
-				? { slideId: state.slides[state.currentSlide].id }
-				: undefined;
+		inlineTarget = inlineTextEditTarget(state);
 		inline = openInlineEditor({
 			doc,
 			overlayRoot: overlay.root,
@@ -125,6 +121,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			scale: deps.getScale(),
 			element: el,
 			spellCheck: state.spellCheckEnabled,
+			collaboration: inlineTextCollaboration(state, id, deps.getLivePatcher?.()),
 			onInput: (text) => deps.onInlineTextInput?.(id, text),
 			onCommit: (text, snapshot) => {
 				// Flush the queued live-preview frame first so it cannot land after
@@ -136,6 +133,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			onClose() {
 				inline = null;
 				inlineTarget = undefined;
+				modelObserver = undefined;
 				deps.getOverlay()?.setEditing(false);
 				setStaticTextSuppressed(id, false);
 			},
@@ -281,6 +279,10 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		beginAdjustGesture: (event, descriptor) => adjustGesture.begin(event, descriptor),
 		closeInline,
 		readInlineList,
+		retainAcceptedInlineText() {
+			const slides = retainAcceptedInlineTextModel(store.get(), inlineTarget, inline);
+			if (slides) store.set({ slides });
+		},
 		formatInlineList: (snapshot) => modelObserver?.format(snapshot) ?? false,
 		readPendingInlineTextEdit: () =>
 			pendingInlineTextModel(store.get(), inlineTarget, readInlineList()),

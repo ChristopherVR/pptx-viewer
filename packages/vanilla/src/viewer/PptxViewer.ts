@@ -389,6 +389,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			onCursorMove: (x, y) => this.sessions.setCollaborationCursor(x, y),
 			onInlineTextInput: (elementId, text) =>
 				this.sessions.publishCollaborationInlineText(elementId, text),
+			getLivePatcher: () => this.sessions.getCollaborationLivePatcher(),
 			flushInlineTextInput: () => this.sessions.flushCollaborationLivePatch(),
 		});
 		this.editor.attachChrome();
