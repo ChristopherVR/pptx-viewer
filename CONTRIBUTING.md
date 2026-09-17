@@ -226,6 +226,33 @@ and are exempt.
 **A UI feature PR without an e2e spec is how a binding quietly falls behind.**
 If a feature is worth adding to five bindings, it is worth one neutral spec.
 
+### `@local-only` e2e tests
+
+A small number of specs do real-time video capture (`MediaRecorder` over
+`canvas.captureStream()`) that reliably takes down the whole hosted CI runner
+(exit 143, "the runner has received a shutdown signal") rather than merely
+failing, and cannot be reproduced outside that environment. Those tests carry
+the Playwright tag `{ tag: '@local-only' }` and are excluded from CI via
+`grepInvert` in `playwright.config.ts`; see `e2e/export-raster-tiling.spec.ts`
+for the current tagged tests and the incident history in their comments.
+
+They still run locally:
+
+```bash
+bun run e2e:local-only   # playwright test --grep @local-only --workers=1
+```
+
+and a `.husky/pre-push` hook runs them automatically before a push that
+touches export-video-related paths (the shared export pipeline, each
+binding's export code, or the tagged spec itself), so CI's blind spot still
+has a gate. Set `PPTX_SKIP_PREPUSH=1` (or use `git push --no-verify`) to skip
+it for a given push. The hook also skips quietly when Playwright's browsers
+are not installed locally or when `CI` is set.
+
+Do not add `@local-only` to a test unless it is genuinely unrunnable on the
+hosted runner, not merely slow; a normal slow test belongs in the regular
+suite with a longer timeout instead.
+
 ---
 
 ## Documentation

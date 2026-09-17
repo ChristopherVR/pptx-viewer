@@ -92,6 +92,18 @@ bun run typecheck            # Type-check
 
 The root build runs **core -> shared -> locales -> tools -> react -> vue -> angular -> vanilla -> svelte -> cli -> React demo**. `emf-converter` and `mtx-decompressor` are external npm dependencies, not workspace packages.
 
+### `@local-only` e2e tests and the pre-push hook
+
+A few e2e specs do real-time video capture and reliably crash the hosted CI
+runner rather than just failing (see `e2e/export-raster-tiling.spec.ts`), so
+they carry the Playwright tag `@local-only` and are excluded from CI via
+`grepInvert` in `playwright.config.ts`. Run them with `bun run
+e2e:local-only`. A `.husky/pre-push` hook (`scripts/pre-push-local-e2e.mjs`
+decides whether to run it, based on which paths a push touches) runs them
+automatically before a push that touches export-video code; skip a specific
+push with `PPTX_SKIP_PREPUSH=1` or `git push --no-verify`. See
+CONTRIBUTING.md for the full explanation.
+
 ## Monorepo Structure
 
 ```
