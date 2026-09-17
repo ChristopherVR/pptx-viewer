@@ -11,9 +11,21 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Manual escape hatch: force the full matrix (default) or, with `full`
+  # unchecked, exercise the same push-scoping path a plain push takes (useful
+  # for testing the scoper itself without waiting for a real push).
+  workflow_dispatch:
+    inputs:
+      full:
+        description: 'Run the full test/e2e matrix regardless of what changed'
+        type: boolean
+        default: true
 
 permissions:
   contents: read
+  # Needed by the `scope` job to find the last successful CI run on main
+  # (list workflow runs) and to diff against it (compare commits).
+  actions: read
 
 # A superseded run is cancelled rather than left to finish, on main as well as
 # on a pull request: trunk-based pushes land minutes apart, and only the newest
@@ -25,14 +37,35 @@ concurrency:
 
 jobs:
   # ── Scope ───────────────────────────────────────────────────────────────────
-  # Decides which legs this run needs. Pushes to main always run everything;
-  # only pull requests are scoped, and scoping errs towards running more (see
-  # scripts/affected-packages.mjs).
+  # Decides which legs this run needs, for pull requests AND pushes to main.
   #
-  # Playwright is the expensive part (a dev server plus a browser per
-  # framework), so it is additionally skipped for pull requests from forks.
-  # Maintainers get the full e2e sweep on the push to main, and can force it on
-  # a fork PR by applying the `full-ci` label.
+  # Pull requests are scoped against the PR's own changed-file list (the PR
+  # files API). Pushes to main (and manual `workflow_dispatch` runs) are
+  # scoped against the most recent commit on main whose CI run actually
+  # CONCLUDED successfully, not the immediately preceding push:
+  # `cancel-in-progress` above means a push's own run can be superseded before
+  # it finishes, so a naive github.event.before..HEAD diff can skip legs whose
+  # last real result was cancelled or failed. That base is found with the
+  # Actions API (list workflow runs) and diffed against HEAD with the compare
+  # API, which needs no extra checkout depth.
+  #
+  # Playwright now runs the AFFECTED e2e projects for every pull request,
+  # fork or not: no job in this workflow consumes a secret (see the
+  # top-of-file note), so a fork's read-only token is sufficient.
+  #
+  # A run is bumped to the FULL matrix (every unit leg, every e2e project)
+  # when any of:
+  #   - the PR carries the `full-ci` label;
+  #   - the push's HEAD commit message contains `[full-ci]`;
+  #   - this run was started via `workflow_dispatch` with `full` left checked
+  #     (the default); uncheck it to exercise the push-scoping path instead;
+  #   - a push has no prior commit to diff against (new branch / history
+  #     rewrite), no prior successful CI run can be found on main, or the
+  #     compare result is unusable (diverged history, or a file list at the
+  #     300-file cap and possibly truncated).
+  # Scoping otherwise always errs towards running more (see
+  # scripts/affected-packages.mjs): an unrecognised path, or any doubt about
+  # the diff, runs everything rather than risk silently skipping a leg.
   scope:
     name: Scope
     runs-on: ubuntu-latest
@@ -48,45 +81,109 @@ jobs:
         id: files
         env:
           GH_TOKEN: ${{ github.token }}
+          EVENT_NAME: ${{ github.event_name }}
+          HEAD_SHA: ${{ github.sha }}
+          BEFORE_SHA: ${{ github.event.before }}
+          # Free-text fields go through env vars, never direct `${{ }}`
+          # interpolation into the script body, so a commit message cannot
+          # break out of the shell command.
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+          DISPATCH_FULL: ${{ github.event.inputs.full }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo '[]' > changed-files.json
-            echo "Push build: running the full matrix."
-          else
+          if [ "$EVENT_NAME" = "pull_request" ]; then
             gh api --paginate \
               "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/files" \
               --jq '[.[].filename]' | jq -s 'add // []' > changed-files.json
-            echo "$(jq 'length' changed-files.json) changed file(s)."
+            echo "$(jq 'length' changed-files.json) changed file(s) (pull_request)."
+            exit 0
           fi
+
+          # push and workflow_dispatch share this scoping path.
+          force_full=false
+          reason=""
+
+          if [ "$EVENT_NAME" = "workflow_dispatch" ] && [ "$DISPATCH_FULL" != "false" ]; then
+            force_full=true
+            reason="workflow_dispatch requested the full matrix"
+          fi
+
+          case "$COMMIT_MESSAGE" in
+            *"[full-ci]"*)
+              force_full=true
+              reason="commit message contains [full-ci]"
+              ;;
+          esac
+
+          if [ "$EVENT_NAME" = "push" ] && [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+            force_full=true
+            reason="push has no prior commit to diff against (new branch or history rewrite)"
+          fi
+
+          if [ "$force_full" != "true" ]; then
+            # Most recent commit on main whose CI run actually concluded
+            # successfully; see the job-level comment above for why this beats
+            # github.event.before. `event=push` keeps a fork PR whose head
+            # branch happens to be called `main` from being picked as the base.
+            base=$(gh api "repos/${{ github.repository }}/actions/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" \
+              --jq '.workflow_runs[0].head_sha' 2>/dev/null || echo "")
+            if [ -z "$base" ] || [ "$base" = "null" ]; then
+              force_full=true
+              reason="no prior successful CI run found on main to diff against"
+            fi
+          fi
+
+          if [ "$force_full" != "true" ]; then
+            compare=$(gh api "repos/${{ github.repository }}/compare/${base}...${HEAD_SHA}" 2>/dev/null || echo "")
+            status=$(echo "$compare" | jq -r '.status // "error"' 2>/dev/null || echo "error")
+            file_count=$(echo "$compare" | jq '.files | length' 2>/dev/null || echo 0)
+
+            if [ -z "$compare" ] || [ "$status" = "error" ] || [ "$status" = "diverged" ] || [ "$file_count" -ge 300 ]; then
+              force_full=true
+              reason="compare API result unusable (status=$status, files=$file_count, base=$base)"
+            else
+              echo "$compare" | jq '[.files[].filename]' > changed-files.json
+              echo "$(jq 'length' changed-files.json) changed file(s) between $base and $HEAD_SHA."
+            fi
+          fi
+
+          if [ "$force_full" = "true" ]; then
+            echo '[]' > changed-files.json
+            echo "Full matrix: ${reason:-forced}."
+          fi
+
+          echo "force-full=$force_full" >> "$GITHUB_OUTPUT"
 
       - name: Resolve affected legs
         id: scope
+        env:
+          FULL_CI_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
         run: |
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            {
-              echo 'test-legs=["core","core-crypto","shared","locales","react","react18","vue","angular","vanilla","svelte","tools","cli"]'
-              echo 'e2e-projects=["react","vue","angular","vanilla","svelte"]'
-              echo 'has-tests=true'
-            } >> "$GITHUB_OUTPUT"
+          full_legs() {
+            echo 'test-legs=["core","core-crypto","shared","locales","react","react18","vue","angular","vanilla","svelte","tools","cli"]'
+            echo 'e2e-projects=["react","vue","angular","vanilla","svelte"]'
+            echo 'has-tests=true'
+          }
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$FULL_CI_LABEL" = "true" ]; then
+            full_legs >> "$GITHUB_OUTPUT"
+            echo "The \`full-ci\` label is applied: running the full matrix on this PR."
+          elif [ "${{ github.event_name }}" != "pull_request" ] && [ "${{ steps.files.outputs.force-full }}" = "true" ]; then
+            full_legs >> "$GITHUB_OUTPUT"
           else
             node scripts/affected-packages.mjs changed-files.json
           fi
 
+      # Playwright is skipped only when scoping found no binding or demo
+      # affected at all. There is no fork-specific gate any more: every PR
+      # (fork or not) runs its affected e2e projects, and `full-ci` forces
+      # every project via the label check above rather than a special case
+      # here.
       - name: Decide whether e2e runs
         id: gate
         run: |
-          fork="${{ github.event.pull_request.head.repo.fork }}"
-          forced="${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}"
-          has_e2e="${{ steps.scope.outputs.e2e-projects != '[]' }}"
-
-          if [ "${{ github.event_name }}" != "pull_request" ]; then
-            echo "run-e2e=true" >> "$GITHUB_OUTPUT"
-          elif [ "$has_e2e" != "true" ]; then
+          if [ "${{ steps.scope.outputs.e2e-projects }}" = "[]" ]; then
             echo "run-e2e=false" >> "$GITHUB_OUTPUT"
             echo "No binding or demo touched; skipping Playwright."
-          elif [ "$fork" = "true" ] && [ "$forced" != "true" ]; then
-            echo "run-e2e=false" >> "$GITHUB_OUTPUT"
-            echo "::notice::Playwright is skipped for fork pull requests. It runs on the push to main, or add the \`full-ci\` label to force it here."
           else
             echo "run-e2e=true" >> "$GITHUB_OUTPUT"
           fi
@@ -411,8 +508,10 @@ jobs:
   # comfortable headroom.
   #
   # The matrix comes from `scope`, which also decides whether this job runs at
-  # all: Playwright is skipped for fork pull requests (add the `full-ci` label to
-  # force it) and for PRs that touch no binding or demo.
+  # all: it runs the AFFECTED e2e projects for every PR (fork or not, since no
+  # job here uses a secret) and for every push to main, and is skipped
+  # entirely only when nothing affects a binding or demo. The `full-ci` label
+  # (or `[full-ci]` in a push's commit message) forces every project.
   e2e:
     needs: [scope, build]
     if: needs.scope.outputs.run-e2e == 'true'
@@ -660,13 +759,18 @@ jobs:
     needs: [scope, build, lint, typecheck, test, e2e, e2e-packaged]
     runs-on: ubuntu-latest
     steps:
-      # `skipped` is accepted because `scope` legitimately drops legs a PR
-      # cannot affect (a docs-only change runs no tests; a fork PR runs no
-      # Playwright). That is NOT the old failure mode: back then a leg was
-      # skipped *because its build had failed* and still reported green. Now a
-      # skip is a deliberate decision made up front, and a leg that starts and
-      # cannot run its tests fails instead. `cancelled` and `failure` are still
-      # hard failures here.
+      # `skipped` is accepted because `scope` legitimately drops legs a PR or
+      # push cannot affect (a docs-only change runs no tests; a change that
+      # touches no binding or demo runs no Playwright). That is NOT the old
+      # failure mode: back then a leg was skipped *because its build had
+      # failed* and still reported green. Now a skip is a deliberate decision
+      # made up front, and a leg that starts and cannot run its tests fails
+      # instead (see the build-success guard in `test` and `e2e`), so a whole
+      # job's result is `failure`, not `skipped`, whenever that happens.
+      # `cancelled` and `failure` are still hard failures here. This is the
+      # job the branch ruleset should require (check name: `ci-success`),
+      # since matrix leg names change as bindings come and go and a required
+      # check that no longer exists blocks every PR silently.
       - name: Check every required job succeeded or was deliberately skipped
         run: |
           results="${{ join(needs.*.result, ' ') }}"
