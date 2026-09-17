@@ -379,44 +379,47 @@ function App() {
 	);
 	const isWebrtcJoin = urlTransport === 'webrtc';
 	const signalingList = useMemo(() => parseSignaling(urlSignaling), [urlSignaling]);
-	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
+	// The experimental Three.js SmartArt renderer is on by default; opt out
+	// per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D rendering"
+	// is the persistent, cross-session way to fall back to 2D).
 	// eslint-disable-next-line react/hook-use-state
 	const [smartArt3D] = useState(
-		() => new URLSearchParams(window.location.search).get('smartArt3D') === '1',
+		() => new URLSearchParams(window.location.search).get('smartArt3D') !== '0',
 	);
-	// Opt in to the experimental Three.js interactive surface-chart renderer
-	// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
+	// The experimental Three.js interactive surface-chart renderer (camera
+	// orbit/zoom + raycast hover tooltip) is on by default; opt out via
+	// `?surfaceChart3D=0`.
 	// eslint-disable-next-line react/hook-use-state
 	const [surfaceChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('surfaceChart3D') === '1',
+		() => new URLSearchParams(window.location.search).get('surfaceChart3D') !== '0',
 	);
-	// Opt in to the experimental Three.js interactive bar3D-chart renderer
-	// (real box meshes, camera orbit/zoom + raycast hover tooltip) via
-	// `?barChart3D=1`.
+	// The experimental Three.js interactive bar3D-chart renderer (real box
+	// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
+	// opt out via `?barChart3D=0`.
 	// eslint-disable-next-line react/hook-use-state
 	const [barChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('barChart3D') === '1',
+		() => new URLSearchParams(window.location.search).get('barChart3D') !== '0',
 	);
-	// Opt in to the experimental Three.js interactive line3D-chart renderer
-	// (real tube-path meshes, camera orbit/zoom + raycast hover tooltip) via
-	// `?lineChart3D=1`.
+	// The experimental Three.js interactive line3D-chart renderer (real
+	// tube-path meshes, camera orbit/zoom + raycast hover tooltip) is on by
+	// default; opt out via `?lineChart3D=0`.
 	// eslint-disable-next-line react/hook-use-state
 	const [lineChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('lineChart3D') === '1',
+		() => new URLSearchParams(window.location.search).get('lineChart3D') !== '0',
 	);
-	// Opt in to the experimental Three.js interactive area3D-chart renderer
-	// (real tube-path + ribbon meshes, camera orbit/zoom + raycast hover
-	// tooltip) via `?areaChart3D=1`.
+	// The experimental Three.js interactive area3D-chart renderer (real
+	// tube-path + ribbon meshes, camera orbit/zoom + raycast hover tooltip) is
+	// on by default; opt out via `?areaChart3D=0`.
 	// eslint-disable-next-line react/hook-use-state
 	const [areaChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('areaChart3D') === '1',
+		() => new URLSearchParams(window.location.search).get('areaChart3D') !== '0',
 	);
-	// Opt in to the experimental Three.js interactive pie3D-chart renderer
-	// (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
-	// `?pieChart3D=1`.
+	// The experimental Three.js interactive pie3D-chart renderer (real wedge
+	// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
+	// opt out via `?pieChart3D=0`.
 	// eslint-disable-next-line react/hook-use-state
 	const [pieChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('pieChart3D') === '1',
+		() => new URLSearchParams(window.location.search).get('pieChart3D') !== '0',
 	);
 	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 	// page to embed a live, pre-populated viewer).

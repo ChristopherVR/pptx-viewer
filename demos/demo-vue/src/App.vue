@@ -123,27 +123,30 @@ const isWebrtcJoin = urlTransport === 'webrtc';
 // For a webrtc join the server URL is intentionally blank (P2P); otherwise fall
 // back to the configured relay / localhost default.
 const urlServer = isWebrtcJoin ? '' : (params.get('server') ?? resolveDefaultServerUrl());
-// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`.
-const smartArt3D = params.get('smartArt3D') === '1';
-// Opt in to the experimental Three.js interactive surface-chart renderer
-// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
-const surfaceChart3D = params.get('surfaceChart3D') === '1';
-// Opt in to the experimental Three.js interactive bar3D-chart renderer
-// (real box meshes, camera orbit/zoom + raycast hover tooltip) via
-// `?barChart3D=1`.
-const barChart3D = params.get('barChart3D') === '1';
-// Opt in to the experimental Three.js interactive line3D-chart renderer
-// (real tube-path meshes, camera orbit/zoom + raycast hover tooltip) via
-// `?lineChart3D=1`.
-const lineChart3D = params.get('lineChart3D') === '1';
-// Opt in to the experimental Three.js interactive area3D-chart renderer
-// (real tube-path + ribbon meshes, camera orbit/zoom + raycast hover
-// tooltip) via `?areaChart3D=1`.
-const areaChart3D = params.get('areaChart3D') === '1';
-// Opt in to the experimental Three.js interactive pie3D-chart renderer
-// (real wedge meshes, camera orbit/zoom + raycast hover tooltip) via
-// `?pieChart3D=1`.
-const pieChart3D = params.get('pieChart3D') === '1';
+// The experimental Three.js SmartArt renderer is on by default; opt out
+// per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D rendering"
+// is the persistent, cross-session way to fall back to 2D).
+const smartArt3D = params.get('smartArt3D') !== '0';
+// The experimental Three.js interactive surface-chart renderer (camera
+// orbit/zoom + raycast hover tooltip) is on by default; opt out via
+// `?surfaceChart3D=0`.
+const surfaceChart3D = params.get('surfaceChart3D') !== '0';
+// The experimental Three.js interactive bar3D-chart renderer (real box
+// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
+// opt out via `?barChart3D=0`.
+const barChart3D = params.get('barChart3D') !== '0';
+// The experimental Three.js interactive line3D-chart renderer (real
+// tube-path meshes, camera orbit/zoom + raycast hover tooltip) is on by
+// default; opt out via `?lineChart3D=0`.
+const lineChart3D = params.get('lineChart3D') !== '0';
+// The experimental Three.js interactive area3D-chart renderer (real
+// tube-path + ribbon meshes, camera orbit/zoom + raycast hover tooltip) is
+// on by default; opt out via `?areaChart3D=0`.
+const areaChart3D = params.get('areaChart3D') !== '0';
+// The experimental Three.js interactive pie3D-chart renderer (real wedge
+// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
+// opt out via `?pieChart3D=0`.
+const pieChart3D = params.get('pieChart3D') !== '0';
 // `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 // page to embed a live, pre-populated viewer).
 const urlSample = params.get('sample') === '1';

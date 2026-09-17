@@ -128,33 +128,41 @@ export class AppComponent {
 	private readonly translate = inject(TranslateService);
 
 	private readonly params = new URLSearchParams(window.location.search);
-	/** Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`. */
-	readonly smartArt3D = this.params.get('smartArt3D') === '1';
 	/**
-	 * Opt in to the experimental Three.js interactive surface-chart renderer
-	 * (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
+	 * The experimental Three.js SmartArt renderer is on by default; opt out
+	 * per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D
+	 * rendering" is the persistent, cross-session way to fall back to 2D).
 	 */
-	readonly surfaceChart3D = this.params.get('surfaceChart3D') === '1';
+	readonly smartArt3D = this.params.get('smartArt3D') !== '0';
 	/**
-	 * Opt in to the experimental Three.js interactive bar3D-chart renderer
-	 * (real box meshes, camera orbit/zoom) via `?barChart3D=1`.
+	 * The experimental Three.js interactive surface-chart renderer (camera
+	 * orbit/zoom + raycast hover tooltip) is on by default; opt out via
+	 * `?surfaceChart3D=0`.
 	 */
-	readonly barChart3D = this.params.get('barChart3D') === '1';
+	readonly surfaceChart3D = this.params.get('surfaceChart3D') !== '0';
 	/**
-	 * Opt in to the experimental Three.js interactive line3D-chart renderer
-	 * (real tube-path meshes, camera orbit/zoom) via `?lineChart3D=1`.
+	 * The experimental Three.js interactive bar3D-chart renderer (real box
+	 * meshes, camera orbit/zoom) is on by default; opt out via `?barChart3D=0`.
 	 */
-	readonly lineChart3D = this.params.get('lineChart3D') === '1';
+	readonly barChart3D = this.params.get('barChart3D') !== '0';
 	/**
-	 * Opt in to the experimental Three.js interactive area3D-chart renderer
-	 * (real tube-path + ribbon meshes, camera orbit/zoom) via `?areaChart3D=1`.
+	 * The experimental Three.js interactive line3D-chart renderer (real
+	 * tube-path meshes, camera orbit/zoom) is on by default; opt out via
+	 * `?lineChart3D=0`.
 	 */
-	readonly areaChart3D = this.params.get('areaChart3D') === '1';
+	readonly lineChart3D = this.params.get('lineChart3D') !== '0';
 	/**
-	 * Opt in to the experimental Three.js interactive pie3D-chart renderer
-	 * (real wedge meshes, camera orbit/zoom) via `?pieChart3D=1`.
+	 * The experimental Three.js interactive area3D-chart renderer (real
+	 * tube-path + ribbon meshes, camera orbit/zoom) is on by default; opt out
+	 * via `?areaChart3D=0`.
 	 */
-	readonly pieChart3D = this.params.get('pieChart3D') === '1';
+	readonly areaChart3D = this.params.get('areaChart3D') !== '0';
+	/**
+	 * The experimental Three.js interactive pie3D-chart renderer (real wedge
+	 * meshes, camera orbit/zoom) is on by default; opt out via
+	 * `?pieChart3D=0`.
+	 */
+	readonly pieChart3D = this.params.get('pieChart3D') !== '0';
 	/** `?sample=1` auto-loads the bundled sample deck (docs landing embed). */
 	private readonly urlSample = this.params.get('sample') === '1';
 	readonly urlRoom = this.params.get('room');

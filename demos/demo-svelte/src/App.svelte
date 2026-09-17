@@ -40,25 +40,28 @@
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
 
-	// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`
-	// (mirrors demo-vue/src/App.vue).
+	// The experimental Three.js SmartArt renderer is on by default (mirrors
+	// demo-vue/src/App.vue); opt out per-tab via `?smartArt3D=0` (Options >
+	// Advanced > "Disable 3D rendering" is the persistent, cross-session way
+	// to fall back to 2D).
 	const params = new URLSearchParams(window.location.search);
-	const smartArt3D = params.get('smartArt3D') === '1';
-	// Opt in to the experimental Three.js interactive surface-chart renderer
-	// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
-	const surfaceChart3D = params.get('surfaceChart3D') === '1';
-	// Opt in to the experimental Three.js interactive bar3D-chart renderer via
-	// `?barChart3D=1`.
-	const barChart3D = params.get('barChart3D') === '1';
-	// Opt in to the experimental Three.js interactive line3D-chart renderer via
-	// `?lineChart3D=1`.
-	const lineChart3D = params.get('lineChart3D') === '1';
-	// Opt in to the experimental Three.js interactive area3D-chart renderer via
-	// `?areaChart3D=1`.
-	const areaChart3D = params.get('areaChart3D') === '1';
-	// Opt in to the experimental Three.js interactive pie3D-chart renderer via
-	// `?pieChart3D=1`.
-	const pieChart3D = params.get('pieChart3D') === '1';
+	const smartArt3D = params.get('smartArt3D') !== '0';
+	// The experimental Three.js interactive surface-chart renderer (camera
+	// orbit/zoom + raycast hover tooltip) is on by default; opt out via
+	// `?surfaceChart3D=0`.
+	const surfaceChart3D = params.get('surfaceChart3D') !== '0';
+	// The experimental Three.js interactive bar3D-chart renderer is on by
+	// default; opt out via `?barChart3D=0`.
+	const barChart3D = params.get('barChart3D') !== '0';
+	// The experimental Three.js interactive line3D-chart renderer is on by
+	// default; opt out via `?lineChart3D=0`.
+	const lineChart3D = params.get('lineChart3D') !== '0';
+	// The experimental Three.js interactive area3D-chart renderer is on by
+	// default; opt out via `?areaChart3D=0`.
+	const areaChart3D = params.get('areaChart3D') !== '0';
+	// The experimental Three.js interactive pie3D-chart renderer is on by
+	// default; opt out via `?pieChart3D=0`.
+	const pieChart3D = params.get('pieChart3D') !== '0';
 	const audienceSession = parsePresentationSessionId(window.location.hash);
 	if (audienceSession) {
 		void loadPresentationDeck(audienceSession).then((content) => {

@@ -52,24 +52,30 @@ let appliedVarKeys: string[] = [];
 // Broadcast dialogs as a prefilled default (see `shareDefaults` below).
 const userName = resolveAutoName();
 
-// Opt in to the experimental Three.js SmartArt renderer via `?smartArt3D=1`,
-// mirroring demo-vue's `App.vue`.
-const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') === '1';
-// Opt in to the experimental Three.js interactive surface-chart renderer
-// (camera orbit/zoom + raycast hover tooltip) via `?surfaceChart3D=1`.
-const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceChart3D') === '1';
-// Opt in to the experimental Three.js interactive bar3D-chart renderer
-// (camera orbit/zoom, real box meshes) via `?barChart3D=1`.
-const barChart3D = new URLSearchParams(window.location.search).get('barChart3D') === '1';
-// Opt in to the experimental Three.js interactive line3D-chart renderer
-// (camera orbit/zoom, real tube-path meshes) via `?lineChart3D=1`.
-const lineChart3D = new URLSearchParams(window.location.search).get('lineChart3D') === '1';
-// Opt in to the experimental Three.js interactive area3D-chart renderer
-// (camera orbit/zoom, real tube-path + ribbon meshes) via `?areaChart3D=1`.
-const areaChart3D = new URLSearchParams(window.location.search).get('areaChart3D') === '1';
-// Opt in to the experimental Three.js interactive pie3D-chart renderer
-// (camera orbit/zoom, real wedge meshes) via `?pieChart3D=1`.
-const pieChart3D = new URLSearchParams(window.location.search).get('pieChart3D') === '1';
+// The experimental Three.js SmartArt renderer is on by default (mirroring
+// demo-vue's `App.vue`); opt out per-tab via `?smartArt3D=0` (Options >
+// Advanced > "Disable 3D rendering" is the persistent, cross-session way to
+// fall back to 2D).
+const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') !== '0';
+// The experimental Three.js interactive surface-chart renderer (camera
+// orbit/zoom + raycast hover tooltip) is on by default; opt out via
+// `?surfaceChart3D=0`.
+const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceChart3D') !== '0';
+// The experimental Three.js interactive bar3D-chart renderer (camera
+// orbit/zoom, real box meshes) is on by default; opt out via `?barChart3D=0`.
+const barChart3D = new URLSearchParams(window.location.search).get('barChart3D') !== '0';
+// The experimental Three.js interactive line3D-chart renderer (camera
+// orbit/zoom, real tube-path meshes) is on by default; opt out via
+// `?lineChart3D=0`.
+const lineChart3D = new URLSearchParams(window.location.search).get('lineChart3D') !== '0';
+// The experimental Three.js interactive area3D-chart renderer (camera
+// orbit/zoom, real tube-path + ribbon meshes) is on by default; opt out via
+// `?areaChart3D=0`.
+const areaChart3D = new URLSearchParams(window.location.search).get('areaChart3D') !== '0';
+// The experimental Three.js interactive pie3D-chart renderer (camera
+// orbit/zoom, real wedge meshes) is on by default; opt out via
+// `?pieChart3D=0`.
+const pieChart3D = new URLSearchParams(window.location.search).get('pieChart3D') !== '0';
 
 /** Apply theme vars to :root so the dropzone chrome tracks the theme. */
 function applyRootVars(): void {
