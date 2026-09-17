@@ -128,4 +128,29 @@ describe('targets', () => {
 			expect(target?.scaffold?.entryContent).toContain(`${target?.packages[0]}/styles.css';`);
 		}
 	});
+
+	it('only the vanilla scaffold prompts for three, since it is the only binding without it as an optional dependency', () => {
+		const vanilla = TARGETS.find((t) => t.id === 'vanilla');
+		expect(vanilla?.scaffold?.extraPackages).not.toContain('three');
+		const threeExtra = vanilla?.scaffold?.optionalExtras?.find((e) => e.packages.includes('three'));
+		expect(threeExtra).toBeDefined();
+		// defaultInclude defaults to true when omitted; either is fine here, just not false.
+		expect(threeExtra?.defaultInclude ?? true).toBeTruthy();
+
+		for (const id of ['react', 'vue', 'angular', 'svelte']) {
+			const target = TARGETS.find((t) => t.id === id);
+			expect(target?.scaffold?.extraPackages).not.toContain('three');
+			expect(
+				target?.scaffold?.optionalExtras?.some((e) => e.packages.includes('three')),
+			).toBeFalsy();
+		}
+	});
+
+	it('every UI-binding scaffold still prompts for real-time collaboration', () => {
+		for (const id of ['react', 'vue', 'angular', 'svelte', 'vanilla']) {
+			const target = TARGETS.find((t) => t.id === id);
+			const collabExtra = target?.scaffold?.optionalExtras?.find((e) => e.packages.includes('yjs'));
+			expect(collabExtra).toBeDefined();
+		}
+	});
 });

@@ -83,6 +83,23 @@ const COLLAB_EXTRAS: NonNullable<ScaffoldRecipe['optionalExtras']> = [
 	},
 ];
 
+/**
+ * 3D rendering (Three.js) optional extra, for the vanilla scaffold only.
+ *
+ * React/Vue/Angular/Svelte declare `three` as an `optionalDependency` of the
+ * viewer package itself, so it installs automatically with no CLI action;
+ * prompting for it there would be misleading, since declining wouldn't
+ * actually skip it. `pptx-vanilla-viewer` has no such dependency at all, so
+ * the vanilla recipe is the one place this is a real, honorable choice.
+ */
+const THREE_EXTRAS: NonNullable<ScaffoldRecipe['optionalExtras']> = [
+	{
+		prompt: 'Include 3D rendering support for SmartArt/charts? (adds three)',
+		packages: ['three'],
+		// defaultInclude is true (the default) - demo apps render 3D scenes by default.
+	},
+];
+
 export const TARGETS: Target[] = [
 	{
 		id: 'react',
@@ -276,19 +293,13 @@ Docs: https://www.npmjs.com/package/pptx-vanilla-viewer`,
 		scaffold: {
 			command: 'create-vite@latest',
 			args: (dir) => [dir, '--template', 'vanilla-ts', '--no-interactive', '--no-immediate'],
-			extraPackages: [
-				'pptx-vanilla-viewer',
-				'pptx-viewer-core',
-				'three',
-				'jszip',
-				'fast-xml-parser',
-			],
+			extraPackages: ['pptx-vanilla-viewer', 'pptx-viewer-core', 'jszip', 'fast-xml-parser'],
 			entryCandidates: ['src/main.ts'],
 			entryContent: VANILLA_MAIN_TS,
 			// main.ts imports ./style.css; replace the Vite demo styles with a
 			// full-viewport reset.
 			extraFiles: { 'src/style.css': MINIMAL_APP_CSS },
-			optionalExtras: COLLAB_EXTRAS,
+			optionalExtras: [...COLLAB_EXTRAS, ...THREE_EXTRAS],
 		},
 	},
 	{
