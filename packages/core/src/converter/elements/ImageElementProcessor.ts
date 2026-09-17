@@ -1,4 +1,5 @@
 import type { ImagePptxElement, PicturePptxElement, PptxElement } from '../../core';
+import { blobUrlToDataUrl } from '../../core/core/runtime/blob-url-to-data-url';
 import { isImageLikeElement } from '../../core/types/type-guards';
 import { escapeHtml } from '../base';
 import type { ElementProcessor, ElementProcessorContext } from './ElementProcessor';
@@ -65,15 +66,42 @@ export class ImageElementProcessor implements ElementProcessor {
 		imageElement: ImageLikeElement,
 		ctx: ElementProcessorContext,
 	): Promise<string | null> {
-		if (imageElement.imageData && imageElement.imageData.startsWith('data:')) {
-			return await ctx.mediaContext.saveImage(imageElement.imageData, `slide${ctx.slideNumber}`);
+		const imageData = await this.resolveToDataUrl(imageElement.imageData, 'image/png');
+		if (imageData) {
+			return await ctx.mediaContext.saveImage(imageData, `slide${ctx.slideNumber}`);
 		}
 
-		if (imageElement.svgData && imageElement.svgData.startsWith('data:')) {
-			return await ctx.mediaContext.saveImage(imageElement.svgData, `slide${ctx.slideNumber}`);
+		const svgData = await this.resolveToDataUrl(imageElement.svgData, 'image/svg+xml');
+		if (svgData) {
+			return await ctx.mediaContext.saveImage(svgData, `slide${ctx.slideNumber}`);
 		}
 
 		return null;
+	}
+
+	/**
+	 * Accepts an already-decoded `data:` URI as-is. A `blob:` URL (e.g. a
+	 * Node `blob:nodedata:...` Object URL minted by `eagerDecodeImages` in a
+	 * non-browser runtime) is re-fetched and re-encoded, since only its own
+	 * process can resolve it and it would otherwise never satisfy the
+	 * `data:` check below. Anything else (undefined, an unresolved relative
+	 * path) is not extractable.
+	 */
+	private async resolveToDataUrl(
+		value: string | undefined,
+		fallbackMimeType: string,
+	): Promise<string | undefined> {
+		if (!value) {
+			return undefined;
+		}
+		if (value.startsWith('data:')) {
+			return value;
+		}
+		if (value.startsWith('blob:')) {
+			const resolved = await blobUrlToDataUrl(value, fallbackMimeType);
+			return resolved.startsWith('data:') ? resolved : undefined;
+		}
+		return undefined;
 	}
 
 	/** Clean and truncate image alt text for readable markdown output. */

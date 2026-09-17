@@ -28,6 +28,12 @@ import {
 let singleSlideBytes: Uint8Array;
 let multiSlideBytes: Uint8Array;
 let emptyBytes: Uint8Array;
+let pictureSlideBytes: Uint8Array;
+
+// A valid 1x1 PNG, embedded as a real media file via addImage's data: URL
+// path (matches what a saved-then-reloaded .pptx looks like on disk).
+const ONE_PIXEL_PNG =
+	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
 
 beforeAll(async () => {
 	// Single slide with text content
@@ -77,6 +83,18 @@ beforeAll(async () => {
 			title: 'Empty Deck',
 		});
 		emptyBytes = await handler.save(data.slides);
+	}
+
+	// Single slide with a real embedded picture, saved and re-loadable from
+	// the zip archive like a real .pptx (github.com/ChristopherVR/pptx-viewer/issues/312).
+	{
+		const { handler, data, createSlide } = await PresentationBuilder.create({
+			title: 'Picture Deck',
+		});
+		data.slides.push(
+			createSlide('Blank').addImage(ONE_PIXEL_PNG, { altText: 'A red pixel' }).build(),
+		);
+		pictureSlideBytes = await handler.save(data.slides);
 	}
 });
 
@@ -161,6 +179,13 @@ describe('handleExportSvg', () => {
 		expect(result.slideCount).toBe(0);
 		expect(result.svgs).toHaveLength(0);
 	});
+
+	it('embeds a real picture reloaded from the archive as a data: URI, not a dangling blob: URL (issue #312)', async () => {
+		const result = await handleExportSvg(pictureSlideBytes);
+		expect(result.svgs[0]).toContain('<image');
+		expect(result.svgs[0]).toMatch(/href="data:image\/png;base64,/);
+		expect(result.svgs[0]).not.toContain('blob:');
+	});
 });
 
 // ---------------------------------------------------------------------------
@@ -196,6 +221,14 @@ describe('handleExportMd', () => {
 		});
 		expectTypeOf(result.markdown).toBeString();
 		expect(result.slideCount).toBe(0);
+	});
+
+	it('embeds a real picture reloaded from the archive instead of an extraction-failed placeholder (issue #312)', async () => {
+		const result = await handleExportMd(pictureSlideBytes, {
+			sourceName: 'picture.pptx',
+		});
+		expect(result.markdown).toContain('<img src=');
+		expect(result.markdown).not.toContain('Image extraction failed');
 	});
 });
 

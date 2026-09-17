@@ -14,9 +14,11 @@ import { mergePresentation } from '../core/builders/sdk/merge-operations';
 import type { MergeOptions } from '../core/builders/sdk/merge-operations';
 import { findText, replaceText } from '../core/builders/sdk/text-operations';
 import type { FindResult } from '../core/builders/sdk/text-operations';
+import { blobUrlToDataUrl } from '../core/core/runtime/blob-url-to-data-url';
 import { PptxHandler } from '../core/PptxHandler';
 import type { PptxElement } from '../core/types/elements';
 import type { PptxData, PptxSlide } from '../core/types/presentation';
+import { isImageLikeElement } from '../core/types/type-guards';
 
 // ---------------------------------------------------------------------------
 // Result types
@@ -111,11 +113,47 @@ export interface DiffResult {
 
 /**
  * Load a PPTX from raw bytes and return handler + data.
+ *
+ * `eagerDecodeImages` defaults to `false` on the underlying handler, which
+ * leaves slide picture elements without `imageData`/`svgData`. Callers that
+ * need to embed images (export-md, export-svg) must opt in explicitly.
  */
-async function loadPptx(bytes: Uint8Array): Promise<{ handler: PptxHandler; data: PptxData }> {
+async function loadPptx(
+	bytes: Uint8Array,
+	options?: { eagerDecodeImages?: boolean },
+): Promise<{ handler: PptxHandler; data: PptxData }> {
 	const handler = new PptxHandler();
-	const data = await handler.load(bytes.buffer as ArrayBuffer);
+	const data = await handler.load(bytes.buffer as ArrayBuffer, options);
 	return { handler, data };
+}
+
+/**
+ * Re-fetch and re-encode any `blob:` image/SVG data as a portable `data:`
+ * URI, recursing into group children.
+ *
+ * In Node, `eagerDecodeImages` mints `blob:nodedata:...` object URLs (via
+ * the platform's `Blob`/`URL.createObjectURL`) that only resolve within this
+ * process. `SvgExporter` embeds `imageData` synchronously as an `<image
+ * href>`, so a still-live-but-process-local blob URL would land in the
+ * exported SVG file and never resolve once written to disk or opened
+ * elsewhere. Real browser callers of `SvgExporter` mint genuine `blob:` URLs
+ * scoped to that page and are unaffected, since this only runs in the CLI's
+ * Node context.
+ */
+async function resolveBlobImageUrls(elements: PptxElement[]): Promise<void> {
+	for (const el of elements) {
+		if (isImageLikeElement(el)) {
+			if (el.imageData?.startsWith('blob:')) {
+				el.imageData = await blobUrlToDataUrl(el.imageData, 'image/png');
+			}
+			if (el.svgData?.startsWith('blob:')) {
+				el.svgData = await blobUrlToDataUrl(el.svgData, 'image/svg+xml');
+			}
+		}
+		if (el.type === 'group' && 'children' in el) {
+			await resolveBlobImageUrls((el as PptxElement & { children: PptxElement[] }).children);
+		}
+	}
 }
 
 /**
@@ -214,7 +252,10 @@ export async function handleExportSvg(
 	bytes: Uint8Array,
 	options?: { slideIndices?: number[]; includeHidden?: boolean },
 ): Promise<ExportSvgResult> {
-	const { data } = await loadPptx(bytes);
+	const { data } = await loadPptx(bytes, { eagerDecodeImages: true });
+	for (const slide of data.slides) {
+		await resolveBlobImageUrls(slide.elements);
+	}
 
 	const svgs = SvgExporter.exportAll(data, {
 		slideIndices: options?.slideIndices,
@@ -239,7 +280,7 @@ export async function handleExportMd(
 		slideRange?: { start?: number; end?: number };
 	},
 ): Promise<ExportMdResult> {
-	const { data } = await loadPptx(bytes);
+	const { data } = await loadPptx(bytes, { eagerDecodeImages: true });
 
 	const converter = new PptxMarkdownConverter('/output', {
 		sourceName: options?.sourceName ?? 'presentation.pptx',
