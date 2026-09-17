@@ -6,6 +6,7 @@ import type { Locator, Page } from '@playwright/test';
 import {
 	expectHostOwnedShell,
 	hostOwnedSessionUrl,
+	requireCustomHostShell,
 	saveHostOwnedPresentation,
 } from './support/host-owned-session';
 
@@ -454,10 +455,7 @@ test.describe('host-owned collaboration', () => {
 		browser,
 		baseURL,
 	}, info) => {
-		test.skip(
-			!info.project.metadata.headless,
-			'Custom host zoom controls belong to the custom shell.',
-		);
+		requireCustomHostShell();
 		const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 900 } });
 		const peer = await context.newPage();
 		const room = `external-shell-overlay-${info.project.name}-${Date.now()}`;

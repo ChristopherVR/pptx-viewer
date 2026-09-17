@@ -4,6 +4,13 @@ import type { Download, Page } from '@playwright/test';
 
 import { savePptxViaBackstage } from '../save-pptx';
 
+export function requireCustomHostShell(): void {
+	test.skip(
+		!test.info().project.metadata.headless,
+		'Custom host controls belong to the custom shell.',
+	);
+}
+
 export async function expectHostOwnedShell(page: Page): Promise<void> {
 	if (test.info().project.metadata.headless) {
 		await expect(page.locator('[data-host-custom-shell]')).toBeVisible();

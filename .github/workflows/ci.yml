@@ -526,11 +526,8 @@ jobs:
       # behind.
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
         run: |
-          e2e_projects=(--project=${{ matrix.key }})
-          if [ "${{ matrix.key }}" = "react" ]; then
-            # This project contains only the custom-shell collaboration spec.
-            e2e_projects+=(--project=react-headless)
-          fi
+          # Each binding also exercises its public custom-shell collaboration path.
+          e2e_projects=(--project=${{ matrix.key }} --project=${{ matrix.key }}-headless)
           for attempt in 1 2; do
             bun run e2e -- "${e2e_projects[@]}" --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
             status=$?
