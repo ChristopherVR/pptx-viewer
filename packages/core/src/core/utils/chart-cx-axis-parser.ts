@@ -16,6 +16,7 @@
  */
 
 import type { PptxChartAxisFormatting, PptxChartDisplayUnitsLabel, XmlObject } from '../types';
+import { hasLocalName } from './chart-axis-parser';
 import type { ColorParserLike, XmlLookupLike } from './chart-cx-parser';
 import { parseShapeProps } from './chart-series-detail-parser';
 import { collectAllText } from './chart-title-xml-ops';
@@ -179,20 +180,27 @@ function parseSingleCxAxis(
 		result.numFmt = { formatCode, sourceLinked: numFmtNode?.['@_sourceLinked'] === '1' };
 	}
 
-	const majorGrid = xmlLookup.getChildByLocalName(axisNode, 'majorGridlines');
-	if (majorGrid) {
+	// See `chart-axis-parser.ts`'s `hasLocalName` doc comment: a childless,
+	// attribute-less `<cx:majorGridlines/>` parses to an empty string, which
+	// `getChildByLocalName`'s object-shape guard mistakes for "absent".
+	if (hasLocalName(axisNode, 'majorGridlines')) {
 		result.majorGridlines = true;
 		result.majorGridlinesSpPr = parseShapeProps(
-			xmlLookup.getChildByLocalName(majorGrid, 'spPr'),
+			xmlLookup.getChildByLocalName(
+				xmlLookup.getChildByLocalName(axisNode, 'majorGridlines'),
+				'spPr',
+			),
 			xmlLookup,
 			colorParser,
 		);
 	}
-	const minorGrid = xmlLookup.getChildByLocalName(axisNode, 'minorGridlines');
-	if (minorGrid) {
+	if (hasLocalName(axisNode, 'minorGridlines')) {
 		result.minorGridlines = true;
 		result.minorGridlinesSpPr = parseShapeProps(
-			xmlLookup.getChildByLocalName(minorGrid, 'spPr'),
+			xmlLookup.getChildByLocalName(
+				xmlLookup.getChildByLocalName(axisNode, 'minorGridlines'),
+				'spPr',
+			),
 			xmlLookup,
 			colorParser,
 		);

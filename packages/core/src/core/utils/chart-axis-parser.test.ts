@@ -159,6 +159,35 @@ describe('parseChartAxes', () => {
 		});
 	});
 
+	// Regression: a real-world deck's `<c:majorGridlines/>` (no `c:spPr`, no
+	// attributes) parses via fast-xml-parser to an empty STRING, not `{}`, the
+	// same quirk `<a:noFill/>` has elsewhere in this codebase. A truthy-object
+	// presence check silently treated that as "no gridlines", so any chart
+	// whose gridlines were never separately styled lost them entirely.
+	it('honours a bare `<c:majorGridlines/>` with no spPr and no attributes', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:majorGridlines': '',
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result.find((a) => a.axisType === 'valAx');
+		expect(valAx?.majorGridlines).toBeTruthy();
+	});
+
+	it('honours a bare `<c:minorGridlines/>` with no spPr and no attributes', () => {
+		const plotArea: XmlObject = {
+			'c:valAx': {
+				'c:minorGridlines': '',
+			},
+		};
+
+		const result = parseChartAxes(plotArea, xmlLookup, colorParser, getLocalName);
+		const valAx = result.find((a) => a.axisType === 'valAx');
+		expect(valAx?.minorGridlines).toBeTruthy();
+	});
+
 	it('parses date-axis calendar units and intervals', () => {
 		const plotArea: XmlObject = {
 			'c:dateAx': {

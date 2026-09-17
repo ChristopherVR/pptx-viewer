@@ -22,6 +22,21 @@ function safeInt(val: unknown): number | undefined {
 	return Number.isFinite(n) ? n : undefined;
 }
 
+/**
+ * Whether `node` has a child named `name`, by KEY existence rather than
+ * `getChildByLocalName`'s "resolves to a non-array object" check. A childless,
+ * attribute-less element (`<c:majorGridlines/>`) is a legal, common way to
+ * mark a boolean flag present, but fast-xml-parser renders it as an empty
+ * STRING, which `getChildByLocalName` cannot distinguish from "absent".
+ */
+export function hasLocalName(node: XmlObject, name: string): boolean {
+	if (Object.hasOwn(node, name)) {
+		return true;
+	}
+	const suffix = `:${name}`;
+	return Object.keys(node).some((key) => key.endsWith(suffix));
+}
+
 const AXIS_TYPE_MAP: Record<string, PptxChartAxisFormatting['axisType']> = {
 	catAx: 'catAx',
 	valAx: 'valAx',
@@ -156,22 +171,36 @@ function parseSingleAxis(
 		xmlLookup.getChildByLocalName(parent, name),
 	);
 
-	// Gridlines
-	const majorGrid = xmlLookup.getChildByLocalName(axisNode, 'majorGridlines');
-	if (majorGrid) {
+	// Gridlines. Presence alone means "shown" (`c:majorGridlines`/`c:minorGridlines`
+	// carry no `@val`): a childless, attribute-less `<c:majorGridlines/>` parses
+	// to an empty STRING via fast-xml-parser (the same quirk `<a:noFill/>` has
+	// elsewhere in this codebase), which `getChildByLocalName`'s
+	// "must be a non-array object" guard treats as absent. That silently
+	// dropped gridlines on any chart whose `c:majorGridlines` has no `c:spPr`
+	// child (PowerPoint writes this bare form constantly), while a styled
+	// `<c:majorGridlines><c:spPr>...</c:spPr></c:majorGridlines>` happened to
+	// parse as a real object and kept working. Check key existence directly
+	// instead, mirroring `IPptxXmlLookupService.hasChildByLocalName` (not on
+	// the narrower `XmlLookupLike` this module accepts).
+	if (hasLocalName(axisNode, 'majorGridlines')) {
 		result.majorGridlines = true;
 		result.majorGridlinesSpPr = parseShapeProps(
-			xmlLookup.getChildByLocalName(majorGrid, 'spPr'),
+			xmlLookup.getChildByLocalName(
+				xmlLookup.getChildByLocalName(axisNode, 'majorGridlines'),
+				'spPr',
+			),
 			xmlLookup,
 			colorParser,
 		);
 	}
 
-	const minorGrid = xmlLookup.getChildByLocalName(axisNode, 'minorGridlines');
-	if (minorGrid) {
+	if (hasLocalName(axisNode, 'minorGridlines')) {
 		result.minorGridlines = true;
 		result.minorGridlinesSpPr = parseShapeProps(
-			xmlLookup.getChildByLocalName(minorGrid, 'spPr'),
+			xmlLookup.getChildByLocalName(
+				xmlLookup.getChildByLocalName(axisNode, 'minorGridlines'),
+				'spPr',
+			),
 			xmlLookup,
 			colorParser,
 		);
