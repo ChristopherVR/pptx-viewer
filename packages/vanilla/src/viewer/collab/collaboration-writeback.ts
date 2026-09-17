@@ -9,9 +9,10 @@
  */
 import type { PptxHandler, PptxHandlerSaveOptions } from 'pptx-viewer-core';
 import type { CollaborationConfig, YDocLike } from 'pptx-viewer-shared';
-import { readSlidesFromYDoc } from 'pptx-viewer-shared';
-
-const DEFAULT_DEBOUNCE_MS = 5_000;
+import {
+	createWriteBackScheduler as createSharedWriteBackScheduler,
+	readSlidesFromYDoc,
+} from 'pptx-viewer-shared';
 
 export interface WriteBackDeps {
 	getYDoc: () => YDocLike | null;
@@ -32,44 +33,15 @@ export interface WriteBackScheduler {
 }
 
 export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackScheduler {
-	let timer: ReturnType<typeof setTimeout> | null = null;
-	let generation = 0;
-
-	function cancel(): void {
-		generation += 1;
-		if (timer !== null) {
-			clearTimeout(timer);
-			timer = null;
-		}
-	}
-
-	function schedule(config: CollaborationConfig): void {
-		if (!config.onWriteBack || config.role !== 'owner') {
-			return;
-		}
-		cancel();
-		const scheduledGeneration = generation;
-		const debounceMs = config.writeBackDebounceMs ?? DEFAULT_DEBOUNCE_MS;
-		timer = setTimeout(() => {
-			timer = null;
+	return createSharedWriteBackScheduler({
+		getYDoc: deps.getYDoc,
+		serialize: () => {
 			const ydoc = deps.getYDoc();
 			const handler = deps.getHandler();
-			if (!ydoc || !handler || !config.onWriteBack) {
-				return;
+			if (!ydoc || !handler) {
+				return null;
 			}
-			void handler
-				.save(readSlidesFromYDoc(ydoc), deps.getSaveOptions?.())
-				.then((bytes) => {
-					if (scheduledGeneration === generation) {
-						return config.onWriteBack?.(bytes);
-					}
-					return undefined;
-				})
-				.catch(() => {
-					/* non-fatal: host can retry on the next change */
-				});
-		}, debounceMs);
-	}
-
-	return { schedule, cancel };
+			return handler.save(readSlidesFromYDoc(ydoc), deps.getSaveOptions?.());
+		},
+	});
 }

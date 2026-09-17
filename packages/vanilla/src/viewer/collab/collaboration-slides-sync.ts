@@ -36,6 +36,8 @@ export interface SlidesSync {
 		config: CollaborationConfig,
 		allowEmpty?: boolean,
 	): boolean;
+	/** Apply slides selected by shared readiness, including an authoritative empty deck. */
+	adoptSlides(slides: PptxSlide[], config: CollaborationConfig): void;
 	/** Whether a remote apply is currently in flight (observer re-entrancy guard). */
 	isApplyingRemote(): boolean;
 	/** Clear echo-dedupe/re-entrancy state (session teardown). */
@@ -82,16 +84,22 @@ export function createSlidesSync(
 		if (remote.length === 0 && !allowEmpty) {
 			return false;
 		}
-		applyingRemote = true;
-		store.set({
-			slides: remote,
-			currentSlide: clampSlideIndex(store.get().currentSlide, remote.length),
-		});
-		applyingRemote = false;
-		// Dedupe the echo: the store change this triggers is a no-op for us.
-		lastSynced = JSON.stringify(remote);
-		scheduleWriteBack(config);
+		adoptSlides(remote, config);
 		return true;
+	}
+
+	function adoptSlides(remote: PptxSlide[], config: CollaborationConfig): void {
+		lastSynced = JSON.stringify(remote);
+		applyingRemote = true;
+		try {
+			store.set({
+				slides: remote,
+				currentSlide: clampSlideIndex(store.get().currentSlide, remote.length),
+			});
+		} finally {
+			applyingRemote = false;
+		}
+		scheduleWriteBack(config);
 	}
 
 	function reset(): void {
@@ -102,6 +110,7 @@ export function createSlidesSync(
 	return {
 		flushLocalSlides,
 		applyRemoteSlides,
+		adoptSlides,
 		isApplyingRemote: () => applyingRemote,
 		reset,
 	};

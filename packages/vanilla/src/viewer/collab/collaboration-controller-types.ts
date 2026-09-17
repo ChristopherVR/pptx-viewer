@@ -27,6 +27,8 @@ export interface CollaborationControllerDeps {
 	getSaveOptions?: () => PptxHandlerSaveOptions;
 	/** Enforce the read-only `viewer` role by disabling editing. */
 	setEditable: (editable: boolean) => void;
+	/** When supplied, apply a session restriction without replacing host edit permission. */
+	onReadOnlyChange?: (readOnly: boolean) => void;
 	/** Notified on every connection-status transition. */
 	onStatusChange?: (status: ConnectionStatus) => void;
 }
@@ -38,6 +40,8 @@ export interface CollaborationController {
 	stop(): void;
 	/** Whether a session is currently active. */
 	isActive(): boolean;
+	/** Whether the session's role or host readiness currently blocks editing. */
+	isReadOnly(): boolean;
 	/** Current connection status. */
 	getStatus(): ConnectionStatus;
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */

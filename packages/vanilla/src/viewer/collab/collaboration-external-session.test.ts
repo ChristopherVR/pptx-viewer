@@ -111,6 +111,58 @@ afterEach(() => {
 });
 
 describe('host-owned Vanilla collaboration', () => {
+	it('keeps a later host edit-permission change when readiness resumes', async () => {
+		const room = host(true);
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const viewer = createPptxViewer(container, { editable: true });
+		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
+		try {
+			await viewer.loadFile(await handler.save(data.slides));
+			await viewer.startCollaboration(config(room.session));
+			room.update({ status: 'disconnected', synced: false });
+			expect(viewer.getMode()).toBe('preview');
+			viewer.setEditable(true);
+			expect(viewer.getMode()).toBe('preview');
+			viewer.setEditable(false);
+			room.update({ status: 'connected', synced: true });
+			expect(viewer.getMode()).toBe('preview');
+			viewer.setEditable(true);
+			expect(viewer.getMode()).toBe('edit');
+		} finally {
+			viewer.destroy();
+			handler.dispose();
+			container.remove();
+		}
+	});
+
+	it('blocks editing while unsynced but permits host-authorized offline edits', async () => {
+		const room = host();
+		const { collab, store } = build();
+		await collab.start(config(room.session));
+		expect(store.get().editable).toBeFalsy();
+		room.update({ status: 'connected', synced: true });
+		expect(store.get().editable).toBeTruthy();
+		room.update({ status: 'disconnected', synced: true });
+		expect(store.get().editable).toBeTruthy();
+		room.update({ status: 'connected', synced: false });
+		expect(store.get().editable).toBeFalsy();
+		collab.destroy();
+		expect(store.get().editable).toBeTruthy();
+	});
+
+	it('leaves a borrowed session attached after cancelled beforeunload', async () => {
+		const room = host(true);
+		const { collab } = build();
+		await collab.start(config(room.session));
+		window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+		expect(collab.isActive()).toBeTruthy();
+		window.dispatchEvent(new Event('pagehide'));
+		expect(collab.isActive()).toBeFalsy();
+		expect(room.destroy).not.toHaveBeenCalled();
+		collab.destroy();
+	});
+
 	it('keeps the public viewer read-only through file loading and mode changes', async () => {
 		const room = host(true);
 		const container = document.createElement('div');

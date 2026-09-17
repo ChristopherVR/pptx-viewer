@@ -1,30 +1,28 @@
+import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
 	CollaborationLivePatcher,
 	ConnectionStatus,
 	ExternalCollaborationSession,
+	SyncGate,
 	YjsFactories,
 } from 'pptx-viewer-shared';
-import {
-	createSyncGate,
-	observeExternalCollaborationSession,
-	readSlidesFromYDoc,
-} from 'pptx-viewer-shared';
+import { observeExternalCollaborationReadiness } from 'pptx-viewer-shared';
 
 interface ExternalSyncDeps {
 	factories: YjsFactories;
 	livePatcher: CollaborationLivePatcher;
-	gate: ReturnType<typeof createSyncGate>;
-	applyRemote(allowEmpty: boolean): boolean;
+	gate: SyncGate;
+	adoptSlides(slides: PptxSlide[]): void;
 	flushLocal(): void;
+	resetBaseline(): void;
 	cancelWriteBack(): void;
 	setStatus(status: ConnectionStatus): void;
+	setReadOnly(readOnly: boolean): void;
 }
 
 export interface ExternalSessionSync {
-	applyRemote(): void;
-	localPublished(): void;
 	contentLoaded(origin: CollabLoadOrigin): void;
 	dispose(): void;
 }
@@ -35,58 +33,29 @@ export function createExternalSessionSync(
 	config: CollaborationConfig,
 	deps: ExternalSyncDeps,
 ): ExternalSessionSync {
-	let synced = false;
-	let awaitingInitialRoom = config.sessionIntent === 'join';
-	let allowEmpty = false;
-	const localPublished = (): void => {
-		allowEmpty ||= readSlidesFromYDoc(session.doc).length > 0;
-	};
-	const adopt = (): boolean => {
-		if (!deps.applyRemote(allowEmpty)) {
-			return false;
-		}
-		awaitingInitialRoom = false;
-		allowEmpty = true;
-		return true;
-	};
-	const refresh = (): void => {
-		if (synced && !awaitingInitialRoom && config.role !== 'viewer') {
-			deps.livePatcher.configure(session.doc, deps.factories);
-			deps.gate.open();
-			localPublished();
-		} else {
-			deps.cancelWriteBack();
-			deps.gate.reset();
-			deps.livePatcher.configure(null, null);
-		}
-	};
-	const unsubscribe = observeExternalCollaborationSession(session, (snapshot) => {
-		synced = snapshot.synced;
-		if (synced && !deps.gate.isOpen()) {
-			adopt();
-		}
-		refresh();
-		deps.setStatus(snapshot.status);
+	const readiness = observeExternalCollaborationReadiness(session, {
+		gate: deps.gate,
+		factories: deps.factories,
+		livePatcher: deps.livePatcher,
+		role: config.role,
+		sessionIntent: config.sessionIntent,
+		adoptSlides: deps.adoptSlides,
+		onStatus: deps.setStatus,
+		onReadOnlyChange: deps.setReadOnly,
+		onSuspend: deps.cancelWriteBack,
+		onReady: ({ seedEmptyRoom }) => {
+			if (seedEmptyRoom) {
+				deps.resetBaseline();
+			}
+			deps.flushLocal();
+		},
 	});
 	return {
-		localPublished,
-		applyRemote() {
-			adopt();
-			refresh();
-		},
 		contentLoaded(origin) {
-			if (origin === 'user') {
-				awaitingInitialRoom = false;
-				allowEmpty = true;
-			} else if (adopt()) {
-				refresh();
-				return;
-			}
-			refresh();
-			if (deps.gate.isOpen()) {
+			if (!readiness.handleLoad(origin) && readiness.canWrite()) {
 				deps.flushLocal();
 			}
 		},
-		dispose: unsubscribe,
+		dispose: readiness,
 	};
 }

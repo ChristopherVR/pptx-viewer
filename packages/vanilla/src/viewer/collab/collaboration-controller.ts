@@ -25,6 +25,7 @@ import type {
 	CollaborationController,
 	CollaborationControllerDeps,
 } from './collaboration-controller-types';
+import { createCollaborationEditState } from './collaboration-edit-state';
 import type { ExternalSessionSync } from './collaboration-external-sync';
 import { createExternalSessionSync } from './collaboration-external-sync';
 import type { PresenceController } from './collaboration-presence';
@@ -57,8 +58,7 @@ export function createCollaborationController(
 	let currentYDoc: YDocLike | null = null;
 	let yFactories: YjsFactories | null = null;
 	let presence: PresenceController | null = null;
-	let publishSuppressed = false;
-	let editableBeforeViewer: boolean | null = null;
+	const editState = createCollaborationEditState(deps);
 	let lastConfig: CollaborationConfig | null = null;
 	let unobserveSlides: (() => void) | null = null;
 	let unsubscribeStore: (() => void) | null = null;
@@ -87,8 +87,7 @@ export function createCollaborationController(
 	});
 
 	function flushLocal(): void {
-		slidesSync.flushLocalSlides(currentYDoc, yFactories, lastConfig, publishSuppressed);
-		externalSync?.localPublished();
+		slidesSync.flushLocalSlides(currentYDoc, yFactories, lastConfig, editState.isReadOnly());
 	}
 	// Prevent a bootstrap deck from preceding initial sync. Built-in transports
 	// retain their grace timer; external sessions only use host readiness.
@@ -115,6 +114,7 @@ export function createCollaborationController(
 			return;
 		}
 		setStatus('connecting');
+		editState.setReadOnly(Boolean(config.externalSession) || config.role === 'viewer');
 		try {
 			const created = await createCollaborationSession(config, transport);
 			if (token !== generation) {
@@ -136,24 +136,15 @@ export function createCollaborationController(
 				() => ({ width: store.get().canvasSize.width, height: store.get().canvasSize.height }),
 			);
 
-			// Read-only viewer role: disable editing and never publish local edits.
-			publishSuppressed = config.role === 'viewer';
-			if (publishSuppressed) {
-				editableBeforeViewer = store.get().editable;
-				deps.setEditable(false);
-			}
-
 			// Observe remote slide changes, skipping our own reconcile transactions.
-			unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
-				if (transaction?.origin === LOCAL_SYNC_ORIGIN || slidesSync.isApplyingRemote()) {
-					return;
-				}
-				if (externalSync) {
-					externalSync.applyRemote();
-				} else {
+			if (!config.externalSession) {
+				unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
+					if (transaction?.origin === LOCAL_SYNC_ORIGIN || slidesSync.isApplyingRemote()) {
+						return;
+					}
 					slidesSync.applyRemoteSlides(currentYDoc, config);
-				}
-			});
+				});
+			}
 
 			// Broadcast local slide edits granularly (diff by id, one transaction).
 			// Suppressed until the sync gate opens (the gate flushes on open) and
@@ -172,14 +163,18 @@ export function createCollaborationController(
 					livePatcher,
 					gate: syncGate,
 					setStatus,
+					setReadOnly: editState.setReadOnly,
 					flushLocal,
+					resetBaseline: slidesSync.reset,
 					cancelWriteBack: writeBack.cancel,
-					applyRemote: (allowEmpty) =>
-						slidesSync.applyRemoteSlides(created.doc, config, allowEmpty),
+					adoptSlides: (slides) => slidesSync.adoptSlides(slides, config),
 				});
 			} else if (created.provider) {
 				const provider = created.provider;
-				livePatcher.configure(currentYDoc, yFactories);
+				livePatcher.configure(
+					editState.isReadOnly() ? null : currentYDoc,
+					editState.isReadOnly() ? null : yFactories,
+				);
 				provider.onSynced(() => syncGate.open());
 				if (provider.syncedNow) {
 					syncGate.open();
@@ -260,16 +255,12 @@ export function createCollaborationController(
 		yFactories = null;
 		livePatcher.configure(null, null);
 		active = false;
-		// Restore the editing state a viewer-role session forced off.
-		if (publishSuppressed && editableBeforeViewer !== null) {
-			deps.setEditable(editableBeforeViewer);
-		}
-		publishSuppressed = false;
-		editableBeforeViewer = null;
+		editState.setReadOnly(false);
 		setStatus('disconnected');
 	}
 
 	const disposeTeardown = registerCollaborationTeardown({
+		leaveOnBeforeUnload: () => !lastConfig?.externalSession,
 		leave: stop,
 		rejoin: () => {
 			if (lastConfig) {
@@ -282,6 +273,7 @@ export function createCollaborationController(
 		start,
 		stop,
 		isActive: () => active,
+		isReadOnly: editState.isReadOnly,
 		getStatus: () => status,
 		setCursor: (x, y, activeSlideIndex) => presence?.setCursor(x, y, activeSlideIndex),
 		setSelection: (selectedElementId, activeSlideIndex) =>

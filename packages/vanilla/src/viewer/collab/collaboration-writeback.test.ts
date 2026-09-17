@@ -76,8 +76,9 @@ describe('vanilla createWriteBackScheduler getSaveOptions wiring', () => {
 		);
 		const oldWriteBack = vi.fn();
 		const nextWriteBack = vi.fn();
+		const ydoc = {} as YDocLike;
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as YDocLike,
+			getYDoc: () => ydoc,
 			getHandler: () => ({ save }) as unknown as PptxHandler,
 		});
 		scheduler.schedule(config({ onWriteBack: oldWriteBack }));
