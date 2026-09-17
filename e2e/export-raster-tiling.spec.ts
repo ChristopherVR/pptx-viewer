@@ -67,8 +67,8 @@
  *
  * Run: bunx playwright test export-raster-tiling
  */
-import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import { expect, test as base } from '@playwright/test';
+import type { Browser, Page } from '@playwright/test';
 
 import { loadDeck, loadDeckAt } from './support/deck';
 import {
@@ -92,6 +92,46 @@ import {
 } from './support/exports';
 import { byBinding } from './support/menu-report';
 import { acrossFrameworks } from './support/parity';
+
+/**
+ * Every test in this file gets its OWN freshly-launched Chromium instance
+ * instead of Playwright's default (one browser process reused across every
+ * file a worker runs). This file is the heaviest in the suite: PNG/PDF tile
+ * stitching plus real-time GIF/MediaRecorder video capture, at a resolution
+ * this file itself boosts to the highest "Default resolution" preset. In CI
+ * (2026-09-16/17, recurring 2026-09-17/18: runs 35264552331, 35270077379,
+ * 35273232488) the video-recording tests below reliably took the whole
+ * runner down ("the runner has received a shutdown signal", exit 143) after
+ * the shared worker browser had already accumulated ~65+ other tests' worth
+ * of memory - never in isolation, and never on an under-loaded box. Giving
+ * every test here a dedicated browser (closed immediately after) removes
+ * that accumulated load regardless of whichever specific leak or Chromium
+ * bug is actually triggered by it, at the cost of one extra browser launch
+ * per test (a few seconds against tests that already take 10-30s of real
+ * capture/download time).
+ *
+ * Playwright refuses to change a built-in fixture's scope (`browser` is
+ * worker-scoped) via `.extend()`, so a same-scope `context` override handles
+ * the `page`-based single-binding tests below, and a new `isolatedBrowser`
+ * fixture (destructured in place of `browser`) covers the cross-binding
+ * tests that need a `Browser` directly.
+ */
+const test = base.extend<{ isolatedBrowser: Browser }>({
+	context: async ({ playwright, browserName }, use, testInfo) => {
+		const browser = await playwright[browserName].launch(testInfo.project.use.launchOptions);
+		const context = await browser.newContext(testInfo.project.use);
+		// oxlint-disable-next-line react-hooks/rules-of-hooks -- Playwright fixture teardown parameter, not a React hook
+		await use(context);
+		await context.close();
+		await browser.close();
+	},
+	isolatedBrowser: async ({ playwright, browserName }, use, testInfo) => {
+		const browser = await playwright[browserName].launch(testInfo.project.use.launchOptions);
+		// oxlint-disable-next-line react-hooks/rules-of-hooks -- Playwright fixture teardown parameter, not a React hook
+		await use(browser);
+		await browser.close();
+	},
+});
 
 /**
  * Seed `File > Options > Advanced > "Default resolution"` at `'ppi330'` (the
@@ -225,10 +265,10 @@ test.describe('PNG export tiles beyond the browser canvas cap', () => {
 	});
 
 	test('every binding tiles without error and agrees on the exported aspect ratio', async ({
-		browser,
+		isolatedBrowser,
 	}, testInfo) => {
 		const results = await acrossFrameworks(
-			browser,
+			isolatedBrowser,
 			testInfo,
 			async (page, origin) => {
 				await maximizeExportResolution(page);
@@ -294,10 +334,10 @@ test.describe('PDF export tiles beyond the browser canvas cap', () => {
 	});
 
 	test('every binding tiles PDF pages without error and agrees on page count', async ({
-		browser,
+		isolatedBrowser,
 	}, testInfo) => {
 		const results = await acrossFrameworks(
-			browser,
+			isolatedBrowser,
 			testInfo,
 			async (page, origin) => {
 				await maximizeExportResolution(page);
@@ -404,7 +444,7 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 	});
 
 	test('every binding produces a valid, aspect-correct GIF and video recording canvas', async ({
-		browser,
+		isolatedBrowser,
 	}, testInfo) => {
 		// The file-wide 90s default (above) fits the single-binding tiling tests,
 		// but this one runs a GIF capture *and* a real-time video recording for
@@ -415,7 +455,7 @@ test.describe('GIF/video export do not corrupt a frame under the same stubbed ca
 		// (export-fidelity-pixel-diff.spec.ts, export-raster-fidelity.spec.ts).
 		test.setTimeout(240_000);
 		const results = await acrossFrameworks(
-			browser,
+			isolatedBrowser,
 			testInfo,
 			async (page, origin) => {
 				// No `maximizeExportResolution()`: this test is about basic pipeline
@@ -520,7 +560,7 @@ test.describe('GIF export honors Default Resolution identically across bindings'
 	}
 
 	test('boosting File > Options > Advanced > Default Resolution changes the GIF frame size the same way on all five bindings', async ({
-		browser,
+		isolatedBrowser,
 	}, testInfo) => {
 		// Two full sweeps (default, then boosted) of one GIF capture per
 		// binding; each capture gets the same generous per-download budget the
@@ -528,13 +568,13 @@ test.describe('GIF export honors Default Resolution identically across bindings'
 		test.setTimeout(240_000);
 		const sweepOptions = { viewport: VIEWPORT, concurrency: 'sequential' as const };
 		const defaultResults = await acrossFrameworks(
-			browser,
+			isolatedBrowser,
 			testInfo,
 			(page, origin) => captureGifDims(page, origin, false),
 			sweepOptions,
 		);
 		const boostedResults = await acrossFrameworks(
-			browser,
+			isolatedBrowser,
 			testInfo,
 			(page, origin) => captureGifDims(page, origin, true),
 			sweepOptions,
