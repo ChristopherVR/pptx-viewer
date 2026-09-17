@@ -1,5 +1,7 @@
 import { flushPromises, mount } from '@vue/test-utils';
+import type { CollaborationConfig, ExternalCollaborationSession } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
+import { Doc } from 'yjs';
 
 import ComparePanel from './components/ComparePanel.vue';
 import VersionHistoryPanel from './components/VersionHistoryPanel.vue';
@@ -13,6 +15,72 @@ import type { PowerPointViewerExpose } from './types';
  * content only appears in edit/master mode, so it gates on `canEdit`.
  */
 describe('powerPointViewer editing wiring', () => {
+	it('keeps a host-owned viewer session locally read-only and restores collaborator editing', async () => {
+		const doc = new Doc();
+		const externalSession: ExternalCollaborationSession = {
+			doc,
+			awareness: {
+				clientID: doc.clientID,
+				getLocalState: () => null,
+				setLocalState: () => {},
+				setLocalStateField: () => {},
+				getStates: () => new Map(),
+				on: () => {},
+				off: () => {},
+			},
+			getSnapshot: () => ({ status: 'connected', synced: true }),
+			subscribe: () => () => {},
+		};
+		const collaboration: CollaborationConfig = {
+			roomId: 'external',
+			serverUrl: '',
+			userName: 'Reader',
+			role: 'viewer',
+			externalSession,
+		};
+		const wrapper = mount(PowerPointViewer, {
+			props: { content: null, canEdit: true, collaboration },
+		});
+		try {
+			await flushPromises();
+			const viewer = wrapper.vm as unknown as PowerPointViewerExpose;
+			expect(wrapper.find('.pptx-vue-main').classes()).not.toContain('is-editable');
+			// Host-side deck creation remains available in read-only mode; actual
+			// editing surfaces and insertion must still honor the viewer role.
+			viewer.addSlide();
+			await flushPromises();
+			expect(
+				viewer.addElement({
+					type: 'shape',
+					id: 'shape',
+					x: 0,
+					y: 0,
+					width: 40,
+					height: 40,
+					rotation: 0,
+				}),
+			).toBeUndefined();
+			expect(viewer.getElements()).toStrictEqual([]);
+			await wrapper.setProps({ collaboration: { ...collaboration, role: 'collaborator' } });
+			await flushPromises();
+			expect(wrapper.find('.pptx-vue-main').classes()).toContain('is-editable');
+			expect(
+				viewer.addElement({
+					type: 'shape',
+					id: 'shape',
+					x: 0,
+					y: 0,
+					width: 40,
+					height: 40,
+					rotation: 0,
+				}),
+			).toBeTruthy();
+		} finally {
+			wrapper.unmount();
+			doc.destroy();
+		}
+	});
+
 	it.each([
 		{ afterIndex: -1, active: 2, inserted: 0 },
 		{ afterIndex: 0, active: 2, inserted: 1 },

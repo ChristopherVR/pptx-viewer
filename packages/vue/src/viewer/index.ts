@@ -1,4 +1,9 @@
 export { default as PowerPointViewer } from './PowerPointViewer.vue';
+export type {
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
 export { default as SlideCanvas } from './components/SlideCanvas.vue';
 export { default as SlideStage } from './components/SlideStage.vue';
 export { default as ElementRenderer } from './components/ElementRenderer.vue';

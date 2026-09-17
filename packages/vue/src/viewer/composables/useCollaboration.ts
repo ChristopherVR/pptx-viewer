@@ -14,6 +14,7 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	assignUserColor,
+	borrowExternalCollaborationAwareness,
 	CONNECTION_TIMEOUT_MS,
 	createCollaborationLivePatcher,
 	createPresencePublisher,
@@ -22,6 +23,7 @@ import {
 	isMixedContentBlocked,
 	LOCAL_SYNC_ORIGIN,
 	observeYDocSlides,
+	observeExternalCollaborationReadiness,
 	PRESENCE_HEARTBEAT_MS,
 	reconcileSlidesInYDoc,
 	readSlidesFromYDoc,
@@ -84,6 +86,10 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	let lastConfig: CollaborationConfig | null = null;
 	let yFactories: YjsFactories | null = null;
 	let currentYDoc: YDocLike | null = null;
+	let disposeExternal: (() => void) | null = null;
+	let restoreExternalPresence: (() => void) | null = null;
+	let startToken = 0;
+	let awaitingJoinedDocument = false;
 	// Interim writes for state that has not reached `slides` yet (inline editor
 	// text). Attached in start(), detached in stop(), so every patch call is a
 	// safe no-op outside a session.
@@ -100,6 +106,9 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	/** Write the current local slides into the doc (granular, echo-deduped). */
 	function flushLocalSlides(): void {
 		if (!currentYDoc || !yFactories || applyingRemote) {
+			return;
+		}
+		if (lastConfig?.externalSession && (lastConfig.role === 'viewer' || awaitingJoinedDocument)) {
 			return;
 		}
 		const s = JSON.stringify(options.slides.value);
@@ -172,6 +181,9 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 
 	async function start(config: CollaborationConfig): Promise<void> {
 		stop();
+		const token = ++startToken;
+		const external = config.externalSession;
+		awaitingJoinedDocument = Boolean(external && config.sessionIntent === 'join');
 		lastConfig = config;
 		activeRole.value = config.role;
 		try {
@@ -182,35 +194,52 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		}
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 		// Mixed-content only affects a ws:// socket from an https page.
-		if (transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
+		if (!external && transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
 			status.value = 'error';
 			return;
 		}
 		status.value = 'connecting';
 		try {
 			const Y = await import('yjs');
-			const doc = new Y.Doc();
-			ydoc = doc;
+			if (token !== startToken) {
+				return;
+			}
+			const ownedDoc = external ? null : new Y.Doc();
+			const doc = external?.doc ?? ownedDoc!;
+			ydoc = ownedDoc;
 			yFactories = {
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
 			};
 			currentYDoc = doc as unknown as YDocLike;
-			livePatcher.configure(currentYDoc, yFactories);
-
-			provider = await createCollabProvider(transport, config, doc);
-			awareness = provider.awareness;
+			if (external) {
+				const borrowed = borrowExternalCollaborationAwareness(external.awareness);
+				awareness = borrowed.awareness;
+				restoreExternalPresence = borrowed.dispose;
+			} else {
+				livePatcher.configure(currentYDoc, yFactories);
+				const created = await createCollabProvider(transport, config, ownedDoc!);
+				if (token !== startToken) {
+					created.destroy();
+					ownedDoc!.destroy();
+					return;
+				}
+				provider = created;
+				awareness = provider.awareness;
+			}
 			selfId = awareness.clientID ?? -1;
 
 			// Gate local writes on the provider's initial sync; the grace timer
 			// covers a lone webrtc peer that never receives a sync event.
 			syncGate.reset();
-			provider.onSynced(() => syncGate.open());
-			if (provider.syncedNow) {
-				syncGate.open();
-			} else {
-				syncGate.arm();
+			if (provider) {
+				provider.onSynced(() => syncGate.open());
+				if (provider.syncedNow) {
+					syncGate.open();
+				} else {
+					syncGate.arm();
+				}
 			}
 
 			publisher = createPresencePublisher(awareness, {
@@ -227,7 +256,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			awareness.on('change', refreshPresence);
 			awareness.on('update', refreshPresence);
 
-			if (transport === 'webrtc') {
+			if (provider && transport === 'webrtc') {
 				// Same-browser tabs meet over BroadcastChannel at once (no server wait).
 				status.value = 'connected';
 				// y-webrtc reports peer connectivity via the same onStatus surface;
@@ -242,7 +271,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 						syncGate.arm();
 					}
 				});
-			} else {
+			} else if (provider) {
 				provider.onStatus((isConnected) => {
 					if (isConnected) {
 						if (connectTimer !== null) {
@@ -278,9 +307,10 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 					return;
 				}
 				const remote = readSlidesFromYDoc(currentYDoc);
-				if (remote.length === 0) {
+				if (remote.length === 0 && (!external || awaitingJoinedDocument || !syncGate.isOpen())) {
 					return;
 				}
+				awaitingJoinedDocument = false;
 				applyingRemote = true;
 				options.onRemoteSlides(remote);
 				applyingRemote = false;
@@ -295,6 +325,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			// first observe for the same reason; mirror it here.
 			const initialSlides = readSlidesFromYDoc(currentYDoc);
 			if (initialSlides.length > 0) {
+				awaitingJoinedDocument = false;
 				applyingRemote = true;
 				options.onRemoteSlides(initialSlides);
 				applyingRemote = false;
@@ -310,8 +341,14 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				stopLoadAdoption = watchLoadAdoption({
 					loadVersion: options.loadVersion,
 					getYDoc: () => currentYDoc,
-					isConnected: () => status.value === 'connected',
-					getLoadOrigin: options.getLoadOrigin,
+					isConnected: () => (external ? active.value : status.value === 'connected'),
+					getLoadOrigin: () => {
+						const origin = options.getLoadOrigin?.();
+						if (origin === 'user') {
+							awaitingJoinedDocument = false;
+						}
+						return origin ?? 'user';
+					},
 					adoptDocSlides: (docSlides) => {
 						applyingRemote = true;
 						options.onRemoteSlides(docSlides);
@@ -336,14 +373,40 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 
 			heartbeat = setInterval(() => publisher?.flush(), PRESENCE_HEARTBEAT_MS);
 			active.value = true;
+			if (external) {
+				disposeExternal = observeExternalCollaborationReadiness(external, {
+					gate: syncGate,
+					livePatcher,
+					factories: yFactories,
+					role: config.role,
+					canAdoptEmptySlides: () => !awaitingJoinedDocument,
+					onStatus: (next) => {
+						status.value = next;
+					},
+					adoptSlides: (roomSlides) => {
+						awaitingJoinedDocument = false;
+						lastSynced = JSON.stringify(roomSlides);
+						applyingRemote = true;
+						options.onRemoteSlides(roomSlides);
+						applyingRemote = false;
+					},
+				});
+			}
 			refreshPresence();
 		} catch {
+			if (token !== startToken) {
+				return;
+			}
 			stop();
 			status.value = 'error';
 		}
 	}
 
 	function stop(): void {
+		startToken++;
+		awaitingJoinedDocument = false;
+		disposeExternal?.();
+		disposeExternal = null;
 		clearTimers();
 		syncGate.reset();
 		unobserveSlides?.();
@@ -356,6 +419,8 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		awareness?.off?.('update', refreshPresence);
 		publisher?.dispose();
 		publisher = null;
+		restoreExternalPresence?.();
+		restoreExternalPresence = null;
 		provider?.destroy();
 		ydoc?.destroy();
 		provider = null;

@@ -317,6 +317,7 @@ const canEditEffective = computed(
 	() =>
 		editingRequested.value &&
 		props.canEdit &&
+		props.collaboration?.role !== 'viewer' &&
 		!protectedViewActive.value &&
 		!readOnlyRec.locked.value,
 );
