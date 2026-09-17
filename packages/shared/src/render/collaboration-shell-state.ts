@@ -20,6 +20,18 @@ export interface CollaborationShellState {
 	connectedCount: number;
 }
 
+export type CollaborationShellEditInput = Pick<
+	CollaborationShellInput,
+	'authorizedCanEdit' | 'configured' | 'readOnly' | 'sourcePending' | 'sourceError'
+>;
+
+export function resolveCollaborationShellEditability(input: CollaborationShellEditInput): boolean {
+	return (
+		input.authorizedCanEdit &&
+		(!input.configured || (!input.readOnly && !input.sourcePending && !input.sourceError))
+	);
+}
+
 /** Map the existing session state into custom chrome without another sync policy. */
 export function resolveCollaborationShellState(
 	input: CollaborationShellInput,
@@ -27,9 +39,7 @@ export function resolveCollaborationShellState(
 	const status = input.configured ? input.status : 'disconnected';
 	const remoteUsers = input.configured ? input.remoteUsers : [];
 	return {
-		canEdit:
-			input.authorizedCanEdit &&
-			(!input.configured || (!input.readOnly && !input.sourcePending && !input.sourceError)),
+		canEdit: resolveCollaborationShellEditability(input),
 		status,
 		remoteUsers,
 		connectedCount: remoteUsers.length + (status === 'connected' ? 1 : 0),

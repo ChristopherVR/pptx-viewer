@@ -3,6 +3,7 @@ import { resolveSlideSizeSelection } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { CollaborationCursorOverlay } from '../components/collaboration/CollaborationCursorOverlay';
+import { RemoteSelectionOverlay } from '../components/collaboration/RemoteSelectionOverlay';
 import { useCollaborationDocumentSync } from './collaboration/useCollaborationDocumentSync';
 import { useCollaborativeState } from './collaboration/useCollaborativeState';
 import type { ViewerBuildingBlocksCore } from './useViewerBuildingBlocksCore';
@@ -14,6 +15,7 @@ export interface BuildingBlocksCollaborationInput {
 	loadVersion: number;
 	loadOrigin: CollabLoadOrigin;
 	embedFonts: boolean;
+	onReadOnlyChange: (readOnly: boolean) => void;
 }
 
 /** No extra provider or transport is required around a custom editor shell. */
@@ -33,6 +35,7 @@ export function useViewerBuildingBlocksCollaboration(input: BuildingBlocksCollab
 		loadVersion: input.loadVersion,
 		loadOrigin: input.loadOrigin,
 		livePatcher: state.livePatcher,
+		onReadOnlyChange: input.onReadOnlyChange,
 		deckSaveState: {
 			...state,
 			embedFonts: input.embedFonts,
@@ -43,13 +46,20 @@ export function useViewerBuildingBlocksCollaboration(input: BuildingBlocksCollab
 		},
 	});
 	const overlay = collaboration ? (
-		<CollaborationCursorOverlay
-			collaboration={collaboration}
-			activeSlideIndex={activeSlideIndex}
-			selectedElementId={state.selectedElementId}
-			canvasWidth={state.canvasSize.width}
-			canvasHeight={state.canvasSize.height}
-		/>
+		<>
+			<RemoteSelectionOverlay
+				collaboration={collaboration}
+				elements={state.slides[activeSlideIndex]?.elements ?? []}
+				activeSlideIndex={activeSlideIndex}
+			/>
+			<CollaborationCursorOverlay
+				collaboration={collaboration}
+				activeSlideIndex={activeSlideIndex}
+				selectedElementId={state.selectedElementId}
+				canvasWidth={state.canvasSize.width}
+				canvasHeight={state.canvasSize.height}
+			/>
+		</>
 	) : undefined;
 	return { collaboration, overlay };
 }

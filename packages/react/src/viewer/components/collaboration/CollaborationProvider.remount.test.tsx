@@ -43,6 +43,7 @@ vi.mock(import('../../hooks/collaboration/useYjsProvider'), () => ({
 
 const { CollaborationProvider, useCollaboration } = await import('./CollaborationProvider');
 const { CollaborationCursorOverlay } = await import('./CollaborationCursorOverlay');
+const { RemoteSelectionOverlay } = await import('./RemoteSelectionOverlay');
 
 const CONFIG: CollaborationConfig = {
 	roomId: 'room-1',
@@ -93,6 +94,52 @@ afterEach(() => {
 });
 
 describe('collaborationProvider tree stability', () => {
+	it('renders explicit remote selections without a provider and hides other slides', () => {
+		const collaboration: CollaborationContextValue = {
+			config: CONFIG,
+			status: 'connected',
+			synced: true,
+			doc: null,
+			connectedCount: 2,
+			retry,
+			broadcastPresence: () => {},
+			remoteUsers: [
+				{
+					clientId: 2,
+					userName: 'Peer',
+					userColor: '#123456',
+					activeSlideIndex: 0,
+					selectedElementId: 'shape-1',
+					cursorX: 0,
+					cursorY: 0,
+					lastUpdated: new Date().toISOString(),
+				},
+			],
+		};
+		const elements = [
+			{ id: 'shape-1', type: 'text' as const, x: 20, y: 30, width: 200, height: 50 },
+		];
+		const render = (activeSlideIndex: number, value: CollaborationContextValue | null): void => {
+			act(() =>
+				root.render(
+					<RemoteSelectionOverlay
+						elements={elements}
+						activeSlideIndex={activeSlideIndex}
+						collaboration={value}
+					/>,
+				),
+			);
+		};
+		render(0, collaboration);
+		expect(container.querySelector('[data-pptx-remote-selection="shape-1"]')?.textContent).toBe(
+			'Peer',
+		);
+		render(1, collaboration);
+		expect(container.querySelector('[data-pptx-remote-selection]')).toBeNull();
+		render(0, null);
+		expect(container.querySelector('[data-pptx-remote-selection]')).toBeNull();
+	});
+
 	it('keeps pointer subscriptions stable but publishes active-slide changes', () => {
 		const broadcastPresence = vi.fn();
 		const renderOverlay = (activeSlideIndex: number): void => {

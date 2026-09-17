@@ -1,10 +1,9 @@
-import { openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
-import type {
-	CollabLoadOrigin,
-	CollaborationConfig,
-	ToolbarActionId,
-	ViewportFitOptions,
+import {
+	openPptxFile,
+	readBackstageRecentFile,
+	resolveCollaborationShellEditability,
 } from 'pptx-viewer-shared';
+import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 /**
  * useViewerBuildingBlocks: Composes the same state + hooks `PowerPointViewer`
  * wires internally, and maps them into flat prop objects for the standalone
@@ -37,76 +36,20 @@ import type {
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { SlideCanvasProps } from '../components/canvas/canvas-types';
-import type { ToolbarProps } from '../components/toolbar/toolbar-types';
-import type { PowerPointViewerHandle } from '../types';
-import type { ViewerMode } from '../types-core';
-import type { CollaborationContextValue } from './collaboration/types';
-import type { AutosaveStatus } from './useAutosave';
 import { buildCanvasProps } from './useViewerBuildingBlocks-canvas-props';
 import { buildToolbarProps } from './useViewerBuildingBlocks-toolbar-props';
+import type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './useViewerBuildingBlocks-types';
 import { useViewerBuildingBlocksCollaboration } from './useViewerBuildingBlocksCollaboration';
 import { useViewerBuildingBlocksCore } from './useViewerBuildingBlocksCore';
 import { useViewerBuildingBlocksState } from './useViewerBuildingBlocksState';
 
-// ---------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------
-
-export interface UseViewerBuildingBlocksInput extends ViewportFitOptions {
-	/** Optional collaboration, including a host-owned document and presence session. */
-	collaboration?: CollaborationConfig;
-	/** PPTX content as ArrayBuffer/Uint8Array, or null/undefined while no file is loaded. */
-	content: ArrayBuffer | Uint8Array | null | undefined;
-	/** Whether editing actions are enabled. Defaults to false (view-only). */
-	canEdit?: boolean;
-	/** Original file path, used for autosave recovery. */
-	filePath?: string;
-	/** Display name for the toolbar's file-name-aware controls (e.g. title bar hosts build themselves). */
-	fileName?: string;
-	/** Whether the built-in autosave-to-localStorage recovery timer is active. Defaults to true. */
-	autosaveEnabled?: boolean;
-	/** Display name used as the author for comments. */
-	userName?: string;
-	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
-	hiddenActions?: readonly ToolbarActionId[];
-	/** Imperative handle ref, exposing the same `PowerPointViewerHandle` API `PowerPointViewer` does. */
-	handle?: React.ForwardedRef<PowerPointViewerHandle>;
-	onContentChange?: (content: Uint8Array) => void;
-	onDirtyChange?: (dirty: boolean) => void;
-	onActiveSlideChange?: (index: number) => void;
-	onModeChange?: (mode: ViewerMode) => void;
-	onZoomChange?: (zoom: number) => void;
-	onSelectionChange?: (ids: string[]) => void;
-	onSlideCountChange?: (count: number) => void;
-	/** Fired by the toolbar's "Settings" button; the host owns rendering that dialog. */
-	onOpenSettings?: () => void;
-	/** Fired by the toolbar's "Header & Footer" button; the host owns rendering that panel. */
-	onOpenHeaderFooter?: () => void;
-	/** Fired by the toolbar's "Share" button; the host owns rendering that dialog. */
-	onOpenShareDialog?: () => void;
-}
-
-// ---------------------------------------------------------------------------
-// Output
-// ---------------------------------------------------------------------------
-
-export interface ViewerBuildingBlocksResult {
-	/** Connection and presence state for a custom status bar, or null when disabled. */
-	collaboration: CollaborationContextValue | null;
-	/** Flat, self-contained props for the standalone `<Toolbar>` component. */
-	toolbarProps: ToolbarProps;
-	/** Flat, self-contained props for the standalone `<SlideCanvas>` component. */
-	canvasProps: SlideCanvasProps;
-	/** Current viewer mode (edit, view, present, master). */
-	mode: ViewerMode;
-	/** True while the initial parse of `content` is in progress. */
-	loading: boolean;
-	/** Parse error message, or null. */
-	error: string | null;
-	/** Current autosave-to-localStorage recovery status. */
-	autosaveStatus: AutosaveStatus;
-}
+export type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './useViewerBuildingBlocks-types';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -135,7 +78,9 @@ export function useViewerBuildingBlocks(
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 	} = input;
-	const authorizedCanEdit = requestedCanEdit && input.collaboration?.role !== 'viewer';
+	const [collaborationReadOnly, setCollaborationReadOnly] = useState(
+		Boolean(input.collaboration?.externalSession),
+	);
 	const { t } = useTranslation();
 
 	// Local content state, synced from the incoming prop but able to diverge
@@ -169,7 +114,7 @@ export function useViewerBuildingBlocks(
 
 	const core = useViewerBuildingBlocksCore({
 		content,
-		canEdit: authorizedCanEdit,
+		canEdit: requestedCanEdit,
 		fitPadding: input.fitPadding,
 		maxFitScale: input.maxFitScale,
 	});
@@ -190,7 +135,13 @@ export function useViewerBuildingBlocks(
 		viewerOptions,
 	} = core;
 	// Shared slides can arrive before their original PPTX resources finish loading.
-	const canEdit = authorizedCanEdit && !loading && !error;
+	const canEdit = resolveCollaborationShellEditability({
+		authorizedCanEdit: requestedCanEdit,
+		configured: Boolean(input.collaboration),
+		readOnly: collaborationReadOnly,
+		sourcePending: Boolean(content) && loading,
+		sourceError: Boolean(error),
+	});
 
 	const {
 		dialogs,
@@ -230,6 +181,7 @@ export function useViewerBuildingBlocks(
 		loadOrigin,
 		loadVersion,
 		embedFonts: dialogs.embedFontsEnabled,
+		onReadOnlyChange: setCollaborationReadOnly,
 	});
 	const toolbarProps = buildToolbarProps({
 		mode,

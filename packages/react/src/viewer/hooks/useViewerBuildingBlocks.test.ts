@@ -193,6 +193,77 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('keeps a blank collaborative shell gated by live readiness and host permission', async () => {
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		const doc = new Y.Doc();
+		const awareness = new Awareness(doc);
+		const listeners = new Set<() => void>();
+		let synced = false;
+		const collaboration: CollaborationConfig = {
+			roomId: 'blank-custom-shell',
+			serverUrl: '',
+			userName: 'Host',
+			sessionIntent: 'create',
+			externalSession: {
+				doc,
+				awareness,
+				getSnapshot: () => ({ status: 'connected', synced }),
+				subscribe(listener) {
+					listeners.add(listener);
+					return () => {
+						listeners.delete(listener);
+					};
+				},
+			},
+		};
+		const mount = async (config: CollaborationConfig | undefined, canEdit = true) => {
+			await act(async () =>
+				root.render(
+					React.createElement(Harness, { content: null, collaboration: config, canEdit }),
+				),
+			);
+			await flush();
+		};
+		try {
+			await mount(collaboration);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await act(async () => {
+				synced = true;
+				[...listeners].forEach((listener) => listener());
+			});
+			await flushUntil(() => latest?.canvasProps.canEdit === true);
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			expect(latest!.toolbarProps.canEdit).toBeTruthy();
+			await mount(collaboration, false);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await act(async () => {
+				synced = false;
+				[...listeners].forEach((listener) => listener());
+			});
+			await mount(collaboration);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await mount(undefined);
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			await mount({
+				...collaboration,
+				role: 'viewer',
+				externalSession: {
+					...collaboration.externalSession!,
+					subscribe() {
+						throw new Error('Host subscription failed');
+					},
+				},
+			});
+			await flushUntil(() => latest?.collaboration?.status === 'error');
+			expect(latest!.collaboration?.status).toBe('error');
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+		} finally {
+			await act(async () => root.render(null));
+			awareness.destroy();
+			doc.destroy();
+		}
+	});
+
 	it.each([
 		{ canEdit: true, role: 'collaborator' as const, editableAfterLoad: true },
 		{ canEdit: false, role: 'collaborator' as const, editableAfterLoad: false },
@@ -279,11 +350,11 @@ describe('useViewerBuildingBlocks', () => {
 		},
 	);
 
-	it('keeps editing disabled when no original PPTX is loaded or its loading fails', async () => {
+	it('preserves non-collaborative authorization for blank documents and load errors', async () => {
 		await act(async () => root.render(React.createElement(Harness, { content: null })));
 		expect(latest!.loading).toBeTruthy();
-		expect(latest!.canvasProps.canEdit).toBeFalsy();
-		expect(latest!.toolbarProps.canEdit).toBeFalsy();
+		expect(latest!.canvasProps.canEdit).toBeTruthy();
+		expect(latest!.toolbarProps.canEdit).toBeTruthy();
 		const failedLoad = vi
 			.spyOn(PptxHandler.prototype, 'load')
 			.mockRejectedValue(new Error('Invalid presentation'));
@@ -293,8 +364,8 @@ describe('useViewerBuildingBlocks', () => {
 			await flushUntil(() => latest?.loading === false);
 			expect(latest!.loading).toBeFalsy();
 			expect(latest!.error).toBe('Invalid presentation');
-			expect(latest!.canvasProps.canEdit).toBeFalsy();
-			expect(latest!.toolbarProps.canEdit).toBeFalsy();
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			expect(latest!.toolbarProps.canEdit).toBeTruthy();
 		} finally {
 			failedLoad.mockRestore();
 			loadError.mockRestore();
