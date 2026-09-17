@@ -55,14 +55,19 @@ test.describe('stacked line chart with automatic markers, bare gridlines, and a 
 	}) => {
 		await openDeck(page);
 
+		// The title lives in its own text-box shape, separate from the chart's
+		// graphic frame, so it's asserted on the page rather than inside the
+		// chart element.
+		await expect(
+			page.locator('[data-pptx-viewport]'),
+			'deck loaded past the placeholder state',
+		).toContainText(CHART_STACKED_LINE_TITLE);
+
 		const chartEl = page
 			.locator('[data-pptx-viewport] [data-element-id]:visible:has(svg)')
 			.filter({ hasText: CHART_STACKED_LINE_SERIES_A_NAME })
 			.first();
 		await chartEl.waitFor({ timeout: 15_000 });
-		await expect(chartEl, 'chart renders as a real SVG, not a placeholder').toContainText(
-			CHART_STACKED_LINE_TITLE,
-		);
 		const svg = chartEl.locator('svg').first();
 
 		// (1) Gridlines: the bare `<c:majorGridlines/>` must still produce
