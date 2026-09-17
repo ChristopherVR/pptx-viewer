@@ -105,7 +105,7 @@ function SlideItemInner({
 		<button
 			type='button'
 			ref={slideRef}
-			aria-label={`Go to slide ${slideIndex + 1}`}
+			aria-label={t('pptx.slidesPanel.goToSlide', { n: slideIndex + 1 })}
 			aria-current={isActive ? 'true' : undefined}
 			aria-describedby={cue.labelId}
 			data-pptx-slide-hidden={cue.marker}

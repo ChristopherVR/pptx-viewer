@@ -140,6 +140,7 @@ export const translations = {
 	'pptx.textFormatting.paragraphBefore': 'Paragraphe avant',
 	'pptx.textFormatting.textFlow': 'Flux de texte',
 	'pptx.textProperties.advancedTextHeading': 'Texte avancé',
+	'pptx.textProperties.autoFitToShape': 'Ajuster le texte à la forme',
 	'pptx.textProperties.defaultFontOption': 'Par défaut ({{font}})',
 	'pptx.textProperties.firstIndent': 'Premier tiret',
 	'pptx.textProperties.leftMargin': 'Marge gauche',

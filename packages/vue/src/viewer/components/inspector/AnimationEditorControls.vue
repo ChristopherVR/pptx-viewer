@@ -206,9 +206,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 		</div>
 		<div class="grid grid-cols-2 gap-2">
 			<label
-				>Duration
+				>{{ t('pptx.animation.duration') }}
 				<input
-					aria-label="Animation duration"
+					:aria-label="t('pptx.animation.duration')"
 					type="number"
 					min="100"
 					max="10000"
@@ -218,9 +218,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				/>
 			</label>
 			<label
-				>Delay
+				>{{ t('pptx.animation.delay') }}
 				<input
-					aria-label="Animation delay"
+					:aria-label="t('pptx.animation.delay')"
 					type="number"
 					min="0"
 					max="10000"
@@ -231,9 +231,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			</label>
 		</div>
 		<label
-			>Direction
+			>{{ t('pptx.animation.direction') }}
 			<select
-				aria-label="Animation direction"
+				:aria-label="t('pptx.animation.direction')"
 				:value="animation.direction ?? 'fromLeft'"
 				@change="emit('patch', { direction: value($event) as PptxAnimationDirection })"
 			>
@@ -243,9 +243,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			</select>
 		</label>
 		<label
-			>Sequence
+			>{{ t('pptx.animation.sequence') }}
 			<select
-				aria-label="Animation sequence"
+				:aria-label="t('pptx.animation.sequence')"
 				:value="animation.sequence ?? 'asOne'"
 				@change="emit('patch', { sequence: value($event) as PptxAnimationSequence })"
 			>
@@ -255,9 +255,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			</select>
 		</label>
 		<label
-			>Trigger
+			>{{ t('pptx.animation.trigger') }}
 			<select
-				aria-label="Animation trigger"
+				:aria-label="t('pptx.animation.triggerAria')"
 				:value="animation.trigger ?? 'onClick'"
 				@change="
 					emit('patch', {
@@ -272,9 +272,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			</select>
 		</label>
 		<label v-if="animation.trigger === 'onShapeClick'"
-			>Trigger shape
+			>{{ t('pptx.animation.trigger.shapeLabel') }}
 			<select
-				aria-label="Animation trigger shape"
+				:aria-label="t('pptx.animation.trigger.shapeLabel')"
 				:value="animation.triggerShapeId ?? ''"
 				@change="emit('patch', { triggerShapeId: value($event) || undefined })"
 			>
@@ -300,9 +300,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			@color="(color) => emit('patch', afterAnimationColorPatch(color))"
 		/>
 		<label
-			>Timing curve
+			>{{ t('pptx.animation.timingCurve') }}
 			<select
-				aria-label="Animation timing curve"
+				:aria-label="t('pptx.animation.timingCurve')"
 				:value="animation.timingCurve ?? 'ease'"
 				@change="emit('patch', { timingCurve: value($event) as PptxAnimationTimingCurve })"
 			>
@@ -313,9 +313,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 		</label>
 		<div class="grid grid-cols-2 gap-2">
 			<label
-				>Repeat count
+				>{{ t('pptx.animation.repeatCount') }}
 				<input
-					aria-label="Animation repeat count"
+					:aria-label="t('pptx.animation.repeatCount')"
 					type="number"
 					min="1"
 					max="100"
@@ -324,9 +324,9 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				/>
 			</label>
 			<label
-				>Repeat until
+				>{{ t('pptx.animation.repeatUntil') }}
 				<select
-					aria-label="Animation repeat mode"
+					:aria-label="t('pptx.animation.repeatUntil')"
 					:value="animation.repeatMode ?? 'none'"
 					@change="
 						emit('patch', {
@@ -335,9 +335,13 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 						})
 					"
 				>
-					<option value="none">None</option>
-					<option value="untilNextClick">Next click</option>
-					<option value="untilEndOfSlide">End of slide</option>
+					<option value="none">{{ t('pptx.animation.repeatUntil.none') }}</option>
+					<option value="untilNextClick">
+						{{ t('pptx.animation.repeatUntil.untilNextClick') }}
+					</option>
+					<option value="untilEndOfSlide">
+						{{ t('pptx.animation.repeatUntil.untilEndOfSlide') }}
+					</option>
 				</select>
 			</label>
 		</div>

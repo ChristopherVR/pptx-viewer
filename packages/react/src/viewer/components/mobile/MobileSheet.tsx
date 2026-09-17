@@ -1,5 +1,6 @@
 import { MIN_TOUCH_TARGET_PX } from 'pptx-viewer-shared';
 import React, { useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useModalFocus } from '../../hooks/useModalFocus';
 import { useSheetDismissDrag } from '../../hooks/useSheetDismissDrag';
@@ -42,6 +43,7 @@ export function MobileSheet({
 	headerRight,
 }: MobileSheetProps): React.ReactElement | null {
 	const sheetRef = useRef<HTMLDivElement>(null);
+	const { t } = useTranslation();
 	const { dragY, dragging, handlers } = useSheetDismissDrag(onClose);
 	useModalFocus(open, sheetRef, onClose);
 
@@ -60,7 +62,7 @@ export function MobileSheet({
 			{/* Backdrop */}
 			<button
 				type='button'
-				aria-label='Close'
+				aria-label={t('pptx.mobileSheet.close')}
 				className='absolute inset-0 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150'
 				onClick={onClose}
 			/>
@@ -70,7 +72,7 @@ export function MobileSheet({
 				ref={sheetRef}
 				role='dialog'
 				aria-modal='true'
-				aria-label={typeof title === 'string' ? title : 'Mobile panel'}
+				aria-label={typeof title === 'string' ? title : t('pptx.mobileSheet.ariaLabel')}
 				tabIndex={-1}
 				className={cn(
 					'relative bg-background border-t border-border rounded-t-2xl shadow-2xl flex flex-col overflow-hidden',
@@ -103,7 +105,7 @@ export function MobileSheet({
 							{headerRight}
 							<button
 								type='button'
-								aria-label='Close'
+								aria-label={t('pptx.mobileSheet.close')}
 								onPointerDown={(event) => event.stopPropagation()}
 								onClick={onClose}
 								style={{ minWidth: MIN_TOUCH_TARGET_PX, minHeight: MIN_TOUCH_TARGET_PX }}

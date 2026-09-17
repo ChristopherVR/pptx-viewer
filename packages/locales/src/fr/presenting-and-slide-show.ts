@@ -251,6 +251,8 @@ export const translations = {
 	'pptx.transitionPresets.window': 'Fenêtre',
 	'pptx.transitionPresets.zoom': 'Zoom',
 	'pptx.record.cameo': 'Cameo',
+	'pptx.record.manage': 'Gérer',
+	'pptx.record.camera': 'Caméra',
 	'pptx.record.clear': 'Effacer',
 	'pptx.record.learnMore': 'En savoir plus',
 	'pptx.record.resetToCameo': 'Réinitialiser sur Cameo',

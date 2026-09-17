@@ -31,8 +31,8 @@ export { buildAnimationTimelineBars };
 	imports: [TranslatePipe],
 	template: `
 		@if (rows().length) {
-			<section class="timeline" aria-label="Animation timeline">
-				<h4>Timeline</h4>
+			<section class="timeline" [attr.aria-label]="'pptx.animation.timeline' | translate">
+				<h4>{{ 'pptx.animation.timeline' | translate }}</h4>
 				<div class="bar" aria-hidden="true">
 					@for (item of bars(); track item.elementId) {
 						<span

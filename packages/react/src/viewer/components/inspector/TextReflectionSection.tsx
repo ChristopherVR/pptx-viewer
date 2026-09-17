@@ -59,7 +59,7 @@ export function TextReflectionSection({
 			{hasReflection && (
 				<div className='grid grid-cols-2 gap-2 pl-4'>
 					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>Blur</span>
+						<span className='text-muted-foreground'>{t('pptx.textEffects.blur')}</span>
 						<input
 							type='number'
 							min={0}
@@ -73,7 +73,7 @@ export function TextReflectionSection({
 						/>
 					</label>
 					<label className='flex flex-col gap-1'>
-						<span className='text-muted-foreground'>Offset</span>
+						<span className='text-muted-foreground'>{t('pptx.textEffects.offset')}</span>
 						<input
 							type='number'
 							min={0}

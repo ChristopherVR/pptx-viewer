@@ -15,7 +15,7 @@ const { t } = useI18n();
 <template>
 	<button type="button" :class="pill" disabled>
 		<span class="h-3 w-3 rounded-full border border-current" aria-hidden="true" />
-		Cameo
+		{{ t('pptx.record.cameo') }}
 	</button>
 	<div :class="SEP" />
 	<button type="button" :class="pill" @click="props.onRecordFromBeginning()">
@@ -29,15 +29,15 @@ const { t } = useI18n();
 	<div :class="SEP" />
 	<button type="button" :class="pill" disabled>
 		<Eraser :class="ic" />
-		Clear
+		{{ t('pptx.record.clear') }}
 	</button>
 	<button type="button" :class="pill" disabled>
 		<RotateCcw :class="ic" />
-		Reset to Cameo
+		{{ t('pptx.record.resetToCameo') }}
 	</button>
 	<div :class="SEP" />
 	<button type="button" :class="pill" disabled>
 		<CircleHelp :class="ic" />
-		Learn More
+		{{ t('pptx.record.learnMore') }}
 	</button>
 </template>

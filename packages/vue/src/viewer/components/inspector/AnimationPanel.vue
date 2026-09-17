@@ -182,7 +182,11 @@ function changeMotionPath(pathPresetId: string): void {
 			</div>
 			<label
 				>{{ t('pptx.animation.category') }}
-				<select v-model="category" aria-label="Animation category" @change="changeCategory">
+				<select
+					v-model="category"
+					:aria-label="t('pptx.animation.categoryAria')"
+					@change="changeCategory"
+				>
 					<option v-for="option in categories" :key="option.value" :value="option.value">
 						{{ t(option.labelKey) }}
 					</option>
@@ -190,7 +194,7 @@ function changeMotionPath(pathPresetId: string): void {
 			</label>
 			<label
 				>{{ t('pptx.animation.effect') }}
-				<select v-model="presetId" aria-label="Animation preset">
+				<select v-model="presetId" :aria-label="t('pptx.animation.presetAria')">
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
 						{{ catalogLabel(preset) }}
 					</option>
@@ -198,7 +202,7 @@ function changeMotionPath(pathPresetId: string): void {
 			</label>
 			<label
 				>{{ t('pptx.animation.start') }}
-				<select v-model="trigger" aria-label="Animation trigger">
+				<select v-model="trigger" :aria-label="t('pptx.animation.triggerAria')">
 					<option v-for="item in triggerOptions" :key="item" :value="item">
 						{{ t(`pptx.animation.trigger.${item}`) }}
 					</option>

@@ -107,9 +107,11 @@ function clearDrag(): void {
 	<section
 		v-if="rows.length"
 		class="space-y-1 border-t border-border pt-2"
-		aria-label="Animation timeline"
+		:aria-label="t('pptx.animation.timeline')"
 	>
-		<h4 class="m-0 text-[10px] uppercase text-muted-foreground">Timeline</h4>
+		<h4 class="m-0 text-[10px] uppercase text-muted-foreground">
+			{{ t('pptx.animation.timeline') }}
+		</h4>
 		<div
 			class="relative h-6 overflow-hidden rounded border border-border bg-muted/50"
 			aria-hidden="true"

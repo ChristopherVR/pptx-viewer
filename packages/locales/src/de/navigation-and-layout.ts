@@ -11,6 +11,7 @@ export const translations = {
 	'pptx.sections.addBefore': 'Abschnitt davor einfügen',
 	'pptx.sections.addAfter': 'Abschnitt danach einfügen',
 	'pptx.notes.title': 'Notizen',
+	'pptx.notes.hasNotes': '(mit Notizen)',
 	'pptx.notes.slideN': 'Folie {{n}}',
 	'pptx.notes.noSlide': 'Keine Folie ausgewählt',
 	'pptx.notes.clickToAddNotes': 'Klicken, um Notizen hinzuzufügen',
