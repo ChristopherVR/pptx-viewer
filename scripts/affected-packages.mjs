@@ -11,7 +11,14 @@
  * should have run is a far worse failure than running one that need not have,
  * so every rule here errs towards running more.
  *
- * Pushes to main are never scoped; the trunk always runs the full matrix.
+ * Pushes to main are scoped the same way pull requests are: this module only
+ * ever sees a list of changed paths, so it does not know or care whether they
+ * came from a PR's file list or from diffing a push against the most recent
+ * commit on main with a successful CI run. That base-selection and the
+ * various fall-back-to-everything conditions (no prior successful run, a
+ * force-push/history rewrite, a truncated comparison, the `full-ci` label or
+ * `[full-ci]` commit-message marker, `workflow_dispatch`'s `full` input) live
+ * in `.github/workflows/ci.yml`, not here.
  *
  * Usage: node scripts/affected-packages.mjs <changed-files.json>
  */
