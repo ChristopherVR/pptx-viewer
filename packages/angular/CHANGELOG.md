@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.21.0) - 2026-09-17
+
+### Features
+
+- **shared:** Support host-owned collaboration sessions (by @Sudhansh6) ([cd44eb3](https://github.com/ChristopherVR/pptx-viewer/commit/cd44eb3e79ff6d23e9b92d6f9b0a4eb4ea4f228e))
+- **angular:** Attach host-owned collaboration sessions (by @Sudhansh6) ([802d2b0](https://github.com/ChristopherVR/pptx-viewer/commit/802d2b0186b1406ff45978f0b12e305aa8d217ce))
+
+### Bug Fixes
+
+- **shared:** Preserve consecutive collaborative text breaks (by @Sudhansh6) ([10d1667](https://github.com/ChristopherVR/pptx-viewer/commit/10d1667b3b41cf650985324b2accf7b006bf53c1))
+- **shared:** Unify host session readiness and writeback (by @Sudhansh6) ([4635d01](https://github.com/ChristopherVR/pptx-viewer/commit/4635d01dd9f0d6cd48cfbd3f1ad9968acfd02906))
+- **angular:** Share host readiness and seed ready creator rooms (by @Sudhansh6) ([9e6b718](https://github.com/ChristopherVR/pptx-viewer/commit/9e6b7187861162fe145f6f10f79f0979a9cf042a))
+
 ## [3.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.20.1) - 2026-09-17
 
 ### Bug Fixes

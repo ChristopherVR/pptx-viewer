@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.21.0) - 2026-09-17
+
+### Features
+
+- **shared:** Support host-owned collaboration sessions (by @Sudhansh6) ([cd44eb3](https://github.com/ChristopherVR/pptx-viewer/commit/cd44eb3e79ff6d23e9b92d6f9b0a4eb4ea4f228e))
+- **vue:** Borrow host collaboration resources (by @Sudhansh6) ([dd3da37](https://github.com/ChristopherVR/pptx-viewer/commit/dd3da37e075383148806576ffaf6aec764696052))
+
+### Bug Fixes
+
+- **shared:** Preserve consecutive collaborative text breaks (by @Sudhansh6) ([10d1667](https://github.com/ChristopherVR/pptx-viewer/commit/10d1667b3b41cf650985324b2accf7b006bf53c1))
+- **shared:** Unify host session readiness and writeback (by @Sudhansh6) ([4635d01](https://github.com/ChristopherVR/pptx-viewer/commit/4635d01dd9f0d6cd48cfbd3f1ad9968acfd02906))
+- **vue:** Share host readiness and retire paused text edits (by @Sudhansh6) ([d350c60](https://github.com/ChristopherVR/pptx-viewer/commit/d350c609ed3efac87c2f68ae836b6e869e6954be))
+
 ## [3.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@3.20.1) - 2026-09-17
 
 ### Bug Fixes
