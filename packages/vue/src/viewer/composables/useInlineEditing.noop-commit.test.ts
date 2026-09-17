@@ -53,6 +53,39 @@ function useHarness(element: PptxElement): Harness {
 }
 
 describe('commitInlineEdit', () => {
+	it('does not fall back to the previous rich draft during connected composition or revoked ownership', () => {
+		const source = makeElement();
+		const { editing, updateElement } = useHarness(source);
+		editing.enterInlineEdit(source.id);
+		editing.updateInlineText('Stale', {
+			elementId: source.id,
+			text: 'Stale',
+			textSegments: [{ text: 'Stale', style: {} }],
+		});
+		let reason = 'composition-active';
+		editing.onListSession({
+			active: true,
+			controller: {
+				checkModel: () => true,
+				readAccepted: () => undefined,
+				read: () => ({ kind: 'unsupported', reason, text: 'Stale' }),
+				dispose: vi.fn(),
+				format: vi.fn(),
+				refresh: vi.fn(),
+				readSelection: vi.fn(),
+			} as unknown as Parameters<typeof editing.onListSession>[0]['controller'],
+		});
+		expect(editing.isInlineInputPending()).toBeTruthy();
+		expect(editing.readInlineSnapshot()).toBeUndefined();
+		editing.commitInlineEdit();
+		expect(updateElement).not.toHaveBeenCalled();
+		expect(editing.inlineEditingElementId.value).toBe(source.id);
+		reason = 'inactive-session';
+		editing.commitInlineEdit();
+		expect(updateElement).not.toHaveBeenCalled();
+		expect(editing.inlineEditingElementId.value).toBeNull();
+	});
+
 	it('invalidates a mounted stale list body on model undo without cancelling geometry-only changes', async () => {
 		const source = makeElement({
 			text: '◆ Original',

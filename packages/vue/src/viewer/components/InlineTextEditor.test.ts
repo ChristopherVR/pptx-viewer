@@ -1,7 +1,15 @@
 import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
-import { setElementBullets } from 'pptx-viewer-shared';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+	setElementBullets,
+} from 'pptx-viewer-shared';
+import type { YjsFactories } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
+import * as Y from 'yjs';
 
 import InlineTextEditor from './InlineTextEditor.vue';
 
@@ -16,6 +24,52 @@ const element = {
 } as unknown as PptxElement;
 
 describe('inlineTextEditor', () => {
+	it('reads live remote text and blocks a stale blur while native composition is pending', async () => {
+		const doc = new Y.Doc();
+		const source = { ...element, text: 'Hello', textSegments: [{ text: 'Hello', style: {} }] };
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text as unknown as Y.Text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
+		};
+		reconcileSlidesInYDoc([{ id: 's1', slideNumber: 1, elements: [source] }], doc, factories);
+		const patcher = createCollaborationLivePatcher();
+		patcher.configure(doc, factories, true);
+		const wrapper = mount(InlineTextEditor, {
+			attachTo: document.body,
+			props: { element: source, livePatcher: patcher, slideId: 's1' },
+		});
+		try {
+			const root = wrapper.get('[data-inline-editor]');
+			const body = findElementYMap(doc, 's1', source.id)!.get('textBody') as Y.Text;
+			body.insert(5, ' remote');
+			expect(root.element.textContent).toBe('Hello remote');
+			await root.trigger('compositionstart');
+			await root.trigger('blur');
+			expect(wrapper.emitted('commit')).toBeUndefined();
+			const registration = wrapper.emitted('listSession')!.at(-1)![0] as {
+				controller: { read(): { kind: string; reason?: string } };
+			};
+			expect(registration.controller.read()).toMatchObject({
+				kind: 'unsupported',
+				reason: 'composition-active',
+			});
+		} finally {
+			wrapper.unmount();
+			patcher.dispose();
+			doc.destroy();
+		}
+	});
+
 	it('toggles inherited underline off in a list whose marker has an empty style', async () => {
 		const source = {
 			...element,

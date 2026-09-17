@@ -3,10 +3,16 @@
  * Document readiness is shared across bindings; Vue watches and presence have
  * focused composables so resource ownership stays visible here.
  */
-import type { CollaborationConfig, CollaborationRole, ConnectionStatus } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	CollaborationRole,
+	ConnectionStatus,
+	YjsFactories,
+} from 'pptx-viewer-shared';
 import {
 	borrowExternalCollaborationAwareness,
 	CONNECTION_TIMEOUT_MS,
+	createSnapshotTextPositions,
 	isMixedContentBlocked,
 	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
@@ -76,12 +82,21 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 				return;
 			}
 			const ownedDoc = external ? null : new Y.Doc();
-			const doc = external?.doc ?? ownedDoc!;
+			const doc = (external?.doc ?? ownedDoc!) as import('yjs').Doc;
 			ydoc = ownedDoc;
-			const factories = {
+			const factories: YjsFactories = {
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
 			};
 			if (external) {
 				const borrowed = borrowExternalCollaborationAwareness(external.awareness);

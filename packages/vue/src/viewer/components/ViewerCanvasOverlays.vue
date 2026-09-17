@@ -238,6 +238,14 @@ defineExpose({
 		v-if="canEdit && inlineEdit.inlineEditingElement.value"
 		:key="inlineEdit.inlineEditingElement.value.id"
 		:element="inlineEdit.inlineEditingElement.value"
+		:live-patcher="
+			activeSlide?.elements.some(
+				(element) => element.id === inlineEdit.inlineEditingElement.value?.id,
+			)
+				? collaboration.collab.livePatcher
+				: undefined
+		"
+		:slide-id="activeSlide?.id"
 		:spell-check="spellCheckEnabled"
 		@change="inlineEdit.updateInlineText"
 		@commit="inlineEdit.commitInlineEdit"
