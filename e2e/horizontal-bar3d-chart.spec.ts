@@ -3,15 +3,19 @@
  * `c:bar3DChart` with `c:barDir val="bar"` - PowerPoint's horizontal 3-D Bar,
  * as opposed to the (much more common) vertical 3-D Column.
  *
- * None of the five demos opt into the interactive three.js `bar3D` scene
- * (`BarChart3DContext`), so every binding falls back to the flat SVG chart:
- * `resolveChartKind` (`packages/shared/src/render/chart-view-model-kinds.ts`)
- * folds `bar3D` onto the ordinary `'bar'` kind, and `c:barDir val="bar"` is
- * exactly what `chart-horizontal-bars.ts` (shared) turns into WIDER-THAN-TALL
- * bar rects rather than the default taller-than-wide columns. This is the
- * neutral, framework-agnostic contract every binding paints from the same
- * shared geometry: the chart renders at all (not a blank frame), and every
- * bar rect is wider than it is tall.
+ * This spec forces `?barChart3D=0`: the demos now opt into the interactive
+ * three.js `bar3D` scene (`BarChart3DContext`) by default, and a `bar3D`
+ * chart type is exactly the trigger for that scene (see
+ * `ChartElementView.bar3d.test.tsx`). The flat-SVG contract this spec checks
+ * is a different, orthogonal feature: `resolveChartKind`
+ * (`packages/shared/src/render/chart-view-model-kinds.ts`) folds `bar3D` onto
+ * the ordinary `'bar'` kind regardless of that scene flag, and
+ * `c:barDir val="bar"` is exactly what `chart-horizontal-bars.ts` (shared)
+ * turns into WIDER-THAN-TALL bar rects rather than the default
+ * taller-than-wide columns. With the interactive scene forced off, this is
+ * the neutral, framework-agnostic contract every binding paints from the
+ * same shared geometry: the chart renders at all (not a blank frame), and
+ * every bar rect is wider than it is tall.
  *
  * Run: bunx playwright test horizontal-bar3d-chart
  */
@@ -34,16 +38,21 @@ test.describe('horizontal bar3D chart', () => {
 	}, testInfo) => {
 		test.slow();
 
-		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
-			await loadDeckAt(page, origin, FIXTURE);
-			await slideStage(page).waitFor();
-			await page
-				.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
-				.first()
-				.waitFor({ timeout: 20_000 });
-			const charts = await fingerprintCharts(page);
-			return charts;
-		});
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => {
+				await loadDeckAt(page, origin, FIXTURE);
+				await slideStage(page).waitFor();
+				await page
+					.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
+					.first()
+					.waitFor({ timeout: 20_000 });
+				const charts = await fingerprintCharts(page);
+				return charts;
+			},
+			{ path: '/?barChart3D=0' },
+		);
 
 		const failures = results.flatMap(({ framework, value: charts }) => {
 			const problems: string[] = [];

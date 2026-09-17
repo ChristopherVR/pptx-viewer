@@ -30,6 +30,12 @@
  * a real bug in ONE of them, not something to paper over by importing one
  * into the other.
  *
+ * Forces `?barChart3D=0`: the demos now opt into the interactive three.js
+ * `bar3D` scene by default, and this fixture's `bar3D` chart type is exactly
+ * that scene's trigger (see `ChartElementView.bar3d.test.tsx`). This spec's
+ * face-colour contract belongs to the flat SVG path, an orthogonal feature,
+ * so the scene must be forced off to exercise it.
+ *
  * Run: bunx playwright test bar3d-picture-fill-first-paint
  */
 import { expect, test } from '@playwright/test';
@@ -65,19 +71,24 @@ test.describe('bar3D untargeted picture-fill face colour (first paint, no flash)
 	}, testInfo) => {
 		test.slow();
 
-		const results = await acrossFrameworks(browser, testInfo, async (page, origin) => {
-			await loadDeckAt(page, origin, FIXTURE);
-			await slideStage(page).waitFor();
-			await page
-				.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
-				.first()
-				.waitFor({ timeout: 20_000 });
-			// Deliberately no extra wait/interaction beyond the chart existing:
-			// this spec's whole point is what colour is ALREADY painted the
-			// moment the chart is present, not what it eventually becomes.
-			const charts = await fingerprintCharts(page);
-			return charts;
-		});
+		const results = await acrossFrameworks(
+			browser,
+			testInfo,
+			async (page, origin) => {
+				await loadDeckAt(page, origin, FIXTURE);
+				await slideStage(page).waitFor();
+				await page
+					.locator('[aria-roledescription="slide"] [aria-roledescription="chart"] svg')
+					.first()
+					.waitFor({ timeout: 20_000 });
+				// Deliberately no extra wait/interaction beyond the chart existing:
+				// this spec's whole point is what colour is ALREADY painted the
+				// moment the chart is present, not what it eventually becomes.
+				const charts = await fingerprintCharts(page);
+				return charts;
+			},
+			{ path: '/?barChart3D=0' },
+		);
 
 		const failures = results.flatMap(({ framework, value: charts }) => {
 			if (charts.length === 0) {

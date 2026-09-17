@@ -27,7 +27,11 @@ export const SAMPLE_DECK = fixture('sample-deck.pptx');
  * paints the stage box before it has laid out any content, so a spec that waits
  * only for the stage measures an empty slide and passes for the wrong reason.
  */
-export async function loadDeck(page: Page, fixturePath: string = SAMPLE_DECK): Promise<void> {
+export async function loadDeck(
+	page: Page,
+	fixturePath: string = SAMPLE_DECK,
+	path: string = '/',
+): Promise<void> {
 	// A test that loads a deck twice would otherwise be restored straight into
 	// the viewer on the second call, so the landing dropzone - the only place
 	// `#file-input` exists - never mounts. Clearing costs one guarded evaluate
@@ -36,7 +40,7 @@ export async function loadDeck(page: Page, fixturePath: string = SAMPLE_DECK): P
 	// `session-restore.spec.ts` is unaffected: it deliberately drives its own
 	// `goto` + upload rather than going through here.
 	await resetTabSession(page);
-	await page.goto('/');
+	await page.goto(path);
 	await uploadDeck(page, fixturePath);
 }
 

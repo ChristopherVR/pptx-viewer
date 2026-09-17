@@ -169,7 +169,11 @@ test.describe('chart subtype pickers', () => {
 	});
 
 	test('a surface chart exposes the wireframe select', async ({ page }) => {
-		await loadDeck(page, CHART_DECK);
+		// The demos now opt into the interactive three.js surface-chart scene by
+		// default, which would render this chart as a WebGL canvas instead of
+		// the flat SVG this spec's `chartElement` locator (and the wireframe
+		// select it is checking) targets. Force it off: `?surfaceChart3D=0`.
+		await loadDeck(page, CHART_DECK, '/?surfaceChart3D=0');
 		await thumbnail(page, SURFACE_SLIDE).click();
 		await page.waitForTimeout(300);
 		await selectElement(page, chartElement(page));

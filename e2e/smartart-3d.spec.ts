@@ -4,15 +4,17 @@
  *
  * The opt-in vanilla-Three.js SmartArt renderer (`pptx-viewer-shared/smartart-3d`)
  * has no live UI toggle: every binding reads it once, at mount, from the
- * `?smartArt3D=1` query string at its demo entry point and threads it down as a
- * fixed boolean prop for the life of the page. So
- * "toggling 3D on/off" for a user is a page load with (or without) that query
- * param, not a runtime switch; these specs model it that way:
+ * `?smartArt3D` query string at its demo entry point and threads it down as a
+ * fixed boolean prop for the life of the page. The demos enable it by
+ * default now (opt out via `?smartArt3D=0`), so "toggling 3D on/off" for a
+ * user is a page load with (or without) that query param, not a runtime
+ * switch; these specs model it that way:
  *
- *  - `?smartArt3D=1` + insert a Cycle/Hierarchy SmartArt -> a `<canvas>` (the
- *    mounted WebGL scene) should appear for that element with a non-zero size.
- *  - no query param (default) + insert the same presets -> NO canvas should
- *    ever appear; the plain SVG renderer should render instead (this is the
+ *  - `?smartArt3D=1` (or the default, no param) + insert a Cycle/Hierarchy
+ *    SmartArt -> a `<canvas>` (the mounted WebGL scene) should appear for
+ *    that element with a non-zero size.
+ *  - `?smartArt3D=0` + insert the same presets -> NO canvas should ever
+ *    appear; the plain SVG renderer should render instead (this is the
  *    "3D off falls back to 2D" contract).
  *  - within a single 3D-enabled page, switching the inspector's layout type
  *    (Cycle -> Hierarchy) forces `SmartArt3DScene` to tear down the old
@@ -105,9 +107,12 @@ function viewport(page: Page): Locator {
 	return page.locator('[data-pptx-viewport]');
 }
 
-/** Load the sample deck, optionally opting into the 3D SmartArt renderer. */
+/**
+ * Load the sample deck. The 3D SmartArt renderer is on by default in the
+ * demos; pass `threeD: false` to explicitly opt out via `?smartArt3D=0`.
+ */
 async function loadDeck(page: Page, options: { threeD?: boolean } = {}): Promise<void> {
-	await page.goto(options.threeD ? '/?smartArt3D=1' : '/');
+	await page.goto(options.threeD === false ? '/?smartArt3D=0' : '/?smartArt3D=1');
 	await page.locator('#file-input').setInputFiles(fixturePath);
 	await viewport(page).locator('[data-element-id]').first().waitFor();
 	await page.waitForTimeout(500);
