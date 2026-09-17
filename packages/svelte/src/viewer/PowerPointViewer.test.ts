@@ -1,8 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import type { ExternalCollaborationSession } from 'pptx-viewer-shared';
+import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import PowerPointViewer from './PowerPointViewer.svelte';
 import type { PowerPointViewerProps } from './types';
@@ -52,6 +55,90 @@ async function mountViewer(props: Partial<PowerPointViewerProps> = {}): Promise<
 }
 
 describe('powerPointViewer', () => {
+	it('retains an accepted draft locally on sync loss and cannot overwrite resumed remote text', async () => {
+		const doc = new Y.Doc();
+		let synced = true;
+		const listeners = new Set<() => void>();
+		const externalSession: ExternalCollaborationSession = {
+			doc,
+			awareness: {
+				clientID: doc.clientID,
+				getLocalState: () => null,
+				setLocalState: () => {},
+				setLocalStateField: () => {},
+				getStates: () => new Map(),
+				on: () => {},
+				off: () => {},
+			},
+			getSnapshot: () => ({ status: 'connected', synced }),
+			subscribe: (listener) => {
+				listeners.add(listener);
+				return () => {
+					listeners.delete(listener);
+				};
+			},
+		};
+		try {
+			const { target } = await mountViewer({
+				editable: true,
+				collaboration: { roomId: 'external', serverUrl: '', userName: 'Writer', externalSession },
+			});
+			await vi.waitFor(() => expect(readSlidesFromYDoc(doc).length).toBeGreaterThan(0));
+			flushSync();
+			expect(
+				target
+					.querySelector('.pptx-svelte-stage-holder')
+					?.classList.contains('pptx-svelte-editing'),
+			).toBeTruthy();
+			const text = readSlidesFromYDoc(doc)[0].elements.find(
+				(element) => 'text' in element && element.text === 'Product Overview',
+			)!;
+			const stage = target.querySelector<HTMLElement>('.pptx-svelte-stage-holder')!;
+			const shape = stage.querySelector<HTMLElement>(`[data-element-id="${text.id}"]`)!;
+			shape.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			flushSync();
+			const draftNode = target.querySelector<HTMLElement>('[data-inline-editor]')!;
+			expect(draftNode).not.toBeNull();
+			draftNode.textContent = 'Accepted draft';
+			draftNode.dispatchEvent(new Event('input', { bubbles: true }));
+			synced = false;
+			for (const listener of listeners) {
+				listener();
+			}
+			flushSync();
+			expect(target.querySelector('[data-inline-editor]')).toBeNull();
+			expect(stage.textContent).toContain('Accepted draft');
+			const remote = readSlidesFromYDoc(doc);
+			Object.assign(
+				remote[0].elements.find((element) => element.id === text.id)!,
+				{ text: 'Remote replacement', textSegments: [{ text: 'Remote replacement', style: {} }] },
+			);
+			reconcileSlidesInYDoc(
+				remote,
+				doc,
+				{
+					createMap: () => new Y.Map(),
+					createArray: () => new Y.Array(),
+					createText: () => new Y.Text(),
+				},
+				'peer',
+			);
+			synced = true;
+			for (const listener of listeners) {
+				listener();
+			}
+			flushSync();
+			draftNode.dispatchEvent(new FocusEvent('blur'));
+			flushSync();
+			expect(stage.textContent).toContain('Remote replacement');
+			expect(stage.textContent).not.toContain('Accepted draft');
+		} finally {
+			cleanup?.();
+			cleanup = undefined;
+			doc.destroy();
+		}
+	});
+
 	it('loads a deck, renders the stage, and reports the slide count', async () => {
 		const { target, onload } = await mountViewer();
 		const detail = onload.mock.calls[0][0] as { slideCount: number };

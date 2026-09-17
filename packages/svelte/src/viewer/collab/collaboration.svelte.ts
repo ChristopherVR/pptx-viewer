@@ -6,38 +6,25 @@
  * KNOWN LIMITATION: collaborative-undo semantics are undefined in shared - local
  * undo is kept as-is and may fight a concurrent remote edit (matching the others).
  */
-import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
 	CollabLoadOrigin,
-	CollaborationLivePatcher,
 	ConnectionStatus,
 	RemoteCursor,
 	SanitizedPresence,
-	YDocLike,
-	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
-	createCollaborationLivePatcher,
-	createSyncGate,
-	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
-	observeExternalCollaborationReadiness,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
 
 import type { CollaborationDeps } from './collaboration-deps';
+import { CollaborationDocument } from './collaboration-document.svelte';
 import { registerCollaborationEffects } from './collaboration-effects.svelte';
 import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
-import type { ObserveRemoteDeps } from './collaboration-remote-sync';
-import {
-	adoptDocSlidesAfterLoad,
-	observeRemoteSlides,
-	publishLocalSlides,
-} from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
 import { createDefaultSession, createExternalSession } from './collaboration-session';
 import { wireProviderStatus } from './collaboration-status';
@@ -51,39 +38,30 @@ export class CollaborationController {
 	/** Live connection status (reactive). */
 	status = $state<ConnectionStatus>('disconnected');
 	/** Interim Y.Doc channel for in-flight inline text (dormant when stopped). */
-	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
+	get livePatcher() {
+		return this.#document.livePatcher;
+	}
 
 	#active = $state(false);
 	readonly #deps: CollaborationDeps;
 	readonly #makeSession: CollabSessionFactory;
 
 	#session: CollabSession | null = null;
-	#ydoc: YDocLike | null = null;
-	#factories: YjsFactories | null = null;
 	#provider: CollabProviderHandle | null = null;
 	#config: CollaborationConfig | null = $state(null);
 	#lastStarted: CollaborationConfig | null = null;
 	#startedByEffect = false;
 	#startToken = 0;
-	#disposeExternal: (() => void) | null = null;
 	#restoreExternalPresence: (() => void) | null = null;
-	#awaitingJoinedDocument = false;
-
-	#applyingRemote = false;
-	#lastSynced = '';
-	#unobserve: (() => void) | null = null;
 	#connectTimer: ReturnType<typeof setTimeout> | null = null;
-
-	readonly #gate = createSyncGate(() => this.#flushLocalSlides());
-	readonly #writeBack = createWriteBackScheduler({
-		getYDoc: () => this.#ydoc,
-		getSourceBytes: () => this.#deps.getSourceBytes?.() ?? null,
-		getSaveOptions: () => this.#deps.getSaveOptions?.(),
-	});
+	readonly #document: CollaborationDocument;
 	readonly #presence: CollaborationPresence;
 
 	constructor(deps: CollaborationDeps) {
 		this.#deps = deps;
+		this.#document = new CollaborationDocument(deps, (status) => {
+			this.status = status;
+		});
 		this.#makeSession = deps.createSession ?? createDefaultSession;
 		this.#presence = new CollaborationPresence(() => ({
 			width: this.#deps.getCanvasWidth?.(),
@@ -94,8 +72,9 @@ export class CollaborationController {
 			getConfig: () => this.#deps.getConfig(),
 			getSlides: () => this.#deps.getSlides(),
 			syncConfig: (config) => this.#syncConfig(config),
-			isPublishable: () => this.#active && this.#gate.isOpen(),
-			flushLocalSlides: (slides) => this.#flushLocalSlides(slides),
+			isPublishable: () => this.#active && this.#document.gate.isOpen(),
+			flushLocalSlides: (slides) => this.#document.flush(slides),
+			leaveOnBeforeUnload: () => !this.#config?.externalSession,
 			stop: () => this.stop(),
 			rejoin: () => {
 				if (this.#lastStarted) {
@@ -111,7 +90,7 @@ export class CollaborationController {
 	}
 	/** The requested viewer role forbids editing, including while attachment is pending. */
 	get readOnly(): boolean {
-		return this.#config?.role === 'viewer';
+		return this.#document.readOnly;
 	}
 	/** Remote cursors on the current slide (reactive). */
 	get cursors(): RemoteCursor[] {
@@ -160,11 +139,8 @@ export class CollaborationController {
 	 * late joiner's bootstrap deck never clobbers the room's synced content.
 	 */
 	adoptDocAfterLoad(origin: CollabLoadOrigin = 'user'): void {
-		if (origin === 'user') {
-			this.#awaitingJoinedDocument = false;
-		}
-		if (this.#active && this.#ydoc) {
-			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps(), origin);
+		if (this.#active) {
+			this.#document.adoptAfterLoad(origin);
 		}
 	}
 
@@ -173,7 +149,7 @@ export class CollaborationController {
 			this.#lastStarted = config;
 			this.#startedByEffect = true;
 			void this.#run(config);
-		} else if (!config && this.#active && this.#startedByEffect) {
+		} else if (!config && this.#startedByEffect) {
 			// Only auto-stop a session THIS effect started; a direct `start()`
 			// call (e.g. from a dialog) always clears the flag below, so it
 			// is immune to this branch on the effect's next run.
@@ -183,33 +159,11 @@ export class CollaborationController {
 		}
 	}
 
-	/** Write the current local slides into the doc (granular, echo-deduped). */
-	#flushLocalSlides(slides: PptxSlide[] = this.#deps.getSlides()): void {
-		if (this.#awaitingJoinedDocument) {
-			return;
-		}
-		const published = publishLocalSlides({
-			slides,
-			ydoc: this.#ydoc,
-			factories: this.#factories,
-			applyingRemote: this.#applyingRemote,
-			role: this.#config?.role,
-			lastSynced: this.#lastSynced,
-		});
-		if (published === null) {
-			return;
-		}
-		this.#lastSynced = published;
-		if (this.#config) {
-			this.#writeBack.schedule(this.#config);
-		}
-	}
 	#clearTimers(): void {
 		if (this.#connectTimer !== null) {
 			clearTimeout(this.#connectTimer);
 			this.#connectTimer = null;
 		}
-		this.#writeBack.cancel();
 	}
 	/** Start (or restart) a session with the given config (dialog-driven). */
 	async start(config: CollaborationConfig): Promise<void> {
@@ -225,9 +179,11 @@ export class CollaborationController {
 		this.stop();
 		const token = ++this.#startToken;
 		this.#config = config;
+		this.#document.begin(config);
 		try {
 			validateRoomId(config.roomId);
 		} catch {
+			this.stop();
 			this.status = 'error';
 			return;
 		}
@@ -238,6 +194,7 @@ export class CollaborationController {
 			transport === 'websocket' &&
 			isMixedContentBlocked(config.serverUrl)
 		) {
+			this.stop();
 			this.status = 'error';
 			return;
 		}
@@ -253,19 +210,17 @@ export class CollaborationController {
 				return;
 			}
 			this.#session = session;
-			this.#ydoc = session.ydoc;
-			this.#factories = session.factories;
-			this.livePatcher.configure(session.ydoc, session.factories);
+			this.#document.attach(session.ydoc, session.factories);
 			this.#provider = session.provider;
 
 			// Gate local writes on the provider's initial sync; the grace timer
 			// covers a lone webrtc peer that never receives a sync event.
-			this.#gate.reset();
-			this.#provider.onSynced(() => this.#gate.open());
+			this.#document.gate.reset();
+			this.#provider.onSynced(() => this.#document.gate.open());
 			if (this.#provider.syncedNow) {
-				this.#gate.open();
+				this.#document.gate.open();
 			} else {
-				this.#gate.arm();
+				this.#document.gate.arm();
 			}
 
 			this.#presence.start(this.#provider.awareness, {
@@ -275,7 +230,7 @@ export class CollaborationController {
 				role: config.role,
 			});
 
-			this.#wireProvider(transport, config);
+			this.#wireProvider(transport);
 
 			this.#active = true;
 			this.#deps.onStart?.(config);
@@ -295,65 +250,29 @@ export class CollaborationController {
 			session.dispose();
 			return;
 		}
-		this.#ydoc = session.ydoc;
-		this.#factories = session.factories;
 		this.#restoreExternalPresence = session.dispose;
-		this.#awaitingJoinedDocument = config.sessionIntent === 'join';
 		this.#presence.start(session.awareness, {
 			userName: config.userName,
 			userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
 			userAvatar: config.userAvatar,
 			role: config.role,
 		});
-		this.#unobserve = observeRemoteSlides(session.ydoc, config, this.#remoteDeps());
 		this.#active = true;
-		this.#disposeExternal = observeExternalCollaborationReadiness(external, {
-			gate: this.#gate,
-			livePatcher: this.livePatcher,
-			factories: session.factories,
-			role: config.role,
-			canAdoptEmptySlides: () => !this.#awaitingJoinedDocument,
-			onStatus: (status) => {
-				this.status = status;
-			},
-			adoptSlides: (slides) => {
-				this.#awaitingJoinedDocument = false;
-				this.#lastSynced = JSON.stringify(slides);
-				this.#applyingRemote = true;
-				this.#deps.applyRemoteSlides(slides);
-				this.#applyingRemote = false;
-			},
-		});
+		this.#document.attach(session.ydoc, session.factories);
 		this.#deps.onStart?.(config);
 	}
 
-	/** Callback bundle shared by the remote observer and post-load adoption. */
-	#remoteDeps = (): ObserveRemoteDeps => ({
-		isApplyingRemote: () => this.#applyingRemote,
-		setApplyingRemote: (value) => (this.#applyingRemote = value),
-		setLastSynced: (value) => (this.#lastSynced = value),
-		applyRemoteSlides: (slides) => {
-			if (this.#awaitingJoinedDocument && slides.length === 0) {
-				return;
-			}
-			this.#awaitingJoinedDocument = false;
-			this.#deps.applyRemoteSlides(slides);
-		},
-		scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
-	});
-
 	/** Attach the status machine and the remote-slide observer to the session. */
-	#wireProvider(transport: string, config: CollaborationConfig): void {
-		if (!this.#provider || !this.#ydoc) {
+	#wireProvider(transport: string): void {
+		if (!this.#provider) {
 			return;
 		}
-		this.#unobserve = observeRemoteSlides(this.#ydoc, config, this.#remoteDeps());
 		wireProviderStatus(this.#provider, transport, {
 			setStatus: (status) => (this.status = status),
 			getStatus: () => this.status,
 			isActive: () => this.#active,
 			stop: () => this.stop(),
-			gate: this.#gate,
+			gate: this.#document.gate,
 			setConnectTimer: (timer) => (this.#connectTimer = timer),
 			getConnectTimer: () => this.#connectTimer,
 		});
@@ -361,25 +280,15 @@ export class CollaborationController {
 
 	stop(): void {
 		this.#startToken++;
-		this.#disposeExternal?.();
-		this.#disposeExternal = null;
+		this.#document.stop();
 		this.#clearTimers();
-		this.#gate.reset();
 		this.#presence.stop();
 		this.#restoreExternalPresence?.();
 		this.#restoreExternalPresence = null;
-		this.#awaitingJoinedDocument = false;
-		this.#unobserve?.();
-		this.#unobserve = null;
 		this.#session?.destroy();
 		this.#session = null;
 		this.#provider = null;
-		this.#ydoc = null;
-		this.#factories = null;
 		this.#config = null;
-		this.livePatcher.configure(null, null);
-		this.#applyingRemote = false;
-		this.#lastSynced = '';
 		if (this.#active) {
 			this.#deps.onStop?.();
 		}
