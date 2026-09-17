@@ -1518,8 +1518,9 @@ useCanvasImagePaste(viewerRootRef, {
 			contextMenu.value?.open ||
 			!activeSlide.value ||
 			!handler.value
-		)
+		) {
 			return null;
+		}
 		return {
 			documentId: handler.value,
 			slideId: activeSlide.value.id,
