@@ -32,7 +32,6 @@ import {
 	commitElementUpdateBatch,
 	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
-	buildDeckSaveOptions,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	endAudienceDisplay,
@@ -2314,26 +2313,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			// properties, ...), built the same way as `loader.saveSlides`, so an
 			// owner's write-back file no longer drops every session-level edit
 			// outside `slides`.
-			getSaveOptions: () =>
-				buildDeckSaveOptions({
-					headerFooter: this.loader.headerFooter(),
-					presentationProperties: this.loader.presentationProperties(),
-					viewProperties: this.loader.viewProperties(),
-					customShows: this.loader.customShows(),
-					sections: this.loader.sections(),
-					coreProperties: this.loader.coreProperties(),
-					appProperties: this.loader.appProperties(),
-					customProperties: this.loader.customProperties(),
-					tagCollections: this.loader.tagCollections(),
-					slideMasters: this.loader.slideMasters(),
-					notesMaster: this.loader.notesMaster(),
-					handoutMaster: this.loader.handoutMaster(),
-					slideSize: this.loader.slideSizeSelection().size,
-					tableStyleMap: this.loader.tableStyleMap(),
-					tableStylesDefaultId: this.loader.tableStylesDefaultId(),
-					tableStylesToDelete: this.loader.tableStylesToDelete(),
-					embedFonts: this.loader.embedFonts(),
-				}),
+			getSaveOptions: () => this.loader.getSaveOptions(),
 			currentSlides: () => this.editor.slides(),
 			emitStart: (config) => this.startCollaboration.emit(config),
 			emitStop: () => this.stopCollaboration.emit(),

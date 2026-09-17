@@ -60,6 +60,12 @@ Two flavors exist, and only one is meant for standalone use:
 
 ## Orchestration services (internal architecture)
 
+`ViewerCollaborationShellService` is the supported exception for custom editors:
+provide it with `POWER_POINT_VIEWER_PROVIDERS` and bind the host's content,
+collaboration config, permission, and stage accessor. It wires the existing
+services for you and exposes the effective `canEdit` and normalized session state.
+See [Custom collaboration UI](/angular/collaboration#building-custom-collaboration-ui).
+
 These services describe how the viewer is wired. Treat this table as conceptual reference, not an
 API contract.
 
@@ -152,12 +158,13 @@ const bytes = await this.loader.saveSlides(editor.snapshot());
 For building custom collaboration UIs or driving sync yourself. See
 [Collaboration](/angular/collaboration).
 
-| Export                                        | Purpose                                                                                                                                                                                                                                                   |
-| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CollaborationService`                        | `connect(config, options?)` / `disconnect()` / `retry()` for a Yjs session; signals for `status`, `presence`, `cursors`, `connectedCount`; `broadcastSlides`, `setCursor`, `setSelection`, `setActiveSlide`, `followUser`. Disconnects itself on destroy. |
-| `CollaborationCursorsComponent`               | Renders remote cursors on the slide canvas.                                                                                                                                                                                                               |
-| `RemoteSelectionOverlayComponent` (internals) | Renders remote users' element-selection highlights.                                                                                                                                                                                                       |
-| `collaboration-helpers` exports               | `validateRoomId`, `sanitizeUserName`, `derivePresenceList`, `assignUserColor`, and more.                                                                                                                                                                  |
+| Export                            | Purpose                                                                                                                                                                                                                                                   |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CollaborationService`            | `connect(config, options?)` / `disconnect()` / `retry()` for a Yjs session; signals for `status`, `presence`, `cursors`, `connectedCount`; `broadcastSlides`, `setCursor`, `setSelection`, `setActiveSlide`, `followUser`. Disconnects itself on destroy. |
+| `ViewerCollaborationShellService` | Supported custom-shell composition over the existing services: effective permission/session signals, source adoption, editing, presence, and live-model save.                                                                                             |
+| `CollaborationCursorsComponent`   | Renders remote cursors on the slide canvas.                                                                                                                                                                                                               |
+| `RemoteSelectionOverlayComponent` | Renders remote users' element-selection highlights inside the scaled canvas.                                                                                                                                                                              |
+| `collaboration-helpers` exports   | `validateRoomId`, `sanitizeUserName`, `derivePresenceList`, `assignUserColor`, and more.                                                                                                                                                                  |
 
 ```ts
 const collab = inject(CollaborationService);

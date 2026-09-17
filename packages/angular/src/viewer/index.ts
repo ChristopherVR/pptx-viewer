@@ -137,6 +137,15 @@ export { resolveParagraphBullet, formatAutoNumber, bulletIndentPx } from './text
 export { EquationRendererComponent } from './equation-renderer.component';
 export { ommlToMathml, convertOmmlToMathMl } from '../internal/shared';
 export { LoadContentService } from './load-content.service';
+export { ViewerCollaborationShellService } from './viewer-collaboration-shell.service';
+export { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
+export type { ViewerCollaborationShellOptions } from './viewer-collaboration-shell.service';
+export type {
+	CollaborationShellState,
+	ConnectionStatus,
+	SanitizedPresence,
+	DeckSaveState,
+} from '../internal/shared';
 
 // Comments
 export { CommentMarkersOverlayComponent } from './comment-markers-overlay.component';
