@@ -195,8 +195,17 @@ export function decodeTextBodyFromYText(ytext: YText): Record<string, unknown>[]
 				/* skip */
 			}
 		}
-		// Restore text content (empty-placeholder and breaks have no user text)
-		if (op.insert !== '\n' && op.insert !== EMPTY_PLACEHOLDER) {
+		const isBreakMarker = /^\n+$/u.test(op.insert) && (a.pb === '1' || a.lb === '1');
+		if (isBreakMarker) {
+			// Y.Text coalesces adjacent equal-attribute breaks into one delta op.
+			// Each character still represents a separate paragraph or soft break.
+			for (let index = 0; index < op.insert.length; index++) {
+				segments.push(structuredClone(seg));
+			}
+			continue;
+		}
+		// Unflagged newlines are literal text; only the empty-run carrier is hidden.
+		if (op.insert !== EMPTY_PLACEHOLDER) {
 			seg.text = op.insert;
 		}
 		segments.push(seg);
