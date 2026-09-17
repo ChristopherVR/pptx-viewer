@@ -1,4 +1,24 @@
-import { test } from '@playwright/test';
+/* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright support */
+import { expect, test } from '@playwright/test';
+import type { Download, Page } from '@playwright/test';
+
+import { savePptxViaBackstage } from '../save-pptx';
+
+export async function expectHostOwnedShell(page: Page): Promise<void> {
+	if (test.info().project.metadata.headless) {
+		await expect(page.locator('[data-host-custom-shell]')).toBeVisible();
+	}
+}
+
+/** Custom chrome owns Save; the full viewer still uses its actual File menu. */
+export async function saveHostOwnedPresentation(page: Page): Promise<Download> {
+	if (!test.info().project.metadata.headless) {
+		return savePptxViaBackstage(page);
+	}
+	const download = page.waitForEvent('download');
+	await page.getByRole('button', { name: 'Save presentation', exact: true }).click();
+	return download;
+}
 
 /** Route the neutral product cases to a standard viewer or custom host shell. */
 export function hostOwnedSessionUrl(room: string, extra: Record<string, string>): string {

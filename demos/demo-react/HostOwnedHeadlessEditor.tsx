@@ -1,73 +1,62 @@
 import { SlideCanvas, Toolbar, useViewerBuildingBlocks } from 'pptx-react-viewer';
 import type { CollaborationConfig, PowerPointViewerHandle } from 'pptx-react-viewer';
-import React, { useRef } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+
+import type { HostOwnedShellHandle } from '../shared/host-owned-shell-controls';
 
 /** A custom host shell uses the same collaboration session as the full editor. */
-export function HostOwnedHeadlessEditor({
-	content,
-	fileName,
-	collaboration,
-	canEdit,
-}: {
-	content: Uint8Array;
-	fileName: string;
-	collaboration: CollaborationConfig;
-	canEdit: boolean;
-}) {
-	const handle = useRef<PowerPointViewerHandle>(null);
-	const blocks = useViewerBuildingBlocks({
-		content,
-		fileName,
-		collaboration,
-		handle,
-		canEdit,
-		autosaveEnabled: false,
-	});
-	const save = async (): Promise<void> => {
-		const bytes = await handle.current?.getContent();
-		if (!bytes?.byteLength) {
-			return;
-		}
-		const url = URL.createObjectURL(
-			new Blob([new Uint8Array(bytes)], {
-				type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+export const HostOwnedHeadlessEditor = forwardRef<
+	HostOwnedShellHandle,
+	{
+		content: Uint8Array;
+		fileName: string;
+		collaboration: CollaborationConfig;
+		canEdit: boolean;
+	}
+>(
+	// oxlint-disable-next-line eslint/prefer-arrow-callback -- Named forwardRef render function follows React component conventions.
+	function HostOwnedHeadlessEditor({ content, fileName, collaboration, canEdit }, ref) {
+		const handle = useRef<PowerPointViewerHandle>(null);
+		const blocks = useViewerBuildingBlocks({
+			content,
+			fileName,
+			collaboration,
+			handle,
+			canEdit,
+			autosaveEnabled: false,
+		});
+		useImperativeHandle(
+			ref,
+			() => ({
+				getContent: async () => handle.current?.getContent(),
+				setScale: (scale) => handle.current?.setZoom(scale),
 			}),
+			[],
 		);
-		const link = document.createElement('a');
-		link.href = url;
-		link.download = fileName;
-		link.click();
-		setTimeout(() => URL.revokeObjectURL(url), 0);
-	};
-	return (
-		<section
-			aria-busy={blocks.loading}
-			style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-		>
-			<div role='status' aria-label='Headless collaboration'>
-				Custom shell: {blocks.collaboration?.status ?? 'inactive'}; synced:{' '}
-				{String(blocks.collaboration?.synced ?? false)}
-			</div>
-			<button
-				type='button'
-				disabled={blocks.loading || Boolean(blocks.error)}
-				onClick={() => void save()}
+		return (
+			<section
+				data-host-custom-shell
+				aria-busy={blocks.loading}
+				style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
 			>
-				Save shared snapshot
-			</button>
-			<Toolbar {...blocks.toolbarProps} />
-			{blocks.error && <p role='alert'>{blocks.error}</p>}
-			<div
-				style={{
-					flex: 1,
-					minHeight: 0,
-					position: 'relative',
-					display: 'flex',
-					flexDirection: 'column',
-				}}
-			>
-				<SlideCanvas {...blocks.canvasProps} />
-			</div>
-		</section>
-	);
-}
+				<div role='status' aria-label='Headless collaboration'>
+					Custom shell: {blocks.collaboration?.status ?? 'inactive'}; synced:{' '}
+					{String(blocks.collaboration?.synced ?? false)}
+				</div>
+				<Toolbar {...blocks.toolbarProps} />
+				{blocks.error && <p role='alert'>{blocks.error}</p>}
+				<div
+					style={{
+						flex: 1,
+						minHeight: 0,
+						position: 'relative',
+						display: 'flex',
+						flexDirection: 'column',
+					}}
+				>
+					<SlideCanvas {...blocks.canvasProps} />
+				</div>
+			</section>
+		);
+	},
+);

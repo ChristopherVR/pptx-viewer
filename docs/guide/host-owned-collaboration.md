@@ -118,3 +118,12 @@ Start the demo relay (`bun run collab`) and a framework demo, then open:
 A second participant uses the same room without `sample=1`. The host strip exposes
 readiness and editor mount controls while retaining the document and provider. The
 demo disables BroadcastChannel so synchronization uses the WebSocket relay.
+
+Add `&headless=1` to try custom chrome in any of the five demos. These examples use
+the binding's public building blocks without mounting a hidden full viewer. Their
+host-owned Save button calls the public serialization path; the zoom selector lets
+you check remote cursors and selection outlines at different scales.
+
+See [React hooks](/react/hooks), [Vue collaboration](/vue/collaboration),
+[Angular collaboration](/angular/collaboration), [Svelte collaboration](/svelte/collaboration)
+and [Vanilla custom shells](/vanilla/api#custom-shell-collaboration) for each composition.

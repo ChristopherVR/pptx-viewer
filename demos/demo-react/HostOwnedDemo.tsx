@@ -4,11 +4,13 @@ import React, { useEffect, useRef, useState } from 'react';
 
 import { createHostOwnedDemo } from '../shared/host-owned-collaboration';
 import type { HostOwnedDemo } from '../shared/host-owned-collaboration';
+import type { HostOwnedShellHandle } from '../shared/host-owned-shell-controls';
 import { HostOwnedHeadlessEditor } from './HostOwnedHeadlessEditor';
 
 export function HostOwnedDemoApp() {
 	const headless = new URLSearchParams(location.search).get('headless') === '1';
 	const viewer = useRef<PowerPointViewerHandle>(null);
+	const customShell = useRef<HostOwnedShellHandle>(null);
 	const [host, setHost] = useState<HostOwnedDemo | null>(null);
 	const [mounted, setMounted] = useState(true);
 	const [error, setError] = useState('');
@@ -24,7 +26,8 @@ export function HostOwnedDemoApp() {
 				current = session;
 				session.attachControls(
 					setMounted,
-					headless ? undefined : async () => viewer.current?.getContent(),
+					async () => (headless ? customShell.current?.getContent() : viewer.current?.getContent()),
+					headless ? { setScale: (scale) => customShell.current?.setScale(scale) } : undefined,
 				);
 				setHost(session);
 				return undefined;
@@ -36,12 +39,13 @@ export function HostOwnedDemoApp() {
 		};
 	}, [headless]);
 	return (
-		<main style={{ position: 'fixed', inset: '64px 0 0' }}>
+		<main style={{ position: 'fixed', inset: `${headless ? 104 : 64}px 0 0` }}>
 			{error && <p role='alert'>{error}</p>}
 			{host &&
 				mounted &&
 				(headless ? (
 					<HostOwnedHeadlessEditor
+						ref={customShell}
 						content={host.source}
 						fileName={host.fileName}
 						collaboration={host.config}
