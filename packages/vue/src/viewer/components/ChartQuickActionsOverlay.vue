@@ -138,7 +138,7 @@ function onFilterToggle(seriesIndex: number | undefined, filteredIndex: number |
 				:data-testid="`chart-quick-action-${button.id}`"
 				:aria-label="t(button.labelKey)"
 				:title="t(button.labelKey)"
-				class="flex items-center justify-center rounded bg-popover border border-border shadow-sm hover:bg-accent text-foreground"
+				class="flex items-center justify-center rounded bg-white border border-gray-300 shadow-sm hover:bg-gray-100 text-gray-700"
 				:style="{
 					position: 'absolute',
 					left: `${button.x}px`,

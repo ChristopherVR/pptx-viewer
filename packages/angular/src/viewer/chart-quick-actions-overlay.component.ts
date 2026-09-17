@@ -181,13 +181,13 @@ type QuickActionId = 'elements' | 'styles' | 'filters';
 			align-items: center;
 			justify-content: center;
 			border-radius: 4px;
-			border: 1px solid var(--pptx-inspector-border, #444);
-			background: var(--pptx-inspector-input-bg, #2d2d2d);
-			color: inherit;
+			border: 1px solid #d1d5db;
+			background: #ffffff;
+			color: #374151;
 			cursor: pointer;
 		}
 		.pptx-ng-chart-quick-btn:hover {
-			background: var(--pptx-inspector-active, #0078d4);
+			background: #f3f4f6;
 		}
 		.pptx-ng-chart-quick-btn:disabled {
 			opacity: 0.6;

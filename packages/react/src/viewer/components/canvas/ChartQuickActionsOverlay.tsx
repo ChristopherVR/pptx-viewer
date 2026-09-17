@@ -110,7 +110,17 @@ export function ChartQuickActionsOverlay({
 							scale: 'var(--pptx-handle-inverse-scale, 1)',
 							transformOrigin: 'top left',
 						}}
-						className='flex items-center justify-center rounded bg-popover border border-border shadow-sm hover:bg-accent text-foreground'
+						// Fixed, opaque colours rather than the app's semantic theme tokens
+						// (bg-popover/hover:bg-accent/text-foreground): those tokens are
+						// tuned for panels that sit inside the app's own dark chrome, and
+						// `--color-accent` is deliberately a LOW-ALPHA tint for that
+						// context. This button floats over the SLIDE CANVAS instead (any
+						// colour, often white), so a translucent hover background reads
+						// as whatever is behind it, at which point the icon's colour
+						// (unchanged on hover) can land on its own near-twin and vanish.
+						// Same reasoning as ConnectorEndpointOverlay/ConnectorOverlay,
+						// which use fixed colours for the same reason.
+						className='flex items-center justify-center rounded bg-white border border-gray-300 shadow-sm hover:bg-gray-100 text-gray-700'
 					>
 						{React.createElement(ICONS[button.id], { className: 'size-3.5' })}
 					</button>

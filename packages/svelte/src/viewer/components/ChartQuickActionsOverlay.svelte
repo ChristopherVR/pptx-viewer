@@ -232,6 +232,11 @@
 		z-index: 59;
 	}
 
+	/* Fixed, opaque colours rather than --pptx-muted/--pptx-accent: this
+	   button floats over the SLIDE CANVAS (any colour, often white), not the
+	   app's own dark chrome those tokens are tuned for, so a theme's
+	   translucent --pptx-accent (meant for a dark backdrop) can leave the
+	   icon unreadable on hover against whatever the canvas shows through. */
 	.pptx-svelte-chart-quick-btn {
 		position: absolute;
 		display: flex;
@@ -239,14 +244,14 @@
 		justify-content: center;
 		pointer-events: auto;
 		border-radius: 4px;
-		border: 1px solid var(--pptx-border, #444);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
+		border: 1px solid #d1d5db;
+		background: #ffffff;
+		color: #374151;
 		cursor: pointer;
 	}
 
 	.pptx-svelte-chart-quick-btn:hover {
-		background: var(--pptx-accent, #3a3a5a);
+		background: #f3f4f6;
 	}
 
 	.pptx-svelte-chart-quick-btn:disabled {
