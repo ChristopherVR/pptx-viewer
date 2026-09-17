@@ -468,6 +468,9 @@ test.describe('host-owned collaboration', () => {
 			expect(id).toBeTruthy();
 			await target.click();
 			const from = await box(target);
+			// Sample a distinct pointer position after the click's presence update.
+			// This case tests coordinates, not the cursor broadcast rate limit.
+			await page.waitForTimeout(100);
 			await page.mouse.move(from.x + from.width * 0.4, from.y + from.height * 0.5);
 			const peerTarget = elements(peer).filter({ hasText: 'Product Overview' });
 			const selection = peer.locator(`[data-pptx-remote-selection="${id}"]`);
