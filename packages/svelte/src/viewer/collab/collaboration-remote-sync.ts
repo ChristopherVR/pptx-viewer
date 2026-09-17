@@ -75,7 +75,7 @@ export function observeRemoteSlides(
 			return;
 		}
 		const remote = readSlidesFromYDoc(ydoc);
-		if (remote.length === 0) {
+		if (remote.length === 0 && !config.externalSession?.getSnapshot().synced) {
 			return;
 		}
 		deps.setApplyingRemote(true);

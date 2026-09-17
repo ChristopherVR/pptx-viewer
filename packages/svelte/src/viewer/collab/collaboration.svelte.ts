@@ -23,6 +23,7 @@ import {
 	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
+	observeExternalCollaborationReadiness,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
@@ -38,7 +39,7 @@ import {
 	publishLocalSlides,
 } from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
-import { createDefaultSession } from './collaboration-session';
+import { createDefaultSession, createExternalSession } from './collaboration-session';
 import { wireProviderStatus } from './collaboration-status';
 
 /**
@@ -63,6 +64,10 @@ export class CollaborationController {
 	#config: CollaborationConfig | null = $state(null);
 	#lastStarted: CollaborationConfig | null = null;
 	#startedByEffect = false;
+	#startToken = 0;
+	#disposeExternal: (() => void) | null = null;
+	#restoreExternalPresence: (() => void) | null = null;
+	#awaitingJoinedDocument = false;
 
 	#applyingRemote = false;
 	#lastSynced = '';
@@ -104,9 +109,9 @@ export class CollaborationController {
 	get active(): boolean {
 		return this.#active;
 	}
-	/** Read-only participant (session live with the `viewer` role) - cannot select/drag/mutate. */
+	/** The requested viewer role forbids editing, including while attachment is pending. */
 	get readOnly(): boolean {
-		return this.#active && this.#config?.role === 'viewer';
+		return this.#config?.role === 'viewer';
 	}
 	/** Remote cursors on the current slide (reactive). */
 	get cursors(): RemoteCursor[] {
@@ -155,6 +160,9 @@ export class CollaborationController {
 	 * late joiner's bootstrap deck never clobbers the room's synced content.
 	 */
 	adoptDocAfterLoad(origin: CollabLoadOrigin = 'user'): void {
+		if (origin === 'user') {
+			this.#awaitingJoinedDocument = false;
+		}
 		if (this.#active && this.#ydoc) {
 			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps(), origin);
 		}
@@ -177,6 +185,9 @@ export class CollaborationController {
 
 	/** Write the current local slides into the doc (granular, echo-deduped). */
 	#flushLocalSlides(slides: PptxSlide[] = this.#deps.getSlides()): void {
+		if (this.#awaitingJoinedDocument) {
+			return;
+		}
 		const published = publishLocalSlides({
 			slides,
 			ydoc: this.#ydoc,
@@ -212,6 +223,7 @@ export class CollaborationController {
 
 	async #run(config: CollaborationConfig): Promise<void> {
 		this.stop();
+		const token = ++this.#startToken;
 		this.#config = config;
 		try {
 			validateRoomId(config.roomId);
@@ -221,13 +233,25 @@ export class CollaborationController {
 		}
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 		// Mixed-content only affects a ws:// socket from an https page.
-		if (transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
+		if (
+			!config.externalSession &&
+			transport === 'websocket' &&
+			isMixedContentBlocked(config.serverUrl)
+		) {
 			this.status = 'error';
 			return;
 		}
 		this.status = 'connecting';
 		try {
+			if (config.externalSession) {
+				await this.#runExternal(config, token);
+				return;
+			}
 			const session = await this.#makeSession(transport, config);
+			if (token !== this.#startToken) {
+				session.destroy();
+				return;
+			}
 			this.#session = session;
 			this.#ydoc = session.ydoc;
 			this.#factories = session.factories;
@@ -256,9 +280,51 @@ export class CollaborationController {
 			this.#active = true;
 			this.#deps.onStart?.(config);
 		} catch {
+			if (token !== this.#startToken) {
+				return;
+			}
 			this.stop();
 			this.status = 'error';
 		}
+	}
+
+	async #runExternal(config: CollaborationConfig, token: number): Promise<void> {
+		const external = config.externalSession!;
+		const session = await createExternalSession(external);
+		if (token !== this.#startToken) {
+			session.dispose();
+			return;
+		}
+		this.#ydoc = session.ydoc;
+		this.#factories = session.factories;
+		this.#restoreExternalPresence = session.dispose;
+		this.#awaitingJoinedDocument = config.sessionIntent === 'join';
+		this.#presence.start(session.awareness, {
+			userName: config.userName,
+			userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
+			userAvatar: config.userAvatar,
+			role: config.role,
+		});
+		this.#unobserve = observeRemoteSlides(session.ydoc, config, this.#remoteDeps());
+		this.#active = true;
+		this.#disposeExternal = observeExternalCollaborationReadiness(external, {
+			gate: this.#gate,
+			livePatcher: this.livePatcher,
+			factories: session.factories,
+			role: config.role,
+			canAdoptEmptySlides: () => !this.#awaitingJoinedDocument,
+			onStatus: (status) => {
+				this.status = status;
+			},
+			adoptSlides: (slides) => {
+				this.#awaitingJoinedDocument = false;
+				this.#lastSynced = JSON.stringify(slides);
+				this.#applyingRemote = true;
+				this.#deps.applyRemoteSlides(slides);
+				this.#applyingRemote = false;
+			},
+		});
+		this.#deps.onStart?.(config);
 	}
 
 	/** Callback bundle shared by the remote observer and post-load adoption. */
@@ -266,7 +332,13 @@ export class CollaborationController {
 		isApplyingRemote: () => this.#applyingRemote,
 		setApplyingRemote: (value) => (this.#applyingRemote = value),
 		setLastSynced: (value) => (this.#lastSynced = value),
-		applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
+		applyRemoteSlides: (slides) => {
+			if (this.#awaitingJoinedDocument && slides.length === 0) {
+				return;
+			}
+			this.#awaitingJoinedDocument = false;
+			this.#deps.applyRemoteSlides(slides);
+		},
 		scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
 	});
 
@@ -288,9 +360,15 @@ export class CollaborationController {
 	}
 
 	stop(): void {
+		this.#startToken++;
+		this.#disposeExternal?.();
+		this.#disposeExternal = null;
 		this.#clearTimers();
 		this.#gate.reset();
 		this.#presence.stop();
+		this.#restoreExternalPresence?.();
+		this.#restoreExternalPresence = null;
+		this.#awaitingJoinedDocument = false;
 		this.#unobserve?.();
 		this.#unobserve = null;
 		this.#session?.destroy();

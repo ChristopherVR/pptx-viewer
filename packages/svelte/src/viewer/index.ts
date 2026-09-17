@@ -37,6 +37,11 @@ export type {
 	PptxAiWritePolicy,
 } from 'pptx-viewer-shared/ai';
 export type { SvelteAiBridgeDeps } from './ai';
+export type {
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
 export { createSvelteAiBridge } from './ai';
 export {
 	clampSlideIndex,

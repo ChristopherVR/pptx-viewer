@@ -22,6 +22,12 @@ import type {
 	PrintOptions,
 } from './export';
 
+export type {
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
+
 /**
  * Public component types for the Svelte PowerPoint viewer.
  *
