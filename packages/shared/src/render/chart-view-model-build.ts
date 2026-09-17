@@ -162,7 +162,11 @@ function withDataPointPictureFills(
  * `chart-legend-entries.ts`.
  */
 function withLegendEntries(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
-	const legend = applyLegendEntryOverrides(vm.legend, chartData.style?.legendEntries);
+	const legend = applyLegendEntryOverrides(
+		vm.legend,
+		chartData.style?.legendEntries,
+		chartData.style?.legendTextStyle,
+	);
 	return legend === vm.legend ? vm : { ...vm, legend };
 }
 

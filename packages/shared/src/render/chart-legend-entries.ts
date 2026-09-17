@@ -21,25 +21,30 @@ import type { PptxChartLegendEntry } from 'pptx-viewer-core';
 import type { LegendEntry } from './chart-view-model';
 
 /**
- * Filter deleted entries and attach per-entry text-style overrides.
- * Returns the input array unchanged (same reference) when there is nothing to
- * apply, so callers with no `c:legendEntry` overrides pay no extra cost.
+ * Filter deleted entries and attach per-entry text-style overrides, falling
+ * back to the chart-level legend default (`PptxChartStyle.legendTextStyle`,
+ * itself `c:legend/c:txPr` or `c:chartSpace/c:txPr`) for any entry that has no
+ * `c:legendEntry/c:txPr` override of its own. Returns the input array
+ * unchanged (same reference) when there is nothing to apply, so a chart with
+ * neither kind of override pays no extra cost.
  */
 export function applyLegendEntryOverrides(
 	legend: readonly LegendEntry[],
 	entries: readonly PptxChartLegendEntry[] | undefined,
+	defaultTextStyle?: LegendEntry['textStyle'],
 ): LegendEntry[] {
-	if (!entries || entries.length === 0) {
+	if ((!entries || entries.length === 0) && !defaultTextStyle) {
 		return legend as LegendEntry[];
 	}
-	const byIndex = new Map(entries.map((entry) => [entry.index, entry]));
+	const byIndex = new Map((entries ?? []).map((entry) => [entry.index, entry]));
 	const result: LegendEntry[] = [];
 	legend.forEach((item, index) => {
 		const override = byIndex.get(index);
 		if (override?.deleted) {
 			return;
 		}
-		result.push(override?.textStyle ? { ...item, textStyle: override.textStyle } : item);
+		const textStyle = override?.textStyle ?? defaultTextStyle;
+		result.push(textStyle ? { ...item, textStyle } : item);
 	});
 	return result;
 }

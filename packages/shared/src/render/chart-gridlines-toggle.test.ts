@@ -55,6 +55,24 @@ describe('chartGridlinesState', () => {
 		// valAx present, matching getPrimaryValueAxisId's own fallback.
 		expect(chartGridlinesState(data)).toBeTruthy();
 	});
+
+	// Regression: gridline visibility reads the value axis, never chartType, so
+	// a stacked LINE chart (a construct that used to be suspected of losing its
+	// gridlines) honours `c:majorGridlines` exactly like a bar chart does.
+	it('honours majorGridlines on a stacked line chart the same as a bar chart', () => {
+		const stackedLine = chart({
+			chartType: 'line',
+			grouping: 'stacked',
+			axes: [{ axisType: 'valAx', axPos: 'l', majorGridlines: true }],
+		});
+		expect(chartGridlinesState(stackedLine)).toBeTruthy();
+		const stackedLineHidden = chart({
+			chartType: 'line',
+			grouping: 'stacked',
+			axes: [{ axisType: 'valAx', axPos: 'l', majorGridlines: false }],
+		});
+		expect(chartGridlinesState(stackedLineHidden)).toBeFalsy();
+	});
 });
 
 describe('chartGridlinesPatch', () => {

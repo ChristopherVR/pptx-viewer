@@ -892,6 +892,14 @@ export interface PptxChartStyle {
 	legendPosition?: string;
 	/** Per-series visibility and text-style overrides. */
 	legendEntries?: PptxChartLegendEntry[];
+	/**
+	 * The legend's own default text style (`c:legend/c:txPr`), falling back to
+	 * the chart-wide default (`c:chartSpace/c:txPr`) when the legend has none
+	 * of its own. Applies to every legend entry that has no per-entry
+	 * `c:legendEntry/c:txPr` override (see {@link PptxChartLegendEntry.textStyle}),
+	 * which always wins over this chart-level default.
+	 */
+	legendTextStyle?: PptxChartLegendTextStyle;
 	/** Whether the chart has a title. */
 	hasTitle?: boolean;
 	/** Whether gridlines are visible. */

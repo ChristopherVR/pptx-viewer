@@ -63,4 +63,37 @@ describe('applyLegendEntryOverrides', () => {
 		const entries: PptxChartLegendEntry[] = [{ index: 99, deleted: true }];
 		expect(applyLegendEntryOverrides(legend, entries)).toHaveLength(3);
 	});
+
+	// Regression: a chart-level legend/chart-space `c:txPr` (e.g. an 18pt font)
+	// used to be dropped entirely; only a per-entry `c:legendEntry/c:txPr`
+	// override ever reached the rendered legend.
+	describe('chart-level default text style (defaultTextStyle)', () => {
+		it('returns the same array reference when neither kind of override is set', () => {
+			expect(applyLegendEntryOverrides(legend, undefined, undefined)).toBe(legend);
+		});
+
+		it('applies the chart-level default to every entry when there are no per-entry overrides', () => {
+			const result = applyLegendEntryOverrides(legend, undefined, { fontSize: 18 });
+			expect(result.map((e) => e.textStyle)).toStrictEqual([
+				{ fontSize: 18 },
+				{ fontSize: 18 },
+				{ fontSize: 18 },
+			]);
+		});
+
+		it('lets a per-entry override win over the chart-level default', () => {
+			const entries: PptxChartLegendEntry[] = [{ index: 1, textStyle: { fontSize: 24 } }];
+			const result = applyLegendEntryOverrides(legend, entries, { fontSize: 18 });
+			expect(result[0].textStyle).toStrictEqual({ fontSize: 18 });
+			expect(result[1].textStyle).toStrictEqual({ fontSize: 24 });
+			expect(result[2].textStyle).toStrictEqual({ fontSize: 18 });
+		});
+
+		it('still drops a deleted entry when a chart-level default is also set', () => {
+			const entries: PptxChartLegendEntry[] = [{ index: 0, deleted: true }];
+			const result = applyLegendEntryOverrides(legend, entries, { fontSize: 18 });
+			expect(result.map((e) => e.label)).toStrictEqual(['Series B', 'Series C']);
+			expect(result.every((e) => e.textStyle?.fontSize === 18)).toBeTruthy();
+		});
+	});
 });

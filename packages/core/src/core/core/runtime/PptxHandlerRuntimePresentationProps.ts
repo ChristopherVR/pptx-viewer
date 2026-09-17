@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } from '../../types';
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
+import { parseDefRPrTextStyle, resolveTxPrDefRPr } from '../../utils/chart-def-rpr-style';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseChartTitleStyle } from '../../utils/chart-title-style-parser';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
@@ -204,6 +205,24 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				);
 				if (entries.length > 0) {
 					style.legendEntries = entries;
+				}
+				// The legend's own default text style (`c:legend/c:txPr`), falling
+				// back to the chart-wide default (`c:chartSpace/c:txPr`) when the
+				// legend declares none of its own. Every legend entry without a
+				// per-entry `c:legendEntry/c:txPr` override renders at this size
+				// instead of a fixed 9px default (issue: a chart authoring an 18pt
+				// chart-level txPr rendered its legend at the hardcoded default).
+				const legendTxPr = this.xmlLookupService.getChildByLocalName(legend, 'txPr');
+				const chartSpaceTxPr = this.xmlLookupService.getChildByLocalName(chartSpace, 'txPr');
+				const legendDefRPr = resolveTxPrDefRPr(legendTxPr ?? chartSpaceTxPr, this.xmlLookupService);
+				const legendTextStyle = parseDefRPrTextStyle(
+					legendDefRPr,
+					this.xmlLookupService,
+					{ parseColor: (node) => this.parseColor(node) },
+					(raw) => this.resolveThemeTypeface(raw) ?? raw,
+				);
+				if (legendTextStyle) {
+					style.legendTextStyle = legendTextStyle;
 				}
 			}
 

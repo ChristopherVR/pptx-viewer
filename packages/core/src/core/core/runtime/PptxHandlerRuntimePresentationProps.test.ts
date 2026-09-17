@@ -89,3 +89,48 @@ describe('extractChartStyle legend position (C2-G5)', () => {
 		expect(style?.legendPosition).toBe('r');
 	});
 });
+
+// Regression: a chart authoring an 18pt legend/chart-level default text style
+// (`c:legend/c:txPr` or `c:chartSpace/c:txPr`) rendered its legend at a fixed
+// 9px default, because only PER-ENTRY `c:legendEntry/c:txPr` overrides were
+// ever read. See `chart-legend-entries.ts`'s `applyLegendEntryOverrides`.
+describe('extractChartStyle legend text style (chart-level c:txPr default)', () => {
+	function defRPrTxPr(sz: number): XmlObject {
+		return {
+			'a:p': { 'a:pPr': { 'a:defRPr': { '@_sz': String(sz) } } },
+		};
+	}
+
+	it("reads the legend's own c:txPr as the legend text default", () => {
+		const chartRoot: XmlObject = {
+			'c:legend': {
+				'c:legendPos': { '@_val': 'b' },
+				'c:txPr': defRPrTxPr(1800),
+			},
+		};
+		const style = extractChartStyle(undefined, chartRoot);
+		expect(style?.legendTextStyle?.fontSize).toBe(18);
+	});
+
+	it('falls back to c:chartSpace/c:txPr when the legend has none of its own', () => {
+		const chartSpace: XmlObject = { 'c:txPr': defRPrTxPr(1800) };
+		const chartRoot: XmlObject = { 'c:legend': { 'c:legendPos': { '@_val': 'b' } } };
+		const style = extractChartStyle(chartSpace, chartRoot);
+		expect(style?.legendTextStyle?.fontSize).toBe(18);
+	});
+
+	it("prefers the legend's own c:txPr over the chart-space default", () => {
+		const chartSpace: XmlObject = { 'c:txPr': defRPrTxPr(1800) };
+		const chartRoot: XmlObject = {
+			'c:legend': { 'c:legendPos': { '@_val': 'b' }, 'c:txPr': defRPrTxPr(1000) },
+		};
+		const style = extractChartStyle(chartSpace, chartRoot);
+		expect(style?.legendTextStyle?.fontSize).toBe(10);
+	});
+
+	it('leaves legendTextStyle undefined when neither the legend nor the chart space has a txPr', () => {
+		const chartRoot: XmlObject = { 'c:legend': { 'c:legendPos': { '@_val': 'b' } } };
+		const style = extractChartStyle(undefined, chartRoot);
+		expect(style?.legendTextStyle).toBeUndefined();
+	});
+});
