@@ -19,8 +19,13 @@ export function readInlineListRuns(
 	session: InlineListSession,
 	block: HTMLElement,
 	bodyStyle?: TextStyle,
-): { runs: TextSegment[]; unchanged: boolean } | undefined {
+): { runs: TextSegment[]; origins: Node[]; unchanged: boolean } | undefined {
 	const runs: TextSegment[] = [];
+	const origins: Node[] = [];
+	const push = (segment: TextSegment, node: Node): void => {
+		runs.push(segment);
+		origins.push(node);
+	};
 	let unsupported = false;
 	let unchanged = true;
 	let placeholder = false;
@@ -35,10 +40,10 @@ export function readInlineListRuns(
 					// Native soft breaks can be text-node newlines rather than BR elements.
 					for (const [index, text] of node.nodeValue.split('\n').entries()) {
 						if (index > 0) {
-							runs.push({ text: '\n', style: { ...style }, isLineBreak: true });
+							push({ text: '\n', style: { ...style }, isLineBreak: true }, node);
 						}
 						if (text) {
-							runs.push({ text, style: { ...style } });
+							push({ text, style: { ...style } }, node);
 						}
 					}
 				}
@@ -79,7 +84,7 @@ export function readInlineListRuns(
 			children.length === oldChildren?.length &&
 			children.every((child, childIndex) => child === oldChildren[childIndex]);
 		if (intact && original) {
-			runs.push({ ...bodyOnly(original), style });
+			push({ ...bodyOnly(original), style }, node);
 			unchanged &&= index === originalIndex && Object.keys(delta).length === 0;
 			return;
 		}
@@ -96,7 +101,7 @@ export function readInlineListRuns(
 			return;
 		}
 		if (node.tagName === 'BR') {
-			runs.push({ text: '\n', style, isLineBreak: true });
+			push({ text: '\n', style, isLineBreak: true }, node);
 			placeholder = original?.isLineBreak !== true;
 			return;
 		}
@@ -106,7 +111,7 @@ export function readInlineListRuns(
 	};
 	walk(block, bodyStyle);
 	if (runs.length === 1 && runs[0].isLineBreak && placeholder) {
-		return { runs: [{ text: '', style: runs[0].style }], unchanged: false };
+		return { runs: [{ text: '', style: runs[0].style }], origins: [block], unchanged: false };
 	}
-	return unsupported ? undefined : { runs, unchanged };
+	return unsupported ? undefined : { runs, origins, unchanged };
 }

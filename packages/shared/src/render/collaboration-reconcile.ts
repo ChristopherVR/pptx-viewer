@@ -39,6 +39,7 @@ import {
 	encodeTextBody,
 	isYTextLike,
 } from './collaboration-text-codec';
+import { hasCollaborationTextLease } from './collaboration-text-lease';
 import { isYTextEditable, mergeDeltaIntoYText } from './collaboration-text-merge';
 
 /** Transaction origin used for local reconcile writes. */
@@ -52,8 +53,12 @@ function reconcileScalars(
 	ymap: YMapLike,
 	rec: Record<string, unknown>,
 	keys: ReadonlySet<string>,
+	skipKey?: string,
 ): void {
 	for (const key of keys) {
+		if (key === skipKey) {
+			continue;
+		}
 		const next = rec[key];
 		const current = ymap.get(key);
 		if (next === undefined) {
@@ -129,9 +134,12 @@ export function reconcileElementYMap(
 	assets: YMapLike,
 ): void {
 	const rec = element as unknown as Record<string, unknown>;
-	reconcileScalars(ymap, rec, SCALAR_ELEMENT_KEYS);
+	const ownsText = hasCollaborationTextLease(ymap, element);
+	reconcileScalars(ymap, rec, SCALAR_ELEMENT_KEYS, ownsText ? 'text' : undefined);
 	reconcileComplexFields(ymap, rec, COMPLEX_ELEMENT_FIELDS);
-	reconcileElementTextBody(ymap, rec, factories);
+	if (!ownsText) {
+		reconcileElementTextBody(ymap, rec, factories);
+	}
 	reconcileAssetFields(rec.id as string, rec, ymap, assets);
 }
 

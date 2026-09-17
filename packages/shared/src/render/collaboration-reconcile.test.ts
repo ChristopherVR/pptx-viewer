@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it, test } from 'vitest';
+import { describe, expect, it, test, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { getAssetsMap } from './collaboration-assets';
@@ -11,6 +11,10 @@ import {
 	writeSlidesToYDoc,
 	YDOC_SLIDES_KEY,
 } from './collaboration-sync';
+import {
+	hasCollaborationTextLease,
+	registerCollaborationTextLease,
+} from './collaboration-text-lease';
 
 const factories: YjsFactories = {
 	createMap: () => new Y.Map() as unknown as ReturnType<YjsFactories['createMap']>,
@@ -47,6 +51,87 @@ function syncDocs(a: Y.Doc, b: Y.Doc): void {
 }
 
 describe('reconcileSlidesInYDoc', () => {
+	it('preserves a mounted native draft while reconciling other model fields', () => {
+		const doc = new Y.Doc();
+		const baseline = makeElement('e1', 'Original', { text: 'Original' });
+		const slides = [makeSlide('s1', [baseline])];
+		reconcileSlidesInYDoc(slides, asDoc(doc), factories);
+		const slide = doc.getArray<Y.Map<unknown>>(YDOC_SLIDES_KEY).get(0);
+		const target = (slide.get('elements') as Y.Array<Y.Map<unknown>>).get(0);
+		const text = target.get('textBody') as Y.Text;
+		text.insert(text.length, ' draft');
+		target.set('text', 'Original draft');
+		const ownsModel = vi.fn(
+			(candidate: PptxElement) =>
+				JSON.stringify('textSegments' in candidate && candidate.textSegments) ===
+				JSON.stringify('textSegments' in baseline && baseline.textSegments),
+		);
+		const release = registerCollaborationTextLease(target, ownsModel);
+		const moved = { ...baseline, x: 80, name: 'Renamed', textStyle: { fontSize: 24 } };
+		reconcileSlidesInYDoc([makeSlide('s1', [moved])], asDoc(doc), factories);
+		expect(ownsModel).toHaveBeenCalledWith(moved);
+		expect(target.get('text')).toBe('Original draft');
+		expect(text.toString()).toBe('Original draft');
+		expect(target.get('x')).toBe(80);
+		expect(target.get('name')).toBe('Renamed');
+		expect(target.get('_ts')).toBe(JSON.stringify({ fontSize: 24 }));
+		release();
+		reconcileSlidesInYDoc(slides, asDoc(doc), factories);
+		expect(target.get('text')).toBe('Original');
+		expect(text.toString()).toBe('Original');
+		doc.destroy();
+	});
+
+	it.each(['undo', 'format', 'throw'])(
+		'retires rejected %s model ownership before reconciling',
+		(change) => {
+			const doc = new Y.Doc();
+			const baseline = makeElement('e1', 'Original', { text: 'Original' });
+			reconcileSlidesInYDoc([makeSlide('s1', [baseline])], asDoc(doc), factories);
+			const slide = doc.getArray<Y.Map<unknown>>(YDOC_SLIDES_KEY).get(0);
+			const target = (slide.get('elements') as Y.Array<Y.Map<unknown>>).get(0);
+			const text = target.get('textBody') as Y.Text;
+			text.insert(text.length, ' draft');
+			target.set('text', 'Original draft');
+			const ownsModel = vi.fn(() => {
+				if (change === 'throw') {
+					throw new Error('Retired editor');
+				}
+				return false;
+			});
+			registerCollaborationTextLease(target, ownsModel);
+			const replacement = makeElement('e1', change === 'undo' ? 'Before' : 'Original', {
+				text: change === 'undo' ? 'Before' : 'Original',
+				...(change === 'format'
+					? { textSegments: [{ text: 'Original', style: { bold: true } }] }
+					: {}),
+			});
+			reconcileSlidesInYDoc([makeSlide('s1', [replacement])], asDoc(doc), factories);
+			expect(ownsModel).toHaveBeenCalledExactlyOnceWith(replacement);
+			expect(text.toString()).toBe(change === 'undo' ? 'Before' : 'Original');
+			expect(target.get('text')).toBe(change === 'undo' ? 'Before' : 'Original');
+			if (change === 'format') {
+				expect(text.toDelta()[0].attributes?.s).toBe(JSON.stringify({ bold: true }));
+			}
+			expect(hasCollaborationTextLease(target, replacement)).toBeFalsy();
+			doc.destroy();
+		},
+	);
+
+	it('keeps a newer text lease when an older owner releases the same target', () => {
+		const doc = new Y.Doc();
+		const target = doc.getMap('target');
+		const candidate = makeElement('e1', 'Body');
+		const releaseOld = registerCollaborationTextLease(target, () => true);
+		const releaseNew = registerCollaborationTextLease(target, () => true);
+		releaseOld();
+		expect(hasCollaborationTextLease(target, candidate)).toBeTruthy();
+		expect(hasCollaborationTextLease(doc.getMap('replacement'), candidate)).toBeFalsy();
+		releaseNew();
+		expect(hasCollaborationTextLease(target, candidate)).toBeFalsy();
+		doc.destroy();
+	});
+
 	it('populates an empty doc equivalently to writeSlidesToYDoc', () => {
 		const slides = [
 			makeSlide('s1', [makeElement('e1', 'Hello')]),

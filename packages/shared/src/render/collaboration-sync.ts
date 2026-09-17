@@ -27,7 +27,7 @@
  * slide/element/field rather than colliding at document granularity.
  */
 
-import type { PptxSlide, PptxElement } from 'pptx-viewer-core';
+import type { PptxSlide, PptxElement, TextSegment } from 'pptx-viewer-core';
 
 import {
 	ASSET_ELEMENT_FIELDS,
@@ -39,6 +39,10 @@ import {
 } from './collaboration-assets';
 import type { YTextLike } from './collaboration-text-codec';
 import { encodeTextBody, decodeTextBody, isYTextLike } from './collaboration-text-codec';
+import type { YTextEditableLike } from './collaboration-text-merge';
+import type { TrackedTextPosition } from './collaboration-text-positions';
+import type { TextSessionPositions } from './collaboration-text-session';
+import { inlineListBodyText } from './inline-list-body';
 
 export * from './collaboration-assets';
 export * from './collaboration-text-codec';
@@ -84,6 +88,8 @@ export interface YjsFactories {
 	createMap: () => YMapLike;
 	createArray: () => YArrayLike;
 	createText: () => YTextLike;
+	/** Track character identities using the binding's existing Yjs runtime. */
+	createTextPositions?: (text: YTextEditableLike) => TextSessionPositions<TrackedTextPosition>;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,6 +368,12 @@ export function readElementFromYMap(ymap: YMapLike, assets: YMapLike): PptxEleme
 		}
 	});
 	readAssetFields(ymap, assets, element);
+	// The scalar mirror is last-writer-wins; rich text merges character-wise.
+	// Derive its body after a remote merge, but retain legacy scalar-only text
+	// when a document has an empty textSegments array and no encoded carriers.
+	if (Array.isArray(element.textSegments) && element.textSegments.length > 0) {
+		element.text = inlineListBodyText(element.textSegments as TextSegment[]);
+	}
 	return element as unknown as PptxElement;
 }
 

@@ -10,7 +10,9 @@ import {
 } from './collaboration-live-patch';
 import { LOCAL_SYNC_ORIGIN, reconcileSlidesInYDoc } from './collaboration-reconcile';
 import type { YDocLike, YjsFactories } from './collaboration-sync';
-import { readSlidesFromYDoc } from './collaboration-sync';
+import { COMPLEX_ELEMENT_FIELDS, readSlidesFromYDoc } from './collaboration-sync';
+import { createSnapshotTextPositions } from './collaboration-text-snapshot-positions';
+import { buildInlineTextCommitPatch } from './inline-text-commit';
 
 const factories: YjsFactories = {
 	createMap: () => new Y.Map() as unknown as ReturnType<YjsFactories['createMap']>,
@@ -46,12 +48,223 @@ function seedDoc(): Y.Doc {
 const firstElement = (doc: Y.Doc): Record<string, unknown> =>
 	readSlidesFromYDoc(asDoc(doc))[0].elements[0] as unknown as Record<string, unknown>;
 
+function textState(doc: Y.Doc): { text: unknown; textBody: string } {
+	const textBody = findElementYMap(asDoc(doc), 's1', 'e1')?.get('textBody');
+	if (!(textBody instanceof Y.Text)) {
+		throw new Error('Expected the seeded element to retain its Y.Text');
+	}
+	return { text: firstElement(doc).text, textBody: textBody.toString() };
+}
+
+function nativeFactories(doc: Y.Doc): YjsFactories {
+	return {
+		...factories,
+		createTextPositions: (text) =>
+			createSnapshotTextPositions(text as unknown as Y.Text, {
+				read: () => Y.snapshot(doc),
+				equal: Y.equalSnapshots,
+				subscribeBeforeObservers: (listener) => {
+					doc.on('beforeObserverCalls', listener);
+					return () => doc.off('beforeObserverCalls', listener);
+				},
+			}),
+	};
+}
+function nativePatcher(doc: Y.Doc) {
+	const patcher = createCollaborationLivePatcher();
+	patcher.configure(asDoc(doc), nativeFactories(doc));
+	return patcher;
+}
+
+function createTextPeers(connected = true) {
+	const docs = [seedDoc(), new Y.Doc()] as const;
+	Y.applyUpdate(docs[1], Y.encodeStateAsUpdate(docs[0]));
+	const patchers = docs.map(nativePatcher);
+	const sessions = patchers.map((patcher) => patcher.beginTextEdit?.('s1', 'e1'));
+	const relay = (source: Y.Doc, target: Y.Doc) => (update: Uint8Array, origin: unknown) => {
+		if (origin !== target) {
+			Y.applyUpdate(target, update, source);
+		}
+	};
+	const toSecond = relay(docs[0], docs[1]);
+	const toFirst = relay(docs[1], docs[0]);
+	if (connected) {
+		docs[0].on('update', toSecond);
+		docs[1].on('update', toFirst);
+	}
+	// Both native editors opened before either peer typed; their DOM drafts
+	// retain this baseline even as the live document receives remote updates.
+	const openedSlide = makeSlide('s1', [makeElement('e1', 'Hello')]);
+	return {
+		docs,
+		publish(index: number, text: string): void {
+			expect(sessions[index]?.applyLocalDelta([{ insert: text }])).toBeTruthy();
+			publishLiveInlineText(patchers[index], openedSlide, 'e1', text);
+			patchers[index].flush();
+		},
+		commit(index: number, text: string): void {
+			patchers[index].flush();
+			const slides = readSlidesFromYDoc(asDoc(docs[index]));
+			const element = slides[0].elements[0];
+			const snapshot = sessions[index]?.readMerged()?.inline;
+			expect(snapshot).toBeDefined();
+			const patch = buildInlineTextCommitPatch(element, snapshot?.text ?? text, snapshot);
+			if (patch) {
+				slides[0].elements[0] = { ...element, ...patch } as PptxElement;
+				reconcileSlidesInYDoc(slides, asDoc(docs[index]), factories);
+			}
+		},
+		dispose(): void {
+			docs[0].off('update', toSecond);
+			docs[1].off('update', toFirst);
+			patchers.forEach((patcher) => patcher.dispose());
+			docs.forEach((doc) => doc.destroy());
+		},
+	};
+}
+
 describe('createCollaborationLivePatcher', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 	});
 	afterEach(() => {
 		vi.useRealTimers();
+	});
+
+	it('does not replace an editor opened reentrantly by the previous editor retirement', () => {
+		const doc = seedDoc();
+		const patcher = nativePatcher(doc);
+		let newer: ReturnType<NonNullable<typeof patcher.beginTextEdit>>;
+		const retired = vi.fn(() => {
+			newer = patcher.beginTextEdit!('s1', 'e1');
+		});
+		const old = patcher.beginTextEdit!('s1', 'e1', retired)!;
+		expect(patcher.beginTextEdit!('s1', 'e1')).toBeUndefined();
+		expect(retired).toHaveBeenCalledOnce();
+		old.dispose();
+		expect(newer?.applyLocalDelta([{ insert: 'Hello!' }])).toBe(true);
+		expect(textState(doc).textBody).toBe('Hello!');
+		patcher.dispose();
+		doc.destroy();
+	});
+
+	it('does not clear a reentrant configuration when retiring the previous channel', () => {
+		const doc = seedDoc();
+		const patcher = nativePatcher(doc);
+		let newer: ReturnType<NonNullable<typeof patcher.beginTextEdit>>;
+		const retired = vi.fn(() => {
+			patcher.configure(doc, nativeFactories(doc));
+			newer = patcher.beginTextEdit!('s1', 'e1');
+		});
+		const old = patcher.beginTextEdit!('s1', 'e1', retired)!;
+		patcher.configure(null, null);
+		expect(retired).toHaveBeenCalledOnce();
+		expect(patcher.isActive()).toBe(true);
+		old.dispose();
+		expect(newer?.applyLocalDelta([{ insert: 'Hello!' }])).toBe(true);
+		expect(textState(doc).textBody).toBe('Hello!');
+		patcher.dispose();
+		doc.destroy();
+	});
+
+	it.each(['missing', 'empty'])(
+		'seeds %s legacy text from the same authored plain paragraphs',
+		(kind) => {
+			const doc = seedDoc();
+			const map = findElementYMap(asDoc(doc), 's1', 'e1')!;
+			if (kind === 'missing') {
+				map.delete('textBody');
+			} else {
+				map.set('textBody', new Y.Text());
+			}
+			map.set('text', 'First\nSecond\n');
+			map.set(COMPLEX_ELEMENT_FIELDS.textStyle, JSON.stringify({ bold: true }));
+			const patcher = nativePatcher(doc);
+			const target = patcher.beginTextEdit!('s1', 'e1');
+			expect(target?.readMerged()?.inline).toMatchObject({
+				text: 'First\nSecond\n',
+				textSegments: [
+					{ text: 'First', style: { bold: true } },
+					{ text: '', isParagraphBreak: true },
+					{ text: 'Second', style: { bold: true } },
+					{ text: '', isParagraphBreak: true },
+					{ text: '', style: { bold: true } },
+				],
+			});
+			patcher.dispose();
+			doc.destroy();
+		},
+	);
+
+	it('retires replaced text handles without letting old cleanup release a new editor', () => {
+		const doc = seedDoc();
+		const patcher = nativePatcher(doc);
+		const old = patcher.beginTextEdit!('s1', 'e1')!;
+		const current = patcher.beginTextEdit!('s1', 'e1')!;
+		old.dispose();
+		expect(old.applyLocalDelta([{ insert: 'stale' }])).toBeFalsy();
+		expect(current.applyLocalDelta([{ insert: 'Hello!' }])).toBeTruthy();
+		patcher.patchText('s1', 'e1', 'stale fallback');
+		expect(textState(doc).textBody).toBe('Hello!');
+		findElementYMap(asDoc(doc), 's1', 'e1')!.set('textBody', new Y.Text('replacement'));
+		expect(current.applyLocalDelta([{ insert: 'Hello!stale' }])).toBeFalsy();
+		expect(textState(doc).textBody).toBe('replacement');
+		patcher.dispose();
+		doc.destroy();
+	});
+
+	it('does not seed legacy text when a transaction-start host revokes authority', () => {
+		const doc = seedDoc();
+		const map = findElementYMap(asDoc(doc), 's1', 'e1')!;
+		map.delete('textBody');
+		const patcher = nativePatcher(doc);
+		const revoke = () => patcher.configure(null, null);
+		doc.on('beforeTransaction', revoke);
+		expect(patcher.beginTextEdit!('s1', 'e1')).toBeUndefined();
+		expect(map.get('textBody')).toBeUndefined();
+		expect(map.get('text')).toBe('Hello');
+		doc.off('beforeTransaction', revoke);
+		patcher.dispose();
+		doc.destroy();
+	});
+
+	it('drops only queued legacy text before a host flushes during native initialization', () => {
+		const doc = seedDoc();
+		const patcher = nativePatcher(doc);
+		patcher.patchGeometry('s1', 'e1', { x: 42 });
+		patcher.patchText('s1', 'e1', 'queued stale draft');
+		patcher.patchGeometry('s1', 'e1', { y: 53 });
+		findElementYMap(asDoc(doc), 's1', 'e1')!.delete('textBody');
+		const flush = () => {
+			patcher.patchText('s1', 'e1', 'reentrant stale draft');
+			patcher.flush();
+		};
+		doc.on('beforeTransaction', flush);
+		const target = patcher.beginTextEdit!('s1', 'e1');
+		doc.off('beforeTransaction', flush);
+		expect(target?.readMerged()?.inline.text).toBe('Hello');
+		expect(firstElement(doc)).toMatchObject({ x: 42, y: 53, text: 'Hello' });
+		patcher.dispose();
+		doc.destroy();
+	});
+
+	it('does not let an outer initialization replace a newer reentrant editor', () => {
+		const doc = seedDoc();
+		const patcher = nativePatcher(doc);
+		findElementYMap(asDoc(doc), 's1', 'e1')!.delete('textBody');
+		let newer: ReturnType<NonNullable<typeof patcher.beginTextEdit>>;
+		const replace = () => {
+			doc.off('beforeTransaction', replace);
+			newer = patcher.beginTextEdit!('s1', 'e1');
+		};
+		doc.on('beforeTransaction', replace);
+		expect(patcher.beginTextEdit!('s1', 'e1')).toBeUndefined();
+		expect(newer?.applyLocalDelta([{ insert: 'Hello!' }])).toBeTruthy();
+		patcher.patchText('s1', 'e1', 'stale fallback');
+		patcher.flush();
+		expect(textState(doc).textBody).toBe('Hello!');
+		patcher.dispose();
+		doc.destroy();
 	});
 
 	it('no-ops safely without a doc', () => {
@@ -197,6 +410,68 @@ describe('createCollaborationLivePatcher', () => {
 		expect(merged).toBe(
 			(firstElement(docB).textSegments as Array<{ text: string }>).map((s) => s.text).join(''),
 		);
+	});
+
+	it('preserves a delivered prefix when another open editor publishes its stale append draft', () => {
+		const peers = createTextPeers();
+		try {
+			peers.publish(0, 'ALPHA Hello');
+			// Unlike the disconnected merge above, delivery happens before B writes.
+			expect(textState(peers.docs[1]).textBody).toBe('ALPHA Hello');
+			peers.publish(1, 'Hello OMEGA');
+			for (const doc of peers.docs) {
+				expect(textState(doc)).toStrictEqual({
+					text: 'ALPHA Hello OMEGA',
+					textBody: 'ALPHA Hello OMEGA',
+				});
+			}
+		} finally {
+			peers.dispose();
+		}
+	});
+
+	it.each([
+		[0, 1],
+		[1, 0],
+	])('preserves both connected drafts when peer %i blurs before peer %i', (first, second) => {
+		const peers = createTextPeers();
+		const drafts = ['ALPHA Hello', 'Hello OMEGA'];
+		try {
+			peers.publish(0, drafts[0]);
+			peers.publish(1, drafts[1]);
+			// The existing binding commit path remaps the native draft onto the
+			// latest element, then reconciles the resulting full slide snapshot.
+			for (const index of [first, second]) {
+				peers.commit(index, drafts[index]);
+				for (const doc of peers.docs) {
+					expect.soft(textState(doc)).toStrictEqual({
+						text: 'ALPHA Hello OMEGA',
+						textBody: 'ALPHA Hello OMEGA',
+					});
+				}
+			}
+		} finally {
+			peers.dispose();
+		}
+	});
+
+	it('keeps scalar text aligned with textBody after concurrent updates merge', () => {
+		const peers = createTextPeers(false);
+		try {
+			peers.publish(0, 'ALPHA Hello');
+			peers.publish(1, 'Hello OMEGA');
+			Y.applyUpdate(peers.docs[1], Y.encodeStateAsUpdate(peers.docs[0]));
+			Y.applyUpdate(peers.docs[0], Y.encodeStateAsUpdate(peers.docs[1]));
+			for (const doc of peers.docs) {
+				const state = textState(doc);
+				// The existing character merge assertion passes, but the plain-text
+				// projection used to seed several inline editors must agree too.
+				expect(state.textBody).toBe('ALPHA Hello OMEGA');
+				expect.soft(state.text).toBe(state.textBody);
+			}
+		} finally {
+			peers.dispose();
+		}
 	});
 
 	it('finds the element without a slide id and ignores unknown ids', () => {

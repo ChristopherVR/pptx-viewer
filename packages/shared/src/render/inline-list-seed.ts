@@ -15,14 +15,29 @@ const sessions = new WeakMap<InlineListSeed, InlineListSession>();
 let nextSession = 0;
 
 /** Seed descriptors once; native edits own the mounted DOM for the entire session. */
-export function createInlineListSeed(element: PptxElement): InlineListSeed | undefined {
+export function createInlineListSeed(
+	element: PptxElement,
+	options?: { includePlain?: boolean },
+): InlineListSeed | undefined {
 	if (
 		!hasTextProperties(element) ||
-		!element.textSegments?.some((segment) => resolveParagraphBullet(segment))
+		(!options?.includePlain &&
+			!element.textSegments?.some((segment) => resolveParagraphBullet(segment)))
 	) {
 		return undefined;
 	}
-	const segments = structuredClone(element.textSegments);
+	const textStyle = element.textStyle;
+	const segments: TextSegment[] = element.textSegments?.length
+		? structuredClone(element.textSegments)
+		: (element.text ?? '')
+				.split('\n')
+				.flatMap((text, index) => [
+					...(index > 0 ? [{ text: '\n', style: {}, isParagraphBreak: true }] : []),
+					{ text, style: structuredClone(textStyle ?? {}) },
+				]);
+	// A scalar-only legacy element needs the same canonical body in its descriptor
+	// and presentation; never change the caller's loaded model while seeding DOM.
+	element = { ...element, textSegments: structuredClone(segments) };
 	const paragraphs: InlineListSession['paragraphs'] = [{ segments: [] }];
 	const indices: number[][] = [[]];
 	for (const [index, segment] of segments.entries()) {

@@ -772,9 +772,17 @@ export * from './collaboration-reconcile';
 // straight into the element's Y.Map, throttled and origin-tagged, so remote
 // peers see a drag/resize/typing before the local gesture commits to state.
 export * from './collaboration-live-patch';
+export { attachCollaborationInlineEditor } from './collaboration-inline-editor';
+export type {
+	CollaborationInlineEditor,
+	CollaborationInlineEditorOptions,
+} from './collaboration-inline-editor';
 // Character-level in-place Y.Text merging (minimal text diff + attribute-run
 // reconcile) so concurrent edits to the same text element converge.
 export * from './collaboration-text-merge';
+export { createSnapshotTextPositions } from './collaboration-text-snapshot-positions';
+export type { TrackedTextPosition } from './collaboration-text-positions';
+export type { SnapshotText, TextPositionSnapshots } from './collaboration-text-snapshot-positions';
 // First-write gate: block local doc writes until the provider's initial sync
 // (or a grace period) so late joiners never seed placeholder content.
 export * from './collaboration-sync-gate';
@@ -1623,7 +1631,7 @@ export {
 	registerInlineListParagraphFormat,
 	registerInlineListRunStyle,
 } from './inline-list-seed';
-export { readInlineListSnapshot } from './inline-list-snapshot';
+export { readInlineListSnapshot, readInlineListNativeSnapshot } from './inline-list-snapshot';
 export { reconcileInlineListSnapshot } from './inline-list-reconcile';
 export { attachInlineListController } from './inline-list-controller';
 export { getActiveInlineListSelection } from './inline-list-controller';

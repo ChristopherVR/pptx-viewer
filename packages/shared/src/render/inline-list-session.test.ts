@@ -16,8 +16,8 @@ import {
 	registerInlineListParagraphFormat,
 	registerInlineListRunStyle,
 } from './inline-list-seed';
-import { readInlineListSelection } from './inline-list-selection';
-import { readInlineListSnapshot } from './inline-list-snapshot';
+import { readInlineListRange, readInlineListSelection } from './inline-list-selection';
+import { readInlineListNativeSnapshot, readInlineListSnapshot } from './inline-list-snapshot';
 import { buildInlineListStylePatch } from './inline-list-style';
 
 function element(segments?: TextSegment[]): TextPptxElement {
@@ -50,8 +50,8 @@ function element(segments?: TextSegment[]): TextPptxElement {
 	};
 }
 
-function mount(source = element()) {
-	const seed = createInlineListSeed(source)!;
+function mount(source = element(), options?: { includePlain?: boolean }) {
+	const seed = createInlineListSeed(source, options)!;
 	const root = document.createElement('div');
 	for (const paragraph of seed.paragraphs) {
 		const block = document.createElement('div');
@@ -801,6 +801,267 @@ describe('list editor session snapshots', () => {
 		selection.removeAllRanges();
 	});
 
+	it.each([
+		{ text: 'aaa', start: 0, end: 1 },
+		{ text: 'aaa', start: 2, end: 3 },
+		{ text: 'a😀b', start: 1, end: 3 },
+	])('reads the exact pre-input target instead of the caret: %j', ({ text, start, end }) => {
+		const { seed, root } = mount(element([{ text, style: {}, bulletInfo: { char: '•' } }]));
+		document.body.append(root);
+		const node = root.firstElementChild!.firstElementChild!.firstChild!;
+		const caret = document.createRange();
+		caret.setStart(node, text.length);
+		caret.collapse(true);
+		const selection = window.getSelection()!;
+		selection.removeAllRanges();
+		selection.addRange(caret);
+		try {
+			const before = root.innerHTML;
+			const result = readInlineListRange(seed, root, {
+				startContainer: node,
+				startOffset: start,
+				endContainer: node,
+				endOffset: end,
+			});
+			expect(result).toMatchObject({ kind: 'supported', bodyRange: { start, end } });
+			expect(root.innerHTML).toBe(before);
+			expect(selection.anchorOffset).toBe(text.length);
+			expect(selection.isCollapsed).toBeTruthy();
+		} finally {
+			root.remove();
+			selection.removeAllRanges();
+		}
+	});
+
+	it('rejects a native input range crossing out of the active editor', () => {
+		const first = mount();
+		const second = mount();
+		expect(
+			readInlineListRange(first.seed, first.root, {
+				startContainer: first.root.firstElementChild!.firstElementChild!.firstChild!,
+				startOffset: 0,
+				endContainer: second.root.firstElementChild!.firstElementChild!.firstChild!,
+				endOffset: 1,
+			}),
+		).toMatchObject({ kind: 'unsupported', reason: 'selection-outside-session' });
+	});
+
+	it('rejects a captured input range after its text node shrinks', () => {
+		const { seed, root } = mount();
+		const node = root.firstElementChild!.firstElementChild!.firstChild!;
+		const target = {
+			startContainer: node,
+			startOffset: 3,
+			endContainer: node,
+			endOffset: 5,
+		};
+		node.nodeValue = 'F';
+		const html = root.innerHTML;
+		expect(readInlineListRange(seed, root, target)).toMatchObject({ kind: 'unsupported' });
+		expect(root.innerHTML).toBe(html);
+	});
+
+	it('rejects a captured root range after a paragraph is removed', () => {
+		const { seed, root } = mount();
+		const target = {
+			startContainer: root,
+			startOffset: 0,
+			endContainer: root,
+			endOffset: root.childNodes.length,
+		};
+		root.lastElementChild!.remove();
+		const html = root.innerHTML;
+		expect(readInlineListRange(seed, root, target)).toMatchObject({ kind: 'unsupported' });
+		expect(root.innerHTML).toBe(html);
+	});
+
+	it('rejects a captured range whose paragraphs have reversed order', () => {
+		const { seed, root } = mount();
+		const target = {
+			startContainer: root.firstElementChild!.firstElementChild!.firstChild!,
+			startOffset: 0,
+			endContainer: root.lastElementChild!.firstElementChild!.firstChild!,
+			endOffset: 4,
+		};
+		root.prepend(root.lastElementChild!);
+		const html = root.innerHTML;
+		expect(readInlineListRange(seed, root, target)).toMatchObject({ kind: 'unsupported' });
+		expect(root.innerHTML).toBe(html);
+	});
+
+	it('rejects reversed target offsets within one text node', () => {
+		const { seed, root } = mount();
+		const node = root.firstElementChild!.firstElementChild!.firstChild!;
+		expect(
+			readInlineListRange(seed, root, {
+				startContainer: node,
+				startOffset: 3,
+				endContainer: node,
+				endOffset: 1,
+			}),
+		).toMatchObject({ kind: 'unsupported' });
+	});
+
+	it('projects repeated soft breaks and an empty paragraph into exact body offsets', () => {
+		const { seed, root } = mount(
+			element([
+				{ text: 'a😀b', style: {}, bulletInfo: { char: '•' } },
+				{ text: '\n', style: {}, isLineBreak: true },
+				{ text: '\n', style: {}, isLineBreak: true },
+				{ text: 'Z', style: {} },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: '', style: {}, bulletInfo: { char: '•' } },
+				{ text: '\n', style: {}, isParagraphBreak: true },
+				{ text: 'Q', style: {}, bulletInfo: { char: '•' } },
+			]),
+		);
+		const first = root.firstElementChild!;
+		const cases = [
+			{
+				startContainer: first,
+				startOffset: 1,
+				endContainer: first,
+				endOffset: 3,
+				start: 4,
+				end: 6,
+			},
+			{
+				startContainer: first.firstElementChild!.firstChild!,
+				startOffset: 3,
+				endContainer: root.lastElementChild!.firstElementChild!.firstChild!,
+				endOffset: 1,
+				start: 3,
+				end: 10,
+			},
+			{ startContainer: root, startOffset: 0, endContainer: root, endOffset: 2, start: 0, end: 9 },
+		];
+		const html = root.innerHTML;
+		for (const { start, end, ...target } of cases) {
+			expect(readInlineListRange(seed, root, target)).toMatchObject({
+				kind: 'supported',
+				snapshot: { text: 'a😀b\n\nZ\n\nQ' },
+				bodyRange: { start, end },
+			});
+		}
+		expect(root.innerHTML).toBe(html);
+	});
+
+	it('preserves UTF-16 target offsets without widening a partial surrogate pair', () => {
+		const { seed, root } = mount(element([{ text: 'a😀b', style: {}, bulletInfo: { char: '•' } }]));
+		const node = root.firstElementChild!.firstElementChild!.firstChild!;
+		expect(
+			readInlineListRange(seed, root, {
+				startContainer: node,
+				startOffset: 2,
+				endContainer: node,
+				endOffset: 3,
+			}),
+		).toMatchObject({
+			kind: 'supported',
+			bodyRange: { start: 2, end: 3 },
+			selection: { startSegIdx: 0, startOffset: 2, endSegIdx: 0, endOffset: 3 },
+		});
+	});
+
+	it.each([
+		{
+			label: 'sole soft break',
+			segments: [
+				{ text: '', style: { italic: true }, isLineBreak: true, bulletInfo: { char: '•' } },
+			],
+			body: '\n',
+			lineBreaks: 1,
+			paragraphBreaks: 0,
+		},
+		{
+			label: 'soft break between authored runs',
+			segments: [
+				{ text: 'A', style: {}, bulletInfo: { char: '•' } },
+				{ text: '', style: { italic: true }, isLineBreak: true },
+				{ text: 'B', style: {} },
+			],
+			body: 'A\nB',
+			lineBreaks: 1,
+			paragraphBreaks: 0,
+		},
+		{
+			label: 'repeated soft breaks and empty paragraphs',
+			segments: [
+				{ text: 'A', style: {}, bulletInfo: { char: '•' } },
+				{ text: '', style: { italic: true }, isLineBreak: true },
+				{ text: '', style: { italic: true }, isLineBreak: true },
+				{ text: 'B', style: {} },
+				{ text: '', style: {}, isParagraphBreak: true },
+				{ text: '', style: {}, bulletInfo: { char: '•' } },
+				{ text: '', style: {}, isParagraphBreak: true },
+				{ text: 'C', style: {}, bulletInfo: { char: '•' } },
+			],
+			body: 'A\n\nB\n\nC',
+			lineBreaks: 2,
+			paragraphBreaks: 2,
+		},
+	])(
+		'projects empty-text break flags into the displayed body: $label',
+		({ segments, body, lineBreaks, paragraphBreaks }) => {
+			const source = element(segments);
+			const before = structuredClone(source);
+			const { seed, root } = mount(source);
+			const html = root.innerHTML;
+			const read = readInlineListSnapshot(seed, root);
+			if (read.kind !== 'supported') {
+				throw new Error(read.reason);
+			}
+			expect.soft(read.snapshot.text).toBe(body);
+			expect(read.snapshot.textSegments?.filter((segment) => segment.isLineBreak)).toHaveLength(
+				lineBreaks,
+			);
+			expect(
+				read.snapshot.textSegments?.filter((segment) => segment.isParagraphBreak),
+			).toHaveLength(paragraphBreaks);
+			expect(
+				read.snapshot.textSegments
+					?.filter((segment) => segment.isLineBreak)
+					.every((segment) => segment.style.italic === true),
+			).toBeTruthy();
+			expect
+				.soft(
+					readInlineListRange(seed, root, {
+						startContainer: root,
+						startOffset: 0,
+						endContainer: root,
+						endOffset: root.childNodes.length,
+					}),
+				)
+				.toMatchObject({ kind: 'supported', bodyRange: { start: 0, end: body.length } });
+			expect(root.innerHTML).toBe(html);
+			expect(source).toStrictEqual(before);
+		},
+	);
+
+	it('maps a caret after an empty-text paragraph break to the next run start', () => {
+		const { seed, root } = mount(
+			element([
+				{ text: 'A', style: {}, bulletInfo: { char: '•' } },
+				{ text: '', style: {}, isParagraphBreak: true },
+				{ text: 'B', style: {}, bulletInfo: { char: '•' } },
+			]),
+		);
+		const node = root.lastElementChild!.firstElementChild!.firstChild!;
+		expect(
+			readInlineListRange(seed, root, {
+				startContainer: node,
+				startOffset: 0,
+				endContainer: node,
+				endOffset: 0,
+			}),
+		).toMatchObject({
+			kind: 'supported',
+			snapshot: { text: 'A\nB' },
+			bodyRange: { start: 2, end: 2 },
+			selection: { startSegIdx: 2, startOffset: 0, endSegIdx: 2, endOffset: 0 },
+		});
+	});
+
 	it('keeps an original field identity when only its validated style token changes', () => {
 		const source = element();
 		source.textSegments![0].fieldType = 'slidenum';
@@ -1120,6 +1381,113 @@ describe('list editor session snapshots', () => {
 
 	it('does not opt plain text into a new editing surface', () => {
 		expect(createInlineListSeed(element([{ text: 'Plain', style: {} }]))).toBeUndefined();
+	});
+
+	it('opts authored plain paragraphs into descriptors without changing their runs', () => {
+		const source = element([
+			{ text: 'Plain', style: { bold: true }, paragraphProperties: { paragraphSpacingAfter: 7 } },
+			{ text: '\n', style: {}, isParagraphBreak: true },
+			{ text: 'Body', style: { italic: true } },
+		]);
+		const { seed, root } = mount(source, { includePlain: true });
+		expect(seed.paragraphs).toHaveLength(2);
+		expect(readInlineListSnapshot(seed, root)).toMatchObject({
+			kind: 'supported',
+			snapshot: { text: 'Plain\nBody', textSegments: source.textSegments },
+		});
+	});
+
+	it.each([{ segments: undefined }, { segments: [] as TextSegment[] }])(
+		'seeds scalar plain text when legacy segments are %j',
+		({ segments }) => {
+			const source = { ...element(), text: 'First\n\nLast', textSegments: segments };
+			const { seed, root } = mount(source, { includePlain: true });
+			expect(seed.paragraphs).toHaveLength(3);
+			const read = readInlineListSnapshot(seed, root);
+			expect(read).toMatchObject({ kind: 'supported', snapshot: { text: source.text } });
+			expect(source.textSegments).toBe(segments);
+		},
+	);
+
+	it('tracks paragraph sources relative to the previous DOM snapshot, not seed positions', () => {
+		const { seed, root } = mount();
+		const before = readInlineListNativeSnapshot(seed, root);
+		if (before.kind !== 'supported') throw new Error(before.reason);
+		const added = root.firstElementChild!.cloneNode(true) as HTMLElement;
+		added.firstElementChild!.textContent = 'Inserted';
+		root.insertBefore(added, root.lastElementChild);
+		const after = readInlineListNativeSnapshot(seed, root, before.snapshot);
+		if (after.kind !== 'supported') throw new Error(after.reason);
+		expect(after.paragraphSources).toStrictEqual([0, null, 2]);
+		added.firstElementChild!.textContent = 'Edited';
+		const next = readInlineListNativeSnapshot(seed, root, after.snapshot);
+		if (next.kind !== 'supported') throw new Error(next.reason);
+		expect(next.paragraphSources).toStrictEqual([0, 2, 4]);
+		const secondAdded = added.cloneNode(true) as HTMLElement;
+		secondAdded.firstElementChild!.textContent = 'Another';
+		root.insertBefore(secondAdded, root.lastElementChild);
+		const secondEnter = readInlineListNativeSnapshot(seed, root, next.snapshot);
+		if (secondEnter.kind !== 'supported') throw new Error(secondEnter.reason);
+		expect(secondEnter.paragraphSources).toStrictEqual([0, 2, null, 4]);
+	});
+
+	it('never grants copied paragraph tokens an existing empty-carrier identity', () => {
+		const { seed, root } = mount(element([{ text: '', style: {}, bulletInfo: { char: '•' } }]));
+		const before = readInlineListNativeSnapshot(seed, root);
+		if (before.kind !== 'supported') throw new Error(before.reason);
+		root.append(root.firstElementChild!.cloneNode(true));
+		const after = readInlineListNativeSnapshot(seed, root, before.snapshot);
+		if (after.kind !== 'supported') throw new Error(after.reason);
+		expect(after.paragraphSources).toStrictEqual([0, null]);
+		expect(after.hiddenSources).toStrictEqual([0, null]);
+	});
+
+	it('keeps dedicated marker and empty-body identities distinct in the same paragraph', () => {
+		const { seed, root } = mount(
+			element([
+				{ text: '• ', style: { fontFamily: 'Wingdings' }, bulletInfo: { char: '•' } },
+				{ text: '', style: { fontFamily: 'Arial' } },
+			]),
+		);
+		const before = readInlineListNativeSnapshot(seed, root);
+		if (before.kind !== 'supported') throw new Error(before.reason);
+		const after = readInlineListNativeSnapshot(seed, root, before.snapshot);
+		if (after.kind !== 'supported') throw new Error(after.reason);
+		expect(after.hiddenSources).toStrictEqual([0, 1]);
+		expect(after.paragraphSources).toStrictEqual([0]);
+	});
+
+	it('follows retained hidden run nodes when their order changes', () => {
+		const { seed, root } = mount(
+			element([
+				{ text: '', style: { fontSize: 12 } },
+				{ text: 'Body', style: {} },
+				{ text: '', style: { fontSize: 14 } },
+			]),
+			{ includePlain: true },
+		);
+		const before = readInlineListNativeSnapshot(seed, root);
+		if (before.kind !== 'supported') throw new Error(before.reason);
+		root.firstElementChild!.append(root.firstElementChild!.firstElementChild!);
+		const after = readInlineListNativeSnapshot(seed, root, before.snapshot);
+		if (after.kind !== 'supported') throw new Error(after.reason);
+		expect(after.hiddenSources).toStrictEqual([2, 0]);
+	});
+
+	it('does not infer provenance from another root or a cloned snapshot', () => {
+		const first = mount();
+		const second = mount();
+		const before = readInlineListNativeSnapshot(first.seed, first.root);
+		if (before.kind !== 'supported') throw new Error(before.reason);
+		for (const { seed, root, previous } of [
+			{ ...second, previous: before.snapshot },
+			{ ...first, previous: structuredClone(before.snapshot) },
+		]) {
+			expect(readInlineListNativeSnapshot(seed, root, previous)).toMatchObject({
+				kind: 'unsupported',
+				reason: 'unknown-native-baseline',
+			});
+		}
 	});
 
 	it('preserves exact authored segments on a no-op', () => {
