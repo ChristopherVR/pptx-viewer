@@ -7,8 +7,11 @@ import {
 } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, test } from 'vitest';
 
+import { translationsZhCN } from '../../../../../../locales/src';
+import { I18N_CONTEXT_KEY } from '../../../../i18n/context';
+import { createTranslator, registerTranslations } from '../../../../i18n/translator';
 import { EditorState } from '../../../editor/editor-state.svelte';
 import {
 	DIRECTION_LABEL_KEYS,
@@ -44,7 +47,7 @@ function translated(keys: Readonly<Record<string, string>>, tokens: readonly str
 	return tokens.map((token) => translationsEn[keys[token]]);
 }
 
-function mountTimeline(): { target: HTMLElement; editor: EditorState } {
+function mountTimeline(locale = 'en'): { target: HTMLElement; editor: EditorState } {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
 	editor.setSlides([
@@ -58,7 +61,11 @@ function mountTimeline(): { target: HTMLElement; editor: EditorState } {
 	]);
 	const target = document.createElement('div');
 	document.body.appendChild(target);
-	const instance = mount(AnimationTimeline, { target, props: { editor } });
+	const instance = mount(AnimationTimeline, {
+		target,
+		props: { editor },
+		context: new Map([[I18N_CONTEXT_KEY, createTranslator(() => locale)]]),
+	});
 	cleanup = () => {
 		unmount(instance);
 		target.remove();
@@ -112,4 +119,21 @@ describe('animationTimeline schema selects', () => {
 
 		expect(editor.slides[0]?.animations?.[0]?.trigger).toBe('afterPrevious');
 	});
+});
+
+test('translates the timeline and controls in Chinese while committing wire values', () => {
+	registerTranslations('zh-CN', translationsZhCN);
+	const { target, editor } = mountTimeline('zh-CN');
+	expect(target.querySelector('h4')?.textContent).toBe(translationsZhCN['pptx.animation.timeline']);
+	for (const key of ['duration', 'delay', 'repeatCount']) {
+		expect(target.textContent).toContain(translationsZhCN[`pptx.animation.${key}`]);
+	}
+	for (const key of ['trigger', 'direction', 'sequence', 'timingCurve']) {
+		expect(selectByAriaLabel(target, translationsZhCN[`pptx.animation.${key}`])).toBeDefined();
+	}
+	const trigger = selectByAriaLabel(target, translationsZhCN['pptx.animation.trigger']);
+	trigger.value = 'afterPrevious';
+	trigger.dispatchEvent(new Event('change', { bubbles: true }));
+	flushSync();
+	expect(editor.slides[0]?.animations?.[0]?.trigger).toBe('afterPrevious');
 });
