@@ -120,6 +120,9 @@ export * from './chart-legend-layout';
 // `c:legendPos` -> plot-area reservation + placement side, incl. the `tr`
 // (top-right corner) overlay every legend-placement call site used to miss.
 export * from './chart-legend-placement';
+// Line-style legend swatch (line + marker primitives) for line/scatter series,
+// vs. the default filled-rect swatch every other chart kind keeps.
+export * from './chart-legend-swatch';
 // Pure option lists + chart-type capability Sets for the chart inspector
 // controls (type/grouping/legend/axis/data-label/trendline/error-bar/marker/
 // gridline/combo selectors), shared by every binding's chart editor.

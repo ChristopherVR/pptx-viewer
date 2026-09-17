@@ -13,8 +13,8 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
+import { buildLegend } from './chart-legend-build';
 import { computeRadarPoints, radarAngle, radarRingPoints } from './chart-radar-geometry';
-import { buildLegend } from './chart-view-model-chrome';
 import { computePlotLayout } from './chart-view-model-layout';
 import { buildMarkTooltip, formatAxisValue, seriesColor } from './chart-view-model-scale';
 import type {

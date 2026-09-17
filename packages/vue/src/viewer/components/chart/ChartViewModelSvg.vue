@@ -338,7 +338,53 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:key="`${elementId}-lg-${i}`"
 			:transform="`translate(${entry.x.toFixed(1)},${entry.y.toFixed(1)})`"
 		>
-			<rect :x="0" :y="-7" width="10" height="10" rx="2" :fill="entry.color" />
+			<template v-if="entry.lineSwatch">
+				<template
+					v-for="(prim, si) in entry.lineSwatch.primitives"
+					:key="`${elementId}-lg-${i}-sw-${si}`"
+				>
+					<rect
+						v-if="isRect(prim)"
+						:x="prim.x"
+						:y="prim.y"
+						:width="prim.w"
+						:height="prim.h"
+						:fill="prim.fill"
+						:rx="prim.rx ?? 0"
+					/>
+					<circle
+						v-else-if="isCircle(prim)"
+						:cx="prim.cx"
+						:cy="prim.cy"
+						:r="prim.r"
+						:fill="prim.fill"
+					/>
+					<line
+						v-else-if="isLine(prim)"
+						:x1="prim.x1"
+						:y1="prim.y1"
+						:x2="prim.x2"
+						:y2="prim.y2"
+						:stroke="prim.stroke"
+						:stroke-width="prim.strokeWidth"
+					/>
+					<polygon
+						v-else-if="isPolygon(prim)"
+						:points="prim.points"
+						:fill="prim.fill"
+						:stroke="prim.stroke"
+						:stroke-width="prim.strokeWidth"
+					/>
+					<path
+						v-else-if="isPath(prim)"
+						:d="prim.d"
+						:fill="prim.fill"
+						:stroke="prim.stroke ?? 'none'"
+						:stroke-width="prim.strokeWidth ?? 0"
+					/>
+				</template>
+			</template>
+			<rect v-else :x="0" :y="-7" width="10" height="10" rx="2" :fill="entry.color" />
 			<text
 				:x="13"
 				:y="3"

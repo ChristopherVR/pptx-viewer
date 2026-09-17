@@ -1,14 +1,8 @@
-import type {
-	ChartPartRef,
-	ChartSvgDef,
-	ChartViewModel,
-	SvgLine,
-	SvgPrimitive,
-	SvgText,
-} from 'pptx-viewer-shared';
-import { chartPartToAttrs, computeChartLegendLayout } from 'pptx-viewer-shared';
+import type { ChartViewModel, SvgLine, SvgPrimitive, SvgText } from 'pptx-viewer-shared';
+import { computeChartLegendLayout } from 'pptx-viewer-shared';
 
-import { applyStyleMap, createSvgEl, setSvgAttrs } from '../dom';
+import { applyStyleMap, createSvgEl } from '../dom';
+import { appendTitle, applyPartAttrs, renderPatternDef } from './chart-svg-helpers';
 
 /**
  * Vanilla projector for the framework-agnostic chart view-model engine.
@@ -203,29 +197,6 @@ function renderPrimitive(doc: Document, prim: SvgPrimitive): SVGElement | null {
 	}
 }
 
-/** One `ChartSvgDef` (a data point's picture-fill `<pattern>`) to its SVG node. */
-function renderPatternDef(doc: Document, def: ChartSvgDef): SVGElement {
-	const pattern = createSvgEl(doc, 'pattern', {
-		id: def.id,
-		patternUnits: def.patternUnits,
-		x: def.x,
-		y: def.y,
-		width: def.width,
-		height: def.height,
-	});
-	pattern.appendChild(
-		createSvgEl(doc, 'image', {
-			href: def.href,
-			x: 0,
-			y: 0,
-			width: def.width,
-			height: def.height,
-			preserveAspectRatio: def.preserveAspectRatio,
-		}),
-	);
-	return pattern;
-}
-
 function renderLine(doc: Document, line: SvgLine): SVGLineElement {
 	const el = createSvgEl(doc, 'line', {
 		x1: line.x1,
@@ -240,21 +211,6 @@ function renderLine(doc: Document, line: SvgLine): SVGLineElement {
 	});
 	appendTitle(doc, el, line.title);
 	return el;
-}
-
-/**
- * Append the shared descriptor's tooltip as an SVG `<title>` child, when set.
- * Shared by every mark-primitive branch (rect / path / polyline / circle /
- * line / polygon) so a hover reveals the same value/label text the other four
- * bindings show.
- */
-function appendTitle(doc: Document, el: SVGElement, title: string | undefined): void {
-	if (title === undefined) {
-		return;
-	}
-	const titleEl = createSvgEl(doc, 'title', {});
-	titleEl.textContent = title;
-	el.appendChild(titleEl);
 }
 
 function renderText(doc: Document, text: SvgText): SVGTextElement {
@@ -275,17 +231,6 @@ function renderText(doc: Document, text: SvgText): SVGTextElement {
 	return el;
 }
 
-/**
- * `data-chart-*` hit-testing attributes for a tagged data-mark primitive.
- * Inert without pointer events; emitted for parity with the other bindings so
- * hosts layering interaction on top can reuse the same shared hit-testing.
- */
-function applyPartAttrs(el: SVGElement, part: ChartPartRef | undefined): void {
-	if (part) {
-		setSvgAttrs(el, chartPartToAttrs(part));
-	}
-}
-
 /** Legend swatches + labels (horizontal row, or a vertical stack on the side). */
 function appendLegend(doc: Document, svg: SVGSVGElement, vm: ChartViewModel): void {
 	computeChartLegendLayout(vm).forEach((item) => {
@@ -302,9 +247,18 @@ function appendLegend(doc: Document, svg: SVGSVGElement, vm: ChartViewModel): vo
 				'font-style': item.fontStyle,
 				'font-family': item.fontFamily,
 			});
-		g.appendChild(
-			createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: item.color }),
-		);
+		if (item.lineSwatch) {
+			for (const prim of item.lineSwatch.primitives) {
+				const node = renderPrimitive(doc, prim);
+				if (node) {
+					g.appendChild(node);
+				}
+			}
+		} else {
+			g.appendChild(
+				createSvgEl(doc, 'rect', { x: 0, y: -7, width: 10, height: 10, rx: 2, fill: item.color }),
+			);
+		}
 		label.textContent = item.label;
 		g.appendChild(label);
 		svg.appendChild(g);

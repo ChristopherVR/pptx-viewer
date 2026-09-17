@@ -16,6 +16,7 @@
  * @module chart-legend-layout
  */
 import { chartFontPx } from './chart-font';
+import type { LegendLineSwatch } from './chart-legend-swatch';
 import type { ChartViewModel } from './chart-view-model';
 
 // Horizontal centre-to-centre spacing between legend swatches in a row, and
@@ -42,6 +43,8 @@ export interface ChartLegendLayoutItem {
 	fontWeight: 'normal' | 'bold';
 	fontStyle: 'normal' | 'italic';
 	fontFamily?: string;
+	/** Present for a line-drawn series: draw a line + marker sample instead of the rect swatch. */
+	lineSwatch?: LegendLineSwatch;
 }
 
 /**
@@ -73,6 +76,7 @@ export function computeChartLegendLayout(vm: ChartViewModel): ChartLegendLayoutI
 			fontWeight: textStyle?.bold ? 'bold' : 'normal',
 			fontStyle: textStyle?.italic ? 'italic' : 'normal',
 			fontFamily: textStyle?.fontFamily,
+			...(entry.lineSwatch ? { lineSwatch: entry.lineSwatch } : {}),
 		};
 	});
 }

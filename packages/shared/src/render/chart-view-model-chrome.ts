@@ -1,9 +1,9 @@
 /**
  * chart-view-model-chrome.ts: chart chrome (value-axis gridlines/labels, zero
- * line, category labels, legend placement) shared by the cartesian chart
- * kinds. Split out of `chart-view-model-layout.ts` to keep that module's plot
- * layout math under the repo's 300-LOC file guideline; re-exported by
- * `chart-view-model.ts`.
+ * line, category labels) shared by the cartesian chart kinds. Split out of
+ * `chart-view-model-layout.ts` to keep that module's plot layout math under
+ * the repo's 300-LOC file guideline; re-exported by `chart-view-model.ts`.
+ * Legend building (`buildLegend`) lives in `chart-legend-build.ts`, not here.
  *
  * @module chart-view-model-chrome
  */
@@ -12,13 +12,10 @@
    `--fix` cannot do this safely once a non-declaration statement sits between
    them) would churn geometry code far beyond this change's scope. */
 
-import type { PptxChartSeries } from 'pptx-viewer-core';
-
 import { DEFAULT_CHART_TEXT_PX } from './chart-font';
-import { resolveLegendPlacement } from './chart-legend-placement';
-import { formatAxisValue, seriesColor, valueToY } from './chart-view-model-scale';
+import { formatAxisValue, valueToY } from './chart-view-model-scale';
 import type { ValueRange } from './chart-view-model-scale';
-import type { LegendEntry, PlotLayout, SvgLine, SvgText } from './chart-view-model-types';
+import type { PlotLayout, SvgLine, SvgText } from './chart-view-model-types';
 
 export const GRIDLINE_COLOR = '#e2e8f0';
 export const AXIS_LABEL_COLOR = '#64748b';
@@ -126,45 +123,4 @@ export function buildCategoryLabels(
 			textAnchor: 'middle',
 		} satisfies SvgText;
 	});
-}
-
-export function buildLegend(
-	series: ReadonlyArray<PptxChartSeries>,
-	colorPalette: readonly string[] | undefined,
-	svgWidth: number,
-	legendPos: string,
-	svgHeight: number,
-	plotTop: number,
-): {
-	legend: LegendEntry[];
-	legendX: number;
-	legendY: number;
-	legendAnchor: 'start' | 'middle' | 'end';
-} {
-	const legend: LegendEntry[] = series.map((s, i) => ({
-		color: seriesColor(s, i, colorPalette),
-		label: s.name,
-	}));
-
-	let legendX = svgWidth / 2,
-		legendY = svgHeight - 8,
-		legendAnchor: 'start' | 'middle' | 'end' = 'middle';
-
-	// `tr` shares `'r'`'s coordinates (a right-aligned column starting at
-	// plotTop): that is already "top-right corner"; it just does not reserve
-	// plot-area space the way a reserved `'r'` legend does (see computePlotLayout).
-	const side = resolveLegendPlacement(legendPos).side;
-	if (side === 'r') {
-		legendX = svgWidth - 75;
-		legendY = plotTop;
-		legendAnchor = 'start';
-	} else if (side === 'l') {
-		legendX = 4;
-		legendY = plotTop;
-		legendAnchor = 'start';
-	} else if (side === 't') {
-		legendY = 28;
-	}
-
-	return { legend, legendX, legendY, legendAnchor };
 }

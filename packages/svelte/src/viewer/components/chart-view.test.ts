@@ -137,6 +137,21 @@ describe('chartView', () => {
 		expect(svg.querySelectorAll('circle').length).toBeGreaterThanOrEqual(4);
 	});
 
+	// Regression: a line chart's legend used to always draw the same plain rect
+	// swatch a bar chart's does, never the line + marker sample PowerPoint draws
+	// for a line-drawn series.
+	it('draws a line + marker legend swatch (not a rect) for a line chart', () => {
+		const svg = renderChartSvg({
+			...lineChartData(),
+			style: { hasLegend: true, legendPosition: 'b' },
+		});
+		const legendItem = svg.querySelector('g.pptx-svelte-chart-legend-item');
+		expect(legendItem).toBeTruthy();
+		expect(legendItem?.querySelector('rect')).toBeFalsy();
+		expect(legendItem?.querySelector('line')).toBeTruthy();
+		expect(legendItem?.querySelector('circle')).toBeTruthy();
+	});
+
 	it('renders a labelled placeholder for charts without data', () => {
 		const target = mountEl(buildChartElement(undefined));
 		expect(target.querySelector('svg')).toBeNull();

@@ -1,5 +1,5 @@
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
-import type { ChartPartRef, ChartViewModel } from 'pptx-viewer-shared';
+import type { ChartPartRef, ChartViewModel, LegendLineSwatch } from 'pptx-viewer-shared';
 import {
 	buildChartViewModel,
 	chartPartToAttrs,
@@ -91,6 +91,8 @@ export interface ChartLegendItem {
 	fontWeight: 'normal' | 'bold';
 	fontStyle: 'normal' | 'italic';
 	fontFamily?: string;
+	/** Present for a line-drawn series (line/scatter): draw this instead of the default rect swatch. */
+	lineSwatch?: LegendLineSwatch;
 }
 
 /** Legend layout: a horizontal row, or a vertical stack on the side. */
@@ -105,6 +107,7 @@ export function buildLegendItems(vm: ChartViewModel): ChartLegendItem[] {
 		fontWeight: item.fontWeight,
 		fontStyle: item.fontStyle,
 		fontFamily: item.fontFamily,
+		...(item.lineSwatch ? { lineSwatch: item.lineSwatch } : {}),
 	}));
 }
 

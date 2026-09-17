@@ -351,6 +351,25 @@ describe('buildComboViewModel', () => {
 		expect(vm.legend[1].label).toBe('Line');
 	});
 
+	// A bar+line combo always plots series 0 as the bar and every other series
+	// as a line (see the fixed `barSeries`/`lineSeries` split above), so the
+	// legend swatch follows suit: a rect for the bar, a line+marker sample for
+	// the line, matching PowerPoint's own combo-chart legend.
+	it('gives the bar series a rect swatch and the line series a line swatch', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Bars', values: [10, 20, 30, 40] },
+				{ name: 'Line', values: [5, 15, 25, 35] },
+			],
+			style: { hasLegend: true, legendPosition: 'b' },
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		expect(vm.legend[0].lineSwatch).toBeUndefined();
+		expect(vm.legend[1].lineSwatch).toBeDefined();
+	});
+
 	it('produces an empty legend when hasLegend is false', () => {
 		const chartData: PptxChartData = {
 			chartType: 'combo',

@@ -2,8 +2,9 @@
  * chart-view-model-layout.ts: plot-area layout math for the chart engine
  * (the plot inset, legend/title/data-table/secondary-axis reservations, and
  * `c:plotArea/c:layout/c:manualLayout` overrides). Chart chrome (gridlines,
- * axis / category labels, legend placement) lives in
- * `chart-view-model-chrome.ts`; both are re-exported by `chart-view-model.ts`.
+ * axis / category labels) lives in `chart-view-model-chrome.ts`; legend
+ * building lives in `chart-legend-build.ts`. All three are re-exported by
+ * `chart-view-model.ts`.
  *
  * @module chart-view-model-layout
  */

@@ -26,6 +26,7 @@ import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import { buildHorizontalBarViewModel } from './chart-horizontal-bars';
+import { resolveLegendSwatchKind } from './chart-legend-swatch';
 import {
 	computeAxisTitlePrimitives,
 	computeErrorBarPrimitives,
@@ -154,6 +155,7 @@ export function buildCartesianViewModel(
 		legendPos,
 		layout.svgHeight,
 		layout.plotTop,
+		resolveLegendSwatchKind(kind),
 	);
 
 	let plot: SeriesPlotResult;

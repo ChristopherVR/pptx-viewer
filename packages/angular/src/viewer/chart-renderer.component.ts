@@ -233,14 +233,18 @@ const LEGEND_SWATCH_SIZE = 10;
 			@if (legendItems().length > 0) {
 				@for (item of legendItems(); track $index) {
 					<g [attr.transform]="legendTransform(item)">
-						<rect
-							x="0"
-							y="-7"
-							[attr.width]="swatchSize"
-							[attr.height]="swatchSize"
-							rx="2"
-							[attr.fill]="item.color"
-						/>
+						@if (item.lineSwatch) {
+							<g pptx-chart-primitives [primitives]="item.lineSwatch.primitives"></g>
+						} @else {
+							<rect
+								x="0"
+								y="-7"
+								[attr.width]="swatchSize"
+								[attr.height]="swatchSize"
+								rx="2"
+								[attr.fill]="item.color"
+							/>
+						}
 						<text
 							[attr.x]="swatchSize + 3"
 							y="3"

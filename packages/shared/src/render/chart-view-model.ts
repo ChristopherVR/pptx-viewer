@@ -41,7 +41,8 @@
  *   chart-view-model-types    descriptor types (primitives, view-model, layout)
  *   chart-view-model-scale    palette, value ranges, axis value formatting
  *   chart-view-model-layout   plot layout math (inset + reservations)
- *   chart-view-model-chrome   gridlines, axis/category labels, legend placement
+ *   chart-view-model-chrome   gridlines, axis/category labels
+ *   chart-legend-build        legend entries (colour/line swatch) + anchor position
  *   chart-view-model-bars     bar / column rects, line points
  *   chart-view-model-points   pie, scatter, bubble, radar geometry
  *   chart-view-model-kinds    supported kinds + preserveAspectRatio
@@ -53,6 +54,7 @@
  * @module chart-view-model
  */
 
+export * from './chart-legend-build';
 export * from './chart-view-model-bars';
 export * from './chart-view-model-build';
 export * from './chart-view-model-chrome';

@@ -103,7 +103,23 @@
 
 	{#each legendItems as entry (entry.key)}
 		<g class="pptx-svelte-chart-legend-item" transform={entry.transform}>
-			<rect x="0" y="-7" width="10" height="10" rx="2" fill={entry.color} />
+			{#if entry.lineSwatch}
+				{#each entry.lineSwatch.primitives as prim, si (`${entry.key}-sw${si}`)}
+					{#if prim.kind === 'rect'}
+						<rect x={prim.x} y={prim.y} width={prim.w} height={prim.h} fill={prim.fill} rx={prim.rx ?? 0} />
+					{:else if prim.kind === 'circle'}
+						<circle cx={prim.cx} cy={prim.cy} r={prim.r} fill={prim.fill} />
+					{:else if prim.kind === 'line'}
+						<line x1={prim.x1} y1={prim.y1} x2={prim.x2} y2={prim.y2} stroke={prim.stroke} stroke-width={prim.strokeWidth} />
+					{:else if prim.kind === 'polygon'}
+						<polygon points={prim.points} fill={prim.fill} stroke={prim.stroke} stroke-width={prim.strokeWidth} />
+					{:else if prim.kind === 'path'}
+						<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} />
+					{/if}
+				{/each}
+			{:else}
+				<rect x="0" y="-7" width="10" height="10" rx="2" fill={entry.color} />
+			{/if}
 			<text x="13" y="3" font-size={entry.fontSize} fill={entry.fill} font-weight={entry.fontWeight} font-style={entry.fontStyle} font-family={entry.fontFamily}>{entry.label}</text>
 		</g>
 	{/each}

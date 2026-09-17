@@ -241,6 +241,42 @@ describe('renderChartViewModel: c:legendEntry deletion (real chart pipeline)', (
 	});
 });
 
+// Regression: a line chart's legend used to always draw the same plain rect
+// swatch a bar chart's does, never the line + marker sample PowerPoint draws
+// for a line-drawn series (see `chart-legend-swatch.ts` in pptx-viewer-shared).
+describe('renderChartViewModel: line-chart legend swatch (real chart pipeline)', () => {
+	it('draws a line + marker swatch, not a rect, for a line chart legend', () => {
+		const element = chartElement({
+			chartType: 'line',
+			categories: ['Q1', 'Q2'],
+			series: [
+				{ name: 'A', values: [10, 20], color: '#00B0F0' },
+				{ name: 'B', values: [5, 15], color: '#404040' },
+			],
+			style: { hasLegend: true, legendPosition: 'b' },
+		});
+		const vm = buildChartViewModel(element);
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		// A rect swatch is `<rect x="0" y="-7" width="10" height="10" rx="2" .../>`;
+		// none of those should appear now that both entries carry a lineSwatch.
+		expect(html).not.toContain('width="10" height="10"');
+		expect(html).toContain('stroke="#00B0F0"');
+		expect(html).toContain('stroke="#404040"');
+	});
+
+	it('keeps the default rect swatch for a bar chart legend', () => {
+		const element = chartElement({
+			chartType: 'bar',
+			categories: ['Q1'],
+			series: [{ name: 'Revenue', values: [100] }],
+			style: { hasLegend: true, legendPosition: 'b' },
+		});
+		const vm = buildChartViewModel(element);
+		const html = renderToStaticMarkup(renderChartViewModel('c1', vm));
+		expect(html).toContain('width="10" height="10"');
+	});
+});
+
 // C2-G9 (render half): a data point's c:dPt/c:pictureOptions picture fill
 // reaches the SVG as a <pattern>/<image> def and a fill="url(#...)" bar rect.
 describe('renderChartViewModel: c:dPt/c:pictureOptions picture fill (real chart pipeline)', () => {

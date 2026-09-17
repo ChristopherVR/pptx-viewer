@@ -46,17 +46,20 @@ const CX_NS =
 	'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' +
 	'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"';
 
-function strCache(values: string[]): string {
+/** Exported for one-off generators (e.g. `generate-stacked-line-legend-fixture.ts`) composing a bespoke construct `wrapClassic` doesn't cover. */
+export function strCache(values: string[]): string {
 	const pts = values.map((v, i) => `<c:pt idx="${i}"><c:v>${escapeXml(v)}</c:v></c:pt>`).join('');
 	return `<c:strRef><c:f>Sheet1!$A$2:$A$${values.length + 1}</c:f><c:strCache><c:ptCount val="${values.length}"/>${pts}</c:strCache></c:strRef>`;
 }
 
-function numCache(values: number[], formatCode = 'General'): string {
+/** Exported for one-off generators; see {@link strCache}. */
+export function numCache(values: number[], formatCode = 'General'): string {
 	const pts = values.map((v, i) => `<c:pt idx="${i}"><c:v>${v}</c:v></c:pt>`).join('');
 	return `<c:numRef><c:f>Sheet1!$B$2:$B$${values.length + 1}</c:f><c:numCache><c:formatCode>${formatCode}</c:formatCode><c:ptCount val="${values.length}"/>${pts}</c:numCache></c:numRef>`;
 }
 
-function txCache(name: string): string {
+/** Exported for one-off generators; see {@link strCache}. */
+export function txCache(name: string): string {
 	return `<c:tx><c:strRef><c:f>Sheet1!$B$1</c:f><c:strCache><c:ptCount val="1"/><c:pt idx="0"><c:v>${escapeXml(name)}</c:v></c:pt></c:strCache></c:strRef></c:tx>`;
 }
 
@@ -76,11 +79,14 @@ function chartTitle(title: string): string {
 	return `<c:title><c:tx><c:rich><a:bodyPr/><a:p><a:r><a:t>${escapeXml(title)}</a:t></a:r></a:p></c:rich></c:tx><c:overlay val="0"/></c:title><c:autoTitleDeleted val="0"/>`;
 }
 
-const CAT_AX_ID = 111111111;
-const VAL_AX_ID = 222222222;
+/** Exported for one-off generators; see {@link strCache}. */
+export const CAT_AX_ID = 111111111;
+/** Exported for one-off generators; see {@link strCache}. */
+export const VAL_AX_ID = 222222222;
 const SER_AX_ID = 333333333;
 
-function catValAxes(): string {
+/** Exported for one-off generators; see {@link strCache}. */
+export function catValAxes(): string {
 	return (
 		`<c:catAx><c:axId val="${CAT_AX_ID}"/><c:scaling><c:orientation val="minMax"/></c:scaling>` +
 		`<c:delete val="0"/><c:axPos val="b"/><c:crossAx val="${VAL_AX_ID}"/></c:catAx>` +
@@ -284,7 +290,8 @@ function valValAxes(): string {
 /** Deterministic per-slice palette used by pie/doughnut dPt fills. */
 const PALETTE = ['4472C4', 'ED7D31', '70AD47', 'FFC000'] as const;
 
-function wrapClassic(input: ChartXmlInput, plotInner: string): string {
+/** Exported for one-off generators; see {@link strCache}. */
+export function wrapClassic(input: ChartXmlInput, plotInner: string): string {
 	return (
 		`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
 		`<c:chartSpace ${C_NS}><c:chart>${chartTitle(input.title)}` +

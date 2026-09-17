@@ -507,6 +507,40 @@ describe('cartesian stacked line', () => {
 		expect(seriesB[0].cy).toBeGreaterThan(seriesA[0].cy);
 		expect(seriesB[1].cy).toBeGreaterThan(seriesA[1].cy);
 	});
+
+	// Regression for a real-world deck: a stacked line chart whose series carry
+	// NON-SEQUENTIAL `c:idx` (1, 2 instead of 0, 1) and a `c:dPt` marker override
+	// on only SOME points (idx 1-4, never idx 0). Both of those are irrelevant to
+	// the parsed `PptxChartData` shape (series are already in array/`c:order`
+	// position, and `dataPoints` only ever affects the point it names), so this
+	// asserts both series' polylines still render with the correct stacked
+	// (cumulative) geometry, and the legend gets a line sample per CLAUDE.md's
+	// "confirm the fix against the real construct" expectation.
+	it('renders both polylines and line-style legend swatches for a real-world-shaped chart', () => {
+		const realWorldShaped: PptxChartData = {
+			chartType: 'line',
+			categories: ['2011', '2012', '2013', '2014', '2015'],
+			series: [
+				{
+					name: 'A',
+					values: [2.4, 4.4, 1.8, 2.8, 5.6],
+					color: '#00B0F0',
+					dataPoints: [{ idx: 1 }, { idx: 2 }, { idx: 3 }, { idx: 4 }],
+				},
+				{ name: 'B', values: [2, 2, 3, 5, 6.4], color: '#404040' },
+			],
+			grouping: 'stacked',
+			style: { hasLegend: true, legendPosition: 'b' },
+		};
+		const vm = buildChartViewModel(chartElement(realWorldShaped));
+		// eslint-disable-next-line one-var -- an assertion sits between this const and the previous one
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		expect(polylines).toHaveLength(2);
+		expect(polylines.every((p) => p.points.length > 0)).toBeTruthy();
+		expect(vm.legend).toHaveLength(2);
+		expect(vm.legend.every((entry) => entry.lineSwatch !== undefined)).toBeTruthy();
+		expect(vm.legend[0].lineSwatch?.primitives.some((p) => p.kind === 'line')).toBeTruthy();
+	});
 });
 
 describe('cartesian percentStacked area', () => {

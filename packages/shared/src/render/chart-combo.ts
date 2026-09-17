@@ -15,6 +15,7 @@ import { computeErrorBarPrimitives } from './chart-error-bars';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
 import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
+import type { LegendSwatchKind } from './chart-legend-swatch';
 import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-overlays';
 import type {
 	ChartViewModel,
@@ -123,6 +124,12 @@ export function buildComboViewModel(
 	);
 	const sourceIndices = horizontalAxis.sourceIndices;
 	const legendPos = chartData.style?.legendPosition ?? 'b';
+	// The combo layout below is fixed: series 0 is the bar, every other series
+	// is a line (see `barSeries`/`lineSeries` just below), so the legend swatch
+	// follows the same split (bar -> rect, line -> line+marker sample).
+	const comboSwatchKinds: LegendSwatchKind[] = chartData.series.map((_s, i) =>
+		i === 0 ? 'rect' : 'line',
+	);
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
 		chartData.colorPalette,
@@ -130,6 +137,7 @@ export function buildComboViewModel(
 		legendPos,
 		layout.svgHeight,
 		layout.plotTop,
+		comboSwatchKinds,
 	);
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];

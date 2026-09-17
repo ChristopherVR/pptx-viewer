@@ -377,7 +377,13 @@ export function renderChartViewModel(
 					key={`${elementId}-lg-${i}`}
 					transform={`translate(${item.x.toFixed(1)},${item.y.toFixed(1)})`}
 				>
-					<rect x={0} y={-7} width={10} height={10} rx={2} fill={item.color} />
+					{item.lineSwatch ? (
+						item.lineSwatch.primitives.map((prim, si) =>
+							renderPrimitive(prim, `${elementId}-lg-${i}-sw-${si}`),
+						)
+					) : (
+						<rect x={0} y={-7} width={10} height={10} rx={2} fill={item.color} />
+					)}
 					<text
 						x={13}
 						y={3}

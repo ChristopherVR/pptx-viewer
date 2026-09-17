@@ -77,9 +77,20 @@ describe('hasSecondaryCategoryAxis', () => {
 		expect(hasSecondaryCategoryAxis([makePrimaryCategoryAxis()])).toBeFalsy();
 	});
 
-	it("returns true for catAx or dateAx at position 't'", () => {
-		expect(hasSecondaryCategoryAxis([makeSecondaryCategoryAxis()])).toBeTruthy();
-		expect(hasSecondaryCategoryAxis([{ axisType: 'dateAx', axPos: 't' }])).toBeTruthy();
+	it("returns false for a single relocated axis at position 't' (not a genuine secondary)", () => {
+		// A chart with only one catAx/dateAx, itself positioned at the top, is
+		// not a combo chart with two category axes: see isPrimaryCategoryAxisAtTop.
+		expect(hasSecondaryCategoryAxis([makeSecondaryCategoryAxis()])).toBeFalsy();
+		expect(hasSecondaryCategoryAxis([{ axisType: 'dateAx', axPos: 't' }])).toBeFalsy();
+	});
+
+	it('returns true for a genuine bottom + top category axis pair', () => {
+		expect(
+			hasSecondaryCategoryAxis([makePrimaryCategoryAxis(), makeSecondaryCategoryAxis()]),
+		).toBeTruthy();
+		expect(
+			hasSecondaryCategoryAxis([makePrimaryCategoryAxis(), { axisType: 'dateAx', axPos: 't' }]),
+		).toBeTruthy();
 	});
 });
 
@@ -252,13 +263,20 @@ describe('computeLayoutOptions', () => {
 	});
 
 	it('detects secondary axes and data table from chart data', () => {
-		const axes = [makeSecondaryValueAxis(), makeSecondaryCategoryAxis()];
+		const axes = [makePrimaryCategoryAxis(), makeSecondaryValueAxis(), makeSecondaryCategoryAxis()];
 		const dt: PptxChartDataTable = {};
 		const opts = computeLayoutOptions(axes, dt, 4);
 		expect(opts.hasSecondaryValueAxis).toBeTruthy();
 		expect(opts.hasSecondaryCategoryAxis).toBeTruthy();
 		expect(opts.hasDataTable).toBeTruthy();
 		expect(opts.dataTableRowCount).toBe(4);
+	});
+
+	it('treats a single relocated top category axis as categoryAxisAtTop, not a secondary axis', () => {
+		const axes = [makeSecondaryValueAxis(), makeSecondaryCategoryAxis()];
+		const opts = computeLayoutOptions(axes, undefined, 1);
+		expect(opts.hasSecondaryCategoryAxis).toBeFalsy();
+		expect(opts.categoryAxisAtTop).toBeTruthy();
 	});
 });
 

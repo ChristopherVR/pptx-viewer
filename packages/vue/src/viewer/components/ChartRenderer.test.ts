@@ -156,6 +156,20 @@ describe('chartRenderer', () => {
 		expect(text).toContain('Cost');
 	});
 
+	// Regression: a line chart's legend used to always draw a plain filled rect
+	// swatch, never the line + marker sample PowerPoint draws for a line-drawn
+	// series. `lineSwatch` picks a `<line>` + marker primitive instead.
+	it('draws a line + marker legend swatch (not a rect) for a line chart', () => {
+		const wrapper = mount(ChartRenderer, {
+			props: { element: chartElement(data('line')), zIndex: 0 },
+		});
+		// A bar chart's legend swatch is a plain 10x10 rect; a line chart's is a
+		// <line> element inside the same legend <g>.
+		const legendGroups = wrapper.findAll('g').filter((g) => g.find('text').exists());
+		expect(legendGroups.length).toBeGreaterThan(0);
+		expect(legendGroups.some((g) => g.find('line').exists())).toBeTruthy();
+	});
+
 	it('renders data labels when enabled', () => {
 		const wrapper = mount(ChartRenderer, {
 			props: {
