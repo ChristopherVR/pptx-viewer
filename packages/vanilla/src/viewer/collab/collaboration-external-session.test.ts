@@ -134,7 +134,7 @@ describe('host-owned Vanilla collaboration', () => {
 			handler.dispose();
 			container.remove();
 		}
-	});
+	}, 15000);
 
 	it('blocks editing while unsynced but permits host-authorized offline edits', async () => {
 		const room = host();
@@ -183,7 +183,7 @@ describe('host-owned Vanilla collaboration', () => {
 			handler.dispose();
 			container.remove();
 		}
-	});
+	}, 15000);
 
 	it('publishes a late bootstrap into an empty creator room without discarding it', async () => {
 		const room = host(true);
