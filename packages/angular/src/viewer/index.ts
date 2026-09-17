@@ -469,7 +469,14 @@ export type {
 	PresenterExitMessage,
 } from './presenter-window.service';
 
-export type { CanvasSize, CollaborationConfig, CollaborationRole } from './types';
+export type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	ExternalCollaborationAwareness,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+} from './types';
 export type { ViewerMode, PowerPointViewerAPI, ToolbarActionId } from '../internal/shared';
 export type { StyleMap } from './element-style';
 export {

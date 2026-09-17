@@ -15,20 +15,13 @@ import type {
 	CollaborationLivePatcher,
 	CollaborationTransport,
 	ConnectionStatus,
-	DepartureChannel,
-	YjsFactories,
+	YDocLike,
 } from '../internal/shared';
 import { clearLocalAwareness, observeYDocSlides } from '../internal/shared';
-import type { ConnectionWiring } from './collaboration-connection';
 import { wireConnectionStatus } from './collaboration-connection';
 import { DEFAULT_CURSOR_COLOR } from './collaboration-helpers';
 import { LocalPresencePublisher } from './collaboration-local-presence';
-import type {
-	AwarenessLike,
-	DestroyableYDoc,
-	ProviderBundle,
-	ProviderLike,
-} from './collaboration-providers';
+import type { AwarenessLike, ProviderBundle } from './collaboration-providers';
 import { SlideSyncEngine } from './collaboration-slide-sync';
 import type { TemplateElementsBySlideId } from './template-mode';
 
@@ -56,15 +49,12 @@ export interface ConnectOptions {
 
 /** The transport objects + wiring handles of one live session, owned together. */
 export interface ActiveSession {
-	ydoc: DestroyableYDoc;
-	provider: ProviderLike;
+	ydoc: YDocLike;
 	awareness: AwarenessLike;
-	departure: DepartureChannel;
-	factories: YjsFactories;
 	selfId: number;
 	localPresence: LocalPresencePublisher;
-	connection: ConnectionWiring;
-	unobserve: () => void;
+	dispose: () => void;
+	refreshReadiness?: () => void;
 }
 
 /** Everything `activateSession` reads from / calls back into the service. */
@@ -76,6 +66,7 @@ export interface ActivateSessionDeps {
 	refreshPresence: () => void;
 	/** Schedule an owner-role write-back after a doc mutation. */
 	scheduleWriteBack: () => void;
+	cancelWriteBack: () => void;
 	setStatus: (status: ConnectionStatus) => void;
 	getStatus: () => ConnectionStatus;
 	isActive: () => boolean;
@@ -133,32 +124,20 @@ export function activateSession(
 
 	return {
 		ydoc: bundle.doc,
-		provider: bundle.provider,
 		awareness: bundle.awareness,
-		departure: bundle.departure,
-		factories: bundle.factories,
 		selfId: bundle.awareness.clientID ?? -1,
 		localPresence,
-		connection,
-		unobserve,
+		dispose() {
+			connection.cancelConnectTimer();
+			unobserve();
+			bundle.awareness.off?.('change', deps.refreshPresence);
+			bundle.awareness.off?.('update', deps.refreshPresence);
+			bundle.departure.announce();
+			bundle.departure.dispose();
+			clearLocalAwareness(bundle.awareness);
+			bundle.provider.disconnect();
+			bundle.provider.destroy();
+			bundle.doc.destroy();
+		},
 	};
-}
-
-/**
- * Dispose a live session. Announces the departure synchronously first: the
- * provider's own awareness removal is broadcast a microtask later and would be
- * dropped when this runs from a document being destroyed, leaving a ghost
- * collaborator until the 30s awareness timeout.
- */
-export function teardownSession(session: ActiveSession, refreshPresence: () => void): void {
-	session.connection.cancelConnectTimer();
-	session.unobserve();
-	session.awareness.off?.('change', refreshPresence);
-	session.awareness.off?.('update', refreshPresence);
-	session.departure.announce();
-	session.departure.dispose();
-	clearLocalAwareness(session.awareness);
-	session.provider.disconnect();
-	session.provider.destroy();
-	session.ydoc.destroy();
 }

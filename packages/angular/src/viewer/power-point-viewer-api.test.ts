@@ -72,6 +72,45 @@ const API_MEMBERS = [
 ] as const;
 
 describe('powerPointViewerComponent API conformance', () => {
+	it('retains inherited artwork for a host-readonly collaborative viewer', () => {
+		const templates = source.slice(
+			source.indexOf('protected readonly activeTemplateElements ='),
+			source.indexOf('protected readonly themeKey ='),
+		);
+		expect(templates).toContain('!this.hasEditPermission() && !this.collab.active()');
+	});
+
+	it('serializes the shared model for a host-readonly collaborative viewer', () => {
+		const fileIO = source.slice(
+			source.indexOf('this.fileIO.bind({'),
+			source.indexOf('this.loader.bindPendingInlineEdit'),
+		);
+		expect(fileIO).toMatch(
+			/canEdit: \(\) => this\.hasEditPermission\(\) \|\| this\.collab\.active\(\)/u,
+		);
+	});
+
+	it('selects the collaborative live model even when the host disables editing', () => {
+		const selection = source.slice(
+			source.indexOf('protected readonly displaySlides ='),
+			source.indexOf('protected readonly displaySlidesMut ='),
+		);
+		expect(selection).toContain('this.hasEditPermission() || this.collab.active()');
+		expect(selection).toMatch(
+			/mergedSlides[\s\S]*?this\.hasEditPermission\(\) \|\| this\.collab\.active\(\)/u,
+		);
+	});
+
+	it('gates live editing by collaboration role without discarding the collaborative slide source', () => {
+		expect(source).toContain("this.collab.activeRole() !== 'viewer'");
+		expect(source).toMatch(
+			/canEdit = computed\([\s\S]*?this\.hasEditPermission\(\)[\s\S]*?this\.collab\.activeRole\(\) !== 'viewer'/u,
+		);
+		expect(source).toContain(
+			'this.hasEditPermission() || this.collab.active() ? this.editor.slides() : this.loader.slides()',
+		);
+	});
+
 	it('routes public insertion through effective permission and its own canvas commit boundary', () => {
 		expect(source).toContain('return insertPublicElement(');
 		expect(source).toContain('canEdit: this.canEdit()');
@@ -249,7 +288,7 @@ describe('public viewer mode transitions', () => {
 
 	it('uses permission, not interaction mode, to select the edited display and native save', () => {
 		expect(source).toContain(
-			'this.hasEditPermission() ? this.editor.slides() : this.loader.slides()',
+			'this.hasEditPermission() || this.collab.active() ? this.editor.slides() : this.loader.slides()',
 		);
 		const fileIoBinding = source.slice(source.indexOf('this.fileIO.bind({'));
 		expect(fileIoBinding).toMatch(/canEdit: \(\) => this\.hasEditPermission\(\)/u);

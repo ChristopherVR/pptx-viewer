@@ -13,4 +13,11 @@
  *    on the component instance, reachable via a template reference variable or
  *    `viewChild`.
  */
-export type { CanvasSize, CollaborationConfig, CollaborationRole } from '../internal/shared';
+export type {
+	CanvasSize,
+	CollaborationConfig,
+	CollaborationRole,
+	ExternalCollaborationAwareness,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+} from '../internal/shared';

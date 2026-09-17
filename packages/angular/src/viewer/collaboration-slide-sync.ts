@@ -11,7 +11,12 @@
 
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CollabLoadOrigin, YjsFactories, YTransactionLike } from '../internal/shared';
+import type {
+	CollabLoadOrigin,
+	YDocLike,
+	YjsFactories,
+	YTransactionLike,
+} from '../internal/shared';
 import {
 	createSyncGate,
 	LOCAL_SYNC_ORIGIN,
@@ -20,12 +25,15 @@ import {
 	shouldRoomSlidesReplaceLoad,
 	YDOC_SLIDES_KEY,
 } from '../internal/shared';
-import type { DestroyableYDoc, ProviderLike } from './collaboration-providers';
+import type { ProviderLike } from './collaboration-providers';
 
 /** Live-session references the engine writes into, set on connect. */
 export interface SlideSyncBinding {
-	ydoc: DestroyableYDoc;
+	ydoc: YDocLike;
 	factories: YjsFactories;
+	readOnly?: boolean;
+	external?: boolean;
+	initialJoin?: boolean;
 	/** Apply remotely-authored slides to viewer state. */
 	onRemoteSlides: ((slides: PptxSlide[]) => void) | null;
 	/** Schedule an owner-role write-back after a doc mutation. */
@@ -45,10 +53,13 @@ export class SlideSyncEngine {
 	#lastSynced = '';
 	#applyingRemote = false;
 	#pending: readonly PptxSlide[] | null = null;
+	#awaitingInitialRoom = false;
+	#allowEmpty = false;
 
 	/** Attach the engine to a freshly connected session's doc. */
 	bind(binding: SlideSyncBinding): void {
 		this.#binding = binding;
+		this.#awaitingInitialRoom = binding.initialJoin ?? false;
 	}
 
 	/** Clear all per-session state (call on disconnect). */
@@ -58,6 +69,8 @@ export class SlideSyncEngine {
 		this.#pending = null;
 		this.#lastSynced = '';
 		this.#applyingRemote = false;
+		this.#awaitingInitialRoom = false;
+		this.#allowEmpty = false;
 	}
 
 	/**
@@ -101,7 +114,13 @@ export class SlideSyncEngine {
 	 */
 	broadcast(slides: readonly PptxSlide[]): void {
 		const b = this.#binding;
-		if (!b || this.#applyingRemote || slides.length === 0) {
+		if (
+			!b ||
+			b.readOnly ||
+			this.#awaitingInitialRoom ||
+			this.#applyingRemote ||
+			(slides.length === 0 && !this.#allowEmpty)
+		) {
 			return;
 		}
 		if (!this.gate.isOpen()) {
@@ -113,8 +132,28 @@ export class SlideSyncEngine {
 			return;
 		}
 		this.#lastSynced = s;
+		if (b.external) {
+			this.#allowEmpty = true;
+		}
 		reconcileSlidesInYDoc([...slides], b.ydoc, b.factories, LOCAL_SYNC_ORIGIN);
 		b.scheduleWriteBack();
+	}
+
+	/** A host's existing room wins over any local deck queued before readiness. */
+	adoptExternalDocument(transaction?: YTransactionLike): void {
+		if (transaction?.origin === LOCAL_SYNC_ORIGIN) {
+			return;
+		}
+		if (this.#binding && (readSlidesFromYDoc(this.#binding.ydoc).length > 0 || this.#allowEmpty)) {
+			this.#pending = null;
+			this.#awaitingInitialRoom = false;
+			this.#allowEmpty = true;
+			this.onRemoteChange();
+		}
+	}
+
+	canPublishExternal(): boolean {
+		return !this.#awaitingInitialRoom && !this.#binding?.readOnly;
 	}
 
 	/** Handle a remote Y.Doc change, skipping our own local-origin transactions. */
@@ -124,7 +163,7 @@ export class SlideSyncEngine {
 			return;
 		}
 		const remote = readSlidesFromYDoc(b.ydoc);
-		if (remote.length === 0) {
+		if (remote.length === 0 && !this.#allowEmpty) {
 			return;
 		}
 		// Suppress the echo: record what we just applied so the subsequent local
@@ -155,6 +194,11 @@ export class SlideSyncEngine {
 		const b = this.#binding;
 		if (!b) {
 			return false;
+		}
+		if (b.external && origin === 'user') {
+			this.#awaitingInitialRoom = false;
+			this.#allowEmpty = true;
+			this.#pending = null;
 		}
 		const docSlides = readSlidesFromYDoc(b.ydoc);
 		if (!shouldRoomSlidesReplaceLoad(origin, docSlides.length)) {

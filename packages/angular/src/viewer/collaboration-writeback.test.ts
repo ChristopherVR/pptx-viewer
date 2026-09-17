@@ -77,4 +77,59 @@ describe('writeBackScheduler getSaveOptions wiring', () => {
 		expect(saveMock).toHaveBeenCalledExactlyOnceWith([{ id: 's1', elements: [] }], saveOptions);
 		vi.useRealTimers();
 	});
+
+	it('drops an in-flight save after session cancellation or replacement', async () => {
+		let finish!: (bytes: Uint8Array) => void;
+		saveMock.mockReturnValueOnce(
+			new Promise<Uint8Array>((resolve) => {
+				finish = resolve;
+			}),
+		);
+		const oldWriteBack = vi.fn();
+		const nextWriteBack = vi.fn();
+		const scheduler = new WriteBackScheduler();
+		scheduler.schedule(
+			{ role: 'owner', onWriteBack: oldWriteBack, writeBackDebounceMs: 0 } as never,
+			{} as never,
+			() => new Uint8Array([1]),
+			() => ({}),
+		);
+		await vi.runAllTimersAsync();
+		scheduler.cancel();
+		scheduler.schedule(
+			{ role: 'owner', onWriteBack: nextWriteBack, writeBackDebounceMs: 0 } as never,
+			{} as never,
+			() => new Uint8Array([2]),
+			() => ({}),
+		);
+		finish(new Uint8Array([9]));
+		await vi.runAllTimersAsync();
+		expect(oldWriteBack).not.toHaveBeenCalled();
+		expect(nextWriteBack).toHaveBeenCalledOnce();
+		vi.useRealTimers();
+	});
+
+	it('does not begin saving after a cancelled asynchronous load completes', async () => {
+		let finish!: () => void;
+		loadMock.mockReturnValueOnce(
+			new Promise<void>((resolve) => {
+				finish = resolve;
+			}),
+		);
+		const onWriteBack = vi.fn();
+		const scheduler = new WriteBackScheduler();
+		scheduler.schedule(
+			{ role: 'owner', onWriteBack, writeBackDebounceMs: 0 } as never,
+			{} as never,
+			() => new Uint8Array([1]),
+			() => ({}),
+		);
+		await vi.runAllTimersAsync();
+		scheduler.cancel();
+		finish();
+		await vi.runAllTimersAsync();
+		expect(saveMock).not.toHaveBeenCalled();
+		expect(onWriteBack).not.toHaveBeenCalled();
+		vi.useRealTimers();
+	});
 });

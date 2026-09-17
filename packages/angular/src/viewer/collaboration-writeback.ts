@@ -33,9 +33,13 @@ export async function serializeWriteBack(
 	sourceBytes: Uint8Array,
 	templateElements: TemplateElementsBySlideId,
 	saveOptions?: PptxHandlerSaveOptions,
+	isCurrent: () => boolean = () => true,
 ): Promise<Uint8Array> {
 	const handler = new PptxHandler();
 	await handler.load(sourceBytes.buffer as ArrayBuffer);
+	if (!isCurrent()) {
+		throw new Error('Collaboration session changed during serialization');
+	}
 	const slides = buildSaveSlides(readSlidesFromYDoc(ydoc) as PptxSlide[], templateElements);
 	return handler.save(slides, saveOptions);
 }
@@ -47,6 +51,7 @@ export async function serializeWriteBack(
  */
 export class WriteBackScheduler {
 	private timer: ReturnType<typeof setTimeout> | null = null;
+	private generation = 0;
 
 	schedule(
 		config: CollaborationConfig | null,
@@ -59,6 +64,7 @@ export class WriteBackScheduler {
 			return;
 		}
 		this.cancel();
+		const generation = this.generation;
 		const ms = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_MS;
 		this.timer = setTimeout(() => {
 			this.timer = null;
@@ -66,8 +72,19 @@ export class WriteBackScheduler {
 			if (!bytes || !config.onWriteBack) {
 				return;
 			}
-			void serializeWriteBack(ydoc, bytes, getTemplateElements?.() ?? {}, getSaveOptions?.())
-				.then((out) => config.onWriteBack?.(out))
+			void serializeWriteBack(
+				ydoc,
+				bytes,
+				getTemplateElements?.() ?? {},
+				getSaveOptions?.(),
+				() => generation === this.generation,
+			)
+				.then((out) => {
+					if (generation === this.generation) {
+						return config.onWriteBack?.(out);
+					}
+					return undefined;
+				})
 				.catch(() => {
 					/* non-fatal */
 				});
@@ -75,6 +92,7 @@ export class WriteBackScheduler {
 	}
 
 	cancel(): void {
+		this.generation += 1;
 		if (this.timer !== null) {
 			clearTimeout(this.timer);
 			this.timer = null;

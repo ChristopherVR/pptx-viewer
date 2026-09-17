@@ -1,17 +1,9 @@
 /**
  * CollaborationService: Angular real-time collaboration (Yjs) service.
  *
- * Owns the provider lifecycle and the reactive collaboration state consumed by
- * the viewer component:
- *  - Transport is `y-websocket` (default) or serverless `y-webrtc`
- *    (`config.transport === 'webrtc'`), created via `./collaboration-providers`.
- *  - Local edits sync via the granular `reconcileSlidesInYDoc` (only changed
- *    slides/elements/fields mutate) in a transaction tagged `LOCAL_SYNC_ORIGIN`;
- *    the remote observer skips its own local-origin writes.
- *  - Websocket connections fail fast on mixed content and time out to `'error'`
- *    after `CONNECTION_TIMEOUT_MS`; `retry()` reconnects with the last config.
- *  - Elected-writer write-back (role === 'owner') via `WriteBackScheduler`.
- *
+ * Owns viewer state and built-in transports, or borrows a host-owned session.
+ * Slide synchronization, presence, transport wiring and write-back are split
+ * into focused modules below.
  * Provide at the component level: `@Component({ providers: [CollaborationService] })`.
  */
 
@@ -35,9 +27,8 @@ import {
 	validateRoomId,
 } from '../internal/shared';
 import type { RemoteCursor, RemotePresence } from './collaboration-helpers';
-import { createWebrtcBundle, createWebsocketBundle } from './collaboration-providers';
+import { connectSession } from './collaboration-session-connect';
 import type { ActiveSession, ConnectOptions } from './collaboration-session-setup';
-import { activateSession, teardownSession } from './collaboration-session-setup';
 import { SlideSyncEngine } from './collaboration-slide-sync';
 import { WriteBackScheduler } from './collaboration-writeback';
 import type { TemplateElementsBySlideId } from './template-mode';
@@ -85,9 +76,7 @@ export class CollaborationService {
 	 */
 	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
 
-	// The live session's transport objects + wiring handles, owned as one atomic
-	// unit: null when disconnected, assigned by connect(), disposed by
-	// disconnect(). See collaboration-session-setup.ts.
+	// One handle owns viewer wiring, but external transport resources stay borrowed.
 	private session: ActiveSession | null = null;
 	private readonly writeBack = new WriteBackScheduler();
 	/** Granular local<->doc slide sync (gate + echo dedupe + broadcast/adopt). */
@@ -102,13 +91,7 @@ export class CollaborationService {
 	private currentConfig: CollaborationConfig | null = null;
 	private lastConfig: CollaborationConfig | null = null;
 	private lastOptions: ConnectOptions = {};
-	/**
-	 * Reentrancy token for {@link connect}: bumped by every connect() and
-	 * disconnect(). A connect() whose token no longer matches after an await was
-	 * superseded, so it tears down whatever it just created and leaves the
-	 * service state to the newer call (a second provider join on the same room
-	 * would otherwise throw inside Yjs and kill the surviving session).
-	 */
+	/** Invalidates lazy setup when connect or disconnect supersedes it. */
 	private connectToken = 0;
 
 	/** Memoises the awareness -> presence projection so idle heartbeats are dropped. */
@@ -165,15 +148,16 @@ export class CollaborationService {
 			return;
 		}
 
-		// Falls back from a blank serverUrl the same way Vue's session layer
-		// already does, so a bare CollaborationConfig behaves identically
-		// regardless of which binding's session layer receives it directly (not
-		// just via the Share/Broadcast dialogs, which already pre-resolve it).
+		// Keep built-in transport inference; external sessions never open it.
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 
 		// Fail fast on mixed content (websocket only): an https page cannot open a
 		// ws:// socket, so surface the error rather than hanging until the timeout.
-		if (transport !== 'webrtc' && isMixedContentBlocked(config.serverUrl)) {
+		if (
+			!config.externalSession &&
+			transport !== 'webrtc' &&
+			isMixedContentBlocked(config.serverUrl)
+		) {
 			this.status.set('error');
 			return;
 		}
@@ -189,35 +173,31 @@ export class CollaborationService {
 
 		this.status.set('connecting');
 		try {
-			const bundle =
-				transport === 'webrtc'
-					? await createWebrtcBundle(config)
-					: await createWebsocketBundle(config);
-			if (token !== this.connectToken) {
-				// Superseded by a newer connect() or a disconnect() while awaiting
-				// the transport: destroy the just-created bundle and bail without
-				// touching the (newer call's) service state.
-				bundle.departure.dispose();
-				bundle.provider.disconnect();
-				bundle.provider.destroy();
-				bundle.doc.destroy();
+			const session = await connectSession(
+				config,
+				transport,
+				{
+					slideSync: this.slideSync,
+					livePatcher: this.livePatcher,
+					onRemoteSlides: this.onRemoteSlides,
+					refreshPresence: this.refreshPresence,
+					scheduleWriteBack: () => this.scheduleWriteBack(),
+					cancelWriteBack: () => this.writeBack.cancel(),
+					setStatus: (status) => this.status.set(status),
+					getStatus: () => this.status(),
+					isActive: () => this.active(),
+					failConnection: () => {
+						this.disconnect();
+						this.status.set('error');
+					},
+				},
+				() => token === this.connectToken,
+			);
+			if (!session || token !== this.connectToken) {
+				session?.dispose();
 				return;
 			}
-			this.session = activateSession(bundle, config, transport, {
-				slideSync: this.slideSync,
-				livePatcher: this.livePatcher,
-				onRemoteSlides: this.onRemoteSlides,
-				refreshPresence: this.refreshPresence,
-				scheduleWriteBack: () => this.scheduleWriteBack(),
-				setStatus: (status) => this.status.set(status),
-				getStatus: () => this.status(),
-				isActive: () => this.active(),
-				failConnection: () => {
-					this.disconnect();
-					this.status.set('error');
-				},
-			});
-
+			this.session = session;
 			this.active.set(true);
 			this.refreshPresence();
 		} catch {
@@ -243,7 +223,7 @@ export class CollaborationService {
 		this.slideSync.reset();
 		this.writeBack.cancel();
 		if (this.session) {
-			teardownSession(this.session, this.refreshPresence);
+			this.session.dispose();
 			this.session = null;
 		}
 		this.livePatcher.configure(null, null);
@@ -272,7 +252,12 @@ export class CollaborationService {
 	 * Returns true when the room's slides were adopted over the loaded deck.
 	 */
 	adoptDocSlidesAfterLoad(origin: CollabLoadOrigin = 'user'): boolean {
-		return this.connected() ? this.slideSync.adoptDocAfterLoad(origin) : false;
+		const adopted =
+			this.connected() || this.currentConfig?.externalSession
+				? this.slideSync.adoptDocAfterLoad(origin)
+				: false;
+		this.session?.refreshReadiness?.();
+		return adopted;
 	}
 
 	/**
@@ -292,17 +277,18 @@ export class CollaborationService {
 		this.session?.localPresence.setSelection(selectedElementId, activeSlideIndex);
 	}
 
-	/** Publish the local active-slide index (drives follow-along). */
 	setActiveSlide(index: number): void {
 		this.session?.localPresence.setActiveSlide(index);
 	}
 
-	/** Follow the given peer's active slide, or `null` to stop following. */
 	followUser(clientId: number | null): void {
 		this.followedClientId.set(clientId);
 	}
 
 	private scheduleWriteBack(): void {
+		if (this.currentConfig?.externalSession && !this.slideSync.gate.isOpen()) {
+			return;
+		}
 		this.writeBack.schedule(
 			this.currentConfig,
 			this.session?.ydoc ?? null,
