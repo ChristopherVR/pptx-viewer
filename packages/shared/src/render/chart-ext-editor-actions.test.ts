@@ -44,6 +44,22 @@ describe('hideChartSeries', () => {
 		expect(result?.filteredSeries).toHaveLength(2);
 		expect(result?.filteredSeries?.[1]?.idx).not.toBe(0);
 	});
+
+	it('reuses the series own c:idx rather than renumbering it (regression: reported as reordering on uncheck)', () => {
+		// Real-world shape (this codebase's own review found it on a real
+		// deck): series idx 1 and 2, never 0/1, and hiding the FIRST of two
+		// series used to renumber it to idx 0 (the "smallest free slot"),
+		// which then put it back at the front instead of its true position on
+		// restore.
+		const data = chart({
+			series: [
+				{ name: 'A', values: [1, 2], idx: 1 },
+				{ name: 'B', values: [3, 4], idx: 2 },
+			],
+		});
+		const result = hideChartSeries(data, 0);
+		expect(result?.filteredSeries?.[0]?.idx).toBe(1);
+	});
 });
 
 describe('restoreFilteredSeries', () => {
@@ -89,6 +105,29 @@ describe('restoreFilteredSeries', () => {
 		});
 		const result = restoreFilteredSeries(data, 0);
 		expect(result?.filteredSeries).toStrictEqual([{ idx: 2, order: 2, name: 'C', values: [2, 2] }]);
+	});
+
+	it('reinserts a restored series at its original position, not always at the end (regression: reported as reordering)', () => {
+		// A/B/C, idx 0/1/2: hide B, then restore it. Before this fix B always
+		// came back LAST (A, C, B); it must come back BETWEEN A and C.
+		const withBHidden = chart({
+			series: [
+				{ name: 'A', values: [1], idx: 0 },
+				{ name: 'C', values: [3], idx: 2 },
+			],
+			filteredSeries: [{ idx: 1, order: 1, name: 'B', values: [2] }],
+			categories: ['Cat1'],
+		});
+		const result = restoreFilteredSeries(withBHidden, 0);
+		expect(result?.series.map((s) => s.name)).toStrictEqual(['A', 'B', 'C']);
+	});
+
+	it('gives the restored series back its own idx, so hiding it again keeps its identity', () => {
+		const data = chartWithOneFiltered();
+		const restored = restoreFilteredSeries(data, 0)!;
+		expect(restored.series[1]?.idx).toBe(1);
+		const reHidden = hideChartSeries(restored, 1);
+		expect(reHidden?.filteredSeries?.[0]?.idx).toBe(1);
 	});
 });
 

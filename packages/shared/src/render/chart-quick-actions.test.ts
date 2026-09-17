@@ -118,6 +118,25 @@ describe('buildChartQuickActionsDescriptor', () => {
 		]);
 	});
 
+	it('keeps the Chart Filters list in original idx order regardless of which entries are hidden (regression: reported as reordering on uncheck)', () => {
+		// A(idx0), B(idx1), C(idx2); B is currently hidden. Concatenating
+		// visible-then-filtered used to list this as A, C, B (B jumps to the
+		// bottom); it must stay A, B, C.
+		const data = chart({
+			series: [
+				{ name: 'A', values: [1, 2], idx: 0 },
+				{ name: 'C', values: [5, 6], idx: 2 },
+			],
+			filteredSeries: [{ idx: 1, order: 1, name: 'B', values: [3, 4] }],
+		});
+		const descriptor = buildChartQuickActionsDescriptor({
+			isChartSelected: true,
+			chartData: data,
+			selectionBox: box,
+		})!;
+		expect(descriptor.filters.series.map((s) => s.name)).toStrictEqual(['A', 'B', 'C']);
+	});
+
 	it('exposes the Chart Styles preset gallery', () => {
 		const descriptor = buildChartQuickActionsDescriptor({
 			isChartSelected: true,

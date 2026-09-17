@@ -27,27 +27,36 @@ import type { PptxChartData, PptxChartFilteredSeries, PptxChartSeries } from 'pp
  * Hide a currently-visible series (PowerPoint's Chart Filters "uncheck a
  * series"): moves it out of {@link PptxChartData.series} into
  * {@link PptxChartData.filteredSeries}, keeping its data and identity. The
- * chart must keep at least one visible series. `idx`/`order` on the new
- * filtered entry take the series' position among ALL series (visible and
- * already-filtered combined), matching how PowerPoint numbers them.
+ * chart must keep at least one visible series.
+ *
+ * The new filtered entry's `idx`/`order` reuse the series' OWN `c:idx` when
+ * it has one (every real OOXML `c:ser` does): this value is what
+ * {@link restoreFilteredSeries} and the Chart Filters popover
+ * (`chart-quick-actions.ts`'s `buildFilters`) key a series' position on, so a
+ * chart with non-sequential idx values (a filtered series in the original
+ * file, or one authored idx 1/2 rather than 0/1, both real-world cases)
+ * keeps its true identity instead of being renumbered to "the smallest idx
+ * not yet taken," which used to reorder the Chart Filters list and lose a
+ * restored series' original position. Only a source series with no idx at
+ * all (a synthetic/malformed chart) falls back to that smallest-free-slot
+ * scheme, to guarantee every idx in the combined visible+filtered set stays
+ * distinct.
  */
 export function hideChartSeries(data: PptxChartData, seriesIndex: number): PptxChartData | null {
 	if (data.series.length <= 1 || seriesIndex < 0 || seriesIndex >= data.series.length) {
 		return null;
 	}
 	const series = data.series[seriesIndex]!;
-	// The smallest idx not already used by another VISIBLE series or an
-	// already-filtered one. With nothing else filtered this is just
-	// `seriesIndex` itself (PowerPoint numbers idx/order 0..N-1 across visible
-	// and filtered series together); a prior filtered series can force a
-	// higher one, keeping every idx distinct.
-	const takenIndices = new Set([
-		...data.series.map((_, i) => i).filter((i) => i !== seriesIndex),
-		...(data.filteredSeries ?? []).map((f) => f.idx),
-	]);
-	let idx = 0;
-	while (takenIndices.has(idx)) {
-		idx++;
+	let idx = series.idx;
+	if (idx === undefined) {
+		const taken = new Set([
+			...data.series.map((_, i) => i).filter((i) => i !== seriesIndex),
+			...(data.filteredSeries ?? []).map((f) => f.idx),
+		]);
+		idx = 0;
+		while (taken.has(idx)) {
+			idx++;
+		}
 	}
 	const filteredEntry: PptxChartFilteredSeries = {
 		idx,
@@ -67,11 +76,15 @@ export function hideChartSeries(data: PptxChartData, seriesIndex: number): PptxC
 /**
  * Restore a series PowerPoint's Chart Filters hid (the reverse of
  * {@link hideChartSeries}): moves it from {@link PptxChartData.filteredSeries}
- * back into {@link PptxChartData.series}. When the filtered entry itself
- * carries no cached name (PowerPoint auto-generated one, e.g. "Series 3"),
- * falls back to {@link PptxChartData.filteredSeriesTitle}; when it carries no
- * cached categories, falls back to {@link PptxChartData.filteredCategoryTitle}
- * or the chart's current categories.
+ * back into {@link PptxChartData.series}, reinserted at the position its
+ * `idx` puts it among the currently-visible series (not always appended
+ * last, which used to leave a restored series permanently reordered to the
+ * end of the chart, its legend, and its plot/stacking order). When the
+ * filtered entry itself carries no cached name (PowerPoint auto-generated
+ * one, e.g. "Series 3"), falls back to {@link PptxChartData.filteredSeriesTitle};
+ * when it carries no cached categories, falls back to
+ * {@link PptxChartData.filteredCategoryTitle} or the chart's current
+ * categories.
  */
 export function restoreFilteredSeries(
 	data: PptxChartData,
@@ -90,12 +103,20 @@ export function restoreFilteredSeries(
 	const restored: PptxChartSeries = {
 		name,
 		values,
+		idx: filtered.idx,
 		...(filtered.uniqueId ? { uniqueId: filtered.uniqueId } : {}),
 	};
+	// The first currently-visible series whose own idx sorts after the
+	// restored one; splicing in there reproduces its original relative
+	// position. A series with no idx info at all falls back to its array
+	// position, matching hideChartSeries's own fallback.
+	const insertAt = data.series.findIndex((s, i) => (s.idx ?? i) > filtered.idx);
+	const nextSeries = [...data.series];
+	nextSeries.splice(insertAt === -1 ? nextSeries.length : insertAt, 0, restored);
 	const remainingFiltered = (data.filteredSeries ?? []).filter((_, i) => i !== filteredIndex);
 	return {
 		...data,
-		series: [...data.series, restored],
+		series: nextSeries,
 		...(remainingFiltered.length > 0
 			? { filteredSeries: remainingFiltered }
 			: { filteredSeries: undefined }),

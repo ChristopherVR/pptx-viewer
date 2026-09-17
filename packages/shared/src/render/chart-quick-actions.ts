@@ -151,14 +151,25 @@ function buildFilters(chartData: PptxChartData): {
 		name: series.name,
 		visible: true,
 		seriesIndex: index,
+		sortKey: series.idx ?? index,
 	}));
 	const filtered = (chartData.filteredSeries ?? []).map((entry, index) => ({
 		key: `filtered-${index}`,
 		name: entry.name ?? chartData.filteredSeriesTitle ?? `Series ${index + 1}`,
 		visible: false,
 		filteredIndex: index,
+		sortKey: entry.idx,
 	}));
-	const series = [...visibleSeries, ...filtered];
+	// PowerPoint's Chart Filters list never reorders rows as they're (un)checked:
+	// every series keeps its original position, keyed by its persistent c:idx
+	// (falling back to array position for a chart with no idx info at all),
+	// not by which of the two underlying arrays (series/filteredSeries)
+	// currently holds it. Concatenating visible-then-filtered instead made a
+	// hidden series jump to the bottom of the list (reported as "unticking
+	// some of them changes the ordering").
+	const series = [...visibleSeries, ...filtered]
+		.sort((a, b) => a.sortKey - b.sortKey)
+		.map(({ sortKey: _sortKey, ...rest }) => rest);
 	return { visible: series.length > 1, series };
 }
 
