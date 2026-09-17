@@ -50,6 +50,7 @@
 		"collab": "bun demos/demo-react/collab-server.mjs",
 		"e2e": "bun run e2e:contract && playwright test",
 		"e2e:contract": "node scripts/check-e2e-neutrality.mjs",
+		"e2e:local-only": "bun run e2e:contract && playwright test --grep @local-only --workers=1",
 		"test:e2e-contract": "node --test scripts/check-e2e-neutrality.test.mjs",
 		"e2e:install": "playwright install --with-deps chromium",
 		"e2e:packaged": "bun run e2e:contract && playwright test --config=playwright.packaged.config.ts",

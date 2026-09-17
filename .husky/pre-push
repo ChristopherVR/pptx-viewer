@@ -1,0 +1,44 @@
+#!/bin/sh
+# Runs the @local-only e2e tests (real-time video export capture) before a
+# push that touches export-video-related code, since those tests are
+# excluded from CI (they reliably take the hosted runner down; see
+# playwright.config.ts and e2e/export-raster-tiling.spec.ts). See
+# CONTRIBUTING.md's "@local-only e2e tests" section for the full story.
+#
+# Kept tiny on purpose: the path-matching logic lives in
+# scripts/pre-push-local-e2e.mjs (which reads this hook's own stdin), so this
+# file only wires together the environment checks and the two commands.
+
+if [ "$PPTX_SKIP_PREPUSH" = "1" ]; then
+	echo "pptx: PPTX_SKIP_PREPUSH=1 set, skipping the local-only e2e pre-push check"
+	exit 0
+fi
+
+if [ -n "$CI" ]; then
+	echo "pptx: CI environment detected, skipping the local-only e2e pre-push check"
+	exit 0
+fi
+
+if ! command -v node >/dev/null 2>&1; then
+	echo "pptx: node not found on PATH, skipping the local-only e2e pre-push check"
+	exit 0
+fi
+
+decision_output=$(node scripts/pre-push-local-e2e.mjs)
+decision_status=$?
+echo "$decision_output"
+if [ "$decision_status" -ne 0 ]; then
+	exit 0
+fi
+
+if [ ! -d "$HOME/.cache/ms-playwright" ] \
+	&& [ ! -d "$HOME/AppData/Local/ms-playwright" ] \
+	&& [ ! -d "$LOCALAPPDATA/ms-playwright" ] \
+	&& [ ! -d "$HOME/Library/Caches/ms-playwright" ]; then
+	echo "pptx: Playwright browsers do not look installed, skipping the local-only e2e pre-push check (run 'bun run e2e:install' to enable it)"
+	exit 0
+fi
+
+echo "pptx: running the local-only e2e tests (real-time video export capture, ~7 minutes)."
+echo "pptx: set PPTX_SKIP_PREPUSH=1 to skip this push, e.g. 'PPTX_SKIP_PREPUSH=1 git push', or use 'git push --no-verify'."
+bun run e2e:local-only
