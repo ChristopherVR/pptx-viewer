@@ -426,7 +426,7 @@ export {
 	P15_GUIDE_URI,
 } from './guide-utils';
 
-export { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
+export { convertMetafileToDataUrl } from 'emf-converter';
 
 export {
 	SWITCHABLE_LAYOUT_TYPES,

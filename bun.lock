@@ -302,7 +302,7 @@
         "pptx": "./dist/cli/index.mjs",
       },
       "dependencies": {
-        "emf-converter": "^2.0.2",
+        "emf-converter": "^3.0.1",
         "fast-xml-parser": "^5.11.1",
         "jszip": "^3.10.2",
         "mtx-decompressor": "^1.6.0",
@@ -1607,7 +1607,7 @@
 
     "electron-to-chromium": ["electron-to-chromium@1.5.389", "", {}, "sha512-cEto7aeOqBfU1D+c5py5pE+ooscKE75JifxLBdFUZsqAxRS6y7kebtxAZvICszSl05gPjYHDTjY+lXpyGvpJbg=="],
 
-    "emf-converter": ["emf-converter@2.0.2", "", {}, "sha512-QLUufb45P3LlOudCoizBtJpO8cBw8LayH0mkvkRvIjvMlb6junwP0EXgUkdDyZUEF2QSEZUPV8rO8DS5rsJmkA=="],
+    "emf-converter": ["emf-converter@3.0.1", "", { "peerDependencies": { "@napi-rs/canvas": "^1.0.9" }, "optionalPeers": ["@napi-rs/canvas"] }, "sha512-WP124Mub13oKe8t7bguP75s4XkK59U5YNH7NeVjIGL3DHnbiL0maXxtoRT0VfAXZ1Hld6Xt+dfEZ8T4PIdzjpg=="],
 
     "emoji-regex": ["emoji-regex@10.6.0", "", {}, "sha512-toUI84YS5YmxW219erniWD0CIVOo46xGKColeNQRgOzDorgBi1v4D71/OFzgD9GO2UGKIv1C3Sp8DAn0+j5w7A=="],
 

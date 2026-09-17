@@ -1,4 +1,4 @@
-import { convertEmfToDataUrl, convertWmfToDataUrl } from 'emf-converter';
+import { convertMetafileToDataUrl } from 'emf-converter';
 
 import { resolveNativeAnimationThemeColors } from '../../services/native-animation-theme-colors';
 import { XmlObject, PptxElement } from '../../types';
@@ -84,10 +84,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (ext === 'emf' || ext === 'wmf') {
 				const binaryBuffer = await imageFile.async('arraybuffer');
 
-				const converted =
-					ext === 'emf'
-						? await convertEmfToDataUrl(binaryBuffer)
-						: await convertWmfToDataUrl(binaryBuffer);
+				const converted = await convertMetafileToDataUrl(binaryBuffer);
 				if (converted) {
 					this.imageDataCache.set(imagePath, converted);
 					return converted;
