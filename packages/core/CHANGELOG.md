@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.15.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.5) - 2026-09-17
+
+### Bug Fixes
+
+- **core:** Embed real images in CLI export-md/export-svg output (by @ChristopherVR) ([6617c92](https://github.com/ChristopherVR/pptx-viewer/commit/6617c92a2ee2ea673c35e4a58cc60dc7cc32def5))
+
+### Testing
+
+- **core:** Remove duplicate chart-stacked-line-markers manifest entry (by @ChristopherVR) ([5c60b11](https://github.com/ChristopherVR/pptx-viewer/commit/5c60b1170223c3c74bd5815e8ebad28a233656a4))
+
 ## [3.15.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@3.15.4) - 2026-09-17
 
 ### Bug Fixes

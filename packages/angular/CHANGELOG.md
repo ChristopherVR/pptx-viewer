@@ -7,6 +7,19 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.20.1) - 2026-09-17
+
+### Bug Fixes
+
+- **i18n:** Translate recording and editor control labels (by @yunfeizhu) ([7be4498](https://github.com/ChristopherVR/pptx-viewer/commit/7be44985707067b5e11fcac257e52186d7159349))
+- **core:** Embed real images in CLI export-md/export-svg output (by @ChristopherVR) ([6617c92](https://github.com/ChristopherVR/pptx-viewer/commit/6617c92a2ee2ea673c35e4a58cc60dc7cc32def5))
+- **shared:** Keep chart axis interval count off a manual plot layout (by @ChristopherVR) ([d39b2b0](https://github.com/ChristopherVR/pptx-viewer/commit/d39b2b06925c8bd02e64b39c8b5b1a4476537010))
+
+### Testing
+
+- **i18n:** Cover translated editor controls across bindings (by @yunfeizhu) ([fe99e2b](https://github.com/ChristopherVR/pptx-viewer/commit/fe99e2b866a66bd3874707ae506416fd03bf8f1e))
+- **core:** Remove duplicate chart-stacked-line-markers manifest entry (by @ChristopherVR) ([5c60b11](https://github.com/ChristopherVR/pptx-viewer/commit/5c60b1170223c3c74bd5815e8ebad28a233656a4))
+
 ## [3.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@3.20.0) - 2026-09-17
 
 ### Features

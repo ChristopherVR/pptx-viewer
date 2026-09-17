@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.20.1) - 2026-09-17
+
+### Bug Fixes
+
+- **i18n:** Translate recording and editor control labels (by @yunfeizhu) ([7be4498](https://github.com/ChristopherVR/pptx-viewer/commit/7be44985707067b5e11fcac257e52186d7159349))
+
+### Testing
+
+- **i18n:** Cover translated editor controls across bindings (by @yunfeizhu) ([fe99e2b](https://github.com/ChristopherVR/pptx-viewer/commit/fe99e2b866a66bd3874707ae506416fd03bf8f1e))
+
 ## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.20.0) - 2026-09-17
 
 ### Features

@@ -10,6 +10,32 @@ dated sections beneath it are generated from
 
 ## 2026-09-17
 
+_Releases: pptx-viewer-core@3.15.5, pptx-react-viewer@3.20.1, pptx-vue-viewer@3.20.1, pptx-angular-viewer@3.20.1, pptx-vanilla-viewer@2.20.1, pptx-svelte-viewer@3.21.1, @christophervr/pptx-viewer@2.20.1_
+
+### Bug Fixes
+
+- **i18n:** Translate recording and editor control labels (by @yunfeizhu) ([7be4498](https://github.com/ChristopherVR/pptx-viewer/commit/7be44985707067b5e11fcac257e52186d7159349))
+- **vanilla:** Localize the custom-show quick action (by @yunfeizhu) ([eca9dba](https://github.com/ChristopherVR/pptx-viewer/commit/eca9dba9c41380577bcfe41da9a7b40e5d8f22e0))
+- **core:** Embed real images in CLI export-md/export-svg output (by @ChristopherVR) ([6617c92](https://github.com/ChristopherVR/pptx-viewer/commit/6617c92a2ee2ea673c35e4a58cc60dc7cc32def5))
+- **shared:** Keep chart axis interval count off a manual plot layout (by @ChristopherVR) ([d39b2b0](https://github.com/ChristopherVR/pptx-viewer/commit/d39b2b06925c8bd02e64b39c8b5b1a4476537010))
+
+### Documentation
+
+- **zh:** Sync locale imports and vanilla setup guide (by @yunfeizhu) ([52f320b](https://github.com/ChristopherVR/pptx-viewer/commit/52f320b584d1ea45a9b313152f49558562410d48))
+
+### Testing
+
+- **i18n:** Cover translated editor controls across bindings (by @yunfeizhu) ([fe99e2b](https://github.com/ChristopherVR/pptx-viewer/commit/fe99e2b866a66bd3874707ae506416fd03bf8f1e))
+- **i18n:** Verify custom-show labels across bindings (by @yunfeizhu) ([b5e66c4](https://github.com/ChristopherVR/pptx-viewer/commit/b5e66c4c300893aeaa34fe68c19f647b1ed1cc32))
+- **core:** Remove duplicate chart-stacked-line-markers manifest entry (by @ChristopherVR) ([5c60b11](https://github.com/ChristopherVR/pptx-viewer/commit/5c60b1170223c3c74bd5815e8ebad28a233656a4))
+- **e2e:** Stop conflating a marker rect with the legend default swatch (by @ChristopherVR) ([bf72892](https://github.com/ChristopherVR/pptx-viewer/commit/bf72892b5eaa58ea7ccd09bc2e38225ade826f53))
+
+### Styling
+
+- **vue:** Satisfy oxlint brace requirement on an unbraced if-return (by @ChristopherVR) ([63d54c4](https://github.com/ChristopherVR/pptx-viewer/commit/63d54c418ec269a33d97b4e2229a62bb4281268b))
+
+## 2026-09-17
+
 _Releases: pptx-viewer-core@3.15.4, pptx-react-viewer@3.20.0, pptx-vue-viewer@3.20.0, pptx-angular-viewer@3.20.0, pptx-vanilla-viewer@2.20.0, pptx-svelte-viewer@3.21.0, @christophervr/pptx-viewer@2.20.0_
 
 ### Features

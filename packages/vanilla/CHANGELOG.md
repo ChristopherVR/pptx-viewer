@@ -7,6 +7,20 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.20.1) - 2026-09-17
+
+### Bug Fixes
+
+- **i18n:** Translate recording and editor control labels (by @yunfeizhu) ([7be4498](https://github.com/ChristopherVR/pptx-viewer/commit/7be44985707067b5e11fcac257e52186d7159349))
+- **vanilla:** Localize the custom-show quick action (by @yunfeizhu) ([eca9dba](https://github.com/ChristopherVR/pptx-viewer/commit/eca9dba9c41380577bcfe41da9a7b40e5d8f22e0))
+- **core:** Embed real images in CLI export-md/export-svg output (by @ChristopherVR) ([6617c92](https://github.com/ChristopherVR/pptx-viewer/commit/6617c92a2ee2ea673c35e4a58cc60dc7cc32def5))
+- **shared:** Keep chart axis interval count off a manual plot layout (by @ChristopherVR) ([d39b2b0](https://github.com/ChristopherVR/pptx-viewer/commit/d39b2b06925c8bd02e64b39c8b5b1a4476537010))
+
+### Testing
+
+- **i18n:** Verify custom-show labels across bindings (by @yunfeizhu) ([b5e66c4](https://github.com/ChristopherVR/pptx-viewer/commit/b5e66c4c300893aeaa34fe68c19f647b1ed1cc32))
+- **core:** Remove duplicate chart-stacked-line-markers manifest entry (by @ChristopherVR) ([5c60b11](https://github.com/ChristopherVR/pptx-viewer/commit/5c60b1170223c3c74bd5815e8ebad28a233656a4))
+
 ## [2.20.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.20.0) - 2026-09-17
 
 ### Features
