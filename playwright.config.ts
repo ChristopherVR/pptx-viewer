@@ -70,7 +70,35 @@ export default defineConfig({
 		// peak concurrency. Left on for local dev too where isCI is false is
 		// unnecessary (a real GPU is available and faster), so this only
 		// applies in CI.
-		launchOptions: isCI ? { args: ['--disable-dev-shm-usage', '--disable-gpu'] } : undefined,
+		//
+		// 2026-09-18 follow-up: the whole-runner kill (exit 143, "the runner has
+		// received a shutdown signal") recurred on shard 3 in two consecutive
+		// vue/vanilla/svelte runs (35264552331, 35270077379), always right after
+		// `export-raster-tiling.spec.ts`'s single-binding video-recording test
+		// (`video export records at the stage aspect ratio without a corrupted
+		// frame`) - it disappears from the `list` reporter's output entirely
+		// (never printed as passed OR failed) and the runner dies ~30-50s later,
+		// well before that test's own 90s `test.describe.configure` timeout could
+		// ever fire. That gap rules out a slow-but-legitimate test: something
+		// crashes or wedges the renderer process outright before Playwright's
+		// own timeout machinery gets a chance to report it, same shape as the
+		// original incident. `--disable-gpu` only forces software
+		// COMPOSITING/RASTERIZATION; Chromium tracks accelerated video
+		// encode/decode (what `MediaRecorder` over `canvas.captureStream()`
+		// actually exercises here) as a separate feature bucket that is not
+		// implied by it. Disabling that bucket too targets the exact subsystem
+		// this test drives instead of re-tuning shard/worker count again, which
+		// the original incident already found does not work.
+		launchOptions: isCI
+			? {
+					args: [
+						'--disable-dev-shm-usage',
+						'--disable-gpu',
+						'--disable-accelerated-video-encode',
+						'--disable-accelerated-video-decode',
+					],
+				}
+			: undefined,
 	},
 	projects: [
 		{
