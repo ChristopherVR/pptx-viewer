@@ -17,7 +17,8 @@
  *    pass uses (`reconcileElementTextBody`), so concurrent typing on one
  *    element still merges instead of last-write-wins
  *  - writes are throttled (~1 per 50ms) with a trailing write, plus an
- *    explicit `flush()` for gesture end
+ *    explicit `flush()` for gesture end; borrowed sessions opt into immediate
+ *    writes so the host can revoke readiness without losing accepted edits
  *  - every transaction is tagged with LOCAL_SYNC_ORIGIN, exactly like
  *    `reconcileSlidesInYDoc`, so the local observer skips the echo
  *
@@ -50,7 +51,12 @@ export interface CollaborationLivePatcherOptions {
 
 export interface CollaborationLivePatcher {
 	/** Attach a live doc (or `null` to go dormant). Pending patches are dropped. */
-	configure: (doc: YDocLike | null, factories: YjsFactories | null) => void;
+	configure: (
+		doc: YDocLike | null,
+		factories: YjsFactories | null,
+		/** Publish synchronously when the host may revoke write readiness at any time. */
+		immediate?: boolean,
+	) => void;
 	/** True when a doc + factories are attached, i.e. patches will be written. */
 	isActive: () => boolean;
 	/** Queue interim geometry for an element. */
@@ -85,6 +91,7 @@ export function createCollaborationLivePatcher(
 	let factories: YjsFactories | null = null;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let lastWriteAt = Number.NEGATIVE_INFINITY;
+	let immediate = false;
 
 	const cancelTimer = (): void => {
 		if (timer !== null) {
@@ -115,6 +122,10 @@ export function createCollaborationLivePatcher(
 	};
 
 	const schedule = (): void => {
+		if (immediate) {
+			writePending();
+			return;
+		}
 		if (timer !== null) {
 			return;
 		}
@@ -143,14 +154,15 @@ export function createCollaborationLivePatcher(
 	};
 
 	return {
-		configure(nextDoc, nextFactories) {
-			if (nextDoc === doc && nextFactories === factories) {
+		configure(nextDoc, nextFactories, nextImmediate = false) {
+			if (nextDoc === doc && nextFactories === factories && nextImmediate === immediate) {
 				return;
 			}
 			cancelTimer();
 			pending.clear();
 			doc = nextDoc;
 			factories = nextFactories;
+			immediate = nextImmediate;
 			lastWriteAt = Number.NEGATIVE_INFINITY;
 		},
 		isActive() {

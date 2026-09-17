@@ -8,12 +8,9 @@
  * edits survive), re-serializes to PPTX bytes, and hands them to
  * `config.onWriteBack`.
  *
- * Framework-agnostic: every binding (Vue, Svelte, Vanilla) shares this single
- * implementation instead of maintaining its own near-identical copy. A
- * binding without template-mode editing simply omits `getTemplateElements`/
- * `mergeTemplateElements`. Angular keeps its own class-based
- * `WriteBackScheduler` (a different calling convention tied to its DI style),
- * not a duplicate of this one.
+ * Framework-agnostic: every binding shares this scheduling policy. Bindings
+ * with a retained serializer provide it through `serialize`; other bindings
+ * use the source-byte reload path below.
  */
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
@@ -27,6 +24,8 @@ const DEFAULT_DEBOUNCE_MS = 5_000;
 export interface WriteBackDeps {
 	/** The live Y.Doc, or null when disconnected. */
 	getYDoc: () => YDocLike | null;
+	/** Reuse a binding's retained serializer, with cancellation checks between awaits. */
+	serialize?: (isCurrent: () => boolean) => Promise<Uint8Array | null> | Uint8Array | null;
 	/** The retained source PPTX bytes to reload before overlaying Y.Doc slides. */
 	getSourceBytes?: () => Uint8Array | null;
 	/** The per-slide master/layout template element store to merge back. */
@@ -56,50 +55,96 @@ export interface WriteBackDeps {
 	getSaveOptions?: () => PptxHandlerSaveOptions | undefined;
 }
 
+export type WriteBackConfig = Pick<
+	CollaborationConfig,
+	'role' | 'onWriteBack' | 'writeBackDebounceMs' | 'externalSession'
+>;
+
 export interface WriteBackScheduler {
 	/** Debounce a write-back for the given session (no-op unless role 'owner'). */
-	schedule: (config: CollaborationConfig) => void;
+	schedule: (config: WriteBackConfig) => void;
 	/** Cancel any pending write-back. */
 	cancel: () => void;
 }
 
 export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackScheduler {
 	let timer: ReturnType<typeof setTimeout> | null = null;
+	let generation = 0;
+	let unsubscribe: (() => void) | null = null;
 
 	function cancel(): void {
+		generation++;
+		unsubscribe?.();
+		unsubscribe = null;
 		if (timer !== null) {
 			clearTimeout(timer);
 			timer = null;
 		}
 	}
 
-	function schedule(config: CollaborationConfig): void {
+	function schedule(config: WriteBackConfig): void {
+		const isReady = (): boolean => config.externalSession?.getSnapshot().synced ?? true;
 		if (!config.onWriteBack || config.role !== 'owner' || !deps.getYDoc()) {
 			return;
 		}
 		cancel();
+		if (!isReady()) {
+			return;
+		}
+		const token = generation;
+		if (config.externalSession) {
+			const detach = config.externalSession.subscribe(() => {
+				if (!isReady()) {
+					cancel();
+				}
+			});
+			// A host may synchronously notify during subscription.
+			if (token !== generation || !isReady()) {
+				detach();
+				return;
+			}
+			unsubscribe = detach;
+		}
 		const debounceMs = config.writeBackDebounceMs ?? DEFAULT_DEBOUNCE_MS;
 		timer = setTimeout(async () => {
 			timer = null;
 			const ydoc = deps.getYDoc();
-			if (!ydoc || !config.onWriteBack) {
-				return;
-			}
-			const sourceBytes = deps.getSourceBytes?.();
-			if (!sourceBytes) {
-				return;
-			}
+			const isCurrent = (): boolean => token === generation && isReady() && deps.getYDoc() === ydoc;
 			try {
+				if (!ydoc || !config.onWriteBack || !isReady()) {
+					return;
+				}
+				if (deps.serialize) {
+					const bytes = await deps.serialize(isCurrent);
+					if (bytes && isCurrent()) {
+						await config.onWriteBack(bytes);
+					}
+					return;
+				}
+				const sourceBytes = deps.getSourceBytes?.();
+				if (!sourceBytes) {
+					return;
+				}
 				const handler = new PptxHandler();
 				await handler.load(sourceBytes.buffer as ArrayBuffer);
+				if (!isCurrent()) {
+					return;
+				}
 				const slides = readSlidesFromYDoc(ydoc);
 				const merged = deps.mergeTemplateElements
 					? deps.mergeTemplateElements(slides, deps.getTemplateElements?.() ?? {})
 					: slides;
 				const bytes = await handler.save(merged, deps.getSaveOptions?.());
-				config.onWriteBack(bytes);
+				if (isCurrent()) {
+					await config.onWriteBack(bytes);
+				}
 			} catch {
 				/* non-fatal */
+			} finally {
+				if (token === generation) {
+					unsubscribe?.();
+					unsubscribe = null;
+				}
 			}
 		}, debounceMs);
 	}

@@ -6,21 +6,14 @@
  * KNOWN LIMITATION: collaborative-undo semantics are undefined in shared - local
  * undo is kept as-is and may fight a concurrent remote edit (matching the others).
  */
-import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
 	CollabLoadOrigin,
-	CollaborationLivePatcher,
 	ConnectionStatus,
 	RemoteCursor,
 	SanitizedPresence,
-	YDocLike,
-	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
-	createCollaborationLivePatcher,
-	createSyncGate,
-	createWriteBackScheduler,
 	DEFAULT_CURSOR_COLOR,
 	isMixedContentBlocked,
 	resolveTransportForServerUrl,
@@ -28,17 +21,12 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { CollaborationDeps } from './collaboration-deps';
+import { CollaborationDocument } from './collaboration-document.svelte';
 import { registerCollaborationEffects } from './collaboration-effects.svelte';
 import { CollaborationPresence } from './collaboration-presence.svelte';
 import type { CollabProviderHandle } from './collaboration-provider';
-import type { ObserveRemoteDeps } from './collaboration-remote-sync';
-import {
-	adoptDocSlidesAfterLoad,
-	observeRemoteSlides,
-	publishLocalSlides,
-} from './collaboration-remote-sync';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
-import { createDefaultSession } from './collaboration-session';
+import { createDefaultSession, createExternalSession } from './collaboration-session';
 import { wireProviderStatus } from './collaboration-status';
 
 /**
@@ -50,35 +38,30 @@ export class CollaborationController {
 	/** Live connection status (reactive). */
 	status = $state<ConnectionStatus>('disconnected');
 	/** Interim Y.Doc channel for in-flight inline text (dormant when stopped). */
-	readonly livePatcher: CollaborationLivePatcher = createCollaborationLivePatcher();
+	get livePatcher() {
+		return this.#document.livePatcher;
+	}
 
 	#active = $state(false);
 	readonly #deps: CollaborationDeps;
 	readonly #makeSession: CollabSessionFactory;
 
 	#session: CollabSession | null = null;
-	#ydoc: YDocLike | null = null;
-	#factories: YjsFactories | null = null;
 	#provider: CollabProviderHandle | null = null;
 	#config: CollaborationConfig | null = $state(null);
 	#lastStarted: CollaborationConfig | null = null;
 	#startedByEffect = false;
-
-	#applyingRemote = false;
-	#lastSynced = '';
-	#unobserve: (() => void) | null = null;
+	#startToken = 0;
+	#restoreExternalPresence: (() => void) | null = null;
 	#connectTimer: ReturnType<typeof setTimeout> | null = null;
-
-	readonly #gate = createSyncGate(() => this.#flushLocalSlides());
-	readonly #writeBack = createWriteBackScheduler({
-		getYDoc: () => this.#ydoc,
-		getSourceBytes: () => this.#deps.getSourceBytes?.() ?? null,
-		getSaveOptions: () => this.#deps.getSaveOptions?.(),
-	});
+	readonly #document: CollaborationDocument;
 	readonly #presence: CollaborationPresence;
 
 	constructor(deps: CollaborationDeps) {
 		this.#deps = deps;
+		this.#document = new CollaborationDocument(deps, (status) => {
+			this.status = status;
+		});
 		this.#makeSession = deps.createSession ?? createDefaultSession;
 		this.#presence = new CollaborationPresence(() => ({
 			width: this.#deps.getCanvasWidth?.(),
@@ -89,8 +72,9 @@ export class CollaborationController {
 			getConfig: () => this.#deps.getConfig(),
 			getSlides: () => this.#deps.getSlides(),
 			syncConfig: (config) => this.#syncConfig(config),
-			isPublishable: () => this.#active && this.#gate.isOpen(),
-			flushLocalSlides: (slides) => this.#flushLocalSlides(slides),
+			isPublishable: () => this.#active && this.#document.gate.isOpen(),
+			flushLocalSlides: (slides) => this.#document.flush(slides),
+			leaveOnBeforeUnload: () => !this.#config?.externalSession,
 			stop: () => this.stop(),
 			rejoin: () => {
 				if (this.#lastStarted) {
@@ -104,9 +88,9 @@ export class CollaborationController {
 	get active(): boolean {
 		return this.#active;
 	}
-	/** Read-only participant (session live with the `viewer` role) - cannot select/drag/mutate. */
+	/** The requested viewer role forbids editing, including while attachment is pending. */
 	get readOnly(): boolean {
-		return this.#active && this.#config?.role === 'viewer';
+		return this.#document.readOnly;
 	}
 	/** Remote cursors on the current slide (reactive). */
 	get cursors(): RemoteCursor[] {
@@ -155,8 +139,8 @@ export class CollaborationController {
 	 * late joiner's bootstrap deck never clobbers the room's synced content.
 	 */
 	adoptDocAfterLoad(origin: CollabLoadOrigin = 'user'): void {
-		if (this.#active && this.#ydoc) {
-			adoptDocSlidesAfterLoad(this.#ydoc, this.#remoteDeps(), origin);
+		if (this.#active) {
+			this.#document.adoptAfterLoad(origin);
 		}
 	}
 
@@ -165,7 +149,7 @@ export class CollaborationController {
 			this.#lastStarted = config;
 			this.#startedByEffect = true;
 			void this.#run(config);
-		} else if (!config && this.#active && this.#startedByEffect) {
+		} else if (!config && this.#startedByEffect) {
 			// Only auto-stop a session THIS effect started; a direct `start()`
 			// call (e.g. from a dialog) always clears the flag below, so it
 			// is immune to this branch on the effect's next run.
@@ -175,30 +159,11 @@ export class CollaborationController {
 		}
 	}
 
-	/** Write the current local slides into the doc (granular, echo-deduped). */
-	#flushLocalSlides(slides: PptxSlide[] = this.#deps.getSlides()): void {
-		const published = publishLocalSlides({
-			slides,
-			ydoc: this.#ydoc,
-			factories: this.#factories,
-			applyingRemote: this.#applyingRemote,
-			role: this.#config?.role,
-			lastSynced: this.#lastSynced,
-		});
-		if (published === null) {
-			return;
-		}
-		this.#lastSynced = published;
-		if (this.#config) {
-			this.#writeBack.schedule(this.#config);
-		}
-	}
 	#clearTimers(): void {
 		if (this.#connectTimer !== null) {
 			clearTimeout(this.#connectTimer);
 			this.#connectTimer = null;
 		}
-		this.#writeBack.cancel();
 	}
 	/** Start (or restart) a session with the given config (dialog-driven). */
 	async start(config: CollaborationConfig): Promise<void> {
@@ -212,36 +177,50 @@ export class CollaborationController {
 
 	async #run(config: CollaborationConfig): Promise<void> {
 		this.stop();
+		const token = ++this.#startToken;
 		this.#config = config;
+		this.#document.begin(config);
 		try {
 			validateRoomId(config.roomId);
 		} catch {
+			this.stop();
 			this.status = 'error';
 			return;
 		}
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 		// Mixed-content only affects a ws:// socket from an https page.
-		if (transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
+		if (
+			!config.externalSession &&
+			transport === 'websocket' &&
+			isMixedContentBlocked(config.serverUrl)
+		) {
+			this.stop();
 			this.status = 'error';
 			return;
 		}
 		this.status = 'connecting';
 		try {
+			if (config.externalSession) {
+				await this.#runExternal(config, token);
+				return;
+			}
 			const session = await this.#makeSession(transport, config);
+			if (token !== this.#startToken) {
+				session.destroy();
+				return;
+			}
 			this.#session = session;
-			this.#ydoc = session.ydoc;
-			this.#factories = session.factories;
-			this.livePatcher.configure(session.ydoc, session.factories);
+			this.#document.attach(session.ydoc, session.factories);
 			this.#provider = session.provider;
 
 			// Gate local writes on the provider's initial sync; the grace timer
 			// covers a lone webrtc peer that never receives a sync event.
-			this.#gate.reset();
-			this.#provider.onSynced(() => this.#gate.open());
+			this.#document.gate.reset();
+			this.#provider.onSynced(() => this.#document.gate.open());
 			if (this.#provider.syncedNow) {
-				this.#gate.open();
+				this.#document.gate.open();
 			} else {
-				this.#gate.arm();
+				this.#document.gate.arm();
 			}
 
 			this.#presence.start(this.#provider.awareness, {
@@ -251,57 +230,65 @@ export class CollaborationController {
 				role: config.role,
 			});
 
-			this.#wireProvider(transport, config);
+			this.#wireProvider(transport);
 
 			this.#active = true;
 			this.#deps.onStart?.(config);
 		} catch {
+			if (token !== this.#startToken) {
+				return;
+			}
 			this.stop();
 			this.status = 'error';
 		}
 	}
 
-	/** Callback bundle shared by the remote observer and post-load adoption. */
-	#remoteDeps = (): ObserveRemoteDeps => ({
-		isApplyingRemote: () => this.#applyingRemote,
-		setApplyingRemote: (value) => (this.#applyingRemote = value),
-		setLastSynced: (value) => (this.#lastSynced = value),
-		applyRemoteSlides: (slides) => this.#deps.applyRemoteSlides(slides),
-		scheduleWriteBack: (cfg) => this.#writeBack.schedule(cfg),
-	});
-
-	/** Attach the status machine and the remote-slide observer to the session. */
-	#wireProvider(transport: string, config: CollaborationConfig): void {
-		if (!this.#provider || !this.#ydoc) {
+	async #runExternal(config: CollaborationConfig, token: number): Promise<void> {
+		const external = config.externalSession!;
+		const session = await createExternalSession(external);
+		if (token !== this.#startToken) {
+			session.dispose();
 			return;
 		}
-		this.#unobserve = observeRemoteSlides(this.#ydoc, config, this.#remoteDeps());
+		this.#restoreExternalPresence = session.dispose;
+		this.#presence.start(session.awareness, {
+			userName: config.userName,
+			userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
+			userAvatar: config.userAvatar,
+			role: config.role,
+		});
+		this.#active = true;
+		this.#document.attach(session.ydoc, session.factories);
+		this.#deps.onStart?.(config);
+	}
+
+	/** Attach the status machine and the remote-slide observer to the session. */
+	#wireProvider(transport: string): void {
+		if (!this.#provider) {
+			return;
+		}
 		wireProviderStatus(this.#provider, transport, {
 			setStatus: (status) => (this.status = status),
 			getStatus: () => this.status,
 			isActive: () => this.#active,
 			stop: () => this.stop(),
-			gate: this.#gate,
+			gate: this.#document.gate,
 			setConnectTimer: (timer) => (this.#connectTimer = timer),
 			getConnectTimer: () => this.#connectTimer,
 		});
 	}
 
 	stop(): void {
+		this.#startToken++;
+		this.#document.stop();
 		this.#clearTimers();
-		this.#gate.reset();
 		this.#presence.stop();
-		this.#unobserve?.();
-		this.#unobserve = null;
+		this.#restoreExternalPresence?.();
+		this.#restoreExternalPresence = null;
 		this.#session?.destroy();
 		this.#session = null;
 		this.#provider = null;
-		this.#ydoc = null;
-		this.#factories = null;
 		this.#config = null;
-		this.livePatcher.configure(null, null);
-		this.#applyingRemote = false;
-		this.#lastSynced = '';
 		if (this.#active) {
 			this.#deps.onStop?.();
 		}

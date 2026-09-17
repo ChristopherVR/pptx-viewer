@@ -37,6 +37,7 @@ export interface SessionControllersDeps {
 	getTranslator: () => Translator;
 	getScale: () => number;
 	setEditable: (editable: boolean) => void;
+	onCollaborationReadOnlyChange?: (readOnly: boolean) => void;
 	/** Navigate to a slide (follow-mode target). */
 	goToSlide: (index: number) => void;
 	/** Load bytes through the viewer's normal pipeline (recovery restore). */
@@ -54,6 +55,7 @@ export interface SessionControllersDeps {
 export interface SessionControllers {
 	startCollaboration(config: CollaborationConfig): Promise<void>;
 	stopCollaboration(): void;
+	isCollaborationReadOnly(): boolean;
 	getCollaborationStatus(): ConnectionStatus;
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */
 	setCollaborationCursor(x: number, y: number): void;
@@ -156,6 +158,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		getHandler: deps.getHandler,
 		getSaveOptions: deps.getSaveOptions,
 		setEditable: deps.setEditable,
+		onReadOnlyChange: deps.onCollaborationReadOnlyChange,
 		onStatusChange: (status) => {
 			options.onCollaborationStatus?.(status);
 			notifyCollabUi?.(status);
@@ -210,6 +213,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 	return {
 		startCollaboration: (config) => collaboration.start(config),
 		stopCollaboration: () => collaboration.stop(),
+		isCollaborationReadOnly: () => collaboration.isReadOnly(),
 		getCollaborationStatus: () => collaboration.getStatus(),
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
 		publishCollaborationInlineText: (elementId, text) => {

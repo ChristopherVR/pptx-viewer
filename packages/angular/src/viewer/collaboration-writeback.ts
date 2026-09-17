@@ -11,12 +11,10 @@
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
-import { readSlidesFromYDoc } from '../internal/shared';
+import { createWriteBackScheduler, readSlidesFromYDoc } from '../internal/shared';
 import type { CollaborationConfig, YDocLike } from '../internal/shared';
 import { buildSaveSlides } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
-
-const WRITE_BACK_DEBOUNCE_MS = 5_000;
 
 /**
  * Serialize the current Y.Doc slide state (with the separated master/layout
@@ -33,9 +31,13 @@ export async function serializeWriteBack(
 	sourceBytes: Uint8Array,
 	templateElements: TemplateElementsBySlideId,
 	saveOptions?: PptxHandlerSaveOptions,
+	isCurrent: () => boolean = () => true,
 ): Promise<Uint8Array> {
 	const handler = new PptxHandler();
 	await handler.load(sourceBytes.buffer as ArrayBuffer);
+	if (!isCurrent()) {
+		throw new Error('Collaboration session changed during serialization');
+	}
 	const slides = buildSaveSlides(readSlidesFromYDoc(ydoc) as PptxSlide[], templateElements);
 	return handler.save(slides, saveOptions);
 }
@@ -46,7 +48,12 @@ export async function serializeWriteBack(
  * and on fire it serializes the live Y.Doc and hands the bytes to the host.
  */
 export class WriteBackScheduler {
-	private timer: ReturnType<typeof setTimeout> | null = null;
+	private ydoc: YDocLike | null = null;
+	private serialize: ((isCurrent: () => boolean) => Promise<Uint8Array | null>) | null = null;
+	private readonly scheduler = createWriteBackScheduler({
+		getYDoc: () => this.ydoc,
+		serialize: (isCurrent) => this.serialize?.(isCurrent) ?? null,
+	});
 
 	schedule(
 		config: CollaborationConfig | null,
@@ -59,25 +66,26 @@ export class WriteBackScheduler {
 			return;
 		}
 		this.cancel();
-		const ms = config.writeBackDebounceMs ?? WRITE_BACK_DEBOUNCE_MS;
-		this.timer = setTimeout(() => {
-			this.timer = null;
+		this.ydoc = ydoc;
+		this.serialize = async (isCurrent) => {
 			const bytes = getSourceBytes?.();
-			if (!bytes || !config.onWriteBack) {
-				return;
+			if (!bytes) {
+				return null;
 			}
-			void serializeWriteBack(ydoc, bytes, getTemplateElements?.() ?? {}, getSaveOptions?.())
-				.then((out) => config.onWriteBack?.(out))
-				.catch(() => {
-					/* non-fatal */
-				});
-		}, ms);
+			return serializeWriteBack(
+				ydoc,
+				bytes,
+				getTemplateElements?.() ?? {},
+				getSaveOptions?.(),
+				isCurrent,
+			);
+		};
+		this.scheduler.schedule(config);
 	}
 
 	cancel(): void {
-		if (this.timer !== null) {
-			clearTimeout(this.timer);
-			this.timer = null;
-		}
+		this.scheduler.cancel();
+		this.serialize = null;
+		this.ydoc = null;
 	}
 }

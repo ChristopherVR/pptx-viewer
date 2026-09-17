@@ -34,7 +34,9 @@ import {
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
 import { installDevViewerHandle } from '../dev-viewer-handle';
+import { externalSessionRequested } from '../shared/host-owned-collaboration';
 import { useDemoAiConfig } from './ai-config';
+import { HostOwnedDemoApp } from './HostOwnedDemo';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
 import './app.css';
@@ -1105,5 +1107,5 @@ if (rootEl) {
 	if (hot) {
 		hot.data.root = root;
 	}
-	root.render(<App />);
+	root.render(externalSessionRequested() ? <HostOwnedDemoApp /> : <App />);
 }

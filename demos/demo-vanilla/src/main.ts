@@ -15,10 +15,12 @@ import {
 import { PptxHandler } from 'pptx-viewer-core';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { externalSessionRequested } from '../../shared/host-owned-collaboration';
 import { buildViewerAiConfig } from './ai-config';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
 import { createDropzone } from './dropzone';
+import { mountHostOwnedDemo } from './host-owned-demo';
 import { readStoredTheme, themes } from './themes';
 
 import './styles.css';
@@ -238,7 +240,11 @@ async function fetchSampleDeck(): Promise<Uint8Array | null> {
 const audienceSession = parsePresentationSessionId(window.location.hash);
 const joinRoom = readRoomFromUrl();
 const wantSample = new URLSearchParams(window.location.search).get('sample') === '1';
-if (audienceSession) {
+if (externalSessionRequested()) {
+	void mountHostOwnedDemo(app).catch((error: unknown) => {
+		app.textContent = String(error);
+	});
+} else if (audienceSession) {
 	void loadPresentationDeck(audienceSession).then((content) => {
 		if (content) {
 			openViewer(content, 'Audience View');

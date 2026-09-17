@@ -10,9 +10,11 @@
 import type {
 	CollaborationConfig,
 	CollaborationTransport,
+	ExternalCollaborationSession,
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
+import { borrowExternalCollaborationAwareness } from 'pptx-viewer-shared';
 
 import type { CollabProviderHandle } from './collaboration-provider';
 import { createCollabProvider } from './collaboration-provider';
@@ -61,3 +63,19 @@ export const createDefaultSession: CollabSessionFactory = async (transport, conf
 		},
 	};
 };
+
+/** Attach factories and a presence lease, never a transport, to a host's doc. */
+export async function createExternalSession(session: ExternalCollaborationSession) {
+	const Y = await import('yjs');
+	const borrowed = borrowExternalCollaborationAwareness(session.awareness);
+	return {
+		ydoc: session.doc,
+		factories: {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+		} satisfies YjsFactories,
+		awareness: borrowed.awareness,
+		dispose: borrowed.dispose,
+	};
+}

@@ -1539,7 +1539,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			!this.loadNotices.lockActive(),
 	);
 	private readonly editingRequested = signal(true);
-	protected readonly canEdit = computed(() => this.hasEditPermission() && this.editingRequested());
+	protected readonly canEdit = computed(
+		() => this.hasEditPermission() && this.editingRequested() && !this.collab.readOnly(),
+	);
 
 	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
 	protected readonly protectedViewActive = computed(
@@ -1586,9 +1588,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * end-of-slide-show screen rather than falling back to the editor.
 	 */
 	protected readonly audienceSessionEnded = signal(false);
-	/** Preview changes interaction, not which permitted live deck is displayed. */
+	/** Read-only interaction does not hide an active collaboration's live deck. */
 	protected readonly displaySlides = computed(() =>
-		this.hasEditPermission() ? this.editor.slides() : this.loader.slides(),
+		this.hasEditPermission() || this.collab.active() ? this.editor.slides() : this.loader.slides(),
 	);
 	protected readonly slideCount = computed(() => this.displaySlides().length);
 	/**
@@ -1598,17 +1600,17 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * accessibility) renders this instead so template elements are not lost.
 	 */
 	protected readonly mergedSlides = computed<readonly PptxSlide[]>(() =>
-		this.hasEditPermission()
+		this.hasEditPermission() || this.collab.active()
 			? buildSaveSlides(this.editor.slides(), this.editor.templateElementsBySlideId())
 			: this.loader.slides(),
 	);
 	/** Mutable copy of the merged display deck for inputs that require a non-readonly array. */
 	protected readonly displaySlidesMut = computed<PptxSlide[]>(() => [...this.mergedSlides()]);
 	protected readonly activeSlide = computed(() => this.displaySlides()[this.activeSlideIndex()]);
-	/** Inherited template (master/layout) elements for the active slide, when editing. */
+	/** Inherited template elements for the live editor or collaboration slide source. */
 	protected readonly activeTemplateElements = computed<readonly PptxElement[]>(() => {
 		const slide = this.activeSlide();
-		if (!this.hasEditPermission() || !slide) {
+		if ((!this.hasEditPermission() && !this.collab.active()) || !slide) {
 			return [];
 		}
 		return this.editor.templateElementsBySlideId()[slide.id] ?? [];
@@ -2438,7 +2440,8 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// component (canEdit, the host `content` input, the File ▸ Open override,
 		// the editor's slides + template elements, and the contentChange emitter).
 		this.fileIO.bind({
-			canEdit: () => this.hasEditPermission(),
+			// This callback selects the save source, not interaction permission.
+			canEdit: () => this.hasEditPermission() || this.collab.active(),
 			content: () => this.content(),
 			onOpenFile: () => this.onOpenFile(),
 			slides: () => this.editor.slides(),
@@ -2516,6 +2519,11 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			activeSlide: () => this.activeSlide(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 			activeTemplateElements: () => this.activeTemplateElements(),
+		});
+		effect(() => {
+			if (!this.canEdit()) {
+				untracked(() => this.canvasEditing.suspendInlineEdit());
+			}
 		});
 
 		const tableSelection = inject(TableSelectionService);

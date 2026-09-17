@@ -13,8 +13,13 @@
  * (same minimal-injection-context pattern as `print.service.test.ts`).
  */
 
+import { readFile } from 'node:fs/promises';
+import { resolve as resolvePath } from 'node:path';
+
 import { DestroyRef, Injector } from '@angular/core';
+import { PptxHandler } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import type { CollaborationConfig, YjsFactories } from '../internal/shared';
 import type {
@@ -99,6 +104,51 @@ function config(roomId: string): CollaborationConfig {
 describe('collaborationService connect reentrancy', () => {
 	beforeEach(() => {
 		mocks.pending.length = 0;
+	});
+
+	it('writes back an already-synced owner startup deck without a later edit', async () => {
+		const source = new Uint8Array(
+			await readFile(resolvePath(__dirname, '../../../../e2e/fixtures/text-layout.pptx')),
+		);
+		const data = await new PptxHandler().load(source.buffer);
+		const doc = new Y.Doc();
+		const svc = createService();
+		const onWriteBack = vi.fn();
+		try {
+			const pending = svc.connect(
+				{
+					...config('owner-startup'),
+					role: 'owner',
+					sessionIntent: 'create',
+					writeBackDebounceMs: 0,
+					onWriteBack,
+					externalSession: {
+						doc,
+						getSnapshot: () => ({ status: 'connected', synced: true }),
+						subscribe: () => () => {},
+						awareness: {
+							clientID: doc.clientID,
+							getLocalState: () => ({}),
+							setLocalState: vi.fn(),
+							setLocalStateField: vi.fn(),
+							getStates: () => new Map(),
+							on: vi.fn(),
+							off: vi.fn(),
+						},
+					},
+				},
+				{ getSourceBytes: () => source },
+			);
+			svc.seedBaseline(data.slides);
+			await pending;
+			await vi.waitFor(() => expect(onWriteBack).toHaveBeenCalledOnce(), { timeout: 10_000 });
+			const bytes = onWriteBack.mock.calls[0][0] as Uint8Array;
+			const reopened = await new PptxHandler().load(bytes.buffer as ArrayBuffer);
+			expect(reopened.slides).toHaveLength(data.slides.length);
+		} finally {
+			svc.disconnect();
+			doc.destroy();
+		}
 	});
 
 	it('a superseding connect destroys the first bundle and keeps the second', async () => {

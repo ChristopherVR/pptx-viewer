@@ -21,6 +21,8 @@ import type { ViewerState } from './viewer-state.svelte';
 export interface ViewerEffectsDeps {
 	getSource(): Uint8Array | ArrayBuffer | null | undefined;
 	getEditable(): boolean;
+	/** Commit already-accepted inline input before disabling local editing. */
+	commitPendingText?(): void;
 	getInitialSlide(): number;
 	getTranslator(): Translator;
 	loader: PresentationLoader;
@@ -52,12 +54,18 @@ export interface ViewerEffectsDeps {
  * require being registered synchronously during initialization.
  */
 export function useViewerEffects(deps: ViewerEffectsDeps): void {
-	$effect(() => {
-		deps.editor.editable = deps.getEditable();
-		if (!deps.getEditable()) {
-			deps.controller.closeInline();
-			deps.editor.select(null);
-		}
+	$effect.pre(() => {
+		const editable = deps.getEditable();
+		untrack(() => {
+			if (!editable) {
+				if (deps.editor.editable) {
+					deps.commitPendingText?.();
+				}
+				deps.controller.closeInline();
+				deps.editor.select(null);
+			}
+			deps.editor.editable = editable;
+		});
 	});
 
 	let lastSyncedSlide = -1;

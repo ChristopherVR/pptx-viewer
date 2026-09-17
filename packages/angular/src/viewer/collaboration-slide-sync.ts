@@ -11,7 +11,12 @@
 
 import type { PptxSlide } from 'pptx-viewer-core';
 
-import type { CollabLoadOrigin, YjsFactories, YTransactionLike } from '../internal/shared';
+import type {
+	CollabLoadOrigin,
+	YDocLike,
+	YjsFactories,
+	YTransactionLike,
+} from '../internal/shared';
 import {
 	createSyncGate,
 	LOCAL_SYNC_ORIGIN,
@@ -20,12 +25,14 @@ import {
 	shouldRoomSlidesReplaceLoad,
 	YDOC_SLIDES_KEY,
 } from '../internal/shared';
-import type { DestroyableYDoc, ProviderLike } from './collaboration-providers';
+import type { ProviderLike } from './collaboration-providers';
 
 /** Live-session references the engine writes into, set on connect. */
 export interface SlideSyncBinding {
-	ydoc: DestroyableYDoc;
+	ydoc: YDocLike;
 	factories: YjsFactories;
+	readOnly?: boolean;
+	external?: boolean;
 	/** Apply remotely-authored slides to viewer state. */
 	onRemoteSlides: ((slides: PptxSlide[]) => void) | null;
 	/** Schedule an owner-role write-back after a doc mutation. */
@@ -45,6 +52,7 @@ export class SlideSyncEngine {
 	#lastSynced = '';
 	#applyingRemote = false;
 	#pending: readonly PptxSlide[] | null = null;
+	#current: readonly PptxSlide[] = [];
 
 	/** Attach the engine to a freshly connected session's doc. */
 	bind(binding: SlideSyncBinding): void {
@@ -58,6 +66,7 @@ export class SlideSyncEngine {
 		this.#pending = null;
 		this.#lastSynced = '';
 		this.#applyingRemote = false;
+		this.#current = [];
 	}
 
 	/**
@@ -67,7 +76,34 @@ export class SlideSyncEngine {
 	 * overwrites the shared document before receiving it.
 	 */
 	seedBaseline(slides: readonly PptxSlide[]): void {
+		this.#current = slides;
 		this.#lastSynced = JSON.stringify(slides);
+	}
+
+	/** A ready empty create room must publish even when startup seeded an echo baseline. */
+	publishCurrent(seedEmptyRoom: boolean): void {
+		if (seedEmptyRoom) {
+			this.#lastSynced = '';
+		}
+		this.broadcast(this.#current);
+	}
+
+	/** Drop a queued write when host readiness is revoked; keep the displayed deck. */
+	cancelPending(): void {
+		this.#pending = null;
+	}
+
+	/** Apply slides selected by the shared readiness policy, including an empty room. */
+	adoptSlides(slides: PptxSlide[]): void {
+		this.#pending = null;
+		this.seedBaseline(slides);
+		this.#applyingRemote = true;
+		try {
+			this.#binding?.onRemoteSlides?.(slides);
+		} finally {
+			this.#applyingRemote = false;
+		}
+		this.#binding?.scheduleWriteBack();
 	}
 
 	/**
@@ -100,8 +136,11 @@ export class SlideSyncEngine {
 	 * skipped, and while the gate is shut the deck is held as pending.
 	 */
 	broadcast(slides: readonly PptxSlide[]): void {
+		if (!this.#applyingRemote) {
+			this.#current = slides;
+		}
 		const b = this.#binding;
-		if (!b || this.#applyingRemote || slides.length === 0) {
+		if (!b || b.readOnly || this.#applyingRemote || (slides.length === 0 && !b.external)) {
 			return;
 		}
 		if (!this.gate.isOpen()) {
@@ -129,11 +168,7 @@ export class SlideSyncEngine {
 		}
 		// Suppress the echo: record what we just applied so the subsequent local
 		// broadcast (driven by the editor signal) is a no-op.
-		this.#lastSynced = JSON.stringify(remote);
-		this.#applyingRemote = true;
-		b.onRemoteSlides?.(remote);
-		this.#applyingRemote = false;
-		b.scheduleWriteBack();
+		this.adoptSlides(remote);
 	}
 
 	/**
@@ -160,10 +195,7 @@ export class SlideSyncEngine {
 		if (!shouldRoomSlidesReplaceLoad(origin, docSlides.length)) {
 			return false;
 		}
-		this.#lastSynced = JSON.stringify(docSlides);
-		this.#applyingRemote = true;
-		b.onRemoteSlides?.(docSlides);
-		this.#applyingRemote = false;
+		this.adoptSlides(docSlides);
 		return true;
 	}
 

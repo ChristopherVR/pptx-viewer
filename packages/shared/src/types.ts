@@ -7,6 +7,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  * framework-specific prop/event/handle types on top of these.
  */
 
+import type { ExternalCollaborationSession } from './render/collaboration-external-session';
 import type { ElementUpdate, ElementUpdateOptions } from './render/element-update-batch';
 
 /** Canvas dimensions in pixels. */
@@ -224,11 +225,18 @@ export interface CollaborationConfig {
 	roomId: string;
 	/**
 	 * WebSocket server URL for the Yjs provider (e.g. "wss://collab.example.com").
-	 * Ignored (may be empty) when `transport` is `'webrtc'`.
+	 * Ignored (may be empty) for `externalSession` or when `transport` is `'webrtc'`.
 	 */
 	serverUrl: string;
 	/** Transport to use. Defaults to `'websocket'`. */
 	transport?: CollaborationTransport;
+	/**
+	 * Use the host's document, awareness and transport instead of creating a
+	 * provider. Transport, serverUrl, signaling and authToken are ignored. The
+	 * viewer only detaches its listeners and presence on stop; it never destroys
+	 * these resources. Keep this object stable and report readiness via subscribe.
+	 */
+	externalSession?: ExternalCollaborationSession;
 	/**
 	 * WebRTC signaling server URLs (only used when `transport` is `'webrtc'`).
 	 * Defaults to y-webrtc's built-in public signaling list. Same-browser tabs

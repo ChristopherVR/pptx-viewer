@@ -14,6 +14,12 @@ import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from '../i18n';
 import type { ThemeCatalogEntry, ViewerTheme } from '../theme';
 
+export type {
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
+
 /**
  * Public component types for the Vue PowerPoint viewer.
  *

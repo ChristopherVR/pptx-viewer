@@ -282,6 +282,7 @@ export default defineConfig({
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
 						{ text: 'Theming', link: '/guide/theming' },
 						{ text: 'Viewport Fitting', link: '/guide/viewport-fit' },
+						{ text: 'Host-owned Collaboration', link: '/guide/host-owned-collaboration' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
 						{ text: 'AI Assistant', link: '/guide/ai-assistant' },
 						{ text: 'Account & Sign-in', link: '/guide/account' },

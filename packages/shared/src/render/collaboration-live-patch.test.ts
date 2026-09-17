@@ -102,6 +102,25 @@ describe('createCollaborationLivePatcher', () => {
 		expect(firstElement(doc).x).toBe(10);
 	});
 
+	it('writes immediately only for the configured session, retaining the built-in throttle', () => {
+		const doc = seedDoc();
+		const patcher = createCollaborationLivePatcher();
+		patcher.configure(asDoc(doc), factories, true);
+		patcher.patchGeometry('s1', 'e1', { x: 1 });
+		patcher.patchGeometry('s1', 'e1', { x: 2 });
+		expect(firstElement(doc).x).toBe(2);
+		expect(vi.getTimerCount()).toBe(0);
+		patcher.configure(asDoc(doc), factories);
+		patcher.patchGeometry('s1', 'e1', { x: 3 });
+		patcher.patchGeometry('s1', 'e1', { x: 4 });
+		expect(firstElement(doc).x).toBe(3);
+		expect(vi.getTimerCount()).toBe(1);
+		vi.advanceTimersByTime(50);
+		expect(firstElement(doc).x).toBe(4);
+		patcher.dispose();
+		doc.destroy();
+	});
+
 	it('flush() writes pending state synchronously and cancels the timer', () => {
 		const doc = seedDoc();
 		const patcher = createCollaborationLivePatcher({ throttleMs: 50 });

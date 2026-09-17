@@ -313,10 +313,12 @@ const protectedViewActive = computed(
 const readOnlyRec = useReadOnlyRecommendation({ modifyVerifier, customProperties });
 // A requested preview disables interaction without changing host permission or the live deck.
 const editingRequested = ref(true);
+const collaborationReadOnly = ref(false);
 const canEditEffective = computed(
 	() =>
 		editingRequested.value &&
 		props.canEdit &&
+		!collaborationReadOnly.value &&
 		!protectedViewActive.value &&
 		!readOnlyRec.locked.value,
 );
@@ -944,6 +946,17 @@ const collaboration = useCollaborationWiring({
 	onStartCollaboration: (config) => emit('start-collaboration', config),
 	onStopCollaboration: () => emit('stop-collaboration'),
 });
+watch(
+	collaboration.collab.readOnly,
+	(value) => {
+		// Retain accepted input locally before the readonly gate removes its editor.
+		if (value && !collaborationReadOnly.value) {
+			inlineEdit.commitInlineEdit();
+		}
+		collaborationReadOnly.value = value;
+	},
+	{ immediate: true, flush: 'sync' },
+);
 
 // -- Panels and dialogs owned by their own composables ------------------
 const signatureWorkflow = useSignatureWorkflow({ signatures, isDirty: autosave.isDirty });

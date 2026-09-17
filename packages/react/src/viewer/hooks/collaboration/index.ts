@@ -10,6 +10,9 @@ export type {
 	ConnectionStatus,
 	UserPresence,
 	CollaborationContextValue,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
 } from './types';
 
 export { useYjsProvider } from './useYjsProvider';

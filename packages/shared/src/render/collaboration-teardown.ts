@@ -63,6 +63,8 @@ export interface CollaborationTeardownOptions {
 	 * bfcache'd page keeps its session so it still works when restored.
 	 */
 	rejoin?: () => void;
+	/** Borrowed sessions wait for pagehide, since beforeunload may be canceled. */
+	leaveOnBeforeUnload?: boolean | (() => boolean);
 	/** Window to listen on. Defaults to the ambient `window` when present. */
 	target?: TeardownWindowLike;
 }
@@ -121,7 +123,13 @@ export function registerCollaborationTeardown(options: CollaborationTeardownOpti
 	};
 
 	const onBeforeUnload: TeardownListener = () => {
-		doLeave();
+		const allowed =
+			typeof options.leaveOnBeforeUnload === 'function'
+				? options.leaveOnBeforeUnload()
+				: options.leaveOnBeforeUnload !== false;
+		if (allowed) {
+			doLeave();
+		}
 	};
 
 	const onPageShow: TeardownListener = (event) => {

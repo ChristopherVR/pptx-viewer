@@ -10,7 +10,11 @@
  * so every `patch*` call becomes a no-op.
  */
 
-import type { CollaborationLivePatcher, YjsFactories } from 'pptx-viewer-shared';
+import type {
+	CollaborationLivePatcher,
+	ExternalCollaborationSession,
+	YjsFactories,
+} from 'pptx-viewer-shared';
 import { useEffect } from 'react';
 import type { Doc as YDoc } from 'yjs';
 
@@ -27,6 +31,7 @@ export interface UseCollaborationLivePatchInput {
 	 * push local state into a room whose real content has not arrived.
 	 */
 	isSynced?: boolean;
+	externalSession?: ExternalCollaborationSession;
 }
 
 export function useCollaborationLivePatch({
@@ -34,28 +39,39 @@ export function useCollaborationLivePatch({
 	doc,
 	isConnected,
 	isSynced = true,
+	externalSession,
 }: UseCollaborationLivePatchInput): void {
 	useEffect(() => {
+		// Host-owned channels are configured by the shared document readiness
+		// controller, including its empty-join adoption gate.
+		if (externalSession) {
+			return;
+		}
 		if (!doc || !isConnected || !isSynced) {
 			patcher.configure(null, null);
 			return;
 		}
 		let cancelled = false;
+		let factories: YjsFactories | null = null;
+		const configure = (): void => {
+			const ready = isSynced;
+			patcher.configure(ready && factories ? doc : null, ready ? factories : null);
+		};
 		void (async () => {
 			const Y = await import('yjs');
 			if (cancelled) {
 				return;
 			}
-			const factories: YjsFactories = {
+			factories = {
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
 			};
-			patcher.configure(doc as unknown as Parameters<typeof patcher.configure>[0], factories);
+			configure();
 		})();
 		return () => {
 			cancelled = true;
 			patcher.configure(null, null);
 		};
-	}, [patcher, doc, isConnected, isSynced]);
+	}, [patcher, doc, isConnected, isSynced, externalSession]);
 }

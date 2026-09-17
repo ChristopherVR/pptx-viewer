@@ -23,6 +23,12 @@ export type {
 
 // ── Shared API types ──
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
+export type {
+	CollaborationConfig,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+	ExternalCollaborationAwareness,
+} from 'pptx-viewer-shared';
 export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
 export { createImageElementFromFile } from 'pptx-viewer-shared';
 

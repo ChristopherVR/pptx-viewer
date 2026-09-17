@@ -16,10 +16,16 @@
  * @module collaboration/useYjsProvider.test
  */
 import { createSyncGate } from 'pptx-viewer-shared';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, expectTypeOf, it, test, vi } from 'vitest';
+import type { Awareness } from 'y-protocols/awareness';
 
 import type { ConnectionStatus } from './types';
 import { isMixedContentBlocked } from './useYjsProvider';
+import type { useYjsProvider } from './useYjsProvider';
+
+test('preserves the public built-in provider awareness type', () => {
+	expectTypeOf<ReturnType<typeof useYjsProvider>['awareness']>().toEqualTypeOf<Awareness | null>();
+});
 
 // ---------------------------------------------------------------------------
 // window.location stubbing helper

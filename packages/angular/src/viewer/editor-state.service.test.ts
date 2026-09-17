@@ -71,6 +71,67 @@ describe('editorStateService align', () => {
 });
 
 describe('editorStateService', () => {
+	it.each([false, true])(
+		'retains only accepted inline input when permission is revoked (rich: %s)',
+		(rich) => {
+			const svc = new EditorStateService();
+			svc.setSlides([slide('s1', [{ ...element('a'), text: 'Before' } as PptxElement])]);
+			const flush = vi.fn();
+			const patchText = vi.fn();
+			let canEdit = true;
+			const injector = Injector.create({
+				providers: [
+					{ provide: EditorStateService, useValue: svc },
+					{ provide: ViewerDialogsService, useValue: {} },
+					{ provide: ViewerFormatPainterService, useValue: {} },
+					{
+						provide: CollaborationService,
+						useValue: { livePatcher: { flush, patchText, isActive: () => canEdit } },
+					},
+				],
+			});
+			const controller = runInInjectionContext(injector, () => new ViewerCanvasEditingService());
+			controller.bind({
+				canEdit: () => canEdit,
+				activeSlide: () => svc.slides()[0],
+				activeSlideIndex: () => 0,
+				activeTemplateElements: () => [],
+			});
+			controller.onTextEditStart('a');
+			controller.onTextInput({ id: 'a', text: 'Draft written before' });
+			const text = 'Draft written before readiness paused';
+			const textSegments = [{ text, style: { bold: true }, paragraphLevel: 1 }];
+			controller.onTextInput({
+				id: 'a',
+				text,
+				snapshot: rich ? { elementId: 'a', text, textSegments } : undefined,
+			});
+			canEdit = false;
+			controller.onTextInput({ id: 'a', text: 'Forbidden paused input' });
+			controller.onTextCommit({ id: 'a', text: 'Forbidden stale blur' });
+			controller.suspendInlineEdit();
+			expect(svc.slides()[0].elements[0]).toMatchObject({
+				text: 'Draft written before readiness paused',
+			});
+			expect(controller.editingId()).toBeNull();
+			expect(controller.readInlineSnapshot()).toBeUndefined();
+			expect(patchText).toHaveBeenCalledTimes(2);
+			expect(flush).not.toHaveBeenCalled();
+			if (rich) {
+				expect(svc.slides()[0].elements[0]).toMatchObject({ textSegments });
+			}
+			controller.onTextEditStart('a');
+			expect(controller.editingId()).toBeNull();
+			canEdit = true;
+			controller.onTextEditStart('a');
+			expect(controller.editingId()).toBe('a');
+			controller.suspendInlineEdit();
+			expect(svc.slides()[0].elements[0]).toMatchObject({
+				text: 'Draft written before readiness paused',
+			});
+		},
+	);
+
 	it('commits a current rich snapshot through the canvas controller and history', () => {
 		const svc = new EditorStateService();
 		const source = {

@@ -10,13 +10,14 @@
  * @module collaboration/usePresenceTracking
  */
 import { BROADCAST_THROTTLE_MS, createPresenceProjector } from 'pptx-viewer-shared';
+import type { BorrowedCollaborationAwareness } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 
 import type { UserPresence } from './types';
 
 export interface UsePresenceTrackingInput {
-	awareness: Awareness | null;
+	awareness: Awareness | BorrowedCollaborationAwareness | null;
 	localClientId: number | null;
 	userName: string;
 	userColor: string;

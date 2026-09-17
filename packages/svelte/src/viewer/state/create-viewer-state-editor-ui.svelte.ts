@@ -183,6 +183,8 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 	useViewerEffects({
 		getSource: options.getSource,
 		getEditable: () => deps.getEditable() && !collab.readOnly && !readOnlyRec.locked,
+		commitPendingText: () =>
+			options.getRootEl()?.querySelector<HTMLElement>('[data-inline-editor]')?.blur(),
 		getInitialSlide: options.getInitialSlide,
 		getTranslator: () => options.t,
 		loader,

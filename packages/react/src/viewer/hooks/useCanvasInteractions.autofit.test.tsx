@@ -1,6 +1,6 @@
 // @vitest-environment happy-dom
 import type { PptxElement } from 'pptx-viewer-core';
-import React, { act } from 'react';
+import React, { act, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
@@ -39,6 +39,7 @@ function stubScrollHeight(value: number): void {
 }
 
 beforeEach(() => {
+	globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 	container = document.createElement('div');
 	document.body.appendChild(container);
 	root = createRoot(container);
@@ -49,6 +50,7 @@ afterEach(() => {
 		root.unmount();
 	});
 	container.remove();
+	globalThis.IS_REACT_ACT_ENVIRONMENT = false;
 	if (originalScrollHeightDescriptor) {
 		Object.defineProperty(HTMLElement.prototype, 'scrollHeight', originalScrollHeightDescriptor);
 		originalScrollHeightDescriptor = undefined;
@@ -102,25 +104,28 @@ function Harness({
 	updateElementById,
 	markDirty,
 	transformCommittedText,
+	canEdit = true,
 }: {
 	element: PptxElement;
 	inlineEditingText: string;
 	updateElementById: (elementId: string, updates: Partial<PptxElement>) => void;
 	markDirty?: () => void;
 	transformCommittedText?: (text: string) => string;
+	canEdit?: boolean;
 }) {
+	const [editingId, setEditingId] = useState<string | null>(element.id);
 	const elementLookup = new Map([[element.id, element]]);
 	const ops = { updateElementById } as unknown as ElementOperations;
 	const history = { markDirty: markDirty ?? (() => {}) } as unknown as EditorHistoryResult;
 	const input: UseCanvasInteractionsInput = {
 		mode: 'edit',
-		canEdit: true,
+		canEdit,
 		canvasSize: { width: 960, height: 540 },
 		activeSlideIndex: 0,
 		selectedElementId: element.id,
 		selectedElementIds: [element.id],
 		selectedElementIdSet: new Set([element.id]),
-		inlineEditingElementId: element.id,
+		inlineEditingElementId: editingId,
 		effectiveSelectedIds: [element.id],
 		elementLookup,
 		activeTool: 'select',
@@ -132,7 +137,7 @@ function Harness({
 		shapeAdjustmentDragStateRef: { current: null },
 		marqueeStateRef: { current: null },
 		justInteractedRef: { current: false },
-		setInlineEditingElementId: () => {},
+		setInlineEditingElementId: setEditingId,
 		setInlineEditingText: () => {},
 		setContextMenuState: () => {},
 		setMarqueeSelectionState: () => {},
@@ -151,6 +156,8 @@ function Harness({
 			{...baseElementRendererProps({
 				element,
 				inlineEditingText,
+				isInlineEditing: editingId !== null,
+				canInteract: canEdit,
 				onInlineEditCommit: handlers.handleInlineEditCommit,
 			})}
 		/>
@@ -176,6 +183,35 @@ function getInlineEditor(): HTMLElement {
 	}
 	return editor as HTMLElement;
 }
+
+describe('inline edit permission transitions', () => {
+	it('retains the accepted draft and removes the native editable surface on permission loss', () => {
+		const updateElementById = vi.fn();
+		const props = {
+			element: makeTextElement(),
+			inlineEditingText: 'Accepted draft',
+			updateElementById,
+		};
+		mount(props);
+		expect(getInlineEditor()).toBeTruthy();
+		act(() => root.render(<Harness {...props} canEdit={false} />));
+		expect(container.querySelector('[data-inline-editor]')).toBeNull();
+		act(() => root.render(<Harness {...props} canEdit />));
+		expect(updateElementById).toHaveBeenCalledExactlyOnceWith(
+			'tx_1',
+			expect.objectContaining({ text: 'Accepted draft' }),
+		);
+		expect(container.querySelector('[data-inline-editor]')).toBeNull();
+	});
+
+	it('does not render an editable low-level element when interaction is disabled', () => {
+		act(() =>
+			root.render(<ElementRenderer {...baseElementRendererProps({ canInteract: false })} />),
+		);
+		expect(container.querySelector('[data-inline-editor]')).toBeNull();
+		expect(container.textContent).toContain('Hello');
+	});
+});
 
 describe('useCanvasInteractions - spAutoFit editor resize', () => {
 	it('grows a spAutoFit shape to the measured content height on commit (blur)', () => {

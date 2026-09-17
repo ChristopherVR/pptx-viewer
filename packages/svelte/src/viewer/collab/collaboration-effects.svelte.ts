@@ -18,6 +18,7 @@ export interface CollaborationEffectsHost {
 	flushLocalSlides: (slides: PptxSlide[]) => void;
 	stop: () => void;
 	rejoin: () => void;
+	leaveOnBeforeUnload: () => boolean;
 }
 
 /**
@@ -45,5 +46,11 @@ export function registerCollaborationEffects(host: CollaborationEffectsHost): vo
 	// document without running any Svelte cleanup, leaving a ghost peer in
 	// everyone else's presence list. Leave the room from `pagehide` too; the
 	// effect's return value unregisters the listeners on destroy.
-	$effect(() => registerCollaborationTeardown({ leave: host.stop, rejoin: host.rejoin }));
+	$effect(() =>
+		registerCollaborationTeardown({
+			leave: host.stop,
+			rejoin: host.rejoin,
+			leaveOnBeforeUnload: host.leaveOnBeforeUnload,
+		}),
+	);
 }

@@ -46,6 +46,7 @@
         "typescript": "^6.0.3",
         "unrun": "^0.3.1",
         "y-protocols": "^1.0.7",
+        "y-websocket": "^3.1.0",
         "yjs": "^13.6.32",
       },
       "optionalDependencies": {
@@ -372,7 +373,6 @@
         "three": "^0.186.0",
         "y-webrtc": "^10.3.0",
         "y-websocket": "^3.1.0",
-        "yjs": "^13.6.32",
       },
       "peerDependencies": {
         "@ai-sdk/react": "^4.0.76",
@@ -387,10 +387,12 @@
         "react-dom": "^18.2.0 || ^19.0.0",
         "react-i18next": "^17.0.9",
         "react-icons": "^5.7.0",
+        "yjs": "^13.6.32",
       },
       "optionalPeers": [
         "@ai-sdk/react",
         "ai",
+        "yjs",
       ],
     },
     "packages/react-compat": {
@@ -485,16 +487,17 @@
         "three": "^0.186.0",
         "y-webrtc": "^10.3.0",
         "y-websocket": "^3.1.0",
-        "yjs": "^13.6.32",
       },
       "peerDependencies": {
         "@ai-sdk/svelte": "^5.0.31",
         "ai": ">=6 <8",
         "svelte": "^5.0.0",
+        "yjs": "^13.6.32",
       },
       "optionalPeers": [
         "@ai-sdk/svelte",
         "ai",
+        "yjs",
       ],
     },
     "packages/tools": {
@@ -555,13 +558,14 @@
       "optionalDependencies": {
         "y-webrtc": "^10.3.0",
         "y-websocket": "^3.1.0",
-        "yjs": "^13.6.32",
       },
       "peerDependencies": {
         "ai": ">=6.0.0 <8",
+        "yjs": "^13.6.32",
       },
       "optionalPeers": [
         "ai",
+        "yjs",
       ],
     },
     "packages/vue": {
@@ -607,7 +611,6 @@
         "three": "^0.186.0",
         "y-webrtc": "^10.3.0",
         "y-websocket": "^3.1.0",
-        "yjs": "^13.6.32",
       },
       "peerDependencies": {
         "@ai-sdk/vue": "^4.0.65",
@@ -617,11 +620,13 @@
         "three": "^0.186.0",
         "vue": "^3.5.39",
         "vue-i18n": "^11.4.6",
+        "yjs": "^13.6.32",
       },
       "optionalPeers": [
         "@ai-sdk/vue",
         "ai",
         "three",
+        "yjs",
       ],
     },
   },

@@ -58,6 +58,7 @@ export class ViewerCanvasEditingService {
 	/** Id of the element being inline text-edited, or null. */
 	readonly editingId = signal<string | null>(null);
 	private inlineSnapshot: InlineTextEditSnapshot | undefined;
+	private acceptedText: string | undefined;
 	private readonly listSession = new InlineListSession(
 		() =>
 			this.host && this.editingId() ? this.findElement(this.host, this.editingId()!) : undefined,
@@ -73,6 +74,24 @@ export class ViewerCanvasEditingService {
 		return this.listSession.format(snapshot);
 	}
 	endInlineListSession(): void {
+		this.listSession.end();
+	}
+	/** Keep the last accepted input visible after a readiness or permission loss. */
+	suspendInlineEdit(): void {
+		const id = this.editingId();
+		if (id && this.acceptedText !== undefined) {
+			const host = this.requireHost();
+			const patch = buildInlineTextCommitPatch(
+				this.findElement(host, id),
+				this.acceptedText,
+				this.inlineSnapshot,
+			);
+			if (patch) {
+				this.editor.updateElement(host.activeSlideIndex(), id, patch);
+			}
+		}
+		this.acceptedText = undefined;
+		this.inlineSnapshot = undefined;
 		this.listSession.end();
 	}
 
@@ -118,7 +137,11 @@ export class ViewerCanvasEditingService {
 	 */
 	onTextEditStart(id: string): void {
 		this.inlineSnapshot = undefined;
+		this.acceptedText = undefined;
 		const host = this.requireHost();
+		if (!host.canEdit()) {
+			return;
+		}
 		const element = this.findElement(host, id);
 		const segments = element && 'textSegments' in element ? element.textSegments : undefined;
 		const equation = segments?.find((segment) => segment.equationXml);
@@ -163,6 +186,9 @@ export class ViewerCanvasEditingService {
 	 * collaborating.
 	 */
 	onTextInput(event: { id: string; text: string; snapshot?: InlineTextEditSnapshot }): void {
+		if (!this.requireHost().canEdit()) {
+			return;
+		}
 		const current = this.listSession.read();
 		if (event.id !== this.editingId()) {
 			return;
@@ -170,6 +196,7 @@ export class ViewerCanvasEditingService {
 		if (current) {
 			event = { id: event.id, text: current.text, snapshot: current };
 		}
+		this.acceptedText = event.text;
 		this.inlineSnapshot =
 			event.id === this.editingId() &&
 			event.snapshot?.elementId === event.id &&
@@ -195,6 +222,10 @@ export class ViewerCanvasEditingService {
 		autoFitLineSpacingReduction?: number;
 	}): void {
 		const host = this.requireHost();
+		if (!host.canEdit()) {
+			this.suspendInlineEdit();
+			return;
+		}
 		// Push any queued interim frame out first so it cannot land after the
 		// committed text and revert it.
 		this.collab.livePatcher.flush();

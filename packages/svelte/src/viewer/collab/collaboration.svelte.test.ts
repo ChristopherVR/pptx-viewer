@@ -1,18 +1,27 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { PptxHandler } from 'pptx-viewer-core';
 import type {
 	AwarenessLike,
 	CollaborationConfig,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { flushSync } from 'svelte';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
 import { EditorState } from '../editor/editor-state.svelte';
 import type { CollabSession, CollabSessionFactory } from './collaboration-session';
+import * as sessionModule from './collaboration-session';
 import { CollaborationController } from './collaboration.svelte';
+
+afterEach(() => {
+	vi.restoreAllMocks();
+	vi.useRealTimers();
+});
 
 /**
  * `.svelte.test.ts` so the runes runtime compiles `CollaborationController`'s
@@ -305,6 +314,7 @@ describe('collaborationController', () => {
 			await collab.start(viewerConfig);
 
 			expect(collab.readOnly).toBeTruthy();
+			expect(collab.livePatcher.isActive()).toBeFalsy();
 			editor.setSlides([slide('s1', [shape('e1'), shape('e2')])]);
 			flushSync();
 			// A viewer must not write to the shared doc.
@@ -327,5 +337,360 @@ describe('collaborationController', () => {
 			expect(collab.status).toBe('error');
 			expect(collab.active).toBeFalsy();
 		});
+	});
+});
+
+function externalHost(
+	initial: PptxSlide[] = [],
+	snapshot: ExternalCollaborationSnapshot = { status: 'connected', synced: true },
+) {
+	const doc = new Y.Doc();
+	let local: Record<string, unknown> | null = { user: 'host', comments: { thread: 'one' } };
+	const listeners = new Set<() => void>();
+	const session: ExternalCollaborationSession = {
+		doc,
+		awareness: {
+			clientID: doc.clientID,
+			getLocalState: () => local,
+			setLocalState: (state) => {
+				local = state;
+			},
+			setLocalStateField: (field, value) => {
+				if (local) {
+					local = { ...local, [field]: value };
+				}
+			},
+			getStates: () => new Map(local ? [[doc.clientID, local]] : []),
+			on: () => {},
+			off: () => {},
+		},
+		getSnapshot: () => snapshot,
+		subscribe: (listener) => {
+			listeners.add(listener);
+			return () => {
+				listeners.delete(listener);
+			};
+		},
+	};
+	if (initial.length) {
+		reconcileSlidesInYDoc(initial, doc, realFactories());
+	}
+	return {
+		doc,
+		session,
+		listeners,
+		read: () => readSlidesFromYDoc(doc),
+		publish: (next: ExternalCollaborationSnapshot) => {
+			snapshot = next;
+			for (const listener of listeners) {
+				listener();
+			}
+		},
+	};
+}
+
+describe('collaborationController external sessions', () => {
+	it('persists remote-only changes on the elected owner without a local edit', async () => {
+		vi.useFakeTimers();
+		const bytes = new Uint8Array([7]);
+		vi.spyOn(PptxHandler.prototype, 'load').mockResolvedValue({} as never);
+		const save = vi.spyOn(PptxHandler.prototype, 'save').mockResolvedValue(bytes);
+		const onWriteBack = vi.fn();
+		const host = externalHost([slide('room', [shape('one')])]);
+		await inRoot(async () => {
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const config: CollaborationConfig = {
+				...CONFIG,
+				externalSession: host.session,
+				role: 'owner',
+				onWriteBack,
+				writeBackDebounceMs: 0,
+			};
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => config,
+				getSourceBytes: () => bytes,
+			});
+			await collab.start(config);
+			flushSync();
+			await vi.advanceTimersByTimeAsync(0);
+			onWriteBack.mockClear();
+			save.mockClear();
+			reconcileSlidesInYDoc(
+				[slide('room', [{ ...shape('one'), x: 42 }])],
+				host.doc,
+				realFactories(),
+				'peer',
+			);
+			flushSync();
+			await vi.advanceTimersByTimeAsync(0);
+			expect(editor.slides[0].elements[0].x).toBe(42);
+			expect(save).toHaveBeenCalledOnce();
+			expect(save.mock.calls[0][0][0].elements[0].x).toBe(42);
+			expect(onWriteBack).toHaveBeenCalledWith(bytes);
+			collab.stop();
+		});
+		host.doc.destroy();
+	});
+
+	it('keeps editing disabled and ignores partial room content until synced', async () => {
+		const host = externalHost([slide('partial', [])], { status: 'connected', synced: false });
+		await inRoot(async () => {
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => undefined,
+			});
+			await collab.start({ ...CONFIG, externalSession: host.session });
+			expect(collab.readOnly).toBeTruthy();
+			expect(editor.slides[0].id).toBe('bootstrap');
+			reconcileSlidesInYDoc([slide('room', [])], host.doc, realFactories(), 'peer');
+			expect(editor.slides[0].id).toBe('bootstrap');
+			host.publish({ status: 'connected', synced: true });
+			expect(collab.readOnly).toBeFalsy();
+			expect(editor.slides[0].id).toBe('room');
+			host.publish({ status: 'connecting', synced: false });
+			expect(collab.readOnly).toBeTruthy();
+			collab.stop();
+			expect(collab.readOnly).toBeFalsy();
+		});
+		host.doc.destroy();
+	});
+
+	it('keeps a host session attached when beforeunload is cancelled', async () => {
+		const host = externalHost([slide('room', [])]);
+		await inRoot(async () => {
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => undefined,
+			});
+			await collab.start({ ...CONFIG, externalSession: host.session });
+			flushSync();
+			window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+			expect(collab.active).toBeTruthy();
+			expect(host.listeners.size).toBe(1);
+			reconcileSlidesInYDoc([slide('next', [])], host.doc, realFactories(), 'peer');
+			expect(editor.slides[0].id).toBe('next');
+			window.dispatchEvent(new Event('pagehide'));
+			expect(collab.active).toBeFalsy();
+			expect(host.listeners.size).toBe(0);
+		});
+		host.doc.destroy();
+	});
+
+	it('adopts the room, publishes changes and detaches without destroying host resources', async () => {
+		const host = externalHost([slide('room', [shape('room-shape')])]);
+		const destroy = vi.spyOn(host.doc, 'destroy');
+		await inRoot(async () => {
+			const config = { ...CONFIG, externalSession: host.session };
+			const editor = makeEditor([slide('bootstrap', [shape('bootstrap-shape')])]);
+			const factory = vi.fn(fakeSessionFactory(new Y.Doc()));
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => config,
+				createSession: factory,
+			});
+			await collab.start(config);
+			flushSync();
+			expect(factory).not.toHaveBeenCalled();
+			expect(host.read().map((item) => item.id)).toStrictEqual(['room']);
+			expect(editor.slides[0].id).toBe('room');
+			editor.setSlides([slide('room', [{ ...shape('room-shape'), x: 45 }])]);
+			flushSync();
+			expect(host.read()[0].elements[0].x).toBe(45);
+			collab.stop();
+			expect(host.listeners.size).toBe(0);
+			expect(destroy).not.toHaveBeenCalled();
+			expect(host.session.awareness.getLocalState()).toStrictEqual({
+				user: 'host',
+				comments: { thread: 'one' },
+			});
+		});
+		host.doc.destroy();
+	});
+
+	it('waits indefinitely for host sync and permits synced offline edits', async () => {
+		vi.useFakeTimers();
+		const host = externalHost([], { status: 'connected', synced: false });
+		try {
+			await inRoot(async () => {
+				const config = { ...CONFIG, externalSession: host.session };
+				const editor = makeEditor([slide('new', [shape('one')])]);
+				const collab = new CollaborationController({
+					getSlides: () => editor.slides,
+					applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+					getConfig: () => config,
+				});
+				await collab.start(config);
+				vi.advanceTimersByTime(60_000);
+				flushSync();
+				expect(host.read()).toStrictEqual([]);
+				expect(collab.livePatcher.isActive()).toBeFalsy();
+				host.publish({ status: 'connected', synced: true });
+				flushSync();
+				expect(host.read()[0].id).toBe('new');
+				host.publish({ status: 'disconnected', synced: true });
+				editor.setSlides([slide('new', [{ ...shape('one'), x: 45 }])]);
+				flushSync();
+				expect(host.read()[0].elements[0].x).toBe(45);
+				host.publish({ status: 'connecting', synced: false });
+				editor.setSlides([slide('new', [{ ...shape('one'), x: 90 }])]);
+				flushSync();
+				expect(host.read()[0].elements[0].x).toBe(45);
+				expect(collab.livePatcher.isActive()).toBeFalsy();
+				host.publish({ status: 'connected', synced: true });
+				expect(editor.slides[0].elements[0].x).toBe(45);
+			});
+		} finally {
+			vi.useRealTimers();
+			host.doc.destroy();
+		}
+	});
+
+	it('keeps viewer sessions read-only for slide and live mutations', async () => {
+		const host = externalHost([slide('room', [shape('one')])]);
+		await inRoot(async () => {
+			const config: CollaborationConfig = {
+				...CONFIG,
+				role: 'viewer',
+				externalSession: host.session,
+			};
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => config,
+			});
+			const starting = collab.start(config);
+			expect(collab.readOnly).toBeTruthy();
+			await starting;
+			editor.setSlides([slide('room', [{ ...shape('one'), x: 50 }])]);
+			collab.livePatcher.patchGeometry('room', 'one', { x: 150 });
+			flushSync();
+			expect(host.read()[0].elements[0].x).toBe(0);
+			expect(collab.livePatcher.isActive()).toBeFalsy();
+		});
+		host.doc.destroy();
+	});
+
+	it('adopts deletion of the last slide before reopening writes after re-sync', async () => {
+		const host = externalHost([slide('room', [])]);
+		await inRoot(async () => {
+			const config = { ...CONFIG, externalSession: host.session };
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => config,
+			});
+			await collab.start(config);
+			host.publish({ status: 'connecting', synced: false });
+			reconcileSlidesInYDoc([], host.doc, realFactories(), 'peer');
+			flushSync();
+			host.publish({ status: 'connected', synced: true });
+			flushSync();
+			expect(editor.slides).toStrictEqual([]);
+			expect(host.read()).toStrictEqual([]);
+			collab.stop();
+		});
+		host.doc.destroy();
+	});
+
+	it('does not seed a joined empty room, but user loads and later empty-document edits work', async () => {
+		const host = externalHost();
+		await inRoot(async () => {
+			const config: CollaborationConfig = {
+				...CONFIG,
+				sessionIntent: 'join',
+				externalSession: host.session,
+			};
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => config,
+			});
+			await collab.start(config);
+			flushSync();
+			expect(host.read()).toStrictEqual([]);
+			editor.setSlides([slide('opened', [])]);
+			collab.adoptDocAfterLoad('user');
+			flushSync();
+			expect(host.read()[0].id).toBe('opened');
+			reconcileSlidesInYDoc([], host.doc, realFactories(), 'peer');
+			flushSync();
+			expect(editor.slides).toStrictEqual([]);
+			editor.setSlides([slide('later', [])]);
+			flushSync();
+			expect(host.read()[0].id).toBe('later');
+		});
+		host.doc.destroy();
+	});
+
+	it('does not let a superseded async attachment replace the current room', async () => {
+		const first = externalHost([slide('first', [])]);
+		const second = externalHost([slide('second', [])]);
+		await inRoot(async () => {
+			const editor = makeEditor([slide('bootstrap', [])]);
+			const collab = new CollaborationController({
+				getSlides: () => editor.slides,
+				applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+				getConfig: () => undefined,
+			});
+			const a = collab.start({ ...CONFIG, externalSession: first.session });
+			const b = collab.start({ ...CONFIG, externalSession: second.session });
+			await Promise.all([a, b]);
+			flushSync();
+			expect(editor.slides[0].id).toBe('second');
+			expect(first.listeners.size).toBe(0);
+			expect(second.listeners.size).toBe(1);
+			first.publish({ status: 'error', synced: false });
+			expect(collab.status).toBe('connected');
+		});
+		first.doc.destroy();
+		second.doc.destroy();
+	});
+
+	it('cancels an automatic attachment when its config is cleared before initialization', async () => {
+		const host = externalHost();
+		const session = await sessionModule.createExternalSession(host.session);
+		let finish!: () => void;
+		const createSession = vi.spyOn(sessionModule, 'createExternalSession').mockReturnValue(
+			new Promise((resolve) => {
+				finish = () => resolve(session);
+			}),
+		);
+		try {
+			await inRoot(async () => {
+				let config = $state<CollaborationConfig | undefined>({
+					...CONFIG,
+					externalSession: host.session,
+				});
+				const editor = makeEditor([slide('bootstrap', [])]);
+				const collab = new CollaborationController({
+					getSlides: () => editor.slides,
+					applyRemoteSlides: (slides) => editor.applyRemoteSlides(slides),
+					getConfig: () => config,
+				});
+				flushSync();
+				expect(createSession).toHaveBeenCalledOnce();
+				config = undefined;
+				flushSync();
+				finish();
+				await Promise.resolve();
+				await Promise.resolve();
+				flushSync();
+				expect(collab.active).toBeFalsy();
+				expect(host.listeners.size).toBe(0);
+			});
+		} finally {
+			createSession.mockRestore();
+			host.doc.destroy();
+		}
 	});
 });

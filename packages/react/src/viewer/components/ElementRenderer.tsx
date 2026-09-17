@@ -196,7 +196,7 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 		}
 
 		const effectiveCanInteract = canInteract && allow.selectable;
-		const effectiveIsInlineEditing = isInlineEditing && allow.textEditable;
+		const effectiveIsInlineEditing = isInlineEditing && canInteract && allow.textEditable;
 		const canEditSmartArt = effectiveCanInteract && allow.textEditable;
 		const canEditChart = effectiveCanInteract;
 

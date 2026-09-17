@@ -5,6 +5,9 @@ description: Complete reference for PptxViewerOptions and PptxViewerCallbacks - 
 
 # Options & Callbacks
 
+The `collaboration.externalSession` option can reuse an application-owned Yjs
+document and provider. See [Host-owned collaboration](/guide/host-owned-collaboration).
+
 For custom host sizing, see [Viewport fitting](/guide/viewport-fit) for
 `fitPadding`, `maxFitScale`, framework-specific examples, and default values.
 

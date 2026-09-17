@@ -5,6 +5,9 @@ description: Real-time multi-user co-editing for PowerPointViewer via Yjs CRDT -
 
 # Collaboration
 
+For an existing application-owned Yjs provider, use `collaboration.externalSession`.
+See [Host-owned collaboration](/guide/host-owned-collaboration) for the shared contract.
+
 `PowerPointViewer` supports real-time, multi-user editing built on **Yjs** (a CRDT) with either a
 WebSocket transport (`y-websocket`, needs a server) or a serverless peer-to-peer transport
 (`y-webrtc`). The `CollaborationConfig` type and wire format are shared with the React and Angular

@@ -189,6 +189,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private detachSignatureWarning: (() => void) | null = null;
 	/** Tags in-flight webfont resolutions; only the newest deck may apply its result. */
 	private webfontsToken = 0;
+	/** Host/user intent is retained while collaboration temporarily disables editing. */
+	private requestedEditable = false;
 	private annotations!: PresentationAnnotationsHost;
 	private parityWorkflows!: ParityWorkflows;
 	private aiChat: AiChatMount | null = null;
@@ -205,6 +207,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.container = container;
 		this.doc = container.ownerDocument;
 		this.options = options;
+		this.requestedEditable = options.editable ?? false;
 		const storedPrefs = readStoredViewerPrefs();
 		this.availableThemes = options.availableThemes ?? THEME_CATALOG;
 		this.availableLocales = resolveAvailableLocales(options);
@@ -602,6 +605,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getTranslator: () => this.t,
 			getScale: () => this.renderer.effectiveScale(),
 			setEditable: (editable) => this.setEditable(editable),
+			onCollaborationReadOnlyChange: (readOnly) =>
+				this.applyEditable(this.requestedEditable && !readOnly),
 			goToSlide: (index) => this.controls.goToSlide(index),
 			// Restoring a crash-recovery snapshot re-enters the normal load path,
 			// exactly as `openRecentFile` does, except it is the SAME document the
@@ -1566,6 +1571,11 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	setEditable(editable: boolean): void {
+		this.requestedEditable = editable;
+		this.applyEditable(editable && !this.sessions?.isCollaborationReadOnly());
+	}
+
+	private applyEditable(editable: boolean): void {
 		this.store.set({ editable });
 		this.editor.setEditable(editable);
 	}
