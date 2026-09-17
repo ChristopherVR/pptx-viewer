@@ -7,6 +7,7 @@ import { getReactSlideBackgroundStyle } from '../utils/slide-background-style';
 /** SlideCanvas: Central canvas area for the PowerPoint editor. */
 import type { SlideCanvasProps } from './canvas/canvas-types';
 import { CanvasGuides, MarqueeOverlay, SnapLinesOverlay } from './canvas/CanvasOverlays';
+import { ChartQuickActionsOverlay } from './canvas/ChartQuickActionsOverlay';
 import { CommentMarkersOverlay } from './canvas/CommentMarkersOverlay';
 import { ConnectorEndpointOverlay } from './canvas/ConnectorEndpointOverlay';
 import { ConnectorOverlay } from './canvas/ConnectorOverlay';
@@ -431,6 +432,26 @@ export function SlideCanvas({
 								onClick={onClick}
 								onDoubleClick={onDoubleClick}
 								onContextMenu={onContextMenu}
+							/>
+						)}
+
+					{/* PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart
+					    Filters" quick-action icons, shown just outside the chart's
+					    top-right corner when it is the single selected element. A
+					    stage-level sibling for the same reason as
+					    `SelectionHandleOverlay` above: it must escape the chart
+					    container's own clipping. Reuses `onUpdateSmartArtElement`
+					    (already the generic on-canvas element-update path for
+					    SmartArt AND chart mark-drag edits, despite its name) rather
+					    than a new callback. */}
+					{selectedElement &&
+						selectedElement.type === 'chart' &&
+						shouldShowElementHandles(isEditableCanvas, true, selectedElementIdSet.size) &&
+						onUpdateSmartArtElement && (
+							<ChartQuickActionsOverlay
+								element={selectedElement}
+								canEdit={canEdit}
+								onUpdateElement={stableUpdateSmartArtElement}
 							/>
 						)}
 

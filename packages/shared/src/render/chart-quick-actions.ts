@@ -95,9 +95,12 @@ const BUTTON_ORDER: ReadonlyArray<{ id: ChartQuickActionId; labelKey: string }> 
 	{ id: 'filters', labelKey: 'pptx.chart.quickFilters' },
 ];
 
-function buildButtons(selectionBox: InteractionBox): ChartQuickActionButtonDescriptor[] {
+function buildButtons(
+	selectionBox: InteractionBox,
+	showFilters: boolean,
+): ChartQuickActionButtonDescriptor[] {
 	const x = selectionBox.x + selectionBox.width + OUTSIDE_GAP;
-	return BUTTON_ORDER.map((entry, i) => ({
+	return BUTTON_ORDER.filter((entry) => entry.id !== 'filters' || showFilters).map((entry, i) => ({
 		...entry,
 		x,
 		y: selectionBox.y + i * (CHART_QUICK_ACTION_BUTTON_SIZE + BUTTON_GAP),
@@ -173,10 +176,11 @@ export function buildChartQuickActionsDescriptor(input: {
 		return null;
 	}
 	const { chartData, selectionBox } = input;
+	const filters = buildFilters(chartData);
 	return {
-		buttons: buildButtons(selectionBox),
+		buttons: buildButtons(selectionBox, filters.visible),
 		elements: buildElements(chartData),
-		filters: buildFilters(chartData),
+		filters,
 		styles: { presets: buildChartStylePresets(chartData) },
 	};
 }

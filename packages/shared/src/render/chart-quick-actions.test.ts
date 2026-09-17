@@ -41,7 +41,12 @@ describe('buildChartQuickActionsDescriptor', () => {
 	it('anchors the three buttons outside the top-right corner, stacked vertically', () => {
 		const descriptor = buildChartQuickActionsDescriptor({
 			isChartSelected: true,
-			chartData: chart(),
+			chartData: chart({
+				series: [
+					{ name: 'S1', values: [1, 2] },
+					{ name: 'S2', values: [3, 4] },
+				],
+			}),
 			selectionBox: box,
 		})!;
 		expect(descriptor.buttons.map((b) => b.id)).toStrictEqual(['elements', 'styles', 'filters']);
@@ -91,6 +96,7 @@ describe('buildChartQuickActionsDescriptor', () => {
 			selectionBox: box,
 		})!;
 		expect(single.filters.visible).toBeFalsy();
+		expect(single.buttons.map((b) => b.id)).toStrictEqual(['elements', 'styles']);
 
 		const multi = chart({
 			series: [
