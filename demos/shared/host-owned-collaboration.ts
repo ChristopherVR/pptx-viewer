@@ -29,7 +29,7 @@ export async function createHostOwnedDemo(configuredServer = '') {
 	const relay = serverUrl(params, configuredServer);
 	const sample = params.get('sample') === '1';
 	// Every peer needs the same package resources; intent controls who may seed it.
-	const response = await fetch(new URL('../../e2e/fixtures/sample-deck.pptx', import.meta.url));
+	const response = await fetch(`${import.meta.env.BASE_URL}sample-deck.pptx`);
 	if (!response.ok) {
 		throw new Error(`Sample load failed: ${response.status}`);
 	}
@@ -72,6 +72,18 @@ export async function createHostOwnedDemo(configuredServer = '') {
 			listeners.delete(listener);
 		};
 	};
+	// A host may finish connecting before it mounts its viewer.
+	if (params.get('attachSynced') === '1' && !provider.synced) {
+		await new Promise<void>((resolve) => {
+			const onSync = (synced: boolean): void => {
+				if (synced) {
+					provider.off('sync', onSync);
+					resolve();
+				}
+			};
+			provider.on('sync', onSync);
+		});
+	}
 	const config = {
 		roomId,
 		serverUrl: relay,
@@ -101,11 +113,12 @@ export async function createHostOwnedDemo(configuredServer = '') {
 				'position:fixed;inset:0 0 auto;z-index:100000;padding:8px 12px;background:#f8fafc;color:#0f172a;font:13px system-ui;display:flex;gap:12px;align-items:center;flex-wrap:wrap;min-height:64px;box-sizing:border-box;border-bottom:1px solid #cbd5e1';
 			const readiness = document.createElement('button');
 			const mount = document.createElement('button');
+			const connection = document.createElement('button');
 			const save = document.createElement('button');
 			save.textContent = 'Save shared snapshot';
 			const output = document.createElement('output');
 			output.setAttribute('aria-label', 'Host session state');
-			for (const button of [readiness, mount, save]) {
+			for (const button of [readiness, mount, connection, save]) {
 				button.type = 'button';
 				button.style.cssText =
 					'padding:6px 10px;border:1px solid #94a3b8;border-radius:4px;background:white;color:#0f172a;cursor:pointer';
@@ -113,6 +126,9 @@ export async function createHostOwnedDemo(configuredServer = '') {
 			const render = (): void => {
 				readiness.textContent = paused ? 'Resume readiness' : 'Pause readiness';
 				mount.textContent = editorMounted ? 'Unmount editor' : 'Remount editor';
+				connection.textContent = provider.shouldConnect
+					? 'Disconnect session'
+					: 'Reconnect session';
 				save.disabled = !editorMounted;
 				output.textContent = `Host: ${status}; synced: ${getSnapshot().synced}; client: ${doc.clientID}; updates: ${updates}; host data: ${awareness.getLocalState()?.hostData}; editor: ${editorMounted ? 'mounted' : 'unmounted'}`;
 			};
@@ -120,9 +136,19 @@ export async function createHostOwnedDemo(configuredServer = '') {
 				paused = !paused;
 				notify();
 			};
+			// Readiness can change while the editor retains keyboard focus.
+			readiness.onmousedown = (event) => event.preventDefault();
 			mount.onclick = () => {
 				editorMounted = !editorMounted;
 				onMountChange(editorMounted);
+				render();
+			};
+			connection.onclick = () => {
+				if (provider.shouldConnect) {
+					provider.disconnect();
+				} else {
+					provider.connect();
+				}
 				render();
 			};
 			save.onclick = () => {
@@ -148,7 +174,7 @@ export async function createHostOwnedDemo(configuredServer = '') {
 					});
 			};
 			disposePanel = subscribe(render);
-			panel.append(readiness, mount, output);
+			panel.append(readiness, mount, connection, output);
 			if (getContent) {
 				panel.append(save);
 			}

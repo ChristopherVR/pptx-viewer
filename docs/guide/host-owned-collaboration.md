@@ -36,8 +36,17 @@ belong to that document. Keep the session object stable and notify subscribers w
 `status` or `synced` changes. A subscription returns an unsubscribe function.
 
 The host and viewer must resolve the same Yjs runtime. The viewer leaves Yjs external
-to its bundle; deduplicate it in your application if your dependency tree contains
-multiple versions. Types from separate Yjs runtime copies cannot safely be mixed.
+to its bundle and declares it as an optional peer. Install `yjs` in the application
+for either built-in or host-owned collaboration:
+
+```sh
+npm install yjs
+```
+
+Ordinary viewing and editing without collaboration do not require this peer. The
+host also installs its chosen provider and awareness implementation. Deduplicate
+Yjs if your dependency tree contains multiple versions: types from separate runtime
+copies cannot safely be mixed.
 
 ## Readiness is the host's decision
 
@@ -50,7 +59,14 @@ the viewer may publish edits. It is independent of network status:
 - Set `synced: true` after initial synchronization. Existing room slides are adopted
   before any local bootstrap deck can be published.
 - Keep it true during an offline period if edits may queue in the host's Yjs provider.
-- Set it false to suspend publishing and durable write-back during a new sync.
+- Set it false to make the editor read-only and suspend durable write-back during
+  a new sync. Editing resumes after the authoritative room state is adopted.
+
+Accepted inline text and gesture previews are written to the borrowed document
+synchronously, so a later readiness change cannot discard a queued final keystroke.
+The host provider can still batch network traffic. An active text edit closes when
+readiness is revoked; resuming adopts the authoritative room instead of replaying a
+stale local draft.
 
 Use `sessionIntent: 'create'` for the participant allowed to seed an empty room, and
 `'join'` for participants whose startup deck must not seed it. An explicit File > Open
@@ -69,8 +85,9 @@ with `role: 'owner'` and `onWriteBack(bytes)` to receive debounced PPTX snapshot
 the same source PPTX and save options as the editor. Pending and in-flight snapshots
 are cancelled if the session leaves or the host revokes readiness. This callback is
 not a durable storage acknowledgment; retries, errors and writer election remain host
-responsibilities. Read-only viewer role blocks publication, but the server must enforce
-access control independently.
+responsibilities. An active session with `role: 'viewer'` makes the editor read-only
+and blocks publication, for both built-in and host-owned collaboration. The server
+must enforce access control independently.
 
 ## Integration boundaries
 

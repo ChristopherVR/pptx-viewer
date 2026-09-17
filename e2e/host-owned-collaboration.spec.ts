@@ -73,17 +73,43 @@ async function replaceText(page: Page, original: string, replacement: string): P
 	await state(page).click();
 }
 
-async function saveSnapshot(page: Page): Promise<string> {
-	const headlessSave = page.getByRole('button', { name: 'Save shared snapshot', exact: true });
+function draftContains(page: Page, text: string): Promise<boolean> {
+	return page
+		.locator('[data-inline-editor], [data-pptx-viewport] [data-pptx-element="true"]')
+		.evaluateAll(
+			(nodes, expected) =>
+				nodes.some((node) => {
+					if (!(node instanceof HTMLElement) || !node.getClientRects().length) {
+						return false;
+					}
+					if (getComputedStyle(node).visibility === 'hidden') {
+						return false;
+					}
+					return (node instanceof HTMLTextAreaElement ? node.value : node.innerText).includes(
+						expected,
+					);
+				}),
+			text,
+		);
+}
+
+async function saveSnapshot(
+	page: Page,
+	route: 'host' | 'file' = 'host',
+	savedPath?: string,
+): Promise<string> {
 	let download;
-	if (await headlessSave.count()) {
+	if (route === 'host') {
 		const pending = page.waitForEvent('download');
-		await headlessSave.click();
+		await page.getByRole('button', { name: 'Save shared snapshot', exact: true }).click();
 		download = await pending;
 	} else {
 		download = await savePptxViaBackstage(page);
 	}
-	const path = await download.path();
+	if (savedPath) {
+		await download.saveAs(savedPath);
+	}
+	const path = savedPath ?? (await download.path());
 	expect(path).not.toBeNull();
 	return path!;
 }
@@ -92,6 +118,29 @@ test.use({ viewport: { width: 1440, height: 1000 } });
 
 test.describe('host-owned collaboration', () => {
 	test.setTimeout(90_000);
+
+	test('publishes a startup deck when the host is synced before attachment', async ({
+		page,
+		browser,
+		baseURL,
+	}, info) => {
+		const context = await browser.newContext({ baseURL });
+		const peer = await context.newPage();
+		const room = `external-ready-attach-${info.project.name}-${Date.now()}`;
+		try {
+			await open(page, room, { sample: '1', attachSynced: '1' });
+			await expect(state(page)).toContainText('synced: true');
+			await expect(state(page)).not.toContainText('updates: 0;');
+			await replaceText(page, 'Product Overview', 'Seeded before peer attachment');
+			await open(peer, room, { name: 'Peer', attachSynced: '1' });
+			await expect(elements(peer)).toHaveCount(await elements(page).count());
+			await expect(
+				elements(peer).filter({ hasText: 'Seeded before peer attachment' }),
+			).toBeVisible();
+		} finally {
+			await context.close();
+		}
+	});
 
 	test('waits beyond the built-in grace period for host readiness', async ({ page }, info) => {
 		await open(page, `external-wait-${info.project.name}-${Date.now()}`, {
@@ -102,11 +151,119 @@ test.describe('host-owned collaboration', () => {
 		const client = await identity(page);
 		await page.waitForTimeout(3_500);
 		await expect(state(page)).toContainText('updates: 0;');
+		const before = await geometry(shape(page));
+		await drag(page, shape(page), 45, 30);
+		expect(await geometry(shape(page))).toEqual(before);
+		const title = await box(elements(page).filter({ hasText: 'Product Overview' }));
+		await page.mouse.dblclick(title.x + title.width / 2, title.y + title.height / 2);
+		await expect(page.locator('[data-inline-editor]')).toHaveCount(0);
 		await page.getByRole('button', { name: 'Resume readiness', exact: true }).click();
 		await expect(state(page)).toContainText('synced: true');
 		await expect(state(page)).not.toContainText('updates: 0;');
 		expect(await identity(page)).toBe(client);
 		await page.screenshot({ path: info.outputPath('ready-after-explicit-resume.png') });
+	});
+
+	test('disconnected editors stay read-only and receive peer edits on reconnect', async ({
+		page,
+		browser,
+		baseURL,
+	}, info) => {
+		const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
+		const peer = await context.newPage();
+		const room = `external-reconnect-${info.project.name}-${Date.now()}`;
+		try {
+			await open(page, room, { sample: '1' });
+			await open(peer, room, { name: 'Peer' });
+			await expect(elements(peer)).toHaveCount(await elements(page).count());
+			const client = await identity(page);
+			await page.getByRole('button', { name: 'Disconnect session', exact: true }).click();
+			await expect(state(page)).toContainText('Host: disconnected; synced: false');
+			const before = await geometry(shape(page));
+			await drag(page, shape(page), 45, 30);
+			expect(await geometry(shape(page))).toEqual(before);
+			const title = await box(elements(page).filter({ hasText: 'Product Overview' }));
+			await page.mouse.dblclick(title.x + title.width / 2, title.y + title.height / 2);
+			await expect(page.locator('[data-inline-editor]')).toHaveCount(0);
+			await replaceText(peer, 'Product Overview', 'Peer changed while disconnected');
+			await page.getByRole('button', { name: 'Reconnect session', exact: true }).click();
+			await expect(state(page)).toContainText('Host: connected; synced: true');
+			await expect(
+				elements(page).filter({ hasText: 'Peer changed while disconnected' }),
+			).toBeVisible();
+			expect(await identity(page)).toBe(client);
+			await drag(page, shape(page), 45, 30);
+			await samePosition(shape(page), shape(peer));
+			expect(await geometry(shape(page))).not.toEqual(before);
+		} finally {
+			await context.close();
+		}
+	});
+
+	test('an active inline draft survives host readiness loss without a blur', async ({
+		page,
+		browser,
+		baseURL,
+	}, info) => {
+		const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
+		const peer = await context.newPage();
+		const room = `external-active-draft-${info.project.name}-${Date.now()}`;
+		const draft = 'Draft written before readiness paused';
+		const blockedInput = 'UNREADY';
+		try {
+			await open(page, room, { sample: '1' });
+			await open(peer, room, { name: 'Peer' });
+			await expect(elements(peer)).toHaveCount(await elements(page).count());
+			await elements(page).filter({ hasText: 'Product Overview' }).dblclick();
+			const editor = page.locator('[data-inline-editor]').first();
+			await expect(editor).toBeFocused();
+			const pause = await box(page.getByRole('button', { name: 'Pause readiness', exact: true }));
+			await page.mouse.move(pause.x + pause.width / 2, pause.y + pause.height / 2);
+			await editor.press('ControlOrMeta+A');
+			await page.keyboard.insertText('Draft written before ');
+			await page.keyboard.insertText('readiness paused');
+			// This host control preserves focus so blur cannot flush the draft first.
+			// The second input may still be inside the live-patch throttle window.
+			await page.mouse.down();
+			await page.mouse.up();
+			await expect(state(page)).toContainText('synced: false');
+			await expect.poll(() => draftContains(page, draft)).toBe(true);
+			await expect
+				.poll(() =>
+					page.locator('[data-inline-editor]').evaluateAll((nodes) =>
+						nodes.every((node) => {
+							if (node.closest('[inert]')) {
+								return true;
+							}
+							if (node instanceof HTMLTextAreaElement || node instanceof HTMLInputElement) {
+								return node.readOnly || node.disabled;
+							}
+							return node instanceof HTMLElement && !node.isContentEditable;
+						}),
+					),
+				)
+				.toBe(true);
+			// Keep the browser's current focus: a real host readiness change must
+			// stop further typing, even when an inline draft stays mounted.
+			await page.keyboard.type(blockedInput);
+			await expect.poll(() => draftContains(page, blockedInput)).toBe(false);
+			await expect.poll(() => draftContains(page, draft)).toBe(true);
+			await page.getByRole('button', { name: 'Resume readiness', exact: true }).click();
+			await expect(state(page)).toContainText('synced: true');
+			await state(page).click();
+			await expect(elements(page).filter({ hasText: draft })).toBeVisible();
+			await expect(elements(peer).filter({ hasText: draft })).toBeVisible();
+			await expect(elements(page).filter({ hasText: blockedInput })).toHaveCount(0);
+			await expect(elements(peer).filter({ hasText: blockedInput })).toHaveCount(0);
+			const saved = await saveSnapshot(page, 'file', info.outputPath('active-draft.pptx'));
+			const reopened = await context.newPage();
+			await reopened.goto('/');
+			await reopened.locator('#file-input').setInputFiles(saved);
+			await expect(elements(reopened).filter({ hasText: draft })).toBeVisible({ timeout: 30_000 });
+			await expect(elements(reopened).filter({ hasText: blockedInput })).toHaveCount(0);
+		} finally {
+			await context.close();
+		}
 	});
 
 	test('separate peers exchange simultaneous moves and a real text edit', async ({
@@ -245,35 +402,42 @@ test.describe('host-owned collaboration', () => {
 		});
 	}
 
-	test('a saved collaborative snapshot reopens with peer edits', async ({
-		page,
-		browser,
-		baseURL,
-	}, info) => {
-		const context = await browser.newContext({ baseURL, viewport: { width: 1440, height: 1000 } });
-		const peer = await context.newPage();
-		const reopenedContext = await browser.newContext({
+	for (const route of ['host', 'file'] as const) {
+		test(`a collaborative ${route} save reopens with peer edits`, async ({
+			page,
+			browser,
 			baseURL,
-			viewport: { width: 1440, height: 1000 },
+		}, info) => {
+			const context = await browser.newContext({
+				baseURL,
+				viewport: { width: 1440, height: 1000 },
+			});
+			const peer = await context.newPage();
+			const reopenedContext = await browser.newContext({
+				baseURL,
+				viewport: { width: 1440, height: 1000 },
+			});
+			const reopened = await reopenedContext.newPage();
+			const room = `external-save-${info.project.name}-${Date.now()}`;
+			try {
+				await open(page, room, { sample: '1' });
+				await open(peer, room, { name: 'Peer' });
+				await expect(elements(peer)).toHaveCount(await elements(page).count());
+				await replaceText(peer, 'Product Overview', 'Saved collaborative content');
+				await expect(
+					elements(page).filter({ hasText: 'Saved collaborative content' }),
+				).toBeVisible();
+				const path = await saveSnapshot(page, route);
+				await reopened.goto('/');
+				await reopened.locator('#file-input').setInputFiles(path);
+				await expect(
+					elements(reopened).filter({ hasText: 'Saved collaborative content' }),
+				).toBeVisible({ timeout: 30_000 });
+				await reopened.screenshot({ path: info.outputPath('reopened-snapshot.png') });
+			} finally {
+				await context.close();
+				await reopenedContext.close();
+			}
 		});
-		const reopened = await reopenedContext.newPage();
-		const room = `external-save-${info.project.name}-${Date.now()}`;
-		try {
-			await open(page, room, { sample: '1' });
-			await open(peer, room, { name: 'Peer' });
-			await expect(elements(peer)).toHaveCount(await elements(page).count());
-			await replaceText(peer, 'Product Overview', 'Saved collaborative content');
-			await expect(elements(page).filter({ hasText: 'Saved collaborative content' })).toBeVisible();
-			const path = await saveSnapshot(page);
-			await reopened.goto('/');
-			await reopened.locator('#file-input').setInputFiles(path);
-			await expect(
-				elements(reopened).filter({ hasText: 'Saved collaborative content' }),
-			).toBeVisible({ timeout: 30_000 });
-			await reopened.screenshot({ path: info.outputPath('reopened-snapshot.png') });
-		} finally {
-			await context.close();
-			await reopenedContext.close();
-		}
-	});
+	}
 });

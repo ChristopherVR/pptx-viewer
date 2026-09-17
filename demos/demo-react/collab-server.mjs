@@ -146,6 +146,7 @@ const roomFiles = new Map();
 // ---------------------------------------------------------------------------
 
 const collabServer = Bun.serve({
+	hostname: '127.0.0.1',
 	port: PORT,
 	async fetch(req, srv) {
 		const url = new URL(req.url);
