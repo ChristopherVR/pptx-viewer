@@ -13,8 +13,29 @@
  * by the same amount. Overlay placement (cursors/selection boxes) is covered
  * separately by `collab-presence-geometry.spec.ts`.
  */
+import { readFile } from 'node:fs/promises';
+
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import JSZip from 'jszip';
+
+import { savePptxViaBackstage } from './save-pptx';
+import { fixture } from './support/deck';
+import { extractElementBlock, readZipPartText } from './support/pptx-xml';
+
+async function consecutiveBreakDeck() {
+	const zip = await JSZip.loadAsync(await readFile(fixture('text-layout.pptx')));
+	const part = 'ppt/slides/slide1.xml';
+	const xml = await zip.file(part)!.async('string');
+	const anchor = '<a:t>Bulleted item</a:t></a:r>';
+	expect(xml.split(anchor)).toHaveLength(2);
+	zip.file(part, xml.replace(anchor, `${anchor}<a:br/><a:br/><a:r><a:t>AFTER</a:t></a:r>`));
+	return {
+		name: 'consecutive-breaks.pptx',
+		mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		buffer: await zip.generateAsync({ type: 'nodebuffer' }),
+	};
+}
 
 async function openCollaborativeDeck(
 	page: Page,
@@ -48,6 +69,53 @@ async function beginTextEdit(page: Page, original: string, replacement: string) 
 
 test.describe('collaboration sync', () => {
 	test.setTimeout(120_000);
+
+	test('consecutive soft breaks survive peer sync and Save', async ({ page }, testInfo) => {
+		const peer = await page.context().newPage();
+		const roomId = `e2e-breaks-${testInfo.project.name}-${Date.now()}`;
+		const target = (participant: Page) => slideElements(participant).filter({ hasText: 'Alpha' });
+		try {
+			await openCollaborativeDeck(page, roomId, 'host', true);
+			await expect(collaborationReady(page)).toBeVisible({ timeout: 15_000 });
+			await page
+				.getByRole('toolbar', { name: 'Presentation toolbar' })
+				.getByRole('tab', { name: 'File', exact: true })
+				.click();
+			const backstage = page.getByRole('dialog', { name: 'File', exact: true });
+			await backstage.getByRole('button', { name: 'Open', exact: true }).click();
+			const chooser = page.waitForEvent('filechooser');
+			await backstage.getByRole('button', { name: /browse this device/iu }).click();
+			await (await chooser).setFiles(await consecutiveBreakDeck());
+			await expect(target(page)).toContainText('AFTER');
+			const originalBreaks = await target(page).locator('br').count();
+			expect(originalBreaks).toBeGreaterThanOrEqual(2);
+
+			// Import authored breaks: keyboard paragraph semantics differ between editors.
+			// No simultaneous editing is needed to reproduce the shared codec loss.
+			await openCollaborativeDeck(peer, roomId, 'peer');
+			await expect(collaborationReady(peer)).toBeVisible({ timeout: 15_000 });
+			await expect(target(peer)).toContainText('AFTER');
+			await expect(target(peer).locator('br')).toHaveCount(originalBreaks);
+			for (const [index, participant] of [page, peer].entries()) {
+				const saved = testInfo.outputPath(`breaks-${index}.pptx`);
+				await (await savePptxViaBackstage(participant)).saveAs(saved);
+				const xml = await readZipPartText(await readFile(saved), 'ppt/slides/slide1.xml');
+				const shape = extractElementBlock(xml, 'p:sp', 'RunsAndBlanks');
+				expect(shape.match(/<a:br(?:\s|\/|>)/gu)).toHaveLength(2);
+				const reopened = await page.context().newPage();
+				try {
+					await reopened.goto('/');
+					await reopened.locator('#file-input').setInputFiles(saved);
+					await expect(target(reopened)).toContainText('AFTER');
+					await expect(target(reopened).locator('br')).toHaveCount(originalBreaks);
+				} finally {
+					await reopened.close();
+				}
+			}
+		} finally {
+			await peer.close();
+		}
+	});
 
 	test('two peers connect through the shared WebRTC room', async ({ page }, testInfo) => {
 		const peer = await page.context().newPage();

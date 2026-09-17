@@ -1,6 +1,7 @@
+import JSZip from 'jszip';
 import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
-import { Doc as YDoc } from 'yjs';
+import { Doc as YDoc, Array as YArray, Map as YMap, Text as YText } from 'yjs';
 
 import {
 	COMPLEX_FIELD_MAP,
@@ -10,7 +11,80 @@ import {
 	SCALAR_ELEMENT_KEYS,
 	SCALAR_SLIDE_KEYS,
 } from '../../codec/index.js';
+import { decodeTextBodyFromYText, encodeTextBodyToYText } from '../../codec/text-body-codec.js';
 import { createTestPptxBytes } from '../helpers/create-test-pptx.js';
+
+describe('text body codec', () => {
+	it.each([
+		{
+			name: 'paragraph',
+			flag: { isParagraphBreak: true },
+			metadata: { paragraphLevel: 2, endParaRunProperties: { '@_sz': '1800' } },
+		},
+		{
+			name: 'soft line',
+			flag: { isLineBreak: true },
+			metadata: { breakRunProperties: { '@_lang': 'ja-JP', '@_sz': '1800' } },
+		},
+	])('restores each coalesced $name break with independent metadata', ({ flag, metadata }) => {
+		const doc = new YDoc();
+		const text = doc.getText('text');
+		const breakSegment = {
+			text: '',
+			style: { fontSize: 18, authoredRunStyle: { fontSize: 18 } },
+			...flag,
+			...metadata,
+		};
+		const segments = [
+			{ text: 'before', style: {} },
+			structuredClone(breakSegment),
+			structuredClone(breakSegment),
+			structuredClone(breakSegment),
+			{ text: 'after', style: { bold: true } },
+		];
+		encodeTextBodyToYText(segments, text);
+		expect(text.toDelta().map((op) => op.insert)).toStrictEqual(['before', '\n\n\n', 'after']);
+		const decoded = decodeTextBodyFromYText(text);
+		expect(decoded).toStrictEqual(segments);
+		expect(decoded[1]).not.toBe(decoded[2]);
+		expect(decoded[1].style).not.toBe(decoded[2].style);
+		expect((decoded[1].style as Record<string, unknown>).authoredRunStyle).not.toBe(
+			(decoded[2].style as Record<string, unknown>).authoredRunStyle,
+		);
+		for (const [key, value] of Object.entries(metadata)) {
+			if (typeof value === 'object') {
+				expect(decoded[1][key]).not.toBe(decoded[2][key]);
+			}
+		}
+		const reencoded = doc.getText('reencoded');
+		encodeTextBodyToYText(decoded, reencoded);
+		expect(reencoded.toDelta()).toStrictEqual(text.toDelta());
+		doc.destroy();
+	});
+
+	it.each([
+		{ insert: '\n', attributes: undefined, expected: { text: '\n', style: {} } },
+		{ insert: '\n\n', attributes: undefined, expected: { text: '\n\n', style: {} } },
+		{ insert: 'A\n\nB', attributes: undefined, expected: { text: 'A\n\nB', style: {} } },
+		{ insert: '\n\n', attributes: { pb: '0' }, expected: { text: '\n\n', style: {} } },
+		{
+			insert: '\nA\n',
+			attributes: { pb: '1' },
+			expected: { text: '\nA\n', style: {}, isParagraphBreak: true },
+		},
+		{
+			insert: '\r\n',
+			attributes: { lb: '1' },
+			expected: { text: '\r\n', style: {}, isLineBreak: true },
+		},
+	])('preserves non-marker text for %j', ({ insert, attributes, expected }) => {
+		const doc = new YDoc();
+		const text = doc.getText('text');
+		text.insert(0, insert, attributes);
+		expect(decodeTextBodyFromYText(text)).toStrictEqual([expected]);
+		doc.destroy();
+	});
+});
 
 describe('pptxCodec', () => {
 	it('has correct formatId and extensions', () => {
@@ -139,6 +213,39 @@ describe('pptxCodec hydrate', () => {
 });
 
 describe('pptxCodec dehydrate', () => {
+	it.each(['pb', 'lb'])('saves and reopens consecutive %s breaks from a Y.Text', async (flag) => {
+		const codec = new PptxCodec();
+		const doc = new YDoc();
+		await codec.hydrate(doc, await createTestPptxBytes(1));
+		const slide = doc.getArray<YMap<unknown>>('pptx:slides').get(0);
+		const elements = slide.get('elements') as YArray<YMap<unknown>>;
+		const element = elements.get(0);
+		const text = element.get('textBody') as YText;
+		text.delete(0, text.length);
+		text.insert(0, 'before', { s: JSON.stringify({ bold: true }) });
+		text.insert(6, '\n\n\n', { [flag]: '1', s: JSON.stringify({ fontSize: 18 }) });
+		text.insert(9, 'after', {});
+		element.set('text', 'before\n\n\nafter');
+		const bytes = await codec.dehydrate(doc);
+		const zip = await JSZip.loadAsync(bytes);
+		const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		const body = xml.match(/<p:txBody>[\s\S]*?<\/p:txBody>/u)?.[0] ?? '';
+		expect(body.match(flag === 'pb' ? /<a:p(?:\s|\/|>)/gu : /<a:br(?:\s|\/|>)/gu)).toHaveLength(
+			flag === 'pb' ? 4 : 3,
+		);
+		const data = await new PptxHandler().load(bytes.buffer as ArrayBuffer);
+		const reopened = data.slides[0].elements.find(
+			(candidate) => candidate.id === element.get('id'),
+		);
+		expect(reopened).toBeDefined();
+		if (!reopened || !('textSegments' in reopened)) {
+			throw new Error('Expected the saved text element');
+		}
+		const segments = reopened.textSegments ?? [];
+		expect(segments.map((segment) => segment.text).join('')).toBe('before\n\n\nafter');
+		doc.destroy();
+	});
+
 	it('dehydrates Y.Doc back to PPTX bytes', async () => {
 		const codec = new PptxCodec();
 		const ydoc = new YDoc();
