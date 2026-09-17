@@ -186,6 +186,18 @@
 				></button>
 			}
 			<!--
+				PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart
+				Filters" quick-action icons, shown just outside the chart's
+				top-right corner when it is the single selected element.
+			-->
+			@if (editable() && quickActionsChartElement(); as chartEl) {
+				<pptx-chart-quick-actions-overlay
+					[element]="chartEl"
+					[canEdit]="editable()"
+					[zoom]="effectiveScalePublic()"
+				/>
+			}
+			<!--
 				Connector endpoint authoring: drag an end onto a shape's connection
 				point to bind it (`a:stCxn` / `a:endCxn`), or off one to detach.
 				Candidate sites are revealed only while an end is in flight so they

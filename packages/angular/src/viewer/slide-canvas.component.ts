@@ -20,6 +20,7 @@ import {
 } from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
+	ChartPptxElement,
 	InkPptxElement,
 	PptxElement,
 	PptxGridSpacing,
@@ -66,6 +67,7 @@ import { ActiveXControlsOverlayComponent } from './activex-controls-overlay.comp
 import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
 import { CanvasFitService } from './canvas-fit.service';
+import { ChartQuickActionsOverlayComponent } from './chart-quick-actions-overlay.component';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
@@ -192,6 +194,7 @@ function plainText(el: PptxElement): string {
 		ActiveXControlsOverlayComponent,
 		InlineListEditorComponent,
 		RotateHandlePlacementDirective,
+		ChartQuickActionsOverlayComponent,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',
@@ -693,6 +696,16 @@ export class SlideCanvasComponent implements SlideContext {
 	private readonly singleSelectedElement = computed<PptxElement | null>(() => {
 		const box = this.singleSelected();
 		return box ? (this.elementById(box.id) ?? null) : null;
+	});
+
+	/**
+	 * The single selected element when (and only when) it is a chart: gates
+	 * the "Chart Elements"/"Chart Styles"/"Chart Filters" quick-action overlay,
+	 * which only makes sense for exactly one selected chart.
+	 */
+	readonly quickActionsChartElement = computed<ChartPptxElement | null>(() => {
+		const el = this.singleSelectedElement();
+		return el && el.type === 'chart' ? el : null;
 	});
 
 	/**
