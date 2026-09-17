@@ -215,6 +215,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		inlineEditingSnapshotRef: state.inlineEditingSnapshotRef,
 		ops,
 		inlineEditingTextRef: state.inlineEditingTextRef,
+		inlineEditingReaderRef: state.inlineEditingReaderRef,
 		history,
 		presentationHandleAction: presentation.handlePresentationAction,
 		setEditingEquationOmml: dialogs.setEditingEquationOmml,

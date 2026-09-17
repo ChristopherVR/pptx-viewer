@@ -199,6 +199,7 @@ export function useContentLifecycle(input: UseContentLifecycleInput): ContentLif
 		inlineEditingElementIdRef: state.inlineEditingElementIdRef,
 		inlineEditingTextRef: state.inlineEditingTextRef,
 		inlineEditingSnapshotRef: state.inlineEditingSnapshotRef,
+		inlineEditingReaderRef: state.inlineEditingReaderRef,
 		transformCommittedText: input.transformCommittedText,
 		password,
 		embedFonts,

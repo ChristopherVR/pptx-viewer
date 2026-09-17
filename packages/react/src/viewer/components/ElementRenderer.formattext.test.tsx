@@ -5,6 +5,11 @@ import {
 	inlineListBodyText,
 	remapTextToSegments,
 	setElementBullets,
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+	readSlidesFromYDoc,
 } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 /**
@@ -18,9 +23,11 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { ElementRenderer } from './ElementRenderer';
 import type { ElementRendererProps } from './elements/element-renderer-types';
+import { InlineCollaborationContext } from './elements/InlineCollaborationContext';
 
 let container: HTMLDivElement;
 let root: Root;
@@ -81,6 +88,105 @@ function mount(props: ElementRendererProps, key?: string): void {
 		root.render(<ElementRenderer key={key} {...props} />);
 	});
 }
+
+it('keeps collaborative native text through React rerenders and unrelated model reconciliation', () => {
+	const doc = new Y.Doc();
+	const element = makeTextElement();
+	const factories = {
+		createMap: () => new Y.Map(),
+		createArray: () => new Y.Array(),
+		createText: () => new Y.Text(),
+		createTextPositions: (text: import('pptx-viewer-shared').YTextEditableLike) =>
+			createSnapshotTextPositions(text as unknown as Y.Text, {
+				read: () => Y.snapshot(doc),
+				equal: Y.equalSnapshots,
+				subscribeBeforeObservers: (listener: () => void) => {
+					doc.on('beforeObserverCalls', listener);
+					return () => doc.off('beforeObserverCalls', listener);
+				},
+			}),
+	};
+	reconcileSlidesInYDoc([{ id: 's1', slideNumber: 1, elements: [element] }], doc, factories);
+	const patcher = createCollaborationLivePatcher();
+	patcher.configure(doc, factories, true);
+	const change = vi.fn();
+	const commit = vi.fn();
+	const registerReader = vi.fn(() => () => {});
+	const props = makeProps({ element, onInlineEditChange: change, onInlineEditCommit: commit });
+	try {
+		act(() =>
+			root.render(
+				<InlineCollaborationContext.Provider
+					value={{ patcher, slideId: 's1', registerReader, elementIds: new Set([element.id]) }}
+				>
+					<ElementRenderer {...props} />
+				</InlineCollaborationContext.Provider>,
+			),
+		);
+		const editor = getInlineEditor();
+		expect(editor.textContent).toBe('Hello');
+		const text = findElementYMap(doc, 's1', element.id)!.get('textBody') as Y.Text;
+		act(() => doc.transact(() => text.insert(0, 'A', {}), 'peer'));
+		expect(editor.textContent).toBe('AHello');
+		const node = editor.querySelector('span')!.firstChild as Text;
+		const range = document.createRange();
+		range.setStart(node, 6);
+		range.collapse(true);
+		window.getSelection()!.removeAllRanges();
+		window.getSelection()!.addRange(range);
+		act(() => {
+			const before = new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' });
+			Object.defineProperty(before, 'getTargetRanges', { value: () => [range.cloneRange()] });
+			editor.dispatchEvent(before);
+			node.appendData('B');
+			editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+		});
+		expect(text.toString()).toBe('AHelloB');
+		act(() =>
+			reconcileSlidesInYDoc(
+				[{ id: 's1', slideNumber: 1, elements: [{ ...element, x: 42 }] }],
+				doc,
+				factories,
+			),
+		);
+		expect(readSlidesFromYDoc(doc)[0].elements[0]).toMatchObject({ x: 42, text: 'AHelloB' });
+		patcher.patchText('s1', element.id, 'HelloB');
+		expect(text.toString()).toBe('AHelloB');
+		expect(change.mock.lastCall?.[0]).toBe('AHelloB');
+		expect(registerReader).toHaveBeenCalledOnce();
+		act(() => editor.dispatchEvent(new FocusEvent('focusout', { bubbles: true })));
+		expect(commit).toHaveBeenCalledOnce();
+	} finally {
+		act(() => root.render(null));
+		patcher.dispose();
+		doc.destroy();
+	}
+});
+
+it('keeps inherited list shapes on the existing local editing path', () => {
+	const patcher = createCollaborationLivePatcher();
+	vi.spyOn(patcher, 'isActive').mockReturnValue(true);
+	const begin = vi.spyOn(patcher, 'beginTextEdit');
+	const cancel = vi.fn();
+	const element = setElementBullets(makeTextElement(), 'bullet');
+	const props = makeProps({
+		element: { ...makeTextElement(), ...element } as PptxElement,
+		onInlineEditCancel: cancel,
+	});
+	act(() =>
+		root.render(
+			<InlineCollaborationContext.Provider
+				value={{ patcher, slideId: 's1', elementIds: new Set() }}
+			>
+				<ElementRenderer {...props} />
+			</InlineCollaborationContext.Provider>,
+		),
+	);
+	expect(getInlineEditor().textContent).toContain('Hello');
+	expect(begin).not.toHaveBeenCalled();
+	expect(cancel).not.toHaveBeenCalled();
+	patcher.dispose();
+});
 
 function pressShortcut(el: HTMLElement, key: string): void {
 	act(() => {

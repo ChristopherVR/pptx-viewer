@@ -38,6 +38,27 @@ afterEach(() => {
 });
 
 describe('useInlineEditingState', () => {
+	it('keeps a newly mounted pending reader when the previous mount disposes', () => {
+		mount();
+		const oldRead = vi.fn(() => ({
+			kind: 'unsupported' as const,
+			reason: 'inactive-session',
+			text: '',
+		}));
+		const newRead = vi.fn(() => ({
+			kind: 'supported' as const,
+			snapshot: snapshot(),
+			paragraphs: [],
+		}));
+		const releaseOld = state.registerInlineEditReader!('shape-a', oldRead);
+		const releaseNew = state.registerInlineEditReader!('shape-a', newRead);
+		releaseOld();
+		expect(state.inlineEditingReaderRef?.current?.read()).toMatchObject({ kind: 'supported' });
+		expect(oldRead).not.toHaveBeenCalled();
+		releaseNew();
+		expect(state.inlineEditingReaderRef?.current).toBeUndefined();
+	});
+
 	it('mirrors a valid rich draft before React flushes the state update', () => {
 		const publish = mount();
 		const draft = snapshot();

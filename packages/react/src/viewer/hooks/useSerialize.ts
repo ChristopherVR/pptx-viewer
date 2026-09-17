@@ -105,6 +105,9 @@ export interface UseSerializeInput {
 	inlineEditingElementIdRef: React.MutableRefObject<string | null>;
 	inlineEditingTextRef: React.MutableRefObject<string>;
 	inlineEditingSnapshotRef?: React.MutableRefObject<InlineTextEditSnapshot | undefined>;
+	inlineEditingReaderRef?: React.MutableRefObject<
+		import('./useInlineEditingState').PendingInlineEditReader | undefined
+	>;
 	transformCommittedText?: (text: string) => string;
 	password?: string;
 	/**
@@ -171,6 +174,7 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 		inlineEditingElementIdRef,
 		inlineEditingTextRef,
 		inlineEditingSnapshotRef,
+		inlineEditingReaderRef,
 		transformCommittedText,
 		password,
 		embedFonts = true,
@@ -188,8 +192,11 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 			// save() captures the live text even when the editor element hasn't
 			// been blurred yet (e.g. Ctrl+S while typing inside a text box).
 			const pendingEditId = inlineEditingElementIdRef.current;
-			const pendingEditText = inlineEditingTextRef.current;
-			const pendingSnapshot = inlineEditingSnapshotRef?.current;
+			const reader = inlineEditingReaderRef?.current;
+			const read = reader?.elementId === pendingEditId ? reader.read() : undefined;
+			if (read?.kind === 'unsupported') return null;
+			const pendingEditText = read?.snapshot.text ?? inlineEditingTextRef.current;
+			const pendingSnapshot = read?.snapshot ?? inlineEditingSnapshotRef?.current;
 
 			const pending = overlayPendingInlineEdit(
 				{
@@ -283,6 +290,7 @@ export function useSerialize(input: UseSerializeInput): SerializeSlides {
 			inlineEditingElementIdRef,
 			inlineEditingTextRef,
 			inlineEditingSnapshotRef,
+			inlineEditingReaderRef,
 			transformCommittedText,
 			password,
 			embedFonts,

@@ -62,6 +62,9 @@ export interface UseCanvasInteractionsInput {
 	inlineEditingText: string;
 	inlineEditingTextRef?: React.MutableRefObject<string>;
 	inlineEditingSnapshotRef?: React.MutableRefObject<InlineTextEditSnapshot | undefined>;
+	inlineEditingReaderRef?: React.MutableRefObject<
+		import('./useInlineEditingState').PendingInlineEditReader | undefined
+	>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
 	presentationHandleAction: (action: Record<string, unknown>) => void;
@@ -123,6 +126,7 @@ export function useCanvasInteractions(
 		inlineEditingText,
 		inlineEditingTextRef,
 		inlineEditingSnapshotRef,
+		inlineEditingReaderRef,
 		ops,
 		history,
 		presentationHandleAction,
@@ -144,13 +148,16 @@ export function useCanvasInteractions(
 		}
 		const el = elementLookup.get(editId);
 		if (el && hasTextProperties(el)) {
+			const reader = inlineEditingReaderRef?.current;
+			const read = reader?.elementId === editId ? reader.read() : undefined;
+			if (read?.kind === 'unsupported') return;
 			// AutoCorrect runs on the typed text before it becomes segments.
-			const liveText = inlineEditingTextRef?.current ?? inlineEditingText;
+			const liveText = read?.snapshot.text ?? inlineEditingTextRef?.current ?? inlineEditingText;
 			const committedText = transformCommittedText ? transformCommittedText(liveText) : liveText;
 			const textPatch = buildInlineTextCommitPatch(
 				el,
 				committedText,
-				inlineEditingSnapshotRef?.current,
+				read?.snapshot ?? inlineEditingSnapshotRef?.current,
 			);
 			if (!textPatch) {
 				setInlineEditingElementId(null);
