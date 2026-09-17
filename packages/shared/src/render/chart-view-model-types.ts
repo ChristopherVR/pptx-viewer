@@ -29,6 +29,17 @@ export interface PlotLayout {
 	plotBottom: number;
 	plotWidth: number;
 	plotHeight: number;
+	/**
+	 * `plotHeight` before any `c:plotArea/c:layout/c:manualLayout` override is
+	 * applied. PowerPoint's automatic gridline-count decision (see
+	 * `axisTargetIntervals` in chart-axis-nice.ts) is driven by the chart's
+	 * natural size, not by where the author later dragged the plot rectangle;
+	 * an `inner`-target manual layout in particular reserves no axis-label
+	 * band at all, so `plotHeight` alone can read far taller than the chart
+	 * PowerPoint actually sized its gridline count against (issue #132: a
+	 * manually-laid-out percent chart got 7 gridlines here, 4 in PowerPoint).
+	 */
+	autoPlotHeight: number;
 }
 
 /**

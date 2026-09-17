@@ -62,7 +62,7 @@ export function buildWaterfallViewModel(
 	const series = chartData.series[0];
 	const values = series?.values ?? [];
 	const steps = buildWaterfallSteps(values, series?.waterfallOptions);
-	const range = computeWaterfallRange(steps, layout.plotHeight);
+	const range = computeWaterfallRange(steps, layout.autoPlotHeight);
 	const catCount = Math.max(categoryLabels.length, values.length, 1);
 
 	const barWidth = (layout.plotWidth / catCount) * 0.6;

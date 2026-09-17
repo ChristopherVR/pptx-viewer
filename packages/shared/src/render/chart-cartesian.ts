@@ -118,13 +118,13 @@ export function buildCartesianViewModel(
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const primaryRange = isStacked
 		? {
-				...stackedRange(chartData, catCount, isPercent, layout.plotHeight),
+				...stackedRange(chartData, catCount, isPercent, layout.autoPlotHeight),
 				...(primaryAxis?.orientation === 'maxMin' ? { reverseOrder: true } : {}),
 			}
 		: computeValueRangeForChart(
 				primaryPlotSeries.length > 0 ? primaryPlotSeries : chartData.series,
 				chartData.axes,
-				layout.plotHeight,
+				layout.autoPlotHeight,
 			);
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const secondaryRange =
@@ -132,7 +132,7 @@ export function buildCartesianViewModel(
 			? computeValueRangeForAxis(
 					secondaryPlotSeries,
 					chartData.axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos === 'r'),
-					layout.plotHeight,
+					layout.autoPlotHeight,
 				)
 			: undefined;
 

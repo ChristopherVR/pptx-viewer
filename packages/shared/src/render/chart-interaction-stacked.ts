@@ -70,11 +70,11 @@ export function buildStackedDragGeometry(
 		),
 		layoutOpts = computeLayoutOptions(chartData.axes, chartData.dataTable, chartData.series.length),
 		layout = computePlotLayout(element.width, element.height, chartData, true, layoutOpts),
-		// Computed from the SAME `layout.plotHeight` `chart-cartesian.ts`'s
+		// Computed from the SAME `layout.autoPlotHeight` `chart-cartesian.ts`'s
 		// `stackedRange` uses, so a drag never disagrees with what is on screen.
 		range: ValueRange = percent
 			? { min: 0, max: 100, span: 100 }
-			: computeStackedValueRange(chartData.series, catCount, layout.plotHeight);
+			: computeStackedValueRange(chartData.series, catCount, layout.autoPlotHeight);
 	return {
 		range,
 		plotTop: layout.plotTop,

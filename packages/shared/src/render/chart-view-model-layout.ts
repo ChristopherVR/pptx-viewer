@@ -110,6 +110,10 @@ export function computePlotLayout(
 		plotBottom -= 14 + rowCount * 14;
 	}
 
+	// The automatic plot height, before any manual layout override below can
+	// change it: see `PlotLayout.autoPlotHeight`'s doc comment.
+	const autoPlotHeight = Math.max(plotBottom - plotTop, 1);
+
 	// c:plotArea/c:layout/c:manualLayout: the author placed the plot area by
 	// hand. Each field the layout omits keeps the automatic value above, which
 	// is also what a `factor`-mode offset is relative to. An `outer` target
@@ -144,5 +148,6 @@ export function computePlotLayout(
 		plotBottom: plotTop + plotHeight,
 		plotWidth,
 		plotHeight,
+		autoPlotHeight,
 	};
 }
