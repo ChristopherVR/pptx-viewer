@@ -13,7 +13,13 @@
  * Order is load-bearing: later siblings paint on top, and the selection chrome
  * has to sit above the content overlays but below the inline editor.
  */
-import type { PptxComment, PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
+import type {
+	ChartPptxElement,
+	PptxComment,
+	PptxElement,
+	PptxSlide,
+	TextStyle,
+} from 'pptx-viewer-core';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useTemplateRef } from 'vue';
 
@@ -28,6 +34,7 @@ import type { CanvasSize } from '../types';
 import AiChangeOverlay from './ai/AiChangeOverlay.vue';
 import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.vue';
 import CanvasGuides from './CanvasGuides.vue';
+import ChartQuickActionsOverlay from './ChartQuickActionsOverlay.vue';
 import CollaborationCursors from './CollaborationCursors.vue';
 import CommentMarkersOverlay from './CommentMarkersOverlay.vue';
 import ConnectorEndpointOverlay from './ConnectorEndpointOverlay.vue';
@@ -192,6 +199,23 @@ defineExpose({
 		@adjust="drag.onAdjust"
 		@adjust-end="drag.onAdjustEnd"
 		@request-edit="(p) => onRequestEdit(p.id)"
+	/>
+
+	<!-- PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart Filters"
+	     quick-action icons, shown just outside the chart's top-right corner
+	     when it is the single selected element. Commits through the existing
+	     `ChartCanvasEditContext` (injected internally), the same path chart
+	     mark-drag and inline title editing already use. -->
+	<ChartQuickActionsOverlay
+		v-if="
+			canEdit &&
+			!presenting &&
+			selectedElements.length === 1 &&
+			selectedElements[0].type === 'chart'
+		"
+		:element="selectedElements[0] as ChartPptxElement"
+		:can-edit="canEdit"
+		:zoom="effectiveZoom"
 	/>
 
 	<!-- Connector endpoint authoring, above the selection chrome so its handles
