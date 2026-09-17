@@ -8,6 +8,7 @@
  * local user's active slide (so peers on other slides paint no stray cursors).
  */
 import { createPresenceProjector } from 'pptx-viewer-shared';
+import type { SanitizedPresence } from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
@@ -25,6 +26,7 @@ export function readBound(source: Ref<number> | number | undefined): number {
 }
 
 export interface PresenceProjection {
+	remoteUsers: SanitizedPresence[];
 	presences: RemotePresence[];
 	cursors: RemoteCursor[];
 	/**
@@ -69,7 +71,7 @@ export function createPresenceProjection(): {
 				localActiveSlide,
 			);
 			if (!changed) {
-				return { presences: lastPresences, cursors, changed: false };
+				return { presences: lastPresences, remoteUsers: list, cursors, changed: false };
 			}
 			lastPresences = list.map<RemotePresence>((p) => ({
 				clientId: p.clientId,
@@ -80,7 +82,7 @@ export function createPresenceProjection(): {
 				activeSlide: p.activeSlideIndex,
 				role: p.role,
 			}));
-			return { presences: lastPresences, cursors, changed: true };
+			return { presences: lastPresences, remoteUsers: list, cursors, changed: true };
 		},
 		reset() {
 			projector.reset();

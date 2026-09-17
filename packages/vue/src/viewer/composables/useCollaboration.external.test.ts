@@ -8,10 +8,11 @@ import type {
 } from 'pptx-viewer-shared';
 import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { effectScope, nextTick, ref } from 'vue';
+import { effectScope, nextTick, ref, shallowRef } from 'vue';
 import * as Y from 'yjs';
 
 import { useCollaboration } from './useCollaboration';
+import type { UseCollaborationOptions } from './useCollaboration';
 
 const cleanup: (() => void)[] = [];
 afterEach(() => {
@@ -88,6 +89,7 @@ function mount(
 	initial = [slide('bootstrap')],
 	extra: Partial<CollaborationConfig> = {},
 	getSourceBytes?: () => Uint8Array,
+	serialize?: UseCollaborationOptions['serialize'],
 ) {
 	const scope = effectScope();
 	cleanup.push(() => scope.stop());
@@ -103,6 +105,7 @@ function mount(
 			loadVersion,
 			getLoadOrigin: () => loadOrigin,
 			getSourceBytes,
+			serialize,
 		}),
 	)!;
 	const config: CollaborationConfig = {
@@ -125,6 +128,120 @@ function mount(
 }
 
 describe('useCollaboration external sessions', () => {
+	it('cancels late retained serialization when the external session is replaced', async () => {
+		vi.useFakeTimers();
+		let resolve: (bytes: Uint8Array) => void = () => {};
+		let isCurrent: () => boolean = () => false;
+		const serialize = vi.fn((current: () => boolean) => {
+			isCurrent = current;
+			return new Promise<Uint8Array>((done) => {
+				resolve = done;
+			});
+		});
+		const onWriteBack = vi.fn();
+		const m = mount(
+			host([slide('room')]),
+			[slide('bootstrap')],
+			{ role: 'owner', onWriteBack, writeBackDebounceMs: 0 },
+			undefined,
+			serialize,
+		);
+		await m.collab.start(m.config);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(serialize).toHaveBeenCalledOnce();
+		expect(isCurrent()).toBeTruthy();
+		await m.collab.start({
+			...m.config,
+			role: 'viewer',
+			externalSession: host([slide('replacement')]).session,
+		});
+		expect(isCurrent()).toBeFalsy();
+		resolve(new Uint8Array([4]));
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onWriteBack).not.toHaveBeenCalled();
+	});
+
+	it('contains a retained serializer rejection after its session stops', async () => {
+		vi.useFakeTimers();
+		let reject: (reason: Error) => void = () => {};
+		const onWriteBack = vi.fn();
+		const m = mount(
+			host([slide('room')]),
+			[slide('bootstrap')],
+			{ role: 'owner', onWriteBack, writeBackDebounceMs: 0 },
+			undefined,
+			() =>
+				new Promise<Uint8Array>((_resolve, fail) => {
+					reject = fail;
+				}),
+		);
+		await m.collab.start(m.config);
+		await vi.advanceTimersByTimeAsync(0);
+		m.collab.stop();
+		reject(new Error('retired serialization'));
+		await vi.advanceTimersByTimeAsync(0);
+		expect(onWriteBack).not.toHaveBeenCalled();
+	});
+
+	it('exposes reactive custom-shell permissions and detaches a cleared host config', async () => {
+		const h = host([slide('room')], { status: 'connected', synced: false });
+		const config = shallowRef<CollaborationConfig | undefined>({
+			roomId: 'shell-room',
+			serverUrl: '',
+			userName: 'Ada',
+			externalSession: h.session,
+		});
+		const canEdit = ref(true);
+		const sourcePending = ref(false);
+		const sourceError = ref(false);
+		const scope = effectScope();
+		cleanup.push(() => scope.stop());
+		const slides = ref([slide('bootstrap')]);
+		const collab = scope.run(() =>
+			useCollaboration({
+				slides,
+				collaboration: config,
+				canEdit,
+				sourcePending,
+				sourceError,
+				onRemoteSlides: (next) => {
+					slides.value = next;
+				},
+			}),
+		)!;
+		await vi.waitFor(() => expect(collab.active.value).toBeTruthy());
+		expect(collab.shellState.value.canEdit).toBeFalsy();
+		h.publish({ status: 'connected', synced: true });
+		expect(collab.shellState.value.canEdit).toBeTruthy();
+		expect(collab.shellState.value.connectedCount).toBe(1);
+		canEdit.value = false;
+		expect(collab.shellState.value.canEdit).toBeFalsy();
+		canEdit.value = true;
+		sourcePending.value = true;
+		expect(collab.shellState.value.canEdit).toBeFalsy();
+		sourcePending.value = false;
+		sourceError.value = true;
+		expect(collab.shellState.value.canEdit).toBeFalsy();
+		sourceError.value = false;
+		expect(collab.shellState.value.canEdit).toBeTruthy();
+		const replacement = host([slide('other-room')]);
+		config.value = { ...config.value!, role: 'viewer', externalSession: replacement.session };
+		await vi.waitFor(() => expect(replacement.listeners.size).toBe(1));
+		expect(h.listeners.size).toBe(0);
+		expect(slides.value[0].id).toBe('other-room');
+		expect(collab.shellState.value.canEdit).toBeFalsy();
+		config.value = undefined;
+		await nextTick();
+		expect(collab.active.value).toBeFalsy();
+		expect(h.listeners.size).toBe(0);
+		expect(replacement.listeners.size).toBe(0);
+		expect(collab.shellState.value).toMatchObject({
+			canEdit: true,
+			status: 'disconnected',
+			connectedCount: 0,
+		});
+	});
+
 	it('persists remote-only changes on the elected owner without a local edit', async () => {
 		vi.useFakeTimers();
 		const bytes = new Uint8Array([7]);

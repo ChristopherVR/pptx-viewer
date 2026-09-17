@@ -15,6 +15,10 @@ export {
 export { getResolvedShapeClipPath, getResolvedShapeClipPathFor } from 'pptx-viewer-shared';
 export { useEditorHistory } from './useEditorHistory';
 export { useEditorOperations } from './useEditorOperations';
+export { useInlineEditing } from './useInlineEditing';
+export type { UseInlineEditingInput, UseInlineEditingResult } from './useInlineEditing';
+export { useElementDrag } from './useElementDrag';
+export type { UseElementDragInput, UseElementDragResult } from './useElementDrag';
 export { useCollaboration } from './useCollaboration';
 export type {
 	RemotePresence,

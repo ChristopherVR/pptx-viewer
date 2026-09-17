@@ -8,6 +8,59 @@ description: Real-time multi-user co-editing for PowerPointViewer via Yjs CRDT -
 For an existing application-owned Yjs provider, use `collaboration.externalSession`.
 See [Host-owned collaboration](/guide/host-owned-collaboration) for the shared contract.
 
+## Custom host chrome
+
+The public `useCollaboration` composable accepts an optional reactive configuration.
+Keep a host-owned Yjs session in a `shallowRef`, or pass a getter, so Vue does not
+proxy its document or provider. Replacing the configuration restarts only the
+viewer's attachment; clearing it or disposing the component releases that attachment,
+not the host's document, awareness or provider.
+
+```ts
+import { useCollaboration } from 'pptx-vue-viewer';
+import type { CollaborationConfig, CollaborationShellState } from 'pptx-vue-viewer';
+import { shallowRef } from 'vue';
+
+const config = shallowRef<CollaborationConfig>();
+const collab = useCollaboration({
+	slides,
+	collaboration: config,
+	canEdit: () => hostMayEdit,
+	sourcePending: () => Boolean(source) && loading.value,
+	sourceError: () => Boolean(source) && Boolean(error.value),
+	onRemoteSlides: (next) => { slides.value = next; },
+	loadVersion,
+	getLoadOrigin: () => lastLoadOrigin,
+	// Optional elected-owner persistence: reuse the full retained loader serializer.
+	serialize: () => loader.getContent(),
+});
+// Read this computed ref for each toolbar render and before each edit operation.
+const state: CollaborationShellState = collab.shellState.value;
+```
+
+`shellState` combines host permission, canonical session readiness, role and source
+load state. It also exposes `status`, sanitized `remoteUsers`, and `connectedCount`.
+Use its `canEdit` to gate custom controls and edit handlers; a role alone cannot tell
+you whether a host session is synced. Existing manual `start`, `stop` and `retry`
+calls remain supported. `loadVersion` must advance after applying a load, and
+`getLoadOrigin` distinguishes a bootstrap deck from an explicit user-open operation.
+
+Compose `SlideCanvas`, `SelectionOverlay`, `useElementDrag`, `InlineTextEditor`, `useInlineEditing`, `useLoadContent` and
+the editor composables from `pptx-vue-viewer/viewer` for a custom editor. Commit and
+close an accepted inline draft when editing becomes unavailable, and do not leave
+stale editor DOM mounted across authoritative remote replacement. Render
+`CollaborationCursors` and `RemoteSelectionOverlay` in the `SlideCanvas` slot:
+that slot is already scaled, so the overlays consume unscaled slide coordinates.
+Use `SlideCanvas.getStageElement()` as the public pointer-coordinate origin, and
+cancel active drags on readonly transitions or teardown. Publish local cursor
+coordinates divided by the stage scale, selection IDs and
+the active slide through `setCursor`, `setSelection` and `setActiveSlide`.
+
+The [custom-shell demo source](https://github.com/ChristopherVR/pptx-viewer/blob/main/demos/demo-vue/src/HostOwnedHeadlessEditor.vue)
+shows the complete wiring without rendering `PowerPointViewer`.
+
+## Built-in viewer
+
 `PowerPointViewer` supports real-time, multi-user editing built on **Yjs** (a CRDT) with either a
 WebSocket transport (`y-websocket`, needs a server) or a serverless peer-to-peer transport
 (`y-webrtc`). The `CollaborationConfig` type and wire format are shared with the React and Angular

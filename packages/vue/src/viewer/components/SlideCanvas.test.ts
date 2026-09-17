@@ -24,6 +24,17 @@ function mountCanvas(slide: PptxSlide | undefined) {
 }
 
 describe('slideCanvas slide-region contract', () => {
+	it('exposes the actual scaled stage as a public coordinate origin', async () => {
+		const wrapper = mountCanvas(makeSlide({}));
+		const stage = wrapper.vm.getStageElement();
+		expect(stage).toBe(wrapper.get('.pptx-vue-stage').element);
+		await wrapper.setProps({ zoom: 1.5 });
+		expect(wrapper.vm.getStageElement()).toBe(stage);
+		expect(stage?.style.transform).toContain('scale(1.5)');
+		wrapper.unmount();
+		expect(wrapper.vm.getStageElement()).toBeNull();
+	});
+
 	// The e2e accessibility contract is ONE visible slide region for the
 	// current slide: the wrapper. The inner interactive SlideStage must not
 	// duplicate the aria-roledescription (a strict Playwright locator on

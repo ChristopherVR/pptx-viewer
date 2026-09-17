@@ -260,6 +260,8 @@ export function useElementDrag(input: UseElementDragInput) {
 		...snap,
 		hasActivePointerInteraction: () => elementDragController.isActive(),
 		startElementDrag,
+		/** Stop window listeners when a custom shell detaches or becomes read-only. */
+		cancelElementDrag: () => elementDragController.dispose(),
 		onTransformStart,
 		onTransform,
 		onTransformEnd,

@@ -266,6 +266,14 @@ for the `addElement` contract and a core-factory example.
 
 ### Composing a custom viewer shell
 
+For host-owned collaboration, `useCollaboration` accepts a reactive `collaboration`
+getter or shallow ref and exposes `shellState`: effective `canEdit`, connection
+status, sanitized remote users and connected count. Use it for both custom controls
+and their edit handlers. The public `/viewer` entry also exports `InlineTextEditor`
+and `useInlineEditing` for reusing the native inline editing behavior.
+See the [custom-shell collaboration guide](https://christophervr.github.io/pptx-viewer/vue/collaboration#custom-host-chrome)
+and `demos/demo-vue/src/HostOwnedHeadlessEditor.vue` for complete wiring.
+
 `<PowerPointViewer>` bundles the slide canvas, ribbon, inspector, and every
 dialog into one component. If you only want a subset, for example your own
 chrome around just the ribbon and the slide canvas, import the pieces

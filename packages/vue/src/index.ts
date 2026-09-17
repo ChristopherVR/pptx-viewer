@@ -3,6 +3,9 @@ export type {
 	ExternalCollaborationSession,
 	ExternalCollaborationSnapshot,
 	ExternalCollaborationAwareness,
+	CollaborationShellState,
+	ConnectionStatus,
+	SanitizedPresence,
 } from 'pptx-viewer-shared';
 // ── Vue 3 PowerPoint viewer/editor ──
 export {

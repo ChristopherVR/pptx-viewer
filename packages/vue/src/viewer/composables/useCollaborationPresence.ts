@@ -1,4 +1,9 @@
-import type { AwarenessLike, CollaborationConfig, PresencePublisher } from 'pptx-viewer-shared';
+import type {
+	AwarenessLike,
+	CollaborationConfig,
+	PresencePublisher,
+	SanitizedPresence,
+} from 'pptx-viewer-shared';
 import {
 	assignUserColor,
 	createPresencePublisher,
@@ -13,6 +18,7 @@ import type { RemotePresence, UseCollaborationOptions } from './collaboration-ty
 /** Reactive presence projection; document readiness stays in the shared controller. */
 export function useCollaborationPresence(options: UseCollaborationOptions) {
 	const remotePresences = ref<RemotePresence[]>([]);
+	const remoteUsers = ref<SanitizedPresence[]>([]);
 	const cursors = ref<RemoteCursor[]>([]);
 	const followedClientId = ref<number | null>(null);
 	const followedSlideIndex = computed(
@@ -45,6 +51,7 @@ export function useCollaborationPresence(options: UseCollaborationOptions) {
 			return;
 		}
 		remotePresences.value = next.presences;
+		remoteUsers.value = next.remoteUsers;
 		cursors.value = next.cursors;
 		if (
 			followedClientId.value !== null &&
@@ -80,10 +87,12 @@ export function useCollaborationPresence(options: UseCollaborationOptions) {
 		activeSlide = 0;
 		projection.reset();
 		remotePresences.value = [];
+		remoteUsers.value = [];
 		cursors.value = [];
 		followedClientId.value = null;
 	}
 	return {
+		remoteUsers,
 		remotePresences,
 		cursors,
 		followedClientId,
