@@ -23,11 +23,7 @@ import {
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from 'pptx-viewer-shared';
-import type {
-	BorrowedCollaborationAwareness,
-	DepartureChannel,
-	SyncGate,
-} from 'pptx-viewer-shared';
+import type { DepartureChannel, SyncGate } from 'pptx-viewer-shared';
 import { useEffect, useRef, useState, useCallback } from 'react';
 import type { Awareness } from 'y-protocols/awareness';
 import type { WebrtcProvider } from 'y-webrtc';
@@ -35,7 +31,6 @@ import type { WebsocketProvider } from 'y-websocket';
 import type { Doc as YDoc } from 'yjs';
 
 import type { CollaborationConfig, ConnectionStatus } from './types';
-import { useExternalYjsSession } from './useExternalYjsSession';
 
 /**
  * The two provider transports share only the surface this hook relies on:
@@ -67,7 +62,7 @@ export interface UseYjsProviderResult {
 	/** Current WebSocket connection status. */
 	status: ConnectionStatus;
 	/** The Yjs awareness instance (null until connected). */
-	awareness: Awareness | BorrowedCollaborationAwareness | null;
+	awareness: Awareness | null;
 	/** The Yjs document (null until initialised). */
 	doc: YDoc | null;
 	/** Local awareness client ID. */
@@ -99,9 +94,11 @@ export interface UseYjsProviderResult {
  *
  * The Yjs packages are dynamically imported so they are fully
  * tree-shaken when collaboration is not enabled.
+ * This low-level hook owns built-in transports only. Use useCollaborativeState
+ * (or the full/headless viewer) to attach a host-owned external session.
  */
 export function useYjsProvider({ config: inputConfig }: UseYjsProviderInput): UseYjsProviderResult {
-	const external = useExternalYjsSession(inputConfig?.externalSession);
+	// Do not open a second transport for an unsupported external-session input.
 	const config = inputConfig?.externalSession ? undefined : inputConfig;
 	const [status, setStatus] = useState<ConnectionStatus>('disconnected');
 	const [awareness, setAwareness] = useState<Awareness | null>(null);
@@ -428,7 +425,5 @@ export function useYjsProvider({ config: inputConfig }: UseYjsProviderInput): Us
 		init();
 	}, [init]);
 
-	return inputConfig?.externalSession
-		? external
-		: { status, awareness, doc, clientId, synced, retry };
+	return { status, awareness, doc, clientId, synced, retry };
 }

@@ -3,12 +3,19 @@ import {
 	observeExternalCollaborationSession,
 	registerCollaborationTeardown,
 } from 'pptx-viewer-shared';
-import type { ExternalCollaborationSession } from 'pptx-viewer-shared';
+import type {
+	BorrowedCollaborationAwareness,
+	ExternalCollaborationSession,
+} from 'pptx-viewer-shared';
 import { useEffect, useState } from 'react';
 
 import type { UseYjsProviderResult } from './useYjsProvider';
 
-const inactive: UseYjsProviderResult = {
+type ExternalYjsSessionResult = Omit<UseYjsProviderResult, 'awareness'> & {
+	awareness: BorrowedCollaborationAwareness | null;
+};
+
+const inactive: ExternalYjsSessionResult = {
 	status: 'disconnected',
 	awareness: null,
 	doc: null,
@@ -21,10 +28,10 @@ const inactive: UseYjsProviderResult = {
 /** Attach to host resources without owning their network or lifetime. */
 export function useExternalYjsSession(
 	session: ExternalCollaborationSession | undefined,
-): UseYjsProviderResult {
+): ExternalYjsSessionResult {
 	const [binding, setBinding] = useState<{
 		session: ExternalCollaborationSession;
-		value: UseYjsProviderResult;
+		value: ExternalYjsSessionResult;
 	} | null>(null);
 
 	useEffect(() => {

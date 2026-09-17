@@ -13,8 +13,8 @@ import { sanitizeColor } from 'pptx-viewer-shared';
  * @module collaboration/useCollaborativeState
  */
 import type { CollaborationConfig, CollaborationContextValue } from './types';
+import { useCollaborationSession } from './useCollaborationSession';
 import { usePresenceTracking } from './usePresenceTracking';
-import { useYjsProvider } from './useYjsProvider';
 
 // ---------------------------------------------------------------------------
 // Input
@@ -43,7 +43,7 @@ export function useCollaborativeState({
 }: UseCollaborativeStateInput): CollaborationContextValue | null {
 	const userColor = sanitizeColor(config?.userColor, '#6366f1');
 
-	const { status, awareness, doc, clientId, synced, retry } = useYjsProvider({ config });
+	const { status, awareness, doc, clientId, synced, retry } = useCollaborationSession({ config });
 
 	const { remoteUsers, broadcastPresence } = usePresenceTracking({
 		awareness,
