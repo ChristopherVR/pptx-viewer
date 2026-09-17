@@ -1540,8 +1540,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	);
 	private readonly editingRequested = signal(true);
 	protected readonly canEdit = computed(
-		() =>
-			this.hasEditPermission() && this.editingRequested() && this.collab.activeRole() !== 'viewer',
+		() => this.hasEditPermission() && this.editingRequested() && !this.collab.readOnly(),
 	);
 
 	/** Whether the Protected View banner should show: host allows editing, the option still blocks it, and the user hasn't dismissed it yet. */
@@ -2520,6 +2519,11 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			activeSlide: () => this.activeSlide(),
 			activeSlideIndex: () => this.activeSlideIndex(),
 			activeTemplateElements: () => this.activeTemplateElements(),
+		});
+		effect(() => {
+			if (!this.canEdit()) {
+				untracked(() => this.canvasEditing.suspendInlineEdit());
+			}
 		});
 
 		const tableSelection = inject(TableSelectionService);

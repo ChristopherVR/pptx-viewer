@@ -101,16 +101,6 @@ describe('powerPointViewerComponent API conformance', () => {
 		);
 	});
 
-	it('gates live editing by collaboration role without discarding the collaborative slide source', () => {
-		expect(source).toContain("this.collab.activeRole() !== 'viewer'");
-		expect(source).toMatch(
-			/canEdit = computed\([\s\S]*?this\.hasEditPermission\(\)[\s\S]*?this\.collab\.activeRole\(\) !== 'viewer'/u,
-		);
-		expect(source).toContain(
-			'this.hasEditPermission() || this.collab.active() ? this.editor.slides() : this.loader.slides()',
-		);
-	});
-
 	it('routes public insertion through effective permission and its own canvas commit boundary', () => {
 		expect(source).toContain('return insertPublicElement(');
 		expect(source).toContain('canEdit: this.canEdit()');

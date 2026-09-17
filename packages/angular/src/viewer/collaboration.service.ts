@@ -1,9 +1,15 @@
 /**
  * CollaborationService: Angular real-time collaboration (Yjs) service.
  *
- * Owns viewer state and built-in transports, or borrows a host-owned session.
- * Slide synchronization, presence, transport wiring and write-back are split
- * into focused modules below.
+ * Owns viewer state and built-in transports, or borrows a host-owned session:
+ *  - Transport is y-websocket (default) or serverless y-webrtc, created through
+ *    collaboration-session-connect. External resources are never destroyed.
+ *  - Local edits reconcile changed slides/elements/fields in a transaction
+ *    tagged LOCAL_SYNC_ORIGIN; observers skip their own local writes.
+ *  - Websocket connections fail fast on mixed content and time out to error;
+ *    retry() reconnects with the last config.
+ *  - Elected-writer write-back (role owner) uses the shared WriteBackScheduler.
+ *
  * Provide at the component level: `@Component({ providers: [CollaborationService] })`.
  */
 
@@ -19,14 +25,12 @@ import type {
 } from '../internal/shared';
 import {
 	createCollaborationLivePatcher,
-	createPresenceProjector,
 	isMixedContentBlocked,
-	presenceToCursors,
 	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
 	validateRoomId,
 } from '../internal/shared';
-import type { RemoteCursor, RemotePresence } from './collaboration-helpers';
+import { CollaborationPresenceState } from './collaboration-presence-state';
 import { connectSession } from './collaboration-session-connect';
 import type { ActiveSession, ConnectOptions } from './collaboration-session-setup';
 import { SlideSyncEngine } from './collaboration-slide-sync';
@@ -48,26 +52,18 @@ export class CollaborationService {
 	readonly active = signal(false);
 	/** Role of the local user in the active session, or undefined when idle. */
 	readonly activeRole = signal<CollaborationRole | undefined>(undefined);
-	readonly presence = signal<RemotePresence[]>([]);
-	readonly cursors = computed<RemoteCursor[]>(() => presenceToCursors(this.presence()));
+	/** Active viewer role or host readiness can temporarily block editing. */
+	readonly readOnly = signal(false);
+	private readonly presenceState = new CollaborationPresenceState();
+	readonly presence = this.presenceState.presence;
+	readonly cursors = this.presenceState.cursors;
 	readonly connectedCount = computed<number>(
 		() => this.presence().length + (this.active() ? 1 : 0),
 	);
 
-	/** The client id the local user is currently following (null when free). */
-	readonly followedClientId = signal<number | null>(null);
-	/** Active-slide index of the followed peer, or null when not following. */
-	readonly followedSlideIndex = computed<number | null>(() => {
-		const id = this.followedClientId();
-		if (id === null) {
-			return null;
-		}
-		return this.presence().find((p) => p.clientId === id)?.activeSlideIndex ?? null;
-	});
-	/** Active-slide index of the first `owner` peer (the broadcaster), or null. */
-	readonly broadcasterSlideIndex = computed<number | null>(
-		() => this.presence().find((p) => p.role === 'owner')?.activeSlideIndex ?? null,
-	);
+	readonly followedClientId = this.presenceState.followedClientId;
+	readonly followedSlideIndex = this.presenceState.followedSlideIndex;
+	readonly broadcasterSlideIndex = this.presenceState.broadcasterSlideIndex;
 
 	/**
 	 * Interim ("live preview") Y.Doc write channel: publishes in-flight inline
@@ -91,34 +87,15 @@ export class CollaborationService {
 	private currentConfig: CollaborationConfig | null = null;
 	private lastConfig: CollaborationConfig | null = null;
 	private lastOptions: ConnectOptions = {};
-	/** Invalidates lazy setup when connect or disconnect supersedes it. */
+	/**
+	 * Reentrancy token for connect: every connect/disconnect invalidates pending
+	 * async setup. A superseded setup releases only what it created and never
+	 * tears down the newer session (a second provider join can otherwise throw).
+	 */
 	private connectToken = 0;
 
-	/** Memoises the awareness -> presence projection so idle heartbeats are dropped. */
-	private readonly projector = createPresenceProjector();
-
 	private readonly refreshPresence = (): void => {
-		const s = this.session;
-		if (!s) {
-			// Leaving the room clears the memo, so a re-join is never mistaken for
-			// "nothing changed" against the previous session's peers.
-			this.projector.reset();
-			this.presence.set([]);
-			return;
-		}
-		// A signal notifies on every `set` with a fresh array, and awareness fires
-		// on each peer heartbeat as well as on our own writes, so this used to
-		// re-run the collaboration overlay's computeds on a timer. The shared
-		// projector reports whether anything visible actually moved (issue #145).
-		const { list, changed } = this.projector.project(
-			s.awareness.getStates(),
-			s.selfId,
-			this.canvasWidth,
-			this.canvasHeight,
-		);
-		if (changed) {
-			this.presence.set(list);
-		}
+		this.presenceState.refresh(this.session, this.canvasWidth, this.canvasHeight);
 	};
 
 	constructor() {
@@ -127,6 +104,7 @@ export class CollaborationService {
 		// the document without running Angular teardown, leaving a ghost peer in
 		// everyone else's presence list. Leave the room from `pagehide` too.
 		const disposeTeardown = registerCollaborationTeardown({
+			leaveOnBeforeUnload: () => !this.currentConfig?.externalSession,
 			leave: () => this.disconnect(),
 			rejoin: () => void this.retry(),
 		});
@@ -148,7 +126,8 @@ export class CollaborationService {
 			return;
 		}
 
-		// Keep built-in transport inference; external sessions never open it.
+		// Blank server URLs select webrtc consistently with Share/Broadcast
+		// dialogs and the other bindings; external sessions never open it.
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 
 		// Fail fast on mixed content (websocket only): an https page cannot open a
@@ -170,6 +149,7 @@ export class CollaborationService {
 		this.getSaveOptions = options.getSaveOptions ?? null;
 		this.currentConfig = config;
 		this.activeRole.set(config.role);
+		this.readOnly.set(Boolean(config.externalSession) || config.role === 'viewer');
 
 		this.status.set('connecting');
 		try {
@@ -183,6 +163,7 @@ export class CollaborationService {
 					refreshPresence: this.refreshPresence,
 					scheduleWriteBack: () => this.scheduleWriteBack(),
 					cancelWriteBack: () => this.writeBack.cancel(),
+					setReadOnly: (readOnly) => this.readOnly.set(readOnly),
 					setStatus: (status) => this.status.set(status),
 					getStatus: () => this.status(),
 					isActive: () => this.active(),
@@ -200,6 +181,11 @@ export class CollaborationService {
 			this.session = session;
 			this.active.set(true);
 			this.refreshPresence();
+			// Readiness can seed/adopt synchronously before this.session exists.
+			// Now an owner's startup snapshot has its live document available.
+			if (session.readiness) {
+				this.scheduleWriteBack();
+			}
 		} catch {
 			if (token !== this.connectToken) {
 				// A newer connect() owns the service state; do not tear it down.
@@ -233,8 +219,8 @@ export class CollaborationService {
 		this.status.set('disconnected');
 		this.active.set(false);
 		this.activeRole.set(undefined);
-		this.presence.set([]);
-		this.followedClientId.set(null);
+		this.readOnly.set(false);
+		this.presenceState.reset();
 	}
 
 	/**
@@ -252,12 +238,10 @@ export class CollaborationService {
 	 * Returns true when the room's slides were adopted over the loaded deck.
 	 */
 	adoptDocSlidesAfterLoad(origin: CollabLoadOrigin = 'user'): boolean {
-		const adopted =
-			this.connected() || this.currentConfig?.externalSession
-				? this.slideSync.adoptDocAfterLoad(origin)
-				: false;
-		this.session?.refreshReadiness?.();
-		return adopted;
+		if (this.session?.readiness) {
+			return this.session.readiness.handleLoad(origin);
+		}
+		return this.connected() ? this.slideSync.adoptDocAfterLoad(origin) : false;
 	}
 
 	/**
@@ -277,10 +261,12 @@ export class CollaborationService {
 		this.session?.localPresence.setSelection(selectedElementId, activeSlideIndex);
 	}
 
+	/** Publish the local active-slide index (drives follow-along). */
 	setActiveSlide(index: number): void {
 		this.session?.localPresence.setActiveSlide(index);
 	}
 
+	/** Follow the given peer's active slide, or null to stop following. */
 	followUser(clientId: number | null): void {
 		this.followedClientId.set(clientId);
 	}

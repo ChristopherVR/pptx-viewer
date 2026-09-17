@@ -23,6 +23,12 @@ const HTML = readFileSync(path.join(__dirname, 'slide-canvas.component.html'), '
 const TS = readFileSync(path.join(__dirname, 'slide-canvas.component.ts'), 'utf8');
 
 describe('slideCanvas show contract', () => {
+	it('does not hide the authored text when readonly removes the inline overlay', () => {
+		expect(
+			HTML.match(/\[editingElementId\]="editable\(\) \? editingId\(\) : null"/gu),
+		).toHaveLength(2);
+	});
+
 	it('grants aria-roledescription="slide" to the presenting stage too', () => {
 		expect(HTML).toContain(
 			`[attr.aria-roledescription]="interactive() || presenting() ? 'slide' : null"`,

@@ -111,6 +111,33 @@ afterEach(() => {
 });
 
 describe('host-owned Angular collaboration', () => {
+	it('publishes an already-synced create deck even when startup seeded its echo baseline', async () => {
+		const room = host(true);
+		const collab = service();
+		const slides = [slide('startup')];
+		const pending = collab.connect({ ...config(room.session), sessionIntent: 'create' });
+		collab.seedBaseline(slides);
+		collab.broadcastSlides(slides);
+		await pending;
+		collab.broadcastSlides(slides);
+		expect(readSlidesFromYDoc(room.doc).map((item) => item.id)).toStrictEqual(['startup']);
+		collab.disconnect();
+	});
+
+	it('does not adopt partially synchronized remote slides until the host is ready', async () => {
+		const room = host();
+		const collab = service();
+		const apply = vi.fn();
+		await collab.connect(config(room.session), { onRemoteSlides: apply });
+		room.seed('partial');
+		expect(apply).not.toHaveBeenCalled();
+		room.update({ status: 'connected', synced: true });
+		expect(apply).toHaveBeenCalledWith(
+			expect.arrayContaining([expect.objectContaining({ id: 'partial' })]),
+		);
+		collab.disconnect();
+	});
+
 	it('cancels pending and in-flight persistence when host readiness closes', async () => {
 		const room = host(true);
 		const collab = service();
@@ -121,6 +148,36 @@ describe('host-owned Angular collaboration', () => {
 		expect(collab.livePatcher.isActive()).toBeFalsy();
 		cancel.mockRestore();
 		collab.disconnect();
+	});
+
+	it('gates editing on host readiness, allows synced offline edits, and resets after leave', async () => {
+		const room = host();
+		const collab = service();
+		await collab.connect(config(room.session));
+		expect(collab.readOnly()).toBeTruthy();
+		room.update({ status: 'connected', synced: true });
+		expect(collab.readOnly()).toBeFalsy();
+		room.update({ status: 'disconnected', synced: true });
+		expect(collab.readOnly()).toBeFalsy();
+		room.update({ status: 'connected', synced: false });
+		expect(collab.readOnly()).toBeTruthy();
+		collab.disconnect();
+		expect(collab.readOnly()).toBeFalsy();
+		await collab.connect({ ...config(room.session, 'viewer'), roomId: '' });
+		expect(collab.readOnly()).toBeFalsy();
+	});
+
+	it('stays attached when beforeunload is cancelled, but detaches on pagehide', async () => {
+		const room = host(true);
+		const collab = service();
+		await collab.connect(config(room.session));
+		window.dispatchEvent(new Event('beforeunload', { cancelable: true }));
+		expect(collab.active()).toBeTruthy();
+		expect(room.unsubscribe).not.toHaveBeenCalled();
+		window.dispatchEvent(new Event('pagehide'));
+		expect(collab.active()).toBeFalsy();
+		expect(room.unsubscribe).toHaveBeenCalledOnce();
+		expect(room.destroy).not.toHaveBeenCalled();
 	});
 
 	it('adopts an emptied established room before reopening a paused gate', async () => {

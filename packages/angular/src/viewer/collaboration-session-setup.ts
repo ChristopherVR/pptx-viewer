@@ -15,6 +15,7 @@ import type {
 	CollaborationLivePatcher,
 	CollaborationTransport,
 	ConnectionStatus,
+	ExternalCollaborationReadiness,
 	YDocLike,
 } from '../internal/shared';
 import { clearLocalAwareness, observeYDocSlides } from '../internal/shared';
@@ -54,7 +55,7 @@ export interface ActiveSession {
 	selfId: number;
 	localPresence: LocalPresencePublisher;
 	dispose: () => void;
-	refreshReadiness?: () => void;
+	readiness?: ExternalCollaborationReadiness;
 }
 
 /** Everything `activateSession` reads from / calls back into the service. */
@@ -67,6 +68,7 @@ export interface ActivateSessionDeps {
 	/** Schedule an owner-role write-back after a doc mutation. */
 	scheduleWriteBack: () => void;
 	cancelWriteBack: () => void;
+	setReadOnly: (readOnly: boolean) => void;
 	setStatus: (status: ConnectionStatus) => void;
 	getStatus: () => ConnectionStatus;
 	isActive: () => boolean;
@@ -85,10 +87,15 @@ export function activateSession(
 	transport: CollaborationTransport,
 	deps: ActivateSessionDeps,
 ): ActiveSession {
-	deps.livePatcher.configure(bundle.doc, bundle.factories);
+	deps.livePatcher.configure(
+		config.role === 'viewer' ? null : bundle.doc,
+		config.role === 'viewer' ? null : bundle.factories,
+	);
+	deps.setReadOnly(config.role === 'viewer');
 	deps.slideSync.bind({
 		ydoc: bundle.doc,
 		factories: bundle.factories,
+		readOnly: config.role === 'viewer',
 		onRemoteSlides: deps.onRemoteSlides,
 		scheduleWriteBack: deps.scheduleWriteBack,
 	});

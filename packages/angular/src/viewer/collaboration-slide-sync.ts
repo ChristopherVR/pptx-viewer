@@ -33,7 +33,6 @@ export interface SlideSyncBinding {
 	factories: YjsFactories;
 	readOnly?: boolean;
 	external?: boolean;
-	initialJoin?: boolean;
 	/** Apply remotely-authored slides to viewer state. */
 	onRemoteSlides: ((slides: PptxSlide[]) => void) | null;
 	/** Schedule an owner-role write-back after a doc mutation. */
@@ -53,13 +52,11 @@ export class SlideSyncEngine {
 	#lastSynced = '';
 	#applyingRemote = false;
 	#pending: readonly PptxSlide[] | null = null;
-	#awaitingInitialRoom = false;
-	#allowEmpty = false;
+	#current: readonly PptxSlide[] = [];
 
 	/** Attach the engine to a freshly connected session's doc. */
 	bind(binding: SlideSyncBinding): void {
 		this.#binding = binding;
-		this.#awaitingInitialRoom = binding.initialJoin ?? false;
 	}
 
 	/** Clear all per-session state (call on disconnect). */
@@ -69,8 +66,7 @@ export class SlideSyncEngine {
 		this.#pending = null;
 		this.#lastSynced = '';
 		this.#applyingRemote = false;
-		this.#awaitingInitialRoom = false;
-		this.#allowEmpty = false;
+		this.#current = [];
 	}
 
 	/**
@@ -80,7 +76,34 @@ export class SlideSyncEngine {
 	 * overwrites the shared document before receiving it.
 	 */
 	seedBaseline(slides: readonly PptxSlide[]): void {
+		this.#current = slides;
 		this.#lastSynced = JSON.stringify(slides);
+	}
+
+	/** A ready empty create room must publish even when startup seeded an echo baseline. */
+	publishCurrent(seedEmptyRoom: boolean): void {
+		if (seedEmptyRoom) {
+			this.#lastSynced = '';
+		}
+		this.broadcast(this.#current);
+	}
+
+	/** Drop a queued write when host readiness is revoked; keep the displayed deck. */
+	cancelPending(): void {
+		this.#pending = null;
+	}
+
+	/** Apply slides selected by the shared readiness policy, including an empty room. */
+	adoptSlides(slides: PptxSlide[]): void {
+		this.#pending = null;
+		this.seedBaseline(slides);
+		this.#applyingRemote = true;
+		try {
+			this.#binding?.onRemoteSlides?.(slides);
+		} finally {
+			this.#applyingRemote = false;
+		}
+		this.#binding?.scheduleWriteBack();
 	}
 
 	/**
@@ -113,14 +136,11 @@ export class SlideSyncEngine {
 	 * skipped, and while the gate is shut the deck is held as pending.
 	 */
 	broadcast(slides: readonly PptxSlide[]): void {
+		if (!this.#applyingRemote) {
+			this.#current = slides;
+		}
 		const b = this.#binding;
-		if (
-			!b ||
-			b.readOnly ||
-			this.#awaitingInitialRoom ||
-			this.#applyingRemote ||
-			(slides.length === 0 && !this.#allowEmpty)
-		) {
+		if (!b || b.readOnly || this.#applyingRemote || (slides.length === 0 && !b.external)) {
 			return;
 		}
 		if (!this.gate.isOpen()) {
@@ -132,28 +152,8 @@ export class SlideSyncEngine {
 			return;
 		}
 		this.#lastSynced = s;
-		if (b.external) {
-			this.#allowEmpty = true;
-		}
 		reconcileSlidesInYDoc([...slides], b.ydoc, b.factories, LOCAL_SYNC_ORIGIN);
 		b.scheduleWriteBack();
-	}
-
-	/** A host's existing room wins over any local deck queued before readiness. */
-	adoptExternalDocument(transaction?: YTransactionLike): void {
-		if (transaction?.origin === LOCAL_SYNC_ORIGIN) {
-			return;
-		}
-		if (this.#binding && (readSlidesFromYDoc(this.#binding.ydoc).length > 0 || this.#allowEmpty)) {
-			this.#pending = null;
-			this.#awaitingInitialRoom = false;
-			this.#allowEmpty = true;
-			this.onRemoteChange();
-		}
-	}
-
-	canPublishExternal(): boolean {
-		return !this.#awaitingInitialRoom && !this.#binding?.readOnly;
 	}
 
 	/** Handle a remote Y.Doc change, skipping our own local-origin transactions. */
@@ -163,16 +163,12 @@ export class SlideSyncEngine {
 			return;
 		}
 		const remote = readSlidesFromYDoc(b.ydoc);
-		if (remote.length === 0 && !this.#allowEmpty) {
+		if (remote.length === 0) {
 			return;
 		}
 		// Suppress the echo: record what we just applied so the subsequent local
 		// broadcast (driven by the editor signal) is a no-op.
-		this.#lastSynced = JSON.stringify(remote);
-		this.#applyingRemote = true;
-		b.onRemoteSlides?.(remote);
-		this.#applyingRemote = false;
-		b.scheduleWriteBack();
+		this.adoptSlides(remote);
 	}
 
 	/**
@@ -195,19 +191,11 @@ export class SlideSyncEngine {
 		if (!b) {
 			return false;
 		}
-		if (b.external && origin === 'user') {
-			this.#awaitingInitialRoom = false;
-			this.#allowEmpty = true;
-			this.#pending = null;
-		}
 		const docSlides = readSlidesFromYDoc(b.ydoc);
 		if (!shouldRoomSlidesReplaceLoad(origin, docSlides.length)) {
 			return false;
 		}
-		this.#lastSynced = JSON.stringify(docSlides);
-		this.#applyingRemote = true;
-		b.onRemoteSlides?.(docSlides);
-		this.#applyingRemote = false;
+		this.adoptSlides(docSlides);
 		return true;
 	}
 

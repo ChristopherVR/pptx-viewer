@@ -1,13 +1,13 @@
 import type {
 	CollaborationConfig,
 	ExternalCollaborationSession,
+	ExternalCollaborationReadiness,
 	YjsFactories,
 } from '../internal/shared';
 import {
 	borrowExternalCollaborationAwareness,
 	DEFAULT_CURSOR_COLOR,
-	observeExternalCollaborationSession,
-	observeYDocSlides,
+	observeExternalCollaborationReadiness,
 } from '../internal/shared';
 import { LocalPresencePublisher } from './collaboration-local-presence';
 import type { ActiveSession, ActivateSessionDeps } from './collaboration-session-setup';
@@ -28,7 +28,6 @@ export function activateExternalSession(
 		scheduleWriteBack: deps.scheduleWriteBack,
 		readOnly: config.role === 'viewer',
 		external: true,
-		initialJoin: config.sessionIntent === 'join',
 	});
 	const localPresence = new LocalPresencePublisher(awareness, {
 		userName: config.userName,
@@ -39,38 +38,28 @@ export function activateExternalSession(
 	localPresence.publish();
 	awareness.on('change', deps.refreshPresence);
 	awareness.on('update', deps.refreshPresence);
-	let synced = false;
-	const refreshReadiness = (): void => {
-		if (synced && deps.slideSync.canPublishExternal()) {
-			deps.livePatcher.configure(external.doc, factories);
-			deps.slideSync.gate.open();
-		} else {
-			deps.cancelWriteBack();
-			deps.slideSync.gate.reset();
-			deps.livePatcher.configure(null, null);
-		}
-	};
-	const unobserve = observeYDocSlides(external.doc, (_events, transaction) => {
-		deps.slideSync.adoptExternalDocument(transaction);
-		refreshReadiness();
-	});
-	let unsubscribe = (): void => {};
+	let readiness: ExternalCollaborationReadiness | undefined;
 	const dispose = (): void => {
-		unsubscribe();
-		unobserve();
+		readiness?.();
 		awareness.off('change', deps.refreshPresence);
 		awareness.off('update', deps.refreshPresence);
 		borrowed.dispose();
 	};
 	try {
-		unsubscribe = observeExternalCollaborationSession(external, (snapshot) => {
-			synced = snapshot.synced;
-			if (snapshot.synced && !deps.slideSync.gate.isOpen()) {
-				// Initial adoption must beat both the pending broadcast and live edits.
-				deps.slideSync.adoptExternalDocument();
-			}
-			refreshReadiness();
-			deps.setStatus(snapshot.status);
+		readiness = observeExternalCollaborationReadiness(external, {
+			gate: deps.slideSync.gate,
+			livePatcher: deps.livePatcher,
+			factories,
+			role: config.role,
+			sessionIntent: config.sessionIntent,
+			onStatus: deps.setStatus,
+			onReadOnlyChange: deps.setReadOnly,
+			adoptSlides: (slides) => deps.slideSync.adoptSlides(slides),
+			onReady: ({ seedEmptyRoom }) => deps.slideSync.publishCurrent(seedEmptyRoom),
+			onSuspend: () => {
+				deps.slideSync.cancelPending();
+				deps.cancelWriteBack();
+			},
 		});
 	} catch (error) {
 		dispose();
@@ -81,7 +70,7 @@ export function activateExternalSession(
 		awareness,
 		selfId: awareness.clientID,
 		localPresence,
-		refreshReadiness,
+		readiness,
 		dispose,
 	};
 }
