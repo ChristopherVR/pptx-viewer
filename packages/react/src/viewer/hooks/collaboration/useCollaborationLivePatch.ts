@@ -15,7 +15,6 @@ import type {
 	ExternalCollaborationSession,
 	YjsFactories,
 } from 'pptx-viewer-shared';
-import { observeExternalCollaborationSession } from 'pptx-viewer-shared';
 import { useEffect } from 'react';
 import type { Doc as YDoc } from 'yjs';
 
@@ -43,6 +42,11 @@ export function useCollaborationLivePatch({
 	externalSession,
 }: UseCollaborationLivePatchInput): void {
 	useEffect(() => {
+		// Host-owned channels are configured by the shared document readiness
+		// controller, including its empty-join adoption gate.
+		if (externalSession) {
+			return;
+		}
 		if (!doc || !isConnected || !isSynced) {
 			patcher.configure(null, null);
 			return;
@@ -50,13 +54,9 @@ export function useCollaborationLivePatch({
 		let cancelled = false;
 		let factories: YjsFactories | null = null;
 		const configure = (): void => {
-			const ready = externalSession?.getSnapshot().synced ?? isSynced;
+			const ready = isSynced;
 			patcher.configure(ready && factories ? doc : null, ready ? factories : null);
 		};
-		// Gate gestures immediately, even before React commits the new state.
-		const unsubscribe = externalSession
-			? observeExternalCollaborationSession(externalSession, configure)
-			: undefined;
 		void (async () => {
 			const Y = await import('yjs');
 			if (cancelled) {
@@ -71,7 +71,6 @@ export function useCollaborationLivePatch({
 		})();
 		return () => {
 			cancelled = true;
-			unsubscribe?.();
 			patcher.configure(null, null);
 		};
 	}, [patcher, doc, isConnected, isSynced, externalSession]);

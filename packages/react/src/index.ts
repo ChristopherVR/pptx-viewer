@@ -24,6 +24,7 @@ export type {
 // ── Shared API types ──
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
 export type {
+	CollaborationConfig,
 	ExternalCollaborationSession,
 	ExternalCollaborationSnapshot,
 	ExternalCollaborationAwareness,

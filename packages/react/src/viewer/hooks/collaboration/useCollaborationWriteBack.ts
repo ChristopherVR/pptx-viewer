@@ -6,7 +6,7 @@ import type { UseYjsDocumentSyncInput } from './useYjsDocumentSync';
 
 type Input = Pick<
 	UseYjsDocumentSyncInput,
-	'doc' | 'config' | 'isSynced' | 'getSourceBytes' | 'getSaveOptions' | 'templateElementsBySlideId'
+	'doc' | 'config' | 'getSourceBytes' | 'getSaveOptions' | 'templateElementsBySlideId'
 >;
 
 /** Keep framework lifecycle local and durable serialization in shared. */

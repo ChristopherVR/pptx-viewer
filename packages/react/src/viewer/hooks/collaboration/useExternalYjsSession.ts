@@ -70,7 +70,11 @@ export function useExternalYjsSession(
 			}
 		};
 		attach();
-		const unregister = registerCollaborationTeardown({ leave, rejoin: attach });
+		const unregister = registerCollaborationTeardown({
+			leave,
+			rejoin: attach,
+			leaveOnBeforeUnload: false,
+		});
 		return () => {
 			unregister();
 			leave();

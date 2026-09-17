@@ -10,7 +10,7 @@ import {
 	resolveInlineEditNormAutofitShrink,
 } from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import type {
 	CanvasSize,
@@ -189,6 +189,17 @@ export function useCanvasInteractions(
 		setInlineEditingElementId(null);
 		setInlineEditingText('');
 	};
+	const latestCommit = useRef(handleInlineEditCommit);
+	latestCommit.current = handleInlineEditCommit;
+	const wasEditable = useRef(canEdit);
+	useLayoutEffect(() => {
+		// Keep accepted input in the local model before retiring the native editor.
+		// Collaboration's readiness gate has already revoked document writes.
+		if (wasEditable.current && !canEdit) {
+			latestCommit.current();
+		}
+		wasEditable.current = canEdit;
+	}, [canEdit]);
 
 	/**
 	 * Route an equation-bearing element to the equation editor dialog instead

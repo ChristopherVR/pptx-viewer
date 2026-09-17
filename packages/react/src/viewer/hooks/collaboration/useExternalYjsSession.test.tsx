@@ -85,6 +85,17 @@ afterEach(() => {
 });
 
 describe('host-owned collaboration sessions', () => {
+	it('stays attached after a cancellable beforeunload and leaves on pagehide', () => {
+		const host = createSession();
+		render(host.session);
+		act(() => window.dispatchEvent(new Event('beforeunload', { cancelable: true })));
+		expect(current?.doc).toBe(host.doc);
+		expect(host.listeners.size).toBe(1);
+		act(() => window.dispatchEvent(new Event('pagehide')));
+		expect(host.listeners.size).toBe(0);
+		expect(host.doc.isDestroyed).toBeFalsy();
+	});
+
 	it('retains one borrowed subscription through StrictMode effect replay', () => {
 		const host = createSession();
 		act(() =>

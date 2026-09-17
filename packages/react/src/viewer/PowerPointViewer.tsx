@@ -361,8 +361,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// ── Run-program notices (`ppaction://program`, running show only) ──
 		const runProgramNoticesState = useRunProgramNoticesState();
 
+		const [collaborationReadOnly, setCollaborationReadOnly] = useState(
+			Boolean(collaboration?.externalSession),
+		);
 		const canEdit =
-			hostCanEdit && collaboration?.role !== 'viewer' && !isProtectedView && !readOnlyRec.locked;
+			hostCanEdit && !collaborationReadOnly && !isProtectedView && !readOnlyRec.locked;
 
 		// ── Settings dialog ─────────────────────────────────────────
 		const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -1518,6 +1521,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 														loadVersion={loadVersion}
 														loadOrigin={loadOrigin}
 														livePatcher={state.livePatcher}
+														onReadOnlyChange={setCollaborationReadOnly}
 														deckSaveState={{
 															headerFooter: state.headerFooter,
 															presentationProperties: state.presentationProperties,
@@ -1598,6 +1602,7 @@ function CollaborationDocumentSync({
 	loadOrigin,
 	livePatcher,
 	deckSaveState,
+	onReadOnlyChange,
 }: {
 	slides: PptxSlide[];
 	templateElementsBySlideId: Record<string, PptxElement[]>;
@@ -1606,6 +1611,7 @@ function CollaborationDocumentSync({
 	loadVersion: number;
 	loadOrigin: CollabLoadOrigin;
 	livePatcher: CollaborationLivePatcher;
+	onReadOnlyChange: (readOnly: boolean) => void;
 	/**
 	 * Session-level save-option state (view properties, table styles, tags,
 	 * deck properties, ...), snapshotted fresh every render. Read through a
@@ -1625,6 +1631,7 @@ function CollaborationDocumentSync({
 		loadOrigin,
 		livePatcher,
 		deckSaveState,
+		onReadOnlyChange,
 	});
 	return null;
 }

@@ -3,6 +3,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import type {
 	CollaborationConfig,
 	CollaborationLivePatcher,
+	DeckSaveState,
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
@@ -11,13 +12,15 @@ import {
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
 } from 'pptx-viewer-shared';
-import React, { act, useEffect, useState } from 'react';
+import React, { act, useEffect, useState, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Awareness } from 'y-protocols/awareness';
 import * as Y from 'yjs';
 
+import type { CollaborationContextValue } from './types';
+import { useCollaborationDocumentSync } from './useCollaborationDocumentSync';
 import { useCollaborationLivePatch } from './useCollaborationLivePatch';
 import { useExternalYjsSession } from './useExternalYjsSession';
 import { useYjsDocumentSync } from './useYjsDocumentSync';
@@ -85,10 +88,12 @@ function ExternalProbe({
 	config,
 	patcher,
 	onSlides,
+	onReadOnlyChange,
 }: {
 	config: CollaborationConfig;
 	patcher: CollaborationLivePatcher;
 	onSlides?: (slides: PptxSlide[]) => void;
+	onReadOnlyChange?: (readOnly: boolean) => void;
 }): null {
 	const session = useExternalYjsSession(config.externalSession);
 	const [slides, setSlides] = useState([slide('bootstrap')]);
@@ -102,6 +107,8 @@ function ExternalProbe({
 		isSynced: session.synced,
 		config,
 		loadOrigin: 'bootstrap',
+		livePatcher: patcher,
+		onReadOnlyChange,
 		templateElementsBySlideId: {},
 	});
 	useCollaborationLivePatch({
@@ -123,14 +130,26 @@ function Probe({
 	loadVersion = 0,
 	loadOrigin = 'bootstrap' as const,
 	document = doc,
+	initialSlides,
 }: {
 	synced?: boolean;
 	config?: CollaborationConfig;
 	loadVersion?: number;
 	loadOrigin?: 'bootstrap' | 'user';
 	document?: Y.Doc;
+	initialSlides?: PptxSlide[];
 }): null {
-	const [slides, setSlides] = useState([slide('bootstrap')]);
+	const [slides, setSlides] = useState(() => initialSlides ?? [slide('bootstrap')]);
+	const syncRef = useRef(synced);
+	syncRef.current = synced;
+	const session = useMemo(
+		() => ({
+			...config.externalSession!,
+			doc: document,
+			getSnapshot: () => ({ status: 'connected' as const, synced: syncRef.current }),
+		}),
+		[config.externalSession, document],
+	);
 	current = slides;
 	setCurrent = setSlides;
 	useYjsDocumentSync({
@@ -139,7 +158,7 @@ function Probe({
 		setSlides,
 		isConnected: true,
 		isSynced: synced,
-		config,
+		config: { ...config, externalSession: session },
 		loadVersion,
 		loadOrigin,
 		templateElementsBySlideId: {},
@@ -148,6 +167,31 @@ function Probe({
 }
 function seed(target: Y.Doc, id: string): void {
 	reconcileSlidesInYDoc([slide(id)], target as unknown as YDocLike, factories, 'remote');
+}
+
+function PermissionProbe({
+	collaboration,
+	onReadOnlyChange,
+}: {
+	collaboration: CollaborationContextValue | null;
+	onReadOnlyChange: (readOnly: boolean) => void;
+}): null {
+	const patcher = useMemo(() => createCollaborationLivePatcher(), []);
+	const [slides, setSlides] = useState([slide('bootstrap')]);
+	useCollaborationDocumentSync({
+		collaboration,
+		onReadOnlyChange,
+		slides,
+		setSlides,
+		templateElementsBySlideId: {},
+		content: null,
+		loadVersion: 0,
+		loadOrigin: 'bootstrap',
+		livePatcher: patcher,
+		deckSaveState: {} as DeckSaveState,
+	});
+	useEffect(() => () => patcher.dispose(), [patcher]);
+	return null;
 }
 function ids(target = doc): string[] {
 	return readSlidesFromYDoc(target as unknown as YDocLike).map((item) => item.id);
@@ -169,6 +213,152 @@ afterEach(() => {
 });
 
 describe('host-owned document synchronization', () => {
+	it.each(['disconnected', 'connecting'] as const)(
+		'keeps pending external attachment read-only (%s), but releases a failed adapter',
+		async (status) => {
+			const control = externalControl();
+			const onReadOnlyChange = vi.fn();
+			const collaboration: CollaborationContextValue = {
+				config: control.config,
+				doc: null,
+				status,
+				synced: false,
+				remoteUsers: [],
+				connectedCount: 0,
+				broadcastPresence: () => {},
+				retry: () => {},
+			};
+			await act(async () =>
+				root.render(
+					<PermissionProbe collaboration={collaboration} onReadOnlyChange={onReadOnlyChange} />,
+				),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+			await act(async () =>
+				root.render(
+					<PermissionProbe
+						collaboration={{ ...collaboration, status: 'error' }}
+						onReadOnlyChange={onReadOnlyChange}
+					/>,
+				),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+		},
+	);
+
+	it('locks an active viewer role but releases failed or absent sessions', async () => {
+		const onReadOnlyChange = vi.fn();
+		const config = { ...externalConfig, role: 'viewer' as const };
+		const collaboration = {
+			config,
+			status: 'connected',
+			doc,
+			synced: true,
+			remoteUsers: [],
+			connectedCount: 1,
+			broadcastPresence: () => {},
+			retry: () => {},
+		} as CollaborationContextValue;
+		// No external adapter: this exercises the built-in permission path too.
+		delete config.externalSession;
+		await act(async () =>
+			root.render(
+				<PermissionProbe collaboration={collaboration} onReadOnlyChange={onReadOnlyChange} />,
+			),
+		);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+		await act(async () =>
+			root.render(
+				<PermissionProbe
+					collaboration={{ ...collaboration, doc: null, status: 'error' }}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+		await act(async () =>
+			root.render(<PermissionProbe collaboration={null} onReadOnlyChange={onReadOnlyChange} />),
+		);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+	});
+
+	it('publishes an already-synced empty create room without requiring an edit', async () => {
+		const control = externalControl();
+		const patcher = createCollaborationLivePatcher();
+		await act(async () =>
+			root.render(
+				<ExternalProbe config={{ ...control.config, sessionIntent: 'create' }} patcher={patcher} />,
+			),
+		);
+		expect(ids()).toStrictEqual(['bootstrap']);
+		expect(patcher.isActive()).toBeTruthy();
+		patcher.dispose();
+	});
+
+	it('keeps an empty join read-only with no interim channel until room content arrives', async () => {
+		const control = externalControl();
+		const patcher = createCollaborationLivePatcher();
+		const onReadOnlyChange = vi.fn();
+		await act(async () =>
+			root.render(
+				<ExternalProbe
+					config={control.config}
+					patcher={patcher}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		expect(patcher.isActive()).toBeFalsy();
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+		await act(async () => seed(doc, 'room'));
+		expect(current.map((item) => item.id)).toStrictEqual(['room']);
+		expect(patcher.isActive()).toBeTruthy();
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+		await act(async () => control.setSynced(false));
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+		patcher.dispose();
+	});
+
+	it('retries startup publication after a readiness pulse while Yjs is loading', async () => {
+		const control = externalControl();
+		const patcher = createCollaborationLivePatcher();
+		const onSlides = () => {
+			control.setSynced(false);
+			control.setSynced(true);
+		};
+		await act(async () =>
+			root.render(
+				<ExternalProbe
+					config={{ ...control.config, sessionIntent: 'create' }}
+					patcher={patcher}
+					onSlides={onSlides}
+				/>,
+			),
+		);
+		expect(ids()).toStrictEqual(['bootstrap']);
+		patcher.dispose();
+	});
+
+	it('does not adopt an empty room after a no-op mount render and erase a late local deck', async () => {
+		const config = { ...externalConfig, sessionIntent: 'create' as const };
+		await act(async () => root.render(<Probe config={config} initialSlides={[]} />));
+		await act(async () => root.render(<Probe config={config} synced={false} />));
+		await act(async () => setCurrent([slide('late-bootstrap')]));
+		await act(async () => root.render(<Probe config={config} />));
+		expect(ids()).toStrictEqual(['late-bootstrap']);
+	});
+
+	it('re-adopts unchanged room content when a late bootstrap load finishes', async () => {
+		seed(doc, 'room');
+		await act(async () => root.render(<Probe />));
+		await act(async () => {
+			setCurrent([slide('late-bootstrap')]);
+			root.render(<Probe loadVersion={1} />);
+		});
+		expect(current.map((item) => item.id)).toStrictEqual(['room']);
+		expect(ids()).toStrictEqual(['room']);
+	});
+
 	it.each([false, true])(
 		'cancels pending publication when readiness is revoked (resume=%s)',
 		async (resume) => {
@@ -223,7 +413,7 @@ describe('host-owned document synchronization', () => {
 		patcher.dispose();
 	});
 
-	it('drops queued geometry on a readiness pulse and allows a fresh gesture', async () => {
+	it('preserves accepted geometry on a readiness pulse and allows a fresh gesture', async () => {
 		reconcileSlidesInYDoc(
 			[
 				{
@@ -245,7 +435,7 @@ describe('host-owned document synchronization', () => {
 			control.setSynced(true);
 			patcher.flush();
 		});
-		expect(readSlidesFromYDoc(doc)[0].elements[0].x).toBe(30);
+		expect(readSlidesFromYDoc(doc)[0].elements[0].x).toBe(60);
 		await act(async () => patcher.patchGeometry('room', 'shape', { x: 90 }));
 		expect(readSlidesFromYDoc(doc)[0].elements[0].x).toBe(90);
 		patcher.dispose();

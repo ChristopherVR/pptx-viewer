@@ -1,7 +1,7 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { CollabLoadOrigin, CollaborationLivePatcher, DeckSaveState } from 'pptx-viewer-shared';
 import { buildDeckSaveOptions } from 'pptx-viewer-shared';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 import type { CollaborationContextValue } from './types';
 import { useCollaborationLivePatch } from './useCollaborationLivePatch';
@@ -17,6 +17,7 @@ export interface CollaborationDocumentSyncInput {
 	loadOrigin: CollabLoadOrigin;
 	livePatcher: CollaborationLivePatcher;
 	deckSaveState: DeckSaveState;
+	onReadOnlyChange?: (readOnly: boolean) => void;
 }
 
 /** Shared wiring for the bundled editor and custom toolbar/canvas hosts. */
@@ -30,6 +31,15 @@ export function useCollaborationDocumentSync(input: CollaborationDocumentSyncInp
 	}, []);
 	const getSaveOptions = useCallback(() => buildDeckSaveOptions(latest.current.deckSaveState), []);
 	const config = collaboration?.config;
+	const doc = collaboration?.doc;
+	const status = collaboration?.status;
+	useEffect(() => {
+		if (!config?.externalSession || !doc) {
+			latest.current.onReadOnlyChange?.(
+				config?.externalSession ? status !== 'error' : Boolean(doc) && config?.role === 'viewer',
+			);
+		}
+	}, [doc, config?.externalSession, config?.role, status]);
 	// The host can keep a synchronized document editable while offline.
 	const isConnected = config?.externalSession
 		? Boolean(collaboration?.doc)
@@ -40,6 +50,7 @@ export function useCollaborationDocumentSync(input: CollaborationDocumentSyncInp
 		isConnected,
 		isSynced: collaboration?.synced ?? false,
 		config,
+		livePatcher: state.livePatcher,
 		getSourceBytes,
 		getSaveOptions,
 	});
