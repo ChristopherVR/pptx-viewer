@@ -29,10 +29,18 @@ export function computeLogValueRange(
 	};
 }
 
-/** Compute a value range using one parsed value axis's scale and bounds. */
+/**
+ * Compute a value range using one parsed value axis's scale and bounds.
+ *
+ * @param plotHeightPx The chart's plot-area height, when known; forwarded to
+ *   `computeValueRange`'s automatic-scale gridline count (see
+ *   `axisTargetIntervals`'s doc comment). Not used on the log-scale branch,
+ *   which snaps to powers of the log base regardless of chart size.
+ */
 export function computeValueRangeForAxis(
 	series: ReadonlyArray<PptxChartSeries>,
 	axis: PptxChartAxisFormatting | undefined,
+	plotHeightPx?: number,
 ): ValueRange {
 	const requestedLogBase = axis?.logBase ?? 10;
 	const logBase =
@@ -41,7 +49,9 @@ export function computeValueRangeForAxis(
 			: axis?.logScale
 				? 10
 				: undefined;
-	const automatic = logBase ? computeLogValueRange(series, logBase) : computeValueRange(series);
+	const automatic = logBase
+		? computeLogValueRange(series, logBase)
+		: computeValueRange(series, plotHeightPx);
 	const validMin =
 		typeof axis?.min === 'number' && Number.isFinite(axis.min) && (!logBase || axis.min > 0)
 			? axis.min
@@ -164,13 +174,18 @@ export function findLogAxis(
 	return axes?.find((axis) => axis.axisType === 'valAx' && axis.logScale);
 }
 
-/** Compute the primary value range for a chart. */
+/**
+ * Compute the primary value range for a chart.
+ *
+ * @param plotHeightPx See `computeValueRangeForAxis`'s parameter of the same name.
+ */
 export function computeValueRangeForChart(
 	series: ReadonlyArray<PptxChartSeries>,
 	axes?: PptxChartAxisFormatting[],
+	plotHeightPx?: number,
 ): ValueRange {
 	const primaryAxis =
 		axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos === 'l') ??
 		axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos !== 'r');
-	return computeValueRangeForAxis(series, primaryAxis);
+	return computeValueRangeForAxis(series, primaryAxis, plotHeightPx);
 }

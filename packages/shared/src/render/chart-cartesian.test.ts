@@ -10,6 +10,7 @@
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { computeChartLegendLayout } from './chart-legend-layout';
 import { buildChartViewModel } from './chart-view-model';
 
 // ── Helpers ──────────────────────────────────────────────────────
@@ -40,17 +41,23 @@ describe('cartesian linear default path', () => {
 	};
 
 	// The tick count follows the automatic scale's major unit rather than a fixed
-	// division: 80..150 rounds out to a 0..200 axis in steps of 50, so five
-	// gridlines land on 0 / 50 / 100 / 150 / 200. See `chart-axis-nice.ts`.
+	// division, AND the target gridline count itself follows this 400x300
+	// element's plot-area height (`axisTargetIntervals` in chart-axis-nice.ts,
+	// COM-verified against real PowerPoint): 80..150 rounds out to a 0..160 axis
+	// in steps of 20, landing on 0 / 20 / 40 / ... / 160.
 	it('steps a linear value axis by its major unit', () => {
 		const vm = buildChartViewModel(chartElement(baselineBar));
-		expect(vm.gridlines).toHaveLength(5);
+		expect(vm.gridlines).toHaveLength(9);
 		expect(vm.axisLabels.map((label) => label.text)).toStrictEqual([
 			'0',
-			'50',
+			'20',
+			'40',
+			'60',
+			'80',
 			'100',
-			'150',
-			'200',
+			'120',
+			'140',
+			'160',
 		]);
 	});
 
@@ -79,9 +86,11 @@ describe('cartesian linear default path', () => {
 		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
 		expect(rects).toHaveLength(6);
-		// Category sums top out at 240, which rounds out to a 0..300 axis in steps
-		// of 100: four gridlines.
-		expect(vm.gridlines).toHaveLength(4);
+		// Category sums top out at 240, which rounds out to a 0..300 axis; at
+		// this element's plot height the automatic scale targets more gridlines
+		// than a fixed constant would (`axisTargetIntervals`), landing on steps
+		// of 50 instead of 100: seven gridlines.
+		expect(vm.gridlines).toHaveLength(7);
 	});
 });
 
@@ -170,6 +179,84 @@ describe('cartesian reversed value axis', () => {
 		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
 		expect(circles[0].cy).toBeLessThan(circles[1].cy);
 		expect(vm.axisLabels.map((label) => label.text)).toStrictEqual(['0', '25', '50', '75', '100']);
+	});
+});
+
+// Regression for a real-world deck (slide with a clustered-column "hanging
+// bars" chart): `c:catAx/c:axPos val="t"` (category axis at the TOP) combined
+// with `c:valAx/c:scaling/c:orientation val="maxMin"` (reversed value axis,
+// 0 at the top growing down) and an explicit `c:min`/`c:max`/`c:majorUnit`
+// (0, 10, 1 - NOT auto-scaled). COM ground truth: PowerPoint renders the
+// category labels along the TOP of the plot and the bars hang DOWN from that
+// top edge. See `e2e/fixtures/generate-chart-top-axis-fixture.ts` for the
+// full-pipeline (load -> render) regression covering the same construct
+// across all five bindings; this is the shared view-model unit equivalent
+// with the exact reported numbers.
+describe('cartesian top category axis + reversed value axis (hanging bars)', () => {
+	const hangingBars: PptxChartData = {
+		chartType: 'bar',
+		categories: Array.from({ length: 12 }, (_unused, i) => `PART ${i + 1}`),
+		series: [{ name: 'S', values: [3, 5, 7, 9, 8.6, 5, 8, 5, 7, 9, 8.6, 5] }],
+		axes: [
+			{ axisType: 'catAx', axisId: 38396416, axPos: 't' },
+			{
+				axisType: 'valAx',
+				axisId: 36333824,
+				axPos: 'l',
+				orientation: 'maxMin',
+				min: 0,
+				max: 10,
+				majorUnit: 1,
+			},
+		],
+	};
+
+	it('keeps every one of the 12 category labels (no auto-thinning)', () => {
+		const vm = buildChartViewModel(chartElement(hangingBars, 600, 400));
+		expect(vm.categoryLabels).toHaveLength(12);
+	});
+
+	it('places category labels above the plot area (axPos=t)', () => {
+		const vm = buildChartViewModel(chartElement(hangingBars, 600, 400));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+		const plotTop = Math.min(
+			...vm.gridlines.map((g) => ('y1' in g ? g.y1 : Number.POSITIVE_INFINITY)),
+		);
+		expect(Math.min(...vm.categoryLabels.map((l) => l.y))).toBeLessThan(plotTop);
+	});
+
+	it('hangs every bar down from y=0-at-the-top (min at top, max at bottom)', () => {
+		const vm = buildChartViewModel(chartElement(hangingBars, 600, 400));
+		// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		expect(rects).toHaveLength(12);
+		// Every bar starts at the SAME top y (the reversed axis's zero line) ...
+		expect(new Set(rects.map((r) => r.y)).size).toBe(1);
+		// ... and a bigger value produces a TALLER bar hanging further down, not
+		// a bar rising up from the bottom.
+		const byValue = [3, 9].map((val) => rects[hangingBars.series[0].values.indexOf(val)].h);
+		expect(byValue[1]).toBeGreaterThan(byValue[0]);
+	});
+
+	it('labels the reversed value axis 0 (top) through 10 (bottom), stepping by the explicit majorUnit', () => {
+		const vm = buildChartViewModel(chartElement(hangingBars, 600, 400));
+		expect(vm.axisLabels.map((l) => l.text)).toStrictEqual([
+			'0',
+			'1',
+			'2',
+			'3',
+			'4',
+			'5',
+			'6',
+			'7',
+			'8',
+			'9',
+			'10',
+		]);
+		// 0 sits at the smallest y (top); 10 at the largest y (bottom).
+		const zero = vm.axisLabels.find((l) => l.text === '0')!,
+			ten = vm.axisLabels.find((l) => l.text === '10')!;
+		expect(zero.y).toBeLessThan(ten.y);
 	});
 });
 
@@ -540,6 +627,77 @@ describe('cartesian stacked line', () => {
 		expect(vm.legend).toHaveLength(2);
 		expect(vm.legend.every((entry) => entry.lineSwatch !== undefined)).toBeTruthy();
 		expect(vm.legend[0].lineSwatch?.primitives.some((p) => p.kind === 'line')).toBeTruthy();
+	});
+
+	// Regression for the same real-world deck's stacked line chart (slide 21):
+	// `c:grouping val="stacked"`, both series' `c:marker` present with NO
+	// `c:symbol` (PowerPoint's "automatic" marker), non-sequential `c:idx`
+	// (1 and 2), `c:majorGridlines` on the value axis, and an 18pt
+	// (`sz="1800"`) chart-level legend font. Verified against real PowerPoint
+	// (COM): series B plots at A+B (4.4, 6.4, 4.8, 7.8, 12.0), gridlines render,
+	// idx 1 gets a square marker and idx 2 a triangle, and the legend renders
+	// at 18pt, not the historical fixed 9px default.
+	describe('real-world stacked-line-with-markers construct (slide 21)', () => {
+		const seriesA = [2.4, 4.4, 1.8, 2.8, 5.6];
+		const seriesB = [2, 2, 3, 5, 6.4];
+		const stackedMarkers: PptxChartData = {
+			chartType: 'line',
+			categories: ['2011', '2012', '2013', '2014', '2015'],
+			series: [
+				{ name: 'A', values: seriesA, idx: 1, marker: { symbol: 'auto' } },
+				{ name: 'B', values: seriesB, idx: 2, marker: { symbol: 'auto' } },
+			],
+			grouping: 'stacked',
+			axes: [{ axisType: 'valAx', axPos: 'l', majorGridlines: true }],
+			style: { hasLegend: true, legendPosition: 'b', legendTextStyle: { fontSize: 18 } },
+		};
+
+		it('plots series B at the exact per-category running sum A + B', () => {
+			const vm = buildChartViewModel(chartElement(stackedMarkers));
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+			const [polyA, polyB] = vm.primitives.filter((p) => p.kind === 'polyline');
+			// eslint-disable-next-line one-var -- an assertion sits between this const and the previous one
+			const yOf = (poly: typeof polyA) =>
+					poly.points.split(' ').map((pt) => Number(pt.split(',')[1])),
+				yA = yOf(polyA),
+				yB = yOf(polyB);
+			// A bigger plotted value maps to a SMALLER y (SVG y grows downward);
+			// the running sum A+B is always >= A, so B's y is always <= A's.
+			yA.forEach((y, i) => expect(yB[i]).toBeLessThanOrEqual(y));
+			// The expected cumulative totals (4.4, 6.4, 4.8, 7.8, 12.0) are
+			// monotonic in the same order as B's plotted y (descending), which a
+			// naive "plot B's raw value" bug would not reproduce (B's raw values
+			// are 2, 2, 3, 5, 6.4 - a different relative order at index 0 vs 1).
+			const expectedCumulative = seriesA.map((a, i) => a + seriesB[i]);
+			for (let i = 1; i < expectedCumulative.length; i++) {
+				const biggerTotal = expectedCumulative[i] > expectedCumulative[0];
+				expect(yB[i] <= yB[0]).toBe(biggerTotal);
+			}
+		});
+
+		it('renders major gridlines from the value axis', () => {
+			const vm = buildChartViewModel(chartElement(stackedMarkers));
+			expect(vm.gridlines.length).toBeGreaterThan(1);
+		});
+
+		it('resolves idx=1 to a square marker and idx=2 to a triangle marker', () => {
+			const vm = buildChartViewModel(chartElement(stackedMarkers));
+			// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+			const seriesAMarks = vm.primitives.filter(
+					(p) => p.part?.seriesIndex === 0 && p.kind !== 'polyline',
+				),
+				seriesBMarks = vm.primitives.filter(
+					(p) => p.part?.seriesIndex === 1 && p.kind !== 'polyline',
+				);
+			expect(seriesAMarks.every((p) => p.kind === 'rect')).toBeTruthy();
+			expect(seriesBMarks.every((p) => p.kind === 'polygon')).toBeTruthy();
+		});
+
+		it('renders the legend at an 18pt (24px) font, not the fixed 9px default', () => {
+			const vm = buildChartViewModel(chartElement(stackedMarkers));
+			const layout = computeChartLegendLayout(vm);
+			expect(layout.every((entry) => entry.fontSize === 24)).toBeTruthy();
+		});
 	});
 });
 

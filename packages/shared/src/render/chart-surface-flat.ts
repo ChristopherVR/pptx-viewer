@@ -32,7 +32,7 @@ function buildFlatSurfaceViewModel(
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, false);
-	const range = computeValueRange(chartData.series);
+	const range = computeValueRange(chartData.series, layout.plotHeight);
 	const catCount = Math.max(categoryLabels.length, 1);
 	const seriesCount = chartData.series.length;
 	const cellW = layout.plotWidth / Math.max(catCount - 1, 1);

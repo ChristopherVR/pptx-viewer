@@ -57,7 +57,9 @@ export function buildSurfaceChart3DData(
 		return null;
 	}
 
-	const range = computeValueRange(chartData.series);
+	// See the matching comment in `bar-chart-3d-data.ts`: the element height
+	// stands in for a plot-area height this 3D scene doesn't separately compute.
+	const range = computeValueRange(chartData.series, options.height);
 	const heightMap = new Float32Array(seriesCount * catCount);
 	const colorMap = new Float32Array(seriesCount * catCount * 3);
 	// Raw (un-normalised) values, kept alongside the [0,1] heightMap so the

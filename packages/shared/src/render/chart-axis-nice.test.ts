@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { niceAxisStep, niceValueAxisBounds } from './chart-axis-nice';
+import { axisTargetIntervals, niceAxisStep, niceValueAxisBounds } from './chart-axis-nice';
 
 describe('niceAxisStep', () => {
 	it('rounds up to the 1 / 2 / 2.5 / 5 ladder', () => {
@@ -97,5 +97,57 @@ describe('niceValueAxisBounds', () => {
 
 	it('is defensive about junk input', () => {
 		expect(niceValueAxisBounds(Number.NaN, 5)).toStrictEqual({ min: 0, max: 1, majorUnit: 0.5 });
+	});
+});
+
+describe('axisTargetIntervals', () => {
+	/**
+	 * PowerPoint COM ground truth (`New-Object -ComObject PowerPoint.Application`,
+	 * `Shapes.AddChart2`, `chart.Axes(2)`) for a clustered-column chart with
+	 * values 1.2-3.2 (the exact reported bug: this engine rendered 0-4 where
+	 * PowerPoint draws 0-3.5). Building the SAME chart at increasing shape
+	 * heights and reading back the automatic axis:
+	 *
+	 *   chart height 100pt (plot ~33pt) -> 0 to 5,   majorUnit 5   (1 gridline)
+	 *   chart height 150pt (plot ~83pt) -> 0 to 4,   majorUnit 1   (4 gridlines)
+	 *   chart height 200pt (plot ~133pt)-> 0 to 3.5, majorUnit 0.5 (7 gridlines)
+	 *   chart height 300pt (plot ~233pt)-> 0 to 3.5, majorUnit 0.5 (7 gridlines)
+	 *   chart height 1000pt (plot ~933pt) -> unchanged: 0 to 3.5, majorUnit 0.5
+	 *
+	 * Cross-checked against two more datasets (0-52, 0-9) at the same heights:
+	 * PowerPoint never asked for more than ~10 intervals at ANY height tested,
+	 * it only asked for fewer on a plot too short to fit that many labels. This
+	 * fixture reproduces that shape: rising from the short-chart floor, then
+	 * saturating at the cap well within ordinary chart sizes.
+	 */
+	it('rises with plot height, then saturates at the cap (matches the COM measurement table)', () => {
+		// Plot heights (points, converted to this engine's px unit) lifted from
+		// the measurement table above: ~33/~83/~233/~933pt at chart heights of
+		// 100/150/300/1000pt.
+		const veryShort = axisTargetIntervals(33 * (4 / 3));
+		const short = axisTargetIntervals(83 * (4 / 3));
+		const ordinary = axisTargetIntervals(233 * (4 / 3));
+		const tall = axisTargetIntervals(933 * (4 / 3));
+		expect(veryShort).toBeLessThan(short);
+		expect(short).toBeLessThan(ordinary);
+		expect(ordinary).toBe(tall); // saturated: a taller chart asks for no more
+		expect(ordinary).toBeLessThanOrEqual(10);
+	});
+
+	it('clamps to [1, 10]', () => {
+		expect(axisTargetIntervals(0.001)).toBeGreaterThanOrEqual(1);
+		expect(axisTargetIntervals(100_000)).toBeLessThanOrEqual(10);
+	});
+
+	it('is defensive about junk input, falling back to the short-chart default', () => {
+		expect(axisTargetIntervals(0)).toBe(4);
+		expect(axisTargetIntervals(-5)).toBe(4);
+		expect(axisTargetIntervals(Number.NaN)).toBe(4);
+	});
+
+	it('reproduces the exact reported bug: 0-3.2 data on an ordinary-height chart', () => {
+		const plotHeightPx = 300 * (4 / 3); // 300pt chart height, well above the cap threshold
+		const bounds = niceValueAxisBounds(1.2, 3.2, axisTargetIntervals(plotHeightPx));
+		expect(bounds).toStrictEqual({ min: 0, max: 3.5, majorUnit: 0.5 });
 	});
 });

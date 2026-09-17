@@ -108,7 +108,11 @@ export function buildStockViewModel(
 	// Through `computeValueRangeForChart`, not the bare linear helper: a stock
 	// chart is as entitled to a log or display-unit value axis as any other
 	// cartesian kind, and the bare helper silently ignores `c:scaling`.
-	const range: ValueRange = computeValueRangeForChart(chartData.series, chartData.axes);
+	const range: ValueRange = computeValueRangeForChart(
+		chartData.series,
+		chartData.axes,
+		layout.plotHeight,
+	);
 
 	const valueAxis = chartData.axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos !== 'r');
 	const categoryAxis = chartData.axes?.find(

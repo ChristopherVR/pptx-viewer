@@ -91,7 +91,9 @@ export function buildCartesianLine3DSceneData(
 	}
 
 	const points = buildPoints(chartData, cols);
-	const range = computeValueRange(chartData.series);
+	// See the matching comment in `bar-chart-3d-data.ts`: the element height
+	// stands in for a plot-area height this 3D scene doesn't separately compute.
+	const range = computeValueRange(chartData.series, options.height);
 	const depthPercent = chartData.view3D?.depthPercent;
 	const series = layoutCartesianLine3DSeries(points, cols, rows, range, depthPercent);
 

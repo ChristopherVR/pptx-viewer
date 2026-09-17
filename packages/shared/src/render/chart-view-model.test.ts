@@ -110,6 +110,37 @@ describe('computeValueRange', () => {
 		expect(range.max).toBeGreaterThanOrEqual(99_999);
 		expect(Number.isFinite(range.span)).toBeTruthy();
 	});
+
+	/**
+	 * Regression for the reported bug: a clustered-column chart with 8 data
+	 * points (single category) ranging 1.2-3.2 and no explicit `c:min`/`c:max`/
+	 * `c:majorUnit`. This engine rendered 0-4; PowerPoint (verified via COM
+	 * automation, `chart.Axes(2).MinimumScale/.MaximumScale/.MajorUnit`, on a
+	 * freshly built chart at this exact data) draws 0-3.5 with majorUnit 0.5,
+	 * and keeps drawing that from chart height 200pt through at least 1000pt
+	 * (the automatic gridline count saturates instead of growing forever): see
+	 * `axisTargetIntervals`'s doc comment in chart-axis-nice.ts for the full
+	 * measurement table.
+	 */
+	it('matches PowerPoint on the reported 0-3.2 clustered-column bug given a plot height', () => {
+		// 300pt chart height (a plain, unremarkable chart size) in this engine's
+		// "px" unit: 96 px/inch vs PowerPoint's 72 pt/inch, so *4/3.
+		const plotHeightPx = 300 * (4 / 3);
+		const values = [1.2, 1.6, 2.0, 2.4, 2.8, 3.2, 2.1, 1.9];
+		const range = computeValueRange([{ name: 'S', values }], plotHeightPx);
+		expect(range.min).toBe(0);
+		expect(range.max).toBe(3.5);
+		expect(range.majorUnit).toBe(0.5);
+	});
+
+	it('falls back to the short-chart default when no plot height is supplied', () => {
+		// Preserves this engine's pre-fix behaviour for callers that cannot yet
+		// supply a plot height, documented as a fallback, not a target, in
+		// `niceValueAxisBounds`'s doc comment.
+		const range = computeValueRange([{ name: 'S', values: [1.2, 3.2] }]);
+		expect(range.max).toBe(4);
+		expect(range.majorUnit).toBe(1);
+	});
 });
 
 describe('computeStackedValueRange', () => {

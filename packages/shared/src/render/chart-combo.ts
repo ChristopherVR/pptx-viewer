@@ -67,12 +67,13 @@ export function buildComboViewModel(
 	const primaryAxisId = getPrimaryValueAxisId(chartData.axes);
 	const primaryAxis = chartData.axes?.find((axis) => axis.axisId === primaryAxisId);
 	const secondaryAxisFormatting = getSecondaryValueAxis(chartData.axes);
-	const primaryRange = computeValueRangeForAxis(primarySeries, primaryAxis);
+	const primaryRange = computeValueRangeForAxis(primarySeries, primaryAxis, layout.plotHeight);
 	const secondaryRange =
 		secondary.length > 0
 			? computeValueRangeForAxis(
 					secondary.map((entry) => entry.series),
 					secondaryAxisFormatting,
+					layout.plotHeight,
 				)
 			: undefined;
 

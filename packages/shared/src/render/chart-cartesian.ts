@@ -46,11 +46,16 @@ import {
 	computeStackedValueRange,
 } from './chart-view-model';
 
-function stackedRange(chartData: PptxChartData, catCount: number, isPercent: boolean): ValueRange {
+function stackedRange(
+	chartData: PptxChartData,
+	catCount: number,
+	isPercent: boolean,
+	plotHeightPx: number,
+): ValueRange {
 	if (isPercent) {
 		return { min: 0, max: 100, span: 100 };
 	}
-	return computeStackedValueRange(chartData.series, catCount);
+	return computeStackedValueRange(chartData.series, catCount, plotHeightPx);
 }
 
 /**
@@ -113,12 +118,13 @@ export function buildCartesianViewModel(
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const primaryRange = isStacked
 		? {
-				...stackedRange(chartData, catCount, isPercent),
+				...stackedRange(chartData, catCount, isPercent, layout.plotHeight),
 				...(primaryAxis?.orientation === 'maxMin' ? { reverseOrder: true } : {}),
 			}
 		: computeValueRangeForChart(
 				primaryPlotSeries.length > 0 ? primaryPlotSeries : chartData.series,
 				chartData.axes,
+				layout.plotHeight,
 			);
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const secondaryRange =
@@ -126,6 +132,7 @@ export function buildCartesianViewModel(
 			? computeValueRangeForAxis(
 					secondaryPlotSeries,
 					chartData.axes?.find((axis) => axis.axisType === 'valAx' && axis.axPos === 'r'),
+					layout.plotHeight,
 				)
 			: undefined;
 

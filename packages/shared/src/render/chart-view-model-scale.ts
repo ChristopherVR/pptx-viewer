@@ -12,7 +12,7 @@
 
 import type { PptxChartSeries } from 'pptx-viewer-core';
 
-import { niceValueAxisBounds } from './chart-axis-nice';
+import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
 import { DEFAULT_CHART_PALETTE } from './chart-helpers';
 import { formatChartNumber } from './chart-number-format';
 
@@ -75,8 +75,15 @@ export interface ValueRange {
 /**
  * Automatic Y-axis range, on PowerPoint's terms. See `chart-axis-nice.ts`; this
  * mirrors `computeValueRange` in `chart-helpers.ts`.
+ *
+ * @param plotHeightPx The chart's plot-area height (`PlotLayout.plotHeight`),
+ *   when the caller has it; see `axisTargetIntervals`'s doc comment for why
+ *   this changes the gridline count PowerPoint's automatic scale picks.
  */
-export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
+export function computeValueRange(
+	series: ReadonlyArray<PptxChartSeries>,
+	plotHeightPx?: number,
+): ValueRange {
 	let dataMin = Number.POSITIVE_INFINITY,
 		dataMax = Number.NEGATIVE_INFINITY;
 	for (const item of series) {
@@ -92,17 +99,24 @@ export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): Value
 	if (dataMin === Number.POSITIVE_INFINITY) {
 		return { min: 0, max: 1, span: 1 };
 	}
-	const { min, max, majorUnit } = niceValueAxisBounds(dataMin, dataMax);
+	const { min, max, majorUnit } = niceValueAxisBounds(
+		dataMin,
+		dataMax,
+		plotHeightPx !== undefined ? axisTargetIntervals(plotHeightPx) : undefined,
+	);
 	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }
 
 /**
  * Value range for a stacked bar: the per-category sums, then the same automatic
  * scale as any other value axis.
+ *
+ * @param plotHeightPx See `computeValueRange`'s parameter of the same name.
  */
 export function computeStackedValueRange(
 	series: ReadonlyArray<PptxChartSeries>,
 	catCount: number,
+	plotHeightPx?: number,
 ): ValueRange {
 	let maxSum = 0,
 		minSum = 0;
@@ -120,7 +134,11 @@ export function computeStackedValueRange(
 		maxSum = Math.max(maxSum, pos);
 		minSum = Math.min(minSum, neg);
 	}
-	const { min, max, majorUnit } = niceValueAxisBounds(Math.min(minSum, 0), Math.max(maxSum, 0));
+	const { min, max, majorUnit } = niceValueAxisBounds(
+		Math.min(minSum, 0),
+		Math.max(maxSum, 0),
+		plotHeightPx !== undefined ? axisTargetIntervals(plotHeightPx) : undefined,
+	);
 	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }
 

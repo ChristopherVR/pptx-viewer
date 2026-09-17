@@ -5,7 +5,7 @@ import type {
 	PptxChartAxisFormatting,
 } from 'pptx-viewer-core';
 
-import { niceValueAxisBounds } from './chart-axis-nice';
+import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
 import { reserveLegendSpace } from './chart-legend-placement';
 import { formatChartNumber } from './chart-number-format';
 
@@ -230,8 +230,17 @@ export interface ValueRange {
  * sensibly, padded, and rounded out to whole major units. See
  * `chart-axis-nice.ts` for the rules. Running the axis to the raw data maximum
  * instead put the top gridline on whatever the tallest bar happened to be.
+ *
+ * @param plotHeightPx The chart's plot-area height (same "px" unit
+ *   `computePlotLayout` returns), when the caller has it. PowerPoint's real
+ *   gridline count depends on how much vertical room the axis has to label
+ *   them in; omitting this falls back to a constant tuned for a short chart
+ *   (see `axisTargetIntervals`'s doc comment).
  */
-export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): ValueRange {
+export function computeValueRange(
+	series: ReadonlyArray<PptxChartSeries>,
+	plotHeightPx?: number,
+): ValueRange {
 	const allValues = series.flatMap((s) => s.values);
 	if (allValues.length === 0) {
 		return { min: 0, max: 1, span: 1 };
@@ -239,6 +248,7 @@ export function computeValueRange(series: ReadonlyArray<PptxChartSeries>): Value
 	const { min, max, majorUnit } = niceValueAxisBounds(
 		Math.min(...allValues),
 		Math.max(...allValues),
+		plotHeightPx !== undefined ? axisTargetIntervals(plotHeightPx) : undefined,
 	);
 	return { min, max, span: Math.max(max - min, Number.EPSILON), majorUnit };
 }

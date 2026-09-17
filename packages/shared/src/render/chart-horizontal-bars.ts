@@ -60,11 +60,14 @@ export function buildHorizontalBarViewModel(
 		grouping = chartData.grouping ?? 'clustered',
 		isStacked = grouping === 'stacked' || grouping === 'percentStacked',
 		isPercent = grouping === 'percentStacked',
+		// The value axis runs along the WIDTH here (categories run down the left,
+		// values along the bottom: this builder transposes the column engine), so
+		// the gridline-count budget is keyed off plotWidth, not plotHeight.
 		range: ValueRange = isPercent
 			? { min: 0, max: 100, span: 100 }
 			: isStacked
-				? computeStackedValueRange(series, catCount)
-				: computeValueRangeForChart(series, chartData.axes),
+				? computeStackedValueRange(series, catCount, layout.plotWidth)
+				: computeValueRangeForChart(series, chartData.axes, layout.plotWidth),
 		{ gridlines, axisLabels } = buildTransposedValueAxis(range, layout),
 		zeroX = valueToX(0, range, layout.plotLeft, layout.plotRight),
 		zeroLine: SvgLine | undefined =

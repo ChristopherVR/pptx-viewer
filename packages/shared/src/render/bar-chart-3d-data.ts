@@ -151,11 +151,16 @@ export function buildBarChart3DData(
 	const horizontal = chartData.barDirection === 'bar';
 
 	const points = buildPoints(chartData, cols, isPercent);
+	// No separate plot-area inset exists for the 3D scene the way the flat SVG
+	// engine's `computePlotLayout` reserves one, so the full element height
+	// stands in for it; see `axisTargetIntervals`'s doc comment for why this
+	// only makes the automatic scale saturate at its gridline cap slightly
+	// sooner; it does not change the "ordinary chart" result this was fixed for.
 	const range: ValueRange = isPercent
 		? { min: 0, max: 100, span: 100 }
 		: grouping === 'stacked'
-			? computeStackedValueRange(chartData.series, cols)
-			: computeValueRange(chartData.series);
+			? computeStackedValueRange(chartData.series, cols, options.height)
+			: computeValueRange(chartData.series, options.height);
 
 	const depthPercent = chartData.view3D?.depthPercent;
 	const boxes = layoutBarChart3D(points, cols, rows, range, grouping, depthPercent, horizontal);

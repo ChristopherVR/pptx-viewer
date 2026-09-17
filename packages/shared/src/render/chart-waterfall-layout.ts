@@ -32,12 +32,24 @@ export function buildWaterfallSteps(
 	return steps;
 }
 
-/** Compute a value range containing every cumulative and absolute bar endpoint. */
-export function computeWaterfallRange(steps: ReadonlyArray<WaterfallStep>): ValueRange {
-	return computeValueRange([
-		{
-			name: 'Waterfall range',
-			values: steps.flatMap((step) => [step.startValue, step.endValue]),
-		},
-	]);
+/**
+ * Compute a value range containing every cumulative and absolute bar endpoint.
+ *
+ * @param plotHeightPx The chart's plot-area height, when known; see
+ *   `axisTargetIntervals`'s doc comment for why this changes the automatic
+ *   scale's gridline count.
+ */
+export function computeWaterfallRange(
+	steps: ReadonlyArray<WaterfallStep>,
+	plotHeightPx?: number,
+): ValueRange {
+	return computeValueRange(
+		[
+			{
+				name: 'Waterfall range',
+				values: steps.flatMap((step) => [step.startValue, step.endValue]),
+			},
+		],
+		plotHeightPx,
+	);
 }
