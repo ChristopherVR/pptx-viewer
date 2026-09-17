@@ -23,6 +23,56 @@ import { savePptxViaBackstage } from './save-pptx';
 import { fixture } from './support/deck';
 import { extractElementBlock, readZipPartText } from './support/pptx-xml';
 
+async function paragraphFormattingDeck() {
+	const zip = await JSZip.loadAsync(await readFile(fixture('text-layout.pptx')));
+	const part = 'ppt/slides/slide1.xml';
+	const xml = await zip.file(part)!.async('string');
+	const anchor = '<a:lnSpc><a:spcPct val="150000"/></a:lnSpc>';
+	expect(xml.split(anchor)).toHaveLength(2);
+	zip.file(
+		part,
+		xml.replace(
+			anchor,
+			`${anchor}<a:spcBef><a:spcPts val="600"/></a:spcBef><a:spcAft><a:spcPts val="1200"/></a:spcAft>`,
+		),
+	);
+	return {
+		name: 'paragraph-formatting.pptx',
+		mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		buffer: await zip.generateAsync({ type: 'nodebuffer' }),
+	};
+}
+
+async function exportedParagraphProperties(page: Page, outputPath: string) {
+	await page
+		.getByRole('toolbar', { name: 'Presentation toolbar' })
+		.getByRole('tab', { name: 'File', exact: true })
+		.click();
+	const backstage = page.getByRole('dialog', { name: 'File', exact: true });
+	await backstage.getByRole('button', { name: 'Export', exact: true }).click();
+	const download = page.waitForEvent('download');
+	await backstage.getByRole('button', { name: /export as json/iu }).click();
+	await (await download).saveAs(outputPath);
+	const document = JSON.parse(await readFile(outputPath, 'utf8')) as {
+		slides: {
+			elements: {
+				text?: string;
+				textSegments?: { paragraphProperties?: Record<string, unknown> }[];
+			}[];
+		}[];
+	};
+	await page.keyboard.press('Escape');
+	await expect(backstage).toBeHidden();
+	const elements = document.slides.flatMap((slide) => slide.elements);
+	const properties = (prefix: string) =>
+		elements
+			.find((element) => element.text?.startsWith(prefix))
+			?.textSegments?.flatMap((segment) =>
+				segment.paragraphProperties ? [segment.paragraphProperties] : [],
+			);
+	return { bullet: properties('Alpha'), spacing: properties('Loose spacing') };
+}
+
 async function consecutiveBreakDeck() {
 	const zip = await JSZip.loadAsync(await readFile(fixture('text-layout.pptx')));
 	const part = 'ppt/slides/slide1.xml';
@@ -69,6 +119,69 @@ async function beginTextEdit(page: Page, original: string, replacement: string) 
 
 test.describe('collaboration sync', () => {
 	test.setTimeout(120_000);
+
+	test('paragraph formatting survives peer sync and Save', async ({ page }, testInfo) => {
+		const peer = await page.context().newPage();
+		const roomId = `e2e-paragraphs-${testInfo.project.name}-${Date.now()}`;
+		const expected = {
+			bullet: [{ paragraphMarginLeft: 36, paragraphIndent: -36 }],
+			spacing: [{ lineSpacing: 1.5, paragraphSpacingBefore: 8, paragraphSpacingAfter: 16 }],
+		};
+		try {
+			await openCollaborativeDeck(page, roomId, 'host', true);
+			await expect(collaborationReady(page)).toBeVisible({ timeout: 15_000 });
+			await page
+				.getByRole('toolbar', { name: 'Presentation toolbar' })
+				.getByRole('tab', { name: 'File', exact: true })
+				.click();
+			const backstage = page.getByRole('dialog', { name: 'File', exact: true });
+			await backstage.getByRole('button', { name: 'Open', exact: true }).click();
+			const chooser = page.waitForEvent('filechooser');
+			await backstage.getByRole('button', { name: /browse this device/iu }).click();
+			await (await chooser).setFiles(await paragraphFormattingDeck());
+			await expect(slideElements(page).filter({ hasText: 'Alpha' })).toBeVisible();
+			expect(
+				await exportedParagraphProperties(page, testInfo.outputPath('host-before-join.json')),
+			).toEqual(expected);
+			await openCollaborativeDeck(peer, roomId, 'peer');
+			await expect(collaborationReady(peer)).toBeVisible({ timeout: 15_000 });
+			await expect(slideElements(peer).filter({ hasText: 'Alpha' })).toBeVisible();
+			for (const [index, participant] of [peer, page].entries()) {
+				expect(
+					await exportedParagraphProperties(
+						participant,
+						testInfo.outputPath(`participant-${index}.json`),
+					),
+				).toEqual(expected);
+				const saved = testInfo.outputPath(`paragraphs-${index}.pptx`);
+				await (await savePptxViaBackstage(participant)).saveAs(saved);
+				const xml = await readZipPartText(await readFile(saved), 'ppt/slides/slide1.xml');
+				const bullet = extractElementBlock(xml, 'p:sp', 'RunsAndBlanks');
+				expect(bullet).toContain('marL="342900"');
+				expect(bullet).toContain('indent="-342900"');
+				const spacing = extractElementBlock(xml, 'p:sp', 'LooseSpacing');
+				expect(spacing).toContain('<a:spcPct val="150000"');
+				expect(spacing).toContain('<a:spcBef><a:spcPts val="600"');
+				expect(spacing).toContain('<a:spcAft><a:spcPts val="1200"');
+				const reopened = await page.context().newPage();
+				try {
+					await reopened.goto('/');
+					await reopened.locator('#file-input').setInputFiles(saved);
+					await expect(slideElements(reopened).filter({ hasText: 'Alpha' })).toBeVisible();
+					expect(
+						await exportedParagraphProperties(
+							reopened,
+							testInfo.outputPath(`reopened-${index}.json`),
+						),
+					).toEqual(expected);
+				} finally {
+					await reopened.close();
+				}
+			}
+		} finally {
+			await peer.close();
+		}
+	});
 
 	test('consecutive soft breaks survive peer sync and Save', async ({ page }, testInfo) => {
 		const peer = await page.context().newPage();

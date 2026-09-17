@@ -46,6 +46,9 @@ function buildAttrs(seg: Record<string, unknown>): Record<string, string> | unde
 	if (seg.endParaRunProperties) {
 		a.pr = JSON.stringify(seg.endParaRunProperties);
 	}
+	if (seg.paragraphProperties) {
+		a.pp = JSON.stringify(seg.paragraphProperties);
+	}
 	if (typeof seg.fieldType === 'string') {
 		a.ft = seg.fieldType;
 	}
@@ -87,7 +90,8 @@ export function encodeTextBodyToYText(segments: unknown[], ytext: YText): void {
 	let offset = 0;
 	for (const raw of segments) {
 		const seg = raw as Record<string, unknown>;
-		const attrs = buildAttrs(seg);
+		// Explicit empty attributes prevent inheritance from the preceding run.
+		const attrs = buildAttrs(seg) ?? {};
 		if (seg.isParagraphBreak === true || seg.isLineBreak === true) {
 			ytext.insert(offset, '\n', attrs);
 			offset += 1;
@@ -142,6 +146,13 @@ export function decodeTextBodyFromYText(ytext: YText): Record<string, unknown>[]
 		if (a.pr) {
 			try {
 				seg.endParaRunProperties = JSON.parse(a.pr);
+			} catch {
+				/* skip */
+			}
+		}
+		if (a.pp) {
+			try {
+				seg.paragraphProperties = JSON.parse(a.pp);
 			} catch {
 				/* skip */
 			}
