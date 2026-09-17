@@ -4,6 +4,7 @@ import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
+	attachCollaborationInlineEditor,
 	attachInlineListController,
 	initializeInlineListDom,
 	inlineListBodyText,
@@ -11,6 +12,8 @@ import {
 	restoreInlineListBodySelection,
 } from '../internal/shared';
 import type {
+	CollaborationInlineEditor,
+	CollaborationLivePatcher,
 	InlineListController,
 	InlineListSeed,
 	InlineTextEditSnapshot,
@@ -21,7 +24,7 @@ import {
 } from './inline-edit-autofit-commit';
 import { ViewerOptionsService } from './viewer-options.service';
 
-/** List-only native surface. The existing textarea remains the plain-text editor. */
+/** Native rich surface for lists and connected text; local plain edits keep the textarea. */
 @Component({
 	selector: 'pptx-inline-list-editor',
 	standalone: true,
@@ -49,6 +52,8 @@ import { ViewerOptionsService } from './viewer-options.service';
 export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDestroy {
 	readonly element = input.required<PptxElement>();
 	readonly seed = input.required<InlineListSeed>();
+	readonly livePatcher = input<CollaborationLivePatcher>();
+	readonly slideId = input<string>();
 	readonly spellCheck = input(true);
 	readonly activationSelection = input<{ start: number; end: number }>();
 	readonly textInput = output<{ id: string; text: string; snapshot?: InlineTextEditSnapshot }>();
@@ -66,6 +71,7 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 	private readonly editor = viewChild.required<ElementRef<HTMLDivElement>>('editor');
 	private readonly options = inject(ViewerOptionsService, { optional: true });
 	private controller?: InlineListController;
+	private connected?: CollaborationInlineEditor;
 	private disposed = false;
 	private cancelled = false;
 	private modelBody = '';
@@ -78,6 +84,10 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 			: '';
 	}
 	ngOnChanges(): void {
+		if (this.connected) {
+			this.connected.checkModel(this.element());
+			return;
+		}
 		const body = this.readModelBody();
 		if (body === this.modelBody) {
 			this.controller?.refresh();
@@ -96,19 +106,39 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 		this.modelBody = this.readModelBody();
 		const root = this.editor().nativeElement;
 		const seed = this.seed();
-		if (!initializeInlineListDom(root, seed)) {
-			return;
+		const patcher = this.livePatcher();
+		if (patcher?.isActive()) {
+			this.connected = attachCollaborationInlineEditor(root, this.element(), {
+				patcher,
+				slideId: this.slideId(),
+				onSnapshot: (snapshot) =>
+					this.textInput.emit({ id: snapshot.elementId, text: snapshot.text, snapshot }),
+				onCancel: () => {
+					this.disposed = true;
+					this.textCancel.emit();
+				},
+			});
+			if (!this.connected) {
+				this.disposed = true;
+				this.textCancel.emit();
+				return;
+			}
+			this.controller = this.connected;
+		} else {
+			if (!initializeInlineListDom(root, seed)) {
+				return;
+			}
+			this.controller = attachInlineListController(root, seed, {
+				isCurrent: () =>
+					!this.disposed && this.seed() === seed && this.element().id === seed.elementId,
+				onRead: (result) =>
+					this.textInput.emit({
+						id: seed.elementId,
+						text: result.kind === 'supported' ? result.snapshot.text : result.text,
+						snapshot: result.kind === 'supported' ? result.snapshot : undefined,
+					}),
+			});
 		}
-		this.controller = attachInlineListController(root, seed, {
-			isCurrent: () =>
-				!this.disposed && this.seed() === seed && this.element().id === seed.elementId,
-			onRead: (result) =>
-				this.textInput.emit({
-					id: seed.elementId,
-					text: result.kind === 'supported' ? result.snapshot.text : result.text,
-					snapshot: result.kind === 'supported' ? result.snapshot : undefined,
-				}),
-		});
 		this.listSession.emit({ controller: this.controller, active: true });
 		root.focus();
 		placeCaretAtEnd(root);
@@ -141,7 +171,7 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 		if (!result) {
 			return;
 		}
-		if (result.kind === 'unsupported' && result.reason === 'inactive-session') {
+		if (result.kind === 'unsupported' && (this.connected || result.reason === 'inactive-session')) {
 			return;
 		}
 		const rawText = result.kind === 'supported' ? result.snapshot.text : result.text;

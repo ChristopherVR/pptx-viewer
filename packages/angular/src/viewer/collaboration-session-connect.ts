@@ -1,4 +1,5 @@
 import type { CollaborationConfig, CollaborationTransport } from '../internal/shared';
+import { createSnapshotTextPositions } from '../internal/shared';
 import { activateExternalSession } from './collaboration-external-session';
 import { createWebrtcBundle, createWebsocketBundle } from './collaboration-providers';
 import type { ActiveSession, ActivateSessionDeps } from './collaboration-session-setup';
@@ -16,6 +17,7 @@ export async function connectSession(
 		if (!isCurrent()) {
 			return null;
 		}
+		const doc = config.externalSession.doc as import('yjs').Doc;
 		return activateExternalSession(
 			config.externalSession,
 			config,
@@ -23,6 +25,15 @@ export async function connectSession(
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
 			},
 			deps,
 		);

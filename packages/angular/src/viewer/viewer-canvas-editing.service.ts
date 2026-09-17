@@ -24,7 +24,11 @@ import type {
 } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
-import { buildInlineTextCommitPatch, publishLiveInlineText } from '../internal/shared';
+import {
+	buildInlineTextCommitPatch,
+	overlayInlineTextSnapshot,
+	publishLiveInlineText,
+} from '../internal/shared';
 import type { InlineListController, InlineTextEditSnapshot } from '../internal/shared';
 import { CollaborationService } from './collaboration.service';
 import { EditorStateService } from './editor-state.service';
@@ -79,7 +83,23 @@ export class ViewerCanvasEditingService {
 	/** Keep the last accepted input visible after a readiness or permission loss. */
 	suspendInlineEdit(): void {
 		const id = this.editingId();
-		if (id && this.acceptedText !== undefined) {
+		const accepted = this.listSession.readAccepted();
+		if (id && accepted) {
+			const index = this.requireHost().activeSlideIndex();
+			this.editor.applyRemoteSlides(
+				this.editor.slides().map((slide, current) =>
+					current === index
+						? {
+								...slide,
+								elements: [...overlayInlineTextSnapshot(slide.elements, accepted)],
+							}
+						: slide,
+				),
+			);
+		}
+		// Connected input is already in the authoritative document. Readiness
+		// adoption owns that render model; never replay an older accepted cache.
+		if (id && this.acceptedText !== undefined && !this.listSession.isConnected()) {
 			const host = this.requireHost();
 			const patch = buildInlineTextCommitPatch(
 				this.findElement(host, id),
@@ -97,10 +117,16 @@ export class ViewerCanvasEditingService {
 
 	readInlineSnapshot(): InlineTextEditSnapshot | undefined {
 		const current = this.listSession.read();
+		if (this.listSession.isConnected()) {
+			return current;
+		}
 		if (current && this.editingId()) {
 			return current;
 		}
 		return this.inlineSnapshot?.elementId === this.editingId() ? this.inlineSnapshot : undefined;
+	}
+	isInlineInputPending(): boolean {
+		return this.listSession.isPending();
 	}
 	/** Open editor context-menu position (client coords), or null. */
 	readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
@@ -154,6 +180,9 @@ export class ViewerCanvasEditingService {
 
 	/** Apply a Ctrl/Cmd+B/I/U toggle from the inline editor (undoable). */
 	onTextFormat(event: { id: string; updates: Partial<TextStyle> }): void {
+		if (this.listSession.isPending()) {
+			return;
+		}
 		const host = this.requireHost();
 		if (!host.canEdit()) {
 			return;
@@ -221,6 +250,9 @@ export class ViewerCanvasEditingService {
 		autoFitFontScale?: number;
 		autoFitLineSpacingReduction?: number;
 	}): void {
+		if (this.listSession.isPending()) {
+			return;
+		}
 		const host = this.requireHost();
 		if (!host.canEdit()) {
 			this.suspendInlineEdit();

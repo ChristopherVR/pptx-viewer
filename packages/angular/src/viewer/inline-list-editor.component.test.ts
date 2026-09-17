@@ -1,13 +1,25 @@
 import { DestroyRef, ElementRef, Injector, runInInjectionContext } from '@angular/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
-import { createInlineListSeed } from '../internal/shared';
+import {
+	createCollaborationLivePatcher,
+	createInlineListSeed,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+} from '../internal/shared';
+import type { CollaborationLivePatcher, YjsFactories } from '../internal/shared';
 import { InlineListEditorComponent } from './inline-list-editor.component';
 import { InlineListSession } from './inline-list-session';
 
 // Direct component lifecycle and native DOM events, not Angular TestBed or browser Undo.
-function mountedEditor(activationSelection?: { start: number; end: number }) {
+function mountedEditor(
+	activationSelection?: { start: number; end: number },
+	patcher?: CollaborationLivePatcher,
+	supplied?: PptxElement,
+) {
 	const element: PptxElement = {
 		id: 'list',
 		type: 'text',
@@ -21,6 +33,7 @@ function mountedEditor(activationSelection?: { start: number; end: number }) {
 			{ text: 'Original', style: { italic: true, fontSize: 24 } },
 		],
 	};
+	const source = supplied ?? element;
 	const root = document.createElement('div');
 	root.contentEditable = 'true';
 	document.body.append(root);
@@ -28,9 +41,11 @@ function mountedEditor(activationSelection?: { start: number; end: number }) {
 		providers: [{ provide: DestroyRef, useValue: { onDestroy: () => () => {} } }],
 	});
 	const component = runInInjectionContext(injector, () => new InlineListEditorComponent());
-	const seed = createInlineListSeed(element)!;
+	const seed = createInlineListSeed(source, { includePlain: Boolean(patcher) })!;
 	Object.assign(component, {
-		element: () => element,
+		element: () => source,
+		livePatcher: () => patcher,
+		slideId: () => 's1',
 		seed: () => seed,
 		activationSelection: () => activationSelection,
 		editor: () => new ElementRef(root),
@@ -58,6 +73,54 @@ function mountedEditor(activationSelection?: { start: number; end: number }) {
 }
 
 describe('angular list editor', () => {
+	it('uses the connected native controller for plain text and blocks composition blur', () => {
+		const doc = new Y.Doc();
+		const source = {
+			id: 'e1',
+			type: 'text',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 80,
+			text: 'Hello',
+			textSegments: [{ text: 'Hello', style: {} }],
+		} as PptxElement;
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text as unknown as Y.Text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
+		};
+		reconcileSlidesInYDoc([{ id: 's1', slideNumber: 1, elements: [source] }], doc, factories);
+		const patcher = createCollaborationLivePatcher();
+		patcher.configure(doc, factories, true);
+		const editor = mountedEditor(undefined, patcher, source);
+		try {
+			const text = findElementYMap(doc, 's1', source.id)!.get('textBody') as Y.Text;
+			text.insert(5, ' remote');
+			expect(editor.root.textContent).toBe('Hello remote');
+			editor.root.dispatchEvent(new CompositionEvent('compositionstart'));
+			editor.handlers.commit();
+			expect(editor.commits).not.toHaveBeenCalled();
+			expect(editor.sessions.mock.lastCall![0].controller.read()).toMatchObject({
+				kind: 'unsupported',
+				reason: 'composition-active',
+			});
+		} finally {
+			editor.cleanup();
+			patcher.dispose();
+			doc.destroy();
+		}
+	});
+
 	it('toggles inherited underline off when its first run has no authored underline', () => {
 		const editor = mountedEditor();
 		const format = vi.spyOn(editor.component.textFormat, 'emit');

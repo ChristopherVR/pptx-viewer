@@ -72,6 +72,62 @@ describe('editorStateService align', () => {
 
 describe('editorStateService', () => {
 	it.each([false, true])(
+		'retires using authoritative connected text, never the accepted cache (active: %s)',
+		(active) => {
+			const svc = new EditorStateService();
+			svc.setSlides([slide('s1', [{ ...element('a'), text: 'Before' } as PptxElement])]);
+			const injector = Injector.create({
+				providers: [
+					{ provide: EditorStateService, useValue: svc },
+					{ provide: ViewerDialogsService, useValue: {} },
+					{ provide: ViewerFormatPainterService, useValue: {} },
+					{
+						provide: CollaborationService,
+						useValue: { livePatcher: { flush: vi.fn(), isActive: () => false } },
+					},
+				],
+			});
+			const controller = runInInjectionContext(injector, () => new ViewerCanvasEditingService());
+			controller.bind({
+				canEdit: () => true,
+				activeSlide: () => svc.slides()[0],
+				activeSlideIndex: () => 0,
+				activeTemplateElements: () => [],
+			});
+			controller.onTextEditStart('a');
+			controller.onTextInput({ id: 'a', text: 'Accepted local' });
+			controller.onListSession({
+				active: true,
+				controller: {
+					checkModel: () => true,
+					readAccepted: () =>
+						active
+							? {
+									elementId: 'a',
+									text: 'Accepted local plus peer',
+									textSegments: [{ text: 'Accepted local plus peer', style: {} }],
+								}
+							: undefined,
+					read: () => ({ kind: 'unsupported', reason: 'inactive-session', text: '' }),
+					dispose: vi.fn(),
+					format: vi.fn(),
+					refresh: vi.fn(),
+					readSelection: vi.fn(),
+				} as unknown as Parameters<ViewerCanvasEditingService['onListSession']>[0]['controller'],
+			});
+			if (!active) {
+				svc.setSlides([
+					slide('s1', [{ ...element('a'), text: 'Accepted local plus peer' } as PptxElement]),
+				]);
+			}
+			controller.suspendInlineEdit();
+			expect(svc.slides()[0].elements[0]).toMatchObject({ text: 'Accepted local plus peer' });
+			expect(controller.editingId()).toBeNull();
+			expect(svc.canUndo()).toBeFalsy();
+		},
+	);
+
+	it.each([false, true])(
 		'retains only accepted inline input when permission is revoked (rich: %s)',
 		(rich) => {
 			const svc = new EditorStateService();
