@@ -5,7 +5,7 @@ description: 了解 React、Vue 3、Angular、原生 JavaScript 和 Svelte 组�
 
 # 国际化 {#localization-i18n}
 
-**组件通过 `pptx.*` 翻译键查找所有界面文本，字典由宿主应用提供。** 每个组件包都包含英文。仓库还在私有的 `pptx-viewer-locales` 工作区维护完整的法语、西班牙语、德语和简体中文参考字典，用于演示应用和翻译质量检查。该工作区不发布到 npm。React、Vue 和 Angular 使用宿主框架的 i18n 库；Vanilla 和 Svelte 则提供轻量的内置翻译器：
+**组件通过 `pptx.*` 翻译键查找所有界面文本，字典由宿主应用提供。** 每个组件包都包含英文。仓库还在私有的 `pptx-viewer-locales` 工作区维护完整的法语、西班牙语、德语和简体中文参考字典，这些字典随各组件包发布，可通过 `i18n/fr`、`i18n/es`、`i18n/de` 和 `i18n/zh-CN` 子路径按需导入。语言工作区本身不单独发布到 npm。React、Vue 和 Angular 使用宿主框架的 i18n 库；Vanilla 和 Svelte 则提供轻量的内置翻译器：
 
 | 组件    | 组件内部的翻译调用                                        | 宿主需要提供的库                                                                  |
 | ------- | --------------------------------------------------------- | --------------------------------------------------------------------------------- |
@@ -224,9 +224,20 @@ registerTranslations('fr', translationsFr);
 
 演示应用的**文件 > 选项 > 语言**中提供**简体中文**（`zh-CN`）。参考字典与英文包含相同的翻译键和 `{{placeholders}}`。它翻译的是编辑器界面，不会翻译幻灯片中的文本。
 
-外部应用可以将 `packages/locales/src/zh-CN/` 复制到自己的翻译目录，从其中的 `index.ts` 导入 `translationsZhCN`，再按上文的方式注册到所用组件：
+直接从所用的组件包导入中文参考字典：
 
-| 组件    | 注册复制后的字典                                                           | 切换语言                             |
+```ts
+import { translationsZhCN } from 'pptx-react-viewer/i18n/zh-CN';
+// 其他组件包也提供相同的子路径：
+// 'pptx-vue-viewer/i18n/zh-CN'
+// 'pptx-angular-viewer/i18n/zh-CN'
+// 'pptx-svelte-viewer/i18n/zh-CN'
+// 'pptx-vanilla-viewer/i18n/zh-CN'
+```
+
+每个子路径只包含对应语言的独立字典，并提供 ESM、CommonJS 和 TypeScript 类型声明。导入字典不会加载查看器或其他语言。原有英文导出仍保留在原来的入口。按所用框架注册字典：
+
+| 组件    | 注册导入的字典                                                             | 切换语言                             |
 | ------- | -------------------------------------------------------------------------- | ------------------------------------ |
 | React   | `i18n.addResourceBundle('zh-CN', 'translation', translationsZhCN)`         | `i18n.changeLanguage('zh-CN')`       |
 | Vue     | `i18n.global.setLocaleMessage('zh-CN', toVueI18nSyntax(translationsZhCN))` | `i18n.global.locale.value = 'zh-CN'` |
@@ -235,6 +246,21 @@ registerTranslations('fr', translationsFr);
 | Svelte  | `registerTranslations('zh-CN', translationsZhCN)`                          | 将组件的 `locale` 属性设为 `'zh-CN'` |
 
 Vue 需要从 `pptx-vue-viewer/i18n` 导入 `toVueI18nSyntax`，将参考字典中的 `{{name}}` 占位符转换为 Vue 的 `{name}` 语法。应用注册字典后，语言选择器会识别 `zh-CN` 并显示**简体中文**。
+
+## 其他参考语言 {#other-reference-languages}
+
+五个组件包均提供以下可选的语言子路径：
+
+| 语言     | 子路径       | 导出名称           |
+| -------- | ------------ | ------------------ |
+| 法语     | `i18n/fr`    | `translationsFr`   |
+| 西班牙语 | `i18n/es`    | `translationsEs`   |
+| 德语     | `i18n/de`    | `translationsDe`   |
+| 简体中文 | `i18n/zh-CN` | `translationsZhCN` |
+
+例如：`import { translationsFr } from 'pptx-vue-viewer/i18n/fr'`。Vue 应用需要像上面的中文示例一样，先通过 `toVueI18nSyntax` 转换字典，再注册。字典本身保留其他框架使用的标准 `{{name}}` 占位符。
+
+参考字典与组件一起发布，更新组件版本时也会更新字典。它们通过子路径按需导入，不会从组件包根入口或现有英文 i18n 入口重新导出。
 
 ## 在应用中添加其他语言 {#adding-a-language-in-your-app}
 
@@ -256,7 +282,7 @@ export const translationsFr: Record<TranslationKey, string> = {
 
 ## 向项目贡献翻译 {#contributing-a-translation-upstream}
 
-私有的 `packages/locales` 工作区维护完整的参考字典。每种语言按产品区域拆分为具名文件，例如 `charts.ts`、`presenting-and-slide-show.ts` 和 `text-and-equations.ts`。
+私有的 `packages/locales` 工作区维护五个组件包随包发布的参考字典源码。构建组件前先构建该工作区，各组件会将独立字典产物复制到自己的 `dist/i18n` 目录。完成五个组件的构建后，运行 `bun run test:locale-subpaths`，检查实际 npm 压缩包、导入路径和类型声明。每种语言按产品区域拆分为具名文件，例如 `charts.ts`、`presenting-and-slide-show.ts` 和 `text-and-equations.ts`。
 
 母语使用者和熟练使用者可以按模块贡献，无需一次审阅整套字典：
 
