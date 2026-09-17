@@ -93,6 +93,8 @@ describe('exportSlidesToGifBlob', () => {
 		expect(delays).toStrictEqual([50, 200, 300]);
 	});
 
+	// Real GIF89a encoding of a full 1920x960 frame is CPU-bound and can run
+	// well past the default 30s timeout under contended CI runners.
 	it('clamps oversized captures to the default maxDimension (shared 1920px cap) preserving aspect ratio', async () => {
 		const factory = fakeCanvasFactory();
 		const deps = make(
@@ -105,9 +107,7 @@ describe('exportSlidesToGifBlob', () => {
 		await exportSlidesToGifBlob(deps);
 		expect(factory.created[0]).toStrictEqual({ width: 1920, height: 960 });
 		expect(factory.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 1920, 960);
-	}, // Real GIF89a encoding of a full 1920x960 frame is CPU-bound and can run
-	// well past the default 30s timeout under contended CI runners.
-	60000);
+	}, 60000);
 
 	it('clamps to an explicit maxDimension preserving aspect ratio', async () => {
 		const factory = fakeCanvasFactory();
