@@ -14,6 +14,7 @@ import {
 	fpsToFrameIntervalMs,
 	pickSupportedMimeType,
 	segmentFrameCount,
+	stopCaptureStream,
 	WEBM_MIME_CANDIDATES,
 } from '../internal/shared-src/export/video-plan';
 
@@ -115,36 +116,43 @@ export async function recordWebm(
 
 	recorder.start();
 
-	const frameIntervalMs = fpsToFrameIntervalMs(fps);
+	try {
+		const frameIntervalMs = fpsToFrameIntervalMs(fps);
 
-	for (let i = 0; i < canvases.length; i++) {
-		if (signal?.aborted) {
-			recorder.stop();
-			throw new DOMException('Export cancelled', 'AbortError');
-		}
-
-		onProgress?.(i, canvases.length);
-
-		const duration = slideTimingsMs?.[i] ?? slideDurationMs;
-		const framesNeeded = segmentFrameCount(duration, fps);
-
-		ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-		ctx.drawImage(canvases[i], 0, 0);
-
-		for (let f = 0; f < framesNeeded; f++) {
+		for (let i = 0; i < canvases.length; i++) {
 			if (signal?.aborted) {
 				recorder.stop();
 				throw new DOMException('Export cancelled', 'AbortError');
 			}
+
+			onProgress?.(i, canvases.length);
+
+			const duration = slideTimingsMs?.[i] ?? slideDurationMs;
+			const framesNeeded = segmentFrameCount(duration, fps);
+
+			ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
 			ctx.drawImage(canvases[i], 0, 0);
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, frameIntervalMs);
-			});
+
+			for (let f = 0; f < framesNeeded; f++) {
+				if (signal?.aborted) {
+					recorder.stop();
+					throw new DOMException('Export cancelled', 'AbortError');
+				}
+				ctx.drawImage(canvases[i], 0, 0);
+				await new Promise<void>((resolve) => {
+					setTimeout(resolve, frameIntervalMs);
+				});
+			}
 		}
+
+		recorder.stop();
+		await recorderDone;
+
+		return new Blob(chunks, { type: 'video/webm' });
+	} finally {
+		// `recorder.stop()` only stops the recorder; the capture stream itself
+		// keeps compositing frames from `recordingCanvas` indefinitely otherwise
+		// - a real leak on every export, not just an abort path.
+		stopCaptureStream(stream);
 	}
-
-	recorder.stop();
-	await recorderDone;
-
-	return new Blob(chunks, { type: 'video/webm' });
 }

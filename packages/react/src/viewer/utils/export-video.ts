@@ -5,6 +5,7 @@ import {
 	fpsToFrameIntervalMs,
 	pickSupportedMimeType,
 	segmentFrameCount,
+	stopCaptureStream,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
@@ -130,40 +131,47 @@ export async function exportAllSlidesAsVideo(
 
 	recorder.start();
 
-	// Step 3: Draw each slide for its duration
-	for (let i = 0; i < slideCanvases.length; i++) {
-		if (signal?.aborted) {
-			recorder.stop();
-			throw new DOMException('Export cancelled', 'AbortError');
-		}
-
-		onRecordProgress?.(i, slideCanvases.length);
-
-		const duration = slideTimingsMs?.[i] ?? slideDurationMs;
-		ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-		ctx.drawImage(slideCanvases[i], 0, 0);
-
-		// Hold the frame for the slide duration using a sleep loop
-		// that triggers redraws to feed the captureStream.
-		const frameInterval = fpsToFrameIntervalMs(fps);
-		const framesNeeded = segmentFrameCount(duration, fps);
-		for (let f = 0; f < framesNeeded; f++) {
+	try {
+		// Step 3: Draw each slide for its duration
+		for (let i = 0; i < slideCanvases.length; i++) {
 			if (signal?.aborted) {
 				recorder.stop();
 				throw new DOMException('Export cancelled', 'AbortError');
 			}
-			// Redraw the same frame to feed the stream
+
+			onRecordProgress?.(i, slideCanvases.length);
+
+			const duration = slideTimingsMs?.[i] ?? slideDurationMs;
+			ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
 			ctx.drawImage(slideCanvases[i], 0, 0);
-			await new Promise<void>((r) => {
-				setTimeout(r, frameInterval);
-			});
+
+			// Hold the frame for the slide duration using a sleep loop
+			// that triggers redraws to feed the captureStream.
+			const frameInterval = fpsToFrameIntervalMs(fps);
+			const framesNeeded = segmentFrameCount(duration, fps);
+			for (let f = 0; f < framesNeeded; f++) {
+				if (signal?.aborted) {
+					recorder.stop();
+					throw new DOMException('Export cancelled', 'AbortError');
+				}
+				// Redraw the same frame to feed the stream
+				ctx.drawImage(slideCanvases[i], 0, 0);
+				await new Promise<void>((r) => {
+					setTimeout(r, frameInterval);
+				});
+			}
 		}
+
+		recorder.stop();
+		await recorderDone;
+
+		onProgress?.(totalSlides, totalSlides);
+
+		return new Blob(chunks, { type: 'video/webm' });
+	} finally {
+		// `recorder.stop()` only stops the recorder; the capture stream itself
+		// keeps compositing frames from `recordingCanvas` indefinitely otherwise
+		// - a real leak on every export, not just an abort path.
+		stopCaptureStream(stream);
 	}
-
-	recorder.stop();
-	await recorderDone;
-
-	onProgress?.(totalSlides, totalSlides);
-
-	return new Blob(chunks, { type: 'video/webm' });
 }

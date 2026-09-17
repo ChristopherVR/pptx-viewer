@@ -125,3 +125,24 @@ export function segmentFrameCount(durationMs: number, fps: number): number {
 	}
 	return Math.max(1, Math.ceil(durationMs / (1000 / fps)));
 }
+
+/**
+ * Stop every track on a `canvas.captureStream()` `MediaStream`.
+ *
+ * `MediaRecorder.stop()` only stops the recorder; the underlying capture
+ * stream it was constructed from keeps its track live and compositing frames
+ * from the source canvas indefinitely otherwise. Every binding's `recordWebm`
+ * driver must call this once recording is done - on success, on a
+ * `MediaRecorder` error, and on `AbortSignal` cancellation alike - or each
+ * video export leaks one live capture track for the rest of the page's
+ * lifetime, degrading a session that exports more than once. Pass
+ * `recorder.stream` (every `MediaRecorder` exposes the stream it was built
+ * from) so callers need not keep a separate reference to the stream.
+ *
+ * @param stream - The `MediaStream` to stop, typically `recorder.stream`.
+ */
+export function stopCaptureStream(stream: MediaStream): void {
+	for (const track of stream.getTracks()) {
+		track.stop();
+	}
+}

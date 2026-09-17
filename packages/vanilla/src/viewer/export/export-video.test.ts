@@ -63,6 +63,7 @@ interface TestHarness {
 	deps: ExportVideoDeps & { rasterizeSlide: ReturnType<typeof vi.fn> };
 	drawImage: ReturnType<typeof vi.fn>;
 	captureStream: ReturnType<typeof vi.fn>;
+	streamTracks: { stop: ReturnType<typeof vi.fn> }[];
 	downloads: () => { names: string[]; blobs: Blob[]; clicks: number };
 }
 
@@ -78,7 +79,10 @@ describe('runVideoExport', () => {
 		store.set({ slides: makeSlides(slideCount), canvasSize: { width: 8, height: 6 } });
 
 		const drawImage = vi.fn();
-		const captureStream = vi.fn(() => ({}) as MediaStream);
+		const streamTracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
+		const captureStream = vi.fn(
+			() => ({ getTracks: () => streamTracks }) as unknown as MediaStream,
+		);
 		const recordingCanvas = {
 			width: 0,
 			height: 0,
@@ -111,6 +115,7 @@ describe('runVideoExport', () => {
 			},
 			drawImage,
 			captureStream,
+			streamTracks,
 			downloads: () => ({ names: downloadNames, blobs: createdBlobs, clicks }),
 		};
 	}
@@ -153,6 +158,11 @@ describe('runVideoExport', () => {
 		expect(harness.captureStream).toHaveBeenCalledWith(10);
 		// 100ms per slide at 10fps = 1 frame per slide.
 		expect(harness.drawImage).toHaveBeenCalledTimes(2);
+		// `recorder.stop()` alone leaves the capture stream's tracks live,
+		// compositing frames from the recording canvas indefinitely.
+		for (const track of harness.streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 
 		const { names, blobs, clicks: clickCount } = harness.downloads();
 		expect(clickCount).toBe(1);
@@ -233,5 +243,9 @@ describe('runVideoExport', () => {
 		// The first frame drew, the abort landed before the second slide's frame.
 		expect(harness.drawImage).toHaveBeenCalledOnce();
 		expect(harness.downloads().clicks).toBe(0);
+		// Cleanup must run on the abort path too, not just the happy path.
+		for (const track of harness.streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 	});
 });

@@ -379,17 +379,27 @@ jobs:
   #
   # ribbon-tab-parity.spec.ts opens the React reference plus the binding owned
   # by each project so every framework retains the same no-wrap comparison.
-  # `--workers=1` (was 2, dropped 2026-09-17): 2 workers avoided saturating
-  # the single dev server per leg (spurious timeouts/HMR contention with the
-  # default higher worker count), but still let two heavy tests run at once,
-  # e.g. `export-raster-tiling.spec.ts`'s video/GIF-encoding tests landing in
-  # the same shard as another export-heavy file. On the CI runner (not
-  # reproducible locally, where the same shard passes in 3.6 minutes at
-  # workers=2) that concurrent pair reliably killed the vue/svelte/vanilla
-  # runner mid-job with "the runner has received a shutdown signal" - 3/3 on
-  # shard 4/12, never on react/angular. Serial execution is slower per shard
-  # but every observed shard still finishes in single-digit minutes, well
-  # under the 25-minute ceiling.
+  # `--workers=2` avoids saturating the single dev server per leg (spurious
+  # timeouts/HMR contention with the default higher worker count).
+  #
+  # 2026-09-16/17 incident: shard 4/12 repeatedly killed the vue/svelte/vanilla
+  # runners outright ("the runner has received a shutdown signal", exit 143),
+  # never react/angular, never reproducible locally. Root cause: every
+  # binding's `recordWebm` driver called `recorder.stop()` but never stopped
+  # the underlying `captureStream()` `MediaStream`'s tracks, so each video
+  # export left a live capture track compositing frames from the recording
+  # canvas indefinitely - a real per-export leak in the product, not a test
+  # artifact (a user exporting video more than once in a session leaked one
+  # track per export). Fixed once in `pptx-viewer-shared`'s `stopCaptureStream`
+  # and wired into all five bindings' recorders (`finally` blocks covering the
+  # success, error, and abort paths alike). Temporarily dropping to
+  # `--workers=1` and splitting shards 6 -> 12 masked the symptom by cutting
+  # concurrent heavy-test contention and shrinking each shard's blast radius;
+  # with the leak fixed, both are dialled back down (`--workers=2`, 8 shards)
+  # to cut total job volume while keeping the per-shard time budget the same
+  # split bought (12-shard/workers=2 shards finished in 6-12 minutes, far under
+  # the 25-minute ceiling, so 8 shards' larger per-shard share still has
+  # comfortable headroom).
   #
   # The matrix comes from `scope`, which also decides whether this job runs at
   # all: Playwright is skipped for fork pull requests (add the `full-ci` label to
@@ -398,7 +408,7 @@ jobs:
     needs: [scope, build]
     if: needs.scope.outputs.run-e2e == 'true'
     runs-on: ubuntu-latest
-    name: e2e-${{ matrix.key }} (shard ${{ matrix.shard }}/12)
+    name: e2e-${{ matrix.key }} (shard ${{ matrix.shard }}/8)
     # Hang protection only; genuine hangs are caught much earlier by
     # Playwright's own per-test timeout. This ceiling is per SHARD, not per
     # binding.
@@ -408,19 +418,22 @@ jobs:
     # observed per-test rate the react leg alone needs ~40 minutes of honest
     # work - it is the parity REFERENCE, so its parity specs sweep all five
     # demos. The suite has since grown again, to 623 tests across 149 spec
-    # files (2026-09-17), which silently doubled every shard's load and pushed
-    # the vue/svelte/vanilla legs' shard 2/6 over the 25-minute ceiling (killed
-    # mid-run with "the runner has received a shutdown signal", not a real
-    # test failure) two runs running. The lever is SHARD COUNT, not this
-    # number: splitting each binding twelve ways instead of six restores the
-    # original ~48-tests-per-shard budget that was safe at 291 tests, instead
-    # of ratcheting this timeout every time the suite doubles again.
+    # files (2026-09-17), thinning the margin a fixed 6-shard split left under
+    # this ceiling. Separately (see the `--workers=2` comment above for detail)
+    # a captureStream leak, not wall-clock overrun, was the actual cause of the
+    # vue/svelte/vanilla runner kills on 2026-09-16/17 - those died in ~9
+    # minutes, nowhere near this 25-minute ceiling. With that leak fixed and
+    # concurrency restored, 8 shards (up from 6, down from the 12 used while
+    # diagnosing the leak) rebuilds the margin the suite's growth had eaten
+    # without the job-count cost of 12. The lever for genuine wall-clock
+    # overrun is SHARD COUNT, not this number: raise it again if the suite
+    # keeps growing, instead of ratcheting this timeout.
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
         key: ${{ fromJSON(needs.scope.outputs.e2e-projects) }}
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        shard: [1, 2, 3, 4, 5, 6, 7, 8]
     steps:
       # See the equivalent guard in `test`: a skipped leg must not report green.
       - name: Require the ${{ matrix.key }} build to have succeeded
@@ -486,23 +499,24 @@ jobs:
 
       # Retries the whole `bun run e2e` invocation (not just individual
       # Playwright tests, which already get `retries: 2` from the config) up
-      # to once more on a hard failure. This exists for a specific, observed
-      # failure mode: on 2026-09-16/17 the vue/vanilla/svelte legs' shard 4/12
-      # got killed outright with "the runner has received a shutdown signal"
-      # (exit 143) partway through, sometimes before a single test finished -
-      # never react/angular, never reproducible locally, and which binding
-      # failed varied run to run. That shape (whole-runner kill, no
-      # deterministic test, no local repro) is CI-runner flakiness, not a
-      # product bug Playwright's own per-test retries can catch, since the
-      # runner dying takes the whole process (and its retry state) with it. A
-      # fresh process invocation is what actually recovers from it.
-      - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/12)
+      # to once more on a hard failure. Added while diagnosing a specific
+      # incident: on 2026-09-16/17 the vue/vanilla/svelte legs got killed
+      # outright with "the runner has received a shutdown signal" (exit 143)
+      # partway through a shard, sometimes before a single test finished -
+      # never react/angular, and which binding failed varied run to run. That
+      # was tracked down to a real captureStream leak (see the `--workers=2`
+      # comment above), now fixed, but a whole-runner kill takes the retry
+      # state of Playwright's own `retries: 2` down with it regardless of
+      # cause, so a fresh process invocation stays as a cheap, low-frequency
+      # safety net for whatever residual CI-runner flakiness this or any
+      # future incident leaves behind.
+      - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
         run: |
           for attempt in 1 2; do
-            bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/12 --workers=1 --reporter=list,html,github
+            bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
             status=$?
             [ $status -eq 0 ] && exit 0
-            echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/12 failed (exit $status)"
+            echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/8 failed (exit $status)"
             sleep 15
           done
           exit $status
@@ -513,7 +527,7 @@ jobs:
         if: failure()
         run: |
           {
-            echo "### e2e failures (${{ matrix.key }} shard ${{ matrix.shard }}/12)"
+            echo "### e2e failures (${{ matrix.key }} shard ${{ matrix.shard }}/8)"
             echo ""
             if [ -f test-results/.last-run.json ]; then
               echo '```'

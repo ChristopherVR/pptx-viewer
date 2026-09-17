@@ -4,6 +4,7 @@
 import {
 	downloadBlob as sharedDownloadBlob,
 	pickSupportedMimeType,
+	stopCaptureStream,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
 import { ref } from 'vue';
@@ -217,41 +218,49 @@ export function useMediaExport(options: UseMediaExportOptions): UseMediaExportRe
 
 			recorder.start();
 
-			const frameIntervalMs = 1000 / fps;
-			for (let i = 0; i < canvases.length; i++) {
-				if (signal?.aborted) {
-					recorder.stop();
-					throw new DOMException('Export cancelled', 'AbortError');
-				}
-				onRecordProgress?.(i, canvases.length);
-
-				const duration = slideTimingsMs?.[i] ?? slideDurationMs,
-					framesNeeded = Math.max(1, Math.ceil(duration / frameIntervalMs));
-				ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-				ctx.drawImage(canvases[i], 0, 0);
-
-				for (let f = 0; f < framesNeeded; f++) {
+			try {
+				const frameIntervalMs = 1000 / fps;
+				for (let i = 0; i < canvases.length; i++) {
 					if (signal?.aborted) {
 						recorder.stop();
 						throw new DOMException('Export cancelled', 'AbortError');
 					}
+					onRecordProgress?.(i, canvases.length);
+
+					const duration = slideTimingsMs?.[i] ?? slideDurationMs,
+						framesNeeded = Math.max(1, Math.ceil(duration / frameIntervalMs));
+					ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
 					ctx.drawImage(canvases[i], 0, 0);
-					await new Promise<void>((resolve) => {
-						setTimeout(resolve, frameIntervalMs);
-					});
+
+					for (let f = 0; f < framesNeeded; f++) {
+						if (signal?.aborted) {
+							recorder.stop();
+							throw new DOMException('Export cancelled', 'AbortError');
+						}
+						ctx.drawImage(canvases[i], 0, 0);
+						await new Promise<void>((resolve) => {
+							setTimeout(resolve, frameIntervalMs);
+						});
+					}
+					progress.value = 45 + Math.round(((i + 1) / canvases.length) * 45);
 				}
-				progress.value = 45 + Math.round(((i + 1) / canvases.length) * 45);
+
+				recorder.stop();
+				await recorderDone;
+
+				const blob = new Blob(chunks, { type: 'video/webm' });
+				onProgress?.(total, total);
+				progress.value = 95;
+				downloadBlob(blob, `${resolveBaseName(options.fileName)}.webm`);
+				progress.value = 100;
+				return blob;
+			} finally {
+				// `recorder.stop()` only stops the recorder; the capture stream
+				// (`recorder.stream`, the same one `createRecorder` built from the
+				// canvas) keeps compositing frames indefinitely otherwise - a real
+				// leak on every export, not just an abort path.
+				stopCaptureStream(recorder.stream);
 			}
-
-			recorder.stop();
-			await recorderDone;
-
-			const blob = new Blob(chunks, { type: 'video/webm' });
-			onProgress?.(total, total);
-			progress.value = 95;
-			downloadBlob(blob, `${resolveBaseName(options.fileName)}.webm`);
-			progress.value = 100;
-			return blob;
 		} finally {
 			exporting.value = false;
 		}

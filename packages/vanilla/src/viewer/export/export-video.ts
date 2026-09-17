@@ -4,6 +4,7 @@ import {
 	fpsToFrameIntervalMs,
 	pickSupportedMimeType,
 	planVideoSegments,
+	stopCaptureStream,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
 
@@ -96,30 +97,37 @@ async function recordWebm(canvases: HTMLCanvasElement[], opts: RecordOptions): P
 
 	recorder.start();
 
-	const plans = planVideoSegments({
-		totalSlides: canvases.length,
-		slideDurationMs: opts.slideDurationMs,
-		slideTimingsMs: opts.slideTimingsMs,
-		fps: opts.fps,
-	});
-	const frameIntervalMs = fpsToFrameIntervalMs(opts.fps);
+	try {
+		const plans = planVideoSegments({
+			totalSlides: canvases.length,
+			slideDurationMs: opts.slideDurationMs,
+			slideTimingsMs: opts.slideTimingsMs,
+			fps: opts.fps,
+		});
+		const frameIntervalMs = fpsToFrameIntervalMs(opts.fps);
 
-	for (const plan of plans) {
-		opts.onRecordProgress?.(plan.slideIndex, plans.length);
-		for (let frame = 0; frame < plan.frameCount; frame++) {
-			if (opts.signal?.aborted) {
-				recorder.stop();
-				throw exportAbortError();
+		for (const plan of plans) {
+			opts.onRecordProgress?.(plan.slideIndex, plans.length);
+			for (let frame = 0; frame < plan.frameCount; frame++) {
+				if (opts.signal?.aborted) {
+					recorder.stop();
+					throw exportAbortError();
+				}
+				// Redraw the same slide each tick to keep feeding the capture stream.
+				ctx.drawImage(canvases[plan.slideIndex], 0, 0);
+				await opts.waitMs(frameIntervalMs);
 			}
-			// Redraw the same slide each tick to keep feeding the capture stream.
-			ctx.drawImage(canvases[plan.slideIndex], 0, 0);
-			await opts.waitMs(frameIntervalMs);
 		}
-	}
 
-	recorder.stop();
-	await recorderDone;
-	return new Blob(chunks, { type: 'video/webm' });
+		recorder.stop();
+		await recorderDone;
+		return new Blob(chunks, { type: 'video/webm' });
+	} finally {
+		// `recorder.stop()` only stops the recorder; the capture stream itself
+		// keeps compositing frames from `recordingCanvas` indefinitely otherwise
+		// - a real leak on every export, not just an abort path.
+		stopCaptureStream(stream);
+	}
 }
 
 /**

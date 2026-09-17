@@ -7,17 +7,19 @@
  *   - fpsToFrameIntervalMs
  *   - segmentFrameCount
  *
- * `recordWebm` drives MediaRecorder and a live canvas; those integration
- * tests belong in an e2e suite and are not included here.
+ * `recordWebm` itself (MediaRecorder over a canvas `captureStream()`) is
+ * covered below with the same mocked-canvas/mocked-`MediaRecorder` pattern as
+ * `packages/vanilla/src/viewer/export/export-video.test.ts`.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	WEBM_MIME_CANDIDATES,
 	fpsToFrameIntervalMs,
 	pickSupportedMimeType,
 	planVideoSegments,
+	recordWebm,
 	segmentFrameCount,
 } from './video-export-helpers';
 
@@ -239,5 +241,105 @@ describe('webm mime candidates', () => {
 
 	it('includes a bare video/webm fallback', () => {
 		expect(WEBM_MIME_CANDIDATES).toContain('video/webm');
+	});
+});
+
+/* ================================================================== */
+/*  recordWebm                                                         */
+/* ================================================================== */
+
+describe('recordWebm', () => {
+	class MockMediaRecorder {
+		static instances: MockMediaRecorder[] = [];
+		static isTypeSupported = vi.fn(() => true);
+
+		ondataavailable: ((event: { data: Blob }) => void) | null = null;
+		onstop: (() => void) | null = null;
+		onerror: ((event: unknown) => void) | null = null;
+		stopCalls = 0;
+
+		constructor(
+			public stream: MediaStream,
+			public options?: MediaRecorderOptions,
+		) {
+			MockMediaRecorder.instances.push(this);
+		}
+
+		start(): void {}
+
+		stop(): void {
+			this.stopCalls += 1;
+			this.ondataavailable?.({ data: new Blob(['chunk'], { type: 'video/webm' }) });
+			this.onstop?.();
+		}
+	}
+
+	let drawImage: ReturnType<typeof vi.fn>;
+	let streamTracks: { stop: ReturnType<typeof vi.fn> }[];
+
+	function fakeCanvas(): HTMLCanvasElement {
+		return { width: 8, height: 6 } as unknown as HTMLCanvasElement;
+	}
+
+	beforeEach(() => {
+		MockMediaRecorder.instances = [];
+		vi.stubGlobal('MediaRecorder', MockMediaRecorder as unknown as typeof MediaRecorder);
+
+		drawImage = vi.fn();
+		streamTracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
+		const recordingCanvas = {
+			width: 0,
+			height: 0,
+			getContext: () => ({ drawImage, clearRect: vi.fn() }),
+			captureStream: () => ({ getTracks: () => streamTracks }) as unknown as MediaStream,
+		};
+		const orig = document.createElement.bind(document);
+		vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+			if (tag === 'canvas') {
+				return recordingCanvas as unknown as HTMLElement;
+			}
+			return orig(tag);
+		});
+	});
+
+	afterEach(() => {
+		vi.restoreAllMocks();
+		vi.unstubAllGlobals();
+	});
+
+	it('records every canvas and returns a webm blob', async () => {
+		const blob = await recordWebm([fakeCanvas(), fakeCanvas()], { slideDurationMs: 10, fps: 10 });
+
+		expect(blob.type).toBe('video/webm');
+		expect(MockMediaRecorder.instances).toHaveLength(1);
+		expect(MockMediaRecorder.instances[0]!.stopCalls).toBe(1);
+		expect(drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0);
+	});
+
+	it('stops every capture-stream track once recording finishes', async () => {
+		await recordWebm([fakeCanvas()], { slideDurationMs: 10, fps: 10 });
+
+		for (const track of streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
+	});
+
+	it('stops capture-stream tracks on the abort path too', async () => {
+		const controller = new AbortController();
+		const promise = recordWebm([fakeCanvas(), fakeCanvas()], {
+			slideDurationMs: 1000,
+			fps: 10,
+			signal: controller.signal,
+		});
+		controller.abort();
+
+		await expect(promise).rejects.toMatchObject({ name: 'AbortError' });
+		for (const track of streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
+	});
+
+	it('throws when no canvases are supplied', async () => {
+		await expect(recordWebm([])).rejects.toThrow('canvases array must not be empty');
 	});
 });

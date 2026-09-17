@@ -3,6 +3,7 @@ import {
 	fpsToFrameIntervalMs,
 	pickSupportedMimeType,
 	planVideoSegments,
+	stopCaptureStream,
 	WEBM_MIME_CANDIDATES,
 } from 'pptx-viewer-shared';
 
@@ -139,25 +140,38 @@ export async function exportSlidesToWebmBlob(
 	});
 
 	recorder.start();
-	const frameIntervalMs = fpsToFrameIntervalMs(fps);
-	const segments = planVideoSegments({ totalSlides: total, slideDurationMs, slideTimingsMs, fps });
-	for (const segment of segments) {
-		onRecordProgress?.(segment.slideIndex, total);
-		const canvas = slideCanvases[segment.slideIndex];
-		for (let f = 0; f < segment.frameCount; f++) {
-			if (signal?.aborted) {
-				recorder.stop();
-				throw exportAbortError();
-			}
-			// Redraw the same frame each tick to keep feeding the capture stream.
-			ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
-			ctx.drawImage(canvas, 0, 0);
-			await sleep(frameIntervalMs);
-		}
-	}
 
-	recorder.stop();
-	await recorderDone;
-	onProgress?.(total, total);
-	return new Blob(chunks, { type: 'video/webm' });
+	try {
+		const frameIntervalMs = fpsToFrameIntervalMs(fps);
+		const segments = planVideoSegments({
+			totalSlides: total,
+			slideDurationMs,
+			slideTimingsMs,
+			fps,
+		});
+		for (const segment of segments) {
+			onRecordProgress?.(segment.slideIndex, total);
+			const canvas = slideCanvases[segment.slideIndex];
+			for (let f = 0; f < segment.frameCount; f++) {
+				if (signal?.aborted) {
+					recorder.stop();
+					throw exportAbortError();
+				}
+				// Redraw the same frame each tick to keep feeding the capture stream.
+				ctx.clearRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+				ctx.drawImage(canvas, 0, 0);
+				await sleep(frameIntervalMs);
+			}
+		}
+
+		recorder.stop();
+		await recorderDone;
+		onProgress?.(total, total);
+		return new Blob(chunks, { type: 'video/webm' });
+	} finally {
+		// `recorder.stop()` only stops the recorder; the capture stream itself
+		// keeps compositing frames from `recordingCanvas` indefinitely otherwise
+		// - a real leak on every export, not just an abort path.
+		stopCaptureStream(stream);
+	}
 }

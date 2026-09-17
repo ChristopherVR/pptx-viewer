@@ -40,12 +40,14 @@ interface Harness {
 	recorderOptions: () => MediaRecorderOptions | undefined;
 	drawImage: ReturnType<typeof vi.fn>;
 	rasterizeSlide: ReturnType<typeof vi.fn>;
+	streamTracks: { stop: ReturnType<typeof vi.fn> }[];
 }
 
 function make(overrides: Partial<VideoCaptureDeps> = {}): Harness {
 	const recorder = new FakeRecorder();
 	let capturedOptions: MediaRecorderOptions | undefined;
 	const drawImage = vi.fn();
+	const streamTracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
 	const rasterizeSlide = vi
 		.fn()
 		.mockImplementation(async () => ({ width: 320, height: 180 }) as unknown as HTMLCanvasElement);
@@ -57,7 +59,7 @@ function make(overrides: Partial<VideoCaptureDeps> = {}): Harness {
 				width,
 				height,
 				getContext: () => ({ clearRect: vi.fn(), drawImage }),
-				captureStream: () => ({}) as MediaStream,
+				captureStream: () => ({ getTracks: () => streamTracks }) as unknown as MediaStream,
 			}) as unknown as HTMLCanvasElement,
 		createRecorder: (_stream, options) => {
 			capturedOptions = options;
@@ -65,7 +67,14 @@ function make(overrides: Partial<VideoCaptureDeps> = {}): Harness {
 		},
 		...overrides,
 	};
-	return { deps, recorder, recorderOptions: () => capturedOptions, drawImage, rasterizeSlide };
+	return {
+		deps,
+		recorder,
+		recorderOptions: () => capturedOptions,
+		drawImage,
+		rasterizeSlide,
+		streamTracks,
+	};
 }
 
 describe('exportSlidesToWebmBlob', () => {
@@ -95,6 +104,11 @@ describe('exportSlidesToWebmBlob', () => {
 			[0, 2],
 			[1, 2],
 		]);
+		// `recorder.stop()` alone leaves the capture stream's tracks live,
+		// compositing frames from the recording canvas indefinitely.
+		for (const track of harness.streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 	});
 
 	it('honours per-slide timing overrides from the shared video plan', async () => {
@@ -140,6 +154,10 @@ describe('exportSlidesToWebmBlob', () => {
 			}),
 		).rejects.toThrow('Export cancelled');
 		expect(harness.recorder.stopped).toBeTruthy();
+		// Cleanup must run on the abort path too, not just the happy path.
+		for (const track of harness.streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 	});
 
 	it('throws when there are no slides', async () => {

@@ -60,13 +60,17 @@ function makeMockElement(): HTMLElement {
 
 describe('exportAllSlidesAsVideo', () => {
 	let drawImage: ReturnType<typeof vi.fn>;
+	let captureStreamTracks: { stop: ReturnType<typeof vi.fn> }[];
 
 	beforeEach(() => {
 		MockMediaRecorder.instances = [];
 		vi.stubGlobal('MediaRecorder', MockMediaRecorder as unknown as typeof MediaRecorder);
 
 		drawImage = vi.fn();
-		const captureStream = vi.fn(() => ({}) as MediaStream);
+		captureStreamTracks = [{ stop: vi.fn() }, { stop: vi.fn() }];
+		const captureStream = vi.fn(
+			() => ({ getTracks: () => captureStreamTracks }) as unknown as MediaStream,
+		);
 		const recordingCanvas = {
 			width: 0,
 			height: 0,
@@ -108,6 +112,17 @@ describe('exportAllSlidesAsVideo', () => {
 		await exportAllSlidesAsVideo(ref, 1, vi.fn(), 0, { slideDurationMs: 10, scale: 3.3 });
 
 		expect(renderElementToTiledCanvas).toHaveBeenCalledWith(stageEl, 3.3);
+	});
+
+	it('stops every capture-stream track once recording finishes', async () => {
+		const stageEl = makeMockElement();
+		const ref = { current: stageEl } as React.RefObject<HTMLElement | null>;
+
+		await exportAllSlidesAsVideo(ref, 1, vi.fn(), 0, { slideDurationMs: 10 });
+
+		for (const track of captureStreamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 	});
 
 	it('throws when no slide stage was ever found', async () => {

@@ -31,10 +31,13 @@ function makeRecorderFactory(): {
 	factory: MediaRecorderFactory;
 	starts: number;
 	stops: number;
+	streamTracks: { stop: ReturnType<typeof vi.fn> }[];
 } {
 	const state = { starts: 0, stops: 0 },
+		streamTracks = [{ stop: vi.fn() }, { stop: vi.fn() }],
 		factory: MediaRecorderFactory = () => {
 			const recorder = {
+				stream: { getTracks: () => streamTracks } as unknown as MediaStream,
 				ondataavailable: null as ((e: BlobEvent) => void) | null,
 				onstop: null as (() => void) | null,
 				onerror: null as (() => void) | null,
@@ -57,6 +60,7 @@ function makeRecorderFactory(): {
 		get stops() {
 			return state.stops;
 		},
+		streamTracks,
 	};
 }
 
@@ -168,6 +172,11 @@ describe('useMediaExport - WebM', () => {
 		expect(downloadBlob).toHaveBeenCalledOnce();
 		expect(downloadBlob.mock.calls[0][1]).toBe('presentation.webm');
 		expect(blob?.type).toBe('video/webm');
+		// `recorder.stop()` alone leaves the capture stream's tracks live,
+		// compositing frames from the recording canvas indefinitely.
+		for (const track of recorder.streamTracks) {
+			expect(track.stop).toHaveBeenCalledOnce();
+		}
 		vi.useRealTimers();
 	});
 
