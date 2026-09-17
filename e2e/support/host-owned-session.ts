@@ -17,6 +17,17 @@ export async function expectHostOwnedShell(page: Page): Promise<void> {
 	}
 }
 
+/** Remote slide content can appear before the shell finishes loading its source. */
+export async function waitForHostEditing(page: Page): Promise<void> {
+	if (!test.info().project.metadata.headless) {
+		return;
+	}
+	const status = page.getByRole('status', { name: 'Collaboration status', exact: true });
+	if (await status.count()) {
+		await expect(status).toContainText('Editable');
+	}
+}
+
 /** Custom chrome owns Save; the full viewer still uses its actual File menu. */
 export async function saveHostOwnedPresentation(page: Page): Promise<Download> {
 	if (!test.info().project.metadata.headless) {

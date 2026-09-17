@@ -8,6 +8,7 @@ import {
 	hostOwnedSessionUrl,
 	requireCustomHostShell,
 	saveHostOwnedPresentation,
+	waitForHostEditing,
 } from './support/host-owned-session';
 
 const elements = (page: Page) => page.locator('[data-pptx-viewport] [data-pptx-element="true"]');
@@ -74,6 +75,7 @@ async function samePosition(first: Locator, second: Locator): Promise<void> {
 }
 
 async function replaceText(page: Page, original: string, replacement: string): Promise<void> {
+	await waitForHostEditing(page);
 	await elements(page).filter({ hasText: original }).dblclick();
 	const editor = page.locator('[data-inline-editor]').first();
 	await expect(editor).toBeVisible();
