@@ -10,6 +10,55 @@ dated sections beneath it are generated from
 
 ## 2026-09-17
 
+_Releases: pptx-react-viewer@3.21.0, pptx-vue-viewer@3.21.0, pptx-angular-viewer@3.21.0, pptx-vanilla-viewer@2.21.0, pptx-svelte-viewer@3.22.0, pptx-viewer-mcp@2.5.3, @christophervr/pptx-viewer@2.21.0_
+
+### Features
+
+- **shared:** Support host-owned collaboration sessions (by @Sudhansh6) ([cd44eb3](https://github.com/ChristopherVR/pptx-viewer/commit/cd44eb3e79ff6d23e9b92d6f9b0a4eb4ea4f228e))
+- **react:** Attach viewers to host collaboration sessions (by @Sudhansh6) ([ad55608](https://github.com/ChristopherVR/pptx-viewer/commit/ad556085dd83b7013fc5b92d7203b74bf4111f8a))
+- **vue:** Borrow host collaboration resources (by @Sudhansh6) ([dd3da37](https://github.com/ChristopherVR/pptx-viewer/commit/dd3da37e075383148806576ffaf6aec764696052))
+- **svelte:** Borrow host collaboration resources (by @Sudhansh6) ([72c4f5f](https://github.com/ChristopherVR/pptx-viewer/commit/72c4f5fb46d20faa4851452f572361a5730619fa))
+- **vanilla:** Borrow host collaboration resources (by @Sudhansh6) ([70ab1e2](https://github.com/ChristopherVR/pptx-viewer/commit/70ab1e2996b3875ef47d8ab36f34cd54ec278129))
+- **angular:** Attach host-owned collaboration sessions (by @Sudhansh6) ([802d2b0](https://github.com/ChristopherVR/pptx-viewer/commit/802d2b0186b1406ff45978f0b12e305aa8d217ce))
+
+### Bug Fixes
+
+- **shared:** Preserve consecutive collaborative text breaks (by @Sudhansh6) ([10d1667](https://github.com/ChristopherVR/pptx-viewer/commit/10d1667b3b41cf650985324b2accf7b006bf53c1))
+- **tools:** Preserve consecutive collaborative text breaks (by @Sudhansh6) ([e32b60b](https://github.com/ChristopherVR/pptx-viewer/commit/e32b60bcbf9bf7608bac1597ef27289e57424f32))
+- **react:** Preserve the public provider awareness type (by @Sudhansh6) ([67d5120](https://github.com/ChristopherVR/pptx-viewer/commit/67d5120932665ee07a48256d92363fd8c8cb6688))
+- **build:** Keep collaboration on the host Yjs runtime (by @Sudhansh6) ([1148601](https://github.com/ChristopherVR/pptx-viewer/commit/114860156b8a82967a85655464e7833bb0fd2644))
+- **react:** Retain snapshots when host callbacks change (by @Sudhansh6) ([47e5751](https://github.com/ChristopherVR/pptx-viewer/commit/47e575159b7e7bfac84bcd7d0c514869e856173e))
+- **react:** Honor external readiness before queued edits (by @Sudhansh6) ([dae37ed](https://github.com/ChristopherVR/pptx-viewer/commit/dae37ed9370d11f11f337e0192c15c7e26ded3cf))
+- **shared:** Unify host session readiness and writeback (by @Sudhansh6) ([4635d01](https://github.com/ChristopherVR/pptx-viewer/commit/4635d01dd9f0d6cd48cfbd3f1ad9968acfd02906))
+- **react:** Preserve accepted drafts when host readiness changes (by @Sudhansh6) ([b1c25cb](https://github.com/ChristopherVR/pptx-viewer/commit/b1c25cbc692f32f693e838ff0a21ca8c919655f4))
+- **vue:** Share host readiness and retire paused text edits (by @Sudhansh6) ([d350c60](https://github.com/ChristopherVR/pptx-viewer/commit/d350c609ed3efac87c2f68ae836b6e869e6954be))
+- **angular:** Share host readiness and seed ready creator rooms (by @Sudhansh6) ([9e6b718](https://github.com/ChristopherVR/pptx-viewer/commit/9e6b7187861162fe145f6f10f79f0979a9cf042a))
+- **svelte:** Share host readiness and preserve paused drafts (by @Sudhansh6) ([1cac3d9](https://github.com/ChristopherVR/pptx-viewer/commit/1cac3d97e027da6783ac539405c8f7f06dfb5a6d))
+- **vanilla:** Preserve host permission across session pauses (by @Sudhansh6) ([0790f79](https://github.com/ChristopherVR/pptx-viewer/commit/0790f7943c799ede9b1d134b75164b1fcdb0b1d3))
+- **ci:** Disable accelerated video encode/decode in e2e Chromium (by @ChristopherVR) ([0ecc87a](https://github.com/ChristopherVR/pptx-viewer/commit/0ecc87ae7572738321459391ec60cfc19538c2d7))
+- **e2e:** Give the heaviest export-tiling tests a fresh browser each (by @ChristopherVR) ([daa960f](https://github.com/ChristopherVR/pptx-viewer/commit/daa960fc537481d64d55d838dd00585855cc094a))
+
+### Documentation
+
+- Describe host-owned collaboration boundaries (by @Sudhansh6) ([09e583b](https://github.com/ChristopherVR/pptx-viewer/commit/09e583b227975d004fa6285cbbba4cf092dcd6a3))
+
+### Testing
+
+- **demos:** Exercise host-owned collaboration across bindings (by @Sudhansh6) ([5a08906](https://github.com/ChristopherVR/pptx-viewer/commit/5a08906160489b1c637dd761186c683f8eff4df8))
+- **collaboration:** Cover readiness transitions across bindings (by @Sudhansh6) ([8f8d53c](https://github.com/ChristopherVR/pptx-viewer/commit/8f8d53c9bcc2a123be7ab07553fafd088946f43a))
+- **vanilla:** Raise timeout on full-viewer collab tests (by @ChristopherVR) ([5beb3fe](https://github.com/ChristopherVR/pptx-viewer/commit/5beb3fe30e9479e05e452bdfd1e99f998f18da2b))
+- **svelte:** Raise timeout on the full-resolution GIF clamp test (by @ChristopherVR) ([28e0aad](https://github.com/ChristopherVR/pptx-viewer/commit/28e0aad606f44d507bd805fb70a451eb3ffd207f))
+
+### Build & CI
+
+- **deps:** Enforce application-owned yjs peer resolution (by @Sudhansh6) ([a459008](https://github.com/ChristopherVR/pptx-viewer/commit/a4590089efd7c813ac1925c1aa428ad2a22df7c1))
+
+### Styling
+
+- **svelte:** Move the GIF-encode timeout comment above the test (by @ChristopherVR) ([18d6f87](https://github.com/ChristopherVR/pptx-viewer/commit/18d6f8730f14e900823a3fb397972a5d76b0312a))
+
+## 2026-09-17
+
 _Releases: pptx-viewer-core@3.15.5, pptx-react-viewer@3.20.1, pptx-vue-viewer@3.20.1, pptx-angular-viewer@3.20.1, pptx-vanilla-viewer@2.20.1, pptx-svelte-viewer@3.21.1, @christophervr/pptx-viewer@2.20.1_
 
 ### Bug Fixes

@@ -7,6 +7,20 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.21.0) - 2026-09-17
+
+### Features
+
+- **react:** Attach viewers to host collaboration sessions (by @Sudhansh6) ([ad55608](https://github.com/ChristopherVR/pptx-viewer/commit/ad556085dd83b7013fc5b92d7203b74bf4111f8a))
+
+### Bug Fixes
+
+- **react:** Preserve the public provider awareness type (by @Sudhansh6) ([67d5120](https://github.com/ChristopherVR/pptx-viewer/commit/67d5120932665ee07a48256d92363fd8c8cb6688))
+- **build:** Keep collaboration on the host Yjs runtime (by @Sudhansh6) ([1148601](https://github.com/ChristopherVR/pptx-viewer/commit/114860156b8a82967a85655464e7833bb0fd2644))
+- **react:** Retain snapshots when host callbacks change (by @Sudhansh6) ([47e5751](https://github.com/ChristopherVR/pptx-viewer/commit/47e575159b7e7bfac84bcd7d0c514869e856173e))
+- **react:** Honor external readiness before queued edits (by @Sudhansh6) ([dae37ed](https://github.com/ChristopherVR/pptx-viewer/commit/dae37ed9370d11f11f337e0192c15c7e26ded3cf))
+- **react:** Preserve accepted drafts when host readiness changes (by @Sudhansh6) ([b1c25cb](https://github.com/ChristopherVR/pptx-viewer/commit/b1c25cbc692f32f693e838ff0a21ca8c919655f4))
+
 ## [2.20.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.20.1) - 2026-09-17
 
 ### Bug Fixes

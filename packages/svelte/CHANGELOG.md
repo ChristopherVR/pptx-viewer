@@ -7,6 +7,28 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.22.0) - 2026-09-17
+
+### Features
+
+- **shared:** Support host-owned collaboration sessions (by @Sudhansh6) ([cd44eb3](https://github.com/ChristopherVR/pptx-viewer/commit/cd44eb3e79ff6d23e9b92d6f9b0a4eb4ea4f228e))
+- **svelte:** Borrow host collaboration resources (by @Sudhansh6) ([72c4f5f](https://github.com/ChristopherVR/pptx-viewer/commit/72c4f5fb46d20faa4851452f572361a5730619fa))
+
+### Bug Fixes
+
+- **shared:** Preserve consecutive collaborative text breaks (by @Sudhansh6) ([10d1667](https://github.com/ChristopherVR/pptx-viewer/commit/10d1667b3b41cf650985324b2accf7b006bf53c1))
+- **build:** Keep collaboration on the host Yjs runtime (by @Sudhansh6) ([1148601](https://github.com/ChristopherVR/pptx-viewer/commit/114860156b8a82967a85655464e7833bb0fd2644))
+- **shared:** Unify host session readiness and writeback (by @Sudhansh6) ([4635d01](https://github.com/ChristopherVR/pptx-viewer/commit/4635d01dd9f0d6cd48cfbd3f1ad9968acfd02906))
+- **svelte:** Share host readiness and preserve paused drafts (by @Sudhansh6) ([1cac3d9](https://github.com/ChristopherVR/pptx-viewer/commit/1cac3d97e027da6783ac539405c8f7f06dfb5a6d))
+
+### Testing
+
+- **svelte:** Raise timeout on the full-resolution GIF clamp test (by @ChristopherVR) ([28e0aad](https://github.com/ChristopherVR/pptx-viewer/commit/28e0aad606f44d507bd805fb70a451eb3ffd207f))
+
+### Styling
+
+- **svelte:** Move the GIF-encode timeout comment above the test (by @ChristopherVR) ([18d6f87](https://github.com/ChristopherVR/pptx-viewer/commit/18d6f8730f14e900823a3fb397972a5d76b0312a))
+
 ## [3.21.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@3.21.1) - 2026-09-17
 
 ### Bug Fixes
