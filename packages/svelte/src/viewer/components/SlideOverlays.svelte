@@ -17,6 +17,7 @@
 	import AiChangeOverlay from './ai/AiChangeOverlay.svelte';
 	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
 	import AlignmentGuides from './AlignmentGuides.svelte';
+	import ChartQuickActionsOverlay from './ChartQuickActionsOverlay.svelte';
 	import EditorLayer from './EditorLayer.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import MotionPathOverlay from './MotionPathOverlay.svelte';
@@ -73,6 +74,14 @@
 {#if editingActive}
 	<EditorLayer {controller} {scale} {spellCheck} />
 	<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
+{/if}
+{#if editingActive && selectedElement?.type === 'chart'}
+	<ChartQuickActionsOverlay
+		element={selectedElement}
+		canEdit={editor.editable}
+		{scale}
+		onupdateelement={(id, updates) => editor.applyElementPatch(id, updates)}
+	/>
 {/if}
 {#if selectedElement && selectedMotionPath}
 	<MotionPathOverlay
