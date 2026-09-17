@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { CollaborationConfig } from '../types';
 import type { ExternalCollaborationSession } from './collaboration-external-session';
 
+const mockDoc = {} as never;
 const loadMock = vi.fn().mockResolvedValue({});
 const saveMock = vi.fn().mockResolvedValue(new Uint8Array([0x50, 0x4b, 0x03, 0x04]));
 
@@ -69,7 +70,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 	it('only schedules host snapshots once synced, including synced offline sessions', async () => {
 		const host = externalConfig(false);
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1]),
 		});
 		scheduler.schedule(host.config);
@@ -82,10 +83,87 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 		expect(host.listeners.size).toBe(0);
 	});
 
+	it('uses a retained serializer without reloading source bytes', async () => {
+		const bytes = new Uint8Array([7]);
+		const serialize = vi.fn((isCurrent: () => boolean) => {
+			expect(isCurrent()).toBeTruthy();
+			return bytes;
+		});
+		const scheduler = createWriteBackScheduler({ getYDoc: () => mockDoc, serialize });
+		const session = config();
+		scheduler.schedule(session);
+		await vi.runAllTimersAsync();
+		expect(loadMock).not.toHaveBeenCalled();
+		expect(serialize).toHaveBeenCalledOnce();
+		expect(session.onWriteBack).toHaveBeenCalledWith(bytes);
+	});
+
+	it.each(['source', 'retained'] as const)(
+		'contains an async host callback rejection with the %s serializer',
+		async (mode) => {
+			const bytes = new Uint8Array([7]);
+			let attempts = 0;
+			const onWriteBack = async (): Promise<void> => {
+				attempts++;
+				if (attempts === 1) {
+					throw new Error('Host save failed');
+				}
+			};
+			const scheduler = createWriteBackScheduler({
+				getYDoc: () => mockDoc,
+				getSourceBytes: () => bytes,
+				...(mode === 'retained' ? { serialize: () => bytes } : {}),
+			});
+			const session = config({ onWriteBack });
+			scheduler.schedule(session);
+			await vi.runAllTimersAsync();
+			scheduler.schedule(session);
+			await vi.runAllTimersAsync();
+			expect(attempts).toBe(2);
+		},
+	);
+
+	it.each(['cancel', 'replace', 'unsync'] as const)(
+		'revokes a retained serializer after %s',
+		async (cause) => {
+			let finish!: (bytes: Uint8Array) => void;
+			let isCurrent!: () => boolean;
+			let document = mockDoc;
+			const host = externalConfig();
+			const scheduler = createWriteBackScheduler({
+				getYDoc: () => document,
+				serialize: (check) => {
+					isCurrent = check;
+					return new Promise((resolve) => {
+						finish = resolve;
+					});
+				},
+			});
+			scheduler.schedule(host.config);
+			vi.advanceTimersByTime(0);
+			expect(isCurrent()).toBeTruthy();
+			if (cause === 'cancel') {
+				scheduler.cancel();
+			}
+			if (cause === 'replace') {
+				document = {} as never;
+			}
+			if (cause === 'unsync') {
+				host.setSynced(false);
+				host.setSynced(true);
+			}
+			expect(isCurrent()).toBeFalsy();
+			finish(new Uint8Array([7]));
+			await Promise.resolve();
+			expect(host.config.onWriteBack).not.toHaveBeenCalled();
+			expect(host.listeners.size).toBe(0);
+		},
+	);
+
 	it('cancels a pending host snapshot when sync is lost', async () => {
 		const host = externalConfig();
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1]),
 		});
 		scheduler.schedule(host.config);
@@ -106,7 +184,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 			(stage === 'load' ? loadMock : saveMock).mockReturnValue(deferred);
 			const host = externalConfig();
 			const scheduler = createWriteBackScheduler({
-				getYDoc: () => ({}) as never,
+				getYDoc: () => mockDoc,
 				getSourceBytes: () => new Uint8Array([1]),
 			});
 			scheduler.schedule(host.config);
@@ -128,7 +206,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 	it('passes getSaveOptions() through to handler.save so session-level edits survive write-back', async () => {
 		const saveOptions = { viewProperties: { showComments: true }, tags: [{ tags: [] }] };
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1, 2, 3]),
 			getSaveOptions: () => saveOptions as never,
 		});
@@ -142,7 +220,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 
 	it('calls handler.save with undefined options when getSaveOptions is not supplied (pre-existing behaviour)', async () => {
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1, 2, 3]),
 		});
 
@@ -161,7 +239,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 			}),
 		);
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1]),
 		});
 		const session = config();
@@ -184,7 +262,7 @@ describe('createWriteBackScheduler getSaveOptions wiring', () => {
 		);
 		const getSaveOptions = vi.fn();
 		const scheduler = createWriteBackScheduler({
-			getYDoc: () => ({}) as never,
+			getYDoc: () => mockDoc,
 			getSourceBytes: () => new Uint8Array([1]),
 			getSaveOptions,
 		});

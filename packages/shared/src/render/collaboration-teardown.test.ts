@@ -37,6 +37,28 @@ function makeWindow(): FakeWindow {
 }
 
 describe('registerCollaborationTeardown', () => {
+	it('evaluates dynamic ownership on each attempted navigation', () => {
+		const target = makeWindow();
+		const leave = vi.fn();
+		let borrowed = true;
+		registerCollaborationTeardown({ leave, target, leaveOnBeforeUnload: () => !borrowed });
+		target.emit('beforeunload');
+		expect(leave).not.toHaveBeenCalled();
+		borrowed = false;
+		target.emit('beforeunload');
+		expect(leave).toHaveBeenCalledOnce();
+	});
+
+	it('keeps a borrowed session attached when navigation is canceled', () => {
+		const target = makeWindow();
+		const leave = vi.fn();
+		registerCollaborationTeardown({ leave, target, leaveOnBeforeUnload: false });
+		target.emit('beforeunload');
+		expect(leave).not.toHaveBeenCalled();
+		target.emit('pagehide');
+		expect(leave).toHaveBeenCalledOnce();
+	});
+
 	it('leaves the room on pagehide (the iframe-removal / tab-close path)', () => {
 		const target = makeWindow();
 		const leave = vi.fn();

@@ -8,12 +8,9 @@
  * edits survive), re-serializes to PPTX bytes, and hands them to
  * `config.onWriteBack`.
  *
- * Framework-agnostic: every binding (Vue, Svelte, Vanilla) shares this single
- * implementation instead of maintaining its own near-identical copy. A
- * binding without template-mode editing simply omits `getTemplateElements`/
- * `mergeTemplateElements`. Angular keeps its own class-based
- * `WriteBackScheduler` (a different calling convention tied to its DI style),
- * not a duplicate of this one.
+ * Framework-agnostic: every binding shares this scheduling policy. Bindings
+ * with a retained serializer provide it through `serialize`; other bindings
+ * use the source-byte reload path below.
  */
 import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
@@ -27,6 +24,8 @@ const DEFAULT_DEBOUNCE_MS = 5_000;
 export interface WriteBackDeps {
 	/** The live Y.Doc, or null when disconnected. */
 	getYDoc: () => YDocLike | null;
+	/** Reuse a binding's retained serializer, with cancellation checks between awaits. */
+	serialize?: (isCurrent: () => boolean) => Promise<Uint8Array | null> | Uint8Array | null;
 	/** The retained source PPTX bytes to reload before overlaying Y.Doc slides. */
 	getSourceBytes?: () => Uint8Array | null;
 	/** The per-slide master/layout template element store to merge back. */
@@ -110,8 +109,16 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 		timer = setTimeout(async () => {
 			timer = null;
 			const ydoc = deps.getYDoc();
+			const isCurrent = (): boolean => token === generation && isReady() && deps.getYDoc() === ydoc;
 			try {
 				if (!ydoc || !config.onWriteBack || !isReady()) {
+					return;
+				}
+				if (deps.serialize) {
+					const bytes = await deps.serialize(isCurrent);
+					if (bytes && isCurrent()) {
+						await config.onWriteBack(bytes);
+					}
 					return;
 				}
 				const sourceBytes = deps.getSourceBytes?.();
@@ -120,7 +127,7 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 				}
 				const handler = new PptxHandler();
 				await handler.load(sourceBytes.buffer as ArrayBuffer);
-				if (token !== generation || !isReady()) {
+				if (!isCurrent()) {
 					return;
 				}
 				const slides = readSlidesFromYDoc(ydoc);
@@ -128,8 +135,8 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 					? deps.mergeTemplateElements(slides, deps.getTemplateElements?.() ?? {})
 					: slides;
 				const bytes = await handler.save(merged, deps.getSaveOptions?.());
-				if (token === generation && isReady()) {
-					config.onWriteBack(bytes);
+				if (isCurrent()) {
+					await config.onWriteBack(bytes);
 				}
 			} catch {
 				/* non-fatal */
