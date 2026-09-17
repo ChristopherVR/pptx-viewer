@@ -15,6 +15,72 @@ function liveText(): YTextLike {
 }
 
 describe('encodeTextBody / decodeTextBody', () => {
+	it.each([
+		{
+			name: 'paragraph',
+			flag: { isParagraphBreak: true },
+			metadata: {
+				paragraphLevel: 2,
+				endParaRunProperties: { '@_sz': '1800' },
+				paragraphInsertionStyle: { bold: true, fontSize: 18 },
+			},
+		},
+		{
+			name: 'soft line',
+			flag: { isLineBreak: true },
+			metadata: { breakRunProperties: { '@_lang': 'ja-JP', '@_sz': '1800' } },
+		},
+	])('restores each coalesced $name break with its metadata', ({ flag, metadata }) => {
+		const breakSegment = {
+			text: '',
+			style: { fontSize: 18, authoredRunStyle: { fontSize: 18 } },
+			...flag,
+			...metadata,
+		};
+		const segments = [
+			{ text: 'before', style: {} },
+			structuredClone(breakSegment),
+			structuredClone(breakSegment),
+			structuredClone(breakSegment),
+			{ text: 'after', style: {} },
+		];
+		const ytext = liveText();
+		encodeTextBody(segments, ytext);
+		const delta = ytext.toDelta();
+		expect(delta.map((op) => op.insert)).toStrictEqual(['before', '\n\n\n', 'after']);
+		const decoded = decodeTextBody(ytext);
+		expect(decoded).toStrictEqual(segments);
+		expect(decoded[1]).not.toBe(decoded[2]);
+		expect(decoded[1].style).not.toBe(decoded[2].style);
+		expect((decoded[1].style as Record<string, unknown>).authoredRunStyle).not.toBe(
+			(decoded[2].style as Record<string, unknown>).authoredRunStyle,
+		);
+		for (const [key, value] of Object.entries(metadata)) {
+			if (typeof value === 'object') {
+				expect(decoded[1][key]).not.toBe(decoded[2][key]);
+			}
+		}
+		expect(encodeSegmentsToDelta(decoded)).toStrictEqual(delta);
+	});
+
+	it.each([
+		{ insert: '\n\n', attributes: undefined, expected: { text: '\n\n', style: {} } },
+		{ insert: 'A\n\nB', attributes: undefined, expected: { text: 'A\n\nB', style: {} } },
+		{ insert: '\n\n', attributes: { pb: '0' }, expected: { text: '\n\n', style: {} } },
+		{
+			insert: '\nA\n',
+			attributes: { pb: '1' },
+			expected: { text: '\nA\n', style: {}, isParagraphBreak: true },
+		},
+		{
+			insert: '\r\n',
+			attributes: { lb: '1' },
+			expected: { text: '\r\n', style: {}, isLineBreak: true },
+		},
+	])('preserves the existing non-marker fallback for %j', ({ insert, attributes, expected }) => {
+		expect(decodeDelta([{ insert, attributes }])).toStrictEqual([expected]);
+	});
+
 	it('preserves insertion formatting on an empty carrier and a paragraph terminator', () => {
 		const paragraphInsertionStyle = {
 			fontSize: 40,

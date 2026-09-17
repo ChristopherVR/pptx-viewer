@@ -241,8 +241,16 @@ export function decodeDelta(delta: DeltaOp[]): Record<string, unknown>[] {
 		// attribute; a literal newline TEXT run (no pb/lb) must keep its text or
 		// runs like "Project\nAtlas" collapse to "ProjectAtlas" on decode. The
 		// zero-width space is always the empty-run attribute holder.
-		const isBreakMarker = op.insert === '\n' && (a.pb === '1' || a.lb === '1');
-		if (!isBreakMarker && op.insert !== '​') {
+		const isBreakMarker = /^\n+$/u.test(op.insert) && (a.pb === '1' || a.lb === '1');
+		if (isBreakMarker) {
+			// Y.Text coalesces adjacent equal-attribute breaks into one delta op.
+			// Each character still represents a separate paragraph or soft break.
+			for (let index = 0; index < op.insert.length; index++) {
+				segments.push(structuredClone(seg));
+			}
+			continue;
+		}
+		if (op.insert !== '​') {
 			seg.text = op.insert;
 		}
 		segments.push(seg);
