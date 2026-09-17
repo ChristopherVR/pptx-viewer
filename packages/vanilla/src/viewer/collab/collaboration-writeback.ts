@@ -33,8 +33,10 @@ export interface WriteBackScheduler {
 
 export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackScheduler {
 	let timer: ReturnType<typeof setTimeout> | null = null;
+	let generation = 0;
 
 	function cancel(): void {
+		generation += 1;
 		if (timer !== null) {
 			clearTimeout(timer);
 			timer = null;
@@ -46,6 +48,7 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 			return;
 		}
 		cancel();
+		const scheduledGeneration = generation;
 		const debounceMs = config.writeBackDebounceMs ?? DEFAULT_DEBOUNCE_MS;
 		timer = setTimeout(() => {
 			timer = null;
@@ -56,7 +59,12 @@ export function createWriteBackScheduler(deps: WriteBackDeps): WriteBackSchedule
 			}
 			void handler
 				.save(readSlidesFromYDoc(ydoc), deps.getSaveOptions?.())
-				.then((bytes) => config.onWriteBack?.(bytes))
+				.then((bytes) => {
+					if (scheduledGeneration === generation) {
+						return config.onWriteBack?.(bytes);
+					}
+					return undefined;
+				})
 				.catch(() => {
 					/* non-fatal: host can retry on the next change */
 				});

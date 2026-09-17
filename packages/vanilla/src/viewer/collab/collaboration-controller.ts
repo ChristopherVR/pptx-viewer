@@ -25,25 +25,19 @@ import type {
 	CollaborationController,
 	CollaborationControllerDeps,
 } from './collaboration-controller-types';
+import type { ExternalSessionSync } from './collaboration-external-sync';
+import { createExternalSessionSync } from './collaboration-external-sync';
 import type { PresenceController } from './collaboration-presence';
 import { createPresenceController } from './collaboration-presence';
-import type { CollabProviderHandle } from './collaboration-provider';
-import { createCollabProvider } from './collaboration-provider';
+import type { CollaborationSession } from './collaboration-session';
+import { createCollaborationSession } from './collaboration-session';
 import { createSlidesSync } from './collaboration-slides-sync';
 import type { SlidesSync } from './collaboration-slides-sync';
 import { createWriteBackScheduler } from './collaboration-writeback';
 
 /**
- * Real-time collaboration for the vanilla viewer over Yjs (y-websocket or
- * serverless y-webrtc), ported from the Vue `useCollaboration` composable.
- *
- * Slide sync is granular via the shared `reconcileSlidesInYDoc` (tagged
- * `LOCAL_SYNC_ORIGIN` so the observer skips our own writes; see
- * `collaboration-slides-sync.ts`), matching the React/Vue/Angular apply path.
- * Presence (cursors/selection/follow-mode) publishes via the shared
- * `createPresencePublisher`/`derivePresenceList` (`collaboration-presence.ts`)
- * into `store.get().remotePresences`/`.cursors` so the cursors overlay and
- * status UI re-render off the same store as the rest of the viewer.
+ * Yjs collaboration with built-in transports or a borrowed host session.
+ * Granular slide sync and presence live in their focused modules.
  *
  * KNOWN LIMITATION: collaboration undo semantics are undefined - the local
  * `EditorHistory` stack keeps working but does not coordinate with peers
@@ -57,9 +51,10 @@ export function createCollaborationController(
 
 	let status: ConnectionStatus = 'disconnected';
 	let active = false;
-	let ydoc: { destroy: () => void } | null = null;
+	let session: CollaborationSession | null = null;
+	let generation = 0;
+	let externalSync: ExternalSessionSync | null = null;
 	let currentYDoc: YDocLike | null = null;
-	let provider: CollabProviderHandle | null = null;
 	let yFactories: YjsFactories | null = null;
 	let presence: PresenceController | null = null;
 	let publishSuppressed = false;
@@ -85,20 +80,23 @@ export function createCollaborationController(
 		getSaveOptions: deps.getSaveOptions,
 	});
 
-	const slidesSync: SlidesSync = createSlidesSync(store, (config) => writeBack.schedule(config));
+	const slidesSync: SlidesSync = createSlidesSync(store, (config) => {
+		if (!config.externalSession || syncGate.isOpen()) {
+			writeBack.schedule(config);
+		}
+	});
 
 	function flushLocal(): void {
 		slidesSync.flushLocalSlides(currentYDoc, yFactories, lastConfig, publishSuppressed);
+		externalSync?.localPublished();
 	}
-
-	// First-write gate: until the provider confirms its initial sync (or the
-	// grace period elapses for a lone webrtc peer), local slides must not seed
-	// the doc, or a late joiner's bootstrap deck would merge into the room's real
-	// content. Opening the gate performs the deferred first write.
+	// Prevent a bootstrap deck from preceding initial sync. Built-in transports
+	// retain their grace timer; external sessions only use host readiness.
 	const syncGate = createSyncGate(flushLocal);
 
 	async function start(config: CollaborationConfig): Promise<void> {
 		stop();
+		const token = generation;
 		lastConfig = config;
 		try {
 			validateRoomId(config.roomId);
@@ -108,28 +106,27 @@ export function createCollaborationController(
 		}
 		const transport = config.transport ?? resolveTransportForServerUrl(config.serverUrl);
 		// Mixed-content only affects a ws:// socket from an https page.
-		if (transport === 'websocket' && isMixedContentBlocked(config.serverUrl)) {
+		if (
+			!config.externalSession &&
+			transport === 'websocket' &&
+			isMixedContentBlocked(config.serverUrl)
+		) {
 			setStatus('error');
 			return;
 		}
 		setStatus('connecting');
 		try {
-			const Y = await import('yjs');
-			const doc = new Y.Doc();
-			ydoc = doc;
-			yFactories = {
-				createMap: () => new Y.Map(),
-				createArray: () => new Y.Array(),
-				createText: () => new Y.Text(),
-			};
-			currentYDoc = doc as unknown as YDocLike;
-			livePatcher.configure(currentYDoc, yFactories);
-
-			provider = await createCollabProvider(transport, config, doc);
-
+			const created = await createCollaborationSession(config, transport);
+			if (token !== generation) {
+				created.dispose();
+				return;
+			}
+			session = created;
+			currentYDoc = created.doc;
+			yFactories = created.factories;
 			presence = createPresenceController(
 				store,
-				provider.awareness,
+				created.awareness,
 				{
 					userName: config.userName,
 					userColor: config.userColor ?? DEFAULT_CURSOR_COLOR,
@@ -146,41 +143,16 @@ export function createCollaborationController(
 				deps.setEditable(false);
 			}
 
-			// Gate local writes on the provider's initial sync; the grace timer
-			// covers a lone webrtc peer that never receives a sync event.
-			syncGate.reset();
-			provider.onSynced(() => syncGate.open());
-			if (provider.syncedNow) {
-				syncGate.open();
-			} else {
-				syncGate.arm();
-			}
-
-			// Connection-status wiring (incl. websocket connect timeout and the
-			// gate re-arm on drops) lives in collaboration-connection.ts.
-			connection = wireConnectionStatus({
-				provider,
-				transport,
-				setStatus,
-				isActive: () => active,
-				reArmGate: () => {
-					syncGate.reset();
-					syncGate.arm();
-				},
-				onConnectTimeout: () => {
-					if (status !== 'connected') {
-						stop();
-						setStatus('error');
-					}
-				},
-			});
-
 			// Observe remote slide changes, skipping our own reconcile transactions.
 			unobserveSlides = observeYDocSlides(currentYDoc, (_events, transaction) => {
 				if (transaction?.origin === LOCAL_SYNC_ORIGIN || slidesSync.isApplyingRemote()) {
 					return;
 				}
-				slidesSync.applyRemoteSlides(currentYDoc, config);
+				if (externalSync) {
+					externalSync.applyRemote();
+				} else {
+					slidesSync.applyRemoteSlides(currentYDoc, config);
+				}
 			});
 
 			// Broadcast local slide edits granularly (diff by id, one transaction).
@@ -194,26 +166,53 @@ export function createCollaborationController(
 			});
 
 			active = true;
+			if (config.externalSession) {
+				externalSync = createExternalSessionSync(config.externalSession, config, {
+					factories: created.factories,
+					livePatcher,
+					gate: syncGate,
+					setStatus,
+					flushLocal,
+					cancelWriteBack: writeBack.cancel,
+					applyRemote: (allowEmpty) =>
+						slidesSync.applyRemoteSlides(created.doc, config, allowEmpty),
+				});
+			} else if (created.provider) {
+				const provider = created.provider;
+				livePatcher.configure(currentYDoc, yFactories);
+				provider.onSynced(() => syncGate.open());
+				if (provider.syncedNow) {
+					syncGate.open();
+				} else {
+					syncGate.arm();
+				}
+				connection = wireConnectionStatus({
+					provider,
+					transport,
+					setStatus,
+					isActive: () => active,
+					reArmGate: () => {
+						syncGate.reset();
+						syncGate.arm();
+					},
+					onConnectTimeout: () => {
+						if (status !== 'connected') {
+							stop();
+							setStatus('error');
+						}
+					},
+				});
+			}
 		} catch {
-			stop();
-			setStatus('error');
+			if (token === generation) {
+				stop();
+				setStatus('error');
+			}
 		}
 	}
 
-	// Content-load adoption: the load pipeline commits its parsed deck to the
-	// store unconditionally, so a late joiner whose BOOTSTRAP deck finishes
-	// parsing AFTER the room's slides were applied would clobber the synced
-	// state and, with the doc itself unchanged, the observer never re-fires to
-	// repair it. The load path brackets its commit with beginContentLoad /
-	// notifyContentLoaded: publishing is suppressed for that window, then the
-	// room's slides win when the doc has content (applyRemoteSlides bypasses
-	// the JSON dedupe and re-arms it against the echo); an empty doc means this
-	// client is the seeder, so the suppressed publish runs now instead.
-	//
-	// A deck the USER opened mid-session is the case that rule must not touch
-	// (`shouldRoomSlidesReplaceLoad`): joining a room and then opening a file
-	// used to leave the room's starter deck on screen, because the file was
-	// parsed, committed and immediately overwritten by the room.
+	// Loads suppress publishing until adoption decides whether the room's deck
+	// beats a late bootstrap. Explicit user-opened files instead replace the room.
 	function beginContentLoad(_origin: CollabLoadOrigin): void {
 		loadApplying = true;
 	}
@@ -222,6 +221,10 @@ export function createCollaborationController(
 		const suppressed = loadApplying;
 		loadApplying = false;
 		if (!active || !currentYDoc || !lastConfig) {
+			return;
+		}
+		if (externalSync) {
+			externalSync.contentLoaded(origin);
 			return;
 		}
 		if (
@@ -236,6 +239,9 @@ export function createCollaborationController(
 	}
 
 	function stop(): void {
+		generation += 1;
+		externalSync?.dispose();
+		externalSync = null;
 		connection?.cancelConnectTimer();
 		connection = null;
 		loadApplying = false;
@@ -248,27 +254,21 @@ export function createCollaborationController(
 		unsubscribeStore = null;
 		presence?.destroy();
 		presence = null;
-		provider?.destroy();
-		ydoc?.destroy();
-		provider = null;
-		ydoc = null;
+		session?.dispose();
+		session = null;
 		currentYDoc = null;
 		yFactories = null;
 		livePatcher.configure(null, null);
+		active = false;
 		// Restore the editing state a viewer-role session forced off.
 		if (publishSuppressed && editableBeforeViewer !== null) {
 			deps.setEditable(editableBeforeViewer);
 		}
 		publishSuppressed = false;
 		editableBeforeViewer = null;
-		active = false;
 		setStatus('disconnected');
 	}
 
-	// Viewer destruction is not the only way a session ends: a tab close, a
-	// navigation, or an embedding page detaching the viewer's iframe destroys the
-	// document without running any of our teardown, leaving a ghost peer in
-	// everyone else's presence list. Leave the room from `pagehide` too.
 	const disposeTeardown = registerCollaborationTeardown({
 		leave: stop,
 		rejoin: () => {

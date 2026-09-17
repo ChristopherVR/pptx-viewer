@@ -31,7 +31,11 @@ export interface SlidesSync {
 	 * re-adopt the doc after a local content load. Returns whether doc slides
 	 * were applied.
 	 */
-	applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): boolean;
+	applyRemoteSlides(
+		ydoc: YDocLike | null,
+		config: CollaborationConfig,
+		allowEmpty?: boolean,
+	): boolean;
 	/** Whether a remote apply is currently in flight (observer re-entrancy guard). */
 	isApplyingRemote(): boolean;
 	/** Clear echo-dedupe/re-entrancy state (session teardown). */
@@ -66,12 +70,16 @@ export function createSlidesSync(
 		}
 	}
 
-	function applyRemoteSlides(ydoc: YDocLike | null, config: CollaborationConfig): boolean {
+	function applyRemoteSlides(
+		ydoc: YDocLike | null,
+		config: CollaborationConfig,
+		allowEmpty = false,
+	): boolean {
 		if (!ydoc) {
 			return false;
 		}
 		const remote: PptxSlide[] = readSlidesFromYDoc(ydoc);
-		if (remote.length === 0) {
+		if (remote.length === 0 && !allowEmpty) {
 			return false;
 		}
 		applyingRemote = true;

@@ -18,6 +18,11 @@ export type { ElementUpdate, ElementUpdateOptions } from 'pptx-viewer-shared';
 // ── Viewer ─────────────────────────────────────────────────────────────
 export { createPptxViewer, PptxViewer } from './viewer';
 export type { ViewportFitOptions, ViewportFitPadding } from 'pptx-viewer-shared';
+export type {
+	ExternalCollaborationAwareness,
+	ExternalCollaborationSession,
+	ExternalCollaborationSnapshot,
+} from 'pptx-viewer-shared';
 export { createImageElementFromFile } from 'pptx-viewer-shared';
 export type { PptxViewerCallbacks, PptxViewerInstance, PptxViewerOptions } from './viewer';
 export type { PptxViewerSource } from './viewer';

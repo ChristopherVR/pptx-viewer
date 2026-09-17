@@ -65,4 +65,29 @@ describe('vanilla createWriteBackScheduler getSaveOptions wiring', () => {
 		expect(save).toHaveBeenCalledExactlyOnceWith([{ id: 's1', elements: [] }], undefined);
 		vi.useRealTimers();
 	});
+
+	it('drops an in-flight save after session cancellation or replacement', async () => {
+		let finish!: (bytes: Uint8Array) => void;
+		const save = vi.fn().mockResolvedValue(new Uint8Array([2]));
+		save.mockReturnValueOnce(
+			new Promise<Uint8Array>((resolve) => {
+				finish = resolve;
+			}),
+		);
+		const oldWriteBack = vi.fn();
+		const nextWriteBack = vi.fn();
+		const scheduler = createWriteBackScheduler({
+			getYDoc: () => ({}) as YDocLike,
+			getHandler: () => ({ save }) as unknown as PptxHandler,
+		});
+		scheduler.schedule(config({ onWriteBack: oldWriteBack }));
+		await vi.runAllTimersAsync();
+		scheduler.cancel();
+		scheduler.schedule(config({ onWriteBack: nextWriteBack }));
+		finish(new Uint8Array([9]));
+		await vi.runAllTimersAsync();
+		expect(oldWriteBack).not.toHaveBeenCalled();
+		expect(nextWriteBack).toHaveBeenCalledOnce();
+		vi.useRealTimers();
+	});
 });

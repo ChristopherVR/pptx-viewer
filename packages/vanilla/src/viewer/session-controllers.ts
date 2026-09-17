@@ -54,6 +54,7 @@ export interface SessionControllersDeps {
 export interface SessionControllers {
 	startCollaboration(config: CollaborationConfig): Promise<void>;
 	stopCollaboration(): void;
+	isCollaborationReadOnly(): boolean;
 	getCollaborationStatus(): ConnectionStatus;
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */
 	setCollaborationCursor(x: number, y: number): void;
@@ -210,6 +211,8 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 	return {
 		startCollaboration: (config) => collaboration.start(config),
 		stopCollaboration: () => collaboration.stop(),
+		isCollaborationReadOnly: () =>
+			collaboration.isActive() && collaboration.getConfig()?.role === 'viewer',
 		getCollaborationStatus: () => collaboration.getStatus(),
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
 		publishCollaborationInlineText: (elementId, text) => {

@@ -1566,8 +1566,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	setEditable(editable: boolean): void {
-		this.store.set({ editable });
-		this.editor.setEditable(editable);
+		const allowed = editable && !this.sessions?.isCollaborationReadOnly();
+		this.store.set({ editable: allowed });
+		this.editor.setEditable(allowed);
 	}
 
 	/** Trust Center > Protected View's "Enable Editing" banner button. */
