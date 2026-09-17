@@ -29,6 +29,28 @@ export type { PptxViewerSource } from './viewer';
 export type { ViewerState, ZoomLevel } from './viewer';
 
 // ── Collaboration + autosave (config + status types re-exported for hosts) ─
+export {
+	createCollaborationController,
+	createCollaborationShell,
+	createCollaborationCursors,
+} from './viewer/collab';
+export type {
+	CollaborationController,
+	CollaborationControllerDeps,
+	CollaborationShell,
+	CollaborationShellOptions,
+	CollaborationCursors,
+	RemoteSelectionOverlay,
+} from './viewer/collab';
+export type { CollaborationShellState, SanitizedPresence } from 'pptx-viewer-shared';
+export { buildInlineTextCommitPatch, canInteractWithElement } from 'pptx-viewer-shared';
+export { loadPresentation, revokeBlobUrls } from './viewer/load';
+export type { LoadedPresentation, LoadPresentationOptions } from './viewer/load';
+export { openInlineEditor, canInlineEditElement } from './viewer/editor/inline-text-editor';
+export type {
+	InlineEditorSession,
+	OpenInlineEditorOptions,
+} from './viewer/editor/inline-text-editor';
 export type {
 	AutosaveRecord,
 	AutosaveStatus,
