@@ -37,19 +37,19 @@ describe('vue animation parity controls', () => {
 		const wrapper = mount(AnimationPanel, {
 			props: { element: selected, slideElements: elements },
 		});
-		await wrapper.get('[aria-label="Animation duration"]').setValue(750);
+		await wrapper.get('[aria-label="Duration (ms)"]').setValue(750);
 		expect(latestAnimation(wrapper).durationMs).toBe(750);
-		await wrapper.get('[aria-label="Animation delay"]').setValue(125);
+		await wrapper.get('[aria-label="Delay (ms)"]').setValue(125);
 		expect(latestAnimation(wrapper).delayMs).toBe(125);
-		await wrapper.get('[aria-label="Animation direction"]').setValue('fromBottomRight');
+		await wrapper.get('[aria-label="Direction"]').setValue('fromBottomRight');
 		expect(latestAnimation(wrapper).direction).toBe('fromBottomRight');
-		await wrapper.get('[aria-label="Animation sequence"]').setValue('byWord');
+		await wrapper.get('[aria-label="Sequence"]').setValue('byWord');
 		expect(latestAnimation(wrapper).sequence).toBe('byWord');
-		await wrapper.get('[aria-label="Animation timing curve"]').setValue('linear');
+		await wrapper.get('[aria-label="Timing curve"]').setValue('linear');
 		expect(latestAnimation(wrapper).timingCurve).toBe('linear');
-		await wrapper.get('[aria-label="Animation repeat count"]').setValue(3);
+		await wrapper.get('[aria-label="Repeat count"]').setValue(3);
 		expect(latestAnimation(wrapper).repeatCount).toBe(3);
-		await wrapper.get('[aria-label="Animation repeat mode"]').setValue('untilEndOfSlide');
+		await wrapper.get('[aria-label="Repeat until"]').setValue('untilEndOfSlide');
 		expect(latestAnimation(wrapper).repeatMode).toBe('untilEndOfSlide');
 	});
 
@@ -64,10 +64,10 @@ describe('vue animation parity controls', () => {
 		expect(triggerValues).toStrictEqual(
 			expect.arrayContaining(['onHover', 'onShapeClick', 'afterDelay']),
 		);
-		const shapeOptions = wrapper.get('[aria-label="Animation trigger shape"]').text();
+		const shapeOptions = wrapper.get('[aria-label="Trigger shape"]').text();
 		expect(shapeOptions).toContain('Animated shape');
 		expect(shapeOptions).toContain('Unanimated trigger');
-		await wrapper.get('[aria-label="Animation trigger shape"]').setValue('plain');
+		await wrapper.get('[aria-label="Trigger shape"]').setValue('plain');
 		expect(latestAnimation(wrapper).triggerShapeId).toBe('plain');
 		await wrapper
 			.get('[data-animation-editor] [aria-label="Animation trigger"]')

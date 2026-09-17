@@ -126,7 +126,11 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 						onChange={p.onSetShowGuides}
 						title={t('pptx.ribbon.toggleGuides')}
 					/>
-					<RibbonToggle label='Snap to grid' checked={p.snapToGrid} onChange={p.onSetSnapToGrid} />
+					<RibbonToggle
+						label={t('pptx.settings.snapToGrid')}
+						checked={p.snapToGrid}
+						onChange={p.onSetSnapToGrid}
+					/>
 				</RibbonCommandStack>
 				<RibbonCommandStack>
 					<RibbonCommand
@@ -155,14 +159,14 @@ export function ViewSection(p: ViewSectionProps): React.ReactElement {
 					/>
 					<RibbonCommand
 						compact
-						label='H Guide'
+						label={t('pptx.view.hGuide')}
 						icon={<LuRuler />}
 						onClick={() => p.onAddGuide('h')}
 						title={t('pptx.view.addHorizontalGuide')}
 					/>
 					<RibbonCommand
 						compact
-						label='V Guide'
+						label={t('pptx.view.vGuide')}
 						icon={<LuRuler />}
 						onClick={() => p.onAddGuide('v')}
 						title={t('pptx.view.addVerticalGuide')}

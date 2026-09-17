@@ -1,5 +1,6 @@
 import type { ParagraphRun } from 'pptx-viewer-shared';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { RunRenderContext } from './text-segment-render';
 
@@ -71,11 +72,16 @@ export function renderHyperlink(
 					<span className='flex flex-col rounded border border-border bg-popover px-2.5 py-1.5 shadow-lg'>
 						<span className='truncate text-xs text-foreground'>{displayUrl}</span>
 						<span className='mt-0.5 text-[10px] text-muted-foreground'>
-							Ctrl+Click to follow link
+							<FollowLinkHint />
 						</span>
 					</span>
 				</span>
 			)}
 		</span>
 	);
+}
+
+function FollowLinkHint(): React.ReactElement {
+	const { t } = useTranslation();
+	return <>{t('pptx.linkTooltip.followLink')}</>;
 }

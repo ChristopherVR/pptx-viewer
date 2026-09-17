@@ -70,6 +70,8 @@ export const translations = {
 	'pptx.slideShow.subtitlesTooltip': '切换字幕',
 	'pptx.slideShow.subtitles': '字幕',
 	'pptx.record.cameo': '摄像头画面',
+	'pptx.record.manage': '管理',
+	'pptx.record.camera': '摄像头',
 	'pptx.record.clear': '清除',
 	'pptx.record.learnMore': '了解更多',
 	'pptx.record.resetToCameo': '重置摄像头画面',

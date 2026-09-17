@@ -11,7 +11,92 @@ description: 将 pptx-vanilla-viewer 挂载到容器，从 URL 或文件输入�
 请先安装组件包，参见[概览 > 安装](/zh/vanilla/#installation)。
 :::
 
-## 1. 挂载查看器 {#_1-mount-a-viewer}
+## 1. 创建完整应用 {#_1-create-a-complete-app}
+
+可以使用 Vite 快速搭建可运行的示例。按以下结构创建目录，并将要打开的 PowerPoint 文件放到 `public/presentation.pptx`：
+
+```text
+my-pptx-app/
+  index.html
+  package.json
+  public/
+    presentation.pptx
+  src/
+    main.js
+```
+
+安装组件包和 Vite：
+
+```bash
+npm init -y
+npm install pptx-vanilla-viewer
+npm install -D vite
+```
+
+将 `package.json` 中的 `scripts` 配置为：
+
+```json
+{
+	"scripts": {
+		"dev": "vite"
+	}
+}
+```
+
+运行 `npm run dev`，打开 Vite 输出的本地地址。Vite 将 `public/` 中的文件映射到站点根路径，因此可以通过 `/presentation.pptx` 访问 `public/presentation.pptx`。
+
+### `index.html`
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>PPTX Viewer</title>
+		<style>
+			html,
+			body,
+			#host {
+				height: 100%;
+				margin: 0;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="host"></div>
+		<script type="module" src="/src/main.js"></script>
+	</body>
+</html>
+```
+
+### `src/main.js`
+
+```js
+import { createPptxViewer, vermilionDarkTheme } from 'pptx-vanilla-viewer';
+
+const host = document.getElementById('host');
+
+createPptxViewer(host, {
+	// Vite 从 public/presentation.pptx 提供此文件。
+	source: '/presentation.pptx',
+	theme: vermilionDarkTheme,
+	editable: true,
+	showToolbar: true,
+	showThumbnails: true,
+	fileName: 'presentation.pptx',
+	onLoad: ({ slideCount }) => console.log(`Loaded ${slideCount} slides`),
+	onError: (message) => console.error(message),
+});
+```
+
+`source` 加载成功后，查看器会自动打开演示文稿。无需在 `onLoad` 中查询或点击查看器内部的文件菜单控件。
+
+如果 `.pptx` 托管在其他域名下，文件服务器必须通过 CORS 允许当前站点访问。开发时将文件放在 `public/` 中即可避免跨域问题。
+
+<span id="_1-mount-a-viewer"></span>
+
+## 2. 挂载查看器 {#_2-mount-a-viewer}
 
 `createPptxViewer(container, options)` 在 `container` 内构建查看器界面，并返回 [`PptxViewerInstance`](/zh/vanilla/api)。查看器会填满容器，因此请为容器设置明确的尺寸。
 
@@ -19,10 +104,13 @@ description: 将 pptx-vanilla-viewer 挂载到容器，从 URL 或文件输入�
 <div id="host" style="height: 100vh"></div>
 ```
 
-```ts
+```js
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 
-const viewer = createPptxViewer(document.getElementById('host')!, {
+const host = document.getElementById('host');
+if (!host) throw new Error('Missing #host element');
+
+const viewer = createPptxViewer(host, {
 	source: '/presentation.pptx',
 	onLoad: ({ slideCount, canvasSize }) => {
 		console.log(`${slideCount} slides at ${canvasSize.width}x${canvasSize.height}`);
@@ -33,22 +121,30 @@ const viewer = createPptxViewer(document.getElementById('host')!, {
 
 `source` 接受 **URL 字符串**（自动获取）、**`ArrayBuffer`**、**`Uint8Array`** 或 **`Blob` / `File`**。省略时以空状态启动，稍后再加载。
 
-## 2. 从文件 `<input>` 加载 {#_2-loading-from-a-file-input}
+<span id="_2-loading-from-a-file-input"></span>
+
+## 3. 从文件 `<input>` 加载 {#_3-loading-from-a-file-input}
 
 ```html
 <input type="file" id="file" accept=".pptx,.ppt" />
 <div id="host" style="height: 80vh"></div>
 ```
 
-```ts
+```js
 import { createPptxViewer } from 'pptx-vanilla-viewer';
 
-const viewer = createPptxViewer(document.getElementById('host')!, {
+const host = document.getElementById('host');
+const fileInput = document.getElementById('file');
+if (!host || !(fileInput instanceof HTMLInputElement)) {
+	throw new Error('Missing #host or #file element');
+}
+
+const viewer = createPptxViewer(host, {
 	onSlideChange: (index) => console.log('slide', index + 1),
 });
 
-document.getElementById('file')!.addEventListener('change', async (e) => {
-	const file = (e.target as HTMLInputElement).files?.[0];
+fileInput.addEventListener('change', async (event) => {
+	const file = event.currentTarget.files?.[0];
 	if (file) {
 		await viewer.loadFile(file); // Blob | ArrayBuffer | Uint8Array
 	}
@@ -57,7 +153,9 @@ document.getElementById('file')!.addEventListener('change', async (e) => {
 
 `loadFile` 和 `loadUrl` 替换当前演示文稿；每次成功加载都会再次触发 `onLoad` 回调。
 
-## 3. 导航、缩放与放映 {#_3-navigation-zoom-and-presentation}
+<span id="_3-navigation-zoom-and-presentation"></span>
+
+## 4. 导航、缩放与放映 {#_4-navigation-zoom-and-presentation}
 
 所有工具栏操作都有对应的实例方法：
 
@@ -82,7 +180,7 @@ await viewer.exitPresentation();
 
 查看器根元素可以获得焦点（`tabindex="0"`）。焦点位于查看器上时：
 
-| 键数量                          | 操作                 |
+| 按键                            | 操作                 |
 | ------------------------------- | -------------------- |
 | 方向键、PageUp / PageDown、空格 | 上一张或下一张幻灯片 |
 | Home / End                      | 第一页 / 最后一页    |

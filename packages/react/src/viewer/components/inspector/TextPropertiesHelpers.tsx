@@ -147,7 +147,7 @@ export function AdvancedTextFormatting({
 
 			{/* Highlight */}
 			<label className='flex flex-col gap-1'>
-				<span className='text-muted-foreground'>Highlight</span>
+				<span className='text-muted-foreground'>{t('pptx.text.highlightColor')}</span>
 				<input
 					type='color'
 					value={normalizeHexColor(ts?.highlightColor, '#ffff00')}
@@ -288,7 +288,7 @@ export function AdvancedTextFormatting({
 					disabled={!canEdit}
 					onChange={(e) => onUpdateTextStyle({ autoFit: e.target.checked })}
 				/>
-				Auto-fit text to shape
+				{t('pptx.textProperties.autoFitToShape')}
 			</label>
 		</div>
 	);

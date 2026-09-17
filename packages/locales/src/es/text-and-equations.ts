@@ -140,6 +140,7 @@ export const translations = {
 	'pptx.textFormatting.paragraphBefore': 'Párrafo anterior',
 	'pptx.textFormatting.textFlow': 'Flujo de texto',
 	'pptx.textProperties.advancedTextHeading': 'Texto avanzado',
+	'pptx.textProperties.autoFitToShape': 'Ajustar el texto a la forma',
 	'pptx.textProperties.defaultFontOption': 'Predeterminado ({{font}})',
 	'pptx.textProperties.firstIndent': 'Primera sangría',
 	'pptx.textProperties.leftMargin': 'Margen izquierdo',

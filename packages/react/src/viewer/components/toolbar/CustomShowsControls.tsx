@@ -56,7 +56,7 @@ export function CustomShowsControls({
 							className='px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors'
 							title={t('pptx.customShows.createTooltip')}
 						>
-							+ Show
+							{t('pptx.customShows.addShow')}
 						</button>
 						{activeCustomShowId && (
 							<>
@@ -109,7 +109,7 @@ export function CustomShowsControls({
 					className='px-2 py-1 rounded bg-muted hover:bg-accent text-[11px] transition-colors'
 					title={t('pptx.customShows.createTooltip')}
 				>
-					+ Show
+					{t('pptx.customShows.addShow')}
 				</button>
 			</>
 		);

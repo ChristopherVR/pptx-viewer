@@ -77,7 +77,7 @@ export function createRibbonPrimaryRow(
 	const showBtn = createEl(doc, 'button', 'pptxv-show-btn');
 	showBtn.type = 'button';
 	showBtn.title = t('pptx.customShows.createTooltip');
-	showBtn.textContent = '+ Show';
+	showBtn.textContent = t('pptx.customShows.addShow');
 	showBtn.addEventListener('click', () => handlers.slideShow.openCustomShows());
 	el.appendChild(showBtn);
 

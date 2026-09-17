@@ -394,6 +394,7 @@ export const translationsEn: Record<string, string> = {
 
 	// Notes
 	'pptx.notes.title': 'Notes',
+	'pptx.notes.hasNotes': '(has notes)',
 	'pptx.notes.slideN': 'Slide {{n}}',
 	'pptx.notes.noSlide': 'No slide selected',
 	'pptx.notes.clickToAddNotes': 'Click to add notes',
@@ -782,6 +783,8 @@ export const translationsEn: Record<string, string> = {
 
 	// Record tab (camera overlay placeholders)
 	'pptx.record.cameo': 'Cameo',
+	'pptx.record.manage': 'Manage',
+	'pptx.record.camera': 'Camera',
 	'pptx.record.clear': 'Clear',
 	'pptx.record.learnMore': 'Learn More',
 	'pptx.record.resetToCameo': 'Reset to Cameo',
@@ -2999,6 +3002,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.textFormatting.paragraphBefore': 'Paragraph Before',
 	'pptx.textFormatting.textFlow': 'Text Flow',
 	'pptx.textProperties.advancedTextHeading': 'Advanced Text',
+	'pptx.textProperties.autoFitToShape': 'Auto-fit text to shape',
 	'pptx.textProperties.defaultFontOption': 'Default ({{font}})',
 	'pptx.textProperties.firstIndent': 'First Indent',
 	'pptx.textProperties.leftMargin': 'Left Margin',

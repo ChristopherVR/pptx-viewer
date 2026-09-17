@@ -31,7 +31,7 @@ function selectByLabel(label: string) {
 describe('animationEditorControls - direction', () => {
 	it('keeps all eight direction values', () => {
 		expect(
-			selectByLabel('Animation direction').map((o) => (o.element as HTMLOptionElement).value),
+			selectByLabel('Direction').map((o) => (o.element as HTMLOptionElement).value),
 		).toStrictEqual([
 			'fromLeft',
 			'fromRight',
@@ -45,7 +45,7 @@ describe('animationEditorControls - direction', () => {
 	});
 
 	it('spells each direction', () => {
-		expect(selectByLabel('Animation direction').map((o) => o.text())).toStrictEqual([
+		expect(selectByLabel('Direction').map((o) => o.text())).toStrictEqual([
 			'From Left',
 			'From Right',
 			'From Top',
@@ -60,7 +60,7 @@ describe('animationEditorControls - direction', () => {
 
 describe('animationEditorControls - sequence', () => {
 	it('keeps its values and spells them', () => {
-		const options = selectByLabel('Animation sequence');
+		const options = selectByLabel('Sequence');
 		expect(options.map((o) => (o.element as HTMLOptionElement).value)).toStrictEqual([
 			'asOne',
 			'byParagraph',
@@ -83,7 +83,7 @@ describe('animationEditorControls - timing curve', () => {
 	 * test that would catch that regression.
 	 */
 	it('keeps its kebab-case values and still resolves a label for each', () => {
-		const options = selectByLabel('Animation timing curve');
+		const options = selectByLabel('Timing curve');
 		expect(options.map((o) => (o.element as HTMLOptionElement).value)).toStrictEqual([
 			'ease',
 			'ease-in',
@@ -113,7 +113,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation duration"]').setValue(50);
+		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(50);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 100 });
 	});
 
@@ -121,7 +121,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation duration"]').setValue(50000);
+		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(50000);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 10000 });
 	});
 
@@ -129,7 +129,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation delay"]').setValue(-500);
+		await wrapper.get('input[aria-label="Delay (ms)"]').setValue(-500);
 		expect(lastPatch(wrapper)).toStrictEqual({ delayMs: 0 });
 	});
 
@@ -137,7 +137,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation repeat count"]').setValue(500);
+		await wrapper.get('input[aria-label="Repeat count"]').setValue(500);
 		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 100 });
 	});
 
@@ -145,7 +145,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation repeat count"]').setValue(0);
+		await wrapper.get('input[aria-label="Repeat count"]').setValue(0);
 		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 1 });
 	});
 
@@ -153,7 +153,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Animation duration"]').setValue(750);
+		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(750);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 750 });
 	});
 });

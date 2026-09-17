@@ -74,7 +74,7 @@ export function TextEffectsPanel({
 				{hasShadow && (
 					<div className='grid grid-cols-2 gap-2 pl-4'>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Color</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.color')}</span>
 							<input
 								type='color'
 								value={normalizeHexColor(ts?.textShadowColor, '#000000')}
@@ -86,7 +86,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Opacity</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.opacity')}</span>
 							<input
 								type='number'
 								min={0}
@@ -100,7 +100,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Blur</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.blur')}</span>
 							<input
 								type='number'
 								min={0}
@@ -168,7 +168,7 @@ export function TextEffectsPanel({
 				{hasGlow && (
 					<div className='grid grid-cols-2 gap-2 pl-4'>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Color</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.color')}</span>
 							<input
 								type='color'
 								value={normalizeHexColor(ts?.textGlowColor, '#ffff00')}
@@ -180,7 +180,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Opacity</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.opacity')}</span>
 							<input
 								type='number'
 								min={0}
@@ -194,7 +194,7 @@ export function TextEffectsPanel({
 							/>
 						</label>
 						<label className='flex flex-col gap-1'>
-							<span className='text-muted-foreground'>Size</span>
+							<span className='text-muted-foreground'>{t('pptx.textEffects.size')}</span>
 							<input
 								type='number'
 								min={1}

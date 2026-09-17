@@ -142,6 +142,7 @@ export const translations = {
 	'pptx.textFormatting.paragraphBefore': '段前间距',
 	'pptx.textFormatting.textFlow': '文本流',
 	'pptx.textProperties.advancedTextHeading': '高级文本',
+	'pptx.textProperties.autoFitToShape': '根据形状自动调整文本',
 	'pptx.textProperties.defaultFontOption': '默认 ({{font}})',
 	'pptx.textProperties.firstIndent': '首行缩进',
 	'pptx.textProperties.leftMargin': '左边距',

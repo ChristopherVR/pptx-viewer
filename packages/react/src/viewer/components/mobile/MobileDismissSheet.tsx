@@ -1,4 +1,5 @@
 import type React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { useSheetDismissDrag } from '../../hooks/useSheetDismissDrag';
 
@@ -25,6 +26,7 @@ export function MobileDismissSheet({
 	className,
 	children,
 }: MobileDismissSheetProps): React.ReactElement {
+	const { t } = useTranslation();
 	const { dragY, handlers } = useSheetDismissDrag(onClose);
 
 	return (
@@ -32,7 +34,7 @@ export function MobileDismissSheet({
 			{/* Mobile backdrop: tap to dismiss. */}
 			<button
 				type='button'
-				aria-label='Close'
+				aria-label={t('pptx.mobileSheet.close')}
 				onClick={onClose}
 				className='md:hidden fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px] animate-in fade-in duration-150'
 			/>

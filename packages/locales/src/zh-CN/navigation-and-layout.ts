@@ -11,6 +11,7 @@ export const translations = {
 	'pptx.sections.addBefore': '在前面添加节',
 	'pptx.sections.addAfter': '在后面添加节',
 	'pptx.notes.title': '备注',
+	'pptx.notes.hasNotes': '（有备注）',
 	'pptx.notes.slideN': '幻灯片 {{n}}',
 	'pptx.notes.noSlide': '未选择幻灯片',
 	'pptx.notes.clickToAddNotes': '单击添加备注',

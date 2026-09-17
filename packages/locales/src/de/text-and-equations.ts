@@ -140,6 +140,7 @@ export const translations = {
 	'pptx.textFormatting.paragraphBefore': 'Absatz davor',
 	'pptx.textFormatting.textFlow': 'Textfluss',
 	'pptx.textProperties.advancedTextHeading': 'Erweiterter Text',
+	'pptx.textProperties.autoFitToShape': 'Text an die Form anpassen',
 	'pptx.textProperties.defaultFontOption': 'Standard ({{font}})',
 	'pptx.textProperties.firstIndent': 'Erste-Zeile-Einzug',
 	'pptx.textProperties.leftMargin': 'Linker Rand',

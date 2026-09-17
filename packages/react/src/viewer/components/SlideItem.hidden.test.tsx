@@ -9,25 +9,35 @@
  * NAME is untouched: `e2e/support/deck.ts` matches `^Go to slide N$` exactly, so
  * folding the state into the label would break the whole suite.
  */
+import { createInstance } from 'i18next';
 import type { PptxSlide } from 'pptx-viewer-core';
 import { HIDDEN_SLIDE_SLASH_GRADIENT } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
+import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { translationsZhCN } from '../../../../locales/src';
 import { SlideCard } from './slide-sorter/SlideCard';
 import { SlideItem } from './slides-pane/SlideItem';
 
-vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
-	useTranslation: () => ({ t: (key: string) => translationsEn[key] ?? key }),
-}));
+const i18n = createInstance();
 
 let container: HTMLDivElement;
 let root: Root;
 
-beforeEach(() => {
+beforeEach(async () => {
+	await i18n.use(initReactI18next).init({
+		lng: 'en',
+		fallbackLng: 'en',
+		resources: {
+			en: { translation: translationsEn },
+			'zh-CN': { translation: translationsZhCN },
+		},
+		interpolation: { escapeValue: false },
+	});
 	container = document.createElement('div');
 	document.body.appendChild(container);
 	root = createRoot(container);
@@ -47,21 +57,23 @@ function slide(hidden: boolean): PptxSlide {
 function renderRailItem(hidden: boolean): void {
 	act(() => {
 		root.render(
-			<SlideItem
-				slide={slide(hidden)}
-				templateElements={[]}
-				slideIndex={1}
-				isActive={false}
-				canvasSize={canvasSize}
-				canEdit={false}
-				onSelectSlide={vi.fn()}
-				onSlideContextMenu={vi.fn()}
-				onOpenSlideCtxMenu={vi.fn()}
-				onDragStart={vi.fn()}
-				onDragOver={vi.fn()}
-				onDrop={vi.fn()}
-				slideRef={vi.fn()}
-			/>,
+			<I18nextProvider i18n={i18n}>
+				<SlideItem
+					slide={slide(hidden)}
+					templateElements={[]}
+					slideIndex={1}
+					isActive={false}
+					canvasSize={canvasSize}
+					canEdit={false}
+					onSelectSlide={vi.fn()}
+					onSlideContextMenu={vi.fn()}
+					onOpenSlideCtxMenu={vi.fn()}
+					onDragStart={vi.fn()}
+					onDragOver={vi.fn()}
+					onDrop={vi.fn()}
+					slideRef={vi.fn()}
+				/>
+			</I18nextProvider>,
 		);
 	});
 }
@@ -69,24 +81,26 @@ function renderRailItem(hidden: boolean): void {
 function renderSorterCard(hidden: boolean): void {
 	act(() => {
 		root.render(
-			<SlideCard
-				slide={slide(hidden)}
-				index={1}
-				isActive={false}
-				isDragTarget={false}
-				isSelected={false}
-				selectedCount={0}
-				selectionOrder={0}
-				canvasSize={canvasSize}
-				canEdit={false}
-				onSlideClick={vi.fn()}
-				onDoubleClick={vi.fn()}
-				onContextMenu={vi.fn()}
-				onDragStart={vi.fn()}
-				onDragOver={vi.fn()}
-				onDragLeave={vi.fn()}
-				onDrop={vi.fn()}
-			/>,
+			<I18nextProvider i18n={i18n}>
+				<SlideCard
+					slide={slide(hidden)}
+					index={1}
+					isActive={false}
+					isDragTarget={false}
+					isSelected={false}
+					selectedCount={0}
+					selectionOrder={0}
+					canvasSize={canvasSize}
+					canEdit={false}
+					onSlideClick={vi.fn()}
+					onDoubleClick={vi.fn()}
+					onContextMenu={vi.fn()}
+					onDragStart={vi.fn()}
+					onDragOver={vi.fn()}
+					onDragLeave={vi.fn()}
+					onDrop={vi.fn()}
+				/>
+			</I18nextProvider>,
 		);
 	});
 }
@@ -110,6 +124,16 @@ describe('slideItem hidden-slide cue', () => {
 		const describedBy = button.getAttribute('aria-describedby');
 		expect(describedBy).toBe('pptx-hidden-slide-rail-1');
 		expect(container.querySelector(`#${describedBy}`)?.textContent).toContain('Hidden');
+	});
+
+	it('interpolates the slide number after switching to Chinese', async () => {
+		renderRailItem(true);
+		await act(async () => {
+			await i18n.changeLanguage('zh-CN');
+		});
+		const button = container.querySelector<HTMLButtonElement>('button')!;
+		expect(button.getAttribute('aria-label')).toBe('转到幻灯片 2');
+		expect(button.getAttribute('aria-describedby')).toBe('pptx-hidden-slide-rail-1');
 	});
 
 	it('leaves a visible slide unmarked and undescribed', () => {
