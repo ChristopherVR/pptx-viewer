@@ -91,7 +91,7 @@ export function useInlineListEditor(
 	onModelReplacementRef.current = onModelReplacement;
 	const controllerRef = useRef<
 		| (ReturnType<typeof attachInlineListController> & {
-				checkModel?: (model: PptxElement) => boolean;
+				checkModel?: (model: PptxElement | undefined) => boolean;
 				mutate?: (range: AbstractRange, apply: () => void) => boolean;
 		  })
 		| null
@@ -187,7 +187,10 @@ export function useInlineListEditor(
 			return;
 		}
 		if (controller.checkModel) {
-			controller.checkModel(element);
+			const owner = session.collaboration;
+			const sameOwner =
+				owner?.patcher === collaboration?.patcher && owner?.slideId === collaboration?.slideId;
+			controller.checkModel(sameOwner ? element : undefined);
 			return;
 		}
 		const change = session.model.check(element, controller.read());
@@ -202,7 +205,7 @@ export function useInlineListEditor(
 		controller.dispose();
 		controllerRef.current = null;
 		onModelReplacementRef.current();
-	}, [element, session]);
+	}, [element, session, collaboration?.patcher, collaboration?.slideId]);
 	return {
 		...session,
 		connected: Boolean(session.collaboration),

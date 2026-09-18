@@ -89,10 +89,8 @@ function mount(props: ElementRendererProps, key?: string): void {
 	});
 }
 
-it('keeps collaborative native text through React rerenders and unrelated model reconciliation', () => {
-	const doc = new Y.Doc();
-	const element = makeTextElement();
-	const factories = {
+function collaborationFactories(doc: Y.Doc) {
+	return {
 		createMap: () => new Y.Map(),
 		createArray: () => new Y.Array(),
 		createText: () => new Y.Text(),
@@ -106,6 +104,56 @@ it('keeps collaborative native text through React rerenders and unrelated model 
 				},
 			}),
 	};
+}
+
+it('retires a native editor when the slide changes but its cloned element is identical', () => {
+	const doc = new Y.Doc();
+	const element = makeTextElement();
+	const factories = collaborationFactories(doc);
+	reconcileSlidesInYDoc(
+		['s1', 's2'].map((id, index) => ({ id, slideNumber: index + 1, elements: [{ ...element }] })),
+		doc,
+		factories,
+	);
+	const patcher = createCollaborationLivePatcher();
+	patcher.configure(doc, factories, true);
+	const cancel = vi.fn();
+	const commit = vi.fn();
+	const props = makeProps({ element, onInlineEditCancel: cancel, onInlineEditCommit: commit });
+	const render = (slideId: string) =>
+		act(() =>
+			root.render(
+				<InlineCollaborationContext.Provider
+					value={{ patcher, slideId, elementIds: new Set([element.id]) }}
+				>
+					<ElementRenderer {...props} />
+				</InlineCollaborationContext.Provider>,
+			),
+		);
+	try {
+		render('s1');
+		const editor = getInlineEditor();
+		render('s1');
+		expect(cancel).not.toHaveBeenCalled();
+		render('s2');
+		expect(cancel).toHaveBeenCalledOnce();
+		act(() => editor.dispatchEvent(new FocusEvent('focusout', { bubbles: true })));
+		expect(commit).not.toHaveBeenCalled();
+		expect(readSlidesFromYDoc(doc).map((slide) => slide.elements[0])).toEqual([
+			expect.objectContaining({ text: 'Hello' }),
+			expect.objectContaining({ text: 'Hello' }),
+		]);
+	} finally {
+		act(() => root.render(null));
+		patcher.dispose();
+		doc.destroy();
+	}
+});
+
+it('keeps collaborative native text through React rerenders and unrelated model reconciliation', () => {
+	const doc = new Y.Doc();
+	const element = makeTextElement();
+	const factories = collaborationFactories(doc);
 	reconcileSlidesInYDoc([{ id: 's1', slideNumber: 1, elements: [element] }], doc, factories);
 	const patcher = createCollaborationLivePatcher();
 	patcher.configure(doc, factories, true);
