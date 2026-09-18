@@ -14,14 +14,10 @@ import {
 } from 'pptx-viewer-shared';
 import { useState, useRef, useCallback } from 'react';
 
-import {
-	exportSlideAsPng,
-	exportAllSlidesAsPdf,
-	exportAllSlidesAsNotesPdf,
-	copySlideToClipboard,
-} from '../utils/export';
+import { exportSlideAsPng, exportAllSlidesAsPdf, copySlideToClipboard } from '../utils/export';
 import type { UseExportHandlersInput, ExportHandlersResult } from './export-handler-types';
 import { useExportMediaHandlers } from './useExportMediaHandlers';
+import { useExportNotesPdf } from './useExportNotesPdf';
 import { useExportSaveAs } from './useExportSaveAs';
 
 export type { UseExportHandlersInput, ExportHandlersResult } from './export-handler-types';
@@ -54,12 +50,27 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		imageExportScale,
 		imageResolutionScale,
 	} = input;
+	// Stable callbacks must not capture a previous deck just to read a scalar.
+	const slideCount = slides.length;
+	const backgroundColor = activeSlide?.backgroundColor;
 
 	const [exportModalOpen, setExportModalOpen] = useState(false);
 	const [exportModalTitle, setExportModalTitle] = useState('');
 	const [exportProgress, setExportProgress] = useState(0);
 	const [exportStatusMessage, setExportStatusMessage] = useState('');
 	const exportAbortRef = useRef<AbortController | null>(null);
+	const handleExportNotesPdf = useExportNotesPdf({
+		slides,
+		activeSlideIndex,
+		canvasStageRef,
+		setActiveSlideIndex,
+		imageExportScale,
+		exportAbortRef,
+		setExportModalOpen,
+		setExportModalTitle,
+		setExportProgress,
+		setExportStatusMessage,
+	});
 
 	const { handleExportVideo, handleExportGif } = useExportMediaHandlers({
 		slides,
@@ -108,13 +119,13 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		}
 		try {
 			await exportSlideAsPng(stageEl, activeSlideIndex, {
-				backgroundColor: activeSlide?.backgroundColor,
+				backgroundColor,
 				scale: imageExportScale,
 			});
 		} catch (err) {
 			console.error('[PowerPointViewer] PNG export failed:', err);
 		}
-	}, [canvasStageRef, activeSlideIndex, activeSlide?.backgroundColor, imageExportScale]);
+	}, [canvasStageRef, activeSlideIndex, backgroundColor, imageExportScale]);
 
 	const handleExportPdf = useCallback(async () => {
 		if (!canvasStageRef.current) {
@@ -129,7 +140,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		try {
 			await exportAllSlidesAsPdf(
 				canvasStageRef,
-				slides.length,
+				slideCount,
 				setActiveSlideIndex,
 				activeSlideIndex,
 				'presentation.pdf',
@@ -157,52 +168,7 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 			exportAbortRef.current = null;
 			setExportModalOpen(false);
 		}
-	}, [canvasStageRef, slides.length, setActiveSlideIndex, activeSlideIndex, imageExportScale]);
-
-	const handleExportNotesPdf = useCallback(async () => {
-		if (!canvasStageRef.current) {
-			return;
-		}
-		const abortCtrl = new AbortController();
-		exportAbortRef.current = abortCtrl;
-		setExportModalTitle('Export as PDF (Notes)');
-		setExportStatusMessage('Capturing slides...');
-		setExportProgress(0);
-		setExportModalOpen(true);
-		try {
-			const slideNotes = slides.map((s) => s.notes);
-			await exportAllSlidesAsNotesPdf(
-				canvasStageRef,
-				slides.length,
-				setActiveSlideIndex,
-				activeSlideIndex,
-				slideNotes,
-				'presentation-notes.pdf',
-				{
-					scale: imageExportScale,
-					onProgress: (current, total) => {
-						setExportProgress(slideProgressPercent(current, total));
-						setExportStatusMessage(slideStatusLabel('Rendering', current, total));
-					},
-					signal: abortCtrl.signal,
-				},
-			);
-			setExportProgress(EXPORT_ASSEMBLING_PERCENT);
-			setExportStatusMessage('Building PDF...');
-			await new Promise<void>((r) => {
-				setTimeout(r, 100);
-			});
-			setExportProgress(EXPORT_DONE_PERCENT);
-			setExportStatusMessage('Done!');
-		} catch (err) {
-			if (!isExportAbortError(err)) {
-				console.error('[PowerPointViewer] Notes PDF export failed:', err);
-			}
-		} finally {
-			exportAbortRef.current = null;
-			setExportModalOpen(false);
-		}
-	}, [canvasStageRef, slides, setActiveSlideIndex, activeSlideIndex, imageExportScale]);
+	}, [canvasStageRef, slideCount, setActiveSlideIndex, activeSlideIndex, imageExportScale]);
 
 	const handleCopySlideAsImage = useCallback(async () => {
 		const stageEl = canvasStageRef.current;
@@ -211,13 +177,13 @@ export function useExportHandlers(input: UseExportHandlersInput): ExportHandlers
 		}
 		try {
 			await copySlideToClipboard(stageEl, {
-				backgroundColor: activeSlide?.backgroundColor,
+				backgroundColor,
 				scale: imageExportScale,
 			});
 		} catch (err) {
 			console.error('[PowerPointViewer] Copy slide as image failed:', err);
 		}
-	}, [canvasStageRef, activeSlide?.backgroundColor, imageExportScale]);
+	}, [canvasStageRef, backgroundColor, imageExportScale]);
 
 	const handleCancelExport = useCallback(() => {
 		exportAbortRef.current?.abort();
