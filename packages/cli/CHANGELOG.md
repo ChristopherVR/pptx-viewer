@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.22.0) - 2026-09-18
+
+### Features
+
+- **cli:** Prompt for 3D rendering support in the vanilla scaffold (by @ChristopherVR) ([3f11e96](https://github.com/ChristopherVR/pptx-viewer/commit/3f11e96c17bebb75d9bc8bb3dfb20e413fb88a5d))
+
 ## [2.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.21.0) - 2026-09-17
 
 ### Features

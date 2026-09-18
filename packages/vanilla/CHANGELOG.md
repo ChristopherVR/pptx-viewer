@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.0.0) - 2026-09-18
+
+### Bug Fixes
+
+- **core:** Switch to emf-converter's unified convertMetafileToDataUrl (by @ChristopherVR) ([70a2ea5](https://github.com/ChristopherVR/pptx-viewer/commit/70a2ea5059af31627dfa1f0a7ebe5e12219804bb))
+
 ## [2.21.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@2.21.0) - 2026-09-17
 
 ### Features

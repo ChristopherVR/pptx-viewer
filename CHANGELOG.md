@@ -8,6 +8,33 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-18
+
+_Releases: pptx-viewer-core@4.0.0, pptx-react-viewer@4.0.0, pptx-vue-viewer@4.0.0, pptx-angular-viewer@4.0.0, pptx-vanilla-viewer@3.0.0, pptx-svelte-viewer@4.0.0, pptx-viewer-mcp@2.5.4, @christophervr/pptx-viewer@2.22.0_
+
+### Features
+
+- **demos:** Enable interactive 3D rendering by default (by @ChristopherVR) ([59d93ce](https://github.com/ChristopherVR/pptx-viewer/commit/59d93ce1395c30dba563f30b7b6621e870a16717))
+- **cli:** Prompt for 3D rendering support in the vanilla scaffold (by @ChristopherVR) ([3f11e96](https://github.com/ChristopherVR/pptx-viewer/commit/3f11e96c17bebb75d9bc8bb3dfb20e413fb88a5d))
+
+### Bug Fixes
+
+- **core:** Switch to emf-converter's unified convertMetafileToDataUrl (by @ChristopherVR) ([70a2ea5](https://github.com/ChristopherVR/pptx-viewer/commit/70a2ea5059af31627dfa1f0a7ebe5e12219804bb))
+- Pre-push (by @ChristopherVR) ([0023c0b](https://github.com/ChristopherVR/pptx-viewer/commit/0023c0b214addc12c0fa9a8260ccf815afb29ff2))
+
+### Testing
+
+- **e2e:** Stop assuming 3D scenes default off (by @ChristopherVR) ([a7e853d](https://github.com/ChristopherVR/pptx-viewer/commit/a7e853d744cd947db4b424f1301b44bfd98acc94))
+- **e2e:** Exclude real-time video capture tests from CI as @local-only (by @ChristopherVR) ([a4956db](https://github.com/ChristopherVR/pptx-viewer/commit/a4956db258e6f5b733208730dcf9535b3d4e6ed3))
+- **e2e:** Exclude real-time video capture tests from CI as @local-only (by @ChristopherVR) ([81a0bd8](https://github.com/ChristopherVR/pptx-viewer/commit/81a0bd81d7d0ec08334f1c469ebbf39a051dfe07))
+
+### Build & CI
+
+- Scope pushes to main and run affected e2e on every PR (by @ChristopherVR) ([28299d8](https://github.com/ChristopherVR/pptx-viewer/commit/28299d82027aafc3ef65758fa8f48d8288544e96))
+- Run the @local-only e2e tests from a pre-push hook (by @ChristopherVR) ([001af5b](https://github.com/ChristopherVR/pptx-viewer/commit/001af5b15ed39ffae311f188203a16322a50f221))
+- Scope pushes to main and run affected e2e on every PR (by @ChristopherVR) ([1e3ba9f](https://github.com/ChristopherVR/pptx-viewer/commit/1e3ba9f0931ea16b17b25d40977b9ef131a1aa50))
+- Run the @local-only e2e tests from a pre-push hook (by @ChristopherVR) ([eaceb90](https://github.com/ChristopherVR/pptx-viewer/commit/eaceb9093a932e85c75720077dc774d586a2fd4b))
+
 ## 2026-09-17
 
 _Releases: pptx-react-viewer@3.21.0, pptx-vue-viewer@3.21.0, pptx-angular-viewer@3.21.0, pptx-vanilla-viewer@2.21.0, pptx-svelte-viewer@3.22.0, pptx-viewer-mcp@2.5.3, @christophervr/pptx-viewer@2.21.0_
