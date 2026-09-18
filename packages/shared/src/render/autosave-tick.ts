@@ -34,11 +34,27 @@
  * @module render/autosave-tick
  */
 
+// Marks only compare identity. Keeping their source objects alive would retain
+// the previous deck until another dirty document happens to autosave.
+const sourceIdentities = new WeakMap<object, object>();
+
+function sourceIdentity(source: unknown): unknown {
+	if ((typeof source !== 'object' || source === null) && typeof source !== 'function') {
+		return source;
+	}
+	let identity = sourceIdentities.get(source);
+	if (!identity) {
+		identity = {};
+		sourceIdentities.set(source, identity);
+	}
+	return identity;
+}
+
 /** What the last written snapshot captured. */
 export interface AutosaveSnapshotMark {
 	/** IndexedDB key the snapshot was written under. */
 	readonly filePath: string;
-	/** Identities of the editable state that produced it. */
+	/** Opaque object/function identity tokens and unchanged primitive values. */
 	readonly sources: readonly unknown[];
 }
 
@@ -65,7 +81,7 @@ export function autosaveSnapshotMark(
 	filePath: string,
 	sources: readonly unknown[],
 ): AutosaveSnapshotMark {
-	return { filePath, sources: [...sources] };
+	return { filePath, sources: sources.map(sourceIdentity) };
 }
 
 /**
@@ -87,5 +103,7 @@ export function shouldWriteAutosaveSnapshot(input: AutosaveTickInput): boolean {
 	if (input.sources.length === 0 || previous.sources.length !== input.sources.length) {
 		return true;
 	}
-	return input.sources.some((source, index) => !Object.is(source, previous.sources[index]));
+	return input.sources.some(
+		(source, index) => !Object.is(sourceIdentity(source), previous.sources[index]),
+	);
 }

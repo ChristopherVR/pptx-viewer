@@ -133,4 +133,27 @@ describe('autosave timer redundancy', () => {
 		});
 		expect(serialize).toHaveBeenCalledTimes(2);
 	});
+
+	it('does not mistake an edit during serialization for an already saved source', async () => {
+		const harness = mount();
+		let finish!: (data: Uint8Array) => void;
+		harness.serialize.mockImplementationOnce(
+			() =>
+				new Promise<Uint8Array>((resolve) => {
+					finish = resolve;
+				}),
+		);
+		harness.render([[{ id: 'before' }]]);
+		await harness.tick();
+		harness.render([[{ id: 'after' }]]);
+		await act(async () => {
+			finish(new Uint8Array([1]));
+		});
+		expect(saveAutosaveSnapshot).toHaveBeenCalledOnce();
+		await harness.tick();
+		expect(harness.serialize).toHaveBeenCalledTimes(2);
+		expect(saveAutosaveSnapshot).toHaveBeenCalledTimes(2);
+		await harness.tick();
+		expect(harness.serialize).toHaveBeenCalledTimes(2);
+	});
 });
