@@ -260,26 +260,52 @@ describe('connected native inline editor', () => {
 		}
 	});
 
-	it('defers remote painting and Save while composition is active', async () => {
-		const { editors } = peers();
-		const root = editors[1].root;
-		const node = root.querySelector('span')!.firstChild as Text;
-		window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
-		root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-		node.data += '中';
-		root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
-		type(editors[0].root, 0, 'A');
-		expect(root.textContent).toBe('Hello中');
-		expect(editors[1].controller.read()).toMatchObject({
-			kind: 'unsupported',
-			reason: 'composition-active',
-		});
-		root.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
-		await Promise.resolve();
-		for (const editor of editors) {
-			expect(editor.root.textContent).toBe('AHello中');
-		}
-	});
+	it.each([false, 'append', 'replace'] as const)(
+		'defers remote painting and Save while composition is active (restarted=%s)',
+		async (restarted) => {
+			const { editors } = peers();
+			const root = editors[1].root;
+			const node = root.querySelector('span')!.firstChild as Text;
+			window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+			root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+			node.data += '中';
+			root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+			type(editors[0].root, 0, 'A');
+			expect(root.textContent).toBe('Hello中');
+			expect(editors[1].controller.read()).toMatchObject({
+				kind: 'unsupported',
+				reason: 'composition-active',
+			});
+			if (restarted) {
+				// Native composition can restart without compositionend. The
+				// retained first draft is not published yet.
+				window.getSelection()!.setBaseAndExtent(node, 6, node, 6);
+				root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+				node.data = restarted === 'append' ? 'Hello中文' : 'Hello文';
+				root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+			}
+			root.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+			await Promise.resolve();
+			const expected =
+				restarted === 'append' ? 'AHello中文' : restarted === 'replace' ? 'AHello文' : 'AHello中';
+			for (const editor of editors) {
+				expect(editor.root.textContent).toBe(expected);
+				expect(editor.onCancel).not.toHaveBeenCalled();
+			}
+			// A later, fully separate composition must capture a fresh boundary.
+			const next = root.querySelector('span')!.firstChild as Text;
+			window.getSelection()!.setBaseAndExtent(next, 0, next, 1);
+			root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+			next.data = '界' + next.data.slice(1);
+			root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+			root.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+			await Promise.resolve();
+			for (const editor of editors) {
+				expect(editor.root.textContent).toBe('界' + expected.slice(1));
+				expect(editor.onCancel).not.toHaveBeenCalled();
+			}
+		},
+	);
 
 	it('retires before Undo reconciliation instead of skipping an explicit model replacement', () => {
 		const { docs, editors } = peers();

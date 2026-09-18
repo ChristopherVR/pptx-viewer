@@ -90,6 +90,42 @@ async function setup() {
 }
 
 describe('custom-shell native inline lifecycle', () => {
+	it.each([false, true])(
+		'continues composition after a rejected Save (restarted=%s)',
+		async (restarted) => {
+			const h = await setup();
+			try {
+				h.inline.open(h.store.get().slides[0].elements[0]);
+				const surface = h.root.querySelector<HTMLElement>('[data-inline-editor]')!;
+				const node = surface.querySelector('span')!.firstChild as Text;
+				window.getSelection()!.setBaseAndExtent(node, 4, node, 4);
+				surface.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+				node.data += 'に';
+				surface.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+				const shared = findElementYMap(h.doc, 'slide', 'text')!.get('textBody') as Y.Text;
+				shared.insert(0, 'ALPHA ', {});
+				expect(() => h.inline.readSlides()).toThrow('Finish the current text input before saving.');
+				expect(surface.isConnected).toBe(true);
+				if (restarted) {
+					window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+					surface.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+					node.data += '日本';
+				} else {
+					node.data = 'Body日本';
+				}
+				surface.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+				surface.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true }));
+				await Promise.resolve();
+				expect(surface.isConnected).toBe(true);
+				expect(h.inline.readSlides()[0].elements[0]).toMatchObject({
+					text: restarted ? 'ALPHA Bodyに日本' : 'ALPHA Body日本',
+				});
+			} finally {
+				h.dispose();
+			}
+		},
+	);
+
 	it.each(['composition', 'beforeinput'] as const)(
 		'keeps canonical text and rejects Save during %s',
 		async (pending) => {

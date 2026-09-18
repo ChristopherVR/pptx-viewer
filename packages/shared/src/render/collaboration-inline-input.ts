@@ -75,7 +75,11 @@ export function observeCollaborationInlineInput(
 		apply(replacement);
 	};
 	const start = (): void => {
-		capture();
+		// A restarted composition still includes the unaccepted first draft.
+		// Keep its original boundary until compositionend settles the draft.
+		if (!composing) {
+			capture();
+		}
 		composing = true;
 	};
 	const end = (): void => {
