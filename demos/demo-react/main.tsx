@@ -3,6 +3,8 @@ import type { PowerPointViewerHandle } from 'pptx-react-viewer';
    (many independent short-lived `const`s per hook/handler, several separated
    by comments or guard clauses); merging them isn't a style choice here. */
 import { PptxHandler } from 'pptx-viewer-core';
+import type { ViewerLocaleCode } from 'pptx-viewer-locales';
+import { resolveLocaleParam } from 'pptx-viewer-locales';
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import { useTranslation } from 'react-i18next';
@@ -346,12 +348,19 @@ function App() {
 			return 'vermilionDark';
 		}
 	}, []);
+	// An explicit `?locale=` query param wins over the stored preference, so
+	// the docs landing page's live demo embed
+	// (docs/.vitepress/theme/landing/useLiveDemo.ts) can drive this pane to
+	// the site's active locale; with no param, the stored preference (set by
+	// the demo's own language picker, when present) is used as before.
 	const languageKey = useMemo<string>(() => {
+		let stored = 'en';
 		try {
-			return localStorage.getItem('pptx-demo-lang') ?? 'en';
+			stored = localStorage.getItem('pptx-demo-lang') ?? 'en';
 		} catch {
-			return 'en';
+			stored = 'en';
 		}
+		return resolveLocaleParam(window.location.search, stored as ViewerLocaleCode);
 	}, []);
 
 	// ── URL-based collaboration / broadcast join ────────────────────────

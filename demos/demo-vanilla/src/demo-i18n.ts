@@ -1,6 +1,7 @@
 import type { TranslationMessages } from 'pptx-vanilla-viewer';
 import { createTranslator } from 'pptx-vanilla-viewer';
 import {
+	resolveLocaleParam,
 	translationsDe,
 	translationsEs,
 	translationsFr,
@@ -25,7 +26,11 @@ import { languageKeys } from './languages';
  * switches the active dictionary. The demo chrome (dropzone, pickers) merges
  * its `demo.*` keys into the same per-locale dictionaries and reads them
  * through {@link t}. Selection persists to `localStorage` under
- * `pptx-demo-lang`, mirroring demos/demo-vue.
+ * `pptx-demo-lang`, mirroring demos/demo-vue. An explicit `?locale=` query
+ * param wins over the stored preference, so the docs landing page's live
+ * demo embed (docs/.vitepress/theme/landing/useLiveDemo.ts) can drive this
+ * pane to the site's active locale; with no param, the picker keeps working
+ * as before.
  */
 
 /** Per-locale dictionaries handed to the viewer (viewer keys + demo keys). */
@@ -38,14 +43,14 @@ export const viewerMessages: TranslationMessages = {
 };
 
 export function readStoredLanguage(): LanguageCode {
+	let stored: LanguageCode = 'en';
 	try {
-		const stored = localStorage.getItem('pptx-demo-lang');
-		return stored && languageKeys.includes(stored as LanguageCode)
-			? (stored as LanguageCode)
-			: 'en';
+		const value = localStorage.getItem('pptx-demo-lang');
+		stored = value && languageKeys.includes(value as LanguageCode) ? (value as LanguageCode) : 'en';
 	} catch {
-		return 'en';
+		stored = 'en';
 	}
+	return resolveLocaleParam(window.location.search, stored) as LanguageCode;
 }
 
 let current: LanguageCode = readStoredLanguage();

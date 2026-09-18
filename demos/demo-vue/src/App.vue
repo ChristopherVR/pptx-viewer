@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { PptxHandler } from 'pptx-viewer-core';
+import { resolveLocaleParam } from 'pptx-viewer-locales';
 // The openable-file allow list comes from the binding's public surface, not a
 // local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop that
 // the viewer's own File > Open accepted.
@@ -75,15 +76,19 @@ const currentPreset = computed(() => themes[themeKey.value] ?? themes.vermilionD
 const { t } = useI18n();
 
 // ── Language ────────────────────────────────────────────────────────────────
+// An explicit `?locale=` wins over the stored preference, so the docs
+// landing page's live demo embed (docs/.vitepress/theme/landing/useLiveDemo.ts)
+// can drive this pane to the site's active locale; with no param, the demo's
+// own picker keeps working as before.
 function readStoredLanguage(): LanguageCode {
+	let stored: LanguageCode = 'en';
 	try {
-		const stored = localStorage.getItem('pptx-demo-lang');
-		return stored && languageKeys.includes(stored as LanguageCode)
-			? (stored as LanguageCode)
-			: 'en';
+		const value = localStorage.getItem('pptx-demo-lang');
+		stored = value && languageKeys.includes(value as LanguageCode) ? (value as LanguageCode) : 'en';
 	} catch {
-		return 'en';
+		stored = 'en';
 	}
+	return resolveLocaleParam(window.location.search, stored) as LanguageCode;
 }
 
 const languageKey = ref<LanguageCode>(readStoredLanguage());

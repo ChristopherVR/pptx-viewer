@@ -1,5 +1,8 @@
+import { useData } from 'vitepress';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+
+import { resolveViewerLocale } from './viewer-locale';
 
 /** One embeddable framework demo deployed next to the docs on GitHub Pages. */
 export interface DemoFramework {
@@ -87,14 +90,23 @@ export function useLiveDemo(section: Ref<HTMLElement | null>): LiveDemoState {
 	const guestPane = ref<LiveDemoPaneHandle | null>(null);
 	let leaveTimer: ReturnType<typeof setTimeout> | null = null;
 
-	const soloSrc = computed(() => `${DEMO_ROOT}${frameworkByKey(activeKey.value).path}?sample=1`);
+	// Follows the docs site's active locale (nav language switcher) so the
+	// embedded viewer renders its chrome in the same language as the page it
+	// is embedded on; both the solo pane and both collab panes pick it up.
+	const { lang } = useData();
+	const viewerLocale = computed(() => resolveViewerLocale(lang.value));
+
+	const soloSrc = computed(
+		() =>
+			`${DEMO_ROOT}${frameworkByKey(activeKey.value).path}?sample=1&locale=${viewerLocale.value}`,
+	);
 	const hostSrc = computed(
 		() =>
-			`${DEMO_ROOT}${frameworkByKey(activeKey.value).path}?sample=1&room=${roomId.value}&transport=webrtc&name=Ada`,
+			`${DEMO_ROOT}${frameworkByKey(activeKey.value).path}?sample=1&room=${roomId.value}&transport=webrtc&name=Ada&locale=${viewerLocale.value}`,
 	);
 	const guestSrc = computed(
 		() =>
-			`${DEMO_ROOT}${frameworkByKey(guestKey.value).path}?room=${roomId.value}&transport=webrtc&name=Grace`,
+			`${DEMO_ROOT}${frameworkByKey(guestKey.value).path}?room=${roomId.value}&transport=webrtc&name=Grace&locale=${viewerLocale.value}`,
 	);
 	const activeLabel = computed(() => frameworkByKey(activeKey.value).label);
 	const guestLabel = computed(() => frameworkByKey(guestKey.value).label);
