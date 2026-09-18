@@ -70,8 +70,9 @@ function directChildOrder(xml: string): string[] {
 
 function extractElementOrders(xml: string, elementName: string): string[][] {
 	const orders: string[][] = [];
+	// A word boundary also matches namespace colons and XML name punctuation.
 	const pattern = new RegExp(
-		`<([A-Za-z_][\\w.-]*:)?${elementName}\\b[^>]*>([\\s\\S]*?)<\\/\\1${elementName}\\s*>`,
+		`<([A-Za-z_][\\w.-]*:)?${elementName}(?=[\\s/>])[^>]*>([\\s\\S]*?)<\\/\\1${elementName}\\s*>`,
 		'gu',
 	);
 	for (const match of xml.matchAll(pattern)) {
