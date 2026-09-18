@@ -19,6 +19,7 @@ export default defineConfig({
 		// against stale build output. Mirrors the Vanilla package's vitest setup.
 		// Subpath aliases must come first (first match wins).
 		alias: [
+			{ find: 'pptx-vue-viewer/viewer', replacement: resolve(__dirname, 'src/viewer/index.ts') },
 			{
 				find: 'pptx-viewer-shared/i18n',
 				replacement: resolve(__dirname, '../shared/src/i18n/index.ts'),
