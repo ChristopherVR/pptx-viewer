@@ -20,6 +20,7 @@ export default defineConfig({
 		// Subpath aliases must come first (first match wins).
 		alias: [
 			{ find: 'pptx-vue-viewer/viewer', replacement: resolve(__dirname, 'src/viewer/index.ts') },
+			{ find: /^pptx-vue-viewer$/, replacement: resolve(__dirname, 'src/index.ts') },
 			{
 				find: 'pptx-viewer-shared/i18n',
 				replacement: resolve(__dirname, '../shared/src/i18n/index.ts'),
