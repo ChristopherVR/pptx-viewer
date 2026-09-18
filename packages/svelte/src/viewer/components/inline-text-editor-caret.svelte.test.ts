@@ -12,10 +12,11 @@ import {
 	findElementYMap,
 	reconcileSlidesInYDoc,
 } from 'pptx-viewer-shared';
-import { flushSync, mount, unmount } from 'svelte';
+import { flushSync, mount, unmount, untrack } from 'svelte';
 import { describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
+import { duplicateSlideAt, moveSlide } from '../editor/editor-slide-ops';
 import { EditorState } from '../editor/editor-state.svelte';
 import InlineTextEditor from './InlineTextEditor.svelte';
 import ParagraphGroup from './ribbon/home/ParagraphGroup.svelte';
@@ -34,7 +35,7 @@ function textElement(): PptxElement {
 }
 
 describe('inline text editor caret placement', () => {
-	it.each(['commit', 'composition', 'readonly'] as const)(
+	it.each(['commit', 'composition', 'readonly', 'slide replacement', 'mutable target'] as const)(
 		'reads merged native text and safely closes during %s',
 		(closing) => {
 			const doc = new Y.Doc();
@@ -53,13 +54,15 @@ describe('inline text editor caret placement', () => {
 					}),
 			};
 			const element = textElement();
-			reconcileSlidesInYDoc(
+			const duplicated = duplicateSlideAt(
 				[{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [element] }],
-				doc,
-				factories,
-			);
+				0,
+			)!;
+			let slides = $state(duplicated.slides);
+			reconcileSlidesInYDoc(duplicated.slides, doc, factories);
 			const patcher = createCollaborationLivePatcher();
 			patcher.configure(doc, factories, true);
+			const mutableCollaboration = $state({ patcher, slideId: 's1' });
 			const host = document.createElement('div');
 			document.body.append(host);
 			const oninput = vi.fn();
@@ -69,10 +72,16 @@ describe('inline text editor caret placement', () => {
 			const component = mount(InlineTextEditor, {
 				target: host,
 				props: {
-					element,
+					get element() {
+						return slides[0].elements[0];
+					},
 					box: { x: 0, y: 0, width: 200, height: 50 },
 					scale: 1,
-					collaboration: { patcher, slideId: 's1' },
+					get collaboration() {
+						return closing === 'mutable target'
+							? mutableCollaboration
+							: { patcher, slideId: slides[0].id };
+					},
 					oninput,
 					oncommit,
 					onclose,
@@ -109,6 +118,25 @@ describe('inline text editor caret placement', () => {
 					root.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
 				} else if (closing === 'readonly') {
 					patcher.configure(null, null);
+				} else if (closing === 'slide replacement' || closing === 'mutable target') {
+					// Duplicating a slide preserves element IDs. A reorder can
+					// replace the active slide while its numeric index stays zero.
+					expect(duplicated.slides[1].elements[0].id).toBe(element.id);
+					untrack(() => {
+						slides = moveSlide(slides, 0, 1)!;
+						mutableCollaboration.slideId = slides[0].id;
+					});
+					flushSync();
+					expect(onclose).toHaveBeenCalledOnce();
+					expect(controller).toBeUndefined();
+					root.dispatchEvent(
+						new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+					);
+					root.querySelector('span')!.textContent = 'Stale input';
+					root.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+					expect(findElementYMap(doc, duplicated.slides[1].id, element.id)!.get('text')).toBe(
+						'TARGET',
+					);
 				}
 				root.dispatchEvent(new FocusEvent('blur'));
 				if (closing === 'commit') {

@@ -36,6 +36,10 @@
 	// The surface is remounted per edit session (keyed on the element id), so the
 	// element is stable for its lifetime: capture the seed text once.
 	const initialText = untrack(() => resolveInlineSurface(element).text);
+	const collaborationTarget = untrack(() => ({
+		slideId: collaboration?.slideId,
+		patcher: collaboration?.patcher,
+	}));
 	let listSeed = $state.raw(untrack(() => createInlineListSeed($state.snapshot(element))));
 	let listController: InlineListController | undefined;
 	let connected = $state.raw<CollaborationInlineEditor>();
@@ -46,8 +50,20 @@
 	let modelObserver = untrack(() => createInlineListModelObserver($state.snapshot(element)));
 	$effect(() => {
 		JSON.stringify(element);
+		const activeSlideId = collaboration?.slideId;
+		const activePatcher = collaboration?.patcher;
 		untrack(() => {
-			if (connected) { connected.checkModel($state.snapshot(element)); return; }
+			if (connected) {
+				if (
+					activeSlideId !== collaborationTarget.slideId ||
+					activePatcher !== collaborationTarget.patcher
+				) {
+					close(null);
+				} else {
+					connected.checkModel($state.snapshot(element));
+				}
+				return;
+			}
 			if (listController) { listController.read(); return; }
 			if (!el || closed || listSeed) {
 				return;
