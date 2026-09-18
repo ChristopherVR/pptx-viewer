@@ -1,9 +1,10 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { AutosaveDisabledReason } from 'pptx-viewer-shared';
+import type { AutosaveDisabledReason, CollaborationShellState } from 'pptx-viewer-shared';
 import {
 	buildDeckSaveOptions,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
+	resolveCollaborationShellState,
 } from 'pptx-viewer-shared';
 
 import { CollaborationController, CollaborationDialogsState } from '../collab';
@@ -36,6 +37,7 @@ export interface CollabClusterDeps {
 
 export interface CollabCluster {
 	collab: CollaborationController;
+	readonly shellState: CollaborationShellState;
 	dialogs: CollaborationDialogsState;
 	autosaveCtl: AutosaveController;
 	autosaveRecovery: AutosaveRecoveryController;
@@ -126,6 +128,17 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 		onStart: (config) => options.onstartcollaboration?.(config),
 		onStop: () => options.onstopcollaboration?.(),
 	});
+	const shellState = $derived(
+		resolveCollaborationShellState({
+			authorizedCanEdit: deps.getEditable(),
+			configured: Boolean(options.collaboration || collab.activeCollaboration),
+			readOnly: collab.readOnly,
+			sourcePending: Boolean(options.getSource()) && loader.loading,
+			sourceError: Boolean(options.getSource()) && Boolean(loader.error || loader.isEncrypted),
+			status: collab.status,
+			remoteUsers: collab.remotePresences,
+		}),
+	);
 	useCollaborationPresenceEffects({
 		collab,
 		getCurrentSlide: () => viewer.current,
@@ -164,7 +177,7 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 			userEnabled: autosavePreference,
 			// A read-only collaborator has nothing to write back, so the session's
 			// read-only veto folds into "can this user edit at all".
-			canEdit: deps.getEditable() && !collab.readOnly,
+			canEdit: shellState.canEdit,
 			filePath: options.getFilePath(),
 		}),
 	);
@@ -209,6 +222,9 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 
 	return {
 		collab,
+		get shellState() {
+			return shellState;
+		},
 		dialogs,
 		autosaveCtl,
 		autosaveRecovery,

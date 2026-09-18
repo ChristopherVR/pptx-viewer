@@ -158,6 +158,96 @@ last-updated timestamp), which drives the cursor and presence UI.
 
 ## Building custom collaboration UI
 
+For a custom editor shell, use `ViewerCollaborationShellService` alongside
+`POWER_POINT_VIEWER_PROVIDERS`. It composes the existing loader, editor, session,
+canvas-editing, and cursor services; it does not create a second collaboration
+controller or transport. Call `bind()` once from the host component constructor
+with reactive accessors:
+
+```ts
+import { Component, inject, input, viewChild } from '@angular/core';
+import {
+	POWER_POINT_VIEWER_PROVIDERS,
+	SlideCanvasComponent,
+	ViewerCollaborationShellService,
+} from 'pptx-angular-viewer';
+import type {
+	CollaborationConfig,
+	CollaborationShellState,
+	ViewerCollaborationShellOptions,
+} from 'pptx-angular-viewer';
+
+@Component({
+	selector: 'app-custom-slides',
+	standalone: true,
+	providers: [...POWER_POINT_VIEWER_PROVIDERS, ViewerCollaborationShellService],
+	imports: [SlideCanvasComponent],
+	template: `
+		<pptx-slide-canvas
+			[slide]="shell.activeSlide()"
+			[canvasSize]="shell.loader.canvasSize()"
+			[mediaDataUrls]="shell.loader.mediaDataUrls()"
+			[templateElements]="shell.activeTemplateElements()"
+			[editable]="shell.canEdit()"
+			[selectedIds]="shell.editor.selectedIds()"
+			[editingId]="shell.canvasEditing.editingId()"
+			(elementSelect)="shell.canvasEditing.onElementSelect($event)"
+			(textEditStart)="shell.canvasEditing.onTextEditStart($event.id)"
+			(textInput)="shell.canvasEditing.onTextInput($event)"
+			(textCommit)="shell.canvasEditing.onTextCommit($event)"
+			(textCancel)="shell.canvasEditing.editingId.set(null)"
+			(listSession)="shell.canvasEditing.onListSession($event)"
+		/>
+	`,
+})
+export class CustomSlidesComponent {
+	readonly content = input<Uint8Array | null>(null);
+	readonly collaboration = input<CollaborationConfig>();
+	readonly canEdit = input(true);
+	readonly shell = inject(ViewerCollaborationShellService);
+	readonly canvas = viewChild(SlideCanvasComponent);
+
+	constructor() {
+		const options: ViewerCollaborationShellOptions = {
+			content: this.content,
+			collaboration: this.collaboration,
+			canEdit: this.canEdit,
+			stageElement: () => this.canvas()?.getStageElement(),
+		};
+		this.shell.bind(options);
+	}
+
+	getState(): CollaborationShellState {
+		return this.shell.state();
+	}
+	getContent(): Promise<Uint8Array> {
+		return this.shell.getContent();
+	}
+}
+```
+
+The example wires text editing; connect the canvas transform, table, and other
+outputs for the operations your shell exposes. Gate custom mutation controls with
+`shell.canEdit()`, not just the requested host permission. The effective gate also
+accounts for the active session's role/readiness and a real source still loading
+or failing to load. A blank editor without collaboration retains its ordinary
+host-controlled permission. `getContent()` saves the current editable model even
+when a viewer role or a paused session disables editing.
+
+`shell.state()` exposes normalized `remoteUsers`, connection `status`, and
+`connectedCount`. For canvas presence, forward pointer movement to
+`shell.cursor.onPointerMove($event)` and project `CollaborationCursorsComponent`
+and `RemoteSelectionOverlayComponent` **inside** `SlideCanvasComponent`. Supply
+`shell.cursor.cursors()`, `shell.collaboration.presence()`, the active slide's
+elements, and `shell.activeSlideIndex()`. Both overlays use unscaled slide
+coordinates; the canvas applies zoom once. `getStageElement()` supplies the actual
+scaled slide origin without depending on internal CSS selectors.
+
+See `demos/demo-angular/src/host-owned-headless-editor.component.ts` for a runnable
+custom shell with text and shape editing, save, zoom, and both presence overlays.
+The [host-owned collaboration contract](/guide/host-owned-collaboration) and its
+same-textbox concurrency limitations apply equally to custom and full-viewer UI.
+
 The collaboration service and components are exported from the package root (there is no separate
 subpath the way `pptx-react-viewer/viewer` has one) if you want to drive sync or render your own
 presence UI:

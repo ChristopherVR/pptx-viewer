@@ -625,8 +625,10 @@ jobs:
       # behind.
       - name: Run e2e (${{ matrix.key }} shard ${{ matrix.shard }}/8)
         run: |
+          # Each binding also exercises its public custom-shell collaboration path.
+          e2e_projects=(--project=${{ matrix.key }} --project=${{ matrix.key }}-headless)
           for attempt in 1 2; do
-            bun run e2e -- --project=${{ matrix.key }} --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
+            bun run e2e -- "${e2e_projects[@]}" --shard=${{ matrix.shard }}/8 --workers=2 --reporter=list,html,github
             status=$?
             [ $status -eq 0 ] && exit 0
             echo "::warning::e2e attempt $attempt for ${{ matrix.key }} shard ${{ matrix.shard }}/8 failed (exit $status)"

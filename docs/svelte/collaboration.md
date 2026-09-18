@@ -8,6 +8,50 @@ description: Real-time multi-user co-editing for the Svelte PowerPointViewer via
 For an existing application-owned Yjs provider, use `collaboration.externalSession`.
 See [Host-owned collaboration](/guide/host-owned-collaboration) for the shared contract.
 
+## Custom host chrome
+
+`createViewerState` already owns the collaboration lifecycle. In a custom Svelte
+shell, pass a reactive getter for its existing `collaboration` option; do not
+create a second provider or document. Read `state.shellState` for host toolbar
+permissions, connection status, sanitized `remoteUsers` and `connectedCount`.
+
+```svelte
+<script lang="ts">
+	import { createViewerState, type CollaborationShellState } from 'pptx-svelte-viewer/viewer';
+	import { onDestroy } from 'svelte';
+
+	// viewerOptions contains the normal loader, permission and DOM getters.
+	const state = createViewerState({
+		...viewerOptions,
+		get collaboration() { return config; },
+	});
+	const shellState: CollaborationShellState = $derived(state.shellState);
+	onDestroy(() => state.destroy());
+</script>
+
+<button disabled={!shellState.canEdit} onclick={applyHostEdit}>Apply edit</button>
+```
+
+Gate custom edit handlers with `state.shellState.canEdit` as well as disabling
+their controls. The same shared rule drives the factory's editor: host permission,
+session role/readiness, and a pending or failed actual source load all contribute.
+An absent source is not an indefinitely pending load. Clearing `config` detaches
+the viewer; it does not destroy a borrowed host document, awareness or provider.
+
+The public `pptx-svelte-viewer/viewer` entry exports `SlideCanvas`, `EditorLayer`,
+`CollaborationCursors`, `RemoteSelectionOverlay`, and their prop types. Put the
+editing and presence overlays in `SlideCanvas`'s children snippet. Unlike Vue's
+scaled slot, this binding's holder is not transformed: pass its `scale` as the
+presence overlays' `zoom`, so each overlay converts slide coordinates once.
+The factory's existing controller publishes cursor, selection and active-slide
+presence and retires the inline draft when editing becomes unavailable.
+
+The [custom-shell demo source](https://github.com/ChristopherVR/pptx-viewer/blob/main/demos/demo-svelte/src/HostOwnedHeadlessEditor.svelte)
+shows a complete custom canvas with the native editing layer and export API,
+without rendering `PowerPointViewer`.
+
+## Built-in viewer
+
 `<PowerPointViewer>` supports real-time, multi-user editing built on **Yjs** (a CRDT) with
 either a WebSocket transport (`y-websocket`, needs a server) or a serverless peer-to-peer
 transport (`y-webrtc`). The `CollaborationConfig` type and wire format are shared with the

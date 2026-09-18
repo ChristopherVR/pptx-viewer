@@ -4,18 +4,28 @@ import type {
 	CollaborationConfig,
 	CollaborationLivePatcher,
 	CollaborationRole,
+	CollaborationShellState,
 } from 'pptx-viewer-shared';
 /**
  * Types for the `useCollaboration` composable.
  * Extracted here to keep useCollaboration.ts under the 300-line limit.
  */
-import type { Ref, ComputedRef } from 'vue';
+import type { Ref, ComputedRef, MaybeRefOrGetter } from 'vue';
 
 import type { RemoteCursor } from '../components/CollaborationCursors.vue';
 
 export type { AwarenessLike, CollaborationConfig, CollaborationRole };
 
 export interface UseCollaborationOptions {
+	/** Optional reactive configuration; replacing or clearing it starts or stops the session. */
+	collaboration?: MaybeRefOrGetter<CollaborationConfig | undefined>;
+	/** Host authorization, combined with the session's canonical read-only state. */
+	canEdit?: MaybeRefOrGetter<boolean>;
+	/** Whether an actual source file is still loading or failed to load. */
+	sourcePending?: MaybeRefOrGetter<boolean>;
+	sourceError?: MaybeRefOrGetter<boolean>;
+	/** Optional retained serializer for elected-owner write-back; the scheduler guards stale results. */
+	serialize?: (isCurrent: () => boolean) => Promise<Uint8Array | null> | Uint8Array | null;
 	/** The editor's reactive slides ref (broadcast on local change). */
 	slides: Ref<import('pptx-viewer-core').PptxSlide[]>;
 	/** Called when a remote peer broadcasts a newer slide set. */
@@ -73,6 +83,10 @@ export interface RemotePresence {
 }
 
 export interface UseCollaborationResult {
+	/** Shared custom-shell permissions, connection status and sanitized presence. */
+	shellState: ComputedRef<CollaborationShellState>;
+	/** The configuration attached by start() or the reactive collaboration option. */
+	activeCollaboration: Ref<CollaborationConfig | null>;
 	status: Ref<import('pptx-viewer-shared').ConnectionStatus>;
 	connected: Ref<boolean>;
 	cursors: Ref<RemoteCursor[]>;

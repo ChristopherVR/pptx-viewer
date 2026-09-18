@@ -5,9 +5,13 @@ import { onBeforeUnmount, onMounted, ref, shallowRef } from 'vue';
 
 import { createHostOwnedDemo } from '../../shared/host-owned-collaboration';
 import type { HostOwnedDemo } from '../../shared/host-owned-collaboration';
+import type { HostOwnedShellHandle } from '../../shared/host-owned-shell-controls';
+import HostOwnedHeadlessEditor from './HostOwnedHeadlessEditor.vue';
 
+const headless = new URLSearchParams(location.search).get('headless') === '1';
 const host = shallowRef<HostOwnedDemo | null>(null);
 const viewer = ref<PowerPointViewerExpose>();
+const customShell = ref<HostOwnedShellHandle>();
 const mounted = ref(true);
 const error = ref('');
 let disposed = false;
@@ -23,7 +27,8 @@ onMounted(() => {
 				(value) => {
 					mounted.value = value;
 				},
-				async () => viewer.value?.getContent(),
+				async () => (headless ? customShell.value?.getContent() : viewer.value?.getContent()),
+				headless ? { setScale: (scale) => customShell.value?.setScale(scale) } : undefined,
 			);
 			return undefined;
 		})
@@ -38,11 +43,12 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-	<main style="position: fixed; inset: 64px 0 0">
+	<main :style="{ position: 'fixed', inset: `${headless ? 104 : 64}px 0 0` }">
 		<p v-if="error" role="alert">{{ error }}</p>
+		<HostOwnedHeadlessEditor v-if="host && mounted && headless" ref="customShell" :host="host" />
 		<PowerPointViewer
 			ref="viewer"
-			v-if="host && mounted"
+			v-else-if="host && mounted"
 			:content="host.source"
 			:file-name="host.fileName"
 			:collaboration="host.config"

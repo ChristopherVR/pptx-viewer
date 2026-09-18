@@ -17,6 +17,53 @@ import { createPptxViewer, type PptxViewerInstance } from 'pptx-vanilla-viewer';
 const viewer: PptxViewerInstance = createPptxViewer(host, { source });
 ```
 
+## Custom-shell collaboration
+
+`createStore(createInitialViewerState())`, `renderSlideStage`, `loadPresentation` and
+`createCollaborationShell` are public root exports for applications that own the chrome.
+The shell reuses the existing collaboration controller, not a second provider.
+
+```ts
+import {
+	createCollaborationShell,
+	createInitialViewerState,
+	createStore,
+} from 'pptx-vanilla-viewer';
+
+const store = createStore(createInitialViewerState());
+const shell = createCollaborationShell({
+	document,
+	store,
+	getHandler: () => loadedPresentation?.handler ?? null,
+	getCanEdit: () => hostCanEdit,
+	getSourcePending: () => store.get().loading,
+	getScale: () => zoom,
+	getSaveOptions: () => currentSaveOptions,
+});
+await shell.setConfig(collaboration);
+// Begin the load AFTER attaching the session, before replacing the store's slides.
+shell.controller.beginContentLoad('bootstrap');
+// Load the source package and update the store here.
+shell.controller.notifyContentLoaded('bootstrap');
+```
+
+`getState()` exposes effective `canEdit`, connection `status`, `remoteUsers` and
+`connectedCount`. Pass the original host permission to `getCanEdit`, not the effective
+`store.editable` value. Call `refresh()` after host-only permission, loading or zoom
+changes; store/session changes refresh automatically. Mount `cursorOverlay.el` and
+`selectionOverlay.el` beside the scaled stage. `destroy()` removes only the shell's
+resources, leaving a borrowed document, awareness and provider intact.
+
+This lower-level composition does not supply every built-in editor operation. The host
+owns selection, navigation, gestures and history. Native rich-text editing is available
+through `openInlineEditor`, `canInlineEditElement` and `buildInlineTextCommitPatch`.
+Respect `canInteractWithElement` locks and the effective edit gate, and close an active
+inline session when editing becomes disabled. Dispose the loaded handler and call
+`revokeBlobUrls` on its blob URLs when replacing the source or unmounting.
+
+The Vanilla host-owned demo provides a working example using only public exports.
+See the [session guide](/guide/host-owned-collaboration) for persistence boundaries.
+
 ## Loading {#loading}
 
 | Method     | Signature                                                    | Description                                                               |

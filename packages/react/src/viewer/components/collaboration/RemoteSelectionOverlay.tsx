@@ -9,6 +9,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import React from 'react';
 
+import type { CollaborationContextValue } from '../../hooks/collaboration/types';
 import { useCollaboration } from './CollaborationProvider';
 
 // ---------------------------------------------------------------------------
@@ -16,6 +17,8 @@ import { useCollaboration } from './CollaborationProvider';
 // ---------------------------------------------------------------------------
 
 export interface RemoteSelectionOverlayProps {
+	/** Explicit session for custom shells; omitted falls back to the provider. */
+	collaboration?: CollaborationContextValue | null;
 	/** Elements on the active slide (used to look up position/size). */
 	elements: PptxElement[];
 	/** The current slide index; only show selections on the same slide. */
@@ -27,10 +30,12 @@ export interface RemoteSelectionOverlayProps {
 // ---------------------------------------------------------------------------
 
 export function RemoteSelectionOverlay({
+	collaboration,
 	elements,
 	activeSlideIndex,
 }: RemoteSelectionOverlayProps): React.ReactElement | null {
-	const collab = useCollaboration();
+	const context = useCollaboration();
+	const collab = collaboration === undefined ? context : collaboration;
 	if (!collab) {
 		return null;
 	}

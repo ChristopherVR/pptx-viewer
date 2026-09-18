@@ -1,5 +1,9 @@
-import { openPptxFile, readBackstageRecentFile } from 'pptx-viewer-shared';
-import type { ToolbarActionId, ViewportFitOptions } from 'pptx-viewer-shared';
+import {
+	openPptxFile,
+	readBackstageRecentFile,
+	resolveCollaborationShellEditability,
+} from 'pptx-viewer-shared';
+import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 /**
  * useViewerBuildingBlocks: Composes the same state + hooks `PowerPointViewer`
  * wires internally, and maps them into flat prop objects for the standalone
@@ -26,76 +30,26 @@ import type { ToolbarActionId, ViewportFitOptions } from 'pptx-viewer-shared';
  * `useViewerBuildingBlocksState`) rather than routing `PowerPointViewer`
  * through it (a much larger, riskier change). Pieces `PowerPointViewer`
  * renders itself, dialogs, presentation overlays, mobile chrome, resizable
- * panels, collaboration, are out of scope here; hosts that need them should
+ * panels, are out of scope here; hosts that need them should
  * render `PowerPointViewer` instead.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { SlideCanvasProps } from '../components/canvas/canvas-types';
-import type { ToolbarProps } from '../components/toolbar/toolbar-types';
-import type { PowerPointViewerHandle } from '../types';
-import type { ViewerMode } from '../types-core';
-import type { AutosaveStatus } from './useAutosave';
 import { buildCanvasProps } from './useViewerBuildingBlocks-canvas-props';
 import { buildToolbarProps } from './useViewerBuildingBlocks-toolbar-props';
+import type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './useViewerBuildingBlocks-types';
+import { useViewerBuildingBlocksCollaboration } from './useViewerBuildingBlocksCollaboration';
 import { useViewerBuildingBlocksCore } from './useViewerBuildingBlocksCore';
 import { useViewerBuildingBlocksState } from './useViewerBuildingBlocksState';
 
-// ---------------------------------------------------------------------------
-// Input
-// ---------------------------------------------------------------------------
-
-export interface UseViewerBuildingBlocksInput extends ViewportFitOptions {
-	/** PPTX content as ArrayBuffer/Uint8Array, or null/undefined while no file is loaded. */
-	content: ArrayBuffer | Uint8Array | null | undefined;
-	/** Whether editing actions are enabled. Defaults to false (view-only). */
-	canEdit?: boolean;
-	/** Original file path, used for autosave recovery. */
-	filePath?: string;
-	/** Display name for the toolbar's file-name-aware controls (e.g. title bar hosts build themselves). */
-	fileName?: string;
-	/** Whether the built-in autosave-to-localStorage recovery timer is active. Defaults to true. */
-	autosaveEnabled?: boolean;
-	/** Display name used as the author for comments. */
-	userName?: string;
-	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
-	hiddenActions?: readonly ToolbarActionId[];
-	/** Imperative handle ref, exposing the same `PowerPointViewerHandle` API `PowerPointViewer` does. */
-	handle?: React.ForwardedRef<PowerPointViewerHandle>;
-	onContentChange?: (content: Uint8Array) => void;
-	onDirtyChange?: (dirty: boolean) => void;
-	onActiveSlideChange?: (index: number) => void;
-	onModeChange?: (mode: ViewerMode) => void;
-	onZoomChange?: (zoom: number) => void;
-	onSelectionChange?: (ids: string[]) => void;
-	onSlideCountChange?: (count: number) => void;
-	/** Fired by the toolbar's "Settings" button; the host owns rendering that dialog. */
-	onOpenSettings?: () => void;
-	/** Fired by the toolbar's "Header & Footer" button; the host owns rendering that panel. */
-	onOpenHeaderFooter?: () => void;
-	/** Fired by the toolbar's "Share" button; the host owns rendering that dialog. */
-	onOpenShareDialog?: () => void;
-}
-
-// ---------------------------------------------------------------------------
-// Output
-// ---------------------------------------------------------------------------
-
-export interface ViewerBuildingBlocksResult {
-	/** Flat, self-contained props for the standalone `<Toolbar>` component. */
-	toolbarProps: ToolbarProps;
-	/** Flat, self-contained props for the standalone `<SlideCanvas>` component. */
-	canvasProps: SlideCanvasProps;
-	/** Current viewer mode (edit, view, present, master). */
-	mode: ViewerMode;
-	/** True while the initial parse of `content` is in progress. */
-	loading: boolean;
-	/** Parse error message, or null. */
-	error: string | null;
-	/** Current autosave-to-localStorage recovery status. */
-	autosaveStatus: AutosaveStatus;
-}
+export type {
+	UseViewerBuildingBlocksInput,
+	ViewerBuildingBlocksResult,
+} from './useViewerBuildingBlocks-types';
 
 // ---------------------------------------------------------------------------
 // Hook
@@ -106,7 +60,7 @@ export function useViewerBuildingBlocks(
 ): ViewerBuildingBlocksResult {
 	const {
 		content: incomingContent,
-		canEdit = false,
+		canEdit: requestedCanEdit = false,
 		filePath,
 		fileName,
 		autosaveEnabled = true,
@@ -124,20 +78,26 @@ export function useViewerBuildingBlocks(
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 	} = input;
+	const [collaborationReadOnly, setCollaborationReadOnly] = useState(
+		Boolean(input.collaboration?.externalSession),
+	);
 	const { t } = useTranslation();
 
 	// Local content state, synced from the incoming prop but able to diverge
 	// when the built-in File ▸ Open picker loads a different deck in place
 	// (mirrors PowerPointViewer's own content state).
 	const [content, setContent] = useState<ArrayBuffer | Uint8Array | null>(incomingContent ?? null);
+	const [loadOrigin, setLoadOrigin] = useState<CollabLoadOrigin>('bootstrap');
 	useEffect(() => {
 		setContent(incomingContent ?? null);
+		setLoadOrigin('bootstrap');
 	}, [incomingContent]);
 
 	const onOpenFile = useCallback(() => {
 		void (async () => {
 			const picked = await openPptxFile();
 			if (picked) {
+				setLoadOrigin('user');
 				setContent(picked.buffer);
 			}
 		})();
@@ -146,6 +106,7 @@ export function useViewerBuildingBlocks(
 		void (async () => {
 			const bytes = await readBackstageRecentFile(key);
 			if (bytes) {
+				setLoadOrigin('user');
 				setContent(bytes);
 			}
 		})();
@@ -153,7 +114,7 @@ export function useViewerBuildingBlocks(
 
 	const core = useViewerBuildingBlocksCore({
 		content,
-		canEdit,
+		canEdit: requestedCanEdit,
 		fitPadding: input.fitPadding,
 		maxFitScale: input.maxFitScale,
 	});
@@ -173,9 +134,18 @@ export function useViewerBuildingBlocks(
 		gridSpacingPx,
 		viewerOptions,
 	} = core;
+	// Shared slides can arrive before their original PPTX resources finish loading.
+	const canEdit = resolveCollaborationShellEditability({
+		authorizedCanEdit: requestedCanEdit,
+		configured: Boolean(input.collaboration),
+		readOnly: collaborationReadOnly,
+		sourcePending: Boolean(content) && loading,
+		sourceError: Boolean(error),
+	});
 
 	const {
 		dialogs,
+		loadVersion,
 		editorOps,
 		exportHandlers,
 		printHandlers,
@@ -204,6 +174,15 @@ export function useViewerBuildingBlocks(
 	});
 
 	// ── Map hook outputs into flat component props ───────────────────────
+	const { collaboration, overlay } = useViewerBuildingBlocksCollaboration({
+		core,
+		config: input.collaboration,
+		content,
+		loadOrigin,
+		loadVersion,
+		embedFonts: dialogs.embedFontsEnabled,
+		onReadOnlyChange: setCollaborationReadOnly,
+	});
 	const toolbarProps = buildToolbarProps({
 		mode,
 		canEdit,
@@ -260,5 +239,6 @@ export function useViewerBuildingBlocks(
 		buildHyperlinkConfirmMessage: (url) => `${t('pptx.options.trust.confirmHyperlinks')}\n\n${url}`,
 	});
 
-	return { toolbarProps, canvasProps, mode, loading, error, autosaveStatus };
+	canvasProps.collaborationOverlay = overlay;
+	return { toolbarProps, canvasProps, mode, loading, error, autosaveStatus, collaboration };
 }

@@ -53,6 +53,7 @@ export interface UseViewerBuildingBlocksStateInput {
 }
 
 export interface ViewerBuildingBlocksState {
+	loadVersion: number;
 	dialogs: ViewerDialogsResult;
 	editorOps: EditorOperationsResult;
 	exportHandlers: ExportHandlersResult;
@@ -249,6 +250,7 @@ export function useViewerBuildingBlocksState(
 	});
 
 	return {
+		loadVersion,
 		dialogs,
 		editorOps,
 		exportHandlers,

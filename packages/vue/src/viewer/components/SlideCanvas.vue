@@ -93,6 +93,14 @@ const wrapperStyle = computed<CSSProperties>(() => ({
 }));
 
 const viewportRef = ref<HTMLElement | null>(null);
+const stageRef = ref<InstanceType<typeof SlideStage> | null>(null);
+defineExpose({
+	/** The scaled slide origin, for host pointer-to-slide coordinate conversion. */
+	getStageElement: (): HTMLElement | null => {
+		const element: unknown = stageRef.value?.$el;
+		return element instanceof HTMLElement ? element : null;
+	},
+});
 
 /**
  * Compute and emit fit using the host policy, retaining existing ruler gutters.
@@ -180,6 +188,7 @@ watch(
 				@create-guide="(axis, position) => emit('createGuide', axis, position)"
 			/>
 			<SlideStage
+				ref="stageRef"
 				:slide="slide"
 				:canvas-size="canvasSize"
 				:media-data-urls="mediaDataUrls"

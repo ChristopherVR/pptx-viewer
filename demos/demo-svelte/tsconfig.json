@@ -14,6 +14,7 @@
 		"allowImportingTsExtensions": true,
 		"types": ["node", "vite/client", "svelte"],
 		"paths": {
+			"pptx-svelte-viewer/viewer": ["../../packages/svelte/src/viewer/index.ts"],
 			"pptx-svelte-viewer/i18n": ["../../packages/svelte/src/i18n.ts"],
 			"pptx-svelte-viewer": ["../../packages/svelte/src/index.ts"],
 			"pptx-viewer-core/converter": ["../../packages/core/src/converter/index.ts"],

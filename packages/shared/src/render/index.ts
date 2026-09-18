@@ -748,6 +748,7 @@ export * from './hyperlink-target';
 // detection, and the `RemoteCursor` projection. The stateful Yjs provider /
 // awareness lifecycle stays in each binding.
 export * from './collaboration-presence';
+export * from './collaboration-shell-state';
 export * from './collaboration-external-session';
 export * from './collaboration-external-readiness';
 // Throttled local-presence publisher, shared by every binding's collaboration

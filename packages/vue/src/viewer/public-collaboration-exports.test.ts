@@ -4,12 +4,14 @@ import {
 	CollaborationCursors,
 	CollaborationStatusIndicator,
 	FollowModeBar,
+	InlineTextEditor,
 	RemoteSelectionOverlay,
 	useCollaboration,
 	useCollaborativeHistory,
 	useCollaborativeState,
 	usePresenceTracking,
 	useYjsProvider,
+	useInlineEditing,
 } from './index';
 
 describe('stable collaboration exports', () => {
@@ -23,5 +25,7 @@ describe('stable collaboration exports', () => {
 		expect(CollaborationStatusIndicator).toBeTruthy();
 		expect(RemoteSelectionOverlay).toBeTruthy();
 		expect(FollowModeBar).toBeTruthy();
+		expect(InlineTextEditor).toBeTruthy();
+		expect(useInlineEditing).toBeTypeOf('function');
 	});
 });

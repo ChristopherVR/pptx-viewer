@@ -11,6 +11,7 @@ import type {
 	PptxData,
 	PptxEmbeddedFont,
 	PptxHeaderFooter,
+	PptxHandlerSaveOptions,
 	PptxHandoutMaster,
 	PptxModernCommentAuthor,
 	PptxNotesMaster,
@@ -55,6 +56,7 @@ import {
 import type {
 	CanvasSize,
 	DeckSaveIntent,
+	DeckSaveState,
 	PendingInlineTextEdit,
 	SlideSizeEmu,
 } from '../internal/shared';
@@ -267,6 +269,39 @@ export class LoadContentService {
 		return this.handler ?? undefined;
 	}
 
+	/** Live session metadata shared by file saves and collaboration write-back. */
+	getSaveOptions(overrides: Partial<DeckSaveState> = {}): PptxHandlerSaveOptions {
+		return buildDeckSaveOptions({
+			headerFooter: this.headerFooter(),
+			presentationProperties: this.presentationProperties(),
+			slideMasters: this.slideMasters(),
+			notesMaster: this.notesMaster(),
+			handoutMaster: this.handoutMaster(),
+			sections: this.sections(),
+			// Without this the Custom Shows dialog was write-only: shows created
+			// in it never reached `p:custShowLst`, and a deck that arrived with
+			// shows lost them on save.
+			customShows: this.customShows(),
+			// The only route a slide-size edit has into the saved `p:sldSz`.
+			slideSize: this.slideSizeSelection().size,
+			coreProperties: this.coreProperties(),
+			appProperties: this.appProperties(),
+			customProperties: this.customProperties(),
+			tagCollections: this.tagCollections(),
+			// Without this core falls back to `viewProps.xml` as it was FIRST
+			// opened, so every View-ribbon grid/guide/snap toggle silently
+			// reverted at the file boundary.
+			viewProperties: this.viewProperties(),
+			tableStyleMap: this.tableStyleMap(),
+			tableStylesDefaultId: this.tableStylesDefaultId(),
+			tableStylesToDelete: this.tableStylesToDelete(),
+			// The Fonts panel's toggle used to move and change nothing; it now
+			// decides whether the deck's embedded font data survives the save.
+			embedFonts: this.embedFonts(),
+			...overrides,
+		});
+	}
+
 	/**
 	 * Serialise an explicit set of slides back to `.pptx` bytes (e.g. the
 	 * editor's edited deck) using the loaded presentation's handler.
@@ -285,9 +320,6 @@ export class LoadContentService {
 		if (!this.handler) {
 			throw new Error('No presentation is loaded.');
 		}
-		const customProperties = this.customProperties();
-		const tags = this.tagCollections();
-		const customShows = this.customShows();
 		const pending = this.pendingInlineEditReader?.();
 		const masterWrite =
 			pending && 'masterView' in pending.target
@@ -318,34 +350,12 @@ export class LoadContentService {
 		return saveDeckWithPassword(
 			this.handler,
 			saveSlides,
-			buildDeckSaveOptions({
-				headerFooter: this.headerFooter(),
-				presentationProperties: this.presentationProperties(),
+			this.getSaveOptions({
 				slideMasters: masterWrite?.slideMasters ?? this.slideMasters(),
 				notesMaster: masterWrite?.notesMaster ?? this.notesMaster(),
 				handoutMaster: masterWrite?.handoutMaster ?? this.handoutMaster(),
 				sections,
-				// Without this the Custom Shows dialog was write-only: shows created
-				// in it never reached `p:custShowLst`, and a deck that arrived with
-				// shows lost them on save.
-				customShows,
-				// The only route a slide-size edit has into the saved `p:sldSz`.
-				slideSize: this.slideSizeSelection().size,
-				coreProperties: this.coreProperties(),
-				appProperties: this.appProperties(),
-				customProperties,
-				tagCollections: tags,
 				outputFormat,
-				// Without this core falls back to `viewProps.xml` as it was FIRST
-				// opened, so every View-ribbon grid/guide/snap toggle silently
-				// reverted at the file boundary.
-				viewProperties: this.viewProperties(),
-				tableStyleMap: this.tableStyleMap(),
-				tableStylesDefaultId: this.tableStylesDefaultId(),
-				tableStylesToDelete: this.tableStylesToDelete(),
-				// The Fonts panel's toggle used to move and change nothing; it now
-				// decides whether the deck's embedded font data survives the save.
-				embedFonts: this.embedFonts(),
 			}),
 			password,
 		);

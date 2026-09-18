@@ -3,6 +3,13 @@ export type {
 	ExternalCollaborationSession,
 	ExternalCollaborationSnapshot,
 	ExternalCollaborationAwareness,
+	CollaborationShellState,
+	ConnectionStatus,
+	SanitizedPresence,
+	InlineTextEditSnapshot,
+	InlineListController,
+	InlineListReadResult,
+	PendingInlineTextEdit,
 } from 'pptx-viewer-shared';
 export { default as SlideCanvas } from './components/SlideCanvas.vue';
 export { default as SlideStage } from './components/SlideStage.vue';
@@ -18,6 +25,8 @@ export { default as ZoomRenderer } from './components/ZoomRenderer.vue';
 export { default as EquationRenderer } from './components/EquationRenderer.vue';
 export { default as WordArtText } from './components/WordArtText.vue';
 export { default as CollaborationCursors } from './components/CollaborationCursors.vue';
+export { default as InlineTextEditor } from './components/InlineTextEditor.vue';
+export { default as SelectionOverlay } from './components/SelectionOverlay.vue';
 export type { RemoteCursor } from './components/CollaborationCursors.vue';
 export { default as CollaborationStatusIndicator } from './components/CollaborationStatusIndicator.vue';
 export { default as RemoteSelectionOverlay } from './components/RemoteSelectionOverlay.vue';

@@ -1,3 +1,9 @@
+import {
+	createHostOwnedShellControls,
+	downloadHostPresentation,
+} from './host-owned-shell-controls';
+import type { HostOwnedShellHandle } from './host-owned-shell-controls';
+
 type HostStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export const externalSessionRequested = (): boolean =>
@@ -106,6 +112,7 @@ export async function createHostOwnedDemo(configuredServer = '') {
 		attachControls(
 			onMountChange: (mounted: boolean) => void,
 			getContent?: () => Promise<Uint8Array | undefined>,
+			shell?: Pick<HostOwnedShellHandle, 'setScale'>,
 		): void {
 			panel = document.createElement('section');
 			panel.setAttribute('aria-label', 'Host-owned collaboration');
@@ -118,6 +125,13 @@ export async function createHostOwnedDemo(configuredServer = '') {
 			save.textContent = 'Save shared snapshot';
 			const output = document.createElement('output');
 			output.setAttribute('aria-label', 'Host session state');
+			const onSaveError = (reason: unknown): void => {
+				output.textContent = `Save failed: ${String(reason)}`;
+			};
+			const shellControls =
+				getContent && shell
+					? createHostOwnedShellControls({ getContent, setScale: shell.setScale }, onSaveError)
+					: undefined;
 			for (const button of [readiness, mount, connection, save]) {
 				button.type = 'button';
 				button.style.cssText =
@@ -130,6 +144,7 @@ export async function createHostOwnedDemo(configuredServer = '') {
 					? 'Disconnect session'
 					: 'Reconnect session';
 				save.disabled = !editorMounted;
+				shellControls?.setMounted(editorMounted);
 				output.textContent = `Host: ${status}; synced: ${getSnapshot().synced}; client: ${doc.clientID}; updates: ${updates}; host data: ${awareness.getLocalState()?.hostData}; editor: ${editorMounted ? 'mounted' : 'unmounted'}`;
 			};
 			readiness.onclick = () => {
@@ -152,31 +167,17 @@ export async function createHostOwnedDemo(configuredServer = '') {
 				render();
 			};
 			save.onclick = () => {
-				void getContent?.()
-					.then((bytes) => {
-						if (!bytes?.byteLength) {
-							return;
-						}
-						const url = URL.createObjectURL(
-							new Blob([new Uint8Array(bytes)], {
-								type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-							}),
-						);
-						const link = document.createElement('a');
-						link.href = url;
-						link.download = 'sample-deck.pptx';
-						link.click();
-						setTimeout(() => URL.revokeObjectURL(url), 0);
-						return undefined;
-					})
-					.catch((reason: unknown) => {
-						output.textContent = `Save failed: ${String(reason)}`;
-					});
+				if (getContent) {
+					void downloadHostPresentation(getContent, 'sample-deck.pptx').catch(onSaveError);
+				}
 			};
 			disposePanel = subscribe(render);
 			panel.append(readiness, mount, connection, output);
 			if (getContent) {
 				panel.append(save);
+			}
+			if (shellControls) {
+				panel.append(shellControls.element);
 			}
 			document.body.append(panel);
 			render();

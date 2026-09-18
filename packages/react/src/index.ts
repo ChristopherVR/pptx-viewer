@@ -22,6 +22,7 @@ export type {
 } from './viewer/hooks/useViewerBuildingBlocks';
 
 // ── Shared API types ──
+export type { CollaborationContextValue } from './viewer/hooks/collaboration/types';
 export type { ViewerMode, PowerPointViewerAPI } from 'pptx-viewer-shared';
 export type {
 	CollaborationConfig,

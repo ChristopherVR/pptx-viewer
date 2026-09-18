@@ -61,6 +61,22 @@ function setup(elements: PptxElement[], gridSpacingPx?: number) {
 }
 
 describe('useElementDrag: connector rerouting', () => {
+	it('cancels a custom-shell drag without accepting later pointer moves', () => {
+		const { drag, find } = setup([shape('a')]);
+		drag.startElementDrag(
+			'a',
+			pointer('pointerdown', { clientX: 0, clientY: 0 }) as PointerEvent,
+			false,
+		);
+		window.dispatchEvent(pointer('pointermove', { clientX: 40, clientY: 0 }));
+		expect(find('a')?.x).toBe(40);
+		drag.cancelElementDrag();
+		window.dispatchEvent(pointer('pointermove', { clientX: 80, clientY: 0 }));
+		window.dispatchEvent(pointer('pointerup', { clientX: 80, clientY: 0 }));
+		expect(find('a')?.x).toBe(40);
+		expect(drag.hasActivePointerInteraction()).toBeFalsy();
+	});
+
 	// Vue never called the shared reroute, so a connector stayed exactly where it
 	// was drawn while the shape it is attached to walked off.
 	it('reroutes a connector when the shape it starts at is dragged away', () => {

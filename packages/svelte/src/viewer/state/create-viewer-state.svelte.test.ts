@@ -1,6 +1,11 @@
-import type { ViewportFitOptions } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	ExternalCollaborationSnapshot,
+	ViewportFitOptions,
+} from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import type { ViewerStateBag } from './create-viewer-state-types';
 import CreateViewerStateHarness from './CreateViewerStateHarness.svelte';
@@ -37,6 +42,9 @@ interface HarnessProps {
 	onautosavetoggle?: (enabled: boolean) => void;
 	viewport?: { width: number; height: number };
 	fitOptions?: ViewportFitOptions;
+	getCollaboration?: () => CollaborationConfig | undefined;
+	getEditable?: () => boolean;
+	getSource?: () => Uint8Array | undefined;
 }
 
 function renderHarness(props: HarnessProps = {}): ViewerStateBag {
@@ -61,6 +69,109 @@ function renderHarness(props: HarnessProps = {}): ViewerStateBag {
 }
 
 describe('createViewerState', () => {
+	it('reactively combines host permission, sync readiness and source failure for custom shells', async () => {
+		const doc = new Y.Doc();
+		let snapshot: ExternalCollaborationSnapshot = { status: 'connected', synced: false };
+		const listeners = new Set<() => void>();
+		let local: Record<string, unknown> | null = {};
+		let config = $state.raw<CollaborationConfig | undefined>({
+			roomId: 'shell-room',
+			serverUrl: '',
+			userName: 'Ada',
+			externalSession: {
+				doc,
+				awareness: {
+					clientID: doc.clientID,
+					getStates: () => new Map(),
+					getLocalState: () => local,
+					setLocalState: (value) => {
+						local = value;
+					},
+					setLocalStateField: (key, value) => {
+						local = { ...local, [key]: value };
+					},
+					on: () => {},
+					off: () => {},
+				},
+				getSnapshot: () => snapshot,
+				subscribe: (listener) => {
+					listeners.add(listener);
+					return () => {
+						listeners.delete(listener);
+					};
+				},
+			},
+		});
+		let allowed = $state(true);
+		let source = $state.raw<Uint8Array | undefined>(undefined);
+		const state = renderHarness({
+			getCollaboration: () => config,
+			getEditable: () => allowed,
+			getSource: () => source,
+		});
+		try {
+			await vi.waitFor(() => {
+				flushSync();
+				expect(listeners.size).toBe(1);
+			});
+			expect(state.shellState.canEdit).toBeFalsy();
+			expect(state.editor.editable).toBeFalsy();
+			snapshot = { status: 'connected', synced: true };
+			for (const listener of listeners) {
+				listener();
+			}
+			flushSync();
+			expect(state.shellState.canEdit).toBeTruthy();
+			expect(state.editor.editable).toBeTruthy();
+			allowed = false;
+			flushSync();
+			expect(state.shellState.canEdit).toBeFalsy();
+			allowed = true;
+			source = new Uint8Array([1]);
+			flushSync();
+			await vi.waitFor(() => expect(state.loader.error).toBeTruthy());
+			flushSync();
+			expect(state.shellState.canEdit).toBeFalsy();
+			expect(state.editor.editable).toBeFalsy();
+			source = undefined;
+			flushSync();
+			expect(state.shellState.canEdit).toBeTruthy();
+			config = { ...config!, role: 'viewer' };
+			await vi.waitFor(() => {
+				flushSync();
+				expect(state.collab.activeCollaboration?.role).toBe('viewer');
+				expect(listeners.size).toBe(1);
+			});
+			expect(state.shellState.canEdit).toBeFalsy();
+			expect(state.editor.editable).toBeFalsy();
+			config = undefined;
+			flushSync();
+			expect(listeners.size).toBe(0);
+			expect(state.shellState).toMatchObject({
+				status: 'disconnected',
+				connectedCount: 0,
+				canEdit: true,
+			});
+		} finally {
+			state.destroy();
+			doc.destroy();
+		}
+	});
+
+	it('exposes shell authorization without inventing a pending source', () => {
+		const state = renderHarness({ editable: true });
+		expect(state.shellState).toMatchObject({
+			canEdit: true,
+			status: 'disconnected',
+			remoteUsers: [],
+			connectedCount: 0,
+		});
+		state.editable = false;
+		flushSync();
+		expect(state.shellState.canEdit).toBeFalsy();
+		expect(state.editingActive).toBeFalsy();
+	});
+
 	it('reads the public fit props through live getters', () => {
 		let props: ViewportFitOptions = { fitPadding: 0, maxFitScale: null };
 		const options = toViewerStateOptions(() => props, {

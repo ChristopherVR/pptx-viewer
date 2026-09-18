@@ -1,7 +1,8 @@
 import JSZip from 'jszip';
 import { createImageElement, PptxHandler } from 'pptx-viewer-core';
 import type { PptxElement } from 'pptx-viewer-core';
-import { createViewerOptionsStore } from 'pptx-viewer-shared';
+import { createViewerOptionsStore, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
+import type { CollaborationConfig, ExternalCollaborationSession } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * Live sanity check for `useViewerBuildingBlocks`: renders a component that
@@ -19,6 +20,8 @@ import React, { act, createRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Awareness } from 'y-protocols/awareness';
+import * as Y from 'yjs';
 
 import * as imageInsertion from '../../../../shared/src/render/image-file-insertion';
 import { SlideCanvas } from '../components/SlideCanvas';
@@ -89,6 +92,7 @@ let root: Root;
 let latest: ViewerBuildingBlocksResult | null = null;
 
 function Harness({
+	collaboration,
 	content,
 	handle,
 	onDirtyChange,
@@ -98,7 +102,8 @@ function Harness({
 	measuredViewport,
 	mountedCanvas,
 }: {
-	content: Uint8Array;
+	collaboration?: CollaborationConfig;
+	content: Uint8Array | null;
 	handle?: React.RefObject<PowerPointViewerHandle | null>;
 	onDirtyChange?: (dirty: boolean) => void;
 	canEdit?: boolean;
@@ -108,6 +113,7 @@ function Harness({
 	mountedCanvas?: { key: string; overrides?: Partial<SlideCanvasProps> };
 }): React.ReactElement {
 	const result = useViewerBuildingBlocks({
+		collaboration,
 		content,
 		canEdit,
 		handle,
@@ -187,6 +193,281 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('keeps a blank collaborative shell gated by live readiness and host permission', async () => {
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		const doc = new Y.Doc();
+		const awareness = new Awareness(doc);
+		const listeners = new Set<() => void>();
+		let synced = false;
+		const collaboration: CollaborationConfig = {
+			roomId: 'blank-custom-shell',
+			serverUrl: '',
+			userName: 'Host',
+			sessionIntent: 'create',
+			externalSession: {
+				doc,
+				awareness,
+				getSnapshot: () => ({ status: 'connected', synced }),
+				subscribe(listener) {
+					listeners.add(listener);
+					return () => {
+						listeners.delete(listener);
+					};
+				},
+			},
+		};
+		const mount = async (config: CollaborationConfig | undefined, canEdit = true) => {
+			await act(async () =>
+				root.render(
+					React.createElement(Harness, { content: null, collaboration: config, canEdit }),
+				),
+			);
+			await flush();
+		};
+		try {
+			await mount(collaboration);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await act(async () => {
+				synced = true;
+				[...listeners].forEach((listener) => listener());
+			});
+			await flushUntil(() => latest?.canvasProps.canEdit === true);
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			expect(latest!.toolbarProps.canEdit).toBeTruthy();
+			await mount(collaboration, false);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await act(async () => {
+				synced = false;
+				[...listeners].forEach((listener) => listener());
+			});
+			await mount(collaboration);
+			expect(latest!.canvasProps.canEdit).toBeFalsy();
+			await mount(undefined);
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			await mount({
+				...collaboration,
+				role: 'viewer',
+				externalSession: {
+					...collaboration.externalSession!,
+					subscribe() {
+						throw new Error('Host subscription failed');
+					},
+				},
+			});
+			await flushUntil(() => latest?.collaboration?.status === 'error');
+			expect(latest!.collaboration?.status).toBe('error');
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+		} finally {
+			await act(async () => root.render(null));
+			awareness.destroy();
+			doc.destroy();
+		}
+	});
+
+	it.each([
+		{ canEdit: true, role: 'collaborator' as const, editableAfterLoad: true },
+		{ canEdit: false, role: 'collaborator' as const, editableAfterLoad: false },
+		{ canEdit: true, role: 'viewer' as const, editableAfterLoad: false },
+	])(
+		'keeps collaborative editing disabled until the original PPTX finishes loading ($role, canEdit=$canEdit)',
+		async ({ canEdit, role, editableAfterLoad }) => {
+			const original = new PptxHandler();
+			const data = await original.load(textEditingFixtureBytes.buffer as ArrayBuffer);
+			const doc = new Y.Doc();
+			const awareness = new Awareness(doc);
+			reconcileSlidesInYDoc(data.slides, doc, {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+			});
+			const collaboration: CollaborationConfig = {
+				roomId: 'delayed-headless-load',
+				serverUrl: '',
+				userName: 'Participant',
+				role,
+				sessionIntent: 'join',
+				externalSession: {
+					doc,
+					awareness,
+					getSnapshot: () => ({ status: 'connected', synced: true }),
+					subscribe: () => () => {},
+				},
+			};
+			let releaseLoad!: () => void;
+			const loadGate = new Promise<void>((resolve) => {
+				releaseLoad = resolve;
+			});
+			const realLoad = PptxHandler.prototype.load;
+			const delayedLoad = vi
+				.spyOn(PptxHandler.prototype, 'load')
+				.mockImplementation(async function (this: PptxHandler, ...args) {
+					const parsed = await realLoad.apply(this, args);
+					await loadGate;
+					return parsed;
+				});
+			const handle = createRef<PowerPointViewerHandle>();
+			try {
+				await act(async () =>
+					root.render(
+						React.createElement(Harness, {
+							content: textEditingFixtureBytes,
+							collaboration,
+							handle,
+							canEdit,
+						}),
+					),
+				);
+				await flushUntil(() => handle.current?.getElements().length === 2);
+				expect(delayedLoad).toHaveBeenCalledWith(expect.any(ArrayBuffer), expect.any(Object));
+				expect(latest!.canvasProps.activeSlide?.elements).toHaveLength(2);
+				expect(latest!.loading).toBeTruthy();
+				expect(latest!.canvasProps.canEdit).toBeFalsy();
+				expect(latest!.toolbarProps.canEdit).toBeFalsy();
+				await act(async () => releaseLoad());
+				await flushUntil(() => latest?.loading === false);
+				expect(latest!.error).toBeNull();
+				expect(latest!.canvasProps.canEdit).toBe(editableAfterLoad);
+				expect(latest!.toolbarProps.canEdit).toBe(editableAfterLoad);
+				if (editableAfterLoad) {
+					const first = handle.current!.getElements()[0];
+					await act(async () =>
+						latest!.canvasProps.onDoubleClick(
+							first.id,
+							new MouseEvent('dblclick') as unknown as React.MouseEvent,
+						),
+					);
+					await flush();
+					expect(latest!.canvasProps.inlineEditingElementId).toBe(first.id);
+				}
+			} finally {
+				releaseLoad();
+				delayedLoad.mockRestore();
+				await act(async () => root.render(null));
+				awareness.destroy();
+				doc.destroy();
+				original.dispose();
+			}
+		},
+	);
+
+	it('preserves non-collaborative authorization for blank documents and load errors', async () => {
+		await act(async () => root.render(React.createElement(Harness, { content: null })));
+		expect(latest!.loading).toBeTruthy();
+		expect(latest!.canvasProps.canEdit).toBeTruthy();
+		expect(latest!.toolbarProps.canEdit).toBeTruthy();
+		const failedLoad = vi
+			.spyOn(PptxHandler.prototype, 'load')
+			.mockRejectedValue(new Error('Invalid presentation'));
+		const loadError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		try {
+			await act(async () => root.render(React.createElement(Harness, { content: fixtureBytes })));
+			await flushUntil(() => latest?.loading === false);
+			expect(latest!.loading).toBeFalsy();
+			expect(latest!.error).toBe('Invalid presentation');
+			expect(latest!.canvasProps.canEdit).toBeTruthy();
+			expect(latest!.toolbarProps.canEdit).toBeTruthy();
+		} finally {
+			failedLoad.mockRestore();
+			loadError.mockRestore();
+		}
+	});
+
+	it('synchronizes two host-owned peers through the public headless API and saves their final deck', async () => {
+		const firstDoc = new Y.Doc(),
+			secondDoc = new Y.Doc();
+		const firstAwareness = new Awareness(firstDoc),
+			secondAwareness = new Awareness(secondDoc);
+		const firstHandle = createRef<PowerPointViewerHandle>(),
+			secondHandle = createRef<PowerPointViewerHandle>();
+		const peerContainer = document.createElement('div');
+		document.body.append(peerContainer);
+		const peerRoot = createRoot(peerContainer);
+		const original = new PptxHandler();
+		const data = await original.load(textEditingFixtureBytes.buffer as ArrayBuffer);
+		data.slides[0].elements[0].x = 45;
+		reconcileSlidesInYDoc(data.slides, firstDoc, {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+		});
+		Y.applyUpdate(secondDoc, Y.encodeStateAsUpdate(firstDoc));
+		firstDoc.on('update', (update: Uint8Array, origin: unknown) => {
+			if (origin !== 'peer') {
+				Y.applyUpdate(secondDoc, update, 'peer');
+			}
+		});
+		secondDoc.on('update', (update: Uint8Array, origin: unknown) => {
+			if (origin !== 'peer') {
+				Y.applyUpdate(firstDoc, update, 'peer');
+			}
+		});
+		const config = (doc: Y.Doc, awareness: Awareness): CollaborationConfig => ({
+			roomId: 'headless-test',
+			serverUrl: '',
+			userName: 'Participant',
+			sessionIntent: 'join',
+			externalSession: {
+				doc,
+				awareness,
+				getSnapshot: () => ({ status: 'connected', synced: true }),
+				subscribe: () => () => {},
+			} satisfies ExternalCollaborationSession,
+		});
+		try {
+			await act(async () => {
+				root.render(
+					React.createElement(Harness, {
+						content: textEditingFixtureBytes,
+						handle: firstHandle,
+						collaboration: config(firstDoc, firstAwareness),
+					}),
+				);
+				peerRoot.render(
+					React.createElement(Harness, {
+						content: textEditingFixtureBytes,
+						handle: secondHandle,
+						collaboration: config(secondDoc, secondAwareness),
+					}),
+				);
+			});
+			await flushUntil(
+				() =>
+					firstHandle.current?.getElements().length === 2 &&
+					secondHandle.current?.getElements().length === 2,
+			);
+			await flushUntil(() => latest?.loading === false);
+			expect(latest?.error).toBeNull();
+			expect(firstHandle.current!.getElements()[0].x).toBe(45);
+			expect(secondHandle.current!.getElements()[0].x).toBe(45);
+			const [first, second] = firstHandle.current!.getElements();
+			await act(async () => firstHandle.current!.updateElement(first.id, { x: 90 }));
+			await flushUntil(() => secondHandle.current!.getElements()[0].x === 90);
+			await act(async () => secondHandle.current!.updateElement(second.id, { y: 180 }));
+			await flushUntil(() => firstHandle.current!.getElements()[1].y === 180);
+			expect(secondHandle.current!.getSlides()).toStrictEqual(firstHandle.current!.getSlides());
+			const saved = await firstHandle.current!.getContent();
+			const reopened = new PptxHandler();
+			const result = await reopened.load(saved.buffer as ArrayBuffer);
+			expect(result.slides[0].elements[0].x).toBe(90);
+			expect(result.slides[0].elements[1].y).toBe(180);
+			reopened.dispose();
+			await act(async () => {
+				root.render(null);
+				peerRoot.render(null);
+			});
+			expect(firstDoc.isDestroyed).toBeFalsy();
+			expect(secondDoc.isDestroyed).toBeFalsy();
+		} finally {
+			await act(async () => peerRoot.unmount());
+			peerContainer.remove();
+			firstAwareness.destroy();
+			secondAwareness.destroy();
+			firstDoc.destroy();
+			secondDoc.destroy();
+			original.dispose();
+		}
+	}, 30_000);
+
 	it('reports the full selection after a toolbar text-box insertion', async () => {
 		const handle = createRef<PowerPointViewerHandle>();
 		await act(async () => {

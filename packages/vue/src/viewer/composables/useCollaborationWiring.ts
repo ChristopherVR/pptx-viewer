@@ -99,6 +99,7 @@ export function useCollaborationWiring(
 
 	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
 	const collab = useCollaboration({
+		collaboration: collaborationProp,
 		slides,
 		loadVersion,
 		getLoadOrigin,
@@ -123,20 +124,7 @@ export function useCollaborationWiring(
 	// Dialog-initiated sessions echo the same config object back through this prop,
 	// so we compare by reference to avoid restarting a session we already started.
 	// oxlint-disable-next-line eslint/one-var -- distinct concerns, forcing one statement hurts readability
-	const activeCollaboration = ref<CollaborationConfig | null>(null);
-	watch(
-		collaborationProp,
-		(config) => {
-			if (config && config !== activeCollaboration.value) {
-				activeCollaboration.value = config;
-				void collab.start(config);
-			} else if (!config && activeCollaboration.value) {
-				activeCollaboration.value = null;
-				collab.stop();
-			}
-		},
-		{ immediate: true },
-	);
+	const activeCollaboration = collab.activeCollaboration;
 
 	// Publish local selection + active slide to peers; follow a peer's active slide.
 	watch(selectedElementIds, (ids) => {

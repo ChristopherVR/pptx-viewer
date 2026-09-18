@@ -15,6 +15,36 @@
 import { describe, expect, it } from 'vitest';
 
 import * as publicApi from './public-api';
+import type {
+	CollaborationShellState,
+	ConnectionStatus,
+	SanitizedPresence,
+	ViewerCollaborationShellOptions,
+} from './public-api';
+
+describe('supported custom collaboration shell exports', () => {
+	it('exposes the facade and nameable option/state types from the package root', () => {
+		const options: ViewerCollaborationShellOptions = {
+			content: () => null,
+			collaboration: () => undefined,
+			canEdit: () => true,
+			stageElement: () => undefined,
+		};
+		const status: ConnectionStatus = 'disconnected';
+		const remoteUsers: SanitizedPresence[] = [];
+		const state: CollaborationShellState = {
+			canEdit: options.canEdit(),
+			status,
+			remoteUsers,
+			connectedCount: 0,
+		};
+		expect(publicApi.ViewerCollaborationShellService).toBeTypeOf('function');
+		expect(publicApi.SlideCanvasComponent.prototype.getStageElement).toBeTypeOf('function');
+		expect(publicApi.RemoteSelectionOverlayComponent).toBeTypeOf('function');
+		expect(publicApi.POWER_POINT_VIEWER_PROVIDERS).toContain(publicApi.CollaborationService);
+		expect(state.canEdit).toBeTruthy();
+	});
+});
 
 describe('pptx-angular-viewer/internals: slide-transition helpers', () => {
 	it('exports the transition resolvers as functions', () => {

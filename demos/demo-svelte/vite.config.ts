@@ -38,6 +38,10 @@ export default defineConfig({
 	resolve: {
 		// Order matters: more specific subpath aliases must precede the bare ones.
 		alias: [
+			{
+				find: 'pptx-svelte-viewer/viewer',
+				replacement: pkg('svelte', 'src', 'viewer', 'index.ts'),
+			},
 			{ find: 'pptx-svelte-viewer/i18n', replacement: pkg('svelte', 'src', 'i18n.ts') },
 			{ find: 'pptx-svelte-viewer', replacement: pkg('svelte', 'src', 'index.ts') },
 			{

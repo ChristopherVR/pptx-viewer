@@ -10,9 +10,10 @@ import {
 	isMixedContentBlocked,
 	registerCollaborationTeardown,
 	resolveTransportForServerUrl,
+	resolveCollaborationShellState,
 	validateRoomId,
 } from 'pptx-viewer-shared';
-import { computed, onScopeDispose, ref } from 'vue';
+import { computed, onScopeDispose, ref, shallowRef, toValue, watch } from 'vue';
 
 import { createCollabProvider } from './collaboration-provider';
 import type { CollabProviderHandle } from './collaboration-provider';
@@ -30,9 +31,21 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 	const status = ref<ConnectionStatus>('disconnected');
 	const connected = computed(() => status.value === 'connected');
 	const active = ref(false);
+	const activeCollaboration = shallowRef<CollaborationConfig | null>(null);
 	const activeRole = ref<CollaborationRole | undefined>(undefined);
 	const presence = useCollaborationPresence(options);
 	const document = useCollaborationDocumentSync(options, status);
+	const shellState = computed(() =>
+		resolveCollaborationShellState({
+			authorizedCanEdit: toValue(options.canEdit) ?? true,
+			configured: Boolean(toValue(options.collaboration) || activeCollaboration.value),
+			readOnly: document.readOnly.value,
+			sourcePending: toValue(options.sourcePending) ?? false,
+			sourceError: toValue(options.sourceError) ?? false,
+			status: status.value,
+			remoteUsers: presence.remoteUsers.value,
+		}),
+	);
 	const connectedCount = computed(
 		() => presence.remotePresences.value.length + (active.value ? 1 : 0),
 	);
@@ -47,6 +60,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		stop();
 		const token = ++startToken;
 		lastConfig = config;
+		activeCollaboration.value = config;
 		activeRole.value = config.role;
 		document.begin(config);
 		const external = config.externalSession;
@@ -145,6 +159,7 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		ydoc = null;
 		status.value = 'disconnected';
 		active.value = false;
+		activeCollaboration.value = null;
 		activeRole.value = undefined;
 	}
 	async function retry(): Promise<void> {
@@ -152,6 +167,17 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 			await start(lastConfig);
 		}
 	}
+	watch(
+		() => toValue(options.collaboration),
+		(config) => {
+			if (config && config !== activeCollaboration.value) {
+				void start(config);
+			} else if (!config && activeCollaboration.value) {
+				stop();
+			}
+		},
+		{ immediate: true },
+	);
 	// A cancelled beforeunload must not detach a borrowed connection. pagehide
 	// still releases our listeners/presence if the page actually goes away.
 	const disposeTeardown = registerCollaborationTeardown({
@@ -165,6 +191,8 @@ export function useCollaboration(options: UseCollaborationOptions): UseCollabora
 		document.dispose();
 	});
 	return {
+		shellState,
+		activeCollaboration,
 		status,
 		connected,
 		active,

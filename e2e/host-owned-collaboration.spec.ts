@@ -3,8 +3,13 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { savePptxViaBackstage } from './save-pptx';
-import { hostOwnedSessionUrl } from './support/host-owned-session';
+import {
+	expectHostOwnedShell,
+	hostOwnedSessionUrl,
+	requireCustomHostShell,
+	saveHostOwnedPresentation,
+	waitForHostEditing,
+} from './support/host-owned-session';
 
 const elements = (page: Page) => page.locator('[data-pptx-viewport] [data-pptx-element="true"]');
 const state = (page: Page) => page.getByLabel('Host session state', { exact: true });
@@ -15,6 +20,12 @@ async function open(page: Page, room: string, extra: Record<string, string> = {}
 	await page.goto(hostOwnedSessionUrl(room, extra));
 	await expect(state(page)).toContainText('Host: connected', { timeout: 30_000 });
 	await expect(elements(page).first()).toBeVisible({ timeout: 30_000 });
+	await expectHostOwnedShell(page);
+	await waitForHostEditing(page, extra);
+	const headlessSave = page.getByRole('button', { name: 'Save shared snapshot', exact: true });
+	if (await headlessSave.count()) {
+		await expect(headlessSave).toBeEnabled({ timeout: 30_000 });
+	}
 }
 
 async function identity(page: Page): Promise<string> {
@@ -29,8 +40,8 @@ async function updateCount(page: Page): Promise<number> {
 }
 
 async function box(target: Locator) {
-	const value = await target.boundingBox();
-	expect(value).not.toBeNull();
+	let value: Awaited<ReturnType<Locator['boundingBox']>> = null;
+	await expect.poll(async () => (value = await target.boundingBox())).not.toBeNull();
 	return value!;
 }
 
@@ -104,7 +115,7 @@ async function saveSnapshot(
 		await page.getByRole('button', { name: 'Save shared snapshot', exact: true }).click();
 		download = await pending;
 	} else {
-		download = await savePptxViaBackstage(page);
+		download = await saveHostOwnedPresentation(page);
 	}
 	if (savedPath) {
 		await download.saveAs(savedPath);
@@ -440,4 +451,60 @@ test.describe('host-owned collaboration', () => {
 			}
 		});
 	}
+
+	test('custom-shell selections and cursors follow the receiver zoom exactly once', async ({
+		page,
+		browser,
+		baseURL,
+	}, info) => {
+		requireCustomHostShell();
+		const context = await browser.newContext({ baseURL, viewport: { width: 1280, height: 900 } });
+		const peer = await context.newPage();
+		const room = `external-shell-overlay-${info.project.name}-${Date.now()}`;
+		try {
+			await open(page, room, { sample: '1' });
+			await open(peer, room, { name: 'Peer' });
+			await page.getByLabel('Custom shell zoom', { exact: true }).selectOption('0.5');
+			const target = elements(page).filter({ hasText: 'Product Overview' });
+			const id = await target.getAttribute('data-element-id');
+			expect(id).toBeTruthy();
+			await target.click();
+			const from = await box(target);
+			// Sample a distinct pointer position after the click's presence update.
+			// This case tests coordinates, not the cursor broadcast rate limit.
+			await page.waitForTimeout(100);
+			await page.mouse.move(from.x + from.width * 0.4, from.y + from.height * 0.5);
+			const peerTarget = elements(peer).filter({ hasText: 'Product Overview' });
+			const selection = peer.locator(`[data-pptx-remote-selection="${id}"]`);
+			const cursor = peer.locator(`[data-pptx-remote-cursor="${await identity(page)}"]`);
+			await expect(selection).toBeVisible();
+			await expect(cursor).toBeVisible();
+			let previousWidth: number | undefined;
+			for (const scale of [0.5, 1, 1.5]) {
+				await peer.getByLabel('Custom shell zoom', { exact: true }).selectOption(String(scale));
+				await expect
+					.poll(async () => {
+						const expected = await box(peerTarget);
+						const actual = await box(selection);
+						const tip = await box(cursor);
+						return Math.max(
+							Math.abs(actual.x - expected.x),
+							Math.abs(actual.y - expected.y),
+							Math.abs(actual.width - expected.width),
+							Math.abs(actual.height - expected.height),
+							Math.abs(tip.x - (expected.x + expected.width * 0.4)),
+							Math.abs(tip.y - (expected.y + expected.height * 0.5)),
+						);
+					})
+					.toBeLessThan(3);
+				const currentWidth = (await box(peerTarget)).width;
+				if (previousWidth !== undefined) {
+					expect(currentWidth).toBeGreaterThan(previousWidth);
+				}
+				previousWidth = currentWidth;
+			}
+		} finally {
+			await context.close();
+		}
+	});
 });

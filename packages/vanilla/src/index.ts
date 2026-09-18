@@ -29,6 +29,38 @@ export type { PptxViewerSource } from './viewer';
 export type { ViewerState, ZoomLevel } from './viewer';
 
 // ── Collaboration + autosave (config + status types re-exported for hosts) ─
+export {
+	createCollaborationController,
+	createCollaborationShell,
+	createCollaborationCursors,
+} from './viewer/collab';
+export type {
+	CollaborationController,
+	CollaborationControllerDeps,
+	CollaborationShell,
+	CollaborationShellOptions,
+	CollaborationCursors,
+	RemoteSelectionOverlay,
+} from './viewer/collab';
+export type {
+	CollabLoadOrigin,
+	CollaborationLivePatcher,
+	CollaborationShellState,
+	RemoteCursor,
+	SanitizedPresence,
+	InlineTextEditSnapshot,
+	InlineTextSelection,
+	InlineListReadResult,
+} from 'pptx-viewer-shared';
+export { buildInlineTextCommitPatch, canInteractWithElement } from 'pptx-viewer-shared';
+export { loadPresentation, revokeBlobUrls } from './viewer/load';
+export type { LoadedPresentation, LoadPresentationOptions } from './viewer/load';
+export { openInlineEditor, canInlineEditElement } from './viewer/editor/inline-text-editor';
+export type {
+	InlineEditorSession,
+	OpenInlineEditorOptions,
+} from './viewer/editor/inline-text-editor';
+export type { OverlayBox } from './viewer/editor/selection-overlay';
 export type {
 	AutosaveRecord,
 	AutosaveStatus,
@@ -141,7 +173,7 @@ export {
 export type { SessionDeck } from 'pptx-viewer-shared';
 
 // ── Core escape-hatch types ────────────────────────────────────────────
-export type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+export type { PptxElement, PptxHandler, PptxHandlerSaveOptions, PptxSlide } from 'pptx-viewer-core';
 
 // ── Openable-file allow list ───────────────────────────────────────────
 // The one answer to "can the viewer open this file?", so a host's drop target

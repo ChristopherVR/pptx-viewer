@@ -38,6 +38,7 @@ export function useCollaborationDocumentSync(
 	let unobserve: (() => void) | null = null;
 	const writeBack = createWriteBackScheduler({
 		getYDoc: () => doc,
+		serialize: options.serialize,
 		getSourceBytes: options.getSourceBytes,
 		getTemplateElements: options.getTemplateElements,
 		mergeTemplateElements: buildSaveSlides,

@@ -129,6 +129,18 @@ export default defineConfig({
 			name: 'svelte',
 			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${SVELTE_PORT}` },
 		},
+		...Object.entries({
+			react: REACT_PORT,
+			vue: VUE_PORT,
+			angular: ANGULAR_PORT,
+			vanilla: VANILLA_PORT,
+			svelte: SVELTE_PORT,
+		}).map(([binding, port]) => ({
+			name: `${binding}-headless`,
+			metadata: { headless: true },
+			testMatch: '**/host-owned-collaboration.spec.ts',
+			use: { ...devices['Desktop Chrome'], baseURL: `http://localhost:${port}` },
+		})),
 	],
 	webServer: [
 		{

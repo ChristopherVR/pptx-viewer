@@ -51,6 +51,28 @@ function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 }
 
 describe('loadContentService document-property persistence', () => {
+	it('shares live save metadata while preserving empty-array and override conventions', () => {
+		const { svc, destroy } = createService();
+		try {
+			svc.coreProperties.set({ title: 'Live title' });
+			svc.embedFonts.set(false);
+			const base = svc.getSaveOptions();
+			expect(base.coreProperties?.title).toBe('Live title');
+			expect(base.sections).toBeUndefined();
+			expect(base.customShows).toBeUndefined();
+			expect(base.customProperties).toBeUndefined();
+			expect(svc.getSaveOptions({ sections: [], outputFormat: 'ppsx' })).toStrictEqual({
+				...base,
+				outputFormat: 'ppsx',
+			});
+			const sections = [{ id: 'section', name: 'Edited section', slideIds: ['slide'] }];
+			expect(svc.getSaveOptions({ sections }).sections).toStrictEqual(sections);
+			expect(svc.sections()).toStrictEqual([]);
+		} finally {
+			destroy();
+		}
+	});
+
 	it('serializes a list draft without committing the editor model', async () => {
 		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 		data.slides[0].elements = [

@@ -476,6 +476,10 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly listActivationSelection = signal<{ start: number; end: number } | undefined>(undefined);
 	private listSessionId: string | null = null;
 	private readonly stageRef = viewChild<ElementRef<HTMLElement>>('stage');
+	/** Scaled slide origin for custom-shell presence; undefined before the canvas mounts. */
+	getStageElement(): HTMLElement | undefined {
+		return this.stageRef()?.nativeElement;
+	}
 	private readonly viewportRef = viewChild<ElementRef<HTMLElement>>('viewport');
 
 	/** Per-instance auto-fit scale measurement (see {@link CanvasFitService}). */
