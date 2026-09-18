@@ -16,6 +16,7 @@ import { PptxHandler } from 'pptx-viewer-core';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
 import { externalSessionRequested } from '../../shared/host-owned-collaboration';
+import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { buildViewerAiConfig } from './ai-config';
 import { buildRoomConfig, readRoomFromUrl, resolveAutoName } from './collab';
 import { getLanguage, onLanguageChange, t, viewerMessages } from './demo-i18n';
@@ -52,30 +53,11 @@ let appliedVarKeys: string[] = [];
 // Broadcast dialogs as a prefilled default (see `shareDefaults` below).
 const userName = resolveAutoName();
 
-// The experimental Three.js SmartArt renderer is on by default (mirroring
-// demo-vue's `App.vue`); opt out per-tab via `?smartArt3D=0` (Options >
-// Advanced > "Disable 3D rendering" is the persistent, cross-session way to
-// fall back to 2D).
-const smartArt3D = new URLSearchParams(window.location.search).get('smartArt3D') !== '0';
-// The experimental Three.js interactive surface-chart renderer (camera
-// orbit/zoom + raycast hover tooltip) is on by default; opt out via
-// `?surfaceChart3D=0`.
-const surfaceChart3D = new URLSearchParams(window.location.search).get('surfaceChart3D') !== '0';
-// The experimental Three.js interactive bar3D-chart renderer (camera
-// orbit/zoom, real box meshes) is on by default; opt out via `?barChart3D=0`.
-const barChart3D = new URLSearchParams(window.location.search).get('barChart3D') !== '0';
-// The experimental Three.js interactive line3D-chart renderer (camera
-// orbit/zoom, real tube-path meshes) is on by default; opt out via
-// `?lineChart3D=0`.
-const lineChart3D = new URLSearchParams(window.location.search).get('lineChart3D') !== '0';
-// The experimental Three.js interactive area3D-chart renderer (camera
-// orbit/zoom, real tube-path + ribbon meshes) is on by default; opt out via
-// `?areaChart3D=0`.
-const areaChart3D = new URLSearchParams(window.location.search).get('areaChart3D') !== '0';
-// The experimental Three.js interactive pie3D-chart renderer (camera
-// orbit/zoom, real wedge meshes) is on by default; opt out via
-// `?pieChart3D=0`.
-const pieChart3D = new URLSearchParams(window.location.search).get('pieChart3D') !== '0';
+// The six opt-in Three.js scenes: on for a person, off under browser
+// automation unless a `?<flag>=1` query param opts in; see
+// demos/shared/rendering-3d-flags.ts for the rules and why.
+const { smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D } =
+	currentDemo3DFlags();
 
 /** Apply theme vars to :root so the dropzone chrome tracks the theme. */
 function applyRootVars(): void {

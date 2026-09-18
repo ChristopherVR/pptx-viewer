@@ -35,6 +35,7 @@ import {
 } from '../../packages/shared/src/render/autosave-store';
 import { installDevViewerHandle } from '../dev-viewer-handle';
 import { externalSessionRequested } from '../shared/host-owned-collaboration';
+import { currentDemo3DFlags } from '../shared/rendering-3d-flags';
 import { useDemoAiConfig } from './ai-config';
 import { HostOwnedDemoApp } from './HostOwnedDemo';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
@@ -379,48 +380,13 @@ function App() {
 	);
 	const isWebrtcJoin = urlTransport === 'webrtc';
 	const signalingList = useMemo(() => parseSignaling(urlSignaling), [urlSignaling]);
-	// The experimental Three.js SmartArt renderer is on by default; opt out
-	// per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D rendering"
-	// is the persistent, cross-session way to fall back to 2D).
+	// The six opt-in Three.js scenes: on for a person, off under browser
+	// automation unless a `?<flag>=1` query param opts in; see
+	// demos/shared/rendering-3d-flags.ts for the rules and why. Read once for
+	// the life of the page, like the query-string collab settings above.
 	// eslint-disable-next-line react/hook-use-state
-	const [smartArt3D] = useState(
-		() => new URLSearchParams(window.location.search).get('smartArt3D') !== '0',
-	);
-	// The experimental Three.js interactive surface-chart renderer (camera
-	// orbit/zoom + raycast hover tooltip) is on by default; opt out via
-	// `?surfaceChart3D=0`.
-	// eslint-disable-next-line react/hook-use-state
-	const [surfaceChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('surfaceChart3D') !== '0',
-	);
-	// The experimental Three.js interactive bar3D-chart renderer (real box
-	// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
-	// opt out via `?barChart3D=0`.
-	// eslint-disable-next-line react/hook-use-state
-	const [barChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('barChart3D') !== '0',
-	);
-	// The experimental Three.js interactive line3D-chart renderer (real
-	// tube-path meshes, camera orbit/zoom + raycast hover tooltip) is on by
-	// default; opt out via `?lineChart3D=0`.
-	// eslint-disable-next-line react/hook-use-state
-	const [lineChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('lineChart3D') !== '0',
-	);
-	// The experimental Three.js interactive area3D-chart renderer (real
-	// tube-path + ribbon meshes, camera orbit/zoom + raycast hover tooltip) is
-	// on by default; opt out via `?areaChart3D=0`.
-	// eslint-disable-next-line react/hook-use-state
-	const [areaChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('areaChart3D') !== '0',
-	);
-	// The experimental Three.js interactive pie3D-chart renderer (real wedge
-	// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
-	// opt out via `?pieChart3D=0`.
-	// eslint-disable-next-line react/hook-use-state
-	const [pieChart3D] = useState(
-		() => new URLSearchParams(window.location.search).get('pieChart3D') !== '0',
-	);
+	const [{ smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D }] =
+		useState(currentDemo3DFlags);
 	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 	// page to embed a live, pre-populated viewer).
 	// eslint-disable-next-line react/hook-use-state

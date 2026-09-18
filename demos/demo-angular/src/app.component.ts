@@ -30,6 +30,7 @@ import {
 import 'pptx-angular-viewer/styles';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { buildDemoAiConfig, readStoredAiFields } from './ai-config';
 import {
 	ensureAutoRoomId,
@@ -129,40 +130,17 @@ export class AppComponent {
 
 	private readonly params = new URLSearchParams(window.location.search);
 	/**
-	 * The experimental Three.js SmartArt renderer is on by default; opt out
-	 * per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D
-	 * rendering" is the persistent, cross-session way to fall back to 2D).
+	 * The six opt-in Three.js scenes: on for a person, off under browser
+	 * automation unless a `?<flag>=1` query param opts in; see
+	 * demos/shared/rendering-3d-flags.ts for the rules and why.
 	 */
-	readonly smartArt3D = this.params.get('smartArt3D') !== '0';
-	/**
-	 * The experimental Three.js interactive surface-chart renderer (camera
-	 * orbit/zoom + raycast hover tooltip) is on by default; opt out via
-	 * `?surfaceChart3D=0`.
-	 */
-	readonly surfaceChart3D = this.params.get('surfaceChart3D') !== '0';
-	/**
-	 * The experimental Three.js interactive bar3D-chart renderer (real box
-	 * meshes, camera orbit/zoom) is on by default; opt out via `?barChart3D=0`.
-	 */
-	readonly barChart3D = this.params.get('barChart3D') !== '0';
-	/**
-	 * The experimental Three.js interactive line3D-chart renderer (real
-	 * tube-path meshes, camera orbit/zoom) is on by default; opt out via
-	 * `?lineChart3D=0`.
-	 */
-	readonly lineChart3D = this.params.get('lineChart3D') !== '0';
-	/**
-	 * The experimental Three.js interactive area3D-chart renderer (real
-	 * tube-path + ribbon meshes, camera orbit/zoom) is on by default; opt out
-	 * via `?areaChart3D=0`.
-	 */
-	readonly areaChart3D = this.params.get('areaChart3D') !== '0';
-	/**
-	 * The experimental Three.js interactive pie3D-chart renderer (real wedge
-	 * meshes, camera orbit/zoom) is on by default; opt out via
-	 * `?pieChart3D=0`.
-	 */
-	readonly pieChart3D = this.params.get('pieChart3D') !== '0';
+	private readonly rendering3D = currentDemo3DFlags();
+	readonly smartArt3D = this.rendering3D.smartArt3D;
+	readonly surfaceChart3D = this.rendering3D.surfaceChart3D;
+	readonly barChart3D = this.rendering3D.barChart3D;
+	readonly lineChart3D = this.rendering3D.lineChart3D;
+	readonly areaChart3D = this.rendering3D.areaChart3D;
+	readonly pieChart3D = this.rendering3D.pieChart3D;
 	/** `?sample=1` auto-loads the bundled sample deck (docs landing embed). */
 	private readonly urlSample = this.params.get('sample') === '1';
 	readonly urlRoom = this.params.get('room');

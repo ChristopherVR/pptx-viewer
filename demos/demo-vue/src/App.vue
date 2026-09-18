@@ -20,6 +20,7 @@ import 'pptx-vue-viewer/styles';
 import { useI18n } from 'vue-i18n';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { useDemoAiConfig } from './ai-config';
 import {
 	isTrustedServerUrl,
@@ -123,30 +124,11 @@ const isWebrtcJoin = urlTransport === 'webrtc';
 // For a webrtc join the server URL is intentionally blank (P2P); otherwise fall
 // back to the configured relay / localhost default.
 const urlServer = isWebrtcJoin ? '' : (params.get('server') ?? resolveDefaultServerUrl());
-// The experimental Three.js SmartArt renderer is on by default; opt out
-// per-tab via `?smartArt3D=0` (Options > Advanced > "Disable 3D rendering"
-// is the persistent, cross-session way to fall back to 2D).
-const smartArt3D = params.get('smartArt3D') !== '0';
-// The experimental Three.js interactive surface-chart renderer (camera
-// orbit/zoom + raycast hover tooltip) is on by default; opt out via
-// `?surfaceChart3D=0`.
-const surfaceChart3D = params.get('surfaceChart3D') !== '0';
-// The experimental Three.js interactive bar3D-chart renderer (real box
-// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
-// opt out via `?barChart3D=0`.
-const barChart3D = params.get('barChart3D') !== '0';
-// The experimental Three.js interactive line3D-chart renderer (real
-// tube-path meshes, camera orbit/zoom + raycast hover tooltip) is on by
-// default; opt out via `?lineChart3D=0`.
-const lineChart3D = params.get('lineChart3D') !== '0';
-// The experimental Three.js interactive area3D-chart renderer (real
-// tube-path + ribbon meshes, camera orbit/zoom + raycast hover tooltip) is
-// on by default; opt out via `?areaChart3D=0`.
-const areaChart3D = params.get('areaChart3D') !== '0';
-// The experimental Three.js interactive pie3D-chart renderer (real wedge
-// meshes, camera orbit/zoom + raycast hover tooltip) is on by default;
-// opt out via `?pieChart3D=0`.
-const pieChart3D = params.get('pieChart3D') !== '0';
+// The six opt-in Three.js scenes: on for a person, off under browser
+// automation unless a `?<flag>=1` query param opts in; see
+// demos/shared/rendering-3d-flags.ts for the rules and why.
+const { smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D } =
+	currentDemo3DFlags();
 // `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 // page to embed a live, pre-populated viewer).
 const urlSample = params.get('sample') === '1';

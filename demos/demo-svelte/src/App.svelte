@@ -27,6 +27,7 @@
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
 	import { language, t } from './demo-i18n.svelte';
 	import { installDevViewerHandle } from '../../dev-viewer-handle';
+	import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 	import { readStoredTheme, themes } from './themes';
 
 	let viewerRef: PowerPointViewerApi | undefined = $state();
@@ -40,28 +41,12 @@
 	let errorMessage = $state('');
 	// eslint-disable-next-line prefer-const
 
-	// The experimental Three.js SmartArt renderer is on by default (mirrors
-	// demo-vue/src/App.vue); opt out per-tab via `?smartArt3D=0` (Options >
-	// Advanced > "Disable 3D rendering" is the persistent, cross-session way
-	// to fall back to 2D).
 	const params = new URLSearchParams(window.location.search);
-	const smartArt3D = params.get('smartArt3D') !== '0';
-	// The experimental Three.js interactive surface-chart renderer (camera
-	// orbit/zoom + raycast hover tooltip) is on by default; opt out via
-	// `?surfaceChart3D=0`.
-	const surfaceChart3D = params.get('surfaceChart3D') !== '0';
-	// The experimental Three.js interactive bar3D-chart renderer is on by
-	// default; opt out via `?barChart3D=0`.
-	const barChart3D = params.get('barChart3D') !== '0';
-	// The experimental Three.js interactive line3D-chart renderer is on by
-	// default; opt out via `?lineChart3D=0`.
-	const lineChart3D = params.get('lineChart3D') !== '0';
-	// The experimental Three.js interactive area3D-chart renderer is on by
-	// default; opt out via `?areaChart3D=0`.
-	const areaChart3D = params.get('areaChart3D') !== '0';
-	// The experimental Three.js interactive pie3D-chart renderer is on by
-	// default; opt out via `?pieChart3D=0`.
-	const pieChart3D = params.get('pieChart3D') !== '0';
+	// The six opt-in Three.js scenes: on for a person, off under browser
+	// automation unless a `?<flag>=1` query param opts in; see
+	// demos/shared/rendering-3d-flags.ts for the rules and why.
+	const { smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D } =
+		currentDemo3DFlags();
 	const audienceSession = parsePresentationSessionId(window.location.hash);
 	if (audienceSession) {
 		void loadPresentationDeck(audienceSession).then((content) => {
