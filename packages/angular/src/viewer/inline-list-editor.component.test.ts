@@ -12,8 +12,13 @@ import {
 	reconcileSlidesInYDoc,
 } from '../internal/shared';
 import type { CollaborationLivePatcher, YjsFactories } from '../internal/shared';
+import { CollaborationService } from './collaboration.service';
+import { EditorStateService } from './editor-state.service';
 import { InlineListEditorComponent } from './inline-list-editor.component';
 import { InlineListSession } from './inline-list-session';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
+import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerFormatPainterService } from './viewer-format-painter.service';
 
 // Direct component lifecycle and native DOM events, not Angular TestBed or browser Undo.
 function mountedEditor(
@@ -74,79 +79,132 @@ function mountedEditor(
 }
 
 describe('angular list editor', () => {
-	it('retires the exact connected target when a duplicate slide becomes active', () => {
-		const doc = new Y.Doc();
-		const source: PptxSlide = {
-			id: 's1',
-			slideNumber: 1,
-			elements: [
-				{
-					id: 'e1',
-					type: 'text',
-					x: 0,
-					y: 0,
-					width: 200,
-					height: 80,
-					text: 'Hello',
-					textSegments: [{ text: 'Hello', style: {} }],
-				},
-			],
-		};
-		// EditorStateService.duplicateSlide assigns a new slide ID, not new element IDs.
-		const duplicate = { ...cloneSlide(source), id: 's2' };
-		const factories: YjsFactories = {
-			createMap: () => new Y.Map(),
-			createArray: () => new Y.Array(),
-			createText: () => new Y.Text(),
-			createTextPositions: (text) =>
-				createSnapshotTextPositions(text as unknown as Y.Text, {
-					read: () => Y.snapshot(doc),
-					equal: Y.equalSnapshots,
-					subscribeBeforeObservers: (listener) => {
-						doc.on('beforeObserverCalls', listener);
-						return () => doc.off('beforeObserverCalls', listener);
+	it.each(['render', 'host snapshot', 'pending snapshot', 'host readonly'] as const)(
+		'retires the exact connected target before %s on a duplicate slide',
+		(boundary) => {
+			const doc = new Y.Doc();
+			const source: PptxSlide = {
+				id: 's1',
+				slideNumber: 1,
+				elements: [
+					{
+						id: 'e1',
+						type: 'text',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 80,
+						text: 'Hello',
+						textSegments: [{ text: 'Hello', style: {} }],
 					},
-				}),
-		};
-		reconcileSlidesInYDoc([source, duplicate], doc, factories);
-		const patcher = createCollaborationLivePatcher();
-		patcher.configure(doc, factories, true);
-		const editor = mountedEditor(undefined, patcher, source.elements[0]);
-		const cancel = vi.spyOn(editor.component.textCancel, 'emit');
-		try {
-			// A normal model refresh on the same slide keeps the existing surface.
-			Object.assign(editor.component, { element: () => ({ ...source.elements[0], x: 20 }) });
-			editor.component.ngOnChanges();
-			expect(cancel).not.toHaveBeenCalled();
-			Object.assign(editor.component, {
-				element: () => duplicate.elements[0],
-				slideId: () => duplicate.id,
-			});
-			editor.component.ngOnChanges();
-			expect(cancel).toHaveBeenCalledOnce();
-			const node = editor.root.querySelector('span')!.firstChild as Text;
-			window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
-			editor.root.dispatchEvent(
-				new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
-			);
-			node.data += ' wrong slide';
-			editor.root.dispatchEvent(
-				new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
-			);
-			editor.handlers.commit();
-			expect(editor.commits).not.toHaveBeenCalled();
-			expect((findElementYMap(doc, 's1', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
-				'Hello',
-			);
-			expect((findElementYMap(doc, 's2', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
-				'Hello',
-			);
-		} finally {
-			editor.cleanup();
-			patcher.dispose();
-			doc.destroy();
-		}
-	});
+				],
+			};
+			// EditorStateService.duplicateSlide assigns a new slide ID, not new element IDs.
+			const duplicate = { ...cloneSlide(source), id: 's2' };
+			const factories: YjsFactories = {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text as unknown as Y.Text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
+			};
+			reconcileSlidesInYDoc([source, duplicate], doc, factories);
+			const patcher = createCollaborationLivePatcher();
+			patcher.configure(doc, factories, true);
+			const editor = mountedEditor(undefined, patcher, source.elements[0]);
+			const cancel = vi.spyOn(editor.component.textCancel, 'emit');
+			try {
+				if (boundary !== 'render') {
+					const state = new EditorStateService();
+					state.setSlides([source, duplicate]);
+					const injector = Injector.create({
+						providers: [
+							{ provide: EditorStateService, useValue: state },
+							{ provide: ViewerDialogsService, useValue: {} },
+							{ provide: ViewerFormatPainterService, useValue: {} },
+							{ provide: CollaborationService, useValue: { livePatcher: patcher } },
+						],
+					});
+					const canvas = runInInjectionContext(injector, () => new ViewerCanvasEditingService());
+					canvas.bind({
+						canEdit: () => true,
+						activeSlide: () => state.slides()[0],
+						activeSlideIndex: () => 0,
+						activeTemplateElements: () => [],
+					});
+					canvas.onTextEditStart('e1');
+					canvas.onListSession(editor.sessions.mock.lastCall![0]);
+					const node = editor.root.querySelector('span')!.firstChild as Text;
+					window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+					editor.root.dispatchEvent(
+						new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+					);
+					node.data += ' local';
+					editor.root.dispatchEvent(
+						new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+					);
+					expect(canvas.readInlineSnapshot()?.text).toBe('Hello local');
+					if (boundary === 'pending snapshot') {
+						editor.root.dispatchEvent(new CompositionEvent('compositionstart'));
+						expect(canvas.isInlineInputPending()).toBeTruthy();
+					}
+					state.applyRemoteSlides([duplicate, source]);
+					// The host snapshot reader runs synchronously, before component ngOnChanges.
+					if (boundary === 'pending snapshot') {
+						expect(canvas.isInlineInputPending()).toBeFalsy();
+					} else if (boundary === 'host readonly') {
+						canvas.suspendInlineEdit();
+					}
+					expect(canvas.readInlineSnapshot()).toBeUndefined();
+					expect(canvas.isInlineInputPending()).toBeFalsy();
+					canvas.suspendInlineEdit();
+					expect(state.slides()[0].elements[0]).toMatchObject({ text: 'Hello' });
+					expect((findElementYMap(doc, 's1', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
+						'Hello local',
+					);
+					return;
+				}
+				// A normal model refresh on the same slide keeps the existing surface.
+				Object.assign(editor.component, { element: () => ({ ...source.elements[0], x: 20 }) });
+				editor.component.ngOnChanges();
+				expect(cancel).not.toHaveBeenCalled();
+				Object.assign(editor.component, {
+					element: () => duplicate.elements[0],
+					slideId: () => duplicate.id,
+				});
+				editor.component.ngOnChanges();
+				expect(cancel).toHaveBeenCalledOnce();
+				const node = editor.root.querySelector('span')!.firstChild as Text;
+				window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+				editor.root.dispatchEvent(
+					new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+				);
+				node.data += ' wrong slide';
+				editor.root.dispatchEvent(
+					new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+				);
+				editor.handlers.commit();
+				expect(editor.commits).not.toHaveBeenCalled();
+				expect((findElementYMap(doc, 's1', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
+					'Hello',
+				);
+				expect((findElementYMap(doc, 's2', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
+					'Hello',
+				);
+			} finally {
+				editor.cleanup();
+				patcher.dispose();
+				doc.destroy();
+			}
+		},
+	);
 
 	it('uses the connected native controller for plain text and blocks composition blur', () => {
 		const doc = new Y.Doc();

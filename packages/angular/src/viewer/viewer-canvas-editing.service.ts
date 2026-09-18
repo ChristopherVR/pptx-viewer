@@ -61,11 +61,14 @@ export class ViewerCanvasEditingService {
 
 	/** Id of the element being inline text-edited, or null. */
 	readonly editingId = signal<string | null>(null);
+	private inlineSlideId: string | undefined;
 	private inlineSnapshot: InlineTextEditSnapshot | undefined;
 	private acceptedText: string | undefined;
 	private readonly listSession = new InlineListSession(
 		() =>
-			this.host && this.editingId() ? this.findElement(this.host, this.editingId()!) : undefined,
+			this.host && this.editingId() && this.host.activeSlide()?.id === this.inlineSlideId
+				? this.findElement(this.host, this.editingId()!)
+				: undefined,
 		() => {
 			this.inlineSnapshot = undefined;
 			this.editingId.set(null);
@@ -175,6 +178,7 @@ export class ViewerCanvasEditingService {
 			this.dialogs.openEquationEdit(id, equation.equationXml);
 			return;
 		}
+		this.inlineSlideId = host.activeSlide()?.id;
 		this.editingId.set(id);
 	}
 

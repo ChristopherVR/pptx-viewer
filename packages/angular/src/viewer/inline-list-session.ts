@@ -24,7 +24,8 @@ export class InlineListSession {
 		return native?.checkModel(this.element()) ? native.readAccepted() : undefined;
 	}
 	isPending(): boolean {
-		const current = this.connected()?.read();
+		const native = this.connected();
+		const current = native?.checkModel(this.element()) ? native.read() : undefined;
 		return (
 			current?.kind === 'unsupported' &&
 			(current.reason === 'input-active' || current.reason === 'composition-active')
