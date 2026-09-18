@@ -113,18 +113,16 @@ export function createHostOwnedInlineEditor(options: {
 					const patch = buildInlineTextCommitPatch(source, text, snapshot);
 					if (source && patch) {
 						store.set({
-							slides: store
-								.get()
-								.slides.map((item) =>
-									item.id === target?.slideId
-										? {
-												...item,
-												elements: item.elements.map((value) =>
-													value === source ? ({ ...value, ...patch } as PptxElement) : value,
-												),
-											}
-										: item,
-								),
+							slides: store.get().slides.map((item) =>
+								item.id === target?.slideId
+									? {
+											...item,
+											elements: item.elements.map((value) =>
+												value === source ? ({ ...value, ...patch } as PptxElement) : value,
+											),
+										}
+									: item,
+							),
 						});
 					}
 				},
