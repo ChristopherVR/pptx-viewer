@@ -77,6 +77,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	}
 
 	const inlineEditingElementId = ref<string | null>(null);
+	let inlineSlideId: string | undefined;
 	const inlineEditingText = ref('');
 	const inlineSnapshot = shallowRef<InlineTextEditSnapshot>();
 	const inlineEditingElement = computed<PptxElement | undefined>(() =>
@@ -84,8 +85,12 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	);
 	const listSession = useInlineListSession(() => inlineEditingElement.value, cancelInlineEdit);
 	watch(
-		canEdit,
-		(allowed) => {
+		[canEdit, () => input.activeSlide?.()?.id],
+		([allowed, slideId]) => {
+			if (inlineEditingElementId.value && slideId !== inlineSlideId) {
+				listSession.end();
+				return;
+			}
 			if (!allowed && listSession.isConnected()) {
 				const accepted = listSession.readAccepted();
 				if (accepted) {
@@ -140,6 +145,7 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		if (el.textSegments?.some((seg) => seg.equationXml)) {
 			return;
 		}
+		inlineSlideId = input.activeSlide?.()?.id;
 		inlineEditingElementId.value = id;
 		inlineSnapshot.value = undefined;
 		inlineEditingText.value = (el as { text?: string }).text ?? '';

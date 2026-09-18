@@ -1,11 +1,21 @@
 import { mount } from '@vue/test-utils';
-import type { PptxElement } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	readSlidesFromYDoc,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
+import type { YjsFactories } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
-import { shallowRef } from 'vue';
+import { computed, ref, shallowRef } from 'vue';
+import * as Y from 'yjs';
 
 import InlineTextEditor from '../components/InlineTextEditor.vue';
 import type { EditorOperations } from './useEditorOperations';
 import { useInlineEditing } from './useInlineEditing';
+import { useSlideOperations } from './useSlideOperations';
 
 /**
  * Regression cover for "the undo stack jams after two edits".
@@ -53,6 +63,88 @@ function useHarness(element: PptxElement): Harness {
 }
 
 describe('commitInlineEdit', () => {
+	it('retires the connected editor when a peer reorder activates a duplicate with the same element id', () => {
+		const slides = shallowRef<PptxSlide[]>([
+			{ id: 'original', slideNumber: 1, elements: [makeElement()] },
+		]);
+		const activeSlideIndex = ref(0);
+		useSlideOperations({ slides, activeSlideIndex, pushHistory: vi.fn() }).duplicateSlide(0);
+		activeSlideIndex.value = 0;
+		const [original, duplicate] = slides.value;
+		expect(duplicate.id).not.toBe(original.id);
+		expect(duplicate.elements[0].id).toBe(original.elements[0].id);
+		const activeSlide = computed(() => slides.value[activeSlideIndex.value]);
+		const doc = new Y.Doc();
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text as unknown as Y.Text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
+		};
+		reconcileSlidesInYDoc(slides.value, doc, factories);
+		const patcher = createCollaborationLivePatcher();
+		patcher.configure(doc, factories, true);
+		const updateElement = vi.fn();
+		const editing = useInlineEditing({
+			canEdit: () => true,
+			findActiveElement: (id) => activeSlide.value?.elements.find((element) => element.id === id),
+			activeSlide: () => activeSlide.value,
+			livePatcher: () => patcher,
+			ops: { updateElement } as unknown as EditorOperations,
+		});
+		editing.enterInlineEdit(original.elements[0].id);
+		const wrapper = mount(InlineTextEditor, {
+			attachTo: document.body,
+			props: {
+				element: original.elements[0],
+				livePatcher: patcher,
+				slideId: original.id,
+				onChange: editing.updateInlineText,
+				onListSession: editing.onListSession,
+				onCancel: editing.cancelInlineEdit,
+				onCommit: editing.commitInlineEdit,
+			},
+		});
+		try {
+			const surface = wrapper.get('[data-inline-editor]').element;
+			const node = surface.querySelector('span')!.firstChild as Text;
+			expect(editing.readInlineSnapshot()?.text).toBe('Box A');
+			// A peer reorders the existing slides without changing our numeric index.
+			const current = readSlidesFromYDoc(doc);
+			reconcileSlidesInYDoc([current[1], current[0]], doc, factories);
+			slides.value = readSlidesFromYDoc(doc);
+			expect(activeSlide.value.id).toBe(duplicate.id);
+			expect(editing.inlineEditingElementId.value).toBeNull();
+			expect(editing.readInlineSnapshot()).toBeUndefined();
+			window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+			surface.dispatchEvent(
+				new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+			);
+			node.data += ' wrong slide';
+			surface.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+			surface.dispatchEvent(new FocusEvent('blur'));
+			expect(updateElement).not.toHaveBeenCalled();
+			expect(
+				(findElementYMap(doc, original.id, 'text-1')!.get('textBody') as Y.Text).toString(),
+			).toBe('Box A');
+			expect(
+				(findElementYMap(doc, duplicate.id, 'text-1')!.get('textBody') as Y.Text).toString(),
+			).toBe('Box A');
+		} finally {
+			wrapper.unmount();
+			patcher.dispose();
+			doc.destroy();
+		}
+	});
+
 	it('does not fall back to the previous rich draft during connected composition or revoked ownership', () => {
 		const source = makeElement();
 		const { editing, updateElement } = useHarness(source);
