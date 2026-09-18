@@ -316,6 +316,7 @@ test.describe('collaboration sync', () => {
 			page.on('download', countDownload);
 			try {
 				await Promise.all([editors[0].press('End'), editors[1].press('Home')]);
+				const compositionStart = (await inlineText(editors[0])).length;
 				// Chromium's input pipeline emits composition and beforeinput events.
 				// This does not substitute for a native operating-system IME test.
 				await input.send('Input.imeSetComposition', {
@@ -339,6 +340,10 @@ test.describe('collaboration sync', () => {
 					text: '日本',
 					selectionStart: 2,
 					selectionEnd: 2,
+					// The candidate explicitly replaces the prior composition, even
+					// if Chromium restarted its IME session while switching pages.
+					replacementStart: compositionStart,
+					replacementEnd: compositionStart + 'に'.length,
 				});
 				await input.send('Input.insertText', { text: '日本' });
 				const expected = 'ALPHA Product Overview日本';
