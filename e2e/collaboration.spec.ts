@@ -22,7 +22,11 @@ import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture } from './support/deck';
-import { hostOwnedSessionUrl } from './support/host-owned-session';
+import {
+	hostOwnedSessionUrl,
+	saveHostOwnedPresentation,
+	waitForCollaborativeEditing,
+} from './support/host-owned-session';
 import { extractElementBlock, readZipPartText } from './support/pptx-xml';
 
 async function paragraphFormattingDeck() {
@@ -142,9 +146,7 @@ async function openSameTextPeers(page: Page, mode: CollaborationMode) {
 			await expect(
 				slideElements(participant).filter({ hasText: 'Product Overview' }),
 			).toBeVisible();
-			await expect(
-				participant.getByRole('button', { name: 'New Slide', exact: true }),
-			).toBeEnabled();
+			await waitForCollaborativeEditing(participant);
 		}
 		const id = await slideElements(page)
 			.filter({ hasText: 'Product Overview' })
@@ -227,7 +229,7 @@ async function verifySavedText(page: Page, saved: string, expected: string): Pro
 }
 
 async function saveAndReopenText(page: Page, saved: string, expected: string): Promise<void> {
-	await (await savePptxViaBackstage(page)).saveAs(saved);
+	await (await saveHostOwnedPresentation(page)).saveAs(saved);
 	await verifySavedText(page, saved, expected);
 }
 
