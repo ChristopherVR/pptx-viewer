@@ -43,6 +43,16 @@ const deck = resolve(fileURLToPath(new URL('./fixtures/issue-132-hr-deck.pptx', 
  * the late seed masquerade as a pass. */
 const FLASH_POLL_TIMEOUT_MS = 600;
 
+/** How long the 8.4 MB, 29-slide fixture may take to paint its first element.
+ *
+ * The plain 10s action timeout is sized for the sample deck. This deck sat
+ * right at that edge on the hosted runner: the first test in a fresh worker
+ * (cold browser, every dev-server module fetched anew, then the parse) timed
+ * out on all three attempts in one run and on two of three in the run before
+ * it, while the sibling tests in the already-warm worker passed at ~18s each.
+ * Only the load wait is widened; the flash poll below keeps its tight window. */
+const LOAD_TIMEOUT_MS = 60_000;
+
 /** Load the deck into the demo and wait for the first slide to paint. */
 async function loadDeck(page: Page): Promise<void> {
 	// Forget any restored session first, or the deck reopens and the landing
@@ -53,7 +63,7 @@ async function loadDeck(page: Page): Promise<void> {
 	await page
 		.locator('[data-pptx-element="true"], [data-element-id]')
 		.first()
-		.waitFor({ state: 'attached' });
+		.waitFor({ state: 'attached', timeout: LOAD_TIMEOUT_MS });
 	await page.waitForTimeout(800);
 }
 
@@ -107,6 +117,10 @@ async function seededElementCount(page: Page, slideFile: string): Promise<number
 		return seeded;
 	}, slideFile);
 }
+
+// Room for LOAD_TIMEOUT_MS plus the show itself; the config's 60s would
+// expire before a slow load did.
+test.describe.configure({ timeout: 90_000 });
 
 test.describe('slide-entry animation state (issue #132 deck)', () => {
 	test('entrance-animated elements are hidden from the first paint of a slide (no end-state flash)', async ({
