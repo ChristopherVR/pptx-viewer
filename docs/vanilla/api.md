@@ -57,8 +57,18 @@ resources, leaving a borrowed document, awareness and provider intact.
 This lower-level composition does not supply every built-in editor operation. The host
 owns selection, navigation, gestures and history. Native rich-text editing is available
 through `openInlineEditor`, `canInlineEditElement` and `buildInlineTextCommitPatch`.
-Respect `canInteractWithElement` locks and the effective edit gate, and close an active
-inline session when editing becomes disabled. Dispose the loaded handler and call
+Pass `{ patcher: shell.controller.livePatcher, slideId }` as the editor's
+`collaboration` option for an element actually owned by that slide. Check the current
+model with `session.checkModel` after replacement. Save must use its canonical
+`readList()` result and reject unfinished native input or composition; do not fall
+back to old model text. The exported `overlayInlineTextSnapshot` overlays that
+snapshot without committing the model.
+
+Respect `canInteractWithElement` locks and the effective edit gate. On permission
+loss, retain only `readAccepted()` from a still-current session into the local model,
+then cancel the editor without a history entry or new shared write. `commit()` may
+defer while native input is unfinished, so forced teardown must call `cancel()`.
+Dispose the loaded handler and call
 `revokeBlobUrls` on its blob URLs when replacing the source or unmounting.
 
 The Vanilla host-owned demo provides a working example using only public exports.

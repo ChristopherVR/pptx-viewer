@@ -5,6 +5,7 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
 	resolve: {
 		alias: [
+			{ find: 'pptx-vanilla-viewer', replacement: resolve(__dirname, 'src/index.ts') },
 			// Test against workspace sources (not dists) so the suite never runs
 			// against stale build output. Mirrors the Vue package's vitest setup.
 			// Subpath aliases must come first (first match wins).
@@ -28,6 +29,6 @@ export default defineConfig({
 		globals: true,
 		environment: 'happy-dom',
 		maxWorkers: 4,
-		include: ['src/**/*.test.ts'],
+		include: ['src/**/*.test.ts', '../../demos/demo-vanilla/src/host-owned-inline-editor.test.ts'],
 	},
 });
