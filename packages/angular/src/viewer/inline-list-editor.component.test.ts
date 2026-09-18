@@ -1,5 +1,6 @@
 import { DestroyRef, ElementRef, Injector, runInInjectionContext } from '@angular/core';
-import type { PptxElement } from 'pptx-viewer-core';
+import { cloneSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
@@ -73,6 +74,80 @@ function mountedEditor(
 }
 
 describe('angular list editor', () => {
+	it('retires the exact connected target when a duplicate slide becomes active', () => {
+		const doc = new Y.Doc();
+		const source: PptxSlide = {
+			id: 's1',
+			slideNumber: 1,
+			elements: [
+				{
+					id: 'e1',
+					type: 'text',
+					x: 0,
+					y: 0,
+					width: 200,
+					height: 80,
+					text: 'Hello',
+					textSegments: [{ text: 'Hello', style: {} }],
+				},
+			],
+		};
+		// EditorStateService.duplicateSlide assigns a new slide ID, not new element IDs.
+		const duplicate = { ...cloneSlide(source), id: 's2' };
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text as unknown as Y.Text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
+		};
+		reconcileSlidesInYDoc([source, duplicate], doc, factories);
+		const patcher = createCollaborationLivePatcher();
+		patcher.configure(doc, factories, true);
+		const editor = mountedEditor(undefined, patcher, source.elements[0]);
+		const cancel = vi.spyOn(editor.component.textCancel, 'emit');
+		try {
+			// A normal model refresh on the same slide keeps the existing surface.
+			Object.assign(editor.component, { element: () => ({ ...source.elements[0], x: 20 }) });
+			editor.component.ngOnChanges();
+			expect(cancel).not.toHaveBeenCalled();
+			Object.assign(editor.component, {
+				element: () => duplicate.elements[0],
+				slideId: () => duplicate.id,
+			});
+			editor.component.ngOnChanges();
+			expect(cancel).toHaveBeenCalledOnce();
+			const node = editor.root.querySelector('span')!.firstChild as Text;
+			window.getSelection()!.setBaseAndExtent(node, 5, node, 5);
+			editor.root.dispatchEvent(
+				new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }),
+			);
+			node.data += ' wrong slide';
+			editor.root.dispatchEvent(
+				new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+			);
+			editor.handlers.commit();
+			expect(editor.commits).not.toHaveBeenCalled();
+			expect((findElementYMap(doc, 's1', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
+				'Hello',
+			);
+			expect((findElementYMap(doc, 's2', 'e1')!.get('textBody') as Y.Text).toString()).toBe(
+				'Hello',
+			);
+		} finally {
+			editor.cleanup();
+			patcher.dispose();
+			doc.destroy();
+		}
+	});
+
 	it('uses the connected native controller for plain text and blocks composition blur', () => {
 		const doc = new Y.Doc();
 		const source = {

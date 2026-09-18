@@ -72,6 +72,7 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 	private readonly options = inject(ViewerOptionsService, { optional: true });
 	private controller?: InlineListController;
 	private connected?: CollaborationInlineEditor;
+	private connectedSlideId?: string;
 	private disposed = false;
 	private cancelled = false;
 	private modelBody = '';
@@ -85,7 +86,9 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 	}
 	ngOnChanges(): void {
 		if (this.connected) {
-			this.connected.checkModel(this.element());
+			this.connected.checkModel(
+				this.slideId() === this.connectedSlideId ? this.element() : undefined,
+			);
 			return;
 		}
 		const body = this.readModelBody();
@@ -108,6 +111,7 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 		const seed = this.seed();
 		const patcher = this.livePatcher();
 		if (patcher?.isActive()) {
+			this.connectedSlideId = this.slideId();
 			this.connected = attachCollaborationInlineEditor(root, this.element(), {
 				patcher,
 				slideId: this.slideId(),
