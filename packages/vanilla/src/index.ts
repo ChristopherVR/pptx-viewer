@@ -52,7 +52,11 @@ export type {
 	InlineTextSelection,
 	InlineListReadResult,
 } from 'pptx-viewer-shared';
-export { buildInlineTextCommitPatch, canInteractWithElement } from 'pptx-viewer-shared';
+export {
+	buildInlineTextCommitPatch,
+	canInteractWithElement,
+	describeCollaborationShellState,
+} from 'pptx-viewer-shared';
 export { loadPresentation, revokeBlobUrls } from './viewer/load';
 export type { LoadedPresentation, LoadPresentationOptions } from './viewer/load';
 export { openInlineEditor, canInlineEditElement } from './viewer/editor/inline-text-editor';

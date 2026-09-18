@@ -1,6 +1,12 @@
-import { SlideCanvas, Toolbar, useViewerBuildingBlocks } from 'pptx-react-viewer';
+import {
+	describeCollaborationShellState,
+	SlideCanvas,
+	Toolbar,
+	useViewerBuildingBlocks,
+} from 'pptx-react-viewer';
 import type { CollaborationConfig, PowerPointViewerHandle } from 'pptx-react-viewer';
 import React, { forwardRef, useImperativeHandle, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import type { HostOwnedShellHandle } from '../shared/host-owned-shell-controls';
 
@@ -16,6 +22,7 @@ export const HostOwnedHeadlessEditor = forwardRef<
 >(
 	// oxlint-disable-next-line eslint/prefer-arrow-callback -- Named forwardRef render function follows React component conventions.
 	function HostOwnedHeadlessEditor({ content, fileName, collaboration, canEdit }, ref) {
+		const { t } = useTranslation();
 		const handle = useRef<PowerPointViewerHandle>(null);
 		const blocks = useViewerBuildingBlocks({
 			content,
@@ -39,10 +46,9 @@ export const HostOwnedHeadlessEditor = forwardRef<
 				aria-busy={blocks.loading}
 				style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
 			>
-				<div role='status' aria-label='Headless collaboration'>
-					Custom shell: {blocks.collaboration?.status ?? 'inactive'}; synced:{' '}
-					{String(blocks.collaboration?.synced ?? false)}
-				</div>
+				<output aria-label={t('pptx.collaboration.shellStatusLabel')}>
+					{describeCollaborationShellState(blocks.shellState, t)}
+				</output>
 				<Toolbar {...blocks.toolbarProps} />
 				{blocks.error && <p role='alert'>{blocks.error}</p>}
 				<div

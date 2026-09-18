@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { describeCollaborationShellState } from 'pptx-vue-viewer';
 import {
 	CollaborationCursors,
 	InlineTextEditor,
@@ -12,12 +13,9 @@ import {
 	useInlineEditing,
 	useLoadContent,
 } from 'pptx-vue-viewer/viewer';
-import type {
-	CollaborationShellState,
-	UseCollaborationResult,
-	UseInlineEditingResult,
-} from 'pptx-vue-viewer/viewer';
+import type { UseCollaborationResult, UseInlineEditingResult } from 'pptx-vue-viewer/viewer';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 
 import type { HostOwnedDemo } from '../../shared/host-owned-collaboration';
 
@@ -109,10 +107,8 @@ watch(current, (index) => {
 });
 watch(ops.selectedElementIds, (ids) => collaboration.setSelection(ids));
 const activeSlide = ops.activeSlide;
-const statusText = computed(() => {
-	const state: CollaborationShellState = shellState.value;
-	return `${state.status} · ${state.connectedCount} connected · ${state.canEdit ? 'Editable' : 'Read only'}`;
-});
+const { t } = useI18n();
+const statusText = computed(() => describeCollaborationShellState(shellState.value, t));
 
 function pick(event: MouseEvent): string | undefined {
 	return (
@@ -183,7 +179,7 @@ defineExpose({
 			<button v-for="(_, index) in slides" :key="index" @click="current = index">
 				Slide {{ index + 1 }}
 			</button>
-			<output aria-label="Collaboration status">{{ statusText }}</output>
+			<output :aria-label="t('pptx.collaboration.shellStatusLabel')">{{ statusText }}</output>
 		</nav>
 		<p v-if="content.error.value" role="alert">{{ content.error.value }}</p>
 		<SlideCanvas

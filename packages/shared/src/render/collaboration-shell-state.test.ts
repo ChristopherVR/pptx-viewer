@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import type { CollaborationShellInput } from './collaboration-shell-state';
-import { resolveCollaborationShellState } from './collaboration-shell-state';
+import {
+	describeCollaborationShellState,
+	resolveCollaborationShellState,
+} from './collaboration-shell-state';
 
 const input: CollaborationShellInput = {
 	authorizedCanEdit: true,
@@ -57,5 +60,21 @@ describe('custom-shell collaboration state', () => {
 			remoteUsers: [],
 			connectedCount: 0,
 		});
+	});
+
+	it('describes the state the same way for every custom-shell demo', () => {
+		const translate = (key: string, params?: Record<string, string | number>): string =>
+			params ? `${key}:${params.count}` : key;
+		expect(describeCollaborationShellState(resolveCollaborationShellState(input), translate)).toBe(
+			'pptx.collaboration.status.connected · pptx.collaboration.usersConnected:1 · pptx.collaboration.editable',
+		);
+		expect(
+			describeCollaborationShellState(
+				resolveCollaborationShellState({ ...input, readOnly: true, status: 'connecting' }),
+				translate,
+			),
+		).toBe(
+			'pptx.collaboration.status.connecting · pptx.collaboration.usersConnected:0 · pptx.toolbar.readOnly',
+		);
 	});
 });

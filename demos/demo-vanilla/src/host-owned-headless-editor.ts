@@ -6,7 +6,7 @@ import {
 	createDefaultRegistry,
 	createInitialViewerState,
 	createStore,
-	createTranslator,
+	describeCollaborationShellState,
 	getViewerCss,
 	loadPresentation,
 	openInlineEditor,
@@ -17,6 +17,7 @@ import type { InlineEditorSession, LoadedPresentation, PptxElement } from 'pptx-
 
 import type { createHostOwnedDemo } from '../../shared/host-owned-collaboration';
 import type { HostOwnedShellHandle } from '../../shared/host-owned-shell-controls';
+import { t } from './demo-i18n';
 
 /** Custom chrome with native rendering/inline editing and host-owned selection/drag. */
 export function mountHostOwnedHeadlessEditor(
@@ -25,15 +26,16 @@ export function mountHostOwnedHeadlessEditor(
 ): HostOwnedShellHandle & { destroy(): void } {
 	const store = createStore({ ...createInitialViewerState(), loading: true });
 	const registry = createDefaultRegistry();
-	const t = createTranslator();
 	const style = document.createElement('style');
 	style.textContent = getViewerCss();
 	const shellRoot = document.createElement('section');
 	shellRoot.className = 'pptxv';
 	shellRoot.dataset.hostCustomShell = '';
 	shellRoot.style.cssText = 'height:100%;overflow:auto;background:#e2e8f0;padding:24px';
-	const status = document.createElement('div');
-	status.setAttribute('role', 'status');
+	// Same localised readout and label as the other four custom-shell demos;
+	// the e2e readiness wait (`waitForHostEditing`) reads it before editing.
+	const status = document.createElement('output');
+	status.setAttribute('aria-label', t('pptx.collaboration.shellStatusLabel'));
 	const viewport = document.createElement('div');
 	viewport.dataset.pptxViewport = '';
 	viewport.style.cssText = 'position:relative;margin:24px auto';
@@ -56,6 +58,11 @@ export function mountHostOwnedHeadlessEditor(
 		getHandler: () => loaded?.handler ?? null,
 		getSourcePending: () => store.get().loading,
 		getScale: () => scale,
+		// Connection and presence changes update the readout without a stage
+		// re-render (render() only runs on slide/canvas/editable changes).
+		onStateChange: (state) => {
+			status.textContent = describeCollaborationShellState(state, t);
+		},
 	});
 	viewport.append(collaboration.cursorOverlay.el, collaboration.selectionOverlay.el);
 	const commitInline = (): void => {
@@ -84,7 +91,7 @@ export function mountHostOwnedHeadlessEditor(
 			drag = undefined;
 			commitInline();
 		}
-		status.textContent = `Custom shell: ${collaboration.getState().status}; editable: ${state.editable}`;
+		status.textContent = describeCollaborationShellState(collaboration.getState(), t);
 		const slide = store.get().slides[state.currentSlide];
 		if (!slide) {
 			return;

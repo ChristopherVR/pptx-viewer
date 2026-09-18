@@ -7,6 +7,7 @@ export type {
 	ConnectionStatus,
 	SanitizedPresence,
 } from 'pptx-viewer-shared';
+export { describeCollaborationShellState } from 'pptx-viewer-shared';
 // ── Vue 3 PowerPoint viewer/editor ──
 export {
 	PowerPointViewer,

@@ -278,6 +278,8 @@ export const translationsEn: Record<string, string> = {
 	'pptx.collaboration.userCount': '{{count}} user(s)',
 	'pptx.collaboration.youLabel': '{{name}} (you)',
 	'pptx.collaboration.usersConnected': '{{count}} user(s) connected',
+	'pptx.collaboration.editable': 'Editable',
+	'pptx.collaboration.shellStatusLabel': 'Collaboration status',
 	'pptx.collaboration.moreUsers': '{{count}} more user(s)',
 	'pptx.collaboration.onePersonHere': '1 person here',
 	'pptx.collaboration.peopleHere': '{{count}} people here',

@@ -146,6 +146,7 @@ export type {
 	SanitizedPresence,
 	DeckSaveState,
 } from '../internal/shared';
+export { describeCollaborationShellState } from '../internal/shared';
 
 // Comments
 export { CommentMarkersOverlayComponent } from './comment-markers-overlay.component';

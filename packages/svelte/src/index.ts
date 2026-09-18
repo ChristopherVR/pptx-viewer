@@ -8,6 +8,7 @@ export type {
 	RemoteCursor,
 	SanitizedPresence,
 } from 'pptx-viewer-shared';
+export { describeCollaborationShellState } from 'pptx-viewer-shared';
 /**
  * pptx-svelte-viewer: Svelte 5 PowerPoint viewer component.
  *

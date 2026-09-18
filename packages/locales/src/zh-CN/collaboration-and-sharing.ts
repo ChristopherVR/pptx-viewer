@@ -23,6 +23,8 @@ export const translations = {
 	'pptx.collaboration.userCount': '{{count}} 位用户',
 	'pptx.collaboration.youLabel': '{{name}}（你）',
 	'pptx.collaboration.usersConnected': '已连接 {{count}} 位用户',
+	'pptx.collaboration.editable': '可编辑',
+	'pptx.collaboration.shellStatusLabel': '协作状态',
 	'pptx.collaboration.moreUsers': '还有 {{count}} 位用户',
 	'pptx.collaboration.onePersonHere': '这里有 1 人',
 	'pptx.collaboration.peopleHere': '这里有 {{count}} 人',

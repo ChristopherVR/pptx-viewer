@@ -45,3 +45,29 @@ export function resolveCollaborationShellState(
 		connectedCount: remoteUsers.length + (status === 'connected' ? 1 : 0),
 	};
 }
+
+export type CollaborationShellTranslate = (
+	key: string,
+	params?: Record<string, string | number>,
+) => string;
+
+/**
+ * One-line, localised status for a custom shell's `role="status"` readout.
+ *
+ * Every binding's custom-shell demo renders this same string under the same
+ * `Collaboration status` label, so the framework-neutral e2e helper that
+ * waits for the shell to become editable (`waitForHostEditing`) reads every
+ * binding the same way. Three of five demos once phrased it differently and
+ * the helper silently skipped them; on vanilla, that let a peer double-click
+ * before its edit gate opened.
+ */
+export function describeCollaborationShellState(
+	state: Pick<CollaborationShellState, 'canEdit' | 'status' | 'connectedCount'>,
+	translate: CollaborationShellTranslate,
+): string {
+	return [
+		translate(`pptx.collaboration.status.${state.status}`),
+		translate('pptx.collaboration.usersConnected', { count: state.connectedCount }),
+		translate(state.canEdit ? 'pptx.collaboration.editable' : 'pptx.toolbar.readOnly'),
+	].join(' · ');
+}

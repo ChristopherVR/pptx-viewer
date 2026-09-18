@@ -2,6 +2,7 @@ import {
 	openPptxFile,
 	readBackstageRecentFile,
 	resolveCollaborationShellEditability,
+	resolveCollaborationShellState,
 } from 'pptx-viewer-shared';
 import type { CollabLoadOrigin } from 'pptx-viewer-shared';
 /**
@@ -33,7 +34,7 @@ import type { CollabLoadOrigin } from 'pptx-viewer-shared';
  * panels, are out of scope here; hosts that need them should
  * render `PowerPointViewer` instead.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { buildCanvasProps } from './useViewerBuildingBlocks-canvas-props';
@@ -240,5 +241,37 @@ export function useViewerBuildingBlocks(
 	});
 
 	canvasProps.collaborationOverlay = overlay;
-	return { toolbarProps, canvasProps, mode, loading, error, autosaveStatus, collaboration };
+	// The same shell projection the other bindings hand their custom chrome.
+	const shellState = useMemo(
+		() =>
+			resolveCollaborationShellState({
+				authorizedCanEdit: requestedCanEdit,
+				configured: Boolean(input.collaboration),
+				readOnly: collaborationReadOnly,
+				sourcePending: Boolean(content) && loading,
+				sourceError: Boolean(error),
+				status: collaboration?.status ?? 'disconnected',
+				remoteUsers: collaboration?.remoteUsers ?? [],
+			}),
+		[
+			requestedCanEdit,
+			input.collaboration,
+			collaborationReadOnly,
+			content,
+			loading,
+			error,
+			collaboration?.status,
+			collaboration?.remoteUsers,
+		],
+	);
+	return {
+		toolbarProps,
+		canvasProps,
+		mode,
+		loading,
+		error,
+		autosaveStatus,
+		collaboration,
+		shellState,
+	};
 }

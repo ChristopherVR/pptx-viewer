@@ -1,4 +1,9 @@
-import type { CollaborationConfig, ToolbarActionId, ViewportFitOptions } from 'pptx-viewer-shared';
+import type {
+	CollaborationConfig,
+	CollaborationShellState,
+	ToolbarActionId,
+	ViewportFitOptions,
+} from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { SlideCanvasProps } from '../components/canvas/canvas-types';
@@ -45,6 +50,13 @@ export interface UseViewerBuildingBlocksInput extends ViewportFitOptions {
 export interface ViewerBuildingBlocksResult {
 	/** Connection and presence state for a custom status bar, or null when disabled. */
 	collaboration: CollaborationContextValue | null;
+	/**
+	 * Effective edit permission plus connection/presence counts, in the shape
+	 * every binding's custom shell receives (Vue/Svelte `shellState`, Angular
+	 * `state()`, Vanilla `getState()`); pass it to
+	 * `describeCollaborationShellState` for a localised status line.
+	 */
+	shellState: CollaborationShellState;
 	/** Flat, self-contained props for the standalone `<Toolbar>` component. */
 	toolbarProps: ToolbarProps;
 	/** Flat, self-contained props for the standalone `<SlideCanvas>` component. */

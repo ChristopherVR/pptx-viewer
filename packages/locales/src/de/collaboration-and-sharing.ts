@@ -23,6 +23,8 @@ export const translations = {
 	'pptx.collaboration.userCount': '{{count}} Nutzer',
 	'pptx.collaboration.youLabel': '{{name}} (Sie)',
 	'pptx.collaboration.usersConnected': '{{count}} verbundener Nutzer',
+	'pptx.collaboration.editable': 'Bearbeitbar',
+	'pptx.collaboration.shellStatusLabel': 'Status der Zusammenarbeit',
 	'pptx.collaboration.moreUsers': '{{count}} weitere Nutzer',
 	'pptx.collaboration.onePersonHere': '1 Person hier',
 	'pptx.collaboration.peopleHere': '{{count}} Leute hier',

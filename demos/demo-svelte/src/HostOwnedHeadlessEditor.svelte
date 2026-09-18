@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { createTranslator } from 'pptx-svelte-viewer/i18n';
+	import { describeCollaborationShellState } from 'pptx-svelte-viewer';
 	import { CollaborationCursors, createViewerState, EditorLayer, RemoteSelectionOverlay, SlideCanvas } from 'pptx-svelte-viewer/viewer';
 	import type { CollaborationShellState, ViewerStateBag } from 'pptx-svelte-viewer/viewer';
 	import { onDestroy } from 'svelte';
 
+	import { t } from './demo-i18n.svelte';
 	import type { HostOwnedDemo } from '../../shared/host-owned-collaboration';
 
 	const { host }: { host: HostOwnedDemo } = $props();
@@ -18,7 +19,7 @@
 		getFilePath: () => undefined,
 		getFileName: () => host.fileName,
 		getInitialSlide: () => 0,
-		t: createTranslator(() => 'en'),
+		t,
 		getSmartArt3D: () => false,
 		getSurfaceChart3D: () => false,
 		getBarChart3D: () => false,
@@ -49,7 +50,7 @@
 		{#each viewerState.displaySlides as slide, index (slide.id)}
 			<button onclick={() => viewerState.viewer.goTo(index)}>Slide {index + 1}</button>
 		{/each}
-		<output aria-label="Collaboration status">{shellState.status} · {shellState.connectedCount} connected · {shellState.canEdit ? 'Editable' : 'Read only'}</output>
+		<output aria-label={t('pptx.collaboration.shellStatusLabel')}>{describeCollaborationShellState(shellState, t)}</output>
 	</nav>
 	<div data-pptx-viewport class="viewport">
 		{#if viewerState.loader.error}<p role="alert">{viewerState.loader.error}</p>{/if}

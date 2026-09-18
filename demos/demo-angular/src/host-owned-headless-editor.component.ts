@@ -1,13 +1,16 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	computed,
 	inject,
 	input,
 	signal,
 	viewChild,
 } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import {
 	CollaborationCursorsComponent,
+	describeCollaborationShellState,
 	POWER_POINT_VIEWER_PROVIDERS,
 	RemoteSelectionOverlayComponent,
 	SlideCanvasComponent,
@@ -44,9 +47,9 @@ import type { HostOwnedDemo } from '../../shared/host-owned-collaboration';
 			[attr.aria-busy]="shell.loader.loading()"
 			(pointermove)="shell.cursor.onPointerMove($event)"
 		>
-			<div role="status" aria-label="Headless collaboration">
-				Custom shell: {{ shell.state().status }}; collaborators: {{ shell.state().connectedCount }}
-			</div>
+			<output [attr.aria-label]="translate('pptx.collaboration.shellStatusLabel')">{{
+				statusText()
+			}}</output>
 			@if (shell.loader.error(); as error) {
 				<p role="alert">{{ error }}</p>
 			}
@@ -97,6 +100,12 @@ export class HostOwnedHeadlessEditorComponent {
 	readonly shell = inject(ViewerCollaborationShellService);
 	readonly scale = signal(1);
 	private readonly canvas = viewChild(SlideCanvasComponent);
+	private readonly translateService = inject(TranslateService);
+	readonly translate = (key: string, params?: Record<string, string | number>): string =>
+		this.translateService.instant(key, params);
+	readonly statusText = computed(() =>
+		describeCollaborationShellState(this.shell.state(), this.translate),
+	);
 
 	constructor() {
 		this.shell.bind({

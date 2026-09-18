@@ -30,10 +30,12 @@ export async function waitForHostEditing(
 	) {
 		return;
 	}
+	// Every custom-shell demo renders the same localised readout (shared
+	// `describeCollaborationShellState`) under this label. No escape hatch when
+	// it is missing: three demos once lacked it, this silently returned, and a
+	// vanilla peer double-clicked before its edit gate opened.
 	const status = page.getByRole('status', { name: 'Collaboration status', exact: true });
-	if (await status.count()) {
-		await expect(status).toContainText('Editable');
-	}
+	await expect(status).toContainText('Editable', { timeout: 30_000 });
 }
 
 /** Custom chrome owns Save; the full viewer still uses its actual File menu. */
