@@ -24,9 +24,10 @@ import type { PptxElement, PptxSlide, ShapeStyle } from 'pptx-viewer-core';
 import React, { act, useCallback, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { CanvasSize, ElementContextMenuState } from '../types';
+import type { CanvasSize, EditorHistorySnapshot, ElementContextMenuState } from '../types';
+import * as clone from '../utils/clone';
 import { useEditorHistory } from './useEditorHistory';
 import { useElementOperations } from './useElementOperations';
 
@@ -45,8 +46,19 @@ function makeElement(): PptxElement {
 		width: 200,
 		height: 80,
 		shapeType: 'rect',
-		shapeStyle: { fillColor: '#3b82f6', lineColor: '#c00000' },
+		shapeStyle: {
+			fillColor: '#3b82f6',
+			lineColor: '#c00000',
+			fillGradientStops: [{ color: '#3b82f6', position: 0 }],
+		},
 	} as unknown as PptxElement;
+}
+
+function firstGradientStop(element: PptxElement) {
+	if (element.type !== 'shape' || !element.shapeStyle?.fillGradientStops?.[0]) {
+		throw new Error('Expected a shape with a nested gradient stop');
+	}
+	return element.shapeStyle.fillGradientStops[0];
 }
 
 function makeSlides(): PptxSlide[] {
@@ -76,6 +88,9 @@ function makeSlides(): PptxSlide[] {
 interface HarnessApi {
 	canUndo: () => boolean;
 	undo: () => void;
+	redo: () => void;
+	snapshot: () => EditorHistorySnapshot;
+	templateElement: () => PptxElement;
 	/** The live element, as the canvas would render it. */
 	element: () => PptxElement;
 	/** Exactly what the inspector calls for a property field. */
@@ -105,7 +120,7 @@ function Harness(): React.ReactElement {
 	const [activeSlideIndex, setActiveSlideIndex] = useState(0);
 	const [templateElementsBySlideId, setTemplateElementsBySlideId] = useState<
 		Record<string, PptxElement[]>
-	>({});
+	>(() => ({ 'slide-1': [{ ...makeElement(), id: 'layout-shape-1' }] }));
 	const [selectedElementId, setSelectedElementId] = useState<string | null>(ELEMENT_ID);
 	const [selectedElementIds, setSelectedElementIds] = useState<string[]>([ELEMENT_ID]);
 
@@ -173,10 +188,15 @@ function Harness(): React.ReactElement {
 	historyRef.current = history;
 	const activeIndexRef = useRef(activeSlideIndex);
 	activeIndexRef.current = activeSlideIndex;
+	const templatesRef = useRef(templateElementsBySlideId);
+	templatesRef.current = templateElementsBySlideId;
 
 	api = {
 		canUndo: () => historyRef.current.canUndo,
 		undo: () => historyRef.current.handleUndo(),
+		redo: () => historyRef.current.handleRedo(),
+		snapshot: () => historyRef.current.buildHistorySnapshot(),
+		templateElement: () => templatesRef.current['slide-1'][0],
 		element: () => slidesRef.current[0].elements[0],
 		updateSelectedElement: ops.updateSelectedElement,
 		updateSelectedShapeStyle: ops.updateSelectedShapeStyle,
@@ -211,11 +231,82 @@ afterEach(() => {
 	});
 	root = null;
 	api = null;
+	vi.restoreAllMocks();
 });
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
+
+describe('history owns isolated snapshots without cloning them again', () => {
+	it('captures the initial document once', () => {
+		const slides = vi.spyOn(clone, 'cloneSlide');
+		const templates = vi.spyOn(clone, 'cloneTemplateElementsBySlideId');
+		const snapshots = vi.spyOn(clone, 'cloneHistorySnapshot');
+		const harness = mount();
+
+		expect(slides).toHaveBeenCalledTimes(2);
+		expect(templates).toHaveBeenCalledOnce();
+		expect(snapshots).not.toHaveBeenCalled();
+		expect(harness.canUndo()).toBeFalsy();
+	});
+
+	it('captures a committed edit once without re-cloning either owned snapshot', () => {
+		const slides = vi.spyOn(clone, 'cloneSlide');
+		const templates = vi.spyOn(clone, 'cloneTemplateElementsBySlideId');
+		const snapshots = vi.spyOn(clone, 'cloneHistorySnapshot');
+		const harness = mount();
+		vi.clearAllMocks();
+
+		act(() => harness.updateSelectedElement({ x: 400 } as Partial<PptxElement>));
+
+		expect(slides).toHaveBeenCalledTimes(2);
+		expect(templates).toHaveBeenCalledOnce();
+		expect(snapshots).not.toHaveBeenCalled();
+		expect(harness.canUndo()).toBeTruthy();
+	});
+
+	it('keeps nested live style and template mutations out of the undo snapshot', () => {
+		const harness = mount();
+		const originalShape = harness.element();
+		const originalTemplate = harness.templateElement();
+		act(() => harness.updateSelectedElement({ x: 400 } as Partial<PptxElement>));
+
+		firstGradientStop(originalShape).color = '#111111';
+		firstGradientStop(originalTemplate).color = '#222222';
+		act(() => harness.undo());
+
+		expect(harness.element().x).toBe(100);
+		expect(firstGradientStop(harness.element()).color).toBe('#3b82f6');
+		expect(firstGradientStop(harness.templateElement()).color).toBe('#3b82f6');
+		expect(firstGradientStop(harness.element())).not.toBe(firstGradientStop(originalShape));
+		expect(firstGradientStop(harness.templateElement())).not.toBe(
+			firstGradientStop(originalTemplate),
+		);
+	});
+
+	it('isolates public snapshots and restored live state from both history directions', () => {
+		const harness = mount();
+		act(() => harness.updateSelectedElement({ x: 400 } as Partial<PptxElement>));
+		const snapshot = harness.snapshot();
+		firstGradientStop(snapshot.slides[0].elements[0]).color = '#111111';
+		firstGradientStop(snapshot.templateElementsBySlideId['slide-1'][0]).color = '#222222';
+		expect(firstGradientStop(harness.element()).color).toBe('#3b82f6');
+		expect(firstGradientStop(harness.templateElement()).color).toBe('#3b82f6');
+
+		act(() => harness.undo());
+		expect(harness.element().x).toBe(100);
+		expect(firstGradientStop(harness.element()).color).toBe('#3b82f6');
+		expect(firstGradientStop(harness.templateElement()).color).toBe('#3b82f6');
+		firstGradientStop(harness.element()).color = '#333333';
+		firstGradientStop(harness.templateElement()).color = '#444444';
+		act(() => harness.redo());
+
+		expect(harness.element().x).toBe(400);
+		expect(firstGradientStop(harness.element()).color).toBe('#3b82f6');
+		expect(firstGradientStop(harness.templateElement()).color).toBe('#3b82f6');
+	});
+});
 
 describe('history records content-only edits', () => {
 	it('starts with an empty undo stack', () => {
