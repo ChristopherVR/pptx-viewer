@@ -193,6 +193,22 @@ afterEach(() => {
 });
 
 describe('useViewerBuildingBlocks', () => {
+	it('keeps the first built-in collaborative render read-only until session setup', async () => {
+		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
+		const editableRenders: boolean[] = [];
+		function InitialSession(): React.ReactElement {
+			const result = useViewerBuildingBlocks({
+				content: null,
+				canEdit: true,
+				collaboration: { roomId: 'initial-custom-shell', serverUrl: '', userName: 'Host' },
+			});
+			editableRenders.push(result.canvasProps.canEdit);
+			return React.createElement('div');
+		}
+		await act(async () => root.render(React.createElement(InitialSession)));
+		expect(editableRenders[0]).toBe(false);
+	});
+
 	it('keeps a blank collaborative shell gated by live readiness and host permission', async () => {
 		vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true);
 		const doc = new Y.Doc();
