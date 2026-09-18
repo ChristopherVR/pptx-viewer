@@ -116,9 +116,7 @@ describe('host-owned Vanilla collaboration', () => {
 		const container = document.createElement('div');
 		document.body.appendChild(container);
 		const viewer = createPptxViewer(container, { editable: true });
-		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 		try {
-			await viewer.loadFile(await handler.save(data.slides));
 			await viewer.startCollaboration(config(room.session));
 			room.update({ status: 'disconnected', synced: false });
 			expect(viewer.getMode()).toBe('preview');
@@ -131,7 +129,6 @@ describe('host-owned Vanilla collaboration', () => {
 			expect(viewer.getMode()).toBe('edit');
 		} finally {
 			viewer.destroy();
-			handler.dispose();
 			container.remove();
 		}
 	}, 15000);
