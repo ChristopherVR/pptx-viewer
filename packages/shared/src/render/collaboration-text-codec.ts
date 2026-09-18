@@ -54,6 +54,9 @@ function buildSegmentAttrs(seg: Record<string, unknown>): Record<string, string>
 	if (seg.paragraphInsertionStyle) {
 		a.pi = JSON.stringify(seg.paragraphInsertionStyle);
 	}
+	if (seg.paragraphProperties) {
+		a.pp = JSON.stringify(seg.paragraphProperties);
+	}
 	if (typeof seg.fieldType === 'string') {
 		a.ft = seg.fieldType;
 	}
@@ -184,6 +187,13 @@ export function decodeDelta(delta: DeltaOp[]): Record<string, unknown>[] {
 		if (a.pi) {
 			try {
 				seg.paragraphInsertionStyle = JSON.parse(a.pi);
+			} catch {
+				/* skip */
+			}
+		}
+		if (a.pp) {
+			try {
+				seg.paragraphProperties = JSON.parse(a.pp);
 			} catch {
 				/* skip */
 			}

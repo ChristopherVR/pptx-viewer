@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import { ELEMENT_FIELD_KIND, PptxHandler, SLIDE_FIELD_KIND } from 'pptx-viewer-core';
+import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { Doc as YDoc, Array as YArray, Map as YMap, Text as YText } from 'yjs';
 
@@ -15,6 +16,78 @@ import { decodeTextBodyFromYText, encodeTextBodyToYText } from '../../codec/text
 import { createTestPptxBytes } from '../helpers/create-test-pptx.js';
 
 describe('text body codec', () => {
+	it('preserves paragraph formatting without inheriting it into following runs', () => {
+		const paragraphProperties: TextStyle = {
+			align: 'right',
+			paragraphMarginLeft: 54,
+			paragraphMarginRight: 12,
+			paragraphIndent: -18,
+			lineSpacing: 1.5,
+			paragraphSpacingBefore: 7,
+			paragraphSpacingAfter: 13,
+			tabStops: [{ position: 96, align: 'dec' }],
+		};
+		const segments: TextSegment[] = [
+			{ text: 'First', style: {}, paragraphProperties },
+			{ text: 'Unstyled', style: {} },
+			{ text: '', style: {}, isParagraphBreak: true },
+			{
+				text: 'Second',
+				style: {},
+				paragraphProperties: {
+					paragraphMarginLeft: 0,
+					paragraphIndent: 0,
+					lineSpacingExactPt: 30,
+					paragraphSpacingBefore: 0,
+					paragraphSpacingAfter: 0,
+				},
+			},
+		];
+		const doc = new YDoc();
+		const text = doc.getText('body');
+		encodeTextBodyToYText(segments, text);
+		expect(decodeTextBodyFromYText(text)).toStrictEqual(segments);
+		doc.destroy();
+	});
+
+	it('preserves independent paragraph properties on empty carriers and coalesced breaks', () => {
+		const paragraphProperties: TextStyle = {
+			paragraphSpacingAfter: 14,
+			tabStops: [{ position: 72, align: 'l' }],
+		};
+		const segments: TextSegment[] = [
+			{ text: '', style: {}, paragraphProperties },
+			{ text: '', style: {}, isParagraphBreak: true, paragraphProperties },
+			{ text: '', style: {}, isParagraphBreak: true, paragraphProperties },
+		];
+		const doc = new YDoc();
+		const text = doc.getText('body');
+		encodeTextBodyToYText(segments, text);
+		expect(text.toDelta()).toHaveLength(2);
+		const decoded = decodeTextBodyFromYText(text);
+		expect(decoded).toStrictEqual(segments);
+		const first = decoded[1].paragraphProperties as TextStyle;
+		const second = decoded[2].paragraphProperties as TextStyle;
+		expect(first).not.toBe(second);
+		expect(first.tabStops).not.toBe(second.tabStops);
+		first.tabStops![0].position = 10;
+		expect(second.tabStops![0].position).toBe(72);
+		expect(paragraphProperties.tabStops![0].position).toBe(72);
+		doc.destroy();
+	});
+
+	it('ignores malformed paragraph-property JSON and leaves legacy deltas unchanged', () => {
+		const doc = new YDoc();
+		const text = doc.getText('body');
+		text.insert(0, 'Body', { pp: '{invalid' });
+		text.insert(4, 'Legacy', {});
+		expect(decodeTextBodyFromYText(text)).toStrictEqual([
+			{ text: 'Body', style: {} },
+			{ text: 'Legacy', style: {} },
+		]);
+		doc.destroy();
+	});
+
 	it.each([
 		{
 			name: 'paragraph',
@@ -213,6 +286,55 @@ describe('pptxCodec hydrate', () => {
 });
 
 describe('pptxCodec dehydrate', () => {
+	it('saves and reopens paragraph formatting from a Y.Text', async () => {
+		const codec = new PptxCodec();
+		const doc = new YDoc();
+		await codec.hydrate(doc, await createTestPptxBytes(1));
+		const slide = doc.getArray<YMap<unknown>>('pptx:slides').get(0);
+		const element = (slide.get('elements') as YArray<YMap<unknown>>).get(0);
+		const text = element.get('textBody') as YText;
+		const paragraphProperties: TextStyle = {
+			align: 'right',
+			paragraphMarginLeft: 54,
+			paragraphMarginRight: 12,
+			paragraphIndent: -18,
+			lineSpacing: 1.5,
+			paragraphSpacingBefore: 8,
+			paragraphSpacingAfter: 16,
+			tabStops: [{ position: 96, align: 'dec' }],
+		};
+		text.delete(0, text.length);
+		encodeTextBodyToYText([{ text: 'Formatted paragraph', style: {}, paragraphProperties }], text);
+		element.set('text', 'Formatted paragraph');
+		const bytes = await codec.dehydrate(doc);
+		const zip = await JSZip.loadAsync(bytes);
+		const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+		const body = xml.match(/<p:txBody>[\s\S]*?<\/p:txBody>/u)?.[0] ?? '';
+		expect(body).toContain('marL="514350"');
+		expect(body).toContain('marR="114300"');
+		expect(body).toContain('indent="-171450"');
+		expect(body).toContain('<a:spcPct val="150000"');
+		expect(body).toContain('<a:spcBef><a:spcPts val="600"');
+		expect(body).toContain('<a:spcAft><a:spcPts val="1200"');
+		const handler = new PptxHandler();
+		const data = await handler.load(bytes.buffer as ArrayBuffer);
+		const reopened = data.slides[0].elements.find(
+			(candidate) => candidate.id === element.get('id'),
+		);
+		if (!reopened || !('textSegments' in reopened)) {
+			throw new Error('Expected the saved text element');
+		}
+		expect(reopened.textSegments?.[0].paragraphProperties).toMatchObject(paragraphProperties);
+		await codec.hydrate(doc, bytes);
+		const rehydratedSlide = doc.getArray<YMap<unknown>>('pptx:slides').get(0);
+		const rehydratedElement = (rehydratedSlide.get('elements') as YArray<YMap<unknown>>).get(0);
+		expect(
+			decodeTextBodyFromYText(rehydratedElement.get('textBody') as YText)[0].paragraphProperties,
+		).toMatchObject(paragraphProperties);
+		handler.dispose();
+		doc.destroy();
+	});
+
 	it.each(['pb', 'lb'])('saves and reopens consecutive %s breaks from a Y.Text', async (flag) => {
 		const codec = new PptxCodec();
 		const doc = new YDoc();
