@@ -83,6 +83,12 @@ export class CompatToastsComponent {
 	 * clear of it.
 	 */
 	readonly rightInset = input<number>(0);
+	/**
+	 * Live height of the docked "Speaker notes" strip (0 when it is not
+	 * rendered). It sits between the canvas and the status bar in the same
+	 * containing block, so without this the stack overlaps it.
+	 */
+	readonly bottomInset = input<number>(0);
 	/** Dismiss one toast by id. */
 	readonly dismissOne = output<string>();
 	/** Dismiss every visible toast. */
@@ -95,5 +101,7 @@ export class CompatToastsComponent {
 	 * containing block the dialogs use), bottom-inset above the status bar so
 	 * a toast can never cover the status bar's "Slide show" button.
 	 */
-	readonly stackStyle = computed(() => compatToastStackStyleAttr(this.rightInset()));
+	readonly stackStyle = computed(() =>
+		compatToastStackStyleAttr(this.rightInset(), this.bottomInset()),
+	);
 }

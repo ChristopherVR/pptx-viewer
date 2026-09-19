@@ -38,6 +38,7 @@ function toast(overrides: Partial<CompatibilityWarningToast> = {}): Compatibilit
 function createComponent(
 	toasts: readonly CompatibilityWarningToast[],
 	rightInset = 0,
+	bottomInset = 0,
 ): CompatToastsComponent {
 	const component = runInInjectionContext(
 		Injector.create({ providers: [] }),
@@ -46,6 +47,7 @@ function createComponent(
 	Object.assign(component, {
 		toasts: signal(toasts) as unknown as InputSignal<readonly CompatibilityWarningToast[]>,
 		rightInset: signal(rightInset) as unknown as InputSignal<number>,
+		bottomInset: signal(bottomInset) as unknown as InputSignal<number>,
 	});
 	return component;
 }
@@ -67,6 +69,14 @@ describe('compatToastsComponent stack style', () => {
 		const component = createComponent([toast()], 288);
 		expect(component.stackStyle()).toBe(compatToastStackStyleAttr(288));
 		expect(component.stackStyle()).toContain('right:300px');
+	});
+
+	// The docked "Speaker notes" strip sits between the canvas and the status
+	// bar in the same containing block, so the stack must clear its height.
+	it('adds bottomInset (the measured notes-strip height) to the bottom offset', () => {
+		const component = createComponent([toast()], 0, 52);
+		expect(component.stackStyle()).toBe(compatToastStackStyleAttr(0, 52));
+		expect(component.stackStyle()).toContain('bottom:93px');
 	});
 });
 

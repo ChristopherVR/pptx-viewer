@@ -39,6 +39,7 @@ import {
 	listAutosaveSnapshots,
 	masterViewCrudActions,
 	masterViewCrudFailureKey,
+	observeElementHeight,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	recoverySnapshotIntent,
@@ -758,7 +759,11 @@ import { ZoomTargetService } from './zoom-target.service';
 					canvas column inside <main>.
 				-->
 				@if (canEdit() && !mobile.isMobile() && chromeVisible()) {
-					<aside class="pptx-ng-notes" [attr.aria-label]="'pptx.notes.speakerNotes' | translate">
+					<aside
+						#notesBar
+						class="pptx-ng-notes"
+						[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
+					>
 						<pptx-notes-panel
 							[slide]="activeSlide()"
 							[expanded]="mobileSheetSvc.showNotes()"
@@ -1226,6 +1231,7 @@ import { ZoomTargetService } from './zoom-target.service';
 			<pptx-compat-toasts
 				[toasts]="loadNotices.visibleToasts()"
 				[rightInset]="compatToastRightInset()"
+				[bottomInset]="notesBarHeight()"
 				(dismissOne)="loadNotices.dismissToast($event)"
 				(dismissAll)="loadNotices.dismissAllToasts()"
 			/>
@@ -1513,6 +1519,13 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	/** The `<main>` host; used to locate the live `.pptx-ng-canvas-stage`. */
 	private readonly mainEl = viewChild<ElementRef<HTMLElement>>('mainEl');
 	private readonly viewerRoot = viewChild<ElementRef<HTMLElement>>('viewerRoot');
+	/**
+	 * The docked "Speaker notes" strip's `<aside>` (only rendered on desktop
+	 * while editing with chrome visible) and its live height, so the
+	 * compat-toast stack can clear it instead of overlapping it.
+	 */
+	private readonly notesBarRef = viewChild<ElementRef<HTMLElement>>('notesBar');
+	protected readonly notesBarHeight = signal(0);
 
 	/**
 	 * Whether the CURRENT document's Protected View lock was lifted via the
@@ -1948,6 +1961,22 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// the store's shared animator whenever the `ai` config input changes.
 		effect(() => {
 			this.aiPanelStore.configureChangeAnimation(this.ai()?.changeAnimation);
+		});
+
+		// Track the notes strip's live height. Re-runs when the `@if` above
+		// mounts/unmounts the `<aside>` (`notesBarRef` is a signal), and resets
+		// the inset to 0 whenever the strip is gone.
+		effect((onCleanup) => {
+			const el = this.notesBarRef()?.nativeElement;
+			if (!el) {
+				this.notesBarHeight.set(0);
+				return;
+			}
+			const stop = observeElementHeight(el, (height) => this.notesBarHeight.set(height));
+			onCleanup(() => {
+				stop();
+				this.notesBarHeight.set(0);
+			});
 		});
 
 		// Seed the Appearance/Language catalog selections from an explicit
