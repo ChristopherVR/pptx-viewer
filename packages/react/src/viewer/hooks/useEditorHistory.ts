@@ -363,8 +363,9 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		}
 
 		const previousSnapshot = lastHistorySnapshotRef.current;
+		// Both snapshots are already isolated from live state; transfer ownership.
 		if (!previousSnapshot) {
-			lastHistorySnapshotRef.current = cloneHistorySnapshot(snapshot);
+			lastHistorySnapshotRef.current = snapshot;
 			lastHistorySerializedRef.current = serialized;
 			lastCheapHashRef.current = cheapHash;
 			updateHistoryAvailability();
@@ -377,12 +378,12 @@ export function useEditorHistory(input: EditorHistoryInput): EditorHistoryResult
 		// first snapshot after a load takes the `!previousSnapshot` branch above
 		// and so never reports dirty.
 		onDirtyRef.current?.();
-		historyPastRef.current.push(cloneHistorySnapshot(previousSnapshot));
+		historyPastRef.current.push(previousSnapshot);
 		while (historyPastRef.current.length > Math.max(1, maxHistoryEntries)) {
 			historyPastRef.current.shift();
 		}
 		historyFutureRef.current = [];
-		lastHistorySnapshotRef.current = cloneHistorySnapshot(snapshot);
+		lastHistorySnapshotRef.current = snapshot;
 		lastHistorySerializedRef.current = serialized;
 		lastCheapHashRef.current = cheapHash;
 		updateHistoryAvailability();
