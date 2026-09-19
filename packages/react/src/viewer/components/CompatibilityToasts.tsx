@@ -15,14 +15,26 @@ import { useTranslation } from 'react-i18next';
  * against the viewer ROOT, not the measured toolbar/canvas container: the
  * container's own bottom edge sits behind the status bar, so a toast rooted
  * there covered the "Slide show" button.
+ *
+ * `rightInset` (default 0) is the width of whatever right-docked panel
+ * (format/inspector or AI chat) is currently open: the viewer ROOT spans the
+ * FULL chrome width including that panel, so without this the stack's
+ * `right: 12px` lands under the panel's own content instead of clear of it
+ * (it rendered on top of, and visually inside, the Properties panel).
  */
 export interface CompatibilityToastsProps {
 	toasts: CompatibilityWarningToast[];
 	onDismiss: (id: string) => void;
 	onDismissAll: () => void;
+	rightInset?: number;
 }
 
-export function CompatibilityToasts({ toasts, onDismiss, onDismissAll }: CompatibilityToastsProps) {
+export function CompatibilityToasts({
+	toasts,
+	onDismiss,
+	onDismissAll,
+	rightInset = 0,
+}: CompatibilityToastsProps) {
 	const { t } = useTranslation();
 
 	if (toasts.length === 0) {
@@ -33,7 +45,7 @@ export function CompatibilityToasts({ toasts, onDismiss, onDismissAll }: Compati
 		<div
 			data-testid='pptx-compat-toasts'
 			className='max-h-[60%] overflow-y-auto'
-			style={compatToastStackStyle()}
+			style={compatToastStackStyle(rightInset)}
 		>
 			<div className='flex items-center justify-between px-1' style={{ pointerEvents: 'auto' }}>
 				<span className='text-[11px] font-medium uppercase tracking-wide text-muted-foreground'>

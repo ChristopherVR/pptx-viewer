@@ -21,7 +21,7 @@ import type { ElementAnimationState } from 'pptx-viewer-shared';
 import {
 	buildSmartArt3DModel,
 	collectCoherent3DOffNodeIds,
-	computeSmartArtElementLayout,
+	resolveSmartArt3DLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
 import React, { Suspense, useEffect, useMemo, useState } from 'react';
@@ -124,7 +124,7 @@ export function SmartArt3DRenderer({
 		}
 		const palette = resolvePalette(element);
 		const style = resolveStyle(element);
-		const layoutResult = computeSmartArtElementLayout(
+		const layoutResult = resolveSmartArt3DLayout(
 			element.smartArtData,
 			nodes,
 			{ width: element.width, height: element.height },

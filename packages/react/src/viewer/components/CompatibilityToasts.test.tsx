@@ -93,4 +93,34 @@ describe('compatibilityToasts', () => {
 		expect(stack.style.bottom).toBe('41px');
 		expect(stack.style.pointerEvents).toBe('none');
 	});
+
+	// The viewer root the stack is anchored to spans the FULL chrome width,
+	// including a right-docked format/inspector panel when one is open, so
+	// without `rightInset` the stack renders UNDER that panel's own content
+	// (it visually overlapped the Properties panel's "Presentation" section)
+	// instead of clear of it.
+	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
+		act(() =>
+			root.render(
+				<CompatibilityToasts
+					toasts={toasts}
+					onDismiss={() => {}}
+					onDismissAll={() => {}}
+					rightInset={288}
+				/>,
+			),
+		);
+		const stack = container.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+		expect(stack.style.right).toBe('300px');
+	});
+
+	it('defaults rightInset to 0 when no panel is open', () => {
+		act(() =>
+			root.render(
+				<CompatibilityToasts toasts={toasts} onDismiss={() => {}} onDismissAll={() => {}} />,
+			),
+		);
+		const stack = container.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+		expect(stack.style.right).toBe('12px');
+	});
 });

@@ -1301,12 +1301,22 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				{/* Positioned against the OUTER viewer-root div (same containing
 				    block the dialogs below use), not the measured container above:
 				    that container's own bottom edge sits behind the status bar, so a
-				    toast anchored to IT covered the "Slide show" button. */}
+				    toast anchored to IT covered the "Slide show" button.
+				    `rightInset` clears the right-docked format/inspector or AI chat
+				    panel: the outer div spans the full chrome width, so without it
+				    the stack's `right: 12px` renders UNDER that panel's own content
+				    (it visually overlapped the Properties panel's "Presentation"
+				    section) instead of floating clear of it over the canvas. */}
 				{mode !== 'present' && (
 					<CompatibilityToasts
 						toasts={compatToastsState.toasts}
 						onDismiss={compatToastsState.dismiss}
 						onDismissAll={compatToastsState.dismissAll}
+						rightInset={
+							!isMobile && (state.isInspectorPaneOpen || aiPanel.isOpen)
+								? resizablePanels.rightWidth
+								: 0
+						}
 					/>
 				)}
 
