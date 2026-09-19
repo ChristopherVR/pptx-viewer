@@ -72,4 +72,17 @@ describe('compatibilityToasts', () => {
 		expect(stack.attributes('style')).toContain(`bottom: ${style.bottom}`);
 		expect(stack.classes().join(' ')).not.toMatch(/\bfixed\b|\bbottom-4\b|\bright-4\b/u);
 	});
+
+	// The viewer root the stack is anchored to spans the FULL chrome width,
+	// including a right-docked format/inspector panel when one is open, so
+	// without `rightInset` the stack renders UNDER that panel's own content
+	// (it visually overlapped the Properties panel's "Presentation" section)
+	// instead of clear of it.
+	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
+		const wrapper = mount(CompatibilityToasts, {
+			props: { toasts: [toast()], overflowCount: 0, rightInset: 288 },
+		});
+		const stack = wrapper.find('[data-testid="pptx-compat-toasts"]');
+		expect(stack.attributes('style')).toContain(`right: ${compatToastStackStyle(288).right}`);
+	});
 });

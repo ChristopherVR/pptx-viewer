@@ -16,16 +16,12 @@
  * coordinates, and opens an inline textarea editor for that node. Commits flow
  * through the same injection context the 2D renderer uses (undo/redo + save).
  */
-import type {
-	PptxElement,
-	PptxSmartArtChrome,
-	SmartArtColorScheme,
-	SmartArtStyle,
-} from 'pptx-viewer-core';
+import type { PptxElement, PptxSmartArtChrome, SmartArtStyle } from 'pptx-viewer-core';
 import {
 	buildSmartArt3DModel,
 	collectCoherent3DOffNodeIds,
-	computeSmartArtElementLayout,
+	resolvePalette,
+	resolveSmartArt3DLayout,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
 import type { SmartArt3DModel, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
@@ -64,26 +60,11 @@ const props = defineProps<{
 
 const { t } = useI18n();
 
-const PALETTES: Record<SmartArtColorScheme, string[]> = {
-	colorful1: ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#a855f7', '#ec4899'],
-	colorful2: ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-	colorful3: ['#0ea5e9', '#84cc16', '#f43e5e', '#a855f7', '#f97316', '#10b981'],
-	monochromatic1: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb', '#1d4ed8'],
-	monochromatic2: ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5', '#4338ca'],
-};
-
 const smartArtData = computed(() =>
 	props.element.type === 'smartArt' ? props.element.smartArtData : undefined,
 );
 
-const palette = computed<string[]>(() => {
-	const data = smartArtData.value;
-	const ctFills = data?.colorTransform?.fillColors;
-	if (ctFills && ctFills.length > 0) {
-		return ctFills;
-	}
-	return PALETTES[data?.colorScheme ?? 'colorful1'] ?? PALETTES.colorful1;
-});
+const palette = computed<string[]>(() => resolvePalette(smartArtData.value));
 
 const style = computed<SmartArtStyle>(() => smartArtData.value?.style ?? 'flat');
 const chrome = computed<PptxSmartArtChrome | undefined>(() => smartArtData.value?.chrome);
@@ -93,7 +74,7 @@ const model = computed<SmartArt3DModel | null>(() => {
 	if (!data || data.nodes.length === 0) {
 		return null;
 	}
-	const layout = computeSmartArtElementLayout(
+	const layout = resolveSmartArt3DLayout(
 		data,
 		data.nodes,
 		{ width: props.element.width, height: props.element.height },

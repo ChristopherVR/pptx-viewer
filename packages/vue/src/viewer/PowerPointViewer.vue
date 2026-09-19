@@ -36,6 +36,7 @@ import {
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	extraQuickAccessCommands,
+	INSPECTOR_PANEL_DEFAULT_WIDTH,
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
@@ -1169,6 +1170,17 @@ const {
 	themeEditorOpen,
 } = ribbonUi;
 
+// The compat-toast stack's right inset when a right-docked panel (format/
+// inspector or AI chat) is open: the viewer root it is anchored to spans the
+// FULL chrome width including that panel, so without this the stack's
+// `right: 12px` lands under the panel's own content (it visually overlapped
+// the Properties panel's "Presentation" section) instead of clear of it.
+// Vue's panel is a fixed `w-72`, not user-resizable like React's, so this
+// uses the shared default rather than a measured width.
+const compatToastRightInset = computed(() =>
+	!isMobile.value && (inspectorOpen.value || aiPanelOpen.value) ? INSPECTOR_PANEL_DEFAULT_WIDTH : 0,
+);
+
 // Seed the View-tab snap/guide toggles from the deck's own `viewProps.xml` on
 // every load, and write user changes back so a save round-trips them. Kept
 // out of the undo stack (PowerPoint does not undo View-tab toggles).
@@ -2095,6 +2107,7 @@ defineExpose<PowerPointViewerExpose>(
 			v-if="!presentation.presenting.value"
 			:toasts="compatToasts.visibleToasts.value"
 			:overflow-count="compatToasts.overflowCount.value"
+			:right-inset="compatToastRightInset"
 			@dismiss="compatToasts.dismiss"
 			@dismiss-all="compatToasts.dismissAll"
 		/>

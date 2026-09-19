@@ -10,16 +10,27 @@
  * Unlike a transient toast, these do not auto-hide: they are diagnostics
  * about the LOADED document, so they persist until the user dismisses them
  * (or the next load resets the stack).
+ *
+ * `rightInset` (default 0) is the width of whatever right-docked panel
+ * (format/inspector or AI chat) is currently open: the viewer ROOT this
+ * stack is anchored to spans the FULL chrome width including that panel, so
+ * without it the stack's `right: 12px` lands under the panel's own content
+ * instead of clear of it (it rendered on top of, and visually inside, the
+ * Properties panel).
  */
 import { AlertTriangle, Info, X } from 'lucide-vue-next';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 import { compatToastStackStyle } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
-const props = defineProps<{
-	toasts: CompatibilityWarningToast[];
-	overflowCount: number;
-}>();
+const props = withDefaults(
+	defineProps<{
+		toasts: CompatibilityWarningToast[];
+		overflowCount: number;
+		rightInset?: number;
+	}>(),
+	{ rightInset: 0 },
+);
 
 const emit = defineEmits<{
 	dismiss: [id: string];
@@ -34,7 +45,7 @@ const { t } = useI18n();
 		v-if="props.toasts.length > 0"
 		class="pptx-vue-compat-toasts max-w-[90vw]"
 		data-testid="pptx-compat-toasts"
-		:style="compatToastStackStyle()"
+		:style="compatToastStackStyle(props.rightInset)"
 	>
 		<div class="pointer-events-auto flex items-center justify-between">
 			<span class="text-[11px] font-semibold text-muted-foreground">{{
