@@ -117,6 +117,59 @@ describe('compatToastStackStyle', () => {
 		expect(attr).toContain('z-index:40');
 		expect(attr.split(';')).toHaveLength(Object.keys(compatToastStackStyle()).length);
 	});
+
+	// A right-docked format/inspector (or AI chat) panel occupies the SAME
+	// right edge of the viewer root the stack is anchored to, so a plain
+	// `right: 12px` sits under the panel's own content instead of clearing
+	// that content: the actual bug had the stack rendering inside the
+	// Properties panel, overlapping its "Presentation" section. Callers pass
+	// the open panel's width so the stack clears it.
+	it('adds an open right-panel width to the right inset and clamps to it', () => {
+		const style = compatToastStackStyle(288);
+		expect(style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`);
+		expect(style.maxWidth).toBe(`calc(100% - ${String(COMPAT_TOAST_METRICS.insetRight + 288)}px)`);
+	});
+
+	it('defaults the right-panel inset to 0 (no panel open)', () => {
+		expect(compatToastStackStyle().right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight)}px`);
+	});
+
+	it('threads the right-panel inset through the flattened attribute too', () => {
+		expect(compatToastStackStyleAttr(288)).toContain(
+			`right:${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`,
+		);
+	});
+
+	// The status bar is not the only thing between the canvas and the viewer's
+	// bottom edge: a collapsed (or expanded) "Speaker notes" strip sits above
+	// it too, and its height varies per binding and by expand state, so
+	// callers pass its live measured height as a second inset.
+	it('adds a notes-bar height to the bottom inset', () => {
+		const style = compatToastStackStyle(0, 52);
+		expect(style.bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar + 52)}px`,
+		);
+	});
+
+	it('defaults the bottom notes-bar inset to 0 (no notes bar measured)', () => {
+		expect(compatToastStackStyle().bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar)}px`,
+		);
+	});
+
+	it('combines the right and bottom insets independently', () => {
+		const style = compatToastStackStyle(288, 52);
+		expect(style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`);
+		expect(style.bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar + 52)}px`,
+		);
+	});
+
+	it('threads the bottom notes-bar inset through the flattened attribute too', () => {
+		expect(compatToastStackStyleAttr(0, 52)).toContain(
+			`bottom:${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar + 52)}px`,
+		);
+	});
 });
 
 describe('runProgramNoticeStackStyle', () => {

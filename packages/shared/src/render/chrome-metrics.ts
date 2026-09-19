@@ -100,19 +100,52 @@ export const COMPAT_TOAST_METRICS = {
 } as const;
 
 /**
+ * Default width of the right-docked format/inspector panel (`w-72`), used by
+ * the four bindings whose panel is a fixed size rather than user-resizable
+ * (React's is resizable and threads its OWN live width instead; see
+ * {@link compatToastStackStyle}'s `extraRightInset` parameter).
+ */
+export const INSPECTOR_PANEL_DEFAULT_WIDTH = 288;
+
+/**
  * Inline style for the toast stack, positioned relative to the viewer root
  * (which must establish a containing block, as it already does in every
  * binding for the dialogs). Numbers are stringified with units so the record
  * can be spread straight onto a style object or joined into a `style`
  * attribute.
+ *
+ * `extraRightInset` (default 0) adds to the base `right` inset. The stack is
+ * anchored to the viewer ROOT's right edge, which is the full chrome width,
+ * INCLUDING the right-docked format/inspector (or AI chat) panel when one is
+ * open: with `extraRightInset` at its default of 0, the stack's `right: 12px`
+ * lands 12px from the viewer's true right edge, which is UNDER that panel,
+ * not clear of it, so it renders on top of (and visually collides with) the
+ * panel's own content instead of floating over the canvas. Pass that panel's
+ * current width here (0 when no such panel is open) so the stack clears it.
+ *
+ * `extraBottomInset` (default 0) adds to the base `bottom` inset, which
+ * otherwise only clears the status bar. All five bindings also render a
+ * collapsed "Speaker notes" strip (and, expanded, a notes pane) BETWEEN the
+ * canvas and the status bar, in the same viewer-root containing block the
+ * stack is anchored to, so a plain status-bar-height `bottom` still leaves
+ * the stack sitting UNDER that strip (measured: Angular's toast box at y
+ * 877-959 overlapped its notes bar at 918-971). That strip's height differs
+ * per binding and grows when the notes pane is expanded, so it cannot be a
+ * fixed constant here: pass the strip's live measured height (0 when it is
+ * not rendered, e.g. presentation mode or mobile, where it is either absent
+ * or an overlay that does not sit between the canvas and the status bar).
  */
-export function compatToastStackStyle(): Record<string, string> {
+export function compatToastStackStyle(
+	extraRightInset = 0,
+	extraBottomInset = 0,
+): Record<string, string> {
 	const m = COMPAT_TOAST_METRICS;
 	return {
 		position: 'absolute',
-		right: `${String(m.insetRight)}px`,
-		bottom: `${String(STATUS_BAR_METRICS.height + m.marginAboveStatusBar)}px`,
+		right: `${String(m.insetRight + extraRightInset)}px`,
+		bottom: `${String(STATUS_BAR_METRICS.height + m.marginAboveStatusBar + extraBottomInset)}px`,
 		width: `${String(m.width)}px`,
+		maxWidth: `calc(100% - ${String(m.insetRight + extraRightInset)}px)`,
 		zIndex: String(m.zIndex),
 		display: 'flex',
 		flexDirection: 'column',
@@ -122,8 +155,8 @@ export function compatToastStackStyle(): Record<string, string> {
 }
 
 /** {@link compatToastStackStyle} flattened into an inline `style` attribute value. */
-export function compatToastStackStyleAttr(): string {
-	return styleRecordToAttr(compatToastStackStyle());
+export function compatToastStackStyleAttr(extraRightInset = 0, extraBottomInset = 0): string {
+	return styleRecordToAttr(compatToastStackStyle(extraRightInset, extraBottomInset));
 }
 
 /**
