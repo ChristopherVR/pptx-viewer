@@ -38,9 +38,29 @@ jobs:
       any_released: ${{ steps.tagged.outputs.any_released || 'false' }}
       released_keys: ${{ steps.tagged.outputs.released_keys || '' }}
     steps:
+      # This job pushes a version-bump commit straight to `main` (see the commit
+      # step below), so it needs credentials that can get past the branch
+      # ruleset covering the default branch (it requires the `ci-success` check,
+      # which applies to direct pushes too).
+      #
+      # The default GITHUB_TOKEN CANNOT: GitHub refuses to let
+      # `github-actions[bot]` be granted ruleset bypass. So push as an actor that
+      # IS eligible. RELEASE_TOKEN must be a fine-grained PAT with
+      # `Contents: Read and write` on this repo, owned by a repository admin
+      # (the Admin role is on the ruleset's bypass list).
+      #
+      # The fallback keeps the job runnable without the secret: everything up to
+      # the push still works, and the push fails with the explicit diagnostic in
+      # the commit step rather than an opaque GH013.
+      #
+      # NOTE: unlike GITHUB_TOKEN, a PAT push DOES trigger workflows. The release
+      # commit carries `[skip ci]`, which GitHub honours natively, so it still
+      # will not start a CI run.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ secrets.RELEASE_TOKEN || github.token }}
+          persist-credentials: true
 
       - uses: actions/setup-node@v7
         with:
@@ -238,14 +258,17 @@ jobs:
 
       - name: Commit version bumps and changelogs
         if: steps.drop.outputs.any_remaining == 'true'
-        # The GITHUB_TOKEN push does not retrigger workflows, and `[skip ci]`
-        # guards against it regardless.
+        env:
+          # Presence check only, never the value. Secrets cannot be read in an
+          # `if:`, so the failure branch below uses this to tell "no token
+          # configured" apart from "token configured but still rejected".
+          HAVE_RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN != '' && '1' || '' }}
+        # `[skip ci]` keeps the release commit from starting a CI run (a PAT push
+        # would otherwise retrigger workflows, unlike a GITHUB_TOKEN push).
         #
-        # IMPORTANT: this pushes straight to `main`, which is only possible while
-        # no branch ruleset requires a pull request or status checks there. The
-        # default GITHUB_TOKEN cannot be exempted from such a rule -- GitHub does
-        # not allow `github-actions[bot]` on a ruleset bypass list at all -- so
-        # adding one silently turns every release into a failed run.
+        # IMPORTANT: this pushes straight to `main`. The branch ruleset requires
+        # `ci-success`, so the push only succeeds when the checkout above ran with
+        # RELEASE_TOKEN: the default GITHUB_TOKEN can never be granted bypass.
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -285,8 +308,17 @@ jobs:
             done
             if [ "$pushed" != "true" ]; then
               echo "::error::Could not push the release commit to main after 3 attempts."
-              echo "A 'GH013 / rule violations' rejection above means a branch ruleset blocks"
-              echo "direct pushes to main: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              if [ -z "$HAVE_RELEASE_TOKEN" ]; then
+                echo "The RELEASE_TOKEN secret is not set, so this pushed as github-actions[bot],"
+                echo "which can never be granted ruleset bypass. Create a fine-grained PAT with"
+                echo "'Contents: Read and write' on this repo, owned by a repository admin, and"
+                echo "save it as the RELEASE_TOKEN secret. Rules: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              else
+                echo "RELEASE_TOKEN is set but the push was still rejected. Check that its owner is"
+                echo "a bypass actor on the ruleset covering main, that the token grants"
+                echo "'Contents: Read and write' on this repo, and that it has not expired."
+                echo "Rules: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/rules"
+              fi
               exit 1
             fi
           fi
