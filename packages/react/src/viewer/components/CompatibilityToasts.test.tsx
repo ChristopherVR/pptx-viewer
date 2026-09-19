@@ -123,4 +123,25 @@ describe('compatibilityToasts', () => {
 		const stack = container.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
 		expect(stack.style.right).toBe('12px');
 	});
+
+	// The docked "Speaker notes" strip sits between the canvas and the status
+	// bar in the same containing block, so the stack must clear its height.
+	it('adds bottomInset (the measured notes-strip height) to the bottom offset', () => {
+		const render = (bottomInset?: number) => {
+			act(() =>
+				root.render(
+					<CompatibilityToasts
+						toasts={toasts}
+						onDismiss={() => {}}
+						onDismissAll={() => {}}
+						bottomInset={bottomInset}
+					/>,
+				),
+			);
+			return (container.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement).style
+				.bottom;
+		};
+		const base = Number.parseFloat(render());
+		expect(Number.parseFloat(render(52))).toBe(base + 52);
+	});
 });

@@ -1,4 +1,5 @@
 import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
+import { observeElementHeight } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -31,6 +32,13 @@ interface SlideNotesPanelProps {
 	 * instead of this panel's hardcoded look.
 	 */
 	notesStyle?: PptxTextStyleLevels;
+	/**
+	 * Called with the strip's live rendered height (CSS px) on mount and on
+	 * every resize (expand/collapse, content growth), and with `0` on
+	 * unmount. Lets the host keep the compatibility-toast stack above the
+	 * strip instead of underneath it. Must be referentially stable.
+	 */
+	onHeightChange?: (height: number) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -46,8 +54,22 @@ export function SlideNotesPanel({
 	onUpdateNotes,
 	panelHeight,
 	notesStyle,
+	onHeightChange,
 }: SlideNotesPanelProps) {
 	const { t } = useTranslation();
+	const rootRef = React.useRef<HTMLDivElement>(null);
+
+	React.useEffect(() => {
+		const el = rootRef.current;
+		if (!el || !onHeightChange) {
+			return undefined;
+		}
+		const stop = observeElementHeight(el, onHeightChange);
+		return () => {
+			stop();
+			onHeightChange(0);
+		};
+	}, [onHeightChange]);
 
 	const {
 		draft,
@@ -105,6 +127,7 @@ export function SlideNotesPanel({
 				/>
 			)}
 			<div
+				ref={rootRef}
 				className={cn(
 					'flex flex-col border-t border-border/60 bg-background select-none',
 					// On mobile, hide the entire notes strip when collapsed: the

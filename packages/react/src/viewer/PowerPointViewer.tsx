@@ -355,6 +355,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 
 		// ── Compatibility-warning toasts ────────────────────────────
 		const compatToastsState = useCompatibilityToastsState();
+		// Live height of the docked notes strip, so the toast stack clears it.
+		const [notesBarHeight, setNotesBarHeight] = useState(0);
 
 		// ── Run-program notices (`ppaction://program`, running show only) ──
 		const runProgramNoticesState = useRunProgramNoticesState();
@@ -1240,6 +1242,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										hideStatusBar={isMobile}
 										hiddenActions={hiddenActions}
 										notesStyle={state.notesMaster?.notesStyle}
+										onNotesHeightChange={setNotesBarHeight}
 									/>
 								)}
 
@@ -1280,6 +1283,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 								? resizablePanels.rightWidth
 								: 0
 						}
+						bottomInset={notesBarHeight}
 					/>
 				)}
 

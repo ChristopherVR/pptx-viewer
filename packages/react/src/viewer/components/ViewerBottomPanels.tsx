@@ -60,6 +60,8 @@ export interface ViewerBottomPanelsProps {
 	 * authored notes-text defaults instead of a hardcoded look.
 	 */
 	notesStyle?: PptxTextStyleLevels;
+	/** Live height of the notes strip; see {@link SlideNotesPanel}. Must be stable. */
+	onNotesHeightChange?: (height: number) => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -90,6 +92,7 @@ export function ViewerBottomPanels({
 	hideStatusBar = false,
 	hiddenActions,
 	notesStyle,
+	onNotesHeightChange,
 }: ViewerBottomPanelsProps): React.ReactElement {
 	const { isHidden } = useToolbarVisibility(hiddenActions);
 	return (
@@ -106,6 +109,7 @@ export function ViewerBottomPanels({
 				onUpdateNotes={onUpdateNotes}
 				panelHeight={notesPanelHeight}
 				notesStyle={notesStyle}
+				onHeightChange={onNotesHeightChange}
 			/>
 			{!hideStatusBar && (
 				<StatusBar

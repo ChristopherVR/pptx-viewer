@@ -27,6 +27,8 @@ export interface CompatibilityToastsProps {
 	onDismiss: (id: string) => void;
 	onDismissAll: () => void;
 	rightInset?: number;
+	/** Height of the docked notes strip; see {@link compatToastStackStyle}'s `extraBottomInset`. */
+	bottomInset?: number;
 }
 
 export function CompatibilityToasts({
@@ -34,6 +36,7 @@ export function CompatibilityToasts({
 	onDismiss,
 	onDismissAll,
 	rightInset = 0,
+	bottomInset = 0,
 }: CompatibilityToastsProps) {
 	const { t } = useTranslation();
 
@@ -45,7 +48,7 @@ export function CompatibilityToasts({
 		<div
 			data-testid='pptx-compat-toasts'
 			className='max-h-[60%] overflow-y-auto'
-			style={compatToastStackStyle(rightInset)}
+			style={compatToastStackStyle(rightInset, bottomInset)}
 		>
 			<div className='flex items-center justify-between px-1' style={{ pointerEvents: 'auto' }}>
 				<span className='text-[11px] font-medium uppercase tracking-wide text-muted-foreground'>
