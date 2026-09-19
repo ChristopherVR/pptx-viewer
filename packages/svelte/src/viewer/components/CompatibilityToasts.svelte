@@ -19,6 +19,12 @@
 	 * establishes the containing block the dialogs use), anchored above the
 	 * status bar rather than the page corner, so a toast can never cover the
 	 * status bar's "Slide show" button.
+	 *
+	 * `rightInset` (default 0) is the width of whatever right-docked panel
+	 * (format/inspector or AI chat) is currently open: the viewer ROOT spans
+	 * the FULL chrome width including that panel, so without it the stack's
+	 * `right: 12px` lands under the panel's own content instead of clear of it
+	 * (it rendered on top of, and visually inside, the Properties panel).
 	 */
 	import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 	import { compatToastStackStyleAttr } from 'pptx-viewer-shared';
@@ -30,15 +36,17 @@
 		overflowCount,
 		ondismiss,
 		ondismissall,
+		rightInset = 0,
 	}: {
 		toasts: readonly CompatibilityWarningToast[];
 		overflowCount: number;
 		ondismiss: (id: string) => void;
 		ondismissall: () => void;
+		rightInset?: number;
 	} = $props();
 
 	const t = useTranslator();
-	const stackStyle = compatToastStackStyleAttr();
+	const stackStyle = $derived(compatToastStackStyleAttr(rightInset));
 </script>
 
 {#if toasts.length > 0}

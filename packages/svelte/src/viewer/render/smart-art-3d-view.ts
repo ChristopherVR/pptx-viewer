@@ -3,7 +3,7 @@ import type { SmartArt3DModel } from 'pptx-viewer-shared';
 import {
 	buildSmartArt3DModel,
 	collectCoherent3DOffNodeIds,
-	computeSmartArtElementLayout,
+	resolveSmartArt3DLayout,
 	resolvePalette,
 } from 'pptx-viewer-shared';
 
@@ -31,7 +31,7 @@ export function buildSmartArt3DViewModel(element: PptxElement): SmartArt3DModel 
 		return undefined;
 	}
 	const style: SmartArtStyle = data.style ?? 'flat';
-	const layout = computeSmartArtElementLayout(
+	const layout = resolveSmartArt3DLayout(
 		data,
 		data.nodes,
 		{ width: element.width, height: element.height },

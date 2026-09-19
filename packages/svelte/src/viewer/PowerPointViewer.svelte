@@ -11,7 +11,11 @@
 	 * requires the component itself to `export`.
 	 */
 	import { onDestroy } from 'svelte';
-	import { buildUserFontFaceStyles, themeToCssVars } from 'pptx-viewer-shared';
+	import {
+		buildUserFontFaceStyles,
+		INSPECTOR_PANEL_DEFAULT_WIDTH,
+		themeToCssVars,
+	} from 'pptx-viewer-shared';
 	import type { ViewerMode } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
@@ -32,6 +36,7 @@
 	import { createViewerState } from './state/create-viewer-state.svelte';
 	import { ThemeLocaleState } from './state/theme-locale.svelte';
 	import { toViewerStateOptions } from './state/viewer-state-options';
+	import { useWindowViewport } from './state/window-viewport.svelte';
 	import { styleToString } from './style';
 	import type { PowerPointViewerProps } from './types';
 
@@ -103,6 +108,21 @@
 	// palette; instead the chrome's own `var(--pptx-*, <dark fallback>)` lookups
 	// resolve against the host `:root` (or the dark fallbacks when standalone).
 	const rootStyle = $derived(styleToString(themeToCssVars(themeLocale.effectiveTheme)));
+
+	// The compat-toast stack's right inset when a right-docked panel (format/
+	// inspector or AI chat) is open: the viewer root it is anchored to spans
+	// the FULL chrome width including that panel, so without this the
+	// stack's `right: 12px` lands under the panel's own content (it visually
+	// overlapped the Properties panel's "Presentation" section) instead of
+	// clear of it. Below the 768px breakpoint (mirrors React's/Vue's
+	// `useIsMobile(768)`) the panel docks full-width/bottom instead of to the
+	// right, so no inset applies there.
+	const compatToastViewport = useWindowViewport();
+	const compatToastRightInset = $derived(
+		compatToastViewport.width >= 768 && (vm.chromeUi.inspectorOpen || vm.ai.panelOpen)
+			? INSPECTOR_PANEL_DEFAULT_WIDTH
+			: 0,
+	);
 
 	// ── Imperative API (exposed on the component instance) ────────────────
 	// Svelte requires these `export`s to live on the component, but every body
@@ -218,6 +238,7 @@
 		<CompatibilityToasts
 			toasts={compatToasts.visibleToasts}
 			overflowCount={compatToasts.overflowCount}
+			rightInset={compatToastRightInset}
 			ondismiss={(id) => compatToasts.dismiss(id)}
 			ondismissall={() => compatToasts.dismissAll()}
 		/>

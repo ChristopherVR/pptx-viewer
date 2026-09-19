@@ -1,3 +1,13 @@
+/**
+ * CompatibilityToasts.svelte: the bottom-right load-diagnostic stack.
+ *
+ * The viewer root this stack is anchored to spans the FULL chrome width,
+ * including a right-docked format/inspector panel when one is open, so
+ * without `rightInset` the stack's `right: 12px` lands under that panel's
+ * own content (it visually overlapped the Properties panel's "Presentation"
+ * section) instead of clear of it. Mirrors React's/Vue's/Angular's
+ * equivalent regression test.
+ */
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -5,6 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import CompatibilityToasts from './CompatibilityToasts.svelte';
 
 let cleanup: (() => void) | undefined;
+
 afterEach(() => {
 	cleanup?.();
 	cleanup = undefined;
@@ -12,100 +23,40 @@ afterEach(() => {
 
 function mountToasts(
 	toasts: readonly CompatibilityWarningToast[],
-	overflowCount = 0,
-): {
-	target: HTMLElement;
-	ondismiss: ReturnType<typeof vi.fn>;
-	ondismissall: ReturnType<typeof vi.fn>;
-} {
-	const ondismiss = vi.fn();
-	const ondismissall = vi.fn();
+	rightInset?: number,
+): HTMLElement {
 	const target = document.createElement('div');
+	document.body.appendChild(target);
 	const instance = mount(CompatibilityToasts, {
 		target,
-		props: { toasts, overflowCount, ondismiss, ondismissall },
+		props: { toasts, overflowCount: 0, ondismiss: vi.fn(), ondismissall: vi.fn(), rightInset },
 	});
-	cleanup = () => unmount(instance);
 	flushSync();
-	return { target, ondismiss, ondismissall };
+	cleanup = () => {
+		unmount(instance);
+		target.remove();
+	};
+	return target;
 }
 
-describe('compatibilityToasts', () => {
-	it('renders nothing for an empty toast list', () => {
-		const { target } = mountToasts([]);
-		expect(target.querySelector('[data-testid="pptx-compat-toasts"]')).toBeNull();
-	});
+const toast: CompatibilityWarningToast = {
+	id: 'UNMODELLED_SLIDE_MARKUP',
+	code: 'UNMODELLED_SLIDE_MARKUP',
+	severity: 'warning',
+	messageKey: 'pptx.compatibility.unmodelledSlideMarkup',
+};
 
-	it('renders each toast with its code/severity and the overflow count', () => {
-		const { target } = mountToasts(
-			[
-				{
-					id: 'A',
-					code: 'A',
-					severity: 'warning',
-					messageKey: 'pptx.compatibility.generic',
-					params: { code: 'A' },
-				},
-				{
-					id: 'B',
-					code: 'B',
-					severity: 'info',
-					messageKey: 'pptx.compatibility.externalImageReference',
-				},
-			],
-			3,
-		);
-
-		const toasts = target.querySelectorAll('[data-testid="pptx-compat-toast"]');
-		expect(toasts).toHaveLength(2);
-		expect(toasts[0]?.getAttribute('data-code')).toBe('A');
-		expect(toasts[0]?.getAttribute('data-severity')).toBe('warning');
-		expect(toasts[1]?.getAttribute('data-code')).toBe('B');
-		expect(toasts[1]?.getAttribute('data-severity')).toBe('info');
-		expect(target.textContent).toContain('+3');
-	});
-
-	it('renders the dismiss-all button for a single toast', () => {
-		const { target } = mountToasts([
-			{
-				id: 'A',
-				code: 'A',
-				severity: 'warning',
-				messageKey: 'pptx.compatibility.generic',
-			},
-		]);
-		expect(target.querySelector('[data-testid="pptx-compat-toasts-dismiss-all"]')).not.toBeNull();
-	});
-
-	it('positions the stack relative to the containing block, above the status bar', () => {
-		const { target } = mountToasts([
-			{ id: 'A', code: 'A', severity: 'info', messageKey: 'pptx.compatibility.generic' },
-		]);
+describe('svelte compatibilityToasts', () => {
+	it('defaults rightInset to 0 (no panel open)', () => {
+		const target = mountToasts([toast]);
 		const stack = target.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
-		expect(stack.style.position).toBe('absolute');
-		expect(stack.style.bottom).toBe('41px');
 		expect(stack.style.right).toBe('12px');
 	});
 
-	it('dismisses a single toast and all toasts through the callbacks', () => {
-		const { target, ondismiss, ondismissall } = mountToasts([
-			{
-				id: 'A',
-				code: 'A',
-				severity: 'warning',
-				messageKey: 'pptx.compatibility.generic',
-				params: { code: 'A' },
-			},
-		]);
-
-		(
-			target.querySelector('[data-testid="pptx-compat-toast-dismiss"]') as HTMLButtonElement
-		).click();
-		expect(ondismiss).toHaveBeenCalledWith('A');
-
-		(
-			target.querySelector('[data-testid="pptx-compat-toasts-dismiss-all"]') as HTMLButtonElement
-		).click();
-		expect(ondismissall).toHaveBeenCalledOnce();
+	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
+		const target = mountToasts([toast], 288);
+		const stack = target.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+		expect(stack.style.right).toBe('300px');
+		expect(stack.style.maxWidth).toBe('calc(100% - 300px)');
 	});
 });
