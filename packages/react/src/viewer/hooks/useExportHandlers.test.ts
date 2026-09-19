@@ -1,6 +1,223 @@
-import { describe, it, expect, vi } from 'vitest';
+// @vitest-environment happy-dom
+import type { PptxSlide } from 'pptx-viewer-core';
+import { act, createElement } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, it, expect, vi } from 'vitest';
 
-import type { ExportHandlersResult } from './export-handler-types';
+import type { ExportHandlersResult, UseExportHandlersInput } from './export-handler-types';
+import { useExportHandlers } from './useExportHandlers';
+
+type ExportFunctions = typeof import('../utils/export');
+
+const exportMocks = vi.hoisted(() => ({
+	copySlideToClipboard: vi.fn<ExportFunctions['copySlideToClipboard']>(async () => {}),
+	exportSlideAsPng: vi.fn<ExportFunctions['exportSlideAsPng']>(async () => {}),
+	exportAllSlidesAsPdf: vi.fn<ExportFunctions['exportAllSlidesAsPdf']>(async () => {}),
+	exportAllSlidesAsNotesPdf: vi.fn<ExportFunctions['exportAllSlidesAsNotesPdf']>(async () => {}),
+	exportAllSlidesAsGif: vi.fn<ExportFunctions['exportAllSlidesAsGif']>(async () => new Blob()),
+	exportAllSlidesAsVideo: vi.fn<ExportFunctions['exportAllSlidesAsVideo']>(async () => new Blob()),
+}));
+vi.mock(import('../utils/export'), () => exportMocks);
+vi.mock(import('../utils/dom-helpers'), () => ({ downloadBlob: vi.fn() }));
+
+let root: Root | undefined;
+let host: HTMLDivElement | undefined;
+let api: ExportHandlersResult;
+
+function Harness({ input }: { input: UseExportHandlersInput }): null {
+	api = useExportHandlers(input);
+	return null;
+}
+
+function render(input: UseExportHandlersInput): void {
+	if (!root) {
+		host = document.createElement('div');
+		document.body.append(host);
+		root = createRoot(host);
+	}
+	act(() => root!.render(createElement(Harness, { input })));
+}
+
+function exportInput(slides: PptxSlide[]): UseExportHandlersInput {
+	return {
+		slides,
+		activeSlide: slides[0],
+		activeSlideIndex: 0,
+		templateElementsBySlideId: {},
+		filePath: 'deck.pptx',
+		canvasStageRef: { current: document.createElement('div') },
+		setActiveSlideIndex: vi.fn(),
+		serializeSlides: vi.fn(async () => null),
+		headerFooter: {},
+		presentationProperties: {},
+		customShows: [],
+		sections: [],
+		coreProperties: undefined,
+		appProperties: undefined,
+		customProperties: [],
+		tagCollections: [],
+		notesMaster: undefined,
+		handoutMaster: undefined,
+		theme: undefined,
+		canvasSize: { width: 1040, height: 720 },
+		imageExportScale: 2,
+	};
+}
+
+function slide(id: string, notes = ''): PptxSlide {
+	return { id, elements: [], backgroundColor: '#ffffff', notes } as PptxSlide;
+}
+
+beforeEach(() => vi.stubGlobal('IS_REACT_ACT_ENVIRONMENT', true));
+
+afterEach(() => {
+	act(() => root?.unmount());
+	host?.remove();
+	root = undefined;
+	host = undefined;
+	vi.restoreAllMocks();
+	vi.clearAllMocks();
+	vi.unstubAllGlobals();
+});
+
+describe('export callbacks after replacing a deck', () => {
+	it.each([
+		['handleExportPng', 'exportSlideAsPng'],
+		['handleCopySlideAsImage', 'copySlideToClipboard'],
+		['handleExportPdf', 'exportAllSlidesAsPdf'],
+		['handleExportGif', 'exportAllSlidesAsGif'],
+		['handleExportVideo', 'exportAllSlidesAsVideo'],
+	] as const)('%s does not read the previous deck', async (handler, exporter) => {
+		const previousSlide = Proxy.revocable(slide('old'), {});
+		const previousSlides = Proxy.revocable([previousSlide.proxy], {});
+		const input = exportInput(previousSlides.proxy);
+		render(input);
+		const callback = api[handler];
+		const replacement = [slide('new')];
+		input.canvasStageRef.current = document.createElement('div');
+		render({ ...input, slides: replacement, activeSlide: replacement[0] });
+		expect(api[handler]).toBe(callback);
+		previousSlides.revoke();
+		previousSlide.revoke();
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		await act(async () => api[handler]());
+		expect(exportMocks[exporter]).toHaveBeenCalledOnce();
+		expect(error).not.toHaveBeenCalled();
+	});
+
+	it('notes PDF reads the replacement notes at invocation time', async () => {
+		const input = exportInput([slide('old', 'Old notes')]);
+		render(input);
+		const replacement = [slide('new', 'New notes')];
+		render({ ...input, slides: replacement, activeSlide: replacement[0] });
+		replacement[0].notes = 'Latest notes';
+		await act(async () => api.handleExportNotesPdf());
+		expect(exportMocks.exportAllSlidesAsNotesPdf).toHaveBeenCalledWith(
+			input.canvasStageRef,
+			1,
+			input.setActiveSlideIndex,
+			0,
+			['Latest notes'],
+			'presentation-notes.pdf',
+			expect.anything(),
+		);
+	});
+
+	it('png and clipboard exports use updated background, index and scale', async () => {
+		const input = exportInput([slide('old')]);
+		render(input);
+		const next = { ...slide('new'), backgroundColor: '#123456' };
+		render({
+			...input,
+			slides: [next],
+			activeSlide: next,
+			activeSlideIndex: 3,
+			imageExportScale: 4,
+		});
+		await act(async () => {
+			await api.handleExportPng();
+			await api.handleCopySlideAsImage();
+		});
+		expect(exportMocks.exportSlideAsPng).toHaveBeenCalledWith(input.canvasStageRef.current, 3, {
+			backgroundColor: '#123456',
+			scale: 4,
+		});
+		expect(exportMocks.copySlideToClipboard).toHaveBeenCalledWith(input.canvasStageRef.current, {
+			backgroundColor: '#123456',
+			scale: 4,
+		});
+	});
+
+	it.each([
+		['handleExportPdf', 'exportAllSlidesAsPdf'],
+		['handleExportGif', 'exportAllSlidesAsGif'],
+		['handleExportVideo', 'exportAllSlidesAsVideo'],
+	] as const)(
+		'%s uses the replacement slide count and current index',
+		async (handler, exporter) => {
+			const input = exportInput([slide('old')]);
+			render(input);
+			const replacement = [slide('first'), slide('second')];
+			render({ ...input, slides: replacement, activeSlide: replacement[1], activeSlideIndex: 1 });
+			await act(async () => api[handler]());
+			expect(exportMocks[exporter].mock.calls[0].slice(0, 4)).toStrictEqual([
+				input.canvasStageRef,
+				2,
+				input.setActiveSlideIndex,
+				1,
+			]);
+		},
+	);
+
+	it.each([
+		'handleExportPng',
+		'handleCopySlideAsImage',
+		'handleExportPdf',
+		'handleExportNotesPdf',
+		'handleExportGif',
+		'handleExportVideo',
+	] as const)('%s does nothing without a canvas stage', async (handler) => {
+		const input = exportInput([slide('current')]);
+		input.canvasStageRef.current = null;
+		render(input);
+		await act(async () => api[handler]());
+		for (const exporter of Object.values(exportMocks)) {
+			expect(exporter).not.toHaveBeenCalled();
+		}
+		expect(api.exportModalOpen).toBeFalsy();
+	});
+
+	it('cancels the extracted notes export and resets the modal without logging an abort', async () => {
+		let rejectExport!: (error: Error) => void;
+		exportMocks.exportAllSlidesAsNotesPdf.mockImplementationOnce(
+			() =>
+				new Promise<void>((_resolve, reject) => {
+					rejectExport = reject;
+				}),
+		);
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		render(exportInput([slide('current', 'Notes')]));
+		let pending!: Promise<void>;
+		act(() => {
+			pending = api.handleExportNotesPdf();
+		});
+		const options = exportMocks.exportAllSlidesAsNotesPdf.mock.calls[0][6]!;
+		act(() => options.onProgress!(1, 2));
+		expect(api.exportModalOpen).toBeTruthy();
+		expect(api.exportProgress).toBeGreaterThan(0);
+		act(() => api.handleCancelExport());
+		expect(options.signal!.aborted).toBeTruthy();
+		expect(api.exportModalOpen).toBeFalsy();
+		expect(api.exportProgress).toBe(0);
+		await act(async () => {
+			rejectExport(new DOMException('Cancelled', 'AbortError'));
+			await pending;
+		});
+		expect(api.exportModalOpen).toBeFalsy();
+		expect(error).not.toHaveBeenCalled();
+	});
+});
 
 // ---------------------------------------------------------------------------
 // useExportHandlers is a hook that sets up export functions. The heavy
