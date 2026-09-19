@@ -32,7 +32,6 @@ import {
 	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
 	deleteAutosaveSnapshot,
-	listAutosaveSnapshots,
 	openPptxFile,
 	playFeedbackSound,
 	readBackstageRecentFile,
@@ -40,12 +39,10 @@ import {
 	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
-	resolveExpiredAutosaveSnapshots,
 	resolveHistoryDepth,
 	resolveImageResolutionScale,
 	resolveOptionRootClasses,
 	resolveSlideSizeSelection,
-	shouldClearAutosaveCacheOnClose,
 	shouldDiscardAutosaveOnSuccessfulSave,
 	shouldShowAutosaveRecoveryPrompt,
 	resolveAutosaveIntervalSeconds,
@@ -104,6 +101,7 @@ import { useAiBridge } from './hooks/ai/useAiBridge';
 import { useAiPanelController } from './hooks/ai/useAiPanelController';
 import { useBroadcastFollower, useFollowMode } from './hooks/collaboration';
 import { useCollaborationDocumentSync } from './hooks/collaboration/useCollaborationDocumentSync';
+import { useAutosaveCacheMaintenance } from './hooks/useAutosaveCacheMaintenance';
 import { useCompatibilityToastsState } from './hooks/useCompatibilityToastsState';
 import { useDerivedSlideState } from './hooks/useDerivedSlideState';
 import { useEditorHistory } from './hooks/useEditorHistory';
@@ -546,42 +544,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				optionsStore.setOptions(next);
 			}
 		}, [settings, optionsStore]);
-		const handleClearOptionsCache = useCallback(() => {
-			void (async () => {
-				const snapshots = await listAutosaveSnapshots();
-				await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
-			})();
-		}, []);
-
-		// File > Options > Save > "cache retention": a one-time sweep per mount is
-		// enough, since a fresh snapshot only ever lands with a fresh timestamp.
-		useEffect(() => {
-			void (async () => {
-				try {
-					const snapshots = await listAutosaveSnapshots();
-					const expired = resolveExpiredAutosaveSnapshots(snapshots, viewerOptions);
-					await Promise.all(expired.map((key) => deleteAutosaveSnapshot(key)));
-				} catch {
-					// Best-effort background maintenance; a blocked IndexedDB skips it.
-				}
-			})();
-			// eslint-disable-next-line react-hooks/exhaustive-deps -- one sweep per mount, not per option edit
-		}, []);
-
-		// File > Options > Save > "clear cache on close": wipe recovery snapshots
-		// when the tab closes/navigates away, and when this viewer unmounts.
-		useEffect(() => {
-			const clearIfRequested = (): void => {
-				if (shouldClearAutosaveCacheOnClose(viewerOptions)) {
-					handleClearOptionsCache();
-				}
-			};
-			window.addEventListener('beforeunload', clearIfRequested);
-			return () => {
-				window.removeEventListener('beforeunload', clearIfRequested);
-				clearIfRequested();
-			};
-		}, [viewerOptions, handleClearOptionsCache]);
+		const handleClearOptionsCache = useAutosaveCacheMaintenance(viewerOptions);
 
 		// ── Mobile / responsive ─────────────────────────────────────
 		const mobile = useIsMobile();

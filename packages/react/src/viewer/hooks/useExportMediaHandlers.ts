@@ -62,6 +62,7 @@ export function useExportMediaHandlers(
 		setExportProgress,
 		setExportStatusMessage,
 	} = input;
+	const slideCount = slides.length;
 
 	const handleExportVideo = useCallback(async () => {
 		if (!canvasStageRef.current) {
@@ -77,7 +78,7 @@ export function useExportMediaHandlers(
 			const { scale } = resolveExportCaptureDecision(imageResolutionScale, 'video');
 			const blob = await exportAllSlidesAsVideo(
 				canvasStageRef,
-				slides.length,
+				slideCount,
 				setActiveSlideIndex,
 				activeSlideIndex,
 				{
@@ -108,7 +109,7 @@ export function useExportMediaHandlers(
 		}
 	}, [
 		canvasStageRef,
-		slides.length,
+		slideCount,
 		setActiveSlideIndex,
 		activeSlideIndex,
 		imageResolutionScale,
@@ -136,7 +137,7 @@ export function useExportMediaHandlers(
 			);
 			const blob = await exportAllSlidesAsGif(
 				canvasStageRef,
-				slides.length,
+				slideCount,
 				setActiveSlideIndex,
 				activeSlideIndex,
 				{
@@ -164,7 +165,7 @@ export function useExportMediaHandlers(
 		}
 	}, [
 		canvasStageRef,
-		slides.length,
+		slideCount,
 		setActiveSlideIndex,
 		activeSlideIndex,
 		imageResolutionScale,
