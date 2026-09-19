@@ -9,7 +9,11 @@ import type {
 	ShapePptxElement,
 	TextStyle,
 } from 'pptx-viewer-core';
-import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
+import type {
+	CollaborationLivePatcher,
+	InlineTextEditSnapshot,
+	InlineListReadResult,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { CanvasImagePasteHandlers } from '../../hooks/useCanvasImagePaste';
@@ -60,6 +64,9 @@ export function getElementIdFromEvent(e: React.MouseEvent): string | null {
 /* ------------------------------------------------------------------ */
 
 export interface SlideCanvasProps {
+	/** The viewer-owned live channel; absent for static/custom non-collaborative canvases. */
+	livePatcher?: CollaborationLivePatcher;
+	registerInlineEditReader?: (elementId: string, read: () => InlineListReadResult) => () => void;
 	/** Native image paste commands supplied by the stock or headless editor. */
 	imagePaste?: CanvasImagePasteHandlers;
 	activeSlide: PptxSlide | undefined;

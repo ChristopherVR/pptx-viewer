@@ -8,11 +8,20 @@ import JSZip from 'jszip';
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import { createTextElement, PptxHandler } from 'pptx-viewer-core';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
+import type { YjsFactories } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { createInitialViewerState, createStore } from '../state';
 import { createEditorOps } from './editor-operations';
 import { openInlineEditor, readEditableText } from './inline-text-editor';
+import { pendingInlineTextModel } from './inline-text-model';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
 
 function textElement(): PptxElement {
@@ -29,6 +38,106 @@ function textElement(): PptxElement {
 }
 
 describe('openInlineEditor caret placement', () => {
+	it.each(['commit', 'composition', 'readonly'] as const)(
+		'reads merged native text and safely closes during %s',
+		(closing) => {
+			const doc = new Y.Doc();
+			const factories: YjsFactories = {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener: () => void) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
+			};
+			const element = textElement();
+			reconcileSlidesInYDoc(
+				[{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [element] }],
+				doc,
+				factories,
+			);
+			const patcher = createCollaborationLivePatcher();
+			patcher.configure(doc, factories, true);
+			const overlayRoot = document.createElement('div');
+			document.body.append(overlayRoot);
+			const onInput = vi.fn();
+			const onCommit = vi.fn();
+			const onClose = vi.fn();
+			const session = openInlineEditor({
+				doc: document,
+				overlayRoot,
+				box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+				scale: 1,
+				element,
+				collaboration: { patcher, slideId: 's1' },
+				onInput,
+				onCommit,
+				onClose,
+			});
+			try {
+				const node = session.el.querySelector('span')!.firstChild as Text;
+				const range = document.createRange();
+				range.setStart(node, 3);
+				range.collapse(true);
+				window.getSelection()!.removeAllRanges();
+				window.getSelection()!.addRange(range);
+				const before = new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' });
+				Object.defineProperty(before, 'getTargetRanges', { value: () => [range.cloneRange()] });
+				session.el.dispatchEvent(before);
+				const text = findElementYMap(doc, 's1', element.id)!.get('textBody') as Y.Text;
+				text.insert(0, 'R', {});
+				node.data = 'TARXGET';
+				session.el.dispatchEvent(
+					new InputEvent('input', { bubbles: true, inputType: 'insertText' }),
+				);
+				expect(text.toString()).toBe('RTARXGET');
+				expect(session.readSnapshot()?.text).toBe('RTARXGET');
+				expect(onInput).not.toHaveBeenCalled();
+				if (closing === 'composition') {
+					session.el.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+					session.el.querySelector('span')!.textContent = 'Unaccepted IME draft';
+					session.el.dispatchEvent(new InputEvent('input', { bubbles: true, isComposing: true }));
+				} else if (closing === 'readonly') {
+					patcher.configure(null, null);
+				}
+				session.commit();
+				if (closing === 'commit') {
+					expect(onCommit).toHaveBeenCalledWith(
+						'RTARXGET',
+						expect.objectContaining({ text: 'RTARXGET' }),
+					);
+				} else {
+					expect(onCommit).not.toHaveBeenCalled();
+					expect(text.toString()).toBe('RTARXGET');
+					if (closing === 'composition') {
+						expect(onClose).not.toHaveBeenCalled();
+						const state = {
+							...createInitialViewerState(),
+							editable: true,
+							slides: [{ id: 's1', rId: 'rId1', slideNumber: 1, elements: [element] }],
+						};
+						expect(() =>
+							pendingInlineTextModel(state, { slideId: 's1' }, session.readList()),
+						).toThrow('Finish the current text input');
+						session.cancel();
+						expect(onClose).toHaveBeenCalledOnce();
+					}
+				}
+			} finally {
+				session.cancel();
+				patcher.dispose();
+				doc.destroy();
+				overlayRoot.remove();
+			}
+		},
+	);
+
 	it('serializes the current rich draft without committing or removing its native editor', async () => {
 		const { handler, data } = await PptxHandler.create({ initialSlideCount: 1 });
 		const element = createTextElement('First');

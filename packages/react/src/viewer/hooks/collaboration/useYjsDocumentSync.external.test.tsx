@@ -8,6 +8,7 @@ import type {
 	YjsFactories,
 } from 'pptx-viewer-shared';
 import {
+	attachCollaborationInlineEditor,
 	createCollaborationLivePatcher,
 	readSlidesFromYDoc,
 	reconcileSlidesInYDoc,
@@ -172,12 +173,17 @@ function seed(target: Y.Doc, id: string): void {
 function PermissionProbe({
 	collaboration,
 	onReadOnlyChange,
+	patcher: providedPatcher,
 }: {
 	collaboration: CollaborationContextValue | null;
 	onReadOnlyChange: (readOnly: boolean) => void;
+	patcher?: CollaborationLivePatcher;
 }): null {
-	const patcher = useMemo(() => createCollaborationLivePatcher(), []);
+	const internalPatcher = useMemo(() => createCollaborationLivePatcher(), []);
+	const patcher = providedPatcher ?? internalPatcher;
 	const [slides, setSlides] = useState([slide('bootstrap')]);
+	current = slides;
+	setCurrent = setSlides;
 	useCollaborationDocumentSync({
 		collaboration,
 		onReadOnlyChange,
@@ -213,6 +219,195 @@ afterEach(() => {
 });
 
 describe('host-owned document synchronization', () => {
+	it('retires built-in native editing with accepted text when its document goes offline', async () => {
+		const element = {
+			id: 'text',
+			type: 'text' as const,
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 80,
+			text: 'Hello',
+			textSegments: [{ text: 'Hello', style: {} }],
+		};
+		reconcileSlidesInYDoc([{ ...slide('s1'), elements: [element] }], doc, factories);
+		const patcher = createCollaborationLivePatcher();
+		const onReadOnlyChange = vi.fn();
+		const collaboration = {
+			config: { roomId: 'native-offline', serverUrl: '', userName: 'Participant' },
+			doc,
+			status: 'connected',
+			synced: true,
+			remoteUsers: [],
+			connectedCount: 1,
+			broadcastPresence: () => {},
+			retry: () => {},
+		} as CollaborationContextValue;
+		await act(async () =>
+			root.render(
+				<PermissionProbe
+					collaboration={collaboration}
+					patcher={patcher}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		const editor = document.createElement('div');
+		editor.contentEditable = 'true';
+		document.body.append(editor);
+		const onCancel = vi.fn();
+		const controller = attachCollaborationInlineEditor(editor, element, {
+			patcher,
+			slideId: 's1',
+			onCancel,
+		});
+		expect(controller).toBeDefined();
+		try {
+			const node = editor.querySelector('span')!.firstChild as Text;
+			const range = document.createRange();
+			range.setStart(node, node.length);
+			range.collapse(true);
+			const before = new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' });
+			Object.defineProperty(before, 'getTargetRanges', { value: () => [range.cloneRange()] });
+			act(() => {
+				editor.dispatchEvent(before);
+				node.appendData(' accepted');
+				editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+			});
+			expect(readSlidesFromYDoc(doc)[0].elements[0]).toMatchObject({ text: 'Hello accepted' });
+			await act(async () =>
+				root.render(
+					<PermissionProbe
+						collaboration={{ ...collaboration, status: 'disconnected', synced: false }}
+						patcher={patcher}
+						onReadOnlyChange={onReadOnlyChange}
+					/>,
+				),
+			);
+			expect(current[0].elements[0]).toMatchObject({ text: 'Hello accepted' });
+			expect(onCancel).toHaveBeenCalledOnce();
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+			act(() =>
+				setCurrent([
+					{
+						...current[0],
+						elements: [
+							{
+								...element,
+								text: 'Hello accepted offline',
+								textSegments: [{ text: 'Hello accepted offline', style: {} }],
+							},
+						],
+					},
+				]),
+			);
+			expect(current[0].elements[0]).toMatchObject({ text: 'Hello accepted offline' });
+		} finally {
+			controller?.dispose();
+			editor.remove();
+		}
+	});
+
+	it('waits for the built-in native channel before allowing the first edit', async () => {
+		const patcher = createCollaborationLivePatcher();
+		const enabledWithoutChannel: boolean[] = [];
+		const onReadOnlyChange = vi.fn((readOnly: boolean) => {
+			if (!readOnly) enabledWithoutChannel.push(!patcher.isActive());
+		});
+		const collaboration = {
+			config: { roomId: 'native-readiness', serverUrl: '', userName: 'Participant' },
+			doc,
+			status: 'connected',
+			synced: false,
+			remoteUsers: [],
+			connectedCount: 1,
+			broadcastPresence: () => {},
+			retry: () => {},
+		} as CollaborationContextValue;
+		await act(async () =>
+			root.render(
+				<PermissionProbe
+					collaboration={collaboration}
+					patcher={patcher}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+		expect(patcher.isActive()).toBe(false);
+		await act(async () =>
+			root.render(
+				<PermissionProbe
+					collaboration={{ ...collaboration, synced: true }}
+					patcher={patcher}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		expect(patcher.isActive()).toBe(true);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+		expect(enabledWithoutChannel).toEqual([false]);
+		await act(async () =>
+			root.render(
+				<PermissionProbe
+					collaboration={{ ...collaboration, status: 'disconnected' }}
+					patcher={patcher}
+					onReadOnlyChange={onReadOnlyChange}
+				/>,
+			),
+		);
+		// Keep the existing local/offline policy once this document was initialized.
+		expect(patcher.isActive()).toBe(false);
+		expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+	});
+
+	it('does not reuse native readiness for a replacement built-in document', async () => {
+		const replacement = new Y.Doc();
+		const onReadOnlyChange = vi.fn();
+		const collaboration = {
+			config: { roomId: 'native-replacement', serverUrl: '', userName: 'Participant' },
+			doc,
+			status: 'connected',
+			synced: true,
+			remoteUsers: [],
+			connectedCount: 1,
+			broadcastPresence: () => {},
+			retry: () => {},
+		} as CollaborationContextValue;
+		try {
+			await act(async () =>
+				root.render(
+					<PermissionProbe collaboration={collaboration} onReadOnlyChange={onReadOnlyChange} />,
+				),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+			await act(async () =>
+				root.render(
+					<PermissionProbe
+						collaboration={{ ...collaboration, doc: replacement, synced: false }}
+						onReadOnlyChange={onReadOnlyChange}
+					/>,
+				),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(true);
+			await act(async () =>
+				root.render(
+					<PermissionProbe
+						collaboration={{ ...collaboration, doc: null, status: 'error' }}
+						onReadOnlyChange={onReadOnlyChange}
+					/>,
+				),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+			await act(async () =>
+				root.render(<PermissionProbe collaboration={null} onReadOnlyChange={onReadOnlyChange} />),
+			);
+			expect(onReadOnlyChange).toHaveBeenLastCalledWith(false);
+		} finally {
+			replacement.destroy();
+		}
+	});
+
 	it.each(['disconnected', 'connecting'] as const)(
 		'keeps pending external attachment read-only (%s), but releases a failed adapter',
 		async (status) => {

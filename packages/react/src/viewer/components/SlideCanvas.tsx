@@ -1,5 +1,5 @@
 import { motionPathFor, setMotionPath, shouldShowElementHandles } from 'pptx-viewer-shared';
-import { useCallback } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 import type { ShapeAdjustmentHandleDescriptor } from '../types';
 import { getShapeAdjustmentHandleDescriptors, isConnectorOrLineElement } from '../utils';
@@ -24,6 +24,7 @@ import { useSlideCanvasImagePaste } from './canvas/useSlideCanvasImagePaste';
 import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
 import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
+import { InlineCollaborationContext } from './elements/InlineCollaborationContext';
 import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 
 /**
@@ -35,7 +36,42 @@ const EMPTY_ADJUSTMENT_HANDLES: ShapeAdjustmentHandleDescriptor[] = [];
 
 export type { SlideCanvasProps } from './canvas/canvas-types';
 
-export function SlideCanvas({
+export function SlideCanvas(props: SlideCanvasProps) {
+	const latest = useRef(props);
+	latest.current = props;
+	const value = useMemo(
+		() =>
+			props.livePatcher && props.mode === 'edit' && !props.editTemplateMode
+				? {
+						patcher: props.livePatcher,
+						slideId: props.activeSlide?.id,
+						elementIds: new Set(props.activeSlide?.elements.map((element) => element.id)),
+						readReadOnlyElement: (id: string) =>
+							!latest.current.canEdit &&
+							latest.current.inlineEditingElementId === id &&
+							latest.current.activeSlide?.id === props.activeSlide?.id
+								? latest.current.activeSlide?.elements.find((element) => element.id === id)
+								: undefined,
+						registerReader: props.registerInlineEditReader,
+					}
+				: undefined,
+		[
+			props.livePatcher,
+			props.mode,
+			props.editTemplateMode,
+			props.activeSlide?.id,
+			props.activeSlide?.elements,
+			props.registerInlineEditReader,
+		],
+	);
+	return (
+		<InlineCollaborationContext.Provider value={value}>
+			<SlideCanvasContent {...props} />
+		</InlineCollaborationContext.Provider>
+	);
+}
+
+function SlideCanvasContent({
 	imagePaste,
 	activeSlide,
 	templateElements,

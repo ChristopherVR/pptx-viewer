@@ -54,6 +54,7 @@ export interface EditorControllerDeps {
 	getChrome(): ViewerChrome;
 	getTranslator(): Translator;
 	getScale(): number;
+	getLivePatcher?(): import('pptx-viewer-shared').CollaborationLivePatcher | undefined;
 	getHandler(): PptxHandler | null;
 	/** Adopt a handler produced by an in-session mutation (Slide Master view CRUD). */
 	setHandler(handler: PptxHandler): void;
@@ -217,6 +218,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		ops,
 		getScale: deps.getScale,
 		getOverlay: () => overlay,
+		getLivePatcher: deps.getLivePatcher,
 		getStageRoot: () => attachedWrap?.querySelector('.pptxv-stage') ?? null,
 		onCursorMove: deps.onCursorMove,
 		onInlineTextInput: deps.onInlineTextInput,
@@ -360,6 +362,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		detachImagePaste?.();
 		detachImagePaste = undefined;
 		interactions.closeInline(true);
+		interactions.closeInline(false);
 		attachedWrap?.removeEventListener('pointerdown', onStagePointerDown);
 		attachedWrap?.removeEventListener('pointermove', interactions.onStagePointerMove);
 		attachedWrap?.removeEventListener('dblclick', drawMode.onStageDblClick);
@@ -378,6 +381,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
 
 	const unsubscribe = store.subscribe((state, previous) => {
+		if (previous.editable && !state.editable) interactions.retainAcceptedInlineText?.();
 		interactions.readInlineList?.();
 		if (state.loading && !previous.loading) {
 			interactions.closeInline(false);

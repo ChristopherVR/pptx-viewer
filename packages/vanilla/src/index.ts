@@ -56,6 +56,7 @@ export {
 	buildInlineTextCommitPatch,
 	canInteractWithElement,
 	describeCollaborationShellState,
+	overlayInlineTextSnapshot,
 } from 'pptx-viewer-shared';
 export { loadPresentation, revokeBlobUrls } from './viewer/load';
 export type { LoadedPresentation, LoadPresentationOptions } from './viewer/load';

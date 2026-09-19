@@ -20,7 +20,7 @@ import type {
 	YArrayLike,
 	YTextLike,
 } from '../internal/shared';
-import { createDepartureChannel } from '../internal/shared';
+import { createDepartureChannel, createSnapshotTextPositions } from '../internal/shared';
 
 /** Minimal awareness surface used by the service. */
 export interface AwarenessLike {
@@ -90,12 +90,21 @@ interface WebrtcProviderModule {
 }
 
 async function createDoc(): Promise<{ doc: DestroyableYDoc; factories: YjsFactories; Y: YModule }> {
-	const Y = (await import('yjs')) as unknown as YModule;
+	const Y = await import('yjs');
 	const doc = new Y.Doc();
 	const factories: YjsFactories = {
 		createMap: () => new Y.Map(),
 		createArray: () => new Y.Array(),
 		createText: () => new Y.Text(),
+		createTextPositions: (text) =>
+			createSnapshotTextPositions(text, {
+				read: () => Y.snapshot(doc),
+				equal: Y.equalSnapshots,
+				subscribeBeforeObservers: (listener) => {
+					doc.on('beforeObserverCalls', listener);
+					return () => doc.off('beforeObserverCalls', listener);
+				},
+			}),
 	};
 	return { doc, factories, Y };
 }

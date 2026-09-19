@@ -13,14 +13,20 @@
  * by the same amount. Overlay placement (cursors/selection boxes) is covered
  * separately by `collab-presence-geometry.spec.ts`.
  */
+import { randomUUID } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import JSZip from 'jszip';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { fixture } from './support/deck';
+import {
+	hostOwnedSessionUrl,
+	saveHostOwnedPresentation,
+	waitForCollaborativeEditing,
+} from './support/host-owned-session';
 import { extractElementBlock, readZipPartText } from './support/pptx-xml';
 
 async function paragraphFormattingDeck() {
@@ -117,8 +123,330 @@ async function beginTextEdit(page: Page, original: string, replacement: string) 
 	return editor;
 }
 
+type CollaborationMode = 'built-in' | 'external';
+
+async function openSameTextPeers(page: Page, mode: CollaborationMode) {
+	const peer = await page.context().newPage();
+	const participants = [page, peer];
+	const room = `same-text-${mode}-${randomUUID()}`;
+	try {
+		for (const [index, participant] of participants.entries()) {
+			if (mode === 'external') {
+				await participant.goto(
+					hostOwnedSessionUrl(room, { name: `Peer${index}`, sample: index === 0 ? '1' : '0' }),
+				);
+				await expect(participant.getByLabel('Host session state', { exact: true })).toContainText(
+					'Host: connected; synced: true',
+					{ timeout: 30_000 },
+				);
+			} else {
+				await openCollaborativeDeck(participant, room, `Peer${index}`, index === 0);
+				await expect(collaborationReady(participant)).toBeVisible({ timeout: 30_000 });
+			}
+			await expect(
+				slideElements(participant).filter({ hasText: 'Product Overview' }),
+			).toBeVisible();
+			await waitForCollaborativeEditing(participant);
+		}
+		const id = await slideElements(page)
+			.filter({ hasText: 'Product Overview' })
+			.getAttribute('data-element-id');
+		expect(id).not.toBeNull();
+		const targets = participants.map((participant) =>
+			participant.locator(`[data-pptx-viewport] [data-element-id="${id}"]`),
+		);
+		await Promise.all(targets.map((target) => target.dblclick()));
+		const editors = participants.map((participant) =>
+			participant.locator('[data-inline-editor]').first(),
+		);
+		for (const editor of editors) {
+			await expect(editor).toBeVisible();
+			await expect(editor).toBeFocused();
+		}
+		return { peer, participants, targets, editors };
+	} catch (error) {
+		await peer.close();
+		throw error;
+	}
+}
+
+/** Read only the visible editor DOM, never the collaboration document. */
+async function inlineText(editor: Locator): Promise<string> {
+	return editor.evaluate((element) =>
+		element instanceof HTMLTextAreaElement ? element.value : (element as HTMLElement).innerText,
+	);
+}
+
+async function inlineCaret(editor: Locator): Promise<number | null> {
+	return editor.evaluate((element) => {
+		if (element instanceof HTMLTextAreaElement) {
+			return element.selectionStart === element.selectionEnd ? element.selectionStart : null;
+		}
+		const selection = element.ownerDocument.getSelection();
+		if (
+			!selection?.isCollapsed ||
+			!selection.anchorNode ||
+			!element.contains(selection.anchorNode)
+		) {
+			return null;
+		}
+		const range = element.ownerDocument.createRange();
+		range.selectNodeContents(element);
+		range.setEnd(selection.anchorNode, selection.anchorOffset);
+		return range.toString().length;
+	});
+}
+
+async function expectInlineText(editors: Locator[], expected: string): Promise<void> {
+	for (const editor of editors) {
+		await expect.poll(() => inlineText(editor)).toBe(expected);
+	}
+}
+
+async function verifySavedText(page: Page, saved: string, expected: string): Promise<void> {
+	const xml = await readZipPartText(await readFile(saved), 'ppt/slides/slide1.xml');
+	const texts = [...xml.matchAll(/<p:sp(?:\s[^>]*)?>([\s\S]*?)<\/p:sp>/gu)].map((shape) =>
+		[...shape[1].matchAll(/<a:p(?:\s[^>]*)?>([\s\S]*?)<\/a:p>/gu)]
+			.map((paragraph) =>
+				[...paragraph[1].matchAll(/<a:t(?:\s[^>]*)?>([\s\S]*?)<\/a:t>|<a:br(?:\s[^>]*)?\s*\/>/gu)]
+					.map((run) => run[1] ?? '\n')
+					.join(''),
+			)
+			.join('\n'),
+	);
+	expect(texts.filter((text) => text.includes('Product Overview'))).toEqual([expected]);
+	const reopened = await page.context().newPage();
+	try {
+		await reopened.goto('/');
+		await reopened.locator('#file-input').setInputFiles(saved);
+		await expect(slideElements(reopened).filter({ hasText: 'Product Overview' })).toHaveText(
+			expected,
+			{ useInnerText: true },
+		);
+	} finally {
+		await reopened.close();
+	}
+}
+
+async function saveAndReopenText(page: Page, saved: string, expected: string): Promise<void> {
+	await (await saveHostOwnedPresentation(page)).saveAs(saved);
+	await verifySavedText(page, saved, expected);
+}
+
 test.describe('collaboration sync', () => {
 	test.setTimeout(120_000);
+
+	for (const mode of ['built-in', 'external'] as const) {
+		for (const order of [
+			[0, 1],
+			[1, 0],
+		]) {
+			test(`same text box retains live text and caret with ${mode} and blur order ${order.join('-')}`, async ({
+				page,
+			}, testInfo) => {
+				const { peer, participants, targets, editors } = await openSameTextPeers(page, mode);
+				const expected = 'ALPHA Product Overview OMEGA';
+				try {
+					await Promise.all([editors[0].press('Home'), editors[1].press('End')]);
+					await Promise.all([page.keyboard.type('ALPHA '), peer.keyboard.type(' OMEGA')]);
+					await expectInlineText(editors, expected);
+					await expect.poll(() => inlineCaret(editors[0])).toBe(6);
+					await expect.poll(() => inlineCaret(editors[1])).toBe(expected.length);
+					// Repeated characters must use the active local baseline, not delete
+					// text already received from the other participant.
+					await page.keyboard.type('111');
+					await expectInlineText(editors, 'ALPHA 111Product Overview OMEGA');
+					await editors[0].press('Backspace');
+					await editors[0].press('Backspace');
+					await editors[0].press('Backspace');
+					await expectInlineText(editors, expected);
+					await page.keyboard.type('222');
+					await editors[0].press('ArrowLeft');
+					await editors[0].press('ArrowLeft');
+					await editors[0].press('ArrowLeft');
+					await editors[0].press('Delete');
+					await editors[0].press('Delete');
+					await editors[0].press('Delete');
+					await expectInlineText(editors, expected);
+					for (const index of order) {
+						await participants[index]
+							.locator('[data-pptx-viewport]')
+							.getByRole('group', { name: 'Project Atlas', exact: true })
+							.click();
+						await expect(editors[index]).toHaveCount(0);
+					}
+					for (const target of targets) {
+						await expect(target).toHaveText(expected);
+					}
+					await saveAndReopenText(page, testInfo.outputPath('same-text.pptx'), expected);
+				} finally {
+					await peer.close();
+				}
+			});
+		}
+
+		test(`same text box keeps Unicode and Enter through ${mode} Save`, async ({
+			page,
+		}, testInfo) => {
+			const { peer, editors } = await openSameTextPeers(page, mode);
+			const expected = '🙂 Product Overview\n111';
+			try {
+				await Promise.all([editors[0].press('Home'), editors[1].press('End')]);
+				await page.keyboard.insertText('🙂 ');
+				await expectInlineText(editors, '🙂 Product Overview');
+				await editors[1].press('Enter');
+				await peer.keyboard.type('111');
+				await expectInlineText(editors, expected);
+				// This is the ordinary File > Save flow while both drafts are active.
+				await saveAndReopenText(peer, testInfo.outputPath('same-text-enter.pptx'), expected);
+			} finally {
+				await peer.close();
+			}
+		});
+
+		test(`same text box preserves browser composition during ${mode} remote editing`, async ({
+			page,
+		}, testInfo) => {
+			const { peer, editors } = await openSameTextPeers(page, mode);
+			const input = await page.context().newCDPSession(page);
+			let downloads = 0;
+			const countDownload = () => {
+				downloads += 1;
+			};
+			page.on('download', countDownload);
+			try {
+				await Promise.all([editors[0].press('End'), editors[1].press('Home')]);
+				const compositionStart = (await inlineText(editors[0])).length;
+				// Chromium's input pipeline emits composition and beforeinput events.
+				// This does not substitute for a native operating-system IME test.
+				await input.send('Input.imeSetComposition', {
+					text: 'に',
+					selectionStart: 1,
+					selectionEnd: 1,
+				});
+				await expect.poll(() => inlineText(editors[0])).toContain('に');
+				await peer.keyboard.type('ALPHA ');
+				await expect(editors[0]).toBeFocused();
+				await expect.poll(() => inlineText(editors[0])).toContain('に');
+				if (mode === 'external') {
+					await page.getByRole('button', { name: 'Save shared snapshot', exact: true }).click();
+					await expect(editors[0]).toBeFocused();
+					await expect.poll(() => inlineText(editors[0])).toContain('に');
+					// Unsupported composition may reject or return no content, but
+					// must not download a file with stale or unaccepted text.
+					expect(downloads).toBe(0);
+				}
+				await input.send('Input.imeSetComposition', {
+					text: '日本',
+					selectionStart: 2,
+					selectionEnd: 2,
+					// The candidate explicitly replaces the prior composition, even
+					// if Chromium restarted its IME session while switching pages.
+					replacementStart: compositionStart,
+					replacementEnd: compositionStart + 'に'.length,
+				});
+				await input.send('Input.insertText', { text: '日本' });
+				const expected = 'ALPHA Product Overview日本';
+				await expectInlineText(editors, expected);
+				await saveAndReopenText(page, testInfo.outputPath('same-text-composition.pptx'), expected);
+				expect(downloads).toBe(1);
+			} finally {
+				page.off('download', countDownload);
+				await input.detach();
+				await peer.close();
+			}
+		});
+	}
+
+	test('same text box pending host snapshot retains live remote text without blur', async ({
+		page,
+	}, testInfo) => {
+		const { peer, editors } = await openSameTextPeers(page, 'external');
+		const expected = 'ALPHA Product Overview OMEGA';
+		try {
+			await Promise.all([editors[0].press('Home'), editors[1].press('End')]);
+			await page.keyboard.type('ALPHA ');
+			await expectInlineText(editors, 'ALPHA Product Overview');
+			await peer.keyboard.type(' OMEGA');
+			await expectInlineText(editors, expected);
+			const download = page.waitForEvent('download');
+			await page.getByRole('button', { name: 'Save shared snapshot', exact: true }).click();
+			const saved = testInfo.outputPath('same-text-pending.pptx');
+			await (await download).saveAs(saved);
+			await expect(editors[0]).toBeFocused();
+			await expectInlineText(editors, expected);
+			await verifySavedText(page, saved, expected);
+			// Preventing pointer-down blur must not prevent keyboard activation.
+			const keyboardDownload = page.waitForEvent('download');
+			await page.getByRole('button', { name: 'Save shared snapshot', exact: true }).focus();
+			await page.keyboard.press('Enter');
+			const keyboardSaved = testInfo.outputPath('same-text-keyboard-save.pptx');
+			await (await keyboardDownload).saveAs(keyboardSaved);
+			await verifySavedText(page, keyboardSaved, expected);
+		} finally {
+			await peer.close();
+		}
+	});
+
+	test('same text box accepted draft survives readiness loss and does not replay on resume', async ({
+		page,
+	}, testInfo) => {
+		const { peer, participants, targets, editors } = await openSameTextPeers(page, 'external');
+		try {
+			await editors[0].press('Home');
+			await page.keyboard.type('ALPHA ');
+			await expectInlineText(editors, 'ALPHA Product Overview');
+			await page.getByRole('button', { name: 'Pause readiness', exact: true }).click();
+			await expect(page.getByLabel('Host session state', { exact: true })).toContainText(
+				'synced: false',
+			);
+			await expect
+				.poll(() =>
+					page
+						.locator('[data-inline-editor]')
+						.evaluateAll((elements) =>
+							elements.every((element) =>
+								element instanceof HTMLTextAreaElement
+									? element.readOnly || element.disabled
+									: !(element as HTMLElement).isContentEditable ||
+										Boolean(element.closest('[inert]')),
+							),
+						),
+				)
+				.toBe(true);
+			await expect(targets[0]).toHaveText('ALPHA Product Overview');
+			await expect(targets[0]).toBeVisible();
+			await page.keyboard.type('UNREADY');
+			await editors[1].press('End');
+			await peer.keyboard.type(' OMEGA');
+			await peer
+				.locator('[data-pptx-viewport]')
+				.getByRole('group', { name: 'Project Atlas', exact: true })
+				.click();
+			const expected = 'ALPHA Product Overview OMEGA';
+			await expect(targets[1]).toHaveText(expected);
+			await saveAndReopenText(peer, testInfo.outputPath('same-text-readiness.pptx'), expected);
+			await page.getByRole('button', { name: 'Resume readiness', exact: true }).click();
+			await expect(page.getByLabel('Host session state', { exact: true })).toContainText(
+				'synced: true',
+			);
+			for (const target of targets) {
+				await expect(target).toHaveText(expected);
+			}
+			// Reopening and closing the local editor must not commit its stale pre-pause draft.
+			await targets[0].dblclick();
+			await expectInlineText([page.locator('[data-inline-editor]').first()], expected);
+			await participants[0]
+				.locator('[data-pptx-viewport]')
+				.getByRole('group', { name: 'Project Atlas', exact: true })
+				.click();
+			for (const target of targets) {
+				await expect(target).toHaveText(expected);
+			}
+		} finally {
+			await peer.close();
+		}
+	});
 
 	test('paragraph formatting survives peer sync and Save', async ({ page }, testInfo) => {
 		const peer = await page.context().newPage();

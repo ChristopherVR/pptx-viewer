@@ -487,6 +487,8 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 				/>
 			) : (
 				<SlideCanvas
+					livePatcher={s.livePatcher}
+					registerInlineEditReader={s.registerInlineEditReader}
 					imagePaste={insertHandlers.imagePaste}
 					onUpdateSlideAnimations={props.onUpdateSlideAnimations}
 					activeSlide={effectiveSlide}

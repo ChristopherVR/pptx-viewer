@@ -38,6 +38,16 @@ export async function waitForHostEditing(
 	await expect(status).toContainText('Editable', { timeout: 30_000 });
 }
 
+/** Wait for the public edit gate before opening a connected text editor. */
+export async function waitForCollaborativeEditing(page: Page): Promise<void> {
+	if (test.info().project.metadata.headless) {
+		await expectHostOwnedShell(page);
+		await waitForHostEditing(page, {});
+		return;
+	}
+	await expect(page.getByRole('button', { name: 'New Slide', exact: true })).toBeEnabled();
+}
+
 /** Custom chrome owns Save; the full viewer still uses its actual File menu. */
 export async function saveHostOwnedPresentation(page: Page): Promise<Download> {
 	if (!test.info().project.metadata.headless) {

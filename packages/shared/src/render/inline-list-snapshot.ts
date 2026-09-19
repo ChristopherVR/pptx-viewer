@@ -8,9 +8,14 @@ import {
 
 import { resolveParagraphBullet } from './bullet-list';
 import { isBulletMarkerSegment } from './bullet-toggle';
+import { readInlineListProvenance, recordInlineListProvenance } from './inline-list-provenance';
 import { readInlineListRuns } from './inline-list-run-reader';
 import { inlineListParagraphMetadata, inlineListSession } from './inline-list-seed';
-import type { InlineListReadResult, InlineListSeed } from './inline-list-types';
+import type {
+	InlineListReadResult,
+	InlineListSeed,
+	InlineTextEditSnapshot,
+} from './inline-list-types';
 import { readEditableText } from './inline-text-extract';
 import { buildParagraphs } from './text-paragraphs';
 
@@ -36,6 +41,7 @@ export function readInlineListSnapshot(
 		return fallback('unsupported-paragraph-structure');
 	}
 	const segments: TextSegment[] = [];
+	const origins: (Node | undefined)[] = [];
 	const text: string[] = [];
 	const sequence = createAutoNumberSequence();
 	let unchanged = blocks.length === seed.paragraphs.length;
@@ -59,7 +65,7 @@ export function readInlineListSnapshot(
 			return fallback('unsupported-run-structure');
 		}
 		const { runs } = body;
-		const bodyText = runs.map((run) => run.text).join('');
+		const bodyText = runs.map((run) => (run.isLineBreak ? '\n' : run.text)).join('');
 		text.push(bodyText);
 		unchanged &&=
 			original === position &&
@@ -76,6 +82,7 @@ export function readInlineListSnapshot(
 				text: '',
 				style: structuredClone(carrier?.paragraphInsertionStyle ?? carrier?.style ?? {}),
 			});
+			body.origins.push(block);
 		}
 		if (carrier) {
 			if (original !== undefined) {
@@ -127,14 +134,18 @@ export function readInlineListSnapshot(
 				delete first[key];
 			}
 			runs.unshift(marker);
+			body.origins.unshift(block);
 		}
 		if (position > 0) {
 			segments.push({ text: '\n', style: {}, isParagraphBreak: true });
+			origins.push(undefined);
 		}
 		segments.push(...runs);
+		origins.push(...body.origins);
 	}
 	const textSegments = unchanged ? structuredClone(session.originalSegments) : segments;
 	const snapshot = { elementId: seed.elementId, text: text.join('\n'), textSegments };
+	recordInlineListProvenance(seed, root, snapshot, blocks, origins, unchanged);
 	return {
 		kind: 'supported',
 		snapshot,
@@ -142,4 +153,23 @@ export function readInlineListSnapshot(
 			preserveTrailingEmpty: true,
 		}),
 	};
+}
+
+/** Internal connected-editor read; the baseline must be a captured DOM snapshot. */
+export function readInlineListNativeSnapshot(
+	seed: InlineListSeed,
+	root: HTMLElement,
+	previous?: InlineTextEditSnapshot,
+):
+	| (Extract<InlineListReadResult, { kind: 'supported' }> & {
+			paragraphSources: (number | null)[];
+			hiddenSources: (number | null)[];
+	  })
+	| Extract<InlineListReadResult, { kind: 'unsupported' }> {
+	const read = readInlineListSnapshot(seed, root);
+	if (read.kind !== 'supported') return read;
+	const provenance = readInlineListProvenance(read.snapshot, previous);
+	return provenance
+		? { ...read, ...provenance }
+		: { kind: 'unsupported', reason: 'unknown-native-baseline', text: read.snapshot.text };
 }

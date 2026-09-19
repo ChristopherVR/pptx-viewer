@@ -1,5 +1,4 @@
 import {
-	buildInlineTextCommitPatch,
 	canInlineEditElement,
 	canInteractWithElement,
 	createCollaborationShell,
@@ -9,15 +8,15 @@ import {
 	describeCollaborationShellState,
 	getViewerCss,
 	loadPresentation,
-	openInlineEditor,
 	renderSlideStage,
 	revokeBlobUrls,
 } from 'pptx-vanilla-viewer';
-import type { InlineEditorSession, LoadedPresentation, PptxElement } from 'pptx-vanilla-viewer';
+import type { LoadedPresentation, PptxElement } from 'pptx-vanilla-viewer';
 
 import type { createHostOwnedDemo } from '../../shared/host-owned-collaboration';
 import type { HostOwnedShellHandle } from '../../shared/host-owned-shell-controls';
 import { t } from './demo-i18n';
+import { createHostOwnedInlineEditor } from './host-owned-inline-editor';
 
 /** Custom chrome with native rendering/inline editing and host-owned selection/drag. */
 export function mountHostOwnedHeadlessEditor(
@@ -48,8 +47,6 @@ export function mountHostOwnedHeadlessEditor(
 	let loaded: LoadedPresentation | undefined;
 	let scale = 1;
 	let destroyed = false;
-	let inline: InlineEditorSession | undefined;
-	let editingId: string | undefined;
 	let drag: { element: PptxElement; x: number; y: number } | undefined;
 	const collaboration = createCollaborationShell({
 		document,
@@ -65,11 +62,13 @@ export function mountHostOwnedHeadlessEditor(
 		},
 	});
 	viewport.append(collaboration.cursorOverlay.el, collaboration.selectionOverlay.el);
-	const commitInline = (): void => {
-		const current = inline;
-		inline = undefined;
-		current?.commit();
-	};
+	const inline = createHostOwnedInlineEditor({
+		root: editorRoot,
+		store,
+		patcher: collaboration.controller.livePatcher,
+		getScale: () => scale,
+		onChange: () => render(),
+	});
 	const patchElement = (element: PptxElement, patch: Partial<PptxElement>): void => {
 		const state = store.get();
 		store.set({
@@ -89,7 +88,6 @@ export function mountHostOwnedHeadlessEditor(
 		const state = store.get();
 		if (!state.editable) {
 			drag = undefined;
-			commitInline();
 		}
 		status.textContent = describeCollaborationShellState(collaboration.getState(), t);
 		const slide = store.get().slides[state.currentSlide];
@@ -114,12 +112,13 @@ export function mountHostOwnedHeadlessEditor(
 			}),
 		);
 		for (const node of stageRoot.querySelectorAll<HTMLElement>('[data-element-id]')) {
-			if (node.dataset.elementId === editingId) {
+			if (node.dataset.elementId === inline.elementId) {
 				node.style.visibility = 'hidden';
 			}
 		}
 	};
 	const unsubscribe = store.subscribe((state, previous) => {
+		inline.sync();
 		// Presence updates redraw their own overlays, never replace active stage nodes.
 		if (
 			state.slides !== previous.slides ||
@@ -143,7 +142,7 @@ export function mountHostOwnedHeadlessEditor(
 			return;
 		}
 		const element = elementAt(event.target);
-		commitInline();
+		if (!inline.commit()) return;
 		if (!element || !canInteractWithElement(element, 'select')) {
 			return;
 		}
@@ -175,43 +174,7 @@ export function mountHostOwnedHeadlessEditor(
 		if (!store.get().editable || !element || !canInlineEditElement(element)) {
 			return;
 		}
-		commitInline();
-		editingId = element.id;
-		inline = openInlineEditor({
-			doc: document,
-			overlayRoot: editorRoot,
-			element,
-			scale,
-			box: { ...element, rotation: element.rotation ?? 0 },
-			onInput(text, snapshot) {
-				if (!store.get().editable) {
-					return;
-				}
-				const patch = buildInlineTextCommitPatch(element, text, snapshot);
-				collaboration.controller.livePatcher.patchText(
-					store.get().slides[store.get().currentSlide]?.id,
-					element.id,
-					text,
-					{
-						textSegments: patch && 'textSegments' in patch ? patch.textSegments : undefined,
-						textStyle: 'textStyle' in element ? element.textStyle : undefined,
-					},
-				);
-			},
-			onCommit(text, snapshot) {
-				const patch = buildInlineTextCommitPatch(element, text, snapshot);
-				if (patch) {
-					patchElement(element, patch);
-				}
-			},
-			onClose() {
-				inline = undefined;
-				editingId = undefined;
-				render();
-			},
-		});
-		inline.el.style.pointerEvents = 'auto';
-		render();
+		inline.open(element);
 	};
 	const ready = (async () => {
 		await collaboration.setConfig(host.config);
@@ -239,11 +202,10 @@ export function mountHostOwnedHeadlessEditor(
 			if (destroyed) {
 				return;
 			}
-			commitInline();
-			return loaded?.handler.save(store.get().slides);
+			return loaded?.handler.save(inline.readSlides());
 		},
 		setScale(value) {
-			commitInline();
+			if (!inline.commit()) return;
 			scale = value;
 			collaboration.refresh();
 			render();
@@ -252,7 +214,7 @@ export function mountHostOwnedHeadlessEditor(
 			if (destroyed) {
 				return;
 			}
-			commitInline();
+			inline.cancel();
 			destroyed = true;
 			unsubscribe();
 			collaboration.destroy();

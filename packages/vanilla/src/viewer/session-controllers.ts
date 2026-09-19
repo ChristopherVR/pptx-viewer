@@ -57,6 +57,7 @@ export interface SessionControllers {
 	stopCollaboration(): void;
 	isCollaborationReadOnly(): boolean;
 	getCollaborationStatus(): ConnectionStatus;
+	getCollaborationLivePatcher(): import('pptx-viewer-shared').CollaborationLivePatcher;
 	/** Publish a cursor move (slide-space px); no-op when no session is active. */
 	setCollaborationCursor(x: number, y: number): void;
 	/**
@@ -215,6 +216,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		stopCollaboration: () => collaboration.stop(),
 		isCollaborationReadOnly: () => collaboration.isReadOnly(),
 		getCollaborationStatus: () => collaboration.getStatus(),
+		getCollaborationLivePatcher: () => collaboration.livePatcher,
 		setCollaborationCursor: (x, y) => collaboration.setCursor(x, y, deps.store.get().currentSlide),
 		publishCollaborationInlineText: (elementId, text) => {
 			const state = deps.store.get();

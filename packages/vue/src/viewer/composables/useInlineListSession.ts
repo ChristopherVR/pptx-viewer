@@ -1,6 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { createInlineListModelObserver } from 'pptx-viewer-shared';
-import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
+import type {
+	CollaborationInlineEditor,
+	InlineListController,
+	InlineTextEditSnapshot,
+} from 'pptx-viewer-shared';
 import { toRaw, watch } from 'vue';
 
 /** Viewer-local controller and model-history boundary, shared by normal and master editors. */
@@ -10,11 +14,24 @@ export function useInlineListSession(
 ) {
 	let controller: InlineListController | undefined;
 	let observer: ReturnType<typeof createInlineListModelObserver> | undefined;
+	function connected(): CollaborationInlineEditor | undefined {
+		return controller && 'checkModel' in controller
+			? (controller as CollaborationInlineEditor)
+			: undefined;
+	}
 	function read(): InlineTextEditSnapshot | undefined {
 		if (!controller || !observer) {
 			return undefined;
 		}
 		const element = readElement();
+		const native = connected();
+		if (native) {
+			if (!native.checkModel(element ? toRaw(element) : undefined)) {
+				return undefined;
+			}
+			const current = native.read();
+			return current.kind === 'supported' ? current.snapshot : undefined;
+		}
 		let current = controller.read();
 		const change = observer.check(element ? toRaw(element) : undefined, current);
 		if (change.kind === 'format') {
@@ -42,6 +59,21 @@ export function useInlineListSession(
 	);
 	return {
 		read,
+		isConnected: () => Boolean(connected()),
+		readAccepted: () => {
+			const native = connected();
+			const element = readElement();
+			return native?.checkModel(element ? toRaw(element) : undefined)
+				? native.readAccepted()
+				: undefined;
+		},
+		isPending: () => {
+			const current = connected()?.read();
+			return (
+				current?.kind === 'unsupported' &&
+				(current.reason === 'input-active' || current.reason === 'composition-active')
+			);
+		},
 		end(): void {
 			controller?.dispose();
 			controller = undefined;

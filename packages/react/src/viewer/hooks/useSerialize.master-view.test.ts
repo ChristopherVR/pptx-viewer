@@ -31,6 +31,54 @@ import type { UseSerializeInput } from './useSerialize';
 const MASTER_PATH = 'ppt/slideMasters/slideMaster1.xml';
 const LAYOUT_PATH = 'ppt/slideLayouts/slideLayout1.xml';
 
+it('uses the mounted collaborative snapshot instead of an old pending draft on Save', async () => {
+	const { handler, savedSlides } = recordingHandler();
+	const snapshot = {
+		elementId: 'text',
+		text: 'AHelloB',
+		textSegments: [{ text: 'AHelloB', style: { bold: true } }],
+	};
+	const save = serializerFor(handler, {
+		slides: [
+			{
+				id: 's1',
+				elements: [
+					{ id: 'text', type: 'text', text: 'Hello', x: 0, y: 0, width: 100, height: 100 },
+				],
+			} as PptxSlide,
+		],
+		inlineEditingElementIdRef: { current: 'text' },
+		inlineEditingTextRef: { current: 'HelloB' },
+		inlineEditingReaderRef: {
+			current: { elementId: 'text', read: () => ({ kind: 'supported', snapshot, paragraphs: [] }) },
+		},
+	});
+	await save();
+	expect(savedSlides[0][0].elements[0]).toMatchObject({
+		text: snapshot.text,
+		textSegments: snapshot.textSegments,
+	});
+});
+
+it.each(['composition-active', 'input-active'])(
+	'does not serialize an unfinished %s draft',
+	async (reason) => {
+		const { handler, seen } = recordingHandler();
+		const save = serializerFor(handler, {
+			inlineEditingElementIdRef: { current: 'text' },
+			inlineEditingTextRef: { current: 'stale' },
+			inlineEditingReaderRef: {
+				current: {
+					elementId: 'text',
+					read: () => ({ kind: 'unsupported', reason, text: 'pending' }),
+				},
+			},
+		});
+		expect(await save()).toBeNull();
+		expect(seen).toHaveLength(0);
+	},
+);
+
 function editedMasters(): PptxSlideMaster[] {
 	return [
 		{
