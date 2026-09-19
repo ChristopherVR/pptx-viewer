@@ -879,6 +879,7 @@ export * from './smartart-3d-geom';
 export * from './smartart-3d-model';
 export * from './smartart-3d-spatial';
 export * from './smartart-3d-layout-source';
+export * from './element-height-observer';
 // SmartArt accessibility metadata: pure screen-reader description of the whole
 // diagram, per-node ARIA labels, and the `SmartArtA11y` view-model each binding
 // maps onto `role="img"` + `aria-label` + per-node `<title>`/`aria-label`.
