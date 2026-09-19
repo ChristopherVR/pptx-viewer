@@ -40,6 +40,7 @@ import {
 	listAutosaveSnapshots,
 	MAX_ZOOM_SCALE,
 	MIN_ZOOM_SCALE,
+	observeElementHeight,
 	openPptxFile,
 	resolve3DRenderingFlags,
 	resolveAutosaveIntervalSeconds,
@@ -1181,6 +1182,27 @@ const compatToastRightInset = computed(() =>
 	!isMobile.value && (inspectorOpen.value || aiPanelOpen.value) ? INSPECTOR_PANEL_DEFAULT_WIDTH : 0,
 );
 
+// The docked "Speaker notes" strip (`NotesPanel`) sits between the canvas and
+// the status bar in the same containing block, so the stack has to clear its
+// live height (it grows when expanded). `NotesPanel` is v-if'd away on mobile
+// and while presenting, which resets the ref and so the inset to 0.
+const notesPanel = ref<{ $el: Element } | null>(null);
+const notesBarHeight = ref(0);
+watchEffect((onCleanup) => {
+	const el = notesPanel.value?.$el;
+	if (!(el instanceof HTMLElement)) {
+		notesBarHeight.value = 0;
+		return;
+	}
+	const stop = observeElementHeight(el, (height) => {
+		notesBarHeight.value = height;
+	});
+	onCleanup(() => {
+		stop();
+		notesBarHeight.value = 0;
+	});
+});
+
 // Seed the View-tab snap/guide toggles from the deck's own `viewProps.xml` on
 // every load, and write user changes back so a save round-trips them. Kept
 // out of the undo stack (PowerPoint does not undo View-tab toggles).
@@ -1913,6 +1935,7 @@ defineExpose<PowerPointViewerExpose>(
 			     lives OUTSIDE <main> so it never scrolls away with the canvas. -->
 			<NotesPanel
 				v-if="canEditEffective && !isMobile && slideCount > 0 && !presentation.presenting.value"
+				ref="notesPanel"
 				:slide="activeSlide"
 				:expanded="notesExpanded"
 				:notes-style="notesMaster?.notesStyle"
@@ -2108,6 +2131,7 @@ defineExpose<PowerPointViewerExpose>(
 			:toasts="compatToasts.visibleToasts.value"
 			:overflow-count="compatToasts.overflowCount.value"
 			:right-inset="compatToastRightInset"
+			:bottom-inset="notesBarHeight"
 			@dismiss="compatToasts.dismiss"
 			@dismiss-all="compatToasts.dismissAll"
 		/>

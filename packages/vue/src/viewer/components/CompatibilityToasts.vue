@@ -17,6 +17,11 @@
  * without it the stack's `right: 12px` lands under the panel's own content
  * instead of clear of it (it rendered on top of, and visually inside, the
  * Properties panel).
+ *
+ * `bottomInset` (default 0) is the live height of the docked "Speaker notes"
+ * strip: it sits between the canvas and the status bar in the same containing
+ * block, so without it the stack only clears the status bar and overlaps the
+ * strip.
  */
 import { AlertTriangle, Info, X } from 'lucide-vue-next';
 import type { CompatibilityWarningToast } from 'pptx-viewer-shared';
@@ -28,8 +33,9 @@ const props = withDefaults(
 		toasts: CompatibilityWarningToast[];
 		overflowCount: number;
 		rightInset?: number;
+		bottomInset?: number;
 	}>(),
-	{ rightInset: 0 },
+	{ rightInset: 0, bottomInset: 0 },
 );
 
 const emit = defineEmits<{
@@ -45,7 +51,7 @@ const { t } = useI18n();
 		v-if="props.toasts.length > 0"
 		class="pptx-vue-compat-toasts max-w-[90vw]"
 		data-testid="pptx-compat-toasts"
-		:style="compatToastStackStyle(props.rightInset)"
+		:style="compatToastStackStyle(props.rightInset, props.bottomInset)"
 	>
 		<div class="pointer-events-auto flex items-center justify-between">
 			<span class="text-[11px] font-semibold text-muted-foreground">{{

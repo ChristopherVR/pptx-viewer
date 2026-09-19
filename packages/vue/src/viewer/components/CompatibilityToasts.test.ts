@@ -85,4 +85,14 @@ describe('compatibilityToasts', () => {
 		const stack = wrapper.find('[data-testid="pptx-compat-toasts"]');
 		expect(stack.attributes('style')).toContain(`right: ${compatToastStackStyle(288).right}`);
 	});
+
+	// The docked "Speaker notes" strip sits between the canvas and the status
+	// bar in the same containing block, so the stack must clear its height.
+	it('adds bottomInset (the measured notes-strip height) to the bottom offset', () => {
+		const wrapper = mount(CompatibilityToasts, {
+			props: { toasts: [toast()], overflowCount: 0, bottomInset: 52 },
+		});
+		const stack = wrapper.find('[data-testid="pptx-compat-toasts"]');
+		expect(stack.attributes('style')).toContain(`bottom: ${compatToastStackStyle(0, 52).bottom}`);
+	});
 });
