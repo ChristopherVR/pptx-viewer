@@ -35,6 +35,7 @@ import {
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
 	endAudienceDisplay,
+	INSPECTOR_PANEL_DEFAULT_WIDTH,
 	listAutosaveSnapshots,
 	masterViewCrudActions,
 	masterViewCrudFailureKey,
@@ -1224,6 +1225,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 			<pptx-compat-toasts
 				[toasts]="loadNotices.visibleToasts()"
+				[rightInset]="compatToastRightInset()"
 				(dismissOne)="loadNotices.dismissToast($event)"
 				(dismissAll)="loadNotices.dismissAllToasts()"
 			/>
@@ -1826,6 +1828,22 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 
 	/** Whether the AI assistant pane is open (toggled from the ribbon Sparkles). */
 	protected readonly aiPanelOpen = signal(false);
+	/**
+	 * The compat-toast stack's right inset when a right-docked panel (format/
+	 * inspector or AI chat) is open: the viewer root it is anchored to spans
+	 * the FULL chrome width including that panel, so without this the stack's
+	 * `right: 12px` lands under the panel's own content (it visually
+	 * overlapped the Properties panel's "Presentation" section) instead of
+	 * clear of it. Angular's panel is a fixed width, not user-resizable like
+	 * React's, so this uses the shared default rather than a measured width.
+	 */
+	protected readonly compatToastRightInset = computed(() =>
+		this.chromeVisible() &&
+		!this.mobile.isMobile() &&
+		(this.inspectorPanel.visibleInspectorKind() !== null || this.aiPanelOpen())
+			? INSPECTOR_PANEL_DEFAULT_WIDTH
+			: 0,
+	);
 	/** Whether the AI assistant toggle is shown (host supplied an `ai` config). */
 	protected readonly aiEnabled = computed(() => aiToggleVisible(this.ai()));
 	/**

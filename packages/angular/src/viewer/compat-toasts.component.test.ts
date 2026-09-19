@@ -35,13 +35,17 @@ function toast(overrides: Partial<CompatibilityWarningToast> = {}): Compatibilit
 	} as CompatibilityWarningToast;
 }
 
-function createComponent(toasts: readonly CompatibilityWarningToast[]): CompatToastsComponent {
+function createComponent(
+	toasts: readonly CompatibilityWarningToast[],
+	rightInset = 0,
+): CompatToastsComponent {
 	const component = runInInjectionContext(
 		Injector.create({ providers: [] }),
 		() => new CompatToastsComponent(),
 	);
 	Object.assign(component, {
 		toasts: signal(toasts) as unknown as InputSignal<readonly CompatibilityWarningToast[]>,
+		rightInset: signal(rightInset) as unknown as InputSignal<number>,
 	});
 	return component;
 }
@@ -49,9 +53,20 @@ function createComponent(toasts: readonly CompatibilityWarningToast[]): CompatTo
 describe('compatToastsComponent stack style', () => {
 	it('positions the stack via the shared metrics, not a viewport-fixed class', () => {
 		const component = createComponent([toast()]);
-		expect(component.stackStyle).toBe(compatToastStackStyleAttr());
-		expect(component.stackStyle).toContain('position:absolute');
-		expect(component.stackStyle).toContain('pointer-events:none');
+		expect(component.stackStyle()).toBe(compatToastStackStyleAttr());
+		expect(component.stackStyle()).toContain('position:absolute');
+		expect(component.stackStyle()).toContain('pointer-events:none');
+	});
+
+	// The viewer root the stack is anchored to spans the FULL chrome width,
+	// including a right-docked format/inspector panel when one is open, so
+	// without `rightInset` the stack renders UNDER that panel's own content
+	// (it visually overlapped the Properties panel's "Presentation" section)
+	// instead of clear of it.
+	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
+		const component = createComponent([toast()], 288);
+		expect(component.stackStyle()).toBe(compatToastStackStyleAttr(288));
+		expect(component.stackStyle()).toContain('right:300px');
 	});
 });
 
@@ -63,7 +78,7 @@ describe('compatToastsComponent template wiring (source-level)', () => {
 	});
 
 	it('binds the stack container to the shared style, not a fixed/bottom/right class', () => {
-		expect(source).toContain('[style]="stackStyle"');
+		expect(source).toContain('[style]="stackStyle()"');
 		expect(source).not.toMatch(/class="[^"]*\bfixed\b[^"]*\bbottom-/u);
 	});
 

@@ -11,7 +11,7 @@
  *
  * @module viewer/compat-toasts
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CompatibilityWarningToast } from '../internal/shared';
@@ -27,7 +27,7 @@ import { compatToastStackStyleAttr } from '../internal/shared';
 			<div
 				class="pptx-ng-compat-toasts max-h-[70vh] overflow-y-auto"
 				data-testid="pptx-compat-toasts"
-				[style]="stackStyle"
+				[style]="stackStyle()"
 			>
 				<div class="flex items-center justify-between px-1" style="pointer-events:auto">
 					<span class="text-xs font-semibold text-foreground">{{
@@ -74,6 +74,15 @@ import { compatToastStackStyleAttr } from '../internal/shared';
 export class CompatToastsComponent {
 	/** The dismiss-filtered toast list ({@link LoadNoticesService.visibleToasts}). */
 	readonly toasts = input.required<readonly CompatibilityWarningToast[]>();
+	/**
+	 * Width of the currently-open right-docked panel (format/inspector or AI
+	 * chat), 0 when none is open. The viewer ROOT this stack is anchored to
+	 * spans the FULL chrome width including that panel, so without this the
+	 * stack's `right: 12px` lands under the panel's own content (it visually
+	 * overlapped the Properties panel's "Presentation" section) instead of
+	 * clear of it.
+	 */
+	readonly rightInset = input<number>(0);
 	/** Dismiss one toast by id. */
 	readonly dismissOne = output<string>();
 	/** Dismiss every visible toast. */
@@ -86,5 +95,5 @@ export class CompatToastsComponent {
 	 * containing block the dialogs use), bottom-inset above the status bar so
 	 * a toast can never cover the status bar's "Slide show" button.
 	 */
-	readonly stackStyle = compatToastStackStyleAttr();
+	readonly stackStyle = computed(() => compatToastStackStyleAttr(this.rightInset()));
 }

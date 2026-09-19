@@ -6,24 +6,16 @@
  *
  * @module angular-viewer/smart-art-3d-renderer-helpers
  */
-import type {
-	PptxElement,
-	PptxSmartArtData,
-	SmartArtColorScheme,
-	SmartArtStyle,
-} from 'pptx-viewer-core';
+import type { PptxElement, PptxSmartArtData, SmartArtStyle } from 'pptx-viewer-core';
 
-import { buildSmartArt3DModel, computeSmartArtElementLayout } from '../internal/shared';
+import {
+	buildSmartArt3DModel,
+	collectCoherent3DOffNodeIds,
+	resolvePalette,
+	resolveSmartArt3DLayout,
+} from '../internal/shared';
 import type { SmartArt3DModel } from '../internal/shared';
 import type { NodeEditBox } from './smart-art-inline-edit';
-
-const PALETTES: Record<SmartArtColorScheme, string[]> = {
-	colorful1: ['#3b82f6', '#22c55e', '#f97316', '#eab308', '#a855f7', '#ec4899'],
-	colorful2: ['#6366f1', '#14b8a6', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-	colorful3: ['#0ea5e9', '#84cc16', '#f43e5e', '#a855f7', '#f97316', '#10b981'],
-	monochromatic1: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb', '#1d4ed8'],
-	monochromatic2: ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5', '#4338ca'],
-};
 
 /** The element's SmartArt data, or `undefined` when it isn't a SmartArt element. */
 export function getSmartArtData(element: PptxElement): PptxSmartArtData | undefined {
@@ -39,23 +31,19 @@ export function buildSmartArt3DModelForElement(element: PptxElement): SmartArt3D
 	if (!data || data.nodes.length === 0) {
 		return null;
 	}
-	const ctFills = data.colorTransform?.fillColors;
-	const palette =
-		ctFills && ctFills.length > 0
-			? ctFills
-			: (PALETTES[data.colorScheme ?? 'colorful1'] ?? PALETTES.colorful1);
 	const style: SmartArtStyle = data.style ?? 'flat';
-	const layout = computeSmartArtElementLayout(
+	const layout = resolveSmartArt3DLayout(
 		data,
 		data.nodes,
 		{ width: Math.max(element.width, 1), height: Math.max(element.height, 1) },
-		palette,
+		resolvePalette(data),
 		style,
 		element.id,
 	);
 	return buildSmartArt3DModel(layout, {
 		background: data.chrome?.backgroundColor,
 		spatial: true,
+		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
 	});
 }
 
