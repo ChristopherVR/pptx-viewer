@@ -157,6 +157,8 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 	};
 
 	return {
+		livePatcher: s.livePatcher,
+		registerInlineEditReader: s.registerInlineEditReader,
 		imagePaste: insertHandlers.imagePaste,
 		activeSlide: effectiveSlide,
 		templateElements: effectiveTemplateElements,

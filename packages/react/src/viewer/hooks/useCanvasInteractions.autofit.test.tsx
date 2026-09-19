@@ -1,16 +1,26 @@
 // @vitest-environment happy-dom
 import type { PptxElement } from 'pptx-viewer-core';
-import React, { act, useState } from 'react';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	findElementYMap,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
+import type { CollaborationLivePatcher, InlineTextEditSnapshot } from 'pptx-viewer-shared';
+import React, { act, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { ElementRenderer } from '../components/ElementRenderer';
 import type { ElementRendererProps } from '../components/elements/element-renderer-types';
+import { InlineCollaborationContext } from '../components/elements/InlineCollaborationContext';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import type { UseCanvasInteractionsInput } from './useCanvasInteractions';
 import type { EditorHistoryResult } from './useEditorHistory';
 import type { ElementOperations } from './useElementOperations';
+import type { PendingInlineEditReader } from './useInlineEditingState';
 
 /**
  * Regression test for the `a:spAutoFit` ("Resize shape to fit text") editor
@@ -105,6 +115,7 @@ function Harness({
 	markDirty,
 	transformCommittedText,
 	canEdit = true,
+	patcher,
 }: {
 	element: PptxElement;
 	inlineEditingText: string;
@@ -112,8 +123,14 @@ function Harness({
 	markDirty?: () => void;
 	transformCommittedText?: (text: string) => string;
 	canEdit?: boolean;
+	patcher?: CollaborationLivePatcher;
 }) {
 	const [editingId, setEditingId] = useState<string | null>(element.id);
+	const latest = useRef({ canEdit, editingId, element });
+	latest.current = { canEdit, editingId, element };
+	const textRef = useRef(inlineEditingText);
+	const snapshotRef = useRef<InlineTextEditSnapshot | undefined>(undefined);
+	const readerRef = useRef<PendingInlineEditReader | undefined>(undefined);
 	const elementLookup = new Map([[element.id, element]]);
 	const ops = { updateElementById } as unknown as ElementOperations;
 	const history = { markDirty: markDirty ?? (() => {}) } as unknown as EditorHistoryResult;
@@ -143,6 +160,9 @@ function Harness({
 		setMarqueeSelectionState: () => {},
 		setSnapLines: () => {},
 		inlineEditingText,
+		inlineEditingTextRef: patcher ? textRef : undefined,
+		inlineEditingSnapshotRef: patcher ? snapshotRef : undefined,
+		inlineEditingReaderRef: patcher ? readerRef : undefined,
 		ops,
 		history,
 		transformCommittedText,
@@ -152,15 +172,49 @@ function Harness({
 	};
 	const handlers = useCanvasInteractions(input);
 	return (
-		<ElementRenderer
-			{...baseElementRendererProps({
-				element,
-				inlineEditingText,
-				isInlineEditing: editingId !== null,
-				canInteract: canEdit,
-				onInlineEditCommit: handlers.handleInlineEditCommit,
-			})}
-		/>
+		<InlineCollaborationContext.Provider
+			value={
+				patcher
+					? {
+							patcher,
+							slideId: 's1',
+							elementIds: new Set([element.id]),
+							readReadOnlyElement: (id) =>
+								!latest.current.canEdit && latest.current.editingId === id
+									? latest.current.element
+									: undefined,
+							registerReader: (id, read) => {
+								const entry = { elementId: id, read };
+								readerRef.current = entry;
+								return () => {
+									if (readerRef.current === entry) {
+										readerRef.current = undefined;
+									}
+								};
+							},
+						}
+					: undefined
+			}
+		>
+			<ElementRenderer
+				{...baseElementRendererProps({
+					element,
+					inlineEditingText,
+					isInlineEditing: editingId !== null,
+					canInteract: canEdit,
+					onInlineEditCommit: handlers.handleInlineEditCommit,
+					...(patcher
+						? {
+								onInlineEditChange: (text: string, snapshot?: InlineTextEditSnapshot) => {
+									textRef.current = text;
+									snapshotRef.current = snapshot;
+									patcher.patchText('s1', element.id, text);
+								},
+							}
+						: {}),
+				})}
+			/>
+		</InlineCollaborationContext.Provider>
 	);
 }
 
@@ -185,6 +239,86 @@ function getInlineEditor(): HTMLElement {
 }
 
 describe('inline edit permission transitions', () => {
+	it.each([false, true])(
+		'preserves only accepted shared text on permission loss (composing=%s)',
+		(composing) => {
+			const doc = new Y.Doc();
+			const element = makeTextElement();
+			const factories = {
+				createMap: () => new Y.Map(),
+				createArray: () => new Y.Array(),
+				createText: () => new Y.Text(),
+				createTextPositions: (text: import('pptx-viewer-shared').YTextEditableLike) =>
+					createSnapshotTextPositions(text as unknown as Y.Text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener: () => void) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
+			};
+			reconcileSlidesInYDoc([{ id: 's1', slideNumber: 1, elements: [element] }], doc, factories);
+			const patcher = createCollaborationLivePatcher();
+			patcher.configure(doc, factories, true);
+			const update = vi.fn((_id: string, updates: Partial<PptxElement>) =>
+				reconcileSlidesInYDoc(
+					[{ id: 's1', slideNumber: 1, elements: [{ ...element, ...updates } as PptxElement] }],
+					doc,
+					factories,
+				),
+			);
+			const props = { element, inlineEditingText: 'Hello', updateElementById: update, patcher };
+			act(() => root.render(<Harness {...props} />));
+			const editor = getInlineEditor();
+			const node = editor.querySelector('span')!.firstChild as Text;
+			const range = document.createRange();
+			range.setStart(node, 0);
+			range.collapse(true);
+			window.getSelection()!.removeAllRanges();
+			window.getSelection()!.addRange(range);
+			act(() => {
+				const before = new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' });
+				Object.defineProperty(before, 'getTargetRanges', { value: () => [range.cloneRange()] });
+				editor.dispatchEvent(before);
+				node.insertData(0, 'A');
+				editor.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+			});
+			const body = findElementYMap(doc, 's1', element.id)!.get('textBody') as Y.Text;
+			act(() =>
+				doc.transact(() => {
+					body.insert(body.length, 'Z', {});
+					findElementYMap(doc, 's1', element.id)!.set('text', body.toString());
+				}, 'peer'),
+			);
+			if (composing) {
+				act(() => {
+					editor.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+					editor.querySelector('span')!.append('UNACCEPTED');
+					editor.dispatchEvent(
+						new InputEvent('input', {
+							bubbles: true,
+							inputType: 'insertCompositionText',
+							isComposing: true,
+						}),
+					);
+				});
+			}
+			const writes = vi.fn();
+			doc.on('update', writes);
+			act(() => root.render(<Harness {...props} canEdit={false} />));
+			expect(container.querySelector('[data-inline-editor]')).toBeNull();
+			expect(update).toHaveBeenCalledExactlyOnceWith(
+				element.id,
+				expect.objectContaining({ text: 'AHelloZ' }),
+			);
+			expect(body.toString()).toBe('AHelloZ');
+			expect(writes).not.toHaveBeenCalled();
+			patcher.dispose();
+			doc.destroy();
+		},
+	);
+
 	it('retains the accepted draft and removes the native editable surface on permission loss', () => {
 		const updateElementById = vi.fn();
 		const props = {

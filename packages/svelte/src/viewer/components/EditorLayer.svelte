@@ -60,9 +60,11 @@
 		box={editingBox}
 		{scale}
 		{spellCheck}
+		collaboration={controller.inlineCollaboration}
 		oninput={(text) => controller.previewInline(controller.editingId ?? '', text)}
 		oncommit={(text, snapshot) => controller.commitInline(controller.editingId ?? '', text, snapshot)}
 		onregister={(reader, cancel) => controller.registerInlineReader(editingElement.id, reader, cancel)}
+		onretire={() => controller.retainAcceptedInlineText(true)}
 		onclose={() => controller.closeInline()}
 	/>
 	{/key}

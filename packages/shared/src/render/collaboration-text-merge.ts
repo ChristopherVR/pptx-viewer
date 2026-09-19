@@ -47,7 +47,7 @@ function opsText(ops: DeltaOp[]): string {
 	return text;
 }
 
-function commonPrefixLength(a: string, b: string): number {
+export function commonPrefixLength(a: string, b: string): number {
 	const max = Math.min(a.length, b.length);
 	let i = 0;
 	while (i < max && a.charCodeAt(i) === b.charCodeAt(i)) {
@@ -60,7 +60,7 @@ function commonPrefixLength(a: string, b: string): number {
 	return i;
 }
 
-function commonSuffixLength(a: string, b: string, prefix: number): number {
+export function commonSuffixLength(a: string, b: string, prefix: number): number {
 	const max = Math.min(a.length, b.length) - prefix;
 	let i = 0;
 	while (i < max && a.charCodeAt(a.length - i - 1) === b.charCodeAt(b.length - i - 1)) {

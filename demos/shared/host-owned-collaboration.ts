@@ -153,6 +153,7 @@ export async function createHostOwnedDemo(configuredServer = '') {
 			};
 			// Readiness can change while the editor retains keyboard focus.
 			readiness.onmousedown = (event) => event.preventDefault();
+			save.onmousedown = (event) => event.preventDefault();
 			mount.onclick = () => {
 				editorMounted = !editorMounted;
 				onMountChange(editorMounted);

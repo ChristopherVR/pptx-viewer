@@ -60,6 +60,7 @@ function harness() {
 		bind: vi.fn(),
 		suspendInlineEdit: vi.fn(),
 		readInlineSnapshot: vi.fn(),
+		isInlineInputPending: vi.fn(() => false),
 		editingId: signal(null),
 	};
 	const cursor = { bind: vi.fn(), cursors: signal([]), onPointerMove: vi.fn() };
@@ -105,6 +106,16 @@ function harness() {
 const config: CollaborationConfig = { roomId: 'room', userName: 'Editor', serverUrl: '' };
 
 describe('custom-shell collaboration wiring', () => {
+	it('blocks a pending native input from Save, but ignores an editor after permission loss', () => {
+		const h = harness();
+		const readPending = h.loader.bindPendingInlineEdit.mock.calls[0][0];
+		h.canvas.isInlineInputPending.mockReturnValue(true);
+		expect(() => readPending()).toThrow('Finish the current text input before saving.');
+		expect(h.canvas.readInlineSnapshot).not.toHaveBeenCalled();
+		h.authorized.set(false);
+		expect(readPending()).toBeUndefined();
+	});
+
 	it('keeps blank and no-config editing compatible without inventing a pending source', () => {
 		const h = harness();
 		expect(h.shell.state().canEdit).toBeTruthy();

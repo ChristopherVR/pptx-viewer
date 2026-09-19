@@ -60,8 +60,16 @@ export function observeExternalCollaborationReadiness(
 		}
 	};
 	const suspend = (): void => {
+		const preserveAcceptedEdits = active && established && options.gate.isOpen();
 		options.gate.reset();
 		options.livePatcher?.configure(null, null);
+		if (preserveAcceptedEdits) {
+			// Interim local edits already reached the document, not the framework
+			// model. Paint them before cancelling the editor; never adopt a partial
+			// initial join or an old room during teardown.
+			lastAdopted = undefined;
+			adopt(readSlidesFromYDoc(session.doc));
+		}
 		options.onSuspend?.();
 		notifyReadOnly();
 	};

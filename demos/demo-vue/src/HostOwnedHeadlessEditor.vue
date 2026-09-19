@@ -3,6 +3,7 @@ import { describeCollaborationShellState } from 'pptx-vue-viewer';
 import {
 	CollaborationCursors,
 	InlineTextEditor,
+	overlayInlineTextSnapshot,
 	RemoteSelectionOverlay,
 	SelectionOverlay,
 	SlideCanvas,
@@ -29,6 +30,9 @@ const content = useLoadContent(() => props.host.source, {
 	getPendingInlineEdit: () => {
 		if (!shellState.value.canEdit) {
 			return undefined;
+		}
+		if (edit.isInlineInputPending()) {
+			throw new Error('Finish the current text input before saving.');
 		}
 		const snapshot = edit.readInlineSnapshot();
 		return snapshot && ops.activeSlide.value
@@ -69,6 +73,16 @@ const edit: UseInlineEditingResult = useInlineEditing({
 	ops,
 	livePatcher: () => collaboration.livePatcher,
 	activeSlide: () => ops.activeSlide.value,
+	onConnectedSuspend: (snapshot) => {
+		const id = ops.activeSlide.value?.id;
+		const current = slides.value;
+		const next = current.map((slide) => {
+			if (slide.id !== id) return slide;
+			const elements = overlayInlineTextSnapshot(slide.elements, snapshot);
+			return elements === slide.elements ? slide : { ...slide, elements: [...elements] };
+		});
+		if (next.some((slide, index) => slide !== current[index])) slides.value = next;
+	},
 });
 const { inlineEditingElement, inlineEditingElementId } = edit;
 const drag = useElementDrag({
@@ -83,17 +97,13 @@ const drag = useElementDrag({
 	slides,
 	templateElementsBySlideId,
 	canvasSize,
-	enterInlineEdit: (id) => {
-		if (shellState.value.canEdit) {
-			edit.enterInlineEdit(id);
-		}
-	},
+	enterInlineEdit: enterText,
 });
 onBeforeUnmount(() => drag.cancelElementDrag());
 watch(
 	() => shellState.value.canEdit,
 	(allowed) => {
-		// Retire the accepted local draft before its static render replaces the DOM.
+		// Connected retirement is owned by useInlineEditing, without a history commit.
 		if (!allowed) {
 			drag.cancelElementDrag();
 			edit.commitInlineEdit();
@@ -121,6 +131,7 @@ function select(event: PointerEvent): void {
 		return;
 	}
 	edit.commitInlineEdit();
+	if (edit.isInlineInputPending()) return;
 	const id = pick(event);
 	ops.selectedElementIds.value = id ? [id] : [];
 	root.value?.focus();
@@ -131,9 +142,16 @@ function select(event: PointerEvent): void {
 }
 function openText(event: MouseEvent): void {
 	const id = pick(event);
-	if (id && shellState.value.canEdit) {
-		edit.enterInlineEdit(id);
-	}
+	if (id) enterText(id);
+}
+function enterText(id: string): void {
+	if (!shellState.value.canEdit) return;
+	edit.commitInlineEdit();
+	if (!edit.isInlineInputPending()) edit.enterInlineEdit(id);
+}
+function navigate(index: number): void {
+	edit.commitInlineEdit();
+	if (!edit.isInlineInputPending()) current.value = index;
 }
 function moveCursor(event: PointerEvent): void {
 	const stage = canvas.value?.getStageElement();
@@ -164,7 +182,7 @@ function onKeydown(event: KeyboardEvent): void {
 }
 defineExpose({
 	getContent: async () => {
-		edit.commitInlineEdit();
+		if (!collaboration.livePatcher.isActive()) edit.commitInlineEdit();
 		return content.getContent();
 	},
 	setScale: (next: number) => {
@@ -176,7 +194,7 @@ defineExpose({
 <template>
 	<div ref="root" data-host-custom-shell="vue" class="shell" tabindex="0" @keydown="onKeydown">
 		<nav aria-label="Custom slide navigation">
-			<button v-for="(_, index) in slides" :key="index" @click="current = index">
+			<button v-for="(_, index) in slides" :key="index" @click="navigate(index)">
 				Slide {{ index + 1 }}
 			</button>
 			<output :aria-label="t('pptx.collaboration.shellStatusLabel')">{{ statusText }}</output>
@@ -205,12 +223,14 @@ defineExpose({
 				@adjust-start="drag.onAdjustStart"
 				@adjust="drag.onAdjust"
 				@adjust-end="drag.onAdjustEnd"
-				@request-edit="({ id }) => edit.enterInlineEdit(id)"
+				@request-edit="({ id }) => enterText(id)"
 			/>
 			<InlineTextEditor
 				v-if="shellState.canEdit && inlineEditingElement"
 				:key="inlineEditingElement.id"
 				:element="inlineEditingElement"
+				:live-patcher="collaboration.livePatcher"
+				:slide-id="activeSlide?.id"
 				@change="edit.updateInlineText"
 				@commit="edit.commitInlineEdit"
 				@cancel="edit.cancelInlineEdit"

@@ -2507,6 +2507,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 					},
 				};
 			}
+			if (this.canvasEditing.isInlineInputPending()) {
+				throw new Error('Finish the current text input before saving.');
+			}
 			const snapshot = this.canvasEditing.readInlineSnapshot();
 			const slide = this.activeSlide();
 			return snapshot && slide

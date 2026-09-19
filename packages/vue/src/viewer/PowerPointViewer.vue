@@ -42,6 +42,7 @@ import {
 	MIN_ZOOM_SCALE,
 	observeElementHeight,
 	openPptxFile,
+	overlayInlineTextSnapshot,
 	resolve3DRenderingFlags,
 	resolveAutosaveIntervalSeconds,
 	resolveExpiredAutosaveSnapshots,
@@ -238,6 +239,9 @@ const deck = useLoadContent(() => activeContent.value, {
 					},
 				},
 			};
+		}
+		if (inlineEdit.isInlineInputPending()) {
+			throw new Error('Finish the current text input before saving.');
 		}
 		const snapshot = inlineEdit.readInlineSnapshot();
 		return snapshot && activeSlide.value
@@ -537,6 +541,17 @@ const inlineEdit = useInlineEditing({
 	// the accessor is only invoked from user input, long after setup.
 	livePatcher: () => collaboration.collab.livePatcher,
 	activeSlide: () => activeSlide.value,
+	onConnectedSuspend: (snapshot) => {
+		const id = activeSlide.value?.id;
+		slides.value = slides.value.map((slide) =>
+			slide.id === id
+				? {
+						...slide,
+						elements: [...overlayInlineTextSnapshot(slide.elements, snapshot)],
+					}
+				: slide,
+		);
+	},
 	// Options > Proofing > AutoCorrect, applied on commit (blur/Enter/element
 	// switch), not on every keystroke. `viewerOptions` is declared further
 	// down; the accessor is only invoked from user input, long after setup.

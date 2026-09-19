@@ -5,7 +5,14 @@
  * instead of dropping the typed text.
  */
 import type { PptxElement } from 'pptx-viewer-core';
+import {
+	createCollaborationLivePatcher,
+	createSnapshotTextPositions,
+	reconcileSlidesInYDoc,
+} from 'pptx-viewer-shared';
+import type { YjsFactories } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
+import * as Y from 'yjs';
 
 import { createTranslator } from '../i18n';
 import { createInitialViewerState, createStore } from '../state';
@@ -46,7 +53,7 @@ function pointerDown(overrides: {
 	} as unknown as PointerEvent;
 }
 
-function setup() {
+function setup(patcher?: ReturnType<typeof createCollaborationLivePatcher>) {
 	const store = createStore({
 		...createInitialViewerState(),
 		editable: true,
@@ -86,6 +93,7 @@ function setup() {
 		getScale: () => 1,
 		getOverlay: () => overlay,
 		getStageRoot: () => stage,
+		getLivePatcher: () => patcher,
 	});
 
 	const doubleTap = (target: EventTarget, at = 0): void => {
@@ -105,6 +113,71 @@ function setup() {
 }
 
 describe('stage interactions: touch inline editing', () => {
+	it('retains accepted connected text before host veto without committing pending IME', () => {
+		const doc = new Y.Doc();
+		const factories: YjsFactories = {
+			createMap: () => new Y.Map(),
+			createArray: () => new Y.Array(),
+			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
+		};
+		const patcher = createCollaborationLivePatcher();
+		const { store, interactions, el1, doubleTap, editorSurface, cleanup } = setup(patcher);
+		reconcileSlidesInYDoc(store.get().slides, doc, factories);
+		patcher.configure(doc, factories, true);
+		try {
+			doubleTap(el1);
+			const root = editorSurface()!;
+			const node = root.querySelector('span')!.firstChild as Text;
+			window.getSelection()!.setBaseAndExtent(node, 6, node, 6);
+			root.dispatchEvent(new InputEvent('beforeinput', { bubbles: true, inputType: 'insertText' }));
+			node.data += ' accepted';
+			root.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+			root.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+			node.data += ' UNACCEPTED';
+			const updates = vi.fn();
+			doc.on('update', updates);
+			store.set({ editable: false });
+			interactions.retainAcceptedInlineText?.();
+			interactions.closeInline(false);
+			expect(store.get().slides[0].elements[0]).toMatchObject({ text: 'TARGET accepted' });
+			expect(updates).not.toHaveBeenCalled();
+			expect(editorSurface()).toBeNull();
+		} finally {
+			cleanup();
+			patcher.dispose();
+			doc.destroy();
+		}
+	});
+
+	it('keeps inherited template editing local while slide collaboration is active', () => {
+		const patcher = createCollaborationLivePatcher();
+		vi.spyOn(patcher, 'isActive').mockReturnValue(true);
+		const begin = vi.spyOn(patcher, 'beginTextEdit');
+		const { store, el1, doubleTap, editorSurface, cleanup } = setup(patcher);
+		store.set({
+			editTemplateMode: true,
+			templateElementsBySlideId: { 'slide-1': [textElement('el-1', 'TEMPLATE')] },
+			slides: [{ ...store.get().slides[0], elements: [textElement('el-2', 'SOURCE')] }],
+		});
+		try {
+			doubleTap(el1);
+			expect(begin).not.toHaveBeenCalled();
+			expect(editorSurface()?.textContent).toBe('TEMPLATE');
+		} finally {
+			cleanup();
+			patcher.dispose();
+		}
+	});
+
 	it('activates a plain editor once after a list command and retains the body caret', () => {
 		const { store, interactions, el1, doubleTap, editorSurface, cleanup } = setup();
 		doubleTap(el1);

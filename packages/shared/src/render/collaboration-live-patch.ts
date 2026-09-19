@@ -2,32 +2,21 @@
  * collaboration-live-patch.ts: interim ("live preview") writes straight into
  * the shared Y.Doc, bypassing each binding's slides state.
  *
- * Why: the editors deliberately keep gestures out of framework state. React's
- * drag/resize writes `style.left/top/width/height` on the DOM node and only
- * calls `updateElementById` on pointer-up; every binding's inline text editor
- * buffers the typed string and only commits it on blur. Because the Y.Doc sync
- * is driven off the slides state, remote peers saw nothing until the gesture
- * (or the edit) ended.
- *
- * This module patches the element's Y.Map directly, so the host keeps its
- * per-frame performance design while peers see the move/typing live:
+ * Editors keep gestures out of framework state until pointer-up/blur. Patch
+ * each element's Y.Map directly so peers see those pending edits live:
  *
  *  - geometry scalars (x / y / width / height / rotation) are set in place
- *  - text goes through the SAME character-level Y.Text merge the reconcile
- *    pass uses (`reconcileElementTextBody`), so concurrent typing on one
- *    element still merges instead of last-write-wins
+ *  - mounted text sessions merge observed native intent; their legacy
+ *    whole-draft preview channel is suppressed while the session owns the text
  *  - writes are throttled (~1 per 50ms) with a trailing write, plus an
  *    explicit `flush()` for gesture end; borrowed sessions opt into immediate
  *    writes so the host can revoke readiness without losing accepted edits
- *  - every transaction is tagged with LOCAL_SYNC_ORIGIN, exactly like
- *    `reconcileSlidesInYDoc`, so the local observer skips the echo
- *
- * It is a no-op until `configure()` is handed a live doc + factories, so
- * bindings can call it unconditionally.
+ *  - LOCAL_SYNC_ORIGIN lets document observers skip local echoes
+ * It is dormant until configure receives a live document and factories.
  */
 
 import { hasTextProperties } from 'pptx-viewer-core';
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
 import { MAX_LIVE_TEXT_LENGTH, applyLivePatch } from './collaboration-live-patch-target';
 import type {
@@ -37,9 +26,15 @@ import type {
 } from './collaboration-live-patch-target';
 import { LOCAL_SYNC_ORIGIN } from './collaboration-reconcile';
 import type { YDocLike, YjsFactories } from './collaboration-sync';
+import { createCollaborationTextTarget } from './collaboration-text-target';
+import type { CollaborationTextTarget } from './collaboration-text-target';
 
 export { findElementYMap, MAX_LIVE_TEXT_LENGTH } from './collaboration-live-patch-target';
 export type { LiveGeometryPatch, LiveTextSource } from './collaboration-live-patch-target';
+export type {
+	CollaborationTextTarget,
+	CollaborationInlineSnapshot,
+} from './collaboration-text-target';
 
 /** Default gap between interim doc writes. */
 export const LIVE_PATCH_THROTTLE_MS = 50;
@@ -50,6 +45,13 @@ export interface CollaborationLivePatcherOptions {
 }
 
 export interface CollaborationLivePatcher {
+	/** Bind a mounted native editor; its handle must be disposed on unmount. */
+	beginTextEdit?: (
+		slideId: string | undefined,
+		elementId: string,
+		onChange?: () => void,
+		ownsModel?: (element: PptxElement) => boolean,
+	) => CollaborationTextTarget | undefined;
 	/** Attach a live doc (or `null` to go dormant). Pending patches are dropped. */
 	configure: (
 		doc: YDocLike | null,
@@ -78,10 +80,6 @@ export interface CollaborationLivePatcher {
 	dispose: () => void;
 }
 
-// ---------------------------------------------------------------------------
-// Patcher
-// ---------------------------------------------------------------------------
-
 export function createCollaborationLivePatcher(
 	options: CollaborationLivePatcherOptions = {},
 ): CollaborationLivePatcher {
@@ -92,7 +90,18 @@ export function createCollaborationLivePatcher(
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let lastWriteAt = Number.NEGATIVE_INFINITY;
 	let immediate = false;
-
+	const textSessions = new Map<string, CollaborationTextTarget>();
+	const textOwners = new Map<string, object>();
+	const keyFor = (slideId: string | undefined, elementId: string): string =>
+		`${slideId ?? ''}\u0000${elementId}`;
+	const retireTextSessions = (): void => {
+		const retiring = [...textSessions.values()];
+		textSessions.clear();
+		textOwners.clear();
+		for (const session of retiring) {
+			session.dispose();
+		}
+	};
 	const cancelTimer = (): void => {
 		if (timer !== null) {
 			clearTimeout(timer);
@@ -144,7 +153,7 @@ export function createCollaborationLivePatcher(
 		if (!doc || !factories || !elementId) {
 			return null;
 		}
-		const key = `${slideId ?? ''}\u0000${elementId}`;
+		const key = keyFor(slideId, elementId);
 		let entry = pending.get(key);
 		if (!entry) {
 			entry = { slideId, elementId };
@@ -152,8 +161,55 @@ export function createCollaborationLivePatcher(
 		}
 		return entry;
 	};
-
 	return {
+		beginTextEdit(slideId, elementId, onChange, ownsModel) {
+			if (!doc || !factories) {
+				return undefined;
+			}
+			const activeDoc = doc;
+			const activeFactories = factories;
+			const key = keyFor(slideId, elementId);
+			const owner = {};
+			textOwners.set(key, owner);
+			const isWritable = () =>
+				doc === activeDoc && factories === activeFactories && textOwners.get(key) === owner;
+			textSessions.get(key)?.dispose();
+			if (!isWritable()) {
+				return undefined;
+			}
+			const queued = pending.get(key);
+			if (queued) {
+				delete queued.text;
+			}
+			const target = createCollaborationTextTarget({
+				doc,
+				factories,
+				slideId,
+				elementId,
+				onChange,
+				ownsModel,
+				isWritable,
+			});
+			if (!target || textOwners.get(key) !== owner) {
+				target?.dispose();
+				if (textOwners.get(key) === owner) {
+					textOwners.delete(key);
+				}
+				return undefined;
+			}
+			const dispose = target.dispose;
+			target.dispose = () => {
+				dispose();
+				if (textSessions.get(key) === target) {
+					textSessions.delete(key);
+				}
+				if (textOwners.get(key) === owner) {
+					textOwners.delete(key);
+				}
+			};
+			textSessions.set(key, target);
+			return target;
+		},
 		configure(nextDoc, nextFactories, nextImmediate = false) {
 			if (nextDoc === doc && nextFactories === factories && nextImmediate === immediate) {
 				return;
@@ -164,6 +220,7 @@ export function createCollaborationLivePatcher(
 			factories = nextFactories;
 			immediate = nextImmediate;
 			lastWriteAt = Number.NEGATIVE_INFINITY;
+			retireTextSessions();
 		},
 		isActive() {
 			return doc !== null && factories !== null;
@@ -177,6 +234,10 @@ export function createCollaborationLivePatcher(
 			schedule();
 		},
 		patchText(slideId, elementId, text, source) {
+			// Native sessions already publish exact intent, not a second whole draft.
+			if (textOwners.has(keyFor(slideId, elementId))) {
+				return;
+			}
 			const entry = enqueue(slideId, elementId);
 			if (!entry) {
 				return;
@@ -193,13 +254,10 @@ export function createCollaborationLivePatcher(
 			pending.clear();
 			doc = null;
 			factories = null;
+			retireTextSessions();
 		},
 	};
 }
-
-// ---------------------------------------------------------------------------
-// Binding helpers
-// ---------------------------------------------------------------------------
 
 /**
  * Publish the interim inline-editor text for `elementId` on `slide`. Reads the

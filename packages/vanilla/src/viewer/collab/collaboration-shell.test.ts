@@ -3,7 +3,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Awareness } from 'y-protocols/awareness';
 import * as Y from 'yjs';
 
-import { createCollaborationShell, createInitialViewerState, createStore } from '../../index';
+import {
+	createCollaborationShell,
+	createInitialViewerState,
+	createStore,
+	overlayInlineTextSnapshot,
+} from '../../index';
 import type { ExternalCollaborationSnapshot, PptxSlide } from '../../index';
 
 const cleanups: Array<() => void> = [];
@@ -83,6 +88,18 @@ function room() {
 }
 
 describe('public Vanilla collaboration shell', () => {
+	it('exports the shared snapshot overlay without changing its nested-element semantics', () => {
+		const child = { id: 'text', type: 'text', text: 'Old', textSegments: [{ text: 'Old' }] };
+		const group = { id: 'group', type: 'group', children: [child] };
+		const next = overlayInlineTextSnapshot([group] as PptxSlide['elements'], {
+			elementId: 'text',
+			text: 'New',
+			textSegments: [{ text: 'New', style: { bold: true } }],
+		});
+		expect(next[0]).toMatchObject({ children: [{ text: 'New' }] });
+		expect(child.text).toBe('Old');
+	});
+
 	it('adopts an occupied room after a bootstrap load without publishing the local source', async () => {
 		const { store, shell } = setup();
 		const host = room();

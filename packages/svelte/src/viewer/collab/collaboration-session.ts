@@ -14,7 +14,10 @@ import type {
 	YDocLike,
 	YjsFactories,
 } from 'pptx-viewer-shared';
-import { borrowExternalCollaborationAwareness } from 'pptx-viewer-shared';
+import {
+	borrowExternalCollaborationAwareness,
+	createSnapshotTextPositions,
+} from 'pptx-viewer-shared';
 
 import type { CollabProviderHandle } from './collaboration-provider';
 import { createCollabProvider } from './collaboration-provider';
@@ -51,6 +54,15 @@ export const createDefaultSession: CollabSessionFactory = async (transport, conf
 		createMap: () => new Y.Map(),
 		createArray: () => new Y.Array(),
 		createText: () => new Y.Text(),
+		createTextPositions: (text) =>
+			createSnapshotTextPositions(text, {
+				read: () => Y.snapshot(doc),
+				equal: Y.equalSnapshots,
+				subscribeBeforeObservers: (listener) => {
+					doc.on('beforeObserverCalls', listener);
+					return () => doc.off('beforeObserverCalls', listener);
+				},
+			}),
 	};
 	const provider = await createCollabProvider(transport, config, doc);
 	return {
@@ -68,12 +80,22 @@ export const createDefaultSession: CollabSessionFactory = async (transport, conf
 export async function createExternalSession(session: ExternalCollaborationSession) {
 	const Y = await import('yjs');
 	const borrowed = borrowExternalCollaborationAwareness(session.awareness);
+	const doc = session.doc as import('yjs').Doc;
 	return {
 		ydoc: session.doc,
 		factories: {
 			createMap: () => new Y.Map(),
 			createArray: () => new Y.Array(),
 			createText: () => new Y.Text(),
+			createTextPositions: (text) =>
+				createSnapshotTextPositions(text, {
+					read: () => Y.snapshot(doc),
+					equal: Y.equalSnapshots,
+					subscribeBeforeObservers: (listener) => {
+						doc.on('beforeObserverCalls', listener);
+						return () => doc.off('beforeObserverCalls', listener);
+					},
+				}),
 		} satisfies YjsFactories,
 		awareness: borrowed.awareness,
 		dispose: borrowed.dispose,

@@ -50,12 +50,15 @@ calls remain supported. `loadVersion` must advance after applying a load, and
 When reusing `loader.getContent()` for elected-owner persistence, also pass
 `getPendingInlineEdit` to `useLoadContent`. Read the current
 `useInlineEditing.readInlineSnapshot()` and its target slide ID there, while editing
-is allowed. This includes an active draft in a saved snapshot without committing or
+is allowed. Reject Save while `isInlineInputPending()` is true, rather than saving
+the older model during unfinished native input or composition. This includes an active draft in a saved snapshot without committing or
 closing the editor; otherwise the snapshot only contains the last committed model.
 
 Compose `SlideCanvas`, `SelectionOverlay`, `useElementDrag`, `InlineTextEditor`, `useInlineEditing`, `useLoadContent` and
-the editor composables from `pptx-vue-viewer/viewer` for a custom editor. Commit and
-close an accepted inline draft when editing becomes unavailable, and do not leave
+the editor composables from `pptx-vue-viewer/viewer` for a custom editor. Pass the
+current slide ID and `livePatcher` to `InlineTextEditor`. Use `onConnectedSuspend`
+to overlay its accepted snapshot locally with the exported `overlayInlineTextSnapshot`,
+without creating a history entry or publishing a new edit after permission loss. Do not leave
 stale editor DOM mounted across authoritative remote replacement. Render
 `CollaborationCursors` and `RemoteSelectionOverlay` in the `SlideCanvas` slot:
 that slot is already scaled, so the overlays consume unscaled slide coordinates.

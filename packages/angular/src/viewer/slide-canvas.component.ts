@@ -68,6 +68,7 @@ import { AiChangeOverlayComponent } from './ai/ai-change-overlay.component';
 import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overlay.component';
 import { CanvasFitService } from './canvas-fit.service';
 import { ChartQuickActionsOverlayComponent } from './chart-quick-actions-overlay.component';
+import { CollaborationService } from './collaboration.service';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
@@ -471,6 +472,12 @@ export class SlideCanvasComponent implements SlideContext {
 	protected readonly rulerGuidesSvc = inject(RulerGuidesService);
 
 	private readonly textEditor = viewChild<ElementRef<HTMLTextAreaElement>>('textEditor');
+	protected readonly collaboration = inject(CollaborationService, { optional: true });
+	protected readonly inlineCollaborationPatcher = computed(() =>
+		this.slide()?.elements.some((element) => element.id === this.editingId())
+			? this.collaboration?.livePatcher
+			: undefined,
+	);
 	private readonly listEditor = viewChild(InlineListEditorComponent);
 	readonly inlineListSeed = signal<InlineListSeed | undefined>(undefined);
 	readonly listActivationSelection = signal<{ start: number; end: number } | undefined>(undefined);
@@ -507,7 +514,11 @@ export class SlideCanvasComponent implements SlideContext {
 			const previousId = this.listSessionId;
 			this.listSessionId = id;
 			const element = id ? this.allElements().find((candidate) => candidate.id === id) : undefined;
-			const seed = element ? createInlineListSeed(element) : undefined;
+			const seed = element
+				? createInlineListSeed(element, {
+						includePlain: Boolean(this.inlineCollaborationPatcher()?.isActive()),
+					})
+				: undefined;
 			const textarea = this.textEditor()?.nativeElement;
 			const body =
 				element && hasTextProperties(element) ? inlineListBodyText(element.textSegments) : '';

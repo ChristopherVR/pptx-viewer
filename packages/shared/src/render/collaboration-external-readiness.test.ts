@@ -72,19 +72,32 @@ describe('observeExternalCollaborationReadiness', () => {
 			factories,
 		);
 		const patcher = createCollaborationLivePatcher();
+		const adoptSlides = vi.fn();
+		const gate = createSyncGate(() => {});
+		const suspension = vi.fn(() => {
+			expect(gate.isOpen()).toBeFalsy();
+			expect(patcher.isActive()).toBeFalsy();
+		});
 		const dispose = observeExternalCollaborationReadiness(host.session, {
-			gate: createSyncGate(() => {}),
+			gate,
 			livePatcher: patcher,
 			factories,
 			onStatus: () => {},
-			adoptSlides: () => {},
+			adoptSlides,
+			onSuspend: suspension,
 		});
 		const writes = vi.fn();
 		doc.on('update', writes);
 		try {
 			patcher.patchText('slide', 'text', 'Draft written before');
 			patcher.patchText('slide', 'text', 'Draft written before readiness paused');
+			expect(adoptSlides).toHaveBeenCalledOnce();
 			host.publish({ status: 'connecting', synced: false });
+			expect(adoptSlides).toHaveBeenCalledTimes(2);
+			expect(adoptSlides.mock.lastCall?.[0][0].elements[0]).toMatchObject({
+				text: 'Draft written before readiness paused',
+			});
+			expect(suspension).toHaveBeenCalledOnce();
 			expect(readSlidesFromYDoc(doc)[0].elements[0]).toMatchObject({
 				text: 'Draft written before readiness paused',
 			});
@@ -125,6 +138,29 @@ describe('observeExternalCollaborationReadiness', () => {
 		expect(patcher.isActive()).toBeTruthy();
 		dispose();
 		patcher.dispose();
+		doc.destroy();
+	});
+
+	it('does not adopt a partial initial room or publish an old model during teardown', () => {
+		const doc = new Y.Doc();
+		const slide = new Y.Map();
+		slide.set('id', 'partial');
+		doc.getArray('pptx:slides').push([slide]);
+		const host = createSession({ status: 'connecting', synced: false }, doc);
+		const adoptSlides = vi.fn();
+		const dispose = observeExternalCollaborationReadiness(host.session, {
+			gate: createSyncGate(() => {}),
+			factories,
+			adoptSlides,
+			onStatus: () => {},
+		});
+		expect(adoptSlides).not.toHaveBeenCalled();
+		host.publish({ status: 'disconnected', synced: false });
+		expect(adoptSlides).not.toHaveBeenCalled();
+		host.publish({ status: 'connected', synced: true });
+		expect(adoptSlides).toHaveBeenCalledOnce();
+		dispose();
+		expect(adoptSlides).toHaveBeenCalledOnce();
 		doc.destroy();
 	});
 
@@ -216,7 +252,9 @@ describe('observeExternalCollaborationReadiness', () => {
 		host.publish({ status: 'connecting', synced: false });
 		doc.getArray('pptx:slides').delete(0, 1);
 		host.publish({ status: 'connected', synced: true });
-		expect(order).toStrictEqual(['adopt:1', 'write', 'adopt:0', 'write']);
+		// Suspension first paints accepted room state; re-sync then adopts the
+		// now-empty room before reopening the write gate.
+		expect(order).toStrictEqual(['adopt:1', 'write', 'adopt:1', 'adopt:0', 'write']);
 		dispose();
 		patcher.dispose();
 		doc.destroy();

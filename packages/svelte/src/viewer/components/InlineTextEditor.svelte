@@ -10,7 +10,9 @@
 	 * survive the round trip.
 	 */
  import { attachInlineListController, buildInlineTextCommitPatch, createInlineListSeed, createInlineListModelObserver, initializeInlineListDom, inlineListBodyText, readListActivationSelection, restoreInlineListBodySelection, placeCaretAtEnd } from 'pptx-viewer-shared';
-	import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
+	import type { InlineListController } from 'pptx-viewer-shared';
+	import { attachCollaborationInlineEditor } from 'pptx-viewer-shared';
+	import type { CollaborationInlineEditor } from 'pptx-viewer-shared';
 	import { onDestroy, onMount, untrack } from 'svelte';
 
 	import { readEditableText, resolveInlineSurface } from '../editor/inline-text';
@@ -26,18 +28,21 @@
 		oncommit,
 		onclose,
 		onregister,
+		onretire,
+		collaboration,
 	}: InlineTextEditorProps = $props();
 
 	const surface = $derived(resolveInlineSurface(element));
 	// The surface is remounted per edit session (keyed on the element id), so the
 	// element is stable for its lifetime: capture the seed text once.
 	const initialText = untrack(() => resolveInlineSurface(element).text);
+	const collaborationTarget = untrack(() => ({
+		slideId: collaboration?.slideId,
+		patcher: collaboration?.patcher,
+	}));
 	let listSeed = $state.raw(untrack(() => createInlineListSeed($state.snapshot(element))));
 	let listController: InlineListController | undefined;
-	const readSnapshot = (): InlineTextEditSnapshot | undefined => {
-		const read = listController?.read();
-		return read?.kind === 'supported' ? read.snapshot : undefined;
-	};
+	let connected = $state.raw<CollaborationInlineEditor>();
 
 	// eslint-disable-next-line no-unassigned-vars
 	let el: HTMLDivElement | undefined;
@@ -45,7 +50,20 @@
 	let modelObserver = untrack(() => createInlineListModelObserver($state.snapshot(element)));
 	$effect(() => {
 		JSON.stringify(element);
+		const activeSlideId = collaboration?.slideId;
+		const activePatcher = collaboration?.patcher;
 		untrack(() => {
+			if (connected) {
+				if (
+					activeSlideId !== collaborationTarget.slideId ||
+					activePatcher !== collaborationTarget.patcher
+				) {
+					close(null);
+				} else {
+					connected.checkModel($state.snapshot(element));
+				}
+				return;
+			}
 			if (listController) { listController.read(); return; }
 			if (!el || closed || listSeed) {
 				return;
@@ -68,7 +86,7 @@
 	});
 
 	const style = $derived(
-		listSeed ? styleToString({ ...getTextBlockStyle(element), textDecoration: 'none', textDecorationLine: 'none', left: `${box.x * scale}px`, top: `${box.y * scale}px`, width: `${box.width}px`, minHeight: `${box.height}px`, transform: `scale(${scale})`, transformOrigin: 'top left' })
+		listSeed || connected ? styleToString({ ...getTextBlockStyle(element), textDecoration: 'none', textDecorationLine: 'none', left: `${box.x * scale}px`, top: `${box.y * scale}px`, width: `${box.width}px`, minHeight: `${box.height}px`, transform: `scale(${scale})`, transformOrigin: 'top left' })
 		: `left:${box.x * scale}px;top:${box.y * scale}px;width:${box.width * scale}px;min-height:${box.height * scale}px;${typeof surface.fontSize === 'number' ? `font-size:${surface.fontSize * scale}px;` : ''}${surface.fontFamily !== undefined ? `font-family:${surface.fontFamily};` : ''}`,
 	);
 
@@ -76,7 +94,11 @@
 		if (closed) {
 			return;
 		}
-		const snapshot = commitText === null ? undefined : readSnapshot();
+		const read = commitText === null ? undefined : listController?.read();
+		if (connected && read?.kind === 'unsupported' &&
+			(read.reason === 'composition-active' || read.reason === 'input-active')) return;
+		const snapshot = read?.kind === 'supported' ? read.snapshot : undefined;
+		if (connected && !snapshot) commitText = null;
 		if (commitText !== null && snapshot) {
 			commitText = snapshot.text;
 		}
@@ -150,7 +172,15 @@
 
 	onMount(() => {
 		if (el) {
-			if (listSeed) {
+			if (collaboration?.patcher.isActive()) {
+				connected = attachCollaborationInlineEditor(el, $state.snapshot(element), {
+					...collaboration,
+					onCancel: () => close(null),
+				});
+				if (!connected) { close(null); return; }
+				listController = connected;
+				onregister?.(connected, () => close(null));
+			} else if (listSeed) {
 				mountList();
 			} else {
 				el.textContent = initialText;
@@ -166,7 +196,9 @@
 	// mirroring the vanilla controller's commit-on-close.
 	onDestroy(() => {
 		if (!closed && el) {
+			if (connected) { onretire?.(); close(null); return; }
 			close(readEditableText(el));
+			if (!closed) close(null);
 		}
 	});
 </script>

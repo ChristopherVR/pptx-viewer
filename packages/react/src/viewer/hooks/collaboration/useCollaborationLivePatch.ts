@@ -15,7 +15,8 @@ import type {
 	ExternalCollaborationSession,
 	YjsFactories,
 } from 'pptx-viewer-shared';
-import { useEffect } from 'react';
+import { createSnapshotTextPositions } from 'pptx-viewer-shared';
+import { useEffect, useRef, useState } from 'react';
 import type { Doc as YDoc } from 'yjs';
 
 export interface UseCollaborationLivePatchInput {
@@ -32,6 +33,8 @@ export interface UseCollaborationLivePatchInput {
 	 */
 	isSynced?: boolean;
 	externalSession?: ExternalCollaborationSession;
+	/** Preserve accepted native edits before this owned channel goes dormant. */
+	onBeforeDetach?: (doc: YDoc) => void;
 }
 
 export function useCollaborationLivePatch({
@@ -40,7 +43,14 @@ export function useCollaborationLivePatch({
 	isConnected,
 	isSynced = true,
 	externalSession,
-}: UseCollaborationLivePatchInput): void {
+	onBeforeDetach,
+}: UseCollaborationLivePatchInput): boolean {
+	const latestDetach = useRef(onBeforeDetach);
+	latestDetach.current = onBeforeDetach;
+	const [initialized, setInitialized] = useState<{
+		doc: YDoc;
+		patcher: CollaborationLivePatcher;
+	} | null>(null);
 	useEffect(() => {
 		// Host-owned channels are configured by the shared document readiness
 		// controller, including its empty-join adoption gate.
@@ -66,12 +76,28 @@ export function useCollaborationLivePatch({
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
 			};
 			configure();
+			setInitialized({ doc, patcher });
 		})();
 		return () => {
 			cancelled = true;
+			if (factories) {
+				latestDetach.current?.(doc);
+			}
 			patcher.configure(null, null);
 		};
 	}, [patcher, doc, isConnected, isSynced, externalSession]);
+	// Retain the existing local/offline editing policy after initial setup, but
+	// never let a new document enter a local-only editor during its first sync.
+	return initialized?.doc === doc && initialized?.patcher === patcher;
 }

@@ -79,9 +79,7 @@ export function useViewerBuildingBlocks(
 		onOpenHeaderFooter,
 		onOpenShareDialog,
 	} = input;
-	const [collaborationReadOnly, setCollaborationReadOnly] = useState(
-		Boolean(input.collaboration?.externalSession),
-	);
+	const [collaborationReadOnly, setCollaborationReadOnly] = useState(Boolean(input.collaboration));
 	const { t } = useTranslation();
 
 	// Local content state, synced from the incoming prop but able to diverge

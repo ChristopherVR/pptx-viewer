@@ -3,6 +3,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	canInteractWithElement,
 	attachInlineListController,
+	attachCollaborationInlineEditor,
 	buildInlineTextCommitPatch,
 	createInlineListSeed,
 	initializeInlineListDom,
@@ -14,14 +15,15 @@ import {
 import type {
 	InlineListController,
 	InlineTextEditSnapshot,
-	InlineTextSelection,
+	CollaborationInlineEditor,
 } from 'pptx-viewer-shared';
 
 import { createEl, getTextBlockStyle } from '../render';
+import type { InlineEditorSession, OpenInlineEditorOptions } from './inline-text-editor-types';
 import { activateInlineTextList } from './inline-text-list-activation';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
 import { seedPlainInlineText } from './inline-text-seed';
-import type { OverlayBox } from './selection-overlay';
+export type { InlineEditorSession, OpenInlineEditorOptions } from './inline-text-editor-types';
 
 /**
  * Inline text editing: a contenteditable surface positioned over the element
@@ -75,39 +77,6 @@ export function currentInlineEditorText(): string | undefined {
 	return surface ? readEditableText(surface) : undefined;
 }
 
-export interface InlineEditorSession {
-	el: HTMLElement;
-	activateList(element: PptxElement): boolean | undefined;
-	readSnapshot(): InlineTextEditSnapshot | undefined;
-	readList(): import('pptx-viewer-shared').InlineListReadResult | undefined;
-	formatSnapshot(snapshot: InlineTextEditSnapshot): boolean;
-	/** Commit the current text (fires `onCommit` when changed) and close. */
-	commit(): void;
-	/** Close without committing. */
-	cancel(): void;
-}
-
-export interface OpenInlineEditorOptions {
-	doc: Document;
-	/** The editor overlay root the surface mounts into. */
-	overlayRoot: HTMLElement;
-	/** Element geometry in element px, plus the stage scale for placement. */
-	box: OverlayBox;
-	scale: number;
-	element: PptxElement;
-	spellCheck?: boolean;
-	/** Called with the edited text on commit (only when it changed). */
-	onCommit(text: string, snapshot?: InlineTextEditSnapshot): void;
-	/**
-	 * Called with the edited text on EVERY keystroke. Used for the collaboration
-	 * live preview only: it must not touch editor state or history.
-	 */
-	onInput?(text: string, snapshot?: InlineTextEditSnapshot): void;
-	onSelectionChange?(selection: InlineTextSelection | null): void;
-	/** Called after the surface closes (commit or cancel). */
-	onClose(): void;
-}
-
 /**
  * Open the contenteditable editing surface over an element. Commits on blur
  * and on Escape; all keystrokes stay local (never trigger viewer shortcuts).
@@ -153,14 +122,16 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	surface.setAttribute('role', 'textbox');
 	surface.setAttribute('aria-multiline', 'true');
 	let textContainer: HTMLElement = surface;
-	const listSeed = createInlineListSeed(element);
+	const collaborative = Boolean(options.collaboration?.patcher.isActive());
+	const listSeed = collaborative ? undefined : createInlineListSeed(element);
 	let listController: InlineListController | undefined;
+	let connected: CollaborationInlineEditor | undefined;
 	if (listSeed) {
 		textContainer = doc.createElement('div');
 		textContainer.dataset.pptxTextFlow = '';
 		initializeInlineListDom(textContainer, listSeed);
 		surface.append(textContainer);
-	} else {
+	} else if (!collaborative) {
 		textContainer = seedPlainInlineText(surface, withText?.textSegments, initialText);
 	}
 	// Compare commits against the same authored-text projection used on close.
@@ -177,7 +148,16 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		if (closed) {
 			return;
 		}
-		const snapshot = readSnapshot();
+		const read = listController?.read();
+		if (
+			commitText !== null &&
+			collaborative &&
+			read?.kind === 'unsupported' &&
+			(read.reason === 'composition-active' || read.reason === 'input-active')
+		)
+			return;
+		const snapshot = read?.kind === 'supported' ? read.snapshot : undefined;
+		if (collaborative && !snapshot) commitText = null;
 		if (commitText !== null && snapshot) {
 			commitText = snapshot.text;
 		}
@@ -260,16 +240,25 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 		});
 	};
 	overlayRoot.appendChild(surface);
-	if (listSeed) {
+	if (collaborative) {
+		connected = attachCollaborationInlineEditor(surface, element, {
+			...options.collaboration!,
+			onCancel: () => close(null),
+		});
+		listController = connected;
+		if (!connected) close(null);
+	} else if (listSeed) {
 		attachList(textContainer, listSeed);
 	}
-	surface.focus();
+	if (!closed) surface.focus();
 	// Caret at the END of the seeded text so typing appends (the contract the
 	// other bindings follow; focus alone leaves the caret at the start).
-	placeCaretAtEnd(textContainer);
+	if (!closed) placeCaretAtEnd(textContainer);
 
 	return {
 		el: surface,
+		checkModel: connected?.checkModel,
+		readAccepted: connected?.readAccepted,
 		activateList: (model) =>
 			!closed && (Boolean(listController) || activateInlineTextList(surface, model, attachList)),
 		readSnapshot,

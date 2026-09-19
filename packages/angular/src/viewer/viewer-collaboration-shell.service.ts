@@ -86,6 +86,9 @@ export class ViewerCollaborationShellService {
 			activeSlideIndex: this.activeSlideIndex,
 		});
 		this.loader.bindPendingInlineEdit(() => {
+			if (this.canEdit() && this.canvasEditing.isInlineInputPending()) {
+				throw new Error('Finish the current text input before saving.');
+			}
 			const snapshot = this.canEdit() ? this.canvasEditing.readInlineSnapshot() : undefined;
 			const slide = this.activeSlide();
 			return snapshot && slide

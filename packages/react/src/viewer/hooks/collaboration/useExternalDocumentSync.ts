@@ -1,7 +1,8 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { ExternalCollaborationReadiness } from 'pptx-viewer-shared';
+import type { ExternalCollaborationReadiness, YjsFactories } from 'pptx-viewer-shared';
 import {
 	createSyncGate,
+	createSnapshotTextPositions,
 	observeExternalCollaborationReadiness,
 	reconcileSlidesInYDoc,
 } from 'pptx-viewer-shared';
@@ -46,10 +47,19 @@ export function useExternalDocumentSync(
 			if (!active) {
 				return;
 			}
-			const factories = {
+			const factories: YjsFactories = {
 				createMap: () => new Y.Map(),
 				createArray: () => new Y.Array(),
 				createText: () => new Y.Text(),
+				createTextPositions: (text) =>
+					createSnapshotTextPositions(text, {
+						read: () => Y.snapshot(doc),
+						equal: Y.equalSnapshots,
+						subscribeBeforeObservers: (listener) => {
+							doc.on('beforeObserverCalls', listener);
+							return () => doc.off('beforeObserverCalls', listener);
+						},
+					}),
 			};
 			publish.current = (nextSlides) => {
 				const slides = nextSlides ?? latest.current.slides;

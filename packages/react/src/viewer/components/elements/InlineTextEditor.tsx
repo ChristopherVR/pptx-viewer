@@ -127,8 +127,12 @@ export function InlineTextEditor({
 		const trimRange = document.createRange();
 		trimRange.setStart(startContainer, startOffset - 1);
 		trimRange.setEnd(startContainer, startOffset);
-		trimRange.deleteContents();
-	}, []);
+		if (list.connected) {
+			list.mutate(trimRange, () => trimRange.deleteContents());
+		} else {
+			trimRange.deleteContents();
+		}
+	}, [list]);
 
 	// Auto-focus on mount and place cursor at end
 	useEffect(() => {

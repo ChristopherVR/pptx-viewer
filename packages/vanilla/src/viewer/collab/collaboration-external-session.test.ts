@@ -9,7 +9,7 @@ import { readSlidesFromYDoc, reconcileSlidesInYDoc } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as Y from 'yjs';
 
-import { createPptxViewer } from '../PptxViewer';
+import { createPptxViewer, PptxViewer } from '../PptxViewer';
 import { createInitialViewerState, createStore } from '../state';
 import { createCollaborationController } from './collaboration-controller';
 import { createCollabProvider } from './collaboration-provider';
@@ -111,6 +111,55 @@ afterEach(() => {
 });
 
 describe('host-owned Vanilla collaboration', () => {
+	it('releases a pending native composition when its chrome is forcibly detached', async () => {
+		const room = host(true);
+		const container = document.createElement('div');
+		document.body.appendChild(container);
+		const viewer = createPptxViewer(container, { editable: true });
+		const concrete = viewer as PptxViewer;
+		reconcileSlidesInYDoc(
+			[
+				{
+					id: 's1',
+					rId: 'r1',
+					slideNumber: 1,
+					elements: [
+						{
+							id: 'text',
+							type: 'text',
+							x: 10,
+							y: 10,
+							width: 200,
+							height: 50,
+							text: 'Body',
+							textSegments: [{ text: 'Body', style: {} }],
+						},
+					],
+				},
+			],
+			room.doc,
+			factories,
+		);
+		try {
+			await viewer.startCollaboration(config(room.session));
+			container
+				.querySelector('[data-pptx-viewport] [data-element-id="text"]')!
+				.dispatchEvent(new MouseEvent('dblclick', { bubbles: true }));
+			const surface = container.querySelector<HTMLElement>('[data-inline-editor]')!;
+			expect(surface).not.toBeNull();
+			surface.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+			const remove = vi.spyOn(surface, 'removeEventListener');
+			concrete.editor.detachChrome();
+			expect(surface.isConnected).toBeFalsy();
+			expect(remove).toHaveBeenCalledWith('compositionend', expect.any(Function));
+			expect(readSlidesFromYDoc(room.doc)[0].elements[0]).toMatchObject({ text: 'Body' });
+		} finally {
+			viewer.destroy();
+			room.doc.destroy();
+			container.remove();
+		}
+	});
+
 	it('keeps a later host edit-permission change when readiness resumes', async () => {
 		const room = host(true);
 		const container = document.createElement('div');

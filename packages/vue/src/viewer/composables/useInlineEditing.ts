@@ -15,7 +15,7 @@ import {
 	resolveInlineEditNormAutofitShrink,
 	setCellText,
 } from 'pptx-viewer-shared';
-import { computed, ref, shallowRef } from 'vue';
+import { computed, ref, shallowRef, watch } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
 import { remapTextToSegments } from './remap-text';
@@ -40,6 +40,8 @@ export interface UseInlineEditingInput {
 	livePatcher?: () => CollaborationLivePatcher | undefined;
 	/** The slide the edited element belongs to (needed by the live channel). */
 	activeSlide?: () => PptxSlide | undefined;
+	/** Adopt already-published connected text locally before a host disables editing. */
+	onConnectedSuspend?: (snapshot: InlineTextEditSnapshot) => void;
 }
 
 export interface UseInlineEditingResult {
@@ -49,6 +51,7 @@ export interface UseInlineEditingResult {
 	/** Set the in-progress text and mirror it to collaborators. */
 	updateInlineText: (text: string, snapshot?: InlineTextEditSnapshot) => void;
 	readInlineSnapshot: () => InlineTextEditSnapshot | undefined;
+	isInlineInputPending: () => boolean;
 	onListSession: (event: { controller: InlineListController; active: boolean }) => void;
 	formatInlineSnapshot: (snapshot: InlineTextEditSnapshot) => boolean;
 	endInlineListSession: () => void;
@@ -74,12 +77,30 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 	}
 
 	const inlineEditingElementId = ref<string | null>(null);
+	let inlineSlideId: string | undefined;
 	const inlineEditingText = ref('');
 	const inlineSnapshot = shallowRef<InlineTextEditSnapshot>();
 	const inlineEditingElement = computed<PptxElement | undefined>(() =>
 		inlineEditingElementId.value ? findActiveElement(inlineEditingElementId.value) : undefined,
 	);
 	const listSession = useInlineListSession(() => inlineEditingElement.value, cancelInlineEdit);
+	watch(
+		[canEdit, () => input.activeSlide?.()?.id],
+		([allowed, slideId]) => {
+			if (inlineEditingElementId.value && slideId !== inlineSlideId) {
+				listSession.end();
+				return;
+			}
+			if (!allowed && listSession.isConnected()) {
+				const accepted = listSession.readAccepted();
+				if (accepted) {
+					input.onConnectedSuspend?.(accepted);
+				}
+				listSession.end();
+			}
+		},
+		{ flush: 'sync' },
+	);
 
 	/**
 	 * Publish everything queued on the live channel right now. Called before a
@@ -124,11 +145,15 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		if (el.textSegments?.some((seg) => seg.equationXml)) {
 			return;
 		}
+		inlineSlideId = input.activeSlide?.()?.id;
 		inlineEditingElementId.value = id;
 		inlineSnapshot.value = undefined;
 		inlineEditingText.value = (el as { text?: string }).text ?? '';
 	}
 	function commitInlineEdit(): void {
+		if (listSession.isPending()) {
+			return;
+		}
 		const id = inlineEditingElementId.value;
 		if (!id) {
 			return;
@@ -137,8 +162,13 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 			| (PptxElement & { textSegments?: unknown; textStyle?: unknown })
 			| undefined;
 		flushLiveText();
-		const text = autoCorrect(inlineEditingText.value);
-		const snapshot = inlineSnapshot.value;
+		const current = listSession.read();
+		if (listSession.isConnected() && !current) {
+			listSession.end();
+			return;
+		}
+		const text = autoCorrect(current?.text ?? inlineEditingText.value);
+		const snapshot = current ?? inlineSnapshot.value;
 		inlineSnapshot.value = undefined;
 		inlineEditingElementId.value = null;
 		if (el) {
@@ -248,12 +278,16 @@ export function useInlineEditing(input: UseInlineEditingInput): UseInlineEditing
 		updateInlineText,
 		readInlineSnapshot: () => {
 			const current = listSession.read();
+			if (listSession.isConnected()) {
+				return current;
+			}
 			const id = inlineEditingElementId.value;
 			if (current && id) {
 				return current;
 			}
 			return inlineSnapshot.value?.elementId === id ? inlineSnapshot.value : undefined;
 		},
+		isInlineInputPending: listSession.isPending,
 		enterInlineEdit,
 		commitInlineEdit,
 		cancelInlineEdit,

@@ -13,6 +13,7 @@
  */
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
+	attachCollaborationInlineEditor,
 	attachInlineListController,
 	createInlineListSeed,
 	initializeInlineListDom,
@@ -22,16 +23,24 @@ import {
 	readListActivationSelection,
 	restoreInlineListBodySelection,
 } from 'pptx-viewer-shared';
-import type { InlineListController, InlineTextEditSnapshot } from 'pptx-viewer-shared';
-import type { CSSProperties } from 'vue';
+import type {
+	CollaborationInlineEditor,
+	CollaborationLivePatcher,
+	InlineListController,
+	InlineTextEditSnapshot,
+} from 'pptx-viewer-shared';
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, toRaw, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { inlineEditorStyle } from './inline-editor-style';
 
 const { t } = useI18n();
 
 const props = withDefaults(
 	defineProps<{
 		element: PptxElement;
+		livePatcher?: CollaborationLivePatcher;
+		slideId?: string;
 		/** Draw the browser's native red spell-check squiggles while editing (View ▸ Spell). */
 		spellCheck?: boolean;
 	}>(),
@@ -50,11 +59,16 @@ const emit = defineEmits<{
 const editorRef = ref<HTMLDivElement | null>(null);
 const listSeed = shallowRef(createInlineListSeed(toRaw(props.element)));
 let listController: InlineListController | undefined;
+let connected: CollaborationInlineEditor | undefined;
 let disposed = false;
 let activatingList = false;
 watch(
 	() => props.element,
 	async (element) => {
+		if (connected) {
+			connected.checkModel(toRaw(element));
+			return;
+		}
 		if (listSeed.value) {
 			return;
 		}
@@ -94,45 +108,9 @@ function extractText(): string {
 	return editorRef.value?.innerText ?? '';
 }
 
-const editorStyle = computed<CSSProperties>(() => {
-	const el = props.element;
-	const style = (el as { textStyle?: Record<string, unknown> }).textStyle ?? {};
-	const fontSize = typeof style.fontSize === 'number' ? `${style.fontSize}px` : undefined;
-	const align =
-		typeof style.align === 'string' ? (style.align as CSSProperties['textAlign']) : undefined;
-	return {
-		position: 'absolute',
-		left: `${el.x}px`,
-		top: `${el.y}px`,
-		width: `${el.width}px`,
-		height: `${el.height}px`,
-		display: listSeed.value ? 'block' : 'flex',
-		flexDirection: 'column',
-		justifyContent: 'center',
-		boxSizing: 'border-box',
-		padding: '2px 4px',
-		margin: 0,
-		outline: '2px solid var(--pptx-vue-selection-color, #3b82f6)',
-		// Transparent: the element's own shape fill (still rendered underneath by
-		// `ElementRenderer`, which only suppresses its TEXT while this element is
-		// being edited) shows through, matching React and the element's actual
-		// authored appearance. A near-opaque white used to sit here as a stand-in
-		// backdrop; with the static text no longer duplicated underneath (issue
-		// #182), it only mismatched non-white fills.
-		background: 'transparent',
-		color: typeof style.color === 'string' ? (style.color as string) : '#111827',
-		fontFamily: typeof style.fontFamily === 'string' ? (style.fontFamily as string) : 'inherit',
-		fontSize: fontSize ?? 'inherit',
-		fontWeight: style.bold ? 700 : 'normal',
-		fontStyle: style.italic ? 'italic' : 'normal',
-		...(listSeed.value ? { textDecoration: 'none', textDecorationLine: 'none' } : {}),
-		textAlign: align ?? 'left',
-		overflow: 'hidden',
-		whiteSpace: 'pre-wrap',
-		cursor: 'text',
-		zIndex: 60,
-	};
-});
+const editorStyle = computed(() =>
+	inlineEditorStyle(props.element, Boolean(listSeed.value || props.livePatcher?.isActive())),
+);
 
 function initializeEditor(selection?: { start: number; end: number }): void {
 	const node = editorRef.value;
@@ -140,7 +118,24 @@ function initializeEditor(selection?: { start: number; end: number }): void {
 		return;
 	}
 	const seed = listSeed.value;
-	if (seed && initializeInlineListDom(node, seed)) {
+	if (props.livePatcher?.isActive()) {
+		connected = attachCollaborationInlineEditor(node, toRaw(props.element), {
+			patcher: props.livePatcher,
+			slideId: props.slideId,
+			onSnapshot: (snapshot) => emit('change', snapshot.text, snapshot),
+			onCancel: () => {
+				disposed = true;
+				emit('cancel');
+			},
+		});
+		if (!connected) {
+			disposed = true;
+			emit('cancel');
+			return;
+		}
+		listController = connected;
+		emit('listSession', { controller: connected, active: true });
+	} else if (seed && initializeInlineListDom(node, seed)) {
 		listController = attachInlineListController(node, seed, {
 			isCurrent: () => !disposed && props.element.id === seed.elementId && editorRef.value === node,
 			onRead: (result) =>
@@ -184,7 +179,10 @@ function onBlur(): void {
 		return;
 	}
 	if (listController) {
-		listController.refresh();
+		const result = listController.refresh();
+		if (connected && result.kind !== 'supported') {
+			return;
+		}
 	} else {
 		emit('change', extractText());
 	}
@@ -239,7 +237,11 @@ function trimTrailingSpaceBeforeCaret(): void {
 	const trimRange = document.createRange();
 	trimRange.setStart(startContainer, startOffset - 1);
 	trimRange.setEnd(startContainer, startOffset);
-	trimRange.deleteContents();
+	if (connected) {
+		connected.mutate(trimRange, () => trimRange.deleteContents());
+	} else {
+		trimRange.deleteContents();
+	}
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -272,7 +274,7 @@ function onKeydown(event: KeyboardEvent): void {
 		emit('cancel');
 		return;
 	}
-	if (event.key === 'Enter' && !listController) {
+	if (event.key === 'Enter' && (!listController || (connected && !listSeed.value))) {
 		trimTrailingSpaceBeforeCaret();
 	}
 }

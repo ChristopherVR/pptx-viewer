@@ -25,7 +25,7 @@ function paragraphBodies(segments: TextSegment[]): string[] {
 			first = true;
 		} else {
 			if (!first || !isBulletMarkerSegment(segment)) {
-				paragraphs[paragraphs.length - 1] += segment.text;
+				paragraphs[paragraphs.length - 1] += segment.isLineBreak ? '\n' : segment.text;
 			}
 			first = false;
 		}
@@ -54,7 +54,7 @@ function modelPoint(
 			}
 			continue;
 		}
-		const next = position + segment.text.length;
+		const next = position + (first || segment.isLineBreak ? 1 : segment.text.length);
 		if (!first && !segment.isLineBreak) {
 			last = { index, offset: segment.text.length };
 			if (end ? offset <= next : offset < next || (offset === position && next === position)) {
@@ -72,17 +72,45 @@ export function readInlineListSelection(
 	root: HTMLElement,
 	selection: Selection | null = root.ownerDocument.defaultView?.getSelection() ?? null,
 ): InlineListSelectionResult {
+	return readInlineListRange(seed, root, selection?.rangeCount ? selection.getRangeAt(0) : null);
+}
+
+/** Read a native beforeinput target range before the DOM or caret moves. */
+export function readInlineListRange(
+	seed: InlineListSeed,
+	root: HTMLElement,
+	range: Pick<
+		AbstractRange,
+		'startContainer' | 'startOffset' | 'endContainer' | 'endOffset'
+	> | null,
+): InlineListSelectionResult {
 	const read = readInlineListSnapshot(seed, root);
 	if (read.kind !== 'supported') {
 		return { kind: 'unsupported', reason: read.reason };
 	}
 	const { snapshot } = read;
-	if (!selection?.rangeCount) {
+	if (!range) {
 		return { kind: 'supported', snapshot, selection: null };
 	}
-	const range = selection.getRangeAt(0);
 	if (!root.contains(range.startContainer) || !root.contains(range.endContainer)) {
 		return { kind: 'unsupported', reason: 'selection-outside-session' };
+	}
+	// StaticRange offsets do not follow mutations by an earlier input listener.
+	// Validate using a detached Range; never move the actual selection or clamp intent.
+	try {
+		const checked = root.ownerDocument.createRange();
+		checked.setStart(range.startContainer, range.startOffset);
+		checked.setEnd(range.endContainer, range.endOffset);
+		if (
+			checked.startContainer !== range.startContainer ||
+			checked.startOffset !== range.startOffset ||
+			checked.endContainer !== range.endContainer ||
+			checked.endOffset !== range.endOffset
+		) {
+			return { kind: 'unsupported', reason: 'invalid-selection-boundary' };
+		}
+	} catch {
+		return { kind: 'unsupported', reason: 'invalid-selection-boundary' };
 	}
 	const blocks = Array.from(root.children);
 	const bodies = paragraphBodies(snapshot.textSegments!);

@@ -228,7 +228,9 @@ export class CustomSlidesComponent {
 
 The example wires text editing; connect the canvas transform, table, and other
 outputs for the operations your shell exposes. Gate custom mutation controls with
-`shell.canEdit()`, not just the requested host permission. The effective gate also
+`shell.canEdit()`, not just the requested host permission. Save rejects unfinished
+native input or IME composition instead of serializing an older text snapshot.
+The effective gate also
 accounts for the active session's role/readiness and a real source still loading
 or failing to load. A blank editor without collaboration retains its ordinary
 host-controlled permission. `getContent()` saves the current editable model even

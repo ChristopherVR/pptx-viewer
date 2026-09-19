@@ -243,6 +243,8 @@
 						<pptx-inline-list-editor
 							[element]="eb.element"
 							[seed]="session"
+							[livePatcher]="inlineCollaborationPatcher()"
+							[slideId]="slide()?.id"
 							[activationSelection]="listActivationSelection()"
 							[spellCheck]="spellCheck()"
 							(textInput)="textInput.emit($event)"

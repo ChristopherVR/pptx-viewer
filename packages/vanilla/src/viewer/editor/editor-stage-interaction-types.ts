@@ -11,6 +11,7 @@ export interface StageInteractionsDeps {
 	getScale(): number;
 	getOverlay(): SelectionOverlay | null;
 	getStageRoot(): Element | null;
+	getLivePatcher?(): import('pptx-viewer-shared').CollaborationLivePatcher | undefined;
 	onCursorMove?: (x: number, y: number) => void;
 	/**
 	 * Mirror in-progress inline-editor text to collaborators. Called on every
@@ -28,6 +29,8 @@ export interface StageInteractions {
 	hasActivePointerInteraction(): boolean;
 	readPendingInlineTextEdit?(): import('pptx-viewer-shared').PendingInlineTextEdit | undefined;
 	readInlineList?(): import('pptx-viewer-shared').InlineListReadResult | undefined;
+	/** Preserve exact accepted text before host-only permission loss closes the editor. */
+	retainAcceptedInlineText?(): void;
 	formatInlineList?(snapshot: import('pptx-viewer-shared').InlineTextEditSnapshot): boolean;
 	onStagePointerDown(event: PointerEvent): void;
 	onStagePointerMove(event: PointerEvent): void;

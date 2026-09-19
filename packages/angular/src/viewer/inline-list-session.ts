@@ -1,12 +1,36 @@
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { createInlineListModelObserver } from '../internal/shared';
-import type { InlineListController, InlineTextEditSnapshot } from '../internal/shared';
+import type {
+	CollaborationInlineEditor,
+	InlineListController,
+	InlineTextEditSnapshot,
+} from '../internal/shared';
 
 /** Scoped normal/master list state; model transactions remain owned by the existing editor. */
 export class InlineListSession {
 	private controller?: InlineListController;
 	private observer?: ReturnType<typeof createInlineListModelObserver>;
+	private connected(): CollaborationInlineEditor | undefined {
+		return this.controller && 'checkModel' in this.controller
+			? (this.controller as CollaborationInlineEditor)
+			: undefined;
+	}
+	isConnected(): boolean {
+		return Boolean(this.connected());
+	}
+	readAccepted(): InlineTextEditSnapshot | undefined {
+		const native = this.connected();
+		return native?.checkModel(this.element()) ? native.readAccepted() : undefined;
+	}
+	isPending(): boolean {
+		const native = this.connected();
+		const current = native?.checkModel(this.element()) ? native.read() : undefined;
+		return (
+			current?.kind === 'unsupported' &&
+			(current.reason === 'input-active' || current.reason === 'composition-active')
+		);
+	}
 	constructor(
 		private readonly element: () => PptxElement | undefined,
 		private readonly retire: () => void,
@@ -29,6 +53,14 @@ export class InlineListSession {
 			return undefined;
 		}
 		const element = this.element();
+		const native = this.connected();
+		if (native) {
+			if (!native.checkModel(element)) {
+				return undefined;
+			}
+			const current = native.read();
+			return current.kind === 'supported' ? current.snapshot : undefined;
+		}
 		let current = this.controller.read();
 		const change = this.observer.check(element, current);
 		if (change.kind === 'format') {

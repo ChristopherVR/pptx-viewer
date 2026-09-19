@@ -361,9 +361,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// ── Run-program notices (`ppaction://program`, running show only) ──
 		const runProgramNoticesState = useRunProgramNoticesState();
 
-		const [collaborationReadOnly, setCollaborationReadOnly] = useState(
-			Boolean(collaboration?.externalSession),
-		);
+		const [collaborationReadOnly, setCollaborationReadOnly] = useState(Boolean(collaboration));
 		const canEdit =
 			hostCanEdit && !collaborationReadOnly && !isProtectedView && !readOnlyRec.locked;
 
