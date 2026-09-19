@@ -18,6 +18,7 @@ import {
 	paletteColor,
 	seriesColor,
 } from './chart-view-model';
+import { estimateTextWidth } from './text-wrap-estimate';
 
 /** Map a value onto the horizontal (x) axis: min at the left, max at the right. */
 export function valueToX(val: number, range: ValueRange, leftX: number, rightX: number): number {
@@ -83,6 +84,24 @@ export function buildSideCategoryLabels(
 		textAnchor: 'end' as const,
 		dominantBaseline: 'central',
 	}));
+}
+
+/**
+ * Width, in px, of the widest category label at the given font size: how
+ * much horizontal space a horizontal-bar chart's LEFT axis band must reserve
+ * so its category text does not clip against the chart's own left edge (see
+ * `leftAxisBand` in chart-view-model-layout.ts, which turns this into the
+ * actual plot-area inset). Returns 0 for no labels, which leaves the default
+ * numeric-axis inset unchanged.
+ */
+export function widestCategoryLabelWidth(
+	categoryLabels: ReadonlyArray<string>,
+	fontSize: number,
+): number {
+	return categoryLabels.reduce(
+		(max, label) => Math.max(max, estimateTextWidth(label, fontSize)),
+		0,
+	);
 }
 
 /** Per-category absolute totals (for percentStacked normalisation). */

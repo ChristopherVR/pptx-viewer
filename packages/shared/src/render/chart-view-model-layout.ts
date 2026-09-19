@@ -49,6 +49,25 @@ function categoryAxisBand(chartData: PptxChartData): number {
 	return Math.max(24, offset + fontPx * 1.2);
 }
 
+/**
+ * Horizontal space to reserve to the LEFT of the plot for the axis band.
+ *
+ * The 40 px default is sized for a value axis's short numeric ticks (up to a
+ * few digits). A horizontal-bar chart's left axis instead carries the
+ * category TEXT (the chart is transposed: categories run down the left,
+ * values along the bottom), which is routinely wider than that, e.g. an
+ * inserted chart's default "Category 1" label measures ~72 px at the default
+ * 13.33 px axis font. Left at the 40 px default, that text clipped against
+ * the chart's own SVG edge (x=0) before it ever reached the plot area,
+ * rendering "Category 1" as "egory 1". `leftCategoryLabelWidth` (from
+ * `widestCategoryLabelWidth` in chart-horizontal-bars-helpers.ts) lets the
+ * horizontal-bar builder widen this band to fit its actual label text; every
+ * other caller keeps the unchanged 40 px numeric-axis default.
+ */
+function leftAxisBand(leftCategoryLabelWidth: number | undefined): number {
+	return Math.max(40, (leftCategoryLabelWidth ?? 0) + 4);
+}
+
 export function computePlotLayout(
 	elementWidth: number,
 	elementHeight: number,
@@ -63,7 +82,7 @@ export function computePlotLayout(
 	const svgWidth = Math.max(1, elementWidth),
 		svgHeight = Math.max(1, elementHeight);
 
-	let plotLeft = hasAxes ? 48 : 8,
+	let plotLeft = hasAxes ? 8 + leftAxisBand(options?.leftCategoryLabelWidth) : 8,
 		plotTop = 8,
 		plotRight = svgWidth - 8,
 		plotBottom = svgHeight - (hasAxes ? categoryAxisBand(chartData) : 8);
@@ -131,7 +150,7 @@ export function computePlotLayout(
 		plotRight = manual.x + manual.width;
 		plotBottom = manual.y + manual.height;
 		if (hasAxes && plotLayout.layoutTarget !== 'inner') {
-			plotLeft += 40;
+			plotLeft += leftAxisBand(options?.leftCategoryLabelWidth);
 			plotBottom -= categoryAxisBand(chartData) - 8;
 		}
 	}

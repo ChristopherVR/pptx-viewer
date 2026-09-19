@@ -221,9 +221,20 @@ export function regionViewBounds(
  * in the existing primitive schema.
  */
 export function scalePathD(d: string, scale: number, dx: number, dy: number): string {
-	// Tokenise: split on whitespace, commas, and command letters while keeping
-	// command letters in the output.
-	const tokens = d.trim().split(/[\s,]+/u);
+	// Tokenise into command letters and numbers by MATCHING each token type
+	// directly, rather than splitting on whitespace/comma delimiters: every
+	// `WORLD_REGIONS` path is written in compact SVG syntax, where a command
+	// letter directly abuts its first coordinate ("M130,160") and the closing
+	// "Z" of one subpath directly abuts the last number before it ("130,195Z").
+	// A delimiter-based split leaves "M130" and "195Z" as single un-split
+	// tokens; `parseFloat("195Z")` silently truncates to 195 without ever
+	// yielding a "Z", so the subpath is never closed and every coordinate
+	// after it pairs up one token late, corrupting the rest of the shape and
+	// eventually running the loop out of tokens mid-pair, i.e. exactly the
+	// "attribute d: Unexpected end of attribute" the browser reports. Matching
+	// letters and numbers as their own tokens (instead of splitting the
+	// string on delimiters) handles both spaced and compact syntax alike.
+	const tokens = d.match(/[A-Za-z]|-?\d+(?:\.\d+)?/gu) ?? [];
 	const out: string[] = [];
 	let i = 0;
 	while (i < tokens.length) {
@@ -240,7 +251,7 @@ export function scalePathD(d: string, scale: number, dx: number, dy: number): st
 		}
 		// Coordinate pair: tok = x value, tokens[i+1] = y value.
 		const xRaw = parseFloat(tok);
-		const yRaw = parseFloat(tokens[i + 1] ?? '0');
+		const yRaw = parseFloat(tokens[i + 1] ?? '');
 		if (!Number.isNaN(xRaw) && !Number.isNaN(yRaw)) {
 			out.push(`${(xRaw * scale + dx).toFixed(2)},${(yRaw * scale + dy).toFixed(2)}`);
 			i += 2;

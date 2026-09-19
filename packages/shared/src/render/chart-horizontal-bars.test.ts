@@ -2,8 +2,10 @@ import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import { buildCartesianViewModel } from './chart-cartesian';
+import { DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildHorizontalBarViewModel, valueToX } from './chart-horizontal-bars';
 import type { SvgRect } from './chart-view-model';
+import { estimateTextWidth } from './text-wrap-estimate';
 
 function element(): ChartPptxElement {
 	return {
@@ -121,6 +123,40 @@ describe('buildHorizontalBarViewModel', () => {
 		);
 		expect(vm.zeroLine).toBeDefined();
 		expect(vm.zeroLine?.x1).toBe(vm.zeroLine?.x2);
+	});
+
+	it('reserves enough left margin that a category label is not clipped against the SVG edge', () => {
+		// Regression for the clipping a freshly inserted "Insert > Chart > Bar"
+		// showed: default category text ("Category 1"/2/3) is far wider than the
+		// 40px band sized for a numeric value axis, and rendered as "egory 1"
+		// because the label's own text ran past the SVG's left edge (x=0).
+		const categoryLabels = ['Category 1', 'Category 2', 'Category 3'];
+		const vm = buildHorizontalBarViewModel(
+			element(),
+			chartData({ categories: categoryLabels }),
+			categoryLabels,
+		);
+		expect(vm.categoryLabels).toHaveLength(3);
+		for (const label of vm.categoryLabels) {
+			expect(label.textAnchor).toBe('end');
+			const estimatedWidth = estimateTextWidth(label.text, DEFAULT_CHART_TEXT_PX);
+			// End-anchored text at `label.x` draws leftward; its left-most ink must
+			// stay at or right of the SVG's own left edge (x=0).
+			expect(label.x - estimatedWidth).toBeGreaterThanOrEqual(0);
+		}
+	});
+
+	it('widens the left plot inset for longer category labels than for short ones', () => {
+		const short = buildHorizontalBarViewModel(element(), chartData(), ['A', 'B', 'C']);
+		const longLabels = ['Category 1', 'Category 2', 'Category 3'];
+		const long = buildHorizontalBarViewModel(
+			element(),
+			chartData({ categories: longLabels }),
+			longLabels,
+		);
+		const plotLeft = (vm: { gridlines: ReadonlyArray<{ x1: number }> }) =>
+			Math.min(...vm.gridlines.map((g) => g.x1));
+		expect(plotLeft(long)).toBeGreaterThan(plotLeft(short));
 	});
 
 	it('is dispatched by the cartesian builder for barDirection "bar" only', () => {

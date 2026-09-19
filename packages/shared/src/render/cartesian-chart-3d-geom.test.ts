@@ -85,6 +85,56 @@ describe('computeCartesianCameraPlacement', () => {
 		const distNarrow = Math.hypot(...narrow.position);
 		expect(distNarrow).toBeGreaterThan(distWide);
 	});
+
+	describe('horizontal (c:barDir val="bar")', () => {
+		it('transposes both position and target by the same (x, y, z) -> (y, -x, z) rotation the box layout uses', () => {
+			const vertical = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 });
+			const horizontal = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 }, true);
+			expect(horizontal.position).toStrictEqual([
+				vertical.position[1],
+				-vertical.position[0],
+				vertical.position[2],
+			]);
+			expect(horizontal.target).toStrictEqual([
+				vertical.target[1],
+				-vertical.target[0],
+				vertical.target[2],
+			]);
+			// FOV is unaffected by the transpose (same view3D perspective fields).
+			expect(horizontal.fov).toBe(vertical.fov);
+		});
+
+		it('no longer targets a point off to one side of the transposed content', () => {
+			// The untransposed target sits at [0, someHeight, 0]; the value axis
+			// (now world X after transpose) runs from 0 upward, never centred on
+			// 0, so a target with x === 0 was already at the very edge of the
+			// rendered box cluster instead of somewhere inside it.
+			const { target } = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 }, true);
+			expect(target[0]).toBeGreaterThan(0);
+		});
+
+		it('preserves distance from target (a rigid rotation of both position and target)', () => {
+			const vertical = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 });
+			const horizontal = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 }, true);
+			const distVertical = Math.hypot(
+				vertical.position[0] - vertical.target[0],
+				vertical.position[1] - vertical.target[1],
+				vertical.position[2] - vertical.target[2],
+			);
+			const distHorizontal = Math.hypot(
+				horizontal.position[0] - horizontal.target[0],
+				horizontal.position[1] - horizontal.target[1],
+				horizontal.position[2] - horizontal.target[2],
+			);
+			expect(distHorizontal).toBeCloseTo(distVertical, 10);
+		});
+
+		it('defaults to the untransposed (vertical) placement when horizontal is omitted', () => {
+			const implicit = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 });
+			const explicit = computeCartesianCameraPlacement(4, 2, { rotX: 15, rotY: 20 }, false);
+			expect(implicit).toStrictEqual(explicit);
+		});
+	});
 });
 
 describe('buildCartesianChart3DLabels', () => {

@@ -878,6 +878,7 @@ export * from './smartart-3d-types';
 export * from './smartart-3d-geom';
 export * from './smartart-3d-model';
 export * from './smartart-3d-spatial';
+export * from './smartart-3d-layout-source';
 // SmartArt accessibility metadata: pure screen-reader description of the whole
 // diagram, per-node ARIA labels, and the `SmartArtA11y` view-model each binding
 // maps onto `role="img"` + `aria-label` + per-node `<title>`/`aria-label`.
@@ -1031,7 +1032,7 @@ export type { SmartArtConnectorPaint, SmartArtNodeLabel } from './smartart-node-
 export { centeredSvgTextLines } from './svg-text-lines';
 export type { SvgTextLine, CenteredSvgTextOptions } from './svg-text-lines';
 // Word wrapping for targets with no text-measurement API (PDF streams, SVG).
-export { wrapTextByEstimatedWidth } from './text-wrap-estimate';
+export { estimateTextWidth, wrapTextByEstimatedWidth } from './text-wrap-estimate';
 export type { EstimatedWrapOptions } from './text-wrap-estimate';
 // Inspector panel: shapeStyle/textStyle value readers + shallow-merge patch
 // builders (fill/stroke/colour/font-size/bold/italic/underline).

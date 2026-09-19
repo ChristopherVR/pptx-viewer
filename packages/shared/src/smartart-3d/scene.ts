@@ -7,6 +7,11 @@
  * bindings all mount it through a thin canvas wrapper. `three` is imported here
  * only; this module lives behind the `pptx-viewer-shared/smartart-3d` subpath so
  * it is lazily loaded and `three` stays an optional dependency.
+ *
+ * Camera framing (`contentSphere`/`fitCamera`/`cameraElevation`) and label
+ * billboarding (`billboardLabels`) are pure geometry, split out to
+ * `scene-camera.ts` to keep this module focused on mount/render-loop
+ * orchestration.
  */
 
 import {
@@ -22,6 +27,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { TextStyleAnimationDescriptor } from '../render/animation-text-style-resolve';
 import type { SmartArt3DModel } from '../render/smartart-3d-types';
 import { buildMeshGroup } from './meshes';
+import { billboardLabels, contentSphere, fitCamera, FOV } from './scene-camera';
 
 /** Tunables for the mounted 3D view. */
 export interface SmartArt3DViewOptions {
@@ -47,61 +53,6 @@ export interface SmartArt3DHandle {
 	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
 	/** Tear down the renderer, controls, and all GPU resources. */
 	dispose: () => void;
-}
-
-const FOV = 42;
-
-/** A bounding sphere of the 3D content (centre + radius). */
-interface ContentSphere {
-	cx: number;
-	cy: number;
-	cz: number;
-	radius: number;
-}
-
-/** Bounding sphere of all meshes (expanded by footprint/depth) + connectors. */
-function contentSphere(model: SmartArt3DModel): ContentSphere {
-	let minX = Infinity;
-	let minY = Infinity;
-	let minZ = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	let maxZ = -Infinity;
-	const expand = (x: number, y: number, z: number, r: number): void => {
-		minX = Math.min(minX, x - r);
-		minY = Math.min(minY, y - r);
-		minZ = Math.min(minZ, z - r);
-		maxX = Math.max(maxX, x + r);
-		maxY = Math.max(maxY, y + r);
-		maxZ = Math.max(maxZ, z + r);
-	};
-	for (const m of model.meshes) {
-		const r = Math.max(m.halfWidth, m.halfHeight) + m.depth + m.bevel;
-		expand(m.position.x, m.position.y, m.position.z, r);
-	}
-	for (const c of model.connectors) {
-		for (const p of c.points) {
-			expand(p.x, p.y, p.z, 1);
-		}
-	}
-	if (!Number.isFinite(minX)) {
-		const fallback = Math.max(model.bounds.width, model.bounds.height) / 2 || 1;
-		return { cx: 0, cy: 0, cz: 0, radius: fallback };
-	}
-	return {
-		cx: (minX + maxX) / 2,
-		cy: (minY + maxY) / 2,
-		cz: (minZ + maxZ) / 2,
-		radius: 0.5 * Math.hypot(maxX - minX, maxY - minY, maxZ - minZ) || 1,
-	};
-}
-
-/** Camera distance that frames a bounding sphere of `radius` at the given FOV. */
-function frameDistance(radius: number, aspect: number): number {
-	const vFov = (FOV * Math.PI) / 180;
-	const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
-	const minFov = Math.min(vFov, hFov);
-	return (radius / Math.sin(minFov / 2)) * 1.1;
 }
 
 /**
@@ -130,15 +81,18 @@ export function mountSmartArt3D(
 		scene.background = new Color(options.background);
 	}
 
-	const { cx, cy, cz, radius } = contentSphere(model);
+	const bounds = contentSphere(model);
+	const { cx, cy, cz, radius } = bounds;
 	const aspect = width / Math.max(1, height);
-	const dist = frameDistance(radius, aspect);
+	// Fit the content's projected bounding box (not just its sphere) to the
+	// frame; see `fitCamera` for why the sphere fit alone left wide, flat
+	// diagrams tiny.
+	const placement = fitCamera(bounds, model.family, aspect);
+	const { dist } = placement;
 
 	const camera = new PerspectiveCamera(FOV, aspect, 0.1, dist * 8 + radius * 4);
-	// A slight elevation + offset gives the extrusion/spatial depth a readable
-	// three-quarter presence, framing the content's own centroid.
-	camera.position.set(cx + radius * 0.25, cy + radius * 0.3, cz + dist);
-	camera.lookAt(cx, cy, cz);
+	camera.position.set(...placement.position);
+	camera.lookAt(...placement.target);
 
 	scene.add(new AmbientLight(0xffffff, 0.62));
 	const key = new DirectionalLight(0xffffff, 0.95);
@@ -178,6 +132,7 @@ export function mountSmartArt3D(
 			return;
 		}
 		frame = requestAnimationFrame(renderLoop);
+		billboardLabels(built, camera);
 		controls?.update();
 		renderer.render(scene, camera);
 	};

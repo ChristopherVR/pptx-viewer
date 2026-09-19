@@ -188,15 +188,44 @@ export function computeSphericalCameraPlacement(
  * Camera placement that frames the whole cartesian grid. Thin wrapper around
  * {@link computeSphericalCameraPlacement} with the cartesian grid's own
  * extent + look-at height.
+ *
+ * `horizontal` (a `c:barDir val="bar"` `bar3D` chart) mounts its boxes
+ * remapped into the transposed frame ({@link transposeForHorizontalBar3D}:
+ * value = world X, category = world Y instead of the vertical frame's
+ * category = X, value = Y). Framing those boxes with the UNTRANSPOSED camera
+ * placement pointed the look-at target at `[0, someHeight, 0]`, a point that
+ * is only near the rendered content in the vertical frame: once transposed,
+ * the value axis starts at world X = 0 and runs only in the POSITIVE
+ * direction (never centred on 0), so the untransposed target sat off to one
+ * side of the actual box cluster, cropping it hard against one edge of the
+ * frame and pushing the axis-label overlay (projected through the same
+ * camera) out of the view frustum entirely. Applying the identical rigid
+ * transform to both the computed position and target re-centres the camera
+ * on the actual (rotated) content without re-deriving the elevation/azimuth
+ * maths: rotating a camera and its look-at target by the same transform that
+ * rotated the scene preserves the viewing distance and angle. World "up"
+ * intentionally stays untouched (`camera.up` default `+Y`): the floor and
+ * `c:floor`/`c:sideWall`/`c:backWall` panels are never reoriented for
+ * `horizontal` either (see `bar-chart-3d-scene.ts`), so only the camera's
+ * position/target move, not its up vector.
  */
 export function computeCartesianCameraPlacement(
 	cols: number,
 	rows: number,
 	view3D?: CartesianCameraView3D,
+	horizontal = false,
 ): CartesianCameraPlacement {
 	const { gridWidth, gridDepth } = computeCartesianGridExtent(cols, rows, view3D?.depthPercent);
 	const maxExtent = Math.max(gridWidth, gridDepth, MAX_VALUE_HEIGHT);
-	return computeSphericalCameraPlacement(maxExtent, MAX_VALUE_HEIGHT * 0.2, view3D);
+	const placement = computeSphericalCameraPlacement(maxExtent, MAX_VALUE_HEIGHT * 0.2, view3D);
+	if (!horizontal) {
+		return placement;
+	}
+	return {
+		...placement,
+		position: transposeForHorizontalBar3D(placement.position),
+		target: transposeForHorizontalBar3D(placement.target),
+	};
 }
 
 /**

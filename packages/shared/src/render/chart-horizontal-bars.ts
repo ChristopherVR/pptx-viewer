@@ -18,13 +18,14 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { computeValueRangeForChart } from './chart-axis-range';
 import { resolveBarLabelPlacement } from './chart-data-label-anchor';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
-import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import {
 	barFill,
 	buildSideCategoryLabels,
 	buildTransposedValueAxis,
 	categoryTotals,
 	valueToX,
+	widestCategoryLabelWidth,
 } from './chart-horizontal-bars-helpers';
 import type {
 	ChartViewModel,
@@ -54,7 +55,9 @@ export function buildHorizontalBarViewModel(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, true),
+	const layout = computePlotLayout(element.width, element.height, chartData, true, {
+			leftCategoryLabelWidth: widestCategoryLabelWidth(categoryLabels, DEFAULT_CHART_TEXT_PX),
+		}),
 		catCount = Math.max(categoryLabels.length, 1),
 		series = chartData.series,
 		grouping = chartData.grouping ?? 'clustered',

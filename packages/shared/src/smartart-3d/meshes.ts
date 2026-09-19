@@ -10,6 +10,7 @@
 import {
 	BufferGeometry,
 	Color,
+	DoubleSide,
 	EdgesGeometry,
 	Euler,
 	ExtrudeGeometry,
@@ -45,6 +46,14 @@ export interface BuiltMeshGroup {
 	 * extrusions and connectors untouched.
 	 */
 	setTextStyle: (style: TextStyleAnimationDescriptor | undefined) => void;
+	/**
+	 * Call `fn` once per currently-mounted label plane. `scene.ts`'s render
+	 * loop uses this to billboard every label toward the camera each frame
+	 * (see {@link buildMeshGroup}'s docs); iterating live (rather than a
+	 * snapshot array handed out once) means a plane rebuilt by
+	 * `setTextStyle` is picked up automatically.
+	 */
+	forEachLabelPlane: (fn: (plane: Mesh) => void) => void;
 	dispose: () => void;
 }
 
@@ -127,12 +136,33 @@ function buildLabelPlane(
 		return null;
 	}
 	const planeGeo = new PlaneGeometry(tex.worldWidth, tex.worldHeight);
+	// Double-sided: spatial layouts (the cycle/radial carousel ring) rotate
+	// roughly half the nodes so their front face points away from the
+	// camera's default position. A single-sided (default `FrontSide`)
+	// material culls that view entirely, so those nodes render with no
+	// caption at all; double-siding keeps the label visible (mirrored, on
+	// the far side) instead of vanishing. `scene.ts`'s render loop billboards
+	// every plane toward the camera each frame, which overrides this initial
+	// rotation once mounted (see `BuiltMeshGroup.forEachLabelPlane`); this
+	// still matters for a caller that never renders a frame (tests) and as
+	// the visible starting orientation before the first billboard update.
+	// `depthTest: false` also matters once billboarded: the plane's offset
+	// (below) clears the block along the block's OWN original facing
+	// direction, which is not necessarily toward the camera once the plane
+	// itself has been rotated to face the camera instead, so a depth-tested
+	// plane could end up partially behind its own (or a neighbouring) node's
+	// extrusion from the camera's actual angle. Skipping the depth test
+	// keeps every caption drawn on top, which is the legible outcome we
+	// want for a small, sparse set of node labels.
 	const planeMaterial = new MeshBasicMaterial({
 		map: tex.texture,
 		transparent: true,
 		depthWrite: false,
+		depthTest: false,
+		side: DoubleSide,
 	});
 	const plane = new Mesh(planeGeo, planeMaterial);
+	plane.renderOrder = 1;
 	// Float just past the front (+z) face, clearing any bevel, following the
 	// mesh's rotation so the label sits flat on the (possibly rotated) face.
 	const euler = new Euler(m.rotation.x, m.rotation.y, m.rotation.z);
@@ -177,6 +207,18 @@ function clearLabel(group: Group, entry: LabelEntry): void {
  * `textStyle` is a font-style emphasis override applied to every node's
  * label (see {@link BuiltMeshGroup.setTextStyle}); emphasis is authored per
  * shape/animation-target, not per SmartArt node, so it applies uniformly.
+ *
+ * A label plane's *position* floats just off its node's own front (radially
+ * outward, for a spatial/carousel arrangement) face, following the node's
+ * rotation - but its *rotation* is left at that same face-following value
+ * only as an initial default. `mountSmartArt3D`'s render loop re-orients
+ * every plane toward the camera each frame via {@link BuiltMeshGroup.forEachLabelPlane}
+ * (a Y-axis-only billboard, so captions stay upright and legible). Without
+ * that, a node whose front face happens to point away from or across the
+ * camera - unavoidable for roughly half of any ring/carousel arrangement -
+ * would have an edge-on or backward-facing caption: `DoubleSide` (see
+ * `buildLabelPlane`) fixes the "backward" case, but nothing short of facing
+ * the plane at the camera fixes "edge-on".
  */
 export function buildMeshGroup(
 	model: SmartArt3DModel,
@@ -204,6 +246,13 @@ export function buildMeshGroup(
 					group.add(built.plane);
 					entry.plane = built.plane;
 					entry.disposables = built.disposables;
+				}
+			}
+		},
+		forEachLabelPlane(fn) {
+			for (const entry of labelEntries) {
+				if (entry.plane) {
+					fn(entry.plane);
 				}
 			}
 		},

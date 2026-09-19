@@ -54,6 +54,16 @@ export interface PlotLayoutOptions {
 	categoryAxisAtTop?: boolean;
 	hasDataTable?: boolean;
 	dataTableRowCount?: number;
+	/**
+	 * Pixel width of the widest category label, for a horizontal-bar chart's
+	 * LEFT axis band (PowerPoint's "Bar" type transposes the chart, so text
+	 * category labels, not short numeric ticks, sit on the left). The default
+	 * left inset is sized for numbers; a caller that draws text there must
+	 * pass this (see `widestCategoryLabelWidth` in
+	 * `chart-horizontal-bars-helpers.ts`) or long category text clips against
+	 * the chart's own left edge.
+	 */
+	leftCategoryLabelWidth?: number;
 }
 // ─────────────────────────────────────────────────────────────────────────────
 // Interactive chart parts

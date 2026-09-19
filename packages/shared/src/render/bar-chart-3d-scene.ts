@@ -21,7 +21,10 @@
  *
  * A horizontal 3-D Bar (`options.horizontal`) mounts the SAME scene: boxes
  * arrive already remapped into the horizontal frame, so this module only
- * rotates each mesh to match and builds the label overlay in that frame.
+ * rotates each mesh to match, builds the label overlay in that frame, and
+ * asks {@link computeCartesianCameraPlacement} for the matching (also
+ * transposed) camera placement so the view frames the actual rendered
+ * extents instead of the untransposed vertical bounding box.
  *
  * @module bar-chart-3d-scene
  */
@@ -111,7 +114,12 @@ export async function mountBarChart3D(
 	fill.position.set(-3, 4, -2);
 	scene.add(fill);
 
-	const placement = computeCartesianCameraPlacement(options.cols, options.rows, options.view3D);
+	const placement = computeCartesianCameraPlacement(
+		options.cols,
+		options.rows,
+		options.view3D,
+		options.horizontal,
+	);
 	const camera = new three.PerspectiveCamera(placement.fov, width / height, 0.1, 1000);
 	camera.position.set(...placement.position);
 	const target = new three.Vector3(...placement.target);

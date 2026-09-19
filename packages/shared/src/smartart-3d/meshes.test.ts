@@ -7,7 +7,7 @@
  * metrics; the point here is the mesh-group bookkeeping, not a rendered
  * glyph), matching `text-texture.test.ts`.
  */
-import { Mesh } from 'three';
+import { DoubleSide, Mesh, MeshBasicMaterial } from 'three';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { SmartArt3DMesh, SmartArt3DModel } from '../render/smartart-3d-types';
@@ -89,6 +89,39 @@ describe('buildMeshGroup', () => {
 		expect(meshCount(built.group)).toBe(1);
 	});
 
+	it('renders the label plane double-sided, so a node facing away from the default camera is still readable', () => {
+		// `cycleSpatial` rotates roughly half of a cycle/radial ring's nodes so
+		// their front face points away from the camera's default position. A
+		// single-sided (default `FrontSide`) material culls the label entirely
+		// for those nodes ("other nodes' labels missing entirely"); the plane
+		// must be double-sided so the caption is visible from either side.
+		const built = buildMeshGroup(model([node({ rotation: { x: 0, y: Math.PI, z: 0 } })]));
+		const labelPlane = built.group.children.find(
+			(c): c is Mesh => c instanceof Mesh && c.material instanceof MeshBasicMaterial,
+		);
+		expect(labelPlane).toBeDefined();
+		const material = labelPlane?.material as MeshBasicMaterial;
+		expect(material.side).toBe(DoubleSide);
+	});
+
+	it('draws the label plane without depth testing, on top of every other node', () => {
+		// `scene.ts`'s render loop billboards every label toward the camera each
+		// frame, which can leave the plane's (block-face-relative) offset behind
+		// part of the extruded geometry from the camera's actual angle - a
+		// depth-tested plane would then be silently clipped even though its
+		// material and rotation are otherwise correct. Skipping the depth test
+		// (and drawing labels in a later render pass via `renderOrder`) keeps
+		// every caption legible regardless of the node's position in the scene.
+		const built = buildMeshGroup(model([node()]));
+		const labelPlane = built.group.children.find(
+			(c): c is Mesh => c instanceof Mesh && c.material instanceof MeshBasicMaterial,
+		);
+		expect(labelPlane).toBeDefined();
+		const material = labelPlane?.material as MeshBasicMaterial;
+		expect(material.depthTest).toBeFalsy();
+		expect(labelPlane?.renderOrder).toBeGreaterThan(0);
+	});
+
 	describe('setTextStyle', () => {
 		it('keeps the same mesh count after applying an emphasis override (label rebuilt, not duplicated)', () => {
 			const built = buildMeshGroup(model([node()]));
@@ -107,6 +140,30 @@ describe('buildMeshGroup', () => {
 			expect(meshCount(built.group)).toBe(2);
 			built.setTextStyle(undefined);
 			expect(meshCount(built.group)).toBe(2);
+		});
+	});
+
+	describe('forEachLabelPlane', () => {
+		it('visits exactly the mounted label planes, skipping textless nodes', () => {
+			const built = buildMeshGroup(model([node({ id: 'a' }), node({ id: 'b', text: '' })]));
+			const visited: Mesh[] = [];
+			built.forEachLabelPlane((plane) => visited.push(plane));
+			expect(visited).toHaveLength(1);
+		});
+
+		it('reflects a plane rebuilt by setTextStyle, not a stale reference', () => {
+			const built = buildMeshGroup(model([node()]));
+			let before: Mesh | undefined;
+			built.forEachLabelPlane((plane) => {
+				before = plane;
+			});
+			built.setTextStyle({ bold: true });
+			let after: Mesh | undefined;
+			built.forEachLabelPlane((plane) => {
+				after = plane;
+			});
+			expect(after).toBeDefined();
+			expect(after).not.toBe(before);
 		});
 	});
 

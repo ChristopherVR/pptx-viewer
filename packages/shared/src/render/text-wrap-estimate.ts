@@ -43,6 +43,21 @@ function estimatedTextWidth(glyphs: readonly string[], fontSize: number): number
 	return glyphs.reduce((sum, glyph) => sum + estimatedGlyphAdvanceRatio(glyph) * fontSize, 0);
 }
 
+/**
+ * Estimate the rendered width of a single line of `text` at `fontSize`,
+ * without a real text-measurement API (see the module doc comment for when
+ * that applies). Used to size layout reservations ahead of render, such as
+ * how much horizontal space a chart must leave for its widest label.
+ *
+ * @param text - The line to measure. Only its own glyphs are considered; this
+ *   does not wrap or split the string.
+ * @param fontSize - Font size used to estimate glyph advances.
+ * @returns The estimated width in the same units as `fontSize`.
+ */
+export function estimateTextWidth(text: string, fontSize: number): number {
+	return estimatedTextWidth(Array.from(text), fontSize);
+}
+
 const HANGING_PUNCTUATION_RE =
 	/^[\u3001\u3002\uff0c\uff0e\uff01\uff1f\uff1b\uff1a\u3009\u300b\u300d\u300f\u3011\u3015\u3017\u3019\u301b\uff09\uff3d\uff5d\u2019\u201d\u00bb\u203a]$/u;
 const BREAKABLE_GLYPH_RE =
