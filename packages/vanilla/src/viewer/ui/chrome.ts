@@ -154,8 +154,12 @@ export interface ViewerChrome {
 			checking: boolean;
 		},
 	): void;
-	/** Replace the compatibility-warning toast stack. */
-	setCompatToasts(toasts: readonly CompatibilityWarningToast[]): void;
+	/**
+	 * Replace the compatibility-warning toast stack. `rightInset` (default 0)
+	 * is the open format/inspector panel's width, so the stack clears it
+	 * instead of rendering under its content; see {@link CompatToastStack.update}.
+	 */
+	setCompatToasts(toasts: readonly CompatibilityWarningToast[], rightInset?: number): void;
 	/** Replace the running-show "Run program" notice stack. */
 	setRunProgramNotices(notices: readonly RunProgramNotice[]): void;
 }
@@ -449,8 +453,8 @@ export function buildViewerChrome(
 		setReadOnlyRecommendation(recommendation, dismissed, passwordState) {
 			readOnlyBanner?.update(recommendation, dismissed, passwordState);
 		},
-		setCompatToasts(toasts) {
-			compatToasts.update(toasts);
+		setCompatToasts(toasts, rightInset) {
+			compatToasts.update(toasts, rightInset);
 		},
 		setRunProgramNotices(notices) {
 			runProgramNotices.update(notices);

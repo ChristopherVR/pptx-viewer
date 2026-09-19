@@ -3,7 +3,7 @@ import type { SmartArt3DModel } from 'pptx-viewer-shared';
 import {
 	buildSmartArt3DModel,
 	collectCoherent3DOffNodeIds,
-	computeSmartArtElementLayout,
+	resolveSmartArt3DLayout,
 	resolvePalette,
 } from 'pptx-viewer-shared';
 import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
@@ -43,7 +43,7 @@ export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, contex
 		return null;
 	}
 	const fallback = renderSmartArtSvg(element, zIndex, context);
-	const model = buildModel(element);
+	const model = buildSmartArt3DElementModel(element);
 	if (!fallback || !model || model.meshes.length === 0) {
 		return fallback;
 	}
@@ -53,7 +53,7 @@ export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, contex
 };
 
 /** Build the pure 3D model from the element's SmartArt data, or `null`. */
-function buildModel(element: PptxElement): SmartArt3DModel | null {
+export function buildSmartArt3DElementModel(element: PptxElement): SmartArt3DModel | null {
 	if (element.type !== 'smartArt') {
 		return null;
 	}
@@ -61,7 +61,7 @@ function buildModel(element: PptxElement): SmartArt3DModel | null {
 	if (!data || data.nodes.length === 0) {
 		return null;
 	}
-	const layout = computeSmartArtElementLayout(
+	const layout = resolveSmartArt3DLayout(
 		data,
 		data.nodes,
 		{ width: element.width, height: element.height },

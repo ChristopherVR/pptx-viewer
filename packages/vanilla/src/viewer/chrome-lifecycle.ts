@@ -1,5 +1,10 @@
 import type { ParsedTableStyleMap, PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
-import { readRibbonTransitionDraft, safeOpenUrl, toggleBlackboard } from 'pptx-viewer-shared';
+import {
+	INSPECTOR_PANEL_DEFAULT_WIDTH,
+	readRibbonTransitionDraft,
+	safeOpenUrl,
+	toggleBlackboard,
+} from 'pptx-viewer-shared';
 import type {
 	PresentationPointerState,
 	PresentationPointerTool,
@@ -225,7 +230,15 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			checking: store.get().readOnlyCheckingPassword,
 		},
 	);
-	chrome.setCompatToasts(store.get().compatToasts);
+	// The stack's right inset clears the format/inspector panel when open: the
+	// viewer root it is anchored to spans the full chrome width including
+	// that panel, so without this it renders under the panel's own content
+	// (it visually overlapped the Properties panel's "Presentation" section)
+	// instead of clear of it.
+	chrome.setCompatToasts(
+		store.get().compatToasts,
+		store.get().inspectorOpen ? INSPECTOR_PANEL_DEFAULT_WIDTH : 0,
+	);
 	chrome.setRunProgramNotices(store.get().runProgramNotices);
 
 	const detachKeyboard = attachKeyboardNavigation(chrome.root, {

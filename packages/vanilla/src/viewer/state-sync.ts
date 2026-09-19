@@ -1,3 +1,5 @@
+import { INSPECTOR_PANEL_DEFAULT_WIDTH } from 'pptx-viewer-shared';
+
 import { getActiveElements } from './editor/editor-active-elements';
 import type { RenderController } from './render-controller';
 import { selectionChangeNeedsStageRender } from './selection-render-trigger';
@@ -161,8 +163,19 @@ export function createStateSync(deps: StateSyncDeps): StoreListener<ViewerState>
 				},
 			);
 		}
-		if (state.compatToasts !== previous.compatToasts) {
-			chrome.setCompatToasts(state.compatToasts);
+		if (
+			state.compatToasts !== previous.compatToasts ||
+			state.inspectorOpen !== previous.inspectorOpen
+		) {
+			// `rightInset` clears the format/inspector panel when open: the
+			// viewer root the stack is anchored to spans the full chrome width
+			// including that panel, so without this it renders under the
+			// panel's own content (it visually overlapped the Properties
+			// panel's "Presentation" section) instead of clear of it.
+			chrome.setCompatToasts(
+				state.compatToasts,
+				state.inspectorOpen ? INSPECTOR_PANEL_DEFAULT_WIDTH : 0,
+			);
 		}
 		if (state.runProgramNotices !== previous.runProgramNotices) {
 			chrome.setRunProgramNotices(state.runProgramNotices);

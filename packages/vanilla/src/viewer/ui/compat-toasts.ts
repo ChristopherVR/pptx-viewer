@@ -15,7 +15,15 @@ import { createIcon } from './icons';
  */
 export interface CompatToastStack {
 	el: HTMLElement;
-	update(toasts: readonly CompatibilityWarningToast[]): void;
+	/**
+	 * `rightInset` (default 0) is the width of whatever right-docked panel
+	 * (currently: the format/inspector) is open: the viewer ROOT this stack
+	 * is appended to spans the FULL chrome width including that panel, so
+	 * without it the stack's `right: 12px` lands under the panel's own
+	 * content instead of clear of it (it rendered on top of, and visually
+	 * inside, the Properties panel).
+	 */
+	update(toasts: readonly CompatibilityWarningToast[], rightInset?: number): void;
 }
 
 const VISIBLE_CAP = 5;
@@ -70,8 +78,9 @@ export function createCompatToastStack(
 
 	return {
 		el,
-		update(toasts) {
+		update(toasts, rightInset = 0) {
 			el.hidden = toasts.length === 0;
+			el.setAttribute('style', compatToastStackStyleAttr(rightInset));
 			list.replaceChildren(...toasts.slice(0, VISIBLE_CAP).map(renderToast));
 			const hiddenCount = toasts.length - VISIBLE_CAP;
 			overflow.hidden = hiddenCount <= 0;

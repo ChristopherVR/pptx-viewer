@@ -90,4 +90,25 @@ describe('compatibility toast stack', () => {
 
 		expect(stack.el.textContent).toContain('pptx.compatibility.generic');
 	});
+
+	// The viewer root the stack is appended to spans the FULL chrome width,
+	// including the format/inspector panel when it is open, so without the
+	// `rightInset` param the stack renders UNDER that panel's own content
+	// (it visually overlapped the Properties panel's "Presentation" section)
+	// instead of clear of it.
+	it('adds rightInset (the open format/inspector panel width) to the right offset', () => {
+		const { stack } = mount();
+
+		stack.update([toast()], 288);
+
+		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`);
+	});
+
+	it('defaults rightInset to 0 when omitted', () => {
+		const { stack } = mount();
+
+		stack.update([toast()]);
+
+		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight)}px`);
+	});
 });
