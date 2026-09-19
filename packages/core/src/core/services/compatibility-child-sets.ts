@@ -79,12 +79,19 @@ export const BLIP_CHILDREN = new Set([
 	'a:extLst',
 ]);
 
+// SmartArt intentionally has NO entry here: parsing, rendering (via the shared
+// layout interpreter), editing of nodes/text/layout/colours, lossless ptLst
+// round-trip, insertable presets and 3D are all fully supported, so warning on
+// every load was actively misleading (the "not editable" claim was false). The
+// one genuine nuance, decks saved without a cached `dsp:drawing` are laid out
+// by the interpreter rather than replayed from PowerPoint's own cached shapes,
+// is a documented, near-imperceptible approximation (226 of 227 COM-authored
+// gallery fixtures reproduce within 1%; see docs/guide/limitations.md and
+// docs/architecture/openxml-conformance.md#smartart-layout-ground-truth), not
+// an unsupported feature, so it does not belong in this per-load compatibility
+// toast.
 export const GRAPHIC_FRAME_LIMITATIONS = {
 	unknown: ['UNSUPPORTED_GRAPHIC_FRAME', 'The graphic-frame payload is preserved but unsupported.'],
-	smartArt: [
-		'PARTIAL_SMARTART_SUPPORT',
-		'SmartArt is parsed and preserved, but some DiagramML behavior is not editable.',
-	],
 	ole: [
 		'PARTIAL_OLE_SUPPORT',
 		'The OLE payload renders as a preview image and can be downloaded or opened in a new tab, but cannot be edited in place.',

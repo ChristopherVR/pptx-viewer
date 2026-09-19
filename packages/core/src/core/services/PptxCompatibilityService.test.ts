@@ -285,12 +285,19 @@ describe('pptxCompatibilityService', () => {
 			svc.inspectMediaReferenceCompatibility('quickTimeFile', 's1', 'e5');
 			svc.inspectSlideSynchronizationCompatibility('s1');
 			expect(svc.getWarnings().map((warning) => warning.code)).toStrictEqual([
-				'PARTIAL_SMARTART_SUPPORT',
 				'UNSUPPORTED_GRAPHIC_FRAME',
 				'LEGACY_AUDIO_CD_REFERENCE',
 				'LEGACY_QUICKTIME_REFERENCE',
 				'SLIDE_SYNCHRONIZATION_METADATA',
 			]);
+			vi.restoreAllMocks();
+		});
+
+		it('does not warn for SmartArt graphic frames: SmartArt is fully supported', () => {
+			const svc = new PptxCompatibilityService();
+			vi.spyOn(console, 'info').mockImplementation(() => {});
+			svc.inspectGraphicFrameCompatibility('smartArt', 's1', 'e1');
+			expect(svc.getWarnings()).toStrictEqual([]);
 			vi.restoreAllMocks();
 		});
 	});
