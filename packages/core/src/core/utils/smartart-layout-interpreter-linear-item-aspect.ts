@@ -8,7 +8,10 @@
  */
 
 import type { PptxSmartArtNode, PptxSmartArtPresLayoutVars } from '../types';
-import { resolveConstraintDeclaredBy } from './smartart-constraint-declared-by';
+import {
+	firstConstraintDeclaredBy,
+	resolveConstraintDeclaredBy,
+} from './smartart-constraint-declared-by';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { roleOf } from './smartart-constraint-solver';
 import { isColumnWrapper } from './smartart-layout-interpreter-item-role-orientation';
@@ -79,6 +82,58 @@ export function itemAspect(
 		return height / width;
 	}
 	return undefined;
+}
+
+/**
+ * The item's CROSS-axis extent, as a literal fraction of the diagram's own
+ * width, for a VERTICAL `lin` arranger only - the counterpart to
+ * {@link itemAspect} for the "Basic Block List"/"Vertical Block List"/
+ * "Pyramid List" family of writer-fabricated (and matching genuine
+ * PowerPoint `list1.xml`-style) definitions:
+ *
+ * ```xml
+ * <dgm:constr type="w" for="ch" forName="node" refType="w"/>
+ * <dgm:constr type="h" for="ch" forName="node" refType="w" refFor="ch" refForName="node" fact="0.3"/>
+ * ```
+ *
+ * i.e. the item's width is declared OUTRIGHT as a fraction of the diagram's
+ * own width (here 1, the whole box), and height is a further fraction OF
+ * that same width. `itemAspect` resolves this same pair down to a single
+ * `h/w` RATIO (0.3) and `arrangeLinear` applies it as `mainExtent * aspect`
+ * - correct for a HORIZONTAL arranger (main axis `w`, cross axis `h`: cross
+ * = main * (h/w)), but wrong for a VERTICAL one: there `mainExtent` is
+ * already the (fitted) HEIGHT, so multiplying it by the SAME h/w fraction
+ * again compounds it, producing a box narrower than tall (measured: a
+ * 600x340 box, 3 nodes, this exact writer definition, gave 29x97 boxes
+ * instead of near-full-width ~584-600 x ~97-104 rows). The item's width was
+ * never meant to be DERIVED from the fitted main-axis height at all - it is
+ * an independent, literal fraction of the box's own width, which this
+ * resolves directly instead.
+ *
+ * Gated on the RAW `h` declaration's own `referenceType` being exactly `w`
+ * (a genuine geometric "height is a fraction of width" relationship) so this
+ * never engages for a role whose "aspect" is actually a `primFontSz`-derived
+ * ratio with no real geometric meaning (`itemAspect`'s own doc comment: e.g.
+ * `vertical-bullet-list--hier5.pptx`'s `parentText`, where the existing
+ * always-multiply-then-clamp-to-`usableCross` behaviour is load-bearing and
+ * must be left alone).
+ */
+export function itemCrossAxisFraction(
+	plan: ArrangementPlan,
+	index: ConstraintIndex,
+): number | undefined {
+	const item = itemNode(plan.node);
+	if (!item) {
+		return undefined;
+	}
+	const role = roleOf(item);
+	const arrangerRole = roleOf(plan.node);
+	const rawHeight = firstConstraintDeclaredBy(index, role, 'h', arrangerRole);
+	if (!rawHeight || rawHeight.referenceType !== 'w') {
+		return undefined;
+	}
+	const width = resolveConstraintDeclaredBy(index, role, 'w', arrangerRole);
+	return typeof width === 'number' && width > 0 ? width : undefined;
 }
 
 /** Order the data nodes for the resolved flow direction. */

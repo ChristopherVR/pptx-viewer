@@ -715,3 +715,128 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 		expect(rootSizePx / PT_TO_PX).toBeCloseTo(27, 0);
 	});
 });
+
+// "Basic Block List" (and the same shape's writer-fabricated `verticalBlockList`
+// /`pyramidList`/`basicPyramid`/`invertedPyramid`/`basicFunnel` siblings):
+// `smartart-fabrication-layouts.ts`'s own `linearLayoutBody(vertical: true, ...)`
+// emits a VERTICAL `lin` whose root declares the item's width as a literal
+// fraction of the diagram's own width (`w refType="w"`, no fact -> 1, i.e.
+// full width) and height as a further fraction OF that width (`h refType="w"
+// refFor="ch" refForName="node" fact="0.3"`). Before this fix, `arrangeLinear`
+// resolved that pair down to a single `h/w` ratio (`itemAspect`) and applied it
+// as `mainExtent * aspect` regardless of orientation - correct only when the
+// main axis is `w` (horizontal); for a VERTICAL arranger `mainExtent` is
+// already the fitted HEIGHT, so multiplying it by the same 0.3 fraction AGAIN
+// squashed a full-width row down to 30% of its own (already too-small) height,
+// instead of a near-full-width row - measured: a 600x340 box, 3 nodes, gave
+// 29x97 boxes instead of full-width ~600x97 rows.
+describe('arrangeLinear vertical item-width-as-diagram-fraction (Basic Block List root constraints)', () => {
+	const vertical: FlowDirection = { orientation: 'vertical', reverse: false };
+
+	/** The EXACT constraint shape `linearLayoutBody(true, ...)` fabricates. */
+	function basicBlockListDefinition(): {
+		plan: ArrangementPlan;
+		index: ReturnType<typeof buildConstraintIndex>;
+	} {
+		const itemNode: PptxSmartArtLayoutNode = { name: 'node' };
+		const spacerNode: PptxSmartArtLayoutNode = { name: 'spacer' };
+		const rootNode: PptxSmartArtLayoutNode = {
+			name: 'diagram',
+			algorithm: { type: 'lin', parameters: [{ type: 'linDir', value: 'fromT' }] },
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'node', referenceType: 'w' },
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'node',
+					referenceType: 'w',
+					referenceFor: 'ch',
+					referenceForName: 'node',
+					factor: 0.3,
+				},
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'spacer',
+					referenceType: 'h',
+					referenceFor: 'ch',
+					referenceForName: 'node',
+					factor: 0.25,
+				},
+			],
+			children: [itemNode, spacerNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		return { plan: { kind: 'linear', node: rootNode }, index: buildConstraintIndex(definition) };
+	}
+
+	it('renders full-width rows (not squashed to a fraction of the fitted height)', () => {
+		const { plan, index } = basicBlockListDefinition();
+		const result = arrangeLinear(
+			plan,
+			vertical,
+			nodes(3),
+			{ width: 600, height: 340 },
+			['#fff'],
+			'flat',
+			'e',
+			index,
+		);
+		expect(result.nodes).toHaveLength(3);
+		for (const rendered of result.nodes) {
+			if (rendered.kind !== 'rect') {
+				throw new Error('expected rect node');
+			}
+			// Full container width, not `height * 0.3` (the pre-fix bug's ~29px).
+			expect(rendered.width).toBeCloseTo(600, 0);
+			expect(rendered.width).toBeGreaterThan(rendered.height);
+		}
+		// The three rows stack top-to-bottom, evenly filling the box height.
+		const heights = result.nodes.map((rendered) =>
+			rendered.kind === 'rect' ? rendered.height : 0,
+		);
+		expect(heights[0]).toBeGreaterThan(80);
+		expect(heights[0]).toBeLessThan(120);
+	});
+
+	it('leaves a HORIZONTAL arranger with the same literal-width-fraction shape unaffected (multiply path still applies)', () => {
+		const horizontal: FlowDirection = { orientation: 'horizontal', reverse: false };
+		const itemNode: PptxSmartArtLayoutNode = { name: 'node' };
+		const rootNode: PptxSmartArtLayoutNode = {
+			name: 'diagram',
+			algorithm: { type: 'lin' },
+			constraints: [
+				{ type: 'w', for: 'ch', forName: 'node', referenceType: 'w', factor: 0.3 },
+				{
+					type: 'h',
+					for: 'ch',
+					forName: 'node',
+					referenceType: 'w',
+					referenceFor: 'ch',
+					referenceForName: 'node',
+					factor: 0.55,
+				},
+			],
+			children: [itemNode],
+		};
+		const definition: PptxSmartArtLayoutDefinition = { rootNode };
+		const index = buildConstraintIndex(definition);
+		const plan: ArrangementPlan = { kind: 'linear', node: rootNode };
+		const result = arrangeLinear(
+			plan,
+			horizontal,
+			nodes(3),
+			{ width: 600, height: 200 },
+			['#fff'],
+			'flat',
+			'e',
+			index,
+		);
+		for (const rendered of result.nodes) {
+			if (rendered.kind !== 'rect') {
+				throw new Error('expected rect node');
+			}
+			expect(rendered.height).toBeCloseTo(rendered.width * 0.55, 1);
+		}
+	});
+});

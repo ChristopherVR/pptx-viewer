@@ -22,7 +22,11 @@ import {
 	isMainAxisContentSized,
 	resolveContentSizedExtents,
 } from './smartart-layout-interpreter-linear-content-size';
-import { itemAspect, ordered } from './smartart-layout-interpreter-linear-item-aspect';
+import {
+	itemAspect,
+	itemCrossAxisFraction,
+	ordered,
+} from './smartart-layout-interpreter-linear-item-aspect';
 import { resolveMainAxisLayout } from './smartart-layout-interpreter-linear-main-axis';
 import { INSET } from './smartart-layout-interpreter-linear-shared';
 import {
@@ -101,6 +105,12 @@ export function arrangeLinear(
 	const horizontal = flow.orientation === 'horizontal';
 	const usableMain = (horizontal ? w : h) - INSET * 2;
 	const usableCross = (horizontal ? h : w) - INSET * 2;
+	// A VERTICAL arranger's item width is, for the "Basic Block List" family
+	// of definitions, an independent literal fraction of the box's own width
+	// (never derived from `mainExtent`, which is already the fitted HEIGHT on
+	// this axis) - see `itemCrossAxisFraction`'s own doc comment for the
+	// measured 29x97-instead-of-full-width regression this resolves.
+	const crossAxisFraction = horizontal ? undefined : itemCrossAxisFraction(plan, index);
 
 	// The between-item gap and each item's own main-axis extent: an explicit
 	// `sibSp`/`sp` ratio wins outright, else a decorative between-item role's
@@ -142,14 +152,16 @@ export function arrangeLinear(
 	// ratio) - only `naturalAspect` (`resolveItemSelfAspect` restricts it to
 	// literal `h refType="w"`/`w refType="h"` constructs) is trusted with the
 	// division.
-	const crossExtent = aspect
-		? Math.min(usableCross, Math.max(12, mainExtent * aspect))
-		: typeof naturalAspect === 'number'
-			? Math.min(
-					usableCross,
-					Math.max(12, mainExtent * (horizontal ? naturalAspect : 1 / naturalAspect)),
-				)
-			: usableCross;
+	const crossExtent = crossAxisFraction
+		? Math.min(usableCross, Math.max(12, usableCross * crossAxisFraction))
+		: aspect
+			? Math.min(usableCross, Math.max(12, mainExtent * aspect))
+			: typeof naturalAspect === 'number'
+				? Math.min(
+						usableCross,
+						Math.max(12, mainExtent * (horizontal ? naturalAspect : 1 / naturalAspect)),
+					)
+				: usableCross;
 	const crossPos = INSET + (usableCross - crossExtent) / 2;
 	const start = INSET + begPad * mainExtent;
 	// Every item shares ONE font size (see `smartart-layout-item-font-size.ts`):
