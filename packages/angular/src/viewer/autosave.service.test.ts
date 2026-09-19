@@ -169,4 +169,26 @@ describe('autosave timer redundancy', () => {
 		await bound.autosave.triggerAutosave();
 		expect(bound.serialize).toHaveBeenCalledTimes(2);
 	});
+
+	it('does not mistake an edit during serialization for an already saved source', async () => {
+		const bound = bind(true);
+		let finish!: (data: Uint8Array) => void;
+		bound.serialize.mockImplementationOnce(
+			() =>
+				new Promise<Uint8Array>((resolve) => {
+					finish = resolve;
+				}),
+		);
+		bound.sources.value = [[{ id: 'before' }]];
+		const pending = bound.autosave.triggerAutosave();
+		bound.sources.value = [[{ id: 'after' }]];
+		finish(new Uint8Array([1]));
+		await pending;
+		expect(saveAutosaveSnapshot).toHaveBeenCalledOnce();
+		await bound.tick();
+		expect(bound.serialize).toHaveBeenCalledTimes(2);
+		expect(saveAutosaveSnapshot).toHaveBeenCalledTimes(2);
+		await bound.tick();
+		expect(bound.serialize).toHaveBeenCalledTimes(2);
+	});
 });
