@@ -29,6 +29,7 @@
 		defaultRichEnabled,
 		handleEditorAnchorClick,
 		insertHyperlinkAtSelection,
+		observeElementHeight,
 		readEditorSegments,
 		resolveNotesSegments,
 		segmentsToEditorHtml,
@@ -37,6 +38,7 @@
 
 	import { useTranslator } from '../../i18n/context';
 	import type { NotesPanelProps } from './props';
+	import { useNotesBarHeightSink } from '../state/notes-bar-height.svelte';
 	import NotesFormattingToolbar from './NotesFormattingToolbar.svelte';
 
 	const { slide, expanded = false, onupdate, ontoggle, notesStyle }: NotesPanelProps = $props();
@@ -53,6 +55,23 @@
 	let rich = $state(defaultRichEnabled());
 	// eslint-disable-next-line prefer-const
 	let editorEl: HTMLDivElement | undefined = $state();
+	// eslint-disable-next-line prefer-const
+	let rootEl: HTMLElement | undefined = $state();
+	const notesBarSink = useNotesBarHeightSink();
+
+	// Report this strip's live height so the compat-toast stack can clear it;
+	// resets to 0 on unmount.
+	$effect(() => {
+		const el = rootEl;
+		if (!el || !notesBarSink) {
+			return undefined;
+		}
+		const stop = observeElementHeight(el, (height) => notesBarSink.report(height));
+		return () => {
+			stop();
+			notesBarSink.report(0);
+		};
+	});
 	let segments: TextSegment[] = [];
 
 	$effect(() => {
@@ -143,7 +162,7 @@
 	}
 </script>
 
-<section class="pptx-svelte-notes-panel" data-collapsed={collapsed}>
+<section class="pptx-svelte-notes-panel" data-collapsed={collapsed} bind:this={rootEl}>
 	<button
 		type="button"
 		class="pptx-svelte-notes-header"

@@ -24,12 +24,20 @@ afterEach(() => {
 function mountToasts(
 	toasts: readonly CompatibilityWarningToast[],
 	rightInset?: number,
+	bottomInset?: number,
 ): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(CompatibilityToasts, {
 		target,
-		props: { toasts, overflowCount: 0, ondismiss: vi.fn(), ondismissall: vi.fn(), rightInset },
+		props: {
+			toasts,
+			overflowCount: 0,
+			ondismiss: vi.fn(),
+			ondismissall: vi.fn(),
+			rightInset,
+			bottomInset,
+		},
 	});
 	flushSync();
 	cleanup = () => {
@@ -58,5 +66,19 @@ describe('svelte compatibilityToasts', () => {
 		const stack = target.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
 		expect(stack.style.right).toBe('300px');
 		expect(stack.style.maxWidth).toBe('calc(100% - 300px)');
+	});
+
+	// The docked "Speaker notes" strip sits between the canvas and the status
+	// bar in the same containing block, so the stack must clear its height.
+	it('adds bottomInset (the measured notes-strip height) to the bottom offset', () => {
+		const bottomOf = (bottomInset?: number): number => {
+			const target = mountToasts([toast], 0, bottomInset);
+			const stack = target.querySelector('[data-testid="pptx-compat-toasts"]') as HTMLElement;
+			const value = Number.parseFloat(stack.style.bottom);
+			cleanup?.();
+			cleanup = undefined;
+			return value;
+		};
+		expect(bottomOf(52)).toBe(bottomOf() + 52);
 	});
 });

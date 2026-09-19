@@ -19,6 +19,7 @@
 	import type { ViewerMode } from 'pptx-viewer-shared';
 
 	import { createTranslator } from '../i18n/translator';
+	import { provideNotesBarHeight } from './state/notes-bar-height.svelte';
 	import AiDock from './components/ai/AiDock.svelte';
 	import CollaborationChrome from './collab/components/CollaborationChrome.svelte';
 	import CompatibilityToasts from './components/CompatibilityToasts.svelte';
@@ -118,6 +119,9 @@
 	// `useIsMobile(768)`) the panel docks full-width/bottom instead of to the
 	// right, so no inset applies there.
 	const compatToastViewport = useWindowViewport();
+	// Live height of the docked notes strip (reported by `NotesPanel`), so the
+	// stack clears it instead of overlapping it; 0 while the strip is absent.
+	const notesBar = provideNotesBarHeight();
 	const compatToastRightInset = $derived(
 		compatToastViewport.width >= 768 && (vm.chromeUi.inspectorOpen || vm.ai.panelOpen)
 			? INSPECTOR_PANEL_DEFAULT_WIDTH
@@ -239,6 +243,7 @@
 			toasts={compatToasts.visibleToasts}
 			overflowCount={compatToasts.overflowCount}
 			rightInset={compatToastRightInset}
+			bottomInset={notesBar.height}
 			ondismiss={(id) => compatToasts.dismiss(id)}
 			ondismissall={() => compatToasts.dismissAll()}
 		/>

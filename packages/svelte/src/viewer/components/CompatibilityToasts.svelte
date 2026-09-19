@@ -37,16 +37,19 @@
 		ondismiss,
 		ondismissall,
 		rightInset = 0,
+		bottomInset = 0,
 	}: {
 		toasts: readonly CompatibilityWarningToast[];
 		overflowCount: number;
 		ondismiss: (id: string) => void;
 		ondismissall: () => void;
 		rightInset?: number;
+		/** Height of the docked notes strip; see `compatToastStackStyle`'s `extraBottomInset`. */
+		bottomInset?: number;
 	} = $props();
 
 	const t = useTranslator();
-	const stackStyle = $derived(compatToastStackStyleAttr(rightInset));
+	const stackStyle = $derived(compatToastStackStyleAttr(rightInset, bottomInset));
 </script>
 
 {#if toasts.length > 0}
