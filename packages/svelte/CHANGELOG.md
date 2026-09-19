@@ -7,6 +7,37 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.1.0) - 2026-09-19
+
+### Features
+
+- **docs:** Sync embedded demo locale with the docs site language (by @ChristopherVR) ([be2b1b2](https://github.com/ChristopherVR/pptx-viewer/commit/be2b1b2f6cd7eeb91642ac4e7cb4b29c8f2e063c))
+- **shared:** Define custom-shell collaboration state (by @Sudhansh6) ([d81c86e](https://github.com/ChristopherVR/pptx-viewer/commit/d81c86e23f856241dd9c116962c571786903cb19))
+- **svelte:** Expose custom-shell collaboration state and overlays (by @Sudhansh6) ([5d1e71d](https://github.com/ChristopherVR/pptx-viewer/commit/5d1e71d62accf3f8973878cddf60a4d353dac38e))
+- **svelte:** Export custom-shell input and result types (by @Sudhansh6) ([5b064e1](https://github.com/ChristopherVR/pptx-viewer/commit/5b064e1cbcddbbef3328daf33229e9c58849f7b1))
+- **shared:** ObserveElementHeight for layout that must clear a resizing strip (by @ChristopherVR) ([f352097](https://github.com/ChristopherVR/pptx-viewer/commit/f3520971e19b757a25b39a70c19870eab79592a9))
+
+### Bug Fixes
+
+- **collaboration:** Preserve paragraph formatting across sync (by @Sudhansh6) ([3c132ee](https://github.com/ChristopherVR/pptx-viewer/commit/3c132ee636c8c248175252a075898f73b0a54f02))
+- **react:** Align custom-shell readiness and presence overlays (by @Sudhansh6) ([a3e4a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a3e4a8ccba985a6870ba13c8c69b8dec97297248))
+- **demos:** Give every custom shell the same localised status readout (by @ChristopherVR) ([a7a2686](https://github.com/ChristopherVR/pptx-viewer/commit/a7a26862b3c4b6186549479933a3a924d821c04a))
+- **core:** Drop the false PARTIAL_SMARTART_SUPPORT warning (by @ChristopherVR) ([7551727](https://github.com/ChristopherVR/pptx-viewer/commit/755172782ff01b7d307df003d5cc88ec4114e871))
+- **core:** Size vertical lin SmartArt rows to full width (by @ChristopherVR) ([bb324ca](https://github.com/ChristopherVR/pptx-viewer/commit/bb324ca0b68b1d8f5081700ffd12de17a9dd3b84))
+- **shared:** 3D SmartArt framing and layout source, chart layout fixes (by @ChristopherVR) ([810ea3c](https://github.com/ChristopherVR/pptx-viewer/commit/810ea3c0f6cb688c78fa9e55e82293e621928352))
+- **shared:** Keep the compatibility toast clear of the inspector panel (by @ChristopherVR) ([820ca64](https://github.com/ChristopherVR/pptx-viewer/commit/820ca648dafd95d363a023fcf8a6f719dd9c4a52))
+- **svelte:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([3d7bbf4](https://github.com/ChristopherVR/pptx-viewer/commit/3d7bbf48a2e35f5964e90a8958ce4dbc401b039a))
+- **svelte:** Keep the compat toast above the notes strip (by @ChristopherVR) ([79fed05](https://github.com/ChristopherVR/pptx-viewer/commit/79fed051d1f3ed15d147b8d5cb8edcc607b10cee))
+- **shared:** Preserve observed native collaborative text edits (by @Sudhansh6) ([77bb797](https://github.com/ChristopherVR/pptx-viewer/commit/77bb7979e55f271310a062f6ee1c5dabc1d72eae))
+- **svelte:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([7972017](https://github.com/ChristopherVR/pptx-viewer/commit/79720178be07d1eb3f628d0421bd20a3f65fc0bd))
+- **svelte:** Retire connected text when its slide changes (by @Sudhansh6) ([38465f0](https://github.com/ChristopherVR/pptx-viewer/commit/38465f0b164d64ee63f3ff43e91bfc498e197e2b))
+- **shared:** Retain pending text when composition restarts (by @Sudhansh6) ([dacd81f](https://github.com/ChristopherVR/pptx-viewer/commit/dacd81f18c8db379683cd7b755a86f09722252c2))
+
+### Performance
+
+- **shared:** Avoid retaining autosave source objects (by @Sudhansh6) ([679c560](https://github.com/ChristopherVR/pptx-viewer/commit/679c560b01a7f86c90caea698f42478531e26b19))
+- **core:** Avoid partial XML names in text-order scans (by @Sudhansh6) ([f6f5871](https://github.com/ChristopherVR/pptx-viewer/commit/f6f587157a6f5ac9b8a79937b12c1e57250660bc))
+
 ## [4.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.0.0) - 2026-09-18
 
 ### Bug Fixes

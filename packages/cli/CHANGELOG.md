@@ -7,6 +7,30 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.0) - 2026-09-19
+
+### Features
+
+- **react:** Wire collaboration into custom editor building blocks (by @Sudhansh6) ([978e2d6](https://github.com/ChristopherVR/pptx-viewer/commit/978e2d6021d82d2dbec3e43925d7c58d1083b0aa))
+
+### Bug Fixes
+
+- **react:** Wait for base content before headless editing (by @Sudhansh6) ([f9afde2](https://github.com/ChristopherVR/pptx-viewer/commit/f9afde24e8f90dea328451d5514a940bcbc731b0))
+- **react:** Stabilize custom-shell collaboration presence (by @Sudhansh6) ([f37fb0e](https://github.com/ChristopherVR/pptx-viewer/commit/f37fb0e591b88b4f445d9c65f8e39d8078154c94))
+- **react:** Align custom-shell readiness and presence overlays (by @Sudhansh6) ([a3e4a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a3e4a8ccba985a6870ba13c8c69b8dec97297248))
+- **demos:** Give every custom shell the same localised status readout (by @ChristopherVR) ([a7a2686](https://github.com/ChristopherVR/pptx-viewer/commit/a7a26862b3c4b6186549479933a3a924d821c04a))
+- **react:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([bde62fa](https://github.com/ChristopherVR/pptx-viewer/commit/bde62fa1c288aacc7884f95624ad8e2dd128454a))
+- **react:** Keep the compat toast above the notes strip (by @ChristopherVR) ([b80cdd9](https://github.com/ChristopherVR/pptx-viewer/commit/b80cdd9558451969d6fdd55e6cfa0166c3ad7353))
+- **react:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([066bc16](https://github.com/ChristopherVR/pptx-viewer/commit/066bc16ef6456ede4be3c6ae130fc6400e638d0c))
+- **react:** Wait for custom shell collaboration readiness (by @Sudhansh6) ([6544173](https://github.com/ChristopherVR/pptx-viewer/commit/65441730f814deb18a4afb2a3ef56b57eff1b3cd))
+- **react:** Retire connected text when its slide changes (by @Sudhansh6) ([c48b714](https://github.com/ChristopherVR/pptx-viewer/commit/c48b71453c602a233ea9d88dcfa989bcef9c13ca))
+
+### Performance
+
+- **react:** Avoid redundant history snapshot cloning (by @Sudhansh6) ([47cd3fd](https://github.com/ChristopherVR/pptx-viewer/commit/47cd3fd1d4084c7d668f4591a29f94d756bb4afd))
+- **react:** Release stale deck captures from persistent callbacks (by @Sudhansh6) ([2769d4b](https://github.com/ChristopherVR/pptx-viewer/commit/2769d4bb0952d60a526dcd8a6dbcae55fe5b1c8d))
+- **shared:** Avoid retaining autosave source objects (by @Sudhansh6) ([679c560](https://github.com/ChristopherVR/pptx-viewer/commit/679c560b01a7f86c90caea698f42478531e26b19))
+
 ## [2.22.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.22.0) - 2026-09-18
 
 ### Features

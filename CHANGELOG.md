@@ -8,6 +8,100 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-19
+
+_Releases: pptx-viewer-core@4.0.1, pptx-react-viewer@4.1.0, pptx-vue-viewer@4.1.0, pptx-angular-viewer@4.1.0, pptx-vanilla-viewer@3.1.0, pptx-svelte-viewer@4.1.0, pptx-viewer-mcp@2.5.5, @christophervr/pptx-viewer@2.23.0_
+
+### Features
+
+- **docs:** Sync embedded demo locale with the docs site language (by @ChristopherVR) ([be2b1b2](https://github.com/ChristopherVR/pptx-viewer/commit/be2b1b2f6cd7eeb91642ac4e7cb4b29c8f2e063c))
+- **react:** Wire collaboration into custom editor building blocks (by @Sudhansh6) ([978e2d6](https://github.com/ChristopherVR/pptx-viewer/commit/978e2d6021d82d2dbec3e43925d7c58d1083b0aa))
+- **shared:** Define custom-shell collaboration state (by @Sudhansh6) ([d81c86e](https://github.com/ChristopherVR/pptx-viewer/commit/d81c86e23f856241dd9c116962c571786903cb19))
+- **vue:** Expose collaboration state for custom editor shells (by @Sudhansh6) ([28967a9](https://github.com/ChristopherVR/pptx-viewer/commit/28967a9033e8cb2fa29d63379522ec3b831c2279))
+- **svelte:** Expose custom-shell collaboration state and overlays (by @Sudhansh6) ([5d1e71d](https://github.com/ChristopherVR/pptx-viewer/commit/5d1e71d62accf3f8973878cddf60a4d353dac38e))
+- **angular:** Compose a public custom collaboration shell (by @Sudhansh6) ([5c86591](https://github.com/ChristopherVR/pptx-viewer/commit/5c8659165abe5e8b057bcb3c175dc4586f83253a))
+- **vanilla:** Expose custom-shell collaboration wiring (by @Sudhansh6) ([bf7fc96](https://github.com/ChristopherVR/pptx-viewer/commit/bf7fc969a45048a847e7ede76b0580897e56e456))
+- **vanilla:** Export custom-shell input and result types (by @Sudhansh6) ([552cdba](https://github.com/ChristopherVR/pptx-viewer/commit/552cdba9ffa86fe56760597a28cdb8f685aa3549))
+- **vue:** Export custom-shell input and result types (by @Sudhansh6) ([7906404](https://github.com/ChristopherVR/pptx-viewer/commit/79064040b5e87990d5cfbd320b7864fbceab4d1b))
+- **svelte:** Export custom-shell input and result types (by @Sudhansh6) ([5b064e1](https://github.com/ChristopherVR/pptx-viewer/commit/5b064e1cbcddbbef3328daf33229e9c58849f7b1))
+- **shared:** ObserveElementHeight for layout that must clear a resizing strip (by @ChristopherVR) ([f352097](https://github.com/ChristopherVR/pptx-viewer/commit/f3520971e19b757a25b39a70c19870eab79592a9))
+
+### Bug Fixes
+
+- **demos:** Default the 3D scenes off under browser automation (by @ChristopherVR) ([34fc6fa](https://github.com/ChristopherVR/pptx-viewer/commit/34fc6fabfc464c5ff8db1460fbd91d345cbbb7dd))
+- **tools:** Follow pptx-viewer-core to ^4.0.0 (by @ChristopherVR) ([3bfc2c6](https://github.com/ChristopherVR/pptx-viewer/commit/3bfc2c6a7be54365a9d4dfe1887b1467fd41045f))
+- **collaboration:** Preserve paragraph formatting across sync (by @Sudhansh6) ([3c132ee](https://github.com/ChristopherVR/pptx-viewer/commit/3c132ee636c8c248175252a075898f73b0a54f02))
+- **react:** Wait for base content before headless editing (by @Sudhansh6) ([f9afde2](https://github.com/ChristopherVR/pptx-viewer/commit/f9afde24e8f90dea328451d5514a940bcbc731b0))
+- **react:** Stabilize custom-shell collaboration presence (by @Sudhansh6) ([f37fb0e](https://github.com/ChristopherVR/pptx-viewer/commit/f37fb0e591b88b4f445d9c65f8e39d8078154c94))
+- **react:** Align custom-shell readiness and presence overlays (by @Sudhansh6) ([a3e4a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a3e4a8ccba985a6870ba13c8c69b8dec97297248))
+- **vue:** Retain active drafts in custom-shell snapshots (by @Sudhansh6) ([3048113](https://github.com/ChristopherVR/pptx-viewer/commit/30481133c94e05bb657222ed23485b9e53fb48e9))
+- **demos:** Give every custom shell the same localised status readout (by @ChristopherVR) ([a7a2686](https://github.com/ChristopherVR/pptx-viewer/commit/a7a26862b3c4b6186549479933a3a924d821c04a))
+- **core:** Drop the false PARTIAL_SMARTART_SUPPORT warning (by @ChristopherVR) ([7551727](https://github.com/ChristopherVR/pptx-viewer/commit/755172782ff01b7d307df003d5cc88ec4114e871))
+- **core:** Size vertical lin SmartArt rows to full width (by @ChristopherVR) ([bb324ca](https://github.com/ChristopherVR/pptx-viewer/commit/bb324ca0b68b1d8f5081700ffd12de17a9dd3b84))
+- **shared:** 3D SmartArt framing and layout source, chart layout fixes (by @ChristopherVR) ([810ea3c](https://github.com/ChristopherVR/pptx-viewer/commit/810ea3c0f6cb688c78fa9e55e82293e621928352))
+- **shared:** Keep the compatibility toast clear of the inspector panel (by @ChristopherVR) ([820ca64](https://github.com/ChristopherVR/pptx-viewer/commit/820ca648dafd95d363a023fcf8a6f719dd9c4a52))
+- **react:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([bde62fa](https://github.com/ChristopherVR/pptx-viewer/commit/bde62fa1c288aacc7884f95624ad8e2dd128454a))
+- **vue:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([5dcba3f](https://github.com/ChristopherVR/pptx-viewer/commit/5dcba3f8d98f05986261367400497dc15c99b127))
+- **angular:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([02f8410](https://github.com/ChristopherVR/pptx-viewer/commit/02f84103959369b32aaa69c1546886bd09f54e68))
+- **svelte:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([3d7bbf4](https://github.com/ChristopherVR/pptx-viewer/commit/3d7bbf48a2e35f5964e90a8958ce4dbc401b039a))
+- **vanilla:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([fe625ab](https://github.com/ChristopherVR/pptx-viewer/commit/fe625ab6b1b465e92c8bf0ee3321812a374413d7))
+- **react:** Keep the compat toast above the notes strip (by @ChristopherVR) ([b80cdd9](https://github.com/ChristopherVR/pptx-viewer/commit/b80cdd9558451969d6fdd55e6cfa0166c3ad7353))
+- **vue:** Keep the compat toast above the notes strip (by @ChristopherVR) ([4284a30](https://github.com/ChristopherVR/pptx-viewer/commit/4284a30b9d0c03741916ad35aa16e1092c41f30b))
+- **angular:** Keep the compat toast above the notes strip (by @ChristopherVR) ([8ace4dd](https://github.com/ChristopherVR/pptx-viewer/commit/8ace4dd692ad646241352d7ecfaac9027c8bfeac))
+- **svelte:** Keep the compat toast above the notes strip (by @ChristopherVR) ([79fed05](https://github.com/ChristopherVR/pptx-viewer/commit/79fed051d1f3ed15d147b8d5cb8edcc607b10cee))
+- **vanilla:** Keep the compat toast above the notes strip (by @ChristopherVR) ([471a409](https://github.com/ChristopherVR/pptx-viewer/commit/471a409acb464a135e9e50bb288566313d77ef34))
+- **shared:** Preserve observed native collaborative text edits (by @Sudhansh6) ([77bb797](https://github.com/ChristopherVR/pptx-viewer/commit/77bb7979e55f271310a062f6ee1c5dabc1d72eae))
+- **react:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([066bc16](https://github.com/ChristopherVR/pptx-viewer/commit/066bc16ef6456ede4be3c6ae130fc6400e638d0c))
+- **vue:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([7cb12fb](https://github.com/ChristopherVR/pptx-viewer/commit/7cb12fb2acad03ab0e616e49d5314df1dbb29b8c))
+- **angular:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([fa7a0c9](https://github.com/ChristopherVR/pptx-viewer/commit/fa7a0c9aa89cbe3abf2d8d9e76c84a1bd7e16135))
+- **svelte:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([7972017](https://github.com/ChristopherVR/pptx-viewer/commit/79720178be07d1eb3f628d0421bd20a3f65fc0bd))
+- **vanilla:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([998f533](https://github.com/ChristopherVR/pptx-viewer/commit/998f533897e47bfe8ff856e8da623b1e6ef2e68a))
+- **vue:** Retire inline edits when the active slide changes (by @Sudhansh6) ([d185fb1](https://github.com/ChristopherVR/pptx-viewer/commit/d185fb17b8f92381cc0a56f0cde4b284337bdab7))
+- **angular:** Retire connected text when its slide changes (by @Sudhansh6) ([931a52e](https://github.com/ChristopherVR/pptx-viewer/commit/931a52e966fe81c2ed87ff3b4ce83e6ab3375217))
+- **react:** Wait for custom shell collaboration readiness (by @Sudhansh6) ([6544173](https://github.com/ChristopherVR/pptx-viewer/commit/65441730f814deb18a4afb2a3ef56b57eff1b3cd))
+- **angular:** Reject custom shell saves during composition (by @Sudhansh6) ([43be891](https://github.com/ChristopherVR/pptx-viewer/commit/43be89168ab1121825779bd825574dc79dab1959))
+- **vue:** Preserve native text in host-owned custom shells (by @Sudhansh6) ([7b4aff3](https://github.com/ChristopherVR/pptx-viewer/commit/7b4aff395f4ece9bb21630de0c4aa1209203b118))
+- **vanilla:** Preserve native text in host-owned custom shells (by @Sudhansh6) ([760d652](https://github.com/ChristopherVR/pptx-viewer/commit/760d6520588d160d4908f9235185d5b0ebad76ec))
+- **react:** Retire connected text when its slide changes (by @Sudhansh6) ([c48b714](https://github.com/ChristopherVR/pptx-viewer/commit/c48b71453c602a233ea9d88dcfa989bcef9c13ca))
+- **svelte:** Retire connected text when its slide changes (by @Sudhansh6) ([38465f0](https://github.com/ChristopherVR/pptx-viewer/commit/38465f0b164d64ee63f3ff43e91bfc498e197e2b))
+- **angular:** Validate inline slide ownership before host saves (by @Sudhansh6) ([38351bd](https://github.com/ChristopherVR/pptx-viewer/commit/38351bd2fc5536bc82cf2eba2746cea5ff53aae4))
+- **shared:** Retain pending text when composition restarts (by @Sudhansh6) ([dacd81f](https://github.com/ChristopherVR/pptx-viewer/commit/dacd81f18c8db379683cd7b755a86f09722252c2))
+
+### Performance
+
+- **react:** Avoid redundant history snapshot cloning (by @Sudhansh6) ([47cd3fd](https://github.com/ChristopherVR/pptx-viewer/commit/47cd3fd1d4084c7d668f4591a29f94d756bb4afd))
+- **react:** Release stale deck captures from persistent callbacks (by @Sudhansh6) ([2769d4b](https://github.com/ChristopherVR/pptx-viewer/commit/2769d4bb0952d60a526dcd8a6dbcae55fe5b1c8d))
+- **shared:** Avoid retaining autosave source objects (by @Sudhansh6) ([679c560](https://github.com/ChristopherVR/pptx-viewer/commit/679c560b01a7f86c90caea698f42478531e26b19))
+- **core:** Avoid partial XML names in text-order scans (by @Sudhansh6) ([f6f5871](https://github.com/ChristopherVR/pptx-viewer/commit/f6f587157a6f5ac9b8a79937b12c1e57250660bc))
+
+### Documentation
+
+- **react:** Clarify custom-shell edit gates and overlays (by @Sudhansh6) ([7563967](https://github.com/ChristopherVR/pptx-viewer/commit/7563967875c50c872289372e223055a69a95909a))
+
+### Testing
+
+- **vanilla:** Avoid file serialization in permission regression (by @Sudhansh6) ([885db7a](https://github.com/ChristopherVR/pptx-viewer/commit/885db7a3b812f0a7f1688b40ffd5467872718c1c))
+- **collaboration:** Exercise public custom shells across bindings (by @Sudhansh6) ([1f62b9b](https://github.com/ChristopherVR/pptx-viewer/commit/1f62b9bce6dace7483777c369cbdac1f5a6521c1))
+- **e2e:** Run custom-shell parity projects for every binding (by @Sudhansh6) ([1f5ebab](https://github.com/ChristopherVR/pptx-viewer/commit/1f5ebabb2efb667b6df3ffe1d219802f148a9495))
+- **collaboration:** Isolate zoom assertions from cursor throttling (by @Sudhansh6) ([150c310](https://github.com/ChristopherVR/pptx-viewer/commit/150c310981c5db4f6bd32e8054a2ba8ff50648e9))
+- **collaboration:** Wait for custom-shell edit readiness (by @Sudhansh6) ([e5b1e45](https://github.com/ChristopherVR/pptx-viewer/commit/e5b1e45f7fde802238f82281f26d7506fbdef609))
+- **collaboration:** Await readiness before editable scenarios (by @Sudhansh6) ([a40f528](https://github.com/ChristopherVR/pptx-viewer/commit/a40f5280d6ee66bc65463562255f9ce4d09b3992))
+- **e2e:** Widen the issue-132 deck load wait (by @ChristopherVR) ([f8466f3](https://github.com/ChristopherVR/pptx-viewer/commit/f8466f312a3b002d717f484d634bdc32ed30e02e))
+- **e2e:** Cover inserted bar-chart labels, 3D list SmartArt, fix chart-gallery anchor (by @ChristopherVR) ([2b4e10a](https://github.com/ChristopherVR/pptx-viewer/commit/2b4e10a1090b4fa8d3a0c672634b7ddfd6f4604c))
+- **e2e:** Compat toast clears the Properties panel and the notes strip (by @ChristopherVR) ([63d81cb](https://github.com/ChristopherVR/pptx-viewer/commit/63d81cb7d936539ae0f97f0973d9151b67778722))
+- **e2e:** Refresh fixtures stale since shape ids became per-slide (by @ChristopherVR) ([bf3a5f0](https://github.com/ChristopherVR/pptx-viewer/commit/bf3a5f0170d1c1b74f3e927ac2886e26853c234c))
+- **e2e:** Make the OLE preview PNG byte-identical under Bun and Node (by @ChristopherVR) ([e025085](https://github.com/ChristopherVR/pptx-viewer/commit/e0250854539541d6984a1c2d118c882a7cb81b9c))
+- **collaboration:** Cover connected typing and pending snapshots (by @Sudhansh6) ([fc2cf35](https://github.com/ChristopherVR/pptx-viewer/commit/fc2cf3516337ccb45a91dfddfa4ce3257f562b4d))
+- **collaboration:** Exercise native edits in custom shells (by @Sudhansh6) ([686dbf7](https://github.com/ChristopherVR/pptx-viewer/commit/686dbf79b5842f9b78e0a5aed3be7d0c31de1ffe))
+- **vue:** Resolve custom shell root imports from source (by @Sudhansh6) ([4b28f34](https://github.com/ChristopherVR/pptx-viewer/commit/4b28f34915358f4e369a12aeb1588b493660a44f))
+- **vanilla:** Declare the demo regression test dependency (by @Sudhansh6) ([e3a3eb6](https://github.com/ChristopherVR/pptx-viewer/commit/e3a3eb6ca69ad6701ef83ba6f14bf09b75283cea))
+- **collaboration:** Specify native composition replacement range (by @Sudhansh6) ([e16758c](https://github.com/ChristopherVR/pptx-viewer/commit/e16758cb756011222a483a4bb0cb08486c9cdcb2))
+
+### Styling
+
+- **docs:** Format the vanilla custom-shell import (by @Sudhansh6) ([0131ec0](https://github.com/ChristopherVR/pptx-viewer/commit/0131ec0e2d0905962dbc60045e827ebe0cf15a16))
+- **vanilla:** Format host-owned inline editor example (by @Sudhansh6) ([d3e245c](https://github.com/ChristopherVR/pptx-viewer/commit/d3e245c49c2fdeb5a655c432e4302f1e19a8cdac))
+
 ## 2026-09-18
 
 _Releases: pptx-viewer-core@4.0.0, pptx-react-viewer@4.0.0, pptx-vue-viewer@4.0.0, pptx-angular-viewer@4.0.0, pptx-vanilla-viewer@3.0.0, pptx-svelte-viewer@4.0.0, pptx-viewer-mcp@2.5.4, @christophervr/pptx-viewer@2.22.0_

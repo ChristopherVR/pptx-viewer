@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.0.1) - 2026-09-19
+
+### Bug Fixes
+
+- **core:** Drop the false PARTIAL_SMARTART_SUPPORT warning (by @ChristopherVR) ([7551727](https://github.com/ChristopherVR/pptx-viewer/commit/755172782ff01b7d307df003d5cc88ec4114e871))
+- **core:** Size vertical lin SmartArt rows to full width (by @ChristopherVR) ([bb324ca](https://github.com/ChristopherVR/pptx-viewer/commit/bb324ca0b68b1d8f5081700ffd12de17a9dd3b84))
+
+### Performance
+
+- **core:** Avoid partial XML names in text-order scans (by @Sudhansh6) ([f6f5871](https://github.com/ChristopherVR/pptx-viewer/commit/f6f587157a6f5ac9b8a79937b12c1e57250660bc))
+
 ## [4.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.0.0) - 2026-09-18
 
 ### Bug Fixes

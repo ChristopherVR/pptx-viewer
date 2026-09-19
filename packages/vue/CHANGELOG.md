@@ -7,6 +7,43 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.1.0) - 2026-09-19
+
+### Features
+
+- **docs:** Sync embedded demo locale with the docs site language (by @ChristopherVR) ([be2b1b2](https://github.com/ChristopherVR/pptx-viewer/commit/be2b1b2f6cd7eeb91642ac4e7cb4b29c8f2e063c))
+- **shared:** Define custom-shell collaboration state (by @Sudhansh6) ([d81c86e](https://github.com/ChristopherVR/pptx-viewer/commit/d81c86e23f856241dd9c116962c571786903cb19))
+- **vue:** Expose collaboration state for custom editor shells (by @Sudhansh6) ([28967a9](https://github.com/ChristopherVR/pptx-viewer/commit/28967a9033e8cb2fa29d63379522ec3b831c2279))
+- **vue:** Export custom-shell input and result types (by @Sudhansh6) ([7906404](https://github.com/ChristopherVR/pptx-viewer/commit/79064040b5e87990d5cfbd320b7864fbceab4d1b))
+- **shared:** ObserveElementHeight for layout that must clear a resizing strip (by @ChristopherVR) ([f352097](https://github.com/ChristopherVR/pptx-viewer/commit/f3520971e19b757a25b39a70c19870eab79592a9))
+
+### Bug Fixes
+
+- **collaboration:** Preserve paragraph formatting across sync (by @Sudhansh6) ([3c132ee](https://github.com/ChristopherVR/pptx-viewer/commit/3c132ee636c8c248175252a075898f73b0a54f02))
+- **react:** Align custom-shell readiness and presence overlays (by @Sudhansh6) ([a3e4a8c](https://github.com/ChristopherVR/pptx-viewer/commit/a3e4a8ccba985a6870ba13c8c69b8dec97297248))
+- **vue:** Retain active drafts in custom-shell snapshots (by @Sudhansh6) ([3048113](https://github.com/ChristopherVR/pptx-viewer/commit/30481133c94e05bb657222ed23485b9e53fb48e9))
+- **demos:** Give every custom shell the same localised status readout (by @ChristopherVR) ([a7a2686](https://github.com/ChristopherVR/pptx-viewer/commit/a7a26862b3c4b6186549479933a3a924d821c04a))
+- **core:** Drop the false PARTIAL_SMARTART_SUPPORT warning (by @ChristopherVR) ([7551727](https://github.com/ChristopherVR/pptx-viewer/commit/755172782ff01b7d307df003d5cc88ec4114e871))
+- **core:** Size vertical lin SmartArt rows to full width (by @ChristopherVR) ([bb324ca](https://github.com/ChristopherVR/pptx-viewer/commit/bb324ca0b68b1d8f5081700ffd12de17a9dd3b84))
+- **shared:** 3D SmartArt framing and layout source, chart layout fixes (by @ChristopherVR) ([810ea3c](https://github.com/ChristopherVR/pptx-viewer/commit/810ea3c0f6cb688c78fa9e55e82293e621928352))
+- **shared:** Keep the compatibility toast clear of the inspector panel (by @ChristopherVR) ([820ca64](https://github.com/ChristopherVR/pptx-viewer/commit/820ca648dafd95d363a023fcf8a6f719dd9c4a52))
+- **vue:** Keep the compat toast off the panel, 3D SmartArt uses cached drawing (by @ChristopherVR) ([5dcba3f](https://github.com/ChristopherVR/pptx-viewer/commit/5dcba3f8d98f05986261367400497dc15c99b127))
+- **vue:** Keep the compat toast above the notes strip (by @ChristopherVR) ([4284a30](https://github.com/ChristopherVR/pptx-viewer/commit/4284a30b9d0c03741916ad35aa16e1092c41f30b))
+- **shared:** Preserve observed native collaborative text edits (by @Sudhansh6) ([77bb797](https://github.com/ChristopherVR/pptx-viewer/commit/77bb7979e55f271310a062f6ee1c5dabc1d72eae))
+- **vue:** Bind inline editing to native collaborative sessions (by @Sudhansh6) ([7cb12fb](https://github.com/ChristopherVR/pptx-viewer/commit/7cb12fb2acad03ab0e616e49d5314df1dbb29b8c))
+- **vue:** Retire inline edits when the active slide changes (by @Sudhansh6) ([d185fb1](https://github.com/ChristopherVR/pptx-viewer/commit/d185fb17b8f92381cc0a56f0cde4b284337bdab7))
+- **vue:** Preserve native text in host-owned custom shells (by @Sudhansh6) ([7b4aff3](https://github.com/ChristopherVR/pptx-viewer/commit/7b4aff395f4ece9bb21630de0c4aa1209203b118))
+- **shared:** Retain pending text when composition restarts (by @Sudhansh6) ([dacd81f](https://github.com/ChristopherVR/pptx-viewer/commit/dacd81f18c8db379683cd7b755a86f09722252c2))
+
+### Performance
+
+- **shared:** Avoid retaining autosave source objects (by @Sudhansh6) ([679c560](https://github.com/ChristopherVR/pptx-viewer/commit/679c560b01a7f86c90caea698f42478531e26b19))
+- **core:** Avoid partial XML names in text-order scans (by @Sudhansh6) ([f6f5871](https://github.com/ChristopherVR/pptx-viewer/commit/f6f587157a6f5ac9b8a79937b12c1e57250660bc))
+
+### Testing
+
+- **vue:** Resolve custom shell root imports from source (by @Sudhansh6) ([4b28f34](https://github.com/ChristopherVR/pptx-viewer/commit/4b28f34915358f4e369a12aeb1588b493660a44f))
+
 ## [4.0.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.0.0) - 2026-09-18
 
 ### Bug Fixes
