@@ -236,6 +236,48 @@ test.describe('3D SmartArt (smartArt3D opt-in)', () => {
 		expect(pageErrors, `unexpected page errors: ${pageErrors.join('; ')}`).toHaveLength(0);
 	});
 
+	/**
+	 * Regression coverage for the reported "list SmartArt renders far smaller
+	 * than its frame" defect: `contentSphere` (`packages/shared/src/smartart-3d/scene.ts`)
+	 * previously inflated a flat/wide node's world-space bounding radius by
+	 * conflating its footprint with its (much smaller) extrusion depth on
+	 * every axis, pushing the fit-to-frame camera much farther back than the
+	 * content warranted. This does not pixel-sample the WebGL canvas (the
+	 * renderer has no `preserveDrawingBuffer`, so a readback race against the
+	 * render loop would be flaky - see this project's own caution around
+	 * real-time capture e2e tests); it asserts the canvas element itself
+	 * mounts at a real size, matching the existing Cycle/Hierarchy coverage's
+	 * level of assurance. The actual framing math is covered precisely by
+	 * `packages/shared/src/smartart-3d/scene.test.ts`'s `contentSphere` unit
+	 * tests (including a worked numeric example modelled on this exact
+	 * defect).
+	 */
+	test('mounts the WebGL canvas for a List-layout SmartArt', async ({ page }) => {
+		requireWebGL();
+
+		const pageErrors: string[] = [];
+		page.on('pageerror', (err) => pageErrors.push(String(err)));
+
+		await loadDeck(page, { threeD: true });
+		const before = await elementIds(page);
+
+		await openSmartArtDialog(page);
+		await insertFirstPresetInCategory(page, /^List$/iu);
+
+		const after = await elementIds(page);
+		const id = newElementId(before, after);
+
+		const canvas = elementInViewport(page, id).locator('canvas');
+		await expect(canvas).toBeVisible({ timeout: 5000 });
+
+		const box = await canvas.boundingBox();
+		expect(box).not.toBeNull();
+		expect(box!.width).toBeGreaterThan(0);
+		expect(box!.height).toBeGreaterThan(0);
+
+		expect(pageErrors, `unexpected page errors: ${pageErrors.join('; ')}`).toHaveLength(0);
+	});
+
 	test('mounts the WebGL canvas for a Hierarchy-layout SmartArt', async ({ page }) => {
 		requireWebGL();
 

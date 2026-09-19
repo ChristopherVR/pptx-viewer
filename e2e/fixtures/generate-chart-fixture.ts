@@ -349,9 +349,37 @@ function addContentTypeOverride(ctXml: string, partName: string, contentType: st
 	return ctXml.replace('</Types>', `${override}</Types>`);
 }
 
+/**
+ * Below every chart frame (`chartGraphicFrameXml`: `y = 60`, `cy = 420`, so
+ * the frame spans y 60-480 of the 1280x720px slide), clear of its plot area.
+ */
+const ANCHOR_Y = 500;
+/**
+ * Wide enough that `slide.title` (<= 20 chars, the longest is "Percent Stacked
+ * Bar") lays out on one line at the SDK's default text size instead of
+ * wrapping. A narrow box wrapping vertically, one glyph per line, is not a
+ * rendering bug: it is the genuinely-correct OOXML result of authoring a
+ * `wrap="square"` text box narrower than a single glyph (which the anchor
+ * used to be, at 1x1px). It only ever looked like a broken chart title
+ * because the anchor used to sit at the slide origin (0,0), a few px from
+ * where the real chart frame starts (60,60), so its vertical glyph stack
+ * visually bled into the chart's own title/plot area.
+ */
+const ANCHOR_WIDTH = 320;
+const ANCHOR_HEIGHT = 30;
+
 export async function generateChartFixture(): Promise<string> {
 	// 1. Build a valid base deck skeleton: one slide per chart, each with a tiny
 	//    anchor shape so the engine emits proper slide + .rels parts.
+	//
+	// The anchor exists only so `PptxHandler.createBlank`'s save pipeline emits
+	// a real slide part + `.rels` skeleton (see the module doc); it carries
+	// `slide.title` as its text so `titleAnchor()` below can find it by
+	// content, and `chartElement()` tells it apart from the real chart canvas
+	// by bounding-box area (a few thousand px^2 vs. the chart's ~350,000).
+	// It is positioned below the chart frame, comfortably clear of it, so it
+	// never visually overlaps the chart's own (correctly-rendered) title or
+	// plot area.
 	const { handler, data, createSlide } = await PptxHandler.createBlank({
 		title: 'Chart Gallery Fixture',
 		initialSlideCount: 0,
@@ -361,9 +389,9 @@ export async function generateChartFixture(): Promise<string> {
 			createSlide('Blank')
 				.addShape('rect', {
 					x: 0,
-					y: 0,
-					width: 1,
-					height: 1,
+					y: ANCHOR_Y,
+					width: ANCHOR_WIDTH,
+					height: ANCHOR_HEIGHT,
 					fill: { type: 'none' },
 					text: slide.title,
 				})
