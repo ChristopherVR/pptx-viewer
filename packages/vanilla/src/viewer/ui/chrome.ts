@@ -6,6 +6,7 @@ import type {
 	RunProgramNotice,
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
+import { observeElementHeight } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -369,6 +370,10 @@ export function buildViewerChrome(
 		() => options.onDismissAllCompatToasts(),
 	);
 	root.appendChild(compatToasts.el);
+	// The notes strip is docked between the canvas and the status bar, so the
+	// stack has to clear its live height (it grows when the pane expands and
+	// reads 0 while hidden, e.g. presenting or on mobile).
+	observeElementHeight(notes.el, (height) => compatToasts.setBottomInset(height));
 
 	// "Run program" notices for a running show; same anchor as the compat
 	// toasts (the two never compete for the same screen: compat toasts are

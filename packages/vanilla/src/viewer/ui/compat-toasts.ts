@@ -24,6 +24,13 @@ export interface CompatToastStack {
 	 * inside, the Properties panel).
 	 */
 	update(toasts: readonly CompatibilityWarningToast[], rightInset?: number): void;
+	/**
+	 * Height (px) of the docked "Speaker notes" strip, which sits between the
+	 * canvas and the status bar in the same containing block: without it the
+	 * stack's bottom inset only clears the status bar and the stack overlaps
+	 * the strip. Re-styles the stack in place; `0` when the strip is hidden.
+	 */
+	setBottomInset(bottomInset: number): void;
 }
 
 const VISIBLE_CAP = 5;
@@ -41,6 +48,11 @@ export function createCompatToastStack(
 	// same containing block the dialogs use), bottom-inset above the status
 	// bar so a toast never covers the "Slide show" button.
 	el.setAttribute('style', compatToastStackStyleAttr());
+	let rightInset = 0;
+	let bottomInset = 0;
+	const restyle = (): void => {
+		el.setAttribute('style', compatToastStackStyleAttr(rightInset, bottomInset));
+	};
 	el.setAttribute('role', 'region');
 	el.setAttribute('aria-label', t('pptx.compatibility.toastTitle'));
 	const list = createEl(doc, 'div', 'pptxv-compat-toasts-list');
@@ -78,9 +90,14 @@ export function createCompatToastStack(
 
 	return {
 		el,
-		update(toasts, rightInset = 0) {
+		setBottomInset(next) {
+			bottomInset = next;
+			restyle();
+		},
+		update(toasts, nextRightInset = 0) {
 			el.hidden = toasts.length === 0;
-			el.setAttribute('style', compatToastStackStyleAttr(rightInset));
+			rightInset = nextRightInset;
+			restyle();
 			list.replaceChildren(...toasts.slice(0, VISIBLE_CAP).map(renderToast));
 			const hiddenCount = toasts.length - VISIBLE_CAP;
 			overflow.hidden = hiddenCount <= 0;

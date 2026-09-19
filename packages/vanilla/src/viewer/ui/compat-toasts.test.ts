@@ -111,4 +111,30 @@ describe('compatibility toast stack', () => {
 
 		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight)}px`);
 	});
+
+	// The docked "Speaker notes" strip sits between the canvas and the status
+	// bar in the same containing block, so the stack must clear its height.
+	it('adds the measured notes-strip height to the bottom offset', () => {
+		const { stack } = mount();
+
+		stack.setBottomInset(52);
+
+		expect(stack.el.style.bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar + 52)}px`,
+		);
+	});
+
+	it('keeps the right and bottom insets independent across updates', () => {
+		const { stack } = mount();
+
+		stack.setBottomInset(52);
+		stack.update([toast()], 288);
+		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`);
+		expect(stack.el.style.bottom).toBe(
+			`${String(STATUS_BAR_METRICS.height + COMPAT_TOAST_METRICS.marginAboveStatusBar + 52)}px`,
+		);
+
+		stack.setBottomInset(0);
+		expect(stack.el.style.right).toBe(`${String(COMPAT_TOAST_METRICS.insetRight + 288)}px`);
+	});
 });
