@@ -38,7 +38,6 @@ import { mkdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { deflateSync } from 'node:zlib';
 
 import type JSZipType from 'jszip';
 import { PptxHandler } from 'pptx-viewer-core';
@@ -125,6 +124,44 @@ function pngChunk(type: string, data: Uint8Array): Uint8Array {
 	return out;
 }
 
+/**
+ * zlib stream of `data` made only of "stored" (uncompressed) DEFLATE blocks.
+ *
+ * Written by hand rather than via `node:zlib` because the fixture bytes must
+ * not depend on the runtime: Playwright's global-setup runs under Node while
+ * a hand run is often Bun, and the two `deflateSync` builds emit different
+ * streams for the same input (different compressed data at the default level,
+ * and even a different BFINAL/empty-block layout at level 0). That made
+ * ole-embed.pptx flip between two byte-different files and show up as modified
+ * in git. A stored stream has exactly one valid encoding, so it cannot.
+ */
+function zlibStored(data: Uint8Array): Uint8Array {
+	const MAX_BLOCK = 0xffff;
+	const blocks = Math.max(1, Math.ceil(data.length / MAX_BLOCK));
+	const out = new Uint8Array(2 + data.length + blocks * 5 + 4);
+	out[0] = 0x78; // CMF: deflate, 32K window
+	out[1] = 0x01; // FLG: no dictionary, fastest (FCHECK makes 0x7801 % 31 === 0)
+	let pos = 2;
+	for (let i = 0; i < blocks; i++) {
+		const chunk = data.subarray(i * MAX_BLOCK, (i + 1) * MAX_BLOCK);
+		out[pos++] = i === blocks - 1 ? 1 : 0; // BFINAL, BTYPE = 00 (stored)
+		out[pos++] = chunk.length & 0xff;
+		out[pos++] = chunk.length >>> 8;
+		out[pos++] = ~chunk.length & 0xff;
+		out[pos++] = (~chunk.length >>> 8) & 0xff;
+		out.set(chunk, pos);
+		pos += chunk.length;
+	}
+	let a = 1;
+	let b = 0;
+	for (const byte of data) {
+		a = (a + byte) % 65521;
+		b = (b + a) % 65521;
+	}
+	new DataView(out.buffer).setUint32(pos, ((b << 16) | a) >>> 0, false);
+	return out;
+}
+
 /** Build a real, valid solid-colour RGB PNG (8-bit, no interlace). */
 function buildMinimalPng(width: number, height: number, rgb: [number, number, number]): Uint8Array {
 	const signature = new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10]);
@@ -150,7 +187,7 @@ function buildMinimalPng(width: number, height: number, rgb: [number, number, nu
 			raw[off + 2] = rgb[2];
 		}
 	}
-	const idat = deflateSync(raw);
+	const idat = zlibStored(raw);
 
 	const parts = [
 		signature,
