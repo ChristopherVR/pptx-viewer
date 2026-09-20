@@ -13,8 +13,8 @@ import {
  * and never once offered one back, so the whole feature was invisible: the user
  * lost a tab mid-edit, reopened the deck, and silently got the pre-crash work
  * thrown away. Every decision (is it worth probing, is the snapshot fresh
- * enough, has this tab already taken delivery of it, what should the prompt
- * say) lives in `pptx-viewer-shared`'s `render/autosave-recovery` so all five
+ * enough, what should the prompt say) lives in `pptx-viewer-shared`'s
+ * `render/autosave-recovery` so all five
  * bindings ask the same questions in the same order; this class is only the
  * runes wiring plus the two actions.
  *
@@ -50,12 +50,18 @@ export class AutosaveRecoveryController {
 	#record: AutosaveRecord | null = null;
 	/** `getLoadCount()` value the probe already ran for; -1 means "never". */
 	#checkedLoadCount = -1;
+	/** Prevent the restore action's own load from immediately reopening its dialog. */
+	#restoring = false;
 
 	constructor(deps: AutosaveRecoveryDeps) {
 		this.#deps = deps;
 		$effect(() => {
 			const loadCount = deps.getLoadCount();
 			const filePath = deps.getFilePath();
+			if (this.#restoring) {
+				this.#checkedLoadCount = loadCount;
+				return;
+			}
 			const probe = shouldProbeAutosaveRecovery({
 				alreadyChecked: this.#checkedLoadCount === loadCount,
 				filePath,
@@ -83,14 +89,20 @@ export class AutosaveRecoveryController {
 		this.#record = offer?.record ?? null;
 	}
 
-	/** Take the snapshot: mark it consumed, then load its bytes in place. */
+	/** Take the snapshot and load its bytes in place without deleting it. */
 	async restore(): Promise<void> {
 		const record = this.#record;
 		this.dismiss();
 		if (!record) {
 			return;
 		}
-		await this.#deps.load(acceptAutosaveRecovery(record));
+		this.#restoring = true;
+		try {
+			await this.#deps.load(acceptAutosaveRecovery(record));
+		} finally {
+			this.#checkedLoadCount = this.#deps.getLoadCount();
+			this.#restoring = false;
+		}
 	}
 
 	/** Decline the snapshot: delete it, and never load it. */

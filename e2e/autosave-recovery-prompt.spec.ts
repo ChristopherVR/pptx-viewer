@@ -40,9 +40,8 @@ import {
  * Not `loadDeck`: that also drops the shared autosave store, because a spec that
  * reloads a deck would otherwise meet a modal left by its own earlier run (see
  * `resetTabSession`). Here the snapshot is the whole point, so only the
- * `sessionStorage` half is cleared: that is what makes the load land on the
- * landing dropzone AND drops the per-tab "already consumed this snapshot"
- * marker, which is precisely the state a crashed-and-reopened tab is in.
+ * `sessionStorage` half is cleared. That makes the load land on the landing
+ * dropzone while preserving the snapshot in IndexedDB.
  */
 async function reopenDeckKeepingSnapshot(page: Page): Promise<void> {
 	await page.evaluate(() => {
@@ -184,6 +183,18 @@ test.describe('crash-recovery prompt', () => {
 		await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
 		await expect(slideElements(page).first()).toBeVisible({ timeout: 60_000 });
 		await expect(page.locator('[data-testid="dropzone"]')).toHaveCount(0);
+
+		// Restore is non-destructive. Until the user explicitly discards the
+		// snapshot, another reload must still offer it instead of silently marking
+		// it consumed for this tab.
+		await page.reload();
+		await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
+		await expect(recoveryDialog(page)).toBeVisible({ timeout: 30_000 });
+		await recoveryDialog(page)
+			.getByRole('button', { name: /^discard$/iu })
+			.click();
+		await expect(recoveryDialog(page)).toHaveCount(0);
+		expect(await countSnapshots(page)).toBe(0);
 	});
 
 	test('Discard drops the snapshot instead of loading it', async ({ page }) => {

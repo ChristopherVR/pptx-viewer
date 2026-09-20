@@ -1,21 +1,17 @@
 /**
  * @vitest-environment jsdom
  *
- * jsdom for the one `sessionStorage`-backed helper: the consumed marker is what
- * keeps the demo apps' own restore from raising a dialog about the bytes it
- * just handed the viewer, so it is worth asserting against a real storage.
+ * jsdom supplies the browser storage globals used by the recovery flow.
  */
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
 	acceptAutosaveRecovery,
 	AUTOSAVE_RECOVERY_WINDOW_MS,
 	autosaveRecoveryPrompt,
-	consumedAutosaveSnapshotTimestamp,
 	discardAutosaveRecovery,
 	formatSnapshotSize,
-	markAutosaveSnapshotConsumed,
 	probeAutosaveRecovery,
 	shouldProbeAutosaveRecovery,
 	shouldShowAutosaveRecoveryPrompt,
@@ -75,20 +71,6 @@ describe('autosaveRecoveryPrompt', () => {
 		expect(autosaveRecoveryPrompt({ record: stale, now: NOW })).toBeNull();
 	});
 
-	/**
-	 * The demo apps restore a newer snapshot themselves on reload
-	 * (`restoreSessionDeck`), so without this the viewer would raise a dialog
-	 * offering to recover the exact bytes already on screen.
-	 */
-	it('stays silent about a snapshot this tab has already taken delivery of', () => {
-		expect(
-			autosaveRecoveryPrompt({ record, now: NOW, consumedTimestamp: record.timestamp }),
-		).toBeNull();
-		expect(
-			autosaveRecoveryPrompt({ record, now: NOW, consumedTimestamp: record.timestamp - 1 }),
-		).not.toBeNull();
-	});
-
 	it('switches to hours once minutes stop being useful', () => {
 		const old = { ...record, timestamp: NOW - 200 * 60_000 };
 		const prompt = autosaveRecoveryPrompt({ record: old, now: NOW });
@@ -131,23 +113,6 @@ describe('formatSnapshotSize', () => {
 	});
 });
 
-describe('the consumed marker', () => {
-	afterEach(() => {
-		try {
-			sessionStorage.clear();
-		} catch {
-			// jsdom always has it; a bare node env does not, and the getter copes.
-		}
-	});
-
-	it('keeps the newest timestamp and never moves backwards', () => {
-		markAutosaveSnapshotConsumed(NOW);
-		expect(consumedAutosaveSnapshotTimestamp()).toBe(NOW);
-		markAutosaveSnapshotConsumed(NOW - 10_000);
-		expect(consumedAutosaveSnapshotTimestamp()).toBe(NOW);
-	});
-});
-
 /**
  * The whole point of the feature, against a real store: a snapshot written by
  * the autosave engine is found again, offered, and either loaded or dropped.
@@ -163,7 +128,6 @@ describe('probeAutosaveRecovery against a real store', () => {
 	beforeEach(() => {
 		g.indexedDB = new IDBFactory();
 		g.IDBKeyRange = IDBKeyRange;
-		sessionStorage.clear();
 	});
 
 	it('offers back the bytes the autosave engine wrote', async () => {
@@ -175,12 +139,28 @@ describe('probeAutosaveRecovery against a real store', () => {
 		expect(Array.from(acceptAutosaveRecovery(offer!.record))).toStrictEqual(Array.from(bytes));
 	});
 
-	it('stops offering a snapshot once this tab has accepted it', async () => {
+	it('keeps an accepted snapshot recoverable until it is explicitly discarded', async () => {
 		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
 		const offer = await probeAutosaveRecovery('deck.pptx');
 		acceptAutosaveRecovery(offer!.record);
-		expect(consumedAutosaveSnapshotTimestamp()).toBe(offer!.record.timestamp);
-		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toBeNull();
+		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toMatchObject({
+			record: { key: 'deck.pptx' },
+		});
+	});
+
+	it('does not let accepting a newer deck suppress an older deck', async () => {
+		await saveAutosaveSnapshot('older.pptx', new Uint8Array([1, 2, 3, 4]));
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 2);
+		});
+		await saveAutosaveSnapshot('newer.pptx', new Uint8Array([5, 6, 7, 8]));
+
+		const newer = await probeAutosaveRecovery('newer.pptx');
+		acceptAutosaveRecovery(newer!.record);
+
+		await expect(probeAutosaveRecovery('older.pptx')).resolves.toMatchObject({
+			record: { key: 'older.pptx' },
+		});
 	});
 
 	it('deletes the snapshot when the user discards it', async () => {

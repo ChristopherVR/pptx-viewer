@@ -13,21 +13,6 @@
  * questions in the same order, and each binding does nothing but render the
  * descriptor as its own dialog.
  *
- * ## Why a "consumed" marker exists
- *
- * A host can restore the snapshot itself: `restoreSessionDeck` prefers a newer
- * autosave snapshot over the bytes a tab was opened with, which is exactly what
- * the demo apps do on reload. The viewer is then handed the snapshot's own
- * bytes and must NOT turn round and offer to recover them, or every refresh
- * mid-edit would raise a dialog about the content already on screen.
- *
- * Timestamps cannot settle that on their own: after a genuine crash the fresh
- * load is also newer than the snapshot, so "the snapshot is older than this
- * load" would suppress the one prompt that matters. Instead the consumer of a
- * snapshot records it, per tab, in `sessionStorage`: surviving a reload (where
- * the host already restored) but not a new tab (where a crash recovery is
- * exactly what the user wants to be asked about).
- *
  * @module render/autosave-recovery
  */
 
@@ -36,47 +21,6 @@ import type { AutosaveRecord } from './autosave-store';
 
 /** Snapshots older than this are not offered: the session they belong to is gone. */
 export const AUTOSAVE_RECOVERY_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-/** `sessionStorage` key holding the newest snapshot timestamp this tab has consumed. */
-const CONSUMED_KEY = 'pptx-viewer-recovery-consumed';
-
-// ---------------------------------------------------------------------------
-// Consumed marker
-// ---------------------------------------------------------------------------
-
-/**
- * Record that this tab has already taken delivery of the snapshot written at
- * `timestamp`, whether the host restored it (`restoreSessionDeck`) or the user
- * accepted the prompt. Best-effort: a partitioned or disabled `sessionStorage`
- * simply means the prompt may be offered once more.
- */
-export function markAutosaveSnapshotConsumed(timestamp: number): void {
-	try {
-		if (typeof sessionStorage === 'undefined' || !Number.isFinite(timestamp)) {
-			return;
-		}
-		const previous = consumedAutosaveSnapshotTimestamp();
-		if (timestamp > previous) {
-			sessionStorage.setItem(CONSUMED_KEY, String(timestamp));
-		}
-	} catch {
-		// Storage unavailable: the prompt stays offerable, which is the safe side.
-	}
-}
-
-/** The newest snapshot timestamp this tab has consumed, or 0. */
-export function consumedAutosaveSnapshotTimestamp(): number {
-	try {
-		if (typeof sessionStorage === 'undefined') {
-			return 0;
-		}
-		const raw = sessionStorage.getItem(CONSUMED_KEY);
-		const value = raw === null ? Number.NaN : Number(raw);
-		return Number.isFinite(value) ? value : 0;
-	} catch {
-		return 0;
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Probe guard
@@ -143,8 +87,6 @@ export interface AutosaveRecoveryPromptInput {
 	readonly record: { key: string; timestamp: number; size: number } | undefined;
 	/** Now, epoch ms. */
 	readonly now: number;
-	/** Newest snapshot this tab already took delivery of (see the module docstring). */
-	readonly consumedTimestamp?: number;
 }
 
 /** Format a snapshot size without translating it: "812 KB", "1.2 MB". */
@@ -175,8 +117,8 @@ function ageKeyFor(ageMinutes: number): { key: string; count: number } {
 /**
  * The prompt to show, or null when there is nothing worth offering.
  *
- * Rejects, in order: no record, an empty record, one older than the recovery
- * window, and one this tab has already consumed.
+ * Rejects, in order: no record, an empty record, and one older than the
+ * recovery window. A valid record remains recoverable until explicit discard.
  */
 export function autosaveRecoveryPrompt(
 	input: AutosaveRecoveryPromptInput,
@@ -187,9 +129,6 @@ export function autosaveRecoveryPrompt(
 	}
 	const age = input.now - record.timestamp;
 	if (!Number.isFinite(age) || age < 0 || age >= AUTOSAVE_RECOVERY_WINDOW_MS) {
-		return null;
-	}
-	if (record.timestamp <= (input.consumedTimestamp ?? 0)) {
 		return null;
 	}
 	const ageMinutes = Math.floor(age / 60_000);
@@ -272,7 +211,6 @@ export async function probeAutosaveRecovery(
 				? { key: record.key, timestamp: record.timestamp, size: record.size }
 				: undefined,
 			now,
-			consumedTimestamp: consumedAutosaveSnapshotTimestamp(),
 		});
 		if (!prompt || !record) {
 			return null;
@@ -284,11 +222,10 @@ export async function probeAutosaveRecovery(
 }
 
 /**
- * The user accepted: mark the snapshot consumed so the same tab does not offer
- * it again, and hand back the bytes for the binding to load.
+ * The user accepted: hand back the bytes for the binding to load. The snapshot
+ * remains recoverable until the user explicitly discards it.
  */
 export function acceptAutosaveRecovery(record: AutosaveRecord): Uint8Array {
-	markAutosaveSnapshotConsumed(record.timestamp);
 	return record.data instanceof Uint8Array ? record.data : new Uint8Array(record.data);
 }
 
@@ -301,10 +238,9 @@ export async function discardAutosaveRecovery(record: {
 	key: string;
 	timestamp: number;
 }): Promise<void> {
-	markAutosaveSnapshotConsumed(record.timestamp);
 	try {
 		await deleteAutosaveSnapshot(record.key);
 	} catch {
-		// Best-effort: the marker already stops this tab re-offering it.
+		// Best-effort: storage failures leave the snapshot available to retry.
 	}
 }
