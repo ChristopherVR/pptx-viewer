@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.23.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.1) - 2026-09-20
+
+### Bug Fixes
+
+- **react:** Ignore serialization caches in history comparison ([9c45571](https://github.com/ChristopherVR/pptx-viewer/commit/9c455717ef7d6a6c21467b92938459d0d9409002))
+
 ## [2.23.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.0) - 2026-09-19
 
 ### Features

@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.1) - 2026-09-20
+
+### Bug Fixes
+
+- **autosave:** Keep recovery snapshots until discard ([79e8e7d](https://github.com/ChristopherVR/pptx-viewer/commit/79e8e7dd610a71903530addc61e7ea3d116d7ff2))
+
 ## [4.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.0) - 2026-09-19
 
 ### Features

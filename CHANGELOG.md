@@ -8,6 +8,15 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-20
+
+_Releases: pptx-react-viewer@4.1.1, pptx-vue-viewer@4.1.1, pptx-angular-viewer@4.1.1, pptx-vanilla-viewer@3.1.1, pptx-svelte-viewer@4.1.1, @christophervr/pptx-viewer@2.23.1_
+
+### Bug Fixes
+
+- **react:** Ignore serialization caches in history comparison ([9c45571](https://github.com/ChristopherVR/pptx-viewer/commit/9c455717ef7d6a6c21467b92938459d0d9409002))
+- **autosave:** Keep recovery snapshots until discard ([79e8e7d](https://github.com/ChristopherVR/pptx-viewer/commit/79e8e7dd610a71903530addc61e7ea3d116d7ff2))
+
 ## 2026-09-19
 
 _Releases: pptx-viewer-core@4.0.1, pptx-react-viewer@4.1.0, pptx-vue-viewer@4.1.0, pptx-angular-viewer@4.1.0, pptx-vanilla-viewer@3.1.0, pptx-svelte-viewer@4.1.0, pptx-viewer-mcp@2.5.5, @christophervr/pptx-viewer@2.23.0_
