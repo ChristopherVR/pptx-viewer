@@ -1,6 +1,19 @@
 import type { EditorHistorySnapshot } from '../types';
 import { cloneHistorySnapshot } from '../utils/clone';
 
+function historyElementContent(
+	element: EditorHistorySnapshot['slides'][number]['elements'][number],
+): EditorHistorySnapshot['slides'][number]['elements'][number] {
+	return {
+		...element,
+		// Saving refreshes these archive-only fields in place. They are needed by
+		// serialization, but neither one represents a user edit.
+		rawXml: undefined,
+		shapeId: undefined,
+		...(element.type === 'group' ? { children: element.children.map(historyElementContent) } : {}),
+	};
+}
+
 /**
  * The part of a history snapshot that IS the document.
  *
@@ -23,8 +36,17 @@ export function serializeHistoryDocument(snapshot: EditorHistorySnapshot): strin
 	return JSON.stringify({
 		width: snapshot.width,
 		height: snapshot.height,
-		slides: snapshot.slides,
-		templateElementsBySlideId: snapshot.templateElementsBySlideId,
+		slides: snapshot.slides.map((slide) => ({
+			...slide,
+			rawXml: undefined,
+			elements: slide.elements.map(historyElementContent),
+		})),
+		templateElementsBySlideId: Object.fromEntries(
+			Object.entries(snapshot.templateElementsBySlideId).map(([slideId, elements]) => [
+				slideId,
+				elements.map(historyElementContent),
+			]),
+		),
 	});
 }
 

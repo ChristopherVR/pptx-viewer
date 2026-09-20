@@ -107,6 +107,21 @@ test('commits a cross-slide batch, preserves the viewport and selection, and und
 	expect(handle.current!.canRedo()).toBeFalsy();
 }, 20000);
 
+test('undoes a cross-slide batch in one step after serializing the document', async () => {
+	await mount();
+	await act(async () => handle.current!.updateElements(batch(84, 90), { label: 'Adjust titles' }));
+	expect(positions()).toStrictEqual([84, 90]);
+
+	await act(async () => {
+		await handle.current!.getContent();
+	});
+	await act(async () => handle.current!.goTo(1));
+	await undo();
+
+	expect(positions()).toStrictEqual([67, 67]);
+	expect(handle.current!.canUndo()).toBeFalsy();
+}, 20000);
+
 test('keeps consecutive batches independent even when called before React renders', async () => {
 	await mount();
 	const first = batch(84, 90),
