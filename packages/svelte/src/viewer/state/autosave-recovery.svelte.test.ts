@@ -16,20 +16,29 @@ import { AutosaveRecoveryController } from './autosave-recovery.svelte';
  * `pptx-viewer-shared`.
  */
 
-const { snapshots } = vi.hoisted(() => ({ snapshots: new Map<string, AutosaveRecord>() }));
+const { snapshots, discardGates } = vi.hoisted(() => ({
+	snapshots: new Map<string, AutosaveRecord>(),
+	discardGates: [] as Array<Promise<void>>,
+}));
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
 		...actual,
-		probeAutosaveRecovery: async (filePath: string, now: number = Date.now()) => {
+		probeAutosaveRecovery: async (
+			filePath: string,
+			now: number = Date.now(),
+			displayName?: string,
+		) => {
 			const record = snapshots.get(filePath);
 			const prompt = actual.autosaveRecoveryPrompt({
 				record,
 				now,
+				displayName,
 			});
 			return prompt && record ? { prompt, record } : null;
 		},
 		discardAutosaveRecovery: async (record: { key: string; timestamp: number }) => {
+			await discardGates.shift();
 			snapshots.delete(record.key);
 		},
 	};
@@ -50,7 +59,7 @@ interface Harness {
 	dispose: () => void;
 }
 
-function setup(opts: { filePath?: string; allowed?: boolean } = {}): Harness {
+function setup(opts: { filePath?: string; fileName?: string; allowed?: boolean } = {}): Harness {
 	const loader = new FakeLoader();
 	const load = vi.fn(async () => {
 		loader.loadCount += 1;
@@ -59,6 +68,7 @@ function setup(opts: { filePath?: string; allowed?: boolean } = {}): Harness {
 	const dispose = $effect.root(() => {
 		ctl = new AutosaveRecoveryController({
 			getFilePath: () => ('filePath' in opts ? opts.filePath : 'deck.pptx'),
+			getFileName: () => opts.fileName,
 			getAutosaveAllowed: () => opts.allowed ?? true,
 			getLoading: () => loader.loading,
 			getError: () => loader.error,
@@ -80,6 +90,7 @@ function seedSnapshot(ageMs = 60_000): Uint8Array {
 describe('autosaveRecoveryController', () => {
 	beforeEach(() => {
 		snapshots.clear();
+		discardGates.length = 0;
 		sessionStorage.clear();
 	});
 	afterEach(() => {
@@ -101,6 +112,17 @@ describe('autosaveRecoveryController', () => {
 			ageKey: 'pptx.autosave.oneMinAgo',
 			messageParams: { file: 'deck.pptx', size: '4 KB' },
 		});
+		h.dispose();
+	});
+
+	it('shows the public file name while retaining the storage key', async () => {
+		seedSnapshot();
+		const h = setup({ fileName: 'Quarterly review.pptx' });
+
+		await vi.waitFor(() => expect(h.ctl.prompt).not.toBeNull());
+
+		expect(h.ctl.prompt?.filePath).toBe('deck.pptx');
+		expect(h.ctl.prompt?.messageParams.file).toBe('Quarterly review.pptx');
 		h.dispose();
 	});
 
@@ -166,6 +188,34 @@ describe('autosaveRecoveryController', () => {
 		await h.ctl.discard();
 
 		expect(h.load).not.toHaveBeenCalled();
+		expect(h.ctl.prompt).toBeNull();
+		expect(snapshots.has('deck.pptx')).toBeFalsy();
+		h.dispose();
+	});
+
+	it('keeps the prompt busy until discard finishes and ignores overlapping actions', async () => {
+		seedSnapshot();
+		let finishDiscard!: () => void;
+		discardGates.push(
+			new Promise<void>((resolve) => {
+				finishDiscard = resolve;
+			}),
+		);
+		const h = setup();
+		await vi.waitFor(() => expect(h.ctl.prompt).not.toBeNull());
+
+		const pending = h.ctl.discard();
+		void h.ctl.restore();
+		void h.ctl.discard();
+
+		expect(h.ctl.discarding).toBeTruthy();
+		expect(h.ctl.prompt).not.toBeNull();
+		expect(h.load).not.toHaveBeenCalled();
+
+		finishDiscard();
+		await pending;
+
+		expect(h.ctl.discarding).toBeFalsy();
 		expect(h.ctl.prompt).toBeNull();
 		expect(snapshots.has('deck.pptx')).toBeFalsy();
 		h.dispose();

@@ -13,7 +13,10 @@ import ModalDialog from './ModalDialog.vue';
  * five bindings offer the same recovery with the same words. Every string is a
  * key chosen by `pptx-viewer-shared`; this component picks none of them.
  */
-const props = defineProps<{ prompt: AutosaveRecoveryPrompt | null }>();
+const props = withDefaults(
+	defineProps<{ prompt: AutosaveRecoveryPrompt | null; discarding?: boolean }>(),
+	{ discarding: false },
+);
 
 const emit = defineEmits<{
 	restore: [];
@@ -33,6 +36,12 @@ const savedLabel = computed(() =>
 			})
 		: '',
 );
+
+function requestDiscard(): void {
+	if (!props.discarding) {
+		emit('discard');
+	}
+}
 </script>
 
 <template>
@@ -41,14 +50,16 @@ const savedLabel = computed(() =>
 		:open="true"
 		:title="title"
 		marker-attr="data-pptx-autosave-recovery"
-		@close="emit('discard')"
+		:busy="props.discarding"
+		:close-disabled="props.discarding"
+		@close="requestDiscard"
 	>
 		<div class="flex items-start gap-3">
 			<div class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
 				<History class="h-5 w-5 text-primary" />
 			</div>
-			<div>
-				<p class="text-sm text-muted-foreground">{{ message }}</p>
+			<div class="min-w-0">
+				<p class="text-sm text-muted-foreground [overflow-wrap:anywhere]">{{ message }}</p>
 				<p class="mt-2 text-xs text-muted-foreground">{{ savedLabel }}</p>
 			</div>
 		</div>
@@ -56,15 +67,17 @@ const savedLabel = computed(() =>
 		<template #footer>
 			<button
 				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-				@click="emit('discard')"
+				class="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+				:disabled="props.discarding"
+				@click="requestDiscard"
 			>
 				<Trash2 class="h-4 w-4" />
 				{{ t(props.prompt.discardKey) }}
 			</button>
 			<button
 				type="button"
-				class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90"
+				class="inline-flex items-center gap-1.5 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+				:disabled="props.discarding"
 				@click="emit('restore')"
 			>
 				<History class="h-4 w-4" />

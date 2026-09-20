@@ -49,6 +49,7 @@ export interface UseViewerIntegrationInput {
 	gridSpacingPx: number;
 	content: ArrayBuffer | Uint8Array | null;
 	filePath: string | undefined;
+	fileName?: string;
 	/**
 	 * Whether autosave actually runs: the shared `resolveAutosaveActivation`
 	 * verdict (host `autosave` prop as a ceiling, title-bar toggle inside it).
@@ -159,6 +160,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		gridSpacingPx,
 		content,
 		filePath,
+		fileName,
 		autosaveEnabled,
 		autosaveAllowed = true,
 		autosaveIntervalMs,
@@ -291,6 +293,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	// user that unsaved changes were waiting for them.
 	const recovery = useRecoveryDetection({
 		filePath,
+		fileName,
 		loading,
 		error,
 		slideCount: slides.length,

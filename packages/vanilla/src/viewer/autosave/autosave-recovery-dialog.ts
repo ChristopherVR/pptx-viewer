@@ -28,8 +28,11 @@ export function openAutosaveRecoveryDialog(
 	doc: Document,
 	t: Translator,
 	prompt: AutosaveRecoveryPrompt,
+	onDiscard?: () => Promise<void>,
 ): Promise<AutosaveRecoveryChoice> {
 	return new Promise((resolve) => {
+		let busy = false;
+		let settled = false;
 		const title = t(prompt.titleKey);
 		const backdrop = doc.createElement('div');
 		backdrop.className = 'pptxv-parity-backdrop pptxv-autosave-recovery';
@@ -74,17 +77,44 @@ export function openAutosaveRecoveryDialog(
 		footer.append(discard, restore);
 
 		const finish = (choice: AutosaveRecoveryChoice): void => {
+			if (settled) {
+				return;
+			}
+			settled = true;
 			doc.removeEventListener('keydown', onKeyDown);
 			backdrop.remove();
 			resolve(choice);
 		};
 		const onKeyDown = (event: KeyboardEvent): void => {
-			if (event.key === 'Escape') {
+			if (event.key === 'Escape' && !busy) {
 				finish('dismiss');
 			}
 		};
-		discard.addEventListener('click', () => finish('discard'));
-		restore.addEventListener('click', () => finish('restore'));
+		discard.addEventListener('click', () => {
+			if (busy) {
+				return;
+			}
+			busy = true;
+			dialog.setAttribute('aria-busy', 'true');
+			discard.disabled = true;
+			restore.disabled = true;
+			void (async () => {
+				try {
+					await onDiscard?.();
+					finish('discard');
+				} catch {
+					busy = false;
+					dialog.removeAttribute('aria-busy');
+					discard.disabled = false;
+					restore.disabled = false;
+				}
+			})();
+		});
+		restore.addEventListener('click', () => {
+			if (!busy) {
+				finish('restore');
+			}
+		});
 		doc.addEventListener('keydown', onKeyDown);
 
 		dialog.append(header, body, footer);

@@ -85,6 +85,8 @@ export interface AutosaveRecoveryPrompt {
 export interface AutosaveRecoveryPromptInput {
 	/** The stored snapshot, or undefined when there is none. */
 	readonly record: { key: string; timestamp: number; size: number } | undefined;
+	/** Public document name for UI copy; the record key remains storage-only. */
+	readonly displayName?: string;
 	/** Now, epoch ms. */
 	readonly now: number;
 }
@@ -140,7 +142,10 @@ export function autosaveRecoveryPrompt(
 		ageMinutes,
 		titleKey: 'pptx.autosave.recovery.title',
 		messageKey: 'pptx.autosave.recovery.message',
-		messageParams: { file: record.key, size: formatSnapshotSize(record.size) },
+		messageParams: {
+			file: input.displayName?.trim() || record.key,
+			size: formatSnapshotSize(record.size),
+		},
 		ageKey: relative.key,
 		ageParams: { count: relative.count },
 		restoreKey: 'pptx.autosave.recovery.restore',
@@ -200,6 +205,7 @@ export interface AutosaveRecoveryOffer {
 export async function probeAutosaveRecovery(
 	filePath: string,
 	now: number = Date.now(),
+	displayName?: string,
 ): Promise<AutosaveRecoveryOffer | null> {
 	if (typeof indexedDB === 'undefined') {
 		return null;
@@ -211,6 +217,7 @@ export async function probeAutosaveRecovery(
 				? { key: record.key, timestamp: record.timestamp, size: record.size }
 				: undefined,
 			now,
+			displayName,
 		});
 		if (!prompt || !record) {
 			return null;

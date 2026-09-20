@@ -83,6 +83,7 @@ describe('autosaveRecoveryService', () => {
 		const loading = signal(overrides.loading ?? false);
 		service.bind({
 			filePath: () => 'deck.pptx',
+			fileName: () => 'Quarterly review.pptx',
 			loading: () => loading(),
 			error: () => null,
 			slideCount: () => overrides.slideCount ?? 3,
@@ -98,6 +99,11 @@ describe('autosaveRecoveryService', () => {
 		const { service } = bind();
 		await Promise.resolve();
 		expect(service.prompt()?.titleKey).toBe('pptx.autosave.recovery.title');
+		expect(probeMock).toHaveBeenCalledWith(
+			'deck.pptx',
+			expect.any(Number),
+			'Quarterly review.pptx',
+		);
 	});
 
 	it('hands the recovered bytes to the viewer on restore, then closes', async () => {
@@ -117,6 +123,35 @@ describe('autosaveRecoveryService', () => {
 		service.discard();
 		expect(discardMock).toHaveBeenCalledWith(expect.objectContaining({ key: 'deck.pptx' }));
 		expect(restore).not.toHaveBeenCalled();
+		await vi.waitFor(() => expect(service.prompt()).toBeNull());
+	});
+
+	it('keeps the prompt busy until discard finishes and blocks overlapping actions', async () => {
+		probeMock.mockResolvedValue(offer());
+		let finishDiscard!: () => void;
+		discardMock.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					finishDiscard = resolve;
+				}),
+		);
+		const { service, restore } = bind();
+		await Promise.resolve();
+
+		service.discard();
+		service.restore();
+		service.discard();
+
+		expect(service.discarding()).toBeTruthy();
+		expect(service.prompt()).not.toBeNull();
+		expect(discardMock).toHaveBeenCalledOnce();
+		expect(restore).not.toHaveBeenCalled();
+
+		finishDiscard();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(service.discarding()).toBeFalsy();
 		expect(service.prompt()).toBeNull();
 	});
 

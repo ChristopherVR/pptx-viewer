@@ -26,6 +26,8 @@ import type { AutosaveRecord, AutosaveRecoveryPrompt } from '../internal/shared'
 export interface AutosaveRecoveryHost {
 	/** IndexedDB key of the open deck. Nothing to look up without one. */
 	readonly filePath: () => string | undefined;
+	/** Public document name rendered in the recovery message. */
+	readonly fileName: () => string | undefined;
 	/** True while the load pipeline is running. */
 	readonly loading: () => boolean;
 	/** Load error, if any. */
@@ -49,11 +51,14 @@ export class AutosaveRecoveryService {
 
 	/** What the dialog should say, or null when there is nothing to offer. */
 	readonly prompt = signal<AutosaveRecoveryPrompt | null>(null);
+	/** The destructive delete is still pending. */
+	readonly discarding = signal(false);
 
 	private host: AutosaveRecoveryHost | null = null;
 	private record: AutosaveRecord | null = null;
 	private checked = false;
 	private destroyed = false;
+	private actionPending = false;
 
 	bind(host: AutosaveRecoveryHost): void {
 		this.host = host;
@@ -76,13 +81,15 @@ export class AutosaveRecoveryService {
 					return;
 				}
 				this.checked = true;
-				void probeAutosaveRecovery(filePath as string).then((offer) => {
-					if (offer && !this.destroyed) {
-						this.record = offer.record;
-						this.prompt.set(offer.prompt);
-					}
-					return offer;
-				});
+				void probeAutosaveRecovery(filePath as string, Date.now(), host.fileName()).then(
+					(offer) => {
+						if (offer && !this.destroyed) {
+							this.record = offer.record;
+							this.prompt.set(offer.prompt);
+						}
+						return offer;
+					},
+				);
 			},
 			{ injector: this.injector },
 		);
@@ -90,6 +97,10 @@ export class AutosaveRecoveryService {
 
 	/** The user accepted: load the snapshot bytes. */
 	restore(): void {
+		if (this.actionPending) {
+			return;
+		}
+		this.actionPending = true;
 		const found = this.record;
 		this.prompt.set(null);
 		this.record = null;
@@ -100,11 +111,27 @@ export class AutosaveRecoveryService {
 
 	/** The user declined: drop the snapshot. */
 	discard(): void {
-		const found = this.record;
-		this.prompt.set(null);
-		this.record = null;
-		if (found) {
-			void discardAutosaveRecovery(found);
+		if (this.actionPending) {
+			return;
 		}
+		const found = this.record;
+		if (!found) {
+			this.prompt.set(null);
+			return;
+		}
+		this.actionPending = true;
+		this.discarding.set(true);
+		void (async () => {
+			try {
+				await discardAutosaveRecovery(found);
+				this.record = null;
+				this.prompt.set(null);
+			} catch {
+				// Leave the prompt open so a failed discard can be retried.
+			} finally {
+				this.actionPending = false;
+				this.discarding.set(false);
+			}
+		})();
 	}
 }

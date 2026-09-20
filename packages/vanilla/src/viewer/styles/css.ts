@@ -164,7 +164,9 @@ const CHROME_CSS = `
    \`pptxv-parity-*\` dialog shell, so only its own three classes are declared
    here; the shell rules live in \`parity-dialog-css\`. */
 .pptxv-autosave-recovery .pptxv-parity-dialog { width: min(420px, calc(100vw - 32px)); }
-.pptxv-autosave-recovery-message { margin: 0; line-height: 1.45; }
+.pptxv-autosave-recovery .pptxv-parity-footer { flex-wrap: wrap; }
+.pptxv-autosave-recovery .pptxv-parity-footer button:disabled { cursor: not-allowed; opacity: .55; }
+.pptxv-autosave-recovery-message { margin: 0; overflow-wrap: anywhere; line-height: 1.45; }
 .pptxv-autosave-recovery-age { margin: 0; color: var(--pptx-muted-foreground); font-size: 11px; }
 
 /* ── PowerPoint-style title bar ─────────────────────────────────────── */

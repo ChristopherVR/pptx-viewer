@@ -12,7 +12,10 @@ import { createInitialViewerState, createStore } from '../state';
 import type { Store, ViewerState } from '../state';
 
 const saveAutosaveSnapshot = vi.fn<(path: string, data: Uint8Array) => Promise<boolean>>();
-const probeAutosaveRecovery = vi.fn<(path: string) => Promise<AutosaveRecoveryOffer | null>>();
+const probeAutosaveRecovery =
+	vi.fn<
+		(path: string, now?: number, displayName?: string) => Promise<AutosaveRecoveryOffer | null>
+	>();
 // The DELETE is the shared module's own job (and its own tests'); what belongs
 // here is that Discard reaches it with the right record and loads nothing.
 const discardAutosaveRecovery =
@@ -21,7 +24,8 @@ const discardAutosaveRecovery =
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	saveAutosaveSnapshot: (path: string, data: Uint8Array) => saveAutosaveSnapshot(path, data),
-	probeAutosaveRecovery: (path: string) => probeAutosaveRecovery(path),
+	probeAutosaveRecovery: (path: string, now?: number, displayName?: string) =>
+		probeAutosaveRecovery(path, now, displayName),
 	discardAutosaveRecovery: (record: { key: string; timestamp: number }) =>
 		discardAutosaveRecovery(record),
 }));
@@ -71,6 +75,7 @@ function makeSession(
 		hostAutosave: over.hostAutosave,
 		hostIntervalMs: over.hostIntervalMs,
 		filePath: 'deck.pptx',
+		fileName: 'Quarterly review.pptx',
 		getSaveIntent: () => ({ password: null, passwordProtected: false }),
 		onStatus: () => {},
 		loadFile: (bytes: Uint8Array) => loadFile(bytes),
@@ -172,6 +177,11 @@ describe('the crash-recovery prompt', () => {
 		// The message interpolates the shared params rather than leaking the key.
 		expect(dialog.textContent).toContain('deck.pptx');
 		expect(dialog.textContent).toContain('2 KB');
+		expect(probeAutosaveRecovery).toHaveBeenCalledWith(
+			'deck.pptx',
+			expect.any(Number),
+			'Quarterly review.pptx',
+		);
 		session.destroy();
 	});
 
@@ -207,6 +217,42 @@ describe('the crash-recovery prompt', () => {
 		);
 		expect(loadFile).not.toHaveBeenCalled();
 		expect(document.querySelector('[data-pptx-autosave-recovery]')).toBeNull();
+		session.destroy();
+	});
+
+	it('keeps discard pending in the dialog and blocks overlapping actions', async () => {
+		let finishDiscard!: () => void;
+		discardAutosaveRecovery.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					finishDiscard = resolve;
+				}),
+		);
+		const t = createTranslator();
+		const { dialog, loadFile, session } = await raisePrompt();
+		const discard = dialog.querySelector<HTMLButtonElement>(
+			`button[aria-label="${t('pptx.autosave.recovery.discard')}"]`,
+		);
+		const restore = dialog.querySelector<HTMLButtonElement>(
+			`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
+		);
+
+		discard?.click();
+		await vi.waitFor(() => expect(discardAutosaveRecovery).toHaveBeenCalledOnce());
+
+		expect(document.querySelector('[data-pptx-autosave-recovery]')).not.toBeNull();
+		expect(dialog.getAttribute('aria-busy')).toBe('true');
+		expect(discard?.disabled).toBeTruthy();
+		expect(restore?.disabled).toBeTruthy();
+		discard?.click();
+		restore?.click();
+		expect(discardAutosaveRecovery).toHaveBeenCalledOnce();
+		expect(loadFile).not.toHaveBeenCalled();
+
+		finishDiscard();
+		await vi.waitFor(() =>
+			expect(document.querySelector('[data-pptx-autosave-recovery]')).toBeNull(),
+		);
 		session.destroy();
 	});
 
@@ -253,6 +299,7 @@ describe('the crash-recovery prompt', () => {
 			hostAutosave: undefined,
 			hostIntervalMs: undefined,
 			filePath: 'deck.pptx',
+			fileName: 'Quarterly review.pptx',
 			getSaveIntent: () => ({ password: null, passwordProtected: false }),
 			onStatus: () => {},
 			onRecovery,

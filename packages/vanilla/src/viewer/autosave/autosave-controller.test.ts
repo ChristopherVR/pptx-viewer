@@ -6,12 +6,16 @@ import { createInitialViewerState, createStore } from '../state';
 import type { Store, ViewerState } from '../state';
 
 const saveAutosaveSnapshot = vi.fn<(path: string, data: Uint8Array) => Promise<boolean>>();
-const probeAutosaveRecovery = vi.fn<(path: string) => Promise<AutosaveRecoveryOffer | null>>();
+const probeAutosaveRecovery =
+	vi.fn<
+		(path: string, now?: number, displayName?: string) => Promise<AutosaveRecoveryOffer | null>
+	>();
 
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	saveAutosaveSnapshot: (path: string, data: Uint8Array) => saveAutosaveSnapshot(path, data),
-	probeAutosaveRecovery: (path: string) => probeAutosaveRecovery(path),
+	probeAutosaveRecovery: (path: string, now?: number, displayName?: string) =>
+		probeAutosaveRecovery(path, now, displayName),
 }));
 
 // Imported after the mock is registered.
@@ -289,7 +293,11 @@ describe('recovery probing', () => {
 		store.set({ slides: [makeSlide('a')], loading: false });
 		await vi.advanceTimersByTimeAsync(0);
 
-		expect(probeAutosaveRecovery).toHaveBeenCalledExactlyOnceWith('deck.pptx');
+		expect(probeAutosaveRecovery).toHaveBeenCalledExactlyOnceWith(
+			'deck.pptx',
+			expect.any(Number),
+			undefined,
+		);
 		expect(onRecovery).toHaveBeenCalledWith(offer.record);
 		expect(onRecoveryOffer).toHaveBeenCalledWith(offer);
 		controller.destroy();

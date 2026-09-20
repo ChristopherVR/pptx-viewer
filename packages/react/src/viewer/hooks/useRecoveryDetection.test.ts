@@ -102,6 +102,7 @@ async function mount(input: Input): Promise<() => Result> {
 
 const base = {
 	filePath: 'deck.pptx',
+	fileName: 'Quarterly review.pptx',
 	loading: false,
 	error: null,
 	slideCount: 3,
@@ -112,6 +113,11 @@ describe('useRecoveryDetection', () => {
 		probeMock.mockResolvedValue(offer());
 		const current = await mount({ ...base, onRestore: vi.fn() });
 		expect(current().prompt?.titleKey).toBe('pptx.autosave.recovery.title');
+		expect(probeMock).toHaveBeenCalledWith(
+			'deck.pptx',
+			expect.any(Number),
+			'Quarterly review.pptx',
+		);
 	});
 
 	it('offers nothing when the store has no snapshot for this deck', async () => {
@@ -143,6 +149,38 @@ describe('useRecoveryDetection', () => {
 			expect.objectContaining({ key: 'deck.pptx', timestamp: PROMPT.timestamp }),
 		);
 		expect(onRestore).not.toHaveBeenCalled();
+		expect(current().prompt).toBeNull();
+	});
+
+	it('keeps the prompt busy until discard finishes and ignores overlapping actions', async () => {
+		probeMock.mockResolvedValue(offer());
+		let finishDiscard!: () => void;
+		discardMock.mockImplementation(
+			() =>
+				new Promise<void>((resolve) => {
+					finishDiscard = resolve;
+				}),
+		);
+		const onRestore = vi.fn();
+		const current = await mount({ ...base, onRestore });
+
+		act(() => {
+			current().discard();
+			current().restore();
+			current().discard();
+		});
+
+		expect(current().discarding).toBeTruthy();
+		expect(current().prompt).not.toBeNull();
+		expect(discardMock).toHaveBeenCalledOnce();
+		expect(onRestore).not.toHaveBeenCalled();
+
+		await act(async () => {
+			finishDiscard();
+			await Promise.resolve();
+		});
+
+		expect(current().discarding).toBeFalsy();
 		expect(current().prompt).toBeNull();
 	});
 

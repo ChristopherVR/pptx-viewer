@@ -1,3 +1,5 @@
+import { readFile } from 'node:fs/promises';
+
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
  * Does the viewer OFFER the crash-recovery snapshot it just wrote?
@@ -26,6 +28,7 @@ import type { Page } from '@playwright/test';
 import {
 	loadDeck,
 	openRibbonTab,
+	resetTabSession,
 	SAMPLE_DECK,
 	selectElement,
 	slideElements,
@@ -33,6 +36,25 @@ import {
 	viewport,
 	zoomFitButton,
 } from './support/deck';
+
+const LONG_FILE_NAME =
+	'Quarterly-review-with-a-deliberately-unbroken-and-very-long-public-document-name-2026.pptx';
+
+async function uploadNamedDeck(page: Page, fileName: string): Promise<void> {
+	await page.locator('#file-input').setInputFiles({
+		name: fileName,
+		mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		buffer: await readFile(SAMPLE_DECK),
+	});
+	await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
+	await page.locator('[data-pptx-viewport] [data-element-id]').first().waitFor({ timeout: 60_000 });
+}
+
+async function loadNamedDeck(page: Page, fileName: string): Promise<void> {
+	await resetTabSession(page);
+	await page.goto('/');
+	await uploadNamedDeck(page, fileName);
+}
 
 /**
  * Reopen the same deck as a FRESH TAB would, keeping the recovery snapshot.
@@ -43,7 +65,7 @@ import {
  * `sessionStorage` half is cleared. That makes the load land on the landing
  * dropzone while preserving the snapshot in IndexedDB.
  */
-async function reopenDeckKeepingSnapshot(page: Page): Promise<void> {
+async function reopenDeckKeepingSnapshot(page: Page, fileName?: string): Promise<void> {
 	await page.evaluate(() => {
 		try {
 			sessionStorage.clear();
@@ -52,8 +74,48 @@ async function reopenDeckKeepingSnapshot(page: Page): Promise<void> {
 		}
 	});
 	await page.goto('/');
-	await page.locator('#file-input').setInputFiles(SAMPLE_DECK);
-	await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
+	if (fileName) {
+		await uploadNamedDeck(page, fileName);
+	} else {
+		await page.locator('#file-input').setInputFiles(SAMPLE_DECK);
+		await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
+	}
+}
+
+/**
+ * Hold the next IndexedDB transaction completion callback after the browser has
+ * committed it. This gives the dialog a deterministic pending window without
+ * changing product code or relying on a slow machine.
+ */
+async function holdNextIndexedDbCompletion(page: Page): Promise<void> {
+	await page.evaluate(() => {
+		const transactionPrototype = IDBTransaction.prototype;
+		const descriptor = Object.getOwnPropertyDescriptor(transactionPrototype, 'oncomplete');
+		if (!descriptor?.get || !descriptor.set) {
+			throw new Error('IDBTransaction.oncomplete is not patchable');
+		}
+		const state = globalThis as typeof globalThis & {
+			__releaseAutosaveDelete?: () => void;
+		};
+		Object.defineProperty(transactionPrototype, 'oncomplete', {
+			configurable: descriptor.configurable,
+			enumerable: descriptor.enumerable,
+			get: descriptor.get,
+			set(handler: ((this: IDBTransaction, event: Event) => unknown) | null) {
+				if (typeof handler !== 'function') {
+					descriptor.set?.call(this, handler);
+					return;
+				}
+				descriptor.set?.call(this, function (event: Event) {
+					state.__releaseAutosaveDelete = () => {
+						Object.defineProperty(transactionPrototype, 'oncomplete', descriptor);
+						delete state.__releaseAutosaveDelete;
+						handler.call(this, event);
+					};
+				});
+			},
+		});
+	});
 }
 
 test.use({ viewport: { width: 1600, height: 950 } });
@@ -198,15 +260,40 @@ test.describe('crash-recovery prompt', () => {
 	});
 
 	test('Discard drops the snapshot instead of loading it', async ({ page }) => {
-		await loadDeck(page, SAMPLE_DECK);
+		await loadNamedDeck(page, LONG_FILE_NAME);
 		await makeAnEdit(page);
 		const wrote = await waitForSnapshot(page);
 		test.skip(!wrote, 'this binding never wrote a recovery snapshot after an edit');
 
-		await reopenDeckKeepingSnapshot(page);
+		await page.setViewportSize({ width: 360, height: 480 });
+		await reopenDeckKeepingSnapshot(page, LONG_FILE_NAME);
 		const dialog = recoveryDialog(page);
 		await expect(dialog).toBeVisible({ timeout: 30_000 });
-		await dialog.getByRole('button', { name: /^discard$/iu }).click();
+		await expect(dialog).toContainText(LONG_FILE_NAME);
+		await expect(dialog.getByRole('button', { name: /^restore$/iu })).toBeInViewport();
+		const discard = dialog.getByRole('button', { name: /^discard$/iu });
+		await expect(discard).toBeInViewport();
+		expect(
+			await dialog.evaluate((element) => element.scrollWidth <= element.clientWidth + 1),
+			'long public file names must wrap instead of widening the dialog',
+		).toBeTruthy();
+
+		await holdNextIndexedDbCompletion(page);
+		await discard.click();
+		await page.waitForFunction(() =>
+			Boolean(
+				(globalThis as typeof globalThis & { __releaseAutosaveDelete?: () => void })
+					.__releaseAutosaveDelete,
+			),
+		);
+		await expect(dialog).toHaveAttribute('aria-busy', 'true');
+		await expect(discard).toBeDisabled();
+		await expect(dialog.getByRole('button', { name: /^restore$/iu })).toBeDisabled();
+		await page.evaluate(() => {
+			(
+				globalThis as typeof globalThis & { __releaseAutosaveDelete?: () => void }
+			).__releaseAutosaveDelete?.();
+		});
 		await expect(dialog).toHaveCount(0);
 
 		// Discard is destructive on purpose: leaving the file behind would ask

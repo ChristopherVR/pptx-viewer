@@ -15,12 +15,14 @@ export interface AutosaveRecoveryDialogProps {
 	prompt: AutosaveRecoveryPrompt | null;
 	onRestore: () => void;
 	onDiscard: () => void;
+	busy?: boolean;
 }
 
 export function AutosaveRecoveryDialog({
 	prompt,
 	onRestore,
 	onDiscard,
+	busy = false,
 }: AutosaveRecoveryDialogProps): React.ReactElement | null {
 	const { t } = useTranslation();
 
@@ -34,14 +36,15 @@ export function AutosaveRecoveryDialog({
 	return (
 		<div
 			style={{ zIndex: 1200 }}
-			className='fixed inset-0 flex items-center justify-center bg-black/50'
+			className='fixed inset-0 flex items-center justify-center bg-black/50 p-4'
 			data-pptx-autosave-recovery='true'
 		>
 			<div
 				role='dialog'
 				aria-modal='true'
 				aria-label={title}
-				className='bg-background border border-border rounded-lg shadow-xl w-[440px] max-w-[90vw] p-6'
+				aria-busy={busy}
+				className='bg-background border border-border rounded-lg shadow-xl w-[440px] max-w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6'
 			>
 				<div className='flex items-center gap-3 mb-3'>
 					<div className='flex items-center justify-center w-10 h-10 rounded-full bg-primary/10'>
@@ -49,25 +52,27 @@ export function AutosaveRecoveryDialog({
 					</div>
 					<h2 className='text-base font-semibold text-foreground'>{title}</h2>
 				</div>
-				<p className='text-sm text-muted-foreground'>
+				<p className='text-sm text-muted-foreground [overflow-wrap:anywhere]'>
 					{t(prompt.messageKey, prompt.messageParams)}
 				</p>
 				<p className='text-xs text-muted-foreground mt-2'>
 					{t('pptx.autosave.recovery.savedLabel', { when })}
 				</p>
-				<div className='flex justify-end gap-2 mt-6'>
+				<div className='flex flex-wrap justify-end gap-2 mt-6'>
 					<button
 						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-accent transition-colors'
+						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-accent transition-colors disabled:cursor-not-allowed disabled:opacity-50'
 						onClick={onDiscard}
+						disabled={busy}
 					>
 						<LuTrash2 className='w-4 h-4' />
 						{t(prompt.discardKey)}
 					</button>
 					<button
 						type='button'
-						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors'
+						className='inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-md bg-primary text-white hover:bg-primary/90 transition-colors disabled:cursor-not-allowed disabled:opacity-50'
 						onClick={onRestore}
+						disabled={busy}
 					>
 						<LuHistory className='w-4 h-4' />
 						{t(prompt.restoreKey)}

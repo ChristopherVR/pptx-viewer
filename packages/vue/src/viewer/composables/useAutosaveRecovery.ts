@@ -19,6 +19,8 @@ import type { Ref } from 'vue';
 export interface UseAutosaveRecoveryOptions {
 	/** IndexedDB key of the open deck (file path, else file name). */
 	filePath: () => string | undefined;
+	/** Public document name rendered in the recovery message. */
+	fileName: () => string | undefined;
 	/** True while the load pipeline is running. */
 	loading: Ref<boolean>;
 	/** Load error, if any. */
@@ -38,16 +40,19 @@ export interface UseAutosaveRecoveryOptions {
 export interface UseAutosaveRecoveryResult {
 	/** What the dialog should say, or null when there is nothing to offer. */
 	prompt: Ref<AutosaveRecoveryPrompt | null>;
+	discarding: Ref<boolean>;
 	restore: () => void;
-	discard: () => void;
+	discard: () => Promise<void>;
 }
 
 export function useAutosaveRecovery(
 	options: UseAutosaveRecoveryOptions,
 ): UseAutosaveRecoveryResult {
 	const prompt = ref<AutosaveRecoveryPrompt | null>(null);
+	const discarding = ref(false);
 	let record: AutosaveRecord | null = null;
 	let checked = false;
+	let actionPending = false;
 
 	watch(
 		() => [options.loading.value, options.error.value, options.slideCount(), options.filePath()],
@@ -66,18 +71,24 @@ export function useAutosaveRecovery(
 				return;
 			}
 			checked = true;
-			void probeAutosaveRecovery(filePath as string).then((offer) => {
-				if (offer) {
-					record = offer.record;
-					prompt.value = offer.prompt;
-				}
-				return offer;
-			});
+			void probeAutosaveRecovery(filePath as string, Date.now(), options.fileName()).then(
+				(offer) => {
+					if (offer) {
+						record = offer.record;
+						prompt.value = offer.prompt;
+					}
+					return offer;
+				},
+			);
 		},
 		{ immediate: true },
 	);
 
 	function restore(): void {
+		if (actionPending) {
+			return;
+		}
+		actionPending = true;
 		const found = record;
 		prompt.value = null;
 		record = null;
@@ -86,14 +97,28 @@ export function useAutosaveRecovery(
 		}
 	}
 
-	function discard(): void {
+	async function discard(): Promise<void> {
+		if (actionPending) {
+			return;
+		}
 		const found = record;
-		prompt.value = null;
-		record = null;
-		if (found) {
-			void discardAutosaveRecovery(found);
+		if (!found) {
+			prompt.value = null;
+			return;
+		}
+		actionPending = true;
+		discarding.value = true;
+		try {
+			await discardAutosaveRecovery(found);
+			record = null;
+			prompt.value = null;
+		} catch {
+			// Leave the prompt open so a failed discard can be retried.
+		} finally {
+			actionPending = false;
+			discarding.value = false;
 		}
 	}
 
-	return { prompt, restore, discard };
+	return { prompt, discarding, restore, discard };
 }

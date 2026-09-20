@@ -51,6 +51,8 @@ export interface AutosaveSessionDeps {
 	hostIntervalMs: number | undefined;
 	/** IndexedDB key for the recovery snapshot. */
 	filePath: string;
+	/** Public document name rendered in the recovery message. */
+	fileName?: string;
 	/** Protect-Presentation state, forwarded to the shared save decision. */
 	getSaveIntent(): DeckSaveIntent;
 	onStatus(status: AutosaveStatus): void;
@@ -106,11 +108,14 @@ export function createAutosaveSession(deps: AutosaveSessionDeps): AutosaveSessio
 	const offerRecovery = async (offer: AutosaveRecoveryOffer): Promise<void> => {
 		dialogOpen = true;
 		try {
-			const choice = await openAutosaveRecoveryDialog(deps.doc, deps.getTranslator(), offer.prompt);
+			const choice = await openAutosaveRecoveryDialog(
+				deps.doc,
+				deps.getTranslator(),
+				offer.prompt,
+				() => discardAutosaveRecovery(offer.record),
+			);
 			if (choice === 'restore') {
 				await deps.loadFile(acceptAutosaveRecovery(offer.record));
-			} else if (choice === 'discard') {
-				await discardAutosaveRecovery(offer.record);
 			}
 		} finally {
 			dialogOpen = false;
@@ -145,6 +150,7 @@ export function createAutosaveSession(deps: AutosaveSessionDeps): AutosaveSessio
 		store: deps.store,
 		getHandler: deps.getHandler,
 		filePath: deps.filePath,
+		fileName: deps.fileName,
 		getIntervalMs: () =>
 			resolveAutosaveIntervalMs({
 				hostIntervalMs: deps.hostIntervalMs,
