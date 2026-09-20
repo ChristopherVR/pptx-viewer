@@ -12,7 +12,7 @@ import { AutosaveRecoveryController } from './autosave-recovery.svelte';
  * `.svelte.test.ts` so the runes runtime compiles the controller's probing
  * `$effect`. Only the IndexedDB *storage* is faked (happy-dom has no
  * IndexedDB); every DECISION (the probe guard, the freshness window, the
- * per-tab consumed marker, the prompt's own strings) runs for real out of
+ * freshness window and the prompt's own strings) runs for real out of
  * `pptx-viewer-shared`.
  */
 
@@ -26,12 +26,10 @@ vi.mock(import('pptx-viewer-shared'), async (importOriginal) => {
 			const prompt = actual.autosaveRecoveryPrompt({
 				record,
 				now,
-				consumedTimestamp: actual.consumedAutosaveSnapshotTimestamp(),
 			});
 			return prompt && record ? { prompt, record } : null;
 		},
 		discardAutosaveRecovery: async (record: { key: string; timestamp: number }) => {
-			actual.markAutosaveSnapshotConsumed(record.timestamp);
 			snapshots.delete(record.key);
 		},
 	};

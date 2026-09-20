@@ -29,7 +29,6 @@ import {
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
-import { markAutosaveSnapshotConsumed } from '../../packages/shared/src/render/autosave-recovery';
 import {
 	getAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -790,9 +789,6 @@ function App() {
 		try {
 			const snapshot = await getAutosaveSnapshot(recoveryOffer.filePath);
 			if (snapshot) {
-				// The host is taking delivery of this snapshot, so the viewer must not
-				// then offer to "recover" the bytes it is about to be handed.
-				markAutosaveSnapshotConsumed(snapshot.timestamp);
 				setContent(snapshot.data);
 				setFileName(snapshot.key);
 				try {
