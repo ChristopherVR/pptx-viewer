@@ -24,7 +24,7 @@
 	},
 	"devDependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.47",
-		"@ai-sdk/react": "^4.0.100",
+		"@ai-sdk/react": "^4.0.108",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^26.5.1",
 		"@types/react": "^19.3.0",
