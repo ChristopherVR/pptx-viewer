@@ -86,7 +86,7 @@
 	},
 	"devDependencies": {
 		"@playwright/test": "^1.63.0",
-		"@types/three": "^0.185.4",
+		"@types/three": "^0.186.0",
 		"@typescript/typescript6": "^6.0.2",
 		"@vitest/coverage-v8": "^5.0.0",
 		"ai": "^7.0.97",
@@ -94,7 +94,7 @@
 		"jszip": "^3.10.2",
 		"lib0": "^0.2.117",
 		"lint-staged": "^17.5.1",
-		"oxfmt": "0.67.0",
+		"oxfmt": "0.68.0",
 		"oxlint": "^1.82.0",
 		"pptx-react-viewer": "workspace:*",
 		"pptx-viewer-core": "workspace:*",

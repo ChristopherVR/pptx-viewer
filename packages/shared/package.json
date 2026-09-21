@@ -80,7 +80,7 @@
 		"@ai-sdk/openai-compatible": "^3.0.47",
 		"@types/dompurify": "^3.2.0",
 		"@types/opentype.js": "^1.3.10",
-		"@types/three": "^0.185.4",
+		"@types/three": "^0.186.0",
 		"ai": "^7.0.97",
 		"fake-indexeddb": "^6.2.5",
 		"pptx-viewer-core": "workspace:*",
