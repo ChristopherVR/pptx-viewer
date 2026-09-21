@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.23.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.2) - 2026-09-21
+
+### Bug Fixes
+
+- **autosave:** Harden recovery dialogs (by @yunfeizhu) ([29ef529](https://github.com/ChristopherVR/pptx-viewer/commit/29ef529f4eb6439315bb90b088f2ffe6877577ba))
+
 ## [2.23.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.1) - 2026-09-20
 
 ### Bug Fixes

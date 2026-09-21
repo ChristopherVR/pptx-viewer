@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-21
+
+_Releases: pptx-react-viewer@4.1.2, pptx-vue-viewer@4.1.2, pptx-angular-viewer@4.1.2, pptx-vanilla-viewer@3.1.2, pptx-svelte-viewer@4.1.2, @christophervr/pptx-viewer@2.23.2_
+
+### Bug Fixes
+
+- **autosave:** Harden recovery dialogs (by @yunfeizhu) ([29ef529](https://github.com/ChristopherVR/pptx-viewer/commit/29ef529f4eb6439315bb90b088f2ffe6877577ba))
+
 ## 2026-09-20
 
 _Releases: pptx-react-viewer@4.1.1, pptx-vue-viewer@4.1.1, pptx-angular-viewer@4.1.1, pptx-vanilla-viewer@3.1.1, pptx-svelte-viewer@4.1.1, @christophervr/pptx-viewer@2.23.1_
