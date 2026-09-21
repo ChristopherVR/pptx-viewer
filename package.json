@@ -62,10 +62,10 @@
 		"check:published-types": "node scripts/check-published-shared-refs.mjs"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.47",
-		"@ai-sdk/react": "^4.0.108",
-		"@ai-sdk/svelte": "^5.0.105",
-		"@ai-sdk/vue": "^4.0.105",
+		"@ai-sdk/openai-compatible": "^3.0.53",
+		"@ai-sdk/react": "^4.0.110",
+		"@ai-sdk/svelte": "^5.0.107",
+		"@ai-sdk/vue": "^4.0.107",
 		"@angular/common": "^22.1.6",
 		"@angular/compiler": "^22.1.6",
 		"@angular/compiler-cli": "^22.1.6",
@@ -89,7 +89,7 @@
 		"@types/three": "^0.185.4",
 		"@typescript/typescript6": "^6.0.2",
 		"@vitest/coverage-v8": "^5.0.0",
-		"ai": "^7.0.97",
+		"ai": "^7.0.107",
 		"husky": "^9.1.7",
 		"jszip": "^3.10.2",
 		"lib0": "^0.2.117",
@@ -112,7 +112,7 @@
 		"three": "^0.186.0"
 	},
 	"overrides": {
-		"ai": "^7.0.97",
+		"ai": "^7.0.107",
 		"zod": ">=4.4.3 <4.5.3"
 	},
 	"lint-staged": {

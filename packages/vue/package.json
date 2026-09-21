@@ -123,7 +123,7 @@
 		"tailwind-merge": "^3.6.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/vue": "^4.0.105",
+		"@ai-sdk/vue": "^4.0.107",
 		"@rollup/plugin-terser": "^1.0.0",
 		"@tailwindcss/cli": "^4.3.3",
 		"@types/dompurify": "^3.2.0",
