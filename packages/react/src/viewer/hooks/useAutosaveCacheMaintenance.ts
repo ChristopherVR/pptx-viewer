@@ -11,8 +11,12 @@ import { useEffect } from 'react';
 // not retain a render's full slide state through a shared lexical context.
 function handleClearOptionsCache(): void {
 	void (async () => {
-		const snapshots = await listAutosaveSnapshots();
-		await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+		try {
+			const snapshots = await listAutosaveSnapshots();
+			await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+		} catch {
+			// Browser lifecycle cleanup cannot report an IndexedDB failure.
+		}
 	})();
 }
 

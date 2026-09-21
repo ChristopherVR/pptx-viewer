@@ -1327,8 +1327,12 @@ const { showSettings } = useViewerSettingsDialog({
 /** File > Options > Save > "Delete cached files". */
 function onOptionsClearCache(): void {
 	void (async () => {
-		const snapshots = await listAutosaveSnapshots();
-		await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+		try {
+			const snapshots = await listAutosaveSnapshots();
+			await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+		} catch {
+			// Browser lifecycle cleanup cannot report an IndexedDB failure.
+		}
 	})();
 }
 

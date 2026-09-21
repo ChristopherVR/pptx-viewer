@@ -19,15 +19,17 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { probeMock, discardMock } = vi.hoisted(() => ({
+const { probeMock, discardMock, acknowledgeMock } = vi.hoisted(() => ({
 	probeMock: vi.fn(),
 	discardMock: vi.fn(),
+	acknowledgeMock: vi.fn(),
 }));
 
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	probeAutosaveRecovery: probeMock,
 	discardAutosaveRecovery: discardMock,
+	acknowledgeAutosaveRecovery: acknowledgeMock,
 }));
 
 const { useRecoveryDetection } = await import('./useRecoveryDetection');
@@ -63,6 +65,7 @@ let root: Root;
 beforeEach(() => {
 	probeMock.mockReset();
 	discardMock.mockReset();
+	acknowledgeMock.mockReset();
 	container = document.createElement('div');
 	document.body.appendChild(container);
 	root = createRoot(container);
@@ -134,6 +137,7 @@ describe('useRecoveryDetection', () => {
 			current().restore();
 		});
 		expect(onRestore).toHaveBeenCalledWith(BYTES);
+		expect(acknowledgeMock).toHaveBeenCalledWith(offer().record);
 		expect(current().prompt).toBeNull();
 	});
 
@@ -182,6 +186,23 @@ describe('useRecoveryDetection', () => {
 
 		expect(current().discarding).toBeFalsy();
 		expect(current().prompt).toBeNull();
+	});
+
+	it('keeps the prompt open and reusable when IndexedDB rejects the discard', async () => {
+		probeMock.mockResolvedValue(offer());
+		discardMock.mockRejectedValue(new Error('transaction failed'));
+		const onRestore = vi.fn();
+		const current = await mount({ ...base, onRestore });
+
+		await act(async () => {
+			current().discard();
+			await Promise.resolve();
+		});
+
+		expect(current().discarding).toBeFalsy();
+		expect(current().prompt).not.toBeNull();
+		act(() => current().restore());
+		expect(onRestore).toHaveBeenCalledWith(BYTES);
 	});
 
 	it('never probes while loading, without slides, or when the host forbade autosave', async () => {

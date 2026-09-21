@@ -4,6 +4,7 @@
  * rather than only to a callback the embedder may never have wired.
  */
 import type { PptxHandler } from 'pptx-viewer-core';
+import { getAcknowledgedAutosaveRecoveryTimestamp } from 'pptx-viewer-shared';
 import type { AutosaveRecoveryOffer } from 'pptx-viewer-shared';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -88,6 +89,7 @@ describe('autosave activation: host ceiling vs user preference', () => {
 		saveAutosaveSnapshot.mockReset().mockResolvedValue(true);
 		probeAutosaveRecovery.mockReset().mockResolvedValue(null);
 		discardAutosaveRecovery.mockReset().mockResolvedValue(undefined);
+		sessionStorage.clear();
 	});
 
 	it('runs by default when the host says nothing at all', () => {
@@ -144,6 +146,7 @@ describe('the crash-recovery prompt', () => {
 		saveAutosaveSnapshot.mockReset().mockResolvedValue(true);
 		probeAutosaveRecovery.mockReset().mockResolvedValue(null);
 		discardAutosaveRecovery.mockReset().mockResolvedValue(undefined);
+		sessionStorage.clear();
 	});
 	afterEach(() => {
 		document.querySelectorAll('.pptxv-parity-backdrop').forEach((node) => node.remove());
@@ -196,8 +199,26 @@ describe('the crash-recovery prompt', () => {
 
 		await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce());
 		expect(loadFile.mock.calls[0]?.[0]).toStrictEqual(new Uint8Array([9, 9]));
+		expect(getAcknowledgedAutosaveRecoveryTimestamp('deck.pptx')).toBe(10);
 		expect(discardAutosaveRecovery).not.toHaveBeenCalled();
 		expect(document.querySelector('[data-pptx-autosave-recovery]')).toBeNull();
+		session.destroy();
+	});
+
+	it('rolls back the acknowledgement when loading the snapshot fails', async () => {
+		const t = createTranslator();
+		const { dialog, loadFile, session } = await raisePrompt();
+		loadFile.mockRejectedValueOnce(new Error('load failed'));
+		dialog
+			.querySelector<HTMLButtonElement>(
+				`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
+			)
+			?.click();
+
+		await vi.waitFor(() => expect(loadFile).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(getAcknowledgedAutosaveRecoveryTimestamp('deck.pptx')).toBeUndefined(),
+		);
 		session.destroy();
 	});
 
@@ -253,6 +274,27 @@ describe('the crash-recovery prompt', () => {
 		await vi.waitFor(() =>
 			expect(document.querySelector('[data-pptx-autosave-recovery]')).toBeNull(),
 		);
+		session.destroy();
+	});
+
+	it('keeps the dialog open and re-enables its actions after a failed discard', async () => {
+		discardAutosaveRecovery.mockRejectedValueOnce(new Error('transaction failed'));
+		const t = createTranslator();
+		const { dialog, session } = await raisePrompt();
+		const discard = dialog.querySelector<HTMLButtonElement>(
+			`button[aria-label="${t('pptx.autosave.recovery.discard')}"]`,
+		);
+		const restore = dialog.querySelector<HTMLButtonElement>(
+			`button[aria-label="${t('pptx.autosave.recovery.restore')}"]`,
+		);
+
+		discard?.click();
+		await vi.waitFor(() => expect(discardAutosaveRecovery).toHaveBeenCalledOnce());
+		await vi.waitFor(() => expect(discard?.disabled).toBeFalsy());
+
+		expect(document.querySelector('[data-pptx-autosave-recovery]')).not.toBeNull();
+		expect(dialog.hasAttribute('aria-busy')).toBeFalsy();
+		expect(restore?.disabled).toBeFalsy();
 		session.destroy();
 	});
 

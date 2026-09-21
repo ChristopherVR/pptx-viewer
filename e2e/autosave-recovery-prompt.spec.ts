@@ -246,11 +246,16 @@ test.describe('crash-recovery prompt', () => {
 		await expect(slideElements(page).first()).toBeVisible({ timeout: 60_000 });
 		await expect(page.locator('[data-testid="dropzone"]')).toHaveCount(0);
 
-		// Restore is non-destructive. Until the user explicitly discards the
-		// snapshot, another reload must still offer it instead of silently marking
-		// it consumed for this tab.
+		// Restore is non-destructive, but this exact snapshot is acknowledged for
+		// this tab so an ordinary reload does not ask the same question again.
 		await page.reload();
 		await page.locator('[aria-roledescription="slide"]').first().waitFor({ timeout: 60_000 });
+		await expect(recoveryDialog(page)).toHaveCount(0);
+		expect(await countSnapshots(page)).toBe(1);
+
+		// A fresh tab has no acknowledgement. The preserved snapshot is offered
+		// again there, retaining the safety copy until explicit discard.
+		await reopenDeckKeepingSnapshot(page);
 		await expect(recoveryDialog(page)).toBeVisible({ timeout: 30_000 });
 		await recoveryDialog(page)
 			.getByRole('button', { name: /^discard$/iu })

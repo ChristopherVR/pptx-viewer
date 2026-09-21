@@ -1,6 +1,8 @@
 import type { AutosaveRecord, AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 import {
 	acceptAutosaveRecovery,
+	acknowledgeAutosaveRecovery,
+	clearAutosaveRecoveryAcknowledgement,
 	discardAutosaveRecovery,
 	probeAutosaveRecovery,
 	shouldProbeAutosaveRecovery,
@@ -107,8 +109,12 @@ export class AutosaveRecoveryController {
 			return;
 		}
 		this.#restoring = true;
+		acknowledgeAutosaveRecovery(record);
 		try {
 			await this.#deps.load(acceptAutosaveRecovery(record));
+		} catch (error) {
+			clearAutosaveRecoveryAcknowledgement(record);
+			throw error;
 		} finally {
 			this.#checkedLoadCount = this.#deps.getLoadCount();
 			this.#restoring = false;
@@ -131,6 +137,8 @@ export class AutosaveRecoveryController {
 		try {
 			await discardAutosaveRecovery(record);
 			this.dismiss();
+		} catch {
+			// Leave the prompt open so a failed discard can be retried.
 		} finally {
 			this.discarding = false;
 			this.#actionPending = false;

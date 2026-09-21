@@ -17,14 +17,20 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  * shared probe is stubbed so the assertion is about the wiring: probe -> prompt
  * -> restore/discard.
  */
-const { probeMock, discardMock } = vi.hoisted(() => ({
+const { probeMock, discardMock, acknowledgeMock } = vi.hoisted(() => ({
 	probeMock: vi.fn(),
 	discardMock: vi.fn(),
+	acknowledgeMock: vi.fn(),
 }));
 
 vi.mock(import('../internal/shared'), async () => {
 	const actual = await vi.importActual<typeof import('../internal/shared')>('../internal/shared');
-	return { ...actual, probeAutosaveRecovery: probeMock, discardAutosaveRecovery: discardMock };
+	return {
+		...actual,
+		probeAutosaveRecovery: probeMock,
+		discardAutosaveRecovery: discardMock,
+		acknowledgeAutosaveRecovery: acknowledgeMock,
+	};
 });
 
 const { AutosaveRecoveryService } = await import('./autosave-recovery.service');
@@ -75,6 +81,7 @@ describe('autosaveRecoveryService', () => {
 	beforeEach(() => {
 		probeMock.mockReset();
 		discardMock.mockReset();
+		acknowledgeMock.mockReset();
 	});
 
 	function bind(overrides: { loading?: boolean; slideCount?: number; allowed?: boolean } = {}) {
@@ -112,6 +119,7 @@ describe('autosaveRecoveryService', () => {
 		await Promise.resolve();
 		service.restore();
 		expect(restore).toHaveBeenCalledWith(BYTES);
+		expect(acknowledgeMock).toHaveBeenCalledWith(RECORD);
 		expect(service.prompt()).toBeNull();
 	});
 
@@ -153,6 +161,20 @@ describe('autosaveRecoveryService', () => {
 
 		expect(service.discarding()).toBeFalsy();
 		expect(service.prompt()).toBeNull();
+	});
+
+	it('keeps the prompt open after a failed discard', async () => {
+		probeMock.mockResolvedValue(offer());
+		discardMock.mockRejectedValue(new Error('transaction failed'));
+		const { service } = bind();
+		await Promise.resolve();
+
+		service.discard();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(service.discarding()).toBeFalsy();
+		expect(service.prompt()).not.toBeNull();
 	});
 
 	it('never probes while loading, without slides, or when the host forbade autosave', async () => {

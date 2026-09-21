@@ -1,7 +1,8 @@
 import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { saveAutosaveSnapshot } from './autosave-store';
+import { probeAutosaveRecovery } from './autosave-recovery';
+import { getAutosaveSnapshot, saveAutosaveSnapshot } from './autosave-store';
 import {
 	forgetSessionDeck,
 	getSessionTabId,
@@ -140,6 +141,14 @@ describe('session-restore', () => {
 		const restored = await restoreSessionDeck();
 		expect(Array.from(restored?.data ?? [])).toStrictEqual([80, 75, 7, 7]);
 		expect(restored?.fileName).toBe('slides.pptx');
+		await expect(probeAutosaveRecovery('slides.pptx')).resolves.toBeNull();
+		await expect(getAutosaveSnapshot('slides.pptx')).resolves.toBeDefined();
+
+		// A fresh tab has no acknowledgement and may offer the preserved copy.
+		g.sessionStorage = makeSessionStorageStub();
+		await expect(probeAutosaveRecovery('slides.pptx', opened + 1_001)).resolves.toMatchObject({
+			record: { key: 'slides.pptx', timestamp: opened + 1_000 },
+		});
 	});
 
 	it('ignores an autosave snapshot for a different file', async () => {

@@ -165,7 +165,9 @@ export function useExportWiring(input: UseExportWiringInput): UseExportWiringRes
 				playFeedbackSound(options);
 				const filePath = input.filePath?.();
 				if (format === 'pptx' && filePath && shouldDiscardAutosaveOnSuccessfulSave(options)) {
-					void deleteAutosaveSnapshot(filePath);
+					void deleteAutosaveSnapshot(filePath).catch(() => {
+						// Saving succeeded; recovery cleanup is best-effort here.
+					});
 				}
 			}
 		} catch (err) {

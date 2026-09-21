@@ -303,7 +303,9 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		editorUi.optionsState.playFeedback();
 		const filePath = options.getFilePath();
 		if (format === 'pptx' && filePath && editorUi.optionsState.shouldDiscardAutosaveOnSave) {
-			void deleteAutosaveSnapshot(filePath);
+			void deleteAutosaveSnapshot(filePath).catch(() => {
+				// Saving succeeded; recovery cleanup is best-effort here.
+			});
 		}
 	};
 	const editingApi = {
@@ -353,7 +355,9 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	// when the tab closes/navigates away, and when this viewer is destroyed.
 	function clearCacheOnUnload(): void {
 		if (editorUi.optionsState.shouldClearCacheOnClose) {
-			void editorUi.optionsState.clearCache();
+			void editorUi.optionsState.clearCache().catch(() => {
+				// Browser lifecycle cleanup cannot report an IndexedDB failure.
+			});
 		}
 	}
 	if (typeof window !== 'undefined') {

@@ -1,3 +1,4 @@
+import { getAcknowledgedAutosaveRecoveryTimestamp } from 'pptx-viewer-shared';
 import type { AutosaveRecord } from 'pptx-viewer-shared';
 import { flushSync } from 'svelte';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -159,6 +160,9 @@ describe('autosaveRecoveryController', () => {
 		await h.ctl.restore();
 
 		expect(h.load).toHaveBeenCalledExactlyOnceWith(data);
+		expect(getAcknowledgedAutosaveRecoveryTimestamp('deck.pptx')).toBe(
+			snapshots.get('deck.pptx')?.timestamp,
+		);
 		expect(h.ctl.prompt).toBeNull();
 		// Kept, not deleted: restoring is not consuming the only copy.
 		expect(snapshots.has('deck.pptx')).toBeTruthy();
@@ -177,6 +181,18 @@ describe('autosaveRecoveryController', () => {
 		flushSync();
 
 		expect(h.ctl.prompt).toBeNull();
+		h.dispose();
+	});
+
+	it('rolls back the acknowledgement when loading the snapshot fails', async () => {
+		seedSnapshot();
+		const h = setup();
+		h.load.mockRejectedValueOnce(new Error('load failed'));
+		await vi.waitFor(() => expect(h.ctl.prompt).not.toBeNull());
+
+		await expect(h.ctl.restore()).rejects.toThrow('load failed');
+
+		expect(getAcknowledgedAutosaveRecoveryTimestamp('deck.pptx')).toBeUndefined();
 		h.dispose();
 	});
 
@@ -218,6 +234,27 @@ describe('autosaveRecoveryController', () => {
 		expect(h.ctl.discarding).toBeFalsy();
 		expect(h.ctl.prompt).toBeNull();
 		expect(snapshots.has('deck.pptx')).toBeFalsy();
+		h.dispose();
+	});
+
+	it('keeps the prompt open after a failed discard', async () => {
+		seedSnapshot();
+		let failDiscard!: (error: Error) => void;
+		discardGates.push(
+			new Promise<void>((_resolve, reject) => {
+				failDiscard = reject;
+			}),
+		);
+		const h = setup();
+		await vi.waitFor(() => expect(h.ctl.prompt).not.toBeNull());
+
+		const pending = h.ctl.discard();
+		failDiscard(new Error('transaction failed'));
+		await pending;
+
+		expect(h.ctl.discarding).toBeFalsy();
+		expect(h.ctl.prompt).not.toBeNull();
+		expect(snapshots.has('deck.pptx')).toBeTruthy();
 		h.dispose();
 	});
 });

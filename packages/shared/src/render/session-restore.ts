@@ -21,6 +21,7 @@
  * thrown error in the host.
  */
 
+import { acknowledgeAutosaveRecovery } from './autosave-recovery-acknowledgement';
 import { getAutosaveSnapshot } from './autosave-store';
 import { secureRandomToken } from './secure-random';
 
@@ -262,6 +263,7 @@ export async function restoreSessionDeck(): Promise<SessionDeck | null> {
 		const snapshot = await getAutosaveSnapshot(deck.fileName);
 		const bytes = snapshot ? toBytes(snapshot.data) : null;
 		if (snapshot && bytes && bytes.byteLength > 0 && snapshot.timestamp > deck.timestamp) {
+			acknowledgeAutosaveRecovery(snapshot);
 			return { fileName: deck.fileName, data: bytes, timestamp: snapshot.timestamp };
 		}
 	} catch {

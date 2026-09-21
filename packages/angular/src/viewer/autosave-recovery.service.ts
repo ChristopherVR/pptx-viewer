@@ -16,6 +16,7 @@ import { DestroyRef, effect, inject, Injectable, Injector, signal } from '@angul
 
 import {
 	acceptAutosaveRecovery,
+	acknowledgeAutosaveRecovery,
 	discardAutosaveRecovery,
 	probeAutosaveRecovery,
 	shouldProbeAutosaveRecovery,
@@ -104,8 +105,9 @@ export class AutosaveRecoveryService {
 		const found = this.record;
 		this.prompt.set(null);
 		this.record = null;
-		if (found) {
-			this.host?.restore(acceptAutosaveRecovery(found));
+		if (found && this.host) {
+			this.host.restore(acceptAutosaveRecovery(found));
+			acknowledgeAutosaveRecovery(found);
 		}
 	}
 

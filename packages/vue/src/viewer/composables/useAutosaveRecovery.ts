@@ -8,6 +8,7 @@
  */
 import {
 	acceptAutosaveRecovery,
+	acknowledgeAutosaveRecovery,
 	discardAutosaveRecovery,
 	probeAutosaveRecovery,
 	shouldProbeAutosaveRecovery,
@@ -94,6 +95,7 @@ export function useAutosaveRecovery(
 		record = null;
 		if (found) {
 			options.onRestore(acceptAutosaveRecovery(found));
+			acknowledgeAutosaveRecovery(found);
 		}
 	}
 

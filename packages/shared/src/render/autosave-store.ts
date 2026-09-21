@@ -176,12 +176,10 @@ export async function listAutosaveSnapshots(): Promise<
 	});
 }
 
-/**
- * Delete an autosave snapshot by file path.
- */
+/** Delete a snapshot, rejecting when IndexedDB cannot commit the transaction. */
 export async function deleteAutosaveSnapshot(filePath: string): Promise<boolean> {
 	const db = await openAutosaveDb();
-	return new Promise((resolve) => {
+	return new Promise((resolve, reject) => {
 		try {
 			const tx = db.transaction(AUTOSAVE_STORE_NAME, 'readwrite');
 			const store = tx.objectStore(AUTOSAVE_STORE_NAME);
@@ -190,17 +188,19 @@ export async function deleteAutosaveSnapshot(filePath: string): Promise<boolean>
 				db.close();
 				resolve(true);
 			};
-			tx.onerror = () => {
+			const rejectDelete = (): void => {
 				db.close();
-				resolve(false);
+				reject(tx.error ?? new Error(`Failed to delete autosave snapshot: ${filePath}`));
 			};
-		} catch {
+			tx.onerror = rejectDelete;
+			tx.onabort = rejectDelete;
+		} catch (error) {
 			try {
 				db.close();
 			} catch {
 				// Ignore
 			}
-			resolve(false);
+			reject(error);
 		}
 	});
 }

@@ -915,7 +915,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			const afterSuccessfulSave = (format: PptxSaveFormat): void => {
 				playFeedbackSound(viewerOptions);
 				if (format === 'pptx' && filePath && shouldDiscardAutosaveOnSuccessfulSave(viewerOptions)) {
-					void deleteAutosaveSnapshot(filePath);
+					void deleteAutosaveSnapshot(filePath).catch(() => {
+						// Saving succeeded; recovery cleanup is best-effort here.
+					});
 				}
 			};
 			const handleSaveAsFormat = async (format: PptxSaveFormat): Promise<void> => {
