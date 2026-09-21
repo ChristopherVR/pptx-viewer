@@ -10,6 +10,32 @@ dated sections beneath it are generated from
 
 ## 2026-09-21
 
+_Releases: pptx-react-viewer@4.1.3, pptx-vue-viewer@4.1.3, pptx-angular-viewer@4.1.3, pptx-vanilla-viewer@3.1.3, pptx-svelte-viewer@4.1.3, @christophervr/pptx-viewer@2.23.3_
+
+### Bug Fixes
+
+- **deps:** Align ai sdk runtime and adapters (by @ChristopherVR) ([3a7d2e9](https://github.com/ChristopherVR/pptx-viewer/commit/3a7d2e978885b02be4541b27c4d44b64846412ac))
+- **autosave:** Acknowledge restores and surface delete failures ([#339](https://github.com/ChristopherVR/pptx-viewer/issues/339)) (by @yunfeizhu) ([e0f9569](https://github.com/ChristopherVR/pptx-viewer/commit/e0f9569efb5352b42e4499d1e7244708f894b8a6))
+
+### Build & CI
+
+- **deps:** Batch dependabot updates and skip routine browser matrix (by @ChristopherVR) ([20f29f6](https://github.com/ChristopherVR/pptx-viewer/commit/20f29f6883a316d8e50cb54fd8cc022b6308f5ab))
+- **deps:** Skip browser matrix after routine dependency merges (by @ChristopherVR) ([a4767e1](https://github.com/ChristopherVR/pptx-viewer/commit/a4767e1567982c4972a11e0e5553f3e0517623f2))
+
+### Dependencies
+
+- **deps:** Update vue-i18n requirement from ^11.4.10 to ^11.4.12 ([#328](https://github.com/ChristopherVR/pptx-viewer/issues/328)) (by @dependabot[bot]) ([f18c561](https://github.com/ChristopherVR/pptx-viewer/commit/f18c56161fcdda8367b8e0180896b76bac5fc333))
+- **deps:** Bump @ai-sdk/vue from 4.0.107 to 4.0.105 ([#336](https://github.com/ChristopherVR/pptx-viewer/issues/336)) (by @dependabot[bot]) ([a4dc84d](https://github.com/ChristopherVR/pptx-viewer/commit/a4dc84df6bed506f6fe18a579f5770c741f85a51))
+- **deps:** Bump @ai-sdk/react from 4.0.110 to 4.0.108 ([#335](https://github.com/ChristopherVR/pptx-viewer/issues/335)) (by @dependabot[bot]) ([56c7005](https://github.com/ChristopherVR/pptx-viewer/commit/56c7005c53b9f1aa9ca6bc5f4357d7cc4fd5983d))
+- **deps:** Consolidate compatible workspace updates (by @ChristopherVR) ([9c4f29e](https://github.com/ChristopherVR/pptx-viewer/commit/9c4f29e59fa09a84ed4f1c3194a0c478a486f31e))
+
+### Chores
+
+- **deps-dev:** Update @vue/compiler-sfc requirement ([#334](https://github.com/ChristopherVR/pptx-viewer/issues/334)) (by @dependabot[bot]) ([1387fcf](https://github.com/ChristopherVR/pptx-viewer/commit/1387fcf911e8e4e49725616b7eeba1fbf02488d2))
+- **deps-dev:** Update oxlint requirement from ^1.82.0 to ^1.83.0 ([#332](https://github.com/ChristopherVR/pptx-viewer/issues/332)) (by @dependabot[bot]) ([f0ef4c8](https://github.com/ChristopherVR/pptx-viewer/commit/f0ef4c8aae16d4b8a85883f5b61996e66f8f4276))
+
+## 2026-09-21
+
 _Releases: pptx-react-viewer@4.1.2, pptx-vue-viewer@4.1.2, pptx-angular-viewer@4.1.2, pptx-vanilla-viewer@3.1.2, pptx-svelte-viewer@4.1.2, @christophervr/pptx-viewer@2.23.2_
 
 ### Bug Fixes

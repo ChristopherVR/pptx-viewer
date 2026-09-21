@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.1.3) - 2026-09-21
+
+### Bug Fixes
+
+- **deps:** Align ai sdk runtime and adapters (by @ChristopherVR) ([3a7d2e9](https://github.com/ChristopherVR/pptx-viewer/commit/3a7d2e978885b02be4541b27c4d44b64846412ac))
+- **autosave:** Acknowledge restores and surface delete failures ([#339](https://github.com/ChristopherVR/pptx-viewer/issues/339)) (by @yunfeizhu) ([e0f9569](https://github.com/ChristopherVR/pptx-viewer/commit/e0f9569efb5352b42e4499d1e7244708f894b8a6))
+
+### Dependencies
+
+- **deps:** Bump @ai-sdk/vue from 4.0.107 to 4.0.105 ([#336](https://github.com/ChristopherVR/pptx-viewer/issues/336)) (by @dependabot[bot]) ([a4dc84d](https://github.com/ChristopherVR/pptx-viewer/commit/a4dc84df6bed506f6fe18a579f5770c741f85a51))
+- **deps:** Consolidate compatible workspace updates (by @ChristopherVR) ([9c4f29e](https://github.com/ChristopherVR/pptx-viewer/commit/9c4f29e59fa09a84ed4f1c3194a0c478a486f31e))
+
+### Chores
+
+- **deps-dev:** Update @vue/compiler-sfc requirement ([#334](https://github.com/ChristopherVR/pptx-viewer/issues/334)) (by @dependabot[bot]) ([1387fcf](https://github.com/ChristopherVR/pptx-viewer/commit/1387fcf911e8e4e49725616b7eeba1fbf02488d2))
+
 ## [4.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.1.2) - 2026-09-21
 
 ### Bug Fixes

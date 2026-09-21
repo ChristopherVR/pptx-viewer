@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.3) - 2026-09-21
+
+### Bug Fixes
+
+- **deps:** Align ai sdk runtime and adapters (by @ChristopherVR) ([3a7d2e9](https://github.com/ChristopherVR/pptx-viewer/commit/3a7d2e978885b02be4541b27c4d44b64846412ac))
+- **autosave:** Acknowledge restores and surface delete failures ([#339](https://github.com/ChristopherVR/pptx-viewer/issues/339)) (by @yunfeizhu) ([e0f9569](https://github.com/ChristopherVR/pptx-viewer/commit/e0f9569efb5352b42e4499d1e7244708f894b8a6))
+
 ## [4.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.2) - 2026-09-21
 
 ### Bug Fixes

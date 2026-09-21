@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.1.3) - 2026-09-21
+
+### Bug Fixes
+
+- **deps:** Align ai sdk runtime and adapters (by @ChristopherVR) ([3a7d2e9](https://github.com/ChristopherVR/pptx-viewer/commit/3a7d2e978885b02be4541b27c4d44b64846412ac))
+- **autosave:** Acknowledge restores and surface delete failures ([#339](https://github.com/ChristopherVR/pptx-viewer/issues/339)) (by @yunfeizhu) ([e0f9569](https://github.com/ChristopherVR/pptx-viewer/commit/e0f9569efb5352b42e4499d1e7244708f894b8a6))
+
+### Dependencies
+
+- **deps:** Bump @ai-sdk/react from 4.0.110 to 4.0.108 ([#335](https://github.com/ChristopherVR/pptx-viewer/issues/335)) (by @dependabot[bot]) ([56c7005](https://github.com/ChristopherVR/pptx-viewer/commit/56c7005c53b9f1aa9ca6bc5f4357d7cc4fd5983d))
+
 ## [4.1.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.1.2) - 2026-09-21
 
 ### Bug Fixes
