@@ -131,7 +131,7 @@
 		"@types/three": "^0.185.4",
 		"@vitejs/plugin-vue": "^6.0.8",
 		"@vue/compiler-sfc": "^3.5.42",
-		"@vue/test-utils": "^2.5.0",
+		"@vue/test-utils": "^2.5.1",
 		"happy-dom": "^20.14.0",
 		"jsdom": "^30.0.1",
 		"pptx-viewer-core": "workspace:*",
