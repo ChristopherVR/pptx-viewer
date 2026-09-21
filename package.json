@@ -62,7 +62,7 @@
 		"check:published-types": "node scripts/check-published-shared-refs.mjs"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.47",
+		"@ai-sdk/openai-compatible": "^3.0.51",
 		"@ai-sdk/react": "^4.0.100",
 		"@ai-sdk/svelte": "^5.0.97",
 		"@ai-sdk/vue": "^4.0.97",

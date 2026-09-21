@@ -9,7 +9,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.47",
+		"@ai-sdk/openai-compatible": "^3.0.51",
 		"@ai-sdk/svelte": "^5.0.97",
 		"@lucide/svelte": "^1.44.0",
 		"ai": "^7.0.97",
