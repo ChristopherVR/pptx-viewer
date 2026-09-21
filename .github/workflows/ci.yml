@@ -177,17 +177,27 @@ jobs:
       # build, lint, typecheck, and unit-test gates. Browser suites and the
       # packaged-demo smoke test add more than forty runner jobs, however, and
       # have no source change to exercise for such updates. Skipping them here
-      # is deliberately bot- and path-specific: a human PR, a `full-ci` label,
-      # or any changed source/config file still runs the normal browser matrix.
+      # is deliberately update- and path-specific: Dependabot PRs and their
+      # conventional `chore(deps)` squash commits get the exemption, while a
+      # human PR, a `full-ci` label, or any changed source/config file still
+      # runs the normal browser matrix.
       - name: Identify routine Dependabot update
         id: dependabot
         env:
           ACTOR: ${{ github.actor }}
           FULL_CI_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+          COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
         run: |
           skip=false
-          if [ "${{ github.event_name }}" = "pull_request" ] \
-            && [ "$ACTOR" = "dependabot[bot]" ] \
+          is_routine_update=false
+          if [ "${{ github.event_name }}" = "pull_request" ] && [ "$ACTOR" = "dependabot[bot]" ]; then
+            is_routine_update=true
+          elif [ "${{ github.event_name }}" = "push" ] \
+            && printf '%s' "$COMMIT_MESSAGE" | grep -Eq '^chore\\(deps(-dev)?\\):'; then
+            is_routine_update=true
+          fi
+
+          if [ "$is_routine_update" = "true" ] \
             && [ "$FULL_CI_LABEL" != "true" ] \
             && jq -e 'length > 0 and all(.[]; test("(^|/)package\\.json$|^bun\\.lock$"))' changed-files.json > /dev/null; then
             skip=true
