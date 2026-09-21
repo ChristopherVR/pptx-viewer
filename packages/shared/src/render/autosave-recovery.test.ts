@@ -3,8 +3,8 @@
  *
  * jsdom supplies the browser storage globals used by the recovery flow.
  */
-import { IDBFactory, IDBKeyRange } from 'fake-indexeddb';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { IDBDatabase, IDBFactory, IDBKeyRange } from 'fake-indexeddb';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	acceptAutosaveRecovery,
@@ -16,7 +16,15 @@ import {
 	shouldProbeAutosaveRecovery,
 	shouldShowAutosaveRecoveryPrompt,
 } from './autosave-recovery';
-import { getAutosaveSnapshot, saveAutosaveSnapshot } from './autosave-store';
+import {
+	acknowledgeAutosaveRecovery,
+	clearAutosaveRecoveryAcknowledgement,
+} from './autosave-recovery-acknowledgement';
+import {
+	deleteAutosaveSnapshot,
+	getAutosaveSnapshot,
+	saveAutosaveSnapshot,
+} from './autosave-store';
 
 const NOW = 1_700_000_000_000;
 
@@ -75,6 +83,23 @@ describe('autosaveRecoveryPrompt', () => {
 		expect(autosaveRecoveryPrompt({ record: undefined, now: NOW })).toBeNull();
 		expect(autosaveRecoveryPrompt({ record: { ...record, size: 0 }, now: NOW })).toBeNull();
 		expect(autosaveRecoveryPrompt({ record: { ...record, key: '' }, now: NOW })).toBeNull();
+	});
+
+	it('does not offer the exact snapshot this tab already loaded', () => {
+		expect(
+			autosaveRecoveryPrompt({
+				record,
+				now: NOW,
+				acknowledgedTimestamp: record.timestamp,
+			}),
+		).toBeNull();
+		expect(
+			autosaveRecoveryPrompt({
+				record: { ...record, timestamp: record.timestamp + 1 },
+				now: NOW,
+				acknowledgedTimestamp: record.timestamp,
+			}),
+		).not.toBeNull();
 	});
 
 	it('abandons a snapshot older than the recovery window', () => {
@@ -139,6 +164,7 @@ describe('probeAutosaveRecovery against a real store', () => {
 	beforeEach(() => {
 		g.indexedDB = new IDBFactory();
 		g.IDBKeyRange = IDBKeyRange;
+		sessionStorage.clear();
 	});
 
 	it('offers back the bytes the autosave engine wrote', async () => {
@@ -160,12 +186,51 @@ describe('probeAutosaveRecovery against a real store', () => {
 		expect(offer?.prompt.messageParams.file).toBe('Quarterly review.pptx');
 	});
 
-	it('keeps an accepted snapshot recoverable until it is explicitly discarded', async () => {
+	it('keeps accepted bytes stored but does not re-offer the exact snapshot in this tab', async () => {
 		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
 		const offer = await probeAutosaveRecovery('deck.pptx');
 		acceptAutosaveRecovery(offer!.record);
+		acknowledgeAutosaveRecovery(offer!.record);
+
+		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toBeNull();
+		await expect(getAutosaveSnapshot('deck.pptx')).resolves.toBeDefined();
+	});
+
+	it('offers the same stored snapshot again in a fresh tab', async () => {
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
+		const offer = await probeAutosaveRecovery('deck.pptx');
+		acknowledgeAutosaveRecovery(offer!.record);
+		sessionStorage.clear();
+
 		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toMatchObject({
 			record: { key: 'deck.pptx' },
+		});
+	});
+
+	it('re-offers a snapshot when its load acknowledgement is rolled back', async () => {
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
+		const offer = await probeAutosaveRecovery('deck.pptx');
+		acknowledgeAutosaveRecovery(offer!.record);
+		clearAutosaveRecoveryAcknowledgement(offer!.record);
+
+		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toMatchObject({
+			record: { key: 'deck.pptx' },
+		});
+	});
+
+	it('offers a newer snapshot for an acknowledged document', async () => {
+		const firstTimestamp = Date.now();
+		const now = vi.spyOn(Date, 'now').mockReturnValue(firstTimestamp);
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
+		const first = await probeAutosaveRecovery('deck.pptx', firstTimestamp);
+		acknowledgeAutosaveRecovery(first!.record);
+
+		now.mockReturnValue(firstTimestamp + 1);
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([5, 6, 7, 8]));
+		now.mockRestore();
+
+		await expect(probeAutosaveRecovery('deck.pptx', firstTimestamp + 2)).resolves.toMatchObject({
+			record: { key: 'deck.pptx', timestamp: firstTimestamp + 1 },
 		});
 	});
 
@@ -178,6 +243,7 @@ describe('probeAutosaveRecovery against a real store', () => {
 
 		const newer = await probeAutosaveRecovery('newer.pptx');
 		acceptAutosaveRecovery(newer!.record);
+		acknowledgeAutosaveRecovery(newer!.record);
 
 		await expect(probeAutosaveRecovery('older.pptx')).resolves.toMatchObject({
 			record: { key: 'older.pptx' },
@@ -190,6 +256,44 @@ describe('probeAutosaveRecovery against a real store', () => {
 		await discardAutosaveRecovery(offer!.record);
 		await expect(getAutosaveSnapshot('deck.pptx')).resolves.toBeUndefined();
 		await expect(probeAutosaveRecovery('deck.pptx')).resolves.toBeNull();
+	});
+
+	it('propagates a discard delete failure and leaves the snapshot available', async () => {
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
+		const offer = await probeAutosaveRecovery('deck.pptx');
+		const originalTransaction = IDBDatabase.prototype.transaction;
+		const transaction = vi
+			.spyOn(IDBDatabase.prototype, 'transaction')
+			.mockImplementationOnce(function (storeNames, mode) {
+				const tx = originalTransaction.call(this, storeNames, mode);
+				queueMicrotask(() => tx.abort());
+				return tx;
+			});
+
+		try {
+			await expect(discardAutosaveRecovery(offer!.record)).rejects.toThrow(
+				'Failed to delete autosave snapshot: deck.pptx',
+			);
+		} finally {
+			transaction.mockRestore();
+		}
+		await expect(getAutosaveSnapshot('deck.pptx')).resolves.toBeDefined();
+	});
+
+	it('rejects when IndexedDB cannot create the delete transaction', async () => {
+		await saveAutosaveSnapshot('deck.pptx', new Uint8Array([1, 2, 3, 4]));
+		const transaction = vi
+			.spyOn(IDBDatabase.prototype, 'transaction')
+			.mockImplementationOnce(() => {
+				throw new Error('transaction failed');
+			});
+
+		try {
+			await expect(deleteAutosaveSnapshot('deck.pptx')).rejects.toThrow('transaction failed');
+		} finally {
+			transaction.mockRestore();
+		}
+		await expect(getAutosaveSnapshot('deck.pptx')).resolves.toBeDefined();
 	});
 
 	it('says nothing about a deck that was never autosaved', async () => {

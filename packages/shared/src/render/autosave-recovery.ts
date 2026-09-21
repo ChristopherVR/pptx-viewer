@@ -16,6 +16,7 @@
  * @module render/autosave-recovery
  */
 
+import { getAcknowledgedAutosaveRecoveryTimestamp } from './autosave-recovery-acknowledgement';
 import { deleteAutosaveSnapshot, getAutosaveSnapshot } from './autosave-store';
 import type { AutosaveRecord } from './autosave-store';
 
@@ -89,6 +90,8 @@ export interface AutosaveRecoveryPromptInput {
 	readonly displayName?: string;
 	/** Now, epoch ms. */
 	readonly now: number;
+	/** Exact snapshot this tab has already loaded for this document. */
+	readonly acknowledgedTimestamp?: number;
 }
 
 /** Format a snapshot size without translating it: "812 KB", "1.2 MB". */
@@ -126,7 +129,12 @@ export function autosaveRecoveryPrompt(
 	input: AutosaveRecoveryPromptInput,
 ): AutosaveRecoveryPrompt | null {
 	const record = input.record;
-	if (!record || record.size <= 0 || !record.key) {
+	if (
+		!record ||
+		record.size <= 0 ||
+		!record.key ||
+		record.timestamp === input.acknowledgedTimestamp
+	) {
 		return null;
 	}
 	const age = input.now - record.timestamp;
@@ -218,6 +226,7 @@ export async function probeAutosaveRecovery(
 				: undefined,
 			now,
 			displayName,
+			acknowledgedTimestamp: getAcknowledgedAutosaveRecoveryTimestamp(filePath),
 		});
 		if (!prompt || !record) {
 			return null;
@@ -245,9 +254,5 @@ export async function discardAutosaveRecovery(record: {
 	key: string;
 	timestamp: number;
 }): Promise<void> {
-	try {
-		await deleteAutosaveSnapshot(record.key);
-	} catch {
-		// Best-effort: storage failures leave the snapshot available to retry.
-	}
+	await deleteAutosaveSnapshot(record.key);
 }

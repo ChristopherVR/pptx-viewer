@@ -87,6 +87,11 @@
 		optionsState.restore(snapshot);
 		onclose();
 	}
+	function clearCache(): void {
+		void optionsState.clearCache().catch(() => {
+			// Keep the options dialog usable when IndexedDB rejects cleanup.
+		});
+	}
 	function isSpecial(section: ViewerOptionsSection): boolean {
 		return (
 			section.special === 'themePicker' ||
@@ -143,7 +148,7 @@
 								/>
 							{:else if section.special === 'clearCache'}
 								<p class="hint">{t('pptx.options.save.clearCacheDescription')}</p>
-								<button type="button" class="ghost" onclick={() => void optionsState.clearCache()}>{t('pptx.options.save.clearCacheNow')}</button>
+								<button type="button" class="ghost" onclick={clearCache}>{t('pptx.options.save.clearCacheNow')}</button>
 							{/if}
 						{/snippet}
 						{#if activeTab.custom === 'quickAccess'}

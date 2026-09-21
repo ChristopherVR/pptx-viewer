@@ -1831,7 +1831,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			format === 'pptx' &&
 			shouldDiscardAutosaveOnSuccessfulSave(this.optionsController.getOptions())
 		) {
-			void deleteAutosaveSnapshot(this.autosaveFilePath());
+			void deleteAutosaveSnapshot(this.autosaveFilePath()).catch(() => {
+				// Saving succeeded; recovery cleanup is best-effort here.
+			});
 		}
 	}
 
@@ -1951,8 +1953,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** File > Options > Save > "Delete cached files": drop recovery snapshots. */
 	private clearOptionsCache(): void {
 		void (async () => {
-			const snapshots = await listAutosaveSnapshots();
-			await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+			try {
+				const snapshots = await listAutosaveSnapshots();
+				await Promise.all(snapshots.map((entry) => deleteAutosaveSnapshot(entry.key)));
+			} catch {
+				// Browser lifecycle cleanup cannot report an IndexedDB failure.
+			}
 		})();
 	}
 

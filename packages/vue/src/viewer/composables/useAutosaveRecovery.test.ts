@@ -3,15 +3,17 @@ import type { AutosaveRecoveryPrompt } from 'pptx-viewer-shared';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { effectScope, nextTick, ref } from 'vue';
 
-const { probeMock, discardMock } = vi.hoisted(() => ({
+const { probeMock, discardMock, acknowledgeMock } = vi.hoisted(() => ({
 	probeMock: vi.fn(),
 	discardMock: vi.fn(),
+	acknowledgeMock: vi.fn(),
 }));
 
 vi.mock(import('pptx-viewer-shared'), async (importOriginal) => ({
 	...(await importOriginal()),
 	probeAutosaveRecovery: probeMock,
 	discardAutosaveRecovery: discardMock,
+	acknowledgeAutosaveRecovery: acknowledgeMock,
 }));
 
 const { useAutosaveRecovery } = await import('./useAutosaveRecovery');
@@ -61,6 +63,7 @@ describe('useAutosaveRecovery', () => {
 	beforeEach(() => {
 		probeMock.mockReset().mockResolvedValue({ prompt: PROMPT, record: RECORD });
 		discardMock.mockReset().mockResolvedValue(undefined);
+		acknowledgeMock.mockReset();
 	});
 
 	it('keeps the storage key private and passes the public file name to the probe', async () => {
@@ -99,6 +102,27 @@ describe('useAutosaveRecovery', () => {
 
 		expect(harness.recovery.discarding.value).toBeFalsy();
 		expect(harness.recovery.prompt.value).toBeNull();
+		harness.stop();
+	});
+
+	it('acknowledges the exact snapshot after the viewer accepts it', async () => {
+		const harness = await setup();
+
+		harness.recovery.restore();
+
+		expect(harness.onRestore).toHaveBeenCalledWith(RECORD.data);
+		expect(acknowledgeMock).toHaveBeenCalledWith(RECORD);
+		harness.stop();
+	});
+
+	it('keeps the prompt open after a failed discard', async () => {
+		discardMock.mockRejectedValue(new Error('transaction failed'));
+		const harness = await setup();
+
+		await harness.recovery.discard();
+
+		expect(harness.recovery.discarding.value).toBeFalsy();
+		expect(harness.recovery.prompt.value).not.toBeNull();
 		harness.stop();
 	});
 });

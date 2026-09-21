@@ -1440,6 +1440,7 @@ export * from './autosave-policy';
 // "Is there a recoverable snapshot for this deck, and what should the prompt
 // say?" One decision, five dialogs.
 export * from './autosave-recovery';
+export * from './autosave-recovery-acknowledgement';
 export * from './backstage';
 export * from './backstage-cards';
 export * from './master-page-layout';

@@ -298,7 +298,9 @@ export class ViewerExtraDialogsComponent {
 
 	/** Options > Save > "Delete cached files": purge autosave recovery snapshots. */
 	protected onClearOptionsCache(): void {
-		void this.viewerOpts.clearCache();
+		void this.viewerOpts.clearCache().catch(() => {
+			// Keep the options dialog usable when IndexedDB rejects cleanup.
+		});
 	}
 
 	/** Drop the pending presentation ink. */

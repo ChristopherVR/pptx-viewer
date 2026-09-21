@@ -67,7 +67,11 @@ export function openVersionHistoryPanel(
 			remove.type = 'button';
 			remove.textContent = t('pptx.common.delete');
 			remove.addEventListener('click', () => {
-				void deleteAutosaveSnapshot(version.key).then(() => card.remove());
+				void deleteAutosaveSnapshot(version.key)
+					.then(() => card.remove())
+					.catch(() => {
+						// Keep the entry visible so deletion can be retried.
+					});
 			});
 			actions.append(restore, remove);
 			card.append(timestamp, relative, size, actions);

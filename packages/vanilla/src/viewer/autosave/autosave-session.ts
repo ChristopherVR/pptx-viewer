@@ -7,6 +7,8 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	acceptAutosaveRecovery,
+	acknowledgeAutosaveRecovery,
+	clearAutosaveRecoveryAcknowledgement,
 	discardAutosaveRecovery,
 	resolveAutosaveActivation,
 	resolveAutosaveIntervalMs,
@@ -115,7 +117,13 @@ export function createAutosaveSession(deps: AutosaveSessionDeps): AutosaveSessio
 				() => discardAutosaveRecovery(offer.record),
 			);
 			if (choice === 'restore') {
-				await deps.loadFile(acceptAutosaveRecovery(offer.record));
+				acknowledgeAutosaveRecovery(offer.record);
+				try {
+					await deps.loadFile(acceptAutosaveRecovery(offer.record));
+				} catch (error) {
+					clearAutosaveRecoveryAcknowledgement(offer.record);
+					throw error;
+				}
 			}
 		} finally {
 			dialogOpen = false;
@@ -136,7 +144,9 @@ export function createAutosaveSession(deps: AutosaveSessionDeps): AutosaveSessio
 			return;
 		}
 		pendingOffer = null;
-		void offerRecovery(offer);
+		void offerRecovery(offer).catch(() => {
+			// The load path reports its own error; a later reload may offer the snapshot again.
+		});
 	};
 
 	// The only transition that can unblock a held offer.

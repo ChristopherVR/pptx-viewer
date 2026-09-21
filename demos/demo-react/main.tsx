@@ -29,6 +29,7 @@ import {
 	storeAudienceContent,
 } from '../../packages/react/src/viewer';
 import type { CollaborationConfig } from '../../packages/react/src/viewer';
+import { acknowledgeAutosaveRecovery } from '../../packages/shared/src/render/autosave-recovery-acknowledgement';
 import {
 	getAutosaveSnapshot,
 	listAutosaveSnapshots,
@@ -791,6 +792,7 @@ function App() {
 			if (snapshot) {
 				setContent(snapshot.data);
 				setFileName(snapshot.key);
+				acknowledgeAutosaveRecovery(snapshot);
 				try {
 					localStorage.setItem(RECOVERY_STORAGE_KEY, snapshot.key);
 				} catch {
@@ -803,11 +805,16 @@ function App() {
 		setRecoveryOffer(null);
 	}, [recoveryOffer]);
 
-	const handleRecoveryDismiss = useCallback(() => {
-		if (recoveryOffer) {
-			void deleteAutosaveSnapshot(recoveryOffer.filePath);
+	const handleRecoveryDismiss = useCallback(async () => {
+		if (!recoveryOffer) {
+			return;
 		}
-		setRecoveryOffer(null);
+		try {
+			await deleteAutosaveSnapshot(recoveryOffer.filePath);
+			setRecoveryOffer(null);
+		} catch {
+			// Keep the offer open so deletion can be retried.
+		}
 	}, [recoveryOffer]);
 
 	// Update document title when in collaboration/broadcast mode

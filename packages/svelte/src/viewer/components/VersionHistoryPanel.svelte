@@ -36,9 +36,14 @@ import type { AutosaveRecord } from 'pptx-viewer-shared';
 	async function remove(): Promise<void> {
 		if (!version) {return;}
 		busy = true;
-		await deleteAutosaveSnapshot(version.key);
-		version = undefined;
-		busy = false;
+		try {
+			await deleteAutosaveSnapshot(version.key);
+			version = undefined;
+		} catch {
+			// Keep the entry visible so deletion can be retried.
+		} finally {
+			busy = false;
+		}
 	}
 </script>
 

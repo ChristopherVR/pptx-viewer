@@ -2486,7 +2486,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				this.viewerOpts.playFeedback();
 				const filePath = this.filePath();
 				if (format === 'pptx' && filePath && this.viewerOpts.shouldDiscardAutosaveOnSave()) {
-					void deleteAutosaveSnapshot(filePath);
+					void deleteAutosaveSnapshot(filePath).catch(() => {
+						// Saving succeeded; recovery cleanup is best-effort here.
+					});
 				}
 			},
 		});
@@ -2539,7 +2541,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// above covers the tab actually closing/navigating away).
 		this.destroyRef.onDestroy(() => {
 			if (this.viewerOpts.shouldClearCacheOnClose()) {
-				void this.viewerOpts.clearCache();
+				void this.viewerOpts.clearCache().catch(() => {
+					// Browser lifecycle cleanup cannot report an IndexedDB failure.
+				});
 			}
 		});
 
@@ -3597,7 +3601,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	@HostListener('window:beforeunload')
 	protected clearCacheOnUnload(): void {
 		if (this.viewerOpts.shouldClearCacheOnClose()) {
-			void this.viewerOpts.clearCache();
+			void this.viewerOpts.clearCache().catch(() => {
+				// Browser lifecycle cleanup cannot report an IndexedDB failure.
+			});
 		}
 	}
 

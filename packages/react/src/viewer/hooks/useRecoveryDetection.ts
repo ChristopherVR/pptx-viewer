@@ -12,6 +12,7 @@
  */
 import {
 	acceptAutosaveRecovery,
+	acknowledgeAutosaveRecovery,
 	discardAutosaveRecovery,
 	probeAutosaveRecovery,
 	shouldProbeAutosaveRecovery,
@@ -103,6 +104,7 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecov
 		setPrompt(null);
 		if (record && onRestore) {
 			onRestore(acceptAutosaveRecovery(record));
+			acknowledgeAutosaveRecovery(record);
 		}
 		recordRef.current = null;
 	}, [onRestore]);
