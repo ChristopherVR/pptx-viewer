@@ -23,7 +23,7 @@
 		"react-icons": "^5.7.0"
 	},
 	"devDependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.47",
+		"@ai-sdk/openai-compatible": "^3.0.52",
 		"@ai-sdk/react": "^4.0.100",
 		"@tailwindcss/vite": "^4.3.3",
 		"@types/node": "^26.5.1",

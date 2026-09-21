@@ -9,7 +9,7 @@
 		"preview": "vite preview"
 	},
 	"dependencies": {
-		"@ai-sdk/openai-compatible": "^3.0.47",
+		"@ai-sdk/openai-compatible": "^3.0.52",
 		"@angular/common": "^22.1.6",
 		"@angular/core": "^22.1.6",
 		"@angular/platform-browser": "^22.1.6",
