@@ -63,7 +63,7 @@
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.47",
-		"@ai-sdk/react": "^4.0.100",
+		"@ai-sdk/react": "^4.0.108",
 		"@ai-sdk/svelte": "^5.0.97",
 		"@ai-sdk/vue": "^4.0.105",
 		"@angular/common": "^22.1.6",
