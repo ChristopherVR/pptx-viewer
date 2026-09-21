@@ -60,6 +60,8 @@ export interface AutosaveControllerDeps {
 	getHandler: () => PptxHandler | null;
 	/** IndexedDB key for the recovery snapshot (usually the open file's name). */
 	filePath: string;
+	/** Public document name rendered in the recovery message. */
+	fileName?: string;
 	/**
 	 * The resolved cadence in ms, read EVERY time the timer is armed so a
 	 * File > Options > Save change applies without rebuilding the viewer.
@@ -194,7 +196,7 @@ export function createAutosaveController(deps: AutosaveControllerDeps): Autosave
 			return;
 		}
 		recoveryChecked = true;
-		void probeAutosaveRecovery(deps.filePath).then((offer) => {
+		void probeAutosaveRecovery(deps.filePath, Date.now(), deps.fileName).then((offer) => {
 			if (offer && !disposed) {
 				deps.onRecovery?.(offer.record);
 				deps.onRecoveryOffer?.(offer);

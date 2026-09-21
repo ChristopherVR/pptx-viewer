@@ -39,6 +39,10 @@ const props = defineProps<{
 	 * being the only one a shared spec cannot see.
 	 */
 	markerAttr?: string;
+	/** Keep a destructive async action from dismissing the dialog mid-flight. */
+	closeDisabled?: boolean;
+	/** Expose an in-flight action to assistive technology. */
+	busy?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -48,6 +52,9 @@ const emit = defineEmits<{
 const { t } = useI18n();
 
 function requestClose(): void {
+	if (props.closeDisabled) {
+		return;
+	}
 	emit('close');
 }
 
@@ -125,6 +132,7 @@ onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 				class="pptx-vue-modal-panel flex max-h-[88vh] min-w-[320px] max-w-[min(92vw,480px)] flex-col overflow-hidden overscroll-contain rounded-lg border border-border bg-popover text-foreground shadow-2xl max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:min-w-0 max-md:max-w-none max-md:max-h-[88dvh] max-md:rounded-b-none max-md:rounded-t-2xl max-md:border-x-0 max-md:border-b-0 max-md:pb-[max(env(safe-area-inset-bottom),0px)]"
 				role="dialog"
 				aria-modal="true"
+				:aria-busy="props.busy || undefined"
 				v-bind="props.markerAttr ? { [props.markerAttr]: 'true' } : {}"
 				:aria-label="title"
 				tabindex="-1"
@@ -147,8 +155,9 @@ onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 					<span v-else />
 					<button
 						type="button"
-						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground max-md:h-11 max-md:w-11"
+						class="pptx-vue-modal-close inline-flex h-6 w-6 items-center justify-center rounded text-muted-foreground hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 max-md:h-11 max-md:w-11"
 						:aria-label="t('pptx.settings.close')"
+						:disabled="props.closeDisabled"
 						@click="requestClose"
 					>
 						<X class="h-4 w-4 max-md:h-6 max-md:w-6" aria-hidden="true" />
@@ -161,7 +170,7 @@ onMounted(() => document.addEventListener('keydown', onDocumentKeydown));
 
 				<footer
 					v-if="$slots.footer"
-					class="pptx-vue-modal-footer flex justify-end gap-2 border-t border-border px-4 py-3"
+					class="pptx-vue-modal-footer flex flex-wrap justify-end gap-2 border-t border-border px-4 py-3"
 				>
 					<slot name="footer" />
 				</footer>

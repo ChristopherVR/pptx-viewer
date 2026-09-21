@@ -26,6 +26,8 @@ import {
 export interface AutosaveRecoveryDeps {
 	/** IndexedDB record key (host `filePath`). Nothing to look up without one. */
 	getFilePath: () => string | undefined;
+	/** Public document name rendered in the recovery message. */
+	getFileName?: () => string | undefined;
 	/**
 	 * Whether recovery snapshots are permitted at all, which is the HOST prop
 	 * (`autosave !== false`) and not the user's toggle: someone who merely
@@ -45,6 +47,8 @@ export interface AutosaveRecoveryDeps {
 export class AutosaveRecoveryController {
 	/** The prompt to render, or null when there is nothing to recover. */
 	prompt = $state.raw<AutosaveRecoveryPrompt | null>(null);
+	/** The destructive delete is still pending. */
+	discarding = $state(false);
 
 	readonly #deps: AutosaveRecoveryDeps;
 	#record: AutosaveRecord | null = null;
@@ -52,6 +56,7 @@ export class AutosaveRecoveryController {
 	#checkedLoadCount = -1;
 	/** Prevent the restore action's own load from immediately reopening its dialog. */
 	#restoring = false;
+	#actionPending = false;
 
 	constructor(deps: AutosaveRecoveryDeps) {
 		this.#deps = deps;
@@ -79,7 +84,7 @@ export class AutosaveRecoveryController {
 	}
 
 	async #probe(filePath: string, loadCount: number): Promise<void> {
-		const offer = await probeAutosaveRecovery(filePath);
+		const offer = await probeAutosaveRecovery(filePath, Date.now(), this.#deps.getFileName?.());
 		// A newer load landed while IndexedDB was answering: its own probe owns
 		// the prompt, so drop this (now stale) answer instead of overwriting it.
 		if (this.#checkedLoadCount !== loadCount) {
@@ -91,9 +96,14 @@ export class AutosaveRecoveryController {
 
 	/** Take the snapshot and load its bytes in place without deleting it. */
 	async restore(): Promise<void> {
+		if (this.#actionPending) {
+			return;
+		}
+		this.#actionPending = true;
 		const record = this.#record;
 		this.dismiss();
 		if (!record) {
+			this.#actionPending = false;
 			return;
 		}
 		this.#restoring = true;
@@ -102,17 +112,29 @@ export class AutosaveRecoveryController {
 		} finally {
 			this.#checkedLoadCount = this.#deps.getLoadCount();
 			this.#restoring = false;
+			this.#actionPending = false;
 		}
 	}
 
 	/** Decline the snapshot: delete it, and never load it. */
 	async discard(): Promise<void> {
-		const record = this.#record;
-		this.dismiss();
-		if (!record) {
+		if (this.#actionPending) {
 			return;
 		}
-		await discardAutosaveRecovery(record);
+		const record = this.#record;
+		if (!record) {
+			this.dismiss();
+			return;
+		}
+		this.#actionPending = true;
+		this.discarding = true;
+		try {
+			await discardAutosaveRecovery(record);
+			this.dismiss();
+		} finally {
+			this.discarding = false;
+			this.#actionPending = false;
+		}
 	}
 
 	/** Close the prompt without touching the stored snapshot. */

@@ -28,12 +28,14 @@ import { ModalDialogComponent } from './modal-dialog.component';
 			<pptx-modal-dialog
 				[open]="true"
 				[title]="offer.titleKey | translate"
+				[busy]="discarding()"
+				[closeDisabled]="discarding()"
 				data-pptx-autosave-recovery="true"
 				(close)="discard.emit()"
 			>
 				<div class="pptx-ng-recovery">
 					<div class="pptx-ng-recovery-badge">&#8635;</div>
-					<div>
+					<div class="pptx-ng-recovery-copy">
 						<p class="pptx-ng-recovery-desc">
 							{{ offer.messageKey | translate: offer.messageParams }}
 						</p>
@@ -42,12 +44,18 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				</div>
 
 				<div footer>
-					<button type="button" class="pptx-ng-recovery-btn" (click)="discard.emit()">
+					<button
+						type="button"
+						class="pptx-ng-recovery-btn"
+						[disabled]="discarding()"
+						(click)="discard.emit()"
+					>
 						{{ offer.discardKey | translate }}
 					</button>
 					<button
 						type="button"
 						class="pptx-ng-recovery-btn pptx-ng-recovery-btn-primary"
+						[disabled]="discarding()"
 						(click)="restore.emit()"
 					>
 						{{ offer.restoreKey | translate }}
@@ -76,11 +84,16 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				font-size: 1.125rem;
 			}
 
+			.pptx-ng-recovery-copy {
+				min-width: 0;
+			}
+
 			.pptx-ng-recovery-desc {
 				margin: 0;
 				font-size: 0.8125rem;
 				line-height: 1.5;
 				color: var(--pptx-muted-foreground, #9ca3af);
+				overflow-wrap: anywhere;
 			}
 
 			.pptx-ng-recovery-when {
@@ -108,6 +121,11 @@ import { ModalDialogComponent } from './modal-dialog.component';
 				background: var(--pptx-border, #374151);
 			}
 
+			.pptx-ng-recovery-btn:disabled {
+				cursor: not-allowed;
+				opacity: 0.55;
+			}
+
 			.pptx-ng-recovery-btn-primary {
 				border-color: var(--pptx-primary, #6366f1);
 				background: var(--pptx-primary, #6366f1);
@@ -125,6 +143,8 @@ export class AutosaveRecoveryDialogComponent {
 
 	/** The shared descriptor to render, or null to render nothing. */
 	readonly prompt = input<AutosaveRecoveryPrompt | null>(null);
+	/** True while the IndexedDB delete is in flight. */
+	readonly discarding = input(false);
 
 	/** The user accepted: load the snapshot. */
 	readonly restore = output<void>();

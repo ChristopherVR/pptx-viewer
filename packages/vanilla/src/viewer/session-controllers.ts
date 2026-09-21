@@ -132,6 +132,7 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		hostAutosave: options.autosave,
 		hostIntervalMs: options.autosaveIntervalMs,
 		filePath: options.autosaveFilePath ?? DEFAULT_AUTOSAVE_FILE_PATH,
+		fileName: options.fileName,
 		// Threaded through only so the snapshot uses the shared save decision;
 		// a recovery snapshot stays plaintext whatever the protection state is.
 		getSaveIntent: () => ({

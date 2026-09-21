@@ -60,6 +60,17 @@ describe('autosaveRecoveryPrompt', () => {
 		expect(prompt?.messageParams).toStrictEqual({ file: 'deck.pptx', size: '2.4 MB' });
 	});
 
+	it('uses the public file name instead of exposing the storage key', () => {
+		const prompt = autosaveRecoveryPrompt({
+			record: { ...record, key: '/private/autosave/8f2c9a' },
+			now: NOW,
+			displayName: 'Quarterly review.pptx',
+		});
+
+		expect(prompt?.filePath).toBe('/private/autosave/8f2c9a');
+		expect(prompt?.messageParams.file).toBe('Quarterly review.pptx');
+	});
+
 	it('offers nothing when there is no usable record', () => {
 		expect(autosaveRecoveryPrompt({ record: undefined, now: NOW })).toBeNull();
 		expect(autosaveRecoveryPrompt({ record: { ...record, size: 0 }, now: NOW })).toBeNull();
@@ -137,6 +148,16 @@ describe('probeAutosaveRecovery against a real store', () => {
 		const offer = await probeAutosaveRecovery('deck.pptx');
 		expect(offer?.prompt.filePath).toBe('deck.pptx');
 		expect(Array.from(acceptAutosaveRecovery(offer!.record))).toStrictEqual(Array.from(bytes));
+	});
+
+	it('threads a public file name into the prompt without changing the lookup key', async () => {
+		const storageKey = '/private/autosave/8f2c9a';
+		await saveAutosaveSnapshot(storageKey, new Uint8Array([1, 2, 3, 4]));
+
+		const offer = await probeAutosaveRecovery(storageKey, Date.now(), 'Quarterly review.pptx');
+
+		expect(offer?.record.key).toBe(storageKey);
+		expect(offer?.prompt.messageParams.file).toBe('Quarterly review.pptx');
 	});
 
 	it('keeps an accepted snapshot recoverable until it is explicitly discarded', async () => {

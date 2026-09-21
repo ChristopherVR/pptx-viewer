@@ -25,6 +25,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 export interface UseRecoveryDetectionInput {
 	filePath: string | undefined;
+	/** Public document name rendered in the recovery message. */
+	fileName?: string;
 	loading: boolean;
 	error: string | null;
 	slideCount: number;
@@ -47,6 +49,8 @@ export interface UseRecoveryDetectionResult {
 	restore: () => void;
 	/** Decline: drop the snapshot and close. */
 	discard: () => void;
+	/** The destructive delete is still pending. */
+	discarding: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -54,10 +58,12 @@ export interface UseRecoveryDetectionResult {
 // ---------------------------------------------------------------------------
 
 export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecoveryDetectionResult {
-	const { filePath, loading, error, slideCount, autosaveAllowed = true } = input;
+	const { filePath, fileName, loading, error, slideCount, autosaveAllowed = true } = input;
 	const recoveryCheckedRef = useRef(false);
 	const recordRef = useRef<AutosaveRecord | null>(null);
+	const actionPendingRef = useRef(false);
 	const [prompt, setPrompt] = useState<AutosaveRecoveryPrompt | null>(null);
+	const [discarding, setDiscarding] = useState(false);
 
 	const onRestore = input.onRestore;
 	const openVersionHistory = input.openVersionHistory;
@@ -78,7 +84,7 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecov
 		recoveryCheckedRef.current = true;
 
 		void (async () => {
-			const offer = await probeAutosaveRecovery(filePath!);
+			const offer = await probeAutosaveRecovery(filePath!, Date.now(), fileName);
 			if (!offer) {
 				return;
 			}
@@ -86,9 +92,13 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecov
 			setPrompt(offer.prompt);
 			openVersionHistory?.();
 		})();
-	}, [filePath, loading, error, slideCount, autosaveAllowed, openVersionHistory]);
+	}, [filePath, fileName, loading, error, slideCount, autosaveAllowed, openVersionHistory]);
 
 	const restore = useCallback(() => {
+		if (actionPendingRef.current) {
+			return;
+		}
+		actionPendingRef.current = true;
 		const record = recordRef.current;
 		setPrompt(null);
 		if (record && onRestore) {
@@ -98,13 +108,29 @@ export function useRecoveryDetection(input: UseRecoveryDetectionInput): UseRecov
 	}, [onRestore]);
 
 	const discard = useCallback(() => {
-		const record = recordRef.current;
-		setPrompt(null);
-		recordRef.current = null;
-		if (record) {
-			void discardAutosaveRecovery(record);
+		if (actionPendingRef.current) {
+			return;
 		}
+		const record = recordRef.current;
+		if (!record) {
+			setPrompt(null);
+			return;
+		}
+		actionPendingRef.current = true;
+		setDiscarding(true);
+		void (async () => {
+			try {
+				await discardAutosaveRecovery(record);
+				recordRef.current = null;
+				setPrompt(null);
+			} catch {
+				// Leave the prompt open so a failed discard can be retried.
+			} finally {
+				actionPendingRef.current = false;
+				setDiscarding(false);
+			}
+		})();
 	}, []);
 
-	return { prompt, restore, discard };
+	return { prompt, restore, discard, discarding };
 }

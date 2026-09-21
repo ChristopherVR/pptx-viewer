@@ -212,6 +212,7 @@ export function useCollabCluster(deps: CollabClusterDeps): CollabCluster {
 	// still entitled to the work the previous session had already written.
 	const autosaveRecovery = new AutosaveRecoveryController({
 		getFilePath: options.getFilePath,
+		getFileName: options.getFileName,
 		getAutosaveAllowed: () => options.getAutosave() !== false,
 		getLoading: () => loader.loading,
 		getError: () => loader.error,

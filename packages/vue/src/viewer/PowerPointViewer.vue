@@ -847,6 +847,7 @@ const { autosave, autosaveEnabled, autosaveActive, toggleAutosave, autosaveDisab
 // the shared ones every binding now renders.
 const autosaveRecovery = useAutosaveRecovery({
 	filePath: () => props.filePath ?? props.fileName ?? 'Untitled Presentation',
+	fileName: () => props.fileName,
 	loading,
 	error,
 	slideCount: () => slides.value.length,
@@ -2026,6 +2027,7 @@ defineExpose<PowerPointViewerExpose>(
 						? autosaveRecovery.prompt.value
 						: null
 				"
+				:discarding="autosaveRecovery.discarding.value"
 				@restore="autosaveRecovery.restore"
 				@discard="autosaveRecovery.discard"
 			/>

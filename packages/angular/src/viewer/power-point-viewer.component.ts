@@ -1040,6 +1040,7 @@ import { ZoomTargetService } from './zoom-target.service';
 			     action-button clicks. The offer is deferred, not dropped. -->
 			<pptx-autosave-recovery-dialog
 				[prompt]="visibleRecoveryPrompt()"
+				[discarding]="autosaveRecovery.discarding()"
 				(restore)="autosaveRecovery.restore()"
 				(discard)="autosaveRecovery.discard()"
 			/>
@@ -2601,6 +2602,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		// invisible to the user; the decision and the copy are the shared ones.
 		this.autosaveRecovery.bind({
 			filePath: () => this.filePath(),
+			fileName: () => this.fileName(),
 			loading: () => this.loader.loading(),
 			error: () => this.loader.error(),
 			slideCount: () => this.displaySlidesMut().length,

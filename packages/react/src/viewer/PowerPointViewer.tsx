@@ -841,6 +841,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			gridSpacingPx,
 			content,
 			filePath,
+			fileName,
 			autosaveEnabled: autosaveActivation.active,
 			autosaveAllowed: hostAutosave !== false,
 			// Host prop first (an explicit policy), else File > Options > Save >
@@ -1329,6 +1330,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					}
 					onRestore={recovery.restore}
 					onDiscard={recovery.discard}
+					busy={recovery.discarding}
 				/>
 
 				<SettingsDialog

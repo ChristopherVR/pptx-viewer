@@ -72,6 +72,7 @@ export function modalPanelClass(isMobile: boolean): string {
 					[class]="panelClass()"
 					role="dialog"
 					aria-modal="true"
+					[attr.aria-busy]="busy() ? 'true' : null"
 					tabindex="-1"
 					[attr.aria-label]="title() || null"
 					[style.transform]="dragY() > 0 ? 'translateY(' + dragY() + 'px)' : null"
@@ -94,6 +95,7 @@ export function modalPanelClass(isMobile: boolean): string {
 							type="button"
 							class="pptx-ng-modal-close"
 							[attr.aria-label]="'pptx.common.close' | translate"
+							[disabled]="closeDisabled()"
 							(click)="requestClose()"
 						>
 							&times;
@@ -178,6 +180,11 @@ export function modalPanelClass(isMobile: boolean): string {
 				background: var(--pptx-muted, #f3f4f6);
 			}
 
+			.pptx-ng-modal-close:disabled {
+				cursor: not-allowed;
+				opacity: 0.55;
+			}
+
 			.pptx-ng-modal-body {
 				padding: 16px;
 				overflow-y: auto;
@@ -185,6 +192,7 @@ export function modalPanelClass(isMobile: boolean): string {
 
 			.pptx-ng-modal-footer {
 				display: flex;
+				flex-wrap: wrap;
 				justify-content: flex-end;
 				gap: 8px;
 				padding: 12px 16px;
@@ -274,6 +282,12 @@ export class ModalDialogComponent {
 	/** Optional heading shown in the header bar. */
 	readonly title = input<string>('');
 
+	/** Prevent Escape, backdrop, close-button and drag dismissal. */
+	readonly closeDisabled = input(false);
+
+	/** Expose an in-flight action to assistive technology. */
+	readonly busy = input(false);
+
 	/** Fired on backdrop click, the `×` button, and `Escape`. */
 	readonly close = output<void>();
 
@@ -300,6 +314,9 @@ export class ModalDialogComponent {
 	}
 
 	requestClose(): void {
+		if (this.closeDisabled()) {
+			return;
+		}
 		this.close.emit();
 	}
 

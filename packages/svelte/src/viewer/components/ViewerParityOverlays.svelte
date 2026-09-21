@@ -106,6 +106,6 @@
 <!-- A running show has no editor chrome, and this prompt is modal: left mounted
      it puts a full-area backdrop over the stage that swallows action-button
      clicks. The offer is deferred, not dropped. -->
-{#if shouldShowAutosaveRecoveryPrompt({ prompt: autosaveRecovery.prompt, presenting: fullscreen })}<AutosaveRecoveryDialog prompt={autosaveRecovery.prompt!} onrestore={() => void autosaveRecovery.restore()} ondiscard={() => void autosaveRecovery.discard()} />{/if}
+{#if shouldShowAutosaveRecoveryPrompt({ prompt: autosaveRecovery.prompt, presenting: fullscreen })}<AutosaveRecoveryDialog prompt={autosaveRecovery.prompt!} discarding={autosaveRecovery.discarding} onrestore={() => void autosaveRecovery.restore()} ondiscard={() => void autosaveRecovery.discard()} />{/if}
 {#if ui.keepAnnotationsOpen}<KeepAnnotationsDialog annotationCount={ui.annotations.count} slideCount={ui.annotations.slideCount} onkeep={() => { ui.annotations.keep(editor); ui.keepAnnotationsOpen = false; }} ondiscard={() => { ui.annotations.clear(); ui.keepAnnotationsOpen = false; }} />{/if}
 <PresentationSubtitleBar enabled={fullscreen && (ui.subtitlesEnabled || editor.presentationProperties.showSubtitles === true)} {locale} />

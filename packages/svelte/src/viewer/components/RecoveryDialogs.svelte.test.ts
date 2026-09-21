@@ -16,7 +16,10 @@ afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
  * decision function rather than hand-written.
  */
 describe('the autosave recovery prompt', () => {
-	function renderPrompt(ageMinutes: number): {
+	function renderPrompt(
+		ageMinutes: number,
+		discarding = false,
+	): {
 		target: HTMLElement;
 		onrestore: ReturnType<typeof vi.fn>;
 		ondiscard: ReturnType<typeof vi.fn>;
@@ -34,7 +37,7 @@ describe('the autosave recovery prompt', () => {
 		const ondiscard = vi.fn();
 		const instance = mount(AutosaveRecoveryDialog, {
 			target,
-			props: { prompt, onrestore, ondiscard },
+			props: { prompt, discarding, onrestore, ondiscard },
 		});
 		cleanups.push(() => unmount(instance));
 		return { target, onrestore, ondiscard };
@@ -67,6 +70,18 @@ describe('the autosave recovery prompt', () => {
 
 		expect(onrestore).toHaveBeenCalledOnce();
 		expect(ondiscard).toHaveBeenCalledOnce();
+	});
+
+	it('disables both actions and exposes busy state while discarding', () => {
+		const { target, onrestore, ondiscard } = renderPrompt(3, true);
+		const dialog = target.querySelector('[role="dialog"]');
+		const buttons = [...target.querySelectorAll<HTMLButtonElement>('button')];
+
+		expect(dialog?.getAttribute('aria-busy')).toBe('true');
+		expect(buttons.every((button) => button.disabled)).toBeTruthy();
+		buttons.forEach((button) => button.click());
+		expect(onrestore).not.toHaveBeenCalled();
+		expect(ondiscard).not.toHaveBeenCalled();
 	});
 });
 
