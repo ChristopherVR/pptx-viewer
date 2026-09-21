@@ -11,7 +11,10 @@ updates:
       day: 'monday'
       time: '06:00'
       timezone: 'Africa/Johannesburg'
-    open-pull-requests-limit: 10
+    # At most one routine production update and one development-tools update
+    # should be open at once. This prevents a busy registry week from creating
+    # dozens of independent PRs and CI runs.
+    open-pull-requests-limit: 2
     versioning-strategy: increase
     labels:
       - 'dependencies'
@@ -22,25 +25,25 @@ updates:
       prefix: 'chore(deps)'
       prefix-development: 'chore(deps-dev)'
     groups:
-      # Batch low-risk minor/patch bumps into a single PR to cut noise.
-      minor-and-patch:
+      # Dependabot needs an explicit pattern for a group to catch every
+      # matching dependency. Keep production and development changes separate
+      # so a tooling regression cannot delay a runtime security update.
+      production-minor-and-patch:
         applies-to: version-updates
+        dependency-type: production
+        patterns:
+          - '*'
         update-types:
           - 'minor'
           - 'patch'
-      # Keep the React ecosystem moving together.
-      react:
+      development-minor-and-patch:
         applies-to: version-updates
+        dependency-type: development
         patterns:
-          - 'react'
-          - 'react-dom'
-          - '@types/react'
-          - '@types/react-dom'
-      # Keep type-only definitions grouped.
-      types:
-        applies-to: version-updates
-        patterns:
-          - '@types/*'
+          - '*'
+        update-types:
+          - 'minor'
+          - 'patch'
     ignore:
       # Major version bumps tend to be breaking for these - review manually.
       - dependency-name: 'react'
@@ -65,7 +68,7 @@ updates:
       day: 'monday'
       time: '06:00'
       timezone: 'Africa/Johannesburg'
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     labels:
       - 'dependencies'
       - 'github-actions'

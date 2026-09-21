@@ -173,15 +173,36 @@ jobs:
             node scripts/affected-packages.mjs changed-files.json
           fi
 
-      # Playwright is skipped only when scoping found no binding or demo
-      # affected at all. There is no fork-specific gate any more: every PR
-      # (fork or not) runs its affected e2e projects, and `full-ci` forces
-      # every project via the label check above rather than a special case
-      # here.
+      # Dependabot changes that touch only manifests or the lockfile retain the
+      # build, lint, typecheck, and unit-test gates. Browser suites and the
+      # packaged-demo smoke test add more than forty runner jobs, however, and
+      # have no source change to exercise for such updates. Skipping them here
+      # is deliberately bot- and path-specific: a human PR, a `full-ci` label,
+      # or any changed source/config file still runs the normal browser matrix.
+      - name: Identify routine Dependabot update
+        id: dependabot
+        env:
+          ACTOR: ${{ github.actor }}
+          FULL_CI_LABEL: ${{ contains(github.event.pull_request.labels.*.name, 'full-ci') }}
+        run: |
+          skip=false
+          if [ "${{ github.event_name }}" = "pull_request" ] \
+            && [ "$ACTOR" = "dependabot[bot]" ] \
+            && [ "$FULL_CI_LABEL" != "true" ] \
+            && jq -e 'length > 0 and all(.[]; test("(^|/)package\\.json$|^bun\\.lock$"))' changed-files.json > /dev/null; then
+            skip=true
+            echo "Routine Dependabot manifest update: browser matrix skipped."
+          fi
+          echo "skip-e2e=$skip" >> "$GITHUB_OUTPUT"
+
+      # Playwright is skipped when scoping found no binding/demo change, or for
+      # the narrowly-defined routine Dependabot case above.
       - name: Decide whether e2e runs
         id: gate
         run: |
-          if [ "${{ steps.scope.outputs.e2e-projects }}" = "[]" ]; then
+          if [ "${{ steps.dependabot.outputs.skip-e2e }}" = "true" ]; then
+            echo "run-e2e=false" >> "$GITHUB_OUTPUT"
+          elif [ "${{ steps.scope.outputs.e2e-projects }}" = "[]" ]; then
             echo "run-e2e=false" >> "$GITHUB_OUTPUT"
             echo "No binding or demo touched; skipping Playwright."
           else
