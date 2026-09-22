@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.4) - 2026-09-22
+
+### Bug Fixes
+
+- **ai:** Keep optional sdk imports out of message helpers (by @ChristopherVR) ([889c5bc](https://github.com/ChristopherVR/pptx-viewer/commit/889c5bc870f2fd3acac78f5cafa106c7e00c2959))
+- **layout:** Render inherited artwork on inserted slides (by @ChristopherVR) ([179aa2f](https://github.com/ChristopherVR/pptx-viewer/commit/179aa2f6390dda0cdad6818e017119402642bd87))
+
 ## [4.1.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.3) - 2026-09-21
 
 ### Bug Fixes

@@ -8,6 +8,16 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-22
+
+_Releases: pptx-viewer-core@4.0.2, pptx-react-viewer@4.1.4, pptx-vue-viewer@4.1.4, pptx-angular-viewer@4.1.4, pptx-vanilla-viewer@3.1.4, pptx-svelte-viewer@4.1.4, @christophervr/pptx-viewer@2.23.4_
+
+### Bug Fixes
+
+- **ai:** Keep optional sdk imports out of message helpers (by @ChristopherVR) ([889c5bc](https://github.com/ChristopherVR/pptx-viewer/commit/889c5bc870f2fd3acac78f5cafa106c7e00c2959))
+- **react:** Constrain slide thumbnail frames to preview width (by @ChristopherVR) ([08369c2](https://github.com/ChristopherVR/pptx-viewer/commit/08369c2ae1534e3eaea636ccef87eae636373bdb))
+- **layout:** Render inherited artwork on inserted slides (by @ChristopherVR) ([179aa2f](https://github.com/ChristopherVR/pptx-viewer/commit/179aa2f6390dda0cdad6818e017119402642bd87))
+
 ## 2026-09-21
 
 _Releases: pptx-react-viewer@4.1.3, pptx-vue-viewer@4.1.3, pptx-angular-viewer@4.1.3, pptx-vanilla-viewer@3.1.3, pptx-svelte-viewer@4.1.3, @christophervr/pptx-viewer@2.23.3_

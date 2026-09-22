@@ -7,6 +7,14 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.23.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.4) - 2026-09-22
+
+### Bug Fixes
+
+- **ai:** Keep optional sdk imports out of message helpers (by @ChristopherVR) ([889c5bc](https://github.com/ChristopherVR/pptx-viewer/commit/889c5bc870f2fd3acac78f5cafa106c7e00c2959))
+- **react:** Constrain slide thumbnail frames to preview width (by @ChristopherVR) ([08369c2](https://github.com/ChristopherVR/pptx-viewer/commit/08369c2ae1534e3eaea636ccef87eae636373bdb))
+- **layout:** Render inherited artwork on inserted slides (by @ChristopherVR) ([179aa2f](https://github.com/ChristopherVR/pptx-viewer/commit/179aa2f6390dda0cdad6818e017119402642bd87))
+
 ## [2.23.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.3) - 2026-09-21
 
 ### Bug Fixes

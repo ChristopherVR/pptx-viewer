@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.0.2) - 2026-09-22
+
+### Bug Fixes
+
+- **layout:** Render inherited artwork on inserted slides (by @ChristopherVR) ([179aa2f](https://github.com/ChristopherVR/pptx-viewer/commit/179aa2f6390dda0cdad6818e017119402642bd87))
+
 ## [4.0.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.0.1) - 2026-09-19
 
 ### Bug Fixes
