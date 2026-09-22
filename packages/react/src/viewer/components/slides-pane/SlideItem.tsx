@@ -150,9 +150,10 @@ function SlideItemInner({
 			{/* Thumbnail */}
 			<div
 				className={cn(
-					'relative flex-1 overflow-hidden border transition-colors bg-white',
+					'relative shrink-0 overflow-hidden border transition-colors bg-white',
 					isActive ? 'border-primary/60' : 'border-transparent group-hover:border-border/40',
 				)}
+				style={{ width: SLIDE_NAV_THUMBNAIL_WIDTH }}
 			>
 				{/* Hidden-slide indicator stripe */}
 				{isHidden && (

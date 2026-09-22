@@ -20,6 +20,7 @@ import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translationsZhCN } from '../../../../locales/src';
+import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../constants';
 import { SlideCard } from './slide-sorter/SlideCard';
 import { SlideItem } from './slides-pane/SlideItem';
 
@@ -106,6 +107,15 @@ function renderSorterCard(hidden: boolean): void {
 }
 
 describe('slideItem hidden-slide cue', () => {
+	it('keeps the thumbnail frame at the slide preview width', () => {
+		renderRailItem(false);
+		const frame = container.querySelector<HTMLElement>(
+			'[aria-label="Go to slide 2"] > div:nth-child(2)',
+		);
+		expect(frame?.style.width).toBe(`${SLIDE_NAV_THUMBNAIL_WIDTH}px`);
+		expect(frame?.className).not.toContain('flex-1');
+	});
+
 	it('marks the hidden slide with the neutral attribute', () => {
 		renderRailItem(true);
 		expect(container.querySelector('[data-pptx-slide-hidden="true"]')).not.toBeNull();
