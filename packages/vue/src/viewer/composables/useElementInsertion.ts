@@ -13,9 +13,9 @@ import type { Ref, ShallowRef } from 'vue';
 
 import type { ShapePreset } from '../components/EditorToolbar.vue';
 import { buildActionButtonElement } from './action-buttons';
-import { partitionTemplateElements } from './template-editing';
 import type { TemplateElementMap } from './template-editing';
 import type { EditorOperations } from './useEditorOperations';
+import { useLayoutSlideOperations } from './useLayoutSlideOperations';
 
 export interface UseElementInsertionInput {
 	canvasSize: Ref<{ width: number; height: number }>;
@@ -67,16 +67,8 @@ export interface UseElementInsertionResult {
  * and selected. Extracted verbatim from `PowerPointViewer.vue`.
  */
 export function useElementInsertion(input: UseElementInsertionInput): UseElementInsertionResult {
-	const {
-		canvasSize,
-		ops,
-		selectedElementIds,
-		slides,
-		activeSlideIndex,
-		pushHistory,
-		handler,
-		templateElementsBySlideId,
-	} = input;
+	const { canvasSize, ops, selectedElementIds, activeSlideIndex } = input;
+	const layoutOps = useLayoutSlideOperations(input);
 
 	/** Centre a newly-created element (default box) on the slide. */
 	function centreNewElement(el: PptxElement, width: number, height: number): void {
@@ -246,81 +238,6 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		selectedElementIds.value = [el.id];
 	}
 
-	/**
-	 * Insert a new slide based on a chosen layout (New-Slide gallery). The draft
-	 * carries `layoutPath` so placeholders render immediately; the handler then
-	 * walks the layout XML to populate background/placeholders (mirrors React's
-	 * `handleInsertSlideFromLayout`).
-	 */
-	/**
-	 * Re-map the ACTIVE slide onto `layoutPath`, keeping its content.
-	 *
-	 * The core call returns the slide with its placeholders moved onto the target
-	 * layout's geometry and the layout relationship rewritten; unlike
-	 * {@link insertSlideFromLayout} nothing is added to the deck.
-	 */
-	async function loadLayoutPreviews(): Promise<PptxLayoutPreview[]> {
-		return handler.value ? handler.value.getLayoutPreviews() : [];
-	}
-
-	async function applyLayoutToActiveSlide(layoutPath: string): Promise<void> {
-		const h = handler.value;
-		const index = activeSlideIndex.value;
-		const target = slides.value[index];
-		if (!h || !target) {
-			return;
-		}
-		const updated = await h.applyLayoutToSlide(index, layoutPath, slides.value).catch(() => null);
-		if (!updated || slides.value[index]?.id !== target.id) {
-			return;
-		}
-		pushHistory();
-		// Core returns the slide with the TARGET layout's inherited artwork merged
-		// in; this editor holds that artwork in its own store, so the result is
-		// partitioned again and the store entry REPLACED. Without that the canvas
-		// keeps painting the previous layout's decoration.
-		const partitioned = partitionTemplateElements([updated]);
-		const next = slides.value.slice();
-		next[index] = partitioned.slides[0]!;
-		slides.value = next;
-		if (templateElementsBySlideId) {
-			templateElementsBySlideId.value = {
-				...templateElementsBySlideId.value,
-				[updated.id]: partitioned.templateElementsBySlideId[updated.id] ?? [],
-			};
-		}
-	}
-
-	async function insertSlideFromLayout(layoutPath: string, layoutName?: string): Promise<void> {
-		const insertAt = activeSlideIndex.value + 1;
-		pushHistory();
-		const draft = {
-			id: createEditorId('slide'),
-			rId: '',
-			slideNumber: slides.value.length + 1,
-			elements: [],
-			layoutPath,
-			...(layoutName ? { layoutName } : {}),
-		} as unknown as PptxSlide;
-		const next = slides.value.slice();
-		next.splice(insertAt, 0, draft);
-		slides.value = next;
-		activeSlideIndex.value = insertAt;
-		const h = handler.value;
-		if (!h) {
-			return;
-		}
-		// Returns the single updated slide (layout metadata/placeholders applied).
-		const updated = await h
-			.applyLayoutToSlide(insertAt, layoutPath, slides.value)
-			.catch(() => null);
-		if (updated && updated.id === draft.id && slides.value[insertAt]?.id === draft.id) {
-			const merged = slides.value.slice();
-			merged[insertAt] = updated;
-			slides.value = merged;
-		}
-	}
-
 	return {
 		imageInputRef,
 		mediaInputRef,
@@ -334,8 +251,6 @@ export function useElementInsertion(input: UseElementInsertionInput): UseElement
 		openMediaPicker,
 		onMediaFileSelected,
 		addActionButton,
-		insertSlideFromLayout,
-		applyLayoutToActiveSlide,
-		loadLayoutPreviews,
+		...layoutOps,
 	};
 }

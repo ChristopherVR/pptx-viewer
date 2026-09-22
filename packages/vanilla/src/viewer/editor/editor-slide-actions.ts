@@ -7,7 +7,6 @@ import {
 	buildSlideTemplateSlide,
 	createBlankSlide,
 	makeSlideId,
-	partitionTemplateElements,
 	resetSlideLayoutPath,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
@@ -70,35 +69,34 @@ export function createSlideActions(deps: SlideActionsDeps): SlideActions {
 		if (!handler) {
 			return;
 		}
-		void handler.applyLayoutToSlide(index, layoutPath, [...store.get().slides]).then(
-			(updated) => {
-				const current = store.get();
-				if (current.slides[index]?.id === expectedId) {
-					ops.pushHistory();
-					// Core returns the slide with the TARGET layout's inherited artwork
-					// merged in, which this viewer holds in its own store; partitioning
-					// the result again swaps that artwork over instead of leaving the
-					// previous layout's decoration on screen.
-					const partition = partitionTemplateElements([updated]);
-					const slides = [...current.slides];
-					slides[index] = partition.slides[0]!;
-					store.set({
-						slides,
-						templateElementsBySlideId: {
-							...current.templateElementsBySlideId,
-							[updated.id]: partition.templateElementsBySlideId[updated.id] ?? [],
-						},
-					});
-					ops.commitChange();
-				}
-				return undefined;
-			},
-			() => {
-				// Layout couldn't be resolved; the slide keeps its layoutPath so the
-				// renderer can still resolve placeholders.
-				return undefined;
-			},
-		);
+		void handler
+			.applyLayoutToSlide(index, layoutPath, [...store.get().slides])
+			.then(
+				async (updated) => {
+					const templateElements = await handler.getTemplateElementsForSlide(updated.id);
+					const current = store.get();
+					if (current.slides[index]?.id === expectedId) {
+						ops.pushHistory();
+						const slides = [...current.slides];
+						slides[index] = updated;
+						store.set({
+							slides,
+							templateElementsBySlideId: {
+								...current.templateElementsBySlideId,
+								[updated.id]: templateElements,
+							},
+						});
+						ops.commitChange();
+					}
+					return undefined;
+				},
+				() => {
+					// Layout couldn't be resolved; the slide keeps its layoutPath so the
+					// renderer can still resolve placeholders.
+					return undefined;
+				},
+			)
+			.catch(() => undefined);
 	}
 
 	return {

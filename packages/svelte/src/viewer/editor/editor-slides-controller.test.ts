@@ -1,5 +1,5 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from './editor-state.svelte';
 
@@ -81,5 +81,40 @@ describe('svelte slides controller: arbitrary-index operations', () => {
 		editor.slidesOps.toggleSlideHidden(0);
 		expect(editor.slides).toHaveLength(3);
 		expect(editor.slides[0]?.hidden).toBeFalsy();
+	});
+});
+
+describe('svelte slides controller: layout changes', () => {
+	it('fetches and replaces inherited artwork after applying a layout', async () => {
+		const nextLayoutPath = 'ppt/slideLayouts/slideLayout2.xml';
+		const oldArtwork = [{ id: 'old-layout-art', type: 'shape' } as PptxElement];
+		const nextArtwork = [{ id: 'new-layout-art', type: 'shape' } as PptxElement];
+		const handler = {
+			applyLayoutToSlide: vi.fn(
+				async (index: number, layoutPath: string, slides: PptxSlide[]) =>
+					({
+						...slides[index],
+						layoutPath,
+						elements: [{ id: 'placeholder', type: 'shape' } as PptxElement],
+					}) as PptxSlide,
+			),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(nextArtwork),
+		} as unknown as PptxHandler;
+		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => handler });
+		editor.editable = true;
+		editor.setSlides([slide('a'), slide('b')]);
+		editor.templateElementsBySlideId = { a: oldArtwork };
+
+		const appliedIndex = await editor.slidesOps.applyLayout(nextLayoutPath);
+
+		expect(appliedIndex).toBe(0);
+		expect(handler.applyLayoutToSlide).toHaveBeenCalledOnce();
+		expect(handler.applyLayoutToSlide.mock.calls[0]?.slice(0, 2)).toStrictEqual([
+			0,
+			nextLayoutPath,
+		]);
+		expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith('a');
+		expect(editor.slides[0]?.layoutPath).toBe(nextLayoutPath);
+		expect(editor.templateElementsBySlideId.a).toStrictEqual(nextArtwork);
 	});
 });

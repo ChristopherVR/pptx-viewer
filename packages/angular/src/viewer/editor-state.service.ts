@@ -49,7 +49,7 @@ import {
 import { canGroupSelected, canUngroupGroup } from './group-lock-guard';
 import { groupElements, ungroupElements } from './group-ops';
 import { LoadContentService } from './load-content.service';
-import { partitionSlides, slidesWithReappliedLayout } from './template-mode';
+import { partitionSlides } from './template-mode';
 import type { TemplateElementsBySlideId } from './template-mode';
 
 /** Offset (px) applied to a duplicated element so it is visible. */
@@ -197,6 +197,25 @@ export class EditorStateService {
 		this.slides.set(newSlides.map(cloneSlide));
 		this.dirty.set(true);
 		this.syncHistory();
+	}
+
+	private async hydrateInsertedSlideLayout(index: number, id: string, path: string): Promise<void> {
+		const handler = this.loader?.getHandler();
+		if (!handler) {
+			return;
+		}
+		const updated = await handler
+			.applyLayoutToSlide(index, path, [...this.slides()])
+			.catch(() => null);
+		if (!updated || updated.id !== id || this.slides()[index]?.id !== id) {
+			return;
+		}
+		const artwork = await handler.getTemplateElementsForSlide(id).catch(() => []);
+		if (this.slides()[index]?.id !== id) {
+			return;
+		}
+		this.slides.set(this.slides().map((slide, i) => (i === index ? updated : slide)));
+		this.templateElementsBySlideId.set({ ...this.templateElementsBySlideId(), [id]: artwork });
 	}
 
 	/**
@@ -770,6 +789,13 @@ export class EditorStateService {
 		this.selectedIds.set([]);
 		this.dirty.set(true);
 		this.syncHistory();
+		if (layoutPath) {
+			void this.hydrateInsertedSlideLayout(
+				Math.min(afterIndex + 1, next.length - 1),
+				id,
+				layoutPath,
+			);
+		}
 	}
 
 	/**
@@ -796,18 +822,17 @@ export class EditorStateService {
 		if (!updated || this.slides()[index]?.id !== target.id) {
 			return;
 		}
-		const folded = slidesWithReappliedLayout(
-			this.slides(),
-			index,
-			updated,
-			this.templateElementsBySlideId(),
-		);
-		if (!folded) {
+		const templateElements = await handler.getTemplateElementsForSlide(updated.id).catch(() => []);
+		const currentSlides = this.slides();
+		if (currentSlides[index]?.id !== target.id) {
 			return;
 		}
 		this.history.record(this.captureSnapshot(), this.t('pptx.master.layout'));
-		this.slides.set(folded.slides);
-		this.templateElementsBySlideId.set(folded.templateElementsBySlideId);
+		this.slides.set(currentSlides.map((slide, i) => (i === index ? updated : slide)));
+		this.templateElementsBySlideId.set({
+			...this.templateElementsBySlideId(),
+			[updated.id]: templateElements,
+		});
 		this.dirty.set(true);
 		this.syncHistory();
 	}

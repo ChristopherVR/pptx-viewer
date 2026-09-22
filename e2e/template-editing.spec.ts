@@ -47,7 +47,8 @@ import {
 	SLIDE_SHAPE_TEXT,
 } from './fixtures/generate-template-editing-fixture';
 import { savePptxViaBackstage } from './save-pptx';
-import { resetTabSession } from './support/deck';
+import { resetTabSession, thumbnail } from './support/deck';
+import { slidePosition } from './support/keyboard';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/template-editing.pptx', import.meta.url)),
@@ -187,6 +188,39 @@ async function retextInline(
 }
 
 test.describe('template / master element editing', () => {
+	test('new slide from a layout renders its inherited artwork immediately', async ({ page }) => {
+		await openFixture(page);
+		await expect
+			.poll(() => page.getByRole('button', { name: /^Go to slide \d+$/u }).count())
+			.toBe(1);
+		await expect.poll(() => slidePosition(page)).toBe('Slide 1 of 1');
+		await page.getByRole('tab', { name: 'Home', exact: true }).click();
+		const chooseLayout = page.getByRole('button', { name: /choose layout/i }).first();
+		await chooseLayout.click();
+		const gallery = page.locator('[data-testid="layout-gallery-menu"]:visible');
+		if ((await gallery.count()) === 0) {
+			// Some bindings use the New Slide caret for slide commands rather than
+			// layouts. Add a blank slide, then use the active-slide Layout gallery.
+			await chooseLayout.click();
+			await page.getByRole('button', { name: 'New Slide', exact: true }).click();
+			await expect
+				.poll(() => page.getByRole('button', { name: /^Go to slide \d+$/u }).count())
+				.toBe(2);
+			const secondSlide = thumbnail(page, 2);
+			await secondSlide.waitFor();
+			await secondSlide.click();
+			await page.getByRole('button', { name: 'Layout', exact: true }).click();
+		}
+		await gallery.locator('button').first().click();
+		await expect
+			.poll(() => page.getByRole('button', { name: /^Go to slide \d+$/u }).count())
+			.toBe(2);
+		await thumbnail(page, 2).click();
+		await expect.poll(() => slidePosition(page)).toBe('Slide 2 of 2');
+		await expect(elementByText(page, LAYOUT_SHAPE_TEXT)).toBeVisible();
+		await expect(elementByText(page, MASTER_SHAPE_TEXT)).toBeVisible();
+	});
+
 	test('template elements are inert with editTemplateMode off; a normal shape stays interactive', async ({
 		page,
 	}) => {

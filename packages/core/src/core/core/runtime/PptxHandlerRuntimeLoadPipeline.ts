@@ -542,8 +542,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const slidePath = slide.id;
 
 		// ── 1. Update the slide's .rels to point to the new layout ──────
+		const relativeTarget = `../slideLayouts/${layoutPath.split('/').pop()}`;
+		// Editor-only slide ids have no archive directory for relative targets.
+		const relationshipTarget = slidePath.startsWith('ppt/slides/')
+			? relativeTarget
+			: `/${layoutPath}`;
 		const slideRelsPath = `${slidePath.replace('slides/', 'slides/_rels/')}.rels`;
 		const relsXml = await this.zip.file(slideRelsPath)?.async('string');
+		let layoutRelId: string | undefined;
 
 		if (relsXml) {
 			const relsData = this.parser.parse(relsXml);
@@ -553,13 +559,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? [relsData.Relationships.Relationship]
 					: [];
 
-			// Compute relative target from slide path to layout path
-			const relativeTarget = `../slideLayouts/${layoutPath.split('/').pop()}`;
-
 			let found = false;
 			for (const r of rels) {
 				const relType = String(r['@_Type'] || '');
 				if (relType.includes('/slideLayout')) {
+					layoutRelId = String(r['@_Id'] || '');
 					r['@_Target'] = relativeTarget;
 					found = true;
 					break;
@@ -572,8 +576,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const id = parseInt(String(r['@_Id'] || 'rId0').replace('rId', ''), 10);
 					return Number.isFinite(id) && id > max ? id : max;
 				}, 0);
+				layoutRelId = `rId${maxRId + 1}`;
 				rels.push({
-					'@_Id': `rId${maxRId + 1}`,
+					'@_Id': layoutRelId,
 					'@_Type':
 						'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slideLayout',
 					'@_Target': relativeTarget,
@@ -583,29 +588,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			relsData.Relationships.Relationship = rels.length === 1 ? rels[0] : rels;
 			const updatedRelsXml = this.builder.build(relsData);
 			this.zip.file(slideRelsPath, updatedRelsXml);
-
-			// Update the in-memory relationship map
-			const relsMap = this.slideRelsMap.get(slidePath);
-			if (relsMap) {
-				for (const [rId, target] of relsMap.entries()) {
-					if (target.includes('slideLayout')) {
-						relsMap.set(rId, relativeTarget);
-						break;
-					}
-				}
-			}
 		}
-		// A slide inserted during the session has no `.rels` part yet, so
-		// nothing above registered its layout. Every slide-to-layout lookup
-		// below (background, placeholder defaults, later the template artwork
-		// the bindings fetch) walks `slideRelsMap`, so give it the one entry it
-		// needs. The save pipeline builds a new slide's rels from scratch and
-		// only ever reads this map for rId lookups, so the entry is harmless.
-		if (!this.slideRelsMap.has(slidePath)) {
-			this.slideRelsMap.set(
-				slidePath,
-				new Map([['rId1', `../slideLayouts/${layoutPath.split('/').pop()}`]]),
-			);
+		// Keep the in-memory relation current even without a .rels part (new
+		// slides), or when a new slide changes layouts before it is saved.
+		let slideRels = this.slideRelsMap.get(slidePath);
+		if (!slideRels) {
+			slideRels = new Map();
+			this.slideRelsMap.set(slidePath, slideRels);
+		}
+		const layoutRel = [...slideRels.entries()].find(([, target]) => target.includes('slideLayout'));
+		if (layoutRel) {
+			slideRels.set(layoutRel[0], relationshipTarget);
+		} else {
+			if (!layoutRelId) {
+				let relIndex = 1;
+				while (slideRels.has(`rId${relIndex}`)) {
+					relIndex++;
+				}
+				layoutRelId = `rId${relIndex}`;
+			}
+			slideRels.set(layoutRelId, relationshipTarget);
 		}
 
 		// ── 2. Invalidate layout element cache for the old layout ───────

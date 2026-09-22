@@ -1,4 +1,4 @@
-import type { PptxSlide, PptxThemeColorScheme } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, PptxThemeColorScheme } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -68,6 +68,40 @@ describe('insertSlideFromTemplate', () => {
 
 		expect(store.get().slides).toHaveLength(2);
 		expect(pushHistory).not.toHaveBeenCalled();
+	});
+});
+
+describe('insertSlideFromLayout', () => {
+	it('renders the fetched inherited artwork on the inserted slide', async () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: buildSlides(2),
+			currentSlide: 0,
+			editable: true,
+		});
+		const artwork = [{ id: 'layout-art', type: 'shape' } as PptxElement];
+		const handler = {
+			applyLayoutToSlide: vi.fn(
+				async (index: number, _path: string, slides: PptxSlide[]) =>
+					({
+						...slides[index],
+						elements: [{ id: 'placeholder', type: 'shape' } as PptxElement],
+					}) as PptxSlide,
+			),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(artwork),
+		} as unknown as PptxHandler;
+		const ops = createEditorOps({ store, getHandler: () => handler, onHistoryChange: vi.fn() });
+		const actions = createSlideActions({ store, ops, getHandler: () => handler });
+
+		actions.insertSlideFromLayout('ppt/slideLayouts/slideLayout1.xml');
+		await vi.waitFor(() =>
+			expect(Object.keys(store.get().templateElementsBySlideId)).toHaveLength(1),
+		);
+
+		const inserted = store.get().slides[1]!;
+		expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith(inserted.id);
+		expect(inserted.elements.map((element) => element.id)).toStrictEqual(['placeholder']);
+		expect(store.get().templateElementsBySlideId[inserted.id]).toStrictEqual(artwork);
 	});
 });
 

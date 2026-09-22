@@ -243,10 +243,7 @@ describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 	it('swaps the inherited layout artwork over to the new layout', async () => {
 		const remapped = {
 			id: 'slide-2',
-			elements: [
-				{ id: 'layout-new', type: 'shape' } as PptxElement,
-				{ id: 'own', type: 'shape' } as PptxElement,
-			],
+			elements: [{ id: 'own', type: 'shape' } as PptxElement],
 			layoutPath: 'ppt/slideLayouts/slideLayout3.xml',
 		} as unknown as PptxSlide;
 		const templateElementsBySlideId = ref({
@@ -263,15 +260,20 @@ describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 			slides,
 			activeSlideIndex: ref(1),
 			pushHistory: vi.fn(),
-			handler: shallowRef({ applyLayoutToSlide: vi.fn().mockResolvedValue(remapped) } as never),
+			handler: shallowRef({
+				applyLayoutToSlide: vi.fn().mockResolvedValue(remapped),
+				getTemplateElementsForSlide: vi
+					.fn()
+					.mockResolvedValue([{ id: 'layout-new', type: 'shape' } as PptxElement]),
+			} as never),
 			templateElementsBySlideId,
 		});
 
 		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
 
-		// The deck keeps only the slide's own elements ...
+		// The slide stays template-free, while inherited artwork comes from core.
 		expect(slides.value[1]!.elements.map((el) => el.id)).toStrictEqual(['own']);
-		// ... and the previous layout's artwork is replaced, not merged.
+		// Previous layout artwork is replaced with the canonical fetched elements.
 		expect(templateElementsBySlideId.value['slide-2']!.map((el) => el.id)).toStrictEqual([
 			'layout-new',
 		]);
@@ -284,7 +286,10 @@ describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 			layoutPath: 'ppt/slideLayouts/slideLayout3.xml',
 		} as unknown as PptxSlide;
 		const applyLayoutToSlide = vi.fn().mockResolvedValue(remapped);
-		const { insertion, slides, pushHistory } = useHarness({ applyLayoutToSlide });
+		const { insertion, slides, pushHistory } = useHarness({
+			applyLayoutToSlide,
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue([]),
+		});
 
 		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
 
@@ -313,5 +318,42 @@ describe('useElementInsertion.applyLayoutToActiveSlide', () => {
 		const { insertion, pushHistory } = useHarness(null);
 		await insertion.applyLayoutToActiveSlide('ppt/slideLayouts/slideLayout3.xml');
 		expect(pushHistory).not.toHaveBeenCalled();
+	});
+});
+
+describe('useElementInsertion.insertSlideFromLayout', () => {
+	it('stores inherited artwork fetched for the new slide', async () => {
+		const slides = ref([
+			{ id: 'slide-1', elements: [] } as PptxSlide,
+			{ id: 'slide-2', elements: [] } as PptxSlide,
+		]);
+		const templateElementsBySlideId = ref<Record<string, PptxElement[]>>({});
+		const artwork = [{ id: 'layout-art', type: 'shape' } as PptxElement];
+		const handler = {
+			applyLayoutToSlide: vi.fn(
+				async (index: number, _path: string, current: PptxSlide[]) =>
+					({
+						...current[index],
+						elements: [],
+					}) as PptxSlide,
+			),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(artwork),
+		};
+		const insertion = useElementInsertion({
+			canvasSize: ref({ width: 960, height: 540 }),
+			ops: { addElement: vi.fn() } as unknown as EditorOperations,
+			selectedElementIds: ref<string[]>([]),
+			slides,
+			activeSlideIndex: ref(1),
+			pushHistory: vi.fn(),
+			handler: shallowRef(handler as never),
+			templateElementsBySlideId,
+		});
+
+		await insertion.insertSlideFromLayout('ppt/slideLayouts/slideLayout3.xml');
+
+		const inserted = slides.value[2]!;
+		expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith(inserted.id);
+		expect(templateElementsBySlideId.value[inserted.id]).toStrictEqual(artwork);
 	});
 });

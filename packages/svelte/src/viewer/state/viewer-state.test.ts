@@ -26,6 +26,16 @@ describe('viewerState', () => {
 		expect(state.current).toBe(0);
 	});
 
+	it('keeps navigation bounds in sync with edited slide count', () => {
+		const state = new ViewerState();
+		state.reset(1);
+		state.setSlideCount(2);
+		state.goTo(1);
+		expect(state.current).toBe(1);
+		state.setSlideCount(1);
+		expect(state.current).toBe(0);
+	});
+
 	it('handles navigation keys and reports handled-ness', () => {
 		const state = new ViewerState();
 		state.reset(4);

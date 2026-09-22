@@ -36,6 +36,73 @@ function service(): EditorStateService {
 	return svc;
 }
 
+describe('layout artwork hydration', () => {
+	it('hydrates a newly inserted slide before any save or reload', async () => {
+		const svc = service();
+		const artwork = [element('layout-art')];
+		const handler = {
+			applyLayoutToSlide: vi.fn(async (index: number, path: string, slides: PptxSlide[]) => ({
+				...slides[index],
+				layoutPath: path,
+				elements: [element('placeholder')],
+			})),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(artwork),
+		};
+		Object.assign(svc, { loader: { getHandler: () => handler } });
+
+		svc.addSlide(0, 'layout-new');
+		const insertedId = svc.slides()[1].id;
+		await vi.waitFor(() =>
+			expect(svc.templateElementsBySlideId()[insertedId]).toStrictEqual(artwork),
+		);
+
+		expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith(insertedId);
+		expect(svc.slides()[1].elements.map((item) => item.id)).toStrictEqual(['placeholder']);
+	});
+
+	it('replaces inherited artwork using the handler without adding it to slide content', async () => {
+		const svc = service();
+		const updated = { ...svc.slides()[0], layoutPath: 'layout-new' };
+		const artwork = [element('layout-new-art')];
+		const handler = {
+			applyLayoutToSlide: vi.fn().mockResolvedValue(updated),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(artwork),
+		};
+		Object.assign(svc, { loader: { getHandler: () => handler } });
+		svc.templateElementsBySlideId.set({ s1: [element('layout-old-art')] });
+
+		await svc.applyLayout(0, 'layout-new');
+
+		expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith('s1');
+		expect(svc.templateElementsBySlideId().s1).toStrictEqual(artwork);
+		expect(svc.slides()[0].elements.map((item) => item.id)).toStrictEqual(['a', 'b', 'c']);
+		expect(svc.canUndo()).toBeTruthy();
+	});
+
+	it('does not overwrite a replacement slide while artwork is loading', async () => {
+		const svc = service();
+		let resolveArtwork!: (elements: PptxElement[]) => void;
+		const handler = {
+			applyLayoutToSlide: vi.fn().mockResolvedValue(svc.slides()[0]),
+			getTemplateElementsForSlide: vi.fn(
+				() =>
+					new Promise<PptxElement[]>((resolve) => {
+						resolveArtwork = resolve;
+					}),
+			),
+		};
+		Object.assign(svc, { loader: { getHandler: () => handler } });
+		const applying = svc.applyLayout(0, 'layout-new');
+		await vi.waitFor(() => expect(handler.getTemplateElementsForSlide).toHaveBeenCalledWith('s1'));
+		svc.slides.set([slide('replacement', [])]);
+		resolveArtwork([element('layout-new-art')]);
+		await applying;
+
+		expect(svc.slides()[0].id).toBe('replacement');
+		expect(svc.templateElementsBySlideId().s1).toBeUndefined();
+	});
+});
+
 describe('editorStateService align', () => {
 	// PowerPoint aligns a lone object to the slide. Outside DI the service has
 	// no loader (and so no canvas size), which is the "unknown slide size" case;

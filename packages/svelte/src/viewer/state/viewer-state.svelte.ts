@@ -46,6 +46,12 @@ export class ViewerState {
 		this.zoomPercent = null;
 	}
 
+	/** Keep navigation bounds aligned when editor operations change the deck. */
+	setSlideCount(slideCount: number): void {
+		this.slideCount = Math.max(0, slideCount);
+		this.current = clampSlideIndex(this.current, this.slideCount);
+	}
+
 	goTo(index: number): void {
 		this.current = clampSlideIndex(index, this.slideCount);
 	}

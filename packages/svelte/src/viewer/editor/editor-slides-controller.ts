@@ -3,7 +3,7 @@
    `await`); merging them isn't a style choice here. */
 import { cloneElement } from 'pptx-viewer-core';
 import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
-import { partitionTemplateElements, resetSlideLayoutPath } from 'pptx-viewer-shared';
+import { resetSlideLayoutPath } from 'pptx-viewer-shared';
 import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-shared';
 
 import {
@@ -186,18 +186,21 @@ export class EditorSlidesController {
 			return null;
 		}
 		const index = this.#editor.currentSlideIndex;
+		const target = this.#editor.slides[index];
+		if (!target) {
+			return null;
+		}
 		const updated = await handler.applyLayoutToSlide(index, layoutPath, this.#editor.slides);
-		// Core returns the slide with the TARGET layout's inherited artwork merged
-		// in, which this editor holds in its own store; partitioning the result
-		// again is what swaps that artwork over instead of leaving the previous
-		// layout's decoration on screen.
-		const partition = partitionTemplateElements([updated]);
+		const templateElements = await handler.getTemplateElementsForSlide(updated.id);
+		if (this.#editor.slides[index]?.id !== target.id) {
+			return null;
+		}
 		this.#editor.commitSlides(
-			this.#editor.slides.map((slide, i) => (i === index ? partition.slides[0]! : slide)),
+			this.#editor.slides.map((slide, i) => (i === index ? updated : slide)),
 		);
 		this.#editor.templateElementsBySlideId = {
 			...this.#editor.templateElementsBySlideId,
-			[updated.id]: partition.templateElementsBySlideId[updated.id] ?? [],
+			[updated.id]: templateElements,
 		};
 		return index;
 	}

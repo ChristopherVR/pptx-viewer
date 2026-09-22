@@ -140,7 +140,7 @@ describe('applyLayoutToSlide background cascade', () => {
 		const updated = await harness.applyLayoutToSlide(0, LAYOUT_PATH, [slide]);
 
 		expect(harness.slideRelsMap.get('slide-new-1')?.get('rId1')).toBe(
-			'../slideLayouts/slideLayout2.xml',
+			'/ppt/slideLayouts/slideLayout2.xml',
 		);
 		expect(updated.backgroundColor).toBe('#112233');
 		expect(updated.backgroundImage).toBe('data:image/png;base64,NEW');

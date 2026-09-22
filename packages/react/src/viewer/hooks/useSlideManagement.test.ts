@@ -1,7 +1,11 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import { describe, it, expect } from 'vitest';
+// @vitest-environment happy-dom
+import type { PptxElement, PptxHandler, PptxSlide } from 'pptx-viewer-core';
+import React, { act, useState } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import { describe, it, expect, vi } from 'vitest';
 
-import { insertSlideFromLayoutUpdater } from './useSlideManagement';
+import { insertSlideFromLayoutUpdater, useSlideManagement } from './useSlideManagement';
 
 // ---------------------------------------------------------------------------
 // Pure logic extracted from useSlideManagement for testing.
@@ -304,6 +308,71 @@ describe('insertSlideFromLayoutUpdater', () => {
 		const draft = makeSlide({ id: 'new' });
 		const result = insertSlideFromLayoutUpdater(slides, 99, draft);
 		expect(result[result.length - 1].id).toBe('new');
+	});
+});
+
+describe('useSlideManagement layout insertion', () => {
+	it('fetches inherited artwork and stores it for the inserted slide', async () => {
+		const initialSlide = makeSlide({ id: 'slide-1' });
+		const artwork = [{ id: 'layout-art', type: 'shape' } as PptxElement];
+		const handler = {
+			applyLayoutToSlide: vi.fn(
+				async (index: number, _path: string, current: PptxSlide[]) =>
+					({
+						...current[index],
+						elements: [],
+					}) as PptxSlide,
+			),
+			getTemplateElementsForSlide: vi.fn().mockResolvedValue(artwork),
+		} as unknown as PptxHandler;
+		const container = document.createElement('div');
+		document.body.append(container);
+		const root: Root = createRoot(container);
+		let management: ReturnType<typeof useSlideManagement> | undefined;
+		function Harness(): React.ReactElement {
+			const [slides, setSlides] = useState([initialSlide]);
+			const [templateElementsBySlideId, setTemplateElementsBySlideId] = useState<
+				Record<string, PptxElement[]>
+			>({});
+			management = useSlideManagement({
+				slides,
+				activeSlide: slides[0],
+				activeSlideIndex: 0,
+				setActiveSlideIndex: vi.fn(),
+				ops: { updateSlides: (update) => setSlides(update) } as never,
+				history: { markDirty: vi.fn() } as never,
+				handlerRef: { current: handler },
+				setTemplateElementsBySlideId,
+			});
+			const insertedId = slides[1]?.id;
+			return React.createElement(
+				'div',
+				null,
+				`${slides.length}:${insertedId ?? ''}:${templateElementsBySlideId[insertedId ?? '']?.[0]?.id ?? ''}`,
+			);
+		}
+
+		try {
+			await act(async () => {
+				root.render(React.createElement(Harness));
+			});
+			await act(async () => {
+				management!.handleInsertSlideFromLayout('ppt/slideLayouts/slideLayout1.xml');
+				await new Promise((resolve) => {
+					setTimeout(resolve, 0);
+				});
+			});
+			expect(handler.applyLayoutToSlide).toHaveBeenCalledWith(
+				0,
+				'ppt/slideLayouts/slideLayout1.xml',
+				[expect.objectContaining({ layoutPath: 'ppt/slideLayouts/slideLayout1.xml' })],
+			);
+			expect(handler.getTemplateElementsForSlide).toHaveBeenCalledOnce();
+			expect(container.textContent).toMatch(/^2:slide-[^:]+:layout-art$/u);
+		} finally {
+			await act(async () => root.unmount());
+			container.remove();
+		}
 	});
 });
 

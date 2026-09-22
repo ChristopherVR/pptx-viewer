@@ -271,6 +271,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		handlerRef,
 		canvasSize,
 		theme: state.theme,
+		setTemplateElementsBySlideId: state.setTemplateElementsBySlideId,
 	});
 
 	const tableOps = useTableOperations({

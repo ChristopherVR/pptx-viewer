@@ -2,7 +2,7 @@
  * useSlideManagement: Slide CRUD operations: add, move, delete,
  * duplicate, toggle-hide, insert-from-layout, and context menu.
  */
-import type { PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import {
 	buildSlideTemplateSlide,
 	createBlankSlide,
@@ -28,6 +28,10 @@ export interface UseSlideManagementInput {
 	canvasSize?: { width: number; height: number };
 	/** Loaded deck theme; template slides resolve scheme colours against it. */
 	theme?: PptxTheme;
+	/** Store for inherited layout/master artwork, keyed by slide id. */
+	setTemplateElementsBySlideId?: React.Dispatch<
+		React.SetStateAction<Record<string, PptxElement[]>>
+	>;
 }
 
 export interface SlideManagementHandlers {
@@ -68,6 +72,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		handlerRef,
 		canvasSize,
 		theme,
+		setTemplateElementsBySlideId,
 	} = input;
 
 	const handleAddSlideAfter = (afterIndex: number) => {
@@ -180,11 +185,7 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 			...(layoutName ? { layoutName } : {}),
 		};
 
-		let inserted: PptxSlide[] = [];
-		ops.updateSlides((prev) => {
-			inserted = insertSlideFromLayoutUpdater(prev, activeSlideIndex, draft);
-			return inserted;
-		});
+		ops.updateSlides((prev) => insertSlideFromLayoutUpdater(prev, activeSlideIndex, draft));
 		setActiveSlideIndex(insertAt);
 		history.markDirty();
 
@@ -194,8 +195,11 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 		// renderer can still pick up placeholders.
 		const handler = handlerRef?.current;
 		if (handler) {
-			void handler.applyLayoutToSlide(insertAt, layoutPath, inserted).then(
-				(updated) => {
+			void handler.applyLayoutToSlide(0, layoutPath, [draft]).then(
+				async (updated) => {
+					const templateElements = await handler
+						.getTemplateElementsForSlide(updated.id)
+						.catch(() => []);
 					ops.updateSlides((prev) => {
 						if (prev[insertAt]?.id !== draft.id) {
 							return prev;
@@ -204,6 +208,12 @@ export function useSlideManagement(input: UseSlideManagementInput): SlideManagem
 						next[insertAt] = updated;
 						return next;
 					});
+					if (setTemplateElementsBySlideId) {
+						setTemplateElementsBySlideId((current) => ({
+							...current,
+							[updated.id]: templateElements,
+						}));
+					}
 					return undefined;
 				},
 				() => {
