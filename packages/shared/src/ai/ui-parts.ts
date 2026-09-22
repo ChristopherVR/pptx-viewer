@@ -35,6 +35,13 @@ export interface RenderableToolPart {
 
 export type RenderablePart = RenderableTextPart | RenderableToolPart;
 
+/** A tool call whose input is finalized (ready to act on), in stream order. */
+export interface ReadyToolCall {
+	toolName: string;
+	toolCallId: string;
+	input: unknown;
+}
+
 interface MessagePartLike {
 	type?: string;
 	text?: string;
@@ -63,6 +70,35 @@ function toolNameOf(part: MessagePartLike): string {
 		return part.toolName ?? 'tool';
 	}
 	return typeof part.type === 'string' ? part.type.slice('tool-'.length) : 'tool';
+}
+
+/** Tool-part states at which the input is final (past `input-streaming`). */
+const READY_TOOL_STATES: ReadonlySet<string> = new Set([
+	'input-available',
+	'output-available',
+	'output-error',
+]);
+
+/** Collect finalized tool calls across messages in stream order. */
+export function extractReadyToolCalls(messages: AiUiMessage[]): ReadyToolCall[] {
+	const out: ReadyToolCall[] = [];
+	for (const message of messages) {
+		for (const rawPart of message.parts) {
+			const part = rawPart as MessagePartLike;
+			if (!isToolPart(part) && !isDynamicToolPart(part)) {
+				continue;
+			}
+			const toolCallId = part.toolCallId ?? '';
+			if (toolCallId.length === 0 || part.input === undefined) {
+				continue;
+			}
+			if (!READY_TOOL_STATES.has(part.state ?? '')) {
+				continue;
+			}
+			out.push({ toolName: toolNameOf(part), toolCallId, input: part.input });
+		}
+	}
+	return out;
 }
 
 /** Flatten a message's parts into the renderable subset, dropping empty text. */

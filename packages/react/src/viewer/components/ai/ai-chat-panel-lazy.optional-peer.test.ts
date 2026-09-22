@@ -1,6 +1,8 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import * as ts from '@typescript/typescript6';
+import { rollup } from 'rollup';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -45,5 +47,93 @@ describe('the @ai-sdk/react peer is never statically imported', () => {
 				`${label} should not statically import @ai-sdk/react`,
 			).toStrictEqual([]);
 		}
+	});
+
+	it('does not statically import runtime values from the optional ai peer', () => {
+		const messagePartsSource = readFileSync(
+			join(import.meta.dirname, 'ai-message-parts.ts'),
+			'utf-8',
+		);
+		const staticAiImports = [
+			...messagePartsSource.matchAll(/^import\s+(?!type\s).*from\s+['"]ai['"]/gmu),
+		];
+		expect(
+			staticAiImports,
+			'AI message helpers must use the shared runtime-free implementation',
+		).toStrictEqual([]);
+	});
+
+	it('bundles the React and Vue message helpers with an empty optional-ai stub', async () => {
+		const sharedUiParts = join(import.meta.dirname, '../../../../../shared/src/ai/ui-parts.ts');
+		const plugin = {
+			name: 'optional-ai-peer-fixture',
+			resolveId(source: string) {
+				if (source === 'pptx-viewer-shared/ai') {
+					return sharedUiParts;
+				}
+				if (source === 'ai') {
+					return '\0empty-ai-peer';
+				}
+				return null;
+			},
+			load(id: string) {
+				if (id === '\0empty-ai-peer') {
+					return 'export {};';
+				}
+				return null;
+			},
+			async transform(code: string, id: string) {
+				if (id.endsWith('.ts')) {
+					return ts.transpileModule(code, {
+						compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+					}).outputText;
+				}
+				return null;
+			},
+		};
+		const entries = [
+			join(import.meta.dirname, 'ai-message-parts.ts'),
+			join(import.meta.dirname, '../../../../../vue/src/viewer/composables/ai/message-parts.ts'),
+		];
+		for (const entry of entries) {
+			const bundle = await rollup({ input: entry, plugins: [plugin] });
+			try {
+				await bundle.generate({ format: 'es' });
+			} finally {
+				await bundle.close();
+			}
+		}
+	});
+
+	it('confirms the empty ai stub rejects a static named import', async () => {
+		const plugin = {
+			name: 'optional-ai-peer-negative-control',
+			resolveId(source: string) {
+				if (source === 'virtual:consumer') {
+					return '\0consumer';
+				}
+				if (source === 'ai') {
+					return '\0empty-ai-peer';
+				}
+				return null;
+			},
+			load(id: string) {
+				if (id === '\0consumer') {
+					return "import { isToolUIPart } from 'ai'; console.log(isToolUIPart);";
+				}
+				if (id === '\0empty-ai-peer') {
+					return 'export {};';
+				}
+				return null;
+			},
+		};
+		await expect(async () => {
+			const bundle = await rollup({ input: 'virtual:consumer', plugins: [plugin] });
+			try {
+				await bundle.generate({ format: 'es' });
+			} finally {
+				await bundle.close();
+			}
+		}).rejects.toThrow(/isToolUIPart.*not exported/iu);
 	});
 });

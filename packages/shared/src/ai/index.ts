@@ -144,9 +144,10 @@ export { applyElementUpdate, applyShapeStyleUpdate, applyTextUpdate } from './to
 export { mergeTableElements } from './table-merge';
 export type { MergeTableOptions, TableMergeDirection } from './table-merge';
 
-export { toRenderableParts } from './ui-parts';
+export { extractReadyToolCalls, toRenderableParts } from './ui-parts';
 export type {
 	AiUiMessage,
+	ReadyToolCall,
 	RenderablePart,
 	RenderableTextPart,
 	RenderableToolPart,
