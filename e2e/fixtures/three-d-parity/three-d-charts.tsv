@@ -1,0 +1,17 @@
+1	3d-column-clustered
+2	3d-column-stacked
+3	3d-column-stacked100
+4	3d-column-standard
+5	3d-bar-clustered
+6	3d-bar-stacked
+7	3d-column-cylinder
+8	3d-column-cone
+9	3d-column-pyramid
+10	3d-line
+11	3d-area
+12	3d-area-stacked
+13	3d-area-stacked100
+14	3d-pie
+15	3d-pie-exploded
+16	3d-surface
+17	3d-surface-wireframe

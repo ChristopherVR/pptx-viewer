@@ -21,6 +21,7 @@
 		"demo:vue": "cd demos/demo-vue && npx vite",
 		"demo:angular": "cd demos/demo-angular && npx vite",
 		"demo:vanilla": "cd demos/demo-vanilla && npx vite",
+		"demo:three-parity": "bun run --cwd demos/demo-three-parity dev",
 		"demo:svelte": "cd demos/demo-svelte && npx vite",
 		"docs:dev": "cd docs && bun run docs:dev",
 		"docs:build": "cd docs && bun install && bun run docs:build",

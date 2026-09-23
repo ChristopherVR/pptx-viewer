@@ -1,0 +1,21 @@
+{
+	"name": "pptx-three-parity-harness",
+	"private": true,
+	"description": "Side-by-side harness: PowerPoint ground truth vs the shared <pptx-three-view> 3D chart/SmartArt scenes.",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"fast-xml-parser": "^5.11.1",
+		"jszip": "^3.10.2",
+		"pptx-viewer-core": "workspace:*",
+		"three": "^0.186.0"
+	},
+	"devDependencies": {
+		"@types/node": "^26.5.1",
+		"typescript": "^7.0.2",
+		"vite": "^8.3.0"
+	}
+}

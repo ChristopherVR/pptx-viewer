@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<title>3D parity harness</title>
+		<style>
+			body {
+				margin: 0;
+				font:
+					13px system-ui,
+					sans-serif;
+				background: #f3f3f3;
+				color: #222;
+			}
+			header {
+				padding: 8px 12px;
+				background: #222;
+				color: #eee;
+				position: sticky;
+				top: 0;
+				z-index: 10;
+			}
+			header a {
+				color: #9cf;
+				margin-right: 10px;
+			}
+			.row {
+				display: flex;
+				gap: 12px;
+				padding: 10px 12px;
+				border-bottom: 1px solid #ddd;
+				align-items: flex-start;
+			}
+			.label {
+				width: 150px;
+				flex: none;
+			}
+			.cell {
+				position: relative;
+				background: #fff;
+				box-shadow: 0 0 0 1px #ccc;
+				overflow: hidden;
+			}
+			.cell img {
+				display: block;
+				width: 100%;
+				height: 100%;
+			}
+			.onion {
+				position: absolute;
+				inset: 0;
+				opacity: 0.5;
+				pointer-events: none;
+			}
+			.slide {
+				position: absolute;
+				left: 0;
+				top: 0;
+				transform-origin: 0 0;
+			}
+			.el {
+				position: absolute;
+			}
+			.state {
+				font-size: 11px;
+				color: #888;
+			}
+		</style>
+	</head>
+	<body>
+		<header id="nav"></header>
+		<main id="rows"></main>
+		<script type="module" src="./src/main.ts"></script>
+	</body>
+</html>
