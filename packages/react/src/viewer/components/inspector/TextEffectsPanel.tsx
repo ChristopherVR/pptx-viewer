@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 import { useRecentColors } from './RecentColorsContext';
 import { INPUT_CLS, COLOR_CLS } from './TextPropertiesHelpers';
 import { TextReflectionSection } from './TextReflectionSection';
@@ -46,7 +47,7 @@ export function TextEffectsPanel({
 			{/* ── Text Shadow ── */}
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						checked={hasShadow}
 						onChange={(e) => {
@@ -144,7 +145,7 @@ export function TextEffectsPanel({
 			{/* ── Text Glow ── */}
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						checked={hasGlow}
 						onChange={(e) => {

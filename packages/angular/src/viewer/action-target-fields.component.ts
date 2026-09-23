@@ -10,11 +10,18 @@
  * target), or nothing for a target-less type. Purely presentational: the
  * parent owns `pending`/`typeFor` and commits through its own `update`.
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-viewer-core';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-action-target-fields',
 	standalone: true,
 	imports: [TranslatePipe],
@@ -43,7 +50,7 @@ import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-view
 			<label class="pptx-ng-action__label" [for]="idPrefix() + '-customshow'">
 				{{ 'pptx.hyperlink.customShowLabel' | translate }}
 			</label>
-			<select
+			<pptx-ui-select
 				[id]="idPrefix() + '-customshow'"
 				data-testid="pptx-action-custom-show"
 				class="pptx-ng-action__input"
@@ -55,14 +62,13 @@ import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-view
 						{{ show.name }}
 					</option>
 				}
-			</select>
+			</pptx-ui-select>
 			<label class="pptx-ng-action__check">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					data-testid="pptx-action-custom-show-return"
 					[checked]="action()?.returnAfter ?? false"
 					(change)="returnAfterChange.emit(checkedValue($event))"
-				/>
+				></pptx-ui-checkbox>
 				{{ 'pptx.hyperlink.customShowReturn' | translate }}
 			</label>
 		}
@@ -77,7 +83,7 @@ import type { ElementAction, ElementActionType, PptxCustomShow } from 'pptx-view
 		}
 	`,
 	styles: `
-		/* Shared with ActionSettingsPanelComponent's own <select>: duplicated
+		/* Shared with ActionSettingsPanelComponent's own <pptx-ui-select>: duplicated
 		   rather than inherited, because Angular's per-component style
 		   encapsulation means the PARENT's stylesheet can never reach an
 		   element rendered inside THIS component's own template (see

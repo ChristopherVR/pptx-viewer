@@ -28,58 +28,63 @@
 </script>
 
 <div class="pptx-svelte-presentation-settings">
+	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.showType')}</span>
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.presentationSettings.showType')}
 			disabled={!canEdit}
 			value={properties.showType ?? 'presented'}
-			onchange={(event) =>
+			onchange={(event: Event) =>
 				onupdate({
-					showType: event.currentTarget.value as 'presented' | 'browsed' | 'kiosk',
+					showType: (event.currentTarget as HTMLElement & { value: string }).value as 'presented' | 'browsed' | 'kiosk',
 				})}
 		>
 			<option value="presented">{t('pptx.presentationSettings.showTypePresented')}</option>
 			<option value="browsed">{t('pptx.presentationSettings.showTypeBrowsed')}</option>
 			<option value="kiosk">{t('pptx.presentationSettings.showTypeKiosk')}</option>
-		</select>
+		</pptx-ui-select>
 	</label>
+	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.loopContinuously')}</span>
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
+			aria-label={t('pptx.presentationSettings.loopContinuously')}
 			disabled={!canEdit}
 			checked={Boolean(properties.loopContinuously)}
-			onchange={(event) => onupdate({ loopContinuously: event.currentTarget.checked })}
-		/>
+			onchange={(event: Event) => onupdate({ loopContinuously: (event.currentTarget as HTMLElement & { checked: boolean }).checked })}
+		></pptx-ui-checkbox>
 	</label>
+	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.showNarration')}</span>
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
+			aria-label={t('pptx.presentationSettings.showNarration')}
 			disabled={!canEdit}
 			checked={properties.showWithNarration !== false}
-			onchange={(event) => onupdate({ showWithNarration: event.currentTarget.checked })}
-		/>
+			onchange={(event: Event) => onupdate({ showWithNarration: (event.currentTarget as HTMLElement & { checked: boolean }).checked })}
+		></pptx-ui-checkbox>
 	</label>
+	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.showAnimation')}</span>
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
+			aria-label={t('pptx.presentationSettings.showAnimation')}
 			disabled={!canEdit}
 			checked={properties.showWithAnimation !== false}
-			onchange={(event) => onupdate({ showWithAnimation: event.currentTarget.checked })}
-		/>
+			onchange={(event: Event) => onupdate({ showWithAnimation: (event.currentTarget as HTMLElement & { checked: boolean }).checked })}
+		></pptx-ui-checkbox>
 	</label>
+	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.frameSlides')}</span>
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
+			aria-label={t('pptx.presentationSettings.frameSlides')}
 			disabled={!canEdit}
 			checked={printPropertiesFrameSlides(properties.printProperties)}
-			onchange={(event) =>
-				onupdate({ printProperties: withFrameSlides(properties.printProperties, event.currentTarget.checked) })}
-		/>
+			onchange={(event: Event) =>
+				onupdate({ printProperties: withFrameSlides(properties.printProperties, (event.currentTarget as HTMLElement & { checked: boolean }).checked) })}
+		></pptx-ui-checkbox>
 	</label>
 	<label>
 		<span>{t('pptx.presentationSettings.slidesPerPage')}</span>
@@ -110,7 +115,13 @@
 		font-size: 11px;
 	}
 
-	select,
+	pptx-ui-select {
+		width: 96px;
+	}
+	@media (max-width: 767px) {
+		pptx-ui-select { min-height: 44px; }
+	}
+
 	input[type='number'] {
 		min-width: 0;
 		width: 96px;
@@ -121,7 +132,4 @@
 		color: inherit;
 	}
 
-	input[type='checkbox'] {
-		accent-color: var(--pptx-primary, #6366f1);
-	}
 </style>

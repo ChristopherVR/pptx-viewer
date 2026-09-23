@@ -55,7 +55,7 @@ function onOpacity(event: Event): void {
 	<div class="pptx-vue-color-wash flex flex-col gap-1 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
 			<span class="font-semibold text-muted-foreground">{{ t('pptx.image.colorWash') }}</span>
-			<input type="checkbox" :checked="Boolean(wash)" @change="onToggle" />
+			<pptx-ui-checkbox type="checkbox" :checked="Boolean(wash)" @change="onToggle" />
 		</label>
 
 		<div v-if="wash" class="grid grid-cols-2 gap-1.5">

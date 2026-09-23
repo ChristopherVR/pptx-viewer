@@ -11,7 +11,14 @@
  * and one set of clamps. Emitted patches are partial `Text3DStyle` objects; the
  * parent merges them and commits the whole `text3d` sub-object.
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { BevelPresetType, Text3DStyle } from 'pptx-viewer-core';
 
@@ -57,6 +64,7 @@ export function bevelSizePatch(
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-text-3d-bevel-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -67,7 +75,7 @@ export function bevelSizePatch(
 			<div class="bevel__grid">
 				<label class="bevel__field">
 					<span class="bevel__label">{{ 'pptx.text3d.bevelType' | translate }}</span>
-					<select
+					<pptx-ui-select
 						class="bevel__select"
 						[disabled]="disabled()"
 						[value]="bevelType()"
@@ -79,7 +87,7 @@ export function bevelSizePatch(
 								{{ preset.label }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 				<label class="bevel__field">
 					<span class="bevel__label">{{ 'pptx.text3d.bevelWidth' | translate }}</span>

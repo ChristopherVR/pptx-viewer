@@ -48,7 +48,9 @@ describe('inspector animation panel', () => {
 		const panel = createAnimationPanel(document, t, handlers);
 		panel.update(makeState());
 
-		const selects = panel.el.querySelectorAll<HTMLSelectElement>('.pptxv-anim-field select');
+		const selects = panel.el.querySelectorAll<HTMLSelectElement>(
+			'.pptxv-anim-field pptx-ui-select',
+		);
 		const entrance = selects[0];
 		expect(entrance.value).toBe('none');
 		entrance.value = 'fadeIn';
@@ -73,7 +75,9 @@ describe('inspector animation panel', () => {
 		];
 		panel.update(makeState({ animations }));
 		expect(options?.hidden).toBeFalsy();
-		const selects = panel.el.querySelectorAll<HTMLSelectElement>('.pptxv-anim-field select');
+		const selects = panel.el.querySelectorAll<HTMLSelectElement>(
+			'.pptxv-anim-field pptx-ui-select',
+		);
 		expect(selects[0].value).toBe('flyIn');
 		const duration = panel.el.querySelector<HTMLInputElement>('input[type="number"]');
 		expect(duration?.value).toBe('700');
@@ -104,7 +108,9 @@ describe('inspector animation panel', () => {
 				animations: [{ elementId: 'el1', entrance: 'fadeIn', trigger: 'onShapeClick', order: 0 }],
 			}),
 		);
-		const shapeSelect = panel.el.querySelectorAll<HTMLSelectElement>('.pptxv-anim-field select')[5];
+		const shapeSelect = panel.el.querySelectorAll<HTMLSelectElement>(
+			'.pptxv-anim-field pptx-ui-select',
+		)[5];
 		expect((shapeSelect.parentElement as HTMLElement).hidden).toBeFalsy();
 		expect(Array.from(shapeSelect.options).map((o) => o.value)).toStrictEqual(['', 'el2']);
 	});
@@ -165,7 +171,7 @@ describe('inspector animation panel', () => {
 			}),
 		);
 		const controls = panel.el.querySelectorAll<HTMLSelectElement | HTMLInputElement>(
-			'.pptxv-anim-field :is(select, input)',
+			'.pptxv-anim-field :is(pptx-ui-select, input)',
 		);
 		for (const control of controls) {
 			expect(control.disabled).toBeTruthy();

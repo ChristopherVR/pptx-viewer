@@ -71,11 +71,11 @@
 		{#if series.length > 1}
 			<label class="picker">
 				{t('pptx.chart.series')}
-				<select aria-label={t('pptx.chart.series')} disabled={!canEdit} bind:value={chosen}>
+				<pptx-ui-select aria-label={t('pptx.chart.series')} disabled={!canEdit} value={chosen} onchange={(event) => chosen = Number(event.currentTarget.value)}>
 					{#each series as item, index (index)}
 						<option value={index}>{item.name}</option>
 					{/each}
-				</select>
+				</pptx-ui-select>
 			</label>
 		{/if}
 
@@ -84,8 +84,7 @@
 			<div class="row">
 				<span class="name" title={category}>{category}</span>
 				<label class="toggle">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						disabled={!canEdit}
 						checked={marker !== undefined}
 						onchange={(event) =>
@@ -94,13 +93,13 @@
 								index,
 								event.currentTarget.checked ? { symbol: 'circle' } : null,
 							)}
-					/>
+					></pptx-ui-checkbox>
 					{t('pptx.chart.markerOverride')}
 				</label>
 			</div>
 			{#if marker}
 				<div class="overrides">
-					<select
+					<pptx-ui-select
 						disabled={!canEdit}
 						value={marker.symbol}
 						onchange={(event) =>
@@ -111,7 +110,7 @@
 						{#each symbols as option (option.value)}
 							<option value={option.value}>{t(option.labelKey)}</option>
 						{/each}
-					</select>
+					</pptx-ui-select>
 					<input
 						type="number"
 						min="1"

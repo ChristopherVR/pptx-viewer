@@ -60,7 +60,7 @@ function onChange(event: Event): void {
 		<span class="text-muted-foreground text-[11px]">{{
 			t('pptx.animation.motionPath.label')
 		}}</span>
-		<select
+		<pptx-ui-select
 			:value="selected"
 			:disabled="!props.canEdit"
 			:aria-label="t('pptx.animation.motionPath.label')"
@@ -73,7 +73,7 @@ function onChange(event: Event): void {
 					{{ t(motionPathPresetLabelKey(preset.id)) }}
 				</option>
 			</optgroup>
-		</select>
+		</pptx-ui-select>
 		<span v-if="props.motionPath" class="text-[10px] text-muted-foreground">
 			{{ t('pptx.animation.motionPath.editHint') }}
 		</span>

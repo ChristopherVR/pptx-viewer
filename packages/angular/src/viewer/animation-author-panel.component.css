@@ -81,6 +81,10 @@
 	box-sizing: border-box;
 }
 
+.pptx-ng-anim__select {
+	--pptx-select-control-bg: var(--pptx-inspector-input-bg, #2d2d2d);
+}
+
 .pptx-ng-anim__select:disabled,
 .pptx-ng-anim__input:disabled {
 	opacity: 0.5;

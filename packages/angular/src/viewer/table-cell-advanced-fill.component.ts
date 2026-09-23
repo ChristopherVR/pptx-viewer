@@ -11,7 +11,15 @@
  * `gradientFillCss` string is rebuilt on every gradient edit so the renderer
  * reflects the change immediately.
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxTableCellStyle } from 'pptx-viewer-core';
 
@@ -27,6 +35,7 @@ import {
 type GradientStop = { color: string; position: number };
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-table-cell-advanced-fill',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -35,7 +44,7 @@ type GradientStop = { color: string; position: number };
 		<div class="pptx-tcaf">
 			<label class="pptx-tcaf__field">
 				<span class="pptx-tcaf__lbl">{{ 'pptx.table.fillMode' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.table.fillMode' | translate"
 					class="pptx-tcaf__sel"
 					[disabled]="!canEdit()"
@@ -47,14 +56,14 @@ type GradientStop = { color: string; position: number };
 							{{ opt.i18nKey | translate }}
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			@if (fillMode() === 'gradient') {
 				<div class="pptx-tcaf__group">
 					<label class="pptx-tcaf__field">
 						<span class="pptx-tcaf__lbl">{{ 'pptx.table.gradientType' | translate }}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.table.gradientType' | translate"
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
@@ -66,7 +75,7 @@ type GradientStop = { color: string; position: number };
 									{{ opt.i18nKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 					@if (gradType() === 'linear') {
 						<label class="pptx-tcaf__field">
@@ -120,7 +129,7 @@ type GradientStop = { color: string; position: number };
 				<div class="pptx-tcaf__group">
 					<label class="pptx-tcaf__field">
 						<span class="pptx-tcaf__lbl">{{ 'pptx.table.patternPreset' | translate }}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.table.patternPreset' | translate"
 							class="pptx-tcaf__sel"
 							[disabled]="!canEdit()"
@@ -132,7 +141,7 @@ type GradientStop = { color: string; position: number };
 									{{ patternLabelKey(p) | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 					<div class="pptx-tcaf__grid2">
 						<label class="pptx-tcaf__field">
@@ -266,7 +275,7 @@ export class TableCellAdvancedFillComponent {
 
 	/**
 	 * Offered presets, widened to include the current one when it sits outside
-	 * the offered slice (the fallback preset does), so the `<select>` cannot show
+	 * the offered slice (the fallback preset does), so the `<pptx-ui-select>` cannot show
 	 * a value the cell does not have and then commit it on the next change.
 	 */
 	protected readonly patterns = computed(() => patternPresetOptions(this.patternPreset()));

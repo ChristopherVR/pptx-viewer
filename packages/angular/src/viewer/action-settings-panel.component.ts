@@ -6,6 +6,7 @@ import {
 	input,
 	output,
 	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
@@ -71,6 +72,7 @@ export function displayedActionType(
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-action-settings-panel',
 	standalone: true,
 	imports: [TranslatePipe, ActionTargetFieldsComponent],
@@ -83,7 +85,7 @@ export function displayedActionType(
 					<label class="pptx-ng-action__label" [for]="'action-' + trigger">
 						{{ (trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover') | translate }}
 					</label>
-					<select
+					<pptx-ui-select
 						[id]="'action-' + trigger"
 						class="pptx-ng-action__input"
 						[value]="typeFor(trigger)"
@@ -94,7 +96,7 @@ export function displayedActionType(
 								{{ option.labelKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 					<pptx-action-target-fields
 						[type]="typeFor(trigger)"
 						[action]="actionFor(trigger)"
@@ -185,7 +187,7 @@ export class ActionSettingsPanelComponent {
 		);
 	}
 
-	/** `data.customShows`, for the `customShow` type's target `<select>`. */
+	/** `data.customShows`, for the `customShow` type's target `<pptx-ui-select>`. */
 	private readonly loader = inject(LoadContentService, { optional: true });
 	protected readonly customShows = computed<readonly PptxCustomShow[]>(
 		() => this.loader?.customShows() ?? [],

@@ -82,7 +82,7 @@ function addStop(): void {
 	<div class="flex flex-col gap-2">
 		<label class="flex flex-col gap-1">
 			<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.fillMode') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.table.fillMode')"
 				class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 				:disabled="!canEdit"
@@ -92,7 +92,7 @@ function addStop(): void {
 				<option v-for="opt in FILL_MODE_OPTIONS" :key="opt.value ?? ''" :value="opt.value ?? ''">
 					{{ t(opt.i18nKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<!-- Gradient controls -->
@@ -100,7 +100,7 @@ function addStop(): void {
 			<div class="grid grid-cols-2 gap-1.5">
 				<label class="flex flex-col gap-0.5">
 					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientType') }}</span>
-					<select
+					<pptx-ui-select
 						:aria-label="t('pptx.table.gradientType')"
 						class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 						:disabled="!canEdit"
@@ -114,7 +114,7 @@ function addStop(): void {
 						<option v-for="o in GRADIENT_TYPE_OPTIONS" :key="o.value" :value="o.value">
 							{{ t(o.i18nKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</label>
 				<label v-if="gradientType === 'linear'" class="flex flex-col gap-0.5">
 					<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.gradientAngle') }}</span>
@@ -169,7 +169,7 @@ function addStop(): void {
 		<div v-else-if="fillMode === 'pattern'" class="flex flex-col gap-1.5">
 			<label class="flex flex-col gap-0.5">
 				<span class="text-[11px] text-muted-foreground">{{ t('pptx.table.patternPreset') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.table.patternPreset')"
 					class="w-full rounded border border-border bg-muted px-2 py-1 text-[11px] max-md:min-h-[44px]"
 					:disabled="!canEdit"
@@ -181,7 +181,7 @@ function addStop(): void {
 					<option v-for="p in PATTERN_PRESET_OPTIONS" :key="p.value" :value="p.value">
 						{{ t(p.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="grid grid-cols-2 gap-1.5">
 				<label class="flex flex-col gap-0.5">

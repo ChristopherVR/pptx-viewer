@@ -12,7 +12,7 @@ import {
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { makeNumberField } from '../controls';
-import { makeCheckboxField } from './controls-extra';
+import { makeCheckboxField, createInspectorSelect } from './controls-extra';
 import type { DeckCard } from './deck-card-helpers';
 import { makeSection } from './deck-card-helpers';
 import { createTransitionPreview } from './transition-preview';
@@ -45,7 +45,7 @@ export function createSlideTransitionCard(
 	const typeLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
 	const typeCaption = createEl(doc, 'span', 'pptxv-field-label');
 	typeCaption.textContent = t('pptx.transition.type');
-	const type = doc.createElement('select');
+	const type = createInspectorSelect(doc);
 	type.className = 'pptxv-field-select-input';
 	type.setAttribute('aria-label', t('pptx.transition.type'));
 	for (const option of SLIDE_TRANSITION_OPTIONS) {
@@ -60,7 +60,7 @@ export function createSlideTransitionCard(
 	const speedLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
 	const speedCaption = createEl(doc, 'span', 'pptxv-field-label');
 	speedCaption.textContent = t('pptx.transition.speed');
-	const speed = doc.createElement('select');
+	const speed = createInspectorSelect(doc);
 	speed.className = 'pptxv-field-select-input';
 	speed.setAttribute('aria-label', t('pptx.transition.speed'));
 	for (const option of TRANSITION_SPEED_OPTIONS) {
@@ -77,7 +77,7 @@ export function createSlideTransitionCard(
 	const morphLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
 	const morphCaption = createEl(doc, 'span', 'pptxv-field-label');
 	morphCaption.textContent = t('pptx.transition.morphOption');
-	const morphOption = doc.createElement('select');
+	const morphOption = createInspectorSelect(doc);
 	morphOption.className = 'pptxv-field-select-input';
 	morphOption.setAttribute('aria-label', t('pptx.transition.morphOption'));
 	for (const option of TRANSITION_MORPH_OPTIONS) {

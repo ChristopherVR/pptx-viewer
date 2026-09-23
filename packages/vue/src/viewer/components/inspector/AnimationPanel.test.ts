@@ -5,6 +5,7 @@ import { motionPathPresetById } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import AnimationPanel from './AnimationPanel.vue';
+import { setControlValue } from './test-control-value';
 
 /** Mirror the panel's catalog-id → real-preset conversion for assertions. */
 function presetOf(catalogId: string): string {
@@ -58,12 +59,12 @@ describe('animationPanel', () => {
 		});
 
 		// Default category is entrance; pick the second entrance preset.
-		const presetSelect = wrapper.get('select[aria-label="Animation preset"]');
+		const presetSelect = wrapper.get('pptx-ui-select[aria-label="Animation preset"]');
 		const chosen = ENTRANCE_PRESETS[1];
-		await presetSelect.setValue(chosen.presetId);
+		await setControlValue(presetSelect, chosen.presetId);
 
-		const triggerSelect = wrapper.get('select[aria-label="Animation trigger"]');
-		await triggerSelect.setValue('withPrevious');
+		const triggerSelect = wrapper.get('pptx-ui-select[aria-label="Animation trigger"]');
+		await setControlValue(triggerSelect, 'withPrevious');
 
 		await wrapper.get('.pptx-vue-anim-add-btn').trigger('click');
 
@@ -91,12 +92,12 @@ describe('animationPanel', () => {
 		});
 
 		// Switch category to exit, choose the first exit preset.
-		const categorySelect = wrapper.get('select[aria-label="Animation category"]');
-		await categorySelect.setValue('exit');
+		const categorySelect = wrapper.get('pptx-ui-select[aria-label="Animation category"]');
+		await setControlValue(categorySelect, 'exit');
 
-		const presetSelect = wrapper.get('select[aria-label="Animation preset"]');
+		const presetSelect = wrapper.get('pptx-ui-select[aria-label="Animation preset"]');
 		const chosen = EXIT_PRESETS[0];
-		await presetSelect.setValue(chosen.presetId);
+		await setControlValue(presetSelect, chosen.presetId);
 
 		await wrapper.get('.pptx-vue-anim-add-btn').trigger('click');
 
@@ -153,13 +154,13 @@ describe('animationPanel motion path', () => {
 			{ elementId: 'sp1', motionPath: motionPathPresetById('lineDown')?.path },
 		]);
 		expect(
-			(wrapper.get('.pptx-vue-motion-path-row select').element as HTMLSelectElement).value,
+			(wrapper.get('.pptx-vue-motion-path-row pptx-ui-select').element as HTMLSelectElement).value,
 		).toBe('lineDown');
 	});
 
 	it('applies a chosen preset to the slide animation list', async () => {
 		const wrapper = mountPanel();
-		await wrapper.get('.pptx-vue-motion-path-row select').setValue('lineRight');
+		await setControlValue(wrapper.get('.pptx-vue-motion-path-row pptx-ui-select'), 'lineRight');
 
 		expect(lastSlideAnimations(wrapper)).toStrictEqual([
 			expect.objectContaining({
@@ -174,7 +175,7 @@ describe('animationPanel motion path', () => {
 		const wrapper = mountPanel([
 			{ elementId: 'sp1', motionPath: motionPathPresetById('lineRight')?.path },
 		]);
-		await wrapper.get('.pptx-vue-motion-path-row select').setValue('none');
+		await setControlValue(wrapper.get('.pptx-vue-motion-path-row pptx-ui-select'), 'none');
 
 		expect(lastSlideAnimations(wrapper)).toStrictEqual([]);
 	});
@@ -184,7 +185,7 @@ describe('animationPanel motion path', () => {
 		const wrapper = mountPanel([
 			{ elementId: 'sp1', entrance: 'fadeIn', motionPath: 'M 0 0 L 0.25 0' },
 		]);
-		await wrapper.get('.pptx-vue-motion-path-row select').setValue('none');
+		await setControlValue(wrapper.get('.pptx-vue-motion-path-row pptx-ui-select'), 'none');
 
 		const next = lastSlideAnimations(wrapper);
 		expect(next).toHaveLength(1);

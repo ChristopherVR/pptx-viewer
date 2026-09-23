@@ -25,6 +25,7 @@ import {
 	input,
 	output,
 	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
@@ -46,6 +47,7 @@ import { RecentColorsService } from './recent-colors.service';
 const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !== '');
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-datapoint-marker-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -58,7 +60,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 				@if (series().length > 1) {
 					<label class="pptx-chart-card__row">
 						<span class="pptx-chart-card__label">{{ 'pptx.chart.series' | translate }}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.chart.series' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -68,7 +70,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 							@for (s of series(); track $index; let i = $index) {
 								<option [value]="i" [selected]="i === activeIndex()">{{ s.name }}</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 
@@ -77,19 +79,18 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 						<div class="pptx-chart-card__row">
 							<span class="pptx-chart-card__name" [title]="cat">{{ cat }}</span>
 							<label class="pptx-chart-card__check">
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									[disabled]="!canEdit()"
 									[checked]="markerAt(ci) !== undefined"
 									(change)="onToggle(ci, $event)"
-								/>
+								></pptx-ui-checkbox>
 								{{ 'pptx.chart.markerOverride' | translate }}
 							</label>
 						</div>
 
 						@if (markerAt(ci); as marker) {
 							<div class="pptx-chart-card__row pptx-chart-card__group--indent">
-								<select
+								<pptx-ui-select
 									class="pptx-chart-card__input"
 									[disabled]="!canEdit()"
 									[value]="marker.symbol"
@@ -100,7 +101,7 @@ const SYMBOL_OPTIONS = MARKER_SYMBOL_OPTIONS.filter((option) => option.value !==
 											{{ opt.labelKey | translate }}
 										</option>
 									}
-								</select>
+								</pptx-ui-select>
 								<input
 									type="number"
 									min="1"

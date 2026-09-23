@@ -12,7 +12,15 @@
  * @module angular-viewer/chart-datapoint-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -27,6 +35,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-datapoint-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +48,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 				@if (series().length > 1) {
 					<label class="pptx-chart-card__row">
 						<span class="pptx-chart-card__label">{{ 'pptx.chart.series' | translate }}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.chart.series' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -49,7 +58,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 							@for (s of series(); track $index; let i = $index) {
 								<option [value]="i" [selected]="i === activeIndex()">{{ s.name }}</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 

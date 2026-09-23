@@ -1,4 +1,4 @@
-import { Search, Settings } from 'lucide';
+import { Settings } from 'lucide';
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
@@ -114,13 +114,13 @@ export function createFileTab(
 	}
 	function renderRecent(): void {
 		const list = createEl(doc, 'div', 'pptxv-bs-recent');
-		const searchBox = createEl(doc, 'div', 'pptxv-bs-search');
-		searchBox.setAttribute('data-pptx-search-surface', '');
-		const searchIcon = createLucideIcon(doc, Search, 16);
-		searchIcon.setAttribute('aria-hidden', 'true');
-		const search = doc.createElement('input');
+		const search = doc.createElement('pptx-ui-search') as HTMLElement & {
+			value: string;
+			placeholder: string;
+		};
+		search.className = 'pptxv-bs-search';
+		search.setAttribute('data-pptx-search-surface', '');
 		search.setAttribute('data-pptx-search-input', '');
-		search.type = 'search';
 		search.placeholder = t('pptx.backstage.searchPlaceholder');
 		search.setAttribute('aria-label', search.placeholder);
 		search.value = query;
@@ -128,8 +128,7 @@ export function createFileTab(
 			query = search.value;
 			renderRecentItems(list);
 		});
-		searchBox.append(searchIcon, search);
-		main.appendChild(searchBox);
+		main.appendChild(search);
 		if (page === 'open') {
 			main.appendChild(
 				button(

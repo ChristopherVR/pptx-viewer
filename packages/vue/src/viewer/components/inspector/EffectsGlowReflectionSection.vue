@@ -123,7 +123,7 @@ function onSoftEdgeRadius(value: string): void {
 		class="pptx-vue-effects-section flex flex-col gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
 	>
 		<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				data-testid="fx-glow-toggle"
 				:checked="state.glow.enabled"
@@ -178,7 +178,7 @@ function onSoftEdgeRadius(value: string): void {
 		class="pptx-vue-effects-section flex flex-col gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
 	>
 		<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				data-testid="fx-reflection-toggle"
 				:checked="state.reflection.enabled"
@@ -261,7 +261,7 @@ function onSoftEdgeRadius(value: string): void {
 		class="pptx-vue-effects-section flex flex-col gap-2 border-b border-border pb-2 last:border-b-0 last:pb-0"
 	>
 		<label class="pptx-vue-effects-check inline-flex items-center gap-2 text-foreground">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				data-testid="fx-soft-edge-toggle"
 				:checked="state.softEdge.enabled"

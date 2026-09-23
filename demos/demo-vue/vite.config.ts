@@ -22,7 +22,13 @@ export default defineConfig({
 	// Served from a subpath (e.g. /pptx-viewer/demo-vue/) on GitHub Pages.
 	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
 	base: process.env.DEMO_BASE ?? '/',
-	plugins: [vue(), tailwindcss(), buildStamp(pkg('vue', 'package.json'))],
+	plugins: [
+		vue({
+			template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('pptx-ui-') } },
+		}),
+		tailwindcss(),
+		buildStamp(pkg('vue', 'package.json')),
+	],
 	server: {
 		port: 4175,
 		// Never auto-bump onto a sibling demo's port when this one is busy: an

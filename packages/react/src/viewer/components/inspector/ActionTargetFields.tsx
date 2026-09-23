@@ -12,6 +12,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebSelect, WebCheckbox } from '../WebControls';
 import type { ActionTargetPatch } from './ActionSettingsPanel';
 import { INPUT } from './inspector-pane-constants';
 
@@ -86,7 +87,7 @@ export function ActionTargetFields({
 	if (type === 'customShow') {
 		return (
 			<div className='space-y-1'>
-				<select
+				<WebSelect
 					data-testid='pptx-action-custom-show'
 					disabled={!canEdit}
 					aria-label={t('pptx.hyperlink.customShowLabel')}
@@ -100,9 +101,9 @@ export function ActionTargetFields({
 							{show.name}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 				<label className='flex items-center gap-1.5 text-muted-foreground'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						data-testid='pptx-action-custom-show-return'
 						disabled={!canEdit}

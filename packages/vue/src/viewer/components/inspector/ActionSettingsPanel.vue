@@ -160,7 +160,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 			<label class="block text-[11px] font-medium text-muted-foreground">
 				{{ t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover') }}
 			</label>
-			<select
+			<pptx-ui-select
 				class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 				:aria-label="t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover')"
 				:disabled="!canEdit"
@@ -174,7 +174,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 				>
 					{{ t(option.labelKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 			<input
 				v-if="
 					typeFor(trigger) === 'url' ||
@@ -212,7 +212,7 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 				@change="onSlide($event, trigger)"
 			/>
 			<template v-if="typeFor(trigger) === 'customShow'">
-				<select
+				<pptx-ui-select
 					data-testid="pptx-action-custom-show"
 					class="w-full rounded border border-border bg-muted px-1.5 py-1 text-[11px] max-md:min-h-[44px]"
 					:aria-label="t('pptx.hyperlink.customShowLabel')"
@@ -224,9 +224,9 @@ function onCustomShowReturn(event: Event, trigger: Trigger): void {
 					<option v-for="show in customShows ?? []" :key="show.id" :value="show.id">
 						{{ show.name }}
 					</option>
-				</select>
+				</pptx-ui-select>
 				<label class="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-					<input
+					<pptx-ui-checkbox
 						type="checkbox"
 						data-testid="pptx-action-custom-show-return"
 						:disabled="!canEdit"

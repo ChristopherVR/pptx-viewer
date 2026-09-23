@@ -15,7 +15,6 @@
 	import LockKeyhole from '@lucide/svelte/icons/lock-keyhole';
 	import Presentation from '@lucide/svelte/icons/presentation';
 	import Printer from '@lucide/svelte/icons/printer';
-	import Search from '@lucide/svelte/icons/search';
 	import Settings from '@lucide/svelte/icons/settings';
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Type from '@lucide/svelte/icons/type';
@@ -53,7 +52,10 @@
 	</nav></aside>
 	<main><h1>{page === 'home' ? t('pptx.backstage.greeting') : title}</h1>
 		{#if page === 'home' || page === 'new'}<h2>{t('pptx.backstage.newHeading')}</h2><div class="templates">{#each BACKSTAGE_TEMPLATES as template}<button type="button" onclick={() => run(() => oncreatepresentation(template.id))}><b style:background={template.preview}></b><strong>{t(template.nameKey)}</strong><small>{t(template.descriptionKey)}</small></button>{/each}</div>{/if}
-		{#if page === 'home' || page === 'open'}<div class="search" data-pptx-search-surface><Search size={16} aria-hidden="true" /><input data-pptx-search-input type="search" placeholder={t('pptx.backstage.searchPlaceholder')} aria-label={t('pptx.backstage.searchPlaceholder')} bind:value={query} /></div>{#if page === 'open'}<button class="primary" type="button" onclick={() => run(onopenfile)}><FolderOpen size={16} aria-hidden="true" />{t('pptx.backstage.browseDevice')}</button>{/if}<h2>{t('pptx.backstage.recentHeading')}</h2><div class="recent"><header><span>{t('pptx.backstage.columnName')}</span><span>{t('pptx.backstage.columnModified')}</span><span>{t('pptx.backstage.columnSize')}</span></header>{#each visibleRecent as file}<button type="button" onclick={() => run(() => onopenrecent?.(file.key))}><span class="name"><b>P</b><span><strong>{file.name}</strong><small>{file.location}</small></span></span><span>{formatBackstageDate(file.timestamp, Date.now(), t)}</span><span>{formatBackstageSize(file.size)}</span></button>{:else}<p>{t('pptx.backstage.noRecent')}</p>{/each}</div>{/if}
+		{#if page === 'home' || page === 'open'}
+			<pptx-ui-search class="search" data-pptx-search-surface data-pptx-search-input value={query} oninput={(event: Event) => (query = (event.currentTarget as HTMLElement & { value: string }).value)} placeholder={t('pptx.backstage.searchPlaceholder')} aria-label={t('pptx.backstage.searchPlaceholder')}></pptx-ui-search>
+			{#if page === 'open'}<button class="primary" type="button" onclick={() => run(onopenfile)}><FolderOpen size={16} aria-hidden="true" />{t('pptx.backstage.browseDevice')}</button>{/if}<h2>{t('pptx.backstage.recentHeading')}</h2><div class="recent"><header><span>{t('pptx.backstage.columnName')}</span><span>{t('pptx.backstage.columnModified')}</span><span>{t('pptx.backstage.columnSize')}</span></header>{#each visibleRecent as file}<button type="button" onclick={() => run(() => onopenrecent?.(file.key))}><span class="name"><b>P</b><span><strong>{file.name}</strong><small>{file.location}</small></span></span><span>{formatBackstageDate(file.timestamp, Date.now(), t)}</span><span>{formatBackstageSize(file.size)}</span></button>{:else}<p>{t('pptx.backstage.noRecent')}</p>{/each}</div>
+		{/if}
 		{#if cards.length}<div class="actions">{#each cards as card (card.id)}<BackstageAction icon={CARD_ICONS[card.id]} title={t(card.titleKey)} body={t(card.bodyKey)} onclick={() => run(cardHandlers[card.id])} />{/each}</div>{/if}
 		{#if page === 'account'}<AccountPage {accountAuth} />{/if}
 		{#if page === 'options'}<section class="card"><b class="avatar"><Settings size={24} aria-hidden="true" /></b><h2>{t('pptx.backstage.optionsTitle')}</h2><p>{t('pptx.backstage.optionsBody')}</p>{#if onsettings}<button class="primary" type="button" onclick={() => run(onsettings)}>{t('pptx.backstage.openOptions')}</button>{/if}</section>{/if}

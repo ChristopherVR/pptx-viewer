@@ -342,5 +342,12 @@
 		[data-pptx-inspector] :global(select) {
 			min-height: 44px;
 		}
+		[data-pptx-inspector] :global(pptx-ui-select) {
+			min-height: 44px;
+		}
+	}
+	[data-pptx-inspector] :global(pptx-ui-select) {
+		width: 100%;
+		min-width: 0;
 	}
 </style>

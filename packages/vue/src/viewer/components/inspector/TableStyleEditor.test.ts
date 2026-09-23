@@ -3,6 +3,7 @@ import type { ParsedTableStyleMap } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TableStyleEditor from './TableStyleEditor.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * W4-E: the table STYLE DEFINITION editor ("Edit style...") lets an author
@@ -57,7 +58,7 @@ describe('tableStyleEditor.vue', () => {
 		expect(partButtons).toHaveLength(2);
 
 		const fillInput = wrapper.find('input[type="color"]');
-		await fillInput.setValue('#ff0000');
+		await setControlValue(fillInput, '#ff0000');
 
 		const emitted = wrapper.emitted('styleMapChange');
 		expect(emitted).toBeTruthy();

@@ -4,6 +4,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ChartDisplayOptions from './ChartDisplayOptions.vue';
+import { setControlValue } from './test-control-value';
 
 function chartData(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -52,7 +53,7 @@ describe('chartDisplayOptions - gridlines (shared chart-gridlines-toggle)', () =
 				chartData: chartData({ axes: [{ axisType: 'valAx', axPos: 'l', majorGridlines: true }] }),
 			},
 		});
-		await wrapper.find('[data-testid="chart-show-gridlines"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="chart-show-gridlines"]'), false);
 		const patch = lastEmitted(wrapper, 'update-chart-data') as Partial<PptxChartData>;
 		expect(patch.axes?.[0]).toMatchObject({ axisType: 'valAx', majorGridlines: false });
 		expect(patch.style?.hasGridlines).toBeFalsy();
@@ -60,7 +61,7 @@ describe('chartDisplayOptions - gridlines (shared chart-gridlines-toggle)', () =
 
 	it('creates a minimal valAx entry when the chart has no axes yet', async () => {
 		const wrapper = mount(ChartDisplayOptions, { props: { chartData: chartData() } });
-		await wrapper.find('[data-testid="chart-show-gridlines"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="chart-show-gridlines"]'), false);
 		const patch = lastEmitted(wrapper, 'update-chart-data') as Partial<PptxChartData>;
 		expect(patch.axes).toHaveLength(1);
 		expect(patch.axes?.[0]).toMatchObject({ axisType: 'valAx', majorGridlines: false });
@@ -72,7 +73,7 @@ describe('chartDisplayOptions - other toggles (unchanged PptxChartStyle round-tr
 		const wrapper = mount(ChartDisplayOptions, {
 			props: { chartData: chartData({ style: { hasTitle: false } }) },
 		});
-		await wrapper.find('[data-testid="chart-show-title"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="chart-show-title"]'), true);
 		expect(lastEmitted(wrapper, 'update')).toStrictEqual({ hasTitle: true });
 	});
 });

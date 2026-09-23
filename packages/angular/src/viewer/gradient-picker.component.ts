@@ -17,7 +17,15 @@
  * @module viewer/gradient-picker
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
@@ -36,6 +44,7 @@ import { RecentColorsService } from './recent-colors.service';
 import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-gradient-picker',
 	standalone: true,
 	imports: [TranslatePipe, ThemeColorSwatchGridComponent],
@@ -49,7 +58,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				<label class="pptx-ng-grad__label" for="grad-type">{{
 					'pptx.gradient.type' | translate
 				}}</label>
-				<select
+				<pptx-ui-select
 					id="grad-type"
 					class="pptx-ng-grad__select"
 					[value]="state().type"
@@ -57,7 +66,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				>
 					<option value="linear">{{ 'pptx.gradient.linear' | translate }}</option>
 					<option value="radial">{{ 'pptx.gradient.radial' | translate }}</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 
 			<!-- ── Angle (linear only) ──────────────────────────────────── -->

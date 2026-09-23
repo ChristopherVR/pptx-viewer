@@ -4,6 +4,7 @@ import { ref } from 'vue';
 
 import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
 import TableCellColorField from './TableCellColorField.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * W3-G3: table cell text/fill colour pickers show the deck's theme palette
@@ -52,7 +53,7 @@ describe('tableCellColorField', () => {
 	it('clears the ref when the native colour input changes', async () => {
 		const wrapper = mountField({ value: '#4472c4', selectedRef: { scheme: 'accent1' } });
 		const input = wrapper.find('input[type="color"]');
-		await input.setValue('#ff0000');
+		await setControlValue(input, '#ff0000');
 		const commits = wrapper.emitted('commit');
 		expect(commits).toBeTruthy();
 		const [hex, colorRef] = commits![commits!.length - 1];

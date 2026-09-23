@@ -9,6 +9,7 @@ import {
 } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { CARD, HEADING, INPUT } from './chart-panel-constants';
 
 // ---------------------------------------------------------------------------
@@ -57,7 +58,7 @@ export function ChartSubtypeOptions({
 						<span className='w-16 text-muted-foreground shrink-0'>
 							{t('pptx.chart.bar3DShapeLabel')}
 						</span>
-						<select
+						<WebSelect
 							data-testid='pptx-chart-bar3d-shape'
 							aria-label={t('pptx.chart.bar3DShapeLabel')}
 							disabled={!canEdit}
@@ -72,7 +73,7 @@ export function ChartSubtypeOptions({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				)}
 
@@ -81,7 +82,7 @@ export function ChartSubtypeOptions({
 						<span className='w-16 text-muted-foreground shrink-0'>
 							{t('pptx.chart.radarStyleLabel')}
 						</span>
-						<select
+						<WebSelect
 							data-testid='pptx-chart-radar-style'
 							aria-label={t('pptx.chart.radarStyleLabel')}
 							disabled={!canEdit}
@@ -101,7 +102,7 @@ export function ChartSubtypeOptions({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				)}
 
@@ -110,7 +111,7 @@ export function ChartSubtypeOptions({
 						<span className='w-16 text-muted-foreground shrink-0'>
 							{t('pptx.chart.surfaceWireframeLabel')}
 						</span>
-						<select
+						<WebSelect
 							data-testid='pptx-chart-surface-wireframe'
 							aria-label={t('pptx.chart.surfaceWireframeLabel')}
 							disabled={!canEdit}
@@ -125,7 +126,7 @@ export function ChartSubtypeOptions({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				)}
 			</div>

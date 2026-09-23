@@ -5,6 +5,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { createEl } from '../../render';
+import { createInspectorSelect } from './controls-extra';
 
 /** Direction options surfaced in the panel (React's four-arrow picker). */
 export const DIRECTIONS: readonly PptxAnimationDirection[] = [
@@ -48,7 +49,7 @@ export function animSelect(
 	parent: HTMLElement,
 ): HTMLSelectElement {
 	const label = animField(doc, labelText, parent);
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	// Named explicitly: the wrapping `<label>` would otherwise lend the select
 	// its whole text content, which includes every option.
 	select.setAttribute('aria-label', labelText);

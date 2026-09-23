@@ -2,6 +2,7 @@ import type { PptxTableCellStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { useRecentColors } from './RecentColorsContext';
 import {
 	FILL_MODE_OPTIONS,
@@ -64,7 +65,7 @@ export function TableCellAdvancedFill({
 			{/* Fill Type Picker */}
 			<label className='flex flex-col gap-1'>
 				<span className={LBL}>{t('pptx.table.fillMode')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.table.fillMode')}
 					disabled={!canEdit}
 					className={SEL}
@@ -76,7 +77,7 @@ export function TableCellAdvancedFill({
 							{t(opt.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Gradient Controls */}
@@ -163,7 +164,7 @@ function GradientControls({
 			<div className='grid grid-cols-2 gap-1.5'>
 				<label className='flex flex-col gap-0.5'>
 					<span className={LBL}>{t('pptx.table.gradientType')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.table.gradientType')}
 						disabled={!canEdit}
 						className={SEL}
@@ -179,7 +180,7 @@ function GradientControls({
 								{t(o.i18nKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 				{gradType === 'linear' && (
 					<label className='flex flex-col gap-0.5'>

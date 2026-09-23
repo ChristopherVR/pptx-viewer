@@ -29,7 +29,15 @@
  * @module angular-viewer/smart-art-properties
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	PptxSmartArtData,
@@ -81,6 +89,7 @@ import {
 } from './smart-art-properties-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-smart-art-properties',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -116,7 +125,7 @@ import {
 			<!-- ── Colour scheme ────────────────────────────────────────────── -->
 			<label class="pptx-sa-props__field">
 				<span class="pptx-sa-props__label">{{ 'pptx.smartart.colorScheme' | translate }}</span>
-				<select
+				<pptx-ui-select
 					class="pptx-sa-props__select"
 					data-testid="smartart-color-scheme"
 					[attr.aria-label]="'pptx.smartart.colorScheme' | translate"
@@ -129,7 +138,7 @@ import {
 							{{ colorSchemeLabelKey(scheme) | translate }}
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<!-- ── Style intensity ──────────────────────────────────────────── -->
@@ -681,7 +690,7 @@ export class SmartArtPropertiesComponent {
 
 // ── Module-private helpers ───────────────────────────────────────────────────
 
-/** Read the value of a `<select>` change event. */
+/** Read the value of a `<pptx-ui-select>` change event. */
 function selectValue(event: Event): string | null {
 	const target = event.target;
 	return target instanceof HTMLSelectElement ? target.value : null;

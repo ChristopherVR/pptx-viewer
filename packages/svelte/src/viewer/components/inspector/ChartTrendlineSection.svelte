@@ -59,7 +59,7 @@
 			{@const trendline = series.trendlines?.[0]}
 			<div class="row">
 				<span class="name" title={series.name}>{series.name}</span>
-				<select
+				<pptx-ui-select
 					disabled={!canEdit}
 					aria-label={`${t('pptx.chart.trendlines')}: ${series.name}`}
 					value={trendline?.trendlineType ?? ''}
@@ -68,28 +68,26 @@
 					{#each TRENDLINE_TYPE_OPTIONS as option (option.value)}
 						<option value={option.value}>{t(option.labelKey)}</option>
 					{/each}
-				</select>
+				</pptx-ui-select>
 			</div>
 			{#if trendline}
 				<div class="subs">
 					<label>
-						<input
-							type="checkbox"
+						<pptx-ui-checkbox
 							disabled={!canEdit}
 							checked={trendline.displayEq ?? false}
 							onchange={(event) =>
 								onsettrendline(index, { ...trendline, displayEq: event.currentTarget.checked })}
-						/>
+						></pptx-ui-checkbox>
 						{t('pptx.chart.trendlineEquation')}
 					</label>
 					<label>
-						<input
-							type="checkbox"
+						<pptx-ui-checkbox
 							disabled={!canEdit}
 							checked={trendline.displayRSq ?? false}
 							onchange={(event) =>
 								onsettrendline(index, { ...trendline, displayRSq: event.currentTarget.checked })}
-						/>
+						></pptx-ui-checkbox>
 						{t('pptx.chart.trendlineRSquared')}
 					</label>
 				</div>

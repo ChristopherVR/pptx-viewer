@@ -1,14 +1,11 @@
-import {
-	BACKSTAGE_NAV,
-	BACKSTAGE_SEARCH_CLASSES,
-	listBackstageRecentFiles,
-} from 'pptx-viewer-shared';
+import { BACKSTAGE_NAV, listBackstageRecentFiles } from 'pptx-viewer-shared';
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuArrowLeft, LuFolderOpen, LuSearch, LuSettings } from 'react-icons/lu';
+import { LuArrowLeft, LuFolderOpen, LuSettings } from 'react-icons/lu';
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
+import { WebSearch } from '../WebControls';
 import { AccountPage } from './AccountPage';
 import { BackstageCards } from './file-backstage-cards';
 import { BackstageNavIcon } from './file-backstage-icons';
@@ -105,18 +102,17 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 				)}
 				{(page === 'home' || page === 'open') && (
 					<>
-						<div data-pptx-search-surface className={BACKSTAGE_SEARCH_CLASSES.box}>
-							<LuSearch className={BACKSTAGE_SEARCH_CLASSES.icon} aria-hidden='true' />
-							<input
-								data-pptx-search-input
-								type='search'
-								value={query}
-								onChange={(event) => setQuery(event.target.value)}
-								placeholder={t('pptx.backstage.searchPlaceholder')}
-								className={BACKSTAGE_SEARCH_CLASSES.input}
-								aria-label={t('pptx.backstage.searchPlaceholder')}
-							/>
-						</div>
+						<WebSearch
+							data-pptx-search-surface
+							data-pptx-search-input
+							className='mt-8 w-full max-w-[540px]'
+							value={query}
+							onInput={(event) =>
+								setQuery((event.currentTarget as HTMLElement & { value: string }).value)
+							}
+							placeholder={t('pptx.backstage.searchPlaceholder')}
+							aria-label={t('pptx.backstage.searchPlaceholder')}
+						/>
 						{page === 'open' && (
 							<button
 								type='button'

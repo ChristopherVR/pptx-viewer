@@ -17,6 +17,7 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
 	ElementRef,
 	input,
 	output,
@@ -44,12 +45,14 @@ export interface EffectSoundPick {
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe, LucidePlay],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		<label class="pptx-ng-anim__section pptx-ng-effect-sound">
 			<span class="pptx-ng-anim__label">{{ 'pptx.animation.sound' | translate }}</span>
 			<div class="pptx-ng-effect-sound__row">
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.animation.sound' | translate"
+					[attr.value]="selectedValue()"
 					class="pptx-ng-anim__select"
 					[disabled]="!canEdit()"
 					(change)="onSelect($event)"
@@ -70,7 +73,7 @@ export interface EffectSoundPick {
 					<option [value]="OTHER_VALUE" [selected]="selectedValue() === OTHER_VALUE">
 						{{ 'pptx.animation.sound.other' | translate }}
 					</option>
-				</select>
+				</pptx-ui-select>
 				<button
 					type="button"
 					class="pptx-ng-effect-sound__preview"
@@ -126,10 +129,10 @@ export class EffectSoundRowComponent {
 
 	protected onSelect(event: Event): void {
 		const target = event.target;
-		if (!(target instanceof HTMLSelectElement)) {
+		if (!(target instanceof HTMLElement) || !('value' in target)) {
 			return;
 		}
-		const value = target.value;
+		const value = String(target.value);
 		if (value === OTHER_VALUE) {
 			this.fileInput()?.nativeElement.click();
 			return;

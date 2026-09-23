@@ -14,6 +14,7 @@ import {
 
 import type { ListMode } from '../../utils';
 import { normalizeHexColor } from '../../utils';
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { useRecentColors } from './RecentColorsContext';
 
 export interface TextPropertiesProps {
@@ -131,7 +132,7 @@ export function AdvancedTextFormatting({
 			<div className='grid grid-cols-2 gap-2'>
 				{BASELINE_TOGGLES.map(([label, baseline]) => (
 					<label key={label} className='inline-flex items-center gap-2 text-foreground'>
-						<input
+						<WebCheckbox
 							type='checkbox'
 							checked={ts?.baseline === baseline}
 							onChange={() =>
@@ -164,7 +165,7 @@ export function AdvancedTextFormatting({
 			<div className='grid grid-cols-2 gap-2'>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.textProperties.underlineStyle')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.textProperties.underlineStyle')}
 						value={ts?.underlineStyle || 'sng'}
 						disabled={!canEdit}
@@ -181,7 +182,7 @@ export function AdvancedTextFormatting({
 								{l}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.textProperties.underlineColour')}</span>
@@ -282,7 +283,7 @@ export function AdvancedTextFormatting({
 
 			{/* Auto-fit */}
 			<label className='inline-flex items-center gap-2 text-foreground'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					checked={Boolean(ts?.autoFit)}
 					disabled={!canEdit}

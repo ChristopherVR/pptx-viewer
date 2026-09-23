@@ -7,7 +7,13 @@
  *
  * @module viewer/table-style-editor-fields
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { TableStyleEditorDescriptor, TableStyleEditorFieldEdit } from '../internal/shared';
@@ -29,6 +35,7 @@ function checkedValue(event: Event): boolean {
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-table-style-editor-fields',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,12 +56,11 @@ function checkedValue(event: Event): boolean {
 							(change)="edit.emit({ kind: 'fillColor', hex: inputValue($event), ref: undefined })"
 						/>
 						<label class="pptx-tse-fields__check">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								[disabled]="!canEdit()"
 								[checked]="d.fill.noFill"
 								(change)="edit.emit({ kind: 'fillNone', noFill: checkedValue($event) })"
-							/>
+							></pptx-ui-checkbox>
 							{{ 'pptx.tableStyleEditor.noFill' | translate }}
 						</label>
 					</div>
@@ -150,7 +156,7 @@ function checkedValue(event: Event): boolean {
 									[value]="d.borders[side].width"
 									(change)="edit.emit({ kind: 'borderWidth', side, width: inputNumber($event) })"
 								/>
-								<select
+								<pptx-ui-select
 									class="pptx-tse-fields__dash"
 									[disabled]="!canEdit()"
 									[value]="d.borders[side].dash"
@@ -161,14 +167,13 @@ function checkedValue(event: Event): boolean {
 											{{ dash }}
 										</option>
 									}
-								</select>
+								</pptx-ui-select>
 								<label class="pptx-tse-fields__check">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[disabled]="!canEdit()"
 										[checked]="d.borders[side].noFill"
 										(change)="edit.emit({ kind: 'borderNone', side, noFill: checkedValue($event) })"
-									/>
+									></pptx-ui-checkbox>
 									{{ 'pptx.tableStyleEditor.noBorder' | translate }}
 								</label>
 							</div>

@@ -6,6 +6,7 @@ import { ref } from 'vue';
 
 import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
 import FillGradientControls from './FillGradientControls.vue';
+import { setControlValue } from './test-control-value';
 
 const OFFICE_THEME = {
 	dk1: '#000000',
@@ -53,8 +54,8 @@ describe('fillGradientControls', () => {
 		const wrapper = mount(FillGradientControls, {
 			props: { element: shape({ fillMode: 'gradient', fillGradientType: 'linear' }) },
 		});
-		const select = wrapper.find('select');
-		await select.setValue('radial');
+		const select = wrapper.find('pptx-ui-select');
+		await setControlValue(select, 'radial');
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.fillMode).toBe('gradient');
 		expect(style.fillGradientType).toBe('radial');
@@ -79,7 +80,7 @@ describe('fillGradientControls', () => {
 			},
 		});
 		const firstColor = wrapper.find('input[type="color"]');
-		await firstColor.setValue('#00ff00');
+		await setControlValue(firstColor, '#00ff00');
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.fillGradientStops?.[0]).toMatchObject({ color: '#00ff00', position: 0 });
 		expect(style.fillGradientStops?.[1]).toMatchObject({ color: '#0000ff', position: 100 });
@@ -147,7 +148,7 @@ describe('fillGradientControls theme colour picker', () => {
 			global: { provide: { [ThemeColorMapKey as symbol]: ref(OFFICE_THEME) } },
 		});
 		const firstColor = wrapper.find('input[type="color"]');
-		await firstColor.setValue('#00ff00');
+		await setControlValue(firstColor, '#00ff00');
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.fillGradientStops?.[0]?.colorRef).toBeFalsy();
 	});

@@ -74,7 +74,7 @@ function ownText(element: Element): string {
 function selectFor(root: ParentNode, caption: string): HTMLSelectElement {
 	for (const label of Array.from(root.querySelectorAll('label'))) {
 		if (ownText(label) === caption) {
-			const select = label.querySelector('select');
+			const select = label.querySelector('pptx-ui-select');
 			if (select) {
 				return select;
 			}
@@ -172,7 +172,7 @@ describe('connectorArrowsSection', () => {
 			locks: { noChangeArrowheads: true },
 		} as PptxElement;
 		const { target } = render(locked);
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		expect(selects).toHaveLength(6);
 		expect(selects.every((s) => s.disabled)).toBeTruthy();
 	});

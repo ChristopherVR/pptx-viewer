@@ -210,7 +210,7 @@ describe('fillStrokeSection', () => {
 		expect(target.querySelector('.pptx-svelte-gradient')).toBeNull();
 
 		const toggle = target.querySelector<HTMLInputElement>(
-			'.pptx-svelte-field-checkbox input[type="checkbox"]',
+			'.pptx-svelte-field-checkbox pptx-ui-checkbox',
 		);
 		toggle?.click();
 		flushSync();
@@ -227,7 +227,7 @@ describe('fillStrokeSection', () => {
 		expect(target.querySelector('.pptx-svelte-pattern')).toBeNull();
 
 		const checkboxes = target.querySelectorAll<HTMLInputElement>(
-			'.pptx-svelte-field-checkbox input[type="checkbox"]',
+			'.pptx-svelte-field-checkbox pptx-ui-checkbox',
 		);
 		const patternToggle = checkboxes[1];
 		if (!patternToggle) {
@@ -255,7 +255,7 @@ describe('fillStrokeSection', () => {
 		);
 		const { target, setProps } = mountSection(editor, currentEl(editor));
 		const checkboxes = target.querySelectorAll<HTMLInputElement>(
-			'.pptx-svelte-field-checkbox input[type="checkbox"]',
+			'.pptx-svelte-field-checkbox pptx-ui-checkbox',
 		);
 		const patternToggle = checkboxes[1];
 		if (!patternToggle) {

@@ -51,7 +51,7 @@ function onHeight(event: Event): void {
 		<div class="grid grid-cols-3 gap-2">
 			<label class="flex flex-col gap-1">
 				<span class="text-muted-foreground">{{ t('pptx.text3d.type') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.text3d.type')"
 					:class="INPUT_CLS"
 					:value="props.bevelType ?? 'none'"
@@ -60,7 +60,7 @@ function onHeight(event: Event): void {
 					<option v-for="opt in BEVEL_PRESETS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<label class="flex flex-col gap-1">
 				<span class="text-muted-foreground">{{ t('pptx.text3d.width') }}</span>

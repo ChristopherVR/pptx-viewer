@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
 import FillPanel from './FillPanel.vue';
+import { setControlValue } from './test-control-value';
 
 const OFFICE_THEME = {
 	dk1: '#000000',
@@ -61,13 +62,13 @@ describe('fillPanel', () => {
 	it('shows the muted note for non-shape elements', () => {
 		const wrapper = mount(FillPanel, { props: { element: media() } });
 		expect(wrapper.text()).toContain('No fill options');
-		expect(wrapper.find('select').exists()).toBeFalsy();
+		expect(wrapper.find('pptx-ui-select').exists()).toBeFalsy();
 	});
 
 	it('emits the full merged shapeStyle when fill mode changes', async () => {
 		const wrapper = mount(FillPanel, { props: { element: shape() } });
-		const select = wrapper.find('select');
-		await select.setValue('none');
+		const select = wrapper.find('pptx-ui-select');
+		await setControlValue(select, 'none');
 		expect(lastPatch(wrapper)).toStrictEqual({
 			shapeStyle: { fillMode: 'none', fillColor: '#00aa55', fillOpacity: 1 },
 		});
@@ -76,7 +77,7 @@ describe('fillPanel', () => {
 	it('emits the full merged shapeStyle when color changes, clearing any stored theme ref', async () => {
 		const wrapper = mount(FillPanel, { props: { element: shape() } });
 		const color = wrapper.find('input[type="color"]');
-		await color.setValue('#123456');
+		await setControlValue(color, '#123456');
 		expect(lastPatch(wrapper)).toStrictEqual({
 			shapeStyle: {
 				fillMode: 'solid',
@@ -90,7 +91,7 @@ describe('fillPanel', () => {
 	it('stores opacity as a 0-1 fraction from the 0-100 slider', async () => {
 		const wrapper = mount(FillPanel, { props: { element: shape() } });
 		const range = wrapper.find('input[type="range"]');
-		await range.setValue('40');
+		await setControlValue(range, '40');
 		expect(lastPatch(wrapper)).toStrictEqual({
 			shapeStyle: { fillMode: 'solid', fillColor: '#00aa55', fillOpacity: 0.4 },
 		});
@@ -148,7 +149,7 @@ describe('fillPanel', () => {
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
 
 		const color = wrapper.find('input[type="color"]');
-		await color.setValue('#00ff00');
+		await setControlValue(color, '#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
 	});
 

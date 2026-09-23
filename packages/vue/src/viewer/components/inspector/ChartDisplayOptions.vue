@@ -68,7 +68,7 @@ function onGridlinesToggle(event: Event): void {
 		</div>
 		<div class="space-y-1.5">
 			<label class="flex items-center gap-2 cursor-pointer">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					data-testid="chart-show-title"
 					class="accent-primary"
@@ -79,7 +79,7 @@ function onGridlinesToggle(event: Event): void {
 			</label>
 
 			<label class="flex items-center gap-2 cursor-pointer">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					data-testid="chart-show-legend"
 					class="accent-primary"
@@ -93,7 +93,7 @@ function onGridlinesToggle(event: Event): void {
 				<span class="w-12 text-muted-foreground shrink-0">{{
 					t('pptx.chart.legendPosition')
 				}}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.chart.legendPosition')"
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-legend-position"
@@ -103,11 +103,11 @@ function onGridlinesToggle(event: Event): void {
 					<option v-for="opt in LEGEND_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<label class="flex items-center gap-2 cursor-pointer">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					data-testid="chart-show-gridlines"
 					class="accent-primary"
@@ -118,7 +118,7 @@ function onGridlinesToggle(event: Event): void {
 			</label>
 
 			<label class="flex items-center gap-2 cursor-pointer">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					data-testid="chart-show-data-labels"
 					class="accent-primary"

@@ -62,7 +62,7 @@ describe('settingsDialog (File > Options)', () => {
 		await wrapper.vm.$nextTick();
 		const grid = Array.from(document.body.querySelectorAll('label'))
 			.find((label) => label.textContent?.includes('Show grid'))
-			?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+			?.querySelector<HTMLElement>('pptx-ui-checkbox');
 		grid?.click();
 		await wrapper.vm.$nextTick();
 		expect(store.getOptions().advanced.showGrid).toBeTruthy();

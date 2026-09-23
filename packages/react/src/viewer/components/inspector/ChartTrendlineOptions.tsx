@@ -1,6 +1,7 @@
 import type { PptxChartSeries, PptxChartTrendline, PptxChartType } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	CARD,
 	HEADING,
@@ -46,7 +47,7 @@ export function ChartTrendlineOptions({
 								<span className='flex-1 truncate' title={s.name}>
 									{s.name}
 								</span>
-								<select
+								<WebSelect
 									disabled={!canEdit}
 									className={INPUT}
 									value={trendline?.trendlineType ?? ''}
@@ -67,13 +68,13 @@ export function ChartTrendlineOptions({
 											{t(opt.labelKey)}
 										</option>
 									))}
-								</select>
+								</WebSelect>
 							</div>
 
 							{trendline && (
 								<div className='flex items-center gap-3 ml-2'>
 									<label className='flex items-center gap-1 text-[11px] cursor-pointer'>
-										<input
+										<WebCheckbox
 											type='checkbox'
 											disabled={!canEdit}
 											checked={trendline.displayEq ?? false}
@@ -85,7 +86,7 @@ export function ChartTrendlineOptions({
 										<span>{t('pptx.chart.trendlineEquation')}</span>
 									</label>
 									<label className='flex items-center gap-1 text-[11px] cursor-pointer'>
-										<input
+										<WebCheckbox
 											type='checkbox'
 											disabled={!canEdit}
 											checked={trendline.displayRSq ?? false}

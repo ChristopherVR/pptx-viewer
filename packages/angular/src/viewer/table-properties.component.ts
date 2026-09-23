@@ -12,7 +12,14 @@
  */
 /* oxlint-disable eslint/one-var -- each handler declares its own independent
    locals; merging them into one statement would hurt readability. */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ParsedTableStyleMap, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 
@@ -31,6 +38,7 @@ import { DEFAULT_TABLE_ROW_HEIGHT, TABLE_STRUCTURE_TOGGLES } from './table-prope
 import { TableStyleEditorLauncherComponent } from './table-style-editor-launcher.component';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-table-properties',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -43,12 +51,11 @@ import { TableStyleEditorLauncherComponent } from './table-style-editor-launcher
 				<div class="pptx-tp__toggles">
 					@for (toggle of toggles; track toggle.key) {
 						<label class="pptx-tp__check">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								[disabled]="!canEdit()"
 								[checked]="!!data[toggle.key]"
 								(change)="onToggle(toggle.key, $event)"
-							/>
+							></pptx-ui-checkbox>
 							<span>{{ toggle.labelKey | translate }}</span>
 						</label>
 					}

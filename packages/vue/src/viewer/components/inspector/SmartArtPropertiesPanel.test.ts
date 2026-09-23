@@ -4,6 +4,7 @@ import { resetSmartArtEditCounter } from 'pptx-viewer-core';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import SmartArtPropertiesPanel from './SmartArtPropertiesPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function node(id: string, text: string, parentId?: string): PptxSmartArtNode {
 	return { id, text, parentId };
@@ -74,7 +75,7 @@ describe('smartArtPropertiesPanel', () => {
 	it('editing a node text emits updated smartArtData with the new text', async () => {
 		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
 		const input = wrapper.findAll('[data-testid="smartart-node-text"]')[0];
-		await input.setValue('Renamed');
+		await setControlValue(input, 'Renamed');
 
 		const next = lastSmartArtData(wrapper.emitted('update'));
 		expect(next.nodes.find((n) => n.id === 'n1')?.text).toBe('Renamed');
@@ -156,7 +157,7 @@ describe('smartArtPropertiesPanel', () => {
 
 	it('changing the colour scheme emits smartArtData with the new scheme', async () => {
 		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
-		await wrapper.get('[data-testid="smartart-color-scheme"]').setValue('monochromatic1');
+		await setControlValue(wrapper.get('[data-testid="smartart-color-scheme"]'), 'monochromatic1');
 
 		const next = lastSmartArtData(wrapper.emitted('update'));
 		expect(next.colorScheme).toBe('monochromatic1');
@@ -246,7 +247,7 @@ describe('smartArtPropertiesPanel', () => {
 	it('changing a node fill colour emits a per-node style override', async () => {
 		const wrapper = mount(SmartArtPropertiesPanel, { props: { element: smartArtElement() } });
 		const fill = wrapper.findAll('[data-testid="smartart-node-fill"]')[0];
-		await fill.setValue('#ff0000');
+		await setControlValue(fill, '#ff0000');
 
 		const next = lastSmartArtData(wrapper.emitted('update'));
 		expect(next.nodes.find((n) => n.id === 'n1')?.style?.fillColor).toBe('#ff0000');

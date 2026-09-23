@@ -3,6 +3,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ImageCropSection from './ImageCropSection.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * G7 (OpenXML parity audit, D3): `a:picLocks/@noCrop` was parsed and
@@ -40,7 +41,7 @@ describe('imageCropSection with a:picLocks/@noCrop', () => {
 		const wrapper = mount(ImageCropSection, {
 			props: { element: imageEl({ locks: { noCrop: true } } as Partial<PptxElement>) },
 		});
-		await wrapper.get('input[type="range"]').setValue('40');
+		await setControlValue(wrapper.get('input[type="range"]'), '40');
 		expect(wrapper.emitted('update')).toBeUndefined();
 	});
 

@@ -8,7 +8,15 @@
  * `setAxisLogScale` / `setAxisTitleStyle` / `setGridlineStyle`.
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -36,6 +44,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 ];
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-axis-style-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -51,12 +60,11 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 							@if (row.hasScale) {
 								<div class="pptx-chart-card__row">
 									<label class="pptx-chart-card__check">
-										<input
-											type="checkbox"
+										<pptx-ui-checkbox
 											[disabled]="!canEdit()"
 											[checked]="row.axis.logScale ?? false"
 											(change)="onLogScale(row.type, row.axis, $event)"
-										/>
+										></pptx-ui-checkbox>
 										<span>{{ 'pptx.chart.logScale' | translate }}</span>
 									</label>
 									@if (row.axis.logScale) {
@@ -97,12 +105,11 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 							</div>
 							<div class="pptx-chart-card__row">
 								<label class="pptx-chart-card__check">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[disabled]="!canEdit()"
 										[checked]="row.axis.fontBold ?? false"
 										(change)="onTitleBold(row.type, $event)"
-									/>
+									></pptx-ui-checkbox>
 									<span>{{ 'pptx.chart.bold' | translate }}</span>
 								</label>
 								<span class="pptx-chart-card__label">{{
@@ -149,7 +156,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 											[value]="gridlineSpPr(row.axis, which)?.strokeWidth ?? ''"
 											(change)="onGridlineWidth(row.type, which, $event)"
 										/>
-										<select
+										<pptx-ui-select
 											class="pptx-chart-card__input"
 											[title]="'pptx.chart.gridlineDash' | translate"
 											[disabled]="!canEdit()"
@@ -164,7 +171,7 @@ const AXIS_DEFS: ReadonlyArray<{ type: PptxChartAxisType; labelKey: string; hasS
 													{{ opt.labelKey | translate }}
 												</option>
 											}
-										</select>
+										</pptx-ui-select>
 									</div>
 								}
 							}

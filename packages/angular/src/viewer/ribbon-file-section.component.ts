@@ -1,18 +1,17 @@
 import {
 	ChangeDetectionStrategy,
 	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
 	computed,
 	inject,
 	input,
 	output,
 	signal,
 } from '@angular/core';
-import { LucideSearch } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
 	BACKSTAGE_NAV,
-	BACKSTAGE_SEARCH_CLASSES,
 	BACKSTAGE_TEMPLATES,
 	backstageCardsFor,
 	formatBackstageDate,
@@ -76,12 +75,12 @@ export function visibleMainNav(
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [BackstageNavIconComponent, AccountPageComponent, TranslatePipe, LucideSearch],
+	imports: [BackstageNavIconComponent, AccountPageComponent, TranslatePipe],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	templateUrl: './ribbon-file-section.component.html',
 	styleUrl: './ribbon-file-section.component.css',
 })
 export class RibbonFileSectionComponent {
-	protected readonly searchClasses = BACKSTAGE_SEARCH_CLASSES;
 	readonly fileName = input<string>();
 	readonly slideCount = input(0);
 	readonly exporting = input(false);

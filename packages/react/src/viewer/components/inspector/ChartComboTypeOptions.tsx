@@ -1,6 +1,7 @@
 import type { PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import {
 	CARD,
 	COMBO_SERIES_TYPE_OPTIONS,
@@ -45,7 +46,7 @@ export function ChartComboTypeOptions({
 						<span className='flex-1 truncate' title={s.name}>
 							{s.name}
 						</span>
-						<select
+						<WebSelect
 							disabled={!canEdit}
 							className={INPUT}
 							value={s.seriesChartType ?? ''}
@@ -59,7 +60,7 @@ export function ChartComboTypeOptions({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</div>
 				))}
 			</div>

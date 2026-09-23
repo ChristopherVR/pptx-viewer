@@ -76,7 +76,7 @@ describe('chartTypeSelector title field', () => {
 				/>,
 			),
 		);
-		const select = container.querySelector('select') as HTMLSelectElement;
+		const select = container.querySelector('pptx-ui-select') as HTMLSelectElement;
 		act(() => {
 			select.value = 'line';
 			select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -110,7 +110,7 @@ describe('chartTypeSelector title field', () => {
 				/>,
 			),
 		);
-		const select = container.querySelector('select') as HTMLSelectElement;
+		const select = container.querySelector('pptx-ui-select') as HTMLSelectElement;
 		expect(select.value).toBe('pareto');
 	});
 });

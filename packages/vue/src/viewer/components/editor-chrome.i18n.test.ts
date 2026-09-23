@@ -12,6 +12,7 @@ import {
 import { toVueI18nSyntax, translationsEn } from '../../i18n';
 import AnimationEditorControls from './inspector/AnimationEditorControls.vue';
 import AnimationTimeline from './inspector/AnimationTimeline.vue';
+import { setControlValue } from './inspector/test-control-value';
 import RecordSection from './ribbon/RecordSection.vue';
 
 const originalPlugins = config.global.plugins;
@@ -85,19 +86,19 @@ describe('editor chrome localization', () => {
 					expect(wrapper.text()).toContain(dictionary[`pptx.animation.${suffix}`]);
 				}
 				const direction = wrapper.get(
-					`select[aria-label="${dictionary['pptx.animation.direction']}"]`,
+					`pptx-ui-select[aria-label="${dictionary['pptx.animation.direction']}"]`,
 				);
-				await direction.setValue('fromBottomRight');
+				await setControlValue(direction, 'fromBottomRight');
 				expect(wrapper.emitted('patch')?.at(-1)).toStrictEqual([{ direction: 'fromBottomRight' }]);
 				const repeat = wrapper.get(
-					`select[aria-label="${dictionary['pptx.animation.repeatUntil']}"]`,
+					`pptx-ui-select[aria-label="${dictionary['pptx.animation.repeatUntil']}"]`,
 				);
 				expect(repeat.findAll('option').map((option) => option.text())).toStrictEqual(
 					['none', 'untilNextClick', 'untilEndOfSlide'].map(
 						(value) => dictionary[`pptx.animation.repeatUntil.${value}`],
 					),
 				);
-				await repeat.setValue('untilNextClick');
+				await setControlValue(repeat, 'untilNextClick');
 				expect(wrapper.emitted('patch')?.at(-1)).toStrictEqual([{ repeatMode: 'untilNextClick' }]);
 			} finally {
 				wrapper.unmount();

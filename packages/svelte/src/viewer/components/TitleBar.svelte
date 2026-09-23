@@ -149,10 +149,8 @@
 	{/if}
 	<span class="pptx-svelte-titlebar-file"><strong>{fileName || t('pptx.titleBar.defaultFileName')}</strong>{#if editable}<span aria-hidden="true">&bull;</span><span class:error={autosaveStatus === 'error' && autosaveEnabled} class:saving={autosaveStatus === 'saving' && autosaveEnabled}>{t(statusKey)}</span>{/if}</span>
 	{#if editable}<div class="pptx-svelte-titlebar-search">
-		<div data-pptx-search-surface class:active={focused || findReplaceOpen} class="pptx-svelte-titlebar-searchbox">
-			<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="3.7" fill="none" stroke="currentColor" stroke-width="1.4" /><path d="m10 10 3 3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
-			<input data-pptx-search-input type="text" bind:value={query} onfocus={() => (focused = true)} onblur={() => setTimeout(() => (focused = false), 120)} onkeydown={onSearchKeydown} placeholder={t('pptx.titleBar.searchPlaceholder')} aria-label={t('pptx.titleBar.search')} />
-		</div>
+		<!-- svelte-ignore a11y_no_static_element_interactions -- the shadow input owns keyboard semantics -->
+		<pptx-ui-search data-pptx-search-surface data-pptx-search-input variant="titlebar" class="pptx-svelte-titlebar-searchbox" value={query} oninput={(event: Event) => (query = (event.currentTarget as HTMLElement & { value: string }).value)} onfocus={() => (focused = true)} onblur={() => setTimeout(() => (focused = false), 120)} onkeydown={onSearchKeydown} placeholder={t('pptx.titleBar.searchPlaceholder')} aria-label={t('pptx.titleBar.search')}></pptx-ui-search>
 		{#if focused && query.trim()}
 			<div class="pptx-svelte-titlebar-results">
 				{#if results.length}
@@ -184,14 +182,14 @@
 	.pptx-svelte-titlebar-actions button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); }
 	.pptx-svelte-titlebar-actions button:disabled { opacity:.4; cursor:default; }
 	.pptx-svelte-titlebar-actions button small { font-size:10px; white-space:nowrap; }
-	.pptx-svelte-titlebar-actions svg { width:15px; height:15px; }.pptx-svelte-titlebar-searchbox svg { width:12px; height:12px; flex:none; }
+	.pptx-svelte-titlebar-actions svg { width:15px; height:15px; }
 	.pptx-svelte-titlebar-file { min-width:0; color:var(--pptx-muted-foreground,#a5a5b5); overflow:hidden; }
 	.pptx-svelte-titlebar-file strong { max-width:200px; overflow:hidden; color:inherit; font-size:var(--pptx-tb-file-size); font-weight:var(--pptx-tb-file-weight); text-overflow:ellipsis; }
 	.pptx-svelte-titlebar-file .error { color:#f87171; }.pptx-svelte-titlebar-file .saving { color:#facc15; }
 	.pptx-svelte-titlebar-search { position:relative; display:flex; flex:1; justify-content:center; min-width:0; }
-	.pptx-svelte-titlebar-searchbox { display:flex; align-items:center; gap:8px; width:min(100%,448px); padding:3px 12px; border:1px solid var(--pptx-border,#33334d); border-radius:6px; background:var(--pptx-background,#11111b); color:var(--pptx-muted-foreground,#a5a5b5); }
+	.pptx-svelte-titlebar-searchbox { display:flex; align-items:center; gap:7px; width:min(100%,448px); padding:3px 14px; border:1px solid var(--pptx-border,#33334d); border-radius:6px; background:var(--pptx-background,#11111b); color:var(--pptx-muted-foreground,#a5a5b5); }
 	.pptx-svelte-titlebar-searchbox:focus-within { border-color:var(--pptx-ring,#6366f1); }
-	.pptx-svelte-titlebar-searchbox.active { border-color:var(--pptx-primary,#6366f1); color:var(--pptx-card-foreground,#e2e8f0); }.pptx-svelte-titlebar-searchbox input { width:100%; border:0; outline:0; background:transparent; color:inherit; font:inherit; }
+	.pptx-svelte-titlebar-searchbox:focus-within { color:var(--pptx-card-foreground,#e2e8f0); }
 	.pptx-svelte-titlebar-results { position:absolute; top:calc(100% + 4px); z-index:20; width:min(100%,448px); overflow:hidden; border:1px solid var(--pptx-border,#33334d); border-radius:7px; background:var(--pptx-card,#1e1e2e); box-shadow:0 14px 28px #0006; }.pptx-svelte-titlebar-results > span { display:block; padding:7px 10px; color:var(--pptx-muted-foreground,#a5a5b5); font-size:10px; font-weight:700; text-transform:uppercase; }.pptx-svelte-titlebar-results button { display:flex; width:100%; align-items:center; gap:8px; border:0; padding:6px 10px; background:transparent; color:inherit; text-align:left; cursor:pointer; }.pptx-svelte-titlebar-results button:hover { background:var(--pptx-accent,#33334d); }.pptx-svelte-titlebar-results small { margin-left:auto; color:var(--pptx-muted-foreground,#a5a5b5); text-transform:capitalize; }
 	@media (max-width: 767px), (max-width: 1023px) and (max-height: 520px) { .pptx-svelte-titlebar { display:none; } }
 </style>

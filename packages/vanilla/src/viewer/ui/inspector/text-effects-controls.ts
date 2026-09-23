@@ -2,6 +2,7 @@ import type { TextStyle } from 'pptx-viewer-core';
 import { TEXT_WARP_PRESETS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createInspectorSelect, createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface TextEffectsControls {
@@ -50,8 +51,7 @@ export function createTextEffectsControls(
 		return input;
 	};
 	const toggle = (label: string, key: keyof TextStyle): HTMLInputElement => {
-		const input = doc.createElement('input');
-		input.type = 'checkbox';
+		const input = createInspectorCheckbox(doc);
 		input.addEventListener('change', () => apply({ [key]: input.checked }));
 		field(label, input);
 		return input;
@@ -69,7 +69,7 @@ export function createTextEffectsControls(
 	const reflection = toggle(t('pptx.textEffects.reflection'), 'textReflection');
 	const strike = toggle(t('pptx.textFormatting.strikethrough'), 'strikethrough');
 	const highlight = color(t('pptx.text.highlightColor'), 'highlightColor');
-	const warp = doc.createElement('select');
+	const warp = createInspectorSelect(doc);
 	for (const preset of TEXT_WARP_PRESETS) {
 		const option = doc.createElement('option');
 		option.value = preset.value;
@@ -82,7 +82,9 @@ export function createTextEffectsControls(
 	field(t('pptx.textEffects.transform'), warp);
 	const warpAdjust = number(t('pptx.textEffects.adjustment'), 'textWarpAdj', 0, true);
 	const inputs = Array.from(
-		el.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input,select'),
+		el.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+			'input,pptx-ui-select,pptx-ui-checkbox',
+		),
 	);
 
 	return {

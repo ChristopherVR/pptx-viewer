@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 
 import { STROKE_DASH_OPTIONS, DEFAULT_STROKE_COLOR } from '../../constants';
 import { normalizeHexColor } from '../../utils';
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	COMPOUND_LINE_OPTIONS,
 	LINE_JOIN_OPTIONS,
@@ -96,7 +97,7 @@ export function StrokeEffectsSection({
 			{/* Stroke Dash */}
 			<label className={`flex flex-col gap-1 ${COL2}`}>
 				<span className={LBL}>{t('pptx.strokeEffects.strokeDash')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.strokeEffects.strokeDash')}
 					value={style?.strokeDash || 'solid'}
 					onChange={(e) =>
@@ -111,7 +112,7 @@ export function StrokeEffectsSection({
 							{t(o.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Compound Line with visual preview */}
@@ -150,7 +151,7 @@ export function StrokeEffectsSection({
 				return (
 					<React.Fragment key={cfg.label}>
 						<label className={`inline-flex items-center gap-2 text-foreground ${COL2}`}>
-							<input
+							<WebCheckbox
 								type='checkbox'
 								checked={on}
 								onChange={(e) => {

@@ -108,7 +108,7 @@ function onResetPicture(): void {
 
 			<label class="pptx-vue-image-panel__field flex items-center justify-between gap-2">
 				<span class="font-semibold text-muted-foreground">{{ t('pptx.image.grayscale') }}</span>
-				<input
+				<pptx-ui-checkbox
 					class="pptx-vue-image-panel__grayscale"
 					type="checkbox"
 					:checked="grayscale"

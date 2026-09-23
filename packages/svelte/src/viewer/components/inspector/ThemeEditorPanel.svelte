@@ -72,7 +72,7 @@
 		<span class="pptx-svelte-theme-heading">{t('pptx.themeEditor.fonts')}</span>
 		<label class="pptx-svelte-theme-field">
 			<span>{t('pptx.themeEditor.headingFont')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.themeEditor.headingFont')}
 				disabled={!canEdit}
 				value={state.majorFont}
@@ -84,11 +84,11 @@
 				{#each COMMON_FONTS as font (font)}
 					<option value={font}>{font}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 		<label class="pptx-svelte-theme-field">
 			<span>{t('pptx.themeEditor.bodyFont')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.themeEditor.bodyFont')}
 				disabled={!canEdit}
 				value={state.minorFont}
@@ -100,7 +100,7 @@
 				{#each COMMON_FONTS as font (font)}
 					<option value={font}>{font}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 		<p class="pptx-svelte-theme-samples">
 			<span style={`font-family:${state.majorFont}`}>{t('pptx.themeEditor.headingSample')}</span>

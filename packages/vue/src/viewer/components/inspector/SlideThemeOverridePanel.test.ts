@@ -4,6 +4,7 @@ import { COLOR_MAP_ALIAS_KEYS, DEFAULT_COLOR_MAP } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import SlideThemeOverridePanel from './SlideThemeOverridePanel.vue';
+import { setControlValue } from './test-control-value';
 
 function slide(over: Partial<PptxSlide> = {}): PptxSlide {
 	return {
@@ -43,13 +44,13 @@ const theme: PptxTheme = {
 describe('slideThemeOverridePanel', () => {
 	it('shows only the toggle (off) when no override is set', () => {
 		const wrapper = mount(SlideThemeOverridePanel, { props: { slide: slide() } });
-		expect((wrapper.get('input[type="checkbox"]').element as HTMLInputElement).checked).toBeFalsy();
-		expect(wrapper.findAll('select')).toHaveLength(0);
+		expect((wrapper.get('pptx-ui-checkbox').element as HTMLInputElement).checked).toBeFalsy();
+		expect(wrapper.findAll('pptx-ui-select')).toHaveLength(0);
 	});
 
 	it('enables an identity override when toggled on', async () => {
 		const wrapper = mount(SlideThemeOverridePanel, { props: { slide: slide() } });
-		await wrapper.get('input[type="checkbox"]').setValue(true);
+		await setControlValue(wrapper.get('pptx-ui-checkbox'), true);
 		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxSlide>;
 		expect(patch.clrMapOverride).toBeDefined();
 		// Identity map: every alias maps to its default slot.
@@ -62,10 +63,8 @@ describe('slideThemeOverridePanel', () => {
 		const wrapper = mount(SlideThemeOverridePanel, {
 			props: { slide: slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }) },
 		});
-		expect(
-			(wrapper.get('input[type="checkbox"]').element as HTMLInputElement).checked,
-		).toBeTruthy();
-		expect(wrapper.findAll('select')).toHaveLength(COLOR_MAP_ALIAS_KEYS.length);
+		expect((wrapper.get('pptx-ui-checkbox').element as HTMLInputElement).checked).toBeTruthy();
+		expect(wrapper.findAll('pptx-ui-select')).toHaveLength(COLOR_MAP_ALIAS_KEYS.length);
 	});
 
 	it('clears the override when toggled off', async () => {
@@ -73,7 +72,7 @@ describe('slideThemeOverridePanel', () => {
 		const wrapper = mount(SlideThemeOverridePanel, {
 			props: { slide: slide({ clrMapOverride: active }) },
 		});
-		await wrapper.get('input[type="checkbox"]').setValue(false);
+		await setControlValue(wrapper.get('pptx-ui-checkbox'), false);
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toStrictEqual(
 			[{ clrMapOverride: undefined }][0],
 		);
@@ -89,7 +88,7 @@ describe('slideThemeOverridePanel', () => {
 		const wrapper = mount(SlideThemeOverridePanel, {
 			props: { slide: slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), theme },
 		});
-		const options = wrapper.findAll('select')[0].findAll('option');
+		const options = wrapper.findAll('pptx-ui-select')[0].findAll('option');
 
 		expect(options.map((o) => (o.element as HTMLOptionElement).value)).toStrictEqual([
 			'dk1',
@@ -126,10 +125,10 @@ describe('slideThemeOverridePanel', () => {
 		const wrapper = mount(SlideThemeOverridePanel, {
 			props: { slide: slide({ clrMapOverride: active }), theme },
 		});
-		const selects = wrapper.findAll('select');
+		const selects = wrapper.findAll('pptx-ui-select');
 		expect(selects).toHaveLength(COLOR_MAP_ALIAS_KEYS.length);
 
-		await selects[4].setValue('accent2');
+		await setControlValue(selects[4], 'accent2');
 		const patch = wrapper.emitted('update')?.at(-1)?.[0] as Partial<PptxSlide>;
 		expect(patch.clrMapOverride?.accent1).toBe('accent2');
 		// Other aliases keep their existing values (defaults filled where missing).

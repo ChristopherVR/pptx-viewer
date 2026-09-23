@@ -35,7 +35,7 @@ function mount(pointIndex?: ReturnType<typeof createChartPointIndexField>) {
 	const control = <T extends HTMLInputElement | HTMLSelectElement>(key: string): T =>
 		Array.from(section.el.querySelectorAll('label'))
 			.find((label) => label.textContent?.startsWith(key))!
-			.querySelector('input,select') as T;
+			.querySelector('input,pptx-ui-select') as T;
 	return { section, onChange, control };
 }
 
@@ -48,7 +48,7 @@ describe('chart exhaustive section', () => {
 		const control = <T extends HTMLInputElement | HTMLSelectElement>(key: string): T =>
 			labels
 				.find((label) => label.textContent?.startsWith(key))!
-				.querySelector('input,select') as T;
+				.querySelector('input,pptx-ui-select') as T;
 
 		const combo = control<HTMLSelectElement>('pptx.chart.seriesType');
 		combo.value = 'line';
@@ -223,7 +223,7 @@ describe('chart exhaustive section option wording', () => {
 		});
 		const axis = Array.from(section.el.querySelectorAll('label'))
 			.find((label) => label.textContent?.startsWith('pptx.chart.axis'))!
-			.querySelector('select')!;
+			.querySelector('pptx-ui-select')!;
 
 		expect(axis.options[0].value).toBe('0');
 		expect(axis.options[0].textContent).toBe('pptx.chart.dateAxis');

@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MediaBookmark, MediaPptxElement, PptxElement } from 'pptx-viewer-core';
 
@@ -10,6 +18,7 @@ import { appendMediaBookmark } from './media-properties-helpers';
 const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-media-properties-panel',
 	standalone: true,
 	imports: [TranslatePipe, MediaPreviewComponent],
@@ -55,7 +64,7 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 			</label>
 			<label class="row">
 				<span>{{ 'pptx.media.speed' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.media.speed' | translate"
 					[value]="media().playbackSpeed ?? 1"
 					(change)="numberPatch('playbackSpeed', $event)"
@@ -65,7 +74,7 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 							{{ speed }}x
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="grid two">
 				<label>
@@ -92,11 +101,10 @@ const SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 3, 4] as const;
 			@for (toggle of toggles(); track toggle.key) {
 				<label class="row">
 					<span>{{ toggle.label | translate }}</span>
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[checked]="toggle.value"
 						(change)="booleanPatch(toggle.key, $event)"
-					/>
+					></pptx-ui-checkbox>
 				</label>
 			}
 			<section class="bookmarks">

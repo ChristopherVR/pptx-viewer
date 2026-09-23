@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
 
@@ -38,6 +45,7 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-shape-authoring-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -46,7 +54,11 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 			<section class="panel" aria-label="Shape authoring">
 				<label class="field">
 					<span>Shape type</span>
-					<select aria-label="Shape type" [value]="shapeType()" (change)="onShapeType($event)">
+					<pptx-ui-select
+						aria-label="Shape type"
+						[value]="shapeType()"
+						(change)="onShapeType($event)"
+					>
 						@for (preset of presets; track preset.type) {
 							<option [value]="preset.type" [selected]="preset.type === shapeType()">
 								{{ preset.label }}
@@ -62,7 +74,7 @@ export function shapeTypePatch(element: PptxElement, shapeType: string): Partial
 						@if (unknownType()) {
 							<option [value]="shapeType()" [selected]="true">{{ shapeType() }}</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 				@if (showAdjustment()) {
 					<label class="field">

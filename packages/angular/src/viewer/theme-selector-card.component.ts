@@ -5,7 +5,15 @@
  * / "Apply All Masters" actions routed through
  * {@link LoadContentService.setPresentationTheme}.
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxThemeOption } from 'pptx-viewer-core';
 
@@ -14,6 +22,7 @@ import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { LoadContentService } from './load-content.service';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-theme-selector-card',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -23,7 +32,7 @@ import { LoadContentService } from './load-content.service';
 			<h3 class="icard__heading">{{ 'pptx.documentProperties.themeHeading' | translate }}</h3>
 			<label class="icard__col">
 				<span class="icard__label">{{ 'pptx.documentProperties.themeHeading' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.documentProperties.themeHeading' | translate"
 					class="icard__select"
 					[disabled]="options().length === 0"
@@ -39,7 +48,7 @@ import { LoadContentService } from './load-content.service';
 							</option>
 						}
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="icard__grid2">
 				<button

@@ -70,7 +70,7 @@ function mountPanel(editor: EditorState, el: PptxElement) {
 
 function toggles(target: HTMLElement): HTMLInputElement[] {
 	return Array.from(
-		target.querySelectorAll<HTMLInputElement>('.pptx-svelte-effects-toggle input[type="checkbox"]'),
+		target.querySelectorAll<HTMLInputElement>('.pptx-svelte-effects-toggle pptx-ui-checkbox'),
 	);
 }
 

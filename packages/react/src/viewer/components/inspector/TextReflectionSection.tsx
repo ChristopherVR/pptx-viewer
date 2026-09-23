@@ -2,6 +2,7 @@ import type { TextStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebCheckbox } from '../WebControls';
 import { INPUT_CLS } from './TextPropertiesHelpers';
 
 // ---------------------------------------------------------------------------
@@ -31,7 +32,7 @@ export function TextReflectionSection({
 	return (
 		<div className='space-y-1.5'>
 			<label className='inline-flex items-center gap-2 text-foreground'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					checked={hasReflection}
 					onChange={(e) => {

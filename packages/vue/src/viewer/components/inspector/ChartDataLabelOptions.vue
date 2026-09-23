@@ -52,7 +52,7 @@ function onPosition(event: Event): void {
 				:key="opt.key"
 				class="flex items-center gap-2 cursor-pointer"
 			>
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					data-testid="chart-data-label-content"
 					class="accent-primary"
@@ -64,7 +64,7 @@ function onPosition(event: Event): void {
 
 			<label class="flex items-center gap-2 text-[11px]">
 				<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.labelPosition') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.chart.labelPosition')"
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-data-label-position"
@@ -74,7 +74,7 @@ function onPosition(event: Event): void {
 					<option v-for="opt in DATA_LABEL_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 		</div>
 	</div>

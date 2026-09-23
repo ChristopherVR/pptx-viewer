@@ -13,7 +13,11 @@ export default defineConfig({
 	define: {
 		__PPTX_PACKAGE_VERSION__: JSON.stringify(pkgVersion),
 	},
-	plugins: [vue()],
+	plugins: [
+		vue({
+			template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('pptx-ui-') } },
+		}),
+	],
 	resolve: {
 		// Test against workspace sources (not dists) so the suite never runs
 		// against stale build output. Mirrors the Vanilla package's vitest setup.

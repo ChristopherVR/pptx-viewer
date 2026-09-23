@@ -11,7 +11,15 @@
  * @module angular-viewer/chart-marker-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -27,6 +35,7 @@ import { numFromEvent, selectValue, stringFromEvent } from './chart-event-helper
 import { RecentColorsService } from './recent-colors.service';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-marker-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -39,7 +48,7 @@ import { RecentColorsService } from './recent-colors.service';
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
 							<span class="pptx-chart-card__name" [title]="s.name">{{ s.name }}</span>
-							<select
+							<pptx-ui-select
 								class="pptx-chart-card__input"
 								[disabled]="!canEdit()"
 								[value]="s.marker?.symbol ?? ''"
@@ -50,7 +59,7 @@ import { RecentColorsService } from './recent-colors.service';
 										{{ opt.labelKey | translate }}
 									</option>
 								}
-							</select>
+							</pptx-ui-select>
 						</div>
 
 						@if (s.marker && s.marker.symbol !== 'none') {

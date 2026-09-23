@@ -74,7 +74,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 		<!-- Extrusion toggle -->
 		<div class="space-y-1.5">
 			<label class="inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="hasExtrusion"
 					@change="toggleExtrusion(($event.target as HTMLInputElement).checked)"
@@ -129,7 +129,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 
 			<label class="flex flex-col gap-1 pl-4">
 				<span class="text-muted-foreground">{{ t('pptx.text3d.material') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.text3d.material')"
 					:class="INPUT_CLS"
 					:value="t3d?.presetMaterial ?? ''"
@@ -138,7 +138,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 					<option v-for="opt in MATERIAL_PRESETS" :key="opt.value" :value="opt.value">
 						{{ opt.label }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 		</template>
 	</div>

@@ -8,6 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../../../i18n';
 import MotionPathRow from './MotionPathRow.vue';
+import { setControlValue } from './test-control-value';
 
 function mountRow(props: Record<string, unknown> = {}) {
 	return mount(MotionPathRow, { props });
@@ -36,7 +37,7 @@ function accessibleName(control: Element): string {
 describe('motionPathRow', () => {
 	it('offers no motion path plus every catalogue preset, grouped by family', () => {
 		const wrapper = mountRow();
-		const select = wrapper.get('select');
+		const select = wrapper.get('pptx-ui-select');
 
 		expect(select.findAll('optgroup').map((group) => group.attributes('label'))).toStrictEqual(
 			MOTION_PATH_FAMILIES.map(
@@ -52,7 +53,7 @@ describe('motionPathRow', () => {
 	it('labels the row and selects "none" when the element has no path', () => {
 		const wrapper = mountRow();
 		expect(wrapper.text()).toContain(translationsEn['pptx.animation.motionPath.label']);
-		expect((wrapper.get('select').element as HTMLSelectElement).value).toBe('none');
+		expect((wrapper.get('pptx-ui-select').element as HTMLSelectElement).value).toBe('none');
 		// The drag hint only makes sense once something is drawn on the canvas.
 		expect(wrapper.text()).not.toContain(translationsEn['pptx.animation.motionPath.editHint']);
 	});
@@ -61,7 +62,7 @@ describe('motionPathRow', () => {
 		const preset = motionPathPresetById('arcUp');
 		const wrapper = mountRow({ motionPath: preset?.path });
 
-		expect((wrapper.get('select').element as HTMLSelectElement).value).toBe('arcUp');
+		expect((wrapper.get('pptx-ui-select').element as HTMLSelectElement).value).toBe('arcUp');
 		expect(wrapper.text()).toContain(translationsEn['pptx.animation.motionPath.editHint']);
 		// "Custom Path" is not on offer while a catalogue path is applied.
 		expect(wrapper.findAll('option').map((option) => option.attributes('value'))).not.toContain(
@@ -74,27 +75,27 @@ describe('motionPathRow', () => {
 		const custom = wrapper.findAll('option').find((o) => o.attributes('value') === 'custom');
 
 		expect(custom?.text()).toBe(translationsEn['pptx.animation.motionPath.custom']);
-		expect((wrapper.get('select').element as HTMLSelectElement).value).toBe('custom');
+		expect((wrapper.get('pptx-ui-select').element as HTMLSelectElement).value).toBe('custom');
 	});
 
 	it('emits the chosen preset id, and "none" to clear', async () => {
 		const wrapper = mountRow({ motionPath: 'M 0 0 L 0.25 0' });
-		const select = wrapper.get('select');
+		const select = wrapper.get('pptx-ui-select');
 
-		await select.setValue('circle');
-		await select.setValue('none');
+		await setControlValue(select, 'circle');
+		await setControlValue(select, 'none');
 
 		expect(wrapper.emitted('change')).toStrictEqual([['circle'], ['none']]);
 	});
 
 	it('disables the picker when editing is not allowed', () => {
 		const wrapper = mountRow({ canEdit: false });
-		expect(wrapper.get('select').attributes('disabled')).toBeDefined();
+		expect(wrapper.get('pptx-ui-select').attributes('disabled')).toBeDefined();
 	});
 
 	it('names the select itself instead of borrowing the whole label', () => {
 		const wrapper = mountRow({ motionPath: 'M 0 0 L 0.37 0.11' });
-		const name = accessibleName(wrapper.get('select').element);
+		const name = accessibleName(wrapper.get('pptx-ui-select').element);
 
 		expect(name).toBe(translationsEn['pptx.animation.motionPath.label']);
 		// The caption alone. Not the option list, and not the drag hint that also

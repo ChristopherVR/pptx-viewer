@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { previewVueAnimation, stopVueAnimationPreview } from './animation-preview-player';
 import AnimationPanel from './AnimationPanel.vue';
 import AnimationTimeline from './AnimationTimeline.vue';
+import { setControlValue } from './test-control-value';
 
 const selected = {
 	type: 'shape',
@@ -37,19 +38,19 @@ describe('vue animation parity controls', () => {
 		const wrapper = mount(AnimationPanel, {
 			props: { element: selected, slideElements: elements },
 		});
-		await wrapper.get('[aria-label="Duration (ms)"]').setValue(750);
+		await setControlValue(wrapper.get('[aria-label="Duration (ms)"]'), 750);
 		expect(latestAnimation(wrapper).durationMs).toBe(750);
-		await wrapper.get('[aria-label="Delay (ms)"]').setValue(125);
+		await setControlValue(wrapper.get('[aria-label="Delay (ms)"]'), 125);
 		expect(latestAnimation(wrapper).delayMs).toBe(125);
-		await wrapper.get('[aria-label="Direction"]').setValue('fromBottomRight');
+		await setControlValue(wrapper.get('[aria-label="Direction"]'), 'fromBottomRight');
 		expect(latestAnimation(wrapper).direction).toBe('fromBottomRight');
-		await wrapper.get('[aria-label="Sequence"]').setValue('byWord');
+		await setControlValue(wrapper.get('[aria-label="Sequence"]'), 'byWord');
 		expect(latestAnimation(wrapper).sequence).toBe('byWord');
-		await wrapper.get('[aria-label="Timing curve"]').setValue('linear');
+		await setControlValue(wrapper.get('[aria-label="Timing curve"]'), 'linear');
 		expect(latestAnimation(wrapper).timingCurve).toBe('linear');
-		await wrapper.get('[aria-label="Repeat count"]').setValue(3);
+		await setControlValue(wrapper.get('[aria-label="Repeat count"]'), 3);
 		expect(latestAnimation(wrapper).repeatCount).toBe(3);
-		await wrapper.get('[aria-label="Repeat until"]').setValue('untilEndOfSlide');
+		await setControlValue(wrapper.get('[aria-label="Repeat until"]'), 'untilEndOfSlide');
 		expect(latestAnimation(wrapper).repeatMode).toBe('untilEndOfSlide');
 	});
 
@@ -67,11 +68,12 @@ describe('vue animation parity controls', () => {
 		const shapeOptions = wrapper.get('[aria-label="Trigger shape"]').text();
 		expect(shapeOptions).toContain('Animated shape');
 		expect(shapeOptions).toContain('Unanimated trigger');
-		await wrapper.get('[aria-label="Trigger shape"]').setValue('plain');
+		await setControlValue(wrapper.get('[aria-label="Trigger shape"]'), 'plain');
 		expect(latestAnimation(wrapper).triggerShapeId).toBe('plain');
-		await wrapper
-			.get('[data-animation-editor] [aria-label="Animation trigger"]')
-			.setValue('onHover');
+		await setControlValue(
+			wrapper.get('[data-animation-editor] [aria-label="Animation trigger"]'),
+			'onHover',
+		);
 		expect(latestAnimation(wrapper)).toMatchObject({
 			trigger: 'onHover',
 			triggerShapeId: undefined,

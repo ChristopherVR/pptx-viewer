@@ -16,8 +16,8 @@ function mount() {
 	} as unknown as InspectorHandlers);
 	controls.update({ canShape: true, isConnector: true } as InspectorState);
 	const labels = Array.from(controls.el.querySelectorAll('label'));
-	const arrowFor = (key: string): HTMLSelectElement =>
-		labels.find((label) => label.textContent?.startsWith(key))!.querySelector('select')!;
+	const arrowFor = (key: string): HTMLElementTagNameMap['pptx-ui-select'] =>
+		labels.find((label) => label.textContent?.startsWith(key))!.querySelector('pptx-ui-select')!;
 	return { controls, setShapeStyle, arrowFor };
 }
 
@@ -68,8 +68,8 @@ describe('shape effects arrowhead pickers', () => {
 describe('shadow rotate-with-shape toggle', () => {
 	it('writes shadowRotateWithShape when toggled', () => {
 		const { controls, setShapeStyle } = mount();
-		const checkbox = Array.from(controls.el.querySelectorAll('input[type="checkbox"]')).find(
-			(input) => input.closest('label')?.textContent?.includes('pptx.effects.rotateWithShape'),
+		const checkbox = Array.from(controls.el.querySelectorAll('pptx-ui-checkbox')).find((input) =>
+			input.closest('label')?.textContent?.includes('pptx.effects.rotateWithShape'),
 		) as HTMLInputElement;
 		expect(checkbox).toBeDefined();
 

@@ -1,6 +1,7 @@
 import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	CARD,
 	DISPLAY_UNITS_OPTIONS,
@@ -96,7 +97,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 								<span className='w-16 text-muted-foreground shrink-0'>
 									{t('pptx.chart.displayUnits')}
 								</span>
-								<select
+								<WebSelect
 									aria-label={t('pptx.chart.displayUnits')}
 									disabled={!canEdit}
 									className={INPUT}
@@ -113,7 +114,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 											{t(opt.labelKey)}
 										</option>
 									))}
-								</select>
+								</WebSelect>
 							</label>
 						</div>
 					)}
@@ -160,7 +161,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 							<span className='w-16 text-muted-foreground shrink-0'>
 								{t('pptx.chart.tickLabels')}
 							</span>
-							<select
+							<WebSelect
 								aria-label={t('pptx.chart.tickLabels')}
 								disabled={!canEdit}
 								className={INPUT}
@@ -176,12 +177,12 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 										{t(opt.labelKey)}
 									</option>
 								))}
-							</select>
+							</WebSelect>
 						</label>
 
 						{/* Gridlines */}
 						<label className='flex items-center gap-2 cursor-pointer'>
-							<input
+							<WebCheckbox
 								type='checkbox'
 								disabled={!canEdit}
 								checked={axis.majorGridlines ?? false}
@@ -191,7 +192,7 @@ export function ChartAxisOptions({ axes, canEdit, onUpdateAxis }: ChartAxisOptio
 							<span className='text-[11px]'>{t('pptx.chart.majorGridlines')}</span>
 						</label>
 						<label className='flex items-center gap-2 cursor-pointer'>
-							<input
+							<WebCheckbox
 								type='checkbox'
 								disabled={!canEdit}
 								checked={axis.minorGridlines ?? false}

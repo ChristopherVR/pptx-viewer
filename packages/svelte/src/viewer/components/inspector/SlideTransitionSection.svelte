@@ -67,7 +67,7 @@
 	<div class="pptx-svelte-transition-fields">
 		<label>
 			<span>{t('pptx.transition.type')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.transition.type')}
 				disabled={!canEdit}
 				value={transitionType}
@@ -77,7 +77,7 @@
 				{#each SLIDE_TRANSITION_OPTIONS as option (option.value)}
 					<option value={option.value}>{t(option.i18nKey)}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		{#if hasDirections && validDirections}
@@ -144,7 +144,7 @@
 
 		<label>
 			<span>{t('pptx.transition.speed')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.transition.speed')}
 				disabled={!canEdit}
 				value={transition?.speed ?? 'fast'}
@@ -154,13 +154,13 @@
 				{#each TRANSITION_SPEED_OPTIONS as option (option.value)}
 					<option value={option.value}>{t(option.i18nKey)}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		{#if isMorph}
 			<label>
 				<span>{t('pptx.transition.morphOption')}</span>
-				<select
+				<pptx-ui-select
 					aria-label={t('pptx.transition.morphOption')}
 					disabled={!canEdit}
 					value={transition?.morphOption ?? 'byObject'}
@@ -174,17 +174,16 @@
 					{#each TRANSITION_MORPH_OPTIONS as option (option.value)}
 						<option value={option.value}>{t(option.i18nKey)}</option>
 					{/each}
-				</select>
+				</pptx-ui-select>
 			</label>
 		{/if}
 
 		<label class="pptx-svelte-transition-check">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				disabled={!canEdit}
 				checked={transition?.advanceOnClick !== false}
 				onchange={(event) => patch({ advanceOnClick: event.currentTarget.checked })}
-			/>
+			></pptx-ui-checkbox>
 			<span>{t('pptx.transition.advanceOnClick')}</span>
 		</label>
 

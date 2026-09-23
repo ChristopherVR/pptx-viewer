@@ -33,6 +33,7 @@ export function createDeckPresentationCard(
 
 	const showType = makeSelectField<ShowType>(doc, {
 		label: t('pptx.presentationSettings.showType'),
+		webComponent: true,
 		options: [
 			{ value: 'presented', label: t('pptx.presentationSettings.showTypePresented') },
 			{ value: 'browsed', label: t('pptx.presentationSettings.showTypeBrowsed') },
@@ -42,18 +43,22 @@ export function createDeckPresentationCard(
 	});
 	const loop = makeCheckboxField(doc, {
 		label: t('pptx.presentationSettings.loopContinuously'),
+		webComponent: true,
 		onChange: (checked) => handlers.updatePresentationSettings({ loopContinuously: checked }),
 	});
 	const narration = makeCheckboxField(doc, {
 		label: t('pptx.presentationSettings.showNarration'),
+		webComponent: true,
 		onChange: (checked) => handlers.updatePresentationSettings({ showWithNarration: checked }),
 	});
 	const animation = makeCheckboxField(doc, {
 		label: t('pptx.presentationSettings.showAnimation'),
+		webComponent: true,
 		onChange: (checked) => handlers.updatePresentationSettings({ showWithAnimation: checked }),
 	});
 	const frameSlides = makeCheckboxField(doc, {
 		label: t('pptx.presentationSettings.frameSlides'),
+		webComponent: true,
 		onChange: (checked) =>
 			handlers.updatePresentationSettings({
 				printProperties: withFrameSlides(printProperties, checked),

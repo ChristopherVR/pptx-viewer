@@ -32,7 +32,7 @@ describe('connectorPanel with noChangeArrowheads', () => {
 				onUpdateElementStyle={() => {}}
 			/>,
 		);
-		const selectCount = (markup.match(/<select/gu) ?? []).length;
+		const selectCount = (markup.match(/<pptx-ui-select/gu) ?? []).length;
 		expect(selectCount).toBeGreaterThan(0);
 		expect(markup.match(/disabled=""/gu) ?? []).toHaveLength(selectCount);
 	});

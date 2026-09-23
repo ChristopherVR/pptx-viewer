@@ -21,7 +21,14 @@
  *
  * @module viewer/line-format-panel
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
@@ -34,6 +41,7 @@ import {
 } from '../internal/shared';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-line-format-panel',
 	standalone: true,
 	imports: [TranslatePipe],
@@ -45,7 +53,7 @@ import {
 			} @else {
 				<label class="pptx-ng-lf__field">
 					<span class="pptx-ng-lf__label">{{ 'pptx.strokeEffects.strokeDash' | translate }}</span>
-					<select
+					<pptx-ui-select
 						id="lf-dash"
 						[attr.aria-label]="'pptx.strokeEffects.strokeDash' | translate"
 						class="pptx-ng-lf__select"
@@ -60,12 +68,12 @@ import {
 								{{ opt.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				<label class="pptx-ng-lf__field">
 					<span class="pptx-ng-lf__label">{{ 'pptx.strokeEffects.compoundLine' | translate }}</span>
-					<select
+					<pptx-ui-select
 						id="lf-compound"
 						[attr.aria-label]="'pptx.strokeEffects.compoundLine' | translate"
 						class="pptx-ng-lf__select"
@@ -80,12 +88,12 @@ import {
 								{{ opt.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				<label class="pptx-ng-lf__field">
 					<span class="pptx-ng-lf__label">{{ 'pptx.strokeEffects.lineJoin' | translate }}</span>
-					<select
+					<pptx-ui-select
 						id="lf-join"
 						[attr.aria-label]="'pptx.strokeEffects.lineJoin' | translate"
 						class="pptx-ng-lf__select"
@@ -97,12 +105,12 @@ import {
 								{{ opt.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				<label class="pptx-ng-lf__field">
 					<span class="pptx-ng-lf__label">{{ 'pptx.strokeEffects.lineCap' | translate }}</span>
-					<select
+					<pptx-ui-select
 						id="lf-cap"
 						[attr.aria-label]="'pptx.strokeEffects.lineCap' | translate"
 						class="pptx-ng-lf__select"
@@ -114,7 +122,7 @@ import {
 								{{ opt.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 			}
 		</div>

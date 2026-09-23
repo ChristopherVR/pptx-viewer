@@ -20,7 +20,7 @@ function patternOptions() {
 		},
 	});
 	// The pattern select is the second one on the panel (fill mode comes first).
-	return wrapper.findAll('select')[1].findAll('option');
+	return wrapper.findAll('pptx-ui-select')[1].findAll('option');
 }
 
 describe('tableCellAdvancedFill - pattern presets', () => {

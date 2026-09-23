@@ -4,6 +4,7 @@ import type { EffectSoundState } from 'pptx-viewer-shared';
 import { playAnimationSound } from '../../animation/animation-sound';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorSelect } from './controls-extra';
 
 const NONE_VALUE = 'none';
 const CURRENT_VALUE = 'current';
@@ -33,7 +34,7 @@ export function createEffectSoundRow(
 
 	const controlsRow = createEl(doc, 'div', 'pptxv-effect-sound-controls');
 
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.setAttribute('aria-label', t('pptx.animation.sound'));
 	const none = doc.createElement('option');
 	none.value = NONE_VALUE;

@@ -1,6 +1,7 @@
 import type { PptxChartStyle } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { CARD, HEADING, INPUT, LEGEND_POSITION_OPTIONS } from './chart-panel-constants';
 
 // ---------------------------------------------------------------------------
@@ -41,7 +42,7 @@ export function ChartDisplayOptions({
 			<div className='space-y-1.5'>
 				{/* Show title */}
 				<label className='flex items-center gap-2 cursor-pointer'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasTitle ?? false}
@@ -53,7 +54,7 @@ export function ChartDisplayOptions({
 
 				{/* Show legend */}
 				<label className='flex items-center gap-2 cursor-pointer'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasLegend ?? false}
@@ -69,7 +70,7 @@ export function ChartDisplayOptions({
 						<span className='w-12 text-muted-foreground shrink-0'>
 							{t('pptx.chart.legendPosition')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.chart.legendPosition')}
 							disabled={!canEdit}
 							className={INPUT}
@@ -85,13 +86,13 @@ export function ChartDisplayOptions({
 									{t(opt.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				)}
 
 				{/* Gridlines */}
 				<label className='flex items-center gap-2 cursor-pointer'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={hasGridlines}
@@ -103,7 +104,7 @@ export function ChartDisplayOptions({
 
 				{/* Data labels */}
 				<label className='flex items-center gap-2 cursor-pointer'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasDataLabels ?? false}

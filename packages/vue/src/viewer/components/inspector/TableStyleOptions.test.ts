@@ -8,6 +8,7 @@ import type { ParsedTableStyleMap, PptxTableData } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import TableStyleOptions from './TableStyleOptions.vue';
+import { setControlValue } from './test-control-value';
 
 function tableData(overrides: Partial<PptxTableData> = {}): PptxTableData {
 	return {
@@ -51,17 +52,17 @@ describe('tableStyleOptions', () => {
 			props: { tableData: tableData(), canEdit: true },
 		});
 
-		const checkboxes = wrapper.findAll('input[type="checkbox"]');
+		const checkboxes = wrapper.findAll('pptx-ui-checkbox');
 		// TOGGLES order: bandedRows, firstRowHeader, bandedColumns, firstCol, lastCol, lastRow.
-		await checkboxes[3].setValue(true);
+		await setControlValue(checkboxes[3], true);
 		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({
 			firstCol: true,
 		});
 
-		await checkboxes[4].setValue(true);
+		await setControlValue(checkboxes[4], true);
 		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({ lastCol: true });
 
-		await checkboxes[5].setValue(true);
+		await setControlValue(checkboxes[5], true);
 		expect((wrapper.emitted('update') as unknown[][]).at(-1)?.[0]).toStrictEqual({ lastRow: true });
 	});
 

@@ -4,6 +4,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ChartSubtypeOptions from './ChartSubtypeOptions.vue';
+import { setControlValue } from './test-control-value';
 
 function chartData(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -35,7 +36,7 @@ describe('chartSubtypeOptions', () => {
 		});
 		expect(wrapper.find('[data-testid="pptx-chart-radar-style"]').exists()).toBeFalsy();
 		expect(wrapper.find('[data-testid="pptx-chart-surface-wireframe"]').exists()).toBeFalsy();
-		await wrapper.find('[data-testid="pptx-chart-bar3d-shape"]').setValue('cylinder');
+		await setControlValue(wrapper.find('[data-testid="pptx-chart-bar3d-shape"]'), 'cylinder');
 		expect(lastPatch(wrapper)).toStrictEqual({ barShape: 'cylinder' });
 	});
 
@@ -44,7 +45,7 @@ describe('chartSubtypeOptions', () => {
 			props: { chartData: chartData({ chartType: 'radar' }) },
 		});
 		expect(wrapper.find('[data-testid="pptx-chart-bar3d-shape"]').exists()).toBeFalsy();
-		await wrapper.find('[data-testid="pptx-chart-radar-style"]').setValue('filled');
+		await setControlValue(wrapper.find('[data-testid="pptx-chart-radar-style"]'), 'filled');
 		expect(lastPatch(wrapper)).toStrictEqual({ radarStyle: 'filled' });
 	});
 
@@ -53,7 +54,7 @@ describe('chartSubtypeOptions', () => {
 			props: { chartData: chartData({ chartType: 'surface' }) },
 		});
 		expect(wrapper.find('[data-testid="pptx-chart-bar3d-shape"]').exists()).toBeFalsy();
-		await wrapper.find('[data-testid="pptx-chart-surface-wireframe"]').setValue('true');
+		await setControlValue(wrapper.find('[data-testid="pptx-chart-surface-wireframe"]'), 'true');
 		expect(lastPatch(wrapper)).toStrictEqual({ wireframe: true });
 	});
 });

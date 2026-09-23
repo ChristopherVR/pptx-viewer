@@ -2,6 +2,7 @@ import type { ElementAction, ElementActionType } from 'pptx-viewer-core';
 import { canCommitActionType, ELEMENT_ACTION_TYPE_OPTIONS, toSlideIndex } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createInspectorSelect, createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -58,7 +59,7 @@ function actionEditor(
 	el.className = 'pptxv-action-fieldset';
 	const legend = doc.createElement('legend');
 	legend.textContent = t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover');
-	const type = doc.createElement('select');
+	const type = createInspectorSelect(doc);
 	type.setAttribute(
 		'aria-label',
 		t(trigger === 'click' ? 'pptx.action.onClick' : 'pptx.action.onHover'),
@@ -82,7 +83,7 @@ function actionEditor(
 		'runProgram',
 	]);
 
-	const customShowSelect = doc.createElement('select');
+	const customShowSelect = createInspectorSelect(doc);
 	customShowSelect.dataset.testid = 'pptx-action-custom-show';
 	customShowSelect.setAttribute('aria-label', t('pptx.hyperlink.customShowLabel'));
 	const customShowEmpty = doc.createElement('option');
@@ -91,8 +92,7 @@ function actionEditor(
 
 	const returnAfterRow = doc.createElement('label');
 	returnAfterRow.className = 'pptxv-action-return-row';
-	const returnAfter = doc.createElement('input');
-	returnAfter.type = 'checkbox';
+	const returnAfter = createInspectorCheckbox(doc);
 	returnAfter.dataset.testid = 'pptx-action-custom-show-return';
 	returnAfterRow.append(returnAfter, doc.createTextNode(t('pptx.hyperlink.customShowReturn')));
 

@@ -75,7 +75,7 @@ function onSurfaceWireframe(event: Event): void {
 	>
 		<label v-if="isBar3D" class="flex items-center gap-2 text-[11px]">
 			<span class="w-20 text-muted-foreground shrink-0">{{ t('pptx.chart.bar3DShapeLabel') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.chart.bar3DShapeLabel')"
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="pptx-chart-bar3d-shape"
@@ -85,12 +85,12 @@ function onSurfaceWireframe(event: Event): void {
 				<option v-for="opt in BAR3D_SHAPE_OPTIONS" :key="opt.value" :value="opt.value">
 					{{ t(opt.labelKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label v-if="isRadar" class="flex items-center gap-2 text-[11px]">
 			<span class="w-20 text-muted-foreground shrink-0">{{ t('pptx.chart.radarStyleLabel') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.chart.radarStyleLabel')"
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="pptx-chart-radar-style"
@@ -100,14 +100,14 @@ function onSurfaceWireframe(event: Event): void {
 				<option v-for="opt in RADAR_STYLE_OPTIONS" :key="opt.value" :value="opt.value">
 					{{ t(opt.labelKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label v-if="isSurface" class="flex items-center gap-2 text-[11px]">
 			<span class="w-20 text-muted-foreground shrink-0">{{
 				t('pptx.chart.surfaceWireframeLabel')
 			}}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.chart.surfaceWireframeLabel')"
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="pptx-chart-surface-wireframe"
@@ -117,7 +117,7 @@ function onSurfaceWireframe(event: Event): void {
 				<option v-for="opt in SURFACE_WIREFRAME_OPTIONS" :key="opt.value" :value="opt.value">
 					{{ t(opt.labelKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 	</div>
 </template>

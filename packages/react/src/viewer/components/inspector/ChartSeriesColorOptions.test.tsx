@@ -52,7 +52,7 @@ describe('chartSeriesColorOptions secondary-axis checkbox', () => {
 				/>,
 			),
 		);
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		expect(checkbox.checked).toBeFalsy();
 	});
 
@@ -67,7 +67,7 @@ describe('chartSeriesColorOptions secondary-axis checkbox', () => {
 				/>,
 			),
 		);
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		expect(checkbox.checked).toBeTruthy();
 	});
 
@@ -83,7 +83,7 @@ describe('chartSeriesColorOptions secondary-axis checkbox', () => {
 				/>,
 			),
 		);
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		act(() => {
 			checkbox.click();
 		});

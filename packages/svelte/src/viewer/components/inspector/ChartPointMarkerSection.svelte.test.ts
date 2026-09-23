@@ -86,7 +86,7 @@ describe('chartPointMarkerSection', () => {
 	it('offers one override toggle per category', () => {
 		const { target } = mountSection(chartElement());
 
-		expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+		expect(target.querySelectorAll('pptx-ui-checkbox')).toHaveLength(2);
 	});
 
 	it('hides the series picker for a single-series chart', () => {
@@ -111,7 +111,7 @@ describe('chartPointMarkerSection', () => {
 	it('seeds a circle override when a point is toggled on', () => {
 		const { target, onsetpointmarker } = mountSection(chartElement());
 
-		check(target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1], true);
+		check(target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox')[1], true);
 
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, { symbol: 'circle' });
 	});
@@ -119,7 +119,7 @@ describe('chartPointMarkerSection', () => {
 	it('clears the override when the point is toggled off', () => {
 		const { target, onsetpointmarker } = mountSection(chartElement(WITH_OVERRIDE));
 
-		check(target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1], false);
+		check(target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox')[1], false);
 
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, null);
 	});
@@ -128,7 +128,9 @@ describe('chartPointMarkerSection', () => {
 		const { target } = mountSection(chartElement(WITH_OVERRIDE));
 
 		expect(target.querySelectorAll('.overrides')).toHaveLength(1);
-		expect(target.querySelector<HTMLSelectElement>('.overrides select')!.value).toBe('star');
+		expect(target.querySelector<HTMLSelectElement>('.overrides pptx-ui-select')!.value).toBe(
+			'star',
+		);
 		expect(target.querySelector<HTMLInputElement>('.overrides input[type="number"]')!.value).toBe(
 			'12',
 		);
@@ -137,7 +139,7 @@ describe('chartPointMarkerSection', () => {
 	it('omits the auto sentinel from the symbol list', () => {
 		const { target } = mountSection(chartElement(WITH_OVERRIDE));
 		const options = Array.from(
-			target.querySelectorAll<HTMLOptionElement>('.overrides select option'),
+			target.querySelectorAll<HTMLOptionElement>('.overrides pptx-ui-select option'),
 		).map((option) => option.value);
 
 		expect(options).not.toContain('');
@@ -147,7 +149,7 @@ describe('chartPointMarkerSection', () => {
 	it('emits the chosen symbol for the right point', () => {
 		const { target, onsetpointmarker } = mountSection(chartElement(WITH_OVERRIDE));
 
-		setValue(target.querySelector<HTMLSelectElement>('.overrides select')!, 'diamond');
+		setValue(target.querySelector<HTMLSelectElement>('.overrides pptx-ui-select')!, 'diamond');
 
 		expect(onsetpointmarker).toHaveBeenCalledWith(0, 1, { symbol: 'diamond' });
 	});
@@ -166,7 +168,9 @@ describe('chartPointMarkerSection', () => {
 
 	it('disables every control in read-only mode', () => {
 		const { target } = mountSection(chartElement(WITH_OVERRIDE), false);
-		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select');
+		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+			'input, pptx-ui-select',
+		);
 
 		expect(controls.length).toBeGreaterThan(0);
 		expect(Array.from(controls).every((control) => control.disabled)).toBeTruthy();

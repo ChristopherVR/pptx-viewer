@@ -1,3 +1,4 @@
+import { createInspectorCheckbox } from './controls-extra';
 /**
  * Plain-DOM input builders shared by `chart-user-shape-section.ts`'s row
  * renderer. Split out to keep that file under this repo's file-size
@@ -73,8 +74,7 @@ export function checkboxInput(
 	ariaLabel: string,
 	onChange: (next: boolean) => void,
 ): HTMLInputElement {
-	const control = doc.createElement('input');
-	control.type = 'checkbox';
+	const control = createInspectorCheckbox(doc);
 	control.checked = checked;
 	control.setAttribute('aria-label', ariaLabel);
 	control.addEventListener('change', () => onChange(control.checked));

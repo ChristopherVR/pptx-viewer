@@ -42,7 +42,7 @@ function ownText(element: Element): string {
 function selectFor(root: ParentNode, caption: string): HTMLSelectElement {
 	for (const label of Array.from(root.querySelectorAll('label'))) {
 		if (ownText(label) === caption) {
-			const select = label.querySelector('select');
+			const select = label.querySelector('pptx-ui-select');
 			if (select) {
 				return select;
 			}

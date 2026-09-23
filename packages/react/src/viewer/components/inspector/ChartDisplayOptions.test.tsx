@@ -45,7 +45,7 @@ describe('chartDisplayOptions gridlines checkbox', () => {
 				/>,
 			),
 		);
-		const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+		const checkboxes = container.querySelectorAll('pptx-ui-checkbox');
 		// Show title, Show legend, Show gridlines, Data labels: gridlines is 3rd.
 		const gridlinesCheckbox = checkboxes[2] as HTMLInputElement;
 		expect(gridlinesCheckbox.checked).toBeTruthy();
@@ -65,7 +65,7 @@ describe('chartDisplayOptions gridlines checkbox', () => {
 				/>,
 			),
 		);
-		const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+		const checkboxes = container.querySelectorAll('pptx-ui-checkbox');
 		const gridlinesCheckbox = checkboxes[2] as HTMLInputElement;
 		act(() => {
 			gridlinesCheckbox.click();

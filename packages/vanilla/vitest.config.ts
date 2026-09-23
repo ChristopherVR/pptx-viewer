@@ -30,5 +30,6 @@ export default defineConfig({
 		environment: 'happy-dom',
 		maxWorkers: 4,
 		include: ['src/**/*.test.ts', '../../demos/demo-vanilla/src/host-owned-inline-editor.test.ts'],
+		setupFiles: ['./src/web-controls.test-setup.ts'],
 	},
 });

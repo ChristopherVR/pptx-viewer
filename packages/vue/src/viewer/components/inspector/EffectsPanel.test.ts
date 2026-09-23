@@ -4,6 +4,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import EffectsPanel from './EffectsPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function shape(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -44,14 +45,14 @@ describe('effectsPanel', () => {
 	it('emits a shallow opacity patch (0-100 slider to 0-1)', async () => {
 		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
 		const range = wrapper.find('input[type="range"]');
-		await range.setValue('50');
+		await setControlValue(range, '50');
 		expect(lastPatch(wrapper)).toStrictEqual({ opacity: 0.5 });
 	});
 
 	it('shows a muted note for non-shape-like elements and hides every effect control', () => {
 		const wrapper = mount(EffectsPanel, { props: { element: image() } });
 		expect(wrapper.find('.pptx-vue-effects-note').exists()).toBeTruthy();
-		expect(wrapper.findAll('input[type="checkbox"]')).toHaveLength(0);
+		expect(wrapper.findAll('pptx-ui-checkbox')).toHaveLength(0);
 	});
 
 	it('forwards a shadow-section patch through to the update event untouched', async () => {
@@ -63,7 +64,7 @@ describe('effectsPanel', () => {
 		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
 		const toggle = wrapper.find('[data-testid="fx-outer-shadow-toggle"]');
 		expect(toggle.exists()).toBeTruthy();
-		await toggle.setValue(true);
+		await setControlValue(toggle, true);
 		const patch = lastPatch(wrapper) as { shapeStyle?: { shadowColor?: string } };
 		expect(patch.shapeStyle?.shadowColor).toBe('#000000');
 	});
@@ -72,7 +73,7 @@ describe('effectsPanel', () => {
 		const wrapper = mount(EffectsPanel, { props: { element: shape() } });
 		const toggle = wrapper.find('[data-testid="fx-glow-toggle"]');
 		expect(toggle.exists()).toBeTruthy();
-		await toggle.setValue(true);
+		await setControlValue(toggle, true);
 		const patch = lastPatch(wrapper) as { shapeStyle?: { glowColor?: string } };
 		expect(patch.shapeStyle?.glowColor).toBe('#ffff00');
 	});

@@ -91,7 +91,7 @@
 {#if table}
 	<div class="checks">
 		{#each [['firstRowHeader', 'pptx.table.headerRow'], ['bandedRows', 'pptx.table.bandedRows'], ['bandedColumns', 'pptx.table.bandedColumns'], ['firstCol', 'pptx.table.firstColumn'], ['lastCol', 'pptx.table.lastColumn'], ['lastRow', 'pptx.table.lastRow']] as option}
-			<label><input type="checkbox" checked={Boolean(table[option[0] as keyof PptxTableData])} onchange={(event) => editor.patchSelected(tableInspectorPatch(el, { [option[0]]: event.currentTarget.checked }))} />{t(option[1])}</label>
+			<label><pptx-ui-checkbox checked={Boolean(table[option[0] as keyof PptxTableData])} onchange={(event) => editor.patchSelected(tableInspectorPatch(el, { [option[0]]: event.currentTarget.checked }))} ></pptx-ui-checkbox>{t(option[1])}</label>
 		{/each}
 	</div>
 	<div class="presets">

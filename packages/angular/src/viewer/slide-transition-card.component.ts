@@ -20,7 +20,14 @@
  *
  * @module viewer/slide-transition-card
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
 import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
@@ -48,6 +55,7 @@ const MIN_SPOKES = 1;
 const MAX_SPOKES = 8;
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-slide-transition-card',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -59,7 +67,7 @@ const MAX_SPOKES = 8;
 
 				<label class="icard__col">
 					<span class="icard__label">{{ 'pptx.transition.type' | translate }}</span>
-					<select
+					<pptx-ui-select
 						class="icard__select"
 						[disabled]="!canEdit()"
 						[value]="transitionType()"
@@ -71,7 +79,7 @@ const MAX_SPOKES = 8;
 								{{ option.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				@if (directionTokens(); as tokens) {
@@ -138,7 +146,7 @@ const MAX_SPOKES = 8;
 
 				<label class="icard__col">
 					<span class="icard__label">{{ 'pptx.transition.speed' | translate }}</span>
-					<select
+					<pptx-ui-select
 						class="icard__select"
 						[disabled]="!canEdit()"
 						[value]="speed()"
@@ -150,13 +158,13 @@ const MAX_SPOKES = 8;
 								{{ option.i18nKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				@if (isMorph()) {
 					<label class="icard__col">
 						<span class="icard__label">{{ 'pptx.transition.morphOption' | translate }}</span>
-						<select
+						<pptx-ui-select
 							class="icard__select"
 							[disabled]="!canEdit()"
 							[value]="morphOption()"
@@ -168,18 +176,17 @@ const MAX_SPOKES = 8;
 									{{ option.i18nKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 
 				<label class="check">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[disabled]="!canEdit()"
 						[checked]="advanceOnClick()"
 						[attr.aria-label]="'pptx.transition.advanceOnClick' | translate"
 						(change)="onAdvanceOnClick($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span>{{ 'pptx.transition.advanceOnClick' | translate }}</span>
 				</label>
 

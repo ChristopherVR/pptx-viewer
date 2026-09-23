@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { GroupPptxElement, OlePptxElement, PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { getOleObjectTypeLabel } from 'pptx-viewer-core';
@@ -44,6 +52,7 @@ export function connectorStylePatch(
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-element-misc-properties',
 	standalone: true,
 	imports: [TranslatePipe, OleEditorDialogComponent],
@@ -52,31 +61,27 @@ export function connectorStylePatch(
 		@if (connector()) {
 			<section class="card" aria-label="Connector">
 				<h3>Connector</h3>
-				<!--
-					Selection is expressed with [selected] on each option rather than
-					[value] on the select: Angular applies an element's own property
-					bindings before the @for below it has produced any options, so a
-					[value] naming a token was assigned to an EMPTY select and dropped
-					back to the first entry. Every one of these dropdowns therefore read
-					"none" / "Small" no matter what the deck authored, and the card
-					silently misreported the connector it was editing.
-				-->
 				<label class="geometry">
 					<span>Geometry</span>
-					<select aria-label="Geometry" (change)="onConnectorType($event)">
+					<pptx-ui-select
+						aria-label="Geometry"
+						[attr.value]="connectorType()"
+						(change)="onConnectorType($event)"
+					>
 						@for (geometry of geometries; track geometry[0]) {
 							<option [value]="geometry[0]" [selected]="geometry[0] === connectorType()">
 								{{ geometry[1] }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 				<div class="grid">
 					@for (control of arrowControls; track control.styleKey) {
 						<label>
 							<span>{{ control.labelKey | translate }}</span>
-							<select
+							<pptx-ui-select
 								[attr.aria-label]="control.labelKey | translate"
+								[attr.value]="arrowValue(control)"
 								[disabled]="!arrowsChangeable()"
 								(change)="onArrow(control, $event)"
 							>
@@ -85,7 +90,7 @@ export function connectorStylePatch(
 										{{ optionLabelKey(control, value) | translate }}
 									</option>
 								}
-							</select>
+							</pptx-ui-select>
 						</label>
 					}
 				</div>

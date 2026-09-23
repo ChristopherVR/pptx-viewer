@@ -5,6 +5,7 @@ import { ref } from 'vue';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
+import { setControlValue } from './test-control-value';
 import TextPanel from './TextPanel.vue';
 
 const OFFICE_THEME = {
@@ -42,7 +43,7 @@ describe('textPanel', () => {
 			props: { element: { type: 'image', id: 'i1' } as PptxElement },
 		});
 		expect(wrapper.find('.pptx-vue-text-muted').exists()).toBeTruthy();
-		expect(wrapper.find('select').exists()).toBeFalsy();
+		expect(wrapper.find('pptx-ui-select').exists()).toBeFalsy();
 	});
 
 	it('renders current font size and color', () => {
@@ -59,7 +60,7 @@ describe('textPanel', () => {
 		expect(size.value).toBe('48.1');
 		expect(size.step).toBe('any');
 		expect((wrapper.find('input[type="color"]').element as HTMLInputElement).value).toBe('#112233');
-		expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('Georgia');
+		expect((wrapper.find('pptx-ui-select').element as HTMLSelectElement).value).toBe('Georgia');
 	});
 
 	it('emits a full merged textStyle patch when size changes', async () => {
@@ -111,7 +112,7 @@ describe('textPanel', () => {
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
 
 		const color = wrapper.find('input[type="color"]');
-		await color.setValue('#00ff00');
+		await setControlValue(color, '#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
 	});
 });
@@ -136,7 +137,7 @@ describe('textPanel theme colour picker', () => {
 			global: { provide: { [ThemeColorMapKey as symbol]: ref(OFFICE_THEME) } },
 		});
 		const color = wrapper.find('input[type="color"]');
-		await color.setValue('#ff0000');
+		await setControlValue(color, '#ff0000');
 		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxElement>;
 		expect(patch.textStyle?.colorRef).toBeFalsy();
 	});

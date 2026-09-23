@@ -103,6 +103,16 @@ const timelineAnimations = computed(() =>
 function changeCategory(): void {
 	presetId.value = presetChoices.value[0]?.presetId ?? '';
 }
+function onCategoryChange(event: Event): void {
+	category.value = (event.currentTarget as HTMLElement & { value: AnimationCategory }).value;
+	changeCategory();
+}
+function onPresetChange(event: Event): void {
+	presetId.value = (event.currentTarget as HTMLElement & { value: string }).value;
+}
+function onTriggerChange(event: Event): void {
+	trigger.value = (event.currentTarget as HTMLElement & { value: PptxAnimationTrigger }).value;
+}
 function addAnimation(): void {
 	const info = getAnimationPresetInfo(presetId.value);
 	if (!info) {
@@ -182,31 +192,39 @@ function changeMotionPath(pathPresetId: string): void {
 			</div>
 			<label
 				>{{ t('pptx.animation.category') }}
-				<select
-					v-model="category"
+				<pptx-ui-select
+					:value="category"
 					:aria-label="t('pptx.animation.categoryAria')"
-					@change="changeCategory"
+					@change="onCategoryChange"
 				>
 					<option v-for="option in categories" :key="option.value" :value="option.value">
 						{{ t(option.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<label
 				>{{ t('pptx.animation.effect') }}
-				<select v-model="presetId" :aria-label="t('pptx.animation.presetAria')">
+				<pptx-ui-select
+					:value="presetId"
+					:aria-label="t('pptx.animation.presetAria')"
+					@change="onPresetChange"
+				>
 					<option v-for="preset in presetChoices" :key="preset.presetId" :value="preset.presetId">
 						{{ catalogLabel(preset) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<label
 				>{{ t('pptx.animation.start') }}
-				<select v-model="trigger" :aria-label="t('pptx.animation.triggerAria')">
+				<pptx-ui-select
+					:value="trigger"
+					:aria-label="t('pptx.animation.triggerAria')"
+					@change="onTriggerChange"
+				>
 					<option v-for="item in triggerOptions" :key="item" :value="item">
 						{{ t(`pptx.animation.trigger.${item}`) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<button
 				type="button"

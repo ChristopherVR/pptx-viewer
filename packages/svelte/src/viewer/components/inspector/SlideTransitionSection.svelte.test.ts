@@ -26,7 +26,7 @@ function mountSection(): { target: HTMLElement; editor: EditorState } {
 }
 
 function typeSelect(target: HTMLElement): HTMLSelectElement {
-	return target.querySelector<HTMLSelectElement>('select')!;
+	return target.querySelector<HTMLSelectElement>('pptx-ui-select')!;
 }
 
 function setValue(control: HTMLSelectElement | HTMLInputElement, value: string): void {
@@ -95,7 +95,7 @@ describe('slideTransitionSection', () => {
 		const { target, editor } = mountSection();
 
 		setValue(typeSelect(target), 'fade');
-		const check = target.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const check = target.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		expect(check.checked).toBeTruthy();
 		check.click();
 		flushSync();
@@ -115,7 +115,7 @@ describe('slideTransitionSection', () => {
 
 	it('shows the speed selector for every transition and writes the chosen speed', () => {
 		const { target, editor } = mountSection();
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		const speedSelect = selects.find((s) => Array.from(s.options).some((o) => o.value === 'slow'))!;
 		expect(speedSelect.value).toBe('fast');
 
@@ -129,7 +129,7 @@ describe('slideTransitionSection', () => {
 	it('hides the morph-option selector for a non-morph transition', () => {
 		const { target } = mountSection();
 		setValue(typeSelect(target), 'fade');
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		expect(
 			selects.some((s) => Array.from(s.options).some((o) => o.value === 'byObject')),
 		).toBeFalsy();
@@ -139,7 +139,7 @@ describe('slideTransitionSection', () => {
 		const { target, editor } = mountSection();
 		setValue(typeSelect(target), 'morph');
 
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		const morphSelect = selects.find((s) =>
 			Array.from(s.options).some((o) => o.value === 'byObject'),
 		)!;

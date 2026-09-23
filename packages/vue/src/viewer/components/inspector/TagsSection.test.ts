@@ -3,6 +3,7 @@ import type { PptxTagCollection } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import TagsSection from './TagsSection.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * TagsSection (Vue): collapsible TAGS card mirroring React's
@@ -56,7 +57,7 @@ describe('tagsSection', () => {
 		const wrapper = mount(TagsSection, { props: { tagCollections: collections() } });
 		await expand(wrapper);
 		// Row 3 (collection 2) value input.
-		await wrapper.findAll('input')[5].setValue('no');
+		await setControlValue(wrapper.findAll('input')[5], 'no');
 		const next = wrapper.emitted('update')?.[0]?.[0] as PptxTagCollection[];
 		expect(next[1].tags[0]).toStrictEqual({ name: 'REVIEWED', value: 'no' });
 		expect(next[0]).toStrictEqual(collections()[0]);

@@ -43,6 +43,7 @@ export default defineConfig({
 	},
 	plugins: [
 		vue({
+			template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('pptx-ui-') } },
 			script: {
 				fs: {
 					fileExists: existsSync,

@@ -9,6 +9,7 @@ import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorSelect, createInspectorCheckbox } from './controls-extra';
 import type { DeckCard } from './deck-card-helpers';
 import { makeDeckButton, makeSection } from './deck-card-helpers';
 import type { InspectorDeckState, InspectorHandlers } from './types';
@@ -40,7 +41,7 @@ export function createThemeCard(
 ): DeckCard {
 	const { el, body } = makeSection(doc, t('pptx.documentProperties.themeHeading'));
 
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.className = 'pptxv-field-select-input pptxv-inspector-theme-select';
 	select.setAttribute('aria-label', t('pptx.documentProperties.themeHeading'));
 	body.appendChild(select);
@@ -120,8 +121,7 @@ export function createThemeOverrideCard(
 	};
 
 	const toggleLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-checkbox');
-	const toggle = doc.createElement('input');
-	toggle.type = 'checkbox';
+	const toggle = createInspectorCheckbox(doc);
 	toggle.setAttribute('aria-label', t('pptx.themeOverride.enableOverride'));
 	toggle.addEventListener('change', () => {
 		if (toggle.checked) {
@@ -153,7 +153,7 @@ export function createThemeOverrideCard(
 		if (typeof resolved === 'string' && resolved) {
 			swatch.style.backgroundColor = `#${resolved.replace(/^#/u, '')}`;
 		}
-		const slotSelect = doc.createElement('select');
+		const slotSelect = createInspectorSelect(doc);
 		slotSelect.className = 'pptxv-field-select-input';
 		slotSelect.setAttribute('aria-label', ALIAS_LABELS[alias]);
 		// The option VALUE stays the `a:clrScheme` slot name, because that is what

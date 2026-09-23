@@ -92,7 +92,7 @@ function onFillCommit(event: Event): void {
 
 		<label v-if="props.series.length > 1" class="flex items-center gap-2 text-[11px]">
 			<span class="w-12 text-muted-foreground shrink-0">{{ t('pptx.chart.series') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.chart.series')"
 				class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 				data-testid="chart-point-marker-series"
@@ -102,7 +102,7 @@ function onFillCommit(event: Event): void {
 				<option v-for="(s, i) in props.series" :key="`${s.name}-${i}`" :value="i">
 					{{ s.name }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<div class="space-y-2">
@@ -110,7 +110,7 @@ function onFillCommit(event: Event): void {
 				<div class="flex items-center gap-2 text-[11px]">
 					<span class="flex-1 truncate" :title="cat">{{ cat }}</span>
 					<label class="flex items-center gap-1 shrink-0">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							data-testid="chart-point-marker-toggle"
 							:checked="pointFor(idx)?.marker !== undefined"
@@ -121,7 +121,7 @@ function onFillCommit(event: Event): void {
 				</div>
 
 				<div v-if="pointFor(idx)?.marker" class="flex items-center gap-2 ml-2 flex-wrap">
-					<select
+					<pptx-ui-select
 						class="bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]"
 						data-testid="chart-point-marker-symbol"
 						:value="pointFor(idx)?.marker?.symbol"
@@ -130,7 +130,7 @@ function onFillCommit(event: Event): void {
 						<option v-for="opt in SYMBOL_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 					<input
 						type="number"
 						min="1"

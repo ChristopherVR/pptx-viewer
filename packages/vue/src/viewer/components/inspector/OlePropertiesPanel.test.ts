@@ -3,6 +3,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import OlePropertiesPanel from './OlePropertiesPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function ole(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -52,7 +53,7 @@ describe('olePropertiesPanel', () => {
 	it('emits a trimmed oleName patch on input', async () => {
 		const wrapper = mount(OlePropertiesPanel, { props: { element: ole(), canEdit: true } });
 		const input = wrapper.find('input[type="text"]');
-		await input.setValue('  Q3 Budget  ');
+		await setControlValue(input, '  Q3 Budget  ');
 		expect(wrapper.emitted('update')).toStrictEqual([[{ oleName: 'Q3 Budget' }]]);
 	});
 
@@ -61,7 +62,7 @@ describe('olePropertiesPanel', () => {
 			props: { element: ole({ oleName: 'Q3 Budget' } as Partial<PptxElement>), canEdit: true },
 		});
 		const input = wrapper.find('input[type="text"]');
-		await input.setValue('');
+		await setControlValue(input, '');
 		expect(wrapper.emitted('update')).toStrictEqual([[{ oleName: undefined }]]);
 	});
 
