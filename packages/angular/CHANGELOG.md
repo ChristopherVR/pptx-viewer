@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.5) - 2026-09-23
+
+### Bug Fixes
+
+- **shared:** Align search field focus across bindings ([#350](https://github.com/ChristopherVR/pptx-viewer/issues/350)) (by @yunfeizhu) ([fdb941f](https://github.com/ChristopherVR/pptx-viewer/commit/fdb941ff8370c0d03e495893a119b565b48eb1b3))
+
 ## [4.1.4](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.4) - 2026-09-22
 
 ### Bug Fixes

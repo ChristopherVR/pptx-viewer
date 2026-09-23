@@ -8,6 +8,14 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-23
+
+_Releases: pptx-react-viewer@4.1.5, pptx-vue-viewer@4.1.5, pptx-angular-viewer@4.1.5, pptx-vanilla-viewer@3.1.5, pptx-svelte-viewer@4.1.5, @christophervr/pptx-viewer@2.23.5_
+
+### Bug Fixes
+
+- **shared:** Align search field focus across bindings ([#350](https://github.com/ChristopherVR/pptx-viewer/issues/350)) (by @yunfeizhu) ([fdb941f](https://github.com/ChristopherVR/pptx-viewer/commit/fdb941ff8370c0d03e495893a119b565b48eb1b3))
+
 ## 2026-09-22
 
 _Releases: pptx-viewer-core@4.0.2, pptx-react-viewer@4.1.4, pptx-vue-viewer@4.1.4, pptx-angular-viewer@4.1.4, pptx-vanilla-viewer@3.1.4, pptx-svelte-viewer@4.1.4, @christophervr/pptx-viewer@2.23.4_
