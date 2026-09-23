@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ArrowLeft, Search, Settings } from 'lucide-vue-next';
 import {
+	BACKSTAGE_BACK_CLASSES,
 	BACKSTAGE_NAV,
+	BACKSTAGE_NAV_CLASSES,
 	BACKSTAGE_SEARCH_CLASSES,
 	BACKSTAGE_TEMPLATES,
 	formatBackstageDate,
@@ -71,26 +73,28 @@ function selectPage(id: BackstagePage): void {
 		<aside
 			class="flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary max-md:w-full max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:border-r-0 max-md:border-b"
 		>
-			<button
-				type="button"
-				:aria-label="t('pptx.backstage.back')"
-				class="grid min-h-12 place-items-center border-b border-border text-xl hover:bg-accent max-md:min-w-[48px] max-md:shrink-0 max-md:border-b-0 max-md:border-r"
-				@click="props.onClose()"
-			>
-				<ArrowLeft :size="18" aria-hidden="true" />
-			</button>
+			<div :class="BACKSTAGE_BACK_CLASSES.row">
+				<button
+					type="button"
+					:aria-label="t('pptx.backstage.back')"
+					:class="BACKSTAGE_BACK_CLASSES.button"
+					@click="props.onClose()"
+				>
+					<ArrowLeft :size="18" aria-hidden="true" />
+				</button>
+			</div>
 			<nav
-				class="flex min-h-0 flex-1 flex-col py-2 max-md:flex-row max-md:items-center max-md:py-0"
+				class="flex min-h-0 flex-1 flex-col overflow-y-auto pb-2 max-md:flex-row max-md:items-center max-md:overflow-y-visible max-md:pb-0"
 			>
 				<button
 					v-for="item in BACKSTAGE_NAV.filter((entry) => !entry.group)"
 					:key="item.id"
 					type="button"
+					data-pptx-backstage-nav-item
+					:aria-current="page === item.id ? 'page' : undefined"
 					:class="[
-						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3',
-						page === item.id
-							? 'border-primary bg-card text-primary'
-							: 'border-transparent hover:bg-accent',
+						BACKSTAGE_NAV_CLASSES.row,
+						page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive,
 					]"
 					@click="selectPage(item.id)"
 				>
@@ -102,11 +106,11 @@ function selectPage(id: BackstagePage): void {
 					v-for="item in BACKSTAGE_NAV.filter((entry) => entry.group)"
 					:key="item.id"
 					type="button"
+					data-pptx-backstage-nav-item
+					:aria-current="page === item.id ? 'page' : undefined"
 					:class="[
-						'flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3',
-						page === item.id
-							? 'border-primary bg-card text-primary'
-							: 'border-transparent hover:bg-accent',
+						BACKSTAGE_NAV_CLASSES.row,
+						page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive,
 					]"
 					@click="selectPage(item.id)"
 				>

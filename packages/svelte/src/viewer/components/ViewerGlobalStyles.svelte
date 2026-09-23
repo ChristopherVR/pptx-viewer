@@ -23,7 +23,7 @@
 		outline-offset: 2px;
 	}
 
-	:global(.pptx-svelte-viewer :is(button, [role='button']):not([role='switch']):not([data-pptx-compact])) {
+	:global(.pptx-svelte-viewer :is(button, [role='button']):not([role='switch']):not([data-pptx-compact]):not([data-pptx-backstage-nav-item])) {
 		min-width: 24px;
 		min-height: 24px;
 		touch-action: manipulation;
