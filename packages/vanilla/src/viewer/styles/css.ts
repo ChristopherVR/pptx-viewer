@@ -89,13 +89,14 @@ const CHROME_CSS = `
 .pptxv *, .pptxv *::before, .pptxv *::after { box-sizing: border-box; }
 .pptxv:focus { outline: none; }
 .pptxv:focus-visible { outline: 2px solid var(--pptx-ring); outline-offset: -2px; }
-.pptxv :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--pptx-ring) !important; outline-offset: 2px; }
+.pptxv :is(button, a, input, select, textarea, [tabindex]):not([data-pptx-search-input]):focus-visible { outline: 2px solid var(--pptx-ring) !important; outline-offset: 2px; }
 .pptxv :is(button, [role='button']):not([role='switch']):not([data-pptx-compact]) { min-width: 24px; min-height: 24px; touch-action: manipulation; }
 @media (prefers-reduced-motion: reduce) {
 	.pptxv *, .pptxv *::before, .pptxv *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }
 @media (forced-colors: active) {
-	.pptxv :is(button, a, input, select, textarea, [tabindex]):focus-visible { outline-color: Highlight; }
+	.pptxv :is(button, a, input, select, textarea, [tabindex]):not([data-pptx-search-input]):focus-visible { outline-color: Highlight; }
+	.pptxv [data-pptx-search-surface]:focus-within { outline: 2px solid Highlight; outline-offset: 2px; }
 }
 
 /* Ribbon shell layout (primary row + nav row + tab bar + groups) lives in
@@ -233,8 +234,9 @@ const CHROME_CSS = `
  */
 .pptxv-titlebar-search { flex: 1 1 auto; display: flex; justify-content: center; min-width: 20px; }
 .pptxv-cmdsearch { position: relative; width: min(320px, 30vw); }
-.pptxv-cmdsearch-box { display: flex; align-items: center; gap: 5px; height: 24px; padding: 0 8px; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
-.pptxv-cmdsearch-box svg { width: 13px; height: 13px; flex: none; }
+.pptxv-cmdsearch-box { display: flex; align-items: center; gap: 8px; height: 24px; padding: 0 12px; border: 1px solid var(--pptx-border); border-radius: 6px; background: var(--pptx-muted); color: var(--pptx-muted-foreground); }
+.pptxv-cmdsearch-box:focus-within { border-color: var(--pptx-ring); }
+.pptxv-cmdsearch-box svg { width: 12px; height: 12px; flex: none; }
 .pptxv-cmdsearch-input { width: 100%; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--pptx-foreground); font: inherit; }
 .pptxv-cmdsearch-menu { position: absolute; z-index: 20; top: calc(100% + 4px); right: 0; left: 0; overflow: hidden; border: 1px solid var(--pptx-border); border-radius: 4px; background: var(--pptx-card); box-shadow: 0 8px 20px rgb(0 0 0 / 0.16); }
 .pptxv-cmdsearch-item, .pptxv-cmdsearch-empty { display: block; width: 100%; padding: 7px 9px; border: 0; background: transparent; color: var(--pptx-foreground); font: inherit; text-align: left; }

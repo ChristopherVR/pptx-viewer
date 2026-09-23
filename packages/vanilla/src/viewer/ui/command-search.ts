@@ -43,10 +43,12 @@ export function createCommandSearch(
 	const el = createEl(doc, 'div', 'pptxv-cmdsearch');
 
 	const box = createEl(doc, 'div', 'pptxv-cmdsearch-box');
+	box.setAttribute('data-pptx-search-surface', '');
 	box.appendChild(createIcon(doc, 'search'));
 	const input = doc.createElement('input');
 	input.type = 'text';
 	input.className = 'pptxv-cmdsearch-input';
+	input.setAttribute('data-pptx-search-input', '');
 	input.placeholder = t('pptx.titleBar.searchPlaceholder');
 	input.setAttribute('aria-label', t('pptx.titleBar.search'));
 	box.appendChild(input);

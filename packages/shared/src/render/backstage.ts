@@ -4,6 +4,14 @@ import { getAutosaveSnapshot, listAutosaveSnapshots } from './autosave-store';
 import { rememberSessionDeck } from './session-restore';
 import { createBlankSlide } from './slide-operations';
 
+/** The recent-files search control is visually owned by its outer frame. */
+export const BACKSTAGE_SEARCH_CLASSES = {
+	box: 'mt-8 flex h-10 w-full max-w-[540px] items-center gap-2 border border-input bg-card px-3 text-muted-foreground focus-within:border-ring',
+	icon: 'size-4 shrink-0',
+	input:
+		'h-full min-w-0 flex-1 border-0 bg-transparent text-[13px] text-card-foreground outline-none placeholder:text-muted-foreground',
+} as const;
+
 export type BackstagePage =
 	| 'home'
 	| 'new'

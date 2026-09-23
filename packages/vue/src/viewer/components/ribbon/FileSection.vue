@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ArrowLeft, Settings } from 'lucide-vue-next';
+import { ArrowLeft, Search, Settings } from 'lucide-vue-next';
 import {
 	BACKSTAGE_NAV,
+	BACKSTAGE_SEARCH_CLASSES,
 	BACKSTAGE_TEMPLATES,
 	formatBackstageDate,
 	formatBackstageSize,
@@ -143,11 +144,17 @@ function selectPage(id: BackstagePage): void {
 				</div>
 			</template>
 			<template v-if="page === 'home' || page === 'open'">
-				<input
-					v-model="query"
-					class="mt-8 h-10 w-full max-w-[540px] border border-input bg-card px-4 text-[13px] text-card-foreground outline-none focus:border-ring"
-					:placeholder="t('pptx.backstage.searchPlaceholder')"
-				/>
+				<div data-pptx-search-surface :class="BACKSTAGE_SEARCH_CLASSES.box">
+					<Search :class="BACKSTAGE_SEARCH_CLASSES.icon" aria-hidden="true" />
+					<input
+						v-model="query"
+						data-pptx-search-input
+						type="search"
+						:class="BACKSTAGE_SEARCH_CLASSES.input"
+						:placeholder="t('pptx.backstage.searchPlaceholder')"
+						:aria-label="t('pptx.backstage.searchPlaceholder')"
+					/>
+				</div>
 				<button
 					v-if="page === 'open'"
 					type="button"

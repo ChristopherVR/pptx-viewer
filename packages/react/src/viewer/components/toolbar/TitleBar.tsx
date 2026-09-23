@@ -229,6 +229,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 				{(p.mode === 'edit' || p.mode === 'master') && (
 					<div ref={searchRef} className='relative w-full max-w-md'>
 						<div
+							data-pptx-search-surface
 							className={cn(
 								TB.searchBox,
 								(searchFocused || p.findReplaceOpen) && 'text-foreground bg-background',
@@ -236,6 +237,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 						>
 							<LuSearch className={TB.searchIcon} />
 							<input
+								data-pptx-search-input
 								type='text'
 								value={searchQuery}
 								onChange={(e) => setSearchQuery(e.target.value)}
