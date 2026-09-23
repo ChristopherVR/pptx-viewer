@@ -31,6 +31,7 @@ import {
 	encodeXmlAttributeValue,
 	encodeXmlTextValue,
 } from '../../utils/xml-entities';
+import { declareUsedNamespaces } from '../../utils/xml-namespace-declarations';
 import { preservesXmlWhitespace } from '../../utils/xml-whitespace';
 import { annotateOmmlSiblingOrder } from '../runtime/omml-sibling-order';
 import { annotateParagraphSiblingOrder } from '../runtime/paragraph-sibling-order';
@@ -278,8 +279,10 @@ export class PptxRuntimeDependencyFactory implements IPptxRuntimeDependencyFacto
 			maxNestedTags: MAX_XML_NESTING_DEPTH * 2,
 		});
 		const build = builder.build.bind(builder);
+		// Every part the save path emits gets any extension prefix it uses
+		// declared on its root (see utils/xml-namespace-declarations).
 		builder.build = ((value: unknown) =>
-			stripXmlOrderMarkers(build(value))) as typeof builder.build;
+			declareUsedNamespaces(stripXmlOrderMarkers(build(value)))) as typeof builder.build;
 		return builder;
 	}
 
