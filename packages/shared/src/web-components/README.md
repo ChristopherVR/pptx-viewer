@@ -4,6 +4,11 @@
 Vue, Angular, Svelte, and Vanilla use the same implementation and the existing
 viewer CSS variables for their colors.
 
+Each control keeps readable scoped CSS in a sibling styles module. Browser
+instances in the same document reuse a constructed stylesheet; DOMs without
+that API receive a local `<style>` element. The document-level host rules
+account for the viewer's Tailwind reset.
+
 | Element            | Public properties and attributes                                                                          | Events            |
 | ------------------ | --------------------------------------------------------------------------------------------------------- | ----------------- |
 | `pptx-ui-search`   | `value`, `placeholder`, `disabled`, `aria-label`, `variant="titlebar"`                                    | `input`, `change` |

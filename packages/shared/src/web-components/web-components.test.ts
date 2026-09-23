@@ -44,6 +44,11 @@ describe('shared Web Components', () => {
 		expect(onChange).toHaveBeenCalledOnce();
 	});
 
+	it('keeps scoped styles when constructable stylesheets are unavailable', () => {
+		const checkbox = document.createElement('pptx-ui-checkbox');
+		expect(checkbox.shadowRoot?.querySelector('style')?.textContent).toContain(':host([checked])');
+	});
+
 	it('select uses its light DOM options and skips disabled choices', () => {
 		const select = document.createElement('pptx-ui-select') as HTMLElement & { value: string };
 		select.innerHTML =

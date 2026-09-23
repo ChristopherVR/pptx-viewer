@@ -1,13 +1,5 @@
-const CHECKBOX_STYLES = `
-:host { display: inline-grid; box-sizing: border-box; width: 16px; height: 16px; flex: none; place-items: center; border: 1px solid var(--pptx-border, #374151); border-radius: 3px; background: var(--pptx-background, #030712); color: var(--pptx-primary-foreground, #fff); cursor: pointer; vertical-align: middle; }
-:host([checked]) { border-color: var(--pptx-primary, #6366f1); background: var(--pptx-primary, #6366f1); }
-:host(:focus-visible) { outline: 2px solid var(--pptx-ring, #6366f1); outline-offset: 2px; }
-:host([disabled]) { opacity: .5; cursor: not-allowed; }
-svg { display: none; width: 12px; height: 12px; }
-:host([checked]) svg { display: block; }
-@media (pointer: coarse), (max-width: 767px) { :host { width: 22px; height: 22px; } svg { width: 16px; height: 16px; } }
-@media (forced-colors: active) { :host { border-color: CanvasText; background: Canvas; color: CanvasText; forced-color-adjust: auto; } :host([checked]) { border-color: Highlight; background: Highlight; color: HighlightText; } :host(:focus-visible) { outline-color: Highlight; } }
-`;
+import { CHECKBOX_STYLES } from './checkbox-styles';
+import { attachControlStyles } from './control-styles';
 
 /** Native-form-compatible checkbox glyph with one event contract in every binding. */
 export function definePptxCheckbox(registry: CustomElementRegistry): void {
@@ -29,9 +21,7 @@ export function definePptxCheckbox(registry: CustomElementRegistry): void {
 				this.internals = undefined;
 			}
 			const root = this.attachShadow({ mode: 'open' });
-			const style = document.createElement('style');
-			style.textContent = CHECKBOX_STYLES;
-			root.append(style);
+			attachControlStyles(root, CHECKBOX_STYLES);
 			const icon = document.createElement('template');
 			icon.innerHTML =
 				'<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"/></svg>';

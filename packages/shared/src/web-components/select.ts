@@ -1,3 +1,4 @@
+import { attachControlStyles } from './control-styles';
 import {
 	collectSelectChoices,
 	markSelectActive,
@@ -40,8 +41,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				this.internals = undefined;
 			}
 			const root = this.attachShadow({ mode: 'open', delegatesFocus: true });
-			const style = document.createElement('style');
-			style.textContent = SELECT_STYLES;
+			attachControlStyles(root, SELECT_STYLES);
 			this.trigger = document.createElement('button');
 			this.trigger.type = 'button';
 			this.trigger.setAttribute('role', 'combobox');
@@ -61,7 +61,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			this.menu.setAttribute('popover', 'manual');
 			this.menu.setAttribute('part', 'popup');
 			this.trigger.setAttribute('aria-controls', this.menu.id);
-			root.append(style, this.trigger, this.menu);
+			root.append(this.trigger, this.menu);
 			this.trigger.addEventListener('click', () => (this.open ? this.close() : this.show()));
 			this.trigger.addEventListener('keydown', (event) => this.onKeyDown(event));
 			this.menu.addEventListener('pointerdown', (event) => event.preventDefault());
