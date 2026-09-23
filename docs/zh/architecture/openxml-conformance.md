@@ -176,14 +176,24 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 `.pptx` 包含 PowerPoint 自身预计算的绘图部件时，会使用该精确布局，并像 PowerPoint 一样按原始偏移放置，已通过实时 COM 验证。否则由 DiagramML 解释器重建，支持全部十种 `dgm:alg` 类型、`constrLst` / `ruleLst`（包括由 `dgm:choose` 控制的条目）、相对约束和 `presLayoutVars`。
 
-解释器依据包含 229 个样例的图库测量，这些样例覆盖所有内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`，本地运行，在全部通过之前于 CI 中跳过：
+解释器依据包含 229 个样例的图库测量，这些样例覆盖 `Application.SmartArtLayouts` 报告的全部 176 种内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`，需设置 `SMARTART_GALLERY_GATE=1` 才会运行，在全部通过之前默认跳过。它把解释器自身的输出（`computeSmartArtElementsWithoutCache`，从不读取缓存）与样例中缓存的 `dsp:drawing` 按节点文本逐个形状比较。
 
-- 229 个样例中，227 个生成的带文本形状集合与 PowerPoint 完全一致。
-- 循环、径向、层次、水平层次、组织结构图和棱锥族，在平坦数据集上的几何与 PowerPoint 偏差在 1% 以内。
-- 文本自动适应遵循实测规则：使用整数磅字号、真实文本框边距和圆角内缩，以及折叠子段落固定的 0.78 比例。
-- 组织结构图还由 `smartart-orgchart-genuine-fixture.test.ts` 固定拓扑、悬挂尾部偏移和扇形与列式布局选择。
+2026-09-24 实测结果（逐样例数据见 `smartart-gallery/baseline.json`）：
 
-仍未解决的部分可能让文稿与 PowerPoint 在字号上相差几磅，或位置上相差几个百分点：多数多角色条目模板（项目符号、方框和括号列表）的精确字号；超过第三代的深层或不均衡组织结构图；弯折蛇形连接线的预留通道；以及一个预设特有的空白段落（气泡图片列表，Bubble Picture List）。
+| 检查项                                     | 通过的样例      |
+| ------------------------------------------ | --------------- |
+| 带文本形状集合与 PowerPoint 完全一致       | 229 个中 227 个 |
+| 且所有形状的 x/y/宽/高偏差在图示尺寸 1% 内 | 229 个中 39 个  |
+| 偏差在 5% 内                               | 229 个中 59 个  |
+| 偏差在 10% 内                              | 229 个中 72 个  |
+| 偏差在 50% 内                              | 229 个中 155 个 |
+| 所有匹配形状的预设形状一致                 | 229 个中 190 个 |
+| 所有匹配形状的字号一致                     | 229 个中 24 个  |
+| 完整门槛（以上全部，按 1%）                | 229 个中 10 个  |
+
+核心的单一算法布局（基本流程、垂直流程、基本块列表、基本/连续/多向循环、基本和发散射线、层次结构、水平层次结构、基本和倒棱锥，以及组织结构图，其三层 `hier8` 数据集为 2.3%）在语料中的每个数据集上几何偏差都在 1% 以内，但字号不一定完全一致。文本自动适应遵循实测规则：使用整数磅字号、真实文本框边距和圆角内缩，以及折叠子段落固定的 0.78 比例。组织结构图还由 `smartart-orgchart-genuine-fixture.test.ts` 固定拓扑、悬挂尾部偏移和扇形与列式布局选择。
+
+仍未解决：大多数多模板布局（图片、时间线、团队介绍、文本卡片，以及复合列表/流程族）由按族划分的排列器放置，而不是逐点执行布局定义中的 `dgm:choose` 和复合约束，因此 229 个样例中有 74 个偏差超过图示尺寸的 50%，字号也很少完全一致。两个结构性未通过的样例是 `segmented-process--hier5` 和 `bubble-picture-list--hier5`。这只影响未保存缓存绘图的演示文稿；PowerPoint 自身总会写入缓存，因此只涉及其他生成器产生的文件以及结构编辑后的实时重新布局。
 
 ## 相关阅读 {#related-reading}
 

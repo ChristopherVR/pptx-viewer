@@ -85,11 +85,12 @@ export const BLIP_CHILDREN = new Set([
 // every load was actively misleading (the "not editable" claim was false). The
 // one genuine nuance, decks saved without a cached `dsp:drawing` are laid out
 // by the interpreter rather than replayed from PowerPoint's own cached shapes,
-// is a documented, near-imperceptible approximation (226 of 227 COM-authored
-// gallery fixtures reproduce within 1%; see docs/guide/limitations.md and
-// docs/architecture/openxml-conformance.md#smartart-layout-ground-truth), not
-// an unsupported feature, so it does not belong in this per-load compatibility
-// toast.
+// is a documented approximation (measured against 229 COM-authored gallery
+// fixtures: 227 produce PowerPoint's exact set of shapes, 39 match its geometry
+// within 1%; see docs/architecture/openxml-conformance.md#smartart-layout-ground-truth).
+// Decks PowerPoint saved always carry the cache, so this is a layout-fidelity
+// gap rather than an unsupported feature, and it does not belong in this
+// per-load compatibility toast.
 export const GRAPHIC_FRAME_LIMITATIONS = {
 	unknown: ['UNSUPPORTED_GRAPHIC_FRAME', 'The graphic-frame payload is preserved but unsupported.'],
 	ole: [
