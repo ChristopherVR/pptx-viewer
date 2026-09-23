@@ -164,7 +164,10 @@
 	z-index: 999;
 }
 
-:where([data-pptx-viewer]) :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+:where([data-pptx-viewer])
+	:where(button, a, input, select, textarea, [tabindex]):not(
+		[data-pptx-search-input]
+	):focus-visible {
 	outline: 2px solid var(--pptx-ring, #818cf8) !important;
 	outline-offset: 2px;
 }
@@ -177,7 +180,14 @@
 }
 
 @media (forced-colors: active) {
-	:where([data-pptx-viewer]) :where(button, a, input, select, textarea, [tabindex]):focus-visible {
+	:where([data-pptx-viewer])
+		:where(button, a, input, select, textarea, [tabindex]):not(
+			[data-pptx-search-input]
+		):focus-visible {
 		outline-color: Highlight;
+	}
+	:where([data-pptx-viewer]) [data-pptx-search-surface]:focus-within {
+		outline: 2px solid Highlight;
+		outline-offset: 2px;
 	}
 }

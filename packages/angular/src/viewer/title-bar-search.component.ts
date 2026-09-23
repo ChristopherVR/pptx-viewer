@@ -46,6 +46,7 @@ const BLUR_GRACE_MS = 150;
 	host: { class: 'relative w-full max-w-md' },
 	template: `
 		<div
+			data-pptx-search-surface
 			[class]="tb.searchBox"
 			[ngClass]="searchFocused() || findReplaceOpen() ? 'text-foreground bg-background' : ''"
 		>
@@ -53,6 +54,7 @@ const BLUR_GRACE_MS = 150;
 				><svg lucideSearch class="h-3.5 w-3.5"></svg
 			></span>
 			<input
+				data-pptx-search-input
 				type="text"
 				[value]="searchQuery()"
 				(input)="searchQuery.set($any($event.target).value)"

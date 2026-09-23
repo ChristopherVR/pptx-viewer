@@ -217,6 +217,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 				class="relative w-full max-w-md"
 			>
 				<div
+					data-pptx-search-surface
 					:class="
 						cn(
 							TB.searchBox,
@@ -226,6 +227,7 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 				>
 					<Search :class="TB.searchIcon" />
 					<input
+						data-pptx-search-input
 						v-model="searchQuery"
 						type="text"
 						class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"

@@ -92,7 +92,7 @@ export const TITLE_BAR_CLASSES = {
 	/** Centred search area. */
 	searchWrap: 'flex-1 flex justify-center min-w-0 px-2',
 	searchBox:
-		'flex items-center gap-2 w-full max-w-md px-3 py-[3px] rounded-md bg-background/70 border border-border/60 text-muted-foreground hover:bg-background hover:text-foreground transition-colors',
+		'flex items-center gap-2 w-full max-w-md px-3 py-[3px] rounded-md bg-background/70 border border-border/60 text-muted-foreground hover:bg-background hover:text-foreground focus-within:border-ring transition-colors',
 	searchIcon: 'w-3 h-3 shrink-0',
 	searchLabel: 'text-[11px] truncate',
 	/** Right-hand spacer mirroring the left block so search stays centred. */

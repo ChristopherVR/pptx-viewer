@@ -18,7 +18,7 @@
 -->
 
 <style>
-	:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {
+	:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):not([data-pptx-search-input]):focus-visible) {
 		outline: 2px solid var(--pptx-ring, #818cf8) !important;
 		outline-offset: 2px;
 	}
@@ -91,8 +91,12 @@
 	}
 
 	@media (forced-colors: active) {
-		:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):focus-visible) {
+		:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):not([data-pptx-search-input]):focus-visible) {
 			outline-color: Highlight;
+		}
+		:global(.pptx-svelte-viewer [data-pptx-search-surface]:focus-within) {
+			outline: 2px solid Highlight;
+			outline-offset: 2px;
 		}
 	}
 

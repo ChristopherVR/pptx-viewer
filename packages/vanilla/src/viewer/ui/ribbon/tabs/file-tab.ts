@@ -1,4 +1,4 @@
-import { Settings } from 'lucide';
+import { Search, Settings } from 'lucide';
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
@@ -59,7 +59,10 @@ export function createFileTab(
 	let recent: BackstageRecentFile[] = [];
 	void (async () => {
 		recent = await listBackstageRecentFiles(t, handlers.getRecentPresentationsCount());
-		render();
+		const list = main.querySelector<HTMLElement>('.pptxv-bs-recent');
+		if (list) {
+			renderRecentItems(list);
+		}
 	})();
 
 	function run(callback: (() => void) | undefined): void {
@@ -110,16 +113,23 @@ export function createFileTab(
 		main.append(heading, grid);
 	}
 	function renderRecent(): void {
+		const list = createEl(doc, 'div', 'pptxv-bs-recent');
+		const searchBox = createEl(doc, 'div', 'pptxv-bs-search');
+		searchBox.setAttribute('data-pptx-search-surface', '');
+		const searchIcon = createLucideIcon(doc, Search, 16);
+		searchIcon.setAttribute('aria-hidden', 'true');
 		const search = doc.createElement('input');
-		search.className = 'pptxv-bs-search';
+		search.setAttribute('data-pptx-search-input', '');
 		search.type = 'search';
 		search.placeholder = t('pptx.backstage.searchPlaceholder');
+		search.setAttribute('aria-label', search.placeholder);
 		search.value = query;
 		search.addEventListener('input', () => {
 			query = search.value;
-			render();
+			renderRecentItems(list);
 		});
-		main.appendChild(search);
+		searchBox.append(searchIcon, search);
+		main.appendChild(searchBox);
 		if (page === 'open') {
 			main.appendChild(
 				button(
@@ -132,14 +142,17 @@ export function createFileTab(
 		}
 		const heading = doc.createElement('h2');
 		heading.textContent = t('pptx.backstage.recentHeading');
-		const list = createEl(doc, 'div', 'pptxv-bs-recent');
+		renderRecentItems(list);
+		main.append(heading, list);
+	}
+	function renderRecentItems(list: HTMLElement): void {
 		const header = doc.createElement('header');
 		header.replaceChildren(
 			span(doc, t('pptx.backstage.columnName')),
 			span(doc, t('pptx.backstage.columnModified')),
 			span(doc, t('pptx.backstage.columnSize')),
 		);
-		list.appendChild(header);
+		list.replaceChildren(header);
 		const needle = query.trim().toLowerCase();
 		const files = needle
 			? recent.filter((file) => `${file.name} ${file.location}`.toLowerCase().includes(needle))
@@ -168,7 +181,6 @@ export function createFileTab(
 			empty.textContent = t('pptx.backstage.noRecent');
 			list.appendChild(empty);
 		}
-		main.append(heading, list);
 	}
 	function renderActions(): void {
 		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run, t, hiddenActions));
