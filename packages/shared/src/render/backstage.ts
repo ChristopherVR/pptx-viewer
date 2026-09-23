@@ -12,6 +12,19 @@ export const BACKSTAGE_SEARCH_CLASSES = {
 		'h-full min-w-0 flex-1 border-0 bg-transparent text-[13px] text-card-foreground outline-none placeholder:text-muted-foreground',
 } as const;
 
+/** Shared Tailwind treatment for the File backstage navigation rows. */
+export const BACKSTAGE_NAV_CLASSES = {
+	row: 'flex min-h-10 shrink-0 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3',
+	active: 'border-primary bg-card text-primary',
+	inactive: 'border-transparent hover:bg-accent',
+} as const;
+
+/** The back row is short and clickable across the full desktop rail. */
+export const BACKSTAGE_BACK_CLASSES = {
+	row: 'flex h-10 shrink-0 border-b border-border max-md:h-12 max-md:w-12 max-md:border-b-0 max-md:border-r',
+	button: 'grid h-10 w-full place-items-center text-xl hover:bg-accent max-md:h-12 max-md:w-12',
+} as const;
+
 export type BackstagePage =
 	| 'home'
 	| 'new'

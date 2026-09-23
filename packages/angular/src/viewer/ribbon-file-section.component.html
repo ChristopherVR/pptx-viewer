@@ -5,23 +5,37 @@
 	[attr.aria-label]="'pptx.backstage.title' | translate"
 >
 	<aside>
-		<button
-			class="back"
-			type="button"
-			[attr.aria-label]="'pptx.backstage.back' | translate"
-			(click)="close.emit()"
-		>
-			<pptx-backstage-nav-icon page="back" />
-		</button>
+		<div class="back-row">
+			<button
+				class="back"
+				type="button"
+				[attr.aria-label]="'pptx.backstage.back' | translate"
+				(click)="close.emit()"
+			>
+				<pptx-backstage-nav-icon page="back" />
+			</button>
+		</div>
 		<nav>
 			@for (item of mainNav(); track item.id) {
-				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
+				<button
+					type="button"
+					data-pptx-backstage-nav-item
+					[class.active]="page() === item.id"
+					[attr.aria-current]="page() === item.id ? 'page' : null"
+					(click)="selectPage(item.id)"
+				>
 					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
 				</button>
 			}
 			<i></i>
 			@for (item of footerNav; track item.id) {
-				<button type="button" [class.active]="page() === item.id" (click)="selectPage(item.id)">
+				<button
+					type="button"
+					data-pptx-backstage-nav-item
+					[class.active]="page() === item.id"
+					[attr.aria-current]="page() === item.id ? 'page' : null"
+					(click)="selectPage(item.id)"
+				>
 					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
 				</button>
 			}

@@ -1,5 +1,7 @@
 import {
+	BACKSTAGE_BACK_CLASSES,
 	BACKSTAGE_NAV,
+	BACKSTAGE_NAV_CLASSES,
 	BACKSTAGE_SEARCH_CLASSES,
 	listBackstageRecentFiles,
 } from 'pptx-viewer-shared';
@@ -50,21 +52,25 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 			aria-label={t('pptx.backstage.title')}
 		>
 			<aside className='flex w-[148px] shrink-0 flex-col border-r border-border bg-secondary max-md:w-full max-md:flex-row max-md:items-center max-md:overflow-x-auto max-md:border-r-0 max-md:border-b'>
-				<button
-					type='button'
-					aria-label={t('pptx.backstage.back')}
-					onClick={p.onClose}
-					className='grid h-47px min-h-[48px] place-items-center border-b border-border text-xl hover:bg-accent max-md:min-w-[48px] max-md:shrink-0 max-md:border-b-0 max-md:border-r'
-				>
-					<LuArrowLeft />
-				</button>
-				<nav className='flex min-h-0 flex-1 flex-col py-2 max-md:flex-row max-md:items-center max-md:py-0'>
+				<div className={BACKSTAGE_BACK_CLASSES.row}>
+					<button
+						type='button'
+						aria-label={t('pptx.backstage.back')}
+						onClick={p.onClose}
+						className={BACKSTAGE_BACK_CLASSES.button}
+					>
+						<LuArrowLeft />
+					</button>
+				</div>
+				<nav className='flex min-h-0 flex-1 flex-col overflow-y-auto pb-2 max-md:flex-row max-md:items-center max-md:overflow-y-visible max-md:pb-0'>
 					{BACKSTAGE_NAV.filter(
 						(item) => !item.group && !(item.id === 'export' && exportHidden),
 					).map((item) => (
 						<button
 							key={item.id}
 							type='button'
+							data-pptx-backstage-nav-item
+							aria-current={page === item.id ? 'page' : undefined}
 							onClick={() =>
 								item.id === 'close'
 									? p.onClose()
@@ -72,7 +78,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 										? run(p.onSaveAsPptx)
 										: setPage(item.id)
 							}
-							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3 ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
+							className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
 						>
 							<BackstageNavIcon page={item.id} />
 							{t(item.labelKey, { defaultValue: item.label })}
@@ -83,10 +89,12 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 						<button
 							key={item.id}
 							type='button'
+							data-pptx-backstage-nav-item
+							aria-current={page === item.id ? 'page' : undefined}
 							onClick={() =>
 								item.id === 'options' && p.onOpenSettings ? run(p.onOpenSettings) : setPage(item.id)
 							}
-							className={`flex min-h-10 items-center gap-3 border-l-2 px-4 text-left text-[12px] max-md:shrink-0 max-md:whitespace-nowrap max-md:border-l-0 max-md:border-b-2 max-md:px-3 ${page === item.id ? 'border-primary bg-card text-primary' : 'border-transparent hover:bg-accent'}`}
+							className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
 						>
 							<BackstageNavIcon page={item.id} />
 							{t(item.labelKey, { defaultValue: item.label })}
