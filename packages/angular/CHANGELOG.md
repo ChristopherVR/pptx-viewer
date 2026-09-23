@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.6) - 2026-09-23
+
+### Bug Fixes
+
+- **ui:** Align File backstage navigation across bindings ([#351](https://github.com/ChristopherVR/pptx-viewer/issues/351)) (by @yunfeizhu) ([2196a0e](https://github.com/ChristopherVR/pptx-viewer/commit/2196a0e6a5bd33f0e7ea70e18460141a64703874))
+
 ## [4.1.5](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.1.5) - 2026-09-23
 
 ### Bug Fixes
