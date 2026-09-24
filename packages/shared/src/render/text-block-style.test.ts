@@ -136,6 +136,27 @@ describe('buildTextBlockStyle', () => {
 		expect(perParagraph.textIndent).toBe(0);
 	});
 
+	it('never drops @marR, even when per-paragraph indents exist', () => {
+		// Unlike marL/indent, `a:pPr/@marR` has no per-paragraph carrier
+		// anywhere in the render pipeline, so there is nothing to double-count
+		// and no reason to zero it alongside marL/indent when
+		// `element.paragraphIndents` is populated (COM-verified against
+		// audit-text/pp/s19.png: a paragraph authoring only `marR` + `algn="r"`,
+		// no marL/indent, still gets its right margin in real PowerPoint).
+		const withoutParagraphIndents = buildTextBlockStyle(
+			textEl({ bodyInsetRight: 5, paragraphMarginRight: 20 }),
+		);
+		expect(withoutParagraphIndents.paddingRight).toBe(25);
+
+		const withParagraphIndents = buildTextBlockStyle(
+			textEl(
+				{ bodyInsetRight: 5, paragraphMarginRight: 20 },
+				{ paragraphIndents: [{ marginLeft: 20, indent: -12 }] },
+			),
+		);
+		expect(withParagraphIndents.paddingRight).toBe(25);
+	});
+
 	it('paints hyperlinked text in the hyperlink colour and underlines it', () => {
 		const style = buildTextBlockStyle(textEl({ hyperlink: 'https://example.com' }));
 		expect(style.color).toBe('#0563C1');

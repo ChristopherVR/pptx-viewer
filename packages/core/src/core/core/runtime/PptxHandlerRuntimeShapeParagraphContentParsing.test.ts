@@ -740,6 +740,54 @@ describe('collectShapeParagraphContent - bullet markers (real runtime)', () => {
 		const info = segments[0].bulletInfo;
 		expect((info?.autoNumStartAt ?? 1) + (info?.paragraphIndex ?? 0)).toBe(5);
 	});
+
+	// COM-verified against audit-text/pp/s10.png (gen.py slide 10's nested-list
+	// box): "one", "two", a blank line, then "after empty" number 1, 2, (no
+	// number), 3 - the blank line consumes no ordinal, and the paragraph after
+	// it continues the sequence rather than restarting or skipping ahead.
+	it('does not consume an ordinal for a blank (endParaRPr-only) auto-numbered paragraph', () => {
+		const runtime = new ParagraphContentRuntime();
+		const sequence = createAutoNumberSequence();
+		const autoNumPPr = { 'a:buAutoNum': { '@_type': 'arabicPeriod' } };
+
+		const one = runtime.collect({ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'one' } }, 0, 4, sequence);
+		expect(one.segments[0].text).toBe('1. ');
+
+		const two = runtime.collect({ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'two' } }, 1, 4, sequence);
+		expect(two.segments[0].text).toBe('2. ');
+
+		// A blank line: `a:pPr` still declares the auto-number, but the
+		// paragraph has no run/field/equation content, only `a:endParaRPr`.
+		const empty = runtime.collect(
+			{ 'a:pPr': autoNumPPr, 'a:endParaRPr': { '@_lang': 'en-US' } },
+			2,
+			4,
+			sequence,
+		);
+		expect(empty.segments.some((s) => s.bulletInfo)).toBeFalsy();
+
+		const after = runtime.collect(
+			{ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'after empty' } },
+			3,
+			4,
+			sequence,
+		);
+		expect(after.segments[0].text).toBe('3. ');
+	});
+
+	it('still paints a char bullet on an otherwise-empty paragraph', () => {
+		// Only auto-numbered blank paragraphs are suppressed; a character
+		// bullet's glyph is independent of any ordinal sequence.
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buChar': { '@_char': '•' } },
+				'a:endParaRPr': { '@_lang': 'en-US' },
+			},
+			0,
+			1,
+		);
+		expect(segments.some((s) => s.bulletInfo)).toBeTruthy();
+	});
 });
 
 // ---------------------------------------------------------------------------

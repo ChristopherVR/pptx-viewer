@@ -60,6 +60,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				inheritedRunStyle: mergedDefaultRunStyle,
 			}) as TextStyle;
 
+		// Recovered here (rather than at its original use site below the bullet
+		// block) because the bullet/auto-number logic ALSO needs to know
+		// whether this paragraph has any actual content: see
+		// `hasRenderableContent` immediately below.
+		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS);
+		// A bare `<a:endParaRPr/>` paragraph (no `a:r`/`a:fld`/equation/`a:br`)
+		// is a blank line, not a list item: PowerPoint does not print an
+		// auto-number next to it, and the NEXT numbered paragraph continues the
+		// sequence as though the blank line were not there (COM-verified
+		// against `audit-text/pp/s10.png`, `gen.py` slide 10's nested-list box,
+		// where "two" is numbered 2 and "after empty" is numbered 3, skipping
+		// the blank line between them entirely rather than making it 3 and the
+		// next 4).
+		const hasRenderableContent = entries.length > 0;
+
 		// Bullet info
 		const isBodyPlaceholder =
 			ctx.placeholderInfo?.type === 'body' || ctx.placeholderInfo?.type === 'obj';
@@ -82,33 +97,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// `startAt` again rather than from the top of the text body.
 		let autoNumOrdinal: number | undefined;
 		if (autoNumScheme) {
-			autoNumOrdinal = nextAutoNumber(
-				ctx.autoNumbering,
-				paragraphLevel,
-				autoNumScheme,
-				paragraphBulletInfo?.autoNumStartAt ?? 1,
-			);
-			if (paragraphBulletInfo) {
-				// Consumers that re-derive the marker from `BulletInfo` alone
-				// (the renderer's `resolveParagraphBullet`, the Markdown
-				// converter's `resolveListMarker`) compute
-				// `autoNumStartAt + paragraphIndex`. Publishing the ordinal's
-				// OFFSET here rather than the raw paragraph position is what
-				// makes them land on the sequence resolved above, which is the
-				// only one that accounts for a list interrupted by an unnumbered
-				// paragraph. With the raw position, a list that did not start at
-				// the first paragraph of the body numbered one way here and
-				// another way in the renderer, and BOTH markers were painted
-				// ("3.1. Item"), since the paragraph builder drops the parsed
-				// marker segment only when the two strings agree.
-				paragraphBulletInfo.paragraphIndex =
-					autoNumOrdinal - (paragraphBulletInfo.autoNumStartAt ?? 1);
+			// A blank line (no run/field/equation content) does not consume an
+			// ordinal: leave `ctx.autoNumbering` completely untouched, neither
+			// advancing nor breaking it, so it is invisible to the sequence and
+			// the next real numbered paragraph continues from where the LAST
+			// real one left off.
+			if (hasRenderableContent) {
+				autoNumOrdinal = nextAutoNumber(
+					ctx.autoNumbering,
+					paragraphLevel,
+					autoNumScheme,
+					paragraphBulletInfo?.autoNumStartAt ?? 1,
+				);
+				if (paragraphBulletInfo) {
+					// Consumers that re-derive the marker from `BulletInfo` alone
+					// (the renderer's `resolveParagraphBullet`, the Markdown
+					// converter's `resolveListMarker`) compute
+					// `autoNumStartAt + paragraphIndex`. Publishing the ordinal's
+					// OFFSET here rather than the raw paragraph position is what
+					// makes them land on the sequence resolved above, which is the
+					// only one that accounts for a list interrupted by an unnumbered
+					// paragraph. With the raw position, a list that did not start at
+					// the first paragraph of the body numbered one way here and
+					// another way in the renderer, and BOTH markers were painted
+					// ("3.1. Item"), since the paragraph builder drops the parsed
+					// marker segment only when the two strings agree.
+					paragraphBulletInfo.paragraphIndex =
+						autoNumOrdinal - (paragraphBulletInfo.autoNumStartAt ?? 1);
+				}
 			}
 		} else {
 			breakAutoNumberRun(ctx.autoNumbering, paragraphLevel);
 		}
 
-		if (paragraphBulletInfo && !paragraphBulletInfo.none) {
+		// An empty auto-numbered paragraph gets no marker segment at all (no
+		// ordinal was resolved for it above); a char/picture bullet on an empty
+		// paragraph is unaffected; PowerPoint still paints those.
+		const showBulletMarker = hasRenderableContent || !autoNumScheme;
+		if (paragraphBulletInfo && !paragraphBulletInfo.none && showBulletMarker) {
 			let bulletText: string;
 			if (paragraphBulletInfo.char) {
 				bulletText = `${paragraphBulletInfo.char} `;
@@ -316,10 +342,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// keys re-emits them GROUPED BY TAG: an authored
 		// `"Slide " <a:fld/> " - " <a:fld/>` came back as both literal runs and
 		// only then both fields, i.e. every inline field jumped to the end of
-		// its paragraph. `paragraphContentEntries` replays the order recovered
-		// from the raw XML at parse time, and reports `authored: false` when
-		// there was nothing to recover (already grouped, or SDK-built).
-		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS);
+		// its paragraph. `paragraphContentEntries` (recovered above, alongside
+		// `hasRenderableContent`) replays the order recovered from the raw XML
+		// at parse time, and reports `authored: false` when there was nothing
+		// to recover (already grouped, or SDK-built).
 		const runCount = this.ensureArray(p['a:r']).length;
 		const breakCount = this.ensureArray(p['a:br']).length;
 		// Legacy repair, kept for the grouped case only: with the true order
