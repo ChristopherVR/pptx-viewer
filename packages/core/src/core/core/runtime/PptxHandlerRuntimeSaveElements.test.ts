@@ -150,7 +150,9 @@ describe('updateNotesXmlText paragraph-scope preservation', () => {
 		const paragraphs = paragraphsOf(notesXml);
 		expect(paragraphs).toHaveLength(2);
 		expect((paragraphs[0]['a:pPr'] as XmlObject)['@_algn']).toBe('ctr');
-		expect(paragraphs[1]['a:pPr']).toStrictEqual({});
+		// No properties borrowed AND no empty `<a:pPr/>` materialized: the new
+		// paragraph authored nothing, so it round-trips with no pPr at all.
+		expect(paragraphs[1]['a:pPr']).toBeUndefined();
 	});
 });
 

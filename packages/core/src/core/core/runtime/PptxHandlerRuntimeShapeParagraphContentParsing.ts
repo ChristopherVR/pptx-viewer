@@ -499,13 +499,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 			const endParaRPrRaw = p['a:endParaRPr'];
-			if (endParaRPrRaw && typeof endParaRPrRaw === 'object') {
-				// Shallow clone so later mutations on the writer side don't
-				// leak back into the parsed XML object that other parts of
-				// the load pipeline still hold a reference to.
-				segments[firstSegmentIndex].endParaRunProperties = {
-					...(endParaRPrRaw as Record<string, unknown>),
-				};
+			if (endParaRPrRaw !== undefined) {
+				// A present-but-attribute-less `<a:endParaRPr/>` parses to `''`
+				// (fast-xml-parser gives a childless, attribute-less element back
+				// as an empty string), which is NOT the same thing as the key
+				// being absent: the element was authored, it just carries no
+				// properties. Capturing it as `{}` re-emits an equally empty
+				// element on save; treating `''` as "nothing captured" made the
+				// writer fall back to its `lang="en-US"` stub, materializing an
+				// attribute the source never had. Shallow clone so later
+				// mutations on the writer side don't leak back into the parsed
+				// XML object that other parts of the load pipeline still hold a
+				// reference to.
+				segments[firstSegmentIndex].endParaRunProperties =
+					typeof endParaRPrRaw === 'object' && endParaRPrRaw !== null
+						? { ...(endParaRPrRaw as Record<string, unknown>) }
+						: {};
 			}
 			if (entries.length === 0) {
 				segments[firstSegmentIndex].paragraphInsertionStyle = withAuthoredSplit(

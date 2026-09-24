@@ -64,7 +64,9 @@ function isDefaultEndParaRunProperties(node: unknown): boolean {
  * rebuilt paragraph's own is empty, so a future notes path that starts emitting
  * paragraph properties wins and no illegal mixture of the two (say `a:buNone`
  * beside an inherited `a:buChar`) can be assembled. `a:endParaRPr` is adopted
- * only when the rebuilt one is the synthesised `lang="en-US"` stub.
+ * only when the rebuilt one is missing (the builder omits it for a paragraph
+ * with run content and no captured end properties) or is the synthesised
+ * `lang="en-US"` stub it emits for a runless one.
  *
  * Both nodes are written back onto the key the builder already created, so the
  * `CT_TextParagraph` child order (`pPr?`, `(r|br|fld)*`, `endParaRPr?`) that
@@ -91,7 +93,11 @@ export function preserveNotesParagraphXml(
 		}
 
 		const originalEndParaRPr = asXmlObject(original['a:endParaRPr']);
-		if (originalEndParaRPr && isDefaultEndParaRunProperties(rebuilt['a:endParaRPr'])) {
+		if (
+			originalEndParaRPr &&
+			(rebuilt['a:endParaRPr'] === undefined ||
+				isDefaultEndParaRunProperties(rebuilt['a:endParaRPr']))
+		) {
 			rebuilt['a:endParaRPr'] = originalEndParaRPr;
 		}
 	}
