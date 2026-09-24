@@ -1,4 +1,4 @@
-import type { PowerPointViewerHandle } from 'pptx-react-viewer';
+import type { PowerPointViewerHandle, ViewerCustomization } from 'pptx-react-viewer';
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s per hook/handler, several separated
    by comments or guard clauses); merging them isn't a style choice here. */
@@ -36,6 +36,7 @@ import {
 	deleteAutosaveSnapshot,
 } from '../../packages/shared/src/render/autosave-store';
 import { installDevViewerHandle } from '../dev-viewer-handle';
+import { currentDemoCustomization } from '../shared/demo-customization';
 import { externalSessionRequested } from '../shared/host-owned-collaboration';
 import { currentDemo3DFlags } from '../shared/rendering-3d-flags';
 import { useDemoAiConfig } from './ai-config';
@@ -396,6 +397,12 @@ function App() {
 	// eslint-disable-next-line react/hook-use-state
 	const [{ smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D }] =
 		useState(currentDemo3DFlags);
+	// `?customization=<json>` (demos/shared/demo-customization.ts), read once so
+	// the prop keeps one identity and never replaces imperative edits.
+	// eslint-disable-next-line react/hook-use-state
+	const [customization] = useState(
+		() => currentDemoCustomization() as ViewerCustomization | undefined,
+	);
 	// `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 	// page to embed a live, pre-populated viewer).
 	// eslint-disable-next-line react/hook-use-state
@@ -938,6 +945,7 @@ function App() {
 					filePath={fileName}
 					canEdit
 					autosaveIntervalMs={2000}
+					customization={customization}
 					smartArt3D={smartArt3D}
 					surfaceChart3D={surfaceChart3D}
 					barChart3D={barChart3D}
