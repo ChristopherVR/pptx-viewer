@@ -7,6 +7,7 @@ import { ref } from 'vue';
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import { ThemeColorMapKey } from '../../composables/theme-color-map-context';
 import StrokePanel from './StrokePanel.vue';
+import { setControlValue } from './test-control-value';
 
 const OFFICE_THEME = {
 	dk1: '#000000',
@@ -52,7 +53,7 @@ describe('strokePanel', () => {
 		});
 		expect((wrapper.find('input[type="color"]').element as HTMLInputElement).value).toBe('#ff0000');
 		expect((wrapper.find('input[type="number"]').element as HTMLInputElement).value).toBe('3');
-		expect((wrapper.find('select').element as HTMLSelectElement).value).toBe('dash');
+		expect((wrapper.find('pptx-ui-select').element as HTMLSelectElement).value).toBe('dash');
 	});
 
 	it('emits a full merged shapeStyle patch when color changes, clearing any stored theme ref', async () => {
@@ -88,8 +89,8 @@ describe('strokePanel', () => {
 
 	it('emits the selected strokeDash value', async () => {
 		const wrapper = mount(StrokePanel, { props: { element: shapeEl({}) } });
-		const select = wrapper.find('select');
-		await select.setValue('sysDot');
+		const select = wrapper.find('pptx-ui-select');
+		await setControlValue(select, 'sysDot');
 
 		const patch = wrapper.emitted('update')?.at(-1)?.[0] as Partial<PptxElement>;
 		expect(patch).toStrictEqual({ shapeStyle: { strokeDash: 'sysDot' } });
@@ -131,7 +132,7 @@ describe('strokePanel', () => {
 	it('offers the full shared dash-pattern catalogue, in shared order', () => {
 		const wrapper = mount(StrokePanel, { props: { element: shapeEl({}) } });
 		const values = wrapper
-			.findAll('select option')
+			.findAll('pptx-ui-select option')
 			.map((o) => (o.element as HTMLOptionElement).value);
 		expect(values).toStrictEqual(STROKE_DASH_OPTIONS.map((o) => o.value));
 	});

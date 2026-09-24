@@ -11,6 +11,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	elementContainerHeightStyle,
 	elementHitTargetStyle,
 	elementInLocalFrame,
 	getContainerStyle,
@@ -215,6 +216,43 @@ describe('getImageFitStyle', () => {
 		const shape = { type: 'shape', id: 's1', x: 0, y: 0, width: 1, height: 1 } as PptxElement;
 		expect(getImageFitStyle(shape)['objectFit']).toBe('fill');
 	});
+
+	it('produces the identical crop transform no matter the frame size (COM-verified, 2026-09-25)', () => {
+		// PowerPoint's `<a:stretch><a:fillRect/></a:stretch>` always stretches
+		// the kept `<a:srcRect>` window to fill 100% of the destination frame,
+		// whether that frame was resized to the crop's aspect ratio (the crop
+		// tool's usual result) or left at its pre-crop size (a hand-authored or
+		// round-tripped file). Measured directly with PowerPoint COM automation
+		// on an SVG picture with a 20%-left crop: exported PNG pixels matched a
+		// full non-uniform stretch in BOTH a case where the frame was shrunk to
+		// 150.5x200 to match the crop and a case where the frame was left at
+		// its pre-crop 200x200 (which renders visibly wider/distorted, not
+		// letterboxed, because the same stretched proportion now covers a
+		// wider frame). This transform must therefore depend only on the crop
+		// fractions, never on the element's own width/height.
+		const cropLeft = 0.2;
+		const frameResizedToCrop = getImageFitStyle(
+			picture({ cropLeft, width: 150.5, height: 200 } as Partial<PptxElement>),
+		);
+		const frameNotResized = getImageFitStyle(
+			picture({ cropLeft, width: 200, height: 200 } as Partial<PptxElement>),
+		);
+		expect(frameResizedToCrop['transform']).toBe('translate(-25%, 0%) scale(1.25, 1)');
+		expect(frameNotResized['transform']).toBe(frameResizedToCrop['transform']);
+	});
+
+	it('applies the identical crop transform to an SVG-backed picture as a raster one', () => {
+		// getImageFitStyle must not special-case a `svgPath`-backed picture
+		// into a different (e.g. letterboxed/no-stretch) transform: OOXML's
+		// fill model draws no distinction, and `forceSvgStretchFill` (core)
+		// relies on this function's transform being the ONLY place the crop
+		// percentages are computed.
+		const rasterStyle = getImageFitStyle(picture({ cropLeft: 0.2 } as Partial<PptxElement>));
+		const svgStyle = getImageFitStyle(
+			picture({ cropLeft: 0.2, svgPath: 'ppt/media/image1.svg' } as Partial<PptxElement>),
+		);
+		expect(svgStyle['transform']).toBe(rasterStyle['transform']);
+	});
 });
 
 describe('getImageOverflow', () => {
@@ -317,5 +355,44 @@ describe('elementInLocalFrame', () => {
 
 	it('keeps the same object for the same element', () => {
 		expect(elementInLocalFrame(el)).toBe(elementInLocalFrame(el));
+	});
+});
+
+describe('elementContainerHeightStyle - table rows auto-grow past the authored frame', () => {
+	// `a:tr/@h` is a minimum row height, not a fixed one: PowerPoint grows a row
+	// (and so the whole table) taller than that the moment a cell's text needs
+	// more room than the row's last-saved height. The authored `a:ext/@cy` is a
+	// cache of that computed sum, not a hard clip. Treating it as a fixed CSS
+	// height clipped off however many trailing rows no longer fit (tables-sbs/c5:
+	// a long-wrapping cell grew row 2, and the frame clipped rows 3 and 4 clean
+	// off instead of growing with it).
+	function table(overrides: Partial<PptxElement> = {}): PptxElement {
+		return {
+			type: 'table',
+			id: 'tbl1',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 120,
+			...overrides,
+		} as PptxElement;
+	}
+
+	it('sizes a table to its content, with the authored height only as a floor', () => {
+		expect(elementContainerHeightStyle(table(), 120)).toStrictEqual({
+			height: 'auto',
+			minHeight: '120px',
+		});
+	});
+
+	it('leaves every other element type at a fixed authored height', () => {
+		expect(elementContainerHeightStyle(picture(), 100)).toStrictEqual({ height: '100px' });
+	});
+
+	it('getContainerStyle applies the same auto-height rule for a table element', () => {
+		const style = getContainerStyle(table(), 3);
+		expect(style.height).toBe('auto');
+		expect(style.minHeight).toBe('120px');
+		expect(style.width).toBe('400px');
 	});
 });

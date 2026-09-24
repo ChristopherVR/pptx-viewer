@@ -99,12 +99,138 @@ the interpreter found and fixed six real, previously-unknown bugs:
    measured numbers.
 
 **Despite those six fixes, `smartart-gallery-ground-truth.test.ts` fails for
-all 229 fixtures against the full acceptance gate** (same shape count,
+219 of the 229 fixtures against the full acceptance gate** (same shape count,
 preset, font size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
 last regeneration): 227/229 fixtures have matching text-bearing shape counts;
-59 are within 5% geometry deviation, 73 within 10%, and 156 within 50%.
+87 are within 1% geometry deviation, 110 within 5%, 121 within 10%, and 180
+within 50%; 11 pass the full gate (re-measured 2026-09-24, after the
+engine-first routing wave below).
 Two fixtures fail structurally before geometry is compared.
+
+`computeSmartArtElementsWithoutCache` runs a legacy family-based interpreter
+(one arranger chosen for the whole diagram) AND a per-point DiagramML engine
+(`smartart-engine/`, executes each layoutDef `layoutNode`'s own
+algorithm/constraints per data point), trying the second only when the first
+declines. `scripts/measure-smartart-engine-vs-legacy.ts` runs both
+independently against every fixture (bypassing that fallback order) to find
+`layoutDefinition.uniqueId`s where the engine is strictly more accurate on
+EVERY dataset of that layout with no shape-set loss versus legacy;
+`smartart-engine/engine-first-allowlist.ts` lists the 60 layouts that
+measurement found (e.g. "Gear": legacy 76% deviation vs. engine 0.1%, since
+the legacy composite arranger cannot reach Gear's rotated/decorative
+named-slot children at all), and `computeDiagramMlElements` now tries the
+engine first only for those.
+
+Two waves moved the numbers above. Introducing the allowlist (55 layouts)
+moved geometry-within-1% from 39 to 82, zero fixtures regressing out of that
+band (`gen-smartart-gallery-baseline.ts --compare`), though the full gate
+stayed at 10/229 since most of the newly-accurate fixtures still fail on
+preset or font-size mismatches the geometry fix does not touch. A follow-up
+fix in `engine-to-result.ts`'s `hideGeom` handling (ECMA-376 21.4.7.16:
+`hideGeom` means no visible border/fill, not "not a node" - the engine
+previously dropped every such node outright) recovered item-role-split
+shapes it used to drop entirely: `vertical-action-list--hier5` went from 1/5
+to 5/5 matched shapes, `descending-block-list--hier5` from 1/5 to 5/5,
+moving both onto the allowlist along with three more layouts the wider
+re-measurement newly qualified (`opposing-ideas`, `theme-picture-accent`,
+`theme-picture-alternating-accent`), for a further 82->87 with, again, zero
+regressions and the full gate moving 10->11.
+`numbered-title-list`/`numbered-card-list` hit a DIFFERENT, deeper bug the
+hideGeom fix does not touch (their layoutDef folds a child node's text into
+its parent's presentation node instead of giving the child its own box,
+still dropping 3 of 6 shapes) and remain legacy-first: a tracked, open gap,
+not a silent workaround.
+
+A third wave gave the engine a `snake` algorithm
+(`smartart-engine/alg-snake.ts`, ECMA-376 21.4.2.x: a grid picked from the
+node's own aspect ratio or a fixed `bkpt="fixed"` line length, honouring
+`flowDir`/`contDir`/`grDir`/`off`, mirroring the legacy `arrangeSnake`'s
+grid math). Re-measuring qualified 7 more layouts (67 total on the
+allowlist) with zero regressions, though none crossed the 1/5/10/50% bands
+on their own since they are still-inaccurate picture/composite families;
+Icon Circle Label List did go from 4971% legacy deviation to 64% engine
+deviation.
+
+A fourth wave gave the engine a `cycle` algorithm
+(`smartart-engine/alg-cycle.ts`, ECMA-376 21.4.2.x: `stAng`/`spanAng` place
+children evenly around a ring, solving the ring radius the same "natural
+unit space, single isotropic contain-fit" way the legacy
+`computeCycleRingLayout` does, plus a `ctrShpMap="fNode"` centred hub and
+`rotPath="alongPath"` tangent rotation). Re-measuring the 17-fixture
+cycle/radial family qualified no new layouts: the three already on the
+allowlist are unaffected, Basic and Multidirectional Cycle now tie legacy
+exactly (a tie, not an improvement), Block/Continuous/Nondirectional/Radial
+Cycle come out measurably worse under this ring-only model (no
+hub-satellite gap ratio or `sibTrans`-bulge handling), and the remaining
+hub/composite-item layouts (Text Cycle, Hexagon Radial, Basic/Diverging
+Radial, Radial Cluster, Converging Radial, Radial List) still decline
+outright. Zero regressions either way
+(`gen-smartart-gallery-baseline.ts --compare`), since none of these were
+engine-first before or after. `pyra`, `hierRoot` and `hierChild` remain
+unimplemented in the per-point engine (`registry.ts` still substitutes
+`composite` for them, and `isFullySupported` catches that so the engine
+declines cleanly instead of emitting silently-wrong geometry) - each is a
+substantial, genuinely different algorithm family (the legacy interpreter's
+own `pyramid`/`hierarchy` arrangers together are still several thousand
+lines) that would need its own from-scratch per-point port, not attempted
+in this pass.
+
+Before attempting `pyra`, a fifth pass fixed a unit-conversion bug blocking it:
+real `basic-pyramid--*`/`inverted-pyramid--*` declare their `level` (and
+`acctBkgd`/`acctTx`) composite child with a bare `ctrX`/`w` (and `ctrY`/`h`)
+literal PAIR (`val="1"` on both) - the engine's general "bare literal is a
+millimetre length" rule collapsed that to a ~2.83pt box (measured: engine
+3.212 vs. legacy 0.0019 deviation on `basic-pyramid--flat3`). No single
+absolute-length reading of `val="1"` can produce "fill the box" (`ctrX = w`
+places it from `w/2` to `3w/2` under any uniform conversion), so, COM-verified,
+this specific paired idiom is now read as a fraction of the declaring node's
+own resolved size instead (`smartart-engine/constraint-fill-idiom.ts`). An
+earlier, broader attempt (every bare `w`/`h`/`ctrX`/`ctrY` literal) regressed
+Gear (0.0882 -> declined), Segmented Cycle (0.0012 -> 0.3959), Varying Width
+List (0.654 -> 0.7982) and Vertical Chevron List (0.3996 -> declined), because
+those layouts use the SAME-looking `val="1"` for a genuinely tiny, real
+anchor-point marker (Gear's `hideGeom="1"` connector endpoints), not this
+idiom; scanning the whole 229-fixture corpus for the exact `ctrX`+`w`/`ctrY`+`h`
+bare-literal pairing finds it ONLY in the two pyramid layouts, so the narrowed
+fix reproduces the prior measurement byte-for-byte on all 229 fixtures (still
+87/229 geometry within 1%, 11/229 full gate; zero regressions,
+`gen-smartart-gallery-baseline.ts --compare`) since `pyra` is not yet in the
+engine's `SUPPORTED_ALGS` and so still declines the pyramid layouts outright -
+the fix has no measurable effect until `pyra` itself is implemented.
+
+A sixth pass then implemented `pyra` itself (`smartart-engine/alg-pyra.ts`,
+ECMA-376 21.4.2.x: equal-height horizontal bands, width proportional to
+position in the stack, `linDir="fromT"` for the apex-down "Inverted
+Pyramid"), porting the band-stacking geometry from legacy's
+`arrangePyramid`. A second unit bug then surfaced: real "Basic Pyramid" also
+declares its "level" band's OWN self-scoped `h val="500"`/`w val="1"`, and
+`preferred-size.ts`'s `preferredSize` (by design, to preserve a genuine
+self-declared aspect ratio) re-applies a composite child's own self-scoped
+size constraints on top of whatever its parent already assigned - overriding
+the fifth wave's fix and re-collapsing "level" (measured: engine deviation
+1.6079, still declining on every dataset). No generic rule can distinguish
+"level"'s declaration from `radial-cycle`/`segmented-cycle`/
+`vertical-chevron-list`'s own `dummyConnPt`/`wedge*` nodes, which declare the
+SAME bare self `w val="1"`/`h val="1"` shape and MUST keep it as a real
+~2.83pt marker (their own position also comes from a sibling `for="ch"`
+declaration, exactly like "level"'s), so `alg-pyra.ts` sanitizes only the
+specific named node its own `pyraLvlNode` param points at ("level" by
+default), dropping its bare-literal self `w`/`h` before the rest of the tree
+lays out - scoped to the `pyra` algorithm's own per-item subtree, unable to
+reach `dummyConnPt`/`wedge*` in other algorithms' layoutDefs. With both
+fixes, Basic and Inverted Pyramid's `flat3` (no accented rows) datasets now
+match legacy EXACTLY (0.0019, tied); `hier5`/`hier8` (accented rows) still
+measure 0.5663, since `pyraAcctRatio`/`pyraAcctPos` accent-column splitting
+(legacy's `repositionPyramidBands`) is a genuinely separate, per-item-role,
+post-composite pass not ported in this wave - tracked and documented, not a
+silent regression. The strict allowlist rule requires improvement (or a tie)
+on EVERY dataset with no shape-set loss, and `hier5`/`hier8` are measurably
+worse than legacy, so neither layout newly qualifies for
+`engine-first-allowlist.ts` this wave. Re-measuring the full corpus confirms
+the change touches ONLY these two layouts, zero regressions, gate numbers
+unchanged (still 87/229 within 1%, 11/229 full gate; `pyra` is not yet
+allowlisted, so production behaviour for these two layouts is unchanged).
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,

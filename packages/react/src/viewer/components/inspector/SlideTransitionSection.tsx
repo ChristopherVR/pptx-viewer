@@ -15,7 +15,11 @@
  * Angular stores the same number.
  */
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import {
+	TRANSITION_PATTERN_OPTIONS,
+	TRANSITION_THRUBLK_TYPES,
+	TRANSITION_VALID_DIRECTIONS,
+} from 'pptx-viewer-core';
 import {
 	clampTransitionNumber,
 	TRANSITION_MORPH_OPTIONS,
@@ -26,6 +30,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SLIDE_TRANSITION_OPTIONS } from '../../constants';
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { DirectionPicker } from './DirectionPicker';
 import { TransitionPreview } from './TransitionPreview';
 
@@ -67,6 +72,8 @@ export function SlideTransitionSection({
 	const usesOrientation = TRANSITION_ORIENTATION_TYPES.has(transitionType);
 	const isWheel = transitionType === 'wheel';
 	const isMorph = transitionType === 'morph';
+	const patternOptions = TRANSITION_PATTERN_OPTIONS[transitionType];
+	const hasThruBlk = TRANSITION_THRUBLK_TYPES.has(transitionType);
 
 	return (
 		<div
@@ -80,7 +87,7 @@ export function SlideTransitionSection({
 			{/* Type */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-xs'>{t('pptx.transition.type')}</span>
-				<select
+				<WebSelect
 					value={activeSlide.transition?.type || 'none'}
 					disabled={!canEdit}
 					aria-label={t('pptx.transition.type')}
@@ -96,7 +103,7 @@ export function SlideTransitionSection({
 							{t(option.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Direction picker */}
@@ -136,6 +143,43 @@ export function SlideTransitionSection({
 						))}
 					</div>
 				</div>
+			)}
+
+			{/* Pattern (glitter's diamond/hexagon, shred's strip/rectangle) */}
+			{patternOptions && (
+				<div className='space-y-1'>
+					<span className='text-muted-foreground text-xs'>{t('pptx.transition.pattern')}</span>
+					<div className='flex gap-1'>
+						{patternOptions.map((pattern) => (
+							<button
+								key={pattern}
+								type='button'
+								disabled={!canEdit}
+								onClick={() => onTransitionChange({ pattern })}
+								className={`px-2 py-1 rounded text-xs border ${
+									(activeSlide.transition?.pattern ?? patternOptions[0]) === pattern
+										? 'bg-primary text-white border-primary'
+										: 'bg-muted border-border hover:bg-accent'
+								}`}
+							>
+								{t(`pptx.transition.pattern.${pattern}`)}
+							</button>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Through Black */}
+			{hasThruBlk && (
+				<label className='inline-flex items-center gap-2 text-foreground text-xs'>
+					<WebCheckbox
+						type='checkbox'
+						disabled={!canEdit}
+						checked={activeSlide.transition?.thruBlk === true}
+						onChange={(e) => onTransitionChange({ thruBlk: e.target.checked })}
+					/>
+					{t('pptx.transition.thruBlk')}
+				</label>
 			)}
 
 			{/* Spokes for wheel */}
@@ -182,7 +226,7 @@ export function SlideTransitionSection({
 			{/* Speed */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-xs'>{t('pptx.transition.speed')}</span>
-				<select
+				<WebSelect
 					value={activeSlide.transition?.speed ?? 'fast'}
 					disabled={!canEdit}
 					aria-label={t('pptx.transition.speed')}
@@ -198,14 +242,14 @@ export function SlideTransitionSection({
 							{t(option.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Morph granularity */}
 			{isMorph && (
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground text-xs'>{t('pptx.transition.morphOption')}</span>
-					<select
+					<WebSelect
 						value={activeSlide.transition?.morphOption ?? 'byObject'}
 						disabled={!canEdit}
 						aria-label={t('pptx.transition.morphOption')}
@@ -221,13 +265,13 @@ export function SlideTransitionSection({
 								{t(option.i18nKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 
 			{/* Advance on click */}
 			<label className='inline-flex items-center gap-2 text-foreground text-xs'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					disabled={!canEdit}
 					checked={activeSlide.transition?.advanceOnClick !== false}

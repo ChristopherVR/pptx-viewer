@@ -28,7 +28,7 @@
 <div class="pptx-svelte-theme-selector">
 	<label>
 		<span>{t('pptx.documentProperties.themeHeading')}</span>
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.documentProperties.themeHeading')}
 			disabled={options.length === 0}
 			value={selectedPath}
@@ -41,7 +41,7 @@
 					<option value={option.path}>{option.name || option.path.split('/').pop()}</option>
 				{/each}
 			{/if}
-		</select>
+		</pptx-ui-select>
 	</label>
 	<div class="buttons">
 		<button

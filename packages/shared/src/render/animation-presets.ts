@@ -20,11 +20,19 @@ export { EMPH_FILTER_PRESETS, emphasisFilterKeyframeCss } from './animation-pres
 export {
 	BARN_FILTER_TOKEN_TO_SUBTYPE,
 	FLY_SUBTYPE_TO_EDGE,
+	redirectMaskEffectByFilterSubtype,
+	resolveAnimationWheelSpokeCount,
 	SPLIT_SUBTYPE_TO_VARIANT,
 	WIPE_FILTER_TOKEN_TO_SUBTYPE,
 	WIPE_SUBTYPE_TO_EDGE,
 } from './animation-presets-subtypes';
-export type { FlyEdge, SplitVariant } from './animation-presets-subtypes';
+export type {
+	BlindsDirection,
+	CheckerboardDirection,
+	FlyEdge,
+	RandomBarsDirection,
+	SplitVariant,
+} from './animation-presets-subtypes';
 
 // ==========================================================================
 // OOXML presetId -> effect name mapping

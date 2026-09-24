@@ -178,6 +178,37 @@ export function pointsToPressures(points: number[][], channelOrder: ChannelOrder
 	return pressures;
 }
 
+/**
+ * Extract per-point timestamps (milliseconds) from the trace's `T` channel,
+ * when it declared one.
+ *
+ * This project's own real-world corpus has none: PowerPoint's own SaveAs
+ * output declares only `X`/`Y` in its `traceFormat` (see the fixture behind
+ * `contentpart-real-ink-roundtrip.test.ts`), and annotates the whole trace
+ * GROUP with a single wall-clock `<inkml:timestamp>` rather than a per-point
+ * channel. Other InkML producers (a captured digitizer session, OneNote, a
+ * Surface Hub export) do author a genuine per-point `T` channel, and the
+ * InkML spec's own default unit for it is milliseconds, so this is decoded
+ * whenever present rather than assumed absent. Returns an empty array when no
+ * `T` channel is declared, or no point carries a finite value, which is the
+ * "no real timing data" signal `buildInkReplayTimeline`
+ * (`pptx-viewer-shared`'s `render/ink-replay-timeline.ts`) falls back on.
+ */
+export function pointsToTimestamps(points: number[][], channelOrder: ChannelOrder): number[] {
+	const tIndex = channelOrder.indexOf('T');
+	if (tIndex < 0) {
+		return [];
+	}
+	const timestamps: number[] = [];
+	for (const point of points) {
+		const raw = point[tIndex];
+		if (Number.isFinite(raw)) {
+			timestamps.push(raw);
+		}
+	}
+	return timestamps;
+}
+
 /** Decoded per-point pen-tilt lean, derived from whichever tilt channels a trace declared. */
 export interface TiltChannels {
 	/** Lean direction at each point, in radians (page-plane angle). */

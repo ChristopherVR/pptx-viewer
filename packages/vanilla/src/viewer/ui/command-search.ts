@@ -1,6 +1,5 @@
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
-import { createIcon } from './icons';
 
 /**
  * The title bar's centred "Tell me what you want to do" command search box.
@@ -42,17 +41,17 @@ export function createCommandSearch(
 ): CommandSearch {
 	const el = createEl(doc, 'div', 'pptxv-cmdsearch');
 
-	const box = createEl(doc, 'div', 'pptxv-cmdsearch-box');
-	box.setAttribute('data-pptx-search-surface', '');
-	box.appendChild(createIcon(doc, 'search'));
-	const input = doc.createElement('input');
-	input.type = 'text';
-	input.className = 'pptxv-cmdsearch-input';
+	const input = doc.createElement('pptx-ui-search') as HTMLElement & {
+		value: string;
+		placeholder: string;
+	};
+	input.className = 'pptxv-cmdsearch-box';
+	input.setAttribute('variant', 'titlebar');
+	input.setAttribute('data-pptx-search-surface', '');
 	input.setAttribute('data-pptx-search-input', '');
 	input.placeholder = t('pptx.titleBar.searchPlaceholder');
 	input.setAttribute('aria-label', t('pptx.titleBar.search'));
-	box.appendChild(input);
-	el.appendChild(box);
+	el.appendChild(input);
 
 	const menu = createEl(doc, 'div', 'pptxv-cmdsearch-menu');
 	menu.hidden = true;

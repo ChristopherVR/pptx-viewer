@@ -136,6 +136,27 @@ describe('buildTextBlockStyle', () => {
 		expect(perParagraph.textIndent).toBe(0);
 	});
 
+	it('never drops @marR, even when per-paragraph indents exist', () => {
+		// Unlike marL/indent, `a:pPr/@marR` has no per-paragraph carrier
+		// anywhere in the render pipeline, so there is nothing to double-count
+		// and no reason to zero it alongside marL/indent when
+		// `element.paragraphIndents` is populated (COM-verified against
+		// audit-text/pp/s19.png: a paragraph authoring only `marR` + `algn="r"`,
+		// no marL/indent, still gets its right margin in real PowerPoint).
+		const withoutParagraphIndents = buildTextBlockStyle(
+			textEl({ bodyInsetRight: 5, paragraphMarginRight: 20 }),
+		);
+		expect(withoutParagraphIndents.paddingRight).toBe(25);
+
+		const withParagraphIndents = buildTextBlockStyle(
+			textEl(
+				{ bodyInsetRight: 5, paragraphMarginRight: 20 },
+				{ paragraphIndents: [{ marginLeft: 20, indent: -12 }] },
+			),
+		);
+		expect(withParagraphIndents.paddingRight).toBe(25);
+	});
+
 	it('paints hyperlinked text in the hyperlink colour and underlines it', () => {
 		const style = buildTextBlockStyle(textEl({ hyperlink: 'https://example.com' }));
 		expect(style.color).toBe('#0563C1');
@@ -171,10 +192,33 @@ describe('buildTextBlockStyle', () => {
 		expect(rtl.textAlign).toBe('right');
 		expect(rtl.direction).toBe('rtl');
 		expect(rtl.unicodeBidi).toBe('plaintext');
+		// wordArtVertRtl stacks every glyph upright (same as wordArtVert) and
+		// still reads top-to-bottom: only vertical270 reverses reading order.
 		const vertical = buildTextBlockStyle(textEl({ textDirection: 'wordArtVertRtl' }));
 		expect(vertical.writingMode).toBe('vertical-rl');
-		expect(vertical.textOrientation).toBe('mixed');
-		expect(vertical.direction).toBe('rtl');
+		expect(vertical.textOrientation).toBe('upright');
+		expect(vertical.direction).toBe('ltr');
+		const vert270 = buildTextBlockStyle(textEl({ textDirection: 'vertical270' }));
+		expect(vert270.direction).toBe('rtl');
+	});
+
+	it('does not clobber a multi-column @rtlCol direction back to ltr', () => {
+		// bodyLayout:true folds `buildTextBodyLayoutStyle`'s `direction: 'rtl'`
+		// (from `@rtlCol`) into this same style object; the later unconditional
+		// `style.direction = ... : 'ltr'` assignment used to stomp it back to
+		// 'ltr' for an otherwise-LTR paragraph, exactly the clobber CLAUDE.md
+		// warns a shared value can suffer downstream.
+		const style = buildTextBlockStyle(textEl({ columnCount: 2, rtlColumns: true }), {
+			bodyLayout: true,
+		});
+		expect(style.direction).toBe('rtl');
+	});
+
+	it('lets paragraph-level RTL win over a non-rtl @rtlCol body', () => {
+		const style = buildTextBlockStyle(textEl({ columnCount: 2, rtl: true }), {
+			bodyLayout: true,
+		});
+		expect(style.direction).toBe('rtl');
 	});
 
 	it('suffixes every length with px on request and leaves unitless values alone', () => {

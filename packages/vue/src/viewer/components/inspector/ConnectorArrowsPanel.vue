@@ -81,7 +81,7 @@ function onChange(control: ConnectorArrowControl, event: Event): void {
 			<span class="pptx-vue-connector-arrow-label text-muted-foreground">{{
 				t(control.labelKey)
 			}}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t(control.labelKey)"
 				class="pptx-vue-connector-arrow-input w-full bg-muted border border-border rounded px-1.5 py-0.5"
 				:value="valueOf(control)"
@@ -91,7 +91,7 @@ function onChange(control: ConnectorArrowControl, event: Event): void {
 				<option v-for="value in control.values" :key="value" :value="value">
 					{{ optionLabel(control, value) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 	</div>
 </template>

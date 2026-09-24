@@ -730,6 +730,17 @@ export interface PptxAttributeAnimation {
 	 * IS consulted regardless of this field's value. Absent means `lin`.
 	 */
 	calcMode?: 'discrete' | 'lin' | 'fmla';
+	/**
+	 * `p:anim/@_p14:bounceEnd` (Office 2010 `p14` extension attribute,
+	 * MS-OI29500), normalized to a 0-1 fraction of this behaviour's own
+	 * duration. PowerPoint's Fly In "Bounce End" effect option writes this on
+	 * the position-ramp `p:anim` node(s): the fraction of the duration at
+	 * which the primary travel completes, with the remainder spent bouncing
+	 * and settling at the final value. Mirrored verbatim by PowerPoint onto
+	 * the enclosing `p:cTn/@_p14:presetBounceEnd`. Absent for every animation
+	 * that doesn't use this effect option (the overwhelming majority).
+	 */
+	bounceEnd?: number;
 }
 
 /** Signed HSL channel deltas parsed from `p:animClr/p:by/p:hsl`. */
@@ -826,7 +837,25 @@ export type AnimationConditionEvent =
 	| 'onNext'
 	| 'onPrev'
 	| 'onStopAudio'
-	| 'onDblClick';
+	| 'onDblClick'
+	// Office 2010 `p14` extension event (MS-OI29500): fires when a media
+	// element's playback reaches an authored bookmark. See
+	// {@link PptxMediaBookmarkTarget} for the extension that names WHICH
+	// bookmark, on which media element.
+	| 'onMediaBookmark';
+
+/**
+ * `p14:bmkTgt` (Office 2010 `p14` extension, MS-OI29500): names the specific
+ * media element and bookmark an `evt="onMediaBookmark"` condition fires for.
+ * `bookmarkName` matches a `p14:bmk/@_name` on that media element's own
+ * `p14:bmkLst` (see `MediaBookmark.label` in `core/types/elements.ts`).
+ */
+export interface PptxMediaBookmarkTarget {
+	/** `p14:bmkTgt/@_spid`: the media element's shape id. */
+	shapeId: string;
+	/** `p14:bmkTgt/@_bmkName`: the bookmark's name. */
+	bookmarkName: string;
+}
 
 /**
  * Structured representation of a single OOXML animation condition
@@ -847,6 +876,11 @@ export type AnimationConditionEvent =
 export interface AnimationCondition {
 	/** Event that triggers the condition. */
 	event?: AnimationConditionEvent;
+	/**
+	 * The media element/bookmark this condition fires for, when
+	 * {@link event} is `onMediaBookmark`. See {@link PptxMediaBookmarkTarget}.
+	 */
+	bookmarkTarget?: PptxMediaBookmarkTarget;
 	/** Delay in milliseconds (from `@_delay`). "indefinite" is represented as -1. */
 	delay?: number;
 	/** Target time node ID reference (from `@_tn`). */

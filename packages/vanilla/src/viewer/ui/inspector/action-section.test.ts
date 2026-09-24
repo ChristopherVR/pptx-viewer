@@ -20,7 +20,7 @@ describe('action settings section', () => {
 		const { section } = build();
 		section.update({ hasSelection: true } as InspectorState);
 
-		const options = Array.from(section.el.querySelector('select')!.options).map(
+		const options = Array.from(section.el.querySelector('pptx-ui-select')!.options).map(
 			(option) => option.textContent,
 		);
 		expect(options).toStrictEqual([
@@ -46,7 +46,7 @@ describe('action settings section', () => {
 		const { section, setElementAction } = build();
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'url';
 		type.dispatchEvent(new Event('change'));
 		// An empty URL serialises to an empty action that parses back as "none",
@@ -69,7 +69,7 @@ describe('action settings section', () => {
 		const { section, setElementAction } = build();
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'nextSlide';
 		type.dispatchEvent(new Event('change'));
 
@@ -86,7 +86,7 @@ describe('action settings section', () => {
 		section.setSlideCount(4);
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'slide';
 		type.dispatchEvent(new Event('change'));
 
@@ -101,7 +101,7 @@ describe('action settings section', () => {
 		section.setSlideCount(3);
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'slide';
 		type.dispatchEvent(new Event('change'));
 		const target = section.el.querySelector<HTMLInputElement>('input')!;
@@ -124,7 +124,7 @@ describe('action settings section', () => {
 		]);
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'customShow';
 		type.dispatchEvent(new Event('change'));
 		expect(setElementAction).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('action settings section', () => {
 		section.setCustomShows([{ id: 'sh1', name: 'Highlights' }]);
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'customShow';
 		type.dispatchEvent(new Event('change'));
 		const showSelect = section.el.querySelector<HTMLSelectElement>(
@@ -197,7 +197,7 @@ describe('action settings section', () => {
 		const { section, setElementAction } = build();
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'openFile';
 		type.dispatchEvent(new Event('change'));
 
@@ -221,7 +221,7 @@ describe('action settings section', () => {
 		const { section, setElementAction } = build();
 		section.update({ hasSelection: true } as InspectorState);
 
-		const [type] = section.el.querySelectorAll<HTMLSelectElement>('select');
+		const [type] = section.el.querySelectorAll<HTMLSelectElement>('pptx-ui-select');
 		type.value = 'runProgram';
 		type.dispatchEvent(new Event('change'));
 

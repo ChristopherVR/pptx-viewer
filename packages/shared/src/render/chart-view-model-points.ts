@@ -10,7 +10,7 @@
    `--fix` cannot do this safely once a non-declaration statement sits between
    them) would churn geometry code far beyond this change's scope. */
 
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import {
 	chartFrameToViewOffset,
@@ -161,6 +161,30 @@ export interface ScatterDot {
 }
 
 /**
+ * X values a scatter / bubble series is plotted against.
+ *
+ * The series' own `c:xVal` wins. Only when it has none does the chart-level
+ * category list stand in, which is all the engine used to have and is why every
+ * series in a multi-series scatter was plotted against series 1's x axis.
+ *
+ * Lives here (not `chart-cartesian-plots.ts`, its original home) so
+ * `chart-scatter-x-axis.ts` can share it without a circular import: that
+ * module builds the X axis's own nice min/max/major-unit scale, and
+ * `chart-cartesian-plots.ts` / `chart-cartesian-bubbles.ts` need that same
+ * scale to place their points on it.
+ */
+export function seriesXValues(
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+): ReadonlyArray<number> | undefined {
+	if (series.xValues && series.xValues.length > 0) {
+		return series.xValues;
+	}
+	const fromCategories = chartData.categories.map(Number);
+	return fromCategories.length > 0 ? fromCategories : undefined;
+}
+
+/**
  * The x extent a scatter / bubble plot is drawn against.
  *
  * Every `CT_ScatterSer` / `CT_BubbleSer` carries its own `c:xVal`, so the
@@ -179,10 +203,10 @@ export interface ScatterXDomain {
  * positioning points by index.
  */
 export function computeScatterXDomain(
-	seriesXValues: ReadonlyArray<ReadonlyArray<number> | undefined>,
+	perSeriesXValues: ReadonlyArray<ReadonlyArray<number> | undefined>,
 ): ScatterXDomain | undefined {
 	const finite: number[] = [];
-	for (const values of seriesXValues) {
+	for (const values of perSeriesXValues) {
 		for (const value of values ?? []) {
 			if (Number.isFinite(value)) {
 				finite.push(value);

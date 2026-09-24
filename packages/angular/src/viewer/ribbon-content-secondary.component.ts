@@ -90,6 +90,7 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[snapToGrid]="snapToGrid()"
 					[snapToShape]="snapToShape()"
 					[eyedropperActive]="eyedropperActive()"
+					(goToNormalView)="goToNormalView.emit()"
 					(openSorter)="openSorter.emit()"
 					(openReadingView)="openReadingView.emit()"
 					(openOutlineView)="openOutlineView.emit()"
@@ -193,6 +194,7 @@ export class RibbonContentSecondaryComponent {
 	readonly comments = output<void>();
 	readonly a11y = output<void>();
 	readonly link = output<void>();
+	readonly goToNormalView = output<void>();
 	readonly openSorter = output<void>();
 	/** View tab > Reading View: the deck full-window, not the slide show. */
 	readonly openReadingView = output<void>();

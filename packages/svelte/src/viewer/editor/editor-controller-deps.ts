@@ -61,4 +61,17 @@ export interface EditorControllerDeps {
 	 * shell-owned UI state, so the controller only signals the intent.
 	 */
 	toggleFind?(): void;
+	/**
+	 * Open the find bar already switched to its Replace row (Ctrl/Cmd+H). The
+	 * panel has no distinct find-only/replace mode, so this is the same panel
+	 * `toggleFind` opens; kept as its own hook only so a host can tell the two
+	 * chords apart if it ever grows one.
+	 */
+	toggleFindReplace?(): void;
+	/**
+	 * Insert a new slide after the active one (Ctrl+M). Optional because the
+	 * deck-level API this calls is constructed after the controller (see
+	 * `create-viewer-state.svelte.ts`), so a host wires it in once it exists.
+	 */
+	newSlide?(): void;
 }

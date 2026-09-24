@@ -27,7 +27,7 @@ describe('reconcileBuildList', () => {
 		expect(bldP['@_build']).toBe('p');
 	});
 
-	it('rewrites the build type of an existing p:bldP, preserving unmodelled attributes', () => {
+	it('rewrites an existing p:bldP for a by-word build, preserving unmodelled attributes', () => {
 		const bldLst: XmlObject = {
 			'p:bldP': { '@_spid': 'sp1', '@_grpId': '3', '@_build': 'p', '@_rev': '1' },
 		};
@@ -39,7 +39,12 @@ describe('reconcileBuildList', () => {
 		reconcileBuildList(rawTiming, animations);
 
 		const bldP = (rawTiming['p:bldLst'] as XmlObject)['p:bldP'] as XmlObject;
-		expect(bldP['@_build']).toBe('word');
+		// A by-word build is a p:iterate on the effect's own p:cTn, not a bldP
+		// @build (ST_TLParaBuildType has no word/char value); COM-verified the
+		// previous @build="p" is dropped and no @animBg replaces it, only
+		// @autoUpdateAnimBg="0".
+		expect(bldP['@_build']).toBeUndefined();
+		expect(bldP['@_autoUpdateAnimBg']).toBe('0');
 		// Fields this editor does not model are carried over untouched.
 		expect(bldP['@_grpId']).toBe('3');
 		expect(bldP['@_rev']).toBe('1');
@@ -107,7 +112,8 @@ describe('reconcileBuildList', () => {
 		const sp1 = nodes.find((n) => n['@_spid'] === 'sp1')!;
 		const sp2 = nodes.find((n) => n['@_spid'] === 'sp2')!;
 		expect(sp1).toStrictEqual({ '@_spid': 'sp1', '@_grpId': '0' });
-		expect(sp2['@_build']).toBe('word');
+		expect(sp2['@_build']).toBeUndefined();
+		expect(sp2['@_autoUpdateAnimBg']).toBe('0');
 	});
 
 	it('never reads or writes unrelated p:bldLst children (p:bldDgm)', () => {

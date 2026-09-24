@@ -42,7 +42,7 @@ function renderSection(
 }
 
 function getSelect(label: string): HTMLSelectElement {
-	return container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+	return container.querySelector<HTMLSelectElement>(`pptx-ui-select[aria-label="${label}"]`)!;
 }
 
 describe('slideTransitionSection speed and morph controls', () => {
@@ -69,7 +69,9 @@ describe('slideTransitionSection speed and morph controls', () => {
 
 	it('hides the morph-option selector for non-morph transitions', () => {
 		renderSection({ type: 'fade', durationMs: 500 }, () => {});
-		expect(container.querySelector('select[aria-label="pptx.transition.morphOption"]')).toBeNull();
+		expect(
+			container.querySelector('pptx-ui-select[aria-label="pptx.transition.morphOption"]'),
+		).toBeNull();
 	});
 
 	it('shows the morph-option selector only for the morph transition and emits the choice', () => {
@@ -93,5 +95,59 @@ describe('slideTransitionSection speed and morph controls', () => {
 		);
 		expect(getSelect('pptx.transition.speed').value).toBe('slow');
 		expect(getSelect('pptx.transition.morphOption').value).toBe('byChar');
+	});
+});
+
+describe('slideTransitionSection pattern and thruBlk controls', () => {
+	it('hides pattern and thruBlk for a transition type that has neither', () => {
+		renderSection({ type: 'wipe', durationMs: 500 }, () => {});
+		expect(container.textContent).not.toContain('pptx.transition.pattern');
+		expect(container.textContent).not.toContain('pptx.transition.thruBlk');
+	});
+
+	it('shows the pattern buttons for glitter and emits the chosen pattern', () => {
+		const onTransitionChange = vi.fn();
+		renderSection({ type: 'glitter', durationMs: 500 }, onTransitionChange);
+		const buttons = [...container.querySelectorAll('button')].filter((b) =>
+			b.textContent?.includes('pptx.transition.pattern.'),
+		);
+		expect(buttons.map((b) => b.textContent)).toStrictEqual([
+			'pptx.transition.pattern.diamond',
+			'pptx.transition.pattern.hexagon',
+		]);
+		act(() => buttons[1]!.click());
+		expect(onTransitionChange).toHaveBeenCalledWith({ pattern: 'hexagon' });
+	});
+
+	it('shows strip/rectangle pattern buttons for shred', () => {
+		renderSection({ type: 'shred', durationMs: 500 }, () => {});
+		const buttons = [...container.querySelectorAll('button')].filter((b) =>
+			b.textContent?.includes('pptx.transition.pattern.'),
+		);
+		expect(buttons.map((b) => b.textContent)).toStrictEqual([
+			'pptx.transition.pattern.strip',
+			'pptx.transition.pattern.rectangle',
+		]);
+	});
+
+	it('shows the Through Black checkbox for cut and fade, and toggles it', () => {
+		const onTransitionChange = vi.fn();
+		renderSection({ type: 'cut', durationMs: 500 }, onTransitionChange);
+		const label = [...container.querySelectorAll('label')].find((l) =>
+			l.textContent?.includes('pptx.transition.thruBlk'),
+		);
+		expect(label).toBeTruthy();
+		const checkbox = label!.querySelector('pptx-ui-checkbox') as HTMLInputElement;
+		expect(checkbox).toBeTruthy();
+		act(() => {
+			checkbox!.checked = true;
+			checkbox!.dispatchEvent(new Event('change', { bubbles: true }));
+		});
+		expect(onTransitionChange).toHaveBeenCalledWith({ thruBlk: true });
+	});
+
+	it('hides the Through Black checkbox for a type that does not support it', () => {
+		renderSection({ type: 'blinds', durationMs: 500 }, () => {});
+		expect(container.textContent).not.toContain('pptx.transition.thruBlk');
 	});
 });

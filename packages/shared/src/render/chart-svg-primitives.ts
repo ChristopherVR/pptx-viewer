@@ -35,6 +35,8 @@ export interface SvgPath {
 	fill: string;
 	stroke?: string;
 	strokeWidth?: number;
+	/** SVG `stroke-dasharray`, e.g. a trendline's own `c:spPr/a:ln/a:prstDash`. */
+	dashArray?: string;
 	opacity?: number;
 	part?: ChartPartRef;
 	/**

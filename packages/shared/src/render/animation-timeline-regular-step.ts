@@ -13,7 +13,7 @@
 
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
-import { resolveAnimationStart } from './animation-advanced-triggers';
+import { resolveAnimationEnd, resolveAnimationStart } from './animation-advanced-triggers';
 import { resolveAfterAnimationStepFields } from './animation-after-effect';
 import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveEffectTiming } from './animation-fill-repeat';
@@ -229,7 +229,15 @@ export function processRegularAnimation(
 			holdEndState: afterFields.holdEndState || undefined,
 			hideAfterEffect: afterFields.hideAfterEffect,
 			pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+			pendingDimOnNextClick: afterFields.pendingDimOnNextClick,
 			restart: singleAnim.restart,
+			endsOnNextClick: isCommand
+				? undefined
+				: iterCount === Infinity &&
+					  (resolveAnimationEnd(singleAnim)?.endsOnClick === true ||
+							singleAnim.restart === 'whenNotActive')
+					? true
+					: undefined,
 			seqConcurrent: singleAnim.seqConcurrent,
 			seqNextAction: singleAnim.seqNextAction,
 			seqPrevAction: singleAnim.seqPrevAction,
@@ -237,6 +245,7 @@ export function processRegularAnimation(
 			dependsOnTimeNodeId: effective.dependsOnTimeNodeId,
 			dependsOnShapeId: effective.dependsOnShapeId,
 			dependsOnEvent: effective.dependsOnEvent,
+			dependsOnBookmarkName: effective.dependsOnBookmarkName,
 		};
 		if (singleAnim.nodeId !== undefined) {
 			state.stepsByNodeId.set(singleAnim.nodeId, step);

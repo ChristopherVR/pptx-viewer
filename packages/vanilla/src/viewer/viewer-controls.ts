@@ -9,6 +9,7 @@ import {
 	resolveShowSlideIndexes,
 	createViewerZoomStore,
 } from 'pptx-viewer-shared';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 
 import type { RenderController } from './render-controller';
 import { clampSlideIndex } from './state';
@@ -45,6 +46,14 @@ export interface ViewerControls {
 	/** Jump to the show's last slide (End). */
 	lastSlide(): void;
 	goToSlide(index: number): void;
+	/**
+	 * Handle a Slide Zoom / Section Zoom / Summary Zoom tile click: navigates
+	 * to the target slide, playing the zoom's own `zmPr/@transitionDur` when
+	 * authored, and (when `returnToParent` is set) arms an excursion so the
+	 * next forward `next()` past the target's range returns to the slide the
+	 * zoom was clicked from instead of continuing linearly through the deck.
+	 */
+	navigateToZoomTarget(target: ZoomNavigationTarget): void;
 	slideCount(): number;
 	currentSlide(): number;
 	zoom(): number;
@@ -158,6 +167,21 @@ export function createViewerControls(
 			if (state.presenting && renderer.presentationPlayback.advance()) {
 				return;
 			}
+			// A Slide Zoom / Section Zoom / Summary Zoom tile whose `zmPr` set
+			// `returnToParent` armed an excursion (see `navigateToZoomTarget`). Once
+			// this forward advance reaches the last slide of that target's range,
+			// jump back to the zoom's origin slide instead of continuing linearly
+			// through the deck; PowerPoint's return jump is forward-only, so `prev`
+			// never consults this.
+			if (state.presenting) {
+				const zoomReturnIndex = renderer.presentationPlayback.consumeZoomReturnOnAdvance(
+					state.currentSlide,
+				);
+				if (zoomReturnIndex !== undefined) {
+					goToSlide(zoomReturnIndex);
+					return;
+				}
+			}
 			const order = showOrder();
 			// "Loop Continuously" (`p:showPr/@loop`, the Set Up Slide Show dialog's
 			// checkbox): the end of the show wraps back to its first slide instead of
@@ -222,6 +246,15 @@ export function createViewerControls(
 			);
 		},
 		goToSlide,
+		navigateToZoomTarget: (target) => {
+			const state = store.get();
+			const nextIndex = renderer.presentationPlayback.navigateToZoomTarget(
+				target,
+				state.currentSlide,
+				state.slides,
+			);
+			goToSlide(nextIndex);
+		},
 		firstShowSlideIndex: () => firstShowSlideIndex(showOrder()) ?? 0,
 		presentationEntryIndex: () =>
 			presentationEntrySlideIndex(store.get().currentSlide, showOrder()),

@@ -10,7 +10,7 @@ import {
 	getImageTilingStyle,
 	resolveShapeGeometry,
 } from '../internal/shared';
-import type { ImageSvgFilterDefinition } from '../internal/shared';
+import type { ImageSvgFilterDefinition, NativeImageSize } from '../internal/shared';
 import { getClrChangeParams } from './color-changed-image-helpers';
 import type { ClrChangeParams } from './color-changed-image-helpers';
 import type { StyleMap } from './element-style';
@@ -81,8 +81,19 @@ export function buildAngularImageContainerMask(element: PptxElement): StyleMap |
 	};
 }
 
-/** Build the complete shared image-effect view consumed by Angular templates. */
-export function buildAngularImageRenderView(element: PptxElement): AngularImageRenderView {
+/**
+ * Build the complete shared image-effect view consumed by Angular templates.
+ *
+ * `nativeSize`, when supplied (probed asynchronously by
+ * `ImageRendererComponent` via `pptx-viewer-shared`'s `image-native-size`),
+ * sizes a tiled picture's background in absolute pixels relative to its own
+ * native size per ECMA-376 §20.1.8.58, instead of the container-relative
+ * percentage `getImageTilingStyle` falls back to without it.
+ */
+export function buildAngularImageRenderView(
+	element: PptxElement,
+	nativeSize?: NativeImageSize,
+): AngularImageRenderView {
 	const computed = getComputedImageStyle(element);
 	// The fill/crop fit comes from shared so the `<a:srcRect>` source crop is the
 	// same maths in every binding; `[ngStyle]` accepts its camelCase keys. The
@@ -131,7 +142,7 @@ export function buildAngularImageRenderView(element: PptxElement): AngularImageR
 	// `@tx`/`@ty` offset, `@algn` anchor and `@flip` mirroring) is painted as a
 	// repeating background by every binding, because an `<img>` cannot repeat.
 	// Angular rendered it as ONE stretched copy until this branch existed.
-	const tiling = getImageTilingStyle(element);
+	const tiling = getImageTilingStyle(element, nativeSize);
 	const tilingStyle: StyleMap | undefined = tiling
 		? {
 				...(tiling as StyleMap),

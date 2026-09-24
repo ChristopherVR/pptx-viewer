@@ -14,7 +14,12 @@
 	 * thumbnails use the target slide's background, number, and section label.
 	 */
 	import { useTranslator } from '../../i18n/context';
-	import { buildSummaryZoomView, shouldRenderHitTarget } from 'pptx-viewer-shared';
+	import {
+		buildSummaryZoomView,
+		resolveZoomNavigationTarget,
+		shouldRenderHitTarget,
+	} from 'pptx-viewer-shared';
+	import type { SummaryZoomTileView } from 'pptx-viewer-shared';
 	import { resolveZoomView } from '../render';
 	import { resolveZoomTargetInfo, useZoomNavigation } from '../state/zoom-navigation-context';
 	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
@@ -73,16 +78,27 @@
 	);
 
 	function activate(): void {
-		if (clickable && view) {
-			navigation?.navigateToZoomTarget(view.target);
+		if (!clickable || !zoom) {
+			return;
+		}
+		const target = resolveZoomNavigationTarget(zoom);
+		if (target) {
+			navigation?.navigateToZoomTarget(target);
 		}
 	}
 
-	function activateSummary(event: Event, target: number): void {
-		if (!clickable) {return;}
+	function activateSummary(event: Event, tile: SummaryZoomTileView): void {
+		if (!clickable) {
+			return;
+		}
 		event.preventDefault();
 		event.stopPropagation();
-		navigation?.navigateToZoomTarget(target);
+		navigation?.navigateToZoomTarget({
+			targetSlideIndex: tile.targetSlideIndex,
+			targetSectionId: tile.sectionId,
+			returnToParent: tile.returnToParent,
+			transitionDurationMs: tile.transitionDurationMs,
+		});
 	}
 
 	function onClick(event: MouseEvent): void {
@@ -135,9 +151,9 @@
 						aria-label={tile.ariaLabel}
 						role={clickable ? 'button' : undefined}
 						tabindex={clickable ? 0 : undefined}
-						onclick={(event) => activateSummary(event, tile.targetSlideIndex)}
+						onclick={(event) => activateSummary(event, tile)}
 						onkeydown={(event) => {
-							if (event.key === 'Enter' || event.key === ' ') activateSummary(event, tile.targetSlideIndex);
+							if (event.key === 'Enter' || event.key === ' ') activateSummary(event, tile);
 						}}
 					>
 						{#if tile.imageSrc}<img src={tile.imageSrc} alt={tile.ariaLabel} draggable="false" />{:else}<div>{tile.label}</div><div>{tile.slideLabel}</div>{/if}

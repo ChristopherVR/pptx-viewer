@@ -11,6 +11,7 @@ import { SLIDE_SIZE_PRESETS, slideSizeFromPreset } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import SlideSizeCard from './SlideSizeCard.vue';
+import { setControlValue } from './test-control-value';
 
 /** A 16:9 widescreen deck: 12192000 x 6858000 EMU. */
 const WIDESCREEN = { widthEmu: 12192000, heightEmu: 6858000, type: '' };
@@ -32,7 +33,7 @@ describe('slide size card', () => {
 
 	it('emits the EMU size and the pixel canvas when a preset is picked', async () => {
 		const wrapper = mountCard();
-		await wrapper.get('[data-pptx-slide-size-preset]').setValue('ledger');
+		await setControlValue(wrapper.get('[data-pptx-slide-size-preset]'), 'ledger');
 		// Ledger is 12179300 EMU = 1278.5px: the EMU value must be carried
 		// verbatim, not recovered from the rounded pixel width.
 		expect(wrapper.emitted('update-slide-size')?.[0]).toStrictEqual([
@@ -84,7 +85,7 @@ describe('slide size card', () => {
 
 	it('still emits raw pixel edits from the W/H inputs', async () => {
 		const wrapper = mountCard();
-		await wrapper.findAll('input[type="number"]')[0].setValue('960');
+		await setControlValue(wrapper.findAll('input[type="number"]')[0], '960');
 		expect(wrapper.emitted('update')?.[0]).toStrictEqual([{ width: 960, height: 720 }]);
 	});
 });

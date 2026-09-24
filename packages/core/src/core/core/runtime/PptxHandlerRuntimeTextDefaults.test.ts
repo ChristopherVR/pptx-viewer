@@ -1,6 +1,12 @@
 import { describe, it, expect } from 'vitest';
 
-import type { TextStyle, PlaceholderDefaults, PlaceholderTextLevelStyle } from '../../types';
+import type {
+	TextStyle,
+	PlaceholderDefaults,
+	PlaceholderTextLevelStyle,
+	XmlObject,
+} from '../../types';
+import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 
 // Since these are protected methods on a deeply chained mixin, we extract
 // their logic and test them directly.
@@ -212,6 +218,38 @@ describe('parseParagraphSpacingPx', () => {
 		// 600 = 6pt
 		const result = parseParagraphSpacingPx({ 'a:spcPts': { '@_val': '600' } });
 		expect(result).toBe(pointsToPixels(6));
+	});
+});
+
+// ---------------------------------------------------------------------------
+// parseParagraphSpacingPx - `a:spcPct` (real runtime).
+//
+// `a:spcPct` resolves against a SINGLE LINE'S height, which is 1.2x the font's
+// point size, not the bare font size. Measured over PowerPoint COM on 18pt
+// runs with spcBef 100% / spcAft 50% (audit-text/gen.py slide 16): the pixel
+// pitch between consecutive paragraph baselines was exactly
+// `(1.0 + 1.2 + 0.5 * 1.2) * 18pt` = 54pt = 108px at the export's 144 DPI,
+// which only holds if the 100%/50% resolve against `1.2 * 18pt`, not `18pt`.
+// ---------------------------------------------------------------------------
+class SpacingRuntime extends PptxHandlerRuntime {
+	public spacingPx(spacingNode: XmlObject | undefined, basisFontSizePx: number | undefined) {
+		return this.parseParagraphSpacingPx(spacingNode, basisFontSizePx);
+	}
+}
+
+describe('parseParagraphSpacingPx - a:spcPct (real runtime)', () => {
+	it('resolves against 1.2x the basis font size, not the bare font size', () => {
+		const runtime = new SpacingRuntime();
+		// 24px basis (18pt at 96dpi === 24px), 100% -> 1.2 * 24 = 28.8px.
+		const full = runtime.spacingPx({ 'a:spcPct': { '@_val': '100000' } }, 24);
+		expect(full).toBeCloseTo(28.8, 5);
+		const half = runtime.spacingPx({ 'a:spcPct': { '@_val': '50000' } }, 24);
+		expect(half).toBeCloseTo(14.4, 5);
+	});
+
+	it('returns undefined without a basis font size', () => {
+		const runtime = new SpacingRuntime();
+		expect(runtime.spacingPx({ 'a:spcPct': { '@_val': '100000' } }, undefined)).toBeUndefined();
 	});
 });
 

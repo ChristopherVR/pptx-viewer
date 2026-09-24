@@ -273,3 +273,83 @@ describe('c2-G9: c:dPt/c:pictureOptions picture fill resolves to an image URL', 
 		expect(element.chartData!.series[0].dataPoints ?? []).toHaveLength(0);
 	});
 });
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scatter c:xVal falls back to the embedded workbook, matching c:val's own
+// fallback (a chart saved via COM automation with the workbook closed right
+// after SetSourceData writes a numRef with no numCache at all for EITHER
+// c:xVal or c:yVal).
+// ─────────────────────────────────────────────────────────────────────────────
+
+const SCATTER_CHART_XML_NO_CACHE = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<c:chartSpace xmlns:c="http://schemas.openxmlformats.org/drawingml/2006/chart"
+ xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+ xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+ <c:chart>
+  <c:plotArea>
+   <c:scatterChart>
+    <c:scatterStyle val="lineMarker"/>
+    <c:ser>
+     <c:idx val="0"/><c:order val="0"/>
+     <c:tx><c:strRef><c:f>Sheet1!$B$1</c:f></c:strRef></c:tx>
+     <c:xVal><c:numRef><c:f>Sheet1!$A$2:$A$4</c:f></c:numRef></c:xVal>
+     <c:yVal><c:numRef><c:f>Sheet1!$B$2:$B$4</c:f></c:numRef></c:yVal>
+    </c:ser>
+    <c:axId val="1"/><c:axId val="2"/>
+   </c:scatterChart>
+   <c:valAx><c:axId val="1"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:crossAx val="2"/></c:valAx>
+   <c:valAx><c:axId val="2"/><c:scaling><c:orientation val="minMax"/></c:scaling><c:crossAx val="1"/></c:valAx>
+  </c:plotArea>
+ </c:chart>
+ <c:externalData r:id="rIdWb"><c:autoUpdate val="0"/></c:externalData>
+</c:chartSpace>`;
+
+const SCATTER_CHART_RELS_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+ <Relationship Id="rIdWb" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/package" Target="../embeddings/Sheet1.xlsx"/>
+</Relationships>`;
+
+/** Minimal xlsx (as a nested ZIP) with one X column and one Y column. */
+async function buildEmbeddedXlsx(): Promise<Uint8Array> {
+	const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<sheetData>
+<row r="1"><c r="B1" t="inlineStr"><v>S1</v></c></row>
+<row r="2"><c r="A2"><v>1</v></c><c r="B2"><v>10</v></c></row>
+<row r="3"><c r="A3"><v>2</v></c><c r="B3"><v>20</v></c></row>
+<row r="4"><c r="A4"><v>3</v></c><c r="B4"><v>15</v></c></row>
+</sheetData>
+</worksheet>`;
+	const xlsxZip = new JSZip();
+	xlsxZip.file('xl/worksheets/sheet1.xml', sheetXml);
+	return xlsxZip.generateAsync({ type: 'uint8array' });
+}
+
+async function buildDeckWithScatterNoCache(): Promise<ArrayBuffer> {
+	const { handler, data, createSlide } = await PresentationBuilder.create();
+	data.slides.push(createSlide('Blank').build());
+	const zip = await JSZip.loadAsync(await handler.save(data.slides));
+	zip.file('ppt/slides/slide1.xml', SLIDE_XML);
+	zip.file('ppt/slides/_rels/slide1.xml.rels', SLIDE_RELS_XML);
+	zip.file('ppt/charts/chart1.xml', SCATTER_CHART_XML_NO_CACHE);
+	zip.file('ppt/charts/_rels/chart1.xml.rels', SCATTER_CHART_RELS_XML);
+	zip.file('ppt/embeddings/Sheet1.xlsx', await buildEmbeddedXlsx());
+	return toArrayBuffer(await zip.generateAsync({ type: 'uint8array' }));
+}
+
+describe('scatter c:xVal falls back to the embedded workbook when cache-less', () => {
+	it("backfills a series' xValues from the embedded workbook's first column", async () => {
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeckWithScatterNoCache());
+		const element = data.slides[0].elements.find(
+			(candidate) => candidate.type === 'chart',
+		) as ChartPptxElement;
+		const series = element.chartData!.series[0];
+
+		// c:yVal's own numCache-less fallback already worked before this fix.
+		expect(series.values).toStrictEqual([10, 20, 15]);
+		// c:xVal has no numCache either; only the embedded-workbook fallback
+		// added here can produce this.
+		expect(series.xValues).toStrictEqual([1, 2, 3]);
+	});
+});

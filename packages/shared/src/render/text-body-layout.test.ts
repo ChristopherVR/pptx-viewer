@@ -102,9 +102,47 @@ describe('buildTextBodyLayoutStyle', () => {
 		expect(style.justifyContent).toBeUndefined();
 	});
 
-	it('centres the text bounding box for @anchorCtr', () => {
-		expect(buildTextBodyLayoutStyle(textElement({ anchorCenter: true })).alignItems).toBe('center');
-		expect(buildTextBodyLayoutStyle(textElement({})).alignItems).toBeUndefined();
+	it('fills column 1 first instead of balancing (PowerPoint never balances)', () => {
+		expect(buildTextBodyLayoutStyle(textElement({ columnCount: 2 })).columnFill).toBe('auto');
+	});
+
+	it('honours @anchor for a multi-column body via align-content, not justify-content', () => {
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, vAlign: 'middle' })).alignContent,
+		).toBe('center');
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, vAlign: 'bottom' })).alignContent,
+		).toBe('end');
+		expect(buildTextBodyLayoutStyle(textElement({ columnCount: 2 })).alignContent).toBe('start');
+	});
+
+	it('honours @rtlCol by reversing multi-column direction', () => {
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, rtlColumns: true })).direction,
+		).toBe('rtl');
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, rtlColumns: false })).direction,
+		).toBeUndefined();
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 1, rtlColumns: true })).direction,
+		).toBeUndefined();
+	});
+
+	it('centres the shared bounding box of every paragraph for @anchorCtr, not each one independently', () => {
+		const style = buildTextBodyLayoutStyle(textElement({ anchorCenter: true }));
+		// fit-content + auto margins shrink-wraps the flex container to its
+		// widest paragraph and centres THAT box, so every paragraph keeps the
+		// same left edge; `align-items: center` would centre each paragraph
+		// independently instead (see the doc comment for why that is wrong).
+		expect(style.width).toBe('fit-content');
+		expect(style.maxWidth).toBe('100%');
+		expect(style.marginLeft).toBe('auto');
+		expect(style.marginRight).toBe('auto');
+		expect(style.alignItems).toBeUndefined();
+
+		const plain = buildTextBodyLayoutStyle(textElement({}));
+		expect(plain.width).toBeUndefined();
+		expect(plain.marginLeft).toBeUndefined();
 	});
 
 	it('emits tab-size and the kinsoku rules', () => {
@@ -217,7 +255,8 @@ describe('buildTextBlockStyle bodyLayout', () => {
 			{ bodyLayout: true, pxLengths: true },
 		);
 		expect(style.tabSize).toBe('48px');
-		expect(style.alignItems).toBe('center');
+		expect(style.width).toBe('fit-content');
+		expect(style.marginLeft).toBe('auto');
 		expect(style.transform).toBe('rotate(30deg)');
 	});
 

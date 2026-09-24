@@ -3,7 +3,7 @@ import { xmlText } from '../../utils';
 import { parseParagraphLevel } from '../../utils/paragraph-properties-parser';
 import { xmlHasChild } from '../../utils/xml-access';
 import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
-import { paragraphContentEntries } from './paragraph-sibling-order';
+import { hasOwnFontDeclaration, paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
 
@@ -60,6 +60,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				inheritedRunStyle: mergedDefaultRunStyle,
 			}) as TextStyle;
 
+		// Recovered here (rather than at its original use site below the bullet
+		// block) because the bullet/auto-number logic ALSO needs to know
+		// whether this paragraph has any actual content: see
+		// `hasRenderableContent` immediately below.
+		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS);
+		// A bare `<a:endParaRPr/>` paragraph (no `a:r`/`a:fld`/equation/`a:br`)
+		// is a blank line, not a list item: PowerPoint does not print an
+		// auto-number next to it, and the NEXT numbered paragraph continues the
+		// sequence as though the blank line were not there (COM-verified
+		// against `audit-text/pp/s10.png`, `gen.py` slide 10's nested-list box,
+		// where "two" is numbered 2 and "after empty" is numbered 3, skipping
+		// the blank line between them entirely rather than making it 3 and the
+		// next 4).
+		const hasRenderableContent = entries.length > 0;
+
 		// Bullet info
 		const isBodyPlaceholder =
 			ctx.placeholderInfo?.type === 'body' || ctx.placeholderInfo?.type === 'obj';
@@ -82,33 +97,44 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// `startAt` again rather than from the top of the text body.
 		let autoNumOrdinal: number | undefined;
 		if (autoNumScheme) {
-			autoNumOrdinal = nextAutoNumber(
-				ctx.autoNumbering,
-				paragraphLevel,
-				autoNumScheme,
-				paragraphBulletInfo?.autoNumStartAt ?? 1,
-			);
-			if (paragraphBulletInfo) {
-				// Consumers that re-derive the marker from `BulletInfo` alone
-				// (the renderer's `resolveParagraphBullet`, the Markdown
-				// converter's `resolveListMarker`) compute
-				// `autoNumStartAt + paragraphIndex`. Publishing the ordinal's
-				// OFFSET here rather than the raw paragraph position is what
-				// makes them land on the sequence resolved above, which is the
-				// only one that accounts for a list interrupted by an unnumbered
-				// paragraph. With the raw position, a list that did not start at
-				// the first paragraph of the body numbered one way here and
-				// another way in the renderer, and BOTH markers were painted
-				// ("3.1. Item"), since the paragraph builder drops the parsed
-				// marker segment only when the two strings agree.
-				paragraphBulletInfo.paragraphIndex =
-					autoNumOrdinal - (paragraphBulletInfo.autoNumStartAt ?? 1);
+			// A blank line (no run/field/equation content) does not consume an
+			// ordinal: leave `ctx.autoNumbering` completely untouched, neither
+			// advancing nor breaking it, so it is invisible to the sequence and
+			// the next real numbered paragraph continues from where the LAST
+			// real one left off.
+			if (hasRenderableContent) {
+				autoNumOrdinal = nextAutoNumber(
+					ctx.autoNumbering,
+					paragraphLevel,
+					autoNumScheme,
+					paragraphBulletInfo?.autoNumStartAt ?? 1,
+				);
+				if (paragraphBulletInfo) {
+					// Consumers that re-derive the marker from `BulletInfo` alone
+					// (the renderer's `resolveParagraphBullet`, the Markdown
+					// converter's `resolveListMarker`) compute
+					// `autoNumStartAt + paragraphIndex`. Publishing the ordinal's
+					// OFFSET here rather than the raw paragraph position is what
+					// makes them land on the sequence resolved above, which is the
+					// only one that accounts for a list interrupted by an unnumbered
+					// paragraph. With the raw position, a list that did not start at
+					// the first paragraph of the body numbered one way here and
+					// another way in the renderer, and BOTH markers were painted
+					// ("3.1. Item"), since the paragraph builder drops the parsed
+					// marker segment only when the two strings agree.
+					paragraphBulletInfo.paragraphIndex =
+						autoNumOrdinal - (paragraphBulletInfo.autoNumStartAt ?? 1);
+				}
 			}
 		} else {
 			breakAutoNumberRun(ctx.autoNumbering, paragraphLevel);
 		}
 
-		if (paragraphBulletInfo && !paragraphBulletInfo.none) {
+		// An empty auto-numbered paragraph gets no marker segment at all (no
+		// ordinal was resolved for it above); a char/picture bullet on an empty
+		// paragraph is unaffected; PowerPoint still paints those.
+		const showBulletMarker = hasRenderableContent || !autoNumScheme;
+		if (paragraphBulletInfo && !paragraphBulletInfo.none && showBulletMarker) {
 			let bulletText: string;
 			if (paragraphBulletInfo.char) {
 				bulletText = `${paragraphBulletInfo.char} `;
@@ -133,6 +159,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// their base, not the text body's default. The renderer applies the
 			// percentage; `a:buSzPts` is absolute and does not use this base.
 			const bulletStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			// `mergedDefaultRunStyle` can pick up `align` from the placeholder's
+			// level defaults (`applyPlaceholderLevelDefaults` fills any slot the
+			// paragraph itself left undefined, and almost every body placeholder's
+			// master `lstStyle` declares a level alignment). The renderer's
+			// per-paragraph alignment resolution (`resolveParagraphAlign`) reads
+			// segments in order and stops at the FIRST explicit `align`, and the
+			// bullet marker is always that first segment, so a stale
+			// placeholder-derived alignment here shadowed the paragraph's own
+			// resolved `algn` on every bulleted paragraph. The marker's alignment
+			// must always match its own paragraph, never the placeholder default.
+			bulletStyle.align = paraAlign;
 			if (paragraphBulletInfo.sizePts === undefined) {
 				const firstRunSize = this.resolveFirstRunFontSize(p, paraAlign, ctx);
 				if (firstRunSize !== undefined) {
@@ -161,12 +198,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			// #83: annotate a per-script fallback face when the run's text is
 			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
-			// `<a:font script=...>` override. Rendering hint only — never
+			// `<a:font script=...>` override. Rendering hint only, never
 			// round-tripped, so the authored typefaces are untouched.
 			if (!runStyle.scriptFallbackFont) {
 				const fallback = this.resolveScriptFallbackFont(runText);
 				if (fallback) {
 					runStyle.scriptFallbackFont = fallback;
+					// The run's OWN `a:rPr` authors no latin/ea/cs font: the
+					// `fontFamily` `withAuthoredSplit` just merged in above is purely
+					// the paragraph/list-style/theme CASCADE default (typically
+					// `+mn-lt`), which the renderer must let this fallback replace.
+					// See `TextStyle.fontFamilyIsCascadeDefault`.
+					if (!hasOwnFontDeclaration(runProps)) {
+						runStyle.fontFamilyIsCascadeDefault = true;
+					}
 				}
 			}
 			parts.push(runText);
@@ -231,16 +276,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				fieldSegment.fieldGuidAttr = fldGuidAttr;
 			}
 			// Preserve a per-field `a:pPr` (the schema permits paragraph
-			// properties inside `a:fld`) verbatim for round-trip.
-			const fieldPPr = field['a:pPr'];
-			if (fieldPPr && typeof fieldPPr === 'object') {
-				fieldSegment.fieldParagraphPropertiesXml = fieldPPr as XmlObject;
+			// properties inside `a:fld`) verbatim for round-trip. An UNSTYLED
+			// `<a:pPr/>` parses to the empty STRING (fast-xml-parser gives every
+			// childless/attributeless element this way, same trap as `<p:spPr/>`
+			// - see `ensureXmlChild`), so a truthy-object test here missed it and
+			// the field's own empty pPr silently vanished on save.
+			if (field['a:pPr'] !== undefined) {
+				const fieldPPr = field['a:pPr'];
+				fieldSegment.fieldParagraphPropertiesXml =
+					typeof fieldPPr === 'object' && fieldPPr !== null ? (fieldPPr as XmlObject) : {};
 			}
 			segments.push(fieldSegment);
 			maybeSeed(fieldRunStyle);
 		};
 
-		const processMathElement = (mathEl: unknown) => {
+		// `mathEl` is the resolved math content used for RENDERING: the shape
+		// every consumer of `TextSegment.equationXml` already expects (at the
+		// `a14:m` / `m:oMathPara` level, or directly at `m:oMath`). `wrapperTag`
+		// + `wrapperNode` are the ORIGINAL top-level paragraph child exactly as
+		// authored, captured separately onto `equationSourceXml` purely so the
+		// writer can re-emit an untouched equation byte-for-byte: an
+		// `mc:AlternateContent` equation keeps its Choice AND Fallback, and a
+		// bare `a14:m` equation stays a bare `a14:m`, instead of either
+		// collapsing to a bare math element PowerPoint's own writer never
+		// produces.
+		const processMathElement = (mathEl: unknown, wrapperTag: string, wrapperNode: unknown) => {
 			if (!mathEl) {
 				return;
 			}
@@ -250,6 +310,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				text: eqText,
 				style: { ...mergedDefaultRunStyle },
 				equationXml: mathEl as Record<string, unknown>,
+				equationSourceXml: { [wrapperTag]: wrapperNode } as Record<string, unknown>,
 			});
 		};
 
@@ -260,8 +321,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			const innerMath = choice['a14:m'] ?? choice['m:oMathPara'] ?? choice['m:oMath'];
 			if (innerMath) {
-				// mc:AlternateContent wrapping inline math
-				processMathElement(innerMath);
+				// mc:AlternateContent wrapping inline math: `equationSourceXml`
+				// captures the WHOLE alternate-content node (its Choice and
+				// Fallback both), not just the inline math inside the winning
+				// Choice, so an untouched equation re-emits verbatim.
+				processMathElement(innerMath, 'mc:AlternateContent', ac);
 				return;
 			}
 			// mc:AlternateContent may contain non-math content (runs, fields)
@@ -283,10 +347,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// keys re-emits them GROUPED BY TAG: an authored
 		// `"Slide " <a:fld/> " - " <a:fld/>` came back as both literal runs and
 		// only then both fields, i.e. every inline field jumped to the end of
-		// its paragraph. `paragraphContentEntries` replays the order recovered
-		// from the raw XML at parse time, and reports `authored: false` when
-		// there was nothing to recover (already grouped, or SDK-built).
-		const { entries, authored } = paragraphContentEntries(p, PARAGRAPH_CONTENT_TAGS);
+		// its paragraph. `paragraphContentEntries` (recovered above, alongside
+		// `hasRenderableContent`) replays the order recovered from the raw XML
+		// at parse time, and reports `authored: false` when there was nothing
+		// to recover (already grouped, or SDK-built).
 		const runCount = this.ensureArray(p['a:r']).length;
 		const breakCount = this.ensureArray(p['a:br']).length;
 		// Legacy repair, kept for the grouped case only: with the true order
@@ -323,7 +387,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				case 'a14:m':
 				case 'm:oMathPara':
 				case 'm:oMath':
-					processMathElement(item);
+					processMathElement(item, key, item);
 					break;
 				case 'mc:AlternateContent':
 					processAlternateContent(item);
@@ -413,9 +477,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Only the paragraph's OWN `a:buNone` counts. `resolveParagraphBulletInfo`
 			// also reports `none` when the suppression is INHERITED from a layout or
 			// master list style, and writing that back onto the slide paragraph would
-			// add markup the author never authored.
+			// add markup the author never authored. `paragraphBulletInfo` is reused
+			// as-is (rather than a fresh `{ none: true }`) because its top-level
+			// check is this exact same condition on this exact same `a:pPr` node:
+			// whenever it fires, `paragraphBulletInfo` is already `{ none: true,
+			// ownedByParagraph: true, ...colorInherit/sizeInherit/fontInherit }`,
+			// and dropping those extra fields here silently lost the independent
+			// `buClrTx`/`buSzTx`/`buFontTx` "inherit from text" markers a paragraph
+			// may still author alongside `buNone`.
 			if (xmlHasChild(pPrRaw, 'a:buNone') && segments[firstSegmentIndex].bulletInfo === undefined) {
-				segments[firstSegmentIndex].bulletInfo = { none: true };
+				segments[firstSegmentIndex].bulletInfo = paragraphBulletInfo ?? {
+					none: true,
+					ownedByParagraph: true,
+				};
 			}
 			const lvlRaw = pPrRaw?.['@_lvl'];
 			if (lvlRaw !== undefined) {

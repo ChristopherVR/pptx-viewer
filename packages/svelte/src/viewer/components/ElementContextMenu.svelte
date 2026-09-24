@@ -28,6 +28,9 @@
 		onfixai,
 		oncomment,
 		onhyperlink,
+		onenterinlineedit,
+		onsaveaspicture,
+		onfocusinspectorsection,
 		onclose,
 	}: ElementContextMenuProps = $props();
 	const t = useTranslator();
@@ -59,6 +62,9 @@
 		onFixAi: onfixai,
 		onComment: oncomment,
 		onHyperlink: onhyperlink,
+		onEnterInlineEdit: onenterinlineedit,
+		onSaveAsPicture: onsaveaspicture,
+		onFocusInspectorSection: onfocusinspectorsection,
 	});
 	const entries = $derived(buildEditorContextMenuEntries(dispatch));
 

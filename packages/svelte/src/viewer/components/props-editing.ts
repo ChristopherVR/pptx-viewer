@@ -1,5 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
+import type {
+	InspectorSectionAnchor,
+	ResizeHandleId,
+	ShapeAdjustmentHandleDescriptor,
+	SnapLine,
+} from 'pptx-viewer-shared';
 
 import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -73,6 +78,22 @@ export interface InlineTextEditorProps {
 	onretire?: () => void;
 	/** Called after the surface closes (commit or cancel). */
 	onclose: () => void;
+	/**
+	 * A live-format shortcut fired mid-edit (Ctrl+B/I/U, Ctrl+L/E/R/J,
+	 * Ctrl+Shift+>/< and Ctrl+]/[, Ctrl+Space): the element patch to apply,
+	 * built by the same pure functions the ribbon's formatting buttons use.
+	 */
+	onformat?: (patch: Partial<PptxElement>) => void;
+	/** Ctrl+Shift+C mid-edit: arm the format painter from the edited element. */
+	oncopyformat?: () => void;
+	/** Ctrl+Shift+V mid-edit: apply the copied format to the edited element. */
+	onpasteformat?: () => void;
+	/** Ctrl+K mid-edit: open the hyperlink dialog for the edited element. */
+	onhyperlink?: () => void;
+	/** Ctrl+F mid-edit: open the find bar (same chord as outside text-edit). */
+	onfind?: () => void;
+	/** Ctrl+H mid-edit: open the find bar's replace row. */
+	onfindreplace?: () => void;
 }
 
 /** Props for the editing layer (selection overlay + inline editor over the stage). */
@@ -114,5 +135,14 @@ export interface ElementContextMenuProps {
 	oncomment?: () => void;
 	/** "Edit Hyperlink": opens the hyperlink dialog for the selected element. */
 	onhyperlink?: () => void;
+	/** "Edit Text": enters inline text edit for the selected element. */
+	onenterinlineedit?: (elementId: string) => void;
+	/** "Save as Picture": rasterises the selected element's own DOM node to PNG. */
+	onsaveaspicture?: (elementId: string) => void;
+	/**
+	 * "Edit Alt Text" / "Size and Position" / "Format Shape": opens the
+	 * inspector's properties tab and scrolls to the matching section.
+	 */
+	onfocusinspectorsection?: (anchor: InspectorSectionAnchor) => void;
 	onclose: () => void;
 }

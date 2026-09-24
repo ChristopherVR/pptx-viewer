@@ -334,11 +334,14 @@ describe('slide size save option', () => {
 	 * (4:3)", which is exactly the kind of wrong-but-plausible control state
 	 * nobody re-reads.
 	 */
-	it('marks the selected preset per option, not with a value binding on the select', () => {
+	it('binds the selected preset on the shared select as the option list changes', () => {
 		const source = readFileSync(join(__dirname, 'slide-size-card.component.ts'), 'utf8');
-		const select = source.slice(source.indexOf('<select'), source.indexOf('</select>'));
+		const select = source.slice(
+			source.indexOf('<pptx-ui-select'),
+			source.indexOf('</pptx-ui-select>'),
+		);
 		expect(select).toContain('data-pptx-slide-size-preset');
-		expect(select).not.toContain('[value]="selectedPresetValue()"');
+		expect(select).toContain('[attr.value]="selectedPresetValue()"');
 		expect(select).toContain('[selected]="preset.labelKey === selectedPresetValue()"');
 	});
 });

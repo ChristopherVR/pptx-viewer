@@ -1,4 +1,5 @@
 import {
+	getCachedNativeImageSize,
 	getComputedImageStyle,
 	getContainerStyle,
 	getCropShapeClipPath,
@@ -8,11 +9,12 @@ import {
 	getImageOverflow,
 	getImageSrc,
 	getImageTilingStyle,
+	probeNativeImageSize,
 	resolveColorChangedImageSource,
 	resolveShapeGeometry,
 } from 'pptx-viewer-shared';
 
-import { createEl, createSvgEl, setSvgAttrs } from '../dom';
+import { applyStyleMap, createEl, createSvgEl, setSvgAttrs } from '../dom';
 import type { ElementRenderer } from '../types';
 import { renderReflectionOverlay } from './shape-filter-defs';
 
@@ -89,7 +91,12 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 	// shape effect layer (`element-styles.ts`), so this is wired directly here.
 	const reflection = renderReflectionOverlay(doc, element, context.mediaDataUrls);
 
-	const tiling = getImageTilingStyle(element);
+	// `@sx`/`@sy` (ECMA-376 §20.1.8.58) is a percentage of the picture's own
+	// NATIVE pixel size, not of this container. The tile is painted at the
+	// container-relative percentage immediately, then re-styled in place with
+	// an absolute-pixel `backgroundSize` once the source's native size is
+	// probed (cache-first; a cache miss kicks an async decode).
+	const tiling = getImageTilingStyle(element, getCachedNativeImageSize(src));
 	if (tiling) {
 		const tile = createEl(doc, 'div', 'pptxv-image-tile', tiling);
 		if (fx.filter) {
@@ -97,6 +104,14 @@ export const renderImageElement: ElementRenderer = (element, zIndex, context) =>
 		}
 		if (fx.opacity !== undefined) {
 			tile.style.opacity = String(fx.opacity);
+		}
+		if (!getCachedNativeImageSize(src)) {
+			void probeNativeImageSize(src).then((size) => {
+				if (size) {
+					applyStyleMap(tile, getImageTilingStyle(element, size) ?? {});
+				}
+				return undefined;
+			});
 		}
 		el.appendChild(tile);
 		if (reflection) {

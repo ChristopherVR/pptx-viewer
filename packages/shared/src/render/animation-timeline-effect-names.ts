@@ -20,7 +20,19 @@ export type EffectName =
 	| 'splitIn'
 	| 'dissolveIn'
 	| 'wheelIn'
+	// `wheel(<n>)` spoke-count variants (Effect Options "Spokes"); `wheelIn`
+	// itself remains the untouched default (4 spokes) for a deck with no
+	// resolvable subtype. See `resolveWheelSpokeCount`.
+	| 'wheelIn1'
+	| 'wheelIn2'
+	| 'wheelIn3'
+	| 'wheelIn4'
+	| 'wheelIn8'
 	| 'blindsIn'
+	// `blinds(vertical|horizontal)` direction variants; `blindsIn` remains
+	// the untouched default for a deck with no resolvable subtype.
+	| 'blindsInVertical'
+	| 'blindsInHorizontal'
 	| 'boxIn'
 	| 'circleIn'
 	| 'floatIn'
@@ -28,9 +40,17 @@ export type EffectName =
 	| 'swivel'
 	| 'expandIn'
 	| 'checkerboardIn'
+	// `checkerboard(across|down)` direction variants; `checkerboardIn`
+	// remains the untouched default for a deck with no resolvable subtype.
+	| 'checkerboardInAcross'
+	| 'checkerboardInDown'
 	| 'flashIn'
 	| 'peekIn'
 	| 'randomBarsIn'
+	// `randombar(vertical|horizontal)` direction variants; `randomBarsIn`
+	// remains the untouched default for a deck with no resolvable subtype.
+	| 'randomBarsInVertical'
+	| 'randomBarsInHorizontal'
 	| 'spinnerIn'
 	| 'growTurnIn'
 	| 'diamondIn'

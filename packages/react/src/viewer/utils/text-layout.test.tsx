@@ -88,6 +88,30 @@ describe('getTextLayoutStyle', () => {
 		expect(style.columnGap).toBe('0px');
 	});
 
+	// PowerPoint fills column 1 completely before spilling into column 2; CSS
+	// balances columns to equal height by default.
+	it('fills columns sequentially instead of balancing them', () => {
+		const el = makeTextElement({ columnCount: 2 });
+		const style = getTextLayoutStyle(el);
+		expect(style.columnFill).toBe('auto');
+	});
+
+	it('honours @anchor for a multi-column body via alignContent', () => {
+		const el = makeTextElement({ columnCount: 2, vAlign: 'middle' });
+		const style = getTextLayoutStyle(el);
+		expect(style.alignContent).toBe('center');
+	});
+
+	it('honours @rtlCol without the vertical-direction override clobbering it', () => {
+		const el = makeTextElement({ columnCount: 2, rtlColumns: true });
+		const style = getTextLayoutStyle(el);
+		// Regression: `direction: verticalDirection` used to be assigned
+		// unconditionally AFTER the shared bodyLayout spread, stomping this
+		// rtlCol-driven `direction: 'rtl'` back to `undefined` for any element
+		// whose textDirection is not itself a vertical mode.
+		expect(style.direction).toBe('rtl');
+	});
+
 	// ── Writing mode ────────────────────────────────────────────
 	it('sets writingMode for vertical text direction', () => {
 		const el = makeTextElement({ textDirection: 'vertical' });

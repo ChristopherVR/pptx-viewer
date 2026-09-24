@@ -158,7 +158,7 @@ function onFlipVertical(checked: boolean): void {
 
 		<div class="pptx-vue-arrange-flips grid grid-cols-2 gap-2">
 			<label class="pptx-vue-arrange-check inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="flipHorizontal"
 					@change="onFlipHorizontal(($event.target as HTMLInputElement).checked)"
@@ -166,7 +166,7 @@ function onFlipVertical(checked: boolean): void {
 				{{ t('pptx.arrange.flipHorizontally') }}
 			</label>
 			<label class="pptx-vue-arrange-check inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="flipVertical"
 					@change="onFlipVertical(($event.target as HTMLInputElement).checked)"

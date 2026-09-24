@@ -15,5 +15,6 @@ export default defineConfig({
 		globals: true,
 		maxWorkers: 4,
 		include: ['src/**/*.test.{ts,tsx}'],
+		setupFiles: ['./web-controls.test-setup.ts'],
 	},
 });

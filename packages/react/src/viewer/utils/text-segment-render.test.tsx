@@ -43,6 +43,34 @@ function markupOf(style: TextStyle, text: string): string {
 	);
 }
 
+// Regression (#83): every run inherits SOME font via the paragraph/list-style/
+// theme cascade (typically the theme's `+mn-lt`), so `segmentStyle.fontFamily`
+// was ALWAYS populated by the time this function ran - shared's fix landed
+// separately in `segmentStyleToCss`, but this component re-resolves its own
+// `fontFamily` from the SAME ambiguous fields instead of using shared's, so a
+// Japanese-dominant run kept painting in the Latin theme font in React
+// specifically, even after the shared fix.
+describe('renderParagraphRun - theme per-script font fallback (#83)', () => {
+	it('applies scriptFallbackFont over a fontFamily that only reached the run via cascade', () => {
+		const style = styleOf({
+			fontFamily: 'Calibri',
+			fontFamilyIsCascadeDefault: true,
+			scriptFallbackFont: 'MS Gothic',
+		});
+		expect(style.fontFamily).toContain('MS Gothic');
+		expect(style.fontFamily).not.toContain('Calibri');
+	});
+
+	it('never overrides a fontFamily the run authored itself', () => {
+		const style = styleOf({
+			fontFamily: 'Calibri',
+			scriptFallbackFont: 'MS Gothic',
+		});
+		expect(style.fontFamily).toContain('Calibri');
+		expect(style.fontFamily).not.toContain('MS Gothic');
+	});
+});
+
 describe('renderParagraphRun - text capitalization (a:rPr/@cap)', () => {
 	it('maps cap="all" to text-transform: uppercase', () => {
 		const style = styleOf({ textCaps: 'all' });

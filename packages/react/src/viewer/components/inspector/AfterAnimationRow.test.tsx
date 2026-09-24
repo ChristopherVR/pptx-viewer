@@ -41,7 +41,7 @@ describe('afterAnimationRow', () => {
 				/>,
 			);
 		});
-		expect(container.querySelector('select')!.value).toBe('none');
+		expect(container.querySelector('pptx-ui-select')!.value).toBe('none');
 		expect(container.querySelector('input[type="color"]')).toBeNull();
 	});
 
@@ -75,7 +75,7 @@ describe('afterAnimationRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		act(() => {
 			select.value = 'hideOnNextClick';
 			select.dispatchEvent(new Event('change', { bubbles: true }));
@@ -145,7 +145,7 @@ describe('afterAnimationRow', () => {
 				/>,
 			);
 		});
-		expect(container.querySelector('select')!.hasAttribute('disabled')).toBeTruthy();
+		expect(container.querySelector('pptx-ui-select')!.hasAttribute('disabled')).toBeTruthy();
 		expect(
 			(container.querySelector('input[type="color"]') as HTMLInputElement).disabled,
 		).toBeTruthy();

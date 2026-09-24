@@ -104,7 +104,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-inspector-color-row">
+<div class="pptx-svelte-inspector-color-row" data-pptx-inspector-section="fill-stroke">
 	<label class="pptx-svelte-inspector-color">
 		<span>{t('pptx.inspector.fill')}</span>
 		<input
@@ -165,11 +165,10 @@
 </label>
 
 <label class="pptx-svelte-field-checkbox">
-	<input
-		type="checkbox"
+	<pptx-ui-checkbox
 		checked={gradientOn}
 		onchange={(e) => toggleGradient(e.currentTarget.checked)}
-	/>
+	></pptx-ui-checkbox>
 	<span>{t('pptx.fill.gradient')}</span>
 </label>
 
@@ -178,11 +177,10 @@
 {/if}
 
 <label class="pptx-svelte-field-checkbox">
-	<input
-		type="checkbox"
+	<pptx-ui-checkbox
 		checked={patternOn}
 		onchange={(e) => togglePattern(e.currentTarget.checked)}
-	/>
+	></pptx-ui-checkbox>
 	<span>{t('pptx.table.patternPreset')}</span>
 </label>
 

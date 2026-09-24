@@ -10,6 +10,8 @@ import {
 	getOleTypeLabel,
 	getPlaceholderStyle,
 	isBrowserOpenableMime,
+	mediaSurfaceOf,
+	oleActionsVisible,
 	openUrlInNewTab,
 	resolveOleType,
 } from 'pptx-viewer-shared';
@@ -53,7 +55,19 @@ export const renderOleElement: ElementRenderer = (element, zIndex, context) => {
 		el.appendChild(buildPlaceholder(doc, element, oleType, typeColor, typeLabel));
 	}
 
-	if (element.oleEmbeddedData) {
+	// A still of a slide (thumbnail rail, presenter console panes, export
+	// raster) renders this element INSIDE a
+	// `<button aria-label="Go to slide N">`, so the action bar's own
+	// `<button>` would otherwise be invalid, un-clickable nested-button
+	// markup; the live presentation stage never offers element-level browser
+	// chrome either. See the shared `oleActionsVisible` decision.
+	const showActions = oleActionsVisible(
+		mediaSurfaceOf({
+			interactive: context.interactive === true,
+			presenting: context.presenting,
+		}),
+	);
+	if (element.oleEmbeddedData && showActions) {
 		el.appendChild(buildActionBar(doc, element, typeLabel, context));
 	}
 	return el;

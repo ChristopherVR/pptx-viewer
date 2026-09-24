@@ -1,5 +1,6 @@
 import { PptxElement, XmlObject, TextStyle } from '../../types';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
+import { parseEmuInt } from './group-shape-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeGeometryParsing';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -34,12 +35,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				return null;
 			}
 
-			const x = Math.round(parseInt(xmlAttr(off, 'x') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const y = Math.round(parseInt(xmlAttr(off, 'y') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const width = Math.round(parseInt(xmlAttr(ext, 'cx') || '0') / PptxHandlerRuntime.EMU_PER_PX);
-			const height = Math.round(
-				parseInt(xmlAttr(ext, 'cy') || '0') / PptxHandlerRuntime.EMU_PER_PX,
-			);
+			// Capture the exact source EMU alongside the rounded pixel value so
+			// `resolveXfrmEmu` can re-emit a byte-identical `a:off`/`a:ext` for this
+			// shape on save when it was never moved or resized (see
+			// `xfrm-emu-resolution.ts`). Without these, EVERY shape-with-image-fill
+			// re-quantized from pixels on every save, drifting up to +/-4762 EMU
+			// (half a pixel) with no edit involved: `image-fill-rot-with-shape.pptx`
+			// round-trips 508000 -> 504825 on an unrelated sibling shape moving.
+			const xEmu = parseEmuInt(xmlAttr(off, 'x'));
+			const yEmu = parseEmuInt(xmlAttr(off, 'y'));
+			const widthEmu = parseEmuInt(xmlAttr(ext, 'cx'));
+			const heightEmu = parseEmuInt(xmlAttr(ext, 'cy'));
+			const x = Math.round(xEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const y = Math.round(yEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const width = Math.round(widthEmu / PptxHandlerRuntime.EMU_PER_PX);
+			const height = Math.round(heightEmu / PptxHandlerRuntime.EMU_PER_PX);
 
 			// Get rotation if present
 			const rotation = xfrm['@_rot'] ? parseInt(xfrm['@_rot']) / 60000 : undefined;
@@ -179,6 +189,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				y,
 				width,
 				height,
+				xEmu,
+				yEmu,
+				widthEmu,
+				heightEmu,
 				imageData,
 				imagePath,
 				imageEffects: imageEffects || undefined,

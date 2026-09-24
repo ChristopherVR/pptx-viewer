@@ -11,7 +11,14 @@
  * @module angular-viewer/chart-trendline-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -26,6 +33,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, selectValue } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-trendline-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,7 +46,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
 							<span class="pptx-chart-card__name" [title]="s.name">{{ s.name }}</span>
-							<select
+							<pptx-ui-select
 								class="pptx-chart-card__input"
 								[disabled]="!canEdit()"
 								[value]="trendlineOf(s)?.trendlineType ?? ''"
@@ -52,27 +60,25 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 										{{ opt.labelKey | translate }}
 									</option>
 								}
-							</select>
+							</pptx-ui-select>
 						</div>
 
 						@if (trendlineOf(s); as tl) {
 							<div class="pptx-chart-card__row pptx-chart-card__group--indent">
 								<label class="pptx-chart-card__check">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[disabled]="!canEdit()"
 										[checked]="tl.displayEq ?? false"
 										(change)="onToggleEq(i, tl, $event)"
-									/>
+									></pptx-ui-checkbox>
 									<span>{{ 'pptx.chart.trendlineEquation' | translate }}</span>
 								</label>
 								<label class="pptx-chart-card__check">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[disabled]="!canEdit()"
 										[checked]="tl.displayRSq ?? false"
 										(change)="onToggleRSq(i, tl, $event)"
-									/>
+									></pptx-ui-checkbox>
 									<span>{{ 'pptx.chart.trendlineRSquared' | translate }}</span>
 								</label>
 							</div>

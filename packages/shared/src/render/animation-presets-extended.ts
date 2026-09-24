@@ -58,7 +58,7 @@ export const EXTENDED_ENTR_PRESETS: Partial<Record<number, EffectName>> = {
 	27: 'creditsIn', // Credits
 	28: 'floatUpIn', // Float Up
 	29: 'pinwheelIn', // Pinwheel
-	30: 'spinnerIn', // Spinner (duplicate catalog label of entr.49)
+	30: 'floatIn', // Float In (msoAnimEffectFloat saves presetID 30, COM-verified)
 	32: 'whipIn', // Whip
 	33: 'riseUp', // Arrive
 	34: 'swivel', // Basic Swivel
@@ -115,7 +115,7 @@ export const EXTENDED_EXIT_PRESETS: Partial<Record<number, EffectName>> = {
 	27: 'creditsOut', // Credits
 	28: 'floatDownOut', // Float Down
 	29: 'pinwheelOut', // Pinwheel
-	30: 'spinnerOut', // Spinner (duplicate catalog label)
+	30: 'fadeOut', // Float Out (presetID 30, COM-verified); no dedicated float-out keyframe, same as exit.42
 	31: 'shrinkOut', // Contract
 	32: 'whipOut', // Whip
 	33: 'flyOutBottom', // Leave

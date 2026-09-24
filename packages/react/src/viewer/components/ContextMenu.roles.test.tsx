@@ -134,6 +134,10 @@ describe('contextMenu command set', () => {
 			'pptx.contextMenu.sendToBack',
 			'pptx.contextMenu.addComment',
 			'pptx.contextMenu.editHyperlink',
+			'pptx.contextMenu.saveAsPicture',
+			'pptx.contextMenu.editAltText',
+			'pptx.contextMenu.sizeAndPosition',
+			'pptx.contextMenu.formatShape',
 			'pptx.contextMenu.delete',
 		]);
 	});

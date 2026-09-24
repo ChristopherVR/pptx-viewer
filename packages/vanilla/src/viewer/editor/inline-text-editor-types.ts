@@ -45,4 +45,12 @@ export interface OpenInlineEditorOptions {
 	onSelectionChange?(selection: InlineTextSelection | null): void;
 	/** Called after the surface closes (commit or cancel). */
 	onClose(): void;
+	/**
+	 * Live-format keyboard shortcuts (alignment, font size, format painter,
+	 * hyperlink, clear formatting, bold/italic/underline, find/find & replace)
+	 * that must work while text is under active edit. Returning `true` claims
+	 * the key: the caller preventDefaults it and skips the editor's own
+	 * Escape/local handling for that press.
+	 */
+	onLiveFormatKey?(event: KeyboardEvent): boolean;
 }

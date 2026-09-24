@@ -156,6 +156,12 @@ export const translations = {
 	'pptx.transition.morphOption.byObject': 'Par objet',
 	'pptx.transition.morphOption.byWord': 'Par mot',
 	'pptx.transition.morphOption.byChar': 'Par caractère',
+	'pptx.transition.pattern': 'Motif',
+	'pptx.transition.pattern.diamond': 'Losange',
+	'pptx.transition.pattern.hexagon': 'Hexagone',
+	'pptx.transition.pattern.strip': 'Bandes',
+	'pptx.transition.pattern.rectangle': 'Rectangles',
+	'pptx.transition.thruBlk': 'Par le noir',
 	'pptx.keepAnnotations.title': 'Conserver les annotations manuscrites ?',
 	'pptx.keepAnnotations.description':
 		'Vous avez effectué des annotations manuscrites {{count}} sur les diapositives {{slides}}. Les conserver comme encre sur les diapositives ou les jeter ?',

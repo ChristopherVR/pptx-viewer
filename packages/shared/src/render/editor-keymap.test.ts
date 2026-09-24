@@ -4,6 +4,7 @@ import {
 	editorNudgeDelta,
 	isEditorTextInputTarget,
 	mapEditorKey,
+	mapInlineTextFormatKey,
 	NUDGE_LARGE,
 	NUDGE_SMALL,
 } from './editor-keymap';
@@ -210,5 +211,231 @@ describe('mapEditorKey shortcut-panel chords', () => {
 		expect(
 			mapEditorKey(press('/', { ctrlKey: true }), { isTextInputTarget: true }).action,
 		).toBeNull();
+	});
+});
+
+describe('mapEditorKey paragraph alignment', () => {
+	it.each([
+		['l', 'alignLeft'],
+		['e', 'alignCenter'],
+		['r', 'alignRight'],
+		['j', 'alignJustify'],
+	] as const)('maps Ctrl+%s to %s while editing text', (key, action) => {
+		expect(mapEditorKey(press(key, { ctrlKey: true }), { isEditingText: true }).action).toBe(
+			action,
+		);
+	});
+
+	it('also fires on a selected (not editing) text shape', () => {
+		expect(mapEditorKey(press('e', { ctrlKey: true }), SELECTED).action).toBe('alignCenter');
+	});
+
+	it('does nothing with no selection and no active edit', () => {
+		expect(mapEditorKey(press('l', { ctrlKey: true })).action).toBeNull();
+	});
+
+	it('does not hijack a foreign text input target that is not our editor', () => {
+		expect(
+			mapEditorKey(press('l', { ctrlKey: true }), { ...SELECTED, isTextInputTarget: true }).action,
+		).toBeNull();
+	});
+
+	it('stands down while a drawing tool is armed', () => {
+		expect(
+			mapEditorKey(press('l', { ctrlKey: true }), { ...SELECTED, isDrawing: true }).action,
+		).toBeNull();
+	});
+});
+
+describe('mapEditorKey font-size ladder', () => {
+	it('maps Ctrl+Shift+> and Ctrl+Shift+< while editing text', () => {
+		expect(
+			mapEditorKey(press('>', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('increaseFontSize');
+		expect(
+			mapEditorKey(press('<', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('decreaseFontSize');
+	});
+
+	it('maps the unshifted base key when shiftKey is still set', () => {
+		expect(
+			mapEditorKey(press('.', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('increaseFontSize');
+		expect(
+			mapEditorKey(press(',', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('decreaseFontSize');
+	});
+
+	it('leaves a bare "." or "," alone: they must not steal ordinary typing', () => {
+		expect(mapEditorKey(press('.', { ctrlKey: true }), { isEditingText: true }).action).toBeNull();
+		expect(mapEditorKey(press(',', { ctrlKey: true }), { isEditingText: true }).action).toBeNull();
+	});
+
+	it('maps Ctrl+] and Ctrl+[ (no Shift needed) on a selected text shape', () => {
+		expect(mapEditorKey(press(']', { ctrlKey: true }), SELECTED).action).toBe('increaseFontSize');
+		expect(mapEditorKey(press('[', { ctrlKey: true }), SELECTED).action).toBe('decreaseFontSize');
+	});
+
+	it('does nothing with no selection and no active edit', () => {
+		expect(mapEditorKey(press(']', { ctrlKey: true })).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey format painter (copy/paste formatting)', () => {
+	it('maps Ctrl+Shift+C and Ctrl+Shift+V while editing text', () => {
+		expect(
+			mapEditorKey(press('c', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('copyFormat');
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, shiftKey: true }), { isEditingText: true }).action,
+		).toBe('pasteFormat');
+	});
+
+	it('also fires on a selected (not editing) shape', () => {
+		expect(mapEditorKey(press('c', { ctrlKey: true, shiftKey: true }), SELECTED).action).toBe(
+			'copyFormat',
+		);
+	});
+
+	it('leaves plain Ctrl+C and Ctrl+V as ordinary clipboard copy/paste', () => {
+		expect(mapEditorKey(press('c', { ctrlKey: true }), SELECTED).action).toBe('copy');
+		expect(mapEditorKey(press('v', { ctrlKey: true })).action).toBe('paste');
+	});
+
+	it('does nothing with no selection and no active edit', () => {
+		expect(mapEditorKey(press('c', { ctrlKey: true, shiftKey: true })).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey new slide', () => {
+	it('maps Ctrl+M to newSlide', () => {
+		expect(mapEditorKey(press('m', { ctrlKey: true })).action).toBe('newSlide');
+	});
+
+	it('is gated like an ordinary chord: not while editing text', () => {
+		expect(mapEditorKey(press('m', { ctrlKey: true }), { isEditingText: true }).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey hyperlink dialog', () => {
+	it('maps Ctrl+K while editing text', () => {
+		expect(mapEditorKey(press('k', { ctrlKey: true }), { isEditingText: true }).action).toBe(
+			'hyperlink',
+		);
+	});
+
+	it('also fires on a selected (not editing) shape', () => {
+		expect(mapEditorKey(press('k', { ctrlKey: true }), SELECTED).action).toBe('hyperlink');
+	});
+
+	it('does nothing with no selection and no active edit', () => {
+		expect(mapEditorKey(press('k', { ctrlKey: true })).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey find & replace', () => {
+	it('maps Ctrl/Cmd+H to findReplace', () => {
+		expect(mapEditorKey(press('h', { ctrlKey: true })).action).toBe('findReplace');
+		expect(mapEditorKey(press('h', { metaKey: true })).action).toBe('findReplace');
+	});
+
+	it('stays live while text is being edited, like Ctrl+F', () => {
+		expect(mapEditorKey(press('h', { ctrlKey: true }), { isEditingText: true }).action).toBe(
+			'findReplace',
+		);
+	});
+
+	it('leaves a bare "h" and Ctrl+Alt+H to the host', () => {
+		expect(mapEditorKey(press('h')).action).toBeNull();
+		expect(mapEditorKey(press('h', { ctrlKey: true, altKey: true })).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey paste special', () => {
+	it('maps Ctrl/Cmd+Alt+V to pasteSpecial', () => {
+		expect(mapEditorKey(press('v', { ctrlKey: true, altKey: true })).action).toBe('pasteSpecial');
+		expect(mapEditorKey(press('v', { metaKey: true, altKey: true })).action).toBe('pasteSpecial');
+	});
+
+	it('stays live while text is being edited, like Ctrl+F', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { isEditingText: true }).action,
+		).toBe('pasteSpecial');
+	});
+
+	it('leaves a bare Ctrl+V (plain paste) alone', () => {
+		expect(mapEditorKey(press('v', { ctrlKey: true })).action).toBe('paste');
+	});
+
+	it('leaves a foreign input field alone', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { isTextInputTarget: true }).action,
+		).toBeNull();
+	});
+
+	it('respects canPaste === false, same as plain paste', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { canPaste: false }).action,
+		).toBeNull();
+	});
+});
+
+describe('mapEditorKey clear formatting', () => {
+	it('maps Ctrl+Space while editing text', () => {
+		expect(mapEditorKey(press(' ', { ctrlKey: true }), { isEditingText: true }).action).toBe(
+			'clearFormatting',
+		);
+	});
+
+	it('also fires on a selected (not editing) shape', () => {
+		expect(mapEditorKey(press(' ', { ctrlKey: true }), SELECTED).action).toBe('clearFormatting');
+	});
+
+	it('does nothing with no selection and no active edit', () => {
+		expect(mapEditorKey(press(' ', { ctrlKey: true })).action).toBeNull();
+	});
+});
+
+describe('mapEditorKey selection cycling (Tab)', () => {
+	it('maps Tab and Shift+Tab when nothing is being typed into', () => {
+		expect(mapEditorKey(press('Tab')).action).toBe('cycleSelectionNext');
+		expect(mapEditorKey(press('Tab', { shiftKey: true })).action).toBe('cycleSelectionPrev');
+	});
+
+	it('cycles with or without an existing selection', () => {
+		expect(mapEditorKey(press('Tab'), SELECTED).action).toBe('cycleSelectionNext');
+	});
+
+	it('leaves Ctrl+Tab and Cmd+Tab to the browser/OS tab switcher', () => {
+		expect(mapEditorKey(press('Tab', { ctrlKey: true })).action).toBeNull();
+		expect(mapEditorKey(press('Tab', { metaKey: true })).action).toBeNull();
+	});
+
+	it('stands down while editing text, drawing, or in a foreign text field', () => {
+		expect(mapEditorKey(press('Tab'), { isEditingText: true }).action).toBeNull();
+		expect(mapEditorKey(press('Tab'), { isDrawing: true }).action).toBeNull();
+		expect(mapEditorKey(press('Tab'), { isTextInputTarget: true }).action).toBeNull();
+	});
+});
+
+describe('mapInlineTextFormatKey', () => {
+	it('maps Ctrl/Cmd+B/I/U to their format property', () => {
+		expect(mapInlineTextFormatKey(press('b', { ctrlKey: true }))).toBe('bold');
+		expect(mapInlineTextFormatKey(press('i', { ctrlKey: true }))).toBe('italic');
+		expect(mapInlineTextFormatKey(press('u', { metaKey: true }))).toBe('underline');
+	});
+
+	it('matches case-insensitively', () => {
+		expect(mapInlineTextFormatKey(press('B', { ctrlKey: true }))).toBe('bold');
+	});
+
+	it('ignores a bare key and an Alt/Shift composition', () => {
+		expect(mapInlineTextFormatKey(press('b'))).toBeNull();
+		expect(mapInlineTextFormatKey(press('b', { ctrlKey: true, altKey: true }))).toBeNull();
+		expect(mapInlineTextFormatKey(press('b', { ctrlKey: true, shiftKey: true }))).toBeNull();
+	});
+
+	it('ignores keys outside the b/i/u set', () => {
+		expect(mapInlineTextFormatKey(press('x', { ctrlKey: true }))).toBeNull();
 	});
 });

@@ -120,6 +120,47 @@ describe('resolveEffectiveStartCondition', () => {
 		expect(result.dependsOnShapeId).toBeUndefined();
 	});
 
+	// evt="onMediaBookmark" + p14:bmkTgt (Office 2010 p14 extension): fires
+	// when the named media element's real playback reaches the named
+	// bookmark. Modeled the same way `onStopAudio`'s shape form is: the
+	// effect never auto-fires from a computed delay, it waits for the real
+	// media event (see `animation-media-bookmark-gating`'s
+	// `wireMediaBookmarkSteps`).
+	it('sequences after a media bookmark dependency (evt="onMediaBookmark")', () => {
+		const conds: AnimationCondition[] = [
+			{
+				event: 'onMediaBookmark',
+				bookmarkTarget: { shapeId: 'video-1', bookmarkName: 'Chapter 2' },
+			},
+		];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.trigger).toBe('afterPrevious');
+		expect(result.dependsOnShapeId).toBe('video-1');
+		expect(result.dependsOnEvent).toBe('onMediaBookmark');
+		expect(result.dependsOnBookmarkName).toBe('Chapter 2');
+		expect(result.requiresInteraction).toBeFalsy();
+	});
+
+	it('falls back to the plain-delay bucket for onMediaBookmark with no bookmarkTarget', () => {
+		const conds: AnimationCondition[] = [{ event: 'onMediaBookmark', delay: 0 }];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.dependsOnEvent).toBeUndefined();
+		expect(result.dependsOnBookmarkName).toBeUndefined();
+	});
+
+	it('prefers a time-node dependency over a coexisting bookmark dependency', () => {
+		const conds: AnimationCondition[] = [
+			{
+				event: 'onMediaBookmark',
+				bookmarkTarget: { shapeId: 'video-1', bookmarkName: 'Chapter 2' },
+			},
+			{ event: 'onEnd', delay: 0, targetTimeNodeId: 5 },
+		];
+		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');
+		expect(result.dependsOnTimeNodeId).toBe(5);
+		expect(result.dependsOnBookmarkName).toBeUndefined();
+	});
+
 	it('does not shape-gate onEnd/onBegin (only onStopAudio gets the shape-target alternative)', () => {
 		const conds: AnimationCondition[] = [{ event: 'onEnd', delay: 0, targetShapeId: 'shape-9' }];
 		const result = resolveEffectiveStartCondition(conds, 'afterPrevious');

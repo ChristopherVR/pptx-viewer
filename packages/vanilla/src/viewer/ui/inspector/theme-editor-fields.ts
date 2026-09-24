@@ -5,6 +5,7 @@ import type { PresetTheme } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorSelect } from './controls-extra';
 
 /**
  * DOM builders for the theme editor card, split out of `theme-editor-card.ts`
@@ -135,7 +136,7 @@ export function createFontField(
 	const el = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
 	const caption = createEl(doc, 'span', 'pptxv-field-label');
 	caption.textContent = label;
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.className = 'pptxv-field-select-input';
 	select.setAttribute('aria-label', label);
 	for (const font of COMMON_FONTS) {

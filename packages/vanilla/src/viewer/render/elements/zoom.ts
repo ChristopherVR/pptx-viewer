@@ -1,4 +1,8 @@
-import { buildSummaryZoomView, getContainerStyle } from 'pptx-viewer-shared';
+import {
+	buildSummaryZoomView,
+	getContainerStyle,
+	resolveZoomNavigationTarget,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../dom';
@@ -65,7 +69,15 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 				tileElement.setAttribute('role', 'button');
 				tileElement.tabIndex = 0;
 				const activate = (): void =>
-					context.onZoomClick?.(tile.targetSlideIndex, context.currentSlideIndex ?? 0);
+					context.onZoomClick?.(
+						{
+							targetSlideIndex: tile.targetSlideIndex,
+							targetSectionId: tile.sectionId,
+							returnToParent: tile.returnToParent,
+							transitionDurationMs: tile.transitionDurationMs,
+						},
+						context.currentSlideIndex ?? 0,
+					);
 				tileElement.addEventListener('click', (event) => {
 					event.stopPropagation();
 					activate();
@@ -114,7 +126,10 @@ export const renderZoomElement: ElementRenderer = (element, zIndex, context) => 
 		el.tabIndex = 0;
 		el.style.cursor = 'pointer';
 		const activate = (): void => {
-			context.onZoomClick?.(target, context.currentSlideIndex ?? 0);
+			const zoomTarget = resolveZoomNavigationTarget(element);
+			if (zoomTarget) {
+				context.onZoomClick?.(zoomTarget, context.currentSlideIndex ?? 0);
+			}
 		};
 		el.addEventListener('click', (event) => {
 			event.stopPropagation();

@@ -26,8 +26,10 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	shrinkOut: { presetClass: 'exit', presetId: 6, defaultSubtype: 0 },
 	dissolveOut: { presetClass: 'exit', presetId: 9, defaultSubtype: 0 },
 	fadeOut: { presetClass: 'exit', presetId: 10, defaultSubtype: 0 },
-	wipeOut: { presetClass: 'exit', presetId: 22, defaultSubtype: 0 },
-	zoomOut: { presetClass: 'exit', presetId: 23, defaultSubtype: 0 },
+	// exit.22/23 subtypes corrected via COM: Wipe/Zoom's real presetSubtype is
+	// 4/16 respectively, not 0.
+	wipeOut: { presetClass: 'exit', presetId: 22, defaultSubtype: 4 },
+	zoomOut: { presetClass: 'exit', presetId: 23, defaultSubtype: 16 },
 	// exit.26/37 verified via a fresh COM pass (AddEffect + `Effect.Exit =
 	// True` + raw OOXML inspection): `msoAnimEffectBounce` re-emits presetID
 	// 26 under `Effect.Exit = True` (the SAME id as its entrance form, see
@@ -38,12 +40,16 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	bounceOut: { presetClass: 'exit', presetId: 26, defaultSubtype: 0 },
 
 	// ---- Exit effects (extended catalog) ----
-	blindsOut: { presetClass: 'exit', presetId: 3, defaultSubtype: 0 },
-	boxOut: { presetClass: 'exit', presetId: 4, defaultSubtype: 0 },
-	checkerboardOut: { presetClass: 'exit', presetId: 5, defaultSubtype: 0 },
+	// exit.3/4/5/8 subtypes corrected via COM (mirrors the entrance-side fix in
+	// `animation-write-mappings-entrance.ts`; ground truth applies the SAME
+	// subtype to both classes): Blinds/Box/Checkerboard/Diamond's real
+	// presetSubtype is 10/16/10/16 respectively, not 0.
+	blindsOut: { presetClass: 'exit', presetId: 3, defaultSubtype: 10 },
+	boxOut: { presetClass: 'exit', presetId: 4, defaultSubtype: 16 },
+	checkerboardOut: { presetClass: 'exit', presetId: 5, defaultSubtype: 10 },
 	circleOut: { presetClass: 'exit', presetId: 6, defaultSubtype: 1 },
 	crawlOut: { presetClass: 'exit', presetId: 7, defaultSubtype: 4 },
-	diamondOut: { presetClass: 'exit', presetId: 8, defaultSubtype: 0 },
+	diamondOut: { presetClass: 'exit', presetId: 8, defaultSubtype: 16 },
 	// exit.11 verified via COM: `msoAnimEffectFlashOnce` with `Effect.Exit =
 	// True` serializes as presetID 11 (no filter, matching the entrance
 	// Flash Once at entr.11); `msoAnimEffectFlashBulb` cannot be made an exit
@@ -74,8 +80,10 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	// `peekOutDown` is the distinct, non-colliding typed name for THIS
 	// COM-verified id.
 	peekOutDown: { presetClass: 'exit', presetId: 12, defaultSubtype: 4 },
-	plusOut: { presetClass: 'exit', presetId: 13, defaultSubtype: 0 },
-	randomBarsOut: { presetClass: 'exit', presetId: 14, defaultSubtype: 0 },
+	// exit.13/14 subtypes corrected via COM: Plus/Random Bars' real
+	// presetSubtype is 16/10 respectively, not 0.
+	plusOut: { presetClass: 'exit', presetId: 13, defaultSubtype: 16 },
+	randomBarsOut: { presetClass: 'exit', presetId: 14, defaultSubtype: 10 },
 	spiralOut: { presetClass: 'exit', presetId: 15, defaultSubtype: 0 },
 	// KNOWN, UNRESOLVED (out of scope here): ground truth
 	// (`row('exit', 16, ...)` via `bothClasses(16, { sub: 21, filter:
@@ -101,7 +109,14 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	floatDown: { presetClass: 'exit', presetId: 28, defaultSubtype: 0 },
 	pinwheelOut: { presetClass: 'exit', presetId: 29, defaultSubtype: 0 },
 	spinner2Out: { presetClass: 'exit', presetId: 30, defaultSubtype: 0 },
+	// exit.30/31 verified via COM (see `animation-behavior-float-growturn.ts`):
+	// `msoAnimEffectFloat`/`msoAnimEffectGrowAndTurn` with `Effect.Exit = True`
+	// serialise presetID 30/31 (matching their entrance forms `floatIn`/
+	// `growTurnIn` above), colliding with the pre-existing `spinner2Out`/
+	// `contractOut` (same "same id, two names" pattern as the entrance side).
+	floatOut: { presetClass: 'exit', presetId: 30, defaultSubtype: 0 },
 	contractOut: { presetClass: 'exit', presetId: 31, defaultSubtype: 0 },
+	growTurnOut: { presetClass: 'exit', presetId: 31, defaultSubtype: 0 },
 	whipOut: { presetClass: 'exit', presetId: 32, defaultSubtype: 0 },
 	leaveOut: { presetClass: 'exit', presetId: 33, defaultSubtype: 0 },
 	basicSwivelOut: { presetClass: 'exit', presetId: 34, defaultSubtype: 0 },
@@ -111,7 +126,6 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	fadedSwivelOut: { presetClass: 'exit', presetId: 39, defaultSubtype: 0 },
 	fadedZoomOut: { presetClass: 'exit', presetId: 40, defaultSubtype: 0 },
 	lightSpeedOut: { presetClass: 'exit', presetId: 41, defaultSubtype: 0 },
-	floatOut: { presetClass: 'exit', presetId: 42, defaultSubtype: 0 },
 	flipOut: { presetClass: 'exit', presetId: 43, defaultSubtype: 0 },
 	glideOut: { presetClass: 'exit', presetId: 44, defaultSubtype: 0 },
 	shrinkRotate: { presetClass: 'exit', presetId: 45, defaultSubtype: 0 },
@@ -175,4 +189,10 @@ export const EXIT_CANONICAL: ReadonlyArray<[number, string]> = [
 	// override and fell through to `sinkDown`; 37 pointed at `bounceOut`).
 	[26, 'bounceOut'],
 	[37, 'sinkDown'],
+	// exit.30/31 collide between the pre-existing `spinner2Out`/`contractOut`
+	// and the freshly COM-verified `floatOut`/`growTurnOut` (mirrors the
+	// entrance-side collision notes above); the newer, more common names are
+	// kept canonical.
+	[30, 'floatOut'],
+	[31, 'growTurnOut'],
 ];

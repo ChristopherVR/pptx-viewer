@@ -30,7 +30,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxAnimationTrigger, PptxElementAnimation } from 'pptx-viewer-core';
 
-import { animationEffectLabelKey } from '../internal/shared';
+import { animationEffectLabelKey, TRIGGER_OPTIONS } from '../internal/shared';
 import type { AnimationClickGroup } from './animation-playback-helpers';
 
 /** A single rendered playback step (one click group). */
@@ -45,14 +45,15 @@ interface AnimationStepView {
 	readonly revealed: boolean;
 }
 
-const TRIGGER_LABEL_KEYS: ReadonlyArray<{ value: PptxAnimationTrigger; key: string }> = [
-	{ value: 'onClick', key: 'pptx.animation.trigger.onClick' },
-	{ value: 'onShapeClick', key: 'pptx.animation.trigger.onClick' },
-	{ value: 'onHover', key: 'pptx.animation.trigger.onHover' },
-	{ value: 'withPrevious', key: 'pptx.animation.trigger.withPrevious' },
-	{ value: 'afterPrevious', key: 'pptx.animation.trigger.afterPrevious' },
-	{ value: 'afterDelay', key: 'pptx.animation.trigger.afterDelay' },
-];
+/**
+ * Trigger label lookup, derived from shared's `TRIGGER_OPTIONS` instead of a
+ * hand-maintained copy: this file's own former copy mislabelled
+ * `onShapeClick` with `onClick`'s key (both resolved to the same "On Click"
+ * text, so a Shape Click trigger never showed as itself in the playback
+ * panel's step list).
+ */
+const TRIGGER_LABEL_KEYS: ReadonlyArray<{ value: PptxAnimationTrigger; key: string }> =
+	TRIGGER_OPTIONS.map((option) => ({ value: option.value, key: option.labelKey }));
 
 /**
  * The step's effect name.

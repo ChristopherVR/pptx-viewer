@@ -84,6 +84,37 @@ export interface UseKeyboardShortcutsInput {
 	onStartShowFromBeginning: () => void;
 	/** `Shift+F5`: start the show on the current slide. Same entry point as the ribbon's "From Current Slide". */
 	onStartShowFromCurrent: () => void;
+
+	/** Ctrl/Cmd+L: set paragraph alignment to left. */
+	onAlignLeft?: () => void;
+	/** Ctrl/Cmd+E: set paragraph alignment to center. */
+	onAlignCenter?: () => void;
+	/** Ctrl/Cmd+R: set paragraph alignment to right. */
+	onAlignRight?: () => void;
+	/** Ctrl/Cmd+J: set paragraph alignment to justify. */
+	onAlignJustify?: () => void;
+	/** Ctrl/Cmd+Shift+> or Ctrl/Cmd+]: step the selection's font size up PowerPoint's size ladder. */
+	onIncreaseFontSize?: () => void;
+	/** Ctrl/Cmd+Shift+< or Ctrl/Cmd+[: step the selection's font size down PowerPoint's size ladder. */
+	onDecreaseFontSize?: () => void;
+	/** Ctrl/Cmd+Shift+C: copy the selection's formatting (format painter). */
+	onCopyFormat?: () => void;
+	/** Ctrl/Cmd+Shift+V: apply the copied formatting to the selection. */
+	onPasteFormat?: () => void;
+	/** Ctrl/Cmd+M: insert a new slide. */
+	onNewSlide?: () => void;
+	/** Ctrl/Cmd+K: open the hyperlink dialog. */
+	onHyperlink?: () => void;
+	/** Ctrl/Cmd+H: open Find and Replace. */
+	onFindReplace?: () => void;
+	/** Ctrl/Cmd+Space: clear character formatting on the selection. */
+	onClearFormatting?: () => void;
+	/** Tab: select the next element on the slide. */
+	onCycleSelectionNext?: () => void;
+	/** Shift+Tab: select the previous element on the slide. */
+	onCycleSelectionPrev?: () => void;
+	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
+	onPasteSpecial?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -183,6 +214,51 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 				break;
 			case 'nextSlide':
 				current.onNextSlide?.();
+				break;
+			case 'alignLeft':
+				current.onAlignLeft?.();
+				break;
+			case 'alignCenter':
+				current.onAlignCenter?.();
+				break;
+			case 'alignRight':
+				current.onAlignRight?.();
+				break;
+			case 'alignJustify':
+				current.onAlignJustify?.();
+				break;
+			case 'increaseFontSize':
+				current.onIncreaseFontSize?.();
+				break;
+			case 'decreaseFontSize':
+				current.onDecreaseFontSize?.();
+				break;
+			case 'copyFormat':
+				current.onCopyFormat?.();
+				break;
+			case 'pasteFormat':
+				current.onPasteFormat?.();
+				break;
+			case 'newSlide':
+				current.onNewSlide?.();
+				break;
+			case 'hyperlink':
+				current.onHyperlink?.();
+				break;
+			case 'findReplace':
+				current.onFindReplace?.();
+				break;
+			case 'clearFormatting':
+				current.onClearFormatting?.();
+				break;
+			case 'cycleSelectionNext':
+				current.onCycleSelectionNext?.();
+				break;
+			case 'cycleSelectionPrev':
+				current.onCycleSelectionPrev?.();
+				break;
+			case 'pasteSpecial':
+				current.onPasteSpecial?.();
 				break;
 			default:
 				break;

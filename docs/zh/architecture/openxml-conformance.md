@@ -160,15 +160,20 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 - 存在 PNG/JPEG 预览时，嵌入 OLE 对象（`oleEmbeddedData`）会写为真实 Windows“OLE Package”对象，在嵌套 OLE2 存储中包含 `CompObj` / `Ole10Native`，验证结果为 `OLEFormat.ProgID === "Package"` / `msoEmbeddedOLEObject`。导入器也能读回：`ExOleEmbedContainer` / `ExOleObjStg`（`packages/core/src/core/ppt/ole-embed-parser.ts`）解析为可编辑的 `ole` 元素。已使用真实 PowerPoint 创建的、带原生 `Excel.Sheet.8` 嵌入对象的 `.ppt` 验证，样例为 `e2e/fixtures/ole-embed-excel.ppt`，由 `scripts/make-ole-embed-excel-fixture.ps1` 的 `Shapes.AddOLEObject` 创建，实测 `OLEFormat.ProgID` 为 `"Excel.Sheet.8"`。恢复字节经项目自身 BIFF8 读取器解码，得到与 PowerPoint 写入完全相同的单元格值。
 - 嵌入音频（WAV）写为真实、可播放的 `SoundCollectionContainer` / `SoundDataBlob`（`media-writer.ts`），甚至超过 PowerPoint 16.0 自身的行为：PowerPoint“另存为 PowerPoint 97-2003”只保留 `SoundContainer` 外壳，`Shape.MediaFormat.Length` 为 0，任何位置都没有 `RIFF` 字节；此写入器的音频经 PowerPoint 重新保存为 `.pptx` 后，重新导出的 WAV 与源文件逐字节一致。
 - 视频不会嵌入，但 PowerPoint 16.0 也无法将视频嵌入 97-2003：尝试嵌入后保存会退化为静态图片，`Shape.Type` 为 `msoPicture`。因此写入器现有的图片或占位符降级已达到 PowerPoint 自身上限。真正链接外部文件路径的视频是另一项尚未实现的能力，而字节输入、字节输出的 `save()` API 没有可供建立链接的目标目录。
-- 三维模型栅格化为普通图片（`Shape.Type` 为 13 / `msoPicture`，没有 `OLEFormat`），与 PowerPoint 16.0 另存为 97-2003 的行为完全一致。测量脚本为 `scripts/measure-model3d-ole-97.ps1`，它在脚本内构造最小的符合规范的二进制 glTF，再通过 `Shapes.Add3DModel` 插入。
-- 图表也会栅格化为图片。PowerPoint 16.0 另存为 97-2003 时，则会将现代图表保留为嵌入的 `Excel.Chart.8` OLE 对象，即旧式 MS Graph。`scripts/measure-chart-ole-97.ps1` 测得 `Shape.Type` 为 7 / `msoEmbeddedOLEObject`，`OLEFormat.ProgID` 为 `"Excel.Chart.8"`，`Shape.HasChart` 为 `False`。目前不计划写入真正的 `Excel.Chart.8` 对象：上面已实现的 `ExOleObjStg` 有 [MS-PPT]/[MS-ODRAW] 文档，而旧式 MS Graph 图表内部二进制布局没有公开 Microsoft 规范可供验证。
+- 墨迹、SmartArt、图表和三维模型现在还会额外写入一个 `metroBlob`（`packages/core/src/core/ppt/writer/metro-blob-package.ts`）：这正是真实 PowerPoint 2007+ 在另存为 97-2003 格式时写入的同一种 [MS-ODRAW] `OfficeArtTertiaryFOPT` 迷你包（未文档化属性 ID `0x03A9`），其中包含该元素自身的 OOXML：墨迹是 `p:contentPart`，SmartArt、图表以及为三维模型合成的图形帧都是重命名后的 `p:graphicFrame` / `p:E2oFrame`。这样 PowerPoint 2007 及更高版本重新打开时，会把形状还原为它本来的原生可编辑对象，而真正的 97-2003 时代阅读器仍然只会看到写入器的栅格预览图或占位矩形。OOXML 来自该处理器自身对同一批幻灯片的无损 `.pptx` 保存结果，因此已编辑元素往返保留的是其当前状态，而不是加载时的状态（`PptxHandlerRuntimeSaveLegacyPpt.ts` 的 `resolveMetroBlobs`）。已通过在真实 PowerPoint 16.0 中重新打开从零生成的 `.ppt` 文件验证：墨迹读回 `Shape.Type` 为 23 / `msoInk`，与 PowerPoint 自身的 97-2003 另存为完全一致；SmartArt 读回 `Shape.HasSmartArt` 为 `True`，节点数量（11 个）与文本内容均保持不变；图表读回 `Shape.HasChart` 为 `True`，`ChartType` 为 5 / `xlPie`，标题和系列数值精确一致；三维模型读回 `Shape.Type` 为 30 / `msoModel3D`，是一个可正常使用的 `Model3D` 对象。对图表和三维模型而言，这已经超越了 PowerPoint 自身 97-2003 另存为的上限（见下面两条）：PowerPoint 自己在 97-2003 另存为时会把两者都降级为静态内容，而此写入器生成的 `.ppt` 在 PowerPoint 2007+ 中重新打开后仍是可编辑的原生对象。携带 `metroBlob` 的降级元素会标记为信息级别的 `ppt-native-roundtrip-<type>` 兼容性警告，而不是普通的 `ppt-unsupported-<type>` 警告，因为回退图片或占位符现在只是 97-2003 阅读器的限制，不再是功能损失（`degrade-element.ts`）。
+- 对真正的 97-2003 时代阅读器来说，三维模型仍会栅格化为普通图片（`Shape.Type` 为 13 / `msoPicture`，没有 `OLEFormat`），与 PowerPoint 16.0 自身 97-2003 另存为的行为完全一致，测量脚本为 `scripts/measure-model3d-ole-97.ps1`，它在脚本内构造最小的符合规范的二进制 glTF，再通过 `Shapes.Add3DModel` 插入；PowerPoint 2007+ 阅读器则会改为把上面的 `metroBlob` 重新打开为原生 `Model3D` 对象。
+- 对真正的 97-2003 时代阅读器来说，图表也仍会栅格化为图片。PowerPoint 16.0 另存为 97-2003 时，则会将现代图表保留为嵌入的 `Excel.Chart.8` OLE 对象，即旧式 MS Graph。`scripts/measure-chart-ole-97.ps1` 测得 `Shape.Type` 为 7 / `msoEmbeddedOLEObject`，`OLEFormat.ProgID` 为 `"Excel.Chart.8"`，`Shape.HasChart` 为 `False`。针对这条纯 97-2003 的路径，目前仍不计划写入真正的 `Excel.Chart.8` 对象：上面已实现的 `ExOleObjStg` 有 [MS-PPT]/[MS-ODRAW] 文档，而旧式 MS Graph 图表内部二进制布局没有公开 Microsoft 规范可供验证；上面的 `metroBlob` 则完全绕开了这个问题，让任何 PowerPoint 2007+ 阅读器都能直接拿到真正的现代图表部件。
 - 导入不支持 CryptoAPI 之前的 Office 95 RC4/XOR 混淆方案。导入保真度受格式早于 DrawingML 这一事实限制：没有可传递的主题字体方案，转换器会根据文稿收集到的第一个字体合成名为“Imported PPT”的主题，回退字体为 Arial；没有二进制对应形式的效果会降级。每个降级元素都以 `save` 作用域的 `PptxCompatibilityWarning` 标记。
 
-**未解决的差距：墨迹与 SmartArt。** 与图表、视频和三维模型不同，PowerPoint 16.0 在同样的 97-2003 往返过程中仍原生保留墨迹和 SmartArt，因此写入器将它们降级为图片，尚未达到 PowerPoint 自身上限。墨迹使用真实 PowerPoint 创建、带真正 `p14:` 墨迹内容的样例测量（`e2e/fixtures/ink-contentpart.pptx`、`scripts/measure-ink-ole-97.ps1`），每个墨迹形状读回后仍为 `Shape.Type` = 23 / `msoInk`。SmartArt 使用真实 COM 创建的样例测量（`packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`、`scripts/measure-smartart-ole-97.ps1`），前后 `Shape.HasSmartArt` 都为 `True`，`Shape.Type` 为 24 / `msoDiagram`。
+**仍然存在的 `.ppt` 差距：** 图片来源不是 PNG 或 JPEG 时，会写为占位矩形而不是图片，因为 `raster-utils.ts` 只能把这两种格式解码为可嵌入 `.ppt` 的 blip；母版级别的文本样式覆盖（`p:titleStyle` / `p:bodyStyle` / `p:otherStyle`）不会写入；视频以及 WAV 之外的任何嵌入音频格式都会降级为图片（见上文）；加密 `.ppt` 导入仅支持 CryptoAPI 的 RC4，不支持早于 CryptoAPI 的 Office 95 方案（同样见上文）。
+
+**`metroBlob` 是如何被找到的。** 与图表、视频和三维模型不同，PowerPoint 16.0 在同样的 97-2003 往返过程中仍原生保留墨迹和 SmartArt，因此写入器早先仅把它们降级为图片的做法，并未达到 PowerPoint 自身上限。墨迹使用真实 PowerPoint 创建、带真正 `p14:` 墨迹内容的样例测量（`e2e/fixtures/ink-contentpart.pptx`、`scripts/measure-ink-ole-97.ps1`），每个墨迹形状读回后仍为 `Shape.Type` = 23 / `msoInk`。SmartArt 使用真实 COM 创建的样例测量（`packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`、`scripts/measure-smartart-ole-97.ps1`），前后 `Shape.HasSmartArt` 都为 `True`，`Shape.Type` 为 24 / `msoDiagram`。
 
 2026-09-11 的从零复现尝试，通过项目自身的 `ole2-parser-read.ts` 和 `record-stream.ts` 读取器分析两个已保存文件，发现 PowerPoint 将两者都表示为普通 MSOSPT 75（“Picture Frame”）形状，其 `OfficeArtTertiaryFOPT` 恰好包含一个复杂属性，未文档化的 ID 为 `0x3A9`，原始字节为 `A9 C3`，即设置了 `fComplex` 和 `fBlipId`。它承载原始 ZIP/OPC“迷你包”，包含真实的 `[Content_Types].xml` / `_rels` 结构，以及未文档化但确实存在的内容类型：`application/vnd.ms-office.DrsInk+xml`、`application/inkml+xml`、`application/vnd.ms-office.DrsE2oDoc+xml`、`application/vnd.ms-office.DrsDownRev+xml`。墨迹包的 `drs/inkxml.xml` 是 `p:contentPart`，与源文件的 `p14:contentPart` 逐字节相同，另有逐字节相同的 `drs/ink/ink1.xml`。SmartArt 的 `drs/e2oDoc.xml` 是 `p:E2oFrame`，即重命名的 `p:graphicFrame` / `dgm:relIds`，再加上核心引擎已能无损往返的全部五个图形部件，完全自包含。这修正了之前认为文档级 `RoundTripCustomTableStyles12Atom`（`0x428C`）参与其中的假设；它实际只保存与两项功能都无关的通用 `tableStyles.xml` 往返内容。墨迹和 SmartArt 使用相同的 `0x3A9` 属性 ID。
 
-在从零创建的 `.ppt` 中，将相同属性写入 MSOSPT 75 形状，**无法**重现 `Shape.Type` = `msoInk` / `msoDiagram`。测试既使用项目自身生成包的逐字节副本，也曾原样拼入捕获的 PowerPoint 字节。COM 重新打开后，有 `pib` 图片引用时读回 `Shape.Type` = 13 / `msoPicture`，没有引用时为 1 / `msoAutoShape`。墨迹已经做了全面测试，独立改变精确 FOPT 属性表、精确 `ClientAnchor` 位置（来自源文件的 `p14:xfrm`），以及形状在 1 至 3 个同级元素中的顺序位置，始终未生成 `msoInk`。这意味着除了 `TertiaryFOPT` 迷你包，还需要至少一个尚未文档化的标记，但从两个实测样例中无法识别，因此没有继续尝试写入。当前写入器仍将墨迹和 SmartArt 降级为栅格预览图，并保留兼容性警告。
+当时，将相同属性写入 MSOSPT 75 形状，在从零创建的 `.ppt` 中**无法**重现 `Shape.Type` = `msoInk` / `msoDiagram`。测试既使用项目自身生成包的逐字节副本，也曾原样拼入捕获的 PowerPoint 字节。COM 重新打开后，有 `pib` 图片引用时读回 `Shape.Type` = 13 / `msoPicture`，没有引用时为 1 / `msoAutoShape`。墨迹已经做了全面测试，独立改变精确 FOPT 属性表、精确 `ClientAnchor` 位置（来自源文件的 `p14:xfrm`），以及形状在 1 至 3 个同级元素中的顺序位置，始终未生成 `msoInk`。当时得出的结论是：仅靠迷你包本身还不够，还需要至少一个尚未识别的额外信号。
+
+但那个“不可能”的结论其实忽略了一件比缺失信号简单得多的事：记录**顺序**。PowerPoint 自身的形状容器把 `OfficeArtTertiaryFOPT` 写在 `FOPT` 和 `ClientAnchor` 之间；而此前所有尝试都遵循 [MS-PPT] 对 `SpContainer` 的非正式排序说明，把 `ClientAnchor` 紧跟在 `FOPT` 之后写入，再把 `TertiaryFOPT` 追加在最后。把它移动到两者之间（`shape-writer.ts` 的 `buildShapeContainer` 和 `buildPictureContainer`）正是缺失的一步：PowerPoint 现在会接受这个迷你包，并把形状重新打开为其描述的原生对象（提交 `b370d429d`、`e1e43448a`）。同一次调查还顺带发现并修复了两个本会在真正重新打开时立即暴露的相邻问题：`ClientAnchor` 16 字节形式的字段顺序是 left/top/right/bottom，而不是此前按 [MS-PPT] 的 `RectStruct` 理解所假设的 top/left/right/bottom（用探测形状写入旧顺序后重新打开，坐标会被互换；`anchor-writer.ts` 现在也会在每条边都在范围内时，优先使用 PowerPoint 自身始终使用的 8 字节 `SmallRectStruct` 形式），以及绘图的背景形状必须是 `OfficeArtDgContainer` 自身的尾随同级形状，并带有 `fBackground | fHaveSpt` 标志，而不是顶层形状组的成员（`drawing-writer.ts`、`sp-container.ts`）。随后图表和三维模型也被接入了同一套 `metroBlob` 机制（`metro-blob-xml.ts`、`metro-blob-source.ts`、`metro-blob-model3d.ts`），因为现代图表或三维模型同样没有自己的二进制 `.ppt` 表示形式；重新打开后的具体数值见上文“已完成并通过 COM 验证”。
 
 这次调查另发现并修复了一项无关问题，已通过 COM 验证：`wzName` OfficeArt 复杂属性，即形状 `name`，缺少结尾的 UTF-16 空字符，导致真实 PowerPoint 直接拒绝写入器为具名形状生成的任何 `.ppt`，提示“Office has detected a problem with this file”，且没有修复选项。修复位于 `fopt-writer.ts` 的 `encodeComplexString`，并添加了字节级回归测试。
 
@@ -176,14 +181,24 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 
 `.pptx` 包含 PowerPoint 自身预计算的绘图部件时，会使用该精确布局，并像 PowerPoint 一样按原始偏移放置，已通过实时 COM 验证。否则由 DiagramML 解释器重建，支持全部十种 `dgm:alg` 类型、`constrLst` / `ruleLst`（包括由 `dgm:choose` 控制的条目）、相对约束和 `presLayoutVars`。
 
-解释器依据包含 229 个样例的图库测量，这些样例覆盖所有内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`，本地运行，在全部通过之前于 CI 中跳过：
+解释器依据包含 229 个样例的图库测量，这些样例覆盖 `Application.SmartArtLayouts` 报告的全部 176 种内置布局，均由 PowerPoint 自身通过 COM 创建。测试位于 `packages/core/src/__tests__/integration/smartart-gallery-ground-truth.test.ts`，需设置 `SMARTART_GALLERY_GATE=1` 才会运行，在全部通过之前默认跳过。它把解释器自身的输出（`computeSmartArtElementsWithoutCache`，从不读取缓存）与样例中缓存的 `dsp:drawing` 按节点文本逐个形状比较。
 
-- 229 个样例中，227 个生成的带文本形状集合与 PowerPoint 完全一致。
-- 循环、径向、层次、水平层次、组织结构图和棱锥族，在平坦数据集上的几何与 PowerPoint 偏差在 1% 以内。
-- 文本自动适应遵循实测规则：使用整数磅字号、真实文本框边距和圆角内缩，以及折叠子段落固定的 0.78 比例。
-- 组织结构图还由 `smartart-orgchart-genuine-fixture.test.ts` 固定拓扑、悬挂尾部偏移和扇形与列式布局选择。
+2026-09-24 实测结果（逐样例数据见 `smartart-gallery/baseline.json`）：
 
-仍未解决的部分可能让文稿与 PowerPoint 在字号上相差几磅，或位置上相差几个百分点：多数多角色条目模板（项目符号、方框和括号列表）的精确字号；超过第三代的深层或不均衡组织结构图；弯折蛇形连接线的预留通道；以及一个预设特有的空白段落（气泡图片列表，Bubble Picture List）。
+| 检查项                                     | 通过的样例      |
+| ------------------------------------------ | --------------- |
+| 带文本形状集合与 PowerPoint 完全一致       | 229 个中 227 个 |
+| 且所有形状的 x/y/宽/高偏差在图示尺寸 1% 内 | 229 个中 39 个  |
+| 偏差在 5% 内                               | 229 个中 59 个  |
+| 偏差在 10% 内                              | 229 个中 72 个  |
+| 偏差在 50% 内                              | 229 个中 155 个 |
+| 所有匹配形状的预设形状一致                 | 229 个中 190 个 |
+| 所有匹配形状的字号一致                     | 229 个中 24 个  |
+| 完整门槛（以上全部，按 1%）                | 229 个中 10 个  |
+
+核心的单一算法布局（基本流程、垂直流程、基本块列表、基本/连续/多向循环、基本和发散射线、层次结构、水平层次结构、基本和倒棱锥，以及组织结构图，其三层 `hier8` 数据集为 2.3%）在语料中的每个数据集上几何偏差都在 1% 以内，但字号不一定完全一致。文本自动适应遵循实测规则：使用整数磅字号、真实文本框边距和圆角内缩，以及折叠子段落固定的 0.78 比例。组织结构图还由 `smartart-orgchart-genuine-fixture.test.ts` 固定拓扑、悬挂尾部偏移和扇形与列式布局选择。
+
+仍未解决：大多数多模板布局（图片、时间线、团队介绍、文本卡片，以及复合列表/流程族）由按族划分的排列器放置，而不是逐点执行布局定义中的 `dgm:choose` 和复合约束，因此 229 个样例中有 74 个偏差超过图示尺寸的 50%，字号也很少完全一致。两个结构性未通过的样例是 `segmented-process--hier5` 和 `bubble-picture-list--hier5`。这只影响未保存缓存绘图的演示文稿；PowerPoint 自身总会写入缓存，因此只涉及其他生成器产生的文件以及结构编辑后的实时重新布局。
 
 ## 相关阅读 {#related-reading}
 

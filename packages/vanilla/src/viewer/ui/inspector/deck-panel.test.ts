@@ -182,14 +182,14 @@ describe('deck panel (no-selection Properties tab)', () => {
 
 		const checkboxes = panel.el
 			.querySelectorAll('.pptxv-inspector-section')[0]
-			.querySelectorAll<HTMLInputElement>('input[type="checkbox"]');
+			.querySelectorAll<HTMLElement & { checked: boolean }>('pptx-ui-checkbox');
 		checkboxes[0].checked = true;
 		checkboxes[0].dispatchEvent(new Event('change'));
 		expect(handlers.updatePresentationSettings).toHaveBeenCalledWith({ loopContinuously: true });
 
 		const showType = panel.el
 			.querySelectorAll('.pptxv-inspector-section')[0]
-			.querySelector<HTMLSelectElement>('select');
+			.querySelector<HTMLElement & { value: string }>('pptx-ui-select');
 		showType!.value = 'kiosk';
 		showType!.dispatchEvent(new Event('change'));
 		expect(handlers.updatePresentationSettings).toHaveBeenCalledWith({ showType: 'kiosk' });
@@ -201,7 +201,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		panel.update(makeDeckState());
 
 		const overrideSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[3];
-		const toggle = overrideSection.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		const toggle = overrideSection.querySelector<HTMLInputElement>('pptx-ui-checkbox');
 		expect(overrideSection.querySelectorAll('.pptxv-inspector-override-row')).toHaveLength(0);
 
 		toggle!.checked = true;

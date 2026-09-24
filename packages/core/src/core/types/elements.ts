@@ -654,6 +654,20 @@ export interface ContentPartInkStroke {
 	 * NAMES differ.
 	 */
 	tiltEncoding?: 'vector' | 'azimuthAltitude';
+	/**
+	 * Per-point timestamps (milliseconds), decoded from the source InkML
+	 * trace's `T` channel when it declared one.
+	 *
+	 * Absent for the overwhelming majority of real decks: PowerPoint's own
+	 * SaveAs output declares only `X`/`Y` and has no per-point time channel at
+	 * all (see `contentpart-real-ink-roundtrip.test.ts`'s fixture), so this is
+	 * populated only for InkML sources that genuinely author one (a captured
+	 * digitizer session, OneNote, a Surface Hub export). When present, ink
+	 * replay ("watch the ink get drawn") uses each stroke's own first/last
+	 * timestamp to time its reveal instead of the fixed per-stroke cascade; see
+	 * `pptx-viewer-shared`'s `render/ink-replay-timeline.ts`.
+	 */
+	pointTimestamps?: number[];
 }
 
 /**
@@ -700,6 +714,34 @@ export interface ZoomPptxElement extends PptxElementBase, PptxImageProperties {
 	summaryTargets?: SummaryZoomTarget[];
 	/** Layout mode authored on the Summary Zoom container. */
 	summaryLayout?: 'grid' | 'fixed';
+	/**
+	 * `zmPr/@returnToParent` (MS-PPTX `CT_ZoomObjectProperties`, shared by all
+	 * three Zoom kinds): whether continuing forward from the destination slide
+	 * during a live show returns to this Zoom's origin slide instead of
+	 * advancing linearly through the deck. The schema declares `<xsd:attribute
+	 * name="returnToParent" type="xsd:boolean" use="optional" default="true"/>`,
+	 * so an ABSENT attribute means `true`, not `false`. This codebase still
+	 * leaves the field `undefined` (rather than fabricating `true`) when the
+	 * source XML omits it, so a round-trip never invents an attribute the
+	 * source never had; a CONSUMER of this field (playback, e.g.
+	 * `pptx-viewer-shared`'s `resolveZoomNavigationTarget`) must read
+	 * `returnToParent !== false`, not `Boolean(returnToParent)`, to get the
+	 * spec-correct effective value. For `zoomType: 'summary'`, this mirrors the
+	 * first tile's own value; see {@link SummaryZoomTarget.returnToParent} for
+	 * the per-tile value.
+	 */
+	returnToParent?: boolean;
+	/**
+	 * `zmPr/@transitionDur` (MS-PPTX `CT_ZoomObjectProperties`): the
+	 * zoom-transition length in milliseconds. PowerPoint's own writer emits a
+	 * unitless decimal-millisecond value for every OOXML `ST_UniversalTimeOffset`
+	 * this codebase has observed (see the media-trim/-fade parsers), so this
+	 * follows the same convention rather than the full TIMEOFFSET grammar's
+	 * unit suffixes. Undefined uses the destination slide's own transition.
+	 * For `zoomType: 'summary'`, this mirrors the first tile's own value; see
+	 * {@link SummaryZoomTarget.transitionDurationMs} for the per-tile value.
+	 */
+	transitionDurationMs?: number;
 }
 
 /** A single section tile within a PowerPoint Summary Zoom container. */
@@ -716,6 +758,10 @@ export interface SummaryZoomTarget extends PptxImageProperties {
 	offsetFactorY?: number;
 	scaleFactorX?: number;
 	scaleFactorY?: number;
+	/** This tile's own `zmPr/@returnToParent`; see {@link ZoomPptxElement.returnToParent}. */
+	returnToParent?: boolean;
+	/** This tile's own `zmPr/@transitionDur` in milliseconds; see {@link ZoomPptxElement.transitionDurationMs}. */
+	transitionDurationMs?: number;
 	rawXml?: XmlObject;
 }
 

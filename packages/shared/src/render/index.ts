@@ -55,6 +55,9 @@ export * from './stroke-style';
 // `a:blipFill/a:tile`: scale, offset, alignment and mirror-flip of a tiled
 // picture, which four of five bindings used to render as one stretched copy.
 export * from './image-tiling';
+// A picture's native pixel size, probed once and cached, for CSS math (tile
+// `@sx`/`@sy`) that must be relative to the image's own size, not its box.
+export * from './image-native-size';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element
@@ -81,10 +84,13 @@ export * from './image-fill-overlay';
 export * from './text-segment-paragraph-break';
 export * from './text-warp';
 export * from './text-warp-envelope-curves';
+export * from './text-warp-envelope-block';
 export * from './text-warp-envelope-layout';
+export * from './text-warp-envelope-map';
 export * from './text-warp-envelope-types';
 export * from './text-warp-glyph-outline';
 export * from './text-warp-glyph-slicing';
+export * from './text-warp-glyph-trace';
 export * from './text-warp-outline-font-cache';
 export * from './text-warp-outline-webfont-fetch';
 export * from './text-warp-preset-definitions';
@@ -442,6 +448,11 @@ export * from './animation-advanced-triggers';
 // (targeting a specific media time node), consumed by `animation-playback-engine`
 // and each binding's presentation-mode media playback.
 export * from './animation-media-end-gating';
+// Real `<video>`/`<audio>` `timeupdate`-position gating for
+// `p:cond/@evt="onMediaBookmark"` (Office 2010 `p14:bmkTgt` extension),
+// consumed by `animation-playback-engine` and each binding's presentation-mode
+// media playback.
+export * from './animation-media-bookmark-gating';
 export * from './animation-timeline-text-build';
 // `p:bldP/@bldLvl` paragraph grouping for a by-paragraph text build, consumed
 // by `animation-timeline-text-build`.
@@ -669,6 +680,9 @@ export * from './text-run-hollow';
 // Per-run letter-spacing + metric-tracking split helpers, split out of
 // `text-run-style`.
 export * from './text-run-spacing';
+// Cross-run gradient/pattern text-fill continuity (adjacent runs sharing the
+// identical fill paint as one image, not one restart per run).
+export * from './text-run-gradient-span';
 // Nested-span decoration repeat + underline-variant CSS, split out of
 // `text-run-style`.
 export * from './text-run-decoration';
@@ -1200,6 +1214,7 @@ export * from './outline-view-edit';
 // group, select-all, slide paging, help) as one shared mapping, so the five
 // bindings cannot disagree about what Ctrl+D or an arrow key does.
 export * from './editor-keymap';
+export * from './selection-cycle';
 // Start-a-show keys (F5 / Shift+F5): kept apart from the editor keymap because
 // they must fire on a read-only host and from inside a text field, which the
 // editor gates forbid.
@@ -1220,6 +1235,16 @@ export * from './context-menu-target';
 // Canvas context-menu command set: ids, labels, order, separators and the rules
 // deciding what is offered, so the five bindings render one menu, not five.
 export * from './context-menu-commands';
+// The empty-slide-canvas right-click menu (Paste, Layout, Reset Slide, Format
+// Background, Grid and Guides, Ruler): distinct command set from the
+// per-element menu above, offered when the right-click hits no element.
+export * from './canvas-context-menu-commands';
+// Which inspector section a "format object" command (Edit Alt Text, Size and
+// Position, Format Shape) should scroll into view once the properties tab is open.
+export * from './context-menu-inspector-anchor';
+// Paste Special (Ctrl+Alt+V) and the post-paste Paste Options toolbar: the
+// four paste formats and the pure element transforms behind them.
+export * from './paste-special';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';
@@ -1284,6 +1309,12 @@ export * from './element-hit-test';
 export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
+// Ink replay timing: given each stroke's real per-point timestamps (when the
+// source InkML declared a usable time channel) or none at all, the ordered
+// {strokeIndex, startOffsetMs, durationMs} sequence `ink-rendering.ts`'s
+// getInkReplayStyles/getContentPartReplayStyles format into CSS. Pure; no
+// SVG/CSS concerns of its own.
+export * from './ink-replay-timeline';
 // Ink rendering maths: SVG-path point extraction, pressure-sensitive circle
 // generation (per-point pressure/width -> variable-width stroke), and replay
 // (stroke-dashoffset reveal) animation styles. Pure; each binding renders the
@@ -1366,6 +1397,15 @@ export * from './smartart-reflow-element';
 // + swallowed autoplay-blocked rejection) each binding calls when present mode
 // makes a media element's slide the live surface.
 export * from './media-playback';
+// `fullScrn` full-slide playback overlay trigger + style descriptor (issue
+// wave item 10): split out of media-playback.ts (file-size cap) so all five
+// bindings' `<video>`/`<audio>` play/pause listeners share one decision.
+export * from './media-fullscreen';
+// A linked (`isLinked`) YouTube/Vimeo "Online Video" URL is a web page, not a
+// media stream: resolves it to the provider's iframe-embeddable URL so every
+// binding can render an `<iframe>` instead of a `<video>` for exactly that
+// case.
+export * from './online-video';
 // Trim-end stop + fade in/out scheduling (G20): split out of media-playback.ts
 // (file-size cap) so every binding's presenting-mode media player can share
 // the same `p14:trim`/`p14:fade` enforcement React alone used to implement.
@@ -1439,6 +1479,11 @@ export * from './title-bar';
 // stylesheets cannot read a Tailwind class, plus the one zoom step all five
 // share. Both exist so a hand-ported binding has something to derive from.
 export * from './chrome-metrics';
+// Slide-show PLAYBACK consequences of a Zoom's `@returnToParent` /
+// `@transitionDur` (see the module doc comment): the pending "excursion" a
+// forward advance consumes, plus the synthetic transition override, shared by
+// every binding's presentation-mode navigation.
+export * from './zoom-return-navigation';
 export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';

@@ -128,12 +128,15 @@ import type {
 	PptxViewerInstance,
 	PptxViewerOptions,
 } from './types';
+import { rasterizePastedElementAsPicture } from './ui/context-menu-format-actions';
 import { openDigitalSignaturesDialog } from './ui/digital-signatures-dialog';
 import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
 import type { ElementContextMenu } from './ui/element-context-menu';
 import { mountElementContextMenu } from './ui/element-context-menu';
 import { openFontEmbeddingDialog } from './ui/font-embedding-dialog';
 import { openPasswordProtectionDialog } from './ui/password-protection-dialog';
+import type { PasteOptionsToolbarHandle } from './ui/paste-options-toolbar';
+import { mountPasteOptionsToolbar } from './ui/paste-options-toolbar';
 import { openSignatureStrippedDialog } from './ui/signature-stripped-dialog';
 import { openVersionHistoryPanel } from './ui/version-history-panel';
 import type { ViewerControls } from './viewer-controls';
@@ -197,6 +200,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** Live AI focus controller while `ai` is configured; the canvas menu's AI entries route to it. */
 	private aiFocus: AiFocusController | null = null;
 	private contextMenu: ElementContextMenu | null = null;
+	/** Ctrl/Cmd+Alt+V's post-paste follow-up icon strip. */
+	private pasteOptionsToolbar: PasteOptionsToolbarHandle | null = null;
 	/** View > Rulers strips (ticks, labels, drag-out guides) around the stage. */
 	private rulers: RulerController | null = null;
 	/** File > Options store + option-driven behavior (undo depth, ribbon, etc.). */
@@ -285,7 +290,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.editor?.getEditActions().sections.deleteSection(sectionId),
 			onSectionMove: (sectionId, direction) =>
 				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
-			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
+			onZoomClick: (target) => this.controls.navigateToZoomTarget(target),
 			onCommentMarkerClick: () => this.parityWorkflows.openComments(),
 			// Both on-canvas SmartArt commits reflow the cached drawing shapes when
 			// the edit cleared them, as React does: a node-style change clears
@@ -506,6 +511,30 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		Object.defineProperty(parityWorkflowHost, 't', { get: () => this.t });
 		this.parityWorkflows = createParityWorkflows(parityWorkflowHost);
 		this.setupContextMenu();
+		this.pasteOptionsToolbar = mountPasteOptionsToolbar({
+			doc: this.doc,
+			store: this.store,
+			getTranslator: () => this.t,
+			onChoose: (format) => {
+				const entry = this.store.get().pasteOptionsToolbar?.[0];
+				this.store.set({ pasteOptionsToolbar: null });
+				if (!entry) {
+					return;
+				}
+				if (format === 'picture') {
+					void rasterizePastedElementAsPicture(this.doc, entry.id, entry.sourceClone).then(
+						(picture) => {
+							if (picture) {
+								this.editor.getEditActions().replaceElement(entry.id, picture);
+							}
+							return undefined;
+						},
+					);
+					return;
+				}
+				this.editor.getEditActions().reformatPasted(entry.id, entry.sourceClone, format);
+			},
+		});
 		if (options.editable) {
 			this.store.set({ editable: true });
 			this.editor.setEditable(true);
@@ -1930,6 +1959,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.aiFocus = null;
 		this.contextMenu?.destroy();
 		this.contextMenu = null;
+		this.pasteOptionsToolbar?.destroy();
+		this.pasteOptionsToolbar = null;
 		this.rulers?.destroy();
 		this.rulers = null;
 		this.parityWorkflows.closeReadingView();

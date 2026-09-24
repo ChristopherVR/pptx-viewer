@@ -104,6 +104,21 @@ export class PptxHandlerRuntime {
 	 */
 	protected savedSlideFingerprints: Map<string, string> = new Map();
 
+	/**
+	 * `chartData` exactly as it stood right after `enrichChartData` parsed it,
+	 * serialized to JSON and keyed by `chartPartPath`. The save pipeline used
+	 * to re-serialize EVERY chart part on any slide rewrite regardless of
+	 * whether the chart itself was touched, which materializes the load-time
+	 * resolved model back into the file: an inherited title font/color gets
+	 * pinned onto the title run, radar series colours that were following the
+	 * palette cycle get pinned per-point, and fields this engine does not
+	 * model on `PptxChartData` (e.g. a chartex series' `cx:f` formula or its
+	 * `uniqueId`) are silently dropped because the rebuild only knows what it
+	 * modeled. Comparing the current `chartData` against this baseline lets an
+	 * untouched chart part pass through byte-for-byte instead.
+	 */
+	protected chartDataBaselines: Map<string, string> = new Map();
+
 	/** Per-slide relationship maps: slide path -> (rId -> target path). */
 	protected slideRelsMap: Map<string, Map<string, string>> = new Map();
 

@@ -28,6 +28,8 @@
 	const fields = $derived(getNonVisualDescriptionFields(el));
 </script>
 
+{#if fields.showAltText || fields.showTitle}
+<div data-pptx-inspector-section="alt-text">
 {#if fields.showAltText}
 	<label class="pptx-svelte-alt-text">
 		<span>{t('pptx.elementAccessibility.altText')}</span>
@@ -58,6 +60,8 @@
 				} as Partial<PptxElement>)}
 		/>
 	</label>
+{/if}
+</div>
 {/if}
 
 <style>

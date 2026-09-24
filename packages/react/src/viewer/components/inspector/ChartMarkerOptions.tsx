@@ -6,6 +6,7 @@ import type {
 } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import {
 	CARD,
 	HEADING,
@@ -57,7 +58,7 @@ export function ChartMarkerOptions({
 								<span className='flex-1 truncate' title={s.name}>
 									{s.name}
 								</span>
-								<select
+								<WebSelect
 									disabled={!canEdit}
 									className={INPUT}
 									value={marker?.symbol ?? ''}
@@ -75,7 +76,7 @@ export function ChartMarkerOptions({
 											{t(opt.labelKey)}
 										</option>
 									))}
-								</select>
+								</WebSelect>
 							</div>
 
 							{marker && marker.symbol !== 'none' && (

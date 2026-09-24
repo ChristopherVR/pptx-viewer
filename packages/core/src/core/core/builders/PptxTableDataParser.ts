@@ -38,6 +38,14 @@ export interface PptxTableDataParserContext {
 		rLink: string | undefined,
 		slidePath: string | undefined,
 	) => string | undefined;
+	/**
+	 * Resolve the table-cell-context default font size (points) from the
+	 * slide's master `p:otherStyle`. See
+	 * {@link PptxHandlerRuntime.resolveTableCellDefaultFontSize}. Optional so
+	 * callers without a master/theme context (tests, the built-in style
+	 * catalogue generator) simply get `undefined`.
+	 */
+	resolveDefaultCellFontSize?: (slidePath: string | undefined) => number | undefined;
 }
 
 export interface IPptxTableDataParser {
@@ -134,6 +142,8 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 				parseTableEffectChain(tableProperties['a:effectLst'] as XmlObject | undefined) ??
 				(effectDag ? [{ kind: 'effectDag', xml: effectDag }] : undefined);
 
+			const defaultCellFontSize = this.context.resolveDefaultCellFontSize?.(slidePath);
+
 			return {
 				rows,
 				columnWidths,
@@ -149,6 +159,7 @@ export class PptxTableDataParser implements IPptxTableDataParser {
 				...(rtl ? { rtl: true } : {}),
 				...(tableFill ? { tableFill } : {}),
 				...(tableEffects ? { tableEffects } : {}),
+				...(defaultCellFontSize ? { defaultCellFontSize } : {}),
 			};
 		} catch {
 			return undefined;

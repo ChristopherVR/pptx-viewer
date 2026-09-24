@@ -93,7 +93,7 @@ function onFieldInput(key: 'width' | 'height', event: Event): void {
 
 		<label class="mb-1.5 flex flex-col gap-1 text-[11px]">
 			<span class="text-muted-foreground">{{ t('pptx.slideSize.presets') }}</span>
-			<select
+			<pptx-ui-select
 				:class="INPUT"
 				data-pptx-slide-size-preset
 				:disabled="!props.canEdit"
@@ -107,7 +107,7 @@ function onFieldInput(key: 'width' | 'height', event: Event): void {
 				<option v-for="preset in presets" :key="preset.labelKey" :value="preset.labelKey">
 					{{ t(`pptx.slideSize.preset.${preset.labelKey}`) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<div class="mb-1.5 flex flex-col gap-1 text-[11px]">

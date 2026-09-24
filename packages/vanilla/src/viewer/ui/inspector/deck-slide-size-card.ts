@@ -9,6 +9,7 @@ import {
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { makeNumberField } from '../controls';
+import { createInspectorSelect } from './controls-extra';
 import type { DeckCard } from './deck-card-helpers';
 import { makeSection } from './deck-card-helpers';
 import { createSlideSizeRescalePrompt } from './slide-size-rescale-prompt';
@@ -54,7 +55,7 @@ export function createSlideSizeCard(
 	const presetLabel = createEl(doc, 'label', 'pptxv-field pptxv-field-select');
 	const presetCaption = createEl(doc, 'span', 'pptxv-field-label');
 	presetCaption.textContent = t('pptx.slideSize.presets');
-	const preset = doc.createElement('select');
+	const preset = createInspectorSelect(doc);
 	preset.className = 'pptxv-field-select-input';
 	preset.dataset.pptxSlideSizePreset = 'true';
 	preset.setAttribute('aria-label', t('pptx.slideSize.presets'));

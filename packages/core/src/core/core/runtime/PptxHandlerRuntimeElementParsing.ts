@@ -37,6 +37,42 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * Resolve the table-cell-context default font size (points) from the
+	 * slide's master `p:otherStyle` (ECMA-376 §19.3.1.42/§19.3.1.52). A table
+	 * cell isn't a `title`/`body` placeholder, so its unstyled text defaults
+	 * off `otherStyle` rather than `titleStyle`/`bodyStyle` - the same rung
+	 * {@link lookupPlaceholderDefaults} already uses for non-title/body
+	 * placeholders, applied here independent of whether the table's own
+	 * graphicFrame happens to be a placeholder at all.
+	 *
+	 * Tries `a:lvl1pPr/a:defRPr@sz` (level 0, matching a table cell's
+	 * unindented paragraph) first, then `a:defPPr/a:defRPr@sz` as
+	 * `CT_TextListStyle`'s own further fallback. Returns `undefined` when the
+	 * slide/layout/master chain doesn't resolve or neither rung sets a size.
+	 *
+	 * `PlaceholderTextLevelStyle.fontSize` (as `parsePlaceholderLevelStyle`
+	 * produces it) is in CSS pixels at 96dpi (`hundredths/100 * 96/72`), while
+	 * `PptxTableData.defaultCellFontSize` - like every other table font size
+	 * field - is in points, so the result is converted back (`* 72/96`).
+	 */
+	protected resolveTableCellDefaultFontSize(slidePath: string | undefined): number | undefined {
+		if (!slidePath) {
+			return undefined;
+		}
+		const layoutPath = this.resolveLayoutPathForSlide(slidePath);
+		if (!layoutPath) {
+			return undefined;
+		}
+		const masterPath = this.resolveMasterPathForLayout(layoutPath);
+		if (!masterPath) {
+			return undefined;
+		}
+		const otherStyle = this.masterTxStylesCache.get(masterPath)?.otherStyle;
+		const pxSize = otherStyle?.[0]?.fontSize ?? otherStyle?.[-1]?.fontSize;
+		return pxSize !== undefined ? pxSize * (72 / 96) : undefined;
+	}
+
+	/**
 	 * Resolve a table cell image fill's blip relationship (`r:embed` /
 	 * `r:link`) to a displayable path, mirroring the slide-background image
 	 * resolution's external-URL gating (`allowExternalImages`, Load H3).

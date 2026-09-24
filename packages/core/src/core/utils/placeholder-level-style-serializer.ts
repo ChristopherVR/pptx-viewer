@@ -124,16 +124,26 @@ export function serializePlaceholderLevelStyle(
 		});
 	}
 	if (style.spaceBefore !== undefined) {
-		childEdits.set('a:spcBef', {
-			'a:spcPts': { '@_val': String(Math.round(style.spaceBefore * PT_HUNDREDTHS_PER_PX)) },
-		});
+		childEdits.set(
+			'a:spcBef',
+			serializeParagraphSpacing(
+				style.spaceBefore,
+				style.resolvedSpaceBefore,
+				style.spaceBeforePercent,
+			),
+		);
 	}
 	if (style.spaceAfter !== undefined) {
-		childEdits.set('a:spcAft', {
-			'a:spcPts': { '@_val': String(Math.round(style.spaceAfter * PT_HUNDREDTHS_PER_PX)) },
-		});
+		childEdits.set(
+			'a:spcAft',
+			serializeParagraphSpacing(
+				style.spaceAfter,
+				style.resolvedSpaceAfter,
+				style.spaceAfterPercent,
+			),
+		);
 	}
-	applyBulletGroup(childEdits, style);
+	applyBulletGroup(childEdits, style, existing?.['a:buFont'] as XmlObject | undefined);
 	if (style.tabStops !== undefined) {
 		childEdits.set(
 			'a:tabLst',
@@ -147,6 +157,26 @@ export function serializePlaceholderLevelStyle(
 	}
 
 	return mergeOrderedXml(existing, attrEdits, childEdits, LEVEL_PPR_CHILD_ORDER);
+}
+
+/**
+ * Serialize a resolved space-before/after value back to `a:spcBef` /
+ * `a:spcAft`. An UNTOUCHED value (still equal to the snapshot taken at
+ * parse time) that came from `a:spcPct` re-emits the original percentage,
+ * so the spacing keeps scaling with a later font-size change instead of
+ * being frozen to today's pixel value; anything else (no percent snapshot,
+ * or the value has genuinely moved since parse) is written as `a:spcPts`,
+ * matching what an editor working in absolute units produces.
+ */
+function serializeParagraphSpacing(
+	value: number,
+	resolvedValue: number | undefined,
+	percent: number | undefined,
+): XmlObject {
+	if (percent !== undefined && value === resolvedValue) {
+		return { 'a:spcPct': { '@_val': String(Math.round(percent * 100000)) } };
+	}
+	return { 'a:spcPts': { '@_val': String(Math.round(value * PT_HUNDREDTHS_PER_PX)) } };
 }
 
 function hasRunPropertyEdits(style: PlaceholderTextLevelStyle): boolean {
@@ -186,7 +216,15 @@ function serializeDefaultRunProperties(
 	}
 	if (style.fontFamily !== undefined) {
 		const latin: XmlObject = { ...((existing?.['a:latin'] as XmlObject | undefined) ?? {}) };
-		latin['@_typeface'] = style.fontFamily;
+		// Untouched (still equal to what was parsed) and a raw alias was
+		// captured: re-emit the alias (`+mj-lt`/`+mn-lt`) verbatim instead of
+		// the literal name it resolves to today, or every save flattens the
+		// theme reference. A genuine edit (the value has moved) always writes
+		// the new literal name.
+		latin['@_typeface'] =
+			style.fontTypefaceXml !== undefined && style.fontFamily === style.resolvedFontFamily
+				? style.fontTypefaceXml
+				: style.fontFamily;
 		childEdits.set('a:latin', latin);
 	}
 
@@ -196,6 +234,7 @@ function serializeDefaultRunProperties(
 function applyBulletGroup(
 	childEdits: Map<string, XmlObject | null>,
 	style: PlaceholderTextLevelStyle,
+	existingBuFont: XmlObject | undefined,
 ): void {
 	if (style.bulletColor !== undefined) {
 		// A themed `a:schemeClr` bullet is re-emitted as authored; only a hex
@@ -213,7 +252,10 @@ function applyBulletGroup(
 		childEdits.set('a:buSzPct', null);
 	}
 	if (style.bulletFontFamily !== undefined) {
-		childEdits.set('a:buFont', { '@_typeface': style.bulletFontFamily });
+		// Merge onto the EXISTING `a:buFont` node instead of replacing it, so
+		// `panose`/`pitchFamily`/`charset` (fallback-face hints, not resolved
+		// into the typed model) survive a save that only touches the typeface.
+		childEdits.set('a:buFont', { ...existingBuFont, '@_typeface': style.bulletFontFamily });
 	}
 
 	const touchesType =

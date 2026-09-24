@@ -22,7 +22,15 @@
  *
  * @module viewer/text-3d-panel
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { MaterialPresetType, PptxElement, Text3DStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
@@ -50,6 +58,7 @@ import {
 const DEFAULT_EXTRUSION_COLOR = '#888888';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-text-3d-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -57,12 +66,11 @@ const DEFAULT_EXTRUSION_COLOR = '#888888';
 	template: `
 		<div class="t3d">
 			<label class="t3d__check">
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
 					[checked]="hasExtrusion()"
 					[attr.aria-label]="'pptx.text3d.extrusion' | translate"
 					(change)="onExtrusionToggle($event)"
-				/>
+				></pptx-ui-checkbox>
 				<span>{{ 'pptx.text3d.extrusion' | translate }}</span>
 			</label>
 
@@ -108,7 +116,7 @@ const DEFAULT_EXTRUSION_COLOR = '#888888';
 
 				<label class="t3d__field t3d__field--indent">
 					<span class="t3d__label">{{ 'pptx.text3d.material' | translate }}</span>
-					<select
+					<pptx-ui-select
 						class="t3d__select"
 						[value]="material()"
 						[attr.aria-label]="'pptx.text3d.material' | translate"
@@ -119,7 +127,7 @@ const DEFAULT_EXTRUSION_COLOR = '#888888';
 								{{ preset.label }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 			}
 		</div>

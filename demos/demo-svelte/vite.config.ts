@@ -110,5 +110,10 @@ export default defineConfig({
 			'@lucide/svelte/icons/wrench',
 			'@lucide/svelte/icons/x',
 		],
+		// See the identical comment in demo-react/vite.config.ts: `emf-converter`'s
+		// guarded `import('@napi-rs/canvas')` 500s once Vite pre-bundles it,
+		// because its own import-analysis pass no longer sees the source's
+		// `/* @vite-ignore */` hint next to the dynamic import.
+		exclude: ['emf-converter'],
 	},
 });

@@ -17,7 +17,14 @@
  * @module angular-viewer/chart-user-shape-position
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxChartUserShape } from 'pptx-viewer-core';
 
@@ -51,6 +58,7 @@ type Size = { cx: number; cy: number };
 const num = (event: Event): number => Number((event.target as HTMLInputElement).value);
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-user-shape-position',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -132,25 +140,23 @@ const num = (event: Event): number => Number((event.target as HTMLInputElement).
 					(change)="onRotation($event)"
 				/>
 				<label class="pptx-chart-card__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[attr.aria-label]="'pptx.arrange.flipHorizontally' | translate"
 						[disabled]="!canEdit()"
 						[checked]="row().flipH ?? false"
 						(change)="onFlipH($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-chart-card__label">{{
 						'pptx.arrange.flipHorizontally' | translate
 					}}</span>
 				</label>
 				<label class="pptx-chart-card__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[attr.aria-label]="'pptx.arrange.flipVertically' | translate"
 						[disabled]="!canEdit()"
 						[checked]="row().flipV ?? false"
 						(change)="onFlipV($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-chart-card__label">{{
 						'pptx.arrange.flipVertically' | translate
 					}}</span>
@@ -211,25 +217,23 @@ const num = (event: Event): number => Number((event.target as HTMLInputElement).
 					(change)="onRotation($event)"
 				/>
 				<label class="pptx-chart-card__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[attr.aria-label]="'pptx.arrange.flipHorizontally' | translate"
 						[disabled]="!canEdit()"
 						[checked]="row().flipH ?? false"
 						(change)="onFlipH($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-chart-card__label">{{
 						'pptx.arrange.flipHorizontally' | translate
 					}}</span>
 				</label>
 				<label class="pptx-chart-card__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[attr.aria-label]="'pptx.arrange.flipVertically' | translate"
 						[disabled]="!canEdit()"
 						[checked]="row().flipV ?? false"
 						(change)="onFlipV($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-chart-card__label">{{
 						'pptx.arrange.flipVertically' | translate
 					}}</span>

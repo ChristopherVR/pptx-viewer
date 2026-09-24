@@ -130,6 +130,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				ops.commitInlineText(id, text, snapshot);
 			},
 			onSelectionChange: (selection) => store.set({ selectedTextRange: selection }),
+			onLiveFormatKey: deps.onInlineLiveFormatKey,
 			onClose() {
 				inline = null;
 				inlineTarget = undefined;
@@ -281,7 +282,9 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		readInlineList,
 		retainAcceptedInlineText() {
 			const slides = retainAcceptedInlineTextModel(store.get(), inlineTarget, inline);
-			if (slides) store.set({ slides });
+			if (slides) {
+				store.set({ slides });
+			}
 		},
 		formatInlineList: (snapshot) => modelObserver?.format(snapshot) ?? false,
 		readPendingInlineTextEdit: () =>

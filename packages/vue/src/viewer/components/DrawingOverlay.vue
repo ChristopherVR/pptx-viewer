@@ -120,6 +120,12 @@ const liveStrokeView = computed<InkStrokeView | null>(() =>
 		tool: props.tool === 'freeform' ? 'freeform' : isHighlighter.value ? 'highlighter' : 'pen',
 	}),
 );
+/** CSS `mix-blend-mode` for the live stroke's own paint element (not the `<svg>` container); see `InkStrokeView.blendMode`. */
+const liveBlendStyle = computed(() =>
+	liveStrokeView.value?.blendMode === 'multiply'
+		? { mixBlendMode: 'multiply' as const }
+		: undefined,
+);
 defineExpose({ hasActivePointerInteraction: () => drawing.value });
 </script>
 
@@ -146,7 +152,7 @@ defineExpose({ hasActivePointerInteraction: () => drawing.value });
 			both derive from the same `points`).
 		-->
 		<template v-if="liveStrokeView">
-			<g v-if="liveStrokeView.nibMarks" :opacity="liveStrokeView.opacity">
+			<g v-if="liveStrokeView.nibMarks" :opacity="liveStrokeView.opacity" :style="liveBlendStyle">
 				<ellipse
 					v-for="(m, j) in liveStrokeView.nibMarks"
 					:key="`live-nib-${j}`"
@@ -158,7 +164,11 @@ defineExpose({ hasActivePointerInteraction: () => drawing.value });
 					:fill="liveStrokeView.color"
 				/>
 			</g>
-			<g v-else-if="liveStrokeView.circles" :opacity="liveStrokeView.opacity">
+			<g
+				v-else-if="liveStrokeView.circles"
+				:opacity="liveStrokeView.opacity"
+				:style="liveBlendStyle"
+			>
 				<circle
 					v-for="(c, j) in liveStrokeView.circles"
 					:key="`live-pc-${j}`"
@@ -177,6 +187,7 @@ defineExpose({ hasActivePointerInteraction: () => drawing.value });
 				stroke-linecap="round"
 				stroke-linejoin="round"
 				:opacity="liveStrokeView.opacity"
+				:style="liveBlendStyle"
 			/>
 		</template>
 		<path

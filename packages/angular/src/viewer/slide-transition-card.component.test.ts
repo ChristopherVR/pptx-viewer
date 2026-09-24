@@ -23,9 +23,13 @@ import { SlideTransitionCardComponent } from './slide-transition-card.component'
 interface TransitionCardControls {
 	onSpeed: (event: Event) => void;
 	onMorphOption: (event: Event) => void;
+	onPattern: (pattern: string) => void;
+	onThruBlk: (thruBlk: boolean) => void;
 	speed: () => string;
 	morphOption: () => string;
 	isMorph: () => boolean;
+	patternOptions: () => readonly string[] | undefined;
+	hasThruBlk: () => boolean;
 }
 
 function slide(id: string, transition?: PptxSlideTransition): PptxSlide {
@@ -102,5 +106,40 @@ describe('slide transition card: morph-option control', () => {
 		controls.onMorphOption(changeEvent('byChar'));
 
 		expect(editor.slides()[0].transition).toMatchObject({ type: 'morph', morphOption: 'byChar' });
+	});
+});
+
+describe('slide transition card: pattern and thruBlk controls', () => {
+	it('offers diamond/hexagon for glitter and strip/rectangle for shred', () => {
+		expect(harness({ type: 'glitter', durationMs: 500 }).controls.patternOptions()).toStrictEqual([
+			'diamond',
+			'hexagon',
+		]);
+		expect(harness({ type: 'shred', durationMs: 500 }).controls.patternOptions()).toStrictEqual([
+			'strip',
+			'rectangle',
+		]);
+	});
+
+	it('offers no pattern for a type that has none', () => {
+		expect(harness({ type: 'wipe', durationMs: 500 }).controls.patternOptions()).toBeUndefined();
+	});
+
+	it('writes the chosen pattern onto the slide without dropping the type', () => {
+		const { editor, controls } = harness({ type: 'glitter', durationMs: 500 });
+		controls.onPattern('hexagon');
+		expect(editor.slides()[0].transition).toMatchObject({ type: 'glitter', pattern: 'hexagon' });
+	});
+
+	it('shows Through Black only for cut and fade', () => {
+		expect(harness({ type: 'cut', durationMs: 500 }).controls.hasThruBlk()).toBeTruthy();
+		expect(harness({ type: 'fade', durationMs: 500 }).controls.hasThruBlk()).toBeTruthy();
+		expect(harness({ type: 'blinds', durationMs: 500 }).controls.hasThruBlk()).toBeFalsy();
+	});
+
+	it('writes the chosen thruBlk value onto the slide without dropping the type', () => {
+		const { editor, controls } = harness({ type: 'cut', durationMs: 500 });
+		controls.onThruBlk(true);
+		expect(editor.slides()[0].transition).toMatchObject({ type: 'cut', thruBlk: true });
 	});
 });

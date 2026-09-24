@@ -36,8 +36,12 @@
 
 	const ink = $derived(element.type === 'ink' ? element : undefined);
 	const strokes = $derived(ink ? buildInkStrokes(ink, presenting) : []);
-	const toolStyle = $derived(ink?.inkTool === 'highlighter' ? 'mix-blend-mode:multiply' : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+
+	/** CSS `mix-blend-mode` for a stroke's own paint element (not the `<svg>` container); see `InkStrokeView.blendMode`. */
+	function blendStyle(blendMode: 'normal' | 'multiply'): string | undefined {
+		return blendMode === 'multiply' ? 'mix-blend-mode:multiply' : undefined;
+	}
 </script>
 
 {#if ink}
@@ -47,11 +51,11 @@
 			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
 		{/if}
 		{#if strokes.length > 0}
-			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none" style={toolStyle}>
+			<svg class="pptx-svelte-ink-svg" viewBox={inkViewBox(ink)} preserveAspectRatio="none">
 				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
 				{#each strokes as stroke (stroke.key)}
 					{#if stroke.nibMarks}
-						<g opacity={stroke.opacity}>
+						<g opacity={stroke.opacity} style={blendStyle(stroke.blendMode)}>
 							{#each stroke.nibMarks as mark, i (i)}
 								<ellipse
 									cx={mark.cx}
@@ -64,7 +68,7 @@
 							{/each}
 						</g>
 					{:else if stroke.circles}
-						<g opacity={stroke.opacity}>
+						<g opacity={stroke.opacity} style={blendStyle(stroke.blendMode)}>
 							{#each stroke.circles as circle, i (i)}
 								<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill={stroke.color} />
 							{/each}
@@ -81,9 +85,14 @@
 							vector-effect="non-scaling-stroke"
 							stroke-dasharray={stroke.replay?.strokeDasharray}
 							stroke-dashoffset={stroke.replay?.strokeDashoffset}
-							style={stroke.replay
-								? `animation:${stroke.replay.animation};--ink-path-length:${stroke.replay.pathLength}`
-								: undefined}
+							style={[
+								stroke.replay
+									? `animation:${stroke.replay.animation};--ink-path-length:${stroke.replay.pathLength}`
+									: undefined,
+								blendStyle(stroke.blendMode),
+							]
+								.filter(Boolean)
+								.join(';') || undefined}
 						/>
 					{/if}
 				{/each}

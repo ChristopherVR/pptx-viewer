@@ -59,9 +59,9 @@ describe('chartTrendlineSection', () => {
 
 	it('offers the shared, translated regression list', () => {
 		const { target } = mountSection(chartData());
-		const options = Array.from(target.querySelectorAll<HTMLOptionElement>('select option')).map(
-			(option) => option.textContent,
-		);
+		const options = Array.from(
+			target.querySelectorAll<HTMLOptionElement>('pptx-ui-select option'),
+		).map((option) => option.textContent);
 
 		expect(options).toStrictEqual([
 			'None',
@@ -77,7 +77,7 @@ describe('chartTrendlineSection', () => {
 	it('adds a trendline when a type is chosen', () => {
 		const { target, onsettrendline } = mountSection(chartData());
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, 'linear');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, 'linear');
 
 		expect(onsettrendline).toHaveBeenCalledWith(0, { trendlineType: 'linear' });
 	});
@@ -95,7 +95,7 @@ describe('chartTrendlineSection', () => {
 			}),
 		);
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, 'movingAvg');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, 'movingAvg');
 
 		expect(onsettrendline).toHaveBeenCalledWith(0, {
 			trendlineType: 'movingAvg',
@@ -112,14 +112,14 @@ describe('chartTrendlineSection', () => {
 			}),
 		);
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, '');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, '');
 
 		expect(onsettrendline).toHaveBeenCalledWith(0, null);
 	});
 
 	it('shows the equation / R-squared toggles only once a trendline exists', () => {
 		const { target } = mountSection(chartData());
-		expect(target.querySelectorAll('input[type="checkbox"]')).toHaveLength(0);
+		expect(target.querySelectorAll('pptx-ui-checkbox')).toHaveLength(0);
 		cleanup?.();
 
 		const { target: withLine } = mountSection(
@@ -127,7 +127,7 @@ describe('chartTrendlineSection', () => {
 				series: [{ name: 'Revenue', values: [10, 20], trendlines: [{ trendlineType: 'linear' }] }],
 			}),
 		);
-		expect(withLine.querySelectorAll('input[type="checkbox"]')).toHaveLength(2);
+		expect(withLine.querySelectorAll('pptx-ui-checkbox')).toHaveLength(2);
 	});
 
 	it('toggles displayEq without disturbing the rest of the trendline', () => {
@@ -143,7 +143,7 @@ describe('chartTrendlineSection', () => {
 			}),
 		);
 
-		check(target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[0], true);
+		check(target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox')[0], true);
 
 		expect(onsettrendline).toHaveBeenCalledWith(0, {
 			trendlineType: 'linear',
@@ -165,7 +165,7 @@ describe('chartTrendlineSection', () => {
 			}),
 		);
 
-		check(target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')[1], false);
+		check(target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox')[1], false);
 
 		expect(onsettrendline).toHaveBeenCalledWith(0, {
 			trendlineType: 'linear',
@@ -180,7 +180,9 @@ describe('chartTrendlineSection', () => {
 			}),
 			false,
 		);
-		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select');
+		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+			'input, pptx-ui-select, pptx-ui-checkbox',
+		);
 
 		expect(controls).toHaveLength(3);
 		expect(Array.from(controls).every((control) => control.disabled)).toBeTruthy();

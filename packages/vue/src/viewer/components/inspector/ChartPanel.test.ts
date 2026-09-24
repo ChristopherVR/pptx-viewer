@@ -3,6 +3,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
 import ChartPanel from './ChartPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function chartData(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -61,7 +62,7 @@ describe('chartPanel', () => {
 	it('changing the type emits new chartData carrying that type', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
 		const select = wrapper.get('[data-testid="chart-type"]');
-		await select.setValue('line');
+		await setControlValue(select, 'line');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.chartType).toBe('line');
@@ -81,7 +82,7 @@ describe('chartPanel', () => {
 			'boxWhisker',
 			'regionMap',
 		]) {
-			await select.setValue(chartType);
+			await setControlValue(select, chartType);
 			expect(lastChartData(wrapper.emitted('update')).chartType).toBe(chartType);
 		}
 	});
@@ -108,7 +109,7 @@ describe('chartPanel', () => {
 
 	it('clears grouping when switching to a type that does not support it', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.get('[data-testid="chart-type"]').setValue('pie');
+		await setControlValue(wrapper.get('[data-testid="chart-type"]'), 'pie');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.chartType).toBe('pie');
@@ -118,7 +119,7 @@ describe('chartPanel', () => {
 	it('editing the title emits updated chartData with the new title', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
 		const input = wrapper.get('[data-testid="chart-title"]');
-		await input.setValue('New Title');
+		await setControlValue(input, 'New Title');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.title).toBe('New Title');
@@ -140,7 +141,7 @@ describe('chartPanel', () => {
 			},
 		});
 		const input = wrapper.get('[data-testid="chart-title"]');
-		await input.setValue('New Title');
+		await setControlValue(input, 'New Title');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.title).toBe('New Title');
@@ -159,7 +160,7 @@ describe('chartPanel', () => {
 
 	it('changing grouping emits updated chartData with the new grouping', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.get('[data-testid="chart-grouping"]').setValue('stacked');
+		await setControlValue(wrapper.get('[data-testid="chart-grouping"]'), 'stacked');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.grouping).toBe('stacked');
@@ -184,7 +185,7 @@ describe('chartPanel', () => {
 		vi.useFakeTimers();
 		try {
 			const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-			await wrapper.get('[data-testid="chart-series-color"]').setValue('#ff0000');
+			await setControlValue(wrapper.get('[data-testid="chart-series-color"]'), '#ff0000');
 
 			// The commit is debounced: nothing is emitted until the timer fires.
 			expect(wrapper.emitted('update')).toBeUndefined();
@@ -200,7 +201,7 @@ describe('chartPanel', () => {
 	it('does not mutate the original element when picking a colour', async () => {
 		const el = chartElement();
 		const wrapper = mount(ChartPanel, { props: { element: el } });
-		await wrapper.get('[data-testid="chart-series-color"]').setValue('#00ff00');
+		await setControlValue(wrapper.get('[data-testid="chart-series-color"]'), '#00ff00');
 
 		expect((el as { chartData?: PptxChartData }).chartData?.series[0].color).toBeUndefined();
 	});
@@ -209,7 +210,7 @@ describe('chartPanel', () => {
 
 	it('toggling show-legend emits style with hasLegend set', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.get('[data-testid="chart-show-legend"]').setValue(true);
+		await setControlValue(wrapper.get('[data-testid="chart-show-legend"]'), true);
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.style?.hasLegend).toBeTruthy();
@@ -229,7 +230,7 @@ describe('chartPanel', () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
 		expect(wrapper.find('[data-testid="chart-data-label-content"]').exists()).toBeFalsy();
 
-		await wrapper.get('[data-testid="chart-show-data-labels"]').setValue(true);
+		await setControlValue(wrapper.get('[data-testid="chart-show-data-labels"]'), true);
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.style?.hasDataLabels).toBeTruthy();
 
@@ -243,7 +244,7 @@ describe('chartPanel', () => {
 		const wrapper = mount(ChartPanel, {
 			props: { element: chartElement({ axes: [{ axisType: 'valAx' }] }) },
 		});
-		await wrapper.get('[data-testid="chart-axis-scale"]').setValue('5');
+		await setControlValue(wrapper.get('[data-testid="chart-axis-scale"]'), '5');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		const valAx = next.axes?.find((a) => a.axisType === 'valAx');
@@ -254,7 +255,7 @@ describe('chartPanel', () => {
 		const wrapper = mount(ChartPanel, {
 			props: { element: chartElement({ axes: [{ axisType: 'valAx' }] }) },
 		});
-		await wrapper.get('[data-testid="chart-axis-log-scale"]').setValue(true);
+		await setControlValue(wrapper.get('[data-testid="chart-axis-log-scale"]'), true);
 
 		const next = lastChartData(wrapper.emitted('update'));
 		const valAx = next.axes?.find((a) => a.axisType === 'valAx');
@@ -264,7 +265,7 @@ describe('chartPanel', () => {
 	it('shows markers for line charts and applies a chosen symbol', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
 		const select = wrapper.get('[data-testid="chart-marker-symbol"]');
-		await select.setValue('circle');
+		await setControlValue(select, 'circle');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].marker?.symbol).toBe('circle');
@@ -290,14 +291,14 @@ describe('chartPanel', () => {
 		const selects = wrapper.findAll('[data-testid="chart-combo-type"]');
 		expect(selects).toHaveLength(2);
 
-		await selects[1].setValue('line');
+		await setControlValue(selects[1], 'line');
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[1].seriesChartType).toBe('line');
 	});
 
 	it('applies a trendline to a series', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
-		await wrapper.get('[data-testid="chart-trendline-type"]').setValue('linear');
+		await setControlValue(wrapper.get('[data-testid="chart-trendline-type"]'), 'linear');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].trendlines?.[0]?.trendlineType).toBe('linear');
@@ -305,7 +306,7 @@ describe('chartPanel', () => {
 
 	it('applies error bars to a series', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'bar' }) } });
-		await wrapper.get('[data-testid="chart-error-bar-valtype"]').setValue('percentage');
+		await setControlValue(wrapper.get('[data-testid="chart-error-bar-valtype"]'), 'percentage');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].errBars?.[0]?.valType).toBe('percentage');
@@ -316,14 +317,14 @@ describe('chartPanel', () => {
 		const inputs = wrapper.findAll('[data-testid="chart-point-explosion"]');
 		expect(inputs).toHaveLength(3);
 
-		await inputs[0].setValue('30');
+		await setControlValue(inputs[0], '30');
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].dataPoints?.find((p) => p.idx === 0)?.explosion).toBe(30);
 	});
 
 	it('applies a per-point fill', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'pie' }) } });
-		await wrapper.findAll('[data-testid="chart-point-fill"]')[1].setValue('#abcdef');
+		await setControlValue(wrapper.findAll('[data-testid="chart-point-fill"]')[1], '#abcdef');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].dataPoints?.find((p) => p.idx === 1)?.spPr?.fillColor).toBe('#abcdef');
@@ -349,7 +350,7 @@ describe('chartPanel', () => {
 
 	it('editing a grid value emits chartData with the new numeric value', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.findAll('[data-testid="chart-grid-value"]')[1].setValue('99');
+		await setControlValue(wrapper.findAll('[data-testid="chart-grid-value"]')[1], '99');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].values[1]).toBe(99);
@@ -357,7 +358,7 @@ describe('chartPanel', () => {
 
 	it('renaming a series via the grid header emits chartData with the new name', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement() } });
-		await wrapper.get('[data-testid="chart-grid-series-name"]').setValue('Profit');
+		await setControlValue(wrapper.get('[data-testid="chart-grid-series-name"]'), 'Profit');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].name).toBe('Profit');
@@ -394,7 +395,7 @@ describe('chartPanel', () => {
 
 	it('applies a per-point label text override', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'pie' }) } });
-		await wrapper.findAll('[data-testid="chart-point-label"]')[0].setValue('Peak');
+		await setControlValue(wrapper.findAll('[data-testid="chart-point-label"]')[0], 'Peak');
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].dataLabels?.find((l) => l.idx === 0)?.text).toBe('Peak');
@@ -402,7 +403,7 @@ describe('chartPanel', () => {
 
 	it('toggling a per-point marker override adds a marker to that point', async () => {
 		const wrapper = mount(ChartPanel, { props: { element: chartElement({ chartType: 'line' }) } });
-		await wrapper.findAll('[data-testid="chart-point-marker-toggle"]')[0].setValue(true);
+		await setControlValue(wrapper.findAll('[data-testid="chart-point-marker-toggle"]')[0], true);
 
 		const next = lastChartData(wrapper.emitted('update'));
 		expect(next.series[0].dataPoints?.find((p) => p.idx === 0)?.marker?.symbol).toBe('circle');

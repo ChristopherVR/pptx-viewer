@@ -28,6 +28,25 @@ export interface UseElementManipulationInput {
 	ops: ElementOperations;
 	history: EditorHistoryResult;
 	onOpenHyperlinkDialog: () => void;
+	/**
+	 * Enter inline text edit for `elementId`, same as double-clicking it.
+	 * Wired to `canvasHandlers.handleElementDoubleClick`; omitted (never) in
+	 * production, only in tests that do not exercise "Edit Text".
+	 */
+	onEditText?: (elementId: string) => void;
+	/**
+	 * Rasterise `elementId`'s own DOM node and download it as PNG ("Save as
+	 * Picture"). Lives outside this hook because it needs the binding's
+	 * `html2canvasFallback` driver and a DOM lookup, neither of which this
+	 * hook otherwise touches.
+	 */
+	onSaveElementAsPicture?: (elementId: string) => void;
+	/**
+	 * Notified with the freshly-inserted clone after an ordinary paste, so the
+	 * Paste Options mini-toolbar (`usePasteSpecial`) has something to reformat.
+	 * Not called for Duplicate: PowerPoint's toolbar only follows a paste.
+	 */
+	onPasted?: (element: PptxElement) => void;
 }
 
 export interface ElementManipulationHandlers {

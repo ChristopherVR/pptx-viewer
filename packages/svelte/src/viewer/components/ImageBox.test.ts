@@ -1,6 +1,7 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import { _resetNativeImageSizeCacheForTests } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import ImageBox from './ImageBox.svelte';
 
@@ -99,5 +100,70 @@ describe('imageBox rotWithShape=false counter-transform (issue: flipped picture 
 		} as unknown as PptxElement);
 		const img = target.querySelector<HTMLImageElement>('img');
 		expect(img?.style.transform).not.toContain('scaleY(-1)');
+	});
+});
+
+/**
+ * `a:tile/@sx`/`@sy` (ECMA-376 §20.1.8.58) is a percentage of the picture's
+ * own NATIVE pixel size, not of the container. `ImageBox` probes the native
+ * size asynchronously (`pptx-viewer-shared`'s `image-native-size`) and
+ * re-derives the tile's `backgroundSize` in absolute pixels once it resolves.
+ */
+describe('imageBox tiled-picture native size', () => {
+	const SRC = 'data:image/png;base64,tile-src';
+
+	/** A minimal `Image`-like stub whose `onload` fires on the next microtask. */
+	class FakeImage {
+		naturalWidth = 800;
+		naturalHeight = 400;
+		onload: (() => void) | null = null;
+		onerror: (() => void) | null = null;
+		#src = '';
+		get src(): string {
+			return this.#src;
+		}
+		set src(value: string) {
+			this.#src = value;
+			queueMicrotask(() => this.onload?.());
+		}
+	}
+
+	beforeEach(() => {
+		_resetNativeImageSizeCacheForTests();
+		vi.stubGlobal('Image', FakeImage);
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	function tiledElement(): PptxElement {
+		return {
+			type: 'picture',
+			id: 'pic-tiled',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			tileScaleX: 0.1,
+			tileScaleY: 0.25,
+			imageData: SRC,
+		} as unknown as PptxElement;
+	}
+
+	it('renders the container-relative percentage before the native size resolves', () => {
+		const target = render(tiledElement());
+		const tile = target.querySelector<HTMLElement>('.pptx-svelte-image-tile');
+		expect(tile?.style.backgroundSize).toBe('10% 25%');
+	});
+
+	it('switches to an absolute-pixel backgroundSize once the native size resolves', async () => {
+		const target = render(tiledElement());
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		flushSync();
+		const tile = target.querySelector<HTMLElement>('.pptx-svelte-image-tile');
+		// 800 * 0.1 = 80, 400 * 0.25 = 100.
+		expect(tile?.style.backgroundSize).toBe('80px 100px');
 	});
 });

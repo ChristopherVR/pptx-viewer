@@ -82,11 +82,10 @@ function onNumberInput(event: Event): void {
 				<Info class="ml-1 h-3.5 w-3.5 text-primary/70" :aria-label="infoText" />
 			</span>
 		</span>
-		<input
-			type="checkbox"
-			class="h-4 w-4 shrink-0 accent-[var(--pptx-primary,#6366f1)]"
+		<pptx-ui-checkbox
 			:checked="value === true"
-			@change="emitChange(($event.target as HTMLInputElement).checked)"
+			:aria-label="label"
+			@change="emitChange(($event.target as HTMLElement & { checked: boolean }).checked)"
 		/>
 	</label>
 
@@ -103,18 +102,17 @@ function onNumberInput(event: Event): void {
 			</span>
 		</span>
 
-		<select
+		<pptx-ui-select
 			v-if="control.kind === 'select'"
 			:aria-label="label"
 			:style="fieldStyle"
-			class="max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
 			:value="typeof value === 'string' ? value : ''"
-			@change="emitChange(($event.target as HTMLSelectElement).value)"
+			@change="emitChange(($event.target as HTMLElement & { value: string }).value)"
 		>
 			<option v-for="choice in control.choices" :key="choice.value" :value="choice.value">
 				{{ t(choice.labelKey) }}
 			</option>
-		</select>
+		</pptx-ui-select>
 
 		<span v-else-if="control.kind === 'number'" class="flex items-center gap-1.5">
 			<input

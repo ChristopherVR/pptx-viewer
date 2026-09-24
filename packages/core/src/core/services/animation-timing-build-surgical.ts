@@ -56,26 +56,25 @@ export function reconcileBuildList(
 	const bldLst = isXmlObject(rawTiming['p:bldLst'])
 		? (rawTiming['p:bldLst'] as XmlObject)
 		: undefined;
-	const existingNodes = bldLst ? ensureArray(bldLst['p:bldP']) : [];
-
-	const bySpid = new Map<string, XmlObject>();
-	for (const node of existingNodes) {
-		const spid = node['@_spid'];
-		if (spid !== undefined && !bySpid.has(String(spid))) {
-			bySpid.set(String(spid), node);
-		}
-	}
+	// Keep EVERY existing `p:bldP` in document order. A shape can own more
+	// than one entry (one per `@grpId`, e.g. a whole-shape entrance plus a
+	// by-paragraph exit); keying a map by spid alone silently dropped all but
+	// the first on save. The editor owns only the first entry per spid.
+	const nodes: XmlObject[] = bldLst ? [...ensureArray(bldLst['p:bldP'])] : [];
+	const firstIndexBySpid = (spid: string): number =>
+		nodes.findIndex((node) => node['@_spid'] !== undefined && String(node['@_spid']) === spid);
 
 	let changed = false;
 	for (const anim of controlled) {
 		const desired = buildBldPNode(anim);
-		const current = bySpid.get(anim.elementId);
+		const index = firstIndexBySpid(anim.elementId);
+		const current = index >= 0 ? nodes[index] : undefined;
 
 		if (!desired) {
 			// `sequence === 'asOne'`: this editor is explicitly saying the shape
-			// has no paragraph build. Drop any `p:bldP` it previously owned.
+			// has no paragraph build. Drop the `p:bldP` it previously owned.
 			if (current) {
-				bySpid.delete(anim.elementId);
+				nodes.splice(index, 1);
 				changed = true;
 			}
 			continue;
@@ -83,22 +82,28 @@ export function reconcileBuildList(
 
 		// Preserve whatever this editor does not model on an existing entry
 		// (`@_grpId`, `@_bldLvl`, `@_rev`, `@_advAuto`, ...); only the fields
-		// `buildBldPNode` actually derives (`@_build`, `p:tmplLst`) are
-		// overwritten.
+		// `buildBldPNode` actually derives (`@_build`, `@_autoUpdateAnimBg`,
+		// `p:tmplLst`) are overwritten, and removed when the desired entry has
+		// none of them (a by-word/by-letter build is a `p:iterate`, not a
+		// `@build`; COM-verified it carries no `@animBg` either).
 		const merged: XmlObject = current ? { ...current } : {};
 		merged['@_spid'] = anim.elementId;
 		if (merged['@_grpId'] === undefined) {
 			merged['@_grpId'] = '0';
 		}
-		merged['@_build'] = desired['@_build'];
-		if (desired['p:tmplLst'] !== undefined) {
-			merged['p:tmplLst'] = desired['p:tmplLst'];
-		} else {
-			delete merged['p:tmplLst'];
+		for (const key of ['@_build', '@_autoUpdateAnimBg', 'p:tmplLst']) {
+			if (desired[key] !== undefined) {
+				merged[key] = desired[key];
+			} else {
+				delete merged[key];
+			}
 		}
 
-		if (!current || !sameNode(current, merged)) {
-			bySpid.set(anim.elementId, merged);
+		if (!current) {
+			nodes.push(merged);
+			changed = true;
+		} else if (!sameNode(current, merged)) {
+			nodes[index] = merged;
 			changed = true;
 		}
 	}
@@ -107,7 +112,6 @@ export function reconcileBuildList(
 		return;
 	}
 
-	const nodes = [...bySpid.values()];
 	if (nodes.length === 0) {
 		if (bldLst) {
 			delete bldLst['p:bldP'];

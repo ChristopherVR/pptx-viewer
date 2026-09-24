@@ -36,6 +36,7 @@
  * @module render/animation-playback-engine
  */
 
+import { wireMediaBookmarkSteps } from './animation-media-bookmark-gating';
 import { wireMediaEndedSteps } from './animation-media-end-gating';
 import { executeMediaCommandInDom } from './animation-media-playback';
 import { mergeTextStyleOnStart, resolveTextStyleOnCleanup } from './animation-text-style-state';
@@ -92,6 +93,14 @@ export interface PlaybackContext {
 	 * the `delayMs` estimate alone (matches every binding before this existed).
 	 */
 	mediaTimeNodeElementIds?: ReadonlyMap<number, string>;
+	/**
+	 * ElementId -> bookmarkName -> time(ms) lookup
+	 * (`animation-media-bookmark-gating`'s `resolveMediaBookmarkTimesMs`), so
+	 * an `onMediaBookmark`-gated step can find the real DOM media element and
+	 * the bookmark's authored time. Absent: a bookmark-gated step never fires
+	 * (see `animation-media-bookmark-gating`'s module doc).
+	 */
+	mediaBookmarkTimesMs?: ReadonlyMap<string, ReadonlyMap<string, number>>;
 }
 
 // ---------------------------------------------------------------------------
@@ -145,6 +154,7 @@ function carryBuildState(state: ElementAnimationState | undefined): BuildStateFi
  */
 export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
 	wireMediaEndedSteps(group, ctx);
+	wireMediaBookmarkSteps(group, ctx);
 
 	// Sound + media-playback side effects.
 	for (const step of group.steps) {

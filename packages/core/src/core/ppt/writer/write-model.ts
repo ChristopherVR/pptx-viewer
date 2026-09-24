@@ -103,6 +103,14 @@ export interface WShapeBase {
 	flipV?: boolean;
 	/** Shape-level (`p:cNvPr/a:hlinkClick`) mouse-click hyperlink/action. */
 	hyperlink?: WHyperlink;
+	/**
+	 * The shape's OOXML round-trip package ([MS-ODRAW] `metroBlob`, built by
+	 * `metro-blob-package.ts`). When set, PowerPoint 2007+ re-opens the shape
+	 * as the native object the package describes (ink, SmartArt, chart, 3D
+	 * model), while a 97-2003 reader still shows this shape's own picture or
+	 * placeholder.
+	 */
+	metroBlob?: Uint8Array;
 }
 
 /** A geometric shape, text box, or connector. */

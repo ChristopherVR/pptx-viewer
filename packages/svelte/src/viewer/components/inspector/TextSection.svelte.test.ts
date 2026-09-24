@@ -78,14 +78,14 @@ describe('textSection', () => {
 	it('defaults vertical align to top', () => {
 		const editor = makeEditor(textEl());
 		const { target } = mountSection(editor, currentEl(editor));
-		const select = target.querySelectorAll<HTMLSelectElement>('select')[0];
+		const select = target.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[0];
 		expect(select?.value).toBe('top');
 	});
 
 	it('sets vertical align', () => {
 		const editor = makeEditor(textEl());
 		const { target } = mountSection(editor, currentEl(editor));
-		const select = target.querySelectorAll<HTMLSelectElement>('select')[0];
+		const select = target.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[0];
 		if (!select) {
 			throw new Error('vAlign select not found');
 		}
@@ -99,7 +99,7 @@ describe('textSection', () => {
 	it('toggles wrap-in-shape', () => {
 		const editor = makeEditor(textEl({ textStyle: { textWrap: 'none' } }));
 		const { target } = mountSection(editor, currentEl(editor));
-		const checkbox = target.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		const checkbox = target.querySelector<HTMLInputElement>('pptx-ui-checkbox');
 		if (!checkbox) {
 			throw new Error('wrap checkbox not found');
 		}
@@ -113,7 +113,7 @@ describe('textSection', () => {
 	it('labels the autofit options by what they DO, not by the enum name', () => {
 		const editor = makeEditor(textEl());
 		const { target } = mountSection(editor, currentEl(editor));
-		const autoFitSelect = target.querySelectorAll<HTMLSelectElement>('select')[1];
+		const autoFitSelect = target.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[1];
 		const options = Array.from(autoFitSelect?.querySelectorAll('option') ?? []);
 		const shrinkOption = options.find((o) => o.value === 'shrink');
 		const normalOption = options.find((o) => o.value === 'normal');
@@ -125,7 +125,7 @@ describe('textSection', () => {
 	it('sets the autofit mode', () => {
 		const editor = makeEditor(textEl());
 		const { target } = mountSection(editor, currentEl(editor));
-		const autoFitSelect = target.querySelectorAll<HTMLSelectElement>('select')[1];
+		const autoFitSelect = target.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[1];
 		if (!autoFitSelect) {
 			throw new Error('autofit select not found');
 		}
@@ -175,9 +175,7 @@ describe('textSection', () => {
 	it('enables editable text shadow effects', () => {
 		const editor = makeEditor(textEl());
 		const { target } = mountSection(editor, currentEl(editor));
-		const shadow = Array.from(
-			target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
-		)[1];
+		const shadow = Array.from(target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox'))[1];
 		shadow?.click();
 		flushSync();
 		expect(

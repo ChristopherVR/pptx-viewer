@@ -159,7 +159,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 				<span class="pptx-vue-text-label text-muted-foreground">{{
 					t('pptx.textPanel.font')
 				}}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.textPanel.font')"
 					class="pptx-vue-text-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="fontFamily"
@@ -172,7 +172,7 @@ function onTextEffectPatch(patch: Partial<TextStyle>): void {
 					<option v-if="fontFamily && !FONT_OPTIONS.includes(fontFamily)" :value="fontFamily">
 						{{ fontFamily }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<div class="pptx-vue-text-row grid grid-cols-2 gap-2">

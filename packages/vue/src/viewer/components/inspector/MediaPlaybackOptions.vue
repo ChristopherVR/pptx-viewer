@@ -119,7 +119,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.speed') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.media.speed')"
 				:class="[INPUT, 'max-w-[100px]']"
 				:disabled="!canEdit"
@@ -127,7 +127,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 				@change="onSpeed"
 			>
 				<option v-for="opt in SPEED_OPTIONS" :key="opt" :value="opt">{{ opt }}x</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<div class="grid grid-cols-2 gap-1.5">
@@ -159,7 +159,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.loop') }}</span>
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.loop)"
@@ -169,7 +169,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.startTrigger') }}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.media.startTrigger')"
 				class="text-[11px] bg-transparent border border-border rounded px-1 py-0.5"
 				:disabled="!canEdit"
@@ -178,12 +178,12 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 			>
 				<option value="onClick">{{ t('pptx.media.startOnClick') }}</option>
 				<option value="auto">{{ t('pptx.media.startAutomatically') }}</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label v-if="isAudio" :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.playAcrossSlides') }}</span>
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.playAcrossSlides)"
@@ -193,7 +193,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.fullScreen') }}</span>
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.fullScreen)"
@@ -203,7 +203,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 		<label :class="ROW">
 			<span :class="LABEL">{{ t('pptx.media.hideWhenNotPlaying') }}</span>
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:disabled="!canEdit"
 				:checked="Boolean(element.hideWhenNotPlaying)"

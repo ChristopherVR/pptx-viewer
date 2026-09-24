@@ -141,12 +141,11 @@
 
 {#if activeSlide}
 	<label class="inline">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			disabled={!canEdit}
 			checked={Boolean(activeSlide.clrMapOverride)}
 			onchange={(event) => toggleOverride(event.currentTarget.checked)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.themeOverride.enableOverride')}</span>
 	</label>
 	{#if activeSlide.clrMapOverride}
@@ -162,7 +161,7 @@
 							] ?? 'transparent'
 						}`}
 					></span>
-					<select
+					<pptx-ui-select
 						aria-label={alias}
 						disabled={!canEdit}
 						value={activeSlide.clrMapOverride[alias] ?? DEFAULT_COLOR_MAP[alias]}
@@ -178,7 +177,7 @@
 						{#each THEME_COLOR_SCHEME_KEYS as slot (slot)}
 							<option value={slot}>{schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, t)}</option>
 						{/each}
-					</select>
+					</pptx-ui-select>
 				</label>
 			{/each}
 		</div>

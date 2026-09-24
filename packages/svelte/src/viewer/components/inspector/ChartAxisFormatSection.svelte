@@ -76,7 +76,7 @@
 				{#if row?.hasScale}
 					<label>
 						{t('pptx.chart.displayUnits')}
-						<select
+						<pptx-ui-select
 							aria-label={t('pptx.chart.displayUnits')}
 							disabled={!canEdit}
 							value={axis.displayUnits ?? ''}
@@ -89,7 +89,7 @@
 							{#each DISPLAY_UNITS_OPTIONS as option (option.value)}
 								<option value={option.value}>{t(option.labelKey)}</option>
 							{/each}
-						</select>
+						</pptx-ui-select>
 					</label>
 				{/if}
 			</fieldset>

@@ -16,7 +16,11 @@
 	 * the same `PptxSlide.transition` the presentation playback reads.
 	 */
 	import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-	import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+	import {
+		TRANSITION_PATTERN_OPTIONS,
+		TRANSITION_THRUBLK_TYPES,
+		TRANSITION_VALID_DIRECTIONS,
+	} from 'pptx-viewer-core';
 	import {
 		SLIDE_TRANSITION_OPTIONS,
 		TRANSITION_MORPH_OPTIONS,
@@ -40,6 +44,8 @@
 	const hasDirections = $derived(
 		!usesOrientation && validDirections !== undefined && validDirections.length > 0,
 	);
+	const patternOptions = $derived(TRANSITION_PATTERN_OPTIONS[transitionType]);
+	const hasThruBlk = $derived(TRANSITION_THRUBLK_TYPES.has(transitionType));
 	const isWheel = $derived(transitionType === 'wheel');
 	const isMorph = $derived(transitionType === 'morph');
 	const canEdit = $derived(editor.editable);
@@ -67,7 +73,7 @@
 	<div class="pptx-svelte-transition-fields">
 		<label>
 			<span>{t('pptx.transition.type')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.transition.type')}
 				disabled={!canEdit}
 				value={transitionType}
@@ -77,7 +83,7 @@
 				{#each SLIDE_TRANSITION_OPTIONS as option (option.value)}
 					<option value={option.value}>{t(option.i18nKey)}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		{#if hasDirections && validDirections}
@@ -114,6 +120,37 @@
 			</div>
 		{/if}
 
+		{#if patternOptions}
+			<div class="pptx-svelte-transition-field">
+				<span>{t('pptx.transition.pattern')}</span>
+				<div class="pptx-svelte-transition-orient">
+					{#each patternOptions as pattern (pattern)}
+						<button
+							type="button"
+							disabled={!canEdit}
+							aria-pressed={(transition?.pattern ?? patternOptions[0]) === pattern}
+							class:pptx-svelte-transition-orient-active={(transition?.pattern ??
+								patternOptions[0]) === pattern}
+							onclick={() => patch({ pattern })}
+						>
+							{t(`pptx.transition.pattern.${pattern}`)}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if hasThruBlk}
+			<label class="pptx-svelte-transition-check">
+				<pptx-ui-checkbox
+					disabled={!canEdit}
+					checked={transition?.thruBlk === true}
+					onchange={(event) => patch({ thruBlk: event.currentTarget.checked })}
+				></pptx-ui-checkbox>
+				<span>{t('pptx.transition.thruBlk')}</span>
+			</label>
+		{/if}
+
 		{#if isWheel}
 			<label>
 				<span>{t('pptx.transition.spokes')}</span>
@@ -144,7 +181,7 @@
 
 		<label>
 			<span>{t('pptx.transition.speed')}</span>
-			<select
+			<pptx-ui-select
 				aria-label={t('pptx.transition.speed')}
 				disabled={!canEdit}
 				value={transition?.speed ?? 'fast'}
@@ -154,13 +191,13 @@
 				{#each TRANSITION_SPEED_OPTIONS as option (option.value)}
 					<option value={option.value}>{t(option.i18nKey)}</option>
 				{/each}
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		{#if isMorph}
 			<label>
 				<span>{t('pptx.transition.morphOption')}</span>
-				<select
+				<pptx-ui-select
 					aria-label={t('pptx.transition.morphOption')}
 					disabled={!canEdit}
 					value={transition?.morphOption ?? 'byObject'}
@@ -174,17 +211,16 @@
 					{#each TRANSITION_MORPH_OPTIONS as option (option.value)}
 						<option value={option.value}>{t(option.i18nKey)}</option>
 					{/each}
-				</select>
+				</pptx-ui-select>
 			</label>
 		{/if}
 
 		<label class="pptx-svelte-transition-check">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				disabled={!canEdit}
 				checked={transition?.advanceOnClick !== false}
 				onchange={(event) => patch({ advanceOnClick: event.currentTarget.checked })}
-			/>
+			></pptx-ui-checkbox>
 			<span>{t('pptx.transition.advanceOnClick')}</span>
 		</label>
 

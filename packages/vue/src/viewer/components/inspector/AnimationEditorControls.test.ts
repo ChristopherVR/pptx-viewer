@@ -3,6 +3,7 @@ import type { PptxElementAnimation } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import AnimationEditorControls from './AnimationEditorControls.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * The direction / sequence / timing-curve selects printed their raw
@@ -25,7 +26,7 @@ function selectByLabel(label: string) {
 	const wrapper = mount(AnimationEditorControls, {
 		props: { animation: animation(), elements: [] },
 	});
-	return wrapper.get(`select[aria-label="${label}"]`).findAll('option');
+	return wrapper.get(`pptx-ui-select[aria-label="${label}"]`).findAll('option');
 }
 
 describe('animationEditorControls - direction', () => {
@@ -113,7 +114,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(50);
+		await setControlValue(wrapper.get('input[aria-label="Duration (ms)"]'), 50);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 100 });
 	});
 
@@ -121,7 +122,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(50000);
+		await setControlValue(wrapper.get('input[aria-label="Duration (ms)"]'), 50000);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 10000 });
 	});
 
@@ -129,7 +130,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Delay (ms)"]').setValue(-500);
+		await setControlValue(wrapper.get('input[aria-label="Delay (ms)"]'), -500);
 		expect(lastPatch(wrapper)).toStrictEqual({ delayMs: 0 });
 	});
 
@@ -137,7 +138,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Repeat count"]').setValue(500);
+		await setControlValue(wrapper.get('input[aria-label="Repeat count"]'), 500);
 		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 100 });
 	});
 
@@ -145,7 +146,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Repeat count"]').setValue(0);
+		await setControlValue(wrapper.get('input[aria-label="Repeat count"]'), 0);
 		expect(lastPatch(wrapper)).toStrictEqual({ repeatCount: 1 });
 	});
 
@@ -153,7 +154,7 @@ describe('animationEditorControls - timing field clamping', () => {
 		const wrapper = mount(AnimationEditorControls, {
 			props: { animation: animation(), elements: [] },
 		});
-		await wrapper.get('input[aria-label="Duration (ms)"]').setValue(750);
+		await setControlValue(wrapper.get('input[aria-label="Duration (ms)"]'), 750);
 		expect(lastPatch(wrapper)).toStrictEqual({ durationMs: 750 });
 	});
 });

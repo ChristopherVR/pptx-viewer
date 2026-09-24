@@ -2,12 +2,14 @@ import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleText,
 	PptxTableCell3D,
+	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
 import type { TableCellCss } from './table-style';
 import {
+	applyStyleFill,
 	applyStyleText,
 	cell3DBevelCss,
 	resolveFontRefIdx,
@@ -104,5 +106,49 @@ describe('cell3DBevelCss', () => {
 		const css = cell3DBevelCss({});
 		// Default size 4, default direction tl.
 		expect(String(css.boxShadow)).toContain('inset 4px 4px');
+	});
+});
+
+const colorScheme: PptxThemeColorScheme = {
+	dk1: '#000000',
+	lt1: '#ffffff',
+	dk2: '#44546a',
+	lt2: '#e7e6e6',
+	accent1: '#FF0000',
+	accent2: '#00FF00',
+	accent3: '#a5a5a5',
+	accent4: '#ffc000',
+	accent5: '#5b9bd5',
+	accent6: '#70ad47',
+	hlink: '#0563c1',
+	folHlink: '#954f72',
+};
+
+describe('applyStyleFill - a:alpha (built-in "Light Style 1/3" and "Themed Style 1/2" bands)', () => {
+	it('converts an alpha-carrying scheme fill to a see-through rgba(), not an opaque hex', () => {
+		// Real PowerPoint bands these built-in styles with a partially
+		// transparent tint of the theme colour (`<a:schemeClr val="accent1">
+		// <a:alpha val="20000"/></a:schemeClr>`), which core previously parsed
+		// but silently dropped (table-style-fill-parse.ts handled only
+		// tint/shade), so the band rendered fully opaque.
+		const fill: ParsedTableStyleFill = { schemeColor: 'accent1', alpha: 20_000 };
+		const css: TableCellCss = {};
+		const applied = applyStyleFill(fill, colorScheme, css);
+		expect(applied).toBeTruthy();
+		expect(css.backgroundColor).toBe('rgba(255, 0, 0, 0.2)');
+	});
+
+	it('renders full opacity when alpha is absent, matching a plain tint/shade fill', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: 'accent1' };
+		const css: TableCellCss = {};
+		applyStyleFill(fill, colorScheme, css);
+		expect(css.backgroundColor).toBe('#FF0000');
+	});
+
+	it('applies alpha=40000 (Themed Style 1) as 40% opacity', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: 'accent1', alpha: 40_000 };
+		const css: TableCellCss = {};
+		applyStyleFill(fill, colorScheme, css);
+		expect(css.backgroundColor).toBe('rgba(255, 0, 0, 0.4)');
 	});
 });

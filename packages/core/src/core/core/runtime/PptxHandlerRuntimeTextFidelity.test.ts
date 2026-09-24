@@ -13,8 +13,11 @@
 import { describe, it, expect } from 'vitest';
 
 import type { TextSegment, TextStyle, XmlObject } from '../../types';
+import { createAutoNumberSequence } from './auto-number-sequence';
+import { hasOwnFontDeclaration } from './paragraph-sibling-order';
 import { PptxHandlerRuntime } from './PptxHandlerRuntimeImplementation';
 import { flattenCellTxBodyText, isRichCellTxBody } from './PptxHandlerRuntimeSaveTableStyles';
+import type { ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
 
 function ensureArray(value: unknown): XmlObject[] {
 	if (value === undefined || value === null) {
@@ -71,6 +74,25 @@ class TestRuntime extends PptxHandlerRuntime {
 		return (
 			this as unknown as { resolveScriptFallbackFont(t: string): string | undefined }
 		).resolveScriptFallbackFont(text);
+	}
+
+	public runCollectShapeParagraphContent(
+		p: XmlObject,
+		mergedDefaultRunStyle: TextStyle,
+		ctx: ShapeTextParsingContext,
+	): { parts: string[]; segments: TextSegment[]; seedStyle?: TextStyle } {
+		return (
+			this as unknown as {
+				collectShapeParagraphContent(
+					paragraph: XmlObject,
+					pIdx: number,
+					paraCount: number,
+					paraAlign: TextStyle['align'],
+					defaultRunStyle: TextStyle,
+					shapeCtx: ShapeTextParsingContext,
+				): { parts: string[]; segments: TextSegment[]; seedStyle?: TextStyle };
+			}
+		).collectShapeParagraphContent(p, 0, 1, undefined, mergedDefaultRunStyle, ctx);
 	}
 
 	public runExtractParagraphOwnProperties(
@@ -239,6 +261,71 @@ describe('#83 per-script theme fonts', () => {
 		expect(runtime.runResolveScriptFallbackFont('hello world')).toBeUndefined();
 		const empty = new TestRuntime();
 		expect(empty.runResolveScriptFallbackFont('你好')).toBeUndefined();
+	});
+
+	it("hasOwnFontDeclaration is true only for a run's own a:latin/a:ea/a:cs", () => {
+		expect(hasOwnFontDeclaration(undefined)).toBeFalsy();
+		expect(hasOwnFontDeclaration({})).toBeFalsy();
+		expect(hasOwnFontDeclaration({ '@_lang': 'en-US' })).toBeFalsy();
+		expect(hasOwnFontDeclaration({ 'a:latin': { '@_typeface': 'Calibri' } })).toBeTruthy();
+		expect(hasOwnFontDeclaration({ 'a:ea': { '@_typeface': 'MS Gothic' } })).toBeTruthy();
+		expect(hasOwnFontDeclaration({ 'a:cs': { '@_typeface': 'Arial' } })).toBeTruthy();
+	});
+
+	// Regression: a run always inherits SOME font via the paragraph/list-style/
+	// theme cascade (here simulated by `mergedDefaultRunStyle.fontFamily`), so
+	// `runStyle.fontFamily` was never empty by the time #83's fallback ran, and
+	// the fallback was recorded but never actually reachable by the renderer
+	// (see `TextStyle.fontFamilyIsCascadeDefault` and `text-run-style.ts`).
+	describe('fontFamilyIsCascadeDefault (script fallback reaches the run)', () => {
+		function ctxWith(overrides: Partial<ShapeTextParsingContext> = {}): ShapeTextParsingContext {
+			return {
+				txBody: undefined,
+				inheritedTxBody: undefined,
+				bodyDefaultRunStyle: {},
+				slideRelationshipMap: undefined,
+				placeholderInfo: undefined,
+				phDefaults: undefined,
+				slidePath: undefined,
+				effectiveLevelStyles: undefined,
+				styleFontRefColor: undefined,
+				styleFontRefTypeface: undefined,
+				autoNumbering: createAutoNumberSequence(),
+				...overrides,
+			};
+		}
+
+		it('marks the cascade default so the theme script font can replace it', () => {
+			const runtime = new TestRuntime();
+			runtime.seedMinorFontScripts('ppt/theme/theme1.xml', { Jpan: 'MS Gothic' });
+			const paragraph: XmlObject = { 'a:r': { 'a:t': 'こんにちは' } };
+			// `+mn-lt` resolved to "Calibri" ALREADY reached `mergedDefaultRunStyle`
+			// the way the master's own bodyStyle cascade would, before the run is
+			// ever parsed - this run authors no `a:latin`/`a:ea`/`a:cs` of its own.
+			const result = runtime.runCollectShapeParagraphContent(
+				paragraph,
+				{ fontFamily: 'Calibri' },
+				ctxWith(),
+			);
+			const segment = result.segments.find((s) => s.text === 'こんにちは');
+			expect(segment?.style.scriptFallbackFont).toBe('MS Gothic');
+			expect(segment?.style.fontFamilyIsCascadeDefault).toBeTruthy();
+		});
+
+		it('leaves fontFamilyIsCascadeDefault unset when the run authors its own font', () => {
+			const runtime = new TestRuntime();
+			runtime.seedMinorFontScripts('ppt/theme/theme1.xml', { Jpan: 'MS Gothic' });
+			const paragraph: XmlObject = {
+				'a:r': { 'a:rPr': { 'a:latin': { '@_typeface': 'Meiryo' } }, 'a:t': 'こんにちは' },
+			};
+			const result = runtime.runCollectShapeParagraphContent(
+				paragraph,
+				{ fontFamily: 'Calibri' },
+				ctxWith(),
+			);
+			const segment = result.segments.find((s) => s.text === 'こんにちは');
+			expect(segment?.style.fontFamilyIsCascadeDefault).toBeUndefined();
+		});
 	});
 });
 

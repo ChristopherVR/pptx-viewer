@@ -3,6 +3,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import {
 	getInlineEditorSelectionResult,
 	isBulletMarkerSegment,
+	mapInlineTextFormatKey,
 	placeCaretAtEnd,
 	readEditableText,
 } from 'pptx-viewer-shared';
@@ -246,19 +247,18 @@ export function InlineTextEditor({
 				onCommit();
 			}}
 			onKeyDown={(e) => {
-				// Inline formatting shortcuts (Ctrl/Cmd + B/I/U)
-				if ((e.ctrlKey || e.metaKey) && !e.shiftKey && onFormatText) {
-					const key = e.key.toLowerCase();
-					if (key === 'b' || key === 'i' || key === 'u') {
-						e.preventDefault();
-						e.stopPropagation();
-						const property = key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline';
-						const value = nextInlineStyleValue(property);
-						if (value !== undefined) {
-							onFormatText({ [property]: value });
-						}
-						return;
+				// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), resolved by the
+				// same shared helper Svelte and Vanilla use, so the three chords
+				// cannot drift from one binding to the next.
+				const property = onFormatText ? mapInlineTextFormatKey(e) : null;
+				if (property) {
+					e.preventDefault();
+					e.stopPropagation();
+					const value = nextInlineStyleValue(property);
+					if (value !== undefined) {
+						onFormatText?.({ [property]: value });
 					}
+					return;
 				}
 				if (e.key === 'Escape') {
 					e.preventDefault();

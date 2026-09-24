@@ -58,6 +58,28 @@ describe('contentPart renderer (vue)', () => {
 		expect(ellipses[0].attributes('fill')).toBe('#111111');
 	});
 
+	it('applies multiply blending to a translucent stroke (opacity heuristic), on the stroke itself not the container', () => {
+		const translucent: ContentPartPptxElement = {
+			...inked(),
+			inkStrokes: [{ path: 'M 0 0 L 10 10', color: '#ffff00', width: 6, opacity: 0.4 }],
+		};
+		const wrapper = mount(ContentPartRenderer, { props: { element: translucent, zIndex: 1 } });
+		const svg = wrapper.find('svg');
+		expect(svg.attributes('style') ?? '').not.toContain('mix-blend-mode');
+		const path = wrapper.get('path');
+		expect(path.attributes('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
+	it('does not apply multiply blending to a fully opaque stroke', () => {
+		const opaque: ContentPartPptxElement = {
+			...inked(),
+			inkStrokes: [{ path: 'M 0 0 L 10 10', color: '#000000', width: 2, opacity: 1 }],
+		};
+		const wrapper = mount(ContentPartRenderer, { props: { element: opaque, zIndex: 1 } });
+		const path = wrapper.get('path');
+		expect(path.attributes('style') ?? '').not.toContain('mix-blend-mode');
+	});
+
 	it('falls back to the labelled box when the part decoded no strokes', () => {
 		const bare = { ...inked(), inkStrokes: undefined } as ContentPartPptxElement;
 		const wrapper = mount(ContentPartRenderer, { props: { element: bare, zIndex: 1 } });

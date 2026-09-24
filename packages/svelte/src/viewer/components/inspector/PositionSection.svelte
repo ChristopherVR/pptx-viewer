@@ -36,7 +36,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-inspector-lock-row">
+<div class="pptx-svelte-inspector-lock-row" data-pptx-inspector-section="transform">
 	<span>{t('pptx.inspector.element')}</span>
 	<button
 		type="button"

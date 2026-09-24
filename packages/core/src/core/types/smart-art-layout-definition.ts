@@ -297,4 +297,16 @@ export interface PptxSmartArtLayoutDefinition {
 	rootNode: PptxSmartArtLayoutNode;
 	/** Original definition retained for constraint evaluation and foreign rules. */
 	rawXml?: XmlObject;
+	/**
+	 * The un-parsed layout-definition part text (starting at `<dgm:layoutDef>`,
+	 * XML declaration included). `rawXml` above loses the document order of
+	 * differently-named siblings (the package-wide `fast-xml-parser`
+	 * configuration groups children into one array per tag), which the
+	 * per-point DiagramML engine (`core/utils/smartart-engine/`) needs to
+	 * execute a `layoutNode` body's `forEach`/`choose`/`constrLst` statements
+	 * in their real declared sequence - see that package's `ordered-xml.ts`.
+	 * `undefined` when the part could not be read (matches `rawXml`'s own
+	 * optionality); the engine falls back to the legacy interpreter then.
+	 */
+	rawXmlText?: string;
 }

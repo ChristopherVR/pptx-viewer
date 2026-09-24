@@ -4,6 +4,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import EffectsGlowReflectionSection from './EffectsGlowReflectionSection.vue';
+import { setControlValue } from './test-control-value';
 
 function shape(shapeStyle: ShapeStyle = {}): PptxElement {
 	return {
@@ -29,7 +30,7 @@ function lastPatch(wrapper: ReturnType<typeof mount>): { shapeStyle: ShapeStyle 
 describe('effectsGlowReflectionSection - glow', () => {
 	it('enables outer glow with the shared default flat shapeStyle fields', async () => {
 		const wrapper = mount(EffectsGlowReflectionSection, { props: { element: shape() } });
-		await wrapper.find('[data-testid="fx-glow-toggle"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="fx-glow-toggle"]'), true);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.glowColor).toBe('#ffff00');
 		expect(style.glowOpacity).toBe(0.75);
@@ -40,7 +41,7 @@ describe('effectsGlowReflectionSection - glow', () => {
 		const wrapper = mount(EffectsGlowReflectionSection, {
 			props: { element: shape({ glowColor: '#ffff00', glowRadius: 6 }) },
 		});
-		await wrapper.find('[data-testid="fx-glow-toggle"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-glow-toggle"]'), false);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.glowColor).toBe('transparent');
 		expect(style.glowRadius).toBe(0);
@@ -50,7 +51,7 @@ describe('effectsGlowReflectionSection - glow', () => {
 describe('effectsGlowReflectionSection - reflection', () => {
 	it('enables reflection with the shared default flat shapeStyle fields', async () => {
 		const wrapper = mount(EffectsGlowReflectionSection, { props: { element: shape() } });
-		await wrapper.find('[data-testid="fx-reflection-toggle"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="fx-reflection-toggle"]'), true);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.reflectionBlurRadius).toBe(3);
 		expect(style.reflectionStartOpacity).toBe(50);
@@ -62,7 +63,7 @@ describe('effectsGlowReflectionSection - reflection', () => {
 		const wrapper = mount(EffectsGlowReflectionSection, {
 			props: { element: shape({ reflectionBlurRadius: 3, reflectionStartOpacity: 50 }) },
 		});
-		await wrapper.find('[data-testid="fx-reflection-toggle"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-reflection-toggle"]'), false);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.reflectionBlurRadius).toBe(0);
 		expect(style.reflectionStartOpacity).toBe(0);
@@ -80,7 +81,7 @@ describe('effectsGlowReflectionSection - reflection', () => {
 		});
 		// Fields grid order: [blur, startOpacity, endOpacity, distance, direction].
 		const numberInputs = wrapper.findAll('input[type="number"]');
-		await numberInputs[3].setValue('12'); // distance
+		await setControlValue(numberInputs[3], '12'); // distance
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.reflectionDistance).toBe(12);
 		expect(style.reflectionStartOpacity).toBe(60);
@@ -90,7 +91,7 @@ describe('effectsGlowReflectionSection - reflection', () => {
 describe('effectsGlowReflectionSection - soft edge', () => {
 	it('enables soft edge with a 6px default radius', async () => {
 		const wrapper = mount(EffectsGlowReflectionSection, { props: { element: shape() } });
-		await wrapper.find('[data-testid="fx-soft-edge-toggle"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="fx-soft-edge-toggle"]'), true);
 		expect(lastPatch(wrapper).shapeStyle.softEdgeRadius).toBe(6);
 	});
 
@@ -98,7 +99,7 @@ describe('effectsGlowReflectionSection - soft edge', () => {
 		const wrapper = mount(EffectsGlowReflectionSection, {
 			props: { element: shape({ softEdgeRadius: 10 }) },
 		});
-		await wrapper.find('[data-testid="fx-soft-edge-toggle"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-soft-edge-toggle"]'), false);
 		expect(lastPatch(wrapper).shapeStyle.softEdgeRadius).toBe(0);
 	});
 
@@ -107,7 +108,7 @@ describe('effectsGlowReflectionSection - soft edge', () => {
 			props: { element: shape({ softEdgeRadius: 6 }) },
 		});
 		const radius = wrapper.find('input[type="number"]');
-		await radius.setValue('24');
+		await setControlValue(radius, '24');
 		expect(lastPatch(wrapper).shapeStyle.softEdgeRadius).toBe(24);
 	});
 });

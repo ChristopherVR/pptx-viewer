@@ -11,7 +11,12 @@
 	 *   browser-renderable MIME types, and a compact size caption; the full
 	 *   info caption doubles as the tooltip.
 	 */
-	import { openUrlInNewTab, shouldRenderHitTarget } from 'pptx-viewer-shared';
+	import {
+		mediaSurfaceOf,
+		oleActionsVisible,
+		openUrlInNewTab,
+		shouldRenderHitTarget,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildOleView, getOleIconShapes } from '../render';
@@ -35,6 +40,18 @@
 	const hitTarget = $derived(
 		shouldRenderHitTarget(editable, presenting) ? getElementHitTargetStyle(element) : undefined,
 	);
+
+	/**
+	 * Whether the interactive Download / Open action bar may render at all.
+	 *
+	 * A still of a slide (thumbnail rail, presenter console panes, export
+	 * raster) renders this component INSIDE a
+	 * `<button aria-label="Go to slide N">`, so the action bar's own
+	 * `<button>` would otherwise be invalid, un-clickable nested-button
+	 * markup; the live presentation stage never offers element-level browser
+	 * chrome either. See the shared `oleActionsVisible` decision.
+	 */
+	const showActions = $derived(oleActionsVisible(mediaSurfaceOf({ interactive, presenting })));
 
 	const view = $derived(element.type === 'ole' ? buildOleView(element) : undefined);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
@@ -92,7 +109,7 @@
 				{/if}
 			</div>
 		{/if}
-		{#if view.embeddedData}
+		{#if view.embeddedData && showActions}
 			{@const embeddedData = view.embeddedData}
 			<!-- The bar only swallows bubbling; the link/button inside are the interactive controls. -->
 			<!-- svelte-ignore a11y_no_static_element_interactions, a11y_click_events_have_key_events -->

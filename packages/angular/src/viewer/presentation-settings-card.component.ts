@@ -7,7 +7,14 @@
  * Edits patch the loader's `presentationProperties` signal (the same object
  * `LoadContentService.saveSlides` serialises) and mark the editor dirty.
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	computed,
+	inject,
+	input,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxPresentationProperties } from 'pptx-viewer-core';
 
@@ -26,14 +33,15 @@ import { LoadContentService } from './load-content.service';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		<section class="icard">
 			<h3 class="icard__heading">{{ 'pptx.slideInspector.presentation' | translate }}</h3>
 			<label class="icard__row">
 				<span class="icard__label">{{ 'pptx.presentationSettings.showType' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.presentationSettings.showType' | translate"
-					class="icard__select"
+					class="icard__web-select"
 					[disabled]="!canEdit()"
 					[value]="props().showType ?? 'presented'"
 					(change)="onShowTypeChange($event)"
@@ -47,14 +55,14 @@ import { LoadContentService } from './load-content.service';
 					<option value="kiosk">
 						{{ 'pptx.presentationSettings.showTypeKiosk' | translate }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<label class="icard__row">
 				<span class="icard__label">
 					{{ 'pptx.presentationSettings.loopContinuously' | translate }}
 				</span>
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
+					[attr.aria-label]="'pptx.presentationSettings.loopContinuously' | translate"
 					[disabled]="!canEdit()"
 					[checked]="!!props().loopContinuously"
 					(change)="onCheckbox($event, 'loopContinuously')"
@@ -64,8 +72,8 @@ import { LoadContentService } from './load-content.service';
 				<span class="icard__label">
 					{{ 'pptx.presentationSettings.showNarration' | translate }}
 				</span>
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
+					[attr.aria-label]="'pptx.presentationSettings.showNarration' | translate"
 					[disabled]="!canEdit()"
 					[checked]="props().showWithNarration !== false"
 					(change)="onCheckbox($event, 'showWithNarration')"
@@ -75,8 +83,8 @@ import { LoadContentService } from './load-content.service';
 				<span class="icard__label">
 					{{ 'pptx.presentationSettings.showAnimation' | translate }}
 				</span>
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
+					[attr.aria-label]="'pptx.presentationSettings.showAnimation' | translate"
 					[disabled]="!canEdit()"
 					[checked]="props().showWithAnimation !== false"
 					(change)="onCheckbox($event, 'showWithAnimation')"
@@ -84,8 +92,8 @@ import { LoadContentService } from './load-content.service';
 			</label>
 			<label class="icard__row">
 				<span class="icard__label">{{ 'pptx.presentationSettings.frameSlides' | translate }}</span>
-				<input
-					type="checkbox"
+				<pptx-ui-checkbox
+					[attr.aria-label]="'pptx.presentationSettings.frameSlides' | translate"
 					[disabled]="!canEdit()"
 					[checked]="frameSlides()"
 					(change)="onFrameSlidesChange($event)"
@@ -131,7 +139,7 @@ export class PresentationSettingsCardComponent {
 	}
 
 	protected onShowTypeChange(event: Event): void {
-		const value = (event.target as HTMLSelectElement).value;
+		const value = (event.target as HTMLElement & { value: string }).value;
 		this.patch({ showType: value as 'presented' | 'browsed' | 'kiosk' });
 	}
 
@@ -139,11 +147,11 @@ export class PresentationSettingsCardComponent {
 		event: Event,
 		key: 'loopContinuously' | 'showWithNarration' | 'showWithAnimation',
 	): void {
-		this.patch({ [key]: (event.target as HTMLInputElement).checked });
+		this.patch({ [key]: (event.target as HTMLElement & { checked: boolean }).checked });
 	}
 
 	protected onFrameSlidesChange(event: Event): void {
-		const checked = (event.target as HTMLInputElement).checked;
+		const checked = (event.target as HTMLElement & { checked: boolean }).checked;
 		this.patch({ printProperties: withFrameSlides(this.props().printProperties, checked) });
 	}
 

@@ -58,7 +58,27 @@ describe('sLIDE_TRANSITION_OPTIONS', () => {
 		]) {
 			expect(values).toContain(extra);
 		}
-		expect(values).toHaveLength(47);
+	});
+
+	it('includes the 12 p15 (PowerPoint 2013+/365) preset transitions', () => {
+		const values = SLIDE_TRANSITION_OPTIONS.map((option) => option.value);
+		for (const extra of [
+			'fallOver',
+			'drape',
+			'curtains',
+			'wind',
+			'prestige',
+			'fracture',
+			'crush',
+			'peelOff',
+			'pageCurlSingle',
+			'pageCurlDouble',
+			'airplane',
+			'origami',
+		]) {
+			expect(values).toContain(extra);
+		}
+		expect(values).toHaveLength(59);
 	});
 });
 
@@ -68,7 +88,9 @@ describe('tRANSITION_ORIENTATION_TYPES', () => {
 			'blinds',
 			'checker',
 			'comb',
+			'doors',
 			'randomBar',
+			'window',
 		]);
 	});
 });

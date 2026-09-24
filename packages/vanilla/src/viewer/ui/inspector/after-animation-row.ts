@@ -3,6 +3,7 @@ import { AFTER_ANIMATION_VALUES } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorSelect } from './controls-extra';
 
 export interface AfterAnimationRowState {
 	action: PptxAfterAnimationAction;
@@ -30,7 +31,7 @@ export function createAfterAnimationRow(
 	const actionCaption = createEl(doc, 'span');
 	actionCaption.textContent = t('pptx.animation.afterAnimation');
 
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.setAttribute('aria-label', t('pptx.animation.afterAnimation'));
 	for (const value of AFTER_ANIMATION_VALUES) {
 		const option = doc.createElement('option');

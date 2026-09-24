@@ -88,13 +88,17 @@ describe('getInitialStyleForEffect', () => {
 		});
 	});
 
-	it('should return a hidden centre-box mask for "boxIn"', () => {
+	// "In" is COM-verified (see shared's `animation-mask-hole-reveal`) to be a
+	// hole shrinking from the element's own edges inward, not the `boxOut`
+	// exit-style growing-solid-from-centre mask this used to reuse verbatim.
+	it('should return a fully-hollow box hole mask for "boxIn"', () => {
 		const style = getInitialStyleForEffect('boxIn');
 		expect(style).toStrictEqual({
-			maskImage: 'linear-gradient(#000, #000)',
-			maskPosition: 'center',
-			maskRepeat: 'no-repeat',
-			maskSize: '0% 0%',
+			maskImage: 'linear-gradient(#000, #000), linear-gradient(#000, #000)',
+			maskPosition: 'center, center',
+			maskRepeat: 'no-repeat, no-repeat',
+			maskSize: '100% 100%, 100% 100%',
+			maskComposite: 'add, exclude',
 			opacity: 1,
 		});
 	});

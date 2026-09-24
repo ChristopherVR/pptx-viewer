@@ -4,8 +4,8 @@ import type {
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
 	PptxAnimationTimingCurve,
-	PptxAnimationTrigger,
 } from 'pptx-viewer-core';
+import { TRIGGER_OPTIONS } from 'pptx-viewer-shared';
 
 /**
  * Option catalogs for the docked inspector AnimationPanel, mirroring React's
@@ -33,16 +33,8 @@ export const PANEL_EMPHASIS_PRESETS: readonly PptxAnimationPreset[] = [
 	'teeter',
 ];
 
-export const PANEL_TRIGGER_OPTIONS: ReadonlyArray<{
-	value: PptxAnimationTrigger;
-	labelKey: string;
-}> = [
-	{ value: 'onClick', labelKey: 'pptx.animation.trigger.onClick' },
-	{ value: 'onShapeClick', labelKey: 'pptx.animation.trigger.onShapeClick' },
-	{ value: 'onHover', labelKey: 'pptx.animation.trigger.onHover' },
-	{ value: 'afterPrevious', labelKey: 'pptx.animation.trigger.afterPrevious' },
-	{ value: 'withPrevious', labelKey: 'pptx.animation.trigger.withPrevious' },
-];
+/** Trigger options (re-exported from shared; see its doc comment). */
+export const PANEL_TRIGGER_OPTIONS = TRIGGER_OPTIONS;
 
 export const PANEL_TIMING_CURVE_OPTIONS: ReadonlyArray<{
 	value: PptxAnimationTimingCurve;

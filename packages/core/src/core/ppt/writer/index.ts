@@ -6,6 +6,7 @@
 
 export { convertDeckToWriteModel } from './element-to-write-model';
 export type { WarningReporter } from './element-to-write-model';
+export { buildMetroBlobs, deckNeedsMetroBlobs } from './metro-blob-collect';
 export { buildPptFile } from './write-ppt';
 export type { BuildPptOptions } from './write-ppt';
 export type {

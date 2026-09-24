@@ -16,7 +16,8 @@ import type { OleCollector } from './ole-writer';
 import { ShapeIdAllocator } from './shape-id-allocator';
 import type { WAnyShape, WRect } from './write-model';
 
-const FSP_FLAG_BACKGROUND = 0x0400;
+/** `fBackground | fHaveSpt`, exactly as PowerPoint's own background shape carries them. */
+const FSP_FLAG_BACKGROUND = 0x0c00;
 const BACKGROUND_RECT_SPT = 1;
 
 function buildDg(drawingId: number, shapeCount: number, lastShapeId: number): Uint8Array {
@@ -63,9 +64,12 @@ export function buildDrawing(
 ): Uint8Array {
 	const allocator = new ShapeIdAllocator(drawingId, SHAPE_ID_CLUSTER_SIZE);
 	const spgrData = new ByteWriter().bytes(buildCanvasPatriarch(allocator));
-	if (backgroundRgb) {
-		spgrData.bytes(buildBackgroundShape(backgroundRgb, allocator));
-	}
+	// The background shape is allocated first (PowerPoint's own files give
+	// it the drawing's first id after the patriarch) but written AFTER the
+	// top group, as the `OfficeArtDgContainer.shape` child [MS-ODRAW] 2.2.13
+	// defines for it: written inside the group (this writer's earlier
+	// layout) PowerPoint counts it as an ordinary zero-size slide shape.
+	const background = backgroundRgb ? buildBackgroundShape(backgroundRgb, allocator) : undefined;
 	for (const shape of shapes) {
 		spgrData.bytes(
 			buildAnyShapeContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds),
@@ -84,6 +88,7 @@ export function buildDrawing(
 	const dgData = new ByteWriter()
 		.bytes(buildDg(drawingId, shapes.length, lastShapeId))
 		.bytes(spgrContainer)
+		.bytes(background ?? new Uint8Array(0))
 		.toBytes();
 	const dgContainer = record(OA.DgContainer, dgData, 0, true);
 

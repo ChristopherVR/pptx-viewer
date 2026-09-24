@@ -160,6 +160,11 @@ export interface ToolbarProps {
 	onOpenSettings?: () => void;
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
+	/**
+	 * View > Normal: leave whichever alternate view (slide sorter, reading,
+	 * outline, master) is open and return to the ordinary editing canvas.
+	 */
+	onGoToNormalView?: () => void;
 	/** Enter PowerPoint's Reading View (full window, not the fullscreen show). */
 	onOpenReadingView: () => void;
 	/** Enter PowerPoint's Outline view: the deck as editable indented text. */

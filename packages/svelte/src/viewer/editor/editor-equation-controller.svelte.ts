@@ -52,7 +52,12 @@ export class EditorEquationController {
 				const textSegments = (element.textSegments ?? []).map((segment) => {
 					if (!replaced && segment.equationXml) {
 						replaced = true;
-						return { ...segment, equationXml: omml };
+						// Drop any captured `equationSourceXml`: it is the OLD
+						// equation's untouched wrapper, and the writer prefers it
+						// over `equationXml`, so leaving it in place would keep
+						// re-emitting the equation the user just edited away from.
+						const { equationSourceXml: _dropped, ...rest } = segment;
+						return { ...rest, equationXml: omml };
 					}
 					return segment;
 				});

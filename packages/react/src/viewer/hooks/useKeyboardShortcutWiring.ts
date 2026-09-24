@@ -2,7 +2,14 @@
  * useKeyboardShortcutWiring: Wires the composed editor results into the
  * generic `useKeyboardShortcuts` hook.  Keeps the orchestrator lean.
  */
+import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
+import {
+	cycleSelectableElement,
+	stepFontSizePt,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 
 import type { ViewerMode } from '../types-core';
 import type { EditorHistoryResult } from './useEditorHistory';
@@ -10,6 +17,15 @@ import type { ElementManipulationHandlers } from './useElementManipulation';
 import type { ElementOperations } from './useElementOperations';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import type { ViewerState } from './useViewerState';
+
+/** PowerPoint's Ctrl+Space clear-character-formatting patch (Home > Font). */
+const CLEAR_FORMATTING_PATCH = {
+	bold: false,
+	italic: false,
+	underline: false,
+	strikethrough: false,
+	highlightColor: undefined,
+} as const;
 
 // ---------------------------------------------------------------------------
 // Input
@@ -38,6 +54,16 @@ export interface UseKeyboardShortcutWiringInput {
 	 * apply the same way they do for the button).
 	 */
 	onSetMode: (mode: ViewerMode) => void;
+	/** Ctrl/Cmd+M: the same entry point the ribbon's "New Slide" button uses. */
+	handleAddSlide: () => void;
+	/** Ctrl/Cmd+K: open the hyperlink dialog for the current selection. */
+	onOpenHyperlinkDialog: () => void;
+	/** Ctrl/Cmd+Shift+C: capture the current selection's format for the format painter. */
+	copyFormatFromSelection: () => void;
+	/** Ctrl/Cmd+Shift+V: apply the copied format to the given element ids. */
+	pasteFormatToSelection: (targetIds: string[]) => void;
+	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
+	onPasteSpecial: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -56,6 +82,11 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		history,
 		onEnterPresentModeFromBeginning,
 		onSetMode,
+		handleAddSlide,
+		onOpenHyperlinkDialog,
+		copyFormatFromSelection,
+		pasteFormatToSelection,
+		onPasteSpecial,
 	} = input;
 
 	useKeyboardShortcuts({
@@ -134,5 +165,50 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		},
 		onStartShowFromBeginning: onEnterPresentModeFromBeginning,
 		onStartShowFromCurrent: () => onSetMode('present'),
+		onAlignLeft: () => ops.updateSelectedTextStyle({ align: 'left' }),
+		onAlignCenter: () => ops.updateSelectedTextStyle({ align: 'center' }),
+		onAlignRight: () => ops.updateSelectedTextStyle({ align: 'right' }),
+		onAlignJustify: () => ops.updateSelectedTextStyle({ align: 'justify' }),
+		onIncreaseFontSize: () => stepSelectedFontSize(state, ops, 'increase'),
+		onDecreaseFontSize: () => stepSelectedFontSize(state, ops, 'decrease'),
+		onCopyFormat: copyFormatFromSelection,
+		onPasteFormat: () => pasteFormatToSelection(state.effectiveSelectedIds),
+		onNewSlide: handleAddSlide,
+		onHyperlink: onOpenHyperlinkDialog,
+		onClearFormatting: () => ops.updateSelectedTextStyle({ ...CLEAR_FORMATTING_PATCH }),
+		onCycleSelectionNext: () => cycleSelection(state, activeSlide, ops, 'next'),
+		onCycleSelectionPrev: () => cycleSelection(state, activeSlide, ops, 'prev'),
+		onPasteSpecial,
 	});
+}
+
+/** PowerPoint's font-size ladder, applied in points then converted back to the model's pixels. */
+function stepSelectedFontSize(
+	state: ViewerState,
+	ops: ElementOperations,
+	direction: 'increase' | 'decrease',
+): void {
+	const selected = state.selectedElement;
+	const currentPx =
+		(selected && hasTextProperties(selected) ? selected.textStyle?.fontSize : undefined) ??
+		textFontSizePtToPx(18);
+	const nextPt = stepFontSizePt(textFontSizePxToPt(currentPx), direction);
+	ops.updateSelectedTextStyle({ fontSize: textFontSizePtToPx(nextPt) });
+}
+
+/** Tab/Shift+Tab: move the selection to the next/previous element in slide order. */
+function cycleSelection(
+	state: ViewerState,
+	activeSlide: PptxSlide | undefined,
+	ops: ElementOperations,
+	direction: 'next' | 'prev',
+): void {
+	if (!activeSlide) {
+		return;
+	}
+	const ids = activeSlide.elements.map((el) => el.id);
+	const nextId = cycleSelectableElement(ids, state.selectedElementId, direction);
+	if (nextId) {
+		ops.applySelection(nextId, [nextId]);
+	}
 }

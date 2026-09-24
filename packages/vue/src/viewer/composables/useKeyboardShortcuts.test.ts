@@ -176,6 +176,16 @@ describe('resolveShortcutAction - pure dispatch logic', () => {
 			expect(resolveShortcutAction('d', true, false, defaultGuard()).action).toBe('duplicate');
 		});
 
+		it('ctrl+alt+V triggers pasteSpecial (the altKey the matcher must forward)', () => {
+			expect(resolveShortcutAction('v', true, false, defaultGuard(), true).action).toBe(
+				'pasteSpecial',
+			);
+		});
+
+		it('ctrl+V alone (no altKey) stays plain paste', () => {
+			expect(resolveShortcutAction('v', true, false, defaultGuard(), false).action).toBe('paste');
+		});
+
 		it('ctrl+A triggers selectAll', () => {
 			expect(resolveShortcutAction('a', true, false, defaultGuard()).action).toBe('selectAll');
 		});
@@ -389,6 +399,99 @@ describe('useKeyboardShortcuts', () => {
 		window.dispatchEvent(makeKeyEvent({ key: 'y', ctrlKey: true }));
 		expect(redo).toHaveBeenCalledOnce(); // detached
 		stop();
+	});
+
+	describe('powerPoint 365 text and navigation shortcuts', () => {
+		it('dispatches paragraph alignment while a text shape is selected', () => {
+			const alignLeft = vi.fn();
+			const alignCenter = vi.fn();
+			const alignRight = vi.fn();
+			const alignJustify = vi.fn();
+			const { api, stop } = setup(
+				{ alignLeft, alignCenter, alignRight, alignJustify },
+				{ hasSelection: ref(true) },
+			);
+			api.handleKeyDown(makeKeyEvent({ key: 'l', ctrlKey: true }));
+			api.handleKeyDown(makeKeyEvent({ key: 'e', ctrlKey: true }));
+			api.handleKeyDown(makeKeyEvent({ key: 'r', ctrlKey: true }));
+			api.handleKeyDown(makeKeyEvent({ key: 'j', ctrlKey: true }));
+			expect(alignLeft).toHaveBeenCalledOnce();
+			expect(alignCenter).toHaveBeenCalledOnce();
+			expect(alignRight).toHaveBeenCalledOnce();
+			expect(alignJustify).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches the font-size ladder both ways', () => {
+			const increaseFontSize = vi.fn();
+			const decreaseFontSize = vi.fn();
+			const { api, stop } = setup(
+				{ increaseFontSize, decreaseFontSize },
+				{ hasSelection: ref(true) },
+			);
+			api.handleKeyDown(makeKeyEvent({ key: ']', ctrlKey: true }));
+			api.handleKeyDown(makeKeyEvent({ key: '[', ctrlKey: true }));
+			expect(increaseFontSize).toHaveBeenCalledOnce();
+			expect(decreaseFontSize).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches format-painter copy/paste on Ctrl+Shift+C/V', () => {
+			const copyFormat = vi.fn();
+			const pasteFormat = vi.fn();
+			const { api, stop } = setup({ copyFormat, pasteFormat }, { hasSelection: ref(true) });
+			api.handleKeyDown(makeKeyEvent({ key: 'c', ctrlKey: true, shiftKey: true }));
+			api.handleKeyDown(makeKeyEvent({ key: 'v', ctrlKey: true, shiftKey: true }));
+			expect(copyFormat).toHaveBeenCalledOnce();
+			expect(pasteFormat).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches newSlide on Ctrl+M', () => {
+			const newSlide = vi.fn();
+			const { api, stop } = setup({ newSlide }, { hasSelection: ref(false) });
+			api.handleKeyDown(makeKeyEvent({ key: 'm', ctrlKey: true }));
+			expect(newSlide).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches hyperlink on Ctrl+K with a selection', () => {
+			const hyperlink = vi.fn();
+			const { api, stop } = setup({ hyperlink }, { hasSelection: ref(true) });
+			api.handleKeyDown(makeKeyEvent({ key: 'k', ctrlKey: true }));
+			expect(hyperlink).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches findReplace on Ctrl+H', () => {
+			const findReplace = vi.fn();
+			const { api, stop } = setup({ findReplace }, { hasSelection: ref(false) });
+			api.handleKeyDown(makeKeyEvent({ key: 'h', ctrlKey: true }));
+			expect(findReplace).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches clearFormatting on Ctrl+Space with a selection', () => {
+			const clearFormatting = vi.fn();
+			const { api, stop } = setup({ clearFormatting }, { hasSelection: ref(true) });
+			api.handleKeyDown(makeKeyEvent({ key: ' ', ctrlKey: true }));
+			expect(clearFormatting).toHaveBeenCalledOnce();
+			stop();
+		});
+
+		it('dispatches Tab/Shift+Tab to selection cycling', () => {
+			const cycleSelectionNext = vi.fn();
+			const cycleSelectionPrev = vi.fn();
+			const { api, stop } = setup(
+				{ cycleSelectionNext, cycleSelectionPrev },
+				{ hasSelection: ref(false) },
+			);
+			api.handleKeyDown(makeKeyEvent({ key: 'Tab' }));
+			api.handleKeyDown(makeKeyEvent({ key: 'Tab', shiftKey: true }));
+			expect(cycleSelectionNext).toHaveBeenCalledOnce();
+			expect(cycleSelectionPrev).toHaveBeenCalledOnce();
+			stop();
+		});
 	});
 
 	it('autoAttach wires on mount and tears down on scope dispose', () => {

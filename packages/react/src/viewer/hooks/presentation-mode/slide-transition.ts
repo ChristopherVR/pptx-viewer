@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { resolveTransitionDurationMs, resolveTransitionSoundAction } from 'pptx-viewer-shared';
 
 import type { PresentationTransitionOverlayState } from './types';
@@ -55,6 +55,16 @@ export interface SlideTransitionDeps {
 	 * already complete.
 	 */
 	seedCompleted?: boolean;
+	/**
+	 * Play this transition INSTEAD of the destination's (or, when `reverse`,
+	 * the leaving slide's) own authored `<p:transition>`. Set by a Slide Zoom /
+	 * Section Zoom / Summary Zoom navigation that authored its own
+	 * `zmPr/@transitionDur` (see `pptx-viewer-shared`'s
+	 * `buildZoomTransitionOverride`): the zoom's transition length is
+	 * independent of whatever the destination slide is authored with, and
+	 * applies to the jump itself, not to later, non-zoom visits.
+	 */
+	transitionOverride?: PptxSlideTransition;
 }
 
 /**
@@ -73,10 +83,11 @@ export interface SlideTransitionDeps {
 export function executeSlideTransition(nextSlideIndex: number, deps: SlideTransitionDeps): void {
 	const incomingSlide = deps.slides[nextSlideIndex];
 	// Forward navigation (and jumps) play the ENTERING slide's transition; a
-	// backward step replays the LEAVING slide's transition in reverse.
-	const transition = deps.reverse
-		? deps.slides[deps.currentSlideIndex]?.transition
-		: incomingSlide?.transition;
+	// backward step replays the LEAVING slide's transition in reverse. A zoom
+	// navigation's own `transitionOverride` takes priority over either.
+	const transition =
+		deps.transitionOverride ??
+		(deps.reverse ? deps.slides[deps.currentSlideIndex]?.transition : incomingSlide?.transition);
 	const durationMs = deps.playTransition ? resolveTransitionDurationMs(transition) : 0;
 
 	deps.clearPresentationTimers();

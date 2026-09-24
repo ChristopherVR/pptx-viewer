@@ -282,3 +282,34 @@ describe('presentationShowNavigator syncFromHost', () => {
 		expect(harness.navigator.currentIndex()).toBe(0);
 	});
 });
+
+describe('presentationShowNavigator zoom navigation', () => {
+	it('navigates to the zoom target, applying its own transitionDur as an override', () => {
+		const { navigator } = makeNavigator(slides(false, false, false, false));
+		navigator.navigateToZoomTarget({
+			targetSlideIndex: 2,
+			returnToParent: false,
+			transitionDurationMs: 400,
+		});
+		expect(navigator.currentIndex()).toBe(2);
+		expect(navigator.activeTransition()?.transition).toStrictEqual({
+			type: 'zoom',
+			durationMs: 400,
+		});
+	});
+
+	it('arms an excursion and returns to the origin slide once a forward advance passes the target', () => {
+		const { navigator } = makeNavigator(slides(false, false, false, false));
+		navigator.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: true });
+		expect(navigator.currentIndex()).toBe(2);
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(0);
+	});
+
+	it('does not arm an excursion when returnToParent is false, so a forward advance continues linearly', () => {
+		const { navigator } = makeNavigator(slides(false, false, false, false));
+		navigator.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: false });
+		navigator.navigate('next');
+		expect(navigator.currentIndex()).toBe(3);
+	});
+});

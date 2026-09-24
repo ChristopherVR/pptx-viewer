@@ -29,7 +29,7 @@
 <div class="pptx-svelte-after-animation">
 	<label>
 		<span>{t('pptx.animation.afterAnimation')}</span>
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.animation.afterAnimation')}
 			class="pptx-svelte-animp-after-animation"
 			disabled={!canEdit}
@@ -39,7 +39,7 @@
 			{#each AFTER_ANIMATION_VALUES as value (value)}
 				<option {value}>{t(`pptx.animation.afterAnimation.${value}`)}</option>
 			{/each}
-		</select>
+		</pptx-ui-select>
 	</label>
 	{#if action === 'dimToColor'}
 		<label class="pptx-svelte-after-animation-color">

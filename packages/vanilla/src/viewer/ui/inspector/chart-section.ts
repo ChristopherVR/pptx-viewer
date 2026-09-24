@@ -4,6 +4,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import {
+	chartDataLabelsTogglePatch,
 	CHART_GROUPING_LABEL_KEYS,
 	CHART_TYPE_LABEL_KEYS,
 	CHART_TYPE_OPTIONS,
@@ -21,6 +22,7 @@ import { createChartFilteredSeriesSection } from './chart-filtered-series-sectio
 import { createChartPointIndexField } from './chart-point-index';
 import { createChartSubtypeSection } from './chart-subtype-section';
 import { createChartUserShapeSection } from './chart-user-shape-section';
+import { createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -152,7 +154,9 @@ export function createChartSection(
 				...base.style,
 				hasTitle: title.control.value.trim().length > 0,
 				hasLegend: legend.control.checked,
-				hasDataLabels: labels.control.checked,
+				...(labels.control.checked !== (base.style?.hasDataLabels ?? false)
+					? chartDataLabelsTogglePatch(base.style, labels.control.checked)
+					: { hasDataLabels: labels.control.checked }),
 			},
 		});
 	};
@@ -206,8 +210,8 @@ export function createChartSection(
 function input(doc: Document, type: string, text: string) {
 	const label = doc.createElement('label');
 	label.textContent = text;
-	const control = doc.createElement('input');
-	control.type = type;
+	const control = type === 'checkbox' ? createInspectorCheckbox(doc) : doc.createElement('input');
+	if (type !== 'checkbox') control.type = type;
 	label.appendChild(control);
 	return { label, control };
 }

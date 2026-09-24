@@ -2,6 +2,7 @@ import type { PptxAfterAnimationAction } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { AFTER_ANIMATION_OPTIONS, SELECT_CLS } from './animation-panel-constants';
 import { useRecentColors } from './RecentColorsContext';
 
@@ -35,7 +36,7 @@ export function AfterAnimationRow({
 				<span className='text-muted-foreground text-[11px]'>
 					{t('pptx.animation.afterAnimation')}
 				</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.animation.afterAnimation')}
 					value={action}
 					onChange={(event) => onActionChange(event.target.value as PptxAfterAnimationAction)}
@@ -47,7 +48,7 @@ export function AfterAnimationRow({
 							{t(option.labelKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 			{action === 'dimToColor' && (
 				<label className='flex items-center gap-2'>

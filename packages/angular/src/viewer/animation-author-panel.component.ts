@@ -25,7 +25,15 @@
  * @module viewer/animation-author-panel
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { LucideArrowDown, LucideArrowUp, LucideX } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type {
@@ -78,6 +86,7 @@ import { EffectSoundRowComponent } from './effect-sound-row.component';
 import { MotionPathRowComponent } from './motion-path-row.component';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-animation-author-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -225,7 +234,7 @@ export class AnimationAuthorPanelComponent {
 	// ── Control handlers ─────────────────────────────────────────────────────
 
 	/**
-	 * Every `<select>` in the panel commits through here. The field name picks the
+	 * Every `<pptx-ui-select>` in the panel commits through here. The field name picks the
 	 * shared patch builder out of {@link ANIMATION_SELECT_SETTERS}; see that
 	 * module for why there is one handler rather than seven.
 	 */
@@ -305,7 +314,7 @@ export class AnimationAuthorPanelComponent {
 
 	// ── After animation ───────────────────────────────────────────────────────
 	// Its own row component emits already-parsed values (not raw DOM events,
-	// unlike the generic `<select>`/`<input>` dispatch above), so both handlers
+	// unlike the generic `<pptx-ui-select>`/`<input>` dispatch above), so both handlers
 	// are dedicated, the same way `onDirectionChange` is for the button group.
 
 	protected onAfterAnimationChange(action: PptxAfterAnimationAction): void {

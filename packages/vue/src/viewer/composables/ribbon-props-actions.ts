@@ -155,6 +155,12 @@ export function buildRibbonPropsActions(input: UseRibbonPropsInput) {
 		onToggleSlideSorter: () => {
 			input.showSorter.value = true;
 		},
+		onGoToNormalView: () => {
+			input.showSorter.value = false;
+			input.showReadingView.value = false;
+			input.showOutlineView.value = false;
+			input.showMasterView.value = false;
+		},
 		onOpenReadingView: () => {
 			input.showReadingView.value = true;
 		},

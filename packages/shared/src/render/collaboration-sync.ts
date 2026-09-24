@@ -201,6 +201,8 @@ export const SCALAR_ELEMENT_KEYS: ReadonlySet<string> = new Set([
 	'inkTool',
 	'inkPartPath',
 	'zoomType',
+	'returnToParent',
+	'transitionDurationMs',
 	'targetSlideIndex',
 	'targetSectionId',
 	'summaryLayout',

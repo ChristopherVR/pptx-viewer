@@ -160,19 +160,21 @@ export function useFindReplace({
 		performFind();
 	}, [performFind]);
 
-	// ── Keyboard shortcut: Ctrl/Cmd+F toggles the find bar ────────────────
+	// ── Keyboard shortcut: Ctrl/Cmd+F or Ctrl/Cmd+H toggles the find bar ──
 	// The chord itself is decided by the shared editor keymap, not here. This
 	// used to be a hand-rolled `event.key === 'f'` test, which is why Angular,
 	// Svelte and Vanilla never got the shortcut at all: there was nothing in
 	// shared for them to adopt. Note `key === 'f'` also missed Ctrl+Shift+F,
-	// which `mapEditorKey` folds in via `toLowerCase()`.
+	// which `mapEditorKey` folds in via `toLowerCase()`. Ctrl+H (PowerPoint's
+	// Find & Replace) opens the same single bar: it already renders both the
+	// find and replace rows together, so there is no separate mode to enter.
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
 			const { action } = mapEditorKey(event, {
 				canEdit: mode === 'edit',
 				isTextInputTarget: isEditorTextInputTarget(event.target),
 			});
-			if (action !== 'find') {
+			if (action !== 'find' && action !== 'findReplace') {
 				return;
 			}
 			event.preventDefault();

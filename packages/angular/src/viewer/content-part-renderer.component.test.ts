@@ -103,4 +103,27 @@ describe('contentPart renderer (angular)', () => {
 		expect(renderer).toContain('stroke.nibMarks');
 		expect(renderer).toContain('<ellipse');
 	});
+
+	it('flags a translucent stroke (opacity heuristic, no explicit tool flag) as "multiply" blendMode', () => {
+		const translucent: ContentPartPptxElement = {
+			...inked(),
+			inkStrokes: [{ path: 'M 0 0 L 10 10', color: '#ffff00', width: 6, opacity: 0.4 }],
+		};
+		const [strokeView] = buildContentPartStrokes(translucent);
+		expect(strokeView.blendMode).toBe('multiply');
+	});
+
+	it('leaves a fully opaque stroke as "normal" blendMode', () => {
+		expect(buildContentPartStrokes(inked())[0].blendMode).toBe('normal');
+	});
+
+	it('binds mix-blend-mode from each stroke.blendMode on the g/path elements, not the outer svg', () => {
+		const renderer = readFileSync(
+			path.join(__dirname, 'content-part-renderer.component.ts'),
+			'utf8',
+		);
+		const occurrences = renderer.match(/stroke\.blendMode === 'multiply'/g) ?? [];
+		expect(occurrences.length).toBeGreaterThanOrEqual(3);
+		expect(renderer).not.toMatch(/class="pptx-ng-contentpart-svg"[\s\S]{0,80}mix-blend-mode/);
+	});
 });

@@ -100,7 +100,11 @@
 			@if (hitTargetStyle(); as hit) {
 				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
 			}
-			<pptx-ole-renderer [element]="element()" />
+			<pptx-ole-renderer
+				[element]="element()"
+				[interactive]="interactive()"
+				[presenting]="presenting()"
+			/>
 		</div>
 	}
 	@case (element().type === 'chart') {

@@ -260,6 +260,18 @@ export const INSPECTOR_FORMAT_CSS = `
 }
 .pptxv-transition-dir:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
 .pptxv-transition-dir.is-active { border-color: var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 20%, transparent); color: var(--pptx-primary); }
+.pptxv-transition-pattern-btn {
+	padding: 2px 8px;
+	border: 1px solid var(--pptx-border);
+	border-radius: var(--pptx-radius);
+	background: var(--pptx-muted);
+	color: var(--pptx-foreground);
+	font: inherit;
+	font-size: 11px;
+	cursor: pointer;
+}
+.pptxv-transition-pattern-btn:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
+.pptxv-transition-pattern-btn.is-active { border-color: var(--pptx-primary); background: color-mix(in srgb, var(--pptx-primary) 20%, transparent); color: var(--pptx-primary); }
 .pptxv-transition-sound { margin: 4px 0 0; color: var(--pptx-muted-foreground); font-size: 10px; }
 .pptxv-transition-sound[hidden] { display: none; }
 .pptxv-transition-preview { display: grid; gap: 3px; margin-top: 8px; }

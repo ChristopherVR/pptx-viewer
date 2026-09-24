@@ -93,13 +93,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const tabStops = parseTabStops(pPr);
 		if (tabStops && tabStops.length > 0) {
 			pp.tabStops = tabStops;
+		} else if (pPr['a:tabLst'] !== undefined) {
+			// An authored `<a:tabLst/>` with zero `a:tab` children parses (via
+			// fast-xml-parser, a childless element gives back the empty
+			// string) to something `parseTabStops` cannot tell apart from
+			// "no tabLst at all". Both would otherwise resolve to "inherit
+			// tab stops from the cascade", but an explicitly empty list means
+			// the opposite: this paragraph authored zero tab stops on
+			// purpose. Record that so the writer re-emits `<a:tabLst/>`
+			// rather than silently dropping it.
+			pp.tabStopsExplicitEmpty = true;
 		}
 		// Preserve `a:pPr/a:defRPr` (paragraph default run properties) and
 		// `a:pPr/a:extLst` verbatim so the save helper re-emits them instead of
 		// dropping the end-paragraph run formatting / authored extensions.
+		// An EMPTY `<a:defRPr/>` also parses to the empty string rather than
+		// an object, so gate on presence (`!== undefined`), not `typeof`, and
+		// normalise the empty-string case back to `{}`.
 		const defRPr = pPr['a:defRPr'];
-		if (defRPr && typeof defRPr === 'object') {
-			pp.paragraphDefaultRunPropertiesXml = defRPr as XmlObject;
+		if (defRPr !== undefined) {
+			pp.paragraphDefaultRunPropertiesXml = (typeof defRPr === 'object' ? defRPr : {}) as XmlObject;
 		}
 		const pPrExtLst = pPr['a:extLst'];
 		if (pPrExtLst && typeof pPrExtLst === 'object') {

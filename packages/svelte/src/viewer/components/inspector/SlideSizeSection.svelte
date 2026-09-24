@@ -114,7 +114,7 @@
 {#if onupdateslidesize}
 	<label class="pptx-svelte-slide-size-preset">
 		<span>{t('pptx.slideSize.presets')}</span>
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.slideSize.presets')}
 			data-pptx-slide-size-preset
 			disabled={!canEdit}
@@ -127,7 +127,7 @@
 			{#each SLIDE_SIZE_PRESETS as preset (preset.labelKey)}
 				<option value={preset.labelKey}>{t(`pptx.slideSize.preset.${preset.labelKey}`)}</option>
 			{/each}
-		</select>
+		</pptx-ui-select>
 	</label>
 	<div
 		class="pptx-svelte-slide-size-orientation"

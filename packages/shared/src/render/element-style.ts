@@ -103,6 +103,28 @@ export function shouldRenderHitTarget(interactive: boolean, presenting: boolean)
 }
 
 /**
+ * The CSS height for an element's absolute container box.
+ *
+ * Every element type except a table renders at its authored (painted)
+ * height. PowerPoint always sizes a `graphicFrame` holding a table to the
+ * actual sum of its row heights: `a:tr/@h` is a MINIMUM, not a fixed height,
+ * and a row whose cell text needs more room than that grows the row (and so
+ * the whole table) taller than it. The authored `a:ext/@cy` PowerPoint writes
+ * back is a cache of that computed sum as of the last save, not a hard clip,
+ * so treating it as a fixed CSS height clips off however many trailing rows
+ * no longer fit once THIS renderer's fonts (or simply more text than the
+ * deck's last save had) need more vertical room than that cached value.
+ * `minHeight` keeps a table from visually collapsing when its rows sum to
+ * less than the authored extent (rounding, or a stale extent the other way).
+ */
+export function elementContainerHeightStyle(el: PptxElement, paintedHeightPx: number): CssStyleMap {
+	if (el.type === 'table') {
+		return { height: 'auto', minHeight: px(paintedHeightPx) };
+	}
+	return { height: px(paintedHeightPx) };
+}
+
+/**
  * Absolute container style: position, size, rotation, flip, opacity, z-index.
  * Mirrors the essentials of the React `getContainerStyle`.
  */
@@ -124,7 +146,7 @@ export function getContainerStyle(el: PptxElement, zIndex: number): CssStyleMap 
 		left: px(el.x),
 		top: px(el.y),
 		width: px(painted.width),
-		height: px(painted.height),
+		...elementContainerHeightStyle(el, painted.height),
 		zIndex,
 		boxSizing: 'border-box',
 	};

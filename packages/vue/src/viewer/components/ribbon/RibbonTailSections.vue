@@ -84,6 +84,8 @@ const s = computed(() => props.toolbarSection);
 		:on-set-snap-to-shape="props.onSetSnapToShape"
 		:on-add-guide="props.onAddGuide"
 		:on-zoom-to-fit="props.onZoomToFit"
+		:on-toggle-slide-sorter="props.onToggleSlideSorter"
+		:on-go-to-normal-view="props.onGoToNormalView"
 		:on-enter-master-view="props.onEnterMasterView"
 		:is-selection-pane-open="props.isSelectionPaneOpen"
 		:on-toggle-selection-pane="props.onToggleSelectionPane"

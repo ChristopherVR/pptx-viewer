@@ -157,6 +157,12 @@ export const translations = {
 	'pptx.transition.morphOption.byObject': 'Por objeto',
 	'pptx.transition.morphOption.byWord': 'Por palabra',
 	'pptx.transition.morphOption.byChar': 'Por carácter',
+	'pptx.transition.pattern': 'Patrón',
+	'pptx.transition.pattern.diamond': 'Diamante',
+	'pptx.transition.pattern.hexagon': 'Hexágono',
+	'pptx.transition.pattern.strip': 'Tiras',
+	'pptx.transition.pattern.rectangle': 'Rectángulos',
+	'pptx.transition.thruBlk': 'A través de negro',
 	'pptx.keepAnnotations.title': '¿Mantener anotaciones en tinta?',
 	'pptx.keepAnnotations.description':
 		'Hizo {{count}} anotación(es) de tinta en {{slides}} diapositiva(s). ¿Desea conservarlas como tinta o descartarlas?',

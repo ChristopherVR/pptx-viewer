@@ -300,7 +300,7 @@ describe('chartUserShapeOptions', () => {
 				),
 			);
 			const flipHInput = container.querySelector(
-				'input[aria-label="pptx.arrange.flipHorizontally"]',
+				'pptx-ui-checkbox[aria-label="pptx.arrange.flipHorizontally"]',
 			) as HTMLInputElement;
 			act(() => {
 				flipHInput.click();
@@ -323,7 +323,7 @@ describe('chartUserShapeOptions', () => {
 			);
 			const groupRow = container.querySelector('[data-chart-user-shape-path="0"]')!;
 			const flipVInput = groupRow.querySelector(
-				'input[aria-label="pptx.arrange.flipVertically"]',
+				'pptx-ui-checkbox[aria-label="pptx.arrange.flipVertically"]',
 			) as HTMLInputElement;
 			act(() => {
 				flipVInput.click();

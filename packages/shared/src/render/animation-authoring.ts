@@ -90,14 +90,35 @@ export const EMPHASIS_PRESET_VALUES: readonly PptxAnimationPreset[] = [
 	'boldFlash',
 ];
 
-/** Trigger option values for the trigger selector. */
+/**
+ * Trigger option values for the trigger selector. `afterDelay` was
+ * previously Vue-only (its own hand-rolled copy of this list was the only one
+ * that included it) even though every binding already has an unconditional
+ * "Delay (ms)" field (`PptxElementAnimation.delayMs`) and the write path
+ * (`animation-write-mappings-motion.ts`) already handles it: react/angular/
+ * svelte were simply missing an option their own model and UI could already
+ * serve.
+ */
 export const TRIGGER_VALUES: readonly PptxAnimationTrigger[] = [
 	'onClick',
 	'onShapeClick',
 	'onHover',
 	'afterPrevious',
 	'withPrevious',
+	'afterDelay',
 ];
+
+/**
+ * Trigger options WITH their `pptx.animation.trigger.<value>` i18n key,
+ * derived from {@link TRIGGER_VALUES}. Four of the five bindings hand-rolled
+ * an identical (but incomplete, see {@link TRIGGER_VALUES}) `{ value,
+ * labelKey }` array. This is the single list every binding's trigger
+ * `<select>` should map to `<option>`s.
+ */
+export const TRIGGER_OPTIONS: ReadonlyArray<{
+	value: PptxAnimationTrigger;
+	labelKey: string;
+}> = TRIGGER_VALUES.map((value) => ({ value, labelKey: `pptx.animation.trigger.${value}` }));
 
 /** Timing-curve option values. */
 export const TIMING_CURVE_VALUES: readonly PptxAnimationTimingCurve[] = [

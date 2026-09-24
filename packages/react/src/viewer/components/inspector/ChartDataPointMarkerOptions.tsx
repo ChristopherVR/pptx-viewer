@@ -2,6 +2,7 @@ import type { PptxChartMarkerSymbol, PptxChartSeries, PptxChartType } from 'pptx
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	CARD,
 	HEADING,
@@ -57,7 +58,7 @@ export function ChartDataPointMarkerOptions({
 			{series.length > 1 && (
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-12 text-muted-foreground shrink-0'>{t('pptx.chart.series')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.chart.series')}
 						disabled={!canEdit}
 						className='flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full'
@@ -69,7 +70,7 @@ export function ChartDataPointMarkerOptions({
 								{s.name}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 
@@ -84,7 +85,7 @@ export function ChartDataPointMarkerOptions({
 									{cat}
 								</span>
 								<label className='flex items-center gap-1 shrink-0'>
-									<input
+									<WebCheckbox
 										type='checkbox'
 										disabled={!canEdit}
 										checked={hasOverride}
@@ -102,7 +103,7 @@ export function ChartDataPointMarkerOptions({
 
 							{hasOverride && point?.marker && (
 								<div className='flex items-center gap-2 ml-2 flex-wrap'>
-									<select
+									<WebSelect
 										disabled={!canEdit}
 										className='bg-muted border border-border rounded px-1.5 py-0.5 text-[11px]'
 										value={point.marker.symbol}
@@ -117,7 +118,7 @@ export function ChartDataPointMarkerOptions({
 												{t(opt.labelKey)}
 											</option>
 										))}
-									</select>
+									</WebSelect>
 									<input
 										type='number'
 										min={1}

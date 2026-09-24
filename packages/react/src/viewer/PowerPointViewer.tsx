@@ -68,6 +68,8 @@ import {
 	ViewerBottomPanels,
 	ShareDialog,
 	BroadcastDialog,
+	PasteSpecialDialog,
+	PasteOptionsToolbar,
 } from './components';
 // Collaboration
 import { AutosaveRecoveryDialog } from './components/AutosaveRecoveryDialog';
@@ -1311,6 +1313,23 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					showKeepAnnotationsDialog={showKeepAnnotationsDialog}
 					onKeepAnnotations={handleKeepAnnotations}
 					onDiscardAnnotations={handleDiscardAnnotations}
+				/>
+
+				{/* Ctrl/Cmd+Alt+V and the post-paste follow-up toolbar. */}
+				<PasteSpecialDialog
+					isOpen={editorOps.pasteSpecial.isPasteSpecialDialogOpen}
+					onCancel={editorOps.pasteSpecial.closePasteSpecialDialog}
+					onConfirm={(format) => {
+						void editorOps.pasteSpecial.pasteWithFormat(format);
+					}}
+				/>
+				<PasteOptionsToolbar
+					elementId={editorOps.pasteSpecial.pasteOptionsToolbar?.elementId ?? null}
+					onChoose={(format) => {
+						void editorOps.pasteSpecial.reformatPastedElement(format);
+						editorOps.pasteSpecial.dismissPasteOptionsToolbar();
+					}}
+					onDismiss={editorOps.pasteSpecial.dismissPasteOptionsToolbar}
 				/>
 
 				{/* A running show has no editor chrome, and this prompt is modal: left

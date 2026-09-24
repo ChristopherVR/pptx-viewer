@@ -8,6 +8,13 @@
  * @module render/animation-presets-subtypes
  */
 
+import type { EffectName } from './animation-timeline-types';
+// Reused rather than re-declared: PowerPoint's Wheel "Spokes" Effect Option
+// and `p:wheel/@spokes` (the Wheel SLIDE TRANSITION) offer the identical
+// five-value set. Not re-exported from here, to avoid a barrel-export name
+// collision with `slide-transition-types.ts`'s own export of the same name.
+import { WHEEL_SPOKE_COUNTS } from './slide-transition-types';
+
 // ==========================================================================
 // Fly In / Fly Out direction (presetSubtype) mapping
 // ==========================================================================
@@ -106,3 +113,99 @@ export const BARN_FILTER_TOKEN_TO_SUBTYPE: Readonly<Record<string, number>> = {
 	inVertical: 21,
 	inHorizontal: 26,
 };
+
+// ==========================================================================
+// Blinds / Checkerboard / Random Bars direction, Wheel spoke count
+// ==========================================================================
+
+/**
+ * Direction/variant tokens for the `blinds`, `checkerboard`, and `randombar`
+ * `p:animEffect/@filter` families (ECMA-376/SMIL 2.0 Transition Effects).
+ * Unlike Wipe/Barn, this project has no COM-verified numeric
+ * `p:cTn/@presetSubtype` table for these three families, but PowerPoint
+ * pairs a preset-driven Blinds/Checkerboard/Random-Bars entrance with the
+ * exact same literal filter token regardless (the same pairing already
+ * relied on for Wipe/Barn, see {@link WIPE_SUBTYPE_TO_EDGE}'s doc), so
+ * reading `anim.effectFilter?.subtype` directly is a reliable signal that
+ * needs no numeric guessing.
+ */
+export type BlindsDirection = 'vertical' | 'horizontal';
+export type CheckerboardDirection = 'across' | 'down';
+export type RandomBarsDirection = 'vertical' | 'horizontal';
+
+/**
+ * Map a `wheel(<n>)` `p:animEffect/@filter` subtype token to the nearest of
+ * PowerPoint's five selectable Wheel "Spokes" Effect Option counts (the same
+ * `1, 2, 3, 4, 8` set `p:wheel/@spokes` uses for the Wheel SLIDE TRANSITION,
+ * see {@link import('./slide-transition-types').WHEEL_SPOKE_COUNTS}, reused
+ * here rather than re-declared). Defaults to 4 (this Effect Option's own
+ * default) when the token is absent or unparsable; the slide-transition
+ * schema's own default of 1 does not apply here, so this is a distinct
+ * resolver rather than a call to that module's `resolveWheelSpokeCount`
+ * (named differently to avoid a barrel-export collision with it).
+ */
+export function resolveAnimationWheelSpokeCount(subtypeToken: string | undefined): number {
+	const parsed = subtypeToken !== undefined ? Number.parseInt(subtypeToken, 10) : Number.NaN;
+	if (!Number.isFinite(parsed)) {
+		return 4;
+	}
+	let nearest = WHEEL_SPOKE_COUNTS[0];
+	let bestDiff = Number.POSITIVE_INFINITY;
+	for (const count of WHEEL_SPOKE_COUNTS) {
+		const diff = Math.abs(count - parsed);
+		if (diff < bestDiff) {
+			bestDiff = diff;
+			nearest = count;
+		}
+	}
+	return nearest;
+}
+
+/**
+ * Redirect the DEFAULT `blindsIn`/`checkerboardIn`/`randomBarsIn`/`wheelIn`
+ * {@link EffectName} to its direction/spoke-count-aware variant, when the
+ * animation's own `p:animEffect/@filter` names a matching family with a
+ * recognised subtype token. Used by both `resolveEffect` (the presetId-driven
+ * primary path, `animation-timeline-helpers.ts`) and `resolveFilterEffect`
+ * (the filter-only fallback path, `animation-filter-effects.ts`) so a deck
+ * reaches the same subtype-aware keyframe regardless of which path resolved
+ * it. Returns `effect` unchanged when there is no filter, a family mismatch,
+ * or an unrecognised subtype token (falls back to PowerPoint's own default
+ * direction/spoke-count, matching the default keyframe's own choice).
+ */
+export function redirectMaskEffectByFilterSubtype(
+	effect: EffectName | undefined,
+	filter: { family: string; subtype?: string } | undefined,
+): EffectName | undefined {
+	if (!effect || !filter) {
+		return effect;
+	}
+	if (effect === 'blindsIn' && filter.family === 'blinds') {
+		if (filter.subtype === 'vertical') {
+			return 'blindsInVertical';
+		}
+		if (filter.subtype === 'horizontal') {
+			return 'blindsInHorizontal';
+		}
+	}
+	if (effect === 'checkerboardIn' && filter.family === 'checkerboard') {
+		if (filter.subtype === 'across') {
+			return 'checkerboardInAcross';
+		}
+		if (filter.subtype === 'down') {
+			return 'checkerboardInDown';
+		}
+	}
+	if (effect === 'randomBarsIn' && filter.family === 'randombar') {
+		if (filter.subtype === 'vertical') {
+			return 'randomBarsInVertical';
+		}
+		if (filter.subtype === 'horizontal') {
+			return 'randomBarsInHorizontal';
+		}
+	}
+	if (effect === 'wheelIn' && filter.family === 'wheel') {
+		return `wheelIn${resolveAnimationWheelSpokeCount(filter.subtype)}` as EffectName;
+	}
+	return effect;
+}

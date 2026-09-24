@@ -45,10 +45,13 @@ describe('react text-body features', () => {
 		);
 	});
 
-	it('centres the text bounding box for `anchorCtr`', () => {
-		expect(getTextLayoutStyle(textShape({ textStyle: { anchorCenter: true } })).alignItems).toBe(
-			'center',
-		);
+	it('centres the shared bounding box of every paragraph for `anchorCtr`', () => {
+		// fit-content + auto margins, not `align-items: center` (which would
+		// centre each paragraph independently instead of sharing one left edge).
+		const style = getTextLayoutStyle(textShape({ textStyle: { anchorCenter: true } }));
+		expect(style.width).toBe('fit-content');
+		expect(style.marginLeft).toBe('auto');
+		expect(style.marginRight).toBe('auto');
 	});
 
 	it('clips a `vertOverflow="clip"` body instead of letting it spill', () => {

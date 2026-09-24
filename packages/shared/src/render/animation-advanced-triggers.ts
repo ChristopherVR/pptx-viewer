@@ -85,6 +85,16 @@ export interface EffectiveStartCondition {
 	dependsOnShapeId?: string;
 	/** The event of the time-node dependency, when present (begin vs end). */
 	dependsOnEvent?: AnimationConditionEvent;
+	/**
+	 * When {@link dependsOnEvent} is `onMediaBookmark`, the bookmark name this
+	 * effect waits on (from `AnimationCondition.bookmarkTarget.bookmarkName`);
+	 * {@link dependsOnShapeId} names the media element it belongs to.
+	 * `animation-media-bookmark-gating`'s `wireMediaBookmarkSteps` resolves
+	 * this to a real playback time via the slide's own parsed bookmarks
+	 * (`PlaybackContext.mediaBookmarkTimesMs`) and fires when the live media
+	 * element's `currentTime` reaches it.
+	 */
+	dependsOnBookmarkName?: string;
 	/** A click target shape, when one of the OR conditions is a shape click. */
 	clickTargetShapeId?: string;
 	/** True when the OR set also permits a click to start the node early. */
@@ -113,13 +123,18 @@ function isInteractiveTrigger(trigger: PptxAnimationTrigger): boolean {
 	return trigger === 'onClick' || trigger === 'onShapeClick' || trigger === 'onHover';
 }
 
-function classifyCondition(cond: AnimationCondition): 'click' | 'hover' | 'timenode' | 'delay' {
+function classifyCondition(
+	cond: AnimationCondition,
+): 'click' | 'hover' | 'timenode' | 'bookmark' | 'delay' {
 	const evt = cond.event;
 	if (evt && CLICK_EVENTS.has(evt)) {
 		return 'click';
 	}
 	if (evt && HOVER_EVENTS.has(evt)) {
 		return 'hover';
+	}
+	if (evt === 'onMediaBookmark' && cond.bookmarkTarget) {
+		return 'bookmark';
 	}
 	if (evt && TIMENODE_EVENTS.has(evt)) {
 		if (cond.targetTimeNodeId !== undefined) {
@@ -171,6 +186,7 @@ export function resolveEffectiveStartCondition(
 	}
 
 	let timenode: AnimationCondition | undefined;
+	let bookmarkCond: AnimationCondition | undefined;
 	let delayCond: AnimationCondition | undefined;
 	let clickCond: AnimationCondition | undefined;
 	let hoverCond: AnimationCondition | undefined;
@@ -191,6 +207,11 @@ export function resolveEffectiveStartCondition(
 					) {
 						timenode = cond;
 					}
+				}
+				break;
+			case 'bookmark':
+				if (!bookmarkCond) {
+					bookmarkCond = cond;
 				}
 				break;
 			case 'delay':
@@ -230,6 +251,22 @@ export function resolveEffectiveStartCondition(
 			timenode.targetTimeNodeId === undefined ? timenode.targetShapeId : undefined;
 		base.dependsOnEvent = timenode.event;
 		// Chained off another node's begin/end: the timeline starts it, not a click.
+		base.requiresInteraction = false;
+		return base;
+	}
+
+	// 1b. A media bookmark dependency governs sequencing exactly like a
+	// time-node dependency: the effect cannot start until the referenced
+	// media element's real playback reaches that bookmark, so it never
+	// auto-fires from a computed delay. `dependsOnShapeId` here names the
+	// MEDIA element (not a click target), matching `onStopAudio`'s
+	// shape-targeted form above.
+	if (bookmarkCond?.bookmarkTarget) {
+		base.trigger = 'afterPrevious';
+		base.delayMs = 0;
+		base.dependsOnShapeId = bookmarkCond.bookmarkTarget.shapeId;
+		base.dependsOnEvent = 'onMediaBookmark';
+		base.dependsOnBookmarkName = bookmarkCond.bookmarkTarget.bookmarkName;
 		base.requiresInteraction = false;
 		return base;
 	}

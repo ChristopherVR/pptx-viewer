@@ -328,6 +328,7 @@ function MobileSectionBody({
 						eyedropperActive={p.eyedropperActive}
 						onToggleEyedropper={p.onToggleEyedropper}
 						onToggleSlideSorter={p.onToggleSlideSorter}
+						onGoToNormalView={p.onGoToNormalView}
 						onOpenReadingView={p.onOpenReadingView}
 					/>
 				</div>

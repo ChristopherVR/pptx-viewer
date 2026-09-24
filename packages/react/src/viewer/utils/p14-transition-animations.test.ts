@@ -88,7 +88,7 @@ describe('getP14TransitionAnimations', () => {
 		const result = getP14TransitionAnimations('glitter', 600, undefined);
 		expect(result).toBeDefined();
 		expect(result!.outgoingOnTop).toBeTruthy();
-		expect(result!.incoming).toContain('pptx-tr-glitter-in');
+		expect(result!.incoming).toContain('pptx-tr-glitter-');
 	});
 
 	it('should return honeycomb animation', () => {

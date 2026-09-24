@@ -1,14 +1,19 @@
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { filterInteractableIds, isTemplateElementId } from 'pptx-viewer-shared';
+import { hasTextProperties } from 'pptx-viewer-core';
+import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
+import {
+	cycleSelectableElement,
+	stepFontSizePt,
+	textFontSizePtToPx,
+	textFontSizePxToPt,
+} from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
-import { useConnectorReroute } from './connector-reroute-store';
 import { dispatchSlideShowStartKey } from './slide-show-start-key';
-import { setTemplateElements } from './template-editing';
 import type { TemplateElementMap } from './template-editing';
 import { useKeyboardShortcuts } from './useKeyboardShortcuts';
 import type { UseKeyboardShortcutsResult } from './useKeyboardShortcuts';
+import { useNudgeSelection } from './useNudgeSelection';
 
 export interface UseEditorKeyboardInput {
 	canEdit: () => boolean;
@@ -28,6 +33,8 @@ export interface UseEditorKeyboardInput {
 	copyElement: (id: string) => void;
 	cutElement: (id: string) => void;
 	pasteElement: () => void;
+	/** Open the Paste Special dialog (Ctrl/Cmd+Alt+V). */
+	onPasteSpecial: () => void;
 	duplicateSelected: () => void;
 	deleteSelected: () => void;
 	goPrev: () => void;
@@ -41,6 +48,28 @@ export interface UseEditorKeyboardInput {
 	presentFromBeginning: () => void;
 	/** Shift+F5: start the show from the active slide (same as "From Current Slide"). */
 	startPresenting: () => void;
+	/** Id of the element under active inline edit, or `null`. Lets live-format chords survive the typing gate. */
+	inlineEditingElementId: Ref<string | null>;
+	/** Whether a table cell is actively being edited. Same purpose as `inlineEditingElementId`. */
+	tableEditorIsEditing: () => boolean;
+	/** The armed drawing tool; shortcuts stand down unless it is `'select'`. */
+	activeTool: () => string;
+	/** The current selection's elements, for reading the effective font size. */
+	selectedElements: ComputedRef<PptxElement[]>;
+	/** Select one element non-additively (Tab / Shift+Tab cycling). */
+	selectElement: (id: string, additive: boolean) => void;
+	/** Apply a text-style delta to the selection (Home ▸ Text section's own path). */
+	ribbonUpdateTextStyle: (updates: Partial<TextStyle>) => void;
+	/** Insert a new slide after the active one (Ctrl/Cmd+M). */
+	addSlide: () => void;
+	/** Open the hyperlink dialog for the current selection (Ctrl/Cmd+K). */
+	openHyperlinkForSelection: () => void;
+	/** Arm the format painter from the current selection (Ctrl/Cmd+Shift+C). */
+	toggleFormatPainter: () => void;
+	/** Apply the copied format to one element (used by `pasteFormat`). */
+	applyFormatToTarget: (id: string) => void;
+	/** Disarm the format painter without applying (used after `pasteFormat`). */
+	cancelFormatPainter: () => void;
 }
 
 export interface UseEditorKeyboardResult {
@@ -79,6 +108,7 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		copyElement,
 		cutElement,
 		pasteElement,
+		onPasteSpecial,
 		duplicateSelected,
 		deleteSelected,
 		goPrev,
@@ -88,6 +118,17 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		onUngroup,
 		presentFromBeginning,
 		startPresenting,
+		inlineEditingElementId,
+		tableEditorIsEditing,
+		activeTool,
+		selectedElements,
+		selectElement,
+		ribbonUpdateTextStyle,
+		addSlide,
+		openHyperlinkForSelection,
+		toggleFormatPainter,
+		applyFormatToTarget,
+		cancelFormatPainter,
 	} = input;
 
 	const showShortcuts = ref(false);
@@ -110,70 +151,42 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 			cutElement(id);
 		}
 	}
-	/** Recompute the connectors glued to shapes an arrow-key nudge just moved. */
-	const rerouteConnectorsFor = useConnectorReroute({
-		slides,
+	/** Nudge every selected element by (dx, dy) px as one history entry. */
+	const nudgeSelected = useNudgeSelection({
+		selectedElementIds,
 		activeSlideIndex,
+		slides,
 		templateElementsBySlideId,
+		pushHistory,
 	});
 
-	/** Nudge every selected element by (dx, dy) px as one history entry. */
-	function nudgeSelected(dx: number, dy: number): void {
+	/** Step the current selection's font size one rung along PowerPoint's ladder. */
+	function stepSelectedFontSize(direction: 'increase' | 'decrease'): void {
+		const el = selectedElements.value[0];
+		const currentPx =
+			(el && hasTextProperties(el) ? el.textStyle?.fontSize : undefined) ?? textFontSizePtToPx(18);
+		const steppedPt = stepFontSizePt(textFontSizePxToPt(currentPx), direction);
+		ribbonUpdateTextStyle({ fontSize: textFontSizePtToPx(steppedPt) });
+	}
+
+	/** Apply the copied format to every selected element, then disarm the painter. */
+	function pasteFormatToSelection(): void {
 		if (selectedElementIds.value.length === 0) {
 			return;
 		}
-		const index = activeSlideIndex.value;
-		const slide = slides.value[index];
-		if (!slide) {
-			return;
+		for (const id of selectedElementIds.value) {
+			applyFormatToTarget(id);
 		}
-		// `a:spLocks/@noMove` pins a shape, so the arrow keys must skip it exactly as
-		// a drag does, and a multi-selection nudges only its movable members.
-		const lookup = new Map<string, PptxElement>();
-		for (const el of [...(templateElementsBySlideId.value[slide.id] ?? []), ...slide.elements]) {
-			lookup.set(el.id, el);
+		cancelFormatPainter();
+	}
+
+	/** Move the selection to the next/previous element on the slide (Tab / Shift+Tab). */
+	function cycleSelection(direction: 'next' | 'prev'): void {
+		const ids = (activeSlide.value?.elements ?? []).map((el) => el.id);
+		const nextId = cycleSelectableElement(ids, selectedElementIds.value[0] ?? null, direction);
+		if (nextId) {
+			selectElement(nextId, false);
 		}
-		const movableIds = filterInteractableIds(
-			selectedElementIds.value,
-			(id) => lookup.get(id),
-			'move',
-		);
-		if (movableIds.length === 0) {
-			return;
-		}
-		const ids = new Set(movableIds);
-		// Partition into template ids (master-/layout- prefix) and normal slide ids so
-		// the nudge routes through the correct store for each group. Without this split
-		// a selected template element is silently skipped (it lives in the template
-		// store, not in slide.elements) and the arrow-key move is lost.
-		const templateIds = new Set([...ids].filter((id) => isTemplateElementId(id)));
-		const slideIds = new Set([...ids].filter((id) => !isTemplateElementId(id)));
-		pushHistory();
-		if (templateIds.size > 0) {
-			const current = templateElementsBySlideId.value[slide.id];
-			if (current) {
-				templateElementsBySlideId.value = setTemplateElements(
-					templateElementsBySlideId.value,
-					slide.id,
-					current.map((el) =>
-						templateIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-					),
-				);
-			}
-		}
-		if (slideIds.size > 0) {
-			const nextSlides = slides.value.slice();
-			nextSlides[index] = {
-				...slide,
-				elements: slide.elements.map((el) =>
-					slideIds.has(el.id) ? { ...el, x: el.x + dx, y: el.y + dy } : el,
-				),
-			};
-			slides.value = nextSlides;
-		}
-		// The nudged shapes have landed: connectors glued to them follow, the same
-		// as at the end of a pointer drag.
-		rerouteConnectorsFor(ids);
 	}
 
 	const shortcuts = useKeyboardShortcuts({
@@ -208,10 +221,39 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 			find: () => {
 				findOpen.value = !findOpen.value;
 			},
+			// Vue has one find/replace panel showing both rows at once, so Ctrl+H
+			// opens the same panel Ctrl+F does; there is no distinct replace mode.
+			findReplace: () => {
+				findOpen.value = !findOpen.value;
+			},
+			alignLeft: () => ribbonUpdateTextStyle({ align: 'left' }),
+			alignCenter: () => ribbonUpdateTextStyle({ align: 'center' }),
+			alignRight: () => ribbonUpdateTextStyle({ align: 'right' }),
+			alignJustify: () => ribbonUpdateTextStyle({ align: 'justify' }),
+			increaseFontSize: () => stepSelectedFontSize('increase'),
+			decreaseFontSize: () => stepSelectedFontSize('decrease'),
+			copyFormat: toggleFormatPainter,
+			pasteFormat: pasteFormatToSelection,
+			newSlide: addSlide,
+			hyperlink: openHyperlinkForSelection,
+			clearFormatting: () =>
+				ribbonUpdateTextStyle({
+					bold: false,
+					italic: false,
+					underline: false,
+					strikethrough: false,
+					highlightColor: undefined,
+				}),
+			cycleSelectionNext: () => cycleSelection('next'),
+			cycleSelectionPrev: () => cycleSelection('prev'),
+			pasteSpecial: onPasteSpecial,
 		},
 		canEdit,
 		hasSelection,
 		isPresenting: presenting,
+		inlineEditingElementId,
+		tableEditorIsEditing,
+		activeTool,
 	});
 
 	/**

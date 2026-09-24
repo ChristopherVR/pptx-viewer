@@ -51,7 +51,11 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
 import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared';
-import { buildContextMenuEntries } from '../internal/shared';
+import {
+	buildContextMenuEntries,
+	contextMenuInspectorAnchor,
+	scrollInspectorSectionIntoView,
+} from '../internal/shared';
 import { tableMenuContext } from './editor-context-menu-context';
 import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
 import { runContextMenuCommand } from './editor-context-menu-dispatch';
@@ -60,6 +64,7 @@ import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
+import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 @Component({
 	selector: 'pptx-editor-context-menu',
@@ -127,10 +132,21 @@ export class EditorContextMenuComponent {
 	readonly editHyperlink = output<void>();
 	/** "Add Comment": open the right-docked comments panel, as React does. */
 	readonly addComment = output<void>();
+	/**
+	 * "Edit Text": the host owns the same inline-text-edit entry point a
+	 * double-click uses, so the menu just asks for it on the current element.
+	 */
+	readonly editText = output<void>();
+	/**
+	 * "Save as Picture": the host owns the DOM lookup + html2canvas fallback
+	 * driver this needs, so the menu asks for it on the current element.
+	 */
+	readonly saveAsPicture = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
 
 	/**
 	 * The table element + cell selection the menu should act on, or null when the
@@ -206,6 +222,11 @@ export class EditorContextMenuComponent {
 		group: () => this.editor.groupSelected(this.slideIndex()),
 		ungroup: () => this.editor.ungroupSelected(this.slideIndex()),
 		remove: () => this.editor.deleteSelected(this.slideIndex()),
+		editText: () => this.editText.emit(),
+		saveAsPicture: () => this.saveAsPicture.emit(),
+		editAltText: () => this.focusInspectorSection('edit-alt-text'),
+		sizeAndPosition: () => this.focusInspectorSection('size-and-position'),
+		formatShape: () => this.focusInspectorSection('format-shape'),
 		applyTable: (op) => this.applyTable(op),
 	};
 
@@ -233,6 +254,27 @@ export class EditorContextMenuComponent {
 	protected run(id: ContextMenuCommandId): void {
 		runContextMenuCommand(id, this.actions);
 		this.closed.emit();
+	}
+
+	/**
+	 * "Edit Alt Text" / "Size and Position" / "Format Shape": open the
+	 * properties tab (clearing any explicit tool panel so the element view
+	 * shows through) and, once the panel has re-rendered, scroll the matching
+	 * inspector section into view. A binding-wide no-op when the section has
+	 * not been tagged, so this never fails loudly.
+	 */
+	private focusInspectorSection(
+		commandId: 'edit-alt-text' | 'size-and-position' | 'format-shape',
+	): void {
+		this.inspectorPanel.formatPanelClosed.set(false);
+		this.inspectorPanel.activePanel.set(null);
+		const anchor = contextMenuInspectorAnchor(commandId);
+		if (!anchor) {
+			return;
+		}
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => scrollInspectorSectionIntoView(document, anchor));
+		});
 	}
 
 	/**

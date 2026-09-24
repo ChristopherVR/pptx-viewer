@@ -14,11 +14,12 @@
  *   series[0]   → bar/column rectangles  (one per category)
  *   series[1…N] → line + dots            (one polyline + N circles per series)
  *
- * Stock charts (HLC / OHLC candlesticks):
- *   3-series HLC  → series: High, Low, Close
- *   4-series OHLC → series: Open, High, Low, Close
- *   Per candle: a vertical wick line (high–low) + a body rect (open–close).
- *   Body is green when close ≥ open, red otherwise.
+ * Stock charts (HLC / OHLC):
+ *   3-series HLC  → series: High, Low, Close. A vertical hi-lo wick, no body,
+ *     plus a short close tick (PowerPoint has no `c:upDownBars` on HLC).
+ *   4-series OHLC → series: Open, High, Low, Close. The wick plus a candle
+ *     body from open to close, filled from `c:upDownBars` (see
+ *     `chart-stock-candles.ts`; never a hardcoded up/down colour).
  *
  * @module chart-combo-stock
  */
@@ -31,20 +32,19 @@ import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis } from './chart-axis-render';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
-import { computeHelperLinePrimitives } from './chart-helper-lines';
+import { computeDropLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import {
 	computeAxisTitlePrimitives,
 	computeErrorBarPrimitives,
 	computeTrendlinePrimitives,
 } from './chart-overlays';
+import { computeStockCandlePrimitives } from './chart-stock-candles';
 import { buildStockCloseLabel } from './chart-stock-close-label';
 import type {
 	ChartViewModel,
 	PlotLayout,
-	SvgLine,
 	SvgPrimitive,
-	SvgRect,
 	SvgText,
 	ValueRange,
 } from './chart-view-model';
@@ -59,14 +59,6 @@ import {
 export { buildComboViewModel } from './chart-combo';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Candle colours (stock chart)
-// ─────────────────────────────────────────────────────────────────────────────
-
-const CANDLE_UP_FILL = '#22c55e';
-const CANDLE_DOWN_FILL = '#ef4444';
-const CANDLE_WICK_COLOR = '#334155';
-
-// ─────────────────────────────────────────────────────────────────────────────
 // Stock chart
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -77,15 +69,9 @@ const CANDLE_WICK_COLOR = '#334155';
  *   3-series: series[0] = High, series[1] = Low, series[2] = Close
  *   4-series: series[0] = Open, series[1] = High, series[2] = Low, series[3] = Close
  *
- * Per data point the builder emits:
- *   - An `SvgLine` for the high-to-low wick (vertical).
- *   - An `SvgRect` for the open-to-close candle body.
- *
- * Candle body is green (#22c55e) when close ≥ open, red (#ef4444) otherwise.
- * When no open series is present the close value is used as the open (HLC
- * mode), causing all candles to show as a coloured body between close and the
- * previously computed running close – but for simplicity, with no open we set
- * open = low value, matching PowerPoint's own HLC rendering heuristic.
+ * The wick/tick/body geometry itself lives in `chart-stock-candles.ts`
+ * (shared with the price portion of a volume+stock combo); this builder only
+ * resolves the series slots, axes, legend and overlay depth around it.
  *
  * @param element        - The chart element providing width/height.
  * @param chartData      - Parsed chart data including series and style.
@@ -163,67 +149,42 @@ export function buildStockViewModel(
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
 
-	// `c:hiLowLines` and `c:upDownBars` are not decoration on a stock chart, they
-	// ARE the chart: PowerPoint's own "Open-High-Low-Close" preset writes both,
-	// and without them the plot is four detached candles. They are drawn first so
-	// the candles stay on top.
+	// `c:dropLines` is independent of the wick/tick/body geometry below (which
+	// already draws the hi-lo wick and any up/down body from `c:hiLowLines` /
+	// `c:upDownBars` itself), so only drop lines need the generic helper here.
 	primitives.push(
-		...computeHelperLinePrimitives(chartData, layout, range, catCount, {
+		...computeDropLinePrimitives(chartData, layout, range, catCount, {
 			mode: 'bar',
 			xPositions: horizontalAxis.xPositions,
 		}),
 	);
 
 	if (highSeries && lowSeries && closeSeries) {
-		const barGroupWidth = layout.plotWidth / catCount;
-		const candleWidth = barGroupWidth * 0.5;
+		const closeIndex = hasFour ? 3 : 2;
+		primitives.push(
+			...computeStockCandlePrimitives(
+				{ open: openSeries, high: highSeries, low: lowSeries, close: closeSeries, closeIndex },
+				chartData,
+				layout,
+				range,
+				catCount,
+				sourceIndices,
+				horizontalAxis.xPositions,
+			),
+		);
 
-		for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
-			const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
-			const high = highSeries.values[sourceIndex] ?? 0;
-			const low = lowSeries.values[sourceIndex] ?? 0;
-			const open = openSeries ? (openSeries.values[sourceIndex] ?? low) : low;
-			const close = closeSeries.values[sourceIndex] ?? high;
-			const isUp = close >= open;
-
-			const cx =
-				horizontalAxis.xPositions?.[displayIndex] ??
-				layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
-			const highY = valueToY(high, range, layout.plotTop, layout.plotBottom);
-			const lowY = valueToY(low, range, layout.plotTop, layout.plotBottom);
-			const openY = valueToY(open, range, layout.plotTop, layout.plotBottom);
-			const closeY = valueToY(close, range, layout.plotTop, layout.plotBottom);
-
-			// Wick: vertical line from high to low.
-			primitives.push({
-				kind: 'line',
-				x1: cx,
-				y1: highY,
-				x2: cx,
-				y2: lowY,
-				stroke: CANDLE_WICK_COLOR,
-				strokeWidth: 1,
-			} satisfies SvgLine);
-
-			// Body: rect from open to close.
-			const bodyTop = Math.min(openY, closeY);
-			const bodyHeight = Math.max(Math.abs(openY - closeY), 1);
-			primitives.push({
-				kind: 'rect',
-				x: cx - candleWidth / 2,
-				y: bodyTop,
-				w: candleWidth,
-				h: bodyHeight,
-				fill: isUp ? CANDLE_UP_FILL : CANDLE_DOWN_FILL,
-				rx: 1,
-				part: {
-					role: 'dataPoint',
-					seriesIndex: hasFour ? 3 : 2,
-					pointIndex: sourceIndex,
-				},
-			} satisfies SvgRect);
-
-			if (chartData.style?.hasDataLabels) {
+		if (chartData.style?.hasDataLabels) {
+			const barGroupWidth = layout.plotWidth / catCount;
+			for (let displayIndex = 0; displayIndex < catCount; displayIndex++) {
+				const sourceIndex = sourceIndices[displayIndex] ?? displayIndex;
+				const close = closeSeries.values[sourceIndex];
+				if (close === undefined) {
+					continue;
+				}
+				const cx =
+					horizontalAxis.xPositions?.[displayIndex] ??
+					layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2;
+				const closeY = valueToY(close, range, layout.plotTop, layout.plotBottom);
 				const closeLabel = buildStockCloseLabel(
 					chartData,
 					closeSeries,

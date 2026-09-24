@@ -1,4 +1,6 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { TextStyle, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { buildEffectDagTreeFromXml } from '../builders/effect-dag-containers';
 import { extractReflectionAttributes } from '../builders/effect-style-extractor-reflection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextStyleUtils';
@@ -59,6 +61,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (clickSnd && typeof clickSnd === 'object') {
 				style.hyperlinkSoundXml = clickSnd as XmlObject;
 			}
+			// Preserve `a:extLst` verbatim (most commonly Microsoft's
+			// `ahyp:hlinkClr` "hyperlink colour" extension) so an unmodelled
+			// vendor extension does not vanish on save.
+			const extLst = hyperlinkNode['a:extLst'];
+			if (extLst && typeof extLst === 'object') {
+				style.hyperlinkExtensionXml = extLst as XmlObject;
+			}
 		}
 		const actionStr = String(hyperlinkNode?.['@_action'] || '').trim();
 		if (actionStr) {
@@ -79,7 +88,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (slideTarget) {
 				const slideMatch = slideTarget.match(/slide(\d+)\.xml$/i);
 				if (slideMatch) {
-					style.hyperlinkTargetSlideIndex = parseInt(slideMatch[1], 10) - 1;
+					// The file number is NOT the slide's position: decks that were
+					// reordered or had slides deleted keep their part names. Resolve
+					// through the presentation's slide order (as shape-level actions
+					// do) and fall back to the file number only when the part is not
+					// in the list (e.g. while parsing a layout before slides load).
+					const slideNumber = parseInt(slideMatch[1], 10);
+					const orderIndex = this.orderedSlidePaths.findIndex(
+						(slidePath) => slidePath.match(/slide(\d+)\.xml$/i)?.[1] === String(slideNumber),
+					);
+					style.hyperlinkTargetSlideIndex = orderIndex >= 0 ? orderIndex : slideNumber - 1;
 				}
 			}
 		}
@@ -140,6 +158,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const glowColor = this.parseColor(glowNode);
 			if (glowColor) {
 				style.textGlowColor = glowColor;
+			}
+			// Preserve the original colour choice (e.g. `a:schemeClr`) so the
+			// writer can re-emit it instead of always resolving to a flat
+			// `a:srgbClr`, which would sever the glow from theme/Recolor changes.
+			const glowColorXml = extractColorChoiceXml(glowNode);
+			if (glowColorXml) {
+				style.textGlowColorXml = glowColorXml;
+			}
+			const glowColorRef = themeColorRefFromColorChoice(glowNode);
+			if (glowColorRef) {
+				style.textGlowColorRef = glowColorRef;
 			}
 			const glowOpacity = this.extractColorOpacity(glowNode);
 			if (glowOpacity !== undefined) {

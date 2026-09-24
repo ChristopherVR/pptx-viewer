@@ -1,5 +1,7 @@
 import { schemaLabel } from 'pptx-viewer-shared';
 
+import { createInspectorCheckbox, createInspectorSelect } from './controls-extra';
+
 /**
  * A caption plus its control, wrapped in one `<label>`.
  *
@@ -45,13 +47,11 @@ export function color(doc: Document, text: string, onCommit?: (hex: string) => v
 }
 
 export function checkbox(doc: Document, text: string) {
-	const result = input(doc, text);
-	result.control.type = 'checkbox';
-	return result;
+	return field(doc, text, createInspectorCheckbox(doc));
 }
 
 export function select(doc: Document, text: string, values: readonly string[]) {
-	const control = doc.createElement('select');
+	const control = createInspectorSelect(doc);
 	setOptions(
 		doc,
 		control,
@@ -75,7 +75,7 @@ export function optionSelect(
 	options: ReadonlyArray<{ value: string; labelKey: string }>,
 	translate: (key: string) => string,
 ) {
-	const control = doc.createElement('select');
+	const control = createInspectorSelect(doc);
 	setOptions(
 		doc,
 		control,
@@ -102,7 +102,7 @@ export function tokenSelect(
 	keys: Readonly<Record<string, string>>,
 	translate: (key: string) => string,
 ) {
-	const control = doc.createElement('select');
+	const control = createInspectorSelect(doc);
 	setOptions(
 		doc,
 		control,

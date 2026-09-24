@@ -145,7 +145,7 @@ const CONTROL =
 		<template v-else>
 			<label :class="FIELD">
 				<span :class="LABEL">{{ t('pptx.chart.type') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.chart.type')"
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-type"
@@ -155,7 +155,7 @@ const CONTROL =
 					<option v-for="opt in CHART_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<label :class="FIELD">
@@ -172,7 +172,7 @@ const CONTROL =
 
 			<label v-if="showGrouping" :class="FIELD">
 				<span :class="LABEL">{{ t('pptx.chart.grouping') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.chart.grouping')"
 					:class="['pptx-vue-chart-select', CONTROL]"
 					data-testid="chart-grouping"
@@ -182,7 +182,7 @@ const CONTROL =
 					<option v-for="opt in GROUPING_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<ChartDisplayOptions

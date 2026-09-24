@@ -207,6 +207,10 @@ export class EditorState {
 	editTemplateMode = $state(false);
 	interactionActive = $state(false);
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);
+	/** Ctrl/Cmd+Alt+V dialog visibility. */
+	pasteSpecialDialogOpen = $state(false);
+	/** The Paste Options toolbar's target: the elements a normal paste just inserted. */
+	pasteOptionsToolbar = $state.raw<{ id: string; sourceClone: PptxElement }[] | null>(null);
 	/**
 	 * File ▸ Info ▸ Protect Presentation state. Deliberately NOT part of
 	 * {@link EditorSnapshot}: the secret is session state, not document content,

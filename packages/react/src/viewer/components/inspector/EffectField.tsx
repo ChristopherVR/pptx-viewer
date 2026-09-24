@@ -2,6 +2,7 @@ import type { ShapeStyle } from 'pptx-viewer-core';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import type { EffectToggleCfg } from './fill-stroke-effect-configs';
 import { SEL, NUM, RNG, COL2, LBL, safeNum } from './FillStrokeHelpers';
 import { useRecentColors } from './RecentColorsContext';
@@ -36,7 +37,7 @@ export function EffectField({
 		return (
 			<label className={cls}>
 				<span className={LBL}>{fieldLabel}</span>
-				<select
+				<WebSelect
 					aria-label={fieldLabel}
 					value={String(val)}
 					onChange={(e) => {
@@ -50,7 +51,7 @@ export function EffectField({
 							{o.label}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 		);
 	}
@@ -74,7 +75,7 @@ export function EffectField({
 	if (field.type === 'checkbox') {
 		return (
 			<label className={`flex items-center gap-2 ${field.span2 ? COL2 : ''}`}>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					checked={Boolean(val)}
 					onChange={(e) => {

@@ -7,6 +7,7 @@ import {
 	createActiveAnimationGroup,
 	PresentationAnimationController,
 	playGroup,
+	resolveMediaBookmarkTimesMs,
 	resolveMediaTimeNodeElementIds,
 } from 'pptx-viewer-shared';
 import { useRef, useState, useCallback, useEffect } from 'react';
@@ -148,6 +149,15 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 	 */
 	const mediaTimeNodeElementIdsRef = useRef<ReadonlyMap<number, string>>(new Map());
 	/**
+	 * ElementId -> bookmarkName -> time(ms) lookup for the active slide (see
+	 * `resolveMediaBookmarkTimesMs`). Lets `applyAnimationGroupSteps` gate a
+	 * `p:cond/@evt="onMediaBookmark"` step on the REAL media element's
+	 * playback position instead of never firing.
+	 */
+	const mediaBookmarkTimesMsRef = useRef<ReadonlyMap<string, ReadonlyMap<string, number>>>(
+		new Map(),
+	);
+	/**
 	 * Whether the last seed REQUESTED completed entry (even when the slide had
 	 * no builds): a completed entry never starts playback of any kind.
 	 */
@@ -173,6 +183,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			playSound: playAnimationSound,
 			stopSound: stopAnimationSound,
 			mediaTimeNodeElementIds: mediaTimeNodeElementIdsRef.current,
+			mediaBookmarkTimesMs: mediaBookmarkTimesMsRef.current,
 		};
 	}, [onPlayActionSound]);
 
@@ -202,6 +213,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			if (!slide) {
 				controllerRef.current = null;
 				mediaTimeNodeElementIdsRef.current = new Map();
+				mediaBookmarkTimesMsRef.current = new Map();
 				setPresentationElementStates(new Map());
 				setPresentationKeyframesCss('');
 				setInteractiveTriggerShapeIds(new Set());
@@ -225,6 +237,7 @@ export function useAnimationPlayback(input: UseAnimationPlaybackInput): UseAnima
 			mediaTimeNodeElementIdsRef.current = resolveMediaTimeNodeElementIds(
 				slide.nativeAnimations ?? [],
 			);
+			mediaBookmarkTimesMsRef.current = resolveMediaBookmarkTimesMs(slide.elements);
 			setPresentationKeyframesCss(controller.keyframesCss);
 
 			// Expose interactive and hover trigger shape IDs for cursor styling

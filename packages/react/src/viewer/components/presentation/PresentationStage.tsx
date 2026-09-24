@@ -1,5 +1,6 @@
 import type { PptxAction, PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { PRESENTATION_HIT_TEST_CSS, PRESENTATION_STAGE_ATTRIBUTE } from 'pptx-viewer-shared';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 /**
  * PresentationStage: the slide show surface.
  *
@@ -47,7 +48,7 @@ export interface PresentationStageProps {
 	onHyperlinkClick?: (url: string) => void;
 	/** All slides, so zoom links and slide jumps can resolve their target. */
 	allSlides?: PptxSlide[];
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	sourceSlideIndex?: number;
 	fieldContext?: FieldSubstitutionContext;
 	tableStyleContext?: TableStyleContext;

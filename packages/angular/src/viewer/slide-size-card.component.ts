@@ -22,7 +22,15 @@
  * pending prompt unanswered does not commit until the user picks a mode (or
  * there is nothing to scale, in which case it commits immediately, as before).
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	signal,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
@@ -47,6 +55,7 @@ import { LoadContentService } from './load-content.service';
 const CUSTOM_PRESET_VALUE = '';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-slide-size-card',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -56,15 +65,9 @@ const CUSTOM_PRESET_VALUE = '';
 			<h3 class="icard__heading">{{ 'pptx.slideSize.title' | translate }}</h3>
 			<label class="icard__col">
 				<span class="icard__label">{{ 'pptx.slideSize.presets' | translate }}</span>
-				<!--
-					Selection is marked per OPTION, not with a value binding on the select.
-					Angular applies an element's own property bindings before the @for
-					inside it has produced any options, so the value binding was assigned
-					against an empty list and silently fell back to option 0: a 16:9 deck
-					opened reading "On-screen Show (4:3)".
-				-->
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.slideSize.presets' | translate"
+					[attr.value]="selectedPresetValue()"
 					class="icard__select"
 					data-pptx-slide-size-preset
 					[disabled]="!canEdit()"
@@ -83,7 +86,7 @@ const CUSTOM_PRESET_VALUE = '';
 							{{ 'pptx.slideSize.preset.' + preset.labelKey | translate }}
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="icard__col">
 				<span class="icard__label">{{ 'pptx.slideSize.orientation' | translate }}</span>

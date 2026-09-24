@@ -80,9 +80,13 @@ interface OleActionFooterProps {
  * launch the native desktop application, so the actions are labelled "Download"
  * / "Open", never "Edit".
  */
-function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
+function OleActionFooter({
+	el,
+	info,
+	showActions,
+}: OleActionFooterProps & { showActions: boolean }): React.ReactNode {
 	const { t } = useTranslation();
-	if (!info.canDownload || !el.oleEmbeddedData) {
+	if (!showActions || !info.canDownload || !el.oleEmbeddedData) {
 		return null;
 	}
 	const downloadName = info.fileName ?? 'embedded-object';
@@ -125,6 +129,17 @@ function OleActionFooter({ el, info }: OleActionFooterProps): React.ReactNode {
 
 export interface OleRendererProps {
 	element: OlePptxElement;
+	/**
+	 * Whether the interactive Download / Open action footer may render at all.
+	 *
+	 * Defaults to `true` (the editable canvas). Callers painting a STILL of a
+	 * slide (thumbnail rail, presenter console panes, export raster) or the
+	 * live presentation stage must pass `false`: a slide thumbnail is rendered
+	 * INSIDE a `<button aria-label="Go to slide N">`, so the footer's own
+	 * `<button>` would otherwise be invalid, un-clickable nested-button markup.
+	 * See the shared `oleActionsVisible` decision.
+	 */
+	showActions?: boolean;
 }
 
 /**
@@ -133,7 +148,10 @@ export interface OleRendererProps {
  * tooltip, and - when the embedded payload was recovered on load - an
  * unobtrusive hover footer with Download / Open actions.
  */
-export function OleRenderer({ element: el }: OleRendererProps): React.ReactNode {
+export function OleRenderer({
+	element: el,
+	showActions = true,
+}: OleRendererProps): React.ReactNode {
 	const oleType = resolveOleType(el);
 	const ariaLabel = getOleAriaLabel(el);
 	const info = buildEmbedInfo(el);
@@ -154,7 +172,7 @@ export function OleRenderer({ element: el }: OleRendererProps): React.ReactNode 
 					draggable={false}
 				/>
 				{renderOleBadge(oleType)}
-				<OleActionFooter el={el} info={info} />
+				<OleActionFooter el={el} info={info} showActions={showActions} />
 			</div>
 		);
 	}
@@ -183,7 +201,7 @@ export function OleRenderer({ element: el }: OleRendererProps): React.ReactNode 
 			<span className='mt-0.5 text-[10px] text-white/50 max-w-[90%] truncate'>
 				{info.readableSize ? `${label} · ${info.readableSize}` : label}
 			</span>
-			<OleActionFooter el={el} info={info} />
+			<OleActionFooter el={el} info={info} showActions={showActions} />
 		</div>
 	);
 }

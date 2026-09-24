@@ -6,6 +6,7 @@ import {
 	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaBookmarkTimesMs,
 	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
@@ -163,6 +164,7 @@ export class AnimationPlayback {
 		if (!slide || !this.#animationsEnabled()) {
 			this.#controller = null;
 			this.#ctx.mediaTimeNodeElementIds = new Map();
+			this.#ctx.mediaBookmarkTimesMs = new Map();
 			this.#states = new Map();
 			this.#keyframesCss = '';
 			this.#interactiveTriggerShapeIds = new Set();
@@ -188,6 +190,9 @@ export class AnimationPlayback {
 		this.#ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(
 			slide.nativeAnimations ?? [],
 		);
+		// Lets a `p:cond/@evt="onMediaBookmark"`-gated step gate on the REAL
+		// media element's playback position instead of never firing.
+		this.#ctx.mediaBookmarkTimesMs = resolveMediaBookmarkTimesMs(slide.elements);
 		this.#keyframesCss = controller.keyframesCss;
 		this.#interactiveTriggerShapeIds = controller.interactiveTriggerShapeIds;
 		this.#hoverTriggerShapeIds = controller.hoverTriggerShapeIds;

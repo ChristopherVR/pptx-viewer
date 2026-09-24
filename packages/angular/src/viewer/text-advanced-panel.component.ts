@@ -18,11 +18,19 @@
  * @module viewer/text-advanced-panel
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { isSelectControl, isCheckboxControl } from './control-event-targets';
 import {
 	ALIGN_OPTIONS,
 	TEXT_DIRECTION_OPTIONS,
@@ -38,6 +46,7 @@ import {
 import type { TextAdvancedState } from './text-advanced-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-text-advanced-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -73,7 +82,7 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 						<label class="pptx-ng-txadv__label" for="txadv-valign">{{
 							'pptx.textAdvanced.vAlign' | translate
 						}}</label>
-						<select
+						<pptx-ui-select
 							id="txadv-valign"
 							class="pptx-ng-txadv__select"
 							[value]="state().vAlign"
@@ -84,7 +93,7 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 									{{ opt[1] }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</div>
 				</section>
 
@@ -94,7 +103,7 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 						<label class="pptx-ng-txadv__label" for="txadv-dir">{{
 							'pptx.animation.direction' | translate
 						}}</label>
-						<select
+						<pptx-ui-select
 							id="txadv-dir"
 							class="pptx-ng-txadv__select"
 							[value]="state().textDirection"
@@ -105,18 +114,17 @@ import type { TextAdvancedState } from './text-advanced-helpers';
 									{{ opt[1] }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</div>
 
 					<div class="pptx-ng-txadv__row">
 						<label class="pptx-ng-txadv__label" for="txadv-rtl">
-							<input
+							<pptx-ui-checkbox
 								id="txadv-rtl"
-								type="checkbox"
 								class="pptx-ng-txadv__checkbox"
 								[checked]="state().rtl"
 								(change)="onRtlToggle($event)"
-							/>
+							></pptx-ui-checkbox>
 							{{ 'pptx.textAdvanced.rtl' | translate }}
 						</label>
 					</div>
@@ -551,7 +559,7 @@ function numberFromEvent(event: Event): number | null {
 
 function selectValueFromEvent(event: Event): string | null {
 	const target = event.target;
-	if (!(target instanceof HTMLSelectElement)) {
+	if (!isSelectControl(target)) {
 		return null;
 	}
 	const val = target.value.trim();
@@ -560,7 +568,7 @@ function selectValueFromEvent(event: Event): string | null {
 
 function checkedFromEvent(event: Event): boolean | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement)) {
+	if (!isCheckboxControl(target)) {
 		return null;
 	}
 	return target.checked;

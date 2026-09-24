@@ -33,6 +33,7 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 import { inspector, resetTabSession } from './support/deck';
+import { chooseSelectValue, expectSelectValue } from './support/select-control';
 
 /**
  * A deck whose first slide is a connector.
@@ -162,9 +163,9 @@ test.describe('inspector edits are undoable', () => {
 		await loadFixture(page);
 		await selectConnector(page);
 
-		await expect(endArrow(page)).toHaveValue('none');
-		await endArrow(page).selectOption('diamond');
-		await expect(endArrow(page)).toHaveValue('diamond');
+		await expectSelectValue(endArrow(page), 'none');
+		await chooseSelectValue(page, endArrow(page), 'diamond');
+		await expectSelectValue(endArrow(page), 'diamond');
 
 		await expect(undoButton(page)).toBeEnabled();
 	});
@@ -172,20 +173,20 @@ test.describe('inspector edits are undoable', () => {
 	test('undo puts a dropdown edit back', async ({ page }) => {
 		await loadFixture(page);
 		await selectConnector(page);
-		await endArrow(page).selectOption('diamond');
+		await chooseSelectValue(page, endArrow(page), 'diamond');
 		await expect(undoButton(page)).toBeEnabled();
 
 		await undoButton(page).click();
 
 		await selectConnector(page);
-		await expect(endArrow(page)).toHaveValue('none');
+		await expectSelectValue(endArrow(page), 'none');
 	});
 
 	test('the keyboard shortcut reverts an inspector edit too', async ({ page }) => {
 		await loadFixture(page);
 		await selectConnector(page);
-		await endArrow(page).selectOption('diamond');
-		await expect(endArrow(page)).toHaveValue('diamond');
+		await chooseSelectValue(page, endArrow(page), 'diamond');
+		await expectSelectValue(endArrow(page), 'diamond');
 
 		// The button and Ctrl+Z must not disagree: while the stack was empty the
 		// button merely LOOKED broken, and pressing the shortcut proved the edit
@@ -193,7 +194,7 @@ test.describe('inspector edits are undoable', () => {
 		await page.keyboard.press('Control+z');
 
 		await selectConnector(page);
-		await expect(endArrow(page)).toHaveValue('none');
+		await expectSelectValue(endArrow(page), 'none');
 	});
 
 	test('entering a text box and leaving without typing is not an undo step', async ({ page }) => {
@@ -225,15 +226,15 @@ test.describe('inspector edits are undoable', () => {
 
 		await typeInto(positionX(page), X_AFTER);
 		await expect(positionX(page)).toHaveValue(X_AFTER);
-		await endArrow(page).selectOption('diamond');
-		await expect(endArrow(page)).toHaveValue('diamond');
+		await chooseSelectValue(page, endArrow(page), 'diamond');
+		await expectSelectValue(endArrow(page), 'diamond');
 
 		// One undo rolls back only the dropdown, leaving the earlier geometry
 		// edit alone. A binding that coalesced both into a single snapshot, or
 		// recorded only the last edit, fails here.
 		await undoButton(page).click();
 		await selectConnector(page);
-		await expect(endArrow(page)).toHaveValue('none');
+		await expectSelectValue(endArrow(page), 'none');
 		await expect(positionX(page)).toHaveValue(X_AFTER);
 
 		await undoButton(page).click();

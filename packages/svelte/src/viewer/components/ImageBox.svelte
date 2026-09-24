@@ -7,6 +7,7 @@
 	 */
 	import { isImageLikeElement } from 'pptx-viewer-core';
 	import {
+		getCachedNativeImageSize,
 		getComputedImageStyle,
 		getCropShapeClipPath,
 		getImageColorWashStyle,
@@ -14,10 +15,12 @@
 		getImageFitStyle,
 		getImageOverflow,
 		getImageTilingStyle,
+		probeNativeImageSize,
 		resolveColorChangedImageSource,
 		resolveShapeGeometry,
 		shouldRenderHitTarget,
 	} from 'pptx-viewer-shared';
+	import type { NativeImageSize } from 'pptx-viewer-shared';
 
 	import { getContainerStyle, getElementHitTargetStyle, getImageSrc, styleToString } from '../style';
 	import type { ElementRendererProps } from './props';
@@ -111,10 +114,34 @@
 			});
 		}
 	});
+	// The picture's native (unscaled) pixel size, probed asynchronously and
+	// cached (see `pptx-viewer-shared`'s `image-native-size`). `a:tile/@sx`/
+	// `@sy` (ECMA-376 §20.1.8.58) is a percentage of THIS, not of the
+	// container, so `tiling` below re-derives with an absolute-pixel size once
+	// it resolves; until then it falls back to the container-relative percent.
+	let nativeSize = $state<NativeImageSize | undefined>();
+	$effect(() => {
+		const src = imageSrc;
+		const cached = getCachedNativeImageSize(src);
+		if (cached) {
+			nativeSize = cached;
+			return;
+		}
+		nativeSize = undefined;
+		if (!src) {
+			return;
+		}
+		void probeNativeImageSize(src).then((size) => {
+			if (size && src === imageSrc) {
+				nativeSize = size;
+			}
+			return undefined;
+		});
+	});
 	// `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express,
 	// so the picture paints as a repeating background layer instead. `undefined`
 	// for a normal (untiled) picture, which keeps the `<img>` branch.
-	const tiling = $derived(getImageTilingStyle(element));
+	const tiling = $derived(getImageTilingStyle(element, nativeSize));
 	const tileStyle = $derived(
 		tiling
 			? styleToString({

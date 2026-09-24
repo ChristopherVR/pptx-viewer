@@ -38,6 +38,20 @@ describe('buildContentPartStrokes - plain path (no pressure, no tilt)', () => {
 	});
 });
 
+describe('buildContentPartStrokes - highlighter blend mode', () => {
+	it('is "normal" for a fully opaque (pen) stroke', () => {
+		const el = makeElement([{ path: 'M 0 0 L 10 10', color: '#000', width: 2, opacity: 1 }]);
+		const [view] = buildContentPartStrokes(el);
+		expect(view.blendMode).toBe('normal');
+	});
+
+	it('is "multiply" for a translucent (highlighter) stroke, since a loaded contentPart carries no explicit tool flag', () => {
+		const el = makeElement([{ path: 'M 0 0 L 10 10', color: '#ff0', width: 8, opacity: 0.4 }]);
+		const [view] = buildContentPartStrokes(el);
+		expect(view.blendMode).toBe('multiply');
+	});
+});
+
 describe('buildContentPartStrokes - pressure circles (no tilt)', () => {
 	it('should render pressure circles when pressures vary and no tilt data is present', () => {
 		const el = makeElement([

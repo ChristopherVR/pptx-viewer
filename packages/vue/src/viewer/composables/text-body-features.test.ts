@@ -36,6 +36,17 @@ describe('vue text-body features', () => {
 		expect(style.columnGap).toBe('16px');
 	});
 
+	it('fills numCol columns sequentially and honours @anchor/@rtlCol', () => {
+		const style = getTextBlockStyle(
+			textShape({
+				textStyle: { columnCount: 2, vAlign: 'middle', rtlColumns: true },
+			} as Partial<PptxElement>),
+		);
+		expect(style.columnFill).toBe('auto');
+		expect(style.alignContent).toBe('center');
+		expect(style.direction).toBe('rtl');
+	});
+
 	it('advances a tab by `defTabSz` rather than the browser default', () => {
 		const style = getTextBlockStyle(
 			textShape({ textStyle: { defaultTabSize: 48 } } as Partial<PptxElement>),
@@ -43,11 +54,13 @@ describe('vue text-body features', () => {
 		expect(style.tabSize).toBe('48px');
 	});
 
-	it('centres the text bounding box for `anchorCtr`', () => {
+	it('centres the shared bounding box of every paragraph for `anchorCtr`', () => {
 		const style = getTextBlockStyle(
 			textShape({ textStyle: { anchorCenter: true } } as Partial<PptxElement>),
 		);
-		expect(style.alignItems).toBe('center');
+		expect(style.width).toBe('fit-content');
+		expect(style.marginLeft).toBe('auto');
+		expect(style.marginRight).toBe('auto');
 	});
 
 	it('clips a `vertOverflow="clip"` body instead of letting it spill', () => {

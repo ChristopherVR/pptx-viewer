@@ -9,6 +9,8 @@ import { schemaLabel, THEME_COLOR_SLOT_LABEL_KEYS } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
+
 // ---------------------------------------------------------------------------
 // Props
 // ---------------------------------------------------------------------------
@@ -133,7 +135,7 @@ export function SlideThemeOverridePanel({
 	return (
 		<div className='space-y-2'>
 			<label className='inline-flex items-center gap-2 text-xs'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					disabled={!canEdit}
 					checked={isOverrideActive}
@@ -159,7 +161,7 @@ export function SlideThemeOverridePanel({
 										backgroundColor: resolvedHex ? `#${resolvedHex.replace(/^#/, '')}` : undefined,
 									}}
 								/>
-								<select
+								<WebSelect
 									disabled={!canEdit}
 									className='flex-1 bg-muted border border-border rounded px-1 py-0.5 text-[11px]'
 									value={currentTarget}
@@ -175,7 +177,7 @@ export function SlideThemeOverridePanel({
 											{schemaLabel(THEME_COLOR_SLOT_LABEL_KEYS, slot, translate)}
 										</option>
 									))}
-								</select>
+								</WebSelect>
 							</div>
 						);
 					})}

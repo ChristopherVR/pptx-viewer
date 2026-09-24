@@ -1,6 +1,6 @@
 {
 	"name": "pptx-viewer-core",
-	"version": "4.0.2",
+	"version": "4.2.0",
 	"description": "PowerPoint PPTX engine: parse, edit, serialize, and convert .pptx files. Framework-agnostic TypeScript SDK.",
 	"keywords": [
 		"angular",
@@ -76,7 +76,7 @@
 		"pack": "bun run build && bun pm pack"
 	},
 	"dependencies": {
-		"emf-converter": "^3.0.1",
+		"emf-converter": "^3.3.0",
 		"fast-xml-parser": "^5.11.1",
 		"jszip": "^3.10.2",
 		"mtx-decompressor": "^1.6.0",

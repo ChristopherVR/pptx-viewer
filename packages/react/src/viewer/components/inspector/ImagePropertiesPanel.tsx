@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 import { ArtisticEffectsGallery } from './ArtisticEffectsGallery';
 import { ColorChangeSection } from './ColorChangeSection';
 import { ColorWashSection } from './ColorWashSection';
@@ -100,7 +101,7 @@ export function ImagePropertiesPanel({
 				<div className='grid grid-cols-2 gap-1.5 text-[11px]'>
 					<label className='flex items-center justify-between gap-2'>
 						<span className='text-muted-foreground'>{t('pptx.image.grayscale')}</span>
-						<input
+						<WebCheckbox
 							type='checkbox'
 							disabled={!canEdit}
 							checked={Boolean(fx?.grayscale)}

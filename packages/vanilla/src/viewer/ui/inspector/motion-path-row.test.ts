@@ -11,8 +11,8 @@ import { createMotionPathRow } from './motion-path-row';
 
 const t = createTranslator();
 
-function selectOf(el: HTMLElement): HTMLSelectElement {
-	const select = el.querySelector('select');
+function selectOf(el: HTMLElement): HTMLElementTagNameMap['pptx-ui-select'] {
+	const select = el.querySelector('pptx-ui-select');
 	if (!select) {
 		throw new Error('motion path row has no select');
 	}

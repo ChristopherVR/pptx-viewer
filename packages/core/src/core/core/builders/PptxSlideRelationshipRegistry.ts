@@ -34,6 +34,17 @@ export function isExternalTarget(target: string): boolean {
 	return /^[A-Za-z][A-Za-z0-9+\-.]*$/.test(scheme);
 }
 
+const SLIDE_RELATIONSHIP_TYPE =
+	'http://schemas.openxmlformats.org/officeDocument/2006/relationships/slide';
+
+/**
+ * Whether a relationship target names a slide part inside this package
+ * (`slide3.xml`, `./slide3.xml`, `../slides/slide3.xml`).
+ */
+export function isInternalSlideTarget(target: string): boolean {
+	return /^(?:\.\/|\.\.\/slides\/)?slide\d+\.xml$/iu.test(target.trim());
+}
+
 export interface PptxSlideCommentRelationshipInfo {
 	relationshipId: string;
 	target: string;
@@ -148,8 +159,17 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 			return cachedRelationshipId;
 		}
 
+		// A same-package slide target (`slide3.xml`, `../slides/slide3.xml`) is a
+		// slide jump: CT_Hyperlink with `ppaction://hlinksldjump` must point at a
+		// `.../relationships/slide` relationship. Writing it as a `hyperlink`
+		// relationship without `TargetMode="External"` is an invalid package
+		// that PowerPoint refuses to open.
+		const relationshipType =
+			!forceExternal && isInternalSlideTarget(normalizedTarget)
+				? SLIDE_RELATIONSHIP_TYPE
+				: this.hyperlinkRelationshipType;
 		const existingRelationship = this.relationships.find((relationship) => {
-			if (relationship?.['@_Type'] !== this.hyperlinkRelationshipType) {
+			if (relationship?.['@_Type'] !== relationshipType) {
 				return false;
 			}
 			const relationshipTarget = String(relationship?.['@_Target'] || '').trim();
@@ -163,12 +183,7 @@ export class PptxSlideRelationshipRegistry implements IPptxSlideRelationshipRegi
 
 		const relationshipId = this.nextRelationshipId();
 		const targetMode = forceExternal || isExternalTarget(normalizedTarget) ? 'External' : undefined;
-		this.upsertRelationship(
-			relationshipId,
-			this.hyperlinkRelationshipType,
-			normalizedTarget,
-			targetMode,
-		);
+		this.upsertRelationship(relationshipId, relationshipType, normalizedTarget, targetMode);
 		this.hyperlinkRelationshipIdByTarget.set(normalizedTarget, relationshipId);
 		return relationshipId;
 	}

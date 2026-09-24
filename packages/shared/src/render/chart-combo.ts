@@ -10,7 +10,12 @@ import {
 } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
-import { appendBarLabels, appendLineSeries } from './chart-combo-series';
+import {
+	appendComboBarClusterLabels,
+	computeComboBarCluster,
+	groupComboSeriesIndices,
+} from './chart-combo-classify';
+import { appendAreaSeries, appendLineSeries } from './chart-combo-series';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
@@ -18,6 +23,7 @@ import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type { LegendSwatchKind } from './chart-legend-swatch';
 import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-overlays';
+import { computeComboStockOverlay, findComboStockSeries } from './chart-stock-candles';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -29,7 +35,6 @@ import {
 	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
-	computeBarRects,
 	computePlotLayout,
 } from './chart-view-model';
 
@@ -126,11 +131,16 @@ export function buildComboViewModel(
 	);
 	const sourceIndices = horizontalAxis.sourceIndices;
 	const legendPos = chartData.style?.legendPosition ?? 'b';
-	// The combo layout below is fixed: series 0 is the bar, every other series
-	// is a line (see `barSeries`/`lineSeries` just below), so the legend swatch
-	// follows the same split (bar -> rect, line -> line+marker sample).
+	// Which lane (bar rect vs. line+marker) each series renders in: its own
+	// `seriesChartType` tag when the combo's source XML carries one, or the
+	// legacy "series 0 is the bar, everything else is a line" guess when it
+	// doesn't (see chart-combo-classify.ts). The legend swatch follows the
+	// same split.
+	const { barIndices, lineIndices, areaIndices } = groupComboSeriesIndices(chartData.series);
+	const barIndexSet = new Set(barIndices);
+	const areaIndexSet = new Set(areaIndices);
 	const comboSwatchKinds: LegendSwatchKind[] = chartData.series.map((_s, i) =>
-		i === 0 ? 'rect' : 'line',
+		barIndexSet.has(i) || areaIndexSet.has(i) ? 'rect' : 'line',
 	);
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -144,53 +154,72 @@ export function buildComboViewModel(
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
 
-	// Drop / hi-low / up-down helper lines, drawn behind the combo marks.
-	const helperOpts = { mode: 'line' as const, xPositions: horizontalAxis.xPositions };
+	// A volume+stock combo (`c:barChart` volume + `c:stockChart` HLC/OHLC price
+	// series) draws its own hi-lo wick / candle body below from the price
+	// series alone, on their own axis. Running the generic drop/hi-low/up-down
+	// helper here would wrongly fold the volume bar into the "highest/lowest
+	// series per category" calculation those helpers do over ALL series.
+	const stockEntries = findComboStockSeries(chartData.series);
+	const isStockCombo = stockEntries.length >= 3;
+	const stockIndexes = new Set(stockEntries.map((entry) => entry.index));
+	if (!isStockCombo) {
+		const helperOpts = { mode: 'line' as const, xPositions: horizontalAxis.xPositions };
+		primitives.push(
+			...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
+		);
+	}
+
 	primitives.push(
-		...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
+		...computeComboBarCluster(
+			barIndices,
+			chartData,
+			catCount,
+			layout,
+			primaryRange,
+			secondaryRange,
+			secondaryIndexes,
+			sourceIndices,
+			horizontalAxis.xPositions,
+		),
+	);
+	appendComboBarClusterLabels(
+		barIndices,
+		chartData,
+		layout,
+		catCount,
+		primaryRange,
+		secondaryRange,
+		secondaryIndexes,
+		sourceIndices,
+		dataLabels,
+		horizontalAxis.xPositions,
 	);
 
-	const barSeries = chartData.series.slice(0, 1);
-	if (barSeries[0]) {
-		const barRange = rangeForSeries(0, primaryRange, secondaryRange, secondaryIndexes);
-		const displayBarSeries = [
-			{ ...barSeries[0], values: sourceIndices.map((index) => barSeries[0].values[index] ?? 0) },
-		];
-		primitives.push(
-			...computeBarRects(displayBarSeries, catCount, layout, barRange, chartData.colorPalette).map(
-				(rect, displayIndex) => ({
-					kind: 'rect' as const,
-					x: horizontalAxis.xPositions
-						? (horizontalAxis.xPositions[displayIndex] ?? rect.x) - rect.w / 2
-						: rect.x,
-					y: rect.y,
-					w: rect.w,
-					h: rect.h,
-					fill: rect.fill,
-					rx: 1,
-					part: {
-						role: 'dataPoint' as const,
-						seriesIndex: 0,
-						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-					},
-				}),
-			),
-		);
-		appendBarLabels(
-			barSeries[0],
+	const barGroupWidth = layout.plotWidth / catCount;
+	// Area lane first so its filled polygon paints behind bar/line marks that
+	// share the same category slot, matching PowerPoint's own draw order.
+	for (const seriesIndex of areaIndices) {
+		const series = chartData.series[seriesIndex];
+		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
+		appendAreaSeries(
+			series,
+			seriesIndex,
 			chartData,
 			layout,
-			catCount,
-			barRange,
+			range,
+			barGroupWidth,
 			sourceIndices,
+			primitives,
 			dataLabels,
 			horizontalAxis.xPositions,
 		);
 	}
-
-	const barGroupWidth = layout.plotWidth / catCount;
-	chartData.series.slice(1).forEach((series, offset) => {
-		const seriesIndex = offset + 1;
+	for (const seriesIndex of lineIndices) {
+		// The stock-tagged series are drawn as candles below, not as lines.
+		if (stockIndexes.has(seriesIndex)) {
+			continue;
+		}
+		const series = chartData.series[seriesIndex];
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
 		appendLineSeries(
 			series,
@@ -204,7 +233,23 @@ export function buildComboViewModel(
 			dataLabels,
 			horizontalAxis.xPositions,
 		);
-	});
+	}
+
+	if (isStockCombo) {
+		const closeIndex = stockEntries[stockEntries.length - 1].index;
+		const stockRange = rangeForSeries(closeIndex, primaryRange, secondaryRange, secondaryIndexes);
+		const overlay = computeComboStockOverlay(
+			stockEntries,
+			chartData,
+			layout,
+			stockRange,
+			catCount,
+			sourceIndices,
+			horizontalAxis.xPositions,
+		);
+		primitives.push(...overlay.primitives);
+		dataLabels.push(...overlay.dataLabels);
+	}
 	primitives.push(...horizontalAxis.tickMarks);
 	const displayChartData = horizontalAxis.displayChartData;
 	// Overlay depth. Error bars were already here; trendlines, axis titles and
@@ -216,7 +261,9 @@ export function buildComboViewModel(
 			seriesRanges: chartData.series.map((_series, index) =>
 				rangeForSeries(index, primaryRange, secondaryRange, secondaryIndexes),
 			),
-			seriesModes: chartData.series.map((_series, index) => (index === 0 ? 'bar' : 'line')),
+			seriesModes: chartData.series.map((_series, index) =>
+				barIndexSet.has(index) ? 'bar' : 'line',
+			),
 		}),
 		...computeTrendlinePrimitives(
 			displayChartData,

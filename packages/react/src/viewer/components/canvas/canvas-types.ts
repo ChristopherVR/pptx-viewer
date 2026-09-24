@@ -13,6 +13,7 @@ import type {
 	CollaborationLivePatcher,
 	InlineTextEditSnapshot,
 	InlineListReadResult,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 import React from 'react';
 
@@ -198,7 +199,7 @@ export interface SlideCanvasProps {
 	/** All slides in the presentation (for zoom element thumbnails). */
 	allSlides?: readonly PptxSlide[];
 	/** Callback fired when a zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** Index of the current slide (for zoom return navigation). */
 	sourceSlideIndex?: number;
 

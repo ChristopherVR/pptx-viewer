@@ -199,7 +199,7 @@ describe('buildSingleEffectNode', () => {
 		expect(effectCTn['@_repeatCount']).toBe('3000');
 	});
 
-	it('sets indefinite repeat for untilNextClick mode', () => {
+	it('sets indefinite repeat plus an onNext end condition for untilNextClick mode', () => {
 		const anim: PptxElementAnimation = {
 			elementId: 'sp1',
 			durationMs: 500,
@@ -210,7 +210,14 @@ describe('buildSingleEffectNode', () => {
 		const innerPar = (outerCTn['p:childTnLst'] as XmlObject)['p:par'] as XmlObject;
 		const effectCTn = innerPar['p:cTn'] as XmlObject;
 		expect(effectCTn['@_repeatCount']).toBe('indefinite');
-		expect(effectCTn['@_restart']).toBe('whenNotActive');
+		// COM-verified (PowerPoint 2016): "Until Next Click" repeats
+		// indefinitely until an explicit onNext end condition stops it; there
+		// is no @restart attribute involved ("Until End of Slide" is the bare
+		// repeatCount="indefinite" with no end condition at all).
+		const endCondLst = effectCTn['p:endCondLst'] as XmlObject;
+		const cond = endCondLst['p:cond'] as XmlObject;
+		expect(cond['@_evt']).toBe('onNext');
+		expect((cond['p:tgtEl'] as XmlObject)['p:sldTgt']).toBeDefined();
 	});
 
 	it('includes sound reference when soundRId is set', () => {

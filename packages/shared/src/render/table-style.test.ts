@@ -312,6 +312,64 @@ describe('getTableCellBandStyle', () => {
 	});
 });
 
+describe('getTableCellBandStyle - tableBackground (a:tblBg) layering (issue: item 2)', () => {
+	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-0000000000A2}';
+
+	function plainTable(): PptxTableData {
+		return {
+			rows: [],
+			columnWidths: [0.5, 0.5],
+			tableStyleId: STYLE_ID,
+		} as unknown as PptxTableData;
+	}
+
+	it('paints the tblBg background when wholeTblFill is noFill ("Themed Style 2")', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#123456' } },
+				wholeTblFill: { schemeColor: '', noFill: true },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#123456');
+	});
+
+	it('lets a real wholeTblFill still win over the tblBg background', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#123456' } },
+				wholeTblFill: { schemeColor: '', color: '#abcdef' },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#abcdef');
+	});
+
+	it('renders the tblBg background alone when the style has no wholeTblFill at all', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#654321' } },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 0, 0, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#654321');
+	});
+
+	it('stays transparent when neither tblBg nor wholeTblFill paint anything', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				wholeTblFill: { schemeColor: '', noFill: true },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('transparent');
+	});
+});
+
 describe('getTableCellBandStyle - table-style borders (issue #71)', () => {
 	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-000000000071}';
 
@@ -547,5 +605,59 @@ describe('tableContainerCss', () => {
 		expect(tableContainerCss({ rows: [], columnWidths: [1], rtl: true })).toStrictEqual({
 			direction: 'rtl',
 		});
+	});
+
+	it('declares the master otherStyle default cell font size (item 3)', () => {
+		// Cell text with no explicit a:rPr@sz (and no table-style size override -
+		// OOXML table styles never carry one) previously fell back to the
+		// browser's own default font size (16px / 12pt) instead of the master's
+		// p:otherStyle default (commonly 18pt). Declaring it on the <table> lets
+		// ordinary CSS inheritance supply it to every cell that sets none.
+		expect(
+			tableContainerCss({ rows: [], columnWidths: [1], defaultCellFontSize: 18 }),
+		).toStrictEqual({ fontSize: '18pt' });
+	});
+
+	it('combines rtl and the default font size', () => {
+		expect(
+			tableContainerCss({ rows: [], columnWidths: [1], rtl: true, defaultCellFontSize: 20 }),
+		).toStrictEqual({ direction: 'rtl', fontSize: '20pt' });
+	});
+});
+
+describe('cellStyleToCss vertical text direction', () => {
+	it('rotates every glyph (sideways) for vert, but keeps CJK upright (mixed) for eaVert', () => {
+		expect(cellStyleToCss({ textDirection: 'vert' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'sideways',
+		});
+		expect(cellStyleToCss({ textDirection: 'eaVert' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'mixed',
+		});
+	});
+
+	it('grows a wordArtVert column right and its Rtl sibling left, both upright', () => {
+		expect(cellStyleToCss({ textDirection: 'wordArtVert' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'upright',
+		});
+		expect(cellStyleToCss({ textDirection: 'wordArtVertRtl' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'upright',
+		});
+	});
+
+	it('only vert270 reads bottom-to-top', () => {
+		expect(cellStyleToCss({ textDirection: 'vert270' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'sideways',
+			direction: 'rtl',
+		});
+		expect(cellStyleToCss({ textDirection: 'mongolianVert' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'mixed',
+		});
+		expect(cellStyleToCss({ textDirection: 'mongolianVert' }).direction).toBeUndefined();
 	});
 });

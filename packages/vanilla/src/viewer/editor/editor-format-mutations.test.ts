@@ -14,6 +14,7 @@ import {
 	setFontFamily,
 	setFontSize,
 	setTextColor,
+	stepFontSize,
 	toggleTextProp,
 	toggleTextShadow,
 } from './editor-format-mutations';
@@ -113,6 +114,14 @@ describe('editor-format-mutations text', () => {
 		expect(grown.textStyle.fontSize).toBeCloseTo(17.5 * (96 / 72));
 		const clamped = setFontSize(textElement(), -100) as { textStyle: { fontSize?: number } };
 		expect(clamped.textStyle.fontSize).toBeCloseTo(1 * (96 / 72));
+	});
+
+	it('steps the font size along the PowerPoint size ladder, not by a flat delta', () => {
+		// textElement() is 18px = 13.5pt: the ladder's next rung up is 14, down is 12.
+		const grown = stepFontSize(textElement(), 'increase') as { textStyle: { fontSize?: number } };
+		expect(grown.textStyle.fontSize).toBeCloseTo(14 * (96 / 72));
+		const shrunk = stepFontSize(textElement(), 'decrease') as { textStyle: { fontSize?: number } };
+		expect(shrunk.textStyle.fontSize).toBeCloseTo(12 * (96 / 72));
 	});
 
 	it('reads the effective format state', () => {

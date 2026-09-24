@@ -134,6 +134,29 @@ describe('contentPartView', () => {
 		expect(ellipses?.[0].getAttribute('fill')).toBe('#123456');
 	});
 
+	it('applies multiply blending to a translucent stroke (opacity heuristic), on the stroke itself not the container', () => {
+		const target = mountEl(
+			contentPartElement({
+				inkStrokes: [{ path: 'M 0 0 L 10 10', color: '#ffff00', width: 6, opacity: 0.4 }],
+			}),
+		);
+		const svg = target.querySelector('svg.pptx-svelte-contentpart-svg');
+		expect(svg?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+		expect(svg?.querySelector('path')?.getAttribute('style') ?? '').toContain(
+			'mix-blend-mode: multiply',
+		);
+	});
+
+	it('does not apply multiply blending to a fully opaque stroke', () => {
+		const target = mountEl(
+			contentPartElement({
+				inkStrokes: [{ path: 'M 0 0 L 10 10', color: '#000000', width: 2, opacity: 1 }],
+			}),
+		);
+		const style = target.querySelector('svg path')?.getAttribute('style') ?? '';
+		expect(style).not.toContain('mix-blend-mode');
+	});
+
 	it('renders a labelled fallback box when there are no ink strokes', () => {
 		const target = mountEl(contentPartElement({}));
 		expect(target.querySelector('svg')).toBeNull();

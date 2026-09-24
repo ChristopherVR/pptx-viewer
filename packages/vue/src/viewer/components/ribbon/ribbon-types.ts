@@ -281,6 +281,11 @@ export interface RibbonProps {
 	onOpenSettings?: () => void;
 	onRunAccessibilityCheck: () => void;
 	onToggleSlideSorter: () => void;
+	/**
+	 * View > Normal: leave whichever alternate view (slide sorter, reading,
+	 * outline, master) is open and return to the ordinary editing canvas.
+	 */
+	onGoToNormalView?: () => void;
 	/** Open the windowed Reading View (NOT the fullscreen slide show). */
 	onOpenReadingView: () => void;
 	/** Enter PowerPoint's Outline view: the deck as editable indented text. */

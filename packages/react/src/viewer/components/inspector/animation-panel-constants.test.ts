@@ -139,17 +139,18 @@ describe('eMPHASIS_PRESETS', () => {
 // ---------------------------------------------------------------------------
 
 describe('tRIGGER_OPTIONS', () => {
-	it('has exactly 5 trigger types', () => {
-		expect(TRIGGER_OPTIONS).toHaveLength(5);
+	it('has exactly 6 trigger types', () => {
+		expect(TRIGGER_OPTIONS).toHaveLength(6);
 	});
 
-	it('contains onClick, onShapeClick, onHover, afterPrevious, withPrevious', () => {
+	it('contains onClick, onShapeClick, onHover, afterPrevious, withPrevious, afterDelay', () => {
 		const values = TRIGGER_OPTIONS.map((o) => o.value);
 		expect(values).toContain('onClick');
 		expect(values).toContain('onShapeClick');
 		expect(values).toContain('onHover');
 		expect(values).toContain('afterPrevious');
 		expect(values).toContain('withPrevious');
+		expect(values).toContain('afterDelay');
 	});
 
 	it('every item has a non-empty value and labelKey', () => {

@@ -26,7 +26,7 @@ import type {
 	ParsedTableStyleText,
 	XmlObject,
 } from '../../types';
-import { parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
+import { parseAlphaVal, parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
 
 /**
  * Resolves a table style section's `a:blipFill` relationship id (`r:embed` /
@@ -77,6 +77,11 @@ function parseColorChoiceFill(node: XmlObject | undefined): ParsedTableStyleFill
 	const shade = shadeRaw ? parseTintShadeVal(shadeRaw['@_val']) : undefined;
 	if (shade !== undefined) {
 		fill.shade = shade;
+	}
+	const alphaRaw = srgb?.['a:alpha'] as XmlObject | undefined;
+	const alpha = alphaRaw ? parseAlphaVal(alphaRaw['@_val']) : undefined;
+	if (alpha !== undefined) {
+		fill.alpha = alpha;
 	}
 	return fill;
 }

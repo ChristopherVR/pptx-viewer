@@ -18,10 +18,19 @@
  * @module viewer/effects-panel
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { isCheckboxControl } from './control-event-targets';
 import {
 	disableGlowPatch,
 	disableInnerShadowPatch,
@@ -43,6 +52,7 @@ import type { EffectsState } from './effects-helpers';
 import { RecentColorsService } from './recent-colors.service';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-effects-panel',
 	standalone: true,
 	imports: [TranslatePipe],
@@ -52,12 +62,11 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Outer Shadow ─────────────────────────────────────────── -->
 			<section class="pptx-ng-fx__section">
 				<label class="pptx-ng-fx__toggle-row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="pptx-ng-fx__checkbox"
 						[checked]="state().outerShadow.enabled"
 						(change)="onOuterShadowToggle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fx__section-title">{{
 						'pptx.effects.outerShadow' | translate
 					}}</span>
@@ -129,13 +138,12 @@ import { RecentColorsService } from './recent-colors.service';
 							(change)="onOuterShadowField('distance', $event)"
 						/>
 						<label class="pptx-ng-fx__toggle-row" for="fx-os-rotate-with-shape">
-							<input
+							<pptx-ui-checkbox
 								id="fx-os-rotate-with-shape"
-								type="checkbox"
 								class="pptx-ng-fx__checkbox"
 								[checked]="state().outerShadow.rotateWithShape"
 								(change)="onOuterShadowRotateWithShapeToggle($event)"
-							/>
+							></pptx-ui-checkbox>
 							<span>{{ 'pptx.effects.rotateWithShape' | translate }}</span>
 						</label>
 					</div>
@@ -145,12 +153,11 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Inner Shadow ─────────────────────────────────────────── -->
 			<section class="pptx-ng-fx__section">
 				<label class="pptx-ng-fx__toggle-row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="pptx-ng-fx__checkbox"
 						[checked]="state().innerShadow.enabled"
 						(change)="onInnerShadowToggle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fx__section-title">{{
 						'pptx.effects.innerShadow' | translate
 					}}</span>
@@ -227,12 +234,11 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Glow ─────────────────────────────────────────────────── -->
 			<section class="pptx-ng-fx__section">
 				<label class="pptx-ng-fx__toggle-row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="pptx-ng-fx__checkbox"
 						[checked]="state().glow.enabled"
 						(change)="onGlowToggle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.glow' | translate }}</span>
 				</label>
 				@if (state().glow.enabled) {
@@ -281,12 +287,11 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Reflection ───────────────────────────────────────────── -->
 			<section class="pptx-ng-fx__section">
 				<label class="pptx-ng-fx__toggle-row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="pptx-ng-fx__checkbox"
 						[checked]="state().reflection.enabled"
 						(change)="onReflectionToggle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.reflection' | translate }}</span>
 				</label>
 				@if (state().reflection.enabled) {
@@ -364,12 +369,11 @@ import { RecentColorsService } from './recent-colors.service';
 			<!-- ── Soft Edge ─────────────────────────────────────────────── -->
 			<section class="pptx-ng-fx__section">
 				<label class="pptx-ng-fx__toggle-row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						class="pptx-ng-fx__checkbox"
 						[checked]="state().softEdge.enabled"
 						(change)="onSoftEdgeToggle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="pptx-ng-fx__section-title">{{ 'pptx.effects.softEdge' | translate }}</span>
 				</label>
 				@if (state().softEdge.enabled) {
@@ -670,7 +674,7 @@ function stringFromEvent(event: Event): string | null {
 
 function checkedFromEvent(event: Event): boolean | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement)) {
+	if (!isCheckboxControl(target)) {
 		return null;
 	}
 	return target.checked;

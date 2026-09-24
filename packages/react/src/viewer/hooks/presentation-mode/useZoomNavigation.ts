@@ -1,11 +1,21 @@
-import { useRef, useCallback } from 'react';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import { beginZoomExcursion, buildZoomTransitionOverride } from 'pptx-viewer-shared';
+import type { ZoomExcursion, ZoomNavigationTarget } from 'pptx-viewer-shared';
+import { useCallback } from 'react';
 
 /**
  * Input for the useZoomNavigation sub-hook.
  */
 export interface UseZoomNavigationInput {
-	/** Navigate to a specific slide index. */
-	navigateToSlide: (slideIndex: number) => void;
+	slides: readonly PptxSlide[];
+	/** Navigate to a specific slide index, optionally overriding the destination's own transition. */
+	navigateToSlide: (slideIndex: number, transitionOverride?: PptxSlideTransition) => void;
+	/**
+	 * Shared with `useSlideNavigation`'s forward-advance step: set here on a
+	 * zoom click that requests `returnToParent`, and consumed there once the
+	 * show reaches the end of the zoom's target range.
+	 */
+	zoomExcursionRef: React.RefObject<ZoomExcursion | undefined>;
 }
 
 /**
@@ -13,67 +23,45 @@ export interface UseZoomNavigationInput {
  */
 export interface UseZoomNavigationResult {
 	/**
-	 * Handle a zoom element click. Navigates to the target slide and
-	 * stores the return slide index so we can go back later.
+	 * Handle a zoom element (or Summary Zoom tile) click: navigates to the
+	 * target slide, applying the zoom's own `transitionDur` when authored, and
+	 * (when the target's `returnToParent` is set) arms an excursion so the
+	 * next forward "advance" past the target's range returns here instead of
+	 * continuing linearly through the deck.
 	 */
-	handleZoomClick: (targetSlideIndex: number, returnSlideIndex: number) => void;
-	/**
-	 * The slide index to return to after a zoom navigation, or `null` if
-	 * there is no pending return.
-	 */
-	zoomReturnSlideIndex: React.RefObject<number | null>;
-	/**
-	 * Navigate back to the zoom summary slide (if a return index is set).
-	 * Returns `true` if navigation occurred, `false` otherwise.
-	 */
-	returnToZoomSlide: () => boolean;
-	/**
-	 * Clear the stored return index (e.g. when the user manually navigates
-	 * away from the zoomed section).
-	 */
+	handleZoomClick: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
+	/** Clear a pending zoom excursion (e.g. when presentation mode ends). */
 	clearZoomReturn: () => void;
 }
 
 /**
  * Sub-hook that manages zoom element navigation in presentation mode.
  *
- * When a zoom element is clicked, this hook:
- * 1. Navigates to the target slide
- * 2. Stores the "return" slide index
- *
- * The caller can later use `returnToZoomSlide()` to navigate back to
- * the summary zoom slide.
+ * The actual "return to zoom" jump is executed by `useSlideNavigation`'s
+ * forward-advance step (it owns the deck's natural next-slide computation);
+ * this hook only arms the excursion `useSlideNavigation` consults, via the
+ * `zoomExcursionRef` both hooks share.
  */
 export function useZoomNavigation(input: UseZoomNavigationInput): UseZoomNavigationResult {
-	const { navigateToSlide } = input;
-	const zoomReturnSlideIndex = useRef<number | null>(null);
+	const { slides, navigateToSlide, zoomExcursionRef } = input;
 
 	const handleZoomClick = useCallback(
-		(targetSlideIndex: number, returnSlideIndex: number) => {
-			zoomReturnSlideIndex.current = returnSlideIndex;
-			navigateToSlide(targetSlideIndex);
+		(target: ZoomNavigationTarget, returnSlideIndex: number) => {
+			zoomExcursionRef.current = beginZoomExcursion(target, returnSlideIndex, slides);
+			navigateToSlide(
+				target.targetSlideIndex,
+				buildZoomTransitionOverride(target.transitionDurationMs),
+			);
 		},
-		[navigateToSlide],
+		[navigateToSlide, slides, zoomExcursionRef],
 	);
 
-	const returnToZoomSlide = useCallback((): boolean => {
-		const returnIndex = zoomReturnSlideIndex.current;
-		if (returnIndex === null) {
-			return false;
-		}
-		zoomReturnSlideIndex.current = null;
-		navigateToSlide(returnIndex);
-		return true;
-	}, [navigateToSlide]);
-
 	const clearZoomReturn = useCallback(() => {
-		zoomReturnSlideIndex.current = null;
-	}, []);
+		zoomExcursionRef.current = undefined;
+	}, [zoomExcursionRef]);
 
 	return {
 		handleZoomClick,
-		zoomReturnSlideIndex,
-		returnToZoomSlide,
 		clearZoomReturn,
 	};
 }

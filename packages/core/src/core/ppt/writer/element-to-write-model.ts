@@ -4,19 +4,17 @@
  * `write-model.ts` types describe.
  *
  * `media` and `ole` have real binary equivalents (`media-element-convert.ts`,
- * `ole-element-convert.ts`). Every other element with no binary-`.ppt`
- * equivalent (chart, smartArt, ink, contentPart, model3d, zoom, unknown; see
- * `docs/guide/limitations.md`'s `.ppt` row on why ink/smartArt still degrade
- * despite investigation) is written as its rasterised preview picture when
- * one is available (PNG/JPEG only, see `raster-utils.ts`), otherwise as a
- * labelled placeholder rectangle. Either way a `PptxCompatibilityWarning`
- * (`scope: 'element'`) is reported, never silent.
+ * `ole-element-convert.ts`). Every other element with no plain binary-`.ppt`
+ * record form (chart, smartArt, ink, contentPart, model3d, zoom, unknown) goes
+ * through `degrade-element.ts`, which also attaches the element's `metroBlob`
+ * (ink, SmartArt, charts, 3D models) so PowerPoint 2007+ reopens it natively.
  *
  * @module ppt/writer/element-to-write-model
  */
 
 import type { GroupPptxElement, PptxCustomShow, PptxElement, PptxSlide } from '../../types';
 import type { PptxCompatibilityWarning } from '../../types/metadata';
+import { degradeElement, placeholderShape } from './degrade-element';
 import { elementRectEmu } from './element-rect';
 import type { HyperlinkResolveContext } from './hyperlink-model';
 import { resolveHyperlink } from './hyperlink-model';
@@ -55,6 +53,12 @@ export interface ConvertContext {
 	 * without mutating the live element tree.
 	 */
 	resolvedMedia?: Map<string, Uint8Array>;
+	/**
+	 * Per-element `metroBlob` packages (element id -> ZIP bytes) built from
+	 * the deck's own `.pptx` serialisation by `metro-blob-collect.ts`, so ink,
+	 * SmartArt, charts and 3D models reopen natively in PowerPoint 2007+.
+	 */
+	metroBlobs?: Map<string, Uint8Array>;
 }
 
 const PLACEHOLDER_TYPES = new Set(['title', 'body', 'ctrTitle', 'subTitle']);
@@ -145,59 +149,6 @@ function convertPicture(element: PptxElement, ctx: ConvertContext): WAnyShape {
 	return placeholderShape(element, el.altText ?? element.name ?? '[Image]');
 }
 
-/** Build a labelled placeholder rectangle for an element with no binary-`.ppt` form. */
-function placeholderShape(element: PptxElement, label: string): WShape {
-	return {
-		kind: 'shape',
-		spt: 1,
-		isConnector: false,
-		name: element.name,
-		anchor: elementRectEmu(element),
-		rotationDeg: element.rotation,
-		fill: { kind: 'solid', rgb: 'F2F2F2' },
-		line: { kind: 'line', rgb: 'BFBFBF', widthEmu: 9525 },
-		text: {
-			textType: 4,
-			paragraphs: [{ indentLevel: 0, align: 'ctr', runs: [{ text: label, sizePt: 12 }] }],
-		},
-	};
-}
-
-/** Convert an element with no binary-`.ppt` equivalent to a preview picture or placeholder. */
-export function degradeElement(
-	element: PptxElement,
-	ctx: ConvertContext,
-	label: string,
-): WAnyShape {
-	const preview =
-		(element as { previewImageData?: string; posterImage?: string }).previewImageData ??
-		(element as { posterImage?: string }).posterImage;
-	const picture = dataUrlToPicture(preview);
-	ctx.report({
-		code: `ppt-unsupported-${element.type}`,
-		message: `"${element.type}" elements have no binary .ppt equivalent; ${
-			picture
-				? 'a static preview image was embedded instead.'
-				: 'a placeholder rectangle was written instead.'
-		}`,
-		severity: 'warning',
-		scope: 'element',
-		slideId: ctx.slideId,
-		elementId: element.id,
-	});
-	if (picture) {
-		ctx.pictures.push(picture);
-		return {
-			kind: 'picture',
-			pictureIndex: ctx.pictures.length - 1,
-			name: element.name,
-			anchor: elementRectEmu(element),
-			rotationDeg: element.rotation,
-		};
-	}
-	return placeholderShape(element, label);
-}
-
 /** Convert a group element (recursively converting its children). */
 function convertGroup(element: GroupPptxElement, ctx: ConvertContext): WGroup {
 	return {
@@ -282,6 +233,7 @@ function convertSlide(slide: PptxSlide, ctx: ConvertContext): WSlide {
  *   to resolve a `customShow` click-action target. Omit when the caller has
  *   none available; custom-show actions then degrade to no hyperlink.
  * @param resolvedMedia - See `ConvertContext.resolvedMedia`'s doc.
+ * @param metroBlobs - See `ConvertContext.metroBlobs`'s doc.
  */
 export function convertDeckToWriteModel(
 	slides: PptxSlide[],
@@ -290,11 +242,19 @@ export function convertDeckToWriteModel(
 	report: WarningReporter,
 	customShows?: PptxCustomShow[],
 	resolvedMedia?: Map<string, Uint8Array>,
+	metroBlobs?: Map<string, Uint8Array>,
 ): WDeck {
 	const pictures: WPictureData[] = [];
 	const hyperlinkCtx: HyperlinkResolveContext = { slides, customShows };
 	const wSlides = slides.map((slide) =>
-		convertSlide(slide, { pictures, slideId: slide.id, report, hyperlinkCtx, resolvedMedia }),
+		convertSlide(slide, {
+			pictures,
+			slideId: slide.id,
+			report,
+			hyperlinkCtx,
+			resolvedMedia,
+			metroBlobs,
+		}),
 	);
 	return { widthEmu, heightEmu, slides: wSlides, pictures };
 }

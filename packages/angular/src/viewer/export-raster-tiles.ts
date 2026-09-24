@@ -18,6 +18,7 @@ import {
 	rasterizeElementTiledToCanvas,
 	rasterizeElementTiles,
 	rasterResultToPngBlob,
+	rasterResultToPngDataUrl,
 	sanitizeDownloadFilename,
 } from '../internal/shared';
 import type {
@@ -67,6 +68,20 @@ export async function renderElementPngBlob(el: HTMLElement, scale: number = 2): 
 		html2canvasFallback: html2canvasFallbackFor(el),
 	});
 	return rasterResultToPngBlob(result);
+}
+
+/**
+ * `renderElementPngBlob`'s data-URL sibling: for a caller (Paste Special's
+ * "Picture" format) that needs the pixels embedded as a data URL, not a
+ * `Blob` to download.
+ */
+export async function renderElementPngDataUrl(el: HTMLElement, scale: number = 2): Promise<string> {
+	const { width, height } = naturalSizeOf(el);
+	const result = await rasterizeElement(el, width, height, el.ownerDocument, {
+		scale,
+		html2canvasFallback: html2canvasFallbackFor(el),
+	});
+	return rasterResultToPngDataUrl(result);
 }
 
 /**

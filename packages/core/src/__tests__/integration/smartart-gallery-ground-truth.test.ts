@@ -2,7 +2,7 @@
  * SmartArt gallery ground truth: DiagramML interpreter vs. PowerPoint's own
  * cached drawing, across the ENTIRE built-in SmartArt layout gallery.
  *
- * `packages/core/src/__tests__/fixtures/smartart-gallery/` holds 227
+ * `packages/core/src/__tests__/fixtures/smartart-gallery/` holds 229
  * PowerPoint-COM-authored .pptx fixtures (`scripts/make-smartart-gallery.ps1`,
  * see that folder's README) covering all 176 layouts PowerPoint 2016+ reports
  * through `Application.SmartArtLayouts`. Every fixture carries PowerPoint's

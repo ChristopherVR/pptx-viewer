@@ -11,9 +11,17 @@
 	 * is CSS-scaled, and a ruler inside it would scale its strokes and labels
 	 * with the zoom instead of tracking it.
 	 */
-	import { RULER_THICKNESS } from 'pptx-viewer-shared';
+	import type { InspectorSectionAnchor } from 'pptx-viewer-shared';
+	import { RULER_THICKNESS, scrollInspectorSectionIntoView } from 'pptx-viewer-shared';
+	import { tick } from 'svelte';
 
+	import type { PasteSpecialFormat } from 'pptx-viewer-shared';
+
+	import { saveContextMenuElementAsPicture } from '../export/save-element-as-picture';
+	import { rasterizePastedElementAsPicture } from '../export/rasterize-picture';
 	import ElementContextMenu from './ElementContextMenu.svelte';
+	import PasteOptionsToolbar from './PasteOptionsToolbar.svelte';
+	import PasteSpecialDialog from './PasteSpecialDialog.svelte';
 	import HyperlinkDialog from './ribbon/insert/HyperlinkDialog.svelte';
 	import RulerStrips from './RulerStrips.svelte';
 	import SlideCanvas from './SlideCanvas.svelte';
@@ -66,10 +74,11 @@
 
 	const commits = $derived(createEditCommits(editor));
 
-	// The context menu's "Edit Hyperlink" opens the same dialog the Insert tab
-	// does, hosted here because the menu unmounts the moment a command is run.
-	// eslint-disable-next-line prefer-const
-	let hyperlinkOpen = $state(false);
+	// The context menu's "Edit Hyperlink" (and the shared keymap's Ctrl+K)
+	// open the same dialog the Insert tab does; hosted here, because the menu
+	// unmounts the moment a command is run, off `controller.hyperlinkOpen` so
+	// the keyboard shortcut has one flag to flip regardless of which trigger
+	// fired.
 
 	/** "Add Comment": show the inspector's Comments tab, as React's dispatch does. */
 	function openComments(): void {
@@ -77,6 +86,64 @@
 			chromeUi.inspectorOpen = true;
 			chromeUi.setInspectorTab('comments');
 		}
+	}
+
+	/**
+	 * "Edit Alt Text" / "Size and Position" / "Format Shape": switch to the
+	 * properties tab, then (once the panel has re-rendered) scroll the
+	 * matching section into view. A no-op degrade when the section is not
+	 * tagged, same as every other binding.
+	 */
+	function focusInspectorSection(anchor: InspectorSectionAnchor): void {
+		if (!chromeUi) {
+			return;
+		}
+		chromeUi.inspectorOpen = true;
+		chromeUi.setInspectorTab('properties');
+		void tick().then(() => {
+			requestAnimationFrame(() => scrollInspectorSectionIntoView(document, anchor));
+		});
+	}
+
+	/** "Save as Picture": rasterise the right-clicked element's own DOM node. */
+	function saveElementAsPicture(elementId: string): void {
+		const name = editor.elementById(elementId)?.name;
+		void saveContextMenuElementAsPicture(elementId, name, t('pptx.elementType.picture'));
+	}
+
+	/** Rasterise the mounted node for `elementId` and replace it with a picture, or no-op if unmounted. */
+	async function replaceWithPicture(elementId: string, sourceClone: Parameters<typeof rasterizePastedElementAsPicture>[1]): Promise<void> {
+		const picture = await rasterizePastedElementAsPicture(elementId, sourceClone);
+		if (picture) {
+			editor.clipboardOps.replaceElement(elementId, picture);
+		}
+	}
+
+	/** Paste Special dialog OK: paste with `format`, rasterizing to picture once mounted. */
+	function onPasteSpecialConfirm(format: PasteSpecialFormat): void {
+		editor.pasteSpecialDialogOpen = false;
+		const id = editor.clipboardOps.pasteWithFormat(format);
+		if (!id || format !== 'picture') {
+			return;
+		}
+		const sourceClone = editor.pasteOptionsToolbar?.find((entry) => entry.id === id)?.sourceClone;
+		if (!sourceClone) {
+			return;
+		}
+		requestAnimationFrame(() => void replaceWithPicture(id, sourceClone));
+	}
+
+	/** Paste Options toolbar: re-derive the already-pasted element from its own pristine clone. */
+	function onPasteOptionsChoose(format: PasteSpecialFormat): void {
+		const entry = editor.pasteOptionsToolbar?.[0];
+		if (!entry) {
+			return;
+		}
+		if (format === 'picture') {
+			void replaceWithPicture(entry.id, entry.sourceClone);
+			return;
+		}
+		editor.clipboardOps.reformatPasted(entry.id, entry.sourceClone, format);
 	}
 
 	/** Rulers are an editing aid, so they never intrude on the slide show. */
@@ -176,11 +243,27 @@
 			{onaskai}
 			{onfixai}
 			oncomment={openComments}
-			onhyperlink={() => (hyperlinkOpen = true)}
+			onhyperlink={() => (controller.hyperlinkOpen = true)}
+			onenterinlineedit={(id) => controller.enterInlineEdit(id)}
+			onsaveaspicture={saveElementAsPicture}
+			onfocusinspectorsection={focusInspectorSection}
 			onclose={onContextMenuClose}
 		/>
 	{/if}
-	{#if hyperlinkOpen}<HyperlinkDialog {editor} onclose={() => (hyperlinkOpen = false)} />{/if}
+	{#if controller.hyperlinkOpen}
+		<HyperlinkDialog {editor} onclose={() => (controller.hyperlinkOpen = false)} />
+	{/if}
+	{#if editor.pasteSpecialDialogOpen}
+		<PasteSpecialDialog
+			oncancel={() => (editor.pasteSpecialDialogOpen = false)}
+			onconfirm={onPasteSpecialConfirm}
+		/>
+	{/if}
+	<PasteOptionsToolbar
+		elementId={editor.pasteOptionsToolbar?.[0]?.id ?? null}
+		onchoose={onPasteOptionsChoose}
+		ondismiss={() => (editor.pasteOptionsToolbar = null)}
+	/>
 {:else}
 	<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
 {/if}

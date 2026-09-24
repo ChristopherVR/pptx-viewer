@@ -11,13 +11,21 @@
  *
  * @module viewer/after-animation-row
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAfterAnimationAction } from 'pptx-viewer-core';
 
 import { AFTER_ANIMATION_VALUES } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-after-animation-row',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,8 +34,9 @@ import { AFTER_ANIMATION_VALUES } from '../internal/shared';
 		<div class="pptx-ng-anim__section pptx-ng-after-animation">
 			<label>
 				<span class="pptx-ng-anim__label">{{ 'pptx.animation.afterAnimation' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.animation.afterAnimation' | translate"
+					[attr.value]="action()"
 					class="pptx-ng-anim__select"
 					[disabled]="!canEdit()"
 					(change)="onActionChange($event)"
@@ -37,7 +46,7 @@ import { AFTER_ANIMATION_VALUES } from '../internal/shared';
 							{{ 'pptx.animation.afterAnimation.' + value | translate }}
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 			@if (action() === 'dimToColor') {
 				<label class="pptx-ng-after-animation__color">
@@ -83,7 +92,7 @@ export class AfterAnimationRowComponent {
 
 	protected onActionChange(event: Event): void {
 		const target = event.target;
-		if (!(target instanceof HTMLSelectElement)) {
+		if (!isSelectControl(target)) {
 			return;
 		}
 		this.actionChange.emit(target.value as PptxAfterAnimationAction);

@@ -23,7 +23,6 @@ import {
 	getElementTransform,
 	getImageRenderStyle,
 	getImageSurfaceStyle,
-	getImageTilingStyle,
 	getShapeVisualStyle,
 	getTextStyleForElement,
 	isEditableTextElement,
@@ -45,6 +44,7 @@ import type {
 	PressureCircle,
 } from '../../utils/ink-rendering';
 import { shapeParams } from '../ElementRenderer';
+import { TiledImageLayer } from '../TiledImageLayer';
 import { ShapeEffectOverlay } from './ShapeEffectOverlay';
 
 // Re-export the shared OLE type-resolution helpers so existing consumers (and
@@ -73,10 +73,14 @@ function renderPressureStroke(
 	circles: PressureCircle[],
 	color: string,
 	opacity: number,
+	blendMode: InkStrokeView['blendMode'],
 	keyPrefix: string,
 ) {
 	return (
-		<g opacity={opacity}>
+		<g
+			opacity={opacity}
+			style={blendMode === 'multiply' ? { mixBlendMode: 'multiply' } : undefined}
+		>
 			{circles.map((c, j) => (
 				<circle key={`${keyPrefix}-pc-${j}`} cx={c.cx} cy={c.cy} r={c.r} fill={color} />
 			))}
@@ -89,9 +93,18 @@ function renderPressureStroke(
  * ellipse per point, widened perpendicular to the pen's tilt-lean direction
  * (a chisel-tip look). The tilt counterpart of {@link renderPressureStroke}.
  */
-function renderNibMarkStroke(marks: NibMark[], color: string, opacity: number, keyPrefix: string) {
+function renderNibMarkStroke(
+	marks: NibMark[],
+	color: string,
+	opacity: number,
+	blendMode: InkStrokeView['blendMode'],
+	keyPrefix: string,
+) {
 	return (
-		<g opacity={opacity}>
+		<g
+			opacity={opacity}
+			style={blendMode === 'multiply' ? { mixBlendMode: 'multiply' } : undefined}
+		>
 			{marks.map((m, j) => (
 				<ellipse
 					key={`${keyPrefix}-nib-${j}`}
@@ -128,11 +141,25 @@ export function renderStrokeView(
 	// tilt magnitude is 0, so it is safe even when `pressureSensitive` is
 	// explicitly disabled. Only the pressure-circle branch is gated by it.
 	if (view.nibMarks) {
-		return <g key={key}>{renderNibMarkStroke(view.nibMarks, view.color, view.opacity, key)}</g>;
+		return (
+			<g key={key}>
+				{renderNibMarkStroke(view.nibMarks, view.color, view.opacity, view.blendMode, key)}
+			</g>
+		);
 	}
 	if (pressureSensitive && view.circles) {
-		return <g key={key}>{renderPressureStroke(view.circles, view.color, view.opacity, key)}</g>;
+		return (
+			<g key={key}>
+				{renderPressureStroke(view.circles, view.color, view.opacity, view.blendMode, key)}
+			</g>
+		);
 	}
+	const style = {
+		...(replayStyle
+			? { animation: replayStyle.animation, '--ink-path-length': replayStyle.pathLength }
+			: {}),
+		...(view.blendMode === 'multiply' ? { mixBlendMode: 'multiply' as const } : {}),
+	} as React.CSSProperties;
 	return (
 		<path
 			key={key}
@@ -148,12 +175,9 @@ export function renderStrokeView(
 				? {
 						strokeDasharray: replayStyle.strokeDasharray,
 						strokeDashoffset: replayStyle.strokeDashoffset,
-						style: {
-							animation: replayStyle.animation,
-							'--ink-path-length': replayStyle.pathLength,
-						} as React.CSSProperties,
 					}
 				: {})}
+			{...(Object.keys(style).length > 0 ? { style } : {})}
 		/>
 	);
 }
@@ -263,9 +287,10 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 						) : isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
 							<div className='absolute inset-0 pointer-events-none' style={getImageSurfaceStyle(c)}>
 								{isImageTiled(c) ? (
-									<div
+									<TiledImageLayer
+										element={c}
+										src={('svgData' in c && c.svgData ? c.svgData : c.imageData) as string}
 										className='pointer-events-none select-none w-full h-full'
-										style={getImageTilingStyle(c)}
 									/>
 								) : (
 									<img

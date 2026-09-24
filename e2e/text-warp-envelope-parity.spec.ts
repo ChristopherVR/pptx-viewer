@@ -89,14 +89,10 @@ const GLYPH_ENVELOPE_SHEAR_VARIES = new Set(['can-up']);
 
 /**
  * `wide-glyph-can` (see the fixture generator's own doc comment): three very
- * wide caps at extreme `adj`, where `chooseGlyphSliceCount`
- * (`pptx-viewer-shared`) slices at least one glyph into multiple clipped
- * pieces (`<g data-glyph-slices>`) instead of the single bare `<text>` the
- * other glyph-envelope shapes above always use. It is still a glyph-envelope
- * shape (no `<textPath>`), just read with {@link readSlicedGlyphBoxes}
- * instead of the direct-child `svg > text[transform]` locator the rest of
- * this file uses, which would silently undercount it (a sliced glyph's
- * `<text>`s are `svg > g > text`, not `svg > text`).
+ * wide caps at extreme `adj` in a family with no obtainable font file. Read
+ * with {@link readSlicedGlyphBoxes}, which accepts every glyph DOM shape
+ * (`svg > path` outline, bare `svg > text`, or a sliced
+ * `svg > g[data-glyph-slices]`) as one logical glyph.
  */
 const WIDE_GLYPH_SHAPE = 'wide-glyph-can';
 
@@ -139,16 +135,26 @@ function distinctYCount(d: string): number {
 	return new Set(yValues).size;
 }
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform, or `null`. */
-function scaleYOf(transform: string): number | null {
-	const match = /matrix\(\s*1\s+[^\s]+\s+0\s+(-?[\d.eE+-]+)\s+0\s+[^\s)]+\s*\)/u.exec(transform);
-	return match ? Number(match[1]) : null;
+/** The `matrix(a b c d e f)` terms of a glyph transform, or `null`. */
+function matrixTerms(transform: string): number[] | null {
+	const match = /matrix\(([^)]*)\)/u.exec(transform);
+	const terms = match
+		? match[1]
+				.trim()
+				.split(/[\s,]+/u)
+				.map(Number)
+		: [];
+	return terms.length === 6 && terms.every(Number.isFinite) ? terms : null;
 }
 
-/** The `b` (horizontal shear) term out of a glyph's `matrix(1 b 0 d 0 f)` transform, or `null`. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform, or `null`. */
+function scaleYOf(transform: string): number | null {
+	return matrixTerms(transform)?.[3] ?? null;
+}
+
+/** The `b` (vertical shear) term out of a glyph's `matrix(a b c d e f)` transform, or `null`. */
 function shearBOf(transform: string): number | null {
-	const match = /matrix\(\s*1\s+(-?[\d.eE+-]+)\s+0\s+[^\s]+\s+0\s+[^\s)]+\s*\)/u.exec(transform);
-	return match ? Number(match[1]) : null;
+	return matrixTerms(transform)?.[1] ?? null;
 }
 
 /**
@@ -216,9 +222,10 @@ interface GlyphBox {
 	bottom: number;
 }
 
-/** A logical glyph's aggregate box plus how many rendered pieces it was split into. */
+/** A logical glyph's aggregate box, its rendered piece count, and whether it is an outline. */
 interface SlicedGlyphInfo extends GlyphBox {
 	sliceCount: number;
+	isOutline: boolean;
 }
 
 /**
@@ -282,6 +289,7 @@ async function readGlyphBoxesFor(
 				top,
 				bottom,
 				sliceCount: isGroup ? Number(el.getAttribute('data-glyph-slices')) : 1,
+				isOutline: el.tagName.toLowerCase() === 'path',
 			};
 		}),
 	);
@@ -469,13 +477,10 @@ test.describe('wordArt envelope/former-"simple" presets render as true SVG textP
 		}
 	});
 
-	// Known gap (2026-09-11): with the edge-to-edge glyph stretch (e165d7210)
-	// a very short, heavily stretched paragraph still lets a deep descender or
-	// ascender cross into the neighbouring row (CI measured the "Top" row
-	// bottom at 135.2px against the "Bottom" row top at 75.8px). The row
-	// boundary fix narrowed but did not close it; tracked on the WordArt row
-	// of docs/guide/limitations.md. Re-enable by turning fixme back into test.
-	test.fixme('a multi-paragraph inflate block bends every paragraph in the same envelope (band slicing)', async ({
+	// Rows can no longer cross (the 2026-09-11 known gap): every paragraph is
+	// laid out as one unwarped block and warped by a single continuous mapping
+	// (`buildGlyphEnvelopeBlock` in pptx-viewer-shared), matching PowerPoint.
+	test('a multi-paragraph inflate block bends every paragraph in the same envelope, rows apart', async ({
 		browser,
 	}, testInfo) => {
 		test.slow();
@@ -498,8 +503,8 @@ test.describe('wordArt envelope/former-"simple" presets render as true SVG textP
 		}
 
 		// Across bindings: the same glyph index should land at (nearly) the same
-		// top/bottom, since every binding computes the multi-line envelope from
-		// the same shared `buildGlyphEnvelope(..., lineIndex, lineCount)`.
+		// top/bottom, since every binding computes the block from the same
+		// shared `buildGlyphEnvelopeBlock`.
 		const PIXEL_TOLERANCE = 1.5;
 		const [reference, ...rest] = results;
 		for (const { framework, value } of rest) {
@@ -517,46 +522,34 @@ test.describe('wordArt envelope/former-"simple" presets render as true SVG textP
 	});
 });
 
-test.describe('wide-glyph-can: per-glyph slicing for a short, very-wide-glyph caption', () => {
-	// The residual limitations.md still names: "for very short captions (a
-	// handful of very wide glyphs filling the box) a single affine transform
-	// per glyph cannot follow how much the envelope curve bends across one
-	// glyph's own width". `chooseGlyphSliceCount` (`pptx-viewer-shared`)
-	// closes most of that gap by rendering such a glyph as several clipped,
-	// independently-fit pieces instead of one; this fixture's "MOM" at
-	// extreme `adj` is exactly that scenario (each glyph spans ~1/3 of the
-	// line). These specs additionally exercise the `<g data-glyph-slices>` /
-	// `<clipPath>` DOM shape every binding now needs to reach parity on.
-	test('every binding slices at least one glyph, and none leaves a gap in the logical glyph count', async ({
+test.describe('wide-glyph-can: a font with no obtainable file still gets the exact outline warp', () => {
+	// `wide-glyph-can` names a family with no embedded or catalogue font file,
+	// so there are no font bytes to parse. Every binding still renders its
+	// glyphs as warped outline `<path>`s: `createGlyphOutlineLookup`
+	// (pptx-viewer-shared) traces the glyph the browser itself renders for that
+	// family (`text-warp-glyph-trace.ts`), so the affine `<text transform>` /
+	// sliced fallback is no longer reached in a browser at all.
+	test('every binding renders the three glyphs as warped outlines, not affine text', async ({
 		browser,
 	}, testInfo) => {
 		test.slow();
 		const results = await acrossFrameworks(browser, testInfo, readSlicedGlyphBoxes);
-
 		const failures = results.flatMap(({ framework, value }) => {
 			const problems: string[] = [];
 			if (value.length !== 3) {
 				problems.push(`expected 3 logical glyphs ("M", "O", "M"), got ${value.length}`);
 			}
-			if (!value.some((g) => g.sliceCount > 1)) {
-				problems.push('expected at least one glyph to be sliced (sliceCount > 1)');
+			if (!value.every((g) => g.isOutline)) {
+				problems.push('expected every glyph to be an outline <path>');
 			}
 			return problems.length > 0 ? [`${framework.name}: ${problems.join('; ')}`] : [];
 		});
 		expect(failures.join('\n')).toBe('');
 	});
 
-	test('cross-binding agreement on sliced-glyph boxes and slice counts', async ({
-		browser,
-	}, testInfo) => {
+	test('cross-binding agreement on the traced glyph boxes', async ({ browser }, testInfo) => {
 		test.slow();
 		const results = await acrossFrameworks(browser, testInfo, readSlicedGlyphBoxes);
-
-		// Every binding computes `chooseGlyphSliceCount` / `buildGlyphSlices`
-		// from the same shared decision function, so the slice count PER GLYPH
-		// (not just the aggregate box) should match exactly across bindings -
-		// a binding that disagrees here is calling the shared function with
-		// different inputs (a wiring bug), not a rendering-precision difference.
 		const PIXEL_TOLERANCE = 1.5;
 		const [reference, ...rest] = results;
 		for (const { framework, value } of rest) {
@@ -565,10 +558,6 @@ test.describe('wide-glyph-can: per-glyph slicing for a short, very-wide-glyph ca
 				`${framework.name}: glyph count should match ${reference.framework.name}`,
 			).toBe(reference.value.length);
 			for (let i = 0; i < value.length; i++) {
-				expect(
-					value[i].sliceCount,
-					`${framework.name} vs ${reference.framework.name}: glyph ${i} slice count`,
-				).toBe(reference.value[i].sliceCount);
 				expect(
 					Math.abs(value[i].top - reference.value[i].top),
 					`${framework.name} vs ${reference.framework.name}: glyph ${i} top`,
@@ -579,56 +568,5 @@ test.describe('wide-glyph-can: per-glyph slicing for a short, very-wide-glyph ca
 				).toBeLessThanOrEqual(PIXEL_TOLERANCE);
 			}
 		}
-	});
-
-	test('a sliced glyph has no visible seam gap: adjacent slices overlap or touch in rendered space', async ({
-		browser,
-	}, testInfo) => {
-		test.slow();
-		// Reads each sliced glyph's INDIVIDUAL piece boxes (not the aggregate
-		// `readSlicedGlyphBoxes` collapses them to), so adjacent pieces' ranges
-		// can be checked for a gap directly - the seam invisibility this
-		// feature depends on (see `buildGlyphSlices`'s overlap padding).
-		const readPieces = async (page: Page, origin: string) => {
-			await loadDeckAt(page, origin, FIXTURE);
-			await slideStage(page).waitFor();
-			await page.waitForTimeout(300);
-			const shapeIndex = SHAPE_NAMES.indexOf(WIDE_GLYPH_SHAPE);
-			const node = slideElements(page).nth(shapeIndex);
-			return node.locator('svg > g[data-glyph-slices]').evaluateAll((groups) =>
-				groups.map((group) =>
-					[...group.querySelectorAll('text')].map((el) => {
-						const svg = (el as SVGGraphicsElement).ownerSVGElement!;
-						const ctm = svg.getScreenCTM()!.inverse();
-						const rect = el.getBoundingClientRect();
-						const topLeft = new DOMPoint(rect.left, rect.top).matrixTransform(ctm);
-						const bottomRight = new DOMPoint(rect.right, rect.bottom).matrixTransform(ctm);
-						return {
-							left: Math.min(topLeft.x, bottomRight.x),
-							right: Math.max(topLeft.x, bottomRight.x),
-						};
-					}),
-				),
-			);
-		};
-
-		const results = await acrossFrameworks(browser, testInfo, readPieces);
-		const failures = results.flatMap(({ framework, value: groups }) => {
-			const problems: string[] = [];
-			for (const pieces of groups) {
-				// Sort left-to-right (slice order should already match, but a
-				// binding's own DOM-construction order is not being asserted here).
-				const sorted = [...pieces].sort((a, b) => a.left - b.left);
-				for (let i = 1; i < sorted.length; i++) {
-					if (sorted[i].left > sorted[i - 1].right) {
-						problems.push(
-							`slice ${i}: gap of ${(sorted[i].left - sorted[i - 1].right).toFixed(2)}px from the previous slice`,
-						);
-					}
-				}
-			}
-			return problems.length > 0 ? [`${framework.name}: ${problems.join('; ')}`] : [];
-		});
-		expect(failures.join('\n')).toBe('');
 	});
 });

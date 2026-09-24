@@ -39,9 +39,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			rId = resolveHyperlinkRelationshipId(action.url, forceExternal) ?? undefined;
 		}
-		if (rId) {
-			node['@_r:id'] = rId;
-		}
+		// `r:id` is present on every real-PowerPoint (COM-verified) `a:hlinkClick`/
+		// `a:hlinkHover`, even one with no backing relationship at all
+		// (`ppaction://media`, `ppaction://ole?verb=0`, `ppaction://noaction`,
+		// `ppaction://hlinkshowjump?jump=firstslide` all write `r:id=""` rather
+		// than omitting the attribute). Omitting it when there is no rId dropped
+		// the attribute PowerPoint itself always emits; write the empty string
+		// instead so a same-package-relationship-less action round-trips exactly.
+		node['@_r:id'] = rId ?? '';
 		if (action.action) {
 			node['@_action'] = action.action;
 		}

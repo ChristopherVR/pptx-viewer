@@ -65,6 +65,7 @@ export const translations = {
 	'pptx.media.startAutomatically': '自动',
 	'pptx.media.playAcrossSlides': '跨幻灯片播放',
 	'pptx.media.fullScreen': '全屏',
+	'pptx.media.onlineVideoTitle': '在线视频',
 	'pptx.media.hideWhenNotPlaying': '不播放时隐藏',
 	'pptx.media.bookmarks': '书签',
 	'pptx.media.bookmark': '书签',

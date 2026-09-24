@@ -75,6 +75,21 @@ describe('inkDrawingOverlay', () => {
 		expect(target.querySelector('path')).not.toBeNull();
 	});
 
+	it('applies multiply blending to the live path itself (not the container svg) for a highlighter stroke', () => {
+		const editor = makeEditor();
+		editor.inkOps.setTool('highlighter');
+		const target = mountOverlay(editor);
+		editor.inkOps.previewStroke([
+			{ x: 0, y: 0 },
+			{ x: 10, y: 0 },
+		]);
+		flushSync();
+		const svg = target.querySelector('svg');
+		expect(svg?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+		const path = target.querySelector('path');
+		expect(path?.getAttribute('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
 	it('clears the live preview once the stroke is committed', () => {
 		const editor = makeEditor();
 		editor.inkOps.setTool('pen');

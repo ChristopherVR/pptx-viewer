@@ -88,12 +88,19 @@ export function resolveDataLabelContent(
 		chartLevel?.showBubbleSize,
 	);
 
-	const anySet =
-		showValue === true ||
-		showCategory === true ||
-		showSeriesName === true ||
-		showPercent === true ||
-		showBubbleSize === true;
+	// "Declared" means a flag is written at ANY level, even as `0`. PowerPoint
+	// writes an all-zero chart-type-level group on every chart it authors;
+	// that group means "no labels", never "fall back to the value".
+	const anyDeclared = [showValue, showCategory, showSeriesName, showPercent, showBubbleSize].some(
+		(flag) => flag !== undefined,
+	);
+	// Labels switched on by one series' own `c:dLbls` (no chart-level group)
+	// must not leak onto its sibling series that declare nothing.
+	const siblingOwnsLabels =
+		!anyDeclared &&
+		chartLevel === undefined &&
+		seriesLevel === undefined &&
+		chartData.series.some((other) => other !== series && other.dataLabelOptions !== undefined);
 
 	// PowerPoint 2013+ "Value From Cells", series-wide form
 	// (`c15:datalabelsRange`): one cell range's cache supplies every label in
@@ -113,8 +120,9 @@ export function resolveDataLabelContent(
 			: undefined;
 
 	return {
-		// Nothing declared anywhere => the historical "just print the value".
-		showValue: anySet ? showValue === true : true,
+		// Nothing declared anywhere => the historical "just print the value"
+		// (what the serializer writes for a bare `hasDataLabels: true`).
+		showValue: anyDeclared ? showValue === true : !siblingOwnsLabels,
 		showCategory: showCategory === true,
 		showSeriesName: showSeriesName === true,
 		showPercent: showPercent === true,

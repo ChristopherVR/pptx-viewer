@@ -23,6 +23,11 @@
  * @module render/editor-keymap
  */
 
+import { resolveChord, resolveLiveFormatChord } from './editor-keymap-chords';
+
+export { mapInlineTextFormatKey } from './editor-keymap-chords';
+export type { InlineTextFormatProperty } from './editor-keymap-chords';
+
 // ---------------------------------------------------------------------------
 // Steps
 // ---------------------------------------------------------------------------
@@ -61,7 +66,22 @@ export type EditorKeyActionName =
 	| 'nextSlide'
 	| 'escape'
 	| 'find'
-	| 'toggleShortcuts';
+	| 'findReplace'
+	| 'toggleShortcuts'
+	| 'alignLeft'
+	| 'alignCenter'
+	| 'alignRight'
+	| 'alignJustify'
+	| 'increaseFontSize'
+	| 'decreaseFontSize'
+	| 'copyFormat'
+	| 'pasteFormat'
+	| 'newSlide'
+	| 'hyperlink'
+	| 'clearFormatting'
+	| 'cycleSelectionNext'
+	| 'cycleSelectionPrev'
+	| 'pasteSpecial';
 
 /** Result of resolving one key press; `null` means "not ours, leave it alone". */
 export interface EditorKeyResult {
@@ -159,11 +179,15 @@ const NO_ACTION: EditorKeyResult = { action: null };
  * Order is load-bearing:
  *  1. the mode gate (no editing while presenting or on a read-only host);
  *  2. `Escape`, which stays live even mid-edit so it can always cancel;
- *  3. Ctrl/Cmd+F, live mid-edit for the same reason (see below);
- *  4. the typing gates, so a shortcut never fires out of a text field;
- *  5. `?` and Ctrl/Cmd+`/` (one command, two keys), before the other chords,
+ *  3. Ctrl/Cmd+F and Ctrl/Cmd+H, live mid-edit for the same reason (see below);
+ *  4. the live-format chords (alignment, font size, format painter, hyperlink,
+ *     clear formatting), which survive the typing gate but only when the key
+ *     press targets our own text (mid-edit, or a selection with nothing else
+ *     focused) so a foreign input field is never hijacked;
+ *  5. the typing gates, so every other shortcut never fires out of a text field;
+ *  6. `?` and Ctrl/Cmd+`/` (one command, two keys), before the other chords,
  *     because `?` is a bare printable key;
- *  6. Delete/Backspace, chords, arrows.
+ *  7. Delete/Backspace, Tab (selection cycling), chords, arrows.
  *
  * Selection-gated commands (copy, cut, duplicate, delete, nudge, group,
  * ungroup) return `null` with an empty selection rather than firing a no-op, so
@@ -186,22 +210,55 @@ export function mapEditorKey(
 		return { action: 'escape' };
 	}
 
+	const mod = Boolean(input.ctrlKey || input.metaKey);
+	const alt = Boolean(input.altKey);
+
 	// Ctrl/Cmd+F is the second chord that outranks the typing gates. PowerPoint
 	// opens Find with the caret sitting in a text box, and the browser's own
 	// find bar is what the user gets otherwise, so gating it on "not typing"
 	// would make the shortcut fail in the one place people reach for it most.
 	// It is still behind the mode gate above: a read-only or presenting host
 	// leaves Ctrl+F to the browser.
-	if ((input.ctrlKey || input.metaKey) && !input.altKey && key.toLowerCase() === 'f') {
+	if (mod && !alt && key.toLowerCase() === 'f') {
 		return { action: 'find' };
+	}
+
+	// Ctrl/Cmd+H (Find & Replace) is the same category of command as Ctrl+F, so
+	// it gets the same exemption for the same reason.
+	if (mod && !alt && key.toLowerCase() === 'h') {
+		return { action: 'findReplace' };
+	}
+
+	// Ctrl/Cmd+Alt+V (Paste Special) is exempt from the typing gate for the
+	// same reason Ctrl+F is: PowerPoint offers Paste Special with the caret
+	// sitting inside a text box, and `isTextInputTarget` still keeps it out of
+	// a foreign input/textarea/select. It shares plain Paste's `canPaste`
+	// guard so a host with nothing internal to offer leaves it to the browser.
+	if (mod && alt && key.toLowerCase() === 'v' && !state.isTextInputTarget) {
+		return state.canPaste === false ? NO_ACTION : { action: 'pasteSpecial' };
+	}
+
+	// Alignment, font-size stepping, format painter, hyperlink and clear-format
+	// are PowerPoint text commands: their main use is a caret or a text range
+	// mid-edit, which the typing gate below would otherwise swallow entirely.
+	// They still must not steal a chord aimed at some other field (a rename box,
+	// a dialog input), so the guard here is narrower than Ctrl+F's: allowed
+	// while actively editing our text, or with a selection and nothing else
+	// (foreign) focused. A match that fails the guard is claimed and dropped
+	// (NO_ACTION) rather than falling through, so e.g. Ctrl+K with nothing
+	// selected does not leak to the browser's own shortcut for that chord.
+	if (mod && !alt) {
+		const liveFormat = resolveLiveFormatChord(key, Boolean(input.shiftKey));
+		if (liveFormat) {
+			const targetsOurText =
+				state.isEditingText || (state.hasSelection && !state.isTextInputTarget);
+			return !state.isDrawing && targetsOurText ? liveFormat : NO_ACTION;
+		}
 	}
 
 	if (state.isEditingText || state.isDrawing || state.isTextInputTarget) {
 		return NO_ACTION;
 	}
-
-	const mod = Boolean(input.ctrlKey || input.metaKey);
-	const alt = Boolean(input.altKey);
 
 	// "?" is Shift+/ on most layouts, so it cannot be gated on `!shiftKey`.
 	if (key === '?' && !mod && !alt) {
@@ -220,6 +277,13 @@ export function mapEditorKey(
 
 	if ((key === 'Delete' || key === 'Backspace') && state.hasSelection) {
 		return { action: 'delete' };
+	}
+
+	// Tab cycles the selection through the slide's elements when nothing is
+	// being typed into; Ctrl+Tab / Cmd+Tab are the browser/OS's own tab
+	// switchers and must be left alone.
+	if (key === 'Tab' && !mod && !alt) {
+		return { action: input.shiftKey ? 'cycleSelectionPrev' : 'cycleSelectionNext' };
 	}
 
 	if (mod && !alt) {
@@ -250,33 +314,4 @@ export function mapEditorKey(
 	}
 
 	return NO_ACTION;
-}
-
-/** Resolve a Ctrl/Cmd chord, or `null` when the chord is not part of the map. */
-function resolveChord(
-	key: string,
-	shiftKey: boolean,
-	hasSelection: boolean,
-): EditorKeyResult | null {
-	switch (key.toLowerCase()) {
-		case 'z':
-			return { action: shiftKey ? 'redo' : 'undo' };
-		case 'y':
-			return { action: 'redo' };
-		case 'c':
-			return hasSelection ? { action: 'copy' } : null;
-		case 'x':
-			return hasSelection ? { action: 'cut' } : null;
-		case 'v':
-			return { action: 'paste' };
-		case 'd':
-			return hasSelection ? { action: 'duplicate' } : null;
-		case 'a':
-			return { action: 'selectAll' };
-		case 'g':
-			// Shift+Ctrl+G is PowerPoint's ungroup; both need something selected.
-			return hasSelection ? { action: shiftKey ? 'ungroup' : 'group' } : null;
-		default:
-			return null;
-	}
 }

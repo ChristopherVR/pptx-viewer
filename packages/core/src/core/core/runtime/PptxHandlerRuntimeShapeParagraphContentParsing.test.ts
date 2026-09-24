@@ -740,6 +740,100 @@ describe('collectShapeParagraphContent - bullet markers (real runtime)', () => {
 		const info = segments[0].bulletInfo;
 		expect((info?.autoNumStartAt ?? 1) + (info?.paragraphIndex ?? 0)).toBe(5);
 	});
+
+	// COM-verified against audit-text/pp/s10.png (gen.py slide 10's nested-list
+	// box): "one", "two", a blank line, then "after empty" number 1, 2, (no
+	// number), 3 - the blank line consumes no ordinal, and the paragraph after
+	// it continues the sequence rather than restarting or skipping ahead.
+	it('does not consume an ordinal for a blank (endParaRPr-only) auto-numbered paragraph', () => {
+		const runtime = new ParagraphContentRuntime();
+		const sequence = createAutoNumberSequence();
+		const autoNumPPr = { 'a:buAutoNum': { '@_type': 'arabicPeriod' } };
+
+		const one = runtime.collect({ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'one' } }, 0, 4, sequence);
+		expect(one.segments[0].text).toBe('1. ');
+
+		const two = runtime.collect({ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'two' } }, 1, 4, sequence);
+		expect(two.segments[0].text).toBe('2. ');
+
+		// A blank line: `a:pPr` still declares the auto-number, but the
+		// paragraph has no run/field/equation content, only `a:endParaRPr`.
+		const empty = runtime.collect(
+			{ 'a:pPr': autoNumPPr, 'a:endParaRPr': { '@_lang': 'en-US' } },
+			2,
+			4,
+			sequence,
+		);
+		expect(empty.segments.some((s) => s.bulletInfo)).toBeFalsy();
+
+		const after = runtime.collect(
+			{ 'a:pPr': autoNumPPr, 'a:r': { 'a:t': 'after empty' } },
+			3,
+			4,
+			sequence,
+		);
+		expect(after.segments[0].text).toBe('3. ');
+	});
+
+	it('still paints a char bullet on an otherwise-empty paragraph', () => {
+		// Only auto-numbered blank paragraphs are suppressed; a character
+		// bullet's glyph is independent of any ordinal sequence.
+		const { segments } = new ParagraphContentRuntime().collect(
+			{
+				'a:pPr': { 'a:buChar': { '@_char': '•' } },
+				'a:endParaRPr': { '@_lang': 'en-US' },
+			},
+			0,
+			1,
+		);
+		expect(segments.some((s) => s.bulletInfo)).toBeTruthy();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// A bullet marker's `align` must match ITS OWN paragraph's resolved
+// alignment, never a placeholder-level default carried in through
+// `mergedDefaultRunStyle`. `applyPlaceholderLevelDefaults` fills any slot the
+// paragraph left undefined, and almost every body placeholder's master
+// `lstStyle` declares a level `algn`, so `mergedDefaultRunStyle.align` is
+// routinely non-empty by the time it reaches here. Because the marker is
+// always the FIRST segment of a bulleted paragraph, and the shared renderer's
+// `resolveParagraphAlign` returns the first segment with an explicit `align`,
+// a stale placeholder alignment on the marker shadowed the paragraph's own
+// `algn` for every bulleted paragraph in that placeholder.
+// ---------------------------------------------------------------------------
+class AlignAwareParagraphContentRuntime extends PptxHandlerRuntime {
+	public collect(p: XmlObject, paraAlign: TextStyle['align'], mergedDefaultRunStyle: TextStyle) {
+		return this.collectShapeParagraphContent(p, 0, 1, paraAlign, mergedDefaultRunStyle, {
+			txBody: undefined,
+			inheritedTxBody: undefined,
+			bodyDefaultRunStyle: {},
+			slideRelationshipMap: undefined,
+			placeholderInfo: undefined,
+			phDefaults: undefined,
+			slidePath: 'ppt/slides/slide1.xml',
+			effectiveLevelStyles: undefined,
+			autoNumbering: createAutoNumberSequence(),
+		} as never);
+	}
+}
+
+describe('collectShapeParagraphContent - bullet marker alignment (real runtime)', () => {
+	it("uses the paragraph's own resolved align, not a placeholder default leaked into mergedDefaultRunStyle", () => {
+		const runtime = new AlignAwareParagraphContentRuntime();
+		const paragraph: XmlObject = {
+			'a:pPr': { 'a:buAutoNum': { '@_type': 'arabicPeriod' }, '@_algn': 'r' },
+			'a:r': { 'a:t': 'Right-aligned bulleted item' },
+		};
+		// Simulates `applyPlaceholderLevelDefaults` having already filled the
+		// merged run-default's `align` from the placeholder's master `lstStyle`
+		// level style (commonly 'l'), which differs from this paragraph's own
+		// authored `algn="r"` (resolved to 'right' as `paraAlign`).
+		const { segments } = runtime.collect(paragraph, 'right', { align: 'left', fontSize: 24 });
+		expect(segments[0].bulletInfo).toBeDefined();
+		expect(segments[0].style.align).toBe('right');
+		expect(segments[1].style.align).toBe('right');
+	});
 });
 
 // ---------------------------------------------------------------------------

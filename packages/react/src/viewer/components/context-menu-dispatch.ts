@@ -84,6 +84,11 @@ export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandler
 		'table-split': andClose(props.onSplitCell),
 		group: andClose(() => onAction('group')),
 		ungroup: andClose(() => onAction('ungroup')),
+		'edit-text': andClose(() => onAction('edit-text')),
+		'save-as-picture': andClose(() => onAction('save-as-picture')),
+		'edit-alt-text': andClose(() => onAction('edit-alt-text')),
+		'size-and-position': andClose(() => onAction('size-and-position')),
+		'format-shape': andClose(() => onAction('format-shape')),
 		delete: andClose(() => onAction('delete')),
 	};
 }

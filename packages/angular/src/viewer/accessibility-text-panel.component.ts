@@ -22,7 +22,11 @@ import { getNonVisualDescriptionFields, shouldShowAccessibilitySection } from '.
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
 		@if (fields().showAltText || fields().showTitle) {
-			<div class="pptx-ng-accessibility-text" data-pptx-accessibility-text>
+			<div
+				class="pptx-ng-accessibility-text"
+				data-pptx-accessibility-text
+				data-pptx-inspector-section="alt-text"
+			>
 				@if (fields().showAltText) {
 					<label class="field field--stacked">
 						<span>{{ 'pptx.elementAccessibility.altText' | translate }}</span>

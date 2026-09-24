@@ -192,7 +192,7 @@ describe('chart user shape section', () => {
 		it('writes a flip edit on a top-level leaf row directly onto its own flip fields', () => {
 			const { section, onChange } = mount(chart({ userShapes: [textBoxShape] }));
 			const flipHInput = section.el.querySelector<HTMLInputElement>(
-				'input[aria-label="pptx.arrange.flipHorizontally"]',
+				'pptx-ui-checkbox[aria-label="pptx.arrange.flipHorizontally"]',
 			)!;
 			flipHInput.checked = true;
 			flipHInput.dispatchEvent(new Event('change'));
@@ -205,7 +205,7 @@ describe('chart user shape section', () => {
 			const { section, onChange } = mount(chart({ userShapes: [grouped] }));
 			const groupRow = section.el.querySelector('[data-chart-user-shape-path="0"]')!;
 			const flipVInput = groupRow.querySelector<HTMLInputElement>(
-				'input[aria-label="pptx.arrange.flipVertically"]',
+				'pptx-ui-checkbox[aria-label="pptx.arrange.flipVertically"]',
 			)!;
 			flipVInput.checked = true;
 			flipVInput.dispatchEvent(new Event('change'));

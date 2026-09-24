@@ -1,3 +1,4 @@
+import { parseOoxmlPercent } from '../../color';
 import { XmlObject, PlaceholderTextLevelStyle } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import {
@@ -85,20 +86,36 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const basisFontSizePx = Number.isFinite(defRPrSzRaw)
 			? this.pointsToPixels(defRPrSzRaw / 100)
 			: undefined;
-		const spcBef = this.parseParagraphSpacingPx(
-			levelProps['a:spcBef'] as XmlObject | undefined,
-			basisFontSizePx,
-		);
+		const spcBefNode = levelProps['a:spcBef'] as XmlObject | undefined;
+		const spcBef = this.parseParagraphSpacingPx(spcBefNode, basisFontSizePx);
 		if (spcBef !== undefined) {
 			style.spaceBefore = spcBef;
+			style.resolvedSpaceBefore = spcBef;
+			// `a:spcPts` wins over `a:spcPct` inside `parseParagraphSpacingPx`,
+			// so a percentage was the source only when there is no `a:spcPts`.
+			if ((spcBefNode as XmlObject | undefined)?.['a:spcPts'] === undefined) {
+				const pct = parseOoxmlPercent(
+					(spcBefNode?.['a:spcPct'] as XmlObject | undefined)?.['@_val'],
+				);
+				if (pct !== undefined) {
+					style.spaceBeforePercent = pct;
+				}
+			}
 		}
 
-		const spcAft = this.parseParagraphSpacingPx(
-			levelProps['a:spcAft'] as XmlObject | undefined,
-			basisFontSizePx,
-		);
+		const spcAftNode = levelProps['a:spcAft'] as XmlObject | undefined;
+		const spcAft = this.parseParagraphSpacingPx(spcAftNode, basisFontSizePx);
 		if (spcAft !== undefined) {
 			style.spaceAfter = spcAft;
+			style.resolvedSpaceAfter = spcAft;
+			if ((spcAftNode as XmlObject | undefined)?.['a:spcPts'] === undefined) {
+				const pct = parseOoxmlPercent(
+					(spcAftNode?.['a:spcPct'] as XmlObject | undefined)?.['@_val'],
+				);
+				if (pct !== undefined) {
+					style.spaceAfterPercent = pct;
+				}
+			}
 		}
 
 		this.parsePlaceholderLevelBullet(levelProps, style);
@@ -205,7 +222,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (latin?.['@_typeface']) {
 			const typeface = String(latin['@_typeface']);
 			const resolved = this.resolveThemeTypeface(typeface);
-			style.fontFamily = resolved ?? typeface;
+			const resolvedFamily = resolved ?? typeface;
+			style.fontFamily = resolvedFamily;
+			// Snapshot + raw alias: re-emitting `resolvedFamily` as the literal
+			// name on every save flattened a theme alias (`+mj-lt`/`+mn-lt`)
+			// the moment ANYTHING about the deck was rewritten. See
+			// `resolvedFontFamily` / `fontTypefaceXml` on the type.
+			style.resolvedFontFamily = resolvedFamily;
+			style.fontTypefaceXml = typeface;
 		}
 	}
 }

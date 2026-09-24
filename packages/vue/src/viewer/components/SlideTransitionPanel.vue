@@ -23,7 +23,7 @@ const { t } = useI18n();
 
 /**
  * The complete set of transition effects offered by the Type select, from
- * shared's `SLIDE_TRANSITION_OPTIONS` (the same 47-entry catalogue React
+ * shared's `SLIDE_TRANSITION_OPTIONS` (the same catalogue React
  * offers). `"none"` is part of that catalogue and doubles as the "clear
  * transition" option, so it is excluded from the effect list and surfaced
  * separately.
@@ -113,8 +113,8 @@ function onSpeedChange(event: Event): void {
 			 that was never on screen. Angular's transition card labels its select the
 			 same way; this is the binding that had drifted.
 			-->
-			<select
-				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+			<pptx-ui-select
+				class="pptx-vue-transition-panel__select w-full text-xs text-foreground"
 				:value="selectedType"
 				:aria-label="t('pptx.transition.label')"
 				data-testid="transition-type"
@@ -124,7 +124,7 @@ function onSpeedChange(event: Event): void {
 				<option v-for="option in TRANSITION_OPTIONS" :key="option.value" :value="option.value">
 					{{ t(option.i18nKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label class="pptx-vue-transition-panel__field flex flex-col gap-1">
@@ -148,8 +148,8 @@ function onSpeedChange(event: Event): void {
 			<span class="pptx-vue-transition-panel__label font-medium text-muted-foreground">{{
 				t('pptx.transition.speed')
 			}}</span>
-			<select
-				class="pptx-vue-transition-panel__select rounded border border-border bg-popover px-1.5 py-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+			<pptx-ui-select
+				class="pptx-vue-transition-panel__select w-full text-xs text-foreground"
 				:value="speed"
 				:disabled="!hasTransition"
 				:aria-label="t('pptx.transition.speed')"
@@ -163,7 +163,7 @@ function onSpeedChange(event: Event): void {
 				>
 					{{ t(option.i18nKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 	</div>
 </template>

@@ -48,6 +48,15 @@ describe('image color effects', () => {
 		expect(result.duotone).toMatchObject({ color1: '#000000', color2: '#FFFFFF' });
 	});
 
+	it('treats a genuinely empty self-closing element (fast-xml-parser emits "") as present', () => {
+		// fast-xml-parser, with this codebase's parser options (parseTagValue:
+		// false, trimValues: false), represents `<a:grayscl/>` as the empty
+		// string "", not `{}`. Grayscale must still be detected.
+		const result = parseImageColorEffects({ 'a:grayscl': '' }, parseColor, extractOpacity);
+		expect(result.grayscale).toBeTruthy();
+		expect(result.grayscaleRawXml).toStrictEqual({});
+	});
+
 	it('round-trips untouched color choices, transforms, extensions, and prefixes', () => {
 		const blip: XmlObject = {
 			'x:clrChange': {
@@ -116,5 +125,17 @@ describe('image color effects', () => {
 		const change = blip['a:clrChange'] as XmlObject;
 		const to = change['a:clrTo'] as XmlObject;
 		expect(to).toStrictEqual({ 'a:srgbClr': { '@_val': 'FFFFFF' } });
+	});
+
+	it('parses a self-closing, attribute-less a:grayscl as fast-xml-parser actually emits it', () => {
+		// fast-xml-parser (with this repo's parser options) turns an
+		// attribute-less self-closing element like `<a:grayscl/>` into an
+		// empty string, not an object. A `typeof value === 'object'` gate on
+		// the child lookup silently dropped it (issue: grayscale recolor never
+		// applied because the deck's own `<a:grayscl/>` was never seen).
+		const blip: XmlObject = { 'a:grayscl': '' };
+		const result = parseImageColorEffects(blip, parseColor, extractOpacity);
+		expect(result.grayscale).toBeTruthy();
+		expect(result.grayscaleRawXml).toStrictEqual({});
 	});
 });

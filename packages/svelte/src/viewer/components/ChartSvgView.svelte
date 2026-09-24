@@ -81,7 +81,7 @@
 			<!-- The shared descriptor's `title` is the shape's ACCESSIBLE NAME as
 			     well as its hover text. A choropleth patch carries no label of its
 			     own, so a region map without it announces nothing at all. -->
-			<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} fill-opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</path>
+			<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} stroke-dasharray={prim.dashArray} fill-opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</path>
 		{:else if prim.kind === 'polyline'}
 			<polyline points={prim.points} stroke={prim.stroke} stroke-width={prim.strokeWidth} fill={prim.fill} opacity={prim.opacity ?? 1} {...partAttrs(prim.part)}>{#if prim.title !== undefined}<title>{prim.title}</title>{/if}</polyline>
 		{:else if prim.kind === 'circle'}
@@ -114,7 +114,7 @@
 					{:else if prim.kind === 'polygon'}
 						<polygon points={prim.points} fill={prim.fill} stroke={prim.stroke} stroke-width={prim.strokeWidth} />
 					{:else if prim.kind === 'path'}
-						<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} />
+						<path d={prim.d} fill={prim.fill} stroke={prim.stroke ?? 'none'} stroke-width={prim.strokeWidth ?? 0} stroke-dasharray={prim.dashArray} />
 					{/if}
 				{/each}
 			{:else}

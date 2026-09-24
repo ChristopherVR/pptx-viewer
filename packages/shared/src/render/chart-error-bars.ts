@@ -15,6 +15,15 @@ export interface ErrorBarRenderOptions {
 	seriesRanges?: ReadonlyArray<ValueRange | undefined>;
 	/** Per-series category mapping mode for mixed bar/line charts. */
 	seriesModes?: ReadonlyArray<'line' | 'bar' | undefined>;
+	/**
+	 * A scatter/bubble chart's own nice-scaled X-axis range (see
+	 * `chart-scatter-x-axis.ts`), shared across every series so an X error bar
+	 * anchors to the SAME domain the plotted points use. Without it each
+	 * series fell back to its own tight per-series min/max (`numericXRange`),
+	 * which drifted from the chart-wide domain the dots share once that
+	 * domain gained the automatic scale's headroom/rounding.
+	 */
+	scatterXRange?: ValueRange;
 }
 
 function categoryX(value: number, count: number, layout: PlotLayout, mode: 'line' | 'bar'): number {
@@ -78,6 +87,23 @@ function numericXRange(values: number[]): ValueRange {
 	return { min, max, span: Math.max(max - min, 1) };
 }
 
+/**
+ * Sample variance of `values` (Bessel's-corrected, `n - 1` denominator), the
+ * same convention Excel's own `STDEV`/`STDEV.S` (and its "Standard
+ * Deviation"/"Standard Error" chart error-bar options) use, not the
+ * population variance (`n` denominator) `STDEVP`/`STDEV.P` would give. A
+ * single-point series has no sample variance; `n - 1` clamped to 1 keeps the
+ * result `0` instead of dividing by zero.
+ */
+function sampleVariance(values: number[]): number {
+	const count = values.length;
+	if (count === 0) {
+		return 0;
+	}
+	const mean = values.reduce((sum, value) => sum + value, 0) / count;
+	return values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(count - 1, 1);
+}
+
 function errorValue(
 	errBars: PptxChartErrBars,
 	values: number[],
@@ -90,18 +116,10 @@ function errorValue(
 			return errBars.val ?? 0;
 		case 'percentage':
 			return Math.abs(values[displayIndex] ?? 0) * ((errBars.val ?? 0) / 100);
-		case 'stdDev': {
-			const mean = values.reduce((sum, value) => sum + value, 0) / Math.max(values.length, 1);
-			const variance =
-				values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / Math.max(values.length, 1);
-			return Math.sqrt(variance) * (errBars.val ?? 1);
-		}
-		case 'stdErr': {
-			const count = Math.max(values.length, 1);
-			const mean = values.reduce((sum, value) => sum + value, 0) / count;
-			const variance = values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / count;
-			return Math.sqrt(variance / count);
-		}
+		case 'stdDev':
+			return Math.sqrt(sampleVariance(values)) * (errBars.val ?? 1);
+		case 'stdErr':
+			return Math.sqrt(sampleVariance(values) / Math.max(values.length, 1));
 		case 'cust':
 			return direction === 'plus'
 				? (errBars.customPlus?.[sourceIndex] ?? 0)
@@ -166,7 +184,9 @@ export function computeErrorBarPrimitives(
 		const indexes = options.sourceIndices ?? series.values.map((_value, index) => index);
 		const yValues = indexes.map((index) => series.values[index] ?? 0);
 		const xValues = xValuesForSeries(chartData, series, indexes);
-		const xRange = xValues.numeric ? numericXRange(xValues.values) : undefined;
+		const xRange = xValues.numeric
+			? (options.scatterXRange ?? numericXRange(xValues.values))
+			: undefined;
 		const seriesMode = options.seriesModes?.[seriesIndex] ?? mode;
 		const yRange = options.seriesRanges?.[seriesIndex] ?? range;
 		series.errBars?.forEach((errBars) => {

@@ -13,10 +13,12 @@ import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import { provideTranslator } from '../../i18n/context';
 import { createDeckApi } from '../editor/deck-api';
+import type { DeckApi } from '../editor/deck-api';
 import { createEditingApi } from '../editor/editing-api';
 import { serializeEditorState } from '../editor/editor-document-lifecycle';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
+import type { PresentationController } from '../presentation';
 import { useAiCluster } from './create-viewer-state-ai.svelte';
 import { useCollabCluster } from './create-viewer-state-collab.svelte';
 import { useViewerDerived } from './create-viewer-state-derived.svelte';
@@ -164,6 +166,18 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// after this one, and the cadence is only read when a save is scheduled.
 		getOptionsIntervalSeconds: () => editorUi.optionsState.autosaveIntervalSeconds,
 	});
+	// `.current` is filled in once `deck` is constructed below. The keyboard
+	// shortcut that needs it (Ctrl+M) is only ever invoked on a real key press,
+	// long after this module has finished running, so the forward reference
+	// (a box, not a reassigned `let`, so this binding itself stays `const`) is
+	// safe.
+	const deckApi: { current?: DeckApi } = {};
+	// `.current` is filled in once `presentationCluster` is constructed below,
+	// for the same reason as `deckApi` above: `usePresentationCluster` needs
+	// this cluster's own `parityUi`/`controller` outputs, so it must be built
+	// AFTER this cluster, but a zoom tile's click handler (registered here)
+	// only ever fires long after both exist.
+	const presentationApi: { current?: PresentationController } = {};
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const editorUi = useEditorUiCluster({
 		loader,
@@ -183,6 +197,8 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// must not rewrite that choice for every other host.
 		getAutosaveEnabled: () => collabCluster.autosavePreference,
 		setAutosaveEnabled: collabCluster.setAutosaveFlag,
+		newSlide: () => deckApi.current?.addSlide(),
+		getPresentation: () => presentationApi.current,
 	});
 
 	// Trust Center > "Allow external content": read live on every load, not
@@ -262,6 +278,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getStageHolderEl: options.getStageHolderEl,
 		getRootEl: options.getRootEl,
 	});
+	presentationApi.current = presentationCluster.presentation;
 
 	const exportNotes = buildExportNotesCluster({
 		editor,
@@ -329,6 +346,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		toggleFullscreen: presentationCluster.onFullscreenToggle,
 		setEditable,
 	});
+	deckApi.current = deck;
 
 	// File > Options > Save > "cache retention": a one-time sweep per mount is
 	// enough, since a fresh snapshot only ever lands with a fresh timestamp.

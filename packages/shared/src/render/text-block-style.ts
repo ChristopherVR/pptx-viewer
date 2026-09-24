@@ -141,7 +141,16 @@ export function buildTextBlockStyle(
 	const hasParagraphIndents = (element.paragraphIndents?.length ?? 0) > 0;
 	const bodyIndent = hasParagraphIndents ? 0 : ts?.paragraphIndent || 0;
 	const bodyMarginLeft = hasParagraphIndents ? 0 : ts?.paragraphMarginLeft || 0;
-	const bodyMarginRight = hasParagraphIndents ? 0 : ts?.paragraphMarginRight || 0;
+	// `a:pPr/@marR` has no per-paragraph carrier anywhere in the render
+	// pipeline (unlike marL/indent, which the paragraph renderer re-applies
+	// per paragraph from `element.paragraphIndents`), so there is nothing to
+	// double-count and no reason to gate it on `hasParagraphIndents`: doing so
+	// silently dropped the right margin entirely on any body that ALSO
+	// happened to carry per-paragraph left indents (COM-verified against
+	// `audit-text/pp/s19.png`, `gen.py` slide 19's "Right margin" box, whose
+	// `a:pPr` sets only `marR` + `algn="r"`, no `marL`/`indent`, and still
+	// wraps three lines narrower than the shape width in real PowerPoint).
+	const bodyMarginRight = ts?.paragraphMarginRight || 0;
 
 	// CSS cannot let a nested run span CANCEL an ancestor's `text-decoration`:
 	// the line is drawn by the decorating box and shows through descendants
@@ -166,6 +175,12 @@ export function buildTextBlockStyle(
 
 	// Layout first: the typography below must win on any shared property (a
 	// `wrap="none"` body's `nowrap` has to beat the default `pre-wrap`).
+	// `bodyLayoutStyle` may itself declare `direction` (`a:bodyPr/@rtlCol` on a
+	// multi-column body); captured here so the unconditional `style.direction`
+	// assignment below can fall back to it instead of clobbering it back to
+	// `undefined`/`'ltr'`, the "shared value clobbered downstream" failure mode
+	// CLAUDE.md warns about.
+	const bodyLayoutStyle = options.bodyLayout ? buildTextBodyLayoutStyle(element) : undefined;
 	if (options.bodyLayout) {
 		style.width = '100%';
 		style.height = '100%';
@@ -174,7 +189,7 @@ export function buildTextBlockStyle(
 		// The box itself (columns, anchor, anchorCtr, tab-size, kinsoku) comes
 		// from the one shared decision React's `getTextLayoutStyle` also renders
 		// from. Assigned AFTER `wordBreak` so `@latinLnBrk` can override it.
-		Object.assign(style, buildTextBodyLayoutStyle(element));
+		Object.assign(style, bodyLayoutStyle);
 		// `a:bodyPr/@rot`, for the four bindings that put the body layout and the
 		// body typography on ONE element. React composes the same shared value
 		// with its text-compensation and 3D-scene transforms itself, so emitting
@@ -197,8 +212,13 @@ export function buildTextBlockStyle(
 		style.backgroundColor = normalizeHexColor(ts.highlightColor, undefined);
 	}
 	style.textAlign = resolveCssTextAlign(ts?.align, isRtl) ?? 'left';
-	// Vertical RTL modes (`wordArtVertRtl`) outrank paragraph-level RTL.
-	style.direction = toCssVerticalDirection(ts?.textDirection) ?? (isRtl ? 'rtl' : 'ltr');
+	// `vertical270`'s bottom-to-top reading direction outranks paragraph-level
+	// RTL, which in turn outranks a multi-column body's own `@rtlCol` direction
+	// (`bodyLayoutStyle.direction`, only ever set when neither of the other two
+	// applies).
+	style.direction =
+		toCssVerticalDirection(ts?.textDirection) ??
+		(isRtl ? 'rtl' : (bodyLayoutStyle?.direction ?? 'ltr'));
 	if (isRtl) {
 		style.unicodeBidi = 'plaintext';
 	}

@@ -7,6 +7,7 @@ import {
 	morphOptionToMode,
 	presentationEntrySlideIndex,
 } from 'pptx-viewer-shared';
+import type { ZoomExcursion } from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 
 import { acceptsPresentationInput } from './presentation-mode/audience-content-store';
@@ -165,6 +166,13 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		onAddRunProgramNotice,
 	});
 
+	// Shared with `useZoomNavigation` below: armed by a zoom click that
+	// requested `returnToParent`, consumed by `useSlideNavigation`'s
+	// forward-advance step once the show reaches the end of the target's
+	// range. A plain ref (not state) because it must be readable synchronously
+	// inside the very next `movePresentationSlide` call, not after a re-render.
+	const zoomExcursionRef = useRef<ZoomExcursion | undefined>(undefined);
+
 	const {
 		movePresentationSlide: moveNavigationSlide,
 		navigateToSlide,
@@ -172,6 +180,7 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		scheduleAutoAdvanceForSlide,
 	} = useSlideNavigation({
 		slides,
+		zoomExcursionRef,
 		visibleSlideIndexes,
 		presentationSlideIndex,
 		setPresentationSlideIndex,
@@ -239,8 +248,20 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		],
 	);
 
-	const { handleZoomClick, zoomReturnSlideIndex, returnToZoomSlide, clearZoomReturn } =
-		useZoomNavigation({ navigateToSlide });
+	const { handleZoomClick, clearZoomReturn } = useZoomNavigation({
+		slides,
+		navigateToSlide,
+		zoomExcursionRef,
+	});
+
+	// Leaving the show for ANY reason drops a pending "return to zoom"
+	// excursion: re-entering the show later should not silently jump back to
+	// wherever a stale zoom click was clicked from.
+	useEffect(() => {
+		if (mode !== 'present') {
+			clearZoomReturn();
+		}
+	}, [mode, clearZoomReturn]);
 	const openAllSlides = useCallback(() => setAllSlidesOpen(true), []);
 	const closeAllSlides = useCallback(() => setAllSlidesOpen(false), []);
 	// Gated on the show being live: this hook is mounted for the whole session,
@@ -647,8 +668,6 @@ export function usePresentationMode(input: UsePresentationModeInput): UsePresent
 		rehearsalPaused,
 		toggleRehearsalPause,
 		handleZoomClick,
-		zoomReturnSlideIndex,
-		returnToZoomSlide,
 		clearZoomReturn,
 		openAudienceWindow,
 		closeAudienceWindow,

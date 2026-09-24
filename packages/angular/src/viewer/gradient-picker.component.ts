@@ -17,12 +17,21 @@
  * @module viewer/gradient-picker
  */
 
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import type { ThemeColorPickerCommit } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 import {
 	addGradientStopPatch,
 	gradientStateOf,
@@ -36,6 +45,7 @@ import { RecentColorsService } from './recent-colors.service';
 import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-gradient-picker',
 	standalone: true,
 	imports: [TranslatePipe, ThemeColorSwatchGridComponent],
@@ -49,7 +59,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				<label class="pptx-ng-grad__label" for="grad-type">{{
 					'pptx.gradient.type' | translate
 				}}</label>
-				<select
+				<pptx-ui-select
 					id="grad-type"
 					class="pptx-ng-grad__select"
 					[value]="state().type"
@@ -57,7 +67,7 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				>
 					<option value="linear">{{ 'pptx.gradient.linear' | translate }}</option>
 					<option value="radial">{{ 'pptx.gradient.radial' | translate }}</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 
 			<!-- ── Angle (linear only) ──────────────────────────────────── -->
@@ -412,7 +422,7 @@ function numberFromEvent(event: Event): number | null {
 
 function stringFromEvent(event: Event): string | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+	if (!(target instanceof HTMLInputElement) && !isSelectControl(target)) {
 		return null;
 	}
 	const val = target.value.trim();

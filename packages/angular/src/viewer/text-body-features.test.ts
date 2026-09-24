@@ -38,16 +38,26 @@ describe('angular text-body features', () => {
 		expect(style['column-gap']).toBe('16px');
 	});
 
+	it('fills numCol columns sequentially and honours @anchor/@rtlCol', () => {
+		const style = getTextBlockStyle(
+			textShape({ textStyle: { columnCount: 2, vAlign: 'middle', rtlColumns: true } }),
+		);
+		expect(style['column-fill']).toBe('auto');
+		expect(style['align-content']).toBe('center');
+		expect(style['direction']).toBe('rtl');
+	});
+
 	it('advances a tab by `defTabSz` rather than the browser default', () => {
 		expect(getTextBlockStyle(textShape({ textStyle: { defaultTabSize: 48 } }))['tab-size']).toBe(
 			'48px',
 		);
 	});
 
-	it('centres the text bounding box for `anchorCtr`', () => {
-		expect(getTextBlockStyle(textShape({ textStyle: { anchorCenter: true } }))['align-items']).toBe(
-			'center',
-		);
+	it('centres the shared bounding box of every paragraph for `anchorCtr`', () => {
+		const style = getTextBlockStyle(textShape({ textStyle: { anchorCenter: true } }));
+		expect(style['width']).toBe('fit-content');
+		expect(style['margin-left']).toBe('auto');
+		expect(style['margin-right']).toBe('auto');
 	});
 
 	it('clips a `vertOverflow="clip"` body instead of letting it spill', () => {

@@ -86,7 +86,7 @@ describe('createFillSection pattern-fill panel', () => {
 		);
 		const panel = section.el.querySelector('.pptxv-inspector-pattern') as HTMLElement;
 		expect(panel.hidden).toBeFalsy();
-		const select = panel.querySelector('select') as HTMLSelectElement;
+		const select = panel.querySelector('pptx-ui-select')!;
 		expect(select.value).toBe('cross');
 	});
 
@@ -95,7 +95,7 @@ describe('createFillSection pattern-fill panel', () => {
 		section.update(baseState());
 		const toggle = section.el.querySelector('.pptxv-inspector-pattern')
 			?.previousElementSibling as HTMLElement;
-		const checkbox = toggle.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = toggle.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 
 		checkbox.checked = true;
 		checkbox.dispatchEvent(new Event('change'));
@@ -114,7 +114,7 @@ describe('createFillSection pattern-fill panel', () => {
 		);
 		const toggle = section.el.querySelector('.pptxv-inspector-pattern')
 			?.previousElementSibling as HTMLElement;
-		const checkbox = toggle.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = toggle.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 
 		checkbox.checked = false;
 		checkbox.dispatchEvent(new Event('change'));
@@ -129,7 +129,9 @@ describe('createFillSection pattern-fill panel', () => {
 				shapeStyle: { fillMode: 'pattern', fillPatternPreset: 'cross' },
 			} as unknown as Partial<InspectorState>),
 		);
-		const select = section.el.querySelector('.pptxv-inspector-pattern select') as HTMLSelectElement;
+		const select = section.el.querySelector(
+			'.pptxv-inspector-pattern pptx-ui-select',
+		) as HTMLSelectElement;
 
 		select.value = 'dotGrid';
 		select.dispatchEvent(new Event('change'));

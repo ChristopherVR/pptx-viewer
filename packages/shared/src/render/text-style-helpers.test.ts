@@ -13,22 +13,45 @@ import {
 describe('vertical text mapping', () => {
 	it('maps text directions to writing-mode', () => {
 		expect(toCssWritingMode('vertical')).toBe('vertical-rl');
+		expect(toCssWritingMode('eaVert')).toBe('vertical-rl');
 		expect(toCssWritingMode('wordArtVertRtl')).toBe('vertical-rl');
 		expect(toCssWritingMode('vertical270')).toBe('vertical-lr');
 		expect(toCssWritingMode('mongolianVert')).toBe('vertical-lr');
+		// PowerPoint's WordArt "Stacked" vertical grows a wrapped column to the
+		// RIGHT (vertical-lr), the opposite of `eaVert`/`vertical`; only its
+		// "Rtl" sibling grows left (see the writing-mode doc comment).
+		expect(toCssWritingMode('wordArtVert')).toBe('vertical-lr');
 		expect(toCssWritingMode('horizontal')).toBeUndefined();
 		expect(toCssWritingMode(undefined)).toBeUndefined();
 	});
 
-	it('maps text directions to text-orientation', () => {
-		expect(toCssTextOrientation('vertical')).toBe('mixed');
+	it('rotates every glyph including CJK for vert/vert270, but not eaVert', () => {
+		// `vertical` (`vert`) and `vertical270` rotate ALL glyphs, CJK included:
+		// CSS `sideways`. `eaVert` keeps CJK upright and only rotates non-CJK
+		// runs: CSS `mixed`. These must not collapse to the same value, or the
+		// two vertical modes render identically (audit-text/pp/s3.png columns
+		// 1 vs 3 show visibly different CJK glyph rotation).
+		expect(toCssTextOrientation('vertical')).toBe('sideways');
+		expect(toCssTextOrientation('vertical270')).toBe('sideways');
+		expect(toCssTextOrientation('eaVert')).toBe('mixed');
+		expect(toCssTextOrientation('mongolianVert')).toBe('mixed');
+	});
+
+	it('stacks every glyph upright for both WordArt vertical modes', () => {
+		// `wordArtVert` and `wordArtVertRtl` differ only in which side a wrapped
+		// column grows on (`toCssWritingMode`), never in glyph rotation.
 		expect(toCssTextOrientation('wordArtVert')).toBe('upright');
+		expect(toCssTextOrientation('wordArtVertRtl')).toBe('upright');
 		expect(toCssTextOrientation('horizontal')).toBeUndefined();
 	});
 
-	it('only wordArtVertRtl forces direction rtl', () => {
-		expect(toCssVerticalDirection('wordArtVertRtl')).toBe('rtl');
+	it('only vertical270 reads bottom-to-top (direction rtl)', () => {
+		expect(toCssVerticalDirection('vertical270')).toBe('rtl');
 		expect(toCssVerticalDirection('vertical')).toBeUndefined();
+		expect(toCssVerticalDirection('eaVert')).toBeUndefined();
+		// wordArtVertRtl's "Rtl" is a column-growth direction (writing-mode),
+		// not a reading-order reversal: it still reads top-to-bottom.
+		expect(toCssVerticalDirection('wordArtVertRtl')).toBeUndefined();
 	});
 
 	it('detects vertical directions', () => {

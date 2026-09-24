@@ -12,7 +12,14 @@
  * @module angular-viewer/chart-error-bar-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -32,6 +39,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { numFromEvent, selectValue } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-error-bar-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -44,7 +52,7 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 					<div class="pptx-chart-card__group">
 						<div class="pptx-chart-card__row">
 							<span class="pptx-chart-card__name" [title]="s.name">{{ s.name }}</span>
-							<select
+							<pptx-ui-select
 								class="pptx-chart-card__input"
 								[disabled]="!canEdit()"
 								[value]="barsOf(s)?.valType ?? ''"
@@ -55,12 +63,12 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 										{{ opt.labelKey | translate }}
 									</option>
 								}
-							</select>
+							</pptx-ui-select>
 						</div>
 
 						@if (barsOf(s); as bars) {
 							<div class="pptx-chart-card__row pptx-chart-card__group--indent">
-								<select
+								<pptx-ui-select
 									class="pptx-chart-card__input"
 									[disabled]="!canEdit()"
 									[value]="bars.barType"
@@ -71,7 +79,7 @@ import { numFromEvent, selectValue } from './chart-event-helpers';
 											{{ opt.labelKey | translate }}
 										</option>
 									}
-								</select>
+								</pptx-ui-select>
 								@if (showValue(bars)) {
 									<input
 										type="number"

@@ -81,7 +81,12 @@ export type ElementContextMenuAction =
 	| 'group'
 	| 'ungroup'
 	| 'editPoints'
-	| 'editHyperlink';
+	| 'editHyperlink'
+	| 'edit-text'
+	| 'save-as-picture'
+	| 'edit-alt-text'
+	| 'size-and-position'
+	| 'format-shape';
 
 // ---------------------------------------------------------------------------
 // Marquee selection

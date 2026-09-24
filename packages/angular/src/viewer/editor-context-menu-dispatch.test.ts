@@ -53,6 +53,11 @@ function recorder(): { calls: string[]; actions: ContextMenuActions } {
 			group: note('group'),
 			ungroup: note('ungroup'),
 			remove: note('remove'),
+			editText: note('editText'),
+			saveAsPicture: note('saveAsPicture'),
+			editAltText: note('editAltText'),
+			sizeAndPosition: note('sizeAndPosition'),
+			formatShape: note('formatShape'),
 			applyTable: (_op: TableCommandOp) => {
 				calls.push('applyTable');
 			},
@@ -130,6 +135,11 @@ const ELEMENT_ROUTES: [ContextMenuCommandId, string][] = [
 	['group', 'group'],
 	['ungroup', 'ungroup'],
 	['delete', 'remove'],
+	['edit-text', 'editText'],
+	['save-as-picture', 'saveAsPicture'],
+	['edit-alt-text', 'editAltText'],
+	['size-and-position', 'sizeAndPosition'],
+	['format-shape', 'formatShape'],
 ];
 
 // ---------------------------------------------------------------------------
@@ -174,6 +184,7 @@ describe('runContextMenuCommand', () => {
 			...buildContextMenuEntries({
 				table: { hasMultiCellSelection: false, isMergedCell: true },
 			}).map((entry) => entry.id),
+			...buildContextMenuEntries({ elementType: 'shape' }).map((entry) => entry.id),
 			'table-merge-right',
 			'table-merge-down',
 		]);

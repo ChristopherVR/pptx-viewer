@@ -121,7 +121,7 @@ export function ElementInspectorBody({
 	return (
 		<>
 			{/* Position & Size */}
-			<div className={CARD}>
+			<div className={CARD} data-pptx-inspector-section='transform'>
 				<div className='flex items-center justify-between'>
 					<div className={HEADING}>{t('pptx.inspector.element')}</div>
 					<button

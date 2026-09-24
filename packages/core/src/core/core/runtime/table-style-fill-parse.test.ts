@@ -20,6 +20,37 @@ describe('parseTableStyleSectionFill', () => {
 		expect(fill?.color).toBeUndefined();
 	});
 
+	it('parses a:alpha on a scheme-colour solid fill (real PowerPoint "Light Style 1" band1H)', () => {
+		const fill = parseTableStyleSectionFill(
+			section({
+				'a:solidFill': {
+					'a:schemeClr': { '@_val': 'accent1', 'a:alpha': { '@_val': '20000' } },
+				},
+			}),
+		);
+		expect(fill?.schemeColor).toBe('accent1');
+		expect(fill?.alpha).toBe(20_000);
+	});
+
+	it('parses a:alpha on an explicit sRGB solid fill', () => {
+		const fill = parseTableStyleSectionFill(
+			section({
+				'a:solidFill': {
+					'a:srgbClr': { '@_val': 'FF8800', 'a:alpha': { '@_val': '40000' } },
+				},
+			}),
+		);
+		expect(fill?.color).toBe('#FF8800');
+		expect(fill?.alpha).toBe(40_000);
+	});
+
+	it('omits alpha entirely when a:alpha is absent (no behaviour change)', () => {
+		const fill = parseTableStyleSectionFill(
+			section({ 'a:solidFill': { 'a:schemeClr': { '@_val': 'accent1' } } }),
+		);
+		expect(fill?.alpha).toBeUndefined();
+	});
+
 	it('parses scheme-colour tint/shade in both the transitional and Strict-OOXML lexical form', () => {
 		const transitional = parseTableStyleSectionFill(
 			section({

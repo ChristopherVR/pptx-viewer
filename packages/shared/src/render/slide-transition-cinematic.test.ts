@@ -195,6 +195,57 @@ describe('cinematic transition keyframes', () => {
 	});
 });
 
+describe('p15 invX direction (fallOver/drape/wind/peelOff/pageCurl*/airplane/origami)', () => {
+	/**
+	 * The eight `P15_INVX_PRESETS` (core `p15-transition-parser`), COM-verified
+	 * to be the only p15 presets with a real "Effect Options" direction toggle.
+	 * `wind` already varied by direction before this fix; the other seven
+	 * previously ignored `direction` entirely (issue: item 2 of the p15
+	 * authoring wave).
+	 */
+	const INVX_TYPES: readonly PptxTransitionType[] = [
+		'fallOver',
+		'drape',
+		'wind',
+		'peelOff',
+		'pageCurlSingle',
+		'pageCurlDouble',
+		'airplane',
+		'origami',
+	];
+
+	it('plays a visibly different keyframe pair for direction l vs r', () => {
+		for (const type of INVX_TYPES) {
+			const left = getCinematicTransitionAnimations(type, DUR, 'l');
+			const right = getCinematicTransitionAnimations(type, DUR, 'r');
+			const leftSig = `${keyframeName(left?.outgoing ?? 'none')}|${keyframeName(left?.incoming ?? 'none')}`;
+			const rightSig = `${keyframeName(right?.outgoing ?? 'none')}|${keyframeName(right?.incoming ?? 'none')}`;
+			expect(rightSig).not.toBe(leftSig);
+		}
+	});
+
+	it('defaults to the left (non-invX) keyframe when direction is unset', () => {
+		for (const type of INVX_TYPES) {
+			const left = getCinematicTransitionAnimations(type, DUR, 'l');
+			const unset = getCinematicTransitionAnimations(type, DUR, undefined);
+			expect(unset).toStrictEqual(left);
+		}
+	});
+
+	it('every "-right" keyframe referenced by direction r is actually defined', () => {
+		for (const type of INVX_TYPES) {
+			const right = getCinematicTransitionAnimations(type, DUR, 'r');
+			for (const layer of [right?.outgoing, right?.incoming]) {
+				const name = keyframeName(layer ?? 'none');
+				if (!name || CORE_REUSED.has(name)) {
+					continue;
+				}
+				expect(CINEMATIC_TRANSITION_KEYFRAMES).toContain(`@keyframes ${name} `);
+			}
+		}
+	});
+});
+
 describe('getSlideTransitionAnimations wiring (p15 cinematic)', () => {
 	it('routes every cinematic type away from the default cross-fade', () => {
 		for (const type of CINEMATIC_TYPES) {

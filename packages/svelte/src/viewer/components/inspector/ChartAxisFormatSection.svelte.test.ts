@@ -93,14 +93,14 @@ describe('chartAxisFormatSection', () => {
 		const { target } = mountSection(chartData());
 
 		// catAx carries no numeric scale, so only the valAx row gets the select.
-		expect(target.querySelectorAll('select')).toHaveLength(1);
+		expect(target.querySelectorAll('pptx-ui-select')).toHaveLength(1);
 	});
 
 	it('offers the shared, translated display-unit list', () => {
 		const { target } = mountSection(chartData());
-		const options = Array.from(target.querySelectorAll<HTMLOptionElement>('select option')).map(
-			(option) => option.textContent,
-		);
+		const options = Array.from(
+			target.querySelectorAll<HTMLOptionElement>('pptx-ui-select option'),
+		).map((option) => option.textContent);
 
 		expect(options).toStrictEqual([
 			'None',
@@ -119,7 +119,7 @@ describe('chartAxisFormatSection', () => {
 	it('sets the display units on the value axis', () => {
 		const { target, onpatch } = mountSection(chartData());
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, 'millions');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, 'millions');
 
 		expect(onpatch).toHaveBeenCalledWith({
 			axes: [
@@ -134,7 +134,7 @@ describe('chartAxisFormatSection', () => {
 			chartData({ axes: [{ axisType: 'valAx', axPos: 'l', displayUnits: 'thousands' }] }),
 		);
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, '');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, '');
 
 		expect(onpatch).toHaveBeenCalledWith({
 			axes: [{ axisType: 'valAx', axPos: 'l', displayUnits: undefined }],
@@ -143,7 +143,9 @@ describe('chartAxisFormatSection', () => {
 
 	it('disables every control in read-only mode', () => {
 		const { target } = mountSection(chartData(), false);
-		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input, select');
+		const controls = target.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+			'input, pptx-ui-select',
+		);
 
 		expect(controls.length).toBeGreaterThan(0);
 		expect(Array.from(controls).every((control) => control.disabled)).toBeTruthy();

@@ -686,6 +686,12 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onOpenSettings={onOpenSettings}
 				onRunAccessibilityCheck={dialogs.handleRunAccessibilityCheck}
 				onToggleSlideSorter={() => s.setShowSlideSorter((p) => !p)}
+				onGoToNormalView={() => {
+					s.setShowSlideSorter(false);
+					s.setShowReadingView(false);
+					s.setShowOutlineView(false);
+					dialogs.handleCloseMasterView();
+				}}
 				onOpenReadingView={() => s.setShowReadingView(true)}
 				onOpenOutlineView={() => s.setShowOutlineView(true)}
 				onUpdateTextStyle={ops.updateSelectedTextStyle}

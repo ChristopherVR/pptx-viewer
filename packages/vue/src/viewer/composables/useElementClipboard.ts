@@ -25,7 +25,8 @@ export interface UseElementClipboardResult {
 	hasClipboard: ComputedRef<boolean>;
 	copyElement: (id: string) => void;
 	cutElement: (id: string) => void;
-	pasteElement: () => void;
+	/** Returns the freshly-inserted clone, or undefined when the clipboard was empty. */
+	pasteElement: () => PptxElement | undefined;
 }
 
 export function useElementClipboard(
@@ -51,15 +52,16 @@ export function useElementClipboard(
 		options.selectedElementIds.value = options.selectedElementIds.value.filter((x) => x !== id);
 	}
 
-	function pasteElement(): void {
+	function pasteElement(): PptxElement | undefined {
 		if (!clipboard.value) {
-			return;
+			return undefined;
 		}
 		const copy = cloneElementForPaste(clipboard.value, {
 			intoTemplate: isTemplateElementId(clipboard.value.id),
 		});
 		options.addElement(copy);
 		options.selectedElementIds.value = [copy.id];
+		return copy;
 	}
 
 	return { clipboard, hasClipboard, copyElement, cutElement, pasteElement };

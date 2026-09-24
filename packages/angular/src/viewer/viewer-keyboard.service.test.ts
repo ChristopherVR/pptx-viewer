@@ -13,20 +13,44 @@
  */
 
 import { Injector, signal } from '@angular/core';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
+import { textFontSizePtToPx } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
 import { ViewerKeyboardService } from './viewer-keyboard.service';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 
+/** A minimal selectable text shape, for the alignment/font-size/clear-format tests. */
+function textElement(id: string): PptxElement {
+	return {
+		id,
+		type: 'text',
+		x: 0,
+		y: 0,
+		width: 100,
+		height: 50,
+		text: 'hello',
+		textStyle: { fontSize: 24 },
+	} as unknown as PptxElement;
+}
+
 /** The editor methods the keymap can reach, all spies. */
-function editorStub(hasSelection: boolean) {
+function editorStub(hasSelection: boolean, selectedIds: readonly string[] = []) {
+	const idsSignal = signal(selectedIds);
+	const slidesSignal = signal<readonly PptxSlide[]>([]);
 	return {
 		hasSelection: () => hasSelection,
 		hasClipboard: signal(true),
+		selectedIds: idsSignal,
+		slides: slidesSignal,
+		select: vi.fn(),
+		updateElement: vi.fn(),
+		addSlide: vi.fn(),
 		undo: vi.fn(),
 		redo: vi.fn(),
 		duplicateSelected: vi.fn(),
@@ -51,6 +75,9 @@ interface Harness {
 	showFindReplace: ReturnType<typeof signal<boolean>>;
 	painterActive: ReturnType<typeof signal<boolean>>;
 	cancelPainter: ReturnType<typeof vi.fn>;
+	togglePainter: ReturnType<typeof vi.fn>;
+	applyPainterToTarget: ReturnType<typeof vi.fn>;
+	showHyperlink: ReturnType<typeof signal<boolean>>;
 	goPrev: ReturnType<typeof vi.fn>;
 	goNext: ReturnType<typeof vi.fn>;
 	presentFromBeginning: ReturnType<typeof vi.fn>;
@@ -61,6 +88,9 @@ interface Harness {
 function harness(
 	options: {
 		hasSelection?: boolean;
+		selectedIds?: readonly string[];
+		selectedElement?: PptxElement | null;
+		isEditingText?: boolean;
 		painterActive?: boolean;
 		findOpen?: boolean;
 		findReplaceOpen?: boolean;
@@ -68,12 +98,19 @@ function harness(
 		presenting?: boolean;
 	} = {},
 ): Harness {
-	const editor = editorStub(options.hasSelection ?? true);
+	const editor = editorStub(options.hasSelection ?? true, options.selectedIds ?? []);
 	const showShortcuts = signal(false);
 	const showFind = signal(options.findOpen ?? false);
 	const showFindReplace = signal(options.findReplaceOpen ?? false);
 	const painterActive = signal(options.painterActive ?? false);
 	const cancelPainter = vi.fn();
+	const togglePainter = vi.fn();
+	const applyPainterToTarget = vi.fn();
+	const showHyperlink = signal(false);
+	const openFindReplace = vi.fn(() => {
+		showFind.set(false);
+		showFindReplace.set(true);
+	});
 	const goPrev = vi.fn();
 	const goNext = vi.fn();
 	const presentFromBeginning = vi.fn();
@@ -91,16 +128,30 @@ function harness(
 				useValue: {
 					active: painterActive,
 					cancel: cancelPainter,
+					toggle: togglePainter,
+					applyToTarget: applyPainterToTarget,
 				} as unknown as ViewerFormatPainterService,
 			},
 			{
 				provide: ViewerFindReplaceService,
-				useValue: { showFind, showFindReplace } as unknown as ViewerFindReplaceService,
+				useValue: {
+					showFind,
+					showFindReplace,
+					openFindReplace,
+				} as unknown as ViewerFindReplaceService,
+			},
+			{
+				provide: ViewerDocumentPropertiesService,
+				useValue: { showHyperlink } as unknown as ViewerDocumentPropertiesService,
 			},
 			{
 				provide: ViewerPresentationModeService,
 				useValue: { presentFromBeginning, present } as unknown as ViewerPresentationModeService,
 			},
+			// Optional, and deliberately not provided: mid-edit tests only need
+			// `isEditingText`, and no test here exercises the live-inline-snapshot
+			// branch, so `inject(ViewerCanvasEditingService, { optional: true })`
+			// resolving to null is the exact behaviour production code falls back to.
 			{ provide: ViewerKeyboardService, useClass: ViewerKeyboardService, deps: [] },
 		],
 	});
@@ -111,6 +162,8 @@ function harness(
 		activeSlideIndex: () => 2,
 		goPrev,
 		goNext,
+		isEditingText: () => options.isEditingText ?? false,
+		selectedElement: () => options.selectedElement ?? null,
 	});
 
 	return {
@@ -121,6 +174,9 @@ function harness(
 		showFindReplace,
 		painterActive,
 		cancelPainter,
+		togglePainter,
+		applyPainterToTarget,
+		showHyperlink,
 		goPrev,
 		goNext,
 		presentFromBeginning,
@@ -306,5 +362,160 @@ describe('viewerKeyboardService: find', () => {
 		const event = h.press('f');
 		expect(h.showFind()).toBeFalsy();
 		expect(event.defaultPrevented).toBeFalsy();
+	});
+
+	it('opens the full find-and-replace bar on Ctrl+H, distinct from Ctrl+F', () => {
+		const h = harness();
+		h.press('h', { ctrlKey: true });
+		expect(h.showFindReplace()).toBeTruthy();
+	});
+});
+
+describe('viewerKeyboardService: PowerPoint text commands', () => {
+	it('aligns the selection on Ctrl+L/E/R/J', () => {
+		const el = textElement('a');
+		const h = harness({ selectedElement: el, selectedIds: ['a'] });
+		h.press('l', { ctrlKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({ textStyle: expect.objectContaining({ align: 'left' }) }),
+		);
+		h.press('e', { ctrlKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({ textStyle: expect.objectContaining({ align: 'center' }) }),
+		);
+	});
+
+	it('fires the alignment chords while editing text, even with no selection', () => {
+		const el = textElement('a');
+		const h = harness({ selectedElement: el, hasSelection: false, isEditingText: true });
+		h.press('r', { ctrlKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({ textStyle: expect.objectContaining({ align: 'right' }) }),
+		);
+	});
+
+	it('does not align when nothing is selected and nothing is being edited', () => {
+		const h = harness({ hasSelection: false });
+		h.press('j', { ctrlKey: true });
+		expect(h.editor.updateElement).not.toHaveBeenCalled();
+	});
+
+	it('steps the font size up on Ctrl+] and down on Ctrl+[', () => {
+		// textElement('a') is authored at 24px = 18pt, exactly on the ladder.
+		const el = textElement('a');
+		const h = harness({ selectedElement: el, selectedIds: ['a'] });
+		h.press(']', { ctrlKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({
+				textStyle: expect.objectContaining({ fontSize: textFontSizePtToPx(20) }),
+			}),
+		);
+	});
+
+	it('steps the font size on Ctrl+Shift+>/<', () => {
+		const el = textElement('a');
+		const h = harness({ selectedElement: el, selectedIds: ['a'] });
+		h.press('>', { ctrlKey: true, shiftKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({
+				textStyle: expect.objectContaining({ fontSize: textFontSizePtToPx(20) }),
+			}),
+		);
+	});
+
+	it('arms the format painter on Ctrl+Shift+C', () => {
+		const h = harness({ hasSelection: true });
+		h.press('c', { ctrlKey: true, shiftKey: true });
+		expect(h.togglePainter).toHaveBeenCalledOnce();
+	});
+
+	it('applies the copied format to the current selection on Ctrl+Shift+V', () => {
+		const h = harness({ hasSelection: true, selectedIds: ['target'] });
+		h.press('v', { ctrlKey: true, shiftKey: true });
+		expect(h.applyPainterToTarget).toHaveBeenCalledWith('target');
+	});
+
+	it('inserts a new slide on Ctrl+M', () => {
+		const h = harness({ hasSelection: false });
+		h.press('m', { ctrlKey: true });
+		expect(h.editor.addSlide).toHaveBeenCalledWith(2);
+	});
+
+	it('opens the hyperlink dialog on Ctrl+K when something is selected', () => {
+		const h = harness({ hasSelection: true });
+		h.press('k', { ctrlKey: true });
+		expect(h.showHyperlink()).toBeTruthy();
+	});
+
+	it('leaves the hyperlink dialog closed on Ctrl+K with nothing selected', () => {
+		const h = harness({ hasSelection: false });
+		h.press('k', { ctrlKey: true });
+		expect(h.showHyperlink()).toBeFalsy();
+	});
+
+	it('clears character formatting on Ctrl+Space', () => {
+		const el = textElement('a');
+		const h = harness({ selectedElement: el, selectedIds: ['a'] });
+		h.press(' ', { ctrlKey: true });
+		expect(h.editor.updateElement).toHaveBeenLastCalledWith(
+			2,
+			'a',
+			expect.objectContaining({
+				textStyle: expect.objectContaining({
+					bold: false,
+					italic: false,
+					underline: false,
+					strikethrough: false,
+				}),
+			}),
+		);
+	});
+});
+
+describe('viewerKeyboardService: Tab cycles the selection', () => {
+	// harness() always binds activeSlideIndex to 2, so the slide under test has
+	// to sit at that index; the two blanks ahead of it are never read.
+	function slidesWith(ids: readonly string[]): readonly PptxSlide[] {
+		const blank = { id: 'blank', elements: [] } as unknown as PptxSlide;
+		const target = { id: 's1', elements: ids.map((id) => textElement(id)) } as unknown as PptxSlide;
+		return [blank, blank, target];
+	}
+
+	it('selects the first element on Tab with nothing selected', () => {
+		const h = harness({ hasSelection: false });
+		h.editor.slides.set(slidesWith(['a', 'b', 'c']));
+		h.press('Tab');
+		expect(h.editor.select).toHaveBeenCalledWith(['a']);
+	});
+
+	it('advances to the next element on Tab', () => {
+		const h = harness({ hasSelection: true, selectedIds: ['a'] });
+		h.editor.slides.set(slidesWith(['a', 'b', 'c']));
+		h.press('Tab');
+		expect(h.editor.select).toHaveBeenCalledWith(['b']);
+	});
+
+	it('moves to the previous element on Shift+Tab', () => {
+		const h = harness({ hasSelection: true, selectedIds: ['b'] });
+		h.editor.slides.set(slidesWith(['a', 'b', 'c']));
+		h.press('Tab', { shiftKey: true });
+		expect(h.editor.select).toHaveBeenCalledWith(['a']);
+	});
+
+	it('does not cycle while editing text', () => {
+		const h = harness({ hasSelection: false, isEditingText: true });
+		h.editor.slides.set(slidesWith(['a', 'b']));
+		h.press('Tab');
+		expect(h.editor.select).not.toHaveBeenCalled();
 	});
 });

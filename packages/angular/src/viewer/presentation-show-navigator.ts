@@ -13,6 +13,12 @@
 import { signal } from '@angular/core';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 
+import {
+	beginZoomExcursion,
+	buildZoomTransitionOverride,
+	resolveForwardSlideWithZoomReturn,
+} from '../internal/shared';
+import type { ZoomExcursion, ZoomNavigationTarget } from '../internal/shared';
 import type { AnimationPlaybackService } from './animation-playback.service';
 import type { PresentationAnnotationsService } from './presentation-annotations.service';
 import {
@@ -120,6 +126,13 @@ export class PresentationShowNavigator {
 	/** Deck index before each committed change; backs {@link goToLastViewed}. */
 	private previousIndex: number | null = null;
 
+	/**
+	 * A pending "return to zoom" excursion armed by {@link navigateToZoomTarget},
+	 * consumed by a forward `navigate('next')` once the show reaches the end of
+	 * the target's range. See `pptx-viewer-shared`'s `zoom-return-navigation`.
+	 */
+	private zoomExcursion: ZoomExcursion | undefined;
+
 	constructor(private readonly deps: ShowNavigatorDeps) {}
 
 	/** Consume the "entered backward" flag: reads and clears it in one call. */
@@ -208,6 +221,25 @@ export class PresentationShowNavigator {
 			return;
 		}
 
+		// A Slide Zoom / Section Zoom / Summary Zoom tile whose `zmPr` set
+		// `returnToParent` armed an excursion (see `navigateToZoomTarget`). Once a
+		// FORWARD advance reaches the last slide of that target's range, jump
+		// back to the zoom's origin slide instead of continuing linearly through
+		// the deck; PowerPoint's return jump is forward-only, so `prev` never
+		// consults this.
+		if (direction === 'next') {
+			const excursion = this.zoomExcursion;
+			const step = resolveForwardSlideWithZoomReturn(this.currentIndex(), undefined, excursion);
+			if (step.returnedToZoom && step.nextSlideIndex !== undefined) {
+				this.zoomExcursion = step.excursion;
+				this.goToSlide(
+					step.nextSlideIndex,
+					buildZoomTransitionOverride(excursion?.transitionDurationMs),
+				);
+				return;
+			}
+		}
+
 		if (direction === 'prev') {
 			// A slide entered backward shows its builds already complete. The next
 			// back press replays them from the start rather than leaving the slide,
@@ -289,11 +321,17 @@ export class PresentationShowNavigator {
 	}
 
 	/**
-	 * Jump directly to `index` (clamped). Used by zoom tiles and by on-slide
-	 * Action Settings (`ppaction://hlinksldjump`); ENTERS the target slide, so
-	 * PowerPoint plays its transition exactly as a forward step does.
+	 * Jump directly to `index` (clamped). Used by on-slide Action Settings
+	 * (`ppaction://hlinksldjump`) and by {@link navigateToZoomTarget}; ENTERS
+	 * the target slide, so PowerPoint plays its transition exactly as a forward
+	 * step does.
+	 *
+	 * @param transitionOverride Play this transition INSTEAD of the
+	 *   destination's own authored `<p:transition>`. Set by a Slide Zoom /
+	 *   Section Zoom / Summary Zoom navigation that authored its own
+	 *   `zmPr/@transitionDur` (see `buildZoomTransitionOverride`).
 	 */
-	goToSlide(index: number): void {
+	goToSlide(index: number, transitionOverride?: PptxSlideTransition): void {
 		const slides = this.deps.slides();
 		const count = slides.length;
 		if (count === 0) {
@@ -306,9 +344,29 @@ export class PresentationShowNavigator {
 		}
 		const incoming = slides[next];
 		const outgoing = slides[current];
-		this.commit(
-			next,
-			incoming?.transition && outgoing ? { outgoing, transition: incoming.transition } : null,
+		const transition = transitionOverride
+			? outgoing
+				? { outgoing, transition: transitionOverride }
+				: null
+			: incoming?.transition && outgoing
+				? { outgoing, transition: incoming.transition }
+				: null;
+		this.commit(next, transition);
+	}
+
+	/**
+	 * Handle a Slide Zoom / Section Zoom / Summary Zoom tile click: navigates
+	 * to the target slide, playing the zoom's own `zmPr/@transitionDur` when
+	 * authored, and (when `returnToParent` is set) arms an excursion so the
+	 * next forward `navigate('next')` past the target's range returns to the
+	 * slide the zoom was clicked from instead of continuing linearly through
+	 * the deck.
+	 */
+	navigateToZoomTarget(target: ZoomNavigationTarget): void {
+		this.zoomExcursion = beginZoomExcursion(target, this.currentIndex(), this.deps.slides());
+		this.goToSlide(
+			target.targetSlideIndex,
+			buildZoomTransitionOverride(target.transitionDurationMs),
 		);
 	}
 

@@ -13,6 +13,7 @@ import {
 	applyCaseTransformToSegments,
 	elementBulletKind,
 	remapTextToSegments,
+	stepFontSizePt,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 	updateTextSegmentStyle,
@@ -151,6 +152,17 @@ export function setFontSize(el: PptxElement, size: number): Partial<PptxElement>
 /** Step the font size by `delta` points from the current effective size. */
 export function adjustFontSize(el: PptxElement, delta: number): Partial<PptxElement> {
 	return setFontSize(el, readTextFormatState(el).fontSize + delta);
+}
+
+/**
+ * Step the font size one rung along PowerPoint's size ladder
+ * (Ctrl+Shift+>/< and Ctrl+]/[), rather than by a flat delta.
+ */
+export function stepFontSize(
+	el: PptxElement,
+	direction: 'increase' | 'decrease',
+): Partial<PptxElement> {
+	return setFontSize(el, stepFontSizePt(readTextFormatState(el).fontSize, direction));
 }
 
 /**

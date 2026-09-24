@@ -3,7 +3,7 @@
 	import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 	import type { EnvelopeGlyphPlacement, EnvelopeSegmentInput } from 'pptx-viewer-shared';
 	import {
-		buildGlyphEnvelope,
+		buildGlyphEnvelopeBlock,
 		buildWarpPath,
 		DEFAULT_FONT_FAMILY,
 		groupIntoParagraphs,
@@ -45,6 +45,7 @@
 						segment.text,
 						segment.fieldType,
 						getFieldContext?.(),
+						segment.style?.language,
 					);
 					return substituted === segment.text ? segment : { ...segment, text: substituted };
 				})
@@ -83,14 +84,11 @@
 		return buildWarpPath(preset!, width, height, index, paragraphs.length, textElement?.textStyle?.textWarpAdj, textElement?.textStyle?.textWarpAdj2);
 	}
 
-	// Envelope presets (inflate/deflate/can) get a true per-glyph height warp
-	// instead of a shared-baseline `<textPath>`, so glyph HEIGHT varies between
-	// the preset's top and bottom curves the way PowerPoint's own text warp
-	// does. Every paragraph is eligible: paragraph `i` of `n` occupies the
-	// `[i/n, (i+1)/n]` vertical slice of the envelope curve's local band (see
-	// `buildGlyphEnvelope` in pptx-viewer-shared), so a multi-paragraph block
-	// bends within the same overall envelope instead of falling back to the
-	// shared-baseline `<textPath>` renderer below.
+	// Envelope presets (inflate/deflate/can) are laid out as ONE block and
+	// warped by a single PowerPoint-derived mapping (see
+	// `buildGlyphEnvelopeBlock` in pptx-viewer-shared), so glyph HEIGHT varies
+	// between the preset's top and bottom curves and a multi-paragraph block
+	// bends within the same overall envelope with its rows kept in order.
 	const useGlyphEnvelope = $derived(paragraphs.length > 0 && hasGlyphEnvelope(preset ?? ''));
 
 	function segmentFont(segment: TextSegment): EnvelopeSegmentInput['font'] {
@@ -118,14 +116,20 @@
 		// Read (never write) the tick so this recomputes once a catalogue
 		// webfont's outline bytes land (see glyph-outline-cache.svelte.ts).
 		void glyphOutlineFontsTick.value;
-		const lineCount = paragraphs.length;
+		const perLine = buildGlyphEnvelopeBlock(
+			preset as string,
+			paragraphs.map((paragraph) =>
+				paragraph.segments.map((seg, i): EnvelopeSegmentInput => ({ text: seg.text, font: segmentFont(seg), segmentIndex: i })),
+			),
+			width,
+			height,
+			textElement?.textStyle?.align,
+			textElement?.textStyle?.textWarpAdj,
+			textElement?.textStyle?.textWarpAdj2,
+			getGlyphOutline,
+		);
 		return paragraphs.flatMap((paragraph, lineIndex) => {
-			const segs: EnvelopeSegmentInput[] = paragraph.segments.map((seg, i) => ({
-				text: seg.text,
-				font: segmentFont(seg),
-				segmentIndex: i,
-			}));
-			const placements = buildGlyphEnvelope(preset as string, segs, width, height, textElement?.textStyle?.align, textElement?.textStyle?.textWarpAdj, textElement?.textStyle?.textWarpAdj2, lineIndex, lineCount, getGlyphOutline);
+			const placements = perLine[lineIndex] ?? [];
 			return placements.map((p) => {
 				const s = runStyle(paragraph.segments[p.segmentIndex]);
 				return { ...p, styleStr: styleToString(s), fillColor: String(s.color) };
@@ -149,7 +153,7 @@
 			{:else}
 				<!-- A very wide glyph on a strongly-curved envelope: rendered as
 				     `slices.length` clipped copies, each with its own affine (see
-				     `chooseGlyphSliceCount` in pptx-viewer-shared), so the pieces
+				     `fitGlyphEnvelopeAffine` in pptx-viewer-shared), so the pieces
 				     tile across the glyph. Wrapped in a real <g> so it never
 				     matches an "svg > text" selector the single-slice case does. -->
 				<g data-glyph-slices={g.slices.length}>

@@ -20,6 +20,8 @@ import {
 	formatBytes,
 	getOleTypeLabel,
 	isBrowserOpenableMime,
+	mediaSurfaceOf,
+	oleActionsVisible,
 	resolveOleType,
 } from '../internal/shared';
 
@@ -48,6 +50,21 @@ export type { ResolvedOleType } from '../internal/shared';
  */
 export function getOleDownloadFileName(el: OlePptxElement): string {
 	return el.oleEmbeddedFileName ?? el.fileName ?? 'embedded-object';
+}
+
+/**
+ * Whether {@link OleRendererComponent}'s Download / Open action bar may
+ * render at all, mirroring `media-renderer-helpers.ts`'s `mediaSurfaceFor`.
+ *
+ * A still of a slide (thumbnail rail, presenter console panes, export
+ * raster) renders this component INSIDE a
+ * `<button aria-label="Go to slide N">`, so the action bar's own `<button>`
+ * would otherwise be invalid, un-clickable nested-button markup; the live
+ * presentation stage never offers element-level browser chrome either. See
+ * the shared `oleActionsVisible` decision.
+ */
+export function oleActionsVisibleFor(interactive: boolean, presenting: boolean): boolean {
+	return oleActionsVisible(mediaSurfaceOf({ interactive, presenting }));
 }
 
 /** A single descriptive info row for the OLE caption / overlay. */

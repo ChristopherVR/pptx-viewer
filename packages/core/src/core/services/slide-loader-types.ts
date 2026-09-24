@@ -123,6 +123,14 @@ export interface PptxSlideLoaderParams {
 	) => Promise<void>;
 	/** Recover and attach embedded binaries for OLE elements (download/open). */
 	enrichOleElementsWithEmbeddedData: (elements: PptxElement[], slidePath: string) => Promise<void>;
+	/**
+	 * Resolve `a:buBlip` picture-bullet images that bullet parsing (synchronous)
+	 * could only leave as an `imageRelId`. See `bullet-picture-image-enrichment.ts`.
+	 */
+	enrichBulletPictureElementsWithEmbeddedData: (
+		elements: PptxElement[],
+		slidePath: string,
+	) => Promise<void>;
 	/** Extract solid background color from slide XML. */
 	extractBackgroundColor: (slideXml: XmlObject) => string | undefined;
 	/**
@@ -132,6 +140,13 @@ export interface PptxSlideLoaderParams {
 	 * changed. See {@link AuthoredSlideBackground.rawBgPr}.
 	 */
 	extractOwnBackgroundNode: (slideXml: XmlObject) => XmlObject | undefined;
+	/**
+	 * The `<p:bgRef>` twin of {@link extractOwnBackgroundNode}: a deep-cloned
+	 * snapshot of the slide's own `<p:bgRef>` (a theme-referenced background),
+	 * kept so a later save can restore it verbatim instead of flattening it
+	 * to a literal `p:bgPr` fill. See {@link AuthoredSlideBackground.rawBgRef}.
+	 */
+	extractOwnBackgroundRefNode: (slideXml: XmlObject) => XmlObject | undefined;
 	/** Get background color from the slide's layout (fallback). */
 	getLayoutBackgroundColor: (slidePath: string) => Promise<string | undefined>;
 	/** Extract gradient background CSS from slide XML. */
@@ -195,6 +210,12 @@ export interface PptxSlideLoaderParams {
 		slidePath: string,
 		graphicFrame: XmlObject | undefined,
 	) => Promise<PptxChartData | undefined>;
+	/**
+	 * Record freshly-parsed `chartData` as the load-time baseline for its
+	 * `chartPartPath`, so a later save can tell an untouched chart apart from
+	 * an edited one and pass the untouched part's bytes through unchanged.
+	 */
+	rememberChartDataBaseline: (chartData: PptxChartData) => void;
 	/** Parse customer data tags from a slide's `p:custDataLst`. */
 	parseSlideCustomerData: (slideXml: XmlObject, slidePath: string) => Promise<PptxCustomerData[]>;
 	/** Parse ActiveX control references from a slide's `p:controls`. */

@@ -39,7 +39,7 @@ function onSelect(event: Event): void {
 				<span class="text-muted-foreground">{{ t('pptx.documentProperties.themeHeading') }}</span>
 				<!-- Nested in its `<label>`, so without this its accessible label would
 				     be the caption plus every option: see `SlideTransitionPanel.vue`. -->
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.documentProperties.themeHeading')"
 					:disabled="props.themeOptions.length === 0"
 					:class="INPUT"
@@ -54,7 +54,7 @@ function onSelect(event: Event): void {
 							{{ opt.name || opt.path.split('/').pop() }}
 						</option>
 					</template>
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="grid grid-cols-2 gap-1.5">
 				<button

@@ -260,6 +260,8 @@ export interface ViewerState {
 	followedClientId: number | null;
 	/** In-memory clipboard payload from the last copy/cut, or null. */
 	clipboardPayload: ElementClipboardPayload | null;
+	/** The Paste Options toolbar's target: the elements a normal paste just inserted. */
+	pasteOptionsToolbar: { id: string; sourceClone: PptxElement }[] | null;
 	/** Active Draw ribbon tool; `'select'` disables the ink-drawing gesture controller. */
 	drawTool: DrawTool;
 	/** Stroke colour for the pen/highlighter tools. */
@@ -398,6 +400,7 @@ export function createInitialViewerState(): ViewerState {
 		cursors: [],
 		followedClientId: null,
 		clipboardPayload: null,
+		pasteOptionsToolbar: null,
 		drawTool: 'select',
 		drawColor: DEFAULT_STROKE_COLOR,
 		drawWidth: 3,

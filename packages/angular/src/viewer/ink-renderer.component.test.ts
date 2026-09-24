@@ -5,6 +5,9 @@
  * (the Angular-free layer). No TestBed or DOM involved, following the same
  * pattern as `connector-renderer.component.test.ts`.
  */
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
@@ -140,6 +143,34 @@ describe('buildInkStrokes', () => {
 	it('leaves nibMarks null when tilt data is absent', () => {
 		const strokes = buildInkStrokes(ink());
 		expect(strokes[0].nibMarks).toBeNull();
+	});
+
+	it('flags a highlighter-tagged stroke as "multiply" blendMode', () => {
+		const strokes = buildInkStrokes(ink({ inkTool: 'highlighter', inkOpacities: [1] }));
+		expect(strokes[0].blendMode).toBe('multiply');
+	});
+
+	it('leaves a non-highlighter, fully opaque stroke as "normal" blendMode', () => {
+		const strokes = buildInkStrokes(ink({ inkOpacities: [1] }));
+		expect(strokes[0].blendMode).toBe('normal');
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Per-stroke blend-mode template wiring (issue: a container-level
+// mix-blend-mode hack composites the whole element against the backdrop once,
+// which does not make overlapping highlighter strokes darken against EACH
+// OTHER; the binding must apply it on each stroke's own paint element)
+// ---------------------------------------------------------------------------
+
+describe('ink-renderer template wiring', () => {
+	it('binds mix-blend-mode from each stroke.blendMode on the g/path elements, not the outer svg', () => {
+		const template = readFileSync(path.join(__dirname, 'ink-renderer.component.ts'), 'utf8');
+		const occurrences = template.match(/stroke\.blendMode === 'multiply'/g) ?? [];
+		// One binding on each of the two `<g>` branches (nib marks, circles) and
+		// the plain `<path>` branch: three call sites for the three render modes.
+		expect(occurrences.length).toBeGreaterThanOrEqual(3);
+		expect(template).not.toMatch(/class="pptx-ng-ink-svg"[\s\S]{0,80}mix-blend-mode/);
 	});
 });
 

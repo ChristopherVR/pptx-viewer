@@ -63,7 +63,7 @@ function onFillCommit(event: Event): void {
 			<div v-for="(s, i) in props.series" :key="`${s.name}-${i}`" class="space-y-1">
 				<div class="flex items-center gap-2 text-[11px]">
 					<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
-					<select
+					<pptx-ui-select
 						class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 						data-testid="chart-marker-symbol"
 						:value="s.marker?.symbol ?? ''"
@@ -72,7 +72,7 @@ function onFillCommit(event: Event): void {
 						<option v-for="opt in MARKER_SYMBOL_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</div>
 
 				<div v-if="s.marker && s.marker.symbol !== 'none'" class="flex items-center gap-3 ml-2">

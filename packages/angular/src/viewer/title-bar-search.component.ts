@@ -12,10 +12,10 @@
  * used to, so the rendered box is structurally identical to before: no extra
  * wrapper, no `display: contents` (which has repeatedly regressed this chrome).
  */
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
 	computed,
 	inject,
 	input,
@@ -25,7 +25,7 @@ import {
 import { LucideSearch } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { filterCommands, TITLE_BAR_CLASSES } from '../internal/shared';
+import { filterCommands } from '../internal/shared';
 import type { CommandSearchEntry } from '../internal/shared';
 
 /**
@@ -42,30 +42,22 @@ const BLUR_GRACE_MS = 150;
 	selector: 'pptx-title-bar-search',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgClass, TranslatePipe, LucideSearch],
+	imports: [TranslatePipe, LucideSearch],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	host: { class: 'relative w-full max-w-md' },
 	template: `
-		<div
+		<pptx-ui-search
 			data-pptx-search-surface
-			[class]="tb.searchBox"
-			[ngClass]="searchFocused() || findReplaceOpen() ? 'text-foreground bg-background' : ''"
-		>
-			<span [class]="tb.searchIcon" aria-hidden="true"
-				><svg lucideSearch class="h-3.5 w-3.5"></svg
-			></span>
-			<input
-				data-pptx-search-input
-				type="text"
-				[value]="searchQuery()"
-				(input)="searchQuery.set($any($event.target).value)"
-				(focus)="searchFocused.set(true)"
-				(blur)="onSearchBlur()"
-				(keydown)="onSearchKeyDown($event)"
-				class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"
-				[placeholder]="'pptx.titleBar.searchPlaceholder' | translate"
-				[attr.aria-label]="'pptx.titleBar.search' | translate"
-			/>
-		</div>
+			data-pptx-search-input
+			variant="titlebar"
+			[value]="searchQuery()"
+			(input)="searchQuery.set($any($event.target).value)"
+			(focus)="searchFocused.set(true)"
+			(blur)="onSearchBlur()"
+			(keydown)="onSearchKeyDown($event)"
+			[placeholder]="'pptx.titleBar.searchPlaceholder' | translate"
+			[attr.aria-label]="'pptx.titleBar.search' | translate"
+		/>
 		@if (searchFocused() && searchQuery().trim()) {
 			<div
 				class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto"
@@ -121,7 +113,6 @@ export class TitleBarSearchComponent {
 	readonly toggleFindReplace = output<void>();
 
 	private readonly translate = inject(TranslateService);
-	protected readonly tb = TITLE_BAR_CLASSES;
 
 	protected readonly searchQuery = signal('');
 	protected readonly searchFocused = signal(false);

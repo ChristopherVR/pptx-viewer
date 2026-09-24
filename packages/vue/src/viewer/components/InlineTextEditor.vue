@@ -18,6 +18,7 @@ import {
 	createInlineListSeed,
 	initializeInlineListDom,
 	inlineListBodyText,
+	mapInlineTextFormatKey,
 	placeCaretAtEnd,
 	readEditableText,
 	readListActivationSelection,
@@ -248,22 +249,15 @@ function onKeydown(event: KeyboardEvent): void {
 	if (listController && event.isComposing) {
 		return;
 	}
-	// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching the React editor.
-	if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
-		const key = event.key.toLowerCase();
-		if (key === 'b' || key === 'i' || key === 'u') {
-			event.preventDefault();
-			event.stopPropagation();
-			const ts = currentTextStyle();
-			if (key === 'b') {
-				emit('format', { bold: !ts?.bold });
-			} else if (key === 'i') {
-				emit('format', { italic: !ts?.italic });
-			} else {
-				emit('format', { underline: !ts?.underline });
-			}
-			return;
-		}
+	// Inline formatting shortcuts (Ctrl/Cmd + B/I/U): resolved by the shared
+	// keymap so this three-way switch is not hand-derived a fourth time.
+	const property = mapInlineTextFormatKey(event);
+	if (property) {
+		event.preventDefault();
+		event.stopPropagation();
+		const ts = currentTextStyle();
+		emit('format', { [property]: !ts?.[property] });
+		return;
 	}
 	if (event.key === 'Escape') {
 		event.preventDefault();

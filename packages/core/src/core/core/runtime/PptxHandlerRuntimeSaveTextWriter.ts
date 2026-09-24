@@ -4,6 +4,11 @@ import { writeBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
 import { applyTextBodyScene3d } from '../../utils/text-body-scene3d';
 import { applyTextBodySp3d } from '../../utils/text-body-sp3d-writer';
 import {
+	elementBodyPropertyEditKeys,
+	shouldWriteBodyProperty,
+	styleForBodyPropertyWrite,
+} from './element-body-properties';
+import {
 	applyElementParagraphGeometryToListStyle,
 	elementParagraphGeometryEdits,
 	hasElementParagraphGeometry,
@@ -60,61 +65,94 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const txBody = shape['p:txBody'] as XmlObject;
 		const bodyPr = (txBody['a:bodyPr'] || {}) as XmlObject;
 
+		// Which `a:bodyPr` scoped fields were actually authored/edited, as
+		// opposed to merely resolved by the placeholder/layout/master
+		// cascade at load time. `undefined` means there is no baseline to
+		// diff against (SDK-built text), so every field below is written in
+		// full, exactly as before this diff existed. See
+		// element-body-properties.ts for why re-emitting an unedited field
+		// pins an inherited value onto the slide.
+		const bodyEdits = elementBodyPropertyEditKeys(el.textStyle);
+
 		// Vertical anchor
-		const verticalAnchor = this.textVerticalAlignToDrawingValue(el.textStyle?.vAlign);
-		if (verticalAnchor) {
-			bodyPr['@_anchor'] = verticalAnchor;
-		} else {
-			delete bodyPr['@_anchor'];
+		if (shouldWriteBodyProperty(bodyEdits, 'vAlign')) {
+			const verticalAnchor = this.textVerticalAlignToDrawingValue(el.textStyle?.vAlign);
+			if (verticalAnchor) {
+				bodyPr['@_anchor'] = verticalAnchor;
+			} else {
+				delete bodyPr['@_anchor'];
+			}
 		}
 
 		// Text direction
-		const bodyTextDirection = this.textDirectionToDrawingValue(el.textStyle?.textDirection);
-		if (bodyTextDirection) {
-			bodyPr['@_vert'] = bodyTextDirection;
-		} else {
-			delete bodyPr['@_vert'];
+		if (shouldWriteBodyProperty(bodyEdits, 'textDirection')) {
+			const bodyTextDirection = this.textDirectionToDrawingValue(el.textStyle?.textDirection);
+			if (bodyTextDirection) {
+				bodyPr['@_vert'] = bodyTextDirection;
+			} else {
+				delete bodyPr['@_vert'];
+			}
 		}
 
 		// Column count
-		const bodyColumnCount = this.normalizeTextColumnCount(el.textStyle?.columnCount);
-		if (bodyColumnCount && bodyColumnCount > 1) {
-			bodyPr['@_numCol'] = String(bodyColumnCount);
-		} else {
-			delete bodyPr['@_numCol'];
+		if (shouldWriteBodyProperty(bodyEdits, 'columnCount')) {
+			const bodyColumnCount = this.normalizeTextColumnCount(el.textStyle?.columnCount);
+			if (bodyColumnCount && bodyColumnCount > 1) {
+				bodyPr['@_numCol'] = String(bodyColumnCount);
+			} else {
+				delete bodyPr['@_numCol'];
+			}
 		}
 
 		// Column spacing
-		if (el.textStyle?.columnSpacing !== undefined) {
+		if (
+			shouldWriteBodyProperty(bodyEdits, 'columnSpacing') &&
+			el.textStyle?.columnSpacing !== undefined
+		) {
 			bodyPr['@_spcCol'] = String(
 				Math.round(el.textStyle.columnSpacing * PptxHandlerRuntime.EMU_PER_PX),
 			);
 		}
 
 		// Overflow
-		if (el.textStyle?.hOverflow) {
+		if (shouldWriteBodyProperty(bodyEdits, 'hOverflow') && el.textStyle?.hOverflow) {
 			bodyPr['@_horzOverflow'] = el.textStyle.hOverflow;
 			delete bodyPr['@_hOverflow'];
 		}
-		if (el.textStyle?.vertOverflow) {
+		if (shouldWriteBodyProperty(bodyEdits, 'vertOverflow') && el.textStyle?.vertOverflow) {
 			bodyPr['@_vertOverflow'] = el.textStyle.vertOverflow;
 		}
 
-		// Auto-fit / shrink-to-fit
-		this.applyAutoFitToBodyPr(bodyPr, el);
-
-		// Body text insets
-		this.applyBodyInsets(bodyPr, el);
-
-		// Text wrapping mode
-		if (el.textStyle?.textWrap === 'none') {
-			bodyPr['@_wrap'] = 'none';
-		} else if (el.textStyle?.textWrap === 'square') {
-			bodyPr['@_wrap'] = 'square';
+		// Auto-fit / shrink-to-fit — a mutually-exclusive node choice, so the
+		// whole decision is skipped unless one of its driving fields changed;
+		// touching it based on an inherited `autoFit`/`autoFitMode` is what
+		// turned an inherited `a:normAutofit` into `a:spAutoFit`.
+		if (
+			bodyEdits === undefined ||
+			(['autoFitMode', 'autoFit', 'autoFitFontScale', 'autoFitLineSpacingReduction'] as const).some(
+				(key) => bodyEdits.has(key),
+			)
+		) {
+			this.applyAutoFitToBodyPr(bodyPr, el);
 		}
 
-		// Additional bodyPr boolean attributes
-		writeBodyPrBooleanAttrs(bodyPr, el.textStyle);
+		// Body text insets
+		this.applyBodyInsets(bodyPr, el, bodyEdits);
+
+		// Text wrapping mode
+		if (shouldWriteBodyProperty(bodyEdits, 'textWrap')) {
+			if (el.textStyle?.textWrap === 'none') {
+				bodyPr['@_wrap'] = 'none';
+			} else if (el.textStyle?.textWrap === 'square') {
+				bodyPr['@_wrap'] = 'square';
+			}
+		}
+
+		// Additional bodyPr boolean attributes. `writeBodyPrBooleanAttrs` only
+		// ever SETS an attribute when its field is defined (never deletes), so
+		// filtering the unedited fields out of the style handed to it is
+		// enough to leave those attributes untouched.
+		writeBodyPrBooleanAttrs(bodyPr, styleForBodyPropertyWrite(el.textStyle, bodyEdits));
 
 		// Text warp preset
 		if (el.textStyle?.textWarpPreset) {
@@ -291,8 +329,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/** Apply body insets (margin) to bodyPr. */
-	private applyBodyInsets(bodyPr: XmlObject, el: PptxElementWithText): void {
+	private applyBodyInsets(
+		bodyPr: XmlObject,
+		el: PptxElementWithText,
+		bodyEdits: ReturnType<typeof elementBodyPropertyEditKeys>,
+	): void {
 		if (
+			shouldWriteBodyProperty(bodyEdits, 'bodyInsetLeft') &&
 			typeof el.textStyle?.bodyInsetLeft === 'number' &&
 			Number.isFinite(el.textStyle.bodyInsetLeft)
 		) {
@@ -301,6 +344,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 		if (
+			shouldWriteBodyProperty(bodyEdits, 'bodyInsetTop') &&
 			typeof el.textStyle?.bodyInsetTop === 'number' &&
 			Number.isFinite(el.textStyle.bodyInsetTop)
 		) {
@@ -309,6 +353,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 		if (
+			shouldWriteBodyProperty(bodyEdits, 'bodyInsetRight') &&
 			typeof el.textStyle?.bodyInsetRight === 'number' &&
 			Number.isFinite(el.textStyle.bodyInsetRight)
 		) {
@@ -317,6 +362,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 		}
 		if (
+			shouldWriteBodyProperty(bodyEdits, 'bodyInsetBottom') &&
 			typeof el.textStyle?.bodyInsetBottom === 'number' &&
 			Number.isFinite(el.textStyle.bodyInsetBottom)
 		) {

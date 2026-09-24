@@ -23,7 +23,13 @@ function primaryCategoryAxis(
 	return categoryAxes?.find((axis) => axis.axPos !== 't') ?? categoryAxes?.[0];
 }
 
-function tickLine(
+/**
+ * One horizontal-axis tick mark (a short vertical stroke at `x`, straddling
+ * `y` per `placement`). Exported for `chart-scatter-x-axis.ts`, a scatter/
+ * bubble chart's X axis being a real value axis rather than this module's own
+ * category-slot axis, but wanting the identical tick-mark geometry.
+ */
+export function tickLine(
 	x: number,
 	y: number,
 	placement: PptxChartAxisFormatting['majorTickMark'],

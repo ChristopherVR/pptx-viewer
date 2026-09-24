@@ -32,13 +32,13 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'dissolve', entr: 'dissolveIn', exit: 'dissolveOut' },
 	{ family: 'wipe', subtype: 'up', entr: 'wipeIn', exit: 'wipeOut' },
 	{ family: 'barn', subtype: 'inVertical', entr: 'splitIn', exit: 'fadeOut' },
-	{ family: 'checkerboard', subtype: 'across', entr: 'checkerboardIn', exit: 'fadeOut' },
-	{ family: 'blinds', subtype: 'horizontal', entr: 'blindsIn', exit: 'fadeOut' },
+	{ family: 'checkerboard', subtype: 'across', entr: 'checkerboardInAcross', exit: 'fadeOut' },
+	{ family: 'blinds', subtype: 'horizontal', entr: 'blindsInHorizontal', exit: 'fadeOut' },
 	{ family: 'box', entr: 'boxIn', exit: 'fadeOut' },
 	{ family: 'circle', entr: 'circleIn', exit: 'shrinkOut' },
-	{ family: 'wheel', subtype: '4', entr: 'wheelIn', exit: 'fadeOut' },
+	{ family: 'wheel', subtype: '4', entr: 'wheelIn4', exit: 'fadeOut' },
 	{ family: 'zoom', entr: 'zoomIn', exit: 'zoomOut' },
-	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
+	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsInHorizontal', exit: 'fadeOut' },
 	{ family: 'strips', subtype: 'downLeft', entr: 'wipeIn', exit: 'wipeOut' },
 	{ family: 'comb', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
 	{ family: 'diamond', entr: 'diamondIn', exit: 'fadeOut' },
@@ -272,7 +272,9 @@ describe('resolveEffect: filter fallback integration', () => {
 	});
 
 	it('falls back to the filter when presetId is absent', () => {
-		expect(resolveEffect(filterAnim('checkerboard', 'across', 'entr'))).toBe('checkerboardIn');
+		expect(resolveEffect(filterAnim('checkerboard', 'across', 'entr'))).toBe(
+			'checkerboardInAcross',
+		);
 	});
 
 	it('falls back to the filter when presetId is present but unmapped', () => {

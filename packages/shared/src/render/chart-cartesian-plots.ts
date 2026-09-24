@@ -21,6 +21,7 @@ import { resolveDataPointFill, resolveDataPointMarker } from './chart-datapoint-
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { smoothLinePath } from './chart-line-path';
 import { buildMarkerPrimitive } from './chart-marker-shape';
+import { buildScatterXAxisPlan } from './chart-scatter-x-axis';
 import type {
 	ChartPartRef,
 	PlotLayout,
@@ -32,10 +33,10 @@ import type {
 } from './chart-view-model';
 import {
 	computeScatterDots,
-	computeScatterXDomain,
 	formatAxisValue,
 	linePointsToSvgString,
 	seriesColor,
+	seriesXValues,
 } from './chart-view-model';
 
 /**
@@ -117,25 +118,6 @@ export function pushMarker(
 }
 
 /**
- * X values a scatter / bubble series is plotted against.
- *
- * The series' own `c:xVal` wins. Only when it has none does the chart-level
- * category list stand in, which is all the engine used to have and is why every
- * series in a multi-series scatter was plotted against series 1's x axis.
- * Exported for `chart-cartesian-bubbles.ts`.
- */
-export function seriesXValues(
-	chartData: PptxChartData,
-	series: PptxChartSeries,
-): ReadonlyArray<number> | undefined {
-	if (series.xValues && series.xValues.length > 0) {
-		return series.xValues;
-	}
-	const fromCategories = chartData.categories.map(Number);
-	return fromCategories.length > 0 ? fromCategories : undefined;
-}
-
-/**
  * Whether `c:scatterStyle` joins the points with a line.
  *
  * `lineMarker` is what PowerPoint writes for essentially every scatter chart,
@@ -166,7 +148,12 @@ export function buildScatter(
 		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
 		maxXIndex = Math.max(1, ...allIndices),
 		perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series)),
-		xDomain = computeScatterXDomain(perSeriesX),
+		// The chart's own nice-scaled X axis (see `chart-scatter-x-axis.ts`), not
+		// the raw data's tight min/max: sharing this domain with the drawn
+		// gridlines keeps every point aligned with them, and the axis's own
+		// headroom/rounding keeps an edge point from sitting flush against the
+		// plot boundary.
+		xDomain = buildScatterXAxisPlan(chartData, layout).range,
 		smoothStyle = chartData.scatterStyle === 'smooth' || chartData.scatterStyle === 'smoothMarker';
 
 	for (let si = 0; si < chartData.series.length; si++) {

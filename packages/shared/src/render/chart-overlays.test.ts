@@ -385,6 +385,87 @@ describe('computeTrendlinePrimitives', () => {
 			expect(path.stroke).toBe('#FF0000');
 		}
 	});
+
+	it('fits a category-chart trendline against x = 1..n, not a 0-based index', () => {
+		// y = 10x + 10 over x = [0,1,2,3] fits values [10,20,30,40] EXACTLY, so a
+		// leftover 0-based fit would show as intercept 10; Excel's own x = 1..4
+		// fits the same data as slope=10, intercept=0.
+		const tl: PptxChartTrendline = { trendlineType: 'linear', displayEq: true };
+		const chartData = makeChartData({ series: [makeSeries({ trendlines: [tl] })] });
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const text = result.find((p) => p.kind === 'text');
+		expect(text?.kind === 'text' && text.text).toBe('y = 10x + 0');
+	});
+
+	it("fits a scatter chart's trendline against the series' own c:xVal, not point order", () => {
+		const tl: PptxChartTrendline = { trendlineType: 'linear', displayEq: true };
+		const chartData: PptxChartData = {
+			chartType: 'scatter',
+			categories: [],
+			series: [
+				makeSeries({
+					// Real X data is NOT 0..n-1 or 1..n: a fit against point order
+					// would give a completely different slope/intercept than a fit
+					// against these actual values.
+					xValues: [10, 20, 30, 40],
+					values: [15, 25, 35, 45], // y = x + 5 exactly
+					trendlines: [tl],
+				}),
+			],
+		};
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const text = result.find((p) => p.kind === 'text');
+		expect(text?.kind === 'text' && text.text).toBe('y = 1x + 5');
+	});
+
+	it("places a scatter trendline's curve using the actual X-value domain", () => {
+		const tl: PptxChartTrendline = { trendlineType: 'linear' };
+		const chartData: PptxChartData = {
+			chartType: 'scatter',
+			categories: [],
+			series: [makeSeries({ xValues: [0, 100], values: [0, 100], trendlines: [tl] })],
+		};
+		const result = computeTrendlinePrimitives(chartData, 2, LAYOUT, RANGE);
+		const path = result.find((p) => p.kind === 'path');
+		expect(
+			path?.kind === 'path' && path.d.startsWith(`M ${LAYOUT.plotLeft.toFixed(2)}`),
+		).toBeTruthy();
+	});
+
+	it("honours the trendline's own c:spPr width and dash on the drawn path", () => {
+		const tl: PptxChartTrendline = {
+			trendlineType: 'linear',
+			lineWidth: 3,
+			lineDashStyle: 'dash',
+		};
+		const chartData = makeChartData({ series: [makeSeries({ trendlines: [tl] })] });
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const path = result.find((p) => p.kind === 'path');
+		expect(path?.kind === 'path' && path.strokeWidth).toBe(3);
+		expect(path?.kind === 'path' && path.dashArray).toBeTruthy();
+	});
+
+	it('defaults to a 1.5pt dotted stroke when no c:spPr is authored', () => {
+		const tl: PptxChartTrendline = { trendlineType: 'linear' };
+		const chartData = makeChartData({ series: [makeSeries({ trendlines: [tl] })] });
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const path = result.find((p) => p.kind === 'path');
+		expect(path?.kind === 'path' && path.strokeWidth).toBe(1.5);
+		expect(path?.kind === 'path' && path.dashArray).toBeTruthy();
+	});
+
+	it('draws the equation and R-squared as two separate text lines, not one joined string', () => {
+		const tl: PptxChartTrendline = { trendlineType: 'linear', displayEq: true, displayRSq: true };
+		const chartData = makeChartData({ series: [makeSeries({ trendlines: [tl] })] });
+		const result = computeTrendlinePrimitives(chartData, 4, LAYOUT, RANGE);
+		const texts = result.filter((p) => p.kind === 'text');
+		expect(texts).toHaveLength(2);
+		if (texts[0]?.kind === 'text' && texts[1]?.kind === 'text') {
+			expect(texts[0].text).toContain('y =');
+			expect(texts[1].text).toContain('R²');
+			expect(texts[1].y).toBeGreaterThan(texts[0].y);
+		}
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -471,6 +552,39 @@ describe('computeErrorBarPrimitives', () => {
 			if (stem.kind === 'line') {
 				expect(stem.x2).not.toBeCloseTo(stem.x1, 5);
 			}
+		}
+	});
+
+	it('computes stdDev/stdErr from the SAMPLE variance (n - 1), not the population variance', () => {
+		// values [10, 20, 30]: mean 20. Sample variance (n - 1 = 2 denominator,
+		// Excel's own STDEV/"Standard Deviation" error-bar convention) is
+		// (100 + 0 + 100) / 2 = 100, stdDev 10 - not the population variance
+		// (100 + 0 + 100) / 3 = 66.67, stdDev ~8.165 the old code used.
+		const eb: PptxChartErrBars = { direction: 'y', barType: 'plus', valType: 'stdDev', val: 1 };
+		const chartData = makeChartData({
+			categories: ['A', 'B', 'C'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [eb] })],
+		});
+		const [stem] = computeErrorBarPrimitives(chartData, 3, LAYOUT, RANGE);
+		expect(stem).toMatchObject({ kind: 'line' });
+		if (stem.kind === 'line') {
+			// error 10 over a span-100 range against plotHeight 256px.
+			expect(Math.abs(stem.y2 - stem.y1)).toBeCloseTo((10 / 100) * LAYOUT.plotHeight, 5);
+		}
+
+		const stdErrBars: PptxChartErrBars = { direction: 'y', barType: 'plus', valType: 'stdErr' };
+		const stdErrData = makeChartData({
+			categories: ['A', 'B', 'C'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [stdErrBars] })],
+		});
+		const [stdErrStem] = computeErrorBarPrimitives(stdErrData, 3, LAYOUT, RANGE);
+		if (stdErrStem.kind === 'line') {
+			// Standard error = sample stdDev / sqrt(n) = 10 / sqrt(3).
+			const expectedError = 10 / Math.sqrt(3);
+			expect(Math.abs(stdErrStem.y2 - stdErrStem.y1)).toBeCloseTo(
+				(expectedError / 100) * LAYOUT.plotHeight,
+				5,
+			);
 		}
 	});
 

@@ -3,6 +3,7 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { SLIDE_TRANSITION_OPTIONS } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
+import { setControlValue } from './inspector/test-control-value';
 import SlideTransitionPanel from './SlideTransitionPanel.vue';
 
 function slide(transition?: PptxSlideTransition): PptxSlide {
@@ -43,7 +44,7 @@ describe('slideTransitionPanel', () => {
 		const wrapper = mount(SlideTransitionPanel, { props: { slide: slide(undefined) } });
 
 		const select = wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]');
-		await select.setValue('push');
+		await setControlValue(select, 'push');
 
 		const events = wrapper.emitted('update');
 		expect(events).toHaveLength(1);
@@ -57,7 +58,7 @@ describe('slideTransitionPanel', () => {
 		});
 
 		const select = wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]');
-		await select.setValue('wipe');
+		await setControlValue(select, 'wipe');
 
 		const events = wrapper.emitted('update');
 		const [transition] = events![0] as [PptxSlideTransition | undefined];
@@ -70,7 +71,7 @@ describe('slideTransitionPanel', () => {
 		});
 
 		const select = wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]');
-		await select.setValue('__none__');
+		await setControlValue(select, '__none__');
 
 		const events = wrapper.emitted('update');
 		expect(events).toHaveLength(1);
@@ -114,7 +115,7 @@ describe('slideTransitionPanel', () => {
 		});
 
 		const speed = wrapper.get<HTMLSelectElement>('[data-testid="transition-speed"]');
-		await speed.setValue('slow');
+		await setControlValue(speed, 'slow');
 
 		const events = wrapper.emitted('update');
 		expect(events).toHaveLength(1);
@@ -163,9 +164,9 @@ describe('slideTransitionPanel - effect names', () => {
 		return wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]').findAll('option');
 	}
 
-	it('still offers the same 46 effects plus the None sentinel, by value', () => {
+	it('still offers the same effects plus the None sentinel and the p15 preset family, by value', () => {
 		const values = typeSelect().map((o) => (o.element as HTMLOptionElement).value);
-		expect(values).toHaveLength(47);
+		expect(values).toHaveLength(59);
 		expect(values[0]).toBe('__none__');
 		expect(values).toContain('randomBar');
 		expect(values).toContain('wheelReverse');
@@ -174,6 +175,9 @@ describe('slideTransitionPanel - effect names', () => {
 		// `box` completes the `p14:prism` family (Cube / Rotate / Box / Orbit),
 		// which the panel already offered three quarters of.
 		expect(values).toContain('box');
+		// The p15 (PowerPoint 2013+/365) cinematic preset family.
+		expect(values).toContain('fallOver');
+		expect(values).toContain('origami');
 	});
 
 	it('spells each effect instead of printing its wire token', () => {

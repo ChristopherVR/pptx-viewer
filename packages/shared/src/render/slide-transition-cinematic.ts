@@ -36,9 +36,15 @@ import {
 	getBoxTransitionAnimations,
 	prismDepthPair,
 } from './slide-transition-box';
+import { CINEMATIC_MIRROR_KEYFRAMES } from './slide-transition-cinematic-mirror';
 import { ROTATE_TRANSITION_KEYFRAMES } from './slide-transition-rotate';
 import { EASE, resolveDirection } from './slide-transition-types';
 import type { ResolvedDirection, SlideTransitionAnimations } from './slide-transition-types';
+
+/** `true` when the resolved direction is the "Right" (`invX="1"`) mirror. */
+function isRight(direction: string | undefined): boolean {
+	return resolveDirection(direction, 'left') === 'right';
+}
 
 /** Build one directional 3-D pair (`cube` / `flip` / `orbit`) from a resolved dir. */
 function threeDPair(
@@ -99,8 +105,11 @@ export function getCinematicTransitionAnimations(
 			// keyframes did (an incoming board toppling onto a stationary
 			// outgoing). The incoming slide needs no animation of its own: it is
 			// simply uncovered as the falling outgoing layer fades away on top.
+			// `direction` (`invX`) is ALSO COM-measured (see
+			// `slide-transition-cinematic-mirror`): Left topples off a
+			// bottom-left hinge, Right off a bottom-right one.
 			return {
-				outgoing: `pptx-tr-fallover-out ${dur} ${EASE} forwards`,
+				outgoing: `${isRight(direction) ? 'pptx-tr-fallover-out-right' : 'pptx-tr-fallover-out'} ${dur} ${EASE} forwards`,
 				incoming: 'none',
 				outgoingOnTop: true,
 			};
@@ -108,7 +117,7 @@ export function getCinematicTransitionAnimations(
 		case 'drape':
 			return {
 				outgoing: 'none',
-				incoming: `pptx-tr-drape-in ${dur} ${EASE} forwards`,
+				incoming: `${isRight(direction) ? 'pptx-tr-drape-in-right' : 'pptx-tr-drape-in'} ${dur} ${EASE} forwards`,
 				outgoingOnTop: false,
 			};
 
@@ -151,41 +160,51 @@ export function getCinematicTransitionAnimations(
 				outgoingOnTop: true,
 			};
 
-		case 'peelOff':
+		case 'peelOff': {
 			// Outgoing peels off a corner, revealing the stationary incoming.
+			const right = isRight(direction);
 			return {
-				outgoing: `pptx-tr-peeloff-out ${dur} ${EASE} forwards`,
+				outgoing: `${right ? 'pptx-tr-peeloff-out-right' : 'pptx-tr-peeloff-out'} ${dur} ${EASE} forwards`,
 				incoming: 'none',
 				outgoingOnTop: true,
 			};
+		}
 
-		case 'pageCurlSingle':
+		case 'pageCurlSingle': {
+			const right = isRight(direction);
 			return {
-				outgoing: `pptx-tr-pagecurl-out ${dur} ${EASE} forwards`,
+				outgoing: `${right ? 'pptx-tr-pagecurl-out-right' : 'pptx-tr-pagecurl-out'} ${dur} ${EASE} forwards`,
 				incoming: 'none',
 				outgoingOnTop: true,
 			};
+		}
 
-		case 'pageCurlDouble':
+		case 'pageCurlDouble': {
+			const right = isRight(direction);
 			return {
-				outgoing: `pptx-tr-pagecurl-out ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-pagecurl-double-in ${dur} ${EASE} forwards`,
+				outgoing: `${right ? 'pptx-tr-pagecurl-out-right' : 'pptx-tr-pagecurl-out'} ${dur} ${EASE} forwards`,
+				incoming: `${right ? 'pptx-tr-pagecurl-double-in-right' : 'pptx-tr-pagecurl-double-in'} ${dur} ${EASE} forwards`,
 				outgoingOnTop: true,
 			};
+		}
 
-		case 'airplane':
+		case 'airplane': {
+			const right = isRight(direction);
 			return {
-				outgoing: `pptx-tr-airplane-out ${dur} ${EASE} forwards`,
+				outgoing: `${right ? 'pptx-tr-airplane-out-right' : 'pptx-tr-airplane-out'} ${dur} ${EASE} forwards`,
 				incoming: `pptx-tr-fade-in ${dur} ${EASE} forwards`,
 				outgoingOnTop: true,
 			};
+		}
 
-		case 'origami':
+		case 'origami': {
+			const right = isRight(direction);
 			return {
-				outgoing: `pptx-tr-origami-out ${dur} ${EASE} forwards`,
-				incoming: `pptx-tr-origami-in ${dur} ${EASE} forwards`,
+				outgoing: `${right ? 'pptx-tr-origami-out-right' : 'pptx-tr-origami-out'} ${dur} ${EASE} forwards`,
+				incoming: `${right ? 'pptx-tr-origami-in-right' : 'pptx-tr-origami-in'} ${dur} ${EASE} forwards`,
 				outgoingOnTop: true,
 			};
+		}
 
 		default:
 			return undefined;
@@ -281,4 +300,5 @@ ${ROTATE_TRANSITION_KEYFRAMES}
    moment is brief and already mid-fade, so no line artifact survives. */
 @keyframes pptx-tr-origami-out { 0% { transform: perspective(1400px) rotateX(0deg) translateY(0) scale(1); transform-origin: top center; opacity: 1; filter: brightness(1); } 45% { transform: perspective(1400px) rotateX(-52deg) translateY(2%) scale(.96); transform-origin: top center; opacity: 1; filter: brightness(.82); } 70% { transform: perspective(1400px) rotateX(-84deg) translateY(8%) scale(.88); transform-origin: top center; opacity: .8; filter: brightness(.68); } 100% { transform: perspective(1400px) rotateX(-125deg) translateY(30%) scale(.68); transform-origin: top center; opacity: 0; filter: brightness(.55); } }
 @keyframes pptx-tr-origami-in { 0% { transform: perspective(1400px) rotateX(62deg) scale(.94); transform-origin: bottom center; opacity: 0; filter: brightness(.7); } 30% { transform: perspective(1400px) rotateX(62deg) scale(.94); transform-origin: bottom center; opacity: .65; filter: brightness(.75); } 100% { transform: perspective(1400px) rotateX(0deg) scale(1); transform-origin: bottom center; opacity: 1; filter: brightness(1); } }
+${CINEMATIC_MIRROR_KEYFRAMES}
 `;

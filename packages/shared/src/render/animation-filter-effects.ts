@@ -96,7 +96,11 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { resolveRandomEffect } from './animation-filter-random';
-import { BARN_FILTER_TOKEN_TO_SUBTYPE, WIPE_FILTER_TOKEN_TO_SUBTYPE } from './animation-presets';
+import {
+	BARN_FILTER_TOKEN_TO_SUBTYPE,
+	redirectMaskEffectByFilterSubtype,
+	WIPE_FILTER_TOKEN_TO_SUBTYPE,
+} from './animation-presets';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
@@ -279,7 +283,14 @@ export function resolveFilterEffect(
 	if (!mapping) {
 		return undefined;
 	}
-	return isExit ? mapping.exit : mapping.entr;
+	if (isExit) {
+		return mapping.exit;
+	}
+	// Blinds/Checkerboard/Random-Bars/Wheel: redirect the default entrance
+	// name to its direction/spoke-count-aware variant using this SAME
+	// filter's own subtype token (see `redirectMaskEffectByFilterSubtype`'s
+	// doc for why this needs no numeric presetSubtype ground truth).
+	return redirectMaskEffectByFilterSubtype(mapping.entr, filter) ?? mapping.entr;
 }
 
 /**

@@ -30,7 +30,7 @@ function onColorChange(event: Event): void {
 	<div class="pptx-vue-after-animation">
 		<label
 			>{{ t('pptx.animation.afterAnimation') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.afterAnimation')"
 				:value="action"
 				@change="onActionChange"
@@ -38,7 +38,7 @@ function onColorChange(event: Event): void {
 				<option v-for="value in AFTER_ANIMATION_VALUES" :key="value" :value="value">
 					{{ t(`pptx.animation.afterAnimation.${value}`) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<label v-if="action === 'dimToColor'" class="pptx-vue-after-animation-color"
 			>{{ t('pptx.animation.afterAnimation.color') }}

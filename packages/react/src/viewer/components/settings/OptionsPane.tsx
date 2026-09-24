@@ -14,6 +14,7 @@ import { LuInfo } from 'react-icons/lu';
 
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn } from '../../utils';
+import { WebCheckbox, WebSelect } from '../WebControls';
 
 export type OptionChangeHandler = (
 	group: keyof ViewerOptions,
@@ -79,11 +80,16 @@ function ControlRow({
 					{label}
 					{info}
 				</span>
-				<input
-					type='checkbox'
-					className='h-4 w-4 shrink-0 accent-[var(--pptx-primary,#6366f1)]'
+				<WebCheckbox
 					checked={value === true}
-					onChange={(event) => onOptionChange(control.group, control.key, event.target.checked)}
+					aria-label={label}
+					onChange={(event) =>
+						onOptionChange(
+							control.group,
+							control.key,
+							(event.currentTarget as HTMLElement & { checked: boolean }).checked,
+						)
+					}
 				/>
 			</label>
 		);
@@ -96,19 +102,24 @@ function ControlRow({
 					{label}
 					{info}
 				</span>
-				<select
+				<WebSelect
 					aria-label={label}
 					style={{ minHeight: fieldMinHeight }}
-					className='max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground'
 					value={typeof value === 'string' ? value : ''}
-					onChange={(event) => onOptionChange(control.group, control.key, event.target.value)}
+					onChange={(event) =>
+						onOptionChange(
+							control.group,
+							control.key,
+							(event.currentTarget as HTMLElement & { value: string }).value,
+						)
+					}
 				>
 					{control.choices.map((choice) => (
 						<option key={choice.value} value={choice.value}>
 							{t(choice.labelKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</div>
 		);
 	}

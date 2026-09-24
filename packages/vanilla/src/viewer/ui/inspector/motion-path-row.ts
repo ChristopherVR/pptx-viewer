@@ -8,6 +8,7 @@ import {
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createInspectorSelect } from './controls-extra';
 
 /** What the row reflects: the applied path and whether editing is allowed. */
 export interface MotionPathRowState {
@@ -43,7 +44,7 @@ export function createMotionPathRow(
 	const caption = createEl(doc, 'span');
 	caption.textContent = t('pptx.animation.motionPath.label');
 
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	// The caption names the select EXPLICITLY. `el` is the wrapping `<label>`,
 	// and a wrapped control takes the label's whole text content as its name:
 	// that is the caption plus the edit hint plus every preset in the catalogue.

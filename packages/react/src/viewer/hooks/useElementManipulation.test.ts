@@ -26,6 +26,9 @@ interface Handlers {
 	handleGroupElements: () => void;
 	handleUngroupElement: () => void;
 	onOpenHyperlinkDialog: () => void;
+	onEditText: () => void;
+	onSaveElementAsPicture: () => void;
+	focusInspectorSection: () => void;
 }
 
 function dispatchContextMenuAction(action: ElementContextMenuAction, handlers: Handlers): void {
@@ -75,6 +78,17 @@ function dispatchContextMenuAction(action: ElementContextMenuAction, handlers: H
 		case 'editHyperlink':
 			handlers.onOpenHyperlinkDialog();
 			break;
+		case 'edit-text':
+			handlers.onEditText();
+			break;
+		case 'save-as-picture':
+			handlers.onSaveElementAsPicture();
+			break;
+		case 'edit-alt-text':
+		case 'size-and-position':
+		case 'format-shape':
+			handlers.focusInspectorSection();
+			break;
 	}
 }
 
@@ -96,6 +110,9 @@ function createMockHandlers(): Handlers {
 		handleGroupElements: vi.fn<() => void>(),
 		handleUngroupElement: vi.fn<() => void>(),
 		onOpenHyperlinkDialog: vi.fn<() => void>(),
+		onEditText: vi.fn<() => void>(),
+		onSaveElementAsPicture: vi.fn<() => void>(),
+		focusInspectorSection: vi.fn<() => void>(),
 	};
 }
 
@@ -213,4 +230,25 @@ describe('useElementManipulation - context menu dispatch', () => {
 		dispatchContextMenuAction('editHyperlink', h);
 		expect(h.onOpenHyperlinkDialog).toHaveBeenCalledOnce();
 	});
+
+	it("should dispatch 'edit-text' to onEditText", () => {
+		const h = createMockHandlers();
+		dispatchContextMenuAction('edit-text', h);
+		expect(h.onEditText).toHaveBeenCalledOnce();
+	});
+
+	it("should dispatch 'save-as-picture' to onSaveElementAsPicture", () => {
+		const h = createMockHandlers();
+		dispatchContextMenuAction('save-as-picture', h);
+		expect(h.onSaveElementAsPicture).toHaveBeenCalledOnce();
+	});
+
+	it.each(['edit-alt-text', 'size-and-position', 'format-shape'] as const)(
+		"should dispatch '%s' to focusInspectorSection",
+		(action) => {
+			const h = createMockHandlers();
+			dispatchContextMenuAction(action, h);
+			expect(h.focusInspectorSection).toHaveBeenCalledOnce();
+		},
+	);
 });

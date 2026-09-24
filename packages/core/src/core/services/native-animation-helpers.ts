@@ -7,6 +7,7 @@ import type {
 	AnimationCondition,
 	AnimationConditionEvent,
 	PptxAnimationKeyframe,
+	PptxMediaBookmarkTarget,
 	PptxNativeAnimation,
 	PptxTextBuildType,
 	PptxThemeColorRef,
@@ -563,11 +564,22 @@ export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimatio
 			bldP['@_bldLvl'] !== undefined ? Number.parseInt(String(bldP['@_bldLvl']), 10) : undefined;
 
 		for (const anim of animations) {
-			const matchesShape = anim.targetId === spid;
+			// A shape can own one `p:bldP` per `@grpId` (e.g. a by-paragraph
+			// entrance in group 0 and a whole-shape exit in group 1). An effect
+			// whose own `p:cTn/@grpId` names a DIFFERENT group is not this
+			// entry's recipient; matching on spid alone let the last entry
+			// overwrite every effect on the shape.
+			const matchesShape =
+				anim.targetId === spid &&
+				(groupId === undefined || anim.groupId === undefined || anim.groupId === groupId);
 			// grpId fallback: when the bldP carries an @bldLvl tied to a specific
 			// grpId, an animation already carrying that groupId is the intended
-			// recipient even if its targetId differs (ECMA-376 §19.5.6).
+			// recipient even if its targetId differs (ECMA-376 §19.5.6). Group ids
+			// are only unique PER SHAPE, so this cross-shape fallback is limited
+			// to graphic-frame builds (OLE chart / generic graphic), whose
+			// groupId came from their own build entry rather than a `p:cTn`.
 			const matchesGrp =
+				(anim.oleChartBuild !== undefined || anim.graphicBuild !== undefined) &&
 				bldLvl !== undefined &&
 				groupId !== undefined &&
 				anim.groupId !== undefined &&
@@ -686,6 +698,13 @@ const OPAQUE_CTN_ATTRS: ReadonlyArray<string> = [
 	// Additional CT_TLCommonTimeNodeData attributes we don't yet model.
 	'@_syncBehavior',
 	'@_tmFilter',
+	// Office 2010 `p14` extension mirror of the per-behaviour
+	// `p:anim/@_p14:bounceEnd` this project DOES model (see
+	// `PptxAttributeAnimation.bounceEnd`); PowerPoint writes both, so a
+	// full-rebuild write path still needs this passthrough to keep the
+	// documentation-level cTn attribute even when the per-behaviour one is
+	// re-derived from the typed model instead of copied verbatim.
+	'@_p14:presetBounceEnd',
 ];
 
 /**
@@ -757,7 +776,45 @@ const VALID_CONDITION_EVENTS = new Set<string>([
 	'onPrev',
 	'onStopAudio',
 	'onDblClick',
+	'onMediaBookmark',
 ]);
+
+/**
+ * Read a `p14:bmkTgt` (Office 2010 `p14` extension, MS-OI29500) off a parsed
+ * `p:cond` element, when present. This project has no COM-authored or
+ * real-world fixture sample of an `onMediaBookmark` condition to confirm
+ * PowerPoint's exact placement, so BOTH plausible shapes are checked: a
+ * direct child of `p:cond` (`condXml['p14:bmkTgt']`, mirroring how a plain
+ * `p:tgtEl` sits directly under `p:cond`), and inside a `p:cond/p:extLst`
+ * (mirroring how other `p14` additions to non-extensible OOXML elements are
+ * commonly authored). {@link serializeCondition} writes the first (direct
+ * child) shape, so a deck round-tripped through THIS project keeps its
+ * shape; a deck authored elsewhere using the second shape still parses.
+ */
+function extractBookmarkTarget(condXml: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const direct = condXml['p14:bmkTgt'] as XmlObject | undefined;
+	if (direct) {
+		return bookmarkTargetFromNode(direct);
+	}
+	const extLst = condXml['p:extLst'] as XmlObject | undefined;
+	if (extLst) {
+		for (const ext of ensureArray(extLst['p:ext'])) {
+			const bmkTgt = ext['p14:bmkTgt'] as XmlObject | undefined;
+			if (bmkTgt) {
+				return bookmarkTargetFromNode(bmkTgt);
+			}
+		}
+	}
+	return undefined;
+}
+
+function bookmarkTargetFromNode(node: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const shapeId = node['@_spid'];
+	const bookmarkName = node['@_bmkName'];
+	return shapeId !== undefined && bookmarkName !== undefined
+		? { shapeId: String(shapeId), bookmarkName: String(bookmarkName) }
+		: undefined;
+}
 
 /**
  * Parse a single `p:cond` XML element into a structured {@link AnimationCondition}.
@@ -774,6 +831,13 @@ export function parseCondition(condXml: XmlObject): AnimationCondition {
 		const evtStr = String(evt);
 		if (VALID_CONDITION_EVENTS.has(evtStr)) {
 			condition.event = evtStr as AnimationConditionEvent;
+		}
+	}
+
+	if (condition.event === 'onMediaBookmark') {
+		const bookmarkTarget = extractBookmarkTarget(condXml);
+		if (bookmarkTarget) {
+			condition.bookmarkTarget = bookmarkTarget;
 		}
 	}
 
@@ -850,6 +914,13 @@ export function serializeCondition(condition: AnimationCondition): XmlObject {
 
 	if (condition.targetTimeNodeId !== undefined) {
 		condXml['@_tn'] = String(condition.targetTimeNodeId);
+	}
+
+	if (condition.bookmarkTarget) {
+		condXml['p14:bmkTgt'] = {
+			'@_spid': condition.bookmarkTarget.shapeId,
+			'@_bmkName': condition.bookmarkTarget.bookmarkName,
+		};
 	}
 
 	// Target element

@@ -22,7 +22,13 @@ export default defineConfig({
 	// Served from a subpath (e.g. /pptx-viewer/demo-vue/) on GitHub Pages.
 	// CI sets DEMO_BASE so the demo's asset URLs resolve under that subpath.
 	base: process.env.DEMO_BASE ?? '/',
-	plugins: [vue(), tailwindcss(), buildStamp(pkg('vue', 'package.json'))],
+	plugins: [
+		vue({
+			template: { compilerOptions: { isCustomElement: (tag) => tag.startsWith('pptx-ui-') } },
+		}),
+		tailwindcss(),
+		buildStamp(pkg('vue', 'package.json')),
+	],
 	server: {
 		port: 4175,
 		// Never auto-bump onto a sibling demo's port when this one is busy: an
@@ -60,5 +66,15 @@ export default defineConfig({
 	},
 	optimizeDeps: {
 		include: ['vue', 'jszip', 'fast-xml-parser'],
+		// `emf-converter`'s Node fallback does a guarded, try/caught
+		// `import('@napi-rs/canvas')` (an optional dep this repo never installs;
+		// browsers use OffscreenCanvas/HTMLCanvasElement instead). Vite's dep
+		// pre-bundler re-runs import-analysis over the bundled output and no
+		// longer sees the source's `/* @vite-ignore */` hint next to the call,
+		// so it 500s on "Failed to resolve import '@napi-rs/canvas'" the moment
+		// emf-converter enters the dep graph (any EMF/WMF picture, poster
+		// frame, or OLE preview image). Excluding it serves it as source,
+		// where the ignore hint is still adjacent to the dynamic import.
+		exclude: ['emf-converter'],
 	},
 });

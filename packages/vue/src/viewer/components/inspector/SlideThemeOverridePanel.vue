@@ -113,7 +113,12 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 <template>
 	<div class="space-y-2">
 		<label class="inline-flex items-center gap-2 text-xs">
-			<input type="checkbox" :disabled="!canEdit" :checked="isActive" @change="onToggle" />
+			<pptx-ui-checkbox
+				type="checkbox"
+				:disabled="!canEdit"
+				:checked="isActive"
+				@change="onToggle"
+			/>
 			{{ t('pptx.themeOverride.enableOverride') }}
 		</label>
 
@@ -126,17 +131,17 @@ function onAliasChange(alias: ColorMapAliasKey, event: Event): void {
 					class="h-4 w-4 shrink-0 rounded-sm border border-border"
 					:style="{ backgroundColor: slotColor(currentTarget(alias)) }"
 				/>
-				<select
+				<pptx-ui-select
 					:disabled="!canEdit"
 					:value="currentTarget(alias)"
 					class="flex-1 rounded border border-border bg-muted px-1 py-0.5 text-[11px]"
 					:aria-label="`${ALIAS_LABELS[alias]} target slot`"
-					@change="(e) => onAliasChange(alias, e)"
+					@change="(e: Event) => onAliasChange(alias, e)"
 				>
 					<option v-for="slot in slotOptions" :key="slot" :value="slot">
 						{{ slotLabel(slot) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 		</div>
 	</div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 import { DebouncedColorInput } from './DebouncedColorInput';
 import type { EffectSectionProps } from './image-properties-types';
 
@@ -20,7 +21,7 @@ export function ColorWashSection({
 		<div className='space-y-1 text-[11px]'>
 			<label className='flex items-center justify-between gap-2'>
 				<span className='text-muted-foreground'>{t('pptx.image.colorWash')}</span>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					disabled={!canEdit}
 					checked={Boolean(wash)}

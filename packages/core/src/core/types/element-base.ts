@@ -239,6 +239,24 @@ export interface PptxShapeProperties {
  */
 export interface PlaceholderTextLevelStyle {
 	fontFamily?: string;
+	/**
+	 * The RAW `a:defRPr/a:latin/@typeface` string (verbatim: a theme alias
+	 * such as `+mj-lt`/`+mn-lt`, or a literal face name) {@link fontFamily}
+	 * was resolved from. Master/layout text styles are parsed once and
+	 * cached, so `fontFamily` is a resolved-for-display snapshot; re-emitting
+	 * it as the literal name on every save (the master-level analogue of
+	 * `colorChoiceXml` below) flattens the theme alias the moment ANYTHING
+	 * about the deck is rewritten, even when this level was never touched.
+	 * Absent when the level declares no `a:latin`.
+	 */
+	fontTypefaceXml?: string;
+	/**
+	 * Snapshot of {@link fontFamily} exactly as parsed, before any edit. The
+	 * save path diffs the live value against this: unchanged means re-emit
+	 * {@link fontTypefaceXml} verbatim (preserve the alias); different means
+	 * a genuine edit, so the new literal name is written instead.
+	 */
+	resolvedFontFamily?: string;
 	fontSize?: number;
 	bold?: boolean;
 	italic?: boolean;
@@ -288,8 +306,32 @@ export interface PlaceholderTextLevelStyle {
 	tabStops?: TextStyle['tabStops'];
 	lineSpacing?: number;
 	lineSpacingExactPt?: number;
+	/**
+	 * Space before the paragraph in px, resolved from EITHER `a:spcPts`
+	 * (absolute) or `a:spcPct` (a percentage of this level's own `a:defRPr`
+	 * font size) - the OOXML source is not distinguishable from this field
+	 * alone. See {@link spaceBeforePercent} / {@link resolvedSpaceBefore}.
+	 */
 	spaceBefore?: number;
 	spaceAfter?: number;
+	/**
+	 * Snapshot of {@link spaceBefore} / {@link spaceAfter} exactly as parsed.
+	 * Diffed the same way as {@link resolvedFontFamily}: unchanged means the
+	 * writer re-emits the ORIGINAL form (`a:spcPct` when
+	 * {@link spaceBeforePercent} / {@link spaceAfterPercent} is set); a value
+	 * that has since moved away from the snapshot is a genuine edit and is
+	 * always written as `a:spcPts`, since an editor works in absolute units.
+	 */
+	resolvedSpaceBefore?: number;
+	resolvedSpaceAfter?: number;
+	/**
+	 * The raw `a:spcPct` fraction (e.g. `0.2` for 20%) {@link spaceBefore} /
+	 * {@link spaceAfter} was resolved from, when the source used percentage
+	 * spacing rather than `a:spcPts`. Absent when the source used `a:spcPts`
+	 * (or authored no spacing at all).
+	 */
+	spaceBeforePercent?: number;
+	spaceAfterPercent?: number;
 	/** Default tab interval in CSS pixels (`a:lvlXpPr/@defTabSz`). */
 	defaultTabSize?: number;
 	/** Whether East Asian line-breaking rules are enabled. */

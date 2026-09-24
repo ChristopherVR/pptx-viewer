@@ -8,6 +8,7 @@ import {
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { SELECT_CLS } from './animation-panel-constants';
 
 export interface MotionPathRowProps {
@@ -40,7 +41,7 @@ export function MotionPathRow({
 			<span className='text-muted-foreground text-[11px]'>
 				{t('pptx.animation.motionPath.label')}
 			</span>
-			<select
+			<WebSelect
 				aria-label={t('pptx.animation.motionPath.label')}
 				value={isCustom ? 'custom' : (presetId ?? 'none')}
 				onChange={(event) => onChange(event.target.value)}
@@ -58,7 +59,7 @@ export function MotionPathRow({
 						))}
 					</optgroup>
 				))}
-			</select>
+			</WebSelect>
 			{motionPath && (
 				<span className='text-[10px] text-muted-foreground'>
 					{t('pptx.animation.motionPath.editHint')}

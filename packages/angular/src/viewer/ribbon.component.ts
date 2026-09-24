@@ -166,6 +166,7 @@ import type { RibbonTab } from './ribbon-types';
 					(comments)="comments.emit()"
 					(a11y)="a11y.emit()"
 					(link)="link.emit()"
+					(goToNormalView)="goToNormalView.emit()"
 					(openSorter)="openSorter.emit()"
 					(openReadingView)="openReadingView.emit()"
 					(openOutlineView)="openOutlineView.emit()"
@@ -294,6 +295,7 @@ export class RibbonComponent {
 	/** Overflow menu: opens the font-embedding dialog. */
 	readonly fontEmbedding = output<void>();
 	readonly link = output<void>();
+	readonly goToNormalView = output<void>();
 	readonly openSorter = output<void>();
 	/** View tab > Reading View: the deck full-window, not the slide show. */
 	readonly openReadingView = output<void>();

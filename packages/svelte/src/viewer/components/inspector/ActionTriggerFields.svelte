@@ -93,7 +93,7 @@
 
 <div class="pptx-svelte-action-trigger">
 	<span class="pptx-svelte-action-trigger-label">{label}</span>
-	<select
+	<pptx-ui-select
 		aria-label={label}
 		disabled={!canEdit}
 		value={effectiveType}
@@ -102,7 +102,7 @@
 		{#each ELEMENT_ACTION_TYPE_OPTIONS as option (option.value)}
 			<option value={option.value}>{t(option.labelKey)}</option>
 		{/each}
-	</select>
+	</pptx-ui-select>
 
 	{#if showsUrlField}
 		<input
@@ -129,7 +129,7 @@
 	{/if}
 
 	{#if effectiveType === 'customShow'}
-		<select
+		<pptx-ui-select
 			data-testid="pptx-action-custom-show"
 			aria-label={t('pptx.hyperlink.customShowLabel')}
 			disabled={!canEdit}
@@ -141,16 +141,15 @@
 			{#each customShows as show (show.id)}
 				<option value={show.id}>{show.name}</option>
 			{/each}
-		</select>
+		</pptx-ui-select>
 		<label class="pptx-svelte-action-trigger-checkbox">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				data-testid="pptx-action-custom-show-return"
 				disabled={!canEdit}
 				checked={returnAfter}
 				onchange={(event) =>
 					onchangetarget({ type: effectiveType, customShowId, returnAfter: event.currentTarget.checked })}
-			/>
+			></pptx-ui-checkbox>
 			<span>{t('pptx.hyperlink.customShowReturn')}</span>
 		</label>
 	{/if}

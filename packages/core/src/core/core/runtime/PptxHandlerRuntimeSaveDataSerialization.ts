@@ -230,6 +230,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}>;
 
 	/**
+	 * Record `chartData` as parsed, straight off `enrichChartData`, as this
+	 * chart's load-time baseline. See {@link chartDataBaselines}.
+	 */
+	protected rememberChartDataBaseline(chartData: PptxChartData): void {
+		if (!chartData.chartPartPath) {
+			return;
+		}
+		this.chartDataBaselines.set(chartData.chartPartPath, JSON.stringify(chartData));
+	}
+
+	/**
 	 * Collect chart data for deferred async processing during save.
 	 */
 	protected serializeChartDataToXml(chartData: PptxChartData, _slidePath: string): void {
@@ -251,6 +262,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		for (const { chartData, slidePath } of this.pendingChartUpdates) {
+			// An untouched chart's `chartData` is byte-identical (as JSON) to what
+			// `enrichChartData` parsed off this same part at load time: nothing
+			// the editor did changed it. Rebuilding it anyway re-serializes every
+			// resolved/inherited value as a literal (pinning a title's inherited
+			// theme font, pinning per-point colours a radar series was following
+			// from the palette cycle) and drops whatever this engine's chart
+			// model does not carry (e.g. a chartex series' `cx:f` formula or its
+			// `uniqueId`). Skip the whole part, including its colour-style
+			// sibling, and let the original bytes flow through.
+			if (
+				chartData.chartPartPath &&
+				this.chartDataBaselines.get(chartData.chartPartPath) === JSON.stringify(chartData)
+			) {
+				continue;
+			}
 			if (chartData.colorPalette && chartData.colorStylePartPath) {
 				const paletteChanged =
 					JSON.stringify(chartData.colorPalette) !==

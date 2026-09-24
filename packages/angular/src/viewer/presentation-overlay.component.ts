@@ -474,7 +474,7 @@ export class PresentationOverlayComponent implements OnInit {
 
 		// Wire the zoom-navigation context to this overlay's slide navigation so a
 		// descendant zoom tile can jump to its target slide on click.
-		this.zoomNavigation.setHandler((index) => this.navigator.goToSlide(index));
+		this.zoomNavigation.setHandler((target) => this.navigator.navigateToZoomTarget(target));
 
 		// Rebuild the native-animation controller for the current slide (seeds the
 		// pre-build state so entrance-animated elements start hidden) and publish its

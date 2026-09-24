@@ -24,6 +24,7 @@ import { applyFontAlignmentFallback } from './text-font-alignment';
 import type { RunFontSpec } from './text-metric-tracking';
 import { applyUnderlineVariant, nestedTextDecorationStyle } from './text-run-decoration';
 import { buildRunEffectStyle } from './text-run-effects';
+import { stitchContinuousGradientFill } from './text-run-gradient-span';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
 import { resolveRunEquation, resolveRunHyperlink } from './text-run-meta';
 import type { RunRuby } from './text-run-ruby';
@@ -146,8 +147,12 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			continue;
 		}
 		const rawText = seg.isLineBreak ? '\n' : seg.text;
+		// The field's own `a:fld/a:rPr@lang` (`seg.style.language`) takes
+		// priority over the deck-wide `fieldContext.locale` for date/time
+		// formatting: a field authored in a specific language renders in that
+		// language even inside an otherwise English deck.
 		const text = seg.fieldType
-			? substituteFieldText(rawText, seg.fieldType, fieldContext)
+			? substituteFieldText(rawText, seg.fieldType, fieldContext, seg.style?.language)
 			: rawText;
 		if (!text) {
 			continue;
@@ -286,6 +291,10 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			charStart += piece.text.length;
 		}
 	}
+	// Adjacent runs authored with the identical gradient/pattern text fill
+	// (`p(r('GRADIENT ', grad) + r('SPANS RUNS', grad))`) paint as ONE
+	// continuous fill in PowerPoint, not two independent 0%-100% fills.
+	stitchContinuousGradientFill(runs);
 	return runs;
 }
 

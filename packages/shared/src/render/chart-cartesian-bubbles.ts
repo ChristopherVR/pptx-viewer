@@ -8,7 +8,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
-import { elementFrame, seriesXValues, xyMarkTooltip } from './chart-cartesian-plots';
+import { elementFrame, xyMarkTooltip } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
 import {
@@ -18,13 +18,14 @@ import {
 } from './chart-data-label-text';
 import { resolveDataPointFill } from './chart-datapoint-style';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { buildScatterXAxisPlan } from './chart-scatter-x-axis';
 import type { PlotLayout, SvgCircle, SvgPrimitive, SvgText, ValueRange } from './chart-view-model';
 import {
 	computeBubbleRadius,
 	computeScatterDots,
-	computeScatterXDomain,
 	formatAxisValue,
 	seriesColor,
+	seriesXValues,
 } from './chart-view-model';
 
 /**
@@ -53,7 +54,12 @@ export function buildBubbles(
 		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
 		maxXIndex = Math.max(1, ...allIndices),
 		perSeriesX = chartData.series.map((series) => seriesXValues(chartData, series)),
-		xDomain = computeScatterXDomain(perSeriesX),
+		// The chart's own nice-scaled X axis (see `chart-scatter-x-axis.ts`), not
+		// the raw data's tight min/max: sharing this domain with the drawn
+		// gridlines keeps every bubble aligned with them, and the axis's own
+		// headroom/rounding is what keeps an edge bubble from being clipped by
+		// the plot boundary.
+		xDomain = buildScatterXAxisPlan(chartData, layout).range,
 		// One size scale for the whole chart, so bubbles stay comparable across series.
 		allSizes = chartData.series.flatMap((series) => series.bubbleSizes ?? []),
 		maxBubble = allSizes.length > 0 ? Math.max(1, ...allSizes.map(Math.abs)) : 1,

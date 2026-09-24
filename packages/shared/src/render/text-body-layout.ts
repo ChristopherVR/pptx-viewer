@@ -31,6 +31,36 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import { getKinsokuLineBreakStyles } from './kinsoku-styles';
 import { resolveVerticalAnchorJustifyContent } from './text-style-helpers';
 
+/**
+ * Map `a:bodyPr/@anchor` to the CSS Box Alignment `align-content` keyword a
+ * multi-column (`display: block` + `column-count`) container needs for the
+ * SAME vertical anchoring {@link resolveVerticalAnchorJustifyContent} gives a
+ * single-column flex body.
+ *
+ * `justify-content` has no effect outside a flex/grid container, so a
+ * multi-column body silently ignored `@anchor` entirely and always rendered
+ * top-anchored (COM-verified against `audit-text/gen.py` slide 4's third
+ * shape, `numCol="2" anchor="ctr"`: PowerPoint centres the short single
+ * paragraph in the box). `align-content` is the Box Alignment property that
+ * DOES apply to a multicol container's set of column boxes (CSS Box
+ * Alignment Level 3 extends `align-content` to multicol fragmentation
+ * containers), and only has a visible effect once `column-fill: auto` stops
+ * the columns stretching to fill the container's full block size.
+ */
+function resolveColumnAlignContent(vAlign: TextStyle['vAlign'] | undefined): string {
+	switch (vAlign) {
+		case 'middle':
+			return 'center';
+		case 'bottom':
+			return 'end';
+		case 'distributed':
+		case 'justified':
+			return 'space-between';
+		default:
+			return 'start';
+	}
+}
+
 /** A neutral CSS record: camelCase property names, plain CSS values. */
 export type TextBodyLayoutStyle = Record<string, string | number>;
 
@@ -152,8 +182,10 @@ export function resolveTextOverflowClip(textStyle: TextStyle | undefined): 'hidd
  *
  * Emits, in this order so a later rule can override an earlier one:
  *
- *  1. the column box (`display: block` + `column-count` + `column-gap`) when
- *     `@numCol > 1`, otherwise the flex column with the `@anchor` justification;
+ *  1. the column box (`display: block` + `column-count` + `column-gap` +
+ *     `column-fill: auto` + `align-content` for `@anchor` + `direction` for
+ *     `@rtlCol`) when `@numCol > 1`, otherwise the flex column with the
+ *     `@anchor` justification;
  *  2. `align-items: center` for `@anchorCtr="1"`;
  *  3. `tab-size`;
  *  4. the kinsoku rules, last, because `@latinLnBrk` legitimately overrides the
@@ -185,6 +217,25 @@ export function buildTextBodyLayoutStyle(element: PptxElement): TextBodyLayoutSt
 		if (columns.gap !== undefined) {
 			style.columnGap = columns.gap;
 		}
+		// `column-fill` defaults to `balance`, which spreads content evenly
+		// across every column so they come out roughly equal height.
+		// PowerPoint never balances: it fills column 1 completely before
+		// spilling into column 2, exactly like `column-fill: auto` (COM-verified
+		// against `audit-text/gen.py` slide 4: a 4-paragraph body in 2 columns
+		// puts all 4 paragraphs in column 1 when they fit, not 2-and-2).
+		style.columnFill = 'auto';
+		// `a:bodyPr/@rtlCol`: the SECOND column renders to the LEFT of the
+		// first instead of the right (CSS Multi-column layout already reverses
+		// column order under `direction: rtl`, the same mechanism table cells
+		// and paragraphs use for RTL).
+		if (ts?.rtlColumns) {
+			style.direction = 'rtl';
+		}
+		// `justify-content` has no effect on this `display: block` container
+		// (see `resolveColumnAlignContent`'s doc comment); `align-content` is
+		// the multicol-aware equivalent of the single-column flex path's
+		// `justifyContent` below.
+		style.alignContent = resolveColumnAlignContent(ts?.vAlign);
 	} else {
 		style.display = 'flex';
 		style.flexDirection = 'column';
@@ -192,13 +243,24 @@ export function buildTextBodyLayoutStyle(element: PptxElement): TextBodyLayoutSt
 	}
 
 	// `a:bodyPr/@anchorCtr="1"`: "determine the smallest possible bounding box
-	// for the text and then centre that bounding box". In a flex column that is
-	// `align-items: center`, which shrink-wraps each paragraph and centres it -
-	// the closest CSS gets without measuring, and independent of `@algn`, which
-	// still positions the text INSIDE the shrink-wrapped box. It is a no-op on
-	// the multi-column block, where there is no flex line to align.
+	// for EVERY paragraph TOGETHER, then centre that one bounding box" - the
+	// paragraphs keep their own shared left edge relative to each other (a
+	// short line does not re-centre itself independently of a longer one next
+	// to it). `align-items: center` on the flex column gets this wrong: it
+	// centres EACH paragraph (each a separate flex item) independently, so two
+	// paragraphs of different lengths end up with DIFFERENT left edges instead
+	// of sharing one (COM-verified against `audit-text/pp/s2.png`, `gen.py`
+	// slide 2's "Short" / "anchorCtr longer second line" box: both lines start
+	// at the same x). `width: fit-content` on the flex CONTAINER itself
+	// shrink-wraps it to its widest paragraph instead, and centering that box
+	// with auto margins leaves every paragraph's own text-align (independent
+	// of `@algn`) to position text inside the now-shared, shrink-wrapped box.
+	// A no-op on the multi-column block, where there is no flex box to shrink.
 	if (ts?.anchorCenter === true && columns.count <= 1) {
-		style.alignItems = 'center';
+		style.width = 'fit-content';
+		style.maxWidth = '100%';
+		style.marginLeft = 'auto';
+		style.marginRight = 'auto';
 	}
 
 	const tabSize = computeTabSize(ts?.tabStops, ts?.defaultTabSize);

@@ -300,7 +300,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// 3. a:effectLst (text run effects)
-		const textEffectLst = buildTextRunEffectListXml(style);
+		const textEffectLst = buildTextRunEffectListXml(style, (colorNode) =>
+			this.parseColor(colorNode),
+		);
 		if (textEffectLst) {
 			runProps['a:effectLst'] = textEffectLst;
 		}
@@ -485,10 +487,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.hyperlinkEndSound !== undefined) {
 			hlinkNode['@_endSnd'] = style.hyperlinkEndSound ? '1' : '0';
 		}
-		// CT_Hyperlink sequences `a:snd` before `a:extLst`; here it is the only
-		// child, so re-emit the preserved embedded-WAV subtree verbatim.
+		// CT_Hyperlink sequences `a:snd` before `a:extLst`; assign in that order
+		// (fast-xml-parser serialises keys in insertion order).
 		if (style.hyperlinkSoundXml && typeof style.hyperlinkSoundXml === 'object') {
 			hlinkNode['a:snd'] = style.hyperlinkSoundXml;
+		}
+		// Re-emit the preserved `a:extLst` (most commonly `ahyp:hlinkClr`)
+		// verbatim rather than dropping an unmodelled vendor extension.
+		if (style.hyperlinkExtensionXml && typeof style.hyperlinkExtensionXml === 'object') {
+			hlinkNode['a:extLst'] = style.hyperlinkExtensionXml;
 		}
 	}
 }

@@ -1038,6 +1038,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.media.startAutomatically': 'Automatically',
 	'pptx.media.playAcrossSlides': 'Play across slides',
 	'pptx.media.fullScreen': 'Full screen',
+	'pptx.media.onlineVideoTitle': 'Online video',
 	'pptx.media.hideWhenNotPlaying': 'Hide when not playing',
 	'pptx.media.bookmarks': 'Bookmarks',
 	'pptx.media.bookmark': 'Bookmark',
@@ -1123,6 +1124,13 @@ export const translationsEn: Record<string, string> = {
 	'pptx.compare.summary': '{{added}} added, {{removed}} removed, {{changed}} changed',
 	'pptx.compare.title': 'Compare',
 
+	// Canvas context menu (empty slide right-click)
+	'pptx.canvasContextMenu.formatBackground': 'Format Background...',
+	'pptx.canvasContextMenu.gridAndGuides': 'Grid and Guides',
+	'pptx.canvasContextMenu.layout': 'Layout',
+	'pptx.canvasContextMenu.resetSlide': 'Reset Slide',
+	'pptx.canvasContextMenu.ruler': 'Ruler',
+
 	// Context menu
 	'pptx.contextMenu.addComment': 'Add Comment',
 	'pptx.contextMenu.bringForward': 'Bring Forward',
@@ -1133,7 +1141,10 @@ export const translationsEn: Record<string, string> = {
 	'pptx.contextMenu.deleteColumn': 'Delete Column',
 	'pptx.contextMenu.deleteRow': 'Delete Row',
 	'pptx.contextMenu.duplicate': 'Duplicate',
+	'pptx.contextMenu.editAltText': 'Edit Alt Text...',
 	'pptx.contextMenu.editHyperlink': 'Edit Hyperlink',
+	'pptx.contextMenu.editText': 'Edit Text',
+	'pptx.contextMenu.formatShape': 'Format Shape...',
 	'pptx.contextMenu.group': 'Group',
 	'pptx.contextMenu.insertColumnLeft': 'Insert Column Left',
 	'pptx.contextMenu.insertColumnRight': 'Insert Column Right',
@@ -1142,10 +1153,20 @@ export const translationsEn: Record<string, string> = {
 	'pptx.contextMenu.mergeCells': 'Merge Right',
 	'pptx.contextMenu.mergeSelectedCells': 'Merge Selected Cells',
 	'pptx.contextMenu.paste': 'Paste',
+	'pptx.contextMenu.saveAsPicture': 'Save as Picture...',
 	'pptx.contextMenu.sendBackward': 'Send Backward',
 	'pptx.contextMenu.sendToBack': 'Send to Back',
+	'pptx.contextMenu.sizeAndPosition': 'Size and Position...',
 	'pptx.contextMenu.splitCell': 'Split Cell',
 	'pptx.contextMenu.ungroup': 'Ungroup',
+
+	// Paste Special (Ctrl+Alt+V) and the post-paste Paste Options toolbar
+	'pptx.pasteSpecial.dialogTitle': 'Paste Special',
+	'pptx.pasteSpecial.keepSourceFormatting': 'Keep Source Formatting',
+	'pptx.pasteSpecial.keepTextOnly': 'Keep Text Only',
+	'pptx.pasteSpecial.optionsLabel': 'Paste Options',
+	'pptx.pasteSpecial.picture': 'Picture',
+	'pptx.pasteSpecial.useDestinationTheme': 'Use Destination Theme',
 
 	// Digital signatures (additions)
 	'pptx.digitalSignatures.badge': 'Signed',
@@ -1530,6 +1551,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.transition.morphOption.byObject': 'By Object',
 	'pptx.transition.morphOption.byWord': 'By Word',
 	'pptx.transition.morphOption.byChar': 'By Character',
+	'pptx.transition.pattern': 'Pattern',
+	'pptx.transition.pattern.diamond': 'Diamond',
+	'pptx.transition.pattern.hexagon': 'Hexagon',
+	'pptx.transition.pattern.strip': 'Strips',
+	'pptx.transition.pattern.rectangle': 'Rectangles',
+	'pptx.transition.thruBlk': 'Through black',
 
 	// Context menu / editor toolbar (Angular/Vue-specific additions)
 	'pptx.contextMenu.ariaLabel': 'Context menu',

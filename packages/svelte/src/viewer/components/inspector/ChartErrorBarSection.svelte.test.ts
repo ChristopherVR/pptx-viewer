@@ -53,9 +53,9 @@ describe('chartErrorBarSection', () => {
 
 	it('offers a translated value-type select per series', () => {
 		const { target } = mountSection(chartData());
-		const options = Array.from(target.querySelectorAll<HTMLOptionElement>('select option')).map(
-			(option) => option.textContent,
-		);
+		const options = Array.from(
+			target.querySelectorAll<HTMLOptionElement>('pptx-ui-select option'),
+		).map((option) => option.textContent);
 
 		expect(options).toStrictEqual([
 			'None',
@@ -69,7 +69,7 @@ describe('chartErrorBarSection', () => {
 	it('builds a complete error-bar record when a value type is chosen', () => {
 		const { target, onseterrorbars } = mountSection(chartData());
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, 'percentage');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, 'percentage');
 
 		expect(onseterrorbars).toHaveBeenCalledWith(0, {
 			direction: 'y',
@@ -85,7 +85,7 @@ describe('chartErrorBarSection', () => {
 			chartData({ series: [{ name: 'Revenue', values: [10], errBars: [bars] }] }),
 		);
 
-		setValue(target.querySelector<HTMLSelectElement>('select')!, '');
+		setValue(target.querySelector<HTMLSelectElement>('pptx-ui-select')!, '');
 
 		expect(onseterrorbars).toHaveBeenCalledWith(0, null);
 	});
@@ -116,7 +116,7 @@ describe('chartErrorBarSection', () => {
 			chartData({ series: [{ name: 'Revenue', values: [10], errBars: [bars] }] }),
 		);
 
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		setValue(selects[1], 'plus');
 
 		expect(onseterrorbars).toHaveBeenCalledWith(0, { ...bars, barType: 'plus' });

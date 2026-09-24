@@ -87,6 +87,23 @@ describe('renderMediaElement', () => {
 		expect(node.querySelector('video')?.getAttribute('src')).toBe('blob:movie');
 	});
 
+	it('renders a provider iframe for a linked online-video URL instead of <video>', () => {
+		const node = renderMediaElement(
+			mediaElement({
+				mediaType: 'video',
+				mediaPath: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+				isLinked: true,
+			}),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		const iframe = node.querySelector<HTMLIFrameElement>('iframe');
+		expect(iframe).toBeTruthy();
+		expect(iframe?.getAttribute('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+		expect(iframe?.getAttribute('title')).toBe('Online video');
+		expect(node.querySelector('video')).toBeNull();
+	});
+
 	it('renders a native <audio controls> for audio media', () => {
 		const node = renderMediaElement(
 			mediaElement({ mediaType: 'audio', mediaData: MP3_DATA_URL }),

@@ -66,6 +66,12 @@
 		onregister={(reader, cancel) => controller.registerInlineReader(editingElement.id, reader, cancel)}
 		onretire={() => controller.retainAcceptedInlineText(true)}
 		onclose={() => controller.closeInline()}
+		onformat={(patch) => controller.patchSelected(patch)}
+		oncopyformat={() => controller.copyFormat()}
+		onpasteformat={() => controller.pasteFormat()}
+		onhyperlink={() => controller.openHyperlink()}
+		onfind={() => controller.toggleFind()}
+		onfindreplace={() => controller.toggleFindReplace()}
 	/>
 	{/key}
 {/if}

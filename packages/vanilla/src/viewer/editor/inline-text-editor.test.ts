@@ -780,3 +780,86 @@ describe('openInlineEditor commit ordering', () => {
 		overlayRoot.remove();
 	});
 });
+
+describe('openInlineEditor live-format keys', () => {
+	it('claims a key onLiveFormatKey handles: preventDefault fires and Escape does not also run', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onClose = vi.fn();
+		const onLiveFormatKey = vi.fn(() => true);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onCommit: () => {},
+			onClose,
+			onLiveFormatKey,
+		});
+
+		const event = new KeyboardEvent('keydown', {
+			key: 'l',
+			ctrlKey: true,
+			bubbles: true,
+			cancelable: true,
+		});
+		session.el.dispatchEvent(event);
+
+		expect(onLiveFormatKey).toHaveBeenCalledWith(event);
+		expect(event.defaultPrevented).toBeTruthy();
+		// The editor did not also close itself: a claimed key is not Escape.
+		expect(onClose).not.toHaveBeenCalled();
+
+		overlayRoot.remove();
+	});
+
+	it('falls back to the local Escape handling when onLiveFormatKey declines the key', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onClose = vi.fn();
+		const onLiveFormatKey = vi.fn(() => false);
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onCommit: () => {},
+			onClose,
+			onLiveFormatKey,
+		});
+
+		session.el.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+		);
+
+		expect(onLiveFormatKey).toHaveBeenCalledOnce();
+		expect(onClose).toHaveBeenCalledOnce();
+
+		overlayRoot.remove();
+	});
+
+	it('still closes on Escape when no onLiveFormatKey is supplied at all', () => {
+		const overlayRoot = document.createElement('div');
+		document.body.appendChild(overlayRoot);
+		const onClose = vi.fn();
+		const session = openInlineEditor({
+			doc: document,
+			overlayRoot,
+			box: { x: 0, y: 0, width: 200, height: 50, rotation: 0 },
+			scale: 1,
+			element: textElement(),
+			onCommit: () => {},
+			onClose,
+		});
+
+		session.el.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }),
+		);
+
+		expect(onClose).toHaveBeenCalledOnce();
+
+		overlayRoot.remove();
+	});
+});

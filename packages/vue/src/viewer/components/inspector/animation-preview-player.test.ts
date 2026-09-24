@@ -13,7 +13,10 @@ function mountElement(elementId: string): HTMLElement {
 
 /** Every `@keyframes` block the player has injected into the document head. */
 function injectedKeyframes(): string {
-	return [...document.head.querySelectorAll('style')].map((style) => style.textContent).join('\n');
+	return [...document.head.querySelectorAll('style')]
+		.filter((style) => style.textContent?.includes('@keyframes'))
+		.map((style) => style.textContent)
+		.join('\n');
 }
 
 afterEach(() => {

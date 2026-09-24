@@ -115,6 +115,32 @@ export interface TextStyle {
 	 * @see element-paragraph-geometry.ts
 	 */
 	resolvedParagraphGeometry?: TextStyle;
+	/**
+	 * Snapshot of the ELEMENT-scope `a:bodyPr` properties (vertical anchor,
+	 * text direction, columns, overflow, autofit, body insets, text wrap, and
+	 * the boolean/rotation attributes) as the load pipeline resolved them.
+	 *
+	 * A shape's own `a:bodyPr` is parsed first, then whatever it left
+	 * `undefined` is back-filled from the placeholder / layout / master
+	 * defaults (`applyPlaceholderBodyDefaults`), and a placeholder shape with
+	 * no `a:bodyPr` of its own has the INHERITED one parsed as if it were its
+	 * own. None of those three sources is distinguishable at
+	 * `element.textStyle` once the cascade finishes, so a writer that
+	 * re-emits every defined field turns an inherited anchor, inset, autofit
+	 * mode or `rtlCol` into a value pinned on the slide forever (and an
+	 * inherited `a:normAutofit` with no scale gets written back as
+	 * `a:spAutoFit`, flipping AutoSize from "shrink text" to "resize shape").
+	 *
+	 * Present only on an `element.textStyle` that came from a parsed deck.
+	 * The save path diffs the live style against this snapshot: a field that
+	 * still matches is an inheritance artefact and the writer leaves the
+	 * underlying `a:bodyPr` attribute untouched (whatever it already is,
+	 * present or absent); a field that differs was authored or has since
+	 * been edited and is written out.
+	 *
+	 * @see element-body-properties.ts
+	 */
+	resolvedBodyProperties?: TextStyle;
 	fontFamily?: string;
 	fontSize?: number; // in points
 	/** When true, some form of autofit is in effect; see {@link autoFitMode} for which. */
@@ -304,6 +330,16 @@ export interface TextStyle {
 		align: 'l' | 'ctr' | 'r' | 'dec';
 		leader?: 'none' | 'dot' | 'hyphen' | 'underscore';
 	}>;
+	/**
+	 * True when the paragraph's own `a:pPr` authored an EMPTY `<a:tabLst/>`
+	 * (explicitly "no tab stops", overriding whatever the cascade would
+	 * otherwise supply) rather than omitting the element entirely (inherit).
+	 * fast-xml-parser gives a childless element as the empty string, so
+	 * `tabLst` and no-`tabLst` are otherwise indistinguishable once `tabStops`
+	 * comes back empty either way. Paragraph-scope only; not part of the
+	 * element-level geometry cascade.
+	 */
+	tabStopsExplicitEmpty?: boolean;
 	/** Body text wrapping mode from `a:bodyPr/@wrap`. */
 	textWrap?: 'square' | 'none';
 	/** Preset text warp type from `a:bodyPr/a:prstTxWarp`. */
@@ -346,6 +382,20 @@ export interface TextStyle {
 	 * serialised back on save, so it never disturbs the round-trip typefaces.
 	 */
 	scriptFallbackFont?: string;
+	/**
+	 * Set alongside {@link scriptFallbackFont} when the resolved {@link fontFamily}
+	 * came only from the paragraph/list-style/theme CASCADE (the run's own
+	 * `a:rPr` authored no `a:latin`/`a:ea`/`a:cs` of its own). A run always
+	 * inherits SOME font this way (typically the theme's `+mn-lt`), so without
+	 * this flag `fontFamily` was indistinguishable from a run that genuinely
+	 * chose that font itself, and the renderer never applied the theme's
+	 * per-script override (see #83): `+mn-lt` names only the LATIN member of
+	 * the font scheme and was never meant to cover text in a different
+	 * dominant script. An explicit `a:latin`/`a:ea`/`a:cs` authored on the run
+	 * itself still always wins; only the cascade default yields to the
+	 * script-specific override.
+	 */
+	fontFamilyIsCascadeDefault?: boolean;
 	/** Text language from `a:rPr/@lang`. */
 	language?: string;
 	/** Hyperlink mouse-over target from `a:hlinkMouseOver`. */
@@ -368,6 +418,16 @@ export interface TextStyle {
 	hyperlinkHighlightClick?: boolean;
 	/** Whether hyperlink ends a sound (`a:hlinkClick/@endSnd`). */
 	hyperlinkEndSound?: boolean;
+	/**
+	 * Raw `a:hlinkClick/a:extLst` child, preserved verbatim for round-trip.
+	 * Carries vendor extensions this engine does not interpret, most commonly
+	 * `ahyp:hlinkClr` (Microsoft's "hyperlink color" extension,
+	 * `{A12FA001-AC4F-418D-AE19-62706E023703}`), which records whether a
+	 * hyperlink run should paint with the theme's text colour instead of the
+	 * hyperlink colour. Dropping the whole `a:extLst` silently reverted such a
+	 * run to the default (themed) hyperlink colour on save.
+	 */
+	hyperlinkExtensionXml?: XmlObject;
 
 	// ── Text run metadata (from `a:rPr` attributes) ──
 
@@ -550,6 +610,15 @@ export interface TextStyle {
 	textGlowRadius?: number;
 	/** Text glow opacity (0-1). */
 	textGlowOpacity?: number;
+	/**
+	 * Original glow colour-choice XML (`a:glow`'s `a:schemeClr`/`a:srgbClr`/…
+	 * child), preserved verbatim so a theme colour reference round-trips
+	 * instead of always being re-serialized as a resolved `a:srgbClr` (which
+	 * cuts the glow off from theme/Recolor changes).
+	 */
+	textGlowColorXml?: XmlObject;
+	/** Theme colour slot the glow colour resolved from, when it is `a:schemeClr`. */
+	textGlowColorRef?: PptxThemeColorRef;
 
 	/** Text reflection enabled flag. */
 	textReflection?: boolean;
@@ -695,6 +764,18 @@ export interface BulletInfo {
 	paragraphIndex?: number;
 	/** Bullet font family from `a:buFont`. */
 	fontFamily?: string;
+	/**
+	 * PANOSE font-matching hint from `a:buFont/@panose`. `a:buFont` is a
+	 * CT_TextFont, the same complex type as `a:latin`/`a:ea`/`a:cs`/`a:sym`
+	 * (which carry the equivalent `TextStyle.latinFontPanose` etc.), so a
+	 * bullet's own PANOSE/pitch-family/charset decide the fallback glyph
+	 * PowerPoint substitutes when the named typeface is missing.
+	 */
+	fontPanose?: string;
+	/** Font pitch-and-family byte from `a:buFont/@pitchFamily`. */
+	fontPitchFamily?: number;
+	/** Font character-set byte from `a:buFont/@charset`. */
+	fontCharset?: number;
 	/** Bullet size as percentage of text font size from `a:buSzPct`. */
 	sizePercent?: number;
 	/** Bullet size in points from `a:buSzPts`. */
@@ -736,6 +817,18 @@ export interface BulletInfo {
 	/** When true, `<a:buSzTx/>` was specified — inherit the bullet size from
 	 *  the run text font size. */
 	sizeInherit?: boolean;
+	/**
+	 * True when this bullet resolution came from the paragraph's OWN `a:pPr`
+	 * rather than the shape's `a:lstStyle`, an inherited placeholder, or the
+	 * master's `a:defPPr` / `p:txStyles`. `resolveParagraphBulletInfo` walks
+	 * that cascade and returns the first match, so without this flag a
+	 * writer that re-emits every resolved `BulletInfo` in full pins an
+	 * inherited bullet (e.g. a master `buFont="Arial"` / `buChar="•"`) onto
+	 * every paragraph's own `a:pPr` the moment the slide is rewritten. The
+	 * save path only writes the bullet group when this is `true`, mirroring
+	 * how `paragraphProperties` gates every other per-paragraph field.
+	 */
+	ownedByParagraph?: boolean;
 }
 
 /**
@@ -779,6 +872,23 @@ export interface TextSegment {
 	fieldParagraphPropertiesXml?: XmlObject;
 	/** Raw OMML XML node for equation segments (from `a14:m` / `m:oMathPara`). */
 	equationXml?: Record<string, unknown>;
+	/**
+	 * The ORIGINAL top-level paragraph child that carried this equation,
+	 * captured verbatim at parse time and keyed by its own tag: `{ 'a14:m':
+	 * ... }`, `{ 'm:oMathPara': ... }`, `{ 'm:oMath': ... }`, or `{
+	 * 'mc:AlternateContent': ... }` for an equation authored behind a
+	 * Choice/Fallback switch. `equationXml` above is the resolved math content
+	 * used for rendering (unwrapped one level for `a14:m`/`mc:AlternateContent`
+	 * sources); this field exists solely so the writer can re-emit an UNTOUCHED
+	 * equation byte-for-byte, Choice and Fallback both, instead of collapsing
+	 * it to a bare math element PowerPoint's own writer never produces.
+	 * `undefined` for a freshly inserted or edited equation, which the writer
+	 * instead reconstructs from `equationXml` (always `{ 'm:oMathPara': ... }`
+	 * or `{ 'm:oMath': ... }` for those cases). Any code that replaces
+	 * `equationXml` on an existing segment must drop this field, or the writer
+	 * would keep re-emitting the equation's OLD XML instead of the edit.
+	 */
+	equationSourceXml?: Record<string, unknown>;
 	/**
 	 * Optional equation number for numbered equations (e.g. "(1)", "(2.3)").
 	 * When present, the equation is rendered centered with the number right-aligned.

@@ -62,7 +62,10 @@ import type { InkStroke } from './ink-renderer-helpers';
 					}
 					@for (stroke of strokes(); track $index) {
 						@if (stroke.nibMarks && stroke.nibMarks.length > 0) {
-							<g [attr.opacity]="stroke.opacity">
+							<g
+								[attr.opacity]="stroke.opacity"
+								[style.mix-blend-mode]="stroke.blendMode === 'multiply' ? 'multiply' : null"
+							>
 								@for (m of stroke.nibMarks; track $index) {
 									<ellipse
 										[attr.cx]="m.cx"
@@ -75,7 +78,10 @@ import type { InkStroke } from './ink-renderer-helpers';
 								}
 							</g>
 						} @else if (stroke.circles && stroke.circles.length > 0) {
-							<g [attr.opacity]="stroke.opacity">
+							<g
+								[attr.opacity]="stroke.opacity"
+								[style.mix-blend-mode]="stroke.blendMode === 'multiply' ? 'multiply' : null"
+							>
 								@for (c of stroke.circles; track $index) {
 									<circle
 										[attr.cx]="c.cx"
@@ -99,6 +105,7 @@ import type { InkStroke } from './ink-renderer-helpers';
 								[style.stroke-dasharray]="replayStyles()[$index]?.strokeDasharray ?? null"
 								[style.stroke-dashoffset]="replayStyles()[$index]?.strokeDashoffset ?? null"
 								[style.--ink-path-length]="replayStyles()[$index]?.pathLength ?? null"
+								[style.mix-blend-mode]="stroke.blendMode === 'multiply' ? 'multiply' : null"
 							/>
 						}
 					}

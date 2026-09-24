@@ -31,6 +31,17 @@ describe('getContainerStyle', () => {
 		expect(style['zIndex']).toBe(3);
 	});
 
+	it('sizes a table to its content, with the authored height only as a floor (tables-sbs/c5)', () => {
+		// PowerPoint always sizes a graphicFrame holding a table to the actual
+		// sum of its row heights: `a:tr/@h` is a minimum, not a fixed height, so
+		// a row whose text needs more room than that grows the table taller than
+		// its authored `a:ext/@cy`. Clipping to that authored height cut off
+		// however many trailing rows no longer fit.
+		const style = getContainerStyle(baseElement({ type: 'table', width: 400, height: 120 }), 0);
+		expect(style['height']).toBe('auto');
+		expect(style['minHeight']).toBe('120px');
+	});
+
 	it('emits a transform for rotation and flips', () => {
 		const style = getContainerStyle(
 			baseElement({ rotation: 45, flipHorizontal: true, flipVertical: true }),

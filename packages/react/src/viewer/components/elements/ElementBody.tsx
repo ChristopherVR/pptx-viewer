@@ -8,7 +8,11 @@ import type {
 	ZoomPptxElement,
 } from 'pptx-viewer-core';
 import { isInkElement } from 'pptx-viewer-core';
-import { getGroupChildParentFill, mediaTransportVisible } from 'pptx-viewer-shared';
+import {
+	getGroupChildParentFill,
+	mediaTransportVisible,
+	oleActionsVisible,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import {
@@ -193,7 +197,19 @@ export function renderBody(options: RenderBodyOptions): React.ReactNode {
 		});
 	}
 	if (el.type === 'ole') {
-		return <OleRenderer element={el as OlePptxElement} />;
+		return (
+			<OleRenderer
+				element={el as OlePptxElement}
+				// A slide thumbnail is painted INSIDE a `<button aria-label="Go to
+				// slide N">`, so the Download/Open action bar's own `<button>` must
+				// not render there: nested interactive controls are invalid markup
+				// React warns about, not merely an unwanted affordance.
+				showActions={oleActionsVisible({
+					presenting: isPresentationPassive === true,
+					preview: isStaticSurface === true,
+				})}
+			/>
+		);
 	}
 	if (doGrp && el.type === 'group' && (el as GroupPptxElement).children) {
 		if (renderGroupChild) {

@@ -86,6 +86,26 @@ export const SLIDE_TRANSITION_OPTIONS: readonly SlideTransitionOptionEntry[] = [
 	{ value: 'rotate', label: 'Rotate', i18nKey: 'pptx.transitionPresets.rotate' },
 	{ value: 'box', label: 'Box', i18nKey: 'pptx.transitionPresets.box' },
 	{ value: 'orbit', label: 'Orbit', i18nKey: 'pptx.transitionPresets.orbit' },
+	{ value: 'fallOver', label: 'Fall Over', i18nKey: 'pptx.transitionPresets.fallOver' },
+	{ value: 'drape', label: 'Drape', i18nKey: 'pptx.transitionPresets.drape' },
+	{ value: 'curtains', label: 'Curtains', i18nKey: 'pptx.transitionPresets.curtains' },
+	{ value: 'wind', label: 'Wind', i18nKey: 'pptx.transitionPresets.wind' },
+	{ value: 'prestige', label: 'Prestige', i18nKey: 'pptx.transitionPresets.prestige' },
+	{ value: 'fracture', label: 'Fracture', i18nKey: 'pptx.transitionPresets.fracture' },
+	{ value: 'crush', label: 'Crush', i18nKey: 'pptx.transitionPresets.crush' },
+	{ value: 'peelOff', label: 'Peel Off', i18nKey: 'pptx.transitionPresets.peelOff' },
+	{
+		value: 'pageCurlSingle',
+		label: 'Page Curl Single',
+		i18nKey: 'pptx.transitionPresets.pageCurlSingle',
+	},
+	{
+		value: 'pageCurlDouble',
+		label: 'Page Curl Double',
+		i18nKey: 'pptx.transitionPresets.pageCurlDouble',
+	},
+	{ value: 'airplane', label: 'Airplane', i18nKey: 'pptx.transitionPresets.airplane' },
+	{ value: 'origami', label: 'Origami', i18nKey: 'pptx.transitionPresets.origami' },
 ];
 
 /**
@@ -116,9 +136,13 @@ export const TRANSITION_MORPH_OPTIONS: readonly SlideTransitionValueOption<PptxM
  * Transition types whose OOXML attribute is `dir="horz|vert"` (an orientation)
  * rather than one of the cardinal/diagonal direction tokens, so the inspector
  * must show a two-button orientation toggle instead of the arrow grid.
+ *
+ * `doors` and `window` are COM-verified: PowerPoint's own `PpEntryEffect`
+ * enumeration saves `<p14:doors dir="vert"/>` / bare (horz default), and
+ * likewise for `p14:window`, exactly like `blinds`/`checker`.
  */
 export const TRANSITION_ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> =
-	new Set<PptxTransitionType>(['blinds', 'checker', 'comb', 'randomBar']);
+	new Set<PptxTransitionType>(['blinds', 'checker', 'comb', 'randomBar', 'doors', 'window']);
 
 /** Arrow glyph shown on a direction button, keyed by OOXML direction token. */
 export const TRANSITION_DIR_ARROWS: Readonly<Record<string, string>> = {

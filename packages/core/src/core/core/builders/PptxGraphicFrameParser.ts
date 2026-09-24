@@ -10,6 +10,7 @@ import type {
 } from '../../types';
 import { findOleObjNode } from '../../utils/ole-alternate-content';
 import { detectOleObjectType, inferOleExtensionFromTarget } from '../../utils/ole-utils';
+import { findVmlOlePreviewRelationshipId } from '../../utils/vml-ole-preview';
 import { resolveP14MediaForGraphicFrame } from '../runtime/media-p14-extension-resolve';
 import { parseShapeLocksFromNode, SHAPE_LOCK_CONTAINERS } from '../runtime/shape-lock-containers';
 import type { GraphicFramePlaceholder } from './graphic-frame-placeholder';
@@ -640,7 +641,14 @@ export class PptxGraphicFrameParser implements IPptxGraphicFrameParser {
 				const olePicture = oleObject?.['p:pic'] as XmlObject | undefined;
 				const oleBlipFill = olePicture?.['p:blipFill'] as XmlObject | undefined;
 				const oleBlip = oleBlipFill?.['a:blip'] as XmlObject | undefined;
-				const previewRelationshipId = String(oleBlip?.['@_r:embed'] || '').trim();
+				let previewRelationshipId = String(oleBlip?.['@_r:embed'] || '').trim();
+				// Fall back to a legacy VML-only preview (`v:shape >
+				// v:imagedata`) when no modern DrawingML blip is present: see
+				// `vml-ole-preview.ts` for why this is a structure-agnostic
+				// scanner rather than a fixed path.
+				if (!previewRelationshipId) {
+					previewRelationshipId = findVmlOlePreviewRelationshipId(oleObject, graphicData) || '';
+				}
 				if (previewRelationshipId && slidePath) {
 					const relsMap = this.context.slideRelsMap.get(slidePath);
 					previewImage = relsMap?.get(previewRelationshipId);

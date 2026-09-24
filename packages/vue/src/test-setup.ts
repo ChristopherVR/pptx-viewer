@@ -1,4 +1,5 @@
 import { config } from '@vue/test-utils';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { createI18n } from 'vue-i18n';
 
 import { keyToLabel, translationsEn } from './i18n';
@@ -23,3 +24,4 @@ const i18n = createI18n({
 });
 
 config.global.plugins.push(i18n);
+registerPptxWebControls();

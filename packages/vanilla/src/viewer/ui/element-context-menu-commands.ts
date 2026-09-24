@@ -14,11 +14,16 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ContextMenuCommandId, ContextMenuTableContext } from 'pptx-viewer-shared';
-import { hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
+import { contextMenuInspectorAnchor, hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import type { TableCellPosition } from '../editor/table-editor-mutations';
 import type { Store, ViewerState } from '../state';
+import {
+	focusInspectorSection,
+	saveElementAsPictureById,
+	startEditingElement,
+} from './context-menu-format-actions';
 
 /** The AI hooks the two AI entries need (structurally the `AiFocusController`). */
 export interface ContextMenuAiHooks {
@@ -33,6 +38,7 @@ export interface ContextMenuTableTarget {
 }
 
 export interface ContextMenuCommandDeps {
+	doc: Document;
 	store: Store<ViewerState>;
 	getEditActions(): EditActions;
 	/** Slide review comments (React's context-menu "Add Comment" opens the same surface). */
@@ -156,6 +162,41 @@ export function runContextMenuCommand(
 			return cell ? neighbourMerge(actions, cell, 'down') : undefined;
 		case 'table-split':
 			return cell ? actions.splitTableCell(cell) : undefined;
+		case 'edit-text':
+			return runOnSelectedElement(deps, (elementId) => startEditingElement(deps.doc, elementId));
+		case 'save-as-picture':
+			return runOnSelectedElement(deps, (elementId) =>
+				saveElementAsPictureById(deps.doc, deps.store, elementId),
+			);
+		case 'edit-alt-text':
+			return focusInspectorSection(
+				deps.doc,
+				deps.store,
+				contextMenuInspectorAnchor('edit-alt-text')!,
+			);
+		case 'size-and-position':
+			return focusInspectorSection(
+				deps.doc,
+				deps.store,
+				contextMenuInspectorAnchor('size-and-position')!,
+			);
+		case 'format-shape':
+			return focusInspectorSection(
+				deps.doc,
+				deps.store,
+				contextMenuInspectorAnchor('format-shape')!,
+			);
+	}
+}
+
+/** Run `run` against the currently selected element id, when there is one. */
+function runOnSelectedElement(
+	deps: ContextMenuCommandDeps,
+	run: (elementId: string) => void,
+): void {
+	const id = deps.store.get().selectedElementId;
+	if (id) {
+		run(id);
 	}
 }
 

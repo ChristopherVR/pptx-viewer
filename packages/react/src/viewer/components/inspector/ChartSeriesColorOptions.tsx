@@ -3,6 +3,7 @@ import { isSeriesUsingSecondaryAxis } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
+import { WebCheckbox } from '../WebControls';
 import { CARD, HEADING } from './chart-panel-constants';
 import { DebouncedColorInput } from './DebouncedColorInput';
 
@@ -58,7 +59,7 @@ export function ChartSeriesColorOptions({
 							{s.name}
 						</span>
 						<label className='flex items-center gap-1 text-muted-foreground shrink-0'>
-							<input
+							<WebCheckbox
 								type='checkbox'
 								disabled={!canEdit}
 								checked={isSeriesUsingSecondaryAxis(chartData, i)}

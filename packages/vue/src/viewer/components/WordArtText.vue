@@ -85,7 +85,7 @@ const paragraphs = computed<WarpParagraph[]>(() => {
 	const ctx = resolveFieldContext(fieldContextSource);
 	return groupIntoParagraphs(el, (seg) => {
 		if (seg.fieldType) {
-			const substituted = substituteFieldText(seg.text, seg.fieldType, ctx);
+			const substituted = substituteFieldText(seg.text, seg.fieldType, ctx, seg.style?.language);
 			if (substituted !== seg.text) {
 				return { ...seg, text: substituted };
 			}

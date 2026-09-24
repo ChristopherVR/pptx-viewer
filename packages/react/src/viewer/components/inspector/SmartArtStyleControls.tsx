@@ -8,6 +8,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { INPUT } from './inspector-pane-constants';
 
 /**
@@ -50,7 +51,7 @@ export function SmartArtStyleControls({
 		<>
 			<label className='flex flex-col gap-1 text-[11px]'>
 				<span className='text-muted-foreground'>{t('pptx.smartart.colorScheme')}</span>
-				<select
+				<WebSelect
 					disabled={!canEdit}
 					data-testid='smartart-color-scheme'
 					aria-label={t('pptx.smartart.colorScheme')}
@@ -63,7 +64,7 @@ export function SmartArtStyleControls({
 							{schemaLabel(SMARTART_COLOR_SCHEME_LABEL_KEYS, cs, translate)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			<label className='flex flex-col gap-1 text-[11px]'>

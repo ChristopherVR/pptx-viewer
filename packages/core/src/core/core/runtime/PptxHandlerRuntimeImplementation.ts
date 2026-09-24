@@ -109,6 +109,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.colorStyleCodec.extractGradientFillToRect(gradFill),
 			resolveCellImagePath: (rEmbed, rLink, slidePath) =>
 				this.resolveTableCellImagePath(rEmbed, rLink, slidePath),
+			resolveDefaultCellFontSize: (slidePath) => this.resolveTableCellDefaultFontSize(slidePath),
 		});
 		this.mediaDataParser = new PptxMediaDataParser({
 			slideRelsMap: this.slideRelsMap,

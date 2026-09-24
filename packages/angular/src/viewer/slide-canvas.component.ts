@@ -34,6 +34,7 @@ import type {
 	InlineListController,
 	InlineListSeed,
 	InlineTextEditSnapshot,
+	InlineTextFormatProperty,
 	CanvasSize,
 	ConnectorEndpointKind,
 	ElementInteraction,
@@ -55,6 +56,7 @@ import {
 	getConnectorEndpointHandles,
 	getResizeHandleHitAreaStyle,
 	isTemplateElement,
+	mapInlineTextFormatKey,
 	resolveConnectorEndpointUpdate,
 	withConnectorEndpointUpdate,
 	RULER_FONT_SIZE,
@@ -1011,14 +1013,12 @@ export class SlideCanvasComponent implements SlideContext {
 	onEditorKeydown(event: KeyboardEvent): void {
 		const editor = event.target as HTMLTextAreaElement;
 		// Inline formatting shortcuts (Ctrl/Cmd + B/I/U), matching React/Vue.
-		if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
-			const key = event.key.toLowerCase();
-			if (key === 'b' || key === 'i' || key === 'u') {
-				event.preventDefault();
-				event.stopPropagation();
-				this.emitTextFormat(key);
-				return;
-			}
+		const property = mapInlineTextFormatKey(event);
+		if (property) {
+			event.preventDefault();
+			event.stopPropagation();
+			this.emitTextFormat(property);
+			return;
 		}
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -1056,7 +1056,7 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 
 	/** Toggle bold/italic/underline for the element under inline edit. */
-	private emitTextFormat(key: 'b' | 'i' | 'u'): void {
+	private emitTextFormat(property: InlineTextFormatProperty): void {
 		const id = this.editingId();
 		const el = id ? this.allElements().find((e) => e.id === id) : undefined;
 		if (!id || !el) {
@@ -1064,13 +1064,7 @@ export class SlideCanvasComponent implements SlideContext {
 		}
 		const styled = el as { textSegments?: Array<{ style?: TextStyle }>; textStyle?: TextStyle };
 		const ts = styled.textSegments?.[0]?.style ?? styled.textStyle;
-		const updates: Partial<TextStyle> =
-			key === 'b'
-				? { bold: !ts?.bold }
-				: key === 'i'
-					? { italic: !ts?.italic }
-					: { underline: !ts?.underline };
-		this.textFormat.emit({ id, updates });
+		this.textFormat.emit({ id, updates: { [property]: !ts?.[property] } });
 	}
 
 	/** Mirror each keystroke out for the collaboration live preview. */

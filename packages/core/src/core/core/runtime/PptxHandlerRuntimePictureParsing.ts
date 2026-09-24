@@ -105,6 +105,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					| undefined;
 				const mediaAltText = String(mediaCNvPr?.['@_descr'] || '').trim() || undefined;
 				const mediaTitle = String(mediaCNvPr?.['@_title'] || '').trim() || undefined;
+				// `a:hlinkClick`/`a:hlinkHover` on the SAME `p:cNvPr`, most commonly
+				// `action="ppaction://media"` ("Play"/"Pause" from Insert > Action):
+				// COM-verified (`ActionSettings(1).Action` reports 12, `ppActionPlay`)
+				// against a media picture whose click action was silently dropped on
+				// load, so the editor never knew the shape had one and the save
+				// writer (which resolves the right `p:cNvPr` from the markup; see
+				// `PptxHandlerRuntimeElementActions.ts`) had nothing to re-emit.
+				const mediaSlideRels = this.slideRelsMap.get(slidePath);
+				const { actionClick: mediaActionClick, actionHover: mediaActionHover } =
+					this.parseElementActions(mediaCNvPr, mediaSlideRels, this.orderedSlidePaths);
 				this.compatibilityService.inspectMediaReferenceCompatibility(
 					mediaReference.kind,
 					slidePath,
@@ -206,6 +216,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					posterFrameData,
 					...(mediaAltText !== undefined ? { altText: mediaAltText } : {}),
 					...(mediaTitle !== undefined ? { title: mediaTitle } : {}),
+					...(mediaActionClick !== undefined ? { actionClick: mediaActionClick } : {}),
+					...(mediaActionHover !== undefined ? { actionHover: mediaActionHover } : {}),
 					...this.readImageCropFromBlipFill(posterBlipFill),
 					// Real PowerPoint media is `p:pic`-shaped even though the
 					// `media` type buckets as `p:graphicFrame`, so its locks live

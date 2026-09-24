@@ -40,14 +40,14 @@ function onNumber(e: Event): number {
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showType') }}</span>
 			<!-- Nested in its `<label>`, so without this its accessible label would
 			     be the caption plus every option: see `SlideTransitionPanel.vue`. -->
-			<select
-				class="w-28 rounded border border-border bg-muted px-2 py-1 text-xs"
+			<pptx-ui-select
+				class="w-28 max-md:min-h-[44px]!"
 				:aria-label="t('pptx.presentationSettings.showType')"
 				:disabled="!props.canEdit"
 				:value="props.presentationProperties.showType ?? 'presented'"
 				@change="
 					emit('update', {
-						showType: ($event.target as HTMLSelectElement).value as
+						showType: ($event.target as HTMLElement & { value: string }).value as
 							'presented' | 'browsed' | 'kiosk',
 					})
 				"
@@ -55,52 +55,64 @@ function onNumber(e: Event): number {
 				<option value="presented">{{ t('pptx.presentationSettings.showTypePresented') }}</option>
 				<option value="browsed">{{ t('pptx.presentationSettings.showTypeBrowsed') }}</option>
 				<option value="kiosk">{{ t('pptx.presentationSettings.showTypeKiosk') }}</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{
 				t('pptx.presentationSettings.loopContinuously')
 			}}</span>
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
+				:aria-label="t('pptx.presentationSettings.loopContinuously')"
 				:disabled="!props.canEdit"
 				:checked="Boolean(props.presentationProperties.loopContinuously)"
-				@change="emit('update', { loopContinuously: ($event.target as HTMLInputElement).checked })"
+				@change="
+					emit('update', {
+						loopContinuously: ($event.target as HTMLElement & { checked: boolean }).checked,
+					})
+				"
 			/>
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showNarration') }}</span>
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
+				:aria-label="t('pptx.presentationSettings.showNarration')"
 				:disabled="!props.canEdit"
 				:checked="props.presentationProperties.showWithNarration !== false"
-				@change="emit('update', { showWithNarration: ($event.target as HTMLInputElement).checked })"
+				@change="
+					emit('update', {
+						showWithNarration: ($event.target as HTMLElement & { checked: boolean }).checked,
+					})
+				"
 			/>
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showAnimation') }}</span>
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
+				:aria-label="t('pptx.presentationSettings.showAnimation')"
 				:disabled="!props.canEdit"
 				:checked="props.presentationProperties.showWithAnimation !== false"
-				@change="emit('update', { showWithAnimation: ($event.target as HTMLInputElement).checked })"
+				@change="
+					emit('update', {
+						showWithAnimation: ($event.target as HTMLElement & { checked: boolean }).checked,
+					})
+				"
 			/>
 		</label>
 
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.frameSlides') }}</span>
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
+				:aria-label="t('pptx.presentationSettings.frameSlides')"
 				:disabled="!props.canEdit"
 				:checked="printPropertiesFrameSlides(props.presentationProperties.printProperties)"
 				@change="
 					emit('update', {
 						printProperties: withFrameSlides(
 							props.presentationProperties.printProperties,
-							($event.target as HTMLInputElement).checked,
+							($event.target as HTMLElement & { checked: boolean }).checked,
 						),
 					})
 				"

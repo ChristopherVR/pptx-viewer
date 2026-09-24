@@ -2,7 +2,7 @@ import type { PptxElement, PptxElementWithText, TextSegment, TextStyle } from 'p
 import { hasTextProperties, getSubstituteFontFamily } from 'pptx-viewer-core';
 import type { EnvelopeGlyphPlacement, EnvelopeSegmentInput } from 'pptx-viewer-shared';
 import {
-	buildGlyphEnvelope,
+	buildGlyphEnvelopeBlock,
 	groupIntoParagraphs as sharedGroupIntoParagraphs,
 	hasGlyphEnvelope,
 } from 'pptx-viewer-shared';
@@ -11,8 +11,8 @@ import {
  *
  * Uses path generators from `warp-path-generators.ts` to render warped
  * text along SVG paths for presets that require it. Envelope presets
- * (inflate/deflate/can, see `hasGlyphEnvelope`) instead render one `<text>`
- * per glyph via `buildGlyphEnvelope`, so glyph HEIGHT varies between the
+ * (inflate/deflate/can, see `hasGlyphEnvelope`) instead render one element
+ * per glyph via `buildGlyphEnvelopeBlock`, so glyph HEIGHT varies between the
  * preset's top and bottom curves the way PowerPoint's own text warp does;
  * `<textPath>` can only bend a shared baseline, never per-glyph height.
  */
@@ -43,7 +43,12 @@ function groupIntoParagraphs(
 		fieldContext
 			? (seg) => {
 					if (seg.fieldType) {
-						const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
+						const substituted = substituteFieldText(
+							seg.text,
+							seg.fieldType,
+							fieldContext,
+							seg.style?.language,
+						);
 						if (substituted !== seg.text) {
 							return { ...seg, text: substituted };
 						}
@@ -126,7 +131,7 @@ function resolveSegmentFont(
  * Render one glyph. Most glyphs have no `slices` (a single affine already
  * fits them within tolerance): one `<text transform>`, unchanged from before
  * per-glyph slicing existed. A glyph on a strongly-curved envelope wide
- * enough to need it (see `chooseGlyphSliceCount` in `pptx-viewer-shared`)
+ * enough to need it (see `fitGlyphEnvelopeAffine` in `pptx-viewer-shared`)
  * instead renders `slices.length` copies of the SAME glyph, each clipped to
  * its own x-band and carrying its own affine, so the pieces tile across the
  * glyph the way PowerPoint's per-point outline warp would.
@@ -274,14 +279,28 @@ export function WarpedText({
 		: DEFAULT_FONT_FAMILY;
 	const baseFill = normalizeHexColor(textEl.textStyle?.color, fallbackColor);
 
-	// Envelope presets (inflate/deflate/can) get a true per-glyph height warp
-	// instead of a shared-baseline `<textPath>`. Every paragraph renders this
-	// way: paragraph `i` of `lineCount` occupies the `[i/lineCount,
-	// (i+1)/lineCount]` vertical slice of the envelope curve's local band (see
-	// `buildGlyphEnvelope` in pptx-viewer-shared), so a multi-paragraph block
-	// bends within the same overall envelope shape instead of falling back to
-	// a shared-baseline `<textPath>` per line.
+	// Envelope presets (inflate/deflate/can) are laid out as ONE block and
+	// warped by a single PowerPoint-derived mapping (see
+	// `buildGlyphEnvelopeBlock` in pptx-viewer-shared), so glyph HEIGHT varies
+	// between the preset's top and bottom curves and a multi-paragraph block
+	// bends within the same overall envelope with its rows kept in order.
 	if (hasGlyphEnvelope(preset)) {
+		const perLine = buildGlyphEnvelopeBlock(
+			preset,
+			paragraphs.map((para) =>
+				para.segments.map((seg, i): EnvelopeSegmentInput => ({
+					text: seg.text,
+					font: resolveSegmentFont(seg, textEl),
+					segmentIndex: i,
+				})),
+			),
+			width,
+			height,
+			align,
+			warpAdj,
+			warpAdj2,
+			getGlyphOutline,
+		);
 		return (
 			<svg
 				width={width}
@@ -292,23 +311,7 @@ export function WarpedText({
 				aria-hidden='true'
 			>
 				{paragraphs.map((para, paraIdx) => {
-					const segsInput: EnvelopeSegmentInput[] = para.segments.map((seg, i) => ({
-						text: seg.text,
-						font: resolveSegmentFont(seg, textEl),
-						segmentIndex: i,
-					}));
-					const glyphs = buildGlyphEnvelope(
-						preset,
-						segsInput,
-						width,
-						height,
-						align,
-						warpAdj,
-						warpAdj2,
-						paraIdx,
-						lineCount,
-						getGlyphOutline,
-					);
+					const glyphs = perLine[paraIdx] ?? [];
 					return (
 						<EnvelopeLine
 							key={`envelope-line-${paraIdx}`}

@@ -5,7 +5,7 @@ import type {
 	EnvelopeSegmentInput,
 	WarpParagraph,
 } from 'pptx-viewer-shared';
-import { buildGlyphEnvelope, hasGlyphEnvelope } from 'pptx-viewer-shared';
+import { buildGlyphEnvelopeBlock, hasGlyphEnvelope } from 'pptx-viewer-shared';
 import type { ComputedRef } from 'vue';
 import { computed } from 'vue';
 
@@ -27,10 +27,9 @@ export interface EnvelopeGlyphLine {
  * Envelope presets render one `<text>` per glyph instead of a shared
  * `<textPath>` baseline, so glyph HEIGHT varies between the preset's top and
  * bottom curves the way PowerPoint's own text warp does. Every paragraph is
- * eligible: paragraph `i` of `n` occupies the `[i/n, (i+1)/n]` vertical slice
- * of the envelope curve's local band (see `buildGlyphEnvelope` in
- * pptx-viewer-shared), so a multi-paragraph block bends within the same
- * overall envelope instead of falling back to a shared-baseline `<textPath>`.
+ * laid out as ONE block and warped by a single mapping (see
+ * `buildGlyphEnvelopeBlock` in pptx-viewer-shared), so a multi-paragraph block
+ * bends within the same overall envelope and its rows keep their order.
  */
 export function useTextWarpEnvelope(options: {
 	textEl: ComputedRef<PptxElementWithText | null>;
@@ -81,25 +80,24 @@ export function useTextWarpEnvelope(options: {
 		// Read (never write) the tick so this computed re-runs once a catalogue
 		// webfont's outline bytes land (see glyph-outline-cache.ts).
 		void glyphOutlineFontsTick.value;
-		const lineCount = paragraphs.value.length;
+		const perLine = buildGlyphEnvelopeBlock(
+			preset.value as string,
+			paragraphs.value.map((paragraph) =>
+				paragraph.segments.map((seg, i): EnvelopeSegmentInput => ({
+					text: seg.text,
+					font: segmentFont(seg),
+					segmentIndex: i,
+				})),
+			),
+			width.value,
+			height.value,
+			textEl.value?.textStyle?.align,
+			warpAdj.value,
+			warpAdj2.value,
+			getGlyphOutline,
+		);
 		return paragraphs.value.map((paragraph, lineIndex) => {
-			const segs: EnvelopeSegmentInput[] = paragraph.segments.map((seg, i) => ({
-				text: seg.text,
-				font: segmentFont(seg),
-				segmentIndex: i,
-			}));
-			const glyphs = buildGlyphEnvelope(
-				preset.value as string,
-				segs,
-				width.value,
-				height.value,
-				textEl.value?.textStyle?.align,
-				warpAdj.value,
-				warpAdj2.value,
-				lineIndex,
-				lineCount,
-				getGlyphOutline,
-			);
+			const glyphs = perLine[lineIndex] ?? [];
 			return { lineIndex, glyphs, segments: paragraph.segments };
 		});
 	});

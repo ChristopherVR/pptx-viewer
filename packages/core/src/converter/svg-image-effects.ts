@@ -104,7 +104,12 @@ export function buildImageEffectsFilter(
 		const b = (effects.lum.bright ?? 0) / 100;
 		const c = 1 + (effects.lum.contrast ?? 0) / 100;
 		const slope = c;
-		const intercept = b + (1 - c) / 2;
+		// See packages/shared/src/render/image-effects.ts (the binding
+		// renderers' equivalent of this SVG-export filter) for how this was
+		// measured against real PowerPoint: brightness is added back scaled by
+		// half of (1 + the contrast slope), not added in full, or "Recolor:
+		// Washout" (bright 70%/contrast -70%) clips every input to white.
+		const intercept = (1 - c) / 2 + b * ((1 + c) / 2);
 		next(
 			'p5',
 			`<feComponentTransfer in="__IN__" result="__OUT__">` +

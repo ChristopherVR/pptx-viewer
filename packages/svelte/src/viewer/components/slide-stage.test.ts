@@ -7,11 +7,20 @@ import SlideStage from './SlideStage.svelte';
 /**
  * SlideStage tests: the interactive stage exposes the shared region/slide
  * accessibility hook, while non-interactive stages (thumbnail rail, presenter
- * previews) withhold the role WITHOUT aria-hiding the subtree. The regression
- * guarded here: a thumbnail stage was `aria-hidden="true"`, which stripped the
- * OLE action bar's Download link / Open button from the accessibility tree,
- * breaking `getByRole('button', { name: /open/i })` in `ole-and-ink.spec.ts`
- * (an aria-hidden subtree must not contain focusable controls either).
+ * previews) withhold the role WITHOUT aria-hiding the subtree (a still needs
+ * its text/images to stay in the accessibility tree even though it is not a
+ * "slide region"). Guards a real regression: a thumbnail stage was once
+ * `aria-hidden="true"`, which would strip ANY focusable content from the
+ * accessibility tree wholesale.
+ *
+ * The OLE action bar itself is a SEPARATE rule, not this file's concern
+ * (see `OleView.svelte`'s `showActions`): a slide thumbnail renders its
+ * whole element tree INSIDE the slides panel's own
+ * `<button aria-label="Go to slide N">`, so the action bar's Download
+ * link / Open button must not render there at all, interactive or not -
+ * nested interactive controls are invalid markup regardless of
+ * accessibility-tree visibility. `ole-and-ink.spec.ts` exercises those
+ * controls only on the interactive editable canvas.
  */
 
 const PDF_DATA_URL = 'data:application/pdf;base64,AAAA';
@@ -74,20 +83,25 @@ describe('slideStage', () => {
 		expect(stage?.getAttribute('aria-hidden')).toBeNull();
 	});
 
-	it('does not aria-hide a non-interactive (thumbnail) stage, keeping OLE actions accessible', () => {
+	it('does not aria-hide a non-interactive (thumbnail) stage', () => {
 		const target = mountStage(false);
 		const stage = target.querySelector<HTMLElement>('.pptx-svelte-stage');
 		expect(stage?.getAttribute('role')).toBeNull();
-		// The load-bearing part: no aria-hidden anywhere above the action bar,
-		// so the Download link and Open button stay in the accessibility tree.
 		expect(stage?.getAttribute('aria-hidden')).toBeNull();
+	});
 
-		const download = target.querySelector<HTMLAnchorElement>('a.pptx-svelte-ole-action');
-		expect(download?.getAttribute('download')).toBe('report.pdf');
-		const open = target.querySelector<HTMLButtonElement>('button.pptx-svelte-ole-action');
-		expect(open?.getAttribute('aria-label')).toBe('Open report.pdf');
-		expect(download?.closest('[aria-hidden="true"]')).toBeNull();
-		expect(open?.closest('[aria-hidden="true"]')).toBeNull();
+	it('renders no OLE action bar on a non-interactive (thumbnail) stage: nested-button prevention', () => {
+		// A slide thumbnail renders this whole tree INSIDE the slides panel's
+		// own `<button aria-label="Go to slide N">`, so the OLE action bar's
+		// Download link / Open button must not render here at all: nested
+		// interactive controls are invalid markup, not merely something to
+		// keep out of the accessibility tree. See `OleView.svelte`'s
+		// `showActions` (shared `oleActionsVisible`). The interactive editable
+		// canvas (`mountStage(true)`) is where `ole-and-ink.spec.ts` exercises
+		// these controls.
+		const target = mountStage(false);
+		expect(target.querySelector('a.pptx-svelte-ole-action')).toBeNull();
+		expect(target.querySelector('button.pptx-svelte-ole-action')).toBeNull();
 	});
 
 	/**

@@ -42,6 +42,14 @@ export interface InkStrokeViewInput {
 	tiltAngles?: number[];
 	/** Per-point pen-tilt lean strength (0 upright, 1 maximally leaned). */
 	tiltMagnitudes?: number[];
+	/**
+	 * Whether this stroke was drawn with the highlighter tool, when the source
+	 * data records an explicit tool (Draw-tab `InkPptxElement.inkTool`). Left
+	 * `undefined` for a loaded `p:contentPart` stroke, which carries no such
+	 * flag: {@link buildInkStrokeView} then falls back to the opacity heuristic
+	 * (see {@link HIGHLIGHTER_OPACITY_CEILING}).
+	 */
+	isHighlighter?: boolean;
 }
 
 /** One rendered stroke: a constant-width path, pressure circles, or tilt nib marks. */
@@ -59,6 +67,41 @@ export interface InkStrokeView {
 	 * existed.
 	 */
 	nibMarks: NibMark[] | null;
+	/**
+	 * CSS `mix-blend-mode` this stroke should paint with: `'multiply'` for a
+	 * highlighter-style stroke, so overlapping highlighter strokes darken
+	 * where they cross (and a highlighter stroke darkens whatever slide
+	 * content sits underneath it) the way a real highlighter pen does, instead
+	 * of plain alpha compositing. `'normal'` for every other stroke. A binding
+	 * applies this as an inline `mix-blend-mode` style on the stroke's own
+	 * `<path>`/`<g>` (not on the element's outer `<svg>`): setting it on the
+	 * container instead would blend the whole element's already-composited
+	 * output against the backdrop as one unit, so strokes sharing that
+	 * container would still alpha-composite (not multiply) against each
+	 * other.
+	 */
+	blendMode: 'normal' | 'multiply';
+}
+
+/**
+ * Opacity ceiling below which a stroke lacking an explicit
+ * {@link InkStrokeViewInput.isHighlighter} flag is still treated as one for
+ * blend-mode purposes.
+ *
+ * PowerPoint's highlighter pen is the only ink producer that writes a
+ * translucent stroke (InkML `transparency`, see `inkml-content-part.ts`'s
+ * `brushOpacity`); a plain pen stroke is always fully opaque. A loaded
+ * `p:contentPart` carries no explicit tool flag at all, so this is the only
+ * signal available for it. Kept just below 1 (rather than an exact `< 1`) so
+ * float round-trip noise from the InkML `transparency` decode never flips a
+ * stroke that is meant to read as fully opaque.
+ */
+const HIGHLIGHTER_OPACITY_CEILING = 0.98;
+
+/** Decide a stroke's `mix-blend-mode`: the explicit tool flag when given, else the opacity heuristic. */
+function resolveBlendMode(input: InkStrokeViewInput): 'normal' | 'multiply' {
+	const isHighlighter = input.isHighlighter ?? input.opacity < HIGHLIGHTER_OPACITY_CEILING;
+	return isHighlighter ? 'multiply' : 'normal';
 }
 
 /** Circle/nib sizing envelope shared by every stroke: 0.5px minimum, 1.5x the base width at full pressure/lean. */
@@ -85,7 +128,7 @@ function pointWidthsFor(input: InkStrokeViewInput): number[] {
 /** Decide a stroke's render mode: plain path, pressure circles, or tilt nib marks. */
 export function buildInkStrokeView(input: InkStrokeViewInput): InkStrokeView {
 	const { path, color, width, opacity, tiltAngles, tiltMagnitudes } = input;
-	const base = { d: path, color, width, opacity };
+	const base = { d: path, color, width, opacity, blendMode: resolveBlendMode(input) };
 
 	// Tilt-driven calligraphic nib rendering takes priority when the stroke
 	// declared tilt channels; it degrades to plain circles wherever tilt

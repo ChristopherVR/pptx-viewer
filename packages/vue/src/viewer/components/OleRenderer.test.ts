@@ -63,6 +63,8 @@ describe('oleRenderer', () => {
 					oleEmbeddedMimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
 				}),
 				zIndex: 0,
+				// The editable canvas: the only surface that shows the action bar.
+				interactive: true,
 			},
 		});
 		const anchor = wrapper.get('a[download]');
@@ -86,6 +88,7 @@ describe('oleRenderer', () => {
 					oleEmbeddedMimeType: 'application/pdf',
 				}),
 				zIndex: 0,
+				interactive: true,
 			},
 		});
 		expect(wrapper.get('a[download]').attributes('download')).toBe('spec.pdf');
@@ -99,6 +102,7 @@ describe('oleRenderer', () => {
 			props: {
 				element: ole({ oleEmbeddedData: data, fileName: 'budget.xlsx' }),
 				zIndex: 0,
+				interactive: true,
 			},
 		});
 		expect(wrapper.get('a[download]').attributes('download')).toBe('budget.xlsx');
@@ -157,12 +161,58 @@ describe('oleRenderer', () => {
 	it('stops pointer/click interactions on the action bar from bubbling', async () => {
 		const data = 'data:application/octet-stream;base64,QUJD';
 		const wrapper = mount(OleRenderer, {
-			props: { element: ole({ oleEmbeddedData: data }), zIndex: 0 },
+			props: { element: ole({ oleEmbeddedData: data }), zIndex: 0, interactive: true },
 		});
 		const bar = wrapper.get('.pptx-vue-ole-actions');
 		const event = new MouseEvent('pointerdown', { bubbles: true });
 		const stop = vi.spyOn(event, 'stopPropagation');
 		bar.element.dispatchEvent(event);
 		expect(stop).toHaveBeenCalledOnce();
+	});
+});
+
+describe('oleRenderer action bar visibility (nested-button prevention)', () => {
+	// A slide thumbnail (and the presenter console, transition ghosts, export
+	// rasters) renders this component INSIDE a
+	// `<button aria-label="Go to slide N">`. The action bar's own <button>/<a>
+	// must not render there: nested interactive controls are invalid markup,
+	// not merely an unwanted affordance. See the shared `oleActionsVisible`.
+	const embedded = {
+		oleEmbeddedData: 'data:application/pdf;base64,JVBE',
+		oleEmbeddedFileName: 'spec.pdf',
+		oleEmbeddedMimeType: 'application/pdf',
+		oleObjectType: 'pdf',
+	} as const;
+
+	it('hides the action bar on a static surface (interactive omitted, matching the thumbnail rail)', () => {
+		const wrapper = mount(OleRenderer, {
+			props: { element: ole(embedded), zIndex: 0 },
+		});
+		expect(wrapper.find('a[download]').exists()).toBeFalsy();
+		expect(wrapper.find('button').exists()).toBeFalsy();
+	});
+
+	it('hides the action bar when interactive is explicitly false', () => {
+		const wrapper = mount(OleRenderer, {
+			props: { element: ole(embedded), zIndex: 0, interactive: false },
+		});
+		expect(wrapper.find('a[download]').exists()).toBeFalsy();
+		expect(wrapper.find('button').exists()).toBeFalsy();
+	});
+
+	it('hides the action bar on the live presentation stage even if interactive is true', () => {
+		const wrapper = mount(OleRenderer, {
+			props: { element: ole(embedded), zIndex: 0, interactive: true, presenting: true },
+		});
+		expect(wrapper.find('a[download]').exists()).toBeFalsy();
+		expect(wrapper.find('button').exists()).toBeFalsy();
+	});
+
+	it('shows the action bar only on the interactive editable canvas', () => {
+		const wrapper = mount(OleRenderer, {
+			props: { element: ole(embedded), zIndex: 0, interactive: true, presenting: false },
+		});
+		expect(wrapper.find('a[download]').exists()).toBeTruthy();
+		expect(wrapper.get('button').text()).toBe('Open');
 	});
 });

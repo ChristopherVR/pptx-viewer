@@ -67,3 +67,33 @@ export function buildStyledGridline(
 		...(opacity !== undefined ? { opacity } : {}),
 	};
 }
+
+/**
+ * A vertical major/minor gridline spanning the full plot height at `x`.
+ * `buildStyledGridline`'s counterpart for a scatter/bubble chart's X value
+ * axis (`c:valAx/@axPos="b"`), which is a real numeric axis with its own
+ * `c:majorGridlines`, not the category axis every other cartesian kind draws.
+ */
+export function buildVerticalStyledGridline(
+	x: number,
+	layout: PlotLayout,
+	shape: PptxChartShapeProps | undefined,
+	fallbackColor: string,
+	fallbackWidth: number,
+	fallbackDash: string | undefined,
+	opacity: number | undefined,
+): SvgLine {
+	const style = chartLineStyle(shape, fallbackColor, fallbackWidth);
+	return {
+		kind: 'line',
+		x1: x,
+		y1: layout.plotTop,
+		x2: x,
+		y2: layout.plotBottom,
+		...style,
+		...((shape ? style.dashArray : fallbackDash)
+			? { dashArray: shape ? style.dashArray : fallbackDash }
+			: {}),
+		...(opacity !== undefined ? { opacity } : {}),
+	};
+}

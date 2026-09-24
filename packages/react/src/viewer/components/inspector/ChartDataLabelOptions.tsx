@@ -1,6 +1,7 @@
 import type { PptxChartDataLabelOptions, PptxChartStyle } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	CARD,
 	DATA_LABEL_CONTENT_OPTIONS,
@@ -45,7 +46,7 @@ export function ChartDataLabelOptions({
 			<div className='space-y-1.5'>
 				{DATA_LABEL_CONTENT_OPTIONS.map((opt) => (
 					<label key={opt.key} className='flex items-center gap-2 cursor-pointer'>
-						<input
+						<WebCheckbox
 							type='checkbox'
 							disabled={!canEdit}
 							checked={labels[opt.key] ?? false}
@@ -61,7 +62,7 @@ export function ChartDataLabelOptions({
 					<span className='w-16 text-muted-foreground shrink-0'>
 						{t('pptx.chart.labelPosition')}
 					</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.chart.labelPosition')}
 						disabled={!canEdit}
 						className={INPUT}
@@ -77,7 +78,7 @@ export function ChartDataLabelOptions({
 								{t(opt.labelKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			</div>
 		</div>

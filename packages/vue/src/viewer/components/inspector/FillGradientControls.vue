@@ -132,7 +132,7 @@ function onAddStop(): void {
 			<span class="pptx-vue-gradient-label text-muted-foreground">{{
 				t('pptx.gradient.type')
 			}}</span>
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.gradient.type')"
 				class="pptx-vue-gradient-select rounded border border-border bg-muted px-2 py-1"
 				:value="state.type"
@@ -140,7 +140,7 @@ function onAddStop(): void {
 			>
 				<option value="linear">{{ t('pptx.gradient.linear') }}</option>
 				<option value="radial">{{ t('pptx.gradient.radial') }}</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 
 		<label v-if="state.type === 'linear'" class="pptx-vue-gradient-field flex flex-col gap-1">

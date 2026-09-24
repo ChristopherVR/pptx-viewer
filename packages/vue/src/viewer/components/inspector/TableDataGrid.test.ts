@@ -3,6 +3,7 @@ import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-c
 import { describe, expect, it } from 'vitest';
 
 import TableDataGrid from './TableDataGrid.vue';
+import { setControlValue } from './test-control-value';
 
 function makeTableData(rows: number, cols: number): PptxTableData {
 	return {
@@ -68,7 +69,7 @@ describe('tableDataGrid', () => {
 	it('emits a tableData patch carrying the new cell text', async () => {
 		const wrapper = mountGrid(makeTableElement(2, 2));
 		const input = wrapper.findAll('input[type="text"]')[3];
-		await input.setValue('edited');
+		await setControlValue(input, 'edited');
 		const td = lastEmittedTableData(wrapper);
 		expect(td.rows[1].cells[1].text).toBe('edited');
 		// Untouched cells survive.

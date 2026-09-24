@@ -40,6 +40,9 @@ export function createFillSection(
 	handlers: InspectorHandlers,
 ): FillSection {
 	const el = section(t('pptx.shape.fillStroke'));
+	// Scroll target for the "Format Shape" element context-menu command; see
+	// `pptx-viewer-shared`'s `context-menu-inspector-anchor.ts`.
+	el.setAttribute('data-pptx-inspector-section', 'fill-stroke');
 
 	const fillRow = createEl(doc, 'div', 'pptxv-inspector-row');
 	const fill = makeColorControl(

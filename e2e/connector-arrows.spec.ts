@@ -33,6 +33,7 @@ import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
 import { inspector, resetTabSession } from './support/deck';
+import { chooseSelectValue, expectSelectValue } from './support/select-control';
 
 const FIXTURE = resolve(
 	fileURLToPath(new URL('./fixtures/connector-arrows.pptx', import.meta.url)),
@@ -110,22 +111,6 @@ function control(page: Page, caption: (typeof CONTROLS)[number]) {
 	return inspector(page).getByRole('combobox', { name: caption, exact: true });
 }
 
-/**
- * The same dropdown, addressed by LABEL text.
- *
- * This used to match nothing in any binding. Each wrapped its `<select>` inside
- * the `<label>` and left the naming to the wrapper, and Playwright's label
- * engine reads the label element's whole text content: with the options nested
- * inside it, the "label" of the Start Arrow picker was "Start Arrow None Arrow
- * Stealth Diamond Oval Triangle". The same defect once made a show-mode spec
- * match a transition picker (whose options include "Rotate") when it was
- * looking for a rotate handle. Every wrapped control now names itself, so an
- * exact label lookup resolves it, and a lookup for an OPTION word does not.
- */
-function controlByLabel(page: Page, caption: (typeof CONTROLS)[number]) {
-	return inspector(page).getByLabel(caption, { exact: true });
-}
-
 test.describe('connector arrowheads', () => {
 	test('a click on the line selects the connector', async ({ page }) => {
 		await loadFixture(page);
@@ -153,8 +138,8 @@ test.describe('connector arrowheads', () => {
 		await clickConnectorLine(page);
 
 		for (const caption of CONTROLS) {
-			// Resolvable by its caption alone...
-			await expect(controlByLabel(page, caption), caption).toHaveCount(1);
+			// The exposed combobox owns its caption rather than its option list.
+			await expect(control(page, caption), caption).toHaveAttribute('aria-label', caption);
 		}
 
 		// ...and NOT by the text of an option inside it. 'Stealth' is an arrowhead
@@ -169,10 +154,10 @@ test.describe('connector arrowheads', () => {
 		await clickConnectorLine(page);
 
 		// An absent arrowhead means no head; an absent `@w`/`@len` means medium.
-		await expect(control(page, 'Start Arrow')).toHaveValue('none');
-		await expect(control(page, 'End Arrow')).toHaveValue('none');
-		await expect(control(page, 'Start Width')).toHaveValue('med');
-		await expect(control(page, 'End Length')).toHaveValue('med');
+		await expectSelectValue(control(page, 'Start Arrow'), 'none');
+		await expectSelectValue(control(page, 'End Arrow'), 'none');
+		await expectSelectValue(control(page, 'Start Width'), 'med');
+		await expectSelectValue(control(page, 'End Length'), 'med');
 	});
 
 	test('each control writes its own property, and the connector repaints', async ({ page }) => {
@@ -182,15 +167,15 @@ test.describe('connector arrowheads', () => {
 		const before = await line.innerHTML();
 
 		for (const caption of CONTROLS) {
-			await control(page, caption).selectOption(PICKS[caption]);
+			await chooseSelectValue(page, control(page, caption), PICKS[caption]);
 			// Re-select: several bindings rebuild the card from the patched element.
-			await expect(control(page, caption)).toHaveValue(PICKS[caption]);
+			await expectSelectValue(control(page, caption), PICKS[caption]);
 		}
 
 		// Every control keeps its own value: a shared `shapeStyle` merge that
 		// dropped siblings would show up here and nowhere else.
 		for (const caption of CONTROLS) {
-			await expect(control(page, caption), caption).toHaveValue(PICKS[caption]);
+			await expectSelectValue(control(page, caption), PICKS[caption]);
 		}
 		expect(await line.innerHTML()).not.toBe(before);
 	});

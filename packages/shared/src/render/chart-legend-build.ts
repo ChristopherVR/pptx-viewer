@@ -6,13 +6,25 @@
  *
  * @module chart-legend-build
  */
-import type { PptxChartSeries } from 'pptx-viewer-core';
+import type { PptxChartSeries, PptxChartTrendlineType } from 'pptx-viewer-core';
 
 import { resolveLegendPlacement } from './chart-legend-placement';
-import { buildLineLegendSwatch } from './chart-legend-swatch';
+import { buildLineLegendSwatch, buildTrendlineLegendSwatch } from './chart-legend-swatch';
 import type { LegendSwatchKind } from './chart-legend-swatch';
+import { DEFAULT_TRENDLINE_DASH, DEFAULT_TRENDLINE_WIDTH } from './chart-trendline-defaults';
 import { seriesColor } from './chart-view-model-scale';
 import type { LegendEntry } from './chart-view-model-types';
+import { buildDashArray } from './connector-dash';
+
+/** Excel's own trendline-family legend prefix (`"Linear (Series1)"`, ...). */
+const TRENDLINE_LEGEND_PREFIX: Record<PptxChartTrendlineType, string> = {
+	linear: 'Linear',
+	exponential: 'Expon.',
+	logarithmic: 'Log.',
+	power: 'Power',
+	polynomial: 'Poly.',
+	movingAvg: 'Moving Average',
+};
 
 /**
  * Build the base legend entries + anchor position for a chart view model.
@@ -46,6 +58,30 @@ export function buildLegend(
 			label: s.name,
 			...(kind === 'line' ? { lineSwatch: buildLineLegendSwatch(s, color, i) } : {}),
 		};
+	});
+
+	// A trendline gets its own legend entry, right after its owning series
+	// (Excel/PowerPoint: `"Linear (Series1)"`, a dotted line sample). Trendlines
+	// are only ever legal on bar/line/area/scatter series, so this is a no-op
+	// for every other chart kind (`series.trendlines` is simply absent there).
+	series.forEach((s, i) => {
+		if (!s.trendlines || s.trendlines.length === 0) {
+			return;
+		}
+		const fallbackColor = seriesColor(s, i, colorPalette);
+		s.trendlines.forEach((tl) => {
+			const color = tl.color ?? fallbackColor;
+			const strokeWidth = tl.lineWidth ?? DEFAULT_TRENDLINE_WIDTH;
+			legend.push({
+				color,
+				label: tl.name ?? `${TRENDLINE_LEGEND_PREFIX[tl.trendlineType]} (${s.name})`,
+				lineSwatch: buildTrendlineLegendSwatch(
+					color,
+					strokeWidth,
+					buildDashArray(tl.lineDashStyle ?? DEFAULT_TRENDLINE_DASH, strokeWidth),
+				),
+			});
+		});
 	});
 
 	let legendX = svgWidth / 2,

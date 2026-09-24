@@ -63,6 +63,7 @@ import type {
 						[attr.fill]="asPath(prim).fill"
 						[attr.stroke]="asPath(prim).stroke ?? 'none'"
 						[attr.stroke-width]="asPath(prim).strokeWidth ?? 0"
+						[attr.stroke-dasharray]="asPath(prim).dashArray ?? null"
 						[attr.fill-opacity]="asPath(prim).opacity ?? 1"
 						[attr.data-chart-part]="partRole(prim)"
 						[attr.data-chart-series]="partSeries(prim)"

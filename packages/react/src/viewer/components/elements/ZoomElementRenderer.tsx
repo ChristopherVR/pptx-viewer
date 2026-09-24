@@ -1,5 +1,6 @@
 import type { ZoomPptxElement, PptxSlide } from 'pptx-viewer-core';
-import { buildSummaryZoomView } from 'pptx-viewer-shared';
+import { buildSummaryZoomView, resolveZoomNavigationTarget } from 'pptx-viewer-shared';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -14,7 +15,7 @@ export interface ZoomElementRendererProps {
 	/** Whether the viewer is in presentation mode (non-interactive editing). */
 	isPresentationMode?: boolean;
 	/** Callback fired when the zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** The index of the slide that contains this zoom element (for return navigation). */
 	sourceSlideIndex?: number;
 }
@@ -78,7 +79,15 @@ export function ZoomElementRenderer({
 						onClick={(event) => {
 							if (isPresentationMode && onZoomClick) {
 								event.stopPropagation();
-								onZoomClick(tile.targetSlideIndex, sourceSlideIndex ?? 0);
+								onZoomClick(
+									{
+										targetSlideIndex: tile.targetSlideIndex,
+										targetSectionId: tile.sectionId,
+										returnToParent: tile.returnToParent,
+										transitionDurationMs: tile.transitionDurationMs,
+									},
+									sourceSlideIndex ?? 0,
+								);
 							}
 						}}
 						onKeyDown={(event) => {
@@ -89,7 +98,15 @@ export function ZoomElementRenderer({
 							) {
 								event.preventDefault();
 								event.stopPropagation();
-								onZoomClick(tile.targetSlideIndex, sourceSlideIndex ?? 0);
+								onZoomClick(
+									{
+										targetSlideIndex: tile.targetSlideIndex,
+										targetSectionId: tile.sectionId,
+										returnToParent: tile.returnToParent,
+										transitionDurationMs: tile.transitionDurationMs,
+									},
+									sourceSlideIndex ?? 0,
+								);
 							}
 						}}
 					>
@@ -120,7 +137,10 @@ export function ZoomElementRenderer({
 			return;
 		}
 		e.stopPropagation();
-		onZoomClick(element.targetSlideIndex, sourceSlideIndex ?? 0);
+		const target = resolveZoomNavigationTarget(element);
+		if (target) {
+			onZoomClick(target, sourceSlideIndex ?? 0);
+		}
 	};
 
 	const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -130,7 +150,10 @@ export function ZoomElementRenderer({
 		if (e.key === 'Enter' || e.key === ' ') {
 			e.preventDefault();
 			e.stopPropagation();
-			onZoomClick(element.targetSlideIndex, sourceSlideIndex ?? 0);
+			const target = resolveZoomNavigationTarget(element);
+			if (target) {
+				onZoomClick(target, sourceSlideIndex ?? 0);
+			}
 		}
 	};
 

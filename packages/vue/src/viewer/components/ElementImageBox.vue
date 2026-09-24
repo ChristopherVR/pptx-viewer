@@ -24,6 +24,7 @@ import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
 import { useColorChangeImage } from '../composables/use-color-change-image';
 import type { ClrChangeEffect } from '../composables/use-color-change-image';
+import { useNativeImageSize } from '../composables/use-native-image-size';
 import ShapeEffectOverlay from './ShapeEffectOverlay.vue';
 
 const props = defineProps<{
@@ -89,13 +90,19 @@ const imageFitStyle = computed<CSSProperties>(
 const fillCounterTransform = computed<string | undefined>(() =>
 	getImageFillCounterTransform(props.element, Boolean(imageFitStyle.value.transform)),
 );
+const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 // `a:blipFill/a:tile`: a repeating TEXTURE, which an `<img>` cannot express, so
 // the picture paints as a repeating background layer instead. `undefined` for a
 // normal (untiled) picture, which keeps the `<img>` branch.
+//
+// `@sx`/`@sy` is a percentage of the picture's own NATIVE pixel size (ECMA-376
+// §20.1.8.58), not of this container, so `tileNativeSize` is probed (keyed on
+// the same resolved `imageSrc`) and passed through: `getImageTilingStyle`
+// falls back to the old container-relative percentage until it resolves.
+const tileNativeSize = useNativeImageSize(imageSrc);
 const tilingStyle = computed<CSSProperties | undefined>(
-	() => getImageTilingStyle(props.element) as CSSProperties | undefined,
+	() => getImageTilingStyle(props.element, tileNativeSize.value) as CSSProperties | undefined,
 );
-const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 const imageFx = computed(() => getComputedImageStyle(props.element));
 const colorWash = computed(() => {
 	const effects = (props.element as { imageEffects?: PptxImageEffects }).imageEffects;

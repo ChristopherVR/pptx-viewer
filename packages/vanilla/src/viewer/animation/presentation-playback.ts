@@ -1,12 +1,22 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import type { BuildRafHandle, ElementAnimationState, PlaybackContext } from 'pptx-viewer-shared';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import type {
+	BuildRafHandle,
+	ElementAnimationState,
+	PlaybackContext,
+	ZoomExcursion,
+	ZoomNavigationTarget,
+} from 'pptx-viewer-shared';
 import {
 	advanceMainSequence,
 	applySlideTransitionSound,
+	beginZoomExcursion,
+	buildZoomTransitionOverride,
 	clearPlaybackTimers,
 	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
+	resolveForwardSlideWithZoomReturn,
+	resolveMediaBookmarkTimesMs,
 	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
@@ -96,6 +106,26 @@ export interface PresentationPlayback {
 	replayCurrentSlide(doc: Document): void;
 	/** Sync playback + transitions after a stage (re)render. */
 	syncStage(params: SyncStageParams): void;
+	/**
+	 * Handle a Slide Zoom / Section Zoom / Summary Zoom tile click: arms an
+	 * excursion (when `returnToParent` is set) and a one-shot transition
+	 * override for the upcoming `syncStage` call, then returns the slide
+	 * index the caller should navigate to.
+	 */
+	navigateToZoomTarget(
+		target: ZoomNavigationTarget,
+		returnSlideIndex: number,
+		slides: readonly PptxSlide[],
+	): number;
+	/**
+	 * Consulted by a forward advance BEFORE it computes the natural next
+	 * slide: once the show reaches the end of a pending zoom excursion's
+	 * range, returns the slide index to jump back to (arming that jump's own
+	 * one-shot transition override) instead of continuing linearly through
+	 * the deck. `undefined` when there is no excursion to consume, so the
+	 * caller falls through to its normal show-order advance.
+	 */
+	consumeZoomReturnOnAdvance(currentSlideIndex: number): number | undefined;
 	/** Cancel any running transition/timers and forget all per-slide state. */
 	reset(): void;
 	/**
@@ -135,6 +165,17 @@ export function createPresentationPlayback(): PresentationPlayback {
 	let lastCanvasSize: { width: number; height: number } | undefined;
 	let lastThemeColorMap: Readonly<Record<string, string>> | undefined;
 	let lastPixelateMosaicAnimation: boolean | undefined;
+	/**
+	 * A pending "return to zoom" excursion armed by `navigateToZoomTarget`,
+	 * consumed by `consumeZoomReturnOnAdvance` once the show reaches the end
+	 * of the target's range. See `pptx-viewer-shared`'s `zoom-return-navigation`.
+	 */
+	let zoomExcursion: ZoomExcursion | undefined;
+	/**
+	 * A one-shot override for the transition the very next `syncStage` should
+	 * play, consumed there and cleared immediately after.
+	 */
+	let pendingTransitionOverride: PptxSlideTransition | undefined;
 
 	const interactiveIds = (): ReadonlySet<string> =>
 		controller?.interactiveTriggerShapeIds ?? new Set();
@@ -217,6 +258,7 @@ export function createPresentationPlayback(): PresentationPlayback {
 		clearTimers();
 		controller = null;
 		ctx.mediaTimeNodeElementIds = new Map();
+		ctx.mediaBookmarkTimesMs = new Map();
 		elementStates.clear();
 		currentStage = null;
 		previousStage = null;
@@ -236,6 +278,9 @@ export function createPresentationPlayback(): PresentationPlayback {
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
 		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
+		// Lets a `p:cond/@evt="onMediaBookmark"`-gated step gate on the REAL
+		// media element's playback position instead of never firing.
+		ctx.mediaBookmarkTimesMs = resolveMediaBookmarkTimesMs(slide.elements);
 		injectSlideKeyframes(doc, controller.keyframesCss);
 		commitStates(controller.computeStates());
 		seededCompleted = false;
@@ -292,6 +337,23 @@ export function createPresentationPlayback(): PresentationPlayback {
 			}
 		},
 
+		navigateToZoomTarget(target, returnSlideIndex, slides) {
+			zoomExcursion = beginZoomExcursion(target, returnSlideIndex, slides);
+			pendingTransitionOverride = buildZoomTransitionOverride(target.transitionDurationMs);
+			return target.targetSlideIndex;
+		},
+
+		consumeZoomReturnOnAdvance(currentSlideIndex) {
+			const excursion = zoomExcursion;
+			const step = resolveForwardSlideWithZoomReturn(currentSlideIndex, undefined, excursion);
+			if (step.returnedToZoom && step.nextSlideIndex !== undefined) {
+				zoomExcursion = step.excursion;
+				pendingTransitionOverride = buildZoomTransitionOverride(excursion?.transitionDurationMs);
+				return step.nextSlideIndex;
+			}
+			return undefined;
+		},
+
 		syncStage(params) {
 			// The old stage DOM is gone (rebuilt), so any in-flight transition
 			// overlay is orphaned.
@@ -311,6 +373,11 @@ export function createPresentationPlayback(): PresentationPlayback {
 				// looping on the shared singleton behind the editor.
 				if (wasPresenting && !params.presenting) {
 					stopAnimationSound();
+					// Leaving the show for ANY reason drops a pending "return to zoom"
+					// excursion: re-entering the show later should not silently jump
+					// back to wherever a stale zoom click was clicked from.
+					zoomExcursion = undefined;
+					pendingTransitionOverride = undefined;
 				}
 				wasPresenting = params.presenting;
 				return;
@@ -347,10 +414,16 @@ export function createPresentationPlayback(): PresentationPlayback {
 
 			// Play the incoming slide's transition when the slide changed mid-show
 			// (never on the initial enter; only with an outgoing snapshot to animate).
+			// A Slide Zoom / Section Zoom / Summary Zoom navigation's own
+			// `zmPr/@transitionDur` takes priority over either slide's own authored
+			// transition; it applies to this ONE jump only.
+			const override = pendingTransitionOverride;
+			pendingTransitionOverride = undefined;
 			// A backward step replays the LEAVING slide's transition in reverse
 			// (PowerPoint: a morph glides its shapes back to where they came from).
 			const goingBack = params.slideIndex < lastIndex;
-			const transition = goingBack ? outgoingSlide?.transition : params.slide.transition;
+			const transition =
+				override ?? (goingBack ? outgoingSlide?.transition : params.slide.transition);
 
 			// The sound action (`p:sndAc/p:stSnd`/`p:endSnd`) fires the instant the
 			// transition starts, independent of whether it also paints an overlay

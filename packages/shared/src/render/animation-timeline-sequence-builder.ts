@@ -180,6 +180,7 @@ export function buildSequenceGroups(
 				holdEndState: afterFields.holdEndState || undefined,
 				hideAfterEffect: afterFields.hideAfterEffect,
 				pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+				pendingDimOnNextClick: afterFields.pendingDimOnNextClick,
 				restart: anim.restart,
 				seqConcurrent: anim.seqConcurrent,
 				seqNextAction: anim.seqNextAction,

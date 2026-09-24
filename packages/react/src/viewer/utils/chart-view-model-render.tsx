@@ -106,6 +106,7 @@ function renderPrimitive(prim: SvgPrimitive, key: string): React.ReactNode {
 					fill={p.fill}
 					stroke={p.stroke ?? 'none'}
 					strokeWidth={p.strokeWidth ?? 0}
+					strokeDasharray={p.dashArray}
 					fillOpacity={p.opacity ?? 1}
 					{...partAttrs(p.part)}
 				>

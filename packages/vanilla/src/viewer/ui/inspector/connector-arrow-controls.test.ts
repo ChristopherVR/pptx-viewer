@@ -31,12 +31,12 @@ function mount(state: Partial<InspectorState> = {}) {
 		...state,
 	} as InspectorState);
 	const labels = Array.from(controls.el.querySelectorAll('label'));
-	const selectFor = (caption: string): HTMLSelectElement => {
+	const selectFor = (caption: string): HTMLElementTagNameMap['pptx-ui-select'] => {
 		const label = labels.find((candidate) => candidate.firstChild?.textContent === caption);
 		if (!label) {
 			throw new Error(`no select captioned "${caption}"`);
 		}
-		return label.querySelector('select')!;
+		return label.querySelector('pptx-ui-select')!;
 	};
 	return { controls, labels, selectFor, setShapeStyle };
 }
@@ -124,7 +124,7 @@ describe('connector arrow controls', () => {
 	// consulted it.
 	it('disables every dropdown when the connector locks noChangeArrowheads', () => {
 		const { labels } = mount({ arrowheadsChangeable: false });
-		const selects = labels.map((label) => label.querySelector('select')!);
+		const selects = labels.map((label) => label.querySelector('pptx-ui-select')!);
 		expect(selects).toHaveLength(6);
 		expect(selects.every((s) => s.disabled)).toBeTruthy();
 	});

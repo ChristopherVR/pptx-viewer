@@ -136,6 +136,7 @@ const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
 	'exit.33', // Leave -> flyOutBottom
 	'exit.34', // Basic Swivel -> fadeOut
 	'exit.35', // Beveled Departure -> fadeOut
+	'exit.30', // Float Out (msoAnimEffectFloat) -> fadeOut
 	'exit.42', // Float Out -> fadeOut
 	'exit.47', // Swivel Out -> fadeOut
 	'exit.50', // Sling Out -> flyOutBottom

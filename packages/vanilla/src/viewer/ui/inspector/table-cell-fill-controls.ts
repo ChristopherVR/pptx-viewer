@@ -2,6 +2,7 @@ import type { PptxTableCellStyle } from 'pptx-viewer-core';
 import { FILL_PATTERN_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createInspectorSelect } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -55,7 +56,7 @@ export function createTableCellFillControls(
 	): HTMLSelectElement => {
 		const wrapper = doc.createElement('label');
 		wrapper.textContent = label;
-		const input = doc.createElement('select');
+		const input = createInspectorSelect(doc);
 		// Named explicitly: the wrapping `<label>` would otherwise lend the select
 		// its whole text content, which includes every option.
 		input.setAttribute('aria-label', label);
@@ -138,7 +139,9 @@ export function createTableCellFillControls(
 	for (const input of [edge, edgeColor, edgeWidth]) {
 		input.addEventListener('change', updateEdge);
 	}
-	const all = el.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input,select');
+	const all = el.querySelectorAll<HTMLInputElement | HTMLSelectElement>(
+		'input,pptx-ui-select,pptx-ui-checkbox',
+	);
 
 	return {
 		el,

@@ -69,7 +69,7 @@ export function createSmartArtSection(
 		})),
 		onChange: handlers.setSmartArtColorScheme,
 	});
-	const select = colorScheme.el.querySelector('select');
+	const select = colorScheme.el.querySelector<HTMLElement>('pptx-ui-select');
 	if (select) {
 		select.dataset.testid = 'smartart-color-scheme';
 	}

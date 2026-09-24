@@ -4,6 +4,7 @@ import {
 	elementHitTargetStyle,
 	getGroupChildParentFill,
 	isHollowShapeElement,
+	isMediaFullscreenActive,
 	resolveElementAriaAttributes,
 	isElementRendered,
 	inlineElementPointerEvents,
@@ -234,7 +235,12 @@ export const ElementRenderer: React.FC<ElementRendererProps> = React.memo(
 
 		const isPresentationPassive = presenting === true;
 		const isFullscreenMedia =
-			el.type === 'media' && Boolean(el.fullScreen) && isPresentationPassive && isMediaPlaying;
+			el.type === 'media' &&
+			isMediaFullscreenActive({
+				fullScreen: el.fullScreen,
+				presenting: isPresentationPassive,
+				playing: isMediaPlaying,
+			});
 
 		// Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE)
 		// shape: a bigger, invisible, centred click/drag target, kept separate

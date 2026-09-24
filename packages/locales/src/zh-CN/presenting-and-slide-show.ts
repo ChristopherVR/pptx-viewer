@@ -160,6 +160,12 @@ export const translations = {
 	'pptx.transition.morphOption.byObject': '按对象',
 	'pptx.transition.morphOption.byWord': '按字词',
 	'pptx.transition.morphOption.byChar': '按字符',
+	'pptx.transition.pattern': '图案',
+	'pptx.transition.pattern.diamond': '菱形',
+	'pptx.transition.pattern.hexagon': '六边形',
+	'pptx.transition.pattern.strip': '条带',
+	'pptx.transition.pattern.rectangle': '矩形',
+	'pptx.transition.thruBlk': '经黑场过渡',
 	'pptx.keepAnnotations.title': '保留墨迹标注？',
 	'pptx.keepAnnotations.description':
 		'您在 {{slides}} 张幻灯片上添加了 {{count}} 条墨迹标注。要将其保留在幻灯片上，还是放弃？',

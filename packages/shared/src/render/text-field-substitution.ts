@@ -5,14 +5,24 @@
  * Pure string logic: resolves OOXML field runs (slide number, date/time,
  * header/footer, document properties, slide title) into their display text.
  * Extracted from the React `viewer/utils/text-field-substitution` module so
- * every binding substitutes identically.
+ * every binding substitutes identically. The locale-aware datetime engine
+ * lives in `text-field-datetime.ts`.
  */
+
+import { formatLocalizedDateTimeField, isEnglishLocale } from './text-field-datetime';
 
 /** Context for substituting field placeholders (slide number, date/time, header/footer, etc.). */
 export interface FieldSubstitutionContext {
 	slideNumber?: number;
 	dateTimeText?: string;
-	/** OOXML date-format pattern from header/footer settings (e.g. "M/d/yyyy"). */
+	/**
+	 * The deck's master date-field default TYPE (`a:fld/@type` on the slide
+	 * master's `dt` placeholder, e.g. "datetime2"; see `header-footer-parts.ts`).
+	 * This is a field TYPE, not a format pattern, and is used ONLY as a
+	 * fallback for a field authored with the generic, unnumbered `datetime`
+	 * type - a field that already names its own `datetime1`-`datetime13` type
+	 * always uses that type, never this one (see `substituteFieldText`).
+	 */
 	dateFormat?: string;
 	/** Footer text from PptxHeaderFooter settings. */
 	footerText?: string;
@@ -27,8 +37,11 @@ export interface FieldSubstitutionContext {
 }
 
 /**
- * Map OOXML predefined datetime field types (datetime1-datetime13) to format
- * patterns as defined in ISO/IEC 29500 §19.7.26.
+ * Map OOXML predefined datetime field types (datetime1-datetime13) to English
+ * format patterns as defined in ISO/IEC 29500 19.7.26. Used directly for an
+ * English locale (or no locale at all, the overwhelming common case); a
+ * non-English locale renders through `formatLocalizedDateTimeField` instead
+ * (see that module's doc comment for why the two diverge).
  */
 const DATETIME_TYPE_FORMATS: Record<string, string> = {
 	datetime1: 'M/d/yyyy',
@@ -46,6 +59,19 @@ const DATETIME_TYPE_FORMATS: Record<string, string> = {
 	datetime13: 'h:mm:ss a',
 };
 
+/** A locale's month names (index 0 = January), long or short form. */
+function monthNames(locale: string | undefined, style: 'long' | 'short'): string[] {
+	const formatter = new Intl.DateTimeFormat(locale ?? 'en-US', { month: style });
+	return Array.from({ length: 12 }, (_, month) => formatter.format(new Date(2000, month, 1)));
+}
+
+/** A locale's weekday names (index 0 = Sunday), long or short form. */
+function weekdayNames(locale: string | undefined, style: 'long' | 'short'): string[] {
+	const formatter = new Intl.DateTimeFormat(locale ?? 'en-US', { weekday: style });
+	// 2023-01-01 is a Sunday; offsetting by `day` walks Sun..Sat in order.
+	return Array.from({ length: 7 }, (_, day) => formatter.format(new Date(2023, 0, 1 + day)));
+}
+
 /**
  * Format a Date using a simple OOXML-style date/time pattern.
  *
@@ -53,24 +79,17 @@ const DATETIME_TYPE_FORMATS: Record<string, string> = {
  * MMMM, MMM, MM, M, dd, d, HH, H, hh, h, mm, ss, a (AM/PM).
  *
  * Token replacement is done largest-first so shorter tokens don't clobber
- * longer ones (e.g. M vs MM vs MMM vs MMMM).
+ * longer ones (e.g. M vs MM vs MMM vs MMMM). Month/weekday names come from
+ * `locale` (via `Intl`) rather than a hardcoded English array, so a caller
+ * that reaches this engine with a non-English locale (the `datetime`
+ * catch-all type, which `formatLocalizedDateTimeField` does not special-case)
+ * still gets translated names, only in the English field order.
  */
-function formatDateWithPattern(date: Date, pattern: string): string {
-	const months = [
-		'January',
-		'February',
-		'March',
-		'April',
-		'May',
-		'June',
-		'July',
-		'August',
-		'September',
-		'October',
-		'November',
-		'December',
-	];
-	const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+function formatDateWithPattern(date: Date, pattern: string, locale?: string): string {
+	const months = monthNames(locale, 'long');
+	const monthsShort = monthNames(locale, 'short');
+	const days = weekdayNames(locale, 'long');
+	const daysShort = weekdayNames(locale, 'short');
 	const pad = (n: number) => String(n).padStart(2, '0');
 	const h12 = (h: number) => (h === 0 ? 12 : h > 12 ? h - 12 : h);
 	const hours = date.getHours();
@@ -85,8 +104,8 @@ function formatDateWithPattern(date: Date, pattern: string): string {
 	result = result.replace(/MMMM/gu, months[date.getMonth()]);
 
 	// Three-char tokens
-	result = result.replace(/EEE/gu, days[date.getDay()].slice(0, 3));
-	result = result.replace(/MMM/gu, months[date.getMonth()].slice(0, 3));
+	result = result.replace(/EEE/gu, daysShort[date.getDay()]);
+	result = result.replace(/MMM/gu, monthsShort[date.getMonth()]);
 
 	// Two-char tokens
 	result = result.replace(/yy/gu, String(date.getFullYear()).slice(2));
@@ -113,44 +132,71 @@ function formatDateWithPattern(date: Date, pattern: string): string {
  * Resolve a formatted date string for a given field type.
  *
  * Resolution order:
- * 1. Explicit `dateFormat` from header/footer settings (the `@_dtFmt` attribute).
- * 2. Predefined format from the field type (`datetime1`-`datetime13`).
- * 3. Locale-aware fallback via `toLocaleDateString()`.
+ * 1. The field's own type (`fieldType`), when it is one of the predefined
+ *    `datetime1`-`datetime13` slugs - a non-English `locale` renders it
+ *    through the locale's own native convention; English (or no locale)
+ *    renders the literal pattern.
+ * 2. `dateFormat` (the deck's master date-field default TYPE) as a fallback,
+ *    for the generic, unnumbered `datetime` field type only.
+ * 3. A locale-aware fallback via `toLocaleDateString()`.
+ *
+ * `dateFormat` is a field TYPE (e.g. "datetime2"), never a raw format
+ * pattern: it must not override a field that already names its own
+ * `datetime1`-`datetime13` type, which is what made every date field on a
+ * deck with header/footer date settings render that literal type string
+ * ("datetime2") instead of a formatted date - the type string was being fed
+ * to the pattern engine as if it were itself a pattern.
  */
-export function resolveFieldDateText(fieldType: string, dateFormat?: string): string {
+export function resolveFieldDateText(
+	fieldType: string,
+	dateFormat?: string,
+	locale?: string,
+): string {
 	const now = new Date();
-	// Explicit format string from the PPTX header/footer settings
-	if (dateFormat) {
-		return formatDateWithPattern(now, dateFormat);
+	const ownType = fieldType.toLowerCase();
+	const effectiveType =
+		DATETIME_TYPE_FORMATS[ownType] !== undefined ? ownType : (dateFormat?.toLowerCase() ?? ownType);
+
+	if (!isEnglishLocale(locale)) {
+		const localized = formatLocalizedDateTimeField(effectiveType, now, locale as string);
+		if (localized !== undefined) {
+			return localized;
+		}
 	}
-	// Map known OOXML datetime field types to their predefined format
-	const knownFormat = DATETIME_TYPE_FORMATS[fieldType.toLowerCase()];
-	if (knownFormat) {
-		return formatDateWithPattern(now, knownFormat);
+	const pattern = DATETIME_TYPE_FORMATS[effectiveType];
+	if (pattern) {
+		return formatDateWithPattern(now, pattern, locale);
 	}
-	// Fallback: locale string
-	return now.toLocaleDateString();
+	return now.toLocaleDateString(locale);
 }
 
 /**
  * Apply field substitution to a text segment if it has a `fieldType`.
  * Returns the substituted text, or the original text if no substitution applies.
+ *
+ * @param runLocale The field run's own `a:fld/a:rPr@lang`, when the caller has
+ *   it (see `TextSegment.style.language`). Takes priority over `ctx.locale`
+ *   for every locale-sensitive substitution: a field's own authored language
+ *   is more specific than the deck-wide default.
  */
 export function substituteFieldText(
 	segmentText: string,
 	fieldType: string | undefined,
 	ctx?: FieldSubstitutionContext,
+	runLocale?: string,
 ): string {
 	if (!fieldType || !ctx) {
 		return segmentText;
 	}
 	const fl = fieldType.toLowerCase();
+	const locale = runLocale ?? ctx.locale;
 	if (fl === 'slidenum' && ctx.slideNumber !== undefined) {
 		return String(ctx.slideNumber);
 	}
 	if (fl.startsWith('datetime')) {
-		// Use format-aware date text (prefer explicit dateFormat, then field type mapping)
-		return resolveFieldDateText(fl, ctx.dateFormat);
+		// Use format-aware date text (the field's own type wins; `dateFormat`
+		// only fills in for the generic, unnumbered `datetime` type).
+		return resolveFieldDateText(fl, ctx.dateFormat, locale);
 	}
 	// Footer field -> resolve from header/footer settings
 	if (fl === 'footer' && ctx.footerText !== undefined) {
@@ -162,11 +208,11 @@ export function substituteFieldText(
 	}
 	// Current date -> system date formatted with locale
 	if (fl === 'currentdate') {
-		return new Date().toLocaleDateString(ctx.locale);
+		return new Date().toLocaleDateString(locale);
 	}
 	// Current time -> system time formatted with locale
 	if (fl === 'currenttime') {
-		return new Date().toLocaleTimeString(ctx.locale);
+		return new Date().toLocaleTimeString(locale);
 	}
 	// Slide title -> resolved from the first title placeholder on the slide
 	if (fl === 'slidetitle' && ctx.slideTitle !== undefined) {

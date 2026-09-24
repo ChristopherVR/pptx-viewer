@@ -1,5 +1,5 @@
 import type { PptxAction, PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
-import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot, ZoomNavigationTarget } from 'pptx-viewer-shared';
 
 import type { ShapeAdjustmentHandleDescriptor, TableCellEditorState } from '../../types';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
@@ -109,7 +109,7 @@ export interface ElementRendererProps {
 	/** All slides in the presentation (for zoom element thumbnails). */
 	allSlides?: readonly PptxSlide[];
 	/** Callback fired when a zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** Index of the slide that contains this element (for zoom return navigation). */
 	sourceSlideIndex?: number;
 	/** Context for text field placeholder substitution (slide number, header/footer, etc.). */

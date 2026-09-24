@@ -125,6 +125,16 @@ export interface TimelineStep {
 	 */
 	pendingHideOnNextClick?: boolean;
 	/**
+	 * The CSS `animation` shorthand for a pending `afterAnimation: "dimToColor"`
+	 * dim, when the dim has not fired yet. PowerPoint writes the dim as
+	 * `masterRel="nextClick"` and, COM-verified, it consumes a click of its own
+	 * rather than firing when the effect itself ends. `injectHideOnNextClickSteps`
+	 * consumes this during timeline construction to splice a synthetic step
+	 * carrying this CSS into the following click-group; it is left on the
+	 * original step afterward purely as informational metadata.
+	 */
+	pendingDimOnNextClick?: string;
+	/**
 	 * Restart behaviour from `p:cTn/@restart` (ST_TLTimeNodeRestartType,
 	 * ECMA-376 S19.5.27), forwarded from the source `PptxNativeAnimation`.
 	 * `TimelineEngine` reads this to decide whether a re-trigger of this same
@@ -133,6 +143,18 @@ export interface TimelineStep {
 	 * Absent means the OOXML default (`always`: no restriction).
 	 */
 	restart?: 'always' | 'whenNotActive' | 'never';
+	/**
+	 * True when this step's repeat is PowerPoint's "Repeat until next click":
+	 * an infinitely-repeating (`iterCount === Infinity`) effect whose
+	 * `p:endCondLst` resolves to `endsOnClick`/`onNext`
+	 * ({@link import('./animation-advanced-triggers').resolveAnimationEnd}),
+	 * or whose `restart` is `whenNotActive` (how this project's own editor
+	 * writes `repeatMode: "untilNextClick"`, see
+	 * `animation-write-node-effect.ts`). `TimelineEngine.advance()` reads this
+	 * to freeze the running CSS loop, in place, the next time the presentation
+	 * advances, rather than letting it repeat forever.
+	 */
+	endsOnNextClick?: boolean;
 	/**
 	 * `p:seq/@concurrent` of the innermost enclosing sequence, if any (ECMA-376
 	 * S19.5.60), forwarded from the source `PptxNativeAnimation`. Rolled up
@@ -185,6 +207,13 @@ export interface TimelineStep {
 	dependsOnShapeId?: string;
 	/** The event of the time-node/shape dependency above, when present. */
 	dependsOnEvent?: AnimationConditionEvent;
+	/**
+	 * When {@link dependsOnEvent} is `onMediaBookmark`, the bookmark name this
+	 * step waits on; {@link dependsOnShapeId} names the media element it
+	 * belongs to. See `animation-media-bookmark-gating`'s
+	 * `wireMediaBookmarkSteps`.
+	 */
+	dependsOnBookmarkName?: string;
 	/**
 	 * Discrete font-style / colour / size override this step's effect composes
 	 * via `p:set` siblings and/or a `style.fontsize`/boolean `p:anim` ramp (Bold

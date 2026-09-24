@@ -9,7 +9,7 @@ import type { EnvelopeGlyphPlacement } from 'pptx-viewer-shared';
  * tolerance): renders a bare `<text transform>`, unchanged from before
  * per-glyph slicing existed, so an ordinary caption pays no extra cost. A
  * glyph on a strongly-curved envelope wide enough to need it (see
- * `chooseGlyphSliceCount` in `pptx-viewer-shared`) instead renders
+ * `fitGlyphEnvelopeAffine` in `pptx-viewer-shared`) instead renders
  * `slices.length` copies of the SAME glyph, each clipped to its own x-band
  * and carrying its own affine, so the pieces tile across the glyph the way
  * PowerPoint's per-point outline warp would. Wrapped in a real `<g>` so a

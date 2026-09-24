@@ -159,6 +159,33 @@ describe('buildHorizontalBarViewModel', () => {
 		expect(plotLeft(long)).toBeGreaterThan(plotLeft(short));
 	});
 
+	it('matches the COM-verified bar-to-band ratio for a 3-series clustered chart (gapWidth=219, overlap=-27)', () => {
+		// Same COM-verified fixture as chart-cartesian-bars.test.ts (Office's own
+		// default 3-series clustered column chart), mirrored onto the horizontal
+		// (bar) direction: the bar is 17.6% of the category band.
+		const vm = buildHorizontalBarViewModel(
+			element(),
+			chartData({
+				barGapWidth: 219,
+				barOverlap: -27,
+				series: [
+					{ name: 'S1', values: [4.3, 2.5, 3.5, 4.5] },
+					{ name: 'S2', values: [2.4, 4.4, 1.8, 2.8] },
+					{ name: 'S3', values: [2, 2, 3, 5] },
+				],
+			}),
+			['A', 'B', 'C', 'D'],
+		);
+		const bars = rects(vm);
+		expect(bars).toHaveLength(12);
+		// The band per category is the y-distance between the first series' bar
+		// in consecutive categories (pointIndex 0 vs. pointIndex 1).
+		const firstOfCategory = (pointIndex: number) =>
+			bars.find((b) => b.part?.seriesIndex === 0 && b.part?.pointIndex === pointIndex);
+		const band = (firstOfCategory(1)?.y ?? 0) - (firstOfCategory(0)?.y ?? 0);
+		expect(bars[0].h / band).toBeCloseTo(0.176, 2);
+	});
+
 	it('is dispatched by the cartesian builder for barDirection "bar" only', () => {
 		const horizontal = buildCartesianViewModel(element(), chartData(), ['A', 'B', 'C'], 'bar');
 		const vertical = buildCartesianViewModel(

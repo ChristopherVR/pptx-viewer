@@ -134,6 +134,21 @@ export function writeShapeFill(
 		return;
 	}
 
+	if (requestedFillMode === 'image') {
+		// A shape whose fill is `<a:blipFill>` (a photo-filled rectangle/ellipse/
+		// custGeom, parsed by `parseShapeWithImageFill` as `type: 'picture'`, NOT
+		// a `<p:pic>`). `extractShapeStyle` marks this mode with a placeholder
+		// `fillColor: 'transparent'` (there is no single "fill colour" for an
+		// image fill), which the `fillColor === 'transparent'` check below would
+		// otherwise misread as an authored no-fill and overwrite with
+		// `<a:noFill/>`, destroying the blip/crop/tile/stretch the element
+		// carries. `applyImageProperties` (called before this, in
+		// `processSlideElement`) already updates that `<a:blipFill>` node in
+		// place for crop/effects edits, so the fill choice itself needs no
+		// write here: leave `spPr`'s existing `<a:blipFill>` untouched.
+		return;
+	}
+
 	if (requestedFillMode === 'none' || shapeStyle.fillColor === 'transparent') {
 		setFillChoice(spPr, 'a:noFill', {});
 		return;

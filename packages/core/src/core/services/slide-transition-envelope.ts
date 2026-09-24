@@ -12,6 +12,7 @@ import {
 	prismFamilyTypeOfNode,
 } from './p14-prism-family';
 import { P14_TRANSITION_TYPES } from './p14-transition-parser';
+import { P15_INVX_PRESETS } from './p15-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 import { PptxXmlLookupService } from './PptxXmlLookupService';
 
@@ -142,12 +143,20 @@ export function preservedP14ChildKey(
 /**
  * Key of a preserved direct `p15:prstTrans` child whose `@prst` matches
  * the given preset name, if present.
+ *
+ * Also requires `@invX` to agree with `direction` for the presets that carry
+ * one (see `P15_INVX_PRESETS`): otherwise a direction-only edit (the `@prst`
+ * is unchanged) matched the stale child and was kept verbatim, silently
+ * discarding the new direction because the caller only rebuilds the child
+ * when no preserved key is found.
  */
 export function preservedP15ChildKey(
 	node: XmlObject,
 	transitionType: string,
 	getXmlLocalName: (xmlKey: string) => string,
+	direction?: string,
 ): string | undefined {
+	const wantsInvX = P15_INVX_PRESETS.has(transitionType) && direction === 'r';
 	for (const [key, value] of Object.entries(node)) {
 		if (key.startsWith('@_') || getXmlLocalName(key) !== 'prstTrans') {
 			continue;
@@ -155,7 +164,12 @@ export function preservedP15ChildKey(
 		if (!value || typeof value !== 'object' || Array.isArray(value)) {
 			continue;
 		}
-		if (String((value as XmlObject)['@_prst'] || '').trim() === transitionType) {
+		const detail = value as XmlObject;
+		if (String(detail['@_prst'] || '').trim() !== transitionType) {
+			continue;
+		}
+		const hasInvX = String(detail['@_invX'] || '').trim() === '1';
+		if (hasInvX === wantsInvX) {
 			return key;
 		}
 	}

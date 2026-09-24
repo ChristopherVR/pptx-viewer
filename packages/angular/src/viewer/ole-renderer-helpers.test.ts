@@ -25,6 +25,7 @@ import {
 	getOleTypeLabel,
 	getPlaceholderStyle,
 	isBrowserOpenableMime,
+	oleActionsVisibleFor,
 	resolveOleType,
 } from './ole-renderer-helpers';
 import type { ResolvedOleType } from './ole-renderer-helpers';
@@ -558,5 +559,24 @@ describe('isBrowserOpenableMime', () => {
 	it('is case-insensitive and ignores charset parameters', () => {
 		expect(isBrowserOpenableMime('TEXT/Plain; charset=UTF-8')).toBeTruthy();
 		expect(isBrowserOpenableMime('Application/PDF')).toBeTruthy();
+	});
+});
+
+describe('oleActionsVisibleFor', () => {
+	// A slide thumbnail (and the presenter console, transition ghosts, export
+	// rasters) renders `OleRendererComponent` INSIDE a
+	// `<button aria-label="Go to slide N">`, so the action bar's own
+	// `<button>`/`<a>` must not render there: nested interactive controls are
+	// invalid, un-clickable markup, not merely an unwanted affordance.
+	it('is visible only on the interactive editable canvas', () => {
+		expect(oleActionsVisibleFor(true, false)).toBeTruthy();
+	});
+
+	it('is hidden on a static surface (thumbnail rail, presenter panes, export raster)', () => {
+		expect(oleActionsVisibleFor(false, false)).toBeFalsy();
+	});
+
+	it('is hidden on the live presentation stage even if interactive is somehow true', () => {
+		expect(oleActionsVisibleFor(true, true)).toBeFalsy();
 	});
 });

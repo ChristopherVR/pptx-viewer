@@ -17,6 +17,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { CanvasSize } from '../../types';
+import { WebSelect } from '../WebControls';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
 import { SlideSizeRescalePrompt } from './SlideSizeRescalePrompt';
 
@@ -103,7 +104,7 @@ export function SlideSizeCard({
 			<div className='space-y-1.5 text-[11px]'>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.slideSize.presets')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.slideSize.presets')}
 						data-pptx-slide-size-preset
 						disabled={presetDisabled}
@@ -121,12 +122,12 @@ export function SlideSizeCard({
 								{t(`pptx.slideSize.preset.${preset.labelKey}`)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.slideSize.orientation')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.slideSize.orientation')}
 						data-pptx-slide-size-orientation
 						disabled={presetDisabled}
@@ -136,7 +137,7 @@ export function SlideSizeCard({
 					>
 						<option value='landscape'>{t('pptx.slideSize.landscape')}</option>
 						<option value='portrait'>{t('pptx.slideSize.portrait')}</option>
-					</select>
+					</WebSelect>
 				</label>
 
 				<div className='grid grid-cols-2 gap-1.5'>

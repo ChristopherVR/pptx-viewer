@@ -55,6 +55,20 @@ describe('element styles (shared render helpers)', () => {
 		expect(style.height).toBe('1.25px');
 	});
 
+	it('sizes a table to its content, with the authored height only as a floor (tables-sbs/c5)', () => {
+		// PowerPoint always sizes a graphicFrame holding a table to the actual
+		// sum of its row heights: `a:tr/@h` is a minimum, not a fixed height, so
+		// a row whose text needs more room than that grows the table taller than
+		// its authored `a:ext/@cy`. Clipping to that authored height cut off
+		// however many trailing rows no longer fit.
+		const style = getContainerStyle(
+			{ ...base, type: 'table', width: 400, height: 120 } as PptxElement,
+			0,
+		);
+		expect(style.height).toBe('auto');
+		expect(style.minHeight).toBe('120px');
+	});
+
 	it('getElementHitTargetStyle centres a padded, auto-pointer-events target over a degenerate rule', () => {
 		expect(getElementHitTargetStyle({ ...base, type: 'shape' } as PptxElement)).toBeUndefined();
 		const style = getElementHitTargetStyle({

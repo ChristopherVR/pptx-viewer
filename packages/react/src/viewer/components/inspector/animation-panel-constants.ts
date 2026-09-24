@@ -4,7 +4,6 @@ import type {
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
 	PptxAnimationTimingCurve,
-	PptxAnimationTrigger,
 } from 'pptx-viewer-core';
 import type React from 'react';
 import { LuArrowDown, LuArrowLeft, LuArrowRight, LuArrowUp } from 'react-icons/lu';
@@ -49,17 +48,6 @@ export const EMPHASIS_PRESETS = ANIMATION_PRESET_OPTIONS.filter(
 // ==========================================================================
 // Option arrays
 // ==========================================================================
-
-export const TRIGGER_OPTIONS: ReadonlyArray<{
-	value: PptxAnimationTrigger;
-	labelKey: string;
-}> = [
-	{ value: 'onClick', labelKey: 'pptx.animation.trigger.onClick' },
-	{ value: 'onShapeClick', labelKey: 'pptx.animation.trigger.onShapeClick' },
-	{ value: 'onHover', labelKey: 'pptx.animation.trigger.onHover' },
-	{ value: 'afterPrevious', labelKey: 'pptx.animation.trigger.afterPrevious' },
-	{ value: 'withPrevious', labelKey: 'pptx.animation.trigger.withPrevious' },
-];
 
 export const TIMING_CURVE_OPTIONS: ReadonlyArray<{
 	value: PptxAnimationTimingCurve;
@@ -133,5 +121,8 @@ export const AFTER_ANIMATION_OPTIONS: ReadonlyArray<{
 	{ value: 'hideOnNextClick', labelKey: 'pptx.animation.afterAnimation.hideOnNextClick' },
 ];
 
-/** Presets that support direction picking (re-exported from shared). */
-export { DIRECTIONAL_PRESETS } from 'pptx-viewer-shared';
+/**
+ * Presets that support direction picking, and trigger options (both
+ * re-exported from shared; see the doc comments on `TRIGGER_OPTIONS` there).
+ */
+export { DIRECTIONAL_PRESETS, TRIGGER_OPTIONS } from 'pptx-viewer-shared';

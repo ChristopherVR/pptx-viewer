@@ -31,7 +31,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// pipeline below (it builds/mutates `this.zip`) rather than converting
 		// an already-produced .pptx. See `PptxHandlerRuntimeSaveLegacyPpt`.
 		if (options?.outputFormat === 'ppt') {
-			return this.saveAsLegacyPpt(slides, options);
+			return this.saveAsLegacyPpt(slides, options, () =>
+				this.save(slides, {
+					...options,
+					pptPassword: undefined,
+					outputFormat: 'pptx',
+					conformance: 'transitional',
+				}),
+			);
 		}
 		const effectiveConformance = this.resolveEffectiveConformance(options?.conformance);
 		const saveConstants = createPptxSaveConstants(effectiveConformance);

@@ -22,7 +22,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const transform = shapeProperties?.['a:xfrm'] as XmlObject | undefined;
 				const offset = transform?.['a:off'] as XmlObject | undefined;
 				const extent = transform?.['a:ext'] as XmlObject | undefined;
-				if (!sectionId || targetSlideIndex < 0 || !offset || !extent) {
+				if (!sectionId || targetSlideIndex < 0 || !properties || !offset || !extent) {
 					continue;
 				}
 				const image = await this.parseSummaryZoomPreview(properties, slidePath);
@@ -40,6 +40,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					offsetFactorY: this.optionalNumber(object['@_offsetFactorY']),
 					scaleFactorX: this.optionalNumber(object['@_scaleFactorX']),
 					scaleFactorY: this.optionalNumber(object['@_scaleFactorY']),
+					...this.parseZoomObjectProperties(properties),
 					...image,
 					rawXml: object,
 				});
@@ -66,6 +67,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				imageData: first.imageData,
 				summaryTargets: targets,
 				summaryLayout: zoom['psuz:fixedLayout'] !== undefined ? 'fixed' : 'grid',
+				// Mirrors the first tile's own zmPr attributes, same convention as
+				// targetSlideIndex/targetSectionId/imagePath above; each tile's own
+				// value (which is what playback actually reads) lives on
+				// `summaryTargets[i]`.
+				returnToParent: first.returnToParent,
+				transitionDurationMs: first.transitionDurationMs,
 				rawXml: zoom,
 			};
 			return result;

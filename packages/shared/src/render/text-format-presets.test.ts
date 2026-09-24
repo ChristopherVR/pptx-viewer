@@ -6,6 +6,7 @@ import {
 	COMMON_FONT_FAMILIES,
 	COMMON_FONT_SIZES,
 	LINE_SPACING_OPTIONS,
+	stepFontSizePt,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 } from './text-format-presets';
@@ -37,6 +38,33 @@ describe('font preset lists', () => {
 		expect(textFontSizePxToPt(64)).toBe(48);
 		expect(textFontSizePxToPt(48.1 * (96 / 72))).toBe(48.1);
 		expect(textFontSizePtToPx(10.5)).toBeCloseTo(14);
+	});
+});
+
+describe('stepFontSizePt', () => {
+	it('moves to the next larger rung on the ladder', () => {
+		expect(stepFontSizePt(11, 'increase')).toBe(12);
+		expect(stepFontSizePt(12, 'increase')).toBe(14);
+	});
+
+	it('moves to the next smaller rung on the ladder', () => {
+		expect(stepFontSizePt(14, 'decrease')).toBe(12);
+		expect(stepFontSizePt(12, 'decrease')).toBe(11);
+	});
+
+	it('rounds a size between two rungs to the nearest rung in the requested direction', () => {
+		expect(stepFontSizePt(13, 'increase')).toBe(14);
+		expect(stepFontSizePt(13, 'decrease')).toBe(12);
+	});
+
+	it('clamps at the top of the ladder instead of growing past it', () => {
+		expect(stepFontSizePt(96, 'increase')).toBe(96);
+		expect(stepFontSizePt(120, 'increase')).toBe(96);
+	});
+
+	it('clamps at the bottom of the ladder instead of shrinking past it', () => {
+		expect(stepFontSizePt(8, 'decrease')).toBe(8);
+		expect(stepFontSizePt(2, 'decrease')).toBe(8);
 	});
 });
 

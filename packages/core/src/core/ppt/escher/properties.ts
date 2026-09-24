@@ -20,6 +20,12 @@ export const OPT = {
 	fillColor: 385,
 	fillOpacity: 386,
 	fillBackColor: 387,
+	/**
+	 * `fillAngle`, a 16.16 fixed-point degrees value (same opid this writer's
+	 * `shape-props-writer.ts` calls `fillShadeType`; the numeric id, not the
+	 * name, is what round-trips).
+	 */
+	fillAngle: 393,
 	fNoFillHitTest: 447,
 	lineColor: 448,
 	lineOpacity: 449,

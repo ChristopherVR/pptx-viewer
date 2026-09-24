@@ -23,6 +23,8 @@ export interface StageInteractionsDeps {
 	flushInlineTextInput?: () => void;
 	onEditEquation?(id: string, omml: Record<string, unknown>): void;
 	onEyedropper?(color: string): void;
+	/** See `OpenInlineEditorOptions.onLiveFormatKey`; threaded straight through. */
+	onInlineLiveFormatKey?(event: KeyboardEvent): boolean;
 }
 
 export interface StageInteractions {

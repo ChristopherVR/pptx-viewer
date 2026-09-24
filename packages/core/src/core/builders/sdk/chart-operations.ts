@@ -255,6 +255,19 @@ export function setChartDataLabels(
 	const style = (element.chartData.style ??= {});
 	if (edit.show !== undefined) {
 		style.hasDataLabels = edit.show;
+		// A PowerPoint-authored chart carries an all-zero chart-level
+		// `c:dLbls`; switching labels on over it must also turn a content flag
+		// on, or the "shown" labels have nothing to say.
+		const labels = style.dataLabels;
+		const anyContent =
+			labels?.showValue === true ||
+			labels?.showCategory === true ||
+			labels?.showSeriesName === true ||
+			labels?.showPercent === true ||
+			labels?.showBubbleSize === true;
+		if (edit.show && labels !== undefined && !anyContent && edit.showValue === undefined) {
+			labels.showValue = true;
+		}
 	}
 	const contentKeys = [
 		'showValue',

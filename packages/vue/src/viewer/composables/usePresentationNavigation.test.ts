@@ -162,6 +162,46 @@ describe('usePresentationNavigation - loop continuously', () => {
 	});
 });
 
+describe('usePresentationNavigation - zoom navigation', () => {
+	it('navigates to the zoom target, applying its own transitionDur as an override', async () => {
+		const { nav } = setup({
+			slides: [
+				slide('s1'),
+				slide('s2'),
+				slide('s3', { transition: { type: 'morph', durationMs: 500 } }),
+			],
+		});
+		nav.navigateToZoomTarget({
+			targetSlideIndex: 2,
+			returnToParent: false,
+			transitionDurationMs: 400,
+		});
+		expect(nav.currentIndex.value).toBe(2);
+		await vi.waitFor(() => expect(nav.transitionState.value?.transition.type).toBe('zoom'));
+	});
+
+	it('arms an excursion and returns to the origin slide once next() passes the target', () => {
+		const { nav } = setup({
+			slides: [slide('s1'), slide('s2'), slide('s3'), slide('s4')],
+			startIndex: 0,
+		});
+		nav.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: true });
+		expect(nav.currentIndex.value).toBe(2);
+		nav.next();
+		expect(nav.currentIndex.value).toBe(0);
+	});
+
+	it('does not arm an excursion when returnToParent is false, so next() continues linearly', () => {
+		const { nav } = setup({
+			slides: [slide('s1'), slide('s2'), slide('s3'), slide('s4')],
+			startIndex: 0,
+		});
+		nav.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: false });
+		nav.next();
+		expect(nav.currentIndex.value).toBe(3);
+	});
+});
+
 describe('usePresentationNavigation transition direction', () => {
 	it('plays the entering slide transition on a forward step', async () => {
 		const { nav } = setup({

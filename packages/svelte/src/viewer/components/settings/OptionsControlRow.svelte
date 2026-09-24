@@ -56,14 +56,14 @@
 	{#if control.kind === 'toggle'}
 		<label class="toggle" style={touchStyle}>
 			<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
-			<input type="checkbox" checked={value === true} onchange={(event) => onchange(control.group, control.key, event.currentTarget.checked)} />
+			<pptx-ui-checkbox checked={value === true} aria-label={t(control.labelKey)} onchange={(event: Event) => onchange(control.group, control.key, (event.currentTarget as HTMLElement & { checked: boolean }).checked)}></pptx-ui-checkbox>
 		</label>
 	{:else}
 		<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
 		{#if control.kind === 'select'}
-			<select style={touchStyle} aria-label={t(control.labelKey)} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)}>
+			<pptx-ui-select style={touchStyle} aria-label={t(control.labelKey)} value={typeof value === 'string' ? value : ''} onchange={(event: Event) => onchange(control.group, control.key, (event.currentTarget as HTMLElement & { value: string }).value)}>
 				{#each control.choices as choice (choice.value)}<option value={choice.value}>{t(choice.labelKey)}</option>{/each}
-			</select>
+			</pptx-ui-select>
 		{:else if control.kind === 'number'}
 			<span class="number">
 				<input type="number" style={touchStyle} aria-label={t(control.labelKey)} min={control.min} max={control.max} step={control.step ?? 1} value={typeof value === 'number' ? value : control.min} onchange={commitNumber} />
@@ -81,9 +81,7 @@
 	.toggle { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; user-select: none; }
 	.label { display: inline-flex; align-items: center; color: var(--pptx-foreground, #e2e8f0); }
 	.label i { display: inline-flex; margin-left: 5px; color: color-mix(in srgb, var(--pptx-primary, #6366f1) 70%, transparent); font-style: normal; cursor: help; }
-	input[type='checkbox'] { width: 15px; height: 15px; flex: none; accent-color: var(--pptx-primary, #6366f1); }
-	select, .number input, .text { border: 1px solid var(--pptx-border, #3f3f52); border-radius: 5px; padding: 4px 7px; background: var(--pptx-background, #11111b); color: var(--pptx-foreground, #e2e8f0); font: inherit; font-size: 11px; }
-	select { max-width: 55%; }
+	.number input, .text { border: 1px solid var(--pptx-border, #3f3f52); border-radius: 5px; padding: 4px 7px; background: var(--pptx-background, #11111b); color: var(--pptx-foreground, #e2e8f0); font: inherit; font-size: 11px; }
 	.number { display: flex; align-items: center; gap: 6px; }
 	.number input { width: 74px; text-align: right; }
 	.number small { color: var(--pptx-muted-foreground, #94a3b8); font-size: 11px; }

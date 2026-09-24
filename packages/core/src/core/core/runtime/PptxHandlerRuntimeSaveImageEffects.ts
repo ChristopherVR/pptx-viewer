@@ -25,6 +25,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!blipFill) {
 			return;
 		}
+		// All four insets `undefined` means the crop was never read as an opinion
+		// at all (an empty `<a:srcRect/>` with no `l`/`t`/`r`/`b` attributes
+		// parses this way; see `readImageCropFromBlipFill`), as opposed to an
+		// explicitly-cleared crop, which the editor writes as defined zeros.
+		// Deleting the node in the "never had an opinion" case rewrote an
+		// untouched, unauthored `<a:srcRect/>` on every save with no edit
+		// involved (COM-authored decks emit this bare marker routinely).
+		const hasCropOpinion =
+			element.cropLeft !== undefined ||
+			element.cropTop !== undefined ||
+			element.cropRight !== undefined ||
+			element.cropBottom !== undefined;
+		if (!hasCropOpinion) {
+			return;
+		}
 		const srcRect = buildSrcRectXml(element);
 		if (!srcRect) {
 			delete blipFill['a:srcRect'];

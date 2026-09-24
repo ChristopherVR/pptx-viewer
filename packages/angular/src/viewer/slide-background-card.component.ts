@@ -12,7 +12,14 @@
  *
  * @module viewer/slide-background-card
  */
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxSlide } from 'pptx-viewer-core';
 
@@ -27,6 +34,7 @@ import { RecentColorsService } from './recent-colors.service';
 const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-slide-background-card',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -103,12 +111,11 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 				}
 
 				<label class="icard__row">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[checked]="hideBackgroundGraphics()"
 						[disabled]="!canEdit()"
 						(change)="onToggleHideBackgroundGraphics($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span class="icard__label">{{
 						'pptx.slideBackground.hideBackgroundGraphics' | translate
 					}}</span>

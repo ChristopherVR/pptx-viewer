@@ -7,6 +7,46 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.25.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.25.0) - 2026-09-24
+
+### Features
+
+- **shared:** Trace glyph outlines for exact wordart envelope warps (work in progress) (by @ChristopherVR) ([c91f1cf](https://github.com/ChristopherVR/pptx-viewer/commit/c91f1cf2e7c089acf79f706ba49f887179a97499))
+- **shared:** Add media fullScrn full-slide overlay decision function (by @ChristopherVR) ([8ae8ee1](https://github.com/ChristopherVR/pptx-viewer/commit/8ae8ee150518d89cb5328d98b775eb49983214a2))
+- **react:** Drive fullScrn overlay from the shared media-fullscreen trigger (by @ChristopherVR) ([37a9791](https://github.com/ChristopherVR/pptx-viewer/commit/37a9791f9a599000dba57709f631b41eb8c4bace))
+- **core:** Parse zoom return-to-parent and transition duration (work in progress) (by @ChristopherVR) ([5b0c9fb](https://github.com/ChristopherVR/pptx-viewer/commit/5b0c9fbf5bab3b599101b63f7782ebe88411cf79))
+- **react:** Wire PowerPoint editor shortcuts via the shared keymap (by @ChristopherVR) ([978970a](https://github.com/ChristopherVR/pptx-viewer/commit/978970a7ef2cf061ae2553dec84b4f0e14b206a9))
+- **core:** Model onMediaBookmark triggers and fire them on playback (by @ChristopherVR) ([b153932](https://github.com/ChristopherVR/pptx-viewer/commit/b1539323ae4c063abe869f97c310506161973b10))
+
+### Bug Fixes
+
+- **core:** Stop showing chart data labels PowerPoint hides (work in progress) (by @ChristopherVR) ([a8de727](https://github.com/ChristopherVR/pptx-viewer/commit/a8de727868334f822a032b5c11370199dafd6020))
+- **react:** Apply highlighter mix-blend-mode per stroke, not per element (by @ChristopherVR) ([21d6d1e](https://github.com/ChristopherVR/pptx-viewer/commit/21d6d1e89b5c1dacd83d66d5f998f4ff7fd2b5ac))
+- **shared:** Scale tiled picture fills from the image's native size (work in progress) (by @ChristopherVR) ([92375c4](https://github.com/ChristopherVR/pptx-viewer/commit/92375c470c9c3995f48afc2f22871ffa9609c76c))
+- **core:** Size table cell text from the master other-text style (work in progress) (by @ChristopherVR) ([481c564](https://github.com/ChristopherVR/pptx-viewer/commit/481c5645a5a0e3f930899217308177bea36a5bfa))
+- **shared:** Render real dates for datetime fields, not the field type (by @ChristopherVR) ([f3653c2](https://github.com/ChristopherVR/pptx-viewer/commit/f3653c2665b0675ad4a50bfee5dc2e8eae7ba3af))
+- **shared:** Apply theme per-script fonts over a run's cascaded font (by @ChristopherVR) ([0a00208](https://github.com/ChristopherVR/pptx-viewer/commit/0a00208cc553eb91b2f96292b1690fdb252f743d))
+- **shared:** Stop clipping a table whose rows auto-grow past its frame (by @ChristopherVR) ([ad4ebb2](https://github.com/ChristopherVR/pptx-viewer/commit/ad4ebb2e91bd9c4c4adfe5c2bcc6fc9aa1aa3d9c))
+- **shared:** Correct trendline math, formatting and legend (by @ChristopherVR) ([91cc3c8](https://github.com/ChristopherVR/pptx-viewer/commit/91cc3c8a4c2008726f03f598984133882736f643))
+- **shared:** Honour numCol column-fill, @anchor and @rtlCol (by @ChristopherVR) ([f380f53](https://github.com/ChristopherVR/pptx-viewer/commit/f380f531f976c3769db27d45181c9aff1173e6e3))
+- **shared:** Centre anchorCtr as one shared box, not per-paragraph (by @ChristopherVR) ([5982d91](https://github.com/ChristopherVR/pptx-viewer/commit/5982d917abb062676596ac6976b7df9b70b26222))
+- **angular,core,shared:** Finish View > Normal and zoom field wiring after rebase (by @ChristopherVR) ([df6bddf](https://github.com/ChristopherVR/pptx-viewer/commit/df6bddf25bcde10b0153ffb3f0bd33491b065291))
+
+## [2.24.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.24.0) - 2026-09-24
+
+### Features
+
+- **react:** Replace per-kind 3D chart/SmartArt wrappers with <pptx-three-view> (by @ChristopherVR) ([7abc7f3](https://github.com/ChristopherVR/pptx-viewer/commit/7abc7f326223b064bc902933bdeaa8aa17802175))
+- **shared:** Use web components for search, select, and checkbox controls ([#352](https://github.com/ChristopherVR/pptx-viewer/issues/352)) (by @yunfeizhu) ([e09b47a](https://github.com/ChristopherVR/pptx-viewer/commit/e09b47a6e7c94e170d4fe9c87774d11619da776d))
+
+### Refactor
+
+- **shared:** Remove the pre-element SmartArt scene runtime (by @claude) ([a2bd6c1](https://github.com/ChristopherVR/pptx-viewer/commit/a2bd6c18beba4ad8e3769a71e04f3cb08fee3d99))
+
+### Testing
+
+- **react:** Give the surface 3D gating fixture a c:view3D (by @ChristopherVR) ([f559b0d](https://github.com/ChristopherVR/pptx-viewer/commit/f559b0decbf7761b4bf22a736ff2e775571b2bfa))
+
 ## [2.23.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.6) - 2026-09-23
 
 ### Bug Fixes

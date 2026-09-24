@@ -28,7 +28,11 @@
 	 * frame, which reads exactly like "the video never started".
 	 */
 	import {
+		MEDIA_FULLSCREEN_OVERLAY_STYLE,
+		ONLINE_VIDEO_IFRAME_ALLOW,
+		ONLINE_VIDEO_IFRAME_SANDBOX,
 		applyMediaPlaybackAttributes,
+		isMediaFullscreenActive,
 		mediaFallbackIcon,
 		mediaFallbackLabelKey,
 		mediaFallbackVisual,
@@ -37,6 +41,7 @@
 		mediaTransportVisible,
 		scheduleMediaTrimAndFade,
 		shouldRenderHitTarget,
+		shouldShowMediaFullscreenStopButton,
 		startMediaAutoplay,
 	} from 'pptx-viewer-shared';
 
@@ -61,7 +66,29 @@
 
 	const media = $derived(element.type === 'media' ? element : undefined);
 	const view = $derived(media ? resolveMediaView(media, mediaDataUrls) : undefined);
-	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+
+	/**
+	 * `fullScrn` full-slide playback overlay (issue wave item 10): the shared
+	 * trigger + style live in `pptx-viewer-shared` (`media-fullscreen.ts`); this
+	 * component only tracks the mounted node's native play/pause state
+	 * (mirrors Vue's `useMediaFullscreen` / Angular's `fullscreenActive`).
+	 */
+	let isPlaying = $state(false);
+	const fullscreenInput = $derived({
+		fullScreen: media?.fullScreen,
+		presenting,
+		playing: isPlaying,
+	});
+	const fullscreenActive = $derived(isMediaFullscreenActive(fullscreenInput));
+	const showFullscreenStop = $derived(shouldShowMediaFullscreenStopButton(fullscreenInput));
+
+	const containerStyle = $derived(
+		styleToString(
+			fullscreenActive
+				? { ...getContainerStyle(element, zIndex), ...MEDIA_FULLSCREEN_OVERLAY_STYLE }
+				: getContainerStyle(element, zIndex),
+		),
+	);
 	const trimStartMs = $derived(media?.trimStartMs);
 	// `loop` is a real attribute, so it binds declaratively; `volume` and
 	// `playbackRate` are IDL properties with no attribute form and have to be
@@ -142,6 +169,39 @@
 			el.pause();
 		}
 	});
+
+	// Tracks native play/pause/ended so `fullscreenActive` reflects PowerPoint's
+	// own rule: the full-slide layout appears once the clip actually starts,
+	// not merely because the slide holding it became active. Mirrors Vue's
+	// `useMediaFullscreen` / Angular's `isPlaying` signal.
+	$effect(() => {
+		const el = mediaEl;
+		if (!el) {
+			isPlaying = false;
+			return;
+		}
+		const onPlay = (): void => {
+			isPlaying = true;
+		};
+		const onStop = (): void => {
+			isPlaying = false;
+		};
+		el.addEventListener('play', onPlay);
+		el.addEventListener('pause', onStop);
+		el.addEventListener('ended', onStop);
+		return () => {
+			el.removeEventListener('play', onPlay);
+			el.removeEventListener('pause', onStop);
+			el.removeEventListener('ended', onStop);
+		};
+	});
+
+	/** Pauses the mounted media, dropping the overlay back to inline. */
+	function stopFullscreen(): void {
+		if (mediaEl && !mediaEl.paused) {
+			mediaEl.pause();
+		}
+	}
 </script>
 
 {#if media && view}
@@ -158,7 +218,19 @@
 		     text node (neither block is then at the children-list edge), which
 		     broke the empty-textContent assertion for a media element with no
 		     playable source and no fallback chrome. -->
-		{#if hitTarget}<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>{/if}{#if view.mediaSrc && media.mediaType === 'video'}
+		{#if hitTarget}<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>{/if}{#if view.onlineVideoEmbedUrl && media.mediaType === 'video'}
+			<!-- A linked YouTube/Vimeo URL is a web page, not a media stream:
+			     `<video src>` cannot decode it and shows nothing. Render the
+			     provider's own iframe embed instead. -->
+			<iframe
+				class="pptx-svelte-media-video pptx-svelte-media-iframe"
+				src={view.onlineVideoEmbedUrl}
+				title={t('pptx.media.onlineVideoTitle')}
+				allow={ONLINE_VIDEO_IFRAME_ALLOW}
+				sandbox={ONLINE_VIDEO_IFRAME_SANDBOX}
+				allowfullscreen
+			></iframe>
+		{:else if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->
 			<video
 				bind:this={mediaEl}
@@ -216,6 +288,22 @@
 					<span>{t(fallbackLabelKey)}</span>
 				{/if}
 			</div>
+		<!-- Stop/close affordance for the fullScrn full-slide overlay (issue
+		     wave item 10). Inline pointer-events: the root's own may be forced
+		     to none while non-interactive, and a descendant can always
+		     re-enable itself regardless of the ancestor's computed value. -->
+		{/if}{#if showFullscreenStop}
+			<button
+				type="button"
+				class="pptx-svelte-media-fullscreen-stop"
+				style="pointer-events: auto"
+				aria-label={t('pptx.media.stopFullscreenAria')}
+				onclick={stopFullscreen}
+			>
+				<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+					<rect x="6" y="6" width="12" height="12" rx="1" />
+				</svg>
+			</button>
 		{/if}
 	</div>
 {/if}
@@ -227,6 +315,10 @@
 		height: 100%;
 		object-fit: contain;
 		display: block;
+	}
+
+	.pptx-svelte-media-iframe {
+		border: 0;
 	}
 
 	.pptx-svelte-media-audio {
@@ -294,5 +386,24 @@
 		overflow: hidden;
 	}
 
+	.pptx-svelte-media-fullscreen-stop {
+		position: absolute;
+		bottom: 12px;
+		right: 12px;
+		z-index: 30;
+		border: none;
+		border-radius: 9999px;
+		background: rgba(0, 0, 0, 0.5);
+		color: rgba(255, 255, 255, 0.8);
+		padding: 8px;
+		cursor: pointer;
+		transition:
+			background-color 0.15s ease,
+			color 0.15s ease;
+	}
 
+	.pptx-svelte-media-fullscreen-stop:hover {
+		background: rgba(0, 0, 0, 0.7);
+		color: #fff;
+	}
 </style>

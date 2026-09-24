@@ -289,6 +289,8 @@ describe('getTableCellBandStyle', () => {
 			theme: theme as unknown as PptxTheme,
 		});
 		expect(style).toBeDefined();
-		expect(style!.backgroundColor).toBeDefined();
+		// The default band tint layers over the whole-table fill via the
+		// `background` shorthand, so either property carries the resolved fill.
+		expect(style!.background ?? style!.backgroundColor).toBeDefined();
 	});
 });

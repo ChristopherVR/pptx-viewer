@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { formatBytes, isBrowserOpenableMime } from './ole-actions';
+import { formatBytes, isBrowserOpenableMime, oleActionsVisible } from './ole-actions';
 
 describe('formatBytes', () => {
 	it('returns undefined for missing or invalid input', () => {
@@ -48,5 +48,22 @@ describe('isBrowserOpenableMime', () => {
 			isBrowserOpenableMime('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
 		).toBeFalsy();
 		expect(isBrowserOpenableMime('application/octet-stream')).toBeFalsy();
+	});
+});
+
+describe('oleActionsVisible', () => {
+	it('shows the action bar only on the interactive editable canvas', () => {
+		expect(oleActionsVisible({ presenting: false, preview: false })).toBeTruthy();
+	});
+
+	it('hides it on a still of a slide (thumbnail, presenter pane, export raster)', () => {
+		// This is the nested-<button> bug: a slide thumbnail is rendered inside
+		// a `<button aria-label="Go to slide N">` in every binding, so a
+		// Download/Open `<button>` painted here is invalid, un-clickable markup.
+		expect(oleActionsVisible({ presenting: false, preview: true })).toBeFalsy();
+	});
+
+	it('hides it on the live presentation stage', () => {
+		expect(oleActionsVisible({ presenting: true, preview: false })).toBeFalsy();
 	});
 });

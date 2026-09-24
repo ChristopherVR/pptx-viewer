@@ -68,6 +68,7 @@ export const translations = {
 	'pptx.media.startAutomatically': 'Automáticamente',
 	'pptx.media.playAcrossSlides': 'Reproducir entre diapositivas',
 	'pptx.media.fullScreen': 'Pantalla completa',
+	'pptx.media.onlineVideoTitle': 'Video en línea',
 	'pptx.media.hideWhenNotPlaying': 'Ocultar cuando no se esté reproduciendo',
 	'pptx.media.bookmarks': 'Marcadores',
 	'pptx.media.bookmark': 'Marcador',

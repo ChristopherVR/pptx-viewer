@@ -3,6 +3,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus, LuTrash2, LuBookmark } from 'react-icons/lu';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import {
 	CARD,
 	HEADING,
@@ -99,7 +100,7 @@ export function MediaPlaybackBookmarks({
 				{/* Playback Speed */}
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.speed')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.media.speed')}
 						disabled={!canEdit}
 						className={`${INPUT} text-[11px] max-w-[100px]`}
@@ -119,7 +120,7 @@ export function MediaPlaybackBookmarks({
 						<option value={2}>2x</option>
 						<option value={3}>3x</option>
 						<option value={4}>4x</option>
-					</select>
+					</WebSelect>
 				</label>
 
 				{/* Fade In / Fade Out */}
@@ -161,7 +162,7 @@ export function MediaPlaybackBookmarks({
 				{/* Toggles */}
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.loop')}</span>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.loop)}
@@ -174,7 +175,7 @@ export function MediaPlaybackBookmarks({
 				</label>
 				<label className='flex items-center justify-between gap-2'>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.startTrigger')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.media.startTrigger')}
 						disabled={!canEdit}
 						className='text-[11px] bg-transparent border border-border rounded px-1 py-0.5'
@@ -187,12 +188,12 @@ export function MediaPlaybackBookmarks({
 					>
 						<option value='onClick'>{t('pptx.media.startOnClick')}</option>
 						<option value='auto'>{t('pptx.media.startAutomatically')}</option>
-					</select>
+					</WebSelect>
 				</label>
 				{element.mediaType === 'audio' && (
 					<label className={LABEL_CLS}>
 						<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.playAcrossSlides')}</span>
-						<input
+						<WebCheckbox
 							type='checkbox'
 							disabled={!canEdit}
 							checked={Boolean(element.playAcrossSlides)}
@@ -207,7 +208,7 @@ export function MediaPlaybackBookmarks({
 				)}
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.fullScreen')}</span>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.fullScreen)}
@@ -220,7 +221,7 @@ export function MediaPlaybackBookmarks({
 				</label>
 				<label className={LABEL_CLS}>
 					<span className={`text-[11px] ${LABEL_TEXT}`}>{t('pptx.media.hideWhenNotPlaying')}</span>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						disabled={!canEdit}
 						checked={Boolean(element.hideWhenNotPlaying)}

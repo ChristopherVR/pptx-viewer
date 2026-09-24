@@ -71,6 +71,13 @@ export class EditorController {
 	snapLines = $state<readonly SnapLine[]>([]);
 	editingId = $state<string | null>(null);
 	marquee = $state<EditorMarqueeRect | null>(null);
+	/**
+	 * The hyperlink dialog, opened by Ctrl+K or the Insert-tab/context-menu
+	 * buttons. Lives here (not on the always-mounted `ViewerStage`) so the
+	 * keyboard shortcut has one flag to flip regardless of which of those two
+	 * pre-existing triggers a host renders.
+	 */
+	hyperlinkOpen = $state(false);
 
 	constructor(editor: EditorState, deps: EditorControllerDeps) {
 		this.#editor = editor;
@@ -90,6 +97,7 @@ export class EditorController {
 				this.marquee = rect;
 			},
 			getEditingId: () => this.editingId,
+			openHyperlink: () => this.openHyperlink(),
 		};
 		this.#gestures = createTransformGestures(host);
 		this.#ink = createInkGestures(host);
@@ -499,6 +507,46 @@ export class EditorController {
 			: undefined;
 	}
 
+	/** Open the hyperlink dialog for the current selection (Ctrl+K). */
+	openHyperlink(): void {
+		this.hyperlinkOpen = true;
+	}
+
+	/**
+	 * Apply an element patch built by a formatting shortcut, mid-edit or not.
+	 * `InlineTextEditor` has no access to `EditorState`, only to this
+	 * controller and the element it is editing, so this is its way to reach
+	 * the same `patchSelected` the root keyboard handler and the ribbon use.
+	 */
+	patchSelected(
+		patch: Partial<PptxElement> | ((element: PptxElement) => Partial<PptxElement>),
+	): void {
+		this.#editor.patchSelected(patch);
+	}
+
+	/** Arm the format painter from the current selection (Ctrl+Shift+C). */
+	copyFormat(): void {
+		this.#editor.formatPainter.toggle();
+	}
+
+	/** Apply the copied format to the current selection (Ctrl+Shift+V). */
+	pasteFormat(): void {
+		const id = this.#editor.selectedElementId;
+		if (id) {
+			this.#editor.formatPainter.applyTo(id);
+		}
+	}
+
+	/** Open the find bar (Ctrl+F), including mid-edit; see `EditorControllerDeps`. */
+	toggleFind(): void {
+		this.#deps.toggleFind?.();
+	}
+
+	/** Open the find bar's replace row (Ctrl+H), including mid-edit. */
+	toggleFindReplace(): void {
+		this.#deps.toggleFindReplace?.();
+	}
+
 	/** Commit the inline editor's text onto the element and close it. */
 	commitInline(id: string, text: string, snapshot?: InlineTextEditSnapshot): void {
 		// Flush any queued interim frame first so it cannot land after the
@@ -581,23 +629,34 @@ export class EditorController {
 
 	/** Retain authoritative accepted text before a host-only permission veto. */
 	retainAcceptedInlineText(permissionLossOnly = false): boolean {
-		if (permissionLossOnly && this.#deps.getEditable?.() !== false) return false;
+		if (permissionLossOnly && this.#deps.getEditable?.() !== false) {
+			return false;
+		}
 		const editor = this.#editor;
 		const native = editor.inlineListController;
-		if (!native || !('readAccepted' in native)) return false;
+		if (!native || !('readAccepted' in native)) {
+			return false;
+		}
 		const controller = native as CollaborationInlineEditor;
 		const slide = editor.slides[editor.currentSlideIndex];
-		if (this.#inlineSource?.nonce !== editor.seedNonce || this.#inlineSource?.slideId !== slide?.id)
+		if (
+			this.#inlineSource?.nonce !== editor.seedNonce ||
+			this.#inlineSource?.slideId !== slide?.id
+		) {
 			return true;
+		}
 		const element = slide?.elements.find((candidate) => candidate.id === this.editingId);
-		if (editor.masterViewTarget || !controller.checkModel(element)) return true;
+		if (editor.masterViewTarget || !controller.checkModel(element)) {
+			return true;
+		}
 		const snapshot = controller.readAccepted();
 		if (snapshot && slide) {
 			const elements = overlayInlineTextSnapshot(slide.elements, snapshot);
-			if (elements !== slide.elements)
+			if (elements !== slide.elements) {
 				editor.slides = editor.slides.map((candidate) =>
 					candidate === slide ? { ...slide, elements: [...elements] } : candidate,
 				);
+			}
 		}
 		return true;
 	}

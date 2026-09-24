@@ -81,7 +81,10 @@ describe('continuous date axes', () => {
 
 	it('uses continuous date positions and source indexes for stock candles', () => {
 		const chartData = data('stock');
+		// OHLC (Open present), not HLC: a candle body only exists for OHLC, and
+		// this test inspects `part.pointIndex`/`x` on the body rects.
 		chartData.series = [
+			{ name: 'Open', values: [2, 3, 4] },
 			{ name: 'High', values: [5, 6, 7] },
 			{ name: 'Low', values: [1, 2, 3] },
 			{ name: 'Close', values: [4, 5, 6] },

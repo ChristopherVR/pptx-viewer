@@ -62,7 +62,7 @@ function onFlag(
 			<div v-for="(s, i) in props.series" :key="`${s.name}-${i}`" class="space-y-1">
 				<div class="flex items-center gap-2 text-[11px]">
 					<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
-					<select
+					<pptx-ui-select
 						class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 						data-testid="chart-trendline-type"
 						:value="firstTrendline(s)?.trendlineType ?? ''"
@@ -71,12 +71,12 @@ function onFlag(
 						<option v-for="opt in TRENDLINE_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</div>
 
 				<div v-if="firstTrendline(s)" class="flex items-center gap-3 ml-2">
 					<label class="flex items-center gap-1 text-[11px] cursor-pointer">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							data-testid="chart-trendline-eq"
 							class="accent-primary"
@@ -86,7 +86,7 @@ function onFlag(
 						<span>{{ t('pptx.chart.trendlineEquation') }}</span>
 					</label>
 					<label class="flex items-center gap-1 text-[11px] cursor-pointer">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							data-testid="chart-trendline-rsq"
 							class="accent-primary"

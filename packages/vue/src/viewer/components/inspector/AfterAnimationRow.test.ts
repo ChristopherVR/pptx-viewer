@@ -6,6 +6,7 @@ import { ref } from 'vue';
 import { translationsEn } from '../../../i18n';
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import AfterAnimationRow from './AfterAnimationRow.vue';
+import { setControlValue } from './test-control-value';
 
 function mountRow(props: Record<string, unknown> = {}, global?: Record<string, unknown>) {
 	return mount(AfterAnimationRow, {
@@ -40,14 +41,14 @@ describe('afterAnimationRow', () => {
 
 	it('emits the selected action', async () => {
 		const wrapper = mountRow();
-		await wrapper.get('select').setValue('hideOnNextClick');
+		await setControlValue(wrapper.get('pptx-ui-select'), 'hideOnNextClick');
 		expect(wrapper.emitted('action')).toStrictEqual([['hideOnNextClick']]);
 	});
 
 	it('emits the picked colour', async () => {
 		const wrapper = mountRow({ action: 'dimToColor', color: '#000000' });
 		const colorInput = wrapper.get('input[type="color"]');
-		await colorInput.setValue('#00ff00');
+		await setControlValue(colorInput, '#00ff00');
 		expect(wrapper.emitted('color')).toStrictEqual([['#00ff00']]);
 	});
 
@@ -66,7 +67,7 @@ describe('afterAnimationRow', () => {
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeFalsy();
 
 		const colorInput = wrapper.get('input[type="color"]');
-		await colorInput.setValue('#00ff00');
+		await setControlValue(colorInput, '#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
 	});
 });

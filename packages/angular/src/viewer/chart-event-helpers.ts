@@ -7,10 +7,12 @@
  * @module angular-viewer/chart-event-helpers
  */
 
+import { isSelectControl, isCheckboxControl } from './control-event-targets';
+
 /** Read the string value from an `<input>` or `<select>` change/input event. */
 export function stringFromEvent(event: Event): string | null {
 	const target = event.target;
-	if (target instanceof HTMLInputElement || target instanceof HTMLSelectElement) {
+	if (target instanceof HTMLInputElement || isSelectControl(target)) {
 		return target.value;
 	}
 	return null;
@@ -19,13 +21,13 @@ export function stringFromEvent(event: Event): string | null {
 /** Read the value from a `<select>` change event. */
 export function selectValue(event: Event): string | null {
 	const target = event.target;
-	return target instanceof HTMLSelectElement ? target.value : null;
+	return isSelectControl(target) ? target.value : null;
 }
 
 /** Read the checked state from a checkbox `<input>` change event. */
 export function boolFromEvent(event: Event): boolean {
 	const target = event.target;
-	return target instanceof HTMLInputElement ? target.checked : false;
+	return isCheckboxControl(target) ? target.checked : false;
 }
 
 /**

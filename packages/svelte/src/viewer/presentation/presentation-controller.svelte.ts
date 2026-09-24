@@ -1,7 +1,9 @@
 import type { PptxCustomShow, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	applyHighlightClickStyle,
+	beginZoomExcursion,
 	buildRunProgramNotice,
+	buildZoomTransitionOverride,
 	findHighlightClickTarget,
 	firstShowSlideIndex,
 	handlePresentationStageClick,
@@ -12,6 +14,7 @@ import {
 	nextShowSlideIndex,
 	presentationEntrySlideIndex,
 	previousShowSlideIndex,
+	resolveForwardSlideWithZoomReturn,
 	resolveShowSlideIndexes,
 	stopAllPersistentAudio,
 } from 'pptx-viewer-shared';
@@ -19,6 +22,8 @@ import type {
 	AuthoredSlideRange,
 	ElementAnimationState,
 	RunProgramNotice,
+	ZoomExcursion,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 
 import type { CustomShowReturnState } from './action-runner-callbacks';
@@ -158,6 +163,17 @@ export class PresentationController {
 	#customShowReturn: CustomShowReturnState | null = null;
 	/** Last-viewed slide, for `ppaction://hlinkshowjump?jump=lastslideviewed` (wave-4 B7). */
 	#lastViewedIndex: number | undefined;
+	/**
+	 * A pending "return to zoom" excursion armed by {@link navigateToZoomTarget},
+	 * consumed by {@link advance} once the show reaches the end of the target's
+	 * range. See `pptx-viewer-shared`'s `zoom-return-navigation`.
+	 */
+	#zoomExcursion: ZoomExcursion | undefined;
+	/**
+	 * A one-shot override for the transition the very next {@link onSlideChange}
+	 * should play, consumed there and cleared immediately after.
+	 */
+	#pendingTransitionOverride: PptxSlideTransition | undefined;
 	readonly #deps: PresentationControllerDeps;
 
 	constructor(deps: PresentationControllerDeps) {
@@ -376,6 +392,22 @@ export class PresentationController {
 			return;
 		}
 		const current = this.#deps.getCurrentIndex();
+		// A Slide Zoom / Section Zoom / Summary Zoom tile whose `zmPr` set
+		// `returnToParent` armed an excursion (see `navigateToZoomTarget`). Once
+		// this forward advance reaches the last slide of that target's range,
+		// jump back to the zoom's origin slide instead of continuing linearly
+		// through the deck; PowerPoint's return jump is forward-only, so
+		// `previousSlide` never consults this.
+		const excursion = this.#zoomExcursion;
+		const zoomStep = resolveForwardSlideWithZoomReturn(current, undefined, excursion);
+		if (zoomStep.returnedToZoom && zoomStep.nextSlideIndex !== undefined) {
+			this.#zoomExcursion = zoomStep.excursion;
+			this.#pendingTransitionOverride = buildZoomTransitionOverride(
+				excursion?.transitionDurationMs,
+			);
+			this.#deps.navigate(zoomStep.nextSlideIndex);
+			return;
+		}
 		const order = this.#showOrder();
 		if (!hasShowSlideAfter(current, order)) {
 			// Wave-4 B7: a `ppaction://customshow?...&return=true` sub-show running
@@ -454,6 +486,24 @@ export class PresentationController {
 	}
 
 	/**
+	 * Handle a Slide Zoom / Section Zoom / Summary Zoom tile click: navigates
+	 * to the target slide, playing the zoom's own `zmPr/@transitionDur` when
+	 * authored, and (when `returnToParent` is set) arms an excursion so the
+	 * next forward {@link advance} past the target's range returns to the
+	 * slide the zoom was clicked from instead of continuing linearly through
+	 * the deck.
+	 */
+	navigateToZoomTarget(target: ZoomNavigationTarget): void {
+		this.#zoomExcursion = beginZoomExcursion(
+			target,
+			this.#deps.getCurrentIndex(),
+			this.#deps.getSlides(),
+		);
+		this.#pendingTransitionOverride = buildZoomTransitionOverride(target.transitionDurationMs);
+		this.#deps.navigate(target.targetSlideIndex);
+	}
+
+	/**
 	 * Raise the black end-of-slide-show screen without ending anything.
 	 *
 	 * Used by an audience display when the presenter ends the session and the
@@ -498,6 +548,11 @@ export class PresentationController {
 		this.#transition = null;
 		this.#endOfShow = false;
 		this.#runProgramNotices = [];
+		// Leaving the show for ANY reason drops a pending "return to zoom"
+		// excursion: re-entering the show later should not silently jump back to
+		// wherever a stale zoom click was clicked from.
+		this.#zoomExcursion = undefined;
+		this.#pendingTransitionOverride = undefined;
 		// Presentation EXIT (never a slide change, which goes through
 		// `onSlideChange`): cross-slide "play across slides" audio ends with the
 		// show it belongs to, and so does a transition sound flagged "Loop Until
@@ -521,10 +576,16 @@ export class PresentationController {
 		this.playback.reset({ completed: nextIndex < previousIndex });
 		const slides = this.#deps.getSlides();
 		const incoming = slides[nextIndex];
+		// A Slide Zoom / Section Zoom / Summary Zoom navigation's own
+		// `zmPr/@transitionDur` takes priority over either slide's own authored
+		// transition; it applies to this ONE jump only.
+		const override = this.#pendingTransitionOverride;
+		this.#pendingTransitionOverride = undefined;
 		// Forward steps play the ENTERING slide's transition; a backward step
 		// replays the LEAVING slide's transition in reverse (a morph glides its
 		// shapes back to where they came from).
-		const transition = (nextIndex < previousIndex ? slides[previousIndex] : incoming)?.transition;
+		const transition =
+			override ?? (nextIndex < previousIndex ? slides[previousIndex] : incoming)?.transition;
 		if (transition && transition.type && transition.type !== 'none') {
 			this.#transition = { outgoing: slides[previousIndex], incoming, transition };
 		} else {

@@ -418,4 +418,76 @@ describe('mediaBox', () => {
 			vi.useRealTimers();
 		});
 	});
+
+	// `fullScrn` full-slide playback overlay (issue wave item 10): previously
+	// React/Angular-only. The trigger + style live in `pptx-viewer-shared`
+	// (`media-fullscreen.ts`); this proves the wiring reaches the live element
+	// and template.
+	describe('fullScrn overlay', () => {
+		it('stays at the authored frame until playback actually starts', () => {
+			const { target } = mountEl(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, fullScreen: true }),
+				undefined,
+				true,
+			);
+			const container = target.querySelector<HTMLElement>('[data-element-id="m1"]');
+			expect(container?.getAttribute('style')).not.toContain('width: 100%');
+			expect(target.querySelector('.pptx-svelte-media-fullscreen-stop')).toBeNull();
+		});
+
+		it('switches to the full-slide overlay once the clip starts playing', () => {
+			const { target } = mountEl(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, fullScreen: true }),
+				undefined,
+				true,
+			);
+			const video = target.querySelector<HTMLVideoElement>('video')!;
+			video.dispatchEvent(new Event('play'));
+			flushSync();
+
+			const container = target.querySelector<HTMLElement>('[data-element-id="m1"]');
+			expect(container?.getAttribute('style')).toContain('width: 100%');
+			expect(container?.getAttribute('style')).toContain('height: 100%');
+			const stopButton = target.querySelector<HTMLButtonElement>(
+				'.pptx-svelte-media-fullscreen-stop',
+			);
+			expect(stopButton?.getAttribute('aria-label')).toBe('Stop full-screen playback');
+
+			video.dispatchEvent(new Event('pause'));
+			flushSync();
+			expect(target.querySelector('.pptx-svelte-media-fullscreen-stop')).toBeNull();
+		});
+
+		it('does not overlay an authored fullScrn clip on the authoring canvas', () => {
+			const { target } = mountEl(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, fullScreen: true }),
+				undefined,
+				false,
+				true,
+			);
+			const video = target.querySelector<HTMLVideoElement>('video')!;
+			video.dispatchEvent(new Event('play'));
+			flushSync();
+			expect(target.querySelector('.pptx-svelte-media-fullscreen-stop')).toBeNull();
+		});
+
+		it('clicking the stop button pauses playback', () => {
+			const { target } = mountEl(
+				mediaElement({ mediaType: 'video', mediaData: MP4_DATA_URL, fullScreen: true }),
+				undefined,
+				true,
+			);
+			const video = target.querySelector<HTMLVideoElement>('video')!;
+			video.dispatchEvent(new Event('play'));
+			flushSync();
+			Object.defineProperty(video, 'paused', { value: false, configurable: true });
+			const pauseSpy = vi.spyOn(video, 'pause').mockImplementation(() => {
+				Object.defineProperty(video, 'paused', { value: true, configurable: true });
+			});
+
+			target.querySelector<HTMLButtonElement>('.pptx-svelte-media-fullscreen-stop')!.click();
+
+			expect(pauseSpy).toHaveBeenCalledWith();
+		});
+	});
 });

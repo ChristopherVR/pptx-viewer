@@ -8,7 +8,7 @@
 import { OA, RT } from '../record-types';
 import { buildClientAnchor } from './anchor-writer';
 import { ByteWriter, record } from './byte-writer';
-import { buildFopt } from './fopt-writer';
+import { buildFopt, buildMetroBlobTertiaryFopt } from './fopt-writer';
 import { buildInteractiveInfo } from './hyperlink-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
 import type { MediaCollector } from './media-writer';
@@ -113,8 +113,11 @@ export function buildShapeContainer(
 	const parts: Uint8Array[] = [
 		buildFsp(allocator.next(), shape.spt, flags),
 		buildFopt(props.simple, props.complex),
-		buildClientAnchor(shape.anchor),
 	];
+	if (shape.metroBlob) {
+		parts.push(buildMetroBlobTertiaryFopt(shape.metroBlob));
+	}
+	parts.push(buildClientAnchor(shape.anchor));
 
 	if (shape.placeholderType || shape.hyperlink) {
 		const placeholderId = shape.placeholderType ? PLACEHOLDER_ID[shape.placeholderType] : undefined;
@@ -157,8 +160,12 @@ export function buildPictureContainer(
 	});
 	const w = new ByteWriter()
 		.bytes(buildFsp(allocator.next(), 75, flags))
-		.bytes(buildFopt(props.simple, props.complex))
-		.bytes(buildClientAnchor(picture.anchor));
+		.bytes(buildFopt(props.simple, props.complex));
+	if (picture.metroBlob) {
+		// PowerPoint's own record order: FSP, FOPT, TertiaryFOPT, ClientAnchor.
+		w.bytes(buildMetroBlobTertiaryFopt(picture.metroBlob));
+	}
+	w.bytes(buildClientAnchor(picture.anchor));
 	const exObjId = picture.ole ? oleEmbeds.register(picture.ole) : undefined;
 	if (picture.hyperlink || exObjId !== undefined) {
 		w.bytes(buildClientData(undefined, picture.hyperlink, hyperlinks, exObjId));

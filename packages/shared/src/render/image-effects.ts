@@ -544,8 +544,22 @@ function buildImageAlphaFilterMarkup(effects: PptxImageEffects): string | undefi
 	) {
 		const b = (effects.lum.bright ?? 0) / 100;
 		const c = 1 + (effects.lum.contrast ?? 0) / 100;
-		const slope = c;
-		const intercept = b + (1 - c) / 2;
+		// Rounded to 6dp to avoid binary floating-point noise (e.g. 1 + -0.7
+		// evaluates to 0.30000000000000004, not 0.3) leaking into the rendered
+		// SVG filter markup.
+		const round6 = (n: number): number => Math.round(n * 1e6) / 1e6;
+		const slope = round6(c);
+		// Washout (bright=70%, contrast=-70%, PowerPoint's Recolor "Washout"
+		// preset) measured against COM-rendered ground truth: adding the full
+		// brightness on top of the contrast-pivot term (`b + (1 - c) / 2`)
+		// pushed every channel above 1 (output 1.05..1.35), clamping the whole
+		// picture to solid white. Weighting the pivot term by the REMAINING
+		// headroom (`1 - b`) reproduces the measured pale, low-contrast result
+		// (fit: slope 0.2992-0.2998, intercept 0.8030-0.8031 across R/G/B,
+		// vs. this formula's 0.3 / 0.805) while still reducing to the plain
+		// contrast-pivot formula at b=0 and to a pure additive shift at c=1
+		// (contrast=0).
+		const intercept = round6(b + ((1 - b) * (1 - c)) / 2);
 		next(
 			(inp, out) =>
 				`<feComponentTransfer in="${inp}" result="${out}">` +

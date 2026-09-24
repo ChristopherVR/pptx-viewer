@@ -129,7 +129,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 			<div class="space-y-1.5 ml-2">
 				<div v-if="row.hasScale" class="flex items-center gap-2">
 					<label class="flex items-center gap-2 cursor-pointer">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							data-testid="chart-axis-log-scale"
 							class="accent-primary"
@@ -174,7 +174,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 				</div>
 				<div class="flex items-center gap-3 text-[11px]">
 					<label class="flex items-center gap-1 cursor-pointer">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							data-testid="chart-axis-title-bold"
 							class="accent-primary"
@@ -219,7 +219,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 							:placeholder="t('pptx.chart.auto')"
 							@input="onGridWidth($event, row, kind.which)"
 						/>
-						<select
+						<pptx-ui-select
 							:class="INPUT"
 							data-testid="chart-gridline-dash"
 							:title="t('pptx.chart.gridlineDash')"
@@ -229,7 +229,7 @@ const GRID_KINDS: ReadonlyArray<{ which: 'major' | 'minor'; labelKey: string }> 
 							<option v-for="opt in GRIDLINE_DASH_OPTIONS" :key="opt.value" :value="opt.value">
 								{{ t(opt.labelKey) }}
 							</option>
-						</select>
+						</pptx-ui-select>
 					</div>
 				</template>
 			</div>

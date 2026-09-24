@@ -7,9 +7,9 @@
 
 import type { OlePptxElement } from '../../types';
 import { parseDataUrlToBytes } from '../../utils/data-url-utils';
+import { degradeElement } from './degrade-element';
 import { elementRectEmu } from './element-rect';
 import type { ConvertContext } from './element-to-write-model';
-import { degradeElement } from './element-to-write-model';
 import { dataUrlToPicture } from './raster-utils';
 import type { WAnyShape } from './write-model';
 

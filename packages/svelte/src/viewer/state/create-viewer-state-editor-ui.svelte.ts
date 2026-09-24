@@ -13,6 +13,7 @@ import { useCanvasImagePaste } from '../editor/canvas-image-paste.svelte';
 import { EditorController } from '../editor/editor-controller.svelte';
 import { FindReplaceState } from '../editor/editor-find-replace.svelte';
 import type { EditorState } from '../editor/editor-state.svelte';
+import type { PresentationController } from '../presentation';
 import { ChromeUiState } from './chrome-ui.svelte';
 import { CompatToastsState } from './compat-toasts.svelte';
 import type { CreateViewerStateOptions } from './create-viewer-state-types';
@@ -41,6 +42,23 @@ export interface EditorUiClusterDeps {
 	/** Autosave flag + toggle, owned by the collaboration cluster built before this one. */
 	getAutosaveEnabled(): boolean;
 	setAutosaveEnabled(enabled: boolean): void;
+	/**
+	 * Insert a new slide after the active one (Ctrl+M). Optional: the deck API
+	 * this ultimately calls is built after this cluster, in
+	 * `create-viewer-state.svelte.ts`, which passes a closure over a variable it
+	 * fills in once that API exists.
+	 */
+	newSlide?(): void;
+	/**
+	 * The presentation controller, for a zoom tile's click-to-jump. Optional
+	 * for the same reason as `newSlide` above: it is built AFTER this cluster
+	 * (`usePresentationCluster` needs this cluster's `parityUi`/`controller`
+	 * outputs), so `create-viewer-state.svelte.ts` passes a closure over a
+	 * variable it fills in once the controller exists. A zoom tile is only
+	 * ever clickable while presenting (see `ZoomView.svelte`'s `clickable`), by
+	 * which point the controller is always assigned.
+	 */
+	getPresentation?(): PresentationController | undefined;
 }
 
 export interface EditorUiCluster {
@@ -89,7 +107,17 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 	provideViewerOptions(optionsState);
 	const chromeUi = new ChromeUiState();
 	provideZoomNavigation({
-		navigateToZoomTarget: (index) => viewer.goTo(index),
+		// A zoom tile is only clickable while presenting (`ZoomView.svelte`'s
+		// `clickable`), so the presentation controller is always assigned by the
+		// time this fires; `viewer.goTo` is a defensive fallback only.
+		navigateToZoomTarget: (target) => {
+			const presentation = deps.getPresentation?.();
+			if (presentation) {
+				presentation.navigateToZoomTarget(target);
+			} else {
+				viewer.goTo(target.targetSlideIndex);
+			}
+		},
 		getSlides: () => editor.renderedSlides,
 	});
 
@@ -127,6 +155,10 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		// `findReplace` is constructed just below; the closure only runs on a real
 		// key press, long after this function has returned.
 		toggleFind: () => findReplace.toggle(),
+		// Ctrl+H: PowerPoint's Find & Replace. The panel has no distinct
+		// find-only/replace mode, so this is the same toggle as Ctrl+F.
+		toggleFindReplace: () => findReplace.toggle(),
+		newSlide: () => deps.newSlide?.(),
 	});
 
 	// oxlint-disable-next-line react-hooks/rules-of-hooks

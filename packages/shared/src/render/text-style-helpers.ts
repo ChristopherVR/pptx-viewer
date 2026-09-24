@@ -21,21 +21,31 @@ import { proportionalLineHeight } from './text-line-height';
 /** CSS `writing-mode` keyword values produced for vertical text directions. */
 export type CssWritingMode = 'vertical-rl' | 'vertical-lr';
 /** CSS `text-orientation` keyword values produced for vertical text. */
-export type CssTextOrientation = 'mixed' | 'upright';
+export type CssTextOrientation = 'mixed' | 'upright' | 'sideways';
 /** CSS `direction` keyword. */
 export type CssDirection = 'rtl' | 'ltr';
 
 /**
  * Map a parsed `textDirection` value to the corresponding CSS `writing-mode`.
  *
+ * The block-progression axis (which side a new column is added on) is NOT
+ * the same for every vertical mode: `vert`/`eaVert` stack new columns to the
+ * LEFT (traditional CJK, `vertical-rl`), but `wordArtVert` (PowerPoint's
+ * "Stacked" WordArt vertical text) stacks new columns to the RIGHT, the same
+ * as `mongolianVert` and `vert270`. `wordArtVertRtl` is `wordArtVert`'s
+ * mirrored sibling and reverses that back to `vertical-rl`: in real
+ * PowerPoint (`audit-text/gen.py` slide 3, second paragraph of a `wordArtVert`
+ * body renders in a column to the RIGHT of the first, while the same body
+ * set to `wordArtVertRtl` renders its second paragraph's column to the LEFT.
+ *
  * | textDirection      | CSS writing-mode |
  * |--------------------|------------------|
  * | `"vertical"`       | `vertical-rl`    |
  * | `"eaVert"`         | `vertical-rl`    |
- * | `"wordArtVert"`    | `vertical-rl`    |
  * | `"wordArtVertRtl"` | `vertical-rl`    |
  * | `"vertical270"`    | `vertical-lr`    |
  * | `"mongolianVert"`  | `vertical-lr`    |
+ * | `"wordArtVert"`    | `vertical-lr`    |
  * | `"horizontal"`     | undefined        |
  */
 export function toCssWritingMode(
@@ -44,11 +54,11 @@ export function toCssWritingMode(
 	switch (textDirection) {
 		case 'vertical':
 		case 'eaVert':
-		case 'wordArtVert':
 		case 'wordArtVertRtl':
 			return 'vertical-rl';
 		case 'vertical270':
 		case 'mongolianVert':
+		case 'wordArtVert':
 			return 'vertical-lr';
 		default:
 			return undefined;
@@ -58,24 +68,35 @@ export function toCssWritingMode(
 /**
  * Resolve CSS `text-orientation` for vertical writing modes.
  *
- * - `"vertical"` / `"eaVert"`: CJK glyphs stay upright, Latin rotated (`mixed`).
- * - `"vertical270"`: text rotated 270deg, all glyphs rotated (`mixed`).
- * - `"wordArtVert"`: all glyphs rendered upright, stacked vertically (`upright`).
- * - `"wordArtVertRtl"`: same as vertical-rl with RTL direction (`mixed`).
- * - `"mongolianVert"`: Mongolian vertical, left-to-right columns (`mixed`).
+ * - `"vertical"` (`a:bodyPr/@vert="vert"`): PowerPoint rotates EVERY glyph 90deg,
+ *   CJK included, so this is CSS `sideways`, not `mixed`: a CJK run under
+ *   `vert` renders rotated exactly like an adjacent Latin run, unlike the
+ *   same run under `eaVert` (`audit-text/pp/s3.png` columns 1 vs 3).
+ * - `"eaVert"`: the traditional East-Asian vertical style: CJK glyphs stay
+ *   upright and only non-CJK runs rotate (`mixed`). This is what
+ *   distinguishes it from `"vertical"` above.
+ * - `"vertical270"`: rotated 270deg, all glyphs rotated the same as `vertical`
+ *   (`sideways`), just read bottom-to-top (see `toCssVerticalDirection`).
+ * - `"wordArtVert"` / `"wordArtVertRtl"`: PowerPoint's "Stacked" WordArt style
+ *   renders every glyph upright, one per line, regardless of script
+ *   (`upright`); they differ only in which side a wrapped column grows on
+ *   (`toCssWritingMode`), not in glyph rotation.
+ * - `"mongolianVert"`: Mongolian's native vertical script stays upright, same
+ *   as CJK under `eaVert` (`mixed`).
  * - `"horizontal"` / unset: undefined.
  */
 export function toCssTextOrientation(
 	textDirection: TextStyle['textDirection'] | undefined,
 ): CssTextOrientation | undefined {
 	switch (textDirection) {
-		case 'vertical':
 		case 'eaVert':
-		case 'vertical270':
-		case 'wordArtVertRtl':
 		case 'mongolianVert':
 			return 'mixed';
+		case 'vertical':
+		case 'vertical270':
+			return 'sideways';
 		case 'wordArtVert':
+		case 'wordArtVertRtl':
 			return 'upright';
 		default:
 			return undefined;
@@ -83,14 +104,21 @@ export function toCssTextOrientation(
 }
 
 /**
- * Resolve a CSS `direction` override for vertical text modes that require RTL.
+ * Resolve a CSS `direction` override for vertical text modes that read
+ * bottom-to-top instead of PowerPoint's usual top-to-bottom.
  *
- * Only `"wordArtVertRtl"` requires an explicit `direction: rtl`.
+ * Only `"vertical270"` (`a:bodyPr/@vert="vert270"`) reads bottom-to-top;
+ * every other vertical mode, `wordArtVertRtl` included, still reads
+ * top-to-bottom within a column (`wordArtVertRtl`'s "Rtl" is about which side
+ * a wrapped column grows on, handled by `toCssWritingMode`, not reading
+ * order). In CSS vertical writing modes, `direction: rtl` reverses the
+ * INLINE base direction from top-to-bottom to bottom-to-top, which is exactly
+ * `vertical270`'s ECMA-376 behaviour (`audit-text/pp/s3.png` column 2).
  */
 export function toCssVerticalDirection(
 	textDirection: TextStyle['textDirection'] | undefined,
 ): CssDirection | undefined {
-	if (textDirection === 'wordArtVertRtl') {
+	if (textDirection === 'vertical270') {
 		return 'rtl';
 	}
 	return undefined;

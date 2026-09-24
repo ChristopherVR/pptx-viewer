@@ -20,8 +20,9 @@
  *
  * A font this cache cannot resolve (parse failure, unknown family, a webfont
  * fetch still in flight, or a system font with no file the browser exposes at
- * all) simply has no entry: `text-warp-envelope-layout.ts` falls back to the
- * existing per-glyph affine transform for that glyph, unchanged.
+ * all) simply has no entry: {@link createGlyphOutlineLookup} then traces the
+ * glyph the browser renders instead (`text-warp-glyph-trace.ts`), and only
+ * without a DOM canvas does the layout fall back to an affine fit.
  */
 import type { Font } from 'opentype.js';
 import { parse } from 'opentype.js';
@@ -30,6 +31,7 @@ import type { PptxEmbeddedFont } from 'pptx-viewer-core';
 import { DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import { resolveEmbeddedFontClearBytes } from './embedded-fonts';
 import type { GlyphOutlineCommand } from './text-warp-glyph-outline';
+import { traceGlyphOutlineCommands } from './text-warp-glyph-trace';
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 	// `opentype.parse` wants a real ArrayBuffer; `bytes` may be a view over a
@@ -195,9 +197,11 @@ export interface GlyphOutlineCacheFontSpec {
 }
 
 /**
- * Build the `getGlyphOutline` callback `buildGlyphEnvelope` (in
+ * Build the `getGlyphOutline` callback `buildGlyphEnvelopeBlock` (in
  * `text-warp-envelope-layout.ts`) accepts: looks up `cache` for the segment's
- * resolved font and, if found, extracts that glyph's outline.
+ * resolved font and, if found, extracts that glyph's outline from the font
+ * file; otherwise traces the browser's own rendering of the glyph (see
+ * `text-warp-glyph-trace.ts`). `undefined` only without a DOM canvas.
  */
 export function createGlyphOutlineLookup(
 	cache: GlyphOutlineFontCache,
@@ -209,10 +213,16 @@ export function createGlyphOutlineLookup(
 ) => GlyphOutlineCommand[] | undefined {
 	return (char, font, x, y) => {
 		const parsed = cache.get(font.fontFamily, font.bold, font.italic);
-		if (!parsed) {
-			return undefined;
+		if (parsed) {
+			const size =
+				font.fontSizePx && font.fontSizePx > 0 ? font.fontSizePx : DEFAULT_TEXT_FONT_SIZE;
+			const commands = extractGlyphOutlineCommands(parsed, char, x, y, size);
+			if (commands) {
+				return commands;
+			}
 		}
-		const size = font.fontSizePx && font.fontSizePx > 0 ? font.fontSizePx : DEFAULT_TEXT_FONT_SIZE;
-		return extractGlyphOutlineCommands(parsed, char, x, y, size);
+		// No font file (or it lacks this glyph): trace the glyph the browser
+		// itself renders for this font, so it still gets the exact warp.
+		return WHITESPACE_RE.test(char) ? [] : traceGlyphOutlineCommands(char, font, x, y);
 	};
 }

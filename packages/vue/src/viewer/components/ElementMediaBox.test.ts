@@ -59,6 +59,28 @@ describe('elementMediaBox playback settings', () => {
 	});
 });
 
+describe('elementMediaBox online video', () => {
+	it('renders a provider iframe for a linked YouTube URL instead of <video>', () => {
+		const wrapper = mountMedia(
+			makeMedia({
+				mediaData: undefined,
+				mediaPath: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+				isLinked: true,
+			}),
+		);
+		const iframe = wrapper.find('iframe');
+		expect(iframe.exists()).toBeTruthy();
+		expect(iframe.attributes('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+		expect(wrapper.find('video').exists()).toBeFalsy();
+	});
+
+	it('keeps the native <video> for a plain linked media file', () => {
+		const wrapper = mountMedia(makeMedia());
+		expect(wrapper.find('iframe').exists()).toBeFalsy();
+		expect(wrapper.find('video').exists()).toBeTruthy();
+	});
+});
+
 describe('elementMediaBox native transport', () => {
 	it('paints one on the authoring canvas', () => {
 		expect(mountMedia(makeMedia()).find('video').attributes('controls')).toBeDefined();
@@ -229,5 +251,71 @@ describe('elementMediaBox trim-end + fade wiring', () => {
 		expect(pauseSpy).toHaveBeenCalledWith();
 		expect(video.currentTime).toBe(15);
 		vi.useRealTimers();
+	});
+});
+
+// ---------------------------------------------------------------------------
+// `fullScrn` full-slide playback overlay (issue wave item 10): previously
+// React/Angular-only. The trigger + style live in `pptx-viewer-shared`
+// (`media-fullscreen.ts`); this proves the composable wiring reaches the
+// live element and template.
+// ---------------------------------------------------------------------------
+describe('elementMediaBox fullScrn overlay', () => {
+	it('stays at the authored frame until playback actually starts', async () => {
+		const wrapper = mountMedia(makeMedia({ fullScreen: true }), {
+			interactive: false,
+			presenting: true,
+		});
+		await nextTick();
+		expect(wrapper.get('.pptx-vue-media').element.style.width).not.toBe('100%');
+		expect(wrapper.find('.pptx-vue-media-fullscreen-stop').exists()).toBeFalsy();
+	});
+
+	it('switches to the full-slide overlay once the clip starts playing', async () => {
+		const wrapper = mountMedia(makeMedia({ fullScreen: true }), {
+			interactive: false,
+			presenting: true,
+		});
+		await nextTick();
+		const video = wrapper.find('video').element;
+		video.dispatchEvent(new Event('play'));
+		await nextTick();
+
+		expect(wrapper.get('.pptx-vue-media').element.style.width).toBe('100%');
+		expect(wrapper.get('.pptx-vue-media').element.style.height).toBe('100%');
+		const stopButton = wrapper.get('.pptx-vue-media-fullscreen-stop');
+		expect(stopButton.attributes('aria-label')).toBe('Stop full-screen playback');
+
+		video.dispatchEvent(new Event('pause'));
+		await nextTick();
+		expect(wrapper.find('.pptx-vue-media-fullscreen-stop').exists()).toBeFalsy();
+	});
+
+	it('does not overlay an authored fullScrn clip on the authoring canvas', async () => {
+		const wrapper = mountMedia(makeMedia({ fullScreen: true }), { interactive: true });
+		await nextTick();
+		const video = wrapper.find('video').element;
+		video.dispatchEvent(new Event('play'));
+		await nextTick();
+		expect(wrapper.find('.pptx-vue-media-fullscreen-stop').exists()).toBeFalsy();
+	});
+
+	it('clicking the stop button pauses playback', async () => {
+		const wrapper = mountMedia(makeMedia({ fullScreen: true }), {
+			interactive: false,
+			presenting: true,
+		});
+		await nextTick();
+		const video = wrapper.find('video').element;
+		video.dispatchEvent(new Event('play'));
+		await nextTick();
+		Object.defineProperty(video, 'paused', { value: false, configurable: true });
+		const pauseSpy = vi.spyOn(video, 'pause').mockImplementation(() => {
+			Object.defineProperty(video, 'paused', { value: true, configurable: true });
+		});
+
+		await wrapper.get('.pptx-vue-media-fullscreen-stop').trigger('click');
+
+		expect(pauseSpy).toHaveBeenCalledWith();
 	});
 });

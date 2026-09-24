@@ -119,11 +119,20 @@ export class PptxSlideCommentsXmlFactory implements IPptxSlideCommentsXmlFactory
 		}
 	}
 
+	/**
+	 * A valid, already-authored `@dt` is returned EXACTLY as written, never
+	 * reformatted. Reformatting a valid string through `Date.parse` ->
+	 * `toISOString()` always renders in UTC, which silently shifted the clock
+	 * time by the local machine's offset whenever the source string had no
+	 * explicit UTC/offset marker: a comment authored at 10:30 came back
+	 * stamped 15:30 on a machine five hours behind UTC, on a save that never
+	 * touched the comment at all.
+	 */
 	private resolveCreatedAt(createdAt: string | undefined): string {
 		const candidate = String(createdAt || '').trim();
 		if (candidate.length === 0 || Number.isNaN(Date.parse(candidate))) {
 			return new Date().toISOString();
 		}
-		return new Date(candidate).toISOString();
+		return candidate;
 	}
 }

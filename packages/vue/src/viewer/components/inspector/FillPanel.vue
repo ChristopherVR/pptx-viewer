@@ -95,7 +95,7 @@ function onOpacity(value: string): void {
 		<template v-else>
 			<label class="pptx-vue-fill-field flex flex-col gap-1">
 				<span class="pptx-vue-fill-label text-muted-foreground">{{ t('pptx.fill.fill') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.fill.fill')"
 					class="pptx-vue-fill-select bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="fillMode"
@@ -107,7 +107,7 @@ function onOpacity(value: string): void {
 					<!-- No dedicated `pptx.fill.pattern` key exists yet (see final report);
 					     reuses `pptx.table.fillPattern` ("Pattern"), the closest existing key. -->
 					<option value="pattern">{{ t('pptx.table.fillPattern') }}</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<template v-if="fillMode === 'solid'">

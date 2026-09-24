@@ -78,6 +78,37 @@ describe('extractBackgroundImageProperties', () => {
 		});
 	});
 
+	it('detects a bare <a:tile/> (fast-xml-parser emits "") and applies its defaults', () => {
+		// `<a:tile/>` with no attributes is valid OOXML (sx/sy default to 100%,
+		// tx/ty to 0, flip to none, algn to tl); fast-xml-parser represents a
+		// genuinely empty element as the string "", not `{}` (same trap as
+		// `<a:grayscl/>` in image-color-effects.ts). Presence must still be
+		// detected so the background renders as tiled, not stretched.
+		const parsed = new BackgroundPropertiesProbe().parse({
+			'p:sld': {
+				'p:cSld': {
+					'p:bg': {
+						'p:bgPr': {
+							'a:blipFill': {
+								'a:blip': { 'a:alphaModFix': { '@_amt': '50000' } },
+								'a:tile': '',
+							},
+						},
+					},
+				},
+			},
+		});
+
+		expect(parsed).toMatchObject({
+			tileOffsetX: 0,
+			tileOffsetY: 0,
+			tileScaleX: 1,
+			tileScaleY: 1,
+			tileFlip: 'none',
+			tileAlignment: 'tl',
+		});
+	});
+
 	it('supports layout and master root tags', () => {
 		const parsed = new BackgroundPropertiesProbe().parse(
 			{

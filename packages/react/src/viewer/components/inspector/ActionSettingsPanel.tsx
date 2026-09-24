@@ -20,6 +20,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { ActionTargetFields } from './ActionTargetFields';
 import { CARD, HEADING, INPUT } from './inspector-pane-constants';
 
@@ -191,7 +192,7 @@ function ActionTriggerSection({
 	return (
 		<div className='space-y-1.5' data-pptx-action-trigger={trigger}>
 			<span className='text-muted-foreground font-medium'>{label}</span>
-			<select
+			<WebSelect
 				disabled={!canEdit}
 				aria-label={label}
 				className={cn(INPUT, 'w-full')}
@@ -203,7 +204,7 @@ function ActionTriggerSection({
 						{t(o.labelKey)}
 					</option>
 				))}
-			</select>
+			</WebSelect>
 
 			<ActionTargetFields
 				type={effectiveType}

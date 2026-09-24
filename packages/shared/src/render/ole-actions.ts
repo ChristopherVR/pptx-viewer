@@ -7,6 +7,7 @@
  *
  * @module shared/render/ole-actions
  */
+import type { MediaSurface } from './media-playback';
 
 const BYTE_UNITS = ['bytes', 'KB', 'MB', 'GB', 'TB'] as const;
 
@@ -60,4 +61,26 @@ export function isBrowserOpenableMime(mime?: string): boolean {
 		value === 'application/xml' ||
 		value === 'application/xhtml+xml'
 	);
+}
+
+/**
+ * Whether an OLE element's interactive Download / (browser-openable) Open
+ * action bar should render at all.
+ *
+ * Mirrors {@link import('./media-playback').mediaTransportVisible}'s two
+ * non-interactive surfaces: a still of a slide (thumbnail rail, presenter
+ * console panes, a slide-transition overlay, an export raster) and the live
+ * presentation stage never offer element-level browser chrome, only the
+ * editable canvas does. Unlike media transport there is no per-binding
+ * "what the canvas already does" divergence to preserve: every binding's own
+ * authoring canvas already shows these actions, so the rule reduces to
+ * "the editable canvas, and nowhere else".
+ *
+ * This matters beyond correctness: a slide thumbnail is rendered INSIDE a
+ * `<button aria-label="Go to slide N">` in every binding, so an OLE preview's
+ * own Download/Open `<button>` rendered there is invalid, un-clickable
+ * (nested-interactive-control) markup, not merely an unwanted affordance.
+ */
+export function oleActionsVisible(surface: MediaSurface): boolean {
+	return !surface.presenting && !surface.preview;
 }

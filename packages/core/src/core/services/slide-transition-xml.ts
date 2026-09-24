@@ -36,6 +36,19 @@ export const STANDARD_TRANSITION_TYPES = new Set<string>([
 const SPEEDS = new Set<PptxTransitionSpeed>(['slow', 'med', 'fast']);
 const UINT_MAX = 4_294_967_295;
 
+/**
+ * Standard OOXML transition types whose horz/vert orientation is carried on
+ * the SAME `@_dir` attribute as every other type's direction (`CT_
+ * OrientationTransition`), COM-verified: `<p:blinds dir="vert"/>`, never
+ * `<p:blinds orient="vert"/>`. `split` is deliberately excluded: it is
+ * `CT_SplitTransition`, which genuinely has TWO independent attributes,
+ * `@_orient` (horz/vert) AND `@_dir` (in/out), also COM-verified
+ * (`<p:split orient="vert" dir="in"/>`). Keep in sync with shared's
+ * `TRANSITION_ORIENTATION_TYPES` minus `split`'s and any p14 orientation
+ * type (`doors`/`window`, handled separately in `p14-transition-parser`).
+ */
+const DIR_IS_ORIENTATION_TYPE = new Set(['blinds', 'checker', 'comb', 'randomBar']);
+
 export interface ParsedTransitionDetails {
 	type: PptxTransitionType;
 	direction?: string;
@@ -96,9 +109,13 @@ export function parseTransitionDetails(
 			continue;
 		}
 		const detail = value as XmlObject;
-		const direction = token(detail['@_dir']);
-		if (direction) {
-			result.direction = direction;
+		const rawDir = token(detail['@_dir']);
+		if (rawDir) {
+			if (DIR_IS_ORIENTATION_TYPE.has(name) && (rawDir === 'horz' || rawDir === 'vert')) {
+				result.orient = rawDir;
+			} else {
+				result.direction = rawDir;
+			}
 		}
 		const orient = token(detail['@_orient']);
 		if (orient === 'horz' || orient === 'vert') {
@@ -177,11 +194,15 @@ export function createPreservedTransitionNode(
 
 export function buildStandardTransitionChild(transition: PptxSlideTransition): XmlObject {
 	const child: XmlObject = {};
-	if (transition.direction) {
-		child['@_dir'] = transition.direction;
-	}
-	if (transition.orient) {
-		child['@_orient'] = transition.orient;
+	if (DIR_IS_ORIENTATION_TYPE.has(transition.type) && transition.orient) {
+		child['@_dir'] = transition.orient;
+	} else {
+		if (transition.direction) {
+			child['@_dir'] = transition.direction;
+		}
+		if (transition.orient) {
+			child['@_orient'] = transition.orient;
+		}
 	}
 	if (validUnsignedInteger(transition.spokes, 1)) {
 		child['@_spokes'] = String(transition.spokes);

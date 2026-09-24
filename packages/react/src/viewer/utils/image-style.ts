@@ -1,5 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement, hasShapeProperties } from 'pptx-viewer-core';
+import type { NativeImageSize } from 'pptx-viewer-shared';
 import {
 	getComputedFillStyle,
 	getCropShapeClipPath as sharedGetCropShapeClipPath,
@@ -105,7 +106,17 @@ export function getCropShapeClipPath(element: PptxElement): string | undefined {
  */
 export { isImageTiled, buildMirrorTiledBackground } from 'pptx-viewer-shared';
 
-/** The tiled-picture background layer, re-typed as `React.CSSProperties`. */
-export function getImageTilingStyle(element: PptxElement): React.CSSProperties | undefined {
-	return sharedGetImageTilingStyle(element) as React.CSSProperties | undefined;
+/**
+ * The tiled-picture background layer, re-typed as `React.CSSProperties`.
+ *
+ * `nativeSize`, when supplied (see `TiledImageLayer`, which probes it via
+ * `pptx-viewer-shared`'s `image-native-size`), sizes the tile in absolute
+ * pixels relative to the picture's own native size per ECMA-376 §20.1.8.58,
+ * instead of the container-relative percentage CSS would otherwise resolve.
+ */
+export function getImageTilingStyle(
+	element: PptxElement,
+	nativeSize?: NativeImageSize,
+): React.CSSProperties | undefined {
+	return sharedGetImageTilingStyle(element, nativeSize) as React.CSSProperties | undefined;
 }

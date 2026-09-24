@@ -212,6 +212,20 @@ describe('buildAngularImageRenderView - tiled pictures', () => {
 		expect(buildAngularImageRenderView(image()).tilingStyle).toBeUndefined();
 	});
 
+	// ECMA-376 §20.1.8.58: `@sx`/`@sy` is a percentage of the picture's own
+	// NATIVE pixel size, not of the container. When `ImageRendererComponent`
+	// supplies the probed native size, the tile switches to absolute pixels.
+	it('sizes the tile in native-relative pixels when a native size is supplied', () => {
+		const view = buildAngularImageRenderView(
+			image(undefined, {
+				tileScaleX: 0.1,
+				tileScaleY: 0.25,
+			} as Partial<PptxElement>),
+			{ width: 800, height: 400 },
+		);
+		expect(view.tilingStyle?.backgroundSize).toBe('80px 100px');
+	});
+
 	it('clips a custGeom oval-cut picture on the FRAME, not the img', () => {
 		// Regression: the picture's own shape geometry (an authored oval
 		// custGeom) must clip the stationary frame container. A pixel-space

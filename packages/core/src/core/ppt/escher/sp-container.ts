@@ -252,6 +252,13 @@ export function parseDrawing(ctx: DrawingContext, dgContainer: PptRecord): Parse
 			// SolverContainer and friends: ignored.
 		}
 	}
+	// PowerPoint writes the background shape as the DgContainer's own
+	// `shape` child, a sibling AFTER the top group ([MS-ODRAW] 2.2.13).
+	for (const child of iterateChildren(ctx.view, dgContainer)) {
+		if (child.recType === OA.SpContainer && result.backgroundRgb === undefined) {
+			result.backgroundRgb = extractBackground(ctx, child);
+		}
+	}
 	return result;
 }
 

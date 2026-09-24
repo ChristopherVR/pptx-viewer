@@ -599,3 +599,62 @@ describe('pptxTableDataParser - cell image fill', () => {
 		expect(result!.rows[0].cells[0].style?.backgroundImageFillPath).toBe('ppt/media/photo.png');
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Default cell font size (p:otherStyle threading, item 3)
+// ---------------------------------------------------------------------------
+
+describe('pptxTableDataParser - default cell font size (otherStyle)', () => {
+	it('sets defaultCellFontSize from resolveDefaultCellFontSize, threading slidePath', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('R1 C1')] }],
+		});
+		const resolveDefaultCellFontSize = (slidePath: string | undefined): number | undefined => {
+			expect(slidePath).toBe('ppt/slides/slide1.xml');
+			return 18;
+		};
+		const parser = new PptxTableDataParser(makeContext({ resolveDefaultCellFontSize }));
+		const result = parser.parseTableData(graphicData, 'ppt/slides/slide1.xml');
+
+		expect(result!.defaultCellFontSize).toBe(18);
+	});
+
+	it('omits defaultCellFontSize when the resolver returns undefined', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('R1 C1')] }],
+		});
+		const parser = new PptxTableDataParser(
+			makeContext({ resolveDefaultCellFontSize: () => undefined }),
+		);
+		const result = parser.parseTableData(graphicData, 'ppt/slides/slide1.xml');
+
+		expect(result!.defaultCellFontSize).toBeUndefined();
+	});
+
+	it('omits defaultCellFontSize when no resolver is supplied at all', () => {
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('R1 C1')] }],
+		});
+		const parser = new PptxTableDataParser(makeContext());
+		const result = parser.parseTableData(graphicData, 'ppt/slides/slide1.xml');
+
+		expect(result!.defaultCellFontSize).toBeUndefined();
+	});
+
+	it('does not set an explicit per-cell fontSize just because a default resolved', () => {
+		// The default is a render-only hint on the table, not baked into any
+		// individual cell's parsed style, so a resave of an unstyled cell does
+		// not gain an explicit a:rPr@sz that was never authored.
+		const graphicData = makeTableXml({
+			gridCols: ['9144000'],
+			rows: [{ height: '370840', cells: [makeCell('R1 C1')] }],
+		});
+		const parser = new PptxTableDataParser(makeContext({ resolveDefaultCellFontSize: () => 18 }));
+		const result = parser.parseTableData(graphicData, 'ppt/slides/slide1.xml');
+
+		expect(result!.rows[0].cells[0].style?.fontSize).toBeUndefined();
+	});
+});

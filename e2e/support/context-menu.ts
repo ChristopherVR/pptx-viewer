@@ -84,6 +84,14 @@ export const UNGROUP_COMMAND = 'ungroup';
 export const HYPERLINK_COMMAND = 'edit hyperlink';
 export const COMMENT_COMMAND = 'add comment';
 export const DUPLICATE_COMMAND = 'duplicate';
+/** PowerPoint's "Format Object" cluster: Edit Text plus the format/anchor trio. */
+export const FORMAT_OBJECT_COMMANDS = [
+	'edit text',
+	'save as picture...',
+	'edit alt text...',
+	'size and position...',
+	'format shape...',
+] as const;
 
 /** Wording used whenever a binding never opened a menu, so reports read alike. */
 export const NO_MENU = `no context menu appeared within ${MENU_TIMEOUT_MS}ms of the right-click`;

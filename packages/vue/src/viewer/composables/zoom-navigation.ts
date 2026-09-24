@@ -1,3 +1,4 @@
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 import type { InjectionKey } from 'vue';
 import { inject, provide } from 'vue';
 
@@ -11,8 +12,12 @@ import { inject, provide } from 'vue';
  * link, exactly as before.
  */
 export interface ZoomNavigationContext {
-	/** Navigate the running presentation to a zoom element's target slide. */
-	navigateToZoomTarget: (targetSlideIndex: number) => void;
+	/**
+	 * Navigate the running presentation to a zoom's target, applying its own
+	 * `zmPr/@transitionDur` when authored and arming a "return to zoom"
+	 * excursion when `returnToParent` is set.
+	 */
+	navigateToZoomTarget: (target: ZoomNavigationTarget) => void;
 }
 
 /** Typed injection key for the zoom-navigation context. */
