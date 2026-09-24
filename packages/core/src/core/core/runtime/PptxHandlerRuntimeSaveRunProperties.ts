@@ -38,12 +38,19 @@ function applyFontMetadata(
  * ...uniformSegmentOverrides}` (`PptxHandlerRuntimeSaveParagraphs`): a
  * metadata field this run's own font node never set is not overridden by
  * that spread, so `style[key]` can hold a value ANOTHER run's font
- * resolved, not this one's. `authoredRunStyle` (this run's own parse) and
- * `inheritedRunStyle` (the paragraph's `a:defRPr` cascade) are each a
- * faithful description of their own scope, so preferring them avoids the
- * leak entirely: a run with no font of its own gets its accompanying
- * metadata from the SAME cascade that supplied its inherited typeface,
- * not from whichever run happened to seed the element-level style.
+ * resolved, not this one's.
+ *
+ * The baseline half needs one more check the leak fix's first cut missed:
+ * `CT_TextFont`'s typeface and its metadata describe the SAME font, so the
+ * paragraph's `inheritedRunStyle` panose is only valid for the typeface
+ * `inheritedRunStyle` ALSO names for this slot. A run whose own typeface
+ * genuinely differs from that baseline (this run's `<a:ea
+ * typeface="Abraham Lincoln"/>` against a paragraph baseline of "宋体",
+ * used by every OTHER run in the same shape) must not borrow the
+ * baseline's panose either, or it inherits a description of a font it
+ * does not use. `currentFace` is the typeface this call is ABOUT to write
+ * (already resolved by the caller, theme token preferred over the
+ * concrete name, matching how the typeface itself is chosen).
  *
  * When NEITHER half was ever recorded (a hand-built `TextStyle`: SDK
  * content, a synthetic test style), there is no split to prefer, so the
@@ -52,12 +59,21 @@ function applyFontMetadata(
  */
 function resolveFontMetadata<K extends keyof TextStyle>(
 	style: TextStyle,
-	key: K,
+	metadataKey: K,
+	faceKey: keyof TextStyle,
+	faceThemeTokenKey: keyof TextStyle,
+	currentFace: string,
 ): TextStyle[K] | undefined {
-	if (style.authoredRunStyle === undefined && style.inheritedRunStyle === undefined) {
-		return style[key];
+	const authored = style.authoredRunStyle;
+	const baseline = style.inheritedRunStyle;
+	if (authored === undefined && baseline === undefined) {
+		return style[metadataKey];
 	}
-	return style.authoredRunStyle?.[key] ?? style.inheritedRunStyle?.[key];
+	if (authored?.[metadataKey] !== undefined) {
+		return authored[metadataKey];
+	}
+	const baselineFace = baseline?.[faceThemeTokenKey] ?? baseline?.[faceKey];
+	return baselineFace === currentFace ? baseline?.[metadataKey] : undefined;
 }
 
 /**
@@ -413,40 +429,54 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// run whose own `<a:ea typeface="Abraham Lincoln"/>` carried no
 		// panose came back with `panose="0201…"`, the PANOSE of an unrelated
 		// CJK font ("宋体") used elsewhere in the same shape.
+		// `faceKey`/`themeTokenKey` tell `resolveFontMetadata` which typeface
+		// each metadata triple describes, so it can refuse to borrow the
+		// baseline's panose for a run whose OWN typeface differs from it.
+		const fontNode = (
+			typeface: string,
+			metadataPrefix: 'latinFont' | 'eastAsiaFont' | 'complexScriptFont' | 'symbolFont',
+			faceKey: keyof TextStyle,
+			themeTokenKey: keyof TextStyle,
+		): XmlObject =>
+			applyFontMetadata(
+				{ '@_typeface': typeface },
+				resolveFontMetadata(style, `${metadataPrefix}Panose`, faceKey, themeTokenKey, typeface),
+				resolveFontMetadata(
+					style,
+					`${metadataPrefix}PitchFamily`,
+					faceKey,
+					themeTokenKey,
+					typeface,
+				),
+				resolveFontMetadata(style, `${metadataPrefix}Charset`, faceKey, themeTokenKey, typeface),
+			);
 		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
 		if (latinFace && owns('fontFamily', 'latinFontThemeToken')) {
-			runProps['a:latin'] = applyFontMetadata(
-				{ '@_typeface': latinFace },
-				resolveFontMetadata(style, 'latinFontPanose'),
-				resolveFontMetadata(style, 'latinFontPitchFamily'),
-				resolveFontMetadata(style, 'latinFontCharset'),
-			);
+			runProps['a:latin'] = fontNode(latinFace, 'latinFont', 'fontFamily', 'latinFontThemeToken');
 		}
 		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
 		if (eastAsiaFace && owns('eastAsiaFont', 'eastAsiaFontThemeToken')) {
-			runProps['a:ea'] = applyFontMetadata(
-				{ '@_typeface': eastAsiaFace },
-				resolveFontMetadata(style, 'eastAsiaFontPanose'),
-				resolveFontMetadata(style, 'eastAsiaFontPitchFamily'),
-				resolveFontMetadata(style, 'eastAsiaFontCharset'),
+			runProps['a:ea'] = fontNode(
+				eastAsiaFace,
+				'eastAsiaFont',
+				'eastAsiaFont',
+				'eastAsiaFontThemeToken',
 			);
 		}
 		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
 		if (complexScriptFace && owns('complexScriptFont', 'complexScriptFontThemeToken')) {
-			runProps['a:cs'] = applyFontMetadata(
-				{ '@_typeface': complexScriptFace },
-				resolveFontMetadata(style, 'complexScriptFontPanose'),
-				resolveFontMetadata(style, 'complexScriptFontPitchFamily'),
-				resolveFontMetadata(style, 'complexScriptFontCharset'),
+			runProps['a:cs'] = fontNode(
+				complexScriptFace,
+				'complexScriptFont',
+				'complexScriptFont',
+				'complexScriptFontThemeToken',
 			);
 		}
 		if (style.symbolFont && owns('symbolFont')) {
-			runProps['a:sym'] = applyFontMetadata(
-				{ '@_typeface': style.symbolFont },
-				resolveFontMetadata(style, 'symbolFontPanose'),
-				resolveFontMetadata(style, 'symbolFontPitchFamily'),
-				resolveFontMetadata(style, 'symbolFontCharset'),
-			);
+			// No theme-token slot exists for the symbol font; reusing
+			// `symbolFont` as both keys makes the baseline comparison a
+			// plain typeface-to-typeface check.
+			runProps['a:sym'] = fontNode(style.symbolFont, 'symbolFont', 'symbolFont', 'symbolFont');
 		}
 
 		// 7. hlinkClick / hlinkMouseOver
