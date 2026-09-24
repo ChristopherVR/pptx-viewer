@@ -56,6 +56,7 @@ import {
 	contextMenuInspectorAnchor,
 	scrollInspectorSectionIntoView,
 } from '../internal/shared';
+import { clampedMenuPosition } from './context-menu-position';
 import { tableMenuContext } from './editor-context-menu-context';
 import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
 import { runContextMenuCommand } from './editor-context-menu-dispatch';
@@ -101,8 +102,8 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 	`,
 	styles: EDITOR_CONTEXT_MENU_STYLES,
 	host: {
-		'[style.--pptx-ctx-x]': 'x() + "px"',
-		'[style.--pptx-ctx-y]': 'y() + "px"',
+		'[style.--pptx-ctx-x]': 'position.left() + "px"',
+		'[style.--pptx-ctx-y]': 'position.top() + "px"',
 	},
 })
 export class EditorContextMenuComponent {
@@ -146,6 +147,7 @@ export class EditorContextMenuComponent {
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
 
 	/**

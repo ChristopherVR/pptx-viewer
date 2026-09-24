@@ -69,6 +69,28 @@ describe('canvasContextMenu', () => {
 		expect(items).toHaveLength(6);
 	});
 
+	it('keeps a menu opened near the bottom-right corner inside the window', () => {
+		const rect = vi
+			.spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+			.mockReturnValue({ width: 180, height: 200 } as DOMRect);
+		try {
+			act(() => {
+				root.render(
+					<CanvasContextMenu
+						{...props({
+							canvasContextMenuState: { x: window.innerWidth - 10, y: window.innerHeight - 10 },
+						})}
+					/>,
+				);
+			});
+			const menu = container.querySelector<HTMLElement>('[data-pptx-canvas-context-menu="true"]');
+			expect(menu?.style.left).toBe(`${window.innerWidth - 180 - 8}px`);
+			expect(menu?.style.top).toBe(`${window.innerHeight - 200 - 8}px`);
+		} finally {
+			rect.mockRestore();
+		}
+	});
+
 	it('greys Paste when the clipboard is empty', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props({ hasClipboard: false })} />);

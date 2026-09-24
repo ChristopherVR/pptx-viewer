@@ -43,6 +43,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasContextMenuCommandId, CanvasContextMenuEntry } from '../internal/shared';
 import { buildCanvasContextMenuEntries } from '../internal/shared';
+import { clampedMenuPosition } from './context-menu-position';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import type { CanvasContextMenuActions } from './slide-canvas-context-menu-dispatch';
 import { runCanvasContextMenuCommand } from './slide-canvas-context-menu-dispatch';
@@ -92,8 +93,8 @@ const CHECKBOX_ITEM_STYLES = `
 	`,
 	styles: [EDITOR_CONTEXT_MENU_STYLES, CHECKBOX_ITEM_STYLES],
 	host: {
-		'[style.--pptx-ctx-x]': 'x() + "px"',
-		'[style.--pptx-ctx-y]': 'y() + "px"',
+		'[style.--pptx-ctx-x]': 'position.left() + "px"',
+		'[style.--pptx-ctx-y]': 'position.top() + "px"',
 	},
 })
 export class SlideCanvasContextMenuComponent {
@@ -114,6 +115,8 @@ export class SlideCanvasContextMenuComponent {
 	readonly toggleRulers = output<void>();
 
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	/** Kept inside the viewport (see `context-menu-position.ts`). */
+	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 
 	protected readonly entries = computed<CanvasContextMenuEntry[]>(() =>
 		buildCanvasContextMenuEntries({

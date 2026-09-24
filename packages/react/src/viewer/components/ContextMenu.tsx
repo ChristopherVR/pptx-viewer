@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
 import { ContextMenuItem, ContextMenuSeparator } from './context-menu-parts';
 import type { ContextMenuProps } from './context-menu-types';
+import { useClampedMenuPosition } from './useClampedMenuPosition';
 
 /**
  * The canvas right-click menu.
@@ -21,6 +22,10 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 	const { contextMenuState, mode, onClose } = props;
 	const { t } = useTranslation();
 	const open = Boolean(contextMenuState) && mode === 'edit';
+	const menuPosition = useClampedMenuPosition<HTMLDivElement>(
+		contextMenuState?.x ?? 0,
+		contextMenuState?.y ?? 0,
+	);
 
 	// Escape dismisses the menu, as it does in the other four bindings; this
 	// one only closed on an outside click.
@@ -57,13 +62,14 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 				}}
 			/>
 			<div
+				ref={menuPosition.ref}
 				data-pptx-context-menu='true'
 				role='menu'
 				aria-label={t('pptx.contextMenu.ariaLabel')}
 				className='fixed z-[120] min-w-[180px] rounded border border-border bg-popover shadow-2xl py-1.5 text-xs text-foreground'
 				style={{
-					left: Math.max(contextMenuState.x, 8),
-					top: Math.max(contextMenuState.y, 8),
+					left: menuPosition.left,
+					top: menuPosition.top,
 				}}
 			>
 				{entries.map((entry) => {

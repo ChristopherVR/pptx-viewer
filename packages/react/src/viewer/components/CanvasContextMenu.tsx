@@ -9,6 +9,7 @@ import {
 } from './canvas-context-menu-dispatch';
 import type { CanvasContextMenuProps } from './canvas-context-menu-types';
 import { ContextMenuItem, ContextMenuSeparator } from './context-menu-parts';
+import { useClampedMenuPosition } from './useClampedMenuPosition';
 
 /**
  * The right-click menu for the empty slide canvas (no element under the
@@ -20,6 +21,10 @@ export function CanvasContextMenu(props: CanvasContextMenuProps): React.ReactEle
 	const { canvasContextMenuState, mode, onClose } = props;
 	const { t } = useTranslation();
 	const open = Boolean(canvasContextMenuState) && mode === 'edit';
+	const menuPosition = useClampedMenuPosition<HTMLDivElement>(
+		canvasContextMenuState?.x ?? 0,
+		canvasContextMenuState?.y ?? 0,
+	);
 
 	useEffect(() => {
 		if (!open) {
@@ -53,13 +58,14 @@ export function CanvasContextMenu(props: CanvasContextMenuProps): React.ReactEle
 				}}
 			/>
 			<div
+				ref={menuPosition.ref}
 				data-pptx-canvas-context-menu='true'
 				role='menu'
 				aria-label={t('pptx.canvasContextMenu.ariaLabel')}
 				className='fixed z-[120] min-w-[180px] rounded border border-border bg-popover shadow-2xl py-1.5 text-xs text-foreground'
 				style={{
-					left: Math.max(canvasContextMenuState.x, 8),
-					top: Math.max(canvasContextMenuState.y, 8),
+					left: menuPosition.left,
+					top: menuPosition.top,
 				}}
 			>
 				{entries.map((entry) => {
