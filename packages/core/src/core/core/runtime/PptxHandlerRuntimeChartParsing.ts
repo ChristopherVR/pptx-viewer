@@ -25,6 +25,7 @@ import { parseChartAxes, parseChart3DSurfaces } from '../../utils/chart-axis-par
 import { parseChartBandFmts } from '../../utils/chart-band-fmts';
 import { extractSeriesNumbersWithBlanks } from '../../utils/chart-blank-values';
 import { parseBubbleChartOptions } from '../../utils/chart-bubble-options';
+import { chartContainerAllows } from '../../utils/chart-container-content-model';
 import {
 	chartContainerLocalNameToType,
 	isLineDrawnChartType,
@@ -292,21 +293,34 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				lineStyleColorAdapter,
 				resolveTypeface,
 			);
-			// Parse drop lines (c:dropLines) and hi-low lines (c:hiLowLines)
+			// Parse drop lines (c:dropLines), hi-low lines (c:hiLowLines) and
+			// up/down bars (c:upDownBars). These are legal only on `c:lineChart`/
+			// `c:stockChart` (dropLines also on area charts), so on a combo whose
+			// FIRST container is something else (a volume+stock combo writes
+			// `c:barChart` before `c:stockChart`), reading them off `seriesContainer`
+			// (always `chartContainerKeys[0]`) silently found nothing: the element
+			// they actually live on was a later sibling container. Resolve each one
+			// from whichever sibling container legally allows it instead.
+			const helperLineContainer = (childLocal: string): XmlObject | undefined => {
+				const key = chartContainerKeys.find((containerKey) =>
+					chartContainerAllows(this.compatibilityService.getXmlLocalName(containerKey), childLocal),
+				);
+				return key ? (plotArea[key] as XmlObject | undefined) : seriesContainer;
+			};
 			const dropLines = parseLineStyle(
-				seriesContainer,
+				helperLineContainer('dropLines'),
 				'dropLines',
 				this.xmlLookupService,
 				lineStyleColorAdapter,
 			);
 			const hiLowLines = parseLineStyle(
-				seriesContainer,
+				helperLineContainer('hiLowLines'),
 				'hiLowLines',
 				this.xmlLookupService,
 				lineStyleColorAdapter,
 			);
 			const upDownBars = parseChartUpDownBars(
-				seriesContainer,
+				helperLineContainer('upDownBars'),
 				this.xmlLookupService,
 				lineStyleColorAdapter,
 			);

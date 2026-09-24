@@ -622,6 +622,56 @@ describe('buildComboViewModel', () => {
 		expect(rects).toHaveLength(CATEGORIES.length);
 		expect(polylines).toHaveLength(2);
 	});
+
+	// ── volume+stock combo (c:barChart volume + c:stockChart HLC/OHLC) ────────
+
+	it('renders a Volume-HLC combo as a volume bar plus hi-lo wick/close tick, not generic lines', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['D1', 'D2'],
+			series: [
+				{ name: 'Volume', values: [70, 120], seriesChartType: 'bar' },
+				{ name: 'High', values: [55, 57], seriesChartType: 'stock' },
+				{ name: 'Low', values: [11, 12], seriesChartType: 'stock' },
+				{ name: 'Close', values: [32, 35], seriesChartType: 'stock' },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, ['D1', 'D2']);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		const lines = vm.primitives.filter((p) => p.kind === 'line');
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		// Only the volume bar produces rects; HLC has no candle body.
+		expect(rects).toHaveLength(2);
+		// One wick + one close tick per category, and no generic line-series
+		// polylines for the price series (they are candles, not lines).
+		expect(lines).toHaveLength(4);
+		expect(polylines).toHaveLength(0);
+	});
+
+	it('renders a Volume-OHLC combo as a volume bar plus wick + up/down-coloured candle bodies', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: ['D1', 'D2'],
+			series: [
+				{ name: 'Volume', values: [70, 120], seriesChartType: 'bar' },
+				{ name: 'Open', values: [25, 34], seriesChartType: 'stock' },
+				{ name: 'High', values: [55, 57], seriesChartType: 'stock' },
+				{ name: 'Low', values: [11, 12], seriesChartType: 'stock' },
+				{ name: 'Close', values: [32, 35], seriesChartType: 'stock' },
+			],
+			upDownBars: {
+				upBars: { fillColor: '#00cc00' },
+				downBars: { fillColor: '#cc0000' },
+			},
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, ['D1', 'D2']);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		// One volume bar + one OHLC candle body per category.
+		expect(rects).toHaveLength(4);
+		expect(rects.some((r) => r.kind === 'rect' && r.fill === '#00cc00')).toBeTruthy();
+		expect(polylines).toHaveLength(0);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -685,7 +735,9 @@ describe('buildStockViewModel', () => {
 
 	// ── HLC series → primitive counts ─────────────────────────────────────────
 
-	it('produces one wick line per category (HLC)', () => {
+	it('produces one wick line AND one close tick per category (HLC)', () => {
+		// HLC (no Open series) draws a hi-lo wick plus a short close tick, both
+		// `SvgLine`s: PowerPoint's own HLC has no candle body at all.
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: CATEGORIES,
@@ -697,10 +749,10 @@ describe('buildStockViewModel', () => {
 		};
 		const vm = buildStockViewModel(makeElement(), chartData, CATEGORIES);
 		const lines = vm.primitives.filter((p) => p.kind === 'line');
-		expect(lines).toHaveLength(CATEGORIES.length);
+		expect(lines).toHaveLength(CATEGORIES.length * 2);
 	});
 
-	it('produces one body rect per category (HLC)', () => {
+	it('produces NO body rect for HLC (no Open series means no candle body)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: CATEGORIES,
@@ -712,7 +764,28 @@ describe('buildStockViewModel', () => {
 		};
 		const vm = buildStockViewModel(makeElement(), chartData, CATEGORIES);
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
-		expect(rects).toHaveLength(CATEGORIES.length);
+		expect(rects).toHaveLength(0);
+	});
+
+	it('an HLC close tick is a short horizontal line to the right of the wick', () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1'],
+			series: [
+				{ name: 'High', values: [110] },
+				{ name: 'Low', values: [90] },
+				{ name: 'Close', values: [100] },
+			],
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
+		const lines = vm.primitives.filter((p) => p.kind === 'line');
+		expect(lines).toHaveLength(2);
+		const tick = lines.find((line) => line.kind === 'line' && line.x2 !== line.x1);
+		expect(tick).toBeDefined();
+		if (tick && tick.kind === 'line') {
+			expect(tick.x2).toBeGreaterThan(tick.x1);
+			expect(tick.y1).toBe(tick.y2);
+		}
 	});
 
 	// ── OHLC series → primitive counts ────────────────────────────────────────
@@ -749,7 +822,7 @@ describe('buildStockViewModel', () => {
 		expect(rects).toHaveLength(CATEGORIES.length);
 	});
 
-	it('total primitive count is 2× catCount (one wick + one body per candle)', () => {
+	it('total primitive count is 2× catCount (one wick + one close tick per candle, HLC)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: CATEGORIES,
@@ -765,26 +838,22 @@ describe('buildStockViewModel', () => {
 
 	// ── candle body colour (up/down) ──────────────────────────────────────────
 
-	it('colours up-candle bodies green (close >= open in HLC mode, open = low)', () => {
-		// In HLC mode open defaults to low. If close > low the candle is "up".
+	it('an HLC candle has no body to colour (close >= open is meaningless without an Open series)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: ['D1'],
 			series: [
 				{ name: 'High', values: [110] },
 				{ name: 'Low', values: [90] },
-				{ name: 'Close', values: [105] }, // close 105 > low 90 → isUp
+				{ name: 'Close', values: [105] },
 			],
 		};
 		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
 		const rect = vm.primitives.find((p) => p.kind === 'rect');
-		expect(rect).toBeDefined();
-		if (rect && rect.kind === 'rect') {
-			expect(rect.fill).toBe('#22c55e'); // CANDLE_UP_FILL
-		}
+		expect(rect).toBeUndefined();
 	});
 
-	it('colours down-candle bodies red (close < open in OHLC mode)', () => {
+	it('colours down-candle bodies from PowerPoint default (dark) with no c:upDownBars', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: ['D1'],
@@ -799,11 +868,11 @@ describe('buildStockViewModel', () => {
 		const rect = vm.primitives.find((p) => p.kind === 'rect');
 		expect(rect).toBeDefined();
 		if (rect && rect.kind === 'rect') {
-			expect(rect.fill).toBe('#ef4444'); // CANDLE_DOWN_FILL
+			expect(rect.fill).toBe('#404040'); // PowerPoint's own default down-bar fill
 		}
 	});
 
-	it('colours up-candle bodies green when close === open (OHLC doji)', () => {
+	it('colours up-candle bodies from PowerPoint default (white) with no c:upDownBars', () => {
 		const chartData: PptxChartData = {
 			chartType: 'stock',
 			categories: ['D1'],
@@ -817,8 +886,31 @@ describe('buildStockViewModel', () => {
 		const vm = buildStockViewModel(makeElement(), chartData, ['D1']);
 		const rect = vm.primitives.find((p) => p.kind === 'rect');
 		if (rect && rect.kind === 'rect') {
-			expect(rect.fill).toBe('#22c55e');
+			expect(rect.fill).toBe('#FFFFFF'); // PowerPoint's own default up-bar fill
 		}
+	});
+
+	it('colours candle bodies from c:upDownBars/c:upBars(downBars) fill when authored, not a hardcoded palette', () => {
+		const chartData: PptxChartData = {
+			chartType: 'stock',
+			categories: ['D1', 'D2'],
+			series: [
+				{ name: 'Open', values: [100, 110] },
+				{ name: 'High', values: [120, 130] },
+				{ name: 'Low', values: [90, 95] },
+				{ name: 'Close', values: [115, 105] }, // D1 up, D2 down
+			],
+			upDownBars: {
+				upBars: { fillColor: '#123456' },
+				downBars: { fillColor: '#abcdef' },
+			},
+		};
+		const vm = buildStockViewModel(makeElement(), chartData, ['D1', 'D2']);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		expect(rects.map((r) => (r.kind === 'rect' ? r.fill : undefined))).toStrictEqual([
+			'#123456',
+			'#abcdef',
+		]);
 	});
 
 	// ── wick geometry ─────────────────────────────────────────────────────────
@@ -1033,6 +1125,7 @@ describe('buildStockViewModel', () => {
 			chartType: 'stock',
 			categories: ['D1', 'D2', 'D3'],
 			series: [
+				{ name: 'Open', values: [9, 19, 29] },
 				{ name: 'High', values: [11, 22, 33] },
 				{ name: 'Low', values: [8, 18, 28] },
 				{ name: 'Close', values: [10, 20, 30] },
@@ -1043,7 +1136,7 @@ describe('buildStockViewModel', () => {
 		const bodies = vm.primitives.filter((primitive) => primitive.kind === 'rect');
 		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['D3', 'D2', 'D1']);
 		expect(bodies.map((body) => body.part?.pointIndex)).toStrictEqual([2, 1, 0]);
-		expect(bodies.every((body) => body.part?.seriesIndex === 2)).toBeTruthy();
+		expect(bodies.every((body) => body.part?.seriesIndex === 3)).toBeTruthy();
 	});
 
 	// ── edge cases ────────────────────────────────────────────────────────────
@@ -1120,20 +1213,46 @@ describe('stock / combo overlay depth', () => {
 		style: { hasLegend: true, legendPosition: 'b' },
 	};
 
-	it('draws c:hiLowLines on a stock chart', () => {
-		const without = buildStockViewModel(makeElement(), OHLC, CATEGORIES);
-		const withLines = buildStockViewModel(makeElement(), { ...OHLC, hiLowLines: {} }, CATEGORIES);
-		expect(withLines.primitives.length).toBeGreaterThan(without.primitives.length);
-	});
-
-	it('draws c:upDownBars on a stock chart', () => {
-		const without = buildStockViewModel(makeElement(), OHLC, CATEGORIES);
-		const withBars = buildStockViewModel(
+	it("honours c:hiLowLines' own colour and width for the wick", () => {
+		// The wick always draws (a stock chart is unusable without it); what
+		// `c:hiLowLines` controls is its colour/width, not whether it appears.
+		const withLines = buildStockViewModel(
 			makeElement(),
-			{ ...OHLC, upDownBars: { gapWidth: 150 } },
+			{ ...OHLC, hiLowLines: { color: '#ff00ff', width: 3 } },
 			CATEGORIES,
 		);
-		expect(withBars.primitives.length).toBeGreaterThan(without.primitives.length);
+		const wick = withLines.primitives.find((p) => p.kind === 'line');
+		expect(wick).toBeDefined();
+		if (wick && wick.kind === 'line') {
+			expect(wick.stroke).toBe('#ff00ff');
+			expect(wick.strokeWidth).toBe(3);
+		}
+	});
+
+	it("honours c:upDownBars' own up/down fills for the candle body", () => {
+		// The body always draws for OHLC; `c:upDownBars` controls its fill, not
+		// whether it appears (see the PowerPoint-default tests above).
+		const withBars = buildStockViewModel(
+			makeElement(),
+			{
+				...OHLC,
+				upDownBars: {
+					gapWidth: 150,
+					upBars: { fillColor: '#00cc00' },
+					downBars: { fillColor: '#cc0000' },
+				},
+			},
+			CATEGORIES,
+		);
+		const rects = withBars.primitives.filter((p) => p.kind === 'rect');
+		expect(rects.length).toBeGreaterThan(0);
+		// OHLC fixture: Open [42,58,55,66], Close [47,61,53,71] → up,up,down,up.
+		expect(rects.map((r) => (r.kind === 'rect' ? r.fill : undefined))).toStrictEqual([
+			'#00cc00',
+			'#00cc00',
+			'#cc0000',
+			'#00cc00',
+		]);
 	});
 
 	it('emits a data-table block for a stock chart that declares one', () => {

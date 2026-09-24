@@ -23,6 +23,7 @@ import { computeHelperLinePrimitives } from './chart-helper-lines';
 import { buildCartesianHorizontalAxis } from './chart-horizontal-axis';
 import type { LegendSwatchKind } from './chart-legend-swatch';
 import { computeAxisTitlePrimitives, computeTrendlinePrimitives } from './chart-overlays';
+import { computeComboStockOverlay, findComboStockSeries } from './chart-stock-candles';
 import type {
 	ChartViewModel,
 	PlotLayout,
@@ -153,11 +154,20 @@ export function buildComboViewModel(
 	const primitives: SvgPrimitive[] = [];
 	const dataLabels: SvgText[] = [];
 
-	// Drop / hi-low / up-down helper lines, drawn behind the combo marks.
-	const helperOpts = { mode: 'line' as const, xPositions: horizontalAxis.xPositions };
-	primitives.push(
-		...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
-	);
+	// A volume+stock combo (`c:barChart` volume + `c:stockChart` HLC/OHLC price
+	// series) draws its own hi-lo wick / candle body below from the price
+	// series alone, on their own axis. Running the generic drop/hi-low/up-down
+	// helper here would wrongly fold the volume bar into the "highest/lowest
+	// series per category" calculation those helpers do over ALL series.
+	const stockEntries = findComboStockSeries(chartData.series);
+	const isStockCombo = stockEntries.length >= 3;
+	const stockIndexes = new Set(stockEntries.map((entry) => entry.index));
+	if (!isStockCombo) {
+		const helperOpts = { mode: 'line' as const, xPositions: horizontalAxis.xPositions };
+		primitives.push(
+			...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
+		);
+	}
 
 	primitives.push(
 		...computeComboBarCluster(
@@ -205,6 +215,10 @@ export function buildComboViewModel(
 		);
 	}
 	for (const seriesIndex of lineIndices) {
+		// The stock-tagged series are drawn as candles below, not as lines.
+		if (stockIndexes.has(seriesIndex)) {
+			continue;
+		}
 		const series = chartData.series[seriesIndex];
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
 		appendLineSeries(
@@ -219,6 +233,22 @@ export function buildComboViewModel(
 			dataLabels,
 			horizontalAxis.xPositions,
 		);
+	}
+
+	if (isStockCombo) {
+		const closeIndex = stockEntries[stockEntries.length - 1].index;
+		const stockRange = rangeForSeries(closeIndex, primaryRange, secondaryRange, secondaryIndexes);
+		const overlay = computeComboStockOverlay(
+			stockEntries,
+			chartData,
+			layout,
+			stockRange,
+			catCount,
+			sourceIndices,
+			horizontalAxis.xPositions,
+		);
+		primitives.push(...overlay.primitives);
+		dataLabels.push(...overlay.dataLabels);
 	}
 	primitives.push(...horizontalAxis.tickMarks);
 	const displayChartData = horizontalAxis.displayChartData;
