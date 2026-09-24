@@ -15,14 +15,13 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { report } from './support/context-menu';
+import { report, stageElements } from './support/context-menu';
 import {
 	elementWithText,
 	loadDeckAt,
 	SAMPLE_DECK,
 	selectElement,
 	slideStage,
-	stageElements,
 } from './support/deck';
 import { pressShortcut } from './support/keyboard';
 import { byBinding } from './support/menu-report';
