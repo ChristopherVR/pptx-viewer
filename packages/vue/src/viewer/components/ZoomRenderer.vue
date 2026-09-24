@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { PptxElement, ZoomPptxElement } from 'pptx-viewer-core';
 import { isZoomElement } from 'pptx-viewer-core';
-import { buildSummaryZoomView } from 'pptx-viewer-shared';
+import { buildSummaryZoomView, resolveZoomNavigationTarget } from 'pptx-viewer-shared';
+import type { SummaryZoomTileView } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -108,20 +109,28 @@ const ariaLabel = computed(() => {
 const zoomNav = injectZoomNavigation();
 const zoomNavActive = computed(() => Boolean(zoomNav && zoom.value));
 
-function activate(target = targetSlideIndex.value): void {
+function activate(): void {
 	if (!zoomNav || !zoom.value) {
 		return;
 	}
-	zoomNav.navigateToZoomTarget(target);
+	const target = resolveZoomNavigationTarget(zoom.value);
+	if (target) {
+		zoomNav.navigateToZoomTarget(target);
+	}
 }
 
-function activateSummary(event: Event, target: number): void {
-	if (!zoomNavActive.value) {
+function activateSummary(event: Event, tile: SummaryZoomTileView): void {
+	if (!zoomNavActive.value || !zoomNav) {
 		return;
 	}
 	event.preventDefault();
 	event.stopPropagation();
-	activate(target);
+	zoomNav.navigateToZoomTarget({
+		targetSlideIndex: tile.targetSlideIndex,
+		targetSectionId: tile.sectionId,
+		returnToParent: tile.returnToParent,
+		transitionDurationMs: tile.transitionDurationMs,
+	});
 }
 
 function onClick(event: MouseEvent): void {
@@ -175,9 +184,9 @@ function onKeydown(event: KeyboardEvent): void {
 				:aria-label="tile.ariaLabel"
 				:role="zoomNavActive ? 'button' : undefined"
 				:tabindex="zoomNavActive ? 0 : undefined"
-				@click="activateSummary($event, tile.targetSlideIndex)"
-				@keydown.enter="activateSummary($event, tile.targetSlideIndex)"
-				@keydown.space="activateSummary($event, tile.targetSlideIndex)"
+				@click="activateSummary($event, tile)"
+				@keydown.enter="activateSummary($event, tile)"
+				@keydown.space="activateSummary($event, tile)"
 			>
 				<img v-if="tile.imageSrc" :src="tile.imageSrc" :alt="tile.ariaLabel" draggable="false" />
 				<template v-else

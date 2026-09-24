@@ -361,6 +361,88 @@ describe('createPresentationPlayback (native-timing controller)', () => {
 	});
 });
 
+describe('createPresentationPlayback zoom navigation', () => {
+	let doc: Document;
+	let stageWrap: HTMLElement;
+
+	beforeEach(() => {
+		doc = document;
+		stageWrap = doc.createElement('div');
+		doc.body.appendChild(stageWrap);
+		vi.useFakeTimers();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		stageWrap.remove();
+	});
+
+	function slideDeck(count: number): PptxSlide[] {
+		return Array.from(
+			{ length: count },
+			(_, index) => ({ id: `s${index}`, elements: [] }) as unknown as PptxSlide,
+		);
+	}
+
+	it('navigateToZoomTarget returns the target slide index', () => {
+		const playback = createPresentationPlayback();
+		const index = playback.navigateToZoomTarget(
+			{ targetSlideIndex: 2, returnToParent: false },
+			0,
+			slideDeck(4),
+		);
+		expect(index).toBe(2);
+	});
+
+	it('consumeZoomReturnOnAdvance returns the origin slide once the excursion end is reached, and undefined before that', () => {
+		const playback = createPresentationPlayback();
+		playback.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: true }, 0, slideDeck(4));
+		expect(playback.consumeZoomReturnOnAdvance(1)).toBeUndefined();
+		expect(playback.consumeZoomReturnOnAdvance(2)).toBe(0);
+	});
+
+	it('never arms an excursion when returnToParent is false', () => {
+		const playback = createPresentationPlayback();
+		playback.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: false }, 0, slideDeck(4));
+		expect(playback.consumeZoomReturnOnAdvance(2)).toBeUndefined();
+	});
+
+	it("plays the zoom's own transitionDur as an override, even onto a slide with no authored transition of its own", () => {
+		const playback = createPresentationPlayback();
+		const stage0 = buildStage(doc, ['a']);
+		stageWrap.appendChild(stage0);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage: stage0,
+			slide: slideWith([]),
+			slideIndex: 0,
+			presenting: true,
+		});
+		expect(stageWrap.querySelector('.pptxv-transition-overlay')).toBeNull();
+
+		playback.navigateToZoomTarget(
+			{ targetSlideIndex: 1, returnToParent: false, transitionDurationMs: 150 },
+			0,
+			slideDeck(2),
+		);
+		stageWrap.replaceChildren();
+		const stage1 = buildStage(doc, ['b']);
+		stageWrap.appendChild(stage1);
+		playback.syncStage({
+			doc,
+			stageWrap,
+			stage: stage1,
+			// The destination slide authors NO transition of its own; the overlay
+			// below can only come from the zoom's own transitionDur override.
+			slide: slideWith([]),
+			slideIndex: 1,
+			presenting: true,
+		});
+		expect(stageWrap.querySelector('.pptxv-transition-overlay')).not.toBeNull();
+	});
+});
+
 describe('createPresentationPlayback transition sound (p:sndAc/p:stSnd, p:endSnd)', () => {
 	let doc: Document;
 	let stageWrap: HTMLElement;

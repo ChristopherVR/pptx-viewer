@@ -1478,6 +1478,11 @@ export * from './title-bar';
 // stylesheets cannot read a Tailwind class, plus the one zoom step all five
 // share. Both exist so a hand-ported binding has something to derive from.
 export * from './chrome-metrics';
+// Slide-show PLAYBACK consequences of a Zoom's `@returnToParent` /
+// `@transitionDur` (see the module doc comment): the pending "excursion" a
+// forward advance consumes, plus the synthetic transition override, shared by
+// every binding's presentation-mode navigation.
+export * from './zoom-return-navigation';
 export * from './zoom-step';
 export * from './command-search';
 export * from './autosave-store';

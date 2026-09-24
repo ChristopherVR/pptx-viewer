@@ -225,7 +225,7 @@ providePresentationElementStates(playback.presentationElementStates);
 // Slide-Zoom / Section-Zoom tiles jump to their target slide when clicked. The
 // context is provided only here (during a running presentation), so the same
 // ZoomRenderer stays a static link in the editor/read-only tree.
-provideZoomNavigation({ navigateToZoomTarget: nav.goTo });
+provideZoomNavigation({ navigateToZoomTarget: nav.navigateToZoomTarget });
 
 const { onFrameClick, onFrameHover, onFrameHoverEnd } = usePresentationAnimationStyles({
 	frameRef,

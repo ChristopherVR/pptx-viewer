@@ -1,10 +1,13 @@
-import type { PptxAction, PptxSlide } from 'pptx-viewer-core';
+import type { PptxAction, PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import {
 	hasShowSlideAfter,
 	nextShowSlideIndex,
 	previousShowSlideIndex,
 	resolveAutoAdvanceDelayMs,
+	resolveForwardSlideWithZoomReturn,
+	buildZoomTransitionOverride,
 } from 'pptx-viewer-shared';
+import type { ZoomExcursion } from 'pptx-viewer-shared';
 import { useRef, useCallback } from 'react';
 
 import type { ViewerMode } from '../../types';
@@ -80,11 +83,19 @@ export interface UseSlideNavigationInput {
 	onOleVerb?: (verb: number, elementId: string | undefined) => void;
 	/** `ppaction://program`. */
 	onRunProgram?: (target: string) => void;
+	/**
+	 * A pending "return to zoom" excursion armed by `useZoomNavigation`'s
+	 * `handleZoomClick`. Consulted on every forward advance: once the show
+	 * reaches `excursion.endSlideIndex`, the step jumps back to
+	 * `excursion.returnSlideIndex` (playing the zoom's own `transitionDur`)
+	 * instead of continuing linearly through the deck.
+	 */
+	zoomExcursionRef: React.RefObject<ZoomExcursion | undefined>;
 }
 
 export interface UseSlideNavigationResult {
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
-	navigateToSlide: (slideIndex: number) => void;
+	navigateToSlide: (slideIndex: number, transitionOverride?: PptxSlideTransition) => void;
 	/** `elementId` is the clicked element, for the verbs that act on it (`playMedia`, `oleVerb`). */
 	handlePresentationAction: (action: PptxAction, elementId?: string) => void;
 	scheduleAutoAdvanceForSlide: (slideIndex: number) => void;
@@ -124,6 +135,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 		onPlayMedia,
 		onOleVerb,
 		onRunProgram,
+		zoomExcursionRef,
 	} = input;
 
 	const movePresentationSlideRef = useRef<(direction: 1 | -1) => void>(() => {});
@@ -165,6 +177,44 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			}
 			if (isClickAdvanceBlocked(slides[presentationSlideIndex], direction, trigger)) {
 				return;
+			}
+
+			// A Slide Zoom / Section Zoom / Summary Zoom tile whose `zmPr` set
+			// `returnToParent` armed an excursion (see `useZoomNavigation`). Once
+			// a FORWARD advance reaches the last slide of that target's range,
+			// jump back to the zoom's origin slide instead of continuing linearly
+			// through the deck; PowerPoint's return jump is forward-only, so a
+			// backward step leaves the excursion untouched.
+			if (direction === 1) {
+				const consumedExcursion = zoomExcursionRef.current;
+				const step = resolveForwardSlideWithZoomReturn(
+					presentationSlideIndex,
+					undefined,
+					consumedExcursion,
+				);
+				if (step.returnedToZoom && step.nextSlideIndex !== undefined) {
+					zoomExcursionRef.current = step.excursion;
+					executeSlideTransition(step.nextSlideIndex, {
+						slides,
+						currentSlideIndex: presentationSlideIndex,
+						onPlayActionSound,
+						onStopActionSound,
+						setPresentationSlideVisible,
+						clearPresentationTimers,
+						setPresentationSlideIndex,
+						onSetActiveSlideIndex,
+						seedSlideAnimations,
+						startSlideAnimations,
+						scheduleAutoAdvanceForSlide,
+						presentationTimersRef,
+						setTransitionOverlay,
+						playTransition: true,
+						transitionOverride: buildZoomTransitionOverride(
+							consumedExcursion?.transitionDurationMs,
+						),
+					});
+					return;
+				}
 			}
 
 			// The show order (custom-show membership minus hidden slides) is resolved
@@ -265,6 +315,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 			setPresentationSlideVisible,
 			setPresentationSlideIndex,
 			setTransitionOverlay,
+			zoomExcursionRef,
 		],
 	);
 
@@ -277,7 +328,7 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 	// -----------------------------------------------------------------------
 
 	const navigateToSlide = useCallback(
-		(targetIndex: number) => {
+		(targetIndex: number, transitionOverride?: PptxSlideTransition) => {
 			if (targetIndex < 0 || targetIndex >= slides.length) {
 				return;
 			}
@@ -307,6 +358,10 @@ export function useSlideNavigation(input: UseSlideNavigationInput): UseSlideNavi
 				// wheel menu) appeared to have no morph at all, while the same
 				// transition played fine on PageDown.
 				playTransition: true,
+				// A Slide Zoom / Section Zoom / Summary Zoom click carries its own
+				// `zmPr/@transitionDur`, independent of the destination's own
+				// authored transition (see `useZoomNavigation`).
+				transitionOverride,
 			});
 		},
 		[

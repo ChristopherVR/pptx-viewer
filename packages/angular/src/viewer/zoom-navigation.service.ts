@@ -1,10 +1,13 @@
 import { Injectable } from '@angular/core';
 
+import type { ZoomNavigationTarget } from '../internal/shared';
+
 /**
- * Handler that commits navigation to a zoom element's target slide.
- * Registered by the presentation controller, which owns the active-slide index.
+ * Handler that commits navigation to a zoom's target, applying its own
+ * `zmPr/@transitionDur` and `returnToParent`. Registered by the presentation
+ * controller, which owns the active-slide index.
  */
-export type ZoomNavigationHandler = (targetSlideIndex: number) => void;
+export type ZoomNavigationHandler = (target: ZoomNavigationTarget) => void;
 
 /**
  * ZoomNavigationService: presentation-mode zoom navigation context.
@@ -34,10 +37,10 @@ export class ZoomNavigationService {
 	}
 
 	/**
-	 * Navigate the running presentation to a zoom element's target slide.
-	 * No-op when no handler has been registered.
+	 * Navigate the running presentation to a zoom's target. No-op when no
+	 * handler has been registered.
 	 */
-	navigateToZoomTarget(targetSlideIndex: number): void {
-		this.handler?.(targetSlideIndex);
+	navigateToZoomTarget(target: ZoomNavigationTarget): void {
+		this.handler?.(target);
 	}
 }

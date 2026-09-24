@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,7 +19,7 @@ let cleanup: (() => void) | undefined;
 
 function mountEl(
 	element: PptxElement,
-	options: { presenting?: boolean; navigation?: (index: number) => void } = {},
+	options: { presenting?: boolean; navigation?: (target: ZoomNavigationTarget) => void } = {},
 ): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
@@ -117,7 +118,7 @@ describe('zoomView', () => {
 	});
 
 	it('uses target metadata and navigates by click or keyboard while presenting', () => {
-		const navigate = vi.fn<(index: number) => void>();
+		const navigate = vi.fn<(target: ZoomNavigationTarget) => void>();
 		const target = mountEl(zoomElement({ zoomType: 'section', targetSectionId: 'sec-1' }), {
 			presenting: true,
 			navigation: navigate,
@@ -135,12 +136,18 @@ describe('zoomView', () => {
 
 		node?.click();
 		node?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-		expect(navigate).toHaveBeenNthCalledWith(1, 5);
-		expect(navigate).toHaveBeenNthCalledWith(2, 5);
+		const expectedTarget: ZoomNavigationTarget = {
+			targetSlideIndex: 5,
+			targetSectionId: 'sec-1',
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		};
+		expect(navigate).toHaveBeenNthCalledWith(1, expectedTarget);
+		expect(navigate).toHaveBeenNthCalledWith(2, expectedTarget);
 	});
 
 	it('renders ordered Summary Zoom tiles and navigates the selected section', () => {
-		const navigate = vi.fn<(index: number) => void>();
+		const navigate = vi.fn<(target: ZoomNavigationTarget) => void>();
 		const target = mountEl(
 			zoomElement({
 				zoomType: 'summary',
@@ -174,6 +181,11 @@ describe('zoomView', () => {
 		expect(node?.textContent).toContain('Summary Zoom');
 		expect([...tiles].map((tile) => tile.dataset.sectionId)).toStrictEqual(['intro', 'details']);
 		tiles[1].click();
-		expect(navigate).toHaveBeenCalledWith(5);
+		expect(navigate).toHaveBeenCalledWith({
+			targetSlideIndex: 5,
+			targetSectionId: 'details',
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		});
 	});
 });

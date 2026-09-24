@@ -12,6 +12,7 @@ import type {
 	CssStyleMap,
 	ElementAnimationState,
 	FieldSubstitutionContext,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -50,7 +51,7 @@ export interface ElementRenderContext {
 	/** Zero-based active slide index for Zoom return navigation. */
 	readonly currentSlideIndex?: number;
 	/** Presentation-only Zoom tile activation callback. */
-	readonly onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	readonly onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** Full slide canvas size in CSS px (elements are positioned in this space). */
 	readonly canvasSize: CanvasSize;
 	/**

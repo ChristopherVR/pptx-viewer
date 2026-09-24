@@ -14,6 +14,7 @@ import type {
 	ChartPartRef,
 	ElementAnimationState,
 	FieldSubstitutionContext,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 import {
 	actionAffordanceLabels,
@@ -86,7 +87,7 @@ export interface SlideStageOptions {
 	/** Full deck and active index used by presentation Zoom elements. */
 	slides?: readonly PptxSlide[];
 	currentSlideIndex?: number;
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	onSmartArtNodeTextChange?: (element: PptxElement, nodeId: string, text: string) => void;
 	onSmartArtNodeFillChange?: (element: PptxElement, nodeId: string, fill: string) => void;
 	/** See `ElementRenderContext.onChartPointChange`. */

@@ -7,7 +7,12 @@
  */
 import { describe, expect, it, vi } from 'vitest';
 
+import type { ZoomNavigationTarget } from '../internal/shared';
 import { ZoomNavigationService } from './zoom-navigation.service';
+
+function target(overrides: Partial<ZoomNavigationTarget> = {}): ZoomNavigationTarget {
+	return { targetSlideIndex: 3, returnToParent: false, ...overrides };
+}
 
 describe('zoomNavigationService', () => {
 	it('delegates navigateToZoomTarget to the registered handler', () => {
@@ -15,14 +20,14 @@ describe('zoomNavigationService', () => {
 		const handler = vi.fn();
 		svc.setHandler(handler);
 
-		svc.navigateToZoomTarget(3);
+		svc.navigateToZoomTarget(target({ targetSlideIndex: 3 }));
 
-		expect(handler).toHaveBeenCalledExactlyOnceWith(3);
+		expect(handler).toHaveBeenCalledExactlyOnceWith(target({ targetSlideIndex: 3 }));
 	});
 
 	it('is a no-op when no handler is registered', () => {
 		const svc = new ZoomNavigationService();
-		expect(() => svc.navigateToZoomTarget(2)).not.toThrow();
+		expect(() => svc.navigateToZoomTarget(target({ targetSlideIndex: 2 }))).not.toThrow();
 	});
 
 	it('uses the most recently registered handler', () => {
@@ -32,9 +37,9 @@ describe('zoomNavigationService', () => {
 		svc.setHandler(first);
 		svc.setHandler(second);
 
-		svc.navigateToZoomTarget(5);
+		svc.navigateToZoomTarget(target({ targetSlideIndex: 5 }));
 
 		expect(first).not.toHaveBeenCalled();
-		expect(second).toHaveBeenCalledWith(5);
+		expect(second).toHaveBeenCalledWith(target({ targetSlideIndex: 5 }));
 	});
 });

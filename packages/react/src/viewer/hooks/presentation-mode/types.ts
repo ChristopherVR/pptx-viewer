@@ -4,6 +4,7 @@ import type {
 	PresentationPointerTool,
 	PresentationSnapshot,
 	RunProgramNotice,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 
 import type { ViewerMode, PresentationAnimationRuntime } from '../../types';
@@ -160,7 +161,7 @@ export interface UsePresentationModeResult {
 	openAllSlides: () => void;
 	closeAllSlides: () => void;
 	movePresentationSlide: (direction: 1 | -1, trigger?: SlideAdvanceTrigger) => void;
-	navigateToSlide: (slideIndex: number) => void;
+	navigateToSlide: (slideIndex: number, transitionOverride?: PptxSlideTransition) => void;
 	/** `elementId` is the clicked element, for the verbs that act on it (`playMedia`, `oleVerb`). */
 	handlePresentationAction: (action: PptxAction, elementId?: string) => void;
 	/**
@@ -212,13 +213,14 @@ export interface UsePresentationModeResult {
 	/** Toggle the rehearsal timer pause state. */
 	toggleRehearsalPause: () => void;
 	// --- Zoom Navigation ---
-	/** Handle a zoom element click in presentation mode. */
-	handleZoomClick: (targetSlideIndex: number, returnSlideIndex: number) => void;
-	/** Ref holding the slide index to return to after zoom navigation. */
-	zoomReturnSlideIndex: React.RefObject<number | null>;
-	/** Navigate back to the zoom summary slide. Returns true if navigation occurred. */
-	returnToZoomSlide: () => boolean;
-	/** Clear the stored zoom return index. */
+	/**
+	 * Handle a zoom element (or Summary Zoom tile) click in presentation mode:
+	 * navigates to the target, applying its own `zmPr/@transitionDur`, and (when
+	 * `returnToParent` is set) arms an automatic return once the show reaches
+	 * the end of the target's range. See `useZoomNavigation` / `useSlideNavigation`.
+	 */
+	handleZoomClick: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
+	/** Clear a pending "return to zoom" excursion (e.g. when presentation mode ends). */
 	clearZoomReturn: () => void;
 	// --- Audience Window ---
 	/** Open the audience display in a separate browser window. Returns `true` if successful. */

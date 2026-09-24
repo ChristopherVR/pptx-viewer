@@ -71,7 +71,12 @@ describe('zoomRenderer', () => {
 		expect(wrapper.attributes('role')).toBe('button');
 		expect(wrapper.attributes('tabindex')).toBe('0');
 		await wrapper.trigger('click');
-		expect(navigateToZoomTarget).toHaveBeenCalledWith(5);
+		expect(navigateToZoomTarget).toHaveBeenCalledWith({
+			targetSlideIndex: 5,
+			targetSectionId: undefined,
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		});
 	});
 
 	it('uses the target slide background, number and section name when a lookup is provided', () => {
@@ -122,7 +127,12 @@ describe('zoomRenderer', () => {
 		await wrapper.trigger('keydown', { key: ' ' });
 		await wrapper.trigger('keydown', { key: 'a' });
 		expect(navigateToZoomTarget).toHaveBeenCalledTimes(2);
-		expect(navigateToZoomTarget).toHaveBeenNthCalledWith(1, 2);
+		expect(navigateToZoomTarget).toHaveBeenNthCalledWith(1, {
+			targetSlideIndex: 2,
+			targetSectionId: undefined,
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		});
 	});
 
 	it('renders and navigates distinct Summary Zoom section tiles', async () => {
@@ -165,6 +175,11 @@ describe('zoomRenderer', () => {
 			'details',
 		]);
 		await tiles[1].trigger('click');
-		expect(navigateToZoomTarget).toHaveBeenCalledWith(5);
+		expect(navigateToZoomTarget).toHaveBeenCalledWith({
+			targetSlideIndex: 5,
+			targetSectionId: 'details',
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		});
 	});
 });

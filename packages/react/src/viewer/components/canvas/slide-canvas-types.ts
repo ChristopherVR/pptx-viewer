@@ -11,7 +11,7 @@ import type {
 /**
  * SlideCanvas: Type definitions for the canvas component props.
  */
-import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
+import type { InlineTextEditSnapshot, ZoomNavigationTarget } from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type {
@@ -107,7 +107,7 @@ export interface SlideCanvasProps {
 	/** All slides in the presentation (for zoom element thumbnails). */
 	allSlides?: readonly PptxSlide[];
 	/** Callback fired when a zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** Index of the current slide (for zoom return navigation). */
 	sourceSlideIndex?: number;
 	/** Context for text field placeholder substitution (slide number, header/footer, etc.). */

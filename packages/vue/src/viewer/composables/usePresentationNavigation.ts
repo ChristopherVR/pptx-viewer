@@ -8,8 +8,15 @@
  * black end screen or end the show outright. The slide-transition overlay is
  * driven by the same index change, so it lives here too.
  */
-import type { PptxSlide } from 'pptx-viewer-core';
-import { acceptsPresentationInput, isClickAdvanceAllowed } from 'pptx-viewer-shared';
+import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
+import {
+	acceptsPresentationInput,
+	beginZoomExcursion,
+	buildZoomTransitionOverride,
+	isClickAdvanceAllowed,
+	resolveForwardSlideWithZoomReturn,
+} from 'pptx-viewer-shared';
+import type { ZoomExcursion, ZoomNavigationTarget } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref } from 'vue';
 import { computed, ref, watch } from 'vue';
 
@@ -78,6 +85,14 @@ export interface UsePresentationNavigationResult {
 	 * Keyboard, the toolbar next button and the end screen keep calling `next()`.
 	 */
 	advanceFromClick: () => void;
+	/**
+	 * Handle a Slide Zoom / Section Zoom / Summary Zoom tile click: navigates
+	 * to the target slide, playing the zoom's own `zmPr/@transitionDur` when
+	 * authored, and (when `returnToParent` is set) arms an excursion so the
+	 * next forward `next()` past the target's range returns to the slide the
+	 * zoom was clicked from instead of continuing linearly through the deck.
+	 */
+	navigateToZoomTarget: (target: ZoomNavigationTarget) => void;
 	/** Non-null while a slide transition is playing over the frame. */
 	transitionState: Ref<PresentationTransitionState | null>;
 	onTransitionDone: () => void;
@@ -102,12 +117,30 @@ export function usePresentationNavigation(
 	const showEndScreen = ref(false);
 	const transitionState = ref<PresentationTransitionState | null>(null);
 
-	function goTo(index: number): void {
+	// A pending "return to zoom" excursion armed by `navigateToZoomTarget`,
+	// consumed by `next()` once the show reaches the end of the target's
+	// range. A Slide Zoom / Section Zoom click's own `zmPr/@transitionDur`
+	// (see `pendingTransitionOverride` below) is independent of this: a zoom
+	// without `returnToParent` still plays its own transition length, it just
+	// never arms an excursion.
+	const zoomExcursion = ref<ZoomExcursion | undefined>(undefined);
+	// A one-shot override for the transition the very next `currentIndex`
+	// change should play, consumed by the `watch` below and cleared
+	// immediately after. Not reactive state: nothing reads it directly.
+	let pendingTransitionOverride: PptxSlideTransition | undefined;
+
+	function goTo(index: number, transitionOverride?: PptxSlideTransition): void {
 		const target = clampIndex(index);
 		if (target === currentIndex.value) {
 			return;
 		}
+		pendingTransitionOverride = transitionOverride;
 		currentIndex.value = target;
+	}
+
+	function navigateToZoomTarget(target: ZoomNavigationTarget): void {
+		zoomExcursion.value = beginZoomExcursion(target, currentIndex.value, options.slides());
+		goTo(target.targetSlideIndex, buildZoomTransitionOverride(target.transitionDurationMs));
 	}
 
 	function next(): void {
@@ -118,6 +151,18 @@ export function usePresentationNavigation(
 		}
 		if (playback().advance()) {
 			return; // revealed an animation build step; stay on the slide
+		}
+		// A Slide Zoom / Section Zoom / Summary Zoom tile whose `zmPr` set
+		// `returnToParent` armed an excursion. Once this forward advance reaches
+		// the last slide of that target's range, jump back to the zoom's origin
+		// slide instead of continuing linearly through the deck; PowerPoint's
+		// return jump is forward-only, so `prev()` never consults this.
+		const excursion = zoomExcursion.value;
+		const zoomStep = resolveForwardSlideWithZoomReturn(currentIndex.value, undefined, excursion);
+		if (zoomStep.returnedToZoom && zoomStep.nextSlideIndex !== undefined) {
+			zoomExcursion.value = zoomStep.excursion;
+			goTo(zoomStep.nextSlideIndex, buildZoomTransitionOverride(excursion?.transitionDurationMs));
+			return;
 		}
 		if (!showOrder.hasNext(currentIndex.value)) {
 			// A returning sub-show (`ppaction://customshow?...&return=true`)
@@ -182,11 +227,16 @@ export function usePresentationNavigation(
 		// The playback controller rebuilds itself on the active-slide change (it
 		// watches `activeSlide`), so no explicit reset is needed here.
 		const incoming = options.slides()[index];
+		// A Slide Zoom / Section Zoom / Summary Zoom navigation's own
+		// `zmPr/@transitionDur` takes priority over either slide's own authored
+		// transition; it applies to this ONE jump only.
+		const override = pendingTransitionOverride;
+		pendingTransitionOverride = undefined;
 		// Forward steps play the ENTERING slide's transition; a backward step
 		// replays the LEAVING slide's transition in reverse (a morph glides its
 		// shapes back to where they came from).
-		const transition = (index < previousIndex ? options.slides()[previousIndex] : incoming)
-			?.transition;
+		const transition =
+			override ?? (index < previousIndex ? options.slides()[previousIndex] : incoming)?.transition;
 		transitionState.value =
 			transition && transition.type && transition.type !== 'none'
 				? { outgoing: options.slides()[previousIndex], incoming, transition }
@@ -201,6 +251,7 @@ export function usePresentationNavigation(
 		next,
 		prev,
 		advanceFromClick,
+		navigateToZoomTarget,
 		transitionState,
 		onTransitionDone: () => {
 			transitionState.value = null;

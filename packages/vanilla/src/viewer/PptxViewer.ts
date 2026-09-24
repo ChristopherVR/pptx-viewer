@@ -290,7 +290,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.editor?.getEditActions().sections.deleteSection(sectionId),
 			onSectionMove: (sectionId, direction) =>
 				this.editor?.getEditActions().sections.moveSection(sectionId, direction),
-			onZoomClick: (targetSlideIndex) => this.controls.goToSlide(targetSlideIndex),
+			onZoomClick: (target) => this.controls.navigateToZoomTarget(target),
 			onCommentMarkerClick: () => this.parityWorkflows.openComments(),
 			// Both on-canvas SmartArt commits reflow the cached drawing shapes when
 			// the edit cleared them, as React does: a node-style change clears

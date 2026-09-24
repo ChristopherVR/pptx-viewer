@@ -51,6 +51,8 @@ function harness(options: {
 			advance: () => false,
 			isSeededCompleted: () => false,
 			replayCurrentSlide: () => undefined,
+			consumeZoomReturnOnAdvance: () => undefined,
+			navigateToZoomTarget: (target: { targetSlideIndex: number }) => target.targetSlideIndex,
 		},
 		effectiveScale: () => 1,
 		fitScale: () => 1,

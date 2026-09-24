@@ -8,6 +8,7 @@ import type {
 	MasterViewCrudAction,
 	MasterViewCrudActionId,
 	ViewportFitOptions,
+	ZoomNavigationTarget,
 } from 'pptx-viewer-shared';
 import {
 	computeGridSpacingPx,
@@ -102,7 +103,7 @@ export interface RenderControllerDeps {
 	onSectionDelete(sectionId: string): void;
 	onSectionMove(sectionId: string, direction: 'up' | 'down'): void;
 	/** Navigate from a presentation Zoom tile. */
-	onZoomClick(targetSlideIndex: number, returnSlideIndex: number): void;
+	onZoomClick(target: ZoomNavigationTarget, returnSlideIndex: number): void;
 	/** A canvas comment marker dot was clicked; bring the comments UI on screen. */
 	onCommentMarkerClick?(commentId: string): void;
 	onSmartArtNodeTextChange?(element: PptxElement, nodeId: string, text: string): void;

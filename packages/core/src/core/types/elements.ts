@@ -718,11 +718,17 @@ export interface ZoomPptxElement extends PptxElementBase, PptxImageProperties {
 	 * `zmPr/@returnToParent` (MS-PPTX `CT_ZoomObjectProperties`, shared by all
 	 * three Zoom kinds): whether continuing forward from the destination slide
 	 * during a live show returns to this Zoom's origin slide instead of
-	 * advancing linearly through the deck. OOXML default is `true` when the
-	 * attribute is present but this codebase leaves it `undefined` when the
-	 * source XML omits it, so a round-trip never fabricates the attribute.
-	 * For `zoomType: 'summary'`, this mirrors the first tile's own value; see
-	 * {@link SummaryZoomTarget.returnToParent} for the per-tile value.
+	 * advancing linearly through the deck. The schema declares `<xsd:attribute
+	 * name="returnToParent" type="xsd:boolean" use="optional" default="true"/>`,
+	 * so an ABSENT attribute means `true`, not `false`. This codebase still
+	 * leaves the field `undefined` (rather than fabricating `true`) when the
+	 * source XML omits it, so a round-trip never invents an attribute the
+	 * source never had; a CONSUMER of this field (playback, e.g.
+	 * `pptx-viewer-shared`'s `resolveZoomNavigationTarget`) must read
+	 * `returnToParent !== false`, not `Boolean(returnToParent)`, to get the
+	 * spec-correct effective value. For `zoomType: 'summary'`, this mirrors the
+	 * first tile's own value; see {@link SummaryZoomTarget.returnToParent} for
+	 * the per-tile value.
 	 */
 	returnToParent?: boolean;
 	/**

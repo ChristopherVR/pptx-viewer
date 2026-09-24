@@ -1,5 +1,9 @@
 import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
-import type { InlineTextEditSnapshot, PlaceholderPromptMode } from 'pptx-viewer-shared';
+import type {
+	InlineTextEditSnapshot,
+	PlaceholderPromptMode,
+	ZoomNavigationTarget,
+} from 'pptx-viewer-shared';
 import type React from 'react';
 
 import type { TableCellEditorState } from '../../types';
@@ -69,7 +73,7 @@ export interface RenderBodyOptions {
 	/** All slides in the presentation, used for zoom element thumbnails. */
 	allSlides?: readonly PptxSlide[];
 	/** Callback fired when a zoom element is clicked in presentation mode. */
-	onZoomClick?: (targetSlideIndex: number, returnSlideIndex: number) => void;
+	onZoomClick?: (target: ZoomNavigationTarget, returnSlideIndex: number) => void;
 	/** Index of the slide that contains the current element (for zoom return navigation). */
 	sourceSlideIndex?: number;
 	/** Context for text field placeholder substitution (slide number, header/footer, etc.). */

@@ -18,6 +18,7 @@ import { createEditingApi } from '../editor/editing-api';
 import { serializeEditorState } from '../editor/editor-document-lifecycle';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
+import type { PresentationController } from '../presentation';
 import { useAiCluster } from './create-viewer-state-ai.svelte';
 import { useCollabCluster } from './create-viewer-state-collab.svelte';
 import { useViewerDerived } from './create-viewer-state-derived.svelte';
@@ -171,6 +172,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 	// (a box, not a reassigned `let`, so this binding itself stays `const`) is
 	// safe.
 	const deckApi: { current?: DeckApi } = {};
+	// `.current` is filled in once `presentationCluster` is constructed below,
+	// for the same reason as `deckApi` above: `usePresentationCluster` needs
+	// this cluster's own `parityUi`/`controller` outputs, so it must be built
+	// AFTER this cluster, but a zoom tile's click handler (registered here)
+	// only ever fires long after both exist.
+	const presentationApi: { current?: PresentationController } = {};
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const editorUi = useEditorUiCluster({
 		loader,
@@ -191,6 +198,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getAutosaveEnabled: () => collabCluster.autosavePreference,
 		setAutosaveEnabled: collabCluster.setAutosaveFlag,
 		newSlide: () => deckApi.current?.addSlide(),
+		getPresentation: () => presentationApi.current,
 	});
 
 	// Trust Center > "Allow external content": read live on every load, not
@@ -270,6 +278,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getStageHolderEl: options.getStageHolderEl,
 		getRootEl: options.getRootEl,
 	});
+	presentationApi.current = presentationCluster.presentation;
 
 	const exportNotes = buildExportNotesCluster({
 		editor,

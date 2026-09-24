@@ -1,10 +1,16 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 import { getContext, setContext } from 'svelte';
 
 export const ZoomNavigationContextKey = Symbol('pptx-svelte-zoom-navigation');
 
 export interface ZoomNavigationSource {
-	navigateToZoomTarget: (index: number) => void;
+	/**
+	 * Navigate the running presentation to a zoom's target, applying its own
+	 * `zmPr/@transitionDur` when authored and arming a "return to zoom"
+	 * excursion when `returnToParent` is set.
+	 */
+	navigateToZoomTarget: (target: ZoomNavigationTarget) => void;
 	getSlides: () => readonly PptxSlide[];
 }
 

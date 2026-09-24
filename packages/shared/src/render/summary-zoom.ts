@@ -35,6 +35,10 @@ export interface SummaryZoomTileView {
 	backgroundColor: string;
 	style: Record<string, string>;
 	ariaLabel: string;
+	/** This tile's own `zmPr/@returnToParent`; see {@link ZoomPptxElement.returnToParent}. */
+	returnToParent: boolean;
+	/** This tile's own `zmPr/@transitionDur` in milliseconds; see {@link ZoomPptxElement.transitionDurationMs}. */
+	transitionDurationMs?: number;
 }
 
 export interface SummaryZoomView {
@@ -83,6 +87,11 @@ export function buildSummaryZoomView(
 						number: String(slideNumber),
 					})
 				: `Zoom to section ${label}, slide ${slideNumber}`,
+			// `CT_ZoomObjectProperties/@returnToParent`'s schema default is `true`
+			// when absent (see `ZoomPptxElement.returnToParent`'s doc comment), so
+			// this reads the effective value, not `Boolean(target.returnToParent)`.
+			returnToParent: target.returnToParent !== false,
+			transitionDurationMs: target.transitionDurationMs,
 		};
 	});
 	return {

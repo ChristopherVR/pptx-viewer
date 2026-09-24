@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { ZoomNavigationTarget } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import { createTranslator } from '../../i18n';
@@ -94,7 +95,7 @@ describe('renderZoomElement', () => {
 	});
 
 	it('navigates on click and keyboard activation while presenting', () => {
-		const calls: Array<[number, number]> = [];
+		const calls: Array<[ZoomNavigationTarget, number]> = [];
 		const node = renderZoomElement(
 			zoomElement(),
 			0,
@@ -110,10 +111,16 @@ describe('renderZoomElement', () => {
 		node.click();
 		node.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		node.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
+		const expectedTarget: ZoomNavigationTarget = {
+			targetSlideIndex: 5,
+			targetSectionId: undefined,
+			returnToParent: true,
+			transitionDurationMs: undefined,
+		};
 		expect(calls).toStrictEqual([
-			[5, 2],
-			[5, 2],
-			[5, 2],
+			[expectedTarget, 2],
+			[expectedTarget, 2],
+			[expectedTarget, 2],
 		]);
 	});
 
@@ -140,7 +147,7 @@ describe('renderZoomElement', () => {
 	});
 
 	it('renders ordered Summary Zoom tiles and navigates the activated tile', () => {
-		const calls: Array<[number, number]> = [];
+		const calls: Array<[ZoomNavigationTarget, number]> = [];
 		const node = renderZoomElement(
 			zoomElement({
 				zoomType: 'summary',
@@ -178,6 +185,16 @@ describe('renderZoomElement', () => {
 		expect(node.textContent).toContain('Summary Zoom');
 		expect([...tiles].map((tile) => tile.dataset.sectionId)).toStrictEqual(['intro', 'details']);
 		tiles[1].click();
-		expect(calls).toStrictEqual([[4, 2]]);
+		expect(calls).toStrictEqual([
+			[
+				{
+					targetSlideIndex: 4,
+					targetSectionId: 'details',
+					returnToParent: true,
+					transitionDurationMs: undefined,
+				},
+				2,
+			],
+		]);
 	});
 });

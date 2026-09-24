@@ -371,6 +371,33 @@ describe('presentationController loop continuously', () => {
 	});
 });
 
+describe('presentationController zoom navigation', () => {
+	it('navigates to the zoom target', () => {
+		const { deck, controller } = showHarness([false, false, false, false]);
+		controller.navigateToZoomTarget({
+			targetSlideIndex: 2,
+			returnToParent: false,
+			transitionDurationMs: 400,
+		});
+		expect(deck.index).toBe(2);
+	});
+
+	it('arms an excursion and returns to the origin slide once a forward advance passes the target', () => {
+		const { deck, controller } = showHarness([false, false, false, false]);
+		controller.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: true });
+		expect(deck.index).toBe(2);
+		controller.advance();
+		expect(deck.index).toBe(0);
+	});
+
+	it('does not arm an excursion when returnToParent is false, so a forward advance continues linearly', () => {
+		const { deck, controller } = showHarness([false, false, false, false]);
+		controller.navigateToZoomTarget({ targetSlideIndex: 2, returnToParent: false });
+		controller.advance();
+		expect(deck.index).toBe(3);
+	});
+});
+
 describe('presentationController @highlightClick flash', () => {
 	function actionShape(id: string, highlightClick: boolean): PptxElement {
 		return {

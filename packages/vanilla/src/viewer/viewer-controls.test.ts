@@ -29,6 +29,8 @@ interface Harness {
 	store: ReturnType<typeof createStore<ViewerState>>;
 	controls: ReturnType<typeof createViewerControls>;
 	ended: () => number;
+	/** Args of every `presentationPlayback.navigateToZoomTarget` call, for the zoom-navigation delegation tests. */
+	zoomNavigateCalls: unknown[][];
 }
 
 function harness(options: {
@@ -40,6 +42,8 @@ function harness(options: {
 	loopContinuously?: boolean;
 	/** `p:showPr/p:sldRg`: Set Up Slide Show > "Show slides" > "From"/"To". */
 	showSlidesRange?: { from: number; to: number };
+	/** Stubs `presentationPlayback.consumeZoomReturnOnAdvance`'s return value. */
+	zoomReturnIndex?: number;
 }): Harness {
 	const store = createStore<ViewerState>({
 		...createInitialViewerState(),
@@ -59,12 +63,19 @@ function harness(options: {
 		},
 	});
 	let ended = 0;
-	// Only the two members `createViewerControls` reaches for are implemented.
+	const zoomNavigateCalls: unknown[][] = [];
+	// Only the members `createViewerControls` reaches for are implemented.
 	const renderer = {
 		presentationPlayback: {
 			advance: () => Boolean(options.buildsRemaining),
 			isSeededCompleted: () => false,
 			replayCurrentSlide: () => undefined,
+			consumeZoomReturnOnAdvance: () => options.zoomReturnIndex,
+			navigateToZoomTarget: (...args: unknown[]) => {
+				zoomNavigateCalls.push(args);
+				const target = args[0] as { targetSlideIndex: number };
+				return target.targetSlideIndex;
+			},
 		},
 		effectiveScale: () => 1,
 		fitScale: () => 1,
@@ -79,7 +90,7 @@ function harness(options: {
 		},
 		options.endWithBlackSlide === undefined ? undefined : () => options.endWithBlackSlide,
 	);
-	return { store, controls, ended: () => ended };
+	return { store, controls, ended: () => ended, zoomNavigateCalls };
 }
 
 describe('viewerControls hidden slides', () => {
@@ -279,5 +290,37 @@ describe('viewerControls presentationEntryIndex (entering a show "from current s
 			showSlidesRange: { from: 1, to: 2 },
 		});
 		expect(controls.presentationEntryIndex()).toBe(0);
+	});
+});
+
+describe('viewerControls zoom navigation (delegation to presentationPlayback)', () => {
+	it('delegates a zoom click to presentationPlayback.navigateToZoomTarget and jumps to its result', () => {
+		const { store, controls, zoomNavigateCalls } = harness({
+			deck: slides(false, false, false, false),
+			startIndex: 0,
+		});
+		const target = { targetSlideIndex: 2, returnToParent: true, transitionDurationMs: 400 };
+		controls.navigateToZoomTarget(target);
+		expect(zoomNavigateCalls).toStrictEqual([[target, 0, store.get().slides]]);
+		expect(store.get().currentSlide).toBe(2);
+	});
+
+	it("consults consumeZoomReturnOnAdvance on a forward advance and jumps to its result instead of the show's natural next slide", () => {
+		const { store, controls } = harness({
+			deck: slides(false, false, false, false),
+			startIndex: 1,
+			zoomReturnIndex: 0,
+		});
+		controls.next();
+		expect(store.get().currentSlide).toBe(0);
+	});
+
+	it('falls through to the normal show-order advance when consumeZoomReturnOnAdvance returns undefined', () => {
+		const { store, controls } = harness({
+			deck: slides(false, false, false, false),
+			startIndex: 1,
+		});
+		controls.next();
+		expect(store.get().currentSlide).toBe(2);
 	});
 });

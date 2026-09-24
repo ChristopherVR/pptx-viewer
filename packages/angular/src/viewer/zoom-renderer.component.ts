@@ -6,8 +6,10 @@ import type { PptxElement } from 'pptx-viewer-core';
 import {
 	buildSummaryZoomView,
 	elementHitTargetStyle,
+	resolveZoomNavigationTarget,
 	shouldRenderHitTarget,
 } from '../internal/shared';
+import type { SummaryZoomTileView } from '../internal/shared';
 import type { StyleMap } from './element-style';
 import { ZoomNavigationService } from './zoom-navigation.service';
 import {
@@ -92,8 +94,8 @@ import { ZoomTargetService } from './zoom-target.service';
 								[attr.aria-label]="tile.ariaLabel"
 								[attr.role]="interactive() ? 'button' : null"
 								[attr.tabindex]="interactive() ? 0 : null"
-								(click)="activateSummary($event, tile.targetSlideIndex)"
-								(keydown)="activateSummary($event, tile.targetSlideIndex)"
+								(click)="activateSummary($event, tile)"
+								(keydown)="activateSummary($event, tile)"
 								style="overflow:hidden;border:1px solid rgba(0,0,0,0.12)"
 							>
 								@if (tile.imageSrc) {
@@ -219,16 +221,19 @@ export class ZoomRendererComponent {
 	);
 
 	/** Navigate to the zoom target; no-op when the tile is not interactive. */
-	private activate(target = this.vm().targetSlideIndex): void {
+	private activate(): void {
 		const vm = this.vm();
 		if (!this.zoomNavigation || !vm.zoom) {
 			return;
 		}
-		this.zoomNavigation.navigateToZoomTarget(target);
+		const target = resolveZoomNavigationTarget(vm.zoom);
+		if (target) {
+			this.zoomNavigation.navigateToZoomTarget(target);
+		}
 	}
 
-	protected activateSummary(event: Event, target: number): void {
-		if (!this.interactive()) {
+	protected activateSummary(event: Event, tile: SummaryZoomTileView): void {
+		if (!this.interactive() || !this.zoomNavigation) {
 			return;
 		}
 		if (event instanceof KeyboardEvent && !isZoomActivationKey(event.key)) {
@@ -236,7 +241,12 @@ export class ZoomRendererComponent {
 		}
 		event.preventDefault();
 		event.stopPropagation();
-		this.activate(target);
+		this.zoomNavigation.navigateToZoomTarget({
+			targetSlideIndex: tile.targetSlideIndex,
+			targetSectionId: tile.sectionId,
+			returnToParent: tile.returnToParent,
+			transitionDurationMs: tile.transitionDurationMs,
+		});
 	}
 
 	protected onClick(event: MouseEvent): void {
