@@ -151,8 +151,8 @@ assign(
 				'src/core/services/animation-write-sequence-builders.test.ts',
 				[
 					'builds a single bldP entry for byParagraph',
-					"builds bldP entry with 'word' type for byWord",
-					"builds bldP entry with 'char' type for byLetter",
+					'carries no @build for byWord (a by-word text build is p:iterate, not a bldP @build)',
+					'carries no @build for byLetter (a by-letter text build is p:iterate, not a bldP @build)',
 				],
 				['edit', 'serialize'],
 			),
