@@ -26,6 +26,8 @@ import { computeObliqueBarLayout } from './chart-3d-oblique-layout';
 import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
 import { computePerspChartLayout } from './chart-3d-persp-layout';
 import type { PerspChartLayout } from './chart-3d-persp-layout';
+import { computePieChartLayout, widenPieViewModel } from './chart-3d-pie-layout';
+import type { PieChartLayout } from './chart-3d-pie-layout';
 import type { Chart3DProjection } from './chart-3d-projection';
 import { resolveChart3DProjection } from './chart-3d-projection';
 import { buildChartViewModel } from './chart-view-model-build';
@@ -61,8 +63,18 @@ export interface Chart3DPerspGeometry {
 	layout: PerspChartLayout;
 }
 
+/** A 3-D Pie on PowerPoint's fitted perspective camera (`chart-3d-pie-layout.ts`). */
+export interface Chart3DPieGeometry {
+	kind: 'pie';
+	layout: PieChartLayout;
+}
+
 /** `null` until a chart type's geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
-export type Chart3DGeometry = Chart3DObliqueGeometry | Chart3DPerspGeometry | null;
+export type Chart3DGeometry =
+	| Chart3DObliqueGeometry
+	| Chart3DPerspGeometry
+	| Chart3DPieGeometry
+	| null;
 
 /**
  * The perspective scene a chart falls back to when the oblique geometry does
@@ -111,6 +123,11 @@ function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeom
 /** Chart types drawn on the perspective box layout. */
 const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D', 'surface']);
 
+function buildPieGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
+	const layout = computePieChartLayout(element, widenPieViewModel(vm, element));
+	return layout ? { kind: 'pie', layout } : null;
+}
+
 function buildPerspGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
 	const layout = computePerspChartLayout(element, vm);
 	return layout ? { kind: 'perspective', layout } : null;
@@ -144,7 +161,9 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 			? buildBarGeometry(element, vm)
 			: projection.mode === 'perspective' && PERSP_BOX_TYPES.has(chartType)
 				? buildPerspGeometry(element, vm)
-				: null;
+				: chartType === 'pie3D'
+					? buildPieGeometry(element, vm)
+					: null;
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0

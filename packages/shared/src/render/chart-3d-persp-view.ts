@@ -99,20 +99,26 @@ export function perspCameraFor(
 	};
 }
 
-/** Bounds of the box's projection at focal 1 with the box centre at (0, 0). */
-export function perspUnitBounds(camera: PerspCamera): {
-	minX: number;
-	maxX: number;
-	minY: number;
-	maxY: number;
-} {
+/** The box's eight corners. */
+function boxCorners(box: PerspBox): Array<[number, number, number]> {
+	return Array.from({ length: 8 }, (_, i): [number, number, number] => [
+		(i & 1) * box.w,
+		((i >> 1) & 1) * box.h,
+		((i >> 2) & 1) * box.d,
+	]);
+}
+
+/** Bounds of the projection of `points` (default: the box corners) at focal 1, box centre at (0, 0). */
+export function perspUnitBounds(
+	camera: PerspCamera,
+	points: ReadonlyArray<readonly [number, number, number]> = boxCorners(camera.box),
+): { minX: number; maxX: number; minY: number; maxY: number } {
 	let minX = Infinity;
 	let maxX = -Infinity;
 	let minY = Infinity;
 	let maxY = -Infinity;
-	const { w, h, d } = camera.box;
-	for (let i = 0; i < 8; i++) {
-		const [X, Y, Z] = perspToCamera(camera, [(i & 1) * w, ((i >> 1) & 1) * h, ((i >> 2) & 1) * d]);
+	for (const p of points) {
+		const [X, Y, Z] = perspToCamera(camera, p);
 		minX = Math.min(minX, X / Z);
 		maxX = Math.max(maxX, X / Z);
 		minY = Math.min(minY, -Y / Z);
@@ -122,15 +128,17 @@ export function perspUnitBounds(camera: PerspCamera): {
 }
 
 /**
- * Scale and place a camera so the box's projection fits inside `rect`
- * (chart px) as large as it can: centred horizontally and sitting on the
- * rect's bottom (a box too wide for the rect keeps its floor in place).
+ * Scale and place a camera so the projection of `points` (default: the box
+ * corners) fits inside `rect` (chart px) as large as it can: centred
+ * horizontally and sitting on the rect's bottom (a box too wide for the rect
+ * keeps its floor in place).
  */
 export function fitPerspView(
 	camera: PerspCamera,
 	rect: { left: number; top: number; right: number; bottom: number },
+	points?: ReadonlyArray<readonly [number, number, number]>,
 ): PerspView {
-	const b = perspUnitBounds(camera);
+	const b = perspUnitBounds(camera, points);
 	const focal = Math.min(
 		(rect.right - rect.left) / (b.maxX - b.minX),
 		(rect.bottom - rect.top) / (b.maxY - b.minY),
@@ -141,6 +149,50 @@ export function fitPerspView(
 		cx: (rect.left + rect.right) / 2 - (focal * (b.minX + b.maxX)) / 2,
 		cy: rect.bottom - focal * b.maxY,
 	};
+}
+
+/**
+ * Where the view ray through chart px `(sx, sy)` meets the horizontal box
+ * plane at height `y`, as box `(x, z)`; `null` when the ray runs parallel to
+ * it or meets it behind the camera.
+ */
+export function perspScreenToPlaneY(
+	view: PerspView,
+	sx: number,
+	sy: number,
+	y: number,
+): { x: number; z: number } | null {
+	// Ray direction in camera space (Z = 1), rotated back into box space.
+	const dx = (sx - view.cx) / view.focal;
+	const dy = (view.cy - sy) / view.focal;
+	const cp = Math.cos(view.pitch);
+	const sp = Math.sin(view.pitch);
+	const cyw = Math.cos(view.yaw);
+	const syw = Math.sin(view.yaw);
+	// Inverse pitch: (x1, y, z1) from (X, Y, Z).
+	const invPitch = (X: number, Y: number, Z: number): [number, number, number] => [
+		X,
+		Y * cp - Z * sp,
+		Y * sp + Z * cp,
+	];
+	// Inverse yaw: box-centred (x, z) from (x1, z1).
+	const invYaw = (x1: number, z1: number): [number, number] => [
+		x1 * cyw - z1 * syw,
+		x1 * syw + z1 * cyw,
+	];
+	const [ox1, oy, oz1] = invPitch(0, 0, -view.dist);
+	const [dx1, dyb, dz1] = invPitch(dx, dy, 1);
+	const [ox, oz] = invYaw(ox1, oz1);
+	const [ddx, ddz] = invYaw(dx1, dz1);
+	const target = y - view.box.h / 2;
+	if (Math.abs(dyb) < 1e-12) {
+		return null;
+	}
+	const t = (target - oy) / dyb;
+	if (t <= 0) {
+		return null;
+	}
+	return { x: ox + ddx * t + view.box.w / 2, z: oz + ddz * t + view.box.d / 2 };
 }
 
 /**

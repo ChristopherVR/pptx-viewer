@@ -6,6 +6,7 @@ import {
 	fitPerspView,
 	perspBoxMatrix,
 	perspCameraFor,
+	perspScreenToPlaneY,
 	perspToScreen,
 } from './chart-3d-persp-view';
 
@@ -85,6 +86,27 @@ describe('perspective chart view', () => {
 			expect(sx).toBeCloseTo(want.x, 6);
 			expect(sy).toBeCloseTo(want.y, 6);
 			expect(Math.abs(v.z)).toBeLessThan(1);
+		}
+	});
+});
+
+describe('perspScreenToPlaneY', () => {
+	it('inverts perspToScreen on a horizontal plane', () => {
+		const view = fitPerspView(perspCameraFor({ w: 2, h: 0.46, d: 2 }, 30, 10), {
+			left: 100,
+			top: 60,
+			right: 900,
+			bottom: 500,
+		});
+		for (const [x, z] of [
+			[1, 1],
+			[0.2, 1.7],
+			[1.9, 0.1],
+		]) {
+			const at = perspToScreen(view, [x, 0.46, z]);
+			const hit = perspScreenToPlaneY(view, at.x, at.y, 0.46);
+			expect(hit?.x).toBeCloseTo(x, 6);
+			expect(hit?.z).toBeCloseTo(z, 6);
 		}
 	});
 });

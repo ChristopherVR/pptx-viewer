@@ -120,14 +120,11 @@ same gate that arms the 2D marks.
 
 In priority order:
 
-1. Charts: move each perspective chart onto PowerPoint's own model (the
-   oblique scene covers slides 1-9, the perspective box slides 10-13 and
-   16-17): pie tilt / explosion (14-15). Measured so far: pitch 0.91 x rotX,
-   camera 1.38 box diagonals away, thickness 0.23 x radius, explosion shrinks
-   the radius by 1 / (1 + explosion), side shade max(0.385, 0.57 - 0.275 phi). The perspective family needs the plot
-   rect, which `ChartViewModel` does not expose yet (derive it from
-   `vm.gridlines`, or thread `PlotLayout` through). Replace the matching
-   `perspective` scene as each lands.
+1. Charts: every slide of the charts deck is on PowerPoint's model. Open
+   deviations: slide 4 (standard) and slide 11 (area) are taller than
+   PowerPoint's, the surface wireframe's lower layers are approximate, and a
+   pie's exploded cut faces render darker. The hosted perspective scenes now
+   serve only bar3D without right-angle axes and line/area with them.
 2. 2D chart title layout: size the title band from the title font instead of
    a fixed 20px.
 3. SmartArt: bevel styles (reuse `visual-3d-bevel-lighting*.ts`,
