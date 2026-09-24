@@ -9,7 +9,13 @@
  *
  * @module viewer/transition-extra-options
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	input,
+	output,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 @Component({
@@ -17,6 +23,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		@if (patternOptions(); as patterns) {
 			<div class="icard__col">
