@@ -83,16 +83,24 @@ watchEffect((onCleanup) => {
 	document.head.appendChild(style);
 	onCleanup(() => style.remove());
 });
-function replayStyle(index: number): CSSProperties | undefined {
+/** CSS `mix-blend-mode` for a stroke's own paint element (not the `<svg>` container); see `InkStrokeView.blendMode`. */
+function blendStyle(blendMode: 'normal' | 'multiply'): CSSProperties | undefined {
+	return blendMode === 'multiply' ? { mixBlendMode: 'multiply' } : undefined;
+}
+
+function pathStyle(index: number, blendMode: 'normal' | 'multiply'): CSSProperties | undefined {
 	const replay = replayStyles.value[index];
-	return replay
-		? {
-				animation: replay.animation,
-				strokeDasharray: replay.strokeDasharray,
-				strokeDashoffset: replay.strokeDashoffset,
-				'--ink-path-length': String(replay.pathLength),
-			}
-		: undefined;
+	return {
+		...(replay
+			? {
+					animation: replay.animation,
+					strokeDasharray: replay.strokeDasharray,
+					strokeDashoffset: replay.strokeDashoffset,
+					'--ink-path-length': String(replay.pathLength),
+				}
+			: {}),
+		...blendStyle(blendMode),
+	};
 }
 </script>
 
@@ -112,7 +120,7 @@ function replayStyle(index: number): CSSProperties | undefined {
 			preserveAspectRatio="none"
 		>
 			<template v-for="(s, i) in strokes" :key="s.key">
-				<g v-if="s.nibMarks" :opacity="s.opacity">
+				<g v-if="s.nibMarks" :opacity="s.opacity" :style="blendStyle(s.blendMode)">
 					<ellipse
 						v-for="(m, j) in s.nibMarks"
 						:key="`${s.key}-nib-${j}`"
@@ -124,7 +132,7 @@ function replayStyle(index: number): CSSProperties | undefined {
 						:fill="s.color"
 					/>
 				</g>
-				<g v-else-if="s.circles" :opacity="s.opacity">
+				<g v-else-if="s.circles" :opacity="s.opacity" :style="blendStyle(s.blendMode)">
 					<circle
 						v-for="(c, j) in s.circles"
 						:key="`${s.key}-pc-${j}`"
@@ -144,7 +152,7 @@ function replayStyle(index: number): CSSProperties | undefined {
 					stroke-linecap="round"
 					stroke-linejoin="round"
 					vector-effect="non-scaling-stroke"
-					:style="replayStyle(i)"
+					:style="pathStyle(i, s.blendMode)"
 				/>
 			</template>
 		</svg>

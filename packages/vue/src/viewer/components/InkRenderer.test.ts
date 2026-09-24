@@ -140,6 +140,41 @@ describe('inkRenderer', () => {
 		}
 	});
 
+	it('applies multiply blending to the stroke path itself, not the container svg, for a highlighter stroke', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L10 10'],
+					inkColors: ['#ff0000'],
+					inkWidths: [2],
+					inkOpacities: [1],
+					inkTool: 'highlighter',
+				}),
+				zIndex: 1,
+			},
+		});
+		const svg = wrapper.find('svg');
+		expect(svg.attributes('style') ?? '').not.toContain('mix-blend-mode');
+		const path = wrapper.get('path');
+		expect(path.attributes('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
+	it('does not apply multiply blending to a non-highlighter, fully opaque stroke', () => {
+		const wrapper = mount(InkRenderer, {
+			props: {
+				element: ink({
+					inkPaths: ['M0 0 L10 10'],
+					inkColors: ['#ff0000'],
+					inkWidths: [2],
+					inkOpacities: [1],
+				}),
+				zIndex: 1,
+			},
+		});
+		const path = wrapper.get('path');
+		expect(path.attributes('style') ?? '').not.toContain('mix-blend-mode');
+	});
+
 	it('applies sequential replay styles when presentation replay is enabled', () => {
 		const wrapper = mount(InkRenderer, {
 			props: { element: ink(), zIndex: 1, replay: true },

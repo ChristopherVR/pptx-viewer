@@ -112,6 +112,19 @@ describe('drawingOverlay', () => {
 		expect(wrapper.find('path').exists()).toBeTruthy();
 	});
 
+	it('applies multiply blending to the live path itself (not the container svg) for a highlighter stroke', async () => {
+		const wrapper = mount(DrawingOverlay, {
+			props: { ...base, active: true, tool: 'highlighter' },
+		});
+		const svg = wrapper.get('svg');
+		await svg.trigger('pointerdown', { clientX: 0, clientY: 0, pointerId: 1 });
+		await svg.trigger('pointermove', { clientX: 10, clientY: 0, pointerId: 1 });
+		expect(svg.attributes('style') ?? '').not.toContain('mix-blend-mode');
+		const path = wrapper.find('path');
+		expect(path.exists()).toBeTruthy();
+		expect(path.attributes('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
 	it('ignores pointer input when no tool is armed', async () => {
 		const wrapper = mount(DrawingOverlay, { props: { ...base, active: false, tool: 'pen' } });
 		await wrapper.get('svg').trigger('pointerdown', { clientX: 10, clientY: 10, pointerId: 1 });
