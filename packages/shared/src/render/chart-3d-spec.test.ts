@@ -44,8 +44,8 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'S1', values: [1, 2] }],
 			}),
 		);
-		expect(spec?.geometry).toBeNull();
-		expect(spec?.perspective?.kind).toBe('surface');
+		expect(spec?.geometry?.kind).toBe('perspective');
+		expect(spec?.perspective).toBeNull();
 	});
 
 	it('returns a spec for a surface chart that DOES carry c:view3D (surface3D)', () => {
@@ -57,9 +57,8 @@ describe('buildChart3DSpecForElement', () => {
 				view3D: { rotX: 15, rotY: 20, rAngAx: false },
 			}),
 		);
-		expect(spec).not.toBeNull();
-		expect(spec?.geometry).toBeNull(); // no oblique surface geometry
-		expect(spec?.perspective?.kind).toBe('surface');
+		expect(spec?.geometry?.kind).toBe('perspective');
+		expect(spec?.perspective).toBeNull();
 	});
 
 	it('resolves an oblique projection for a default bar3D chart', () => {

@@ -21,7 +21,7 @@ import {
 	renderChartTextSvg,
 } from './chart-view-model-dom';
 import { createSvgEl } from './chart-view-model-dom-helpers';
-import type { ChartViewModel } from './chart-view-model-types';
+import type { ChartViewModel, LegendEntry } from './chart-view-model-types';
 
 /** A 3D scene's own axis labels, in chart px. */
 export interface Chart3DBoxLabel {
@@ -43,6 +43,8 @@ export interface Chart3DBoxChrome {
 	labels: ReadonlyArray<Chart3DBoxLabel>;
 	/** List the legend bottom-up (a clustered horizontal bar chart does). */
 	reverseLegend: boolean;
+	/** Legend entries replacing the flat chart's (a surface lists its value bands). */
+	legend?: LegendEntry[];
 }
 
 /**
@@ -118,7 +120,7 @@ export function renderChart3DChromeOverlaySvg(
 		// wall); only its axis labels go here.
 		appendBoxLabels(doc, svg, vm, box.labels);
 		// A 3D chart keys every series with a plain swatch, lines included.
-		const legend = vm.legend.map((item) => ({ ...item, lineSwatch: undefined }));
+		const legend = box.legend ?? vm.legend.map((item) => ({ ...item, lineSwatch: undefined }));
 		const legendVm = { ...vm, legend: box.reverseLegend ? legend.reverse() : legend };
 		appendChartLegendSvg(doc, svg, legendVm);
 		return svg;

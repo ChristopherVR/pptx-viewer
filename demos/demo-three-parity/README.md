@@ -121,8 +121,10 @@ same gate that arms the 2D marks.
 In priority order:
 
 1. Charts: move each perspective chart onto PowerPoint's own model (the
-   oblique scene covers slides 1-9, the perspective box slides 10-13): pie
-   tilt / explosion and surface bands (14-17). The perspective family needs the plot
+   oblique scene covers slides 1-9, the perspective box slides 10-13 and
+   16-17): pie tilt / explosion (14-15). Measured so far: pitch 0.91 x rotX,
+   camera 1.38 box diagonals away, thickness 0.23 x radius, explosion shrinks
+   the radius by 1 / (1 + explosion), side shade max(0.385, 0.57 - 0.275 phi). The perspective family needs the plot
    rect, which `ChartViewModel` does not expose yet (derive it from
    `vm.gridlines`, or thread `PlotLayout` through). Replace the matching
    `perspective` scene as each lands.

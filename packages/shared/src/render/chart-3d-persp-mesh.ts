@@ -77,6 +77,20 @@ export function buildPrismGeometry(three: ThreeModule, prism: PerspPrism): THREE
 	return geometry;
 }
 
+/** The wall gridlines and floor edges of a perspective layout, in box space. */
+export function buildPerspGridlines(
+	three: ThreeModule,
+	layout: Pick<PerspChartLayout, 'gridlines'>,
+): THREE.LineSegments {
+	const points: number[] = [];
+	for (const line of layout.gridlines) {
+		points.push(...line.from, ...line.to);
+	}
+	const geometry = new three.BufferGeometry();
+	geometry.setAttribute('position', new three.Float32BufferAttribute(points, 3));
+	return new three.LineSegments(geometry, new three.LineBasicMaterial({ color: GRIDLINE_COLOR }));
+}
+
 /** Build the gridlines and prism meshes of a perspective layout. */
 export function buildPerspMeshes(
 	three: ThreeModule,
@@ -87,14 +101,8 @@ export function buildPerspMeshes(
 	group.matrixAutoUpdate = false;
 	group.matrix.copy(perspBoxMatrix(three, layout.view));
 
-	const points: number[] = [];
-	for (const line of layout.gridlines) {
-		points.push(...line.from, ...line.to);
-	}
-	const lineGeometry = new three.BufferGeometry();
-	lineGeometry.setAttribute('position', new three.Float32BufferAttribute(points, 3));
-	const lineMaterial = new three.LineBasicMaterial({ color: GRIDLINE_COLOR });
-	group.add(new three.LineSegments(lineGeometry, lineMaterial));
+	const gridlines = buildPerspGridlines(three, layout);
+	group.add(gridlines);
 
 	const material = new three.MeshBasicMaterial({ vertexColors: true, side: three.DoubleSide });
 	const meshes = prisms.map((prism) => {
@@ -117,8 +125,8 @@ export function buildPerspMeshes(
 			previous.dispose();
 		},
 		dispose() {
-			lineGeometry.dispose();
-			lineMaterial.dispose();
+			gridlines.geometry.dispose();
+			(gridlines.material as THREE.Material).dispose();
 			material.dispose();
 			for (const mesh of meshes) {
 				mesh.geometry.dispose();

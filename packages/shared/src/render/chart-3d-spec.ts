@@ -109,7 +109,7 @@ function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeom
 }
 
 /** Chart types drawn on the perspective box layout. */
-const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D']);
+const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D', 'surface']);
 
 function buildPerspGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
 	const layout = computePerspChartLayout(element, vm);

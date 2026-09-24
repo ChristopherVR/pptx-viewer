@@ -33,8 +33,11 @@ export interface Chart3DPoint {
 
 /** A live value drag on one mark. */
 export interface Chart3DMarkDrag {
-	/** Preview the value for a pointer delta in chart px (`dx` right, `dy` down); returns it. */
-	preview: (dx: number, dy: number) => number;
+	/**
+	 * Preview the value for a pointer delta in chart px (`dx` right, `dy`
+	 * down), `at` being the pointer's chart px position; returns the value.
+	 */
+	preview: (dx: number, dy: number, at: { x: number; y: number }) => number;
 }
 
 export interface Chart3DMarkAdapter {
@@ -124,7 +127,11 @@ export function attachChart3DMarkInteraction(
 			}
 			press.drag.moved = true;
 			const k = press.chartPxPerClientPx;
-			const value = press.drag.session.preview(dx * k, dy * k);
+			const rect = target.getBoundingClientRect();
+			const value = press.drag.session.preview(dx * k, dy * k, {
+				x: (event.clientX - rect.left) * k,
+				y: (event.clientY - rect.top) * k,
+			});
 			press.lastValue = value;
 			ctx.requestRender();
 			const part = partOf(press.point);
