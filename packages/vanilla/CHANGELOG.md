@@ -7,6 +7,39 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [3.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.2.0) - 2026-09-24
+
+### Features
+
+- **shared:** Add pptx-three-view host with one shared WebGL context (by @ChristopherVR) ([aaaf21d](https://github.com/ChristopherVR/pptx-viewer/commit/aaaf21d56e5baad79f9e7327029811e95c55d781))
+- **shared:** Wire chart-events, view-spec, and export snapshot for pptx-three-view (by @ChristopherVR) ([089738a](https://github.com/ChristopherVR/pptx-viewer/commit/089738a19e443bc08c3c7576b81f28bef236ec0c))
+- **core:** Parse 3D scene/extrusion for cached SmartArt drawing shapes (by @ChristopherVR) ([e80b086](https://github.com/ChristopherVR/pptx-viewer/commit/e80b086ada646f9786510e43f7e11f705eebe77c))
+- **shared:** Add pure chart-3d projection + flat-shading resolvers (by @ChristopherVR) ([117cfc5](https://github.com/ChristopherVR/pptx-viewer/commit/117cfc5d4e355394565a8ca935c6d970a460cc1a))
+- **shared:** Build a real Chart3DSpec for bar3D (clustered/stacked) (by @ChristopherVR) ([7df9a11](https://github.com/ChristopherVR/pptx-viewer/commit/7df9a1137e5b75333dcb376147af04c0dcb6082d))
+- **shared:** Add the 3D chart's SVG chrome overlay renderer (by @ChristopherVR) ([635aea0](https://github.com/ChristopherVR/pptx-viewer/commit/635aea0e896d4fb5c2592627d62147a37ff54313))
+- **shared:** Render flat SmartArt quick styles from the cached drawing (by @ChristopherVR) ([bb89b9b](https://github.com/ChristopherVR/pptx-viewer/commit/bb89b9bddd6b3f696143164665f9539257cc057c))
+- **shared:** Implement mountChart3DView for oblique bar3D boxes (by @ChristopherVR) ([4cbb870](https://github.com/ChristopherVR/pptx-viewer/commit/4cbb8700cb579510177591cd0b16697ecdf6c2ab))
+- **shared:** Host every 3D chart kind in pptx-three-view (by @claude) ([d8a3019](https://github.com/ChristopherVR/pptx-viewer/commit/d8a3019259327557b331bf9ff456909573eda552))
+- **vue:** Render 3D charts and SmartArt through <pptx-three-view> (by @claude) ([5a35348](https://github.com/ChristopherVR/pptx-viewer/commit/5a35348748e78b49c4e5150843b3bd2797bae0d7))
+- **vanilla:** Render 3D charts and SmartArt through <pptx-three-view> (by @claude) ([b7f6200](https://github.com/ChristopherVR/pptx-viewer/commit/b7f6200fbc2540c20538ff9899a04ac0ae346cfb))
+- **shared:** Use web components for search, select, and checkbox controls ([#352](https://github.com/ChristopherVR/pptx-viewer/issues/352)) (by @yunfeizhu) ([e09b47a](https://github.com/ChristopherVR/pptx-viewer/commit/e09b47a6e7c94e170d4fe9c87774d11619da776d))
+
+### Bug Fixes
+
+- **shared:** Draw PowerPoint's auto title for a c:title without text (by @claude) ([dd3c6f0](https://github.com/ChristopherVR/pptx-viewer/commit/dd3c6f0165a6d60305ac0e93ec6548707d351ee5))
+- **vue,svelte,vanilla:** Arm the 3D chart scene only on a selected chart (by @claude) ([192fc8e](https://github.com/ChristopherVR/pptx-viewer/commit/192fc8e959140d9a33ecb2bba5eb43a9875f387a))
+- **shared:** Keep surfaceChart3D covering 2D surface charts (by @claude) ([b208414](https://github.com/ChristopherVR/pptx-viewer/commit/b2084147636006d0791d3dc43e98ed1a52d00a74))
+
+### Refactor
+
+- **shared:** Extract the chart view-model DOM renderer to shared (by @ChristopherVR) ([9ff7298](https://github.com/ChristopherVR/pptx-viewer/commit/9ff7298ba49049def9c910c54ef7564b28ee16d1))
+- **shared:** Move the extracted chart DOM renderer into shared (by @ChristopherVR) ([0d850d4](https://github.com/ChristopherVR/pptx-viewer/commit/0d850d4015b30bf2d7f92ca8bfd093839d18c5dd))
+- **shared:** Remove the pre-element SmartArt scene runtime (by @claude) ([a2bd6c1](https://github.com/ChristopherVR/pptx-viewer/commit/a2bd6c18beba4ad8e3769a71e04f3cb08fee3d99))
+
+### Testing
+
+- **shared:** Cover the three-view host, controller and sizing (by @ChristopherVR) ([ad42c24](https://github.com/ChristopherVR/pptx-viewer/commit/ad42c248a07e7f297a5e47076c325bbd456417b6))
+
 ## [3.1.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vanilla-viewer@3.1.6) - 2026-09-23
 
 ### Bug Fixes
