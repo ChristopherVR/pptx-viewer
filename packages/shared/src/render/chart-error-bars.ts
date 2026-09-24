@@ -15,6 +15,15 @@ export interface ErrorBarRenderOptions {
 	seriesRanges?: ReadonlyArray<ValueRange | undefined>;
 	/** Per-series category mapping mode for mixed bar/line charts. */
 	seriesModes?: ReadonlyArray<'line' | 'bar' | undefined>;
+	/**
+	 * A scatter/bubble chart's own nice-scaled X-axis range (see
+	 * `chart-scatter-x-axis.ts`), shared across every series so an X error bar
+	 * anchors to the SAME domain the plotted points use. Without it each
+	 * series fell back to its own tight per-series min/max (`numericXRange`),
+	 * which drifted from the chart-wide domain the dots share once that
+	 * domain gained the automatic scale's headroom/rounding.
+	 */
+	scatterXRange?: ValueRange;
 }
 
 function categoryX(value: number, count: number, layout: PlotLayout, mode: 'line' | 'bar'): number {
@@ -175,7 +184,9 @@ export function computeErrorBarPrimitives(
 		const indexes = options.sourceIndices ?? series.values.map((_value, index) => index);
 		const yValues = indexes.map((index) => series.values[index] ?? 0);
 		const xValues = xValuesForSeries(chartData, series, indexes);
-		const xRange = xValues.numeric ? numericXRange(xValues.values) : undefined;
+		const xRange = xValues.numeric
+			? (options.scatterXRange ?? numericXRange(xValues.values))
+			: undefined;
 		const seriesMode = options.seriesModes?.[seriesIndex] ?? mode;
 		const yRange = options.seriesRanges?.[seriesIndex] ?? range;
 		series.errBars?.forEach((errBars) => {

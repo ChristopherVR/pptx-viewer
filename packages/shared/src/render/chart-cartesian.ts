@@ -33,6 +33,7 @@ import {
 	computeErrorBarPrimitives,
 	computeTrendlinePrimitives,
 } from './chart-overlays';
+import { buildScatterXAxisPlan } from './chart-scatter-x-axis';
 import type {
 	ChartValueDrag,
 	ChartViewModel,
@@ -139,6 +140,12 @@ export function buildCartesianViewModel(
 
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const axisRes = buildCartesianAxes(chartData, layout, primaryRange, secondaryRange, catCount);
+	// A scatter/bubble X axis is a real value axis (`c:valAx/@axPos="b"`), not
+	// the category-slot axis other kinds draw: nice bounds + vertical
+	// gridlines + real tick labels. See `chart-scatter-x-axis.ts`.
+	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
+	const scatterXAxis =
+		kind === 'scatter' || kind === 'bubble' ? buildScatterXAxisPlan(chartData, layout) : undefined;
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
 	const zeroLine = primaryRange.logScale ? undefined : buildZeroLine(primaryRange, layout);
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
@@ -235,7 +242,9 @@ export function buildCartesianViewModel(
 			catAxisStyle,
 			chartData.colorPalette,
 		),
-		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, catAxisStyle),
+		...computeErrorBarPrimitives(displayChartData, catCount, layout, primaryRange, catAxisStyle, {
+			scatterXRange: scatterXAxis?.range,
+		}),
 		...computeAxisTitlePrimitives(chartData, layout),
 	];
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
@@ -270,10 +279,12 @@ export function buildCartesianViewModel(
 		title,
 		titleX: layout.svgWidth / 2,
 		titleY: 12,
-		gridlines: axisRes.gridlines,
+		gridlines: scatterXAxis?.range
+			? [...axisRes.gridlines, ...scatterXAxis.gridlines]
+			: axisRes.gridlines,
 		axisLabels: axisRes.axisLabels,
 		zeroLine,
-		categoryLabels: horizontalAxis.labels,
+		categoryLabels: scatterXAxis?.range ? scatterXAxis.labels : horizontalAxis.labels,
 		primitives,
 		dataLabels: plot.dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],

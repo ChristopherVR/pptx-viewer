@@ -86,12 +86,17 @@ describe('buildScatter per-series c:xVal', () => {
 		};
 		const dots = buildScatter(data, layout, range).primitives.filter((p) => p.kind === 'circle');
 		expect(dots).toHaveLength(4);
-		// Domain 0..20 across both series: Left spans the left half, Right the
-		// right half. Sharing series 1's x values would have stacked them.
-		expect(dots[0].cx).toBeCloseTo(layout.plotLeft, 5);
-		expect(dots[1].cx).toBeCloseTo(layout.plotLeft + layout.plotWidth / 2, 5);
-		expect(dots[2].cx).toBeCloseTo(layout.plotLeft + layout.plotWidth / 2, 5);
-		expect(dots[3].cx).toBeCloseTo(layout.plotLeft + layout.plotWidth, 5);
+		// A shared domain across both series (0..20, padded/rounded to the chart's
+		// own nice X-axis scale, see chart-scatter-x-axis.ts): Left's point at
+		// x=10 and Right's point at x=10 land on the SAME pixel, and every point
+		// only increases left to right. Sharing series 1's x values would have
+		// stacked (0,10) on top of (10,20) instead of spreading across the width.
+		expect(dots[1].cx).toBeCloseTo(dots[2].cx, 5);
+		expect(dots[0].cx).toBeLessThan(dots[1].cx);
+		expect(dots[2].cx).toBeLessThan(dots[3].cx);
+		// Left's own span (x=0..10) is half of Right's implied span position
+		// (x=10..20) within the SAME domain, so it covers half the pixel gap.
+		expect(dots[1].cx - dots[0].cx).toBeCloseTo(dots[3].cx - dots[2].cx, 5);
 	});
 });
 
@@ -125,6 +130,34 @@ describe('buildBubbles per-series c:bubbleSize', () => {
 		expect(circles).toHaveLength(3);
 		expect(circles[0].r).toBeLessThan(circles[1].r);
 		expect(circles[1].r).toBeLessThan(circles[2].r);
+	});
+
+	it('does not clip an edge bubble against the plot boundary', () => {
+		// A point sitting exactly at the tight data min/max used to map flush to
+		// plotLeft/plotRight, so half of any bubble radius there fell outside
+		// the plot. The chart's own nice-scaled X axis (chart-scatter-x-axis.ts)
+		// pads and rounds outward, leaving real margin on both ends.
+		const data: PptxChartData = {
+			chartType: 'bubble',
+			categories: [],
+			series: [
+				{
+					name: 'Edges',
+					values: [2.7, 3.2, 0.8],
+					xValues: [0.7, 1.8, 2.6],
+					bubbleSizes: [80, 40, 60],
+				},
+			],
+		};
+		const circles = buildBubbles(data, layout, range).primitives.filter((p) => p.kind === 'circle');
+		expect(circles).toHaveLength(3);
+		for (const circle of circles) {
+			if (circle.kind !== 'circle') {
+				continue;
+			}
+			expect(circle.cx - circle.r).toBeGreaterThan(layout.plotLeft);
+			expect(circle.cx + circle.r).toBeLessThan(layout.plotRight);
+		}
 	});
 });
 

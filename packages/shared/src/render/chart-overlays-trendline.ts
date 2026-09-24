@@ -13,13 +13,17 @@
 
 import type { PptxChartData, PptxChartSeries, PptxChartTrendline } from 'pptx-viewer-core';
 
-import { seriesXValues } from './chart-cartesian-plots';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import { applyLabelManualLayout } from './chart-manual-layout';
 import { computeTrendlinePoints } from './chart-overlays-trendline-fit';
 import { DEFAULT_TRENDLINE_DASH, DEFAULT_TRENDLINE_WIDTH } from './chart-trendline-defaults';
 import type { PlotLayout, SvgPath, SvgPrimitive, SvgText, ValueRange } from './chart-view-model';
-import { computeScatterXDomain, formatAxisValue, seriesColor } from './chart-view-model';
+import {
+	computeScatterXDomain,
+	formatAxisValue,
+	seriesColor,
+	seriesXValues,
+} from './chart-view-model';
 import { buildDashArray } from './connector-dash';
 
 /** Vertical gap between the equation line and the R-squared line below it. */
