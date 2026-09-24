@@ -21,8 +21,8 @@ description: What is not supported across the core engine and the viewer binding
 An effect authored in the animation panel is reconciled into the slide's existing `p:timing` tree; the deck's own effects are left byte-identical. Known gaps:
 
 - **A few saved effects still fall back to a fade in PowerPoint.** Entrance, exit and emphasis effects are written with PowerPoint's own behaviour tree (Fly In, Float, Bounce, Grow & Turn, the filter reveals, Pulse, Teeter, Wave and others, verified by reopening in PowerPoint); Crawl and Spiral still save as a fade, and Blink is an approximation.
-- **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade). Blinds, Checkerboard, Wheel and Random Bars ignore their subtype.
-- **Not yet supported:** `p14:bounceEnd`, triggers on a media bookmark (they load as on-click), per-letter ripple inside a by-paragraph build, and authoring the p15 transitions (they play when present in a file, but their direction options are ignored).
+- **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade). Box, Circle, Diamond and Plus play only their "out" direction.
+- **Partially supported:** the `p14:bounceEnd` settle curve is an approximation not yet fitted against PowerPoint's own frames; triggers on a media bookmark play correctly but cannot be authored in the animation panel yet; per-letter ripple inside a by-paragraph build is not played; p15 transitions play when present in a file but cannot be authored, and their direction options are ignored.
 
 ### Detecting gaps at runtime
 
