@@ -17,6 +17,7 @@ import {
 	manualLayoutOf,
 	resolveManualLayoutRect,
 } from './chart-manual-layout';
+import { chartTitleReservePx } from './chart-title-band';
 import { valueToY } from './chart-view-model-scale';
 import type { ValueRange } from './chart-view-model-scale';
 import type { PlotLayout } from './chart-view-model-types';
@@ -72,7 +73,7 @@ export function computePieLayout(
 	isDoughnut: boolean,
 ): { cx: number; cy: number; outerR: number; innerR: number; size: number } {
 	const size = Math.min(Math.max(elementWidth, 1), Math.max(elementHeight, 1)),
-		titleOffset = chartData.style?.hasTitle ? 20 : 0,
+		titleOffset = chartTitleReservePx(chartData),
 		legendOffset = chartData.style?.hasLegend ? 20 : 0;
 	let cx = size / 2,
 		cy = titleOffset + (size - titleOffset - legendOffset) / 2,

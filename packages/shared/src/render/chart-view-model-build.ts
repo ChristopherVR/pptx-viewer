@@ -23,6 +23,7 @@ import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sun
 import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
+import { withChartTitleBand } from './chart-title-band';
 import { resolveChartTitleRunSpans } from './chart-title-runs';
 import { resolveChartTitleTextStyle } from './chart-title-style';
 import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
@@ -114,8 +115,8 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 
 /**
  * The post-passes every chart kind's view-model goes through, in order: the
- * `c:manualLayout` title / legend re-anchoring (on the builder's automatic
- * anchors), the `c:userShapes` overlay, the chart / plot area fills, and the
+ * font-sized title baseline (`chart-title-band.ts`), the `c:manualLayout`
+ * title / legend re-anchoring (on those automatic anchors), the `c:userShapes` overlay, the chart / plot area fills, and the
  * `c:legendEntry` overrides.
  */
 function finishViewModel(
@@ -126,7 +127,10 @@ function finishViewModel(
 	return withLegendEntries(
 		withChartAreaFill(
 			withDataPointPictureFills(
-				withUserShapeOverlay(withManualLayouts(vm, chartData, frame), chartData),
+				withUserShapeOverlay(
+					withManualLayouts(withChartTitleBand(vm, chartData), chartData, frame),
+					chartData,
+				),
 				chartData,
 				frame.id,
 			),

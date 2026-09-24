@@ -18,6 +18,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { chartFontPx, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { reserveLegendSpace } from './chart-legend-placement';
 import { manualLayoutOf, resolveManualLayoutRect } from './chart-manual-layout';
+import { chartTitleReservePx } from './chart-title-band';
 import type { PlotLayout, PlotLayoutOptions } from './chart-view-model-types';
 
 /**
@@ -101,9 +102,9 @@ export function computePlotLayout(
 	const style = chartData.style,
 		legendPos = style?.legendPosition ?? 'b';
 
-	if (style?.hasTitle) {
-		plotTop += 20;
-	}
+	// The title band is sized from the title's own font (chart-title-band.ts);
+	// a chart without a title reserves nothing, as before.
+	plotTop += chartTitleReservePx(chartData);
 	if (style?.hasLegend) {
 		// `tr` (top-right corner) overlays the plot per PowerPoint's own
 		// quick-layout behaviour: no band is reserved for it, unlike b/t/l/r.

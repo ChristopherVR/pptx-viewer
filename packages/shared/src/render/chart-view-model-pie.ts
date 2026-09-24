@@ -18,6 +18,7 @@ import { buildDataLabelText, resolveDataLabelTextStyle } from './chart-data-labe
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { resolveLegendPlacement } from './chart-legend-placement';
 import { buildPieDataLabels } from './chart-pie-labels';
+import { chartTitleReservePx } from './chart-title-band';
 import { computePieLayout, computePieSlices } from './chart-view-model-points';
 import { buildMarkTooltip, paletteColor } from './chart-view-model-scale';
 import type {
@@ -200,7 +201,8 @@ export function buildPieViewModel(
 		// behaviour and the same 'start'-anchored vertical stack `'r'` uses
 		// elsewhere in this engine (see chart-view-model-layout.ts's buildLegend).
 		legendX = svgWidth - 75;
-		legendY = chartData.style?.hasTitle ? 24 : 8;
+		// Clear the font-sized title band (the old fixed band put this at 24).
+		legendY = chartData.style?.hasTitle ? chartTitleReservePx(chartData) + 4 : 8;
 		legendAnchor = 'start';
 	}
 

@@ -100,6 +100,7 @@ export * from './chart-area-fill';
 export * from './chart-font';
 export * from './chart-style-defaults';
 export * from './chart-title-style';
+export * from './chart-title-band';
 export * from './chart-number-format';
 export * from './chart-trendlines';
 export * from './chart-axis';
