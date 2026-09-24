@@ -15,6 +15,7 @@ import {
 	computeBoxWhiskerGeometry,
 	computeHistogramBins,
 	computeHistogramBars,
+	scottBinCount,
 } from './chart-distribution';
 import type { PlotLayout, ValueRange } from './chart-view-model';
 import { buildChartViewModel, valueToY } from './chart-view-model';
@@ -76,6 +77,45 @@ describe('computeHistogramBars', () => {
 	it('uses the series colour override when provided', () => {
 		const bars = computeHistogramBars([10], 1, layout, range, '#abcdef', undefined);
 		expect(bars[0].fill).toBe('#abcdef');
+	});
+
+	it('paints every bar the same single colour, never one per bar (COM: slides 30-31)', () => {
+		const bars = computeHistogramBars([10, 30, 60, 90], 4, layout, range, undefined, undefined);
+		const fills = new Set(bars.map((bar) => bar.fill));
+		expect(fills.size).toBe(1);
+	});
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// scottBinCount
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('scottBinCount', () => {
+	it("matches PowerPoint's own automatic bin count (COM: slide 30 / chartEx5.xml)", () => {
+		// The exact 76 raw values PowerPoint's own histogram binned into 6 bins
+		// of width 4 spanning [1, 25) when neither binSize nor binCount was
+		// authored (automatic Scott's-rule binning).
+		const values = [
+			1, 3, 3, 3, 5, 6, 6, 6, 7, 8, 8, 9, 9, 9, 9, 9, 10, 10, 10, 10, 10, 10, 11, 11, 11, 11, 11,
+			11, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 14, 14, 14, 14, 14, 14, 15, 15, 15, 15, 15,
+			15, 15, 15, 16, 16, 16, 16, 17, 17, 17, 17, 17, 17, 18, 18, 18, 18, 19, 19, 19, 20, 21, 22,
+			22, 24, 24,
+		];
+		expect(values).toHaveLength(76);
+		expect(scottBinCount(values, Math.min(...values), Math.max(...values))).toBe(6);
+	});
+
+	it('returns 1 for fewer than two values or a zero-span range', () => {
+		expect(scottBinCount([5], 5, 5)).toBe(1);
+		expect(scottBinCount([5, 5, 5], 5, 5)).toBe(1);
+	});
+
+	it('gives a coarser (higher-width, fewer-bin) result than the old sqrt(n) heuristic on a large sample', () => {
+		// 100 values tightly clustered around 50: sqrt(100) = 10 bins regardless
+		// of spread, but Scott's rule narrows the count as the data tightens.
+		const values = Array.from({ length: 100 }, (_, i) => 50 + (i % 3) - 1);
+		const count = scottBinCount(values, Math.min(...values), Math.max(...values));
+		expect(count).toBeLessThan(10);
 	});
 });
 

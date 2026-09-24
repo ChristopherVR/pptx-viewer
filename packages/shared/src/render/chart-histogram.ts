@@ -28,7 +28,11 @@ import {
 
 // Re-exported so `chart-distribution.ts`'s existing `export * from
 // './chart-histogram'` barrel keeps surfacing these after the split.
-export { aggregateByCategory, computeHistogramBins } from './chart-histogram-binning';
+export {
+	aggregateByCategory,
+	computeHistogramBins,
+	scottBinCount,
+} from './chart-histogram-binning';
 export type { HistogramBin } from './chart-histogram-binning';
 
 const DATA_LABEL_COLOR = '#334155';
@@ -52,6 +56,11 @@ export function computeHistogramBars(
 ): HistogramBar[] {
 	const count = Math.max(catCount, values.length, 1);
 	const barWidth = layout.plotWidth / count;
+	// A histogram (and a Pareto's frequency bars) plots ONE distribution, not
+	// one colour-coded category per bar: every bar takes the series' own
+	// colour (COM-verified against charts-com.pptx slides 30-31, chartEx5/6:
+	// PowerPoint paints every bin/bar the same single accent colour).
+	const fill = seriesColorOverride ?? paletteColor(0, colorPalette);
 	return values.map((val, pointIndex) => {
 		const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 		const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
@@ -60,7 +69,7 @@ export function computeHistogramBars(
 			y: Math.min(zeroY, valY),
 			w: Math.max(barWidth - 0.5, 1),
 			h: Math.max(Math.abs(zeroY - valY), 1),
-			fill: seriesColorOverride ?? paletteColor(pointIndex, colorPalette),
+			fill,
 			pointIndex,
 		};
 	});

@@ -24,6 +24,32 @@ function binLabel(lower: number, upper: number, closed: 'l' | 'r'): string {
 		: `[${formatAxisValue(lower)}, ${formatAxisValue(upper)})`;
 }
 
+/**
+ * Excel/PowerPoint's automatic histogram bin count when the author specifies
+ * neither `binSize` nor `binCount` (Scott's normal reference rule: bin width
+ * = 3.49 * sample standard deviation * n^(-1/3), then the count needed to
+ * span the data at that width). COM-verified against charts-com.pptx slide
+ * 30 / chartEx5.xml: 76 raw values spanning 1-24 (sample sd ~4.898) gave
+ * PowerPoint's own 6 bins of width 4 each; Scott's rule on the same data
+ * gives a raw width of ~4.035, which needs exactly 6 bins to span the range,
+ * matching PowerPoint bin-for-bin. The previous `ceil(sqrt(n))` fallback
+ * gave 9 bins on the same data, visibly narrower than PowerPoint's own.
+ */
+export function scottBinCount(values: ReadonlyArray<number>, min: number, max: number): number {
+	if (values.length < 2 || max <= min) {
+		return 1;
+	}
+	const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+	const variance =
+		values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / (values.length - 1);
+	const sd = Math.sqrt(variance);
+	if (!(sd > 0)) {
+		return 1;
+	}
+	const width = 3.49 * sd * values.length ** (-1 / 3);
+	return Math.max(1, Math.ceil((max - min) / width));
+}
+
 /** Bin raw observations according to ChartEx binning properties. */
 export function computeHistogramBins(
 	values: ReadonlyArray<number>,
@@ -70,7 +96,15 @@ export function computeHistogramBins(
 						: Math.ceil((max - start) / requestedSize),
 					1,
 				)
-			: Math.max(requestedCount ?? Math.ceil(Math.sqrt(regular.length)), 1);
+			: Math.max(
+					requestedCount ??
+						scottBinCount(
+							regular.map((item) => item.value),
+							min,
+							max,
+						),
+					1,
+				);
 		const width = requestedSize ?? Math.max((max - start) / count, 1);
 		const bins = Array.from({ length: count }, (_, index) => ({
 			value: 0,
