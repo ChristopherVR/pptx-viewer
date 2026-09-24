@@ -10,6 +10,7 @@ import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 import { resolveBarLabelPlacement, resolveMarkerLabelPlacement } from './chart-data-label-anchor';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type {
+	ChartPartRef,
 	PlotLayout,
 	SvgCircle,
 	SvgPolyline,
@@ -123,6 +124,100 @@ export function appendLineSeries(
 	points.forEach((point) => {
 		// c:dLblPos (t/b/l/r/ctr) decides where round the marker the label sits;
 		// a per-point c:dLbl/c:layout drag shifts it further.
+		const anchor = resolveMarkerLabelPlacement(
+			chartData,
+			series,
+			point.sourceIndex,
+			point,
+			{ width: layout.svgWidth, height: layout.svgHeight },
+			7,
+		);
+		dataLabels.push({
+			kind: 'text',
+			x: anchor.x,
+			y: anchor.y,
+			text: formatAxisValue(point.value, series.numberFormat),
+			fontSize: DEFAULT_CHART_DATA_LABEL_PX,
+			fill: '#334155',
+			textAnchor: anchor.textAnchor,
+			...(anchor.dominantBaseline ? { dominantBaseline: anchor.dominantBaseline } : {}),
+		});
+	});
+}
+
+/**
+ * One combo area-series' filled polygon (down to the zero baseline) + outline
+ * + markers + data labels, matching PowerPoint's bar+area combo rendering
+ * instead of degrading a `c:areaChart` combo member to an unfilled line.
+ * Clustered only (no stacking lane exists in a combo chart).
+ */
+export function appendAreaSeries(
+	series: PptxChartSeries,
+	seriesIndex: number,
+	chartData: PptxChartData,
+	layout: PlotLayout,
+	range: ValueRange,
+	barGroupWidth: number,
+	sourceIndices: ReadonlyArray<number>,
+	primitives: SvgPrimitive[],
+	dataLabels: SvgText[],
+	xPositions?: ReadonlyArray<number>,
+): void {
+	if (series.values.length === 0) {
+		return;
+	}
+	const fill = seriesColor(series, seriesIndex, chartData.colorPalette);
+	const baselineY = valueToY(0, range, layout.plotTop, layout.plotBottom);
+	const points = sourceIndices.map((sourceIndex, displayIndex) => {
+		const value = series.values[sourceIndex] ?? 0;
+		return {
+			x:
+				xPositions?.[displayIndex] ??
+				layout.plotLeft + barGroupWidth * displayIndex + barGroupWidth / 2,
+			y: valueToY(value, range, layout.plotTop, layout.plotBottom),
+			sourceIndex,
+			value,
+		};
+	});
+	const firstPt = points[0];
+	const lastPt = points[points.length - 1];
+	const lineStr = points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(' ');
+	if (firstPt && lastPt) {
+		primitives.push({
+			kind: 'polyline',
+			points: `${firstPt.x.toFixed(2)},${baselineY.toFixed(2)} ${lineStr} ${lastPt.x.toFixed(2)},${baselineY.toFixed(2)}`,
+			stroke: 'none',
+			strokeWidth: 0,
+			fill,
+			opacity: 0.25,
+			part: { role: 'series', seriesIndex } as ChartPartRef,
+		} satisfies SvgPolyline);
+	}
+	primitives.push({
+		kind: 'polyline',
+		points: lineStr,
+		stroke: fill,
+		strokeWidth: 2,
+		fill: 'none',
+		part: { role: 'series', seriesIndex } as ChartPartRef,
+	} satisfies SvgPolyline);
+	primitives.push(
+		...points.map(
+			(point) =>
+				({
+					kind: 'circle',
+					cx: point.x,
+					cy: point.y,
+					r: 2.5,
+					fill,
+					part: { role: 'dataPoint', seriesIndex, pointIndex: point.sourceIndex },
+				}) satisfies SvgCircle,
+		),
+	);
+	if (!chartData.style?.hasDataLabels) {
+		return;
+	}
+	points.forEach((point) => {
 		const anchor = resolveMarkerLabelPlacement(
 			chartData,
 			series,

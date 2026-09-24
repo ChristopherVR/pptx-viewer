@@ -15,7 +15,7 @@ import {
 	computeComboBarCluster,
 	groupComboSeriesIndices,
 } from './chart-combo-classify';
-import { appendLineSeries } from './chart-combo-series';
+import { appendAreaSeries, appendLineSeries } from './chart-combo-series';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
@@ -135,10 +135,11 @@ export function buildComboViewModel(
 	// legacy "series 0 is the bar, everything else is a line" guess when it
 	// doesn't (see chart-combo-classify.ts). The legend swatch follows the
 	// same split.
-	const { barIndices, lineIndices } = groupComboSeriesIndices(chartData.series);
+	const { barIndices, lineIndices, areaIndices } = groupComboSeriesIndices(chartData.series);
 	const barIndexSet = new Set(barIndices);
+	const areaIndexSet = new Set(areaIndices);
 	const comboSwatchKinds: LegendSwatchKind[] = chartData.series.map((_s, i) =>
-		barIndexSet.has(i) ? 'rect' : 'line',
+		barIndexSet.has(i) || areaIndexSet.has(i) ? 'rect' : 'line',
 	);
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -185,6 +186,24 @@ export function buildComboViewModel(
 	);
 
 	const barGroupWidth = layout.plotWidth / catCount;
+	// Area lane first so its filled polygon paints behind bar/line marks that
+	// share the same category slot, matching PowerPoint's own draw order.
+	for (const seriesIndex of areaIndices) {
+		const series = chartData.series[seriesIndex];
+		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
+		appendAreaSeries(
+			series,
+			seriesIndex,
+			chartData,
+			layout,
+			range,
+			barGroupWidth,
+			sourceIndices,
+			primitives,
+			dataLabels,
+			horizontalAxis.xPositions,
+		);
+	}
 	for (const seriesIndex of lineIndices) {
 		const series = chartData.series[seriesIndex];
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);

@@ -14,12 +14,10 @@
  * when no series carries a tag at all - fixes both without disturbing the
  * many existing combo fixtures/tests that never set `seriesChartType`.
  *
- * Area-typed combo series are grouped under "line" for now (rendered as a
- * plain line, not a filled area): true bar+area combos are less common than
- * bar+line, and reusing `chart-cartesian-area.ts`'s per-chart area builder
- * for an arbitrary subset would require re-deriving its palette-index
- * convention; tracked as a follow-up rather than risking a half-implemented
- * fill here.
+ * Area-typed combo series get their own "area" lane (filled polygon down to
+ * the zero baseline, drawn by `appendAreaSeries` in `chart-combo-series.ts`),
+ * matching PowerPoint's own bar+area combo rendering instead of degrading
+ * them to a plain unfilled line.
  *
  * @module chart-combo-classify
  */
@@ -30,7 +28,7 @@ import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { ChartPartRef, PlotLayout, SvgRect, SvgText, ValueRange } from './chart-view-model';
 import { formatAxisValue, seriesColor, valueToY } from './chart-view-model';
 
-export type ComboSeriesKind = 'bar' | 'line';
+export type ComboSeriesKind = 'bar' | 'line' | 'area';
 
 /**
  * Which combo lane a series belongs to. Series 0 defaults to "bar" and every
@@ -43,26 +41,33 @@ export function classifyComboSeries(series: PptxChartSeries, index: number): Com
 	if (type === 'bar' || type === 'bar3D') {
 		return 'bar';
 	}
+	if (type === 'area' || type === 'area3D') {
+		return 'area';
+	}
 	if (type === undefined) {
 		return index === 0 ? 'bar' : 'line';
 	}
-	// line, line3D, area, area3D, scatter, and anything else this builder does
-	// not have a dedicated lane for: render as a line rather than silently
-	// dropping the series.
+	// line, line3D, scatter, and anything else this builder does not have a
+	// dedicated lane for: render as a line rather than silently dropping the
+	// series.
 	return 'line';
 }
 
-/** Original `chartData.series` indices split into the bar and line lanes. */
+/** Original `chartData.series` indices split into the bar, line and area lanes. */
 export function groupComboSeriesIndices(series: ReadonlyArray<PptxChartSeries>): {
 	barIndices: number[];
 	lineIndices: number[];
+	areaIndices: number[];
 } {
 	const barIndices: number[] = [];
 	const lineIndices: number[] = [];
+	const areaIndices: number[] = [];
 	series.forEach((entry, index) => {
-		(classifyComboSeries(entry, index) === 'bar' ? barIndices : lineIndices).push(index);
+		const kind = classifyComboSeries(entry, index);
+		const target = kind === 'bar' ? barIndices : kind === 'area' ? areaIndices : lineIndices;
+		target.push(index);
 	});
-	return { barIndices, lineIndices };
+	return { barIndices, lineIndices, areaIndices };
 }
 
 /**
