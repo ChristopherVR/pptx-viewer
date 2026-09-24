@@ -70,12 +70,12 @@ describe('explicit series colour wins', () => {
 		expect(segments.map((seg) => seg.fill)).toStrictEqual(['#70AD47', '#70AD47', '#70AD47']);
 	});
 
-	it('funnel segments still cycle the palette without an explicit colour', () => {
+	it("funnel segments fall back to the palette's first colour, the same for every bar", () => {
 		const segments = computeFunnelSegments([3, 2, 1], 0, 0, 100, 90, ['a', 'b', 'c'], undefined);
 		expect(segments.map((seg) => seg.fill)).toStrictEqual([
 			DEFAULT_PALETTE[0],
-			DEFAULT_PALETTE[1],
-			DEFAULT_PALETTE[2],
+			DEFAULT_PALETTE[0],
+			DEFAULT_PALETTE[0],
 		]);
 	});
 
