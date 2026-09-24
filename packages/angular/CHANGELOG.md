@@ -7,6 +7,112 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.3.0) - 2026-09-24
+
+### Features
+
+- **shared:** Trace glyph outlines for exact wordart envelope warps (work in progress) (by @ChristopherVR) ([c91f1cf](https://github.com/ChristopherVR/pptx-viewer/commit/c91f1cf2e7c089acf79f706ba49f887179a97499))
+- **core:** Embed round-trip ooxml blobs for rich objects in .ppt export (work in progress) (by @ChristopherVR) ([2f9aea3](https://github.com/ChristopherVR/pptx-viewer/commit/2f9aea35b3887dfb5d3593ecad67a1605889ef00))
+- **core:** Start a per-point diagramml layout engine for smartart (work in progress) (by @ChristopherVR) ([11c956f](https://github.com/ChristopherVR/pptx-viewer/commit/11c956f2c125c1572003129b0d9cd8d2b5ce5f28))
+- **shared:** Add media fullScrn full-slide overlay decision function (by @ChristopherVR) ([8ae8ee1](https://github.com/ChristopherVR/pptx-viewer/commit/8ae8ee150518d89cb5328d98b775eb49983214a2))
+- **core:** Route un-cached SmartArt through the per-point layout engine (by @ChristopherVR) ([e020656](https://github.com/ChristopherVR/pptx-viewer/commit/e020656b042dc9c86efb6588bfe22770870c4280))
+- **core:** Parse InkML per-point T (time) channel into pointTimestamps (by @ChristopherVR) ([af3b954](https://github.com/ChristopherVR/pptx-viewer/commit/af3b9546cec6fc319ab579d035f22fc203de4059))
+- **angular:** Render the media fullScrn full-slide overlay (by @ChristopherVR) ([36e38a8](https://github.com/ChristopherVR/pptx-viewer/commit/36e38a8e3f8280d91d98eb5bb31590d63056481f))
+- **core:** Parse zoom return-to-parent and transition duration (work in progress) (by @ChristopherVR) ([5b0c9fb](https://github.com/ChristopherVR/pptx-viewer/commit/5b0c9fbf5bab3b599101b63f7782ebe88411cf79))
+- **core:** Route measurably-better SmartArt layouts through the engine first (by @ChristopherVR) ([59e78c9](https://github.com/ChristopherVR/pptx-viewer/commit/59e78c99c7b9130ca00bb956654cadde2547b575))
+- **core:** Implement the snake algorithm in the SmartArt layout engine (by @ChristopherVR) ([4b27704](https://github.com/ChristopherVR/pptx-viewer/commit/4b27704163ac689f5720de9d0ae1c481eea78fd6))
+- **core:** Implement the cycle algorithm in the SmartArt layout engine (by @ChristopherVR) ([ad971a3](https://github.com/ChristopherVR/pptx-viewer/commit/ad971a3534392a595cb973c0b90609dd3a548921))
+- **shared:** Add PowerPoint editor shortcuts to the shared keymap (by @ChristopherVR) ([9afcb56](https://github.com/ChristopherVR/pptx-viewer/commit/9afcb56d9d71d820d19dfbb78b4c4e7d00cd991e))
+- **shared:** Add a shared PowerPoint font-size ladder stepper (by @ChristopherVR) ([8c86424](https://github.com/ChristopherVR/pptx-viewer/commit/8c864248a3a832996d8b0c0807c47a802d89a776))
+- **angular:** Wire PowerPoint editor shortcuts via the shared keymap (by @ChristopherVR) ([7003468](https://github.com/ChristopherVR/pptx-viewer/commit/70034681efa36656c718eeb44594f374b6a9503e))
+- **core:** Parse p14:bounceEnd and play a Fly In bounce settle curve (by @ChristopherVR) ([2c44f37](https://github.com/ChristopherVR/pptx-viewer/commit/2c44f372b5a44ca8a9c87d2d86f84c0d1c49720a))
+- **core:** Model onMediaBookmark triggers and fire them on playback (by @ChristopherVR) ([b153932](https://github.com/ChristopherVR/pptx-viewer/commit/b1539323ae4c063abe869f97c310506161973b10))
+- **core:** Implement the pyra algorithm in the SmartArt layout engine (by @ChristopherVR) ([8dfb1d0](https://github.com/ChristopherVR/pptx-viewer/commit/8dfb1d0a58f75c98d6e24b5470dd82db54d0df76))
+- **shared:** Add the 12 p15 preset transitions to the picker catalogue (by @ChristopherVR) ([9d4cd08](https://github.com/ChristopherVR/pptx-viewer/commit/9d4cd083326627015f290f110035594b547b839d))
+
+### Bug Fixes
+
+- **core:** Declare every namespace prefix a saved part uses (by @ChristopherVR) ([bd0a7fc](https://github.com/ChristopherVR/pptx-viewer/commit/bd0a7fca02bbbc4ea8d71f5c2b2970411ab6e971))
+- **core:** Keep run-level slide jumps as slide relationships on save (by @ChristopherVR) ([d2f6924](https://github.com/ChristopherVR/pptx-viewer/commit/d2f6924aeee390a40d11579e9ee6a1d8033ecf1a))
+- **core:** Stop showing chart data labels PowerPoint hides (work in progress) (by @ChristopherVR) ([a8de727](https://github.com/ChristopherVR/pptx-viewer/commit/a8de727868334f822a032b5c11370199dafd6020))
+- **core:** Write valid build lists and effect behaviours for animations (work in progress) (by @ChristopherVR) ([09af92c](https://github.com/ChristopherVR/pptx-viewer/commit/09af92c1085764a49b18b7dfca3d71207c46ec91))
+- **shared:** Halve-width bug in clustered bar/column gap sizing (by @ChristopherVR) ([bfd1953](https://github.com/ChristopherVR/pptx-viewer/commit/bfd19533effd6393d802cd8cbd598cd45d420e19))
+- **core:** Prune custom-show/section refs on slide delete without opts (by @ChristopherVR) ([4046345](https://github.com/ChristopherVR/pptx-viewer/commit/40463456981eae2128d5a18dd0d1b34993d50af4))
+- **shared:** Recover per-paragraph rtl lost to the shape-level default (by @ChristopherVR) ([cc046bf](https://github.com/ChristopherVR/pptx-viewer/commit/cc046bffe37c8445bb99de188636eaacbe4b2c9e))
+- **core:** Stop a bulleted paragraph's marker from shadowing its own algn (by @ChristopherVR) ([3a4307b](https://github.com/ChristopherVR/pptx-viewer/commit/3a4307b1c058b38d21c2518726417c6a72f881f2))
+- **shared:** Combo per-series chart types and stray "-0" axis labels (by @ChristopherVR) ([06f2b41](https://github.com/ChristopherVR/pptx-viewer/commit/06f2b4173c1feb849284f67a3711e28ec9288f3e))
+- **core:** Stop dropping empty self-closing image effect elements (by @ChristopherVR) ([2ee225e](https://github.com/ChristopherVR/pptx-viewer/commit/2ee225e43c93c69f7633f214b1c4e175227ebf8a))
+- **core:** Stop untouched SmartArt colours corrupting on save (by @ChristopherVR) ([fc06842](https://github.com/ChristopherVR/pptx-viewer/commit/fc068425b770c251db1701b604e5ff7b81598b03))
+- **shared:** Use sample (not population) variance for stdDev/stdErr error bars (by @ChristopherVR) ([982c16c](https://github.com/ChristopherVR/pptx-viewer/commit/982c16cb583354001e0455c1247a1bfd15154240))
+- **core:** Fix TS18048 possibly-undefined scope in namespace declarations (by @ChristopherVR) ([a55c718](https://github.com/ChristopherVR/pptx-viewer/commit/a55c718d1738feb360caaf4594018b37faedcfe7))
+- **core:** Resolve spcPct paragraph spacing against 1.2x font size (by @ChristopherVR) ([bca61b4](https://github.com/ChristopherVR/pptx-viewer/commit/bca61b44a1fd2d23505e457de53edb30cadb1e6c))
+- **shared:** Render area-typed combo series as filled areas (by @ChristopherVR) ([54aa4be](https://github.com/ChristopherVR/pptx-viewer/commit/54aa4be9d599cf8413780aee7a0b4cf8672076fe))
+- **core:** Reconcile animation write tests with valid build-list output (by @ChristopherVR) ([ef4e294](https://github.com/ChristopherVR/pptx-viewer/commit/ef4e294c64c58a64e00bdf40c6e582ab79977f9c))
+- **core:** Read back .ppt gradient fills and stop dropping pattern fills (by @ChristopherVR) ([42ded86](https://github.com/ChristopherVR/pptx-viewer/commit/42ded865efef2e040771749f528386e485d0bb99))
+- **shared:** Correct washout/lum brightness-contrast formula (by @ChristopherVR) ([dd28449](https://github.com/ChristopherVR/pptx-viewer/commit/dd2844911ea0c620e749683740580cd33fc10620))
+- **shared:** Decouple metal bevel specular elevation from diffuse (by @ChristopherVR) ([981ef88](https://github.com/ChristopherVR/pptx-viewer/commit/981ef880aa529e759220c828ed7bf7fcd1a8e6de))
+- **shared:** Drive ink replay timing from real InkML timestamps (by @ChristopherVR) ([ab67076](https://github.com/ChristopherVR/pptx-viewer/commit/ab67076f8e794aa4a5fbdece16f5d41a809660da))
+- **shared:** Derive the WordArt can-preset glyph-spacing law from COM (by @ChristopherVR) ([440356d](https://github.com/ChristopherVR/pptx-viewer/commit/440356d62d17fae40ccf0394110161589b6d5e1e))
+- **core:** Resolve a:tblBg fillRef against the theme format scheme (by @ChristopherVR) ([0174572](https://github.com/ChristopherVR/pptx-viewer/commit/01745725a8506b79b5dd812bd0ed46e2ecfd39ce))
+- **core:** Resolve legacy VML-only OLE preview images (by @ChristopherVR) ([98ae67c](https://github.com/ChristopherVR/pptx-viewer/commit/98ae67cbbd3383e529894bd6ea0e93461488f5f4))
+- **angular:** Apply highlighter mix-blend-mode per stroke, not per element (by @ChristopherVR) ([300a1f7](https://github.com/ChristopherVR/pptx-viewer/commit/300a1f7a4511107e8ea53cceba216b7e8bc033ea))
+- **shared:** Render the table style tblBg background beneath noFill layers (by @ChristopherVR) ([9e4f1e7](https://github.com/ChristopherVR/pptx-viewer/commit/9e4f1e7aea07a487b3052dad1d5628357bdfef46))
+- **shared:** Scale tiled picture fills from the image's native size (work in progress) (by @ChristopherVR) ([92375c4](https://github.com/ChristopherVR/pptx-viewer/commit/92375c470c9c3995f48afc2f22871ffa9609c76c))
+- **core:** Size table cell text from the master other-text style (work in progress) (by @ChristopherVR) ([481c564](https://github.com/ChristopherVR/pptx-viewer/commit/481c5645a5a0e3f930899217308177bea36a5bfa))
+- **core:** Update the OLE in-place-editing compatibility warning (by @ChristopherVR) ([9dd216e](https://github.com/ChristopherVR/pptx-viewer/commit/9dd216edc58e29358e187f62c8ad742d523e578a))
+- **core:** Stop the SmartArt engine dropping hideGeom item-role shapes (by @ChristopherVR) ([9c8c2dc](https://github.com/ChristopherVR/pptx-viewer/commit/9c8c2dce96e7fc1f6faf7ef813deb9095a15ba6b))
+- **core:** Preserve untouched equation XML on save (by @ChristopherVR) ([640bd17](https://github.com/ChristopherVR/pptx-viewer/commit/640bd176246ef43dc510d301017da71d7b5b44ae))
+- **core:** Keep a soft line break from becoming a paragraph break (by @ChristopherVR) ([fbdb209](https://github.com/ChristopherVR/pptx-viewer/commit/fbdb2094f61eadd60fd50656a61d13081d923c07))
+- **core:** Stop reformatting and mutating untouched comment timestamps (by @ChristopherVR) ([bfc92de](https://github.com/ChristopherVR/pptx-viewer/commit/bfc92de9fff54052b9f71f1a72e1a5c4eb83d536))
+- **core:** Write PowerPoint's real behaviour tree for entrance/exit presets (by @ChristopherVR) ([d510300](https://github.com/ChristopherVR/pptx-viewer/commit/d510300729453c1344232efa1cb786790aeeeeae))
+- **core:** Write PowerPoint's real behaviour tree for emphasis presets (by @ChristopherVR) ([0662453](https://github.com/ChristopherVR/pptx-viewer/commit/0662453b747fb4d6099ccdf75531c296b39c055a))
+- **shared:** Render real dates for datetime fields, not the field type (by @ChristopherVR) ([f3653c2](https://github.com/ChristopherVR/pptx-viewer/commit/f3653c2665b0675ad4a50bfee5dc2e8eae7ba3af))
+- **shared:** Apply theme per-script fonts over a run's cascaded font (by @ChristopherVR) ([0a00208](https://github.com/ChristopherVR/pptx-viewer/commit/0a00208cc553eb91b2f96292b1690fdb252f743d))
+- **shared:** Keep gradient/pattern text fills continuous, not per-word (by @ChristopherVR) ([cf05400](https://github.com/ChristopherVR/pptx-viewer/commit/cf054000044540c233e49e6aaae590ff059f15f9))
+- **core:** Resolve buBlip picture-bullet images after slide parsing (by @ChristopherVR) ([beb20b5](https://github.com/ChristopherVR/pptx-viewer/commit/beb20b59eaa3ec93d7f8c164d5fea58bd32aaceb))
+- **shared:** Apply brightness scaled by contrast in a:lum luminance (by @ChristopherVR) ([e55b28a](https://github.com/ChristopherVR/pptx-viewer/commit/e55b28a2042b506562f8edb9759210f2f15a8097))
+- **core:** Parse and render table-style band fill alpha (by @ChristopherVR) ([69f124a](https://github.com/ChristopherVR/pptx-viewer/commit/69f124a84fb962b346718c75dac99f7708a30c06))
+- **shared:** Stop clipping a table whose rows auto-grow past its frame (by @ChristopherVR) ([ad4ebb2](https://github.com/ChristopherVR/pptx-viewer/commit/ad4ebb2e91bd9c4c4adfe5c2bcc6fc9aa1aa3d9c))
+- **core,shared:** Settle table-style fill alpha on one unit (by @ChristopherVR) ([afa50de](https://github.com/ChristopherVR/pptx-viewer/commit/afa50de2a7e5f314fed908a196244c886e67641a))
+- **shared:** Stop a "repeat until next click" loop on the next click (by @ChristopherVR) ([c92d667](https://github.com/ChristopherVR/pptx-viewer/commit/c92d66751c94388a0aac9d0dd172fe880db89d54))
+- **shared:** Honour presetSubtype for Blinds, Checkerboard, Wheel, Random Bars (by @ChristopherVR) ([000efbe](https://github.com/ChristopherVR/pptx-viewer/commit/000efbea966863276d6275ac3ca68ccae3b5e6f9))
+- **shared:** Draw stock HLC/OHLC candles per PowerPoint semantics (by @ChristopherVR) ([7ecb42b](https://github.com/ChristopherVR/pptx-viewer/commit/7ecb42b628b32622f98780f6e18b9e9881bbf68a))
+- **shared:** Correct trendline math, formatting and legend (by @ChristopherVR) ([91cc3c8](https://github.com/ChristopherVR/pptx-viewer/commit/91cc3c8a4c2008726f03f598984133882736f643))
+- **shared:** Scale a scatter/bubble chart's X axis like Excel (by @ChristopherVR) ([16a3e4d](https://github.com/ChristopherVR/pptx-viewer/commit/16a3e4df35b97e2983e4ee394257a280a50b4bf9))
+- **shared,core:** Map animation preset 30 to Float, not Spinner (by @ChristopherVR) ([e98152e](https://github.com/ChristopherVR/pptx-viewer/commit/e98152eee7a756ec205ee370525baec146f1dedb))
+- **core:** Read the pyramid composite ctrX/w fill idiom as a fraction (by @ChristopherVR) ([9cf9fd9](https://github.com/ChristopherVR/pptx-viewer/commit/9cf9fd9aad6f856862fa431236d3697f42f87886))
+- **core:** Stop pinning inherited bodyPr onto untouched shapes on save (by @ChristopherVR) ([7f35589](https://github.com/ChristopherVR/pptx-viewer/commit/7f35589094588355579da4b21c2e2ff654eaf847))
+- **core:** Stop pinning master bullets and dropping bullet inherit markers (by @ChristopherVR) ([c406fa9](https://github.com/ChristopherVR/pptx-viewer/commit/c406fa986723ba69b5c29006fa509c90ee7cbbdd))
+- **core:** Stop flattening master text-style aliases on every save (by @ChristopherVR) ([1cdd778](https://github.com/ChristopherVR/pptx-viewer/commit/1cdd778ec42288d548b442a89e5b3bcd4cfcec0b))
+- **core:** Mirror the master/layout p:bgRef guard onto slide rewrite (by @ChristopherVR) ([670d106](https://github.com/ChristopherVR/pptx-viewer/commit/670d10694a18089a383084dbc00127f5c03d78d4))
+- **shared:** Correct CSS mapping for vert/vert270/wordArt vertical text (by @ChristopherVR) ([fce308c](https://github.com/ChristopherVR/pptx-viewer/commit/fce308c093640f49adb05efb4e9aa6bb9f2cb1cd))
+- **shared:** Honour numCol column-fill, @anchor and @rtlCol (by @ChristopherVR) ([f380f53](https://github.com/ChristopherVR/pptx-viewer/commit/f380f531f976c3769db27d45181c9aff1173e6e3))
+- **shared:** Distribute the last line and single lines for algn="dist" (by @ChristopherVR) ([730ced1](https://github.com/ChristopherVR/pptx-viewer/commit/730ced1fff583a222f89d8ee28f775aa5eb2ff6e))
+- **shared:** Size a paragraph's line-height strut on its smallest run (by @ChristopherVR) ([940137d](https://github.com/ChristopherVR/pptx-viewer/commit/940137d6cc16d468c8fcaeb154c97eb69384e6ca))
+- **shared:** Centre anchorCtr as one shared box, not per-paragraph (by @ChristopherVR) ([5982d91](https://github.com/ChristopherVR/pptx-viewer/commit/5982d917abb062676596ac6976b7df9b70b26222))
+- **core,shared:** Stop empty auto-numbered paragraphs consuming a number and marR being dropped (by @ChristopherVR) ([b163cad](https://github.com/ChristopherVR/pptx-viewer/commit/b163cad85630772903e01954d05987c9e6dbaa5d))
+- **core:** Stretch SVG picture fills instead of squashing srcRect crops (by @ChristopherVR) ([096794f](https://github.com/ChristopherVR/pptx-viewer/commit/096794fbca013f1a1cc5432c8dec82ccc0f9a419))
+- **shared:** Play exit preset 30 (Float Out) with the existing fade-out approximation (by @ChristopherVR) ([c128d23](https://github.com/ChristopherVR/pptx-viewer/commit/c128d230d2ab28bb63f3d7f15e688199721291f9))
+- **angular,core,shared:** Finish View > Normal and zoom field wiring after rebase (by @ChristopherVR) ([df6bddf](https://github.com/ChristopherVR/pptx-viewer/commit/df6bddf25bcde10b0153ffb3f0bd33491b065291))
+
+### Documentation
+
+- **core:** Restate the SmartArt interpreter gate with measured numbers (by @ChristopherVR) ([8d706b9](https://github.com/ChristopherVR/pptx-viewer/commit/8d706b99802292414adc9a9da663d9320b08bf81))
+
+### Testing
+
+- **core:** Re-anchor coverage evidence to the renamed build-list tests (by @ChristopherVR) ([a1b26e5](https://github.com/ChristopherVR/pptx-viewer/commit/a1b26e592d7059e2bcf9384f97ec37b031338778))
+- **core:** Cover attribute-less grayscl parsing in image colour effects (by @ChristopherVR) ([5588bec](https://github.com/ChristopherVR/pptx-viewer/commit/5588bec9a354bc54360c6f352ddb4fe8a5cb2ee1))
+- **core:** Register the new table-row-autogrow.pptx fixture (by @ChristopherVR) ([e1cebe9](https://github.com/ChristopherVR/pptx-viewer/commit/e1cebe93462cf4e6e351824c931a80fdda3480f4))
+- **core:** Cover the notes master save path for text-less anchor loss (by @ChristopherVR) ([8bed413](https://github.com/ChristopherVR/pptx-viewer/commit/8bed413605f9408ab28864659ca5e81da035c0e0))
+- **core:** Add extractOwnBackgroundRefNode to mocked loader params (by @ChristopherVR) ([8056d5a](https://github.com/ChristopherVR/pptx-viewer/commit/8056d5a7a19e4aa198e1726cfce01719bfe67473))
+
+### Dependencies
+
+- **deps:** Update emf-converter to 3.1.0 (by @ChristopherVR) ([5eac42f](https://github.com/ChristopherVR/pptx-viewer/commit/5eac42f20a2d783574ab5f40640238c0e42bf744))
+- **deps:** Update emf-converter to 3.2.0 (by @ChristopherVR) ([bc37b25](https://github.com/ChristopherVR/pptx-viewer/commit/bc37b256dd8c0b93e03c451144562c6e466c25c9))
+- **deps:** Update emf-converter to 3.3.0 (by @ChristopherVR) ([9c83a17](https://github.com/ChristopherVR/pptx-viewer/commit/9c83a17478fbc634e2da9c8cdcbadc956a8dd2eb))
+
 ## [4.2.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.2.0) - 2026-09-24
 
 ### Features
