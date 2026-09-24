@@ -144,6 +144,18 @@ export interface TimelineStep {
 	 */
 	restart?: 'always' | 'whenNotActive' | 'never';
 	/**
+	 * True when this step's repeat is PowerPoint's "Repeat until next click":
+	 * an infinitely-repeating (`iterCount === Infinity`) effect whose
+	 * `p:endCondLst` resolves to `endsOnClick`/`onNext`
+	 * ({@link import('./animation-advanced-triggers').resolveAnimationEnd}),
+	 * or whose `restart` is `whenNotActive` (how this project's own editor
+	 * writes `repeatMode: "untilNextClick"`, see
+	 * `animation-write-node-effect.ts`). `TimelineEngine.advance()` reads this
+	 * to freeze the running CSS loop, in place, the next time the presentation
+	 * advances, rather than letting it repeat forever.
+	 */
+	endsOnNextClick?: boolean;
+	/**
 	 * `p:seq/@concurrent` of the innermost enclosing sequence, if any (ECMA-376
 	 * S19.5.60), forwarded from the source `PptxNativeAnimation`. Rolled up
 	 * onto the owning {@link import('./animation-timeline-group').TimelineClickGroup}

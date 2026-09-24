@@ -138,6 +138,13 @@ export class TimelineEngine {
 	 * exclusive container to play at a time.
 	 */
 	private readonly exclusiveHolders: Map<number, string>;
+	/**
+	 * Element ids currently running a `step.endsOnNextClick` loop ("Repeat
+	 * until next click"), mapped to the step that started it. See
+	 * {@link StepApplicationState.loopEndingOnNextClick} and
+	 * {@link freezeLoopsEndingOnNextClick}.
+	 */
+	private readonly loopEndingOnNextClick: Map<string, TimelineStep>;
 
 	public constructor(timeline: AnimationTimeline) {
 		this.timeline = timeline;
@@ -156,6 +163,7 @@ export class TimelineEngine {
 		this.hoverGroupStartedAtMs = new Map();
 		this.stepRestartState = new WeakMap();
 		this.exclusiveHolders = new Map();
+		this.loopEndingOnNextClick = new Map();
 	}
 
 	/**
@@ -222,10 +230,36 @@ export class TimelineEngine {
 			return EMPTY_CLICK_GROUP;
 		}
 
+		// A real (non-blocked) advance of the MAIN sequence is what PowerPoint
+		// means by "the next click": freeze any currently-running "Repeat until
+		// next click" loop in place before this click's own steps are applied,
+		// so a loop this same click restarts is not immediately re-frozen.
+		this.freezeLoopsEndingOnNextClick();
 		this.currentGroupIndex = result.nextIndex;
 		this.mainGroupStartedAtMs = nowMs;
 
 		return this.applyGroupSteps(result.group, nowMs);
+	}
+
+	/**
+	 * Freeze every currently-active `step.endsOnNextClick` loop ("Repeat until
+	 * next click") in place: appends ` paused` to its running CSS `animation`
+	 * shorthand, which stops the infinite iteration at whatever frame it is
+	 * currently on (the `animation-name`/duration/delay are unchanged, so the
+	 * browser preserves the animation's current position instead of
+	 * restarting it) rather than snapping back to the element's un-animated
+	 * base style. Only `advance()` (the main click sequence) calls this: see
+	 * `TimelineStep.endsOnNextClick`'s doc for why interactive/hover sequences
+	 * are a different mechanism and out of scope here.
+	 */
+	private freezeLoopsEndingOnNextClick(): void {
+		for (const [elementId, step] of this.loopEndingOnNextClick) {
+			const cssAnimation = this.activeAnimations.get(elementId);
+			if (cssAnimation === step.cssAnimation) {
+				this.activeAnimations.set(elementId, `${cssAnimation} paused`);
+			}
+			this.loopEndingOnNextClick.delete(elementId);
+		}
 	}
 
 	/**
@@ -535,6 +569,7 @@ export class TimelineEngine {
 		// every step's `@restart` state (active-window / played-once) starts over.
 		this.stepRestartState = new WeakMap();
 		this.exclusiveHolders.clear();
+		this.loopEndingOnNextClick.clear();
 	}
 
 	/**
@@ -564,6 +599,7 @@ export class TimelineEngine {
 				exitedElements: this.exitedElements,
 				chartRevealHistory: this.chartRevealHistory,
 				diagramRevealHistory: this.diagramRevealHistory,
+				loopEndingOnNextClick: this.loopEndingOnNextClick,
 			});
 			if (!applied) {
 				appliedSteps ??= group.steps.slice(0, i);

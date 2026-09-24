@@ -13,7 +13,7 @@
 
 import type { PptxNativeAnimation, PptxAnimationTrigger } from 'pptx-viewer-core';
 
-import { resolveAnimationStart } from './animation-advanced-triggers';
+import { resolveAnimationEnd, resolveAnimationStart } from './animation-advanced-triggers';
 import { resolveAfterAnimationStepFields } from './animation-after-effect';
 import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveEffectTiming } from './animation-fill-repeat';
@@ -231,6 +231,13 @@ export function processRegularAnimation(
 			pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
 			pendingDimOnNextClick: afterFields.pendingDimOnNextClick,
 			restart: singleAnim.restart,
+			endsOnNextClick: isCommand
+				? undefined
+				: iterCount === Infinity &&
+					  (resolveAnimationEnd(singleAnim)?.endsOnClick === true ||
+							singleAnim.restart === 'whenNotActive')
+					? true
+					: undefined,
 			seqConcurrent: singleAnim.seqConcurrent,
 			seqNextAction: singleAnim.seqNextAction,
 			seqPrevAction: singleAnim.seqPrevAction,

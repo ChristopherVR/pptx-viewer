@@ -917,3 +917,101 @@ describe('p:excl exclusivity (exclGroupId)', () => {
 		expect(engine.getElementAnimation('b')).toBeDefined();
 	});
 });
+
+describe('step.endsOnNextClick ("Repeat until next click")', () => {
+	it('freezes a running infinite loop in place the next time the presentation advances', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({
+							elementId: 'a',
+							presetClass: 'emph',
+							cssAnimation: 'pptx-pulse 500ms ease 0ms infinite normal both',
+							endsOnNextClick: true,
+						}),
+					]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph' })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBe('pptx-pulse 500ms ease 0ms infinite normal both');
+
+		// The NEXT click freezes it in place rather than letting it repeat
+		// forever: same animation-name/duration/delay (so the browser keeps its
+		// current position), with `paused` appended.
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBe(
+			'pptx-pulse 500ms ease 0ms infinite normal both paused',
+		);
+	});
+
+	it('does not freeze a step that is not marked endsOnNextClick, even if it repeats forever', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({
+							elementId: 'a',
+							presetClass: 'emph',
+							cssAnimation: 'pptx-pulse 500ms ease 0ms infinite normal both',
+						}),
+					]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph' })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBe('pptx-pulse 500ms ease 0ms infinite normal both');
+	});
+
+	it('does not re-freeze a loop the SAME click just (re)started', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({
+							elementId: 'a',
+							presetClass: 'emph',
+							cssAnimation: 'pptx-pulse 500ms ease 0ms infinite normal both',
+							endsOnNextClick: true,
+						}),
+					]),
+				],
+			}),
+		);
+
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBe('pptx-pulse 500ms ease 0ms infinite normal both');
+	});
+
+	it('does not double-append paused on a second later advance', () => {
+		const engine = new TimelineEngine(
+			makeTimeline({
+				clickGroups: [
+					makeGroup([
+						makeStep({
+							elementId: 'a',
+							presetClass: 'emph',
+							cssAnimation: 'pptx-pulse 500ms ease 0ms infinite normal both',
+							endsOnNextClick: true,
+						}),
+					]),
+					makeGroup([makeStep({ elementId: 'b', presetClass: 'emph' })]),
+					makeGroup([makeStep({ elementId: 'c', presetClass: 'emph' })]),
+				],
+			}),
+		);
+
+		engine.advance();
+		engine.advance();
+		engine.advance();
+		expect(engine.getElementAnimation('a')).toBe(
+			'pptx-pulse 500ms ease 0ms infinite normal both paused',
+		);
+	});
+});

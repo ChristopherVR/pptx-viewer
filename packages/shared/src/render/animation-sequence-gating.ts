@@ -167,6 +167,16 @@ export interface StepApplicationState {
 	 * `diagram-reveal-descriptor`'s `resolveDiagramRevealDescriptor`.
 	 */
 	diagramRevealHistory?: Map<string, TimelineStep[]>;
+	/**
+	 * Element ids currently running a `step.endsOnNextClick` loop ("Repeat
+	 * until next click"), mapped to the step that started it. Kept separate
+	 * from {@link activeSteps} (which only tracks build/colour-target steps)
+	 * so `TimelineEngine.advance()` can freeze exactly these loops in place
+	 * the next time the presentation advances, without disturbing every other
+	 * element's tracked step. Optional: a caller with no such steps (or that
+	 * doesn't care) may omit it.
+	 */
+	loopEndingOnNextClick?: Map<string, TimelineStep>;
 }
 
 /**
@@ -202,6 +212,13 @@ export function applyRestartGatedStep(
 	state.activeAnimations.set(step.elementId, step.cssAnimation);
 	if (step.build || step.colorTargets) {
 		state.activeSteps.set(step.elementId, step);
+	}
+	if (state.loopEndingOnNextClick) {
+		if (step.endsOnNextClick) {
+			state.loopEndingOnNextClick.set(step.elementId, step);
+		} else {
+			state.loopEndingOnNextClick.delete(step.elementId);
+		}
 	}
 	if (step.build?.kind === 'chart') {
 		const history = state.chartRevealHistory?.get(step.elementId) ?? [];
