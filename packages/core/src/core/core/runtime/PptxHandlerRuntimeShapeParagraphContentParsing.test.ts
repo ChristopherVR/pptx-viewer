@@ -743,6 +743,52 @@ describe('collectShapeParagraphContent - bullet markers (real runtime)', () => {
 });
 
 // ---------------------------------------------------------------------------
+// A bullet marker's `align` must match ITS OWN paragraph's resolved
+// alignment, never a placeholder-level default carried in through
+// `mergedDefaultRunStyle`. `applyPlaceholderLevelDefaults` fills any slot the
+// paragraph left undefined, and almost every body placeholder's master
+// `lstStyle` declares a level `algn`, so `mergedDefaultRunStyle.align` is
+// routinely non-empty by the time it reaches here. Because the marker is
+// always the FIRST segment of a bulleted paragraph, and the shared renderer's
+// `resolveParagraphAlign` returns the first segment with an explicit `align`,
+// a stale placeholder alignment on the marker shadowed the paragraph's own
+// `algn` for every bulleted paragraph in that placeholder.
+// ---------------------------------------------------------------------------
+class AlignAwareParagraphContentRuntime extends PptxHandlerRuntime {
+	public collect(p: XmlObject, paraAlign: TextStyle['align'], mergedDefaultRunStyle: TextStyle) {
+		return this.collectShapeParagraphContent(p, 0, 1, paraAlign, mergedDefaultRunStyle, {
+			txBody: undefined,
+			inheritedTxBody: undefined,
+			bodyDefaultRunStyle: {},
+			slideRelationshipMap: undefined,
+			placeholderInfo: undefined,
+			phDefaults: undefined,
+			slidePath: 'ppt/slides/slide1.xml',
+			effectiveLevelStyles: undefined,
+			autoNumbering: createAutoNumberSequence(),
+		} as never);
+	}
+}
+
+describe('collectShapeParagraphContent - bullet marker alignment (real runtime)', () => {
+	it("uses the paragraph's own resolved align, not a placeholder default leaked into mergedDefaultRunStyle", () => {
+		const runtime = new AlignAwareParagraphContentRuntime();
+		const paragraph: XmlObject = {
+			'a:pPr': { 'a:buAutoNum': { '@_type': 'arabicPeriod' }, '@_algn': 'r' },
+			'a:r': { 'a:t': 'Right-aligned bulleted item' },
+		};
+		// Simulates `applyPlaceholderLevelDefaults` having already filled the
+		// merged run-default's `align` from the placeholder's master `lstStyle`
+		// level style (commonly 'l'), which differs from this paragraph's own
+		// authored `algn="r"` (resolved to 'right' as `paraAlign`).
+		const { segments } = runtime.collect(paragraph, 'right', { align: 'left', fontSize: 24 });
+		expect(segments[0].bulletInfo).toBeDefined();
+		expect(segments[0].style.align).toBe('right');
+		expect(segments[1].style.align).toBe('right');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // `a:endParaRPr` on an EMPTY paragraph.
 //
 // A trailing/only empty paragraph produced no segment, so its end-paragraph run

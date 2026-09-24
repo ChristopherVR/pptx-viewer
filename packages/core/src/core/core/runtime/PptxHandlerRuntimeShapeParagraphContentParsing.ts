@@ -133,6 +133,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// their base, not the text body's default. The renderer applies the
 			// percentage; `a:buSzPts` is absolute and does not use this base.
 			const bulletStyle = { ...mergedDefaultRunStyle } as TextStyle;
+			// `mergedDefaultRunStyle` can pick up `align` from the placeholder's
+			// level defaults (`applyPlaceholderLevelDefaults` fills any slot the
+			// paragraph itself left undefined, and almost every body placeholder's
+			// master `lstStyle` declares a level alignment). The renderer's
+			// per-paragraph alignment resolution (`resolveParagraphAlign`) reads
+			// segments in order and stops at the FIRST explicit `align`, and the
+			// bullet marker is always that first segment, so a stale
+			// placeholder-derived alignment here shadowed the paragraph's own
+			// resolved `algn` on every bulleted paragraph. The marker's alignment
+			// must always match its own paragraph, never the placeholder default.
+			bulletStyle.align = paraAlign;
 			if (paragraphBulletInfo.sizePts === undefined) {
 				const firstRunSize = this.resolveFirstRunFontSize(p, paraAlign, ctx);
 				if (firstRunSize !== undefined) {
