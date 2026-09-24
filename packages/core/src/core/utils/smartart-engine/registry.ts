@@ -5,6 +5,7 @@
 
 import { arrangeComposite } from './alg-composite';
 import { arrangeConnector } from './alg-connector';
+import { arrangeCycle } from './alg-cycle';
 import { arrangeLinear } from './alg-linear';
 import { arrangeSnake } from './alg-snake';
 import type { ArrangeAlgorithm, LayoutRegistry } from './layout-driver';
@@ -15,6 +16,7 @@ const ALGORITHMS: Record<string, ArrangeAlgorithm> = {
 	lin: arrangeLinear,
 	conn: arrangeConnector,
 	snake: arrangeSnake,
+	cycle: arrangeCycle,
 	tx: fillChildren,
 	sp: fillChildren,
 };

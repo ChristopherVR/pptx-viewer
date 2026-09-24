@@ -150,13 +150,31 @@ grid math). Re-measuring qualified 7 more layouts (67 total on the
 allowlist) with zero regressions, though none crossed the 1/5/10/50% bands
 on their own since they are still-inaccurate picture/composite families;
 Icon Circle Label List did go from 4971% legacy deviation to 64% engine
-deviation. `cycle`, `pyra`, `hierRoot` and `hierChild` remain unimplemented
-in the per-point engine (`registry.ts` still substitutes `composite` for
-them, and `isFullySupported` catches that so the engine declines cleanly
-instead of emitting silently-wrong geometry) - each is a substantial,
-genuinely different algorithm family (the legacy interpreter's own
-`cycle`/`pyramid`/`hierarchy` arrangers together are ~7,500 lines) that
-would need its own from-scratch per-point port, not attempted in this pass.
+deviation.
+
+A fourth wave gave the engine a `cycle` algorithm
+(`smartart-engine/alg-cycle.ts`, ECMA-376 21.4.2.x: `stAng`/`spanAng` place
+children evenly around a ring, solving the ring radius the same "natural
+unit space, single isotropic contain-fit" way the legacy
+`computeCycleRingLayout` does, plus a `ctrShpMap="fNode"` centred hub and
+`rotPath="alongPath"` tangent rotation). Re-measuring the 17-fixture
+cycle/radial family qualified no new layouts: the three already on the
+allowlist are unaffected, Basic and Multidirectional Cycle now tie legacy
+exactly (a tie, not an improvement), Block/Continuous/Nondirectional/Radial
+Cycle come out measurably worse under this ring-only model (no
+hub-satellite gap ratio or `sibTrans`-bulge handling), and the remaining
+hub/composite-item layouts (Text Cycle, Hexagon Radial, Basic/Diverging
+Radial, Radial Cluster, Converging Radial, Radial List) still decline
+outright. Zero regressions either way
+(`gen-smartart-gallery-baseline.ts --compare`), since none of these were
+engine-first before or after. `pyra`, `hierRoot` and `hierChild` remain
+unimplemented in the per-point engine (`registry.ts` still substitutes
+`composite` for them, and `isFullySupported` catches that so the engine
+declines cleanly instead of emitting silently-wrong geometry) - each is a
+substantial, genuinely different algorithm family (the legacy interpreter's
+own `pyramid`/`hierarchy` arrangers together are still several thousand
+lines) that would need its own from-scratch per-point port, not attempted
+in this pass.
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
