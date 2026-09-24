@@ -654,6 +654,20 @@ export interface ContentPartInkStroke {
 	 * NAMES differ.
 	 */
 	tiltEncoding?: 'vector' | 'azimuthAltitude';
+	/**
+	 * Per-point timestamps (milliseconds), decoded from the source InkML
+	 * trace's `T` channel when it declared one.
+	 *
+	 * Absent for the overwhelming majority of real decks: PowerPoint's own
+	 * SaveAs output declares only `X`/`Y` and has no per-point time channel at
+	 * all (see `contentpart-real-ink-roundtrip.test.ts`'s fixture), so this is
+	 * populated only for InkML sources that genuinely author one (a captured
+	 * digitizer session, OneNote, a Surface Hub export). When present, ink
+	 * replay ("watch the ink get drawn") uses each stroke's own first/last
+	 * timestamp to time its reveal instead of the fixed per-stroke cascade; see
+	 * `pptx-viewer-shared`'s `render/ink-replay-timeline.ts`.
+	 */
+	pointTimestamps?: number[];
 }
 
 /**

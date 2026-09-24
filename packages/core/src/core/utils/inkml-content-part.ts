@@ -10,6 +10,7 @@ import {
 	pointsToPressures,
 	pointsToSvgPath,
 	pointsToTilt,
+	pointsToTimestamps,
 	resolveChannelOrder,
 	tiltChannelsFromXY,
 } from './inkml-trace-decode';
@@ -93,6 +94,11 @@ export function parseInkMlContent(data: XmlObject, box?: InkTargetBox): ParsedIn
 		const tilt = entry.authored
 			? traceTilt(entry.text, azimuthEncoded)
 			: pointsToTilt(entry.points, channelOrder);
+		// This project's own authored dialect (`entry.authored`) encodes points
+		// positionally (`x y pressure <a> <b>`) with no time column at all, so a
+		// per-point timestamp only ever comes from a foreign trace's declared
+		// `T` channel.
+		const timestamps = entry.authored ? [] : pointsToTimestamps(entry.points, channelOrder);
 		strokes.push({
 			...brush,
 			path,
@@ -106,6 +112,7 @@ export function parseInkMlContent(data: XmlObject, box?: InkTargetBox): ParsedIn
 				: tilt
 					? { tiltAngles: tilt.angles, tiltMagnitudes: tilt.magnitudes }
 					: {}),
+			...(timestamps.length > 0 ? { pointTimestamps: timestamps } : {}),
 		});
 	}
 	return { strokes, rawXml: data };

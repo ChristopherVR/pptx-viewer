@@ -84,6 +84,44 @@ describe('parseInkMlContent - real PowerPoint InkML', () => {
 	});
 });
 
+describe('parseInkMlContent - T (time) channel', () => {
+	it('decodes a per-point T channel into pointTimestamps (ms)', () => {
+		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
+  <inkml:traceFormat>
+    <inkml:channel name="X" type="decimal"/>
+    <inkml:channel name="Y" type="decimal"/>
+    <inkml:channel name="T" type="integer"/>
+  </inkml:traceFormat>
+  <inkml:trace>0 0 1000, 10 10 1120, 20 20 1300</inkml:trace>
+</inkml:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		expect(strokes).toHaveLength(1);
+		expect(strokes[0].pointTimestamps).toStrictEqual([1000, 1120, 1300]);
+	});
+
+	it('leaves pointTimestamps unset when no T channel is declared', () => {
+		// This is the real-world case: PowerPoint's own SaveAs output declares
+		// only X/Y (see contentpart-real-ink-roundtrip.test.ts's fixture).
+		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
+  <inkml:traceFormat>
+    <inkml:channel name="X" type="decimal"/>
+    <inkml:channel name="Y" type="decimal"/>
+  </inkml:traceFormat>
+  <inkml:trace>0 0, 10 10</inkml:trace>
+</inkml:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		expect(strokes[0].pointTimestamps).toBeUndefined();
+	});
+
+	it("leaves pointTimestamps unset for this project's own authored (pva:path) traces", () => {
+		const xml = `<ink:ink xmlns:ink="http://www.w3.org/2003/InkML" xmlns:pva="https://pptx-viewer.dev/inkml/metadata">
+  <ink:trace pva:path="M 1 2 L 3 4">1 2 0.5, 3 4 0.5</ink:trace>
+</ink:ink>`;
+		const { strokes } = parseInkMlContent(parse(xml));
+		expect(strokes[0].pointTimestamps).toBeUndefined();
+	});
+});
+
 describe('parseInkMlContent - pen tilt channels', () => {
 	it('decodes OTx/OTy tilt-offset channels into per-point angle + magnitude', () => {
 		const xml = `<inkml:ink xmlns:inkml="http://www.w3.org/2003/InkML">
