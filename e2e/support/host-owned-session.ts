@@ -63,7 +63,9 @@ export function hostOwnedSessionUrl(room: string, extra: Record<string, string>)
 	const params = new URLSearchParams({
 		externalSession: '1',
 		room,
-		server: process.env.PPTX_E2E_COLLAB_SERVER ?? 'ws://127.0.0.1:1234',
+		server:
+			process.env.PPTX_E2E_COLLAB_SERVER ??
+			`ws://127.0.0.1:${1234 + Number(process.env.PPTX_E2E_PORT_OFFSET ?? 0)}`,
 		name: 'Editor',
 		headless: test.info().project.metadata.headless ? '1' : '0',
 		...extra,
