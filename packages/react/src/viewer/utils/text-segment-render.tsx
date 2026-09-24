@@ -85,8 +85,16 @@ export function renderParagraphRun(
 	const key = `${element.id}-seg-${segmentIndex}${keySuffix}`;
 
 	// Inline equation (`m:oMath`): the run has no text, the maths is the content.
+	// `run.style.fontSize` is shared's resolved value (see `buildParagraphRuns`'s
+	// equation branch), not left to ancestor inheritance.
 	if (run.equation) {
-		return renderEquationSegment(element.id, segmentIndex, run.equation.xml, run.equation.number);
+		return renderEquationSegment(
+			element.id,
+			segmentIndex,
+			run.equation.xml,
+			run.equation.number,
+			typeof run.style.fontSize === 'string' ? run.style.fontSize : undefined,
+		);
 	}
 
 	const segmentStyle = segment?.style ?? {};

@@ -306,9 +306,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			const eqText = '[Equation]';
 			parts.push(eqText);
+			// `mergedDefaultRunStyle` is the PARAGRAPH's own default (its `a:pPr`
+			// merged with the body/theme cascade) - the right seed for colour,
+			// bold, italic and typeface, none of which `m:oMath` authors itself.
+			// `fontSize` is different: `m:oMath` has no `a:rPr/@sz` of its own, so
+			// carrying the paragraph default's size forward here fixes it to that
+			// abstract default REGARDLESS of what the runs actually next to it in
+			// the SAME paragraph authored, e.g. a paragraph of 14pt runs inside a
+			// 24pt-default shape rendered its equation at 24pt. Render-time
+			// (`buildParagraphRuns` in `pptx-viewer-shared`) makes the same
+			// decision correctly, from the paragraph's actual smallest run, but
+			// only when the parsed style leaves `fontSize` unset for it to fill
+			// in; omitted here rather than fixed, so an edit/save round-trip of an
+			// untouched equation still never invents an `a:rPr/@sz` PowerPoint's
+			// own writer never authors on `m:oMath`.
+			const { fontSize: _paragraphDefaultFontSize, ...equationDefaultStyle } =
+				mergedDefaultRunStyle;
 			segments.push({
 				text: eqText,
-				style: { ...mergedDefaultRunStyle },
+				style: equationDefaultStyle,
 				equationXml: mathEl as Record<string, unknown>,
 				equationSourceXml: { [wrapperTag]: wrapperNode } as Record<string, unknown>,
 			});
