@@ -714,6 +714,28 @@ export interface ZoomPptxElement extends PptxElementBase, PptxImageProperties {
 	summaryTargets?: SummaryZoomTarget[];
 	/** Layout mode authored on the Summary Zoom container. */
 	summaryLayout?: 'grid' | 'fixed';
+	/**
+	 * `zmPr/@returnToParent` (MS-PPTX `CT_ZoomObjectProperties`, shared by all
+	 * three Zoom kinds): whether continuing forward from the destination slide
+	 * during a live show returns to this Zoom's origin slide instead of
+	 * advancing linearly through the deck. OOXML default is `true` when the
+	 * attribute is present but this codebase leaves it `undefined` when the
+	 * source XML omits it, so a round-trip never fabricates the attribute.
+	 * For `zoomType: 'summary'`, this mirrors the first tile's own value; see
+	 * {@link SummaryZoomTarget.returnToParent} for the per-tile value.
+	 */
+	returnToParent?: boolean;
+	/**
+	 * `zmPr/@transitionDur` (MS-PPTX `CT_ZoomObjectProperties`): the
+	 * zoom-transition length in milliseconds. PowerPoint's own writer emits a
+	 * unitless decimal-millisecond value for every OOXML `ST_UniversalTimeOffset`
+	 * this codebase has observed (see the media-trim/-fade parsers), so this
+	 * follows the same convention rather than the full TIMEOFFSET grammar's
+	 * unit suffixes. Undefined uses the destination slide's own transition.
+	 * For `zoomType: 'summary'`, this mirrors the first tile's own value; see
+	 * {@link SummaryZoomTarget.transitionDurationMs} for the per-tile value.
+	 */
+	transitionDurationMs?: number;
 }
 
 /** A single section tile within a PowerPoint Summary Zoom container. */
@@ -730,6 +752,10 @@ export interface SummaryZoomTarget extends PptxImageProperties {
 	offsetFactorY?: number;
 	scaleFactorX?: number;
 	scaleFactorY?: number;
+	/** This tile's own `zmPr/@returnToParent`; see {@link ZoomPptxElement.returnToParent}. */
+	returnToParent?: boolean;
+	/** This tile's own `zmPr/@transitionDur` in milliseconds; see {@link ZoomPptxElement.transitionDurationMs}. */
+	transitionDurationMs?: number;
 	rawXml?: XmlObject;
 }
 

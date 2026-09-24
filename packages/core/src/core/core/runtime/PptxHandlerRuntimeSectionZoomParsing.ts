@@ -65,6 +65,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				flipVertical: readBoolean(transform?.['@_flipV']),
 				imagePath,
 				imageData,
+				...this.parseZoomObjectProperties(zoomProperties),
 				rawXml: zoom,
 			};
 			return result;

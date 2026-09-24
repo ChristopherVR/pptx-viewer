@@ -23,7 +23,6 @@ import {
 	getElementTransform,
 	getImageRenderStyle,
 	getImageSurfaceStyle,
-	getImageTilingStyle,
 	getShapeVisualStyle,
 	getTextStyleForElement,
 	isEditableTextElement,
@@ -45,6 +44,7 @@ import type {
 	PressureCircle,
 } from '../../utils/ink-rendering';
 import { shapeParams } from '../ElementRenderer';
+import { TiledImageLayer } from '../TiledImageLayer';
 import { ShapeEffectOverlay } from './ShapeEffectOverlay';
 
 // Re-export the shared OLE type-resolution helpers so existing consumers (and
@@ -287,9 +287,10 @@ export function renderGroup(children: PptxElement[], parentGroupFill?: ShapeStyl
 						) : isI && (('svgData' in c && c.svgData) || ('imageData' in c && c.imageData)) ? (
 							<div className='absolute inset-0 pointer-events-none' style={getImageSurfaceStyle(c)}>
 								{isImageTiled(c) ? (
-									<div
+									<TiledImageLayer
+										element={c}
+										src={('svgData' in c && c.svgData ? c.svgData : c.imageData) as string}
 										className='pointer-events-none select-none w-full h-full'
-										style={getImageTilingStyle(c)}
 									/>
 								) : (
 									<img
