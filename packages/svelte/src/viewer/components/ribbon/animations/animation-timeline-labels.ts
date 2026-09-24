@@ -17,14 +17,18 @@
  * @module animation-timeline-labels
  */
 
-/** `PptxAnimationTrigger` -> dictionary key. */
-export const TRIGGER_LABEL_KEYS: Readonly<Record<string, string>> = {
-	onClick: 'pptx.animation.trigger.onClick',
-	onShapeClick: 'pptx.animation.trigger.onShapeClick',
-	onHover: 'pptx.animation.trigger.onHover',
-	afterPrevious: 'pptx.animation.trigger.afterPrevious',
-	withPrevious: 'pptx.animation.trigger.withPrevious',
-};
+import { TRIGGER_OPTIONS } from 'pptx-viewer-shared';
+
+/**
+ * `PptxAnimationTrigger` -> dictionary key, derived from shared's
+ * `TRIGGER_OPTIONS` instead of a hand-maintained copy: a hardcoded copy here
+ * previously fell behind when `afterDelay` was added to the shared vocabulary
+ * (this row rendered the raw, untranslated token for it until the shared
+ * `TRIGGER_VALUES` and this lookup drifted back into sync by hand).
+ */
+export const TRIGGER_LABEL_KEYS: Readonly<Record<string, string>> = Object.fromEntries(
+	TRIGGER_OPTIONS.map((option) => [option.value, option.labelKey]),
+);
 
 /** `PptxAnimationDirection` -> dictionary key (all eight compass values). */
 export const DIRECTION_LABEL_KEYS: Readonly<Record<string, string>> = {
