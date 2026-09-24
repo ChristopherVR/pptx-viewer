@@ -9,7 +9,11 @@ import type {
 	PptxAppProperties,
 	PptxCustomProperty,
 } from 'pptx-viewer-core';
-import { printPropertiesFrameSlides, printPropertiesSlidesPerPage } from 'pptx-viewer-shared';
+import {
+	isDialogAvailable,
+	printPropertiesFrameSlides,
+	printPropertiesSlidesPerPage,
+} from 'pptx-viewer-shared';
 
 import {
 	PasswordProtectionDialog,
@@ -35,6 +39,7 @@ import { ComparePanel } from './ComparePanel';
 import { EquationEditorDialog } from './EquationEditorDialog';
 import { HyperlinkEditDialog } from './HyperlinkEditDialog';
 import { InsertSmartArtDialog } from './InsertSmartArtDialog';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -100,6 +105,8 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 		onKeepAnnotations,
 		onDiscardAnnotations,
 	} = props;
+	// A host-removed Print dialog never opens, whichever entry point asked.
+	const printAvailable = isDialogAvailable(useViewerCustomizationContext(), 'print');
 
 	return (
 		<>
@@ -218,7 +225,7 @@ export function ViewerDialogGroup(props: ViewerDialogGroupProps) {
 			/>
 
 			<PrintDialog
-				open={printHandlers.isPrintDialogOpen}
+				open={printHandlers.isPrintDialogOpen && printAvailable}
 				onClose={() => printHandlers.setIsPrintDialogOpen(false)}
 				onPrint={printHandlers.handlePrintSvg}
 				slides={slides}

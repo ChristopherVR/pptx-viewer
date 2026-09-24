@@ -65,6 +65,7 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 				<RibbonCommand
 					label={t('pptx.review.language')}
 					icon={<LuGlobe />}
+					disabled={!p.onSetLanguage}
 					onClick={p.onSetLanguage}
 				/>
 			</RibbonGroup>

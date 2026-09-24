@@ -1,5 +1,6 @@
 import {
 	filterCommands,
+	isPanelVisible,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
@@ -13,6 +14,7 @@ import type { AutosaveStatus } from '../../hooks/useAutosave';
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
 import { cn } from '../../utils';
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { useViewerOptionsContext } from '../viewer-options-context';
 import { WebSearch } from '../WebControls';
 import { TitleBarQuickExtras } from './TitleBarQuickExtras';
@@ -57,6 +59,8 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 	const editing = (p.mode === 'edit' || p.mode === 'master') && p.canEdit;
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
 	const quickAccess = useViewerOptionsContext().quickAccess;
+	// Host customisation can remove the whole Quick Access strip.
+	const showQuickAccess = isPanelVisible(useViewerCustomizationContext(), 'quickAccessToolbar');
 
 	const [searchQuery, setSearchQuery] = useState('');
 	const [searchFocused, setSearchFocused] = useState(false);
@@ -143,7 +147,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 
 					<div className={TB.separator} />
 
-					{p.onSave && (
+					{showQuickAccess && p.onSave && (
 						<button
 							type='button'
 							onClick={p.onSave}
@@ -154,7 +158,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 							<LuSave className='w-3.5 h-3.5' />
 						</button>
 					)}
-					{!isHidden('undo') && (
+					{showQuickAccess && !isHidden('undo') && (
 						<button
 							type='button'
 							onClick={p.onUndo}
@@ -170,7 +174,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 							<LuUndo className='w-3.5 h-3.5' />
 						</button>
 					)}
-					{!isHidden('redo') && (
+					{showQuickAccess && !isHidden('redo') && (
 						<button
 							type='button'
 							onClick={p.onRedo}
@@ -198,11 +202,11 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 					 * place. The dedicated Save/Undo/Redo trio above always stays here,
 					 * matching Angular's `belowRibbonQuickAccess`.
 					 */}
-					{quickAccess.position !== 'below' && (
+					{showQuickAccess && quickAccess.position !== 'below' && (
 						<TitleBarQuickExtras quickAccess={quickAccess} onCommand={p.onQuickCommand} />
 					)}
 
-					<div className={TB.separator} />
+					{showQuickAccess && <div className={TB.separator} />}
 				</>
 			)}
 

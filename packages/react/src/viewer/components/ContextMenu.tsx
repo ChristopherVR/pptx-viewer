@@ -1,4 +1,4 @@
-import { buildContextMenuEntries } from 'pptx-viewer-shared';
+import { buildContextMenuEntries, customizeContextMenuEntries } from 'pptx-viewer-shared';
 import type React from 'react';
 import { Fragment, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch
 import { ContextMenuItem, ContextMenuSeparator } from './context-menu-parts';
 import type { ContextMenuProps } from './context-menu-types';
 import { useClampedMenuPosition } from './useClampedMenuPosition';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 /**
  * The canvas right-click menu.
@@ -21,6 +22,7 @@ import { useClampedMenuPosition } from './useClampedMenuPosition';
 export function ContextMenu(props: ContextMenuProps): React.ReactElement | null {
 	const { contextMenuState, mode, onClose } = props;
 	const { t } = useTranslation();
+	const customization = useViewerCustomizationContext();
 	const open = Boolean(contextMenuState) && mode === 'edit';
 	const menuPosition = useClampedMenuPosition<HTMLDivElement>(
 		contextMenuState?.x ?? 0,
@@ -48,7 +50,15 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 	}
 
 	const handlers = contextMenuHandlers(props);
-	const entries = buildContextMenuEntries(contextMenuContext(props));
+	// Host customisation drops hidden commands; a menu left empty (or one the
+	// host disabled outright) renders nothing at all.
+	const entries = customizeContextMenuEntries(
+		buildContextMenuEntries(contextMenuContext(props)),
+		customization,
+	);
+	if (entries.length === 0) {
+		return null;
+	}
 
 	return (
 		<>

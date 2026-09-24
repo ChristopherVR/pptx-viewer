@@ -11,6 +11,8 @@ import type {
 	PowerPointViewerAPI,
 	ThemeCatalogEntry,
 	ToolbarActionId,
+	ViewerCustomization,
+	ViewerCustomizationApi,
 	ViewerFontSource,
 	ViewportFitOptions,
 } from 'pptx-viewer-shared';
@@ -556,8 +558,16 @@ export interface PowerPointViewerProps extends ViewportFitOptions {
 	 * @see {@link PptxAiConfig}
 	 */
 	ai?: PptxAiConfig;
+
+	/**
+	 * Framework-neutral UI customisation. See docs/guide/customization.md.
+	 * Unioned with `hiddenActions`. A new object replaces the whole
+	 * customisation, including edits made through the handle helpers.
+	 */
+	customization?: ViewerCustomization;
 }
 
-export interface PowerPointViewerHandle extends FileViewerHandle, PowerPointViewerAPI {
+export interface PowerPointViewerHandle
+	extends FileViewerHandle, PowerPointViewerAPI, ViewerCustomizationApi {
 	getContent: () => Promise<Uint8Array>;
 }

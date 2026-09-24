@@ -5,6 +5,7 @@ import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer
  * slide management, table operations, format painter) into a single return value.
  */
 import { downloadBlob, elementPictureFilename, rasterResultToPngBlob } from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 
@@ -63,6 +64,8 @@ export interface UseEditorOperationsInput {
 	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
 	/** AutoCorrect transform applied to committed inline text edits. */
 	transformCommittedText?: (text: string) => string;
+	/** Host keyboard customisation, forwarded to the Find shortcut. */
+	keyboard?: ResolvedKeyboardCustomization;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +121,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		userName,
 		handlerRef,
 		transformCommittedText,
+		keyboard,
 	} = input;
 
 	// View > Slide Master edits a part that is not in `slides`, so element
@@ -190,6 +194,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		onSetSelectedElementId: state.setSelectedElementId,
 		onUpdateSlides: ops.updateSlides,
 		onMarkDirty: history.markDirty,
+		keyboard,
 	});
 
 	const comments = useComments({

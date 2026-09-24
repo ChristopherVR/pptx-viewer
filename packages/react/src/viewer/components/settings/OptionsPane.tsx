@@ -51,10 +51,13 @@ function InfoTip({ text }: { text: string }): React.ReactElement {
 	);
 }
 
+/** A host-locked setting (`control.readOnly`) never emits a change. */
+const IGNORE_CHANGE: OptionChangeHandler = () => undefined;
+
 function ControlRow({
 	control,
 	options,
-	onOptionChange,
+	onOptionChange: emitChange,
 }: {
 	control: ViewerOptionsControl;
 	options: ViewerOptions;
@@ -72,6 +75,9 @@ function ControlRow({
 	const info = control.infoKey ? <InfoTip text={t(control.infoKey)} /> : null;
 	const rowClass = cn('flex items-center justify-between gap-3 py-1.5', control.indent && 'pl-6');
 	const rowStyle = { minHeight: fieldMinHeight };
+	const locked = control.readOnly === true;
+	const lockedTitle = locked ? t('pptx.options.lockedByHost') : undefined;
+	const onOptionChange = locked ? IGNORE_CHANGE : emitChange;
 
 	if (control.kind === 'toggle') {
 		return (
@@ -83,6 +89,8 @@ function ControlRow({
 				<WebCheckbox
 					checked={value === true}
 					aria-label={label}
+					disabled={locked}
+					title={lockedTitle}
 					onChange={(event) =>
 						onOptionChange(
 							control.group,
@@ -104,6 +112,8 @@ function ControlRow({
 				</span>
 				<WebSelect
 					aria-label={label}
+					disabled={locked}
+					title={lockedTitle}
 					style={{ minHeight: fieldMinHeight }}
 					value={typeof value === 'string' ? value : ''}
 					onChange={(event) =>
@@ -135,6 +145,8 @@ function ControlRow({
 					<input
 						type='number'
 						aria-label={label}
+						disabled={locked}
+						title={lockedTitle}
 						style={{ minHeight: fieldMinHeight }}
 						className='w-20 rounded border border-border bg-background px-2 py-1 text-right text-xs text-foreground'
 						min={control.min}
@@ -165,6 +177,8 @@ function ControlRow({
 			<input
 				type='text'
 				aria-label={label}
+				disabled={locked}
+				title={lockedTitle}
 				style={{ minHeight: fieldMinHeight }}
 				className='w-48 max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground'
 				maxLength={control.maxLength}

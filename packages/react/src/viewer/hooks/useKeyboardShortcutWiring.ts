@@ -4,6 +4,7 @@
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxSlide } from 'pptx-viewer-core';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import {
 	cycleSelectableElement,
 	stepFontSizePt,
@@ -64,6 +65,8 @@ export interface UseKeyboardShortcutWiringInput {
 	pasteFormatToSelection: (targetIds: string[]) => void;
 	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
 	onPasteSpecial: () => void;
+	/** Host UI customisation forwarded to `useKeyboardShortcuts`. */
+	customization?: ResolvedCustomization;
 }
 
 // ---------------------------------------------------------------------------
@@ -87,9 +90,11 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		copyFormatFromSelection,
 		pasteFormatToSelection,
 		onPasteSpecial,
+		customization,
 	} = input;
 
 	useKeyboardShortcuts({
+		customization,
 		containerRef: state.containerRef,
 		mode,
 		canEdit,

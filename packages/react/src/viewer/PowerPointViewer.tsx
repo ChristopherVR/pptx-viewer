@@ -32,6 +32,9 @@ import {
 	applyPreferenceToOptions,
 	buildUserFontFaceStyles,
 	deleteAutosaveSnapshot,
+	isDialogAvailable,
+	isFeatureEnabled,
+	isPanelVisible,
 	openPptxFile,
 	playFeedbackSound,
 	readBackstageRecentFile,
@@ -89,6 +92,7 @@ import { ReadOnlyBanner } from './components/ReadOnlyBanner';
 import { RunProgramNotices } from './components/RunProgramNotices';
 import { SettingsDialog } from './components/SettingsDialog';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
+import { ViewerCustomizationContext } from './components/viewer-customization-context';
 import { ViewerOptionsContext } from './components/viewer-options-context';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
@@ -113,6 +117,7 @@ import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
 import { useRunProgramNoticesState } from './hooks/useRunProgramNoticesState';
 import { useTouchGestures } from './hooks/useTouchGestures';
+import { useViewerCustomization } from './hooks/useViewerCustomization';
 import { useViewerDialogs } from './hooks/useViewerDialogs';
 import { useViewerIntegration } from './hooks/useViewerIntegration';
 import { useViewerOptions } from './hooks/useViewerOptions';
@@ -177,8 +182,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			lineChart3D = false,
 			areaChart3D = false,
 			pieChart3D = false,
-			hiddenActions,
+			hiddenActions: legacyHiddenActions,
 			ai,
+			customization,
 		} = props;
 
 		useEffect(() => {
@@ -323,6 +329,12 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// further down) because Protected View, just below, has to gate
 		// `canEdit` before `useViewerState` and the autosave activation read it.
 		const { optionsStore, options: viewerOptions } = useViewerOptions();
+		// Host UI customisation (the `customization` prop + handle helpers).
+		const custom = useViewerCustomization(customization, legacyHiddenActions, optionsStore);
+		const { resolved: customizationResolved, hiddenActions } = custom;
+		const aiEnabled = Boolean(ai) && isFeatureEnabled(customizationResolved, 'ai');
+		const optionsAvailable = isDialogAvailable(customizationResolved, 'options');
+		const shareAvailable = isDialogAvailable(customizationResolved, 'share');
 
 		// ── Protected View (Trust Center) ───────────────────────────
 		// Options > Trust Center > "Open presentations in Protected View" forces
@@ -805,6 +817,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			handlerRef: actionSoundHandlerRef,
 			// Options > Proofing > AutoCorrect, applied to committed inline-edit text.
 			transformCommittedText: (text) => applyAutoCorrect(text, viewerOptions.proofing),
+			keyboard: customizationResolved.keyboard,
 		});
 
 		// ── Integration (pointers, lifecycle, I/O, annotations, etc.) ─
@@ -884,6 +897,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			onZoomChange,
 			onSelectionChange,
 			onSlideCountChange,
+			customizationApi: custom.api,
+			customization: customizationResolved,
 		});
 
 		// ── Deck view preferences (grid/snap/guides) load-seed + write-back ──
@@ -1036,7 +1051,11 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// On mobile, the slides pane is hidden by default (shown as overlay via
 		// separate mobile UI). On tablet+, it follows the existing isNarrowViewport logic.
 		const showSlidesPane =
-			mode === 'edit' && !isMobile && !dialogs.isNarrowViewport && state.isSlidesPaneOpen;
+			mode === 'edit' &&
+			!isMobile &&
+			!dialogs.isNarrowViewport &&
+			state.isSlidesPaneOpen &&
+			isPanelVisible(customizationResolved, 'slidesPane');
 		const showMasterPane = mode === 'master' && !isMobile && state.isSlidesPaneOpen;
 
 		// ── Add-ins status (File > Options > Add-ins) ────────────────
@@ -1118,7 +1137,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										onPresentFromBeginning={presentation.enterPresentModeFromBeginning}
 										onEnterPresenterView={handleEnterPresenterView}
 										onEnterRehearsalMode={handleEnterRehearsalMode}
-										onOpenSettings={() => setIsSettingsOpen(true)}
+										onOpenSettings={optionsAvailable ? () => setIsSettingsOpen(true) : undefined}
 										onOpenHeaderFooter={() => setIsHeaderFooterOpen(true)}
 										onOpenShareDialog={() => setIsShareDialogOpen(true)}
 										onOpenFile={handleOpenFile}
@@ -1135,7 +1154,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										}}
 										hiddenActions={hiddenActions}
 										recentPresentationsCount={viewerOptions.advanced.recentPresentationsCount}
-										aiEnabled={Boolean(ai)}
+										aiEnabled={aiEnabled}
 										isAiPanelOpen={aiPanel.isOpen}
 										onToggleAiPanel={aiPanel.toggle}
 										isProtectedView={isProtectedView}
@@ -1206,9 +1225,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									rightPanelWidth={isMobile ? undefined : resizablePanels.rightWidth}
 									onResizeRight={isMobile ? undefined : resizablePanels.onResizeRight}
 									hiddenActions={hiddenActions}
-									aiConfig={ai}
-									aiBridge={ai ? aiBridge : undefined}
-									aiPanel={ai ? aiPanel : undefined}
+									aiConfig={aiEnabled ? ai : undefined}
+									aiBridge={aiEnabled ? aiBridge : undefined}
+									aiPanel={aiEnabled ? aiPanel : undefined}
 								/>
 
 								{/* Keep the bottom panels mounted while the notes panel is expanded:
@@ -1229,7 +1248,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										autosaveStatus={autosaveStatus}
 										onToggleNotes={() => state.setIsSlideNotesCollapsed((p) => !p)}
 										onUpdateNotes={propertyHandlers.handleUpdateNotes}
-										collaborationSlot={collaboration ? <CollaborationStatusStrip /> : undefined}
+										collaborationSlot={
+											collaboration && shareAvailable ? <CollaborationStatusStrip /> : undefined
+										}
 										notesPanelHeight={isMobile ? undefined : resizablePanels.bottomHeight}
 										onResizeBottom={isMobile ? undefined : resizablePanels.onResizeBottom}
 										scale={zoom.scale}
@@ -1352,7 +1373,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				/>
 
 				<SettingsDialog
-					isOpen={isSettingsOpen}
+					isOpen={isSettingsOpen && optionsAvailable}
 					onClose={() => setIsSettingsOpen(false)}
 					options={viewerOptions}
 					onOptionChange={(group, key, value) => optionsStore.setValue(group, key, value)}
@@ -1372,7 +1393,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					localeCode={localeCode}
 					availableLocales={resolvedLocales}
 					onSelectLocale={handleLocaleChange}
-					aiEnabled={Boolean(ai)}
+					aiEnabled={aiEnabled}
 					customFontFamilies={customFontFamilies}
 					onCustomFontRegistered={handleCustomFontRegistered}
 				/>
@@ -1394,7 +1415,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				)}
 
 				<ShareDialog
-					open={isShareDialogOpen}
+					open={isShareDialogOpen && shareAvailable}
 					onClose={() => setIsShareDialogOpen(false)}
 					activeCollaboration={collaboration}
 					onStartCollaboration={onStartCollaboration}
@@ -1406,7 +1427,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				/>
 
 				<BroadcastDialog
-					open={dialogs.isBroadcastDialogOpen}
+					open={
+						dialogs.isBroadcastDialogOpen && isDialogAvailable(customizationResolved, 'broadcast')
+					}
 					onClose={() => dialogs.setIsBroadcastDialogOpen(false)}
 					onStartBroadcast={onStartCollaboration}
 					onStopBroadcast={onStopCollaboration}
@@ -1495,56 +1518,58 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// silently reading `DEFAULT_VIEWER_OPTIONS` forever, no matter what
 			// the user changed in the Options dialog.
 			<ViewerOptionsContext.Provider value={viewerOptions}>
-				<AccountAuthContext.Provider value={accountAuth}>
-					<Rendering3DFlagsContext.Provider value={effective3D}>
-						<ViewerThemeProvider theme={effectiveTheme}>
-							<CollaborationProvider
-								config={collaboration}
-								canvasWidth={canvasSize.width}
-								canvasHeight={canvasSize.height}
-							>
-								<CollaborationDocumentSync
-									slides={slides}
-									templateElementsBySlideId={templateElementsBySlideId}
-									setSlides={state.setSlides}
-									content={content}
-									loadVersion={loadVersion}
-									loadOrigin={loadOrigin}
-									livePatcher={state.livePatcher}
-									onReadOnlyChange={setCollaborationReadOnly}
-									deckSaveState={{
-										headerFooter: state.headerFooter,
-										presentationProperties: state.presentationProperties,
-										viewProperties: state.viewProperties,
-										customShows: state.customShows,
-										sections: state.sections,
-										coreProperties: state.coreProperties,
-										appProperties: state.appProperties,
-										customProperties: state.customProperties,
-										tagCollections: state.tagCollections,
-										slideMasters: state.slideMasters,
-										notesMaster: state.notesMaster,
-										handoutMaster: state.handoutMaster,
-										slideSize: resolveSlideSizeSelection({
-											current: state.slideSizeEmu,
-											canvas: canvasSize,
-										}).size,
-										tableStyleMap: state.tableStyleMap,
-										tableStylesDefaultId: state.tableStylesDefaultId,
-										tableStylesToDelete: state.tableStylesToDelete,
-										embedFonts: dialogs.embedFontsEnabled,
-									}}
-								/>
-								<CollaborationFollowLayer
-									activeSlideIndex={activeSlideIndex}
-									setActiveSlideIndex={state.setActiveSlideIndex}
-									slideCount={slides.length}
-								/>
-								{viewerContent}
-							</CollaborationProvider>
-						</ViewerThemeProvider>
-					</Rendering3DFlagsContext.Provider>
-				</AccountAuthContext.Provider>
+				<ViewerCustomizationContext.Provider value={customizationResolved}>
+					<AccountAuthContext.Provider value={accountAuth}>
+						<Rendering3DFlagsContext.Provider value={effective3D}>
+							<ViewerThemeProvider theme={effectiveTheme}>
+								<CollaborationProvider
+									config={collaboration}
+									canvasWidth={canvasSize.width}
+									canvasHeight={canvasSize.height}
+								>
+									<CollaborationDocumentSync
+										slides={slides}
+										templateElementsBySlideId={templateElementsBySlideId}
+										setSlides={state.setSlides}
+										content={content}
+										loadVersion={loadVersion}
+										loadOrigin={loadOrigin}
+										livePatcher={state.livePatcher}
+										onReadOnlyChange={setCollaborationReadOnly}
+										deckSaveState={{
+											headerFooter: state.headerFooter,
+											presentationProperties: state.presentationProperties,
+											viewProperties: state.viewProperties,
+											customShows: state.customShows,
+											sections: state.sections,
+											coreProperties: state.coreProperties,
+											appProperties: state.appProperties,
+											customProperties: state.customProperties,
+											tagCollections: state.tagCollections,
+											slideMasters: state.slideMasters,
+											notesMaster: state.notesMaster,
+											handoutMaster: state.handoutMaster,
+											slideSize: resolveSlideSizeSelection({
+												current: state.slideSizeEmu,
+												canvas: canvasSize,
+											}).size,
+											tableStyleMap: state.tableStyleMap,
+											tableStylesDefaultId: state.tableStylesDefaultId,
+											tableStylesToDelete: state.tableStylesToDelete,
+											embedFonts: dialogs.embedFontsEnabled,
+										}}
+									/>
+									<CollaborationFollowLayer
+										activeSlideIndex={activeSlideIndex}
+										setActiveSlideIndex={state.setActiveSlideIndex}
+										slideCount={slides.length}
+									/>
+									{viewerContent}
+								</CollaborationProvider>
+							</ViewerThemeProvider>
+						</Rendering3DFlagsContext.Provider>
+					</AccountAuthContext.Provider>
+				</ViewerCustomizationContext.Provider>
 			</ViewerOptionsContext.Provider>
 		);
 	},

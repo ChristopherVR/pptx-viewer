@@ -3,9 +3,9 @@ import {
 	applyFindReplacements,
 	findInSlides,
 	isEditorTextInputTarget,
-	mapEditorKey,
+	mapCustomizedEditorKey,
 } from 'pptx-viewer-shared';
-import type { FindResult } from 'pptx-viewer-shared';
+import type { FindResult, ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import { useState, useCallback, useEffect, useRef } from 'react';
 
 // The match descriptor and the search / replace implementations are shared with
@@ -18,6 +18,8 @@ interface UseFindReplaceInput {
 	onSetSelectedElementId: (id: string | null) => void;
 	onUpdateSlides: (updater: (slides: PptxSlide[]) => PptxSlide[]) => void;
 	onMarkDirty: () => void;
+	/** Host keyboard customisation (disabled / remapped Find shortcuts). */
+	keyboard?: ResolvedKeyboardCustomization;
 }
 
 interface UseFindReplaceResult {
@@ -52,6 +54,7 @@ export function useFindReplace({
 	onSetSelectedElementId,
 	onUpdateSlides,
 	onMarkDirty,
+	keyboard,
 }: UseFindReplaceInput): UseFindReplaceResult {
 	const [findReplaceOpen, setFindReplaceOpen] = useState(false);
 	const [findQuery, setFindQuery] = useState('');
@@ -170,10 +173,14 @@ export function useFindReplace({
 	// find and replace rows together, so there is no separate mode to enter.
 	useEffect(() => {
 		const handler = (event: KeyboardEvent) => {
-			const { action } = mapEditorKey(event, {
-				canEdit: mode === 'edit',
-				isTextInputTarget: isEditorTextInputTarget(event.target),
-			});
+			const { action } = mapCustomizedEditorKey(
+				event,
+				{
+					canEdit: mode === 'edit',
+					isTextInputTarget: isEditorTextInputTarget(event.target),
+				},
+				keyboard,
+			);
 			if (action !== 'find' && action !== 'findReplace') {
 				return;
 			}
@@ -182,7 +189,7 @@ export function useFindReplace({
 		};
 		window.addEventListener('keydown', handler);
 		return () => window.removeEventListener('keydown', handler);
-	}, [mode]);
+	}, [mode, keyboard]);
 
 	return {
 		findReplaceOpen,

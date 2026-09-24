@@ -9,7 +9,9 @@ import type {
 import {
 	DEFAULT_QUICK_ACCESS_COMMAND_IDS,
 	VIEWER_OPTIONS_TABS,
+	customizeOptionsTabs,
 	getDensePanelTouchTargetPx,
+	isOptionsPageVisible,
 	shouldStickyActionRow,
 } from 'pptx-viewer-shared';
 import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
@@ -29,6 +31,7 @@ import { SettingsAiTab } from './SettingsAiTab';
 import { SettingsAppearanceTab } from './SettingsAppearanceTab';
 import { SettingsCustomFontsSection } from './SettingsCustomFontsSection';
 import { SettingsLanguageTab } from './SettingsLanguageTab';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 /** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
 const AI_TAB_ID = 'ai';
@@ -115,6 +118,7 @@ export function SettingsDialog({
 }: SettingsDialogProps): React.ReactElement | null {
 	const [activeTabId, setActiveTabId] = useState<SettingsTabId>('general');
 	const { t } = useTranslation();
+	const customization = useViewerCustomizationContext();
 	const { panelStyle, handlers: dragHandlers } = useModalDismissDrag(onClose);
 	const { viewportWidth, viewportHeight } = useIsMobile();
 	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
@@ -163,11 +167,16 @@ export function SettingsDialog({
 		return null;
 	}
 
-	const activeTab =
-		VIEWER_OPTIONS_TABS.find((tab) => tab.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0];
+	// Host customisation: hidden pages/sections/settings dropped, locked
+	// settings marked read-only. A hidden active tab falls back to the first.
+	const tabs = customizeOptionsTabs(VIEWER_OPTIONS_TABS, customization);
+	const showAiTab = Boolean(aiEnabled) && isOptionsPageVisible(customization, AI_TAB_ID);
+	const activeTab = tabs.find((tab) => tab.id === activeTabId) ?? tabs[0];
+	const aiActive = activeTabId === AI_TAB_ID && showAiTab;
 	if (!activeTab) {
 		return null;
 	}
+	const currentTabId: SettingsTabId = aiActive ? AI_TAB_ID : activeTab.id;
 
 	return (
 		<>
@@ -217,16 +226,16 @@ export function SettingsDialog({
 							aria-label={t('pptx.options.title')}
 							className='w-44 shrink-0 space-y-0.5 overflow-y-auto border-r border-border/60 p-2 max-md:flex max-md:w-full max-md:space-y-0 max-md:gap-1 max-md:overflow-x-auto max-md:border-b max-md:border-r-0'
 						>
-							{VIEWER_OPTIONS_TABS.map((tab) => (
+							{tabs.map((tab) => (
 								<button
 									key={tab.id}
 									type='button'
 									onClick={() => setActiveTabId(tab.id)}
-									aria-current={activeTabId === tab.id}
+									aria-current={currentTabId === tab.id}
 									style={navBtnStyle}
 									className={cn(
 										'flex w-full items-center whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
-										activeTabId === tab.id
+										currentTabId === tab.id
 											? 'bg-primary/10 font-medium text-primary'
 											: 'text-foreground hover:bg-accent',
 									)}
@@ -234,15 +243,15 @@ export function SettingsDialog({
 									{t(tab.labelKey)}
 								</button>
 							))}
-							{aiEnabled && (
+							{showAiTab && (
 								<button
 									type='button'
 									onClick={() => setActiveTabId(AI_TAB_ID)}
-									aria-current={activeTabId === AI_TAB_ID}
+									aria-current={aiActive}
 									style={navBtnStyle}
 									className={cn(
 										'flex w-full items-center whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto',
-										activeTabId === AI_TAB_ID
+										aiActive
 											? 'bg-primary/10 font-medium text-primary'
 											: 'text-foreground hover:bg-accent',
 									)}
@@ -253,7 +262,7 @@ export function SettingsDialog({
 						</nav>
 
 						<div className='min-h-0 flex-1 overflow-y-auto px-5 py-4'>
-							{activeTabId === AI_TAB_ID ? (
+							{aiActive ? (
 								<div className='space-y-4'>
 									<p className='text-sm font-medium text-foreground'>
 										{t('pptx.ai.settingsSectionTitle')}

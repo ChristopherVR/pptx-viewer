@@ -6,6 +6,7 @@
  */
 import type { PptxSlide, PptxTextStyleLevels, TextSegment } from 'pptx-viewer-core';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { isPanelVisible } from 'pptx-viewer-shared';
 
 import type { AutosaveStatus } from '../hooks/useAutosave';
 import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
@@ -13,6 +14,7 @@ import type { ViewerMode } from '../types-core';
 import { ResizeHandle } from './ResizeHandle';
 import { SlideNotesPanel } from './SlideNotesPanel';
 import { StatusBar } from './StatusBar';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 /* ------------------------------------------------------------------ */
 /*  Props                                                             */
@@ -95,23 +97,27 @@ export function ViewerBottomPanels({
 	onNotesHeightChange,
 }: ViewerBottomPanelsProps): React.ReactElement {
 	const { isHidden } = useToolbarVisibility(hiddenActions);
+	const customization = useViewerCustomizationContext();
+	const showNotes = isPanelVisible(customization, 'notes');
 	return (
 		<>
-			{onResizeBottom && !isSlideNotesCollapsed && (
+			{showNotes && onResizeBottom && !isSlideNotesCollapsed && (
 				<ResizeHandle direction='vertical' onResize={onResizeBottom} />
 			)}
-			<SlideNotesPanel
-				activeSlide={activeSlide}
-				allSlides={allSlides}
-				isExpanded={!isSlideNotesCollapsed}
-				canEdit={canEdit}
-				onToggle={onToggleNotes}
-				onUpdateNotes={onUpdateNotes}
-				panelHeight={notesPanelHeight}
-				notesStyle={notesStyle}
-				onHeightChange={onNotesHeightChange}
-			/>
-			{!hideStatusBar && (
+			{showNotes && (
+				<SlideNotesPanel
+					activeSlide={activeSlide}
+					allSlides={allSlides}
+					isExpanded={!isSlideNotesCollapsed}
+					canEdit={canEdit}
+					onToggle={onToggleNotes}
+					onUpdateNotes={onUpdateNotes}
+					panelHeight={notesPanelHeight}
+					notesStyle={notesStyle}
+					onHeightChange={onNotesHeightChange}
+				/>
+			)}
+			{!hideStatusBar && isPanelVisible(customization, 'statusBar') && (
 				<StatusBar
 					slideCount={slideCount}
 					activeSlideIndex={activeSlideIndex}
@@ -128,7 +134,7 @@ export function ViewerBottomPanels({
 					onToggleSlideSorter={onToggleSlideSorter}
 					collaborationSlot={collaborationSlot}
 					hideZoomControls={isHidden('zoom')}
-					hideNotesToggle={isHidden('notes')}
+					hideNotesToggle={isHidden('notes') || !showNotes}
 					hideFullscreenToggle={isHidden('fullscreen')}
 				/>
 			)}

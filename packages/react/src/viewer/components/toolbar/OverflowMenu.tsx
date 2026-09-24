@@ -1,8 +1,11 @@
+import { isDialogAvailable } from 'pptx-viewer-shared';
+import type { BackstageCardId } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuEllipsis } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { ic, OV } from './toolbar-constants';
 import type { ToolbarProps } from './toolbar-types';
 
@@ -30,8 +33,25 @@ type OverflowKeys =
 
 export type OverflowMenuProps = Pick<ToolbarProps, OverflowKeys>;
 
+/** Overflow entries that are File > Export cards, for the host's format filter. */
+const EXPORT_CARD_OF: Record<string, BackstageCardId> = {
+	png: 'png',
+	pdf: 'pdf',
+	video: 'video',
+	gif: 'gif',
+	copyImg: 'copyImage',
+};
+
 export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 	const { t } = useTranslation();
+	const customization = useViewerCustomizationContext();
+	const offered = (k: string): boolean => {
+		const card = EXPORT_CARD_OF[k];
+		if (card) {
+			return !customization.hiddenBackstageCards.has(card);
+		}
+		return k !== 'print' || isDialogAvailable(customization, 'print');
+	};
 	const ovAct = (k: string) => {
 		p.onSetOverflowMenuOpen(false);
 		(
@@ -80,7 +100,7 @@ export function OverflowMenu(p: OverflowMenuProps): React.ReactElement {
 						onClick={() => p.onSetOverflowMenuOpen(false)}
 					/>
 					<div className='absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
-						{OV.filter((o) => o.k !== 'pptm' || p.hasMacros).map((o) =>
+						{OV.filter((o) => (o.k !== 'pptm' || p.hasMacros) && offered(o.k)).map((o) =>
 							o.k.startsWith('---') ? (
 								<div key={o.k} className='my-1 border-t border-border/60' />
 							) : (

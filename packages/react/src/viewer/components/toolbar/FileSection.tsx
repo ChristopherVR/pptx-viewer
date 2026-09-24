@@ -2,6 +2,7 @@ import {
 	BACKSTAGE_BACK_CLASSES,
 	BACKSTAGE_NAV,
 	BACKSTAGE_NAV_CLASSES,
+	customizeBackstageNav,
 	listBackstageRecentFiles,
 } from 'pptx-viewer-shared';
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
@@ -10,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { LuArrowLeft, LuFolderOpen, LuSettings } from 'react-icons/lu';
 
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { WebSearch } from '../WebControls';
 import { AccountPage } from './AccountPage';
 import { BackstageCards } from './file-backstage-cards';
@@ -19,7 +21,16 @@ import type { FileSectionProps } from './file-backstage-parts';
 
 export function FileSection(p: FileSectionProps): React.ReactElement {
 	const { t } = useTranslation();
-	const [page, setPage] = useState<BackstagePage>('home');
+	const [requestedPage, setRequestedPage] = useState<BackstagePage>('home');
+	// Host customisation hides nav pages; a hidden current page falls back to
+	// Home (or, when Home is hidden too, the first page still offered).
+	const nav = customizeBackstageNav(BACKSTAGE_NAV, useViewerCustomizationContext());
+	const offered = (id: BackstagePage): boolean => nav.some((item) => item.id === id);
+	const page: BackstagePage = offered(requestedPage)
+		? requestedPage
+		: offered('home')
+			? 'home'
+			: (nav.find((item) => item.id !== 'save' && item.id !== 'close')?.id ?? 'home');
 	const [query, setQuery] = useState('');
 	const [recent, setRecent] = useState<BackstageRecentFile[]>([]);
 	const { isHidden } = useToolbarVisibility(p.hiddenActions);
@@ -40,7 +51,7 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 			p.onClose();
 		}
 	};
-	const current = BACKSTAGE_NAV.find((item) => item.id === page);
+	const current = nav.find((item) => item.id === page);
 	const title = current
 		? t(current.labelKey, { defaultValue: current.label })
 		: t('pptx.backstage.nav.home');
@@ -63,43 +74,47 @@ export function FileSection(p: FileSectionProps): React.ReactElement {
 					</button>
 				</div>
 				<nav className='flex min-h-0 flex-1 flex-col overflow-y-auto pb-2 max-md:flex-row max-md:items-center max-md:overflow-y-visible max-md:pb-0'>
-					{BACKSTAGE_NAV.filter(
-						(item) => !item.group && !(item.id === 'export' && exportHidden),
-					).map((item) => (
-						<button
-							key={item.id}
-							type='button'
-							data-pptx-backstage-nav-item
-							aria-current={page === item.id ? 'page' : undefined}
-							onClick={() =>
-								item.id === 'close'
-									? p.onClose()
-									: item.id === 'save'
-										? run(p.onSaveAsPptx)
-										: setPage(item.id)
-							}
-							className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
-						>
-							<BackstageNavIcon page={item.id} />
-							{t(item.labelKey, { defaultValue: item.label })}
-						</button>
-					))}
+					{nav
+						.filter((item) => !item.group && !(item.id === 'export' && exportHidden))
+						.map((item) => (
+							<button
+								key={item.id}
+								type='button'
+								data-pptx-backstage-nav-item
+								aria-current={page === item.id ? 'page' : undefined}
+								onClick={() =>
+									item.id === 'close'
+										? p.onClose()
+										: item.id === 'save'
+											? run(p.onSaveAsPptx)
+											: setRequestedPage(item.id)
+								}
+								className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
+							>
+								<BackstageNavIcon page={item.id} />
+								{t(item.labelKey, { defaultValue: item.label })}
+							</button>
+						))}
 					<div className='flex-1 max-md:hidden' />
-					{BACKSTAGE_NAV.filter((item) => item.group).map((item) => (
-						<button
-							key={item.id}
-							type='button'
-							data-pptx-backstage-nav-item
-							aria-current={page === item.id ? 'page' : undefined}
-							onClick={() =>
-								item.id === 'options' && p.onOpenSettings ? run(p.onOpenSettings) : setPage(item.id)
-							}
-							className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
-						>
-							<BackstageNavIcon page={item.id} />
-							{t(item.labelKey, { defaultValue: item.label })}
-						</button>
-					))}
+					{nav
+						.filter((item) => item.group)
+						.map((item) => (
+							<button
+								key={item.id}
+								type='button'
+								data-pptx-backstage-nav-item
+								aria-current={page === item.id ? 'page' : undefined}
+								onClick={() =>
+									item.id === 'options' && p.onOpenSettings
+										? run(p.onOpenSettings)
+										: setRequestedPage(item.id)
+								}
+								className={`${BACKSTAGE_NAV_CLASSES.row} ${page === item.id ? BACKSTAGE_NAV_CLASSES.active : BACKSTAGE_NAV_CLASSES.inactive}`}
+							>
+								<BackstageNavIcon page={item.id} />
+								{t(item.labelKey, { defaultValue: item.label })}
+							</button>
+						))}
 				</nav>
 			</aside>
 			<main className='min-w-0 flex-1 overflow-y-auto bg-background px-[clamp(32px,4vw,72px)] py-5 max-md:px-4 max-md:py-4'>

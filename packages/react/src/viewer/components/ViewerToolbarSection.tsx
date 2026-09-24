@@ -14,6 +14,7 @@ import {
 	applyMotionPathPreset,
 	createBackstagePresentation,
 	DEFAULT_INSERT_CHART_KIND,
+	isPanelVisible,
 	resetSlideLayoutPath,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
@@ -42,6 +43,7 @@ import type { ElementClipboardPayload } from '../types-core';
 import type { DrawingTool, TableCellEditorState, ToolbarSection } from '../types-ui';
 import { hasCopyableFormat } from '../utils/format-painter';
 import { TitleBar } from './toolbar/TitleBar';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -258,6 +260,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	} = props;
 
 	const { t } = useTranslation();
+	const customization = useViewerCustomizationContext();
 
 	const handleAddAnimation = useCallback(
 		(preset: string, group: AnimationApplyGroup) => {
@@ -536,7 +539,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 
 	return (
 		<>
-			{!dialogs.isNarrowViewport && (
+			{!dialogs.isNarrowViewport && isPanelVisible(customization, 'titleBar') && (
 				<TitleBar
 					mode={mode}
 					canEdit={canEdit}
