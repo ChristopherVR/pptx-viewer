@@ -17,8 +17,6 @@ import { createEditingApi } from '../editor/editing-api';
 import { serializeEditorState } from '../editor/editor-document-lifecycle';
 import { EditorState } from '../editor/editor-state.svelte';
 import { createExportingApi } from '../export/exporting-api';
-import { provideAreaChart3D } from './area-chart-3d-context';
-import { provideBarChart3D } from './bar-chart-3d-context';
 import { useAiCluster } from './create-viewer-state-ai.svelte';
 import { useCollabCluster } from './create-viewer-state-collab.svelte';
 import { useViewerDerived } from './create-viewer-state-derived.svelte';
@@ -29,14 +27,11 @@ import { usePresenterCluster } from './create-viewer-state-presenter.svelte';
 import type { CreateViewerStateOptions, ViewerStateBag } from './create-viewer-state-types';
 import { provideFieldContext } from './field-context';
 import { createInspectorDeckActions, provideInspectorDeck } from './inspector-deck';
-import { provideLineChart3D } from './line-chart-3d-context';
 import { createOpenFile } from './open-file';
-import { providePieChart3D } from './pie-chart-3d-context';
 import { PresentationLoader } from './presentation-loader.svelte';
 import { runQuickAccessCommand } from './quick-access-commands';
 import { provideRenderContext } from './render-context';
-import { provideSmartArt3D } from './smart-art-3d-context';
-import { provideSurfaceChart3D } from './surface-chart-3d-context';
+import { provideRendering3DFlags } from './rendering-3d-flags-context';
 import { provideTableCellSelection } from './table-cell-selection-context';
 import { ViewerState } from './viewer-state.svelte';
 
@@ -50,7 +45,7 @@ import { ViewerState } from './viewer-state.svelte';
  * MUST be called synchronously from a `.svelte` component's own script body
  * (top level, not inside a callback or after an `await`): it registers
  * `onMount` / `onDestroy` hooks and Svelte context (`setContext`) via
- * `provideTranslator` / `provideSmartArt3D` / `provideRenderContext` /
+ * `provideTranslator` / `provideRendering3DFlags` / `provideRenderContext` /
  * `provideInspectorDeck` / `provideFieldContext` (plus more inside the
  * clusters), all of which require an active component-initialisation
  * context. Svelte's lifecycle context stays active for the whole synchronous
@@ -215,12 +210,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 			},
 			editorUi.optionsState.options,
 		);
-	provideSmartArt3D(() => getEffective3D().smartArt3D);
-	provideSurfaceChart3D(() => getEffective3D().surfaceChart3D);
-	provideBarChart3D(() => getEffective3D().barChart3D);
-	provideLineChart3D(() => getEffective3D().lineChart3D);
-	provideAreaChart3D(() => getEffective3D().areaChart3D);
-	providePieChart3D(() => getEffective3D().pieChart3D);
+	provideRendering3DFlags(getEffective3D);
 
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const ai = useAiCluster({

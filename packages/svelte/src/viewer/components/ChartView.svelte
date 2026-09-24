@@ -12,15 +12,26 @@
 	 * `pptx-viewer-shared`; this SFC only emits SVG.
 	 */
 	import type { ChartPptxElement } from 'pptx-viewer-core';
-	import { canDrillDown, resolveRevealedChartData, shouldRenderHitTarget } from 'pptx-viewer-shared';
+	import type { Chart3DSelectionBridge } from 'pptx-viewer-shared';
+	import {
+		applyChart3DDrag,
+		applyChart3DSelect,
+		canDrillDown,
+		formatAxisValue,
+		resolveChartThreeViewSpec,
+		resolveRevealedChartData,
+		shouldRenderHitTarget,
+	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import { buildChartView, buildLegendItems } from '../render';
+	import { useRendering3DFlags } from '../state/rendering-3d-flags-context';
 	import { getContainerStyle, getElementHitTargetStyle, styleToString } from '../style';
 	import { BarFacePictureSampleVersion } from './bar-face-picture-sample.svelte';
 	import ChartSvgView from './ChartSvgView.svelte';
 	import { ChartDragController } from './chart-drag.svelte';
 	import type { ElementRendererProps } from './props';
+	import ThreeView from './ThreeView.svelte';
 
 	const {
 		element,
@@ -115,6 +126,32 @@
 		drag.syncHighlight();
 	});
 
+	/**
+	 * Opt-in 3D scene (`<pptx-three-view>`): `null` unless the host opted this
+	 * raw `c:chartType` into 3D (see `resolveChartThreeViewSpec`). Built from
+	 * the COMMITTED element, not the drag preview, so a value drag on a 3D mark
+	 * never remounts the scene under the pointer. A 3D mark's click/drag feeds
+	 * the SAME local selection, badge and `onchartpointcommit` path the 2D
+	 * marks use, through the shared `applyChart3DSelect` / `applyChart3DDrag`.
+	 */
+	const getRendering3DFlags = useRendering3DFlags();
+	const threeSpec = $derived(resolveChartThreeViewSpec(element, getRendering3DFlags()));
+	function chart3DBridge(): Chart3DSelectionBridge {
+		return {
+			elementId: element.id,
+			chartData: element.type === 'chart' ? element.chartData : undefined,
+			canSelect: chartEditable,
+			selectedElementId: drag.selectedPart ? element.id : null,
+			setSelection: (selection) => {
+				drag.selectedPart = selection?.part ?? null;
+			},
+			setDragValue: (value) => {
+				drag.label = value === null ? null : formatAxisValue(value);
+			},
+			commitChartData: (next) => onchartpointcommit?.(element.id, next),
+		};
+	}
+
 	// Focus (and select) the inline title editor when it opens: the dblclick
 	// that opened it landed on the SVG title, so the browser gives the input
 	// no focus of its own.
@@ -143,7 +180,19 @@
 		{#if hitTarget}
 			<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>
 		{/if}
-		{#if view.kind === 'chart'}
+		{#if view.kind === 'chart' && threeSpec}
+			<!-- Opt-in 3D scene; the shared SVG render is its fallback while it loads or if it fails. -->
+			<ThreeView
+				spec={threeSpec}
+				interactive={chartEditable}
+				selectedPart={drag.selectedPart}
+				textStyle={animationState?.textStyle}
+				onselect={(part) => applyChart3DSelect(chart3DBridge(), part)}
+				ondrag={(detail) => applyChart3DDrag(chart3DBridge(), detail)}
+			>
+				<ChartSvgView vm={view.vm} preserveAspectRatio={view.preserveAspectRatio} {legendItems} />
+			</ThreeView>
+		{:else if view.kind === 'chart'}
 			<ChartSvgView vm={view.vm} preserveAspectRatio={view.preserveAspectRatio} {legendItems} />
 		{:else}
 			<div class="pptx-svelte-placeholder pptx-svelte-chart-placeholder">{view.label}</div>

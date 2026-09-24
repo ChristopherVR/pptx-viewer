@@ -27,12 +27,12 @@ export { ChromeUiState } from './chrome-ui.svelte';
 export type { InspectorTabId } from './chrome-ui.svelte';
 export { PresentationLoader } from './presentation-loader.svelte';
 export { ViewerState } from './viewer-state.svelte';
-export { provideSmartArt3D, useSmartArt3D } from './smart-art-3d-context';
-export { provideSurfaceChart3D, useSurfaceChart3D } from './surface-chart-3d-context';
-export { provideBarChart3D, useBarChart3D } from './bar-chart-3d-context';
-export { provideLineChart3D, useLineChart3D } from './line-chart-3d-context';
-export { provideAreaChart3D, useAreaChart3D } from './area-chart-3d-context';
-export { providePieChart3D, usePieChart3D } from './pie-chart-3d-context';
+export {
+	DEFAULT_RENDERING_3D_FLAGS,
+	provideRendering3DFlags,
+	Rendering3DFlagsContextKey,
+	useRendering3DFlags,
+} from './rendering-3d-flags-context';
 export { getFieldContextGetter, provideFieldContext } from './field-context';
 export type { FieldContextGetter } from './field-context';
 export { getSlideElementsGetter, provideSlideElements } from './slide-elements';

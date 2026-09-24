@@ -11,7 +11,7 @@ import type { Translator } from './translator';
  * Exported (not just module-private) so the export module can seed it
  * directly via `mount(SlideStage, { context: new Map([[I18N_CONTEXT_KEY,
  * translator]]) })` when rendering the off-screen capture stage outside the
- * normal component tree; mirrors `SmartArt3DContextKey`.
+ * normal component tree; mirrors `Rendering3DFlagsContextKey`.
  */
 export const I18N_CONTEXT_KEY = Symbol('pptx-svelte-i18n');
 

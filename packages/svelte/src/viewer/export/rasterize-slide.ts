@@ -13,13 +13,8 @@ import { mount, unmount } from 'svelte';
 
 import { I18N_CONTEXT_KEY } from '../../i18n/context';
 import SlideStage from '../components/SlideStage.svelte';
-import { AreaChart3DContextKey } from '../state/area-chart-3d-context';
-import { BarChart3DContextKey } from '../state/bar-chart-3d-context';
 import { FieldContextKey } from '../state/field-context';
-import { LineChart3DContextKey } from '../state/line-chart-3d-context';
-import { PieChart3DContextKey } from '../state/pie-chart-3d-context';
-import { SmartArt3DContextKey } from '../state/smart-art-3d-context';
-import { SurfaceChart3DContextKey } from '../state/surface-chart-3d-context';
+import { Rendering3DFlagsContextKey } from '../state/rendering-3d-flags-context';
 import type { RasterizeSlideController, RasterizeSlideDeps } from './rasterize-slide-types';
 import { renderToCanvas } from './render-to-canvas';
 
@@ -113,12 +108,17 @@ export function createRasterizeSlide(deps: RasterizeSlideDeps): RasterizeSlideCo
 			},
 			context: new Map<unknown, unknown>([
 				[I18N_CONTEXT_KEY, deps.getTranslator()],
-				[SmartArt3DContextKey, () => deps.smartArt3D],
-				[SurfaceChart3DContextKey, () => deps.surfaceChart3D],
-				[BarChart3DContextKey, () => deps.barChart3D],
-				[LineChart3DContextKey, () => deps.lineChart3D],
-				[AreaChart3DContextKey, () => deps.areaChart3D],
-				[PieChart3DContextKey, () => deps.pieChart3D],
+				[
+					Rendering3DFlagsContextKey,
+					() => ({
+						smartArt3D: deps.smartArt3D,
+						surfaceChart3D: deps.surfaceChart3D,
+						barChart3D: deps.barChart3D,
+						lineChart3D: deps.lineChart3D,
+						areaChart3D: deps.areaChart3D,
+						pieChart3D: deps.pieChart3D,
+					}),
+				],
 				[FieldContextKey, () => deps.getFieldContext?.()],
 			]),
 		});

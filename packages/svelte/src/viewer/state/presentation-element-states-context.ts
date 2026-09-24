@@ -4,7 +4,7 @@ import { getContext, setContext } from 'svelte';
 /**
  * Svelte context wiring for the presentation-mode native-animation element
  * state map (mirrors Vue's `presentation-element-states` provide/inject and the
- * Svelte `smart-art-3d-context`).
+ * Svelte `rendering-3d-flags-context`).
  *
  * The running presentation (`PresentationController`, via `AnimationPlayback`)
  * owns a runes `Map<elementId, ElementAnimationState>` describing each element's
