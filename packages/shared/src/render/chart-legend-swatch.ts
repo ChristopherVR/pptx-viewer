@@ -113,3 +113,29 @@ export function buildLineLegendSwatch(
 	}
 	return { primitives };
 }
+
+/**
+ * Build a trendline's own legend swatch: a plain dashed/dotted line sample,
+ * no marker (a trendline has no data points of its own). Same local box as
+ * {@link buildLineLegendSwatch} so it lines up with every other entry.
+ */
+export function buildTrendlineLegendSwatch(
+	color: string,
+	strokeWidth: number,
+	dashArray: string | undefined,
+): LegendLineSwatch {
+	return {
+		primitives: [
+			{
+				kind: 'line',
+				x1: 0,
+				y1: SWATCH_CENTER_Y,
+				x2: SWATCH_WIDTH,
+				y2: SWATCH_CENTER_Y,
+				stroke: color,
+				strokeWidth,
+				dashArray,
+			},
+		],
+	};
+}

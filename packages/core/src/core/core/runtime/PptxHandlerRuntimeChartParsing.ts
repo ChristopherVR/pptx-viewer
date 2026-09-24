@@ -368,6 +368,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						return s;
 					});
 				}
+				// Scatter/bubble series store their per-point X in `c:xVal`, a SEPARATE
+				// numCache from `c:yVal`'s. A chart saved via COM automation with the
+				// workbook closed immediately after `SetSourceData` (rather than through
+				// the PowerPoint UI) can write `c:xVal` with no cache at all, same as
+				// `c:yVal` above, leaving `xValues` empty even though the embedded
+				// workbook has the real column. The generic worksheet reader has no
+				// concept of "this chart's X column" and reads it as `categories`
+				// (correct for every OTHER chart kind, where column A really is
+				// category labels), so that is where the X data actually landed.
+				// Only fills a series that parsed no `xValues` of its own.
+				if (
+					(chartType === 'scatter' || chartType === 'bubble') &&
+					embeddedWorkbookData.categories.length > 0
+				) {
+					const embeddedXValues = embeddedWorkbookData.categories.map(Number);
+					if (embeddedXValues.every(Number.isFinite)) {
+						finalSeries = finalSeries.map((s) =>
+							s.xValues && s.xValues.length > 0 ? s : { ...s, xValues: embeddedXValues },
+						);
+					}
+				}
 			}
 
 			// Resolve any c:dPt/c:ser c:pictureOptions picture fill (or a bare

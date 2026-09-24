@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { buildLineLegendSwatch, resolveLegendSwatchKind } from './chart-legend-swatch';
+import {
+	buildLineLegendSwatch,
+	buildTrendlineLegendSwatch,
+	resolveLegendSwatchKind,
+} from './chart-legend-swatch';
 
 describe('resolveLegendSwatchKind', () => {
 	it('gives line/scatter a line-style swatch', () => {
@@ -69,5 +73,22 @@ describe('buildLineLegendSwatch', () => {
 		// eslint-disable-next-line one-var -- pre-existing pattern in this suite
 		const rect = swatch.primitives.find((p) => p.kind === 'rect');
 		expect(rect?.kind === 'rect' && rect.fill).toBe('#FF0000');
+	});
+});
+
+describe('buildTrendlineLegendSwatch', () => {
+	it('draws a single dashed line primitive, no marker', () => {
+		const swatch = buildTrendlineLegendSwatch('#E97132', 1.5, '2 2');
+		expect(swatch.primitives).toHaveLength(1);
+		const line = swatch.primitives[0];
+		expect(line.kind).toBe('line');
+		expect(line.kind === 'line' && line.stroke).toBe('#E97132');
+		expect(line.kind === 'line' && line.strokeWidth).toBe(1.5);
+		expect(line.kind === 'line' && line.dashArray).toBe('2 2');
+	});
+
+	it('carries no dash pattern when the caller passes none (solid line)', () => {
+		const swatch = buildTrendlineLegendSwatch('#000000', 1, undefined);
+		expect(swatch.primitives[0].kind === 'line' && swatch.primitives[0].dashArray).toBeUndefined();
 	});
 });

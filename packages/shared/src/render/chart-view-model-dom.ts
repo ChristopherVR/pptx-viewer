@@ -147,6 +147,7 @@ export function renderChartPrimitiveSvg(doc: Document, prim: SvgPrimitive): SVGE
 				fill: prim.fill,
 				stroke: prim.stroke ?? 'none',
 				'stroke-width': prim.strokeWidth ?? 0,
+				'stroke-dasharray': prim.dashArray,
 				'fill-opacity': prim.opacity ?? 1,
 			});
 			// The shared descriptor's tooltip, as an SVG <title> child. It is the
