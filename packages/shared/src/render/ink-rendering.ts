@@ -21,6 +21,12 @@
 import type { InkPptxElement, ContentPartInkStroke } from 'pptx-viewer-core';
 
 import { sampleCubicSegment, sampleQuadSegment } from './ink-curve-sampling';
+import type { InkReplayConfig, InkReplayStep } from './ink-replay-timeline';
+import {
+	buildInkReplayTimeline,
+	DEFAULT_STROKE_DELAY_MS,
+	DEFAULT_STROKE_DURATION_MS,
+} from './ink-replay-timeline';
 
 // ==========================================================================
 // SVG path point extraction
@@ -248,18 +254,6 @@ export function pressuresToWidths(
 // ==========================================================================
 
 /**
- * Configuration for ink replay animation.
- */
-export interface InkReplayConfig {
-	/** Duration of each stroke's reveal in milliseconds. Default 600. */
-	strokeDurationMs?: number;
-	/** Delay between consecutive strokes in milliseconds. Default 200. */
-	strokeDelayMs?: number;
-	/** Easing function. Default "ease-in-out". */
-	easing?: string;
-}
-
-/**
  * CSS properties for a single ink stroke's replay animation.
  */
 export interface InkStrokeAnimationStyle {
@@ -313,9 +307,30 @@ export const INK_REPLAY_KEYFRAMES = `@keyframes ${INK_REPLAY_KEYFRAME_NAME} {
   to { stroke-dashoffset: 0; }
 }`;
 
+/** Build the CSS animation properties for one stroke's reveal, given its resolved offset/duration. */
+function formatInkStrokeReplayStyle(
+	step: Pick<InkReplayStep, 'startOffsetMs' | 'durationMs'>,
+	pathLength: number,
+	easing: string,
+): InkStrokeAnimationStyle {
+	const len = Math.max(pathLength, 1);
+	return {
+		pathLength: len,
+		animationDelay: `${step.startOffsetMs}ms`,
+		animationDuration: `${step.durationMs}ms`,
+		animation: `${INK_REPLAY_KEYFRAME_NAME} ${step.durationMs}ms ${easing} ${step.startOffsetMs}ms forwards`,
+		strokeDasharray: `${len}`,
+		strokeDashoffset: `${len}`,
+	};
+}
+
 /**
  * Generate animation style properties for a single ink stroke
- * in a replay sequence.
+ * in a replay sequence, using the fixed per-stroke cascade (no real timing
+ * data). Callers with an element's or content part's full stroke list should
+ * use {@link getInkReplayStyles} / {@link getContentPartReplayStyles} instead,
+ * which use each stroke's own real timestamps when every stroke has one (see
+ * `ink-replay-timeline.ts`'s `buildInkReplayTimeline`).
  *
  * @param strokeIndex - Zero-based index of the stroke in the sequence.
  * @param pathLength - Estimated or measured length of the stroke path.
@@ -326,51 +341,58 @@ export function getInkStrokeReplayStyle(
 	pathLength: number,
 	config: InkReplayConfig = {},
 ): InkStrokeAnimationStyle {
-	const duration = config.strokeDurationMs ?? 600;
-	const delay = config.strokeDelayMs ?? 200;
+	const duration = config.strokeDurationMs ?? DEFAULT_STROKE_DURATION_MS;
+	const delay = config.strokeDelayMs ?? DEFAULT_STROKE_DELAY_MS;
 	const easing = config.easing ?? 'ease-in-out';
-
-	const totalDelay = strokeIndex * (duration + delay);
-	const len = Math.max(pathLength, 1);
-
-	return {
-		pathLength: len,
-		animationDelay: `${totalDelay}ms`,
-		animationDuration: `${duration}ms`,
-		animation: `${INK_REPLAY_KEYFRAME_NAME} ${duration}ms ${easing} ${totalDelay}ms forwards`,
-		strokeDasharray: `${len}`,
-		strokeDashoffset: `${len}`,
-	};
+	const startOffsetMs = strokeIndex * (duration + delay);
+	return formatInkStrokeReplayStyle({ startOffsetMs, durationMs: duration }, pathLength, easing);
 }
 
 /**
  * Compute replay animation styles for all strokes in an ink element.
  *
- * Returns an array with one entry per `inkPaths` item. Each entry
- * contains the CSS properties to apply to the corresponding `<path>`.
+ * Returns an array with one entry per `inkPaths` item. Each entry contains
+ * the CSS properties to apply to the corresponding `<path>`. Draw-tab ink has
+ * no real per-point timestamp source (see `InkPptxElement`'s docs), so this
+ * always uses the fixed per-stroke cascade via `buildInkReplayTimeline`'s
+ * fallback.
  */
 export function getInkReplayStyles(
 	el: InkPptxElement,
 	config: InkReplayConfig = {},
 ): InkStrokeAnimationStyle[] {
+	const easing = config.easing ?? 'ease-in-out';
+	const steps = buildInkReplayTimeline(
+		el.inkPaths.map(() => undefined),
+		config,
+	);
 	return el.inkPaths.map((d, i) => {
-		const points = extractPathPoints(d);
-		const pathLen = estimatePathLength(points);
-		return getInkStrokeReplayStyle(i, pathLen, config);
+		const pathLen = estimatePathLength(extractPathPoints(d));
+		return formatInkStrokeReplayStyle(steps[i], pathLen, easing);
 	});
 }
 
 /**
  * Compute replay animation styles for content part ink strokes.
+ *
+ * When every stroke carries a real per-point timestamp (decoded from the
+ * source InkML's `T` channel onto `ContentPartInkStroke.pointTimestamps`),
+ * each stroke's reveal is timed from its own recorded duration and its offset
+ * from the previous stroke's actual gap, via `buildInkReplayTimeline`, instead
+ * of the fixed cascade every stroke used before real timing data existed.
  */
 export function getContentPartReplayStyles(
 	strokes: ContentPartInkStroke[],
 	config: InkReplayConfig = {},
 ): InkStrokeAnimationStyle[] {
+	const easing = config.easing ?? 'ease-in-out';
+	const steps = buildInkReplayTimeline(
+		strokes.map((stroke) => stroke.pointTimestamps),
+		config,
+	);
 	return strokes.map((stroke, i) => {
-		const points = extractPathPoints(stroke.path);
-		const pathLen = estimatePathLength(points);
-		return getInkStrokeReplayStyle(i, pathLen, config);
+		const pathLen = estimatePathLength(extractPathPoints(stroke.path));
+		return formatInkStrokeReplayStyle(steps[i], pathLen, easing);
 	});
 }
 
@@ -379,7 +401,10 @@ export function getContentPartReplayStyles(
 // ==========================================================================
 
 /**
- * Calculate the total duration of an ink replay animation in milliseconds.
+ * Calculate the total duration of an ink replay animation in milliseconds,
+ * using the fixed per-stroke cascade (this takes only a stroke count, so it
+ * has no real timing data to reflect; see `getContentPartReplayStyles` for
+ * the real-timestamp-aware per-stroke durations).
  *
  * @param strokeCount - Number of strokes in the element.
  * @param config - Replay animation configuration.
@@ -388,8 +413,8 @@ export function getTotalReplayDuration(strokeCount: number, config: InkReplayCon
 	if (strokeCount <= 0) {
 		return 0;
 	}
-	const duration = config.strokeDurationMs ?? 600;
-	const delay = config.strokeDelayMs ?? 200;
+	const duration = config.strokeDurationMs ?? DEFAULT_STROKE_DURATION_MS;
+	const delay = config.strokeDelayMs ?? DEFAULT_STROKE_DELAY_MS;
 	// Last stroke starts at (strokeCount-1)*(duration+delay) and runs for duration ms.
 	return (strokeCount - 1) * (duration + delay) + duration;
 }

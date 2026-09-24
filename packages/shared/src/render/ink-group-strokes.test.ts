@@ -47,6 +47,30 @@ describe('buildInkGroupStrokes - plain path', () => {
 	});
 });
 
+describe('buildInkGroupStrokes - highlighter blend mode', () => {
+	it('is "normal" for a plain pen stroke', () => {
+		const el = makeElement({ inkPaths: ['M 0 0 L 10 10'], inkTool: 'pen' });
+		const [view] = buildInkGroupStrokes(el, DEFAULTS);
+		expect(view.blendMode).toBe('normal');
+	});
+
+	it('is "multiply" for a highlighter stroke, using the explicit inkTool flag rather than opacity alone', () => {
+		const el = makeElement({
+			inkPaths: ['M 0 0 L 10 10'],
+			inkTool: 'highlighter',
+			inkOpacities: [0.4],
+		});
+		const [view] = buildInkGroupStrokes(el, DEFAULTS);
+		expect(view.blendMode).toBe('multiply');
+	});
+
+	it('is "normal" for a translucent stroke with no inkTool set at all (legacy aink import), unlike a loaded contentPart', () => {
+		const el = makeElement({ inkPaths: ['M 0 0 L 10 10'], inkOpacities: [0.4] });
+		const [view] = buildInkGroupStrokes(el, DEFAULTS);
+		expect(view.blendMode).toBe('normal');
+	});
+});
+
 describe('buildInkGroupStrokes - pressure circles', () => {
 	it('renders pressure circles when inkPointPressures genuinely varies', () => {
 		const el = makeElement({

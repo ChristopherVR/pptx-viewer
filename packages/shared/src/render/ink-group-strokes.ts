@@ -71,6 +71,10 @@ export function buildInkGroupStrokes(
 				legacyPointWidths,
 				tiltAngles: tilt?.angles,
 				tiltMagnitudes: tilt?.magnitudes,
+				// Explicit signal from the Draw tool's own tool state, when this
+				// element carries one (a legacy `aink`-format frame has none, so
+				// `buildInkStrokeView` falls back to its opacity heuristic).
+				isHighlighter: element.inkTool === 'highlighter',
 			}),
 		};
 	});

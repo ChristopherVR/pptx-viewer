@@ -79,5 +79,6 @@ export function buildLiveInkStrokeView(opts: LiveInkStrokeViewOpts): InkStrokeVi
 		pressures: hasPressure ? pressures : undefined,
 		tiltAngles: tilt?.angles,
 		tiltMagnitudes: tilt?.magnitudes,
+		isHighlighter,
 	});
 }

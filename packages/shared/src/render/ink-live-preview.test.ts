@@ -37,10 +37,11 @@ describe('buildLiveInkStrokeView', () => {
 			opacity: 1,
 			circles: null,
 			nibMarks: null,
+			blendMode: 'normal',
 		});
 	});
 
-	it('sets opacity 0.4 for a highlighter preview', () => {
+	it('sets opacity 0.4 and multiply blend mode for a highlighter preview', () => {
 		const view = buildLiveInkStrokeView({
 			points: [
 				{ x: 0, y: 0 },
@@ -51,6 +52,7 @@ describe('buildLiveInkStrokeView', () => {
 			tool: 'highlighter',
 		});
 		expect(view?.opacity).toBe(0.4);
+		expect(view?.blendMode).toBe('multiply');
 	});
 
 	it('renders calligraphic nib marks while the pointer reports a genuine tilt lean, matching the committed-stroke decision', () => {

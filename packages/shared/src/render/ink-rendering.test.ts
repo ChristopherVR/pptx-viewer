@@ -522,6 +522,44 @@ describe('getContentPartReplayStyles', () => {
 	it('should return empty array for empty strokes', () => {
 		expect(getContentPartReplayStyles([])).toStrictEqual([]);
 	});
+
+	it("should use each stroke's own real pointTimestamps instead of the fixed cascade when every stroke has them", () => {
+		const strokes: ContentPartInkStroke[] = [
+			{
+				path: 'M 0 0 L 30 30',
+				color: '#f00',
+				width: 2,
+				opacity: 1,
+				pointTimestamps: [1000, 1050, 1120],
+			},
+			{
+				path: 'M 5 5 L 35 35',
+				color: '#0f0',
+				width: 3,
+				opacity: 0.8,
+				pointTimestamps: [1500, 1650],
+			},
+		];
+		const styles = getContentPartReplayStyles(strokes);
+		// Real durations (120ms, 150ms), not the fixed 600ms default.
+		expect(styles[0].animationDuration).toBe('120ms');
+		expect(styles[1].animationDuration).toBe('150ms');
+		// Real inter-stroke gap (500ms from the source timestamps), not the
+		// fixed 600+200 cascade.
+		expect(styles[0].animationDelay).toBe('0ms');
+		expect(styles[1].animationDelay).toBe('500ms');
+	});
+
+	it('should fall back to the fixed cascade when at least one stroke has no pointTimestamps', () => {
+		const strokes: ContentPartInkStroke[] = [
+			{ path: 'M 0 0 L 30 30', color: '#f00', width: 2, opacity: 1, pointTimestamps: [1000, 1050] },
+			{ path: 'M 5 5 L 35 35', color: '#0f0', width: 3, opacity: 0.8 },
+		];
+		const styles = getContentPartReplayStyles(strokes);
+		expect(styles[0].animationDelay).toBe('0ms');
+		expect(styles[1].animationDelay).toBe('800ms');
+		expect(styles[1].animationDuration).toBe('600ms');
+	});
 });
 
 // ==========================================================================
