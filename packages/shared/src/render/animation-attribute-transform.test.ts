@@ -60,6 +60,54 @@ describe('generic p:anim transform composition', () => {
 		expect(model?.stateAt(1)).toMatchObject({ translateX: 0, translateY: 0 });
 	});
 
+	it('settles a Bounce End ramp exactly on the final value at progress 1', () => {
+		const model = createAttributeTransformModel({
+			durationMs: 1000,
+			attributeAnimations: [
+				{
+					attrName: 'ppt_x',
+					durationMs: 1000,
+					bounceEnd: 0.66,
+					keyframes: [
+						{ tm: 0, value: '#ppt_x-.5', valueType: 'str' },
+						{ tm: 100000, value: '#ppt_x', valueType: 'str' },
+					],
+				},
+			],
+		});
+
+		expect(model?.stateAt(1)).toMatchObject({ translateX: 0 });
+		// Several intermediate stops are sampled across the settle phase so the
+		// generated `@keyframes` block actually shows a bounce, not a single
+		// straight overshoot triangle.
+		const settlePhaseStops = (model?.progresses ?? []).filter((p) => p > 0.66 && p < 1);
+		expect(settlePhaseStops.length).toBeGreaterThan(5);
+	});
+
+	it('overshoots past the arrival value partway through a Bounce End settle phase', () => {
+		const model = createAttributeTransformModel({
+			durationMs: 1000,
+			attributeAnimations: [
+				{
+					attrName: 'ppt_x',
+					durationMs: 1000,
+					bounceEnd: 0.5,
+					keyframes: [
+						{ tm: 0, value: '#ppt_x-.5', valueType: 'str' },
+						{ tm: 100000, value: '#ppt_x', valueType: 'str' },
+					],
+				},
+			],
+		});
+
+		// Arrives at the final position exactly at the bounceEnd fraction...
+		expect(model?.stateAt(0.5)).toMatchObject({ translateX: 0 });
+		// ...then the settle phase deviates from a flat line before landing back
+		// on the final value.
+		const midSettle = (model?.stateAt(0.6) as { translateX?: number } | undefined)?.translateX;
+		expect(midSettle).not.toBeCloseTo(0, 1);
+	});
+
 	it('rejects a partial transform when a supported sibling formula is not representable', () => {
 		const model = createAttributeTransformModel({
 			durationMs: 500,

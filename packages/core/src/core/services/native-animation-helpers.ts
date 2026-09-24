@@ -697,6 +697,13 @@ const OPAQUE_CTN_ATTRS: ReadonlyArray<string> = [
 	// Additional CT_TLCommonTimeNodeData attributes we don't yet model.
 	'@_syncBehavior',
 	'@_tmFilter',
+	// Office 2010 `p14` extension mirror of the per-behaviour
+	// `p:anim/@_p14:bounceEnd` this project DOES model (see
+	// `PptxAttributeAnimation.bounceEnd`); PowerPoint writes both, so a
+	// full-rebuild write path still needs this passthrough to keep the
+	// documentation-level cTn attribute even when the per-behaviour one is
+	// re-derived from the typed model instead of copied verbatim.
+	'@_p14:presetBounceEnd',
 ];
 
 /**

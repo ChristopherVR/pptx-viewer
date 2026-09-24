@@ -78,6 +78,48 @@ describe('extractAttributeAnimations', () => {
 		});
 	});
 
+	it('normalizes p14:bounceEnd to a 0-1 fraction (Fly In Bounce End ground truth)', () => {
+		const result = extractAttributeAnimations({
+			'p:anim': [
+				{
+					'@_calcmode': 'lin',
+					'@_valueType': 'num',
+					'@_p14:bounceEnd': '66000',
+					'p:cBhvr': {
+						'p:cTn': { '@_dur': '1000' },
+						'p:attrNameLst': { 'p:attrName': 'ppt_x' },
+					},
+					'p:tavLst': {
+						'p:tav': [
+							{ '@_tm': '0', 'p:val': { 'p:strVal': { '@_val': '1+#ppt_w/2' } } },
+							{ '@_tm': '100000', 'p:val': { 'p:strVal': { '@_val': '#ppt_x' } } },
+						],
+					},
+				},
+			],
+		});
+
+		expect(result).toHaveLength(1);
+		expect(result?.[0].bounceEnd).toBeCloseTo(0.66);
+	});
+
+	it('leaves bounceEnd undefined when p14:bounceEnd is absent', () => {
+		const result = extractAttributeAnimations({
+			'p:anim': [
+				{
+					'@_from': '0',
+					'@_to': '1',
+					'p:cBhvr': {
+						'p:cTn': { '@_dur': '500' },
+						'p:attrNameLst': { 'p:attrName': 'style.opacity' },
+					},
+				},
+			],
+		});
+
+		expect(result?.[0].bounceEnd).toBeUndefined();
+	});
+
 	it('still drops a p:anim with no attrName, no keyframes, and no from/to/by', () => {
 		const result = extractAttributeAnimations({
 			'p:anim': [

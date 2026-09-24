@@ -730,6 +730,17 @@ export interface PptxAttributeAnimation {
 	 * IS consulted regardless of this field's value. Absent means `lin`.
 	 */
 	calcMode?: 'discrete' | 'lin' | 'fmla';
+	/**
+	 * `p:anim/@_p14:bounceEnd` (Office 2010 `p14` extension attribute,
+	 * MS-OI29500), normalized to a 0-1 fraction of this behaviour's own
+	 * duration. PowerPoint's Fly In "Bounce End" effect option writes this on
+	 * the position-ramp `p:anim` node(s): the fraction of the duration at
+	 * which the primary travel completes, with the remainder spent bouncing
+	 * and settling at the final value. Mirrored verbatim by PowerPoint onto
+	 * the enclosing `p:cTn/@_p14:presetBounceEnd`. Absent for every animation
+	 * that doesn't use this effect option (the overwhelming majority).
+	 */
+	bounceEnd?: number;
 }
 
 /** Signed HSL channel deltas parsed from `p:animClr/p:by/p:hsl`. */
