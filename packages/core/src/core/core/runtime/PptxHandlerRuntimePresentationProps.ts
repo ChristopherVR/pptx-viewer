@@ -1,6 +1,10 @@
 import { XmlObject } from '../../types';
 import type { PptxPresentationProperties, PptxChartStyle, PptxViewProperties } from '../../types';
 import { parseChartDataLabelOptions } from '../../utils/chart-data-label-parser';
+import {
+	dataLabelsGroupDeleted,
+	dataLabelsGroupShowsContent,
+} from '../../utils/chart-data-labels-visibility';
 import { parseDefRPrTextStyle, resolveTxPrDefRPr } from '../../utils/chart-def-rpr-style';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseChartTitleStyle } from '../../utils/chart-title-style-parser';
@@ -269,11 +273,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						continue;
 					}
 
-					// Check chart-level dLbls (applies to all series)
+					// Check chart-level dLbls (applies to all series). PowerPoint
+					// writes an all-zero group on every chart it authors, so the
+					// group's presence alone is NOT "labels on": leave the flag
+					// undefined (round-trips untouched) unless a show* flag is set.
 					const chartDLbls = this.xmlLookupService.getChildByLocalName(ctNode, 'dLbls');
 					if (chartDLbls && !style.dataLabels) {
-						const deleted = this.xmlLookupService.getChildByLocalName(chartDLbls, 'delete');
-						style.hasDataLabels = !(deleted?.['@_val'] === '1' || deleted?.['@_val'] === 'true');
+						if (dataLabelsGroupDeleted(chartDLbls, this.xmlLookupService)) {
+							style.hasDataLabels = false;
+						} else if (dataLabelsGroupShowsContent(chartDLbls, this.xmlLookupService)) {
+							style.hasDataLabels = true;
+						}
 						style.dataLabels = parseChartDataLabelOptions(
 							chartDLbls,
 							this.xmlLookupService,
@@ -288,12 +298,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						const seriesList = this.xmlLookupService.getChildrenArrayByLocalName(ctNode, 'ser');
 						for (const ser of seriesList) {
 							const dLbls = this.xmlLookupService.getChildByLocalName(ser, 'dLbls');
-							if (dLbls) {
-								const showVal = this.xmlLookupService.getChildByLocalName(dLbls, 'showVal');
-								if (showVal?.['@_val'] === '1') {
-									style.hasDataLabels = true;
-									hasStyle = true;
-								}
+							if (dataLabelsGroupShowsContent(dLbls, this.xmlLookupService)) {
+								style.hasDataLabels = true;
+								hasStyle = true;
 							}
 						}
 					}

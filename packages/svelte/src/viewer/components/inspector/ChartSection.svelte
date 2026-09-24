@@ -23,6 +23,7 @@
 	import { setChartDataPointMarker } from 'pptx-viewer-core';
 	import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 	import {
+		chartDataLabelsTogglePatch,
 		bar3DShapePatch,
 		BAR3D_SHAPE_OPTIONS,
 		CHART_TYPE_LABEL_KEYS,
@@ -196,7 +197,7 @@
 {#if data}<div class="section">
 	<label>Chart type<pptx-ui-select aria-label="Chart type" value={displayedType} onchange={(event) => onTypeChange(event.currentTarget.value as ChartTypeSelectValue)}>{#each chartTypes as type}<option value={type}>{schemaLabel(CHART_TYPE_LABEL_KEYS, type, t)}</option>{/each}</pptx-ui-select></label>
 	<label>Title<input value={data.title ?? ''} oninput={(event) => patch({ ...collapseChartTitleRunsForEdit(data, event.currentTarget.value), style: { ...data.style, hasTitle: Boolean(event.currentTarget.value) } })} /></label>
-	<div class="checks"><label><pptx-ui-checkbox checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} ></pptx-ui-checkbox>Legend</label><label><pptx-ui-checkbox checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, hasDataLabels: event.currentTarget.checked } })} ></pptx-ui-checkbox>Data labels</label><label><pptx-ui-checkbox checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} ></pptx-ui-checkbox>Gridlines</label>
+	<div class="checks"><label><pptx-ui-checkbox checked={data.style?.hasLegend ?? false} onchange={(event) => patch({ style: { ...data.style, hasLegend: event.currentTarget.checked } })} ></pptx-ui-checkbox>Legend</label><label><pptx-ui-checkbox checked={data.style?.hasDataLabels ?? false} onchange={(event) => patch({ style: { ...data.style, ...chartDataLabelsTogglePatch(data.style, event.currentTarget.checked) } })} ></pptx-ui-checkbox>Data labels</label><label><pptx-ui-checkbox checked={data.style?.hasGridlines ?? false} onchange={(event) => patch({ style: { ...data.style, hasGridlines: event.currentTarget.checked } })} ></pptx-ui-checkbox>Gridlines</label>
 		{#if data.chartType === 'bar3D'}
 			<label>{t('pptx.chart.bar3DShapeLabel')}<pptx-ui-select aria-label={t('pptx.chart.bar3DShapeLabel')} data-testid="pptx-chart-bar3d-shape" value={data.barShape ?? 'box'} onchange={(event) => onBar3DShapeChange(event.currentTarget.value)}>{#each BAR3D_SHAPE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}</pptx-ui-select></label>
 		{/if}

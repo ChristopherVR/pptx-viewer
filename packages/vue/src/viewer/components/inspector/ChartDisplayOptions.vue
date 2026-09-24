@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { PptxChartData, PptxChartStyle } from 'pptx-viewer-core';
 import {
+	chartDataLabelsTogglePatch,
 	chartGridlinesPatch,
 	chartGridlinesState,
 	LEGEND_POSITION_OPTIONS,
@@ -46,6 +47,10 @@ function patch(p: Partial<PptxChartStyle>): void {
 
 function onCheckbox(event: Event, key: keyof PptxChartStyle): void {
 	patch({ [key]: (event.target as HTMLInputElement).checked } as Partial<PptxChartStyle>);
+}
+
+function onDataLabelsToggle(event: Event): void {
+	patch(chartDataLabelsTogglePatch(style.value, (event.target as HTMLInputElement).checked));
 }
 
 function onLegendPosition(event: Event): void {
@@ -123,7 +128,7 @@ function onGridlinesToggle(event: Event): void {
 					data-testid="chart-show-data-labels"
 					class="accent-primary"
 					:checked="style?.hasDataLabels ?? false"
-					@change="onCheckbox($event, 'hasDataLabels')"
+					@change="onDataLabelsToggle"
 				/>
 				<span class="text-[11px]">{{ t('pptx.chart.showDataLabels') }}</span>
 			</label>

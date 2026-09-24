@@ -1,4 +1,5 @@
 import type { PptxChartStyle } from 'pptx-viewer-core';
+import { chartDataLabelsTogglePatch } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
 import { WebSelect, WebCheckbox } from '../WebControls';
@@ -108,11 +109,7 @@ export function ChartDisplayOptions({
 						type='checkbox'
 						disabled={!canEdit}
 						checked={style?.hasDataLabels ?? false}
-						onChange={(e) =>
-							onUpdateStyle({
-								hasDataLabels: e.target.checked,
-							})
-						}
+						onChange={(e) => onUpdateStyle(chartDataLabelsTogglePatch(style, e.target.checked))}
 						className='accent-primary'
 					/>
 					<span className='text-[11px]'>{t('pptx.chart.showDataLabels')}</span>

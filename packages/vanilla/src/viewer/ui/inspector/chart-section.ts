@@ -4,6 +4,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import {
+	chartDataLabelsTogglePatch,
 	CHART_GROUPING_LABEL_KEYS,
 	CHART_TYPE_LABEL_KEYS,
 	CHART_TYPE_OPTIONS,
@@ -153,7 +154,9 @@ export function createChartSection(
 				...base.style,
 				hasTitle: title.control.value.trim().length > 0,
 				hasLegend: legend.control.checked,
-				hasDataLabels: labels.control.checked,
+				...(labels.control.checked !== (base.style?.hasDataLabels ?? false)
+					? chartDataLabelsTogglePatch(base.style, labels.control.checked)
+					: { hasDataLabels: labels.control.checked }),
 			},
 		});
 	};

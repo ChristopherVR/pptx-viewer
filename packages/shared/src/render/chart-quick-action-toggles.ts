@@ -18,7 +18,7 @@
  *
  * @module render/chart-quick-action-toggles
  */
-import type { PptxChartAxisFormatting, PptxChartData } from 'pptx-viewer-core';
+import type { PptxChartAxisFormatting, PptxChartData, PptxChartStyle } from 'pptx-viewer-core';
 
 import { patchChartData } from './chart-editor-options';
 import { chartGridlinesPatch } from './chart-gridlines-toggle';
@@ -94,6 +94,30 @@ export function chartAxisTitlesState(chartData: PptxChartData): boolean {
 }
 
 /**
+ * The style patch for the "Data labels" master toggle, shared by the
+ * quick-action popover and every binding's inspector checkbox. Switching
+ * labels ON over a PowerPoint-authored chart must also switch a content flag
+ * on: such charts carry an all-zero chart-level `c:dLbls`, and a bare
+ * `hasDataLabels: true` over it would render as nothing.
+ */
+export function chartDataLabelsTogglePatch(
+	style: PptxChartStyle | undefined,
+	checked: boolean,
+): Partial<PptxChartStyle> {
+	const labels = style?.dataLabels;
+	const anyContent =
+		labels?.showValue === true ||
+		labels?.showCategory === true ||
+		labels?.showSeriesName === true ||
+		labels?.showPercent === true ||
+		labels?.showBubbleSize === true;
+	if (checked && labels !== undefined && !anyContent) {
+		return { hasDataLabels: true, dataLabels: { ...labels, showValue: true } };
+	}
+	return { hasDataLabels: checked };
+}
+
+/**
  * Apply one "Chart Elements" checklist toggle. The single entry point every
  * binding's quick-action popover calls on click; see this module's header.
  */
@@ -108,7 +132,9 @@ export function applyChartElementToggle(
 		case 'legend':
 			return patchChartData(chartData, { style: { ...chartData.style, hasLegend: checked } });
 		case 'dataLabels':
-			return patchChartData(chartData, { style: { ...chartData.style, hasDataLabels: checked } });
+			return patchChartData(chartData, {
+				style: { ...chartData.style, ...chartDataLabelsTogglePatch(chartData.style, checked) },
+			});
 		case 'gridlines':
 			return patchChartData(chartData, chartGridlinesPatch(chartData, checked));
 		case 'axes':
