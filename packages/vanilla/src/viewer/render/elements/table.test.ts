@@ -110,6 +110,19 @@ describe('renderTableElement', () => {
 		expect(table?.style.tableLayout).toBe('fixed');
 	});
 
+	it('sizes the container to its content, with the authored height only as a floor (tables-sbs/c5)', () => {
+		// PowerPoint always sizes a graphicFrame holding a table to the actual
+		// sum of its row heights: `a:tr/@h` is a minimum, not a fixed height, so
+		// a row whose text needs more room than that grows the table taller than
+		// its authored `a:ext/@cy` (200px here). The container's own
+		// `overflow: hidden` (set right after `getContainerStyle` below) only
+		// clips content when the box is a fixed size; on an `auto` height it has
+		// nothing to clip because the box always matches the content.
+		const container = renderTable();
+		expect(container.style.height).toBe('auto');
+		expect(container.style.minHeight).toBe('200px');
+	});
+
 	it('renders proportional column widths in a <colgroup>', () => {
 		const cols = renderTable().querySelectorAll('colgroup col');
 		expect(cols).toHaveLength(3);

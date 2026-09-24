@@ -11,6 +11,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
+	elementContainerHeightStyle,
 	elementHitTargetStyle,
 	elementInLocalFrame,
 	getContainerStyle,
@@ -317,5 +318,44 @@ describe('elementInLocalFrame', () => {
 
 	it('keeps the same object for the same element', () => {
 		expect(elementInLocalFrame(el)).toBe(elementInLocalFrame(el));
+	});
+});
+
+describe('elementContainerHeightStyle - table rows auto-grow past the authored frame', () => {
+	// `a:tr/@h` is a minimum row height, not a fixed one: PowerPoint grows a row
+	// (and so the whole table) taller than that the moment a cell's text needs
+	// more room than the row's last-saved height. The authored `a:ext/@cy` is a
+	// cache of that computed sum, not a hard clip. Treating it as a fixed CSS
+	// height clipped off however many trailing rows no longer fit (tables-sbs/c5:
+	// a long-wrapping cell grew row 2, and the frame clipped rows 3 and 4 clean
+	// off instead of growing with it).
+	function table(overrides: Partial<PptxElement> = {}): PptxElement {
+		return {
+			type: 'table',
+			id: 'tbl1',
+			x: 0,
+			y: 0,
+			width: 400,
+			height: 120,
+			...overrides,
+		} as PptxElement;
+	}
+
+	it('sizes a table to its content, with the authored height only as a floor', () => {
+		expect(elementContainerHeightStyle(table(), 120)).toStrictEqual({
+			height: 'auto',
+			minHeight: '120px',
+		});
+	});
+
+	it('leaves every other element type at a fixed authored height', () => {
+		expect(elementContainerHeightStyle(picture(), 100)).toStrictEqual({ height: '100px' });
+	});
+
+	it('getContainerStyle applies the same auto-height rule for a table element', () => {
+		const style = getContainerStyle(table(), 3);
+		expect(style.height).toBe('auto');
+		expect(style.minHeight).toBe('120px');
+		expect(style.width).toBe('400px');
 	});
 });
