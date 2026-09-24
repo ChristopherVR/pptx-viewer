@@ -31,6 +31,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { ooxmlGradientAngleToCssDegrees } from 'pptx-viewer-core';
 
 import type { ThemeColorPickerCommit } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 import {
 	addGradientStopPatch,
 	gradientStateOf,
@@ -421,7 +422,7 @@ function numberFromEvent(event: Event): number | null {
 
 function stringFromEvent(event: Event): string | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement) && !(target instanceof HTMLSelectElement)) {
+	if (!(target instanceof HTMLInputElement) && !isSelectControl(target)) {
 		return null;
 	}
 	const val = target.value.trim();

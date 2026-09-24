@@ -30,6 +30,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { isCheckboxControl } from './control-event-targets';
 import {
 	disableGlowPatch,
 	disableInnerShadowPatch,
@@ -673,7 +674,7 @@ function stringFromEvent(event: Event): string | null {
 
 function checkedFromEvent(event: Event): boolean | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement)) {
+	if (!isCheckboxControl(target)) {
 		return null;
 	}
 	return target.checked;

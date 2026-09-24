@@ -55,7 +55,7 @@ export function WebSearch({
 	useHostEvent(ref, 'focusin', onFocus);
 	useHostEvent(ref, 'focusout', onBlur);
 	useHostEvent(ref, 'keydown', onKeyDown as NativeEventHandler | undefined);
-	return <pptx-ui-search ref={ref} value={value} disabled={disabled} {...rest} />;
+	return <pptx-ui-search ref={ref} value={value} disabled={disabled || undefined} {...rest} />;
 }
 
 export function WebSelect({
@@ -81,7 +81,9 @@ export function WebSelect({
 			? (event) => onChange(event as unknown as React.ChangeEvent<HTMLSelectElement>)
 			: undefined,
 	);
-	return <pptx-ui-select ref={ref} value={String(value)} disabled={disabled} {...rest} />;
+	return (
+		<pptx-ui-select ref={ref} value={String(value)} disabled={disabled || undefined} {...rest} />
+	);
 }
 
 export function WebCheckbox({
@@ -111,8 +113,8 @@ export function WebCheckbox({
 	return (
 		<pptx-ui-checkbox
 			ref={ref}
-			checked={checked}
-			disabled={disabled}
+			checked={checked || undefined}
+			disabled={disabled || undefined}
 			value={value === undefined ? undefined : String(value)}
 			{...rest}
 		/>

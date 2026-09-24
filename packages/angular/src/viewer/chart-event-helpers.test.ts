@@ -33,6 +33,20 @@ function selectEvent(value: string): Event {
 	return event;
 }
 
+function customControlEvent(name: 'pptx-ui-select' | 'pptx-ui-checkbox', value: string): Event {
+	const control = document.createElement(name);
+	if (name === 'pptx-ui-checkbox') {
+		control.toggleAttribute('checked', value === 'checked');
+		Object.defineProperty(control, 'checked', { get: () => control.hasAttribute('checked') });
+	} else {
+		control.setAttribute('value', value);
+		Object.defineProperty(control, 'value', { get: () => control.getAttribute('value') });
+	}
+	const event = new Event('change');
+	Object.defineProperty(event, 'target', { value: control });
+	return event;
+}
+
 describe('stringFromEvent', () => {
 	it('reads an input value', () => {
 		expect(stringFromEvent(inputEvent({ value: 'hello' }))).toBe('hello');
@@ -40,6 +54,10 @@ describe('stringFromEvent', () => {
 
 	it('reads a select value', () => {
 		expect(stringFromEvent(selectEvent('opt'))).toBe('opt');
+	});
+
+	it('reads a shared select value', () => {
+		expect(stringFromEvent(customControlEvent('pptx-ui-select', 'opt'))).toBe('opt');
 	});
 
 	it('returns null for an unexpected target', () => {
@@ -50,6 +68,10 @@ describe('stringFromEvent', () => {
 describe('selectValue', () => {
 	it('reads a select value', () => {
 		expect(selectValue(selectEvent('r'))).toBe('r');
+	});
+
+	it('reads a shared select value', () => {
+		expect(selectValue(customControlEvent('pptx-ui-select', 'r'))).toBe('r');
 	});
 
 	it('returns null for a non-select target', () => {
@@ -64,6 +86,11 @@ describe('boolFromEvent', () => {
 
 	it('reads an unchecked checkbox', () => {
 		expect(boolFromEvent(inputEvent({ type: 'checkbox', checked: false }))).toBeFalsy();
+	});
+
+	it('reads both states of a shared checkbox', () => {
+		expect(boolFromEvent(customControlEvent('pptx-ui-checkbox', 'checked'))).toBeTruthy();
+		expect(boolFromEvent(customControlEvent('pptx-ui-checkbox', 'unchecked'))).toBeFalsy();
 	});
 
 	it('returns false for a non-input target', () => {

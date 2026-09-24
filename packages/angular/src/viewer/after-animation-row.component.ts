@@ -22,6 +22,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxAfterAnimationAction } from 'pptx-viewer-core';
 
 import { AFTER_ANIMATION_VALUES } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 
 @Component({
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -91,7 +92,7 @@ export class AfterAnimationRowComponent {
 
 	protected onActionChange(event: Event): void {
 		const target = event.target;
-		if (!(target instanceof HTMLSelectElement)) {
+		if (!isSelectControl(target)) {
 			return;
 		}
 		this.actionChange.emit(target.value as PptxAfterAnimationAction);

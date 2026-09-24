@@ -30,6 +30,7 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { motionPathPresetIdForPath } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 import { MOTION_PATH_COLUMNS } from './ribbon-motion-path-gallery.component';
 
 /** The select value standing for "this path was hand-dragged". */
@@ -131,7 +132,7 @@ export class MotionPathRowComponent {
 
 	protected onSelect(event: Event): void {
 		const target = event.target;
-		if (!(target instanceof HTMLSelectElement)) {
+		if (!isSelectControl(target)) {
 			return;
 		}
 		// The custom marker is read-only: it describes a dragged path, and there is

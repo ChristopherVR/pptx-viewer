@@ -47,6 +47,7 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 
+import { isSelectControl } from './control-event-targets';
 import { SWITCHABLE_LAYOUT_TYPES } from './editor-insert';
 import { RecentColorsService } from './recent-colors.service';
 import {
@@ -693,7 +694,7 @@ export class SmartArtPropertiesComponent {
 /** Read the value of a `<pptx-ui-select>` change event. */
 function selectValue(event: Event): string | null {
 	const target = event.target;
-	return target instanceof HTMLSelectElement ? target.value : null;
+	return isSelectControl(target) ? target.value : null;
 }
 
 /** Read the value of an `<input>` change event. */

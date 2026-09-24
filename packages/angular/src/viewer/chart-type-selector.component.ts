@@ -31,6 +31,7 @@ import {
 	patchChartData,
 	resolveDisplayedChartType,
 } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 
 /**
  * Apply an inspector patch (title/type/grouping) to a chart element, routing
@@ -181,14 +182,14 @@ export class ChartTypeSelectorComponent {
 
 	protected onType(event: Event): void {
 		const target = event.target;
-		if (target instanceof HTMLSelectElement) {
+		if (isSelectControl(target)) {
 			this.emit({ chartType: target.value as PptxChartData['chartType'] });
 		}
 	}
 
 	protected onGrouping(event: Event): void {
 		const target = event.target;
-		if (target instanceof HTMLSelectElement) {
+		if (isSelectControl(target)) {
 			this.emit({ grouping: target.value as PptxChartData['grouping'] });
 		}
 	}

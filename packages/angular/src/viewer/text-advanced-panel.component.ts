@@ -30,6 +30,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
+import { isSelectControl, isCheckboxControl } from './control-event-targets';
 import {
 	ALIGN_OPTIONS,
 	TEXT_DIRECTION_OPTIONS,
@@ -558,7 +559,7 @@ function numberFromEvent(event: Event): number | null {
 
 function selectValueFromEvent(event: Event): string | null {
 	const target = event.target;
-	if (!(target instanceof HTMLSelectElement)) {
+	if (!isSelectControl(target)) {
 		return null;
 	}
 	const val = target.value.trim();
@@ -567,7 +568,7 @@ function selectValueFromEvent(event: Event): string | null {
 
 function checkedFromEvent(event: Event): boolean | null {
 	const target = event.target;
-	if (!(target instanceof HTMLInputElement)) {
+	if (!isCheckboxControl(target)) {
 		return null;
 	}
 	return target.checked;

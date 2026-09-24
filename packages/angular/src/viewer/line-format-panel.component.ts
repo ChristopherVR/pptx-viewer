@@ -39,6 +39,7 @@ import {
 	LINE_JOIN_OPTIONS,
 	STROKE_DASH_OPTIONS,
 } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 
 @Component({
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
@@ -214,5 +215,5 @@ export class LineFormatPanelComponent {
 
 function selectValue(event: Event): string | null {
 	const target = event.target;
-	return target instanceof HTMLSelectElement ? target.value : null;
+	return isSelectControl(target) ? target.value : null;
 }

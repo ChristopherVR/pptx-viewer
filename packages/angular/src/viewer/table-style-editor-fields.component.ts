@@ -22,16 +22,17 @@ import {
 	TABLE_STYLE_BORDER_SIDES,
 	TABLE_STYLE_DASH_PRESETS,
 } from '../internal/shared';
+import { isSelectControl, isCheckboxControl } from './control-event-targets';
 import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 function inputValue(event: Event): string {
 	const t = event.target;
-	return t instanceof HTMLInputElement || t instanceof HTMLSelectElement ? t.value : '';
+	return t instanceof HTMLInputElement || isSelectControl(t) ? t.value : '';
 }
 
 function checkedValue(event: Event): boolean {
 	const t = event.target;
-	return t instanceof HTMLInputElement ? t.checked : false;
+	return isCheckboxControl(t) ? t.checked : false;
 }
 
 @Component({

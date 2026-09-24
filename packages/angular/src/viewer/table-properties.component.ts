@@ -32,6 +32,7 @@ import {
 	TABLE_STYLE_PRESETS,
 	tableStyleAssignmentUpdate,
 } from '../internal/shared';
+import { isCheckboxControl } from './control-event-targets';
 import { patchTableData } from './table-data-helpers';
 import type { TableBooleanFlag } from './table-properties-helpers';
 import { DEFAULT_TABLE_ROW_HEIGHT, TABLE_STRUCTURE_TOGGLES } from './table-properties-helpers';
@@ -295,7 +296,7 @@ export class TablePropertiesComponent {
 
 	protected onToggle(key: TableBooleanFlag, event: Event): void {
 		const t = event.target;
-		if (t instanceof HTMLInputElement) {
+		if (isCheckboxControl(t)) {
 			this.emit({ [key]: t.checked });
 		}
 	}
