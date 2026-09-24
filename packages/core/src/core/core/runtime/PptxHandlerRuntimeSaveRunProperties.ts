@@ -67,9 +67,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	): XmlObject {
 		const runProps: XmlObject = {
 			'@_lang': style?.language || 'en-US',
-			'@_dirty': '0',
 		};
 		if (!style) {
+			// No style at all: this run has no parse provenance to consult, so
+			// stamp the same `dirty="0"` PowerPoint itself writes for freshly
+			// authored text.
+			runProps['@_dirty'] = '0';
 			return runProps;
 		}
 
@@ -150,7 +153,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.noProof !== undefined && owns('noProof')) {
 			runProps['@_noProof'] = style.noProof ? '1' : '0';
 		}
-		if (style.dirty !== undefined) {
+		if (owns('dirty')) {
+			// `style.dirty === undefined` here is either "no baseline to
+			// compare against" (SDK-built text, a fabricated shape, a
+			// synthetic test style: `owns` passes everything) or an edit that
+			// flipped it back toward the baseline without clearing the flat
+			// field. Either way, stamp the same `dirty="0"` PowerPoint itself
+			// writes for freshly authored text.
 			runProps['@_dirty'] = style.dirty ? '1' : '0';
 		}
 		if (style.spellingError !== undefined && owns('spellingError')) {
