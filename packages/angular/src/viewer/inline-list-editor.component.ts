@@ -8,6 +8,7 @@ import {
 	attachInlineListController,
 	initializeInlineListDom,
 	inlineListBodyText,
+	mapInlineTextFormatKey,
 	placeCaretAtEnd,
 	restoreInlineListBodySelection,
 } from '../internal/shared';
@@ -212,9 +213,9 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 		} else if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
 			event.preventDefault();
 			this.blur();
-		} else if ((event.ctrlKey || event.metaKey) && !event.shiftKey) {
-			const key = event.key.toLowerCase();
-			if (key !== 'b' && key !== 'i' && key !== 'u') {
+		} else {
+			const property = mapInlineTextFormatKey(event);
+			if (!property) {
 				return;
 			}
 			event.preventDefault();
@@ -228,7 +229,6 @@ export class InlineListEditorComponent implements AfterViewInit, OnChanges, OnDe
 				current?.kind === 'supported'
 					? current.snapshot.textSegments?.[current.selection?.startSegIdx ?? 0]?.style
 					: element.textSegments?.[0]?.style;
-			const property = key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline';
 			this.textFormat.emit({
 				id: element.id,
 				updates: { [property]: !(style?.[property] ?? element.textStyle?.[property]) },

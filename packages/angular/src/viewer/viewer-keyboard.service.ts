@@ -21,12 +21,21 @@
  */
 
 import { inject, Injectable } from '@angular/core';
+import type { PptxElement } from 'pptx-viewer-core';
 
-import { isEditorTextInputTarget, mapEditorKey, mapSlideShowStartKey } from '../internal/shared';
+import {
+	cycleSelectableElement,
+	isEditorTextInputTarget,
+	mapEditorKey,
+	mapSlideShowStartKey,
+} from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
+import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
 import { ViewerFormatPainterService } from './viewer-format-painter.service';
+import { applyTextCommand, stepSelectionFontSize } from './viewer-keyboard-text-commands';
 import { ViewerPresentationModeService } from './viewer-presentation-mode.service';
 
 /** Live host accessors the shortcut handler consults. */
@@ -45,6 +54,15 @@ interface KeyboardHost {
 	readonly goPrev?: () => void;
 	/** Go forward one slide. */
 	readonly goNext?: () => void;
+	/**
+	 * An inline text or table-cell editor is open. Needed so the text-command
+	 * chords (alignment, font-size ladder, format painter, hyperlink, clear
+	 * formatting) can survive `mapEditorKey`'s typing gate exactly as they do in
+	 * the other four bindings, instead of only ever firing off a selection.
+	 */
+	readonly isEditingText?: () => boolean;
+	/** The single selected element, the target of every text/format command. */
+	readonly selectedElement?: () => PptxElement | null;
 }
 
 @Injectable()
@@ -54,6 +72,8 @@ export class ViewerKeyboardService {
 	private readonly formatPainter = inject(ViewerFormatPainterService);
 	private readonly findReplace = inject(ViewerFindReplaceService);
 	private readonly presentationMode = inject(ViewerPresentationModeService);
+	private readonly docProperties = inject(ViewerDocumentPropertiesService);
+	private readonly canvasEditing = inject(ViewerCanvasEditingService, { optional: true });
 
 	private host: KeyboardHost | null = null;
 
@@ -90,6 +110,7 @@ export class ViewerKeyboardService {
 			isPresenting: host.presenting(),
 			hasSelection: this.editor.hasSelection(),
 			isDrawing: host.isDrawing?.() ?? false,
+			isEditingText: host.isEditingText?.() ?? false,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 		});
 		if (action === null) {
@@ -147,8 +168,101 @@ export class ViewerKeyboardService {
 			case 'nextSlide':
 				host.goNext?.();
 				break;
+			case 'alignLeft':
+				this.applyTextPatch(idx, { align: 'left' });
+				break;
+			case 'alignCenter':
+				this.applyTextPatch(idx, { align: 'center' });
+				break;
+			case 'alignRight':
+				this.applyTextPatch(idx, { align: 'right' });
+				break;
+			case 'alignJustify':
+				this.applyTextPatch(idx, { align: 'justify' });
+				break;
+			case 'increaseFontSize':
+				stepSelectionFontSize(
+					this.editor,
+					idx,
+					host.selectedElement?.() ?? null,
+					'increase',
+					this.canvasEditing,
+				);
+				break;
+			case 'decreaseFontSize':
+				stepSelectionFontSize(
+					this.editor,
+					idx,
+					host.selectedElement?.() ?? null,
+					'decrease',
+					this.canvasEditing,
+				);
+				break;
+			case 'copyFormat':
+				this.formatPainter.toggle();
+				break;
+			case 'pasteFormat':
+				this.pasteFormat();
+				break;
+			case 'newSlide':
+				this.editor.addSlide(idx);
+				break;
+			case 'hyperlink':
+				this.openHyperlink();
+				break;
+			case 'findReplace':
+				this.findReplace.openFindReplace();
+				break;
+			case 'clearFormatting':
+				this.applyTextPatch(idx, {
+					bold: false,
+					italic: false,
+					underline: false,
+					strikethrough: false,
+				});
+				break;
+			case 'cycleSelectionNext':
+				this.cycleSelection(idx, 'next');
+				break;
+			case 'cycleSelectionPrev':
+				this.cycleSelection(idx, 'prev');
+				break;
 			default:
 				break;
+		}
+	}
+
+	private applyTextPatch(slideIndex: number, patch: Parameters<typeof applyTextCommand>[3]): void {
+		applyTextCommand(
+			this.editor,
+			slideIndex,
+			this.host?.selectedElement?.() ?? null,
+			patch,
+			this.canvasEditing,
+		);
+	}
+
+	/** Ctrl+Shift+V: apply the copied format to the current selection (no click needed). */
+	private pasteFormat(): void {
+		const id = this.editor.selectedIds()[0];
+		if (id) {
+			this.formatPainter.applyToTarget(id);
+		}
+	}
+
+	/** Ctrl+K, gated on a selection exactly like the ribbon's hyperlink button. */
+	private openHyperlink(): void {
+		if (this.editor.hasSelection()) {
+			this.docProperties.showHyperlink.set(true);
+		}
+	}
+
+	/** Tab / Shift+Tab: move the selection to the next/previous element in z-order. */
+	private cycleSelection(slideIndex: number, direction: 'next' | 'prev'): void {
+		const ids = this.editor.slides()[slideIndex]?.elements.map((el) => el.id) ?? [];
+		const nextId = cycleSelectableElement(ids, this.editor.selectedIds()[0] ?? null, direction);
+		if (nextId) {
+			this.editor.select([nextId]);
 		}
 	}
 

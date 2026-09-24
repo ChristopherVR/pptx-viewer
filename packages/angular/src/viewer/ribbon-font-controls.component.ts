@@ -20,6 +20,7 @@ import type { ThemeColorPickerCommit } from '../internal/shared';
 import {
 	COMMON_FONT_SIZES,
 	OFFICE_COLOR_SWATCH_HEXES,
+	stepFontSizePt,
 	textFontSizePatch,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
@@ -47,13 +48,16 @@ import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
  */
 export const FONT_SIZES = COMMON_FONT_SIZES;
 
-/** Next PowerPoint point-size preset in the requested direction. */
+/**
+ * Next PowerPoint point-size preset in the requested direction.
+ *
+ * Thin wrapper over shared's `stepFontSizePt`, which now owns the ladder-step
+ * logic (Ctrl+Shift+>/< and Ctrl+]/[ need the identical behaviour in every
+ * binding); kept under this name/signature so the ribbon's existing callers
+ * are unaffected.
+ */
 export function steppedFontSizePt(current: number, direction: 1 | -1): number {
-	const next =
-		direction === 1
-			? FONT_SIZES.find((size) => size > current)
-			: [...FONT_SIZES].reverse().find((size) => size < current);
-	return next ?? (direction === 1 ? FONT_SIZES[FONT_SIZES.length - 1] : FONT_SIZES[0]) ?? current;
+	return stepFontSizePt(current, direction === 1 ? 'increase' : 'decrease');
 }
 /** Font-colour swatches in the Home/Text colour popover (mirrors React/Vue). */
 const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;

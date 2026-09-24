@@ -2373,6 +2373,11 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			// what the other four bindings do and what a reader expects.
 			goPrev: () => this.goPrev(),
 			goNext: () => this.goNext(),
+			// The alignment/font-size/format-painter/hyperlink/clear-formatting
+			// chords need to know when the caret is inside a text box so they can
+			// survive mapEditorKey's typing gate the way Ctrl+F already does.
+			isEditingText: () => this.canvasEditing.editingId() !== null,
+			selectedElement: () => this.selectedElement(),
 		});
 
 		// Attach multi-touch gestures (pinch-zoom / swipe-nav / long-press menu)
