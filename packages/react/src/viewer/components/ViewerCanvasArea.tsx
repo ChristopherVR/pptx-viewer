@@ -516,6 +516,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onMouseDown={handleElementMouseDown}
 					onContextMenu={canvasHandlers.handleElementContextMenu}
 					onCanvasMouseDown={canvasHandlers.handleCanvasMouseDown}
+					onCanvasContextMenu={canvasHandlers.handleCanvasContextMenu}
 					onResizePointerDown={canvasHandlers.handleResizePointerDown}
 					onAdjustmentPointerDown={canvasHandlers.handleAdjustmentPointerDown}
 					onRotate={canvasHandlers.handleRotate}

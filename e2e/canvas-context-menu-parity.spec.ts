@@ -49,16 +49,40 @@ async function openDeck(page: Page, origin: string): Promise<void> {
 }
 
 /**
- * A point on the slide that is empty background in the sample deck: near the
- * bottom-left corner, away from the title/body placeholders every slide in
- * the fixture fills from the top.
+ * A point on the slide that is empty background, found by hit-testing rather
+ * than assumed.
+ *
+ * The first version of this spec aimed at a fixed bottom-left point, but
+ * slide 1 of the sample deck has a full-height filled panel (`shape-0`) down
+ * its left third, so every "empty canvas" right-click actually opened the
+ * ELEMENT menu. The shape-agnostic checks still passed against it (it is a
+ * role="menu" too, and React's element menu was the "reference"), which hid
+ * the mistake until the command-specific checks looked for Reset Slide.
  */
 async function emptyCanvasPoint(page: Page): Promise<{ x: number; y: number }> {
 	const box = await slideStage(page).boundingBox();
 	if (!box) {
 		throw new Error('slide stage has no bounding box');
 	}
-	return { x: box.x + box.width * 0.05, y: box.y + box.height * 0.92 };
+	const candidates: { x: number; y: number }[] = [];
+	for (const fy of [0.95, 0.9, 0.85, 0.8, 0.1, 0.05]) {
+		for (const fx of [0.95, 0.9, 0.8, 0.7, 0.6, 0.5]) {
+			candidates.push({ x: box.x + box.width * fx, y: box.y + box.height * fy });
+		}
+	}
+	const found = await page.evaluate((points) => {
+		const stage = document.querySelector('[aria-roledescription="slide"]');
+		return (
+			points.find((point) => {
+				const hit = document.elementFromPoint(point.x, point.y);
+				return Boolean(hit && stage?.contains(hit) && !hit.closest('[data-element-id]'));
+			}) ?? null
+		);
+	}, candidates);
+	if (!found) {
+		throw new Error('no empty background point on the slide stage');
+	}
+	return found;
 }
 
 test.describe('cross-binding empty-canvas context menu', () => {
@@ -201,7 +225,11 @@ test.describe('cross-binding empty-canvas context menu', () => {
 				}
 				await chooseCommand(page, 'grid and guides');
 				const after = await openMenuAt(page, point);
-				const gridAfter = after.commands.find((c) => c.label.toLowerCase() === 'grid and guides');
+				// Once toggled on, every binding prefixes the entry with its check
+				// mark, which `readMenu` reads as part of the label.
+				const gridAfter = after.commands.find(
+					(c) => c.label.replace(/^[✓\s]+/u, '').toLowerCase() === 'grid and guides',
+				);
 				return {
 					present: true,
 					offered: true,

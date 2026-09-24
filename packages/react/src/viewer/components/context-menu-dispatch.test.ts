@@ -7,6 +7,7 @@
  * ai-ask/ai-fix and the z-order commands).
  */
 import type { TablePptxElement } from 'pptx-viewer-core';
+import { buildContextMenuEntries } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
@@ -125,5 +126,20 @@ describe('merged table cell menu context', () => {
 			hasMultiCellSelection: true,
 			isMergedCell: true,
 		});
+	});
+});
+
+describe('element menu Paste with an empty clipboard', () => {
+	function paste(hasClipboard: boolean) {
+		const props = { ...makeProps(), hasClipboard };
+		return buildContextMenuEntries(contextMenuContext(props)).find((entry) => entry.id === 'paste');
+	}
+
+	it('greys Paste out when the viewer has nothing to paste, like the other bindings', () => {
+		expect(paste(false)?.disabled).toBeTruthy();
+	});
+
+	it('offers Paste enabled once something was copied', () => {
+		expect(paste(true)?.disabled).toBeFalsy();
 	});
 });

@@ -14,6 +14,11 @@ export interface ContextMenuProps {
 	hasMultiSelection?: boolean;
 	/** Whether `a:spLocks`/`a:grpSpLocks` `@noGrp` allow Group/Ungroup right now. */
 	selectionGroupable?: boolean;
+	/**
+	 * Whether there is anything to paste. False greys Paste out, as the other
+	 * four bindings do; omitted keeps it enabled (the shared default).
+	 */
+	hasClipboard?: boolean;
 	onAction: (action: ElementContextMenuAction) => void;
 	onInsertTableRow: (position: 'above' | 'below') => void;
 	onDeleteTableRow: () => void;

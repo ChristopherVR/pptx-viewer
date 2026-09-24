@@ -333,6 +333,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						tableEditorState={state.tableEditorState}
 						hasMultiSelection={state.effectiveSelectedIds.length > 1}
 						selectionGroupable={manipulation.selectionGroupable}
+						hasClipboard={Boolean(state.clipboardPayload)}
 						onAction={manipulation.handleContextMenuAction}
 						onInsertTableRow={tableOps.handleInsertTableRow}
 						onDeleteTableRow={tableOps.handleDeleteTableRow}
