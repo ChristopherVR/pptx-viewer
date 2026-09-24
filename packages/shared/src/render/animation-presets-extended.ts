@@ -115,7 +115,7 @@ export const EXTENDED_EXIT_PRESETS: Partial<Record<number, EffectName>> = {
 	27: 'creditsOut', // Credits
 	28: 'floatDownOut', // Float Down
 	29: 'pinwheelOut', // Pinwheel
-	30: 'floatOut', // Float Out (msoAnimEffectFloat saves presetID 30, COM-verified)
+	30: 'fadeOut', // Float Out (presetID 30, COM-verified); no dedicated float-out keyframe, same as exit.42
 	31: 'shrinkOut', // Contract
 	32: 'whipOut', // Whip
 	33: 'flyOutBottom', // Leave
