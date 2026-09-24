@@ -624,3 +624,40 @@ describe('tableContainerCss', () => {
 		).toStrictEqual({ direction: 'rtl', fontSize: '20pt' });
 	});
 });
+
+describe('cellStyleToCss vertical text direction', () => {
+	it('rotates every glyph (sideways) for vert, but keeps CJK upright (mixed) for eaVert', () => {
+		expect(cellStyleToCss({ textDirection: 'vert' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'sideways',
+		});
+		expect(cellStyleToCss({ textDirection: 'eaVert' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'mixed',
+		});
+	});
+
+	it('grows a wordArtVert column right and its Rtl sibling left, both upright', () => {
+		expect(cellStyleToCss({ textDirection: 'wordArtVert' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'upright',
+		});
+		expect(cellStyleToCss({ textDirection: 'wordArtVertRtl' })).toMatchObject({
+			writingMode: 'vertical-rl',
+			textOrientation: 'upright',
+		});
+	});
+
+	it('only vert270 reads bottom-to-top', () => {
+		expect(cellStyleToCss({ textDirection: 'vert270' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'sideways',
+			direction: 'rtl',
+		});
+		expect(cellStyleToCss({ textDirection: 'mongolianVert' })).toMatchObject({
+			writingMode: 'vertical-lr',
+			textOrientation: 'mixed',
+		});
+		expect(cellStyleToCss({ textDirection: 'mongolianVert' }).direction).toBeUndefined();
+	});
+});

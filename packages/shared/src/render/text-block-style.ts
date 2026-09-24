@@ -197,7 +197,7 @@ export function buildTextBlockStyle(
 		style.backgroundColor = normalizeHexColor(ts.highlightColor, undefined);
 	}
 	style.textAlign = resolveCssTextAlign(ts?.align, isRtl) ?? 'left';
-	// Vertical RTL modes (`wordArtVertRtl`) outrank paragraph-level RTL.
+	// `vertical270`'s bottom-to-top reading direction outranks paragraph-level RTL.
 	style.direction = toCssVerticalDirection(ts?.textDirection) ?? (isRtl ? 'rtl' : 'ltr');
 	if (isRtl) {
 		style.unicodeBidi = 'plaintext';

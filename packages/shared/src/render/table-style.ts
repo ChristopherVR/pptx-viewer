@@ -347,26 +347,37 @@ export function cellStyleToCss(style?: PptxTableCellStyle): TableCellCss {
 		css.overflowX = 'visible';
 	}
 
-	// Vertical text direction - map all variants to CSS writing-mode + orientation.
+	// Vertical text direction - map all variants to CSS writing-mode +
+	// orientation. Table cells use their own `'vert'`/`'vert270'` union (see
+	// `PptxTableCellStyle.textDirection`) rather than the element-level
+	// `TextStyle['textDirection']` (`'vertical'`/`'vertical270'`) that
+	// `toCssWritingMode`/`toCssTextOrientation`/`toCssVerticalDirection` in
+	// `text-style-helpers.ts` operate on, so the mapping is re-declared here;
+	// keep the two in sync (same reasoning: `wordArtVert` grows a wrapped
+	// column right, `wordArtVertRtl` grows it left; `vert`/`vert270` rotate
+	// EVERY glyph including CJK, unlike `eaVert`; only `vert270` reads
+	// bottom-to-top).
 	if (style.textDirection) {
 		switch (style.textDirection) {
 			case 'vert':
 			case 'eaVert':
-			case 'wordArtVert':
 			case 'wordArtVertRtl':
 				css.writingMode = 'vertical-rl';
 				break;
 			case 'vert270':
 			case 'mongolianVert':
+			case 'wordArtVert':
 				css.writingMode = 'vertical-lr';
 				break;
 		}
-		if (style.textDirection === 'wordArtVert') {
+		if (style.textDirection === 'wordArtVert' || style.textDirection === 'wordArtVertRtl') {
 			css.textOrientation = 'upright';
+		} else if (style.textDirection === 'vert' || style.textDirection === 'vert270') {
+			css.textOrientation = 'sideways';
 		} else if (css.writingMode) {
 			css.textOrientation = 'mixed';
 		}
-		if (style.textDirection === 'wordArtVertRtl') {
+		if (style.textDirection === 'vert270') {
 			css.direction = 'rtl';
 		}
 	}
