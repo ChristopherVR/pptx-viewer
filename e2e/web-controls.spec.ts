@@ -61,3 +61,24 @@ test('control instances reuse one parsed stylesheet per type', async ({ page }) 
 		expect(control.reused, `${control.name} should share its stylesheet`).toBeTruthy();
 	}
 });
+
+test('select refreshes its label after options change', async ({ page }) => {
+	await loadDeck(page);
+	await page.evaluate(() => {
+		const select = document.createElement('pptx-ui-select');
+		select.id = 'dynamic-web-control-select';
+		select.value = 'a';
+		const option = document.createElement('option');
+		option.value = 'a';
+		option.textContent = 'Alpha';
+		select.append(option);
+		document.body.append(select);
+	});
+	const select = page.locator('#dynamic-web-control-select');
+	await expect(select.locator('[part="value"]')).toHaveText('Alpha');
+	await select.locator('option').evaluate((option) => {
+		option.textContent = 'Beta';
+	});
+	await expect(select.locator('[part="value"]')).toHaveText('Beta');
+	await select.evaluate((element) => element.remove());
+});

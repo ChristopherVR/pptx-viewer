@@ -26,6 +26,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 		private readonly text: HTMLSpanElement;
 		private readonly menu: HTMLDivElement;
 		private readonly observer: MutationObserver;
+		private refreshFrame = 0;
 		private choices: SelectChoice[] = [];
 		private active = -1;
 		private open = false;
@@ -71,7 +72,15 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 					this.commit(Number(target.dataset.index));
 				}
 			});
-			this.observer = new MutationObserver(() => this.refresh());
+			this.observer = new MutationObserver(() => {
+				// Let bindings finish updating their option nodes before touching the shadow DOM.
+				if (!this.refreshFrame) {
+					this.refreshFrame = requestAnimationFrame(() => {
+						this.refreshFrame = 0;
+						this.refresh();
+					});
+				}
+			});
 		}
 
 		connectedCallback(): void {
@@ -88,6 +97,8 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 		disconnectedCallback(): void {
 			this.close();
 			this.observer.disconnect();
+			cancelAnimationFrame(this.refreshFrame);
+			this.refreshFrame = 0;
 		}
 		attributeChangedCallback(): void {
 			this.refresh();
