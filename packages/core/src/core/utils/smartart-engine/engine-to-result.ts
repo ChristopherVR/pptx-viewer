@@ -38,6 +38,7 @@ import {
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
 import { runSmartArtEngine } from './engine';
 import type { EngineNode } from './engine-node';
+import { computeMoveWithMerge, sourceIdsOf } from './move-with-merge';
 import { shapeTransform } from './shape-transform';
 import { resolveEngineFontSizePt } from './text-fit';
 
@@ -70,17 +71,6 @@ function isFullySupported(root: EngineNode): boolean {
 	};
 	visit(root);
 	return ok;
-}
-
-/** Data-model nodes this rendered point presents text for, in `presOf` order. */
-function sourceIdsOf(node: EngineNode): string[] {
-	const ids: string[] = [];
-	for (const point of node.presOf) {
-		if (point.source && !ids.includes(point.source.id)) {
-			ids.push(point.source.id);
-		}
-	}
-	return ids;
 }
 
 /**
@@ -152,6 +142,7 @@ function buildRenderedNode(
 	nodeById: Map<string, PptxSmartArtNode>,
 	palette: string[],
 	style: SmartArtStyle,
+	mergedSourceIds?: string[],
 ): RenderedRectNode | undefined {
 	const transform = shapeTransform(node);
 	if (!transform) {
@@ -171,6 +162,10 @@ function buildRenderedNode(
 	const y = transform.y * PX_PER_PT;
 	const width = transform.w * PX_PER_PT;
 	const height = transform.h * PX_PER_PT;
+	const foldedNodeIds = [
+		...sourceIds.slice(1),
+		...(mergedSourceIds ?? []).filter((id) => !sourceIds.includes(id)),
+	];
 	return {
 		kind: 'rect',
 		key: `${node.name || 'engine-node'}-${index}`,
@@ -190,7 +185,7 @@ function buildRenderedNode(
 		nodeId: primary?.id,
 		rotation: transform.rotation === 0 ? undefined : transform.rotation,
 		presetOverride: node.shape?.type ?? 'roundRect',
-		foldedNodeIds: sourceIds.length > 1 ? sourceIds.slice(1) : undefined,
+		foldedNodeIds: foldedNodeIds.length > 0 ? foldedNodeIds : undefined,
 		literalText,
 	};
 }
@@ -216,16 +211,29 @@ function collectRenderedNodes(
 	style: SmartArtStyle,
 ): RenderedRectNode[] {
 	const out: RenderedRectNode[] = [];
-	const visit = (node: EngineNode): void => {
-		if (node.alg.type !== 'conn') {
-			const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
-			if (rendered) {
-				out.push(rendered);
+	// `moveWith` only ever pairs SIBLINGS (same parent), so the merge is
+	// scoped to one node's `children` at a time; `[root]` is a trivial
+	// one-element "sibling group" with nothing to merge.
+	const visitSiblings = (siblings: EngineNode[]): void => {
+		const { extraIdsByTarget, suppressed } = computeMoveWithMerge(siblings);
+		for (const node of siblings) {
+			if (node.alg.type !== 'conn' && !suppressed.has(node)) {
+				const rendered = buildRenderedNode(
+					node,
+					out.length,
+					nodeById,
+					palette,
+					style,
+					extraIdsByTarget.get(node.name),
+				);
+				if (rendered) {
+					out.push(rendered);
+				}
 			}
+			visitSiblings(node.children);
 		}
-		node.children.forEach(visit);
 	};
-	visit(root);
+	visitSiblings([root]);
 	return out;
 }
 

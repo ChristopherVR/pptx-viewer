@@ -119,6 +119,71 @@ describe('runEngineLayout zero-area shape handling', () => {
 	);
 });
 
+describe('runEngineLayout moveWith carrier merging', () => {
+	it(
+		'folds a hideGeom moveWith carrier into its target instead of rendering ' +
+			'both (Numbered Title List: nodeText presents the SAME point as bgRect, ' +
+			'plus any demoted descendant, so both painting would double every item)',
+		async () => {
+			const handler = new PptxHandler();
+			const { slides } = await handler.load(readFixture('numbered-title-list--hier5.pptx'));
+			const element = slides
+				.flatMap((s) => s.elements)
+				.find((el): el is SmartArtPptxElement => el.type === 'smartArt');
+			const data = element?.smartArtData;
+			expect(data?.layoutDefinition).toBeDefined();
+			if (!data?.layoutDefinition) {
+				return;
+			}
+			const bounds = { width: element!.width, height: element!.height };
+			const palette = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+			const result = runEngineLayout(data, bounds, data.nodes ?? [], palette, data.style ?? 'flat');
+			expect(result).toBeDefined();
+			const withText = (result?.nodes ?? []).filter(
+				(n) => (n as { text?: string }).text === 'Node One',
+			);
+			// Exactly one shape presents "Node One": bgRect. nodeText (hideGeom,
+			// moveWith="bgRect", presOf desOrSelf) must not ALSO render as its own
+			// shape carrying the same self text.
+			expect(withText).toHaveLength(1);
+			const bgRect = withText[0] as { foldedNodeIds?: string[]; presetOverride?: string };
+			// nodeText's extra (descendant) source id folds onto bgRect, so the
+			// downstream bridge's text projection produces the combined
+			// "Node One\nNode Two has a longer label" PowerPoint actually shows.
+			expect(bgRect.foldedNodeIds?.length ?? 0).toBeGreaterThan(0);
+			expect(bgRect.presetOverride).toBe('roundRect');
+		},
+	);
+
+	it(
+		'does NOT merge a hideGeom moveWith carrier whose presented points are ' +
+			'disjoint from its target (Detailed Process: childNode presents a ' +
+			"DIFFERENT demoted sibling point than bgRect's own self point, so " +
+			'PowerPoint paints them as two separate, independently positioned cards)',
+		async () => {
+			const handler = new PptxHandler();
+			const { slides } = await handler.load(readFixture('detailed-process--hier5.pptx'));
+			const element = slides
+				.flatMap((s) => s.elements)
+				.find((el): el is SmartArtPptxElement => el.type === 'smartArt');
+			const data = element?.smartArtData;
+			expect(data?.layoutDefinition).toBeDefined();
+			if (!data?.layoutDefinition) {
+				return;
+			}
+			const bounds = { width: element!.width, height: element!.height };
+			const palette = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+			const result = runEngineLayout(data, bounds, data.nodes ?? [], palette, data.style ?? 'flat');
+			expect(result).toBeDefined();
+			const texts = result?.nodes.map((n) => (n as { text?: string }).text ?? '') ?? [];
+			// Both the promoted step's own card AND its demoted child's card
+			// still render as their own shapes; neither was folded away.
+			expect(texts).toContain('Node One');
+			expect(texts).toContain('Node Two has a longer label');
+		},
+	);
+});
+
 describe('runEngineLayout sibTrans ordinal-badge text', () => {
 	it(
 		'renders a sibTrans-presented ordinal badge\'s own literal text ("1"/"2"/"3"), ' +
