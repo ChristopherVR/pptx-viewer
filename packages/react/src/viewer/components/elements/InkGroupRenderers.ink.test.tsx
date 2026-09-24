@@ -87,6 +87,26 @@ describe('renderInk', () => {
 		expect(ellipses[0].getAttribute('fill')).toBe('#123456');
 	});
 
+	it('applies multiply blending to the stroke path itself, not the container svg, for a highlighter stroke', () => {
+		const el = inkElement({ inkPaths: ['M 0 0 L 10 10'], inkTool: 'highlighter' });
+		act(() => {
+			root.render(renderInk(el));
+		});
+		const svg = container.querySelector('svg');
+		expect(svg?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+		const path = container.querySelector('path');
+		expect(path?.getAttribute('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
+	it('does not apply multiply blending to a non-highlighter, fully opaque stroke', () => {
+		const el = inkElement({ inkPaths: ['M 0 0 L 10 10'] });
+		act(() => {
+			root.render(renderInk(el));
+		});
+		const path = container.querySelector('path');
+		expect(path?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+	});
+
 	// In practice `strokeToInkElement` (see ink-drawing.test.ts) never attaches
 	// `inkPointTiltX/Y` for an all-flat stroke, so the renderer would not
 	// normally see this input; this exercises it directly anyway to confirm

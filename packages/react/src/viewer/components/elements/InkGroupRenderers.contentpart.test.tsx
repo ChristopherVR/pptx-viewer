@@ -91,6 +91,26 @@ describe('renderContentPart', () => {
 		expect(ellipses[0].getAttribute('fill')).toBe('#123456');
 	});
 
+	it('applies multiply blending to a translucent stroke (opacity heuristic), on the stroke itself not the container', () => {
+		const el = contentPart([{ path: 'M 0 0 L 10 10', color: '#ffff00', width: 6, opacity: 0.4 }]);
+		act(() => {
+			root.render(renderContentPart(el));
+		});
+		const svg = container.querySelector('svg');
+		expect(svg?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+		const path = container.querySelector('path');
+		expect(path?.getAttribute('style') ?? '').toContain('mix-blend-mode: multiply');
+	});
+
+	it('does not apply multiply blending to a fully opaque stroke', () => {
+		const el = contentPart([{ path: 'M 0 0 L 10 10', color: '#000000', width: 2, opacity: 1 }]);
+		act(() => {
+			root.render(renderContentPart(el));
+		});
+		const path = container.querySelector('path');
+		expect(path?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+	});
+
 	it('falls back to the labelled placeholder when the part decoded no strokes', () => {
 		const el = contentPart(undefined);
 		act(() => {
