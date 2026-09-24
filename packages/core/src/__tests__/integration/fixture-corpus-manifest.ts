@@ -764,6 +764,13 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		note: 'Genuine PowerPoint deck, 332 parts. Carries the idx="4294967295" orphaned placeholder, p:sld-level mc:AlternateContent transitions and empty-r:id action hyperlinks. The single richest defect witness in the repo.',
 	},
 	{
+		file: 'table-row-autogrow.pptx',
+		dir: 'e2e',
+		provenance: 'powerpoint',
+		status: 'roundtrip',
+		note: 'COM-authored, 56 KB, one table per slide (built-in "Light Style 1/3" and "Themed Style 1/2" bands on slides 1-4; slide 5 is the row-autogrow witness for table-row-autogrow.spec.ts, whose R2C1 long-wrapping paragraph and R3C2 28pt run each need more room than their row\'s authored a:tr/@h, growing the row, and the table\'s a:ext/@cy, past what was last saved).',
+	},
+	{
 		file: 'table-styling.pptx',
 		dir: 'e2e',
 		provenance: 'powerpoint',
