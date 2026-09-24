@@ -89,6 +89,30 @@ export const COMMON_FONT_SIZES: readonly number[] = [
 	8, 9, 10, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 72, 96,
 ];
 
+/**
+ * Step a point size one rung along PowerPoint's font-size ladder
+ * ({@link COMMON_FONT_SIZES}), for the Ctrl+Shift+>/< and Ctrl+]/[ shortcuts.
+ *
+ * A size that already sits on the ladder moves to its neighbour. A size
+ * between two rungs (or authored outside the ladder entirely, which happens
+ * constantly with real decks) moves to the nearest rung in the requested
+ * direction, exactly like PowerPoint's own Increase/Decrease Font Size: a
+ * point size of 13 increases to 14, not to 16. Past either end of the ladder
+ * the size clamps at that end (96pt does not grow further, 8pt does not
+ * shrink further) rather than stepping outside it, matching the Angular
+ * binding's pre-existing `steppedFontSizePt`, which this supersedes so the
+ * other four bindings stop hand-porting it.
+ */
+export function stepFontSizePt(currentPt: number, direction: 'increase' | 'decrease'): number {
+	if (direction === 'increase') {
+		const next = COMMON_FONT_SIZES.find((size) => size > currentPt);
+		return next ?? COMMON_FONT_SIZES[COMMON_FONT_SIZES.length - 1];
+	}
+	const rungs = [...COMMON_FONT_SIZES].reverse();
+	const prev = rungs.find((size) => size < currentPt);
+	return prev ?? COMMON_FONT_SIZES[0];
+}
+
 /** One character-spacing preset (value in 1/100 pt, OOXML `spc` units). */
 export interface CharacterSpacingOption {
 	/** English fallback label (render sites may prefer `t(i18nKey)`). */
