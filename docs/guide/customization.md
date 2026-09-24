@@ -395,7 +395,20 @@ object per tenant, and feed it back through `setCustomization`.
 - **Inspector sections** and the slide rail's own context menu are not
   addressable individually; hide the whole region with `hiddenPanels`.
 - **Mobile layouts** honour ribbon, menu, dialog and feature customisation,
-  but the mobile bottom sheets have no panel ids of their own.
+  but the mobile bottom sheets have no panel ids of their own, and some
+  mobile bottom-bar buttons (Slides, Notes, Format) stay visible when their
+  panel is hidden (tapping them does nothing).
+- **Quick Access commands a user added** (for example Print) stay in the strip
+  when their dialog is removed; they are inert rather than hidden.
+- **`presentMode`** removes the Slide Show tab and F5 / Shift+F5, but not every
+  secondary "present" affordance (for example a view switcher's Present
+  option in some bindings).
+- **Vanilla** has no `update(options)`, so its `customization` option is the
+  initial value only; change it at runtime with `setCustomization` and the
+  other helpers. A change rebuilds the chrome (as `setLocale` does), which
+  returns the ribbon to its first tab.
+- **React's headless `useViewerBuildingBlocks`** composition does not take a
+  `customization`; use the `PowerPointViewer` component.
 
 ## Reference
 
