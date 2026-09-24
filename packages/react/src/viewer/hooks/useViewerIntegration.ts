@@ -535,6 +535,10 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		history,
 		onEnterPresentModeFromBeginning: presentation.enterPresentModeFromBeginning,
 		onSetMode: handleSetMode,
+		handleAddSlide: editorOps.slideOps.handleAddSlide,
+		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
+		copyFormatFromSelection: editorOps.copyFormatFromSelection,
+		pasteFormatToSelection: editorOps.pasteFormatToSelection,
 	});
 
 	return {

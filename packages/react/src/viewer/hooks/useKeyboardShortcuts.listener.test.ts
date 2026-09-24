@@ -151,6 +151,104 @@ describe('useKeyboardShortcuts listener registration', () => {
 	});
 });
 
+describe('useKeyboardShortcuts: the new PowerPoint editor shortcuts', () => {
+	it('ctrl+E aligns the selected text center', () => {
+		const onAlignCenter = vi.fn();
+		mount(inputWith(container, { onAlignCenter }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'e', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onAlignCenter).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+] steps the font size up', () => {
+		const onIncreaseFontSize = vi.fn();
+		mount(inputWith(container, { onIncreaseFontSize }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: ']', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onIncreaseFontSize).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+shift+c copies the format and ctrl+shift+v pastes it', () => {
+		const onCopyFormat = vi.fn();
+		const onPasteFormat = vi.fn();
+		mount(inputWith(container, { onCopyFormat, onPasteFormat }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'c', ctrlKey: true, shiftKey: true, bubbles: true }),
+		);
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'v', ctrlKey: true, shiftKey: true, bubbles: true }),
+		);
+
+		expect(onCopyFormat).toHaveBeenCalledOnce();
+		expect(onPasteFormat).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+m inserts a new slide', () => {
+		const onNewSlide = vi.fn();
+		mount(inputWith(container, { onNewSlide }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'm', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onNewSlide).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+k opens the hyperlink dialog', () => {
+		const onHyperlink = vi.fn();
+		mount(inputWith(container, { onHyperlink }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onHyperlink).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+h opens find and replace', () => {
+		const onFindReplace = vi.fn();
+		mount(inputWith(container, { onFindReplace }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'h', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onFindReplace).toHaveBeenCalledOnce();
+	});
+
+	it('ctrl+space clears character formatting', () => {
+		const onClearFormatting = vi.fn();
+		mount(inputWith(container, { onClearFormatting }));
+
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: ' ', ctrlKey: true, bubbles: true }),
+		);
+
+		expect(onClearFormatting).toHaveBeenCalledOnce();
+	});
+
+	it('tab and shift+tab cycle the selection', () => {
+		const onCycleSelectionNext = vi.fn();
+		const onCycleSelectionPrev = vi.fn();
+		mount(inputWith(container, { onCycleSelectionNext, onCycleSelectionPrev }));
+
+		container.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
+		container.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Tab', shiftKey: true, bubbles: true }),
+		);
+
+		expect(onCycleSelectionNext).toHaveBeenCalledOnce();
+		expect(onCycleSelectionPrev).toHaveBeenCalledOnce();
+	});
+});
+
 describe('useKeyboardShortcuts F5 / Shift+F5 start-show keys', () => {
 	// These are resolved via the separate `mapSlideShowStartKey`, checked ahead
 	// of `mapEditorKey`'s `canEdit` / text-input gates, so F5 must still start

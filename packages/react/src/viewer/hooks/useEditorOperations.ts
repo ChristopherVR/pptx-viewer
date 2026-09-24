@@ -1,16 +1,13 @@
-import { hasShapeProperties, hasTextProperties } from 'pptx-viewer-core';
 import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer-core';
 /**
  * useEditorOperations: Composes all editor-interaction hooks (element ops,
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
- * slide management, table operations) into a single return value.
+ * slide management, table operations, format painter) into a single return value.
  */
 import type React from 'react';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import type { ViewerMode, CanvasSize } from '../types';
-import type { CopiedFormat } from '../utils/format-painter';
-import { copyFormatFromElement, applyFormatToElement } from '../utils/format-painter';
 import { useCanvasImagePaste } from './useCanvasImagePaste';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import type { CanvasInteractionHandlers } from './useCanvasInteractions';
@@ -21,6 +18,7 @@ import type { ElementManipulationHandlers } from './useElementManipulation';
 import { useElementOperations } from './useElementOperations';
 import type { ElementOperations } from './useElementOperations';
 import { useFindReplace } from './useFindReplace';
+import { useFormatPainterEditing } from './useFormatPainterEditing';
 import { useInsertElements } from './useInsertElements';
 import type { InsertElementHandlers } from './useInsertElements';
 import type { UsePresentationModeResult } from './usePresentationMode';
@@ -77,6 +75,18 @@ export interface EditorOperationsResult {
 	manipulation: ElementManipulationHandlers;
 	slideOps: SlideManagementHandlers;
 	tableOps: TableOperationHandlers;
+	/**
+	 * Ctrl/Cmd+Shift+C: copy the selected element's format, the same capture
+	 * the format-painter ribbon toggle triggers, without requiring a
+	 * follow-up click to apply it.
+	 */
+	copyFormatFromSelection: () => void;
+	/**
+	 * Ctrl/Cmd+Shift+V: apply whatever format `copyFormatFromSelection` (or the
+	 * ribbon's format painter) captured onto every given element id, then
+	 * clear the copied format the same way the click-to-apply path does.
+	 */
+	pasteFormatToSelection: (targetIds: string[]) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -306,73 +316,19 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 	);
 
 	// ── Format Painter ────────────────────────────────────────────────
-	// Capture formatting from the selected element when the painter is activated.
-	// The toolbar toggle sets formatPainterActive; this effect reacts to it.
-	const copiedFormatRef = useRef<CopiedFormat | null>(null);
-	const prevFormatPainterRef = useRef(false);
 	const { formatPainterActive, setFormatPainterActive, elementLookup } = state;
-
-	useEffect(() => {
-		if (formatPainterActive && !prevFormatPainterRef.current && selectedElement) {
-			copiedFormatRef.current = copyFormatFromElement(selectedElement);
-		} else if (!formatPainterActive) {
-			copiedFormatRef.current = null;
-		}
-		prevFormatPainterRef.current = formatPainterActive;
-	}, [formatPainterActive, selectedElement]);
-
-	// Escape cancels the painter without applying.
-	useEffect(() => {
-		if (!formatPainterActive) {
-			return;
-		}
-		const onKey = (e: KeyboardEvent) => {
-			if (e.key === 'Escape') {
-				setFormatPainterActive(false);
-			}
-		};
-		window.addEventListener('keydown', onKey);
-		return () => window.removeEventListener('keydown', onKey);
-	}, [formatPainterActive, setFormatPainterActive]);
-
-	// Wrap canvas handlers to:
-	//  - apply copied format on element click when painter is active;
-	//  - cancel painter when the user mousedowns on empty canvas.
-	const formatPainterCanvasHandlers: CanvasInteractionHandlers = useMemo(
-		() => ({
-			...canvasHandlers,
-			handleElementClick: (elementId: string, e: React.MouseEvent) => {
-				if (formatPainterActive && copiedFormatRef.current) {
-					e.stopPropagation();
-					const element = elementLookup.get(elementId);
-					if (element) {
-						const updated = applyFormatToElement(element, copiedFormatRef.current);
-						const updates: Partial<PptxElement> = {};
-						if (hasShapeProperties(updated)) {
-							(updates as { shapeStyle?: unknown }).shapeStyle = updated.shapeStyle;
-						}
-						if (hasTextProperties(updated)) {
-							(updates as { textStyle?: unknown }).textStyle = updated.textStyle;
-						}
-						ops.updateElementById(elementId, updates);
-					}
-					copiedFormatRef.current = null;
-					setFormatPainterActive(false);
-					ops.applySelection(elementId);
-					return;
-				}
-				canvasHandlers.handleElementClick(elementId, e);
-			},
-			handleCanvasMouseDown: (e: React.MouseEvent) => {
-				if (formatPainterActive) {
-					setFormatPainterActive(false);
-					return;
-				}
-				canvasHandlers.handleCanvasMouseDown(e);
-			},
-		}),
-		[canvasHandlers, ops, formatPainterActive, setFormatPainterActive, elementLookup],
-	);
+	const {
+		canvasHandlers: formatPainterCanvasHandlers,
+		copyFormatFromSelection,
+		pasteFormatToSelection,
+	} = useFormatPainterEditing({
+		selectedElement,
+		elementLookup,
+		formatPainterActive,
+		setFormatPainterActive,
+		canvasHandlers,
+		ops,
+	});
 
 	return {
 		ops: combinedOps,
@@ -384,5 +340,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		manipulation,
 		slideOps,
 		tableOps,
+		copyFormatFromSelection,
+		pasteFormatToSelection,
 	};
 }
