@@ -260,6 +260,7 @@ function MobileSectionBody({
 					<AnimationsSection
 						canEdit={p.canEdit}
 						selectedElement={p.selectedElement}
+						activeSlide={p.activeSlide}
 						isInspectorPaneOpen={p.isInspectorPaneOpen}
 						onToggleInspector={p.onToggleInspector}
 						onOpenAnimationPanel={p.onOpenAnimationPanel}

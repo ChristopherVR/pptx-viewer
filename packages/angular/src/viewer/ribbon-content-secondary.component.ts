@@ -134,7 +134,6 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 					[canEdit]="canEdit()"
-					(present)="present.emit()"
 					(toggleInspector)="toggleInspector.emit()"
 					(openAnimationPanel)="openAnimationPanel.emit()"
 				/>

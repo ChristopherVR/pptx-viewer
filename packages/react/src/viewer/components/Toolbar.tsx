@@ -322,6 +322,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						<AnimationsSection
 							canEdit={p.canEdit}
 							selectedElement={p.selectedElement}
+							activeSlide={p.activeSlide}
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
 							onOpenAnimationPanel={p.onOpenAnimationPanel}

@@ -483,6 +483,12 @@ export * from './animation-preview';
 export * from './motion-path-presets';
 export * from './motion-path-geometry';
 export * from './motion-path-authoring';
+// The ribbon Animations tab's "Preview" command: a one-shot in-place replay of
+// the selected element's own authored effect on the live canvas node. Lifted
+// out of the vanilla/svelte bindings (the only two that ever played a real
+// preview instead of a button highlight or a full slide-show entry) so all
+// five ribbons share one implementation.
+export * from './animation-ribbon-preview';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
 // `visual-3d-color`, `visual-3d-constants`), so they are NOT flattened here to

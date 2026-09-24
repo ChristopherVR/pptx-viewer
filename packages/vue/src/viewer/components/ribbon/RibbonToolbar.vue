@@ -250,6 +250,7 @@ const { visibleTabs } = useToolbarVisibility(
 				v-if="s === 'animations'"
 				:can-edit="props.canEdit"
 				:selected-element="props.selectedElement"
+				:active-slide="props.activeSlide"
 				:is-inspector-pane-open="props.isInspectorPaneOpen"
 				:on-toggle-inspector="props.onToggleInspector"
 				:on-open-animation-panel="props.onOpenAnimationPanel"
