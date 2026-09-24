@@ -17,6 +17,7 @@ import type { MediaPlaybackSource, MediaTrimFadeSource } from 'pptx-viewer-share
 
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
+import { wireMediaFullscreenOverlay } from './media-fullscreen-overlay';
 
 /**
  * Renderer for `media` (audio / video) elements, vanilla port of Vue's
@@ -90,7 +91,8 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 	});
 	const showTransport = mediaTransportVisible({ ...surface, canvasTransport: true });
 	const doc = context.document;
-	const el = createEl(doc, 'div', 'pptxv-element pptxv-media', getContainerStyle(element, zIndex));
+	const baseStyle = getContainerStyle(element, zIndex);
+	const el = createEl(doc, 'div', 'pptxv-element pptxv-media', baseStyle);
 	el.dataset.elementId = element.id;
 
 	const mediaSrc =
@@ -117,6 +119,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 		}
 		el.appendChild(video);
 		applyMediaPresentingState(video, context.presenting, element);
+		wireMediaFullscreenOverlay(doc, el, video, element, context, baseStyle);
 		return el;
 	}
 
@@ -135,6 +138,7 @@ export const renderMediaElement: ElementRenderer = (element, zIndex, context) =>
 			return el;
 		}
 		applyMediaPresentingState(audio, context.presenting, element);
+		wireMediaFullscreenOverlay(doc, el, audio, element, context, baseStyle);
 		return el;
 	}
 
