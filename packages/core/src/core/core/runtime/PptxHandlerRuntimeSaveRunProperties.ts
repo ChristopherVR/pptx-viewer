@@ -29,6 +29,38 @@ function applyFontMetadata(
 }
 
 /**
+ * Resolve one `CT_TextFont` metadata field (`@panose`/`@pitchFamily`/
+ * `@charset`) for a font slot (latin/eastAsia/complexScript/symbol),
+ * preferring the run's OWN authored value, then the paragraph's inherited
+ * baseline, over the flat, possibly-leaked `style[key]`.
+ *
+ * `segmentStyle` is assembled as `{...runScopedTextStyle, ...segment.style,
+ * ...uniformSegmentOverrides}` (`PptxHandlerRuntimeSaveParagraphs`): a
+ * metadata field this run's own font node never set is not overridden by
+ * that spread, so `style[key]` can hold a value ANOTHER run's font
+ * resolved, not this one's. `authoredRunStyle` (this run's own parse) and
+ * `inheritedRunStyle` (the paragraph's `a:defRPr` cascade) are each a
+ * faithful description of their own scope, so preferring them avoids the
+ * leak entirely: a run with no font of its own gets its accompanying
+ * metadata from the SAME cascade that supplied its inherited typeface,
+ * not from whichever run happened to seed the element-level style.
+ *
+ * When NEITHER half was ever recorded (a hand-built `TextStyle`: SDK
+ * content, a synthetic test style), there is no split to prefer, so the
+ * flat field is used as-is, matching `createRunStyleGate`'s own "no
+ * baseline, trust everything" rule.
+ */
+function resolveFontMetadata<K extends keyof TextStyle>(
+	style: TextStyle,
+	key: K,
+): TextStyle[K] | undefined {
+	if (style.authoredRunStyle === undefined && style.inheritedRunStyle === undefined) {
+		return style[key];
+	}
+	return style.authoredRunStyle?.[key] ?? style.inheritedRunStyle?.[key];
+}
+
+/**
  * Build the `a:uLn` (underline line) XML node from the parsed
  * {@link TextStyle.underlineLine}. Follows CT_LineProperties child order
  * (`prstDash`, then `headEnd`, `tailEnd`). The line colour is emitted
@@ -372,51 +404,48 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// round-tripped 0 -> 19 of them, resolved off the theme's `a:ea` and
 		// therefore no longer following it. `owns(...)` closes that half.
 		//
-		// The `@panose`/`@pitchFamily`/`@charset` metadata is gated SEPARATELY
-		// from the typeface: `segmentStyle` is assembled as
-		// `{...runScopedTextStyle, ...segment.style, ...uniformSegmentOverrides}`
-		// (`PptxHandlerRuntimeSaveParagraphs`), so a metadata field this run's
-		// OWN font node never set is not overridden by that spread and can leak
-		// in from ANOTHER run's resolved metadata via `runScopedTextStyle`.
-		// Measured on a real deck: a run whose own `<a:ea typeface="Abraham
-		// Lincoln"/>` carried no panose came back with `panose="0201…"`, the
-		// PANOSE of an unrelated CJK font ("宋体") used elsewhere in the same
-		// shape. Gating each metadata field by its own key stops a leaked value
-		// (which cannot differ from the SAME leaked baseline) from passing as
-		// authored.
+		// The `@panose`/`@pitchFamily`/`@charset` metadata is resolved
+		// SEPARATELY from the typeface, through `resolveFontMetadata`
+		// (preferring this run's own authored value, then the paragraph's
+		// inherited baseline) rather than `style[key]` directly: see that
+		// function's docblock for why the flat, merged style can hold a
+		// value a DIFFERENT run's font resolved. Measured on a real deck: a
+		// run whose own `<a:ea typeface="Abraham Lincoln"/>` carried no
+		// panose came back with `panose="0201…"`, the PANOSE of an unrelated
+		// CJK font ("宋体") used elsewhere in the same shape.
 		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
 		if (latinFace && owns('fontFamily', 'latinFontThemeToken')) {
 			runProps['a:latin'] = applyFontMetadata(
 				{ '@_typeface': latinFace },
-				owns('latinFontPanose') ? style.latinFontPanose : undefined,
-				owns('latinFontPitchFamily') ? style.latinFontPitchFamily : undefined,
-				owns('latinFontCharset') ? style.latinFontCharset : undefined,
+				resolveFontMetadata(style, 'latinFontPanose'),
+				resolveFontMetadata(style, 'latinFontPitchFamily'),
+				resolveFontMetadata(style, 'latinFontCharset'),
 			);
 		}
 		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
 		if (eastAsiaFace && owns('eastAsiaFont', 'eastAsiaFontThemeToken')) {
 			runProps['a:ea'] = applyFontMetadata(
 				{ '@_typeface': eastAsiaFace },
-				owns('eastAsiaFontPanose') ? style.eastAsiaFontPanose : undefined,
-				owns('eastAsiaFontPitchFamily') ? style.eastAsiaFontPitchFamily : undefined,
-				owns('eastAsiaFontCharset') ? style.eastAsiaFontCharset : undefined,
+				resolveFontMetadata(style, 'eastAsiaFontPanose'),
+				resolveFontMetadata(style, 'eastAsiaFontPitchFamily'),
+				resolveFontMetadata(style, 'eastAsiaFontCharset'),
 			);
 		}
 		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
 		if (complexScriptFace && owns('complexScriptFont', 'complexScriptFontThemeToken')) {
 			runProps['a:cs'] = applyFontMetadata(
 				{ '@_typeface': complexScriptFace },
-				owns('complexScriptFontPanose') ? style.complexScriptFontPanose : undefined,
-				owns('complexScriptFontPitchFamily') ? style.complexScriptFontPitchFamily : undefined,
-				owns('complexScriptFontCharset') ? style.complexScriptFontCharset : undefined,
+				resolveFontMetadata(style, 'complexScriptFontPanose'),
+				resolveFontMetadata(style, 'complexScriptFontPitchFamily'),
+				resolveFontMetadata(style, 'complexScriptFontCharset'),
 			);
 		}
 		if (style.symbolFont && owns('symbolFont')) {
 			runProps['a:sym'] = applyFontMetadata(
 				{ '@_typeface': style.symbolFont },
-				owns('symbolFontPanose') ? style.symbolFontPanose : undefined,
-				owns('symbolFontPitchFamily') ? style.symbolFontPitchFamily : undefined,
-				owns('symbolFontCharset') ? style.symbolFontCharset : undefined,
+				resolveFontMetadata(style, 'symbolFontPanose'),
+				resolveFontMetadata(style, 'symbolFontPitchFamily'),
+				resolveFontMetadata(style, 'symbolFontCharset'),
 			);
 		}
 
