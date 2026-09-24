@@ -427,6 +427,15 @@ export interface ParsedTableStyleFill {
 	shade?: number;
 	/** Explicit sRGB hex colour (e.g. `#FF8800`) from `a:srgbClr`. */
 	color?: string;
+	/**
+	 * Combined opacity in `[0, 1]` from the colour choice's `a:alpha` /
+	 * `a:alphaMod` / `a:alphaOff` children (ECMA-376 20.1.2.3.1). `undefined`
+	 * means fully opaque (the OOXML default when no alpha child is present).
+	 * Several built-in table styles (e.g. Themed Style 1/2, Medium Style 3)
+	 * use a translucent `a:alpha` on band/accent fills; the renderer must
+	 * multiply this into the final CSS alpha channel rather than dropping it.
+	 */
+	alpha?: number;
 	/** The fill was `a:noFill`: renders transparent and clears lower layers. */
 	noFill?: boolean;
 	/** Gradient fill parsed from `a:gradFill`. */

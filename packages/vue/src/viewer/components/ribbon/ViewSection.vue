@@ -47,6 +47,7 @@ interface Props {
 	eyedropperActive?: boolean;
 	onToggleEyedropper?: () => void;
 	onToggleSlideSorter?: () => void;
+	onGoToNormalView?: () => void;
 	onOpenReadingView?: () => void;
 	/** Enter PowerPoint's Outline view: the deck as editable indented text. */
 	onOpenOutlineView?: () => void;
@@ -77,7 +78,11 @@ const toggleRow = 'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm
 	<!-- Presentation Views group -->
 	<div class="flex flex-col items-center justify-between self-stretch gap-0.5">
 		<div class="flex items-center gap-0.5">
-			<button :class="pill" :title="t('pptx.statusBar.normalView')">
+			<button
+				:class="pill"
+				:title="t('pptx.statusBar.normalView')"
+				@click="props.onGoToNormalView?.()"
+			>
 				{{ t('pptx.view.normal') }}
 			</button>
 			<button

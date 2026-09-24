@@ -32,6 +32,36 @@ describe('resolveStyleFillColor - tint/shade (ECMA-376 20.1.2.3.32)', () => {
 	});
 });
 
+describe('resolveStyleFillColor - alpha (issue: table style translucency ignored)', () => {
+	it('multiplies a:alpha into the CSS alpha channel as rgba()', () => {
+		// Real PowerPoint built-in "Light Style 1"'s band1H section:
+		// a:schemeClr val="accent1" with a:alpha val="20000" (20%).
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#4472C4', alpha: 0.2 };
+		expect(resolveStyleFillColor(fill, undefined)).toBe('rgba(68, 114, 196, 0.2)');
+	});
+
+	it('an absent alpha stays a plain opaque hex colour (no behaviour change)', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#4472C4' };
+		expect(resolveStyleFillColor(fill, undefined)).toBe('#4472C4');
+	});
+
+	it('alpha >= 1 is treated as fully opaque and stays plain hex', () => {
+		const fill: ParsedTableStyleFill = { schemeColor: '', color: '#4472C4', alpha: 1 };
+		expect(resolveStyleFillColor(fill, undefined)).toBe('#4472C4');
+	});
+
+	it('combines with tint/shade before the alpha channel is applied', () => {
+		// tint=100% is a no-op per ECMA-376 20.1.2.3.32, isolating the alpha math.
+		const fill: ParsedTableStyleFill = {
+			schemeColor: '',
+			color: '#000000',
+			tint: 100_000,
+			alpha: 0.4,
+		};
+		expect(resolveStyleFillColor(fill, undefined)).toBe('rgba(0, 0, 0, 0.4)');
+	});
+});
+
 describe('resolveFontRefIdx', () => {
 	const fontScheme: PptxThemeFontScheme = {
 		majorFont: { latin: 'Calibri Light' },

@@ -78,6 +78,23 @@ function applyTintShade(base: string, fill: ParsedTableStyleFill): string {
 }
 
 /**
+ * Multiply a fill's `a:alpha` opacity (0-1) into a resolved hex colour,
+ * producing an `rgba()` CSS string. Several built-in table styles (Themed
+ * Style 1/2, Medium Style 3, ...) rely on translucent band/accent fills, so
+ * dropping this would render them fully opaque. Fully-opaque fills (no
+ * `alpha`, or `alpha >= 1`) are returned unchanged as plain hex, matching the
+ * pre-existing output shape for callers that don't care about alpha.
+ */
+function applyFillAlpha(hex: string, fill: ParsedTableStyleFill): string {
+	if (fill.alpha === undefined || fill.alpha >= 1) {
+		return hex;
+	}
+	const { r, g, b } = hexToRgb(hex);
+	const opacity = Math.max(0, fill.alpha);
+	return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+}
+
+/**
  * Resolve a {@link ParsedTableStyleFill} to a concrete CSS hex colour using the
  * supplied colour scheme. Honours a scheme colour first, then an explicit sRGB
  * `color`. Returns `undefined` when neither resolves (e.g. gradient/pattern/no
@@ -100,7 +117,7 @@ export function resolveStyleFillColor(
 	if (!base) {
 		return undefined;
 	}
-	return applyTintShade(base, fill);
+	return applyFillAlpha(applyTintShade(base, fill), fill);
 }
 
 /** Clear every background-related key so a higher layer replaces cleanly. */

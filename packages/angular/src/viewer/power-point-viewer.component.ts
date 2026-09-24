@@ -400,6 +400,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						(passwordProtection)="dialogs.showPassword.set(true)"
 						(fontEmbedding)="dialogs.showFontEmbedding.set(true)"
 						(link)="docProperties.showHyperlink.set(true)"
+						(goToNormalView)="goToNormalView()"
 						(openSorter)="showSorter.set(true)"
 						(openReadingView)="showReadingView.set(true)"
 						(openOutlineView)="showOutlineView.set(true)"
@@ -2678,6 +2679,20 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		this.masterViewTab.set('slides');
 		this.editor.clearSelection();
 		this.modeChange.emit(this.canEdit() ? 'edit' : 'preview');
+	}
+
+	/**
+	 * View > Normal: leave whichever alternate view (slide sorter, reading,
+	 * outline, master) is currently open and return to the ordinary editing
+	 * canvas. The ribbon's "Normal" pill had no handler at all before this.
+	 */
+	protected goToNormalView(): void {
+		this.showSorter.set(false);
+		this.showReadingView.set(false);
+		this.showOutlineView.set(false);
+		if (this.showMasterView()) {
+			this.closeMasterView();
+		}
 	}
 
 	protected selectMasterTab(tab: MasterViewTab): void {

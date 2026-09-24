@@ -166,6 +166,7 @@ import type { RibbonTab } from './ribbon-types';
 					(comments)="comments.emit()"
 					(a11y)="a11y.emit()"
 					(link)="link.emit()"
+					(goToNormalView)="goToNormalView.emit()"
 					(openSorter)="openSorter.emit()"
 					(openReadingView)="openReadingView.emit()"
 					(openOutlineView)="openOutlineView.emit()"

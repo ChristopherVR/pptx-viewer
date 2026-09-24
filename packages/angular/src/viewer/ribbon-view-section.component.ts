@@ -36,7 +36,12 @@ import { EditorStateService } from './editor-state.service';
 	imports: [NgClass, TranslatePipe],
 	template: `
 		<!-- Presentation views -->
-		<button type="button" class="pptx-rb-pill" [title]="'pptx.view.normal' | translate">
+		<button
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.view.normal' | translate"
+			(click)="goToNormalView.emit()"
+		>
 			{{ 'pptx.view.normal' | translate }}
 		</button>
 		<button
@@ -207,6 +212,11 @@ export class RibbonViewSectionComponent {
 	readonly snapToShape = input<boolean>(true);
 	readonly eyedropperActive = input<boolean>(false);
 
+	/**
+	 * View > Normal: leave whichever alternate view (slide sorter, reading,
+	 * outline, master) is open and return to the ordinary editing canvas.
+	 */
+	readonly goToNormalView = output<void>();
 	readonly openSorter = output<void>();
 	/** Enter Reading View: the deck full-window, NOT the fullscreen slide show. */
 	readonly openReadingView = output<void>();

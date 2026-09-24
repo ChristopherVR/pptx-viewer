@@ -1286,6 +1286,12 @@ export * from './element-hit-test';
 export * from './modal-focus';
 // Freehand ink: points -> SVG path `d`, completed-stroke -> `InkPptxElement`.
 export * from './ink-drawing';
+// Ink replay timing: given each stroke's real per-point timestamps (when the
+// source InkML declared a usable time channel) or none at all, the ordered
+// {strokeIndex, startOffsetMs, durationMs} sequence `ink-rendering.ts`'s
+// getInkReplayStyles/getContentPartReplayStyles format into CSS. Pure; no
+// SVG/CSS concerns of its own.
+export * from './ink-replay-timeline';
 // Ink rendering maths: SVG-path point extraction, pressure-sensitive circle
 // generation (per-point pressure/width -> variable-width stroke), and replay
 // (stroke-dashoffset reveal) animation styles. Pure; each binding renders the
@@ -1368,6 +1374,10 @@ export * from './smartart-reflow-element';
 // + swallowed autoplay-blocked rejection) each binding calls when present mode
 // makes a media element's slide the live surface.
 export * from './media-playback';
+// `fullScrn` full-slide playback overlay trigger + style descriptor (issue
+// wave item 10): split out of media-playback.ts (file-size cap) so all five
+// bindings' `<video>`/`<audio>` play/pause listeners share one decision.
+export * from './media-fullscreen';
 // Trim-end stop + fade in/out scheduling (G20): split out of media-playback.ts
 // (file-size cap) so every binding's presenting-mode media player can share
 // the same `p14:trim`/`p14:fade` enforcement React alone used to implement.
