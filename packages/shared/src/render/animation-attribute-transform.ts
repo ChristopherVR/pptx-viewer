@@ -31,11 +31,33 @@ interface ParsedComponent {
 const BOUNCE_SETTLE_SAMPLES = 16;
 
 /**
- * How many decaying oscillations the settle phase completes. Not fitted
- * against PowerPoint `CreateVideo` frame captures (no local capture pipeline
- * was available for this change); chosen to read as a plausible "overshoot,
- * bounce twice, settle" curve. Revisit with real frame data if the shape
- * turns out to visibly disagree with PowerPoint's own Bounce End effect.
+ * How many decaying oscillations the settle phase completes. Still NOT
+ * fitted against a confirmed PowerPoint `CreateVideo` capture of a real
+ * `bounceEnd` behaviour; chosen to read as a plausible "overshoot, bounce
+ * twice, settle" curve.
+ *
+ * A 2026-09-25 attempt to fit this against real frame data was inconclusive
+ * and is recorded here so the next attempt does not repeat it blind: there is
+ * no COM-scriptable way found to AUTHOR `p14:bounceEnd` (it is not exposed on
+ * `Effect`/`Effect.EffectParameters`/`Effect.Timing`), so the attempt hand-
+ * wrote `p14:bounceEnd="40000"` onto a COM-authored Fly In's `<p:anim>`
+ * (wrapped in `mc:AlternateContent`/`mc:Choice Requires="p14"`, mirroring how
+ * this project already wraps other p14/p15 extensions) and re-opened that
+ * file in PowerPoint for `CreateVideo`. PowerPoint accepted the file (no
+ * repair prompt) and exported it, but pixel-measuring the shape's leading
+ * edge across 60fps frames showed a perfectly smooth, monotonic ramp with NO
+ * overshoot or oscillation at all - the opposite of the current
+ * approximation's shape. That could mean either (a) the hand-authored file
+ * does not actually trigger PowerPoint's own bounceEnd rendering (most
+ * likely, since - unlike every other COM measurement in this codebase - this
+ * one could not be validated by having PowerPoint itself WRITE the attribute
+ * and reading it back), or (b) `CreateVideo`'s export path does not apply
+ * this particular enhancement even when authored normally. Neither could be
+ * confirmed, so the constants below were deliberately left unchanged rather
+ * than "fitted" to an unverified curve. A real fix needs either a confirmed-
+ * bouncing real-world corpus fixture (verified via PowerPoint's own live
+ * on-screen preview, not just `CreateVideo`) or a COM/UI automation path that
+ * actually sets Bounce End through the Effect Options dialog.
  */
 const BOUNCE_OSCILLATIONS = 2.5;
 
