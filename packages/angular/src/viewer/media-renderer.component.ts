@@ -7,14 +7,17 @@ import {
 	effect,
 	inject,
 	input,
+	signal,
 	viewChild,
 } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import {
+	MEDIA_FULLSCREEN_OVERLAY_STYLE,
 	applyMediaPlaybackAttributes,
 	elementHitTargetStyle,
+	isMediaFullscreenActive,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaTransportVisible,
@@ -119,6 +122,24 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 							/>
 						}
 					</video>
+				}
+				<!-- Stop/close affordance for the fullScrn full-slide overlay (issue
+				     wave item 10). pointer-events: auto inline: the root's own
+				     pointer-events are forced to none while non-interactive, and a
+				     descendant can always re-enable itself regardless of the ancestor's
+				     computed value. -->
+				@if (fullscreenActive()) {
+					<button
+						type="button"
+						class="pptx-ng-media-fullscreen-stop"
+						style="pointer-events: auto"
+						(click)="stopFullscreen()"
+						[attr.aria-label]="stopFullscreenAria()"
+					>
+						<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+							<rect x="6" y="6" width="12" height="12" rx="1" />
+						</svg>
+					</button>
 				}
 			} @else if (fallback().poster && poster(); as posterSrc) {
 				@if (clrChangeParams(); as cc) {
@@ -232,6 +253,25 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 				width: 32px;
 				height: 32px;
 			}
+			.pptx-ng-media-fullscreen-stop {
+				position: absolute;
+				bottom: 12px;
+				right: 12px;
+				z-index: 30;
+				border: none;
+				border-radius: 9999px;
+				background: rgba(0, 0, 0, 0.5);
+				color: rgba(255, 255, 255, 0.8);
+				padding: 8px;
+				cursor: pointer;
+				transition:
+					background-color 0.15s ease,
+					color 0.15s ease;
+			}
+			.pptx-ng-media-fullscreen-stop:hover {
+				background: rgba(0, 0, 0, 0.7);
+				color: #fff;
+			}
 		`,
 	],
 })
@@ -330,6 +370,59 @@ export class MediaRendererComponent {
 				el.pause();
 			}
 		});
+
+		// Tracks native play/pause/ended so `fullscreenActive` (and the shared
+		// `fullScrn` overlay it drives) reflects PowerPoint's own rule: the
+		// full-slide layout appears once the clip actually starts, not merely
+		// because the slide holding it became active. Mirrors React's
+		// `isMediaPlaying` state in `ElementRenderer.tsx`.
+		effect((onCleanup) => {
+			const el = this.mediaElRef()?.nativeElement;
+			if (!el) {
+				this.isPlaying.set(false);
+				return;
+			}
+			const onPlay = (): void => this.isPlaying.set(true);
+			const onStop = (): void => this.isPlaying.set(false);
+			el.addEventListener('play', onPlay);
+			el.addEventListener('pause', onStop);
+			el.addEventListener('ended', onStop);
+			onCleanup(() => {
+				el.removeEventListener('play', onPlay);
+				el.removeEventListener('pause', onStop);
+				el.removeEventListener('ended', onStop);
+			});
+		});
+	}
+
+	/** Whether the mounted `<video>`/`<audio>` is currently playing. */
+	private readonly isPlaying = signal(false);
+
+	/**
+	 * Whether this media element should render the `fullScrn` full-slide
+	 * overlay layout right now (issue wave item 10). The trigger is shared so
+	 * all five bindings agree on when it fires; only the style application and
+	 * play/pause wiring are per-binding.
+	 */
+	readonly fullscreenActive = computed<boolean>(() =>
+		isMediaFullscreenActive({
+			fullScreen: asMediaElement(this.element())?.fullScreen,
+			presenting: this.presenting(),
+			playing: this.isPlaying(),
+		}),
+	);
+
+	/** Aria label for the full-slide overlay's stop/close button. */
+	readonly stopFullscreenAria = computed<string>(() =>
+		this.translate.instant('pptx.media.stopFullscreenAria'),
+	);
+
+	/** Pauses the mounted media, dropping the overlay back to inline. */
+	stopFullscreen(): void {
+		const el = this.mediaElRef()?.nativeElement;
+		if (el && !el.paused) {
+			el.pause();
+		}
 	}
 
 	/**
@@ -379,9 +472,12 @@ export class MediaRendererComponent {
 		return key === undefined ? '' : (this.translate.instant(key) as string);
 	});
 
-	readonly containerStyle = computed<StyleMap>(() =>
-		getContainerStyle(this.element(), this.zIndex()),
-	);
+	readonly containerStyle = computed<StyleMap>(() => {
+		const base = getContainerStyle(this.element(), this.zIndex());
+		// The `fullScrn` overlay's literal style values are shared (see
+		// `media-fullscreen.ts`) so a change there reaches all five bindings.
+		return this.fullscreenActive() ? { ...base, ...MEDIA_FULLSCREEN_OVERLAY_STYLE } : base;
+	});
 
 	/**
 	 * Interaction-only hit target for a degenerate media element; see

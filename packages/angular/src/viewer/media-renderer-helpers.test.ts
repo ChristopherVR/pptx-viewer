@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
 	MEDIA_FALLBACK_ICONS,
 	hasPersistentAudio,
+	isMediaFullscreenActive,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	stopAllPersistentAudio,
@@ -270,5 +271,41 @@ describe('mediaFallbackFor', () => {
 		expect(source).toContain('@else if (fallback().poster && poster(); as posterSrc)');
 		expect(source).toContain("@if (fallback().badge !== 'none')");
 		expect(source).toContain("@else if (fallback().placeholder !== 'none')");
+	});
+});
+
+/**
+ * Issue wave item 10: the `fullScrn` full-slide overlay was React-only
+ * (`ElementRenderer.tsx`'s `isFullscreenMedia`); this binding's inspector has
+ * long exposed the same `fullScreen` checkbox with no rendering effect.
+ * Asserted against the authored source (no TestBed in this package) that the
+ * component defers to the shared trigger rather than re-deriving it.
+ */
+describe('the fullScrn full-slide overlay', () => {
+	it('requires the authored flag, the live show, and active playback together', () => {
+		expect(
+			isMediaFullscreenActive({ fullScreen: true, presenting: true, playing: true }),
+		).toBeTruthy();
+		expect(
+			isMediaFullscreenActive({ fullScreen: true, presenting: true, playing: false }),
+		).toBeFalsy();
+		expect(
+			isMediaFullscreenActive({ fullScreen: true, presenting: false, playing: true }),
+		).toBeFalsy();
+		expect(
+			isMediaFullscreenActive({ fullScreen: false, presenting: true, playing: true }),
+		).toBeFalsy();
+	});
+
+	it('drives the component template and style from the shared trigger, not a local guess', () => {
+		const source = componentSource(
+			dirname(fileURLToPath(import.meta.url)),
+			'media-renderer.component.ts',
+		);
+		expect(source).toContain('readonly fullscreenActive = computed<boolean>(() =>');
+		expect(source).toContain('isMediaFullscreenActive({');
+		expect(source).toContain('@if (fullscreenActive()) {');
+		expect(source).toContain('? { ...base, ...MEDIA_FULLSCREEN_OVERLAY_STYLE } : base;');
+		expect(source).toContain('stopFullscreen()');
 	});
 });
