@@ -17,6 +17,12 @@
  * @module render/animation-mask-reveal
  */
 
+import type {
+	BlindsDirection,
+	CheckerboardDirection,
+	RandomBarsDirection,
+} from './animation-presets-subtypes';
+
 /** The edge a reveal grows FROM (the first part of the element to appear). */
 export type RevealEdge = 'left' | 'right' | 'top' | 'bottom';
 
@@ -235,4 +241,106 @@ export function maskShapeInitialStyle(shape: MaskRevealShape): Record<string, st
 		maskSize: cfg.hiddenSize,
 		opacity: 1,
 	};
+}
+
+// ==========================================================================
+// Blinds / Random Bars (parallel bands), Checkerboard (tiled diagonal grid),
+// Wheel (radial spokes) - direction/spoke-count-aware reveals.
+//
+// The `BlindsDirection`/`CheckerboardDirection` types these take come from
+// `animation-presets-subtypes.ts`, which is also where the animation's own
+// `p:animEffect/@filter` subtype token (e.g. `blinds(vertical)`) is decoded
+// into one of them.
+// ==========================================================================
+
+/**
+ * A directional multi-band reveal: `bandCount` parallel strips (divided
+ * along the axis `direction` names) all widen simultaneously from their
+ * shared leading edge, tiled across the element via `mask-repeat`. Blinds
+ * (`bandCount = 8`) and Random Bars (`bandCount = 16`, thinner strips) share
+ * this builder. Every band still arrives in lockstep (this builder has no
+ * notion of "randomness"; it is one fixed-fraction frame of the reveal) -
+ * Random Bars' authored direction is now honoured, but its arrival order is
+ * a synchronised sweep rather than PowerPoint's genuinely scattered one; a
+ * closer match would need a per-instance dynamic keyframe (like the motion
+ * path / rotation / scale builders in `animation-transform-keyframes.ts`)
+ * rather than this fixed static-catalog entry.
+ */
+function bandRevealDecl(
+	direction: BlindsDirection,
+	revealedFraction: number,
+	bandCount: number,
+): string {
+	const clamped = Math.max(0, Math.min(1, revealedFraction));
+	const pct = (clamped * 100).toFixed(3);
+	const bandPct = (100 / bandCount).toFixed(4);
+	const gradientDir = direction === 'vertical' ? 'to right' : 'to bottom';
+	const image = `linear-gradient(${gradientDir}, #000 ${pct}%, transparent ${pct}%)`;
+	const size = direction === 'vertical' ? `${bandPct}% 100%` : `100% ${bandPct}%`;
+	const repeat = direction === 'vertical' ? 'repeat-x' : 'repeat-y';
+	return `mask-image: ${image}; mask-size: ${size}; mask-repeat: ${repeat}; mask-position: 0 0;`;
+}
+
+/** Kebab-case declarations for a Blinds reveal (8 parallel bands) at a given fraction (0-1). */
+export function blindsDecl(direction: BlindsDirection, revealedFraction: number): string {
+	return bandRevealDecl(direction, revealedFraction, 8);
+}
+
+/**
+ * Kebab-case declarations for a Random Bars reveal (16 thinner parallel
+ * bands) at a given fraction (0-1). See {@link bandRevealDecl}'s doc for why
+ * this is a directional band sweep rather than a genuinely randomised one.
+ */
+export function randomBarsBandDecl(
+	direction: RandomBarsDirection,
+	revealedFraction: number,
+): string {
+	return bandRevealDecl(direction, revealedFraction, 16);
+}
+
+/**
+ * Kebab-case declarations for a tiled checkerboard reveal at a given
+ * fraction (0-1), swept along `direction` ('across' = left-to-right, 'down'
+ * = top-to-bottom).
+ *
+ * Two identical 45deg diagonal-gradient tiles, offset by half a cell, union
+ * (`mask-composite: add`, the default combine mode) into solid alternating
+ * squares - the same construction commonly used for a checkerboard CSS
+ * background, applied here as a mask instead of a paint. A third mask layer
+ * (a plain directional wipe) then INTERSECTS that checkerboard shape, so
+ * only the squares within the swept region are visible.
+ */
+export function checkerboardDecl(
+	direction: CheckerboardDirection,
+	revealedFraction: number,
+): string {
+	const clamped = Math.max(0, Math.min(1, revealedFraction));
+	const pct = (clamped * 100).toFixed(3);
+	const cell = 12.5; // An 8x8 grid of cells across each axis.
+	const half = cell / 2;
+	const tile = `linear-gradient(45deg, #000 25%, transparent 25%, transparent 75%, #000 75%)`;
+	const wipeDir = direction === 'across' ? 'to right' : 'to bottom';
+	const wipe = `linear-gradient(${wipeDir}, #000 ${pct}%, transparent ${pct}%)`;
+	return [
+		`mask-image: ${tile}, ${tile}, ${wipe};`,
+		`mask-size: ${cell}% ${cell}%, ${cell}% ${cell}%, 100% 100%;`,
+		'mask-repeat: repeat, repeat, no-repeat;',
+		`mask-position: 0 0, ${half}% ${half}%, 0 0;`,
+		'mask-composite: add, intersect;',
+	].join(' ');
+}
+
+/**
+ * Kebab-case declarations for a Wheel reveal at a given fraction (0-1):
+ * `spokeCount` pie-slice sectors, all growing simultaneously from their
+ * shared leading edge, via a hard-stop `repeating-conic-gradient`. Matches
+ * PowerPoint's "Spokes" Effect Option (1, 2, 3, 4, or 8; see
+ * `resolveWheelSpokeCount` in `animation-presets-subtypes.ts`).
+ */
+export function wheelDecl(spokeCount: number, revealedFraction: number): string {
+	const clamped = Math.max(0, Math.min(1, revealedFraction));
+	const sectorDeg = 360 / Math.max(1, spokeCount);
+	const growDeg = (sectorDeg * clamped).toFixed(3);
+	const image = `repeating-conic-gradient(#000 0deg, #000 ${growDeg}deg, transparent ${growDeg}deg, transparent ${sectorDeg.toFixed(3)}deg)`;
+	return `mask-image: ${image}; mask-size: 100% 100%; mask-repeat: no-repeat; mask-position: center;`;
 }

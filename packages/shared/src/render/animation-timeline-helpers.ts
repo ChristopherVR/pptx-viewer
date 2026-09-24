@@ -22,6 +22,7 @@ import {
 	emphasisFilterKeyframeCss,
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
+	redirectMaskEffectByFilterSubtype,
 } from './animation-presets';
 import type { AnimationElementBox, AnimationRenderContext } from './animation-render-context';
 import { resolveAnimationTargetId } from './animation-target-id';
@@ -64,7 +65,12 @@ export function resolveEffect(
 	const id = anim.presetId;
 	if (cls !== undefined && id !== undefined) {
 		if (cls === 'entr') {
-			const effect = applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
+			const flyEffect = applyFlyDirection(PRESET_ID_TO_EFFECT.entr[id], anim.presetSubtype);
+			// Blinds/Checkerboard/Random-Bars/Wheel carry no numeric-subtype
+			// ground truth of their own (unlike Fly/Wipe/Barn above), but
+			// PowerPoint always pairs their presetId with the same literal
+			// `p:animEffect/@filter` subtype token this redirect reads.
+			const effect = redirectMaskEffectByFilterSubtype(flyEffect, anim.effectFilter);
 			if (effect) {
 				return effect;
 			}

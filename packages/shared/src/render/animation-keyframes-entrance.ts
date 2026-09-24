@@ -8,7 +8,14 @@
  */
 
 import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
-import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
+import {
+	blindsDecl,
+	checkerboardDecl,
+	maskEdgeDecl,
+	maskShapeDecl,
+	randomBarsBandDecl,
+	wheelDecl,
+} from './animation-mask-reveal';
 import { PIXELATE_IN_KEYFRAMES } from './animation-pixelate-filter';
 
 // The wipe/peek/blinds/split/box/random-bars reveals are CSS `mask` sweeps,
@@ -63,13 +70,48 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	0% { opacity: 0; filter: blur(8px); }
 	100% { opacity: 1; filter: blur(0); }
 }`,
+	// `wheelIn` (no resolvable spoke-count subtype) defaults to PowerPoint's
+	// own default of 4 spokes; see `wheelIn4` and its siblings below for the
+	// subtype-aware variants `resolveEffect` redirects to.
 	wheelIn: `@keyframes pptx-wheelIn {
-	from { opacity: 0; transform: rotate(-360deg) scale(0.5); }
-	to { opacity: 1; transform: rotate(0deg) scale(1); }
+	0% { ${wheelDecl(4, 0)} opacity: 1; }
+	100% { ${wheelDecl(4, 1)} opacity: 1; }
 }`,
+	wheelIn1: `@keyframes pptx-wheelIn1 {
+	0% { ${wheelDecl(1, 0)} opacity: 1; }
+	100% { ${wheelDecl(1, 1)} opacity: 1; }
+}`,
+	wheelIn2: `@keyframes pptx-wheelIn2 {
+	0% { ${wheelDecl(2, 0)} opacity: 1; }
+	100% { ${wheelDecl(2, 1)} opacity: 1; }
+}`,
+	wheelIn3: `@keyframes pptx-wheelIn3 {
+	0% { ${wheelDecl(3, 0)} opacity: 1; }
+	100% { ${wheelDecl(3, 1)} opacity: 1; }
+}`,
+	wheelIn4: `@keyframes pptx-wheelIn4 {
+	0% { ${wheelDecl(4, 0)} opacity: 1; }
+	100% { ${wheelDecl(4, 1)} opacity: 1; }
+}`,
+	wheelIn8: `@keyframes pptx-wheelIn8 {
+	0% { ${wheelDecl(8, 0)} opacity: 1; }
+	100% { ${wheelDecl(8, 1)} opacity: 1; }
+}`,
+	// `blindsIn` (no resolvable direction subtype) defaults to PowerPoint's
+	// own default direction, Horizontal; see `blindsInVertical`/
+	// `blindsInHorizontal` for the subtype-aware variants `resolveEffect`
+	// redirects to.
 	blindsIn: `@keyframes pptx-blindsIn {
-	from { ${maskEdgeDecl('top', 'hidden')} opacity: 1; }
-	to { ${maskEdgeDecl('top', 'shown')} opacity: 1; }
+	from { ${blindsDecl('horizontal', 0)} opacity: 1; }
+	to { ${blindsDecl('horizontal', 1)} opacity: 1; }
+}`,
+	blindsInVertical: `@keyframes pptx-blindsInVertical {
+	from { ${blindsDecl('vertical', 0)} opacity: 1; }
+	to { ${blindsDecl('vertical', 1)} opacity: 1; }
+}`,
+	blindsInHorizontal: `@keyframes pptx-blindsInHorizontal {
+	from { ${blindsDecl('horizontal', 0)} opacity: 1; }
+	to { ${blindsDecl('horizontal', 1)} opacity: 1; }
 }`,
 	boxIn: `@keyframes pptx-boxIn {
 	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
@@ -95,10 +137,21 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	from { opacity: 0; transform: scale(0, 0); }
 	to { opacity: 1; transform: scale(1, 1); }
 }`,
+	// `checkerboardIn` (no resolvable direction subtype) defaults to
+	// PowerPoint's own default direction, Across; see `checkerboardInAcross`/
+	// `checkerboardInDown` for the subtype-aware variants `resolveEffect`
+	// redirects to.
 	checkerboardIn: `@keyframes pptx-checkerboardIn {
-	0% { opacity: 0; }
-	50% { opacity: 0.5; }
-	100% { opacity: 1; }
+	0% { ${checkerboardDecl('across', 0)} opacity: 1; }
+	100% { ${checkerboardDecl('across', 1)} opacity: 1; }
+}`,
+	checkerboardInAcross: `@keyframes pptx-checkerboardInAcross {
+	0% { ${checkerboardDecl('across', 0)} opacity: 1; }
+	100% { ${checkerboardDecl('across', 1)} opacity: 1; }
+}`,
+	checkerboardInDown: `@keyframes pptx-checkerboardInDown {
+	0% { ${checkerboardDecl('down', 0)} opacity: 1; }
+	100% { ${checkerboardDecl('down', 1)} opacity: 1; }
 }`,
 	flashIn: `@keyframes pptx-flashIn {
 	0% { opacity: 0; }
@@ -111,11 +164,22 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	from { ${maskEdgeDecl('bottom', 'hidden')} opacity: 1; }
 	to { ${maskEdgeDecl('bottom', 'shown')} opacity: 1; }
 }`,
+	// `randomBarsIn` (no resolvable direction subtype) defaults to
+	// PowerPoint's own default direction, Horizontal; see
+	// `randomBarsInVertical`/`randomBarsInHorizontal` for the subtype-aware
+	// variants `resolveEffect` redirects to. See `randomBarsBandDecl`'s doc
+	// for why this is a directional band sweep, not a genuinely randomised one.
 	randomBarsIn: `@keyframes pptx-randomBarsIn {
-	0% { ${maskEdgeDecl('left', 'hidden')} opacity: 1; }
-	30% { ${maskEdgePartialDecl('left', 0.4)} opacity: 1; }
-	60% { ${maskEdgePartialDecl('left', 0.7)} opacity: 1; }
-	100% { ${maskEdgeDecl('left', 'shown')} opacity: 1; }
+	0% { ${randomBarsBandDecl('horizontal', 0)} opacity: 1; }
+	100% { ${randomBarsBandDecl('horizontal', 1)} opacity: 1; }
+}`,
+	randomBarsInVertical: `@keyframes pptx-randomBarsInVertical {
+	0% { ${randomBarsBandDecl('vertical', 0)} opacity: 1; }
+	100% { ${randomBarsBandDecl('vertical', 1)} opacity: 1; }
+}`,
+	randomBarsInHorizontal: `@keyframes pptx-randomBarsInHorizontal {
+	0% { ${randomBarsBandDecl('horizontal', 0)} opacity: 1; }
+	100% { ${randomBarsBandDecl('horizontal', 1)} opacity: 1; }
 }`,
 	spinnerIn: `@keyframes pptx-spinnerIn {
 	from { opacity: 0; transform: rotate(-720deg) scale(0.4); }
