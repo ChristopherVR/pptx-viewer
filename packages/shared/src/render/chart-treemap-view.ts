@@ -15,7 +15,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
 import { emptyChrome } from './chart-surface-common';
-import { buildHierarchicalTreemapPrimitives } from './chart-treemap-hierarchy';
+import { buildHierarchicalTreemapPrimitives, treemapBranchLabels } from './chart-treemap-hierarchy';
 import type { ChartViewModel, LegendEntry } from './chart-view-model';
 import { buildLegend, computePlotLayout, paletteColor } from './chart-view-model';
 
@@ -50,11 +50,13 @@ export function buildTreemapViewModel(
 		layout.plotTop,
 	);
 
-	// Build per-category legend entries mirroring the React treemap colour
-	// assignments: one swatch per category/value index.
-	const catLegend: LegendEntry[] = categoryLabels.map((cat, i) => ({
+	// One legend entry per TOP-LEVEL branch, matching the one colour every leaf
+	// under that branch is painted with (COM-verified: charts-com.pptx slide
+	// 28 legend reads "Branch 1/2/3", never one swatch per leaf).
+	const branchLabels = treemapBranchLabels(chartData, categoryLabels);
+	const catLegend: LegendEntry[] = branchLabels.map((label, i) => ({
 		color: paletteColor(i, chartData.colorPalette),
-		label: cat,
+		label,
 	}));
 
 	const title = resolveChartTitleText(chartData);

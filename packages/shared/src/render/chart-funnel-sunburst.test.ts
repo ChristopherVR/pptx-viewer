@@ -251,6 +251,54 @@ describe('buildSunburstViewModel', () => {
 			[1, 'B2'],
 		]);
 	});
+
+	it('draws a text label per arc, every ring (COM: slide 29 / chartEx4.xml)', () => {
+		const hierarchical: PptxChartData = {
+			chartType: 'sunburst',
+			categories: ['A1', 'A2', 'B1', 'B2'],
+			categoryLevels: [
+				['A1', 'A2', 'B1', 'B2'],
+				['A', 'A', 'B', 'B'],
+			],
+			series: [{ name: 'Size', values: [10, 30, 20, 40] }],
+		};
+		const vm = buildSunburstViewModel(
+			chartElement(hierarchical),
+			hierarchical,
+			hierarchical.categories,
+		);
+		expect(vm.dataLabels.map((label) => label.text)).toStrictEqual(
+			expect.arrayContaining(['A', 'B', 'A1', 'A2', 'B1', 'B2']),
+		);
+		for (const label of vm.dataLabels) {
+			expect(label.transform).toMatch(/^rotate\(/u);
+		}
+	});
+
+	it('paints every ring of the same top-level branch the SAME colour', () => {
+		const hierarchical: PptxChartData = {
+			chartType: 'sunburst',
+			categories: ['A1', 'A2', 'B1', 'B2'],
+			categoryLevels: [
+				['A1', 'A2', 'B1', 'B2'],
+				['A', 'A', 'B', 'B'],
+			],
+			series: [{ name: 'Size', values: [10, 30, 20, 40] }],
+		};
+		const vm = buildSunburstViewModel(
+			chartElement(hierarchical),
+			hierarchical,
+			hierarchical.categories,
+		);
+		const paths = vm.primitives.filter((primitive) => primitive.kind === 'path');
+		const byLabel = new Map(vm.dataLabels.map((label, index) => [label.text, paths[index]?.fill]));
+		// A1/A2's inner "A" wedge and outer wedges must all share one colour,
+		// and it must differ from B's.
+		expect(byLabel.get('A1')).toBe(byLabel.get('A'));
+		expect(byLabel.get('A2')).toBe(byLabel.get('A'));
+		expect(byLabel.get('B1')).toBe(byLabel.get('B'));
+		expect(byLabel.get('A')).not.toBe(byLabel.get('B'));
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

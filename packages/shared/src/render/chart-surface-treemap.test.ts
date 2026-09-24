@@ -507,6 +507,47 @@ describe('buildTreemapViewModel - ChartEx hierarchy', () => {
 		expect(bannerTop).toBeGreaterThan(overlappingTop);
 	});
 
+	it('paints every leaf under a branch the SAME colour (COM: slide 28 / chartEx3.xml)', () => {
+		const data = hierarchicalData();
+		const vm = buildTreemapViewModel(makeElement(600, 400), data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		// Hardware/Software share the "North" branch, Services/Support share
+		// "South": each pair must be the exact same fill, and the two branches
+		// must differ from each other.
+		const byCategory = new Map(
+			data.categories.map((category, pointIndex) => [
+				category,
+				rects.find((rect) => rect.part?.pointIndex === pointIndex)?.fill,
+			]),
+		);
+		expect(byCategory.get('Hardware')).toBe(byCategory.get('Software'));
+		expect(byCategory.get('Services')).toBe(byCategory.get('Support'));
+		expect(byCategory.get('Hardware')).not.toBe(byCategory.get('Services'));
+	});
+
+	it('legend shows one entry per top-level branch, not one per leaf', () => {
+		const data: PptxChartData = { ...hierarchicalData(), style: { hasLegend: true } };
+		const vm = buildTreemapViewModel(makeElement(600, 400), data, data.categories);
+		expect(vm.legend.map((entry) => entry.label)).toStrictEqual(['North', 'South']);
+	});
+
+	it('gives each series its own single colour across all its leaves (multi-series legend)', () => {
+		const data = hierarchicalData();
+		data.series.push({ name: 'Profit', values: [20, 15, 8, 4] });
+		const vm = buildTreemapViewModel(makeElement(700, 400), data, data.categories);
+		expect(vm.legend).toHaveLength(0); // hasLegend not set on this fixture.
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		const revenueFills = new Set(
+			rects.filter((rect) => rect.part?.seriesIndex === 0).map((rect) => rect.fill),
+		);
+		const profitFills = new Set(
+			rects.filter((rect) => rect.part?.seriesIndex === 1).map((rect) => rect.fill),
+		);
+		expect(revenueFills.size).toBe(1);
+		expect(profitFills.size).toBe(1);
+		expect([...revenueFills][0]).not.toBe([...profitFills][0]);
+	});
+
 	it('keeps series and point alignment for multiple series', () => {
 		const data = hierarchicalData();
 		data.series.push({
@@ -530,6 +571,49 @@ describe('buildTreemapViewModel - ChartEx hierarchy', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // buildTreemapViewModel — edge cases
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildTreemapViewModel — squarified layout', () => {
+	it('mixes row AND column splits within one square-ish box, unlike a single-axis slice-and-dice', () => {
+		// The exact 7 leaf weights under "Branch 1" on charts-com.pptx slide 28
+		// (chartEx3.xml): two large near-equal leaves (Leaf 4/5) plus five much
+		// smaller ones. A plain "always split the longer side" slice-and-dice
+		// would place every rect along a single axis (all sharing either every
+		// x or every y); PowerPoint's own squarified layout instead groups the
+		// small leaves into their own row/column beside the large ones, which
+		// needs BOTH more than one distinct x and more than one distinct y.
+		const el = makeElement(450, 450);
+		const data: PptxChartData = {
+			chartType: 'treemap',
+			categories: ['Leaf1', 'Leaf2', 'Leaf3', 'Leaf4', 'Leaf5', 'Leaf6', 'Leaf7'],
+			series: [{ name: 'S', values: [22, 12, 18, 87, 88, 17, 9] }],
+		};
+		const vm = buildTreemapViewModel(el, data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects).toHaveLength(7);
+		const distinctX = new Set(rects.map((rect) => Math.round(rect.x)));
+		const distinctY = new Set(rects.map((rect) => Math.round(rect.y)));
+		expect(distinctX.size).toBeGreaterThan(1);
+		expect(distinctY.size).toBeGreaterThan(1);
+	});
+
+	it('keeps every leaf rect within the plot box and areas proportional to value', () => {
+		const el = makeElement(500, 350);
+		const data: PptxChartData = {
+			chartType: 'treemap',
+			categories: ['Big', 'Mid', 'Small', 'Tiny'],
+			series: [{ name: 'S', values: [40, 30, 20, 10] }],
+		};
+		const vm = buildTreemapViewModel(el, data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects).toHaveLength(4);
+		for (const rect of rects) {
+			expect(rect.x).toBeGreaterThanOrEqual(0);
+			expect(rect.y).toBeGreaterThanOrEqual(0);
+			expect(rect.x + rect.w).toBeLessThanOrEqual(el.width + 2);
+			expect(rect.y + rect.h).toBeLessThanOrEqual(el.height + 2);
+		}
+	});
+});
 
 describe('buildTreemapViewModel — edge cases', () => {
 	it('does not crash on an empty series', () => {

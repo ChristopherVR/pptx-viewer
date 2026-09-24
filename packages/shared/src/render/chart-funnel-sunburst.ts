@@ -1,5 +1,9 @@
 /**
- * View-model builders for funnel and sunburst chart kinds.
+ * View-model builder for the funnel chart kind, plus the barrel that
+ * re-exports its sunburst sibling (`chart-sunburst-view.ts`) so every
+ * existing `./chart-funnel-sunburst` import keeps working after the two
+ * were split into their own files to stay under the repo's per-file line
+ * budget.
  *
  * Ported from:
  *   packages/react/src/viewer/utils/chart-sunburst-funnel.tsx (renderFunnelChart,
@@ -25,7 +29,6 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { resolveChartTitleText } from './chart-auto-title';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_TEXT_PX } from './chart-font';
-import { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
 import type { ChartViewModel, SvgPath, SvgPrimitive, SvgText } from './chart-view-model';
 import {
 	AXIS_LABEL_COLOR,
@@ -36,8 +39,7 @@ import {
 
 export type { SunburstArc } from './chart-sunburst-hierarchy';
 export { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
-
-type HierarchicalChartData = PptxChartData & { categoryLevels?: string[][] };
+export { buildSunburstViewModel } from './chart-sunburst-view';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared empty-chrome helper (funnel / sunburst have no cartesian axes)
@@ -224,72 +226,6 @@ export function buildFunnelViewModel(
 		dataLabels,
 		// Funnel does not draw a separate legend swatch list (labels are inline).
 		legend: [],
-		legendX: layout.svgWidth / 2,
-		legendY: layout.svgHeight - 8,
-		legendAnchor: 'middle',
-	};
-}
-
-/**
- * Build the view-model for a sunburst chart: concentric arc rings, one per
- * series. Mirrors `renderSunburstChart` (React) / `SunburstChart.vue`.
- */
-export function buildSunburstViewModel(
-	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
-): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, false);
-	const cx = layout.plotLeft + layout.plotWidth / 2;
-	const cy = layout.plotTop + layout.plotHeight / 2;
-	const maxR = Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4;
-	const categoryLevels = (chartData as HierarchicalChartData).categoryLevels;
-
-	const arcs = categoryLevels?.length
-		? computeHierarchicalSunburstArcs(
-				categoryLevels,
-				chartData.series[0]?.values ?? [],
-				cx,
-				cy,
-				maxR,
-				chartData.colorPalette,
-			)
-		: computeSunburstArcs(chartData.series, cx, cy, maxR, chartData.colorPalette);
-	const primitives: SvgPrimitive[] = arcs.map(
-		(arc) =>
-			({
-				kind: 'path',
-				d: arc.d,
-				fill: arc.fill,
-				stroke: '#ffffff',
-				strokeWidth: 1,
-				opacity: arc.opacity,
-				part:
-					arc.pointIndex === undefined
-						? undefined
-						: { role: 'dataPoint', seriesIndex: 0, pointIndex: arc.pointIndex },
-			}) satisfies SvgPath,
-	);
-
-	const legendLabels = categoryLevels?.length
-		? [...new Set(categoryLevels[categoryLevels.length - 1]?.filter(Boolean) ?? categoryLabels)]
-		: categoryLabels;
-	const legend = chartData.style?.hasLegend
-		? legendLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
-		: [];
-
-	const title = resolveChartTitleText(chartData);
-
-	return {
-		svgWidth: layout.svgWidth,
-		svgHeight: layout.svgHeight,
-		title,
-		titleX: layout.svgWidth / 2,
-		titleY: 14,
-		...emptyChrome(),
-		primitives,
-		dataLabels: [],
-		legend,
 		legendX: layout.svgWidth / 2,
 		legendY: layout.svgHeight - 8,
 		legendAnchor: 'middle',

@@ -11,8 +11,9 @@
  *           categories (`chart-surface-isometric.ts`), flat colour-mapped
  *           grid otherwise (`chart-surface-flat.ts`); the shared colour ramp
  *           and chrome helpers live in `chart-surface-common.ts`.
- * Treemap  - slice-and-dice rectangles sorted largest-first with inline
- *            labels (`chart-treemap-view.ts`).
+ * Treemap  - squarified rectangles sorted largest-first, one colour per
+ *            top-level branch, with inline and parent-banner labels
+ *            (`chart-treemap-view.ts` / `chart-treemap-hierarchy.ts`).
  *
  * This file is a thin barrel: it exists so every existing import of
  * `./chart-surface-treemap` keeps working after the chart-kind builders were
