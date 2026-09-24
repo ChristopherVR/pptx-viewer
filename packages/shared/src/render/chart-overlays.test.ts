@@ -474,6 +474,39 @@ describe('computeErrorBarPrimitives', () => {
 		}
 	});
 
+	it('computes stdDev/stdErr from the SAMPLE variance (n - 1), not the population variance', () => {
+		// values [10, 20, 30]: mean 20. Sample variance (n - 1 = 2 denominator,
+		// Excel's own STDEV/"Standard Deviation" error-bar convention) is
+		// (100 + 0 + 100) / 2 = 100, stdDev 10 - not the population variance
+		// (100 + 0 + 100) / 3 = 66.67, stdDev ~8.165 the old code used.
+		const eb: PptxChartErrBars = { direction: 'y', barType: 'plus', valType: 'stdDev', val: 1 };
+		const chartData = makeChartData({
+			categories: ['A', 'B', 'C'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [eb] })],
+		});
+		const [stem] = computeErrorBarPrimitives(chartData, 3, LAYOUT, RANGE);
+		expect(stem).toMatchObject({ kind: 'line' });
+		if (stem.kind === 'line') {
+			// error 10 over a span-100 range against plotHeight 256px.
+			expect(Math.abs(stem.y2 - stem.y1)).toBeCloseTo((10 / 100) * LAYOUT.plotHeight, 5);
+		}
+
+		const stdErrBars: PptxChartErrBars = { direction: 'y', barType: 'plus', valType: 'stdErr' };
+		const stdErrData = makeChartData({
+			categories: ['A', 'B', 'C'],
+			series: [makeSeries({ values: [10, 20, 30], errBars: [stdErrBars] })],
+		});
+		const [stdErrStem] = computeErrorBarPrimitives(stdErrData, 3, LAYOUT, RANGE);
+		if (stdErrStem.kind === 'line') {
+			// Standard error = sample stdDev / sqrt(n) = 10 / sqrt(3).
+			const expectedError = 10 / Math.sqrt(3);
+			expect(Math.abs(stdErrStem.y2 - stdErrStem.y1)).toBeCloseTo(
+				(expectedError / 100) * LAYOUT.plotHeight,
+				5,
+			);
+		}
+	});
+
 	it('uses source point indexes for custom values after category reordering', () => {
 		const eb: PptxChartErrBars = {
 			direction: 'x',
