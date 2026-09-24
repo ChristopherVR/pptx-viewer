@@ -48,6 +48,15 @@ describe('image color effects', () => {
 		expect(result.duotone).toMatchObject({ color1: '#000000', color2: '#FFFFFF' });
 	});
 
+	it('treats a genuinely empty self-closing element (fast-xml-parser emits "") as present', () => {
+		// fast-xml-parser, with this codebase's parser options (parseTagValue:
+		// false, trimValues: false), represents `<a:grayscl/>` as the empty
+		// string "", not `{}`. Grayscale must still be detected.
+		const result = parseImageColorEffects({ 'a:grayscl': '' }, parseColor, extractOpacity);
+		expect(result.grayscale).toBeTruthy();
+		expect(result.grayscaleRawXml).toStrictEqual({});
+	});
+
 	it('round-trips untouched color choices, transforms, extensions, and prefixes', () => {
 		const blip: XmlObject = {
 			'x:clrChange': {

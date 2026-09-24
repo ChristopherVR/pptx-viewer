@@ -2,7 +2,7 @@ import { blendColorOntoWhite } from '../../color/color-primitives';
 import type { PptxImageProperties, PptxSlideBackgroundPattern, XmlObject } from '../../types';
 import { partRelsPath } from '../../utils/part-rels-path';
 import { stripParentDirSegments } from '../../utils/strip-parent-dir-segments';
-import { xmlAttr, xmlAttrNumber, xmlChild, xmlPath } from '../../utils/xml-access';
+import { xmlAttr, xmlAttrNumber, xmlChild, xmlHasChild, xmlPath } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeColorAndEffects';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -32,8 +32,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				properties.imageEffects = imageEffects;
 			}
 
-			const tileNode = xmlChild(blipFill, 'a:tile');
-			if (tileNode) {
+			// `<a:tile/>` with no attributes (all defaults: sx/sy=100%, tx/ty=0,
+			// flip=none, algn=tl) is valid and fast-xml-parser represents it as
+			// the empty string `''`, not `{}` (same trap as `<a:grayscl/>` in
+			// image-color-effects.ts). `xmlChild` correctly returns `undefined`
+			// for reading attributes off it, so presence must be tested with
+			// `xmlHasChild` and the node itself defaulted to `{}` for reads.
+			if (xmlHasChild(blipFill, 'a:tile')) {
+				const tileNode = xmlChild(blipFill, 'a:tile') ?? {};
 				const txRaw = Number.parseInt(String(tileNode['@_tx'] ?? ''), 10);
 				const tyRaw = Number.parseInt(String(tileNode['@_ty'] ?? ''), 10);
 				const sxRaw = Number.parseInt(String(tileNode['@_sx'] ?? ''), 10);

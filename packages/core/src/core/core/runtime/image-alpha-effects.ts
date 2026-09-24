@@ -14,7 +14,19 @@ function child(parent: XmlObject | undefined, name: string): XmlObject | undefin
 		return undefined;
 	}
 	const key = Object.keys(parent).find((candidate) => localName(candidate) === name);
-	const value = key ? parent[key] : undefined;
+	if (!key) {
+		return undefined;
+	}
+	const value = parent[key];
+	// fast-xml-parser represents a genuinely empty self-closing element (e.g.
+	// `<a:alphaCeiling/>`, which the schema defines with NO attributes at
+	// all, so it is ALWAYS spelled this way) as the empty string "", not
+	// `{}`. Treat that (and a stray `null`) as present-but-attributeless
+	// rather than absent. See image-color-effects.ts's `child()` for the
+	// same fix and the fast-xml-parser shape this guards against.
+	if (value === '' || value === null) {
+		return {};
+	}
 	return value && typeof value === 'object' && !Array.isArray(value)
 		? (value as XmlObject)
 		: undefined;

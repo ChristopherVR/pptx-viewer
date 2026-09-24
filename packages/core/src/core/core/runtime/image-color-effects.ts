@@ -15,7 +15,19 @@ function child(parent: XmlObject | undefined, name: string): XmlObject | undefin
 		return undefined;
 	}
 	const key = Object.keys(parent).find((candidate) => localName(candidate) === name);
-	const value = key ? parent[key] : undefined;
+	if (!key) {
+		return undefined;
+	}
+	const value = parent[key];
+	// fast-xml-parser (with parseTagValue/trimValues off, as this codebase
+	// configures it) represents a genuinely empty self-closing element like
+	// `<a:grayscl/>` as the empty string "", not `{}`. Treat that (and a
+	// stray `null`) as "present with no attributes" rather than "absent",
+	// while still excluding arrays (repeated siblings, handled elsewhere)
+	// and a truly missing key (`undefined`, handled above).
+	if (value === '' || value === null) {
+		return {};
+	}
 	return value && typeof value === 'object' && !Array.isArray(value)
 		? (value as XmlObject)
 		: undefined;

@@ -83,4 +83,18 @@ describe('drawingML image alpha effects', () => {
 		applyImageAlphaEffects(blip, { alphaMod: {} }, parseColor);
 		expect(blip).toStrictEqual({});
 	});
+
+	it('detects alphaCeiling/alphaFloor as bare self-closing elements ("")', () => {
+		// `<a:alphaCeiling/>` and `<a:alphaFloor/>` carry NO attributes per the
+		// schema, so they are always self-closing; fast-xml-parser represents
+		// that as the empty string "", not `{}`.
+		const effects = parseImageAlphaEffects(
+			{ 'a:alphaCeiling': '', 'a:alphaFloor': '' },
+			parseColor,
+		);
+		expect(effects.alphaCeiling).toBeTruthy();
+		expect(effects.alphaFloor).toBeTruthy();
+		expect(effects.alphaCeilingRawXml).toStrictEqual({});
+		expect(effects.alphaFloorRawXml).toStrictEqual({});
+	});
 });
