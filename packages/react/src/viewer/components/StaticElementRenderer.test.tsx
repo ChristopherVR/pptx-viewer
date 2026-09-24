@@ -147,3 +147,42 @@ describe('static surfaces and the native media transport', () => {
 		expect(html).not.toContain('controls');
 	});
 });
+
+describe('static surfaces and OLE interactive chrome', () => {
+	// The slide-thumbnail rail (and presenter previews, transition ghosts,
+	// export rasters) render this element tree INSIDE a
+	// `<button aria-label="Go to slide N">`. An OLE preview's own Download/Open
+	// footer must not add a nested <button> there: it is invalid, un-clickable
+	// markup, not merely an unwanted affordance (see `oleActionsVisible`).
+	const ole: PptxElement = {
+		id: 'ole-1',
+		type: 'ole',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 150,
+		oleObjectType: 'pdf',
+		oleEmbeddedData: 'data:application/pdf;base64,JVBER',
+		oleEmbeddedFileName: 'report.pdf',
+		oleEmbeddedMimeType: 'application/pdf',
+	} as PptxElement;
+
+	it('renders an OLE object on a static surface with no <button> at all', () => {
+		const html = renderToStaticMarkup(
+			<StaticElementRenderer element={ole} activeSlide={slide} allSlides={[slide]} zIndex={0} />,
+		);
+		expect(html).not.toContain('<button');
+	});
+
+	it('renders a whole slide thumbnail containing an OLE object with no <button> (it is nested inside the slides panel\'s own "Go to slide" button in production)', () => {
+		const slideWithOle: PptxSlide = { ...slide, elements: [ole] };
+		const thumbnailHtml = renderToStaticMarkup(
+			<SlideThumbnail
+				slide={slideWithOle}
+				templateElements={[]}
+				canvasSize={{ width: 960, height: 540 }}
+			/>,
+		);
+		expect(thumbnailHtml).not.toContain('<button');
+	});
+});

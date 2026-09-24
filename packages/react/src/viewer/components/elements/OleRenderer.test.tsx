@@ -23,7 +23,8 @@ function makeOle(overrides: Partial<OlePptxElement> = {}): OlePptxElement {
 	};
 }
 
-const render = (el: OlePptxElement): string => renderToStaticMarkup(<OleRenderer element={el} />);
+const render = (el: OlePptxElement, showActions?: boolean): string =>
+	renderToStaticMarkup(<OleRenderer element={el} showActions={showActions} />);
 
 describe('oleRenderer download/open actions', () => {
 	it('renders a download anchor with the embedded data-URL and file name', () => {
@@ -86,6 +87,37 @@ describe('oleRenderer download/open actions', () => {
 		const html = render(makeOle({ oleObjectType: 'word', fileName: 'doc.docx' }));
 		expect(html).not.toContain('download=');
 		expect(html).not.toContain('>Open<');
+	});
+
+	it('renders no interactive <button> at all when showActions is false, even for an openable payload', () => {
+		// A slide thumbnail renders this element INSIDE its own
+		// `<button aria-label="Go to slide N">`: a nested <button> here would be
+		// invalid, un-clickable markup, not merely an unwanted affordance.
+		const html = render(
+			makeOle({
+				oleObjectType: 'pdf',
+				oleEmbeddedData: 'data:application/pdf;base64,JVBER',
+				oleEmbeddedFileName: 'report.pdf',
+				oleEmbeddedMimeType: 'application/pdf',
+			}),
+			false,
+		);
+		expect(html).not.toContain('<button');
+		expect(html).not.toContain('download=');
+		expect(html).not.toContain('>Open<');
+	});
+
+	it('defaults to showing actions when showActions is omitted (the editable canvas)', () => {
+		const html = render(
+			makeOle({
+				oleObjectType: 'pdf',
+				oleEmbeddedData: 'data:application/pdf;base64,JVBER',
+				oleEmbeddedFileName: 'report.pdf',
+				oleEmbeddedMimeType: 'application/pdf',
+			}),
+		);
+		expect(html).toContain('<button');
+		expect(html).toContain('>Open<');
 	});
 });
 

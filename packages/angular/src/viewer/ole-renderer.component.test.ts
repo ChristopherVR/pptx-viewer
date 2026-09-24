@@ -28,13 +28,22 @@ function oleElement(overrides: Partial<OlePptxElement> = {}): PptxElement {
 	} as PptxElement;
 }
 
-function createRenderer(element: PptxElement): OleRendererComponent {
+function createRenderer(
+	element: PptxElement,
+	overrides: { interactive?: boolean; presenting?: boolean } = {},
+): OleRendererComponent {
 	const renderer = runInInjectionContext(
 		Injector.create({ providers: [] }),
 		() => new OleRendererComponent(),
 	);
 	Object.assign(renderer, {
 		element: signal(element) as unknown as InputSignal<PptxElement>,
+		...(overrides.interactive !== undefined
+			? { interactive: signal(overrides.interactive) as unknown as InputSignal<boolean> }
+			: {}),
+		...(overrides.presenting !== undefined
+			? { presenting: signal(overrides.presenting) as unknown as InputSignal<boolean> }
+			: {}),
 	});
 	return renderer;
 }
@@ -57,5 +66,28 @@ describe('oleRendererComponent iconShapes', () => {
 		const shapes = renderer.iconShapes();
 		expect(shapes.some((s) => s.tag === 'text' && s.text === 'f(x)')).toBeTruthy();
 		expect(shapes.some((s) => s.tag === 'rect')).toBeTruthy();
+	});
+});
+
+describe('oleRendererComponent showActions (nested-button prevention)', () => {
+	// A slide thumbnail (and the presenter console, transition ghosts, export
+	// rasters) renders this component INSIDE a
+	// `<button aria-label="Go to slide N">`; the template only paints the
+	// action bar when `showActions()` is true (see `ole-renderer.component.html`).
+	it('defaults to visible (the editable canvas), matching the component input defaults', () => {
+		const renderer = createRenderer(oleElement());
+		expect(renderer.interactive()).toBeTruthy();
+		expect(renderer.presenting()).toBeFalsy();
+		expect(renderer.showActions()).toBeTruthy();
+	});
+
+	it('is hidden when interactive is false (the thumbnail rail)', () => {
+		const renderer = createRenderer(oleElement(), { interactive: false });
+		expect(renderer.showActions()).toBeFalsy();
+	});
+
+	it('is hidden on the live presentation stage', () => {
+		const renderer = createRenderer(oleElement(), { interactive: true, presenting: true });
+		expect(renderer.showActions()).toBeFalsy();
 	});
 });

@@ -16,12 +16,24 @@ const PDF_DATA_URL = 'data:application/pdf;base64,AAAA';
 
 let cleanup: (() => void) | undefined;
 
-function mountEl(element: PptxElement): HTMLElement {
+function mountEl(
+	element: PptxElement,
+	overrides: { interactive?: boolean; presenting?: boolean } = {},
+): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ElementRenderer, {
 		target,
-		props: { element, mediaDataUrls: new Map<string, string>(), zIndex: 4 },
+		props: {
+			element,
+			mediaDataUrls: new Map<string, string>(),
+			zIndex: 4,
+			// The editable canvas by default: the only surface that shows the
+			// OLE action bar. Tests covering the thumbnail/preview/presenting
+			// surfaces override this explicitly.
+			interactive: overrides.interactive ?? true,
+			presenting: overrides.presenting ?? false,
+		},
 	});
 	flushSync();
 	cleanup = () => {
@@ -140,5 +152,37 @@ describe('oleView', () => {
 	it('renders no action bar without an embedded payload', () => {
 		const target = mountEl(oleElement({ oleObjectType: 'word' }));
 		expect(target.querySelector('.pptx-svelte-ole-actions')).toBeNull();
+	});
+});
+
+describe('oleView action bar visibility (nested-button prevention)', () => {
+	// A slide thumbnail (and the presenter console, transition ghosts, export
+	// rasters) renders this element INSIDE a
+	// `<button aria-label="Go to slide N">`. The action bar's own
+	// <button>/<a> must not render there: nested interactive controls are
+	// invalid, un-clickable markup, not merely an unwanted affordance.
+	const embedded = {
+		oleObjectType: 'pdf',
+		oleEmbeddedData: PDF_DATA_URL,
+		oleEmbeddedMimeType: 'application/pdf',
+		oleEmbeddedFileName: 'report.pdf',
+	};
+
+	it('hides the action bar on a static surface (thumbnail rail: interactive false)', () => {
+		const target = mountEl(oleElement(embedded), { interactive: false, presenting: false });
+		expect(target.querySelector('.pptx-svelte-ole-actions')).toBeNull();
+		expect(target.querySelector('button')).toBeNull();
+	});
+
+	it('hides the action bar on the live presentation stage even if interactive is true', () => {
+		const target = mountEl(oleElement(embedded), { interactive: true, presenting: true });
+		expect(target.querySelector('.pptx-svelte-ole-actions')).toBeNull();
+		expect(target.querySelector('button')).toBeNull();
+	});
+
+	it('shows the action bar only on the interactive editable canvas', () => {
+		const target = mountEl(oleElement(embedded), { interactive: true, presenting: false });
+		expect(target.querySelector('.pptx-svelte-ole-actions')).toBeTruthy();
+		expect(target.querySelector('button')?.textContent).toBe('Open');
 	});
 });

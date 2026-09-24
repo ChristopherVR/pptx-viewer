@@ -9,6 +9,8 @@ import {
 	getOleTypeColor,
 	getOleTypeLabel,
 	isBrowserOpenableMime,
+	mediaSurfaceOf,
+	oleActionsVisible,
 	openUrlInNewTab,
 	resolveOleType,
 } from 'pptx-viewer-shared';
@@ -64,6 +66,25 @@ const hitTargetStyle = useElementHitTargetStyle(
 	() => props.element,
 	() => props.interactive,
 	() => props.presenting,
+);
+
+/**
+ * Whether the interactive Download / Open action bar may render at all.
+ *
+ * A still of a slide (thumbnail rail, presenter console panes, export
+ * raster) renders this component INSIDE a
+ * `<button aria-label="Go to slide N">`, so the action bar's own `<button>`
+ * would otherwise be invalid, un-clickable nested-button markup; the live
+ * presentation stage never offers element-level browser chrome either. See
+ * the shared `oleActionsVisible` decision.
+ */
+const showActions = computed(() =>
+	oleActionsVisible(
+		mediaSurfaceOf({
+			interactive: props.interactive === true,
+			presenting: props.presenting === true,
+		}),
+	),
 );
 
 const ole = computed<OlePptxElement | undefined>(() =>
@@ -219,7 +240,7 @@ const placeholderStyle = computed<CSSProperties>(() => ({
 			stopped from bubbling so they do not start an editor selection/drag.
 		-->
 		<div
-			v-if="embeddedData"
+			v-if="embeddedData && showActions"
 			class="pptx-vue-ole-actions"
 			@pointerdown="stopInteraction"
 			@mousedown="stopInteraction"

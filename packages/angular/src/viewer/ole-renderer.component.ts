@@ -14,6 +14,7 @@ import {
 	getOleTypeColor,
 	getOleTypeLabel,
 	getPlaceholderStyle,
+	oleActionsVisibleFor,
 	resolveOleType,
 } from './ole-renderer-helpers';
 import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
@@ -54,6 +55,26 @@ import type { OleActionModel, ResolvedOleType } from './ole-renderer-helpers';
 export class OleRendererComponent {
 	/** The element to render. Must be `type === 'ole'`. */
 	readonly element = input.required<PptxElement>();
+
+	/** True only on the main editable canvas; see `showActions`. */
+	readonly interactive = input<boolean>(true);
+
+	/** True only on the live presentation stage; see `showActions`. */
+	readonly presenting = input<boolean>(false);
+
+	/**
+	 * Whether the Download / Open action bar may render at all.
+	 *
+	 * A still of a slide (thumbnail rail, presenter console panes, export
+	 * raster) renders this component INSIDE a
+	 * `<button aria-label="Go to slide N">`, so the action bar's own
+	 * `<button>` would otherwise be invalid, un-clickable nested-button
+	 * markup; the live presentation stage never offers element-level browser
+	 * chrome either.
+	 */
+	readonly showActions = computed<boolean>(() =>
+		oleActionsVisibleFor(this.interactive(), this.presenting()),
+	);
 
 	/** Narrowed OLE element: undefined when the input is not `type === 'ole'`. */
 	private readonly ole = computed<OlePptxElement | undefined>(() => {

@@ -73,7 +73,7 @@
 			}
 		</div>
 	}
-	@if (actions().canDownload) {
+	@if (actions().canDownload && showActions()) {
 		<!--
 			Download / Open actions for the recovered embedded payload.
 			Pointer events are isolated so clicking an action never starts a
