@@ -53,8 +53,24 @@ export interface PptTextBody {
 	paragraphs: PptParagraph[];
 }
 
-/** Solid fill or explicit no-fill. */
-export type PptFill = { kind: 'solid'; rgb: string } | { kind: 'none' };
+/** Solid fill, explicit no-fill, or a two-stop gradient approximation. */
+export type PptFill =
+	| { kind: 'solid'; rgb: string }
+	| { kind: 'none' }
+	| {
+			/**
+			 * A `msofillShade*` (opid `fillType` 4-8) two-colour gradient, read back
+			 * as a straight two-stop `a:gradFill`. PowerPoint itself supports
+			 * richer shade tables (`fillShadeColors`, radial/rectangular variants);
+			 * this importer approximates all of them the same way this project's
+			 * own `.ppt` writer produces them (see `shape-props-writer.ts`), so a
+			 * gradient this writer wrote round-trips exactly, while a gradient a
+			 * different producer wrote keeps only its first and last stop.
+			 */
+			kind: 'gradient';
+			angleDeg: number;
+			stops: [{ rgb: string; position: 0 }, { rgb: string; position: 1 }];
+	  };
 
 /** Outline properties. */
 export interface PptLine {

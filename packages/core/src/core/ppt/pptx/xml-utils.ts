@@ -84,6 +84,23 @@ export function solidFill(rgb: string): string {
 	return `<a:solidFill><a:srgbClr val="${hexColor(rgb)}"/></a:solidFill>`;
 }
 
+/** A straight two-stop linear gradient fill element. */
+export function gradFill(
+	stops: Array<{ rgb: string; position: number }>,
+	angleDeg: number,
+): string {
+	const gsLst = stops
+		.map(
+			(s) =>
+				`<a:gs pos="${Math.round(s.position * 100_000)}"><a:srgbClr val="${hexColor(
+					s.rgb,
+				)}"/></a:gs>`,
+		)
+		.join('');
+	const angle = Math.round((((angleDeg % 360) + 360) % 360) * 60_000);
+	return `<a:gradFill><a:gsLst>${gsLst}</a:gsLst><a:lin ang="${angle}" scaled="1"/></a:gradFill>`;
+}
+
 /** Clamp and round an EMU value to a safe integer. */
 export function emu(value: number): number {
 	return Math.round(value);

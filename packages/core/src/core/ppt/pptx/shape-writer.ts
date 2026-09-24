@@ -9,7 +9,7 @@ import { cNvPrXml, xfrmXml } from './shape-writer-context';
 import type { ShapeWriterContext } from './shape-writer-context';
 import { oleXml } from './shape-writer-ole';
 import { txBodyXml } from './txbody-writer';
-import { emu, esc, solidFill } from './xml-utils';
+import { emu, esc, gradFill, solidFill } from './xml-utils';
 
 export type { MediaRef, OleRef, ShapeWriterContext } from './shape-writer-context';
 
@@ -17,7 +17,13 @@ function fillXml(shape: PptShape): string {
 	if (!shape.fill) {
 		return '';
 	}
-	return shape.fill.kind === 'solid' ? solidFill(shape.fill.rgb) : '<a:noFill/>';
+	if (shape.fill.kind === 'solid') {
+		return solidFill(shape.fill.rgb);
+	}
+	if (shape.fill.kind === 'gradient') {
+		return gradFill(shape.fill.stops, shape.fill.angleDeg);
+	}
+	return '<a:noFill/>';
 }
 
 function lineXml(shape: PptShape): string {

@@ -70,6 +70,25 @@ export function readChildAnchor(view: DataView, rec: PptRecord): EmuRect | undef
 	return rectFromEdges(top, left, right, bottom);
 }
 
+/**
+ * `fillType` values ([MS-ODRAW] `MSOFILLTYPE`) that are two-colour shade
+ * gradients rather than a plain solid: `msofillShade` (4), `msofillShadeCenter`
+ * (5), `msofillShadeShape` (6, what this project's own writer emits),
+ * `msofillShadeScale` (7) and `msofillShadeTitle` (8). Radial/rectangular
+ * shade shapes lose their shape on import and become a straight two-stop
+ * linear gradient; see `PptFill`'s `gradient` case doc.
+ */
+const GRADIENT_FILL_TYPES = new Set([4, 5, 6, 7, 8]);
+
+/** Convert a 16.16 fixed-point angle to degrees in [0, 360). */
+function fixedAngleToDegrees(raw: number | undefined): number {
+	if (raw === undefined) {
+		return 0;
+	}
+	const signed = raw > 0x7fffffff ? raw - 0x100000000 : raw;
+	return (((signed / 65536) % 360) + 360) % 360;
+}
+
 /** Derive the shape fill from its FOPT properties. */
 export function extractFill(
 	props: EscherProperties,
@@ -80,7 +99,24 @@ export function extractFill(
 	if (filled === false) {
 		return { kind: 'none' };
 	}
+	const fillType = props.values.get(OPT.fillType);
 	const fillColor = props.values.get(OPT.fillColor);
+	const fillBackColor = props.values.get(OPT.fillBackColor);
+	if (
+		fillType !== undefined &&
+		GRADIENT_FILL_TYPES.has(fillType) &&
+		fillColor !== undefined &&
+		fillBackColor !== undefined
+	) {
+		return {
+			kind: 'gradient',
+			angleDeg: fixedAngleToDegrees(props.values.get(OPT.fillAngle)),
+			stops: [
+				{ rgb: resolveEscherColor(fillColor, scheme), position: 0 },
+				{ rgb: resolveEscherColor(fillBackColor, scheme), position: 1 },
+			],
+		};
+	}
 	if (fillColor !== undefined) {
 		return { kind: 'solid', rgb: resolveEscherColor(fillColor, scheme) };
 	}
