@@ -33,7 +33,11 @@ export interface Chart3DView {
 	spec: ComputedRef<ThreeViewSpec | null>;
 	/** The chart part selected on this element (mirrored onto the scene). */
 	selectedPart: ComputedRef<ChartPartRef | null>;
-	/** Whether the scene takes pointer input (orbit, select, drag). */
+	/**
+	 * Whether the scene takes pointer input (orbit, select, drag): on the
+	 * editable canvas AND with this chart selected, the same gate that arms
+	 * its 2D marks, so a first click on an unselected chart selects it.
+	 */
 	interactive: ComputedRef<boolean>;
 	/** Formatted value for the mid-drag badge, or `null` when not dragging. */
 	dragLabel: ComputedRef<string | null>;
@@ -56,12 +60,14 @@ export function useChart3DView(
 		return selection && selection.elementId === element().id ? selection.part : null;
 	});
 
+	const editable = computed(() => interactive() && Boolean(ctx?.canEditChart(element().id)));
+
 	function bridge(): Chart3DSelectionBridge {
 		const el = element();
 		return {
 			elementId: el.id,
 			chartData: el.type === 'chart' ? el.chartData : undefined,
-			canSelect: interactive() && Boolean(ctx?.canSelectCharts()),
+			canSelect: editable.value,
 			selectedElementId: ctx?.selection.value?.elementId ?? null,
 			setSelection: (selection) => ctx?.setSelection(selection),
 			setDragValue: (value) => {
@@ -76,7 +82,7 @@ export function useChart3DView(
 	return {
 		spec,
 		selectedPart,
-		interactive: computed(() => interactive()),
+		interactive: editable,
 		dragLabel: computed(() => (dragValue.value === null ? null : formatAxisValue(dragValue.value))),
 		onSelect: (part) => applyChart3DSelect(bridge(), part),
 		onDrag: (detail) => applyChart3DDrag(bridge(), detail),

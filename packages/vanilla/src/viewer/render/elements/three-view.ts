@@ -76,13 +76,15 @@ export function mountThreeViewInto(
 /**
  * Whether a chart's 3D marks are selectable/draggable here: the SAME gate
  * `chart-editable.ts` applies to the flat 2D marks (authoring canvas, editing
- * wired up, drilldown not locked by `noDrilldown`).
+ * wired up, drilldown not locked by `noDrilldown`, and the chart itself
+ * selected, so a first click on an unselected chart selects the element).
  */
 export function isChart3DEditable(element: PptxElement, context: ElementRenderContext): boolean {
 	return (
 		element.type === 'chart' &&
 		Boolean(context.interactive) &&
 		Boolean(context.onChartPointChange) &&
+		Boolean(context.selectedElementIds?.has(element.id)) &&
 		canDrillDown(element)
 	);
 }

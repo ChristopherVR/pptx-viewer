@@ -124,14 +124,30 @@ describe('<pptx-three-view> chart wiring (vanilla)', () => {
 		const element = chart('bar3D');
 		const context = buildContext(
 			{ barChart3D: true },
-			{ interactive: true, onChartPartSelect, onChartPointChange },
+			{
+				interactive: true,
+				onChartPartSelect,
+				onChartPointChange,
+				selectedElementIds: new Set([element.id]),
+			},
 		);
 		const view = viewIn(renderChartElement(element, 1, context) as Element)!;
 		return { element, view, onChartPartSelect, onChartPointChange };
 	}
 
-	it('is interactive on the authoring canvas only', () => {
+	it('is interactive on the authoring canvas only, once the chart is selected', () => {
 		expect(editable().view.interactive).toBeTruthy();
+		const unselected = viewIn(
+			renderChartElement(
+				chart('bar3D'),
+				1,
+				buildContext(
+					{ barChart3D: true },
+					{ interactive: true, onChartPointChange: vi.fn(), selectedElementIds: new Set() },
+				),
+			) as Element,
+		);
+		expect(unselected?.interactive).toBeFalsy();
 		const readOnly = viewIn(
 			renderChartElement(chart('bar3D'), 1, buildContext({ barChart3D: true })) as Element,
 		);

@@ -140,7 +140,7 @@
 		return {
 			elementId: element.id,
 			chartData: element.type === 'chart' ? element.chartData : undefined,
-			canSelect: chartEditable,
+			canSelect: interactiveArmed,
 			selectedElementId: drag.selectedPart ? element.id : null,
 			setSelection: (selection) => {
 				drag.selectedPart = selection?.part ?? null;
@@ -184,7 +184,7 @@
 			<!-- Opt-in 3D scene; the shared SVG render is its fallback while it loads or if it fails. -->
 			<ThreeView
 				spec={threeSpec}
-				interactive={chartEditable}
+				interactive={interactiveArmed}
 				selectedPart={drag.selectedPart}
 				textStyle={animationState?.textStyle}
 				onselect={(part) => applyChart3DSelect(chart3DBridge(), part)}
