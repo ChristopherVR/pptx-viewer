@@ -20,17 +20,24 @@
 	background: var(--pptx-secondary, #f5eee9);
 }
 
-.back {
-	height: 48px;
-	border: 0;
+.back-row {
+	display: flex;
+	height: 40px;
+	flex: none;
 	border-bottom: 1px solid var(--pptx-border, #ddd);
+}
+
+.back {
+	width: 100%;
+	height: 40px;
+	border: 0;
 	background: none;
 	color: inherit;
 	font-size: 22px;
 }
 
 .back:hover,
-nav button:hover,
+nav button:not(.active):hover,
 .recent > button:hover {
 	background: var(--pptx-accent, #eadfd8);
 }
@@ -40,7 +47,8 @@ nav {
 	min-height: 0;
 	flex: 1;
 	flex-direction: column;
-	padding: 8px 0;
+	overflow-y: auto;
+	padding: 0 0 8px;
 }
 
 nav i {
@@ -50,6 +58,7 @@ nav i {
 nav button {
 	display: flex;
 	min-height: 40px;
+	flex: none;
 	align-items: center;
 	gap: 12px;
 	padding: 0 16px;
@@ -62,9 +71,11 @@ nav button {
 }
 
 nav button span {
-	width: 16px;
+	display: grid;
+	width: 17px;
+	flex: none;
+	place-items: center;
 	font-size: 16px;
-	text-align: center;
 }
 
 nav button.active {
@@ -279,15 +290,20 @@ footer {
 		border-right: 0;
 		border-bottom: 1px solid var(--pptx-border, #d7d7d7);
 	}
-	.back {
-		min-width: 48px;
-		flex-shrink: 0;
+	.back-row {
+		width: 48px;
+		height: 48px;
 		border-bottom: 0;
 		border-right: 1px solid var(--pptx-border, #ddd);
+	}
+	.back {
+		width: 48px;
+		height: 48px;
 	}
 	nav {
 		flex-direction: row;
 		align-items: center;
+		overflow-y: visible;
 		padding: 0;
 	}
 	nav i {

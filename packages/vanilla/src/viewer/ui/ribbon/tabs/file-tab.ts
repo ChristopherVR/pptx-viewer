@@ -47,10 +47,12 @@ export function createFileTab(
 	el.setAttribute('aria-modal', 'true');
 	el.setAttribute('aria-label', t('pptx.backstage.title'));
 	const aside = doc.createElement('aside');
+	const backRow = createEl(doc, 'div', 'pptxv-bs-back-row');
 	const back = iconButton(doc, 'back', onClose, 'pptxv-bs-back');
 	back.setAttribute('aria-label', t('pptx.backstage.back'));
+	backRow.append(back);
 	const nav = doc.createElement('nav');
-	aside.append(back, nav);
+	aside.append(backRow, nav);
 	const main = doc.createElement('main');
 	el.append(aside, main);
 	let page: BackstagePage = 'home';
@@ -91,7 +93,11 @@ export function createFileTab(
 				nav.appendChild(doc.createElement('i'));
 			}
 			const itemButton = labeledIconButton(doc, item.id, t(item.labelKey), () => setPage(item.id));
+			itemButton.setAttribute('data-pptx-backstage-nav-item', '');
 			itemButton.classList.toggle('active', page === item.id);
+			if (page === item.id) {
+				itemButton.setAttribute('aria-current', 'page');
+			}
 			nav.appendChild(itemButton);
 		}
 	}

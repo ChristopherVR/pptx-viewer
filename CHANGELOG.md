@@ -10,6 +10,14 @@ dated sections beneath it are generated from
 
 ## 2026-09-23
 
+_Releases: pptx-react-viewer@4.1.6, pptx-vue-viewer@4.1.6, pptx-angular-viewer@4.1.6, pptx-vanilla-viewer@3.1.6, pptx-svelte-viewer@4.1.6, @christophervr/pptx-viewer@2.23.6_
+
+### Bug Fixes
+
+- **ui:** Align File backstage navigation across bindings ([#351](https://github.com/ChristopherVR/pptx-viewer/issues/351)) (by @yunfeizhu) ([2196a0e](https://github.com/ChristopherVR/pptx-viewer/commit/2196a0e6a5bd33f0e7ea70e18460141a64703874))
+
+## 2026-09-23
+
 _Releases: pptx-react-viewer@4.1.5, pptx-vue-viewer@4.1.5, pptx-angular-viewer@4.1.5, pptx-vanilla-viewer@3.1.5, pptx-svelte-viewer@4.1.5, @christophervr/pptx-viewer@2.23.5_
 
 ### Bug Fixes
