@@ -39,7 +39,7 @@ import type { PieChart3DSceneOptions } from './pie-chart-3d-data';
 import { buildSurfaceChart3DDataForElement } from './surface-chart-3d-data';
 import type { SurfaceChart3DSceneOptions } from './surface-chart-3d-scene';
 
-/** The chart types the 3D chart scene renders (a `surface` chart is 3D only when `chartData.view3D` is set; see below). */
+/** The chart types the 3D chart scene renders (`surface` covers the 2D and 3D surface charts; see below). */
 export const CHART_3D_TYPES: ReadonlySet<string> = new Set([
 	'bar3D',
 	'line3D',
@@ -190,16 +190,13 @@ function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3D
 	return { kind: 'bar', boxes };
 }
 
-/** Whether `chartType` is a 3D chart PowerPoint would ever render through `c:view3D`. */
-function is3DChartType(chartType: string, view3D: unknown): boolean {
-	if (chartType === 'surface') {
-		// c:surfaceChart (2D, top-view only) and c:surface3DChart both parse to
-		// chartType 'surface'; core sets chartData.view3D only when the chart
-		// XML has a c:view3D element at all, which a 2D top-view surface never
-		// does. See the chart track's progress log for the caveat that this
-		// hasn't been verified against a real 2D top-view fixture.
-		return view3D !== undefined;
-	}
+/**
+ * Whether `chartType` has a 3D scene. `surface` covers both `c:surfaceChart`
+ * (PowerPoint draws it as a flat top view) and `c:surface3DChart`: the
+ * published `surfaceChart3D` opt-in has always meant "render every surface
+ * chart in 3D", so both get the perspective surface scene.
+ */
+function is3DChartType(chartType: string): boolean {
 	return CHART_3D_TYPES.has(chartType);
 }
 
@@ -211,7 +208,7 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	const chartEl = element as ChartPptxElement;
 	const chartData = chartEl.chartData;
 	const chartType = chartData?.chartType ?? '';
-	if (!chartData || !is3DChartType(chartType, chartData.view3D)) {
+	if (!chartData || !is3DChartType(chartType)) {
 		return null;
 	}
 	const vm = buildChartViewModel(element);

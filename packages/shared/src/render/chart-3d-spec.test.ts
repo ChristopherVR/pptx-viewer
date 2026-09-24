@@ -36,7 +36,7 @@ describe('buildChart3DSpecForElement', () => {
 		expect(spec).toBeNull();
 	});
 
-	it('returns null for a surface chart with no c:view3D (the 2D top-view variant)', () => {
+	it('returns a perspective surface spec for a 2D c:surfaceChart too (the surfaceChart3D opt-in covers both)', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'surface',
@@ -44,7 +44,8 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'S1', values: [1, 2] }],
 			}),
 		);
-		expect(spec).toBeNull();
+		expect(spec?.geometry).toBeNull();
+		expect(spec?.perspective?.kind).toBe('surface');
 	});
 
 	it('returns a spec for a surface chart that DOES carry c:view3D (surface3D)', () => {
