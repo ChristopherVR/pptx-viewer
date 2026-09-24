@@ -5,7 +5,6 @@ import {
 	ensureChartInteractionStyles,
 	findChartPartTarget,
 	getBarFacePicturePixelSampleVersion,
-	resolveChartKind,
 	resolveRevealedChartData,
 	subscribeBarFacePicturePixelSamples,
 	withChartTitle,
@@ -24,17 +23,9 @@ import { renderChartElement } from '../../utils';
 import { formatAxisValue } from '../../utils/chart-helpers';
 import { buildReactChartViewModel } from '../../utils/chart-view-model-render';
 import { useChartPartSelection } from '../chart-part-selection';
-import { AreaChart3DContext } from './area-chart-3d-context';
-import { Area3DChartRenderer } from './Area3DChartRenderer';
-import { BarChart3DContext } from './bar-chart-3d-context';
-import { Bar3DChartRenderer } from './Bar3DChartRenderer';
-import { buildChart3DPartInteraction } from './build-chart3d-part-interaction';
-import { LineChart3DContext } from './line-chart-3d-context';
-import { Line3DChartRenderer } from './Line3DChartRenderer';
-import { PieChart3DContext } from './pie-chart-3d-context';
-import { PieChart3DRenderer } from './PieChart3DRenderer';
-import { SurfaceChart3DContext } from './surface-chart-3d-context';
-import { SurfaceChart3DRenderer } from './SurfaceChart3DRenderer';
+import { Rendering3DFlagsContext } from './rendering-3d-flags-context';
+import { ThreeView } from './ThreeView';
+import { useChart3DView } from './use-chart-3d-view';
 import { useChartMarkInteraction } from './use-chart-mark-interaction';
 
 export interface ChartElementViewProps {
@@ -73,22 +64,9 @@ export function ChartElementView({
 	const selectedPart = selection?.elementId === element.id ? selection.part : null;
 	const canEdit = editable && Boolean(onUpdateElement);
 
-	// Opt-in interactive 3D surface scene (camera orbit/zoom via OrbitControls).
-	const use3D = useContext(SurfaceChart3DContext);
-	const isSurfaceKind = resolveChartKind(element.chartData?.chartType ?? 'bar') === 'surface';
-
-	// Opt-in interactive 3D bar scene (real box meshes, camera orbit/zoom via OrbitControls).
-	const use3DBar = useContext(BarChart3DContext);
-	const isBar3DKind = element.chartData?.chartType === 'bar3D';
-
-	// Opt-in interactive 3D line/area scenes (tube path / ribbon meshes, camera orbit/zoom).
-	const use3DLine = useContext(LineChart3DContext);
-	const isLine3DKind = element.chartData?.chartType === 'line3D';
-	const use3DArea = useContext(AreaChart3DContext);
-	const isArea3DKind = element.chartData?.chartType === 'area3D';
-	// Opt-in interactive 3D pie scene (real wedge meshes, camera orbit/zoom via OrbitControls).
-	const use3DPie = useContext(PieChart3DContext);
-	const isPie3DKind = element.chartData?.chartType === 'pie3D';
+	// The host's six 3D opt-in flags, already narrowed by the viewer user's own
+	// Options > Advanced override (see `Rendering3DFlagsContext`).
+	const rendering3DFlags = useContext(Rendering3DFlagsContext);
 
 	// An untargeted bar3D extrusion face whose fill is picture-only samples a
 	// colour from the picture ASYNCHRONOUSLY (see chart-bar3d-face-picture-
@@ -161,15 +139,6 @@ export function ChartElementView({
 		setSelection,
 	});
 
-	const chart3DInteraction = buildChart3DPartInteraction({
-		element,
-		canEdit,
-		onUpdateElement,
-		selection,
-		setSelection,
-		setDragValue,
-	});
-
 	const handleDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
 		// G8: `a:graphicFrameLocks/@noDrilldown` forbids entering this chart's
 		// individual parts (title, series, data points) for editing.
@@ -212,6 +181,16 @@ export function ChartElementView({
 			? element
 			: { ...element, chartData: revealedChartData };
 
+	const chart3D = useChart3DView({
+		element: renderedElement,
+		flags: rendering3DFlags,
+		canEdit,
+		onUpdateElement,
+		selection,
+		setSelection,
+		setDragValue,
+	});
+
 	return (
 		<div
 			ref={wrapperRef}
@@ -221,40 +200,17 @@ export function ChartElementView({
 			onPointerUp={handlePointerUp}
 			onDoubleClick={handleDoubleClick}
 		>
-			{use3D && isSurfaceKind ? (
-				<SurfaceChart3DRenderer
-					element={renderedElement}
-					interaction={chart3DInteraction}
+			{chart3D.spec ? (
+				<ThreeView
+					spec={chart3D.spec}
+					interactive={canEdit}
 					selectedPart={selectedPart}
 					textStyle={animationState?.textStyle}
-				/>
-			) : use3DBar && isBar3DKind ? (
-				<Bar3DChartRenderer
-					element={renderedElement}
-					interaction={chart3DInteraction}
-					selectedPart={selectedPart}
-					textStyle={animationState?.textStyle}
-				/>
-			) : use3DLine && isLine3DKind ? (
-				<Line3DChartRenderer
-					element={renderedElement}
-					interaction={chart3DInteraction}
-					selectedPart={selectedPart}
-					textStyle={animationState?.textStyle}
-				/>
-			) : use3DArea && isArea3DKind ? (
-				<Area3DChartRenderer
-					element={renderedElement}
-					interaction={chart3DInteraction}
-					selectedPart={selectedPart}
-					textStyle={animationState?.textStyle}
-				/>
-			) : use3DPie && isPie3DKind ? (
-				<PieChart3DRenderer
-					element={renderedElement}
-					interaction={chart3DInteraction}
-					selectedPart={selectedPart}
-				/>
+					onSelect={chart3D.onSelect}
+					onDrag={chart3D.onDrag}
+				>
+					{renderChartElement(renderedElement)}
+				</ThreeView>
 			) : (
 				renderChartElement(renderedElement)
 			)}

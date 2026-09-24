@@ -78,12 +78,7 @@ import {
 	FollowModeBar,
 } from './components/collaboration';
 import { CompatibilityToasts } from './components/CompatibilityToasts';
-import { AreaChart3DContext } from './components/elements/area-chart-3d-context';
-import { BarChart3DContext } from './components/elements/bar-chart-3d-context';
-import { LineChart3DContext } from './components/elements/line-chart-3d-context';
-import { PieChart3DContext } from './components/elements/pie-chart-3d-context';
-import { SmartArt3DContext } from './components/elements/smart-art-3d-context';
-import { SurfaceChart3DContext } from './components/elements/surface-chart-3d-context';
+import { Rendering3DFlagsContext } from './components/elements/rendering-3d-flags-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { RecentColorsProvider } from './components/inspector/RecentColorsContext';
 import { ThemeColorMapProvider } from './components/inspector/ThemeColorMapContext';
@@ -1480,64 +1475,54 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// the user changed in the Options dialog.
 			<ViewerOptionsContext.Provider value={viewerOptions}>
 				<AccountAuthContext.Provider value={accountAuth}>
-					<SmartArt3DContext.Provider value={effective3D.smartArt3D}>
-						<SurfaceChart3DContext.Provider value={effective3D.surfaceChart3D}>
-							<BarChart3DContext.Provider value={effective3D.barChart3D}>
-								<LineChart3DContext.Provider value={effective3D.lineChart3D}>
-									<AreaChart3DContext.Provider value={effective3D.areaChart3D}>
-										<PieChart3DContext.Provider value={effective3D.pieChart3D}>
-											<ViewerThemeProvider theme={effectiveTheme}>
-												<CollaborationProvider
-													config={collaboration}
-													canvasWidth={canvasSize.width}
-													canvasHeight={canvasSize.height}
-												>
-													<CollaborationDocumentSync
-														slides={slides}
-														templateElementsBySlideId={templateElementsBySlideId}
-														setSlides={state.setSlides}
-														content={content}
-														loadVersion={loadVersion}
-														loadOrigin={loadOrigin}
-														livePatcher={state.livePatcher}
-														onReadOnlyChange={setCollaborationReadOnly}
-														deckSaveState={{
-															headerFooter: state.headerFooter,
-															presentationProperties: state.presentationProperties,
-															viewProperties: state.viewProperties,
-															customShows: state.customShows,
-															sections: state.sections,
-															coreProperties: state.coreProperties,
-															appProperties: state.appProperties,
-															customProperties: state.customProperties,
-															tagCollections: state.tagCollections,
-															slideMasters: state.slideMasters,
-															notesMaster: state.notesMaster,
-															handoutMaster: state.handoutMaster,
-															slideSize: resolveSlideSizeSelection({
-																current: state.slideSizeEmu,
-																canvas: canvasSize,
-															}).size,
-															tableStyleMap: state.tableStyleMap,
-															tableStylesDefaultId: state.tableStylesDefaultId,
-															tableStylesToDelete: state.tableStylesToDelete,
-															embedFonts: dialogs.embedFontsEnabled,
-														}}
-													/>
-													<CollaborationFollowLayer
-														activeSlideIndex={activeSlideIndex}
-														setActiveSlideIndex={state.setActiveSlideIndex}
-														slideCount={slides.length}
-													/>
-													{viewerContent}
-												</CollaborationProvider>
-											</ViewerThemeProvider>
-										</PieChart3DContext.Provider>
-									</AreaChart3DContext.Provider>
-								</LineChart3DContext.Provider>
-							</BarChart3DContext.Provider>
-						</SurfaceChart3DContext.Provider>
-					</SmartArt3DContext.Provider>
+					<Rendering3DFlagsContext.Provider value={effective3D}>
+						<ViewerThemeProvider theme={effectiveTheme}>
+							<CollaborationProvider
+								config={collaboration}
+								canvasWidth={canvasSize.width}
+								canvasHeight={canvasSize.height}
+							>
+								<CollaborationDocumentSync
+									slides={slides}
+									templateElementsBySlideId={templateElementsBySlideId}
+									setSlides={state.setSlides}
+									content={content}
+									loadVersion={loadVersion}
+									loadOrigin={loadOrigin}
+									livePatcher={state.livePatcher}
+									onReadOnlyChange={setCollaborationReadOnly}
+									deckSaveState={{
+										headerFooter: state.headerFooter,
+										presentationProperties: state.presentationProperties,
+										viewProperties: state.viewProperties,
+										customShows: state.customShows,
+										sections: state.sections,
+										coreProperties: state.coreProperties,
+										appProperties: state.appProperties,
+										customProperties: state.customProperties,
+										tagCollections: state.tagCollections,
+										slideMasters: state.slideMasters,
+										notesMaster: state.notesMaster,
+										handoutMaster: state.handoutMaster,
+										slideSize: resolveSlideSizeSelection({
+											current: state.slideSizeEmu,
+											canvas: canvasSize,
+										}).size,
+										tableStyleMap: state.tableStyleMap,
+										tableStylesDefaultId: state.tableStylesDefaultId,
+										tableStylesToDelete: state.tableStylesToDelete,
+										embedFonts: dialogs.embedFontsEnabled,
+									}}
+								/>
+								<CollaborationFollowLayer
+									activeSlideIndex={activeSlideIndex}
+									setActiveSlideIndex={state.setActiveSlideIndex}
+									slideCount={slides.length}
+								/>
+								{viewerContent}
+							</CollaborationProvider>
+						</ViewerThemeProvider>
+					</Rendering3DFlagsContext.Provider>
 				</AccountAuthContext.Provider>
 			</ViewerOptionsContext.Provider>
 		);
