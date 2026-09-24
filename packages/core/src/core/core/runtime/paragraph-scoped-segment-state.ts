@@ -177,22 +177,30 @@ export function preserveParagraphScopedState(
 	if (!sourceSegments || sourceSegments.length === 0) {
 		return baseSegments;
 	}
-	const states = collectParagraphStates(sourceSegments);
-	if (states.every(isEmptyState)) {
-		return baseSegments;
-	}
 	// A soft line break (`a:br`) is paragraph-internal STRUCTURE rather than
 	// state: the flat string spells it "\n", exactly as it spells a paragraph
 	// terminator, so nothing rebuilt from that string can tell the two apart.
 	// While the text still matches the segments there is no edit to honour, so
 	// keep them verbatim instead of degrading every break into a paragraph
 	// split.
+	//
+	// This check MUST run before the "no paragraph-scope state" bailout below:
+	// a body whose paragraphs carry no `a:pPr` at all (every run shares one
+	// style, so every paragraph's state is empty) used to fall through that
+	// bailout straight to the flat-string path, which cannot distinguish a
+	// soft break from a paragraph terminator either way - so every `a:br`
+	// silently became a new paragraph on save (9 paragraphs became 11 on the
+	// `absolute-path-rels` fixture).
 	if (
 		baseSegments === undefined &&
 		sourceSegments.some((segment) => segment.isLineBreak) &&
 		concatenatedText(sourceSegments) === normalizeBreaks(text)
 	) {
 		return sourceSegments;
+	}
+	const states = collectParagraphStates(sourceSegments);
+	if (states.every(isEmptyState)) {
+		return baseSegments;
 	}
 	return assignParagraphStates(baseSegments ?? synthesizeParagraphSegments(text), states);
 }
