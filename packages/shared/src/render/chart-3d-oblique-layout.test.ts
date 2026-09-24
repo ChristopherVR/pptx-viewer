@@ -142,6 +142,35 @@ describe('computeObliqueBarLayout', () => {
 		expect(Math.abs(frontLeft.y - 442.5)).toBeLessThan(3);
 		expect(Math.abs(backRight.x - 870)).toBeLessThan(3);
 	});
+
+	it('matches PowerPoint on gt/chart-04 (standard rows) within 5pt', async () => {
+		const buf = readFileSync(
+			new URL('../../../../e2e/fixtures/three-d-parity/three-d-charts.pptx', import.meta.url),
+		);
+		const data = await new PptxHandler().load(
+			buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength),
+		);
+		const el = data.slides[3].elements.find((e) => e.type === 'chart');
+		if (!el) {
+			throw new Error('expected a chart on slide 4');
+		}
+		const vm = buildChartViewModel(el);
+		const layout = computeObliqueBarLayout(el, vm);
+		if (!layout) {
+			throw new Error('expected a layout');
+		}
+		const { w, h, d } = layout.box;
+		for (const [p, x, y] of [
+			[[0, 0, 0], 95, 430],
+			[[0, h, 0], 95, 215],
+			[[0, h, d], 248, 99.5],
+			[[w, h, d], 842, 100],
+		] as const) {
+			const s = obliqueToScreen(layout, p);
+			expect(Math.abs((el.x + (s.x * el.width) / vm.svgWidth) * 0.75 - x)).toBeLessThan(5);
+			expect(Math.abs((el.y + (s.y * el.height) / vm.svgHeight) * 0.75 - y)).toBeLessThan(5);
+		}
+	});
 });
 
 describe('oblique bar drag', () => {

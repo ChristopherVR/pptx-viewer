@@ -21,9 +21,9 @@
  * - The value axis has NO headroom: data topping out at exactly 5 gets a 0..5
  *   axis (a 2D chart would get 0..6).
  *
- * The box fills a plot region calibrated from the same exports. PowerPoint
- * sizes a multi-row (`standard`) box slightly smaller than the region; this
- * layout fills it, which draws `gt/chart-04` about 12% taller.
+ * The box fills a plot region calibrated from the same exports and is
+ * centred in it where it does not fill it (a multi-row `standard` box, whose
+ * height follows its width).
  *
  * @module chart-3d-oblique-layout
  */
@@ -45,14 +45,16 @@ export type { ObliqueLabel } from './chart-3d-oblique-labels';
 
 /** Points to chart px (96 dpi). */
 const PT = 4 / 3;
-/** Least room left either side of the label + box group. */
-const MARGIN_SIDE = 18 * PT;
+/** Least room left either side of the label + box group (`gt/chart-04`, the widest group, keeps ~10pt). */
+const MARGIN_SIDE = 10 * PT;
 /** PowerPoint centres the label + box group this far left of the frame centre. */
 const GROUP_CENTER_OFFSET = 3 * PT;
 /** Front-face height / width of a one-row column box (`gt/chart-01..03`). */
 const COLUMN_FRONT_ASPECT = 0.455;
-/** Projected height / width of a multi-row (`standard`) column box, depth included (`gt/chart-04`). */
+/** Projected height / width of a multi-row (`standard`) column box, depth included (`gt/chart-04`): sizes its width. */
 const COLUMN_PROJECTED_ASPECT = 0.476;
+/** Front-face height / width of a multi-row column box (`gt/chart-04`: 215 / 594pt). */
+const COLUMN_STANDARD_FRONT_ASPECT = 0.362;
 /** Category extent / value extent of a horizontal bar chart's box (`gt/chart-05..06`). */
 const HORIZONTAL_ASPECT = 0.483;
 const TOP_WITH_TITLE = 46.5 * PT;
@@ -214,9 +216,9 @@ export function computeObliqueBarLayout(
 	} else {
 		// Empirical, from PowerPoint's exports: a one-row box keeps its FRONT
 		// face at a fixed aspect (`gt/chart-01..03`, within 1%); a multi-row
-		// `standard` box instead keeps its whole projected outline at one
-		// (`gt/chart-04`'s width to within 0.5%; its height still comes out
-		// about 12% taller than PowerPoint's).
+		// `standard` box takes its width from its whole projected outline
+		// and its height from a flatter front face (`gt/chart-04`), and is
+		// centred in the region it no longer fills.
 		if (rows === 1) {
 			catExtent = regionH / (COLUMN_FRONT_ASPECT + depthPerCat * sinX);
 		} else {
@@ -229,7 +231,7 @@ export function computeObliqueBarLayout(
 		}
 		valueExtent = Math.min(
 			regionH - catExtent * depthPerCat * sinX,
-			rows === 1 ? catExtent * COLUMN_FRONT_ASPECT : Number.POSITIVE_INFINITY,
+			catExtent * (rows === 1 ? COLUMN_FRONT_ASPECT : COLUMN_STANDARD_FRONT_ASPECT),
 		);
 	}
 	const depth = catExtent * depthPerCat;
