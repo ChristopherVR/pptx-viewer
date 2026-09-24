@@ -49,6 +49,9 @@ function makeElement(chartType: string, id = `ch_${chartType}`): ChartPptxElemen
 			{ name: 'A', values: [10, 20] },
 			{ name: 'B', values: [15, 25] },
 		],
+		// `surface` covers both c:surfaceChart (2D top view) and c:surface3DChart;
+		// only the 3D one carries c:view3D, which is what gates the 3D view.
+		...(chartType === 'surface' ? { view3D: { rotX: 15, rotY: 20 } } : {}),
 	};
 	return { id, type: 'chart', x: 0, y: 0, width: 400, height: 300, chartData } as ChartPptxElement;
 }
