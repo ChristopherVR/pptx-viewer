@@ -102,12 +102,38 @@ function snapshotDataUrl(view: PptxThreeViewElement): string | null {
 	}
 }
 
+const FILL_CSS = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;';
+
+/**
+ * A light-DOM copy of the view's overlay layer: the chart chrome (title,
+ * legend, axes) and projected data labels a scene draws as DOM over its
+ * canvas. It lives in the shadow root, so a clone would otherwise lose it and
+ * the export would show bare marks.
+ */
+function overlayCopy(original: PptxThreeViewElement, doc: Document): HTMLElement | null {
+	const overlay = original.shadowRoot?.querySelector('.overlay');
+	if (!overlay || overlay.childNodes.length === 0) {
+		return null;
+	}
+	const copy = doc.createElement('div');
+	copy.setAttribute(THREE_VIEW_SNAPSHOT_ATTR, 'overlay');
+	copy.style.cssText = `${FILL_CSS}pointer-events:none;`;
+	for (const child of overlay.childNodes) {
+		copy.appendChild(doc.importNode(child, true));
+	}
+	return copy;
+}
+
 /**
  * Replace every `<pptx-three-view>` in `cloneRoot` with the live view's
- * current pixels. `originalRoot` is the live tree `cloneRoot` was cloned
- * from; views are paired in document order, so call this BEFORE anything
- * removes nodes from the clone. Views that are not ready are left alone
- * (their slotted 2D fallback is what gets captured).
+ * current pixels plus a copy of its DOM overlay. `originalRoot` is the live
+ * tree `cloneRoot` was cloned from; views are paired in document order, so
+ * call this BEFORE anything removes nodes from the clone. Views that are not
+ * ready are left alone (their slotted 2D fallback is what gets captured).
+ *
+ * Serves both raster paths: the `foreignObject` path passes its own
+ * `cloneNode(true)` copy, and html2canvas passes the element it cloned into
+ * its capture iframe (see `export/html2canvas-clone.ts`).
  */
 export function snapshotThreeViewsIntoClone(originalRoot: ParentNode, cloneRoot: ParentNode): void {
 	const originals = viewsUnder(originalRoot);
@@ -125,11 +151,13 @@ export function snapshotThreeViewsIntoClone(originalRoot: ParentNode, cloneRoot:
 		img.setAttribute(THREE_VIEW_SNAPSHOT_ATTR, 'true');
 		img.setAttribute('src', url);
 		img.setAttribute('alt', '');
-		img.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;display:block;';
-		clone.replaceChildren(img);
+		img.style.cssText = FILL_CSS;
+		const overlay = overlayCopy(original, doc);
+		const layers: Node[] = overlay ? [img, overlay] : [img];
+		clone.replaceChildren(...layers);
 		// html2canvas re-creates the host as a <div> WITH a cloned shadow root,
 		// which would paint instead of the light children: empty it too.
-		clone.shadowRoot?.replaceChildren(img.cloneNode(true));
+		clone.shadowRoot?.replaceChildren(...layers.map((layer) => layer.cloneNode(true)));
 		// The clone never upgrades (no shadow root, no :host rule), so pin the
 		// box the live element had.
 		const width = (original as HTMLElement).clientWidth;
