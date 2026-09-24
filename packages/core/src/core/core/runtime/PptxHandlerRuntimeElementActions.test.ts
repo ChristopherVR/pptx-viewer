@@ -379,12 +379,16 @@ describe('serializeSingleAction', () => {
 		expect(node['@_r:id']).toBe('rId10');
 	});
 
-	it('should not set @_r:id when both rId is undefined and resolver returns undefined', () => {
+	it('writes an empty @_r:id when both rId is undefined and resolver returns undefined', () => {
+		// Real PowerPoint always writes `r:id` on `a:hlinkClick`, even as an
+		// empty string, when the action has no backing relationship
+		// (COM-verified against `ppaction://media`/`ppaction://ole`/
+		// `ppaction://noaction`/`ppaction://hlinkshowjump` fixtures).
 		const cNvPr: XmlObject = {};
 		const action: PptxAction = { url: 'https://example.com' };
 		serializeSingleAction(cNvPr, 'a:hlinkClick', action, noopResolver);
 		const node = cNvPr['a:hlinkClick'] as XmlObject;
-		expect(node['@_r:id']).toBeUndefined();
+		expect(node['@_r:id']).toBe('');
 	});
 
 	it('should write action attribute', () => {
