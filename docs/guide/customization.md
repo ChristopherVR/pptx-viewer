@@ -1,6 +1,406 @@
+---
+title: UI Customization
+description: Hide, lock and remap any part of the viewer chrome from code - ribbon tabs and buttons, File > Options pages, sections and settings, the File tab, context menus, keyboard shortcuts, panels, features and dialogs - with one framework-neutral object that works the same in React, Vue, Angular, Svelte and Vanilla JS.
+---
+
 # UI Customization
 
+Every binding renders the same PowerPoint-style chrome: a ribbon, a File tab,
+a File > Options (Settings) dialog, right-click menus, a keyboard map, a slide
+rail, an inspector, a status bar and a handful of dialogs. Most embeddings do
+not need all of it. A kiosk wants no editing chrome at all; a corporate portal
+wants the AI assistant gone and the author name pinned to the signed-in user; a
+teaching tool wants a three-tab ribbon.
+
+All of that is one object, `ViewerCustomization`, which you pass to the viewer
+and can change at runtime:
+
+```ts
+import type { ViewerCustomization } from 'pptx-react-viewer'; // or vue / angular / svelte / vanilla
+
+const customization: ViewerCustomization = {
+	ribbon: { hiddenTabs: ['draw', 'record'], hiddenButtons: ['broadcast'] },
+	options: {
+		hiddenPages: ['trust', 'addIns'],
+		locked: { 'general.userName': 'Ada Lovelace' },
+		defaults: { 'advanced.showGrid': true },
+	},
+	contextMenu: { hiddenElementCommands: ['save-as-picture'] },
+	keyboard: { disabled: ['newSlide'], remap: { duplicate: 'Mod+Shift+D' } },
+	hiddenPanels: ['notes'],
+	disabledFeatures: ['ai'],
+	hiddenDialogs: ['broadcast'],
+	hiddenExportFormats: ['video', 'gif'],
+};
+```
+
+The object, its types, its id catalogues and the helper methods are identical
+in all five bindings. The logic lives once in the internal shared package, so a
+customisation that works in React works the same way in Svelte.
+
+[[toc]]
+
+## Concepts
+
+### Hide, lock, default
+
+There are three different things you can do to a setting in File > Options,
+and they compose:
+
+| You want                                             | Use                                                                 |
+| ---------------------------------------------------- | ------------------------------------------------------------------- |
+| The user never sees the setting                      | `options.hiddenSettings: ['general.userInitials']`                  |
+| The setting has a fixed value the user cannot change | `options.locked: { 'general.userName': 'Ada' }` (renders read-only) |
+| Both: a fixed value and no control at all            | put the id in `locked` **and** `hiddenSettings`                     |
+| A different starting value the user may still change | `options.defaults: { 'advanced.showGrid': true }`                   |
+
+- A **locked** value is forced into the options store immediately and every
+  later write to it is ignored, whichever path it comes from (the dialog, a
+  ribbon toggle that writes the same option, Reset). The control renders
+  disabled with the tooltip "This setting is managed by your organization".
+  Locked values are never written to the user's saved preferences, so removing
+  the lock gives the user back their own value.
+- A **default** replaces the built-in default for users who have not saved a
+  choice of their own, and becomes what Reset returns to. Host defaults are not
+  persisted either: change the default in a later release and every user who
+  never touched that setting follows it, while users who did keep their choice.
+
+### Derived rules
+
+Some ids switch off more than one entry point, so you do not have to list
+every button that opens a dialog. These rules are applied once, in the shared
+resolver:
+
+- `hiddenDialogs: ['share']` removes the Share button, the File > Share page
+  and the Share card. `['print']` removes File > Print and the Print card;
+  `['export']` removes the Export button and File > Export; `['options']`
+  removes File > Options.
+- `disabledFeatures: ['collaboration']` hides the Share and Broadcast dialogs
+  (and so all of the above for them).
+- `disabledFeatures: ['ai']` removes the AI toggle and panel, the "Ask AI" /
+  "Fix with AI" context-menu entries and the AI page of File > Options, even
+  when the host passes an `ai` config.
+- `disabledFeatures: ['comments']` removes the Add Comment context-menu entry.
+- `disabledFeatures: ['presentMode']` removes the Slide Show ribbon tab and the
+  F5 / Shift+F5 start-show shortcuts.
+- `hiddenExportFormats` removes individual File > Export cards; hiding all six
+  removes the Export button and page too.
+- An Options section that loses every control is removed; an Options page that
+  loses every section is removed. Menus repair their separators when the first
+  entry of a group is hidden.
+
+### Props and the imperative API
+
+Pass the object as the `customization` prop (input, option) to set it up
+front, and use the imperative helpers on the component handle to change it
+while the viewer is running. Every change re-renders the affected chrome
+immediately; nothing needs to be remounted.
+
+- The **prop replaces**: when you give the viewer a new `customization`
+  object, it becomes the whole customisation, discarding helper-method edits
+  made since. Keep the object stable (memoise it, or keep it in state) unless
+  you mean to replace it.
+- The **helpers merge**: `hideRibbonTab('draw')` adds one id to what is there.
+  `updateCustomization(patch)` merges one level deep (each section merges field
+  by field; a list you pass replaces that list).
+
+### Back-compat: `hiddenActions` and Customize Ribbon
+
+The older `hiddenActions` prop keeps working. It is unioned with
+`ribbon.hiddenTabs` and `ribbon.hiddenButtons`, so you can migrate at your own
+pace. The user's own File > Options > Customize Ribbon choices are unioned on
+top: a tab is shown only if neither the host nor the user hid it.
+
+## The imperative API
+
+Every binding exposes these methods on its component handle (React `ref`, Vue
+template ref, Angular component instance, Svelte `bind:this`, Vanilla instance):
+
+| Method                                                                  | Effect                                                                     |
+| ----------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `getCustomization()`                                                    | The current `ViewerCustomization` (a snapshot; do not mutate it).          |
+| `setCustomization(c)`                                                   | Replace the whole customisation.                                           |
+| `updateCustomization(patch)`                                            | Merge a partial customisation.                                             |
+| `resetCustomization()`                                                  | Back to the stock UI.                                                      |
+| `hideRibbonTab(id)` / `showRibbonTab(id)`                               | Toggle one ribbon tab.                                                     |
+| `hideToolbarButton(id)` / `showToolbarButton(id)`                       | Toggle one toolbar button or control cluster.                              |
+| `hideOptionsPage(id)` / `showOptionsPage(id)`                           | Toggle one File > Options page.                                            |
+| `hideOptionsSection(id)` / `showOptionsSection(id)`                     | Toggle one section of an Options page.                                     |
+| `hideSetting(id)` / `showSetting(id)`                                   | Toggle one setting.                                                        |
+| `lockSetting(id, value, hidden?)`                                       | Pin a setting to `value`; `hidden: true` also removes its control.         |
+| `unlockSetting(id)`                                                     | Remove a lock.                                                             |
+| `setSettingDefault(id, value)`                                          | Set a host default (`undefined` clears it).                                |
+| `hideBackstagePage(id)` / `showBackstagePage(id)`                       | Toggle one File tab page.                                                  |
+| `hideBackstageCard(id)` / `showBackstageCard(id)`                       | Toggle one File tab action card.                                           |
+| `hideContextMenuCommand(id)` / `showContextMenuCommand(id)`             | Toggle one element context-menu entry.                                     |
+| `hideCanvasContextMenuCommand(id)` / `showCanvasContextMenuCommand(id)` | Toggle one empty-canvas context-menu entry.                                |
+| `disableShortcut(id)` / `enableShortcut(id)`                            | Toggle one editor shortcut.                                                |
+| `remapShortcut(id, chords)`                                             | Move a command onto new chord(s); `undefined` restores the built-in chord. |
+| `setPanelVisible(id, visible)`                                          | Show or hide a chrome region.                                              |
+| `setFeatureEnabled(id, enabled)`                                        | Switch a feature area on or off.                                           |
+| `setDialogAvailable(id, available)`                                     | Allow or remove a dialog and its entry points.                             |
+
+### Shortcut chords
+
+A chord is `Modifier+Modifier+Key`: modifiers are `Mod` (Ctrl on Windows and
+Linux, Cmd on macOS), `Ctrl`, `Meta`, `Alt` and `Shift`; the key is a
+`KeyboardEvent.key` value such as `D`, `Delete`, `ArrowLeft` or `F2` (write
+`Plus` for `+`). Letters match case-insensitively. A remapped command stops
+answering to its built-in chord. Remapped chords keep every built-in guard:
+they never fire in a read-only viewer, during a slide show, while the user is
+typing in a text box, or (for selection commands) with nothing selected.
+`nudge` and `escape` can be disabled but not remapped.
+
+## Per-binding usage
+
+::: code-group
+
+```tsx [React]
+import { useMemo, useRef } from 'react';
+import { PowerPointViewer } from 'pptx-react-viewer';
+import type { PowerPointViewerHandle, ViewerCustomization } from 'pptx-react-viewer';
+
+export function Deck({ bytes }: { bytes: Uint8Array }) {
+	const viewer = useRef<PowerPointViewerHandle>(null);
+	// Memoise: a new object each render would replace helper edits.
+	const customization = useMemo<ViewerCustomization>(
+		() => ({ ribbon: { hiddenTabs: ['draw'] }, disabledFeatures: ['ai'] }),
+		[],
+	);
+	return (
+		<>
+			<button onClick={() => viewer.current?.hideRibbonTab('insert')}>Hide Insert</button>
+			<PowerPointViewer ref={viewer} content={bytes} canEdit customization={customization} />
+		</>
+	);
+}
+```
+
+```vue [Vue]
+<script setup lang="ts">
+import { ref } from 'vue';
+import { PowerPointViewer } from 'pptx-vue-viewer';
+import type { PowerPointViewerExpose, ViewerCustomization } from 'pptx-vue-viewer';
+
+defineProps<{ bytes: Uint8Array }>();
+const viewer = ref<PowerPointViewerExpose | null>(null);
+const customization: ViewerCustomization = {
+	ribbon: { hiddenTabs: ['draw'] },
+	disabledFeatures: ['ai'],
+};
+</script>
+
+<template>
+	<button @click="viewer?.hideRibbonTab('insert')">Hide Insert</button>
+	<PowerPointViewer ref="viewer" :content="bytes" can-edit :customization="customization" />
+</template>
+```
+
+```ts [Angular]
+import { Component, viewChild } from '@angular/core';
+import { PowerPointViewerComponent } from 'pptx-angular-viewer';
+import type { ViewerCustomization } from 'pptx-angular-viewer';
+
+@Component({
+	selector: 'app-deck',
+	imports: [PowerPointViewerComponent],
+	template: `
+		<button (click)="viewer()?.hideRibbonTab('insert')">Hide Insert</button>
+		<pptx-viewer #viewer [content]="bytes" [canEdit]="true" [customization]="customization" />
+	`,
+})
+export class DeckComponent {
+	bytes: Uint8Array | null = null;
+	readonly viewer = viewChild<PowerPointViewerComponent>('viewer');
+	readonly customization: ViewerCustomization = {
+		ribbon: { hiddenTabs: ['draw'] },
+		disabledFeatures: ['ai'],
+	};
+}
+```
+
+```svelte [Svelte]
+<script lang="ts">
+	import { PowerPointViewer } from 'pptx-svelte-viewer';
+	import type { ViewerCustomization } from 'pptx-svelte-viewer';
+
+	let { bytes }: { bytes: Uint8Array } = $props();
+	let viewer: ReturnType<typeof PowerPointViewer> | undefined = $state();
+	const customization: ViewerCustomization = {
+		ribbon: { hiddenTabs: ['draw'] },
+		disabledFeatures: ['ai'],
+	};
+</script>
+
+<button onclick={() => viewer?.hideRibbonTab('insert')}>Hide Insert</button>
+<PowerPointViewer bind:this={viewer} source={bytes} editable {customization} />
+```
+
+```ts [Vanilla]
+import { createPptxViewer } from 'pptx-vanilla-viewer';
+import type { ViewerCustomization } from 'pptx-vanilla-viewer';
+
+const customization: ViewerCustomization = {
+	ribbon: { hiddenTabs: ['draw'] },
+	disabledFeatures: ['ai'],
+};
+const viewer = createPptxViewer(document.getElementById('deck')!, {
+	source: bytes,
+	editable: true,
+	customization,
+});
+
+document.getElementById('hide-insert')!.addEventListener('click', () => {
+	viewer.hideRibbonTab('insert');
+});
+```
+
+:::
+
+## Recipes
+
+### Kiosk: a viewer with no editing chrome
+
+Read-only already hides the editing commands; this also removes everything a
+kiosk visitor could wander into.
+
+```ts
+const kiosk: ViewerCustomization = {
+	ribbon: {
+		hiddenTabs: [
+			'file',
+			'home',
+			'insert',
+			'draw',
+			'design',
+			'transitions',
+			'animations',
+			'record',
+			'review',
+			'view',
+			'help',
+		],
+		hiddenButtons: ['share', 'broadcast', 'export', 'undo', 'redo', 'record'],
+	},
+	hiddenPanels: ['inspector', 'notes', 'quickAccessToolbar'],
+	disabledFeatures: ['ai', 'collaboration', 'comments'],
+	hiddenDialogs: ['options', 'print', 'export'],
+	contextMenu: { disableElementMenu: true, disableCanvasMenu: true },
+	keyboard: { disableAll: true },
+};
+```
+
+Leave `slideShow` (and the `navigation` and `fullscreen` buttons) visible so
+visitors can still present.
+
+### Hide the Settings pages users do not need
+
+```ts
+const settings: ViewerCustomization = {
+	options: {
+		hiddenPages: ['proofing', 'addIns', 'trust', 'quickAccess', 'ribbon'],
+		hiddenSections: ['general.startup', 'save.cache', 'advanced.print'],
+		hiddenSettings: ['advanced.disableHardwareAcceleration'],
+	},
+};
+```
+
+To remove File > Options entirely, use `hiddenDialogs: ['options']`.
+
+### Pin the user identity, locale and theme
+
+The author name comes from the signed-in user and must not be edited:
+
+```ts
+viewer.lockSetting('general.userName', currentUser.displayName);
+viewer.lockSetting('general.userInitials', currentUser.initials, true); // locked and hidden
+```
+
+Locale and theme are host props rather than Options settings. Pin them with
+your binding's locale and theme props (`defaultLocale` / `locale`,
+`theme` / `defaultThemeKey`, see the [Localization](/guide/localization) and
+[Theming](/guide/theming) guides), then remove the pickers:
+
+```ts
+const pinned: ViewerCustomization = {
+	options: {
+		hiddenPages: ['language'], // the display-language picker
+		hiddenSections: ['general.appearance'], // the viewer theme picker
+	},
+};
+```
+
+### Remove AI and collaboration
+
+```ts
+const noCloud: ViewerCustomization = { disabledFeatures: ['ai', 'collaboration'] };
+```
+
+With `ai` disabled the assistant stays off even if an `ai` config is passed,
+which lets one build ship to tenants with and without the add-on:
+
+```ts
+viewer.setFeatureEnabled('ai', tenant.hasAiAddOn);
+```
+
+### Trim the ribbon to a minimal set
+
+```ts
+import { RIBBON_TAB_IDS } from 'pptx-react-viewer';
+
+const keep = new Set(['file', 'home', 'insert']);
+const minimal: ViewerCustomization = {
+	ribbon: {
+		hiddenTabs: RIBBON_TAB_IDS.filter((id) => !keep.has(id)),
+		hiddenButtons: ['broadcast', 'record'],
+	},
+};
+```
+
+### Company shortcuts
+
+```ts
+const keys: ViewerCustomization = {
+	keyboard: {
+		disabled: ['newSlide', 'toggleShortcuts'],
+		remap: { duplicate: 'Mod+Shift+D', group: ['Mod+G', 'Alt+G'] },
+	},
+};
+```
+
+### Build your own admin screen
+
+Every id list is exported as a runtime array, alongside the types:
+`RIBBON_TAB_IDS`, `TOOLBAR_BUTTON_IDS`, `OPTIONS_PAGE_IDS`,
+`OPTIONS_SECTION_IDS`, `OPTIONS_SETTING_IDS`, `BACKSTAGE_PAGE_IDS`,
+`BACKSTAGE_CARD_IDS`, `ELEMENT_CONTEXT_MENU_COMMAND_IDS`,
+`CANVAS_CONTEXT_MENU_COMMAND_IDS`, `EDITOR_SHORTCUT_ACTION_IDS`,
+`VIEWER_PANEL_IDS`, `VIEWER_FEATURE_IDS`, `VIEWER_DIALOG_IDS` and
+`VIEWER_EXPORT_FORMAT_IDS`. Render checkboxes from them, store the resulting
+object per tenant, and feed it back through `setCustomization`.
+
+## What is not customisable yet
+
+- **Individual ribbon groups and controls inside a tab.** Tabs and the
+  top-level toolbar buttons are customisable; the groups inside a tab (Home >
+  Font, Insert > Media, ...) are hand-built per binding and have no shared id
+  catalogue yet, so they cannot be addressed without the bindings drifting.
+- **The slide-show, slide-sorter and presenter keymaps.** `keyboard` covers the
+  editor keymap. The only show key it affects is F5 / Shift+F5, through the
+  `presentMode` feature.
+- **The keyboard-shortcut reference** (the `?` overlay and Options > Customize
+  Ribbon > Keyboard Shortcuts) lists the built-in chords, not your remaps. Hide
+  it with `keyboard.disabled: ['toggleShortcuts']` and
+  `options.hiddenSections: ['ribbon.shortcutReference']` if that matters.
+- **Inspector sections** and the slide rail's own context menu are not
+  addressable individually; hide the whole region with `hiddenPanels`.
+- **Mobile layouts** honour ribbon, menu, dialog and feature customisation,
+  but the mobile bottom sheets have no panel ids of their own.
+
 ## Reference
+
+Generated from the shared id catalogues (`bun run docs:customization`); a
+unit test fails if an id is missing here.
 
 <!-- customization-reference:start -->
 

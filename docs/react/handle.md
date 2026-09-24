@@ -195,6 +195,37 @@ image format round-trips in PowerPoint. No automatic paste listener is installed
 | `selectElements`        | `(ids: string[]) => void` | Programmatically select elements by ID. |
 | `clearSelection`        | `() => void`              | Clear the current selection.            |
 
+## UI customization {#ui-customization}
+
+The handle also carries the whole `ViewerCustomizationApi`, so the chrome can
+be customised while the viewer runs. Each call re-renders the affected UI
+immediately.
+
+```ts
+viewerRef.current?.hideRibbonTab('draw');
+viewerRef.current?.lockSetting('general.userName', 'Ada Lovelace');
+viewerRef.current?.hideContextMenuCommand('delete');
+viewerRef.current?.remapShortcut('duplicate', 'Mod+Shift+D');
+viewerRef.current?.setFeatureEnabled('ai', false);
+viewerRef.current?.setPanelVisible('notes', false);
+viewerRef.current?.updateCustomization({ hiddenDialogs: ['print'] });
+const current = viewerRef.current?.getCustomization();
+```
+
+| Method                                                                                               | Effect                                                         |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `getCustomization()` / `setCustomization(c)` / `updateCustomization(patch)` / `resetCustomization()` | Read, replace, merge or clear the whole `ViewerCustomization`. |
+| `hideRibbonTab` / `showRibbonTab`, `hideToolbarButton` / `showToolbarButton`                         | Ribbon tabs and top-level toolbar buttons.                     |
+| `hideOptionsPage`, `hideOptionsSection`, `hideSetting` (and `show*`)                                 | File > Options pages, sections and settings.                   |
+| `lockSetting(id, value, hidden?)` / `unlockSetting(id)` / `setSettingDefault(id, value)`             | Pin a setting (read-only or hidden) or set a host default.     |
+| `hideBackstagePage` / `hideBackstageCard` (and `show*`)                                              | File tab pages and action cards.                               |
+| `hideContextMenuCommand` / `hideCanvasContextMenuCommand` (and `show*`)                              | Element and empty-canvas right-click entries.                  |
+| `disableShortcut` / `enableShortcut` / `remapShortcut`                                               | Editor keyboard shortcuts.                                     |
+| `setPanelVisible`, `setFeatureEnabled`, `setDialogAvailable`                                         | Panels, feature areas (AI, collaboration, ...) and dialogs.    |
+
+The full id reference and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Example: external controls
 
 ```tsx

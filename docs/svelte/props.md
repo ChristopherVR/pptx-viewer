@@ -116,6 +116,21 @@ snapshot's bytes; Discard deletes it. It is deliberately not raised for a snapsh
 already taken delivery of (for example when the host itself restored it through
 `restoreSessionDeck`).
 
+## UI customization {#ui-customization}
+
+| Prop            | Type                  | Default | Description                                                                                                                                                                                                                                                                                                                                      |
+| --------------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `customization` | `ViewerCustomization` | -       | Hide, lock or remap any part of the chrome: ribbon tabs and buttons, File > Options pages, sections and settings (lock a value, set a default), File tab pages and cards, context-menu entries, editor shortcuts, panels, features (AI, collaboration) and dialogs. Unioned with `hiddenActions`. A new object replaces the whole customisation. |
+
+```svelte
+<PowerPointViewer source={bytes} editable customization={{ ribbon: { hiddenTabs: ['draw'] }, disabledFeatures: ['ai'] }} />
+```
+
+The same helpers (`hideRibbonTab`, `lockSetting`, `remapShortcut`, ...) are
+available on `bind:this` to change it at runtime; see [the API page](/svelte/api#ui-customization).
+Every id, the rules and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Collaboration
 
 See [Collaboration](/svelte/collaboration) for the config shape and transports.

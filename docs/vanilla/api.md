@@ -456,6 +456,37 @@ As with every other binding's `internals` entry, this is not covered by semver: 
 when the public `pptx-vanilla-viewer` API genuinely cannot do what you need, and pin an exact
 version if you depend on it.
 
+## UI customization {#ui-customization}
+
+The handle also carries the whole `ViewerCustomizationApi`, so the chrome can
+be customised while the viewer runs. Each call re-renders the affected UI
+immediately.
+
+```ts
+viewer.hideRibbonTab('draw');
+viewer.lockSetting('general.userName', 'Ada Lovelace');
+viewer.hideContextMenuCommand('delete');
+viewer.remapShortcut('duplicate', 'Mod+Shift+D');
+viewer.setFeatureEnabled('ai', false);
+viewer.setPanelVisible('notes', false);
+viewer.updateCustomization({ hiddenDialogs: ['print'] });
+const current = viewer.getCustomization();
+```
+
+| Method                                                                                               | Effect                                                         |
+| ---------------------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `getCustomization()` / `setCustomization(c)` / `updateCustomization(patch)` / `resetCustomization()` | Read, replace, merge or clear the whole `ViewerCustomization`. |
+| `hideRibbonTab` / `showRibbonTab`, `hideToolbarButton` / `showToolbarButton`                         | Ribbon tabs and top-level toolbar buttons.                     |
+| `hideOptionsPage`, `hideOptionsSection`, `hideSetting` (and `show*`)                                 | File > Options pages, sections and settings.                   |
+| `lockSetting(id, value, hidden?)` / `unlockSetting(id)` / `setSettingDefault(id, value)`             | Pin a setting (read-only or hidden) or set a host default.     |
+| `hideBackstagePage` / `hideBackstageCard` (and `show*`)                                              | File tab pages and action cards.                               |
+| `hideContextMenuCommand` / `hideCanvasContextMenuCommand` (and `show*`)                              | Element and empty-canvas right-click entries.                  |
+| `disableShortcut` / `enableShortcut` / `remapShortcut`                                               | Editor keyboard shortcuts.                                     |
+| `setPanelVisible`, `setFeatureEnabled`, `setDialogAvailable`                                         | Panels, feature areas (AI, collaboration, ...) and dialogs.    |
+
+The full id reference and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Teardown
 
 | Method    | Signature    | Description                                                |

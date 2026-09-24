@@ -112,6 +112,21 @@ viewer raises a **"Recover unsaved changes?"** dialog offering Restore or Discar
 />
 ```
 
+## UI customization {#ui-customization}
+
+| Input             | Type                  | Default | Description                                                                                                                                                                                                                                                                                                                                      |
+| ----------------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `[customization]` | `ViewerCustomization` | -       | Hide, lock or remap any part of the chrome: ribbon tabs and buttons, File > Options pages, sections and settings (lock a value, set a default), File tab pages and cards, context-menu entries, editor shortcuts, panels, features (AI, collaboration) and dialogs. Unioned with `hiddenActions`. A new object replaces the whole customisation. |
+
+```html
+<pptx-viewer [content]="bytes" [canEdit]="true" [customization]="customization" />
+```
+
+The same helpers (`hideRibbonTab`, `lockSetting`, `remapShortcut`, ...) are
+available on the component instance to change it at runtime; see [the API page](/angular/api#ui-customization).
+Every id, the rules and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Collaboration
 
 These inputs enable and control real-time co-editing. See [Collaboration](/angular/collaboration)
