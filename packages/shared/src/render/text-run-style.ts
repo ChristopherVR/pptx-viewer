@@ -23,6 +23,7 @@ import type { RunFontSpec } from './text-metric-tracking';
 import { resolveMetricTrackingPx } from './text-metric-tracking';
 import { hollowTextFillStyle } from './text-run-hollow';
 import { authoredLetterSpacingPx, pieceLetterSpacing } from './text-run-spacing';
+import { scaleFontSizeForAutoFit } from './text-style-helpers';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -214,7 +215,11 @@ export function segmentStyleToCss(
 	// editor). Appending `pt` inflates every run by ~1.33×.
 	if (typeof s.fontSize === 'number') {
 		const scale = baselineShift ? BASELINE_FONT_SCALE : 1;
-		style.fontSize = `${s.fontSize * fontScale * scale}px`;
+		// Round the `fontScale` multiply to the nearest whole point BEFORE the
+		// (unrelated) super/subscript shrink, matching PowerPoint's own
+		// whole-point rounding of a `normAutofit`-shrunk run. See
+		// `scaleFontSizeForAutoFit`'s doc comment for the COM ground truth.
+		style.fontSize = `${scaleFontSizeForAutoFit(s.fontSize, fontScale) * scale}px`;
 	}
 	if (baselineShift) {
 		style.verticalAlign = baselineShift;

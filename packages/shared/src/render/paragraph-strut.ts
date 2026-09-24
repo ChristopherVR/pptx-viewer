@@ -1,5 +1,7 @@
 import type { TextSegment } from 'pptx-viewer-core';
 
+import { scaleFontSizeForAutoFit } from './text-style-helpers';
+
 /**
  * Font size (px) that a paragraph's CSS line box should be built from, or
  * `undefined` when the paragraph declares nothing of its own.
@@ -69,5 +71,5 @@ export function resolveParagraphStrutFontSize(
 	if (typeof bodyFontSize === 'number' && Math.abs(smallest - bodyFontSize) < 0.01) {
 		return undefined;
 	}
-	return smallest * fontScale;
+	return scaleFontSizeForAutoFit(smallest, fontScale);
 }

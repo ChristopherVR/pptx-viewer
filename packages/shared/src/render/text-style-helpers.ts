@@ -241,6 +241,28 @@ export function resolveAutoFitFontScale(textStyle: TextStyle | undefined): numbe
 }
 
 /**
+ * Apply a `normAutofit` `fontScale` to an authored font size, rounded the way
+ * PowerPoint itself rounds: to the nearest WHOLE POINT, not a fractional one.
+ *
+ * COM-measured ground truth (`audit-text` corpus): a 28pt run under
+ * `fontScale="62500"` (62.5%) renders at 18pt in PowerPoint, not 17.5pt; under
+ * `fontScale="40000"` (40%) it renders at 11pt, not 11.2pt. PowerPoint never
+ * displays a fractional point size, so it rounds the scaled result before
+ * painting, and every caller that multiplies a run's own size by this scale
+ * has to round the same way or drift from the reference by up to half a
+ * point on every shrunk run. `Math.round` matches both examples
+ * (28 * 0.625 = 17.5 -> 18, half rounds up; 28 * 0.4 = 11.2 -> 11).
+ *
+ * A `fontScale` of `1` (autofit off, or out of range per
+ * {@link resolveAutoFitFontScale}) is a no-op and returns `fontSize`
+ * unrounded, so a body that never shrinks keeps sub-point authored sizes
+ * (e.g. a theme default of 10.5pt) exactly as authored.
+ */
+export function scaleFontSizeForAutoFit(fontSize: number, fontScale: number): number {
+	return fontScale === 1 ? fontSize : Math.round(fontSize * fontScale);
+}
+
+/**
  * Compute the auto-fit font-size / line-height overrides for a text block.
  *
  * ECMA-376 (§21.1.2.1.1 / §21.1.2.1.2) gives the two autofit modes opposite
@@ -281,7 +303,7 @@ export function computeAutoFitTextStyle(input: AutoFitInput): AutoFitResult {
 		ts.autoFitFontScale > 0 &&
 		ts.autoFitFontScale < 1
 	) {
-		result.fontSize = Math.max(6, Math.round(baseFontSize * ts.autoFitFontScale));
+		result.fontSize = Math.max(6, scaleFontSizeForAutoFit(baseFontSize, ts.autoFitFontScale));
 	}
 
 	// normAutofit with lnSpcReduction: reduce line height. Also `spAutoFit`-safe
