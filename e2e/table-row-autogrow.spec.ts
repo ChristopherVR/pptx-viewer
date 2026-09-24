@@ -43,12 +43,19 @@ test('a table whose rows auto-grow past the authored frame renders every row, un
 	const cellBox = await lastRowCell.boundingBox();
 	expect(cellBox).not.toBeNull();
 
-	const containerId = await lastRowCell.evaluate(
-		(el) => el.closest('[data-element-id]')?.getAttribute('data-element-id') ?? null,
-	);
-	expect(containerId).toBeTruthy();
-	const container = page.locator(`[data-element-id="${containerId}"]`).first();
-	const containerBox = await container.boundingBox();
+	// Measure the wrapper that actually holds this cell. A page-wide
+	// `[data-element-id=...]` lookup is ambiguous: the slide rail's
+	// thumbnail renders the same element id, and in vanilla that thumbnail
+	// copy comes first in the DOM, so `.first()` measured the (smaller)
+	// thumbnail wrapper instead of the stage one.
+	const containerBox = await lastRowCell.evaluate((el) => {
+		const wrapper = el.closest('[data-element-id]');
+		if (!wrapper) {
+			return null;
+		}
+		const rect = wrapper.getBoundingClientRect();
+		return { y: rect.y, height: rect.height };
+	});
 	expect(containerBox).not.toBeNull();
 
 	// The last row's cell must end at or before the bottom of the element
