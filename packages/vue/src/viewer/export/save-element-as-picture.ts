@@ -1,4 +1,8 @@
-import { elementPictureFilename, saveElementAsPicture } from 'pptx-viewer-shared';
+import {
+	elementPictureFilename,
+	findCanvasElementNode,
+	saveElementAsPicture,
+} from 'pptx-viewer-shared';
 
 import { renderToCanvas } from '../../lib/canvas-export';
 
@@ -22,7 +26,7 @@ export async function saveContextMenuElementAsPicture(
 	elementName: string | undefined,
 	fallbackLabel: string,
 ): Promise<void> {
-	const node = document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+	const node = findCanvasElementNode(document, elementId);
 	if (!node) {
 		return;
 	}

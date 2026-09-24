@@ -11,7 +11,7 @@
 import { ChangeDetectionStrategy, Component, effect, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { PASTE_SPECIAL_OPTIONS } from '../internal/shared';
+import { findCanvasElementNode, PASTE_SPECIAL_OPTIONS } from '../internal/shared';
 import type { PasteSpecialFormat } from '../internal/shared';
 
 @Component({
@@ -104,7 +104,7 @@ export class PasteOptionsToolbarComponent {
 	}
 
 	private measure(id: string): void {
-		const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
+		const node = findCanvasElementNode(document, id, { canvasOnly: true });
 		if (!node) {
 			this.rect.set(null);
 			return;

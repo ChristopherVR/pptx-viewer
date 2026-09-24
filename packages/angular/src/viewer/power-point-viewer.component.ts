@@ -47,6 +47,7 @@ import {
 	observeElementHeight,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	findCanvasElementNode,
 	recoverySnapshotIntent,
 	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
@@ -3225,7 +3226,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		if (!element) {
 			return;
 		}
-		const node = document.querySelector<HTMLElement>(`[data-element-id="${element.id}"]`);
+		const node = findCanvasElementNode(document, element.id);
 		if (!node) {
 			return;
 		}
@@ -3275,7 +3276,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		elementId: string,
 		sourceClone: PptxElement,
 	): Promise<void> {
-		const node = document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+		const node = findCanvasElementNode(document, elementId);
 		if (!node) {
 			return;
 		}

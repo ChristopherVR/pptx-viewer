@@ -28,6 +28,7 @@ import {
 	fixture,
 	loadDeckAt,
 	openRibbonTab,
+	ribbon,
 	SAMPLE_DECK,
 	selectElement,
 	slideElements,
@@ -55,7 +56,10 @@ test.describe('cross-binding ribbon animation preview', () => {
 			testInfo,
 			async (page, origin) => {
 				await openAnimatedShapeInRibbon(page, origin);
-				const preview = page.getByRole('button', { name: 'Preview', exact: true });
+				// Scoped to the ribbon: an animated selection also opens the
+				// inspector's animation panel, which has a Preview button of its
+				// own, so an unscoped role query matched two buttons.
+				const preview = ribbon(page).getByRole('button', { name: 'Preview', exact: true });
 				await preview.click();
 
 				const target = elementWithText(page, EFFECT_SOUND_SHAPE_TEXT);
@@ -108,7 +112,7 @@ test.describe('cross-binding ribbon animation preview', () => {
 				await loadDeckAt(page, origin, SAMPLE_DECK);
 				await selectElement(page, slideElements(page).first());
 				await openRibbonTab(page, 'Animations');
-				const preview = page.getByRole('button', { name: 'Preview', exact: true });
+				const preview = ribbon(page).getByRole('button', { name: 'Preview', exact: true });
 				return { disabled: await preview.isDisabled() };
 			},
 			{ viewport: VIEWPORT },

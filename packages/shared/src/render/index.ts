@@ -1246,6 +1246,7 @@ export * from './context-menu-commands';
 // Background, Grid and Guides, Ruler): distinct command set from the
 // per-element menu above, offered when the right-click hits no element.
 export * from './canvas-context-menu-commands';
+export * from './canvas-element-node';
 // Which inspector section a "format object" command (Edit Alt Text, Size and
 // Position, Format Shape) should scroll into view once the properties tab is open.
 export * from './context-menu-inspector-anchor';

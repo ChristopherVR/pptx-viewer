@@ -27,6 +27,7 @@ import type { PptxElementAnimation } from 'pptx-viewer-core';
 
 import type { AnimationPreviewDescriptor } from './animation-preview';
 import { buildPreviewAnimation } from './animation-preview';
+import { findCanvasElementNode } from './canvas-element-node';
 import { buildMotionPathPreview } from './motion-path-authoring';
 
 /** Slide size assumed when the stage cannot be measured (detached documents). */
@@ -84,9 +85,8 @@ export function playAnimationRibbonPreview(
 	if (!animation) {
 		return;
 	}
-	const target = doc.querySelector<HTMLElement>(
-		`[data-element-id="${CSS.escape(animation.elementId)}"]`,
-	);
+	// The canvas copy, not a slides-pane thumbnail's (see canvas-element-node).
+	const target = findCanvasElementNode(doc, animation.elementId);
 	if (!target) {
 		return;
 	}

@@ -7,7 +7,7 @@
 	 * menu.
 	 */
 	import type { PasteSpecialFormat } from 'pptx-viewer-shared';
-	import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
+	import { findCanvasElementNode, PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../i18n/context';
 
 	const { elementId, onchoose, ondismiss }: {
@@ -31,7 +31,7 @@
 		}
 		let removeListeners: (() => void) | undefined;
 		const frame = requestAnimationFrame(() => {
-			const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
+			const node = findCanvasElementNode(document, id, { canvasOnly: true });
 			if (!node) {
 				rect = null;
 				return;

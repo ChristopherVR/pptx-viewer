@@ -1,5 +1,9 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { buildRasterPictureElement, rasterizeElementToDataUrl } from 'pptx-viewer-shared';
+import {
+	buildRasterPictureElement,
+	findCanvasElementNode,
+	rasterizeElementToDataUrl,
+} from 'pptx-viewer-shared';
 
 import { renderToCanvas } from './render-to-canvas';
 
@@ -18,7 +22,7 @@ export async function rasterizePastedElementAsPicture(
 	elementId: string,
 	sourceClone: PptxElement,
 ): Promise<PptxElement | null> {
-	const node = document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+	const node = findCanvasElementNode(document, elementId);
 	if (!node) {
 		return null;
 	}
