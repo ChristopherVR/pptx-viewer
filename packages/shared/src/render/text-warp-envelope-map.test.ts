@@ -41,22 +41,24 @@ describe('createEnvelopeWarp', () => {
 		}
 	});
 
-	it('places horizontal position by arc length along the cylinder (COM-pinned)', () => {
-		// PowerPoint COM, 2026-09-24: 12 Arial `I` stems in a 600x200pt
-		// `textCanUp` box at adj 66667. Left edge of each stem in the flat
-		// (unwarped) block vs. where PowerPoint drew it, both as box fractions.
+	it('places horizontal position at a plain linear fraction of box width (COM-remeasured 2026-09-24)', () => {
+		// PowerPoint COM: an 8-stem Arial "I" caption in a 320x110pt `textCanUp`/
+		// `textCanDown` box measured BIT-IDENTICAL stem positions at adj 15000
+		// and adj 50000 (very different curve steepness), which a
+		// curvature-sensitive law (the arc-length hypothesis this replaced)
+		// cannot produce; only a law independent of curve shape can. This pins
+		// that the mapping's horizontal component is exactly `s * width`.
 		const warp = createEnvelopeWarp('textCanUp', 600, 200, 66667, undefined, BLOCK)!;
-		const pinned: [number, number][] = [
-			[0.0892, 0.0717],
-			[0.1762, 0.1608],
-			[0.2654, 0.2537],
-			[0.3525, 0.3454],
-			[0.4412, 0.4396],
-			[0.7046, 0.7171],
-			[0.8808, 0.9004],
-		];
-		for (const [flat, measured] of pinned) {
-			expect(Math.abs(warp.map(flat, 0.5).x / 600 - measured)).toBeLessThan(0.003);
+		for (const s of [0, 0.0892, 0.2654, 0.5, 0.7046, 0.8808, 1]) {
+			expect(warp.map(s, 0.5).x).toBeCloseTo(s * 600, 6);
+		}
+	});
+
+	it('keeps the horizontal mapping independent of adj (COM-remeasured 2026-09-24)', () => {
+		const low = createEnvelopeWarp('textCanUp', 600, 200, 15000, undefined, BLOCK)!;
+		const high = createEnvelopeWarp('textCanUp', 600, 200, 85000, undefined, BLOCK)!;
+		for (const s of [0.1, 0.35, 0.5, 0.8]) {
+			expect(low.map(s, 0.5).x).toBeCloseTo(high.map(s, 0.5).x, 6);
 		}
 	});
 
