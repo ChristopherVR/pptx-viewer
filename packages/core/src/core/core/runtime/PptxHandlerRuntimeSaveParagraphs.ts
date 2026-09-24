@@ -87,8 +87,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
 		};
 
-		const createTextNode = (value: string): string | XmlObject =>
-			/^[\t\n\r ]|[\t\n\r ]$/.test(value) ? { '@_xml:space': 'preserve', '#text': value } : value;
+		// `xml:space="preserve"` is NOT a usable signal for `a:t` (see
+		// `utils/xml-whitespace.ts`): it appears zero times across the corpus of
+		// real decks in this repository, including ones PowerPoint itself
+		// wrote, because XML preserves text-node whitespace by default and the
+		// OOXML parser here runs with `trimValues: false` plus its own
+		// whitespace-preserving allow-list, so nothing depends on the
+		// attribute for round-tripping. Stamping it anyway materialized an
+		// attribute the source never had on every run with boundary
+		// whitespace whenever the shape's paragraphs were rewritten, even
+		// when that specific run's text was untouched.
+		const createTextNode = (value: string): string | XmlObject => value;
 
 		const createRun = (runText: string, style: TextStyle | undefined) => ({
 			'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),

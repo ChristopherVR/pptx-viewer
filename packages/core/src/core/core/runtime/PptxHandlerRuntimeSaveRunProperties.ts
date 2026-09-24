@@ -371,39 +371,52 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// well as by authoring, so a CJK deck whose runs carried no `a:ea` still
 		// round-tripped 0 -> 19 of them, resolved off the theme's `a:ea` and
 		// therefore no longer following it. `owns(...)` closes that half.
+		//
+		// The `@panose`/`@pitchFamily`/`@charset` metadata is gated SEPARATELY
+		// from the typeface: `segmentStyle` is assembled as
+		// `{...runScopedTextStyle, ...segment.style, ...uniformSegmentOverrides}`
+		// (`PptxHandlerRuntimeSaveParagraphs`), so a metadata field this run's
+		// OWN font node never set is not overridden by that spread and can leak
+		// in from ANOTHER run's resolved metadata via `runScopedTextStyle`.
+		// Measured on a real deck: a run whose own `<a:ea typeface="Abraham
+		// Lincoln"/>` carried no panose came back with `panose="0201…"`, the
+		// PANOSE of an unrelated CJK font ("宋体") used elsewhere in the same
+		// shape. Gating each metadata field by its own key stops a leaked value
+		// (which cannot differ from the SAME leaked baseline) from passing as
+		// authored.
 		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
 		if (latinFace && owns('fontFamily', 'latinFontThemeToken')) {
 			runProps['a:latin'] = applyFontMetadata(
 				{ '@_typeface': latinFace },
-				style.latinFontPanose,
-				style.latinFontPitchFamily,
-				style.latinFontCharset,
+				owns('latinFontPanose') ? style.latinFontPanose : undefined,
+				owns('latinFontPitchFamily') ? style.latinFontPitchFamily : undefined,
+				owns('latinFontCharset') ? style.latinFontCharset : undefined,
 			);
 		}
 		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
 		if (eastAsiaFace && owns('eastAsiaFont', 'eastAsiaFontThemeToken')) {
 			runProps['a:ea'] = applyFontMetadata(
 				{ '@_typeface': eastAsiaFace },
-				style.eastAsiaFontPanose,
-				style.eastAsiaFontPitchFamily,
-				style.eastAsiaFontCharset,
+				owns('eastAsiaFontPanose') ? style.eastAsiaFontPanose : undefined,
+				owns('eastAsiaFontPitchFamily') ? style.eastAsiaFontPitchFamily : undefined,
+				owns('eastAsiaFontCharset') ? style.eastAsiaFontCharset : undefined,
 			);
 		}
 		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
 		if (complexScriptFace && owns('complexScriptFont', 'complexScriptFontThemeToken')) {
 			runProps['a:cs'] = applyFontMetadata(
 				{ '@_typeface': complexScriptFace },
-				style.complexScriptFontPanose,
-				style.complexScriptFontPitchFamily,
-				style.complexScriptFontCharset,
+				owns('complexScriptFontPanose') ? style.complexScriptFontPanose : undefined,
+				owns('complexScriptFontPitchFamily') ? style.complexScriptFontPitchFamily : undefined,
+				owns('complexScriptFontCharset') ? style.complexScriptFontCharset : undefined,
 			);
 		}
 		if (style.symbolFont && owns('symbolFont')) {
 			runProps['a:sym'] = applyFontMetadata(
 				{ '@_typeface': style.symbolFont },
-				style.symbolFontPanose,
-				style.symbolFontPitchFamily,
-				style.symbolFontCharset,
+				owns('symbolFontPanose') ? style.symbolFontPanose : undefined,
+				owns('symbolFontPitchFamily') ? style.symbolFontPitchFamily : undefined,
+				owns('symbolFontCharset') ? style.symbolFontCharset : undefined,
 			);
 		}
 

@@ -90,7 +90,15 @@ describe('whitespace-only run text is preserved on load', () => {
 		expect(textOf(el!)).toBe('so we immediately start');
 	});
 
-	it('marks boundary whitespace for preservation when saving a native bullet', async () => {
+	it('keeps boundary whitespace on a saved native bullet without stamping xml:space', async () => {
+		// `xml:space="preserve"` is NOT a usable signal for `a:t` here: it
+		// appears zero times across the corpus of real decks in this
+		// repository, including ones PowerPoint itself wrote, because the
+		// OOXML parser runs with `trimValues: false` plus its own
+		// whitespace-preserving allow-list (`utils/xml-whitespace.ts`), so
+		// round-tripping never depended on the attribute. This save used to
+		// stamp it onto every run with boundary whitespace, materializing an
+		// attribute the source (and PowerPoint) never writes.
 		const {
 			handler: seedHandler,
 			data: seedData,
@@ -116,7 +124,8 @@ describe('whitespace-only run text is preserved on load', () => {
 		const saved = await handler.save(loaded.slides);
 		const zip = await JSZip.loadAsync(saved);
 		const slideXml = await zip.file('ppt/slides/slide1.xml')?.async('string');
-		expect(slideXml).toContain('<a:t xml:space="preserve">   test </a:t>');
+		expect(slideXml).toContain('<a:t>   test </a:t>');
+		expect(slideXml).not.toContain('xml:space');
 
 		const reloaded = await handler.load(saved.buffer as ArrayBuffer);
 		const reloadedElement = reloaded.slides[0]?.elements.find(
