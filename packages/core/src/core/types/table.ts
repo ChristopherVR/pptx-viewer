@@ -395,6 +395,20 @@ export interface PptxTableData {
 	 * present when there is at least one effect.
 	 */
 	tableEffects?: ParsedTableStyleEffect[];
+	/**
+	 * Table-cell-context default text size in points, resolved from the
+	 * slide's master `p:otherStyle` (ECMA-376 §19.3.1.42 CT_TextListStyle,
+	 * §19.3.1.52 for `p:txStyles`). PowerPoint sizes a table cell's text off
+	 * this master default (commonly 18pt) whenever neither the run nor the
+	 * (size-less) table style provides one; without it, cell text without an
+	 * explicit `a:rPr@sz` fell back to the browser's own default font size
+	 * (16px / 12pt) instead. A render-only hint: it is not part of any
+	 * individual cell's parsed style and is never written back on save, so
+	 * resaving an unstyled cell does not bake in an explicit size that was
+	 * never authored. `undefined` when no master/otherStyle size resolves
+	 * (renderers should leave the browser default in place in that case).
+	 */
+	defaultCellFontSize?: number;
 }
 
 // ==========================================================================

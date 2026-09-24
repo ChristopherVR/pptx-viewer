@@ -45,4 +45,20 @@ describe('table default font', () => {
 		expect(markup).toContain('font-family:&quot;Segoe UI&quot;');
 		expect(DEFAULT_FONT_FAMILY.startsWith('"Segoe UI"')).toBeTruthy();
 	});
+
+	it('declares the master otherStyle default cell font size on the <table> element (item 3)', () => {
+		// Cell text with no explicit a:rPr@sz previously fell back to the
+		// browser's own default font size (16px / 12pt) instead of the master's
+		// p:otherStyle default (commonly 18pt). Declaring it on the table root
+		// lets ordinary CSS inheritance supply it to every unstyled cell.
+		const element = tableElement();
+		element.tableData!.defaultCellFontSize = 18;
+		const markup = renderToStaticMarkup(renderTableElement(element));
+		expect(markup).toContain('font-size:18pt');
+	});
+
+	it('omits font-size when no default resolved', () => {
+		const markup = renderToStaticMarkup(renderTableElement(tableElement()));
+		expect(markup).not.toContain('font-size');
+	});
 });

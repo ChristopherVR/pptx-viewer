@@ -606,4 +606,21 @@ describe('tableContainerCss', () => {
 			direction: 'rtl',
 		});
 	});
+
+	it('declares the master otherStyle default cell font size (item 3)', () => {
+		// Cell text with no explicit a:rPr@sz (and no table-style size override -
+		// OOXML table styles never carry one) previously fell back to the
+		// browser's own default font size (16px / 12pt) instead of the master's
+		// p:otherStyle default (commonly 18pt). Declaring it on the <table> lets
+		// ordinary CSS inheritance supply it to every cell that sets none.
+		expect(
+			tableContainerCss({ rows: [], columnWidths: [1], defaultCellFontSize: 18 }),
+		).toStrictEqual({ fontSize: '18pt' });
+	});
+
+	it('combines rtl and the default font size', () => {
+		expect(
+			tableContainerCss({ rows: [], columnWidths: [1], rtl: true, defaultCellFontSize: 20 }),
+		).toStrictEqual({ direction: 'rtl', fontSize: '20pt' });
+	});
 });

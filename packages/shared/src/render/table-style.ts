@@ -194,11 +194,23 @@ export interface TableStyleContext {
  * deck came out with its columns reversed, and Vanilla's inspector offered a
  * toggle that changed nothing on screen.
  *
- * Returns an empty object for a left-to-right table so a binding can spread it
- * unconditionally.
+ * Also carries the table-cell-context default text size (`PptxTableData.
+ * defaultCellFontSize`, resolved from the slide master's `p:otherStyle`,
+ * ECMA-376 §19.3.1.42) as a `font-size` declared once on the `<table>`
+ * element, the same way each binding already declares `DEFAULT_FONT_FAMILY`
+ * there. Ordinary CSS inheritance then supplies it to every cell that has no
+ * explicit `a:rPr@sz` of its own (`cellStyleToCss` only ever sets `fontSize`
+ * when the cell's parsed style carries one), instead of the browser's own
+ * default font size (16px / 12pt) winning by default.
+ *
+ * Returns an empty object for a plain left-to-right table with no resolved
+ * default so a binding can spread it unconditionally.
  */
 export function tableContainerCss(tableData: PptxTableData | undefined): TableCellCss {
-	return tableData?.rtl ? { direction: 'rtl' } : {};
+	return {
+		...(tableData?.rtl ? { direction: 'rtl' } : {}),
+		...(tableData?.defaultCellFontSize ? { fontSize: `${tableData.defaultCellFontSize}pt` } : {}),
+	};
 }
 
 /**
