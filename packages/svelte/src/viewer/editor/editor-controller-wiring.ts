@@ -3,20 +3,26 @@ import type { GestureController, SnapLine } from 'pptx-viewer-shared';
 import {
 	applyReroutedConnectors,
 	createGestureController,
+	cycleSelectableElement,
 	filterInteractableIds,
+	fontSizeOf,
 	rerouteConnectorsForMovedElements,
+	stepFontSizePt,
 } from 'pptx-viewer-shared';
 
 import { createAdjustGestureController, withShapeAdjustments } from './editor-adjust-gesture';
 import type { AdjustGestureController } from './editor-adjust-gesture';
 import type { EditorControllerDeps } from './editor-controller-deps';
 import { elementInteractionBox, siblingBoxes } from './editor-controller-geometry';
+import { setFontSizePatch } from './editor-format-mutations';
 import { createInkGestureController } from './editor-ink-gesture';
 import type { InkGestureController } from './editor-ink-gesture';
 import { createEditorKeydownHandler } from './editor-keyboard';
+import { setAlignPatch } from './editor-paragraph-mutations';
 import { createSelectionGestureController } from './editor-selection-gestures';
 import type { EditorMarqueeRect } from './editor-selection-gestures';
 import type { EditorState } from './editor-state.svelte';
+import { clearFormattingPatch } from './editor-text-extra-mutations';
 
 /**
  * The slice of `EditorController` its sub-controllers need. Passing this
@@ -36,6 +42,8 @@ export interface EditorControllerHost {
 	setMarquee(rect: EditorMarqueeRect | null): void;
 	/** The element currently open in the inline text editor, or null. */
 	getEditingId(): string | null;
+	/** Open the hyperlink dialog for the current selection. */
+	openHyperlink(): void;
 }
 
 /** Every sub-controller works in stage-local coordinates off this origin. */
@@ -197,6 +205,29 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 		toggleShortcuts: () => deps.toggleShortcuts?.(),
 		closeShortcuts: () => deps.closeShortcuts?.() ?? false,
 		toggleFind: () => deps.toggleFind?.(),
+		toggleFindReplace: () => deps.toggleFindReplace?.(),
+		setTextAlign: (align) => editor.patchSelected((current) => setAlignPatch(current, align)),
+		stepFontSize: (direction) =>
+			editor.patchSelected((current) =>
+				setFontSizePatch(current, stepFontSizePt(fontSizeOf(current), direction)),
+			),
+		copyFormat: () => editor.formatPainter.toggle(),
+		pasteFormat: () => {
+			const id = editor.selectedElementId;
+			if (id) {
+				editor.formatPainter.applyTo(id);
+			}
+		},
+		newSlide: () => deps.newSlide?.(),
+		openHyperlink: () => host.openHyperlink(),
+		clearFormatting: () => editor.patchSelected((current) => clearFormattingPatch(current)),
+		cycleSelection: (direction) => {
+			const ids = host.currentElements().map((element) => element.id);
+			const nextId = cycleSelectableElement(ids, editor.selectedElementId, direction);
+			if (nextId) {
+				editor.select(nextId);
+			}
+		},
 	});
 }
 

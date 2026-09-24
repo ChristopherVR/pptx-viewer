@@ -21,6 +21,15 @@ function makeDeps(over: Partial<EditorKeyboardDeps> = {}): EditorKeyboardDeps {
 		ungroupSelected: vi.fn(),
 		toggleShortcuts: vi.fn(),
 		closeShortcuts: () => false,
+		toggleFindReplace: vi.fn(),
+		setTextAlign: vi.fn(),
+		stepFontSize: vi.fn(),
+		copyFormat: vi.fn(),
+		pasteFormat: vi.fn(),
+		newSlide: vi.fn(),
+		openHyperlink: vi.fn(),
+		clearFormatting: vi.fn(),
+		cycleSelection: vi.fn(),
 		...over,
 	};
 }
@@ -163,6 +172,85 @@ describe('createEditorKeydownHandler: shortcuts ported from the other bindings',
 		const event = key({ key: 'ArrowRight', cancelable: true });
 		createEditorKeydownHandler(deps)(event);
 		expect(deps.nudgeSelected).not.toHaveBeenCalled();
+		expect(event.preventDefault).not.toHaveBeenCalled();
+	});
+});
+
+describe('createEditorKeydownHandler: PowerPoint 365 shortcuts', () => {
+	it('sets paragraph alignment on Ctrl+L/E/R/J', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'l', ctrlKey: true }));
+		handler(key({ key: 'e', ctrlKey: true }));
+		handler(key({ key: 'r', ctrlKey: true }));
+		handler(key({ key: 'j', ctrlKey: true }));
+		expect(deps.setTextAlign).toHaveBeenNthCalledWith(1, 'left');
+		expect(deps.setTextAlign).toHaveBeenNthCalledWith(2, 'center');
+		expect(deps.setTextAlign).toHaveBeenNthCalledWith(3, 'right');
+		expect(deps.setTextAlign).toHaveBeenNthCalledWith(4, 'justify');
+	});
+
+	it('steps the font size on Ctrl+]/[ and Ctrl+Shift+>/<', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: ']', ctrlKey: true }));
+		handler(key({ key: '[', ctrlKey: true }));
+		handler(key({ key: '>', ctrlKey: true, shiftKey: true }));
+		handler(key({ key: '<', ctrlKey: true, shiftKey: true }));
+		expect(deps.stepFontSize).toHaveBeenNthCalledWith(1, 'increase');
+		expect(deps.stepFontSize).toHaveBeenNthCalledWith(2, 'decrease');
+		expect(deps.stepFontSize).toHaveBeenNthCalledWith(3, 'increase');
+		expect(deps.stepFontSize).toHaveBeenNthCalledWith(4, 'decrease');
+	});
+
+	it('arms/applies the format painter on Ctrl+Shift+C/V', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'c', ctrlKey: true, shiftKey: true }));
+		handler(key({ key: 'v', ctrlKey: true, shiftKey: true }));
+		expect(deps.copyFormat).toHaveBeenCalledOnce();
+		expect(deps.pasteFormat).toHaveBeenCalledOnce();
+	});
+
+	it('inserts a new slide on Ctrl+M', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(key({ key: 'm', ctrlKey: true }));
+		expect(deps.newSlide).toHaveBeenCalledOnce();
+	});
+
+	it('opens the hyperlink dialog on Ctrl+K', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(key({ key: 'k', ctrlKey: true }));
+		expect(deps.openHyperlink).toHaveBeenCalledOnce();
+	});
+
+	it('opens find & replace on Ctrl+H', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(key({ key: 'h', ctrlKey: true }));
+		expect(deps.toggleFindReplace).toHaveBeenCalledOnce();
+	});
+
+	it('clears character formatting on Ctrl+Space', () => {
+		const deps = makeDeps();
+		createEditorKeydownHandler(deps)(key({ key: ' ', ctrlKey: true }));
+		expect(deps.clearFormatting).toHaveBeenCalledOnce();
+	});
+
+	it('cycles the selection forward/back on Tab/Shift+Tab', () => {
+		const deps = makeDeps();
+		const handler = createEditorKeydownHandler(deps);
+		handler(key({ key: 'Tab' }));
+		handler(key({ key: 'Tab', shiftKey: true }));
+		expect(deps.cycleSelection).toHaveBeenNthCalledWith(1, 'next');
+		expect(deps.cycleSelection).toHaveBeenNthCalledWith(2, 'prev');
+	});
+
+	it('leaves the live-format chords alone with no selection and no active edit', () => {
+		const deps = makeDeps({ getSelectedId: () => null });
+		const handler = createEditorKeydownHandler(deps);
+		const event = key({ key: 'l', ctrlKey: true, cancelable: true });
+		handler(event);
+		expect(deps.setTextAlign).not.toHaveBeenCalled();
 		expect(event.preventDefault).not.toHaveBeenCalled();
 	});
 });

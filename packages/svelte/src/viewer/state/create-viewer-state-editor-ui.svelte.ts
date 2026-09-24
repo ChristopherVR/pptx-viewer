@@ -41,6 +41,13 @@ export interface EditorUiClusterDeps {
 	/** Autosave flag + toggle, owned by the collaboration cluster built before this one. */
 	getAutosaveEnabled(): boolean;
 	setAutosaveEnabled(enabled: boolean): void;
+	/**
+	 * Insert a new slide after the active one (Ctrl+M). Optional: the deck API
+	 * this ultimately calls is built after this cluster, in
+	 * `create-viewer-state.svelte.ts`, which passes a closure over a variable it
+	 * fills in once that API exists.
+	 */
+	newSlide?(): void;
 }
 
 export interface EditorUiCluster {
@@ -127,6 +134,10 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		// `findReplace` is constructed just below; the closure only runs on a real
 		// key press, long after this function has returned.
 		toggleFind: () => findReplace.toggle(),
+		// Ctrl+H: PowerPoint's Find & Replace. The panel has no distinct
+		// find-only/replace mode, so this is the same toggle as Ctrl+F.
+		toggleFindReplace: () => findReplace.toggle(),
+		newSlide: () => deps.newSlide?.(),
 	});
 
 	// oxlint-disable-next-line react-hooks/rules-of-hooks

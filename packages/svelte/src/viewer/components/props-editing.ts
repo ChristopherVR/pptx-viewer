@@ -73,6 +73,22 @@ export interface InlineTextEditorProps {
 	onretire?: () => void;
 	/** Called after the surface closes (commit or cancel). */
 	onclose: () => void;
+	/**
+	 * A live-format shortcut fired mid-edit (Ctrl+B/I/U, Ctrl+L/E/R/J,
+	 * Ctrl+Shift+>/< and Ctrl+]/[, Ctrl+Space): the element patch to apply,
+	 * built by the same pure functions the ribbon's formatting buttons use.
+	 */
+	onformat?: (patch: Partial<PptxElement>) => void;
+	/** Ctrl+Shift+C mid-edit: arm the format painter from the edited element. */
+	oncopyformat?: () => void;
+	/** Ctrl+Shift+V mid-edit: apply the copied format to the edited element. */
+	onpasteformat?: () => void;
+	/** Ctrl+K mid-edit: open the hyperlink dialog for the edited element. */
+	onhyperlink?: () => void;
+	/** Ctrl+F mid-edit: open the find bar (same chord as outside text-edit). */
+	onfind?: () => void;
+	/** Ctrl+H mid-edit: open the find bar's replace row. */
+	onfindreplace?: () => void;
 }
 
 /** Props for the editing layer (selection overlay + inline editor over the stage). */

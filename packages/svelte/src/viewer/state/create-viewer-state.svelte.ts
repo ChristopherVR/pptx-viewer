@@ -13,6 +13,7 @@ import type { FieldSubstitutionContext } from 'pptx-viewer-shared';
 
 import { provideTranslator } from '../../i18n/context';
 import { createDeckApi } from '../editor/deck-api';
+import type { DeckApi } from '../editor/deck-api';
 import { createEditingApi } from '../editor/editing-api';
 import { serializeEditorState } from '../editor/editor-document-lifecycle';
 import { EditorState } from '../editor/editor-state.svelte';
@@ -164,6 +165,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// after this one, and the cadence is only read when a save is scheduled.
 		getOptionsIntervalSeconds: () => editorUi.optionsState.autosaveIntervalSeconds,
 	});
+	// `.current` is filled in once `deck` is constructed below. The keyboard
+	// shortcut that needs it (Ctrl+M) is only ever invoked on a real key press,
+	// long after this module has finished running, so the forward reference
+	// (a box, not a reassigned `let`, so this binding itself stays `const`) is
+	// safe.
+	const deckApi: { current?: DeckApi } = {};
 	// oxlint-disable-next-line react-hooks/rules-of-hooks
 	const editorUi = useEditorUiCluster({
 		loader,
@@ -183,6 +190,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		// must not rewrite that choice for every other host.
 		getAutosaveEnabled: () => collabCluster.autosavePreference,
 		setAutosaveEnabled: collabCluster.setAutosaveFlag,
+		newSlide: () => deckApi.current?.addSlide(),
 	});
 
 	// Trust Center > "Allow external content": read live on every load, not
@@ -329,6 +337,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		toggleFullscreen: presentationCluster.onFullscreenToggle,
 		setEditable,
 	});
+	deckApi.current = deck;
 
 	// File > Options > Save > "cache retention": a one-time sweep per mount is
 	// enough, since a fresh snapshot only ever lands with a fresh timestamp.

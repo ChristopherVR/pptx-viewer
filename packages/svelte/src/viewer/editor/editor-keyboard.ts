@@ -1,5 +1,11 @@
 import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
 
+import type {
+	EditorTextAlign,
+	FontSizeStepDirection,
+	SelectionCycleDirection,
+} from './editor-shortcut-types';
+
 /**
  * Editing keyboard shortcuts, called from the viewer root's keydown before the
  * slideshow navigation handler. Key-to-action resolution is the shared
@@ -44,6 +50,24 @@ export interface EditorKeyboardDeps {
 	 * shortcut reached the shared keymap.
 	 */
 	toggleFind?(): void;
+	/** Open the find bar in replace mode (Ctrl/Cmd+H). See `EditorControllerDeps`. */
+	toggleFindReplace?(): void;
+	/** Set the selected (not editing) text shape's paragraph alignment. */
+	setTextAlign?(align: EditorTextAlign): void;
+	/** Step the selection's font size along PowerPoint's size ladder. */
+	stepFontSize?(direction: FontSizeStepDirection): void;
+	/** Copy the selection's format for the format painter (Ctrl+Shift+C). */
+	copyFormat?(): void;
+	/** Apply the copied format to the current selection (Ctrl+Shift+V). */
+	pasteFormat?(): void;
+	/** Insert a new slide after the active one (Ctrl+M). */
+	newSlide?(): void;
+	/** Open the hyperlink dialog for the current selection (Ctrl+K). */
+	openHyperlink?(): void;
+	/** Clear character formatting on the selection (Ctrl+Space). */
+	clearFormatting?(): void;
+	/** Move the selection to the next/previous element on the slide (Tab). */
+	cycleSelection?(direction: SelectionCycleDirection): void;
 }
 
 export function createEditorKeydownHandler(
@@ -111,6 +135,48 @@ export function createEditorKeydownHandler(
 				break;
 			case 'nudge':
 				deps.nudgeSelected(dx ?? 0, dy ?? 0);
+				break;
+			case 'findReplace':
+				deps.toggleFindReplace?.();
+				break;
+			case 'alignLeft':
+				deps.setTextAlign?.('left');
+				break;
+			case 'alignCenter':
+				deps.setTextAlign?.('center');
+				break;
+			case 'alignRight':
+				deps.setTextAlign?.('right');
+				break;
+			case 'alignJustify':
+				deps.setTextAlign?.('justify');
+				break;
+			case 'increaseFontSize':
+				deps.stepFontSize?.('increase');
+				break;
+			case 'decreaseFontSize':
+				deps.stepFontSize?.('decrease');
+				break;
+			case 'copyFormat':
+				deps.copyFormat?.();
+				break;
+			case 'pasteFormat':
+				deps.pasteFormat?.();
+				break;
+			case 'newSlide':
+				deps.newSlide?.();
+				break;
+			case 'hyperlink':
+				deps.openHyperlink?.();
+				break;
+			case 'clearFormatting':
+				deps.clearFormatting?.();
+				break;
+			case 'cycleSelectionNext':
+				deps.cycleSelection?.('next');
+				break;
+			case 'cycleSelectionPrev':
+				deps.cycleSelection?.('prev');
 				break;
 			default:
 				break;

@@ -16,6 +16,7 @@
 	import { onDestroy, onMount, untrack } from 'svelte';
 
 	import { readEditableText, resolveInlineSurface } from '../editor/inline-text';
+	import { handleInlineFormatShortcut } from './inline-text-editor-shortcuts';
 	import type { InlineTextEditorProps } from './props';
 	import { getTextBlockStyle, styleToString } from '../style';
 
@@ -30,6 +31,12 @@
 		onregister,
 		onretire,
 		collaboration,
+		onformat,
+		oncopyformat,
+		onpasteformat,
+		onhyperlink,
+		onfind,
+		onfindreplace,
 	}: InlineTextEditorProps = $props();
 
 	const surface = $derived(resolveInlineSurface(element));
@@ -128,11 +135,31 @@
 
 	function onKeydown(event: KeyboardEvent): void {
 		// Keep every keystroke local so viewer navigation / editor shortcuts
-		// (arrows, space, Delete, Ctrl+Z...) never fire while typing.
+		// (arrows, space, Delete, Ctrl+Z...) never fire while typing. That
+		// includes PowerPoint's text-formatting shortcuts (Ctrl+B/I/U,
+		// Ctrl+L/E/R/J, the font-size ladder, format painter, hyperlink, clear
+		// formatting, find/replace): the root `editor-keyboard.ts` handler never
+		// sees a key pressed in here, so `handleInlineFormatShortcut` resolves
+		// and dispatches them directly, through the `onformat`/`oncopyformat`/
+		// etc. props (this component has no direct access to `EditorState`,
+		// only to `EditorController`, via those callbacks).
 		event.stopPropagation();
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			close(el ? readEditableText(el) : null);
+			return;
+		}
+		if (
+			handleInlineFormatShortcut(event, element, {
+				onformat,
+				oncopyformat,
+				onpasteformat,
+				onhyperlink,
+				onfind,
+				onfindreplace,
+			})
+		) {
+			event.preventDefault();
 		}
 	}
 

@@ -66,10 +66,11 @@
 
 	const commits = $derived(createEditCommits(editor));
 
-	// The context menu's "Edit Hyperlink" opens the same dialog the Insert tab
-	// does, hosted here because the menu unmounts the moment a command is run.
-	// eslint-disable-next-line prefer-const
-	let hyperlinkOpen = $state(false);
+	// The context menu's "Edit Hyperlink" (and the shared keymap's Ctrl+K)
+	// open the same dialog the Insert tab does; hosted here, because the menu
+	// unmounts the moment a command is run, off `controller.hyperlinkOpen` so
+	// the keyboard shortcut has one flag to flip regardless of which trigger
+	// fired.
 
 	/** "Add Comment": show the inspector's Comments tab, as React's dispatch does. */
 	function openComments(): void {
@@ -176,11 +177,13 @@
 			{onaskai}
 			{onfixai}
 			oncomment={openComments}
-			onhyperlink={() => (hyperlinkOpen = true)}
+			onhyperlink={() => (controller.hyperlinkOpen = true)}
 			onclose={onContextMenuClose}
 		/>
 	{/if}
-	{#if hyperlinkOpen}<HyperlinkDialog {editor} onclose={() => (hyperlinkOpen = false)} />{/if}
+	{#if controller.hyperlinkOpen}
+		<HyperlinkDialog {editor} onclose={() => (controller.hyperlinkOpen = false)} />
+	{/if}
 {:else}
 	<div class="pptx-svelte-message" role="status">{t('pptx.statusBar.noSlides')}</div>
 {/if}
