@@ -26,6 +26,7 @@ import { useI18n } from 'vue-i18n';
 import { registerCrossSlideAudio } from '../composables/cross-slide-audio';
 import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle, getImageSrc } from '../composables/element-style';
+import { useMediaFullscreen } from '../composables/useMediaFullscreen';
 
 const props = defineProps<{
 	element: PptxElement;
@@ -129,9 +130,23 @@ watch(
 
 onBeforeUnmount(() => cancelTrimFade?.());
 
-const containerStyle = computed<CSSProperties>(() =>
-	getContainerStyle(props.element, props.zIndex),
+/**
+ * `fullScrn` full-slide playback overlay (issue wave item 10): the shared
+ * trigger + style live in `pptx-viewer-shared` (`media-fullscreen.ts`); this
+ * composable only tracks the mounted node's play state and wires the two
+ * together, keeping this SFC a thin template (see `useMediaFullscreen.ts`).
+ */
+const fullscreen = useMediaFullscreen(
+	() => props.element,
+	() => mediaEl.value,
+	() => props.presenting === true,
 );
+
+const containerStyle = computed<CSSProperties>(() => ({
+	...getContainerStyle(props.element, props.zIndex),
+	// Spread on top: {} while inactive leaves the normal style untouched.
+	...fullscreen.overlayStyle.value,
+}));
 const imageSrc = computed(() => getImageSrc(props.element, props.mediaDataUrls));
 /** Playable source (mediaData URL or resolved mediaPath). */
 const mediaSrc = computed(() => {
@@ -217,9 +232,15 @@ const fallbackLabelKey = computed(() => mediaFallbackLabelKey(fallback.value, me
  * stops the box from being clicked or dragged. `null` while interactive so
  * the style-array merge leaves any pre-existing `pointerEvents` untouched.
  */
-const rootPointerEvents = computed<CSSProperties | null>(() =>
-	props.interactive ? null : { pointerEvents: 'none' },
-);
+const rootPointerEvents = computed<CSSProperties | null>(() => {
+	// The full-slide overlay's stop button must stay clickable even though the
+	// live show surface is otherwise non-interactive (`interactive: false`);
+	// mirrors React's `pointer-events-auto` override for `isFullscreenMedia`.
+	if (fullscreen.active.value) {
+		return { pointerEvents: 'auto' };
+	}
+	return props.interactive ? null : { pointerEvents: 'none' };
+});
 
 /**
  * Interaction-only affordance for a degenerate (sub-MIN_ELEMENT_SIZE) media
@@ -319,6 +340,22 @@ const hitTargetStyle = useElementHitTargetStyle(
 			</svg>
 			<span v-if="fallbackLabelKey">{{ t(fallbackLabelKey) }}</span>
 		</div>
+		<!-- Stop/close affordance for the fullScrn full-slide overlay (issue wave
+		     item 10). Inline pointer-events: the root's own may be forced to
+		     none while non-interactive, and a descendant can always re-enable
+		     itself regardless of the ancestor's computed value. -->
+		<button
+			v-if="fullscreen.active.value"
+			type="button"
+			class="pptx-vue-media-fullscreen-stop"
+			style="pointer-events: auto"
+			:aria-label="fullscreen.stopAriaLabel.value"
+			@click="fullscreen.stop"
+		>
+			<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+				<rect x="6" y="6" width="12" height="12" rx="1" />
+			</svg>
+		</button>
 	</div>
 </template>
 
@@ -362,5 +399,26 @@ const hitTargetStyle = useElementHitTargetStyle(
 .pptx-vue-media-placeholder svg {
 	width: 32px;
 	height: 32px;
+}
+
+.pptx-vue-media-fullscreen-stop {
+	position: absolute;
+	bottom: 12px;
+	right: 12px;
+	z-index: 30;
+	border: none;
+	border-radius: 9999px;
+	background: rgba(0, 0, 0, 0.5);
+	color: rgba(255, 255, 255, 0.8);
+	padding: 8px;
+	cursor: pointer;
+	transition:
+		background-color 0.15s ease,
+		color 0.15s ease;
+}
+
+.pptx-vue-media-fullscreen-stop:hover {
+	background: rgba(0, 0, 0, 0.7);
+	color: #fff;
 }
 </style>
