@@ -137,6 +137,11 @@ export const CHART_SLIDES: readonly ChartSlideSpec[] = [
 		chartType: 'boxWhisker',
 		seriesCount: 3,
 		categoryCount: 4,
+		// cx:boxWhisker rows are observations: a category label repeats once
+		// per row and PowerPoint draws one box per (series, unique category)
+		// (COM-verified, charts-com.pptx slide 32; see 076ba4c3a). Four unique
+		// labels would give every box a single observation, which draws no box.
+		categories: ['Group A', 'Group A', 'Group B', 'Group B'],
 	},
 	// ── The six kinds React and Vue used to hand-roll ────────────────────────
 	// They were absent from this gallery, which is why `chart-svg-parity.spec.ts`

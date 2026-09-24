@@ -248,10 +248,10 @@ function expectedPrimitives(slide: ChartSlideSpec): PrimitiveExpectation[] {
 			];
 		case 'boxWhisker':
 			return [
-				// Measured on the shared engine: 9 rects (boxes + plot chrome). The
-				// box count does not decompose cleanly as series x categories, so the
-				// bound only requires that several quartile boxes drew.
-				{ kind: 'rect', min: 5, why: 'quartile boxes' },
+				// One box per (series, unique category): the fixture repeats each of
+				// its two category labels twice, so 3 series x 2 groups = 6 boxes
+				// (076ba4c3a, COM-verified against charts-com.pptx slide 32).
+				{ kind: 'rect', min: series * 2, why: 'one quartile box per series per group' },
 				{ kind: 'line', min: points, why: `whisker segments (>= ${points})` },
 			];
 		default:
