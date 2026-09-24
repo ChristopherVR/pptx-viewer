@@ -242,6 +242,15 @@ export type {
 // title, plot area or legend, plus the title / legend post-pass.
 export * from './chart-manual-layout';
 export { withManualLayouts } from './chart-view-model-manual';
+// Pure-DOM projector of a ChartViewModel (vanilla's chart renderer and the 3D
+// chart scene's SVG chrome overlay).
+export {
+	appendChartLegendSvg,
+	renderChartLineSvg,
+	renderChartPrimitiveSvg,
+	renderChartTextSvg,
+	renderChartViewModelSvg,
+} from './chart-view-model-dom';
 // Direct on-canvas chart editing: data-attribute hit-testing bridge,
 // drag-to-value inversion, and immutable chart-data edit helpers.
 export {
