@@ -45,11 +45,19 @@ export function buildSrcRectXml(insets: CropInsets): XmlObject | undefined {
 	// Individual magnitudes, not the signed sum: a negative left inset paired
 	// with a zero/positive right inset can sum near zero yet still be an
 	// authored outward crop that must be written.
+	//
+	// The test is against the ROUNDED `a:srcRect` attribute value (thousandths
+	// of a percent), not a fixed fraction threshold: a fraction threshold of
+	// 0.0001 (0.01%) discarded a genuinely authored crop as small as
+	// `l="2" r="2"` (0.00002, i.e. 0.002%), which rounds to a real nonzero
+	// attribute and must survive. Only a crop that rounds all the way to `0`
+	// on every side (floating-point noise from an edit that cancelled itself
+	// out) counts as "no crop".
 	const hasCrop =
-		Math.abs(cropLeft) > 0.0001 ||
-		Math.abs(cropTop) > 0.0001 ||
-		Math.abs(cropRight) > 0.0001 ||
-		Math.abs(cropBottom) > 0.0001;
+		Math.round(cropLeft * 100000) !== 0 ||
+		Math.round(cropTop * 100000) !== 0 ||
+		Math.round(cropRight * 100000) !== 0 ||
+		Math.round(cropBottom * 100000) !== 0;
 	if (!hasCrop) {
 		return undefined;
 	}
