@@ -358,7 +358,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					chartContainerAllows(containerLocalName, 'grouping');
 				if (chartData.grouping && groupingAllowed) {
 					// `clustered` is a member of ST_BarGrouping only; line/area demote it.
-					const grouping = normalizeChartGroupingValue(containerLocalName, chartData.grouping);
+					const grouping = normalizeChartGroupingValue(
+						containerLocalName,
+						chartData.groupingStandard && chartData.grouping === 'clustered'
+							? 'standard'
+							: chartData.grouping,
+					);
 					if (groupingKey) {
 						(chartTypeContainer[groupingKey] as XmlObject)['@_val'] = grouping;
 					} else {

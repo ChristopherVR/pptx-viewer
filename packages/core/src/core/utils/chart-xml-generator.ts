@@ -137,7 +137,12 @@ function buildChartTypeContainer(chartData: PptxChartData, family: string): XmlO
 	const container: XmlObject = {};
 	if (family === 'bar') {
 		container['c:barDir'] = { '@_val': chartData.barDirection === 'bar' ? 'bar' : 'col' };
-		container['c:grouping'] = { '@_val': chartData.grouping ?? 'clustered' };
+		container['c:grouping'] = {
+			'@_val':
+				chartData.groupingStandard && (chartData.grouping ?? 'clustered') === 'clustered'
+					? 'standard'
+					: (chartData.grouping ?? 'clustered'),
+		};
 		container['c:varyColors'] = { '@_val': '0' };
 	} else if (family === 'line' || family === 'area') {
 		container['c:grouping'] = { '@_val': chartData.grouping ?? 'standard' };

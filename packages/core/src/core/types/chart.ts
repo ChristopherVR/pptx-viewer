@@ -1180,6 +1180,14 @@ export interface PptxChartData {
 	/** Grouping mode for bar/area/line charts: 'clustered' | 'stacked' | 'percentStacked' */
 	grouping?: 'clustered' | 'stacked' | 'percentStacked';
 	/**
+	 * The source `c:grouping` was `standard`, which {@link grouping} folds into
+	 * `'clustered'` (a 2D bar chart draws the two the same). A 3D chart draws
+	 * `standard` differently: each series on its own depth row. The writer
+	 * emits `standard` again while `grouping` is still `'clustered'`, so the
+	 * chart round-trips unchanged.
+	 */
+	groupingStandard?: boolean;
+	/**
 	 * Whether the first (or only) series varies its point colours
 	 * (`c:varyColors/@val`). Pie/doughnut default this on; single-series
 	 * bar/column honour it by giving each point a distinct palette colour.
