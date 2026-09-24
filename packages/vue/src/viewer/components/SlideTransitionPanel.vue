@@ -23,7 +23,7 @@ const { t } = useI18n();
 
 /**
  * The complete set of transition effects offered by the Type select, from
- * shared's `SLIDE_TRANSITION_OPTIONS` (the same 47-entry catalogue React
+ * shared's `SLIDE_TRANSITION_OPTIONS` (the same catalogue React
  * offers). `"none"` is part of that catalogue and doubles as the "clear
  * transition" option, so it is excluded from the effect list and surfaced
  * separately.

@@ -164,9 +164,9 @@ describe('slideTransitionPanel - effect names', () => {
 		return wrapper.get<HTMLSelectElement>('[data-testid="transition-type"]').findAll('option');
 	}
 
-	it('still offers the same 46 effects plus the None sentinel, by value', () => {
+	it('still offers the same effects plus the None sentinel and the p15 preset family, by value', () => {
 		const values = typeSelect().map((o) => (o.element as HTMLOptionElement).value);
-		expect(values).toHaveLength(47);
+		expect(values).toHaveLength(59);
 		expect(values[0]).toBe('__none__');
 		expect(values).toContain('randomBar');
 		expect(values).toContain('wheelReverse');
@@ -175,6 +175,9 @@ describe('slideTransitionPanel - effect names', () => {
 		// `box` completes the `p14:prism` family (Cube / Rotate / Box / Orbit),
 		// which the panel already offered three quarters of.
 		expect(values).toContain('box');
+		// The p15 (PowerPoint 2013+/365) cinematic preset family.
+		expect(values).toContain('fallOver');
+		expect(values).toContain('origami');
 	});
 
 	it('spells each effect instead of printing its wire token', () => {
