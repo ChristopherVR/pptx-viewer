@@ -7,6 +7,7 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 
+import { buildSmartArt3DDrawingModel } from './smartart-3d-drawing-model';
 import { resolveSmartArt3DLayout } from './smartart-3d-layout-source';
 import { collectCoherent3DOffNodeIds, buildSmartArt3DModel } from './smartart-3d-model';
 import type { SmartArt3DModel } from './smartart-3d-types';
@@ -33,6 +34,17 @@ export function buildSmartArt3DSpecForElement(
 	const data = element.smartArtData;
 	if (!data || data.nodes.length === 0) {
 		return null;
+	}
+	// PowerPoint parity: the cached drawing (what the 2D SVG renderer already
+	// draws) is the source of truth for geometry/fills/text, not the fallback
+	// layout engine. The "spatial" carousel/receding-tree arrangements are a
+	// deliberate departure from PowerPoint's own render, so they stay on the
+	// legacy layout-engine path (opt-in only, per `SmartArt3DElementOptions`).
+	if (!options.spatial) {
+		const drawingModel = buildSmartArt3DDrawingModel(data);
+		if (drawingModel) {
+			return drawingModel.meshes.length > 0 ? drawingModel : null;
+		}
 	}
 	const layout = resolveSmartArt3DLayout(
 		data,
