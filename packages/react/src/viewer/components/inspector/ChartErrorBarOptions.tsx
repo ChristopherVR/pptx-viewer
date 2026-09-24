@@ -1,6 +1,7 @@
 import type { PptxChartErrBars, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import {
 	CARD,
 	ERROR_BAR_SUPPORTED_TYPES,
@@ -50,7 +51,7 @@ export function ChartErrorBarOptions({
 								<span className='flex-1 truncate' title={s.name}>
 									{s.name}
 								</span>
-								<select
+								<WebSelect
 									disabled={!canEdit}
 									className={INPUT}
 									value={valType}
@@ -73,12 +74,12 @@ export function ChartErrorBarOptions({
 											{t(opt.labelKey)}
 										</option>
 									))}
-								</select>
+								</WebSelect>
 							</div>
 
 							{bars && (
 								<div className='flex items-center gap-2 ml-2'>
-									<select
+									<WebSelect
 										disabled={!canEdit}
 										className={INPUT}
 										value={bars.barType}
@@ -94,7 +95,7 @@ export function ChartErrorBarOptions({
 												{t(opt.labelKey)}
 											</option>
 										))}
-									</select>
+									</WebSelect>
 									{showValue && (
 										<input
 											type='number'

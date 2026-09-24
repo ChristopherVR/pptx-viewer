@@ -65,7 +65,7 @@
 			{@const bars = series.errBars?.[0]}
 			<div class="pptx-svelte-chart-errbars-row">
 				<span class="pptx-svelte-chart-errbars-name" title={series.name}>{series.name}</span>
-				<select
+				<pptx-ui-select
 					disabled={!canEdit}
 					aria-label={`${t('pptx.chart.errorBars')}: ${series.name}`}
 					value={bars?.valType ?? ''}
@@ -74,11 +74,11 @@
 					{#each ERROR_BAR_VALTYPE_OPTIONS as option (option.value)}
 						<option value={option.value}>{t(option.labelKey)}</option>
 					{/each}
-				</select>
+				</pptx-ui-select>
 			</div>
 			{#if bars}
 				<div class="pptx-svelte-chart-errbars-detail">
-					<select
+					<pptx-ui-select
 						disabled={!canEdit}
 						aria-label={`${t('pptx.chart.errorBarBoth')}: ${series.name}`}
 						value={bars.barType}
@@ -91,7 +91,7 @@
 						{#each ERROR_BAR_TYPE_OPTIONS as option (option.value)}
 							<option value={option.value}>{t(option.labelKey)}</option>
 						{/each}
-					</select>
+					</pptx-ui-select>
 					{#if ERROR_BAR_VALUE_TYPES.has(bars.valType ?? '')}
 						<input
 							type="number"

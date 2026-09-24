@@ -80,7 +80,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 			<div v-for="(s, i) in props.series" :key="`${s.name}-${i}`" class="space-y-1">
 				<div class="flex items-center gap-2 text-[11px]">
 					<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
-					<select
+					<pptx-ui-select
 						class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 						data-testid="chart-error-bar-valtype"
 						:value="firstBars(s)?.valType ?? ''"
@@ -89,11 +89,11 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 						<option v-for="opt in ERROR_BAR_VALTYPE_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</div>
 
 				<div v-if="firstBars(s)" class="flex items-center gap-2 ml-2">
-					<select
+					<pptx-ui-select
 						class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 						data-testid="chart-error-bar-type"
 						:value="firstBars(s)!.barType"
@@ -102,7 +102,7 @@ function onAmount(event: Event, index: number, bars: PptxChartErrBars): void {
 						<option v-for="opt in ERROR_BAR_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 					<input
 						v-if="showValue(firstBars(s))"
 						type="number"

@@ -3,6 +3,7 @@ import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import SlideTransitionSection from './SlideTransitionSection.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * SlideTransitionSection (Vue): slide-transition editing extracted from the old
@@ -23,7 +24,7 @@ describe('slideTransitionSection', () => {
 	it('relays the transition-panel update', async () => {
 		const wrapper = mount(SlideTransitionSection, { props: { slide: slide() } });
 		const select = wrapper.get('[data-testid="transition-type"]');
-		await select.setValue('fade');
+		await setControlValue(select, 'fade');
 		const first = wrapper.emitted('transition-update')?.[0]?.[0] as PptxSlideTransition | undefined;
 		expect(first?.type).toBe('fade');
 	});
@@ -41,7 +42,7 @@ describe('slideTransitionSection', () => {
 		const wrapper = mount(SlideTransitionSection, {
 			props: { slide: slide({ type: 'fade', durationMs: 500, advanceOnClick: true }) },
 		});
-		await wrapper.get('[data-testid="transition-advance"]').setValue(false);
+		await setControlValue(wrapper.get('[data-testid="transition-advance"]'), false);
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as
 			| PptxSlideTransition
 			| undefined;
@@ -79,7 +80,7 @@ describe('slideTransitionSection', () => {
 		});
 		expect(wrapper.text()).toContain('Spokes');
 		const input = wrapper.get('[data-testid="transition-spokes"]');
-		await input.setValue('12');
+		await setControlValue(input, '12');
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
 		expect(last.spokes).toBe(8);
 	});
@@ -97,7 +98,7 @@ describe('slideTransitionSection', () => {
 		});
 		const select = wrapper.get('[data-testid="transition-speed"]');
 		expect((select.element as HTMLSelectElement).value).toBe('fast');
-		await select.setValue('slow');
+		await setControlValue(select, 'slow');
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
 		expect(last.speed).toBe('slow');
 		expect(last.type).toBe('fade');
@@ -116,7 +117,7 @@ describe('slideTransitionSection', () => {
 		});
 		const select = wrapper.get('[data-testid="transition-morph-option"]');
 		expect((select.element as HTMLSelectElement).value).toBe('byObject');
-		await select.setValue('byChar');
+		await setControlValue(select, 'byChar');
 		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
 		expect(last.morphOption).toBe('byChar');
 		expect(last.type).toBe('morph');

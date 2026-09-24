@@ -41,7 +41,7 @@ describe('chartSubtypeOptions', () => {
 				/>,
 			),
 		);
-		expect(container.querySelector('select')).toBeNull();
+		expect(container.querySelector('pptx-ui-select')).toBeNull();
 	});
 
 	it('shows the bar3D shape select for a bar3D chart and applies the shared patch', () => {

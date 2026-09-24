@@ -3,6 +3,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ImagePanel from './ImagePanel.vue';
+import { setControlValue } from './test-control-value';
 
 function imageEl(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -41,7 +42,7 @@ describe('imagePanel', () => {
 		const input = wrapper.get('input[type="text"]');
 		expect((input.element as HTMLInputElement).value).toBe('hello');
 
-		await input.setValue('logo');
+		await setControlValue(input, 'logo');
 		const events = wrapper.emitted('update');
 		expect(events).toBeTruthy();
 		expect(events?.at(-1)?.[0]).toStrictEqual({ altText: 'logo' });
@@ -56,7 +57,7 @@ describe('imagePanel', () => {
 		// The brightness slider lives in the child ImageAdjustmentsPanel; its
 		// first range input is Brightness. ImagePanel relays the child's patch.
 		const brightness = wrapper.get('.pptx-vue-image-adjust__slider input[type="range"]');
-		await brightness.setValue('40');
+		await setControlValue(brightness, '40');
 
 		const events = wrapper.emitted('update');
 		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: { contrast: 25, brightness: 40 } });
@@ -69,7 +70,7 @@ describe('imagePanel', () => {
 			},
 		});
 		const grayscale = wrapper.get('.pptx-vue-image-panel__grayscale');
-		await grayscale.setValue(true);
+		await setControlValue(grayscale, true);
 
 		const events = wrapper.emitted('update');
 		expect(events?.at(-1)?.[0]).toStrictEqual({ imageEffects: { contrast: 10, grayscale: true } });

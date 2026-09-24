@@ -19,7 +19,9 @@ function mountSection(data: PptxChartData) {
 	section.update(data);
 	const labels = Array.from(section.el.querySelectorAll('label'));
 	const control = <T extends HTMLInputElement | HTMLSelectElement>(key: string): T =>
-		labels.find((label) => label.textContent?.startsWith(key))!.querySelector('input,select') as T;
+		labels
+			.find((label) => label.textContent?.startsWith(key))!
+			.querySelector('input,pptx-ui-select') as T;
 	return { onChange, control };
 }
 

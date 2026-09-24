@@ -2,6 +2,7 @@ import { CONNECTOR_ARROW_CONTROLS, connectorArrowPatch, schemaLabel } from 'pptx
 import type { ConnectorArrowControl } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
+import { createInspectorSelect } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -70,7 +71,7 @@ function buildField(
 	handlers: InspectorHandlers,
 	control: ConnectorArrowControl,
 ): ArrowField {
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	for (const value of control.values) {
 		const option = doc.createElement('option');
 		option.value = value;

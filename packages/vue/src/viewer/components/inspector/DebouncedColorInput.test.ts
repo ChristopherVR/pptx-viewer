@@ -4,6 +4,7 @@ import { ref } from 'vue';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import DebouncedColorInput from './DebouncedColorInput.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * DebouncedColorInput: wraps every category-B `type="color"` input used by
@@ -41,7 +42,7 @@ describe('debouncedColorInput', () => {
 		});
 
 		const input = wrapper.get('input[type="color"]');
-		await input.setValue('#00ff00');
+		await setControlValue(input, '#00ff00');
 
 		expect(recent.value[0]).toBe('#00ff00');
 	});
@@ -49,6 +50,6 @@ describe('debouncedColorInput', () => {
 	it('does not throw without an injected recent-colours controller', async () => {
 		const wrapper = mount(DebouncedColorInput, { props: { value: '#000000' } });
 		const input = wrapper.get('input[type="color"]');
-		await expect(input.setValue('#00ff00')).resolves.not.toThrow();
+		await expect(setControlValue(input, '#00ff00')).resolves.not.toThrow();
 	});
 });

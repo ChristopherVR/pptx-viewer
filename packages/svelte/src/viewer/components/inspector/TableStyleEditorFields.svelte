@@ -34,7 +34,7 @@
 		<span class="hdg">{t('pptx.tableStyleEditor.fillSection')}</span>
 		<div class="row">
 			<input type="color" disabled={!canEdit} value={descriptor.fill.color.hex} onchange={(e) => onedit({ kind: 'fillColor', hex: e.currentTarget.value, ref: undefined })} />
-			<label class="check"><input type="checkbox" disabled={!canEdit} checked={descriptor.fill.noFill} onchange={(e) => onedit({ kind: 'fillNone', noFill: e.currentTarget.checked })} />{t('pptx.tableStyleEditor.noFill')}</label>
+			<label class="check"><pptx-ui-checkbox disabled={!canEdit} checked={descriptor.fill.noFill} onchange={(e) => onedit({ kind: 'fillNone', noFill: e.currentTarget.checked })} ></pptx-ui-checkbox>{t('pptx.tableStyleEditor.noFill')}</label>
 		</div>
 		<ThemeColorSwatchGrid {themeColorMap} disabled={!canEdit} selectedRef={descriptor.fill.color.ref} selectedHex={descriptor.fill.color.hex} onpick={(c) => onedit({ kind: 'fillColor', hex: c.hex, ref: c.ref })} />
 	</div>
@@ -59,10 +59,10 @@
 					<span class="side-lbl">{t(TABLE_STYLE_BORDER_SIDE_LABEL_KEYS[side])}</span>
 					<input type="color" disabled={!canEdit} value={border.color.hex} onchange={(e) => onedit({ kind: 'borderColor', side, hex: e.currentTarget.value, ref: undefined })} />
 					<input type="number" min="0" max="20" disabled={!canEdit} value={border.width} onchange={(e) => onedit({ kind: 'borderWidth', side, width: Number(e.currentTarget.value) })} />
-					<select disabled={!canEdit} value={border.dash} onchange={(e) => onedit({ kind: 'borderDash', side, dash: e.currentTarget.value })}>
+					<pptx-ui-select disabled={!canEdit} value={border.dash} onchange={(e) => onedit({ kind: 'borderDash', side, dash: e.currentTarget.value })}>
 						{#each TABLE_STYLE_DASH_PRESETS as dash (dash)}<option value={dash}>{dash}</option>{/each}
-					</select>
-					<label class="check"><input type="checkbox" disabled={!canEdit} checked={border.noFill} onchange={(e) => onedit({ kind: 'borderNone', side, noFill: e.currentTarget.checked })} />{t('pptx.tableStyleEditor.noBorder')}</label>
+					</pptx-ui-select>
+					<label class="check"><pptx-ui-checkbox disabled={!canEdit} checked={border.noFill} onchange={(e) => onedit({ kind: 'borderNone', side, noFill: e.currentTarget.checked })} ></pptx-ui-checkbox>{t('pptx.tableStyleEditor.noBorder')}</label>
 				</div>
 			{/each}
 		</div>

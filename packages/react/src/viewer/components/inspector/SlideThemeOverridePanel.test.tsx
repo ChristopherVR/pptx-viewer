@@ -80,10 +80,8 @@ describe('slideThemeOverridePanel', () => {
 	it('keeps an identity override enabled and visible', () => {
 		renderPanel(slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), vi.fn());
 
-		expect(
-			container.querySelector<HTMLInputElement>('input[type="checkbox"]')?.checked,
-		).toBeTruthy();
-		expect(container.querySelectorAll('select')).toHaveLength(12);
+		expect(container.querySelector<HTMLInputElement>('pptx-ui-checkbox')?.checked).toBeTruthy();
+		expect(container.querySelectorAll('pptx-ui-select')).toHaveLength(12);
 	});
 
 	/**
@@ -95,7 +93,7 @@ describe('slideThemeOverridePanel', () => {
 	 */
 	it('spells the theme-colour slots but keeps their wire values', () => {
 		renderPanel(slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), vi.fn());
-		const first = container.querySelector('select') as HTMLSelectElement;
+		const first = container.querySelector('pptx-ui-select') as HTMLSelectElement;
 		const options = [...first.options];
 
 		expect(options.map((o) => o.value)).toStrictEqual([
@@ -131,7 +129,7 @@ describe('slideThemeOverridePanel', () => {
 	it('recolours theme-derived slide elements when an alias changes', () => {
 		const onUpdateSlide = vi.fn<(patch: Partial<PptxSlide>) => void>();
 		renderPanel(slide({ clrMapOverride: { ...DEFAULT_COLOR_MAP } }), onUpdateSlide);
-		const accent1Select = container.querySelectorAll('select')[4] as HTMLSelectElement;
+		const accent1Select = container.querySelectorAll('pptx-ui-select')[4] as HTMLSelectElement;
 
 		act(() => {
 			accent1Select.value = 'accent2';

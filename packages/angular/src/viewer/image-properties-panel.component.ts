@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
@@ -17,6 +25,7 @@ export function mergeImageEffects(
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-image-properties-panel',
 	standalone: true,
 	imports: [TranslatePipe, ImageCropWashPanelComponent],
@@ -42,11 +51,14 @@ export function mergeImageEffects(
 			}
 			<label class="field">
 				<span>{{ 'pptx.image.grayscale' | translate }}</span>
-				<input type="checkbox" [checked]="!!effects().grayscale" (change)="onGrayscale($event)" />
+				<pptx-ui-checkbox
+					[checked]="!!effects().grayscale"
+					(change)="onGrayscale($event)"
+				></pptx-ui-checkbox>
 			</label>
 			<label class="field field--stacked">
 				<span>{{ 'pptx.image.artisticEffects' | translate }}</span>
-				<select
+				<pptx-ui-select
 					[attr.aria-label]="'pptx.image.artisticEffects' | translate"
 					[value]="effects().artisticEffect ?? 'none'"
 					(change)="onArtistic($event)"
@@ -59,7 +71,7 @@ export function mergeImageEffects(
 							{{ effect[1] | translate }}
 						</option>
 					}
-				</select>
+				</pptx-ui-select>
 			</label>
 			<div class="duotone">
 				<span>{{ 'pptx.image.duotone' | translate }}</span>

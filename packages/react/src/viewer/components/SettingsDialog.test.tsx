@@ -101,7 +101,7 @@ describe('settingsDialog', () => {
 	it('reports a toggle change through onOptionChange', () => {
 		const props = createProps();
 		renderDialog(props);
-		const checkbox = container.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		const checkbox = container.querySelector<HTMLElement>('pptx-ui-checkbox');
 		expect(checkbox).not.toBeNull();
 		act(() => {
 			checkbox!.click();

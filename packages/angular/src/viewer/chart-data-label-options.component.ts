@@ -12,7 +12,14 @@
  * @module angular-viewer/chart-data-label-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartDataLabelOptions } from 'pptx-viewer-core';
 
@@ -23,6 +30,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, selectValue } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-data-label-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,19 +42,18 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 				<div class="pptx-chart-card__group">
 					@for (opt of contentOptions; track opt.key) {
 						<label class="pptx-chart-card__check">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								[disabled]="!canEdit()"
 								[checked]="labels()[opt.key] ?? false"
 								(change)="onToggleContent(opt.key, $event)"
-							/>
+							></pptx-ui-checkbox>
 							<span>{{ opt.labelKey | translate }}</span>
 						</label>
 					}
 
 					<label class="pptx-chart-card__row">
 						<span class="pptx-chart-card__label">{{ 'pptx.chart.labelPosition' | translate }}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.chart.labelPosition' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -58,7 +65,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				</div>
 			</section>

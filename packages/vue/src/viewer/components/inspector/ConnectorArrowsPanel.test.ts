@@ -10,6 +10,7 @@ import { translationsEn } from '../../../i18n';
 import { useEditorHistory } from '../../composables/useEditorHistory';
 import { useEditorOperations } from '../../composables/useEditorOperations';
 import ConnectorArrowsPanel from './ConnectorArrowsPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function connector(shapeStyle: ShapeStyle = {}): PptxElement {
 	return {
@@ -28,7 +29,7 @@ function connector(shapeStyle: ShapeStyle = {}): PptxElement {
 function readControls(wrapper: ReturnType<typeof mount>): { label: string; value: string }[] {
 	return wrapper.findAll('label.pptx-vue-connector-arrow-field').map((field) => ({
 		label: field.get('span').text(),
-		value: (field.get('select').element as HTMLSelectElement).value,
+		value: (field.get('pptx-ui-select').element as HTMLSelectElement).value,
 	}));
 }
 
@@ -138,8 +139,10 @@ describe('connectorArrowsPanel', () => {
 		const wrapper = mount(ConnectorArrowsPanel, {
 			props: { element: connector({ strokeColor: '#ff0000' }) },
 		});
-		const select = wrapper.findAll('label.pptx-vue-connector-arrow-field')[index]!.get('select');
-		await select.setValue(value);
+		const select = wrapper
+			.findAll('label.pptx-vue-connector-arrow-field')
+			[index]!.get('pptx-ui-select');
+		await setControlValue(select, value);
 		const patch = wrapper.emitted('update')?.[0]?.[0] as { shapeStyle: ShapeStyle };
 		expect(patch.shapeStyle[styleKey as keyof ShapeStyle]).toBe(value);
 		// The patch carries the MERGED style, so unrelated line properties survive.
@@ -150,7 +153,7 @@ describe('connectorArrowsPanel', () => {
 		const wrapper = mount(ConnectorArrowsPanel, {
 			props: { element: connector(), canEdit: false },
 		});
-		const selects = wrapper.findAll('select');
+		const selects = wrapper.findAll('pptx-ui-select');
 		expect(selects).toHaveLength(6);
 		expect(selects.every((s) => (s.element as HTMLSelectElement).disabled)).toBeTruthy();
 	});
@@ -164,7 +167,7 @@ describe('connectorArrowsPanel', () => {
 				element: { ...connector(), locks: { noChangeArrowheads: true } } as PptxElement,
 			},
 		});
-		const selects = wrapper.findAll('select');
+		const selects = wrapper.findAll('pptx-ui-select');
 		expect(selects).toHaveLength(6);
 		expect(selects.every((s) => (s.element as HTMLSelectElement).disabled)).toBeTruthy();
 	});
@@ -175,10 +178,10 @@ describe('connectorArrowsPanel', () => {
 				element: { ...connector(), locks: { noChangeArrowheads: true } } as PptxElement,
 			},
 		});
-		await wrapper
-			.findAll('label.pptx-vue-connector-arrow-field')[0]!
-			.get('select')
-			.setValue('oval');
+		await setControlValue(
+			wrapper.findAll('label.pptx-vue-connector-arrow-field')[0]!.get('pptx-ui-select'),
+			'oval',
+		);
 		expect(wrapper.emitted('update')).toBeUndefined();
 	});
 
@@ -195,10 +198,10 @@ describe('connectorArrowsPanel', () => {
 		});
 
 		const wrapper = mount(ConnectorArrowsPanel, { props: { element } });
-		await wrapper
-			.findAll('label.pptx-vue-connector-arrow-field')[0]!
-			.get('select')
-			.setValue('arrow');
+		await setControlValue(
+			wrapper.findAll('label.pptx-vue-connector-arrow-field')[0]!.get('pptx-ui-select'),
+			'arrow',
+		);
 		const patch = wrapper.emitted('update')?.[0]?.[0] as Partial<PptxElement>;
 		ops.updateElement('conn-1', patch);
 

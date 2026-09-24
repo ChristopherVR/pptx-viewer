@@ -42,7 +42,7 @@ function renderSection(
 }
 
 function getSelect(label: string): HTMLSelectElement {
-	return container.querySelector<HTMLSelectElement>(`select[aria-label="${label}"]`)!;
+	return container.querySelector<HTMLSelectElement>(`pptx-ui-select[aria-label="${label}"]`)!;
 }
 
 describe('slideTransitionSection speed and morph controls', () => {
@@ -69,7 +69,9 @@ describe('slideTransitionSection speed and morph controls', () => {
 
 	it('hides the morph-option selector for non-morph transitions', () => {
 		renderSection({ type: 'fade', durationMs: 500 }, () => {});
-		expect(container.querySelector('select[aria-label="pptx.transition.morphOption"]')).toBeNull();
+		expect(
+			container.querySelector('pptx-ui-select[aria-label="pptx.transition.morphOption"]'),
+		).toBeNull();
 	});
 
 	it('shows the morph-option selector only for the morph transition and emits the choice', () => {

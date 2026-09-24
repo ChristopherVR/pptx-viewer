@@ -14,6 +14,7 @@ import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import type { ViewerMode } from '../../types';
 import { cn } from '../../utils';
 import { useViewerOptionsContext } from '../viewer-options-context';
+import { WebSearch } from '../WebControls';
 import { TitleBarQuickExtras } from './TitleBarQuickExtras';
 
 export interface TitleBarProps {
@@ -73,7 +74,7 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 	);
 
 	const handleSearchKeyDown = useCallback(
-		(e: React.KeyboardEvent) => {
+		(e: KeyboardEvent) => {
 			if (e.key === 'Enter' && searchQuery.trim()) {
 				if (commandResults.length > 0) {
 					handleCommandSelect(commandResults[0]);
@@ -228,26 +229,19 @@ export function TitleBar(p: TitleBarProps): React.ReactElement {
 			<span className={TB.searchWrap}>
 				{(p.mode === 'edit' || p.mode === 'master') && (
 					<div ref={searchRef} className='relative w-full max-w-md'>
-						<div
+						<WebSearch
 							data-pptx-search-surface
-							className={cn(
-								TB.searchBox,
-								(searchFocused || p.findReplaceOpen) && 'text-foreground bg-background',
-							)}
-						>
-							<LuSearch className={TB.searchIcon} />
-							<input
-								data-pptx-search-input
-								type='text'
-								value={searchQuery}
-								onChange={(e) => setSearchQuery(e.target.value)}
-								onFocus={() => setSearchFocused(true)}
-								onKeyDown={handleSearchKeyDown}
-								placeholder={t('pptx.titleBar.searchPlaceholder')}
-								className='flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60'
-								aria-label={t('pptx.titleBar.search')}
-							/>
-						</div>
+							data-pptx-search-input
+							variant='titlebar'
+							value={searchQuery}
+							onInput={(e) =>
+								setSearchQuery((e.currentTarget as HTMLElement & { value: string }).value)
+							}
+							onFocus={() => setSearchFocused(true)}
+							onKeyDown={handleSearchKeyDown}
+							placeholder={t('pptx.titleBar.searchPlaceholder')}
+							aria-label={t('pptx.titleBar.search')}
+						/>
 						{searchFocused && searchQuery.trim() && (
 							<div className='absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto'>
 								{commandResults.length > 0 ? (

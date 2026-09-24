@@ -40,7 +40,7 @@ describe('remaining parity dialogs', () => {
 		advanced.click();
 		const grid = Array.from(document.querySelectorAll('label'))
 			.find((label) => label.textContent === 'Show grid')!
-			.querySelector<HTMLInputElement>('input')!;
+			.querySelector<HTMLElement>('pptx-ui-checkbox')!;
 		grid.click();
 		expect(store.getOptions().advanced.showGrid).toBeTruthy();
 	});

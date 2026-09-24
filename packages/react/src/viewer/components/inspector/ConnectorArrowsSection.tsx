@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { CONNECTOR_ARROW_OPTIONS, ARROW_SIZE_OPTIONS } from '../../constants';
+import { WebSelect } from '../WebControls';
 import { SELECT_CLS } from './element-properties-constants';
 
 interface ConnectorArrowsSectionProps {
@@ -44,7 +45,7 @@ export function ConnectorArrowsSection({
 				return (
 					<label key={end} className='flex flex-col gap-1'>
 						<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].arrow)}</span>
-						<select
+						<WebSelect
 							aria-label={t(END_LABEL_KEYS[end].arrow)}
 							value={selectedShapeStyle?.[key] || 'none'}
 							onChange={(e) => {
@@ -61,7 +62,7 @@ export function ConnectorArrowsSection({
 									{t(o.i18nKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				);
 			})}
@@ -72,7 +73,7 @@ export function ConnectorArrowsSection({
 					<React.Fragment key={`${end}-size`}>
 						<label className='flex flex-col gap-1'>
 							<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].width)}</span>
-							<select
+							<WebSelect
 								aria-label={t(END_LABEL_KEYS[end].width)}
 								value={selectedShapeStyle?.[widthKey] || 'med'}
 								onChange={(e) => {
@@ -89,11 +90,11 @@ export function ConnectorArrowsSection({
 										{t(o.i18nKey)}
 									</option>
 								))}
-							</select>
+							</WebSelect>
 						</label>
 						<label className='flex flex-col gap-1'>
 							<span className='text-muted-foreground'>{t(END_LABEL_KEYS[end].length)}</span>
-							<select
+							<WebSelect
 								aria-label={t(END_LABEL_KEYS[end].length)}
 								value={selectedShapeStyle?.[lengthKey] || 'med'}
 								onChange={(e) => {
@@ -110,7 +111,7 @@ export function ConnectorArrowsSection({
 										{t(o.i18nKey)}
 									</option>
 								))}
-							</select>
+							</WebSelect>
 						</label>
 					</React.Fragment>
 				);

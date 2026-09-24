@@ -164,7 +164,7 @@ describe('slide transition is reachable from the live inspector', () => {
 		const handlers = noopHandlers();
 		render(null, handlers);
 		const card = container.querySelector('[data-pptx-slide-transition]') as HTMLElement;
-		const typeSelect = card.querySelector('select') as HTMLSelectElement;
+		const typeSelect = card.querySelector('pptx-ui-select') as HTMLSelectElement;
 
 		act(() => {
 			typeSelect.value = 'fade';
@@ -228,7 +228,7 @@ describe('3D text panel is reachable from the live inspector', () => {
 		const handlers = noopHandlers();
 		render(textElement, handlers);
 		const panel = container.querySelector('[data-pptx-text-3d]') as HTMLElement;
-		const toggle = panel.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const toggle = panel.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 
 		act(() => {
 			toggle.click();
@@ -302,7 +302,7 @@ describe('connector arrow sizing is reachable from the live inspector', () => {
 			handlers,
 		);
 		// 2 ends x (arrow, width, length) = 6 dropdowns.
-		const selects = Array.from(container.querySelectorAll('select')).filter(
+		const selects = Array.from(container.querySelectorAll('pptx-ui-select')).filter(
 			(s) => s.closest('[data-pptx-fill-stroke]') === null,
 		);
 
@@ -362,7 +362,7 @@ describe('action settings is reachable from the live inspector', () => {
 	it('reveals the URL field as soon as "Go to URL" is picked', () => {
 		const handlers = noopHandlers();
 		render(shapeA, handlers);
-		pick(clickTrigger().querySelector('select') as HTMLSelectElement, 'url');
+		pick(clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement, 'url');
 
 		expect(clickTrigger().querySelector('input[type="text"]')).not.toBeNull();
 	});
@@ -370,7 +370,7 @@ describe('action settings is reachable from the live inspector', () => {
 	it('writes no empty action for a target-less pick', () => {
 		const handlers = noopHandlers();
 		render(shapeA, handlers);
-		pick(clickTrigger().querySelector('select') as HTMLSelectElement, 'url');
+		pick(clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement, 'url');
 
 		// `url` with no URL serialises to `{}`, which parses straight back as
 		// "no action": committing it would dirty the deck for nothing.
@@ -380,7 +380,7 @@ describe('action settings is reachable from the live inspector', () => {
 	it('commits the typed URL onto the element', () => {
 		const handlers = noopHandlers();
 		render(shapeA, handlers);
-		pick(clickTrigger().querySelector('select') as HTMLSelectElement, 'url');
+		pick(clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement, 'url');
 		typeInto(
 			clickTrigger().querySelector('input[type="text"]') as HTMLInputElement,
 			'https://a.io',
@@ -394,7 +394,7 @@ describe('action settings is reachable from the live inspector', () => {
 	it('commits a target-free type immediately', () => {
 		const handlers = noopHandlers();
 		render(shapeA, handlers);
-		pick(clickTrigger().querySelector('select') as HTMLSelectElement, 'nextSlide');
+		pick(clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement, 'nextSlide');
 
 		expect(handlers.onUpdateElement).toHaveBeenCalledWith({
 			actionClick: { action: 'ppaction://hlinkshowjump?jump=nextslide' },
@@ -404,9 +404,9 @@ describe('action settings is reachable from the live inspector', () => {
 	it('does not carry a half-made pick across to another element', () => {
 		const handlers = noopHandlers();
 		render(shapeA, handlers);
-		pick(clickTrigger().querySelector('select') as HTMLSelectElement, 'url');
+		pick(clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement, 'url');
 		render(shapeB, handlers, { selectedElementIds: [shapeB.id] });
-		const select = clickTrigger().querySelector('select') as HTMLSelectElement;
+		const select = clickTrigger().querySelector('pptx-ui-select') as HTMLSelectElement;
 
 		expect(select.value).toBe('none');
 		expect(clickTrigger().querySelector('input[type="text"]')).toBeNull();

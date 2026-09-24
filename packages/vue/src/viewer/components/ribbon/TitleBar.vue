@@ -216,27 +216,17 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 				ref="searchRef"
 				class="relative w-full max-w-md"
 			>
-				<div
+				<pptx-ui-search
 					data-pptx-search-surface
-					:class="
-						cn(
-							TB.searchBox,
-							searchFocused || props.findReplaceOpen ? 'text-foreground bg-background' : '',
-						)
-					"
-				>
-					<Search :class="TB.searchIcon" />
-					<input
-						data-pptx-search-input
-						v-model="searchQuery"
-						type="text"
-						class="flex-1 bg-transparent text-[11px] outline-none placeholder:text-muted-foreground/60"
-						:placeholder="t('pptx.titleBar.searchPlaceholder')"
-						:aria-label="t('pptx.titleBar.search')"
-						@focus="searchFocused = true"
-						@keydown="handleSearchKeyDown"
-					/>
-				</div>
+					data-pptx-search-input
+					variant="titlebar"
+					:value="searchQuery"
+					@input="searchQuery = ($event.target as HTMLElement & { value: string }).value"
+					:placeholder="t('pptx.titleBar.searchPlaceholder')"
+					:aria-label="t('pptx.titleBar.search')"
+					@focus="searchFocused = true"
+					@keydown="handleSearchKeyDown"
+				/>
 				<div
 					v-if="searchFocused && searchQuery.trim()"
 					class="absolute left-0 right-0 top-full z-50 mt-1 rounded-lg border border-border bg-popover shadow-xl max-h-64 overflow-y-auto"

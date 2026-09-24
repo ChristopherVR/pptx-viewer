@@ -44,7 +44,7 @@ function ownText(element: Element): string {
 function selectFor(root: ParentNode, caption: string): HTMLSelectElement {
 	for (const label of Array.from(root.querySelectorAll('label'))) {
 		if (ownText(label) === caption) {
-			const select = label.querySelector('select');
+			const select = label.querySelector('pptx-ui-select');
 			if (select) {
 				return select;
 			}
@@ -292,7 +292,7 @@ describe('smartArtSection variation selects', () => {
 		expect(values(scheme)).toStrictEqual(schemes);
 		expect(texts(scheme)).toStrictEqual(translated(SMARTART_COLOR_SCHEME_LABEL_KEYS, schemes));
 
-		const selects = Array.from(target.querySelectorAll('select'));
+		const selects = Array.from(target.querySelectorAll('pptx-ui-select'));
 		const style = selects.find((select) => values(select).join() === styles.join());
 		if (!style) {
 			throw new Error('diagram-style select missing');

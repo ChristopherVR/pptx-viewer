@@ -67,7 +67,7 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 					"
 				/>
 				<label class="flex items-center gap-1">
-					<input
+					<pptx-ui-checkbox
 						type="checkbox"
 						:disabled="!canEdit"
 						:checked="descriptor.fill.noFill"
@@ -172,7 +172,7 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 							})
 						"
 					/>
-					<select
+					<pptx-ui-select
 						:disabled="!canEdit"
 						:value="borderSide(descriptor, side).dash"
 						class="rounded border border-border bg-background px-1 py-0.5"
@@ -187,9 +187,9 @@ function borderSide(descriptor: TableStyleEditorDescriptor, side: TableStyleBord
 						<option v-for="dash in TABLE_STYLE_DASH_PRESETS" :key="dash" :value="dash">
 							{{ dash }}
 						</option>
-					</select>
+					</pptx-ui-select>
 					<label class="flex items-center gap-1 shrink-0">
-						<input
+						<pptx-ui-checkbox
 							type="checkbox"
 							:disabled="!canEdit"
 							:checked="borderSide(descriptor, side).noFill"

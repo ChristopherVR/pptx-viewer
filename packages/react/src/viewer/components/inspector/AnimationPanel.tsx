@@ -6,6 +6,7 @@ import { LuPlay } from 'react-icons/lu';
 
 import { useIsMobile } from '../../hooks/useIsMobile';
 import { cn, getElementLabel } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { AfterAnimationRow } from './AfterAnimationRow';
 import {
 	INPUT_CLS,
@@ -127,7 +128,7 @@ export function AnimationPanel({
 			{/* Entrance preset */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.entrance')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.animation.entrance')}
 					value={selectedElementAnimation?.entrance ?? 'none'}
 					onChange={handleEntranceChange}
@@ -141,13 +142,13 @@ export function AnimationPanel({
 							{t(`pptx.animation.preset.${o.value}`)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Emphasis preset */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.emphasis')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.animation.emphasis')}
 					value={selectedElementAnimation?.emphasis ?? 'none'}
 					onChange={handleEmphasisChange}
@@ -161,13 +162,13 @@ export function AnimationPanel({
 							{t(`pptx.animation.preset.${o.value}`)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Exit preset */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.exit')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.animation.exit')}
 					value={selectedElementAnimation?.exit ?? 'none'}
 					onChange={handleExitChange}
@@ -181,7 +182,7 @@ export function AnimationPanel({
 							{t(`pptx.animation.preset.${o.value}`)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Motion path: geometry, not a preset, so it gets its own row */}
@@ -232,7 +233,7 @@ export function AnimationPanel({
 						<span className='text-muted-foreground text-[11px]'>
 							{t('pptx.animation.sequence')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.animation.sequence')}
 							value={selectedElementAnimation?.sequence ?? 'asOne'}
 							onChange={handleSequenceChange}
@@ -245,7 +246,7 @@ export function AnimationPanel({
 									{t(o.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 
 					{/* Effect sound + after animation, on their own divider like PowerPoint's Effect Options */}
@@ -272,7 +273,7 @@ export function AnimationPanel({
 					{/* Trigger */}
 					<label className='flex flex-col gap-1'>
 						<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.trigger')}</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.animation.trigger')}
 							value={selectedElementAnimation?.trigger ?? 'onClick'}
 							onChange={handleTriggerChange}
@@ -285,7 +286,7 @@ export function AnimationPanel({
 									{t(o.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 
 					{/* Trigger Shape picker */}
@@ -294,7 +295,7 @@ export function AnimationPanel({
 							<span className='text-muted-foreground text-[11px]'>
 								{t('pptx.animation.trigger.shapeLabel')}
 							</span>
-							<select
+							<WebSelect
 								aria-label={t('pptx.animation.trigger.shapeLabel')}
 								value={selectedElementAnimation?.triggerShapeId ?? ''}
 								onChange={handleTriggerShapeChange}
@@ -310,7 +311,7 @@ export function AnimationPanel({
 											{getElementLabel(el)}
 										</option>
 									))}
-							</select>
+							</WebSelect>
 						</label>
 					)}
 
@@ -349,7 +350,7 @@ export function AnimationPanel({
 						<span className='text-muted-foreground text-[11px]'>
 							{t('pptx.animation.timingCurve')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.animation.timingCurve')}
 							value={selectedElementAnimation?.timingCurve ?? 'ease'}
 							onChange={handleTimingCurveChange}
@@ -362,7 +363,7 @@ export function AnimationPanel({
 									{t(o.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 					<label className='flex flex-col gap-1'>
 						<span className='text-muted-foreground text-[11px]'>
@@ -384,7 +385,7 @@ export function AnimationPanel({
 						<span className='text-muted-foreground text-[11px]'>
 							{t('pptx.animation.repeatUntil')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.animation.repeatUntil')}
 							value={selectedElementAnimation?.repeatMode ?? 'none'}
 							onChange={handleRepeatModeChange}
@@ -397,7 +398,7 @@ export function AnimationPanel({
 									{t(o.labelKey)}
 								</option>
 							))}
-						</select>
+						</WebSelect>
 					</label>
 				</>
 			)}

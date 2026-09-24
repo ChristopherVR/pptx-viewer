@@ -4,6 +4,7 @@ import React, { useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { buildThemeColorGrid, themeColorLabel } from '../../utils/theme';
+import { WebSelect } from '../WebControls';
 import {
 	THEME_EDITOR_CARD as CARD,
 	THEME_EDITOR_HEADING as HEADING,
@@ -141,7 +142,7 @@ export function ThemeColorSchemeEditor({
 						<span className='text-[10px] text-muted-foreground'>
 							{t('pptx.themeEditor.headingFont')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.themeEditor.headingFont')}
 							className={INPUT}
 							disabled={!canEdit}
@@ -158,13 +159,13 @@ export function ThemeColorSchemeEditor({
 								</option>
 							))}
 							{!COMMON_FONTS.includes(majorFont) && <option value='__custom__'>{majorFont}</option>}
-						</select>
+						</WebSelect>
 					</label>
 					<label className='flex flex-col gap-0.5'>
 						<span className='text-[10px] text-muted-foreground'>
 							{t('pptx.themeEditor.bodyFont')}
 						</span>
-						<select
+						<WebSelect
 							aria-label={t('pptx.themeEditor.bodyFont')}
 							className={INPUT}
 							disabled={!canEdit}
@@ -181,7 +182,7 @@ export function ThemeColorSchemeEditor({
 								</option>
 							))}
 							{!COMMON_FONTS.includes(minorFont) && <option value='__custom__'>{minorFont}</option>}
-						</select>
+						</WebSelect>
 					</label>
 					<div className='flex items-center gap-2 pt-1 text-[10px] text-muted-foreground'>
 						<span style={{ fontFamily: majorFont }} className='text-foreground'>

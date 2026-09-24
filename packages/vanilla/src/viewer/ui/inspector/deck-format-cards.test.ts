@@ -28,7 +28,7 @@ describe('slide transition card', () => {
 		const card = createSlideTransitionCard(document, createTranslator(), { updateActiveSlide });
 		card.update(deckState());
 
-		const type = card.el.querySelector<HTMLSelectElement>('select')!;
+		const type = card.el.querySelector<HTMLSelectElement>('pptx-ui-select')!;
 		type.value = 'wipe';
 		type.dispatchEvent(new Event('change'));
 
@@ -117,7 +117,7 @@ describe('slide transition card', () => {
 		);
 
 		const speed = card.el.querySelector<HTMLSelectElement>(
-			`select[aria-label="${createTranslator()('pptx.transition.speed')}"]`,
+			`pptx-ui-select[aria-label="${createTranslator()('pptx.transition.speed')}"]`,
 		)!;
 		expect(speed.value).toBe('fast');
 
@@ -144,7 +144,7 @@ describe('slide transition card', () => {
 		);
 
 		const morphOption = card.el.querySelector<HTMLSelectElement>(
-			`select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
+			`pptx-ui-select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
 		)!;
 		expect(morphOption.parentElement!.hidden).toBeTruthy();
 	});
@@ -163,7 +163,7 @@ describe('slide transition card', () => {
 		);
 
 		const morphOption = card.el.querySelector<HTMLSelectElement>(
-			`select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
+			`pptx-ui-select[aria-label="${createTranslator()('pptx.transition.morphOption')}"]`,
 		)!;
 		expect(morphOption.parentElement!.hidden).toBeFalsy();
 		expect(morphOption.value).toBe('byObject');

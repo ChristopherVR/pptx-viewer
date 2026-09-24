@@ -121,7 +121,7 @@ describe('tableSection', () => {
 		const editor = makeEditor(tableEl());
 		const { target, setProps } = mountSection(editor, currentEl(editor));
 		const [headerRow, bandedRows] = Array.from(
-			target.querySelectorAll<HTMLInputElement>('input[type="checkbox"]'),
+			target.querySelectorAll<HTMLInputElement>('pptx-ui-checkbox'),
 		);
 		headerRow?.click();
 		flushSync();

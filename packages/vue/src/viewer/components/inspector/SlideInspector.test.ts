@@ -3,6 +3,7 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import SlideInspector from './SlideInspector.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * SlideInspector (Vue): the tabbed no-selection inspector mirroring React's
@@ -69,7 +70,7 @@ describe('slideInspector', () => {
 			.findAll('input')
 			.find((i) => (i.element as HTMLInputElement).value === 'DECK_ID');
 		expect(name).toBeDefined();
-		await name!.setValue('DECK');
+		await setControlValue(name!, 'DECK');
 		const next = wrapper.emitted('update-tag-collections')?.[0]?.[0];
 		expect(next).toStrictEqual([
 			{ path: 'ppt/tags/tag1.xml', tags: [{ name: 'DECK', value: 'deck-123' }] },
@@ -94,7 +95,7 @@ describe('slideInspector', () => {
 	it('relays background edits as slide-update patches', async () => {
 		const wrapper = mount(SlideInspector, { props: baseProps });
 		const color = wrapper.get('input[type="color"]');
-		await color.setValue('#ff0000');
+		await setControlValue(color, '#ff0000');
 		const patches = wrapper.emitted('slide-update');
 		expect(patches?.some((args) => 'backgroundColor' in (args[0] as object))).toBeTruthy();
 	});
@@ -115,7 +116,7 @@ describe('slideInspector', () => {
 		const wrapper = mount(SlideInspector, { props: baseProps });
 		// number inputs on the Properties tab: [0] slides/page, [1] W, [2] H.
 		const width = wrapper.findAll('input[type="number"]')[1];
-		await width.setValue('1280');
+		await setControlValue(width, '1280');
 		expect(wrapper.emitted('canvas-size-update')?.[0]).toStrictEqual([
 			{ width: 1280, height: 540 },
 		]);
@@ -139,7 +140,7 @@ describe('slideInspector', () => {
 		const wrapper = mount(SlideInspector, { props: { ...baseProps, comments: [] } });
 		const commentsTab = wrapper.findAll('button').find((b) => b.text().includes('Comments'));
 		await commentsTab!.trigger('click');
-		await wrapper.get('textarea').setValue('First!');
+		await setControlValue(wrapper.get('textarea'), 'First!');
 		await wrapper.get('form').trigger('submit.prevent');
 		expect(wrapper.emitted('comment-add')?.[0]).toStrictEqual([{ text: 'First!', mentions: [] }]);
 	});

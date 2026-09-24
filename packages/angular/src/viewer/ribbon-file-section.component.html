@@ -56,18 +56,16 @@
 			</div>
 		}
 		@if (page() === 'home' || page() === 'open') {
-			<div data-pptx-search-surface [class]="searchClasses.box">
-				<svg lucideSearch [class]="searchClasses.icon" aria-hidden="true"></svg>
-				<input
-					data-pptx-search-input
-					[class]="searchClasses.input"
-					type="search"
-					[attr.placeholder]="'pptx.backstage.searchPlaceholder' | translate"
-					[attr.aria-label]="'pptx.backstage.searchPlaceholder' | translate"
-					[value]="query()"
-					(input)="query.set($any($event.target).value)"
-				/>
-			</div>
+			<pptx-ui-search
+				data-pptx-search-surface
+				class="search"
+				style="display: block; width: min(540px, 100%); margin-top: 32px"
+				data-pptx-search-input
+				[attr.placeholder]="'pptx.backstage.searchPlaceholder' | translate"
+				[attr.aria-label]="'pptx.backstage.searchPlaceholder' | translate"
+				[value]="query()"
+				(input)="query.set($any($event.target).value)"
+			/>
 			@if (page() === 'open') {
 				<button class="primary" type="button" (click)="run(openFile)">
 					{{ 'pptx.backstage.browseDevice' | translate }}

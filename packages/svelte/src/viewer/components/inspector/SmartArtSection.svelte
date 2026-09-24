@@ -198,7 +198,7 @@
 
 	<label class="pptx-svelte-smartart-field">
 		<span>{t('pptx.smartart.colorScheme')}</span>
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.smartart.colorScheme')}
 			data-testid="smartart-color-scheme"
 			value={data.colorScheme ?? 'colorful1'}
@@ -207,9 +207,9 @@
 			{#each colorSchemes as scheme}
 				<option value={scheme}>{schemaLabel(SMARTART_COLOR_SCHEME_LABEL_KEYS, scheme, t)}</option>
 			{/each}
-		</select>
+		</pptx-ui-select>
 	</label>
-	<label class="pptx-svelte-smartart-field"><span>Diagram style</span><select aria-label="Diagram style" value={data.style ?? 'moderate'} onchange={(event) => setDiagramStyle(event.currentTarget.value as SmartArtStyle)}>{#each diagramStyles as diagramStyle}<option value={diagramStyle}>{schemaLabel(SMARTART_STYLE_LABEL_KEYS, diagramStyle, t)}</option>{/each}</select></label>
+	<label class="pptx-svelte-smartart-field"><span>Diagram style</span><pptx-ui-select aria-label="Diagram style" value={data.style ?? 'moderate'} onchange={(event) => setDiagramStyle(event.currentTarget.value as SmartArtStyle)}>{#each diagramStyles as diagramStyle}<option value={diagramStyle}>{schemaLabel(SMARTART_STYLE_LABEL_KEYS, diagramStyle, t)}</option>{/each}</pptx-ui-select></label>
 
 	<span class="pptx-svelte-smartart-label">{t('pptx.smartart.textPane')}</span>
 	<div class="pptx-svelte-smartart-nodes">

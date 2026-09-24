@@ -35,7 +35,7 @@ describe('slideBackgroundPanel: Hide Background Graphics', () => {
 		act(() => {
 			root.render(<SlideBackgroundPanel activeSlide={slide()} canEdit onUpdateSlide={vi.fn()} />);
 		});
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		expect(checkbox.checked).toBeFalsy();
 	});
 
@@ -49,7 +49,7 @@ describe('slideBackgroundPanel: Hide Background Graphics', () => {
 				/>,
 			);
 		});
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		expect(checkbox.checked).toBeTruthy();
 	});
 
@@ -60,7 +60,7 @@ describe('slideBackgroundPanel: Hide Background Graphics', () => {
 				<SlideBackgroundPanel activeSlide={slide()} canEdit onUpdateSlide={onUpdateSlide} />,
 			);
 		});
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		act(() => {
 			checkbox.click();
 		});
@@ -78,7 +78,7 @@ describe('slideBackgroundPanel: Hide Background Graphics', () => {
 				/>,
 			);
 		});
-		const checkbox = container.querySelector('input[type="checkbox"]') as HTMLInputElement;
+		const checkbox = container.querySelector('pptx-ui-checkbox') as HTMLInputElement;
 		act(() => {
 			checkbox.click();
 		});

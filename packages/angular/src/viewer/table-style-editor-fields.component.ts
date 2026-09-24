@@ -7,7 +7,13 @@
  *
  * @module viewer/table-style-editor-fields
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { TableStyleEditorDescriptor, TableStyleEditorFieldEdit } from '../internal/shared';
@@ -16,19 +22,21 @@ import {
 	TABLE_STYLE_BORDER_SIDES,
 	TABLE_STYLE_DASH_PRESETS,
 } from '../internal/shared';
+import { isSelectControl, isCheckboxControl } from './control-event-targets';
 import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.component';
 
 function inputValue(event: Event): string {
 	const t = event.target;
-	return t instanceof HTMLInputElement || t instanceof HTMLSelectElement ? t.value : '';
+	return t instanceof HTMLInputElement || isSelectControl(t) ? t.value : '';
 }
 
 function checkedValue(event: Event): boolean {
 	const t = event.target;
-	return t instanceof HTMLInputElement ? t.checked : false;
+	return isCheckboxControl(t) ? t.checked : false;
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-table-style-editor-fields',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,12 +57,11 @@ function checkedValue(event: Event): boolean {
 							(change)="edit.emit({ kind: 'fillColor', hex: inputValue($event), ref: undefined })"
 						/>
 						<label class="pptx-tse-fields__check">
-							<input
-								type="checkbox"
+							<pptx-ui-checkbox
 								[disabled]="!canEdit()"
 								[checked]="d.fill.noFill"
 								(change)="edit.emit({ kind: 'fillNone', noFill: checkedValue($event) })"
-							/>
+							></pptx-ui-checkbox>
 							{{ 'pptx.tableStyleEditor.noFill' | translate }}
 						</label>
 					</div>
@@ -150,7 +157,7 @@ function checkedValue(event: Event): boolean {
 									[value]="d.borders[side].width"
 									(change)="edit.emit({ kind: 'borderWidth', side, width: inputNumber($event) })"
 								/>
-								<select
+								<pptx-ui-select
 									class="pptx-tse-fields__dash"
 									[disabled]="!canEdit()"
 									[value]="d.borders[side].dash"
@@ -161,14 +168,13 @@ function checkedValue(event: Event): boolean {
 											{{ dash }}
 										</option>
 									}
-								</select>
+								</pptx-ui-select>
 								<label class="pptx-tse-fields__check">
-									<input
-										type="checkbox"
+									<pptx-ui-checkbox
 										[disabled]="!canEdit()"
 										[checked]="d.borders[side].noFill"
 										(change)="edit.emit({ kind: 'borderNone', side, noFill: checkedValue($event) })"
-									/>
+									></pptx-ui-checkbox>
 									{{ 'pptx.tableStyleEditor.noBorder' | translate }}
 								</label>
 							</div>

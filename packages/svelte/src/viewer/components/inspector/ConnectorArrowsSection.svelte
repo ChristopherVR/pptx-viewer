@@ -51,14 +51,14 @@
 <div class="grid">
 	{#each CONNECTOR_ARROW_CONTROLS as control (control.styleKey)}
 		<label
-			>{t(control.labelKey)}<select
+			>{t(control.labelKey)}<pptx-ui-select
 				aria-label={t(control.labelKey)}
 				value={connectorArrowValue(control, style)}
 				disabled={!changeable}
 				onchange={(event) => onChange(control, event.currentTarget.value)}
 				>{#each control.values as value (value)}<option {value}
 						>{schemaLabel(control.optionLabelKeys, value, t)}</option
-					>{/each}</select
+					>{/each}</pptx-ui-select
 			></label
 		>
 	{/each}

@@ -74,7 +74,7 @@ describe('themeSection', () => {
 		const mock = makeHandler();
 		const { target, editor } = mountSection(mock);
 
-		const override = target.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		const override = target.querySelector<HTMLInputElement>('pptx-ui-checkbox');
 		override?.click();
 		flushSync();
 
@@ -85,10 +85,10 @@ describe('themeSection', () => {
 		const mock = makeHandler();
 		const { target } = mountSection(mock);
 
-		target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
+		target.querySelector<HTMLInputElement>('pptx-ui-checkbox')?.click();
 		flushSync();
 
-		const select = target.querySelector<HTMLSelectElement>('.aliases select');
+		const select = target.querySelector<HTMLSelectElement>('.aliases pptx-ui-select');
 		if (!select) {
 			throw new Error('alias override select missing');
 		}
@@ -105,7 +105,7 @@ describe('themeSection', () => {
 		const mock = makeHandler();
 		const { target } = mountSection(mock);
 
-		target.querySelector<HTMLInputElement>('input[type="checkbox"]')?.click();
+		target.querySelector<HTMLInputElement>('pptx-ui-checkbox')?.click();
 		flushSync();
 
 		const captions = Array.from(target.querySelectorAll('.aliases label')).map((label) =>

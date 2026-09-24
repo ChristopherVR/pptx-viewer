@@ -6,8 +6,8 @@ import { createAfterAnimationRow } from './after-animation-row';
 
 const t = createTranslator();
 
-function selectOf(el: HTMLElement): HTMLSelectElement {
-	const select = el.querySelector('select');
+function selectOf(el: HTMLElement): HTMLElementTagNameMap['pptx-ui-select'] {
+	const select = el.querySelector('pptx-ui-select');
 	if (!select) {
 		throw new Error('after animation row has no select');
 	}

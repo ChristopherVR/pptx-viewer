@@ -1,4 +1,11 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ColorMapAliasKey, PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import {
@@ -42,6 +49,7 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-slide-theme-override-panel',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -49,7 +57,7 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 	template: `
 		<div class="override">
 			<label class="toggle">
-				<input type="checkbox" [checked]="active()" (change)="toggle($event)" />
+				<pptx-ui-checkbox [checked]="active()" (change)="toggle($event)"></pptx-ui-checkbox>
 				<span>{{ 'pptx.themeOverride.enableOverride' | translate }}</span>
 			</label>
 			@if (active()) {
@@ -57,7 +65,7 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 					<label class="mapping">
 						<span>{{ labels[alias] | translate }}</span>
 						<i [style.background-color]="slotColor(current(alias))"></i>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="labels[alias] | translate"
 							[value]="current(alias)"
 							(change)="change(alias, $event)"
@@ -67,7 +75,7 @@ export function createIdentityColorMapOverride(): Record<string, string> {
 									{{ slotLabelKey(slot) | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 			}

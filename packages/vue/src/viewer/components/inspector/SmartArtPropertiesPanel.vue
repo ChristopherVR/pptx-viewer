@@ -134,7 +134,7 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 
 			<label class="flex flex-col gap-1 text-[11px]">
 				<span class="text-muted-foreground">{{ t('pptx.smartart.colorScheme') }}</span>
-				<select
+				<pptx-ui-select
 					class="flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="smartart-color-scheme"
 					:aria-label="t('pptx.smartart.colorScheme')"
@@ -145,7 +145,7 @@ function onRegisterInput(nodeId: string, el: HTMLInputElement | null): void {
 					<option v-for="cs in colorSchemes" :key="cs" :value="cs">
 						{{ colorSchemeLabel(cs) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 
 			<div class="flex flex-col gap-1 text-[11px]">

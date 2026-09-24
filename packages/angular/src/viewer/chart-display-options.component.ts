@@ -10,7 +10,14 @@
  * @module angular-viewer/chart-display-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartPptxElement,
@@ -36,6 +43,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { boolFromEvent, selectValue } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-display-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -45,22 +53,20 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 			<h4 class="pptx-chart-card__heading">{{ 'pptx.chart.display' | translate }}</h4>
 			<div class="pptx-chart-card__group">
 				<label class="pptx-chart-card__check">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[disabled]="!canEdit()"
 						[checked]="style().hasTitle ?? false"
 						(change)="onToggleTitle($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span>{{ 'pptx.chart.showTitle' | translate }}</span>
 				</label>
 
 				<label class="pptx-chart-card__check">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[disabled]="!canEdit()"
 						[checked]="style().hasLegend ?? false"
 						(change)="onToggleLegend($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span>{{ 'pptx.chart.showLegend' | translate }}</span>
 				</label>
 
@@ -69,7 +75,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						<span class="pptx-chart-card__label">{{
 							'pptx.chart.legendPosition' | translate
 						}}</span>
-						<select
+						<pptx-ui-select
 							[attr.aria-label]="'pptx.chart.legendPosition' | translate"
 							class="pptx-chart-card__input"
 							[disabled]="!canEdit()"
@@ -84,27 +90,25 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 
 				<label class="pptx-chart-card__check">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[disabled]="!canEdit()"
 						[checked]="gridlinesShown()"
 						(change)="onToggleGridlines($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span>{{ 'pptx.chart.showGridlines' | translate }}</span>
 				</label>
 
 				<label class="pptx-chart-card__check">
-					<input
-						type="checkbox"
+					<pptx-ui-checkbox
 						[disabled]="!canEdit()"
 						[checked]="style().hasDataLabels ?? false"
 						(change)="onToggleDataLabels($event)"
-					/>
+					></pptx-ui-checkbox>
 					<span>{{ 'pptx.chart.showDataLabels' | translate }}</span>
 				</label>
 
@@ -113,7 +117,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						<span class="pptx-chart-card__label">{{
 							'pptx.chart.bar3DShapeLabel' | translate
 						}}</span>
-						<select
+						<pptx-ui-select
 							data-testid="pptx-chart-bar3d-shape"
 							[attr.aria-label]="'pptx.chart.bar3DShapeLabel' | translate"
 							class="pptx-chart-card__input"
@@ -129,7 +133,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 
@@ -138,7 +142,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						<span class="pptx-chart-card__label">{{
 							'pptx.chart.radarStyleLabel' | translate
 						}}</span>
-						<select
+						<pptx-ui-select
 							data-testid="pptx-chart-radar-style"
 							[attr.aria-label]="'pptx.chart.radarStyleLabel' | translate"
 							class="pptx-chart-card__input"
@@ -154,7 +158,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 
@@ -163,7 +167,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 						<span class="pptx-chart-card__label">{{
 							'pptx.chart.surfaceWireframeLabel' | translate
 						}}</span>
-						<select
+						<pptx-ui-select
 							data-testid="pptx-chart-surface-wireframe"
 							[attr.aria-label]="'pptx.chart.surfaceWireframeLabel' | translate"
 							class="pptx-chart-card__input"
@@ -179,7 +183,7 @@ import { boolFromEvent, selectValue } from './chart-event-helpers';
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 			</div>

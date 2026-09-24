@@ -3,6 +3,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { OOXML_PATTERN_PRESETS } from '../../utils/color';
+import { WebSelect } from '../WebControls';
 import { useRecentColors } from './RecentColorsContext';
 
 // ---------------------------------------------------------------------------
@@ -65,7 +66,7 @@ export function GradientControls({
 			<div className='grid grid-cols-2 gap-1.5'>
 				<label className='flex flex-col gap-0.5'>
 					<span className={LBL}>{t('pptx.table.gradientType')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.table.gradientType')}
 						disabled={!canEdit}
 						className={SEL}
@@ -81,7 +82,7 @@ export function GradientControls({
 								{t(o.i18nKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 				{gradType === 'linear' && (
 					<label className='flex flex-col gap-0.5'>
@@ -152,7 +153,7 @@ export function PatternControls({
 		<div className='space-y-1.5'>
 			<label className='flex flex-col gap-0.5'>
 				<span className={LBL}>{t('pptx.table.patternPreset')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.table.patternPreset')}
 					disabled={!canEdit}
 					className={SEL}
@@ -164,7 +165,7 @@ export function PatternControls({
 							{p}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 			<div className='grid grid-cols-2 gap-1.5'>
 				<label className='flex flex-col gap-0.5'>

@@ -73,7 +73,7 @@ function onPreview(): void {
 	<label
 		>{{ t('pptx.animation.sound') }}
 		<div class="pptx-vue-sound-row">
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.sound')"
 				:value="selectedValue()"
 				@change="onSelectChange"
@@ -86,7 +86,7 @@ function onPreview(): void {
 					{{ t(entry.i18nKey) }}
 				</option>
 				<option :value="OTHER_VALUE">{{ t('pptx.animation.sound.other') }}</option>
-			</select>
+			</pptx-ui-select>
 			<button
 				type="button"
 				:aria-label="t('pptx.animation.sound.preview')"

@@ -18,6 +18,7 @@ import type { Locator, Page } from '@playwright/test';
 
 import { savePptxViaBackstage } from './save-pptx';
 import { loadDeck as loadDeckFile, resetTabSession } from './support/deck';
+import { chooseSelectValue } from './support/select-control';
 
 const fixturePath = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 const drawingFixturePath = resolve(
@@ -464,7 +465,7 @@ test.describe('smartart insert and edit', () => {
 		// Vue: data-testid="smartart-color-scheme"
 		const targetSelect = page.locator('[data-testid="smartart-color-scheme"]');
 		await expect(targetSelect).toBeVisible();
-		await targetSelect.selectOption('monochromatic1');
+		await chooseSelectValue(page, targetSelect, 'monochromatic1');
 		await page.waitForTimeout(400);
 
 		const fillsAfter = await smartArt

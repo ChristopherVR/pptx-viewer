@@ -44,8 +44,8 @@ function appendToggleRow(
 	store: ViewerOptionsStore,
 ): void {
 	const row = createEl(doc, 'label', rowClass(control));
-	const input = doc.createElement('input');
-	input.type = 'checkbox';
+	const input = doc.createElement('pptx-ui-checkbox') as HTMLElement & { checked: boolean };
+	input.setAttribute('aria-label', t(control.labelKey));
 	input.checked = store.getValue(control.group, control.key) === true;
 	input.addEventListener('change', () => {
 		store.setValue(control.group, control.key, input.checked);
@@ -62,7 +62,7 @@ function appendSelectRow(
 	store: ViewerOptionsStore,
 ): void {
 	const row = createEl(doc, 'div', rowClass(control));
-	const select = doc.createElement('select');
+	const select = doc.createElement('pptx-ui-select') as HTMLElement & { value: string };
 	select.setAttribute('aria-label', t(control.labelKey));
 	for (const choice of control.choices) {
 		const option = doc.createElement('option');

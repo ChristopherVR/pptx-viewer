@@ -4,6 +4,7 @@ import type { PptxChartData, PptxChartUserShape } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ChartUserShapeOptions from './ChartUserShapeOptions.vue';
+import { setControlValue } from './test-control-value';
 
 function chartData(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -98,7 +99,7 @@ describe('chartUserShapeOptions', () => {
 			});
 			const childRow = wrapper.get('[data-chart-user-shape-path="0,0"]');
 			const textInput = childRow.get('input[type="text"]');
-			await textInput.setValue('Alpha edited');
+			await setControlValue(textInput, 'Alpha edited');
 			const patch = lastPatch(wrapper);
 			const next = patch.userShapes![0];
 			expect(next.rawXml).toBeUndefined();
@@ -111,7 +112,7 @@ describe('chartUserShapeOptions', () => {
 			});
 			const groupRow = wrapper.get('[data-chart-user-shape-path="0"]');
 			const fromXInput = groupRow.findAll('input[type="number"]')[0]!;
-			await fromXInput.setValue('0.2');
+			await setControlValue(fromXInput, '0.2');
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0].from).toStrictEqual({ x: 0.2, y: 0 });
 		});
@@ -134,7 +135,7 @@ describe('chartUserShapeOptions', () => {
 			});
 			const childRow = wrapper.get('[data-chart-user-shape-path="0,0"]');
 			const toXInput = childRow.findAll('input[type="number"]')[2]!;
-			await toXInput.setValue('0.25');
+			await setControlValue(toXInput, '0.25');
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0].children![0]).toMatchObject({
 				off: { x: 0, y: 0 },
@@ -147,7 +148,7 @@ describe('chartUserShapeOptions', () => {
 				props: { chartData: chartData({ userShapes: [textBoxShape] }) },
 			});
 			const numberInputs = wrapper.findAll('input[type="number"]');
-			await numberInputs[numberInputs.length - 1]!.setValue('30');
+			await setControlValue(numberInputs[numberInputs.length - 1]!, '30');
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0]).toMatchObject({ rotation: 30 });
 		});
@@ -158,7 +159,7 @@ describe('chartUserShapeOptions', () => {
 			});
 			const groupRow = wrapper.get('[data-chart-user-shape-path="0"]');
 			const numberInputs = groupRow.findAll('input[type="number"]');
-			await numberInputs[numberInputs.length - 1]!.setValue('45');
+			await setControlValue(numberInputs[numberInputs.length - 1]!, '45');
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0]).not.toHaveProperty('rotation');
 			expect(patch.userShapes![0].transform).toMatchObject({ rotation: 45 });
@@ -168,8 +169,8 @@ describe('chartUserShapeOptions', () => {
 			const wrapper = mount(ChartUserShapeOptions, {
 				props: { chartData: chartData({ userShapes: [textBoxShape] }) },
 			});
-			const flipHInput = wrapper.get('input[aria-label="Flip horizontally"]');
-			await flipHInput.setValue(true);
+			const flipHInput = wrapper.get('pptx-ui-checkbox[aria-label="Flip horizontally"]');
+			await setControlValue(flipHInput, true);
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0]).toMatchObject({ flipH: true });
 		});
@@ -179,8 +180,8 @@ describe('chartUserShapeOptions', () => {
 				props: { chartData: chartData({ userShapes: [grouped] }) },
 			});
 			const groupRow = wrapper.get('[data-chart-user-shape-path="0"]');
-			const flipVInput = groupRow.get('input[aria-label="Flip vertically"]');
-			await flipVInput.setValue(true);
+			const flipVInput = groupRow.get('pptx-ui-checkbox[aria-label="Flip vertically"]');
+			await setControlValue(flipVInput, true);
 			const patch = lastPatch(wrapper);
 			expect(patch.userShapes![0]).not.toHaveProperty('flipV');
 			expect(patch.userShapes![0].transform).toMatchObject({ flipV: true });

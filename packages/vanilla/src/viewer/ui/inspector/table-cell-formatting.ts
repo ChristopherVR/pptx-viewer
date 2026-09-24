@@ -9,6 +9,7 @@ import {
 import type { Translator } from '../../i18n';
 import type { ThemeColorSwatchGridHandle } from '../theme-color-swatch-grid';
 import { createThemeColorSwatchGrid } from '../theme-color-swatch-grid';
+import { createInspectorSelect, createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -110,8 +111,7 @@ export function createTableCellFormatting(
 		return { input, theme };
 	};
 	const toggle = (label: string, key: 'bold' | 'italic' | 'underline'): HTMLInputElement => {
-		const input = doc.createElement('input');
-		input.type = 'checkbox';
+		const input = createInspectorCheckbox(doc);
 		input.addEventListener('change', () => apply({ [key]: input.checked }));
 		field(label, input);
 		return input;
@@ -122,7 +122,7 @@ export function createTableCellFormatting(
 		keys: Readonly<Record<string, string>>,
 		onChange: (value: T) => void,
 	): HTMLSelectElement => {
-		const input = doc.createElement('select');
+		const input = createInspectorSelect(doc);
 		for (const value of values) {
 			const option = doc.createElement('option');
 			option.value = value;

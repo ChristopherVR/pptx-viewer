@@ -15,8 +15,8 @@ function mount() {
 		selectedTableCells: [],
 	} as unknown as InspectorState);
 	const labels = Array.from(controls.el.querySelectorAll('label'));
-	const selectFor = (key: string): HTMLSelectElement =>
-		labels.find((label) => label.textContent?.startsWith(key))!.querySelector('select')!;
+	const selectFor = (key: string): HTMLElementTagNameMap['pptx-ui-select'] =>
+		labels.find((label) => label.textContent?.startsWith(key))!.querySelector('pptx-ui-select')!;
 	return { controls, setTableCellStyles, selectFor };
 }
 

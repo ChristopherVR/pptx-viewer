@@ -10,7 +10,13 @@
  * swatch gallery). Extra custom content (the Quick Access chooser) projects
  * after the sections.
  */
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	input,
+	output,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { clampOptionNumber } from '../internal/shared';
@@ -48,6 +54,7 @@ export function readOptionValue(
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
 		<div class="pptx-ng-options-pane">
 			<p class="pptx-ng-options-headline">{{ tab().descriptionKey | translate }}</p>
@@ -74,8 +81,7 @@ export function readOptionValue(
 										>
 									}
 								</span>
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									class="pptx-ng-options-check"
 									[checked]="value(control) === true"
 									[attr.aria-label]="control.labelKey | translate"
@@ -97,7 +103,7 @@ export function readOptionValue(
 								</span>
 								@switch (control.kind) {
 									@case ('select') {
-										<select
+										<pptx-ui-select
 											class="pptx-ng-options-select"
 											[value]="value(control)"
 											[attr.aria-label]="control.labelKey | translate"
@@ -108,7 +114,7 @@ export function readOptionValue(
 													{{ choice.labelKey | translate }}
 												</option>
 											}
-										</select>
+										</pptx-ui-select>
 									}
 									@case ('number') {
 										<span class="pptx-ng-options-number">
@@ -189,11 +195,11 @@ export class OptionsPaneComponent {
 	}
 
 	protected emitToggle(control: ViewerOptionsControl, event: Event): void {
-		this.emit(control, (event.target as HTMLInputElement).checked);
+		this.emit(control, (event.target as HTMLElement & { checked: boolean }).checked);
 	}
 
 	protected emitSelect(control: ViewerOptionsControl, event: Event): void {
-		this.emit(control, (event.target as HTMLSelectElement).value);
+		this.emit(control, (event.target as HTMLElement & { value: string }).value);
 	}
 
 	protected emitNumber(control: ViewerOptionsControl, event: Event): void {

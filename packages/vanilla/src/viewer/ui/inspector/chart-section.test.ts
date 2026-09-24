@@ -40,7 +40,7 @@ function mount() {
 describe('chart section type and grouping selects', () => {
 	it('keeps every chart type it has always offered, plus the ChartEx and 3-D types', () => {
 		const { labelFor } = mount();
-		const select = labelFor('pptx.chart.type').querySelector('select')!;
+		const select = labelFor('pptx.chart.type').querySelector('pptx-ui-select')!;
 
 		expect(Array.from(select.options).map((option) => option.value)).toStrictEqual([
 			'bar',
@@ -71,7 +71,7 @@ describe('chart section type and grouping selects', () => {
 
 	it('spells the chart types instead of printing the schema token', () => {
 		const { labelFor } = mount();
-		const select = labelFor('pptx.chart.type').querySelector('select')!;
+		const select = labelFor('pptx.chart.type').querySelector('pptx-ui-select')!;
 
 		expect(Array.from(select.options).map((option) => option.textContent)).toStrictEqual([
 			'pptx.chart.typeBar',
@@ -102,7 +102,7 @@ describe('chart section type and grouping selects', () => {
 
 	it('spells the grouping modes and keeps their three values', () => {
 		const { labelFor } = mount();
-		const select = labelFor('pptx.chart.grouping').querySelector('select')!;
+		const select = labelFor('pptx.chart.grouping').querySelector('pptx-ui-select')!;
 
 		expect(Array.from(select.options).map((option) => option.value)).toStrictEqual([
 			'clustered',
@@ -119,13 +119,13 @@ describe('chart section type and grouping selects', () => {
 	it('names both selects, which used to be bare unlabelled dropdowns', () => {
 		const { labelFor } = mount();
 
-		expect(labelFor('pptx.chart.type').querySelector('select')).not.toBeNull();
-		expect(labelFor('pptx.chart.grouping').querySelector('select')).not.toBeNull();
+		expect(labelFor('pptx.chart.type').querySelector('pptx-ui-select')).not.toBeNull();
+		expect(labelFor('pptx.chart.grouping').querySelector('pptx-ui-select')).not.toBeNull();
 	});
 
 	it('still commits the raw token, not the caption', () => {
 		const { labelFor, setChartData } = mount();
-		const select = labelFor('pptx.chart.type').querySelector('select')!;
+		const select = labelFor('pptx.chart.type').querySelector('pptx-ui-select')!;
 
 		select.value = 'treemap';
 		select.dispatchEvent(new Event('change'));
@@ -137,7 +137,7 @@ describe('chart section type and grouping selects', () => {
 
 	it("converts a 'pareto' selection to histogram plus a cumulative-percent series (docs/guide/limitations.md ChartEx row)", () => {
 		const { labelFor, setChartData } = mount();
-		const select = labelFor('pptx.chart.type').querySelector('select')!;
+		const select = labelFor('pptx.chart.type').querySelector('pptx-ui-select')!;
 
 		select.value = 'pareto';
 		select.dispatchEvent(new Event('change'));
@@ -161,7 +161,7 @@ describe('chart section type and grouping selects', () => {
 				],
 			}),
 		} as InspectorState);
-		const select = labelFor('pptx.chart.type').querySelector('select')!;
+		const select = labelFor('pptx.chart.type').querySelector('pptx-ui-select')!;
 
 		expect(select.value).toBe('pareto');
 	});

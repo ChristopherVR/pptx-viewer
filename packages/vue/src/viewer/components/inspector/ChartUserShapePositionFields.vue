@@ -163,7 +163,7 @@ function onFlipV(event: Event): void {
 			@change="onRotation"
 		/>
 		<label class="flex items-center gap-1 cursor-pointer">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:aria-label="t('pptx.arrange.flipHorizontally')"
 				class="accent-primary"
@@ -173,7 +173,7 @@ function onFlipV(event: Event): void {
 			<span class="text-muted-foreground">{{ t('pptx.arrange.flipHorizontally') }}</span>
 		</label>
 		<label class="flex items-center gap-1 cursor-pointer">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:aria-label="t('pptx.arrange.flipVertically')"
 				class="accent-primary"
@@ -232,7 +232,7 @@ function onFlipV(event: Event): void {
 			@change="onRotation"
 		/>
 		<label class="flex items-center gap-1 cursor-pointer">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:aria-label="t('pptx.arrange.flipHorizontally')"
 				class="accent-primary"
@@ -242,7 +242,7 @@ function onFlipV(event: Event): void {
 			<span class="text-muted-foreground">{{ t('pptx.arrange.flipHorizontally') }}</span>
 		</label>
 		<label class="flex items-center gap-1 cursor-pointer">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:aria-label="t('pptx.arrange.flipVertically')"
 				class="accent-primary"

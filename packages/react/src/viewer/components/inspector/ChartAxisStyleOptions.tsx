@@ -1,6 +1,7 @@
 import type { PptxChartAxisFormatting } from 'pptx-viewer-core';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { CARD, GRIDLINE_DASH_OPTIONS, HEADING, INPUT } from './chart-panel-constants';
 import { useRecentColors } from './RecentColorsContext';
 
@@ -72,7 +73,7 @@ export function ChartAxisStyleOptions({
 							{hasScale && (
 								<div className='flex items-center gap-2'>
 									<label className='flex items-center gap-2 cursor-pointer'>
-										<input
+										<WebCheckbox
 											type='checkbox'
 											disabled={!canEdit}
 											checked={axis.logScale ?? false}
@@ -133,7 +134,7 @@ export function ChartAxisStyleOptions({
 							</div>
 							<div className='flex items-center gap-3 text-[11px]'>
 								<label className='flex items-center gap-1 cursor-pointer'>
-									<input
+									<WebCheckbox
 										type='checkbox'
 										disabled={!canEdit}
 										checked={axis.fontBold ?? false}
@@ -200,7 +201,7 @@ export function ChartAxisStyleOptions({
 												});
 											}}
 										/>
-										<select
+										<WebSelect
 											disabled={!canEdit}
 											title={t('pptx.chart.gridlineDash')}
 											className={INPUT}
@@ -214,7 +215,7 @@ export function ChartAxisStyleOptions({
 													{t(opt.labelKey)}
 												</option>
 											))}
-										</select>
+										</WebSelect>
 									</div>
 								);
 							})}

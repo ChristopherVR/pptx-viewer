@@ -4,6 +4,7 @@ import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import EffectsShadowSection from './EffectsShadowSection.vue';
+import { setControlValue } from './test-control-value';
 
 function shape(shapeStyle: ShapeStyle = {}): PptxElement {
 	return {
@@ -29,7 +30,7 @@ function lastPatch(wrapper: ReturnType<typeof mount>): { shapeStyle: ShapeStyle 
 describe('effectsShadowSection - outer shadow', () => {
 	it('enables outer shadow with the shared default flat shapeStyle fields, including rotateWithShape', async () => {
 		const wrapper = mount(EffectsShadowSection, { props: { element: shape() } });
-		await wrapper.find('[data-testid="fx-outer-shadow-toggle"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="fx-outer-shadow-toggle"]'), true);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.shadowColor).toBe('#000000');
 		expect(style.shadowOpacity).toBe(0.35);
@@ -43,7 +44,7 @@ describe('effectsShadowSection - outer shadow', () => {
 		const wrapper = mount(EffectsShadowSection, {
 			props: { element: shape({ shadowColor: '#000000' }) },
 		});
-		await wrapper.find('[data-testid="fx-outer-shadow-toggle"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-outer-shadow-toggle"]'), false);
 		expect(lastPatch(wrapper).shapeStyle.shadowColor).toBe('transparent');
 	});
 
@@ -52,7 +53,7 @@ describe('effectsShadowSection - outer shadow', () => {
 			props: { element: shape({ shadowColor: '#112233' }) },
 		});
 		const blur = wrapper.findAll('input[type="number"]')[0];
-		await blur.setValue('12');
+		await setControlValue(blur, '12');
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.shadowColor).toBe('#112233');
 		expect(style.shadowBlur).toBe(12);
@@ -68,7 +69,7 @@ describe('effectsShadowSection - outer shadow', () => {
 				}),
 			},
 		});
-		await wrapper.find('[data-testid="fx-outer-shadow-rotate-with-shape"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-outer-shadow-rotate-with-shape"]'), false);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.shadowRotateWithShape).toBeFalsy();
 		expect(style.shadowColor).toBe('#112233');
@@ -79,7 +80,7 @@ describe('effectsShadowSection - outer shadow', () => {
 describe('effectsShadowSection - inner shadow', () => {
 	it('enables inner shadow with the shared default flat shapeStyle fields', async () => {
 		const wrapper = mount(EffectsShadowSection, { props: { element: shape() } });
-		await wrapper.find('[data-testid="fx-inner-shadow-toggle"]').setValue(true);
+		await setControlValue(wrapper.find('[data-testid="fx-inner-shadow-toggle"]'), true);
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.innerShadowColor).toBe('#000000');
 		expect(style.innerShadowOpacity).toBe(0.5);
@@ -92,7 +93,7 @@ describe('effectsShadowSection - inner shadow', () => {
 		const wrapper = mount(EffectsShadowSection, {
 			props: { element: shape({ innerShadowColor: '#ff0000' }) },
 		});
-		await wrapper.find('[data-testid="fx-inner-shadow-toggle"]').setValue(false);
+		await setControlValue(wrapper.find('[data-testid="fx-inner-shadow-toggle"]'), false);
 		expect(lastPatch(wrapper).shapeStyle.innerShadowColor).toBe('transparent');
 	});
 
@@ -104,7 +105,7 @@ describe('effectsShadowSection - inner shadow', () => {
 		});
 		const numberInputs = wrapper.findAll('input[type="number"]');
 		expect(numberInputs).toHaveLength(3);
-		await numberInputs[1].setValue('10'); // offsetX
+		await setControlValue(numberInputs[1], '10'); // offsetX
 		const style = lastPatch(wrapper).shapeStyle;
 		expect(style.innerShadowOffsetX).toBe(10);
 		expect(style.innerShadowColor).toBe('#ff0000');

@@ -56,7 +56,7 @@ describe('motionPathRow', () => {
 			);
 		});
 
-		const select = container.querySelector('select');
+		const select = container.querySelector('pptx-ui-select');
 		expect(select).not.toBeNull();
 		const name = accessibleName(select!);
 

@@ -5,6 +5,7 @@ import { ref } from 'vue';
 
 import { RecentColorsKey } from '../../composables/recent-colors-context';
 import SlideBackgroundPanel from './SlideBackgroundPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function slide(over: Partial<PptxSlide> = {}): PptxSlide {
 	return { id: 's1', elements: [], ...over } as PptxSlide;
@@ -52,17 +53,17 @@ describe('slideBackgroundPanel', () => {
 
 	it('hide background graphics checkbox reflects showMasterShapes and toggles it', async () => {
 		const shown = mount(SlideBackgroundPanel, { props: { slide: slide() } });
-		const shownCheckbox = shown.get('input[type="checkbox"]').element as HTMLInputElement;
+		const shownCheckbox = shown.get('pptx-ui-checkbox').element as HTMLInputElement;
 		expect(shownCheckbox.checked).toBeFalsy();
 
 		const hidden = mount(SlideBackgroundPanel, {
 			props: { slide: slide({ showMasterShapes: false }) },
 		});
-		const hiddenCheckbox = hidden.get('input[type="checkbox"]').element as HTMLInputElement;
+		const hiddenCheckbox = hidden.get('pptx-ui-checkbox').element as HTMLInputElement;
 		expect(hiddenCheckbox.checked).toBeTruthy();
 
 		hiddenCheckbox.checked = false;
-		await hidden.get('input[type="checkbox"]').trigger('change');
+		await hidden.get('pptx-ui-checkbox').trigger('change');
 		expect(hidden.emitted('update')?.[0]).toStrictEqual([{ showMasterShapes: true }]);
 	});
 
@@ -133,7 +134,7 @@ describe('slideBackgroundPanel', () => {
 		expect(wrapper.find('[data-testid="pptx-color-recent"]').exists()).toBeTruthy();
 
 		const input = wrapper.get('input[type="color"]');
-		await input.setValue('#00ff00');
+		await setControlValue(input, '#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
 	});
 
@@ -155,7 +156,7 @@ describe('slideBackgroundPanel', () => {
 			global: { provide: { [RecentColorsKey as symbol]: { recent, push } } },
 		});
 		const layoutInput = wrapper.findAll('input[type="color"]')[1];
-		await layoutInput.setValue('#00ff00');
+		await setControlValue(layoutInput, '#00ff00');
 		expect(recent.value[0]).toBe('#00ff00');
 	});
 });

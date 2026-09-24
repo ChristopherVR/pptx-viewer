@@ -48,6 +48,7 @@ export const INSPECTOR_CARD_STYLES = `
 	}
 	.icard__input,
 	.icard__select {
+		--pptx-select-control-bg: var(--pptx-inspector-input-bg, rgba(0, 0, 0, 0.06));
 		box-sizing: border-box;
 		min-width: 0;
 		background: var(--pptx-inspector-input-bg, rgba(0, 0, 0, 0.06));
@@ -61,6 +62,9 @@ export const INSPECTOR_CARD_STYLES = `
 	.icard__input--number {
 		width: 62px;
 		text-align: right;
+	}
+	.icard__web-select {
+		width: 96px;
 	}
 	.icard__btn {
 		flex: 1;
@@ -95,7 +99,8 @@ export const INSPECTOR_CARD_STYLES = `
 	 */
 	@media (max-width: 767px) {
 		.icard__input,
-		.icard__select {
+		.icard__select,
+		.icard__web-select {
 			min-height: 44px;
 		}
 		.icard__btn {

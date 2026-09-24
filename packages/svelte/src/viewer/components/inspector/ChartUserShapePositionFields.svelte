@@ -140,23 +140,21 @@
 			onchange={(event) => rotation(event.currentTarget.value)}
 		/>
 		<label class="toggle">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				aria-label={t('pptx.arrange.flipHorizontally')}
 				disabled={!canEdit}
 				checked={row.flipH ?? false}
 				onchange={(event) => flipH(event.currentTarget.checked)}
-			/>
+			></pptx-ui-checkbox>
 			{t('pptx.arrange.flipHorizontally')}
 		</label>
 		<label class="toggle">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				aria-label={t('pptx.arrange.flipVertically')}
 				disabled={!canEdit}
 				checked={row.flipV ?? false}
 				onchange={(event) => flipV(event.currentTarget.checked)}
-			/>
+			></pptx-ui-checkbox>
 			{t('pptx.arrange.flipVertically')}
 		</label>
 	</div>
@@ -210,23 +208,21 @@
 			onchange={(event) => rotation(event.currentTarget.value)}
 		/>
 		<label class="toggle">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				aria-label={t('pptx.arrange.flipHorizontally')}
 				disabled={!canEdit}
 				checked={row.flipH ?? false}
 				onchange={(event) => flipH(event.currentTarget.checked)}
-			/>
+			></pptx-ui-checkbox>
 			{t('pptx.arrange.flipHorizontally')}
 		</label>
 		<label class="toggle">
-			<input
-				type="checkbox"
+			<pptx-ui-checkbox
 				aria-label={t('pptx.arrange.flipVertically')}
 				disabled={!canEdit}
 				checked={row.flipV ?? false}
 				onchange={(event) => flipV(event.currentTarget.checked)}
-			/>
+			></pptx-ui-checkbox>
 			{t('pptx.arrange.flipVertically')}
 		</label>
 	</div>

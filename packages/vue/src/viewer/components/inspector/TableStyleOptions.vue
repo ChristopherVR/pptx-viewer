@@ -76,7 +76,7 @@ function assignStyle(styleId: string): void {
 				:key="key"
 				class="flex cursor-pointer items-center gap-2 text-[11px]"
 			>
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					class="accent-primary"
 					:disabled="!canEdit"

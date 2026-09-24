@@ -47,7 +47,7 @@ function mountPanel(el: PptxElement, slideCount = 3): { target: HTMLElement; edi
 }
 
 function selects(target: HTMLElement): HTMLSelectElement[] {
-	return Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+	return Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 }
 
 function setValue(control: HTMLSelectElement | HTMLInputElement, value: string): void {

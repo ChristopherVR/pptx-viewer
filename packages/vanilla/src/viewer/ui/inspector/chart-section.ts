@@ -21,6 +21,7 @@ import { createChartFilteredSeriesSection } from './chart-filtered-series-sectio
 import { createChartPointIndexField } from './chart-point-index';
 import { createChartSubtypeSection } from './chart-subtype-section';
 import { createChartUserShapeSection } from './chart-user-shape-section';
+import { createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 /**
@@ -206,8 +207,8 @@ export function createChartSection(
 function input(doc: Document, type: string, text: string) {
 	const label = doc.createElement('label');
 	label.textContent = text;
-	const control = doc.createElement('input');
-	control.type = type;
+	const control = type === 'checkbox' ? createInspectorCheckbox(doc) : doc.createElement('input');
+	if (type !== 'checkbox') control.type = type;
 	label.appendChild(control);
 	return { label, control };
 }

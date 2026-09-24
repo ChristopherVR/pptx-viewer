@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 
 import { SHAPE_PRESETS } from '../../constants';
 import { cn, normalizeHexColor, sanitizeGradientStops } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { AccessibilityTextSection } from './AccessibilityTextSection';
 import { DebouncedColorInput } from './DebouncedColorInput';
 import { FillStrokeProperties } from './FillStrokeProperties';
@@ -49,7 +50,7 @@ export function ShapeTextPanels({
 			{hasShapeProperties(selectedElement) && (
 				<div className={CARD}>
 					<div className={HEADING}>{t('pptx.shape.type', 'Shape Type')}</div>
-					<select
+					<WebSelect
 						value={selectedElement.shapeType || 'rect'}
 						disabled={!canEdit}
 						className={cn(INPUT, 'w-full')}
@@ -64,7 +65,7 @@ export function ShapeTextPanels({
 								{t(p.i18nKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</div>
 			)}
 

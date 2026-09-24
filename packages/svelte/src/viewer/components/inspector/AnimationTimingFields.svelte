@@ -57,18 +57,18 @@
 
 <label>
 	<span>{t('pptx.animation.trigger')}</span>
-	<select aria-label={t('pptx.animation.trigger')} class="pptx-svelte-animp-trigger" disabled={!canEdit} value={anim?.trigger ?? 'onClick'} onchange={(e) => el && commit(setTrigger(anims, el.id, e.currentTarget.value as PptxAnimationTrigger))}>
+	<pptx-ui-select aria-label={t('pptx.animation.trigger')} class="pptx-svelte-animp-trigger" disabled={!canEdit} value={anim?.trigger ?? 'onClick'} onchange={(e) => el && commit(setTrigger(anims, el.id, e.currentTarget.value as PptxAnimationTrigger))}>
 		{#each PANEL_TRIGGER_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
-	</select>
+	</pptx-ui-select>
 </label>
 
 {#if anim?.trigger === 'onShapeClick'}
 	<label>
 		<span>{t('pptx.animation.trigger.shapeLabel')}</span>
-		<select aria-label={t('pptx.animation.trigger.shapeLabel')} class="pptx-svelte-animp-trigger-shape" disabled={!canEdit} value={anim?.triggerShapeId ?? ''} onchange={(e) => el && commit(setTriggerShapeId(anims, el.id, e.currentTarget.value || undefined))}>
+		<pptx-ui-select aria-label={t('pptx.animation.trigger.shapeLabel')} class="pptx-svelte-animp-trigger-shape" disabled={!canEdit} value={anim?.triggerShapeId ?? ''} onchange={(e) => el && commit(setTriggerShapeId(anims, el.id, e.currentTarget.value || undefined))}>
 			<option value="">{t('pptx.animation.trigger.selectShape')}</option>
 			{#each triggerShapes as shape (shape.id)}<option value={shape.id}>{getElementLabel(shape)}</option>{/each}
-		</select>
+		</pptx-ui-select>
 	</label>
 {/if}
 
@@ -82,9 +82,9 @@
 </label>
 <label>
 	<span>{t('pptx.animation.timingCurve')}</span>
-	<select aria-label={t('pptx.animation.timingCurve')} class="pptx-svelte-animp-curve" disabled={!canEdit} value={anim?.timingCurve ?? 'ease'} onchange={(e) => el && commit(setTimingCurve(anims, el.id, e.currentTarget.value as PptxAnimationTimingCurve))}>
+	<pptx-ui-select aria-label={t('pptx.animation.timingCurve')} class="pptx-svelte-animp-curve" disabled={!canEdit} value={anim?.timingCurve ?? 'ease'} onchange={(e) => el && commit(setTimingCurve(anims, el.id, e.currentTarget.value as PptxAnimationTimingCurve))}>
 		{#each PANEL_TIMING_CURVE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
-	</select>
+	</pptx-ui-select>
 </label>
 <label>
 	<span>{t('pptx.animation.repeatCount')}</span>
@@ -92,9 +92,9 @@
 </label>
 <label>
 	<span>{t('pptx.animation.repeatUntil')}</span>
-	<select aria-label={t('pptx.animation.repeatUntil')} class="pptx-svelte-animp-repeat-mode" disabled={!canEdit} value={anim?.repeatMode ?? 'none'} onchange={(e) => el && commit(setRepeatMode(anims, el.id, e.currentTarget.value as PptxAnimationRepeatMode | 'none'))}>
+	<pptx-ui-select aria-label={t('pptx.animation.repeatUntil')} class="pptx-svelte-animp-repeat-mode" disabled={!canEdit} value={anim?.repeatMode ?? 'none'} onchange={(e) => el && commit(setRepeatMode(anims, el.id, e.currentTarget.value as PptxAnimationRepeatMode | 'none'))}>
 		{#each PANEL_REPEAT_MODE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
-	</select>
+	</pptx-ui-select>
 </label>
 
 <style>

@@ -3,6 +3,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import AccessibilityPanel from './AccessibilityPanel.vue';
+import { setControlValue } from './test-control-value';
 
 function shapeEl(overrides: Partial<PptxElement> = {}): PptxElement {
 	return {
@@ -32,7 +33,7 @@ describe('accessibilityPanel', () => {
 			props: { element: shapeEl(), canEdit: true },
 		});
 		const textarea = wrapper.find('textarea');
-		await textarea.setValue('Updated description');
+		await setControlValue(textarea, 'Updated description');
 		const emitted = wrapper.emitted('update');
 		expect(emitted).toBeTruthy();
 		expect(emitted![emitted!.length - 1][0]).toStrictEqual({ altText: 'Updated description' });
@@ -43,7 +44,7 @@ describe('accessibilityPanel', () => {
 			props: { element: shapeEl(), canEdit: true },
 		});
 		const input = wrapper.find('input[type="text"]');
-		await input.setValue('Updated title');
+		await setControlValue(input, 'Updated title');
 		const emitted = wrapper.emitted('update');
 		expect(emitted).toBeTruthy();
 		expect(emitted![emitted!.length - 1][0]).toStrictEqual({ title: 'Updated title' });

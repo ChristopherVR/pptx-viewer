@@ -80,7 +80,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 		<!-- Text Shadow -->
 		<div class="space-y-1.5">
 			<label class="inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="hasShadow"
 					@change="toggleShadow(($event.target as HTMLInputElement).checked)"
@@ -152,7 +152,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 		<!-- Text Glow -->
 		<div class="space-y-1.5">
 			<label class="inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="hasGlow"
 					@change="toggleGlow(($event.target as HTMLInputElement).checked)"
@@ -200,7 +200,7 @@ const COLOR_CLS = 'h-8 bg-muted border border-border rounded px-1';
 		<!-- Text Reflection -->
 		<div class="space-y-1.5">
 			<label class="inline-flex items-center gap-2 text-foreground">
-				<input
+				<pptx-ui-checkbox
 					type="checkbox"
 					:checked="hasReflection"
 					@change="toggleReflection(($event.target as HTMLInputElement).checked)"

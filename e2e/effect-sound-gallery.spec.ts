@@ -34,6 +34,7 @@ import {
 } from './support/deck';
 import { downloadBytes } from './support/exports';
 import { readZipPartBytes, readZipPartText } from './support/pptx-xml';
+import { chooseSelectValue } from './support/select-control';
 
 const DECK = fixture('effect-sound-gallery.pptx');
 
@@ -79,7 +80,7 @@ test.describe('effect sound gallery (animation panel)', () => {
 
 		const soundSelect = inspector(page).getByRole('combobox', { name: 'Sound', exact: true });
 		await expect(soundSelect).toBeVisible();
-		await soundSelect.selectOption('chime');
+		await chooseSelectValue(page, soundSelect, 'chime');
 
 		const download = await savePptxViaBackstage(page);
 		const bytes = await downloadBytes(download);

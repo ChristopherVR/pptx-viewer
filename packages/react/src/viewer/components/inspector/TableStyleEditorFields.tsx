@@ -9,6 +9,7 @@ import {
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { BTN, HEADING, INPUT } from './inspector-pane-constants';
 import { ThemeColorSwatchGrid } from './ThemeColorSwatchGrid';
 
@@ -37,7 +38,7 @@ export function TableStyleEditorFields({
 						className='h-6 w-8 rounded border border-border bg-transparent cursor-pointer'
 					/>
 					<label className='flex items-center gap-1'>
-						<input
+						<WebCheckbox
 							type='checkbox'
 							disabled={!canEdit}
 							checked={descriptor.fill.noFill}
@@ -162,7 +163,7 @@ function BorderSideRow({
 				onChange={(e) => onEdit({ kind: 'borderWidth', side, width: Number(e.target.value) })}
 				className={`${INPUT} w-12`}
 			/>
-			<select
+			<WebSelect
 				disabled={!canEdit}
 				value={state.dash}
 				onChange={(e) => onEdit({ kind: 'borderDash', side, dash: e.target.value })}
@@ -173,9 +174,9 @@ function BorderSideRow({
 						{dash}
 					</option>
 				))}
-			</select>
+			</WebSelect>
 			<label className='flex items-center gap-1 shrink-0'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					disabled={!canEdit}
 					checked={state.noFill}

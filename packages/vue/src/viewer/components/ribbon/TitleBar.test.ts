@@ -62,8 +62,9 @@ describe('titleBar', () => {
 	it('toggles find & replace from the centred search box', async () => {
 		const onToggleFindReplace = vi.fn();
 		const wrapper = mountTitleBar({ onToggleFindReplace });
-		const input = wrapper.get('input[aria-label="Search"]');
-		await input.setValue('test');
+		const input = wrapper.get('pptx-ui-search[aria-label="Search"]');
+		(input.element as HTMLElement & { value: string }).value = 'test';
+		await input.trigger('input');
 		await input.trigger('keydown', { key: 'Enter' });
 		expect(onToggleFindReplace).toHaveBeenCalledOnce();
 	});

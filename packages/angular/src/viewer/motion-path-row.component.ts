@@ -6,7 +6,7 @@
  * Its own component rather than more markup inside
  * {@link AnimationAuthorPanelComponent} because that file already sits just
  * under this repo's 300-LOC cap, and the row carries a catalogue-sized
- * `<select>` of its own.
+ * `<pptx-ui-select>` of its own.
  *
  * WHY a "Custom Path" option exists: dragging the end handle on the canvas
  * produces a path that no longer matches any catalogue entry. Without a slot
@@ -19,10 +19,18 @@
  *
  * @module viewer/motion-path-row
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { motionPathPresetIdForPath } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 import { MOTION_PATH_COLUMNS } from './ribbon-motion-path-gallery.component';
 
 /** The select value standing for "this path was hand-dragged". */
@@ -46,6 +54,7 @@ export function motionPathSelectValue(motionPath: string | undefined): string {
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-motion-path-row',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -55,15 +64,9 @@ export function motionPathSelectValue(motionPath: string | undefined): string {
 			<span class="pptx-ng-anim__label">
 				{{ 'pptx.animation.motionPath.label' | translate }}
 			</span>
-			<!--
-				Selection is expressed with [selected] on each option rather than
-				[value] on the select: Angular applies an element's own property
-				bindings before the @for blocks below it have produced any options, so
-				a [value] naming a catalogue id would be assigned to an empty select
-				and silently drop back to the first entry on first render.
-			-->
-			<select
+			<pptx-ui-select
 				[attr.aria-label]="'pptx.animation.motionPath.label' | translate"
+				[attr.value]="selectedValue()"
 				class="pptx-ng-anim__select"
 				[disabled]="!canEdit()"
 				(change)="onSelect($event)"
@@ -85,7 +88,7 @@ export function motionPathSelectValue(motionPath: string | undefined): string {
 						}
 					</optgroup>
 				}
-			</select>
+			</pptx-ui-select>
 			@if (motionPath()) {
 				<span class="pptx-ng-motion-path__hint">
 					{{ 'pptx.animation.motionPath.editHint' | translate }}
@@ -129,7 +132,7 @@ export class MotionPathRowComponent {
 
 	protected onSelect(event: Event): void {
 		const target = event.target;
-		if (!(target instanceof HTMLSelectElement)) {
+		if (!isSelectControl(target)) {
 			return;
 		}
 		// The custom marker is read-only: it describes a dragged path, and there is

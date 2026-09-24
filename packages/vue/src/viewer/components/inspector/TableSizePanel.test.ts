@@ -6,6 +6,7 @@ import type { PptxTableData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import TableSizePanel from './TableSizePanel.vue';
+import { setControlValue } from './test-control-value';
 
 function tableData(): PptxTableData {
 	return {
@@ -28,7 +29,7 @@ describe('tableSizePanel', () => {
 	it('sets a column to the exact requested width via the shared redistribution formula', async () => {
 		const wrapper = mount(TableSizePanel, { props: { tableData: tableData(), canEdit: true } });
 		const slider = wrapper.findAll('input[type="range"]')[0];
-		await slider.setValue('60');
+		await setControlValue(slider, '60');
 
 		const widths = lastPatch(wrapper).columnWidths ?? [];
 		expect(widths[0]).toBeCloseTo(0.6, 5);

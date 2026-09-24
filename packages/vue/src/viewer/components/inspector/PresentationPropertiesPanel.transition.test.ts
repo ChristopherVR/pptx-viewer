@@ -3,6 +3,7 @@ import type { PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import PresentationPropertiesPanel from './PresentationPropertiesPanel.vue';
+import { setControlValue } from './test-control-value';
 
 /**
  * `SlideTransitionSection.vue` and the `SlideTransitionPanel.vue` it owns were
@@ -29,7 +30,7 @@ describe('presentationPropertiesPanel slide transition card', () => {
 		const wrapper = mountPanel();
 		const advance = wrapper.find('[data-testid="transition-advance"]');
 		expect(advance.exists()).toBeTruthy();
-		await advance.setValue(false);
+		await setControlValue(advance, false);
 		const updates = wrapper.emitted('slide-update');
 		expect(updates).toBeTruthy();
 		expect(updates?.[0]?.[0]).toStrictEqual({

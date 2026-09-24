@@ -16,15 +16,18 @@ async function focusStyle(input: Locator): Promise<{
 }> {
 	await input.evaluate((element) => element.blur());
 	const restingBorder = await input.evaluate((element) => {
-		if (!element.parentElement) {
+		const root = element.getRootNode();
+		const container = root instanceof ShadowRoot ? root.host : element.parentElement;
+		if (!container) {
 			throw new Error('Search input has no visual container');
 		}
-		return getComputedStyle(element.parentElement).borderColor;
+		return getComputedStyle(container).borderColor;
 	});
 	await input.focus();
 	await expect(input).toBeFocused();
 	return input.evaluate((element, baseBorder) => {
-		const container = element.parentElement;
+		const root = element.getRootNode();
+		const container = root instanceof ShadowRoot ? root.host : element.parentElement;
 		if (!container) {
 			throw new Error('Search input has no visual container');
 		}
@@ -40,6 +43,29 @@ async function focusStyle(input: Locator): Promise<{
 	}, restingBorder);
 }
 
+async function visualStyle(input: Locator, property: 'outlineStyle'): Promise<string> {
+	return input.evaluate((element, name) => {
+		const root = element.getRootNode();
+		const container = root instanceof ShadowRoot ? root.host : element.parentElement;
+		if (!container) {
+			throw new Error('Search input has no visual container');
+		}
+		return getComputedStyle(container)[name];
+	}, property);
+}
+
+async function visualBounds(input: Locator): Promise<{ x: number; width: number }> {
+	return input.evaluate((element) => {
+		const root = element.getRootNode();
+		const container = root instanceof ShadowRoot ? root.host : element.parentElement;
+		if (!container) {
+			throw new Error('Search input has no visual container');
+		}
+		const { x, width } = container.getBoundingClientRect();
+		return { x, width };
+	});
+}
+
 async function openBackstage(page: Page): Promise<void> {
 	await page
 		.getByRole('toolbar', { name: 'Presentation toolbar' })
@@ -48,16 +74,22 @@ async function openBackstage(page: Page): Promise<void> {
 	await expect(page.getByRole('dialog', { name: 'File' })).toBeVisible();
 }
 
+function titleSearch(page: Page): Locator {
+	return page.locator('pptx-ui-search[variant="titlebar"] input[part="input"]');
+}
+
+function recentSearch(page: Page): Locator {
+	return page.getByRole('dialog', { name: 'File' }).locator('pptx-ui-search input[part="input"]');
+}
+
 test('title-bar and recent-files search show one restrained focus border', async ({ page }) => {
 	await loadDeck(page);
-	const titleInput = page.getByPlaceholder('Tell me what you want to do');
+	const titleInput = titleSearch(page);
 	const title = await focusStyle(titleInput);
 	await titleInput.fill('save');
 	await expect(titleInput).toBeFocused();
 	await openBackstage(page);
-	const recentInput = page
-		.getByRole('dialog', { name: 'File' })
-		.getByPlaceholder('Search recent presentations');
+	const recentInput = recentSearch(page);
 	const recent = await focusStyle(recentInput);
 	await recentInput.fill('example');
 	await expect(recentInput).toBeFocused();
@@ -82,32 +114,26 @@ test('title-bar and recent-files search show one restrained focus border', async
 test('search focus remains visible in forced-colors mode', async ({ page }) => {
 	await page.emulateMedia({ forcedColors: 'active' });
 	await loadDeck(page);
-	const title = page.getByPlaceholder('Tell me what you want to do');
+	const title = titleSearch(page);
 	await title.focus();
-	await expect(title.locator('..')).toHaveCSS('outline-style', 'solid');
+	expect(await visualStyle(title, 'outlineStyle')).toBe('solid');
 	await openBackstage(page);
-	const recent = page
-		.getByRole('dialog', { name: 'File' })
-		.getByPlaceholder('Search recent presentations');
+	const recent = recentSearch(page);
 	await recent.focus();
-	await expect(recent.locator('..')).toHaveCSS('outline-style', 'solid');
+	expect(await visualStyle(recent, 'outlineStyle')).toBe('solid');
 });
 
 test('both search fields stay within a narrow desktop viewport', async ({ page }) => {
 	await page.setViewportSize({ width: 800, height: 600 });
 	await loadDeck(page);
-	const title = page.getByPlaceholder('Tell me what you want to do');
+	const title = titleSearch(page);
 	await expect(title).toBeVisible();
-	const titleBox = await title.locator('..').boundingBox();
-	expect(titleBox).not.toBeNull();
-	expect(titleBox!.x + titleBox!.width).toBeLessThanOrEqual(800);
+	const titleBox = await visualBounds(title);
+	expect(titleBox.x + titleBox.width).toBeLessThanOrEqual(800);
 
 	await openBackstage(page);
-	const recent = page
-		.getByRole('dialog', { name: 'File' })
-		.getByPlaceholder('Search recent presentations');
+	const recent = recentSearch(page);
 	await expect(recent).toBeVisible();
-	const recentBox = await recent.locator('..').boundingBox();
-	expect(recentBox).not.toBeNull();
-	expect(recentBox!.x + recentBox!.width).toBeLessThanOrEqual(800);
+	const recentBox = await visualBounds(recent);
+	expect(recentBox.x + recentBox.width).toBeLessThanOrEqual(800);
 });

@@ -3,6 +3,7 @@ import type { ChartTypeSelectValue } from 'pptx-viewer-shared';
 import { resolveDisplayedChartType } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import {
 	CARD,
 	CHART_TYPE_OPTIONS,
@@ -74,7 +75,7 @@ export function ChartTypeSelector({
 			{/* Chart type selector */}
 			<label className='flex items-center gap-2 text-[11px]'>
 				<span className='w-10 text-muted-foreground shrink-0'>{t('pptx.chart.type')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.chart.type')}
 					disabled={!canEdit}
 					className={INPUT}
@@ -90,14 +91,14 @@ export function ChartTypeSelector({
 							{t(opt.labelKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Grouping mode (bar/line/area only) */}
 			{supportsGrouping && (
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-10 text-muted-foreground shrink-0'>{t('pptx.chart.grouping')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.chart.grouping')}
 						disabled={!canEdit}
 						className={INPUT}
@@ -113,7 +114,7 @@ export function ChartTypeSelector({
 								{t(opt.labelKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 		</div>

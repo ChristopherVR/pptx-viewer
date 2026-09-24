@@ -5,6 +5,7 @@ import { PATTERN_PRESET_OPTIONS } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import FillPatternControls from './FillPatternControls.vue';
+import { setControlValue } from './test-control-value';
 
 function shape(shapeStyle: ShapeStyle = {}): PptxElement {
 	return {
@@ -50,14 +51,14 @@ describe('fillPatternControls', () => {
 	it('foreground colour maps to fillColor', async () => {
 		const wrapper = mount(FillPatternControls, { props: { element: shape() } });
 		const colorInputs = wrapper.findAll('input[type="color"]');
-		await colorInputs[0].setValue('#abcdef');
+		await setControlValue(colorInputs[0], '#abcdef');
 		expect(lastPatch(wrapper).shapeStyle.fillColor).toBe('#abcdef');
 	});
 
 	it('background colour maps to fillPatternBackgroundColor', async () => {
 		const wrapper = mount(FillPatternControls, { props: { element: shape() } });
 		const colorInputs = wrapper.findAll('input[type="color"]');
-		await colorInputs[1].setValue('#fedcba');
+		await setControlValue(colorInputs[1], '#fedcba');
 		expect(lastPatch(wrapper).shapeStyle.fillPatternBackgroundColor).toBe('#fedcba');
 	});
 });

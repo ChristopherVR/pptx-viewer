@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxCropShape, PptxElement, PptxImageEffects } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
@@ -34,6 +42,7 @@ export function replacementImagePatch(dataUrl: string): Partial<PptxElement> {
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-image-crop-wash-panel',
 	standalone: true,
 	imports: [TranslatePipe],
@@ -77,8 +86,8 @@ export function replacementImagePatch(dataUrl: string): Partial<PptxElement> {
 			</div>
 			<label class="toggle"
 				><span>{{ 'pptx.image.colorWash' | translate }}</span
-				><input type="checkbox" [checked]="!!wash()" (change)="toggleWash($event)"
-			/></label>
+				><pptx-ui-checkbox [checked]="!!wash()" (change)="toggleWash($event)"></pptx-ui-checkbox
+			></label>
 			@if (wash(); as value) {
 				<div class="wash">
 					<label

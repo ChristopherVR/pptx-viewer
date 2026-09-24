@@ -29,6 +29,7 @@ import {
 	setTrigger,
 	setTriggerShapeId,
 } from './animation-author-helpers';
+import { isSelectControl } from './control-event-targets';
 
 /**
  * A patch builder: takes the current list plus the element and the new value,
@@ -81,7 +82,7 @@ export const setTriggerShape = setTriggerShapeId;
 /** Extract the string value from a `<select>` change event, or undefined. */
 export function stringFromSelect(event: Event): string | undefined {
 	const target = event.target;
-	if (!(target instanceof HTMLSelectElement)) {
+	if (!isSelectControl(target)) {
 		return undefined;
 	}
 	return target.value;

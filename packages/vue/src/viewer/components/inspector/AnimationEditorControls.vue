@@ -232,7 +232,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 		</div>
 		<label
 			>{{ t('pptx.animation.direction') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.direction')"
 				:value="animation.direction ?? 'fromLeft'"
 				@change="emit('patch', { direction: value($event) as PptxAnimationDirection })"
@@ -240,11 +240,11 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				<option v-for="item in directions" :key="item" :value="item">
 					{{ directionLabel(item) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<label
 			>{{ t('pptx.animation.sequence') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.sequence')"
 				:value="animation.sequence ?? 'asOne'"
 				@change="emit('patch', { sequence: value($event) as PptxAnimationSequence })"
@@ -252,11 +252,11 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				<option v-for="item in sequences" :key="item" :value="item">
 					{{ sequenceLabel(item) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<label
 			>{{ t('pptx.animation.trigger') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.triggerAria')"
 				:value="animation.trigger ?? 'onClick'"
 				@change="
@@ -269,11 +269,11 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				<option v-for="item in triggers" :key="item" :value="item">
 					{{ t(`pptx.animation.trigger.${item}`) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<label v-if="animation.trigger === 'onShapeClick'"
 			>{{ t('pptx.animation.trigger.shapeLabel') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.trigger.shapeLabel')"
 				:value="animation.triggerShapeId ?? ''"
 				@change="emit('patch', { triggerShapeId: value($event) || undefined })"
@@ -286,7 +286,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				>
 					{{ label(element) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<EffectSoundRow
 			:sound-state="soundState"
@@ -301,7 +301,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 		/>
 		<label
 			>{{ t('pptx.animation.timingCurve') }}
-			<select
+			<pptx-ui-select
 				:aria-label="t('pptx.animation.timingCurve')"
 				:value="animation.timingCurve ?? 'ease'"
 				@change="emit('patch', { timingCurve: value($event) as PptxAnimationTimingCurve })"
@@ -309,7 +309,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				<option v-for="item in curves" :key="item" :value="item">
 					{{ curveLabel(item) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</label>
 		<div class="grid grid-cols-2 gap-2">
 			<label
@@ -325,7 +325,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			</label>
 			<label
 				>{{ t('pptx.animation.repeatUntil') }}
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.animation.repeatUntil')"
 					:value="animation.repeatMode ?? 'none'"
 					@change="
@@ -342,7 +342,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 					<option value="untilEndOfSlide">
 						{{ t('pptx.animation.repeatUntil.untilEndOfSlide') }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 		</div>
 	</div>

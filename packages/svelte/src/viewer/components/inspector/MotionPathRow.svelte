@@ -41,7 +41,7 @@
 
 <label class="pptx-svelte-motionpath-row">
 	<span>{t('pptx.animation.motionPath.label')}</span>
-	<select
+	<pptx-ui-select
 		aria-label={t('pptx.animation.motionPath.label')}
 		class="pptx-svelte-animp-motionpath"
 		disabled={!canEdit}
@@ -57,7 +57,7 @@
 				{/each}
 			</optgroup>
 		{/each}
-	</select>
+	</pptx-ui-select>
 	{#if motionPath}
 		<small>{t('pptx.animation.motionPath.editHint')}</small>
 	{/if}

@@ -3,6 +3,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import ChartFilteredSeriesOptions from './ChartFilteredSeriesOptions.vue';
+import { setControlValue } from './test-control-value';
 
 function chartData(overrides: Partial<PptxChartData> = {}): PptxChartData {
 	return {
@@ -102,7 +103,7 @@ describe('chartFilteredSeriesOptions', () => {
 		expect((inputs[0]!.element as HTMLInputElement).value).toBe('Low');
 		expect((inputs[1]!.element as HTMLInputElement).value).toBe('Medium');
 
-		await wrapper.get('[data-testid="chart-dlbl-range-0-1"]').setValue('Renamed');
+		await setControlValue(wrapper.get('[data-testid="chart-dlbl-range-0-1"]'), 'Renamed');
 		expect(wrapper.emitted('set-data-labels-range-cache')).toStrictEqual([[0, 1, 'Renamed']]);
 	});
 

@@ -125,7 +125,7 @@ function onDash(event: Event): void {
 
 			<label class="pptx-vue-stroke-field flex flex-col gap-1">
 				<span class="pptx-vue-stroke-label text-muted-foreground">{{ t('pptx.stroke.dash') }}</span>
-				<select
+				<pptx-ui-select
 					:aria-label="t('pptx.stroke.dash')"
 					class="pptx-vue-stroke-input w-full bg-muted border border-border rounded px-2 py-1 max-md:min-h-[44px]"
 					:value="strokeDash"
@@ -134,7 +134,7 @@ function onDash(event: Event): void {
 					<option v-for="opt in STROKE_DASH_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.i18nKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</label>
 		</div>
 	</div>

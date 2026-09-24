@@ -45,7 +45,7 @@ function onChange(event: Event, index: number): void {
 				class="flex items-center gap-2 text-[11px]"
 			>
 				<span class="flex-1 truncate" :title="s.name">{{ s.name }}</span>
-				<select
+				<pptx-ui-select
 					class="pptx-vue-chart-input flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full"
 					data-testid="chart-combo-type"
 					:value="s.seriesChartType ?? ''"
@@ -54,7 +54,7 @@ function onChange(event: Event, index: number): void {
 					<option v-for="opt in COMBO_SERIES_TYPE_OPTIONS" :key="opt.value" :value="opt.value">
 						{{ t(opt.labelKey) }}
 					</option>
-				</select>
+				</pptx-ui-select>
 			</div>
 		</div>
 	</div>

@@ -65,7 +65,7 @@ function onTransparent(event: Event): void {
 	<div class="pptx-vue-color-change flex flex-col gap-1 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
 			<span class="font-semibold text-muted-foreground">{{ t('pptx.image.colorChange') }}</span>
-			<input type="checkbox" :checked="Boolean(cc)" @change="onToggle" />
+			<pptx-ui-checkbox type="checkbox" :checked="Boolean(cc)" @change="onToggle" />
 		</label>
 
 		<div v-if="cc" class="grid grid-cols-2 gap-1.5">
@@ -88,7 +88,7 @@ function onTransparent(event: Event): void {
 			</label>
 			<label class="col-span-2 flex items-center justify-between gap-2">
 				<span class="text-muted-foreground">{{ t('pptx.image.colorChangeTransparent') }}</span>
-				<input type="checkbox" :checked="toTransparent" @change="onTransparent" />
+				<pptx-ui-checkbox type="checkbox" :checked="toTransparent" @change="onTransparent" />
 			</label>
 		</div>
 	</div>

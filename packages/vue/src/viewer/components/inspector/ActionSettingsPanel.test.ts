@@ -2,6 +2,7 @@ import { mount } from '@vue/test-utils';
 import { describe, expect, it } from 'vitest';
 
 import ActionSettingsPanel from './ActionSettingsPanel.vue';
+import { setControlValue } from './test-control-value';
 
 const element = {
 	id: 'shape-1',
@@ -21,7 +22,7 @@ describe('action settings panel', () => {
 			props: { element, slideCount: 5 },
 		});
 		const url = wrapper.find('input[type="url"]');
-		await url.setValue('https://openai.com');
+		await setControlValue(url, 'https://openai.com');
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { url: 'https://openai.com' },
 		});
@@ -34,7 +35,7 @@ describe('action settings panel', () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
 		expect(wrapper.find('input[type="url"]').exists()).toBeFalsy();
 
-		await wrapper.findAll('select')[0].setValue('url');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'url');
 
 		expect(wrapper.find('input[type="url"]').exists()).toBeTruthy();
 		expect(wrapper.emitted('update')).toBeUndefined();
@@ -42,14 +43,14 @@ describe('action settings panel', () => {
 
 	it('round-trips the url once a target is entered', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('url');
-		await wrapper.find('input[type="url"]').setValue('https://example.org/');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'url');
+		await setControlValue(wrapper.find('input[type="url"]'), 'https://example.org/');
 
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { url: 'https://example.org/' },
 		});
 		await wrapper.setProps({ element: { ...bare, actionClick: { url: 'https://example.org/' } } });
-		expect(wrapper.findAll('select')[0].element.value).toBe('url');
+		expect(wrapper.findAll('pptx-ui-select')[0].element.value).toBe('url');
 		expect(wrapper.find<HTMLInputElement>('input[type="url"]').element.value).toBe(
 			'https://example.org/',
 		);
@@ -57,7 +58,7 @@ describe('action settings panel', () => {
 
 	it('reveals the slide spinner as soon as "Go to Slide" is picked', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[1].setValue('slide');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[1], 'slide');
 
 		expect(wrapper.find('input[type="number"]').exists()).toBeTruthy();
 		expect(wrapper.emitted('update')).toBeUndefined();
@@ -67,8 +68,8 @@ describe('action settings panel', () => {
 		const wrapper = mount(ActionSettingsPanel, {
 			props: { element: bare, slideCount: 5 },
 		});
-		await wrapper.findAll('select')[1].setValue('slide');
-		await wrapper.find('input[type="number"]').setValue(4);
+		await setControlValue(wrapper.findAll('pptx-ui-select')[1], 'slide');
+		await setControlValue(wrapper.find('input[type="number"]'), 4);
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionHover: { targetSlideIndex: 3 },
 		});
@@ -76,8 +77,8 @@ describe('action settings panel', () => {
 
 	it('clamps a slide number past the end of the deck', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('slide');
-		await wrapper.find('input[type="number"]').setValue(99);
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'slide');
+		await setControlValue(wrapper.find('input[type="number"]'), 99);
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { targetSlideIndex: 4 },
 		});
@@ -85,18 +86,18 @@ describe('action settings panel', () => {
 
 	it('drops a half-made pick when the inspector moves to another element', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('url');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'url');
 		expect(wrapper.find('input[type="url"]').exists()).toBeTruthy();
 
 		await wrapper.setProps({ element: { ...bare, id: 'shape-2' } });
 
 		expect(wrapper.find('input[type="url"]').exists()).toBeFalsy();
-		expect(wrapper.findAll('select')[0].element.value).toBe('none');
+		expect(wrapper.findAll('pptx-ui-select')[0].element.value).toBe('none');
 	});
 
 	it('commits a target-free navigation action immediately', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('nextSlide');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'nextSlide');
 		expect(JSON.stringify(wrapper.emitted('update')?.at(-1)?.[0])).toContain('nextslide');
 	});
 });
@@ -111,7 +112,7 @@ describe('action settings panel: custom show target', () => {
 		const wrapper = mount(ActionSettingsPanel, {
 			props: { element: bare, slideCount: 5, customShows },
 		});
-		await wrapper.findAll('select')[0].setValue('customShow');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'customShow');
 
 		const picker = wrapper.find('[data-testid="pptx-action-custom-show"]');
 		expect(picker.exists()).toBeTruthy();
@@ -123,8 +124,8 @@ describe('action settings panel: custom show target', () => {
 		const wrapper = mount(ActionSettingsPanel, {
 			props: { element: bare, slideCount: 5, customShows },
 		});
-		await wrapper.findAll('select')[0].setValue('customShow');
-		await wrapper.find('[data-testid="pptx-action-custom-show"]').setValue('show-2');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'customShow');
+		await setControlValue(wrapper.find('[data-testid="pptx-action-custom-show"]'), 'show-2');
 
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { action: expect.stringContaining('id=show-2') },
@@ -141,7 +142,7 @@ describe('action settings panel: custom show target', () => {
 		});
 		const checkbox = wrapper.find('[data-testid="pptx-action-custom-show-return"]');
 		expect(checkbox.exists()).toBeTruthy();
-		await checkbox.setValue(true);
+		await setControlValue(checkbox, true);
 
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { action: expect.stringMatching(/id=show-1.*return=true/u) },
@@ -152,8 +153,8 @@ describe('action settings panel: custom show target', () => {
 		const wrapper = mount(ActionSettingsPanel, {
 			props: { element: bare, slideCount: 5, customShows },
 		});
-		await wrapper.findAll('select')[0].setValue('customShow');
-		await wrapper.find('[data-testid="pptx-action-custom-show-return"]').setValue(true);
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'customShow');
+		await setControlValue(wrapper.find('[data-testid="pptx-action-custom-show-return"]'), true);
 		expect(wrapper.emitted('update')).toBeUndefined();
 	});
 });
@@ -161,7 +162,7 @@ describe('action settings panel: custom show target', () => {
 describe('action settings panel: openFile / openPresentation', () => {
 	it('reuses the url target field for openFile, and commits immediately with no target', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('openFile');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'openFile');
 		// Unlike url/slide/customShow, openFile has no "round-trips to none"
 		// failure mode, so picking it alone is already a committed action.
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
@@ -170,7 +171,7 @@ describe('action settings panel: openFile / openPresentation', () => {
 
 		const target = wrapper.find('input[type="text"]');
 		expect(target.exists()).toBeTruthy();
-		await target.setValue('C:\\reports\\q3.xlsx');
+		await setControlValue(target, 'C:\\reports\\q3.xlsx');
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { url: 'C:\\reports\\q3.xlsx' },
 		});
@@ -178,8 +179,8 @@ describe('action settings panel: openFile / openPresentation', () => {
 
 	it('reuses the url target field for openPresentation', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('openPresentation');
-		await wrapper.find('input[type="text"]').setValue('other-deck.pptx');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'openPresentation');
+		await setControlValue(wrapper.find('input[type="text"]'), 'other-deck.pptx');
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: { action: expect.stringContaining('hlinkpres'), url: 'other-deck.pptx' },
 		});
@@ -187,10 +188,10 @@ describe('action settings panel: openFile / openPresentation', () => {
 
 	it('reuses the url target field for runProgram', async () => {
 		const wrapper = mount(ActionSettingsPanel, { props: { element: bare, slideCount: 5 } });
-		await wrapper.findAll('select')[0].setValue('runProgram');
+		await setControlValue(wrapper.findAll('pptx-ui-select')[0], 'runProgram');
 		const target = wrapper.find('input[type="text"]');
 		expect(target.exists()).toBeTruthy();
-		await target.setValue('notepad.exe C:\\temp\\notes.txt');
+		await setControlValue(target, 'notepad.exe C:\\temp\\notes.txt');
 		expect(wrapper.emitted('update')?.at(-1)?.[0]).toMatchObject({
 			actionClick: {
 				action: expect.stringContaining('program'),

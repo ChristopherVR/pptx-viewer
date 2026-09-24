@@ -53,7 +53,7 @@ describe('actionSettingsPanel custom show target (wave-4 B7)', () => {
 		});
 
 		const clickSelect = container.querySelector(
-			'[data-pptx-action-trigger="click"] select',
+			'[data-pptx-action-trigger="click"] pptx-ui-select',
 		) as HTMLSelectElement;
 		act(() => {
 			clickSelect.value = 'customShow';
@@ -101,7 +101,7 @@ describe('actionSettingsPanel run program target', () => {
 		});
 
 		const clickSelect = container.querySelector(
-			'[data-pptx-action-trigger="click"] select',
+			'[data-pptx-action-trigger="click"] pptx-ui-select',
 		) as HTMLSelectElement;
 		act(() => {
 			clickSelect.value = 'runProgram';

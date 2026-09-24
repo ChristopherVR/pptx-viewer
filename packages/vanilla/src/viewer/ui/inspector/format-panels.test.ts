@@ -57,7 +57,7 @@ describe('text 3d section', () => {
 		const { section, setTextStyle } = build();
 		section.update(state({ canText: true, textStyle: {} as TextStyle }));
 
-		const toggle = section.el.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const toggle = section.el.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		toggle.checked = true;
 		toggle.dispatchEvent(new Event('change'));
 
@@ -70,7 +70,7 @@ describe('text 3d section', () => {
 			state({ canText: true, textStyle: { text3d: { extrusionHeight: 76200 } } as TextStyle }),
 		);
 
-		const toggle = section.el.querySelector<HTMLInputElement>('input[type="checkbox"]')!;
+		const toggle = section.el.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		toggle.checked = false;
 		toggle.dispatchEvent(new Event('change'));
 

@@ -15,6 +15,8 @@
  *                animation/table/chart/text/effects/collaboration/i18n).
  *   - export:    export data helpers.
  */
+import { registerPptxWebControls } from './web-components';
+
 export * from './theme';
 export * from './loader';
 export * from './types';
@@ -22,6 +24,9 @@ export * from './constants';
 export * from './render';
 export * from './three-view';
 export * from './export';
+export * from './web-components';
+// All bindings import this internal package, so registration happens once per page.
+registerPptxWebControls();
 
 // `slide-transition-cinematic` (the Office 2013+ p15 cinematic transition
 // family: cube/box/flip/rotate/orbit/fallOver/drape/curtains/wind/prestige/

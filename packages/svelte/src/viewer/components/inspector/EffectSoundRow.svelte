@@ -83,7 +83,7 @@
 <label class="pptx-svelte-effect-sound-row">
 	<span>{t('pptx.animation.sound')}</span>
 	<div class="pptx-svelte-effect-sound-controls">
-		<select
+		<pptx-ui-select
 			aria-label={t('pptx.animation.sound')}
 			class="pptx-svelte-animp-sound"
 			disabled={!canEdit}
@@ -100,7 +100,7 @@
 				<option value={entry.id}>{t(entry.i18nKey)}</option>
 			{/each}
 			<option value={OTHER_VALUE}>{t('pptx.animation.sound.other')}</option>
-		</select>
+		</pptx-ui-select>
 		<button
 			type="button"
 			aria-label={t('pptx.animation.sound.preview')}

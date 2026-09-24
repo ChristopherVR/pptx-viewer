@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { LuPlay } from 'react-icons/lu';
 
 import { playAnimationSound } from '../../utils/animation-sound';
+import { WebSelect } from '../WebControls';
 import { SELECT_CLS } from './animation-panel-constants';
 
 const NONE_VALUE = 'none';
@@ -85,7 +86,7 @@ export function EffectSoundRow({
 		<label className='flex flex-col gap-1'>
 			<span className='text-muted-foreground text-[11px]'>{t('pptx.animation.sound')}</span>
 			<div className='flex items-center gap-1'>
-				<select
+				<WebSelect
 					aria-label={t('pptx.animation.sound')}
 					value={selectedValue}
 					onChange={handleSelectChange}
@@ -104,7 +105,7 @@ export function EffectSoundRow({
 						</option>
 					))}
 					<option value={OTHER_VALUE}>{t('pptx.animation.sound.other')}</option>
-				</select>
+				</WebSelect>
 				<button
 					type='button'
 					aria-label={t('pptx.animation.sound.preview')}

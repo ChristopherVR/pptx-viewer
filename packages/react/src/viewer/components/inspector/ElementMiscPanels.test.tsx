@@ -32,15 +32,17 @@ describe('connectorPanel with noChangeArrowheads', () => {
 				onUpdateElementStyle={() => {}}
 			/>,
 		);
-		const selectCount = (markup.match(/<select/gu) ?? []).length;
-		expect(selectCount).toBeGreaterThan(0);
-		expect(markup.match(/disabled=""/gu) ?? []).toHaveLength(selectCount);
+		const selects = markup.match(/<pptx-ui-select\b[^>]*>/gu) ?? [];
+		expect(selects.length).toBeGreaterThan(0);
+		expect(selects.every((select) => /\sdisabled(?:=|\s|>)/u.test(select))).toBeTruthy();
 	});
 
 	it('leaves the dropdowns enabled on an editable, unlocked connector', () => {
 		const markup = renderToStaticMarkup(
 			<ConnectorPanel selectedElement={connector()} canEdit onUpdateElementStyle={() => {}} />,
 		);
-		expect(markup).not.toContain('disabled=""');
+		const selects = markup.match(/<pptx-ui-select\b[^>]*>/gu) ?? [];
+		expect(selects.length).toBeGreaterThan(0);
+		expect(selects.every((select) => !/\sdisabled(?:=|\s|>)/u.test(select))).toBeTruthy();
 	});
 });

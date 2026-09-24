@@ -5,7 +5,7 @@ import { createEl } from '../../render';
 import type { NumberFieldHandle } from '../controls';
 import { makeNumberField } from '../controls';
 import type { RangeFieldHandle } from './controls-extra';
-import { makeRangeField } from './controls-extra';
+import { makeRangeField, createInspectorSelect, createInspectorCheckbox } from './controls-extra';
 import type { InspectorHandlers, InspectorState } from './types';
 
 export interface ImageSection {
@@ -62,7 +62,7 @@ export function createImageSection(
 
 	const artisticLabel = doc.createElement('label');
 	artisticLabel.textContent = t('pptx.image.artisticEffects');
-	const artistic = doc.createElement('select');
+	const artistic = createInspectorSelect(doc);
 	// Named explicitly: the wrapping `<label>` would otherwise lend the select
 	// its whole text content, which includes every effect name.
 	artistic.setAttribute('aria-label', t('pptx.image.artisticEffects'));
@@ -120,8 +120,7 @@ export function createImageSection(
 		input.addEventListener('change', () => handlers.pushRecentColor(input.value));
 	}
 	el.append(artisticLabel, transparency.el, biLevel.el, duotone);
-	const wash = doc.createElement('input');
-	wash.type = 'checkbox';
+	const wash = createInspectorCheckbox(doc);
 	const washColor = doc.createElement('input');
 	washColor.type = 'color';
 	let washOpacityValue = 40;

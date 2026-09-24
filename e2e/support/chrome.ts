@@ -143,7 +143,14 @@ export async function measureChrome(page: Page): Promise<ChromeMeasurement> {
 				.filter((el) => el.getAttribute('role') !== 'switch')
 				.map(nameOf)
 				.filter(Boolean),
-			searchFields: [...(bar?.querySelectorAll('input') ?? [])].map(nameOf),
+			searchFields: [
+				...(bar?.querySelectorAll('input') ?? []),
+				...(bar?.querySelectorAll('pptx-ui-search') ?? []),
+			].map((element) =>
+				element.matches('pptx-ui-search')
+					? nameOf(element.shadowRoot?.querySelector('input') ?? element)
+					: nameOf(element),
+			),
 			counterText: counter ? (counter.textContent ?? '').trim() : null,
 			saveText: statusTexts.find((text) => /saved|saving|unsaved/iu.test(text)) ?? null,
 			statusTexts,

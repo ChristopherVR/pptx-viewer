@@ -52,7 +52,7 @@ describe('themeEditorPanel', () => {
 
 		const name = target.querySelector<HTMLInputElement>('.pptx-svelte-theme-field input')!;
 		expect(name.value).toBe('From File');
-		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('select'));
+		const selects = Array.from(target.querySelectorAll<HTMLSelectElement>('pptx-ui-select'));
 		expect(selects[0].value).toBe('Georgia');
 		expect(selects[1].value).toBe('Verdana');
 	});
@@ -150,7 +150,7 @@ describe('themeEditorPanel', () => {
 			fontScheme: { majorFont: { latin: 'Bodoni MT Poster' }, minorFont: { latin: 'Verdana' } },
 		};
 		const { target } = mountPanel(exotic);
-		const heading = target.querySelectorAll<HTMLSelectElement>('select')[0];
+		const heading = target.querySelectorAll<HTMLSelectElement>('pptx-ui-select')[0];
 		const headingOptions = Array.from(heading.options).map((option) => option.value);
 
 		expect(heading.value).toBe('Bodoni MT Poster');
@@ -175,7 +175,7 @@ describe('themeEditorPanel', () => {
 
 		const controls = Array.from(
 			target.querySelectorAll<HTMLButtonElement | HTMLInputElement | HTMLSelectElement>(
-				'button, input, select',
+				'button, input, pptx-ui-select',
 			),
 		);
 		expect(controls.every((control) => control.disabled)).toBeTruthy();

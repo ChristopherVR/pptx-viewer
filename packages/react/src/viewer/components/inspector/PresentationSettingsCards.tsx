@@ -9,6 +9,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '../../utils';
+import { WebCheckbox, WebSelect } from '../WebControls';
 import { CARD, HEADING, INPUT, BTN } from './inspector-pane-constants';
 
 // ---------------------------------------------------------------------------
@@ -29,11 +30,11 @@ export function CheckboxRow({
 	return (
 		<label className='flex items-center justify-between gap-2'>
 			<span className='text-muted-foreground'>{label}</span>
-			<input
-				type='checkbox'
+			<WebCheckbox
+				aria-label={label}
 				disabled={disabled}
 				checked={checked}
-				onChange={(e) => onChange(e.target.checked)}
+				onChange={(e) => onChange((e.currentTarget as HTMLElement & { checked: boolean }).checked)}
 			/>
 		</label>
 	);
@@ -59,21 +60,24 @@ export function PresentationSettingsCard({
 			<div className='space-y-1.5 text-[11px]'>
 				<label className='flex items-center justify-between gap-2'>
 					<span className='text-muted-foreground'>{t('pptx.presentationSettings.showType')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.presentationSettings.showType')}
 						disabled={!canEdit}
-						className={cn(INPUT, 'w-28')}
+						className='w-28 max-md:min-h-[44px]!'
 						value={presentationProperties.showType ?? 'presented'}
 						onChange={(e) =>
 							onUpdate({
-								showType: e.target.value as 'presented' | 'browsed' | 'kiosk',
+								showType: (e.currentTarget as HTMLElement & { value: string }).value as
+									| 'presented'
+									| 'browsed'
+									| 'kiosk',
 							})
 						}
 					>
 						<option value='presented'>{t('pptx.presentationSettings.showTypePresented')}</option>
 						<option value='browsed'>{t('pptx.presentationSettings.showTypeBrowsed')}</option>
 						<option value='kiosk'>{t('pptx.presentationSettings.showTypeKiosk')}</option>
-					</select>
+					</WebSelect>
 				</label>
 				<CheckboxRow
 					label={t('pptx.presentationSettings.loopContinuously')}
@@ -153,7 +157,7 @@ export function ThemeSelectorCard({
 			<div className='space-y-2 text-[11px]'>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.documentProperties.themeHeading')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.documentProperties.themeHeading')}
 						disabled={themeOptions.length === 0}
 						className={INPUT}
@@ -169,7 +173,7 @@ export function ThemeSelectorCard({
 								</option>
 							))
 						)}
-					</select>
+					</WebSelect>
 				</label>
 				<div className='grid grid-cols-2 gap-1.5'>
 					<button

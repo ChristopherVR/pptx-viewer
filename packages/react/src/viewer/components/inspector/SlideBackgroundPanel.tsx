@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { LuX } from 'react-icons/lu';
 
 import { cn, normalizeHexColor } from '../../utils';
+import { WebCheckbox } from '../WebControls';
 import { DebouncedColorInput } from './DebouncedColorInput';
 import { CARD, HEADING, BTN } from './inspector-pane-constants';
 
@@ -142,7 +143,7 @@ export function SlideBackgroundPanel({
 
 				{/* Hide Background Graphics (p:sld/@showMasterSp) */}
 				<label className='flex items-center gap-2 text-[11px]'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						checked={activeSlide.showMasterShapes === false}
 						disabled={!canEdit}

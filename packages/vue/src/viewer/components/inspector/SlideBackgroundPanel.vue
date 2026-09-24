@@ -193,7 +193,7 @@ function onToggleHideBackgroundGraphics(event: Event): void {
 		</button>
 
 		<label class="flex items-center gap-2 text-[11px]">
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				:checked="hideBackgroundGraphics"
 				:disabled="!canEdit"

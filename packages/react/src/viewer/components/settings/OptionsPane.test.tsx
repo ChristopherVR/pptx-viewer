@@ -10,7 +10,7 @@
 /* oxlint-disable eslint/one-var -- each fixture/lookup below is an independent
    local; merging unrelated declarations across this file would hurt
    readability, not help it (see chart-view-model.ts for the same rationale). */
-import { DEFAULT_VIEWER_OPTIONS } from 'pptx-viewer-shared';
+import { DEFAULT_VIEWER_OPTIONS, getViewerOptionsTab } from 'pptx-viewer-shared';
 import type { ViewerOptionsTabDefinition } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
@@ -99,5 +99,30 @@ describe('optionsPane numeric commit', () => {
 			input.dispatchEvent(new Event('change', { bubbles: true }));
 		});
 		expect(onOptionChange).not.toHaveBeenCalled();
+	});
+});
+
+describe('shared controls in React', () => {
+	it('commits select and checkbox changes through the host events', () => {
+		const onOptionChange = vi.fn();
+		act(() => {
+			root.render(
+				<OptionsPane
+					tab={getViewerOptionsTab('general')}
+					options={DEFAULT_VIEWER_OPTIONS}
+					onOptionChange={onOptionChange}
+				/>,
+			);
+		});
+		const select = container.querySelector('pptx-ui-select')!;
+		const trigger = select.shadowRoot!.querySelector('button')!;
+		act(() => {
+			trigger.click();
+			select.shadowRoot!.querySelectorAll<HTMLElement>('[role="option"]')[1].click();
+		});
+		expect(onOptionChange).toHaveBeenCalledWith('general', 'displayOptimization', 'compatibility');
+		const checkbox = container.querySelector('pptx-ui-checkbox')!;
+		act(() => checkbox.click());
+		expect(onOptionChange).toHaveBeenCalledWith('general', 'showMiniToolbar', checkbox.checked);
 	});
 });

@@ -3,6 +3,7 @@ import { FILL_PATTERN_LABEL_KEYS, schemaLabel } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { useRecentColors } from './RecentColorsContext';
 import { LBL, PATTERN_OPTIONS, SEL } from './table-cell-advanced-fill-constants';
 
@@ -39,7 +40,7 @@ export function TableCellPatternFill({
 		<div className='space-y-1.5'>
 			<label className='flex flex-col gap-0.5'>
 				<span className={LBL}>{t('pptx.table.patternPreset')}</span>
-				<select
+				<WebSelect
 					aria-label={t('pptx.table.patternPreset')}
 					disabled={!canEdit}
 					className={SEL}
@@ -51,7 +52,7 @@ export function TableCellPatternFill({
 							{schemaLabel(FILL_PATTERN_LABEL_KEYS, p, translate)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 			<div className='grid grid-cols-2 gap-1.5'>
 				<label className='flex flex-col gap-0.5'>

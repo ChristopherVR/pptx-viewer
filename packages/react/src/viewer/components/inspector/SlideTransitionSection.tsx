@@ -26,6 +26,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { SLIDE_TRANSITION_OPTIONS } from '../../constants';
+import { WebSelect, WebCheckbox } from '../WebControls';
 import { DirectionPicker } from './DirectionPicker';
 import { TransitionPreview } from './TransitionPreview';
 
@@ -80,7 +81,7 @@ export function SlideTransitionSection({
 			{/* Type */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-xs'>{t('pptx.transition.type')}</span>
-				<select
+				<WebSelect
 					value={activeSlide.transition?.type || 'none'}
 					disabled={!canEdit}
 					aria-label={t('pptx.transition.type')}
@@ -96,7 +97,7 @@ export function SlideTransitionSection({
 							{t(option.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Direction picker */}
@@ -182,7 +183,7 @@ export function SlideTransitionSection({
 			{/* Speed */}
 			<label className='flex flex-col gap-1'>
 				<span className='text-muted-foreground text-xs'>{t('pptx.transition.speed')}</span>
-				<select
+				<WebSelect
 					value={activeSlide.transition?.speed ?? 'fast'}
 					disabled={!canEdit}
 					aria-label={t('pptx.transition.speed')}
@@ -198,14 +199,14 @@ export function SlideTransitionSection({
 							{t(option.i18nKey)}
 						</option>
 					))}
-				</select>
+				</WebSelect>
 			</label>
 
 			{/* Morph granularity */}
 			{isMorph && (
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground text-xs'>{t('pptx.transition.morphOption')}</span>
-					<select
+					<WebSelect
 						value={activeSlide.transition?.morphOption ?? 'byObject'}
 						disabled={!canEdit}
 						aria-label={t('pptx.transition.morphOption')}
@@ -221,13 +222,13 @@ export function SlideTransitionSection({
 								{t(option.i18nKey)}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 
 			{/* Advance on click */}
 			<label className='inline-flex items-center gap-2 text-foreground text-xs'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					disabled={!canEdit}
 					checked={activeSlide.transition?.advanceOnClick !== false}

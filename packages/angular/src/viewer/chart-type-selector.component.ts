@@ -11,7 +11,14 @@
  * fully-updated element through `elementChange`, committed by the inspector
  * as one undoable history entry.
  */
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 
@@ -24,6 +31,7 @@ import {
 	patchChartData,
 	resolveDisplayedChartType,
 } from '../internal/shared';
+import { isSelectControl } from './control-event-targets';
 
 /**
  * Apply an inspector patch (title/type/grouping) to a chart element, routing
@@ -42,6 +50,7 @@ export function applyChartTypeSelectorPatch(
 }
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-type-selector',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -62,7 +71,7 @@ export function applyChartTypeSelectorPatch(
 
 				<label class="pptx-cts__field">
 					<span class="pptx-cts__lbl">{{ 'pptx.chart.type' | translate }}</span>
-					<select
+					<pptx-ui-select
 						class="pptx-cts__input"
 						[attr.aria-label]="'pptx.chart.type' | translate"
 						[disabled]="!canEdit()"
@@ -74,13 +83,13 @@ export function applyChartTypeSelectorPatch(
 								{{ opt.labelKey | translate }}
 							</option>
 						}
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				@if (supportsGrouping()) {
 					<label class="pptx-cts__field">
 						<span class="pptx-cts__lbl">{{ 'pptx.chart.grouping' | translate }}</span>
-						<select
+						<pptx-ui-select
 							class="pptx-cts__input"
 							[attr.aria-label]="'pptx.chart.grouping' | translate"
 							[disabled]="!canEdit()"
@@ -95,7 +104,7 @@ export function applyChartTypeSelectorPatch(
 									{{ opt.labelKey | translate }}
 								</option>
 							}
-						</select>
+						</pptx-ui-select>
 					</label>
 				}
 			</div>
@@ -173,14 +182,14 @@ export class ChartTypeSelectorComponent {
 
 	protected onType(event: Event): void {
 		const target = event.target;
-		if (target instanceof HTMLSelectElement) {
+		if (isSelectControl(target)) {
 			this.emit({ chartType: target.value as PptxChartData['chartType'] });
 		}
 	}
 
 	protected onGrouping(event: Event): void {
 		const target = event.target;
-		if (target instanceof HTMLSelectElement) {
+		if (isSelectControl(target)) {
 			this.emit({ grouping: target.value as PptxChartData['grouping'] });
 		}
 	}

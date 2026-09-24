@@ -3,6 +3,7 @@ import type { ChartUserShapeRow, ChartUserShapeRowPatch } from 'pptx-viewer-shar
 import { getChartUserShapeRowChartBox } from 'pptx-viewer-shared';
 import { useTranslation } from 'react-i18next';
 
+import { WebCheckbox } from '../WebControls';
 import { INPUT } from './chart-panel-constants';
 
 /** A `from`/`to` fraction-pair patch for a nested row, see `getChartUserShapeRowChartBox`'s doc. */
@@ -97,7 +98,7 @@ function FlipFields({
 	return (
 		<>
 			<label className='flex items-center gap-1 cursor-pointer'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					aria-label={t('pptx.arrange.flipHorizontally')}
 					disabled={!canEdit}
@@ -108,7 +109,7 @@ function FlipFields({
 				<span className='text-muted-foreground'>{t('pptx.arrange.flipHorizontally')}</span>
 			</label>
 			<label className='flex items-center gap-1 cursor-pointer'>
-				<input
+				<WebCheckbox
 					type='checkbox'
 					aria-label={t('pptx.arrange.flipVertically')}
 					disabled={!canEdit}

@@ -11,6 +11,7 @@ import {
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import { createInspectorCheckbox, createInspectorSelect } from './inspector/controls-extra';
 import { createThemeColorSwatchGrid } from './theme-color-swatch-grid';
 
 export interface TableStyleEditorFieldsHandle {
@@ -52,8 +53,7 @@ export function createTableStyleEditorFields(
 		onEdit({ kind: 'fillColor', hex: fillColor.value, ref: undefined }),
 	);
 	const fillNoFillLabel = createEl(doc, 'label', 'pptxv-tsef-check');
-	const fillNoFill = doc.createElement('input');
-	fillNoFill.type = 'checkbox';
+	const fillNoFill = createInspectorCheckbox(doc);
 	fillNoFill.addEventListener('change', () =>
 		onEdit({ kind: 'fillNone', noFill: fillNoFill.checked }),
 	);
@@ -107,7 +107,7 @@ export function createTableStyleEditorFields(
 		width.addEventListener('change', () =>
 			onEdit({ kind: 'borderWidth', side, width: Number(width.value) }),
 		);
-		const dash = doc.createElement('select');
+		const dash = createInspectorSelect(doc);
 		for (const preset of TABLE_STYLE_DASH_PRESETS) {
 			const option = doc.createElement('option');
 			option.value = preset;
@@ -116,8 +116,7 @@ export function createTableStyleEditorFields(
 		}
 		dash.addEventListener('change', () => onEdit({ kind: 'borderDash', side, dash: dash.value }));
 		const noFillLabel = createEl(doc, 'label', 'pptxv-tsef-check');
-		const noFill = doc.createElement('input');
-		noFill.type = 'checkbox';
+		const noFill = createInspectorCheckbox(doc);
 		noFill.addEventListener('change', () =>
 			onEdit({ kind: 'borderNone', side, noFill: noFill.checked }),
 		);

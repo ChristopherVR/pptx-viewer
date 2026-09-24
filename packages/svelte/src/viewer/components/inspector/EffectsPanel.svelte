@@ -43,8 +43,7 @@
 <div class="pptx-svelte-effects">
 	<!-- Outer Shadow -->
 	<label class="pptx-svelte-effects-toggle">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			checked={effects.outerShadow.enabled}
 			onchange={(e) =>
 				editor.patchSelected(
@@ -52,7 +51,7 @@
 						? enableOuterShadowPatch(el, effects.outerShadow)
 						: disableOuterShadowPatch(el),
 				)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.effects.outerShadow')}</span>
 	</label>
 	{#if effects.outerShadow.enabled}
@@ -63,7 +62,7 @@
 			<label>{t('pptx.effects.angle')}<input type="number" min="0" max="359" value={Math.round(effects.outerShadow.angle)} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { angle: Number(e.currentTarget.value) }))} /></label>
 			<label>{t('pptx.effects.distance')}<input type="number" min="0" max="200" value={Math.round(effects.outerShadow.distance)} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { distance: Number(e.currentTarget.value) }))} /></label>
 			<label class="pptx-svelte-effects-check">
-				<input type="checkbox" checked={effects.outerShadow.rotateWithShape} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { rotateWithShape: e.currentTarget.checked }))} />
+				<pptx-ui-checkbox checked={effects.outerShadow.rotateWithShape} onchange={(e) => editor.patchSelected(updateOuterShadowPatch(el, { rotateWithShape: e.currentTarget.checked }))} ></pptx-ui-checkbox>
 				<span>{t('pptx.effects.rotateWithShape')}</span>
 			</label>
 		</div>
@@ -71,8 +70,7 @@
 
 	<!-- Inner Shadow -->
 	<label class="pptx-svelte-effects-toggle">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			checked={effects.innerShadow.enabled}
 			onchange={(e) =>
 				editor.patchSelected(
@@ -80,7 +78,7 @@
 						? enableInnerShadowPatch(el, effects.innerShadow)
 						: disableInnerShadowPatch(el),
 				)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.effects.innerShadow')}</span>
 	</label>
 	{#if effects.innerShadow.enabled}
@@ -95,14 +93,13 @@
 
 	<!-- Glow -->
 	<label class="pptx-svelte-effects-toggle">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			checked={effects.glow.enabled}
 			onchange={(e) =>
 				editor.patchSelected(
 					e.currentTarget.checked ? enableGlowPatch(el, effects.glow) : disableGlowPatch(el),
 				)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.effects.glow')}</span>
 	</label>
 	{#if effects.glow.enabled}
@@ -115,8 +112,7 @@
 
 	<!-- Reflection -->
 	<label class="pptx-svelte-effects-toggle">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			checked={effects.reflection.enabled}
 			onchange={(e) =>
 				editor.patchSelected(
@@ -124,7 +120,7 @@
 						? enableReflectionPatch(el, effects.reflection)
 						: disableReflectionPatch(el),
 				)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.effects.reflection')}</span>
 	</label>
 	{#if effects.reflection.enabled}
@@ -139,8 +135,7 @@
 
 	<!-- Soft Edge -->
 	<label class="pptx-svelte-effects-toggle">
-		<input
-			type="checkbox"
+		<pptx-ui-checkbox
 			checked={effects.softEdge.enabled}
 			onchange={(e) =>
 				editor.patchSelected(
@@ -148,7 +143,7 @@
 						? enableSoftEdgePatch(el, effects.softEdge.radius || 2.5)
 						: disableSoftEdgePatch(el),
 				)}
-		/>
+		></pptx-ui-checkbox>
 		<span>{t('pptx.effects.softEdge')}</span>
 	</label>
 	{#if effects.softEdge.enabled}

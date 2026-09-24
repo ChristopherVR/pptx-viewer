@@ -1,5 +1,14 @@
 import { createEl } from '../../render';
 
+/** Keep the inspector's existing imperative control handles while using the shared elements. */
+export function createInspectorSelect(doc: Document): HTMLSelectElement {
+	return doc.createElement('pptx-ui-select') as unknown as HTMLSelectElement;
+}
+
+export function createInspectorCheckbox(doc: Document): HTMLInputElement {
+	return doc.createElement('pptx-ui-checkbox') as unknown as HTMLInputElement;
+}
+
 /**
  * Extra reusable DOM control builders for the element-type-aware inspector
  * sections (select / checkbox / labelled range slider). Kept separate from
@@ -15,6 +24,7 @@ export interface SelectFieldOption<T extends string> {
 export interface SelectFieldOptions<T extends string> {
 	label: string;
 	options: ReadonlyArray<SelectFieldOption<T>>;
+	webComponent?: boolean;
 	onChange(value: T): void;
 }
 
@@ -24,7 +34,7 @@ export interface SelectFieldHandle<T extends string> {
 	setDisabled(disabled: boolean): void;
 }
 
-/** A labelled native `<select>` field (dropdown of a fixed value/label list). */
+/** A labelled dropdown of a fixed value/label list. */
 export function makeSelectField<T extends string>(
 	doc: Document,
 	options: SelectFieldOptions<T>,
@@ -34,7 +44,7 @@ export function makeSelectField<T extends string>(
 	caption.textContent = options.label;
 	el.appendChild(caption);
 
-	const select = doc.createElement('select');
+	const select = createInspectorSelect(doc);
 	select.className = 'pptxv-field-select-input';
 	select.setAttribute('aria-label', options.label);
 	for (const opt of options.options) {
@@ -59,6 +69,7 @@ export function makeSelectField<T extends string>(
 
 export interface CheckboxFieldOptions {
 	label: string;
+	webComponent?: boolean;
 	onChange(checked: boolean): void;
 }
 
@@ -74,8 +85,7 @@ export function makeCheckboxField(
 	options: CheckboxFieldOptions,
 ): CheckboxFieldHandle {
 	const el = createEl(doc, 'label', 'pptxv-field pptxv-field-checkbox');
-	const input = doc.createElement('input');
-	input.type = 'checkbox';
+	const input = createInspectorCheckbox(doc);
 	input.setAttribute('aria-label', options.label);
 	input.addEventListener('change', () => options.onChange(input.checked));
 	const caption = createEl(doc, 'span', 'pptxv-field-label');

@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 
 import { TABLE_STYLE_PRESETS } from '../../constants';
 import type { TableCellEditorState } from '../../types';
+import { WebCheckbox } from '../WebControls';
 import { HEADING, CARD, INPUT, BTN } from './inspector-pane-constants';
 import { TableCellFormattingPanel } from './TableCellFormattingPanel';
 import { TableStyleEditor } from './TableStyleEditor';
@@ -96,7 +97,7 @@ export function TablePropertiesPanel({
 						] as const
 					).map(([key, i18nKey]) => (
 						<label key={key} className='flex items-center gap-2 cursor-pointer'>
-							<input
+							<WebCheckbox
 								type='checkbox'
 								disabled={!canEdit}
 								checked={Boolean(td[key as keyof typeof td])}

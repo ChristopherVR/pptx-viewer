@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { translationsEn } from '../../../i18n';
 import EffectSoundRow from './EffectSoundRow.vue';
+import { setControlValue } from './test-control-value';
 
 function mountRow(props: Record<string, unknown> = {}) {
 	return mount(EffectSoundRow, { props: { soundState: { hasSound: false }, ...props } });
@@ -13,12 +14,12 @@ describe('effectSoundRow', () => {
 	it('labels the row and defaults to "No Sound"', () => {
 		const wrapper = mountRow();
 		expect(wrapper.text()).toContain(translationsEn['pptx.animation.sound']);
-		expect((wrapper.get('select').element as HTMLSelectElement).value).toBe('none');
+		expect((wrapper.get('pptx-ui-select').element as HTMLSelectElement).value).toBe('none');
 	});
 
 	it('lists all 19 stock sounds plus None and Other Sound', () => {
 		const wrapper = mountRow();
-		const select = wrapper.get('select').element as HTMLSelectElement;
+		const select = wrapper.get('pptx-ui-select').element as HTMLSelectElement;
 		// none + 19 stock entries + other = 21
 		expect(select.options).toHaveLength(21);
 		expect(wrapper.text()).toContain(translationsEn['pptx.animation.sound.chime']);
@@ -27,14 +28,14 @@ describe('effectSoundRow', () => {
 
 	it('shows the picked custom file name once a non-stock sound is set', () => {
 		const wrapper = mountRow({ soundState: { hasSound: true, fileName: 'chime.mp3' } });
-		const select = wrapper.get('select').element as HTMLSelectElement;
+		const select = wrapper.get('pptx-ui-select').element as HTMLSelectElement;
 		expect(select.value).toBe('current');
 		expect(select.options[1].textContent).toBe('chime.mp3');
 	});
 
 	it('falls back to the generic "Choose sound file..." label with no file name', () => {
 		const wrapper = mountRow({ soundState: { hasSound: true } });
-		const select = wrapper.get('select').element as HTMLSelectElement;
+		const select = wrapper.get('pptx-ui-select').element as HTMLSelectElement;
 		expect(select.options[1].textContent).toBe(translationsEn['pptx.animation.sound.custom']);
 	});
 
@@ -42,19 +43,19 @@ describe('effectSoundRow', () => {
 		const wrapper = mountRow({
 			soundState: { hasSound: true, fileName: 'CHIMES.WAV', catalogueId: 'chime' },
 		});
-		const select = wrapper.get('select').element as HTMLSelectElement;
+		const select = wrapper.get('pptx-ui-select').element as HTMLSelectElement;
 		expect(select.value).toBe('chime');
 	});
 
 	it('emits pick(undefined) when "No Sound" is chosen', async () => {
 		const wrapper = mountRow({ soundState: { hasSound: true, fileName: 'x.mp3' } });
-		await wrapper.get('select').setValue('none');
+		await setControlValue(wrapper.get('pptx-ui-select'), 'none');
 		expect(wrapper.emitted('pick')).toStrictEqual([[undefined]]);
 	});
 
 	it('emits pickStock with the catalogue id when a stock entry is chosen', async () => {
 		const wrapper = mountRow();
-		await wrapper.get('select').setValue('chime');
+		await setControlValue(wrapper.get('pptx-ui-select'), 'chime');
 		expect(wrapper.emitted('pickStock')).toStrictEqual([['chime']]);
 	});
 
@@ -62,7 +63,7 @@ describe('effectSoundRow', () => {
 		const wrapper = mountRow();
 		const input = wrapper.get('input[type="file"]').element as HTMLInputElement;
 		const clickSpy = vi.spyOn(input, 'click');
-		await wrapper.get('select').setValue('other');
+		await setControlValue(wrapper.get('pptx-ui-select'), 'other');
 		expect(clickSpy).toHaveBeenCalledOnce();
 	});
 
@@ -88,9 +89,9 @@ describe('effectSoundRow', () => {
 
 	it('exposes every catalogue id as a select option', () => {
 		const wrapper = mountRow();
-		const values = Array.from((wrapper.get('select').element as HTMLSelectElement).options).map(
-			(o) => o.value,
-		);
+		const values = Array.from(
+			(wrapper.get('pptx-ui-select').element as HTMLSelectElement).options,
+		).map((o) => o.value);
 		for (const entry of EFFECT_SOUND_CATALOGUE) {
 			expect(values).toContain(entry.id);
 		}

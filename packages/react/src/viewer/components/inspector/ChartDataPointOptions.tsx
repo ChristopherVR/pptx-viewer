@@ -2,6 +2,7 @@ import type { PptxChartDataPoint, PptxChartSeries, PptxChartType } from 'pptx-vi
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { WebSelect } from '../WebControls';
 import { CARD, EXPLOSION_SUPPORTED_TYPES, HEADING, INPUT } from './chart-panel-constants';
 import { useRecentColors } from './RecentColorsContext';
 
@@ -52,7 +53,7 @@ export function ChartDataPointOptions({
 			{series.length > 1 && (
 				<label className='flex items-center gap-2 text-[11px]'>
 					<span className='w-12 text-muted-foreground shrink-0'>{t('pptx.chart.series')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.chart.series')}
 						disabled={!canEdit}
 						className={INPUT}
@@ -64,7 +65,7 @@ export function ChartDataPointOptions({
 								{s.name}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 

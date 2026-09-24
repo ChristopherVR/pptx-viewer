@@ -127,7 +127,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 					<span class="w-16 text-muted-foreground shrink-0">{{
 						t('pptx.chart.displayUnits')
 					}}</span>
-					<select
+					<pptx-ui-select
 						:aria-label="t('pptx.chart.displayUnits')"
 						:class="INPUT"
 						data-testid="chart-axis-display-units"
@@ -137,7 +137,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						<option v-for="opt in DISPLAY_UNITS_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</label>
 			</div>
 
@@ -170,7 +170,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 
 				<label class="flex items-center gap-2 text-[11px]">
 					<span class="w-16 text-muted-foreground shrink-0">{{ t('pptx.chart.tickLabels') }}</span>
-					<select
+					<pptx-ui-select
 						:aria-label="t('pptx.chart.tickLabels')"
 						:class="INPUT"
 						data-testid="chart-axis-tick-pos"
@@ -180,11 +180,11 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 						<option v-for="opt in TICK_LABEL_POSITION_OPTIONS" :key="opt.value" :value="opt.value">
 							{{ t(opt.labelKey) }}
 						</option>
-					</select>
+					</pptx-ui-select>
 				</label>
 
 				<label class="flex items-center gap-2 cursor-pointer">
-					<input
+					<pptx-ui-checkbox
 						type="checkbox"
 						data-testid="chart-axis-major-gridlines"
 						class="accent-primary"
@@ -194,7 +194,7 @@ const INPUT = 'flex-1 bg-muted border border-border rounded px-1.5 py-0.5 w-full
 					<span class="text-[11px]">{{ t('pptx.chart.majorGridlines') }}</span>
 				</label>
 				<label class="flex items-center gap-2 cursor-pointer">
-					<input
+					<pptx-ui-checkbox
 						type="checkbox"
 						data-testid="chart-axis-minor-gridlines"
 						class="accent-primary"

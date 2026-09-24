@@ -12,7 +12,14 @@
  * @module angular-viewer/chart-axis-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type {
 	ChartAxisEdit,
@@ -53,6 +60,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 ];
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-axis-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -83,7 +91,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 									<span class="pptx-chart-card__label">{{
 										'pptx.chart.displayUnits' | translate
 									}}</span>
-									<select
+									<pptx-ui-select
 										[attr.aria-label]="'pptx.chart.displayUnits' | translate"
 										class="pptx-chart-card__input"
 										[disabled]="!canEdit()"
@@ -98,7 +106,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 												{{ opt.labelKey | translate }}
 											</option>
 										}
-									</select>
+									</pptx-ui-select>
 								</label>
 							}
 
@@ -132,7 +140,7 @@ const SCALE_FIELDS: ReadonlyArray<{
 								<span class="pptx-chart-card__label">{{
 									'pptx.chart.tickLabels' | translate
 								}}</span>
-								<select
+								<pptx-ui-select
 									[attr.aria-label]="'pptx.chart.tickLabels' | translate"
 									class="pptx-chart-card__input"
 									[disabled]="!canEdit()"
@@ -147,25 +155,23 @@ const SCALE_FIELDS: ReadonlyArray<{
 											{{ opt.labelKey | translate }}
 										</option>
 									}
-								</select>
+								</pptx-ui-select>
 							</label>
 
 							<label class="pptx-chart-card__check">
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									[disabled]="!canEdit()"
 									[checked]="row.axis.majorGridlines ?? false"
 									(change)="onGridlines(row.type, 'major', $event)"
-								/>
+								></pptx-ui-checkbox>
 								<span>{{ 'pptx.chart.majorGridlines' | translate }}</span>
 							</label>
 							<label class="pptx-chart-card__check">
-								<input
-									type="checkbox"
+								<pptx-ui-checkbox
 									[disabled]="!canEdit()"
 									[checked]="row.axis.minorGridlines ?? false"
 									(change)="onGridlines(row.type, 'minor', $event)"
-								/>
+								></pptx-ui-checkbox>
 								<span>{{ 'pptx.chart.minorGridlines' | translate }}</span>
 							</label>
 						</div>

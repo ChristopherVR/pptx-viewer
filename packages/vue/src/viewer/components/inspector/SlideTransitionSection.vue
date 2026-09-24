@@ -131,7 +131,7 @@ function onAdvanceChange(e: Event): void {
 
 		<div v-if="hasTransition && isMorph" class="mt-2 space-y-1 px-2.5">
 			<span class="text-xs text-muted-foreground">{{ t('pptx.transition.morphOption') }}</span>
-			<select
+			<pptx-ui-select
 				class="w-full rounded border border-border bg-muted px-2 py-1 text-xs"
 				:value="morphOption"
 				:aria-label="t('pptx.transition.morphOption')"
@@ -145,14 +145,14 @@ function onAdvanceChange(e: Event): void {
 				>
 					{{ t(option.i18nKey) }}
 				</option>
-			</select>
+			</pptx-ui-select>
 		</div>
 
 		<label
 			v-if="hasTransition"
 			class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
 		>
-			<input
+			<pptx-ui-checkbox
 				type="checkbox"
 				data-testid="transition-advance"
 				:checked="advanceOnClick"

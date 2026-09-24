@@ -30,6 +30,7 @@ export default defineConfig({
 		environment: 'happy-dom',
 		maxWorkers: 4,
 		include: ['src/**/*.test.ts'],
+		setupFiles: ['./src/web-controls.test-setup.ts'],
 		// The component suite parses a real .pptx fixture per test.
 		testTimeout: 30000,
 	},

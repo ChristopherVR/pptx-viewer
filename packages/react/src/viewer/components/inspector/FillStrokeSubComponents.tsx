@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { LuPipette } from 'react-icons/lu';
 
 import { normalizeHexColor, openNativeEyeDropper } from '../../utils';
+import { WebSelect } from '../WebControls';
 import { SEL, RNG, SWATCH, DIS, LBL, COL2 } from './FillStrokeHelpers';
 import type { GradientStop } from './FillStrokeHelpers';
 import { useRecentColors } from './RecentColorsContext';
@@ -33,7 +34,7 @@ export function SelectRow({
 	return (
 		<label className={`flex flex-col gap-1 ${span2 ? COL2 : ''}`}>
 			<span className={LBL}>{label}</span>
-			<select
+			<WebSelect
 				aria-label={label}
 				value={value}
 				onChange={(e) => onChange(e.target.value)}
@@ -44,7 +45,7 @@ export function SelectRow({
 						{o.i18nKey ? t(o.i18nKey) : o.label}
 					</option>
 				))}
-			</select>
+			</WebSelect>
 		</label>
 	);
 }

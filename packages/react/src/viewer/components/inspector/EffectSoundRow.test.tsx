@@ -47,7 +47,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		expect(select.value).toBe('none');
 	});
 
@@ -62,7 +62,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		// none + 19 stock entries + other = 21
 		expect(select.options).toHaveLength(21);
 		expect(select.textContent).toContain('pptx.animation.sound.chime');
@@ -80,7 +80,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		expect(select.value).toBe('current');
 		expect(select.textContent).toContain('chime.mp3');
 	});
@@ -96,7 +96,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		expect(select.value).toBe('chime');
 	});
 
@@ -112,7 +112,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		act(() => {
 			select.value = 'none';
 			fireChange(select);
@@ -132,7 +132,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		act(() => {
 			select.value = 'chime';
 			fireChange(select);
@@ -151,7 +151,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
 		const clickSpy = vi.spyOn(fileInput, 'click');
 		act(() => {
@@ -172,7 +172,7 @@ describe('effectSoundRow', () => {
 				/>,
 			);
 		});
-		const select = container.querySelector('select')!;
+		const select = container.querySelector('pptx-ui-select')!;
 		expect(select.disabled).toBeTruthy();
 	});
 

@@ -10,6 +10,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { normalizeHexColor } from '../../../utils';
+import { WebSelect, WebCheckbox } from '../../WebControls';
 import { useRecentColors } from '../RecentColorsContext';
 
 // `max-md:min-h-[44px]!` matches MIN_TOUCH_TARGET_PX (44) from
@@ -54,7 +55,7 @@ export function Text3DProperties({
 			{/* ── Extrusion toggle ── */}
 			<div className='space-y-1.5'>
 				<label className='inline-flex items-center gap-2 text-foreground'>
-					<input
+					<WebCheckbox
 						type='checkbox'
 						checked={hasExtrusion}
 						onChange={(e) => toggleExtrusion(e.target.checked)}
@@ -138,7 +139,7 @@ export function Text3DProperties({
 			{hasExtrusion && (
 				<label className='flex flex-col gap-1 pl-4'>
 					<span className='text-muted-foreground'>{t('pptx.text3d.material')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.text3d.material')}
 						value={t3d?.presetMaterial ?? ''}
 						onChange={(e) => {
@@ -154,7 +155,7 @@ export function Text3DProperties({
 								{label}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 			)}
 		</div>
@@ -190,7 +191,7 @@ function BevelSection({
 			<div className='grid grid-cols-3 gap-2'>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.text3d.bevelType')}</span>
-					<select
+					<WebSelect
 						aria-label={t('pptx.text3d.bevelType')}
 						value={bevelType ?? 'none'}
 						onChange={(e) => onTypeChange(e.target.value as BevelPresetType)}
@@ -201,7 +202,7 @@ function BevelSection({
 								{l}
 							</option>
 						))}
-					</select>
+					</WebSelect>
 				</label>
 				<label className='flex flex-col gap-1'>
 					<span className='text-muted-foreground'>{t('pptx.text3d.bevelWidth')}</span>

@@ -12,7 +12,14 @@
  * @module angular-viewer/chart-combo-type-options
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	input,
+	output,
+	CUSTOM_ELEMENTS_SCHEMA,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { ChartPptxElement, PptxChartSeries, PptxChartType } from 'pptx-viewer-core';
 
@@ -22,6 +29,7 @@ import { CHART_EDITOR_STYLES } from './chart-editor-styles';
 import { selectValue } from './chart-event-helpers';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-chart-combo-type-options',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
@@ -34,7 +42,7 @@ import { selectValue } from './chart-event-helpers';
 					@for (s of series(); track $index; let i = $index) {
 						<div class="pptx-chart-card__row">
 							<span class="pptx-chart-card__name" [title]="s.name">{{ s.name }}</span>
-							<select
+							<pptx-ui-select
 								class="pptx-chart-card__input"
 								[disabled]="!canEdit()"
 								[value]="s.seriesChartType ?? ''"
@@ -45,7 +53,7 @@ import { selectValue } from './chart-event-helpers';
 										{{ opt.labelKey | translate }}
 									</option>
 								}
-							</select>
+							</pptx-ui-select>
 						</div>
 					}
 				</div>
