@@ -63,12 +63,12 @@ Reflections, soft edges and path gradients are also approximations, but hold up 
 
 A September 2026 audit against real PowerPoint found these gaps that are still open:
 
-- **Saving an edited slide can still add or drop minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages and untouched charts now round-trip; a rewritten slide can still gain default attributes (`mc:Ignorable`, empty-paragraph `lang`, run `dirty`/`smtClean`) and lose a few rare ones (`a:gradFill@flip`, `a:miter@lim`, East Asian font `panose`). Unedited slides round-trip cleanly.
-- **Text:** rounding of shrink-on-overflow font sizes, some text effects (reflection, inner shadow, soft edge, glow shape), decimal tabs on a comma, `hangingPunct`, and a few East Asian/Thai numbering schemes differ from PowerPoint.
-- **Charts:** surface, box-and-whisker, pareto, histogram, funnel, treemap, sunburst and waterfall charts differ visibly from PowerPoint; pie-of-pie, data-label callouts and display-unit labels are approximate.
+- **Saving an edited slide can still touch minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages, run properties, inner-shadow colours, gradient insets and untouched charts now round-trip; a small residue of rare attributes (for example some `buClr`, `tabLst@algn` and animation/audio metadata) can still differ on a rewritten slide. Unedited slides round-trip cleanly.
+- **Text:** decimal tabs on a comma, `hangingPunct`, a few East Asian/Thai numbering schemes and some underline variants differ from PowerPoint.
+- **Charts:** waterfall colours and legend, pie-of-pie, data-label callouts, display-unit labels and chart-area gradient fills are approximate.
 - **Animations and transitions:** the Zoom transition's direction, authoring a trigger on a media bookmark, and the exact shape of the `p14:bounceEnd` settle curve are not yet matched to PowerPoint.
 - **3D models** ignore the camera, transform and lights authored in PowerPoint.
-- **Editor coverage** is a subset of PowerPoint's: Edit Points, Merge Shapes, on-canvas crop handles, the empty-canvas context menu, slides-pane multi-select and several ribbon galleries are not available yet. Paste Special and the standard editing shortcuts (alignment, font size, copy/paste formatting, new slide, hyperlink, find and replace) are available in all five bindings.
+- **Editor coverage** is a subset of PowerPoint's: Edit Points, Merge Shapes, on-canvas crop handles and several ribbon galleries are not available yet. Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
 
 ## EMF/WMF metafiles (`emf-converter` dependency)
 
