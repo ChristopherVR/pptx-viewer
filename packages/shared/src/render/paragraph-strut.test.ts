@@ -8,8 +8,11 @@ function segment(fontSize: number | undefined): Pick<TextSegment, 'style' | 'bul
 }
 
 describe('resolveParagraphStrutFontSize', () => {
-	it('returns the largest run size when it differs from the body default', () => {
-		expect(resolveParagraphStrutFontSize([segment(12), segment(20)], 16)).toBe(20);
+	it('returns the SMALLEST run size when it differs from the body default', () => {
+		// Not the largest: a bigger run already sizes its own line correctly
+		// through ordinary inline layout (see the module doc comment), so using
+		// it here would inflate every OTHER wrapped line of the paragraph too.
+		expect(resolveParagraphStrutFontSize([segment(12), segment(20)], 16)).toBe(12);
 	});
 
 	it('returns undefined when the paragraph matches the body default', () => {
@@ -27,11 +30,18 @@ describe('resolveParagraphStrutFontSize', () => {
 		expect(resolveParagraphStrutFontSize([segment(40)], 16)).toBe(40);
 	});
 
-	it('ignores bullet segments when finding the largest run', () => {
-		const bulletSeg = { style: { fontSize: 99 }, bulletInfo: {}, text: '•' } as Pick<
+	it('ignores bullet segments when finding the smallest run', () => {
+		const bulletSeg = { style: { fontSize: 1 }, bulletInfo: {}, text: '•' } as Pick<
 			TextSegment,
 			'style' | 'bulletInfo' | 'text'
 		>;
 		expect(resolveParagraphStrutFontSize([bulletSeg, segment(14)], 16)).toBe(14);
+	});
+
+	// Regression for audit-text/gen.py slide 16 ("small HUGE small wraps onto
+	// the / second line of text"): a 48pt run must not push a wrapped 12pt
+	// line down by inflating the whole paragraph's strut to 48pt.
+	it('does not let one oversized run in the paragraph inflate the strut', () => {
+		expect(resolveParagraphStrutFontSize([segment(12), segment(48), segment(12)], 16)).toBe(12);
 	});
 });

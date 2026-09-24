@@ -22,9 +22,19 @@ import type { TextSegment } from 'pptx-viewer-core';
  * any run: the spans keep their explicit sizes, and the unitless
  * `line-height` ratio resolves against the paragraph instead of the body.
  *
- * The largest run wins, matching PowerPoint's rule that a line is as tall as
- * its tallest content. Bullet segments are excluded: a bullet glyph never
- * drives the height of the line it marks.
+ * The SMALLEST run wins, not the largest. A run's own `font-size` already
+ * sizes ITS line correctly through ordinary inline layout (a non-replaced
+ * inline element's line-box contribution is its own font-size times the
+ * inherited unitless `line-height`, independent of the container's strut),
+ * so the strut only needs to stop the invisible per-line minimum from being
+ * BIGGER than the smallest real content - using the largest run instead
+ * inflates every wrapped line of the paragraph to that run's height, even
+ * lines the large run never appears on. COM-verified against
+ * `audit-text/pp/s16.png` (`gen.py` slide 16): a paragraph of "small HUGE
+ * small wraps onto the / second line of text" wraps into two lines, and
+ * PowerPoint sizes line 2 (only the 12pt "small" text) tightly under line 1,
+ * not with the airy gap a 48pt-based strut produces. Bullet segments are
+ * excluded: a bullet glyph never drives the height of the line it marks.
  *
  * `fontScale` is `a:normAutofit/@fontScale` (see `resolveAutoFitFontScale`),
  * the same multiplier every run's own rendered size is scaled by. Segment
@@ -39,7 +49,7 @@ export function resolveParagraphStrutFontSize(
 	bodyFontSize: number | undefined,
 	fontScale = 1,
 ): number | undefined {
-	let largest: number | undefined;
+	let smallest: number | undefined;
 	for (const segment of segments) {
 		if (segment.bulletInfo) {
 			continue;
@@ -48,16 +58,16 @@ export function resolveParagraphStrutFontSize(
 		if (typeof size !== 'number' || !Number.isFinite(size) || size <= 0) {
 			continue;
 		}
-		if (largest === undefined || size > largest) {
-			largest = size;
+		if (smallest === undefined || size < smallest) {
+			smallest = size;
 		}
 	}
-	if (largest === undefined) {
+	if (smallest === undefined) {
 		return undefined;
 	}
 	// Nothing to re-base when the paragraph already matches the body default.
-	if (typeof bodyFontSize === 'number' && Math.abs(largest - bodyFontSize) < 0.01) {
+	if (typeof bodyFontSize === 'number' && Math.abs(smallest - bodyFontSize) < 0.01) {
 		return undefined;
 	}
-	return largest * fontScale;
+	return smallest * fontScale;
 }
