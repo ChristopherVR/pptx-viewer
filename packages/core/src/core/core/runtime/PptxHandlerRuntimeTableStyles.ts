@@ -147,7 +147,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected extractTableBackground(
 		tblBg: XmlObject | undefined,
 	): ParsedTableBackground | undefined {
-		return parseTableBackground(tblBg);
+		return parseTableBackground(
+			tblBg,
+			this.globalThemeFormatSchemeSnapshot,
+			this.globalThemeColorMapSnapshot,
+		);
 	}
 
 	/**
@@ -201,10 +205,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		try {
 			const parsed = this.parser.parse(xmlStr) as XmlObject;
 			const resolveImagePath = await this.buildTableStylesImageResolver();
+			// `ppt/tableStyles.xml` is a presentation-level part parsed once
+			// (not per-slide), so a `tblBg` style-matrix reference resolves
+			// against the deck's GLOBAL theme snapshot rather than
+			// `this.themeFormatScheme`/`this.themeColorMap`, which track
+			// whichever slide/master was processed most recently and can
+			// diverge in a multi-master deck.
 			const result = parseTableStyleList(
 				parsed,
 				(value) => this.ensureArray(value),
 				resolveImagePath,
+				{
+					formatScheme: this.globalThemeFormatSchemeSnapshot,
+					colorMap: this.globalThemeColorMapSnapshot,
+				},
 			);
 			// Side channel (see `loadedTableStylesDefaultId`'s docblock): the
 			// list can carry a `@def` GUID even when `map` ends up empty (e.g.
