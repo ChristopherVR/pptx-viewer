@@ -20,7 +20,7 @@ description: What is not supported across the core engine and the viewer binding
 
 An effect authored in the animation panel is reconciled into the slide's existing `p:timing` tree; the deck's own effects are left byte-identical. Known gaps:
 
-- **Saved entrance/exit effects play as a fade in PowerPoint.** The writer records the right preset but emits only a fade behaviour, so a Fly In saved here plays as a Fade when the file is opened in PowerPoint (this viewer plays it correctly). Several emphasis effects (pulse, wave, bounce, colour wave, blink, shimmer) are written as a no-op.
+- **A few saved effects still fall back to a fade in PowerPoint.** Entrance, exit and emphasis effects are written with PowerPoint's own behaviour tree (Fly In, Float, Bounce, Grow & Turn, the filter reveals, Pulse, Teeter, Wave and others, verified by reopening in PowerPoint); Crawl and Spiral still save as a fade, and Blink is an approximation.
 - **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade). Blinds, Checkerboard, Wheel and Random Bars ignore their subtype.
 - **Not yet supported:** `p14:bounceEnd`, triggers on a media bookmark (they load as on-click), per-letter ripple inside a by-paragraph build, and authoring the p15 transitions (they play when present in a file, but their direction options are ignored).
 
