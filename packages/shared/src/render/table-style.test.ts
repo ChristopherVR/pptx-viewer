@@ -312,6 +312,64 @@ describe('getTableCellBandStyle', () => {
 	});
 });
 
+describe('getTableCellBandStyle - tableBackground (a:tblBg) layering (issue: item 2)', () => {
+	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-0000000000A2}';
+
+	function plainTable(): PptxTableData {
+		return {
+			rows: [],
+			columnWidths: [0.5, 0.5],
+			tableStyleId: STYLE_ID,
+		} as unknown as PptxTableData;
+	}
+
+	it('paints the tblBg background when wholeTblFill is noFill ("Themed Style 2")', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#123456' } },
+				wholeTblFill: { schemeColor: '', noFill: true },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#123456');
+	});
+
+	it('lets a real wholeTblFill still win over the tblBg background', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#123456' } },
+				wholeTblFill: { schemeColor: '', color: '#abcdef' },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#abcdef');
+	});
+
+	it('renders the tblBg background alone when the style has no wholeTblFill at all', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				tableBackground: { fill: { schemeColor: '', color: '#654321' } },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 0, 0, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('#654321');
+	});
+
+	it('stays transparent when neither tblBg nor wholeTblFill paint anything', () => {
+		const map: ParsedTableStyleMap = {
+			[STYLE_ID]: {
+				styleId: STYLE_ID,
+				wholeTblFill: { schemeColor: '', noFill: true },
+			},
+		};
+		const css = getTableCellBandStyle(plainTable(), 1, 1, 3, 2, { tableStyleMap: map });
+		expect(css?.backgroundColor).toBe('transparent');
+	});
+});
+
 describe('getTableCellBandStyle - table-style borders (issue #71)', () => {
 	const STYLE_ID = '{TESTSTYLE-0000-0000-0000-000000000071}';
 

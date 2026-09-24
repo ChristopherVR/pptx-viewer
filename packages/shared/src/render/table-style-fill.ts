@@ -211,11 +211,38 @@ export function applyStyleFill(
 
 	const color = resolveStyleFillColor(fill, colorScheme) ?? fallback;
 	if (color) {
-		clearBackground(css);
-		css.backgroundColor = color;
+		layerSolidColor(css, color);
 		return true;
 	}
 	return false;
+}
+
+/**
+ * Paint a solid colour onto the background, layering a translucent colour
+ * over whatever the cell already carries instead of erasing it.
+ *
+ * A flat `css.backgroundColor` assignment cannot coexist with an already-set
+ * `background`/`backgroundImage` (a gradient or pattern painted by a
+ * lower-precedence table-style layer, e.g. a `tblBg` fillRef resolving to a
+ * theme gradient): {@link clearBackground} would wipe it, so a translucent
+ * band tint (`rgba(255,255,255,0.2)`, common for banding over a themed
+ * background) silently erased the gradient underneath instead of tinting it.
+ * When the new colour is translucent (an `rgba()` string with alpha < 1) and
+ * something is already painted, this expresses the new colour as a solid
+ * `linear-gradient` layer stacked on top of the existing background via
+ * CSS's multi-layer `background` shorthand, so both remain visible. An
+ * opaque colour (or nothing painted yet) still replaces cleanly.
+ */
+function layerSolidColor(css: TableCellCss, color: string): void {
+	const existing = css.background ?? css.backgroundImage ?? css.backgroundColor;
+	if (typeof existing === 'string' && existing && color.startsWith('rgba(')) {
+		css.background = `linear-gradient(${color}, ${color}), ${existing}`;
+		delete css.backgroundColor;
+		delete css.backgroundImage;
+		return;
+	}
+	clearBackground(css);
+	css.backgroundColor = color;
 }
 
 /**

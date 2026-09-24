@@ -544,17 +544,49 @@ export function getTableCellBandStyle(
 	const style: TableCellCss = {};
 	let applied = false;
 
-	// ── a:tblPr's OWN fill (issue G6), the lowest priority layer of all:
-	// independent of a:tblStyleLst, beneath even the style's wholeTbl fill. ──
+	// ── Fill compositing (ECMA-376 §21.1.3.14 CT_TableStyle / §21.1.3.7
+	// CT_TableBackgroundStyle): each section below is a LAYER painted on top
+	// of the previous ones, not an independent repaint. A section whose own
+	// fill is `a:noFill` therefore contributes nothing of its own and lets
+	// whatever a lower-precedence layer already painted (`tblBg`, `a:tblPr`'s
+	// own fill, `wholeTbl`, ...) show through, rather than punching a hole
+	// down to the slide background. "Themed Style 1" and "Themed Style 2"
+	// rely on exactly this: they set `wholeTbl`/`firstRow`/`lastRow` to
+	// `noFill` so the `tblBg` background painted first remains visible
+	// underneath. `fallback` is the legacy generic default, applied only
+	// when a section carries no fill data at all (neither a real fill nor an
+	// explicit `a:noFill`), e.g. no table style could be resolved. ──
+	let hasLowerFill = false;
+	const paintFill = (fill: ParsedTableStyleFill | undefined, fallback = ''): boolean => {
+		if (fill?.noFill && hasLowerFill) {
+			return false;
+		}
+		const painted = applyStyleFill(fill, colorScheme, style, fallback);
+		if (painted && !fill?.noFill) {
+			hasLowerFill = true;
+		}
+		return painted;
+	};
+
+	// ── Table STYLE's own background (`a:tblBg`), the lowest-priority
+	// background layer of all: even `a:tblPr`'s own fill and the style's
+	// wholeTbl fill can sit above it. ──
+	if (styleEntry?.tableBackground?.fill) {
+		if (paintFill(styleEntry.tableBackground.fill)) {
+			applied = true;
+		}
+	}
+
+	// ── a:tblPr's OWN fill (issue G6), beneath the style's wholeTbl fill. ──
 	if (tableData.tableFill) {
-		if (applyStyleFill(tableData.tableFill, colorScheme, style, '')) {
+		if (paintFill(tableData.tableFill)) {
 			applied = true;
 		}
 	}
 
 	// ── Whole-table fill (from the referenced table style). ──
 	if (styleEntry?.wholeTblFill) {
-		if (applyStyleFill(styleEntry.wholeTblFill, colorScheme, style, '')) {
+		if (paintFill(styleEntry.wholeTblFill)) {
 			applied = true;
 		}
 	}
@@ -570,11 +602,11 @@ export function getTableCellBandStyle(
 		const rowCycle = Math.max(tableData.bandRowCycle ?? 1, 1);
 		const bandGroup = Math.floor(bandIndex / rowCycle) % 2;
 		if (bandGroup === 0) {
-			applyStyleFill(styleEntry?.band1HFill, colorScheme, style, 'rgba(217, 226, 243, 0.5)');
+			paintFill(styleEntry?.band1HFill, 'rgba(217, 226, 243, 0.5)');
 			applyStyleText(styleEntry?.band1HText, colorScheme, style, fontScheme);
 			applied = true;
 		} else if (styleEntry?.band2HFill) {
-			if (applyStyleFill(styleEntry.band2HFill, colorScheme, style, '')) {
+			if (paintFill(styleEntry.band2HFill)) {
 				applyStyleText(styleEntry.band2HText, colorScheme, style, fontScheme);
 				applied = true;
 			}
@@ -594,12 +626,12 @@ export function getTableCellBandStyle(
 			const canOverride = !style.backgroundColor || !tableData.bandedRows;
 			if (colBandGroup === 0) {
 				if (canOverride) {
-					applyStyleFill(styleEntry?.band1VFill, colorScheme, style, 'rgba(217, 226, 243, 0.35)');
+					paintFill(styleEntry?.band1VFill, 'rgba(217, 226, 243, 0.35)');
 					applyStyleText(styleEntry?.band1VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
 			} else if (styleEntry?.band2VFill && canOverride) {
-				if (applyStyleFill(styleEntry.band2VFill, colorScheme, style, '')) {
+				if (paintFill(styleEntry.band2VFill)) {
 					applyStyleText(styleEntry.band2VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
@@ -633,7 +665,7 @@ export function getTableCellBandStyle(
 			return;
 		}
 		if (fill || fillFallback) {
-			applyStyleFill(fill, colorScheme, style, fillFallback);
+			paintFill(fill, fillFallback);
 		}
 		applyStyleText(text, colorScheme, style, fontScheme);
 		applied = true;
@@ -661,7 +693,7 @@ export function getTableCellBandStyle(
 	// ── Header row (first row). ──
 	if (atTop) {
 		style.fontWeight = 700;
-		applyStyleFill(styleEntry?.firstRowFill, colorScheme, style, 'rgba(68, 114, 196, 0.85)');
+		paintFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.85)');
 		// White header text belongs with a painted header band. `a:noFill` is an
 		// authored transparent header, and forcing white on it leaves the header
 		// row's text invisible against the slide.
