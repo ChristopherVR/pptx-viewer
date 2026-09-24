@@ -190,22 +190,28 @@ describe('buildChart3DSpecForElement', () => {
 		expect(spec?.categoryLabels).toStrictEqual(['Q1', 'Q2']);
 	});
 
-	it('routes line3D / area3D / pie3D to their perspective scenes', () => {
-		for (const [chartType, kind] of [
-			['line3D', 'line'],
-			['area3D', 'area'],
-			['pie3D', 'pie'],
-		] as const) {
+	it('lays line3D / area3D on the perspective box and routes pie3D to its hosted scene', () => {
+		for (const chartType of ['line3D', 'area3D'] as const) {
 			const spec = buildChart3DSpecForElement(
 				chartEl({
 					chartType,
 					categories: ['A', 'B'],
 					series: [{ name: 'S1', values: [1, 2] }],
+					view3D: { rotX: 15, rotY: 20, rAngAx: false },
 				}),
 			);
-			expect(spec?.geometry).toBeNull();
-			expect(spec?.perspective?.kind).toBe(kind);
+			expect(spec?.geometry?.kind).toBe('perspective');
+			expect(spec?.perspective).toBeNull();
 		}
+		const pie = buildChart3DSpecForElement(
+			chartEl({
+				chartType: 'pie3D',
+				categories: ['A', 'B'],
+				series: [{ name: 'S1', values: [1, 2] }],
+			}),
+		);
+		expect(pie?.geometry).toBeNull();
+		expect(pie?.perspective?.kind).toBe('pie');
 	});
 
 	it('numbers the categories 1..n when the chart has none', () => {

@@ -24,6 +24,8 @@ import { buildBarChart3DDataForElement } from './bar-chart-3d-data';
 import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
 import { computeObliqueBarLayout } from './chart-3d-oblique-layout';
 import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
+import { computePerspChartLayout } from './chart-3d-persp-layout';
+import type { PerspChartLayout } from './chart-3d-persp-layout';
 import type { Chart3DProjection } from './chart-3d-projection';
 import { resolveChart3DProjection } from './chart-3d-projection';
 import { buildChartViewModel } from './chart-view-model-build';
@@ -53,8 +55,14 @@ export interface Chart3DObliqueGeometry {
 	layout: ObliqueChartLayout;
 }
 
-/** `null` until a chart type/shape's oblique geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
-export type Chart3DGeometry = Chart3DObliqueGeometry | null;
+/** A perspective (`rAngAx=0`) line / area chart on PowerPoint's box (`chart-3d-persp-layout.ts`). */
+export interface Chart3DPerspGeometry {
+	kind: 'perspective';
+	layout: PerspChartLayout;
+}
+
+/** `null` until a chart type's geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
+export type Chart3DGeometry = Chart3DObliqueGeometry | Chart3DPerspGeometry | null;
 
 /**
  * The perspective scene a chart falls back to when the oblique geometry does
@@ -100,6 +108,14 @@ function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeom
 	return layout && layout.bars.length > 0 ? { kind: 'oblique', layout } : null;
 }
 
+/** Chart types drawn on the perspective box layout. */
+const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D']);
+
+function buildPerspGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
+	const layout = computePerspChartLayout(element, vm);
+	return layout ? { kind: 'perspective', layout } : null;
+}
+
 /**
  * Whether `chartType` has a 3D scene. `surface` covers both `c:surfaceChart`
  * (PowerPoint draws it as a flat top view) and `c:surface3DChart`: the
@@ -124,7 +140,11 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	const vm = buildChartViewModel(element);
 	const projection = resolveChart3DProjection(chartType, chartData.view3D);
 	const geometry =
-		chartType === 'bar3D' && projection.mode === 'oblique' ? buildBarGeometry(element, vm) : null;
+		chartType === 'bar3D' && projection.mode === 'oblique'
+			? buildBarGeometry(element, vm)
+			: projection.mode === 'perspective' && PERSP_BOX_TYPES.has(chartType)
+				? buildPerspGeometry(element, vm)
+				: null;
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0

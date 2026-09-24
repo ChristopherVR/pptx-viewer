@@ -1,4 +1,3 @@
-import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
 /**
  * chart-3d-chrome-overlay.ts: the SVG "chrome" (chart-area fill/border,
  * title, legend, value-axis gridlines/ticks, category labels) a 3D chart
@@ -24,6 +23,28 @@ import {
 import { createSvgEl } from './chart-view-model-dom-helpers';
 import type { ChartViewModel } from './chart-view-model-types';
 
+/** A 3D scene's own axis labels, in chart px. */
+export interface Chart3DBoxLabel {
+	text: string;
+	x: number;
+	y: number;
+	anchor: 'start' | 'middle' | 'end';
+	fontSize: number;
+	/** Defaults to `central` (text centred on `y`). */
+	baseline?: 'central' | 'hanging';
+}
+
+/**
+ * Chrome for a scene that draws its own plot box (the oblique and perspective
+ * layouts): its labels replace the flat axes, and the title and legend move
+ * to where PowerPoint puts them on a 3D chart.
+ */
+export interface Chart3DBoxChrome {
+	labels: ReadonlyArray<Chart3DBoxLabel>;
+	/** List the legend bottom-up (a clustered horizontal bar chart does). */
+	reverseLegend: boolean;
+}
+
 /**
  * Render a `ChartViewModel`'s chrome (everything except data marks) to an
  * `<svg>` sized to `vm.svgWidth` x `vm.svgHeight`, matching the WebGL
@@ -33,9 +54,9 @@ import type { ChartViewModel } from './chart-view-model-types';
 export function renderChart3DChromeOverlaySvg(
 	doc: Document,
 	source: ChartViewModel,
-	oblique?: ObliqueChartLayout,
+	box?: Chart3DBoxChrome,
 ): SVGSVGElement {
-	const vm = oblique ? withObliqueChromePositions(source) : source;
+	const vm = box ? withBoxChromePositions(source) : source;
 	const svg = createSvgEl(doc, 'svg', {
 		class: 'pptxv-chart-3d-chrome',
 		viewBox: `0 0 ${vm.svgWidth} ${vm.svgHeight}`,
@@ -92,16 +113,13 @@ export function renderChart3DChromeOverlaySvg(
 		svg.appendChild(title);
 	}
 
-	if (oblique) {
-		// The box's gridlines are drawn in the scene (bars hide the back
+	if (box) {
+		// The box's gridlines are drawn in the scene (marks hide the back
 		// wall); only its axis labels go here.
-		appendObliqueLabels(doc, svg, vm, oblique);
-		// PowerPoint lists a clustered horizontal bar chart's legend bottom-up,
-		// matching the order the series stack up the category axis.
-		const legendVm =
-			oblique.horizontal && oblique.grouping === 'clustered'
-				? { ...vm, legend: [...vm.legend].reverse() }
-				: vm;
+		appendBoxLabels(doc, svg, vm, box.labels);
+		// A 3D chart keys every series with a plain swatch, lines included.
+		const legend = vm.legend.map((item) => ({ ...item, lineSwatch: undefined }));
+		const legendVm = { ...vm, legend: box.reverseLegend ? legend.reverse() : legend };
 		appendChartLegendSvg(doc, svg, legendVm);
 		return svg;
 	}
@@ -136,7 +154,7 @@ const OBLIQUE_TITLE_BASELINE = 24 * PT;
 const OBLIQUE_LEGEND_BASELINE = 14 * PT;
 
 /** The flat view model with its title and legend moved to where PowerPoint puts them on a 3D chart. */
-function withObliqueChromePositions(vm: ChartViewModel): ChartViewModel {
+function withBoxChromePositions(vm: ChartViewModel): ChartViewModel {
 	const legendBottom = (vm.legendY ?? vm.svgHeight - 8) >= vm.svgHeight / 2;
 	return {
 		...vm,
@@ -146,14 +164,14 @@ function withObliqueChromePositions(vm: ChartViewModel): ChartViewModel {
 	};
 }
 
-function appendObliqueLabels(
+function appendBoxLabels(
 	doc: Document,
 	svg: SVGElement,
 	vm: ChartViewModel,
-	layout: ObliqueChartLayout,
+	labels: ReadonlyArray<Chart3DBoxLabel>,
 ): void {
 	const style = vm.axisLabels[0];
-	for (const label of layout.labels) {
+	for (const label of labels) {
 		svg.appendChild(
 			renderChartTextSvg(doc, {
 				kind: 'text',
@@ -164,7 +182,7 @@ function appendObliqueLabels(
 				fill: style?.fill ?? '#595959',
 				fontFamily: style?.fontFamily,
 				textAnchor: label.anchor,
-				dominantBaseline: label.baseline,
+				dominantBaseline: label.baseline ?? 'central',
 			}),
 		);
 	}
