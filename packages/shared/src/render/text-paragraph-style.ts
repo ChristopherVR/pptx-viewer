@@ -101,3 +101,24 @@ export function resolveCssTextAlign(
 	// Default: RTL paragraphs align right, LTR paragraphs inherit (undefined).
 	return isRtl ? 'right' : undefined;
 }
+
+/**
+ * Resolve `text-align-last` for `algn="dist"` (ECMA-376 `ST_TextAlignType`
+ * "distributed"), the one alignment whose OWN last line - and a single-line
+ * paragraph, which IS its own last line - stretches to fill the full width.
+ *
+ * `algn="just"` / `"justLow"` deliberately do NOT stretch their last line
+ * (matching plain CSS `text-align: justify`'s default, which never justifies
+ * a block's last line): COM-verified against `audit-text/pp/s9.png` (`gen.py`
+ * slide 9), where the `just` and `justLow` boxes both leave their final
+ * wrapped line left-aligned while the `dist` box visibly spaces out its
+ * final line's words, and the single-line "Dist one line" / "均等割り付け"
+ * boxes are also stretched edge to edge.
+ *
+ * Only `"dist"` gets this: `"thaiDist"` is Thai's character-distribution
+ * variant of `just` (still leaves the last line alone) and is deliberately
+ * excluded.
+ */
+export function resolveTextAlignLast(align: TextStyle['align'] | undefined): 'justify' | undefined {
+	return align === 'dist' ? 'justify' : undefined;
+}

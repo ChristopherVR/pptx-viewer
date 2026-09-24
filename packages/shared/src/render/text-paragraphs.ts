@@ -33,6 +33,7 @@ import {
 	resolveCssTextAlign,
 	resolveParagraphAlign,
 	resolveParagraphRtl,
+	resolveTextAlignLast,
 } from './text-paragraph-style';
 import type { RunStyle } from './text-run-style';
 import { isParagraphSeparatorSegment } from './text-segment-paragraph-break';
@@ -209,6 +210,13 @@ export function buildParagraphs(
 			const cssAlign = resolveCssTextAlign(align, rtl === true);
 			if (cssAlign !== undefined) {
 				paragraphStyle.textAlign = cssAlign;
+			}
+			// `algn="dist"` distributes its own last line (and a single-line
+			// paragraph, which IS its last line); plain `just`/`justLow` leave the
+			// last line alone, matching CSS `text-align: justify`'s own default.
+			const textAlignLast = resolveTextAlignLast(align);
+			if (textAlignLast !== undefined) {
+				paragraphStyle.textAlignLast = textAlignLast;
 			}
 			if (rtl !== undefined) {
 				paragraphStyle.direction = rtl ? 'rtl' : 'ltr';

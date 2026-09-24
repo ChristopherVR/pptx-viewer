@@ -406,6 +406,21 @@ describe('per-paragraph kinsoku / tab-default override', () => {
 	});
 });
 
+describe('algn="dist" last-line distribution', () => {
+	it('sets textAlignLast: justify only for dist, not just/justLow', () => {
+		const dist = buildParagraphs(textEl([{ text: 'Dist one line', style: { align: 'dist' } }]));
+		expect(dist[0].paragraphStyle?.textAlign).toBe('justify');
+		expect(dist[0].paragraphStyle?.textAlignLast).toBe('justify');
+
+		// Core normalises `a:pPr/@algn="just"` to `align: 'justify'` at parse
+		// time (see `ALIGN_MAP` in `paragraph-properties-parser.ts`); a bare
+		// `'just'` never actually reaches this function from real input.
+		const just = buildParagraphs(textEl([{ text: 'Justified text', style: { align: 'justify' } }]));
+		expect(just[0].paragraphStyle?.textAlign).toBe('justify');
+		expect(just[0].paragraphStyle?.textAlignLast).toBeUndefined();
+	});
+});
+
 describe('a:reflection on a text run', () => {
 	it('attaches a mirrored-sibling wrapper to every run built from a reflected segment, never a webkit-box-reflect CSS property', () => {
 		const paras = buildParagraphs(

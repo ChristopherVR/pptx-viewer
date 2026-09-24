@@ -5,6 +5,7 @@ import {
 	resolveCssTextAlign,
 	resolveParagraphAlign,
 	resolveParagraphRtl,
+	resolveTextAlignLast,
 } from './text-paragraph-style';
 
 const entry = (style: Partial<TextStyle>) => ({ segment: { style: style as TextStyle } });
@@ -72,5 +73,23 @@ describe('resolveCssTextAlign', () => {
 	it('defaults RTL to right and LTR to undefined when unset', () => {
 		expect(resolveCssTextAlign(undefined, true)).toBe('right');
 		expect(resolveCssTextAlign(undefined, false)).toBeUndefined();
+	});
+});
+
+describe('resolveTextAlignLast', () => {
+	// COM-verified against audit-text/pp/s9.png (gen.py slide 9): the `dist`
+	// box visibly stretches its final wrapped line and its single-line variants
+	// ("Dist one line", "均等割り付け"), while `just`/`justLow` both leave
+	// their last line alone, matching plain CSS justify's own default.
+	it('only distributed (dist) stretches its own last line', () => {
+		expect(resolveTextAlignLast('dist')).toBe('justify');
+	});
+
+	it('leaves just/justLow/thaiDist/other alignments alone', () => {
+		expect(resolveTextAlignLast('justify')).toBeUndefined();
+		expect(resolveTextAlignLast('justLow')).toBeUndefined();
+		expect(resolveTextAlignLast('thaiDist')).toBeUndefined();
+		expect(resolveTextAlignLast('center')).toBeUndefined();
+		expect(resolveTextAlignLast(undefined)).toBeUndefined();
 	});
 });
