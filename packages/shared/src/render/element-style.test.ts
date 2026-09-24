@@ -216,6 +216,43 @@ describe('getImageFitStyle', () => {
 		const shape = { type: 'shape', id: 's1', x: 0, y: 0, width: 1, height: 1 } as PptxElement;
 		expect(getImageFitStyle(shape)['objectFit']).toBe('fill');
 	});
+
+	it('produces the identical crop transform no matter the frame size (COM-verified, 2026-09-25)', () => {
+		// PowerPoint's `<a:stretch><a:fillRect/></a:stretch>` always stretches
+		// the kept `<a:srcRect>` window to fill 100% of the destination frame,
+		// whether that frame was resized to the crop's aspect ratio (the crop
+		// tool's usual result) or left at its pre-crop size (a hand-authored or
+		// round-tripped file). Measured directly with PowerPoint COM automation
+		// on an SVG picture with a 20%-left crop: exported PNG pixels matched a
+		// full non-uniform stretch in BOTH a case where the frame was shrunk to
+		// 150.5x200 to match the crop and a case where the frame was left at
+		// its pre-crop 200x200 (which renders visibly wider/distorted, not
+		// letterboxed, because the same stretched proportion now covers a
+		// wider frame). This transform must therefore depend only on the crop
+		// fractions, never on the element's own width/height.
+		const cropLeft = 0.2;
+		const frameResizedToCrop = getImageFitStyle(
+			picture({ cropLeft, width: 150.5, height: 200 } as Partial<PptxElement>),
+		);
+		const frameNotResized = getImageFitStyle(
+			picture({ cropLeft, width: 200, height: 200 } as Partial<PptxElement>),
+		);
+		expect(frameResizedToCrop['transform']).toBe('translate(-25%, 0%) scale(1.25, 1)');
+		expect(frameNotResized['transform']).toBe(frameResizedToCrop['transform']);
+	});
+
+	it('applies the identical crop transform to an SVG-backed picture as a raster one', () => {
+		// getImageFitStyle must not special-case a `svgPath`-backed picture
+		// into a different (e.g. letterboxed/no-stretch) transform: OOXML's
+		// fill model draws no distinction, and `forceSvgStretchFill` (core)
+		// relies on this function's transform being the ONLY place the crop
+		// percentages are computed.
+		const rasterStyle = getImageFitStyle(picture({ cropLeft: 0.2 } as Partial<PptxElement>));
+		const svgStyle = getImageFitStyle(
+			picture({ cropLeft: 0.2, svgPath: 'ppt/media/image1.svg' } as Partial<PptxElement>),
+		);
+		expect(svgStyle['transform']).toBe(rasterStyle['transform']);
+	});
 });
 
 describe('getImageOverflow', () => {
