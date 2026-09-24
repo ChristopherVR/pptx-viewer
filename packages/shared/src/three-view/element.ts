@@ -30,6 +30,9 @@ import { measureThreeViewSize } from './view-size';
 /** The element's tag name. */
 export const THREE_VIEW_TAG = 'pptx-three-view';
 
+/** Marker attribute every connected view carries (export clones are found by it). */
+export const THREE_VIEW_MARKER_ATTR = 'data-pptx-three-view';
+
 /** How often an on-screen view re-checks its on-screen size (catches slide zoom, which fires no resize). */
 const ZOOM_POLL_MS = 400;
 
@@ -126,6 +129,9 @@ function createElementClass(): CustomElementConstructor {
 		}
 
 		connectedCallback(): void {
+			// Survives html2canvas, which re-creates custom elements as <div>s
+			// (see export-snapshot.ts).
+			this.setAttribute(THREE_VIEW_MARKER_ATTR, '');
 			const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
 			if (!this.#canvas) {
 				root.innerHTML = `<style>${SHADOW_CSS}</style><div class="fallback" part="fallback"><slot></slot></div><div class="stage" part="stage"><canvas></canvas><div class="overlay" part="overlay"></div></div>`;

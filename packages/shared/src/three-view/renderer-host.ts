@@ -48,6 +48,8 @@ export interface ThreeRendererHost {
 	requestRender: (view: HostedView) => void;
 	/** Draw every pending view immediately (tests, export). */
 	flushNow: () => void;
+	/** Draw one registered view immediately, even when it is off screen (export snapshots). */
+	drawNow: (view: HostedView) => void;
 }
 
 interface HostState {
@@ -217,6 +219,17 @@ export function getThreeRendererHost(three: ThreeModule): ThreeRendererHost {
 				cancelAnimationFrame(state.frame);
 			}
 			flush(state);
+		},
+		drawNow(view) {
+			if (state.lost || !state.renderer || !state.views.has(view)) {
+				return;
+			}
+			state.dirty.delete(view);
+			try {
+				drawView(state, view);
+			} catch (error) {
+				console.error('[pptx-three-view] scene render failed', error);
+			}
 		},
 	};
 	sharedHost = host;

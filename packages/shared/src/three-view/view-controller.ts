@@ -186,8 +186,15 @@ export class ThreeViewController {
 		this.requestRender();
 	}
 
-	/** Draw any pending frame synchronously (export / snapshot). */
+	/**
+	 * Draw this view synchronously (export / snapshot), even when it is off
+	 * screen, then any other pending views.
+	 */
 	flush(): void {
+		if (this.mounted) {
+			this.remeasure();
+			this.host?.drawNow(this.mounted.view);
+		}
 		this.host?.flushNow();
 	}
 

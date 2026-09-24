@@ -272,6 +272,15 @@ export {
 	resolveChartDragValue,
 } from './chart-interaction';
 export type { ChartPartElement, ChartMarkDragGeometry } from './chart-interaction';
+// Shadow-DOM aware chart-part hit-testing (3D chart chrome lives in
+// <pptx-three-view>'s shadow root): walk `event.composedPath()`.
+export {
+	chartEventPathElements,
+	findChartPartElementInEvent,
+	findChartPartInEvent,
+	isChartTitleEvent,
+} from './chart-event-target';
+export type { ChartPathEvent } from './chart-event-target';
 // Direct on-canvas chart editing for pie/doughnut/radar/stacked marks: the
 // per-kind drag geometry builders + the pointer/state-machine glue.
 export { buildPieDragGeometry, resolvePieDragValue } from './chart-interaction-pie';

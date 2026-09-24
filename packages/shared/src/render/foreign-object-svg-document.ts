@@ -1,3 +1,4 @@
+import { settleThreeViews, snapshotThreeViewsIntoClone } from '../three-view/export-snapshot';
 import { prepareExportClone } from './export-clone';
 import { collectExternalFontFaceCss, collectFontFaceCss } from './foreign-object-font-embed';
 import type { FontStyleDocumentLike, LinkStyleDocumentLike } from './foreign-object-font-embed';
@@ -74,8 +75,13 @@ export async function buildForeignObjectSvgBody(
 		readComputedStyle = (el) => window.getComputedStyle(el),
 	} = options;
 
+	// 3D views draw into a shadow-root canvas a clone cannot carry: let them
+	// finish loading, then swap each cloned view for an <img> of its pixels
+	// (while the trees are still aligned).
+	await settleThreeViews(element);
 	const clone = element.cloneNode(true) as HTMLElement;
 	inlineComputedStylesOnClone(element, clone, readComputedStyle);
+	snapshotThreeViewsIntoClone(element, clone);
 	// Keep the trees aligned while copying styles, then omit editor-only nodes
 	// before embedding resources. The live editor tree is never changed.
 	prepareExportClone(clone);
