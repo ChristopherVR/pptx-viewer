@@ -63,10 +63,13 @@ export class PptxDocumentPropertiesUpdater {
 						};
 					}
 
-					const lastModifiedBy = this.extractXmlNodeText(coreProps['cp:lastModifiedBy']);
-					if (!lastModifiedBy) {
-						coreProps['cp:lastModifiedBy'] = 'pptx';
-					}
+					// `cp:lastModifiedBy` is a real author identity, not a value this
+					// engine has any basis to invent: fabricating "pptx" here on
+					// EVERY save whenever the source omitted the field materialized
+					// fake authorship into files that never claimed it. Leave it
+					// untouched; a caller who wants to set it uses
+					// `options.coreProperties.lastModifiedBy` (see
+					// `applyCorePropertiesOverrides` below).
 
 					this.ensureDatePropertyNamespaces(coreProps);
 					coreData['cp:coreProperties'] = coreProps;

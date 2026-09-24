@@ -105,8 +105,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			this.zip.remove(existingCommentPath);
 		}
 
-		// Comment authors
-		const hasCommentAuthors = saveSession.hasUsedCommentAuthors();
+		// Comment authors. `hasUsedCommentAuthors()` is true only when a
+		// CURRENT comment references an author; a deck can legitimately have a
+		// registered author nobody has commented as yet (or anymore, if their
+		// only comment was deleted this save), so the part must also survive
+		// when one already existed at load time - otherwise every save with an
+		// empty comment thread deleted the whole author registry.
+		const hasCommentAuthors =
+			saveSession.hasUsedCommentAuthors() || saveSession.getCommentAuthorsRootXml() !== undefined;
 		if (hasCommentAuthors) {
 			this.zip.file(
 				'ppt/commentAuthors.xml',
