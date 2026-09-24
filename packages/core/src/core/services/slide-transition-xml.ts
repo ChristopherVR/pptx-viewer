@@ -192,6 +192,27 @@ export function createPreservedTransitionNode(
 	return node;
 }
 
+/**
+ * Whether `raw` (the untouched `p:transition` the deck was parsed from)
+ * actually carried an explicit `p:cut` child, as opposed to `cut` merely
+ * being {@link parseTransitionDetails}'s DEFAULT `type` for a `p:transition`
+ * with no effect child at all (`spd`/`advClick`/`advTm` only). Per
+ * ECMA-376, `EG_TransitionStandard` (and every extension variant) is
+ * OPTIONAL on `CT_SlideTransition`; its absence already means "no visual
+ * effect" (an implicit cut), which PowerPoint itself writes as a bare
+ * `<p:transition .../>`. Re-emitting `<p:cut/>` for every such slide
+ * materialized an element the source never had.
+ */
+export function rawTransitionHasExplicitCutChild(
+	raw: XmlObject | undefined,
+	localName: (key: string) => string,
+): boolean {
+	if (!raw) {
+		return false;
+	}
+	return Object.keys(raw).some((key) => !key.startsWith('@_') && localName(key) === 'cut');
+}
+
 export function buildStandardTransitionChild(transition: PptxSlideTransition): XmlObject {
 	const child: XmlObject = {};
 	if (DIR_IS_ORIENTATION_TYPE.has(transition.type) && transition.orient) {

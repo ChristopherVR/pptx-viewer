@@ -395,11 +395,18 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 		// fast-xml-parser preserves insertion order, but attributes always
 		// serialise on the parent regardless. We assign them up-front for
 		// readability.
-		if (shapeStyle.fillGradientFlip && shapeStyle.fillGradientFlip !== 'none') {
+		if (shapeStyle.fillGradientFlip) {
+			// `extractGradientFlip` only ever returns a value (including
+			// `'none'`) when the source explicitly authored `@flip`: `'none'`
+			// is ALSO ECMA-376's schema default for `ST_TileFlipMode`, but a
+			// value the source explicitly wrote is not ours to drop just
+			// because PowerPoint would have assumed the same thing anyway.
+			// `gradientXml` is a freshly built object (not merged onto a
+			// preserved node), so setting the key to `undefined` here would
+			// not "remove" anything; it would just never write it, which is
+			// exactly the bug: an authored `flip="none"` came back with no
+			// `@flip` attribute at all.
 			gradientXml['@_flip'] = shapeStyle.fillGradientFlip;
-		} else if (shapeStyle.fillGradientFlip === 'none' && shapeStyle.fillGradientXml) {
-			// An explicit edit back to the default must remove a preserved non-default value.
-			gradientXml['@_flip'] = undefined;
 		}
 		if (shapeStyle.fillGradientRotWithShape !== undefined) {
 			gradientXml['@_rotWithShape'] = shapeStyle.fillGradientRotWithShape ? '1' : '0';

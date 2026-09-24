@@ -144,7 +144,7 @@ assign(
 		preserve: 'native',
 		edit: 'native',
 		serialize: 'native',
-		note: 'The join choice (round/bevel/miter, with the miter limit) and the `cap`/`cmpd` attributes are typed on `lineJoin`, `miterLimit`, `lineCap`, and `compoundLine`, covering all `ST_CompoundLine` and `ST_LineCap` enumerators. The miter limit is only emitted when it differs from the 800000 default, and a cap/join the shape authored on top of an `a:lnRef` theme baseline is kept while the reference-derived value is not written back.',
+		note: 'The join choice (round/bevel/miter, with the miter limit) and the `cap`/`cmpd` attributes are typed on `lineJoin`, `miterLimit`, `lineCap`, and `compoundLine`, covering all `ST_CompoundLine` and `ST_LineCap` enumerators. The miter limit is emitted whenever the shape authored one, including an authored `lim="800000"` that happens to equal the schema default; a cap/join the shape authored on top of an `a:lnRef` theme baseline is kept while the reference-derived value is not written back.',
 		evidence: [
 			testEvidence(
 				'src/core/core/builders/shape-style-line-helpers.test.ts',
@@ -167,8 +167,9 @@ assign(
 				[
 					'should set round join',
 					'should set bevel join',
-					'omits @lim on a miter join at the 800000 default',
+					'omits @lim on a miter join with no miterLimit set',
 					'emits @lim on a miter join with a non-default limit',
+					'emits an authored @lim="800000" instead of dropping it as the schema default',
 					'should set line cap',
 					'should set compound line type',
 				],

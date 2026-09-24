@@ -67,10 +67,26 @@ export function buildSrcRectXml(insets: CropInsets): XmlObject | undefined {
 	const normalizedTop = clampCropForSave(cropTop * safeVerticalScale);
 	const normalizedBottom = clampCropForSave(cropBottom * safeVerticalScale);
 
-	return {
-		'@_l': String(Math.round(normalizedLeft * 100000)),
-		'@_t': String(Math.round(normalizedTop * 100000)),
-		'@_r': String(Math.round(normalizedRight * 100000)),
-		'@_b': String(Math.round(normalizedBottom * 100000)),
-	};
+	// Only an inset the source actually authored gets an attribute: a source
+	// `<a:srcRect l="..." r="..."/>` with no `t`/`b` means the top/bottom
+	// crop is 0%, exactly as a written `t="0"`/`b="0"` would, so writing them
+	// anyway materialized two attributes the source never had on every
+	// picture with a partial (not-all-four-sides) authored crop. "Authored"
+	// is judged on the ORIGINAL inset (`insets.crop*`), not the
+	// post-rescale `normalized*` value, since an edit to one side must not
+	// suddenly print the other, untouched sides too.
+	const result: XmlObject = {};
+	if (insets.cropLeft !== undefined) {
+		result['@_l'] = String(Math.round(normalizedLeft * 100000));
+	}
+	if (insets.cropTop !== undefined) {
+		result['@_t'] = String(Math.round(normalizedTop * 100000));
+	}
+	if (insets.cropRight !== undefined) {
+		result['@_r'] = String(Math.round(normalizedRight * 100000));
+	}
+	if (insets.cropBottom !== undefined) {
+		result['@_b'] = String(Math.round(normalizedBottom * 100000));
+	}
+	return result;
 }

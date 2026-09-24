@@ -245,11 +245,16 @@ describe('applyFillAndStroke - stroke', () => {
 // Dash Tests
 // ---------------------------------------------------------------------------
 describe('applyFillAndStroke - dash patterns', () => {
-	it("should remove dash styles when dash is 'solid'", () => {
+	it('writes an authored a:prstDash val="solid" like any other preset', () => {
+		// `parseDrawingLineDash` only ever returns `'solid'` from a REAL,
+		// present `<a:prstDash val="solid"/>` (never as an assumed default),
+		// so a `strokeDash` of `'solid'` reaching here means the source (or
+		// an edit) explicitly authored it, and it must round-trip like any
+		// other preset instead of being stripped as "the schema default".
 		const spPr: XmlObject = { 'a:ln': { 'a:prstDash': { '@_val': 'dash' } } };
 		apply(spPr, { strokeDash: 'solid' });
 		const ln = spPr['a:ln'] as XmlObject;
-		expect(ln['a:prstDash']).toBeUndefined();
+		expect(ln['a:prstDash']).toStrictEqual({ '@_val': 'solid' });
 		expect(ln['a:custDash']).toBeUndefined();
 	});
 
@@ -338,7 +343,7 @@ describe('applyFillAndStroke - line join, cap, compound, alignment', () => {
 		expect(ln['a:bevel']).toStrictEqual({});
 	});
 
-	it('omits @lim on a miter join at the 800000 default', () => {
+	it('omits @lim on a miter join with no miterLimit set', () => {
 		const spPr: XmlObject = {};
 		apply(spPr, { lineJoin: 'miter' });
 		const ln = spPr['a:ln'] as XmlObject;
@@ -350,6 +355,19 @@ describe('applyFillAndStroke - line join, cap, compound, alignment', () => {
 		apply(spPr, { lineJoin: 'miter', miterLimit: 400000 });
 		const ln = spPr['a:ln'] as XmlObject;
 		expect(ln['a:miter']).toStrictEqual({ '@_lim': '400000' });
+	});
+
+	it('emits an authored @lim="800000" instead of dropping it as the schema default', () => {
+		// `miterLimit` is only ever set by the parser from a genuinely
+		// authored `a:miter/@lim` (shape-style-line-helpers.ts): 800000 is
+		// ALSO ECMA-376's schema default, but a value the source explicitly
+		// wrote is not ours to drop just because PowerPoint would have
+		// assumed the same number anyway. Measured on a real deck: an
+		// authored `<a:miter lim="800000"/>` came back as `<a:miter/>`.
+		const spPr: XmlObject = {};
+		apply(spPr, { lineJoin: 'miter', miterLimit: 800000 });
+		const ln = spPr['a:ln'] as XmlObject;
+		expect(ln['a:miter']).toStrictEqual({ '@_lim': '800000' });
 	});
 
 	it('should set line cap', () => {

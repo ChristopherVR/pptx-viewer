@@ -275,6 +275,38 @@ describe('pptxSlideTransitionService.buildSlideTransitionXml', () => {
 		expect(result!['p:cut']).toStrictEqual({});
 	});
 
+	it('re-serializes a parsed no-effect-child transition without materializing p:cut', () => {
+		// `<p:transition spd="med" advClick="1"/>` (no effect child at all) is
+		// schema-legal and PowerPoint's own way of writing "no visual effect":
+		// EG_TransitionStandard is optional on CT_SlideTransition. It parses to
+		// `type: 'cut'` (parseTransitionDetails' default), but that is our
+		// modeling choice, not something the source authored.
+		const slideXml: XmlObject = {
+			'p:sld': {
+				'p:transition': { '@_spd': 'med', '@_advClick': '1' },
+			},
+		};
+		const parsed = service.parseSlideTransition(slideXml);
+		expect(parsed?.type).toBe('cut');
+		const rebuilt = service.buildSlideTransitionXml(parsed!);
+		expect(rebuilt).toBeDefined();
+		expect(rebuilt!['p:cut']).toBeUndefined();
+		expect(rebuilt!['@_spd']).toBe('med');
+		expect(rebuilt!['@_advClick']).toBe('1');
+	});
+
+	it('preserves an explicitly authored p:cut child', () => {
+		const slideXml: XmlObject = {
+			'p:sld': {
+				'p:transition': { '@_spd': 'med', 'p:cut': {} },
+			},
+		};
+		const parsed = service.parseSlideTransition(slideXml);
+		expect(parsed?.type).toBe('cut');
+		const rebuilt = service.buildSlideTransitionXml(parsed!);
+		expect(rebuilt!['p:cut']).toStrictEqual({});
+	});
+
 	it('includes rawSoundAction when present', () => {
 		const rawSound: XmlObject = { 'p:stSnd': { 'p:snd': {} } };
 		const result = service.buildSlideTransitionXml({

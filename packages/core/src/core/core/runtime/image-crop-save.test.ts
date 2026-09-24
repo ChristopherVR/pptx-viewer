@@ -42,4 +42,24 @@ describe('buildSrcRectXml (issue G2)', () => {
 		const expectedLeft = Math.round(clampCropForSave(0.5 * 0.99) * 100000);
 		expect(srcRect?.['@_l']).toBe(String(expectedLeft));
 	});
+
+	it('omits @t/@b for a partial (left/right-only) authored crop', () => {
+		// A source `<a:srcRect l="..." r="..."/>` with no `t`/`b` means the
+		// top/bottom crop is 0%, exactly as a written `t="0"`/`b="0"` would.
+		// Writing them anyway materialized two attributes the source never
+		// had on every picture with a partial authored crop.
+		const srcRect = buildSrcRectXml({ cropLeft: 0.1, cropRight: 0.1 });
+		expect(srcRect?.['@_l']).toBeDefined();
+		expect(srcRect?.['@_r']).toBeDefined();
+		expect(srcRect?.['@_t']).toBeUndefined();
+		expect(srcRect?.['@_b']).toBeUndefined();
+	});
+
+	it('omits @l/@r for a partial (top/bottom-only) authored crop', () => {
+		const srcRect = buildSrcRectXml({ cropTop: 0.1, cropBottom: 0.1 });
+		expect(srcRect?.['@_t']).toBeDefined();
+		expect(srcRect?.['@_b']).toBeDefined();
+		expect(srcRect?.['@_l']).toBeUndefined();
+		expect(srcRect?.['@_r']).toBeUndefined();
+	});
 });

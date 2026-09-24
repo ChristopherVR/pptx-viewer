@@ -34,6 +34,7 @@ import {
 	parseTransitionAttributes,
 	parseTransitionDetails,
 	parseTransitionSound,
+	rawTransitionHasExplicitCutChild,
 } from './slide-transition-xml';
 import type { ExtensionChildContext } from './transition-extension-child';
 import {
@@ -264,6 +265,19 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				const child = buildMorphDirectChild(transition.morphOption, extensionContext);
 				node[child.key] = child.node;
 			}
+		} else if (
+			transitionType === 'cut' &&
+			transition.rawTransition &&
+			!rawTransitionHasExplicitCutChild(transition.rawTransition, this.getXmlLocalName)
+		) {
+			// `type: 'cut'` is `parseTransitionDetails`'s DEFAULT for a parsed
+			// `p:transition` with no effect child at all, not something the
+			// source authored. A transition with real parse provenance
+			// (`rawTransition` present) that never had an explicit `p:cut`
+			// re-emits as the bare `<p:transition .../>` PowerPoint itself
+			// writes for "no visual effect", rather than materializing one.
+			// A transition with NO provenance (SDK-built, or explicitly
+			// authored `p:cut`) still gets it, below.
 		} else {
 			node[`p:${transitionType}`] = buildStandardTransitionChild(transition);
 		}

@@ -147,6 +147,23 @@ describe('style-matrix references survive a save', () => {
 		expect(ln['a:miter']).toBeUndefined();
 	});
 
+	it('keeps an authored outline colour free of the theme width', () => {
+		// `<a:ln><a:solidFill>...</a:solidFill></a:ln>` (no `@w`): the shape
+		// authored its own colour but left the width to `a:lnRef`. The
+		// combined ownership check (`owns('strokeColor', ..., 'strokeWidth')`)
+		// only decides whether this block runs at all; a color edit alone
+		// used to also bake in the untouched, purely inherited width as soon
+		// as it made the block run. Measured on a real deck: 2 outlines per
+		// slide (and 361 across a whole deck) acquired a `w=` the source
+		// never had.
+		const spPr = roundTrip({
+			'a:ln': { 'a:solidFill': { 'a:srgbClr': { '@_val': '112233' } } },
+		});
+		const ln = spPr['a:ln'] as XmlObject;
+		expect(((ln['a:solidFill'] as XmlObject)['a:srgbClr'] as XmlObject)['@_val']).toBe('112233');
+		expect(ln['@_w']).toBeUndefined();
+	});
+
 	it('writes width and colour once the outline is edited', () => {
 		const spPr = roundTrip({}, (style) => {
 			style.strokeColor = '#123456';

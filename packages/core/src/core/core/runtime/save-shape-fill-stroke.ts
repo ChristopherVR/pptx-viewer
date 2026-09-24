@@ -255,11 +255,16 @@ function writeLineJoin(spPr: XmlObject, shapeStyle: ShapeStyle, owns: ShapeStyle
 		lineNode['a:bevel'] = {};
 	} else if (shapeStyle.lineJoin === 'miter') {
 		const miterNode: XmlObject = {};
-		if (
-			typeof shapeStyle.miterLimit === 'number' &&
-			Number.isFinite(shapeStyle.miterLimit) &&
-			shapeStyle.miterLimit !== 800000
-		) {
+		// `miterLimit` is only ever set by the parser from a genuinely
+		// authored `a:miter/@lim` (see `shape-style-line-helpers.ts`), so
+		// once `owns(...)` above has confirmed the shape authored its own
+		// join, an authored `lim="800000"` must round-trip like any other
+		// authored value. 800000 is ALSO ECMA-376's schema default for
+		// `CT_LineJoinMiterProperties/@lim`, but "equals the default" is not
+		// "was never authored": a value the source explicitly wrote is not
+		// ours to drop just because PowerPoint would have assumed the same
+		// number anyway.
+		if (typeof shapeStyle.miterLimit === 'number' && Number.isFinite(shapeStyle.miterLimit)) {
 			miterNode['@_lim'] = String(Math.round(shapeStyle.miterLimit));
 		}
 		lineNode['a:miter'] = miterNode;
@@ -290,7 +295,16 @@ export function writeShapeStroke(
 		owns('strokeColor', 'strokeOpacity', 'strokeFillMode', 'strokeWidth')
 	) {
 		const lineNode = ensureLineNode(spPr);
-		if (shapeStyle.strokeWidth !== 0) {
+		// `owns('strokeWidth')` here, separately from the combined check above:
+		// the combined check only decides whether THIS block runs at all (a
+		// color/fill edit alone must still enter it), not whether the WIDTH
+		// specifically was authored. A shape whose own `a:ln` carries just a
+		// color (`<a:ln><a:solidFill>.../></a:ln>`, no `@w`, common when the
+		// width is meant to keep following `<a:lnRef>`) had its purely
+		// INHERITED width baked in as soon as the color made the block run,
+		// because the combined gate does not distinguish "some property in
+		// the group differs" from "this specific one does".
+		if (shapeStyle.strokeWidth !== 0 && owns('strokeWidth')) {
 			// A zero width is how `<a:ln><a:noFill/></a:ln>` parses. The `|| 1`
 			// fallback below would turn it into `w="9525"`, inventing a 0.75pt
 			// outline that reappears the moment the user re-enables the line.
