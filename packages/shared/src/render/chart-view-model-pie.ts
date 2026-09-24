@@ -13,6 +13,7 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_AREA_FILL } from './chart-area-fill';
+import { resolveChartTitleText } from './chart-auto-title';
 import { buildDataLabelText, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { resolveLegendPlacement } from './chart-legend-placement';
@@ -203,7 +204,7 @@ export function buildPieViewModel(
 		legendAnchor = 'start';
 	}
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth,

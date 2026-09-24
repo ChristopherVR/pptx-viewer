@@ -18,6 +18,7 @@
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { resolveVaryColorFill } from './chart-datapoint-style';
 import {
 	buildSecondaryBar,
@@ -128,7 +129,7 @@ export function buildOfPieViewModel(
 		color: paletteColor(i, palette),
 		label,
 	}));
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: geom.svgWidth,

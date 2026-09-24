@@ -1,5 +1,6 @@
 import type { PptxChartBoxWhiskerOptions, PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { computeBoxStats } from './chart-box-whisker-stats';
 import type { BoxStats } from './chart-box-whisker-stats';
 import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
@@ -256,7 +257,7 @@ export function buildBoxWhiskerViewModel(
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
-		title: chartData.style?.hasTitle ? chartData.title : undefined,
+		title: resolveChartTitleText(chartData),
 		titleX: layout.svgWidth / 2,
 		titleY: 12,
 		gridlines,

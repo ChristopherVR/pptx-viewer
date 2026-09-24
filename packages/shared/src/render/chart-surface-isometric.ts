@@ -14,6 +14,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { shade } from './chart-palette';
 import {
 	buildSurfaceWallPanels,
@@ -178,7 +179,7 @@ export function buildIsometricSurfaceViewModel(
 		layout.plotTop,
 	);
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	// Each cell is anchored at one (series, category) data point (see the
 	// primitive-building loop above), so it drags vertically to a new value the

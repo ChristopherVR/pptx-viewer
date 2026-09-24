@@ -11,6 +11,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildLegend } from './chart-legend-build';
@@ -164,7 +165,7 @@ export function buildRadarViewModel(
 			layout.svgHeight,
 			layout.plotTop,
 		),
-		title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+		title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,

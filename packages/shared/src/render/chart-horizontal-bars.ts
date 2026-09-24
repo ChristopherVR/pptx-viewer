@@ -15,6 +15,7 @@
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { computeValueRangeForChart } from './chart-axis-range';
 import { resolveBarLabelPlacement } from './chart-data-label-anchor';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
@@ -256,7 +257,7 @@ export function buildHorizontalBarViewModel(
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
-		title: chartData.style?.hasTitle && chartData.title ? chartData.title : undefined,
+		title: resolveChartTitleText(chartData),
 		titleX: layout.svgWidth / 2,
 		titleY: 12,
 		gridlines,

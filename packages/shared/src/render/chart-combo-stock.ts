@@ -25,6 +25,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { computeLayoutOptions, computeValueRangeForChart } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis } from './chart-axis-render';
@@ -269,7 +270,7 @@ export function buildStockViewModel(
 	);
 	primitives.push(...overlays, ...dataTablePrimitives);
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,

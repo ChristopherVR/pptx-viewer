@@ -9,6 +9,7 @@
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import {
 	computeLayoutOptions,
 	computeValueRangeForAxis,
@@ -247,7 +248,7 @@ export function buildCartesianViewModel(
 	primitives.push(...overlays, ...dataTablePrims);
 
 	// eslint-disable-next-line one-var -- pre-existing, unrelated to this change
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	// Vertical drag-to-value only has a single-value meaning for un-stacked marks:
 	// stacked/percentStacked bar segments sit on running sums, so dragging one

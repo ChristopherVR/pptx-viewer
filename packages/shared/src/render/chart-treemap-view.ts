@@ -13,6 +13,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { emptyChrome } from './chart-surface-common';
 import { buildHierarchicalTreemapPrimitives } from './chart-treemap-hierarchy';
 import type { ChartViewModel, LegendEntry } from './chart-view-model';
@@ -56,7 +57,7 @@ export function buildTreemapViewModel(
 		label: cat,
 	}));
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,

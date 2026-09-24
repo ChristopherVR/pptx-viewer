@@ -22,6 +22,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
 import type { ChartViewModel, SvgPath, SvgPrimitive, SvgText } from './chart-view-model';
@@ -181,7 +182,7 @@ export function buildFunnelViewModel(
 		});
 	});
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,
@@ -248,7 +249,7 @@ export function buildSunburstViewModel(
 		? legendLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
 		: [];
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,

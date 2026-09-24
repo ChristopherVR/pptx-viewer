@@ -15,6 +15,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { resolveSurfaceBandFill } from './chart-surface-bands';
 import { emptyChrome, surfaceColor } from './chart-surface-common';
 import { buildIsometricSurfaceViewModel } from './chart-surface-isometric';
@@ -77,7 +78,7 @@ function buildFlatSurfaceViewModel(
 		layout.plotTop,
 	);
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	// One rect per (series, category) cell already carries an unambiguous
 	// single value (unlike the isometric mesh's shared-corner facets), so the

@@ -1,5 +1,6 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import {
 	computeLayoutOptions,
 	computeValueRangeForAxis,
@@ -237,7 +238,7 @@ export function buildComboViewModel(
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
-		title: chartData.style?.hasTitle && chartData.title ? chartData.title : undefined,
+		title: resolveChartTitleText(chartData),
 		titleX: layout.svgWidth / 2,
 		titleY: 12,
 		gridlines,

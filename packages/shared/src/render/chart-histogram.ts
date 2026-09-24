@@ -1,5 +1,6 @@
 import type { PptxChartData, PptxChartHistogramOptions, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { distributionRange } from './chart-distribution-range';
@@ -248,7 +249,7 @@ export function buildHistogramViewModel(
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
-		title: chartData.style?.hasTitle ? chartData.title : undefined,
+		title: resolveChartTitleText(chartData),
 		titleX: layout.svgWidth / 2,
 		titleY: 12,
 		gridlines,

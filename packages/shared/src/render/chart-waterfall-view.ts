@@ -16,6 +16,7 @@
 
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { resolveChartTitleText } from './chart-auto-title';
 import { findValueAxis, buildValueAxisGridlinesAndLabels } from './chart-cx-axis-units';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
@@ -145,7 +146,7 @@ export function buildWaterfallViewModel(
 		layout.plotTop,
 	);
 
-	const title = chartData.style?.hasTitle && chartData.title ? chartData.title : undefined;
+	const title = resolveChartTitleText(chartData);
 
 	return {
 		svgWidth: layout.svgWidth,
