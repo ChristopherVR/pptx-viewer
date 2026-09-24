@@ -15,7 +15,11 @@ import { PRESET_ID_TO_EFFECT } from './animation-presets';
 // `descendIn` name means a naive entr.47 authoring entry would collide with
 // that assumption rather than resolve it. See the comments beside `swivel`
 // and `descendIn` in `animation-write-mappings.ts` for the full history.
-const PLAYABLE_NOT_YET_AUTHORABLE_ENTR_IDS = ['47'];
+const PLAYABLE_NOT_YET_AUTHORABLE_ENTR_IDS = ['47', '42', '53'];
+// entr/exit.42 still play as Float for decks that carry them, but PowerPoint
+// itself saves Float as presetID 30 (COM-verified), so authoring writes 30;
+// likewise Grow & Turn saves as 31, not the entr.53 playback alias.
+const PLAYABLE_NOT_YET_AUTHORABLE_EXIT_IDS = ['42'];
 
 describe('pRESET_TO_OOXML', () => {
 	it('should cover all entrance effects from the rendering engine', () => {
@@ -32,7 +36,9 @@ describe('pRESET_TO_OOXML', () => {
 	});
 
 	it('should cover all exit effects from the rendering engine', () => {
-		const renderExitIds = Object.keys(PRESET_ID_TO_EFFECT.exit);
+		const renderExitIds = Object.keys(PRESET_ID_TO_EFFECT.exit).filter(
+			(id) => !PLAYABLE_NOT_YET_AUTHORABLE_EXIT_IDS.includes(id),
+		);
 		const writeExitIds = Object.values(PRESET_TO_OOXML)
 			.filter((m) => m.presetClass === 'exit')
 			.map((m) => String(m.presetId));
@@ -160,7 +166,7 @@ describe('buildSingleEffectNode', () => {
 		expect(childTnLst['p:animEffect']).toBeUndefined();
 	});
 
-	it('should produce p:anim for transparency emphasis', () => {
+	it('should produce a discrete p:set for transparency emphasis (COM-verified)', () => {
 		const anim: PptxElementAnimation = {
 			elementId: 'shape1',
 			emphasis: 'transparency',
@@ -173,8 +179,10 @@ describe('buildSingleEffectNode', () => {
 		const innerPar = effectPar['p:par'] as XmlObject;
 		const innerCTn = innerPar['p:cTn'] as XmlObject;
 		const childTnLst = innerCTn['p:childTnLst'] as XmlObject;
-		expect(childTnLst['p:anim']).toBeDefined();
-		expect(childTnLst['p:animEffect']).toBeUndefined();
+		// PowerPoint writes Transparency as a discrete style.opacity set
+		// (2 behaviours in COM), not an animated p:anim tween.
+		expect(childTnLst['p:set']).toBeDefined();
+		expect(childTnLst['p:anim']).toBeUndefined();
 	});
 
 	it('should produce p:animEffect for entrance effects', () => {

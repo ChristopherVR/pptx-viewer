@@ -29,7 +29,8 @@ describe('react: native animation @filter fallback', () => {
 		expect(timeline.clickGroups).toHaveLength(1);
 		const step = timeline.clickGroups[0].steps[0];
 		expect(step.elementId).toBe('shape1');
-		expect(step.keyframeName).toBe('pptx-checkerboardIn');
+		// checkerboard(across) now plays its authored subtype, not a generic fade.
+		expect(step.keyframeName).toBe('pptx-checkerboardInAcross');
 		expect(timeline.entranceElementIds.has('shape1')).toBeTruthy();
 	});
 

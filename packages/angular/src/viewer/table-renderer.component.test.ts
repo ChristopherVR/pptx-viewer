@@ -187,10 +187,11 @@ describe('cellStyleToStyleMap', () => {
 		expect(map['padding-bottom']).toBe('4px');
 	});
 
-	it('maps vertical text direction vert → vertical-rl', () => {
+	it('maps vertical text direction vert → vertical-rl with rotated glyphs', () => {
 		const map = cellStyleToStyleMap({ textDirection: 'vert' });
 		expect(map['writing-mode']).toBe('vertical-rl');
-		expect(map['text-orientation']).toBe('mixed');
+		// `vert` rotates every glyph (CJK included) 90 degrees, unlike eaVert.
+		expect(map['text-orientation']).toBe('sideways');
 	});
 
 	it('maps text shadow', () => {

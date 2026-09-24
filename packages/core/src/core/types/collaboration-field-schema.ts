@@ -207,6 +207,8 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	inkPartRawXml: 'complex',
 	// ZoomPptxElement
 	zoomType: 'scalar',
+	returnToParent: 'scalar',
+	transitionDurationMs: 'scalar',
 	targetSlideIndex: 'scalar',
 	targetSectionId: 'scalar',
 	summaryTargets: 'complex',
