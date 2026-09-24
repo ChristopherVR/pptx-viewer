@@ -125,6 +125,16 @@ export interface TimelineStep {
 	 */
 	pendingHideOnNextClick?: boolean;
 	/**
+	 * The CSS `animation` shorthand for a pending `afterAnimation: "dimToColor"`
+	 * dim, when the dim has not fired yet. PowerPoint writes the dim as
+	 * `masterRel="nextClick"` and, COM-verified, it consumes a click of its own
+	 * rather than firing when the effect itself ends. `injectHideOnNextClickSteps`
+	 * consumes this during timeline construction to splice a synthetic step
+	 * carrying this CSS into the following click-group; it is left on the
+	 * original step afterward purely as informational metadata.
+	 */
+	pendingDimOnNextClick?: string;
+	/**
 	 * Restart behaviour from `p:cTn/@restart` (ST_TLTimeNodeRestartType,
 	 * ECMA-376 S19.5.27), forwarded from the source `PptxNativeAnimation`.
 	 * `TimelineEngine` reads this to decide whether a re-trigger of this same

@@ -82,19 +82,19 @@ export function reconcileBuildList(
 
 		// Preserve whatever this editor does not model on an existing entry
 		// (`@_grpId`, `@_bldLvl`, `@_rev`, `@_advAuto`, ...); only the fields
-		// `buildBldPNode` actually derives (`@_build`, `@_animBg`,
-		// `p:tmplLst`) are overwritten. `@_build` is removed when the desired
-		// entry has none (a by-word/by-letter build is a `p:iterate`, not a
-		// `@build`); an existing `@_animBg` is left alone.
+		// `buildBldPNode` actually derives (`@_build`, `@_autoUpdateAnimBg`,
+		// `p:tmplLst`) are overwritten, and removed when the desired entry has
+		// none of them (a by-word/by-letter build is a `p:iterate`, not a
+		// `@build`; COM-verified it carries no `@animBg` either).
 		const merged: XmlObject = current ? { ...current } : {};
 		merged['@_spid'] = anim.elementId;
 		if (merged['@_grpId'] === undefined) {
 			merged['@_grpId'] = '0';
 		}
-		for (const key of ['@_build', '@_animBg', 'p:tmplLst']) {
+		for (const key of ['@_build', '@_autoUpdateAnimBg', 'p:tmplLst']) {
 			if (desired[key] !== undefined) {
 				merged[key] = desired[key];
-			} else if (key !== '@_animBg') {
+			} else {
 				delete merged[key];
 			}
 		}

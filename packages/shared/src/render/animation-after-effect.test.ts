@@ -141,7 +141,12 @@ describe('resolveAfterAnimationStepFields', () => {
 		const fields = resolveAfterAnimationStepFields(anim, 'fadeIn 500ms', false, 500, 'dim-0', {
 			accent2: '#336699',
 		});
-		expect(fields.holdEndState).toBeTruthy();
+		// COM-verified: PowerPoint's dim consumes a click of its own rather than
+		// firing when the effect ends, so the step's OWN holdEndState is left at
+		// its base value and the dim is deferred via `pendingDimOnNextClick`
+		// (spliced into the next click-group by `injectHideOnNextClickSteps`).
+		expect(fields.holdEndState).toBeFalsy();
+		expect(fields.pendingDimOnNextClick).toContain('dim-0');
 		expect(fields.dimKeyframeBlock).toContain('color: #336699;');
 	});
 

@@ -75,7 +75,12 @@ describe('p:bldLst/p:bldP re-derivation on the surgical animation write path', (
 		if (!spid3) {
 			throw new Error('spid 3 p:bldP not found after save');
 		}
-		expect(spid3['@_build']).toBe('word');
+		// A by-word text build is not a bldP `@build` value (ST_TLParaBuildType
+		// only allows `whole`/`p`/`cust`); PowerPoint (COM-verified) writes it
+		// as `p:iterate` on the effect's own `p:cTn` and leaves the `p:bldP`
+		// with no `@build` and no `@animBg`, only `@autoUpdateAnimBg="0"`.
+		expect(spid3['@_build']).toBeUndefined();
+		expect(spid3['@_autoUpdateAnimBg']).toBe('0');
 		expect((spid3['p:tmplLst'] as XmlObject)['p:tmpl']).toMatchObject({ '@_lvl': '2' });
 
 		const reloadedAnim = reloadedSlide.animations?.find((a) => a.sequence !== undefined);

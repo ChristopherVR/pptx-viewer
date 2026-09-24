@@ -79,10 +79,14 @@ export function buildBldPNode(anim: PptxElementAnimation): XmlObject | undefined
 	}
 
 	// `@build` is ST_TLParaBuildType (`whole` | `p` | `cust`): there is no
-	// word/char build. PowerPoint (COM-verified) writes a by-word / by-letter
-	// text build as `p:iterate` on the effect `p:cTn` (see
-	// `animation-write-effect-extras`) and leaves the `p:bldP` with no
-	// `@build`, only `animBg="1"` (the shape background builds with its text).
+	// word/char build. PowerPoint (COM-verified, `AnimationSettings.TextUnitEffect`
+	// + raw OOXML inspection on both a plain textbox and a title placeholder)
+	// writes a by-word / by-letter text build as `p:iterate` on the effect's
+	// own `p:cTn` (see `animation-write-effect-extras`) and leaves the
+	// `p:bldP` with NEITHER `@build` NOR `@animBg`: just `autoUpdateAnimBg="0"`.
+	// `@animBg="1"` is unrelated to word/letter granularity; it showed up
+	// (separately, COM-verified) on a shape with no text frame at all, where
+	// the whole shape IS the "background" the build owns.
 	const bldPNode: XmlObject = {
 		'@_spid': anim.elementId,
 		'@_grpId': EDITOR_BUILD_GROUP_ID,
@@ -90,7 +94,7 @@ export function buildBldPNode(anim: PptxElementAnimation): XmlObject | undefined
 	if (anim.sequence === 'byParagraph') {
 		bldPNode['@_build'] = 'p';
 	} else {
-		bldPNode['@_animBg'] = '1';
+		bldPNode['@_autoUpdateAnimBg'] = '0';
 	}
 	// Re-emit the loaded per-build-level `p:tmplLst` (issue: "buildTemplates
 	// write wiring") so a full timing-tree rebuild does not silently drop it;

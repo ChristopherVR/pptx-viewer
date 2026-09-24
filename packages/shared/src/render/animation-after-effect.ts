@@ -156,20 +156,25 @@ export function resolveAfterAnimationStepFields(
 
 /**
  * Walk a list of click-groups and, for every step carrying a pending
- * "hide on next click" marker, splice a zero-duration synthetic exit step
- * into the NEXT group (or the end of the current one, if it is the last
- * group) so the element hides the next time the viewer advances.
+ * "hide on next click" or "dim on next click" marker, splice a synthetic
+ * step into the NEXT group (or the end of the current one, if it is the last
+ * group) so the element hides, or dims, the next time the viewer advances.
+ *
+ * The dim step keeps `presetClass: 'emph'` (unlike the hide step's `'exit'`):
+ * the element must stay visible, only recoloured, so nothing here should make
+ * a visibility-gating renderer treat it as hidden.
  *
  * Mutates and returns the same array.
  */
 export function injectHideOnNextClickSteps(groups: TimelineClickGroup[]): TimelineClickGroup[] {
 	for (let i = 0; i < groups.length; i++) {
-		const pending = groups[i].steps.filter((step) => step.pendingHideOnNextClick);
-		if (pending.length === 0) {
+		const pendingHide = groups[i].steps.filter((step) => step.pendingHideOnNextClick);
+		const pendingDim = groups[i].steps.filter((step) => step.pendingDimOnNextClick);
+		if (pendingHide.length === 0 && pendingDim.length === 0) {
 			continue;
 		}
 		const target = groups[i + 1] ?? groups[i];
-		for (const step of pending) {
+		for (const step of pendingHide) {
 			const hideStep: TimelineStep = {
 				elementId: step.elementId,
 				cssAnimation: '',
@@ -181,6 +186,20 @@ export function injectHideOnNextClickSteps(groups: TimelineClickGroup[]): Timeli
 				presetClass: 'exit',
 			};
 			target.steps.push(hideStep);
+		}
+		for (const step of pendingDim) {
+			const dimStep: TimelineStep = {
+				elementId: step.elementId,
+				cssAnimation: step.pendingDimOnNextClick as string,
+				keyframeName: '',
+				trigger: 'onClick',
+				delayMs: 0,
+				durationMs: 0,
+				fillMode: 'forwards',
+				presetClass: 'emph',
+				holdEndState: true,
+			};
+			target.steps.push(dimStep);
 		}
 	}
 	return groups;

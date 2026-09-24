@@ -125,18 +125,22 @@ describe('buildBuildListXml', () => {
 		expect(bldP['@_grpId']).toBe('0');
 	});
 
-	it("builds bldP entry with 'word' type for byWord", () => {
+	it('carries no @build for byWord (a by-word text build is p:iterate, not a bldP @build)', () => {
 		const animations: PptxElementAnimation[] = [{ elementId: 'sp2', sequence: 'byWord' }];
 		const result = buildBuildListXml(animations)!;
 		const bldP = result['p:bldP'] as XmlObject;
-		expect(bldP['@_build']).toBe('word');
+		expect(bldP['@_build']).toBeUndefined();
+		// COM-verified (PowerPoint 2016): a by-word/by-letter build's `p:bldP`
+		// carries neither `@build` nor `@animBg`, only `autoUpdateAnimBg="0"`.
+		expect(bldP['@_autoUpdateAnimBg']).toBe('0');
 	});
 
-	it("builds bldP entry with 'char' type for byLetter", () => {
+	it('carries no @build for byLetter (a by-letter text build is p:iterate, not a bldP @build)', () => {
 		const animations: PptxElementAnimation[] = [{ elementId: 'sp3', sequence: 'byLetter' }];
 		const result = buildBuildListXml(animations)!;
 		const bldP = result['p:bldP'] as XmlObject;
-		expect(bldP['@_build']).toBe('char');
+		expect(bldP['@_build']).toBeUndefined();
+		expect(bldP['@_autoUpdateAnimBg']).toBe('0');
 	});
 
 	it('returns array for multiple bldP entries', () => {
@@ -149,7 +153,8 @@ describe('buildBuildListXml', () => {
 		expect(Array.isArray(bldP)).toBeTruthy();
 		expect(bldP).toHaveLength(2);
 		expect((bldP[0] as XmlObject)['@_build']).toBe('p');
-		expect((bldP[1] as XmlObject)['@_build']).toBe('word');
+		expect((bldP[1] as XmlObject)['@_build']).toBeUndefined();
+		expect((bldP[1] as XmlObject)['@_autoUpdateAnimBg']).toBe('0');
 	});
 
 	it('skips animations without a sequence property', () => {

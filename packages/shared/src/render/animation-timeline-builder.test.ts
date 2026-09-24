@@ -1214,18 +1214,26 @@ describe('buildTimeline', () => {
 	// afterAnimationAction -> holdEndState / hideAfterEffect / pendingHideOnNextClick
 	// -------------------------------------------------------------------
 	describe('afterAnimationAction (animation-after-effect)', () => {
-		it('appends a dim keyframe and sets holdEndState for a "dimToColor" entrance', () => {
+		it('splices a synthetic dim step into the next click-group for "dimToColor" (COM: dim consumes a click)', () => {
 			const result = buildTimeline([
 				makeAnim({
 					targetId: 'shape1',
 					presetClass: 'entr',
 					afterAnimationAction: 'dimToColor',
 					afterAnimationColor: '#336699',
+					trigger: 'onClick',
 				}),
+				makeAnim({ targetId: 'shape2', trigger: 'onClick' }),
 			]);
-			const step = result.clickGroups[0].steps[0];
-			expect(step.holdEndState).toBeTruthy();
-			expect(step.cssAnimation).toContain('pptx-tl-dim-');
+			const firstStep = result.clickGroups[0].steps[0];
+			// The effect's own step is unaffected: the dim has not happened yet.
+			expect(firstStep.holdEndState).toBeFalsy();
+			expect(firstStep.pendingDimOnNextClick).toContain('pptx-tl-dim-');
+			expect(result.clickGroups).toHaveLength(2);
+			const dimStep = result.clickGroups[1].steps.find((s) => s.elementId === 'shape1');
+			expect(dimStep?.holdEndState).toBeTruthy();
+			expect(dimStep?.presetClass).toBe('emph');
+			expect(dimStep?.cssAnimation).toContain('pptx-tl-dim-');
 			expect(result.keyframesCss).toContain('color: #336699');
 		});
 

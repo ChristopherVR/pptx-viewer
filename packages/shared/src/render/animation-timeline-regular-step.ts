@@ -229,6 +229,7 @@ export function processRegularAnimation(
 			holdEndState: afterFields.holdEndState || undefined,
 			hideAfterEffect: afterFields.hideAfterEffect,
 			pendingHideOnNextClick: afterFields.pendingHideOnNextClick,
+			pendingDimOnNextClick: afterFields.pendingDimOnNextClick,
 			restart: singleAnim.restart,
 			seqConcurrent: singleAnim.seqConcurrent,
 			seqNextAction: singleAnim.seqNextAction,
