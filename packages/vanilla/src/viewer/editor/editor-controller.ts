@@ -15,7 +15,10 @@ import type {
 } from 'pptx-viewer-core';
 import {
 	armEditorKeyboard,
+	cycleSelectableElement,
 	downloadBlob,
+	mapEditorKey,
+	mapInlineTextFormatKey,
 	moveGuide,
 	removeGuide,
 	savedPresentationFileName,
@@ -24,6 +27,7 @@ import {
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import { openHyperlinkEditDialog } from '../ui/hyperlink-edit-dialog';
 import { syncAlignmentGuides } from './alignment-guide-view';
 import { createChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import type { ChartQuickActionsOverlay } from './chart-quick-actions-overlay';
@@ -174,6 +178,116 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	});
 	const findReplaceActions = createFindReplaceActions({ store, ops });
 
+	/** Shared by the `hyperlink` keyboard action and the public `applyElementPatch`. */
+	const applyElementPatch = (id: string, patch: Partial<PptxElement>): void => {
+		const state = store.get();
+		if (!state.editable || !getActiveElements(state).some((element) => element.id === id)) {
+			return;
+		}
+		ops.pushHistory();
+		store.set(
+			replaceActiveElements(
+				state,
+				getActiveElements(state).map((element) =>
+					element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
+				),
+			),
+		);
+		ops.commitChange();
+	};
+
+	/** Ctrl+K: open the hyperlink dialog for the currently selected element. */
+	const openHyperlinkForSelection = (): void => {
+		const state = store.get();
+		const element = getActiveElements(state).find((el) => el.id === state.selectedElementId);
+		if (!element) {
+			return;
+		}
+		openHyperlinkEditDialog(doc, deps.getTranslator(), element, (patch) =>
+			applyElementPatch(element.id, patch),
+		);
+	};
+
+	/** Ctrl+Shift+V, or paste-format fired from inside the inline editor. */
+	const pasteFormatOntoSelection = (): void => {
+		const state = store.get();
+		if (state.formatPainterSourceId && state.selectedElementId) {
+			ops.applyFormatPainter(state.formatPainterSourceId, state.selectedElementId);
+		}
+	};
+
+	/**
+	 * Live-format keyboard shortcuts fired from inside the inline text editor.
+	 *
+	 * The editor's own keydown listener stops propagation on every key (so
+	 * ordinary viewer shortcuts never fire mid-edit), which means this handler,
+	 * not `createEditorKeydownHandler`'s root switch, is the only place that
+	 * ever sees these chords while text is under active edit. Bold/italic/
+	 * underline are resolved separately from the shared keymap (they are
+	 * deliberately not part of `mapEditorKey`); the rest reuse the exact same
+	 * `mapEditorKey` decision the root handler makes elsewhere, with
+	 * `isEditingText: true` forced since that is always true by construction
+	 * here.
+	 */
+	const onInlineLiveFormatKey = (event: KeyboardEvent): boolean => {
+		const boldItalicUnderline = mapInlineTextFormatKey(event);
+		if (boldItalicUnderline === 'bold') {
+			editActions.toggleBold();
+			return true;
+		}
+		if (boldItalicUnderline === 'italic') {
+			editActions.toggleItalic();
+			return true;
+		}
+		if (boldItalicUnderline === 'underline') {
+			editActions.toggleUnderline();
+			return true;
+		}
+		const { action } = mapEditorKey(event, {
+			isEditingText: true,
+			canEdit: true,
+			hasSelection: true,
+		});
+		switch (action) {
+			case 'alignLeft':
+				editActions.setTextAlign('left');
+				return true;
+			case 'alignCenter':
+				editActions.setTextAlign('center');
+				return true;
+			case 'alignRight':
+				editActions.setTextAlign('right');
+				return true;
+			case 'alignJustify':
+				editActions.setTextAlign('justify');
+				return true;
+			case 'increaseFontSize':
+				editActions.stepFontSize('increase');
+				return true;
+			case 'decreaseFontSize':
+				editActions.stepFontSize('decrease');
+				return true;
+			case 'copyFormat':
+				editActions.toggleFormatPainter();
+				return true;
+			case 'pasteFormat':
+				pasteFormatOntoSelection();
+				return true;
+			case 'hyperlink':
+				openHyperlinkForSelection();
+				return true;
+			case 'clearFormatting':
+				editActions.clearFormatting();
+				return true;
+			case 'find':
+			case 'findReplace':
+				deps.getChrome().ribbon?.toggleFindReplace();
+				return true;
+			default:
+				return false;
+		}
+	};
+
 	/**
 	 * Layout artwork for the New Slide / Layout gallery thumbnails.
 	 *
@@ -225,6 +339,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		flushInlineTextInput: deps.flushInlineTextInput,
 		onEditEquation: (id, omml) => deps.getChrome().ribbon?.openEquationEditor(id, omml),
 		onEyedropper: (color) => editActions.setShapeFill(color),
+		onInlineLiveFormatKey,
 	});
 
 	// Draw mode owns stage gestures while a pen, highlighter, or eraser is active.
@@ -342,6 +457,22 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			panel.close();
 			return true;
 		},
+		setTextAlign: (align) => editActions.setTextAlign(align),
+		stepFontSize: (direction) => editActions.stepFontSize(direction),
+		copyFormat: () => editActions.toggleFormatPainter(),
+		pasteFormat: pasteFormatOntoSelection,
+		addSlide: () => editActions.addSlide(),
+		openHyperlink: openHyperlinkForSelection,
+		toggleFindReplace: () => deps.getChrome().ribbon?.toggleFindReplace(),
+		clearFormatting: () => editActions.clearFormatting(),
+		cycleSelection: (direction) => {
+			const state = store.get();
+			const ids = getActiveElements(state).map((element) => element.id);
+			const nextId = cycleSelectableElement(ids, state.selectedElementId, direction);
+			if (nextId) {
+				ops.select(nextId, [nextId]);
+			}
+		},
 	});
 
 	/**
@@ -381,7 +512,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
 
 	const unsubscribe = store.subscribe((state, previous) => {
-		if (previous.editable && !state.editable) interactions.retainAcceptedInlineText?.();
+		if (previous.editable && !state.editable) {
+			interactions.retainAcceptedInlineText?.();
+		}
 		interactions.readInlineList?.();
 		if (state.loading && !previous.loading) {
 			interactions.closeInline(false);
@@ -525,22 +658,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		duplicateSelected: () => ops.duplicateSelected(),
 		getSelectedElementId: () => store.get().selectedElementId,
 		selectElements: (ids) => ops.select(ids.at(-1) ?? null, ids),
-		applyElementPatch(id, patch) {
-			const state = store.get();
-			if (!state.editable || !getActiveElements(state).some((element) => element.id === id)) {
-				return;
-			}
-			ops.pushHistory();
-			store.set(
-				replaceActiveElements(
-					state,
-					getActiveElements(state).map((element) =>
-						element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
-					),
-				),
-			);
-			ops.commitChange();
-		},
+		applyElementPatch,
 		commitElementUpdates(slides, label) {
 			ops.pushHistory(label);
 			store.set({ slides });

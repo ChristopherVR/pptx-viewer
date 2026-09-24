@@ -182,3 +182,72 @@ describe('createEditorKeydownHandler: shortcuts ported from the other bindings',
 		expect(event.defaultPrevented).toBeFalsy();
 	});
 });
+
+describe('createEditorKeydownHandler: PowerPoint 365 shortcuts', () => {
+	it('sets paragraph alignment on Ctrl+L/E/R/J', () => {
+		const setTextAlign = vi.fn();
+		const handler = createEditorKeydownHandler(makeDeps({ setTextAlign }));
+		handler(keydown('l', { ctrlKey: true }));
+		handler(keydown('e', { ctrlKey: true }));
+		handler(keydown('r', { ctrlKey: true }));
+		handler(keydown('j', { ctrlKey: true }));
+		expect(setTextAlign.mock.calls).toStrictEqual([['left'], ['center'], ['right'], ['justify']]);
+	});
+
+	it('steps the font size on Ctrl+]/[ and Ctrl+Shift+>/<', () => {
+		const stepFontSize = vi.fn();
+		const handler = createEditorKeydownHandler(makeDeps({ stepFontSize }));
+		handler(keydown(']', { ctrlKey: true }));
+		handler(keydown('[', { ctrlKey: true }));
+		handler(keydown('>', { ctrlKey: true, shiftKey: true }));
+		handler(keydown('<', { ctrlKey: true, shiftKey: true }));
+		expect(stepFontSize.mock.calls).toStrictEqual([
+			['increase'],
+			['decrease'],
+			['increase'],
+			['decrease'],
+		]);
+	});
+
+	it('arms the format painter on Ctrl+Shift+C and applies it on Ctrl+Shift+V', () => {
+		const copyFormat = vi.fn();
+		const pasteFormat = vi.fn();
+		const handler = createEditorKeydownHandler(makeDeps({ copyFormat, pasteFormat }));
+		handler(keydown('c', { ctrlKey: true, shiftKey: true }));
+		expect(copyFormat).toHaveBeenCalledOnce();
+		handler(keydown('v', { ctrlKey: true, shiftKey: true }));
+		expect(pasteFormat).toHaveBeenCalledOnce();
+	});
+
+	it('inserts a new slide on Ctrl+M', () => {
+		const addSlide = vi.fn();
+		createEditorKeydownHandler(makeDeps({ addSlide }))(keydown('m', { ctrlKey: true }));
+		expect(addSlide).toHaveBeenCalledOnce();
+	});
+
+	it('opens the hyperlink dialog on Ctrl+K', () => {
+		const openHyperlink = vi.fn();
+		createEditorKeydownHandler(makeDeps({ openHyperlink }))(keydown('k', { ctrlKey: true }));
+		expect(openHyperlink).toHaveBeenCalledOnce();
+	});
+
+	it('opens Find & Replace on Ctrl+H', () => {
+		const toggleFindReplace = vi.fn();
+		createEditorKeydownHandler(makeDeps({ toggleFindReplace }))(keydown('h', { ctrlKey: true }));
+		expect(toggleFindReplace).toHaveBeenCalledOnce();
+	});
+
+	it('clears character formatting on Ctrl+Space', () => {
+		const clearFormatting = vi.fn();
+		createEditorKeydownHandler(makeDeps({ clearFormatting }))(keydown(' ', { ctrlKey: true }));
+		expect(clearFormatting).toHaveBeenCalledOnce();
+	});
+
+	it('cycles the selection forward on Tab and backward on Shift+Tab', () => {
+		const cycleSelection = vi.fn();
+		const handler = createEditorKeydownHandler(makeDeps({ cycleSelection }));
+		handler(keydown('Tab'));
+		handler(keydown('Tab', { shiftKey: true }));
+		expect(cycleSelection.mock.calls).toStrictEqual([['next'], ['prev']]);
+	});
+});

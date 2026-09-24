@@ -23,6 +23,7 @@ import type { InlineEditorSession, OpenInlineEditorOptions } from './inline-text
 import { activateInlineTextList } from './inline-text-list-activation';
 import { markInsertedParagraph } from './inline-text-paragraph-marker';
 import { seedPlainInlineText } from './inline-text-seed';
+
 export type { InlineEditorSession, OpenInlineEditorOptions } from './inline-text-editor-types';
 
 /**
@@ -154,10 +155,13 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 			collaborative &&
 			read?.kind === 'unsupported' &&
 			(read.reason === 'composition-active' || read.reason === 'input-active')
-		)
+		) {
 			return;
+		}
 		const snapshot = read?.kind === 'supported' ? read.snapshot : undefined;
-		if (collaborative && !snapshot) commitText = null;
+		if (collaborative && !snapshot) {
+			commitText = null;
+		}
 		if (commitText !== null && snapshot) {
 			commitText = snapshot.text;
 		}
@@ -204,6 +208,11 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 	});
 	surface.addEventListener('blur', () => close(readEditableText(surface)));
 	surface.addEventListener('keydown', (event) => {
+		if (options.onLiveFormatKey?.(event)) {
+			event.preventDefault();
+			event.stopPropagation();
+			return;
+		}
 		// Keep every keystroke local so viewer navigation/editor shortcuts
 		// (arrows, space, Delete, Ctrl+Z...) never fire while typing.
 		event.stopPropagation();
@@ -246,14 +255,20 @@ export function openInlineEditor(options: OpenInlineEditorOptions): InlineEditor
 			onCancel: () => close(null),
 		});
 		listController = connected;
-		if (!connected) close(null);
+		if (!connected) {
+			close(null);
+		}
 	} else if (listSeed) {
 		attachList(textContainer, listSeed);
 	}
-	if (!closed) surface.focus();
+	if (!closed) {
+		surface.focus();
+	}
 	// Caret at the END of the seeded text so typing appends (the contract the
 	// other bindings follow; focus alone leaves the caret at the start).
-	if (!closed) placeCaretAtEnd(textContainer);
+	if (!closed) {
+		placeCaretAtEnd(textContainer);
+	}
 
 	return {
 		el: surface,

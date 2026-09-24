@@ -13,6 +13,7 @@ import {
 	setFontSize,
 	setHighlightColor,
 	setTextColor,
+	stepFontSize,
 	toggleTextProp,
 	toggleTextShadow,
 } from './editor-format-mutations';
@@ -40,6 +41,8 @@ export interface TextActions {
 	toggleStrikethrough(): void;
 	toggleTextShadow(): void;
 	changeFontSize(delta: number): void;
+	/** Ctrl+Shift+>/< and Ctrl+]/[: step through PowerPoint's font-size ladder. */
+	stepFontSize(direction: 'increase' | 'decrease'): void;
 	setFontSize(size: number): void;
 	setFontFamily(family: string): void;
 	setTextColor(color: string, ref?: PptxThemeColorRef): void;
@@ -68,6 +71,7 @@ export function createTextActions(
 		toggleStrikethrough: () => applyToSelected((el) => toggleTextProp(el, 'strikethrough')),
 		toggleTextShadow: () => applyToSelected((el) => toggleTextShadow(el)),
 		changeFontSize: (delta) => applyToSelected((el) => adjustFontSize(el, delta)),
+		stepFontSize: (direction) => applyToSelected((el) => stepFontSize(el, direction)),
 		setFontSize: (size) => applyToSelected((el) => setFontSize(el, size)),
 		setFontFamily: (family) => applyToSelected((el) => setFontFamily(el, family)),
 		setTextColor: (color, ref) => {
