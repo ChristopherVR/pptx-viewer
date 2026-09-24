@@ -127,7 +127,10 @@ describe('buildTextInnerShadowCss', () => {
 		expect(buildTextInnerShadowCss({} as TextStyle)).toBeUndefined();
 	});
 
-	it('generates drop-shadow filter for inner shadow', () => {
+	it('generates an inset box-shadow for inner shadow, never an outer drop-shadow', () => {
+		// Regression: `filter: drop-shadow` can only paint OUTSIDE an element's
+		// silhouette; `inset` is CSS's inside-the-box primitive (see the
+		// shared `buildTextInnerShadowCss` doc comment for the COM evidence).
 		const style: TextStyle = {
 			textInnerShadowColor: '#000000',
 			textInnerShadowBlur: 3,
@@ -137,7 +140,8 @@ describe('buildTextInnerShadowCss', () => {
 		};
 		const result = buildTextInnerShadowCss(style);
 		expect(result).toBeDefined();
-		expect(result).toContain('drop-shadow(');
+		expect(result).toContain('inset ');
+		expect(result).not.toContain('drop-shadow');
 		expect(result).toContain('1px 1px 3px');
 	});
 

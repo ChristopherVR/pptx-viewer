@@ -137,7 +137,9 @@ describe('getReflectionOverlay', () => {
 			shape({ fillColor: '#ff0000', reflectionStartOpacity: 0.5, reflectionDistance: 4 }),
 		);
 		expect(overlay?.wrapperStyle.top).toBe('calc(100% + 4px)');
-		expect(overlay?.wrapperStyle.transform).toBe('scaleY(-1)');
+		// `@sy` defaults to -100% (the mirror), not OOXML's generic +100%; see
+		// shared's `reflection.ts` doc comment.
+		expect(overlay?.wrapperStyle.transform).toBe('scale(1, -1)');
 		expect(JSON.stringify(overlay)).not.toContain('box-reflect');
 	});
 

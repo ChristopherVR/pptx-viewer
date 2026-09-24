@@ -572,6 +572,19 @@ export interface TextStyle {
 	/** Text blur effect radius in px (`a:blur`). */
 	textBlurRadius?: number;
 
+	/**
+	 * Text soft-edge radius in px (`a:softEdge/@rad`).
+	 *
+	 * Feathers the glyph's own edges (a uniform blur of the alpha silhouette,
+	 * the same effect a shape's `a:softEdge` gives its fill), unrelated to
+	 * `a:blur` (which blurs the whole run, colour included) or a shadow. Never
+	 * parsed before this field existed, so `a:softEdge` on a run was silently
+	 * dropped: PowerPoint fades the glyphs to near-transparent at their
+	 * outline (COM-verified, `audit-text` slide 14's "SOFTEDGE" run), while
+	 * the viewer painted them fully crisp.
+	 */
+	textSoftEdgeRadius?: number;
+
 	// ── Effect DAG properties (from `a:rPr/a:effectDag`) ──
 	// ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a valid child of
 	// `CT_TextCharacterProperties`. Round-tripping it requires storing both the

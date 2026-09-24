@@ -8,7 +8,10 @@ describe('buildTextRunFilterChain', () => {
 		expect(buildTextRunFilterChain({} as TextStyle)).toBeUndefined();
 	});
 
-	it('joins glow, inner-shadow, blur, and hsl in order', () => {
+	it('joins glow (3 layers), blur, soft-edge, and hsl in order; inner-shadow is NOT in this chain', () => {
+		// Inner shadow moved to `box-shadow: inset` (see `buildRunEffectStyle`'s
+		// test below): `filter: drop-shadow` cannot express an inset shadow, so
+		// it was never a `filter` chain member to begin with.
 		const out = buildTextRunFilterChain({
 			textGlowColor: '#ff0000',
 			textGlowRadius: 6,
@@ -17,10 +20,11 @@ describe('buildTextRunFilterChain', () => {
 			textInnerShadowBlur: 3,
 			textInnerShadowOpacity: 0.5,
 			textBlurRadius: 2,
+			textSoftEdgeRadius: 4,
 			textHslHue: 30,
 		} as TextStyle);
 		expect(out).toBe(
-			'drop-shadow(0 0 6px rgba(255,0,0,0.6)) drop-shadow(0px 0px 3px rgba(0,0,0,0.5)) blur(2px) hue-rotate(30deg)',
+			'drop-shadow(0 0 2px rgba(255,0,0,0.6)) drop-shadow(0 0 4px rgba(255,0,0,0.36)) drop-shadow(0 0 6px rgba(255,0,0,0.18)) blur(2px) blur(4px) hue-rotate(30deg)',
 		);
 	});
 });
@@ -51,6 +55,16 @@ describe('buildRunEffectStyle', () => {
 			textShadowOpacity: 0.5,
 		} as TextStyle);
 		expect(css.textShadow).toBe('2px 3px 4px rgba(0,0,0,0.5)');
+	});
+
+	it('sets an inset boxShadow from inner shadow props (never filter/drop-shadow)', () => {
+		const css = buildRunEffectStyle({
+			textInnerShadowColor: '#000000',
+			textInnerShadowBlur: 3,
+			textInnerShadowOpacity: 0.5,
+		} as TextStyle);
+		expect(css.boxShadow).toBe('inset 0px 0px 3px rgba(0,0,0,0.5)');
+		expect(css.filter).toBeUndefined();
 	});
 
 	it('folds glow + blur into the filter chain', () => {

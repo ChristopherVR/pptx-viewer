@@ -151,7 +151,8 @@ describe('shapeEffectOverlay', () => {
 			const style = layer.attributes('style') ?? '';
 			expect(style).not.toContain('box-reflect');
 			expect(style).toContain('position: absolute');
-			expect(style).toContain('transform: scaleY(-1)');
+			// `@sy` defaults to -100% (the mirror), not OOXML's generic +100%.
+			expect(style).toContain('transform: scale(1, -1)');
 			// The `mask-image` value itself (jsdom's CSSOM does not model that
 			// property, so it never round-trips through a mounted style attribute
 			// in tests even though real browsers apply it) is covered directly by

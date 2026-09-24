@@ -36,6 +36,8 @@ export function buildTextRunEffectListXml(
 		(typeof style.textGlowRadius === 'number' && style.textGlowRadius > 0);
 	const hasTextReflection = Boolean(style.textReflection);
 	const hasTextBlur = typeof style.textBlurRadius === 'number' && style.textBlurRadius > 0;
+	const hasTextSoftEdge =
+		typeof style.textSoftEdgeRadius === 'number' && style.textSoftEdgeRadius > 0;
 	const hasTextAlphaModFix = typeof style.textAlphaModFix === 'number';
 	const hasTextAlphaMod = typeof style.textAlphaMod === 'number';
 	const hasTextHsl =
@@ -52,6 +54,7 @@ export function buildTextRunEffectListXml(
 		hasTextGlow ||
 		hasTextReflection ||
 		hasTextBlur ||
+		hasTextSoftEdge ||
 		hasTextAlphaModFix ||
 		hasTextAlphaMod ||
 		hasTextHsl ||
@@ -82,6 +85,11 @@ export function buildTextRunEffectListXml(
 	if (hasTextBlur) {
 		effectLst['a:blur'] = {
 			'@_rad': String(Math.round((style.textBlurRadius ?? 0) * EMU_PER_PX)),
+		};
+	}
+	if (hasTextSoftEdge) {
+		effectLst['a:softEdge'] = {
+			'@_rad': String(Math.round((style.textSoftEdgeRadius ?? 0) * EMU_PER_PX)),
 		};
 	}
 	if (hasTextAlphaModFix) {

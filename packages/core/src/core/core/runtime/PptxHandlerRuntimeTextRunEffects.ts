@@ -295,6 +295,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 		}
 
+		// Soft edge (feathers the glyph's own alpha silhouette; see the
+		// `textSoftEdgeRadius` doc comment for why this never rendered before).
+		const softEdgeNode = runEffectList['a:softEdge'] as XmlObject | undefined;
+		if (softEdgeNode) {
+			const radRaw = Number.parseInt(String(softEdgeNode['@_rad'] || ''), 10);
+			if (Number.isFinite(radRaw) && radRaw >= 0) {
+				style.textSoftEdgeRadius = radRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
+			}
+		}
+
 		// Alpha modification fixed
 		const alphaModFix = runEffectList['a:alphaModFix'] as XmlObject | undefined;
 		if (alphaModFix) {

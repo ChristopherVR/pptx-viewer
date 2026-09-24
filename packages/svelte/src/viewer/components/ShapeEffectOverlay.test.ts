@@ -158,7 +158,8 @@ describe('shapeEffectOverlay', () => {
 			const layer = target.querySelector<HTMLElement>('.pptx-svelte-reflection');
 			expect(layer).not.toBeNull();
 			expect(layer?.style.position).toBe('absolute');
-			expect(layer?.style.transform).toBe('scaleY(-1)');
+			// `@sy` defaults to -100% (the mirror), not OOXML's generic +100%.
+			expect(layer?.style.transform).toBe('scale(1, -1)');
 			expect(target.innerHTML).not.toContain('box-reflect');
 		});
 

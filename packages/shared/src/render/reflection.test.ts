@@ -43,17 +43,31 @@ describe('getReflectionWrapperStyle', () => {
 		expect(wrapper?.pointerEvents).toBe('none');
 	});
 
-	it('always mirrors with scaleY(-1), even with no other transform attributes', () => {
+	it('always mirrors (@sy defaults to -100%), even with no other transform attributes', () => {
 		const wrapper = getReflectionWrapperStyle({ reflectionStartOpacity: 0.5 }, 200);
-		expect(wrapper?.transform).toBe('scaleY(-1)');
+		expect(wrapper?.transform).toBe('scale(1, -1)');
 	});
 
 	it('honours @sx/@sy (reflectionScaleX/Y, ST_Percentage in 1000ths)', () => {
+		// Regression: PowerPoint's own gallery presets encode the mirror in @sy's
+		// SIGN (its "Reflection, touching" preset is `sy="-100000"`), not as a
+		// magnitude on top of an always-on flip. -150000 here is a realistic
+		// authored value (mirrored, 150% tall), not the pre-fix test's +150000
+		// (which used to rely on a hardcoded `scaleY(-1)` elsewhere in the
+		// transform to produce the mirror at all).
 		const wrapper = getReflectionWrapperStyle(
-			{ reflectionStartOpacity: 0.5, reflectionScaleX: 50000, reflectionScaleY: 150000 },
+			{ reflectionStartOpacity: 0.5, reflectionScaleX: 50000, reflectionScaleY: -150000 },
 			200,
 		);
-		expect(wrapper?.transform).toContain('scale(0.5, 1.5)');
+		expect(wrapper?.transform).toContain('scale(0.5, -1.5)');
+	});
+
+	it('a POSITIVE @sy (no authored flip) renders unmirrored, per @sy sign semantics', () => {
+		const wrapper = getReflectionWrapperStyle(
+			{ reflectionStartOpacity: 0.5, reflectionScaleY: 100000 },
+			200,
+		);
+		expect(wrapper?.transform).toBe('scale(1, 1)');
 	});
 
 	it('honours @kx/@ky (reflectionSkewX/Y, ST_Angle in 60000ths of a degree)', () => {
@@ -77,13 +91,13 @@ describe('getReflectionWrapperStyle', () => {
 			{
 				reflectionStartOpacity: 0.5,
 				reflectionScaleX: 80000,
-				reflectionScaleY: 80000,
+				reflectionScaleY: -80000,
 				reflectionSkewX: 300000,
 				reflectionRotation: 1800000,
 			},
 			200,
 		);
-		expect(wrapper?.transform).toBe('scaleY(-1) scale(0.8, 0.8) skew(5deg, 0deg) rotate(30deg)');
+		expect(wrapper?.transform).toBe('scale(0.8, -0.8) skew(5deg, 0deg) rotate(30deg)');
 	});
 
 	describe('@algn -> transform-origin', () => {
@@ -187,7 +201,7 @@ describe('getTextReflectionWrapperStyle', () => {
 		expect(serialized).not.toContain('WebkitBoxReflect');
 		expect(wrapper?.maskImage).toContain('linear-gradient');
 		expect(wrapper?.WebkitMaskImage).toBe(wrapper?.maskImage);
-		expect(wrapper?.transform).toBe('scaleY(-1)');
+		expect(wrapper?.transform).toBe('scale(1, -1)');
 	});
 
 	it('maps textReflectionOffset/StartOpacity/EndOpacity onto the same wrapper a shape gets', () => {
@@ -231,13 +245,33 @@ describe('getTextReflectionWrapperStyle', () => {
 			{
 				textReflection: true,
 				textReflectionScaleX: 80000,
-				textReflectionScaleY: 80000,
+				textReflectionScaleY: -80000,
 				textReflectionSkewX: 300000,
 				textReflectionRotation: 1800000,
 			} as TextStyle,
 			20,
 		);
-		expect(wrapper?.transform).toBe('scaleY(-1) scale(0.8, 0.8) skew(5deg, 0deg) rotate(30deg)');
+		expect(wrapper?.transform).toBe('scale(0.8, -0.8) skew(5deg, 0deg) rotate(30deg)');
+	});
+
+	/**
+	 * Regression (audit-text slide 14, "REFLECTION"): PowerPoint's own
+	 * "Reflection, touching" gallery preset - which this exact XML fragment is
+	 * copied from - authors `sy="-100000"`. The pre-fix code hardcoded an
+	 * always-on `scaleY(-1)` and then ALSO applied `scale(sx, sy)` from the
+	 * authored (already-negative) sy, so the two flips cancelled out
+	 * (`scaleY(-1) scale(1, -1)` = the identity matrix) and the mirrored copy
+	 * rendered right-side up instead of flipped.
+	 */
+	it('does not cancel PowerPoint-authored negative @sy into an unmirrored copy', () => {
+		const wrapper = getTextReflectionWrapperStyle(
+			{
+				textReflection: true,
+				textReflectionScaleY: -100000,
+			} as TextStyle,
+			20,
+		);
+		expect(wrapper?.transform).toBe('scale(1, -1)');
 	});
 
 	it('honours @fadeDir on a text run as an independent fade axis', () => {

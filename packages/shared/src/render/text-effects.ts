@@ -52,10 +52,22 @@ export function buildTextShadowCss(style: TextStyle): string | undefined {
 }
 
 /**
- * Build a CSS `filter` value for text inner shadow effect.
+ * Build a CSS `box-shadow` value for a text run's inner shadow (`a:innerShdw`).
  *
- * Inner shadow on text is approximated using inset drop-shadow. Since CSS
- * text-shadow doesn't support inset, we use a filter chain.
+ * `filter: drop-shadow(...)` (the pre-fix implementation) is ALWAYS an OUTER
+ * shadow: it silhouettes the element's rendered alpha and paints the shadow
+ * around the OUTSIDE of it, CSS's only inset primitive that also fragments
+ * correctly per line for an inline element - `box-shadow: inset` - does. It
+ * is a coarser approximation than a true per-glyph inset (it shades the run's
+ * own line-fragment BOX, not each glyph's individual outline), but it is
+ * unambiguously "inside" rather than a halo bleeding outward, which is what
+ * `a:innerShdw` means (COM-verified against `audit-text` slide 14:
+ * PowerPoint's "INNERSHDW" run shows a subtle shading tucked against the
+ * inside of the letterforms, nothing bleeding past their edges, while the old
+ * `drop-shadow` painted a diffuse blurred halo OUTSIDE every glyph). `inset`
+ * on a plain (non-block) element still fragments per line box in every
+ * evergreen browser, the same way `background`/`border` do, so this needs no
+ * wrapper element and does not disturb line wrapping.
  */
 export function buildTextInnerShadowCss(style: TextStyle): string | undefined {
 	const has =
@@ -72,7 +84,7 @@ export function buildTextInnerShadowCss(style: TextStyle): string | undefined {
 	const r = parseInt(color.slice(1, 3), 16);
 	const g = parseInt(color.slice(3, 5), 16);
 	const b = parseInt(color.slice(5, 7), 16);
-	return `drop-shadow(${ox}px ${oy}px ${blur}px rgba(${r},${g},${b},${opacity}))`;
+	return `inset ${ox}px ${oy}px ${blur}px rgba(${r},${g},${b},${opacity})`;
 }
 
 /** Build a CSS `filter` for text blur effect (`a:blur`). */
@@ -81,6 +93,24 @@ export function buildTextBlurFilter(style: TextStyle): string | undefined {
 		return undefined;
 	}
 	return `blur(${Math.round(style.textBlurRadius)}px)`;
+}
+
+/**
+ * Build a CSS `filter` for a text run's soft edge (`a:softEdge`).
+ *
+ * `a:softEdge` was never parsed onto `TextStyle` before `textSoftEdgeRadius`
+ * existed (see that field's doc comment), so this had no caller and a run's
+ * soft edge silently did nothing. `blur()` is the same primitive `a:blur`
+ * uses; the two are still kept as separate style fields (`a:blur` blurs the
+ * whole run including its colour, `a:softEdge` only feathers the alpha edge),
+ * but for a solid-filled run - the common case - the CSS result is the same
+ * uniform edge blur, so this reuses the identical formula.
+ */
+export function buildTextSoftEdgeFilter(style: TextStyle): string | undefined {
+	if (typeof style.textSoftEdgeRadius !== 'number' || style.textSoftEdgeRadius <= 0) {
+		return undefined;
+	}
+	return `blur(${Math.round(style.textSoftEdgeRadius)}px)`;
 }
 
 /**
@@ -112,7 +142,21 @@ export function getTextAlphaOpacity(style: TextStyle): number | undefined {
 	return undefined;
 }
 
-/** Build a CSS `filter` value for text glow effect. */
+/**
+ * Build a CSS `filter` value for a text run's glow (`a:glow`).
+ *
+ * A single `drop-shadow(0 0 <radius>px ...)` is one Gaussian blur pass, which
+ * spreads the colour into a soft, low-opacity cloud reaching all the way out
+ * to `radius` - visibly more diffuse than PowerPoint's glow, which reads as a
+ * fairly solid, uniform-width halo hugging the glyph before fading out only
+ * near the outer edge (COM-verified against `audit-text` slide 14's "GLOW"
+ * run). Stacking three `drop-shadow()`s at increasing radius and decreasing
+ * opacity - the same 0.33/0.66/1.0 radius and opacity falloff
+ * {@link getGlowBoxShadowCss} already uses for a SHAPE's glow (`box-shadow`
+ * layers) - builds up a denser core near the glyph with a shorter actual
+ * fade tail, matching PowerPoint's tighter halo far more closely than one
+ * wide blur.
+ */
 export function buildTextGlowFilter(style: TextStyle): string | undefined {
 	const hasGlow =
 		style.textGlowColor || (typeof style.textGlowRadius === 'number' && style.textGlowRadius > 0);
@@ -125,5 +169,16 @@ export function buildTextGlowFilter(style: TextStyle): string | undefined {
 	const r = parseInt(color.slice(1, 3), 16);
 	const g = parseInt(color.slice(3, 5), 16);
 	const b = parseInt(color.slice(5, 7), 16);
-	return `drop-shadow(0 0 ${radius}px rgba(${r},${g},${b},${opacity}))`;
+	const layers = [
+		{ fraction: 0.33, opacityScale: 1 },
+		{ fraction: 0.66, opacityScale: 0.6 },
+		{ fraction: 1, opacityScale: 0.3 },
+	];
+	return layers
+		.map(({ fraction, opacityScale }) => {
+			const layerRadius = Math.max(0, Math.round(radius * fraction));
+			const layerOpacity = Math.min(1, opacity * opacityScale);
+			return `drop-shadow(0 0 ${layerRadius}px rgba(${r},${g},${b},${layerOpacity}))`;
+		})
+		.join(' ');
 }

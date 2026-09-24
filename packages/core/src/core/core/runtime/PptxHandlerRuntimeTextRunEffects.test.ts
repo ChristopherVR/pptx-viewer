@@ -202,6 +202,15 @@ function applyTextRunEffects(style: TextStyle, runEffectList: XmlObject): void {
 		}
 	}
 
+	// Soft edge
+	const softEdgeNode = runEffectList['a:softEdge'] as XmlObject | undefined;
+	if (softEdgeNode) {
+		const radRaw = Number.parseInt(String(softEdgeNode['@_rad'] || ''), 10);
+		if (Number.isFinite(radRaw) && radRaw >= 0) {
+			style.textSoftEdgeRadius = radRaw / EMU_PER_PX;
+		}
+	}
+
 	// Alpha modification fixed
 	const alphaModFix = runEffectList['a:alphaModFix'] as XmlObject | undefined;
 	if (alphaModFix) {
@@ -522,6 +531,27 @@ describe('applyTextRunEffects', () => {
 				'a:blur': { '@_rad': '28575' }, // 3px
 			});
 			expect(style.textBlurRadius).toBeCloseTo(3);
+		});
+	});
+
+	describe('soft edge', () => {
+		// Regression: `a:softEdge` on a run's `a:effectLst` was never parsed at
+		// all before `textSoftEdgeRadius` existed, so a run with a soft edge
+		// silently rendered fully crisp (COM-verified: `audit-text` slide 14's
+		// "SOFTEDGE" run fades to near-transparent at its outline in
+		// PowerPoint).
+		it('should parse text soft edge radius', () => {
+			const style: TextStyle = {};
+			applyTextRunEffects(style, {
+				'a:softEdge': { '@_rad': '63500' }, // 5pt = ~6.67px at EMU_PER_PX
+			});
+			expect(style.textSoftEdgeRadius).toBeCloseTo(63500 / EMU_PER_PX);
+		});
+
+		it('ignores a soft edge with no rad attribute', () => {
+			const style: TextStyle = {};
+			applyTextRunEffects(style, { 'a:softEdge': {} });
+			expect(style.textSoftEdgeRadius).toBeUndefined();
 		});
 	});
 
