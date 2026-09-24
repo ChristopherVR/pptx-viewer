@@ -176,6 +176,29 @@ own `pyramid`/`hierarchy` arrangers together are still several thousand
 lines) that would need its own from-scratch per-point port, not attempted
 in this pass.
 
+Before attempting `pyra`, a fifth pass fixed a unit-conversion bug blocking it:
+real `basic-pyramid--*`/`inverted-pyramid--*` declare their `level` (and
+`acctBkgd`/`acctTx`) composite child with a bare `ctrX`/`w` (and `ctrY`/`h`)
+literal PAIR (`val="1"` on both) - the engine's general "bare literal is a
+millimetre length" rule collapsed that to a ~2.83pt box (measured: engine
+3.212 vs. legacy 0.0019 deviation on `basic-pyramid--flat3`). No single
+absolute-length reading of `val="1"` can produce "fill the box" (`ctrX = w`
+places it from `w/2` to `3w/2` under any uniform conversion), so, COM-verified,
+this specific paired idiom is now read as a fraction of the declaring node's
+own resolved size instead (`smartart-engine/constraint-fill-idiom.ts`). An
+earlier, broader attempt (every bare `w`/`h`/`ctrX`/`ctrY` literal) regressed
+Gear (0.0882 -> declined), Segmented Cycle (0.0012 -> 0.3959), Varying Width
+List (0.654 -> 0.7982) and Vertical Chevron List (0.3996 -> declined), because
+those layouts use the SAME-looking `val="1"` for a genuinely tiny, real
+anchor-point marker (Gear's `hideGeom="1"` connector endpoints), not this
+idiom; scanning the whole 229-fixture corpus for the exact `ctrX`+`w`/`ctrY`+`h`
+bare-literal pairing finds it ONLY in the two pyramid layouts, so the narrowed
+fix reproduces the prior measurement byte-for-byte on all 229 fixtures (still
+87/229 geometry within 1%, 11/229 full gate; zero regressions,
+`gen-smartart-gallery-baseline.ts --compare`) since `pyra` is not yet in the
+engine's `SUPPORTED_ALGS` and so still declines the pyramid layouts outright -
+the fix has no measurable effect until `pyra` itself is implemented.
+
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
 `cycle` 25, `hierarchy` 19, `composite` 14, `UNRECOGNIZED` (falls through to

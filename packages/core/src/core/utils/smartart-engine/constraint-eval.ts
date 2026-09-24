@@ -10,9 +10,17 @@
  * size (margins at `fact` x `primFontSz`, fonts linked across nodes) cannot be
  * known until text is fitted, so they are recorded as deferred constraints
  * and resolved by the text fitter.
+ *
+ * One exception to the millimetre convention: the `ctrX`/`w` (or `ctrY`/`h`)
+ * "fill and centre" idiom real "Basic Pyramid" writes for its `level` node,
+ * where a bare literal is a FRACTION of the declaring node's own size instead
+ * - see `constraint-fill-idiom.ts`'s module doc comment for the full,
+ * COM-verified derivation and why it is scoped narrowly enough not to affect
+ * Gear's own (superficially identical) anchor-point literals.
  */
 
 import { matchesPointType } from './axis';
+import { fillIdiomFraction, hasFillIdiomPeer } from './constraint-fill-idiom';
 import type { EngineNode } from './engine-node';
 import type { LdConstraint } from './layout-def-types';
 
@@ -161,7 +169,10 @@ export function valueOf(node: EngineNode, type: string): number | undefined {
 	return axis ? axisValue(node, axis[0], axis[1]) : undefined;
 }
 
-function literal(constraint: LdConstraint): number {
+function literal(node: EngineNode, constraint: LdConstraint): number | undefined {
+	if (hasFillIdiomPeer(node, constraint)) {
+		return fillIdiomFraction(node, constraint);
+	}
 	return LENGTH_TYPES.has(constraint.type) ? constraint.val * POINTS_PER_MM : constraint.val;
 }
 
@@ -230,7 +241,10 @@ export function applyConstraint(node: EngineNode, constraint: LdConstraint): voi
 	if (!constraint.hasVal && (constraint.op !== 'none' || COMPUTED_TYPES.has(constraint.type))) {
 		return;
 	}
-	const value = literal(constraint);
+	const value = literal(node, constraint);
+	if (value === undefined) {
+		return;
+	}
 	for (const target of targets) {
 		assign(target, constraint, value);
 	}
