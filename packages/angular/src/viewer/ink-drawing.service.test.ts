@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+
 import type { InkPptxElement, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -104,6 +107,24 @@ describe('inkDrawingService: live preview shows the same nib/circle decision as 
 		expect(view?.d).toBe('M 0 0 L 10 0');
 	});
 
+	it('flags the live preview as "multiply" blendMode for the highlighter tool', () => {
+		const { service } = buildService('highlighter');
+		service.handleStagePointerDown(fakePointerEvent({ clientX: 0, clientY: 0 }));
+		service.handlePointerMove(fakePointerEvent({ clientX: 10, clientY: 0 }));
+
+		const view = service.liveStrokeView();
+		expect(view?.blendMode).toBe('multiply');
+	});
+
+	it('leaves the live preview as "normal" blendMode for the pen tool', () => {
+		const { service } = buildService('pen');
+		service.handleStagePointerDown(fakePointerEvent({ clientX: 0, clientY: 0 }));
+		service.handlePointerMove(fakePointerEvent({ clientX: 10, clientY: 0 }));
+
+		const view = service.liveStrokeView();
+		expect(view?.blendMode).toBe('normal');
+	});
+
 	it('clears liveStrokeView once the stroke is committed on pointerup', () => {
 		const { service } = buildService('pen');
 		service.handleStagePointerDown(fakePointerEvent({ clientX: 0, clientY: 0 }));
@@ -112,6 +133,15 @@ describe('inkDrawingService: live preview shows the same nib/circle decision as 
 
 		service.handlePointerUp();
 		expect(service.liveStrokeView()).toBeNull();
+	});
+});
+
+describe('slide-canvas live-preview template wiring: per-stroke blend mode', () => {
+	it('binds mix-blend-mode from inkDrawing.liveStrokeView()?.blendMode on the g/path elements, not the preview svg', () => {
+		const template = readFileSync(path.join(__dirname, 'slide-canvas.component.html'), 'utf8');
+		const occurrences = template.match(/liveStrokeView\(\)\?\.blendMode === 'multiply'/g) ?? [];
+		expect(occurrences.length).toBeGreaterThanOrEqual(3);
+		expect(template).not.toMatch(/class="pptx-ng-ink-preview"[\s\S]{0,200}mix-blend-mode/);
 	});
 });
 

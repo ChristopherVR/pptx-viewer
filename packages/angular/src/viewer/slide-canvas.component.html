@@ -404,7 +404,12 @@
 					style="position: absolute; inset: 0; pointer-events: none; z-index: 70"
 				>
 					@if (inkDrawing.liveStrokeView()?.nibMarks; as nibMarks) {
-						<g [attr.opacity]="inkDrawing.liveStrokeView()?.opacity">
+						<g
+							[attr.opacity]="inkDrawing.liveStrokeView()?.opacity"
+							[style.mix-blend-mode]="
+								inkDrawing.liveStrokeView()?.blendMode === 'multiply' ? 'multiply' : null
+							"
+						>
 							@for (m of nibMarks; track $index) {
 								<ellipse
 									[attr.cx]="m.cx"
@@ -417,7 +422,12 @@
 							}
 						</g>
 					} @else if (inkDrawing.liveStrokeView()?.circles; as circles) {
-						<g [attr.opacity]="inkDrawing.liveStrokeView()?.opacity">
+						<g
+							[attr.opacity]="inkDrawing.liveStrokeView()?.opacity"
+							[style.mix-blend-mode]="
+								inkDrawing.liveStrokeView()?.blendMode === 'multiply' ? 'multiply' : null
+							"
+						>
 							@for (c of circles; track $index) {
 								<circle
 									[attr.cx]="c.cx"
@@ -436,6 +446,9 @@
 							[attr.stroke-opacity]="inkDrawing.liveStrokeView()?.opacity"
 							stroke-linecap="round"
 							stroke-linejoin="round"
+							[style.mix-blend-mode]="
+								inkDrawing.liveStrokeView()?.blendMode === 'multiply' ? 'multiply' : null
+							"
 						/>
 					}
 				</svg>
