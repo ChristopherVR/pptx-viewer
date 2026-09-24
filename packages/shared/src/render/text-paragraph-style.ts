@@ -14,6 +14,15 @@ import type { TextStyle } from 'pptx-viewer-core';
 export interface ParagraphStyleEntry {
 	segment: {
 		style?: Pick<TextStyle, 'rtl' | 'align'>;
+		/**
+		 * The paragraph's OWN `a:pPr` (attached to the paragraph's first
+		 * segment only, see `PptxHandlerRuntimeShapeParagraphContentParsing`).
+		 * `rtl` in particular is a paragraph-level attribute (`a:pPr/@rtl`)
+		 * with no per-run carrier: `segment.style.rtl` is only ever set from a
+		 * RUN-level `<a:rtl>` override, so a plain `a:pPr@rtl` (the common
+		 * case) is invisible unless this field is also consulted.
+		 */
+		paragraphProperties?: Pick<TextStyle, 'rtl' | 'align'>;
 	};
 }
 
@@ -34,6 +43,19 @@ export function resolveParagraphRtl(
 		const segRtl = entry.segment.style?.rtl;
 		if (segRtl !== undefined) {
 			return segRtl;
+		}
+	}
+	// A run-level `<a:rtl>` override (above) beats the paragraph's own
+	// `a:pPr@rtl`, but most decks only ever set the paragraph-level flag, and
+	// that flag is not stamped onto every run's `style.rtl` (only `align` is).
+	// Falling straight to `elementRtl` here read the SHAPE's rtl instead of
+	// THIS paragraph's, so every paragraph after the first one in a shape,
+	// or any shape whose inherited placeholder default resolved rtl before
+	// this paragraph's own value could be recorded, lost its own direction.
+	for (const entry of paraSegments) {
+		const paraRtl = entry.segment.paragraphProperties?.rtl;
+		if (paraRtl !== undefined) {
+			return paraRtl;
 		}
 	}
 	return elementRtl;
