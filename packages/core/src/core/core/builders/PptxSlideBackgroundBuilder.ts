@@ -107,6 +107,44 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 			return;
 		}
 
+		// Shared by both "restore verbatim" guards below (p:bgRef, then
+		// p:bgPr): whether colour/gradient have moved since load. Computed
+		// once so the two guards agree on what "unchanged" means.
+		const backgroundColorUnchangedFromAuthored =
+			init.authoredBackground !== undefined &&
+			backgroundColorKey(init.slide.backgroundColor) ===
+				backgroundColorKey(init.authoredBackground.color);
+		const backgroundGradientUnchangedFromAuthored =
+			init.authoredBackground !== undefined &&
+			(init.slide.backgroundGradient ?? '') === (init.authoredBackground.gradient ?? '');
+
+		// A slide-authored `<p:bgRef idx="..."><a:schemeClr .../></p:bgRef>`
+		// (a theme-referenced background, CT_Background's OTHER choice besides
+		// `p:bgPr`) that has not changed since load: restore the snapshot
+		// verbatim instead of falling through to the solid-fill rebuild below,
+		// which replaced the theme reference with a literal
+		// `<p:bgPr><a:solidFill><a:srgbClr .../></a:solidFill></p:bgPr>` on
+		// every save and severed the slide from later theme changes.
+		// `master-save-helpers.applyBackgroundColorToCSld` guards the same
+		// choice one level up, for a layout or master.
+		const authoredBgRefSnapshot = init.authoredBackground?.rawBgRef;
+		if (
+			authoredBgRefSnapshot !== undefined &&
+			!hasDataUrlBackgroundImage &&
+			backgroundImageUnchangedFromAuthored &&
+			backgroundColorUnchangedFromAuthored &&
+			backgroundGradientUnchangedFromAuthored
+		) {
+			const restoredBgRef =
+				typeof structuredClone === 'function'
+					? structuredClone(authoredBgRefSnapshot)
+					: (JSON.parse(JSON.stringify(authoredBgRefSnapshot)) as XmlObject);
+			cSld['p:bg'] = { 'p:bgRef': restoredBgRef };
+			this.reorderCSldBgFirst(cSld, cSld['p:bg'] as XmlObject);
+			init.slideNode['p:cSld'] = cSld;
+			return;
+		}
+
 		// A slide-authored solid/pattern-fill `<p:bgPr>` (no `a:blipFill`) that
 		// has not changed on colour, gradient, or image since load: restore the
 		// snapshot of it captured at load rather than rebuilding `<a:solidFill>`
@@ -128,13 +166,6 @@ export class PptxSlideBackgroundBuilder implements IPptxSlideBackgroundBuilder {
 		// 'unchanged', so a caller placing a fresh <p:bg> on a slide it built
 		// from scratch still goes through the normal build/embed path below.
 		const authoredBgPrSnapshot = init.authoredBackground?.rawBgPr;
-		const backgroundColorUnchangedFromAuthored =
-			init.authoredBackground !== undefined &&
-			backgroundColorKey(init.slide.backgroundColor) ===
-				backgroundColorKey(init.authoredBackground.color);
-		const backgroundGradientUnchangedFromAuthored =
-			init.authoredBackground !== undefined &&
-			(init.slide.backgroundGradient ?? '') === (init.authoredBackground.gradient ?? '');
 		if (
 			authoredBgPrSnapshot !== undefined &&
 			authoredBgPrSnapshot['a:blipFill'] === undefined &&

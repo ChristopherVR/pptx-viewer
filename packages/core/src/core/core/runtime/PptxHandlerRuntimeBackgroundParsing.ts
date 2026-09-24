@@ -211,6 +211,37 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * The `<p:bgRef>` twin of {@link extractOwnBackgroundNode}: a deep-cloned
+	 * snapshot of the slide's own `<p:bgRef idx="…"><a:schemeClr .../></p:bgRef>`
+	 * (a background that follows the theme's `a:bgFillStyleLst` rather than
+	 * carrying a literal fill), for the save writer to restore verbatim.
+	 *
+	 * Without this, a slide authoring `p:bgRef` had no snapshot at all (only
+	 * `p:bgPr` was captured), so the save writer's "nothing changed, preserve
+	 * verbatim" guard never matched and it fell through to rebuilding
+	 * `<p:bgPr><a:solidFill><a:srgbClr .../></a:solidFill></p:bgPr>` from the
+	 * flattened colour on every save, replacing the theme reference with a
+	 * literal fill and severing the slide from later theme changes.
+	 */
+	protected extractOwnBackgroundRefNode(
+		slideXml: XmlObject,
+		rootElement: string = 'p:sld',
+	): XmlObject | undefined {
+		try {
+			const bgRef = xmlPath(slideXml, rootElement, 'p:cSld', 'p:bg', 'p:bgRef');
+			if (!bgRef) {
+				return undefined;
+			}
+			if (typeof structuredClone === 'function') {
+				return structuredClone(bgRef);
+			}
+			return JSON.parse(JSON.stringify(bgRef)) as XmlObject;
+		} catch {
+			return undefined;
+		}
+	}
+
+	/**
 	 * Resolve a `<p:bgRef>` element to a flat colour string.
 	 *
 	 * Per ECMA-376 §20.1.4.2.10 the `@idx` attribute selects an entry

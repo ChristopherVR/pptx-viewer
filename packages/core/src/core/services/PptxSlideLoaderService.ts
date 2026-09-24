@@ -288,6 +288,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 				gradient: backgroundGradient || undefined,
 				image: backgroundImage,
 				rawBgPr: params.extractOwnBackgroundNode(slideXmlObj),
+				rawBgRef: params.extractOwnBackgroundRefNode(slideXmlObj),
 			});
 
 			// Merge modern and legacy comments; prefer separate lists when both exist

@@ -469,6 +469,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.enrichBulletPictureElementsWithEmbeddedData(elements, slidePath),
 			extractBackgroundColor: (slideXml) => this.extractBackgroundColor(slideXml),
 			extractOwnBackgroundNode: (slideXml) => this.extractOwnBackgroundNode(slideXml),
+			extractOwnBackgroundRefNode: (slideXml) => this.extractOwnBackgroundRefNode(slideXml),
 			getLayoutBackgroundColor: (slidePath) => this.getLayoutBackgroundColor(slidePath),
 			extractBackgroundGradient: (slideXml) => this.extractBackgroundGradient(slideXml),
 			getLayoutBackgroundGradient: (slidePath) => this.getLayoutBackgroundGradient(slidePath),

@@ -59,6 +59,16 @@ export interface AuthoredSlideBackground {
 	 * an earlier save's output rather than what was actually authored.
 	 */
 	rawBgPr?: XmlObject | undefined;
+	/**
+	 * A deep-cloned snapshot of the slide's own `<p:bgRef>` exactly as parsed,
+	 * when it authored one (a theme-referenced background, `idx` +
+	 * `a:schemeClr`, rather than a literal fill). Mirrors {@link rawBgPr} for
+	 * the OTHER shape `<p:bg>` can take (CT_Background is a choice between
+	 * `p:bgPr` and `p:bgRef`), so the save writer can restore either form
+	 * verbatim instead of flattening a `p:bgRef` to a literal `p:bgPr`
+	 * solid fill the moment nothing about the background changed.
+	 */
+	rawBgRef?: XmlObject | undefined;
 }
 
 const originsByRuntime = new WeakMap<object, Map<string, AuthoredSlideBackground>>();

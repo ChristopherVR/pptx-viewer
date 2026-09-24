@@ -140,6 +140,13 @@ export interface PptxSlideLoaderParams {
 	 * changed. See {@link AuthoredSlideBackground.rawBgPr}.
 	 */
 	extractOwnBackgroundNode: (slideXml: XmlObject) => XmlObject | undefined;
+	/**
+	 * The `<p:bgRef>` twin of {@link extractOwnBackgroundNode}: a deep-cloned
+	 * snapshot of the slide's own `<p:bgRef>` (a theme-referenced background),
+	 * kept so a later save can restore it verbatim instead of flattening it
+	 * to a literal `p:bgPr` fill. See {@link AuthoredSlideBackground.rawBgRef}.
+	 */
+	extractOwnBackgroundRefNode: (slideXml: XmlObject) => XmlObject | undefined;
 	/** Get background color from the slide's layout (fallback). */
 	getLayoutBackgroundColor: (slidePath: string) => Promise<string | undefined>;
 	/** Extract gradient background CSS from slide XML. */
