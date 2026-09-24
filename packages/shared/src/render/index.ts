@@ -674,6 +674,9 @@ export * from './text-run-hollow';
 // Per-run letter-spacing + metric-tracking split helpers, split out of
 // `text-run-style`.
 export * from './text-run-spacing';
+// Cross-run gradient/pattern text-fill continuity (adjacent runs sharing the
+// identical fill paint as one image, not one restart per run).
+export * from './text-run-gradient-span';
 // Nested-span decoration repeat + underline-variant CSS, split out of
 // `text-run-style`.
 export * from './text-run-decoration';

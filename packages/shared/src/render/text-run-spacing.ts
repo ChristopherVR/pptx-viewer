@@ -96,6 +96,23 @@ export function splitStyledRun(
 	authoredPx: number,
 	underlineWords = false,
 ): Array<{ text: string; style: RunStyle }> {
+	// A gradient/pattern text fill (`background-clip: text`, see `text-fill.ts`)
+	// paints across THIS element's own box, 0% at its left edge to 100% at its
+	// right. Splitting the run into per-word/gap metric pieces below turns each
+	// piece into its own sibling inline box, and the identical `background`
+	// value then restarts from 0% inside EVERY one of them instead of spanning
+	// the run once - a gradient run visibly repainted per word. Keeping the run
+	// as a single piece fixes that, and also means a run that WRAPS onto
+	// several lines still paints one continuous fill across them (a single
+	// inline box's background is not re-clipped per wrapped line fragment by
+	// default: `box-decoration-break: slice`). This trades away the per-word
+	// PowerPoint advance-width correction (#149) for a run that also has a
+	// gradient/pattern fill; the two have never been observed together on a
+	// real deck. Cross-RUN continuity (adjacent runs sharing the identical
+	// gradient) is handled separately, by `stitchContinuousGradientFill`.
+	if (typeof style.background === 'string' && style.background.length > 0) {
+		return [{ text, style }];
+	}
 	const pieces = splitRunForMetrics(text, font);
 	if (pieces.length <= 1 && !underlineWords) {
 		return [{ text, style }];

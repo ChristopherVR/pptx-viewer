@@ -122,3 +122,33 @@ describe('splitStyledRun letter-spacing (regression, unrelated to u="words")', (
 		expect(pieces).toStrictEqual([{ text: 'Word', style }]);
 	});
 });
+
+// Regression: a run with a gradient/pattern text fill (`background-clip: text`)
+// used to go through the same per-word/gap metric split as any other run, so
+// each word became its own inline box and the identical `background` value
+// restarted from 0% inside every one of them, instead of the gradient
+// spanning the run once (verified against PowerPoint through COM: a run's
+// gradient paints as one continuous fill across its own text, wrapped lines
+// included).
+describe('splitStyledRun gradient/pattern text fill (never splits the run)', () => {
+	it('keeps a multi-word gradient-filled run as a single piece', () => {
+		const style: RunStyle = { background: 'linear-gradient(90deg, red, blue)' };
+		const pieces = splitStyledRun('Several Words Here', style, FONT, 0);
+		expect(pieces).toStrictEqual([{ text: 'Several Words Here', style }]);
+	});
+
+	it('keeps a gradient-filled run whole even with u="words" underline requested', () => {
+		const style: RunStyle = {
+			background: 'linear-gradient(90deg, red, blue)',
+			textDecoration: 'underline',
+		};
+		const pieces = splitStyledRun('Two Words', style, FONT, 0, true);
+		expect(pieces).toStrictEqual([{ text: 'Two Words', style }]);
+	});
+
+	it('still splits an ordinary run with no background at all', () => {
+		const style: RunStyle = { color: '#000000' };
+		const pieces = splitStyledRun('Two Words', style, FONT, 0, true);
+		expect(pieces.length).toBeGreaterThan(1);
+	});
+});
