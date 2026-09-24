@@ -101,4 +101,18 @@ describe('buildBars clustered gapWidth/overlap sizing', () => {
 		expect(rects).toHaveLength(1);
 		expect(rects[0].w).toBeCloseTo(1000 / (1 + 150 / 100), 6);
 	});
+
+	it("matches the COM-verified bar-to-pitch ratio for Office's default 3-series clustered column chart", () => {
+		// COM-verified ground truth (PowerPoint's own Office-default 3-series
+		// clustered column chart, gapWidth=219, overlap=-27, four categories):
+		// the rendered bar is 17.6% of the category pitch. `gapWidth` is a
+		// percentage of the bar width (ECMA-376), so `pitch = barWidth *
+		// (overlapSpan + gapWidth / 100)`, not `barWidth * (1 + gapWidth / 100)
+		// * overlapSpan` (which halved the bar).
+		const chartData = baseChartData([4.3, 2.4, 2], 219, -27);
+		const rects = barRects(chartData, 1000);
+		expect(rects).toHaveLength(3);
+		const width = rects[0].w;
+		expect(width / 1000).toBeCloseTo(0.176, 2);
+	});
 });

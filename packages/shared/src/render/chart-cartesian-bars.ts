@@ -117,15 +117,27 @@ export function buildBars(
 			// limit, overlap=100 should make every bar in a cluster the same width
 			// as a single-series bar, independent of seriesCount, since they fully
 			// coincide; the old formula kept shrinking by 1/seriesCount regardless).
-			// The fix: first shrink the group width by the gap (exactly as before),
-			// then divide by how many bar-widths the OVERLAPPED cluster actually
-			// spans (`1 + (seriesCount - 1) * (1 - overlap / 100)`, the same
-			// relationship `clusterWidth` below re-derives from `step`), not by the
-			// raw series count.
+			// `overlapSpan` is how many bar-widths wide the OVERLAPPED cluster spans;
+			// `clusterWidth` below re-derives the same relationship from `step`.
 			overlapSpan = 1 + (seriesCount - 1) * (1 - overlap / 100),
+			// COM-verified ground truth (PowerPoint's own Office-default 3-series
+			// clustered column chart, gapWidth=219, overlap=-27, four categories):
+			// the rendered bar is 17.6% of the category pitch. ECMA-376's own wording
+			// for c:gapWidth is "the amount of space between bar or column clusters,
+			// AS A PERCENTAGE OF THE BAR OR COLUMN WIDTH" - i.e. the gap between
+			// clusters is `gapWidth% * singleBarWidth`, not a percentage of the pitch
+			// or of the cluster width. So `pitch = clusterWidth + gap = barWidth *
+			// overlapSpan + barWidth * gapWidth / 100 = barWidth * (overlapSpan +
+			// gapWidth / 100)`. The previous formula divided the gap-shrunk group
+			// width by `overlapSpan` (`pitch / ((1 + gapWidth / 100) * overlapSpan)`),
+			// which treats the gap as a percentage of the PITCH and then shrinks the
+			// cluster a second time, rendering every bar roughly half its correct
+			// width whenever gapWidth and overlap are both non-trivial (this fixture:
+			// 8.9% computed vs. 17.6% measured). Single-series charts are unaffected:
+			// `overlapSpan` is 1 regardless of `overlap`, so both formulas agree.
 			singleBarWidth =
 				chartData.barGapWidth !== undefined
-					? barGroupWidth / ((1 + Math.max(chartData.barGapWidth, 0) / 100) * overlapSpan)
+					? barGroupWidth / (overlapSpan + Math.max(chartData.barGapWidth, 0) / 100)
 					: (barGroupWidth * 0.7) / seriesCount,
 			step = singleBarWidth * (1 - overlap / 100),
 			clusterWidth = singleBarWidth + step * (seriesCount - 1),

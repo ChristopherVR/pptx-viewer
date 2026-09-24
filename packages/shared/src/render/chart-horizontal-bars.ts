@@ -97,11 +97,15 @@ export function buildHorizontalBarViewModel(
 			// COM-verified reasoning: the bar's own size must divide the gap-reduced
 			// band by how many bar-heights the OVERLAPPED cluster spans, not by the
 			// raw series count, or a high-overlap cluster renders far too thin.
+			// `gapWidth` is a percentage of the BAR height, not of the band or the
+			// cluster, so the gap term adds to `overlapSpan` rather than multiplying
+			// a (1 + gapWidth/100) band-shrink by it; see chart-cartesian-bars.ts's
+			// `singleBarWidth` comment for the COM measurement that proved this.
 			overlap = chartData.barOverlap ?? 0,
 			overlapSpan = 1 + (seriesCount - 1) * (1 - overlap / 100),
 			singleBarHeight =
 				chartData.barGapWidth !== undefined
-					? band / ((1 + Math.max(chartData.barGapWidth, 0) / 100) * overlapSpan)
+					? band / (overlapSpan + Math.max(chartData.barGapWidth, 0) / 100)
 					: (band * 0.7) / seriesCount,
 			step = singleBarHeight * (1 - overlap / 100),
 			clusterHeight = singleBarHeight + step * (seriesCount - 1),
