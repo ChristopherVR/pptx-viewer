@@ -112,16 +112,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createRunPropertiesFromTextStyle(
 		style: TextStyle | undefined,
 		resolveHyperlinkRelationshipId?: (target: string) => string | undefined,
-	): XmlObject {
-		const runProps: XmlObject = {
-			'@_lang': style?.language || 'en-US',
-		};
+	): XmlObject | undefined {
 		if (!style) {
 			// No style at all: this run has no parse provenance to consult, so
 			// stamp the same `dirty="0"` PowerPoint itself writes for freshly
 			// authored text.
-			runProps['@_dirty'] = '0';
-			return runProps;
+			return { '@_lang': 'en-US', '@_dirty': '0' };
 		}
 
 		// `a:rPr` is a sparse override of the layout/master/theme cascade, not a
@@ -132,6 +128,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// nothing that never came from a deck changes shape. See
 		// `authored-run-style.ts`.
 		const owns = createRunStyleGate(style);
+
+		const runProps: XmlObject = {};
+		// `@_lang` used to be stamped unconditionally, which fabricated a whole
+		// `<a:rPr lang="en-US"/>` for every run whose source authored none at
+		// all (measured: ~65 such elements across the fixture corpus, runs and
+		// `a:br` alike). `owns('language')` keeps it sparse exactly like every
+		// other property here: a run that never authored `@lang` and whose
+		// resolved language matches the paragraph/shape baseline inherits it
+		// silently, and `runProps` below can end up with no keys at all, in
+		// which case the caller omits `a:rPr` entirely rather than writing an
+		// empty shell (see the `?? undefined` return at the end of this
+		// function).
+		if (owns('language')) {
+			runProps['@_lang'] = style.language || 'en-US';
+		}
 
 		if (typeof style.fontSize === 'number' && Number.isFinite(style.fontSize) && owns('fontSize')) {
 			runProps['@_sz'] = String(Math.round(style.fontSize * (72 / 96) * 100));
@@ -549,7 +560,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:extLst'] = style.runPropertiesExtLstXml;
 		}
 
-		return runProps;
+		// A run/break that authored no `a:rPr` at all, and whose resolved style
+		// owns nothing relative to its baseline, must round-trip with NO `a:rPr`
+		// element: `a:rPr` is optional on `a:r` / `a:br` (ECMA-376 CT_RegularTextRun
+		// / CT_TextLineBreak), so an empty stub is a fabrication, not a
+		// preservation of the source.
+		return Object.keys(runProps).length > 0 ? runProps : undefined;
 	}
 
 	private applyHyperlinkExtraAttrs(hlinkNode: XmlObject, style: TextStyle): void {
