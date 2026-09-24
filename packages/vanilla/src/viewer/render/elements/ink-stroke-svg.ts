@@ -15,7 +15,10 @@ export function buildStrokeSvg(
 	replay: InkStrokeAnimationStyle | undefined,
 ): SVGElement {
 	if (view.nibMarks) {
-		const g = createSvgEl(doc, 'g', { opacity: view.opacity });
+		const g = createSvgEl(doc, 'g', {
+			opacity: view.opacity,
+			...(view.blendMode === 'multiply' ? { style: 'mix-blend-mode: multiply' } : {}),
+		});
 		for (const m of view.nibMarks) {
 			g.appendChild(
 				createSvgEl(doc, 'ellipse', {
@@ -32,7 +35,10 @@ export function buildStrokeSvg(
 	}
 
 	if (view.circles) {
-		const g = createSvgEl(doc, 'g', { opacity: view.opacity });
+		const g = createSvgEl(doc, 'g', {
+			opacity: view.opacity,
+			...(view.blendMode === 'multiply' ? { style: 'mix-blend-mode: multiply' } : {}),
+		});
 		for (const c of view.circles) {
 			g.appendChild(createSvgEl(doc, 'circle', { cx: c.cx, cy: c.cy, r: c.r, fill: view.color }));
 		}
@@ -54,6 +60,9 @@ export function buildStrokeSvg(
 	if (replay) {
 		path.style.animation = replay.animation;
 		path.style.setProperty('--ink-path-length', String(replay.pathLength));
+	}
+	if (view.blendMode === 'multiply') {
+		path.style.mixBlendMode = 'multiply';
 	}
 	return path;
 }

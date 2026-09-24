@@ -30,6 +30,7 @@ describe('createInkLivePreviewOverlay', () => {
 				opacity: 1,
 				circles: null,
 				nibMarks: [{ cx: 0, cy: 0, rTilt: 2, rPerp: 3, rotationDeg: 45 }],
+				blendMode: 'normal',
 			},
 			canvasSize,
 		);
@@ -40,17 +41,51 @@ describe('createInkLivePreviewOverlay', () => {
 	it('renders a plain path for a stroke view with no pressure/tilt data', () => {
 		const overlay = createInkLivePreviewOverlay(document);
 		overlay.update(
-			{ d: 'M 0 0 L 10 0', color: '#000', width: 4, opacity: 1, circles: null, nibMarks: null },
+			{
+				d: 'M 0 0 L 10 0',
+				color: '#000',
+				width: 4,
+				opacity: 1,
+				circles: null,
+				nibMarks: null,
+				blendMode: 'normal',
+			},
 			canvasSize,
 		);
 		expect(overlay.root.querySelectorAll('ellipse')).toHaveLength(0);
 		expect(overlay.root.querySelector('path')?.getAttribute('d')).toBe('M 0 0 L 10 0');
 	});
 
+	it('applies multiply blending to the live path itself for a highlighter stroke view', () => {
+		const overlay = createInkLivePreviewOverlay(document);
+		overlay.update(
+			{
+				d: 'M 0 0 L 10 0',
+				color: '#ff0',
+				width: 12,
+				opacity: 0.4,
+				circles: null,
+				nibMarks: null,
+				blendMode: 'multiply',
+			},
+			canvasSize,
+		);
+		expect(overlay.root.querySelector('path')?.style.mixBlendMode).toBe('multiply');
+		expect(overlay.root.style.mixBlendMode).not.toBe('multiply');
+	});
+
 	it('clears its content when updated with null', () => {
 		const overlay = createInkLivePreviewOverlay(document);
 		overlay.update(
-			{ d: 'M 0 0 L 10 0', color: '#000', width: 4, opacity: 1, circles: null, nibMarks: null },
+			{
+				d: 'M 0 0 L 10 0',
+				color: '#000',
+				width: 4,
+				opacity: 1,
+				circles: null,
+				nibMarks: null,
+				blendMode: 'normal',
+			},
 			canvasSize,
 		);
 		overlay.update(null, canvasSize);

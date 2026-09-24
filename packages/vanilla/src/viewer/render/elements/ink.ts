@@ -59,9 +59,6 @@ export const renderInkElement: ElementRenderer = (element, zIndex, context) => {
 	});
 	svg.setAttribute('class', 'pptxv-ink-svg');
 	svg.setAttribute('style', 'width:100%;height:100%;pointer-events:none;display:block');
-	if (element.inkTool === 'highlighter') {
-		svg.style.mixBlendMode = 'multiply';
-	}
 	const replayStyles = context.presenting ? getInkReplayStyles(element) : [];
 	if (context.presenting) {
 		const keyframes = createSvgEl(doc, 'style');

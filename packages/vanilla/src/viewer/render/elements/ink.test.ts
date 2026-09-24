@@ -157,13 +157,24 @@ describe('renderInkElement', () => {
 		expect(node.querySelector('path')?.getAttribute('stroke-dasharray')).toBeNull();
 	});
 
-	it('uses multiply blending for highlighter ink', () => {
+	it('applies multiply blending to the stroke path itself, not the container svg, for highlighter ink', () => {
 		const node = renderInkElement(
 			inkElement({ inkPaths: ['M 0 0 L 10 10'], inkTool: 'highlighter' }),
 			0,
 			makeContext(),
 		) as HTMLElement;
-		expect((node.querySelector('svg') as SVGSVGElement).style.mixBlendMode).toBe('multiply');
+		const svg = node.querySelector('svg') as SVGSVGElement;
+		expect(svg.style.mixBlendMode).not.toBe('multiply');
+		expect((node.querySelector('path') as SVGPathElement).style.mixBlendMode).toBe('multiply');
+	});
+
+	it('does not apply multiply blending to a non-highlighter, fully opaque stroke', () => {
+		const node = renderInkElement(
+			inkElement({ inkPaths: ['M 0 0 L 10 10'] }),
+			0,
+			makeContext(),
+		) as HTMLElement;
+		expect((node.querySelector('path') as SVGPathElement).style.mixBlendMode).not.toBe('multiply');
 	});
 
 	it('keeps pressure-circle strokes static during presentation replay', () => {
