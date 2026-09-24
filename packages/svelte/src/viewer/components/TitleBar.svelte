@@ -15,13 +15,16 @@
 	import {
 		extraQuickAccessCommands,
 		filterCommands,
+		isActionHidden,
 		resolveTitleBarStatusKey,
 		titleBarStyleAttr,
 	} from 'pptx-viewer-shared';
+	import type { ToolbarActionId } from 'pptx-viewer-shared';
 	import type { Component } from 'svelte';
 
 	import { useTranslator } from '../../i18n/context';
 	import type { AutosaveStatus } from '../state/autosave.svelte';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import { useViewerOptions } from '../state/viewer-options-context';
 
 	/** Catalog icon name -> Lucide component (the same map React's title bar uses). */
@@ -51,6 +54,7 @@
 		onfindreplace,
 		oncommand,
 		onquickcommand,
+		hiddenActions,
 	}: {
 		fileName?: string;
 		editable: boolean;
@@ -71,9 +75,13 @@
 		 * Save/Undo/Redo buttons (`presentFromStart`, `print`, ...), by catalog id.
 		 */
 		onquickcommand?: (id: string) => void;
+		/** The viewer's effective hidden actions (`undo` / `redo` gate their buttons). */
+		hiddenActions?: readonly ToolbarActionId[];
 	} = $props();
 
 	const t = useTranslator();
+	// `quickAccessToolbar` removes the Save/Undo/Redo + extras strip.
+	const customization = useViewerCustomization();
 	/**
 	 * The shared chrome measurements, as CSS custom properties. A scoped style
 	 * block is compiled ahead of time and cannot read a TypeScript value, so the
@@ -134,17 +142,17 @@
 			</button>
 			<span>{t(autosaveEnabled ? 'pptx.titleBar.autoSaveOn' : 'pptx.titleBar.autoSaveOff')}</span>
 		</span>
-		<span class="pptx-svelte-titlebar-separator"></span>
+		{#if customization.isPanelVisible('quickAccessToolbar')}<span class="pptx-svelte-titlebar-separator"></span>
 		<div class="pptx-svelte-titlebar-actions" role="group" aria-label={t('pptx.inspector.elementProperties')}>
 			<button type="button" aria-label={t('pptx.titleBar.save')} title={t('pptx.titleBar.save')} onclick={onsave}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h8l2 2v9h-10zM5 2.5v4h5v-4M5 13.5v-4h6v4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg></button>
-			<button type="button" aria-label={t('pptx.toolbar.undo')} title={t('pptx.toolbar.undo')} disabled={!canUndo} onclick={onundo}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4 3 7l3 3M3 7h6.5a3.5 3.5 0 0 1 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
-			<button type="button" aria-label={t('pptx.toolbar.redo')} title={t('pptx.toolbar.redo')} disabled={!canRedo} onclick={onredo}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4l3 3-3 3M13 7H6.5a3.5 3.5 0 0 0 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>
+			{#if !isActionHidden('undo', hiddenActions)}<button type="button" aria-label={t('pptx.toolbar.undo')} title={t('pptx.toolbar.undo')} disabled={!canUndo} onclick={onundo}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4 3 7l3 3M3 7h6.5a3.5 3.5 0 0 1 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
+			{#if !isActionHidden('redo', hiddenActions)}<button type="button" aria-label={t('pptx.toolbar.redo')} title={t('pptx.toolbar.redo')} disabled={!canRedo} onclick={onredo}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 4l3 3-3 3M13 7H6.5a3.5 3.5 0 0 0 0 7H8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" /></svg></button>{/if}
 			<!-- Everything else File > Options > Quick Access Toolbar asks for. -->
 			{#each extraQuickCommands as command (command.id)}
 				{@const Icon = QUICK_ACCESS_ICONS[command.icon] ?? Play}
 				<button type="button" aria-label={t(command.labelKey)} title={t(command.labelKey)} onclick={() => onquickcommand?.(command.id)}><Icon size={14} aria-hidden="true" />{#if showCommandLabels}<small>{t(command.labelKey)}</small>{/if}</button>
 			{/each}
-		</div>
+		</div>{/if}
 		<span class="pptx-svelte-titlebar-separator"></span>
 	{/if}
 	<span class="pptx-svelte-titlebar-file"><strong>{fileName || t('pptx.titleBar.defaultFileName')}</strong>{#if editable}<span aria-hidden="true">&bull;</span><span class:error={autosaveStatus === 'error' && autosaveEnabled} class:saving={autosaveStatus === 'saving' && autosaveEnabled}>{t(statusKey)}</span>{/if}</span>

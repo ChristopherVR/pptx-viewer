@@ -6,6 +6,7 @@ import type {
 	CollaborationShellState,
 	FieldSubstitutionContext,
 	MobileSheetKey,
+	ResolvedCustomization,
 	ViewerMode,
 	ViewportFitPadding,
 } from 'pptx-viewer-shared';
@@ -77,6 +78,11 @@ export interface CreateViewerStateOptions {
 	getFileName?: () => string | undefined;
 	/** Whether the host enabled the AI assistant (the `ai` prop). */
 	getAiEnabled?: () => boolean;
+	/**
+	 * The resolved host UI customisation (`customization` prop plus imperative
+	 * edits). Omitted means "customise nothing".
+	 */
+	getCustomization?: () => ResolvedCustomization;
 
 	onload?: (detail: ViewerLoadDetail) => void;
 	onerror?: (message: string) => void;

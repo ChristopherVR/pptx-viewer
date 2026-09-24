@@ -132,14 +132,19 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getStageRoot: () => options.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => options.getStageHolderEl() ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
+		// A host-disabled menu never opens (the entries themselves are filtered
+		// by the menu components through the shared `customize*` functions).
 		onContextMenu: (x, y, cell) => {
 			stageCanvasContextMenu = null;
-			stageContextMenu = { x, y, cell };
+			stageContextMenu =
+				options.getCustomization?.().elementMenuEnabled === false ? null : { x, y, cell };
 		},
 		onCanvasContextMenu: (x, y) => {
 			stageContextMenu = null;
-			stageCanvasContextMenu = { x, y };
+			stageCanvasContextMenu =
+				options.getCustomization?.().canvasMenuEnabled === false ? null : { x, y };
 		},
+		getKeyboardCustomization: () => options.getCustomization?.().keyboard,
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
 		getGridSize: () => computeGridSpacingPx(loader.viewProperties?.gridSpacing, 12),
 		getSnapToShape: () => parityUi.snapToShape,

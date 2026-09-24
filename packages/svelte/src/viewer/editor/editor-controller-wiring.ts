@@ -173,6 +173,7 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 	const { editor, deps } = host;
 	return createEditorKeydownHandler({
 		isActive: () => editor.editable && !deps.getPresenting() && host.getEditingId() === null,
+		getKeyboardCustomization: () => deps.getKeyboardCustomization?.(),
 		getSelectedId: () => editor.selectedElementId,
 		deselect: () => editor.select(null),
 		deleteSelected: () => editor.deleteSelected(),

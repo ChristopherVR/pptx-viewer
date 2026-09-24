@@ -86,8 +86,10 @@ export interface RibbonProps {
 	onheaderfooter: () => void;
 	oncompare: () => void;
 	onshortcuts: () => void;
-	onsettings: () => void;
-	onprintsettings: () => void;
+	/** File > Options; omitted when the host removed the `options` dialog. */
+	onsettings?: () => void;
+	/** The Print dialog; omitted when the host removed the `print` dialog. */
+	onprintsettings?: () => void;
 	onrehearse: () => void;
 	onrecordfrombeginning: () => void;
 	onrecordfromcurrent: () => void;

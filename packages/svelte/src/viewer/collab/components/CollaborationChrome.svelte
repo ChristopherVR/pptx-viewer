@@ -8,6 +8,7 @@
 	 */
 	import type { CollaborationController } from '../collaboration.svelte';
 	import type { CollaborationDialogsState, ShareDefaultsInput } from '../collaboration-dialogs.svelte';
+	import { useViewerCustomization } from '../../state/viewer-customization.svelte';
 	import BroadcastDialog from './BroadcastDialog.svelte';
 	import FollowModeBar from './FollowModeBar.svelte';
 	import ShareDialog from './ShareDialog.svelte';
@@ -24,6 +25,9 @@
 		/** Show the floating follow-bar overlay (active session + chrome visible). */
 		showOverlay: boolean;
 	} = $props();
+	// Host-removed Share / Broadcast dialogs never open (every entry point is
+	// already gone via hidden actions; this covers programmatic opens too).
+	const customization = useViewerCustomization();
 </script>
 
 {#if showOverlay}
@@ -36,7 +40,7 @@
 	</div>
 {/if}
 <ShareDialog
-	open={dialogs.shareOpen}
+	open={dialogs.shareOpen && customization.isDialogAvailable('share')}
 	defaults={shareDefaults}
 	active={collab.active}
 	status={collab.status}
@@ -48,7 +52,7 @@
 	onclose={() => (dialogs.shareOpen = false)}
 />
 <BroadcastDialog
-	open={dialogs.broadcastOpen}
+	open={dialogs.broadcastOpen && customization.isDialogAvailable('broadcast')}
 	defaults={{ serverUrl: shareDefaults?.serverUrl }}
 	active={collab.active}
 	viewerUrl={dialogs.broadcastViewerUrl}

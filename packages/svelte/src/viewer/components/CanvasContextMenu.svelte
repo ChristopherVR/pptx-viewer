@@ -6,7 +6,7 @@
 	 * `pptx-viewer-shared`'s `canvas-context-menu-commands` (via
 	 * `buildCanvasMenuEntries`), this component only positions and renders it.
 	 */
-	import { clampFlyoutPosition } from 'pptx-viewer-shared';
+	import { clampFlyoutPosition, customizeCanvasContextMenuEntries } from 'pptx-viewer-shared';
 	import type { CanvasContextMenuCommandId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -14,6 +14,7 @@
 		buildCanvasMenuEntries,
 		runCanvasContextMenuCommand,
 	} from '../editor/canvas-context-menu-dispatch';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import type { CanvasContextMenuProps } from './props';
 
 	const {
@@ -54,7 +55,16 @@
 		onToggleGrid: ontogglegrid,
 		onToggleRulers: ontogglerulers,
 	});
-	const entries = $derived(buildCanvasMenuEntries(dispatch));
+	const customization = useViewerCustomization();
+	// Filtered through the host's customisation; empty means no menu, so close.
+	const entries = $derived(
+		customizeCanvasContextMenuEntries(buildCanvasMenuEntries(dispatch), customization.resolved),
+	);
+	$effect(() => {
+		if (entries.length === 0) {
+			onclose();
+		}
+	});
 
 	function run(id: CanvasContextMenuCommandId): void {
 		runCanvasContextMenuCommand(id, dispatch);
@@ -68,6 +78,7 @@
 	}}
 />
 
+{#if entries.length > 0}
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="pptx-svelte-context-backdrop" aria-hidden="true" onclick={onclose} oncontextmenu={(event) => { event.preventDefault(); onclose(); }}></div>
 <div
@@ -94,6 +105,7 @@
 		</button>
 	{/each}
 </div>
+{/if}
 
 <style>
 	.pptx-svelte-context-backdrop { position: fixed; inset: 0; z-index: 119; }

@@ -23,6 +23,15 @@
 	// oxlint-disable-next-line eslint/one-var -- distinct concern from the `$props()` destructure above, forcing one statement hurts readability
 	const t = useTranslator();
 	const viewport = useWindowViewport();
+	// A host-locked setting (`control.readOnly`, set by the shared
+	// `customizeOptionsTabs`) renders disabled and never emits a change.
+	const locked = $derived(control.readOnly === true);
+	const lockTitle = $derived(locked ? t('pptx.options.lockedByHost') : undefined);
+	function emit(group: ViewerOptionsGroupId, key: string, next: boolean | number | string): void {
+		if (!locked) {
+			onchange(group, key, next);
+		}
+	}
 	// One-per-row fields (not a dense repeating grid), so every field/toggle in
 	// every Options tab gets the WCAG touch target below the mobile breakpoint
 	// from this single shared control-row renderer, per CLAUDE.md Rule 2 -
@@ -47,30 +56,30 @@
 			control.max,
 		);
 		if (clamped !== undefined) {
-			onchange(control.group, control.key, clamped);
+			emit(control.group, control.key, clamped);
 		}
 	}
 </script>
 
-<div class="row" style={touchStyle} class:indent={control.indent}>
+<div class="row" style={touchStyle} class:indent={control.indent} class:locked title={lockTitle}>
 	{#if control.kind === 'toggle'}
 		<label class="toggle" style={touchStyle}>
 			<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
-			<pptx-ui-checkbox checked={value === true} aria-label={t(control.labelKey)} onchange={(event: Event) => onchange(control.group, control.key, (event.currentTarget as HTMLElement & { checked: boolean }).checked)}></pptx-ui-checkbox>
+			<pptx-ui-checkbox checked={value === true} aria-label={t(control.labelKey)} disabled={locked} title={lockTitle} onchange={(event: Event) => emit(control.group, control.key, (event.currentTarget as HTMLElement & { checked: boolean }).checked)}></pptx-ui-checkbox>
 		</label>
 	{:else}
 		<span class="label">{t(control.labelKey)}{#if control.infoKey}<i title={t(control.infoKey)} aria-label={t(control.infoKey)}><Info size={14} aria-hidden="true" /></i>{/if}</span>
 		{#if control.kind === 'select'}
-			<pptx-ui-select style={touchStyle} aria-label={t(control.labelKey)} value={typeof value === 'string' ? value : ''} onchange={(event: Event) => onchange(control.group, control.key, (event.currentTarget as HTMLElement & { value: string }).value)}>
+			<pptx-ui-select style={touchStyle} aria-label={t(control.labelKey)} disabled={locked} title={lockTitle} value={typeof value === 'string' ? value : ''} onchange={(event: Event) => emit(control.group, control.key, (event.currentTarget as HTMLElement & { value: string }).value)}>
 				{#each control.choices as choice (choice.value)}<option value={choice.value}>{t(choice.labelKey)}</option>{/each}
 			</pptx-ui-select>
 		{:else if control.kind === 'number'}
 			<span class="number">
-				<input type="number" style={touchStyle} aria-label={t(control.labelKey)} min={control.min} max={control.max} step={control.step ?? 1} value={typeof value === 'number' ? value : control.min} onchange={commitNumber} />
+				<input type="number" style={touchStyle} aria-label={t(control.labelKey)} disabled={locked} title={lockTitle} min={control.min} max={control.max} step={control.step ?? 1} value={typeof value === 'number' ? value : control.min} onchange={commitNumber} />
 				{#if control.unitKey}<small>{t(control.unitKey)}</small>{/if}
 			</span>
 		{:else}
-			<input class="text" type="text" style={touchStyle} aria-label={t(control.labelKey)} maxlength={control.maxLength} value={typeof value === 'string' ? value : ''} onchange={(event) => onchange(control.group, control.key, event.currentTarget.value)} />
+			<input class="text" type="text" style={touchStyle} aria-label={t(control.labelKey)} disabled={locked} title={lockTitle} maxlength={control.maxLength} value={typeof value === 'string' ? value : ''} onchange={(event) => emit(control.group, control.key, event.currentTarget.value)} />
 		{/if}
 	{/if}
 </div>
@@ -78,6 +87,8 @@
 <style>
 	.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 5px 0; font-size: 12px; }
 	.indent { padding-left: 22px; }
+	.locked { opacity: 0.6; }
+	.locked .toggle { cursor: not-allowed; }
 	.toggle { display: flex; flex: 1; align-items: center; justify-content: space-between; gap: 12px; cursor: pointer; user-select: none; }
 	.label { display: inline-flex; align-items: center; color: var(--pptx-foreground, #e2e8f0); }
 	.label i { display: inline-flex; margin-left: 5px; color: color-mix(in srgb, var(--pptx-primary, #6366f1) 70%, transparent); font-style: normal; cursor: help; }

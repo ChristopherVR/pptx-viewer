@@ -19,19 +19,26 @@
 	import Share2 from '@lucide/svelte/icons/share-2';
 	import Type from '@lucide/svelte/icons/type';
 	import Video from '@lucide/svelte/icons/video';
-	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, backstageCardsFor, formatBackstageDate, formatBackstageSize, listBackstageRecentFiles } from 'pptx-viewer-shared';
-	import type { AccountAuthConfig, BackstageCardId, BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
+	import { BACKSTAGE_NAV, BACKSTAGE_TEMPLATES, backstageCardsFor, customizeBackstageCards, customizeBackstageNav, formatBackstageDate, formatBackstageSize, isActionHidden, listBackstageRecentFiles } from 'pptx-viewer-shared';
+	import type { AccountAuthConfig, BackstageCardId, BackstagePage, BackstageRecentFile, ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../../i18n/context';
+	import { useViewerCustomization } from '../../../state/viewer-customization.svelte';
 	import { useViewerOptions } from '../../../state/viewer-options-context';
 	import type { ExportUiState } from '../../../export/export-ui.svelte';
 	import AccountPage from './AccountPage.svelte';
 	import BackstageAction from './BackstageAction.svelte';
 	import BackstageNavIcon from './BackstageNavIcon.svelte';
 
-	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, ondownloadppt, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; ondownloadppt: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig } = $props();
+	const { fileName, onclose, oncreatepresentation, ondownload, ondownloadppsx, ondownloadpptm, ondownloadppt, hasMacros, onopenfile, onopenrecent, exportUi, onproperties, onfonts, onsignatures, onprotect, onversionhistory, onshare, onprint, onsettings, accountAuth, hiddenActions }: { fileName?: string; onclose: () => void; oncreatepresentation: (templateId: string) => void; ondownload: () => void; ondownloadppsx: () => void; ondownloadpptm: () => void; ondownloadppt: () => void; hasMacros: boolean; onopenfile?: () => void; onopenrecent?: (key: string) => void; exportUi?: ExportUiState; onproperties?: () => void; onfonts?: () => void; onsignatures?: () => void; onprotect?: () => void; onversionhistory?: () => void; onshare?: () => void; onprint?: () => void; onsettings?: () => void; accountAuth?: AccountAuthConfig; hiddenActions?: readonly ToolbarActionId[] } = $props();
 	const t = useTranslator();
 	const viewerOptions = useViewerOptions();
-	let page = $state<BackstagePage>('home');
+	const customization = useViewerCustomization();
+	// The nav rail after the host's customisation, with the legacy `hiddenActions`
+	// gates on top (`export` drops the Export page, like React's FileSection).
+	const nav = $derived(customizeBackstageNav(BACKSTAGE_NAV, customization.resolved).filter((item) => !(item.id === 'export' && isActionHidden('export', hiddenActions))));
+	let requestedPage = $state<BackstagePage>('home');
+	// A page the host hides while it is open falls back to Home (or the first visible page).
+	const page = $derived<BackstagePage>(nav.some((item) => item.id === requestedPage) ? requestedPage : (nav.find((item) => item.id === 'home') ?? nav[0])?.id ?? 'home');
 	// eslint-disable-next-line prefer-const
 	let query = $state('');
 	let recent = $state<BackstageRecentFile[]>([]);
@@ -41,14 +48,14 @@
 	function run(action?: () => void): void { action?.(); if (action) {onclose();} }
 	const CARD_ICONS: Record<BackstageCardId, Component> = { protect: LockKeyhole, inspect: Info, embedFonts: Type, signatures: BadgeCheck, versionHistory: Clock3, saveAsPptx: FileText, saveAsPpsx: Presentation, saveAsPptm: FileCode2, saveAsPpt: Database, pdf: FileText, png: Image, video: Video, gif: Images, json: FileJson, copyImage: Copy, print: Printer, share: Share2 };
 	const cardHandlers = $derived<Record<BackstageCardId, (() => void) | undefined>>({ protect: onprotect, inspect: onproperties, embedFonts: onfonts, signatures: onsignatures, versionHistory: onversionhistory, saveAsPptx: ondownload, saveAsPpsx: ondownloadppsx, saveAsPptm: ondownloadpptm, saveAsPpt: ondownloadppt, pdf: () => void exportUi?.runPdf(), png: () => exportUi?.runPng(), video: () => void exportUi?.runVideo(), gif: () => void exportUi?.runGif(), json: () => void exportUi?.runJson(), copyImage: () => exportUi?.runCopyImage(), print: onprint, share: onshare });
-	const cards = $derived(backstageCardsFor(page).filter((card) => card.id !== 'saveAsPptm' || hasMacros));
-	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {page = id;} }
+	const cards = $derived(customizeBackstageCards(backstageCardsFor(page), customization.resolved).filter((card) => (card.id !== 'saveAsPptm' || hasMacros) && !(card.id === 'share' && isActionHidden('share', hiddenActions))));
+	function select(id: BackstagePage): void { if (id === 'close') {onclose();} else if (id === 'save') {run(ondownload);} else if (id === 'options' && onsettings) {run(onsettings);} else {requestedPage = id;} }
 </script>
 
 <div class="bs" role="dialog" aria-modal="true" aria-label={t('pptx.backstage.title')}>
 	<aside><div class="back-row"><button class="back" type="button" aria-label={t('pptx.backstage.back')} onclick={onclose}><BackstageNavIcon page="back" /></button></div><nav>
-		{#each BACKSTAGE_NAV.filter((item) => !item.group) as item}<button type="button" data-pptx-backstage-nav-item aria-current={page === item.id ? 'page' : undefined} class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}<i></i>
-		{#each BACKSTAGE_NAV.filter((item) => item.group) as item}<button type="button" data-pptx-backstage-nav-item aria-current={page === item.id ? 'page' : undefined} class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}
+		{#each nav.filter((item) => !item.group) as item}<button type="button" data-pptx-backstage-nav-item aria-current={page === item.id ? 'page' : undefined} class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}<i></i>
+		{#each nav.filter((item) => item.group) as item}<button type="button" data-pptx-backstage-nav-item aria-current={page === item.id ? 'page' : undefined} class:active={page === item.id} onclick={() => select(item.id)}><span><BackstageNavIcon page={item.id} /></span>{t(item.labelKey)}</button>{/each}
 	</nav></aside>
 	<main><h1>{page === 'home' ? t('pptx.backstage.greeting') : title}</h1>
 		{#if page === 'home' || page === 'new'}<h2>{t('pptx.backstage.newHeading')}</h2><div class="templates">{#each BACKSTAGE_TEMPLATES as template}<button type="button" onclick={() => run(() => oncreatepresentation(template.id))}><b style:background={template.preview}></b><strong>{t(template.nameKey)}</strong><small>{t(template.descriptionKey)}</small></button>{/each}</div>{/if}

@@ -19,6 +19,7 @@
 	import NotesPanel from './NotesPanel.svelte';
 	import LayoutGalleryMenu from './ribbon/home/LayoutGalleryMenu.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import type { ViewerBodyProps } from './viewer-body-props';
 	import ViewerStage from './ViewerStage.svelte';
 
@@ -105,10 +106,12 @@
 			.layoutPreviews()
 			.then((previews) => (railLayoutPreviews = previews));
 	}
+	// Host-removed regions (`hiddenPanels`): slides pane, notes, inspector.
+	const customization = useViewerCustomization();
 </script>
 
 <div class="pptx-svelte-body">
-	{#if showThumbnails && !chromeUi?.sidebarCollapsed && chromeVisible && displaySlides.length > 0}
+	{#if showThumbnails && !chromeUi?.sidebarCollapsed && chromeVisible && displaySlides.length > 0 && customization.isPanelVisible('slidesPane')}
 		<ThumbnailRail
 			slides={displaySlides}
 			sections={editor.sections}
@@ -220,7 +223,7 @@
 				{onfixai}
 			/>
 		</div>
-		{#if showNotes && chromeVisible && displaySlides.length > 0}
+		{#if showNotes && chromeVisible && displaySlides.length > 0 && customization.isPanelVisible('notes')}
 			<NotesPanel
 				slide={activeSlide}
 				expanded={notesExpanded}
@@ -230,7 +233,7 @@
 			/>
 		{/if}
 	</div>
-	{#if editingActive && chromeVisible && displaySlides.length > 0 && chromeUi?.inspectorOpen !== false}
+	{#if editingActive && chromeVisible && displaySlides.length > 0 && chromeUi?.inspectorOpen !== false && customization.isPanelVisible('inspector')}
 		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} ui={chromeUi} {canvasSize} />
 	{/if}
 </div>

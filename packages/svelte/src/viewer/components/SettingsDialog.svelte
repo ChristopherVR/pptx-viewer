@@ -5,6 +5,8 @@
 	import {
 		DEFAULT_QUICK_ACCESS_COMMAND_IDS,
 		VIEWER_OPTIONS_TABS,
+		customizeOptionsTabs,
+		isOptionsPageVisible,
 		resolveViewerAddinStatus,
 	} from 'pptx-viewer-shared';
 	import type {
@@ -15,6 +17,7 @@
 	} from 'pptx-viewer-shared';
 	import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 	import { useTranslator } from '../../i18n/context';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import type { ViewerOptionsState } from '../state/viewer-options.svelte';
 	import SettingsAiSection from './ai/SettingsAiSection.svelte';
 	import SettingsAppearanceTab from './SettingsAppearanceTab.svelte';
@@ -59,13 +62,18 @@
 	} = $props();
 
 	const t = useTranslator();
+	const customization = useViewerCustomization();
 	/** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
 	const AI_TAB_ID = 'ai';
+	// The schema after the host's customisation: hidden pages / sections /
+	// settings removed, locked settings marked `readOnly` (shared decides).
+	const tabs = $derived(customizeOptionsTabs(VIEWER_OPTIONS_TABS, customization.resolved));
+	const showAiTab = $derived(aiEnabled && isOptionsPageVisible(customization.resolved, AI_TAB_ID));
 	// eslint-disable-next-line prefer-const -- reassigned in the nav markup below
 	let activeTabId = $state<ViewerOptionsTabId | typeof AI_TAB_ID>('general');
-	const activeTab = $derived(
-		VIEWER_OPTIONS_TABS.find((entry) => entry.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0],
-	);
+	// A tab the host hides while it is active falls back to the first visible one.
+	const activeTab = $derived(tabs.find((entry) => entry.id === activeTabId) ?? tabs[0]);
+	const aiActive = $derived(showAiTab && (activeTabId === AI_TAB_ID || !activeTab));
 	const options = $derived<ViewerOptions>(optionsState.options);
 	// Real runtime signals for the Add-ins pane's active/inactive split: the two
 	// three.js-backed renderers follow Advanced > "Disable 3D rendering", and
@@ -111,17 +119,19 @@
 		</header>
 		<div class="layout">
 			<nav aria-label={t('pptx.options.title')}>
-				{#each VIEWER_OPTIONS_TABS as tab (tab.id)}
-					<button class:active={activeTabId === tab.id} onclick={() => (activeTabId = tab.id)}>{t(tab.labelKey)}</button>
+				{#each tabs as tab (tab.id)}
+					<button class:active={!aiActive && activeTab?.id === tab.id} onclick={() => (activeTabId = tab.id)}>{t(tab.labelKey)}</button>
 				{/each}
-				{#if aiEnabled}
-					<button class:active={activeTabId === AI_TAB_ID} onclick={() => (activeTabId = AI_TAB_ID)}>{t('pptx.ai.settingsSectionTitle')}</button>
+				{#if showAiTab}
+					<button class:active={aiActive} onclick={() => (activeTabId = AI_TAB_ID)}>{t('pptx.ai.settingsSectionTitle')}</button>
 				{/if}
 			</nav>
 			<div class="body">
-				{#if activeTabId === AI_TAB_ID}
+				{#if aiActive}
 					<p class="headline">{t('pptx.ai.settingsSectionTitle')}</p>
 					<SettingsAiSection />
+				{:else if !activeTab}
+					<!-- Every page is hidden by the host: nothing to render. -->
 				{:else if activeTab.custom === 'language'}
 					<p class="headline">{t(activeTab.descriptionKey)}</p>
 					<section class="lang">

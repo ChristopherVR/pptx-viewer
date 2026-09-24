@@ -183,6 +183,7 @@
 					onprint={props.onprintsettings}
 					onsettings={props.onsettings}
 					accountAuth={props.accountAuth}
+					hiddenActions={props.hiddenActions}
 				/>
 			{/if}
 		</div>

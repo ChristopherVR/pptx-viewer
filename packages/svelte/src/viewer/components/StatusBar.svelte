@@ -27,6 +27,8 @@
 		onnormal,
 		onslidesorter,
 		collaborationSlot,
+		hideZoom = false,
+		hideFullscreen = false,
 	}: {
 		current: number;
 		total: number;
@@ -45,6 +47,10 @@
 		onnormal?: () => void;
 		onslidesorter?: () => void;
 		collaborationSlot?: Snippet;
+		/** Hide the zoom cluster (`hiddenActions: ['zoom']`). */
+		hideZoom?: boolean;
+		/** Hide the Slide Show toggle (`hiddenActions: ['fullscreen']`). */
+		hideFullscreen?: boolean;
 	} = $props();
 
 	const t = useTranslator();
@@ -84,15 +90,17 @@
 		{#if onslidesorter}
 			<button type="button" class:active={slideSorterActive} aria-pressed={slideSorterActive} aria-label={t('pptx.statusBar.slideSorter')} title={t('pptx.statusBar.slideSorter')} data-pptx-compact onclick={onslidesorter}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h4v4h-4zM9.5 3.5h4v4h-4zM2.5 9.5h4v4h-4zM9.5 9.5h4v4h-4z" /></svg></button>
 		{/if}
-		<button type="button" class:active={isFullscreen} aria-pressed={isFullscreen} aria-label={t('pptx.statusBar.slideShow')} title={t('pptx.statusBar.slideShow')} data-pptx-compact onclick={onfullscreen}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" /></svg></button>
+		{#if !hideFullscreen}<button type="button" class:active={isFullscreen} aria-pressed={isFullscreen} aria-label={t('pptx.statusBar.slideShow')} title={t('pptx.statusBar.slideShow')} data-pptx-compact onclick={onfullscreen}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6v-3.5h3.5M13.5 6v-3.5h-3.5M2.5 10v3.5h3.5M13.5 10v3.5h-3.5" /></svg></button>{/if}
 		{#if collaborationSlot}
 			<i></i>
 			{@render collaborationSlot()}
 		{/if}
+		{#if !hideZoom}
 		<i></i>
 		<button type="button" aria-label={t('pptx.statusBar.zoomOut')} title={t('pptx.statusBar.zoomOut')} data-pptx-compact onclick={onzoomout}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8h9" /></svg></button>
 		<button type="button" class="pptx-svelte-statusbar-zoom" aria-label={t('pptx.statusBar.zoomToFit')} title={t('pptx.statusBar.zoomToFit')} data-pptx-compact onclick={onzoomfit}>{zoomPercent}%</button>
 		<button type="button" aria-label={t('pptx.statusBar.zoomIn')} title={t('pptx.statusBar.zoomIn')} data-pptx-compact onclick={onzoomin}><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg></button>
+		{/if}
 	</div>
 </div>
 

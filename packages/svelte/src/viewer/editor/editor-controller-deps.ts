@@ -1,5 +1,9 @@
 import type { PptxSlide } from 'pptx-viewer-core';
-import type { CollaborationLivePatcher, SnapGuideInput } from 'pptx-viewer-shared';
+import type {
+	CollaborationLivePatcher,
+	ResolvedKeyboardCustomization,
+	SnapGuideInput,
+} from 'pptx-viewer-shared';
 
 import type { ContextMenuCellTarget } from './context-menu-dispatch';
 
@@ -80,4 +84,6 @@ export interface EditorControllerDeps {
 	 * `create-viewer-state.svelte.ts`), so a host wires it in once it exists.
 	 */
 	newSlide?(): void;
+	/** Host keyboard customisation (disabled / remapped editor shortcuts). */
+	getKeyboardCustomization?(): ResolvedKeyboardCustomization | undefined;
 }
