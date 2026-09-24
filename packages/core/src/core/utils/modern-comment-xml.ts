@@ -92,9 +92,17 @@ const parseComment = (
 ): PptxComment => {
 	const id = String(node['@_id'] || '').trim();
 	const authorId = String(node['@_authorId'] || '').trim();
-	const status = String(node['@_status'] || 'active')
+	// The raw attribute, UNDEFAULTED: `comment.status` must stay `undefined`
+	// when the source never authored `@status` at all, or the save side
+	// could not tell "this comment was truly active in the file" apart from
+	// "this comment never had the attribute", and materialised
+	// `status="active"` into every such comment on a clean save.
+	// `effectiveStatus` still applies PowerPoint's own "absent means active"
+	// default, but only to decide `resolved`, which has no other source.
+	const rawStatus = String(node['@_status'] || '')
 		.trim()
 		.toLowerCase();
+	const effectiveStatus = rawStatus || 'active';
 	const position = child(node, 'pos');
 	const replies = children(child(node, 'replyLst'), 'reply').map((reply) =>
 		parseComment(reply, authorName, emuPerPx),
@@ -106,10 +114,10 @@ const parseComment = (
 		authorId: authorId || undefined,
 		author: authorName(authorId) || (authorId ? `Author ${authorId}` : undefined),
 		createdAt: String(node['@_created'] || '').trim() || undefined,
-		status: ['active', 'resolved', 'closed'].includes(status)
-			? (status as PptxComment['status'])
+		status: ['active', 'resolved', 'closed'].includes(rawStatus)
+			? (rawStatus as PptxComment['status'])
 			: undefined,
-		resolved: status === 'resolved' || status === 'closed' ? true : undefined,
+		resolved: effectiveStatus === 'resolved' || effectiveStatus === 'closed' ? true : undefined,
 		x: position ? optionalNumber(position['@_x'])! / emuPerPx : undefined,
 		y: position ? optionalNumber(position['@_y'])! / emuPerPx : undefined,
 		tags: stringList(node['@_tags']),
@@ -188,10 +196,10 @@ const buildComment = (
 		...copyAttributes(raw),
 		'@_id': comment.id,
 		'@_authorId': resolveAuthorId(comment),
-		'@_status': modernCommentStatus(comment),
 		'@_created': modernCommentCreated(comment.createdAt, raw?.['@_created']),
 	};
 	for (const [attribute, value] of [
+		['status', modernCommentStatus(comment, raw !== undefined, raw?.['@_status'] !== undefined)],
 		['tags', comment.tags?.join(' ')],
 		['likes', comment.likes?.join(' ')],
 		['startDate', comment.startDate],

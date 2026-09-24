@@ -133,6 +133,65 @@ describe('modern PowerPoint comments XML', () => {
 		expect(node['@_created']).toBe('0001-01-01T00:00:00');
 	});
 
+	/**
+	 * Core round-trip audit 2026-09-24, item 3: modern comment timestamps
+	 * shifted by the local TZ offset and `status="active"` was injected on a
+	 * clean save. Both round-trip through the REAL parser
+	 * (`parseModernCommentPart`) into the REAL writer
+	 * (`buildModernCommentPart`), so this is a load -> save round trip on
+	 * parser-produced input, not a hand-built `__equationXml`-style shortcut.
+	 */
+	it('load -> save round-trip: an untouched @created with no UTC marker is not TZ-shifted', () => {
+		const data: XmlObject = {
+			'x:cmLst': {
+				'x:cm': {
+					'@_id': 'c1',
+					'@_authorId': 'a1',
+					'@_created': '2024-01-15T10:30:00',
+					'x:txBody': { 'a:p': { 'a:r': { 'a:t': 'Untouched' } } },
+				},
+			},
+		};
+		const parsed = parseModernCommentPart(
+			data,
+			{ path: 'ppt/comments/modernComment1.xml', relationshipId: 'rId5' },
+			() => undefined,
+			9525,
+		);
+		const built = buildModernCommentPart(parsed.comments, undefined, () => 'a1', 9525);
+		const node = ((built['p188:cmLst'] as XmlObject)['p188:cm'] as XmlObject[])[0];
+		// Must be the ORIGINAL string, not a UTC-shifted `Date.parse` ->
+		// `toISOString()` reformat: `Date.parse('2024-01-15T10:30:00')` reads
+		// the string as LOCAL time, so reformatting through `toISOString()`
+		// renders a different clock time everywhere except UTC+0.
+		expect(node['@_created']).toBe('2024-01-15T10:30:00');
+	});
+
+	it('load -> save round-trip: does not inject status="active" when the source never authored @status', () => {
+		const data: XmlObject = {
+			'x:cmLst': {
+				'x:cm': {
+					'@_id': 'c1',
+					'@_authorId': 'a1',
+					'@_created': '2024-01-15T10:30:00Z',
+					'x:txBody': { 'a:p': { 'a:r': { 'a:t': 'Untouched' } } },
+				},
+			},
+		};
+		const parsed = parseModernCommentPart(
+			data,
+			{ path: 'ppt/comments/modernComment1.xml', relationshipId: 'rId5' },
+			() => undefined,
+			9525,
+		);
+		expect(parsed.comments[0].status).toBeUndefined();
+		expect(parsed.comments[0].resolved).toBeUndefined();
+
+		const built = buildModernCommentPart(parsed.comments, undefined, () => 'a1', 9525);
+		const node = ((built['p188:cmLst'] as XmlObject)['p188:cm'] as XmlObject[])[0];
+		expect(node['@_status']).toBeUndefined();
+	});
+
 	it('round-trips modern author identity and unknown XML', () => {
 		const source: XmlObject = {
 			'x:authorLst': {
