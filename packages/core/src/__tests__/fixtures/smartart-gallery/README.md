@@ -102,11 +102,12 @@ the interpreter found and fixed six real, previously-unknown bugs:
 219 of the 229 fixtures against the full acceptance gate** (same shape count,
 preset, font size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
-last regeneration): 227/229 fixtures have matching text-bearing shape counts;
-87 are within 1% geometry deviation, 110 within 5%, 121 within 10%, and 180
+last regeneration): 225/229 fixtures have matching text-bearing shape counts;
+87 are within 1% geometry deviation, 113 within 5%, 122 within 10%, and 181
 within 50%; 11 pass the full gate (re-measured 2026-09-24, after the
-engine-first routing wave below).
-Two fixtures fail structurally before geometry is compared.
+engine-first routing waves below).
+Four fixtures fail structurally before geometry is compared (two pre-existing,
+two a side effect of the eighth wave's own fix - see that wave's paragraph).
 
 `computeSmartArtElementsWithoutCache` runs a legacy family-based interpreter
 (one arranger chosen for the whole diagram) AND a per-point DiagramML engine
@@ -116,11 +117,11 @@ declines. `scripts/measure-smartart-engine-vs-legacy.ts` runs both
 independently against every fixture (bypassing that fallback order) to find
 `layoutDefinition.uniqueId`s where the engine is strictly more accurate on
 EVERY dataset of that layout with no shape-set loss versus legacy;
-`smartart-engine/engine-first-allowlist.ts` lists the 60 layouts that
-measurement found (e.g. "Gear": legacy 76% deviation vs. engine 0.1%, since
-the legacy composite arranger cannot reach Gear's rotated/decorative
-named-slot children at all), and `computeDiagramMlElements` now tries the
-engine first only for those.
+`smartart-engine/engine-first-allowlist.ts` lists the layouts (74 as of the
+eighth wave below) that measurement found (e.g. "Gear": legacy 76% deviation
+vs. engine 0.1%, since the legacy composite arranger cannot reach Gear's
+rotated/decorative named-slot children at all), and `computeDiagramMlElements`
+now tries the engine first only for those.
 
 Two waves moved the numbers above. Introducing the allowlist (55 layouts)
 moved geometry-within-1% from 39 to 82, zero fixtures regressing out of that
@@ -254,6 +255,46 @@ full 229-fixture corpus confirms zero regressions elsewhere and the gate
 numbers hold at 87/229 within 1%, 11/229 full gate (both layouts already
 matched within 1% via legacy before this wave, so the routing change alone
 does not move those counts).
+
+An eighth wave fixed the `numbered-title-list`/`numbered-card-list`
+shape-drop bug named in the second wave above: their "1"/"2"/"3" ordinal
+badges rendered blank because the badge text is presented off the SIBLING
+transition point (`dgm:presOf axis="self" ptType="sibTrans"`), and
+`data-points.ts`'s `buildDataModel` only ever copied a connection's resolved
+`label` onto its `parTrans` `DataPoint`, never the paired `sibTrans` one;
+`engine-to-result.ts` also only ever read a presented point's content-node
+`.text`, never a transition point's own `.label`. Both fixed:
+`sibTrans` now carries `label` like `parTrans` already did, and
+`buildRenderedNode` falls back to a presented point's `.label`
+(`RenderedNodeIdentity.literalText`) when no content point is presented. Both
+layouts now match all 6 cached shapes (previously 3 of 6) and measurably beat
+legacy (Numbered Title List 0.5854 -> 0.3415, Numbered Card List 0.4465 ->
+0.2458), qualifying for the allowlist. Since this is a general engine fix
+(not scoped to numbered lists), re-measuring the whole corpus per the
+allowlist's own "regenerate after any engine change" rule found three more,
+unrelated qualifiers from the same fix: Converging Arrows and Diverging
+Arrows (0.0638 -> 0.0375, an opposing-arrow pair's own middle sibTrans label)
+and Tabbed Arc (0.2364 -> 0.0131) - all three match every cached shape with
+no extras, unlike the two numbered-list layouts (see below). 74 layouts on
+the allowlist total. The two numbered-list fixtures are the source of this
+wave's four (up from two) structural misses: each accented item's `bgRect`
+background shape independently presents the same "self" point its actual
+text overlay (`nodeText`, `hideGeom`, `desOrSelf`) also presents, so on an
+UNaccented row both render identical text and collide harmlessly under exact-
+text dedup, but on an accented row `bgRect`'s unfolded self-only text and
+`nodeText`'s folded self+descendant text differ and both survive as separate,
+unmatched shapes. Root-causing when a background sibling's own `presOf`
+should be suppressed in favour of a `hideGeom` overlay's (matching real
+PowerPoint's single-text-per-item rendering) is a genuinely separate, deeper
+question than the shape-loss bug fixed here - the layoutDef's own
+`moveWith="bgRect"` on `nodeText` (already parsed into `LdLayoutNode.moveWith`
+but never threaded through `PresNode`/`EngineNode`) is the likely ECMA-376
+signal such a fix would key off - tracked here as an open gap, not attempted
+in this wave. Re-measuring with `gen-smartart-gallery-baseline.ts --compare`
+confirms geometry-within-1% and the full gate hold exactly (still 87/229,
+11/229), structural drops 227->225 (the two phantom-shape fixtures above),
+and within-5%/10%/50% each improve slightly (110->113, 121->122, 180->181)
+from the arrow/Tabbed-Arc wins.
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,

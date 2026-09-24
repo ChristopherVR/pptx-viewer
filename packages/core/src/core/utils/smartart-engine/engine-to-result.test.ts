@@ -84,3 +84,37 @@ describe('runEngineLayout hideGeom handling', () => {
 		expect(phantomHideGeomBoxes).toHaveLength(0);
 	});
 });
+
+describe('runEngineLayout sibTrans ordinal-badge text', () => {
+	it(
+		'renders a sibTrans-presented ordinal badge\'s own literal text ("1"/"2"/"3"), ' +
+			'not a blank shape (real "Numbered Title List": DataPoint.label was only ever ' +
+			'attached to parTrans, never sibTrans, so a layout presenting the SIBLING ' +
+			'transition dropped its badge text entirely)',
+		async () => {
+			const handler = new PptxHandler();
+			const { slides } = await handler.load(readFixture('numbered-title-list--hier5.pptx'));
+			const element = slides
+				.flatMap((s) => s.elements)
+				.find((el): el is SmartArtPptxElement => el.type === 'smartArt');
+			const data = element?.smartArtData;
+			expect(data?.layoutDefinition).toBeDefined();
+			if (!data?.layoutDefinition) {
+				return;
+			}
+			const bounds = { width: element!.width, height: element!.height };
+			const palette = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+			const result = runEngineLayout(data, bounds, data.nodes ?? [], palette, data.style ?? 'flat');
+			expect(result).toBeDefined();
+			const texts = result?.nodes.map((n) => (n as { text?: string }).text ?? '') ?? [];
+			expect(texts).toContain('1');
+			expect(texts).toContain('2');
+			expect(texts).toContain('3');
+			// The card's own self text (folding onto its descendant happens
+			// downstream in `interpretedLayoutToElements` via `foldedNodeIds`,
+			// not here) still renders too - this fix is additive, not a
+			// regression on the desOrSelf presOf mapping.
+			expect(texts).toContain('Node One');
+		},
+	);
+});

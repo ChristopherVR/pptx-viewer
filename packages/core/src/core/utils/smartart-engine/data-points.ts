@@ -119,6 +119,7 @@ export function buildDataModel(
 			const sibTrans: DataPoint = {
 				id: cxn?.siblingTransitionId ?? `${point.id}#sibTrans`,
 				type: 'sibTrans',
+				label: cxn?.label,
 				parent,
 				children: [],
 			};

@@ -73,6 +73,26 @@ function sourceIdsOf(node: EngineNode): string[] {
 }
 
 /**
+ * A presented `parTrans`/`sibTrans` transition point's own connector text
+ * (`DataPoint.label`, e.g. a numbered-list badge's ordinal "1"/"2"/"3", or an
+ * org-chart relationship line's label) - there is no `PptxSmartArtNode` to
+ * read `.text` from for a transition point (`point.source` is only ever set
+ * for a `node`/`asst` content point), so this is the transition-point
+ * equivalent `sourceIdsOf`'s content-point lookup can't cover. Only consulted
+ * when `sourceIdsOf` found nothing, matching the drawing bridge's own
+ * `literalText ?? projection?.text` precedence
+ * (`smartart-interpreter-drawing-bridge.ts`).
+ */
+function transitionLabelOf(node: EngineNode): string | undefined {
+	for (const point of node.presOf) {
+		if (!point.source && point.label) {
+			return point.label;
+		}
+	}
+	return undefined;
+}
+
+/**
  * `hideGeom` (ECMA-376 Part 1, 21.4.7.16 `ST_OnOffStyleType`) means the node
  * draws NO visible border/fill, not that it is not a node: PowerPoint still
  * places its own text-bearing shape there (invisible outline, real text),
@@ -86,11 +106,18 @@ function sourceIdsOf(node: EngineNode): string[] {
  * sibling row with no descendant) is still skipped, since it carries nothing
  * to compare or display.
  */
-function isRenderable(node: EngineNode, primary: PptxSmartArtNode | undefined): boolean {
+function isRenderable(
+	node: EngineNode,
+	primary: PptxSmartArtNode | undefined,
+	literalText: string | undefined,
+): boolean {
 	if (!node.shape || !node.box) {
 		return false;
 	}
 	if (!node.shape.hideGeom) {
+		return true;
+	}
+	if (literalText && literalText.trim().length > 0) {
 		return true;
 	}
 	return Boolean(primary?.text && primary.text.trim().length > 0);
@@ -109,11 +136,12 @@ function buildRenderedNode(
 	}
 	const sourceIds = sourceIdsOf(node);
 	const primary = sourceIds.length > 0 ? nodeById.get(sourceIds[0]) : undefined;
-	if (!isRenderable(node, primary)) {
+	const literalText = sourceIds.length === 0 ? transitionLabelOf(node) : undefined;
+	if (!isRenderable(node, primary, literalText)) {
 		return undefined;
 	}
 	const hidden = Boolean(node.shape?.hideGeom);
-	const text = primary?.text ?? '';
+	const text = primary?.text ?? literalText ?? '';
 	const fontSizePt = resolveEngineFontSizePt(node, text);
 	const sw = hidden ? 0 : styleStroke(style);
 	const x = transform.x * PX_PER_PT;
@@ -140,6 +168,7 @@ function buildRenderedNode(
 		rotation: transform.rotation === 0 ? undefined : transform.rotation,
 		presetOverride: node.shape?.type ?? 'roundRect',
 		foldedNodeIds: sourceIds.length > 1 ? sourceIds.slice(1) : undefined,
+		literalText,
 	};
 }
 
