@@ -1400,6 +1400,11 @@ export * from './media-playback';
 // wave item 10): split out of media-playback.ts (file-size cap) so all five
 // bindings' `<video>`/`<audio>` play/pause listeners share one decision.
 export * from './media-fullscreen';
+// A linked (`isLinked`) YouTube/Vimeo "Online Video" URL is a web page, not a
+// media stream: resolves it to the provider's iframe-embeddable URL so every
+// binding can render an `<iframe>` instead of a `<video>` for exactly that
+// case.
+export * from './online-video';
 // Trim-end stop + fade in/out scheduling (G20): split out of media-playback.ts
 // (file-size cap) so every binding's presenting-mode media player can share
 // the same `p14:trim`/`p14:fade` enforcement React alone used to implement.

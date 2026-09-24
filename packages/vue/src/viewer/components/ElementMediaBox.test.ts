@@ -59,6 +59,28 @@ describe('elementMediaBox playback settings', () => {
 	});
 });
 
+describe('elementMediaBox online video', () => {
+	it('renders a provider iframe for a linked YouTube URL instead of <video>', () => {
+		const wrapper = mountMedia(
+			makeMedia({
+				mediaData: undefined,
+				mediaPath: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+				isLinked: true,
+			}),
+		);
+		const iframe = wrapper.find('iframe');
+		expect(iframe.exists()).toBeTruthy();
+		expect(iframe.attributes('src')).toBe('https://www.youtube.com/embed/dQw4w9WgXcQ');
+		expect(wrapper.find('video').exists()).toBeFalsy();
+	});
+
+	it('keeps the native <video> for a plain linked media file', () => {
+		const wrapper = mountMedia(makeMedia());
+		expect(wrapper.find('iframe').exists()).toBeFalsy();
+		expect(wrapper.find('video').exists()).toBeTruthy();
+	});
+});
+
 describe('elementMediaBox native transport', () => {
 	it('paints one on the authoring canvas', () => {
 		expect(mountMedia(makeMedia()).find('video').attributes('controls')).toBeDefined();

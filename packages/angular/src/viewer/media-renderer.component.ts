@@ -10,13 +10,18 @@ import {
 	signal,
 	viewChild,
 } from '@angular/core';
+import type { SafeResourceUrl } from '@angular/platform-browser';
+import { DomSanitizer } from '@angular/platform-browser';
 import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxMediaType } from 'pptx-viewer-core';
 
 import {
 	MEDIA_FULLSCREEN_OVERLAY_STYLE,
+	ONLINE_VIDEO_IFRAME_ALLOW,
+	ONLINE_VIDEO_IFRAME_SANDBOX,
 	applyMediaPlaybackAttributes,
 	elementHitTargetStyle,
+	getOnlineVideoEmbed,
 	isMediaFullscreenActive,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
@@ -89,7 +94,18 @@ import type { ResolvedCaptionTrack } from './media-renderer-helpers';
 			@if (hitTargetStyle(); as hit) {
 				<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
 			}
-			@if (mediaSrc(); as src) {
+			@if (onlineVideoEmbedUrl(); as embedUrl) {
+				<iframe
+					class="pptx-ng-media-el pptx-ng-media-video"
+					[class.pptx-ng-media-inert]="interactive()"
+					[src]="embedUrl"
+					[title]="onlineVideoTitle()"
+					[attr.allow]="onlineVideoAllow"
+					[attr.sandbox]="onlineVideoSandbox"
+					allowfullscreen
+					style="border: 0"
+				></iframe>
+			} @else if (mediaSrc(); as src) {
 				@if (mediaKind() === 'audio') {
 					<audio
 						#mediaEl
@@ -466,6 +482,7 @@ export class MediaRendererComponent {
 	);
 
 	private readonly translate = inject(TranslateService);
+	private readonly sanitizer = inject(DomSanitizer);
 
 	readonly fallbackLabel = computed<string>(() => {
 		const key = mediaFallbackLabelKey(this.fallback(), this.mediaKind());
@@ -499,6 +516,31 @@ export class MediaRendererComponent {
 		const media = asMediaElement(this.element());
 		return media ? resolveMediaSrc(media, this.mediaDataUrls()) : undefined;
 	});
+
+	/**
+	 * A linked YouTube/Vimeo URL is a web page, not a media stream: `<video
+	 * src>` cannot decode it and shows nothing. Resolved to the provider's own
+	 * iframe-embeddable URL; a normal linked/embedded media file (`mediaSrc`
+	 * resolves to a Blob/data URL) keeps using the native `<video>` below.
+	 *
+	 * `bypassSecurityTrustResourceUrl` is safe here: `getOnlineVideoEmbed`
+	 * only ever builds `https://www.youtube.com/embed/<id>` or
+	 * `https://player.vimeo.com/video/<id>`, never an author-controlled raw
+	 * string, so there is nothing for Angular's resource-URL sanitizer to
+	 * usefully block. Without it Angular strips the binding to `about:blank`.
+	 */
+	readonly onlineVideoEmbedUrl = computed<SafeResourceUrl | undefined>(() => {
+		const embedUrl = getOnlineVideoEmbed(this.element())?.embedUrl;
+		return embedUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(embedUrl) : undefined;
+	});
+
+	readonly onlineVideoTitle = computed<string>(() =>
+		this.translate.instant('pptx.media.onlineVideoTitle'),
+	);
+
+	/** Shared Permissions Policy / sandbox values; see `online-video.ts`'s doc comments. */
+	readonly onlineVideoAllow = ONLINE_VIDEO_IFRAME_ALLOW;
+	readonly onlineVideoSandbox = ONLINE_VIDEO_IFRAME_SANDBOX;
 
 	readonly mediaKind = computed<PptxMediaType | undefined>(
 		() => asMediaElement(this.element())?.mediaType,

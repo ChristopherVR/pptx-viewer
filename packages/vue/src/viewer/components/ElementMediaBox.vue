@@ -8,7 +8,10 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import {
+	ONLINE_VIDEO_IFRAME_ALLOW,
+	ONLINE_VIDEO_IFRAME_SANDBOX,
 	applyMediaPlaybackAttributes,
+	getOnlineVideoEmbed,
 	mediaFallbackIcon,
 	mediaFallbackLabelKey,
 	mediaFallbackVisual,
@@ -161,6 +164,15 @@ const mediaKind = computed(() =>
 );
 
 /**
+ * A linked YouTube/Vimeo URL is a web page, not a media stream: `<video src>`
+ * cannot decode it and shows nothing. Resolved to the provider's own
+ * iframe-embeddable URL (see `pptx-viewer-shared`'s `online-video`); a normal
+ * linked/embedded media file (`mediaSrc` resolves to a Blob/data URL) keeps
+ * using the native `<video>` element below.
+ */
+const onlineVideoEmbedUrl = computed(() => getOnlineVideoEmbed(props.element)?.embedUrl);
+
+/**
  * The frame PowerPoint paints before the video decodes one of its own: the
  * `p:pic`'s `blipFill` (parsed into `posterFrameData`), falling back to the
  * element's own image data.
@@ -268,8 +280,23 @@ const hitTargetStyle = useElementHitTargetStyle(
 			data-pptx-hit-target="true"
 			:style="hitTargetStyle"
 		/>
+		<iframe
+			v-if="onlineVideoEmbedUrl && mediaKind === 'video'"
+			:src="onlineVideoEmbedUrl"
+			:title="t('pptx.media.onlineVideoTitle')"
+			:allow="ONLINE_VIDEO_IFRAME_ALLOW"
+			:sandbox="ONLINE_VIDEO_IFRAME_SANDBOX"
+			allowfullscreen
+			:style="{
+				width: '100%',
+				height: '100%',
+				border: 0,
+				display: 'block',
+				pointerEvents: interactive ? 'none' : 'auto',
+			}"
+		/>
 		<video
-			v-if="mediaSrc && mediaKind === 'video'"
+			v-else-if="mediaSrc && mediaKind === 'video'"
 			ref="mediaEl"
 			:src="mediaSrc"
 			:controls="showControls"

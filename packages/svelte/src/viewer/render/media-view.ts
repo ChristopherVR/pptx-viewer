@@ -1,5 +1,5 @@
 import type { MediaPptxElement } from 'pptx-viewer-core';
-import { getImageSrc } from 'pptx-viewer-shared';
+import { getImageSrc, getOnlineVideoEmbed } from 'pptx-viewer-shared';
 
 export { registerCrossSlideAudio } from 'pptx-viewer-shared';
 
@@ -15,6 +15,13 @@ export interface MediaView {
 	mediaSrc: string | undefined;
 	/** Poster / thumbnail image URL, when one exists. */
 	posterSrc: string | undefined;
+	/**
+	 * A linked YouTube/Vimeo URL resolved to its iframe-embeddable form (see
+	 * `pptx-viewer-shared`'s `online-video`). When set, the caller renders an
+	 * `<iframe>` instead of `<video src={mediaSrc}>`, which cannot decode a web
+	 * page.
+	 */
+	onlineVideoEmbedUrl: string | undefined;
 }
 
 /** Resolve the playable and poster sources for a media element. */
@@ -26,5 +33,6 @@ export function resolveMediaView(
 		mediaSrc:
 			element.mediaData ?? (element.mediaPath ? mediaDataUrls.get(element.mediaPath) : undefined),
 		posterSrc: getImageSrc(element, mediaDataUrls),
+		onlineVideoEmbedUrl: getOnlineVideoEmbed(element)?.embedUrl,
 	};
 }

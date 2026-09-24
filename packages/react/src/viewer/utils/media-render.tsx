@@ -1,5 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { mediaPlaybackAttributes } from 'pptx-viewer-shared';
+import {
+	ONLINE_VIDEO_IFRAME_ALLOW,
+	ONLINE_VIDEO_IFRAME_SANDBOX,
+	getOnlineVideoEmbed,
+	mediaPlaybackAttributes,
+} from 'pptx-viewer-shared';
 import type { MediaSurface } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
@@ -96,6 +101,23 @@ export function renderMediaElement(
 	}
 
 	if (mediaType === 'video') {
+		// A linked YouTube/Vimeo URL is a web page, not a media stream: `<video
+		// src>` cannot decode it and shows nothing. Render the provider's own
+		// iframe embed instead; a normal linked/embedded media file (dataUrl
+		// resolves to a Blob/data URL) keeps using the native player below.
+		const onlineVideo = getOnlineVideoEmbed(element);
+		if (onlineVideo) {
+			return (
+				<iframe
+					src={onlineVideo.embedUrl}
+					title={translationsEn['pptx.media.onlineVideoTitle']}
+					className='w-full h-full border-0 pointer-events-auto'
+					allow={ONLINE_VIDEO_IFRAME_ALLOW}
+					allowFullScreen
+					sandbox={ONLINE_VIDEO_IFRAME_SANDBOX}
+				/>
+			);
+		}
 		if (dataUrl) {
 			return (
 				<PresentationMediaController

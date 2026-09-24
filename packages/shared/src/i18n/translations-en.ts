@@ -1038,6 +1038,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.media.startAutomatically': 'Automatically',
 	'pptx.media.playAcrossSlides': 'Play across slides',
 	'pptx.media.fullScreen': 'Full screen',
+	'pptx.media.onlineVideoTitle': 'Online video',
 	'pptx.media.hideWhenNotPlaying': 'Hide when not playing',
 	'pptx.media.bookmarks': 'Bookmarks',
 	'pptx.media.bookmark': 'Bookmark',

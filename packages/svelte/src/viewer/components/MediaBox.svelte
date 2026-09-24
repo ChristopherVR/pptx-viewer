@@ -29,6 +29,8 @@
 	 */
 	import {
 		MEDIA_FULLSCREEN_OVERLAY_STYLE,
+		ONLINE_VIDEO_IFRAME_ALLOW,
+		ONLINE_VIDEO_IFRAME_SANDBOX,
 		applyMediaPlaybackAttributes,
 		isMediaFullscreenActive,
 		mediaFallbackIcon,
@@ -216,7 +218,19 @@
 		     text node (neither block is then at the children-list edge), which
 		     broke the empty-textContent assertion for a media element with no
 		     playable source and no fallback chrome. -->
-		{#if hitTarget}<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>{/if}{#if view.mediaSrc && media.mediaType === 'video'}
+		{#if hitTarget}<div aria-hidden="true" data-pptx-hit-target="true" style={styleToString(hitTarget)}></div>{/if}{#if view.onlineVideoEmbedUrl && media.mediaType === 'video'}
+			<!-- A linked YouTube/Vimeo URL is a web page, not a media stream:
+			     `<video src>` cannot decode it and shows nothing. Render the
+			     provider's own iframe embed instead. -->
+			<iframe
+				class="pptx-svelte-media-video pptx-svelte-media-iframe"
+				src={view.onlineVideoEmbedUrl}
+				title={t('pptx.media.onlineVideoTitle')}
+				allow={ONLINE_VIDEO_IFRAME_ALLOW}
+				sandbox={ONLINE_VIDEO_IFRAME_SANDBOX}
+				allowfullscreen
+			></iframe>
+		{:else if view.mediaSrc && media.mediaType === 'video'}
 			<!-- svelte-ignore a11y_media_has_caption -- source PPTX media carries no caption track -->
 			<video
 				bind:this={mediaEl}
@@ -301,6 +315,10 @@
 		height: 100%;
 		object-fit: contain;
 		display: block;
+	}
+
+	.pptx-svelte-media-iframe {
+		border: 0;
 	}
 
 	.pptx-svelte-media-audio {
