@@ -51,11 +51,19 @@ Regenerate with `scripts/make-three-d-parity-charts.ps1` /
   walls, gridlines and marks are 3D. The new chart view draws the chrome as SVG
   in the element's overlay (`render/chart-view-model-dom.ts`, extracted from
   the vanilla binding) and the marks in WebGL.
-- `c:view3D/@rAngAx="1"` (every bar3D variant) is an oblique projection: front
-  faces are the plain 2D bar layout, extruded along a fixed depth vector.
-  `rAngAx="0"` (line, area, pie, surface) is a real perspective box with
+- `c:view3D/@rAngAx="1"` (every bar3D variant) is an oblique projection: the
+  plot is a real `W x H x D` box whose front plane is drawn flat and whose
+  depth shears up-right by `(sin rotY, sin rotX)`. A bar's depth equals its
+  width; each depth row is `barWidth * (1 + gapDepth/100)` deep. The value
+  axis has no headroom, labels sit off the box's FRONT edges, and gridlines
+  run on the back wall plus the side wall (columns) or floor (horizontal
+  bars). The box size and position are calibrated against `gt/chart-01..06`
+  (`render/chart-3d-oblique-layout.ts`). `rAngAx="0"` (line, area, pie,
+  surface) is a real perspective box with
   floor/wall gridlines. Pie defaults are rotX 30 / rotY 0, everything else
   15 / 20.
+- Core used to fold `c:grouping val="standard"` into `clustered`; it now keeps
+  `groupingStandard` so the layout (and a save round-trip) can tell them apart.
 - Face shading is flat in chart space, measured on accent1: front 1.0x, top
   0.75x, right side 0.64x (`render/chart-3d-shading.ts`).
 - 3-D Line is a flat ribbon per series, 3-D Area a solid slab, clustered bars
@@ -87,29 +95,28 @@ routes a 3D mark's select/drag through the shared `applyChart3DSelect` /
 The scene is interactive only while the chart is selected and editable, the
 same gate that arms the 2D marks.
 
-| Area                                                                                | State                                                                                                                                                                                        |
-| ----------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `<pptx-three-view>` host, one shared WebGL context, sizing, fallback, events        | Done, unit tested (`three-view/*.test.ts`)                                                                                                                                                   |
-| All five bindings on the element                                                    | Done, per-binding `three-view` tests; verified in every demo with the charts deck                                                                                                            |
-| Export snapshot (foreignObject path) + shadow-DOM-aware chart part lookup           | Done (`three-view/export-snapshot.ts`, `render/chart-event-target.ts`)                                                                                                                       |
-| Export via the html2canvas-pro raster path (PNG/GIF/video)                          | Not verified; likely needs `snapshotThreeViewsIntoClone` too                                                                                                                                 |
-| Oblique bar3D scene (clustered / stacked / percentStacked box columns)              | Done: boxes on the 2D layout, SVG chrome overlay, hover tooltip, click-to-select, drag-to-value (`chart-3d-oblique-interaction.ts`)                                                          |
-| Every other 3D chart (standard / horizontal / round bars, line, area, pie, surface) | Rendered by the pre-element perspective scenes, now hosted on the shared renderer (`chart-3d-hosted-stage.ts`) with their interaction intact. Same look as before: NOT PowerPoint parity yet |
-| Auto chart title (`c:title` without text)                                           | Done for every chart family (`chart-auto-title.ts`); the 2D title band is fixed at 20px, so an 18pt title is clipped at the top in 2D and 3D alike                                           |
-| Core: SmartArt `scene3d`/`sp3d`/text 3D + quick-style whole-diagram camera          | Parsed and tested against the ground-truth deck                                                                                                                                              |
-| Core: writing those fields back after a SmartArt drawing edit                       | Missing: an edited 3D-styled SmartArt loses them on save (unedited decks round-trip untouched)                                                                                               |
-| SmartArt scene: flat styles (Simple Fill .. Intense)                                | Done, near pixel parity on all 8 layouts, built from the cached drawing                                                                                                                      |
-| SmartArt scene: bevel and scene styles                                              | Not done: rendered flat as a stopgap                                                                                                                                                         |
-| SmartArt inline node editing over the scene                                         | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                       |
-| e2e                                                                                 | Existing 3D specs locate the canvas through Playwright's shadow-piercing selectors; no 17-chart smoke spec yet                                                                               |
+| Area                                                                                         | State                                                                                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `<pptx-three-view>` host, one shared WebGL context, sizing, fallback, events                 | Done, unit tested (`three-view/*.test.ts`)                                                                                                                                                                                            |
+| All five bindings on the element                                                             | Done, per-binding `three-view` tests; verified in every demo with the charts deck                                                                                                                                                     |
+| Export snapshot (foreignObject path) + shadow-DOM-aware chart part lookup                    | Done (`three-view/export-snapshot.ts`, `render/chart-event-target.ts`)                                                                                                                                                                |
+| Export via the html2canvas-pro raster path (PNG/GIF/video)                                   | Not verified; likely needs `snapshotThreeViewsIntoClone` too                                                                                                                                                                          |
+| Oblique bar3D scene (box bars: clustered / stacked / 100% / standard, column and horizontal) | Done on PowerPoint's box model (slides 1-6): world-space layout, gridlines in WebGL, front-edge labels, hover tooltip, click-to-select, drag-to-value. Slide 1 lands within 3pt of PowerPoint; slide 4 (standard) is about 12% taller |
+| Every other 3D chart (round bars, line, area, pie, surface)                                  | Rendered by the pre-element perspective scenes, now hosted on the shared renderer (`chart-3d-hosted-stage.ts`) with their interaction intact. Same look as before: NOT PowerPoint parity yet                                          |
+| Auto chart title (`c:title` without text)                                                    | Done for every chart family (`chart-auto-title.ts`); the 2D title band is fixed at 20px, so an 18pt title is clipped at the top in 2D and 3D alike                                                                                    |
+| Core: SmartArt `scene3d`/`sp3d`/text 3D + quick-style whole-diagram camera                   | Parsed and tested against the ground-truth deck                                                                                                                                                                                       |
+| Core: writing those fields back after a SmartArt drawing edit                                | Missing: an edited 3D-styled SmartArt loses them on save (unedited decks round-trip untouched)                                                                                                                                        |
+| SmartArt scene: flat styles (Simple Fill .. Intense)                                         | Done, near pixel parity on all 8 layouts, built from the cached drawing                                                                                                                                                               |
+| SmartArt scene: bevel and scene styles                                                       | Not done: rendered flat as a stopgap                                                                                                                                                                                                  |
+| SmartArt inline node editing over the scene                                                  | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                                                                |
+| e2e                                                                                          | Existing 3D specs locate the canvas through Playwright's shadow-piercing selectors; no 17-chart smoke spec yet                                                                                                                        |
 
 ## Next steps
 
 In priority order:
 
 1. Charts: move each perspective chart onto PowerPoint's own model (the
-   oblique scene covers slides 1-3): `standard` rows and horizontal bars
-   (slides 4-6), round shapes (7-9), then line ribbons, area slabs, pie tilt /
+   oblique scene covers slides 1-6): round shapes (7-9), then line ribbons, area slabs, pie tilt /
    explosion and surface bands (10-17). The perspective family needs the plot
    rect, which `ChartViewModel` does not expose yet (derive it from
    `vm.gridlines`, or thread `PlotLayout` through). Replace the matching

@@ -1,3 +1,4 @@
+import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
 /**
  * chart-3d-chrome-overlay.ts: the SVG "chrome" (chart-area fill/border,
  * title, legend, value-axis gridlines/ticks, category labels) a 3D chart
@@ -29,7 +30,12 @@ import type { ChartViewModel } from './chart-view-model-types';
  * scene's own world-unit convention (1 world unit = 1 authored chart px) so
  * an element positioned from the same view-model's rects lines up exactly.
  */
-export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel): SVGSVGElement {
+export function renderChart3DChromeOverlaySvg(
+	doc: Document,
+	source: ChartViewModel,
+	oblique?: ObliqueChartLayout,
+): SVGSVGElement {
+	const vm = oblique ? withObliqueChromePositions(source) : source;
 	const svg = createSvgEl(doc, 'svg', {
 		class: 'pptxv-chart-3d-chrome',
 		viewBox: `0 0 ${vm.svgWidth} ${vm.svgHeight}`,
@@ -86,6 +92,20 @@ export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel)
 		svg.appendChild(title);
 	}
 
+	if (oblique) {
+		// The box's gridlines are drawn in the scene (bars hide the back
+		// wall); only its axis labels go here.
+		appendObliqueLabels(doc, svg, vm, oblique);
+		// PowerPoint lists a clustered horizontal bar chart's legend bottom-up,
+		// matching the order the series stack up the category axis.
+		const legendVm =
+			oblique.horizontal && oblique.grouping === 'clustered'
+				? { ...vm, legend: [...vm.legend].reverse() }
+				: vm;
+		appendChartLegendSvg(doc, svg, legendVm);
+		return svg;
+	}
+
 	for (const gl of vm.gridlines) {
 		svg.appendChild(renderChartLineSvg(doc, gl));
 	}
@@ -107,4 +127,45 @@ export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel)
 
 	appendChartLegendSvg(doc, svg, vm);
 	return svg;
+}
+
+/** Points to chart px (96 dpi). */
+const PT = 4 / 3;
+/** Title baseline below the chart top, and legend baseline above its bottom, measured on `gt/chart-01`. */
+const OBLIQUE_TITLE_BASELINE = 24 * PT;
+const OBLIQUE_LEGEND_BASELINE = 14 * PT;
+
+/** The flat view model with its title and legend moved to where PowerPoint puts them on a 3D chart. */
+function withObliqueChromePositions(vm: ChartViewModel): ChartViewModel {
+	const legendBottom = (vm.legendY ?? vm.svgHeight - 8) >= vm.svgHeight / 2;
+	return {
+		...vm,
+		titleY: OBLIQUE_TITLE_BASELINE,
+		// Legend text sits 3px below `legendY` (see `appendChartLegendSvg`).
+		legendY: legendBottom ? vm.svgHeight - OBLIQUE_LEGEND_BASELINE - 3 : vm.legendY,
+	};
+}
+
+function appendObliqueLabels(
+	doc: Document,
+	svg: SVGElement,
+	vm: ChartViewModel,
+	layout: ObliqueChartLayout,
+): void {
+	const style = vm.axisLabels[0];
+	for (const label of layout.labels) {
+		svg.appendChild(
+			renderChartTextSvg(doc, {
+				kind: 'text',
+				x: label.x,
+				y: label.y,
+				text: label.text,
+				fontSize: label.fontSize,
+				fill: style?.fill ?? '#595959',
+				fontFamily: style?.fontFamily,
+				textAnchor: label.anchor,
+				dominantBaseline: label.baseline,
+			}),
+		);
+	}
 }

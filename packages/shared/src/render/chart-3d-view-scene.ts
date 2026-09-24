@@ -100,7 +100,7 @@ export async function mountChart3DView(
 	spec: Chart3DSpec,
 	ctx: ThreeViewContext,
 ): Promise<ThreeViewScene> {
-	if (spec.projection.mode !== 'oblique' || spec.geometry?.kind !== 'bar') {
+	if (spec.projection.mode !== 'oblique' || spec.geometry?.kind !== 'oblique') {
 		if (spec.perspective) {
 			return mountPerspectiveScene(spec.perspective, ctx);
 		}
@@ -122,18 +122,20 @@ export async function mountChart3DView(
 	);
 
 	const scene = new three.Scene();
-	const bars = buildChart3DBarMeshes(three, geometry.boxes, vm.svgWidth, vm.svgHeight);
+	const { layout } = geometry;
+	const bars = buildChart3DBarMeshes(three, layout, vm.svgWidth, vm.svgHeight);
 	scene.add(bars.group);
 
-	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm);
+	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm, layout);
 	ctx.overlay.appendChild(overlay);
 
 	const interaction = attachObliqueBarInteraction({
 		ctx,
 		camera,
 		meshes: bars.meshes,
-		boxes: geometry.boxes,
-		vm,
+		layout,
+		svgWidth: vm.svgWidth,
+		svgHeight: vm.svgHeight,
 		chartData,
 		categoryLabels: spec.categoryLabels,
 		seriesNames: chartData.series.map((series) => series.name),

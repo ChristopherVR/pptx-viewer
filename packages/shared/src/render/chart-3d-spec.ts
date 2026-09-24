@@ -27,11 +27,12 @@ import { buildAreaChart3DDataForElement } from './area-chart-3d-data';
 import type { AreaChart3DSceneOptions } from './area-chart-3d-data';
 import { buildBarChart3DDataForElement } from './bar-chart-3d-data';
 import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
-import { computeDepthVector } from './chart-3d-depth';
+import { computeObliqueBarLayout } from './chart-3d-oblique-layout';
+import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
 import type { Chart3DProjection } from './chart-3d-projection';
 import { resolveChart3DProjection } from './chart-3d-projection';
 import { buildChartViewModel } from './chart-view-model-build';
-import type { ChartViewModel, SvgRect } from './chart-view-model-types';
+import type { ChartViewModel } from './chart-view-model-types';
 import { buildLineChart3DDataForElement } from './line-chart-3d-data';
 import type { LineChart3DSceneOptions } from './line-chart-3d-data';
 import { buildPieChart3DDataForElement } from './pie-chart-3d-data';
@@ -49,41 +50,16 @@ export const CHART_3D_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * One `bar3D` box: front-face rectangle in the flat 2D view-model's own SVG
- * pixel space (already gap-width/clustering/stacking-correct), extruded
- * backward in world Z by `depthMagnitude`.
+ * A right-angle-axes `bar3D` chart laid out as a real box in world space
+ * (walls, gridlines, bars, axis labels); see `chart-3d-oblique-layout.ts`.
  */
-export interface Chart3DBarBox {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-	color: string;
-	seriesIndex: number;
-	categoryIndex: number;
-	/** The point's authored value (hover tooltip, drag start). */
-	value: number;
-	shape: PptxBar3DShape | undefined;
-	/**
-	 * World-Z extrusion depth (SVG px units), the SAME quantity the flat 2D
-	 * fallback's `chart-3d-depth.ts#computeDepthVector` uses for its
-	 * `magnitude`. Every box in a supported (`clustered` / `stacked` /
-	 * `percentStacked`) grouping shares one chart-wide depth: those groupings
-	 * keep every series COPLANAR (one Z plane), matching PowerPoint's own
-	 * `gt/chart-01.webp` (no visible per-series depth separation). `standard`
-	 * grouping (each series its own full depth ROW, see `gt/chart-04.webp`)
-	 * is NOT yet modelled; see the chart track's progress log.
-	 */
-	depthMagnitude: number;
+export interface Chart3DObliqueGeometry {
+	kind: 'oblique';
+	layout: ObliqueChartLayout;
 }
 
-export interface Chart3DBarGeometry {
-	kind: 'bar';
-	boxes: readonly Chart3DBarBox[];
-}
-
-/** `null` until a chart type/grouping's oblique geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
-export type Chart3DGeometry = Chart3DBarGeometry | null;
+/** `null` until a chart type/shape's oblique geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
+export type Chart3DGeometry = Chart3DObliqueGeometry | null;
 
 /**
  * The perspective scene a chart falls back to when the oblique geometry does
@@ -120,12 +96,6 @@ export interface Chart3DSpec {
 	perspective: Chart3DPerspectiveScene | null;
 }
 
-const SUPPORTED_BAR_GROUPINGS: ReadonlySet<string> = new Set([
-	'clustered',
-	'stacked',
-	'percentStacked',
-]);
-
 /** Resolve a box's `c:bar3DChart/c:shape`, overridden per-series by `c:ser/c:shape`. */
 function resolveBoxShape(
 	chartData: PptxChartData,
@@ -148,46 +118,20 @@ function isSupportedBoxShape(shape: PptxBar3DShape | undefined): boolean {
 }
 
 /**
- * Build the `bar3D` box geometry from the flat 2D view-model's own front-face
- * rectangles. Returns `null` when the chart's grouping/direction/shape is not
- * yet modelled (`standard` grouping, a horizontal `c:barDir val="bar"` chart,
- * or a non-`box` `c:shape`) so the caller falls back to the flat 2D render
- * instead of a wrong or unverified one.
+ * Build the right-angle-axes `bar3D` geometry. Returns `null` when a series
+ * uses a round `c:shape` (not modelled yet) so the caller falls back to the
+ * perspective scene instead of an unverified guess.
  */
-function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3DGeometry {
-	const grouping = chartData.grouping ?? 'clustered';
-	if (!SUPPORTED_BAR_GROUPINGS.has(grouping) || chartData.barDirection === 'bar') {
+function buildBarGeometry(
+	element: PptxElement,
+	vm: ChartViewModel,
+	chartData: PptxChartData,
+): Chart3DGeometry {
+	if (!chartData.series.every((_s, i) => isSupportedBoxShape(resolveBoxShape(chartData, i)))) {
 		return null;
 	}
-	const depthMagnitude = computeDepthVector(chartData.view3D).magnitude;
-	const boxes: Chart3DBarBox[] = [];
-	for (const prim of vm.primitives) {
-		if (prim.kind !== 'rect' || prim.part?.role !== 'dataPoint') {
-			continue;
-		}
-		const rect = prim as SvgRect;
-		const seriesIndex = rect.part?.seriesIndex ?? 0;
-		const shape = resolveBoxShape(chartData, seriesIndex);
-		if (!isSupportedBoxShape(shape)) {
-			return null;
-		}
-		boxes.push({
-			x: rect.x,
-			y: rect.y,
-			w: rect.w,
-			h: rect.h,
-			color: rect.fill,
-			seriesIndex,
-			categoryIndex: rect.part?.pointIndex ?? 0,
-			value: chartData.series[seriesIndex]?.values[rect.part?.pointIndex ?? 0] ?? 0,
-			shape,
-			depthMagnitude,
-		});
-	}
-	if (boxes.length === 0) {
-		return null;
-	}
-	return { kind: 'bar', boxes };
+	const layout = computeObliqueBarLayout(element, vm);
+	return layout && layout.bars.length > 0 ? { kind: 'oblique', layout } : null;
 }
 
 /**
@@ -213,7 +157,10 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	}
 	const vm = buildChartViewModel(element);
 	const projection = resolveChart3DProjection(chartType, chartData.view3D);
-	const geometry = chartType === 'bar3D' ? buildBarGeometry(vm, chartData) : null;
+	const geometry =
+		chartType === 'bar3D' && projection.mode === 'oblique'
+			? buildBarGeometry(element, vm, chartData)
+			: null;
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0

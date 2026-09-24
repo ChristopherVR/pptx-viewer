@@ -154,11 +154,16 @@ function snap(value: number, unit: number, direction: 'up' | 'down'): number {
  *   {@link axisTargetIntervals}`(plotHeightPx)` instead whenever that height is
  *   known; see that function's doc comment for why a fixed constant undershot
  *   real PowerPoint on any chart of ordinary-or-larger size.
+ * @param headroom Fraction of the data span added beyond the far end. 2D
+ *   charts get PowerPoint's 5%; a right-angle-axes 3D bar chart gets none
+ *   (its axis on data topping out at exactly 5 ends at 5, see
+ *   `chart-3d-oblique-layout.ts`).
  */
 export function niceValueAxisBounds(
 	dataMin: number,
 	dataMax: number,
 	targetIntervals = DEFAULT_TARGET_INTERVALS,
+	headroom = HEADROOM,
 ): NiceAxisBounds {
 	if (!Number.isFinite(dataMin) || !Number.isFinite(dataMax)) {
 		return { min: 0, max: 1, majorUnit: 0.5 };
@@ -180,7 +185,7 @@ export function niceValueAxisBounds(
 	}
 
 	const dataSpan = high - low;
-	const padding = dataSpan * HEADROOM;
+	const padding = dataSpan * headroom;
 
 	// Decide which end, if either, pins to zero.
 	let paddedMin: number;
