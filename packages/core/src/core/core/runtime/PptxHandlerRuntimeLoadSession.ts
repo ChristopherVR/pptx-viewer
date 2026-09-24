@@ -116,6 +116,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		this.externalRelsMap.clear();
 		this.slideMap.clear();
 		this.savedSlideFingerprints.clear();
+		this.chartDataBaselines.clear();
 		this.layoutCache.clear();
 		this.masterCache.clear();
 		this.templateElementBaselines.reset();
@@ -500,6 +501,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.getSmartArtDataForGraphicFrame(slidePath, graphicFrame),
 			getChartDataForGraphicFrame: (slidePath, graphicFrame) =>
 				this.getChartDataForGraphicFrame(slidePath, graphicFrame),
+			rememberChartDataBaseline: (chartData) => this.rememberChartDataBaseline(chartData),
 			parseSlideCustomerData: (slideXml, slidePath) =>
 				this.parseSlideCustomerData(slideXml, slidePath),
 			parseSlideActiveXControls: (slideXml) => this.parseSlideActiveXControls(slideXml),

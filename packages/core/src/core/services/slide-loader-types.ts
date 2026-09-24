@@ -210,6 +210,12 @@ export interface PptxSlideLoaderParams {
 		slidePath: string,
 		graphicFrame: XmlObject | undefined,
 	) => Promise<PptxChartData | undefined>;
+	/**
+	 * Record freshly-parsed `chartData` as the load-time baseline for its
+	 * `chartPartPath`, so a later save can tell an untouched chart apart from
+	 * an edited one and pass the untouched part's bytes through unchanged.
+	 */
+	rememberChartDataBaseline: (chartData: PptxChartData) => void;
 	/** Parse customer data tags from a slide's `p:custDataLst`. */
 	parseSlideCustomerData: (slideXml: XmlObject, slidePath: string) => Promise<PptxCustomerData[]>;
 	/** Parse ActiveX control references from a slide's `p:controls`. */

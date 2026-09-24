@@ -504,6 +504,7 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 					);
 					if (chartData) {
 						element.chartData = chartData;
+						params.rememberChartDataBaseline(chartData);
 					}
 				} catch {
 					// Non-critical: chart will render as placeholder if enrichment fails
