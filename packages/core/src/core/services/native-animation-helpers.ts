@@ -563,11 +563,22 @@ export function applyBuildList(timing: XmlObject, animations: PptxNativeAnimatio
 			bldP['@_bldLvl'] !== undefined ? Number.parseInt(String(bldP['@_bldLvl']), 10) : undefined;
 
 		for (const anim of animations) {
-			const matchesShape = anim.targetId === spid;
+			// A shape can own one `p:bldP` per `@grpId` (e.g. a by-paragraph
+			// entrance in group 0 and a whole-shape exit in group 1). An effect
+			// whose own `p:cTn/@grpId` names a DIFFERENT group is not this
+			// entry's recipient; matching on spid alone let the last entry
+			// overwrite every effect on the shape.
+			const matchesShape =
+				anim.targetId === spid &&
+				(groupId === undefined || anim.groupId === undefined || anim.groupId === groupId);
 			// grpId fallback: when the bldP carries an @bldLvl tied to a specific
 			// grpId, an animation already carrying that groupId is the intended
-			// recipient even if its targetId differs (ECMA-376 §19.5.6).
+			// recipient even if its targetId differs (ECMA-376 §19.5.6). Group ids
+			// are only unique PER SHAPE, so this cross-shape fallback is limited
+			// to graphic-frame builds (OLE chart / generic graphic), whose
+			// groupId came from their own build entry rather than a `p:cTn`.
 			const matchesGrp =
+				(anim.oleChartBuild !== undefined || anim.graphicBuild !== undefined) &&
 				bldLvl !== undefined &&
 				groupId !== undefined &&
 				anim.groupId !== undefined &&

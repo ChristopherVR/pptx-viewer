@@ -193,6 +193,9 @@ export function buildTimingNodeAnimation(
 		targetId,
 		target,
 		nodeId: nodeId !== undefined && !Number.isNaN(nodeId) ? nodeId : undefined,
+		// `@grpId` ties this effect to ITS `p:bldP` entry: a shape may own
+		// several (one per group), so `applyBuildList` matches on it.
+		groupId: cTn['@_grpId'] !== undefined ? String(cTn['@_grpId']) : undefined,
 		calcMode,
 		...cBhvrAttrs,
 		trigger,

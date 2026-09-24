@@ -1,5 +1,6 @@
 import type { PptxElementAnimation, XmlObject } from '../types';
 import { serializeBldPTemplates } from './animation-timing-templates';
+import { EDITOR_BUILD_GROUP_ID } from './animation-write-effect-extras';
 import { buildSingleEffectNode, buildMotionPathNode } from './animation-write-node-builders';
 
 /**
@@ -77,14 +78,20 @@ export function buildBldPNode(anim: PptxElementAnimation): XmlObject | undefined
 		return undefined;
 	}
 
-	const bldType =
-		anim.sequence === 'byParagraph' ? 'p' : anim.sequence === 'byWord' ? 'word' : 'char';
-
+	// `@build` is ST_TLParaBuildType (`whole` | `p` | `cust`): there is no
+	// word/char build. PowerPoint (COM-verified) writes a by-word / by-letter
+	// text build as `p:iterate` on the effect `p:cTn` (see
+	// `animation-write-effect-extras`) and leaves the `p:bldP` with no
+	// `@build`, only `animBg="1"` (the shape background builds with its text).
 	const bldPNode: XmlObject = {
 		'@_spid': anim.elementId,
-		'@_grpId': '0',
-		'@_build': bldType,
+		'@_grpId': EDITOR_BUILD_GROUP_ID,
 	};
+	if (anim.sequence === 'byParagraph') {
+		bldPNode['@_build'] = 'p';
+	} else {
+		bldPNode['@_animBg'] = '1';
+	}
 	// Re-emit the loaded per-build-level `p:tmplLst` (issue: "buildTemplates
 	// write wiring") so a full timing-tree rebuild does not silently drop it;
 	// `serializeBldPTemplates` mirrors what `extractBldPTemplates` parses.

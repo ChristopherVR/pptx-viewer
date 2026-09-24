@@ -99,6 +99,8 @@ export interface AfterAnimationStepFields {
 	hideAfterEffect?: boolean;
 	/** See {@link import('./animation-timeline-types').TimelineStep.pendingHideOnNextClick}. */
 	pendingHideOnNextClick?: boolean;
+	/** See {@link import('./animation-timeline-types').TimelineStep.pendingDimOnNextClick}. */
+	pendingDimOnNextClick?: string;
 	/** A `@keyframes` block to append to the timeline's dynamic CSS, when `afterAnimationAction` is `dimToColor`. */
 	dimKeyframeBlock?: string;
 }
@@ -129,9 +131,17 @@ export function resolveAfterAnimationStepFields(
 			? resolveThemeColorRef(anim.afterAnimationColorRef, themeColorMap)
 			: undefined);
 	if (anim.afterAnimationAction === 'dimToColor' && dimColor) {
+		// PowerPoint writes the dim as `p:subTnLst/p:animClr` with
+		// `masterRel="nextClick"` and, verified via COM, the dim CONSUMES a
+		// click of its own (`SlideShowView.GetClickCount()` goes 1 -> 2 for a
+		// single dimmed effect, and the second click stays on the slide). So
+		// the dim waits for the next click, where `injectHideOnNextClickSteps`
+		// splices it; it never fires at the effect's own end.
+		void dimStartDelayMs;
 		return {
-			cssAnimation: appendDimAnimation(cssAnimation, dimKeyframeName, dimStartDelayMs),
-			holdEndState: true,
+			cssAnimation,
+			holdEndState: baseHoldEndState,
+			pendingDimOnNextClick: `${dimKeyframeName} 1ms linear 0ms 1 forwards`,
 			dimKeyframeBlock: buildAfterAnimationDimKeyframes(dimColor, dimKeyframeName),
 		};
 	}

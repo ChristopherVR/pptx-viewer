@@ -5,6 +5,7 @@
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
 import { applyAfterAnimationBehavior } from './animation-after-effect-write';
+import { applyEffectCTnExtras, buildRepeatAttrs } from './animation-write-effect-extras';
 import {
 	PRESET_TO_OOXML,
 	DIRECTION_TO_SUBTYPE,
@@ -98,16 +99,7 @@ export function buildSingleEffectNode(
 		childElements.push(buildVisibilitySet(shapeId, duration, false, allocateId));
 	}
 
-	const repeatAttrs: Record<string, string> = {};
-	if (anim.repeatCount && anim.repeatCount > 1) {
-		repeatAttrs['@_repeatCount'] = String(anim.repeatCount * 1000);
-	}
-	if (anim.repeatMode === 'untilNextClick') {
-		repeatAttrs['@_repeatCount'] = 'indefinite';
-		repeatAttrs['@_restart'] = 'whenNotActive';
-	} else if (anim.repeatMode === 'untilEndOfSlide') {
-		repeatAttrs['@_repeatCount'] = 'indefinite';
-	}
+	const repeatAttrs = buildRepeatAttrs(anim);
 
 	const effectCTn: XmlObject = {
 		'@_id': String(effectId),
@@ -193,6 +185,7 @@ export function buildSingleEffectNode(
 		applyAfterAnimationBehavior(effectCTn, anim, shapeId);
 	}
 	applySoundToEffectCTn(effectCTn, anim);
+	applyEffectCTnExtras(effectCTn, anim);
 
 	const wrapperId = allocateId();
 	return {
