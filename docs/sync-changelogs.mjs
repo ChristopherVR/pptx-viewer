@@ -24,6 +24,25 @@ const PACKAGES = [
 	{ key: 'cli', dir: 'packages/cli', npm: '@christophervr/pptx-viewer' },
 ];
 
+/**
+ * Changelog lines come from commit subjects, which sometimes name an element
+ * (e.g. "render through <pptx-three-view>"). VitePress compiles markdown as a
+ * Vue template, so a bare tag there fails the docs build ("Element is missing
+ * end tag"). Escape `<` before a tag name outside inline code spans; the
+ * changelogs themselves are prepend-only and must not be rewritten.
+ */
+function escapeBareTags(markdown) {
+	return markdown
+		.split('\n')
+		.map((line) =>
+			line
+				.split(/(`[^`]*`)/u)
+				.map((part, index) => (index % 2 === 1 ? part : part.replace(/<(?=\/?[A-Za-z])/gu, '&lt;')))
+				.join(''),
+		)
+		.join('\n');
+}
+
 mkdirSync(join(DOCS, 'releases'), { recursive: true });
 
 for (const { key, dir, npm } of PACKAGES) {
@@ -33,7 +52,7 @@ for (const { key, dir, npm } of PACKAGES) {
 	try {
 		const raw = readFileSync(join(ROOT, dir, 'CHANGELOG.md'), 'utf8');
 		const first = raw.indexOf('\n## ');
-		body = first === -1 ? '' : raw.slice(first + 1);
+		body = first === -1 ? '' : escapeBareTags(raw.slice(first + 1));
 	} catch {
 		body = '_No releases yet._\n';
 	}
