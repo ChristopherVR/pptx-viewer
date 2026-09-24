@@ -229,6 +229,28 @@ test.describe('element animation playback', () => {
 			)
 			.toBe(true);
 
+		// Record every CSS animation that starts on the shape's wrapper. The
+		// entrance lasts only ANIMATION_DURATION_MS and the shared playback engine
+		// detaches a non-held effect's `animation` once it ends, so sampling
+		// `animationName` after the click races the effect on a slow runner (CI
+		// saw `none` for the whole poll in vanilla). The event log cannot miss it.
+		const elementId = await shape.getAttribute('data-element-id');
+		expect(elementId).toBeTruthy();
+		await page.evaluate((id) => {
+			const log: string[] = [];
+			(window as unknown as { __e2eAnimStarts: string[] }).__e2eAnimStarts = log;
+			document.addEventListener(
+				'animationstart',
+				(event) => {
+					const target = event.target;
+					if (target instanceof HTMLElement && target.dataset.elementId === id) {
+						log.push(event.animationName);
+					}
+				},
+				true,
+			);
+		}, elementId);
+
 		// The next click reveals the animation's click-group WITHOUT advancing the
 		// slide - the shared "an animation is pending, consume the click" contract
 		// every binding implements (`playNextAnimationGroup()` / `playback.advance()`).
@@ -240,8 +262,12 @@ test.describe('element animation playback', () => {
 			.poll(() => shape.evaluate((el) => getComputedStyle(el).visibility))
 			.toBe('visible');
 		await expect
-			.poll(() => shape.evaluate((el) => getComputedStyle(el).animationName))
-			.not.toBe('none');
+			.poll(() =>
+				page.evaluate(
+					() => (window as unknown as { __e2eAnimStarts: string[] }).__e2eAnimStarts.length,
+				),
+			)
+			.toBeGreaterThan(0);
 
 		// Whichever binding, the entrance keyframe ends on full opacity and the
 		// `forwards`/`both` fill mode holds it there once the animation completes.
