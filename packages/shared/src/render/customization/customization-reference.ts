@@ -144,6 +144,27 @@ export function buildCustomizationReference(): string {
 	return `${parts.join('\n\n')}\n`;
 }
 
+/**
+ * `markdown` with table padding and blank-line runs collapsed, so a check can
+ * compare the committed (oxfmt-aligned) docs against the raw generator output.
+ */
+export function normalizeReferenceMarkdown(markdown: string): string {
+	return markdown
+		.split(/\r?\n/u)
+		.map((line) => {
+			if (!line.startsWith('|')) {
+				return line.trimEnd();
+			}
+			return line
+				.split(/(?<!\\)\|/u)
+				.map((cell) => cell.trim().replace(/^:?-{3,}:?$/u, '---'))
+				.join('|');
+		})
+		.join('\n')
+		.replace(/\n{3,}/gu, '\n\n')
+		.trim();
+}
+
 /** `markdown` with the text between the reference markers replaced. */
 export function replaceCustomizationReference(markdown: string): string {
 	const start = markdown.indexOf(REFERENCE_START_MARKER);

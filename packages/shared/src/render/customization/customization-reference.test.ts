@@ -19,15 +19,20 @@ import {
 	VIEWER_FEATURE_IDS,
 	VIEWER_PANEL_IDS,
 } from './customization-catalog';
-import { replaceCustomizationReference } from './customization-reference';
+import {
+	normalizeReferenceMarkdown,
+	replaceCustomizationReference,
+} from './customization-reference';
 
 const DOC_PATH = resolve(__dirname, '../../../../../docs/guide/customization.md');
 
 describe('docs/guide/customization.md', () => {
 	const doc = readFileSync(DOC_PATH, 'utf8');
 
-	it('carries the generated reference verbatim (run `bun run docs:customization`)', () => {
-		expect(replaceCustomizationReference(doc)).toBe(doc);
+	it('carries the generated reference (run `bun run docs:customization`)', () => {
+		expect(normalizeReferenceMarkdown(replaceCustomizationReference(doc))).toBe(
+			normalizeReferenceMarkdown(doc),
+		);
 	});
 
 	it('documents every customisation id', () => {
