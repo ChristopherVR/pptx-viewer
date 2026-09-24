@@ -88,13 +88,47 @@ describe('getInitialStyleForEffect', () => {
 		});
 	});
 
-	it('should return a hidden centre-box mask for "boxIn"', () => {
+	// "In" is COM-verified (see `animation-mask-hole-reveal`) to be a hole
+	// shrinking from the element's own edges inward, NOT the `boxOut`
+	// exit-style growing-solid-from-centre mask this used to reuse.
+	it('should return a fully-hollow box hole mask for "boxIn"', () => {
 		const style = getInitialStyleForEffect('boxIn');
 		expect(style).toStrictEqual({
-			maskImage: 'linear-gradient(#000, #000)',
-			maskPosition: 'center',
-			maskRepeat: 'no-repeat',
-			maskSize: '0% 0%',
+			maskImage: 'linear-gradient(#000, #000), linear-gradient(#000, #000)',
+			maskPosition: 'center, center',
+			maskRepeat: 'no-repeat, no-repeat',
+			maskSize: '100% 100%, 100% 100%',
+			maskComposite: 'add, exclude',
+			opacity: 1,
+		});
+	});
+
+	it('should return a fully-hollow circle hole mask for "circleIn"', () => {
+		const style = getInitialStyleForEffect('circleIn');
+		expect(style).toMatchObject({
+			maskImage: 'radial-gradient(circle, #000 0%, #000 100%), linear-gradient(#000, #000)',
+			maskSize: '100% 100%, 100% 100%',
+			maskComposite: 'add, exclude',
+		});
+	});
+
+	it('should return a fully-hollow diamond hole mask for "diamondIn"', () => {
+		const style = getInitialStyleForEffect('diamondIn');
+		expect(style).toMatchObject({
+			maskSize: '100% 100%, 100% 100%',
+			maskComposite: 'add, exclude',
+		});
+	});
+
+	it('should return a fully-hollow plus (cross) hole mask for "plusIn"', () => {
+		const style = getInitialStyleForEffect('plusIn');
+		expect(style).toStrictEqual({
+			maskImage:
+				'linear-gradient(#000, #000), linear-gradient(#000, #000), linear-gradient(#000, #000)',
+			maskPosition: 'center, center, center',
+			maskRepeat: 'no-repeat, no-repeat, no-repeat',
+			maskSize: '100% 100%, 100% 100%, 100% 100%',
+			maskComposite: 'add, add, exclude',
 			opacity: 1,
 		});
 	});
@@ -235,6 +269,34 @@ describe('getAnimationInitialStyle', () => {
 			trigger: 'onClick',
 		} as unknown as PptxNativeAnimation);
 		expect(style).toStrictEqual({ opacity: 0, transform: 'translateY(100%)' });
+	});
+
+	// Regression: `diamondIn`/`plusIn` (presetId 8/13) were MISSING from the
+	// module's `ENTRANCE_EFFECTS` set, so `getAnimationInitialStyle` fell
+	// through to the "exit/emphasis effects don't change initial visibility"
+	// branch and returned `{}` - a Diamond or Plus entrance on a real deck
+	// never actually hid the element before the effect fired at all, let
+	// alone with the wrong mask direction.
+	it('should return a hole-reveal mask for a native Diamond entrance (presetId 8), not an empty style', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'entr',
+			presetId: 8, // diamondIn
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation);
+		expect(style).not.toStrictEqual({});
+		expect(style).toMatchObject({ maskComposite: 'add, exclude' });
+	});
+
+	it('should return a hole-reveal mask for a native Plus entrance (presetId 13), not an empty style', () => {
+		const style = getAnimationInitialStyle(undefined, {
+			targetId: 'el-1',
+			presetClass: 'entr',
+			presetId: 13, // plusIn
+			trigger: 'onClick',
+		} as unknown as PptxNativeAnimation);
+		expect(style).not.toStrictEqual({});
+		expect(style).toMatchObject({ maskComposite: 'add, add, exclude' });
 	});
 
 	it('should return empty object for preset-only calls (no nativeAnimation)', () => {

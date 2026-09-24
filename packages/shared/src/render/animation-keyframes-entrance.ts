@@ -8,6 +8,7 @@
  */
 
 import { SCALE_SPIN_KEYFRAME_DEFINITIONS } from './animation-keyframes-scale-spin';
+import { maskHoleDecl, maskPlusHoleDecl } from './animation-mask-hole-reveal';
 import {
 	blindsDecl,
 	checkerboardDecl,
@@ -114,12 +115,12 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	to { ${blindsDecl('horizontal', 1)} opacity: 1; }
 }`,
 	boxIn: `@keyframes pptx-boxIn {
-	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
+	from { ${maskHoleDecl('box', 'hidden')} opacity: 1; }
+	to { ${maskHoleDecl('box', 'shown')} opacity: 1; }
 }`,
 	circleIn: `@keyframes pptx-circleIn {
-	from { ${maskShapeDecl('circleOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('circleOut', 'shown')} opacity: 1; }
+	from { ${maskHoleDecl('circle', 'hidden')} opacity: 1; }
+	to { ${maskHoleDecl('circle', 'shown')} opacity: 1; }
 }`,
 	floatIn: `@keyframes pptx-floatIn {
 	from { opacity: 0; transform: translateY(40px); }
@@ -190,12 +191,12 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	to { opacity: 1; transform: rotate(0deg) scale(1); }
 }`,
 	diamondIn: `@keyframes pptx-diamondIn {
-	from { ${maskShapeDecl('diamondOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('diamondOut', 'shown')} opacity: 1; }
+	from { ${maskHoleDecl('diamond', 'hidden')} opacity: 1; }
+	to { ${maskHoleDecl('diamond', 'shown')} opacity: 1; }
 }`,
 	plusIn: `@keyframes pptx-plusIn {
-	from { ${maskShapeDecl('plusOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('plusOut', 'shown')} opacity: 1; }
+	from { ${maskPlusHoleDecl('hidden')} opacity: 1; }
+	to { ${maskPlusHoleDecl('shown')} opacity: 1; }
 }`,
 	wedgeIn: `@keyframes pptx-wedgeIn {
 	from { ${maskShapeDecl('wedgeOut', 'hidden')} opacity: 1; }

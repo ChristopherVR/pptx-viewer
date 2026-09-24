@@ -30,6 +30,7 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
+import { maskHoleDecl } from './animation-mask-hole-reveal';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 
 /**
@@ -364,8 +365,8 @@ export const ANIMATION_KEYFRAMES_CSS = `
 	to { ${maskEdgeDecl('top', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-boxIn {
-	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
+	from { ${maskHoleDecl('box', 'hidden')} opacity: 1; }
+	to { ${maskHoleDecl('box', 'shown')} opacity: 1; }
 }
 @keyframes ${KEYFRAME_PREFIX}-floatIn {
 	from { opacity: 0; transform: translateY(40px); }

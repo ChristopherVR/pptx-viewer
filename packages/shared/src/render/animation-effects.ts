@@ -8,6 +8,7 @@
 
 import type { PptxAnimationPreset, PptxNativeAnimation } from 'pptx-viewer-core';
 
+import { maskHoleInitialStyle, maskPlusHoleInitialStyle } from './animation-mask-hole-reveal';
 import { maskEdgeInitialStyle, maskShapeInitialStyle } from './animation-mask-reveal';
 import { resolveEffect } from './animation-timeline-helpers';
 import type { AnimationStyle, EffectName } from './animation-timeline-types';
@@ -32,6 +33,8 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'blindsIn',
 	'boxIn',
 	'circleIn',
+	'diamondIn',
+	'plusIn',
 	'floatIn',
 	'riseUp',
 	'swivel',
@@ -109,9 +112,13 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 		case 'blindsIn':
 			return maskEdgeInitialStyle('top');
 		case 'boxIn':
-			return maskShapeInitialStyle('boxOut');
+			return maskHoleInitialStyle('box');
 		case 'circleIn':
-			return maskShapeInitialStyle('circleOut');
+			return maskHoleInitialStyle('circle');
+		case 'diamondIn':
+			return maskHoleInitialStyle('diamond');
+		case 'plusIn':
+			return maskPlusHoleInitialStyle();
 		case 'peekIn':
 			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':

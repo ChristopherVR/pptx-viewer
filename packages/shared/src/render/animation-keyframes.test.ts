@@ -216,21 +216,29 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('translateY(-20px)');
 	});
 
-	it('should return mask-reveal keyframes for "diamondIn"', () => {
+	// "In" is COM-verified (see `animation-mask-hole-reveal`) to be a hole
+	// shrinking from the element's own edges inward: a hidden hole at 100%
+	// (touching the edge midpoints, no growing-past-corners headroom needed)
+	// down to 0% (fully solid), excluded from an always-solid base layer -
+	// not the `diamondOut`/`plusOut` exit-style growing-solid-from-centre
+	// mask these used to reuse verbatim.
+	it('should return a hole-reveal mask for "diamondIn"', () => {
 		const kf = getEffectKeyframes('diamondIn');
 		expect(kf).toContain('@keyframes pptx-diamondIn');
 		expect(kf).not.toContain('clip-path');
 		expect(kf).toContain('mask-image');
-		expect(kf).toContain('mask-size: 0% 0%');
-		expect(kf).toContain('mask-size: 150% 150%');
+		expect(kf).toContain('mask-size: 100% 100%, 100% 100%');
+		expect(kf).toContain('mask-size: 0% 0%, 100% 100%');
+		expect(kf).toContain('mask-composite: add, exclude');
 	});
 
-	it('should return a two-layer union mask for "plusIn"', () => {
+	it('should return a three-layer union-then-exclude hole mask for "plusIn"', () => {
 		const kf = getEffectKeyframes('plusIn');
 		expect(kf).toContain('@keyframes pptx-plusIn');
 		expect(kf).not.toContain('clip-path');
-		expect(kf).toContain('mask-size: 100% 0%, 0% 100%');
-		expect(kf).toContain('mask-size: 100% 101%, 101% 100%');
+		expect(kf).toContain('mask-size: 100% 100%, 100% 100%, 100% 100%');
+		expect(kf).toContain('mask-size: 100% 0%, 0% 100%, 100% 100%');
+		expect(kf).toContain('mask-composite: add, add, exclude');
 	});
 
 	it('should return mask-reveal keyframes for "wedgeIn"', () => {
