@@ -47,6 +47,26 @@ describe('buildImageEffectsFilter', () => {
 		expect(darker!.defsXml).toContain('slope="0.7" intercept="0"');
 	});
 
+	it('matches PowerPoint COM-measured output for Recolor: Washout (bright=70, contrast=-70)', () => {
+		// Measured against real PowerPoint by setting
+		// Shape.PictureFormat.Brightness=0.85/.Contrast=0.15 via COM (which
+		// writes this exact `a:lum bright="70000" contrast="-70000"` XML) and
+		// sampling the exported bitmap against the un-recolored original: the
+		// linear transform is slope~0.3, intercept~0.805, not the
+		// full-white-clipping slope=0.3/intercept=1.05 the old
+		// `b + (1 - c) / 2` formula produced (which rendered the picture
+		// blank because every input value exceeded 1 and clipped to white).
+		const f = buildImageEffectsFilter({ lum: { bright: 70, contrast: -70 } }, '0-0');
+		expect(f!.defsXml).toContain('slope="0.3" intercept="0.805"');
+	});
+
+	it('renders identity for zero bright/contrast and pure additive brightness at contrast=0', () => {
+		const neutral = buildImageEffectsFilter({ lum: { bright: 0, contrast: 0 } }, '0-0');
+		expect(neutral!.defsXml).toContain('slope="1" intercept="0"');
+		const brightOnly = buildImageEffectsFilter({ lum: { bright: 40, contrast: 0 } }, '0-0');
+		expect(brightOnly!.defsXml).toContain('slope="1" intercept="0.4"');
+	});
+
 	it('translates alphaModFix to a matrix that scales alpha', () => {
 		const f = buildImageEffectsFilter({ alphaModFix: 50 }, '0-0');
 		// last row alpha multiplier 0.5
