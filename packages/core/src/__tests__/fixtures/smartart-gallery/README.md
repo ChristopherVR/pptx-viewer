@@ -103,9 +103,28 @@ the interpreter found and fixed six real, previously-unknown bugs:
 preset, font size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
 last regeneration): 227/229 fixtures have matching text-bearing shape counts;
-39 are within 1% geometry deviation, 59 within 5%, 72 within 10%, and 155
-within 50%; 10 pass the full gate (re-measured 2026-09-24).
+82 are within 1% geometry deviation, 105 within 5%, 117 within 10%, and 178
+within 50%; 10 pass the full gate (re-measured 2026-09-24, after the
+engine-first routing wave below).
 Two fixtures fail structurally before geometry is compared.
+
+`computeSmartArtElementsWithoutCache` runs a legacy family-based interpreter
+(one arranger chosen for the whole diagram) AND a per-point DiagramML engine
+(`smartart-engine/`, executes each layoutDef `layoutNode`'s own
+algorithm/constraints per data point), trying the second only when the first
+declines. `scripts/measure-smartart-engine-vs-legacy.ts` runs both
+independently against every fixture (bypassing that fallback order) to find
+`layoutDefinition.uniqueId`s where the engine is strictly more accurate on
+EVERY dataset of that layout with no shape-set loss versus legacy;
+`smartart-engine/engine-first-allowlist.ts` lists the 55 layouts that
+measurement found (e.g. "Gear": legacy 76% deviation vs. engine 0.1%, since
+the legacy composite arranger cannot reach Gear's rotated/decorative
+named-slot children at all), and `computeDiagramMlElements` now tries the
+engine first only for those. This moved geometry-within-1% from 39 to the 82
+above with zero fixtures regressing out of that band (`gen-smartart-gallery-
+baseline.ts --compare`), though the full gate stayed at 10/229: most of the
+newly-accurate fixtures still fail on preset or font-size mismatches the
+geometry fix does not touch.
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
