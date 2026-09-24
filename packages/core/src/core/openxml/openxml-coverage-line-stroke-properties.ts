@@ -115,7 +115,10 @@ assign(
 			),
 			testEvidence(
 				'src/core/core/runtime/PptxHandlerRuntimeSaveShapeStyleWriter.test.ts',
-				["should remove dash styles when dash is 'solid'", 'should set preset dash'],
+				[
+					'writes an authored a:prstDash val="solid" like any other preset',
+					'should set preset dash',
+				],
 				['edit', 'serialize'],
 			),
 			testEvidence(
@@ -213,7 +216,8 @@ assign(
 				'src/core/core/runtime/PptxHandlerRuntimeSaveShapeStyleWriter.test.ts',
 				[
 					'should set tail end arrow with width and length',
-					"should remove tailEnd when endArrow is 'none'",
+					"should remove tailEnd when endArrow is 'none' with no width/length",
+					'keeps an authored type="none" tailEnd that also carries width/length',
 					'should set head end arrow',
 				],
 				['edit', 'serialize'],
