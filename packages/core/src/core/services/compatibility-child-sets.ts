@@ -95,7 +95,7 @@ export const GRAPHIC_FRAME_LIMITATIONS = {
 	unknown: ['UNSUPPORTED_GRAPHIC_FRAME', 'The graphic-frame payload is preserved but unsupported.'],
 	ole: [
 		'PARTIAL_OLE_SUPPORT',
-		'The OLE payload renders as a preview image and can be downloaded or opened in a new tab, but cannot be edited in place.',
+		'The OLE payload renders as a preview image and can be downloaded or opened in a new tab. Excel, Word, and PowerPoint objects (xlsx, xls, docx, doc, and nested .pptx decks) can also be edited in place; other embedded file types are download/replace-only.',
 	],
 	ink: [
 		'PARTIAL_INK_SUPPORT',
