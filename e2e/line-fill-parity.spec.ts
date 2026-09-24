@@ -239,8 +239,11 @@ test.describe('cross-binding a:ln and a:blipFill/a:tile', () => {
 		expect(reflectionPlain.reflectionHolds).toBe(false);
 
 		// `a:tile` sx/sy = 25% with the grid anchored top-left, then centred.
+		// ECMA-376 20.1.8.58 scales the tile from the picture's NATIVE size, not
+		// the shape's (92375c470): the fixture's image1.png is 16x16 px, so a
+		// 25% tile is 4x4 px however large the shape is.
 		expect(tilePlain.backgroundRepeat).toBe('repeat');
-		expect(tilePlain.backgroundSize).toBe('25% 25%');
+		expect(tilePlain.backgroundSize).toBe('4px 4px');
 		expect(tilePlain.backgroundPosition).toBe('0% 0%');
 		expect(tileCentred.backgroundPosition).toBe('50% 50%');
 
