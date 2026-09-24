@@ -29,6 +29,43 @@ export function extractGradientTileRect(
 	};
 }
 
+/**
+ * Re-emit an authored `a:fillToRect` / `a:tileRect` verbatim when its
+ * resolved LTRB fractions still match what was parsed from it.
+ *
+ * `CT_RelativeRect`'s `l`/`t`/`r`/`b` attributes are all independently
+ * optional, each defaulting to 0 when absent, so a source that authored only
+ * some of the four (e.g. `r`/`b` for a bottom-right focal point, leaving
+ * `l`/`t` to default) must not gain the other two purely because the writer
+ * always fills in all four when it has anything to write at all. A genuine
+ * edit (the resolved value no longer matches what parse captured) still gets
+ * a freshly built, fully explicit node, matching how every other numeric
+ * override in this codebase falls back to an explicit re-serialisation once
+ * it no longer agrees with the source.
+ */
+function resolveRelativeRectXml(
+	original: XmlObject | undefined,
+	current: { l: number; t: number; r: number; b: number },
+	originalResolved: { l: number; t: number; r: number; b: number } | undefined,
+): XmlObject {
+	if (
+		original &&
+		originalResolved &&
+		originalResolved.l === current.l &&
+		originalResolved.t === current.t &&
+		originalResolved.r === current.r &&
+		originalResolved.b === current.b
+	) {
+		return original;
+	}
+	return {
+		'@_l': String(Math.round(current.l * 100000)),
+		'@_t': String(Math.round(current.t * 100000)),
+		'@_r': String(Math.round(current.r * 100000)),
+		'@_b': String(Math.round(current.b * 100000)),
+	};
+}
+
 export interface PptxGradientStyleCodecContext {
 	ensureArray: (value: unknown) => unknown[];
 	parseColor: (colorNode: XmlObject | undefined, placeholderColor?: string) => string | undefined;
@@ -419,12 +456,12 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 			};
 			if (shapeStyle.fillGradientFillToRect) {
 				const ftr = shapeStyle.fillGradientFillToRect;
-				pathXml['a:fillToRect'] = {
-					'@_l': String(Math.round(ftr.l * 100000)),
-					'@_t': String(Math.round(ftr.t * 100000)),
-					'@_r': String(Math.round(ftr.r * 100000)),
-					'@_b': String(Math.round(ftr.b * 100000)),
-				};
+				const originalPath = drawingChild(shapeStyle.fillGradientXml, 'path');
+				const originalFillToRect = drawingChild(originalPath, 'fillToRect');
+				const originalResolved = shapeStyle.fillGradientXml
+					? this.extractGradientFillToRect(shapeStyle.fillGradientXml)
+					: undefined;
+				pathXml['a:fillToRect'] = resolveRelativeRectXml(originalFillToRect, ftr, originalResolved);
 			} else if (shapeStyle.fillGradientFocalPoint) {
 				const fp = shapeStyle.fillGradientFocalPoint;
 				// Convert focal point back to fillToRect LTRB values
@@ -461,12 +498,11 @@ export class PptxGradientStyleCodec implements IPptxGradientStyleCodec {
 		}
 		if (shapeStyle.fillGradientTileRect) {
 			const tr = shapeStyle.fillGradientTileRect;
-			gradientXml['a:tileRect'] = {
-				'@_l': String(Math.round(tr.l * 100000)),
-				'@_t': String(Math.round(tr.t * 100000)),
-				'@_r': String(Math.round(tr.r * 100000)),
-				'@_b': String(Math.round(tr.b * 100000)),
-			};
+			const originalTileRect = drawingChild(shapeStyle.fillGradientXml, 'tileRect');
+			const originalResolved = shapeStyle.fillGradientXml
+				? extractGradientTileRect(shapeStyle.fillGradientXml)
+				: undefined;
+			gradientXml['a:tileRect'] = resolveRelativeRectXml(originalTileRect, tr, originalResolved);
 		}
 		return mergeDrawingFillXml(
 			shapeStyle.fillGradientXml,
