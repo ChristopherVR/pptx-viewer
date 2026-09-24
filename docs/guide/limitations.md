@@ -61,14 +61,14 @@ Reflections, soft edges and path gradients are also approximations, but hold up 
 
 ### Known rendering and editing gaps (2026-09 audit)
 
-A September 2026 audit against real PowerPoint found these open gaps; fixes are in progress:
+A September 2026 audit against real PowerPoint found these gaps that are still open:
 
-- **Saving an edited slide can lose detail.** A slide is rewritten when anything on it changes, and the rewrite can drop equations, turn soft line breaks into paragraphs, pin inherited formatting (anchors, insets, autofit, bullets, master fonts) onto untouched shapes, flatten theme backgrounds, and shift modern-comment timestamps by the local time zone. Unedited slides round-trip cleanly.
-- **Text:** date fields based on the stock master date placeholder show `datetimeFigureOut`; theme per-script fonts (Japanese, Thai, Devanagari, Arabic) are not applied; run gradient fills restart on every word; picture bullets show a plain bullet; vertical text modes, text columns, distributed alignment, mixed run sizes and some text effects (reflection, inner shadow, soft edge) differ from PowerPoint.
-- **Charts:** stock, surface, box-and-whisker, pareto, histogram, funnel, treemap, sunburst and waterfall charts differ visibly from PowerPoint; scatter X axes, trendline equations and pie-of-pie are approximate.
-- **Tables and pictures:** built-in table styles ignore fill transparency (Themed Style 2 renders invisible), auto-grown rows are clipped by the table frame, table text ignores the master's other-text style, and Recolor Grayscale/Washout are not applied.
+- **Saving an edited slide can still add or drop minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages and untouched charts now round-trip; a rewritten slide can still gain default attributes (`mc:Ignorable`, empty-paragraph `lang`, run `dirty`/`smtClean`) and lose a few rare ones (`a:gradFill@flip`, `a:miter@lim`, East Asian font `panose`). Unedited slides round-trip cleanly.
+- **Text:** rounding of shrink-on-overflow font sizes, some text effects (reflection, inner shadow, soft edge, glow shape), decimal tabs on a comma, `hangingPunct`, and a few East Asian/Thai numbering schemes differ from PowerPoint.
+- **Charts:** surface, box-and-whisker, pareto, histogram, funnel, treemap, sunburst and waterfall charts differ visibly from PowerPoint; pie-of-pie, data-label callouts and display-unit labels are approximate.
+- **Animations and transitions:** the Zoom transition's direction, authoring a trigger on a media bookmark, and the exact shape of the `p14:bounceEnd` settle curve are not yet matched to PowerPoint.
 - **3D models** ignore the camera, transform and lights authored in PowerPoint.
-- **Editor coverage** is a subset of PowerPoint's: Edit Points, Merge Shapes, on-canvas crop handles, Paste Special, many standard shortcuts (paragraph alignment, font size, copy/paste formatting) and several ribbon galleries are not available yet.
+- **Editor coverage** is a subset of PowerPoint's: Edit Points, Merge Shapes, on-canvas crop handles, the empty-canvas context menu, slides-pane multi-select and several ribbon galleries are not available yet. Paste Special and the standard editing shortcuts (alignment, font size, copy/paste formatting, new slide, hyperlink, find and replace) are available in all five bindings.
 
 ## EMF/WMF metafiles (`emf-converter` dependency)
 
