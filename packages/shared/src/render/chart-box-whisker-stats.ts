@@ -1,3 +1,37 @@
+/**
+ * Row indexes sharing each unique category label, in first-appearance order.
+ *
+ * A `cx:boxWhisker` chart's raw data repeats its category label once per
+ * underlying observation (COM-verified against `charts-com.pptx` slide 32 /
+ * `chartEx7.xml`: `Category 1` appears on 9 consecutive rows, `Category 2` on
+ * 7, `Category 3` on 6), because every row IS one observation, not one
+ * category. A box's quartiles must be computed from the observations that
+ * share its category label, not from one value per row.
+ */
+export interface CategoryRowGroups {
+	/** Unique category labels, in first-appearance (authoring) order. */
+	uniqueCategories: string[];
+	/** Every raw row index whose category label equals the map key. */
+	rowIndexesByCategory: ReadonlyMap<string, number[]>;
+}
+
+/** Group raw (possibly repeated) category labels by unique text. */
+export function groupRowsByCategory(rawCategories: ReadonlyArray<string>): CategoryRowGroups {
+	const uniqueCategories: string[] = [];
+	const rowIndexesByCategory = new Map<string, number[]>();
+	rawCategories.forEach((rawLabel, rowIndex) => {
+		const label = rawLabel ?? '';
+		let rows = rowIndexesByCategory.get(label);
+		if (!rows) {
+			rows = [];
+			rowIndexesByCategory.set(label, rows);
+			uniqueCategories.push(label);
+		}
+		rows.push(rowIndex);
+	});
+	return { uniqueCategories, rowIndexesByCategory };
+}
+
 export interface BoxStats {
 	min: number;
 	q1: number;

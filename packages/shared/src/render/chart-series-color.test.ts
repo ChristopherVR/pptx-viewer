@@ -79,11 +79,14 @@ describe('explicit series colour wins', () => {
 		]);
 	});
 
-	it('box-whisker boxes take the explicit series colour over the per-category cycle', () => {
+	it('box-whisker boxes take the explicit per-series colour over the palette cycle', () => {
+		// Repeated category labels (one series, its own raw rows), matching the
+		// real cx:boxWhisker shape: see computeBoxWhiskerGeometry's own tests.
+		const rawCategories = ['a', 'a', 'b', 'b'];
 		const chartData = {
 			chartType: 'boxWhisker',
-			categories: ['a', 'b'],
-			series: [series({ values: [1, 2] }), series({ values: [3, 4] }), series({ values: [5, 6] })],
+			categories: rawCategories,
+			series: [series({ values: [1, 2, 5, 6], color: '#FFC000' })],
 		};
 		const layout = {
 			svgWidth: 200,
@@ -98,11 +101,10 @@ describe('explicit series colour wins', () => {
 		const range = { min: 0, max: 10, span: 10 };
 		const boxes = computeBoxWhiskerGeometry(
 			chartData as never,
-			2,
+			rawCategories,
 			layout as never,
 			range,
 			undefined,
-			'#FFC000',
 		);
 		expect(boxes.map((box) => box.fill)).toStrictEqual(['#FFC000', '#FFC000']);
 	});

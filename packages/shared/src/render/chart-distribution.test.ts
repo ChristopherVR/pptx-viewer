@@ -158,66 +158,88 @@ describe('computeBoxStats', () => {
 
 describe('computeBoxWhiskerGeometry', () => {
 	const range: ValueRange = { min: 0, max: 100, span: 100 };
+	// Mirrors how PowerPoint's cx:boxWhisker actually shapes its data
+	// (COM-verified against charts-com.pptx slide 32 / chartEx7.xml): the raw
+	// category label REPEATS once per underlying observation, and each series
+	// carries its own full-length values array aligned to those same rows.
+	const rawCategories = ['Cat1', 'Cat1', 'Cat2', 'Cat2'];
 	const chartData: PptxChartData = {
 		chartType: 'boxWhisker',
-		categories: ['Cat1', 'Cat2'],
+		categories: rawCategories,
 		series: [
-			{ name: 'A', values: [10, 20] },
-			{ name: 'B', values: [40, 50] },
-			{ name: 'C', values: [70, 80] },
-			{ name: 'D', values: [90, 100] },
+			{ name: 'A', values: [10, 20, 40, 50] },
+			{ name: 'B', values: [70, 80, 90, 100] },
 		],
 	};
 
-	it('produces one box per category with >= 2 cross-series values', () => {
-		const geo = computeBoxWhiskerGeometry(chartData, 2, layout, range, undefined);
-		expect(geo).toHaveLength(2);
+	it('produces one box per (series, category) pair, grouping repeated category labels', () => {
+		const geo = computeBoxWhiskerGeometry(chartData, rawCategories, layout, range, undefined);
+		// 2 unique categories x 2 series = 4 boxes.
+		expect(geo).toHaveLength(4);
 	});
 
-	it('skips categories with fewer than two values', () => {
+	it('skips a (series, category) pair with fewer than two observations', () => {
 		const sparse: PptxChartData = {
 			chartType: 'boxWhisker',
 			categories: ['Only'],
 			series: [{ name: 'A', values: [10] }],
 		};
-		const geo = computeBoxWhiskerGeometry(sparse, 1, layout, range, undefined);
+		const geo = computeBoxWhiskerGeometry(sparse, ['Only'], layout, range, undefined);
 		expect(geo).toHaveLength(0);
 	});
 
-	it('places the box at half the per-category group width', () => {
-		const geo = computeBoxWhiskerGeometry(chartData, 2, layout, range, undefined);
+	it('places each series box in its own slot of the per-category group width', () => {
+		const geo = computeBoxWhiskerGeometry(chartData, rawCategories, layout, range, undefined);
+		const slotWidth = layout.plotWidth / 2 / 2; // 2 categories, 2 series each.
+		expect(geo[0].boxW).toBeCloseTo(slotWidth * 0.7);
+	});
+
+	it('sizes a single-series box to 0.7x the whole per-category group width', () => {
+		const singleSeries: PptxChartData = {
+			chartType: 'boxWhisker',
+			categories: rawCategories,
+			series: [{ name: 'A', values: [10, 20, 90, 100] }],
+		};
+		const geo = computeBoxWhiskerGeometry(singleSeries, rawCategories, layout, range, undefined);
 		const groupW = layout.plotWidth / 2;
-		expect(geo[0].boxW).toBeCloseTo(groupW * 0.5);
+		expect(geo[0].boxW).toBeCloseTo(groupW * 0.7);
 	});
 
 	it('maps the max value higher (smaller Y) than the min value', () => {
-		const geo = computeBoxWhiskerGeometry(chartData, 2, layout, range, undefined);
+		const geo = computeBoxWhiskerGeometry(chartData, rawCategories, layout, range, undefined);
 		expect(geo[0].yMax).toBeLessThan(geo[0].yMin);
 	});
 
 	it('places the median Y between the Q1 and Q3 Y bounds', () => {
-		const geo = computeBoxWhiskerGeometry(chartData, 2, layout, range, undefined);
+		const geo = computeBoxWhiskerGeometry(chartData, rawCategories, layout, range, undefined);
 		const hi = Math.min(geo[0].yQ1, geo[0].yQ3);
 		const lo = Math.max(geo[0].yQ1, geo[0].yQ3);
 		expect(geo[0].yMed).toBeGreaterThanOrEqual(hi);
 		expect(geo[0].yMed).toBeLessThanOrEqual(lo);
 	});
 
-	it('uses 1.5 IQR whiskers and identifies source-indexed outliers when typed', () => {
+	it('uses 1.5 IQR whiskers and identifies the outlier by its raw row index', () => {
+		const outlierCategories = ['Cat', 'Cat', 'Cat', 'Cat', 'Cat'];
 		const typed: PptxChartData = {
 			chartType: 'boxWhisker',
-			categories: ['Cat'],
+			categories: outlierCategories,
 			series: [
-				{ name: 'A', values: [1], boxWhiskerOptions: { quartileMethod: 'inclusive' } },
-				{ name: 'B', values: [2] },
-				{ name: 'C', values: [3] },
-				{ name: 'D', values: [4] },
-				{ name: 'E', values: [100] },
+				{
+					name: 'A',
+					values: [1, 2, 3, 4, 100],
+					boxWhiskerOptions: { quartileMethod: 'inclusive' },
+				},
 			],
 		};
-		const [geometry] = computeBoxWhiskerGeometry(typed, 1, layout, range, undefined);
+		const [geometry] = computeBoxWhiskerGeometry(
+			typed,
+			outlierCategories,
+			layout,
+			range,
+			undefined,
+		);
 		expect(geometry.yMax).toBeCloseTo(valueToY(4, range, layout.plotTop, layout.plotBottom));
-		expect(geometry.points.find((point) => point.seriesIndex === 4)?.outlier).toBeTruthy();
+		expect(geometry.points.find((point) => point.rowIndex === 4)?.outlier).toBeTruthy();
 	});
 });
 
@@ -355,50 +377,55 @@ describe('buildHistogramViewModel', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('buildBoxWhiskerViewModel', () => {
+	// One box per (series, category): 2 series x 2 unique categories, each
+	// series' raw rows repeating its category label (COM-verified shape, see
+	// computeBoxWhiskerGeometry's tests above).
+	const rawCategories = ['Cat1', 'Cat1', 'Cat2', 'Cat2'];
 	const chartData: PptxChartData = {
 		chartType: 'boxWhisker',
-		categories: ['Cat1', 'Cat2'],
+		categories: rawCategories,
 		series: [
-			{ name: 'A', values: [10, 20] },
-			{ name: 'B', values: [40, 50] },
-			{ name: 'C', values: [70, 80] },
-			{ name: 'D', values: [90, 100] },
+			{ name: 'A', values: [10, 20, 40, 50] },
+			{ name: 'B', values: [70, 80, 90, 100] },
 		],
 		style: { hasLegend: true },
 	};
 
-	it('produces one IQR box rect per category', () => {
+	it('produces one IQR box rect per (series, category) pair', () => {
 		const vm = buildBoxWhiskerViewModel(chartElement(chartData), chartData, chartData.categories);
 		const rects = vm.primitives.filter((p) => p.kind === 'rect');
-		expect(rects).toHaveLength(2);
+		expect(rects).toHaveLength(4);
 	});
 
-	it('produces five lines per category (2 whiskers + 2 caps + median)', () => {
+	it('produces five lines per box (2 whiskers + 2 caps + median)', () => {
 		const vm = buildBoxWhiskerViewModel(chartElement(chartData), chartData, chartData.categories);
 		const lines = vm.primitives.filter((p) => p.kind === 'line');
-		expect(lines).toHaveLength(10);
+		expect(lines).toHaveLength(20);
 	});
 
-	it('emits cartesian gridlines and category labels', () => {
+	it('emits cartesian gridlines and one category label per unique category', () => {
 		const vm = buildBoxWhiskerViewModel(chartElement(chartData), chartData, chartData.categories);
 		expect(vm.gridlines.length).toBeGreaterThan(0);
+		// 4 raw (repeated) rows collapse to 2 unique category labels.
 		expect(vm.categoryLabels).toHaveLength(2);
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['Cat1', 'Cat2']);
 	});
 
-	it('builds a per-category legend when hasLegend is set', () => {
+	it('builds a per-series legend when hasLegend is set, never a per-category one', () => {
 		const vm = buildBoxWhiskerViewModel(chartElement(chartData), chartData, chartData.categories);
 		expect(vm.legend).toHaveLength(2);
-		expect(vm.legend[0].label).toBe('Cat1');
+		expect(vm.legend.map((entry) => entry.label)).toStrictEqual(['A', 'B']);
 	});
 
-	it('renders typed mean and point visibility with interactive source indices', () => {
+	it('renders typed mean and point visibility, tagged by raw row index', () => {
+		const outlierCategories = ['Cat', 'Cat', 'Cat', 'Cat', 'Cat'];
 		const typed: PptxChartData = {
 			chartType: 'boxWhisker',
-			categories: ['Cat'],
+			categories: outlierCategories,
 			series: [
 				{
 					name: 'A',
-					values: [1],
+					values: [1, 2, 3, 4, 100],
 					boxWhiskerOptions: {
 						quartileMethod: 'inclusive',
 						showMeanLine: true,
@@ -407,31 +434,29 @@ describe('buildBoxWhiskerViewModel', () => {
 						showOutlierPoints: true,
 					},
 				},
-				{ name: 'B', values: [2] },
-				{ name: 'C', values: [3] },
-				{ name: 'D', values: [4] },
-				{ name: 'E', values: [100] },
 			],
 		};
 		const vm = buildBoxWhiskerViewModel(chartElement(typed), typed, typed.categories);
 		const circles = vm.primitives.filter((primitive) => primitive.kind === 'circle');
 		expect(vm.primitives.filter((primitive) => primitive.kind === 'line')).toHaveLength(6);
+		// 1 mean marker + 5 observation points.
 		expect(circles).toHaveLength(6);
 		expect(circles.at(-1)?.part).toStrictEqual({
 			role: 'dataPoint',
-			seriesIndex: 4,
-			pointIndex: 0,
+			seriesIndex: 0,
+			pointIndex: 4,
 		});
 	});
 
 	it('hides mean, inner and outlier points when typed visibility flags are false', () => {
+		const categories = ['Cat', 'Cat', 'Cat'];
 		const typed: PptxChartData = {
 			chartType: 'boxWhisker',
-			categories: ['Cat'],
+			categories,
 			series: [
 				{
 					name: 'A',
-					values: [1],
+					values: [1, 2, 100],
 					boxWhiskerOptions: {
 						showMeanLine: false,
 						showMeanMarker: false,
@@ -439,8 +464,6 @@ describe('buildBoxWhiskerViewModel', () => {
 						showOutlierPoints: false,
 					},
 				},
-				{ name: 'B', values: [2] },
-				{ name: 'C', values: [100] },
 			],
 		};
 		const vm = buildBoxWhiskerViewModel(chartElement(typed), typed, typed.categories);
@@ -468,12 +491,8 @@ describe('buildChartViewModel - histogram / boxWhisker dispatch', () => {
 	it('dispatches boxWhisker to the box-whisker builder', () => {
 		const data: PptxChartData = {
 			chartType: 'boxWhisker',
-			categories: ['x'],
-			series: [
-				{ name: 'A', values: [10] },
-				{ name: 'B', values: [50] },
-				{ name: 'C', values: [90] },
-			],
+			categories: ['x', 'x', 'x'],
+			series: [{ name: 'A', values: [10, 50, 90] }],
 		};
 		const vm = buildChartViewModel(chartElement(data));
 		expect(vm.primitives.filter((p) => p.kind === 'rect')).toHaveLength(1);
