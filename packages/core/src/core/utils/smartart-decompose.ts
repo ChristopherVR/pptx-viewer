@@ -8,15 +8,12 @@
  * Layout algorithms live in `./smartart-layouts.ts` and
  * `./smartart-layouts-tree.ts`; shared helpers in `./smartart-helpers.ts`.
  *
- * When a parsed layout definition is available, the DiagramML interpreter in
- * `./smartart-layout-interpreter.ts` (the SAME interpreter every binding's
- * live preview uses, via `pptx-viewer-shared`'s re-export) is used for more
- * accurate positioning before falling back to the simpler heuristic layouts.
- * This used to run a second, weaker engine (`smartart-layout-engine.ts`,
- * deleted) that only implemented `lin`/`snake`/`cycle`/`pyra`/`hierRoot`/
- * `hierChild` and never interpreted control flow, so a diagram whose live
- * preview used `composite`/`conn`/`sp`/`tx` was fabricated with a plain
- * linear fallback on save.
+ * When a parsed layout definition is available, DiagramML interpretation
+ * (`./smartart-decompose-diagram.ts`: the legacy family interpreter, the SAME
+ * one every binding's live preview uses via `pptx-viewer-shared`'s
+ * re-export, then the per-point engine in `./smartart-engine/`) is used for
+ * more accurate positioning before falling back to the simpler heuristic
+ * layouts below.
  */
 
 import type {
@@ -25,6 +22,7 @@ import type {
 	PptxSmartArtDrawingShape,
 	PptxSmartArtQuickStyle,
 } from '../types';
+import { computeDiagramMlElements } from './smartart-decompose-diagram';
 import type { DrawingBounds } from './smartart-decompose-dispatch';
 import {
 	dispatchLayoutByType,
@@ -32,9 +30,6 @@ import {
 	resolveEffectiveLayoutType,
 } from './smartart-decompose-dispatch';
 import { DEFAULT_ACCENT_COLORS, nextId, makeShapeElement } from './smartart-helpers';
-import { interpretedLayoutToElements } from './smartart-interpreter-drawing-bridge';
-import { interpretSmartArtLayout } from './smartart-layout-interpreter';
-import { flattenNodes } from './smartart-layout-style-helpers';
 import { applyNodeStylesToElements } from './smartart-node-style-apply';
 import { parseSmartArtPresLayoutVars } from './smartart-pres-layout-vars';
 
@@ -184,34 +179,20 @@ export function computeSmartArtElementsWithoutCache(
 	}
 
 	// When a parsed layout definition is available, run the DiagramML
-	// interpreter for more accurate positioning: the same interpreter every
+	// interpretation step (legacy family interpreter, then the per-point
+	// engine) for more accurate positioning: the same interpreter every
 	// binding's live preview uses (via `pptx-viewer-shared`), so the fabricated
 	// cached drawing matches what the viewer actually renders, including
-	// `composite`/`conn`/`sp`/`tx` and decided `dgm:choose`/`dgm:forEach`.
-	if (smartArtData.layoutDefinition) {
-		const flat = flattenNodes(nodes);
-		const interpreted = interpretSmartArtLayout({
-			layoutDefinition: smartArtData.layoutDefinition,
-			nodes,
-			flat,
-			box: { width: containerBounds.width, height: containerBounds.height },
-			palette: resolveInterpreterPalette(themeColorMap, smartArtData.colorTransform?.fillColors),
-			style: smartArtData.style ?? 'flat',
-			elementId: 'smartart-fabrication',
-			presLayoutVars: smartArtData.presLayoutVars,
-			colorRoles: smartArtData.colorTransform?.roleColors,
-			connections: smartArtData.connections,
-			fontName: smartArtData.themeMinorFont,
-		});
-		if (interpreted && interpreted.nodes.length > 0) {
-			return interpretedLayoutToElements(
-				interpreted,
-				nodes,
-				containerBounds,
-				smartArtData.presLayoutVars?.bulletEnabled,
-				smartArtData.connections,
-			);
-		}
+	// `composite`/`conn`/`sp`/`tx` and decided `dgm:choose`/`dgm:forEach` -
+	// see `smartart-decompose-diagram.ts` for the two-engine fallback chain.
+	const diagramMlResult = computeDiagramMlElements(
+		smartArtData,
+		nodes,
+		containerBounds,
+		resolveInterpreterPalette(themeColorMap, smartArtData.colorTransform?.fillColors),
+	);
+	if (diagramMlResult) {
+		return diagramMlResult;
 	}
 
 	// Apply colour-transform fill colours to the theme map when available

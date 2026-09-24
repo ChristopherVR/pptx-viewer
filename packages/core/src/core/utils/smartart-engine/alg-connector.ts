@@ -117,7 +117,7 @@ export function arrangeConnector(node: EngineNode): void {
 		}
 	}
 	for (const child of node.children) {
-		child.box = { ...node.box };
+		child.box = { ...(node.box ?? box) };
 		child.rotation = node.rotation;
 	}
 }

@@ -141,6 +141,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const layoutDefinition = parseSmartArtLayoutDefinition(layoutDefXml, (key) =>
 			this.compatibilityService.getXmlLocalName(key),
 		);
+		if (layoutDefinition && layoutPart?.text) {
+			layoutDefinition.rawXmlText = layoutPart.text;
+		}
 		const layoutCategories = this.xmlLookupService
 			.getChildrenArrayByLocalName(
 				this.xmlLookupService.getChildByLocalName(layoutDefXml, 'catLst'),

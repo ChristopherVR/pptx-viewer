@@ -21,7 +21,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected async readXmlPartByRelationshipId(
 		slidePath: string,
 		relationshipId: string,
-	): Promise<{ xml: XmlObject; partPath: string } | undefined> {
+	): Promise<{ xml: XmlObject; partPath: string; text: string } | undefined> {
 		const normalizedRelationshipId = String(relationshipId || '').trim();
 		if (normalizedRelationshipId.length === 0) {
 			return undefined;
@@ -42,6 +42,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		return {
 			xml: this.parser.parse(xmlString) as XmlObject,
 			partPath,
+			// The un-parsed part text: the package-wide `fast-xml-parser`
+			// configuration groups differently-named siblings into per-tag
+			// arrays, discarding document order. The DiagramML layout-definition
+			// engine (`smartart-engine/ordered-xml.ts`) needs that order back, so
+			// it re-parses this text itself rather than walking `xml` - see
+			// `PptxSmartArtLayoutDefinition.rawXmlText`'s doc comment.
+			text: xmlString,
 		};
 	}
 
