@@ -31,15 +31,20 @@ import { fileURLToPath } from 'node:url';
 import { test, expect } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
+import { ANGULAR, REACT, SVELTE, VANILLA, VUE } from './support/frameworks';
+
 const deck = resolve(fileURLToPath(new URL('./fixtures/sample-deck.pptx', import.meta.url)));
 const shotDir = fileURLToPath(new URL('../test-results/ribbon-tab-parity/', import.meta.url));
 
+// Ports come from the shared harness so `PPTX_E2E_PORT_OFFSET` shifts them
+// too; hard-coded literals here pointed an offset run at another session's
+// demos (or at nothing).
 const FRAMEWORKS = {
-	react: { name: 'react', port: 4173 },
-	vue: { name: 'vue', port: 4175 },
-	angular: { name: 'angular', port: 4174 },
-	vanilla: { name: 'vanilla', port: 4176 },
-	svelte: { name: 'svelte', port: 4177 },
+	react: REACT,
+	vue: VUE,
+	angular: ANGULAR,
+	vanilla: VANILLA,
+	svelte: SVELTE,
 } as const;
 
 type Framework = (typeof FRAMEWORKS)[keyof typeof FRAMEWORKS];
