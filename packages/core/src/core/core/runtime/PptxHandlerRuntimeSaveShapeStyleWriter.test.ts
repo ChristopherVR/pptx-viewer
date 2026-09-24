@@ -309,11 +309,32 @@ describe('applyFillAndStroke - arrows', () => {
 		expect(tail['@_len']).toBe('sm');
 	});
 
-	it("should remove tailEnd when endArrow is 'none'", () => {
+	it("should remove tailEnd when endArrow is 'none' with no width/length", () => {
 		const spPr: XmlObject = { 'a:ln': { 'a:tailEnd': { '@_type': 'triangle' } } };
 		apply(spPr, { connectorEndArrow: 'none' });
 		const ln = spPr['a:ln'] as XmlObject;
 		expect(ln['a:tailEnd']).toBeUndefined();
+	});
+
+	it('keeps an authored type="none" tailEnd that also carries width/length', () => {
+		// PowerPoint's own connector tool writes
+		// `<a:tailEnd len="med" w="med" type="none"/>`, all three attributes,
+		// even for "no arrowhead": width/length parse independently of the
+		// type attribute, so they are only defined when the source actually
+		// had the element. Deleting the node whenever the type is "none"
+		// (matching PowerPoint's own convention for an unstyled arrow end)
+		// used to also delete this explicitly authored one.
+		const spPr: XmlObject = { 'a:ln': {} };
+		apply(spPr, {
+			connectorEndArrow: 'none',
+			connectorEndArrowWidth: 'med',
+			connectorEndArrowLength: 'med',
+		});
+		const ln = spPr['a:ln'] as XmlObject;
+		const tail = ln['a:tailEnd'] as XmlObject;
+		expect(tail['@_type']).toBe('none');
+		expect(tail['@_w']).toBe('med');
+		expect(tail['@_len']).toBe('med');
 	});
 
 	it('should set head end arrow', () => {

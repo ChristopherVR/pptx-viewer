@@ -73,10 +73,13 @@ export function applyDrawingLineDash(lineNode: XmlObject, style: ShapeStyle): vo
 	if (style.strokeDash === undefined) {
 		return;
 	}
-	if (style.strokeDash === 'solid') {
-		setDashChoice(lineNode, undefined, undefined);
-		return;
-	}
+	// `'solid'` is ECMA-376's default `ST_PresetLineDashVal` (an absent
+	// `a:prstDash` already means solid), but `parseDrawingLineDash` only ever
+	// returns it from a REAL, present `<a:prstDash val="solid"/>` (never as
+	// an assumed default), so reaching here with `'solid'` means the source
+	// explicitly authored it. Treating it as "the default, strip any dash
+	// choice" dropped that authored element instead of re-emitting it, same
+	// as every other preset below.
 	if (style.strokeDash !== 'custom') {
 		setDashChoice(lineNode, 'prstDash', { '@_val': style.strokeDash });
 		return;

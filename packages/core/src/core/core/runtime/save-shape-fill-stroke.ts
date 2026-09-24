@@ -200,6 +200,43 @@ export function writeShapeFill(
 	}
 }
 
+/**
+ * Build one `a:headEnd` / `a:tailEnd` node, or `undefined` to omit it
+ * entirely.
+ *
+ * A resolved arrow type of `'none'` is ambiguous on its own: it is both
+ * `normalizeConnectorArrowType`'s reading of a genuinely authored
+ * `type="none"` (PowerPoint's own connector tool writes
+ * `<a:tailEnd len="med" w="med" type="none"/>`, all three attributes, even
+ * for "no arrowhead") AND what an untouched connector with no arrow-end
+ * element at all resolves to. Only the width/length tell them apart: they
+ * parse independently of the type attribute, so they are defined if and
+ * only if the source actually had the element. Dropping the node whenever
+ * the type is "none" (the previous behaviour) matched PowerPoint's OWN
+ * common convention of omitting an unstyled arrow end entirely, but it also
+ * silently deleted an explicitly authored `type="none" len="med" w="med"`.
+ */
+function buildConnectorArrowEnd(
+	type: string | undefined,
+	width: string | undefined,
+	length: string | undefined,
+): XmlObject | undefined {
+	if (type === undefined) {
+		return undefined;
+	}
+	if (type === 'none' && width === undefined && length === undefined) {
+		return undefined;
+	}
+	const end: XmlObject = { '@_type': type };
+	if (width) {
+		end['@_w'] = width;
+	}
+	if (length) {
+		end['@_len'] = length;
+	}
+	return end;
+}
+
 /** Write the `a:ln` arrow ends (`a:headEnd` / `a:tailEnd`). */
 function writeLineArrows(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 	if (
@@ -207,17 +244,15 @@ function writeLineArrows(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 		(spPr['a:ln'] || shapeStyle.connectorEndArrow !== 'none')
 	) {
 		const lineNode = ensureLineNode(spPr);
-		if (shapeStyle.connectorEndArrow === 'none') {
-			delete lineNode['a:tailEnd'];
-		} else {
-			const tailEnd: XmlObject = { '@_type': shapeStyle.connectorEndArrow };
-			if (shapeStyle.connectorEndArrowWidth) {
-				tailEnd['@_w'] = shapeStyle.connectorEndArrowWidth;
-			}
-			if (shapeStyle.connectorEndArrowLength) {
-				tailEnd['@_len'] = shapeStyle.connectorEndArrowLength;
-			}
+		const tailEnd = buildConnectorArrowEnd(
+			shapeStyle.connectorEndArrow,
+			shapeStyle.connectorEndArrowWidth,
+			shapeStyle.connectorEndArrowLength,
+		);
+		if (tailEnd) {
 			lineNode['a:tailEnd'] = tailEnd;
+		} else {
+			delete lineNode['a:tailEnd'];
 		}
 	}
 	if (
@@ -225,17 +260,15 @@ function writeLineArrows(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 		(spPr['a:ln'] || shapeStyle.connectorStartArrow !== 'none')
 	) {
 		const lineNode = ensureLineNode(spPr);
-		if (shapeStyle.connectorStartArrow === 'none') {
-			delete lineNode['a:headEnd'];
-		} else {
-			const headEnd: XmlObject = { '@_type': shapeStyle.connectorStartArrow };
-			if (shapeStyle.connectorStartArrowWidth) {
-				headEnd['@_w'] = shapeStyle.connectorStartArrowWidth;
-			}
-			if (shapeStyle.connectorStartArrowLength) {
-				headEnd['@_len'] = shapeStyle.connectorStartArrowLength;
-			}
+		const headEnd = buildConnectorArrowEnd(
+			shapeStyle.connectorStartArrow,
+			shapeStyle.connectorStartArrowWidth,
+			shapeStyle.connectorStartArrowLength,
+		);
+		if (headEnd) {
 			lineNode['a:headEnd'] = headEnd;
+		} else {
+			delete lineNode['a:headEnd'];
 		}
 	}
 }
