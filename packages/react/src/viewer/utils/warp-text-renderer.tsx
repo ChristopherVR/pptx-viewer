@@ -43,7 +43,12 @@ function groupIntoParagraphs(
 		fieldContext
 			? (seg) => {
 					if (seg.fieldType) {
-						const substituted = substituteFieldText(seg.text, seg.fieldType, fieldContext);
+						const substituted = substituteFieldText(
+							seg.text,
+							seg.fieldType,
+							fieldContext,
+							seg.style?.language,
+						);
 						if (substituted !== seg.text) {
 							return { ...seg, text: substituted };
 						}

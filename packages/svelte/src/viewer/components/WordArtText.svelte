@@ -45,6 +45,7 @@
 						segment.text,
 						segment.fieldType,
 						getFieldContext?.(),
+						segment.style?.language,
 					);
 					return substituted === segment.text ? segment : { ...segment, text: substituted };
 				})

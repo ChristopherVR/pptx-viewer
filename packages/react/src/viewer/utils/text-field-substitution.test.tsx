@@ -15,9 +15,18 @@ describe('resolveFieldDateText', () => {
 		vi.useRealTimers();
 	});
 
-	it('uses explicit dateFormat when provided', () => {
-		const result = resolveFieldDateText('datetime1', 'yyyy/MM/dd');
-		expect(result).toBe('2026/03/14');
+	// Regression: `dateFormat` is the deck's master date-field default TYPE
+	// (e.g. "datetime2"), never a raw format pattern, and must never override a
+	// field that already names its own recognized `datetime1`-`datetime13`
+	// type - only the generic, unnumbered `datetime` type falls back to it.
+	it("never lets dateFormat override a field's own recognized datetime type", () => {
+		const result = resolveFieldDateText('datetime1', 'datetime6');
+		expect(result).toBe('3/14/2026');
+	});
+
+	it('uses dateFormat as the type for the generic "datetime" field', () => {
+		const result = resolveFieldDateText('datetime', 'datetime6');
+		expect(result).toBe('March 26');
 	});
 
 	it('uses datetime1 format (M/d/yyyy)', () => {
@@ -106,11 +115,16 @@ describe('substituteFieldText', () => {
 		expect(result).toBe('3/14/2026');
 	});
 
-	it('uses dateFormat from context for datetime fields', () => {
+	it("never lets a deck-wide dateFormat override a field's own datetime type", () => {
 		const result = substituteFieldText('placeholder', 'datetime1', {
-			dateFormat: 'dd/MM/yyyy',
+			dateFormat: 'datetime6',
 		});
-		expect(result).toBe('14/03/2026');
+		expect(result).toBe('3/14/2026');
+	});
+
+	it("a field's own runLocale (a:fld/a:rPr@lang) wins over ctx.locale", () => {
+		const result = substituteFieldText('placeholder', 'datetime1', { locale: 'en-US' }, 'de-DE');
+		expect(result).toBe('14.03.2026');
 	});
 
 	it('returns original text for unrecognized field type', () => {

@@ -354,7 +354,12 @@ export interface PptxHeaderFooter {
 	hasDateTime?: boolean;
 	dateTimeText?: string;
 	dateTimeAuto?: boolean;
-	/** OOXML date format pattern (e.g. "M/d/yyyy", "dddd, MMMM dd, yyyy"). */
+	/**
+	 * The master date placeholder's own `a:fld/@type` (e.g. "datetime2"), NOT a
+	 * format pattern. It is one of the predefined OOXML datetime field types
+	 * (`datetime1`-`datetime13`); the display pattern for each is resolved by
+	 * `resolveFieldDateText` in `packages/shared/src/render/text-field-substitution.ts`.
+	 */
 	dateFormat?: string;
 	hasSlideNumber?: boolean;
 }

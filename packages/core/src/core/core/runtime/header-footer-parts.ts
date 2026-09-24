@@ -152,6 +152,11 @@ export function readHeaderFooterFromMaster(masterRoot: XmlObject | undefined): P
 	const dateFieldType = readPlaceholderFieldType(datePlaceholder);
 	if (dateFieldType) {
 		result.dateTimeAuto = true;
+		// `dateFormat` stores the field TYPE ("datetime2"), not a display
+		// pattern - see the doc comment on `PptxHeaderFooter.dateFormat`. It is
+		// only ever consumed as a fallback type for a generic, unnumbered
+		// `datetime` field; a field naming its own `datetime1`-`datetime13`
+		// type always uses that instead (`resolveFieldDateText`).
 		result.dateFormat = dateFieldType;
 	} else {
 		const dateText = readPlaceholderLiteralText(datePlaceholder);

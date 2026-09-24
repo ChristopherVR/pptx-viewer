@@ -146,8 +146,12 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			continue;
 		}
 		const rawText = seg.isLineBreak ? '\n' : seg.text;
+		// The field's own `a:fld/a:rPr@lang` (`seg.style.language`) takes
+		// priority over the deck-wide `fieldContext.locale` for date/time
+		// formatting: a field authored in a specific language renders in that
+		// language even inside an otherwise English deck.
 		const text = seg.fieldType
-			? substituteFieldText(rawText, seg.fieldType, fieldContext)
+			? substituteFieldText(rawText, seg.fieldType, fieldContext, seg.style?.language)
 			: rawText;
 		if (!text) {
 			continue;
