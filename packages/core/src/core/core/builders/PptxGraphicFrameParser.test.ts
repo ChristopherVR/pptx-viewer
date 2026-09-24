@@ -196,6 +196,114 @@ describe('pptxGraphicFrameParser.parseGraphicFrameType', () => {
 		expect(result!.isLinked).toBeFalsy();
 	});
 
+	it('resolves previewImage from a legacy VML v:imagedata/@r:id when no a:blip is present', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[
+				slidePath,
+				new Map([
+					['rId2', '../embeddings/oleObject1.bin'],
+					['rId3', '../media/image1.emf'],
+				]),
+			],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Package',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+			'p:pic': {
+				'v:shape': {
+					'@_id': '_x0000_i1027',
+					'v:imagedata': { '@_r:id': 'rId3', '@_o:title': '' },
+				},
+			},
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-5', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.previewImage).toBe('../media/image1.emf');
+	});
+
+	it('resolves previewImage from the legacy `@o:relid` attribute when `@r:id` is absent', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[
+				slidePath,
+				new Map([
+					['rId2', '../embeddings/oleObject1.bin'],
+					['rId9', '../media/image2.wmf'],
+				]),
+			],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame = makeOleFrame({
+			'@_progId': 'Package',
+			'@_r:id': 'rId2',
+			'p:embed': {},
+			'p:pic': {
+				'v:shape': {
+					'v:imagedata': { '@_o:relid': 'rId9' },
+				},
+			},
+		});
+		const result = parser.parseGraphicFrame(frame, 'ole-6', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.previewImage).toBe('../media/image2.wmf');
+	});
+
+	it('resolves previewImage from an mc:Choice VML branch when mc:Fallback has no usable a:blip', () => {
+		const slidePath = 'ppt/slides/slide1.xml';
+		const slideRelsMap = new Map<string, Map<string, string>>([
+			[
+				slidePath,
+				new Map([
+					['rId2', '../embeddings/oleObject1.bin'],
+					['rId3', '../media/image3.emf'],
+				]),
+			],
+		]);
+		const parser = makeParser({ slideRelsMap });
+		const frame: XmlObject = {
+			'p:nvGraphicFramePr': {
+				'p:cNvPr': { '@_id': '7', '@_name': 'Object 1' },
+				'p:cNvGraphicFramePr': {},
+				'p:nvPr': {},
+			},
+			'p:xfrm': {
+				'a:off': { '@_x': '0', '@_y': '0' },
+				'a:ext': { '@_cx': '2286000', '@_cy': '1714500' },
+			},
+			'a:graphic': {
+				'a:graphicData': {
+					'@_uri': 'http://schemas.openxmlformats.org/presentationml/2006/ole',
+					'mc:AlternateContent': {
+						'mc:Choice': {
+							'@_Requires': 'v',
+							'p:oleObj': {
+								'@_progId': 'Package',
+								'@_r:id': 'rId2',
+								'p:embed': {},
+								'v:shape': {
+									'v:imagedata': { '@_r:id': 'rId3' },
+								},
+							},
+						},
+						'mc:Fallback': {
+							'p:oleObj': {
+								'@_progId': 'Package',
+								'@_r:id': 'rId2',
+								'p:embed': {},
+							},
+						},
+					},
+				},
+			},
+		};
+		const result = parser.parseGraphicFrame(frame, 'ole-7', slidePath) as OlePptxElement | null;
+		expect(result).not.toBeNull();
+		expect(result!.previewImage).toBe('../media/image3.emf');
+	});
+
 	it('parses a full ink graphicFrame and preserves rawXml', () => {
 		const parser = makeParser();
 		const frame: XmlObject = {
