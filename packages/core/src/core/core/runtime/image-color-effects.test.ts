@@ -126,4 +126,16 @@ describe('image color effects', () => {
 		const to = change['a:clrTo'] as XmlObject;
 		expect(to).toStrictEqual({ 'a:srgbClr': { '@_val': 'FFFFFF' } });
 	});
+
+	it('parses a self-closing, attribute-less a:grayscl as fast-xml-parser actually emits it', () => {
+		// fast-xml-parser (with this repo's parser options) turns an
+		// attribute-less self-closing element like `<a:grayscl/>` into an
+		// empty string, not an object. A `typeof value === 'object'` gate on
+		// the child lookup silently dropped it (issue: grayscale recolor never
+		// applied because the deck's own `<a:grayscl/>` was never seen).
+		const blip: XmlObject = { 'a:grayscl': '' };
+		const result = parseImageColorEffects(blip, parseColor, extractOpacity);
+		expect(result.grayscale).toBeTruthy();
+		expect(result.grayscaleRawXml).toStrictEqual({});
+	});
 });
