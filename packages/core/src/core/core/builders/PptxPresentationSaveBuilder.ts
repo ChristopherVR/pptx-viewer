@@ -13,8 +13,13 @@ import type {
 } from '../../types';
 import { applyKinsokuToXml } from '../../utils/kinsoku-parser';
 import { applyPresentationDefaultTextStyle } from '../../utils/master-text-style-writer';
-import { applyCustomShows, applySections } from '../../utils/presentation-collections';
+import {
+	applyCustomShows,
+	applySections,
+	parseCustomShows,
+} from '../../utils/presentation-collections';
 import type { PptxSlideReferenceRemap } from '../../utils/presentation-collections';
+import { extractSectionMap } from '../../utils/presentation-section-parser';
 import { PRESENTATION_CHILD_ORDER, reorderObjectKeysByLocalName } from '../../utils/xml-reorder';
 
 export interface PptxPresentationSaveBuilderOptions {
@@ -80,18 +85,36 @@ export class PptxPresentationSaveBuilder implements IPptxPresentationSaveBuilder
 				: init.rawSlideHeightEmu,
 			requested?.type !== undefined ? requested.type : init.rawSlideSizeType,
 		);
+		// A caller that removes/reorders slides without also passing
+		// `customShows`/`sections` (the common `handler.save(filteredSlides)`
+		// shape, as opposed to the dialog-driven `opts` path that always
+		// echoes both back) must still get its custom shows and sections
+		// remapped: `p:custShow/p:sldLst/p:sld/@r:id` and
+		// `p14:section/p14:sldIdLst/p14:sldId/@id` are load-time relationship
+		// ids / numeric slide ids, and the reconciler is free to reuse a freed
+		// rId for a different surviving slide or drop it outright. Left
+		// untouched, a dangling id points PowerPoint at the wrong slide (or a
+		// slide that no longer exists), which it refuses to open. When the
+		// caller supplied nothing AND slide identities actually changed,
+		// fall back to the existing (unedited) collections so the same
+		// remap-and-prune logic below still runs over them.
+		const effectiveCustomShows =
+			init.options?.customShows ??
+			(init.slideReferenceRemap?.changed
+				? parseCustomShows(init.presentationData, init.xmlLookupService)
+				: undefined);
+		const effectiveSections =
+			init.options?.sections ??
+			(init.slideReferenceRemap?.changed
+				? extractSectionMap(init.presentationData, init.xmlLookupService).orderedSections
+				: undefined);
 		applyCustomShows(
 			presentation,
-			init.options?.customShows,
+			effectiveCustomShows,
 			init.xmlLookupService,
 			init.slideReferenceRemap,
 		);
-		applySections(
-			presentation,
-			init.options?.sections,
-			init.xmlLookupService,
-			init.slideReferenceRemap,
-		);
+		applySections(presentation, effectiveSections, init.xmlLookupService, init.slideReferenceRemap);
 		this.applyPhotoAlbum(presentation, init.options?.photoAlbum);
 		presentation = this.applyKinsoku(presentation, init.options?.kinsoku);
 		this.applyModifyVerifier(presentation, init.options?.modifyVerifier);
