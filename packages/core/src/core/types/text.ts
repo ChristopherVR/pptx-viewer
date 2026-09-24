@@ -548,6 +548,15 @@ export interface TextStyle {
 	textInnerShadowOffsetX?: number;
 	/** Text inner shadow vertical offset in px. */
 	textInnerShadowOffsetY?: number;
+	/**
+	 * Original inner-shadow colour-choice XML (`a:innerShdw`'s
+	 * `a:prstClr`/`a:schemeClr`/`a:srgbClr`/… child), preserved verbatim so an
+	 * authored preset or theme colour round-trips instead of always being
+	 * re-serialized as a resolved `a:srgbClr`. Mirrors {@link textGlowColorXml}.
+	 */
+	textInnerShadowColorXml?: XmlObject;
+	/** Theme colour slot the inner shadow colour resolved from, when it is `a:schemeClr`. */
+	textInnerShadowColorRef?: PptxThemeColorRef;
 
 	/** Preset shadow type from `a:prstShdw/@prst` (e.g. "shdw1"..."shdw20"). */
 	textPresetShadowName?: string;

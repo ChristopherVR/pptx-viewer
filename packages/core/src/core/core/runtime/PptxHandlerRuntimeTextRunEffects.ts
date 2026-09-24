@@ -231,6 +231,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (color) {
 				style.textInnerShadowColor = color;
 			}
+			// Preserve the original colour choice (e.g. `a:prstClr`) so the
+			// writer can re-emit it instead of always resolving to a flat
+			// `a:srgbClr`, which would silently swap an authored preset colour
+			// for its resolved hex on every round trip.
+			const innerShadowColorXml = extractColorChoiceXml(innerShdw);
+			if (innerShadowColorXml) {
+				style.textInnerShadowColorXml = innerShadowColorXml;
+			}
+			const innerShadowColorRef = themeColorRefFromColorChoice(innerShdw);
+			if (innerShadowColorRef) {
+				style.textInnerShadowColorRef = innerShadowColorRef;
+			}
 			const opacity = this.extractColorOpacity(innerShdw);
 			if (opacity !== undefined) {
 				style.textInnerShadowOpacity = opacity;

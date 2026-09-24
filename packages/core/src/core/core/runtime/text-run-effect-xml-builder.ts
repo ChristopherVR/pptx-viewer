@@ -68,7 +68,7 @@ export function buildTextRunEffectListXml(
 		effectLst['a:outerShdw'] = buildOuterShadowNode(style);
 	}
 	if (hasTextInnerShadow) {
-		effectLst['a:innerShdw'] = buildInnerShadowNode(style);
+		effectLst['a:innerShdw'] = buildInnerShadowNode(style, parseColor);
 	}
 	if (hasTextPresetShadow) {
 		effectLst['a:prstShdw'] = buildPresetShadowNode(style);
@@ -133,16 +133,23 @@ function buildOuterShadowNode(style: TextStyle): XmlObject {
 	};
 }
 
-function buildInnerShadowNode(style: TextStyle): XmlObject {
+function buildInnerShadowNode(style: TextStyle, parseColor?: ParseColorFn): XmlObject {
 	const ox = style.textInnerShadowOffsetX ?? 0;
 	const oy = style.textInnerShadowOffsetY ?? 0;
 	const { distance, directionDegrees } = shadowOffsetToDistanceAndDirection(ox, oy);
+	const fallbackHex = style.textInnerShadowColor || '#000000';
+	const resolvedOriginal = style.textInnerShadowColorXml
+		? parseColor?.(style.textInnerShadowColorXml)
+		: undefined;
 	return {
 		'@_blurRad': String(Math.round((style.textInnerShadowBlur ?? 3) * EMU_PER_PX)),
 		'@_dist': String(Math.round(distance * EMU_PER_PX)),
 		'@_dir': positiveFixedAngleAttribute(directionDegrees),
-		'a:srgbClr': buildShadowColorNode(
-			style.textInnerShadowColor || '#000000',
+		...serializeColorChoiceWithRef(
+			style.textInnerShadowColorRef,
+			style.textInnerShadowColorXml,
+			resolvedOriginal,
+			fallbackHex,
 			style.textInnerShadowOpacity,
 		),
 	};
