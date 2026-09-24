@@ -25,6 +25,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import {
 	cycleSelectableElement,
+	isEditorControlTarget,
 	isEditorTextInputTarget,
 	mapEditorKey,
 	mapSlideShowStartKey,
@@ -112,6 +113,7 @@ export class ViewerKeyboardService {
 			isDrawing: host.isDrawing?.() ?? false,
 			isEditingText: host.isEditingText?.() ?? false,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
+			isControlTarget: isEditorControlTarget(event.target),
 		});
 		if (action === null) {
 			return;

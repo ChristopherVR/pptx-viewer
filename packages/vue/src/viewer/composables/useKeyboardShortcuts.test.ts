@@ -492,6 +492,19 @@ describe('useKeyboardShortcuts', () => {
 			expect(cycleSelectionPrev).toHaveBeenCalledOnce();
 			stop();
 		});
+
+		it('leaves Tab on a chrome button to the browser focus order', () => {
+			const cycleSelectionNext = vi.fn();
+			const { api, stop } = setup({ cycleSelectionNext }, { hasSelection: ref(false) });
+			const button = document.createElement('button');
+			document.body.appendChild(button);
+			const event = makeKeyEvent({ key: 'Tab', target: button });
+			api.handleKeyDown(event);
+			expect(cycleSelectionNext).not.toHaveBeenCalled();
+			expect(event.defaultPrevented).toBeFalsy();
+			button.remove();
+			stop();
+		});
 	});
 
 	it('autoAttach wires on mount and tears down on scope dispose', () => {

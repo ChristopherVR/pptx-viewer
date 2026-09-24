@@ -1,4 +1,4 @@
-import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
+import { isEditorControlTarget, isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
 
 /**
  * Editing keyboard shortcuts, attached alongside the slideshow navigation
@@ -77,6 +77,7 @@ export function createEditorKeydownHandler(
 			canPaste: deps.canPaste?.(),
 			hasSelection: deps.getSelectedId() !== null,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
+			isControlTarget: isEditorControlTarget(event.target),
 		});
 		// Paging is owned by the root navigation handler; see the module note.
 		if (action === null || action === 'prevSlide' || action === 'nextSlide') {

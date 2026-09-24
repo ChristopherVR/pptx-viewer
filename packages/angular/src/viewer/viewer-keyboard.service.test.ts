@@ -518,4 +518,17 @@ describe('viewerKeyboardService: Tab cycles the selection', () => {
 		h.press('Tab');
 		expect(h.editor.select).not.toHaveBeenCalled();
 	});
+
+	it('leaves Tab on a chrome button to the browser focus order', () => {
+		const h = harness({ hasSelection: false });
+		h.editor.slides.set(slidesWith(['a', 'b']));
+		const button = document.createElement('button');
+		document.body.appendChild(button);
+		const event = new KeyboardEvent('keydown', { key: 'Tab', cancelable: true });
+		Object.defineProperty(event, 'target', { value: button });
+		h.service.handleKeyDown(event);
+		expect(h.editor.select).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeFalsy();
+		button.remove();
+	});
 });

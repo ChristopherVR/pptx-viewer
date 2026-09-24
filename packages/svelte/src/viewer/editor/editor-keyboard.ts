@@ -1,4 +1,4 @@
-import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
+import { isEditorControlTarget, isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
 
 import type {
 	EditorTextAlign,
@@ -83,6 +83,7 @@ export function createEditorKeydownHandler(
 			canPaste: deps.canPaste?.(),
 			hasSelection: deps.getSelectedId() !== null,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
+			isControlTarget: isEditorControlTarget(event.target),
 		});
 		// Paging is owned by the root navigation fall-through; see the module note.
 		if (action === null || action === 'prevSlide' || action === 'nextSlide') {

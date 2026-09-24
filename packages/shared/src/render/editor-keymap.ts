@@ -26,6 +26,7 @@
 import { resolveChord, resolveLiveFormatChord } from './editor-keymap-chords';
 
 export { mapInlineTextFormatKey } from './editor-keymap-chords';
+export { isEditorControlTarget, isEditorTextInputTarget } from './editor-key-target';
 export type { InlineTextFormatProperty } from './editor-keymap-chords';
 
 // ---------------------------------------------------------------------------
@@ -117,6 +118,11 @@ export interface EditorKeyGuard {
 	isDrawing: boolean;
 	/** The event originated in an `<input>`, `<textarea>`, `<select>` or contenteditable. */
 	isTextInputTarget: boolean;
+	/**
+	 * The event originated on a focusable chrome control (see
+	 * `isEditorControlTarget`), where Tab is the browser's focus navigation.
+	 */
+	isControlTarget: boolean;
 }
 
 /** Guard defaults, so a caller only states the flags it actually tracks. */
@@ -128,26 +134,15 @@ const GUARD_DEFAULTS: EditorKeyGuard = {
 	isEditingText: false,
 	isDrawing: false,
 	isTextInputTarget: false,
+	isControlTarget: false,
 };
 
 // ---------------------------------------------------------------------------
 // Target inspection
 // ---------------------------------------------------------------------------
 
-const FORM_FIELD_TAGS = /^(?:INPUT|TEXTAREA|SELECT)$/u;
-
-/**
- * True when a key press is the user typing into a field rather than driving the
- * editor. Kept here so every binding classifies the same targets: a binding that
- * forgot `<select>` would swallow the arrow keys of its own dropdowns.
- */
-export function isEditorTextInputTarget(target: unknown): boolean {
-	const element = target as { tagName?: string; isContentEditable?: boolean } | null;
-	if (!element || typeof element.tagName !== 'string') {
-		return false;
-	}
-	return FORM_FIELD_TAGS.test(element.tagName) || element.isContentEditable === true;
-}
+// `isEditorTextInputTarget` / `isEditorControlTarget` live in
+// `./editor-key-target` and are re-exported above.
 
 /** Map an arrow key to a nudge delta in slide pixels, or `null` for other keys. */
 export function editorNudgeDelta(key: string, large: boolean): { dx: number; dy: number } | null {
@@ -281,8 +276,9 @@ export function mapEditorKey(
 
 	// Tab cycles the selection through the slide's elements when nothing is
 	// being typed into; Ctrl+Tab / Cmd+Tab are the browser/OS's own tab
-	// switchers and must be left alone.
-	if (key === 'Tab' && !mod && !alt) {
+	// switchers and must be left alone. Tab on a chrome control (a ribbon
+	// button, a File backstage row, a dialog field) is focus navigation.
+	if (key === 'Tab' && !mod && !alt && !state.isControlTarget) {
 		return { action: input.shiftKey ? 'cycleSelectionPrev' : 'cycleSelectionNext' };
 	}
 

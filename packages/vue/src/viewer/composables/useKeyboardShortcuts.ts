@@ -30,6 +30,7 @@
  *    navigation map to the same actions and selection guards as React.
  */
 import {
+	isEditorControlTarget,
 	isEditorTextInputTarget,
 	mapEditorKey,
 	NUDGE_LARGE,
@@ -122,6 +123,8 @@ export interface ShortcutGuardState {
 	tableEditorIsEditing: boolean;
 	activeTool: string;
 	isTextInput: boolean;
+	/** The event came from a focusable chrome control (Tab stays focus navigation). */
+	isControl?: boolean;
 }
 
 /**
@@ -150,6 +153,7 @@ export function resolveShortcutAction(
 			isEditingText: Boolean(guard.inlineEditingElementId || guard.tableEditorIsEditing),
 			isDrawing: guard.activeTool !== 'select',
 			isTextInputTarget: guard.isTextInput,
+			isControlTarget: guard.isControl ?? false,
 		},
 	);
 }
@@ -179,6 +183,7 @@ export function useKeyboardShortcuts(
 			tableEditorIsEditing: resolveFlag(options.tableEditorIsEditing, false),
 			activeTool: resolveFlag(options.activeTool, 'select'),
 			isTextInput: eventTargetIsTextInput(event),
+			isControl: isEditorControlTarget(event.target),
 		};
 	}
 

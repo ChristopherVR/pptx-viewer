@@ -245,6 +245,18 @@ describe('createEditorKeydownHandler: PowerPoint 365 shortcuts', () => {
 		expect(deps.cycleSelection).toHaveBeenNthCalledWith(2, 'prev');
 	});
 
+	it('leaves Tab on a chrome button to the browser focus order', () => {
+		const deps = makeDeps();
+		const button = document.createElement('button');
+		document.body.appendChild(button);
+		const event = key({ key: 'Tab', cancelable: true });
+		Object.defineProperty(event, 'target', { value: button });
+		createEditorKeydownHandler(deps)(event);
+		expect(deps.cycleSelection).not.toHaveBeenCalled();
+		expect(event.preventDefault).not.toHaveBeenCalled();
+		button.remove();
+	});
+
 	it('leaves the live-format chords alone with no selection and no active edit', () => {
 		const deps = makeDeps({ getSelectedId: () => null });
 		const handler = createEditorKeydownHandler(deps);

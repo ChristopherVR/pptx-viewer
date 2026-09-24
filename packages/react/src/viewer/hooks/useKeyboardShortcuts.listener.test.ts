@@ -247,6 +247,19 @@ describe('useKeyboardShortcuts: the new PowerPoint editor shortcuts', () => {
 		expect(onCycleSelectionNext).toHaveBeenCalledOnce();
 		expect(onCycleSelectionPrev).toHaveBeenCalledOnce();
 	});
+
+	it('tab on a chrome button is left to the browser focus order', () => {
+		const onCycleSelectionNext = vi.fn();
+		mount(inputWith(container, { onCycleSelectionNext }));
+		const button = document.createElement('button');
+		container.appendChild(button);
+
+		const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+		button.dispatchEvent(event);
+
+		expect(onCycleSelectionNext).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeFalsy();
+	});
 });
 
 describe('useKeyboardShortcuts F5 / Shift+F5 start-show keys', () => {

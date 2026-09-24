@@ -250,4 +250,16 @@ describe('createEditorKeydownHandler: PowerPoint 365 shortcuts', () => {
 		handler(keydown('Tab', { shiftKey: true }));
 		expect(cycleSelection.mock.calls).toStrictEqual([['next'], ['prev']]);
 	});
+
+	it('leaves Tab on a chrome button to the browser focus order', () => {
+		const cycleSelection = vi.fn();
+		const button = document.createElement('button');
+		document.body.appendChild(button);
+		const event = keydown('Tab');
+		button.dispatchEvent(event);
+		createEditorKeydownHandler(makeDeps({ cycleSelection }))(event);
+		expect(cycleSelection).not.toHaveBeenCalled();
+		expect(event.defaultPrevented).toBeFalsy();
+		button.remove();
+	});
 });

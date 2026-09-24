@@ -1,4 +1,9 @@
-import { isEditorTextInputTarget, mapEditorKey, mapSlideShowStartKey } from 'pptx-viewer-shared';
+import {
+	isEditorControlTarget,
+	isEditorTextInputTarget,
+	mapEditorKey,
+	mapSlideShowStartKey,
+} from 'pptx-viewer-shared';
 /**
  * useKeyboardShortcuts: the editor keymap, wired into React.
  *
@@ -160,6 +165,7 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 			isEditingText: Boolean(current.inlineEditingElementId || current.tableEditorState?.isEditing),
 			isDrawing: current.activeTool !== 'select',
 			isTextInputTarget: isEditorTextInputTarget(e.target),
+			isControlTarget: isEditorControlTarget(e.target),
 		});
 		if (action === null) {
 			return;
