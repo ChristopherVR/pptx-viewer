@@ -56,8 +56,8 @@ const DEFAULT_GAP = 150;
 const DEPTH_FIT_MULTI_ROW = 0.96;
 const DEPTH_FIT_SINGLE_ROW = 1.04;
 
-export type PerspKind = 'line' | 'area' | 'surface';
-export type PerspGrouping = 'standard' | 'stacked' | 'percentStacked';
+export type PerspKind = 'line' | 'area' | 'surface' | 'bar';
+export type PerspGrouping = 'standard' | 'clustered' | 'stacked' | 'percentStacked';
 
 /** A gridline segment in box space. */
 export interface PerspGridline {
@@ -94,6 +94,8 @@ function kindOf(chartType: string): PerspKind | null {
 		case 'surface':
 		case 'surface3D':
 			return 'surface';
+		case 'bar3D':
+			return 'bar';
 		default:
 			return null;
 	}
@@ -101,10 +103,10 @@ function kindOf(chartType: string): PerspKind | null {
 
 function groupingOf(kind: PerspKind, chartData: PptxChartData): PerspGrouping {
 	const g = chartData.grouping;
-	if (kind === 'area' && (g === 'stacked' || g === 'percentStacked')) {
+	if ((kind === 'area' || kind === 'bar') && (g === 'stacked' || g === 'percentStacked')) {
 		return g;
 	}
-	return 'standard';
+	return kind === 'bar' && !chartData.groupingStandard ? 'clustered' : 'standard';
 }
 
 /** Data extent on the value axis. */
@@ -155,12 +157,16 @@ export function computePerspChartLayout(
 	const kind = kindOf(chartData.chartType);
 	const nSer = chartData.series.length;
 	const nCat = chartData.series.reduce((m, s) => Math.max(m, s.values.length), 0);
-	if (!kind || nSer === 0 || nCat === 0) {
+	// A horizontal (`c:barDir="bar"`) bar box without right-angle axes is not
+	// modelled; it keeps its hosted scene.
+	if (!kind || nSer === 0 || nCat === 0 || (kind === 'bar' && chartData.barDirection === 'bar')) {
 		return null;
 	}
 	const grouping = groupingOf(kind, chartData);
 	const valAx = chartData.axes?.find((a) => a.axisType === 'valAx');
-	const midCat = (valAx?.crossBetween ?? (kind === 'line' ? 'between' : 'midCat')) === 'midCat';
+	const midCat =
+		(valAx?.crossBetween ?? (kind === 'area' || kind === 'surface' ? 'midCat' : 'between')) ===
+		'midCat';
 	const view3D = chartData.view3D;
 
 	const gapWidth = (chartData.barGapWidth ?? DEFAULT_GAP) / 100;

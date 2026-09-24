@@ -26,7 +26,7 @@ const GRIDLINE_COLOR = 0xd9d9d9;
 export interface PerspMeshResult {
 	/** Box-space root (its matrix is the box placement). */
 	group: THREE.Group;
-	/** One mesh per prism, same order; `userData.seriesIndex` names its series. */
+	/** One mesh per prism, same order; `userData` names its series (and a bar's point). */
 	meshes: THREE.Mesh[];
 	/** Replace mesh `i`'s geometry with `prism` (a drag preview). */
 	setPrism: (i: number, prism: PerspPrism) => void;
@@ -107,7 +107,7 @@ export function buildPerspMeshes(
 	const material = new three.MeshBasicMaterial({ vertexColors: true, side: three.DoubleSide });
 	const meshes = prisms.map((prism) => {
 		const mesh = new three.Mesh(buildPrismGeometry(three, prism), material);
-		mesh.userData = { seriesIndex: prism.seriesIndex };
+		mesh.userData = { seriesIndex: prism.seriesIndex, pointIndex: prism.pointIndex };
 		group.add(mesh);
 		return mesh;
 	});

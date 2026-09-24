@@ -71,7 +71,10 @@ export function buildPerspMarkSet(
 			dispose: () => surface.dispose(),
 		};
 	}
-	const stacked = layout.grouping !== 'standard';
+	if (layout.kind === 'bar') {
+		return buildBarMarkSet(three, chartData, layout);
+	}
+	const stacked = layout.grouping !== 'standard' && layout.grouping !== 'clustered';
 	const meshes = buildPerspMeshes(three, layout, buildPerspPrisms(chartData, layout));
 	return {
 		group: meshes.group,
@@ -92,6 +95,51 @@ export function buildPerspMarkSet(
 				point.seriesIndex,
 				buildPerspPrisms(chartData, layout, { ...point, value })[point.seriesIndex],
 			);
+		},
+		dispose: () => meshes.dispose(),
+	};
+}
+
+/** Bars: one prism per point, dragged one at a time (not stacked ones, as in the 2D chart). */
+function buildBarMarkSet(
+	three: ThreeModule,
+	chartData: PptxChartData,
+	layout: PerspChartLayout,
+): PerspMarkSet {
+	const prisms = buildPerspPrisms(chartData, layout);
+	const meshes = buildPerspMeshes(three, layout, prisms);
+	const indexOf = (point: Chart3DPoint): number =>
+		prisms.findIndex(
+			(p) => p.seriesIndex === point.seriesIndex && p.pointIndex === point.pointIndex,
+		);
+	return {
+		group: meshes.group,
+		targets: meshes.meshes,
+		pointAt(object) {
+			const data = object.userData as { seriesIndex?: number; pointIndex?: number };
+			return data.seriesIndex === undefined || data.pointIndex === undefined
+				? null
+				: { seriesIndex: data.seriesIndex, pointIndex: data.pointIndex };
+		},
+		anchor(point, value) {
+			const prism = prisms[indexOf(point)];
+			if (!prism) {
+				return [0, perspValueY(layout, value), 0];
+			}
+			const xs = prism.outline.map(([x]) => x);
+			return [
+				(Math.min(...xs) + Math.max(...xs)) / 2,
+				perspValueY(layout, value),
+				(prism.z0 + prism.z1) / 2,
+			];
+		},
+		draggable: layout.grouping === 'clustered' || layout.grouping === 'standard',
+		preview(point, value) {
+			const i = indexOf(point);
+			const next = buildPerspPrisms(chartData, layout, { ...point, value })[i];
+			if (next) {
+				meshes.setPrism(i, next);
+			}
 		},
 		dispose: () => meshes.dispose(),
 	};

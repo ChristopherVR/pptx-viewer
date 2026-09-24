@@ -14,6 +14,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import { buildPerspBarPrisms } from './chart-3d-persp-bars';
 import type { PerspChartLayout } from './chart-3d-persp-layout';
 
 /** Ribbon thickness, as a fraction of the box height. */
@@ -21,6 +22,8 @@ const RIBBON_THICKNESS = 0.012;
 
 export interface PerspPrism {
 	seriesIndex: number;
+	/** The bar's category, for a per-point mark (a bar); absent for a whole-series slab or ribbon. */
+	pointIndex?: number;
 	color: string;
 	/** Polygon in box x/y, counter-clockwise. */
 	outline: Array<[number, number]>;
@@ -83,6 +86,9 @@ export function buildPerspPrisms(
 	layout: LayoutCore,
 	override?: { seriesIndex: number; pointIndex: number; value: number },
 ): PerspPrism[] {
+	if (layout.kind === 'bar') {
+		return buildPerspBarPrisms(chartData, layout, override);
+	}
 	const nCat = layout.categoryX.length;
 	const values = plottedValues(chartData, layout, nCat);
 	if (override) {

@@ -121,7 +121,7 @@ function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeom
 }
 
 /** Chart types drawn on the perspective box layout. */
-const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D', 'surface']);
+const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D', 'surface', 'bar3D']);
 
 function buildPieGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
 	const layout = computePieChartLayout(element, widenPieViewModel(vm, element));
