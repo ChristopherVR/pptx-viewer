@@ -1,12 +1,15 @@
 /**
  * Layouts where the per-point DiagramML engine (`smartart-engine/`) is
- * measurably better than the legacy family-based interpreter
+ * measurably at least as good as the legacy family-based interpreter
  * (`smartart-layout-interpreter.ts`) on EVERY dataset fixture of that
  * layout in the 229-fixture COM gallery corpus, with no shape-set loss
  * (`packages/core/src/__tests__/fixtures/smartart-gallery/`): the engine
  * matches at least as many cached-drawing shapes as legacy on every
- * dataset, and its worst geometry deviation is never larger, strictly
- * smaller on at least one dataset.
+ * dataset, and its worst geometry deviation is never larger than legacy's.
+ * Most entries are strictly smaller on at least one dataset; a few (Basic
+ * Pyramid, Inverted Pyramid) tie legacy exactly on every dataset instead -
+ * still listed since routing to either engine costs nothing when they agree,
+ * and it keeps the pyramid family on one code path.
  *
  * `computeDiagramMlElements` (`smartart-decompose-diagram.ts`) consults
  * this set to try the engine BEFORE the legacy interpreter for a listed
@@ -29,6 +32,7 @@ export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
 	'urn:microsoft.com/office/officeart/2008/layout/AscendingPictureAccentProcess', // Ascending Picture Accent Process (legacy<=0.3576 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/matrix3', // Basic Matrix (legacy<=0.7601 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/chart3', // Basic Pie (legacy<=0.0375 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid1', // Basic Pyramid (legacy<=0.0019 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess11', // Basic Timeline (legacy<=0.3583 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/venn1', // Basic Venn (legacy<=0.0938 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureBlocks', // Bending Picture Blocks (legacy<=0.4821 -> engine<=0.4671)
@@ -58,6 +62,7 @@ export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
 	'urn:microsoft.com/office/officeart/2008/layout/IncreasingCircleProcess', // Increasing Circle Process (legacy<=0.7617 -> engine<=0.1782)
 	'urn:microsoft.com/office/officeart/2011/layout/InterconnectedBlockProcess', // Interconnected Block Process (legacy<=0.6136 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/rings+Icon', // Interconnected Rings (legacy<=0.0634 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid3', // Inverted Pyramid (legacy<=0.0019 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/target2', // Nested Target (legacy<=0.3991 -> engine<=0.0069)
 	'urn:microsoft.com/office/officeart/2005/8/layout/arrow4', // Opposing Arrows (legacy<=0.2608 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2009/3/layout/OpposingIdeas', // Opposing Ideas (legacy<=0.5178 -> engine<=0.0019)

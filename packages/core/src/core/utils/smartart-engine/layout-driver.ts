@@ -77,6 +77,15 @@ export function fillChildren(node: EngineNode): void {
 
 export interface LayoutRegistry {
 	resolve(type: string): ArrangeAlgorithm;
+	/**
+	 * An optional pass run AFTER `node`'s own children (and their whole
+	 * subtrees) have finished laying out - for a correction that needs a
+	 * descendant's FINAL box, not just the box the parent algorithm itself
+	 * assigned (`pyra`'s `pyraAcctRatio` band split reads and rewrites a
+	 * band's already-composited `level`/`acctBkgd`/`acctTx` boxes; see
+	 * `alg-pyra.ts`'s `applyPyraAccentSplit`).
+	 */
+	resolvePost?(type: string): ArrangeAlgorithm | undefined;
 }
 
 /** Lay out `node` (whose box is set) and, recursively, its subtree. */
@@ -96,6 +105,10 @@ export function layoutSubtree(node: EngineNode, registry: LayoutRegistry): void 
 			child.box = { x: box.x, y: box.y, w: 0, h: 0 };
 		}
 		layoutSubtree(child, registry);
+	}
+	const post = registry.resolvePost?.(node.alg.type);
+	if (post) {
+		post(node);
 	}
 }
 

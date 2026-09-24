@@ -232,6 +232,29 @@ the change touches ONLY these two layouts, zero regressions, gate numbers
 unchanged (still 87/229 within 1%, 11/229 full gate; `pyra` is not yet
 allowlisted, so production behaviour for these two layouts is unchanged).
 
+A seventh pass closed that `pyraAcctRatio` gap: `alg-pyra.ts` gained a
+POST-pass (`applyPyraAccentSplit`, run by `layout-driver.ts`'s new
+`LayoutRegistry.resolvePost` hook after a `pyra` node's own children have
+finished laying out) porting legacy's COM-verified `repositionPyramidBands`.
+Once `pyraAcctRatio` resolves positive, every row's "level" band shrinks to
+`(1 - pyraAcctRatio)` of its natural width anchored at the diagram box's own
+left edge, and a row whose data point has a child gets an "acctBkgd"/"acctTx"
+column filling the remainder out to the diagram's right edge. The first
+attempt filled that remainder from "level"'s own shrunk (WIDE-edge) right
+corner and measured 0.1142 on `hier5`/`hier8` (down from 0.5663, still worse
+than legacy's 0.0019); diffing per-shape geometry against the cached ground
+truth showed the accent column's true left edge is the row's scaled NARROW
+(top) trapezoid corner, not the wide one `arrangePyra`'s own tight bounding
+box collapsed to, so the post-pass recomputes that corner independently
+(mirroring legacy's own `pyramidRowGeometry`). With that correction,
+`hier5`/`hier8` tie legacy exactly (0.0019, matching `flat3`), so Basic and
+Inverted Pyramid both now qualify for `engine-first-allowlist.ts` under the
+tie-or-better rule and route engine-first in production. Re-measuring the
+full 229-fixture corpus confirms zero regressions elsewhere and the gate
+numbers hold at 87/229 within 1%, 11/229 full gate (both layouts already
+matched within 1% via legacy before this wave, so the routing change alone
+does not move those counts).
+
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
 `cycle` 25, `hierarchy` 19, `composite` 14, `UNRECOGNIZED` (falls through to
