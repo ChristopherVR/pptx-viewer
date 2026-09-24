@@ -54,6 +54,7 @@ import {
 	selectTableCell,
 } from './support/context-menu';
 import { resetTabSession } from './support/deck';
+import { chooseSelectValue } from './support/select-control';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/table-styling.pptx', import.meta.url)),
@@ -515,7 +516,7 @@ async function mergeFromInspector(page: Page, direction: 'right' | 'down'): Prom
 	for (const name of ['Row', 'Column']) {
 		const cursor = page.getByRole('combobox', { name, exact: true });
 		if (await cursor.isVisible()) {
-			await cursor.selectOption('0');
+			await chooseSelectValue(page, cursor, '0');
 		}
 	}
 	const pairwise = page.getByRole('button', { name: `Merge ${direction}`, exact: true });
