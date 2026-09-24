@@ -27,6 +27,24 @@ export interface MaterialLighting {
 	 * measurement offset, not a differently-shaped one.
 	 */
 	surfaceScaleMultiplier: number;
+	/**
+	 * Caps the `feSpecularLighting` light's OWN elevation at this value
+	 * (degrees), independent of the diffuse `a:lightRig` elevation table.
+	 * `undefined` (every material except `metal`) means the specular light
+	 * reuses the diffuse elevation unchanged, today's behaviour. See
+	 * `visual-3d-bevel-lighting.ts`'s module doc for why this exists: at a
+	 * flat (unbevelled) normal, `feSpecularLighting`'s closed-form hot-spot
+	 * brightness is `specularConstant * max(0, N.H)^specularExponent`, and
+	 * `N.H` -> 1 as the light elevation -> 90deg, so a high-elevation rig
+	 * (`flat`, `contrasting`, `threePt`, ...) saturates the ENTIRE shape, not
+	 * just its bevel band, for any material with a non-negligible
+	 * `specularConstant`. Capping only the SPECULAR light's elevation (never
+	 * the diffuse one, so diffuse shading is untouched) bounds `N.H` below 1
+	 * for those rigs while leaving already-low-elevation rigs (`morning`,
+	 * `sunrise`, ...) unchanged, since `Math.min(rigElevationDeg, cap)` is a
+	 * no-op below the cap.
+	 */
+	specularElevationCapDeg?: number;
 }
 
 const white = '#ffffff';
@@ -192,12 +210,38 @@ export const MATERIAL_LIGHTING: Record<MaterialPresetType, MaterialLighting> = {
 	// `specularExponent` (or decoupling a separate specular elevation from
 	// the diffuse one) needs its own COM campaign and was NOT done here; see
 	// `docs/guide/limitations.md`.
+	// RESOLVED (2026-09-24): the structural "same feDistantLight elevation
+	// drives diffuse falloff AND the specular hot-spot" coupling described
+	// above is fixed by `specularElevationCapDeg` (see `MaterialLighting`'s
+	// doc comment): `Math.min(rigElevationDeg, 45)` bounds the SPECULAR
+	// light's own elevation, leaving diffuse shading (and every low-elevation
+	// rig, which is already below the cap) untouched. A joint coordinate
+	// search of `specularElevationCapDeg`/`specularConstant`/
+	// `specularExponent` (surfaceScaleMultiplier held fixed at 0.35, since
+	// lowering it flattens the DIFFUSE band too and was a different, already
+	// separately-calibrated defect) against real COM ground truth (`Slide
+	// .Export`, mid-grey square, 24pt bevel, headless-Chromium rasterisation
+	// of the ACTUAL filter chain, same pipeline as this module's other
+	// campaigns) - 134 conditions: all 8 `com-main`-campaign rigs x 12
+	// profiles, plus all 19 `com-rigs`-campaign rigs x `circle`/`angle`, all
+	// `dir="t"`, full 96-sample cross-section MAE (not just the 2-edge-point
+	// sample the earlier campaigns used, which cannot see this
+	// flat-interior defect) - found specularConstant 0.5/specularExponent
+	// 16/cap 45deg: mean absolute error (0-255) fell from 75.0 (the previous,
+	// coupled-elevation constants) to 36.4 on this set, driven mostly by the
+	// flat-interior term (centerAE 89.2 -> 20.4). The two previously-tried
+	// remediations documented in `visual-3d-bevel-lighting.ts`'s module doc
+	// (a FIXED specular elevation with the OLD specularConstant/Exponent, and
+	// specular-band masking) are superseded by this cap + re-fit; see that
+	// module's doc for their numbers. Every OTHER material is a structural
+	// no-op (no `specularElevationCapDeg`), so this cannot regress them.
 	metal: {
 		diffuseConstant: 0.75,
-		specularConstant: 0.9,
-		specularExponent: 24,
+		specularConstant: 0.5,
+		specularExponent: 16,
 		lightingColor: white,
 		surfaceScaleMultiplier: 0.35,
+		specularElevationCapDeg: 45,
 	},
 	flat: {
 		diffuseConstant: 0.9,

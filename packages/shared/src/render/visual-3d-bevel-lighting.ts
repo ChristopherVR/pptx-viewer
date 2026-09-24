@@ -150,9 +150,21 @@
  * re-measurement; see `BevelProfileHeightMap.heightTransferTable`'s doc
  * comment for exactly what was and was not re-verified. The SEPARATE
  * specular/diffuse coupling defect (metal oversaturating under a
- * high-elevation rig) is UNCHANGED by this pass: both prior remediation
- * attempts documented above are still the state of the art, and remain open;
- * see `docs/guide/limitations.md`.
+ * high-elevation rig) was UNCHANGED by this pass; see the next section for
+ * its resolution.
+ *
+ * ## 2026-09-24: metal specular/diffuse elevation decoupling (RESOLVED)
+ *
+ * `BevelFilterLayer.specularElevationDeg` gives the specular `<feDistantLight>`
+ * its own elevation, `Math.min(rigElevation, cap)` capped independently of
+ * diffuse via `MaterialLighting.specularElevationCapDeg` (mechanism + full
+ * numbers in that field's doc comment, `visual-3d-bevel-lighting-material
+ * .ts`): mean absolute error 75.0 -> 36.4 on a 134-condition, full-cross-
+ * section COM set, jointly re-fit with `metal`'s `specularConstant`/
+ * `specularExponent`, unlike the fixed-elevation attempt above.
+ * `surfaceScaleMultiplier` was deliberately left untouched (lowering it
+ * flattens the diffuse band too, a different concern). Only `metal` carries
+ * a cap, so every other material's filter markup is unchanged.
  *
  * @module render/visual-3d-bevel-lighting
  */
@@ -221,12 +233,18 @@ function renderLayerPrimitives(
 		);
 		heightResult = shapedResult;
 	}
-	const light = `<feDistantLight azimuth="${layer.azimuthDeg.toFixed(1)}" elevation="${layer.elevationDeg.toFixed(1)}"/>`;
+	const diffuseLight = `<feDistantLight azimuth="${layer.azimuthDeg.toFixed(1)}" elevation="${layer.elevationDeg.toFixed(1)}"/>`;
+	// The specular light shares the diffuse light's azimuth (same physical
+	// rig direction) but may use a DECOUPLED elevation (see
+	// `BevelFilterLayer.specularElevationDeg`'s doc comment): the two are
+	// equal, and this is byte-for-byte the same markup as before, for every
+	// material without a `specularElevationCapDeg`.
+	const specularLight = `<feDistantLight azimuth="${layer.azimuthDeg.toFixed(1)}" elevation="${layer.specularElevationDeg.toFixed(1)}"/>`;
 	parts.push(
-		`<feDiffuseLighting in="${heightResult}" surfaceScale="${layer.surfaceScale.toFixed(2)}" diffuseConstant="${layer.diffuseConstant}" lighting-color="${layer.lightingColor}" result="diffuse${i}">${light}</feDiffuseLighting>`,
+		`<feDiffuseLighting in="${heightResult}" surfaceScale="${layer.surfaceScale.toFixed(2)}" diffuseConstant="${layer.diffuseConstant}" lighting-color="${layer.lightingColor}" result="diffuse${i}">${diffuseLight}</feDiffuseLighting>`,
 		`<feComposite in="diffuse${i}" in2="SourceAlpha" operator="in" result="diffuseClip${i}"/>`,
 		`<feBlend in="${graphicIn}" in2="diffuseClip${i}" mode="multiply" result="afterDiffuse${i}"/>`,
-		`<feSpecularLighting in="${heightResult}" surfaceScale="${layer.surfaceScale.toFixed(2)}" specularConstant="${layer.specularConstant.toFixed(3)}" specularExponent="${layer.specularExponent}" lighting-color="${layer.lightingColor}" result="specular${i}">${light}</feSpecularLighting>`,
+		`<feSpecularLighting in="${heightResult}" surfaceScale="${layer.surfaceScale.toFixed(2)}" specularConstant="${layer.specularConstant.toFixed(3)}" specularExponent="${layer.specularExponent}" lighting-color="${layer.lightingColor}" result="specular${i}">${specularLight}</feSpecularLighting>`,
 		`<feComposite in="specular${i}" in2="SourceAlpha" operator="in" result="specularClip${i}"/>`,
 	);
 	const outAttr = isLast ? '' : ` result="afterSpecular${i}"`;

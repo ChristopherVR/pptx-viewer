@@ -59,6 +59,13 @@ export interface BevelFilterLayer {
 	surfaceScale: number;
 	azimuthDeg: number;
 	elevationDeg: number;
+	/**
+	 * The specular light's OWN elevation, decoupled from `elevationDeg`
+	 * (diffuse) when the material carries a `specularElevationCapDeg` (see
+	 * `MaterialLighting`'s doc comment). Equal to `elevationDeg` for every
+	 * material without a cap, so this is a no-op for all of them.
+	 */
+	specularElevationDeg: number;
 	diffuseConstant: number;
 	specularConstant: number;
 	specularExponent: number;
@@ -100,6 +107,10 @@ export function resolveLayer(
 			Boolean(rig.invertedDirection),
 		),
 		elevationDeg: rig.elevationDeg,
+		specularElevationDeg:
+			mat.specularElevationCapDeg !== undefined
+				? Math.min(rig.elevationDeg, mat.specularElevationCapDeg)
+				: rig.elevationDeg,
 		diffuseConstant: mat.diffuseConstant,
 		specularConstant: Math.min(1.2, mat.specularConstant * Math.sqrt(rig.specularSharpness)),
 		specularExponent: Math.max(1, Math.round(mat.specularExponent * rig.specularSharpness)),
