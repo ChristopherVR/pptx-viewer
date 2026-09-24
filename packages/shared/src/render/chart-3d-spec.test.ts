@@ -137,20 +137,31 @@ describe('buildChart3DSpecForElement', () => {
 		expect(spec?.geometry).toBeNull();
 	});
 
-	it('resolves each box shape from c:ser/c:shape, falling back to the chart-level c:shape', () => {
+	it('resolves a box shape from c:ser/c:shape, falling back to the chart-level c:shape', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
-				barShape: 'cylinder',
 				categories: ['Q1'],
-				series: [
-					{ name: 'A', values: [1] },
-					{ name: 'B', values: [2], shape: 'cone' },
-				],
+				series: [{ name: 'A', values: [1], shape: 'box' }],
 			}),
 		);
 		const boxes = spec?.geometry?.kind === 'bar' ? spec.geometry.boxes : [];
-		expect(boxes.find((b) => b.seriesIndex === 0)?.shape).toBe('cylinder');
-		expect(boxes.find((b) => b.seriesIndex === 1)?.shape).toBe('cone');
+		expect(boxes.find((b) => b.seriesIndex === 0)?.shape).toBe('box');
+	});
+
+	it('returns null geometry (falls back to the 2D render) for a non-box c:shape', () => {
+		// cylinder/cone/pyramid are a materially different PowerPoint volume
+		// convention (round, full column width) not modelled yet.
+		for (const shape of ['cylinder', 'cone', 'pyramid'] as const) {
+			const spec = buildChart3DSpecForElement(
+				chartEl({
+					chartType: 'bar3D',
+					barShape: shape,
+					categories: ['Q1'],
+					series: [{ name: 'A', values: [1] }],
+				}),
+			);
+			expect(spec?.geometry).toBeNull();
+		}
 	});
 });

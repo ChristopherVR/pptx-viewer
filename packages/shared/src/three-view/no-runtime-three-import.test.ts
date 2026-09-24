@@ -28,7 +28,10 @@ describe('three-view bundling contract', () => {
 		const files = [
 			...sourceFiles(__dirname),
 			join(root, 'render', 'chart-3d-view-scene.ts'),
+			join(root, 'render', 'chart-3d-bar-mesh.ts'),
 			join(root, 'smartart-3d', 'view-scene.ts'),
+			join(root, 'smartart-3d', 'flat-mesh-object.ts'),
+			join(root, 'smartart-3d', 'text-block-texture.ts'),
 		];
 		const offenders = files.filter((file) => RUNTIME_THREE_IMPORT.test(readFileSync(file, 'utf8')));
 		expect(offenders).toStrictEqual([]);

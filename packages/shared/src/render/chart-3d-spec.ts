@@ -106,10 +106,24 @@ function resolveBoxShape(
 }
 
 /**
+ * `c:shape` values this pass renders as a true 3D box (the ONLY shape
+ * visually verified against ground truth so far: `gt/chart-01.webp`'s
+ * thin, subtly-beveled columns). `cylinder`/`cone`/`pyramid` (gt/chart-07..09)
+ * are a materially different PowerPoint convention (a genuinely round,
+ * full-width volume, not a thin oblique bevel - see the chart track's
+ * progress log) and are deliberately NOT modelled yet; a chart using them
+ * falls back to the flat 2D render rather than an unverified guess.
+ */
+function isSupportedBoxShape(shape: PptxBar3DShape | undefined): boolean {
+	return shape === undefined || shape === 'box';
+}
+
+/**
  * Build the `bar3D` box geometry from the flat 2D view-model's own front-face
- * rectangles. Returns `null` when the chart's grouping/direction is not yet
- * modelled (`standard` grouping, or a horizontal `c:barDir val="bar"` chart)
- * so the caller falls back to the flat 2D render instead of a wrong one.
+ * rectangles. Returns `null` when the chart's grouping/direction/shape is not
+ * yet modelled (`standard` grouping, a horizontal `c:barDir val="bar"` chart,
+ * or a non-`box` `c:shape`) so the caller falls back to the flat 2D render
+ * instead of a wrong or unverified one.
  */
 function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3DGeometry {
 	const grouping = chartData.grouping ?? 'clustered';
@@ -124,6 +138,10 @@ function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3D
 		}
 		const rect = prim as SvgRect;
 		const seriesIndex = rect.part?.seriesIndex ?? 0;
+		const shape = resolveBoxShape(chartData, seriesIndex);
+		if (!isSupportedBoxShape(shape)) {
+			return null;
+		}
 		boxes.push({
 			x: rect.x,
 			y: rect.y,
@@ -132,7 +150,7 @@ function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3D
 			color: rect.fill,
 			seriesIndex,
 			categoryIndex: rect.part?.pointIndex ?? 0,
-			shape: resolveBoxShape(chartData, seriesIndex),
+			shape,
 			depthMagnitude,
 		});
 	}
