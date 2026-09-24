@@ -102,6 +102,32 @@ describe('buildTextBodyLayoutStyle', () => {
 		expect(style.justifyContent).toBeUndefined();
 	});
 
+	it('fills column 1 first instead of balancing (PowerPoint never balances)', () => {
+		expect(buildTextBodyLayoutStyle(textElement({ columnCount: 2 })).columnFill).toBe('auto');
+	});
+
+	it('honours @anchor for a multi-column body via align-content, not justify-content', () => {
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, vAlign: 'middle' })).alignContent,
+		).toBe('center');
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, vAlign: 'bottom' })).alignContent,
+		).toBe('end');
+		expect(buildTextBodyLayoutStyle(textElement({ columnCount: 2 })).alignContent).toBe('start');
+	});
+
+	it('honours @rtlCol by reversing multi-column direction', () => {
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, rtlColumns: true })).direction,
+		).toBe('rtl');
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 2, rtlColumns: false })).direction,
+		).toBeUndefined();
+		expect(
+			buildTextBodyLayoutStyle(textElement({ columnCount: 1, rtlColumns: true })).direction,
+		).toBeUndefined();
+	});
+
 	it('centres the text bounding box for @anchorCtr', () => {
 		expect(buildTextBodyLayoutStyle(textElement({ anchorCenter: true })).alignItems).toBe('center');
 		expect(buildTextBodyLayoutStyle(textElement({})).alignItems).toBeUndefined();

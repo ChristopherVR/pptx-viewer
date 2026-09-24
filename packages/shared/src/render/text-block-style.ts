@@ -166,6 +166,12 @@ export function buildTextBlockStyle(
 
 	// Layout first: the typography below must win on any shared property (a
 	// `wrap="none"` body's `nowrap` has to beat the default `pre-wrap`).
+	// `bodyLayoutStyle` may itself declare `direction` (`a:bodyPr/@rtlCol` on a
+	// multi-column body); captured here so the unconditional `style.direction`
+	// assignment below can fall back to it instead of clobbering it back to
+	// `undefined`/`'ltr'`, the "shared value clobbered downstream" failure mode
+	// CLAUDE.md warns about.
+	const bodyLayoutStyle = options.bodyLayout ? buildTextBodyLayoutStyle(element) : undefined;
 	if (options.bodyLayout) {
 		style.width = '100%';
 		style.height = '100%';
@@ -174,7 +180,7 @@ export function buildTextBlockStyle(
 		// The box itself (columns, anchor, anchorCtr, tab-size, kinsoku) comes
 		// from the one shared decision React's `getTextLayoutStyle` also renders
 		// from. Assigned AFTER `wordBreak` so `@latinLnBrk` can override it.
-		Object.assign(style, buildTextBodyLayoutStyle(element));
+		Object.assign(style, bodyLayoutStyle);
 		// `a:bodyPr/@rot`, for the four bindings that put the body layout and the
 		// body typography on ONE element. React composes the same shared value
 		// with its text-compensation and 3D-scene transforms itself, so emitting
@@ -197,8 +203,13 @@ export function buildTextBlockStyle(
 		style.backgroundColor = normalizeHexColor(ts.highlightColor, undefined);
 	}
 	style.textAlign = resolveCssTextAlign(ts?.align, isRtl) ?? 'left';
-	// `vertical270`'s bottom-to-top reading direction outranks paragraph-level RTL.
-	style.direction = toCssVerticalDirection(ts?.textDirection) ?? (isRtl ? 'rtl' : 'ltr');
+	// `vertical270`'s bottom-to-top reading direction outranks paragraph-level
+	// RTL, which in turn outranks a multi-column body's own `@rtlCol` direction
+	// (`bodyLayoutStyle.direction`, only ever set when neither of the other two
+	// applies).
+	style.direction =
+		toCssVerticalDirection(ts?.textDirection) ??
+		(isRtl ? 'rtl' : (bodyLayoutStyle?.direction ?? 'ltr'));
 	if (isRtl) {
 		style.unicodeBidi = 'plaintext';
 	}

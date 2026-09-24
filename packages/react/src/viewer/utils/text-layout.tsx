@@ -52,17 +52,22 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 
 	const bodyTop = element.textStyle?.bodyInsetTop ?? DEFAULT_BODY_INSET_TB_PX;
 	const bodyBottom = element.textStyle?.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX;
+	// Columns / flex anchoring / anchorCtr / tab-size / kinsoku, from shared.
+	// May itself declare `direction` (`a:bodyPr/@rtlCol` on a multi-column
+	// body): read it out before the `verticalDirection` override below would
+	// otherwise clobber it back to `undefined`, exactly the "shared value
+	// clobbered downstream" failure mode CLAUDE.md warns about.
+	const bodyLayoutStyle = buildTextBodyLayoutStyle(element) as React.CSSProperties;
 
 	return {
-		// Columns / flex anchoring / anchorCtr / tab-size / kinsoku, from shared.
-		...(buildTextBodyLayoutStyle(element) as React.CSSProperties),
+		...bodyLayoutStyle,
 		// Body inset only. Paragraph spacing (spcBef/spcAft) is applied
 		// per-paragraph by the paragraph renderer, not collapsed here.
 		paddingTop: bodyTop,
 		paddingBottom: bodyBottom,
 		writingMode,
 		textOrientation,
-		direction: verticalDirection,
+		direction: verticalDirection ?? bodyLayoutStyle.direction,
 		marginLeft,
 		textIndent,
 		...(shapeAutoFitTextBox

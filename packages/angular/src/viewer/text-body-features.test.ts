@@ -38,6 +38,15 @@ describe('angular text-body features', () => {
 		expect(style['column-gap']).toBe('16px');
 	});
 
+	it('fills numCol columns sequentially and honours @anchor/@rtlCol', () => {
+		const style = getTextBlockStyle(
+			textShape({ textStyle: { columnCount: 2, vAlign: 'middle', rtlColumns: true } }),
+		);
+		expect(style['column-fill']).toBe('auto');
+		expect(style['align-content']).toBe('center');
+		expect(style['direction']).toBe('rtl');
+	});
+
 	it('advances a tab by `defTabSz` rather than the browser default', () => {
 		expect(getTextBlockStyle(textShape({ textStyle: { defaultTabSize: 48 } }))['tab-size']).toBe(
 			'48px',

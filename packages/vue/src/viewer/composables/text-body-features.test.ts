@@ -36,6 +36,17 @@ describe('vue text-body features', () => {
 		expect(style.columnGap).toBe('16px');
 	});
 
+	it('fills numCol columns sequentially and honours @anchor/@rtlCol', () => {
+		const style = getTextBlockStyle(
+			textShape({
+				textStyle: { columnCount: 2, vAlign: 'middle', rtlColumns: true },
+			} as Partial<PptxElement>),
+		);
+		expect(style.columnFill).toBe('auto');
+		expect(style.alignContent).toBe('center');
+		expect(style.direction).toBe('rtl');
+	});
+
 	it('advances a tab by `defTabSz` rather than the browser default', () => {
 		const style = getTextBlockStyle(
 			textShape({ textStyle: { defaultTabSize: 48 } } as Partial<PptxElement>),

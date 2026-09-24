@@ -44,6 +44,15 @@ describe('vanilla text-body features', () => {
 		);
 	});
 
+	it('fills numCol columns sequentially and honours @anchor/@rtlCol', () => {
+		const style = getTextBlockStyle(
+			textShape({ textStyle: { columnCount: 2, vAlign: 'middle', rtlColumns: true } }),
+		);
+		expect(style['columnFill']).toBe('auto');
+		expect(style['alignContent']).toBe('center');
+		expect(style['direction']).toBe('rtl');
+	});
+
 	it('centres the text bounding box for `anchorCtr`', () => {
 		expect(getTextBlockStyle(textShape({ textStyle: { anchorCenter: true } }))['alignItems']).toBe(
 			'center',
