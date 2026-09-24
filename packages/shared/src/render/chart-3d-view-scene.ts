@@ -1,22 +1,20 @@
+import type { ChartPptxElement } from 'pptx-viewer-core';
 /**
  * `<pptx-three-view>` scene module for 3D charts.
  *
- * Implements the oblique-projection family only (`c:view3D/@rAngAx=1`,
- * `bar3D`'s own default; verified against `gt/chart-01.webp`). The
- * perspective family (line3D/area3D/pie3D/surface3D, and bar3D's `standard`
- * grouping or a horizontal `c:barDir val="bar"`) is a materially different
- * true 3D grid+camera (see the chart track's progress log) and is not
- * implemented yet: `buildChart3DSpecForElement` already gates those out to
- * `geometry: null`, and this module throws for anything it cannot draw, so
- * the element keeps showing its slotted 2D fallback instead of a wrong
- * render.
+ * The oblique-projection family (`c:view3D/@rAngAx=1`, `bar3D`'s own
+ * default; verified against `gt/chart-01.webp`) is drawn here. Everything
+ * else (line3D/area3D/pie3D/surface3D, and bar3D's `standard` grouping, a
+ * horizontal `c:barDir val="bar"` or round shapes) has `geometry: null` and
+ * mounts the matching perspective scene from `spec.perspective` (the
+ * pre-`<pptx-three-view>` scenes, hosted on the shared renderer). Those are
+ * not yet at PowerPoint parity; see `demos/demo-three-parity/README.md`.
  *
  * The oblique projection is built as a plain `OrthographicCamera` (1 world
  * unit = 1 authored chart px, matching `chart-3d-chrome-overlay.ts`'s
  * overlay `<svg>` viewBox exactly) with a SHEAR term hand-inserted into its
  * projection matrix, rather than tilting the camera or shearing the scene
- * graph: this keeps `OrbitControls` (a future enhancement; not wired yet)
- * well-defined, since only the camera moves, and keeps every box's world
+ * graph: this keeps a future `OrbitControls` well-defined, since only the camera moves, and keeps every box's world
  * position/size meaningful on its own instead of encoding the illusion into
  * mesh transforms.
  *
@@ -25,12 +23,21 @@
 import type * as THREE from 'three';
 
 import type { ThreeViewContext, ThreeViewScene } from '../three-view/types';
+import { createAreaChart3DScene } from './area-chart-3d-scene';
+import { createBarChart3DScene } from './bar-chart-3d-scene';
 import { buildChart3DBarMeshes } from './chart-3d-bar-mesh';
 import { renderChart3DChromeOverlaySvg } from './chart-3d-chrome-overlay';
-import type { Chart3DSpec } from './chart-3d-spec';
+import { attachObliqueBarInteraction } from './chart-3d-oblique-interaction';
+import type { Chart3DPerspectiveScene, Chart3DSpec } from './chart-3d-spec';
+import { createLineChart3DScene } from './line-chart-3d-scene';
+import { createPieChart3DScene } from './pie-chart-3d-scene';
+import { createSurfaceChart3DScene } from './surface-chart-3d-scene';
 
-/** Camera distance chosen so `NEAR`/`FAR` stay tight around the scene's own (tiny) depth extent. */
-function buildObliqueCamera(
+/**
+ * The oblique chart camera. Camera distance is chosen so `NEAR`/`FAR` stay
+ * tight around the scene's own (tiny) depth extent. Exported for tests.
+ */
+export function buildObliqueCamera(
 	three: ThreeModule,
 	svgWidth: number,
 	svgHeight: number,
@@ -55,23 +62,56 @@ function buildObliqueCamera(
 	const ndcScaleY = m[5];
 	m[8] = -shearX * ndcScaleX;
 	m[9] = shearY * ndcScaleY;
+	// The shear multiplies VIEW-space z, which is `-distance` at the chart's
+	// front plane (world z = 0). Offset it so the front plane is unsheared
+	// and lands exactly on the 2D layout; only depth behind it shifts.
+	m[12] += m[8] * distance;
+	m[13] += m[9] * distance;
 	camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
 	return camera;
 }
 
 type ThreeModule = typeof THREE;
 
+/** The hosted perspective scene for a spec whose oblique geometry is `null`. */
+function mountPerspectiveScene(
+	perspective: Chart3DPerspectiveScene,
+	ctx: ThreeViewContext,
+): ThreeViewScene {
+	switch (perspective.kind) {
+		case 'bar':
+			return createBarChart3DScene(ctx, perspective.options);
+		case 'line':
+			return createLineChart3DScene(ctx, perspective.options);
+		case 'area':
+			return createAreaChart3DScene(ctx, perspective.options);
+		case 'pie':
+			return createPieChart3DScene(ctx, perspective.options);
+		case 'surface':
+			return createSurfaceChart3DScene(ctx, perspective.options);
+		default: {
+			const exhaustive: never = perspective;
+			return exhaustive;
+		}
+	}
+}
+
 export async function mountChart3DView(
 	spec: Chart3DSpec,
 	ctx: ThreeViewContext,
 ): Promise<ThreeViewScene> {
 	if (spec.projection.mode !== 'oblique' || spec.geometry?.kind !== 'bar') {
-		throw new Error(
-			`3D chart scene not implemented yet for chartType=${spec.chartType} projection=${spec.projection.mode}`,
-		);
+		if (spec.perspective) {
+			return mountPerspectiveScene(spec.perspective, ctx);
+		}
+		throw new Error(`no 3D chart scene for chartType=${spec.chartType}`);
 	}
 	const three = ctx.three;
 	const { vm, geometry } = spec;
+	const chartData = (spec.element as ChartPptxElement).chartData;
+	if (!chartData) {
+		throw new Error('3D chart spec without chart data');
+	}
 
 	const camera = buildObliqueCamera(
 		three,
@@ -88,6 +128,18 @@ export async function mountChart3DView(
 	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm);
 	ctx.overlay.appendChild(overlay);
 
+	const interaction = attachObliqueBarInteraction({
+		ctx,
+		camera,
+		meshes: bars.meshes,
+		boxes: geometry.boxes,
+		vm,
+		chartData,
+		categoryLabels: spec.categoryLabels,
+		seriesNames: chartData.series.map((series) => series.name),
+		scene,
+	});
+
 	let disposed = false;
 	return {
 		render(renderer: THREE.WebGLRenderer) {
@@ -99,11 +151,14 @@ export async function mountChart3DView(
 			// size, so nothing needs recomputing here.
 		},
 		isAnimating: () => false,
+		setInteractive: (on) => interaction.setInteractive(on),
+		setSelectedPart: (part) => interaction.setSelectedPart(part),
 		dispose() {
 			if (disposed) {
 				return;
 			}
 			disposed = true;
+			interaction.dispose();
 			bars.dispose();
 			overlay.remove();
 		},

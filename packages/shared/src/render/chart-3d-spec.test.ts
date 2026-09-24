@@ -57,7 +57,8 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(spec).not.toBeNull();
-		expect(spec?.geometry).toBeNull(); // surface geometry not yet implemented
+		expect(spec?.geometry).toBeNull(); // no oblique surface geometry
+		expect(spec?.perspective?.kind).toBe('surface');
 	});
 
 	it('resolves an oblique projection for a default bar3D chart', () => {
@@ -123,6 +124,7 @@ describe('buildChart3DSpecForElement', () => {
 		);
 		expect(spec).not.toBeNull();
 		expect(spec?.geometry).toBeNull();
+		expect(spec?.perspective?.kind).toBe('bar');
 	});
 
 	it('returns null geometry (falls back to the 2D render) for a horizontal bar3D chart', () => {
@@ -135,6 +137,8 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(spec?.geometry).toBeNull();
+		expect(spec?.perspective?.kind).toBe('bar');
+		expect(spec?.perspective?.kind === 'bar' && spec.perspective.options.horizontal).toBeTruthy();
 	});
 
 	it('resolves a box shape from c:ser/c:shape, falling back to the chart-level c:shape', () => {
@@ -162,6 +166,46 @@ describe('buildChart3DSpecForElement', () => {
 				}),
 			);
 			expect(spec?.geometry).toBeNull();
+			expect(spec?.perspective?.kind).toBe('bar');
 		}
+	});
+
+	it('gives an oblique bar spec no perspective scene, and each box its authored value', () => {
+		const spec = buildChart3DSpecForElement(
+			chartEl({
+				chartType: 'bar3D',
+				categories: ['Q1', 'Q2'],
+				series: [{ name: 'Revenue', values: [100, 150] }],
+			}),
+		);
+		expect(spec?.perspective).toBeNull();
+		const boxes = spec?.geometry?.kind === 'bar' ? spec.geometry.boxes : [];
+		expect(boxes.map((b) => b.value)).toStrictEqual([100, 150]);
+		expect(spec?.categoryLabels).toStrictEqual(['Q1', 'Q2']);
+	});
+
+	it('routes line3D / area3D / pie3D to their perspective scenes', () => {
+		for (const [chartType, kind] of [
+			['line3D', 'line'],
+			['area3D', 'area'],
+			['pie3D', 'pie'],
+		] as const) {
+			const spec = buildChart3DSpecForElement(
+				chartEl({
+					chartType,
+					categories: ['A', 'B'],
+					series: [{ name: 'S1', values: [1, 2] }],
+				}),
+			);
+			expect(spec?.geometry).toBeNull();
+			expect(spec?.perspective?.kind).toBe(kind);
+		}
+	});
+
+	it('numbers the categories 1..n when the chart has none', () => {
+		const spec = buildChart3DSpecForElement(
+			chartEl({ chartType: 'line3D', categories: [], series: [{ name: 'S1', values: [1, 2, 3] }] }),
+		);
+		expect(spec?.categoryLabels).toStrictEqual(['1', '2', '3']);
 	});
 });

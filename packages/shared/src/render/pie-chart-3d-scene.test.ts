@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { mountHostedChart3DForTest } from './chart-3d-scene.test-harness';
+import type { TestChart3DInteraction } from './chart-3d-scene.test-harness';
 import type { PieChart3DSceneOptions } from './pie-chart-3d-data';
-import { mountPieChart3D, PIE_CHART_THREE_UNAVAILABLE } from './pie-chart-3d-scene';
+import { createPieChart3DScene } from './pie-chart-3d-scene';
 
 // Mirrors bar-chart-3d-scene.test.ts's fake-`three` harness.
 
@@ -163,6 +165,8 @@ vi.mock(import('three/examples/jsm/controls/OrbitControls.js'), () => {
 		maxPolarAngle = 0;
 		target = { copy: () => {} };
 		update() {}
+		addEventListener() {}
+		removeEventListener() {}
 		dispose = h.calls.controlsDispose;
 	}
 	return { OrbitControls };
@@ -200,6 +204,15 @@ function baseOptions(): PieChart3DSceneOptions {
 	};
 }
 
+/** Mount the hosted scene into a fake container (see chart-3d-scene.test-harness.ts). */
+function mountPieChart3D(
+	container: unknown,
+	options: Parameters<typeof createPieChart3DScene>[1],
+	interaction?: TestChart3DInteraction,
+) {
+	return mountHostedChart3DForTest(createPieChart3DScene, container as never, options, interaction);
+}
+
 beforeEach(() => {
 	vi.resetModules();
 	h.behaviour.threeAvailable = true;
@@ -225,15 +238,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountPieChart3D - dependencies missing', () => {
-	it('returns the no-op sentinel when `three` cannot be imported', async () => {
-		h.behaviour.threeAvailable = false;
-		const handle = await mountPieChart3D(fakeElement() as unknown as HTMLElement, baseOptions());
-		expect(handle).toBe(PIE_CHART_THREE_UNAVAILABLE);
-		expect(handle.ok).toBeFalsy();
-	});
-});
-
 describe('mountPieChart3D - mounted scene', () => {
 	it('mounts a canvas and disposes wedge geometries/materials for every wedge', async () => {
 		const handle = await mountPieChart3D(fakeElement() as unknown as HTMLElement, baseOptions());
@@ -241,7 +245,6 @@ describe('mountPieChart3D - mounted scene', () => {
 		handle.dispose();
 		expect(h.calls.wedgeGeometryDispose).toHaveBeenCalledTimes(2);
 		expect(h.calls.materialDispose).toHaveBeenCalledTimes(2);
-		expect(h.calls.rendererDispose).toHaveBeenCalledOnce();
 	});
 });
 

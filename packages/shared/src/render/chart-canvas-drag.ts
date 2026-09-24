@@ -83,9 +83,17 @@ export const CHART_PART_SELECTED_CLASS = 'pptx-chart-part-selected';
  * already makes by toggling the one class.
  */
 export function isChartInteractionArmed(node: Element | null | undefined): boolean {
-	return (
-		typeof node?.closest === 'function' && node.closest(`.${CHART_INTERACTIVE_CLASS}`) !== null
-	);
+	let current: Element | null | undefined = node;
+	// Walk out through shadow roots: a `<pptx-three-view>` canvas sits inside
+	// the element's shadow tree, and `closest` never crosses that boundary.
+	while (current && typeof current.closest === 'function') {
+		if (current.closest(`.${CHART_INTERACTIVE_CLASS}`) !== null) {
+			return true;
+		}
+		const root = typeof current.getRootNode === 'function' ? current.getRootNode() : null;
+		current = (root as { host?: Element } | null)?.host ?? null;
+	}
+	return false;
 }
 
 /**

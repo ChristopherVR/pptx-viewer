@@ -1,7 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { AREA_CHART_THREE_UNAVAILABLE, mountAreaChart3D } from './area-chart-3d-scene';
+import { createAreaChart3DScene } from './area-chart-3d-scene';
 import type { CartesianLine3DSceneOptions } from './cartesian-line-chart-3d-data';
+import { mountHostedChart3DForTest } from './chart-3d-scene.test-harness';
+import type { TestChart3DInteraction } from './chart-3d-scene.test-harness';
 
 // Mirrors line-chart-3d-scene.test.ts's fake-`three` harness, extended with a
 // BufferGeometry/Float32BufferAttribute stand-in for the area-fill ribbon.
@@ -209,6 +211,8 @@ vi.mock(import('three/examples/jsm/controls/OrbitControls.js'), () => {
 		maxPolarAngle = 0;
 		target = { copy: () => {} };
 		update() {}
+		addEventListener() {}
+		removeEventListener() {}
 		dispose = h.calls.controlsDispose;
 	}
 	return { OrbitControls };
@@ -247,6 +251,20 @@ function baseOptions(): CartesianLine3DSceneOptions {
 	};
 }
 
+/** Mount the hosted scene into a fake container (see chart-3d-scene.test-harness.ts). */
+function mountAreaChart3D(
+	container: unknown,
+	options: Parameters<typeof createAreaChart3DScene>[1],
+	interaction?: TestChart3DInteraction,
+) {
+	return mountHostedChart3DForTest(
+		createAreaChart3DScene,
+		container as never,
+		options,
+		interaction,
+	);
+}
+
 beforeEach(() => {
 	vi.resetModules();
 	h.behaviour.threeAvailable = true;
@@ -270,17 +288,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountAreaChart3D - dependencies missing', () => {
-	it('returns the no-op sentinel when `three` cannot be imported', async () => {
-		h.behaviour.threeAvailable = false;
-		const container = fakeElement(fakeDocument());
-		const handle = await mountAreaChart3D(container as unknown as HTMLElement, baseOptions());
-		expect(handle).toBe(AREA_CHART_THREE_UNAVAILABLE);
-		expect(handle.ok).toBeFalsy();
-		expect(container.children).toHaveLength(0);
-	});
-});
-
 describe('mountAreaChart3D - mounted scene', () => {
 	it('mounts a canvas + label overlay and builds a ribbon per series', async () => {
 		const container = fakeElement(fakeDocument());
@@ -295,7 +302,6 @@ describe('mountAreaChart3D - mounted scene', () => {
 
 		handle.dispose();
 
-		expect(h.calls.rendererDispose).toHaveBeenCalledOnce();
 		expect(h.calls.markerGeometryDispose).toHaveBeenCalledOnce();
 		expect(h.calls.tubeGeometryDispose).toHaveBeenCalledTimes(2);
 		expect(h.calls.ribbonGeometryDispose).toHaveBeenCalledTimes(2);

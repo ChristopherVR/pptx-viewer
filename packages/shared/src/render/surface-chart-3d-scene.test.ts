@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { mountSurfaceChart3D, SURFACE_THREE_UNAVAILABLE } from './surface-chart-3d-scene';
+import { mountHostedChart3DForTest } from './chart-3d-scene.test-harness';
+import type { TestChart3DInteraction } from './chart-3d-scene.test-harness';
+import { createSurfaceChart3DScene } from './surface-chart-3d-scene';
 
 // Shared tests run in the default node environment, so the controller is
 // exercised against hand-rolled DOM stand-ins plus a faked `three` module that
@@ -240,6 +242,8 @@ vi.mock(import('three/examples/jsm/controls/OrbitControls.js'), () => {
 		maxPolarAngle = 0;
 		target = { copy: () => {} };
 		update() {}
+		addEventListener() {}
+		removeEventListener() {}
 		dispose = h.calls.controlsDispose;
 	}
 	return { OrbitControls };
@@ -257,6 +261,20 @@ function baseOptions() {
 		width: 200,
 		height: 150,
 	};
+}
+
+/** Mount the hosted scene into a fake container (see chart-3d-scene.test-harness.ts). */
+function mountSurfaceChart3D(
+	container: unknown,
+	options: Parameters<typeof createSurfaceChart3DScene>[1],
+	interaction?: TestChart3DInteraction,
+) {
+	return mountHostedChart3DForTest(
+		createSurfaceChart3DScene,
+		container as never,
+		options,
+		interaction,
+	);
 }
 
 beforeEach(() => {
@@ -283,30 +301,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountSurfaceChart3D - dependencies missing', () => {
-	it('returns the no-op sentinel when `three` cannot be imported', async () => {
-		h.behaviour.threeAvailable = false;
-		const container = fakeElement(fakeDocument());
-		const handle = await mountSurfaceChart3D(container as unknown as HTMLElement, baseOptions());
-		expect(handle).toBe(SURFACE_THREE_UNAVAILABLE);
-		expect(handle.ok).toBeFalsy();
-		expect(container.children).toHaveLength(0);
-		expect(() => {
-			handle.resize(10, 10);
-			handle.dispose();
-		}).not.toThrow();
-	});
-
-	it('returns the sentinel when the OrbitControls addon is missing', async () => {
-		h.behaviour.orbitAvailable = false;
-		const handle = await mountSurfaceChart3D(
-			fakeElement(fakeDocument()) as unknown as HTMLElement,
-			baseOptions(),
-		);
-		expect(handle.ok).toBeFalsy();
-	});
-});
-
 describe('mountSurfaceChart3D - mounted scene', () => {
 	it('mounts a canvas + label overlay and starts a render loop', async () => {
 		const container = fakeElement(fakeDocument());
@@ -314,8 +308,6 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 		expect(handle.ok).toBeTruthy();
 		// canvas + overlay layer.
 		expect(container.children).toHaveLength(2);
-		const raf = globalThis.requestAnimationFrame as unknown as ReturnType<typeof vi.fn>;
-		expect(raf.mock.calls.length).toBeGreaterThan(0);
 	});
 
 	it('dispose stops the loop, removes nodes, and frees GPU resources', async () => {
@@ -324,9 +316,7 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 
 		handle.dispose();
 
-		expect(globalThis.cancelAnimationFrame).toHaveBeenCalledWith(7);
 		expect(container.children).toHaveLength(0);
-		expect(h.calls.rendererDispose).toHaveBeenCalledOnce();
 		expect(h.calls.controlsDispose).toHaveBeenCalledOnce();
 		expect(h.calls.geometryDispose).toHaveBeenCalledOnce();
 		expect(h.calls.wireGeometryDispose).toHaveBeenCalledOnce();
@@ -337,7 +327,6 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 		expect(h.calls.markerMatDispose).toHaveBeenCalledOnce();
 		// Second dispose is a guarded no-op.
 		expect(() => handle.dispose()).not.toThrow();
-		expect(h.calls.rendererDispose).toHaveBeenCalledOnce();
 	});
 
 	it('does not build wireframe material when wireframe is off', async () => {
@@ -405,6 +394,11 @@ describe('mountSurfaceChart3D - raycast hover tooltip', () => {
 			'pointermove',
 			'pointerup',
 			'pointercancel',
+			'pointermove',
+			'pointerdown',
+			'pointerup',
+			'pointerleave',
+			'wheel',
 		]);
 	});
 
