@@ -439,6 +439,14 @@ export interface ParsedTableStyleFill {
 	tint?: number;
 	/** Shade value (0-100 000). */
 	shade?: number;
+	/**
+	 * Alpha (opacity) value (0-100 000, where 100 000 is fully opaque) from an
+	 * `a:alpha` child of `a:schemeClr`/`a:srgbClr`. Several built-in table
+	 * styles (e.g. "Light Style 1/3", "Themed Style 1/2") band their rows with
+	 * a partially transparent tint of the theme colour rather than a tint/shade
+	 * blend.
+	 */
+	alpha?: number;
 	/** Explicit sRGB hex colour (e.g. `#FF8800`) from `a:srgbClr`. */
 	color?: string;
 	/**

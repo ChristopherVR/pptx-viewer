@@ -21,7 +21,7 @@ import type {
 	ShapeStyle,
 } from 'pptx-viewer-core';
 
-import { buildGradientCss, getPatternSvg, normalizeHexColor } from './fill-style';
+import { buildGradientCss, colorWithOpacity, getPatternSvg, normalizeHexColor } from './fill-style';
 import type { TableCellCss } from './table-style';
 import { isDisplayableImageUrl } from './table-style-image';
 
@@ -209,7 +209,16 @@ export function applyStyleFill(
 		return true;
 	}
 
-	const color = resolveStyleFillColor(fill, colorScheme) ?? fallback;
+	const resolved = resolveStyleFillColor(fill, colorScheme);
+	// A band fill's own `a:alpha` (e.g. built-in "Light Style 1/3" and "Themed
+	// Style 1/2", which band with a 20-40% transparent tint of the theme
+	// colour rather than a tint/shade blend) makes the fill see-through, so it
+	// converts to CSS `rgba()` here rather than being folded into the resolved
+	// hex the way tint/shade are.
+	const color =
+		(resolved && fill?.alpha !== undefined
+			? colorWithOpacity(resolved, fill.alpha / 100_000)
+			: resolved) ?? fallback;
 	if (color) {
 		layerSolidColor(css, color);
 		return true;

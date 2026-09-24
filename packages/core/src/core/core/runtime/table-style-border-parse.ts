@@ -34,6 +34,17 @@ export function parseTintShadeVal(value: unknown): number | undefined {
 }
 
 /**
+ * Parse an `a:alpha` `@_val` into the raw OOXML thousandths integer
+ * (0-100000) {@link ParsedTableStyleFill.alpha} stores. Unlike
+ * {@link parseTintShadeVal}, `0` is a meaningful (fully transparent) value
+ * and must not be discarded as "absent".
+ */
+export function parseAlphaVal(value: unknown): number | undefined {
+	const fraction = parseOoxmlPercent(value);
+	return fraction === undefined ? undefined : Math.round(fraction * 100_000);
+}
+
+/**
  * The eight `a:tcBdr` child sides, in OOXML order (`CT_TableCellBorderStyle`:
  * left, right, top, bottom, insideH, insideV, tl2br, tr2bl). The anti-diagonal
  * element is `tr2bl` (confirmed against this repo's own generated schema
@@ -75,7 +86,9 @@ export function parseSolidFillStyle(
 	const tint = tintRaw ? parseTintShadeVal(tintRaw['@_val']) : undefined;
 	const shadeRaw = schemeClr['a:shade'] as XmlObject | undefined;
 	const shade = shadeRaw ? parseTintShadeVal(shadeRaw['@_val']) : undefined;
-	// Omit tint/shade entirely rather than setting them to `undefined`
+	const alphaRaw = schemeClr['a:alpha'] as XmlObject | undefined;
+	const alpha = alphaRaw ? parseAlphaVal(alphaRaw['@_val']) : undefined;
+	// Omit tint/shade/alpha entirely rather than setting them to `undefined`
 	// (matches the sibling `parseColorChoiceFill` in table-style-fill-parse.ts)
 	// so a whole-object `toStrictEqual` comparison isn't tripped by a key that
 	// is present-but-undefined versus simply absent (W3-E).
@@ -83,6 +96,7 @@ export function parseSolidFillStyle(
 		schemeColor,
 		...(tint !== undefined ? { tint } : {}),
 		...(shade !== undefined ? { shade } : {}),
+		...(alpha !== undefined ? { alpha } : {}),
 	};
 }
 

@@ -76,6 +76,9 @@ export function colorChoiceXml(fill: ParsedTableStyleFill): XmlObject {
 		if (fill.shade !== undefined) {
 			node['a:shade'] = { '@_val': String(fill.shade) };
 		}
+		if (fill.alpha !== undefined) {
+			node['a:alpha'] = { '@_val': String(fill.alpha) };
+		}
 		return { 'a:schemeClr': node };
 	}
 	if (fill.color) {
@@ -85,6 +88,9 @@ export function colorChoiceXml(fill: ParsedTableStyleFill): XmlObject {
 		}
 		if (fill.shade !== undefined) {
 			node['a:shade'] = { '@_val': String(fill.shade) };
+		}
+		if (fill.alpha !== undefined) {
+			node['a:alpha'] = { '@_val': String(fill.alpha) };
 		}
 		return { 'a:srgbClr': node };
 	}

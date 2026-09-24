@@ -18,7 +18,6 @@
  * NOT done here: this module only captures the structured colour references
  * and the shared renderer resolves them against the active theme colour scheme.
  */
-import { parseDrawingColorOpacity } from '../../color';
 import type {
 	ParsedTableStyleFill,
 	ParsedTableStyleGradient,
@@ -27,7 +26,7 @@ import type {
 	ParsedTableStyleText,
 	XmlObject,
 } from '../../types';
-import { parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
+import { parseAlphaVal, parseSolidFillStyle, parseTintShadeVal } from './table-style-border-parse';
 
 /**
  * Resolves a table style section's `a:blipFill` relationship id (`r:embed` /
@@ -59,14 +58,9 @@ function parseColorChoiceFill(node: XmlObject | undefined): ParsedTableStyleFill
 	if (!node) {
 		return undefined;
 	}
-	// `parseDrawingColorOpacity` looks for `a:alpha`/`a:alphaMod`/`a:alphaOff`
-	// nested inside whichever colour-choice child (`a:schemeClr`/`a:srgbClr`/
-	// ...) `node` carries directly, which matches every caller here
-	// (`a:solidFill`, a gradient `a:gs` stop, or a pattern `a:fgClr`/`a:bgClr`).
-	const alpha = parseDrawingColorOpacity(node);
 	const scheme = parseSolidFillStyle(node);
 	if (scheme) {
-		return alpha === undefined ? scheme : { ...scheme, alpha };
+		return scheme;
 	}
 	const srgb = node['a:srgbClr'] as XmlObject | undefined;
 	const color = toHex(srgb?.['@_val']);
@@ -84,6 +78,8 @@ function parseColorChoiceFill(node: XmlObject | undefined): ParsedTableStyleFill
 	if (shade !== undefined) {
 		fill.shade = shade;
 	}
+	const alphaRaw = srgb?.['a:alpha'] as XmlObject | undefined;
+	const alpha = alphaRaw ? parseAlphaVal(alphaRaw['@_val']) : undefined;
 	if (alpha !== undefined) {
 		fill.alpha = alpha;
 	}
