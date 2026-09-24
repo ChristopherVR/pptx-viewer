@@ -42,11 +42,11 @@ import { KeepAnnotationsDialogComponent } from './keep-annotations-dialog.compon
 import { LoadContentService } from './load-content.service';
 import { PasswordProtectionDialogComponent } from './password-protection-dialog.component';
 import type { SlideAnnotationMap } from './presentation-annotations-helpers';
+import { Rendering3DService } from './rendering-3d.service';
 import { SetUpSlideShowDialogComponent } from './set-up-slide-show-dialog.component';
 import { SettingsDialogComponent } from './settings-dialog.component';
 import { ShortcutPanelComponent } from './shortcut-panel.component';
 import { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
-import { SmartArt3DService } from './smart-art-3d.service';
 import { VersionHistoryPanelComponent } from './version-history-panel.component';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
@@ -215,13 +215,13 @@ export class ViewerExtraDialogsComponent {
 	protected readonly editor = inject(EditorStateService);
 	protected readonly loader = inject(LoadContentService);
 	private readonly fonts = inject(EmbeddedFontsService);
-	private readonly smartArt3D = inject(SmartArt3DService);
+	private readonly rendering3D = inject(Rendering3DService);
 	private readonly collab = inject(CollaborationService);
 
 	/** Real runtime availability for the Options > Add-ins pane; see {@link resolveViewerExtraAddinStatus}. */
 	protected readonly addinStatus = computed<ViewerAddinStatus>(() =>
 		resolveViewerExtraAddinStatus({
-			smartArt3dEnabled: this.smartArt3D.enabled(),
+			smartArt3dEnabled: this.rendering3D.flags().smartArt3D,
 			disable3DRendering: this.viewerOpts.options().advanced.disable3DRendering,
 			collaborationConnected: this.collab.connected(),
 		}),

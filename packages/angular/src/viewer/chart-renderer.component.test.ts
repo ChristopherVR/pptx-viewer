@@ -9,9 +9,8 @@
  * own doc comment): asserting `buildChartViewModel` returns the sampled-
  * colour-derived fill once a picture's first pixel is cached is exactly
  * asserting what `vm()` (and therefore the template's `fill="..."` binding)
- * would render, matching this package's `bar-chart-3d-renderer.component
- * .test.ts` precedent of testing the pure data adapter through the SAME
- * vendored barrel the component imports from, in place of a template mount.
+ * would render, testing the pure data adapter through the SAME vendored
+ * barrel the component imports from, in place of a template mount.
  */
 import type { ChartPptxElement, PptxChartData } from 'pptx-viewer-core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';

@@ -6,45 +6,13 @@
  *
  * @module angular-viewer/smart-art-3d-renderer-helpers
  */
-import type { PptxElement, PptxSmartArtData, SmartArtStyle } from 'pptx-viewer-core';
+import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
 
-import {
-	buildSmartArt3DModel,
-	collectCoherent3DOffNodeIds,
-	resolvePalette,
-	resolveSmartArt3DLayout,
-} from '../internal/shared';
-import type { SmartArt3DModel } from '../internal/shared';
 import type { NodeEditBox } from './smart-art-inline-edit';
 
 /** The element's SmartArt data, or `undefined` when it isn't a SmartArt element. */
 export function getSmartArtData(element: PptxElement): PptxSmartArtData | undefined {
 	return element.type === 'smartArt' ? element.smartArtData : undefined;
-}
-
-/**
- * Build the pure 3D model for a SmartArt element, or `null` when there is no
- * geometry to mount (not a SmartArt element, or an empty diagram).
- */
-export function buildSmartArt3DModelForElement(element: PptxElement): SmartArt3DModel | null {
-	const data = getSmartArtData(element);
-	if (!data || data.nodes.length === 0) {
-		return null;
-	}
-	const style: SmartArtStyle = data.style ?? 'flat';
-	const layout = resolveSmartArt3DLayout(
-		data,
-		data.nodes,
-		{ width: Math.max(element.width, 1), height: Math.max(element.height, 1) },
-		resolvePalette(data),
-		style,
-		element.id,
-	);
-	return buildSmartArt3DModel(layout, {
-		background: data.chrome?.backgroundColor,
-		spatial: true,
-		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
-	});
 }
 
 /**

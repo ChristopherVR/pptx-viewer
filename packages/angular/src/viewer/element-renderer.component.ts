@@ -32,7 +32,7 @@ import { getDuotoneFilterDef } from './element-style';
 import type { StyleMap } from './element-style';
 import { ImageRendererComponent } from './image-renderer.component';
 import { ReflectionMirrorContentComponent } from './reflection-mirror-content.component';
-import { SmartArt3DService } from './smart-art-3d.service';
+import { Rendering3DService } from './rendering-3d.service';
 import type { TableCellCommit } from './table-renderer.component';
 
 export { shouldPreventHyperlinkNavigation } from './hyperlink-confirm';
@@ -70,7 +70,7 @@ export class ElementRendererComponent {
 	 * Host opt-in to the Three.js SmartArt renderer. Optional so renderers used
 	 * outside the viewer subtree (thumbnails, export) default to the SVG one.
 	 */
-	private readonly smartArt3DService = inject(SmartArt3DService, { optional: true });
+	private readonly rendering3D = inject(Rendering3DService, { optional: true });
 	/**
 	 * Native-animation playback, present only inside a running presentation.
 	 * Optional so the editor/thumbnails/export render with no animation state.
@@ -79,7 +79,7 @@ export class ElementRendererComponent {
 	private readonly translate = inject(TranslateService);
 	/** For {@link bevelLightingFilter}'s injected `<filter>` markup. */
 	private readonly sanitizer = inject(DomSanitizer);
-	readonly smartArt3D = computed(() => this.smartArt3DService?.enabled() ?? false);
+	readonly smartArt3D = computed(() => this.rendering3D?.flags().smartArt3D ?? false);
 	/** Whether the Selection Pane has hidden this element; see the empty first `@case`. */
 	readonly isHidden = computed(() => isElementHidden(this.element()));
 	/** Obstacle rects (slide coords) for connector A* routing. */

@@ -21,7 +21,7 @@ export { CanvasFitService } from './viewer/canvas-fit.service';
 export { FieldContextService } from './viewer/field-context.service';
 export { InkDrawingService } from './viewer/ink-drawing.service';
 export { RulerGuidesService } from './viewer/ruler-guides.service';
-export { SmartArt3DService } from './viewer/smart-art-3d.service';
+export { Rendering3DService } from './viewer/rendering-3d.service';
 export { ViewerCanvasEditingService } from './viewer/viewer-canvas-editing.service';
 export { ViewerCollabCursorService } from './viewer/viewer-collab-cursor.service';
 export { ViewerCollaborationSessionService } from './viewer/viewer-collaboration-session.service';

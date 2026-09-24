@@ -87,11 +87,9 @@ import { createAngularAiBridge } from './ai/ai-bridge';
 import { AiChatPanelComponent } from './ai/ai-chat-panel.component';
 import { aiToggleVisible } from './ai/ai-gating';
 import { AiPanelStore } from './ai/ai-panel-store';
-import { AreaChart3DService } from './area-chart-3d.service';
 import { AutosaveRecoveryDialogComponent } from './autosave-recovery-dialog.component';
 import { AutosaveRecoveryService } from './autosave-recovery.service';
 import { AutosaveService } from './autosave.service';
-import { BarChart3DService } from './bar-chart-3d.service';
 import { BroadcastDialogComponent } from './broadcast-dialog.component';
 import { CollaborationCursorsComponent } from './collaboration-cursors.component';
 import { CollaborationService } from './collaboration.service';
@@ -121,7 +119,6 @@ import { HyperlinkDialogComponent } from './hyperlink-dialog.component';
 import { InsertSmartArtDialogComponent } from './insert-smart-art-dialog.component';
 import type { SmartArtInsertEvent } from './insert-smart-art-dialog.component';
 import { IsMobileService } from './is-mobile';
-import { LineChart3DService } from './line-chart-3d.service';
 import { LoadContentService } from './load-content.service';
 import { LoadNoticesService } from './load-notices.service';
 import { MasterViewCanvasComponent } from './master-view-canvas.component';
@@ -137,7 +134,6 @@ import { MotionPathOverlayComponent } from './motion-path-overlay.component';
 import { NotesPanelComponent } from './notes-panel.component';
 import { OutlineViewOverlayComponent } from './outline-view-overlay.component';
 import type { OutlineCommit } from './outline-view-overlay.component';
-import { PieChart3DService } from './pie-chart-3d.service';
 import { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
@@ -151,6 +147,7 @@ import { ReadOnlyBannerComponent } from './readonly-banner.component';
 import { RecentColorsService } from './recent-colors.service';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
+import { Rendering3DService } from './rendering-3d.service';
 import { patchTextStyle } from './ribbon-text-helpers';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
@@ -161,10 +158,8 @@ import { SlideDefaultInspectorComponent } from './slide-default-inspector.compon
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
 import { SlideTemplateGalleryDialogComponent } from './slide-template-gallery-dialog.component';
 import { SlidesPanelComponent } from './slides-panel.component';
-import { SmartArt3DService } from './smart-art-3d.service';
 import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
-import { SurfaceChart3DService } from './surface-chart-3d.service';
 import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
 import { ThemeGalleryComponent } from './theme-gallery.component';
@@ -1459,12 +1454,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly autosaveRecovery = inject(AutosaveRecoveryService);
 	protected readonly print = inject(PrintService);
 	protected readonly mobile = inject(IsMobileService);
-	private readonly smartArt3DSvc = inject(SmartArt3DService);
-	private readonly surfaceChart3DSvc = inject(SurfaceChart3DService);
-	private readonly barChart3DSvc = inject(BarChart3DService);
-	private readonly lineChart3DSvc = inject(LineChart3DService);
-	private readonly areaChart3DSvc = inject(AreaChart3DService);
-	private readonly pieChart3DSvc = inject(PieChart3DService);
+	private readonly rendering3D = inject(Rendering3DService);
 	private readonly zoomTarget = inject(ZoomTargetService);
 	protected readonly presenterWindow = inject(PresenterWindowService);
 	private readonly destroyRef = inject(DestroyRef);
@@ -2035,11 +2025,10 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			}
 		});
 
-		// Surface the six 3D opt-in props to their viewer-scoped services, each
-		// ANDed with Options > Advanced > "Disable 3D rendering" (see
+		// Surface the six 3D opt-in props to the viewer-scoped Rendering3DService,
+		// each ANDed with Options > Advanced > "Disable 3D rendering" (see
 		// `resolve3DRenderingFlags`) so a viewer user can force flat 2D even in a
-		// deck the host enabled 3D for. One effect (not six) so they all react to
-		// the same options-changed signal read.
+		// deck the host enabled 3D for.
 		effect(() => {
 			const effective = resolve3DRenderingFlags(
 				{
@@ -2052,12 +2041,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 				},
 				this.viewerOpts.options(),
 			);
-			this.smartArt3DSvc.enabled.set(effective.smartArt3D);
-			this.surfaceChart3DSvc.enabled.set(effective.surfaceChart3D);
-			this.barChart3DSvc.enabled.set(effective.barChart3D);
-			this.lineChart3DSvc.enabled.set(effective.lineChart3D);
-			this.areaChart3DSvc.enabled.set(effective.areaChart3D);
-			this.pieChart3DSvc.enabled.set(effective.pieChart3D);
+			this.rendering3D.flags.set(effective);
 		});
 
 		// Advanced > "Maximum number of undos", re-applied live on every change

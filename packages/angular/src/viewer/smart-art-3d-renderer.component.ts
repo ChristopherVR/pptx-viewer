@@ -9,25 +9,24 @@ import {
 	inject,
 	Injector,
 	input,
-	OnDestroy,
 	signal,
 	viewChild,
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { elementHitTargetStyle, shouldRenderHitTarget } from '../internal/shared';
-import type { SmartArt3DModel, TextStyleAnimationDescriptor } from '../internal/shared';
-// Type-only import of the scene runtime; the implementation (which pulls the
-// optional `three` peer) is loaded lazily via dynamic import so it never lands
-// in the main bundle.
-import type { mountSmartArt3D as MountSmartArt3D } from '../internal/shared-src/smartart-3d/index';
+import {
+	elementHitTargetStyle,
+	resolveSmartArtThreeViewSpec,
+	shouldRenderHitTarget,
+} from '../internal/shared';
+import type { TextStyleAnimationDescriptor } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
+import { Rendering3DService } from './rendering-3d.service';
 import { SLIDE_CONTEXT } from './slide-context';
 import {
-	buildSmartArt3DModelForElement,
 	computeNode3DEditBox,
 	findSmartArtNodeElementAtPoint,
 	getSmartArtData,
@@ -35,21 +34,18 @@ import {
 import { commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
-
-type MountFn = typeof MountSmartArt3D;
-type SceneHandle = ReturnType<MountFn>;
+import { ThreeViewComponent } from './three-view.component';
 
 /**
- * SmartArt3DRendererComponent: Angular Three.js SmartArt renderer.
+ * SmartArt3DRendererComponent: Angular 3D SmartArt view on the shared
+ * `<pptx-three-view>`. The spec (`resolveSmartArtThreeViewSpec`) and the whole
+ * scene live in the shared package; this component projects the SVG
+ * `<pptx-smart-art-renderer>` as the element's fallback (shown while the scene
+ * loads, and kept when `three` is missing or the scene fails). A diagram with
+ * nothing to draw renders the plain SVG. Mirrors React's `SmartArt3DView.tsx`.
  *
- * Builds the pure 3D model from the shared layout engine (no `three` import),
- * then lazily imports the vanilla scene runtime from the vendored
- * `pptx-viewer-shared/smartart-3d` and mounts it on a canvas. `three` is an
- * optional peer dependency: when it is missing, the diagram has no geometry, or
- * the scene errors, the component falls back to the SVG SmartArt renderer.
- *
- * When `canEdit` is true and the 3D scene is active, an invisible
- * `<pptx-smart-art-renderer>` overlay is stacked over the canvas. Double-clicking
+ * When `canEdit` is true, an invisible `<pptx-smart-art-renderer>` overlay is
+ * stacked over the scene. Double-clicking
  * on the overlay uses `document.elementsFromPoint` to locate the `<g>` bearing
  * `data-smartart-node-id`, then opens an inline textarea editor over that node
  * (same commit path as the SVG renderer: `EditorStateService.updateElement`).
@@ -58,11 +54,11 @@ type SceneHandle = ReturnType<MountFn>;
 	selector: 'pptx-smart-art-3d-renderer',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [NgStyle, SmartArtRendererComponent, TranslatePipe],
+	imports: [NgStyle, SmartArtRendererComponent, ThreeViewComponent, TranslatePipe],
 	templateUrl: './smart-art-3d-renderer.component.html',
 	styleUrl: './smart-art-3d-renderer.component.css',
 })
-export class SmartArt3DRendererComponent implements OnDestroy {
+export class SmartArt3DRendererComponent {
 	readonly element = input.required<PptxElement>();
 	readonly zIndex = input<number>(0);
 	/** When true and the 3D scene is active, enables inline node text editing. */
@@ -83,21 +79,22 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 	 * animation playback. Mirrors `ChartElementViewComponent`'s `textStyle`
 	 * threading for the 3D chart scenes: a canvas-texture caption has no DOM
 	 * text node the CSS-injection path (`buildTextStyleOverrideCss`) can reach,
-	 * so the scene's own `setTextStyle` handle method is the only way in.
+	 * so the scene's own text style is the only way in.
 	 */
 	readonly textStyle = input<TextStyleAnimationDescriptor | undefined>(undefined);
 
-	private readonly canvas = viewChild<ElementRef<HTMLCanvasElement>>('canvas');
 	private readonly containerEl = viewChild<ElementRef<HTMLElement>>('container3d');
 	private readonly nodeEditor3d = viewChild<ElementRef<HTMLTextAreaElement>>('nodeEditor3d');
 
-	/** `true` until the 3D scene is known to be mountable; renders the SVG fallback. */
-	readonly useFallback = signal(true);
+	private readonly rendering3D = inject(Rendering3DService, { optional: true });
 
-	private readonly mountFn = signal<MountFn | null>(null);
-	/** The live mounted handle, or `null` while unmounted. A signal so
-	 * `setTextStyle` re-applies as soon as it (or the input) changes. */
-	private readonly handle = signal<SceneHandle | null>(null);
+	/** The scene spec, or `null` (flag off, or nothing to draw): render the plain SVG. */
+	protected readonly spec = computed(() =>
+		resolveSmartArtThreeViewSpec(this.element(), this.rendering3D?.flags().smartArt3D ?? false),
+	);
+
+	/** `true` when no 3D scene applies; renders the SVG renderer on its own. */
+	readonly useFallback = computed(() => this.spec() === null);
 
 	protected readonly editState = signal<InlineEditState | null>(null);
 	/** Live draft text, updated on every input event. */
@@ -126,41 +123,7 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 
 	private readonly smartArtData = computed(() => getSmartArtData(this.element()));
 
-	private readonly model = computed<SmartArt3DModel | null>(() =>
-		buildSmartArt3DModelForElement(this.element()),
-	);
-
 	constructor() {
-		afterNextRender(() => void this.loadScene());
-
-		// Mount once the canvas exists and the scene runtime has loaded.
-		effect(() => {
-			const canvasEl = this.canvas()?.nativeElement;
-			const fn = this.mountFn();
-			const m = this.model();
-			if (!canvasEl || !fn || !m || this.handle()) {
-				return;
-			}
-			try {
-				const el = this.element();
-				this.handle.set(fn(canvasEl, m, el.width, el.height, { textStyle: this.textStyle() }));
-			} catch {
-				this.useFallback.set(true);
-			}
-		});
-
-		// Resize without re-mounting.
-		effect(() => {
-			const el = this.element();
-			this.handle()?.resize(el.width, el.height);
-		});
-
-		// Apply/clear the node-caption text-style override when it (or the live
-		// handle) changes.
-		effect(() => {
-			this.handle()?.setTextStyle(this.textStyle());
-		});
-
 		// Auto-focus the textarea when the editor opens.
 		effect(() => {
 			if (this.editState()) {
@@ -176,20 +139,6 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 				);
 			}
 		});
-	}
-
-	private async loadScene(): Promise<void> {
-		const m = this.model();
-		if (!m || m.meshes.length === 0) {
-			return; // No geometry: stay on the SVG fallback.
-		}
-		try {
-			const mod = await import('../internal/shared-src/smartart-3d/index');
-			this.mountFn.set(mod.mountSmartArt3D);
-			this.useFallback.set(false);
-		} catch {
-			this.useFallback.set(true);
-		}
 	}
 
 	/**
@@ -281,10 +230,5 @@ export class SmartArt3DRendererComponent implements OnDestroy {
 		this.editor.updateElement(slideIndex, this.element().id, {
 			smartArtData: next,
 		} as Partial<PptxElement>);
-	}
-
-	ngOnDestroy(): void {
-		this.handle()?.dispose();
-		this.handle.set(null);
 	}
 }

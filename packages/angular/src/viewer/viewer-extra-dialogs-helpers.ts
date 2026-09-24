@@ -140,7 +140,7 @@ export function annotationMapToInkInserts(map: SlideAnnotationMap): AnnotationIn
  * fabricated signal.
  */
 export function resolveViewerExtraAddinStatus(flags: {
-	/** {@link SmartArt3DService.enabled}: host opt-in ANDed with the Advanced
+	/** {@link Rendering3DService.flags}' `smartArt3D`: host opt-in ANDed with the Advanced
 	 * "Disable 3D rendering" override (see `resolve3DRenderingFlags`). */
 	smartArt3dEnabled: boolean;
 	/** `model3d` has no dedicated per-scene service, but shares the same

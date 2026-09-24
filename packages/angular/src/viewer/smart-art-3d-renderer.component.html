@@ -27,7 +27,9 @@
 		@if (hitTargetStyle(); as hit) {
 			<div aria-hidden="true" data-pptx-hit-target="true" [ngStyle]="hit"></div>
 		}
-		<canvas #canvas class="pptx-ng-smartart-3d-canvas"></canvas>
+		<pptx-ng-three-view [spec]="spec()" [interactive]="canEdit()" [textStyle]="textStyle()">
+			<pptx-smart-art-renderer [element]="element()" />
+		</pptx-ng-three-view>
 		@if (canEdit()) {
 			<!-- Invisible SVG overlay: provides data-smartart-node-id hit targets -->
 			<div class="pptx-ng-smartart-3d-hittest" (dblclick)="onOverlayDblClick($event)">

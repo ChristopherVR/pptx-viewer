@@ -6,7 +6,6 @@ import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
 import {
-	buildSmartArt3DModelForElement,
 	computeNode3DEditBox,
 	findSmartArtNodeElementAtPoint,
 	getSmartArtData,
@@ -50,69 +49,6 @@ describe('getSmartArtData', () => {
 			height: 1,
 		} as PptxElement;
 		expect(getSmartArtData(shape)).toBeUndefined();
-	});
-});
-
-describe('buildSmartArt3DModelForElement', () => {
-	it('returns null for a non-smartArt element', () => {
-		const shape: PptxElement = {
-			id: 's1',
-			type: 'shape',
-			x: 0,
-			y: 0,
-			width: 1,
-			height: 1,
-		} as PptxElement;
-		expect(buildSmartArt3DModelForElement(shape)).toBeNull();
-	});
-
-	it('returns null for a smartArt element with no nodes', () => {
-		expect(
-			buildSmartArt3DModelForElement(
-				smartArtElement({ layoutType: 'list', nodes: [] } as unknown as PptxSmartArtData),
-			),
-		).toBeNull();
-	});
-
-	it('returns a mountable model for a smartArt element with nodes', () => {
-		const model = buildSmartArt3DModelForElement(smartArtElement(smartArtData()));
-		expect(model).not.toBeNull();
-		expect(model!.meshes.length).toBeGreaterThan(0);
-	});
-
-	it('builds from the cached drawing (its geometry and theme fills) when the element has one', () => {
-		// The SVG renderer draws `drawingShapes` when present; the 3D model must
-		// come from the same source so toggling the scene never changes the
-		// diagram's colours or proportions.
-		const data = {
-			...smartArtData(),
-			drawingShapes: [
-				{
-					id: 'a',
-					shapeType: 'roundRect',
-					x: 0,
-					y: 0,
-					width: 400,
-					height: 140,
-					fillColor: '#4472C4',
-					text: 'One',
-				},
-				{
-					id: 'b',
-					shapeType: 'roundRect',
-					x: 0,
-					y: 160,
-					width: 400,
-					height: 140,
-					fillColor: '#ED7D31',
-					text: 'Two',
-				},
-			],
-		} as unknown as PptxSmartArtData;
-		const model = buildSmartArt3DModelForElement(smartArtElement(data));
-		expect(model!.meshes.map((m) => m.fill)).toStrictEqual(['#4472C4', '#ED7D31']);
-		expect(model!.meshes.map((m) => m.text)).toStrictEqual(['One', 'Two']);
-		expect(model!.meshes[0].halfWidth).toBeCloseTo(200, 3);
 	});
 });
 
