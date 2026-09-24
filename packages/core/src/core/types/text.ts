@@ -418,6 +418,16 @@ export interface TextStyle {
 	hyperlinkHighlightClick?: boolean;
 	/** Whether hyperlink ends a sound (`a:hlinkClick/@endSnd`). */
 	hyperlinkEndSound?: boolean;
+	/**
+	 * Raw `a:hlinkClick/a:extLst` child, preserved verbatim for round-trip.
+	 * Carries vendor extensions this engine does not interpret, most commonly
+	 * `ahyp:hlinkClr` (Microsoft's "hyperlink color" extension,
+	 * `{A12FA001-AC4F-418D-AE19-62706E023703}`), which records whether a
+	 * hyperlink run should paint with the theme's text colour instead of the
+	 * hyperlink colour. Dropping the whole `a:extLst` silently reverted such a
+	 * run to the default (themed) hyperlink colour on save.
+	 */
+	hyperlinkExtensionXml?: XmlObject;
 
 	// ── Text run metadata (from `a:rPr` attributes) ──
 
@@ -600,6 +610,15 @@ export interface TextStyle {
 	textGlowRadius?: number;
 	/** Text glow opacity (0-1). */
 	textGlowOpacity?: number;
+	/**
+	 * Original glow colour-choice XML (`a:glow`'s `a:schemeClr`/`a:srgbClr`/…
+	 * child), preserved verbatim so a theme colour reference round-trips
+	 * instead of always being re-serialized as a resolved `a:srgbClr` (which
+	 * cuts the glow off from theme/Recolor changes).
+	 */
+	textGlowColorXml?: XmlObject;
+	/** Theme colour slot the glow colour resolved from, when it is `a:schemeClr`. */
+	textGlowColorRef?: PptxThemeColorRef;
 
 	/** Text reflection enabled flag. */
 	textReflection?: boolean;

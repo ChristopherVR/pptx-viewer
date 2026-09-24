@@ -1,4 +1,5 @@
 import type { XmlObject, TextStyle } from '../../types';
+import { serializeColorChoiceWithRef } from '../../utils/color-xml-preservation';
 import {
 	positiveFixedAngleAttribute,
 	shadowOffsetToDistanceAndDirection,
@@ -6,11 +7,23 @@ import {
 
 const EMU_PER_PX = 9525;
 
+/** Resolves a preserved colour-choice node to its hex value, for re-emit comparison. */
+type ParseColorFn = (colorNode: XmlObject | undefined) => string | undefined;
+
 /**
  * Build an `a:effectLst` XML object for text run effects.
  * Returns `undefined` if no effects are present.
+ *
+ * `parseColor` resolves a preserved colour-choice XML node (e.g. the glow's
+ * original `a:schemeClr`) back to a hex value, so a theme colour reference
+ * can be re-emitted verbatim instead of always being flattened to
+ * `a:srgbClr`. Omitting it (existing callers, tests) falls back to the
+ * pre-existing canonical-srgb-only behaviour.
  */
-export function buildTextRunEffectListXml(style: TextStyle): XmlObject | undefined {
+export function buildTextRunEffectListXml(
+	style: TextStyle,
+	parseColor?: ParseColorFn,
+): XmlObject | undefined {
 	const hasTextShadow =
 		Boolean(style.textShadowColor) ||
 		(typeof style.textShadowBlur === 'number' && style.textShadowBlur > 0);
@@ -61,7 +74,7 @@ export function buildTextRunEffectListXml(style: TextStyle): XmlObject | undefin
 		effectLst['a:prstShdw'] = buildPresetShadowNode(style);
 	}
 	if (hasTextGlow) {
-		effectLst['a:glow'] = buildGlowNode(style);
+		effectLst['a:glow'] = buildGlowNode(style, parseColor);
 	}
 	if (hasTextReflection) {
 		effectLst['a:reflection'] = buildReflectionNode(style);
@@ -154,10 +167,20 @@ function buildPresetShadowNode(style: TextStyle): XmlObject {
 	return node;
 }
 
-function buildGlowNode(style: TextStyle): XmlObject {
+function buildGlowNode(style: TextStyle, parseColor?: ParseColorFn): XmlObject {
+	const fallbackHex = style.textGlowColor || '#ffff00';
+	const resolvedOriginal = style.textGlowColorXml
+		? parseColor?.(style.textGlowColorXml)
+		: undefined;
 	return {
 		'@_rad': String(Math.round((style.textGlowRadius ?? 6) * EMU_PER_PX)),
-		'a:srgbClr': buildShadowColorNode(style.textGlowColor || '#ffff00', style.textGlowOpacity),
+		...serializeColorChoiceWithRef(
+			style.textGlowColorRef,
+			style.textGlowColorXml,
+			resolvedOriginal,
+			fallbackHex,
+			style.textGlowOpacity,
+		),
 	};
 }
 

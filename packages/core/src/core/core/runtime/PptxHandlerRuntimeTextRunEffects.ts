@@ -1,4 +1,6 @@
+import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { TextStyle, XmlObject } from '../../types';
+import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
 import { buildEffectDagTreeFromXml } from '../builders/effect-dag-containers';
 import { extractReflectionAttributes } from '../builders/effect-style-extractor-reflection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextStyleUtils';
@@ -58,6 +60,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const clickSnd = hyperlinkNode['a:snd'];
 			if (clickSnd && typeof clickSnd === 'object') {
 				style.hyperlinkSoundXml = clickSnd as XmlObject;
+			}
+			// Preserve `a:extLst` verbatim (most commonly Microsoft's
+			// `ahyp:hlinkClr` "hyperlink colour" extension) so an unmodelled
+			// vendor extension does not vanish on save.
+			const extLst = hyperlinkNode['a:extLst'];
+			if (extLst && typeof extLst === 'object') {
+				style.hyperlinkExtensionXml = extLst as XmlObject;
 			}
 		}
 		const actionStr = String(hyperlinkNode?.['@_action'] || '').trim();
@@ -149,6 +158,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const glowColor = this.parseColor(glowNode);
 			if (glowColor) {
 				style.textGlowColor = glowColor;
+			}
+			// Preserve the original colour choice (e.g. `a:schemeClr`) so the
+			// writer can re-emit it instead of always resolving to a flat
+			// `a:srgbClr`, which would sever the glow from theme/Recolor changes.
+			const glowColorXml = extractColorChoiceXml(glowNode);
+			if (glowColorXml) {
+				style.textGlowColorXml = glowColorXml;
+			}
+			const glowColorRef = themeColorRefFromColorChoice(glowNode);
+			if (glowColorRef) {
+				style.textGlowColorRef = glowColorRef;
 			}
 			const glowOpacity = this.extractColorOpacity(glowNode);
 			if (glowOpacity !== undefined) {

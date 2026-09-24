@@ -133,6 +133,55 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'vAlign',
 			'textDirection',
 			'columnCount',
+			// Round-trip-only `a:rPr` attributes that carry no visual difference
+			// but ARE distinct authored content: two adjacent runs differing only
+			// in one of these were still "the same style" by the keys above, so
+			// they were folded into a single merged run and every one of these
+			// attributes on every run but the first was silently dropped.
+			// Measured on `issue-132-hr-deck.pptx`: 34 authored runs (mixed
+			// `lang`/`altLang` from pasted multi-language text) collapsed to 4 on
+			// a no-edit round-trip.
+			'language',
+			'altLanguage',
+			'dirty',
+			'smartTagClean',
+			'smartTagId',
+			'bookmark',
+			'kumimoji',
+			'normalizeHeight',
+			'noProof',
+			'spellingError',
+			'underlineColor',
+			'underlineStyle',
+			'underlineExplicitNone',
+			'underlineLineFollowsText',
+			'underlineFillFollowsText',
+			'strikeType',
+			'baseline',
+			'characterSpacing',
+			'kerning',
+			'highlightColor',
+			'textCaps',
+			'textCapsExplicitNone',
+			'hyperlinkRId',
+			'hyperlinkTooltip',
+			'hyperlinkAction',
+			'hyperlinkTargetSlideIndex',
+			'hyperlinkMouseOver',
+			'hyperlinkInvalidUrl',
+			'hyperlinkTargetFrame',
+			'hyperlinkHistory',
+			'hyperlinkHighlightClick',
+			'hyperlinkEndSound',
+			'hyperlinkExtensionXml',
+			'textGlowColor',
+			'textGlowRadius',
+			'textGlowOpacity',
+			'textShadowColor',
+			'textShadowBlur',
+			'textShadowOffsetX',
+			'textShadowOffsetY',
+			'textShadowOpacity',
 		];
 		return keys.every((key) => left?.[key] === right?.[key]);
 	}

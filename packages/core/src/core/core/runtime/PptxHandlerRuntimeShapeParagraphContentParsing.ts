@@ -276,10 +276,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				fieldSegment.fieldGuidAttr = fldGuidAttr;
 			}
 			// Preserve a per-field `a:pPr` (the schema permits paragraph
-			// properties inside `a:fld`) verbatim for round-trip.
-			const fieldPPr = field['a:pPr'];
-			if (fieldPPr && typeof fieldPPr === 'object') {
-				fieldSegment.fieldParagraphPropertiesXml = fieldPPr as XmlObject;
+			// properties inside `a:fld`) verbatim for round-trip. An UNSTYLED
+			// `<a:pPr/>` parses to the empty STRING (fast-xml-parser gives every
+			// childless/attributeless element this way, same trap as `<p:spPr/>`
+			// - see `ensureXmlChild`), so a truthy-object test here missed it and
+			// the field's own empty pPr silently vanished on save.
+			if (field['a:pPr'] !== undefined) {
+				const fieldPPr = field['a:pPr'];
+				fieldSegment.fieldParagraphPropertiesXml =
+					typeof fieldPPr === 'object' && fieldPPr !== null ? (fieldPPr as XmlObject) : {};
 			}
 			segments.push(fieldSegment);
 			maybeSeed(fieldRunStyle);
