@@ -339,6 +339,162 @@ test.describe('editor keyboard shortcuts', () => {
 	});
 });
 
+/**
+ * The text-bearing descendant of a shape: its computed style is where
+ * alignment and font-size land, not necessarily the `[data-pptx-element]`
+ * container itself (which also carries the SVG outline, the fill and other
+ * decoration in some bindings).
+ */
+function textNodeOf(shape: Locator, needle: string): Locator {
+	return shape.locator('div', { hasText: needle }).last();
+}
+
+test.describe('PowerPoint 365 editing shortcuts (alignment, font size, format painter, new slide, Tab)', () => {
+	test("Ctrl+E centers a selected (not editing) text shape's paragraph", async ({ page }) => {
+		const source = await openWithSelection(page);
+		const text = textNodeOf(source, 'SOURCE');
+		await expect(text).toHaveCSS('text-align', 'left');
+
+		await pressShortcut(page, 'ControlOrMeta+e', 500);
+
+		await expect(
+			text,
+			'Ctrl+E must centre the paragraph of a selected text shape, not just inside an open editor',
+		).toHaveCSS('text-align', 'center');
+	});
+
+	test('Ctrl+L, Ctrl+R and Ctrl+J set the other three paragraph alignments', async ({ page }) => {
+		const source = await openWithSelection(page);
+		const text = textNodeOf(source, 'SOURCE');
+
+		await pressShortcut(page, 'ControlOrMeta+r', 500);
+		await expect(text).toHaveCSS('text-align', 'right');
+
+		await pressShortcut(page, 'ControlOrMeta+j', 500);
+		await expect(text).toHaveCSS('text-align', 'justify');
+
+		await pressShortcut(page, 'ControlOrMeta+l', 500);
+		await expect(text).toHaveCSS('text-align', 'left');
+	});
+
+	/** The text node's rendered font size in CSS pixels. */
+	async function fontSizePx(text: Locator): Promise<number> {
+		return parseFloat(await text.evaluate((el) => getComputedStyle(el).fontSize));
+	}
+
+	test("Ctrl+] and Ctrl+[ step the font size along PowerPoint's ladder", async ({ page }) => {
+		const source = await openWithSelection(page);
+		const text = textNodeOf(source, 'SOURCE');
+		// The fixture authors SOURCE at 28px. PowerPoint's ladder operates in
+		// points (72/in), so a size that does not itself sit on a rung (28px is
+		// 21pt) steps to the nearest rung in the requested direction: up to 24pt
+		// (32px), not by a flat delta.
+		const start = await fontSizePx(text);
+		expect(start).toBeCloseTo(28, 1);
+
+		await pressShortcut(page, 'ControlOrMeta+]', 500);
+		await expect
+			.poll(() => fontSizePx(text), {
+				message: 'Ctrl+] must step up to the next size on the ladder, not by a flat delta',
+			})
+			.toBeCloseTo(32, 1);
+
+		await pressShortcut(page, 'ControlOrMeta+[', 500);
+		// Down from 32px (24pt), the next rung below is 20pt = 26.667px: the
+		// ladder does not remember 28px was never a rung to begin with.
+		await expect.poll(() => fontSizePx(text)).toBeCloseTo(26.667, 1);
+	});
+
+	test('Ctrl+Shift+> and Ctrl+Shift+< are the same ladder, reached without brackets', async ({
+		page,
+	}) => {
+		const source = await openWithSelection(page);
+		const text = textNodeOf(source, 'SOURCE');
+
+		await pressShortcut(page, 'ControlOrMeta+Shift+>', 500);
+		await expect.poll(() => fontSizePx(text)).toBeCloseTo(32, 1);
+
+		await pressShortcut(page, 'ControlOrMeta+Shift+<', 500);
+		await expect.poll(() => fontSizePx(text)).toBeCloseTo(26.667, 1);
+	});
+
+	test('Ctrl+Shift+C copies formatting and Ctrl+Shift+V pastes it onto the target', async ({
+		page,
+	}) => {
+		await loadDeck(page, TWO_SHAPES);
+		const source = elementWithText(page, 'SOURCE');
+		const target = elementWithText(page, 'TARGET');
+
+		await expect(target).not.toHaveCSS('background-color', 'rgb(255, 0, 0)');
+
+		await selectElement(page, source);
+		await pressShortcut(page, 'ControlOrMeta+Shift+c', 400);
+		await selectElement(page, target);
+		await pressShortcut(page, 'ControlOrMeta+Shift+v', 600);
+
+		await expect(
+			target,
+			"Ctrl+Shift+C then Ctrl+Shift+V must copy SOURCE's fill onto TARGET, the same way the " +
+				'Format Painter button does, without needing a click to arm and another to apply',
+		).toHaveCSS('background-color', 'rgb(255, 0, 0)');
+	});
+
+	test('Ctrl+M inserts a new slide', async ({ page }) => {
+		await loadDeck(page, SAMPLE_DECK);
+		expect(await slidePosition(page)).toBe('Slide 1 of 7');
+		await expect(thumbnail(page, 8), 'the seven-slide deck starts with no slide 8').toHaveCount(0);
+
+		await pressShortcut(page, 'ControlOrMeta+m', 700);
+
+		await expect(
+			thumbnail(page, 8),
+			"Ctrl+M must insert a new slide, the same entry point as the Home ribbon's New Slide button",
+		).toBeVisible();
+	});
+
+	test("Tab cycles the selection forward through the slide's elements", async ({ page }) => {
+		// Tab from no selection lands on the first element; deleting it proves a
+		// selection happened without depending on which of the two the binding
+		// treats as "first" in tab order.
+		await loadDeck(page, TWO_SHAPES);
+		await pressShortcut(page, 'Tab', 400);
+		await pressShortcut(page, 'Delete', 600);
+		await expect(slideElements(page), 'one Tab press must select exactly one element').toHaveCount(
+			1,
+		);
+		const survivorOfOneTab = await slideElements(page).first().textContent();
+
+		await loadDeck(page, TWO_SHAPES);
+		await pressShortcut(page, 'Tab', 400);
+		await pressShortcut(page, 'Tab', 400);
+		await pressShortcut(page, 'Delete', 600);
+		const survivorOfTwoTabs = await slideElements(page).first().textContent();
+
+		expect(
+			survivorOfTwoTabs,
+			'a second Tab must move the selection to a DIFFERENT element than the first, so deleting ' +
+				'after two presses removes the other shape than deleting after one',
+		).not.toBe(survivorOfOneTab);
+	});
+
+	test('Shift+Tab cycles the selection backward', async ({ page }) => {
+		await loadDeck(page, TWO_SHAPES);
+		await pressShortcut(page, 'Tab', 400);
+		await pressShortcut(page, 'Delete', 600);
+		const survivorOfTabForward = await slideElements(page).first().textContent();
+
+		await loadDeck(page, TWO_SHAPES);
+		await pressShortcut(page, 'Shift+Tab', 400);
+		await pressShortcut(page, 'Delete', 600);
+		const survivorOfTabBackward = await slideElements(page).first().textContent();
+
+		expect(
+			survivorOfTabBackward,
+			'Shift+Tab must move the opposite direction from Tab, landing on the other element',
+		).not.toBe(survivorOfTabForward);
+	});
+});
+
 /** Put a tiny locally generated PNG on the browser clipboard, without changing DOM focus. */
 async function copyTestImage(page: Page): Promise<void> {
 	await page.evaluate(async () => {
