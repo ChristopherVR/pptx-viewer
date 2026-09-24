@@ -72,6 +72,9 @@ function buildSegmentAttrs(seg: Record<string, unknown>): Record<string, string>
 	if (seg.equationXml) {
 		a.eq = JSON.stringify(seg.equationXml);
 	}
+	if (seg.equationSourceXml) {
+		a.eqs = JSON.stringify(seg.equationSourceXml);
+	}
 	if (typeof seg.equationNumber === 'string') {
 		a.en = seg.equationNumber;
 	}
@@ -217,6 +220,13 @@ export function decodeDelta(delta: DeltaOp[]): Record<string, unknown>[] {
 		if (a.eq) {
 			try {
 				seg.equationXml = JSON.parse(a.eq);
+			} catch {
+				/* skip */
+			}
+		}
+		if (a.eqs) {
+			try {
+				seg.equationSourceXml = JSON.parse(a.eqs);
 			} catch {
 				/* skip */
 			}

@@ -266,12 +266,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					return;
 				}
 
-				// Math equation segments: re-emit the original m:oMath /
+				// Math equation segments: re-emit the original a14:m / m:oMath /
 				// m:oMathPara / mc:AlternateContent subtree captured at parse time.
+				// `equationSourceXml` (when present) is the UNTOUCHED top-level
+				// paragraph child from parse, keyed by its own tag; it takes
+				// priority over `equationXml` (the rendering-shaped content) so an
+				// unedited equation round-trips byte-for-byte. An edited or newly
+				// inserted equation carries no `equationSourceXml`, so it falls
+				// back to the freshly generated `equationXml`.
 				if (segment.equationXml && typeof segment.equationXml === 'object') {
 					const eqNode = {
 						__isEquation: true,
-						__equationXml: segment.equationXml as Record<string, unknown>,
+						__equationXml: (segment.equationSourceXml ?? segment.equationXml) as Record<
+							string,
+							unknown
+						>,
 					} as unknown as XmlObject;
 					currentRuns.push(eqNode);
 					return;

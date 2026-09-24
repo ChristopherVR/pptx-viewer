@@ -780,6 +780,23 @@ export interface TextSegment {
 	/** Raw OMML XML node for equation segments (from `a14:m` / `m:oMathPara`). */
 	equationXml?: Record<string, unknown>;
 	/**
+	 * The ORIGINAL top-level paragraph child that carried this equation,
+	 * captured verbatim at parse time and keyed by its own tag: `{ 'a14:m':
+	 * ... }`, `{ 'm:oMathPara': ... }`, `{ 'm:oMath': ... }`, or `{
+	 * 'mc:AlternateContent': ... }` for an equation authored behind a
+	 * Choice/Fallback switch. `equationXml` above is the resolved math content
+	 * used for rendering (unwrapped one level for `a14:m`/`mc:AlternateContent`
+	 * sources); this field exists solely so the writer can re-emit an UNTOUCHED
+	 * equation byte-for-byte, Choice and Fallback both, instead of collapsing
+	 * it to a bare math element PowerPoint's own writer never produces.
+	 * `undefined` for a freshly inserted or edited equation, which the writer
+	 * instead reconstructs from `equationXml` (always `{ 'm:oMathPara': ... }`
+	 * or `{ 'm:oMath': ... }` for those cases). Any code that replaces
+	 * `equationXml` on an existing segment must drop this field, or the writer
+	 * would keep re-emitting the equation's OLD XML instead of the edit.
+	 */
+	equationSourceXml?: Record<string, unknown>;
+	/**
 	 * Optional equation number for numbered equations (e.g. "(1)", "(2.3)").
 	 * When present, the equation is rendered centered with the number right-aligned.
 	 */

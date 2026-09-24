@@ -559,18 +559,44 @@ describe('assembleParagraphXml', () => {
 		expect(result['m:oMathPara']).toStrictEqual(oMathParaNode);
 	});
 
-	it('should re-emit mc:AlternateContent equation wrappers verbatim', () => {
-		const acNode = {
-			'mc:Choice': { '@_Requires': 'a14', 'a14:m': { 'm:oMath': {} } },
+	it('load -> save round-trip: an mc:AlternateContent equation wrapper survives verbatim', () => {
+		// Full round-trip using the real parser (collectShapeParagraphContent,
+		// exercised via ParagraphContentRuntime below) feeding straight into the
+		// real writer (assembleParagraphXml), mirroring the save orchestration
+		// in PptxHandlerRuntimeSaveParagraphs (which prefers
+		// `equationSourceXml` over `equationXml` when building the marker).
+		//
+		// A hand-built `__equationXml` marker (the shape this test used before)
+		// can assert ANY shape, including `{ 'mc:AlternateContent': acNode }`
+		// directly - a shape the real parser never actually produced before the
+		// equation-preservation fix, since it discarded the Choice/Fallback
+		// wrapper and kept only the inner math node. Only a load-then-save
+		// proves the wiring between the two sides actually round-trips it.
+		const acNode: XmlObject = {
+			'mc:Choice': {
+				'@_Requires': 'a14',
+				'a14:m': { 'm:oMathPara': { 'm:oMath': { 'm:r': { 'm:t': 'x^2' } } } },
+			},
 			'mc:Fallback': { 'a:r': { 'a:t': '[Equation]' } },
 		};
-		const equationXml = { 'mc:AlternateContent': acNode };
+		const { segments } = new ParagraphContentRuntime().collect(
+			{ 'mc:AlternateContent': acNode },
+			0,
+			1,
+		);
+		const equationSegment = segments.find((s) => s.equationXml);
+		expect(equationSegment?.equationSourceXml).toStrictEqual({ 'mc:AlternateContent': acNode });
+
 		const equationRun: XmlObject = {
 			__isEquation: true,
-			__equationXml: equationXml,
+			__equationXml: (equationSegment!.equationSourceXml ??
+				equationSegment!.equationXml) as XmlObject,
 		};
 		const result = assembleParagraphXml([equationRun], {});
 		expect(result['mc:AlternateContent']).toStrictEqual(acNode);
+		expect((result['mc:AlternateContent'] as XmlObject)['mc:Fallback']).toStrictEqual({
+			'a:r': { 'a:t': '[Equation]' },
+		});
 	});
 
 	it('buildParagraphPropertiesXml emits a:lnSpc before a:spcBef before a:spcAft', () => {

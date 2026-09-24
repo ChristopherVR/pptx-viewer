@@ -50,6 +50,9 @@ function copySegmentMetadata(from: TextSegment | undefined, to: TextSegment): Te
 	if (from.equationXml !== undefined) {
 		to.equationXml = from.equationXml;
 	}
+	if (from.equationSourceXml !== undefined) {
+		to.equationSourceXml = from.equationSourceXml;
+	}
 	if (from.equationNumber !== undefined) {
 		to.equationNumber = from.equationNumber;
 	}

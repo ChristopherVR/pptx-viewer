@@ -51,18 +51,28 @@ export function classifyParagraphChild(run: XmlObject): ParagraphChild | undefin
 	if (!eqXml) {
 		return undefined;
 	}
+	// The caller (`createParagraphsFromTextContent`) sets `__equationXml` to
+	// `segment.equationSourceXml` when present (the ORIGINAL top-level tag
+	// captured verbatim at parse time), falling back to `segment.equationXml`
+	// otherwise. Either way it is keyed by its own tag, so each branch here
+	// re-emits exactly the wrapper the source authored: an mc:AlternateContent
+	// equation keeps its Choice AND Fallback, and a bare a14:m equation stays a
+	// bare a14:m, rather than being collapsed to the inner math node either
+	// way. An edited (or freshly inserted) equation has no `equationSourceXml`
+	// and falls back to `equationXml`, freshly generated as `{ 'm:oMathPara':
+	// ... }` or `{ 'm:oMath': ... }` (see `convertLatexToOmml`), which re-emits
+	// as PowerPoint's own structure through the same branches.
+	if (eqXml['mc:AlternateContent']) {
+		return { tag: 'mc:AlternateContent', value: eqXml['mc:AlternateContent'] as XmlObject };
+	}
 	if (eqXml['m:oMathPara']) {
 		return { tag: 'm:oMathPara', value: eqXml['m:oMathPara'] as XmlObject };
 	}
 	if (eqXml['m:oMath']) {
 		return { tag: 'm:oMath', value: eqXml['m:oMath'] as XmlObject };
 	}
-	if (eqXml['mc:AlternateContent']) {
-		return { tag: 'mc:AlternateContent', value: eqXml['mc:AlternateContent'] as XmlObject };
-	}
 	if (eqXml['a14:m']) {
-		// a14:m wraps an inline math element; re-emit verbatim.
-		return { tag: 'mc:AlternateContent', value: { ...(eqXml as XmlObject) } };
+		return { tag: 'a14:m', value: eqXml['a14:m'] as XmlObject };
 	}
 	// Fallback: assume the captured object is itself the math node.
 	return { tag: 'm:oMath', value: eqXml as XmlObject };

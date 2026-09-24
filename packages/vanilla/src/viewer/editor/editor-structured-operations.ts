@@ -70,9 +70,18 @@ export function createStructuredEditorOperations(deps: {
 						element.id === id && hasTextProperties(element)
 							? ({
 									...element,
-									textSegments: element.textSegments?.map((segment) =>
-										segment.equationXml ? { ...segment, equationXml: omml } : segment,
-									),
+									textSegments: element.textSegments?.map((segment) => {
+										if (!segment.equationXml) {
+											return segment;
+										}
+										// Drop any captured `equationSourceXml`: it is the
+										// OLD equation's untouched wrapper, and the writer
+										// prefers it over `equationXml`, so leaving it in
+										// place would keep re-emitting the equation the user
+										// just edited away from.
+										const { equationSourceXml: _dropped, ...rest } = segment;
+										return { ...rest, equationXml: omml };
+									}),
 								} as PptxElement)
 							: element,
 					),

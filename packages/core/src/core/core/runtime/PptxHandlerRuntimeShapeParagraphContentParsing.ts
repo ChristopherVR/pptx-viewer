@@ -251,7 +251,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			maybeSeed(fieldRunStyle);
 		};
 
-		const processMathElement = (mathEl: unknown) => {
+		// `mathEl` is the resolved math content used for RENDERING: the shape
+		// every consumer of `TextSegment.equationXml` already expects (at the
+		// `a14:m` / `m:oMathPara` level, or directly at `m:oMath`). `wrapperTag`
+		// + `wrapperNode` are the ORIGINAL top-level paragraph child exactly as
+		// authored, captured separately onto `equationSourceXml` purely so the
+		// writer can re-emit an untouched equation byte-for-byte: an
+		// `mc:AlternateContent` equation keeps its Choice AND Fallback, and a
+		// bare `a14:m` equation stays a bare `a14:m`, instead of either
+		// collapsing to a bare math element PowerPoint's own writer never
+		// produces.
+		const processMathElement = (mathEl: unknown, wrapperTag: string, wrapperNode: unknown) => {
 			if (!mathEl) {
 				return;
 			}
@@ -261,6 +271,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				text: eqText,
 				style: { ...mergedDefaultRunStyle },
 				equationXml: mathEl as Record<string, unknown>,
+				equationSourceXml: { [wrapperTag]: wrapperNode } as Record<string, unknown>,
 			});
 		};
 
@@ -271,8 +282,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			const innerMath = choice['a14:m'] ?? choice['m:oMathPara'] ?? choice['m:oMath'];
 			if (innerMath) {
-				// mc:AlternateContent wrapping inline math
-				processMathElement(innerMath);
+				// mc:AlternateContent wrapping inline math: `equationSourceXml`
+				// captures the WHOLE alternate-content node (its Choice and
+				// Fallback both), not just the inline math inside the winning
+				// Choice, so an untouched equation re-emits verbatim.
+				processMathElement(innerMath, 'mc:AlternateContent', ac);
 				return;
 			}
 			// mc:AlternateContent may contain non-math content (runs, fields)
@@ -334,7 +348,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				case 'a14:m':
 				case 'm:oMathPara':
 				case 'm:oMath':
-					processMathElement(item);
+					processMathElement(item, key, item);
 					break;
 				case 'mc:AlternateContent':
 					processAlternateContent(item);
