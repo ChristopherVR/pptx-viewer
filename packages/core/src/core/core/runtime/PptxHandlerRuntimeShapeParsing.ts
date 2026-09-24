@@ -385,7 +385,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				yEmu,
 				widthEmu,
 				heightEmu,
-				text,
+				// A shape with no `p:txBody` at all (own or inherited) - a bare
+				// decorative rectangle, say - has no textual capability, and
+				// `text` must stay `undefined` to say so. `text` was unconditionally
+				// initialized to `''` above and only ever reassigned when a txBody
+				// WAS found, so a bare shape's `''` was indistinguishable from an
+				// authored-but-empty text box; the save writer's
+				// `typeof el.text === 'string'` check then created a brand-new empty
+				// `<p:txBody/>` on that shape's `rawXml` the moment it was rewritten
+				// (any edit on a slide master/layout element rewrites its whole
+				// shape node), which real PowerPoint never authors on a shape with
+				// no text.
+				text: txBody !== undefined ? text : undefined,
 				// A text-less shape (only an empty `a:endParaRPr`, or no `a:p` at
 				// all) still has its own `a:bodyPr`: PowerPoint applies the
 				// vertical anchor, insets and autofit of an EMPTY text box just

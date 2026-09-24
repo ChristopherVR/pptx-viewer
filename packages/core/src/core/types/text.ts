@@ -764,6 +764,18 @@ export interface BulletInfo {
 	paragraphIndex?: number;
 	/** Bullet font family from `a:buFont`. */
 	fontFamily?: string;
+	/**
+	 * PANOSE font-matching hint from `a:buFont/@panose`. `a:buFont` is a
+	 * CT_TextFont, the same complex type as `a:latin`/`a:ea`/`a:cs`/`a:sym`
+	 * (which carry the equivalent `TextStyle.latinFontPanose` etc.), so a
+	 * bullet's own PANOSE/pitch-family/charset decide the fallback glyph
+	 * PowerPoint substitutes when the named typeface is missing.
+	 */
+	fontPanose?: string;
+	/** Font pitch-and-family byte from `a:buFont/@pitchFamily`. */
+	fontPitchFamily?: number;
+	/** Font character-set byte from `a:buFont/@charset`. */
+	fontCharset?: number;
 	/** Bullet size as percentage of text font size from `a:buSzPct`. */
 	sizePercent?: number;
 	/** Bullet size in points from `a:buSzPts`. */

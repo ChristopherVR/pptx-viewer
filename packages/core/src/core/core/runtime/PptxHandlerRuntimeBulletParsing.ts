@@ -113,6 +113,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// same Tx form (otherwise the bullet visually shifts on round-trip).
 		const buFont = resolvedBulletProps['a:buFont'] as XmlObject | undefined;
 		const fontFamily = buFont?.['@_typeface'] ? String(buFont['@_typeface']) : undefined;
+		// `a:buFont` is a CT_TextFont, the same complex type as `a:latin`/`a:ea`/
+		// `a:cs`/`a:sym`, so it carries the same font-matching hints. These were
+		// modeled for every run-level font but never for the bullet's, so a
+		// bullet's own PANOSE/pitch-family/charset (which decide the FALLBACK
+		// glyph PowerPoint substitutes when the named typeface is missing) were
+		// silently dropped on every save.
+		const fontPanose = buFont?.['@_panose'] ? String(buFont['@_panose']) : undefined;
+		const pitchFamilyRaw = Number.parseInt(String(buFont?.['@_pitchFamily'] ?? ''), 10);
+		const fontPitchFamily = Number.isFinite(pitchFamilyRaw) ? pitchFamilyRaw : undefined;
+		const charsetRaw = Number.parseInt(String(buFont?.['@_charset'] ?? ''), 10);
+		const fontCharset = Number.isFinite(charsetRaw) ? charsetRaw : undefined;
 		const fontInherit = resolvedBulletProps['a:buFontTx'] !== undefined;
 
 		const sizePercent = parseBulletSizePercent(
@@ -159,6 +170,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return {
 				char: bulletChar,
 				fontFamily,
+				fontPanose,
+				fontPitchFamily,
+				fontCharset,
 				sizePercent,
 				sizePts,
 				color,
@@ -182,6 +196,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				autoNumStartAt,
 				paragraphIndex,
 				fontFamily,
+				fontPanose,
+				fontPitchFamily,
+				fontCharset,
 				sizePercent,
 				sizePts,
 				color,
@@ -230,6 +247,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					imageDataUrl,
 					imageBlipFillXml,
 					fontFamily,
+					fontPanose,
+					fontPitchFamily,
+					fontCharset,
 					sizePercent,
 					sizePts,
 					color,
@@ -242,6 +262,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return {
 				imageBlipFillXml,
 				fontFamily,
+				fontPanose,
+				fontPitchFamily,
+				fontCharset,
 				sizePercent,
 				sizePts,
 				color,

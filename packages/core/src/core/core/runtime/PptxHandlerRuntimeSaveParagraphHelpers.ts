@@ -259,9 +259,22 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 	if (bulletInfo.fontInherit) {
 		paragraphProps['a:buFontTx'] = {};
 	} else if (bulletInfo.fontFamily) {
-		paragraphProps['a:buFont'] = {
+		const buFont: XmlObject = {
 			'@_typeface': bulletInfo.fontFamily,
 		};
+		// `a:buFont` is a CT_TextFont, same as `a:latin`/`a:ea`/`a:cs`/`a:sym`:
+		// re-emit the font-matching hints those already carry, or a bullet's
+		// own PANOSE/pitch-family/charset silently vanish on every save.
+		if (bulletInfo.fontPanose) {
+			buFont['@_panose'] = bulletInfo.fontPanose;
+		}
+		if (bulletInfo.fontPitchFamily !== undefined) {
+			buFont['@_pitchFamily'] = String(bulletInfo.fontPitchFamily);
+		}
+		if (bulletInfo.fontCharset !== undefined) {
+			buFont['@_charset'] = String(bulletInfo.fontCharset);
+		}
+		paragraphProps['a:buFont'] = buFont;
 	}
 	// Bullet TYPE choice (EG_TextBulletType): exactly one of none/char/
 	// autoNum/blip. `none` is checked first and returns, since `bulletInfo`
