@@ -40,6 +40,7 @@ export const translations = {
 	'pptx.compare.noDifferences': '没有差异',
 	'pptx.compare.summary': '添加了 {{added}}，删除了 {{removed}}，更改了 {{changed}}',
 	'pptx.compare.title': '比较',
+	'pptx.canvasContextMenu.ariaLabel': '画布右键菜单',
 	'pptx.canvasContextMenu.formatBackground': '设置背景格式...',
 	'pptx.canvasContextMenu.gridAndGuides': '网格和参考线',
 	'pptx.canvasContextMenu.layout': '版式',

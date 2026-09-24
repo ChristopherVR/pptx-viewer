@@ -61,6 +61,12 @@ export interface ElementContextMenuState {
 	elementId: string;
 }
 
+/** Tracks the position of an open empty-canvas (no element hit) context menu. */
+export interface CanvasContextMenuState {
+	x: number;
+	y: number;
+}
+
 /** Identifies an action triggered from the element right-click context menu. */
 export type ElementContextMenuAction =
 	| 'copy'

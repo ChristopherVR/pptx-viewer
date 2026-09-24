@@ -101,6 +101,7 @@ function SlideCanvasContent({
 	onMouseDown,
 	onContextMenu,
 	onCanvasMouseDown,
+	onCanvasContextMenu,
 	onResizePointerDown,
 	onAdjustmentPointerDown,
 	onRotate,
@@ -208,6 +209,7 @@ function SlideCanvasContent({
 	} = useCanvasEventHandlers({
 		cbRef,
 		onCanvasMouseDown,
+		onCanvasContextMenu,
 		findResults,
 		findResultIndex,
 		activeSlideIndex,

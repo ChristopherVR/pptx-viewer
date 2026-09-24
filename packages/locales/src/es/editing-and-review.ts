@@ -40,6 +40,7 @@ export const translations = {
 	'pptx.compare.noDifferences': 'Sin diferencias',
 	'pptx.compare.summary': '{{added}} agregado, {{removed}} eliminado, {{changed}} cambiado',
 	'pptx.compare.title': 'Comparar',
+	'pptx.canvasContextMenu.ariaLabel': 'Menú contextual del lienzo',
 	'pptx.canvasContextMenu.formatBackground': 'Dar formato al fondo...',
 	'pptx.canvasContextMenu.gridAndGuides': 'Cuadrícula y guías',
 	'pptx.canvasContextMenu.layout': 'Diseño',

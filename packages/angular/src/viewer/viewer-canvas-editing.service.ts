@@ -133,6 +133,8 @@ export class ViewerCanvasEditingService {
 	}
 	/** Open editor context-menu position (client coords), or null. */
 	readonly contextMenuPos = signal<{ x: number; y: number } | null>(null);
+	/** Open EMPTY-CANVAS context-menu position (client coords), or null; mutually exclusive with `contextMenuPos`. */
+	readonly canvasContextMenuPos = signal<{ x: number; y: number } | null>(null);
 
 	private host: CanvasEditingHost | null = null;
 
@@ -347,9 +349,19 @@ export class ViewerCanvasEditingService {
 		this.editor.clearSelection();
 	}
 
-	/** Right-click: select the element under the cursor and open the menu. */
+	/**
+	 * Right-click: select the element under the cursor and open the menu, or
+	 * (when nothing was hit) open the empty-canvas menu instead. The two menus
+	 * are mutually exclusive, so opening one always closes the other.
+	 */
 	onContextMenu(event: { id: string | null; x: number; y: number }): void {
-		if (event.id && !this.editor.isSelected(event.id)) {
+		if (!event.id) {
+			this.contextMenuPos.set(null);
+			this.canvasContextMenuPos.set({ x: event.x, y: event.y });
+			return;
+		}
+		this.canvasContextMenuPos.set(null);
+		if (!this.editor.isSelected(event.id)) {
 			this.editor.select([event.id]);
 		}
 		this.contextMenuPos.set({ x: event.x, y: event.y });

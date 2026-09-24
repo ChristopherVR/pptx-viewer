@@ -1164,6 +1164,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 									canEdit={canEdit}
 									slides={slides}
 									activeSlide={activeSlide}
+									onApplyLayout={(path) => void layoutSwitching.applyLayout(path)}
+									loadLayoutPreviews={layoutSwitching.loadLayoutPreviews}
 									presentationOverlay={
 										// `ppaction://program` ("Run program") notices. Rendered INSIDE
 										// the show stage, not beside the viewer: the fullscreen element

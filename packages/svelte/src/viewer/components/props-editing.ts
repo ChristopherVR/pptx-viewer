@@ -117,6 +117,12 @@ export interface StageContextMenu {
 	cell: ContextMenuCellTarget | null;
 }
 
+/** Where the empty-canvas (no element hit) context menu opened. */
+export interface StageCanvasContextMenu {
+	x: number;
+	y: number;
+}
+
 /** Position and callbacks for the editable element context menu. */
 export interface ElementContextMenuProps {
 	x: number;
@@ -144,5 +150,21 @@ export interface ElementContextMenuProps {
 	 * inspector's properties tab and scrolls to the matching section.
 	 */
 	onfocusinspectorsection?: (anchor: InspectorSectionAnchor) => void;
+	onclose: () => void;
+}
+
+/** Position and callbacks for the empty-canvas context menu. */
+export interface CanvasContextMenuProps {
+	x: number;
+	y: number;
+	editor: EditorState;
+	showGrid: boolean;
+	showRulers: boolean;
+	onopenlayoutgallery: () => void;
+	onresetslide: () => void;
+	/** Opens the inspector on slide/background properties (no element selected). */
+	onopenformatbackground: () => void;
+	ontogglegrid: () => void;
+	ontogglerulers: () => void;
 	onclose: () => void;
 }

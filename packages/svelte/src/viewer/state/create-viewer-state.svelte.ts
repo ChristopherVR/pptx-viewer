@@ -475,6 +475,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		set stageContextMenu(next) {
 			editorUi.stageContextMenu = next;
 		},
+		get stageCanvasContextMenu() {
+			return editorUi.stageCanvasContextMenu;
+		},
+		set stageCanvasContextMenu(next) {
+			editorUi.stageCanvasContextMenu = next;
+		},
 		get activeMobileSheet() {
 			return exportNotes.activeMobileSheet;
 		},

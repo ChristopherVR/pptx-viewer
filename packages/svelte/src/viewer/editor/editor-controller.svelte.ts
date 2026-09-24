@@ -276,7 +276,16 @@ export class EditorController {
 			event.target,
 			this.editingId,
 		);
-		if (!id || !this.#editor.isElementInteractive(id)) {
+		if (!id) {
+			// Empty canvas: offer Paste/Layout/Reset/Format Background/Grid/Ruler
+			// instead of leaving this a no-op (the browser's own menu used to win).
+			if (this.#deps.onCanvasContextMenu) {
+				event.preventDefault();
+				this.#deps.onCanvasContextMenu(event.clientX, event.clientY);
+			}
+			return;
+		}
+		if (!this.#editor.isElementInteractive(id)) {
 			return;
 		}
 		event.preventDefault();

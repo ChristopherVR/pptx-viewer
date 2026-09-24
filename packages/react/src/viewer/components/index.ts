@@ -11,6 +11,7 @@ export { ResizeHandle } from './ResizeHandle';
 // Medium components
 export { SlideThumbnail } from './SlideThumbnail';
 export { ContextMenu } from './ContextMenu';
+export { CanvasContextMenu } from './CanvasContextMenu';
 export { ElementRenderer } from './ElementRenderer';
 
 // Panel components

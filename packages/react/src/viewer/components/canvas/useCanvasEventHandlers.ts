@@ -80,6 +80,7 @@ export interface CanvasEventHandlers {
 export function useCanvasEventHandlers({
 	cbRef,
 	onCanvasMouseDown,
+	onCanvasContextMenu,
 	findResults,
 	findResultIndex,
 	activeSlideIndex,
@@ -96,6 +97,8 @@ export function useCanvasEventHandlers({
 		};
 	};
 	onCanvasMouseDown?: (e: React.MouseEvent) => void;
+	/** Right-click on empty canvas (no element hit); opens the canvas context menu. */
+	onCanvasContextMenu?: (e: React.MouseEvent) => void;
 	findResults?: FindResult[];
 	findResultIndex?: number;
 	activeSlideIndex?: number;
@@ -238,9 +241,11 @@ export function useCanvasEventHandlers({
 			const id = getElementIdFromEvent(e);
 			if (id) {
 				cbRef.current.onContextMenu(id, e);
+				return;
 			}
+			onCanvasContextMenu?.(e);
 		},
-		[cbRef],
+		[cbRef, onCanvasContextMenu],
 	);
 
 	/* ── Guide drag state & handlers ─────────────────────────────── */

@@ -31,7 +31,7 @@ function resolveSelectionGroupable(state: ViewerState): boolean {
  * Home > Slides group's New Slide / Layout menus consume (React derives the
  * same list from the load pipeline's `layoutOptions`).
  */
-function collectLayoutOptions(state: ViewerState): LayoutOption[] {
+export function collectLayoutOptions(state: ViewerState): LayoutOption[] {
 	const options: LayoutOption[] = [];
 	const seen = new Set<string>();
 	for (const master of state.slideMasters) {

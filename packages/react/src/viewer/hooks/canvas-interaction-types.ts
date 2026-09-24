@@ -9,6 +9,7 @@ export interface CanvasInteractionHandlers {
 	handleElementDoubleClick: (elementId: string, e: React.MouseEvent) => void;
 	handleElementMouseDown: (elementId: string, e: React.MouseEvent) => void;
 	handleElementContextMenu: (elementId: string, e: React.MouseEvent) => void;
+	handleCanvasContextMenu: (e: React.MouseEvent) => void;
 	handleCanvasMouseDown: (e: React.MouseEvent) => void;
 	handleResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	handleAdjustmentPointerDown: (

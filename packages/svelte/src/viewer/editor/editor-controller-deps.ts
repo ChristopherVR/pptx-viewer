@@ -25,6 +25,12 @@ export interface EditorControllerDeps {
 	 * model, so the cell under the pointer is the target.
 	 */
 	onContextMenu?(x: number, y: number, cell: ContextMenuCellTarget | null): void;
+	/**
+	 * Open the EMPTY-CANVAS context menu at viewport `x`/`y` (no element under
+	 * the cursor). Mutually exclusive with {@link onContextMenu}: opening one
+	 * closes the other.
+	 */
+	onCanvasContextMenu?(x: number, y: number): void;
 	getSnapToGrid?(): boolean;
 	/**
 	 * Grid spacing in CSS px for snap-to-grid, derived from the deck's

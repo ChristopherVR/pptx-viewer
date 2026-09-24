@@ -13,7 +13,7 @@ import type {
 import type { Translator } from '../../i18n/translator';
 import type { CollaborationController, CollaborationDialogsState } from '../collab';
 import type { ShareDefaultsInput } from '../collab/collaboration-dialogs.svelte';
-import type { StageContextMenu } from '../components/props';
+import type { StageCanvasContextMenu, StageContextMenu } from '../components/props';
 import type { DeckApi } from '../editor/deck-api';
 import type { EditingApi } from '../editor/editing-api';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -203,6 +203,7 @@ export interface ViewerStateBag {
 	/** `Date.now()` timestamp of the last `enterPresenterView()` call; the presenter view's elapsed-time display. */
 	readonly presenterStartedAt: number;
 	stageContextMenu: StageContextMenu | null;
+	stageCanvasContextMenu: StageCanvasContextMenu | null;
 	readonly activeMobileSheet: MobileSheetKey;
 	setActiveMobileSheet(next: MobileSheetKey): void;
 	readonly notesExpanded: boolean;

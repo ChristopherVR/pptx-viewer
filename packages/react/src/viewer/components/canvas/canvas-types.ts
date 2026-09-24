@@ -102,6 +102,8 @@ export interface SlideCanvasProps {
 	onContextMenu: (elementId: string, e: React.MouseEvent) => void;
 	/** Called when the user presses mouse down on empty canvas space. */
 	onCanvasMouseDown?: (e: React.MouseEvent) => void;
+	/** Right-click on empty canvas (no element hit); opens the canvas context menu. */
+	onCanvasContextMenu?: (e: React.MouseEvent) => void;
 	onResizePointerDown: (elementId: string, e: React.MouseEvent, handle: string) => void;
 	onAdjustmentPointerDown: (
 		elementId: string,

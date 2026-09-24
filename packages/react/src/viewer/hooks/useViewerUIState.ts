@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import type {
 	AccessibilityIssue,
+	CanvasContextMenuState,
 	DrawingTool,
 	ElementContextMenuState,
 	MarqueeSelectionState,
@@ -50,6 +51,9 @@ export interface ViewerUIState {
 	setAccessibilityIssues: React.Dispatch<React.SetStateAction<AccessibilityIssue[]>>;
 	contextMenuState: ElementContextMenuState | null;
 	setContextMenuState: React.Dispatch<React.SetStateAction<ElementContextMenuState | null>>;
+	/** The empty-canvas (no element hit) right-click menu; mutually exclusive with `contextMenuState`. */
+	canvasContextMenuState: CanvasContextMenuState | null;
+	setCanvasContextMenuState: React.Dispatch<React.SetStateAction<CanvasContextMenuState | null>>;
 	tableEditorState: TableCellEditorState | null;
 	setTableEditorState: React.Dispatch<React.SetStateAction<TableCellEditorState | null>>;
 	spellCheckEnabled: boolean;
@@ -125,6 +129,8 @@ export function useViewerUIState(): ViewerUIState {
 
 	// ── Misc State ────────────────────────────────────────────────────
 	const [contextMenuState, setContextMenuState] = useState<ElementContextMenuState | null>(null);
+	const [canvasContextMenuState, setCanvasContextMenuState] =
+		useState<CanvasContextMenuState | null>(null);
 	const [tableEditorState, setTableEditorState] = useState<TableCellEditorState | null>(null);
 	const [spellCheckEnabled, setSpellCheckEnabled] = useState(true);
 	const [showGrid, setShowGrid] = useState(false);
@@ -182,6 +188,8 @@ export function useViewerUIState(): ViewerUIState {
 		setAccessibilityIssues,
 		contextMenuState,
 		setContextMenuState,
+		canvasContextMenuState,
+		setCanvasContextMenuState,
 		tableEditorState,
 		setTableEditorState,
 		spellCheckEnabled,

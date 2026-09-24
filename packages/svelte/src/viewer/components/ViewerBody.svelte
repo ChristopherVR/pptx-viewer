@@ -59,6 +59,9 @@
 		collabPresences = [],
 		contextMenu,
 		onContextMenuClose,
+		canvasContextMenu,
+		onCanvasContextMenuClose,
+		parityUi,
 		onmoveSlide,
 		annotations,
 		guides = [],
@@ -148,6 +151,9 @@
 				{collabPresences}
 				{contextMenu}
 				{onContextMenuClose}
+				{canvasContextMenu}
+				{onCanvasContextMenuClose}
+				{parityUi}
 				{annotations}
 				{guides}
 				{onchangeguide}

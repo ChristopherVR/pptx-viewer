@@ -191,6 +191,7 @@ export function buildCanvasProps(input: BuildCanvasPropsInput): SlideCanvasProps
 		onMouseDown: canvasHandlers.handleElementMouseDown,
 		onContextMenu: canvasHandlers.handleElementContextMenu,
 		onCanvasMouseDown: canvasHandlers.handleCanvasMouseDown,
+		onCanvasContextMenu: canvasHandlers.handleCanvasContextMenu,
 		onResizePointerDown: canvasHandlers.handleResizePointerDown,
 		onAdjustmentPointerDown: canvasHandlers.handleAdjustmentPointerDown,
 		onRotate: canvasHandlers.handleRotate,

@@ -22,6 +22,8 @@ import type {
 	PptxCoreProperties,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -155,11 +157,15 @@ import { RecentColorsService } from './recent-colors.service';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { Rendering3DService } from './rendering-3d.service';
+import { performResetSlide } from './ribbon-home-section.component';
+import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
+import { layoutOptionsFrom } from './ribbon-layout-options';
 import { patchTextStyle } from './ribbon-text-helpers';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
+import { SlideCanvasContextMenuComponent } from './slide-canvas-context-menu.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideDefaultInspectorComponent } from './slide-default-inspector.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
@@ -235,6 +241,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		StatusBarComponent,
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
+		SlideCanvasContextMenuComponent,
+		RibbonLayoutGalleryComponent,
 		ExportProgressModalComponent,
 		CommentMarkersOverlayComponent,
 		CommentsPanelComponent,
@@ -1003,6 +1011,40 @@ import { ZoomTargetService } from './zoom-target.service';
 					(saveAsPicture)="onContextMenuSaveAsPicture()"
 					(closed)="canvasEditing.contextMenuPos.set(null)"
 				/>
+			}
+
+			@if (canEdit() && canvasEditing.canvasContextMenuPos(); as cm) {
+				<pptx-slide-canvas-context-menu
+					[x]="cm.x"
+					[y]="cm.y"
+					[hasClipboard]="editor.hasClipboard()"
+					[showGrid]="showGrid()"
+					[showRulers]="showRulers()"
+					(paste)="editor.paste(activeSlideIndex())"
+					(openLayoutGallery)="canvasLayoutGalleryPos.set({ x: cm.x, y: cm.y })"
+					(resetSlide)="performResetSlide(editor, activeSlideIndex())"
+					(openFormatBackground)="editor.clearSelection(); inspectorPanel.openFormatPanel()"
+					(toggleGrid)="showGrid.update((v) => !v)"
+					(toggleRulers)="showRulers.update((v) => !v)"
+					(closed)="canvasEditing.canvasContextMenuPos.set(null)"
+				/>
+			}
+
+			<!-- Canvas context menu's "Layout" gallery, anchored at the click point -->
+			@if (canvasLayoutGalleryPos(); as lg) {
+				<div
+					class="fixed inset-0 z-[119]"
+					(click)="canvasLayoutGalleryPos.set(null)"
+					(contextmenu)="$event.preventDefault(); canvasLayoutGalleryPos.set(null)"
+				></div>
+				<div class="fixed z-[120]" [style.left.px]="lg.x" [style.top.px]="lg.y">
+					<pptx-ribbon-layout-gallery
+						[layoutOptions]="canvasLayoutOptions()"
+						[previews]="canvasLayoutPreviews()"
+						[currentLayoutPath]="activeSlide()?.layoutPath"
+						(select)="onCanvasLayoutSelect($event)"
+					/>
+				</div>
 			}
 
 			<pptx-paste-special-dialog
@@ -1795,6 +1837,45 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly showGrid = signal(false);
 	/** Whether ruler strips are visible on the editor canvas. */
 	protected readonly showRulers = signal(false);
+
+	// ── Empty-canvas context menu's "Layout" gallery ──────────────────────────
+	/** Home > Reset re-exposed for the canvas menu's "Reset Slide" entry. */
+	protected readonly performResetSlide = performResetSlide;
+	/** Anchor point (click coords) of the canvas menu's Layout gallery, or null when closed. */
+	protected readonly canvasLayoutGalleryPos = signal<{ x: number; y: number } | null>(null);
+	/** Layouts offered by the canvas menu's Layout gallery (same source as the ribbon's). */
+	protected readonly canvasLayoutOptions = computed(() =>
+		layoutOptionsFrom(this.loader.slideMasters()),
+	);
+	/** Layout artwork, fetched the first time the canvas menu's gallery opens. */
+	protected readonly canvasLayoutPreviews = signal<ReadonlyMap<string, PptxLayoutPreview>>(
+		new Map(),
+	);
+
+	/** Lazily loads layout artwork the first time the canvas menu's gallery opens. */
+	private readonly loadCanvasLayoutPreviewsEffect = effect(() => {
+		if (!this.canvasLayoutGalleryPos() || this.canvasLayoutPreviews().size > 0) {
+			return;
+		}
+		const handler = this.loader.getHandler();
+		if (!handler) {
+			return;
+		}
+		void handler
+			.getLayoutPreviews()
+			.then((previews) => {
+				this.canvasLayoutPreviews.set(new Map(previews.map((preview) => [preview.path, preview])));
+				return undefined;
+			})
+			.catch(() => undefined);
+	});
+
+	/** Apply the picked layout to the active slide and close the gallery. */
+	protected onCanvasLayoutSelect(layout: PptxLayoutOption): void {
+		void this.editor.applyLayout(this.activeSlideIndex(), layout.path);
+		this.canvasLayoutGalleryPos.set(null);
+	}
+
 	/** Whether center-crosshair guide lines are visible on the editor canvas. */
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */

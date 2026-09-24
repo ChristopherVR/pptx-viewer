@@ -128,6 +128,8 @@ import type {
 	PptxViewerInstance,
 	PptxViewerOptions,
 } from './types';
+import { mountCanvasContextMenu } from './ui/canvas-context-menu';
+import type { CanvasContextMenu } from './ui/canvas-context-menu';
 import { rasterizePastedElementAsPicture } from './ui/context-menu-format-actions';
 import { openDigitalSignaturesDialog } from './ui/digital-signatures-dialog';
 import { openDocumentPropertiesDialog } from './ui/document-properties-dialog';
@@ -200,6 +202,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	/** Live AI focus controller while `ai` is configured; the canvas menu's AI entries route to it. */
 	private aiFocus: AiFocusController | null = null;
 	private contextMenu: ElementContextMenu | null = null;
+	/** The empty-canvas (no element hit) sibling of {@link contextMenu}. */
+	private canvasContextMenu: CanvasContextMenu | null = null;
 	/** Ctrl/Cmd+Alt+V's post-paste follow-up icon strip. */
 	private pasteOptionsToolbar: PasteOptionsToolbarHandle | null = null;
 	/** View > Rulers strips (ticks, labels, drag-out guides) around the stage. */
@@ -756,6 +760,16 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			openComments: () => this.parityWorkflows.openComments(),
 			openHyperlink: () => this.parityWorkflows.openHyperlink(),
 			getAi: () => this.aiFocus,
+		});
+		this.canvasContextMenu?.destroy();
+		this.canvasContextMenu = mountCanvasContextMenu({
+			doc: this.doc,
+			store: this.store,
+			getTranslator: () => this.t,
+			viewport: this.lifecycle.chrome.viewport,
+			getStageRoot: () =>
+				this.lifecycle.chrome.stageWrap.querySelector<HTMLElement>('.pptxv-stage'),
+			getEditActions: () => this.editor.getEditActions(),
 		});
 	}
 
@@ -1959,6 +1973,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.aiFocus = null;
 		this.contextMenu?.destroy();
 		this.contextMenu = null;
+		this.canvasContextMenu?.destroy();
+		this.canvasContextMenu = null;
 		this.pasteOptionsToolbar?.destroy();
 		this.pasteOptionsToolbar = null;
 		this.rulers?.destroy();

@@ -75,6 +75,12 @@ export interface UseContextMenuInput {
 	onAskAi?: () => void;
 	/** Open the AI panel with a prefilled "fix this element" directive (not sent). */
 	onFixAi?: () => void;
+	/**
+	 * Right-click landed on empty canvas (no interactive element under the
+	 * cursor). Wired to `useCanvasContextMenu`'s opener; when omitted the
+	 * click is left unhandled (browser's own menu), matching the old behaviour.
+	 */
+	onEmptyCanvasContextMenu?: (x: number, y: number) => void;
 }
 
 export interface UseContextMenuResult {
@@ -115,6 +121,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		aiEnabled,
 		onAskAi,
 		onFixAi,
+		onEmptyCanvasContextMenu,
 	} = input;
 
 	const contextMenu = ref<ContextMenuState>({
@@ -209,8 +216,17 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		// hit-test above therefore comes back empty for a right-click on the very
 		// element the user just picked, so fall back to the element being edited.
 		const id = resolveContextMenuElementId(hitId, event.target, inlineEditingElementId.value);
+		if (!id) {
+			// Empty canvas: offer Paste/Layout/Reset/Format Background/Grid/Ruler
+			// instead of leaving this a no-op (the browser's own menu used to win).
+			if (onEmptyCanvasContextMenu) {
+				event.preventDefault();
+				onEmptyCanvasContextMenu(event.clientX, event.clientY);
+			}
+			return;
+		}
 		// Locked template elements (edit-template mode off) are not actionable.
-		if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
+		if (!isElementIdInteractive(id, editTemplateMode.value)) {
 			return;
 		}
 		event.preventDefault();

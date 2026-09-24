@@ -32,6 +32,7 @@ const SECTION_DEFINITIONS = [
 			'sections',
 			'notes',
 			'slideSorter',
+			'slidesPane',
 			'grid',
 			'ruler',
 			'field',

@@ -12,14 +12,17 @@
 	 * with the zoom instead of tracking it.
 	 */
 	import type { InspectorSectionAnchor } from 'pptx-viewer-shared';
-	import { RULER_THICKNESS, scrollInspectorSectionIntoView } from 'pptx-viewer-shared';
+	import { RULER_THICKNESS, scrollInspectorSectionIntoView, updateViewerPreference } from 'pptx-viewer-shared';
 	import { tick } from 'svelte';
 
+	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 	import type { PasteSpecialFormat } from 'pptx-viewer-shared';
 
 	import { saveContextMenuElementAsPicture } from '../export/save-element-as-picture';
 	import { rasterizePastedElementAsPicture } from '../export/rasterize-picture';
+	import CanvasContextMenu from './CanvasContextMenu.svelte';
 	import ElementContextMenu from './ElementContextMenu.svelte';
+	import LayoutGalleryMenu from './ribbon/home/LayoutGalleryMenu.svelte';
 	import PasteOptionsToolbar from './PasteOptionsToolbar.svelte';
 	import PasteSpecialDialog from './PasteSpecialDialog.svelte';
 	import HyperlinkDialog from './ribbon/insert/HyperlinkDialog.svelte';
@@ -54,6 +57,9 @@
 		collabPresences = [],
 		contextMenu,
 		onContextMenuClose,
+		canvasContextMenu,
+		onCanvasContextMenuClose,
+		parityUi,
 		annotations,
 		guides = [],
 		onchangeguide,
@@ -103,6 +109,45 @@
 		void tick().then(() => {
 			requestAnimationFrame(() => scrollInspectorSectionIntoView(document, anchor));
 		});
+	}
+
+	// -- Empty-canvas context menu ------------------------------------------
+
+	/** "Format Background...": show the inspector's slide/background view, with no element selected. */
+	function openCanvasFormatBackground(): void {
+		editor.selection.clear();
+		if (chromeUi) {
+			chromeUi.inspectorOpen = true;
+			chromeUi.setInspectorTab('properties');
+		}
+	}
+
+	function toggleCanvasPreference(key: 'showGrid' | 'showRulers'): void {
+		if (!parityUi) {
+			return;
+		}
+		parityUi.preferences = updateViewerPreference(parityUi.preferences, key, !parityUi.preferences[key]);
+	}
+
+	/** Anchor point (click coords) of the canvas menu's Layout gallery, or null when closed. */
+	let canvasLayoutGalleryAnchor = $state<{ x: number; y: number } | null>(null);
+	let canvasLayoutOptions = $state<PptxLayoutOption[]>([]);
+	let canvasLayoutPreviews = $state<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+
+	/** Opens the canvas menu's Layout gallery, fetching layouts + artwork on first open. */
+	function openCanvasLayoutGallery(x: number, y: number): void {
+		canvasLayoutGalleryAnchor = { x, y };
+		void editor.slidesOps.availableLayouts().then((options) => {
+			canvasLayoutOptions = options;
+		});
+		void editor.slidesOps.layoutPreviews().then((previews) => {
+			canvasLayoutPreviews = previews;
+		});
+	}
+
+	function onCanvasLayoutSelect(layout: PptxLayoutOption): void {
+		void editor.slidesOps.applyLayout(layout.path);
+		canvasLayoutGalleryAnchor = null;
 	}
 
 	/** "Save as Picture": rasterise the right-clicked element's own DOM node. */
@@ -250,6 +295,41 @@
 			onclose={onContextMenuClose}
 		/>
 	{/if}
+	{#if canvasContextMenu}
+		<CanvasContextMenu
+			x={canvasContextMenu.x}
+			y={canvasContextMenu.y}
+			{editor}
+			showGrid={parityUi?.preferences.showGrid ?? false}
+			showRulers={parityUi?.preferences.showRulers ?? false}
+			onopenlayoutgallery={() => openCanvasLayoutGallery(canvasContextMenu!.x, canvasContextMenu!.y)}
+			onresetslide={() => void editor.slidesOps.resetSlide()}
+			onopenformatbackground={openCanvasFormatBackground}
+			ontogglegrid={() => toggleCanvasPreference('showGrid')}
+			ontogglerulers={() => toggleCanvasPreference('showRulers')}
+			onclose={onCanvasContextMenuClose}
+		/>
+	{/if}
+	{#if canvasLayoutGalleryAnchor}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="pptx-svelte-context-backdrop"
+			aria-hidden="true"
+			onclick={() => (canvasLayoutGalleryAnchor = null)}
+			oncontextmenu={(event) => { event.preventDefault(); canvasLayoutGalleryAnchor = null; }}
+		></div>
+		<div
+			class="pptx-svelte-layout-gallery-anchor"
+			style={`left:${canvasLayoutGalleryAnchor.x}px;top:${canvasLayoutGalleryAnchor.y}px`}
+		>
+			<LayoutGalleryMenu
+				layouts={canvasLayoutOptions}
+				previews={canvasLayoutPreviews}
+				currentLayoutPath={activeSlide.layoutPath}
+				onselect={onCanvasLayoutSelect}
+			/>
+		</div>
+	{/if}
 	{#if controller.hyperlinkOpen}
 		<HyperlinkDialog {editor} onclose={() => (controller.hyperlinkOpen = false)} />
 	{/if}
@@ -281,6 +361,18 @@
 		flex: none;
 		margin: auto;
 		box-sizing: content-box;
+	}
+
+	/* Canvas menu's Layout gallery: a zero-size anchor at the click point, plus
+	   a click-outside backdrop, mirroring `CanvasContextMenu`'s own backdrop. */
+	.pptx-svelte-context-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 119;
+	}
+	.pptx-svelte-layout-gallery-anchor {
+		position: fixed;
+		z-index: 120;
 	}
 
 	.pptx-svelte-message {

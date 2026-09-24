@@ -1125,6 +1125,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.compare.title': 'Compare',
 
 	// Canvas context menu (empty slide right-click)
+	'pptx.canvasContextMenu.ariaLabel': 'Canvas context menu',
 	'pptx.canvasContextMenu.formatBackground': 'Format Background...',
 	'pptx.canvasContextMenu.gridAndGuides': 'Grid and Guides',
 	'pptx.canvasContextMenu.layout': 'Layout',
@@ -1462,6 +1463,18 @@ export const translationsEn: Record<string, string> = {
 	'pptx.slideSorter.contextMenu.hideSlides': 'Hide Slides',
 	'pptx.slideSorter.contextMenu.paste': 'Paste',
 	'pptx.slideSorter.contextMenu.showSlides': 'Show Slides',
+
+	// Slides pane thumbnail context menu (the always-visible rail, distinct
+	// from the slideSorter overlay above)
+	'pptx.slidesPane.contextMenu.newSlide': 'New Slide',
+	'pptx.slidesPane.contextMenu.duplicate': 'Duplicate Slide',
+	'pptx.slidesPane.contextMenu.duplicateCount': 'Duplicate {{count}} Slides',
+	'pptx.slidesPane.contextMenu.delete': 'Delete Slide',
+	'pptx.slidesPane.contextMenu.deleteCount': 'Delete {{count}} Slides',
+	'pptx.slidesPane.contextMenu.layout': 'Layout',
+	'pptx.slidesPane.contextMenu.hide': 'Hide Slide',
+	'pptx.slidesPane.contextMenu.show': 'Show Slide',
+	'pptx.slidesPane.contextMenu.addSection': 'Add Section',
 
 	// SmartArt (additions)
 	'pptx.smartart.cancel': 'Cancel',

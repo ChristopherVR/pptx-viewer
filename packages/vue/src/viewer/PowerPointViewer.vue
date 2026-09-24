@@ -25,7 +25,13 @@
  */
 import { ShieldAlert } from 'lucide-vue-next';
 import { hasShapeProperties, PptxHandler } from 'pptx-viewer-core';
-import type { PptxElement, PptxTheme, ShapeStyle } from 'pptx-viewer-core';
+import type {
+	PptxElement,
+	PptxLayoutOption,
+	PptxLayoutPreview,
+	PptxTheme,
+	ShapeStyle,
+} from 'pptx-viewer-core';
 import {
 	applyAutoCorrect,
 	buildDeckSaveOptions,
@@ -51,6 +57,7 @@ import {
 	resolveImageResolutionScale,
 	resolveOptionRootClasses,
 	resolveSlideSizeSelection,
+	resetSlideLayoutPath,
 	shouldClearAutosaveCacheOnClose,
 	shouldOpenInProtectedView,
 	shouldShowAutosaveRecoveryPrompt,
@@ -97,6 +104,7 @@ import { useAccessibility } from './composables/useAccessibility';
 import { useAlignGroup } from './composables/useAlignGroup';
 import { useAutosaveRecovery } from './composables/useAutosaveRecovery';
 import { useAutosaveWiring } from './composables/useAutosaveWiring';
+import { useCanvasContextMenu } from './composables/useCanvasContextMenu';
 import { useCanvasImagePaste } from './composables/useCanvasImagePaste';
 import { useCanvasPointer } from './composables/useCanvasPointer';
 import { useCollaborationWiring } from './composables/useCollaborationWiring';
@@ -820,6 +828,56 @@ const {
 	themeEditorOpen,
 } = ribbonUi;
 
+// -- Empty-canvas context menu (right-click with no element under the
+// cursor) -- a sibling of the element menu below, kept in its own composable.
+const layoutGalleryAnchor = ref<{ x: number; y: number } | null>(null);
+const canvasMenu = useCanvasContextMenu({
+	hasClipboard: clipboard.hasClipboard,
+	showGrid,
+	showRulers,
+	onPaste: pasteElementAndNoteForToolbar,
+	onOpenLayoutGallery: (x, y) => {
+		layoutGalleryAnchor.value = { x, y };
+	},
+	onResetSlide: () => {
+		const path = resetSlideLayoutPath(activeSlide.value);
+		if (path) {
+			void insertion.applyLayoutToActiveSlide(path);
+		}
+	},
+	onOpenFormatBackground: () => {
+		selectedElementIds.value = [];
+		inspectorOpen.value = true;
+	},
+});
+/** Layout artwork for the canvas menu's gallery; fetched once it opens (see `SlidesGroup.vue`'s ribbon twin). */
+const canvasLayoutGalleryPreviews = ref<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+watchEffect(() => {
+	if (!layoutGalleryAnchor.value) {
+		return;
+	}
+	void insertion
+		.loadLayoutPreviews()
+		.then((loaded) => {
+			canvasLayoutGalleryPreviews.value = new Map(loaded.map((preview) => [preview.path, preview]));
+			return undefined;
+		})
+		.catch(() => undefined);
+});
+const layoutGalleryProps = computed(() => ({
+	anchor: layoutGalleryAnchor.value,
+	layoutOptions: deck.layoutOptions.value,
+	previews: canvasLayoutGalleryPreviews.value,
+	currentLayoutPath: activeSlide.value?.layoutPath,
+	onSelect: (layout: PptxLayoutOption) => {
+		void insertion.applyLayoutToActiveSlide(layout.path);
+		layoutGalleryAnchor.value = null;
+	},
+	onClose: () => {
+		layoutGalleryAnchor.value = null;
+	},
+}));
+
 // -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
 	canEdit: () => canEditEffective.value,
@@ -839,6 +897,7 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	pasteElement: pasteElementAndNoteForToolbar,
 	onGroup,
 	onUngroup,
+	onEmptyCanvasContextMenu: canvasMenu.openCanvasContextMenu,
 	openHyperlinkDialog: hyperlink.openHyperlinkDialog,
 	// "Add Comment" opens the comments panel, matching React's menu action.
 	onAddComment: () => {
@@ -2024,6 +2083,11 @@ defineExpose<PowerPointViewerExpose>(
 				:context-items="contextItems"
 				:on-context-select="onContextSelect"
 				:on-close-context-menu="() => (contextMenu.open = false)"
+				:canvas-context-menu="canvasMenu.canvasContextMenu.value"
+				:canvas-context-items="canvasMenu.canvasContextItems.value"
+				:on-canvas-context-select="canvasMenu.onCanvasContextSelect"
+				:on-close-canvas-context-menu="canvasMenu.closeCanvasContextMenu"
+				:layout-gallery="layoutGalleryProps"
 				:hyperlink="hyperlink"
 				:slide-count="slideCount"
 				:collaboration="collaboration"

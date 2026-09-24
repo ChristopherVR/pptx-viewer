@@ -225,6 +225,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setInlineEditingElementId: state.setInlineEditingElementId,
 		setInlineEditingText: state.setInlineEditingText,
 		setContextMenuState: state.setContextMenuState,
+		setCanvasContextMenuState: state.setCanvasContextMenuState,
 		setMarqueeSelectionState: state.setMarqueeSelectionState,
 		setSnapLines: state.setSnapLines,
 		inlineEditingText: state.inlineEditingText,
