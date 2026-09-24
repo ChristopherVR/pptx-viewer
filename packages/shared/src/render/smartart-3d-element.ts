@@ -10,6 +10,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { buildSmartArt3DDrawingModel } from './smartart-3d-drawing-model';
 import { resolveSmartArt3DLayout } from './smartart-3d-layout-source';
 import { collectCoherent3DOffNodeIds, buildSmartArt3DModel } from './smartart-3d-model';
+import { withRegeneratedSmartArt3DDrawing } from './smartart-3d-regenerated-drawing';
 import type { SmartArt3DModel } from './smartart-3d-types';
 import { resolvePalette } from './smartart-drawing';
 
@@ -40,8 +41,12 @@ export function buildSmartArt3DSpecForElement(
 	// layout engine. The "spatial" carousel/receding-tree arrangements are a
 	// deliberate departure from PowerPoint's own render, so they stay on the
 	// legacy layout-engine path (opt-in only, per `SmartArt3DElementOptions`).
+	// A structural edit drops the cached drawing until the next save; the
+	// regenerated shapes carry the quick style's 3D, as the saved file will.
 	if (!options.spatial) {
-		const drawingModel = buildSmartArt3DDrawingModel(data);
+		const drawingModel = buildSmartArt3DDrawingModel(
+			withRegeneratedSmartArt3DDrawing(data, { width: element.width, height: element.height }),
+		);
 		if (drawingModel) {
 			return drawingModel.meshes.length > 0 ? drawingModel : null;
 		}
