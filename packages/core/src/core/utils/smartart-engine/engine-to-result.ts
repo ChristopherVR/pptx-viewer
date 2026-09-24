@@ -42,7 +42,18 @@ import { shapeTransform } from './shape-transform';
 import { resolveEngineFontSizePt } from './text-fit';
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
-const SUPPORTED_ALGS = new Set(['composite', 'lin', 'conn', 'snake', 'cycle', 'pyra', 'sp', 'tx']);
+const SUPPORTED_ALGS = new Set([
+	'composite',
+	'lin',
+	'conn',
+	'snake',
+	'cycle',
+	'pyra',
+	'hierRoot',
+	'hierChild',
+	'sp',
+	'tx',
+]);
 
 /** 1 CSS pixel (96 dpi, this codebase's convention) in DrawingML points. */
 const PT_PER_PX = 72 / 96;
@@ -105,6 +116,15 @@ function transitionLabelOf(node: EngineNode): string | undefined {
  * NO presented text (a genuinely decorative/structural placeholder, e.g. a
  * sibling row with no descendant) is still skipped, since it carries nothing
  * to compare or display.
+ *
+ * A ZERO-AREA node is also skipped regardless of `hideGeom`/text: a
+ * `hierChild` continuation for a childless leaf (`alg-hier.ts`'s
+ * `arrangeHierRoot` deliberately gives one a `{w:0, h:0}` box, since it has
+ * nothing of its own to fan) presents no text either way, so it was never
+ * going to draw anything visible - but it still reached `isFiniteGeometry`
+ * below as a "real" shape with degenerate geometry, declining the WHOLE
+ * diagram over a box nothing would have shown (the same failure mode
+ * `collectRenderedNodes`'s own `conn`-alg skip fixes for connectors).
  */
 function isRenderable(
 	node: EngineNode,
@@ -112,6 +132,9 @@ function isRenderable(
 	literalText: string | undefined,
 ): boolean {
 	if (!node.shape || !node.box) {
+		return false;
+	}
+	if (node.box.w <= 0 || node.box.h <= 0) {
 		return false;
 	}
 	if (!node.shape.hideGeom) {
@@ -172,7 +195,20 @@ function buildRenderedNode(
 	};
 }
 
-/** Every node the engine gives its own visible shape, in document order. */
+/**
+ * Every node the engine gives its own visible shape, in document order.
+ * `conn`-alg nodes are skipped: a connector's own `arrange` (`layoutTree`'s
+ * dedicated final routing pass, `alg-connector.ts`) produces a real box only
+ * for its supported "2-D, straight" case, leaving a degenerate zero-size box
+ * for a `connRout="bend"` routing (real "Hierarchy"'s own manager-to-report
+ * lines) - since `SmartArtLayoutResult.connectors` is separately, and always,
+ * discarded downstream (`smartart-interpreter-drawing-bridge.ts`'s own doc
+ * comment: PowerPoint reconstructs `dsp:cxn` connector shapes itself from the
+ * data-model connections, so this bridge never converts connector geometry),
+ * a connector was never meant to reach this rect-shape collector at all; one
+ * that does previously failed `isFiniteGeometry` below and declined the
+ * WHOLE diagram over a shape nothing downstream would have used anyway.
+ */
 function collectRenderedNodes(
 	root: EngineNode,
 	nodeById: Map<string, PptxSmartArtNode>,
@@ -181,9 +217,11 @@ function collectRenderedNodes(
 ): RenderedRectNode[] {
 	const out: RenderedRectNode[] = [];
 	const visit = (node: EngineNode): void => {
-		const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
-		if (rendered) {
-			out.push(rendered);
+		if (node.alg.type !== 'conn') {
+			const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
+			if (rendered) {
+				out.push(rendered);
+			}
 		}
 		node.children.forEach(visit);
 	};

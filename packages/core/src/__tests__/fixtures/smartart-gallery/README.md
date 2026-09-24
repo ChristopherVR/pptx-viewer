@@ -99,15 +99,17 @@ the interpreter found and fixed six real, previously-unknown bugs:
    measured numbers.
 
 **Despite those six fixes, `smartart-gallery-ground-truth.test.ts` fails for
-219 of the 229 fixtures against the full acceptance gate** (same shape count,
+218 of the 229 fixtures against the full acceptance gate** (same shape count,
 preset, font size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
-last regeneration): 225/229 fixtures have matching text-bearing shape counts;
-87 are within 1% geometry deviation, 113 within 5%, 122 within 10%, and 181
+last regeneration): 226/229 fixtures have matching text-bearing shape counts;
+97 are within 1% geometry deviation, 128 within 5%, 137 within 10%, and 194
 within 50%; 11 pass the full gate (re-measured 2026-09-24, after the
 engine-first routing waves below).
-Four fixtures fail structurally before geometry is compared (two pre-existing,
-two a side effect of the eighth wave's own fix - see that wave's paragraph).
+Three fixtures fail structurally before geometry is compared (one
+pre-existing, two a side effect of the eighth wave's own fix - see that
+wave's paragraph; a second pre-existing one, `segmented-process--hier5`, was
+closed by the ninth wave below).
 
 `computeSmartArtElementsWithoutCache` runs a legacy family-based interpreter
 (one arranger chosen for the whole diagram) AND a per-point DiagramML engine
@@ -117,8 +119,8 @@ declines. `scripts/measure-smartart-engine-vs-legacy.ts` runs both
 independently against every fixture (bypassing that fallback order) to find
 `layoutDefinition.uniqueId`s where the engine is strictly more accurate on
 EVERY dataset of that layout with no shape-set loss versus legacy;
-`smartart-engine/engine-first-allowlist.ts` lists the layouts (74 as of the
-eighth wave below) that measurement found (e.g. "Gear": legacy 76% deviation
+`smartart-engine/engine-first-allowlist.ts` lists the layouts (99 as of the
+ninth wave below) that measurement found (e.g. "Gear": legacy 76% deviation
 vs. engine 0.1%, since the legacy composite arranger cannot reach Gear's
 rotated/decorative named-slot children at all), and `computeDiagramMlElements`
 now tries the engine first only for those.
@@ -295,6 +297,46 @@ confirms geometry-within-1% and the full gate hold exactly (still 87/229,
 11/229), structural drops 227->225 (the two phantom-shape fixtures above),
 and within-5%/10%/50% each improve slightly (110->113, 121->122, 180->181)
 from the arrow/Tabbed-Arc wins.
+
+A ninth wave, while attempting `hierRoot`/`hierChild`, found a much bigger,
+unrelated bug: `engine-to-result.ts`'s `isFiniteGeometry` gate declined the
+WHOLE diagram whenever ANY rendered node had a zero-area box, with no
+exception for a shape that legitimately renders that way and carries no text
+(a `conn`-alg node's own `arrange` only produces a real box for its supported
+2-D-straight case, leaving `{w:0, h:0}` for `connRout="bend"` routing; a
+`hierChild` continuation for a childless leaf is deliberately `{w:0, h:0}`
+too). Since connector geometry is separately, and always, discarded
+downstream, a `conn`-alg node was never meant to reach the rect-shape
+collector at all, and a zero-area, textless node was never going to render
+anything visible either way; both are now excluded instead of failing the
+whole result. This single, layout-family-agnostic fix unblocked 40
+previously fully-declining layouts at once; re-measuring found 25 of them
+measurably beat legacy on every dataset with no shape loss, including the
+entire "Meet the Team" family (previously 4979%-9979% legacy deviation, the
+worst in the whole corpus, down to under 83% engine deviation) and
+`segmented-process--hier5` (0.714 -> 0, closing one of the two pre-existing
+structural misses named above). All 25 are now on
+`engine-first-allowlist.ts` (99 layouts total): geometry-within-1% jumps
+87->97, within-5% 113->128, within-10% 122->137, within-50% 181->194, preset
+204->210, structural 225->226; the full gate holds at 11/229 and font-match
+drops 25->24 (one newly-engine-first fixture's font size is very slightly
+off where legacy happened to be exact - not chased further). `hierRoot`/
+`hierChild` themselves were then actually ported (`smartart-engine/
+alg-hier.ts`): every generation must render its item at the exact SAME size,
+so the outermost `hierChild` call walks its whole subtree once (leaf-weighted
+width units, generation depth) to derive ONE shared item size and seeds it
+onto every descendant before any of them are positioned, rather than each
+`hierChild` call sizing its own row independently (right topology, wrong
+scale). Only the plain "std" fanned-row case is implemented (`hierBranch`
+hanging columns, `chMax`/`chPref` wrapping, and `orgChart` assistant slots
+are not attempted - each a genuinely separate branch in legacy's own
+~8800-line `smartart-hierarchy-*.ts` family). Measured against the whole
+8-layout, 14-fixture hierarchy family: a substantial improvement over full
+decline (e.g. real "Hierarchy" 0.7767 -> 0.2687), but still measurably worse
+than legacy on every single dataset (legacy sits at 0.0019-0.3 for this
+family), so `hierRoot`/`hierChild` are NOT added to the allowlist this wave -
+an honest "attempted, not yet sufficient" outcome. Zero regressions either
+way.
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,

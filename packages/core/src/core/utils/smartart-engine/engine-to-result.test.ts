@@ -85,6 +85,40 @@ describe('runEngineLayout hideGeom handling', () => {
 	});
 });
 
+describe('runEngineLayout zero-area shape handling', () => {
+	it(
+		'does not decline the WHOLE diagram over a zero-area conn/hierChild placeholder ' +
+			'(real "Hierarchy": a connRout="bend" connector and a childless-leaf hierChild ' +
+			'continuation both legitimately render with a {w:0, h:0} box, and previously ' +
+			'failed isFiniteGeometry outright)',
+		async () => {
+			const handler = new PptxHandler();
+			const { slides } = await handler.load(readFixture('hierarchy--flat3.pptx'));
+			const element = slides
+				.flatMap((s) => s.elements)
+				.find((el): el is SmartArtPptxElement => el.type === 'smartArt');
+			const data = element?.smartArtData;
+			expect(data?.layoutDefinition).toBeDefined();
+			if (!data?.layoutDefinition) {
+				return;
+			}
+			const bounds = { width: element!.width, height: element!.height };
+			const palette = ['#4472C4', '#ED7D31', '#A5A5A5', '#FFC000', '#5B9BD5', '#70AD47'];
+			const result = runEngineLayout(data, bounds, data.nodes ?? [], palette, data.style ?? 'flat');
+			expect(result).toBeDefined();
+			const texts = result?.nodes.map((n) => (n as { text?: string }).text ?? '') ?? [];
+			expect(texts).toContain('Alpha');
+			expect(texts).toContain('Beta has a noticeably longer label than the others');
+			expect(texts).toContain('Gamma');
+			// No `conn`-alg shape (routed separately, never converted to a rect
+			// - see `collectRenderedNodes`'s own doc comment) should have leaked
+			// through as a rendered node.
+			const presets = result?.nodes.map((n) => (n as { presetOverride?: string }).presetOverride);
+			expect(presets).not.toContain('conn');
+		},
+	);
+});
+
 describe('runEngineLayout sibTrans ordinal-badge text', () => {
 	it(
 		'renders a sibTrans-presented ordinal badge\'s own literal text ("1"/"2"/"3"), ' +

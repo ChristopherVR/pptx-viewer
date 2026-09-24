@@ -6,6 +6,7 @@
 import { arrangeComposite } from './alg-composite';
 import { arrangeConnector } from './alg-connector';
 import { arrangeCycle } from './alg-cycle';
+import { arrangeHierChild, arrangeHierRoot } from './alg-hier';
 import { arrangeLinear } from './alg-linear';
 import { applyPyraAccentSplit, arrangePyra } from './alg-pyra';
 import { arrangeSnake } from './alg-snake';
@@ -19,6 +20,8 @@ const ALGORITHMS: Record<string, ArrangeAlgorithm> = {
 	snake: arrangeSnake,
 	cycle: arrangeCycle,
 	pyra: arrangePyra,
+	hierRoot: arrangeHierRoot,
+	hierChild: arrangeHierChild,
 	tx: fillChildren,
 	sp: fillChildren,
 };
