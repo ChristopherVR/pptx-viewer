@@ -37,6 +37,7 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		enrichBulletPictureElementsWithEmbeddedData: vi.fn(async () => {}),
 		extractBackgroundColor: vi.fn(() => undefined),
 		extractOwnBackgroundNode: vi.fn(() => undefined),
+		extractOwnBackgroundRefNode: vi.fn(() => undefined),
 		getLayoutBackgroundColor: vi.fn(async () => undefined),
 		extractBackgroundGradient: vi.fn(() => undefined),
 		getLayoutBackgroundGradient: vi.fn(async () => undefined),
