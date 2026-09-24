@@ -553,6 +553,75 @@ describe('buildComboViewModel', () => {
 			expect(rect.fill).toBe('#abcdef');
 		}
 	});
+
+	// ── per-series `seriesChartType` (regression: combo hardcoded "series 0 is
+	// the bar, everything else is a line", ignoring the parser's own per-series
+	// tag from a multi-container combo) ─────────────────────────────────────
+
+	it('renders every seriesChartType: "bar" series as a bar, even a second one', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Bars A', values: [10, 20, 30, 40], seriesChartType: 'bar' },
+				{ name: 'Bars B', values: [5, 8, 12, 16], seriesChartType: 'bar' },
+				{ name: 'Line', values: [1, 2, 3, 4], seriesChartType: 'line' },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		// Two bar series x four categories = 8 rects; exactly one polyline.
+		expect(rects).toHaveLength(8);
+		expect(polylines).toHaveLength(1);
+		expect(rects.every((r) => r.part?.seriesIndex === 0 || r.part?.seriesIndex === 1)).toBeTruthy();
+		// The two bars for one category sit side by side, not stacked/overlapped.
+		const categoryOneBars = rects.filter((r) => r.kind === 'rect' && r.part?.pointIndex === 0);
+		expect(categoryOneBars).toHaveLength(2);
+		const [first, second] =
+			categoryOneBars[0].kind === 'rect' && categoryOneBars[1].kind === 'rect'
+				? [categoryOneBars[0], categoryOneBars[1]]
+				: [];
+		expect(first).toBeDefined();
+		expect(second).toBeDefined();
+		if (first?.kind === 'rect' && second?.kind === 'rect') {
+			expect(Math.abs(first.x - second.x)).toBeGreaterThanOrEqual(first.w - 0.01);
+		}
+	});
+
+	it("keeps a bar tagged seriesChartType: 'bar' as a bar when it is not series 0", () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Line', values: [1, 2, 3, 4], seriesChartType: 'line' },
+				{ name: 'Bars', values: [10, 20, 30, 40], seriesChartType: 'bar' },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		expect(rects).toHaveLength(CATEGORIES.length);
+		expect(rects.every((r) => r.part?.seriesIndex === 1)).toBeTruthy();
+		expect(polylines).toHaveLength(1);
+	});
+
+	it('untagged series still fall back to the legacy series-0-is-the-bar guess', () => {
+		const chartData: PptxChartData = {
+			chartType: 'combo',
+			categories: CATEGORIES,
+			series: [
+				{ name: 'Bars', values: [10, 20, 30, 40] },
+				{ name: 'Line A', values: [1, 2, 3, 4] },
+				{ name: 'Line B', values: [4, 3, 2, 1] },
+			],
+		};
+		const vm = buildComboViewModel(makeElement(), chartData, CATEGORIES);
+		const rects = vm.primitives.filter((p) => p.kind === 'rect');
+		const polylines = vm.primitives.filter((p) => p.kind === 'polyline');
+		expect(rects).toHaveLength(CATEGORIES.length);
+		expect(polylines).toHaveLength(2);
+	});
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

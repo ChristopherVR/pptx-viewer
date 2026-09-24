@@ -10,7 +10,12 @@ import {
 } from './chart-axis';
 import { verticalAxisX } from './chart-axis-crossing';
 import { buildPrimaryAxis, buildSecondaryAxis } from './chart-axis-render';
-import { appendBarLabels, appendLineSeries } from './chart-combo-series';
+import {
+	appendComboBarClusterLabels,
+	computeComboBarCluster,
+	groupComboSeriesIndices,
+} from './chart-combo-classify';
+import { appendLineSeries } from './chart-combo-series';
 import { computeDataTablePrimitives } from './chart-data-table-render';
 import { computeErrorBarPrimitives } from './chart-error-bars';
 import { shouldRenderMajorGridlines } from './chart-gridlines-toggle';
@@ -29,7 +34,6 @@ import {
 	buildGridlinesAndLabels,
 	buildLegend,
 	buildZeroLine,
-	computeBarRects,
 	computePlotLayout,
 } from './chart-view-model';
 
@@ -126,11 +130,15 @@ export function buildComboViewModel(
 	);
 	const sourceIndices = horizontalAxis.sourceIndices;
 	const legendPos = chartData.style?.legendPosition ?? 'b';
-	// The combo layout below is fixed: series 0 is the bar, every other series
-	// is a line (see `barSeries`/`lineSeries` just below), so the legend swatch
-	// follows the same split (bar -> rect, line -> line+marker sample).
+	// Which lane (bar rect vs. line+marker) each series renders in: its own
+	// `seriesChartType` tag when the combo's source XML carries one, or the
+	// legacy "series 0 is the bar, everything else is a line" guess when it
+	// doesn't (see chart-combo-classify.ts). The legend swatch follows the
+	// same split.
+	const { barIndices, lineIndices } = groupComboSeriesIndices(chartData.series);
+	const barIndexSet = new Set(barIndices);
 	const comboSwatchKinds: LegendSwatchKind[] = chartData.series.map((_s, i) =>
-		i === 0 ? 'rect' : 'line',
+		barIndexSet.has(i) ? 'rect' : 'line',
 	);
 	const { legend, legendX, legendY, legendAnchor } = buildLegend(
 		chartData.series,
@@ -150,47 +158,35 @@ export function buildComboViewModel(
 		...computeHelperLinePrimitives(chartData, layout, primaryRange, catCount, helperOpts),
 	);
 
-	const barSeries = chartData.series.slice(0, 1);
-	if (barSeries[0]) {
-		const barRange = rangeForSeries(0, primaryRange, secondaryRange, secondaryIndexes);
-		const displayBarSeries = [
-			{ ...barSeries[0], values: sourceIndices.map((index) => barSeries[0].values[index] ?? 0) },
-		];
-		primitives.push(
-			...computeBarRects(displayBarSeries, catCount, layout, barRange, chartData.colorPalette).map(
-				(rect, displayIndex) => ({
-					kind: 'rect' as const,
-					x: horizontalAxis.xPositions
-						? (horizontalAxis.xPositions[displayIndex] ?? rect.x) - rect.w / 2
-						: rect.x,
-					y: rect.y,
-					w: rect.w,
-					h: rect.h,
-					fill: rect.fill,
-					rx: 1,
-					part: {
-						role: 'dataPoint' as const,
-						seriesIndex: 0,
-						pointIndex: sourceIndices[displayIndex] ?? displayIndex,
-					},
-				}),
-			),
-		);
-		appendBarLabels(
-			barSeries[0],
+	primitives.push(
+		...computeComboBarCluster(
+			barIndices,
 			chartData,
-			layout,
 			catCount,
-			barRange,
+			layout,
+			primaryRange,
+			secondaryRange,
+			secondaryIndexes,
 			sourceIndices,
-			dataLabels,
 			horizontalAxis.xPositions,
-		);
-	}
+		),
+	);
+	appendComboBarClusterLabels(
+		barIndices,
+		chartData,
+		layout,
+		catCount,
+		primaryRange,
+		secondaryRange,
+		secondaryIndexes,
+		sourceIndices,
+		dataLabels,
+		horizontalAxis.xPositions,
+	);
 
 	const barGroupWidth = layout.plotWidth / catCount;
-	chartData.series.slice(1).forEach((series, offset) => {
-		const seriesIndex = offset + 1;
+	for (const seriesIndex of lineIndices) {
+		const series = chartData.series[seriesIndex];
 		const range = rangeForSeries(seriesIndex, primaryRange, secondaryRange, secondaryIndexes);
 		appendLineSeries(
 			series,
@@ -204,7 +200,7 @@ export function buildComboViewModel(
 			dataLabels,
 			horizontalAxis.xPositions,
 		);
-	});
+	}
 	primitives.push(...horizontalAxis.tickMarks);
 	const displayChartData = horizontalAxis.displayChartData;
 	// Overlay depth. Error bars were already here; trendlines, axis titles and
@@ -216,7 +212,9 @@ export function buildComboViewModel(
 			seriesRanges: chartData.series.map((_series, index) =>
 				rangeForSeries(index, primaryRange, secondaryRange, secondaryIndexes),
 			),
-			seriesModes: chartData.series.map((_series, index) => (index === 0 ? 'bar' : 'line')),
+			seriesModes: chartData.series.map((_series, index) =>
+				barIndexSet.has(index) ? 'bar' : 'line',
+			),
 		}),
 		...computeTrendlinePrimitives(
 			displayChartData,

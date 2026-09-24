@@ -216,8 +216,18 @@ export function applyPattern(value: number, pattern: Pattern, forcePositive: boo
 
 	const [rawIntPart, fracPart] = body.split('.');
 	let intPart = rawIntPart;
-	const negative = intPart.startsWith('-');
-	if (negative) {
+	// A magnitude that rounds to zero at this pattern's precision (a genuinely
+	// tiny negative value, e.g. a -1e-13 floating-point residue from axis-tick
+	// or "value minus zero-line" arithmetic) still prints "-0" / "-0.00" from
+	// `toFixed`, because the STRING carries the sign even though the rounded
+	// NUMBER is zero. `Number(body)` folds "-0" back to `-0`, and `-0 !== 0` is
+	// `false` in JS, so this only drops the sign when the printed magnitude is
+	// actually zero (a real negative value's rounded body is never zero).
+	// COM-verified: PowerPoint never shows a bare "-" in front of an
+	// axis/data-label zero this way.
+	const hasMinusChar = intPart.startsWith('-');
+	const negative = hasMinusChar && Number(body) !== 0;
+	if (hasMinusChar) {
 		intPart = intPart.slice(1);
 	}
 	if (intPart.length < pattern.intDigits) {

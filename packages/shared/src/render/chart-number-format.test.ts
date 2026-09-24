@@ -64,6 +64,19 @@ describe('formatChartNumber', () => {
 		expect(formatChartNumber(1234, '[Blue]#,##0')).toBe('1,234');
 	});
 
+	it('never prints a stray "-" for a tiny negative value that rounds to zero', () => {
+		// A secondary value axis whose ticks are generated from floating-point
+		// min/max/step arithmetic can land a "zero" tick a hair below zero
+		// (e.g. -1e-13). `toFixed` on that residue prints "-0", which PowerPoint
+		// never shows: this regression covers both a whole-number axis format
+		// and one with decimals.
+		expect(formatChartNumber(-1e-13, '#,##0')).toBe('0');
+		expect(formatChartNumber(-1e-13, '0.00')).toBe('0.00');
+		expect(formatChartNumber(-0, '0')).toBe('0');
+		// A real (non-negligible) negative value must still show its sign.
+		expect(formatChartNumber(-0.006, '0.00')).toBe('-0.01');
+	});
+
 	it('defers to the caller for General and unusable codes', () => {
 		expect(formatChartNumber(1.5, 'General')).toBeUndefined();
 		expect(formatChartNumber(1.5, '')).toBeUndefined();
