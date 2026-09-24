@@ -7,6 +7,43 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.4.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Element context menu format commands + Paste Special (by @ChristopherVR) ([ae48518](https://github.com/ChristopherVR/pptx-viewer/commit/ae485188df20eb0c309a6a4f2ee8b4302d7e7024))
+- **shared,react,vue,angular,svelte,vanilla:** Render online video links as an iframe embed (by @ChristopherVR) ([6ba33e2](https://github.com/ChristopherVR/pptx-viewer/commit/6ba33e26119e20393984625c0e7a7958da5ec466))
+- **shared,react,vue,angular,svelte,vanilla:** Apply Zoom returnToParent/transitionDur during slide-show playback (by @ChristopherVR) ([673afa5](https://github.com/ChristopherVR/pptx-viewer/commit/673afa5c7b62ff61378588b87ddbc1c7b433067e))
+- **core,shared,react,vue,angular,svelte,vanilla:** P15/p14 transition direction, pattern and Through Black options (by @ChristopherVR) ([8b5ec7e](https://github.com/ChristopherVR/pptx-viewer/commit/8b5ec7ec976ad2779bec48d92a7177ad6fe92d38))
+
+### Bug Fixes
+
+- **core:** Preserve blipFill and exact EMU on shape-with-image-fill save (by @ChristopherVR) ([8cd7a59](https://github.com/ChristopherVR/pptx-viewer/commit/8cd7a59e992e9ca6d4d6eb75756ff50294f346d8))
+- **core:** Parse and re-emit ppaction://media hlinkClick on media pics (by @ChristopherVR) ([ea64525](https://github.com/ChristopherVR/pptx-viewer/commit/ea64525bfbac444c92337159082ccffe06181ce4))
+- **core:** Stop merging authored runs and losing rPr/hlinkClick data (by @ChristopherVR) ([aad7ac3](https://github.com/ChristopherVR/pptx-viewer/commit/aad7ac3d5a31bd0ffbf8718bb5f7db02d09895b9))
+- **core:** Pass untouched chart parts through unchanged on save (by @ChristopherVR) ([3094513](https://github.com/ChristopherVR/pptx-viewer/commit/3094513eec2ab008fcce78c6ac041fcd815169c1))
+- **core:** Stop inventing a bare shape's p:txBody; keep bullet buFont hints (by @ChristopherVR) ([1773570](https://github.com/ChristopherVR/pptx-viewer/commit/1773570a5081cb478c4e38c7f735a1566934b4bf))
+- **core:** Stop fabricating docProps identity, keep comment authors (by @ChristopherVR) ([47a60d8](https://github.com/ChristopherVR/pptx-viewer/commit/47a60d80ea0e3f14854b609abfaf466abb05e159))
+- **shared,react:** Correct Box/Circle/Diamond/Plus entrance "In" mask reveal (by @ChristopherVR) ([cf6ddcf](https://github.com/ChristopherVR/pptx-viewer/commit/cf6ddcf8876cfed3743b6de5a3fb12695aeb5f10))
+- **angular,svelte:** Fix two more hand-duplicated trigger label copies found via afterDelay rollout (by @ChristopherVR) ([4bbadd2](https://github.com/ChristopherVR/pptx-viewer/commit/4bbadd2b6814195208d934ea61e95847d8af9b14))
+- **react,vue,angular,svelte,vanilla,shared:** Stop OLE actions nesting a <button> inside slide thumbnails (by @ChristopherVR) ([82da5a7](https://github.com/ChristopherVR/pptx-viewer/commit/82da5a73896a8498318882051078d65d38e5cb41))
+
+### Reverts
+
+- **core:** Keep commentAuthors.xml deletion; it was correct behavior (by @ChristopherVR) ([93e4f73](https://github.com/ChristopherVR/pptx-viewer/commit/93e4f73d74ab6247acbc2df9aa2cef6ca9a4ce4d))
+
+### Refactor
+
+- **shared,react,angular,svelte,vue:** Consolidate trigger options into shared, add afterDelay parity (by @ChristopherVR) ([819582f](https://github.com/ChristopherVR/pptx-viewer/commit/819582f5713c050c7e646385f17c40f9d8a41027))
+
+### Documentation
+
+- **shared:** Record an inconclusive bounceEnd COM ground-truth attempt (by @ChristopherVR) ([6381b47](https://github.com/ChristopherVR/pptx-viewer/commit/6381b47521f45027cee9eb5c7de48036167bc90b))
+
+### Testing
+
+- **core,shared:** Lock the COM-verified SVG srcRect stretch rule (by @ChristopherVR) ([f9029d4](https://github.com/ChristopherVR/pptx-viewer/commit/f9029d4dee1b89febc468e2ab3f568ff99f4f603))
+
 ## [4.3.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.3.0) - 2026-09-24
 
 ### Features

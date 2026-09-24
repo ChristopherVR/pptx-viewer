@@ -7,6 +7,25 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.26.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.26.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Element context menu format commands + Paste Special (by @ChristopherVR) ([ae48518](https://github.com/ChristopherVR/pptx-viewer/commit/ae485188df20eb0c309a6a4f2ee8b4302d7e7024))
+- **shared,react,vue,angular,svelte,vanilla:** Render online video links as an iframe embed (by @ChristopherVR) ([6ba33e2](https://github.com/ChristopherVR/pptx-viewer/commit/6ba33e26119e20393984625c0e7a7958da5ec466))
+- **shared,react,vue,angular,svelte,vanilla:** Apply Zoom returnToParent/transitionDur during slide-show playback (by @ChristopherVR) ([673afa5](https://github.com/ChristopherVR/pptx-viewer/commit/673afa5c7b62ff61378588b87ddbc1c7b433067e))
+- **core,shared,react,vue,angular,svelte,vanilla:** P15/p14 transition direction, pattern and Through Black options (by @ChristopherVR) ([8b5ec7e](https://github.com/ChristopherVR/pptx-viewer/commit/8b5ec7ec976ad2779bec48d92a7177ad6fe92d38))
+
+### Bug Fixes
+
+- **shared,react:** Correct Box/Circle/Diamond/Plus entrance "In" mask reveal (by @ChristopherVR) ([cf6ddcf](https://github.com/ChristopherVR/pptx-viewer/commit/cf6ddcf8876cfed3743b6de5a3fb12695aeb5f10))
+- **react,vue,angular,svelte,vanilla,shared:** Stop OLE actions nesting a <button> inside slide thumbnails (by @ChristopherVR) ([82da5a7](https://github.com/ChristopherVR/pptx-viewer/commit/82da5a73896a8498318882051078d65d38e5cb41))
+- **angular,react,locales:** Unblock the build after the transition and paste-special merges (by @ChristopherVR) ([f08cd7c](https://github.com/ChristopherVR/pptx-viewer/commit/f08cd7c2a4c2eea56f46557b38c9e484061a43bb))
+
+### Refactor
+
+- **shared,react,angular,svelte,vue:** Consolidate trigger options into shared, add afterDelay parity (by @ChristopherVR) ([819582f](https://github.com/ChristopherVR/pptx-viewer/commit/819582f5713c050c7e646385f17c40f9d8a41027))
+
 ## [2.25.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.25.0) - 2026-09-24
 
 ### Features
