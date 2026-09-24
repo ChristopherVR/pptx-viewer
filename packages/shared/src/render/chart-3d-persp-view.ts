@@ -129,9 +129,8 @@ export function perspUnitBounds(
 
 /**
  * Scale and place a camera so the projection of `points` (default: the box
- * corners) fits inside `rect` (chart px) as large as it can: centred
- * horizontally and sitting on the rect's bottom (a box too wide for the rect
- * keeps its floor in place).
+ * corners) fits inside `rect` (chart px) as large as it can, centred in it
+ * (`gt/chart-11`, a box too wide for its rect, sits midway down it).
  */
 export function fitPerspView(
 	camera: PerspCamera,
@@ -147,7 +146,7 @@ export function fitPerspView(
 		...camera,
 		focal,
 		cx: (rect.left + rect.right) / 2 - (focal * (b.minX + b.maxX)) / 2,
-		cy: rect.bottom - focal * b.maxY,
+		cy: (rect.top + rect.bottom) / 2 - (focal * (b.minY + b.maxY)) / 2,
 	};
 }
 

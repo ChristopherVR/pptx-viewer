@@ -49,7 +49,7 @@ describe('perspective chart view', () => {
 		expect(backLeft.x).toBeGreaterThan(frontLeft.x);
 	});
 
-	it('fills the rect in its limiting dimension and sits on its bottom', () => {
+	it('fills the rect in its limiting dimension, centred in it', () => {
 		const rect = { left: 100, top: 90, right: 850, bottom: 440 };
 		const view = fitPerspView(camera, rect);
 		const pts = [0, 1].flatMap((i) =>
@@ -61,7 +61,7 @@ describe('perspective chart view', () => {
 		const maxX = Math.max(...pts.map((p) => p.x));
 		const minY = Math.min(...pts.map((p) => p.y));
 		const maxY = Math.max(...pts.map((p) => p.y));
-		expect(maxY).toBeCloseTo(rect.bottom, 6);
+		expect(minY - rect.top).toBeCloseTo(rect.bottom - maxY, 6);
 		expect(minX - rect.left).toBeCloseTo(rect.right - maxX, 6);
 		const fillsW = Math.abs(maxX - minX - (rect.right - rect.left)) < 1e-6;
 		const fillsH = Math.abs(maxY - minY - (rect.bottom - rect.top)) < 1e-6;

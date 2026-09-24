@@ -33,7 +33,7 @@ function layoutOf(el: PptxElement) {
 }
 
 describe('computePerspChartLayout', () => {
-	it('matches PowerPoint on gt/chart-10 (3-D Line) within 12pt', async () => {
+	it('matches PowerPoint on gt/chart-10 (3-D Line) within 7pt', async () => {
 		const el = await deckChart(10);
 		const { vm, layout } = layoutOf(el);
 		const toPt = (p: { x: number; y: number }) => ({
@@ -43,8 +43,8 @@ describe('computePerspChartLayout', () => {
 		const { w, h, d } = layout.view.box;
 		const check = (p: readonly [number, number, number], x: number, y: number) => {
 			const at = toPt(perspToScreen(layout.view, p));
-			expect(Math.abs(at.x - x)).toBeLessThan(12);
-			expect(Math.abs(at.y - y)).toBeLessThan(12);
+			expect(Math.abs(at.x - x)).toBeLessThan(7);
+			expect(Math.abs(at.y - y)).toBeLessThan(7);
 		};
 		check([0, 0, 0], 139, 361.5);
 		check([0, h, 0], 125, 147);
@@ -53,6 +53,39 @@ describe('computePerspChartLayout', () => {
 		check([w, 0, 0], 745, 438.5);
 		expect(layout.range).toStrictEqual({ min: 0, max: 5, majorUnit: 0.5 });
 		expect(layout.rows).toBe(3);
+	});
+
+	it('matches PowerPoint on gt/chart-11 (2-row area, width-limited) and 12 (1 row) within 7pt', async () => {
+		const cases = [
+			[
+				11,
+				[
+					[0, 0, 0, 117, 332.5],
+					[0, 1, 1, 239, 106],
+					[1, 1, 1, 835, 140],
+					[1, 0, 0, 791, 414],
+				],
+			],
+			[
+				12,
+				[
+					[0, 0, 0, 132, 353],
+					[0, 1, 1, 191, 88],
+					[1, 1, 1, 843, 122.5],
+					[1, 0, 0, 809, 434],
+				],
+			],
+		] as const;
+		for (const [slide, points] of cases) {
+			const el = await deckChart(slide);
+			const { vm, layout } = layoutOf(el);
+			const { w, h, d } = layout.view.box;
+			for (const [i, j, k, x, y] of points) {
+				const s = perspToScreen(layout.view, [i * w, j * h, k * d]);
+				expect(Math.abs((el.x + (s.x * el.width) / vm.svgWidth) * 0.75 - x)).toBeLessThan(7);
+				expect(Math.abs((el.y + (s.y * el.height) / vm.svgHeight) * 0.75 - y)).toBeLessThan(7);
+			}
+		}
 	});
 
 	it('puts area points on the walls (midCat) and each standard series on its own row', async () => {

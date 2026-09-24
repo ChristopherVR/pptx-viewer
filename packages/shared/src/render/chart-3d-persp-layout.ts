@@ -6,7 +6,7 @@
  *
  * Calibrated against `gt/chart-10..13,16`:
  *
- * - The box is 1 unit wide (categories), `BOX_HEIGHT` tall and one category
+ * - The box is 1 unit wide (categories), `boxHeight` tall and one category
  *   slot deep per depth row: a mark (area slab, line ribbon) is
  *   `slot / (1 + gapWidth)` deep and each row `mark * (1 + gapDepth)`, which
  *   with the 150/150 defaults is exactly one slot (fitted: 0.94-1.04).
@@ -35,15 +35,26 @@ export type { PerspLabel } from './chart-3d-persp-labels';
 
 /** Points to chart px (96 dpi). */
 const PT = 4 / 3;
-/** Box height per unit of width (fitted 0.36 on three of four exports). */
-const BOX_HEIGHT = 0.36;
+/** Box height of a one-row box, per unit of width (fitted 0.37 on `gt/chart-12,13`). */
+const SINGLE_ROW_HEIGHT = 0.371;
+/**
+ * A multi-row box's height per unit of width plus depth: fitted 0.208 on
+ * `gt/chart-10,11,16` (heights 0.357, 0.289 and 0.361 for depths 0.71, 0.39
+ * and 0.71), so a deeper box stands taller.
+ */
+const MULTI_ROW_HEIGHT_PER_EXTENT = 0.208;
 const RECT_LEFT = 48 * PT;
-const RECT_RIGHT = 60 * PT;
+/** Right margin: room for the depth-row labels when there are any (`gt/chart-10,11` vs `12`). */
+const RECT_RIGHT_WITH_SERIES = 60 * PT;
+const RECT_RIGHT_NO_SERIES = 50 * PT;
 const RECT_TOP_WITH_TITLE = 48 * PT;
 const RECT_TOP_NO_TITLE = 14 * PT;
 const RECT_BOTTOM_WITH_LEGEND = 62 * PT;
 const RECT_BOTTOM_NO_LEGEND = 31 * PT;
 const DEFAULT_GAP = 150;
+/** Fitted box depth per nominal depth: 0.94-0.99 for multi-row boxes (`gt/chart-10,11,16`), 1.04 for one row (`gt/chart-12`). */
+const DEPTH_FIT_MULTI_ROW = 0.96;
+const DEPTH_FIT_SINGLE_ROW = 1.04;
 
 export type PerspKind = 'line' | 'area' | 'surface';
 export type PerspGrouping = 'standard' | 'stacked' | 'percentStacked';
@@ -158,9 +169,11 @@ export function computePerspChartLayout(
 	const rows = kind === 'surface' ? nSer : grouping === 'standard' ? nSer : 1;
 	const markDepth = slot / (1 + gapWidth);
 	const rowDepth = markDepth * (1 + gapDepth);
-	const depthScale = (view3D?.depthPercent ?? 100) / 100;
+	const depthScale =
+		((view3D?.depthPercent ?? 100) / 100) * (rows > 1 ? DEPTH_FIT_MULTI_ROW : DEPTH_FIT_SINGLE_ROW);
 	const d = rows * rowDepth * depthScale;
-	const h = BOX_HEIGHT * ((view3D?.hPercent ?? 100) / 100);
+	const baseHeight = rows > 1 ? MULTI_ROW_HEIGHT_PER_EXTENT * (1 + d) : SINGLE_ROW_HEIGHT;
+	const h = baseHeight * ((view3D?.hPercent ?? 100) / 100);
 
 	const camera = perspCameraFor(
 		{ w: 1, h, d },
@@ -172,7 +185,7 @@ export function computePerspChartLayout(
 		chartData.style?.hasLegend !== false && (chartData.style?.legendPosition ?? 'b') === 'b';
 	const view = fitPerspView(camera, {
 		left: RECT_LEFT,
-		right: vm.svgWidth - RECT_RIGHT,
+		right: vm.svgWidth - (rows > 1 ? RECT_RIGHT_WITH_SERIES : RECT_RIGHT_NO_SERIES),
 		top: vm.title ? RECT_TOP_WITH_TITLE : RECT_TOP_NO_TITLE,
 		bottom: vm.svgHeight - (hasLegend ? RECT_BOTTOM_WITH_LEGEND : RECT_BOTTOM_NO_LEGEND),
 	});
