@@ -191,6 +191,18 @@ describe('getImageAlphaFilter', () => {
 		expect(getImageAlphaFilter(image({ brightness: 10 }))).toBeUndefined();
 	});
 
+	it("renders PowerPoint's Washout preset (a:lum bright=70 contrast=-70) as pale, not blank white", () => {
+		// COM-measured ground truth (images-com.pptx slide 1, ColorType=4
+		// msoPictureWatermark): the previous formula (`b + (1 - c) / 2`) added
+		// the full brightness on top of the contrast-pivot term, pushing every
+		// channel's output above 1 for the whole image (1.05..1.35), which
+		// SVG's feComponentTransfer clamps to solid white. Fit against the
+		// rendered PNG (R/G/B agree to within ~0.002): slope 0.3, intercept
+		// 0.803, i.e. output = 0.3x + 0.805 (rounded here to 3dp).
+		const f = getImageAlphaFilter(image({ lum: { bright: 70, contrast: -70 } }));
+		expect(f?.filterMarkup).toContain('slope="0.3" intercept="0.805"');
+	});
+
 	it('builds an feFuncA multiply primitive for a:alphaMod (distinct from alphaModFix)', () => {
 		const f = getImageAlphaFilter(image({ alphaMod: { amt: 40 } }));
 		expect(f?.filterMarkup).toContain('<feFuncA type="linear" slope="0.4" intercept="0"/>');
