@@ -12,13 +12,12 @@
  * Split out of `PptxHandlerRuntimeSmartArtParsing.ts` (already at the repo's
  * per-file line budget) rather than growing that file further.
  *
- * The per-LABEL `scene3d`/`sp3d` (and therefore `dgm:prSet/@coherent3DOff`,
- * which only matters when a coherent-3D variation is actually applied) are
- * deliberately NOT resolved here: PowerPoint bakes each label's fully
- * resolved `sp3d` onto every cached shape's own `dsp:spPr/a:sp3d`
- * (`PptxSmartArtDrawingShape.shape3d`), so re-deriving it from the label ref
- * would be redundant. `coherent3DOff` itself is still parsed and preserved
- * per-node (`PptxSmartArtNode.coherent3DOff`, resolved in
+ * The per-LABEL `scene3d`/`sp3d`/`txPr` 3D is parsed onto each label too
+ * (`smartart-style-label-3d.ts`). PowerPoint bakes it onto every cached
+ * shape, so an intact diagram reads it from there; a structural edit that
+ * regenerates the shapes re-applies it from the label instead
+ * (`applySmartArtQuickStyle3d`). `coherent3DOff` itself is parsed and
+ * preserved per-node (`PptxSmartArtNode.coherent3DOff`, resolved in
  * `smartart-node-style-role.ts`).
  *
  * The WHOLE-DIAGRAM `dgm:styleDef/dgm:scene3d` (the top-level scene3d, not a
@@ -46,6 +45,7 @@ import {
 import type { SmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
 import { resolveSmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
 import { parsePptx3DScene } from '../builders/shape-style-3d-helpers';
+import { parseSmartArtStyleLabel3d } from './smartart-style-label-3d';
 
 type LocalName = (key: string) => string;
 
@@ -56,6 +56,8 @@ export interface SmartArtStyleLabelThemeDeps {
 	resolveThemeEffectRef: (refNode: XmlObject, style: ShapeStyle) => void;
 	/** `a:fontRef/@idx` ("major"/"minor") -> the theme's actual typeface, or `undefined`. */
 	resolveThemeTypeface: (typeface: string | undefined) => string | undefined;
+	/** Theme-aware colour resolver for a label's `a:contourClr` / `a:extrusionClr`. */
+	parseColor?: (node: XmlObject | undefined) => string | undefined;
 }
 
 const RESOLVED_FILL_MODES = new Set(['solid', 'gradient', 'pattern', 'none', 'theme']);
@@ -125,10 +127,16 @@ function enrichSmartArtQuickStyleLabels(
 			rawByName.set(name, raw);
 		}
 	}
+	const parseColor = deps.parseColor ?? (() => undefined);
 	const enriched = labels.map((label) => {
 		const raw = rawByName.get(label.name);
 		const resolvedStyle = raw ? resolveLabelStyle(raw, localName, deps) : undefined;
-		return resolvedStyle ? { ...label, resolvedStyle } : label;
+		const label3d = raw ? parseSmartArtStyleLabel3d(raw, localName, parseColor) : undefined;
+		return {
+			...label,
+			...(resolvedStyle ? { resolvedStyle } : {}),
+			...label3d,
+		};
 	});
 	return { effectIntensity, labels: enriched };
 }

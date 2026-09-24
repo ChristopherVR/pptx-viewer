@@ -142,6 +142,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				resolveThemeLineRef: this.resolveThemeLineRef.bind(this),
 				resolveThemeEffectRef: this.resolveThemeEffectRef.bind(this),
 				resolveThemeTypeface: this.resolveThemeTypeface.bind(this),
+				parseColor: (node) => this.parseColor(node),
 			});
 		} catch {
 			return undefined;

@@ -13,7 +13,7 @@ import {
 	applySmartArtLayoutDefinition,
 	containsConvertibleStrictNamespaceAttribute,
 	convertXmlToStrict,
-	decomposeSmartArt,
+	regenerateSmartArtDrawingShapes,
 } from '../../utils';
 import { writeCustomerDataScopes } from '../../utils/customer-data-package';
 import type { CustomerDataScope } from '../../utils/customer-data-package';
@@ -30,10 +30,7 @@ import {
 import { applyBackgroundColorToCSld } from './master-save-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveDataSerialization';
 import { applySmartArtColorTransform } from './smartart-colors-builder';
-import {
-	buildFabricatedDrawingXml,
-	smartArtElementsToDrawingShapes,
-} from './smartart-fabrication-drawing';
+import { buildFabricatedDrawingXml } from './smartart-fabrication-drawing';
 import { synthesizeNewSmartArtStructuralPoints } from './smartart-node-synthesis';
 import { applySmartArtQuickStyle } from './smartart-quick-style-builder';
 import { applySmartArtChrome } from './smartart-save-chrome';
@@ -209,14 +206,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const drawingTarget = relationships?.get(smartArtData.drawingRelId);
 					const drawingShapes = smartArtData.drawingShapes?.length
 						? smartArtData.drawingShapes
-						: smartArtElementsToDrawingShapes(
-								decomposeSmartArt(smartArtData, {
-									x: 0,
-									y: 0,
-									width: Math.max(element.width, 1),
-									height: Math.max(element.height, 1),
-								}),
-							);
+						: regenerateSmartArtDrawingShapes(smartArtData, element.width, element.height);
 					const mergedPoints =
 						ptKey && ptList ? (this.ensureArray(ptList[ptKey]) as XmlObject[]) : [];
 					const presentationIds = presentationIdsFromPoints(mergedPoints, (key) =>

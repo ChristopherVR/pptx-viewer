@@ -607,7 +607,12 @@ export {
 	type AnimationPresetInfo,
 } from './animation-preset-catalog';
 
-export { relayoutSmartArt } from './smartart-relayout';
+export { regenerateSmartArtDrawingShapes, relayoutSmartArt } from './smartart-relayout';
+export {
+	applySmartArtQuickStyle3d,
+	isDefaultSmartArtLabelScene,
+	smartArtQuickStyleHas3d,
+} from './smartart-quick-style-3d';
 
 export { resolveLayoutDisplayName, type LayoutDisplayNameInput } from './layout-display-name';
 

@@ -7,7 +7,7 @@
  * overrides, and return the `p:graphicFrame` envelope with `dgm:relIds`.
  */
 import type { XmlObject, SmartArtPptxElement } from '../../types';
-import { SMART_ART_DEFINITION_PARTS, decomposeSmartArt } from '../../utils';
+import { SMART_ART_DEFINITION_PARTS, regenerateSmartArtDrawingShapes } from '../../utils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveElementEmbedding';
 import type { SaveSlideContext } from './PptxHandlerRuntimeSaveElementEmbedding';
 import {
@@ -19,7 +19,6 @@ import {
 	DIAGRAM_DRAWING_CONTENT_TYPE,
 	DIAGRAM_DRAWING_REL_TYPE,
 	buildFabricatedDrawingXml,
-	smartArtElementsToDrawingShapes,
 } from './smartart-fabrication-drawing';
 import {
 	buildFabricatedLayoutDefXml,
@@ -118,14 +117,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const drawingShapes =
 			data.drawingShapes && data.drawingShapes.length > 0
 				? data.drawingShapes
-				: smartArtElementsToDrawingShapes(
-						decomposeSmartArt(data, {
-							x: 0,
-							y: 0,
-							width: Math.max(el.width, 1),
-							height: Math.max(el.height, 1),
-						}),
-					);
+				: regenerateSmartArtDrawingShapes(data, el.width, el.height);
 		const drawingXml = buildFabricatedDrawingXml(
 			drawingShapes,
 			data.nodes,

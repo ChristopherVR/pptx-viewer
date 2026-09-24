@@ -1,6 +1,6 @@
 /** Editable metadata shared by DiagramML quick-style and color definitions. */
 
-import type { Pptx3DScene } from './three-d';
+import type { Pptx3DScene, Pptx3DShape, Text3DStyle } from './three-d';
 
 export interface PptxSmartArtDefinitionText {
 	value: string;
@@ -45,6 +45,16 @@ export interface PptxSmartArtQuickStyleLabel {
 	name: string;
 	/** Theme-resolved `dgm:style` refs for this label's role, when available. */
 	resolvedStyle?: PptxSmartArtResolvedStyleRef;
+	/**
+	 * The label's own `dgm:scene3d` (per-shape camera + light rig). PowerPoint
+	 * copies it onto a shape's cached `a:scene3d` unless it is the default
+	 * front camera with a `threePt` light (see `applySmartArtQuickStyle3d`).
+	 */
+	scene3d?: Pptx3DScene;
+	/** The label's own `dgm:sp3d` (bevel / extrusion / contour / material); absent when empty. */
+	shape3d?: Pptx3DShape;
+	/** The label's `dgm:txPr/a:sp3d` label-text extrusion (Bird's Eye Scene). */
+	text3d?: Text3DStyle;
 }
 
 /** CT_CTStyleLabel metadata from a color-transform definition. */
@@ -113,9 +123,10 @@ export interface PptxSmartArtQuickStyle extends PptxSmartArtDefinitionMetadata {
 	 * for the "Scene" quick styles (Brick, Flat, Metallic, Sunset, Bird's Eye
 	 * Scene). One camera renders the whole diagram; per-shape `a:scene3d` is
 	 * absent for those styles (see `PptxSmartArtDrawingShape.scene3d`). Each
-	 * `dgm:styleLbl` also carries its own per-label `dgm:scene3d`/`dgm:sp3d`,
-	 * but PowerPoint bakes those fully resolved onto each cached shape's own
-	 * `dsp:spPr/a:sp3d`, so only the diagram-level scene is exposed here.
+	 * `dgm:styleLbl` also carries its own per-label `dgm:scene3d`/`dgm:sp3d`
+	 * ({@link PptxSmartArtQuickStyleLabel.scene3d} / `shape3d` / `text3d`),
+	 * which PowerPoint bakes onto each cached shape; they are re-applied when a
+	 * structural edit regenerates the shapes.
 	 */
 	scene3d?: Pptx3DScene;
 }
