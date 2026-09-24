@@ -353,7 +353,7 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 	},
 	{
 		presetId: 'entr.30',
-		label: 'Spinner',
+		label: 'Float In',
 		category: 'entrance',
 		defaultDurationMs: 1000,
 		hasDirection: true,
@@ -516,9 +516,7 @@ export const ENTRANCE_PRESETS: AnimationPresetInfo[] = [
 		// Verified via COM: `msoAnimEffectSpinner` serializes as presetID 49,
 		// matching write-mappings' existing `spinnerIn`; the catalog's
 		// previous "Pinwheel IV" label was internally inconsistent with that.
-		// Note entr.30 already carries its own (separately unverified)
-		// "Spinner" label in this catalog; that duplicate is a newly
-		// surfaced, out-of-scope issue this fix does not resolve.
+		// entr.30 is Float In (msoAnimEffectFloat saves presetID 30, COM-verified).
 		presetId: 'entr.49',
 		label: 'Spinner',
 		category: 'entrance',
@@ -957,7 +955,7 @@ export const EXIT_PRESETS: AnimationPresetInfo[] = [
 	},
 	{
 		presetId: 'exit.30',
-		label: 'Spinner',
+		label: 'Float Out',
 		category: 'exit',
 		defaultDurationMs: 1000,
 		hasDirection: true,
