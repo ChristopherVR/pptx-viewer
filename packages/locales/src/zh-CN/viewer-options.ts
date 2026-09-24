@@ -19,6 +19,7 @@ export const translations = {
 	'pptx.options.screenTipStyle.off': '不显示屏幕提示',
 	'pptx.options.general.personalize': '个性化您的查看器副本',
 	'pptx.options.general.userName': '用户名',
+	'pptx.options.lockedByHost': '此设置由你的组织管理',
 	'pptx.options.general.userInitials': '缩写',
 	'pptx.options.general.appearance': '查看器主题',
 	'pptx.options.general.fonts': '字体',

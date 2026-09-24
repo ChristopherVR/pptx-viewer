@@ -23,6 +23,7 @@ export const translations = {
 	'pptx.options.screenTipStyle.off': 'No mostrar información en pantalla',
 	'pptx.options.general.personalize': 'Personalizar la copia del visor',
 	'pptx.options.general.userName': 'Nombre de usuario',
+	'pptx.options.lockedByHost': 'Esta configuración la administra su organización',
 	'pptx.options.general.userInitials': 'Iniciales',
 	'pptx.options.general.appearance': 'Tema del visor',
 	'pptx.options.general.fonts': 'Fuentes',

@@ -1550,6 +1550,10 @@ export * from './toolbar-actions';
 // File > Options parity: schema, store, persistence, and behavior helpers
 // behind the PowerPoint-style Options dialog in every binding.
 export * from './options';
+// Host UI customisation: one framework-neutral model (ribbon, File > Options,
+// File tab, context menus, keyboard, panels, features, dialogs) plus the
+// per-viewer controller whose helpers every binding exposes imperatively.
+export * from './customization';
 
 // small helper extractions (wave 2)
 // OLE placeholder icon SVG-fragment primitives (rect/line/text builders +

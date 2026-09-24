@@ -3139,6 +3139,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.options.screenTipStyle.off': "Don't show ScreenTips",
 	'pptx.options.general.personalize': 'Personalize your copy of the viewer',
 	'pptx.options.general.userName': 'User name',
+	'pptx.options.lockedByHost': 'This setting is managed by your organization',
 	'pptx.options.general.userInitials': 'Initials',
 	'pptx.options.general.appearance': 'Viewer theme',
 	'pptx.options.general.fonts': 'Fonts',
