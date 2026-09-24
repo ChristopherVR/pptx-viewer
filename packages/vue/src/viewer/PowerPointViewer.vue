@@ -1127,6 +1127,52 @@ const mobileChrome = useMobileChrome({
 	addText: insertion.addText,
 });
 
+// -- Office-style ribbon UI state (hoisted above keyboard shortcuts) ---
+// Owns no dependency on anything below; hoisted here (out of its original
+// position just before the ribbon-wiring block) so `activeTool` exists in
+// time for the keyboard-shortcut registry's drawing-tool guard.
+const ribbonUi = useRibbonUiState();
+const {
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	inspectorOpen,
+	sidebarCollapsed,
+	notesExpanded,
+	showGrid,
+	showRulers,
+	showGuides,
+	spellCheckEnabled,
+	themeGalleryOpen,
+	themeEditorOpen,
+} = ribbonUi;
+
+// -- Ribbon-facing actions (hoisted above keyboard shortcuts) ----------
+// `ribbonUpdateTextStyle` is the same path Home > Text's align/font-size/
+// clear-formatting buttons use; the keyboard registry below reuses it
+// verbatim for the equivalent shortcuts instead of re-deriving the patch.
+const ribbonActions = useRibbonActions({
+	readInlineSnapshot: inlineEdit.readInlineSnapshot,
+	formatInlineSnapshot: inlineEdit.formatInlineSnapshot,
+	endInlineListSession: inlineEdit.endInlineListSession,
+	canEdit: () => canEditEffective.value,
+	presenting: presentation.presenting,
+	showMasterView: masterView.showMasterView,
+	tableSelection,
+	selectedElements,
+	selectedElementIds,
+	activeSlide,
+	activeSlideIndex,
+	slides,
+	pushHistory: history.pushHistory,
+	ops,
+});
+const { ribbonMode, ribbonUpdateTextStyle, ribbonMoveToEdge } = ribbonActions;
+
+watch(ribbonMode, (mode) => {
+	emit('mode-change', mode);
+});
+
 // -- Keyboard shortcuts ------------------------------------------------
 // A config-driven registry (mirrors React `useKeyboardShortcuts`) replaces the
 // old ad-hoc Ctrl+Z/Y/Delete handling. Find (Ctrl+F) and the shortcut-help
@@ -1159,28 +1205,23 @@ const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElem
 		onUngroup,
 		presentFromBeginning: presentation.presentFromBeginning,
 		startPresenting: presentation.startPresenting,
+		inlineEditingElementId: inlineEdit.inlineEditingElementId,
+		tableEditorIsEditing: () => tableSelection.value !== null,
+		activeTool: () => activeTool.value,
+		selectedElements,
+		selectElement: selection.selectElement,
+		ribbonUpdateTextStyle,
+		addSlide: () => slideOps.addSlide(),
+		openHyperlinkForSelection: hyperlink.openHyperlinkForSelection,
+		toggleFormatPainter,
+		applyFormatToTarget,
+		cancelFormatPainter,
 	});
 
 // -- Office-style ribbon wiring (RibbonToolbar <- React Toolbar.tsx) ----
 // The desktop chrome is the full Office ribbon. This block adapts the host's
 // existing state and handlers to the presentation-only `RibbonProps` contract.
-const ribbonUi = useRibbonUiState();
-// The subset the template and the local composables read directly; the whole
-// object still goes to `useViewerRibbonProps`.
-const {
-	activeTool,
-	drawingColor,
-	drawingWidth,
-	inspectorOpen,
-	sidebarCollapsed,
-	notesExpanded,
-	showGrid,
-	showRulers,
-	showGuides,
-	spellCheckEnabled,
-	themeGalleryOpen,
-	themeEditorOpen,
-} = ribbonUi;
+// `ribbonUi` itself is declared above, before the keyboard-shortcut registry.
 
 // The compat-toast stack's right inset when a right-docked panel (format/
 // inspector or AI chat) is open: the viewer root it is anchored to spans the
@@ -1403,27 +1444,9 @@ const aiBridge = useAiBridge({
 	pickedFocus: () => aiPanel.pickTargets.value,
 });
 
-const ribbonActions = useRibbonActions({
-	readInlineSnapshot: inlineEdit.readInlineSnapshot,
-	formatInlineSnapshot: inlineEdit.formatInlineSnapshot,
-	endInlineListSession: inlineEdit.endInlineListSession,
-	canEdit: () => canEditEffective.value,
-	presenting: presentation.presenting,
-	showMasterView: masterView.showMasterView,
-	tableSelection,
-	selectedElements,
-	selectedElementIds,
-	activeSlide,
-	activeSlideIndex,
-	slides,
-	pushHistory: history.pushHistory,
-	ops,
-});
-const { ribbonMode, ribbonUpdateTextStyle, ribbonMoveToEdge } = ribbonActions;
-
-watch(ribbonMode, (mode) => {
-	emit('mode-change', mode);
-});
+// `ribbonActions` (and the `ribbonMode` watcher) is declared above, before the
+// keyboard-shortcut registry, which needs `ribbonUpdateTextStyle` for the new
+// alignment/font-size/clear-formatting shortcuts.
 
 const ribbonProps = useViewerRibbonProps({
 	canEdit: () => canEditEffective.value,

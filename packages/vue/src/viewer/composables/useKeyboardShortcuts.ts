@@ -38,6 +38,16 @@ import {
 import { onMounted, onScopeDispose, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
+import type { MatchedShortcut, ShortcutActions } from './shortcut-actions';
+
+export {
+	groupShortcutCatalog,
+	SHORTCUT_CATALOG,
+	SHORTCUT_GROUP_LABEL_KEYS,
+} from './shortcut-catalog';
+export type { ShortcutCatalogGroup, ShortcutDefinition, ShortcutGroup } from './shortcut-catalog';
+export type { MatchedShortcut, ShortcutActionName, ShortcutActions } from './shortcut-actions';
+
 /* ------------------------------------------------------------------ */
 /*  Constants                                                         */
 /* ------------------------------------------------------------------ */
@@ -50,68 +60,6 @@ export { NUDGE_LARGE, NUDGE_SMALL };
 /* ------------------------------------------------------------------ */
 /*  Public types                                                      */
 /* ------------------------------------------------------------------ */
-
-/** Logical grouping for the help overlay. */
-export type ShortcutGroup = 'history' | 'clipboard' | 'editing' | 'navigation' | 'general';
-
-/** The set of action identifiers the registry can dispatch. */
-export type ShortcutActionName =
-	| 'undo'
-	| 'redo'
-	| 'copy'
-	| 'cut'
-	| 'paste'
-	| 'duplicate'
-	| 'delete'
-	| 'selectAll'
-	| 'group'
-	| 'ungroup'
-	| 'toggleShortcuts'
-	| 'nudge'
-	| 'prevSlide'
-	| 'nextSlide'
-	| 'escape'
-	| 'find';
-
-/**
- * Action callbacks the registry dispatches to. All are optional; a missing
- * callback simply means the corresponding shortcut is a no-op (but it is still
- * matched/suppressed, so the browser default is still prevented).
- */
-export interface ShortcutActions {
-	/** Undo the last edit (Ctrl/Cmd+Z). */
-	undo?: () => void;
-	/** Redo (Ctrl/Cmd+Shift+Z or Ctrl/Cmd+Y). */
-	redo?: () => void;
-	/** Copy the selection (Ctrl/Cmd+C). */
-	copy?: () => void;
-	/** Cut the selection (Ctrl/Cmd+X). */
-	cut?: () => void;
-	/** Paste (Ctrl/Cmd+V). */
-	paste?: () => void;
-	/** Duplicate the selection (Ctrl/Cmd+D). */
-	duplicate?: () => void;
-	/** Delete the selection (Delete / Backspace). */
-	delete?: () => void;
-	/** Select all elements on the active slide (Ctrl/Cmd+A). */
-	selectAll?: () => void;
-	/** Group the selection into one group element (Ctrl/Cmd+G). */
-	group?: () => void;
-	/** Ungroup the selected group (Ctrl/Cmd+Shift+G). */
-	ungroup?: () => void;
-	/** Show or hide the keyboard-shortcut reference ("?"). */
-	toggleShortcuts?: () => void;
-	/** Nudge the selection by (dx, dy) pixels (Arrow keys / Shift+Arrow). */
-	nudge?: (dx: number, dy: number) => void;
-	/** Navigate to the previous slide (ArrowLeft, no selection). */
-	prevSlide?: () => void;
-	/** Navigate to the next slide (ArrowRight, no selection). */
-	nextSlide?: () => void;
-	/** Escape: clear selection / close menus / cancel inline edit. */
-	escape?: () => void;
-	/** Open or close the find bar (Ctrl/Cmd+F). */
-	find?: () => void;
-}
 
 /**
  * Reactive guard flags + action callbacks. Flags accept a ref, getter, or plain
@@ -144,31 +92,6 @@ export interface UseKeyboardShortcutsOptions {
 	autoAttach?: boolean;
 }
 
-/** A single entry in the shortcut catalog (drives both dispatch and the help UI). */
-export interface ShortcutDefinition {
-	/** Stable identifier (also the action name where 1:1). */
-	id: string;
-	/**
-	 * Human-readable, platform-neutral key combo (e.g. `'Mod+Z'`, `'Mod+Shift+Z'`,
-	 * `'Delete'`, `'ArrowUp'`). `Mod` renders as ⌘ on macOS, Ctrl elsewhere.
-	 */
-	combo: string;
-	/** Logical group for the help overlay. */
-	group: ShortcutGroup;
-	/** i18n key for the help-panel description. */
-	descriptionKey: string;
-}
-
-/** Result of matching a keyboard event against the catalog. */
-export interface MatchedShortcut {
-	/** The dispatched action, or `null` when the event matches nothing. */
-	action: ShortcutActionName | null;
-	/** Nudge delta (only set when `action === 'nudge'`). */
-	dx?: number;
-	/** Nudge delta (only set when `action === 'nudge'`). */
-	dy?: number;
-}
-
 export interface UseKeyboardShortcutsResult {
 	/**
 	 * Pure matcher: resolve a keyboard event to an action (respecting the guard
@@ -183,146 +106,6 @@ export interface UseKeyboardShortcutsResult {
 	handleKeyDown: (event: KeyboardEvent) => void;
 	/** Manually attach the handler to `window`. Returns a detach function. */
 	attach: () => () => void;
-}
-
-/* ------------------------------------------------------------------ */
-/*  Shortcut catalog (for the help panel)                             */
-/* ------------------------------------------------------------------ */
-
-/**
- * The full catalog of shortcuts, grouped for the help overlay. The `combo`
- * strings use `Mod` as a platform-neutral Ctrl/Cmd token (rendered per-platform
- * by `ShortcutPanel.vue`). This is the single source of truth for the help UI.
- */
-export const SHORTCUT_CATALOG: readonly ShortcutDefinition[] = [
-	{ id: 'undo', combo: 'Mod+Z', group: 'history', descriptionKey: 'pptx.toolbar.undo' },
-	{ id: 'redo', combo: 'Mod+Shift+Z', group: 'history', descriptionKey: 'pptx.toolbar.redo' },
-	{
-		id: 'redo-y',
-		combo: 'Mod+Y',
-		group: 'history',
-		descriptionKey: 'pptx.shortcuts.action.redoAlternate',
-	},
-	{
-		id: 'copy',
-		combo: 'Mod+C',
-		group: 'clipboard',
-		descriptionKey: 'pptx.shortcuts.action.copyElement',
-	},
-	{
-		id: 'cut',
-		combo: 'Mod+X',
-		group: 'clipboard',
-		descriptionKey: 'pptx.shortcuts.action.cutElement',
-	},
-	{
-		id: 'paste',
-		combo: 'Mod+V',
-		group: 'clipboard',
-		descriptionKey: 'pptx.shortcuts.action.pasteElement',
-	},
-	{
-		id: 'duplicate',
-		combo: 'Mod+D',
-		group: 'editing',
-		descriptionKey: 'pptx.shortcuts.action.duplicateElement',
-	},
-	{
-		id: 'delete',
-		combo: 'Delete',
-		group: 'editing',
-		descriptionKey: 'pptx.shortcuts.action.deleteElement',
-	},
-	{
-		id: 'select-all',
-		combo: 'Mod+A',
-		group: 'editing',
-		descriptionKey: 'pptx.shortcuts.action.selectAll',
-	},
-	{ id: 'group', combo: 'Mod+G', group: 'editing', descriptionKey: 'pptx.ribbon.group' },
-	{
-		id: 'ungroup',
-		combo: 'Mod+Shift+G',
-		group: 'editing',
-		descriptionKey: 'pptx.ribbon.ungroup',
-	},
-	{
-		id: 'nudge',
-		combo: 'ArrowKeys',
-		group: 'editing',
-		descriptionKey: 'pptx.shortcuts.action.nudgeElement',
-	},
-	{
-		id: 'nudge-large',
-		combo: 'Shift+ArrowKeys',
-		group: 'editing',
-		descriptionKey: 'pptx.shortcuts.action.nudgeElementLarge',
-	},
-	{
-		id: 'prev-slide',
-		combo: 'ArrowLeft',
-		group: 'navigation',
-		descriptionKey: 'pptx.shortcuts.action.prevSlide',
-	},
-	{
-		id: 'next-slide',
-		combo: 'ArrowRight',
-		group: 'navigation',
-		descriptionKey: 'pptx.shortcuts.action.nextSlide',
-	},
-	{
-		id: 'escape',
-		combo: 'Escape',
-		group: 'general',
-		descriptionKey: 'pptx.shortcuts.action.clearSelection',
-	},
-	{ id: 'find', combo: 'Mod+F', group: 'general', descriptionKey: 'pptx.findReplace.title' },
-	{ id: 'shortcuts', combo: '?', group: 'general', descriptionKey: 'pptx.shortcuts.title' },
-	// F5 / Shift+F5 are matched by `mapSlideShowStartKey` (pptx-viewer-shared),
-	// not by this file's `mapEditorKey` catalog - see `dispatchSlideShowStartKey`
-	// in `useEditorKeyboard.ts`. Listed here only so the help panel shows them.
-	{
-		id: 'present-from-beginning',
-		combo: 'F5',
-		group: 'general',
-		descriptionKey: 'pptx.slideShow.fromBeginning',
-	},
-	{
-		id: 'present-from-current',
-		combo: 'Shift+F5',
-		group: 'general',
-		descriptionKey: 'pptx.slideShow.fromCurrent',
-	},
-] as const;
-
-/** i18n keys for each group's label, in display order. */
-export const SHORTCUT_GROUP_LABEL_KEYS: Record<ShortcutGroup, string> = {
-	history: 'pptx.editorToolbar.history',
-	clipboard: 'pptx.ribbon.clipboard',
-	editing: 'pptx.shortcuts.group.editing',
-	navigation: 'pptx.shortcuts.group.navigation',
-	general: 'pptx.settings.general',
-};
-
-/** The catalog grouped by `group`, in `SHORTCUT_GROUP_LABEL_KEYS` order. */
-export interface ShortcutCatalogGroup {
-	group: ShortcutGroup;
-	labelKey: string;
-	shortcuts: ShortcutDefinition[];
-}
-
-/** Group the catalog for display (preserves the label order). */
-export function groupShortcutCatalog(
-	catalog: readonly ShortcutDefinition[] = SHORTCUT_CATALOG,
-): ShortcutCatalogGroup[] {
-	const order = Object.keys(SHORTCUT_GROUP_LABEL_KEYS) as ShortcutGroup[];
-	return order
-		.map((group) => ({
-			group,
-			labelKey: SHORTCUT_GROUP_LABEL_KEYS[group],
-			shortcuts: catalog.filter((entry) => entry.group === group),
-		}))
-		.filter((bucket) => bucket.shortcuts.length > 0);
 }
 
 /* ------------------------------------------------------------------ */
@@ -403,60 +186,23 @@ export function useKeyboardShortcuts(
 		return resolveShortcutAction(event.key, mod, event.shiftKey, readGuard(event));
 	}
 
+	/**
+	 * Dispatch by name rather than a hand-enumerated `switch`: every
+	 * `ShortcutActionName` is also a `ShortcutActions` property of the same
+	 * name (nudge excepted, handled separately for its `dx`/`dy` payload), so a
+	 * new shared action reaches this dispatcher automatically instead of
+	 * needing a matching `case` added here.
+	 */
 	function dispatch(result: MatchedShortcut): void {
-		switch (result.action) {
-			case 'escape':
-				actions.escape?.();
-				break;
-			case 'delete':
-				actions.delete?.();
-				break;
-			case 'undo':
-				actions.undo?.();
-				break;
-			case 'redo':
-				actions.redo?.();
-				break;
-			case 'copy':
-				actions.copy?.();
-				break;
-			case 'cut':
-				actions.cut?.();
-				break;
-			case 'paste':
-				actions.paste?.();
-				break;
-			case 'duplicate':
-				actions.duplicate?.();
-				break;
-			case 'selectAll':
-				actions.selectAll?.();
-				break;
-			case 'group':
-				actions.group?.();
-				break;
-			case 'ungroup':
-				actions.ungroup?.();
-				break;
-			case 'find':
-				actions.find?.();
-				break;
-			case 'toggleShortcuts':
-				actions.toggleShortcuts?.();
-				break;
-			case 'nudge':
-				actions.nudge?.(result.dx ?? 0, result.dy ?? 0);
-				break;
-			case 'prevSlide':
-				actions.prevSlide?.();
-				break;
-			case 'nextSlide':
-				actions.nextSlide?.();
-				break;
-			case null:
-			default:
-				break;
+		if (result.action === null) {
+			return;
 		}
+		if (result.action === 'nudge') {
+			actions.nudge?.(result.dx ?? 0, result.dy ?? 0);
+			return;
+		}
+		const handler = actions[result.action];
+		handler?.();
 	}
 
 	function handleKeyDown(event: KeyboardEvent): void {
