@@ -85,7 +85,7 @@ function findOutOfScopePrefixes(xml: string): Set<string> {
 			continue;
 		}
 		const parent = stack.length > 0 ? stack[stack.length - 1] : undefined;
-		let scope = parent;
+		let scope: Set<string> = parent ?? new Set();
 		const attrs = m[3] ?? '';
 		const names: string[] = [m[2]];
 		ATTR_RE.lastIndex = 0;
