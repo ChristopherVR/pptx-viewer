@@ -132,14 +132,27 @@ export function renderParagraphRun(
 		| React.CSSProperties['fontKerning']
 		| undefined;
 
+	// #83: a theme per-script override (`scriptFallbackFont`) outranks a
+	// `fontFamily` that only reached this run via the paragraph/list-style/
+	// theme CASCADE (typically `+mn-lt`, which names only the LATIN member of
+	// the font scheme) - never a font the run authored ITSELF. Mirrors shared's
+	// `segmentStyleToCss`; this run re-resolves its own `fontFamily` instead of
+	// using shared's (see the file doc comment), so the same decision has to be
+	// repeated here or a Japanese-dominant run painted in the Latin theme font
+	// in React specifically, even after the shared fix landed.
+	const scriptFallbackWins = Boolean(
+		segmentStyle.scriptFallbackFont && segmentStyle.fontFamilyIsCascadeDefault,
+	);
 	const rawFontFamily = segmentStyle.fontFamily || element.textStyle?.fontFamily;
 	// PANOSE-based font substitution with fallback chain.
-	const baseFontFamily = rawFontFamily
-		? getSubstituteFontFamily(
-				rawFontFamily,
-				parsePanoseString(segmentStyle.latinFontPanose ?? element.textStyle?.latinFontPanose),
-			)
-		: DEFAULT_FONT_FAMILY;
+	const baseFontFamily = scriptFallbackWins
+		? getSubstituteFontFamily(segmentStyle.scriptFallbackFont as string)
+		: rawFontFamily
+			? getSubstituteFontFamily(
+					rawFontFamily,
+					parsePanoseString(segmentStyle.latinFontPanose ?? element.textStyle?.latinFontPanose),
+				)
+			: DEFAULT_FONT_FAMILY;
 
 	// Per-script font info for Unicode font fallback, resolved by shared's
 	// `resolveScriptFontSet` (extracted from this file so all five bindings

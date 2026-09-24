@@ -165,7 +165,14 @@ export function segmentStyleToCss(
 ): RunStyle {
 	const s = seg.style ?? {};
 	const style: RunStyle = {};
-	if (s.fontFamily) {
+	// A theme per-script override (#83) outranks a `fontFamily` that only ever
+	// reached this run via the paragraph/list-style/theme CASCADE (typically
+	// `+mn-lt`, which names only the LATIN member of the font scheme and was
+	// never meant to cover a run whose text is dominantly a different script).
+	// It never outranks a font the run authored ITSELF: see
+	// `TextStyle.fontFamilyIsCascadeDefault`.
+	const scriptOverrideWins = Boolean(s.scriptFallbackFont && s.fontFamilyIsCascadeDefault);
+	if (s.fontFamily && !scriptOverrideWins) {
 		// PANOSE substitution, exactly as React's `renderSingleSegment` does it.
 		// Emitting the bare authored name instead looks harmless and is not: the
 		// fallback chain is what supplies the metric-compatible stand-in (Carlito

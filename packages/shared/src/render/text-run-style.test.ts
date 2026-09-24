@@ -137,6 +137,33 @@ describe('segmentStyleToCss run properties', () => {
 		it('leaves fontFamily undeclared (inherits the body font) when neither is authored', () => {
 			expect(segmentStyleToCss(seg({ fontSize: 16 })).fontFamily).toBeUndefined();
 		});
+
+		// Regression: every run inherits SOME font via the paragraph/list-style/
+		// theme cascade (typically the theme's `+mn-lt`), so `fontFamily` was
+		// ALWAYS populated by the time a run reached this function - the "run
+		// authors no font of its own" branch above never fired in practice, and
+		// a Japanese-dominant run kept painting in the Latin theme font instead
+		// of the theme's `<a:font script="Jpan">` override.
+		it('applies scriptFallbackFont over a fontFamily that only reached the run via cascade', () => {
+			const result = segmentStyleToCss(
+				seg({
+					fontFamily: 'Calibri',
+					fontFamilyIsCascadeDefault: true,
+					scriptFallbackFont: 'MS Gothic',
+				}),
+			);
+			expect(result.fontFamily).toContain('MS Gothic');
+			expect(result.fontFamily).not.toContain('Calibri');
+		});
+
+		it('still prefers an authored fontFamily even when fontFamilyIsCascadeDefault is set on an unrelated style object', () => {
+			// `fontFamilyIsCascadeDefault` alone (no `scriptFallbackFont`) must not
+			// change anything: the flag only matters paired with the fallback.
+			const result = segmentStyleToCss(
+				seg({ fontFamily: 'Calibri', fontFamilyIsCascadeDefault: true }),
+			);
+			expect(result.fontFamily).toContain('Calibri');
+		});
 	});
 
 	it('adds no keys beyond the always-declared weight and slant', () => {

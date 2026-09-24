@@ -37,6 +37,7 @@
  */
 
 import type { XmlObject } from '../../types';
+import { xmlHasChild } from '../../utils/xml-access';
 import {
 	ensureItems,
 	extractElementInnerXml,
@@ -48,6 +49,25 @@ import {
 
 /** Authored direct-child tag sequence, keyed by the parsed `a:p` object. */
 const childOrder = new WeakMap<XmlObject, readonly string[]>();
+
+/**
+ * Whether `node` (a run's own `a:rPr`, or a field's own `a:rPr`) authors a
+ * Latin, East Asian, or complex-script typeface of ITS OWN.
+ *
+ * Used to gate the theme per-script font override (#83, see
+ * `PptxHandlerRuntimeShapeParagraphContentParsing.ts`): only a run with no
+ * font declaration of its own should defer to the theme's `<a:font
+ * script="...">` face, not a run whose resolved `fontFamily` merely CASCADED
+ * down from the paragraph/list-style/master/theme defaults (every run
+ * inherits some font this way). Checked against the run's OWN raw `a:rPr`
+ * XML rather than the merged `TextStyle`, because the merged style cannot
+ * tell "this run authored `+mn-lt` itself" apart from "this run inherited
+ * `+mn-lt` from the master's own `a:defRPr`" - both resolve to the identical
+ * `fontFamily` string.
+ */
+export function hasOwnFontDeclaration(node: XmlObject | undefined): boolean {
+	return xmlHasChild(node, 'a:latin') || xmlHasChild(node, 'a:ea') || xmlHasChild(node, 'a:cs');
+}
 
 /**
  * Cheap prefilter: a paragraph can only lose information to the collapse when

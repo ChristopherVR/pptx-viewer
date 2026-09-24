@@ -3,7 +3,7 @@ import { xmlText } from '../../utils';
 import { parseParagraphLevel } from '../../utils/paragraph-properties-parser';
 import { xmlHasChild } from '../../utils/xml-access';
 import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
-import { paragraphContentEntries } from './paragraph-sibling-order';
+import { hasOwnFontDeclaration, paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
 
@@ -172,12 +172,20 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			);
 			// #83: annotate a per-script fallback face when the run's text is
 			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
-			// `<a:font script=...>` override. Rendering hint only — never
+			// `<a:font script=...>` override. Rendering hint only, never
 			// round-tripped, so the authored typefaces are untouched.
 			if (!runStyle.scriptFallbackFont) {
 				const fallback = this.resolveScriptFallbackFont(runText);
 				if (fallback) {
 					runStyle.scriptFallbackFont = fallback;
+					// The run's OWN `a:rPr` authors no latin/ea/cs font: the
+					// `fontFamily` `withAuthoredSplit` just merged in above is purely
+					// the paragraph/list-style/theme CASCADE default (typically
+					// `+mn-lt`), which the renderer must let this fallback replace.
+					// See `TextStyle.fontFamilyIsCascadeDefault`.
+					if (!hasOwnFontDeclaration(runProps)) {
+						runStyle.fontFamilyIsCascadeDefault = true;
+					}
 				}
 			}
 			parts.push(runText);

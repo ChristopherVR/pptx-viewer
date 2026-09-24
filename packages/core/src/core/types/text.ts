@@ -346,6 +346,20 @@ export interface TextStyle {
 	 * serialised back on save, so it never disturbs the round-trip typefaces.
 	 */
 	scriptFallbackFont?: string;
+	/**
+	 * Set alongside {@link scriptFallbackFont} when the resolved {@link fontFamily}
+	 * came only from the paragraph/list-style/theme CASCADE (the run's own
+	 * `a:rPr` authored no `a:latin`/`a:ea`/`a:cs` of its own). A run always
+	 * inherits SOME font this way (typically the theme's `+mn-lt`), so without
+	 * this flag `fontFamily` was indistinguishable from a run that genuinely
+	 * chose that font itself, and the renderer never applied the theme's
+	 * per-script override (see #83): `+mn-lt` names only the LATIN member of
+	 * the font scheme and was never meant to cover text in a different
+	 * dominant script. An explicit `a:latin`/`a:ea`/`a:cs` authored on the run
+	 * itself still always wins; only the cascade default yields to the
+	 * script-specific override.
+	 */
+	fontFamilyIsCascadeDefault?: boolean;
 	/** Text language from `a:rPr/@lang`. */
 	language?: string;
 	/** Hyperlink mouse-over target from `a:hlinkMouseOver`. */
