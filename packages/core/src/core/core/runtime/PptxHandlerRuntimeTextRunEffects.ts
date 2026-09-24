@@ -79,7 +79,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (slideTarget) {
 				const slideMatch = slideTarget.match(/slide(\d+)\.xml$/i);
 				if (slideMatch) {
-					style.hyperlinkTargetSlideIndex = parseInt(slideMatch[1], 10) - 1;
+					// The file number is NOT the slide's position: decks that were
+					// reordered or had slides deleted keep their part names. Resolve
+					// through the presentation's slide order (as shape-level actions
+					// do) and fall back to the file number only when the part is not
+					// in the list (e.g. while parsing a layout before slides load).
+					const slideNumber = parseInt(slideMatch[1], 10);
+					const orderIndex = this.orderedSlidePaths.findIndex(
+						(slidePath) => slidePath.match(/slide(\d+)\.xml$/i)?.[1] === String(slideNumber),
+					);
+					style.hyperlinkTargetSlideIndex = orderIndex >= 0 ? orderIndex : slideNumber - 1;
 				}
 			}
 		}
