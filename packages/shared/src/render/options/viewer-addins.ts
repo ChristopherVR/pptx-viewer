@@ -30,7 +30,7 @@ export const VIEWER_ADDIN_CATALOG: readonly ViewerAddinDefinition[] = [
 		nameKey: 'pptx.options.addIns.smartArt3d',
 		descriptionKey: 'pptx.options.addIns.smartArt3dDescription',
 		type: 'renderer',
-		location: 'pptx-viewer-shared/smartart-3d',
+		location: 'pptx-viewer-shared (three)',
 	},
 	{
 		id: 'model3d',

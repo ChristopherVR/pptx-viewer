@@ -238,7 +238,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountPieChart3D - mounted scene', () => {
+describe('createPieChart3DScene - mounted scene', () => {
 	it('mounts a canvas and disposes wedge geometries/materials for every wedge', async () => {
 		const handle = await mountPieChart3D(fakeElement() as unknown as HTMLElement, baseOptions());
 		expect(handle.ok).toBeTruthy();
@@ -248,7 +248,7 @@ describe('mountPieChart3D - mounted scene', () => {
 	});
 });
 
-describe('mountPieChart3D - click-to-select', () => {
+describe('createPieChart3DScene - click-to-select', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e });
@@ -298,7 +298,7 @@ describe('mountPieChart3D - click-to-select', () => {
 	});
 });
 
-describe('mountPieChart3D - drag-to-value', () => {
+describe('createPieChart3DScene - drag-to-value', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e });

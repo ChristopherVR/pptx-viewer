@@ -1,6 +1,6 @@
 /**
  * Adapts a `pie3D` chart's `PptxChartData` into the wedge-mesh layout the
- * interactive 3D scene ({@link ./pie-chart-3d-scene.ts}, `mountPieChart3D`)
+ * interactive 3D scene ({@link ./pie-chart-3d-scene.ts}, `createPieChart3DScene`)
  * needs to mount: one {@link PieChart3DWedge} per data point, positioned
  * around a shared centre in true 3D space.
  *
@@ -60,7 +60,7 @@ export interface PieChart3DDataOptions {
 }
 
 /**
- * Build the {@link PieChart3DSceneOptions} `mountPieChart3D` needs, or `null`
+ * Build the {@link PieChart3DSceneOptions} `createPieChart3DScene` needs, or `null`
  * when the chart has no plottable series (no series, or the (only) series has
  * no values).
  */

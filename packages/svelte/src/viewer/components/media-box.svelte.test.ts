@@ -10,8 +10,8 @@ import ElementRenderer from './ElementRenderer.svelte';
  * mediaDataUrls map), native video/audio controls, the poster-only fallback,
  * the labelled unavailable-media box (mirroring the vanilla media tests), and
  * presentation-mode autoplay wiring (mirroring Vue's `ElementMediaBox.vue`
- * autoplay behaviour, mocking the shared `startMediaAutoplay` the same way
- * `smart-art-3d-view.test.ts` mocks `mountSmartArt3D`).
+ * autoplay behaviour, mocking the shared `startMediaAutoplay` through a
+ * partial `vi.mock` of `pptx-viewer-shared`).
  *
  * This file is named `*.svelte.test.ts` (not plain `.test.ts`) so its own
  * module body can use runes: `mountEl` below wraps the mounted component's

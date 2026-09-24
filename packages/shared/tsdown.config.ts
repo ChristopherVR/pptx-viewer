@@ -5,7 +5,6 @@ export default defineConfig((options) => ({
 		'src/index.ts',
 		'src/theme/index.ts',
 		'src/loader/index.ts',
-		'src/smartart-3d/index.ts',
 		'src/i18n/index.ts',
 		'src/ai/index.ts',
 	],

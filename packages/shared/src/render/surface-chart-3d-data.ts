@@ -1,7 +1,7 @@
 /**
  * Adapts a chart's `PptxChartData` into the flat typed-array grid the
  * interactive 3D surface scene ({@link ./surface-chart-3d-scene.ts},
- * `mountSurfaceChart3D`) needs to mount.
+ * `createSurfaceChart3DScene`) needs to mount.
  *
  * The SVG surface renderer (`chart-surface-treemap.ts`) and this adapter both
  * normalise values the same way (`computeValueRange` + `surfaceColor`), so the
@@ -42,7 +42,7 @@ function resolveSurfaceColors(chartData: PptxChartData): SurfaceChart3DSurfaceCo
 }
 
 /**
- * Build the {@link SurfaceChart3DSceneOptions} `mountSurfaceChart3D` needs from
+ * Build the {@link SurfaceChart3DSceneOptions} `createSurfaceChart3DScene` needs from
  * a chart element's data, or `null` when the chart has no plottable grid (no
  * series, or every series has zero categories).
  */

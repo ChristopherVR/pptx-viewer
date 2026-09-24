@@ -26,10 +26,6 @@ export default defineConfig({
 				replacement: resolve(__dirname, '../shared/src/i18n/index.ts'),
 			},
 			{
-				find: 'pptx-viewer-shared/smartart-3d',
-				replacement: resolve(__dirname, '../shared/src/smartart-3d/index.ts'),
-			},
-			{
 				find: 'pptx-viewer-shared/ai',
 				replacement: resolve(__dirname, '../shared/src/ai/index.ts'),
 			},

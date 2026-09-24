@@ -273,7 +273,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountLineChart3D - mounted scene', () => {
+describe('createLineChart3DScene - mounted scene', () => {
 	it('mounts a canvas + label overlay and starts a render loop', async () => {
 		const container = fakeElement(fakeDocument());
 		const handle = await mountLineChart3D(container as unknown as HTMLElement, baseOptions());
@@ -319,7 +319,7 @@ describe('mountLineChart3D - mounted scene', () => {
 	});
 });
 
-describe('mountLineChart3D - raycast hover tooltip', () => {
+describe('createLineChart3DScene - raycast hover tooltip', () => {
 	function moveHandler(): (e: { clientX: number; clientY: number }) => void {
 		const entry = h.canvasListeners.find((l) => l.type === 'pointermove');
 		if (!entry) {
@@ -384,7 +384,7 @@ describe('mountLineChart3D - raycast hover tooltip', () => {
 	});
 });
 
-describe('mountLineChart3D - click-to-select / drag-to-value', () => {
+describe('createLineChart3DScene - click-to-select / drag-to-value', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e } as never);

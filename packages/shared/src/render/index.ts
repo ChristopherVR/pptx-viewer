@@ -930,12 +930,10 @@ export * from './smartart-node-pane-handlers';
 // optional; returns a no-op sentinel handle when it is not installed, so the
 // barrel stays three-free and each binding (React interactive 3D) can mount it.
 export * from './model3d-scene';
-// Vanilla three.js 3D surface-chart scene controller + its pure geometry
-// helpers: builds a colour-displaced surface mesh (optional wireframe), grid
-// floor, lights, isometric camera, OrbitControls, RAF loop, and DOM-overlay
-// axis labels re-projected each frame, exposing resize()/dispose(). Like
-// `model3d-scene`, `three` is dynamically imported and optional; returns a
-// no-op sentinel handle when it is missing so the chart falls back to 2D.
+// Perspective three.js surface3D scene hosted by `<pptx-three-view>`, plus
+// its pure geometry helpers: a colour-displaced surface mesh (optional
+// wireframe), grid floor, lights, isometric camera and DOM-overlay axis
+// labels re-projected after each frame.
 export * from './surface-chart-3d-geom';
 export * from './surface-chart-3d-scene';
 // Pure raycast-hit -> (row, col) grid cell -> hover-tooltip text mapping the
@@ -943,20 +941,18 @@ export * from './surface-chart-3d-scene';
 // every other chart kind's SVG mark gets via `buildMarkTooltip`.
 export * from './surface-chart-3d-hit-test';
 // Adapts a chart element's `PptxChartData` into the flat typed-array grid
-// `mountSurfaceChart3D` needs, sharing `computeValueRange` + `surfaceColor`
+// `createSurfaceChart3DScene` needs, sharing `computeValueRange` + `surfaceColor`
 // with the 2D SVG fallback so both presentations agree on the same values.
 export * from './surface-chart-3d-data';
 // Generalised camera/grid/label geometry for an interactive 3D CARTESIAN
 // chart scene (category x depth/series x value axes), shared by bar3D today
 // and intended for line3D/area3D to reuse unchanged.
 export * from './cartesian-chart-3d-geom';
-// Vanilla three.js 3D bar-chart scene controller: one real `THREE.BoxGeometry`
-// mesh per data point (clustered = each series its own depth plane; stacked/
-// percentStacked = coplanar, stacked in Y), authored wall/floor panels, a
-// `c:view3D`-driven perspective camera, OrbitControls, and a RAF loop. Like
-// `surface-chart-3d-scene`, `three` is dynamically imported and optional,
-// resolving to a no-op sentinel so the chart falls back to the flat 2D
-// oblique-projection bar3D renderer when it is missing.
+// Perspective three.js bar3D scene hosted by `<pptx-three-view>`: one mesh per
+// data point (clustered = each series its own depth plane; stacked/
+// percentStacked = coplanar, stacked in Y), authored wall/floor panels and a
+// `c:view3D`-driven perspective camera. Used for the bar3D variants the
+// oblique scene (`chart-3d-view-scene`) does not cover yet.
 export * from './bar-chart-3d-scene';
 // Pure raycast-hit (series, category, value) -> hover-tooltip text mapping
 // the bar3D scene uses to give each box mesh the same native hover tooltip
@@ -967,7 +963,7 @@ export * from './bar-chart-3d-hit-test';
 // under the file-size cap.
 export * from './bar-chart-3d-layout';
 // Adapts a `bar3D` chart element's `PptxChartData` into the box-mesh layout
-// `mountBarChart3D` needs, sharing colour/value-range resolution with the
+// `createBarChart3DScene` needs, sharing colour/value-range resolution with the
 // flat SVG oblique-projection engine so both presentations agree.
 export * from './bar-chart-3d-data';
 // Pure per-series depth-plane path layout shared by the interactive line3D
@@ -986,16 +982,13 @@ export * from './area-chart-3d-data';
 // shared by the interactive line3D/area3D scenes, mirroring
 // `bar-chart-3d-hit-test`'s pattern.
 export * from './cartesian-chart-3d-hit-test';
-// Vanilla three.js 3D line-chart scene controller: one `THREE.TubeGeometry`
-// path per series (its own depth plane) plus per-vertex hover markers. Like
-// `bar-chart-3d-scene`, `three` is dynamically imported and optional,
-// resolving to a no-op sentinel so the chart falls back to the flat 2D
-// oblique-projection line3D renderer when it is missing.
+// Perspective three.js line3D scene hosted by `<pptx-three-view>`: one
+// `THREE.TubeGeometry` path per series (its own depth plane) plus per-vertex
+// hover markers.
 export * from './line-chart-3d-scene';
-// Vanilla three.js 3D area-chart scene controller: identical to
-// `line-chart-3d-scene` plus a translucent ribbon fill from each series' path
-// down to its baseline. Falls back to the flat 2D oblique-projection area3D
-// renderer when `three` is missing.
+// Perspective three.js area3D scene hosted by `<pptx-three-view>`: identical
+// to `line-chart-3d-scene` plus a translucent ribbon fill from each series'
+// path down to its baseline.
 export * from './area-chart-3d-scene';
 // Pure geometry for an interactive 3D `pie3D` chart scene: fixed disc radius,
 // `c:view3D/@hPercent`-driven wedge thickness, and per-slice wedge angles
@@ -1003,20 +996,17 @@ export * from './area-chart-3d-scene';
 // `cartesian-chart-3d-geom`'s sphere camera placement rather than its
 // grid-specific framing, since a pie has no category/series grid.
 export * from './pie-chart-3d-geom';
-// Vanilla three.js 3D pie-chart scene controller: one real
+// Perspective three.js pie3D scene hosted by `<pptx-three-view>`: one
 // `THREE.CylinderGeometry` wedge mesh per data point (a partial-arc cylinder,
-// giving a flat top/bottom + curved rim + flat radial "cut" faces for free), a
-// `c:view3D`-driven perspective camera, OrbitControls, and a RAF loop. Like
-// `bar-chart-3d-scene`, `three` is dynamically imported and optional,
-// resolving to a no-op sentinel so the chart falls back to the flat 2D
-// oblique-projection pie3D renderer when it is missing.
+// giving a flat top/bottom + curved rim + flat radial "cut" faces for free)
+// and a `c:view3D`-driven perspective camera.
 export * from './pie-chart-3d-scene';
 // Pure raycast-hit (point index, value) -> hover-tooltip text mapping the
 // pie3D scene uses to give each wedge mesh the same native hover tooltip
 // every other chart kind's SVG mark gets via `buildMarkTooltip`.
 export * from './pie-chart-3d-hit-test';
 // Adapts a `pie3D` chart element's `PptxChartData` into the wedge-mesh layout
-// `mountPieChart3D` needs, sharing colour/explosion resolution with the flat
+// `createPieChart3DScene` needs, sharing colour/explosion resolution with the flat
 // SVG oblique-projection engine so both presentations agree.
 export * from './pie-chart-3d-data';
 // SmartArt pre-computed drawing-shapes projection (the `smartArtData.

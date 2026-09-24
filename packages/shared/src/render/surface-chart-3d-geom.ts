@@ -1,9 +1,9 @@
 /**
  * Pure surface-chart 3D geometry helpers (framework- and three-agnostic).
  *
- * The vanilla three scene controller ({@link mountSurfaceChart3D}) feeds these
- * the loaded `three` module so the heavy library stays a dynamic, optional
- * import while the grid maths (plane subdivision -> height/colour displacement,
+ * The hosted surface scene ({@link createSurfaceChart3DScene}) feeds these
+ * the `three` module `<pptx-three-view>` loaded, so the library stays an
+ * optional import while the grid maths (plane subdivision -> height/colour displacement,
  * world-space label anchors) lives here as small, separately testable units.
  */
 

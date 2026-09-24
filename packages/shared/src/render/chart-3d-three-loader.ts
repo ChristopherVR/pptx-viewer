@@ -1,10 +1,9 @@
 /**
- * `chart-3d-three-loader`: the identical dynamic-import-with-guard pair every
- * interactive three.js chart/SmartArt scene mount function used to define for
- * itself (`three` plus its `OrbitControls` addon are OPTIONAL peer
- * dependencies; a missing one resolves to `null` so the caller falls back to
- * its 2D/no-op sentinel). Extracted so the five near-identical copies
- * (bar/line/area/pie/surface chart3D scenes) become one.
+ * `chart-3d-three-loader`: the guarded dynamic imports of `three` and its
+ * `OrbitControls` addon (both OPTIONAL peer dependencies; a missing one
+ * resolves to `null`). `<pptx-three-view>`'s controller
+ * (`three-view/view-controller.ts`) is the one caller: a `null` `three` puts
+ * the view in its `unavailable` state, showing the slotted 2D fallback.
  *
  * @module chart-3d-three-loader
  */

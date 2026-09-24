@@ -289,7 +289,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountBarChart3D - mounted scene', () => {
+describe('createBarChart3DScene - mounted scene', () => {
 	it('mounts a canvas + label overlay and starts a render loop', async () => {
 		const container = fakeElement(fakeDocument());
 		const handle = await mountBarChart3D(container as unknown as HTMLElement, baseOptions());
@@ -343,7 +343,7 @@ describe('mountBarChart3D - mounted scene', () => {
 	});
 });
 
-describe('mountBarChart3D - c:pictureOptions face-fill textures', () => {
+describe('createBarChart3DScene - c:pictureOptions face-fill textures', () => {
 	it('mounts a picture-bearing box mesh with a 6-entry material array', async () => {
 		const container = fakeElement(fakeDocument());
 		const options = {
@@ -368,7 +368,7 @@ describe('mountBarChart3D - c:pictureOptions face-fill textures', () => {
 	});
 });
 
-describe('mountBarChart3D - raycast hover tooltip', () => {
+describe('createBarChart3DScene - raycast hover tooltip', () => {
 	function moveHandler(): (e: { clientX: number; clientY: number }) => void {
 		const entry = h.canvasListeners.find((l) => l.type === 'pointermove');
 		if (!entry) {
@@ -433,7 +433,7 @@ describe('mountBarChart3D - raycast hover tooltip', () => {
 	});
 });
 
-describe('mountBarChart3D - click-to-select / drag-to-value', () => {
+describe('createBarChart3DScene - click-to-select / drag-to-value', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e } as never);

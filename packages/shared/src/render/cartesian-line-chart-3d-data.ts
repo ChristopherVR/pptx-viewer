@@ -73,8 +73,8 @@ function buildPoints(chartData: PptxChartData, catCount: number): CartesianLine3
 }
 
 /**
- * Build the {@link CartesianLine3DSceneOptions} `mountLineChart3D`/
- * `mountAreaChart3D` need, or `null` when the chart has no plottable grid (no
+ * Build the {@link CartesianLine3DSceneOptions} `createLineChart3DScene`/
+ * `createAreaChart3DScene` need, or `null` when the chart has no plottable grid (no
  * series, or every series has zero categories). Chart-type-agnostic: the
  * caller (`buildLineChart3DDataForElement` / `buildAreaChart3DDataForElement`)
  * is the one that gates on the authored `c:chartType`.

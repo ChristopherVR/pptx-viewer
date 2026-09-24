@@ -12,7 +12,7 @@
  * inline style here, rather than relying on the scoped `[data-element-id]
  * [style]` CSS rule `buildTextStyleOverrideCss` emits for every other DOM
  * text surface. That CSS rule WOULD also reach these divs in principle (they
- * carry their own inline `style`, and the RAF loop only ever touches
+ * carry their own inline `style`, and the per-frame update only ever touches
  * `display`/`left`/`top`, never the emphasis properties), but relying on it
  * would silently depend on every binding nesting the scene's container
  * exactly under the element's `data-element-id` wrapper - baking the style

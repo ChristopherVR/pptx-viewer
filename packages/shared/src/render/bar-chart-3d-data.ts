@@ -1,6 +1,6 @@
 /**
  * Adapts a `bar3D` chart's `PptxChartData` into the box-mesh layout the
- * interactive 3D scene ({@link ./bar-chart-3d-scene.ts}, `mountBarChart3D`)
+ * interactive 3D scene ({@link ./bar-chart-3d-scene.ts}, `createBarChart3DScene`)
  * needs to mount: one {@link BarChart3DBox} per (series, category) data point,
  * positioned in true 3D space (category = X, value = Y, series = Z/depth for
  * the default vertical `c:barDir val="col"`; a horizontal `val="bar"` chart
@@ -128,7 +128,7 @@ function buildPoints(
 }
 
 /**
- * Build the {@link BarChart3DSceneOptions} `mountBarChart3D` needs, or `null`
+ * Build the {@link BarChart3DSceneOptions} `createBarChart3DScene` needs, or `null`
  * when the chart has no plottable grid (no series, or every series has zero
  * categories).
  */

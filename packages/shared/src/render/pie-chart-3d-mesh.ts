@@ -76,7 +76,7 @@ export function buildPieChart3DWedgeMeshes(
  * Rebuild every wedge mesh's geometry + position + `userData` from a freshly
  * recomputed angle set (a live value drag: `pie-chart-3d-scene.ts`'s
  * `recomputeLiveAngles`), mutating `geometries` in place (disposing each old
- * one) so `mountPieChart3D`'s own `dispose()` still tears down exactly the
+ * one) so `createPieChart3DScene`'s own `dispose()` still tears down exactly the
  * geometries actually on screen, whichever wedge was last dragged.
  */
 export function applyPieChart3DWedgeAngles(

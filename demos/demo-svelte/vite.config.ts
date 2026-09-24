@@ -50,10 +50,6 @@ export default defineConfig({
 			},
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
 			{ find: 'pptx-viewer-locales', replacement: pkg('locales', 'src', 'index.ts') },
-			{
-				find: 'pptx-viewer-shared/smartart-3d',
-				replacement: pkg('shared', 'src', 'smartart-3d', 'index.ts'),
-			},
 			{ find: 'pptx-viewer-shared/i18n', replacement: pkg('shared', 'src', 'i18n', 'index.ts') },
 			{ find: 'pptx-viewer-shared/ai', replacement: pkg('shared', 'src', 'ai', 'index.ts') },
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },

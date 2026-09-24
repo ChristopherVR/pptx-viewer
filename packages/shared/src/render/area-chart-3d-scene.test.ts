@@ -288,7 +288,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountAreaChart3D - mounted scene', () => {
+describe('createAreaChart3DScene - mounted scene', () => {
 	it('mounts a canvas + label overlay and builds a ribbon per series', async () => {
 		const container = fakeElement(fakeDocument());
 		const handle = await mountAreaChart3D(container as unknown as HTMLElement, baseOptions());
@@ -321,7 +321,7 @@ describe('mountAreaChart3D - mounted scene', () => {
 	});
 });
 
-describe('mountAreaChart3D - raycast hover tooltip', () => {
+describe('createAreaChart3DScene - raycast hover tooltip', () => {
 	it('sets the raycast hit marker userData as the canvas title', async () => {
 		h.behaviour.raycastHits = [
 			{ object: { userData: { seriesIndex: 0, categoryIndex: 0, value: 10 } } },
@@ -338,7 +338,7 @@ describe('mountAreaChart3D - raycast hover tooltip', () => {
 	});
 });
 
-describe('mountAreaChart3D - click-to-select / drag-to-value', () => {
+describe('createAreaChart3DScene - click-to-select / drag-to-value', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e } as never);

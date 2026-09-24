@@ -301,7 +301,7 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('mountSurfaceChart3D - mounted scene', () => {
+describe('createSurfaceChart3DScene - mounted scene', () => {
 	it('mounts a canvas + label overlay and starts a render loop', async () => {
 		const container = fakeElement(fakeDocument());
 		const handle = await mountSurfaceChart3D(container as unknown as HTMLElement, baseOptions());
@@ -372,7 +372,7 @@ describe('mountSurfaceChart3D - mounted scene', () => {
 	});
 });
 
-describe('mountSurfaceChart3D - raycast hover tooltip', () => {
+describe('createSurfaceChart3DScene - raycast hover tooltip', () => {
 	function moveHandler(): (e: { clientX: number; clientY: number }) => void {
 		const entry = h.canvasListeners.find((l) => l.type === 'pointermove');
 		if (!entry) {
@@ -454,7 +454,7 @@ describe('mountSurfaceChart3D - raycast hover tooltip', () => {
 	});
 });
 
-describe('mountSurfaceChart3D - click-to-select / drag-to-value', () => {
+describe('createSurfaceChart3DScene - click-to-select / drag-to-value', () => {
 	function fireAll(type: string, e: Record<string, unknown>): void {
 		for (const l of h.canvasListeners.filter((entry) => entry.type === type)) {
 			l.cb({ stopPropagation() {}, preventDefault() {}, ...e } as never);

@@ -26,9 +26,9 @@ import { buildReactChartViewModel, renderChartViewModel } from './chart-view-mod
  * Three.js scene, which made it the only binding whose surface chart was a
  * `<canvas>`: no marks to select, nothing for the SVG parity harness to compare,
  * and a picture no other viewer drew. The scene controller itself is still in
- * shared (`render/surface-chart-3d-scene.ts`, `mountSurfaceChart3D`), so the
- * capability is intact and a future opt-in can wire it in ALL five bindings the
- * way `smartArt3D` already is.
+ * shared (`render/surface-chart-3d-scene.ts`, `createSurfaceChart3DScene`) and
+ * every binding reaches it through `<pptx-three-view>` when the host opts in
+ * with `surfaceChart3D`.
  */
 export function renderChartElement(element: PptxElement): React.ReactNode {
 	if (element.type !== 'chart') {

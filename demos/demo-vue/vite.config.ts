@@ -50,13 +50,9 @@ export default defineConfig({
 				replacement: pkg('core', 'src', 'converter', 'index.ts'),
 			},
 			{ find: 'pptx-viewer-core', replacement: pkg('core', 'src', 'index.ts') },
-			// Subpath alias must come BEFORE the bare alias; otherwise the bare alias
-			// matches first and the dynamic import becomes "…/index.ts/smartart-3d"
+			// Subpath aliases must come BEFORE the bare alias; otherwise the bare
+			// alias matches first and a subpath import becomes "…/index.ts/i18n"
 			// (a path on a file, not a directory), which Rolldown cannot resolve.
-			{
-				find: 'pptx-viewer-shared/smartart-3d',
-				replacement: pkg('shared', 'src', 'smartart-3d', 'index.ts'),
-			},
 			{ find: 'pptx-viewer-shared/i18n', replacement: pkg('shared', 'src', 'i18n', 'index.ts') },
 			{ find: 'pptx-viewer-shared/ai', replacement: pkg('shared', 'src', 'ai', 'index.ts') },
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },
