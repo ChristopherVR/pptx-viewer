@@ -42,10 +42,10 @@ The engine handles presentation elements, hundreds of `ST_ShapeType` preset shap
 - Zooming is a CSS transform, so slides stay sharp at any scale on any display density.
 - Because every element is a DOM node, the editor gets selection, drag handles, inline text editing, and accessibility for free.
 
-Rasterization only happens when you ask for it: raster export (PNG/JPEG/PDF/GIF/video) draws the DOM through `html2canvas`.
+Rasterization only happens when you ask for it: raster export (PNG/JPEG/PDF/GIF/video) tries an SVG `foreignObject` capture first (the browser's own engine paints the DOM, preserving `backdrop-filter`, custom properties, and 3D transforms), falls back to re-rasterising the existing vector-SVG export pipeline, and only falls back to drawing the DOM through `html2canvas-pro` as a last resort.
 
 ::: tip Tradeoffs
-CSS cannot express every PowerPoint effect pixel-perfectly (for example some blend modes and 3D rotations are approximated). See [Limitations](/guide/limitations) for the full list.
+CSS cannot express every PowerPoint effect pixel-perfectly, and the `html2canvas-pro` fallback path (used when a resource cannot be embedded for the SVG capture) has its own gaps, for example approximating blend modes with opacity. See [Limitations](/guide/limitations) for the full list.
 :::
 
 ## The packages
