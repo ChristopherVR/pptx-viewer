@@ -24,7 +24,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const paragraphProps = paragraph['a:pPr'] as XmlObject | undefined;
 		if (xmlHasChild(paragraphProps, 'a:buNone')) {
-			return { none: true };
+			// `buNone` only rules out a bullet MARK; the independent
+			// buClrTx/buSzTx/buFontTx "inherit from text" choices live in their
+			// own EG_TextBulletColor/Size/Typeface groups and may still be
+			// authored alongside it (PowerPoint itself writes this
+			// combination). Capture them here too, or a round-trip silently
+			// drops them.
+			return {
+				none: true,
+				ownedByParagraph: true,
+				...(paragraphProps?.['a:buFontTx'] !== undefined ? { fontInherit: true } : {}),
+				...(paragraphProps?.['a:buClrTx'] !== undefined ? { colorInherit: true } : {}),
+				...(paragraphProps?.['a:buSzTx'] !== undefined ? { sizeInherit: true } : {}),
+			};
 		}
 
 		const level = Number.parseInt(String(paragraphProps?.['@_lvl'] || '0'), 10);
@@ -50,7 +62,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				continue;
 			}
 			if (xmlHasChild(candidate, 'a:buNone')) {
-				return { none: true };
+				return {
+					none: true,
+					ownedByParagraph: candidate === paragraphProps,
+					...(candidate['a:buFontTx'] !== undefined ? { fontInherit: true } : {}),
+					...(candidate['a:buClrTx'] !== undefined ? { colorInherit: true } : {}),
+					...(candidate['a:buSzTx'] !== undefined ? { sizeInherit: true } : {}),
+				};
 			}
 			// Accept inherit-from-text bullet markers as a valid resolution
 			// even when no `buChar` / `buAutoNum` / `buBlip` is present.
@@ -124,6 +142,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		const colorInherit = resolvedBulletProps['a:buClrTx'] !== undefined;
 
+		// Whether this bullet resolution came from the paragraph's OWN `a:pPr`
+		// (candidate index 0) rather than the shape's `a:lstStyle`, the
+		// inherited placeholder, or the master's `a:defPPr`. The save path
+		// uses this to decide whether the resolved bullet may be written onto
+		// THIS paragraph's own `a:pPr`: a match further down the cascade is an
+		// inheritance artefact, and stamping it (a master `buFont="Arial"` /
+		// `buChar="•"`) onto every paragraph pins it there forever.
+		const ownedByParagraph = resolvedBulletProps === paragraphProps;
+
 		// Character bullet
 		const bulletChar = String(
 			(resolvedBulletProps['a:buChar'] as XmlObject | undefined)?.['@_char'] || '',
@@ -140,6 +167,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
+				ownedByParagraph,
 			};
 		}
 
@@ -162,6 +190,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(fontInherit ? { fontInherit: true } : {}),
 				...(colorInherit ? { colorInherit: true } : {}),
 				...(sizeInherit ? { sizeInherit: true } : {}),
+				ownedByParagraph,
 			};
 		}
 
@@ -206,6 +235,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					color,
 					...(colorXml ? { colorXml } : {}),
 					...(colorRef ? { colorRef } : {}),
+					ownedByParagraph,
 				};
 			}
 			// buBlip without a resolvable rel/path — still preserve the subtree.
@@ -217,6 +247,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				color,
 				...(colorXml ? { colorXml } : {}),
 				...(colorRef ? { colorRef } : {}),
+				ownedByParagraph,
 			};
 		}
 
@@ -231,8 +262,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (!levelStyle) {
 			return null;
 		}
+		// Every branch here is the placeholder-cascade fallback
+		// (`resolveParagraphBulletInfo` only calls this once NOTHING on the
+		// paragraph's own `a:pPr` or the shape's own list styles matched), so
+		// none of it is ever this paragraph's own: `ownedByParagraph: false`
+		// tells the save path not to stamp it onto the paragraph's `a:pPr`.
 		if (levelStyle.bulletNone) {
-			return { none: true };
+			return { none: true, ownedByParagraph: false };
 		}
 
 		if (levelStyle.bulletChar && levelStyle.bulletChar.length > 0) {
@@ -243,6 +279,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts: levelStyle.bulletSizePts,
 				color: levelStyle.bulletColor,
 				colorXml: levelStyle.bulletColorXml,
+				ownedByParagraph: false,
 			};
 		}
 
@@ -256,6 +293,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				sizePts: levelStyle.bulletSizePts,
 				color: levelStyle.bulletColor,
 				colorXml: levelStyle.bulletColorXml,
+				ownedByParagraph: false,
 			};
 		}
 

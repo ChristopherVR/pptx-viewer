@@ -446,9 +446,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Only the paragraph's OWN `a:buNone` counts. `resolveParagraphBulletInfo`
 			// also reports `none` when the suppression is INHERITED from a layout or
 			// master list style, and writing that back onto the slide paragraph would
-			// add markup the author never authored.
+			// add markup the author never authored. `paragraphBulletInfo` is reused
+			// as-is (rather than a fresh `{ none: true }`) because its top-level
+			// check is this exact same condition on this exact same `a:pPr` node:
+			// whenever it fires, `paragraphBulletInfo` is already `{ none: true,
+			// ownedByParagraph: true, ...colorInherit/sizeInherit/fontInherit }`,
+			// and dropping those extra fields here silently lost the independent
+			// `buClrTx`/`buSzTx`/`buFontTx` "inherit from text" markers a paragraph
+			// may still author alongside `buNone`.
 			if (xmlHasChild(pPrRaw, 'a:buNone') && segments[firstSegmentIndex].bulletInfo === undefined) {
-				segments[firstSegmentIndex].bulletInfo = { none: true };
+				segments[firstSegmentIndex].bulletInfo = paragraphBulletInfo ?? {
+					none: true,
+					ownedByParagraph: true,
+				};
 			}
 			const lvlRaw = pPrRaw?.['@_lvl'];
 			if (lvlRaw !== undefined) {

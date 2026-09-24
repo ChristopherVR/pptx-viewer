@@ -147,8 +147,24 @@ export function buildParagraphPropertiesXml(
 		paragraphProps['a:spcAft'] = spacing.spacingAfter;
 	}
 
-	// Bullet properties
-	if (bulletInfo) {
+	// Bullet properties. `resolveParagraphBulletInfo` walks the paragraph's
+	// own `a:pPr`, the shape's `a:lstStyle`, the inherited placeholder and
+	// the master's `a:defPPr` / `p:txStyles`, first-match-wins, so the
+	// resolution can equally be the paragraph's OWN declaration or a purely
+	// cascaded one. Writing a cascaded result unconditionally pins an
+	// inherited bullet (a master `buFont="Arial"` / `buChar="•"`) onto every
+	// paragraph the moment the slide is rewritten, including a body
+	// placeholder paragraph with NO `a:pPr` at all: the "no authored
+	// properties at all" exception every other per-paragraph field gets
+	// (SDK-built decks, newly typed text) does not apply here, because for
+	// those OTHER fields the resolved value is what the paragraph already
+	// renders as either way, while a resolved BULLET (unlike align/margins)
+	// is only "how the master looks right now" and must keep tracking it.
+	// `ownedByParagraph` is `false` only when `resolveParagraphBulletInfo`
+	// positively identified a cascaded source; it is `undefined` for bullet
+	// info that never went through that function at all (an editor-added or
+	// SDK-built bullet), which is written same as before this gate existed.
+	if (bulletInfo && bulletInfo.ownedByParagraph !== false) {
 		applyBulletProperties(paragraphProps, bulletInfo);
 	}
 
@@ -168,6 +184,11 @@ export function buildParagraphPropertiesXml(
 				return tabObj;
 			}),
 		};
+	} else if (authoredProperties?.tabStopsExplicitEmpty) {
+		// This specific paragraph authored `<a:tabLst/>` with no tab stops
+		// (see `tabStopsExplicitEmpty`): re-emit it exactly, regardless of
+		// what `textStyle.tabStops` resolved to from elsewhere in the cascade.
+		paragraphProps['a:tabLst'] = {};
 	}
 
 	// `a:defRPr` is the paragraph default run properties. It follows the bullet group
@@ -193,10 +214,16 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 	//   buNone/buAutoNum/buChar/buBlip (type). fast-xml-parser serialises
 	//   keys in insertion order, so assign in this exact sequence or
 	//   PowerPoint's validator rejects the run.
-	if (bulletInfo.none) {
-		paragraphProps['a:buNone'] = {};
-		return;
-	}
+	//
+	// The color/size/font "inherit from text" markers (`buClrTx`/`buSzTx`/
+	// `buFontTx`) are each their OWN choice group (EG_TextBulletColor/
+	// Size/Typeface) and are independent of the bullet TYPE choice
+	// (`buNone`/`buAutoNum`/`buChar`/`buBlip`, EG_TextBulletType) — a
+	// paragraph can author `buNone` and still say "inherit bullet colour
+	// from text" for when a bullet mark IS shown again later in the
+	// cascade. Emitting `buNone` used to `return` immediately, before these
+	// three groups ran, silently dropping them on every round-trip.
+	//
 	// Inherit-from-text variants take precedence over the explicit
 	// `buClr` / `buSzPct|Pts` / `buFont` declarations: when both forms are
 	// present the schema only allows one. Emit `<a:buClrTx/>` etc. when the
@@ -235,6 +262,13 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 		paragraphProps['a:buFont'] = {
 			'@_typeface': bulletInfo.fontFamily,
 		};
+	}
+	// Bullet TYPE choice (EG_TextBulletType): exactly one of none/char/
+	// autoNum/blip. `none` is checked first and returns, since `bulletInfo`
+	// never carries more than one of these at once.
+	if (bulletInfo.none) {
+		paragraphProps['a:buNone'] = {};
+		return;
 	}
 	if (bulletInfo.char) {
 		paragraphProps['a:buChar'] = { '@_char': bulletInfo.char };

@@ -330,6 +330,16 @@ export interface TextStyle {
 		align: 'l' | 'ctr' | 'r' | 'dec';
 		leader?: 'none' | 'dot' | 'hyphen' | 'underscore';
 	}>;
+	/**
+	 * True when the paragraph's own `a:pPr` authored an EMPTY `<a:tabLst/>`
+	 * (explicitly "no tab stops", overriding whatever the cascade would
+	 * otherwise supply) rather than omitting the element entirely (inherit).
+	 * fast-xml-parser gives a childless element as the empty string, so
+	 * `tabLst` and no-`tabLst` are otherwise indistinguishable once `tabStops`
+	 * comes back empty either way. Paragraph-scope only; not part of the
+	 * element-level geometry cascade.
+	 */
+	tabStopsExplicitEmpty?: boolean;
 	/** Body text wrapping mode from `a:bodyPr/@wrap`. */
 	textWrap?: 'square' | 'none';
 	/** Preset text warp type from `a:bodyPr/a:prstTxWarp`. */
@@ -776,6 +786,18 @@ export interface BulletInfo {
 	/** When true, `<a:buSzTx/>` was specified — inherit the bullet size from
 	 *  the run text font size. */
 	sizeInherit?: boolean;
+	/**
+	 * True when this bullet resolution came from the paragraph's OWN `a:pPr`
+	 * rather than the shape's `a:lstStyle`, an inherited placeholder, or the
+	 * master's `a:defPPr` / `p:txStyles`. `resolveParagraphBulletInfo` walks
+	 * that cascade and returns the first match, so without this flag a
+	 * writer that re-emits every resolved `BulletInfo` in full pins an
+	 * inherited bullet (e.g. a master `buFont="Arial"` / `buChar="•"`) onto
+	 * every paragraph's own `a:pPr` the moment the slide is rewritten. The
+	 * save path only writes the bullet group when this is `true`, mirroring
+	 * how `paragraphProperties` gates every other per-paragraph field.
+	 */
+	ownedByParagraph?: boolean;
 }
 
 /**
