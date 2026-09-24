@@ -64,13 +64,16 @@ describe('buildParagraphs autofit + bullet typeface', () => {
 		expect(editable[1].runs.every((run) => run.text === '')).toBeTruthy();
 	});
 
-	it("scales every authored run size by the body's normAutofit font scale", () => {
+	it("scales every authored run size by the body's normAutofit font scale, rounded to a whole point", () => {
+		// PowerPoint rounds a normAutofit-scaled run to the nearest whole point
+		// (see `scaleFontSizeForAutoFit`'s COM-verified doc comment): 53.33 * 0.7
+		// = 37.331, not the raw fractional product.
 		const paras = buildParagraphs(
 			textEl([{ text: 'Title', style: { fontSize: 53.33 } }], {
 				textStyle: { fontSize: 53.33, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.7 },
 			}),
 		);
-		expect(paras[0].runs[0].style.fontSize).toBe(`${53.33 * 0.7}px`);
+		expect(paras[0].runs[0].style.fontSize).toBe('37px');
 	});
 
 	it('leaves run sizes alone when the body does not shrink its text', () => {
