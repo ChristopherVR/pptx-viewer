@@ -7,6 +7,7 @@ import {
 import { textBodyHasContent } from '../../utils/text-body-has-content';
 import { xmlAttr, xmlChild, xmlPath } from '../../utils/xml-access';
 import { createAutoNumberSequence } from './auto-number-sequence';
+import { captureResolvedBodyProperties, hasElementBodyProperties } from './element-body-properties';
 import { captureResolvedParagraphGeometry } from './element-paragraph-geometry';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeParagraphContentParsing';
 import type { ShapeTextParsingContext } from './PptxHandlerRuntimeTypes';
@@ -216,6 +217,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (this.presentationDefaultTextStyle) {
 				this.applyPlaceholderBodyDefaults(textStyle, this.presentationDefaultTextStyle);
 			}
+			// Snapshot the resolved `a:bodyPr` fields BEFORE anything downstream
+			// (paragraph parsing, seed styles) can add to `textStyle`, and
+			// unconditionally so a text-less shape's own anchor/insets/autofit
+			// still round-trip. See element-body-properties.ts.
+			captureResolvedBodyProperties(textStyle);
 
 			const txBodyObj = txBody as XmlObject | undefined;
 			if (txBodyObj?.['a:p']) {
@@ -380,7 +386,17 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				widthEmu,
 				heightEmu,
 				text,
-				textStyle: hasText || promptText ? textStyle : undefined,
+				// A text-less shape (only an empty `a:endParaRPr`, or no `a:p` at
+				// all) still has its own `a:bodyPr`: PowerPoint applies the
+				// vertical anchor, insets and autofit of an EMPTY text box just
+				// as it would a filled one (COM-verified: dropping `anchor="ctr"`
+				// here re-opens the file with the box top-anchored instead of
+				// middle-anchored). Keep `textStyle` whenever the cascade
+				// resolved any such property, even with no text, so the save
+				// path's edit-diff (see element-body-properties.ts) has
+				// something to compare against instead of writing nothing.
+				textStyle:
+					hasText || promptText || hasElementBodyProperties(textStyle) ? textStyle : undefined,
 				// A body whose only paragraph is EMPTY still produces a segment:
 				// the zero-length carrier of its `a:endParaRPr` / `a:pPr`, which
 				// is what PowerPoint sizes and styles that blank line from.

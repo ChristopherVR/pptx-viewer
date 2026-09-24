@@ -115,6 +115,32 @@ export interface TextStyle {
 	 * @see element-paragraph-geometry.ts
 	 */
 	resolvedParagraphGeometry?: TextStyle;
+	/**
+	 * Snapshot of the ELEMENT-scope `a:bodyPr` properties (vertical anchor,
+	 * text direction, columns, overflow, autofit, body insets, text wrap, and
+	 * the boolean/rotation attributes) as the load pipeline resolved them.
+	 *
+	 * A shape's own `a:bodyPr` is parsed first, then whatever it left
+	 * `undefined` is back-filled from the placeholder / layout / master
+	 * defaults (`applyPlaceholderBodyDefaults`), and a placeholder shape with
+	 * no `a:bodyPr` of its own has the INHERITED one parsed as if it were its
+	 * own. None of those three sources is distinguishable at
+	 * `element.textStyle` once the cascade finishes, so a writer that
+	 * re-emits every defined field turns an inherited anchor, inset, autofit
+	 * mode or `rtlCol` into a value pinned on the slide forever (and an
+	 * inherited `a:normAutofit` with no scale gets written back as
+	 * `a:spAutoFit`, flipping AutoSize from "shrink text" to "resize shape").
+	 *
+	 * Present only on an `element.textStyle` that came from a parsed deck.
+	 * The save path diffs the live style against this snapshot: a field that
+	 * still matches is an inheritance artefact and the writer leaves the
+	 * underlying `a:bodyPr` attribute untouched (whatever it already is,
+	 * present or absent); a field that differs was authored or has since
+	 * been edited and is written out.
+	 *
+	 * @see element-body-properties.ts
+	 */
+	resolvedBodyProperties?: TextStyle;
 	fontFamily?: string;
 	fontSize?: number; // in points
 	/** When true, some form of autofit is in effect; see {@link autoFitMode} for which. */
