@@ -91,6 +91,38 @@ describe('getImageTilingStyle', () => {
 		expect(style?.backgroundSize).toBe('200% 200%');
 		expect(String(style?.backgroundImage)).toContain('data:image/svg+xml');
 	});
+
+	// ECMA-376 §20.1.8.58: `@sx`/`@sy` are a percentage of the picture's OWN
+	// native pixel size, not of the container `background-size: <percent>`
+	// resolves against. When a binding supplies the probed native size, the
+	// tile must be sized in absolute pixels using THAT reference frame.
+	describe('with a native size supplied', () => {
+		it('sizes the tile in native-relative pixels instead of container-relative percent', () => {
+			const style = getImageTilingStyle(picture({ tileScaleX: 0.1, tileScaleY: 0.25 }), {
+				width: 800,
+				height: 400,
+			});
+			expect(style?.backgroundSize).toBe('80px 100px');
+		});
+
+		it('still defaults each axis to 100% of native size when `@sx`/`@sy` is absent', () => {
+			const style = getImageTilingStyle(picture({ tileAlignment: 'ctr' }), {
+				width: 300,
+				height: 150,
+			});
+			expect(style?.backgroundSize).toBe('300px 150px');
+		});
+
+		it('sizes a mirrored composite tile in native-relative pixels too', () => {
+			const style = getImageTilingStyle(
+				picture({ tileScaleX: 0.5, tileScaleY: 0.5, tileFlip: 'xy' }),
+				{ width: 100, height: 60 },
+			);
+			// Each axis is native size x scale x 2 (the mirrored composite doubles
+			// both axes), i.e. 100*0.5*2=100 and 60*0.5*2=60.
+			expect(style?.backgroundSize).toBe('100px 60px');
+		});
+	});
 });
 
 describe('buildMirrorTiledBackground', () => {
@@ -110,5 +142,11 @@ describe('buildMirrorTiledBackground', () => {
 	it('refuses a non-embeddable source (an SVG data: URI cannot fetch it)', () => {
 		expect(buildMirrorTiledBackground('blob:abc-123', 'x', 100, 100)).toBeUndefined();
 		expect(buildMirrorTiledBackground('https://x/y.png', 'xy', 100, 100)).toBeUndefined();
+	});
+
+	it('sizes the doubled tile in native-relative pixels when a native size is supplied', () => {
+		const x = buildMirrorTiledBackground(DATA_URI, 'x', 50, 100, { width: 200, height: 40 });
+		// width: 200 * 0.5 * 2 = 200; height: 40 * 1.0 * 1 = 40 (y not mirrored).
+		expect(x?.backgroundSize).toBe('200px 40px');
 	});
 });

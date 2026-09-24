@@ -55,6 +55,9 @@ export * from './stroke-style';
 // `a:blipFill/a:tile`: scale, offset, alignment and mirror-flip of a tiled
 // picture, which four of five bindings used to render as one stretched copy.
 export * from './image-tiling';
+// A picture's native pixel size, probed once and cached, for CSS math (tile
+// `@sx`/`@sy`) that must be relative to the image's own size, not its box.
+export * from './image-native-size';
 // `a:grpFill` inheritance: pull a group's fill + resolve a grpFill child's paint.
 export * from './group-fill';
 // Stroke/dash normalisation, compound-line box-shadow + dasharray, element

@@ -4,14 +4,10 @@ import { getImageColorWashStyle, getImageSvgFilters } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
-import {
-	getDuotoneColors,
-	getImageEffectsFilter,
-	getImageTilingStyle,
-	isImageTiled,
-} from '../../utils';
+import { getDuotoneColors, getImageEffectsFilter, isImageTiled } from '../../utils';
 import { ColorChangedImage } from '../ColorChangedImage';
 import { DuotoneImage } from '../DuotoneImage';
+import { TiledImageLayer } from '../TiledImageLayer';
 
 function renderImageEffectDefinitions(
 	element: PptxElement,
@@ -106,9 +102,11 @@ export function renderImg(
 		return (
 			<>
 				{renderImageEffectDefinitions(el)}
-				<div
+				<TiledImageLayer
+					element={el}
+					src={tileSrc}
 					className='pointer-events-none select-none w-full h-full'
-					style={{ ...getImageTilingStyle(el), ...effectStyles }}
+					style={effectStyles}
 				/>
 			</>
 		);

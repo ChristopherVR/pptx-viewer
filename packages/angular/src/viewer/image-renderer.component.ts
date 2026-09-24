@@ -1,10 +1,17 @@
 import { NgStyle } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
 import type { SafeHtml } from '@angular/platform-browser';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import { elementHitTargetStyle, getImageOverflow, shouldRenderHitTarget } from '../internal/shared';
+import {
+	elementHitTargetStyle,
+	getCachedNativeImageSize,
+	getImageOverflow,
+	probeNativeImageSize,
+	shouldRenderHitTarget,
+} from '../internal/shared';
+import type { NativeImageSize } from '../internal/shared';
 import { ColorChangedImageComponent } from './color-changed-image.component';
 import { getReflectionOverlay } from './element-effect-defs';
 import type { ReflectionOverlay } from './element-effect-defs';
@@ -131,7 +138,55 @@ export class ImageRendererComponent {
 		...(this.view().frameGeometryMask ?? {}),
 	}));
 	readonly imageSrc = computed(() => getImageSrc(this.element(), this.mediaDataUrls()));
-	readonly view = computed(() => buildAngularImageRenderView(this.element()));
+
+	/**
+	 * The picture's native (unscaled) pixel size, probed asynchronously and
+	 * cached (see `image-native-size.ts`). `a:blipFill/a:tile`'s `@sx`/`@sy`
+	 * (ECMA-376 §20.1.8.58) is a percentage of THIS, not of the container, so
+	 * `view()` re-renders once with an absolute-pixel tile size when it
+	 * resolves; until then it falls back to the container-relative percentage.
+	 *
+	 * Deliberately NOT an `effect()`: this component is unit-tested via direct
+	 * `new ImageRendererComponent()` (no `TestBed`/compiler in this repo's
+	 * vitest setup, see the component's own test file), and `effect()` injects
+	 * a `ChangeDetectionScheduler` that only a real bootstrapped app provides.
+	 * `ensureNativeSizeProbeStarted` is called from the `view` computed
+	 * instead; it only ever WRITES `nativeSize` from a microtask (after the
+	 * computed's own synchronous evaluation has finished), which Angular
+	 * permits, so this needs no extra injected dependency at all.
+	 */
+	private readonly nativeSize = signal<NativeImageSize | undefined>(undefined);
+	private lastProbedSrc: string | undefined;
+
+	private ensureNativeSizeProbeStarted(src: string | undefined): void {
+		if (src === this.lastProbedSrc) {
+			return;
+		}
+		this.lastProbedSrc = src;
+		if (!src) {
+			return;
+		}
+		const cached = getCachedNativeImageSize(src);
+		if (cached) {
+			queueMicrotask(() => this.nativeSize.set(cached));
+			return;
+		}
+		probeNativeImageSize(src)
+			.then((size) => {
+				if (size && this.lastProbedSrc === src) {
+					this.nativeSize.set(size);
+				}
+				return undefined;
+			})
+			.catch(() => {
+				// Keep the container-relative fallback already in use.
+			});
+	}
+
+	readonly view = computed(() => {
+		this.ensureNativeSizeProbeStarted(this.imageSrc());
+		return buildAngularImageRenderView(this.element(), this.nativeSize());
+	});
 	readonly reflection = computed<ReflectionOverlay | undefined>(() =>
 		getReflectionOverlay(this.element()),
 	);

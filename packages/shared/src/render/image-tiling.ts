@@ -24,6 +24,7 @@ import type { PptxElement } from 'pptx-viewer-core';
 import { isImageLikeElement } from 'pptx-viewer-core';
 
 import type { CssStyleMap } from './element-style-transform';
+import type { NativeImageSize } from './image-native-size';
 import { escapeSvgAttr } from './visual-effects';
 
 /**
@@ -108,10 +109,15 @@ function tileAxisPosition(percent: number, offsetPx: number): string {
  * for those sources this returns `undefined` and the caller keeps plain
  * (non-mirrored) repetition.
  *
- * @param src    - The tile image source (must start with `data:`).
- * @param flip   - Tile flip mode (`x` / `y` / `xy`).
- * @param scaleX - Per-tile horizontal size as a percentage (e.g. 100 = 100%).
- * @param scaleY - Per-tile vertical size as a percentage.
+ * @param src        - The tile image source (must start with `data:`).
+ * @param flip       - Tile flip mode (`x` / `y` / `xy`).
+ * @param scaleX     - Per-tile horizontal size as a percentage (e.g. 100 = 100%).
+ * @param scaleY     - Per-tile vertical size as a percentage.
+ * @param nativeSize - The source's native pixel size, when known (see
+ *                     `image-native-size.ts`). When supplied, the doubled
+ *                     tile is sized in absolute pixels (native size x scale)
+ *                     per ECMA-376 §20.1.8.58, instead of a percentage of the
+ *                     CONTAINER, which is the wrong reference frame.
  * @returns The composite `backgroundImage` + doubled `backgroundSize`, or
  *          `undefined` when no mirror applies / the source is not embeddable.
  */
@@ -120,6 +126,7 @@ export function buildMirrorTiledBackground(
 	flip: 'x' | 'y' | 'xy',
 	scaleX: number,
 	scaleY: number,
+	nativeSize?: NativeImageSize,
 ): { backgroundImage: string; backgroundSize: string } | undefined {
 	if (!src.startsWith('data:')) {
 		return undefined;
@@ -155,9 +162,13 @@ export function buildMirrorTiledBackground(
 		`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${cols} ${rows}" ` +
 		`width="${cols}" height="${rows}">${images.join('')}</svg>`;
 
+	const backgroundSize = nativeSize
+		? `${(nativeSize.width * scaleX * cols) / 100}px ${(nativeSize.height * scaleY * rows) / 100}px`
+		: `${scaleX * cols}% ${scaleY * rows}%`;
+
 	return {
 		backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(svg)}")`,
-		backgroundSize: `${scaleX * cols}% ${scaleY * rows}%`,
+		backgroundSize,
 	};
 }
 
@@ -168,8 +179,23 @@ export function buildMirrorTiledBackground(
  * Returned as a full-size background layer, because a repeating fill cannot be
  * expressed on an `<img>`: the binding renders a `<div>` carrying this style in
  * place of the `<img>` it would otherwise emit.
+ *
+ * @param element    - The tiled picture element.
+ * @param nativeSize - The picture's native (unscaled) pixel size, from
+ *                     `image-native-size.ts`'s runtime probe, when a binding
+ *                     has one available. Per ECMA-376 §20.1.8.58, `@sx`/`@sy`
+ *                     are a percentage of the picture's OWN native size, not
+ *                     of the box painting it, so passing this in switches the
+ *                     tile to an absolute-pixel `backgroundSize` in the
+ *                     correct reference frame. Omitted (or not yet resolved),
+ *                     this falls back to today's container-relative
+ *                     percentage so nothing regresses for a caller that
+ *                     cannot supply it yet.
  */
-export function getImageTilingStyle(element: PptxElement): CssStyleMap | undefined {
+export function getImageTilingStyle(
+	element: PptxElement,
+	nativeSize?: NativeImageSize,
+): CssStyleMap | undefined {
 	if (!isImageLikeElement(element) || !isImageTiled(element)) {
 		return undefined;
 	}
@@ -192,12 +218,15 @@ export function getImageTilingStyle(element: PptxElement): CssStyleMap | undefin
 	const flip = element.tileFlip;
 	const mirror =
 		src && flip && flip !== 'none'
-			? buildMirrorTiledBackground(src, flip, scaleX, scaleY)
+			? buildMirrorTiledBackground(src, flip, scaleX, scaleY, nativeSize)
 			: undefined;
+	const backgroundSize = nativeSize
+		? `${(nativeSize.width * scaleX) / 100}px ${(nativeSize.height * scaleY) / 100}px`
+		: `${scaleX}% ${scaleY}%`;
 
 	const style: CssStyleMap = {
 		backgroundRepeat: 'repeat',
-		backgroundSize: mirror ? mirror.backgroundSize : `${scaleX}% ${scaleY}%`,
+		backgroundSize: mirror ? mirror.backgroundSize : backgroundSize,
 		backgroundPosition,
 		width: '100%',
 		height: '100%',

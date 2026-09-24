@@ -255,3 +255,60 @@ describe('renderImageElement source effects', () => {
 		expect(img.style.clipPath).toBe('');
 	});
 });
+
+/**
+ * `a:tile/@sx`/`@sy` (ECMA-376 §20.1.8.58) is a percentage of the picture's
+ * own NATIVE pixel size, not of the container. The tile div is re-styled in
+ * place with an absolute-pixel `backgroundSize` once the async native-size
+ * probe resolves.
+ */
+describe('renderImageElement tiled-picture native size', () => {
+	const SRC = 'data:image/png;base64,tile-src';
+
+	/** A minimal `Image`-like stub whose `onload` fires on the next microtask. */
+	class FakeImage {
+		naturalWidth = 800;
+		naturalHeight = 400;
+		onload: (() => void) | null = null;
+		onerror: (() => void) | null = null;
+		#src = '';
+		get src(): string {
+			return this.#src;
+		}
+		set src(value: string) {
+			this.#src = value;
+			queueMicrotask(() => this.onload?.());
+		}
+	}
+
+	beforeEach(() => {
+		vi.stubGlobal('Image', FakeImage);
+	});
+
+	function tiledElement(): ImagePptxElement {
+		return {
+			type: 'image',
+			id: 'image-tiled',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			tileScaleX: 0.1,
+			tileScaleY: 0.25,
+			imageData: SRC,
+		} as unknown as ImagePptxElement;
+	}
+
+	it('renders the container-relative percentage before the native size resolves', () => {
+		const node = renderImageElement(tiledElement(), 0, context()) as HTMLElement;
+		const tile = node.querySelector<HTMLElement>('.pptxv-image-tile');
+		expect(tile?.style.backgroundSize).toBe('10% 25%');
+	});
+
+	it('switches to an absolute-pixel backgroundSize once the native size resolves', async () => {
+		const node = renderImageElement(tiledElement(), 0, context()) as HTMLElement;
+		const tile = node.querySelector<HTMLElement>('.pptxv-image-tile');
+		// 800 * 0.1 = 80, 400 * 0.25 = 100.
+		await vi.waitFor(() => expect(tile?.style.backgroundSize).toBe('80px 100px'));
+	});
+});

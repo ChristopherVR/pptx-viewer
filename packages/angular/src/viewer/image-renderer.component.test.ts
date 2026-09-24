@@ -19,8 +19,9 @@ import type { InputSignal } from '@angular/core';
 import { DomSanitizer } from '@angular/platform-browser';
 import type { SafeHtml } from '@angular/platform-browser';
 import type { PptxElement } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { _resetNativeImageSizeCacheForTests } from '../internal/shared';
 import { ImageRendererComponent } from './image-renderer.component';
 
 /** Minimal stub: `hitTargetStyle` never calls the sanitizer, so this is unused. */
@@ -84,5 +85,69 @@ describe('imageRendererComponent hitTargetStyle', () => {
 		const roomy = imageElement(400, 300);
 		const component = createImageRenderer(roomy, true, false);
 		expect(component.hitTargetStyle()).toBeUndefined();
+	});
+});
+
+/**
+ * `view().tilingStyle`'s native-pixel `backgroundSize`: probed asynchronously
+ * (see `image-renderer.component.ts`'s `ensureNativeSizeProbeStarted`,
+ * deliberately NOT an `effect()` so this component stays instantiable with
+ * plain `new` in this file's TestBed-less harness).
+ */
+describe('imageRendererComponent tiled-picture native size', () => {
+	const SRC = 'data:image/png;base64,tile-src';
+
+	/** A minimal `Image`-like stub whose `onload` fires on the next microtask. */
+	class FakeImage {
+		naturalWidth = 800;
+		naturalHeight = 400;
+		onload: (() => void) | null = null;
+		onerror: (() => void) | null = null;
+		#src = '';
+		get src(): string {
+			return this.#src;
+		}
+		set src(value: string) {
+			this.#src = value;
+			queueMicrotask(() => this.onload?.());
+		}
+	}
+
+	function tiledImageElement(): PptxElement {
+		return {
+			type: 'image',
+			id: 'img-tiled',
+			name: '',
+			x: 0,
+			y: 0,
+			width: 200,
+			height: 100,
+			tileScaleX: 0.1,
+			tileScaleY: 0.25,
+			imageData: SRC,
+		} as unknown as PptxElement;
+	}
+
+	beforeEach(() => {
+		_resetNativeImageSizeCacheForTests();
+		vi.stubGlobal('Image', FakeImage);
+	});
+	afterEach(() => {
+		vi.unstubAllGlobals();
+	});
+
+	it('renders the container-relative percentage before the native size resolves', () => {
+		const component = createImageRenderer(tiledImageElement(), false, false);
+		expect(component.view().tilingStyle?.backgroundSize).toBe('10% 25%');
+	});
+
+	it('switches to an absolute-pixel backgroundSize once the native size resolves', async () => {
+		const component = createImageRenderer(tiledImageElement(), false, false);
+		component.view(); // Starts the probe.
+		await new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		// 800 * 0.1 = 80, 400 * 0.25 = 100.
+		expect(component.view().tilingStyle?.backgroundSize).toBe('80px 100px');
 	});
 });
