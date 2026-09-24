@@ -97,7 +97,13 @@ describe('pptxSlideTransitionService round-trip', () => {
 		const blinds = xml!['p:blinds'] as XmlObject;
 		expect(blinds).toBeDefined();
 		expect(blinds['@_thruBlk']).toBe('1');
-		expect(blinds['@_orient']).toBe('horz');
+		// `CT_OrientationTransition` (blinds/checker/comb/randomBar) carries
+		// horz/vert on `@_dir`, not a separate `@_orient` attribute
+		// (COM-verified: `<p:blinds dir="horz"/>`). This assertion previously
+		// expected the wrong attribute name, which meant OUR OWN saved files
+		// never actually told PowerPoint the orientation the user picked.
+		expect(blinds['@_dir']).toBe('horz');
+		expect(blinds['@_orient']).toBeUndefined();
 	});
 
 	it('should preserve advanceOnClick and advanceAfterMs', () => {
@@ -511,5 +517,98 @@ describe('pptxSlideTransitionService round-trip', () => {
 		const xml = service.buildSlideTransitionXml({ type: 'wheel', spokes: 12 });
 		const wheel = xml!['p:wheel'] as XmlObject;
 		expect(wheel['@_spokes']).toBe('12');
+	});
+
+	// -----------------------------------------------------------------------
+	// COM-verified p14 direction/pattern additions (vortex/ripple/glitter/
+	// gallery/conveyor/ferris/doors/window/shred pattern), matching the exact
+	// `p:transition` XML shapes PowerPoint itself saves for each `PpEntryEffect`.
+	// -----------------------------------------------------------------------
+
+	it('writes bare p14:vortex for the default direction and dir="d" when set', () => {
+		const bare = service.buildSlideTransitionXml({ type: 'vortex' });
+		expect((bare!['p14:vortex'] as XmlObject)['@_dir']).toBeUndefined();
+		const down = service.buildSlideTransitionXml({ type: 'vortex', direction: 'd' });
+		expect((down!['p14:vortex'] as XmlObject)['@_dir']).toBe('d');
+	});
+
+	it('writes p14:ripple diagonal directions verbatim', () => {
+		const xml = service.buildSlideTransitionXml({ type: 'ripple', direction: 'ru' });
+		expect((xml!['p14:ripple'] as XmlObject)['@_dir']).toBe('ru');
+	});
+
+	it('writes p14:glitter with both @dir and @pattern', () => {
+		const xml = service.buildSlideTransitionXml({
+			type: 'glitter',
+			direction: 'u',
+			pattern: 'hexagon',
+		});
+		const glitter = xml!['p14:glitter'] as XmlObject;
+		expect(glitter['@_dir']).toBe('u');
+		expect(glitter['@_pattern']).toBe('hexagon');
+	});
+
+	it('writes p14:shred with @pattern="rectangle" (COM: NOT folded into @dir)', () => {
+		const xml = service.buildSlideTransitionXml({
+			type: 'shred',
+			direction: 'out',
+			pattern: 'rectangle',
+		});
+		const shred = xml!['p14:shred'] as XmlObject;
+		expect(shred['@_dir']).toBe('out');
+		expect(shred['@_pattern']).toBe('rectangle');
+	});
+
+	it('writes p14:doors/p14:window orientation via @dir="vert", not @_orient', () => {
+		for (const type of ['doors', 'window'] as const) {
+			const xml = service.buildSlideTransitionXml({ type, orient: 'vert' });
+			const node = xml![`p14:${type}`] as XmlObject;
+			expect(node['@_dir']).toBe('vert');
+			expect(node['@_orient']).toBeUndefined();
+		}
+	});
+
+	it('writes checker/comb/randomBar orientation via @dir, not @_orient', () => {
+		for (const type of ['checker', 'comb', 'randomBar'] as const) {
+			const xml = service.buildSlideTransitionXml({ type, orient: 'vert' });
+			const node = xml![`p:${type}`] as XmlObject;
+			expect(node['@_dir']).toBe('vert');
+			expect(node['@_orient']).toBeUndefined();
+		}
+	});
+
+	it('reads a real PowerPoint-authored p:blinds orientation from @dir into `orient`, not `direction`', () => {
+		const blinds = service.parseSlideTransition({
+			'p:sld': { 'p:cSld': {}, 'p:transition': { 'p:blinds': { '@_dir': 'vert' } } },
+		});
+		expect(blinds?.orient).toBe('vert');
+		expect(blinds?.direction).toBeUndefined();
+	});
+
+	it('reads a real PowerPoint-authored direct p14:doors orientation from @dir into `orient`', () => {
+		const doors = service.parseSlideTransition({
+			'p:sld': {
+				'p:cSld': {},
+				'p:transition': { 'p14:doors': { '@_dir': 'vert' } },
+			},
+		});
+		expect(doors?.orient).toBe('vert');
+		expect(doors?.direction).toBeUndefined();
+	});
+
+	it('round-trips p15:prstTrans invX for every P15_INVX_PRESETS member', () => {
+		for (const type of ['fallOver', 'drape', 'peelOff', 'airplane', 'origami'] as const) {
+			const right = service.buildSlideTransitionXml({ type, direction: 'r' });
+			expect((right!['p15:prstTrans'] as XmlObject)['@_invX']).toBe('1');
+			const left = service.buildSlideTransitionXml({ type, direction: 'l' });
+			expect((left!['p15:prstTrans'] as XmlObject)['@_invX']).toBeUndefined();
+		}
+	});
+
+	it('writes thruBlk on cut and fade', () => {
+		const cut = service.buildSlideTransitionXml({ type: 'cut', thruBlk: true });
+		expect((cut!['p:cut'] as XmlObject)['@_thruBlk']).toBe('1');
+		const fade = service.buildSlideTransitionXml({ type: 'fade', thruBlk: true });
+		expect((fade!['p:fade'] as XmlObject)['@_thruBlk']).toBe('1');
 	});
 });

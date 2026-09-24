@@ -1551,6 +1551,12 @@ export const translationsEn: Record<string, string> = {
 	'pptx.transition.morphOption.byObject': 'By Object',
 	'pptx.transition.morphOption.byWord': 'By Word',
 	'pptx.transition.morphOption.byChar': 'By Character',
+	'pptx.transition.pattern': 'Pattern',
+	'pptx.transition.pattern.diamond': 'Diamond',
+	'pptx.transition.pattern.hexagon': 'Hexagon',
+	'pptx.transition.pattern.strip': 'Strips',
+	'pptx.transition.pattern.rectangle': 'Rectangles',
+	'pptx.transition.thruBlk': 'Through black',
 
 	// Context menu / editor toolbar (Angular/Vue-specific additions)
 	'pptx.contextMenu.ariaLabel': 'Context menu',

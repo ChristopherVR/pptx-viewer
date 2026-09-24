@@ -7,7 +7,11 @@
  * mounted from the Vue panel in the same slot.
  */
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import {
+	TRANSITION_PATTERN_OPTIONS,
+	TRANSITION_THRUBLK_TYPES,
+	TRANSITION_VALID_DIRECTIONS,
+} from 'pptx-viewer-core';
 import { TRANSITION_MORPH_OPTIONS, TRANSITION_ORIENTATION_TYPES } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -46,6 +50,14 @@ const isMorph = computed(() => transitionType.value === 'morph');
 const orient = computed(() => props.slide?.transition?.orient ?? 'horz');
 const spokes = computed(() => props.slide?.transition?.spokes ?? 4);
 const morphOption = computed(() => props.slide?.transition?.morphOption ?? 'byObject');
+const patternOptions = computed<readonly string[] | undefined>(
+	() => TRANSITION_PATTERN_OPTIONS[transitionType.value],
+);
+const hasThruBlk = computed(() => TRANSITION_THRUBLK_TYPES.has(transitionType.value));
+
+function onThruBlkChange(e: Event): void {
+	patchTransition({ thruBlk: (e.target as HTMLInputElement).checked });
+}
 
 function onMorphOptionChange(e: Event): void {
 	patchTransition({
@@ -115,6 +127,39 @@ function onAdvanceChange(e: Event): void {
 				</button>
 			</div>
 		</div>
+
+		<div v-if="patternOptions" class="mt-2 space-y-1 px-2.5">
+			<span class="text-xs text-muted-foreground">{{ t('pptx.transition.pattern') }}</span>
+			<div class="flex gap-1">
+				<button
+					v-for="pattern in patternOptions"
+					:key="pattern"
+					type="button"
+					class="rounded border px-2 py-1 text-xs"
+					:class="
+						(slide?.transition?.pattern ?? patternOptions[0]) === pattern
+							? 'border-primary bg-primary text-white'
+							: 'border-border bg-muted hover:bg-accent'
+					"
+					@click="patchTransition({ pattern })"
+				>
+					{{ t(`pptx.transition.pattern.${pattern}`) }}
+				</button>
+			</div>
+		</div>
+
+		<label
+			v-if="hasThruBlk"
+			class="mt-1 inline-flex items-center gap-2 px-2.5 text-xs text-foreground"
+		>
+			<pptx-ui-checkbox
+				type="checkbox"
+				data-testid="transition-thru-blk"
+				:checked="slide?.transition?.thruBlk === true"
+				@change="onThruBlkChange"
+			/>
+			{{ t('pptx.transition.thruBlk') }}
+		</label>
 
 		<label v-if="isWheel" class="mt-2 flex flex-col gap-1 px-2.5">
 			<span class="text-xs text-muted-foreground">{{ t('pptx.transition.spokes') }}</span>

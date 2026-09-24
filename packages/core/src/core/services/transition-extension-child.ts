@@ -18,6 +18,8 @@
  */
 import type { PptxMorphOption, XmlObject } from '../types';
 import { prismFamilyFlags } from './p14-prism-family';
+import { P14_DIR_IS_ORIENTATION_TYPE } from './p14-transition-parser';
+import { P15_INVX_PRESETS } from './p15-transition-parser';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 
 const P14_NAMESPACE_URI = 'http://schemas.microsoft.com/office/powerpoint/2010/main';
@@ -122,13 +124,19 @@ export function buildP14DirectChild(
 		delete node['@_isInverted'];
 	}
 	const direction = String(details.direction ?? '').trim();
-	if (P14_REQUIRED_LEFT_RIGHT.has(elementName)) {
-		node['@_dir'] = direction === 'r' ? 'r' : 'l';
-	} else if (direction.length > 0) {
-		node['@_dir'] = direction;
-	}
-	if (details.orient) {
-		node['@_orient'] = details.orient;
+	if (P14_DIR_IS_ORIENTATION_TYPE.has(elementName) && details.orient) {
+		// `doors`/`window`: the horz/vert value IS `@_dir` (COM-verified), not a
+		// separate `@_orient` attribute.
+		node['@_dir'] = details.orient;
+	} else {
+		if (P14_REQUIRED_LEFT_RIGHT.has(elementName)) {
+			node['@_dir'] = direction === 'r' ? 'r' : 'l';
+		} else if (direction.length > 0) {
+			node['@_dir'] = direction;
+		}
+		if (details.orient) {
+			node['@_orient'] = details.orient;
+		}
 	}
 	if (details.pattern) {
 		node['@_pattern'] = details.pattern;
@@ -146,19 +154,34 @@ export function buildP14DirectChild(
 	return { key: `p14:${elementName}`, node };
 }
 
-/** `<p15:prstTrans prst="origami"/>` for a PowerPoint 2013+/365 preset. */
+/**
+ * `<p15:prstTrans prst="origami"/>` for a PowerPoint 2013+/365 preset.
+ *
+ * `direction` maps onto `@invX` for the eight presets PowerPoint offers a
+ * direction for (see {@link P15_INVX_PRESETS}): `'r'` writes `invX="1"`,
+ * anything else (including the default `'l'`) omits it, matching the two
+ * XML shapes COM ever produces for these presets. The attribute is deleted
+ * rather than merely left unset so that flipping a preserved `invX="1"`
+ * child back to the default direction actually clears it.
+ */
 export function buildP15DirectChild(
 	transitionType: string,
 	context: ExtensionChildContext,
+	direction?: string,
 ): ExtensionChild {
-	return {
-		key: 'p15:prstTrans',
-		node: {
-			'@_xmlns:p15': P15_NAMESPACE_URI,
-			...inheritedAttributes(findInExtensions(context, 'prstTrans')),
-			'@_prst': transitionType,
-		},
+	const node: XmlObject = {
+		'@_xmlns:p15': P15_NAMESPACE_URI,
+		...inheritedAttributes(findInExtensions(context, 'prstTrans')),
+		'@_prst': transitionType,
 	};
+	if (P15_INVX_PRESETS.has(transitionType)) {
+		if (direction === 'r') {
+			node['@_invX'] = '1';
+		} else {
+			delete node['@_invX'];
+		}
+	}
+	return { key: 'p15:prstTrans', node };
 }
 
 /**

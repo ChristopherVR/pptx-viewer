@@ -30,7 +30,11 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxSlide, PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import {
+	TRANSITION_PATTERN_OPTIONS,
+	TRANSITION_THRUBLK_TYPES,
+	TRANSITION_VALID_DIRECTIONS,
+} from 'pptx-viewer-core';
 
 import {
 	clampTransitionNumber,
@@ -44,6 +48,7 @@ import { EditorStateService } from './editor-state.service';
 import { INSPECTOR_CARD_STYLES } from './inspector-card-styles';
 import { SLIDE_TRANSITION_CARD_STYLES } from './slide-transition-card.styles';
 import { TransitionDirectionPickerComponent } from './transition-direction-picker.component';
+import { TransitionExtraOptionsComponent } from './transition-extra-options.component';
 import { TransitionPreviewComponent } from './transition-preview.component';
 
 /** Default duration (ms) shown when the slide declares no transition timing. */
@@ -59,7 +64,12 @@ const MAX_SPOKES = 8;
 	selector: 'pptx-slide-transition-card',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe, TransitionDirectionPickerComponent, TransitionPreviewComponent],
+	imports: [
+		TranslatePipe,
+		TransitionDirectionPickerComponent,
+		TransitionExtraOptionsComponent,
+		TransitionPreviewComponent,
+	],
 	template: `
 		@if (activeSlide()) {
 			<section class="icard">
@@ -113,6 +123,16 @@ const MAX_SPOKES = 8;
 						</div>
 					</div>
 				}
+
+				<pptx-transition-extra-options
+					[patternOptions]="patternOptions()"
+					[value]="transition()?.pattern"
+					[showThruBlk]="hasThruBlk()"
+					[thruBlk]="transition()?.thruBlk"
+					[disabled]="!canEdit()"
+					(patternPick)="onPattern($event)"
+					(thruBlkChange)="onThruBlk($event)"
+				/>
 
 				@if (isWheel()) {
 					<label class="icard__row">
@@ -250,6 +270,12 @@ export class SlideTransitionCardComponent {
 		return valid && valid.length > 0 ? valid : undefined;
 	});
 
+	protected readonly patternOptions = computed<readonly string[] | undefined>(
+		() => TRANSITION_PATTERN_OPTIONS[this.transitionType()],
+	);
+	protected readonly hasThruBlk = computed(() =>
+		TRANSITION_THRUBLK_TYPES.has(this.transitionType()),
+	);
 	protected readonly orientation = computed(() => this.transition()?.orient ?? 'horz');
 	protected readonly spokes = computed(() => this.transition()?.spokes ?? 4);
 	protected readonly durationMs = computed(() =>
@@ -268,6 +294,14 @@ export class SlideTransitionCardComponent {
 
 	protected onOrientation(orient: 'horz' | 'vert'): void {
 		this.patch({ orient });
+	}
+
+	protected onPattern(pattern: string): void {
+		this.patch({ pattern });
+	}
+
+	protected onThruBlk(thruBlk: boolean): void {
+		this.patch({ thruBlk });
 	}
 
 	protected onSpokes(event: Event): void {

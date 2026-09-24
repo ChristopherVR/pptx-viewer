@@ -95,7 +95,12 @@ describe('slideTransitionSection', () => {
 		const { target, editor } = mountSection();
 
 		setValue(typeSelect(target), 'fade');
-		const check = target.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
+		// `fade` also shows the "Through Black" checkbox (unchecked by default),
+		// so scope by the label text rather than grabbing the first checkbox.
+		const label = Array.from(target.querySelectorAll('label')).find((l) =>
+			l.textContent?.includes('Advance on click'),
+		)!;
+		const check = label.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
 		expect(check.checked).toBeTruthy();
 		check.click();
 		flushSync();
@@ -149,5 +154,41 @@ describe('slideTransitionSection', () => {
 
 		expect(editor.slides[0]?.transition?.morphOption).toBe('byChar');
 		expect(editor.slides[0]?.transition?.type).toBe('morph');
+	});
+
+	it('shows the pattern buttons for glitter and writes the chosen pattern', () => {
+		const { target, editor } = mountSection();
+		setValue(typeSelect(target), 'glitter');
+
+		const buttons = Array.from(target.querySelectorAll('button')).filter((b) =>
+			['Diamond', 'Hexagon'].includes(b.textContent ?? ''),
+		);
+		expect(buttons).toHaveLength(2);
+		buttons[1].click();
+		flushSync();
+
+		expect(editor.slides[0]?.transition?.pattern).toBe('hexagon');
+	});
+
+	it('shows the Through Black checkbox for cut/fade and writes thruBlk', () => {
+		const { target, editor } = mountSection();
+		setValue(typeSelect(target), 'cut');
+
+		const label = Array.from(target.querySelectorAll('label')).find((l) =>
+			l.textContent?.includes('Through black'),
+		)!;
+		const check = label.querySelector<HTMLInputElement>('pptx-ui-checkbox')!;
+		check.click();
+		flushSync();
+
+		expect(editor.slides[0]?.transition?.thruBlk).toBeTruthy();
+	});
+
+	it('hides pattern and Through Black for a type that supports neither', () => {
+		const { target } = mountSection();
+		setValue(typeSelect(target), 'wipe');
+
+		expect(target.textContent).not.toContain('Pattern');
+		expect(target.textContent).not.toContain('Through black');
 	});
 });

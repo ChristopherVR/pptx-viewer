@@ -10,6 +10,7 @@
  *
  * @module render/p14-transition-keyframes
  */
+import { DIRECTIONAL_FX_KEYFRAMES } from './slide-transition-directional-fx';
 import { PRISM_TRANSITION_KEYFRAMES } from './slide-transition-prism';
 import { WARP_TRANSITION_KEYFRAMES } from './slide-transition-warp';
 
@@ -282,4 +283,4 @@ ${WARP_TRANSITION_KEYFRAMES}
 `;
 
 /** Both p14 keyframe blocks concatenated, for single `<style>` injection. */
-export const P14_TRANSITION_KEYFRAMES_ALL = `${P14_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_2}`;
+export const P14_TRANSITION_KEYFRAMES_ALL = `${P14_TRANSITION_KEYFRAMES}\n${P14_TRANSITION_KEYFRAMES_2}\n${DIRECTIONAL_FX_KEYFRAMES}`;

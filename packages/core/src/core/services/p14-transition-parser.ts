@@ -43,6 +43,14 @@ export interface P14ParseResult {
 	pattern?: string;
 }
 
+/**
+ * `doors`/`window` carry their horz/vert orientation on the SAME `@_dir`
+ * attribute as every other p14 type's direction, COM-verified:
+ * `<p14:doors dir="vert"/>`, never `<p14:doors orient="vert"/>`. Keep in sync
+ * with shared's `TRANSITION_ORIENTATION_TYPES`.
+ */
+export const P14_DIR_IS_ORIENTATION_TYPE: ReadonlySet<string> = new Set(['doors', 'window']);
+
 /** Read the `@dir` / `@orient` / `@pattern` details off a p14 transition element. */
 function readP14Details(localName: string, value: unknown): P14ParseResult {
 	const detail =
@@ -61,7 +69,11 @@ function readP14Details(localName: string, value: unknown): P14ParseResult {
 	if (detail) {
 		const rawDir = String(detail['@_dir'] || '').trim();
 		if (rawDir.length > 0) {
-			direction = rawDir;
+			if (P14_DIR_IS_ORIENTATION_TYPE.has(localName) && (rawDir === 'horz' || rawDir === 'vert')) {
+				orient = rawDir;
+			} else {
+				direction = rawDir;
+			}
 		}
 		const rawOrient = String(detail['@_orient'] || '').trim();
 		if (rawOrient === 'horz' || rawOrient === 'vert') {

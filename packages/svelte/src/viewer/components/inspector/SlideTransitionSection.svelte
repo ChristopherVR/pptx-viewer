@@ -16,7 +16,11 @@
 	 * the same `PptxSlide.transition` the presentation playback reads.
 	 */
 	import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-	import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+	import {
+		TRANSITION_PATTERN_OPTIONS,
+		TRANSITION_THRUBLK_TYPES,
+		TRANSITION_VALID_DIRECTIONS,
+	} from 'pptx-viewer-core';
 	import {
 		SLIDE_TRANSITION_OPTIONS,
 		TRANSITION_MORPH_OPTIONS,
@@ -40,6 +44,8 @@
 	const hasDirections = $derived(
 		!usesOrientation && validDirections !== undefined && validDirections.length > 0,
 	);
+	const patternOptions = $derived(TRANSITION_PATTERN_OPTIONS[transitionType]);
+	const hasThruBlk = $derived(TRANSITION_THRUBLK_TYPES.has(transitionType));
 	const isWheel = $derived(transitionType === 'wheel');
 	const isMorph = $derived(transitionType === 'morph');
 	const canEdit = $derived(editor.editable);
@@ -112,6 +118,37 @@
 					{/each}
 				</div>
 			</div>
+		{/if}
+
+		{#if patternOptions}
+			<div class="pptx-svelte-transition-field">
+				<span>{t('pptx.transition.pattern')}</span>
+				<div class="pptx-svelte-transition-orient">
+					{#each patternOptions as pattern (pattern)}
+						<button
+							type="button"
+							disabled={!canEdit}
+							aria-pressed={(transition?.pattern ?? patternOptions[0]) === pattern}
+							class:pptx-svelte-transition-orient-active={(transition?.pattern ??
+								patternOptions[0]) === pattern}
+							onclick={() => patch({ pattern })}
+						>
+							{t(`pptx.transition.pattern.${pattern}`)}
+						</button>
+					{/each}
+				</div>
+			</div>
+		{/if}
+
+		{#if hasThruBlk}
+			<label class="pptx-svelte-transition-check">
+				<pptx-ui-checkbox
+					disabled={!canEdit}
+					checked={transition?.thruBlk === true}
+					onchange={(event) => patch({ thruBlk: event.currentTarget.checked })}
+				></pptx-ui-checkbox>
+				<span>{t('pptx.transition.thruBlk')}</span>
+			</label>
 		{/if}
 
 		{#if isWheel}

@@ -116,11 +116,24 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				: parseP15DirectChild(transitionNode, this.getXmlLocalName);
 			if (p14Direct) {
 				transitionType = p14Direct.type;
-				direction = p14Direct.direction ?? direction;
-				orient = p14Direct.orient ?? orient;
-				pattern = p14Direct.pattern ?? pattern;
+				// Overwrite outright rather than `?? direction`: the generic
+				// `parseTransitionDetails` pass above already scanned this SAME
+				// `p14:*` element (it does not know which p14 types are
+				// orientation-family) and may have stashed its `@_dir` into the
+				// generic `direction`/`orient` locals under the wrong field
+				// (e.g. `doors`' `dir="vert"` landing in `direction` instead of
+				// `orient`). `p14Direct` is the authoritative, type-aware read.
+				direction = p14Direct.direction;
+				orient = p14Direct.orient;
+				pattern = p14Direct.pattern;
 			} else if (p15Direct) {
 				transitionType = p15Direct.type;
+				// `invX` is the only direction axis PowerPoint ever writes for these
+				// presets (COM-verified; see `P15_INVX_PRESETS`), so it maps onto the
+				// same `l`/`r` token the p14/cinematic families already use.
+				if (p15Direct.invX) {
+					direction = 'r';
+				}
 			}
 		}
 
@@ -146,6 +159,9 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 				// PowerPoint 2013+/365 preset transitions (Fracture, Peel Off,
 				// Page Curl, etc.) live in a `p15:prstTrans` extension.
 				transitionType = p15Result.type;
+				if (p15Result.invX) {
+					direction = 'r';
+				}
 			} else {
 				const morphResult = parseMorphFromExtLst(
 					rawExtLst,
@@ -205,7 +221,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			? preservedP14ChildKey(node, transitionType, this.getXmlLocalName)
 			: undefined;
 		const p15ChildKey = isP15Type
-			? preservedP15ChildKey(node, transitionType, this.getXmlLocalName)
+			? preservedP15ChildKey(node, transitionType, this.getXmlLocalName, transition.direction)
 			: undefined;
 		pruneDirectExtensionChildren(node, this.getXmlLocalName, p14ChildKey ?? p15ChildKey);
 
@@ -237,7 +253,7 @@ export class PptxSlideTransitionService implements IPptxSlideTransitionService {
 			}
 		} else if (isP15Type) {
 			if (!p15ChildKey) {
-				const child = buildP15DirectChild(transitionType, extensionContext);
+				const child = buildP15DirectChild(transitionType, extensionContext, transition.direction);
 				node[child.key] = child.node;
 			}
 		} else if (isMorphType) {

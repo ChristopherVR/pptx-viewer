@@ -157,6 +157,12 @@ export const translations = {
 	'pptx.transition.morphOption.byObject': 'Nach Objekt',
 	'pptx.transition.morphOption.byWord': 'Nach Wort',
 	'pptx.transition.morphOption.byChar': 'Nach Zeichen',
+	'pptx.transition.pattern': 'Muster',
+	'pptx.transition.pattern.diamond': 'Raute',
+	'pptx.transition.pattern.hexagon': 'Sechseck',
+	'pptx.transition.pattern.strip': 'Streifen',
+	'pptx.transition.pattern.rectangle': 'Rechtecke',
+	'pptx.transition.thruBlk': 'Über Schwarz',
 	'pptx.keepAnnotations.title': 'Freihandanmerkungen behalten?',
 	'pptx.keepAnnotations.description':
 		'Sie haben {{count}} Freihandanmerkungen auf {{slides}} Folien erstellt. Möchten Sie sie auf den Folien behalten oder verwerfen?',

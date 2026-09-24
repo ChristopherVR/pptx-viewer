@@ -136,9 +136,13 @@ export const TRANSITION_MORPH_OPTIONS: readonly SlideTransitionValueOption<PptxM
  * Transition types whose OOXML attribute is `dir="horz|vert"` (an orientation)
  * rather than one of the cardinal/diagonal direction tokens, so the inspector
  * must show a two-button orientation toggle instead of the arrow grid.
+ *
+ * `doors` and `window` are COM-verified: PowerPoint's own `PpEntryEffect`
+ * enumeration saves `<p14:doors dir="vert"/>` / bare (horz default), and
+ * likewise for `p14:window`, exactly like `blinds`/`checker`.
  */
 export const TRANSITION_ORIENTATION_TYPES: ReadonlySet<PptxTransitionType> =
-	new Set<PptxTransitionType>(['blinds', 'checker', 'comb', 'randomBar']);
+	new Set<PptxTransitionType>(['blinds', 'checker', 'comb', 'randomBar', 'doors', 'window']);
 
 /** Arrow glyph shown on a direction button, keyed by OOXML direction token. */
 export const TRANSITION_DIR_ARROWS: Readonly<Record<string, string>> = {

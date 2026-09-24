@@ -88,7 +88,9 @@ describe('tRANSITION_ORIENTATION_TYPES', () => {
 			'blinds',
 			'checker',
 			'comb',
+			'doors',
 			'randomBar',
+			'window',
 		]);
 	});
 });

@@ -16,6 +16,11 @@
 
 import type { PptxTransitionType } from 'pptx-viewer-core';
 
+import {
+	getGlitterAnimations,
+	getRippleAnimations,
+	getVortexAnimations,
+} from './p14-transition-css-directional';
 import { EASE } from './slide-transition-types';
 import type { SlideTransitionAnimations } from './slide-transition-types';
 
@@ -207,11 +212,7 @@ export function getP14TransitionAnimations(
 		}
 
 		case 'glitter':
-			return {
-				outgoing: `pptx-tr-fade-out ${dur} ${ease} forwards`,
-				incoming: `pptx-tr-glitter-in ${dur} ${ease} forwards`,
-				outgoingOnTop: true,
-			};
+			return getGlitterAnimations(durationMs, direction, pattern, ease);
 
 		case 'honeycomb':
 			return {
@@ -239,11 +240,7 @@ export function getP14TransitionAnimations(
 		}
 
 		case 'ripple':
-			return {
-				outgoing: 'none',
-				incoming: `pptx-tr-ripple-in ${dur} ${ease} forwards`,
-				outgoingOnTop: false,
-			};
+			return getRippleAnimations(durationMs, direction, ease);
 
 		case 'shred': {
 			// `p14:shred` names its tile shape via the SEPARATE `@_pattern`
@@ -279,11 +276,7 @@ export function getP14TransitionAnimations(
 		}
 
 		case 'vortex':
-			return {
-				outgoing: `pptx-tr-vortex-out ${dur} ${ease} forwards`,
-				incoming: `pptx-tr-vortex-in ${dur} ${ease} forwards`,
-				outgoingOnTop: true,
-			};
+			return getVortexAnimations(durationMs, direction, ease);
 
 		case 'warp': {
 			const isOut = direction === 'out';

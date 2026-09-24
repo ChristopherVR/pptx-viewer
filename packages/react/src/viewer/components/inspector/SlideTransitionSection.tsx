@@ -15,7 +15,11 @@
  * Angular stores the same number.
  */
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import {
+	TRANSITION_PATTERN_OPTIONS,
+	TRANSITION_THRUBLK_TYPES,
+	TRANSITION_VALID_DIRECTIONS,
+} from 'pptx-viewer-core';
 import {
 	clampTransitionNumber,
 	TRANSITION_MORPH_OPTIONS,
@@ -68,6 +72,8 @@ export function SlideTransitionSection({
 	const usesOrientation = TRANSITION_ORIENTATION_TYPES.has(transitionType);
 	const isWheel = transitionType === 'wheel';
 	const isMorph = transitionType === 'morph';
+	const patternOptions = TRANSITION_PATTERN_OPTIONS[transitionType];
+	const hasThruBlk = TRANSITION_THRUBLK_TYPES.has(transitionType);
 
 	return (
 		<div
@@ -137,6 +143,43 @@ export function SlideTransitionSection({
 						))}
 					</div>
 				</div>
+			)}
+
+			{/* Pattern (glitter's diamond/hexagon, shred's strip/rectangle) */}
+			{patternOptions && (
+				<div className='space-y-1'>
+					<span className='text-muted-foreground text-xs'>{t('pptx.transition.pattern')}</span>
+					<div className='flex gap-1'>
+						{patternOptions.map((pattern) => (
+							<button
+								key={pattern}
+								type='button'
+								disabled={!canEdit}
+								onClick={() => onTransitionChange({ pattern })}
+								className={`px-2 py-1 rounded text-xs border ${
+									(activeSlide.transition?.pattern ?? patternOptions[0]) === pattern
+										? 'bg-primary text-white border-primary'
+										: 'bg-muted border-border hover:bg-accent'
+								}`}
+							>
+								{t(`pptx.transition.pattern.${pattern}`)}
+							</button>
+						))}
+					</div>
+				</div>
+			)}
+
+			{/* Through Black */}
+			{hasThruBlk && (
+				<label className='inline-flex items-center gap-2 text-foreground text-xs'>
+					<WebCheckbox
+						type='checkbox'
+						disabled={!canEdit}
+						checked={activeSlide.transition?.thruBlk === true}
+						onChange={(e) => onTransitionChange({ thruBlk: e.target.checked })}
+					/>
+					{t('pptx.transition.thruBlk')}
+				</label>
 			)}
 
 			{/* Spokes for wheel */}

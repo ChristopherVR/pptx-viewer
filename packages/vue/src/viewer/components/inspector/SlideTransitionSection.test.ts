@@ -122,4 +122,33 @@ describe('slideTransitionSection', () => {
 		expect(last.morphOption).toBe('byChar');
 		expect(last.type).toBe('morph');
 	});
+
+	it('shows the pattern buttons for glitter and emits the chosen pattern', async () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'glitter', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).toContain('Pattern');
+		const hexagon = wrapper.findAll('button').find((b) => b.text() === 'Hexagon');
+		await hexagon!.trigger('click');
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.pattern).toBe('hexagon');
+	});
+
+	it('shows the Through Black checkbox for cut/fade and emits thruBlk', async () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'cut', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).toContain('Through black');
+		await setControlValue(wrapper.get('[data-testid="transition-thru-blk"]'), true);
+		const last = wrapper.emitted('transition-update')?.at(-1)?.[0] as PptxSlideTransition;
+		expect(last.thruBlk).toBeTruthy();
+	});
+
+	it('hides pattern and Through Black for a type that supports neither', () => {
+		const wrapper = mount(SlideTransitionSection, {
+			props: { slide: slide({ type: 'wipe', durationMs: 500 }) },
+		});
+		expect(wrapper.text()).not.toContain('Pattern');
+		expect(wrapper.text()).not.toContain('Through black');
+	});
 });

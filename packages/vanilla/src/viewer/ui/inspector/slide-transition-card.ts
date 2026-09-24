@@ -1,5 +1,9 @@
 import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
-import { TRANSITION_VALID_DIRECTIONS } from 'pptx-viewer-core';
+import {
+	TRANSITION_PATTERN_OPTIONS,
+	TRANSITION_THRUBLK_TYPES,
+	TRANSITION_VALID_DIRECTIONS,
+} from 'pptx-viewer-core';
 import {
 	buildDirectionGrid,
 	SLIDE_TRANSITION_OPTIONS,
@@ -92,6 +96,11 @@ export function createSlideTransitionCard(
 	morphLabel.append(morphCaption, morphOption);
 
 	const directions = createEl(doc, 'div', 'pptxv-transition-directions');
+	const pattern = createEl(doc, 'div', 'pptxv-transition-directions');
+	const thruBlk = makeCheckboxField(doc, {
+		label: t('pptx.transition.thruBlk'),
+		onChange: (checked) => patch({ thruBlk: checked }),
+	});
 	const duration = makeNumberField(doc, {
 		label: t('pptx.transition.duration'),
 		min: 0,
@@ -114,6 +123,8 @@ export function createSlideTransitionCard(
 	body.append(
 		typeLabel,
 		directions,
+		pattern,
+		thruBlk.el,
 		spokes.el,
 		duration.el,
 		speedLabel,
@@ -190,6 +201,31 @@ export function createSlideTransitionCard(
 		directions.appendChild(row);
 	};
 
+	/** Repaint the "Pattern" button row (glitter's diamond/hexagon, shred's strip/rectangle). */
+	const renderPattern = (current: PptxTransitionType): void => {
+		pattern.textContent = '';
+		const options = TRANSITION_PATTERN_OPTIONS[current];
+		if (!options || options.length === 0) {
+			pattern.hidden = true;
+			return;
+		}
+		pattern.hidden = false;
+		const caption = createEl(doc, 'span', 'pptxv-field-label');
+		caption.textContent = t('pptx.transition.pattern');
+		pattern.appendChild(caption);
+		const row = createEl(doc, 'div', 'pptxv-transition-dir-row');
+		for (const value of options) {
+			const node = createEl(doc, 'button', 'pptxv-transition-pattern-btn');
+			node.type = 'button';
+			node.textContent = t(`pptx.transition.pattern.${value}`);
+			node.classList.toggle('is-active', (transition?.pattern ?? options[0]) === value);
+			node.disabled = !editable;
+			node.addEventListener('click', () => patch({ pattern: value }));
+			row.appendChild(node);
+		}
+		pattern.appendChild(row);
+	};
+
 	return {
 		el,
 		update(state: InspectorDeckState) {
@@ -200,6 +236,10 @@ export function createSlideTransitionCard(
 			type.value = current;
 			type.disabled = !state.editable;
 			renderDirections(current);
+			renderPattern(current);
+			thruBlk.el.hidden = !TRANSITION_THRUBLK_TYPES.has(current);
+			thruBlk.setValue(transition?.thruBlk === true);
+			thruBlk.setDisabled(!state.editable);
 			spokes.el.hidden = current !== 'wheel';
 			spokes.setValue(transition?.spokes ?? 4);
 			spokes.setDisabled(!state.editable);

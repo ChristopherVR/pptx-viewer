@@ -33,6 +33,26 @@ export const P15_TRANSITION_PRESETS: ReadonlySet<string> = new Set([
 ]);
 
 /**
+ * The p15 presets PowerPoint actually offers an "Effect Options" direction
+ * for, via `p15:prstTrans/@invX` (there is no observed `invY` usage: COM-
+ * verified by enumerating every `SlideShowTransition.EntryEffect` value in
+ * the 2013+ block and reading back the saved `p:transition` XML for each -
+ * `curtains`, `prestige`, `fracture` and `crush` each produced exactly one
+ * XML shape with no `invX`/`invY` variant at all, while the other eight each
+ * produced exactly two: the bare preset and the same preset with `invX="1"`).
+ */
+export const P15_INVX_PRESETS: ReadonlySet<string> = new Set([
+	'fallOver',
+	'drape',
+	'wind',
+	'peelOff',
+	'pageCurlSingle',
+	'pageCurlDouble',
+	'airplane',
+	'origami',
+]);
+
+/**
  * Well-known extension URI PowerPoint uses for the preset-transition
  * extension. Only used when fabricating an extLst for a p15 transition
  * that has no preserved `rawExtLst`; real files round-trip their own URI
