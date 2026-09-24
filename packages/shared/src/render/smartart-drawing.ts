@@ -234,10 +234,18 @@ export function drawingShapeLabelColor(
 	index: number,
 	resolvedFill: string,
 ): string {
+	// A gradient fill is read against its middle stop (what most of the label
+	// sits on), not the shape underneath.
+	const stops = shape.fillGradientStops;
+	const gradientBasis =
+		resolvedFill.startsWith('url(') && stops && stops.length > 0
+			? stops[Math.floor((stops.length - 1) / 2)]?.color
+			: undefined;
 	const basis =
-		resolvedFill === 'none' || resolvedFill.startsWith('url(')
+		gradientBasis ??
+		(resolvedFill === 'none' || resolvedFill.startsWith('url(')
 			? underlyingFill(shape, shapes, index)
-			: resolvedFill;
+			: resolvedFill);
 	return basis ? contrastTextColor(basis) : '#1a1a1a';
 }
 
