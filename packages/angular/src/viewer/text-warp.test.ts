@@ -52,7 +52,7 @@ function buildTestFont(): Uint8Array {
 
 // ── helpers ────────────────────────────────────────────────────────────
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform. */
 function matrixScaleY(transform: string): number {
 	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
 	return Number(terms[3]);
@@ -375,7 +375,7 @@ describe('getTextWarp - envelope presets (inflate/deflate/can) render as a glyph
 			expect(def).toBeDefined();
 			expect(def.strategy).toBe('glyph');
 			expect(def.glyphs).toHaveLength('Hello'.length);
-			expect(def.glyphs.every((g) => g.transform.includes('matrix(1'))).toBeTruthy();
+			expect(def.glyphs.every((g) => g.transform.startsWith('matrix('))).toBeTruthy();
 		},
 	);
 

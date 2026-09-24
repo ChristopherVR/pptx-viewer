@@ -81,19 +81,12 @@ interface WarpSpec {
 	fontSizePt?: number;
 	/**
 	 * `<a:latin typeface>` override; defaults to `Arial`. `wide-glyph-can` uses
-	 * a deliberately unmatchable name instead: `Arial` resolves via
-	 * `google-webfonts-metric-clones.ts` (`Arial` -> `Arimo`) to a real
-	 * catalogue webfont, so once that async fetch lands, EVERY glyph-envelope
-	 * shape here (this one included) switches from the affine/slicing fallback
-	 * to the exact outline-warp `<path>` renderer - which always reports
-	 * `sliceCount: 1` (see `buildGlyphEnvelope`'s doc comment), making the
-	 * slicing-specific assertions below meaningless once the fetch resolves.
-	 * `wide-glyph-can` exists specifically to exercise `chooseGlyphSliceCount`
-	 * (`pptx-viewer-shared`), so it needs a family with NO catalogue match
-	 * (verified against both `findGoogleFontsFamily` and
-	 * `findMetricCompatibleGoogleFontsFamily`, which are exact-normalised
-	 * lookups, not fuzzy) to keep that fallback path deterministically
-	 * reachable.
+	 * a deliberately unmatchable name instead (verified against both
+	 * `findGoogleFontsFamily` and `findMetricCompatibleGoogleFontsFamily`,
+	 * exact-normalised lookups): no embedded or catalogue font FILE exists for
+	 * it, so it pins the path where `createGlyphOutlineLookup`
+	 * (`pptx-viewer-shared`) traces the glyph the browser renders for the
+	 * family instead of parsing a font file.
 	 */
 	fontFamily?: string;
 }
@@ -125,15 +118,11 @@ const WARPS: WarpSpec[] = [
 		paragraphs: ['Top', 'Bottom'],
 		heightPt: 160,
 	},
-	// Wide-glyph residual: "for the `can` presets ... a realistic WordArt
-	// caption ... now measures under ~1% almost everywhere ... an extremely
-	// short caption (roughly 6-8 very wide glyphs filling the whole box) can
-	// still show up to ~2-2.5%" (limitations.md). Three very wide caps
-	// ("MOM") at a large point size in a narrow box, each glyph spanning
-	// roughly a third of the line, on `textCanUp` at an extreme `adj` (the
-	// steepest `arcTo` sweep): exactly the scenario
-	// `chooseGlyphSliceCount` (pptx-viewer-shared) slices into multiple
-	// clipped pieces per glyph instead of one affine per whole glyph.
+	// No-font-file case: three very wide caps ("MOM") at a large point size in
+	// a narrow box, on `textCanUp` at an extreme `adj`, in a family with no
+	// obtainable font file. It used to exercise the per-glyph affine slicing
+	// fallback; glyphs are now traced from the browser's own rendering and
+	// warped as exact outlines instead.
 	{
 		name: 'wide-glyph-can',
 		prst: 'textCanUp',
@@ -144,7 +133,7 @@ const WARPS: WarpSpec[] = [
 		fontSizePt: 60,
 		paragraphs: ['MOM'],
 		// See `WarpSpec.fontFamily`'s doc comment: must have no catalogue match
-		// so this shape deterministically stays on the affine/slicing fallback.
+		// so this shape deterministically exercises the traced-outline path.
 		fontFamily: 'PptxE2EWideGlyphNoOutlineMatch',
 	},
 ];

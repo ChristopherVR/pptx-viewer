@@ -60,7 +60,7 @@ function buildTestFont(): Uint8Array {
 let container: HTMLDivElement | undefined;
 let root: Root | undefined;
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform. */
 function matrixScaleY(transform: string): number {
 	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
 	return Number(terms[3]);
@@ -168,7 +168,8 @@ describe('warpedText: envelope/former-simple presets render as true SVG textPath
 
 	it('a single-paragraph inflate element varies glyph height across the line (the two-curve fix)', () => {
 		const el = renderWarped('textInflate');
-		const scales = [...el.querySelectorAll('svg > text')].map((t) =>
+		// Every rendered piece, sliced or not: each carries its own affine fit.
+		const scales = [...el.querySelectorAll('svg text')].map((t) =>
 			matrixScaleY(t.getAttribute('transform') ?? ''),
 		);
 		expect(new Set(scales.map((s) => s.toFixed(4))).size).toBeGreaterThan(1);

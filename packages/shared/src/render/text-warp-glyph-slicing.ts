@@ -1,91 +1,37 @@
 /**
- * Adaptive piecewise-affine slicing for the WordArt two-curve envelope (see
- * `text-warp-envelope-layout.ts` / `text-warp-glyph-matrix.ts`), closing the
- * residual documented there: "for the `can` presets ... a realistic WordArt
- * caption ... now measures under ~1% almost everywhere ... an extremely short
- * caption (roughly 6-8 very wide glyphs filling the whole box) can still show
- * up to ~2-2.5%, because a single affine per glyph cannot capture how much
- * curvature exists across ONE (now very wide) glyph's own span."
+ * Affine / piecewise-affine fallback for a WordArt envelope glyph whose
+ * outline is not obtainable (no font file and no DOM canvas to trace the
+ * browser's own rendering with, e.g. server-side rendering or a test
+ * environment). With an outline available, `text-warp-glyph-outline.ts`
+ * warps it exactly instead and none of this runs.
  *
- * Font-outline warping (bending each glyph's actual vector outline) is not
- * available in a browser for system fonts, so instead of fitting ONE affine
- * across a glyph's whole width, this fits a SEPARATE {@link glyphEnvelopeMatrix}
- * through `N` narrower sub-bands of that same glyph, `N` chosen from how much
- * the envelope curve bends across the glyph's own width. Each sub-band is
- * rendered as the SAME glyph again, clipped to its own `[clipX0, clipX1]`
- * x-range in the glyph's own (pre-transform) SVG coordinate space, so the
- * pieces tile across the glyph exactly as authored.
- *
- * A glyph's own width, as a fraction of the LINE's width, is what actually
- * drives how much curvature falls inside it - which is also just "how many
- * glyphs share the line": a 6-letter word and "6-8 very wide glyphs" are the
- * same regime dimensionally, there is no clean boundary between "ordinary"
- * and "pathological" here. {@link SLICE_ERROR_THRESHOLD} is tuned so a normal
- * multi-word or 20+ glyph line at DEFAULT `adj` resolves every `can` glyph to
- * a single slice (confirmed against W5-M's COM ink-scan ground truth
- * re-bucketed to 20 synthetic glyphs), while a genuinely short caption (`n`
- * glyphs sharing a line, `n` in the 4-8 range this doc's residual describes)
- * crosses it and slices - in which case this module activates, INCLUDING on
- * this repo's own "Warped" / "MOM" `text-warp-fidelity.pptx` fixture shapes
- * (see the concrete counts below). That is a real, wanted improvement, not
- * test debt: `text-warp-envelope-parity.spec.ts` reads a sliced glyph's
- * `<g data-glyph-slices>` group as one logical glyph (see that spec's
- * `readGlyphBoxesFor`), so it is exercised there, not dodged.
- *
- * `inflate`/`deflate`'s cubic curve spreads its curvature more evenly across
- * the line (control points at 1/3 and 2/3 width) than `can`'s `arcTo`, whose
- * bend concentrates at the box edges - so at this threshold an unusually
- * LONG `inflate`/`deflate` WordArt line (30-40+ glyphs) can still slice a
- * portion of its glyphs (never more than 2-3 pieces each, confirmed up to
- * `n = 40`), where a `can` line of the same length slices only its outermost
- * one or two glyphs. WordArt is a short-caption/title effect in practice, so
- * this is an accepted, bounded trade-off for the fidelity gain below, not
- * something this heuristic tries to special-case per preset family.
- *
- * COM-measured (2026-09-06, W5-M's ink-scan ground truth, W5-U's re-run
- * through the REAL `chooseGlyphSliceCount`/`buildGlyphSlices`/
- * `glyphEnvelopeMatrix` rather than a hand-transcribed copy): the
- * single-affine fit's worst-case interior error for `can`/`inflate`/`deflate`
- * at default `adj` ranges ~3.2-3.9% at `n = 4` synthetic glyphs sharing a
- * line, ~1.8-2.2% at `n = 8`; at `can`'s extreme `adj` (steepest `arcTo`
- * sweep) it is ~6.7-6.9% at `n = 4`, ~4.1-4.3% at `n = 8`. Raising
- * {@link MAX_ENVELOPE_GLYPH_SLICES} to 24 and lowering
- * {@link SLICE_ERROR_THRESHOLD} to 0.005 (from 8 slices / 2%) brings default
- * `adj` down to ~1.9-2.2% at `n = 4` and ~1.5-2.3% at `n = 8`, and extreme
- * `adj` `can` down to ~4.9-5.1% at `n = 4` and ~2.9-3.1% at `n = 8` - roughly
- * halved across the board. The extreme-`adj` `can` numbers do NOT keep
- * shrinking past that with a higher cap or lower threshold: pushed to 200
- * slices / 0.005% threshold they still floor at ~2.5-2.8%, because the
- * OUTERMOST glyph's own edge (`u = 0` or `u = 1`) is where `can`'s transcribed
- * `arcTo` model itself has its largest (COM-measured ~1.1-1.2%) deviation
- * from real PowerPoint - a genuinely near-vertical tangent at the arc's
- * sweep boundary, not curvature this glyph-splitting technique can address:
- * every sub-slice's fit is anchored EXACTLY on the analytic curve's own
- * value at its edges (by construction, see {@link glyphEnvelopeMatrix}), so
- * arbitrarily many slices converge to the MODEL's edge value, not to
- * PowerPoint's true one. Away from that literal edge (interior sample
- * points, `u` in roughly `[0.03, 0.97]`) the same model matches COM to
- * within ~0.3-0.35% for every preset tested, confirming the residual is
- * this specific edge effect and not a broader curve-fidelity gap.
+ * The glyph renders as an SVG `<text>` at its unwarped layout position, with
+ * a full `matrix(a b c d e f)` least-squares fit of the envelope mapping
+ * (`text-warp-envelope-map.ts`) over its ink box. When one affine misses the
+ * mapping by more than {@link SLICE_TOLERANCE_FRACTION} of the shape box
+ * height anywhere inside the glyph box
+ * (a wide glyph on a strongly curved envelope), the glyph is split into up
+ * to {@link MAX_ENVELOPE_GLYPH_SLICES} vertical bands, each clipped to its
+ * own x-range (in the same pre-transform layout space `x`/`y` are in) and
+ * carrying its own fit, so the pieces tile the glyph.
  */
-import type { EnvelopeCurveFractions } from './text-warp-envelope-curves';
-import { edgeBandAt, glyphEnvelopeMatrix } from './text-warp-glyph-matrix';
+import type { EnvelopeWarp } from './text-warp-envelope-map';
 
 /** Never split a single glyph into more than this many rendered pieces. */
 export const MAX_ENVELOPE_GLYPH_SLICES = 24;
 
 /**
- * How far (as a fraction of box height) the single-affine fit's own
- * prediction at an INTERIOR point of a glyph may miss the curve's actual
- * value there before another slice is added. See this module's own doc
- * comment for the COM numbers this was checked against, and why "ordinary"
- * and "pathological" cannot be cleanly separated here: this only guarantees
- * a normal (15+ glyph) line never slices, not that a short one never does.
+ * Largest acceptable miss between a piece's affine and the true mapping, as
+ * a fraction of the shape box height (never below half a pixel).
  */
-const SLICE_ERROR_THRESHOLD = 0.005;
+const SLICE_TOLERANCE_FRACTION = 0.005;
+const MIN_SLICE_TOLERANCE_PX = 0.5;
 
-/** Interior fractions of a glyph's own span sampled when scoring the single-affine fit. */
-const FIT_SAMPLE_FRACTIONS = [0.15, 0.3, 0.5, 0.7, 0.85];
+/** Grid resolution (per axis) the affine fit and its error are measured on. */
+const FIT_GRID = 5;
+
+/** How far past a glyph's outer ink edge its outermost clip rects reach. */
+const CLIP_OVERHANG = 100000;
 
 /** One rendered piece of a glyph: clipped to its own x-band, its own affine fit. */
 export interface EnvelopeGlyphSlice {
@@ -93,168 +39,129 @@ export interface EnvelopeGlyphSlice {
 	clipX0: number;
 	/** Right edge of this slice's clip rect, in the glyph's own (pre-transform) x. */
 	clipX1: number;
-	/** Same `matrix(1 b 0 d 0 f)` form as {@link glyphEnvelopeMatrix}, fit to this slice's own edges. */
+	/** SVG `matrix(a b c d e f)` fit of the envelope mapping over this slice. */
 	transform: string;
 }
 
-/**
- * The single-affine fit's own predicted top/bottom at interior position `u`
- * (given the fit was built from the curve sampled at `[u0, u1]`'s edges),
- * using the SAME closed-form as {@link glyphEnvelopeMatrix} but worked in a
- * unit-free `y in [0, 1]` band so the caller need not scale by box height.
- */
-function predictAt(
-	u0: number,
-	u1: number,
-	edge0: EnvelopeCurveFractions,
-	edge1: EnvelopeCurveFractions,
-	u: number,
-): EnvelopeCurveFractions {
-	const span = u1 - u0;
-	// nominalSpan = 1 (a unit-free `y in [0, 1]` band), so `d` here is exactly
-	// `glyphEnvelopeMatrix`'s `d` with `nominalSpan` already divided out.
-	const d = (edge0.bottom - edge0.top + (edge1.bottom - edge1.top)) / 2;
-	const b = span > 0 ? (edge1.top - edge0.top + (edge1.bottom - edge0.bottom)) / (2 * span) : 0;
-	const meanU = (u0 + u1) / 2;
-	const meanY = 0.5;
-	const grandMean = (edge0.top + edge1.top + edge0.bottom + edge1.bottom) / 4;
-	const f = grandMean - b * meanU - d * meanY;
-	return { top: b * u + f, bottom: b * u + d + f };
+/** The rectangle (layout units) an affine fit covers. */
+export interface GlyphFitBox {
+	x0: number;
+	x1: number;
+	y0: number;
+	y1: number;
+}
+
+type Affine = [number, number, number, number, number, number];
+
+/** Solve the 3x3 system `m * p = r` by Cramer's rule (`undefined` when singular). */
+function solve3(m: number[][], r: number[]): [number, number, number] | undefined {
+	const det = (a: number[][]): number =>
+		a[0][0] * (a[1][1] * a[2][2] - a[1][2] * a[2][1]) -
+		a[0][1] * (a[1][0] * a[2][2] - a[1][2] * a[2][0]) +
+		a[0][2] * (a[1][0] * a[2][1] - a[1][1] * a[2][0]);
+	const d = det(m);
+	if (Math.abs(d) < 1e-12) {
+		return undefined;
+	}
+	const col = (i: number): number[][] => m.map((row, k) => row.map((v, j) => (j === i ? r[k] : v)));
+	return [det(col(0)) / d, det(col(1)) / d, det(col(2)) / d];
+}
+
+interface FitResult {
+	affine: Affine;
+	error: number;
+}
+
+/** Least-squares affine of `warp` over `box`, plus its worst miss on the grid. */
+function fitAffine(warp: EnvelopeWarp, box: GlyphFitBox): FitResult {
+	const src: [number, number][] = [];
+	const dst: { x: number; y: number }[] = [];
+	for (let i = 0; i < FIT_GRID; i++) {
+		for (let j = 0; j < FIT_GRID; j++) {
+			const x = box.x0 + ((box.x1 - box.x0) * i) / (FIT_GRID - 1);
+			const y = box.y0 + ((box.y1 - box.y0) * j) / (FIT_GRID - 1);
+			src.push([x, y]);
+			dst.push(warp.map(x, y));
+		}
+	}
+	const n = [
+		[0, 0, 0],
+		[0, 0, 0],
+		[0, 0, 0],
+	];
+	const rx = [0, 0, 0];
+	const ry = [0, 0, 0];
+	src.forEach(([x, y], k) => {
+		const v = [x, y, 1];
+		for (let i = 0; i < 3; i++) {
+			for (let j = 0; j < 3; j++) {
+				n[i][j] += v[i] * v[j];
+			}
+			rx[i] += v[i] * dst[k].x;
+			ry[i] += v[i] * dst[k].y;
+		}
+	});
+	const px = solve3(n, rx);
+	const py = solve3(n, ry);
+	if (!px || !py) {
+		const c = warp.map((box.x0 + box.x1) / 2, (box.y0 + box.y1) / 2);
+		return { affine: [1, 0, 0, 1, c.x, c.y], error: 0 };
+	}
+	// SVG `matrix(a b c d e f)`: x' = a x + c y + e, y' = b x + d y + f.
+	const affine: Affine = [px[0], py[0], px[1], py[1], px[2], py[2]];
+	let error = 0;
+	src.forEach(([x, y], k) => {
+		const fx = affine[0] * x + affine[2] * y + affine[4];
+		const fy = affine[1] * x + affine[3] * y + affine[5];
+		error = Math.max(error, Math.hypot(fx - dst[k].x, fy - dst[k].y));
+	});
+	return { affine, error };
+}
+
+function formatMatrix(m: Affine): string {
+	return `matrix(${m.map((v) => (Number.isFinite(v) ? v : 0)).join(' ')})`;
+}
+
+/** A glyph's single-affine transform plus, when one affine is not enough, its slices. */
+export interface GlyphAffineFit {
+	transform: string;
+	slices?: EnvelopeGlyphSlice[];
 }
 
 /**
- * How far off (as a fraction of box height) a single affine fit through
- * `[u0, u1]`'s own two edges lands at that same span's INTERIOR - a direct
- * measure of how much within-glyph curve bend {@link glyphEnvelopeMatrix}
- * (which only ever sees the two edges) misses, sampled at
- * {@link FIT_SAMPLE_FRACTIONS} rather than just the midpoint so a curve whose
- * worst deviation sits off-centre (the `can` presets' arc, steepest near the
- * box edge) is not missed.
+ * Fit the envelope mapping over a glyph's ink `box`, slicing it into
+ * vertical bands when a single affine misses by more than the tolerance.
  */
-function singleAffineFitErrorFraction(
-	preset: string,
-	u0: number,
-	u1: number,
-	adj: number | undefined,
-	adj2: number | undefined,
-	height: number,
-	lineIndex: number,
-	lineCount: number,
-): number {
-	const edge0 = edgeBandAt(preset, u0, adj, adj2, height, lineIndex, lineCount);
-	const edge1 = edgeBandAt(preset, u1, adj, adj2, height, lineIndex, lineCount);
-	let maxError = 0;
-	for (const frac of FIT_SAMPLE_FRACTIONS) {
-		const u = u0 + frac * (u1 - u0);
-		const truth = edgeBandAt(preset, u, adj, adj2, height, lineIndex, lineCount);
-		const predicted = predictAt(u0, u1, edge0, edge1, u);
-		maxError = Math.max(
-			maxError,
-			Math.abs(predicted.top - truth.top),
-			Math.abs(predicted.bottom - truth.bottom),
+export function fitGlyphEnvelopeAffine(
+	warp: EnvelopeWarp,
+	box: GlyphFitBox,
+	shapeHeight = 0,
+): GlyphAffineFit {
+	const tolerance = Math.max(MIN_SLICE_TOLERANCE_PX, shapeHeight * SLICE_TOLERANCE_FRACTION);
+	const whole = fitAffine(warp, box);
+	const transform = formatMatrix(whole.affine);
+	if (whole.error <= tolerance || !(box.x1 > box.x0)) {
+		return { transform };
+	}
+	let pieces: FitResult[] = [];
+	let count = 2;
+	for (; count <= MAX_ENVELOPE_GLYPH_SLICES; count++) {
+		const step = (box.x1 - box.x0) / count;
+		pieces = Array.from({ length: count }, (_, i) =>
+			fitAffine(warp, { ...box, x0: box.x0 + step * i, x1: box.x0 + step * (i + 1) }),
 		);
+		if (pieces.every((p) => p.error <= tolerance)) {
+			break;
+		}
 	}
-	return maxError / height;
-}
-
-/**
- * How many slices glyph `[u0, u1]` (normalised horizontal extent, 0..1) needs
- * for its piecewise-affine fit to stay under {@link SLICE_ERROR_THRESHOLD}.
- *
- * Every envelope curve here is built from line/quad/cubic/arc segments (see
- * `text-warp-preset-sampler.ts`), so this interior fit error shrinks
- * quadratically as the sampled span narrows: halving `[u0, u1]` cuts it to
- * roughly a quarter, which is why `n = ceil(sqrt(error / threshold))`
- * recovers the slice count that would bring each sub-band's own error back
- * under threshold.
- *
- * Returns `1` (render exactly as before slicing existed) for a flat preset,
- * a narrow-enough glyph, or a degenerate `[u0, u1]`.
- */
-export function chooseGlyphSliceCount(
-	preset: string,
-	u0: number,
-	u1: number,
-	adj: number | undefined,
-	adj2: number | undefined,
-	height: number,
-	lineIndex: number,
-	lineCount: number,
-	maxSlices: number = MAX_ENVELOPE_GLYPH_SLICES,
-): number {
-	if (height <= 0 || u1 <= u0 || maxSlices <= 1) {
-		return 1;
-	}
-	const errorFraction = singleAffineFitErrorFraction(
-		preset,
-		u0,
-		u1,
-		adj,
-		adj2,
-		height,
-		lineIndex,
-		lineCount,
-	);
-	if (errorFraction <= SLICE_ERROR_THRESHOLD) {
-		return 1;
-	}
-	const needed = Math.ceil(Math.sqrt(errorFraction / SLICE_ERROR_THRESHOLD));
-	return Math.max(1, Math.min(maxSlices, needed));
-}
-
-/**
- * Extend a slice's clip band slightly into its neighbour so anti-aliasing at
- * adjacent, independently-transformed `<text>` copies never leaves a hairline
- * gap at the seam. Only applied at INTERIOR boundaries (between two slices of
- * the SAME glyph); a glyph's own outer edges are left exact since there is no
- * neighbouring slice there to seam against.
- */
-const SEAM_OVERLAP_PX = 0.5;
-
-/**
- * Build `sliceCount` {@link EnvelopeGlyphSlice}s tiling glyph `[x0, x1]`
- * (absolute SVG x, matching the `x`/`y` the glyph's `<text>` is drawn at) /
- * `[u0, u1]` (the same span normalised to the line's own `0..1`).
- *
- * Each slice's transform is {@link glyphEnvelopeMatrix} fit through the curve
- * sampled at THAT slice's own two edges, exactly the same function a whole
- * (unsliced) glyph uses, just over a narrower span. Because two adjacent
- * slices sample the curve at the IDENTICAL shared boundary `u`, they agree
- * exactly (to floating-point precision) on that boundary's midline position -
- * see `text-warp-glyph-slicing.test.ts` for the proof this holds regardless
- * of curvature, not just approximately.
- */
-export function buildGlyphSlices(
-	preset: string,
-	x0: number,
-	x1: number,
-	u0: number,
-	u1: number,
-	adj: number | undefined,
-	adj2: number | undefined,
-	height: number,
-	lineIndex: number,
-	lineCount: number,
-	nomTop: number,
-	nomBottom: number,
-	sliceCount: number,
-): EnvelopeGlyphSlice[] {
-	const n = Math.max(1, Math.floor(sliceCount));
-	const slices: EnvelopeGlyphSlice[] = [];
-	const edgeAt = (u: number): EnvelopeCurveFractions =>
-		edgeBandAt(preset, u, adj, adj2, height, lineIndex, lineCount);
-	for (let i = 0; i < n; i++) {
-		const sliceX0 = x0 + ((x1 - x0) * i) / n;
-		const sliceX1 = x0 + ((x1 - x0) * (i + 1)) / n;
-		const sliceU0 = u0 + ((u1 - u0) * i) / n;
-		const sliceU1 = u0 + ((u1 - u0) * (i + 1)) / n;
-		const e0 = edgeAt(sliceU0);
-		const e1 = edgeAt(sliceU1);
-		slices.push({
-			clipX0: sliceX0 - (i === 0 ? 0 : SEAM_OVERLAP_PX),
-			clipX1: sliceX1 + (i === n - 1 ? 0 : SEAM_OVERLAP_PX),
-			transform: glyphEnvelopeMatrix(sliceX0, sliceX1, e0, e1, nomTop, nomBottom),
-		});
-	}
-	return slices;
+	const n = pieces.length;
+	const step = (box.x1 - box.x0) / n;
+	return {
+		transform,
+		slices: pieces.map((p, i) => ({
+			clipX0: i === 0 ? box.x0 - CLIP_OVERHANG : box.x0 + step * i,
+			clipX1: i === n - 1 ? box.x1 + CLIP_OVERHANG : box.x0 + step * (i + 1),
+			transform: formatMatrix(p.affine),
+		})),
+	};
 }

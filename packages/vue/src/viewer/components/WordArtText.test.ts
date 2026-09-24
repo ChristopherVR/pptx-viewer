@@ -37,7 +37,7 @@ function buildTestFont(): Uint8Array {
 	return new Uint8Array(font.toArrayBuffer());
 }
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform. */
 function matrixScaleY(transform: string): number {
 	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
 	return Number(terms[3]);
@@ -197,7 +197,7 @@ describe('wordArtText', () => {
 		expect(glyphTexts).toHaveLength('Hello'.length);
 		expect(glyphTexts.map((t) => t.textContent).join('')).toBe('Hello');
 		expect(glyphTexts[0].getAttribute('fill')).toBe('#00ff00');
-		expect(glyphTexts[0].getAttribute('transform')).toContain('matrix(1');
+		expect(glyphTexts[0].getAttribute('transform')).toMatch(/^matrix\(/u);
 	});
 
 	it('varies scaleY across an inflate line (the fixed residual: glyph height between curves)', () => {
@@ -210,8 +210,9 @@ describe('wordArtText', () => {
 				zIndex: 0,
 			},
 		});
+		// Every rendered piece, sliced or not: each carries its own affine fit.
 		const scales = wrapper
-			.findAll('svg > text')
+			.findAll('svg text')
 			.map((t) => matrixScaleY(t.attributes('transform') ?? ''));
 		expect(new Set(scales.map((s) => s.toFixed(4))).size).toBeGreaterThan(1);
 	});

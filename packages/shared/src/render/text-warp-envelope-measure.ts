@@ -1,11 +1,11 @@
 /**
  * Canvas-based text measurement for the glyph envelope layout
- * (`text-warp-envelope-layout.ts`): per-character advance widths and the
- * line's real (ink-measured) ascent, both backed by a single lazily-created
+ * (`text-warp-envelope-block.ts`): per-character advance widths and a
+ * glyph's own ink box, both backed by a single lazily-created
  * `CanvasRenderingContext2D` shared across calls.
  */
 import { DEFAULT_FONT_FAMILY, DEFAULT_TEXT_FONT_SIZE } from '../constants';
-import type { EnvelopeFontSpec, EnvelopeSegmentInput } from './text-warp-envelope-types';
+import type { EnvelopeFontSpec } from './text-warp-envelope-types';
 
 let measureCtx: CanvasRenderingContext2D | null | undefined;
 
@@ -21,100 +21,102 @@ function getMeasureCtx(): CanvasRenderingContext2D | null {
 	return measureCtx;
 }
 
-function toCanvasFont(font: EnvelopeFontSpec): string {
-	const size = font.fontSizePx && font.fontSizePx > 0 ? font.fontSizePx : DEFAULT_TEXT_FONT_SIZE;
+/** The font size (px) `font` renders at, defaulting like every other text path. */
+export function envelopeFontSizePx(font: EnvelopeFontSpec): number {
+	return font.fontSizePx && font.fontSizePx > 0 ? font.fontSizePx : DEFAULT_TEXT_FONT_SIZE;
+}
+
+/** The CSS `font` shorthand for `font`, shared by measurement and glyph tracing. */
+export function toCanvasFont(font: EnvelopeFontSpec, sizePx = envelopeFontSizePx(font)): string {
 	const family = font.fontFamily || DEFAULT_FONT_FAMILY;
-	return `${font.italic ? 'italic ' : ''}${font.bold ? 'bold ' : ''}${size}px ${family}`;
+	return `${font.italic ? 'italic ' : ''}${font.bold ? 'bold ' : ''}${sizePx}px ${family}`;
 }
 
 /**
- * Per-character advance widths for `text` set in `font`, measured as prefix
- * differences (never a lone character: see `text-metric-tracking.ts`'s
- * `advancesOf` for why - shaped scripts and ligatures need the context).
+ * PowerPoint kerns WordArt envelope text by its font's pair kerning even
+ * with no `kern` on the run (COM-measured 2026-09-24: `To` and `Wa` pairs
+ * close up exactly as kerned), so ask the canvas for kerning explicitly
+ * rather than trusting its `auto` default.
+ */
+function enableKerning(ctx: CanvasRenderingContext2D): void {
+	const kerning = ctx as CanvasRenderingContext2D & { fontKerning?: string };
+	if ('fontKerning' in kerning) {
+		kerning.fontKerning = 'normal';
+	}
+}
+
+/**
+ * Per-character advance widths for `text` set in `font`, measured in the
+ * context of the whole prefix (shaped scripts and kerning need it) so that
+ * each glyph's start (the sum of the advances before it) is kerned.
  *
  * Falls back to a flat `0.55em`-per-character estimate when there is no DOM
- * to measure with (SSR, or a test environment without a 2D canvas context);
- * the estimate only affects horizontal glyph spacing, never the envelope
- * curve itself, so it stays visually reasonable even when approximate.
+ * to measure with (SSR, or a test environment without a 2D canvas context).
  */
 export function measureGlyphAdvances(text: string, font: EnvelopeFontSpec): number[] {
 	const chars = [...text];
 	const ctx = getMeasureCtx();
 	if (!ctx) {
-		const size = font.fontSizePx && font.fontSizePx > 0 ? font.fontSizePx : DEFAULT_TEXT_FONT_SIZE;
-		return chars.map(() => size * 0.55);
+		return chars.map(() => envelopeFontSizePx(font) * 0.55);
 	}
 	ctx.font = toCanvasFont(font);
-	const advances: number[] = [];
-	let previous = 0;
+	enableKerning(ctx);
+	// A glyph starts where its prefix ends minus its own lone advance, so a
+	// pair-kerning adjustment moves the glyph it applies to (the `o` of `To`)
+	// rather than being folded into that glyph's own advance.
+	const starts: number[] = [];
 	let prefix = '';
 	for (const char of chars) {
 		prefix += char;
-		const width = ctx.measureText(prefix).width;
-		advances.push(Math.max(0, width - previous));
-		previous = width;
+		starts.push(ctx.measureText(prefix).width - ctx.measureText(char).width);
 	}
+	const total = ctx.measureText(text).width;
+	const advances = starts.map((start, i) =>
+		Math.max(0, (i + 1 < starts.length ? starts[i + 1] : total) - start),
+	);
 	return advances;
 }
 
+/** A glyph's ink extent relative to its own origin (baseline, left advance edge). */
+export interface GlyphInkExtent {
+	left: number;
+	right: number;
+	/** Distance above the baseline (positive = up). */
+	ascent: number;
+	/** Distance below the baseline (positive = down). */
+	descent: number;
+}
+
 /**
- * The real (ink-measured) ascent of `segments`' text at their own font
- * sizes, as the tallest `actualBoundingBoxAscent` across every segment on
- * the line (not a per-character average - one tall glyph anywhere on the
- * line sets the reference the whole line warps against, matching how a
- * single baseline/cap-height pair governs a real text run).
- *
- * `buildGlyphEnvelope` used to map every glyph's nominal band from a FIXED
- * `NOMINAL_ENVELOPE_BAND` fraction of the box height (0.15..0.85), assuming
- * a glyph's own cap height fills that whole span. COM-measured (2026-09-11,
- * `text-warp-glyph-outline.ts`'s doc comment): for an 8-shape WordArt
- * fixture (Arimo Bold 44pt captions in 100pt-tall boxes, the `textCanUp` /
- * `textCanDown` / `textInflate` / `textDeflate` presets at both default and
- * extreme `adj`), real cap height reaches only about `t = 0.57` of that
- * nominal span, not `t = 0`, so every glyph's mapped top undershot the
- * curve's own top edge by the same amount - an outline-vs-COM interior-
- * column ink-scan comparison measured ~30-40% of box height mean error (max
- * 58-80%) on BOTH the outline path and the affine fallback alike (both use
- * this same nominal band, so both shared the bug identically: the residual
- * lived here, not in the outline point-mapping math). Anchoring `nomTop` to
- * the line's REAL measured ascent instead - clamped to never exceed the
- * historical fixed band, so a line whose font genuinely fills (or exceeds)
- * the nominal span keeps the old, already-validated behaviour unchanged -
- * dropped the `textInflate`/`textDeflate` interior mean error to ~2.6-2.9%
- * (max ~9-10%), in the range `text-warp-glyph-slicing.ts`'s doc comment
- * already documents as the residual once this band mismatch is not also
- * present. The `textCanUp`/`textCanDown` cases still show an elevated
- * residual (their interior mean measured ~6-20% even after this fix) that
- * further investigation traced to a SEPARATE, larger issue: real PowerPoint
- * spaces envelope-warped glyphs to fill the box's own width edge-to-edge
- * (measured ink spanning ~99.9% of box width) rather than centering the
- * text at its natural (unstretched) advance width the way `startX`/
- * `measureGlyphAdvances` do today, with `textCanUp`/`textCanDown` additionally
- * showing non-uniform (cylinder-projection-like) horizontal spacing this fix
- * does not address - both are horizontal-layout gaps, out of scope for this
- * (purely vertical) band fix and left as an open, separately-scoped issue.
- *
- * Returns `undefined` with no DOM (SSR, or a test environment without a 2D
- * canvas context), so a caller falls back to the previous fixed-fraction
- * band unchanged, exactly like {@link measureGlyphAdvances}'s own fallback.
+ * The ink extent of one `char` in `font` via `measureText`'s
+ * `actualBoundingBox*` metrics, used for a glyph with no outline. Returns
+ * `undefined` without a canvas or when the environment reports no ink metrics;
+ * the caller then estimates the box from the advance and font size.
  */
-export function measureLineAscent(segments: EnvelopeSegmentInput[]): number | undefined {
+export function measureGlyphInk(char: string, font: EnvelopeFontSpec): GlyphInkExtent | undefined {
 	const ctx = getMeasureCtx();
 	if (!ctx) {
 		return undefined;
 	}
-	let maxAscent = 0;
-	for (const segment of segments) {
-		if (!segment.text) {
-			continue;
-		}
-		ctx.font = toCanvasFont(segment.font);
-		const ascent = ctx.measureText(segment.text).actualBoundingBoxAscent;
-		if (Number.isFinite(ascent) && ascent > maxAscent) {
-			maxAscent = ascent;
-		}
+	ctx.font = toCanvasFont(font);
+	const m = ctx.measureText(char);
+	const { actualBoundingBoxLeft, actualBoundingBoxRight } = m;
+	const { actualBoundingBoxAscent, actualBoundingBoxDescent } = m;
+	const values = [
+		actualBoundingBoxLeft,
+		actualBoundingBoxRight,
+		actualBoundingBoxAscent,
+		actualBoundingBoxDescent,
+	];
+	if (!values.every((v) => typeof v === 'number' && Number.isFinite(v))) {
+		return undefined;
 	}
-	return maxAscent > 0 ? maxAscent : undefined;
+	return {
+		left: -actualBoundingBoxLeft,
+		right: actualBoundingBoxRight,
+		ascent: actualBoundingBoxAscent,
+		descent: actualBoundingBoxDescent,
+	};
 }
 
 /** Test hook: forget the cached measurement context. */

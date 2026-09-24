@@ -39,7 +39,7 @@ function buildTestFont(): Uint8Array {
 
 let cleanup: (() => void) | undefined;
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform. */
 function matrixScaleY(transform: string): number {
 	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
 	return Number(terms[3]);
@@ -120,7 +120,7 @@ describe('wordArtText (Svelte)', () => {
 		const glyphTexts = (svg ? logicalGlyphElements(svg) : []).map(representativeTextEl);
 		expect(glyphTexts).toHaveLength('Hello'.length);
 		expect(glyphTexts.map((t) => t.textContent).join('')).toBe('Hello');
-		expect(glyphTexts[0].getAttribute('transform')).toContain('matrix(1');
+		expect(glyphTexts[0].getAttribute('transform')).toMatch(/^matrix\(/u);
 	});
 
 	it('varies scaleY across an inflate line (the fixed residual: glyph height between curves)', () => {

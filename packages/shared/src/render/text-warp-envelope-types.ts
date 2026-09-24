@@ -30,19 +30,17 @@ export interface EnvelopeGlyphPlacement {
 	/** SVG `y` (nominal baseline; the vertical placement is done by `transform`). */
 	y: number;
 	/**
-	 * An SVG `matrix(1 b 0 d 0 f)` mapping the glyph's nominal band onto the
-	 * envelope curve at this glyph's own horizontal extent (see
-	 * `glyphEnvelopeMatrix` in `text-warp-glyph-matrix.ts`). `a=1, c=0, e=0`
-	 * deliberately: the glyph's `x`/`y` attributes already carry its absolute
-	 * position, so the matrix only contributes a vertical scale (`d`) and
-	 * horizontal shear (`b`) plus a constant offset (`f`) - it must never ALSO
-	 * translate by `x`, which would double the glyph's horizontal position
-	 * (`x` from the attribute, `x` again from the matrix).
+	 * An SVG `matrix(a b c d e f)` applied to a `<text x={x} y={y}>` for this
+	 * glyph: the least-squares affine fit of the envelope mapping over the
+	 * glyph's ink box (see `fitGlyphEnvelopeAffine` in
+	 * `text-warp-glyph-slicing.ts`). It maps from the unwarped layout space
+	 * `x`/`y` are in, so it carries the horizontal placement too. Only used
+	 * when `outlinePath` is absent.
 	 */
 	transform: string;
 	/**
 	 * Present only when this glyph needed more than one rendered piece (see
-	 * `chooseGlyphSliceCount` in `text-warp-glyph-slicing.ts`): a very wide
+	 * `fitGlyphEnvelopeAffine` in `text-warp-glyph-slicing.ts`): a very wide
 	 * glyph on a strongly-curved envelope, where `transform` alone (fit across
 	 * the glyph's WHOLE width) misses how much the curve bends within that
 	 * width. When present, a binding renders `slices.length` copies of this
@@ -59,17 +57,18 @@ export interface EnvelopeGlyphPlacement {
 	 * outline for this glyph's font/character. When present, a binding renders
 	 * `<path d={outlinePath} fill={...}/>` instead of `<text transform>` /
 	 * `slices`: every outline point (on-curve and off-curve alike) is already
-	 * mapped through the envelope curve at ITS OWN `x`, so this is not an
-	 * approximation of the glyph's bounding box, unlike `transform`/`slices`.
-	 * Absent (`undefined`) whenever no outline was obtainable (no embedded or
-	 * catalogue font file for this family/style) or the glyph is whitespace
-	 * (nothing to draw either way), in which case a binding renders exactly as
-	 * it did before this field existed.
+	 * mapped through the envelope mapping, in shape-box coordinates, so this
+	 * is not an approximation of the glyph's bounding box, unlike
+	 * `transform`/`slices`. Absent (`undefined`) whenever no outline was
+	 * obtainable (no font file and no DOM canvas to trace the glyph with, see
+	 * `createGlyphOutlineLookup`) or the glyph is whitespace
+	 * (nothing to draw either way), in which case a binding renders the
+	 * `<text transform>` / `slices` fallback.
 	 */
 	outlinePath?: string;
 }
 
-/** The minimal font-spec shape `buildGlyphEnvelope`'s `getGlyphOutline` callback receives. */
+/** The minimal font-spec shape `buildGlyphEnvelopeBlock`'s `getGlyphOutline` callback receives. */
 export type GlyphOutlineLookupFont = EnvelopeFontSpec;
 
 /**
@@ -77,7 +76,8 @@ export type GlyphOutlineLookupFont = EnvelopeFontSpec;
  * scaled to `font.fontSizePx`), or `undefined` when no outline is obtainable
  * for this `char`/`font` (the caller falls back to the affine transform).
  * See `text-warp-outline-font-cache.ts`'s `createGlyphOutlineLookup` for the
- * production implementation backed by `opentype.js`.
+ * production implementation (a parsed font file via `opentype.js`, else a
+ * glyph traced from the browser's own rendering).
  */
 export type GlyphOutlineLookup = (
 	char: string,

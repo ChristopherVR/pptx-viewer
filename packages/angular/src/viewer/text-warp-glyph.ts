@@ -4,14 +4,14 @@
  * repo's per-file line budget.
  *
  * Unlike `TextWarpPathDef` (a shared-baseline SVG `<textPath>`), glyph HEIGHT
- * varies with horizontal position here: each glyph carries its own `matrix`
- * transform, computed by `buildGlyphEnvelope` (`pptx-viewer-shared`) from the
- * preset's top/bottom envelope curves sampled across the glyph's own width.
+ * varies with horizontal position here: each glyph carries its own warped
+ * outline path (or, without one, an affine `matrix`), computed once for the
+ * whole block by `buildGlyphEnvelopeBlock` (`pptx-viewer-shared`).
  */
 import type { PptxTextWarpPreset, TextSegment, TextStyle } from 'pptx-viewer-core';
 import { getSubstituteFontFamily } from 'pptx-viewer-core';
 
-import { buildGlyphEnvelope, DEFAULT_FONT_FAMILY } from '../internal/shared';
+import { buildGlyphEnvelopeBlock, DEFAULT_FONT_FAMILY } from '../internal/shared';
 import type { EnvelopeGlyphSlice, EnvelopeSegmentInput, WarpParagraph } from '../internal/shared';
 import { getGlyphOutline, glyphOutlineFontsTick } from './glyph-outline-cache';
 
@@ -23,7 +23,7 @@ export interface WarpGlyph {
 	readonly char: string;
 	readonly x: number;
 	readonly y: number;
-	/** SVG `matrix(1 b 0 d 0 f)` mapping the nominal band onto the envelope curve. */
+	/** SVG `matrix(a b c d e f)` fit of the envelope mapping over the glyph (fallback only). */
 	readonly transform: string;
 	readonly fill: string;
 	readonly fontWeight: 400 | 700;
@@ -32,7 +32,7 @@ export interface WarpGlyph {
 	readonly fontSize: number;
 	/**
 	 * Present only when this glyph needed more than one rendered piece (see
-	 * `chooseGlyphSliceCount` in pptx-viewer-shared): a very wide glyph on a
+	 * `fitGlyphEnvelopeAffine` in pptx-viewer-shared): a very wide glyph on a
 	 * strongly-curved envelope, where `transform` alone misses how much the
 	 * curve bends within the glyph's own width. Absent for an ordinary
 	 * caption, in which case the template renders exactly one `<text>` with
@@ -47,11 +47,11 @@ export interface WarpGlyph {
 	readonly clipIdPrefix: string;
 	/**
 	 * A warped SVG path `d` for this glyph's ACTUAL outline (see
-	 * `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared), present only when
-	 * a real font file was obtainable for this glyph's family/style. When set,
-	 * the template renders `<path d [fill]>` instead of `<text transform>` /
-	 * `slices`: exact, since every outline point is already mapped through the
-	 * envelope curve at its OWN x.
+	 * `buildWarpedGlyphOutlinePathD` in pptx-viewer-shared), present whenever
+	 * an outline was obtainable (a font file, or a glyph traced from the
+	 * browser's own rendering). When set, the template renders
+	 * `<path d [fill]>` instead of `<text transform>` / `slices`: exact, since
+	 * every outline point is already mapped through the envelope.
 	 */
 	readonly outlinePath?: string;
 }
@@ -83,11 +83,10 @@ function segmentFont(
 /**
  * Build the true two-curve envelope descriptor across every paragraph.
  *
- * Paragraph `i` of `n` occupies the `[i/n, (i+1)/n]` vertical slice of the
- * envelope curve's local band (see `buildGlyphEnvelope` in
- * `pptx-viewer-shared`), so a multi-paragraph block bends within the same
- * overall envelope shape instead of falling back to a shared-baseline
- * `<textPath>` per line. All lines' glyphs are returned as one flat array;
+ * The paragraphs are laid out as ONE block and warped by a single mapping
+ * (see `buildGlyphEnvelopeBlock` in `pptx-viewer-shared`), matching
+ * PowerPoint, so a multi-paragraph block bends within the same overall
+ * envelope shape and its rows keep their order. All lines' glyphs are returned as one flat array;
  * each glyph already carries its own resolved style, so the template does
  * not need to know which paragraph a glyph came from.
  *
@@ -112,26 +111,25 @@ export function buildGlyphWarpDef(
 	// up as a dependency and recomputes once a catalogue webfont's outline
 	// bytes land (see glyph-outline-cache.ts).
 	glyphOutlineFontsTick();
-	const lineCount = paragraphs.length;
+	const perLine = buildGlyphEnvelopeBlock(
+		preset,
+		paragraphs.map((paragraph) =>
+			paragraph.segments.map((seg, i): EnvelopeSegmentInput => ({
+				text: seg.text,
+				font: segmentFont(seg, elementStyle),
+				segmentIndex: i,
+			})),
+		),
+		width,
+		height,
+		elementStyle?.align,
+		adj1,
+		adj2,
+		getGlyphOutline,
+	);
 	const glyphs: WarpGlyph[] = paragraphs.flatMap((paragraph, lineIndex) => {
 		const segments = paragraph.segments;
-		const segsInput: EnvelopeSegmentInput[] = segments.map((seg, i) => ({
-			text: seg.text,
-			font: segmentFont(seg, elementStyle),
-			segmentIndex: i,
-		}));
-		const placements = buildGlyphEnvelope(
-			preset,
-			segsInput,
-			width,
-			height,
-			elementStyle?.align,
-			adj1,
-			adj2,
-			lineIndex,
-			lineCount,
-			getGlyphOutline,
-		);
+		const placements = perLine[lineIndex] ?? [];
 		return placements.map((p, glyphIndex) => {
 			const s = segments[p.segmentIndex]?.style ?? {};
 			const family = s.fontFamily ?? elementStyle?.fontFamily;

@@ -156,4 +156,9 @@ describe('createGlyphOutlineLookup', () => {
 		const lookup = createGlyphOutlineLookup(cache);
 		expect(lookup('A', { fontFamily: 'Unregistered' }, 0, 0)).toBeUndefined();
 	});
+
+	it('answers whitespace with an empty outline even without a font file', () => {
+		const lookup = createGlyphOutlineLookup(new GlyphOutlineFontCache());
+		expect(lookup(' ', { fontFamily: 'Unregistered' }, 0, 0)).toStrictEqual([]);
+	});
 });

@@ -54,7 +54,7 @@ function buildTestFont(): Uint8Array {
  * fadeLeft/fadeRight/button/buttonPour).
  */
 
-/** The `d` (vertical scale) term out of a glyph's `matrix(1 b 0 d 0 f)` transform. */
+/** The `d` (vertical scale) term out of a glyph's `matrix(a b c d e f)` transform. */
 function matrixScaleY(transform: string): number {
 	const terms = transform.replace('matrix(', '').replace(')', '').trim().split(/\s+/u);
 	return Number(terms[3]);

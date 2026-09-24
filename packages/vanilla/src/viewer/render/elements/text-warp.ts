@@ -2,7 +2,7 @@ import type { TextSegment, TextStyle } from 'pptx-viewer-core';
 import { getSubstituteFontFamily, hasTextProperties } from 'pptx-viewer-core';
 import type { EnvelopeSegmentInput, WarpParagraph } from 'pptx-viewer-shared';
 import {
-	buildGlyphEnvelope,
+	buildGlyphEnvelopeBlock,
 	buildWarpPath,
 	DEFAULT_FONT_FAMILY,
 	getWarpCssTransform,
@@ -61,13 +61,11 @@ export function renderWarpedText(
 		text.textContent = paragraphs.map((p) => p.segments.map((s) => s.text).join('')).join('\n');
 		return text;
 	}
-	// Envelope presets (inflate/deflate/can) get a true per-glyph height warp
-	// instead of a shared-baseline `<textPath>`, across every paragraph: line
-	// `i` of `lineCount` occupies its own `[i/n, (i+1)/n]` vertical slice of
-	// the envelope curve's local band (see `buildGlyphEnvelope` in
-	// pptx-viewer-shared), so a multi-paragraph block bends within the same
-	// overall envelope shape instead of falling back to the shared-baseline
-	// `<textPath>` renderer.
+	// Envelope presets (inflate/deflate/can) are laid out as ONE block and
+	// warped by a single PowerPoint-derived mapping (see
+	// `buildGlyphEnvelopeBlock` in pptx-viewer-shared), so glyph HEIGHT varies
+	// between the preset's top and bottom curves and a multi-paragraph block
+	// bends within the same overall envelope with its rows kept in order.
 	if (hasGlyphEnvelope(preset)) {
 		return renderGlyphWarp(element, paragraphs, context);
 	}
@@ -114,26 +112,25 @@ function renderGlyphWarp(
 	});
 	svg.setAttribute('class', 'pptxv-wordart');
 	svg.setAttribute('style', 'position:absolute;inset:0;width:100%;height:100%;overflow:visible');
-	const lineCount = paragraphs.length;
+	const perLine = buildGlyphEnvelopeBlock(
+		preset,
+		paragraphs.map((paragraph) =>
+			paragraph.segments.map((seg, i): EnvelopeSegmentInput => ({
+				text: seg.text,
+				font: segmentFont(seg, style),
+				segmentIndex: i,
+			})),
+		),
+		width,
+		height,
+		style.align,
+		style.textWarpAdj,
+		style.textWarpAdj2,
+		getGlyphOutline,
+	);
 	paragraphs.forEach((paragraph, lineIndex) => {
 		const segments = paragraph.segments;
-		const segsInput: EnvelopeSegmentInput[] = segments.map((seg, i) => ({
-			text: seg.text,
-			font: segmentFont(seg, style),
-			segmentIndex: i,
-		}));
-		const glyphs = buildGlyphEnvelope(
-			preset,
-			segsInput,
-			width,
-			height,
-			style.align,
-			style.textWarpAdj,
-			style.textWarpAdj2,
-			lineIndex,
-			lineCount,
-			getGlyphOutline,
-		);
+		const glyphs = perLine[lineIndex] ?? [];
 		glyphs.forEach((g, glyphIndex) => {
 			const s = segments[g.segmentIndex]?.style ?? {};
 			const fill = s.color ?? style.color ?? '#000000';
@@ -170,7 +167,7 @@ function renderGlyphWarp(
 			}
 			// A very wide glyph on a strongly-curved envelope: rendered as
 			// `slices.length` clipped copies, each with its own affine (see
-			// `chooseGlyphSliceCount` in pptx-viewer-shared), so the pieces tile
+			// `fitGlyphEnvelopeAffine` in pptx-viewer-shared), so the pieces tile
 			// across the glyph. Wrapped in a real <g> so it never matches an
 			// "svg > text" selector the single-slice case does.
 			const group = createSvgEl(context.document, 'g', {
