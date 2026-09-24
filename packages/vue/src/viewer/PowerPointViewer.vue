@@ -86,16 +86,11 @@ import ViewerSlideRail from './components/ViewerSlideRail.vue';
 import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
-import { AreaChart3DKey } from './composables/area-chart-3d';
-import { BarChart3DKey } from './composables/bar-chart-3d';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
-import { LineChart3DKey } from './composables/line-chart-3d';
-import { PieChart3DKey } from './composables/pie-chart-3d';
 import { RecentColorsKey } from './composables/recent-colors-context';
-import { SmartArt3DKey } from './composables/smart-art-3d';
-import { SurfaceChart3DKey } from './composables/surface-chart-3d';
+import { Rendering3DFlagsKey } from './composables/rendering-3d-flags';
 import { TableThemeKey } from './composables/table-theme';
 import { ThemeColorMapKey } from './composables/theme-color-map-context';
 import { useAccessibility } from './composables/useAccessibility';
@@ -193,10 +188,10 @@ const themeStyle = useThemeStyle(prefs.effectiveTheme);
 // The six 3D opt-in flags are provided further down, once `viewerOptions` (File
 // > Options) exists: each ANDs the host's own prop with Options > Advanced >
 // "Disable 3D rendering", so a viewer user can force flat 2D even in a deck the
-// host enabled 3D for. See the `provide(SmartArt3DKey, ...)` block below.
+// host enabled 3D for. See the `provide(Rendering3DFlagsKey, ...)` block below.
 // File > Account sign-in hook point: surface the prop to AccountPage.vue via
 // inject, avoiding threading `accountAuth` through the large RibbonProps
-// contract just to reach one deeply-nested panel (mirrors SmartArt3DKey above).
+// contract just to reach one deeply-nested panel (mirrors the Rendering3DFlagsKey pattern).
 provide(AccountAuthKey, props.accountAuth);
 
 // -- Load + parse content ----------------------------------------------
@@ -1269,36 +1264,9 @@ const effective3D = computed(() =>
 		viewerOptions.value,
 	),
 );
-// SmartArt 3D opt-in: surface it to the element dispatcher via inject.
-provide(
-	SmartArt3DKey,
-	computed(() => effective3D.value.smartArt3D),
-);
-// Surface-chart 3D opt-in: surface it to ChartRenderer via inject.
-provide(
-	SurfaceChart3DKey,
-	computed(() => effective3D.value.surfaceChart3D),
-);
-// Bar3D-chart 3D opt-in: surface it to ChartRenderer via inject.
-provide(
-	BarChart3DKey,
-	computed(() => effective3D.value.barChart3D),
-);
-// Line3D-chart 3D opt-in: surface it to ChartRenderer via inject.
-provide(
-	LineChart3DKey,
-	computed(() => effective3D.value.lineChart3D),
-);
-// Area3D-chart 3D opt-in: surface it to ChartRenderer via inject.
-provide(
-	AreaChart3DKey,
-	computed(() => effective3D.value.areaChart3D),
-);
-// Pie3D-chart 3D opt-in: surface it to ChartRenderer via inject.
-provide(
-	PieChart3DKey,
-	computed(() => effective3D.value.pieChart3D),
-);
+// One injection for all six flags: every chart / SmartArt element hands it
+// to the shared spec resolvers (see `rendering-3d-flags.ts`).
+provide(Rendering3DFlagsKey, effective3D);
 
 // File > Options > Add-ins: real availability signals for the two catalog
 // entries this binding can actually answer for. `smartArt3d` reflects the

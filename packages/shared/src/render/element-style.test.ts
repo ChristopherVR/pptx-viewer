@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	elementHitTargetStyle,
+	elementInLocalFrame,
 	getContainerStyle,
 	getImageFitStyle,
 	getImageOverflow,
@@ -287,5 +288,34 @@ describe('shouldRenderHitTarget', () => {
 
 	it('is false when neither interactive nor presenting', () => {
 		expect(shouldRenderHitTarget(false, true)).toBeFalsy();
+	});
+});
+
+describe('elementInLocalFrame', () => {
+	const el = {
+		id: 'e1',
+		type: 'shape',
+		x: 10,
+		y: 20,
+		width: 100,
+		height: 50,
+		rotation: 45,
+		flipHorizontal: true,
+		flipVertical: true,
+		opacity: 0.5,
+	} as unknown as PptxElement;
+
+	it('moves the element to its own origin with no transform or opacity', () => {
+		const local = elementInLocalFrame(el);
+		const style = getContainerStyle(local, 0);
+		expect(style.left).toBe('0px');
+		expect(style.top).toBe('0px');
+		expect(style.transform).toBeUndefined();
+		expect(style.opacity).toBeUndefined();
+		expect(style.width).toBe('100px');
+	});
+
+	it('keeps the same object for the same element', () => {
+		expect(elementInLocalFrame(el)).toBe(elementInLocalFrame(el));
 	});
 });

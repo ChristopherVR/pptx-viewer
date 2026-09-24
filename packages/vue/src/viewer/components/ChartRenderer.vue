@@ -12,18 +12,14 @@ import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useBarFacePictureSampleVersion } from '../composables/bar-face-picture-sample-version';
-import { useChart3DSceneSelection } from '../composables/chart-3d-scene-selection';
 import { useChartCanvasInteraction } from '../composables/chart-canvas-interaction';
 import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
-import Area3DChartRenderer from './Area3DChartRenderer.vue';
-import Bar3DChartRenderer from './Bar3DChartRenderer.vue';
+import { useChart3DView } from '../composables/use-chart-3d-view';
 import { buildVueChartViewModel } from './chart/chart-view-model';
 import ChartEditOverlays from './chart/ChartEditOverlays.vue';
 import ChartViewModelSvg from './chart/ChartViewModelSvg.vue';
-import Line3DChartRenderer from './Line3DChartRenderer.vue';
-import PieChart3DRenderer from './PieChart3DRenderer.vue';
-import SurfaceChart3DRenderer from './SurfaceChart3DRenderer.vue';
+import ThreeView from './ThreeView';
 
 /**
  * ChartRenderer: a chart element as inline SVG.
@@ -134,16 +130,16 @@ const chartKind = computed(() =>
 const isPlaceholder = computed(() => chartKind.value === 'unsupported');
 
 /**
- * Opt-in interactive 3D scenes (real box/wedge/tube-path/ribbon/surface
- * meshes, camera orbit/zoom via OrbitControls, plus on-canvas part
- * click/drag; see `useChart3DSceneSelection`). Marks are not
- * selectable/draggable for surface/pie: a mesh facet or wedge has no single
- * vertical value axis to drag against.
+ * Opt-in 3D scene (`<pptx-three-view>`): `threeD.spec` is `null` unless the
+ * host opted this raw `c:chartType` into 3D (see `resolveChartThreeViewSpec`).
+ * Built from the COMMITTED element, not the drag preview, so a value drag on
+ * a 3D mark never remounts the scene under the pointer.
  */
-const { showSurface3D, showBar3D, showLine3D, showArea3D, showPie3D } = useChart3DSceneSelection({
-	chartKind: () => chartKind.value,
-	chartType: () => chartType.value,
-});
+const threeD = useChart3DView(
+	() => props.element,
+	() => props.interactive === true,
+);
+const threeSpec = threeD.spec;
 
 const placeholderLabel = computed(() =>
 	chartPlaceholderLabel(chartType.value, (key, params) => t(key, params ?? {})),
@@ -172,8 +168,8 @@ const viewModel = computed<ChartViewModel | undefined>(() => {
 const aspectRatio = computed(() => chartPreserveAspectRatio(chartKind.value));
 
 /**
- * Active text-style emphasis, threaded into the 3D chart renderers' own
- * `textStyle` prop: the DOM CSS override above cannot reach a WebGL canvas.
+ * Active text-style emphasis, threaded into the 3D scene's own `textStyle`:
+ * the DOM CSS override above cannot reach a WebGL canvas.
  */
 const textStyle = computed(() => props.animationState?.textStyle);
 </script>
@@ -209,49 +205,22 @@ const textStyle = computed(() => props.animationState?.textStyle);
 			{{ placeholderLabel }}
 		</div>
 
-		<!-- Opt-in interactive 3D surface scene, falling back to the SVG below -->
-		<SurfaceChart3DRenderer
-			v-else-if="showSurface3D && viewModel"
-			:element="revealedElement"
-			:view-model="viewModel"
-			:preserve-aspect-ratio="aspectRatio"
+		<!-- Opt-in 3D scene; the shared SVG render is its fallback while it loads or if it fails -->
+		<ThreeView
+			v-else-if="threeSpec && viewModel"
+			:spec="threeSpec"
+			:interactive="threeD.interactive.value"
+			:selected-part="threeD.selectedPart.value"
 			:text-style="textStyle"
-		/>
-
-		<!-- Opt-in interactive 3D bar scene, falling back to the SVG below -->
-		<Bar3DChartRenderer
-			v-else-if="showBar3D && viewModel"
-			:element="revealedElement"
-			:view-model="viewModel"
-			:preserve-aspect-ratio="aspectRatio"
-			:text-style="textStyle"
-		/>
-
-		<!-- Opt-in interactive 3D line scene, falling back to the SVG below -->
-		<Line3DChartRenderer
-			v-else-if="showLine3D && viewModel"
-			:element="revealedElement"
-			:view-model="viewModel"
-			:preserve-aspect-ratio="aspectRatio"
-			:text-style="textStyle"
-		/>
-
-		<!-- Opt-in interactive 3D area scene, falling back to the SVG below -->
-		<Area3DChartRenderer
-			v-else-if="showArea3D && viewModel"
-			:element="revealedElement"
-			:view-model="viewModel"
-			:preserve-aspect-ratio="aspectRatio"
-			:text-style="textStyle"
-		/>
-
-		<!-- Opt-in interactive 3D pie scene, falling back to the SVG below -->
-		<PieChart3DRenderer
-			v-else-if="showPie3D && viewModel"
-			:element="revealedElement"
-			:view-model="viewModel"
-			:preserve-aspect-ratio="aspectRatio"
-		/>
+			@select="threeD.onSelect"
+			@drag="threeD.onDrag"
+		>
+			<ChartViewModelSvg
+				:element-id="element.id"
+				:vm="viewModel"
+				:preserve-aspect-ratio="aspectRatio"
+			/>
+		</ThreeView>
 
 		<!-- Every supported kind: the shared view-model engine, projected as SVG -->
 		<ChartViewModelSvg
@@ -263,7 +232,7 @@ const textStyle = computed(() => props.animationState?.textStyle);
 
 		<!-- Drag value badge + inline title editor (direct on-canvas editing) -->
 		<ChartEditOverlays
-			:drag-label="dragLabel"
+			:drag-label="dragLabel ?? threeD.dragLabel.value"
 			:title-draft="titleDraft"
 			@title-input="setTitleDraft"
 			@title-commit="commitTitle"

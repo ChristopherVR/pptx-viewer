@@ -394,3 +394,31 @@ function round2(value: number): number {
 function round6(value: number): number {
 	return Math.round(value * 1e6) / 1e6;
 }
+
+const localFrameElements = new WeakMap<PptxElement, PptxElement>();
+
+/**
+ * `el` re-expressed in its own container's frame: at the origin, unrotated,
+ * unflipped and fully opaque. For rendering an element's content INSIDE a
+ * wrapper that already carries its {@link getContainerStyle} (position,
+ * rotation, flips, opacity), such as the 2D fallback slotted into a
+ * `<pptx-three-view>` or an invisible hit-test copy, so none of those apply
+ * twice. Memoised per element object, so a re-render keeps the same identity.
+ */
+export function elementInLocalFrame(el: PptxElement): PptxElement {
+	const cached = localFrameElements.get(el);
+	if (cached) {
+		return cached;
+	}
+	const local = {
+		...el,
+		x: 0,
+		y: 0,
+		rotation: 0,
+		flipHorizontal: false,
+		flipVertical: false,
+		opacity: undefined,
+	} as PptxElement;
+	localFrameElements.set(el, local);
+	return local;
+}

@@ -10,7 +10,7 @@
 // (pure functions, provide/inject keys, constant tables) are not part of this surface - they are
 // implementation detail, not composables.
 
-export * from './viewer/composables/smart-art-3d';
+export * from './viewer/composables/rendering-3d-flags';
 export * from './viewer/composables/smartart-inline-edit';
 export * from './viewer/composables/table-selection';
 export * from './viewer/composables/useAccessibility';

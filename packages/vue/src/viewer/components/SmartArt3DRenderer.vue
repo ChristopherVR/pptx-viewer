@@ -1,41 +1,41 @@
 <script setup lang="ts">
 /**
- * SmartArt3DRenderer - Vue Three.js SmartArt renderer.
+ * SmartArt3DRenderer - Vue 3D SmartArt view on the shared `<pptx-three-view>`.
  *
- * Builds the pure 3D model from the shared layout engine (no `three` import),
- * then lazily imports the vanilla scene runtime from
- * `pptx-viewer-shared/smartart-3d` and mounts it on a canvas. `three` is an
- * optional peer dependency: when it is missing, the diagram has no geometry, or
- * the scene errors, the component transparently falls back to the SVG
- * `SmartArtRenderer`.
+ * The spec (`resolveSmartArtThreeViewSpec`) and the whole scene live in
+ * `pptx-viewer-shared`; this SFC only slots the SVG `SmartArtRenderer` in as
+ * the element's fallback (shown while the scene loads, and kept when `three`
+ * is missing or the scene fails) and, in edit mode, layers the inline
+ * node-text editor on top. When no spec applies (the diagram has nothing to
+ * draw) it renders the plain SVG `SmartArtRenderer`. Mirrors React's
+ * `SmartArt3DView.tsx`.
  *
  * When the host provides a SmartArtNodeEditKey injection (edit mode), an
- * invisible SmartArtHitTestWrapper overlay is stacked over the 3D canvas.
+ * invisible SmartArtHitTestWrapper overlay is stacked over the scene.
  * Double-clicking it walks up from the click target to the nearest
  * `[data-node-id]` SVG group, projects its screen rect into container-local
  * coordinates, and opens an inline textarea editor for that node. Commits flow
  * through the same injection context the 2D renderer uses (undo/redo + save).
  */
-import type { PptxElement, PptxSmartArtChrome, SmartArtStyle } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import {
-	buildSmartArt3DModel,
-	collectCoherent3DOffNodeIds,
-	resolvePalette,
-	resolveSmartArt3DLayout,
+	elementInLocalFrame,
+	resolveSmartArtThreeViewSpec,
 	shouldCommitSmartArtNodeText,
 } from 'pptx-viewer-shared';
-import type { SmartArt3DModel, TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
-import { computed, nextTick, ref, toRef } from 'vue';
+import type { TextStyleAnimationDescriptor } from 'pptx-viewer-shared';
+import { computed, nextTick, ref } from 'vue';
 import type { CSSProperties } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useElementHitTargetStyle } from '../composables/element-hit-target';
 import { getContainerStyle } from '../composables/element-style';
+import { useRendering3DFlags } from '../composables/rendering-3d-flags';
 import { inlineEditorRect, useSmartArtInlineEditState } from '../composables/smartart-inline-edit';
 import { injectSmartArtNodeEdit } from '../composables/smartart-node-edit';
-import { useSmartArt3DScene } from '../composables/useSmartArt3DScene';
 import SmartArtHitTestWrapper from './SmartArtHitTestWrapper.vue';
 import SmartArtRenderer from './SmartArtRenderer.vue';
+import ThreeView from './ThreeView';
 
 const props = defineProps<{
 	element: PptxElement;
@@ -47,11 +47,10 @@ const props = defineProps<{
 	presenting?: boolean;
 	/**
 	 * Active font-style emphasis override (Bold Flash, Bold Reveal, Underline,
-	 * Change Font Style/Size), applied to every node caption via the mounted
-	 * handle's `setTextStyle`. The parent `ElementRenderer`'s DOM CSS override
-	 * (`buildTextStyleOverrideCss`) cannot reach a canvas-texture caption, so
-	 * this scene-native path is the only one that reaches it; the fallback
-	 * SVG `SmartArtRenderer` below still takes the CSS override directly.
+	 * Change Font Style/Size), applied to every node caption by the scene. The
+	 * parent `ElementRenderer`'s DOM CSS override (`buildTextStyleOverrideCss`)
+	 * cannot reach a canvas-texture caption; the SVG fallback still takes the
+	 * CSS override directly.
 	 */
 	textStyle?: TextStyleAnimationDescriptor;
 	/** Forwarded to the fallback SVG `SmartArtRenderer` (see `textStyle` above). */
@@ -64,43 +63,14 @@ const smartArtData = computed(() =>
 	props.element.type === 'smartArt' ? props.element.smartArtData : undefined,
 );
 
-const palette = computed<string[]>(() => resolvePalette(smartArtData.value));
+const flags = useRendering3DFlags();
+const spec = computed(() => resolveSmartArtThreeViewSpec(props.element, flags.value.smartArt3D));
 
-const style = computed<SmartArtStyle>(() => smartArtData.value?.style ?? 'flat');
-const chrome = computed<PptxSmartArtChrome | undefined>(() => smartArtData.value?.chrome);
+/** The element in the container's own frame, for the slotted fallback and hit-test copies. */
+const localElement = computed(() => elementInLocalFrame(props.element));
 
-const model = computed<SmartArt3DModel | null>(() => {
-	const data = smartArtData.value;
-	if (!data || data.nodes.length === 0) {
-		return null;
-	}
-	const layout = resolveSmartArt3DLayout(
-		data,
-		data.nodes,
-		{ width: props.element.width, height: props.element.height },
-		palette.value,
-		style.value,
-		props.element.id,
-	);
-	return buildSmartArt3DModel(layout, {
-		background: chrome.value?.backgroundColor,
-		spatial: true,
-		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
-	});
-});
-
-const canvasRef = ref<HTMLCanvasElement | null>(null);
 const containerRef = ref<HTMLElement | null>(null);
 const editorEl = ref<HTMLTextAreaElement | null>(null);
-
-/** Opt-in interactive WebGL scene; falls back to the SVG renderer when it cannot mount. */
-const { useFallback } = useSmartArt3DScene({
-	canvas: canvasRef,
-	model: () => model.value,
-	width: () => props.element.width,
-	height: () => props.element.height,
-	textStyle: toRef(props, 'textStyle'),
-});
 
 const containerStyle = computed<CSSProperties>(() =>
 	getContainerStyle(props.element, props.zIndex),
@@ -176,7 +146,7 @@ function commitEdit(): void {
 
 <template>
 	<SmartArtRenderer
-		v-if="useFallback"
+		v-if="!spec"
 		:element="element"
 		:media-data-urls="mediaDataUrls"
 		:z-index="zIndex"
@@ -198,12 +168,19 @@ function commitEdit(): void {
 			data-pptx-hit-target="true"
 			:style="hitTargetStyle"
 		/>
-		<canvas ref="canvasRef" class="pptx-vue-smartart-3d-canvas" />
+		<ThreeView :spec="spec" :interactive="canEdit" :text-style="textStyle">
+			<SmartArtRenderer
+				:element="localElement"
+				:media-data-urls="mediaDataUrls"
+				:z-index="0"
+				:text-style-override-css="textStyleOverrideCss"
+			/>
+		</ThreeView>
 
 		<template v-if="canEdit">
 			<!-- Invisible SVG overlay: data-node-id groups are pointer-events hit targets -->
 			<div class="pptx-vue-smartart-3d-hittest" @dblclick.stop="onOverlayDblClick">
-				<SmartArtHitTestWrapper :element="element" :zIndex="0" />
+				<SmartArtHitTestWrapper :element="localElement" :zIndex="0" />
 			</div>
 
 			<!-- Inline node text editor, positioned over the clicked node -->
@@ -233,12 +210,6 @@ function commitEdit(): void {
 </template>
 
 <style scoped>
-.pptx-vue-smartart-3d-canvas {
-	width: 100%;
-	height: 100%;
-	display: block;
-}
-
 /* Invisible hit-test overlay: fills the canvas area, captures dblclicks.
    opacity:0 makes it invisible while keeping it in the layout + event flow. */
 .pptx-vue-smartart-3d-hittest {

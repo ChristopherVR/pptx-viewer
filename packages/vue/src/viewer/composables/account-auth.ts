@@ -4,7 +4,7 @@ import type { AccountAuthConfig } from 'pptx-viewer-shared';
  *
  * `PowerPointViewer.vue` provides this from its `accountAuth` prop; the
  * `AccountPage.vue` sign-in section injects it to decide whether to render
- * itself at all. Mirrors the `SmartArt3DKey` opt-in-flag pattern in
+ * itself at all. Mirrors the `Rendering3DFlagsKey` opt-in-flag pattern in
  * `smart-art-3d.ts`, so `accountAuth` doesn't need threading through the
  * large `RibbonProps` contract just to reach a single deeply-nested panel.
  */

@@ -24,8 +24,8 @@ import {
 } from '../composables/element-style';
 import { injectFieldContext, resolveFieldContext } from '../composables/field-context';
 import { injectPresentationElementStates } from '../composables/presentation-element-states';
+import { useRendering3DFlags } from '../composables/rendering-3d-flags';
 import { injectSlideElements, resolveSlideElements } from '../composables/slide-elements';
-import { useSmartArt3D } from '../composables/smart-art-3d';
 import { build3DExtrusionData } from '../composables/visual-3d';
 import ActionButtonGlyphOverlay from './ActionButtonGlyphOverlay.vue';
 import ChartRenderer from './ChartRenderer.vue';
@@ -102,7 +102,8 @@ const props = defineProps<{
 }>();
 
 /** Host opt-in to the Three.js SmartArt renderer (provided by PowerPointViewer). */
-const smartArt3D = useSmartArt3D();
+const rendering3DFlags = useRendering3DFlags();
+const smartArt3D = computed(() => rendering3DFlags.value.smartArt3D);
 
 /** OOXML field-substitution context (slide number, date/time, etc.), provided by the viewer root. */
 const fieldContextSource = injectFieldContext();
