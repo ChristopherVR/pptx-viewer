@@ -6,7 +6,9 @@
  * Shading, fitted to `gt/chart-14,15`: the top face keeps the slice colour;
  * the rim darkens from the left toward the right, `max(0.385, 0.57 - 0.275
  * phi)` with `phi` the rim normal's angle to the right of straight toward the
- * viewer (radians). Cut faces use the same rule by their own normals.
+ * viewer (radians). The flat cut faces of an exploded pie follow their own
+ * rule, lighter turned right: `0.5 + 0.2 sin(phi)` (0.70 at +59 degrees,
+ * 0.42 at -23, 0.39 at -59, 0.3 at -90 on `gt/chart-15`).
  *
  * @module chart-3d-pie-marks
  */
@@ -23,8 +25,8 @@ const SEAM_COLOR = 0xffffff;
 /** Arc segments per full turn. */
 const SEGMENTS_PER_TURN = 144;
 
-/** Shade multiplier for a box-space normal (box -z faces the viewer). */
-export function pieFaceShade(nx: number, ny: number, nz: number): number {
+/** Shade multiplier for a box-space normal (box -z faces the viewer); `cut` for a slice's flat cut face. */
+export function pieFaceShade(nx: number, ny: number, nz: number, cut = false): number {
 	if (ny > 0.5) {
 		return 1;
 	}
@@ -32,6 +34,9 @@ export function pieFaceShade(nx: number, ny: number, nz: number): number {
 		return 0.3;
 	}
 	const phi = Math.atan2(nx, -nz);
+	if (cut) {
+		return 0.5 + 0.2 * Math.sin(phi);
+	}
 	return Math.max(0.385, 0.57 - 0.275 * phi);
 }
 
@@ -58,8 +63,8 @@ function sliceBuffers(three: ThreeModule, layout: PieChartLayout, slice: PieSlic
 	const cz = layout.center.z + slice.offset.z;
 	const top = layout.center.y;
 	const r = layout.radius;
-	const push = (p: Vec3, n: Vec3): void => {
-		const f = pieFaceShade(n[0], n[1], n[2]);
+	const push = (p: Vec3, n: Vec3, cut = false): void => {
+		const f = pieFaceShade(n[0], n[1], n[2], cut);
 		out.setRGB(
 			Math.min(1, base.r * f),
 			Math.min(1, base.g * f),
@@ -101,12 +106,12 @@ function sliceBuffers(three: ThreeModule, layout: PieChartLayout, slice: PieSlic
 		[slice.endAngle, 1],
 	] as const) {
 		const n: Vec3 = [sign * Math.cos(a), 0, -sign * Math.sin(a)];
-		push([cx, top, cz], n);
-		push([cx, 0, cz], n);
-		push(rim(a, 0), n);
-		push([cx, top, cz], n);
-		push(rim(a, 0), n);
-		push(rim(a, top), n);
+		push([cx, top, cz], n, true);
+		push([cx, 0, cz], n, true);
+		push(rim(a, 0), n, true);
+		push([cx, top, cz], n, true);
+		push(rim(a, 0), n, true);
+		push(rim(a, top), n, true);
 	}
 	const seams: number[] = [];
 	for (let i = 0; i < steps; i++) {

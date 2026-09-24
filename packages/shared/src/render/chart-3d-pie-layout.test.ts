@@ -89,3 +89,12 @@ describe('pieFaceShade', () => {
 		expect(right).toBeCloseTo(0.385, 9);
 	});
 });
+
+describe('pie cut faces', () => {
+	it('lights a cut face turned right more than one turned left', () => {
+		const right = pieFaceShade(Math.sin(1.03), 0, -Math.cos(1.03), true);
+		const left = pieFaceShade(-Math.sin(0.4), 0, -Math.cos(0.4), true);
+		expect(right).toBeCloseTo(0.67, 2);
+		expect(left).toBeCloseTo(0.42, 2);
+	});
+});
