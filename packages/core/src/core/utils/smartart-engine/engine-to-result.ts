@@ -72,6 +72,30 @@ function sourceIdsOf(node: EngineNode): string[] {
 	return ids;
 }
 
+/**
+ * `hideGeom` (ECMA-376 Part 1, 21.4.7.16 `ST_OnOffStyleType`) means the node
+ * draws NO visible border/fill, not that it is not a node: PowerPoint still
+ * places its own text-bearing shape there (invisible outline, real text),
+ * commonly a "descendant" role box folded under a sibling's card (see
+ * `Vertical Action List`/`Descending Block List`/`Numbered Title List`: an
+ * item's own child node text renders as a second, borderless line inside the
+ * same visual card). Dropping every `hideGeom` node outright previously lost
+ * those boxes entirely (2-3 of 5-6 text-bearing shapes per fixture) even
+ * though the engine placed correct geometry for them; a `hideGeom` node with
+ * NO presented text (a genuinely decorative/structural placeholder, e.g. a
+ * sibling row with no descendant) is still skipped, since it carries nothing
+ * to compare or display.
+ */
+function isRenderable(node: EngineNode, primary: PptxSmartArtNode | undefined): boolean {
+	if (!node.shape || !node.box) {
+		return false;
+	}
+	if (!node.shape.hideGeom) {
+		return true;
+	}
+	return Boolean(primary?.text && primary.text.trim().length > 0);
+}
+
 function buildRenderedNode(
 	node: EngineNode,
 	index: number,
@@ -85,9 +109,13 @@ function buildRenderedNode(
 	}
 	const sourceIds = sourceIdsOf(node);
 	const primary = sourceIds.length > 0 ? nodeById.get(sourceIds[0]) : undefined;
+	if (!isRenderable(node, primary)) {
+		return undefined;
+	}
+	const hidden = Boolean(node.shape?.hideGeom);
 	const text = primary?.text ?? '';
 	const fontSizePt = resolveEngineFontSizePt(node, text);
-	const sw = styleStroke(style);
+	const sw = hidden ? 0 : styleStroke(style);
 	const x = transform.x * PX_PER_PT;
 	const y = transform.y * PX_PER_PT;
 	const width = transform.w * PX_PER_PT;
@@ -100,10 +128,10 @@ function buildRenderedNode(
 		width,
 		height,
 		rx: 0,
-		fill: primary ? nodeFill(primary, index, palette) : colour(index, palette),
-		stroke: strokeFor(sw),
+		fill: hidden ? 'none' : primary ? nodeFill(primary, index, palette) : colour(index, palette),
+		stroke: hidden ? 'none' : strokeFor(sw),
 		strokeWidth: sw,
-		opacity: nodeOpacity(index, index + 1, style),
+		opacity: hidden ? 1 : nodeOpacity(index, index + 1, style),
 		text,
 		fontSize: fontSizePt * PX_PER_PT,
 		textX: x + width / 2,
@@ -124,11 +152,9 @@ function collectRenderedNodes(
 ): RenderedRectNode[] {
 	const out: RenderedRectNode[] = [];
 	const visit = (node: EngineNode): void => {
-		if (node.shape && !node.shape.hideGeom && node.box) {
-			const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
-			if (rendered) {
-				out.push(rendered);
-			}
+		const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
+		if (rendered) {
+			out.push(rendered);
 		}
 		node.children.forEach(visit);
 	};
