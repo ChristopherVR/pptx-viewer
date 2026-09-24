@@ -59,6 +59,7 @@ function loaderParams(
 		extractMediaTimingMap: vi.fn(() => new Map()),
 		enrichMediaElementsWithTiming: vi.fn(async () => {}),
 		enrichOleElementsWithEmbeddedData: vi.fn(async () => {}),
+		enrichBulletPictureElementsWithEmbeddedData: vi.fn(async () => {}),
 		extractBackgroundColor: vi.fn(() => undefined),
 		extractOwnBackgroundNode: vi.fn(() => undefined),
 		getLayoutBackgroundColor: vi.fn(async () => undefined),

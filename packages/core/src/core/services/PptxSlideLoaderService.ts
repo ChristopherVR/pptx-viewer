@@ -217,9 +217,14 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 					? params.enrichMediaElementsWithTiming(slideElements, mediaTimingMap)
 					: Promise.resolve(),
 				// Recover embedded OLE binaries so callers can download / open the
-				// real inner file. Media and OLE elements are disjoint, so both
-				// enrichments can safely overlap their archive reads.
+				// real inner file. Media, OLE, and bullet-picture elements are
+				// disjoint, so all three enrichments can safely overlap their
+				// archive reads.
 				params.enrichOleElementsWithEmbeddedData(slideElements, path),
+				// Resolve `a:buBlip` picture-bullet images bullet parsing could only
+				// leave as an `imageRelId` (it runs synchronously, outside this async
+				// image-loading pass).
+				params.enrichBulletPictureElementsWithEmbeddedData(slideElements, path),
 			]);
 
 			// Merge layout elements (behind) with slide elements (on top),

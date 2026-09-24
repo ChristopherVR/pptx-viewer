@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 
-import type { XmlObject } from '../types';
+import type { PptxElement, XmlObject } from '../types';
 import { PptxSlideLoaderService } from './PptxSlideLoaderService';
 import type { PptxSlideLoaderParams } from './slide-loader-types';
 
@@ -34,6 +34,7 @@ function createMockParams(overrides?: Partial<PptxSlideLoaderParams>): PptxSlide
 		extractMediaTimingMap: vi.fn(() => new Map()),
 		enrichMediaElementsWithTiming: vi.fn(async () => {}),
 		enrichOleElementsWithEmbeddedData: vi.fn(async () => {}),
+		enrichBulletPictureElementsWithEmbeddedData: vi.fn(async () => {}),
 		extractBackgroundColor: vi.fn(() => undefined),
 		extractOwnBackgroundNode: vi.fn(() => undefined),
 		getLayoutBackgroundColor: vi.fn(async () => undefined),
@@ -177,6 +178,54 @@ describe('pptxSlideLoaderService', () => {
 			expect(result[0].id).toBe('ppt/slides/slide1.xml');
 			expect(result[0].slideNumber).toBe(1);
 			expect(result[0].rId).toBe('rId1');
+		});
+
+		// Regression: buBlip picture-bullet images resolve in a separate async
+		// enrichment pass (bullet parsing itself is synchronous), run alongside
+		// the OLE/media enrichments. If this call is ever dropped from the
+		// `Promise.all`, every picture bullet silently falls back to a plain dot
+		// even though its relationship is right there on the slide.
+		it('runs bullet-picture enrichment on the parsed slide elements', async () => {
+			const slideXml = '<p:sld></p:sld>';
+			const slideXmlParsed: XmlObject = { 'p:sld': { 'p:cSld': {} } };
+			const relsXml =
+				'<?xml version="1.0"?><Relationships><Relationship Id="rId1" Target="slides/slide1.xml"/></Relationships>';
+			const relsParsed: XmlObject = {
+				Relationships: { Relationship: { '@_Id': 'rId1', '@_Target': 'slides/slide1.xml' } },
+			};
+			const parsedElements = [{ id: 'shape-1', type: 'text' }] as unknown as PptxElement[];
+
+			const mockFile = (path: string) => {
+				if (path === 'ppt/_rels/presentation.xml.rels') {
+					return { async: vi.fn(async () => relsXml) };
+				}
+				if (path === 'ppt/slides/slide1.xml') {
+					return { async: vi.fn(async () => slideXml) };
+				}
+				return null;
+			};
+			const mockParser = {
+				parse: vi.fn((xml: string) => (xml === relsXml ? relsParsed : slideXmlParsed)),
+			};
+			const enrichBulletPictureElementsWithEmbeddedData = vi.fn(async () => {});
+
+			const params = createMockParams({
+				presentationData: {
+					'p:presentation': {
+						'p:sldIdLst': { 'p:sldId': { '@_id': '256', '@_r:id': 'rId1' } },
+					},
+				},
+				zip: { file: vi.fn(mockFile) } as unknown as PptxSlideLoaderParams['zip'],
+				parser: mockParser as unknown as PptxSlideLoaderParams['parser'],
+				parseSlide: vi.fn(async () => parsedElements),
+				enrichBulletPictureElementsWithEmbeddedData,
+			});
+
+			await service.loadSlides(params);
+			expect(enrichBulletPictureElementsWithEmbeddedData).toHaveBeenCalledWith(
+				parsedElements,
+				'ppt/slides/slide1.xml',
+			);
 		});
 	});
 

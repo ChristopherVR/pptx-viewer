@@ -8,6 +8,7 @@ import { detectDigitalSignatures } from '../../utils/signature-detection';
 import type { PptxHandlerLoadOptions } from '../types';
 import { DEFAULT_MAX_UNCOMPRESSED_BYTES, MAX_ZIP_ENTRY_COUNT, ZipBombError } from '../types';
 import { rememberSlideBackgroundOrigin } from './authored-slide-background';
+import { enrichBulletPictureImages } from './bullet-picture-image-enrichment';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeEmbeddedFonts';
 
 /**
@@ -417,6 +418,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 	}
 
+	/** Thin instance-bound wrapper; see `enrichBulletPictureImages` for the logic. */
+	protected async enrichBulletPictureElementsWithEmbeddedData(
+		elements: PptxElement[],
+		slidePath: string,
+	): Promise<void> {
+		await enrichBulletPictureImages(elements, slidePath, {
+			slideRelsMap: this.slideRelsMap,
+			resolveImagePath: (path, target) => this.resolveImagePath(path, target),
+			getImageData: (imagePath) => this.getImageData(imagePath),
+		});
+	}
+
 	protected async loadSlidesForPresentation(
 		sectionBySlideId: Map<string, { sectionId: string; sectionName: string }>,
 	): Promise<import('../../types').PptxSlide[]> {
@@ -452,6 +465,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				this.enrichMediaElementsWithTiming(elements, timingMap),
 			enrichOleElementsWithEmbeddedData: (elements, slidePath) =>
 				this.enrichOleElementsWithEmbeddedData(elements, slidePath),
+			enrichBulletPictureElementsWithEmbeddedData: (elements, slidePath) =>
+				this.enrichBulletPictureElementsWithEmbeddedData(elements, slidePath),
 			extractBackgroundColor: (slideXml) => this.extractBackgroundColor(slideXml),
 			extractOwnBackgroundNode: (slideXml) => this.extractOwnBackgroundNode(slideXml),
 			getLayoutBackgroundColor: (slidePath) => this.getLayoutBackgroundColor(slidePath),

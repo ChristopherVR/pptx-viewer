@@ -123,6 +123,14 @@ export interface PptxSlideLoaderParams {
 	) => Promise<void>;
 	/** Recover and attach embedded binaries for OLE elements (download/open). */
 	enrichOleElementsWithEmbeddedData: (elements: PptxElement[], slidePath: string) => Promise<void>;
+	/**
+	 * Resolve `a:buBlip` picture-bullet images that bullet parsing (synchronous)
+	 * could only leave as an `imageRelId`. See `bullet-picture-image-enrichment.ts`.
+	 */
+	enrichBulletPictureElementsWithEmbeddedData: (
+		elements: PptxElement[],
+		slidePath: string,
+	) => Promise<void>;
 	/** Extract solid background color from slide XML. */
 	extractBackgroundColor: (slideXml: XmlObject) => string | undefined;
 	/**
