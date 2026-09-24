@@ -66,5 +66,15 @@ export default defineConfig({
 	},
 	optimizeDeps: {
 		include: ['vue', 'jszip', 'fast-xml-parser'],
+		// `emf-converter`'s Node fallback does a guarded, try/caught
+		// `import('@napi-rs/canvas')` (an optional dep this repo never installs;
+		// browsers use OffscreenCanvas/HTMLCanvasElement instead). Vite's dep
+		// pre-bundler re-runs import-analysis over the bundled output and no
+		// longer sees the source's `/* @vite-ignore */` hint next to the call,
+		// so it 500s on "Failed to resolve import '@napi-rs/canvas'" the moment
+		// emf-converter enters the dep graph (any EMF/WMF picture, poster
+		// frame, or OLE preview image). Excluding it serves it as source,
+		// where the ignore hint is still adjacent to the dynamic import.
+		exclude: ['emf-converter'],
 	},
 });
