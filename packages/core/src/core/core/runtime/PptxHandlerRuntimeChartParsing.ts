@@ -282,6 +282,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const wireframe =
 				chartType === 'surface' ? this.parseChartBoolVal(seriesContainer, 'wireframe') : undefined;
 
+			// Surface 2-D/3-D projection (c:surfaceChart vs c:surface3DChart), both of
+			// which collapse to chart type "surface" above: the element name is the
+			// only signal left telling the renderer which of PowerPoint's two surface
+			// projections (top-view "Contour" vs isometric "3-D Surface") to draw.
+			const surfaceTopView =
+				chartType === 'surface'
+					? this.compatibilityService.getXmlLocalName(seriesContainerKey) === 'surfaceChart'
+					: undefined;
+
 			// Store the chart part path for round-trip save
 			const chartPartPath = chartPart.partPath;
 
@@ -488,6 +497,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(barShape !== undefined ? { barShape } : {}),
 				...(radarStyle !== undefined ? { radarStyle } : {}),
 				...(wireframe !== undefined ? { wireframe } : {}),
+				...(surfaceTopView !== undefined ? { surfaceTopView } : {}),
 				...(scatterStyle !== undefined ? { scatterStyle } : {}),
 				chartPartPath,
 				chartRelationshipId,

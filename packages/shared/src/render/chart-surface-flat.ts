@@ -1,11 +1,18 @@
 /**
- * Flat colour-mapped grid view-model builder for the surface chart kind (the
- * fallback used when the grid has fewer than 2 series or 2 categories), plus
- * the `buildSurfaceViewModel` dispatcher between it and the isometric builder.
+ * 2-D top-view grid builder for the surface chart kind (`c:surfaceChart`,
+ * PowerPoint's "Contour" / "Wireframe Contour" types), plus the
+ * `buildSurfaceViewModel` dispatcher between it and the isometric 3-D
+ * builder (`c:surface3DChart`).
  *
  * Split out of `chart-surface-treemap.ts` (which re-exports
  * `buildSurfaceViewModel`) to keep that file's several chart-kind builders
  * each under the repo's per-file line budget.
+ *
+ * COM-verified against `charts-com.pptx` slides 9-10 (surface types 85/86,
+ * "Contour" and "Wireframe Contour"): PowerPoint draws these as a flat,
+ * head-on grid of value bands (category axis along the bottom, series axis
+ * along the right, no Z axis), never as an isometric projection; a filled
+ * band paints the whole cell, a wireframe one draws its outline only.
  *
  * Ported from:
  *   packages/react/src/viewer/utils/chart-surface-treemap.tsx  (renderSurfaceChart)
@@ -16,16 +23,15 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
-import { resolveSurfaceBandFill } from './chart-surface-bands';
-import { emptyChrome, surfaceColor } from './chart-surface-common';
+import { buildSurfaceTopViewAxisLabels } from './chart-surface-axes';
 import { buildIsometricSurfaceViewModel } from './chart-surface-isometric';
-import type { ChartValueDrag, ChartViewModel, SvgRect } from './chart-view-model';
 import {
-	buildLegend,
-	buildMarkTooltip,
-	computePlotLayout,
-	computeValueRange,
-} from './chart-view-model';
+	buildSurfaceLegend,
+	buildSurfaceValueBands,
+	surfaceBandColorAt,
+} from './chart-surface-legend';
+import type { ChartValueDrag, ChartViewModel, SvgPolygon } from './chart-view-model';
+import { buildMarkTooltip, computePlotLayout, computeValueRange } from './chart-view-model';
 
 function buildFlatSurfaceViewModel(
 	element: PptxElement,
@@ -34,29 +40,42 @@ function buildFlatSurfaceViewModel(
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, false);
 	const range = computeValueRange(chartData.series, layout.autoPlotHeight);
+	const bands = buildSurfaceValueBands(range, chartData.bandFmts);
 	const catCount = Math.max(categoryLabels.length, 1);
 	const seriesCount = chartData.series.length;
-	const cellW = layout.plotWidth / Math.max(catCount - 1, 1);
-	const cellH = layout.plotHeight / Math.max(seriesCount - 1, 1);
+	const cellW = layout.plotWidth / catCount;
+	const cellH = layout.plotHeight / Math.max(seriesCount, 1);
+	// A wireframe (Excel/PowerPoint "Wireframe Contour") surface draws band
+	// outlines only, never a filled cell. Every surface chart PowerPoint itself
+	// authors writes `c:wireframe` explicitly (val="0" or "1"; COM-verified
+	// against `charts-com.pptx` slides 7-10), so the absent-element case only
+	// arises from hand-written XML; this treats it as the filled default, since
+	// "surface chart" names a coloured surface and an unfilled default would
+	// make the common case look broken.
+	const isWireframe = chartData.wireframe === true;
 
-	const primitives: SvgRect[] = [];
+	const primitives: SvgPolygon[] = [];
 
 	for (let si = 0; si < seriesCount; si++) {
 		for (let ci = 0; ci < catCount; ci++) {
 			const val = chartData.series[si]?.values[ci] ?? 0;
 			const t = range.span > 0 ? (val - range.min) / range.span : 0;
-			const { r, g, b } = surfaceColor(t);
-			const bandFill = resolveSurfaceBandFill(t, chartData.bandFmts);
-			// One rect per (series, category) cell, so unlike the isometric mesh
-			// the mark maps to exactly one authored value.
+			const color = surfaceBandColorAt(bands, t);
+			const x = layout.plotLeft + ci * cellW,
+				y = layout.plotTop + si * cellH;
+			const points = [
+				`${x.toFixed(2)},${y.toFixed(2)}`,
+				`${(x + cellW).toFixed(2)},${y.toFixed(2)}`,
+				`${(x + cellW).toFixed(2)},${(y + cellH).toFixed(2)}`,
+				`${x.toFixed(2)},${(y + cellH).toFixed(2)}`,
+			].join(' ');
 			primitives.push({
-				kind: 'rect',
-				x: layout.plotLeft + ci * cellW,
-				y: layout.plotTop + si * cellH,
-				w: cellW + 0.5,
-				h: cellH + 0.5,
-				fill: bandFill ?? `rgb(${r},${g},${b})`,
-				opacity: 0.85,
+				kind: 'polygon',
+				points,
+				fill: isWireframe ? 'none' : color,
+				stroke: isWireframe ? color : 'none',
+				strokeWidth: isWireframe ? 1 : 0,
+				opacity: isWireframe ? 1 : 0.9,
 				part: { role: 'dataPoint', seriesIndex: si, pointIndex: ci },
 				title: buildMarkTooltip(
 					chartData.series[si]?.name,
@@ -64,14 +83,13 @@ function buildFlatSurfaceViewModel(
 					val,
 					chartData.series[si]?.numberFormat,
 				),
-			} satisfies SvgRect);
+			} satisfies SvgPolygon);
 		}
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		chartData.series,
-		chartData.colorPalette,
+	const { legend, legendX, legendY, legendAnchor } = buildSurfaceLegend(
+		bands,
 		layout.svgWidth,
 		legendPos,
 		layout.svgHeight,
@@ -79,10 +97,15 @@ function buildFlatSurfaceViewModel(
 	);
 
 	const title = resolveChartTitleText(chartData);
+	const categoryAndSeriesLabels = buildSurfaceTopViewAxisLabels(
+		categoryLabels,
+		chartData.series,
+		layout,
+	);
 
-	// One rect per (series, category) cell already carries an unambiguous
-	// single value (unlike the isometric mesh's shared-corner facets), so the
-	// same vertical drag-to-value path a line/bar mark uses applies directly.
+	// One cell per (series, category) already carries an unambiguous single
+	// value, so the same vertical drag-to-value path a line/bar mark uses
+	// applies directly.
 	const valueDrag: ChartValueDrag = {
 		range,
 		plotTop: layout.plotTop,
@@ -95,7 +118,11 @@ function buildFlatSurfaceViewModel(
 		title,
 		titleX: layout.svgWidth / 2,
 		titleY: 14,
-		...emptyChrome(),
+		gridlines: [],
+		axisLabels: [],
+		zeroLine: undefined,
+		categoryLabels: categoryAndSeriesLabels,
+		dataLabels: [],
 		primitives,
 		legend: chartData.style?.hasLegend ? legend : [],
 		legendX,
@@ -108,21 +135,19 @@ function buildFlatSurfaceViewModel(
 /**
  * Build the view-model for a surface chart.
  *
- * Renders an isometric 3-D-like projection when the grid has >= 2 series and
- * >= 2 categories; falls back to a flat colour-mapped grid otherwise.
- * Mirrors `renderSurfaceChart` / `renderIsometricSurfaceFallback` in React's
- * `chart-surface-treemap.tsx`.
+ * Renders the flat, head-on 2-D grid PowerPoint draws for its "Contour" /
+ * "Wireframe Contour" top-view types (`chartData.surfaceTopView`), and the
+ * isometric 3-D-like projection for its "3-D Surface" / "3-D Surface
+ * (Wireframe)" types otherwise. Mirrors `renderSurfaceChart` /
+ * `renderIsometricSurfaceFallback` in React's `chart-surface-treemap.tsx`.
  */
 export function buildSurfaceViewModel(
 	element: PptxElement,
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 ): ChartViewModel {
-	const catCount = Math.max(categoryLabels.length, 1);
-	const seriesCount = chartData.series.length;
-
-	if (seriesCount >= 2 && catCount >= 2) {
-		return buildIsometricSurfaceViewModel(element, chartData, categoryLabels);
+	if (chartData.surfaceTopView) {
+		return buildFlatSurfaceViewModel(element, chartData, categoryLabels);
 	}
-	return buildFlatSurfaceViewModel(element, chartData, categoryLabels);
+	return buildIsometricSurfaceViewModel(element, chartData, categoryLabels);
 }

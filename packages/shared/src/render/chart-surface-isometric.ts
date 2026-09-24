@@ -1,10 +1,17 @@
 /**
- * Isometric-projection view-model builder for the surface chart kind (used
- * when the grid has >= 2 series and >= 2 categories).
+ * Isometric-projection view-model builder for the surface chart kind
+ * (`c:surface3DChart`, PowerPoint's "3-D Surface" / "3-D Surface
+ * (Wireframe)" types).
  *
  * Split out of `chart-surface-treemap.ts` (which re-exports the dispatcher
  * that calls this) to keep that file's several chart-kind builders each
  * under the repo's per-file line budget.
+ *
+ * COM-verified against `charts-com.pptx` slides 7-8 (surface types 83/84):
+ * PowerPoint draws a static left-side numeric value axis, category labels
+ * trailing the near-left receding edge, series labels trailing the
+ * near-right one, and a value-band legend (never a per-series one). A
+ * wireframe surface omits every facet's fill, drawing mesh edges only.
  *
  * Ported from:
  *   packages/react/src/viewer/utils/chart-surface-treemap.tsx  (renderIsometricSurfaceFallback)
@@ -15,22 +22,16 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
-import { shade } from './chart-palette';
+import { buildSurfaceIsometricEdgeLabels, buildSurfaceValueAxis } from './chart-surface-axes';
+import { buildSurfaceWallPanels, ISO_COS30, ISO_SIN30, isoProject } from './chart-surface-bands';
+import { emptyChrome } from './chart-surface-common';
 import {
-	buildSurfaceWallPanels,
-	ISO_COS30,
-	ISO_SIN30,
-	isoProject,
-	resolveSurfaceBandFill,
-} from './chart-surface-bands';
-import { darkenRgb, emptyChrome, surfaceColor } from './chart-surface-common';
+	buildSurfaceLegend,
+	buildSurfaceValueBands,
+	surfaceBandColorAt,
+} from './chart-surface-legend';
 import type { ChartValueDrag, ChartViewModel, SvgPolygon } from './chart-view-model';
-import {
-	buildLegend,
-	buildMarkTooltip,
-	computePlotLayout,
-	computeValueRange,
-} from './chart-view-model';
+import { buildMarkTooltip, computePlotLayout, computeValueRange } from './chart-view-model';
 
 /**
  * Build the view-model for a surface chart's isometric 3-D-like projection.
@@ -44,8 +45,11 @@ export function buildIsometricSurfaceViewModel(
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, false);
 	const range = computeValueRange(chartData.series, layout.autoPlotHeight);
+	const bands = buildSurfaceValueBands(range, chartData.bandFmts);
 	const catCount = Math.max(categoryLabels.length, 1);
 	const seriesCount = chartData.series.length;
+	// See `chart-surface-flat.ts`'s `isWireframe` for why absent defaults to filled.
+	const isWireframe = chartData.wireframe === true;
 
 	// Grid cell count (vertices = cells + 1 in each dimension).
 	const cols = Math.max(catCount - 1, 1);
@@ -81,8 +85,19 @@ export function buildIsometricSurfaceViewModel(
 	const projW = maxSX - minSX;
 	const projH = maxSY - minSY;
 
-	const offsetX = layout.plotLeft + layout.plotWidth / 2 - (minSX + projW / 2);
+	// Reserve a left-hand column for the value axis so the mesh does not draw
+	// over its own tick labels; only the 3-D projection has one (a top-view
+	// surface has no Z axis at all, see `chart-surface-flat.ts`).
+	const axisReserve = 34;
+	const meshLeft = layout.plotLeft + axisReserve;
+	const meshWidth = layout.plotWidth - axisReserve;
+
+	const offsetX = meshLeft + meshWidth / 2 - (minSX + projW / 2);
 	const offsetY = layout.plotTop + layout.plotHeight / 2 - (minSY + projH / 2);
+	const project = (col: number, row: number): { screenX: number; screenY: number } => {
+		const p = isoProject(col * cellSize, row * cellSize, 0);
+		return { screenX: p.screenX + offsetX, screenY: p.screenY + offsetY };
+	};
 
 	// Cells sorted back-to-front (painter's algorithm: lower row+col = farther).
 	type CellEntry = { row: number; col: number; depth: number };
@@ -97,13 +112,16 @@ export function buildIsometricSurfaceViewModel(
 	const primitives: SvgPolygon[] = [];
 
 	// Floor/wall backdrop panels, painted first so the mesh draws over them.
-	primitives.push(
-		...buildSurfaceWallPanels(cols, rows, cellSize, zScale, offsetX, offsetY, {
-			floor: chartData.floor,
-			sideWall: chartData.sideWall,
-			backWall: chartData.backWall,
-		}),
-	);
+	// A wireframe surface has no backdrop at all, matching PowerPoint.
+	if (!isWireframe) {
+		primitives.push(
+			...buildSurfaceWallPanels(cols, rows, cellSize, zScale, offsetX, offsetY, {
+				floor: chartData.floor,
+				sideWall: chartData.sideWall,
+				backWall: chartData.backWall,
+			}),
+		);
+	}
 
 	for (const { row, col } of cells) {
 		// Four corners of the isometric parallelogram.
@@ -125,10 +143,7 @@ export function buildIsometricSurfaceViewModel(
 				normValue(row + 1, col)) /
 			4;
 
-		const { r, g, b } = surfaceColor(avgT);
-		const bandFill = resolveSurfaceBandFill(avgT, chartData.bandFmts);
-		const fill = bandFill ?? `rgb(${r},${g},${b})`;
-		const edgeStroke = bandFill ? shade(bandFill, 0.6) : darkenRgb(r, g, b, 0.6);
+		const color = surfaceBandColorAt(bands, avgT);
 		const points = verts
 			.map((v) => `${(v.screenX + offsetX).toFixed(2)},${(v.screenY + offsetY).toFixed(2)}`)
 			.join(' ');
@@ -145,10 +160,10 @@ export function buildIsometricSurfaceViewModel(
 		primitives.push({
 			kind: 'polygon',
 			points,
-			fill,
-			stroke: 'none',
-			strokeWidth: 0,
-			opacity: 0.9,
+			fill: isWireframe ? 'none' : color,
+			stroke: isWireframe ? color : 'none',
+			strokeWidth: isWireframe ? 1 : 0,
+			opacity: isWireframe ? 1 : 0.9,
 			part: { role: 'dataPoint', seriesIndex: row, pointIndex: col },
 			title: buildMarkTooltip(
 				chartData.series[row]?.name,
@@ -158,21 +173,23 @@ export function buildIsometricSurfaceViewModel(
 			),
 		} satisfies SvgPolygon);
 
-		// Subtle edge overlay for depth perception.
-		primitives.push({
-			kind: 'polygon',
-			points,
-			fill: 'none',
-			stroke: edgeStroke,
-			strokeWidth: 0.5,
-			opacity: 0.7,
-		} satisfies SvgPolygon);
+		// Subtle edge overlay for depth perception. A wireframe surface already
+		// drew its only outline above (an unfilled facet), so it skips this.
+		if (!isWireframe) {
+			primitives.push({
+				kind: 'polygon',
+				points,
+				fill: 'none',
+				stroke: color,
+				strokeWidth: 0.5,
+				opacity: 0.7,
+			} satisfies SvgPolygon);
+		}
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		chartData.series,
-		chartData.colorPalette,
+	const { legend, legendX, legendY, legendAnchor } = buildSurfaceLegend(
+		bands,
 		layout.svgWidth,
 		legendPos,
 		layout.svgHeight,
@@ -180,6 +197,14 @@ export function buildIsometricSurfaceViewModel(
 	);
 
 	const title = resolveChartTitleText(chartData);
+	const { gridlines: axisGridlines, axisLabels } = buildSurfaceValueAxis(range, layout);
+	const edgeLabels = buildSurfaceIsometricEdgeLabels(
+		categoryLabels,
+		chartData.series,
+		cols,
+		rows,
+		project,
+	);
 
 	// Each cell is anchored at one (series, category) data point (see the
 	// primitive-building loop above), so it drags vertically to a new value the
@@ -200,6 +225,9 @@ export function buildIsometricSurfaceViewModel(
 		titleX: layout.svgWidth / 2,
 		titleY: 14,
 		...emptyChrome(),
+		gridlines: axisGridlines,
+		axisLabels,
+		categoryLabels: edgeLabels,
 		primitives,
 		legend: chartData.style?.hasLegend ? legend : [],
 		legendX,

@@ -1225,6 +1225,18 @@ export interface PptxChartData {
 	 */
 	wireframe?: boolean;
 	/**
+	 * Whether the surface chart is the 2-D "top view" projection
+	 * (`c:surfaceChart`, PowerPoint's "Contour" / "Wireframe Contour" types)
+	 * rather than the 3-D isometric one (`c:surface3DChart`, "3-D Surface" /
+	 * "3-D Surface (Wireframe)"). Both element names map to chart type
+	 * `"surface"`; this bit is the only thing that tells the renderer which
+	 * of the two projections PowerPoint actually drew, since a top-view
+	 * surface has no Z-axis at all (only category and series axes) while the
+	 * 3-D one draws all three. Surface only; `undefined` for every other
+	 * chart type.
+	 */
+	surfaceTopView?: boolean;
+	/**
 	 * Scatter presentation mode (`c:scatterChart/c:scatterStyle/@val`).
 	 *
 	 * `lineMarker` (PowerPoint's own default for every scatter it writes) and
