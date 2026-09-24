@@ -534,6 +534,15 @@ export interface PptxChartHistogramOptions {
 	intervalClosed?: 'l' | 'r';
 	underflow?: number | 'auto';
 	overflow?: number | 'auto';
+	/**
+	 * `c:layoutPr/cx:aggregation` was authored instead of `cx:binning`: the
+	 * raw rows are CATEGORICAL (a Pareto chart's `clusteredColumn` series
+	 * counting occurrences of each authored category, COM-verified against
+	 * charts-com.pptx slide 31 / chartEx6.xml), not a numeric range to bin.
+	 * Mutually exclusive with `binSize`/`binCount`/`intervalClosed`, which
+	 * only apply to a true numeric-value histogram.
+	 */
+	aggregateByCategory?: boolean;
 }
 
 /** Office 2016 ChartEx waterfall series layout options. */

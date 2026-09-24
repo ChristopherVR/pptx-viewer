@@ -349,6 +349,43 @@ describe('buildHistogramViewModel', () => {
 		]);
 	});
 
+	it('counts raw categorical rows by cx:aggregation instead of numeric-binning them', () => {
+		// Mirrors charts-com.pptx slide 31 / chartEx6.xml: 50 raw rows, each
+		// value 1, category repeated per occurrence (here: 5x Cat A, 3x Cat B,
+		// 2x Cat C). Every value is finite, so computeHistogramBins would have
+		// produced numeric-range bins instead of one bar per category.
+		const rawCategories = [
+			...Array(5).fill('Cat A'),
+			...Array(3).fill('Cat B'),
+			...Array(2).fill('Cat C'),
+		];
+		const aggregated: PptxChartData = {
+			chartType: 'histogram',
+			categories: rawCategories,
+			series: [
+				{
+					name: 'Frequency',
+					values: rawCategories.map(() => 1),
+					histogramOptions: { layout: 'histogram', aggregateByCategory: true },
+				},
+				{
+					name: 'Cumulative',
+					values: [],
+					histogramOptions: { layout: 'pareto' },
+				},
+			],
+		};
+		const vm = buildHistogramViewModel(chartElement(aggregated), aggregated, rawCategories);
+		const bars = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		// One bar per unique category, sorted descending by count, never one
+		// bar per raw row (10) or a numeric-value histogram bin.
+		expect(bars).toHaveLength(3);
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['Cat A', 'Cat B', 'Cat C']);
+		const line = vm.primitives.find((primitive) => primitive.kind === 'polyline');
+		expect(line).toBeDefined();
+		expect(vm.secondaryAxisLabels?.map((label) => label.text)).toContain('100%');
+	});
+
 	it('reserves right-axis space only when a Pareto series is present', () => {
 		const ordinary = buildHistogramViewModel(
 			chartElement(chartData),
