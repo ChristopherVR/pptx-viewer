@@ -1,5 +1,5 @@
 import type { Options as Html2CanvasOptions } from 'html2canvas-pro';
-import { normalizeColorsForCapture, preprocessCssForCapture } from 'pptx-viewer-shared';
+import { prepareHtml2CanvasClone } from 'pptx-viewer-shared';
 
 /**
  * A drop-in wrapper around `html2canvas-pro` that first normalises modern CSS
@@ -34,8 +34,7 @@ export async function renderToCanvas(
 	return html2canvas(element, {
 		...options,
 		onclone: async (doc: Document, clonedEl: HTMLElement) => {
-			await normalizeColorsForCapture(doc, clonedEl);
-			preprocessCssForCapture(clonedEl);
+			await prepareHtml2CanvasClone(element, doc, clonedEl);
 
 			if (typeof userOnClone === 'function') {
 				userOnClone(doc, clonedEl);
