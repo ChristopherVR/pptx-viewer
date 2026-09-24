@@ -19,7 +19,6 @@ import type {
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
 	PptxAnimationTimingCurve,
-	PptxAnimationTrigger,
 } from 'pptx-viewer-core';
 
 // ── Pure authoring functions (consolidated in shared) ──
@@ -53,6 +52,7 @@ export {
 	setTrigger,
 	setTriggerShapeId,
 	showDirectionPicker,
+	TRIGGER_OPTIONS,
 } from '../internal/shared';
 export type { AnimationGroup, EffectSoundState } from '../internal/shared';
 
@@ -109,31 +109,6 @@ export const EMPHASIS_PRESETS: ReadonlyArray<{
 	{ value: 'teeter', label: 'Teeter', labelKey: 'pptx.animation.preset.teeter' },
 	{ value: 'wave', label: 'Wave', labelKey: 'pptx.animation.preset.wave' },
 	{ value: 'boldFlash', label: 'Bold Flash', labelKey: 'pptx.animation.preset.boldFlash' },
-];
-
-/** Trigger options for the trigger selector. */
-export const TRIGGER_OPTIONS: ReadonlyArray<{
-	value: PptxAnimationTrigger;
-	label: string;
-	labelKey: string;
-}> = [
-	{ value: 'onClick', label: 'On Click', labelKey: 'pptx.animation.trigger.onClick' },
-	{
-		value: 'onShapeClick',
-		label: 'On Shape Click',
-		labelKey: 'pptx.animation.trigger.onShapeClick',
-	},
-	{ value: 'onHover', label: 'On Hover', labelKey: 'pptx.animation.trigger.onHover' },
-	{
-		value: 'afterPrevious',
-		label: 'After Previous',
-		labelKey: 'pptx.animation.trigger.afterPrevious',
-	},
-	{
-		value: 'withPrevious',
-		label: 'With Previous',
-		labelKey: 'pptx.animation.trigger.withPrevious',
-	},
 ];
 
 /** Timing curve options. */

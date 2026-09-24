@@ -18,6 +18,7 @@ import {
 	clearMotionPath,
 	getDensePanelTouchTargetPx,
 	motionPathFor,
+	TRIGGER_OPTIONS,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -78,14 +79,6 @@ const presets: Readonly<Record<AnimationCategory, AnimationPresetInfo[]>> = {
 	emphasis: EMPHASIS_PRESETS,
 	exit: EXIT_PRESETS,
 };
-const triggerOptions: readonly PptxAnimationTrigger[] = [
-	'onClick',
-	'withPrevious',
-	'afterPrevious',
-	'afterDelay',
-	'onHover',
-	'onShapeClick',
-];
 const presetChoices = computed(() => presets[category.value]);
 
 /**
@@ -221,8 +214,8 @@ function changeMotionPath(pathPresetId: string): void {
 					:aria-label="t('pptx.animation.triggerAria')"
 					@change="onTriggerChange"
 				>
-					<option v-for="item in triggerOptions" :key="item" :value="item">
-						{{ t(`pptx.animation.trigger.${item}`) }}
+					<option v-for="item in TRIGGER_OPTIONS" :key="item.value" :value="item.value">
+						{{ t(item.labelKey) }}
 					</option>
 				</pptx-ui-select>
 			</label>
