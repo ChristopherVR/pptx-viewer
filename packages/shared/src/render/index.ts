@@ -447,6 +447,11 @@ export * from './animation-advanced-triggers';
 // (targeting a specific media time node), consumed by `animation-playback-engine`
 // and each binding's presentation-mode media playback.
 export * from './animation-media-end-gating';
+// Real `<video>`/`<audio>` `timeupdate`-position gating for
+// `p:cond/@evt="onMediaBookmark"` (Office 2010 `p14:bmkTgt` extension),
+// consumed by `animation-playback-engine` and each binding's presentation-mode
+// media playback.
+export * from './animation-media-bookmark-gating';
 export * from './animation-timeline-text-build';
 // `p:bldP/@bldLvl` paragraph grouping for a by-paragraph text build, consumed
 // by `animation-timeline-text-build`.

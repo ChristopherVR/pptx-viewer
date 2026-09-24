@@ -189,6 +189,50 @@ describe('parseCondition', () => {
 });
 
 // ==========================================================================
+// parseCondition: onMediaBookmark / p14:bmkTgt (Office 2010 p14 extension)
+// ==========================================================================
+describe('parseCondition: onMediaBookmark', () => {
+	it('parses onMediaBookmark with a direct p14:bmkTgt child', () => {
+		const result = parseCondition({
+			'@_evt': 'onMediaBookmark',
+			'@_delay': '0',
+			'p14:bmkTgt': { '@_spid': '4', '@_bmkName': 'Bookmark 1' },
+		});
+		expect(result.event).toBe('onMediaBookmark');
+		expect(result.bookmarkTarget).toStrictEqual({ shapeId: '4', bookmarkName: 'Bookmark 1' });
+	});
+
+	it('parses onMediaBookmark with p14:bmkTgt inside p:extLst', () => {
+		const result = parseCondition({
+			'@_evt': 'onMediaBookmark',
+			'p:extLst': {
+				'p:ext': {
+					'@_uri': '{1F3CBB19-B613-4AFE-A7B0-2C15A26D3E4A}',
+					'p14:bmkTgt': { '@_spid': '7', '@_bmkName': 'Intro' },
+				},
+			},
+		});
+		expect(result.event).toBe('onMediaBookmark');
+		expect(result.bookmarkTarget).toStrictEqual({ shapeId: '7', bookmarkName: 'Intro' });
+	});
+
+	it('leaves bookmarkTarget undefined when p14:bmkTgt is missing', () => {
+		const result = parseCondition({ '@_evt': 'onMediaBookmark' });
+		expect(result.event).toBe('onMediaBookmark');
+		expect(result.bookmarkTarget).toBeUndefined();
+	});
+
+	it('does not read p14:bmkTgt off a condition with a different event', () => {
+		const result = parseCondition({
+			'@_evt': 'onClick',
+			'p14:bmkTgt': { '@_spid': '4', '@_bmkName': 'Bookmark 1' },
+		});
+		expect(result.event).toBe('onClick');
+		expect(result.bookmarkTarget).toBeUndefined();
+	});
+});
+
+// ==========================================================================
 // parseConditionList
 // ==========================================================================
 describe('parseConditionList', () => {
@@ -293,6 +337,31 @@ describe('serializeCondition', () => {
 	it('does not include p:tgtEl when no target specified', () => {
 		const result = serializeCondition({ event: 'onBegin', delay: 0 });
 		expect(result['p:tgtEl']).toBeUndefined();
+	});
+
+	it('serializes onMediaBookmark as a direct p14:bmkTgt child', () => {
+		const result = serializeCondition({
+			event: 'onMediaBookmark',
+			bookmarkTarget: { shapeId: '4', bookmarkName: 'Bookmark 1' },
+		});
+		expect(result['@_evt']).toBe('onMediaBookmark');
+		const bmkTgt = result['p14:bmkTgt'] as XmlObject;
+		expect(bmkTgt['@_spid']).toBe('4');
+		expect(bmkTgt['@_bmkName']).toBe('Bookmark 1');
+	});
+
+	it('round-trips onMediaBookmark through parse then serialize', () => {
+		const parsed = parseCondition({
+			'@_evt': 'onMediaBookmark',
+			'@_delay': '0',
+			'p14:bmkTgt': { '@_spid': '4', '@_bmkName': 'Bookmark 1' },
+		});
+		const reserialized = serializeCondition(parsed);
+		expect(reserialized['@_evt']).toBe('onMediaBookmark');
+		expect(reserialized['p14:bmkTgt']).toStrictEqual({
+			'@_spid': '4',
+			'@_bmkName': 'Bookmark 1',
+		});
 	});
 
 	it('serializes empty condition to empty object', () => {

@@ -837,7 +837,25 @@ export type AnimationConditionEvent =
 	| 'onNext'
 	| 'onPrev'
 	| 'onStopAudio'
-	| 'onDblClick';
+	| 'onDblClick'
+	// Office 2010 `p14` extension event (MS-OI29500): fires when a media
+	// element's playback reaches an authored bookmark. See
+	// {@link PptxMediaBookmarkTarget} for the extension that names WHICH
+	// bookmark, on which media element.
+	| 'onMediaBookmark';
+
+/**
+ * `p14:bmkTgt` (Office 2010 `p14` extension, MS-OI29500): names the specific
+ * media element and bookmark an `evt="onMediaBookmark"` condition fires for.
+ * `bookmarkName` matches a `p14:bmk/@_name` on that media element's own
+ * `p14:bmkLst` (see `MediaBookmark.label` in `core/types/elements.ts`).
+ */
+export interface PptxMediaBookmarkTarget {
+	/** `p14:bmkTgt/@_spid`: the media element's shape id. */
+	shapeId: string;
+	/** `p14:bmkTgt/@_bmkName`: the bookmark's name. */
+	bookmarkName: string;
+}
 
 /**
  * Structured representation of a single OOXML animation condition
@@ -858,6 +876,11 @@ export type AnimationConditionEvent =
 export interface AnimationCondition {
 	/** Event that triggers the condition. */
 	event?: AnimationConditionEvent;
+	/**
+	 * The media element/bookmark this condition fires for, when
+	 * {@link event} is `onMediaBookmark`. See {@link PptxMediaBookmarkTarget}.
+	 */
+	bookmarkTarget?: PptxMediaBookmarkTarget;
 	/** Delay in milliseconds (from `@_delay`). "indefinite" is represented as -1. */
 	delay?: number;
 	/** Target time node ID reference (from `@_tn`). */

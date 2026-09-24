@@ -36,6 +36,7 @@ import {
 	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaBookmarkTimesMs,
 	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from '../internal/shared';
@@ -187,6 +188,7 @@ export class AnimationPlaybackService {
 		if (!slide || !this.animationsEnabled()) {
 			this.controller = null;
 			this.ctx.mediaTimeNodeElementIds = new Map();
+			this.ctx.mediaBookmarkTimesMs = new Map();
 			this.presentationElementStates.set(new Map());
 			this.keyframesCss.set('');
 			this.interactiveTriggerShapeIds.set(new Set());
@@ -211,6 +213,9 @@ export class AnimationPlaybackService {
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
 		this.ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
+		// Lets a `p:cond/@evt="onMediaBookmark"`-gated step gate on the REAL
+		// media element's playback position instead of never firing.
+		this.ctx.mediaBookmarkTimesMs = resolveMediaBookmarkTimesMs(slide.elements);
 		this.keyframesCss.set(controller.keyframesCss);
 		this.interactiveTriggerShapeIds.set(controller.interactiveTriggerShapeIds);
 		this.hoverTriggerShapeIds.set(controller.hoverTriggerShapeIds);

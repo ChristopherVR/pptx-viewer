@@ -208,6 +208,13 @@ export interface TimelineStep {
 	/** The event of the time-node/shape dependency above, when present. */
 	dependsOnEvent?: AnimationConditionEvent;
 	/**
+	 * When {@link dependsOnEvent} is `onMediaBookmark`, the bookmark name this
+	 * step waits on; {@link dependsOnShapeId} names the media element it
+	 * belongs to. See `animation-media-bookmark-gating`'s
+	 * `wireMediaBookmarkSteps`.
+	 */
+	dependsOnBookmarkName?: string;
+	/**
 	 * Discrete font-style / colour / size override this step's effect composes
 	 * via `p:set` siblings and/or a `style.fontsize`/boolean `p:anim` ramp (Bold
 	 * Flash, Bold Reveal, Underline, Brush On Underline, Change Font Style,

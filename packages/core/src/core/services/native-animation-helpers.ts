@@ -7,6 +7,7 @@ import type {
 	AnimationCondition,
 	AnimationConditionEvent,
 	PptxAnimationKeyframe,
+	PptxMediaBookmarkTarget,
 	PptxNativeAnimation,
 	PptxTextBuildType,
 	PptxThemeColorRef,
@@ -775,7 +776,45 @@ const VALID_CONDITION_EVENTS = new Set<string>([
 	'onPrev',
 	'onStopAudio',
 	'onDblClick',
+	'onMediaBookmark',
 ]);
+
+/**
+ * Read a `p14:bmkTgt` (Office 2010 `p14` extension, MS-OI29500) off a parsed
+ * `p:cond` element, when present. This project has no COM-authored or
+ * real-world fixture sample of an `onMediaBookmark` condition to confirm
+ * PowerPoint's exact placement, so BOTH plausible shapes are checked: a
+ * direct child of `p:cond` (`condXml['p14:bmkTgt']`, mirroring how a plain
+ * `p:tgtEl` sits directly under `p:cond`), and inside a `p:cond/p:extLst`
+ * (mirroring how other `p14` additions to non-extensible OOXML elements are
+ * commonly authored). {@link serializeCondition} writes the first (direct
+ * child) shape, so a deck round-tripped through THIS project keeps its
+ * shape; a deck authored elsewhere using the second shape still parses.
+ */
+function extractBookmarkTarget(condXml: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const direct = condXml['p14:bmkTgt'] as XmlObject | undefined;
+	if (direct) {
+		return bookmarkTargetFromNode(direct);
+	}
+	const extLst = condXml['p:extLst'] as XmlObject | undefined;
+	if (extLst) {
+		for (const ext of ensureArray(extLst['p:ext'])) {
+			const bmkTgt = ext['p14:bmkTgt'] as XmlObject | undefined;
+			if (bmkTgt) {
+				return bookmarkTargetFromNode(bmkTgt);
+			}
+		}
+	}
+	return undefined;
+}
+
+function bookmarkTargetFromNode(node: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const shapeId = node['@_spid'];
+	const bookmarkName = node['@_bmkName'];
+	return shapeId !== undefined && bookmarkName !== undefined
+		? { shapeId: String(shapeId), bookmarkName: String(bookmarkName) }
+		: undefined;
+}
 
 /**
  * Parse a single `p:cond` XML element into a structured {@link AnimationCondition}.
@@ -792,6 +831,13 @@ export function parseCondition(condXml: XmlObject): AnimationCondition {
 		const evtStr = String(evt);
 		if (VALID_CONDITION_EVENTS.has(evtStr)) {
 			condition.event = evtStr as AnimationConditionEvent;
+		}
+	}
+
+	if (condition.event === 'onMediaBookmark') {
+		const bookmarkTarget = extractBookmarkTarget(condXml);
+		if (bookmarkTarget) {
+			condition.bookmarkTarget = bookmarkTarget;
 		}
 	}
 
@@ -868,6 +914,13 @@ export function serializeCondition(condition: AnimationCondition): XmlObject {
 
 	if (condition.targetTimeNodeId !== undefined) {
 		condXml['@_tn'] = String(condition.targetTimeNodeId);
+	}
+
+	if (condition.bookmarkTarget) {
+		condXml['p14:bmkTgt'] = {
+			'@_spid': condition.bookmarkTarget.shapeId,
+			'@_bmkName': condition.bookmarkTarget.bookmarkName,
+		};
 	}
 
 	// Target element

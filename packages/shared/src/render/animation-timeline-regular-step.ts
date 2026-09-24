@@ -245,6 +245,7 @@ export function processRegularAnimation(
 			dependsOnTimeNodeId: effective.dependsOnTimeNodeId,
 			dependsOnShapeId: effective.dependsOnShapeId,
 			dependsOnEvent: effective.dependsOnEvent,
+			dependsOnBookmarkName: effective.dependsOnBookmarkName,
 		};
 		if (singleAnim.nodeId !== undefined) {
 			state.stepsByNodeId.set(singleAnim.nodeId, step);

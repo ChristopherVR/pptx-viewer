@@ -32,6 +32,7 @@ import {
 	createActiveAnimationGroup,
 	playGroup,
 	PresentationAnimationController,
+	resolveMediaBookmarkTimesMs,
 	resolveMediaTimeNodeElementIds,
 	scheduleAutoAdvanceChain,
 } from 'pptx-viewer-shared';
@@ -170,6 +171,7 @@ export function useAnimationPlayback(
 		if (!slide || !animationsEnabled()) {
 			controller = null;
 			ctx.mediaTimeNodeElementIds = new Map();
+			ctx.mediaBookmarkTimesMs = new Map();
 			presentationElementStates.value = new Map();
 			presentationKeyframesCss.value = '';
 			interactiveTriggerShapeIds.value = new Set();
@@ -194,6 +196,9 @@ export function useAnimationPlayback(
 		// Lets a `p:cond/@evt="onStopAudio"`-gated step gate on the REAL media
 		// element's `ended` event instead of only its estimated `delayMs`.
 		ctx.mediaTimeNodeElementIds = resolveMediaTimeNodeElementIds(slide.nativeAnimations ?? []);
+		// Lets a `p:cond/@evt="onMediaBookmark"`-gated step gate on the REAL
+		// media element's playback position instead of never firing.
+		ctx.mediaBookmarkTimesMs = resolveMediaBookmarkTimesMs(slide.elements);
 		presentationKeyframesCss.value = controller.keyframesCss;
 		interactiveTriggerShapeIds.value = controller.interactiveTriggerShapeIds;
 		hoverTriggerShapeIds.value = controller.hoverTriggerShapeIds;
