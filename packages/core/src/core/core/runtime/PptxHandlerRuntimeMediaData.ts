@@ -3,6 +3,7 @@ import { convertMetafileToDataUrl } from 'emf-converter';
 import { resolveNativeAnimationThemeColors } from '../../services/native-animation-theme-colors';
 import { XmlObject, PptxElement } from '../../types';
 import type { PptxNativeAnimation } from '../../types';
+import { forceSvgStretchFill } from '../../utils/svg-stretch-fill';
 import { blobUrlToDataUrl } from './blob-url-to-data-url';
 import type { MediaTimingData } from './PptxHandlerRuntimeImageEffects';
 import { requiresBase64DataUrl } from './PptxHandlerRuntimeMediaParsingUtils';
@@ -125,6 +126,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const imageData = this.createImageUrl(binaryBuffer, this.getImageMimeType(imagePath));
 				this.imageDataCache.set(imagePath, imageData);
 				return imageData;
+			}
+
+			if (ext === 'svg') {
+				const svgText = await imageFile.async('string');
+				const stretched = forceSvgStretchFill(svgText);
+				const svgBytes = new TextEncoder().encode(stretched);
+				const svgUrl = this.createImageUrl(svgBytes.buffer as ArrayBuffer, 'image/svg+xml');
+				this.imageDataCache.set(imagePath, svgUrl);
+				return svgUrl;
 			}
 
 			const imageBytes = await imageFile.async('arraybuffer');
