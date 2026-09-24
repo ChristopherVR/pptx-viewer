@@ -1,4 +1,5 @@
 import type { ToolbarActionId } from 'pptx-viewer-shared';
+import { EMPTY_RESOLVED_CUSTOMIZATION, isDialogAvailable } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -97,7 +98,10 @@ export function createRibbonPrimaryRow(
 		icon: 'settings',
 		onClick: () => handlers.nav.openSettings(),
 	});
-	el.appendChild(settings.btn);
+	const customization = handlers.nav.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
+	if (isDialogAvailable(customization, 'options')) {
+		el.appendChild(settings.btn);
+	}
 
 	// -- "..." overflow menu -------------------------------------------------
 	const overflowHost = createEl(doc, 'div', 'pptxv-primary-menu-host');

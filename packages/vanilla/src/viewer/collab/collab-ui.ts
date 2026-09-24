@@ -43,6 +43,8 @@ export interface CollabUiDeps {
 	shareDefaults?: ShareDefaults;
 	/** Individually hidden toolbar buttons; gates the Share/Broadcast triggers this module builds. */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** False drops the toolbar status pill (the host removed the Share dialog). */
+	showCollaborationStatus?: boolean;
 	/** Options > General > "Initials" override for the Share dialog's local-user avatar. */
 	getUserInitials?: () => string | undefined;
 }
@@ -167,7 +169,9 @@ export function createCollabUi(deps: CollabUiDeps): CollabUiController {
 			shareBtn.addEventListener('click', openShare);
 			(tabRowActionsEl ?? toolbarEl).appendChild(shareBtn);
 		}
-		toolbarEl.appendChild(statusPill.el);
+		if (deps.showCollaborationStatus !== false) {
+			toolbarEl.appendChild(statusPill.el);
+		}
 	}
 	const mobileCollaborationHost = chrome.mobileToolbar?.collaborationHost ?? null;
 	if (mobileCollaborationHost && showShare) {

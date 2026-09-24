@@ -73,6 +73,7 @@ import type {
 	ElementUpdateOptions,
 	PresentationSnapshot,
 	Rendering3DFlags,
+	ResolvedCustomization,
 	RunProgramNotice,
 	ThemeCatalogEntry,
 	ViewerMode,
@@ -85,10 +86,13 @@ import type { AiChatMount, AiFocusController } from './ai';
 import { createAiFocusController, createVanillaAiBridge, mountAiChat } from './ai';
 import type { ChromeHost, ChromeLifecycle } from './chrome-lifecycle';
 import { buildMountChromeDeps, mountChrome, unmountChrome } from './chrome-lifecycle';
+import { ViewerCustomizationHost } from './customization-host';
+import type { ViewerCustomizationLifecycle } from './customization-lifecycle';
+import { createViewerCustomizationLifecycle } from './customization-lifecycle';
 import type { EditorController } from './editor';
 import { createEditorController } from './editor';
 import type { ExportLifecycle } from './export-lifecycle';
-import { createExportLifecycle, ViewerExportHost } from './export-lifecycle';
+import { createExportLifecycle } from './export-lifecycle';
 import { glyphOutlineFontCache } from './glyph-outline-cache';
 import type { Translator } from './i18n';
 import { createTranslator } from './i18n';
@@ -152,7 +156,7 @@ import { removeGoogleWebfontsLink, syncGoogleWebfontsLink } from './webfonts';
  * builds chrome inside `container`, loads `options.source` when given, and
  * re-renders through a tiny reactive store.
  */
-export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, ChromeHost {
+export class PptxViewer extends ViewerCustomizationHost implements PptxViewerInstance, ChromeHost {
 	// Not `private`: `ChromeHost` (structurally implemented by this class, see
 	// `buildMountChromeDeps(this)` below) needs these readable from outside the
 	// class body's own methods.
@@ -210,12 +214,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	private rulers: RulerController | null = null;
 	/** File > Options store + option-driven behavior (undo depth, ribbon, etc.). */
 	private optionsController!: ViewerOptionsController;
+	/** The host `customization` option + the imperative API's live edits. */
+	protected readonly customization: ViewerCustomizationLifecycle;
 
 	constructor(container: HTMLElement, options: PptxViewerOptions = {}) {
 		super();
 		this.container = container;
 		this.doc = container.ownerDocument;
 		this.options = options;
+		this.customization = createViewerCustomizationLifecycle(options);
 		this.requestedEditable = options.editable ?? false;
 		const storedPrefs = readStoredViewerPrefs();
 		this.availableThemes = options.availableThemes ?? THEME_CATALOG;
@@ -400,6 +407,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 				this.sessions.publishCollaborationInlineText(elementId, text),
 			getLivePatcher: () => this.sessions.getCollaborationLivePatcher(),
 			flushInlineTextInput: () => this.sessions.flushCollaborationLivePatch(),
+			getKeyboardCustomization: () => this.customization.getResolved().keyboard,
 		});
 		this.editor.attachChrome();
 		this.rulers = createRulerController({
@@ -488,7 +496,8 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 					this.store.set({ customFontFamilies: [...current, family] });
 				}
 			},
-			aiEnabled: options.ai !== undefined,
+			aiEnabled: false,
+			getCustomization: () => this.customization.getResolved(),
 			root: () => this.lifecycle.chrome.root,
 			setAutosaveEnabled: (enabled) => this.setAutosaveEnabled(enabled),
 			print: (printOptions) => this.print(printOptions),
@@ -513,6 +522,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		// dialogs (including Options itself) must read the current translator
 		// each time they open, not whatever was active when this host was built.
 		Object.defineProperty(parityWorkflowHost, 't', { get: () => this.t });
+		Object.defineProperty(parityWorkflowHost, 'aiEnabled', {
+			get: () => this.customization.isAiEnabled(),
+		});
 		this.parityWorkflows = createParityWorkflows(parityWorkflowHost);
 		this.setupContextMenu();
 		this.pasteOptionsToolbar = mountPasteOptionsToolbar({
@@ -651,7 +663,12 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			// dialog's local-user avatar-circle fallback (see `getUserInitials`
 			// in `collaboration-active-session.ts`).
 			getUserInitials: () => this.optionsController?.getOptions().general.userInitials,
+			getHiddenActions: () => this.getChromeOptions().hiddenActions,
+			isShareAvailable: () => this.customization.isDialogAvailable('share'),
 		});
+		// Host locks/defaults reach the options store before its first apply; a
+		// later customisation change rebuilds the chrome the way `setLocale` does.
+		this.customization.bind(this.optionsController.optionsStore, () => this.rebuildChrome());
 		// Every subsystem the options controller drives now exists: apply the
 		// persisted File > Options values (undo depth, ribbon visibility, root
 		// classes, ScreenTips, etc.) for the first time.
@@ -760,6 +777,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			openComments: () => this.parityWorkflows.openComments(),
 			openHyperlink: () => this.parityWorkflows.openHyperlink(),
 			getAi: () => this.aiFocus,
+			getCustomization: () => this.customization.getResolved(),
 		});
 		this.canvasContextMenu?.destroy();
 		this.canvasContextMenu = mountCanvasContextMenu({
@@ -770,15 +788,18 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			getStageRoot: () =>
 				this.lifecycle.chrome.stageWrap.querySelector<HTMLElement>('.pptxv-stage'),
 			getEditActions: () => this.editor.getEditActions(),
+			getCustomization: () => this.customization.getResolved(),
 		});
 	}
 
 	private setupAiChat(): void {
 		const config = this.options.ai;
-		if (!config) {
+		this.aiChat?.destroy();
+		if (!config || !this.customization.isAiEnabled()) {
+			this.aiChat = null;
+			this.aiFocus = null;
 			return;
 		}
-		this.aiChat?.destroy();
 		const controller = createAiFocusController({
 			store: this.store,
 			requestOpen: () => this.aiChat?.open(),
@@ -1074,7 +1095,10 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	openSettings(tab: 'general' | 'shortcuts' = 'general'): void {
-		this.parityWorkflows.openSettings(tab);
+		// No-op when the host removed File > Options (every entry point routes here).
+		if (this.customization.isDialogAvailable('options')) {
+			this.parityWorkflows.openSettings(tab);
+		}
 	}
 
 	openSetUpSlideShow(): void {
@@ -1098,7 +1122,9 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	}
 
 	openPrintDialog(): void {
-		this.parityWorkflows.openPrintDialog();
+		if (this.customization.isDialogAvailable('print')) {
+			this.parityWorkflows.openPrintDialog();
+		}
 	}
 
 	startRehearsal(): void {
@@ -1602,11 +1628,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 		this.t = createTranslator(locale, this.options.messages);
 		this.currentLocale = locale;
 		// Chrome labels are baked at build time; rebuild it under the new locale.
-		this.remountChrome();
-		this.editor.attachChrome();
-		this.setupContextMenu();
-		this.setupAiChat();
-		this.renderer.renderAll();
+		this.rebuildChrome();
 		if (this.options.onLocaleChange) {
 			this.options.onLocaleChange(locale);
 		} else {
@@ -1951,11 +1973,15 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 	isAutosaveEnabled = (): boolean => this.sessions.isAutosaveEnabled();
 
 	openBroadcast(): void {
-		this.sessions.openBroadcast();
+		if (this.customization.isDialogAvailable('broadcast')) {
+			this.sessions.openBroadcast();
+		}
 	}
 
 	openShare(): void {
-		this.sessions.openShare();
+		if (this.customization.isDialogAvailable('share')) {
+			this.sessions.openShare();
+		}
 	}
 
 	destroy(): void {
@@ -1963,6 +1989,7 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			return;
 		}
 		this.destroyed = true;
+		this.customization.destroy();
 		// File > Options > Save > "clear cache on close": wipe recovery snapshots
 		// before the options store that answers the question is disposed below.
 		if (shouldClearAutosaveCacheOnClose(this.optionsController.getOptions())) {
@@ -2026,6 +2053,26 @@ export class PptxViewer extends ViewerExportHost implements PptxViewerInstance, 
 			},
 			this.optionsController.getOptions(),
 		);
+	}
+
+	/** The host options with the UI customisation folded in (read on every chrome mount). */
+	getChromeOptions(): PptxViewerOptions {
+		return this.customization.getChromeOptions();
+	}
+
+	/** The live resolved UI customisation (every render site reads this). */
+	getResolvedCustomization(): ResolvedCustomization {
+		return this.customization.getResolved();
+	}
+
+	/** Rebuild the whole chrome (locale switch, customisation change) and re-wire it. */
+	private rebuildChrome(): void {
+		this.remountChrome();
+		this.editor.attachChrome();
+		this.setupContextMenu();
+		this.setupAiChat();
+		this.sessions.remountUi();
+		this.renderer.renderAll();
 	}
 
 	private remountChrome(): void {

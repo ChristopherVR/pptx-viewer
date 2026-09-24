@@ -1,3 +1,5 @@
+import { EMPTY_RESOLVED_CUSTOMIZATION, isDialogAvailable } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -29,6 +31,10 @@ export function createHelpTab(
 		icon: 'sidebar',
 		onClick: handlers.openAccessibility,
 	});
-	el.append(settings.btn, shortcuts.btn, accessibility.btn);
+	// Both Settings entries open File > Options, so both go with that dialog.
+	if (isDialogAvailable(handlers.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION, 'options')) {
+		el.append(settings.btn, shortcuts.btn);
+	}
+	el.append(accessibility.btn);
 	return el;
 }

@@ -1,3 +1,5 @@
+import { EMPTY_RESOLVED_CUSTOMIZATION, isDialogAvailable } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -44,6 +46,7 @@ export function createReviewTab(
 	accessibility.btn.title = t('pptx.review.accessibilityCheckTooltip');
 	const language = command('pptx.review.language', () => handlers.openSettings('general'));
 	language.title = t('pptx.review.languageTooltip');
+
 	const compare = makeButton(doc, {
 		label: t('pptx.ribbon.compare'),
 		text: t('pptx.ribbon.compare'),
@@ -71,6 +74,12 @@ export function createReviewTab(
 		placeholder('pptx.review.restrictPermission'),
 		placeholder('pptx.review.hideInk'),
 	);
+	// Language opens File > Options, so it goes with that dialog.
+	if (
+		!isDialogAvailable(handlers.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION, 'options')
+	) {
+		language.remove();
+	}
 
 	return {
 		el,

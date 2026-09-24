@@ -32,6 +32,20 @@ function buildLabel(doc: Document, t: Translator, control: ViewerOptionsControl)
 	return label;
 }
 
+/**
+ * A host-locked control (`control.readOnly`, set by `customizeOptionsTabs`)
+ * renders disabled with the "locked by host" tooltip. Returns true when the
+ * control is locked, so its change listener can refuse to write.
+ */
+function applyReadOnly(input: HTMLElement, t: Translator, control: ViewerOptionsControl): boolean {
+	if (control.readOnly !== true) {
+		return false;
+	}
+	input.toggleAttribute('disabled', true);
+	input.title = t('pptx.options.lockedByHost');
+	return true;
+}
+
 function rowClass(control: ViewerOptionsControl): string {
 	return `pptxv-options-row${control.indent ? ' is-indent' : ''}`;
 }
@@ -47,7 +61,11 @@ function appendToggleRow(
 	const input = doc.createElement('pptx-ui-checkbox') as HTMLElement & { checked: boolean };
 	input.setAttribute('aria-label', t(control.labelKey));
 	input.checked = store.getValue(control.group, control.key) === true;
+	const locked = applyReadOnly(input, t, control);
 	input.addEventListener('change', () => {
+		if (locked) {
+			return;
+		}
 		store.setValue(control.group, control.key, input.checked);
 	});
 	row.append(buildLabel(doc, t, control), input);
@@ -72,7 +90,11 @@ function appendSelectRow(
 	}
 	const value = store.getValue(control.group, control.key);
 	select.value = typeof value === 'string' ? value : '';
+	const locked = applyReadOnly(select, t, control);
 	select.addEventListener('change', () => {
+		if (locked) {
+			return;
+		}
 		store.setValue(control.group, control.key, select.value);
 	});
 	row.append(buildLabel(doc, t, control), select);
@@ -96,7 +118,11 @@ function appendNumberRow(
 	input.setAttribute('aria-label', t(control.labelKey));
 	const value = store.getValue(control.group, control.key);
 	input.value = String(typeof value === 'number' ? value : control.min);
+	const locked = applyReadOnly(input, t, control);
 	input.addEventListener('change', () => {
+		if (locked) {
+			return;
+		}
 		const clamped = clampOptionNumber(input.value, control.min, control.max);
 		if (clamped !== undefined) {
 			input.value = String(clamped);
@@ -129,7 +155,11 @@ function appendTextRow(
 	}
 	const value = store.getValue(control.group, control.key);
 	input.value = typeof value === 'string' ? value : '';
+	const locked = applyReadOnly(input, t, control);
 	input.addEventListener('change', () => {
+		if (locked) {
+			return;
+		}
 		store.setValue(control.group, control.key, input.value);
 	});
 	row.append(buildLabel(doc, t, control), input);

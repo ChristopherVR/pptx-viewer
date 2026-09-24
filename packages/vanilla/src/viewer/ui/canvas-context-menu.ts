@@ -11,10 +11,12 @@
 import {
 	buildCanvasContextMenuEntries,
 	clampFlyoutPosition,
+	customizeCanvasContextMenuEntries,
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	isElementIdInteractive,
 	resolveContextMenuElementId,
 } from 'pptx-viewer-shared';
-import type { CanvasContextMenuEntry } from 'pptx-viewer-shared';
+import type { CanvasContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import { collectLayoutOptions } from '../editor/editing-chrome-sync';
@@ -32,6 +34,8 @@ export interface CanvasContextMenuDeps {
 	/** The live `.pptxv-stage` node, or null (rebuilt on every render). */
 	getStageRoot(): HTMLElement | null;
 	getEditActions(): EditActions;
+	/** The host's resolved UI customisation, read at open time (omitted: none). */
+	getCustomization?(): ResolvedCustomization;
 }
 
 export interface CanvasContextMenu {
@@ -198,17 +202,21 @@ export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasConte
 		if (id && isElementIdInteractive(id, state.editTemplateMode)) {
 			return;
 		}
-		event.preventDefault();
-		close();
-		open(
+		const entries = customizeCanvasContextMenuEntries(
 			buildCanvasContextMenuEntries({
 				hasClipboard: state.clipboardPayload !== null,
 				showGrid: state.showGrid,
 				showRulers: state.showRulers,
 			}),
-			event.clientX,
-			event.clientY,
+			deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION,
 		);
+		// An emptied (or host-disabled) menu behaves like no menu: the native one shows.
+		if (entries.length === 0) {
+			return;
+		}
+		event.preventDefault();
+		close();
+		open(entries, event.clientX, event.clientY);
 	};
 
 	viewport.addEventListener('contextmenu', onContextMenu);

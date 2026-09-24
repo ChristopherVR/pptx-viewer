@@ -2,6 +2,8 @@ import { Settings } from 'lucide';
 import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
+	customizeBackstageNav,
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	formatBackstageDate,
 	formatBackstageSize,
 	listBackstageRecentFiles,
@@ -55,7 +57,13 @@ export function createFileTab(
 	aside.append(backRow, nav);
 	const main = doc.createElement('main');
 	el.append(aside, main);
-	let page: BackstagePage = 'home';
+	// The host's customisation removes pages; the chrome is rebuilt when it
+	// changes, so resolving once per build is enough.
+	const customization = handlers.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
+	const navItems = customizeBackstageNav(BACKSTAGE_NAV, customization);
+	let page: BackstagePage = navItems.some((item) => item.id === 'home')
+		? 'home'
+		: (navItems[0]?.id ?? 'home');
 	let hasMacros = false;
 	let query = '';
 	let recent: BackstageRecentFile[] = [];
@@ -88,7 +96,7 @@ export function createFileTab(
 	}
 	function renderNav(): void {
 		nav.replaceChildren();
-		for (const item of BACKSTAGE_NAV) {
+		for (const item of navItems) {
 			if (item.group && !nav.querySelector('i')) {
 				nav.appendChild(doc.createElement('i'));
 			}
@@ -188,7 +196,9 @@ export function createFileTab(
 		}
 	}
 	function renderActions(): void {
-		main.appendChild(createFileActionGrid(doc, page, handlers, hasMacros, run, t, hiddenActions));
+		main.appendChild(
+			createFileActionGrid(doc, page, handlers, hasMacros, run, t, hiddenActions, customization),
+		);
 	}
 	function renderOptionsCard(): void {
 		const card = createEl(doc, 'section', 'pptxv-bs-card');

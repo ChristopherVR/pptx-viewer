@@ -17,12 +17,13 @@ import {
 	armEditorKeyboard,
 	cycleSelectableElement,
 	downloadBlob,
-	mapEditorKey,
+	mapCustomizedEditorKey,
 	mapInlineTextFormatKey,
 	moveGuide,
 	removeGuide,
 	savedPresentationFileName,
 } from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
@@ -76,6 +77,8 @@ export interface EditorControllerDeps {
 	onInlineTextInput?: (elementId: string, text: string) => void;
 	/** Push any queued live-preview frame out before an inline commit lands. */
 	flushInlineTextInput?: () => void;
+	/** The host's keyboard customisation, read on every key press. */
+	getKeyboardCustomization?: () => ResolvedKeyboardCustomization | undefined;
 }
 
 export interface EditorController {
@@ -245,11 +248,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			editActions.toggleUnderline();
 			return true;
 		}
-		const { action } = mapEditorKey(event, {
-			isEditingText: true,
-			canEdit: true,
-			hasSelection: true,
-		});
+		const { action } = mapCustomizedEditorKey(
+			event,
+			{ isEditingText: true, canEdit: true, hasSelection: true },
+			deps.getKeyboardCustomization?.(),
+		);
 		switch (action) {
 			case 'alignLeft':
 				editActions.setTextAlign('left');
@@ -418,6 +421,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	};
 
 	const onKeyDown = createEditorKeydownHandler({
+		getKeyboardCustomization: deps.getKeyboardCustomization,
 		isActive: () => {
 			const state = store.get();
 			return state.editable && !state.presenting && !interactions.inlineActive();

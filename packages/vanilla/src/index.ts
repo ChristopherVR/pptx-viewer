@@ -197,6 +197,45 @@ export {
 } from 'pptx-viewer-shared';
 export type { SavedPresentationFormat } from 'pptx-viewer-shared';
 
+// ── UI customisation (the `customization` option + the instance's
+// `ViewerCustomizationApi` methods). Type names and the id catalogues come
+// from `pptx-viewer-shared`, so a host never imports the internal package. ─
+export type {
+	BackstageCustomization,
+	ContextMenuCustomization,
+	KeyboardCustomization,
+	OptionsCustomization,
+	OptionsPageId,
+	OptionsSectionId,
+	OptionsSettingId,
+	OptionsSettingValues,
+	ResolvedCustomization,
+	RibbonCustomization,
+	ShortcutChord,
+	ViewerCustomization,
+	ViewerCustomizationApi,
+	ViewerDialogId,
+	ViewerExportFormatId,
+	ViewerFeatureId,
+	ViewerPanelId,
+} from 'pptx-viewer-shared';
+export {
+	BACKSTAGE_CARD_IDS,
+	BACKSTAGE_PAGE_IDS,
+	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	EDITOR_SHORTCUT_ACTION_IDS,
+	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
+	OPTIONS_PAGE_IDS,
+	OPTIONS_SECTION_IDS,
+	OPTIONS_SETTING_IDS,
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+	VIEWER_DIALOG_IDS,
+	VIEWER_EXPORT_FORMAT_IDS,
+	VIEWER_FEATURE_IDS,
+	VIEWER_PANEL_IDS,
+} from 'pptx-viewer-shared';
+
 // ── Rasterisation escape hatch ─────────────────────────────────────────
 // The same `html2canvas-pro` wrapper the built-in export pipeline uses, so a
 // host building its own export gets the colour/CSS normalisation passes rather

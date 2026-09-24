@@ -11,6 +11,8 @@ import type {
 	RulerUnit,
 	ThemeCatalogEntry,
 	ToolbarActionId,
+	ViewerCustomization,
+	ViewerCustomizationApi,
 	ViewerFontSource,
 	ViewerTheme,
 	ViewportFitOptions,
@@ -169,6 +171,13 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	 */
 	hiddenActions?: ToolbarActionId[];
 	/**
+	 * Framework-neutral UI customisation. See docs/guide/customization.md.
+	 * Seeds the instance's customisation; the `ViewerCustomizationApi` methods
+	 * on the returned instance (`hideRibbonTab`, `setCustomization`, ...)
+	 * change it live. {@link hiddenActions} still applies and is unioned with it.
+	 */
+	customization?: ViewerCustomization;
+	/**
 	 * Custom element-renderer registry. Defaults to `createDefaultRegistry()`;
 	 * pass your own (or mutate the default via `getRegistry()`) to add or
 	 * override element renderers.
@@ -323,7 +332,7 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 }
 
 /** The viewer handle returned by `createPptxViewer`. */
-export interface PptxViewerInstance extends PowerPointViewerAPI {
+export interface PptxViewerInstance extends PowerPointViewerAPI, ViewerCustomizationApi {
 	/** Load a presentation from bytes or a Blob/File (replaces the current one). */
 	loadFile(file: Blob | ArrayBuffer | Uint8Array): Promise<void>;
 	/** Fetch and load a presentation from a URL. */

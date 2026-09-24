@@ -5,7 +5,7 @@ import type {
 	PptxSlideTransition,
 	TextSegment,
 } from 'pptx-viewer-core';
-import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
+import type { ResolvedCustomization, RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
@@ -42,6 +42,8 @@ export interface ChromeCallbackDeps {
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;
+	/** The host's resolved UI customisation, read lazily by the ribbon builders. */
+	getCustomization?(): ResolvedCustomization;
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSetUpSlideShow(): void;
@@ -159,6 +161,7 @@ export function buildChromeCallbacks(
 			toggleNotes: () => deps.toggleNotes(),
 			openAccessibility: () => deps.openAccessibility(),
 			openSettings: (tab) => deps.openSettings(tab),
+			getCustomization: deps.getCustomization,
 			openHeaderFooter: () => deps.openHeaderFooter(),
 			openCompare: () => deps.openCompare(),
 			openSelectionPane: () => deps.openSelectionPane(),
@@ -186,6 +189,7 @@ export function buildChromeCallbacks(
 			openRecentFile: (key) => deps.openRecentFile(key),
 			createPresentation: (templateId) => deps.createPresentation(templateId),
 			openSettings: () => deps.openSettings('general'),
+			getCustomization: deps.getCustomization,
 			openShare: () => deps.openShare(),
 			openDocumentProperties: () => deps.openDocumentProperties(),
 			openFontEmbedding: () => deps.openFontEmbedding(),

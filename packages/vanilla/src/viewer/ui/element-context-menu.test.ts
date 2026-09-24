@@ -1,4 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { resolveCustomization } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../editor';
@@ -80,6 +82,7 @@ function harness(
 	options: {
 		state?: Partial<ViewerState>;
 		ai?: { askAboutSelection: () => void; fixElement: () => void } | null;
+		customization?: ResolvedCustomization;
 		decorate?(element: HTMLElement): HTMLElement;
 	} = {},
 ): Harness {
@@ -115,6 +118,7 @@ function harness(
 		openComments,
 		openHyperlink,
 		getAi: () => options.ai ?? null,
+		getCustomization: options.customization ? () => options.customization! : undefined,
 	});
 	return {
 		actions,
@@ -155,6 +159,26 @@ afterEach(() => {
 });
 
 describe('mountElementContextMenu', () => {
+	it('drops the commands the host customisation hides', () => {
+		const customization = resolveCustomization({
+			contextMenu: { hiddenElementCommands: ['copy'] },
+		});
+		const context = harness(shapeSlide(), { customization });
+		rightClick(context.target);
+		expect(labels()).not.toContain('Copy');
+		expect(labels()).toContain('Cut');
+		context.destroy();
+	});
+
+	it('opens nothing (and leaves the native menu) when the host disables the menu', () => {
+		const customization = resolveCustomization({ contextMenu: { disableElementMenu: true } });
+		const context = harness(shapeSlide(), { customization });
+		const event = rightClick(context.target);
+		expect(event.defaultPrevented).toBeFalsy();
+		expect(openMenu()).toBeNull();
+		context.destroy();
+	});
+
 	it('opens an accessible menu of the shared command set on a right-clicked shape', () => {
 		const context = harness(shapeSlide());
 		const event = rightClick(context.target);

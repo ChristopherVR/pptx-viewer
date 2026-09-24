@@ -4,6 +4,7 @@ import type {
 	CollabLoadOrigin,
 	CollaborationConfig,
 	ConnectionStatus,
+	ToolbarActionId,
 } from 'pptx-viewer-shared';
 import { publishLiveInlineText } from 'pptx-viewer-shared';
 
@@ -44,6 +45,10 @@ export interface SessionControllersDeps {
 	loadFile: (bytes: Uint8Array) => Promise<void>;
 	/** Options > General > "Initials" override for the Share dialog's local-user avatar. */
 	getUserInitials?: () => string | undefined;
+	/** Effective hidden actions (host list + customisation); defaults to `options.hiddenActions`. */
+	getHiddenActions?: () => readonly ToolbarActionId[] | undefined;
+	/** False when the host removed the Share dialog: the status pill goes with it. */
+	isShareAvailable?: () => boolean;
 }
 
 /**
@@ -101,6 +106,8 @@ export interface SessionControllers {
 	openBroadcast(): void;
 	/** Open the viewer's built-in collaboration sharing dialog. */
 	openShare(): void;
+	/** Rebuild the collaboration chrome (Share button, status pill) into a remounted chrome. */
+	remountUi(): void;
 	destroy(): void;
 }
 
@@ -195,21 +202,24 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 
 	// Owns the Share/Broadcast dialogs, the cursor overlay, the toolbar status
 	// pill, and the follow-mode bar; delegates start/stop back into `collaboration`.
-	const collabUi: CollabUiController = createCollabUi({
-		doc: deps.doc,
-		store: deps.store,
-		getChrome: deps.getChrome,
-		getTranslator: deps.getTranslator,
-		getScale: deps.getScale,
-		startCollaboration: (config) => collaboration.start(config),
-		stopCollaboration: () => collaboration.stop(),
-		getStatus: () => collaboration.getStatus(),
-		getConfig: () => collaboration.getConfig(),
-		followUser: (clientId) => collaboration.followUser(clientId),
-		shareDefaults: options.shareDefaults,
-		hiddenActions: options.hiddenActions,
-		getUserInitials: deps.getUserInitials,
-	});
+	const buildCollabUi = (): CollabUiController =>
+		createCollabUi({
+			doc: deps.doc,
+			store: deps.store,
+			getChrome: deps.getChrome,
+			getTranslator: deps.getTranslator,
+			getScale: deps.getScale,
+			startCollaboration: (config) => collaboration.start(config),
+			stopCollaboration: () => collaboration.stop(),
+			getStatus: () => collaboration.getStatus(),
+			getConfig: () => collaboration.getConfig(),
+			followUser: (clientId) => collaboration.followUser(clientId),
+			shareDefaults: options.shareDefaults,
+			hiddenActions: deps.getHiddenActions ? deps.getHiddenActions() : options.hiddenActions,
+			showCollaborationStatus: deps.isShareAvailable?.() ?? true,
+			getUserInitials: deps.getUserInitials,
+		});
+	let collabUi = buildCollabUi();
 	notifyCollabUi = (status) => collabUi.onStatusChange(status);
 
 	return {
@@ -247,6 +257,11 @@ export function createSessionControllers(deps: SessionControllersDeps): SessionC
 		setAutosaveIntervalMs: (ms) => autosave.setOptionsIntervalMs(ms),
 		openBroadcast: () => collabUi.openBroadcast(),
 		openShare: () => collabUi.openShare(),
+		remountUi() {
+			collabUi.destroy();
+			collabUi = buildCollabUi();
+			collabUi.onStatusChange(collaboration.getStatus());
+		},
 		destroy() {
 			unsubscribePresence();
 			collabUi.destroy();

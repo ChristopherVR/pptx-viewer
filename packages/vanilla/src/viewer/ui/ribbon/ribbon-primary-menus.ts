@@ -1,5 +1,9 @@
 import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { isActionHidden } from 'pptx-viewer-shared';
+import {
+	EMPTY_RESOLVED_CUSTOMIZATION,
+	isActionHidden,
+	isDialogAvailable,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -99,6 +103,7 @@ export function buildOverflowMenuItems(
 	hiddenActions?: readonly ToolbarActionId[],
 ): PrimaryMenuItem[] {
 	const { file, nav } = handlers;
+	const customization = file.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
 	const items: PrimaryMenuItem[] = [];
 	if (!isActionHidden('export', hiddenActions)) {
 		items.push(
@@ -112,15 +117,34 @@ export function buildOverflowMenuItems(
 			{ label: t('pptx.file.saveAsPptTooltip'), run: () => file.saveAsPpt() },
 		);
 	}
+	// Print leads its group; without it, Copy Image carries the rule instead.
+	const printAvailable = isDialogAvailable(customization, 'print');
+	if (printAvailable) {
+		items.push({
+			label: t('pptx.print.printButton'),
+			run: () => file.print(),
+			separatorBefore: true,
+		});
+	}
 	items.push(
-		{ label: t('pptx.print.printButton'), run: () => file.print(), separatorBefore: true },
-		{ label: t('pptx.file.copyImageTooltip'), run: () => file.copySlideAsImage() },
+		{
+			label: t('pptx.file.copyImageTooltip'),
+			run: () => file.copySlideAsImage(),
+			separatorBefore: !printAvailable,
+		},
 		{
 			label: t('pptx.ribbon.accessibilityCheck'),
 			run: () => nav.openAccessibility(),
 			separatorBefore: true,
 		},
-		{ label: t('pptx.settings.keyboardShortcuts'), run: () => nav.openSettings('shortcuts') },
+	);
+	if (isDialogAvailable(customization, 'options')) {
+		items.push({
+			label: t('pptx.settings.keyboardShortcuts'),
+			run: () => nav.openSettings('shortcuts'),
+		});
+	}
+	items.push(
 		{
 			label: t('pptx.ribbon.versionHistory'),
 			run: () => file.openVersionHistory(),

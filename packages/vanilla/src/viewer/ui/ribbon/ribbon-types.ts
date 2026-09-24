@@ -5,7 +5,7 @@ import type {
 	PptxPresentationProperties,
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
-import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
+import type { ResolvedCustomization, RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
 import type { FindReplaceActions } from '../../editor/editor-find-replace-actions';
@@ -39,6 +39,8 @@ export interface RibbonNavHandlers {
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;
+	/** The host's resolved UI customisation (omitted: nothing customised). */
+	getCustomization?(): ResolvedCustomization;
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSelectionPane(): void;
@@ -80,6 +82,8 @@ export interface RibbonFileHandlers {
 	openRecentFile(key: string): void;
 	createPresentation(templateId: string): void;
 	openSettings(): void;
+	/** The host's resolved UI customisation (omitted: nothing customised). */
+	getCustomization?(): ResolvedCustomization;
 	openShare(): void;
 	openDocumentProperties(): void;
 	openFontEmbedding(): void;

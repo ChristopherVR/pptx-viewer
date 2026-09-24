@@ -52,6 +52,10 @@ export interface ChromeOptions {
 	showFormatToolbar: boolean;
 	/** Build the property inspector panel (default true; shown only when editable). */
 	showInspector: boolean;
+	/** Host customisation region gates (default true): see `customization-lifecycle`. */
+	showTitleBar?: boolean;
+	showStatusBar?: boolean;
+	showNotes?: boolean;
 	/** Whether editing is initially enabled (gates ribbon tab content/inspector visibility). */
 	editable: boolean;
 	/**
@@ -197,7 +201,7 @@ export function buildViewerChrome(
 	let ribbon: Ribbon | null = null;
 	let quickAccessRow: HTMLElement | null = null;
 	let quickAccessDetached = false;
-	if (options.showToolbar) {
+	if (options.showToolbar && options.showTitleBar !== false) {
 		titleBar = createTitleBar(doc, t, {
 			...options.titleBar,
 			// Mirror the strip's own visibility onto the below-the-ribbon dock so
@@ -211,6 +215,8 @@ export function buildViewerChrome(
 			},
 		});
 		root.appendChild(titleBar.el);
+	}
+	if (options.showToolbar) {
 		ribbon = createRibbon(
 			doc,
 			t,
@@ -313,23 +319,27 @@ export function buildViewerChrome(
 	// chrome width, so it stays visible regardless of the thumbnail rail.
 	const notes = createNotesPanel(doc, t, options.onToggleNotes, options.onCommitNotes);
 	root.appendChild(notes.el);
+	if (options.showNotes === false) {
+		notes.el.style.display = 'none';
+	}
 
-	const statusBar = options.showToolbar
-		? createStatusBar(
-				doc,
-				t,
-				{
-					toggleNotes: options.ribbonHandlers.nav.toggleNotes,
-					normalView: options.ribbonHandlers.nav.normalView,
-					openSlideSorter: options.ribbonHandlers.nav.openSlideSorter,
-					togglePresentation: options.ribbonHandlers.nav.togglePresentation,
-					zoomIn: options.ribbonHandlers.nav.zoomIn,
-					zoomOut: options.ribbonHandlers.nav.zoomOut,
-					zoomToFit: options.ribbonHandlers.nav.zoomToFit,
-				},
-				options.hiddenActions,
-			)
-		: null;
+	const statusBar =
+		options.showToolbar && options.showStatusBar !== false
+			? createStatusBar(
+					doc,
+					t,
+					{
+						toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+						normalView: options.ribbonHandlers.nav.normalView,
+						openSlideSorter: options.ribbonHandlers.nav.openSlideSorter,
+						togglePresentation: options.ribbonHandlers.nav.togglePresentation,
+						zoomIn: options.ribbonHandlers.nav.zoomIn,
+						zoomOut: options.ribbonHandlers.nav.zoomOut,
+						zoomToFit: options.ribbonHandlers.nav.zoomToFit,
+					},
+					options.hiddenActions,
+				)
+			: null;
 	if (statusBar) {
 		root.appendChild(statusBar.el);
 	}
