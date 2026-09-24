@@ -298,3 +298,25 @@ describe('chartViewModelSvg: chart title rich text (titleRunSpans)', () => {
 		expect(titleText?.text()).toBe('Sales');
 	});
 });
+
+describe('chartViewModelSvg: text transforms', () => {
+	it('keeps the rotation and opacity on data, axis and category labels', () => {
+		const rotated = (text: string): SvgText => ({
+			...secondaryLabel(40, text),
+			opacity: 0.5,
+			transform: 'rotate(30, 10, 40)',
+		});
+		const wrapper = mountVm(
+			baseViewModel({
+				dataLabels: [rotated('dl')],
+				axisLabels: [rotated('al')],
+				categoryLabels: [rotated('cl')],
+			}),
+		);
+		for (const text of ['dl', 'al', 'cl']) {
+			const node = wrapper.findAll('text').find((t) => t.text() === text);
+			expect(node?.attributes('transform')).toBe('rotate(30, 10, 40)');
+			expect(node?.attributes('opacity')).toBe('0.5');
+		}
+	});
+});

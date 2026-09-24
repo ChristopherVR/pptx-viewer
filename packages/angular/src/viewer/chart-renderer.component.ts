@@ -149,6 +149,7 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.font-size]="lbl.fontSize"
 					[attr.fill]="lbl.fill"
 					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
+					[attr.transform]="lbl.transform ?? null"
 				>
 					{{ lbl.text }}
 				</text>
@@ -205,6 +206,7 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.font-size]="lbl.fontSize"
 					[attr.fill]="lbl.fill"
 					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
+					[attr.transform]="lbl.transform ?? null"
 				>
 					{{ lbl.text }}
 				</text>
@@ -224,6 +226,8 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.fill]="dl.fill"
 					[attr.font-weight]="dl.fontWeight ?? 'normal'"
 					[attr.dominant-baseline]="dl.dominantBaseline ?? 'auto'"
+					[attr.opacity]="dl.opacity ?? 1"
+					[attr.transform]="dl.transform ?? null"
 				>
 					{{ dl.text }}
 				</text>

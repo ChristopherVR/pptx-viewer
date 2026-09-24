@@ -71,7 +71,7 @@
 	{/if}
 
 	{#each vm.categoryLabels as lbl, i (`cl${i}`)}
-		<text x={lbl.x} y={lbl.y} text-anchor={lbl.textAnchor} font-size={lbl.fontSize} fill={lbl.fill} font-weight={lbl.fontWeight ?? 'normal'} dominant-baseline={lbl.dominantBaseline}>{lbl.text}</text>
+		<text x={lbl.x} y={lbl.y} text-anchor={lbl.textAnchor} font-size={lbl.fontSize} fill={lbl.fill} font-weight={lbl.fontWeight ?? 'normal'} dominant-baseline={lbl.dominantBaseline} opacity={lbl.opacity ?? 1} transform={lbl.transform}>{lbl.text}</text>
 	{/each}
 
 	{#each vm.primitives as prim, i (`p${i}`)}
@@ -98,7 +98,7 @@
 	{/each}
 
 	{#each vm.dataLabels as dl, i (`dl${i}`)}
-		<text x={dl.x} y={dl.y} text-anchor={dl.textAnchor} font-size={dl.fontSize} fill={dl.fill} font-weight={dl.fontWeight ?? 'normal'} dominant-baseline={dl.dominantBaseline}>{dl.text}</text>
+		<text x={dl.x} y={dl.y} text-anchor={dl.textAnchor} font-size={dl.fontSize} fill={dl.fill} font-weight={dl.fontWeight ?? 'normal'} dominant-baseline={dl.dominantBaseline} opacity={dl.opacity ?? 1} transform={dl.transform}>{dl.text}</text>
 	{/each}
 
 	{#each legendItems as entry (entry.key)}

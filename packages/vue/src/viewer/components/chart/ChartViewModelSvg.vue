@@ -223,6 +223,8 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:fill="lbl.fill"
 			:font-weight="lbl.fontWeight ?? 'normal'"
 			:dominant-baseline="lbl.dominantBaseline"
+			:opacity="lbl.opacity ?? 1"
+			:transform="lbl.transform"
 		>
 			{{ lbl.text }}
 		</text>
@@ -330,6 +332,8 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:fill="dl.fill"
 			:font-weight="dl.fontWeight ?? 'normal'"
 			:dominant-baseline="dl.dominantBaseline"
+			:opacity="dl.opacity ?? 1"
+			:transform="dl.transform"
 		>
 			{{ dl.text }}
 		</text>
