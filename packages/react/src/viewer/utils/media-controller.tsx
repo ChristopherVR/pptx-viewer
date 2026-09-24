@@ -3,6 +3,7 @@ import {
 	mediaPlaybackAttributes,
 	registerCrossSlideAudio,
 	scheduleMediaTrimAndFade,
+	shouldShowMediaFullscreenStopButton,
 } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -197,8 +198,15 @@ export function PresentationMediaController({
 	return (
 		<div className='w-full h-full' style={wrapperStyle}>
 			{children({ mediaRef, onPlay: noopOnPlay, isMediaPlaying })}
-			{/* Subtle close/stop button for full-screen media overlay */}
-			{isFullScreen && isPresentationMode && isMediaPlaying && (
+			{/* Subtle close/stop button for full-screen media overlay. `isFullScreen`
+			    is already `fullScreen && presenting` (see `ElementBody.tsx`); the
+			    shared trigger stays the single source of truth for what else gates
+			    the overlay so this can never drift from the container's own style. */}
+			{shouldShowMediaFullscreenStopButton({
+				fullScreen: isFullScreen,
+				presenting: isPresentationMode,
+				playing: isMediaPlaying,
+			}) && (
 				<button
 					type='button'
 					className='absolute bottom-3 right-3 z-30 rounded-full bg-black/50 hover:bg-black/70 text-white/80 hover:text-white p-2 transition-colors pointer-events-auto'

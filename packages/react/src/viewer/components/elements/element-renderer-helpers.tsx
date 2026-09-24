@@ -1,6 +1,6 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { paintedElementSize } from 'pptx-viewer-shared';
+import { MEDIA_FULLSCREEN_OVERLAY_STYLE, paintedElementSize } from 'pptx-viewer-shared';
 import React from 'react';
 import type { CSSProperties } from 'react';
 
@@ -97,12 +97,16 @@ export function getContainerStyle({
 	// Grabbability for a degenerate shape is a SEPARATE, interactive-only
 	// affordance; see `elementHitTargetStyle`, rendered by `ElementRenderer`.
 	const painted = paintedElementSize(el);
+	// The `fullScrn` full-slide overlay layout (issue wave item 10): the
+	// trigger and the literal override values are shared so all five bindings
+	// agree on both, not just React.
+	const fs = MEDIA_FULLSCREEN_OVERLAY_STYLE;
 	return {
-		left: isFullscreenMedia ? 0 : el.x,
-		top: isFullscreenMedia ? 0 : el.y,
-		width: isFullscreenMedia ? '100%' : painted.width,
-		height: isFullscreenMedia ? '100%' : painted.height,
-		transform: isFullscreenMedia ? 'none' : getElementTransform(el),
+		left: isFullscreenMedia ? fs.left : el.x,
+		top: isFullscreenMedia ? fs.top : el.y,
+		width: isFullscreenMedia ? fs.width : painted.width,
+		height: isFullscreenMedia ? fs.height : painted.height,
+		transform: isFullscreenMedia ? fs.transform : getElementTransform(el),
 		transformOrigin: 'center',
 		overflow: overflowValue,
 		clipPath: isPicture
@@ -110,14 +114,12 @@ export function getContainerStyle({
 			: isImg && !has3DExtrusion
 				? getCropShapeClipPath(el)
 				: undefined,
-		zIndex: isFullscreenMedia ? 20 : zIndex,
+		zIndex: isFullscreenMedia ? fs.zIndex : zIndex,
 		visibility: animationState?.visible === false ? 'hidden' : 'visible',
 		animation: animationState?.cssAnimation,
-		background: isFullscreenMedia ? '#000' : undefined,
-		transition: isFullscreenMedia
-			? 'left 0.3s ease, top 0.3s ease, width 0.3s ease, height 0.3s ease'
-			: undefined,
-		borderColor: isFullscreenMedia ? 'transparent' : undefined,
+		background: isFullscreenMedia ? fs.background : undefined,
+		transition: isFullscreenMedia ? fs.transition : undefined,
+		borderColor: isFullscreenMedia ? fs.borderColor : undefined,
 		...shapeVisualStyle,
 		...(isPicture
 			? {
