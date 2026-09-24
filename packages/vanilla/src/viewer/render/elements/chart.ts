@@ -5,6 +5,7 @@ import {
 	getChartStylePalette,
 	getContainerStyle,
 	resolveChartKind,
+	resolveChartThreeViewSpec,
 	resolveRevealedChartData,
 	subscribeBarFacePicturePixelSamples,
 } from 'pptx-viewer-shared';
@@ -12,68 +13,38 @@ import {
 import type { Translator } from '../../i18n';
 import { createEl } from '../dom';
 import type { ElementRenderer } from '../types';
-import { renderAreaChart3DElement } from './area-chart-3d';
-import { renderBarChart3DElement } from './bar-chart-3d';
 import { attachChartEditing } from './chart-editable';
 import { renderChartViewModelSvg } from './chart-svg';
-import { renderLineChart3DElement } from './line-chart-3d';
-import { renderPieChart3DElement } from './pie-chart-3d';
-import { renderSurfaceChart3DElement } from './surface-chart-3d';
+import {
+	isChart3DEditable,
+	mountThreeViewInto,
+	rendering3DFlagsOf,
+	selectedChartPartOf,
+	wireChartThreeViewEvents,
+} from './three-view';
 
 /**
- * Renderer for `chart` elements. Dispatches to the opt-in interactive
- * Three.js surface-chart scene (`surface-chart-3d.ts`) when
- * `context.surfaceChart3D` is set (see `PptxViewerOptions.surfaceChart3D`)
- * and the chart resolves to the `surface` kind, to the opt-in interactive
- * Three.js bar3D-chart scene (`bar-chart-3d.ts`) when `context.barChart3D`
- * is set (see `PptxViewerOptions.barChart3D`) and the chart's raw
- * `chartType` is `bar3D`, to the opt-in interactive Three.js line3D-chart
- * scene (`line-chart-3d.ts`) when `context.lineChart3D` is set (see
- * `PptxViewerOptions.lineChart3D`) and the chart's raw `chartType` is
- * `line3D`, or to the opt-in interactive Three.js area3D-chart scene
- * (`area-chart-3d.ts`) when `context.areaChart3D` is set (see
- * `PptxViewerOptions.areaChart3D`) and the chart's raw `chartType` is
- * `area3D` (each checked directly against the raw `chartType`, NOT via
- * `resolveChartKind`, which folds plain/3D variants together), otherwise
- * `chartType` is `bar3D` (checked directly, NOT via `resolveChartKind`,
- * which folds plain `bar` and `bar3D` together), or to the opt-in interactive
- * Three.js pie3D-chart scene (`pie-chart-3d.ts`) when `context.pieChart3D`
- * is set (see `PptxViewerOptions.pieChart3D`) and the chart's raw
- * `chartType` is `pie3D` (checked directly, NOT via `resolveChartKind`,
- * which folds plain `pie`/`doughnut` and `pie3D` together), otherwise
- * renders the flat SVG below. Mirrors `smartart.ts`'s `renderSmartArtElement`
- * dispatch.
+ * Renderer for `chart` elements: the flat SVG below, upgraded to the shared
+ * `<pptx-three-view>` 3D scene when the host opted this raw `c:chartType`
+ * into 3D (`PptxViewerOptions.barChart3D` / `lineChart3D` / `areaChart3D` /
+ * `pieChart3D` / `surfaceChart3D`; `resolveChartThreeViewSpec` decides). The
+ * SVG becomes the element's slotted fallback, and a 3D mark's click/drag
+ * feeds the SAME `onChartPartSelect` / `onChartPointChange` path as a 2D one.
  */
 export const renderChartElement: ElementRenderer = (element, zIndex, context) => {
-	if (
-		element.type === 'chart' &&
-		context.surfaceChart3D &&
-		element.chartData &&
-		resolveChartKind(element.chartData.chartType ?? 'bar') === 'surface'
-	) {
-		return renderSurfaceChart3DElement(element, zIndex, context);
+	const wrapper = renderChartSvgElement(element, zIndex, context);
+	const spec = wrapper ? resolveChartThreeViewSpec(element, rendering3DFlagsOf(context)) : null;
+	if (!wrapper || !spec) {
+		return wrapper;
 	}
-	if (element.type === 'chart' && context.barChart3D && element.chartData?.chartType === 'bar3D') {
-		return renderBarChart3DElement(element, zIndex, context);
-	}
-	if (
-		element.type === 'chart' &&
-		context.lineChart3D &&
-		element.chartData?.chartType === 'line3D'
-	) {
-		return renderLineChart3DElement(element, zIndex, context);
-	}
-	if (
-		element.type === 'chart' &&
-		context.areaChart3D &&
-		element.chartData?.chartType === 'area3D'
-	) {
-		return renderAreaChart3DElement(element, zIndex, context);
-	}
-	if (element.type === 'chart' && context.pieChart3D && element.chartData?.chartType === 'pie3D') {
-		return renderPieChart3DElement(element, zIndex, context);
-	}
-	return renderChartSvgElement(element, zIndex, context);
+	const view = mountThreeViewInto(context.document, wrapper, {
+		spec,
+		interactive: isChart3DEditable(element, context),
+		selectedPart: selectedChartPartOf(element, context),
+		textStyle: context.presentationStates?.get(element.id)?.textStyle,
+	});
+	wireChartThreeViewEvents(view, element, context, wrapper);
+	return wrapper;
 };
 
 /**
@@ -95,9 +66,7 @@ export const renderChartElement: ElementRenderer = (element, zIndex, context) =>
  * `chartData.colorPalette` wins, otherwise the style-id-aware palette
  * (`getChartStylePalette`), threaded into the shared engine as `colorPalette`.
  *
- * Exported (not just registry-internal) so `surface-chart-3d.ts` can paint
- * this as its synchronous fallback / restore target, mirroring
- * `smartart.ts`'s exported `renderSmartArtSvg`.
+ * Exported so the 3D path above can build it as the scene's fallback.
  */
 export const renderChartSvgElement: ElementRenderer = (element, zIndex, context) => {
 	if (element.type !== 'chart') {

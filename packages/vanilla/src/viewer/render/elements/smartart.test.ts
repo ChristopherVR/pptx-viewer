@@ -1,26 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { createTranslator } from '../../i18n';
 import { createElementRendererRegistry } from '../registry';
 import type { ElementRenderContext } from '../types';
-import { applyChart3DTextStyle } from './chart-3d-text-style-registry';
 import { renderSmartArtElement } from './smartart';
-
-// Mock the lazily-imported vanilla Three.js SmartArt scene runtime so the
-// optional `three` peer dependency's WebGL renderer never touches happy-dom's
-// canvas stub (same pattern as `model3d.test.ts`'s `mountModel3D` mock, but
-// for the `pptx-viewer-shared/smartart-3d` subpath the 3D renderer imports).
-const { mountSmartArt3D } = vi.hoisted(() => ({ mountSmartArt3D: vi.fn() }));
-
-vi.mock(import('pptx-viewer-shared/smartart-3d'), async (importOriginal) => {
-	const actual = await importOriginal();
-	return {
-		...actual,
-		mountSmartArt3D: (...args: Parameters<typeof actual.mountSmartArt3D>) =>
-			mountSmartArt3D(...args),
-	};
-});
 
 function makeContext(
 	smartArt3D = false,
@@ -116,21 +100,6 @@ function blurDuringRemove(editor: HTMLTextAreaElement) {
 		nativeRemove();
 	});
 	return remove;
-}
-
-/**
- * Flush the mount promise chain: the dynamic `import('pptx-viewer-shared/
- * smartart-3d')` resolves asynchronously (real module graph load, even though
- * `mountSmartArt3D` itself is mocked), so a couple of microtask-only
- * `Promise.resolve()` turns is not always enough; fall back to a macrotask
- * tick too.
- */
-async function flushMount(): Promise<void> {
-	for (let i = 0; i < 20; i += 1) {
-		await new Promise((resolve) => {
-			setTimeout(resolve, 5);
-		});
-	}
 }
 
 describe('renderSmartArtElement', () => {
@@ -435,47 +404,23 @@ describe('renderSmartArtElement', () => {
 });
 
 describe('renderSmartArtElement (opt-in 3D)', () => {
-	beforeEach(() => {
-		mountSmartArt3D.mockReset();
-	});
-
-	afterEach(() => {
-		vi.restoreAllMocks();
-	});
-
-	it('renders the SVG synchronously and does not touch the 3D mount when the flag is off', async () => {
+	it('renders the plain SVG when the flag is off', () => {
 		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(false)) as HTMLElement;
-		await flushMount();
 		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
-		expect(node.querySelector('canvas')).toBeNull();
-		expect(mountSmartArt3D).not.toHaveBeenCalled();
+		expect(node.querySelector('pptx-three-view')).toBeNull();
 	});
 
-	it('paints the SVG immediately, then upgrades to a mounted canvas once the scene loads', async () => {
+	it('slots the SVG into a <pptx-three-view> when the flag is on', () => {
 		const node = renderSmartArtElement(nodesOnlyElement(), 2, makeContext(true)) as HTMLElement;
 		expect(node.dataset.elementId).toBe('sa-2');
 		expect(node.style.zIndex).toBe('2');
-		// Synchronous return still paints the SVG fallback (matches Vue's
-		// useFallback=true initial render before the async mount resolves).
-		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
-
-		await flushMount();
-
-		expect(mountSmartArt3D).toHaveBeenCalledExactlyOnceWith(
-			expect.anything(),
-			expect.objectContaining({ meshes: expect.any(Array) }),
-			400,
-			240,
-			{},
-		);
-		const canvas = node.querySelector('canvas.pptxv-smartart-3d-canvas');
-		expect(canvas).toBeTruthy();
-		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeNull();
-		// Node reference stays the same across the upgrade (in-place swap).
-		expect(node.dataset.elementId).toBe('sa-2');
+		const view = node.querySelector<HTMLElement & { spec?: { kind: string } }>('pptx-three-view');
+		expect(view?.spec?.kind).toBe('smartart');
+		// The SVG is the element's fallback, shown until (and unless) the scene is ready.
+		expect(view?.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
 	});
 
-	it('renders a labelled placeholder without attempting a 3D mount when there is no SmartArt data', async () => {
+	it('renders a labelled placeholder without a 3D view when there is no SmartArt data', () => {
 		const element: PptxElement = {
 			type: 'smartArt',
 			id: 'sa-3',
@@ -485,70 +430,22 @@ describe('renderSmartArtElement (opt-in 3D)', () => {
 			height: 100,
 		};
 		const node = renderSmartArtElement(element, 0, makeContext(true)) as HTMLElement;
-		await flushMount();
 		expect(node.querySelector('.pptxv-smartart-placeholder')?.textContent).toBe('SmartArt');
-		expect(mountSmartArt3D).not.toHaveBeenCalled();
+		expect(node.querySelector('pptx-three-view')).toBeNull();
 	});
 
-	it('reverts to the SVG fallback when the scene fails to mount', async () => {
-		mountSmartArt3D.mockImplementation(() => {
-			throw new Error('webgl unavailable');
-		});
-		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(true)) as HTMLElement;
-		await flushMount();
-		expect(node.querySelector('canvas.pptxv-smartart-3d-canvas')).toBeNull();
-		expect(node.querySelector('svg.pptxv-smartart-svg')).toBeTruthy();
-	});
-
-	it('disposes the mounted scene when a later render removes its wrapper', async () => {
-		const dispose = vi.fn();
-		mountSmartArt3D.mockReturnValue({
-			resize: vi.fn(),
-			setInteractive: vi.fn(),
-			setTextStyle: vi.fn(),
-			dispose,
-		});
-		const node = renderSmartArtElement(nodesOnlyElement(), 0, makeContext(true)) as HTMLElement;
-		document.body.appendChild(node);
-		await flushMount();
-
-		node.remove();
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 0);
-		});
-
-		expect(dispose).toHaveBeenCalledOnce();
-	});
-
-	it('threads the active font-style emphasis into the mount options and keeps it live via the registry', async () => {
-		const setTextStyle = vi.fn();
-		mountSmartArt3D.mockReturnValue({
-			resize: vi.fn(),
-			setInteractive: vi.fn(),
-			setTextStyle,
-			dispose: vi.fn(),
-		});
+	it('threads the active font-style emphasis into the view', () => {
 		const element = nodesOnlyElement();
 		const presentationStates = new Map([
 			[element.id, { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
 		]);
-		renderSmartArtElement(element, 0, makeContext(true, { presentationStates }));
-
-		await flushMount();
-
-		expect(mountSmartArt3D).toHaveBeenCalledExactlyOnceWith(
-			expect.anything(),
-			expect.objectContaining({ meshes: expect.any(Array) }),
-			400,
-			240,
-			{ textStyle: { bold: true } },
-		);
-
-		// A later animation tick reaches the SAME mounted handle via the
-		// registry (`chart-3d-text-style-registry.ts`), since a caption drawn
-		// as a canvas texture has no CSS selector the usual override can target.
-		applyChart3DTextStyle(document, element.id, { italic: true });
-		expect(setTextStyle).toHaveBeenCalledExactlyOnceWith({ italic: true });
+		const node = renderSmartArtElement(
+			element,
+			0,
+			makeContext(true, { presentationStates }),
+		) as HTMLElement;
+		const view = node.querySelector<HTMLElement & { textStyle?: unknown }>('pptx-three-view');
+		expect(view?.textStyle).toStrictEqual({ bold: true });
 	});
 });
 

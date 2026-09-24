@@ -9,8 +9,6 @@ import { registerRichMediaRenderers } from './register-rich-media';
 import { registerTableChartRenderers } from './register-table-chart';
 import { renderTextShapeElement } from './text-shape';
 
-export { renderAreaChart3DElement } from './area-chart-3d';
-export { renderBarChart3DElement } from './bar-chart-3d';
 export { renderChartElement, renderChartSvgElement } from './chart';
 export { renderConnectorElement } from './connector';
 export { renderGroupElement } from './group';
@@ -21,7 +19,6 @@ export { renderInkElement } from './ink';
 // paint an `InkStrokeView` (plain path / pressure circles / tilt nib marks)
 // identically.
 export { buildStrokeSvg } from './ink-stroke-svg';
-export { renderLineChart3DElement } from './line-chart-3d';
 export { renderMediaElement } from './media';
 export { renderOleElement } from './ole';
 export { renderPlaceholderElement } from './placeholder';
@@ -30,7 +27,6 @@ export { registerExtraRenderers } from './register-extras';
 export { registerTableChartRenderers } from './register-table-chart';
 export { renderSmartArtElement, renderSmartArtSvg } from './smartart';
 export { renderSmartArt3DElement } from './smartart-3d';
-export { renderSurfaceChart3DElement } from './surface-chart-3d';
 export { renderTableElement } from './table';
 export { renderTextBlock } from './text-block';
 export { renderTextShapeElement } from './text-shape';

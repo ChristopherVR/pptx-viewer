@@ -1,7 +1,6 @@
 import type { ElementAnimationState } from 'pptx-viewer-shared';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { registerChart3DTextStyleHandle } from '../render/elements/chart-3d-text-style-registry';
 import { applyElementAnimationStyles } from './animation-dom';
 
 function stage(): HTMLElement {
@@ -116,21 +115,22 @@ describe('applyElementAnimationStyles text-style override', () => {
 	});
 
 	// A 3D chart/SmartArt3D element's axis labels / node captions are
-	// canvas-drawn textures, so the CSS override above can never reach them.
-	// `chart-3d-text-style-registry.ts` is the robust path: the 3D renderer
-	// registers its mounted handle, and this per-tick pass forwards the SAME
-	// descriptor straight to `handle.setTextStyle`, alongside the (here
-	// ineffective, but harmless) CSS override.
-	it('forwards the active text style to a registered 3D scene handle', () => {
+	// canvas-drawn textures, so the CSS override above can never reach them:
+	// the same descriptor goes to the element's `<pptx-three-view>` instead,
+	// alongside the (here ineffective, but harmless) CSS override.
+	it('forwards the active text style to a <pptx-three-view> inside the element', () => {
 		const root = stage();
-		const setTextStyle = vi.fn();
-		registerChart3DTextStyleHandle(document, 'sp_1', { setTextStyle });
+		const wrapper = root.querySelector<HTMLElement>('[data-element-id="sp_1"]');
+		const view = document.createElement('pptx-three-view') as HTMLElement & {
+			textStyle?: unknown;
+		};
+		wrapper?.appendChild(view);
 
 		const states = new Map<string, ElementAnimationState>([
 			['sp_1', { visible: true, cssAnimation: undefined, textStyle: { bold: true } }],
 		]);
 		applyElementAnimationStyles(root, states, new Set(), new Set());
 
-		expect(setTextStyle).toHaveBeenCalledExactlyOnceWith({ bold: true });
+		expect(view.textStyle).toStrictEqual({ bold: true });
 	});
 });

@@ -1,143 +1,31 @@
-import type { PptxElement } from 'pptx-viewer-core';
-import type { SmartArt3DModel } from 'pptx-viewer-shared';
-import {
-	buildSmartArt3DModel,
-	collectCoherent3DOffNodeIds,
-	resolveSmartArt3DLayout,
-	resolvePalette,
-} from 'pptx-viewer-shared';
-import type { SmartArt3DHandle } from 'pptx-viewer-shared/smartart-3d';
+import { resolveSmartArtThreeViewSpec } from 'pptx-viewer-shared';
 
-import { createEl } from '../dom';
-import type { ElementRenderContext, ElementRenderer } from '../types';
-import {
-	registerChart3DTextStyleHandle,
-	unregisterChart3DTextStyleHandle,
-} from './chart-3d-text-style-registry';
+import type { ElementRenderer } from '../types';
 import { renderSmartArtSvg } from './smartart';
+import { mountThreeViewInto } from './three-view';
 
 /**
- * Opt-in Three.js SmartArt renderer, vanilla port of Vue's
- * `SmartArt3DRenderer.vue` (gated on `context.smartArt3D`, threaded from
- * `PptxViewerOptions.smartArt3D`; see `smartart.ts` for the flat SVG path this
- * replaces). Inline node text editing (a Vue-only editor-mode affordance) is
- * not ported, matching the rest of the viewer-only vanilla SmartArt renderer.
+ * Opt-in 3D SmartArt renderer (gated on `context.smartArt3D`, threaded from
+ * `PptxViewerOptions.smartArt3D`; see `smartart.ts` for the dispatch). The
+ * flat SVG renders first and becomes the slotted fallback of a shared
+ * `<pptx-three-view>`, which loads `three`, draws the diagram through the one
+ * page-wide WebGL context and keeps the SVG when it cannot. A diagram with
+ * nothing to draw stays plain SVG. Mirrors React's `SmartArt3DView.tsx`.
  *
- * Builds the pure 3D model from the shared layout engine (no `three` import),
- * renders the existing SVG output synchronously as an immediate placeholder,
- * then lazily imports the vanilla scene runtime from
- * `pptx-viewer-shared/smartart-3d` and swaps it for a mounted canvas once the
- * import and mount resolve. `three` is an optional peer dependency: when it is
- * missing, the diagram has no meshes, or the mount throws, the SVG stays in
- * place, mirroring Vue's `useFallback` flag and Vanilla's own `model3d.ts`
- * graceful-degradation pattern (dynamic import + fallback, no hard `three`
- * dependency in this package).
- *
- * Active font-style emphasis (`context.presentationStates`) is applied to
- * every node's caption at mount time and kept live via
- * `chart-3d-text-style-registry.ts`: the captions are canvas-drawn textures,
- * so the CSS-based override every other element gets can never reach them.
+ * Active font-style emphasis (`context.presentationStates`) reaches the
+ * scene's canvas-drawn captions through the view's `textStyle`
+ * (`animation-dom.ts` keeps it live during playback).
  */
 export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, context) => {
-	if (element.type !== 'smartArt') {
-		return null;
+	const wrapper = renderSmartArtSvg(element, zIndex, context);
+	const spec = wrapper ? resolveSmartArtThreeViewSpec(element, context.smartArt3D) : null;
+	if (!wrapper || !spec) {
+		return wrapper;
 	}
-	const fallback = renderSmartArtSvg(element, zIndex, context);
-	const model = buildSmartArt3DElementModel(element);
-	if (!fallback || !model || model.meshes.length === 0) {
-		return fallback;
-	}
-
-	void mountScene(element, context, fallback, model);
-	return fallback;
+	mountThreeViewInto(context.document, wrapper, {
+		spec,
+		interactive: Boolean(context.interactive) && !context.presenting,
+		textStyle: context.presentationStates?.get(element.id)?.textStyle,
+	});
+	return wrapper;
 };
-
-/** Build the pure 3D model from the element's SmartArt data, or `null`. */
-export function buildSmartArt3DElementModel(element: PptxElement): SmartArt3DModel | null {
-	if (element.type !== 'smartArt') {
-		return null;
-	}
-	const data = element.smartArtData;
-	if (!data || data.nodes.length === 0) {
-		return null;
-	}
-	const layout = resolveSmartArt3DLayout(
-		data,
-		data.nodes,
-		{ width: element.width, height: element.height },
-		resolvePalette(data),
-		data.style ?? 'flat',
-		element.id,
-	);
-	return buildSmartArt3DModel(layout, {
-		background: data.chrome?.backgroundColor,
-		spatial: true,
-		coherent3DOffNodeIds: collectCoherent3DOffNodeIds(data.nodes),
-	});
-}
-
-/**
- * Lazily import the vanilla scene runtime and mount `model` onto a canvas
- * that replaces `fallback`'s contents on success. `fallback` is already
- * attached to the stage by the caller (`renderElement` returns synchronously
- * before this promise settles), so mutating it in place upgrades the element
- * without a full slide re-render.
- */
-async function mountScene(
-	element: PptxElement,
-	context: ElementRenderContext,
-	fallback: HTMLElement | SVGElement,
-	model: SmartArt3DModel,
-): Promise<void> {
-	if (element.type !== 'smartArt') {
-		return;
-	}
-	// Captured before any mutation so a failed mount can restore exactly what
-	// was already painted, mirroring Vue's `useFallback` flipping back to
-	// `true` inside its `catch`.
-	const fallbackChildren = Array.from(fallback.childNodes);
-	try {
-		const { mountSmartArt3D } = await import('pptx-viewer-shared/smartart-3d');
-		const canvas = createEl(context.document, 'canvas', 'pptxv-smartart-3d-canvas', {
-			width: '100%',
-			height: '100%',
-			display: 'block',
-		});
-		fallback.replaceChildren(canvas);
-		const handle = mountSmartArt3D(
-			canvas,
-			model,
-			Math.max(1, element.width),
-			Math.max(1, element.height),
-			{ textStyle: context.presentationStates?.get(element.id)?.textStyle },
-		);
-		registerChart3DTextStyleHandle(context.document, element.id, handle);
-		observeSceneRemoval(context.document, fallback, handle, element.id);
-	} catch {
-		// `three` unavailable or the scene failed to mount: restore the SVG
-		// fallback that was already painted synchronously.
-		fallback.replaceChildren(...fallbackChildren);
-	}
-}
-
-/** Dispose GPU resources when a later slide render removes this wrapper. */
-function observeSceneRemoval(
-	doc: Document,
-	wrapper: HTMLElement | SVGElement,
-	handle: SmartArt3DHandle,
-	elementId: string,
-): void {
-	const MutationObserver = doc.defaultView?.MutationObserver;
-	if (!wrapper.isConnected || !MutationObserver) {
-		return;
-	}
-	const observer = new MutationObserver(() => {
-		if (wrapper.isConnected) {
-			return;
-		}
-		observer.disconnect();
-		unregisterChart3DTextStyleHandle(doc, elementId, handle);
-		handle.dispose();
-	});
-	observer.observe(doc, { childList: true, subtree: true });
-}
