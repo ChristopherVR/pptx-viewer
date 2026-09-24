@@ -8,13 +8,14 @@
  * source for the 3D renderer (PowerPoint parity): the layout-engine path in
  * `smartart-3d-model.ts` is a fallback for elements with no cached drawing.
  *
- * Phase 1 (this module): FLAT quick styles only (Simple Fill, White Outline,
- * Subtle, Moderate, Intense) - every shape is coplanar (z separated only by a
- * tiny per-paint-order epsilon to avoid z-fighting where SmartArt stacks an
- * unfilled label shape over a painted one), unlit, and framed by an
- * orthographic camera matching the 2D SVG viewBox exactly. Bevel/scene quick
- * styles (`shape.shape3d`/`shape.scene3d`/`quickStyle.scene3d`, parsed by
- * core but not yet consumed here) are a follow-up.
+ * FLAT quick styles (Simple Fill, White Outline, Subtle, Moderate, Intense):
+ * every shape is coplanar (z separated only by a tiny per-paint-order epsilon
+ * to avoid z-fighting where SmartArt stacks an unfilled label shape over a
+ * painted one), unlit, and framed by an orthographic camera matching the 2D
+ * SVG viewBox exactly. BEVEL and SCENE quick styles (see
+ * `resolveSmartArt3DStylePath`) keep the same meshes and add a lit solid,
+ * gradient, light rig and (scene only) a whole-diagram camera, via
+ * `smartart-3d-drawing-solid.ts`.
  *
  * No `three` import: this module returns plain data: three.js Shape/geometry
  * construction happens in `smartart-3d/view-scene.ts`, which has `ctx.three`.
@@ -23,7 +24,9 @@
  */
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from 'pptx-viewer-core';
 
+import { decorateSmartArt3DMesh, resolveSmartArt3DSceneSetup } from './smartart-3d-drawing-solid';
 import { ellipseOutline, rectOutline } from './smartart-3d-primitive-outline';
+import { resolveSmartArt3DStylePath } from './smartart-3d-style-path';
 import type {
 	Point2,
 	SmartArt3DMesh,
@@ -201,7 +204,23 @@ function meshForDrawingShape(
 }
 
 /**
- * Build the flat-style 3D model directly from a SmartArt element's cached
+ * Map a viewBox point (y-down, before the shape's rotation / flip) into the
+ * mesh-local space (y-up, centred on the shape's footprint centre).
+ */
+function toMeshLocal(p: Point2, shape: PptxSmartArtDrawingShape, rendered: RenderedShape): Point2 {
+	const turned = applyShapeTransform(
+		p,
+		rendered.cx,
+		rendered.cy,
+		shape.rotation,
+		shape.flipHorizontal,
+		shape.flipVertical,
+	);
+	return { x: turned.x - rendered.cx, y: -(turned.y - rendered.cy) };
+}
+
+/**
+ * Build the 3D model directly from a SmartArt element's cached
  * `drawingShapes`, or `undefined` when it has none (caller falls back to the
  * layout-engine model).
  */
@@ -220,15 +239,21 @@ export function buildSmartArt3DDrawingModel(data: PptxSmartArtData): SmartArt3DM
 		data.style ?? 'flat',
 	);
 
-	const meshes: SmartArt3DMesh[] = shapes.map((shape, i) =>
-		meshForDrawingShape(shape, rendered[i], i, viewBox.width, viewBox.height),
-	);
+	const category = resolveSmartArt3DStylePath(shapes);
+	const meshes: SmartArt3DMesh[] = shapes.map((shape, i) => {
+		const mesh = meshForDrawingShape(shape, rendered[i], i, viewBox.width, viewBox.height);
+		if (category !== 'flat') {
+			decorateSmartArt3DMesh(mesh, shape, rendered[i], (p) => toMeshLocal(p, shape, rendered[i]));
+		}
+		return mesh;
+	});
 
 	return {
 		meshes,
 		connectors: [],
 		bounds: { width: viewBox.width, height: viewBox.height },
 		background: data.chrome?.backgroundColor,
-		styleCategory: 'flat',
+		styleCategory: category,
+		...resolveSmartArt3DSceneSetup(data, category),
 	};
 }
