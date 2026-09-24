@@ -1,3 +1,4 @@
+import { resolveSlidePaneClick } from 'pptx-viewer-shared';
 import { useCallback, useEffect, useState } from 'react';
 
 import type { SectionContextMenuState, SlideContextMenuState } from './types';
@@ -31,9 +32,27 @@ export interface SlidePaneCallbacks {
 		sectionIndex: number,
 		totalSections: number,
 	) => void;
-	handleOpenSlideCtxMenu: (x: number, y: number, slideIndex: number) => void;
+	handleOpenSlideCtxMenu: (
+		x: number,
+		y: number,
+		slideIndex: number,
+		selectedIndexes: number[],
+	) => void;
 	closeSectionContextMenu: () => void;
 	closeSlideCtxMenu: () => void;
+	/** Ctrl/Cmd/Shift-aware multi-select; ids because indexes shift under insert/delete/move. */
+	selectedSlideIds: string[];
+	/**
+	 * Resolve one click on a slide thumbnail: updates the multi-selection and
+	 * always reports the plain "make this slide active" index too, since a
+	 * click (even a Ctrl/Shift one) also moves the canvas to the slide clicked,
+	 * matching the sorter overlay and PowerPoint itself.
+	 */
+	handleSlideClick: (
+		event: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+		slideId: string,
+		orderedIds: readonly string[],
+	) => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +71,29 @@ export function useSlidePaneCallbacks(
 		null,
 	);
 	const [slideCtxMenu, setSlideCtxMenu] = useState<SlideContextMenuState | null>(null);
+	const [selectedSlideIds, setSelectedSlideIds] = useState<string[]>([]);
+	const [selectionAnchorId, setSelectionAnchorId] = useState<string | null>(null);
+
+	const handleSlideClick = useCallback(
+		(
+			event: { ctrlKey: boolean; metaKey: boolean; shiftKey: boolean },
+			slideId: string,
+			orderedIds: readonly string[],
+		) => {
+			const result = resolveSlidePaneClick({
+				clickedId: slideId,
+				orderedIds,
+				selectedIds: selectedSlideIds,
+				anchorId: selectionAnchorId,
+				ctrlKey: event.ctrlKey,
+				metaKey: event.metaKey,
+				shiftKey: event.shiftKey,
+			});
+			setSelectedSlideIds(result.selectedIds);
+			setSelectionAnchorId(result.anchorId);
+		},
+		[selectedSlideIds, selectionAnchorId],
+	);
 
 	// Close context menus on outside click
 	useEffect(() => {
@@ -139,9 +181,12 @@ export function useSlidePaneCallbacks(
 		[],
 	);
 
-	const handleOpenSlideCtxMenu = useCallback((x: number, y: number, slideIndex: number) => {
-		setSlideCtxMenu({ x, y, slideIndex });
-	}, []);
+	const handleOpenSlideCtxMenu = useCallback(
+		(x: number, y: number, slideIndex: number, selectedIndexes: number[]) => {
+			setSlideCtxMenu({ x, y, slideIndex, selectedIndexes });
+		},
+		[],
+	);
 
 	const closeSectionContextMenu = useCallback(() => {
 		setSectionContextMenu(null);
@@ -169,5 +214,7 @@ export function useSlidePaneCallbacks(
 		handleOpenSlideCtxMenu,
 		closeSectionContextMenu,
 		closeSlideCtxMenu,
+		selectedSlideIds,
+		handleSlideClick,
 	};
 }

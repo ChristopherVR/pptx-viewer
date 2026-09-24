@@ -21,6 +21,12 @@ export interface SlidesPaneSidebarProps {
 	onSlideContextMenu: (e: React.MouseEvent, index: number) => void;
 	onMoveSlide: (fromIndex: number, toIndex: number) => void;
 	onAddSlide: () => void;
+	onAddSlideAfter: (index: number) => void;
+	onDuplicateSlides: (indexes: number[]) => void;
+	onDeleteSlides: (indexes: number[]) => void;
+	onHideSlides: (indexes: number[]) => void;
+	/** Makes `index` active, then opens the Layout gallery anchored at (x, y). */
+	onOpenLayoutForSlide: (index: number, x: number, y: number) => void;
 	onCollapse: () => void;
 	onAddSection?: (name: string, afterSlideIndex: number) => void;
 	onRenameSection?: (sectionId: string, newName: string) => void;
@@ -61,4 +67,6 @@ export interface SlideContextMenuState {
 	x: number;
 	y: number;
 	slideIndex: number;
+	/** Every selected slide index, right-clicked one included, for bulk commands. */
+	selectedIndexes: number[];
 }

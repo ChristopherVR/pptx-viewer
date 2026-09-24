@@ -72,6 +72,14 @@ export interface ChromeCallbackDeps {
 	/** Drop the current selection (Design > Slide Size opens the deck panel). */
 	clearSelection(): void;
 	goToSlide(index: number): void;
+	/** Insert a new slide after `afterIndex` (the thumbnail menu's New Slide, and Enter on a focused thumbnail). */
+	addSlide(afterIndex?: number): void;
+	/** The slides pane thumbnail menu's multi-select bulk Duplicate. */
+	duplicateSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Delete. */
+	deleteSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Hide/Show. */
+	toggleHideSlides(indexes: number[]): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
 	copySlideAsImage(): Promise<void>;

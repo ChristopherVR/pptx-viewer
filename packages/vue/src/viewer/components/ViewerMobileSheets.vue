@@ -59,6 +59,7 @@ const props = defineProps<{
 	notesMaster?: PptxNotesMaster;
 	goTo: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
+	onAddSection: (name: string, afterSlideIndex: number) => void;
 	onNotesUpdate: (notes: string) => void;
 	onInspectorUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
@@ -105,9 +106,13 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		@select="goTo"
 		@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
 		@add-slide="slideOps.addSlide()"
-		@duplicate="(i) => slideOps.duplicateSlide(i)"
-		@delete="(i) => slideOps.deleteSlide(i)"
-		@toggle-hidden="toggleSlideHidden"
+		@add-slide-after="(i) => slideOps.addSlide(i)"
+		@duplicate="(indexes) => indexes.forEach((i) => slideOps.duplicateSlide(i))"
+		@delete="
+			(indexes) => [...indexes].sort((a, b) => b - a).forEach((i) => slideOps.deleteSlide(i))
+		"
+		@toggle-hidden="(indexes) => indexes.forEach((i) => toggleSlideHidden(i))"
+		@add-section="(i) => onAddSection(t('pptx.sections.defaultName'), i)"
 	/>
 
 	<!-- Speaker-notes sheet (toggled from the bottom bar). Uses the shared

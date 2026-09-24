@@ -8,10 +8,13 @@ import type { SlideTemplateBuildOptions, SlideTemplateId } from 'pptx-viewer-sha
 
 import {
 	deleteSlideAt,
+	deleteSlidesAt,
 	duplicateSlideAt,
+	duplicateSlidesAt,
 	insertBlankSlideAfter,
 	insertTemplateSlideAfter,
 	moveSlide,
+	toggleHiddenAt,
 } from './editor-slide-ops';
 import type { EditorState } from './editor-state.svelte';
 
@@ -32,13 +35,20 @@ export class EditorSlidesController {
 
 	/** Insert a blank slide after the current one. Returns its new index, or null when not editable. */
 	insertSlideAfterCurrent(): number | null {
+		return this.insertSlideAfter(this.#editor.currentSlideIndex);
+	}
+
+	/**
+	 * Insert a blank slide after `index` (the thumbnail context menu's New
+	 * Slide, and Enter on a focused thumbnail, both of which may target a slide
+	 * other than the currently active one). Returns the new index, or null
+	 * when not editable.
+	 */
+	insertSlideAfter(index: number): number | null {
 		if (!this.#editor.editable) {
 			return null;
 		}
-		const { slides, newIndex } = insertBlankSlideAfter(
-			this.#editor.slides,
-			this.#editor.currentSlideIndex,
-		);
+		const { slides, newIndex } = insertBlankSlideAfter(this.#editor.slides, index);
 		this.#editor.commitSlides(slides);
 		return newIndex;
 	}
@@ -146,6 +156,33 @@ export class EditorSlidesController {
 		this.#editor.commitSlides(
 			this.#editor.slides.map((s, i) => (i === index ? { ...s, hidden: !s.hidden } : s)),
 		);
+	}
+
+	/** Duplicate every selected slide (the thumbnail context menu's multi-select bulk Duplicate). */
+	duplicateSlides(indexes: readonly number[]): void {
+		if (!this.#editor.editable || indexes.length === 0) {
+			return;
+		}
+		this.#editor.commitSlides(duplicateSlidesAt(this.#editor.slides, indexes));
+	}
+
+	/** Delete every selected slide (the thumbnail context menu's multi-select bulk Delete). */
+	deleteSlides(indexes: readonly number[]): void {
+		if (!this.#editor.editable || indexes.length === 0) {
+			return;
+		}
+		const next = deleteSlidesAt(this.#editor.slides, indexes);
+		if (next) {
+			this.#editor.commitSlides(next);
+		}
+	}
+
+	/** Toggle hidden on every selected slide (the thumbnail context menu's multi-select bulk Hide/Show). */
+	toggleSlidesHidden(indexes: readonly number[]): void {
+		if (!this.#editor.editable || indexes.length === 0) {
+			return;
+		}
+		this.#editor.commitSlides(toggleHiddenAt(this.#editor.slides, indexes));
 	}
 
 	/**

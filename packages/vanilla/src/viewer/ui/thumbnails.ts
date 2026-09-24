@@ -8,13 +8,27 @@ import {
 } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
 
+import type { EditActions } from '../editor';
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
+import type { Store, ViewerState } from '../state';
 import { createIcon } from './icons';
+import { createThumbnailContextMenu } from './thumbnail-context-menu';
+import { createThumbnailRailMenu } from './thumbnail-rail-menu';
 import type { ThumbnailSectionActions } from './thumbnail-sections';
 import { renderThumbnailSections } from './thumbnail-sections';
 
 export type { ThumbnailSectionActions } from './thumbnail-sections';
+
+/** The item-2 multi-select/context-menu deps; all optional so existing callers keep working. */
+export interface ThumbnailRailMenuDeps {
+	store: Store<ViewerState>;
+	getEditActions(): EditActions;
+	addSlideAfter(index: number): void;
+	duplicateSlides(indexes: number[]): void;
+	deleteSlides(indexes: number[]): void;
+	toggleHideSlides(indexes: number[]): void;
+}
 
 /** Rendered thumbnail rail width available for each slide preview, in px. */
 const THUMB_STAGE_WIDTH = 128;
@@ -53,10 +67,38 @@ export function createThumbnailRail(
 	t: Translator,
 	onSelect: (index: number) => void,
 	onAddSlide?: () => void,
+	menuDeps?: ThumbnailRailMenuDeps,
 ): ThumbnailRail {
 	const el = createEl(doc, 'aside', 'pptxv-thumbs');
 	el.setAttribute('role', 'navigation');
 	el.setAttribute('aria-label', t('pptx.sections.slides'));
+
+	// ── Ctrl/Shift multi-select + thumbnail right-click menu ────────────────
+	const railMenu = createThumbnailRailMenu();
+	const contextMenu = menuDeps
+		? createThumbnailContextMenu({
+				doc,
+				store: menuDeps.store,
+				getTranslator: () => t,
+				getEditActions: menuDeps.getEditActions,
+				addSlideAfter: menuDeps.addSlideAfter,
+				duplicateSlides: menuDeps.duplicateSlides,
+				deleteSlides: menuDeps.deleteSlides,
+				toggleHideSlides: menuDeps.toggleHideSlides,
+				host: el,
+			})
+		: null;
+	// PowerPoint's Enter on a focused thumbnail inserts a new slide after it.
+	el.addEventListener('keydown', (event) => {
+		if (event.key !== 'Enter' || !menuDeps) {
+			return;
+		}
+		const target = event.target;
+		if (target instanceof HTMLElement && target.dataset.slideIndex !== undefined) {
+			event.preventDefault();
+			menuDeps.addSlideAfter(activeIndex);
+		}
+	});
 	// Scrollable slide list; the Add Slide footer stays pinned below it
 	// (mirrors React's SlidesPaneSidebar bottom button).
 	const list = createEl(doc, 'div', 'pptxv-thumbs-list');
@@ -120,7 +162,32 @@ export function createThumbnailRail(
 			badge.appendChild(word);
 			frame.appendChild(badge);
 		}
-		btn.addEventListener('click', () => onSelect(index));
+		if (railMenu.isSelected(slide.id) && index !== activeIndex) {
+			btn.classList.add('is-selected');
+		}
+		btn.addEventListener('click', (event) => {
+			railMenu.onClick(
+				event,
+				slide.id,
+				sourceSlides.map((s) => s.id),
+			);
+			btn.classList.toggle('is-selected', railMenu.isSelected(slide.id) && index !== activeIndex);
+			onSelect(index);
+		});
+		if (contextMenu) {
+			btn.addEventListener('contextmenu', (event) => {
+				event.preventDefault();
+				const state = railMenu.openContextMenu(
+					event.clientX,
+					event.clientY,
+					index,
+					sourceSlides.map((s) => s.id),
+				);
+				if (state) {
+					contextMenu.open(state, sourceSlides);
+				}
+			});
+		}
 		buttons.set(index, btn);
 		return btn;
 	};

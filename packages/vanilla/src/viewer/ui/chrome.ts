@@ -40,7 +40,7 @@ import type { ShortcutPanel } from './shortcut-panel';
 import { createShortcutPanel } from './shortcut-panel';
 import type { StatusBar } from './status-bar';
 import { createStatusBar } from './status-bar';
-import type { ThumbnailRail } from './thumbnails';
+import type { ThumbnailRail, ThumbnailRailMenuDeps } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
 import type { TitleBar, TitleBarDeps } from './title-bar';
 import { createTitleBar } from './title-bar';
@@ -62,6 +62,13 @@ export interface ChromeOptions {
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Every ribbon handler (nav/primary/file/insert/edit/findReplace). */
 	ribbonHandlers: RibbonHandlers;
+	/**
+	 * The slides pane thumbnail context menu's multi-select bulk operations
+	 * (New Slide/Duplicate/Delete/Layout/Hide/Add Section). Omit to fall back
+	 * to the rail's single-slide "+ Add Slide" behaviour only, with no
+	 * right-click menu or Ctrl/Shift multi-select.
+	 */
+	thumbnailMenu?: ThumbnailRailMenuDeps;
 	/** Inspector actions (geometry + shape fill/stroke). */
 	inspectorHandlers: InspectorHandlers;
 	/**
@@ -273,8 +280,12 @@ export function buildViewerChrome(
 	let thumbnails: ThumbnailRail | null = null;
 	if (options.showThumbnails) {
 		// The pinned Add Slide footer reuses the ribbon Home > New Slide action.
-		thumbnails = createThumbnailRail(doc, t, options.onSelectSlide, () =>
-			options.ribbonHandlers.edit.addSlide(),
+		thumbnails = createThumbnailRail(
+			doc,
+			t,
+			options.onSelectSlide,
+			() => options.ribbonHandlers.edit.addSlide(),
+			options.thumbnailMenu,
 		);
 		body.appendChild(thumbnails.el);
 	}

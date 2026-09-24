@@ -128,6 +128,18 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 				onSlideContextMenu={editorOps.slideOps.handleSlideContextMenu}
 				onMoveSlide={editorOps.slideOps.handleMoveSlide}
 				onAddSlide={editorOps.slideOps.handleAddSlide}
+				onAddSlideAfter={editorOps.slideOps.handleAddSlideAfter}
+				onDuplicateSlides={editorOps.slideOps.handleDuplicateSlides}
+				onDeleteSlides={editorOps.slideOps.handleDeleteSlides}
+				onHideSlides={editorOps.slideOps.handleToggleHideSlides}
+				// The rich anchored Layout gallery is a desktop popover (see
+				// `ViewerMainContent`); on the bottom sheet, "Layout" just makes the
+				// slide active and closes the sheet so the ribbon's own Layout
+				// control (already reachable from there) can open it.
+				onOpenLayoutForSlide={(index) => {
+					s.setActiveSlideIndex(index);
+					s.setIsSlidesPaneOpen(false);
+				}}
 				onCollapse={() => s.setIsSlidesPaneOpen(false)}
 				onAddSection={editorOps.sectionOps.addSection}
 				onRenameSection={editorOps.sectionOps.renameSection}

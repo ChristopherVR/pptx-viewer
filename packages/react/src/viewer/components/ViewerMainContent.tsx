@@ -204,6 +204,14 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 							onSlideContextMenu={slideOps.handleSlideContextMenu}
 							onMoveSlide={slideOps.handleMoveSlide}
 							onAddSlide={slideOps.handleAddSlide}
+							onAddSlideAfter={slideOps.handleAddSlideAfter}
+							onDuplicateSlides={slideOps.handleDuplicateSlides}
+							onDeleteSlides={slideOps.handleDeleteSlides}
+							onHideSlides={slideOps.handleToggleHideSlides}
+							onOpenLayoutForSlide={(index, x, y) => {
+								state.setActiveSlideIndex(index);
+								setLayoutGalleryAnchor({ x, y });
+							}}
 							onCollapse={() => state.setIsSlidesPaneOpen(false)}
 							onAddSection={sectionOps.addSection}
 							onRenameSection={sectionOps.renameSection}

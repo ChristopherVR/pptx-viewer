@@ -79,6 +79,52 @@ export function deleteSlideAt(
 }
 
 /**
+ * Duplicate every slide at `indexes` (multi-select bulk Duplicate). Each
+ * duplicate is inserted immediately after its source, so a later index shifts
+ * by however many duplicates precede it; a `Set` lookup, not per-index
+ * splicing, is what keeps that shift correct for a non-contiguous selection.
+ */
+export function duplicateSlidesAt(
+	slides: readonly PptxSlide[],
+	indexes: readonly number[],
+): PptxSlide[] {
+	const selected = new Set(indexes);
+	const next = slides.flatMap((slide, index) => {
+		if (!selected.has(index)) {
+			return [slide];
+		}
+		const clone = cloneSlide(slide);
+		clone.id = makeSlideId();
+		return [slide, clone];
+	});
+	return renumbered(next);
+}
+
+/**
+ * Delete every slide at `indexes` (multi-select bulk Delete). Returns `null`
+ * when that would empty the deck, so the caller never commits zero slides.
+ */
+export function deleteSlidesAt(
+	slides: readonly PptxSlide[],
+	indexes: readonly number[],
+): PptxSlide[] | null {
+	const remove = new Set(indexes);
+	const next = slides.filter((_, index) => !remove.has(index));
+	return next.length === 0 ? null : renumbered(next);
+}
+
+/** Toggle `hidden` on every slide at `indexes` (multi-select bulk Hide/Show). */
+export function toggleHiddenAt(
+	slides: readonly PptxSlide[],
+	indexes: readonly number[],
+): PptxSlide[] {
+	const selected = new Set(indexes);
+	return slides.map((slide, index) =>
+		selected.has(index) ? { ...slide, hidden: !slide.hidden } : slide,
+	);
+}
+
+/**
  * Move a slide to a new order index and renumber the resulting deck. The
  * target index is evaluated against the original list, as native drag/drop
  * targets are: dropping slide 1 onto slide 3 produces [2, 3, 1].

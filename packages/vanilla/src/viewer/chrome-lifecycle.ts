@@ -212,6 +212,14 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
 		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
 		onDismissRunProgramNotice: (id) => deps.dismissRunProgramNotice(id),
+		thumbnailMenu: {
+			store,
+			getEditActions: () => deps.getEditActions(),
+			addSlideAfter: (index) => deps.addSlide(index),
+			duplicateSlides: (indexes) => deps.duplicateSlides(indexes),
+			deleteSlides: (indexes) => deps.deleteSlides(indexes),
+			toggleHideSlides: (indexes) => deps.toggleHideSlides(indexes),
+		},
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -618,6 +626,14 @@ export interface ChromeHost {
 	goToSlide(index: number): void;
 	/** Home: the show's first slide (skips a hidden slide 1 while presenting). */
 	goToFirstSlide(): void;
+	/** Insert a new slide after `afterIndex` (the thumbnail menu's New Slide, and Enter on a focused thumbnail). */
+	addSlide(afterIndex?: number): void;
+	/** The slides pane thumbnail menu's multi-select bulk Duplicate. */
+	duplicateSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Delete. */
+	deleteSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Hide/Show. */
+	toggleHideSlides(indexes: number[]): void;
 	/** End: the show's last slide (skips trailing hidden slides while presenting). */
 	goToLastSlide(): void;
 	/**
@@ -788,6 +804,10 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		downloadAs: (format) => host.downloadAs(format),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
+		addSlide: (afterIndex) => host.addSlide(afterIndex),
+		duplicateSlides: (indexes) => host.duplicateSlides(indexes),
+		deleteSlides: (indexes) => host.deleteSlides(indexes),
+		toggleHideSlides: (indexes) => host.toggleHideSlides(indexes),
 		goToFirstSlide: () => host.goToFirstSlide(),
 		goToLastSlide: () => host.goToLastSlide(),
 		firstShowSlideIndex: () => host.firstShowSlideIndex(),

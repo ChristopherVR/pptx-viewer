@@ -35,9 +35,11 @@ const emit = defineEmits<{
 	select: [index: number];
 	reorder: [payload: { from: number; to: number }];
 	'add-slide': [];
-	duplicate: [index: number];
-	delete: [index: number];
-	'toggle-hidden': [index: number];
+	'add-slide-after': [index: number];
+	duplicate: [indexes: number[]];
+	delete: [indexes: number[]];
+	'toggle-hidden': [indexes: number[]];
+	'add-section': [index: number];
 }>();
 
 /** Selecting a slide navigates and dismisses the sheet (React parity). */
@@ -58,9 +60,12 @@ function onSelect(index: number): void {
 			@select="onSelect"
 			@reorder="(p) => emit('reorder', p)"
 			@add-slide="emit('add-slide')"
-			@duplicate="(i) => emit('duplicate', i)"
-			@delete="(i) => emit('delete', i)"
-			@toggle-hidden="(i) => emit('toggle-hidden', i)"
+			@add-slide-after="(i) => emit('add-slide-after', i)"
+			@duplicate="(indexes) => emit('duplicate', indexes)"
+			@delete="(indexes) => emit('delete', indexes)"
+			@toggle-hidden="(indexes) => emit('toggle-hidden', indexes)"
+			@add-section="(i) => emit('add-section', i)"
+			@layout="(p) => onSelect(p.index)"
 		/>
 	</MobileSheet>
 </template>

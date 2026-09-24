@@ -1914,6 +1914,12 @@ defineExpose<PowerPointViewerExpose>(
 					:slide-ops="slideOps"
 					:go-to="goTo"
 					:toggle-slide-hidden="toggleSlideHidden"
+					:on-open-layout-for-slide="
+						(index, x, y) => {
+							goTo(index);
+							layoutGalleryAnchor = { x, y };
+						}
+					"
 				/>
 
 				<main
@@ -2194,6 +2200,7 @@ defineExpose<PowerPointViewerExpose>(
 				:notes-master="notesMaster"
 				:go-to="goTo"
 				:toggle-slide-hidden="toggleSlideHidden"
+				:on-add-section="sectionOps.addSection"
 				:on-notes-update="onNotesUpdate"
 				:on-inspector-update="inspector.onInspectorUpdate"
 				:on-update-slide-animations="inspector.writeSlideAnimations"

@@ -11,11 +11,13 @@
 	 * only: it measures the viewport and decides which of the three columns are
 	 * present, nothing more.
 	 */
+	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 	import { MAX_ZOOM_SCALE, MIN_ZOOM_SCALE } from 'pptx-viewer-shared';
 
 	import { canvasPinchZoom } from '../canvas-pinch-zoom';
 	import InspectorPanel from './inspector/InspectorPanel.svelte';
 	import NotesPanel from './NotesPanel.svelte';
+	import LayoutGalleryMenu from './ribbon/home/LayoutGalleryMenu.svelte';
 	import ThumbnailRail from './ThumbnailRail.svelte';
 	import type { ViewerBodyProps } from './viewer-body-props';
 	import ViewerStage from './ViewerStage.svelte';
@@ -89,6 +91,20 @@
 	$effect(() => {
 		onstageresize(viewportWidth, viewportHeight);
 	});
+
+	// The thumbnail rail's "Layout" command opens the same gallery the ribbon's
+	// Home > Layout button does, anchored at the click point.
+	let railLayoutGalleryAnchor = $state<{ x: number; y: number } | null>(null);
+	let railLayoutOptions = $state<PptxLayoutOption[]>([]);
+	let railLayoutPreviews = $state<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
+	function openLayoutForSlide(index: number, x: number, y: number): void {
+		onselect(index);
+		railLayoutGalleryAnchor = { x, y };
+		void editor.slidesOps.availableLayouts().then((options) => (railLayoutOptions = options));
+		void editor.slidesOps
+			.layoutPreviews()
+			.then((previews) => (railLayoutPreviews = previews));
+	}
 </script>
 
 <div class="pptx-svelte-body">
@@ -106,12 +122,44 @@
 				const index = editor.slidesOps.insertSlideAfterCurrent();
 				if (index !== null) onselect(index);
 			}}
+			onaddslideafter={(index) => {
+				const newIndex = editor.slidesOps.insertSlideAfter(index);
+				if (newIndex !== null) onselect(newIndex);
+			}}
+			onduplicateslides={(indexes) => editor.slidesOps.duplicateSlides(indexes)}
+			ondeleteslides={(indexes) => editor.slidesOps.deleteSlides(indexes)}
+			ontogglehideslides={(indexes) => editor.slidesOps.toggleSlidesHidden(indexes)}
+			onopenlayoutforslide={openLayoutForSlide}
+			onaddsectionat={(index) => editor.sectionOps.add(t('pptx.sections.defaultName'), index)}
 			onsectiontoggle={(id) => editor.sectionOps.toggle(id)}
 			onsectionrename={(id, name) => editor.sectionOps.rename(id, name)}
 			onsectiondelete={(id) => editor.sectionOps.delete(id)}
 			onsectionmove={(id, direction) =>
 				direction === 'up' ? editor.sectionOps.moveUp(id) : editor.sectionOps.moveDown(id)}
 		/>
+	{/if}
+	{#if railLayoutGalleryAnchor}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<div
+			class="pptx-svelte-context-backdrop"
+			aria-hidden="true"
+			onclick={() => (railLayoutGalleryAnchor = null)}
+			oncontextmenu={(event) => { event.preventDefault(); railLayoutGalleryAnchor = null; }}
+		></div>
+		<div
+			class="pptx-svelte-layout-gallery-anchor"
+			style={`left:${railLayoutGalleryAnchor.x}px;top:${railLayoutGalleryAnchor.y}px`}
+		>
+			<LayoutGalleryMenu
+				layouts={railLayoutOptions}
+				previews={railLayoutPreviews}
+				currentLayoutPath={editor.slides[current]?.layoutPath}
+				onselect={(layout) => {
+					void editor.slidesOps.applyLayout(layout.path);
+					railLayoutGalleryAnchor = null;
+				}}
+			/>
+		</div>
 	{/if}
 	<div class="pptx-svelte-main">
 		<div
@@ -200,6 +248,18 @@
 		flex: 1;
 		min-width: 0;
 		min-height: 0;
+	}
+
+	/* Thumbnail rail's Layout gallery: a zero-size anchor at the click point,
+	   plus a click-outside backdrop, mirroring `ViewerStage`'s canvas-menu one. */
+	.pptx-svelte-context-backdrop {
+		position: fixed;
+		inset: 0;
+		z-index: 119;
+	}
+	.pptx-svelte-layout-gallery-anchor {
+		position: fixed;
+		z-index: 120;
 	}
 
 	.pptx-svelte-viewport {

@@ -42,6 +42,11 @@ export function SlidesPaneSidebar({
 	onSlideContextMenu,
 	onMoveSlide,
 	onAddSlide,
+	onAddSlideAfter,
+	onDuplicateSlides,
+	onDeleteSlides,
+	onHideSlides,
+	onOpenLayoutForSlide,
 	onCollapse: _onCollapse,
 	onAddSection,
 	onRenameSection,
@@ -110,7 +115,61 @@ export function SlidesPaneSidebar({
 		handleOpenSlideCtxMenu,
 		closeSectionContextMenu,
 		closeSlideCtxMenu,
+		selectedSlideIds,
+		handleSlideClick,
 	} = useSlidePaneCallbacks(onMoveSlide, onRenameSection, onToggleSectionCollapse);
+
+	const orderedIds = useMemo(() => slides.map((s) => s.id), [slides]);
+
+	// A click (even a Ctrl/Shift one) both updates the multi-selection AND
+	// moves the canvas to the slide clicked, matching the sorter overlay.
+	const selectSlide = useCallback(
+		(index: number, e: React.MouseEvent) => {
+			const slide = slides[index];
+			if (slide) {
+				handleSlideClick(
+					{ ctrlKey: e.ctrlKey, metaKey: e.metaKey, shiftKey: e.shiftKey },
+					slide.id,
+					orderedIds,
+				);
+			}
+			onSelectSlide(index);
+		},
+		[slides, orderedIds, handleSlideClick, onSelectSlide],
+	);
+
+	// A right-click on a slide already part of the selection acts on the whole
+	// selection; a right-click elsewhere acts on just that one slide (PowerPoint
+	// parity, and what the per-element context menu already does).
+	const openSlideCtxMenu = useCallback(
+		(x: number, y: number, slideIndex: number) => {
+			const slide = slides[slideIndex];
+			if (!slide) {
+				return;
+			}
+			const idsForMenu =
+				selectedSlideIds.length > 0 && selectedSlideIds.includes(slide.id)
+					? selectedSlideIds
+					: [slide.id];
+			const selectedIndexes = idsForMenu
+				.map((id) => slides.findIndex((s) => s.id === id))
+				.filter((i) => i !== -1);
+			handleOpenSlideCtxMenu(x, y, slideIndex, selectedIndexes);
+		},
+		[slides, selectedSlideIds, handleOpenSlideCtxMenu],
+	);
+
+	// PowerPoint's Enter on a focused thumbnail inserts a new slide after it;
+	// none of the five bindings' rails handled any key at all before this.
+	const onPaneKeyDown = useCallback(
+		(e: React.KeyboardEvent) => {
+			if (e.key === 'Enter' && canEdit) {
+				e.preventDefault();
+				onAddSlideAfter(activeSlideIndex);
+			}
+		},
+		[canEdit, onAddSlideAfter, activeSlideIndex],
+	);
 
 	// The model's `collapsed` flag is the starting state; the local override map
 	// only records what the user has toggled this session. Reading the model
@@ -242,16 +301,16 @@ export function SlidesPaneSidebar({
 										}
 										slideIndex={item.slideIndex}
 										isActive={item.slideIndex === activeSlideIndex}
+										isSelected={selectedSlideIds.includes(slide.id)}
 										canvasSize={canvasSize}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(item.slideIndex)}
 										fieldContext={fieldContext}
 										tableStyleContext={tableStyleContext}
-										onSelectSlide={onSelectSlide}
+										onSelectSlide={selectSlide}
 										onSlideContextMenu={onSlideContextMenu}
-										onAddSection={onAddSection}
-										onOpenSlideCtxMenu={handleOpenSlideCtxMenu}
+										onOpenSlideCtxMenu={openSlideCtxMenu}
 										onDragStart={handleDragStart}
 										onDragOver={handleDragOver}
 										onDrop={handleDrop}
@@ -310,16 +369,16 @@ export function SlidesPaneSidebar({
 										}
 										slideIndex={idx}
 										isActive={idx === activeSlideIndex}
+										isSelected={selectedSlideIds.includes(slide.id)}
 										canvasSize={canvasSize}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(idx)}
 										fieldContext={fieldContext}
 										tableStyleContext={tableStyleContext}
-										onSelectSlide={onSelectSlide}
+										onSelectSlide={selectSlide}
 										onSlideContextMenu={onSlideContextMenu}
-										onAddSection={onAddSection}
-										onOpenSlideCtxMenu={handleOpenSlideCtxMenu}
+										onOpenSlideCtxMenu={openSlideCtxMenu}
 										onDragStart={handleDragStart}
 										onDragOver={handleDragOver}
 										onDrop={handleDrop}
@@ -335,11 +394,13 @@ export function SlidesPaneSidebar({
 
 	// ── Render ──
 	return (
+		// eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions -- Enter here only catches the keydown bubbled up from a focused (interactive) thumbnail button; the aside itself has no interactive semantics of its own
 		<aside
 			role='navigation'
 			aria-label={t('pptx.sections.slides')}
 			className='flex h-full flex-col border-r border-border bg-secondary/30'
 			style={panelWidth ? { width: panelWidth, flexShrink: 0 } : undefined}
+			onKeyDown={onPaneKeyDown}
 		>
 			{/* Scrollable list: virtualized for large decks */}
 			{shouldVirtualize ? renderVirtualized() : renderNonVirtualized()}
@@ -377,6 +438,12 @@ export function SlidesPaneSidebar({
 			{slideCtxMenu && (
 				<SlideContextMenu
 					state={slideCtxMenu}
+					slides={slides}
+					onAddSlideAfter={onAddSlideAfter}
+					onDuplicateSlides={onDuplicateSlides}
+					onDeleteSlides={onDeleteSlides}
+					onHideSlides={onHideSlides}
+					onOpenLayoutForSlide={onOpenLayoutForSlide}
 					onAddSection={onAddSection}
 					onClose={closeSlideCtxMenu}
 				/>

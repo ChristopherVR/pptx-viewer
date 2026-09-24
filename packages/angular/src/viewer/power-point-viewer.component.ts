@@ -518,6 +518,14 @@ import { ZoomTargetService } from './zoom-target.service';
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[activeIndex]="activeSlideIndex()"
 							(select)="goTo($event)"
+							(addSlideAfter)="editor.addSlide($event)"
+							(duplicateSlides)="duplicateSlides($event)"
+							(deleteSlides)="deleteSlides($event)"
+							(toggleHideSlides)="toggleHideSlides($event)"
+							(addSectionAt)="editor.addSection($event)"
+							(openLayoutForSlide)="
+								goTo($event.index); canvasLayoutGalleryPos.set({ x: $event.x, y: $event.y })
+							"
 						/>
 					} @else if (!canEdit() && chromeVisible()) {
 						<nav class="pptx-ng-thumbnails" [attr.aria-label]="'pptx.sections.slides' | translate">

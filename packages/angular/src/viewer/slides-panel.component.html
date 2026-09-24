@@ -85,10 +85,12 @@
 						<div
 							class="pptx-ng-spanel-card"
 							[class.is-active]="i === activeIndex()"
+							[class.is-selected]="rail.isSelected(slide.id) && i !== activeIndex()"
 							[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
 							role="option"
 							[attr.aria-selected]="i === activeIndex()"
 							[attr.aria-label]="'pptx.notes.slideN' | translate: { n: i + 1 }"
+							(contextmenu)="onThumbContextMenu($event, i)"
 						>
 							<!-- Thumbnail (clickable to select). Slide number sits to the LEFT
 							     of the preview (React SlideItem parity), not below it. -->
@@ -97,7 +99,7 @@
 								class="pptx-ng-spanel-thumb-btn"
 								[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
 								[attr.aria-describedby]="hidden.labelId ?? null"
-								(click)="select.emit(i)"
+								(click)="onThumbClick($event, i)"
 							>
 								<!-- Slide number badge (left column). Struck through with the shared
 								     diagonal slash when the slide is hidden, which is PowerPoint's own
@@ -219,4 +221,21 @@
 			<svg lucidePlus class="h-3.5 w-3.5"></svg> {{ 'pptx.sections.addSlide' | translate }}
 		</button>
 	</footer>
+
+	@if (rail.contextMenu(); as m) {
+		<pptx-slide-pane-context-menu
+			[x]="m.x"
+			[y]="m.y"
+			[slideIndex]="m.index"
+			[selectedIndexes]="m.selectedIndexes"
+			[slides]="editor.slides()"
+			(addSlideAfter)="addSlideAfter.emit($event)"
+			(duplicateSlides)="duplicateSlides.emit($event)"
+			(deleteSlides)="deleteSlides.emit($event)"
+			(openLayoutForSlide)="openLayoutForSlide.emit($event)"
+			(toggleHideSlides)="toggleHideSlides.emit($event)"
+			(addSectionAt)="addSectionAt.emit($event)"
+			(closed)="rail.closeContextMenu()"
+		/>
+	}
 </div>

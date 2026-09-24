@@ -24,9 +24,9 @@ import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
+import { useSlidePaneRailMenu } from '../composables/useSlidePaneRailMenu';
 import type { CanvasSize } from '../types';
 import ContextMenu from './ContextMenu.vue';
-import type { ContextMenuItem } from './ContextMenu.vue';
 import SlideStage from './SlideStage.vue';
 
 const props = withDefaults(
@@ -46,9 +46,12 @@ const emit = defineEmits<{
 	select: [index: number];
 	reorder: [payload: { from: number; to: number }];
 	'add-slide': [];
-	duplicate: [index: number];
-	delete: [index: number];
-	'toggle-hidden': [index: number];
+	'add-slide-after': [index: number];
+	duplicate: [indexes: number[]];
+	delete: [indexes: number[]];
+	'toggle-hidden': [indexes: number[]];
+	layout: [payload: { index: number; x: number; y: number }];
+	'add-section': [index: number];
 }>();
 
 const { t } = useI18n();
@@ -125,45 +128,22 @@ function onDrop(index: number): void {
 	dragFrom.value = null;
 }
 
-// ── Slide context menu ──
-const menu = ref<{ open: boolean; x: number; y: number; index: number }>({
-	open: false,
-	x: 0,
-	y: 0,
-	index: -1,
-});
-const menuItems = computed<ContextMenuItem[]>(() => [
-	{ id: 'duplicate', label: t('pptx.slideMenu.duplicate') },
-	{ id: 'delete', label: t('pptx.slideMenu.delete'), disabled: props.slides.length <= 1 },
-	{ id: 'sep', label: '', separator: true },
-	{
-		id: 'toggle-hidden',
-		label: props.slides[menu.value.index]?.hidden
-			? t('pptx.slideMenu.show')
-			: t('pptx.slideMenu.hide'),
-	},
-]);
-function onContextMenu(e: MouseEvent, index: number): void {
-	if (!props.canEdit) {
-		return;
-	}
-	e.preventDefault();
-	menu.value = { open: true, x: e.clientX, y: e.clientY, index };
-}
-function onMenuSelect(id: string): void {
-	const i = menu.value.index;
-	menu.value.open = false;
-	if (i < 0) {
-		return;
-	}
-	if (id === 'duplicate') {
-		emit('duplicate', i);
-	} else if (id === 'delete') {
-		emit('delete', i);
-	} else if (id === 'toggle-hidden') {
-		emit('toggle-hidden', i);
-	}
-}
+// ── Multi-select + thumbnail context menu ──
+const {
+	selectedIds,
+	isSelected,
+	onSlideClick,
+	onPaneKeydown,
+	menu,
+	menuItems,
+	onContextMenu,
+	onMenuSelect,
+} = useSlidePaneRailMenu(
+	() => props.slides,
+	() => props.activeIndex,
+	() => props.canEdit,
+	emit,
+);
 </script>
 
 <template>
@@ -172,6 +152,7 @@ function onMenuSelect(id: string): void {
 		:aria-label="t('pptx.sections.slides')"
 		class="flex h-full flex-col border-r border-border bg-secondary/30 shrink-0"
 		:style="{ width: `${thumbWidth + 46}px` }"
+		@keydown="onPaneKeydown"
 	>
 		<div ref="listEl" class="flex-1 overflow-y-auto px-1.5 pb-2 pt-1.5" @scroll="onScroll">
 			<div
@@ -203,6 +184,9 @@ function onMenuSelect(id: string): void {
 								'group relative flex w-full items-center gap-1 cursor-pointer border-0 bg-transparent py-0.5 px-1 text-left transition-all',
 								index === activeIndex &&
 									'bg-accent/40 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:bg-primary before:rounded-r',
+								isSelected(slide.id) &&
+									index !== activeIndex &&
+									'bg-accent/20 ring-1 ring-inset ring-primary/50',
 								slide.hidden && 'opacity-50',
 							)
 						"
@@ -212,7 +196,7 @@ function onMenuSelect(id: string): void {
 						:aria-current="index === activeIndex ? 'true' : undefined"
 						:aria-describedby="hiddenCue(slide.hidden, 'rail', index).labelId"
 						:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'rail', index).marker"
-						@click="emit('select', index)"
+						@click="onSlideClick($event, index)"
 						@contextmenu="onContextMenu($event, index)"
 						@dragstart="onDragStart($event, index)"
 						@dragover.prevent

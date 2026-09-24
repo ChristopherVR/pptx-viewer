@@ -85,6 +85,14 @@ export interface ThumbnailRailProps {
 	onsectionrename?: (sectionId: string, name: string) => void;
 	onsectiondelete?: (sectionId: string) => void;
 	onsectionmove?: (sectionId: string, direction: 'up' | 'down') => void;
+	/** Insert a new slide after `index` (thumbnail menu's New Slide, and Enter on the rail). */
+	onaddslideafter?: (index: number) => void;
+	onduplicateslides?: (indexes: number[]) => void;
+	ondeleteslides?: (indexes: number[]) => void;
+	ontogglehideslides?: (indexes: number[]) => void;
+	/** Makes `index` active, then opens the Layout gallery anchored at (x, y). */
+	onopenlayoutforslide?: (index: number, x: number, y: number) => void;
+	onaddsectionat?: (index: number) => void;
 }
 
 export interface NotesPanelProps {

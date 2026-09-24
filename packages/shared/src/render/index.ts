@@ -1222,6 +1222,8 @@ export * from './slide-show-start-keymap';
 // with its own keys (slide clipboard, duplicate, delete, thumbnail zoom, and an
 // Escape that collapses a multi-selection before it closes).
 export * from './slide-sorter-keymap';
+export * from './slide-pane-selection';
+export * from './slide-pane-context-menu';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';

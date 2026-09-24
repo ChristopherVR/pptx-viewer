@@ -360,6 +360,8 @@ const CHROME_CSS = `
 	background: #fff;
 }
 .pptxv-thumb.is-active .pptxv-thumb-frame { border-color: var(--pptx-primary); }
+.pptxv-thumb.is-selected { background: color-mix(in srgb, var(--pptx-primary) 12%, transparent); }
+.pptxv-thumb.is-selected .pptxv-thumb-frame { border-color: color-mix(in srgb, var(--pptx-primary) 50%, transparent); }
 .pptxv-thumb:focus-visible .pptxv-thumb-frame { outline: 2px solid var(--pptx-ring); }
 /* Hidden slide (PowerPoint's Hide Slide): dim the preview and strike the slide
    number with the shared diagonal slash. The slash carries the meaning on its
