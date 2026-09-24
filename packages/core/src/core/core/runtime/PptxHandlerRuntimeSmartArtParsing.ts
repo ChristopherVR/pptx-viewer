@@ -10,6 +10,7 @@ import { collectSmartArtTransitionText } from '../../utils/smartart-connector-la
 import { parseSmartArtConnection } from '../../utils/smartart-data-model-attributes';
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
+import { extractDrawingShape3d } from './smartart-drawing-shape-3d';
 import {
 	drawingTextEmuAttribute,
 	extractDrawingShapeFill,
@@ -303,6 +304,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// do not map one-to-one to semantic content nodes.
 		const id = String(sp['@_modelId'] || cNvPr?.['@_id'] || `dsp-${index}`);
 
+		// Cached 3D (scene3d/sp3d) for bevel/scene quick styles, and the rarer
+		// text-body extrusion (`a:bodyPr/a:sp3d`). See `smartart-drawing-shape-3d`.
+		const shape3d = extractDrawingShape3d(spPr, txBody, this.drawingShapeStyleDeps());
+
 		return {
 			id,
 			shapeType,
@@ -328,6 +333,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			textFrameWidth,
 			textFrameHeight,
 			...customGeometry,
+			...shape3d,
 		};
 	}
 

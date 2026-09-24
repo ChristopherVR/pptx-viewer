@@ -12,20 +12,26 @@
  * Split out of `PptxHandlerRuntimeSmartArtParsing.ts` (already at the repo's
  * per-file line budget) rather than growing that file further.
  *
- * `scene3d`/`sp3d` (and therefore `dgm:prSet/@coherent3DOff`, which only
- * matters when a coherent-3D variation is actually applied) are deliberately
- * NOT resolved here: no renderer in this repo consumes a quick style's
- * `scene3d`/`sp3d` today (the opt-in 3D SmartArt renderer uses fixed camera/
- * lighting/extrusion - see the G13 audit), so wiring them into this resolved
- * summary would be dead data with no consumer. `coherent3DOff` itself is
- * still parsed and preserved per-node (`PptxSmartArtNode.coherent3DOff`,
- * resolved in `smartart-node-style-role.ts`); only the 3D variation it would
- * gate is out of scope until that renderer reads `scene3d`/`sp3d` at all.
+ * The per-LABEL `scene3d`/`sp3d` (and therefore `dgm:prSet/@coherent3DOff`,
+ * which only matters when a coherent-3D variation is actually applied) are
+ * deliberately NOT resolved here: PowerPoint bakes each label's fully
+ * resolved `sp3d` onto every cached shape's own `dsp:spPr/a:sp3d`
+ * (`PptxSmartArtDrawingShape.shape3d`), so re-deriving it from the label ref
+ * would be redundant. `coherent3DOff` itself is still parsed and preserved
+ * per-node (`PptxSmartArtNode.coherent3DOff`, resolved in
+ * `smartart-node-style-role.ts`).
+ *
+ * The WHOLE-DIAGRAM `dgm:styleDef/dgm:scene3d` (the top-level scene3d, not a
+ * per-label one) IS resolved here, onto {@link PptxSmartArtQuickStyle.scene3d}:
+ * it has no per-shape equivalent to fall back on, and the "Scene" quick
+ * styles (Brick, Flat, Metallic, Sunset, Bird's Eye) render the whole diagram
+ * through this one camera (the 3D SmartArt renderer's consumer for it).
  *
  * @module smartart-style-label-refs
  */
 
 import type {
+	Pptx3DScene,
 	PptxSmartArtQuickStyle,
 	PptxSmartArtQuickStyleLabel,
 	PptxSmartArtResolvedStyleRef,
@@ -39,6 +45,7 @@ import {
 } from '../../utils/smartart-definition-metadata';
 import type { SmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
 import { resolveSmartArtEffectIntensity } from '../../utils/smartart-effect-intensity';
+import { parsePptx3DScene } from '../builders/shape-style-3d-helpers';
 
 type LocalName = (key: string) => string;
 
@@ -127,6 +134,22 @@ function enrichSmartArtQuickStyleLabels(
 }
 
 /**
+ * Find the styleDef's OWN direct `dgm:scene3d` child, not one nested inside a
+ * `dgm:styleLbl` (each label carries its own, unrelated, per-label scene3d).
+ */
+function findWholeDiagramScene3d(
+	styleDef: XmlObject,
+	localName: LocalName,
+): Pptx3DScene | undefined {
+	const key = Object.keys(styleDef).find((candidate) => localName(candidate) === 'scene3d');
+	const node = key ? styleDef[key] : undefined;
+	if (!node || typeof node !== 'object' || Array.isArray(node)) {
+		return undefined;
+	}
+	return parsePptx3DScene(node as XmlObject);
+}
+
+/**
  * Build a `PptxSmartArtQuickStyle` from an already-resolved `dgm:styleDef`
  * XML element, including G13's theme-resolved per-label styles. Moved here
  * (out of `PptxHandlerRuntimeSmartArtParsing.ts`) so that file's own
@@ -150,5 +173,12 @@ export function buildSmartArtQuickStyle(
 		localName,
 		deps,
 	);
-	return { ...metadata, name, effectIntensity, labels: enrichedLabels };
+	const scene3d = findWholeDiagramScene3d(styleDef, localName);
+	return {
+		...metadata,
+		name,
+		effectIntensity,
+		labels: enrichedLabels,
+		...(scene3d ? { scene3d } : {}),
+	};
 }

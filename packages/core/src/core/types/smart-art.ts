@@ -15,6 +15,7 @@ import type {
 	PptxSmartArtQuickStyle,
 } from './smart-art-style-definition';
 import type { TextSegment } from './text';
+import type { Pptx3DScene, Pptx3DShape, Text3DStyle } from './three-d';
 
 // Node-related types (PptxSmartArtTextRun, PptxSmartArtNodeStyle,
 // PptxSmartArtNode) live in `smart-art-node.ts` to keep this file within the
@@ -303,6 +304,29 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	textFrameY?: number;
 	textFrameWidth?: number;
 	textFrameHeight?: number;
+	/**
+	 * 3D scene (camera/light rig/backdrop) from `dsp:spPr/a:scene3d`, when this
+	 * cached shape carries its own per-shape camera. Bevel quick styles
+	 * (Polished, Inset, Cartoon, Powder) cache one per shape (always
+	 * `orthographicFront`, so the 2D layout stays undistorted). Scene quick
+	 * styles (Brick, Flat, Metallic, Sunset, Bird's Eye) instead put ONE camera
+	 * on the whole diagram (see `PptxSmartArtQuickStyle.scene3d`) and leave this
+	 * undefined on every shape.
+	 */
+	scene3d?: Pptx3DScene;
+	/**
+	 * 3D extrusion/bevel/contour/material from `dsp:spPr/a:sp3d`. PowerPoint
+	 * caches this fully resolved (from the quick style's per-label `dgm:sp3d`)
+	 * on every shape for every non-flat quick style, bevel or scene alike.
+	 */
+	shape3d?: Pptx3DShape;
+	/**
+	 * Text-body 3D extrusion/bevel from `dsp:txBody/a:bodyPr/a:sp3d`. Rare:
+	 * present when a quick style extrudes the label text itself off the shape
+	 * face (e.g. Bird's Eye Scene: `extrusionH="28000"`), rather than only the
+	 * shape body.
+	 */
+	text3d?: Text3DStyle;
 }
 
 // Chrome types (PptxSmartArtChrome, PptxSmartArtRawBackgroundFill) live in

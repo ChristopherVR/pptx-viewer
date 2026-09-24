@@ -1,5 +1,7 @@
 /** Editable metadata shared by DiagramML quick-style and color definitions. */
 
+import type { Pptx3DScene } from './three-d';
+
 export interface PptxSmartArtDefinitionText {
 	value: string;
 	language?: string;
@@ -105,4 +107,15 @@ export interface PptxSmartArtQuickStyle extends PptxSmartArtDefinitionMetadata {
 	effectIntensity?: string;
 	/** Ordered CT_StyleLabel metadata. Complex style payload remains preserved XML. */
 	labels?: PptxSmartArtQuickStyleLabel[];
+	/**
+	 * Whole-diagram 3D scene (camera preset/rotation/zoom/fov, light rig,
+	 * backdrop) from the quick style's own `dgm:styleDef/dgm:scene3d`, present
+	 * for the "Scene" quick styles (Brick, Flat, Metallic, Sunset, Bird's Eye
+	 * Scene). One camera renders the whole diagram; per-shape `a:scene3d` is
+	 * absent for those styles (see `PptxSmartArtDrawingShape.scene3d`). Each
+	 * `dgm:styleLbl` also carries its own per-label `dgm:scene3d`/`dgm:sp3d`,
+	 * but PowerPoint bakes those fully resolved onto each cached shape's own
+	 * `dsp:spPr/a:sp3d`, so only the diagram-level scene is exposed here.
+	 */
+	scene3d?: Pptx3DScene;
 }
