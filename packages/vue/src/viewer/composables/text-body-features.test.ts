@@ -54,11 +54,13 @@ describe('vue text-body features', () => {
 		expect(style.tabSize).toBe('48px');
 	});
 
-	it('centres the text bounding box for `anchorCtr`', () => {
+	it('centres the shared bounding box of every paragraph for `anchorCtr`', () => {
 		const style = getTextBlockStyle(
 			textShape({ textStyle: { anchorCenter: true } } as Partial<PptxElement>),
 		);
-		expect(style.alignItems).toBe('center');
+		expect(style.width).toBe('fit-content');
+		expect(style.marginLeft).toBe('auto');
+		expect(style.marginRight).toBe('auto');
 	});
 
 	it('clips a `vertOverflow="clip"` body instead of letting it spill', () => {

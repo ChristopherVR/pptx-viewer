@@ -243,13 +243,24 @@ export function buildTextBodyLayoutStyle(element: PptxElement): TextBodyLayoutSt
 	}
 
 	// `a:bodyPr/@anchorCtr="1"`: "determine the smallest possible bounding box
-	// for the text and then centre that bounding box". In a flex column that is
-	// `align-items: center`, which shrink-wraps each paragraph and centres it -
-	// the closest CSS gets without measuring, and independent of `@algn`, which
-	// still positions the text INSIDE the shrink-wrapped box. It is a no-op on
-	// the multi-column block, where there is no flex line to align.
+	// for EVERY paragraph TOGETHER, then centre that one bounding box" - the
+	// paragraphs keep their own shared left edge relative to each other (a
+	// short line does not re-centre itself independently of a longer one next
+	// to it). `align-items: center` on the flex column gets this wrong: it
+	// centres EACH paragraph (each a separate flex item) independently, so two
+	// paragraphs of different lengths end up with DIFFERENT left edges instead
+	// of sharing one (COM-verified against `audit-text/pp/s2.png`, `gen.py`
+	// slide 2's "Short" / "anchorCtr longer second line" box: both lines start
+	// at the same x). `width: fit-content` on the flex CONTAINER itself
+	// shrink-wraps it to its widest paragraph instead, and centering that box
+	// with auto margins leaves every paragraph's own text-align (independent
+	// of `@algn`) to position text inside the now-shared, shrink-wrapped box.
+	// A no-op on the multi-column block, where there is no flex box to shrink.
 	if (ts?.anchorCenter === true && columns.count <= 1) {
-		style.alignItems = 'center';
+		style.width = 'fit-content';
+		style.maxWidth = '100%';
+		style.marginLeft = 'auto';
+		style.marginRight = 'auto';
 	}
 
 	const tabSize = computeTabSize(ts?.tabStops, ts?.defaultTabSize);

@@ -128,9 +128,21 @@ describe('buildTextBodyLayoutStyle', () => {
 		).toBeUndefined();
 	});
 
-	it('centres the text bounding box for @anchorCtr', () => {
-		expect(buildTextBodyLayoutStyle(textElement({ anchorCenter: true })).alignItems).toBe('center');
-		expect(buildTextBodyLayoutStyle(textElement({})).alignItems).toBeUndefined();
+	it('centres the shared bounding box of every paragraph for @anchorCtr, not each one independently', () => {
+		const style = buildTextBodyLayoutStyle(textElement({ anchorCenter: true }));
+		// fit-content + auto margins shrink-wraps the flex container to its
+		// widest paragraph and centres THAT box, so every paragraph keeps the
+		// same left edge; `align-items: center` would centre each paragraph
+		// independently instead (see the doc comment for why that is wrong).
+		expect(style.width).toBe('fit-content');
+		expect(style.maxWidth).toBe('100%');
+		expect(style.marginLeft).toBe('auto');
+		expect(style.marginRight).toBe('auto');
+		expect(style.alignItems).toBeUndefined();
+
+		const plain = buildTextBodyLayoutStyle(textElement({}));
+		expect(plain.width).toBeUndefined();
+		expect(plain.marginLeft).toBeUndefined();
 	});
 
 	it('emits tab-size and the kinsoku rules', () => {
@@ -243,7 +255,8 @@ describe('buildTextBlockStyle bodyLayout', () => {
 			{ bodyLayout: true, pxLengths: true },
 		);
 		expect(style.tabSize).toBe('48px');
-		expect(style.alignItems).toBe('center');
+		expect(style.width).toBe('fit-content');
+		expect(style.marginLeft).toBe('auto');
 		expect(style.transform).toBe('rotate(30deg)');
 	});
 

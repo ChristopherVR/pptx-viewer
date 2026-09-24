@@ -54,9 +54,10 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 	const bodyBottom = element.textStyle?.bodyInsetBottom ?? DEFAULT_BODY_INSET_TB_PX;
 	// Columns / flex anchoring / anchorCtr / tab-size / kinsoku, from shared.
 	// May itself declare `direction` (`a:bodyPr/@rtlCol` on a multi-column
-	// body): read it out before the `verticalDirection` override below would
-	// otherwise clobber it back to `undefined`, exactly the "shared value
-	// clobbered downstream" failure mode CLAUDE.md warns about.
+	// body) and `marginLeft`/`marginRight: 'auto'` (`@anchorCtr` centering the
+	// shrink-wrapped flex box): read both out before the assignments below
+	// would otherwise clobber them back to `undefined`, exactly the "shared
+	// value clobbered downstream" failure mode CLAUDE.md warns about.
 	const bodyLayoutStyle = buildTextBodyLayoutStyle(element) as React.CSSProperties;
 
 	return {
@@ -68,7 +69,7 @@ export function getTextLayoutStyle(element: PptxElement): React.CSSProperties {
 		writingMode,
 		textOrientation,
 		direction: verticalDirection ?? bodyLayoutStyle.direction,
-		marginLeft,
+		marginLeft: marginLeft ?? bodyLayoutStyle.marginLeft,
 		textIndent,
 		...(shapeAutoFitTextBox
 			? {

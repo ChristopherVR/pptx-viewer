@@ -53,10 +53,11 @@ describe('vanilla text-body features', () => {
 		expect(style['direction']).toBe('rtl');
 	});
 
-	it('centres the text bounding box for `anchorCtr`', () => {
-		expect(getTextBlockStyle(textShape({ textStyle: { anchorCenter: true } }))['alignItems']).toBe(
-			'center',
-		);
+	it('centres the shared bounding box of every paragraph for `anchorCtr`', () => {
+		const style = getTextBlockStyle(textShape({ textStyle: { anchorCenter: true } }));
+		expect(style['width']).toBe('fit-content');
+		expect(style['marginLeft']).toBe('auto');
+		expect(style['marginRight']).toBe('auto');
 	});
 
 	it('clips a `vertOverflow="clip"` body instead of letting it spill', () => {
