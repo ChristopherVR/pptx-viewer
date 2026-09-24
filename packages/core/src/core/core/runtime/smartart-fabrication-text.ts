@@ -2,6 +2,7 @@ import { XMLBuilder } from 'fast-xml-parser';
 
 import { orderedXmlKey, stripXmlOrderMarkers } from '../../geometry/custom-geometry-command-order';
 import type { PptxSmartArtDrawingShape, TextSegment, TextStyle, XmlObject } from '../../types';
+import { applyTextBodySp3d } from '../../utils/text-body-sp3d-writer';
 
 const builder = new XMLBuilder({
 	ignoreAttributes: false,
@@ -239,10 +240,12 @@ export function drawingTextBodyXml(shape: PptxSmartArtDrawingShape): string {
 	const paragraphs = splitParagraphs(segments).map((items) =>
 		paragraphXml(items.length > 0 ? items : [{ text: '', style: fallbackStyle }]),
 	);
+	const bodyPr: XmlObject = { '@_anchor': 'ctr' };
+	applyTextBodySp3d(bodyPr, { text3d: shape.text3d });
 	return stripXmlOrderMarkers(
 		builder.build({
 			'dsp:txBody': {
-				'a:bodyPr': { '@_anchor': 'ctr' },
+				'a:bodyPr': bodyPr,
 				'a:lstStyle': {},
 				'a:p': paragraphs.length === 1 ? paragraphs[0] : paragraphs,
 			},

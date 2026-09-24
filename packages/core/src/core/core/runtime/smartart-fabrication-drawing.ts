@@ -24,6 +24,7 @@ import type {
 	PptxSmartArtNode,
 	ShapePptxElement,
 } from '../../types';
+import { drawingShape3dXml } from './smartart-fabrication-3d';
 import { XML_PROLOG, xmlEscape } from './smartart-fabrication-data';
 import { drawingTextBodyXml } from './smartart-fabrication-text';
 
@@ -162,7 +163,7 @@ function shapePropsXml(shape: PptxSmartArtDrawingShape): string {
 	const ln = strokeHex
 		? `<a:ln${strokeW}><a:solidFill><a:srgbClr val="${strokeHex}"/></a:solidFill></a:ln>`
 		: '';
-	return `<dsp:spPr>${xfrm}${geom}${fill}${ln}</dsp:spPr>`;
+	return `<dsp:spPr>${xfrm}${geom}${fill}${ln}${drawingShape3dXml(shape)}</dsp:spPr>`;
 }
 
 function shapeXml(
@@ -260,6 +261,9 @@ export function smartArtElementsToDrawingShapes(
 			...(shape.textSegments ? { textSegments: shape.textSegments } : {}),
 			fontSize: shape.textStyle?.fontSize,
 			fontColor: shape.textStyle?.color,
+			...(shape.shapeStyle?.scene3d ? { scene3d: shape.shapeStyle.scene3d } : {}),
+			...(shape.shapeStyle?.shape3d ? { shape3d: shape.shapeStyle.shape3d } : {}),
+			...(shape.textStyle?.text3d ? { text3d: shape.textStyle.text3d } : {}),
 		});
 	}
 	return shapes;
