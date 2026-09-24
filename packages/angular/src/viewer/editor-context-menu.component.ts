@@ -22,19 +22,9 @@
  *    the host is mounted before the listener fires, so `!host.contains(target)`
  *    is always correct without any extra first-event guard).
  *
- * Usage:
- * ```html
- * @if (canEdit() && contextMenu(); as m) {
- *   <pptx-editor-context-menu
- *     [x]="m.x"
- *     [y]="m.y"
- *     [slideIndex]="activeSlideIndex()"
- *     (editHyperlink)="docProperties.showHyperlink.set(true)"
- *     (addComment)="openCommentsPanel()"
- *     (closed)="contextMenu.set(null)"
- *   />
- * }
- * ```
+ * The host's UI customisation (hidden commands, a disabled menu) is applied
+ * through the shared `customizeContextMenuEntries`; an emptied menu renders
+ * nothing. See `PowerPointViewerComponent`'s template for the usage.
  */
 
 import {
@@ -54,6 +44,7 @@ import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared'
 import {
 	buildContextMenuEntries,
 	contextMenuInspectorAnchor,
+	customizeContextMenuEntries,
 	scrollInspectorSectionIntoView,
 } from '../internal/shared';
 import { clampedMenuPosition } from './context-menu-position';
@@ -65,6 +56,7 @@ import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
+import { injectResolvedCustomization } from './viewer-customization.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 @Component({
@@ -75,30 +67,33 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 	template: `
 		<!-- data-pptx-context-menu is the neutral cross-binding hook for "this is
 		     the canvas context menu", alongside the role. -->
-		<ul
-			class="pptx-ctx__menu"
-			data-pptx-context-menu="true"
-			role="menu"
-			[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
-		>
-			@for (entry of entries(); track entry.id) {
-				@if (entry.separatorBefore) {
-					<li role="separator" class="pptx-ctx__divider"></li>
+		<!-- An empty menu (host customisation removed every entry) renders nothing. -->
+		@if (entries().length > 0) {
+			<ul
+				class="pptx-ctx__menu"
+				data-pptx-context-menu="true"
+				role="menu"
+				[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
+			>
+				@for (entry of entries(); track entry.id) {
+					@if (entry.separatorBefore) {
+						<li role="separator" class="pptx-ctx__divider"></li>
+					}
+					<li role="none">
+						<button
+							type="button"
+							class="pptx-ctx__item"
+							[class.pptx-ctx__item--danger]="!!entry.danger"
+							role="menuitem"
+							[disabled]="!!entry.disabled"
+							(click)="run(entry.id)"
+						>
+							{{ entry.labelKey | translate }}
+						</button>
+					</li>
 				}
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item"
-						[class.pptx-ctx__item--danger]="!!entry.danger"
-						role="menuitem"
-						[disabled]="!!entry.disabled"
-						(click)="run(entry.id)"
-					>
-						{{ entry.labelKey | translate }}
-					</button>
-				</li>
-			}
-		</ul>
+			</ul>
+		}
 	`,
 	styles: EDITOR_CONTEXT_MENU_STYLES,
 	host: {
@@ -149,6 +144,7 @@ export class EditorContextMenuComponent {
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
 	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
+	private readonly customization = injectResolvedCustomization();
 
 	/**
 	 * The table element + cell selection the menu should act on, or null when the
@@ -197,7 +193,7 @@ export class EditorContextMenuComponent {
 	/** The menu, as the shared command list builds it for this right-click. */
 	protected readonly entries = computed<ContextMenuEntry[]>(() => {
 		const table = this.tableCtx();
-		return buildContextMenuEntries({
+		const built = buildContextMenuEntries({
 			elementType: this.selectedElement()?.type ?? null,
 			table: table ? tableMenuContext(table.element, table.sel) : null,
 			hasMultiSelection: this.editor.selectedIds().length >= 2,
@@ -205,6 +201,7 @@ export class EditorContextMenuComponent {
 			aiEnabled: this.showAiActions(),
 			hasClipboard: this.editor.hasClipboard(),
 		});
+		return customizeContextMenuEntries(built, this.customization());
 	});
 
 	/** Editor operations behind each command id (see the dispatch module). */

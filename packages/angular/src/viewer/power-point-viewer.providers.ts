@@ -45,6 +45,7 @@ import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
+import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerExportService } from './viewer-export.service';
@@ -104,6 +105,7 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	ViewerKeyboardService,
 	ViewerMobileSheetService,
 	ViewerOptionsService,
+	ViewerCustomizationService,
 	ViewerPresentationModeService,
 	ViewerThemeGalleryService,
 	ViewerTouchGesturesService,

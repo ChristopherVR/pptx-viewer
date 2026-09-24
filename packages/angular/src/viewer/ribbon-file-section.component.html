@@ -20,20 +20,20 @@
 				<button
 					type="button"
 					data-pptx-backstage-nav-item
-					[class.active]="page() === item.id"
-					[attr.aria-current]="page() === item.id ? 'page' : null"
+					[class.active]="currentPage() === item.id"
+					[attr.aria-current]="currentPage() === item.id ? 'page' : null"
 					(click)="selectPage(item.id)"
 				>
 					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
 				</button>
 			}
 			<i></i>
-			@for (item of footerNav; track item.id) {
+			@for (item of footerNav(); track item.id) {
 				<button
 					type="button"
 					data-pptx-backstage-nav-item
-					[class.active]="page() === item.id"
-					[attr.aria-current]="page() === item.id ? 'page' : null"
+					[class.active]="currentPage() === item.id"
+					[attr.aria-current]="currentPage() === item.id ? 'page' : null"
 					(click)="selectPage(item.id)"
 				>
 					<span><pptx-backstage-nav-icon [page]="item.id" /></span>{{ item.labelKey | translate }}
@@ -42,8 +42,8 @@
 		</nav>
 	</aside>
 	<main>
-		<h1>{{ (page() === 'home' ? 'pptx.backstage.greeting' : titleKey()) | translate }}</h1>
-		@if (page() === 'home' || page() === 'new') {
+		<h1>{{ (currentPage() === 'home' ? 'pptx.backstage.greeting' : titleKey()) | translate }}</h1>
+		@if (currentPage() === 'home' || currentPage() === 'new') {
 			<h2>{{ 'pptx.backstage.newHeading' | translate }}</h2>
 			<div class="templates">
 				@for (template of templates; track template.id) {
@@ -55,7 +55,7 @@
 				}
 			</div>
 		}
-		@if (page() === 'home' || page() === 'open') {
+		@if (currentPage() === 'home' || currentPage() === 'open') {
 			<pptx-ui-search
 				data-pptx-search-surface
 				class="search"
@@ -66,7 +66,7 @@
 				[value]="query()"
 				(input)="query.set($any($event.target).value)"
 			/>
-			@if (page() === 'open') {
+			@if (currentPage() === 'open') {
 				<button class="primary" type="button" (click)="run(openFile)">
 					{{ 'pptx.backstage.browseDevice' | translate }}
 				</button>
@@ -107,10 +107,10 @@
 				}
 			</div>
 		}
-		@if (page() === 'account') {
+		@if (currentPage() === 'account') {
 			<pptx-account-page [accountAuth]="accountAuth()" />
 		}
-		@if (page() === 'options') {
+		@if (currentPage() === 'options') {
 			<section class="card">
 				<b class="avatar">⚙</b>
 				<h2>{{ 'pptx.backstage.optionsTitle' | translate }}</h2>

@@ -25,13 +25,16 @@ import type { PptxElement } from 'pptx-viewer-core';
 
 import {
 	cycleSelectableElement,
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	isEditorControlTarget,
 	isEditorTextInputTarget,
-	mapEditorKey,
+	isFeatureEnabled,
+	mapCustomizedEditorKey,
 	mapSlideShowStartKey,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
+import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerFindReplaceService } from './viewer-find-replace.service';
@@ -75,6 +78,7 @@ export class ViewerKeyboardService {
 	private readonly presentationMode = inject(ViewerPresentationModeService);
 	private readonly docProperties = inject(ViewerDocumentPropertiesService);
 	private readonly canvasEditing = inject(ViewerCanvasEditingService, { optional: true });
+	private readonly customization = inject(ViewerCustomizationService, { optional: true });
 
 	private host: KeyboardHost | null = null;
 
@@ -94,7 +98,10 @@ export class ViewerKeyboardService {
 		// this runs ahead of (and unguarded by) the canEdit/text-input gates
 		// `mapEditorKey` applies below. `event.preventDefault()` only on a match:
 		// otherwise the browser reloads the page on a bare F5.
-		const showAction = mapSlideShowStartKey(event, { isPresenting: host.presenting() });
+		const resolved = this.customization?.resolved() ?? EMPTY_RESOLVED_CUSTOMIZATION;
+		const showAction = isFeatureEnabled(resolved, 'presentMode')
+			? mapSlideShowStartKey(event, { isPresenting: host.presenting() })
+			: null;
 		if (showAction !== null) {
 			event.preventDefault();
 			if (showAction === 'fromBeginning') {
@@ -105,7 +112,7 @@ export class ViewerKeyboardService {
 			return;
 		}
 
-		const { action, dx, dy } = mapEditorKey(event, {
+		const guard = {
 			canEdit: host.canEdit(),
 			canPaste: this.editor.hasClipboard(),
 			isPresenting: host.presenting(),
@@ -114,7 +121,8 @@ export class ViewerKeyboardService {
 			isEditingText: host.isEditingText?.() ?? false,
 			isTextInputTarget: isEditorTextInputTarget(event.target),
 			isControlTarget: isEditorControlTarget(event.target),
-		});
+		};
+		const { action, dx, dy } = mapCustomizedEditorKey(event, guard, resolved.keyboard);
 		if (action === null) {
 			return;
 		}

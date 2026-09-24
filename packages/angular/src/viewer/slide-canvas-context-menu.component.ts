@@ -42,11 +42,15 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { CanvasContextMenuCommandId, CanvasContextMenuEntry } from '../internal/shared';
-import { buildCanvasContextMenuEntries } from '../internal/shared';
+import {
+	buildCanvasContextMenuEntries,
+	customizeCanvasContextMenuEntries,
+} from '../internal/shared';
 import { clampedMenuPosition } from './context-menu-position';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import type { CanvasContextMenuActions } from './slide-canvas-context-menu-dispatch';
 import { runCanvasContextMenuCommand } from './slide-canvas-context-menu-dispatch';
+import { injectResolvedCustomization } from './viewer-customization.service';
 
 /** Extra rule for the checkbox-style entries (Grid and Guides, Ruler). */
 const CHECKBOX_ITEM_STYLES = `
@@ -62,34 +66,39 @@ const CHECKBOX_ITEM_STYLES = `
 	imports: [TranslatePipe],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<ul
-			class="pptx-ctx__menu"
-			data-pptx-context-menu="true"
-			data-pptx-canvas-context-menu="true"
-			role="menu"
-			[attr.aria-label]="'pptx.canvasContextMenu.ariaLabel' | translate"
-		>
-			@for (entry of entries(); track entry.id) {
-				@if (entry.separatorBefore) {
-					<li role="separator" class="pptx-ctx__divider"></li>
+		<!-- An empty menu (host customisation removed every entry) renders nothing. -->
+		@if (entries().length > 0) {
+			<ul
+				class="pptx-ctx__menu"
+				data-pptx-context-menu="true"
+				data-pptx-canvas-context-menu="true"
+				role="menu"
+				[attr.aria-label]="'pptx.canvasContextMenu.ariaLabel' | translate"
+			>
+				@for (entry of entries(); track entry.id) {
+					@if (entry.separatorBefore) {
+						<li role="separator" class="pptx-ctx__divider"></li>
+					}
+					<li role="none">
+						<button
+							type="button"
+							class="pptx-ctx__item"
+							[attr.role]="entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
+							[attr.aria-checked]="entry.checked === undefined ? null : entry.checked"
+							[disabled]="!!entry.disabled"
+							(click)="run(entry.id)"
+						>
+							@if (entry.checked !== undefined) {
+								<span class="pptx-ctx__check" aria-hidden="true">{{
+									entry.checked ? '✓' : ''
+								}}</span>
+							}
+							{{ entry.labelKey | translate }}
+						</button>
+					</li>
 				}
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item"
-						[attr.role]="entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
-						[attr.aria-checked]="entry.checked === undefined ? null : entry.checked"
-						[disabled]="!!entry.disabled"
-						(click)="run(entry.id)"
-					>
-						@if (entry.checked !== undefined) {
-							<span class="pptx-ctx__check" aria-hidden="true">{{ entry.checked ? '✓' : '' }}</span>
-						}
-						{{ entry.labelKey | translate }}
-					</button>
-				</li>
-			}
-		</ul>
+			</ul>
+		}
 	`,
 	styles: [EDITOR_CONTEXT_MENU_STYLES, CHECKBOX_ITEM_STYLES],
 	host: {
@@ -118,12 +127,17 @@ export class SlideCanvasContextMenuComponent {
 	/** Kept inside the viewport (see `context-menu-position.ts`). */
 	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 
+	private readonly customization = injectResolvedCustomization();
+
 	protected readonly entries = computed<CanvasContextMenuEntry[]>(() =>
-		buildCanvasContextMenuEntries({
-			hasClipboard: this.hasClipboard(),
-			showGrid: this.showGrid(),
-			showRulers: this.showRulers(),
-		}),
+		customizeCanvasContextMenuEntries(
+			buildCanvasContextMenuEntries({
+				hasClipboard: this.hasClipboard(),
+				showGrid: this.showGrid(),
+				showRulers: this.showRulers(),
+			}),
+			this.customization(),
+		),
 	);
 
 	private readonly actions: CanvasContextMenuActions = {

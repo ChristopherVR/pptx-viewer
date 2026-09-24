@@ -14,6 +14,8 @@ import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_TEMPLATES,
 	backstageCardsFor,
+	customizeBackstageCards,
+	customizeBackstageNav,
 	formatBackstageDate,
 	formatBackstageSize,
 	isActionHidden,
@@ -28,6 +30,7 @@ import type {
 } from '../internal/shared';
 import { AccountPageComponent } from './account-page.component';
 import { BackstageNavIconComponent } from './backstage-nav-icon.component';
+import { injectResolvedCustomization } from './viewer-customization.service';
 
 interface BackstageAction {
 	titleKey: string;
@@ -127,14 +130,33 @@ export class RibbonFileSectionComponent {
 				this.translate?.instant(key, params) ?? key
 		: undefined;
 	protected readonly templates = BACKSTAGE_TEMPLATES;
-	protected readonly mainNav = computed(() => visibleMainNav(this.hiddenActions()));
-	protected readonly footerNav = BACKSTAGE_NAV.filter((item) => item.group);
+	private readonly customization = injectResolvedCustomization();
+	protected readonly mainNav = computed(() =>
+		customizeBackstageNav(visibleMainNav(this.hiddenActions()), this.customization()),
+	);
+	protected readonly footerNav = computed(() =>
+		customizeBackstageNav(
+			BACKSTAGE_NAV.filter((item) => item.group),
+			this.customization(),
+		),
+	);
+	/** The page the user picked; see {@link currentPage} for the one shown. */
 	protected readonly page = signal<BackstagePage>('home');
+	/** The picked page, or 'home' (else the first visible page) when the host hid it. */
+	protected readonly currentPage = computed<BackstagePage>(() => {
+		const visible = [...this.mainNav(), ...this.footerNav()].map((item) => item.id);
+		const picked = this.page();
+		if (visible.includes(picked)) {
+			return picked;
+		}
+		return visible.includes('home') ? 'home' : (visible[0] ?? 'home');
+	});
 	protected readonly query = signal('');
 	protected readonly recent = signal<BackstageRecentFile[]>([]);
 	protected readonly titleKey = computed(
 		() =>
-			BACKSTAGE_NAV.find((item) => item.id === this.page())?.labelKey ?? 'pptx.backstage.nav.home',
+			BACKSTAGE_NAV.find((item) => item.id === this.currentPage())?.labelKey ??
+			'pptx.backstage.nav.home',
 	);
 	protected readonly visibleRecent = computed(() => {
 		const q = this.query().trim().toLowerCase();
@@ -143,7 +165,7 @@ export class RibbonFileSectionComponent {
 			: this.recent();
 	});
 	protected readonly size = formatBackstageSize;
-	protected readonly actions = computed(() => this.pageActions(this.page()));
+	protected readonly actions = computed(() => this.pageActions(this.currentPage()));
 
 	constructor() {
 		void (async () =>
@@ -211,7 +233,7 @@ export class RibbonFileSectionComponent {
 			print: this.print,
 			share: this.share,
 		};
-		return backstageCardsFor(page)
+		return customizeBackstageCards(backstageCardsFor(page), this.customization())
 			.filter((card) => card.id !== 'saveAsPptm' || this.hasMacros())
 			.map((card) => ({
 				titleKey: card.titleKey,

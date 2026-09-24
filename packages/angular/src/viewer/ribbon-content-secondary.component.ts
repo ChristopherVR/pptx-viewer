@@ -16,7 +16,7 @@
  * the public `<pptx-ribbon>` API (and `PowerPointViewerComponent`'s bindings
  * to it) unchanged.
  */
-import { ChangeDetectionStrategy, Component, input, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -31,6 +31,7 @@ import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.comp
 import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
 import type { RibbonTab } from './ribbon-types';
 import { RibbonViewSectionComponent } from './ribbon-view-section.component';
+import { ViewerCustomizationService } from './viewer-customization.service';
 
 @Component({
 	selector: 'pptx-ribbon-content-secondary',
@@ -139,9 +140,11 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 				/>
 			}
 			@case ('help') {
-				<button type="button" class="pptx-rb-pill" (click)="openSettings.emit()">
-					{{ 'pptx.settings.title' | translate }}
-				</button>
+				@if (customization?.dialogAvailable('options') !== false) {
+					<button type="button" class="pptx-rb-pill" (click)="openSettings.emit()">
+						{{ 'pptx.settings.title' | translate }}
+					</button>
+				}
 				<button type="button" class="pptx-rb-pill" (click)="openShortcuts.emit()">
 					{{ 'pptx.settings.keyboardShortcuts' | translate }}
 				</button>
@@ -159,6 +162,8 @@ import { RibbonViewSectionComponent } from './ribbon-view-section.component';
 	`,
 })
 export class RibbonContentSecondaryComponent {
+	/** Host UI customisation (optional: absent outside a viewer). */
+	protected readonly customization = inject(ViewerCustomizationService, { optional: true });
 	readonly activeTab = input.required<RibbonTab>();
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);

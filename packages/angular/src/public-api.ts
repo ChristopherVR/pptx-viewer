@@ -57,3 +57,41 @@ export {
 export type { SavedPresentationFormat } from './internal/shared';
 export type { ViewportFitOptions, ViewportFitPadding } from './internal/shared';
 export { createImageElementFromFile } from './internal/shared';
+
+// ── UI customisation (the `customization` input + imperative helpers) ──
+// The framework-neutral model every binding shares; see docs/guide/customization.md.
+export type {
+	BackstageCustomization,
+	ContextMenuCustomization,
+	KeyboardCustomization,
+	OptionsCustomization,
+	OptionsPageId,
+	OptionsSectionId,
+	OptionsSettingId,
+	OptionsSettingValues,
+	ResolvedCustomization,
+	RibbonCustomization,
+	ShortcutChord,
+	ViewerCustomization,
+	ViewerCustomizationApi,
+	ViewerDialogId,
+	ViewerExportFormatId,
+	ViewerFeatureId,
+	ViewerPanelId,
+} from './internal/shared';
+export {
+	BACKSTAGE_CARD_IDS,
+	BACKSTAGE_PAGE_IDS,
+	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	EDITOR_SHORTCUT_ACTION_IDS,
+	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
+	OPTIONS_PAGE_IDS,
+	OPTIONS_SECTION_IDS,
+	OPTIONS_SETTING_IDS,
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+	VIEWER_DIALOG_IDS,
+	VIEWER_EXPORT_FORMAT_IDS,
+	VIEWER_FEATURE_IDS,
+	VIEWER_PANEL_IDS,
+} from './internal/shared';

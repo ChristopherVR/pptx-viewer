@@ -49,6 +49,7 @@ import { ShortcutPanelComponent } from './shortcut-panel.component';
 import { SignatureStrippedDialogComponent } from './signature-stripped-dialog.component';
 import { VersionHistoryPanelComponent } from './version-history-panel.component';
 import { ViewerCompareService } from './viewer-compare.service';
+import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import {
 	annotationMapToInkInserts,
@@ -141,7 +142,7 @@ import { ViewerOptionsService } from './viewer-options.service';
 		<pptx-shortcut-panel [open]="svc.showShortcuts()" (close)="svc.showShortcuts.set(false)" />
 
 		<pptx-settings-dialog
-			[open]="svc.showSettings()"
+			[open]="svc.showSettings() && customization?.dialogAvailable('options') !== false"
 			[options]="viewerOpts.options()"
 			[addinStatus]="addinStatus()"
 			[themeKey]="themeKey()"
@@ -209,6 +210,7 @@ export class ViewerExtraDialogsComponent {
 	readonly localeSelect = output<string>();
 
 	protected readonly svc = inject(ViewerDialogsService);
+	protected readonly customization = inject(ViewerCustomizationService, { optional: true });
 	protected readonly customFonts = inject(CustomFontsService);
 	protected readonly viewerOpts = inject(ViewerOptionsService);
 	protected readonly compare = inject(ViewerCompareService);
