@@ -155,20 +155,24 @@ describe('buildChart3DSpecForElement', () => {
 		expect(spec?.geometry?.kind).toBe('oblique');
 	});
 
-	it('returns null geometry (falls back to the 2D render) for a non-box c:shape', () => {
-		// cylinder/cone/pyramid are a materially different PowerPoint volume
-		// convention (round, full column width) not modelled yet.
-		for (const shape of ['cylinder', 'cone', 'pyramid'] as const) {
+	it('lays round and pointed c:shape bars out on the oblique box, per-series shape winning', () => {
+		for (const shape of ['cylinder', 'cone', 'pyramid', 'coneToMax'] as const) {
 			const spec = buildChart3DSpecForElement(
 				chartEl({
 					chartType: 'bar3D',
 					barShape: shape,
 					categories: ['Q1'],
-					series: [{ name: 'A', values: [1] }],
+					series: [
+						{ name: 'A', values: [1] },
+						{ name: 'B', values: [2], shape: 'box' },
+					],
 				}),
 			);
-			expect(spec?.geometry).toBeNull();
-			expect(spec?.perspective?.kind).toBe('bar');
+			expect(spec?.perspective).toBeNull();
+			if (spec?.geometry?.kind !== 'oblique') {
+				throw new Error('expected oblique geometry');
+			}
+			expect(spec.geometry.layout.bars.map((b) => b.shape)).toStrictEqual([shape, 'box']);
 		}
 	});
 

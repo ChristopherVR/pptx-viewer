@@ -16,12 +16,7 @@
  *
  * @module chart-3d-spec
  */
-import type {
-	ChartPptxElement,
-	PptxBar3DShape,
-	PptxChartData,
-	PptxElement,
-} from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { buildAreaChart3DDataForElement } from './area-chart-3d-data';
 import type { AreaChart3DSceneOptions } from './area-chart-3d-data';
@@ -63,8 +58,8 @@ export type Chart3DGeometry = Chart3DObliqueGeometry | null;
 
 /**
  * The perspective scene a chart falls back to when the oblique geometry does
- * not cover it yet (line/area/pie/surface, and bar3D's `standard` grouping,
- * horizontal bars and round shapes). Each is a hosted scene module from the
+ * not cover it (line/area/pie/surface, and a bar3D chart without right-angle
+ * axes). Each is a hosted scene module from the
  * pre-`<pptx-three-view>` renderer, now drawn through the shared renderer.
  */
 export type Chart3DPerspectiveScene =
@@ -96,40 +91,11 @@ export interface Chart3DSpec {
 	perspective: Chart3DPerspectiveScene | null;
 }
 
-/** Resolve a box's `c:bar3DChart/c:shape`, overridden per-series by `c:ser/c:shape`. */
-function resolveBoxShape(
-	chartData: PptxChartData,
-	seriesIndex: number,
-): PptxBar3DShape | undefined {
-	return chartData.series[seriesIndex]?.shape ?? chartData.barShape;
-}
-
 /**
- * `c:shape` values this pass renders as a true 3D box (the ONLY shape
- * visually verified against ground truth so far: `gt/chart-01.webp`'s
- * thin, subtly-beveled columns). `cylinder`/`cone`/`pyramid` (gt/chart-07..09)
- * are a materially different PowerPoint convention (a genuinely round,
- * full-width volume, not a thin oblique bevel - see the chart track's
- * progress log) and are deliberately NOT modelled yet; a chart using them
- * falls back to the flat 2D render rather than an unverified guess.
+ * Build the right-angle-axes `bar3D` geometry: every grouping, direction and
+ * `c:shape` (`chart-3d-oblique-layout.ts`, `chart-3d-oblique-shape-mesh.ts`).
  */
-function isSupportedBoxShape(shape: PptxBar3DShape | undefined): boolean {
-	return shape === undefined || shape === 'box';
-}
-
-/**
- * Build the right-angle-axes `bar3D` geometry. Returns `null` when a series
- * uses a round `c:shape` (not modelled yet) so the caller falls back to the
- * perspective scene instead of an unverified guess.
- */
-function buildBarGeometry(
-	element: PptxElement,
-	vm: ChartViewModel,
-	chartData: PptxChartData,
-): Chart3DGeometry {
-	if (!chartData.series.every((_s, i) => isSupportedBoxShape(resolveBoxShape(chartData, i)))) {
-		return null;
-	}
+function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
 	const layout = computeObliqueBarLayout(element, vm);
 	return layout && layout.bars.length > 0 ? { kind: 'oblique', layout } : null;
 }
@@ -158,9 +124,7 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	const vm = buildChartViewModel(element);
 	const projection = resolveChart3DProjection(chartType, chartData.view3D);
 	const geometry =
-		chartType === 'bar3D' && projection.mode === 'oblique'
-			? buildBarGeometry(element, vm, chartData)
-			: null;
+		chartType === 'bar3D' && projection.mode === 'oblique' ? buildBarGeometry(element, vm) : null;
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0

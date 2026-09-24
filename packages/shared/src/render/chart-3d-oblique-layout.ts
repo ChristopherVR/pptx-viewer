@@ -35,7 +35,7 @@ import {
 	OBLIQUE_CATEGORY_LABEL_GAP,
 	OBLIQUE_VALUE_LABEL_GAP,
 } from './chart-3d-oblique-labels';
-import type { ObliqueLabel } from './chart-3d-oblique-labels';
+import type { ObliqueChartLayout } from './chart-3d-oblique-types';
 import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
 import { axisTickValues } from './chart-view-model-chrome';
 import type { ChartViewModel } from './chart-view-model-types';
@@ -63,42 +63,12 @@ const BOTTOM_NO_LEGEND = 31 * PT;
 const DEFAULT_GAP_WIDTH = 150;
 const DEFAULT_GAP_DEPTH = 150;
 
-/** One bar as a world-space box. */
-export interface ObliqueBar {
-	x: number;
-	y: number;
-	z: number;
-	/** Extent along world X / Y / Z. */
-	w: number;
-	h: number;
-	d: number;
-	color: string;
-	seriesIndex: number;
-	categoryIndex: number;
-	value: number;
-}
-
-/** A gridline segment in world space. */
-export interface ObliqueGridline {
-	from: readonly [number, number, number];
-	to: readonly [number, number, number];
-}
-
-export interface ObliqueChartLayout {
-	horizontal: boolean;
-	grouping: 'clustered' | 'stacked' | 'percentStacked' | 'standard';
-	/** Chart px of world (0, 0, 0): the front-bottom-left corner of the floor. */
-	origin: { x: number; y: number };
-	/** Screen shift per world unit of depth: `(sin rotY, -sin rotX)`. */
-	shear: { x: number; y: number };
-	box: { w: number; h: number; d: number };
-	range: { min: number; max: number; majorUnit: number };
-	/** Chart px per value unit along the value axis. */
-	valueScale: number;
-	bars: ObliqueBar[];
-	gridlines: ObliqueGridline[];
-	labels: ObliqueLabel[];
-}
+export type {
+	ObliqueBar,
+	ObliqueChartLayout,
+	ObliqueGridline,
+	ObliqueTaper,
+} from './chart-3d-oblique-types';
 
 /** Chart px of a world point. */
 export function obliqueToScreen(

@@ -4,6 +4,7 @@ import { PptxHandler } from 'pptx-viewer-core';
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
+import { obliqueBarTaper } from './chart-3d-oblique-bars';
 import {
 	isObliqueBarDraggable,
 	obliqueBarAtValue,
@@ -12,6 +13,7 @@ import {
 } from './chart-3d-oblique-drag';
 import { computeObliqueBarLayout, obliqueToScreen } from './chart-3d-oblique-layout';
 import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
+import { chart3DNormalShade } from './chart-3d-shading';
 import { buildChartViewModel } from './chart-view-model-build';
 
 function barChart(chartData: Partial<PptxChartData> = {}): PptxElement {
@@ -174,7 +176,40 @@ describe('oblique bar drag', () => {
 			seriesIndex: 0,
 			categoryIndex: 0,
 			value: 2,
+			shape: 'box' as const,
+			taper: { bottom: 1, top: 1 },
 		};
 		expect(obliqueBarAtValue(layout, bar, 3)).toMatchObject({ x: 1, y: 0, h: 60, w: 10 });
+	});
+});
+
+describe('oblique bar shapes', () => {
+	it('points cones and pyramids at the value end, and slices ToMax shapes from one solid', () => {
+		expect(obliqueBarTaper('cone', 0, 50, 100, 2)).toStrictEqual({ bottom: 1, top: 0 });
+		expect(obliqueBarTaper('pyramid', 0, 50, 100, -2)).toStrictEqual({ bottom: 0, top: 1 });
+		expect(obliqueBarTaper('cylinder', 0, 50, 100, 2)).toStrictEqual({ bottom: 1, top: 1 });
+		expect(obliqueBarTaper('coneToMax', 20, 60, 100, 2)).toStrictEqual({ bottom: 0.8, top: 0.4 });
+	});
+
+	it('re-tapers a ToMax bar during a drag preview', () => {
+		const layout = { horizontal: false, range: { min: 0, max: 10, majorUnit: 2 }, valueScale: 20 };
+		const bar = {
+			...{ x: 0, y: 0, z: 0, w: 10, h: 40, d: 10, color: '#000', seriesIndex: 0 },
+			...{
+				categoryIndex: 0,
+				value: 2,
+				shape: 'coneToMax' as const,
+				taper: { bottom: 1, top: 0.8 },
+			},
+		};
+		expect(obliqueBarAtValue(layout, bar, 5).taper).toStrictEqual({ bottom: 1, top: 0.5 });
+	});
+
+	it('shades a box face exactly as the per-face table, a cylinder brighter at its centre', () => {
+		expect(chart3DNormalShade('box', 0, 0, 1)).toBeCloseTo(1, 9);
+		expect(chart3DNormalShade('box', 0, 1, 0)).toBeCloseTo(0.75, 9);
+		expect(chart3DNormalShade('box', 1, 0, 0)).toBeCloseTo(0.64, 9);
+		expect(chart3DNormalShade('cylinder', 0, 0, 1)).toBeGreaterThan(1);
+		expect(chart3DNormalShade('coneToMax', 0, 0, 1)).toBeCloseTo(1.16, 9);
 	});
 });

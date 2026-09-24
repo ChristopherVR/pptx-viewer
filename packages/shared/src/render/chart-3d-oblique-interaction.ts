@@ -21,7 +21,7 @@ import type * as THREE from 'three';
 
 import type { ThreeViewContext } from '../three-view/types';
 import { buildBarChart3DHoverTooltip } from './bar-chart-3d-hit-test';
-import { obliqueToScene } from './chart-3d-bar-mesh';
+import { placeObliqueBarMesh } from './chart-3d-bar-mesh';
 import { CHART_3D_DRAG_THRESHOLD_PX } from './chart-3d-interaction';
 import {
 	isObliqueBarDraggable,
@@ -142,14 +142,7 @@ export function attachObliqueBarInteraction(
 	/** Resize bar `i`'s mesh to `bar` (live drag preview). */
 	function applyBar(i: number, bar: ObliqueBar): void {
 		const mesh = meshes[i];
-		mesh.position.set(
-			...obliqueToScene(layout, options.svgWidth, options.svgHeight, [
-				bar.x + bar.w / 2,
-				bar.y + bar.h / 2,
-				bar.z + bar.d / 2,
-			]),
-		);
-		mesh.scale.set(Math.max(bar.w, 0.001), Math.max(bar.h, 0.001), bar.d);
+		placeObliqueBarMesh(three, mesh, layout, options.svgWidth, options.svgHeight, bar);
 		if (outline.visible) {
 			outline.position.copy(mesh.position);
 			outline.scale.copy(mesh.scale);

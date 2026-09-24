@@ -4,9 +4,14 @@
  *
  * @module chart-3d-oblique-bars
  */
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { PptxBar3DShape, PptxChartData } from 'pptx-viewer-core';
 
-import type { ObliqueBar, ObliqueChartLayout, ObliqueGridline } from './chart-3d-oblique-layout';
+import type {
+	ObliqueBar,
+	ObliqueChartLayout,
+	ObliqueGridline,
+	ObliqueTaper,
+} from './chart-3d-oblique-layout';
 import { formatAxisValueWithUnits } from './chart-axis';
 import { axisTickValues } from './chart-view-model-chrome';
 import type { ChartViewModel } from './chart-view-model-types';
@@ -22,6 +27,33 @@ export function formatValueLabel(chartData: PptxChartData, grouping: Grouping, v
 		v,
 		chartData.axes?.find((a) => a.axisType === 'valAx'),
 	);
+}
+
+/**
+ * A shaped bar's taper between world positions `lo` and `hi` along a value
+ * axis `extent` long. A cone or pyramid comes to a point at its value end
+ * (the far end from the baseline, so a negative bar points down); the
+ * `...ToMax` shapes are slices of one solid whose apex sits at the axis end.
+ */
+export function obliqueBarTaper(
+	shape: PptxBar3DShape,
+	lo: number,
+	hi: number,
+	extent: number,
+	value: number,
+): ObliqueTaper {
+	switch (shape) {
+		case 'cone':
+		case 'pyramid':
+			return value >= 0 ? { bottom: 1, top: 0 } : { bottom: 0, top: 1 };
+		case 'coneToMax':
+		case 'pyramidToMax': {
+			const at = (p: number): number => Math.min(1, Math.max(0, 1 - p / Math.max(extent, 1e-9)));
+			return { bottom: at(lo), top: at(hi) };
+		}
+		default:
+			return { bottom: 1, top: 1 };
+	}
 }
 
 /** Axis position (world units along the value axis) of a value. */
@@ -40,6 +72,7 @@ export function buildBars(
 	const barW = catWidth / (dims.slots + dims.gapWidth);
 	const rowDepth = barW * (1 + dims.gapDepth);
 	const colors = seriesColors(chartData, vm);
+	const valueExtent = layout.horizontal ? layout.box.w : layout.box.h;
 	const baseline = Math.min(Math.max(0, layout.range.min), layout.range.max);
 	const bars: ObliqueBar[] = [];
 	for (let c = 0; c < dims.nCat; c++) {
@@ -63,6 +96,7 @@ export function buildBars(
 					neg = to;
 				}
 			}
+			const shape = series.shape ?? chartData.barShape ?? 'box';
 			const slot = layout.grouping === 'clustered' ? s : 0;
 			const row = layout.grouping === 'standard' ? s : 0;
 			const catStart = c * catWidth + (dims.gapWidth * barW) / 2 + slot * barW;
@@ -80,6 +114,8 @@ export function buildBars(
 				seriesIndex: s,
 				categoryIndex: c,
 				value: raw,
+				shape,
+				taper: obliqueBarTaper(shape, lo, hi, valueExtent, raw),
 			});
 		});
 	}

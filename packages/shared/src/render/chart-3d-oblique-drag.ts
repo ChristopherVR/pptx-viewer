@@ -11,6 +11,7 @@
  *
  * @module chart-3d-oblique-drag
  */
+import { obliqueBarTaper } from './chart-3d-oblique-bars';
 import type { ObliqueBar, ObliqueChartLayout } from './chart-3d-oblique-layout';
 import { roundDragValue } from './chart-interaction';
 
@@ -51,12 +52,16 @@ export function obliqueDraggedExtent(
 	return { from: lo, length: hi - lo };
 }
 
-/** `bar` with its value-axis extent replaced (a live drag preview). */
+/** `bar` with its value-axis extent (and taper) replaced: a live drag preview. */
 export function obliqueBarAtValue(
 	layout: Pick<ObliqueChartLayout, 'horizontal' | 'range' | 'valueScale'>,
 	bar: ObliqueBar,
 	value: number,
 ): ObliqueBar {
 	const { from, length } = obliqueDraggedExtent(layout, value);
-	return layout.horizontal ? { ...bar, x: from, w: length } : { ...bar, y: from, h: length };
+	const extent = (layout.range.max - layout.range.min) * layout.valueScale;
+	const taper = obliqueBarTaper(bar.shape, from, from + length, extent, value);
+	return layout.horizontal
+		? { ...bar, x: from, w: length, value, taper }
+		: { ...bar, y: from, h: length, value, taper };
 }
