@@ -142,6 +142,22 @@ its parent's presentation node instead of giving the child its own box,
 still dropping 3 of 6 shapes) and remain legacy-first: a tracked, open gap,
 not a silent workaround.
 
+A third wave gave the engine a `snake` algorithm
+(`smartart-engine/alg-snake.ts`, ECMA-376 21.4.2.x: a grid picked from the
+node's own aspect ratio or a fixed `bkpt="fixed"` line length, honouring
+`flowDir`/`contDir`/`grDir`/`off`, mirroring the legacy `arrangeSnake`'s
+grid math). Re-measuring qualified 7 more layouts (67 total on the
+allowlist) with zero regressions, though none crossed the 1/5/10/50% bands
+on their own since they are still-inaccurate picture/composite families;
+Icon Circle Label List did go from 4971% legacy deviation to 64% engine
+deviation. `cycle`, `pyra`, `hierRoot` and `hierChild` remain unimplemented
+in the per-point engine (`registry.ts` still substitutes `composite` for
+them, and `isFullySupported` catches that so the engine declines cleanly
+instead of emitting silently-wrong geometry) - each is a substantial,
+genuinely different algorithm family (the legacy interpreter's own
+`cycle`/`pyramid`/`hierarchy` arrangers together are ~7,500 lines) that
+would need its own from-scratch per-point port, not attempted in this pass.
+
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
 `cycle` 25, `hierarchy` 19, `composite` 14, `UNRECOGNIZED` (falls through to

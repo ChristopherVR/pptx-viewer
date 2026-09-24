@@ -16,7 +16,7 @@
  * default.
  *
  * Declines (`undefined`) whenever the layout definition uses an algorithm
- * this engine does not implement yet (`snake`/`cycle`/`pyra`/`hierRoot`/
+ * this engine does not implement yet (`cycle`/`pyra`/`hierRoot`/
  * `hierChild`): the registry (`registry.ts`) silently substitutes
  * `composite` for an unknown type so the layout still runs to completion,
  * which would otherwise produce plausible-looking but wrong geometry with no
@@ -42,7 +42,7 @@ import { shapeTransform } from './shape-transform';
 import { resolveEngineFontSizePt } from './text-fit';
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
-const SUPPORTED_ALGS = new Set(['composite', 'lin', 'conn', 'sp', 'tx']);
+const SUPPORTED_ALGS = new Set(['composite', 'lin', 'conn', 'snake', 'sp', 'tx']);
 
 /** 1 CSS pixel (96 dpi, this codebase's convention) in DrawingML points. */
 const PT_PER_PX = 72 / 96;
