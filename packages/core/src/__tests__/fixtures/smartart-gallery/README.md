@@ -199,6 +199,39 @@ fix reproduces the prior measurement byte-for-byte on all 229 fixtures (still
 engine's `SUPPORTED_ALGS` and so still declines the pyramid layouts outright -
 the fix has no measurable effect until `pyra` itself is implemented.
 
+A sixth pass then implemented `pyra` itself (`smartart-engine/alg-pyra.ts`,
+ECMA-376 21.4.2.x: equal-height horizontal bands, width proportional to
+position in the stack, `linDir="fromT"` for the apex-down "Inverted
+Pyramid"), porting the band-stacking geometry from legacy's
+`arrangePyramid`. A second unit bug then surfaced: real "Basic Pyramid" also
+declares its "level" band's OWN self-scoped `h val="500"`/`w val="1"`, and
+`preferred-size.ts`'s `preferredSize` (by design, to preserve a genuine
+self-declared aspect ratio) re-applies a composite child's own self-scoped
+size constraints on top of whatever its parent already assigned - overriding
+the fifth wave's fix and re-collapsing "level" (measured: engine deviation
+1.6079, still declining on every dataset). No generic rule can distinguish
+"level"'s declaration from `radial-cycle`/`segmented-cycle`/
+`vertical-chevron-list`'s own `dummyConnPt`/`wedge*` nodes, which declare the
+SAME bare self `w val="1"`/`h val="1"` shape and MUST keep it as a real
+~2.83pt marker (their own position also comes from a sibling `for="ch"`
+declaration, exactly like "level"'s), so `alg-pyra.ts` sanitizes only the
+specific named node its own `pyraLvlNode` param points at ("level" by
+default), dropping its bare-literal self `w`/`h` before the rest of the tree
+lays out - scoped to the `pyra` algorithm's own per-item subtree, unable to
+reach `dummyConnPt`/`wedge*` in other algorithms' layoutDefs. With both
+fixes, Basic and Inverted Pyramid's `flat3` (no accented rows) datasets now
+match legacy EXACTLY (0.0019, tied); `hier5`/`hier8` (accented rows) still
+measure 0.5663, since `pyraAcctRatio`/`pyraAcctPos` accent-column splitting
+(legacy's `repositionPyramidBands`) is a genuinely separate, per-item-role,
+post-composite pass not ported in this wave - tracked and documented, not a
+silent regression. The strict allowlist rule requires improvement (or a tie)
+on EVERY dataset with no shape-set loss, and `hier5`/`hier8` are measurably
+worse than legacy, so neither layout newly qualifies for
+`engine-first-allowlist.ts` this wave. Re-measuring the full corpus confirms
+the change touches ONLY these two layouts, zero regressions, gate numbers
+unchanged (still 87/229 within 1%, 11/229 full gate; `pyra` is not yet
+allowlisted, so production behaviour for these two layouts is unchanged).
+
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
 `cycle` 25, `hierarchy` 19, `composite` 14, `UNRECOGNIZED` (falls through to
