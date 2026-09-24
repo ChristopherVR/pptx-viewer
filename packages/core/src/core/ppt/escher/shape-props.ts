@@ -34,9 +34,14 @@ function readSmallRect(view: DataView, offset: number): EmuRect {
 	return rectFromEdges(top, left, right, bottom);
 }
 
+/**
+ * The 16-byte client-anchor form, in the order real PowerPoint 16.0 reads it
+ * (left, top, right, bottom; measured over COM, see `anchor-writer.ts`'s
+ * `buildClientAnchor`).
+ */
 function readRect(view: DataView, offset: number): EmuRect {
-	const top = view.getInt32(offset, true);
-	const left = view.getInt32(offset + 4, true);
+	const left = view.getInt32(offset, true);
+	const top = view.getInt32(offset + 4, true);
 	const right = view.getInt32(offset + 8, true);
 	const bottom = view.getInt32(offset + 12, true);
 	return rectFromEdges(top, left, right, bottom);

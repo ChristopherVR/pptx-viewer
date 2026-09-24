@@ -7,9 +7,9 @@
  */
 
 import type { PptxElement } from '../../types';
+import { degradeElement } from './degrade-element';
 import { elementRectEmu } from './element-rect';
 import type { ConvertContext } from './element-to-write-model';
-import { degradeElement } from './element-to-write-model';
 import { resolveHyperlink } from './hyperlink-model';
 import { dataUrlToWav } from './raster-utils';
 import type { WAnyShape } from './write-model';

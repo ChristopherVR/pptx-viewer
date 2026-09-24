@@ -3,7 +3,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { encodeComplexString } from './fopt-writer';
+import { buildMetroBlobTertiaryFopt, encodeComplexString } from './fopt-writer';
 
 describe('encodeComplexString', () => {
 	it('appends a trailing UTF-16 null terminator', () => {
@@ -24,5 +24,21 @@ describe('encodeComplexString', () => {
 	it('null-terminates the empty string too', () => {
 		const bytes = encodeComplexString('');
 		expect(Array.from(bytes)).toStrictEqual([0, 0]);
+	});
+});
+
+describe('buildMetroBlobTertiaryFopt', () => {
+	it('writes the metroBlob as the sole complex entry of a TertiaryFOPT, fComplex+fBid set', () => {
+		const blob = Uint8Array.from([0x50, 0x4b, 0x03, 0x04, 0xaa]);
+		const rec = buildMetroBlobTertiaryFopt(blob);
+		const view = new DataView(rec.buffer, rec.byteOffset, rec.byteLength);
+		// recVer 3, recInstance 1 (one property), recType 0xF122.
+		expect(view.getUint16(0, true)).toBe(0x0013);
+		expect(view.getUint16(2, true)).toBe(0xf122);
+		expect(view.getUint32(4, true)).toBe(6 + blob.length);
+		// PowerPoint's own bytes for the property id: A9 C3.
+		expect(Array.from(rec.subarray(8, 10))).toStrictEqual([0xa9, 0xc3]);
+		expect(view.getUint32(10, true)).toBe(blob.length);
+		expect(Array.from(rec.subarray(14))).toStrictEqual(Array.from(blob));
 	});
 });

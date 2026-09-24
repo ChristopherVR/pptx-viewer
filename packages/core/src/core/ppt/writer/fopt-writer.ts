@@ -106,3 +106,22 @@ export function buildFopt(simple: FoptSimpleEntry[], complex: FoptComplexEntry[]
 	const data = new ByteWriter().append(entries).append(payload).toBytes();
 	return record(OA.FOPT, data, count, false, 3);
 }
+
+/**
+ * [MS-ODRAW] `metroBlob` (opid 0x03A9, Group Shape property set): a ZIP/OPC
+ * package holding the shape's OOXML ("DrawingML round-trip") representation,
+ * written the way PowerPoint 2007+ writes it on a 97-2003 SaveAs: as the only
+ * entry of an `OfficeArtTertiaryFOPT`, with both `fComplex` and `fBid` set
+ * (raw opid bytes `A9 C3`, measured against PowerPoint 16.0's own output).
+ */
+export const METRO_BLOB_OPID = 0x03a9;
+
+/** Build the `OfficeArtTertiaryFOPT` record carrying a shape's `metroBlob` package. */
+export function buildMetroBlobTertiaryFopt(metroBlob: Uint8Array): Uint8Array {
+	const data = new ByteWriter()
+		.u16(METRO_BLOB_OPID | 0x8000 | FBID_FLAG)
+		.u32(metroBlob.length >>> 0)
+		.bytes(metroBlob)
+		.toBytes();
+	return record(OA.TertiaryFOPT, data, 1, false, 3);
+}
