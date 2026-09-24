@@ -50,6 +50,11 @@
 		contentPart && presenting ? getContentPartReplayStyles(contentPart.inkStrokes ?? []) : [],
 	);
 	const containerStyle = $derived(styleToString(getContainerStyle(element, zIndex)));
+
+	/** CSS `mix-blend-mode` for a stroke's own paint element (not the `<svg>` container); see `InkStrokeView.blendMode`. */
+	function blendStyle(blendMode: 'normal' | 'multiply'): string | undefined {
+		return blendMode === 'multiply' ? 'mix-blend-mode:multiply' : undefined;
+	}
 </script>
 
 {#if contentPart}
@@ -72,7 +77,7 @@
 				{#if presenting}<svelte:element this={'style'}>{INK_REPLAY_KEYFRAMES}</svelte:element>{/if}
 				{#each strokes as stroke, index (stroke.key)}
 					{#if stroke.nibMarks}
-						<g opacity={stroke.opacity}>
+						<g opacity={stroke.opacity} style={blendStyle(stroke.blendMode)}>
 							{#each stroke.nibMarks as mark, i (i)}
 								<ellipse
 									cx={mark.cx}
@@ -85,7 +90,7 @@
 							{/each}
 						</g>
 					{:else if stroke.circles}
-						<g opacity={stroke.opacity}>
+						<g opacity={stroke.opacity} style={blendStyle(stroke.blendMode)}>
 							{#each stroke.circles as circle, i (i)}
 								<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill={stroke.color} />
 							{/each}
@@ -102,9 +107,14 @@
 							vector-effect="non-scaling-stroke"
 							stroke-dasharray={replayStyles[index]?.strokeDasharray}
 							stroke-dashoffset={replayStyles[index]?.strokeDashoffset}
-							style={replayStyles[index]
-								? `animation: ${replayStyles[index].animation}; --ink-path-length: ${replayStyles[index].pathLength}`
-								: undefined}
+							style={[
+								replayStyles[index]
+									? `animation: ${replayStyles[index].animation}; --ink-path-length: ${replayStyles[index].pathLength}`
+									: undefined,
+								blendStyle(stroke.blendMode),
+							]
+								.filter(Boolean)
+								.join(';') || undefined}
 						/>
 					{/if}
 				{/each}

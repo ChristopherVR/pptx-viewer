@@ -139,6 +139,21 @@ describe('inkView', () => {
 		expect(ellipses?.[0].getAttribute('fill')).toBe('#123456');
 	});
 
+	it('applies multiply blending to the stroke path itself, not the container svg, for a highlighter stroke', () => {
+		const target = mountEl(inkElement({ inkPaths: ['M 0 0 L 10 10'], inkTool: 'highlighter' }));
+		const svg = target.querySelector('svg.pptx-svelte-ink-svg');
+		expect(svg?.getAttribute('style') ?? '').not.toContain('mix-blend-mode');
+		expect(svg?.querySelector('path')?.getAttribute('style') ?? '').toContain(
+			'mix-blend-mode: multiply',
+		);
+	});
+
+	it('does not apply multiply blending to a non-highlighter, fully opaque stroke', () => {
+		const target = mountEl(inkElement({ inkPaths: ['M 0 0 L 10 10'] }));
+		const style = target.querySelector('svg path')?.getAttribute('style') ?? '';
+		expect(style).not.toContain('mix-blend-mode');
+	});
+
 	it('renders no SVG for an element without strokes', () => {
 		const target = mountEl(inkElement({}));
 		expect(target.querySelector('[data-element-id="ink-1"]')).not.toBeNull();

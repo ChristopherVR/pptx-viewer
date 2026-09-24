@@ -23,6 +23,9 @@
 
 	const { ink, canvasSize }: { ink: EditorInkController; canvasSize: CanvasSize } = $props();
 	const view = $derived(ink.liveStrokeView);
+
+	/** CSS `mix-blend-mode` for the live stroke's own paint element (not the `<svg>` container); see `InkStrokeView.blendMode`. */
+	const liveBlendStyle = $derived(view?.blendMode === 'multiply' ? 'mix-blend-mode:multiply' : undefined);
 </script>
 
 {#if view}
@@ -33,7 +36,7 @@
 			preserveAspectRatio="none"
 		>
 			{#if view.nibMarks}
-				<g opacity={view.opacity}>
+				<g opacity={view.opacity} style={liveBlendStyle}>
 					{#each view.nibMarks as mark, i (i)}
 						<ellipse
 							cx={mark.cx}
@@ -46,7 +49,7 @@
 					{/each}
 				</g>
 			{:else if view.circles}
-				<g opacity={view.opacity}>
+				<g opacity={view.opacity} style={liveBlendStyle}>
 					{#each view.circles as circle, i (i)}
 						<circle cx={circle.cx} cy={circle.cy} r={circle.r} fill={view.color} />
 					{/each}
@@ -60,6 +63,7 @@
 					stroke-opacity={view.opacity}
 					stroke-linecap="round"
 					stroke-linejoin="round"
+					style={liveBlendStyle}
 				/>
 			{/if}
 		</svg>
