@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.24.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.24.0) - 2026-09-24
+
+### Features
+
+- **react:** Replace per-kind 3D chart/SmartArt wrappers with <pptx-three-view> (by @ChristopherVR) ([7abc7f3](https://github.com/ChristopherVR/pptx-viewer/commit/7abc7f326223b064bc902933bdeaa8aa17802175))
+- **shared:** Use web components for search, select, and checkbox controls ([#352](https://github.com/ChristopherVR/pptx-viewer/issues/352)) (by @yunfeizhu) ([e09b47a](https://github.com/ChristopherVR/pptx-viewer/commit/e09b47a6e7c94e170d4fe9c87774d11619da776d))
+
+### Refactor
+
+- **shared:** Remove the pre-element SmartArt scene runtime (by @claude) ([a2bd6c1](https://github.com/ChristopherVR/pptx-viewer/commit/a2bd6c18beba4ad8e3769a71e04f3cb08fee3d99))
+
+### Testing
+
+- **react:** Give the surface 3D gating fixture a c:view3D (by @ChristopherVR) ([f559b0d](https://github.com/ChristopherVR/pptx-viewer/commit/f559b0decbf7761b4bf22a736ff2e775571b2bfa))
+
 ## [2.23.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.23.6) - 2026-09-23
 
 ### Bug Fixes

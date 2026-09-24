@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.1.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.1.0) - 2026-09-24
+
+### Features
+
+- **core:** Parse 3D scene/extrusion for cached SmartArt drawing shapes (by @ChristopherVR) ([e80b086](https://github.com/ChristopherVR/pptx-viewer/commit/e80b086ada646f9786510e43f7e11f705eebe77c))
+
 ## [4.0.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.0.2) - 2026-09-22
 
 ### Bug Fixes
