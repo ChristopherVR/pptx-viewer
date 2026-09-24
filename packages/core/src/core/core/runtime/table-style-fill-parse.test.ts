@@ -29,7 +29,7 @@ describe('parseTableStyleSectionFill', () => {
 			}),
 		);
 		expect(fill?.schemeColor).toBe('accent1');
-		expect(fill?.alpha).toBe(0.2);
+		expect(fill?.alpha).toBe(20_000);
 	});
 
 	it('parses a:alpha on an explicit sRGB solid fill', () => {
@@ -41,7 +41,7 @@ describe('parseTableStyleSectionFill', () => {
 			}),
 		);
 		expect(fill?.color).toBe('#FF8800');
-		expect(fill?.alpha).toBe(0.4);
+		expect(fill?.alpha).toBe(40_000);
 	});
 
 	it('omits alpha entirely when a:alpha is absent (no behaviour change)', () => {
