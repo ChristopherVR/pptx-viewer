@@ -7,6 +7,50 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.5.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Empty-canvas context menu (by @ChristopherVR) ([15b9a88](https://github.com/ChristopherVR/pptx-viewer/commit/15b9a88356ef91fda565d65ee107249d32aeb0b8))
+- **shared,react,vue,angular,svelte,vanilla:** Slides pane multi-select + thumbnail menu (by @ChristopherVR) ([4078a33](https://github.com/ChristopherVR/pptx-viewer/commit/4078a33160a1edbabdf37ac7f3163bad37898752))
+- **shared,react,vue,angular,svelte,vanilla:** Real in-place ribbon animation preview (by @ChristopherVR) ([9b98bac](https://github.com/ChristopherVR/pptx-viewer/commit/9b98bac62f90c02c78afe0fa2989ab57dc9e7928))
+
+### Bug Fixes
+
+- **core:** Stop materializing mc:Ignorable for self-declaring a16 elements (by @ChristopherVR) ([0e9a23a](https://github.com/ChristopherVR/pptx-viewer/commit/0e9a23a9bca70c60974babd4c64abe11c9a2b0e9))
+- **core:** Stop materializing empty a:pPr / a:endParaRPr on real paragraphs (by @ChristopherVR) ([d50a8b6](https://github.com/ChristopherVR/pptx-viewer/commit/d50a8b65ab63bacc10d39eac489899297989e265))
+- **core:** Stop materializing a:rPr@dirty / @smtClean on runs that never authored them (by @ChristopherVR) ([d14f95d](https://github.com/ChristopherVR/pptx-viewer/commit/d14f95d9c56663ecd189f511fbc27ec3210df283))
+- **core:** Stop materializing a:t@xml:space and leaked font @panose (by @ChristopherVR) ([2ce4d43](https://github.com/ChristopherVR/pptx-viewer/commit/2ce4d433a9d7b896b546ad44b6216f416561c0f0))
+- **core:** Stop dropping authored schema-default line/gradient/transition values (by @ChristopherVR) ([374ba48](https://github.com/ChristopherVR/pptx-viewer/commit/374ba4818babfbe72b5ce600b187ccb32a0e3444))
+- **core:** Stop dropping connector arrow-end/dash and ink fallback content (by @ChristopherVR) ([de2a0d1](https://github.com/ChristopherVR/pptx-viewer/commit/de2a0d12054d9007299b445853743fa177322c7f))
+- **core:** Resolve font @panose/@pitchFamily/@charset from the run's own scope (by @ChristopherVR) ([751d9fb](https://github.com/ChristopherVR/pptx-viewer/commit/751d9fbe237f66dd23a7c6b376ef7e6088d98dd6))
+- **core:** Match typeface before trusting the baseline font metadata (by @ChristopherVR) ([7c5f915](https://github.com/ChristopherVR/pptx-viewer/commit/7c5f9151a60fb03d6ae411b4678e51e79364afb8))
+- **core:** Port pyraAcctRatio accent-column split into alg-pyra (by @ChristopherVR) ([08792ef](https://github.com/ChristopherVR/pptx-viewer/commit/08792ef0c9c896d752286ba889a730035e3defda))
+- **core:** Resolve sibTrans transition-point labels in the smartart engine (by @ChristopherVR) ([7a353f0](https://github.com/ChristopherVR/pptx-viewer/commit/7a353f02193766a628496d0ced053cd0d16a4149))
+- **core:** Stop declining SmartArt diagrams over zero-area shapes; port hierRoot/hierChild (by @ChristopherVR) ([2dae123](https://github.com/ChristopherVR/pptx-viewer/commit/2dae123426c79a484a5cc7b37a608898d2080034))
+- **core,shared:** Render surface charts as PowerPoint's four surface types (by @ChristopherVR) ([4a0232b](https://github.com/ChristopherVR/pptx-viewer/commit/4a0232bb0e5dd19490731f31f30c73f3d97e898f))
+- **shared:** Group box-whisker boxes by repeated category, not by series (by @ChristopherVR) ([076ba4c](https://github.com/ChristopherVR/pptx-viewer/commit/076ba4c3ac2ec269ca42a11ec27034df1c3068a4))
+- **core,shared:** Aggregate Pareto bars by category, not by value bin (by @ChristopherVR) ([67ec333](https://github.com/ChristopherVR/pptx-viewer/commit/67ec333a0c32af900213c591a980107c8d8b2e1f))
+- **shared:** Bin histograms with Scott's rule, paint bars one colour (by @ChristopherVR) ([4bae8f0](https://github.com/ChristopherVR/pptx-viewer/commit/4bae8f06d0c54a3e9a46ed3446e17c7a433c761d))
+- **shared:** Draw funnel bars flat and single-coloured, not tapered (by @ChristopherVR) ([82b349a](https://github.com/ChristopherVR/pptx-viewer/commit/82b349a4bc098f9cb13788375c84ebe6cd7cf272))
+- **shared:** Squarify treemap layout, colour by branch, sunburst labels (by @ChristopherVR) ([2b34646](https://github.com/ChristopherVR/pptx-viewer/commit/2b34646ae16a80af25c618a2c747990e47bf208a))
+- **core:** Honor dgm:layoutNode moveWith to stop numbered-list phantom shapes (by @ChristopherVR) ([2c247e9](https://github.com/ChristopherVR/pptx-viewer/commit/2c247e9a96b5356b1e2a88abcdbf503e238ff689))
+- **core:** Stop fabricating a:rPr lang on runs that authored none (by @ChristopherVR) ([ad495de](https://github.com/ChristopherVR/pptx-viewer/commit/ad495ded1cc98e2962f151cadb0e05bb998c71b1))
+- **core:** Preserve text run inner-shadow preset/theme colour choice (by @ChristopherVR) ([6a48785](https://github.com/ChristopherVR/pptx-viewer/commit/6a48785ac9f140d6a85e6dfc9365d122ed2684c0))
+- **core:** Stop padding partial gradFill fillToRect/tileRect with zeros (by @ChristopherVR) ([2dc54d2](https://github.com/ChristopherVR/pptx-viewer/commit/2dc54d2115258091d0f930d4b573a659af6f68b0))
+- **core:** Stop dropping a tiny but authored blipFill a:srcRect crop (by @ChristopherVR) ([3753725](https://github.com/ChristopherVR/pptx-viewer/commit/37537258e2452f5b83d3d5cf27372946e69c0f53))
+- **shared,react:** Round normAutofit fontScale to a whole point (by @ChristopherVR) ([cda09e4](https://github.com/ChristopherVR/pptx-viewer/commit/cda09e4eb35619701663fbfcb81892ef23ee377c))
+- **shared,core:** Fix text reflection mirror, inner shadow, glow, soft edge (by @ChristopherVR) ([1796d14](https://github.com/ChristopherVR/pptx-viewer/commit/1796d14015e6d1a1db2221bcfc90bf446536a453))
+- **core,shared,react:** Size inline equations from their own paragraph; assert anchorCtr on painted text (by @ChristopherVR) ([16ecb59](https://github.com/ChristopherVR/pptx-viewer/commit/16ecb593ba301bced3d68bfb323d1040b1874904))
+
+### Testing
+
+- **core:** Fix stale coverage evidence anchors after test renames (by @ChristopherVR) ([87c17c6](https://github.com/ChristopherVR/pptx-viewer/commit/87c17c664805806bbcfd90f40e74035a4cca37c9))
+- **core:** Give the salt-less WHIRLPOOL verifier fixture a CI-safe timeout (by @ChristopherVR) ([560c120](https://github.com/ChristopherVR/pptx-viewer/commit/560c12079514f9b0089f6ceceecdd633fda842ea))
+- **shared:** Give the salt-less modify-password check a CI-safe timeout (by @ChristopherVR) ([9ff5b84](https://github.com/ChristopherVR/pptx-viewer/commit/9ff5b84473800b77773c123a819e30c8a02d5097))
+- **core:** Lock in a:blip/a:extLst vendor-extension preservation (by @ChristopherVR) ([d2fad1a](https://github.com/ChristopherVR/pptx-viewer/commit/d2fad1a5a191a7779b99101537294a571224e45a))
+- **shared:** Round the normAutofit fixture in buildParagraphs coverage (by @ChristopherVR) ([a88422d](https://github.com/ChristopherVR/pptx-viewer/commit/a88422dcdf9162e72f1528eae16a16891dfb13bd))
+
 ## [4.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.4.0) - 2026-09-24
 
 ### Features

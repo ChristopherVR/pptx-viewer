@@ -7,6 +7,20 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.27.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.27.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Empty-canvas context menu (by @ChristopherVR) ([15b9a88](https://github.com/ChristopherVR/pptx-viewer/commit/15b9a88356ef91fda565d65ee107249d32aeb0b8))
+- **shared,react,vue,angular,svelte,vanilla:** Slides pane multi-select + thumbnail menu (by @ChristopherVR) ([4078a33](https://github.com/ChristopherVR/pptx-viewer/commit/4078a33160a1edbabdf37ac7f3163bad37898752))
+- **shared,react,vue,angular,svelte,vanilla:** Real in-place ribbon animation preview (by @ChristopherVR) ([9b98bac](https://github.com/ChristopherVR/pptx-viewer/commit/9b98bac62f90c02c78afe0fa2989ab57dc9e7928))
+
+### Bug Fixes
+
+- **shared,react:** Round normAutofit fontScale to a whole point (by @ChristopherVR) ([cda09e4](https://github.com/ChristopherVR/pptx-viewer/commit/cda09e4eb35619701663fbfcb81892ef23ee377c))
+- **shared,core:** Fix text reflection mirror, inner shadow, glow, soft edge (by @ChristopherVR) ([1796d14](https://github.com/ChristopherVR/pptx-viewer/commit/1796d14015e6d1a1db2221bcfc90bf446536a453))
+- **core,shared,react:** Size inline equations from their own paragraph; assert anchorCtr on painted text (by @ChristopherVR) ([16ecb59](https://github.com/ChristopherVR/pptx-viewer/commit/16ecb593ba301bced3d68bfb323d1040b1874904))
+
 ## [2.26.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.26.0) - 2026-09-24
 
 ### Features
