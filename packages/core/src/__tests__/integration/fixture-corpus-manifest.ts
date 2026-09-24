@@ -124,6 +124,13 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		provenance: 'third-party',
 		status: 'roundtrip',
 		note: 'Real-world corpus download; the mixed-media deck (jpg, png, m4a, mp4). Largest fixture in the repo.',
+		allowedPartLoss: [
+			// The deck carries `<p:cmAuthorLst/>` with no authors and no comment
+			// parts anywhere. The save drops the part, its content-type override
+			// and its presentation relationship together, leaving nothing
+			// dangling, so this is a consistent cleanup rather than data loss.
+			'ppt/commentAuthors.xml',
+		],
 	},
 	{
 		file: 'Japanese_10_Slides_1_8_MB_bbd4090b55.pptx',
@@ -138,6 +145,7 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 		provenance: 'third-party',
 		status: 'roundtrip',
 		note: 'Real-world corpus download; OMML equations. 45 KB and media-free, so it is the cheapest genuine deck here.',
+		allowedPartLoss: ['ppt/commentAuthors.xml'],
 	},
 	{
 		file: 'Non_Latin_Arabic_RTL_text_11_Slides_7_3_MB_7f135c4f96.pptx',
