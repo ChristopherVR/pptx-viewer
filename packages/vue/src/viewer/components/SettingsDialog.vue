@@ -17,19 +17,18 @@ import type {
 	ViewerAddinStatus,
 	ViewerOptions,
 	ViewerOptionsGroupId,
-	ViewerOptionsTabId,
 } from 'pptx-viewer-shared';
-import {
-	DEFAULT_QUICK_ACCESS_COMMAND_IDS,
-	getDensePanelTouchTargetPx,
-	VIEWER_OPTIONS_TABS,
-} from 'pptx-viewer-shared';
+import { DEFAULT_QUICK_ACCESS_COMMAND_IDS, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { LocaleCatalogEntry } from '../../i18n';
 import type { ThemeCatalogEntry } from '../../theme';
+import {
+	AI_OPTIONS_TAB_ID as AI_TAB_ID,
+	useCustomizedOptionsTabs,
+} from '../composables/useCustomizedOptionsTabs';
 import { useIsMobile } from '../composables/useIsMobile';
 import OptionsAddInsPane from './settings/OptionsAddInsPane.vue';
 import OptionsPane from './settings/OptionsPane.vue';
@@ -39,9 +38,6 @@ import SettingsAiTab from './SettingsAiTab.vue';
 import SettingsAppearanceTab from './SettingsAppearanceTab.vue';
 import SettingsCustomFontsSection from './SettingsCustomFontsSection.vue';
 import SettingsLanguageTab from './SettingsLanguageTab.vue';
-
-/** Synthetic tab id for the AI section (appended only when `aiEnabled`). */
-const AI_TAB_ID = 'ai';
 
 const props = defineProps<{
 	/** Whether the dialog is visible. */
@@ -105,9 +101,10 @@ const navBtnStyle = computed(() => {
 	return { minHeight: `${size}px`, minWidth: `${size}px` };
 });
 
-const activeTabId = ref<ViewerOptionsTabId | typeof AI_TAB_ID>('general');
-const activeTab = computed(
-	() => VIEWER_OPTIONS_TABS.find((tab) => tab.id === activeTabId.value) ?? VIEWER_OPTIONS_TABS[0],
+// The rail after the host's UI customisation (hidden pages/sections/settings,
+// locked settings marked read-only); see `useCustomizedOptionsTabs`.
+const { visibleTabs, showAiTab, activeTabId, activeTab } = useCustomizedOptionsTabs(() =>
+	Boolean(props.aiEnabled),
 );
 
 /** Snapshot taken on open, restored wholesale by Cancel. */
@@ -192,7 +189,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 							class="pptx-vue-options-rail w-44 shrink-0 space-y-0.5 overflow-y-auto border-r border-border/60 p-2 max-md:flex max-md:w-full max-md:space-y-0 max-md:gap-1 max-md:overflow-x-auto max-md:border-b max-md:border-r-0"
 						>
 							<button
-								v-for="tab in VIEWER_OPTIONS_TABS"
+								v-for="tab in visibleTabs"
 								:key="tab.id"
 								type="button"
 								:aria-current="activeTabId === tab.id"
@@ -208,7 +205,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onDocumentKeydown)
 								{{ t(tab.labelKey) }}
 							</button>
 							<button
-								v-if="aiEnabled"
+								v-if="showAiTab"
 								type="button"
 								:aria-current="activeTabId === AI_TAB_ID"
 								class="block w-full whitespace-nowrap rounded px-3 py-2 text-left text-sm transition-colors max-md:w-auto"

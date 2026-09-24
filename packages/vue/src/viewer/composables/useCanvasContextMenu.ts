@@ -1,4 +1,8 @@
-import { buildCanvasContextMenuEntries } from 'pptx-viewer-shared';
+import {
+	buildCanvasContextMenuEntries,
+	customizeCanvasContextMenuEntries,
+} from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -30,6 +34,8 @@ export interface UseCanvasContextMenuInput {
 	onResetSlide: () => void;
 	/** Opens the inspector on slide/background properties (no element selected). */
 	onOpenFormatBackground: () => void;
+	/** The host's resolved UI customisation (hidden commands / disabled menu). */
+	customization?: () => ResolvedCustomization;
 }
 
 export interface UseCanvasContextMenuResult {
@@ -46,11 +52,14 @@ export function useCanvasContextMenu(input: UseCanvasContextMenuInput): UseCanva
 	const canvasContextMenu = ref<CanvasContextMenuState>({ open: false, x: 0, y: 0 });
 
 	const canvasContextItems = computed<ContextMenuItem[]>(() => {
-		const entries = buildCanvasContextMenuEntries({
+		const built = buildCanvasContextMenuEntries({
 			hasClipboard: input.hasClipboard.value,
 			showGrid: input.showGrid.value,
 			showRulers: input.showRulers.value,
 		});
+		const entries = input.customization
+			? customizeCanvasContextMenuEntries(built, input.customization())
+			: built;
 		return entries.flatMap((entry, index) => {
 			const item: ContextMenuItem = {
 				id: entry.id,
@@ -65,6 +74,10 @@ export function useCanvasContextMenu(input: UseCanvasContextMenuInput): UseCanva
 	});
 
 	function openCanvasContextMenu(x: number, y: number): void {
+		// The host removed every entry (or the whole menu): render nothing.
+		if (canvasContextItems.value.length === 0) {
+			return;
+		}
 		canvasContextMenu.value = { open: true, x, y };
 	}
 

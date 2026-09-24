@@ -14,7 +14,8 @@
  * plain object does not unwrap.
  */
 import type { PptxLayoutOption, PptxLayoutPreview, PptxTheme } from 'pptx-viewer-core';
-import { ref } from 'vue';
+import { isDialogAvailable } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { CanvasContextMenuState } from '../composables/useCanvasContextMenu';
@@ -23,6 +24,7 @@ import type { ContextMenuState } from '../composables/useContextMenu';
 import type { UseHyperlinkDialogResult } from '../composables/useHyperlinkDialog';
 import type { UsePasteSpecialResult } from '../composables/usePasteSpecial';
 import type { UseThemeEditingResult } from '../composables/useThemeEditing';
+import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import type { ContextMenuItem } from './ContextMenu.vue';
 import ContextMenu from './ContextMenu.vue';
 import HyperlinkDialog from './HyperlinkDialog.vue';
@@ -69,6 +71,9 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+// The host can remove the Share dialog (hiddenDialogs / disabled collaboration).
+const customization = useResolvedCustomization();
+const shareAvailable = computed(() => isDialogAvailable(customization.value, 'share'));
 
 /** Zero-size anchor positioned at the canvas menu's click point; `LayoutGalleryMenu` hangs off its rect. */
 const layoutGalleryAnchorEl = ref<HTMLElement | null>(null);
@@ -153,7 +158,7 @@ const layoutGalleryAnchorEl = ref<HTMLElement | null>(null);
 
 	<!-- Share / collaboration -->
 	<ShareDialog
-		:open="collaboration.shareOpen.value"
+		:open="collaboration.shareOpen.value && shareAvailable"
 		:defaults="shareDefaults"
 		:active="collaboration.collabActive.value"
 		:collab="collaboration.collab"

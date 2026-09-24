@@ -14,7 +14,7 @@ import {
 	clampZoomScale,
 	prepareElementForInsertion,
 } from 'pptx-viewer-shared';
-import type { ViewerMode } from 'pptx-viewer-shared';
+import type { ViewerCustomizationApi, ViewerMode } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 
 import type { PowerPointViewerExpose } from '../types';
@@ -67,7 +67,13 @@ export interface UseViewerApiOptions {
 	};
 }
 
-export function useViewerApi(options: UseViewerApiOptions): PowerPointViewerExpose {
+/**
+ * The handle minus the UI-customisation helpers, which the SFC spreads in
+ * straight from the customisation controller (`useViewerCustomization`).
+ */
+export type ViewerApiHandle = Omit<PowerPointViewerExpose, keyof ViewerCustomizationApi>;
+
+export function useViewerApi(options: UseViewerApiOptions): ViewerApiHandle {
 	const {
 		slides,
 		activeSlide,

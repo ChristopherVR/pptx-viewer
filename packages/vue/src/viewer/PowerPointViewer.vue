@@ -94,6 +94,7 @@ import { AccountAuthKey } from './composables/account-auth';
 import { useAiBridge } from './composables/ai/useAiBridge';
 import { useAiPanelController } from './composables/ai/useAiPanelController';
 import { useChartCanvasEditContext } from './composables/chart-part-selection';
+import { useCustomizedRibbonProps } from './composables/customization-ribbon-gates';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
 import { RecentColorsKey } from './composables/recent-colors-context';
@@ -169,6 +170,7 @@ import { useThemeEditing } from './composables/useThemeEditing';
 import { useTouchGestures } from './composables/useTouchGestures';
 import { useVersionHistoryWiring } from './composables/useVersionHistoryWiring';
 import { useViewerApi } from './composables/useViewerApi';
+import { useViewerCustomization } from './composables/useViewerCustomization';
 import { useViewerOptionsStore } from './composables/useViewerOptionsStore';
 import { useViewerPreferences } from './composables/useViewerPreferences';
 import { useViewerRibbonProps } from './composables/useViewerRibbonProps';
@@ -225,6 +227,10 @@ const password = usePasswordProtection();
 // to decide whether `handler.load()` may fetch remote image URLs, exactly
 // like `password` above is read for the save path.
 const { optionsStore, viewerOptions } = useViewerOptionsStore();
+// Host UI customisation (`customization` prop + handle helpers); locks `optionsStore`.
+const customization = useViewerCustomization({ props, optionsStore });
+const { panelVisible, dialogAvailable, effectiveHiddenActions, aiEnabled, aiConfig } =
+	customization;
 
 const deck = useLoadContent(() => activeContent.value, {
 	getPendingInlineEdit: () => {
@@ -756,6 +762,7 @@ const printer = usePrint({
 	rasterizeSlide,
 	slideSize: canvasSize,
 	handoutMaster,
+	canOpen: () => dialogAvailable('print'),
 });
 
 // -- Full-deck overlays (sorter / outline / reading view) --------------
@@ -849,6 +856,7 @@ const canvasMenu = useCanvasContextMenu({
 		selectedElementIds.value = [];
 		inspectorOpen.value = true;
 	},
+	customization: () => customization.resolved.value,
 });
 /** Layout artwork for the canvas menu's gallery; fetched once it opens (see `SlidesGroup.vue`'s ribbon twin). */
 const canvasLayoutGalleryPreviews = ref<ReadonlyMap<string, PptxLayoutPreview>>(new Map());
@@ -903,7 +911,8 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	onAddComment: () => {
 		comments.showComments.value = true;
 	},
-	aiEnabled: () => Boolean(props.ai),
+	aiEnabled: () => aiEnabled.value,
+	customization: () => customization.resolved.value,
 	onAskAi: () => {
 		aiPanel.askAboutSelection();
 		aiPanelOpen.value = true;
@@ -1295,6 +1304,7 @@ const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElem
 		toggleFormatPainter,
 		applyFormatToTarget,
 		cancelFormatPainter,
+		customization: () => customization.resolved.value,
 	});
 
 // -- Office-style ribbon wiring (RibbonToolbar <- React Toolbar.tsx) ----
@@ -1527,7 +1537,7 @@ const aiBridge = useAiBridge({
 // keyboard-shortcut registry, which needs `ribbonUpdateTextStyle` for the new
 // alignment/font-size/clear-formatting shortcuts.
 
-const ribbonProps = useViewerRibbonProps({
+const baseRibbonProps = useViewerRibbonProps({
 	canEdit: () => canEditEffective.value,
 	isMobile,
 	zoom,
@@ -1638,6 +1648,7 @@ const { handleCommandSearch, handleQuickAccessCommand } = useCommandDispatch({
 	exportPdf: onExportPdf,
 	addSlide: slideOps.addSlide,
 });
+const ribbonProps = useCustomizedRibbonProps(baseRibbonProps, customization.resolved);
 
 // -- Imperative surface (implements the shared PowerPointViewerAPI) ----
 useCanvasImagePaste(viewerRootRef, {
@@ -1667,8 +1678,8 @@ useCanvasImagePaste(viewerRootRef, {
 	insertElement: ops.addElement,
 });
 
-defineExpose<PowerPointViewerExpose>(
-	useViewerApi({
+defineExpose<PowerPointViewerExpose>({
+	...useViewerApi({
 		slides,
 		activeSlide,
 		activeSlideIndex,
@@ -1704,7 +1715,8 @@ defineExpose<PowerPointViewerExpose>(
 		toggleSlideHidden,
 		elementOps: ops,
 	}),
-);
+	...customization.api,
+});
 </script>
 
 <template>
@@ -1789,7 +1801,7 @@ defineExpose<PowerPointViewerExpose>(
 				     role="toolbar" ribbon element (which e2e measures for height
 				     parity), gated like React on desktop + non-present. -->
 				<TitleBar
-					v-if="!isMobile"
+					v-if="!isMobile && panelVisible('titleBar')"
 					:mode="ribbonMode"
 					:can-edit="canEditEffective"
 					:file-name="props.fileName"
@@ -1807,7 +1819,7 @@ defineExpose<PowerPointViewerExpose>(
 					:on-toggle-find-replace="() => (findOpen = !findOpen)"
 					:on-command-search="handleCommandSearch"
 					:on-quick-command="handleQuickAccessCommand"
-					:hidden-actions="props.hiddenActions"
+					:hidden-actions="effectiveHiddenActions"
 				/>
 				<!-- Both the ribbon and its optional below-strip are grouped under one
 				     v-if so MobileToolbar's v-else keeps pairing with "desktop or
@@ -1821,15 +1833,15 @@ defineExpose<PowerPointViewerExpose>(
 				<template v-if="!isMobile">
 					<RibbonToolbar
 						v-bind="ribbonProps"
-						:hidden-actions="props.hiddenActions"
+						:hidden-actions="effectiveHiddenActions"
 						:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
-						:ai-enabled="Boolean(props.ai)"
+						:ai-enabled="aiEnabled"
 						:is-ai-panel-open="aiPanelOpen"
 						:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 					/>
 					<!-- Options > Quick Access Toolbar > "below the Ribbon" -->
 					<div
-						v-if="belowRibbonQuickAccess.length > 0"
+						v-if="belowRibbonQuickAccess.length > 0 && panelVisible('quickAccessToolbar')"
 						class="flex items-center border-b border-border bg-background px-2 py-0.5"
 						data-pptx-quick-access-below
 					>
@@ -1848,9 +1860,9 @@ defineExpose<PowerPointViewerExpose>(
 				<MobileToolbar
 					v-else
 					v-bind="ribbonProps"
-					:hidden-actions="props.hiddenActions"
+					:hidden-actions="effectiveHiddenActions"
 					:recent-presentations-count="viewerOptions.advanced.recentPresentationsCount"
-					:ai-enabled="Boolean(props.ai)"
+					:ai-enabled="aiEnabled"
 					:is-ai-panel-open="aiPanelOpen"
 					:on-toggle-ai-panel="() => (aiPanelOpen = !aiPanelOpen)"
 				/>
@@ -1902,7 +1914,12 @@ defineExpose<PowerPointViewerExpose>(
 				     thumbnail in the tab order and the accessibility tree during
 				     the show. -->
 				<ViewerSlideRail
-					v-if="!isMobile && !sidebarCollapsed && !presentation.presenting.value"
+					v-if="
+						!isMobile &&
+						!sidebarCollapsed &&
+						!presentation.presenting.value &&
+						panelVisible('slidesPane')
+					"
 					:merged-slides="mergedSlides"
 					:merged-slide-by-id="selection.mergedSlideById.value"
 					:active-slide-index="activeSlideIndex"
@@ -1926,7 +1943,7 @@ defineExpose<PowerPointViewerExpose>(
 					ref="mainRef"
 					class="pptx-vue-main"
 					:class="{ 'is-editable': canEditEffective }"
-					:data-pptx-ai-active="props.ai && aiPanel.canvasAnimating.value ? 'true' : undefined"
+					:data-pptx-ai-active="aiConfig && aiPanel.canvasAnimating.value ? 'true' : undefined"
 					@pointerdown="onCanvasPointerDown"
 					@dblclick.capture="onCanvasDoubleClick"
 					@contextmenu="onCanvasContextMenu"
@@ -1977,7 +1994,7 @@ defineExpose<PowerPointViewerExpose>(
 							:drawing-width="drawingWidth"
 							:on-stroke="addInkStroke"
 							:on-erase="eraseInkAt"
-							:ai="props.ai"
+							:ai="aiConfig"
 							:ai-panel="aiPanel"
 							:on-request-edit="requestElementEdit"
 							:on-format="ribbonUpdateTextStyle"
@@ -2008,7 +2025,7 @@ defineExpose<PowerPointViewerExpose>(
 					:selection-pane="selectionPane"
 					:collaboration="collaboration"
 					:custom-shows="customShowsWiring"
-					:ai="props.ai"
+					:ai="aiConfig"
 					:ai-panel-open="aiPanelOpen"
 					:on-close-ai-panel="() => (aiPanelOpen = false)"
 					:ai-panel="aiPanel"
@@ -2030,7 +2047,13 @@ defineExpose<PowerPointViewerExpose>(
 			     status-bar Notes button and this strip's chevron stay in sync. It
 			     lives OUTSIDE <main> so it never scrolls away with the canvas. -->
 			<NotesPanel
-				v-if="canEditEffective && !isMobile && slideCount > 0 && !presentation.presenting.value"
+				v-if="
+					canEditEffective &&
+					!isMobile &&
+					slideCount > 0 &&
+					!presentation.presenting.value &&
+					panelVisible('notes')
+				"
 				ref="notesPanel"
 				:slide="activeSlide"
 				:expanded="notesExpanded"
@@ -2041,7 +2064,9 @@ defineExpose<PowerPointViewerExpose>(
 
 			<!-- Bottom status bar (desktop): React-parity chrome -->
 			<StatusBar
-				v-if="!isMobile && slideCount > 0 && !presentation.presenting.value"
+				v-if="
+					!isMobile && slideCount > 0 && !presentation.presenting.value && panelVisible('statusBar')
+				"
 				:slide-count="slideCount"
 				:active-slide-index="activeSlideIndex"
 				:is-dirty="autosave.isDirty.value"
@@ -2052,8 +2077,8 @@ defineExpose<PowerPointViewerExpose>(
 				:scale="zoom"
 				:mode="ribbonMode"
 				:is-notes-expanded="notesExpanded"
-				:show-notes="canEditEffective"
-				:hidden-actions="props.hiddenActions"
+				:show-notes="canEditEffective && panelVisible('notes')"
+				:hidden-actions="effectiveHiddenActions"
 				@zoom-in="zoomIn"
 				@zoom-out="zoomOut"
 				@zoom-to-fit="zoomReset"
@@ -2068,7 +2093,10 @@ defineExpose<PowerPointViewerExpose>(
 			>
 				<!-- Collaboration status in the footer (React parity), replacing the
 				     former floating pill. -->
-				<template v-if="collaboration.collabActive.value" #collaboration>
+				<template
+					v-if="collaboration.collabActive.value && dialogAvailable('share')"
+					#collaboration
+				>
 					<CollaborationStatusIndicator
 						:status="collaboration.collab.status.value"
 						:connected-count="collaboration.collab.connectedCount.value"
@@ -2135,7 +2163,7 @@ defineExpose<PowerPointViewerExpose>(
 				:header-footer-dialog="headerFooterDialog"
 				:show-shortcuts="showShortcuts"
 				:on-close-shortcuts="() => (showShortcuts = false)"
-				:show-settings="showSettings"
+				:show-settings="showSettings && dialogAvailable('options')"
 				:on-close-settings="() => (showSettings = false)"
 				:options-store="optionsStore"
 				:viewer-options="viewerOptions"
@@ -2146,7 +2174,7 @@ defineExpose<PowerPointViewerExpose>(
 				:on-locale-select="prefs.selectLocale"
 				:available-themes="props.availableThemes"
 				:available-locales="prefs.resolvedAvailableLocales.value"
-				:ai-enabled="Boolean(props.ai)"
+				:ai-enabled="aiEnabled"
 				:on-clear-cache="onOptionsClearCache"
 			/>
 

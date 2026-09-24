@@ -41,7 +41,16 @@ const label = computed(() => t(props.control.labelKey));
 // oxlint-disable-next-line eslint/one-var -- distinct concern from `label` above, forcing one statement hurts readability
 const infoText = computed(() => (props.control.infoKey ? t(props.control.infoKey) : undefined));
 
+// A host-locked setting (`customizeOptionsTabs` marks it `readOnly`) renders
+// disabled with an explanatory tooltip, and never emits a change.
+const locked = computed(() => props.control.readOnly === true);
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `locked` above, forcing one statement hurts readability
+const lockedTitle = computed(() => (locked.value ? t('pptx.options.lockedByHost') : undefined));
+
 function emitChange(next: boolean | number | string): void {
+	if (locked.value) {
+		return;
+	}
 	props.onOptionChange(props.control.group, props.control.key, next);
 }
 
@@ -73,8 +82,9 @@ function onNumberInput(event: Event): void {
 	<label
 		v-if="control.kind === 'toggle'"
 		class="pptx-vue-options-row flex cursor-pointer select-none items-center justify-between gap-3 py-1.5"
-		:class="{ 'pl-6': control.indent }"
+		:class="{ 'pl-6': control.indent, 'cursor-not-allowed opacity-60': locked }"
 		:style="rowStyle"
+		:title="lockedTitle"
 	>
 		<span class="text-sm text-foreground">
 			{{ label }}
@@ -84,6 +94,8 @@ function onNumberInput(event: Event): void {
 		</span>
 		<pptx-ui-checkbox
 			:checked="value === true"
+			:disabled="locked"
+			:title="lockedTitle"
 			:aria-label="label"
 			@change="emitChange(($event.target as HTMLElement & { checked: boolean }).checked)"
 		/>
@@ -92,8 +104,9 @@ function onNumberInput(event: Event): void {
 	<div
 		v-else
 		class="pptx-vue-options-row flex items-center justify-between gap-3 py-1.5"
-		:class="{ 'pl-6': control.indent }"
+		:class="{ 'pl-6': control.indent, 'opacity-60': locked }"
 		:style="rowStyle"
+		:title="lockedTitle"
 	>
 		<span class="text-sm text-foreground">
 			{{ label }}
@@ -106,6 +119,8 @@ function onNumberInput(event: Event): void {
 			v-if="control.kind === 'select'"
 			:aria-label="label"
 			:style="fieldStyle"
+			:disabled="locked"
+			:title="lockedTitle"
 			:value="typeof value === 'string' ? value : ''"
 			@change="emitChange(($event.target as HTMLElement & { value: string }).value)"
 		>
@@ -119,6 +134,8 @@ function onNumberInput(event: Event): void {
 				type="number"
 				:aria-label="label"
 				:style="fieldStyle"
+				:disabled="locked"
+				:title="lockedTitle"
 				class="w-20 rounded border border-border bg-background px-2 py-1 text-right text-xs text-foreground"
 				:min="control.min"
 				:max="control.max"
@@ -136,6 +153,8 @@ function onNumberInput(event: Event): void {
 			type="text"
 			:aria-label="label"
 			:style="fieldStyle"
+			:disabled="locked"
+			:title="lockedTitle"
 			class="w-48 max-w-[55%] rounded border border-border bg-background px-2 py-1 text-xs text-foreground"
 			:maxlength="control.kind === 'text' ? control.maxLength : undefined"
 			:value="typeof value === 'string' ? value : ''"

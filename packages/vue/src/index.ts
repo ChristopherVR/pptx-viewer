@@ -75,6 +75,45 @@ export type {
 	ToolbarTabId,
 } from 'pptx-viewer-shared';
 
+// ── UI customisation (`customization` prop + imperative handle helpers) ──
+// See docs/guide/customization.md. Re-exported so a host never has to reach
+// into `pptx-viewer-shared` (internal, unpublished) for the id catalogues.
+export type {
+	ViewerCustomization,
+	ViewerCustomizationApi,
+	ResolvedCustomization,
+	RibbonCustomization,
+	OptionsCustomization,
+	BackstageCustomization,
+	ContextMenuCustomization,
+	KeyboardCustomization,
+	OptionsSettingId,
+	OptionsSectionId,
+	OptionsPageId,
+	OptionsSettingValues,
+	ShortcutChord,
+	ViewerPanelId,
+	ViewerFeatureId,
+	ViewerDialogId,
+	ViewerExportFormatId,
+} from 'pptx-viewer-shared';
+export {
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+	OPTIONS_PAGE_IDS,
+	OPTIONS_SECTION_IDS,
+	OPTIONS_SETTING_IDS,
+	BACKSTAGE_PAGE_IDS,
+	BACKSTAGE_CARD_IDS,
+	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
+	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	EDITOR_SHORTCUT_ACTION_IDS,
+	VIEWER_PANEL_IDS,
+	VIEWER_FEATURE_IDS,
+	VIEWER_DIALOG_IDS,
+	VIEWER_EXPORT_FORMAT_IDS,
+} from 'pptx-viewer-shared';
+
 // ── Audience / presenter content sharing (IndexedDB, wire-compatible with React) ──
 export {
 	AUDIENCE_HASH,

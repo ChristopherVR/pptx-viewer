@@ -2,11 +2,13 @@ import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-c
 import {
 	buildContextMenuEntries,
 	contextMenuInspectorAnchor,
+	customizeContextMenuEntries,
 	hasMultipleSelectedTableCells,
 	resolveContextMenuElementId,
 	resolveTopLevelElementId,
 	scrollInspectorSectionIntoView,
 } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -81,6 +83,8 @@ export interface UseContextMenuInput {
 	 * click is left unhandled (browser's own menu), matching the old behaviour.
 	 */
 	onEmptyCanvasContextMenu?: (x: number, y: number) => void;
+	/** The host's resolved UI customisation (hidden commands / disabled menu). */
+	customization?: () => ResolvedCustomization;
 }
 
 export interface UseContextMenuResult {
@@ -122,6 +126,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		onAskAi,
 		onFixAi,
 		onEmptyCanvasContextMenu,
+		customization,
 	} = input;
 
 	const contextMenu = ref<ContextMenuState>({
@@ -164,7 +169,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 	 */
 	const contextItems = computed<ContextMenuItem[]>(() => {
 		const tbl = contextTable.value;
-		const entries = buildContextMenuEntries({
+		const built = buildContextMenuEntries({
 			elementType: contextElement.value?.type ?? null,
 			table: tbl ? { hasMultiCellSelection: tbl.hasMulti, isMergedCell: tbl.isMerged } : null,
 			hasMultiSelection: canGroup.value,
@@ -172,6 +177,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			aiEnabled: aiEnabled?.(),
 			hasClipboard: hasClipboard.value,
 		});
+		const entries = customization ? customizeContextMenuEntries(built, customization()) : built;
 		return entries.flatMap((entry, index) => {
 			const item: ContextMenuItem = {
 				id: entry.id,
@@ -234,6 +240,10 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			selectedElementIds.value = [id];
 		}
 		contextMenu.value = { open: true, x: event.clientX, y: event.clientY, elementId: id };
+		// The host removed every entry (or the whole menu): render nothing.
+		if (contextItems.value.length === 0) {
+			contextMenu.value = { ...contextMenu.value, open: false };
+		}
 	}
 	function onContextSelect(actionId: string): void {
 		const target = contextMenu.value.elementId;

@@ -5,15 +5,17 @@ import {
 	BACKSTAGE_NAV,
 	BACKSTAGE_NAV_CLASSES,
 	BACKSTAGE_TEMPLATES,
+	customizeBackstageNav,
 	formatBackstageDate,
 	formatBackstageSize,
 	listBackstageRecentFiles,
 } from 'pptx-viewer-shared';
 import type { BackstagePage, BackstageRecentFile } from 'pptx-viewer-shared';
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import AccountPage from './AccountPage.vue';
 import { buildFileSectionActions } from './file-section-actions';
 import { backstageIcon } from './file-section-icons';
@@ -47,7 +49,29 @@ const run = (action?: () => void) => {
 	}
 };
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
-const actions = computed(() => buildFileSectionActions(page.value, props, isHidden));
+const customization = useResolvedCustomization();
+const actions = computed(() =>
+	buildFileSectionActions(page.value, props, isHidden, customization.value),
+);
+// The nav after the host's customisation, minus Export when the host hid the
+// `'export'` action (React parity: that filter used to be React-only).
+const nav = computed(() =>
+	customizeBackstageNav(BACKSTAGE_NAV, customization.value).filter(
+		(item) => !(item.id === 'export' && isHidden('export')),
+	),
+);
+const mainNav = computed(() => nav.value.filter((item) => !item.group));
+const footerNav = computed(() => nav.value.filter((item) => item.group));
+// A page the host just hid falls back to Home (or the first page left).
+watch(
+	nav,
+	(items) => {
+		if (!items.some((item) => item.id === page.value)) {
+			page.value = items.some((item) => item.id === 'home') ? 'home' : (items[0]?.id ?? 'home');
+		}
+	},
+	{ immediate: true },
+);
 function selectPage(id: BackstagePage): void {
 	if (id === 'close') {
 		return props.onClose();
@@ -86,7 +110,7 @@ function selectPage(id: BackstagePage): void {
 				class="flex min-h-0 flex-1 flex-col overflow-y-auto pb-2 max-md:flex-row max-md:items-center max-md:overflow-y-visible max-md:pb-0"
 			>
 				<button
-					v-for="item in BACKSTAGE_NAV.filter((entry) => !entry.group)"
+					v-for="item in mainNav"
 					:key="item.id"
 					type="button"
 					data-pptx-backstage-nav-item
@@ -102,7 +126,7 @@ function selectPage(id: BackstagePage): void {
 				</button>
 				<div class="flex-1 max-md:hidden" />
 				<button
-					v-for="item in BACKSTAGE_NAV.filter((entry) => entry.group)"
+					v-for="item in footerNav"
 					:key="item.id"
 					type="button"
 					data-pptx-backstage-nav-item

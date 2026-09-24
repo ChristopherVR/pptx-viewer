@@ -20,11 +20,13 @@
  *    React's `useState`.
  */
 import { Download, Menu, Presentation, Redo, Share2, Sparkles, Undo } from 'lucide-vue-next';
-import { ref } from 'vue';
+import { isFeatureEnabled } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../utils';
 import { useToolbarVisibility } from '../composables/useToolbarVisibility';
+import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import MobileMenuSheet from './MobileMenuSheet.vue';
 import type { RibbonProps } from './ribbon/ribbon-types';
 
@@ -36,6 +38,8 @@ const { t } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 const menuOpen = ref(false);
+const customization = useResolvedCustomization();
+const presentModeEnabled = computed(() => isFeatureEnabled(customization.value, 'presentMode'));
 
 /** Edit + master modes expose the editing controls (mirrors React's showEdit). */
 const showEdit = (): boolean => props.mode === 'edit' || props.mode === 'master';
@@ -117,6 +121,7 @@ const BTN =
 
 		<!-- Present -->
 		<button
+			v-if="presentModeEnabled"
 			type="button"
 			:class="cn(BTN, 'text-primary')"
 			:title="t('pptx.mobileBar.present')"

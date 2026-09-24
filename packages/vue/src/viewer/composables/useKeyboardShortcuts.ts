@@ -32,10 +32,11 @@
 import {
 	isEditorControlTarget,
 	isEditorTextInputTarget,
-	mapEditorKey,
+	mapCustomizedEditorKey,
 	NUDGE_LARGE,
 	NUDGE_SMALL,
 } from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import { onMounted, onScopeDispose, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
@@ -85,6 +86,8 @@ export interface UseKeyboardShortcutsOptions {
 	tableEditorIsEditing?: MaybeRefOrGetter<boolean>;
 	/** Active drawing tool; shortcuts are suppressed unless `'select'`. */
 	activeTool?: MaybeRefOrGetter<string>;
+	/** The host's keyboard customisation (disabled / remapped shortcuts). */
+	keyboard?: () => ResolvedKeyboardCustomization | undefined;
 
 	/**
 	 * Self-attach the handler to `window` on mount (and detach on scope dispose).
@@ -142,8 +145,9 @@ export function resolveShortcutAction(
 	shiftKey: boolean,
 	guard: ShortcutGuardState,
 	altKey = false,
+	keyboard?: ResolvedKeyboardCustomization,
 ): MatchedShortcut {
-	return mapEditorKey(
+	return mapCustomizedEditorKey(
 		{ key, ctrlKey: mod, shiftKey, altKey },
 		{
 			canEdit: guard.canEdit,
@@ -155,6 +159,7 @@ export function resolveShortcutAction(
 			isTextInputTarget: guard.isTextInput,
 			isControlTarget: guard.isControl ?? false,
 		},
+		keyboard,
 	);
 }
 
@@ -189,7 +194,14 @@ export function useKeyboardShortcuts(
 
 	function matchShortcut(event: KeyboardEvent): MatchedShortcut {
 		const mod = event.metaKey || event.ctrlKey;
-		return resolveShortcutAction(event.key, mod, event.shiftKey, readGuard(event), event.altKey);
+		return resolveShortcutAction(
+			event.key,
+			mod,
+			event.shiftKey,
+			readGuard(event),
+			event.altKey,
+			options.keyboard?.(),
+		);
 	}
 
 	/**

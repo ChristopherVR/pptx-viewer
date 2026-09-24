@@ -14,9 +14,12 @@
  * ribbon-level context), so that purely-decorative avatar cluster is omitted.
  */
 import { MessageSquare, PanelLeft, PanelRight, Settings, Sparkles } from 'lucide-vue-next';
+import { isDialogAvailable, isPanelVisible } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import CustomShowsControls from './CustomShowsControls.vue';
 import ModeSwitcher from './ModeSwitcher.vue';
 import OverflowMenu from './OverflowMenu.vue';
@@ -27,6 +30,12 @@ interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+// Host UI customisation: hidden panels drop their toggles, a hidden Options
+// dialog drops the gear.
+const customization = useResolvedCustomization();
+const slidesPaneVisible = computed(() => isPanelVisible(customization.value, 'slidesPane'));
+const inspectorVisible = computed(() => isPanelVisible(customization.value, 'inspector'));
+const optionsAvailable = computed(() => isDialogAvailable(customization.value, 'options'));
 
 const qab =
 	'p-1 max-md:p-2 max-md:min-h-[40px] max-md:min-w-[40px] rounded-sm transition-colors hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 active:opacity-70';
@@ -36,7 +45,7 @@ const qab =
 	<div class="flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1">
 		<!-- Left: Slides pane toggle -->
 		<button
-			v-if="props.mode !== 'present'"
+			v-if="props.mode !== 'present' && slidesPaneVisible"
 			type="button"
 			:class="cn(qab, !props.isSidebarCollapsed ? 'text-foreground' : 'text-muted-foreground')"
 			:title="t('pptx.toolbar.toggleSlidesPanel')"
@@ -100,7 +109,7 @@ const qab =
 		<div :class="SEP" />
 
 		<button
-			v-if="props.mode === 'edit' || props.mode === 'master'"
+			v-if="(props.mode === 'edit' || props.mode === 'master') && inspectorVisible"
 			type="button"
 			:class="cn(qab, props.isInspectorPaneOpen ? 'text-foreground' : 'text-muted-foreground')"
 			:title="t('pptx.toolbar.toggleInspector')"
@@ -124,6 +133,7 @@ const qab =
 
 		<!-- Settings -->
 		<button
+			v-if="optionsAvailable"
 			type="button"
 			:class="cn(qab, 'text-muted-foreground')"
 			:title="t('pptx.toolbar.settingsShortcuts')"

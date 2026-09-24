@@ -4,6 +4,7 @@ import {
 	DEFAULT_VIEWER_OPTIONS,
 	extraQuickAccessCommands,
 	filterCommands,
+	isPanelVisible,
 	resolveTitleBarStatusKey,
 	TITLE_BAR_CLASSES as TB,
 	TITLE_BAR_DEFAULT_FILE_KEY,
@@ -15,6 +16,7 @@ import { useI18n } from 'vue-i18n';
 import { cn } from '../../../utils';
 import type { AutosaveStatus } from '../../composables/useAutosave';
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import type { ViewerMode } from './ribbon-types';
 import TitleBarQuickAccess from './TitleBarQuickAccess.vue';
@@ -50,6 +52,10 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
+const customization = useResolvedCustomization();
+const quickAccessVisible = computed(() =>
+	isPanelVisible(customization.value, 'quickAccessToolbar'),
+);
 
 // The strip beyond Save/Undo/Redo comes from File > Options; hardcoding three
 // buttons is what left this binding a command short of the shared default.
@@ -141,55 +147,58 @@ onBeforeUnmount(() => document.removeEventListener('mousedown', handleOutsideCli
 
 			<div :class="TB.separator" />
 
-			<button
-				v-if="props.onSave"
-				type="button"
-				:class="TB.quickButton"
-				:title="t('pptx.titleBar.save')"
-				:aria-label="t('pptx.titleBar.save')"
-				@click="props.onSave()"
-			>
-				<Save class="w-3.5 h-3.5" />
-			</button>
-			<button
-				v-if="!isHidden('undo')"
-				type="button"
-				:disabled="!props.canUndo"
-				:class="TB.quickButton"
-				:title="
-					props.undoLabel
-						? t('pptx.toolbar.undoAction', { action: props.undoLabel })
-						: t('pptx.toolbar.undo')
-				"
-				:aria-label="t('pptx.toolbar.undo')"
-				@click="props.onUndo()"
-			>
-				<Undo class="w-3.5 h-3.5" />
-			</button>
-			<button
-				v-if="!isHidden('redo')"
-				type="button"
-				:disabled="!props.canRedo"
-				:class="TB.quickButton"
-				:title="
-					props.redoLabel
-						? t('pptx.toolbar.redoAction', { action: props.redoLabel })
-						: t('pptx.toolbar.redo')
-				"
-				:aria-label="t('pptx.toolbar.redo')"
-				@click="props.onRedo()"
-			>
-				<Redo class="w-3.5 h-3.5" />
-			</button>
-			<!-- Everything else File > Options > Quick Access Toolbar asks for. -->
-			<TitleBarQuickAccess
-				v-if="extraQuickCommands.length > 0"
-				:items="extraQuickCommands"
-				:show-labels="quickAccess.showCommandLabels"
-				:on-command="(id: string) => props.onQuickCommand?.(id)"
-			/>
+			<!-- The quick-access strip; a host can remove it (hiddenPanels). -->
+			<template v-if="quickAccessVisible">
+				<button
+					v-if="props.onSave"
+					type="button"
+					:class="TB.quickButton"
+					:title="t('pptx.titleBar.save')"
+					:aria-label="t('pptx.titleBar.save')"
+					@click="props.onSave()"
+				>
+					<Save class="w-3.5 h-3.5" />
+				</button>
+				<button
+					v-if="!isHidden('undo')"
+					type="button"
+					:disabled="!props.canUndo"
+					:class="TB.quickButton"
+					:title="
+						props.undoLabel
+							? t('pptx.toolbar.undoAction', { action: props.undoLabel })
+							: t('pptx.toolbar.undo')
+					"
+					:aria-label="t('pptx.toolbar.undo')"
+					@click="props.onUndo()"
+				>
+					<Undo class="w-3.5 h-3.5" />
+				</button>
+				<button
+					v-if="!isHidden('redo')"
+					type="button"
+					:disabled="!props.canRedo"
+					:class="TB.quickButton"
+					:title="
+						props.redoLabel
+							? t('pptx.toolbar.redoAction', { action: props.redoLabel })
+							: t('pptx.toolbar.redo')
+					"
+					:aria-label="t('pptx.toolbar.redo')"
+					@click="props.onRedo()"
+				>
+					<Redo class="w-3.5 h-3.5" />
+				</button>
+				<!-- Everything else File > Options > Quick Access Toolbar asks for. -->
+				<TitleBarQuickAccess
+					v-if="extraQuickCommands.length > 0"
+					:items="extraQuickCommands"
+					:show-labels="quickAccess.showCommandLabels"
+					:on-command="(id: string) => props.onQuickCommand?.(id)"
+				/>
 
-			<div :class="TB.separator" />
+				<div :class="TB.separator" />
+			</template>
 		</template>
 
 		<span :class="TB.fileGroup">

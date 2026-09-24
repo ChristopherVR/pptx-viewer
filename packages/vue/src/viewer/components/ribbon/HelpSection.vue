@@ -5,8 +5,11 @@
  * `<template>` to keep that file under the repo's ~300 LOC convention and match
  * the one-component-per-tab pattern the other sections already follow.
  */
+import { isDialogAvailable } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import { pill } from './ribbon-constants';
 
 interface Props {
@@ -18,10 +21,13 @@ interface Props {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const customization = useResolvedCustomization();
+const optionsAvailable = computed(() => isDialogAvailable(customization.value, 'options'));
 </script>
 
 <template>
 	<button
+		v-if="optionsAvailable"
 		type="button"
 		:class="pill"
 		:title="t('pptx.settings.title')"
