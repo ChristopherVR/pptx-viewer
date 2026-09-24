@@ -25,6 +25,8 @@ interface ClipboardInput {
 	>;
 	ops: ElementOperations;
 	history: EditorHistoryResult;
+	/** Notified with the freshly-inserted clone after an ordinary paste. */
+	onPasted?: (element: PptxElement) => void;
 }
 
 export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
@@ -65,20 +67,21 @@ export function useClipboardHandlers(input: ClipboardInput): ClipboardHandlers {
 		handleDelete();
 	};
 
-	const insertClone = (source: PptxElement) => {
+	const insertClone = (source: PptxElement): PptxElement => {
 		// In edit-template mode the clone is inserted into the template store, so
 		// it keeps a template-prefixed id so later edits route to the same store.
 		const clone = cloneElementForPaste(source, { intoTemplate: editTemplateMode });
 		ops.updateActiveElements((els) => [...els, clone]);
 		ops.applySelection(clone.id);
 		history.markDirty();
+		return clone;
 	};
 
 	const handlePaste = () => {
 		if (!clipboardPayload || !activeSlide) {
 			return;
 		}
-		insertClone(clipboardPayload.element);
+		input.onPasted?.(insertClone(clipboardPayload.element));
 	};
 
 	const handleDuplicate = () => {

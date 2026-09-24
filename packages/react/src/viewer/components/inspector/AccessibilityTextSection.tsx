@@ -42,7 +42,7 @@ export function AccessibilityTextSection({
 	}
 
 	return (
-		<div className={CARD} data-pptx-accessibility-text>
+		<div className={CARD} data-pptx-accessibility-text data-pptx-inspector-section='alt-text'>
 			<div className={HEADING}>{t('pptx.accessibility.heading', 'Accessibility')}</div>
 			{fields.showAltText && (
 				<label className='flex flex-col gap-1 text-[11px]'>

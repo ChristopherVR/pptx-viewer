@@ -1,5 +1,10 @@
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
-import type { CellCoord, ContextMenuCommandId, ContextMenuEntry } from 'pptx-viewer-shared';
+import type {
+	CellCoord,
+	ContextMenuCommandId,
+	ContextMenuEntry,
+	InspectorSectionAnchor,
+} from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
 	canInteractWithElement,
@@ -7,6 +12,7 @@ import {
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
+	contextMenuInspectorAnchor,
 	hasMultipleSelectedTableCells,
 	insertTableElementColumn,
 	insertTableElementRow,
@@ -54,6 +60,19 @@ export interface ContextMenuDispatchDeps {
 	onComment?: () => void;
 	/** Open the hyperlink dialog for the selected element. */
 	onHyperlink?: () => void;
+	/**
+	 * Enter inline text edit for `elementId`, mirroring
+	 * `EditorController#requestElementEdit` (equation editor first, plain
+	 * inline edit otherwise). Wired to `controller.enterInlineEdit`.
+	 */
+	onEnterInlineEdit?: (elementId: string) => void;
+	/** Rasterise `elementId`'s own DOM node and download it as PNG. */
+	onSaveAsPicture?: (elementId: string) => void;
+	/**
+	 * Switch the inspector to the properties tab and, once mounted, scroll
+	 * `anchor` into view (Edit Alt Text / Size and Position / Format Shape).
+	 */
+	onFocusInspectorSection?: (anchor: InspectorSectionAnchor) => void;
 }
 
 /**
@@ -277,6 +296,32 @@ export function runContextMenuCommand(
 		case 'ungroup':
 			editor.arrangeOps.ungroupSelected();
 			return;
+		case 'edit-text': {
+			const editTextId = editor.selectedElement?.id;
+			// Mirrors `EditorController#requestElementEdit`: an equation opens its
+			// own editor (inline text edit would only see the "[Equation]"
+			// placeholder and destroy the OMML on commit).
+			if (editTextId && !editor.equationOps.open(editTextId)) {
+				deps.onEnterInlineEdit?.(editTextId);
+			}
+			return;
+		}
+		case 'save-as-picture': {
+			const targetId = editor.selectedElement?.id;
+			if (targetId) {
+				deps.onSaveAsPicture?.(targetId);
+			}
+			return;
+		}
+		case 'edit-alt-text':
+		case 'size-and-position':
+		case 'format-shape': {
+			const anchor = contextMenuInspectorAnchor(id);
+			if (anchor) {
+				deps.onFocusInspectorSection?.(anchor);
+			}
+			return;
+		}
 		case 'delete':
 			editor.deleteSelected();
 			return;

@@ -228,6 +228,11 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 				editor.select(nextId);
 			}
 		},
+		onPasteSpecial: () => {
+			if (editor.hasClipboard) {
+				editor.pasteSpecialDialogOpen = true;
+			}
+		},
 	});
 }
 

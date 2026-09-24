@@ -138,9 +138,10 @@ export function resolveShortcutAction(
 	mod: boolean,
 	shiftKey: boolean,
 	guard: ShortcutGuardState,
+	altKey = false,
 ): MatchedShortcut {
 	return mapEditorKey(
-		{ key, ctrlKey: mod, shiftKey },
+		{ key, ctrlKey: mod, shiftKey, altKey },
 		{
 			canEdit: guard.canEdit,
 			canPaste: guard.canPaste,
@@ -183,7 +184,7 @@ export function useKeyboardShortcuts(
 
 	function matchShortcut(event: KeyboardEvent): MatchedShortcut {
 		const mod = event.metaKey || event.ctrlKey;
-		return resolveShortcutAction(event.key, mod, event.shiftKey, readGuard(event));
+		return resolveShortcutAction(event.key, mod, event.shiftKey, readGuard(event), event.altKey);
 	}
 
 	/**

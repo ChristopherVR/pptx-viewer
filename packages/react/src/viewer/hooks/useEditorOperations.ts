@@ -4,10 +4,12 @@ import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
  * slide management, table operations, format painter) into a single return value.
  */
+import { downloadBlob, elementPictureFilename, rasterResultToPngBlob } from 'pptx-viewer-shared';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 
 import type { ViewerMode, CanvasSize } from '../types';
+import { renderElementToRaster } from '../utils/export-helpers';
 import { useCanvasImagePaste } from './useCanvasImagePaste';
 import { useCanvasInteractions } from './useCanvasInteractions';
 import type { CanvasInteractionHandlers } from './useCanvasInteractions';
@@ -21,6 +23,8 @@ import { useFindReplace } from './useFindReplace';
 import { useFormatPainterEditing } from './useFormatPainterEditing';
 import { useInsertElements } from './useInsertElements';
 import type { InsertElementHandlers } from './useInsertElements';
+import { usePasteSpecial } from './usePasteSpecial';
+import type { UsePasteSpecialResult } from './usePasteSpecial';
 import type { UsePresentationModeResult } from './usePresentationMode';
 import { useSectionOperations } from './useSectionOperations';
 import type { SectionOperations } from './useSectionOperations';
@@ -73,6 +77,8 @@ export interface EditorOperationsResult {
 	canvasHandlers: CanvasInteractionHandlers;
 	insertHandlers: InsertElementHandlers;
 	manipulation: ElementManipulationHandlers;
+	/** Paste Special (Ctrl+Alt+V) dialog + the post-paste Paste Options toolbar. */
+	pasteSpecial: UsePasteSpecialResult;
 	slideOps: SlideManagementHandlers;
 	tableOps: TableOperationHandlers;
 	/**
@@ -251,6 +257,45 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		insertElement: insertHandlers.addElement,
 	});
 
+	// "Edit Text" from the element context menu is the same effect as
+	// double-clicking the element: `handleElementDoubleClick` already ignores
+	// its event argument, so a synthetic empty one is safe here.
+	const handleEditTextFromContextMenu = useCallback(
+		(elementId: string) => {
+			canvasHandlers.handleElementDoubleClick(elementId, {} as React.MouseEvent);
+		},
+		[canvasHandlers],
+	);
+
+	// "Save as Picture": rasterise just the right-clicked element's own DOM
+	// node (found via the same `data-element-id` marker the canvas event
+	// delegation uses) and download it, reusing the shared raster/download
+	// pipeline every other export button already goes through.
+	const handleSaveElementAsPicture = useCallback(
+		(elementId: string) => {
+			const node = document.querySelector<HTMLElement>(
+				`[data-element-id="${elementId}"][data-pptx-element="true"]`,
+			);
+			if (!node) {
+				return;
+			}
+			void (async () => {
+				const result = await renderElementToRaster(node, 2);
+				const blob = await rasterResultToPngBlob(result);
+				const el = state.elementLookup.get(elementId);
+				downloadBlob(blob, elementPictureFilename(el?.name, 'Picture'));
+			})();
+		},
+		[state.elementLookup],
+	);
+
+	const pasteSpecial = usePasteSpecial({
+		clipboardPayload: state.clipboardPayload,
+		editTemplateMode: state.editTemplateMode,
+		ops,
+		markDirty: history.markDirty,
+	});
+
 	const manipulation = useElementManipulation({
 		activeSlide,
 		activeSlideIndex,
@@ -269,6 +314,9 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		ops,
 		history,
 		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
+		onEditText: handleEditTextFromContextMenu,
+		onSaveElementAsPicture: handleSaveElementAsPicture,
+		onPasted: pasteSpecial.notePastedElement,
 	});
 
 	const slideOps = useSlideManagement({
@@ -338,6 +386,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		canvasHandlers: formatPainterCanvasHandlers,
 		insertHandlers: { ...insertHandlers, imagePaste },
 		manipulation,
+		pasteSpecial,
 		slideOps,
 		tableOps,
 		copyFormatFromSelection,

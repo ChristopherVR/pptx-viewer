@@ -20,6 +20,9 @@ export function createPositionSection(
 	toggleElementLock: () => void,
 ): PositionSection {
 	const el = section(t('pptx.arrange.positionSize'));
+	// Scroll target for the "Size and Position" element context-menu command;
+	// see `pptx-viewer-shared`'s `context-menu-inspector-anchor.ts`.
+	el.setAttribute('data-pptx-inspector-section', 'transform');
 
 	// Move the section's own caption into a header row alongside the lock
 	// toggle, matching React's ElementInspectorBody / Vue's ArrangePanel.

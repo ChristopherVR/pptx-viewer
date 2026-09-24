@@ -104,7 +104,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-inspector-color-row">
+<div class="pptx-svelte-inspector-color-row" data-pptx-inspector-section="fill-stroke">
 	<label class="pptx-svelte-inspector-color">
 		<span>{t('pptx.inspector.fill')}</span>
 		<input

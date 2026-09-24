@@ -105,3 +105,6 @@ export * from './rasterize-element-tiled-canvas';
 // tiled `png-bytes` branch identically for every binding's PNG-export /
 // "copy slide as image" handler.
 export * from './raster-result-to-blob';
+// "Save as Picture" context-menu command: rasterise one element and download
+// it as PNG, reusing the same pipeline every binding's other exports do.
+export * from './save-element-as-picture';

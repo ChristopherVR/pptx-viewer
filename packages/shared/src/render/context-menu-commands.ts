@@ -53,6 +53,7 @@ export type ContextMenuCommandId =
 	| 'cut'
 	| 'paste'
 	| 'duplicate'
+	| 'edit-text'
 	| 'bring-forward'
 	| 'send-backward'
 	| 'bring-front'
@@ -73,6 +74,10 @@ export type ContextMenuCommandId =
 	| 'table-split'
 	| 'group'
 	| 'ungroup'
+	| 'save-as-picture'
+	| 'edit-alt-text'
+	| 'size-and-position'
+	| 'format-shape'
 	| 'delete';
 
 /** One rendered entry: a command, plus how it is presented. */
@@ -145,6 +150,11 @@ const LABEL_KEYS: Record<ContextMenuCommandId, string> = {
 	'table-split': 'pptx.contextMenu.splitCell',
 	group: 'pptx.contextMenu.group',
 	ungroup: 'pptx.contextMenu.ungroup',
+	'edit-text': 'pptx.contextMenu.editText',
+	'save-as-picture': 'pptx.contextMenu.saveAsPicture',
+	'edit-alt-text': 'pptx.contextMenu.editAltText',
+	'size-and-position': 'pptx.contextMenu.sizeAndPosition',
+	'format-shape': 'pptx.contextMenu.formatShape',
 	delete: 'pptx.contextMenu.delete',
 };
 
@@ -186,6 +196,14 @@ function tableEntries(table: ContextMenuTableContext | null | undefined): Contex
 }
 
 /**
+ * Element types PowerPoint lets you type directly into from the context menu's
+ * "Edit Text" entry: plain text boxes and any autoshape. Tables, charts,
+ * pictures and the like open their own editors instead (a double-click on the
+ * cell, no generic "Edit Text").
+ */
+const TEXT_EDITABLE_ELEMENT_TYPES = new Set(['text', 'shape']);
+
+/**
  * The menu for `context`, in order, separators included.
  *
  * Group is offered only on a multi-selection and Ungroup only on a group, which
@@ -201,11 +219,16 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 		entry('cut'),
 		entry('paste', hasClipboard === false ? { disabled: true } : {}),
 		entry('duplicate'),
+	];
+	if (elementType && TEXT_EDITABLE_ELEMENT_TYPES.has(elementType)) {
+		entries.push(entry('edit-text'));
+	}
+	entries.push(
 		entry('bring-forward', { separatorBefore: true }),
 		entry('send-backward'),
 		entry('bring-front'),
 		entry('send-back'),
-	];
+	);
 	if (aiEnabled) {
 		entries.push(entry('ai-ask', { separatorBefore: true }), entry('ai-fix'));
 	}
@@ -224,11 +247,14 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 			}),
 		);
 	}
+	// PowerPoint's own "Format Object" cluster: alt text, save-as-picture,
+	// size/position and the format pane, grouped together ahead of Delete.
 	entries.push(
-		entry('delete', {
-			separatorBefore: !hasMultiSelection && elementType !== 'group',
-			danger: true,
-		}),
+		entry('save-as-picture', { separatorBefore: true }),
+		entry('edit-alt-text'),
+		entry('size-and-position'),
+		entry('format-shape'),
 	);
+	entries.push(entry('delete', { separatorBefore: true, danger: true }));
 	return entries;
 }

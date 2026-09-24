@@ -61,6 +61,16 @@ describe('contextMenuHandlers', () => {
 		expect(props.onAskAi).toHaveBeenCalledOnce();
 		handlers.delete?.();
 		expect(props.onAction).toHaveBeenCalledWith('delete');
+		handlers['edit-text']?.();
+		expect(props.onAction).toHaveBeenCalledWith('edit-text');
+		handlers['save-as-picture']?.();
+		expect(props.onAction).toHaveBeenCalledWith('save-as-picture');
+		handlers['edit-alt-text']?.();
+		expect(props.onAction).toHaveBeenCalledWith('edit-alt-text');
+		handlers['size-and-position']?.();
+		expect(props.onAction).toHaveBeenCalledWith('size-and-position');
+		handlers['format-shape']?.();
+		expect(props.onAction).toHaveBeenCalledWith('format-shape');
 	});
 
 	it('leaves commands without a handler undefined (offered greyed, not dropped)', () => {

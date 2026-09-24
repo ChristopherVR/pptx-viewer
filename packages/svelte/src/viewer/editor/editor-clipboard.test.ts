@@ -1,7 +1,12 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { copyElementToClipboard, pasteClipboardElement } from './editor-clipboard';
+import {
+	copyElementToClipboard,
+	pasteClipboardElement,
+	pasteClipboardElementWithFormat,
+	replaceSlideElement,
+} from './editor-clipboard';
 
 function el(id: string, x = 0): PptxElement {
 	return { type: 'shape', id, x, y: 0, width: 10, height: 10, shapeType: 'rect' } as PptxElement;
@@ -50,5 +55,42 @@ describe('editor-clipboard pasteClipboardElement', () => {
 		const payload = copyElementToClipboard(slides, 0, 'a')!;
 		const result = pasteClipboardElement(slides, 0, payload);
 		expect(result?.slides[1]).toBe(slides[1]);
+	});
+});
+
+describe('editor-clipboard pasteClipboardElementWithFormat', () => {
+	it('applies keep-text-only to the inserted clone and returns its pristine source clone', () => {
+		const withText = { ...el('a'), text: 'Hello' } as PptxElement;
+		const slides = [slide([withText])];
+		const payload = copyElementToClipboard(slides, 0, 'a')!;
+		const result = pasteClipboardElementWithFormat(slides, 0, payload, 'keep-text-only');
+		expect(result).not.toBeNull();
+		const pasted = result?.slides[0].elements[1];
+		expect(pasted).toMatchObject({ type: 'text', text: 'Hello' });
+		expect(result?.sourceClone.type).toBe('shape');
+		expect(result?.id).toBe(pasted?.id);
+	});
+
+	it('inserts the plain clone for picture (the binding rasterizes it separately)', () => {
+		const slides = [slide([el('a')])];
+		const payload = copyElementToClipboard(slides, 0, 'a')!;
+		const result = pasteClipboardElementWithFormat(slides, 0, payload, 'picture');
+		expect(result?.slides[0].elements[1]).toStrictEqual(result?.sourceClone);
+	});
+
+	it('returns null when the target slide does not exist', () => {
+		const slides = [slide([el('a')])];
+		const payload = copyElementToClipboard(slides, 0, 'a')!;
+		expect(pasteClipboardElementWithFormat(slides, 5, payload, 'picture')).toBeNull();
+	});
+});
+
+describe('editor-clipboard replaceSlideElement', () => {
+	it('replaces the matching element by id, leaving the rest untouched', () => {
+		const slides = [slide([el('a'), el('b')])];
+		const next = { ...el('a'), type: 'picture', imageData: 'data:x' } as unknown as PptxElement;
+		const result = replaceSlideElement(slides, 0, 'a', next);
+		expect(result[0].elements[0]).toBe(next);
+		expect(result[0].elements[1]).toStrictEqual(el('b'));
 	});
 });

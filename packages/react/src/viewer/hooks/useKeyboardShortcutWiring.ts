@@ -62,6 +62,8 @@ export interface UseKeyboardShortcutWiringInput {
 	copyFormatFromSelection: () => void;
 	/** Ctrl/Cmd+Shift+V: apply the copied format to the given element ids. */
 	pasteFormatToSelection: (targetIds: string[]) => void;
+	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
+	onPasteSpecial: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -84,6 +86,7 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		onOpenHyperlinkDialog,
 		copyFormatFromSelection,
 		pasteFormatToSelection,
+		onPasteSpecial,
 	} = input;
 
 	useKeyboardShortcuts({
@@ -175,6 +178,7 @@ export function useKeyboardShortcutWiring(input: UseKeyboardShortcutWiringInput)
 		onClearFormatting: () => ops.updateSelectedTextStyle({ ...CLEAR_FORMATTING_PATCH }),
 		onCycleSelectionNext: () => cycleSelection(state, activeSlide, ops, 'next'),
 		onCycleSelectionPrev: () => cycleSelection(state, activeSlide, ops, 'prev'),
+		onPasteSpecial,
 	});
 }
 

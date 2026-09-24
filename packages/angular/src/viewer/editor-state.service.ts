@@ -18,6 +18,7 @@ import { cloneElement, cloneSlide, cloneTemplateElementsBySlideId } from 'pptx-v
 import type { PptxElement, PptxHeaderFooter, PptxSection, PptxSlide } from 'pptx-viewer-core';
 
 import {
+	applyPasteSpecialFormat,
 	applyReroutedConnectors,
 	buildSlideTemplateSlide,
 	cloneElementForPaste,
@@ -28,7 +29,7 @@ import {
 	rerouteConnectorsForMovedElements,
 	templateSchemeFromTheme,
 } from '../internal/shared';
-import type { SlideTemplateId } from '../internal/shared';
+import type { PasteSpecialFormat, SlideTemplateId } from '../internal/shared';
 import { translationsEn } from '../internal/shared-src/i18n';
 import { computeAlign, computeDistribute } from './align-distribute';
 import type { AlignMode, DistributeMode } from './align-distribute';
@@ -681,6 +682,12 @@ export class EditorStateService {
 	/** Whether the clipboard holds copied elements (enables paste). */
 	readonly hasClipboard = signal(false);
 
+	// ── Paste Special / Paste Options ──────────────────────────────────────
+	/** Ctrl/Cmd+Alt+V dialog visibility. */
+	readonly isPasteSpecialDialogOpen = signal(false);
+	/** The Paste Options toolbar's target: the elements a normal paste just inserted. */
+	readonly pasteOptionsToolbar = signal<{ id: string; sourceClone: PptxElement }[] | null>(null);
+
 	/** Copy the selected elements to the in-memory clipboard. */
 	copySelected(slideIndex: number): void {
 		const ids = new Set(this.selectedIds());
@@ -729,6 +736,79 @@ export class EditorStateService {
 		this.selectedIds.set(newIds);
 		this.dirty.set(true);
 		this.syncHistory();
+		// A plain paste IS "Keep Source Formatting": each clone is its own
+		// pristine source, so the Paste Options toolbar's later choices always
+		// re-derive from it, never from an already-transformed element.
+		this.pasteOptionsToolbar.set(
+			additions.map((sourceClone) => ({ id: sourceClone.id, sourceClone })),
+		);
+	}
+
+	/**
+	 * Paste Special (Ctrl+Alt+V) / the dialog's OK: paste the clipboard with one
+	 * of the four PowerPoint formats already applied, and hand back each
+	 * inserted element's id alongside its own pristine "Keep Source Formatting"
+	 * clone, so the Paste Options toolbar can re-derive from it non-cumulatively.
+	 */
+	pasteWithFormat(
+		slideIndex: number,
+		format: PasteSpecialFormat,
+	): { id: string; sourceClone: PptxElement }[] {
+		if (this.clipboard.length === 0) {
+			return [];
+		}
+		const slides = this.slides();
+		if (!slides[slideIndex]) {
+			return [];
+		}
+		this.history.record(this.captureSnapshot(), this.t('pptx.undoAction.paste'));
+		const sourceClones = this.clipboard.map((el) =>
+			cloneElementForPaste(el, { intoTemplate: isTemplateElementId(el.id) }),
+		);
+		// "Picture" is inserted as the plain clone first (there is nothing to
+		// rasterize before it is mounted); every other format applies immediately.
+		const additions = sourceClones.map((clone) =>
+			format === 'picture' ? clone : applyPasteSpecialFormat(clone, format),
+		);
+		this.slides.set(
+			slides.map((slide, i) =>
+				i === slideIndex ? { ...slide, elements: [...slide.elements, ...additions] } : slide,
+			),
+		);
+		this.selectedIds.set(additions.map((el) => el.id));
+		this.dirty.set(true);
+		this.syncHistory();
+		const entries = sourceClones.map((sourceClone, i) => ({ id: additions[i].id, sourceClone }));
+		this.pasteOptionsToolbar.set(entries);
+		return entries;
+	}
+
+	/**
+	 * Re-derive already-pasted elements (the Paste Options toolbar) from their
+	 * own pristine source clones. Non-cumulative: every choice starts over from
+	 * the clone `pasteWithFormat` returned, matching PowerPoint's own toolbar.
+	 * "Picture" is handled by the caller (it needs a DOM rasterize step this
+	 * service does not perform) via a plain `updateElement` call instead.
+	 */
+	reformatPasted(
+		slideIndex: number,
+		entries: readonly { id: string; sourceClone: PptxElement }[],
+		format: Exclude<PasteSpecialFormat, 'picture'>,
+	): void {
+		const slides = this.slides();
+		const slide = slides[slideIndex];
+		if (!slide) {
+			return;
+		}
+		const byId = new Map(
+			entries.map((e) => [e.id, applyPasteSpecialFormat(e.sourceClone, format)]),
+		);
+		this.slides.set(
+			slides.map((s, i) =>
+				i === slideIndex ? { ...s, elements: s.elements.map((el) => byId.get(el.id) ?? el) } : s,
+			),
+		);
+		this.dirty.set(true);
 	}
 
 	// ── Element insertion ────────────────────────────────────────────────────

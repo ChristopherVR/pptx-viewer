@@ -80,7 +80,8 @@ export type EditorKeyActionName =
 	| 'hyperlink'
 	| 'clearFormatting'
 	| 'cycleSelectionNext'
-	| 'cycleSelectionPrev';
+	| 'cycleSelectionPrev'
+	| 'pasteSpecial';
 
 /** Result of resolving one key press; `null` means "not ours, leave it alone". */
 export interface EditorKeyResult {
@@ -226,6 +227,15 @@ export function mapEditorKey(
 	// it gets the same exemption for the same reason.
 	if (mod && !alt && key.toLowerCase() === 'h') {
 		return { action: 'findReplace' };
+	}
+
+	// Ctrl/Cmd+Alt+V (Paste Special) is exempt from the typing gate for the
+	// same reason Ctrl+F is: PowerPoint offers Paste Special with the caret
+	// sitting inside a text box, and `isTextInputTarget` still keeps it out of
+	// a foreign input/textarea/select. It shares plain Paste's `canPaste`
+	// guard so a host with nothing internal to offer leaves it to the browser.
+	if (mod && alt && key.toLowerCase() === 'v' && !state.isTextInputTarget) {
+		return state.canPaste === false ? NO_ACTION : { action: 'pasteSpecial' };
 	}
 
 	// Alignment, font-size stepping, format painter, hyperlink and clear-format

@@ -1,15 +1,18 @@
 import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
 import {
 	buildContextMenuEntries,
+	contextMenuInspectorAnchor,
 	hasMultipleSelectedTableCells,
 	resolveContextMenuElementId,
 	resolveTopLevelElementId,
+	scrollInspectorSectionIntoView,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { ContextMenuItem } from '../components/ContextMenu.vue';
+import { saveContextMenuElementAsPicture } from '../export/save-element-as-picture';
 import {
 	applyDeleteColumn,
 	applyDeleteRow,
@@ -53,6 +56,10 @@ export interface UseContextMenuInput {
 	 * it hit-tests to nothing; this is what the menu falls back to.
 	 */
 	inlineEditingElementId: Ref<string | null>;
+	/** Whether the properties inspector is open; the format-object trio opens it. */
+	inspectorOpen: Ref<boolean>;
+	/** "Edit Text": the same effect as double-clicking the element. */
+	enterInlineEdit: (id: string) => void;
 	ops: EditorOperations;
 	cutElement: (id: string) => void;
 	copyElement: (id: string) => void;
@@ -95,6 +102,8 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		editTemplateMode,
 		selectedElementIds,
 		inlineEditingElementId,
+		inspectorOpen,
+		enterInlineEdit,
 		ops,
 		cutElement,
 		copyElement,
@@ -262,10 +271,44 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			case 'ai-fix':
 				onFixAi?.();
 				break;
+			case 'edit-text':
+				enterInlineEdit(target);
+				break;
+			case 'save-as-picture':
+				void saveContextMenuElementAsPicture(
+					target,
+					contextElement.value?.name,
+					t('pptx.elementType.picture'),
+				);
+				break;
+			case 'edit-alt-text':
+				focusInspectorSection(contextMenuInspectorAnchor('edit-alt-text'));
+				break;
+			case 'size-and-position':
+				focusInspectorSection(contextMenuInspectorAnchor('size-and-position'));
+				break;
+			case 'format-shape':
+				focusInspectorSection(contextMenuInspectorAnchor('format-shape'));
+				break;
 			default:
 				onContextTableSelect(actionId);
 				break;
 		}
+	}
+
+	/**
+	 * "Edit Alt Text" / "Size and Position" / "Format Shape": open the
+	 * properties inspector and, once it has re-rendered, scroll the matching
+	 * section into view. A no-op degrade when the section is not tagged.
+	 */
+	function focusInspectorSection(anchor: ReturnType<typeof contextMenuInspectorAnchor>): void {
+		inspectorOpen.value = true;
+		if (!anchor) {
+			return;
+		}
+		requestAnimationFrame(() => {
+			requestAnimationFrame(() => scrollInspectorSectionIntoView(document, anchor));
+		});
 	}
 
 	/** Handle the table-specific context-menu entries (row / column / merge / split). */

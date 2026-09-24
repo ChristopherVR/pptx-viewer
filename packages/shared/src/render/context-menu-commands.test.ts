@@ -146,14 +146,35 @@ describe('buildContextMenuEntries', () => {
 			'cut',
 			'paste',
 			'duplicate',
+			'edit-text',
 			'bring-forward',
 			'send-backward',
 			'bring-front',
 			'send-back',
 			'comment',
 			'hyperlink',
+			'save-as-picture',
+			'edit-alt-text',
+			'size-and-position',
+			'format-shape',
 			'delete',
 		]);
+	});
+
+	it('offers Edit Text only on text-carrying element types', () => {
+		expect(ids({ elementType: 'shape' })).toContain('edit-text');
+		expect(ids({ elementType: 'text' })).toContain('edit-text');
+		expect(ids({ elementType: 'picture' })).not.toContain('edit-text');
+		expect(ids({ elementType: 'table' })).not.toContain('edit-text');
+	});
+
+	it('always offers the format-object cluster ahead of Delete', () => {
+		const list = ids({ elementType: 'picture' });
+		expect(list).toContain('save-as-picture');
+		expect(list).toContain('edit-alt-text');
+		expect(list).toContain('size-and-position');
+		expect(list).toContain('format-shape');
+		expect(list.indexOf('format-shape')).toBeLessThan(list.indexOf('delete'));
 	});
 
 	it('offers Group only on a multi-selection and Ungroup only on a group', () => {
@@ -240,8 +261,8 @@ describe('buildContextMenuEntries', () => {
 
 	it('separates each group of commands exactly once', () => {
 		const entries = buildContextMenuEntries({ elementType: 'shape' });
-		// Clipboard | z-order | comment+hyperlink | delete.
-		expect(entries.filter((item) => item.separatorBefore)).toHaveLength(3);
+		// Clipboard+editText | z-order | comment+hyperlink | format-object cluster | delete.
+		expect(entries.filter((item) => item.separatorBefore)).toHaveLength(4);
 		expect(entries[0].separatorBefore).toBeUndefined();
 	});
 

@@ -19,11 +19,14 @@ import { useI18n } from 'vue-i18n';
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
 import type { ContextMenuState } from '../composables/useContextMenu';
 import type { UseHyperlinkDialogResult } from '../composables/useHyperlinkDialog';
+import type { UsePasteSpecialResult } from '../composables/usePasteSpecial';
 import type { UseThemeEditingResult } from '../composables/useThemeEditing';
 import type { ContextMenuItem } from './ContextMenu.vue';
 import ContextMenu from './ContextMenu.vue';
 import HyperlinkDialog from './HyperlinkDialog.vue';
 import ThemeEditorPanel from './inspector/ThemeEditorPanel.vue';
+import PasteOptionsToolbar from './PasteOptionsToolbar.vue';
+import PasteSpecialDialog from './PasteSpecialDialog.vue';
 import ShareDialog from './ShareDialog.vue';
 import ThemeGallery from './ThemeGallery.vue';
 
@@ -43,6 +46,8 @@ defineProps<{
 	slideCount: number;
 	collaboration: UseCollaborationWiringResult;
 	shareDefaults?: { roomId?: string; userName?: string; serverUrl?: string };
+	/** Ctrl/Cmd+Alt+V dialog + the post-paste Paste Options toolbar. */
+	pasteSpecial: UsePasteSpecialResult;
 }>();
 
 const { t } = useI18n();
@@ -97,5 +102,22 @@ const { t } = useI18n();
 		@start="collaboration.onShareStart"
 		@stop="collaboration.onShareStop"
 		@close="collaboration.shareOpen.value = false"
+	/>
+
+	<!-- Paste Special (Ctrl/Cmd+Alt+V) + the post-paste Paste Options toolbar -->
+	<PasteSpecialDialog
+		:open="pasteSpecial.isPasteSpecialDialogOpen.value"
+		@cancel="pasteSpecial.closePasteSpecialDialog"
+		@confirm="pasteSpecial.pasteWithFormat"
+	/>
+	<PasteOptionsToolbar
+		:element-id="pasteSpecial.pasteOptionsToolbar.value?.elementId ?? null"
+		@choose="
+			(format) => {
+				pasteSpecial.reformatPastedElement(format);
+				pasteSpecial.dismissPasteOptionsToolbar();
+			}
+		"
+		@dismiss="pasteSpecial.dismissPasteOptionsToolbar"
 	/>
 </template>

@@ -227,6 +227,9 @@ export class ViewerKeyboardService {
 			case 'cycleSelectionPrev':
 				this.cycleSelection(idx, 'prev');
 				break;
+			case 'pasteSpecial':
+				this.editor.isPasteSpecialDialogOpen.set(true);
+				break;
 			default:
 				break;
 		}

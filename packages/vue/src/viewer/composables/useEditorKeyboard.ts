@@ -33,6 +33,8 @@ export interface UseEditorKeyboardInput {
 	copyElement: (id: string) => void;
 	cutElement: (id: string) => void;
 	pasteElement: () => void;
+	/** Open the Paste Special dialog (Ctrl/Cmd+Alt+V). */
+	onPasteSpecial: () => void;
 	duplicateSelected: () => void;
 	deleteSelected: () => void;
 	goPrev: () => void;
@@ -106,6 +108,7 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		copyElement,
 		cutElement,
 		pasteElement,
+		onPasteSpecial,
 		duplicateSelected,
 		deleteSelected,
 		goPrev,
@@ -243,6 +246,7 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 				}),
 			cycleSelectionNext: () => cycleSelection('next'),
 			cycleSelectionPrev: () => cycleSelection('prev'),
+			pasteSpecial: onPasteSpecial,
 		},
 		canEdit,
 		hasSelection,

@@ -33,6 +33,7 @@ import {
 	commandNamed,
 	COMMENT_COMMAND,
 	DUPLICATE_COMMAND,
+	FORMAT_OBJECT_COMMANDS,
 	goToSlide,
 	GROUP_COMMAND,
 	HYPERLINK_COMMAND,
@@ -129,6 +130,18 @@ test.describe('cross-binding canvas context menu', () => {
 			inspect(name, value, (snapshot) =>
 				missingLines(snapshot, [HYPERLINK_COMMAND, COMMENT_COMMAND]),
 			),
+		);
+
+		expect(problems.join('\n')).toBe('');
+	});
+
+	test('the shape menu offers Edit Text, Save as Picture, Edit Alt Text, Size and Position and Format Shape', async ({
+		browser,
+	}, testInfo) => {
+		const results = await acrossFrameworks(browser, testInfo, shapeMenu, { viewport: VIEWPORT });
+
+		const problems = byBinding(results).flatMap(({ name, value }) =>
+			inspect(name, value, (snapshot) => missingLines(snapshot, FORMAT_OBJECT_COMMANDS)),
 		);
 
 		expect(problems.join('\n')).toBe('');

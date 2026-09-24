@@ -170,6 +170,18 @@ export async function renderElementToRaster(
 }
 
 /**
+ * `renderElementToRaster` followed by `rasterResultToPngDataUrl`: for a
+ * caller (Paste Special's "Picture" format) that needs the pixels embedded
+ * as a data URL, not a raster result to encode itself.
+ */
+export async function renderElementToRasterDataUrl(
+	element: HTMLElement,
+	scale: number = 2,
+): Promise<string> {
+	return rasterResultToPngDataUrl(await renderElementToRaster(element, scale));
+}
+
+/**
  * Render an HTML element to its raw per-tile canvases via the shared
  * `foreignObject` -> vector-SVG -> html2canvas fallback chain
  * (`pptx-viewer-shared`'s `rasterizeElementTiles`), tiling transparently when

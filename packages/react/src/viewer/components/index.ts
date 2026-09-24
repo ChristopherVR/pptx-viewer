@@ -56,6 +56,8 @@ export { PresentationTouchControls } from './PresentationTouchControls';
 export { PresentationSubtitleBar } from './PresentationSubtitleBar';
 export { PresentationTransitionOverlay } from './PresentationTransitionOverlay';
 export { KeepAnnotationsDialog } from './KeepAnnotationsDialog';
+export { PasteSpecialDialog } from './PasteSpecialDialog';
+export { PasteOptionsToolbar } from './PasteOptionsToolbar';
 
 // Print dialog
 export { PrintDialog } from './PrintDialog';

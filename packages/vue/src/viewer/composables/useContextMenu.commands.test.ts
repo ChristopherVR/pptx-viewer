@@ -8,6 +8,11 @@ import { useContextMenu } from './useContextMenu';
 import type { UseContextMenuInput, UseContextMenuResult } from './useContextMenu';
 import type { EditorOperations } from './useEditorOperations';
 
+const saveContextMenuElementAsPicture = vi.fn().mockResolvedValue(undefined);
+vi.mock(import('../export/save-element-as-picture'), () => ({
+	saveContextMenuElementAsPicture: (...args: unknown[]) => saveContextMenuElementAsPicture(...args),
+}));
+
 /**
  * The Vue context menu's command set, and the right-click that used to open
  * nothing.
@@ -122,6 +127,8 @@ function setup(overrides: Partial<UseContextMenuInput> = {}): UseContextMenuResu
 					editTemplateMode: ref(false),
 					selectedElementIds: ref<string[]>([SHAPE.id]),
 					inlineEditingElementId: ref<string | null>(null),
+					inspectorOpen: ref(false),
+					enterInlineEdit: () => {},
 					ops: {} as EditorOperations,
 					cutElement: () => {},
 					copyElement: () => {},
@@ -146,18 +153,23 @@ function commandIds(menu: UseContextMenuResult): string[] {
 }
 
 describe('useContextMenu command set', () => {
-	it('offers clipboard, z-order, comment and hyperlink on a plain shape', () => {
+	it('offers clipboard, z-order, comment, hyperlink and format-object commands on a plain shape', () => {
 		expect(commandIds(setup())).toStrictEqual([
 			'copy',
 			'cut',
 			'paste',
 			'duplicate',
+			'edit-text',
 			'bring-forward',
 			'send-backward',
 			'bring-front',
 			'send-back',
 			'comment',
 			'hyperlink',
+			'save-as-picture',
+			'edit-alt-text',
+			'size-and-position',
+			'format-shape',
 			'delete',
 		]);
 	});
@@ -210,6 +222,30 @@ describe('useContextMenu command set', () => {
 		const onAddComment = vi.fn();
 		setup({ onAddComment }).onContextSelect('comment');
 		expect(onAddComment).toHaveBeenCalledOnce();
+	});
+
+	it('routes Edit Text to the same inline-edit entry point as a double-click', () => {
+		const enterInlineEdit = vi.fn();
+		setup({ enterInlineEdit }).onContextSelect('edit-text');
+		expect(enterInlineEdit).toHaveBeenCalledWith(SHAPE.id);
+	});
+
+	it('routes Save as Picture to the shared rasterize/download pipeline', () => {
+		saveContextMenuElementAsPicture.mockClear();
+		setup().onContextSelect('save-as-picture');
+		expect(saveContextMenuElementAsPicture).toHaveBeenCalledWith(
+			SHAPE.id,
+			SHAPE.name,
+			expect.any(String),
+		);
+	});
+
+	it('opens the properties inspector for Edit Alt Text, Size and Position and Format Shape', () => {
+		for (const id of ['edit-alt-text', 'size-and-position', 'format-shape'] as const) {
+			const inspectorOpen = ref(false);
+			setup({ inspectorOpen }).onContextSelect(id);
+			expect(inspectorOpen.value).toBeTruthy();
+		}
 	});
 
 	it('commits rawXml with tableData for a structural table command', () => {

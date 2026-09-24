@@ -68,6 +68,8 @@ export interface EditorKeyboardDeps {
 	clearFormatting?(): void;
 	/** Move the selection to the next/previous element on the slide (Tab). */
 	cycleSelection?(direction: SelectionCycleDirection): void;
+	/** Open the Paste Special dialog (Ctrl/Cmd+Alt+V). */
+	onPasteSpecial?(): void;
 }
 
 export function createEditorKeydownHandler(
@@ -177,6 +179,9 @@ export function createEditorKeydownHandler(
 				break;
 			case 'cycleSelectionPrev':
 				deps.cycleSelection?.('prev');
+				break;
+			case 'pasteSpecial':
+				deps.onPasteSpecial?.();
 				break;
 			default:
 				break;

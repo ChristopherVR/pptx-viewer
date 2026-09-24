@@ -351,6 +351,35 @@ describe('mapEditorKey find & replace', () => {
 	});
 });
 
+describe('mapEditorKey paste special', () => {
+	it('maps Ctrl/Cmd+Alt+V to pasteSpecial', () => {
+		expect(mapEditorKey(press('v', { ctrlKey: true, altKey: true })).action).toBe('pasteSpecial');
+		expect(mapEditorKey(press('v', { metaKey: true, altKey: true })).action).toBe('pasteSpecial');
+	});
+
+	it('stays live while text is being edited, like Ctrl+F', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { isEditingText: true }).action,
+		).toBe('pasteSpecial');
+	});
+
+	it('leaves a bare Ctrl+V (plain paste) alone', () => {
+		expect(mapEditorKey(press('v', { ctrlKey: true })).action).toBe('paste');
+	});
+
+	it('leaves a foreign input field alone', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { isTextInputTarget: true }).action,
+		).toBeNull();
+	});
+
+	it('respects canPaste === false, same as plain paste', () => {
+		expect(
+			mapEditorKey(press('v', { ctrlKey: true, altKey: true }), { canPaste: false }).action,
+		).toBeNull();
+	});
+});
+
 describe('mapEditorKey clear formatting', () => {
 	it('maps Ctrl+Space while editing text', () => {
 		expect(mapEditorKey(press(' ', { ctrlKey: true }), { isEditingText: true }).action).toBe(

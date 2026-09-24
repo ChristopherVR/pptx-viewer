@@ -27,7 +27,9 @@ import {
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
+import { rasterizePastedElementAsPicture } from '../ui/context-menu-format-actions';
 import { openHyperlinkEditDialog } from '../ui/hyperlink-edit-dialog';
+import { openPasteSpecialDialog } from '../ui/paste-special-dialog';
 import { syncAlignmentGuides } from './alignment-guide-view';
 import { createChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import type { ChartQuickActionsOverlay } from './chart-quick-actions-overlay';
@@ -472,6 +474,33 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			if (nextId) {
 				ops.select(nextId, [nextId]);
 			}
+		},
+		onPasteSpecial: () => {
+			if (!store.get().clipboardPayload) {
+				return;
+			}
+			openPasteSpecialDialog(doc, deps.getTranslator(), {
+				onConfirm: (format) => {
+					const id = editActions.pasteWithFormat(format);
+					if (!id || format !== 'picture') {
+						return;
+					}
+					const sourceClone = store
+						.get()
+						.pasteOptionsToolbar?.find((entry) => entry.id === id)?.sourceClone;
+					if (!sourceClone) {
+						return;
+					}
+					requestAnimationFrame(() => {
+						void rasterizePastedElementAsPicture(doc, id, sourceClone).then((picture) => {
+							if (picture) {
+								editActions.replaceElement(id, picture);
+							}
+							return undefined;
+						});
+					});
+				},
+			});
 		},
 	});
 

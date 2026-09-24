@@ -113,6 +113,8 @@ export interface UseKeyboardShortcutsInput {
 	onCycleSelectionNext?: () => void;
 	/** Shift+Tab: select the previous element on the slide. */
 	onCycleSelectionPrev?: () => void;
+	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
+	onPasteSpecial?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -254,6 +256,9 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 				break;
 			case 'cycleSelectionPrev':
 				current.onCycleSelectionPrev?.();
+				break;
+			case 'pasteSpecial':
+				current.onPasteSpecial?.();
 				break;
 			default:
 				break;

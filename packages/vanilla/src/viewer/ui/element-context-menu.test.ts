@@ -174,12 +174,17 @@ describe('mountElementContextMenu', () => {
 			'Cut',
 			'Paste',
 			'Duplicate',
+			'Edit Text',
 			'Bring Forward',
 			'Send Backward',
 			'Bring to Front',
 			'Send to Back',
 			'Add Comment',
 			'Edit Hyperlink',
+			'Save as Picture...',
+			'Edit Alt Text...',
+			'Size and Position...',
+			'Format Shape...',
 			'Delete',
 		]);
 		// The right-clicked element becomes the selection the commands act on.

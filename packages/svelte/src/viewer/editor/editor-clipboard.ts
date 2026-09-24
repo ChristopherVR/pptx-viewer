@@ -1,6 +1,7 @@
-import type { PptxSlide } from 'pptx-viewer-core';
-import type { ElementClipboardPayload } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type { ElementClipboardPayload, PasteSpecialFormat } from 'pptx-viewer-shared';
 import {
+	applyPasteSpecialFormat,
 	buildElementClipboardPayload,
 	cloneElementForPaste,
 	findSlideElement,
@@ -43,4 +44,44 @@ export function pasteClipboardElement(
 		slides: mapSlideElements(slides, slideIndex, (elements) => [...elements, copy]),
 		newId: copy.id,
 	};
+}
+
+/**
+ * Paste Special (Ctrl+Alt+V) / the dialog's OK: clone the clipboard payload
+ * and insert it with `format` already applied. Returns the inserted element's
+ * own pristine "Keep Source Formatting" clone alongside it, so the Paste
+ * Options toolbar can re-derive from it non-cumulatively later.
+ */
+export function pasteClipboardElementWithFormat(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	payload: ElementClipboardPayload,
+	format: PasteSpecialFormat,
+	intoTemplate = false,
+): { slides: PptxSlide[]; id: string; sourceClone: PptxElement } | null {
+	if (!slides[slideIndex]) {
+		return null;
+	}
+	const sourceClone = cloneElementForPaste(payload.element, { intoTemplate });
+	// "Picture" is inserted as the plain clone first (there is nothing to
+	// rasterize before it is mounted); every other format applies immediately.
+	const inserted =
+		format === 'picture' ? sourceClone : applyPasteSpecialFormat(sourceClone, format);
+	return {
+		slides: mapSlideElements(slides, slideIndex, (elements) => [...elements, inserted]),
+		id: inserted.id,
+		sourceClone,
+	};
+}
+
+/** Replace one element by id on `slideIndex` (Paste Options toolbar / picture rasterize). */
+export function replaceSlideElement(
+	slides: readonly PptxSlide[],
+	slideIndex: number,
+	elementId: string,
+	next: PptxElement,
+): PptxSlide[] {
+	return mapSlideElements(slides, slideIndex, (elements) =>
+		elements.map((el) => (el.id === elementId ? next : el)),
+	);
 }

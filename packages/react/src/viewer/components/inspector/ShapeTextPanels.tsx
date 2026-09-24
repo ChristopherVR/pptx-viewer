@@ -75,7 +75,7 @@ export function ShapeTextPanels({
 			    FillStrokeSection already ship this; React rendered a cut-down
 			    card while the complete one sat unreferenced. */}
 			{hasShapeProperties(selectedElement) && (
-				<div className={CARD} data-pptx-fill-stroke>
+				<div className={CARD} data-pptx-fill-stroke data-pptx-inspector-section='fill-stroke'>
 					<div className={HEADING}>{t('pptx.shape.fillStroke', 'Fill & Stroke')}</div>
 					<FillStrokeProperties
 						selectedElement={selectedElement}

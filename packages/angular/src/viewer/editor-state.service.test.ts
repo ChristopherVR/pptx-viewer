@@ -550,6 +550,67 @@ describe('editorStateService', () => {
 		expect(new Set(childIds).size).toBe(2);
 	});
 
+	it('pastes with use-destination-theme applied, and tracks the toolbar target', () => {
+		const svc = service();
+		const styled = { ...element('a'), shapeStyle: { fillColor: '#ff0000' } } as PptxElement;
+		svc.setSlides([slide('s1', [styled])]);
+		svc.select(['a']);
+		svc.copySelected(0);
+		const entries = svc.pasteWithFormat(0, 'use-destination-theme');
+		expect(entries).toHaveLength(1);
+		const pasted = svc.slides()[0].elements.at(-1) as PptxElement & {
+			shapeStyle?: { fillColor?: string };
+		};
+		expect(pasted.id).not.toBe('a');
+		expect(pasted.shapeStyle?.fillColor).toBeUndefined();
+		expect(svc.pasteOptionsToolbar()).toStrictEqual(entries);
+	});
+
+	it('pastes a bare text box for keep-text-only', () => {
+		const svc = service();
+		const withText = { ...element('a'), text: 'Hello' } as PptxElement;
+		svc.setSlides([slide('s1', [withText])]);
+		svc.select(['a']);
+		svc.copySelected(0);
+		svc.pasteWithFormat(0, 'keep-text-only');
+		const pasted = svc.slides()[0].elements.at(-1);
+		expect(pasted).toMatchObject({ type: 'text', text: 'Hello' });
+	});
+
+	it('an ordinary paste records itself as the Paste Options toolbar target', () => {
+		const svc = service();
+		svc.select(['a']);
+		svc.copySelected(0);
+		svc.paste(0);
+		const pastedId = svc.slides()[0].elements.at(-1)?.id;
+		expect(svc.pasteOptionsToolbar()).toStrictEqual([
+			{ id: pastedId, sourceClone: expect.anything() },
+		]);
+	});
+
+	it('reformatPasted re-derives every choice from the frozen source clone, never cumulatively', () => {
+		const svc = service();
+		const styled = {
+			...element('a'),
+			text: 'Hello',
+			shapeStyle: { fillColor: '#ff0000' },
+		} as PptxElement;
+		svc.setSlides([slide('s1', [styled])]);
+		svc.select(['a']);
+		svc.copySelected(0);
+		const entries = svc.pasteWithFormat(0, 'keep-source-formatting');
+
+		svc.reformatPasted(0, entries, 'keep-text-only');
+		expect(svc.slides()[0].elements.at(-1)?.type).toBe('text');
+
+		svc.reformatPasted(0, entries, 'use-destination-theme');
+		const reformatted = svc.slides()[0].elements.at(-1) as PptxElement & {
+			shapeStyle?: { fillColor?: string };
+		};
+		expect(reformatted.type).toBe('shape');
+		expect(reformatted.shapeStyle?.fillColor).toBeUndefined();
+	});
+
 	it('cuts elements (copy then delete)', () => {
 		const svc = service();
 		svc.select(['b']);

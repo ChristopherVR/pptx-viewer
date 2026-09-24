@@ -176,6 +176,16 @@ describe('resolveShortcutAction - pure dispatch logic', () => {
 			expect(resolveShortcutAction('d', true, false, defaultGuard()).action).toBe('duplicate');
 		});
 
+		it('ctrl+alt+V triggers pasteSpecial (the altKey the matcher must forward)', () => {
+			expect(resolveShortcutAction('v', true, false, defaultGuard(), true).action).toBe(
+				'pasteSpecial',
+			);
+		});
+
+		it('ctrl+V alone (no altKey) stays plain paste', () => {
+			expect(resolveShortcutAction('v', true, false, defaultGuard(), false).action).toBe('paste');
+		});
+
 		it('ctrl+A triggers selectAll', () => {
 			expect(resolveShortcutAction('a', true, false, defaultGuard()).action).toBe('selectAll');
 		});

@@ -82,6 +82,16 @@ export interface ContextMenuActions {
 	group(): void;
 	ungroup(): void;
 	remove(): void;
+	/** "Edit Text": enter inline text edit for the right-clicked element. */
+	editText(): void;
+	/** "Save as Picture": rasterise the right-clicked element and download it. */
+	saveAsPicture(): void;
+	/** "Edit Alt Text...": open the properties tab, focused on the Accessibility section. */
+	editAltText(): void;
+	/** "Size and Position...": open the properties tab, focused on the Transform section. */
+	sizeAndPosition(): void;
+	/** "Format Shape...": open the properties tab, focused on the Fill & Stroke section. */
+	formatShape(): void;
 	/** Commit a table transform against the current cell selection. */
 	applyTable(op: TableCommandOp): void;
 }
@@ -142,6 +152,21 @@ export function runContextMenuCommand(id: ContextMenuCommandId, actions: Context
 			break;
 		case 'delete':
 			actions.remove();
+			break;
+		case 'edit-text':
+			actions.editText();
+			break;
+		case 'save-as-picture':
+			actions.saveAsPicture();
+			break;
+		case 'edit-alt-text':
+			actions.editAltText();
+			break;
+		case 'size-and-position':
+			actions.sizeAndPosition();
+			break;
+		case 'format-shape':
+			actions.formatShape();
 			break;
 		default:
 			break;

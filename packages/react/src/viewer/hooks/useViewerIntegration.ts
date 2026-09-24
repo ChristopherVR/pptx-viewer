@@ -539,6 +539,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
 		copyFormatFromSelection: editorOps.copyFormatFromSelection,
 		pasteFormatToSelection: editorOps.pasteFormatToSelection,
+		onPasteSpecial: editorOps.pasteSpecial.openPasteSpecialDialog,
 	});
 
 	return {

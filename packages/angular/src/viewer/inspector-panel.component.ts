@@ -135,7 +135,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 		-->
 		<aside [class]="inspectorClass()" [attr.aria-label]="'pptx.inspector.properties' | translate">
 			<!-- ── Transform: Position & Size ─────────────────────────────────── -->
-			<section class="pptx-ng-inspector__section">
+			<section class="pptx-ng-inspector__section" data-pptx-inspector-section="transform">
 				<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.transform' | translate }}</h3>
 
 				@if (elementKey(); as key) {
@@ -224,7 +224,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 			<!-- ── Shape fill & stroke (shape-style elements only) ────────────── -->
 			@if (hasShape()) {
-				<section class="pptx-ng-inspector__section">
+				<section class="pptx-ng-inspector__section" data-pptx-inspector-section="fill-stroke">
 					<h3 class="pptx-ng-inspector__heading">{{ 'pptx.inspector.fillStroke' | translate }}</h3>
 
 					@if (elementKey(); as key) {

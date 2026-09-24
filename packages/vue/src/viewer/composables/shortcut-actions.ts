@@ -83,6 +83,8 @@ export interface ShortcutActions {
 	cycleSelectionNext?: () => void;
 	/** Select the previous element on the slide (Shift+Tab). */
 	cycleSelectionPrev?: () => void;
+	/** Open the Paste Special dialog (Ctrl/Cmd+Alt+V). */
+	pasteSpecial?: () => void;
 }
 
 /** Result of matching a keyboard event against the catalog. */

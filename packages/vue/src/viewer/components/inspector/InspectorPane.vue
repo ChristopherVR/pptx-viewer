@@ -100,7 +100,10 @@ function relay(patch: Partial<PptxElement>): void {
 		:class="mobile ? 'w-full pt-1' : 'w-72 flex-[0_0_18rem] border-l border-border pt-2'"
 		:aria-label="t('pptx.inspector.properties')"
 	>
-		<InspectorSectionCard :title="t('pptx.inspector.arrange')">
+		<InspectorSectionCard
+			:title="t('pptx.inspector.arrange')"
+			data-pptx-inspector-section="transform"
+		>
 			<ArrangePanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</InspectorSectionCard>
 
@@ -170,7 +173,11 @@ function relay(patch: Partial<PptxElement>): void {
 			<SmartArtPropertiesPanel :element="element" @update="relay" />
 		</InspectorSectionCard>
 
-		<InspectorSectionCard v-if="isShape" :title="t('pptx.inspector.fill')">
+		<InspectorSectionCard
+			v-if="isShape"
+			:title="t('pptx.inspector.fill')"
+			data-pptx-inspector-section="fill-stroke"
+		>
 			<FillPanel :element="element" @update="relay" />
 		</InspectorSectionCard>
 
@@ -186,7 +193,11 @@ function relay(patch: Partial<PptxElement>): void {
 			<EffectsPanel :element="element" @update="relay" />
 		</InspectorSectionCard>
 
-		<InspectorSectionCard v-if="showAccessibilitySection" :title="t('pptx.accessibility.heading')">
+		<InspectorSectionCard
+			v-if="showAccessibilitySection"
+			:title="t('pptx.accessibility.heading')"
+			data-pptx-inspector-section="alt-text"
+		>
 			<AccessibilityPanel :element="element" :can-edit="props.canEdit" @update="relay" />
 		</InspectorSectionCard>
 	</aside>

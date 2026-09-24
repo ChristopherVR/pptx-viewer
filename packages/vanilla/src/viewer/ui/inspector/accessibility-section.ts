@@ -26,6 +26,9 @@ export function createAccessibilitySection(
 	handlers: InspectorHandlers,
 ): AccessibilitySection {
 	const el = section(t('pptx.accessibility.heading'));
+	// Scroll target for the "Edit Alt Text" element context-menu command; see
+	// `pptx-viewer-shared`'s `context-menu-inspector-anchor.ts`.
+	el.setAttribute('data-pptx-inspector-section', 'alt-text');
 
 	const altLabel = createEl(doc, 'label', 'pptxv-field pptxv-accessibility-alt');
 	const altCaption = createEl(doc, 'span', 'pptxv-field-label');

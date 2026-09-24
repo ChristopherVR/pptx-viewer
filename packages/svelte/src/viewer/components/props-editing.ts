@@ -1,5 +1,10 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { ResizeHandleId, ShapeAdjustmentHandleDescriptor, SnapLine } from 'pptx-viewer-shared';
+import type {
+	InspectorSectionAnchor,
+	ResizeHandleId,
+	ShapeAdjustmentHandleDescriptor,
+	SnapLine,
+} from 'pptx-viewer-shared';
 
 import type { ContextMenuCellTarget } from '../editor/context-menu-dispatch';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -130,5 +135,14 @@ export interface ElementContextMenuProps {
 	oncomment?: () => void;
 	/** "Edit Hyperlink": opens the hyperlink dialog for the selected element. */
 	onhyperlink?: () => void;
+	/** "Edit Text": enters inline text edit for the selected element. */
+	onenterinlineedit?: (elementId: string) => void;
+	/** "Save as Picture": rasterises the selected element's own DOM node to PNG. */
+	onsaveaspicture?: (elementId: string) => void;
+	/**
+	 * "Edit Alt Text" / "Size and Position" / "Format Shape": opens the
+	 * inspector's properties tab and scrolls to the matching section.
+	 */
+	onfocusinspectorsection?: (anchor: InspectorSectionAnchor) => void;
 	onclose: () => void;
 }

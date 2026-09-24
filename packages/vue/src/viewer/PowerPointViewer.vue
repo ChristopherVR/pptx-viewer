@@ -137,6 +137,7 @@ import { useMasterViewWiring } from './composables/useMasterViewWiring';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { usePasswordProtection } from './composables/usePasswordProtection';
+import { usePasteSpecial } from './composables/usePasteSpecial';
 import { usePresentationControls } from './composables/usePresentationControls';
 import { usePrint } from './composables/usePrint';
 import { useReadOnlyRecommendation } from './composables/useReadOnlyRecommendation';
@@ -652,6 +653,20 @@ const clipboard = useElementClipboard({
 	selectedElementIds,
 });
 
+// -- Paste Special (Ctrl+Alt+V) + the post-paste Paste Options toolbar ---
+const pasteSpecial = usePasteSpecial({
+	clipboard: clipboard.clipboard,
+	ops,
+	selectedElementIds,
+});
+/** An ordinary paste, plus recording the result for the Paste Options toolbar. */
+function pasteElementAndNoteForToolbar(): void {
+	const pasted = clipboard.pasteElement();
+	if (pasted) {
+		pasteSpecial.notePastedElement(pasted);
+	}
+}
+
 // -- Presentation (slideshow) mode -------------------------------------
 const presentation = usePresentationControls({
 	slides,
@@ -783,6 +798,28 @@ const {
 	pushHistory: history.pushHistory,
 });
 
+// -- Office-style ribbon UI state (hoisted above the context menu) -----
+// Owns no dependency on anything below; hoisted here (out of its original
+// position just before the ribbon-wiring block) so `activeTool` exists in
+// time for the keyboard-shortcut registry's drawing-tool guard, and
+// `inspectorOpen` exists in time for the context menu's format-object
+// commands (Edit Alt Text / Size and Position / Format Shape).
+const ribbonUi = useRibbonUiState();
+const {
+	activeTool,
+	drawingColor,
+	drawingWidth,
+	inspectorOpen,
+	sidebarCollapsed,
+	notesExpanded,
+	showGrid,
+	showRulers,
+	showGuides,
+	spellCheckEnabled,
+	themeGalleryOpen,
+	themeEditorOpen,
+} = ribbonUi;
+
 // -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
 	canEdit: () => canEditEffective.value,
@@ -794,10 +831,12 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	editTemplateMode,
 	selectedElementIds,
 	inlineEditingElementId: inlineEdit.inlineEditingElementId,
+	inspectorOpen,
+	enterInlineEdit: inlineEdit.enterInlineEdit,
 	ops,
 	cutElement: clipboard.cutElement,
 	copyElement: clipboard.copyElement,
-	pasteElement: clipboard.pasteElement,
+	pasteElement: pasteElementAndNoteForToolbar,
 	onGroup,
 	onUngroup,
 	openHyperlinkDialog: hyperlink.openHyperlinkDialog,
@@ -1127,26 +1166,6 @@ const mobileChrome = useMobileChrome({
 	addText: insertion.addText,
 });
 
-// -- Office-style ribbon UI state (hoisted above keyboard shortcuts) ---
-// Owns no dependency on anything below; hoisted here (out of its original
-// position just before the ribbon-wiring block) so `activeTool` exists in
-// time for the keyboard-shortcut registry's drawing-tool guard.
-const ribbonUi = useRibbonUiState();
-const {
-	activeTool,
-	drawingColor,
-	drawingWidth,
-	inspectorOpen,
-	sidebarCollapsed,
-	notesExpanded,
-	showGrid,
-	showRulers,
-	showGuides,
-	spellCheckEnabled,
-	themeGalleryOpen,
-	themeEditorOpen,
-} = ribbonUi;
-
 // -- Ribbon-facing actions (hoisted above keyboard shortcuts) ----------
 // `ribbonUpdateTextStyle` is the same path Home > Text's align/font-size/
 // clear-formatting buttons use; the keyboard registry below reuses it
@@ -1195,7 +1214,8 @@ const { showShortcuts, onEditorKeydown, copySelected, cutSelected, selectAllElem
 		redo: history.redo,
 		copyElement: clipboard.copyElement,
 		cutElement: clipboard.cutElement,
-		pasteElement: clipboard.pasteElement,
+		pasteElement: pasteElementAndNoteForToolbar,
+		onPasteSpecial: pasteSpecial.openPasteSpecialDialog,
 		duplicateSelected,
 		deleteSelected,
 		goPrev,
@@ -1480,7 +1500,7 @@ const ribbonProps = useViewerRibbonProps({
 	},
 	editing: {
 		clipboard: clipboard.clipboard,
-		pasteElement: clipboard.pasteElement,
+		pasteElement: pasteElementAndNoteForToolbar,
 		copySelected,
 		cutSelected,
 		formatPainterActive,
@@ -2008,6 +2028,7 @@ defineExpose<PowerPointViewerExpose>(
 				:slide-count="slideCount"
 				:collaboration="collaboration"
 				:share-defaults="props.shareDefaults"
+				:paste-special="pasteSpecial"
 			/>
 
 			<!-- A running show has no editor chrome, and this prompt is modal: left

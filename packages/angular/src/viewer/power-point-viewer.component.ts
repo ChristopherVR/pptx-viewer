@@ -32,8 +32,11 @@ import {
 	commitElementUpdateBatch,
 	applyMasterViewCrudAction,
 	applyPreferenceToOptions,
+	buildRasterPictureElement,
 	createBackstagePresentation,
 	deleteAutosaveSnapshot,
+	downloadBlob,
+	elementPictureFilename,
 	endAudienceDisplay,
 	INSPECTOR_PANEL_DEFAULT_WIDTH,
 	listAutosaveSnapshots,
@@ -67,6 +70,7 @@ import type {
 	DeckViewPreferences,
 	MasterViewCrudActionId,
 	MasterViewTarget,
+	PasteSpecialFormat,
 	PowerPointViewerAPI,
 	SlideTemplateId,
 	ThemeCatalogEntry,
@@ -111,6 +115,7 @@ import { EditorStateService } from './editor-state.service';
 import { EditorToolbarComponent } from './editor-toolbar.component';
 import { EmbeddedFontsService } from './embedded-fonts.service';
 import { ExportProgressModalComponent } from './export-progress-modal.component';
+import { renderElementPngBlob, renderElementPngDataUrl } from './export-raster-tiles';
 import { FindBarComponent } from './find-bar.component';
 import { FindReplaceBarComponent } from './find-replace-bar.component';
 import { FollowModeBarComponent } from './follow-mode-bar.component';
@@ -134,6 +139,8 @@ import { MotionPathOverlayComponent } from './motion-path-overlay.component';
 import { NotesPanelComponent } from './notes-panel.component';
 import { OutlineViewOverlayComponent } from './outline-view-overlay.component';
 import type { OutlineCommit } from './outline-view-overlay.component';
+import { PasteOptionsToolbarComponent } from './paste-options-toolbar.component';
+import { PasteSpecialDialogComponent } from './paste-special-dialog.component';
 import { POWER_POINT_VIEWER_PROVIDERS } from './power-point-viewer.providers';
 import { PresentationOverlayComponent } from './presentation-overlay.component';
 import { PresenterViewComponent } from './presenter-view.component';
@@ -244,6 +251,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		PrintDialogComponent,
 		ShareDialogComponent,
 		BroadcastDialogComponent,
+		PasteSpecialDialogComponent,
+		PasteOptionsToolbarComponent,
 		MobileBottomBarComponent,
 		MobileMenuSheetComponent,
 		MobileSlidesSheetComponent,
@@ -990,9 +999,22 @@ import { ZoomTargetService } from './zoom-target.service';
 					(fixAi)="onContextMenuFixAi()"
 					(editHyperlink)="docProperties.showHyperlink.set(true)"
 					(addComment)="onContextMenuAddComment()"
+					(editText)="onContextMenuEditText()"
+					(saveAsPicture)="onContextMenuSaveAsPicture()"
 					(closed)="canvasEditing.contextMenuPos.set(null)"
 				/>
 			}
+
+			<pptx-paste-special-dialog
+				[open]="editor.isPasteSpecialDialogOpen()"
+				(cancel)="editor.isPasteSpecialDialogOpen.set(false)"
+				(confirm)="onPasteSpecialConfirm($event)"
+			/>
+			<pptx-paste-options-toolbar
+				[elementId]="editor.pasteOptionsToolbar()?.[0]?.id ?? null"
+				(choose)="onPasteOptionsChoose($event)"
+				(dismiss)="editor.pasteOptionsToolbar.set(null)"
+			/>
 
 			<pptx-theme-gallery
 				[open]="themeGallery.showThemeGallery()"
@@ -3093,6 +3115,87 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected onContextMenuAddComment(): void {
 		this.inspectorPanel.mobileInspectorHidden.set(false);
 		this.inspectorPanel.activePanel.set('comments');
+	}
+
+	/** Context-menu "Edit Text": same entry point a double-click uses. */
+	protected onContextMenuEditText(): void {
+		const id = this.selectedElement()?.id;
+		if (id) {
+			this.canvasEditing.onTextEditStart(id);
+		}
+	}
+
+	/**
+	 * Context-menu "Save as Picture": rasterise the right-clicked element's
+	 * own DOM node (found the same way the canvas resolves a click target) and
+	 * download it, reusing the same raster/download pipeline every other
+	 * export button in this binding already goes through.
+	 */
+	protected onContextMenuSaveAsPicture(): void {
+		const element = this.selectedElement();
+		if (!element) {
+			return;
+		}
+		const node = document.querySelector<HTMLElement>(`[data-element-id="${element.id}"]`);
+		if (!node) {
+			return;
+		}
+		void renderElementPngBlob(node, 2).then((blob) => {
+			downloadBlob(blob, elementPictureFilename(element.name, 'Picture'));
+			return undefined;
+		});
+	}
+
+	/**
+	 * Paste Special dialog OK: paste the clipboard with `format` applied. For
+	 * "Picture", the plain clone is inserted first (there is nothing to
+	 * rasterize before it is mounted); this waits one frame, then rasterises
+	 * each inserted node and replaces it, the same DOM lookup/raster pipeline
+	 * "Save as Picture" already uses.
+	 */
+	protected onPasteSpecialConfirm(format: PasteSpecialFormat): void {
+		this.editor.isPasteSpecialDialogOpen.set(false);
+		const entries = this.editor.pasteWithFormat(this.activeSlideIndex(), format);
+		if (format !== 'picture' || entries.length === 0) {
+			return;
+		}
+		requestAnimationFrame(() => {
+			for (const { id, sourceClone } of entries) {
+				void this.rasterizePastedNodeAsPicture(id, sourceClone);
+			}
+		});
+	}
+
+	/** Paste Options toolbar: re-derive the already-pasted element(s) from their own pristine clone. */
+	protected onPasteOptionsChoose(format: PasteSpecialFormat): void {
+		const entries = this.editor.pasteOptionsToolbar();
+		if (!entries) {
+			return;
+		}
+		if (format === 'picture') {
+			for (const { id, sourceClone } of entries) {
+				void this.rasterizePastedNodeAsPicture(id, sourceClone);
+			}
+			return;
+		}
+		this.editor.reformatPasted(this.activeSlideIndex(), entries, format);
+	}
+
+	/** Rasterise the mounted node for `elementId` and replace it with a picture, or no-op if unmounted. */
+	private async rasterizePastedNodeAsPicture(
+		elementId: string,
+		sourceClone: PptxElement,
+	): Promise<void> {
+		const node = document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+		if (!node) {
+			return;
+		}
+		const dataUrl = await renderElementPngDataUrl(node, 2);
+		this.editor.updateElement(
+			this.activeSlideIndex(),
+			elementId,
+			buildRasterPictureElement(sourceClone, dataUrl),
+		);
 	}
 
 	/** Canvas marker click: bring the comments panel on screen (same as above). */

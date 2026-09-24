@@ -62,6 +62,8 @@ export interface EditorKeyboardDeps {
 	clearFormatting?(): void;
 	/** Tab/Shift+Tab: cycle the selection through the slide's elements. */
 	cycleSelection?(direction: 'next' | 'prev'): void;
+	/** Ctrl/Cmd+Alt+V: open the Paste Special dialog. */
+	onPasteSpecial?(): void;
 }
 
 export function createEditorKeydownHandler(
@@ -171,6 +173,9 @@ export function createEditorKeydownHandler(
 				break;
 			case 'cycleSelectionPrev':
 				deps.cycleSelection?.('prev');
+				break;
+			case 'pasteSpecial':
+				deps.onPasteSpecial?.();
 				break;
 			default:
 				break;

@@ -1234,6 +1234,16 @@ export * from './context-menu-target';
 // Canvas context-menu command set: ids, labels, order, separators and the rules
 // deciding what is offered, so the five bindings render one menu, not five.
 export * from './context-menu-commands';
+// The empty-slide-canvas right-click menu (Paste, Layout, Reset Slide, Format
+// Background, Grid and Guides, Ruler): distinct command set from the
+// per-element menu above, offered when the right-click hits no element.
+export * from './canvas-context-menu-commands';
+// Which inspector section a "format object" command (Edit Alt Text, Size and
+// Position, Format Shape) should scroll into view once the properties tab is open.
+export * from './context-menu-inspector-anchor';
+// Paste Special (Ctrl+Alt+V) and the post-paste Paste Options toolbar: the
+// four paste formats and the pure element transforms behind them.
+export * from './paste-special';
 // Insert > Action: OOXML built-in action-button catalogue + element factory
 // (labelled nav buttons carrying an `actionClick` slide jump).
 export * from './action-buttons';
