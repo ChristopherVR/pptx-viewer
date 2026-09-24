@@ -5,6 +5,7 @@
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
 import { applyAfterAnimationBehavior } from './animation-after-effect-write';
+import { getAnimationBehaviorNodes } from './animation-behavior-table';
 import { applyEffectCTnExtras, buildRepeatAttrs } from './animation-write-effect-extras';
 import {
 	PRESET_TO_OOXML,
@@ -33,7 +34,20 @@ function buildEmphasisBehaviorNodes(
 	duration: number,
 	preset: PptxAnimationPreset,
 	allocateId: () => number,
+	presetId: number,
+	presetSubtype: number,
 ): XmlObject[] {
+	const real = getAnimationBehaviorNodes(
+		'emph',
+		presetId,
+		presetSubtype,
+		shapeId,
+		duration,
+		allocateId,
+	);
+	if (real) {
+		return real.nodes;
+	}
 	if (ROTATION_EMPHASIS.has(preset)) {
 		return [buildAnimRotNode(shapeId, duration, preset, allocateId)];
 	}
@@ -81,18 +95,39 @@ export function buildSingleEffectNode(
 	}
 
 	if (presetClass === 'emph') {
-		const emphNodes = buildEmphasisBehaviorNodes(shapeId, duration, preset, allocateId);
+		const emphNodes = buildEmphasisBehaviorNodes(
+			shapeId,
+			duration,
+			preset,
+			allocateId,
+			mapping.presetId,
+			subtype,
+		);
 		for (const n of emphNodes) {
 			childElements.push(n);
 		}
 	} else {
-		const animEffectNode = buildAnimEffectNode(
+		const real = getAnimationBehaviorNodes(
+			presetClass,
+			mapping.presetId,
+			subtype,
 			shapeId,
 			duration,
-			presetClass === 'entr' ? 'in' : 'out',
 			allocateId,
 		);
-		childElements.push(animEffectNode);
+		if (real) {
+			for (const n of real.nodes) {
+				childElements.push(n);
+			}
+		} else {
+			const animEffectNode = buildAnimEffectNode(
+				shapeId,
+				duration,
+				presetClass === 'entr' ? 'in' : 'out',
+				allocateId,
+			);
+			childElements.push(animEffectNode);
+		}
 	}
 
 	if (presetClass === 'exit') {
@@ -131,6 +166,8 @@ export function buildSingleEffectNode(
 	const animNodes: XmlObject[] = [];
 	const animRotNodes: XmlObject[] = [];
 	const animScaleNodes: XmlObject[] = [];
+	const animClrNodes: XmlObject[] = [];
+	const animMotionNodes: XmlObject[] = [];
 
 	for (const child of childElements) {
 		const childNodeType = child['_type'] as string | undefined;
@@ -151,6 +188,12 @@ export function buildSingleEffectNode(
 			case 'animScale':
 				animScaleNodes.push(child);
 				break;
+			case 'animClr':
+				animClrNodes.push(child);
+				break;
+			case 'animMotion':
+				animMotionNodes.push(child);
+				break;
 			default:
 				animEffectNodes.push(child);
 				break;
@@ -163,6 +206,13 @@ export function buildSingleEffectNode(
 	if (animEffectNodes.length > 0) {
 		childTnLst['p:animEffect'] =
 			animEffectNodes.length === 1 ? animEffectNodes[0] : animEffectNodes;
+	}
+	if (animClrNodes.length > 0) {
+		childTnLst['p:animClr'] = animClrNodes.length === 1 ? animClrNodes[0] : animClrNodes;
+	}
+	if (animMotionNodes.length > 0) {
+		childTnLst['p:animMotion'] =
+			animMotionNodes.length === 1 ? animMotionNodes[0] : animMotionNodes;
 	}
 	if (animNodes.length > 0) {
 		childTnLst['p:anim'] = animNodes.length === 1 ? animNodes[0] : animNodes;

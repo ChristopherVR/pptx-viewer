@@ -14,10 +14,13 @@ export const ENTR_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	appear: { presetClass: 'entr', presetId: 1, defaultSubtype: 0 },
 	fadeIn: { presetClass: 'entr', presetId: 10, defaultSubtype: 0 },
 	flyIn: { presetClass: 'entr', presetId: 2, defaultSubtype: 4 },
-	zoomIn: { presetClass: 'entr', presetId: 23, defaultSubtype: 0 },
-	blindsIn: { presetClass: 'entr', presetId: 3, defaultSubtype: 0 },
-	boxIn: { presetClass: 'entr', presetId: 4, defaultSubtype: 0 },
-	checkerboardIn: { presetClass: 'entr', presetId: 5, defaultSubtype: 0 },
+	// entr.3/4/5/23 subtypes corrected via COM (`animation-preset-ground-truth.ts`
+	// / `animation-behavior-simple-filters.ts`): Zoom/Blinds/Box/Checkerboard's
+	// real presetSubtype is 16/10/16/10 respectively, not 0.
+	zoomIn: { presetClass: 'entr', presetId: 23, defaultSubtype: 16 },
+	blindsIn: { presetClass: 'entr', presetId: 3, defaultSubtype: 10 },
+	boxIn: { presetClass: 'entr', presetId: 4, defaultSubtype: 16 },
+	checkerboardIn: { presetClass: 'entr', presetId: 5, defaultSubtype: 10 },
 	// entr.6 = Circle, entr.31 = Expand per MS-OI29500 / the catalog. Random Bars
 	// is entr.14 and Split is entr.17 (see the entr.17/entr.14 catalog labels).
 	expandIn: { presetClass: 'entr', presetId: 31, defaultSubtype: 0 },
@@ -27,9 +30,11 @@ export const ENTR_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	// stale pre-existing alias still pointing at the OLD (wrong) IDs; moved to
 	// match the corrected `flashOnceIn`/`peekIn`/`splitIn` reverse lookup below.
 	flashIn: { presetClass: 'entr', presetId: 11, defaultSubtype: 0 },
-	peekIn: { presetClass: 'entr', presetId: 12, defaultSubtype: 0 },
-	randomBarsIn: { presetClass: 'entr', presetId: 14, defaultSubtype: 0 },
-	wipeIn: { presetClass: 'entr', presetId: 22, defaultSubtype: 0 },
+	// entr.12/14/22 subtypes corrected via COM: Peek/Random Bars/Wipe's real
+	// presetSubtype is 4/10/4 respectively, not 0.
+	peekIn: { presetClass: 'entr', presetId: 12, defaultSubtype: 4 },
+	randomBarsIn: { presetClass: 'entr', presetId: 14, defaultSubtype: 10 },
+	wipeIn: { presetClass: 'entr', presetId: 22, defaultSubtype: 4 },
 	// entr.26/37 verified via COM: `msoAnimEffectBounce` (PowerPoint's own
 	// internal effect id 26) serializes as `presetID="26"`, and
 	// `msoAnimEffectRiseUp` (internal id 34) serializes as `presetID="37"`.
@@ -38,21 +43,39 @@ export const ENTR_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	// presetID are different numbering spaces and only coincide for some ids.
 	riseUp: { presetClass: 'entr', presetId: 37, defaultSubtype: 0 },
 	bounceIn: { presetClass: 'entr', presetId: 26, defaultSubtype: 0 },
-	floatIn: { presetClass: 'entr', presetId: 42, defaultSubtype: 0 },
+	// entr.30 verified via a fresh COM pass (AddEffect + raw OOXML inspection,
+	// see `animation-behavior-float-growturn.ts`): `msoAnimEffectFloat`
+	// serialises presetID="30", not 42 as this table previously guessed (42 was
+	// never observed in a real file; 30 collides with the pre-existing
+	// `spinner2In`, matching the "same id, two names" pattern seen elsewhere in
+	// this table, e.g. `bounce`/`pulse` at emph.26).
+	floatIn: { presetClass: 'entr', presetId: 30, defaultSubtype: 0 },
 	// entr.19 verified via COM: `msoAnimEffectSwivel` serializes as
 	// `presetID="19"`, not 47 (the OLD value here). entr.47 is really
 	// "Descend" (`msoAnimEffectDescend` -> presetID 47), which collides with
 	// the pre-existing `descendIn` (entr.61) below; left unresolved pending a
 	// dedicated verification pass, but `swivel` no longer wrongly claims it.
-	swivel: { presetClass: 'entr', presetId: 19, defaultSubtype: 0 },
+	// entr.19 subtype corrected via COM: Swivel's real presetSubtype is 10.
+	swivel: { presetClass: 'entr', presetId: 19, defaultSubtype: 10 },
 	spinnerIn: { presetClass: 'entr', presetId: 49, defaultSubtype: 0 },
-	growTurnIn: { presetClass: 'entr', presetId: 53, defaultSubtype: 0 },
-	splitIn: { presetClass: 'entr', presetId: 16, defaultSubtype: 0 },
+	// entr.31 verified via a fresh COM pass (see
+	// `animation-behavior-float-growturn.ts`): `msoAnimEffectGrowAndTurn`
+	// serialises presetID="31", not 53 as this table previously guessed (53
+	// was never observed in a real file; 31 collides with the pre-existing
+	// `expandIn`, same "same id, two names" pattern as `floatIn` above).
+	growTurnIn: { presetClass: 'entr', presetId: 31, defaultSubtype: 0 },
+	// entr.16/21 subtype corrected via the same COM pass as the filter table in
+	// `animation-behavior-simple-filters.ts`: Split's real presetSubtype is 21
+	// (`barn(inVertical)`), not 0.
+	splitIn: { presetClass: 'entr', presetId: 16, defaultSubtype: 21 },
 	wheelIn: { presetClass: 'entr', presetId: 21, defaultSubtype: 1 },
 
 	// ---- Entrance effects (extended catalog) ----
-	circleIn: { presetClass: 'entr', presetId: 6, defaultSubtype: 0 },
-	diamondIn: { presetClass: 'entr', presetId: 8, defaultSubtype: 0 },
+	// entr.6 subtype corrected via COM (`animation-preset-ground-truth.ts` /
+	// `animation-behavior-simple-filters.ts`): Circle's real presetSubtype is
+	// 16 (`circle(in)`), not 0.
+	circleIn: { presetClass: 'entr', presetId: 6, defaultSubtype: 16 },
+	diamondIn: { presetClass: 'entr', presetId: 8, defaultSubtype: 16 },
 	// entr.11 is Flash Once (verified via COM: a plain visibility flash, no
 	// filter). `flashBulbIn` is left in place as a pre-existing alias so
 	// nothing that already depends on it breaks, but Flash Bulb is really an
@@ -60,14 +83,16 @@ export const ENTR_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	// all; `flashOnceIn` is the correct typed name for this id.
 	flashOnceIn: { presetClass: 'entr', presetId: 11, defaultSubtype: 0 },
 	flashBulbIn: { presetClass: 'entr', presetId: 11, defaultSubtype: 0 },
-	plusIn: { presetClass: 'entr', presetId: 13, defaultSubtype: 0 },
+	// entr.13 subtype corrected via COM: Plus's real presetSubtype is 16.
+	plusIn: { presetClass: 'entr', presetId: 13, defaultSubtype: 16 },
 	spiralIn: { presetClass: 'entr', presetId: 15, defaultSubtype: 0 },
 	// entr.17/18 verified via COM: Stretch is entr.17 (a plain grow with no
 	// filter) and Strips is entr.18 (`filter="strips(...)"`). `stretchIn` and
 	// `stripsIn` previously pointed at 18 and 19 respectively; entr.19 is
-	// really Swivel (see `swivel` above), not Strips.
-	stretchIn: { presetClass: 'entr', presetId: 17, defaultSubtype: 0 },
-	stripsIn: { presetClass: 'entr', presetId: 18, defaultSubtype: 0 },
+	// really Swivel (see `swivel` above), not Strips. Their real presetSubtype
+	// (also COM-verified) is 10 and 12 respectively, not 0.
+	stretchIn: { presetClass: 'entr', presetId: 17, defaultSubtype: 10 },
+	stripsIn: { presetClass: 'entr', presetId: 18, defaultSubtype: 12 },
 	wedgeIn: { presetClass: 'entr', presetId: 20, defaultSubtype: 0 },
 	randomEffectsIn: { presetClass: 'entr', presetId: 24, defaultSubtype: 0 },
 	boomerangIn: { presetClass: 'entr', presetId: 25, defaultSubtype: 0 },
@@ -154,10 +179,16 @@ export const ENTR_CANONICAL: ReadonlyArray<[number, string]> = [
 	// (previously swapped in this table). See the matching note on
 	// `ENTR_PRESET_TO_OOXML.riseUp`/`bounceIn` above.
 	[26, 'bounceIn'],
-	// entr.31 = Expand -> `expandIn`; the auto-fill resolves id 31 without an
-	// override since only `expandIn` maps to it.
+	// entr.31 collides between the pre-existing `expandIn` and the freshly
+	// COM-verified `growTurnIn` (see the note on `ENTR_PRESET_TO_OOXML.
+	// growTurnIn` above); `expandIn` is kept canonical since it was the
+	// longer-established, independently-catalogued identity for this id.
+	[31, 'expandIn'],
 	[37, 'riseUp'],
-	[42, 'floatIn'],
+	// entr.30 collides between the pre-existing `spinner2In` and the freshly
+	// COM-verified `floatIn` (see the note on `ENTR_PRESET_TO_OOXML.floatIn`
+	// above); `floatIn` is kept canonical as the more common, user-facing name.
+	[30, 'floatIn'],
 	// entr.47's old override here ('swivel') was wrong; Swivel is really
 	// entr.19 (see above). entr.47 is really "Descend" per COM, which
 	// collides with the pre-existing `descendIn` (entr.61); left as an
@@ -165,5 +196,4 @@ export const ENTR_CANONICAL: ReadonlyArray<[number, string]> = [
 	// given for 47 here (falls through to unmapped/undefined, preserving
 	// round-trip via the raw presetId).
 	[49, 'spinnerIn'],
-	[53, 'growTurnIn'],
 ];

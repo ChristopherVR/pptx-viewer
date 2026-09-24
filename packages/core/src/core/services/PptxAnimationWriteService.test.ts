@@ -782,9 +782,14 @@ describe('pptxAnimationWriteService', () => {
 			];
 			const result1 = service.buildTimingXml(anim1, undefined)!;
 
-			// Second build - should reset IDs
+			// Second build - should reset IDs. Uses the SAME preset as the first
+			// build (rather than a different one) so this only isolates "did the
+			// id counter reset between calls" from "do these two particular
+			// presets happen to allocate the same number of ids", which stopped
+			// holding once `appear` got its own (shorter, COM-verified) node shape
+			// with no `p:animEffect` child.
 			const anim2: PptxElementAnimation[] = [
-				{ elementId: 'sp2', entrance: 'appear', durationMs: 250 },
+				{ elementId: 'sp2', entrance: 'fadeIn', durationMs: 250 },
 			];
 			const result2 = service.buildTimingXml(anim2, undefined)!;
 
