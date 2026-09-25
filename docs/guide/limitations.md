@@ -22,7 +22,7 @@ An effect authored in the animation panel is reconciled into the slide's existin
 
 - **A few saved effects still fall back to a fade in PowerPoint.** Entrance, exit and emphasis effects are written with PowerPoint's own behaviour tree (Fly In, Float, Bounce, Grow & Turn, the filter reveals, Pulse, Teeter, Wave and others, verified by reopening in PowerPoint); Crawl and Spiral still save as a fade, and Blink is an approximation.
 - **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade). Box, Circle, Diamond and Plus play only their "out" direction.
-- **Partially supported:** the `p14:bounceEnd` settle curve is an approximation not yet fitted against PowerPoint's own frames; triggers on a media bookmark play correctly but cannot be authored in the animation panel yet; per-letter ripple inside a by-paragraph build is not played; p15 transitions play when present in a file but cannot be authored, and their direction options are ignored.
+- **Partially supported:** per-letter ripple inside a by-paragraph build is not played; p15 transitions play when present in a file but cannot be authored, and their direction options are ignored; a `p14:bounceEnd` of 100% (no travel left, which PowerPoint itself renders erratically) is clamped to 95%. Media-bookmark triggers ("On bookmark") are authored in all five bindings and the Bounce End settle curve is fitted to PowerPoint's own frames.
 
 ### Detecting gaps at runtime
 
@@ -63,10 +63,9 @@ Reflections, soft edges and path gradients are also approximations, but hold up 
 
 A September 2026 audit against real PowerPoint found these gaps that are still open:
 
-- **Saving an edited slide can still touch minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages, run properties, inner-shadow colours, gradient insets and untouched charts now round-trip; a small residue of rare attributes (for example some `buClr`, `tabLst@algn` and animation/audio metadata) can still differ on a rewritten slide. Unedited slides round-trip cleanly.
+- **Saving an edited slide can still touch minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages, run properties, inner-shadow colours, gradient insets and untouched charts now round-trip; so do bullet colours on an inherited bullet, authored default tab alignment, animation and play-across-slides audio metadata, and an unused comment-author list. A small residue remains on a rewritten slide: some run attributes (`err`, `b`) and ruby-run properties are written out explicitly, some shapes gain an explicit outline width, and `docProps` revision, modified time and slide counts are refreshed. Unedited slides round-trip cleanly.
 - **Text:** decimal tabs on a comma, `hangingPunct`, a few East Asian/Thai numbering schemes and some underline variants differ from PowerPoint.
 - **Charts:** waterfall colours and legend, pie-of-pie, data-label callouts, display-unit labels and chart-area gradient fills are approximate.
-- **Animations and transitions:** the Zoom transition's direction, authoring a trigger on a media bookmark, and the exact shape of the `p14:bounceEnd` settle curve are not yet matched to PowerPoint.
 - **3D models** ignore the camera, transform and lights authored in PowerPoint.
 - **Editor coverage** is a subset of PowerPoint's: several ribbon galleries are not available yet. Edit Points (with the Freeform: Shape and Curve drawing tools), Merge Shapes, on-canvas picture cropping (crop handles, Crop to Aspect Ratio, Fill, Fit), Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
 
