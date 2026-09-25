@@ -10,6 +10,7 @@ import type { PptxAnimationPreset, PptxNativeAnimation } from 'pptx-viewer-core'
 
 import { maskHoleInitialStyle, maskPlusHoleInitialStyle } from './animation-mask-hole-reveal';
 import { maskEdgeInitialStyle, maskShapeInitialStyle } from './animation-mask-reveal';
+import { stripsEntranceDirection, stripsInitialStyle } from './animation-strips-reveal';
 import { resolveEffect } from './animation-timeline-helpers';
 import type { AnimationStyle, EffectName } from './animation-timeline-types';
 
@@ -66,6 +67,10 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'rotateIn',
 	'centerRevolveIn',
 	'dropIn',
+	'stripsInDownLeft',
+	'stripsInUpLeft',
+	'stripsInDownRight',
+	'stripsInUpRight',
 ]);
 
 /**
@@ -76,6 +81,10 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
  * transparent.
  */
 export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
+	const stripsDirection = stripsEntranceDirection(effect);
+	if (stripsDirection) {
+		return stripsInitialStyle(stripsDirection);
+	}
 	switch (effect) {
 		case 'flyInLeft':
 			return { opacity: 0, transform: 'translateX(-100%)' };

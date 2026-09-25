@@ -81,14 +81,12 @@ export const ENTR_PRESETS: Record<number, EffectName> = {
 	8: 'diamondIn',
 	13: 'plusIn',
 	20: 'wedgeIn',
-	// entr.18 (Strips) confirmed via the same COM pass: presetID 18,
-	// matching the already-COM-verified catalog label ("Strips"). There is
-	// no dedicated diagonal-strip keyframe, so this reuses the `wipeIn`
-	// mask (the same approximation already used by the Strips filter
-	// family in `animation-filter-effects.ts`); see the
-	// APPROXIMATION_ALLOWLIST entry in
-	// `animation-preset-tables-consistency.test.ts`.
-	18: 'wipeIn',
+	// entr.18 (Strips) confirmed via COM: presetID 18 with
+	// `filter="strips(<dir>)"`. CreateVideo frames show a diagonal
+	// corner-to-corner sweep (see `animation-strips-reveal`); the default
+	// direction here is redirected per the animation's own filter token or
+	// presetSubtype by `redirectStripsEffect`.
+	18: 'stripsInDownLeft',
 	// entr.47 (Descend) confirmed via the same COM pass: presetID 47,
 	// matching the already-COM-verified catalog label ("Descend"; see
 	// `animation-preset-catalog.ts`). No dedicated "falls from above"

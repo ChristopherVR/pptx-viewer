@@ -6,8 +6,13 @@
  * @module render/animation-timeline-effect-names
  */
 
+import type { StripsEffectName } from './animation-strips-reveal';
+
 /** Catalog of static effect keyframe short-names (without the `pptx-` prefix). */
 export type EffectName =
+	// Strips (entr/exit.18): diagonal corner sweeps, one per travel direction;
+	// see `animation-strips-reveal`.
+	| StripsEffectName
 	| 'appear'
 	| 'fadeIn'
 	| 'flyInLeft'

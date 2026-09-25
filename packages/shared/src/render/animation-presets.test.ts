@@ -239,8 +239,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[20]).toBe('wedgeIn');
 		});
 
-		it('should map preset ID 18 to "wipeIn" (Strips, verified via COM; approximation)', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[18]).toBe('wipeIn');
+		it('should map preset ID 18 to "stripsInDownLeft" (Strips, verified via COM + CreateVideo)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[18]).toBe('stripsInDownLeft');
 		});
 
 		it('should map preset ID 49 to "spinnerIn"', () => {
@@ -297,8 +297,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[21]).toBe('wheelOut');
 		});
 
-		it('should map preset ID 18 to "wipeOut" (Strips exit, verified via COM; approximation)', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
+		it('should map preset ID 18 to "stripsOutDownLeft" (Strips exit, verified via COM + CreateVideo)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('stripsOutDownLeft');
 		});
 	});
 

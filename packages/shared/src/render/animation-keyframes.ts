@@ -22,6 +22,8 @@ import { MOTION_FAMILY_KEYFRAME_DEFINITIONS } from './animation-keyframes-motion
 import type { MotionFamilyEffectNameKeys } from './animation-keyframes-motion-family';
 import { ROTATION_FAMILY_KEYFRAME_DEFINITIONS } from './animation-keyframes-rotation-family';
 import type { RotationFamilyEffectNameKeys } from './animation-keyframes-rotation-family';
+import { STRIPS_KEYFRAME_DEFINITIONS } from './animation-strips-reveal';
+import type { StripsEffectName } from './animation-strips-reveal';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
@@ -37,6 +39,7 @@ type BaseEffectName = Exclude<
 	| RotationFamilyEffectNameKeys
 	| MotionFamilyEffectNameKeys
 	| BlinkShimmerEffectName
+	| StripsEffectName
 >;
 
 const BASE_KEYFRAME_DEFINITIONS = {
@@ -51,6 +54,7 @@ const KEYFRAME_DEFINITIONS: Record<EffectName, string> = {
 	...ROTATION_FAMILY_KEYFRAME_DEFINITIONS,
 	...MOTION_FAMILY_KEYFRAME_DEFINITIONS,
 	...BLINK_SHIMMER_KEYFRAME_DEFINITIONS,
+	...STRIPS_KEYFRAME_DEFINITIONS,
 };
 
 // ==========================================================================

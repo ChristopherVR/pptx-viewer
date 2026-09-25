@@ -71,17 +71,11 @@ export const EXIT_PRESETS: Record<number, EffectName> = {
 	14: 'randomBarsOut',
 	20: 'wedgeOut',
 	21: 'wheelOut',
-	// exit.18 (Strips) confirmed via the same COM pass: presetID 18 (the
-	// SAME id as its entrance form, entr.18). This CONTRADICTS
-	// `animation-write-mappings.ts`'s existing (unverified) `collapseOut`
-	// entry at exit.18; that entry is almost certainly a pre-existing
-	// guess that was never COM-checked, and correcting it is a separate,
-	// larger fix out of this pass's scope (see the APPROXIMATION_ALLOWLIST
-	// entry in `animation-preset-tables-consistency.test.ts`). No
-	// dedicated diagonal-strip exit keyframe exists, so this reuses
-	// `wipeOut`, matching the approximation `animation-filter-effects.ts`
-	// already uses for the Strips filter family's exit form.
-	18: 'wipeOut',
+	// exit.18 (Strips) confirmed via COM: presetID 18 (the SAME id as its
+	// entrance form), `filter="strips(<dir>)"` with `transition="out"`.
+	// CreateVideo frames show the entrance sweep time-reversed (see
+	// `animation-strips-reveal`).
+	18: 'stripsOutDownLeft',
 	// exit.7/15/16/17/19/24/25/27-68 (minus the ids already covered above):
 	// the exit-side half of the same gap-closing pass, split into
 	// `animation-presets-extended.ts`; see that module's doc for the

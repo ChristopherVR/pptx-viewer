@@ -79,29 +79,11 @@ const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
 	// `shrinkOut` approximation (both read as "collapse to nothing") even
 	// though authoring/catalog now correctly agree on `circleOut`/"Circle".
 	'exit.6',
-	// entr.18 = Strips, confirmed via a fresh COM pass (see the note on
-	// `PRESET_ID_TO_EFFECT.entr[18]` in `animation-presets.ts`). There is no
-	// dedicated diagonal-strip keyframe, so playback reuses the `wipeIn` mask
-	// (the same approximation the Strips filter family already uses in
-	// `animation-filter-effects.ts`), even though authoring/catalog agree on
-	// "Strips".
-	'entr.18',
 	// entr.47 = Descend, confirmed via a fresh COM pass (see the note on
 	// `PRESET_ID_TO_EFFECT.entr[47]` in `animation-presets.ts`). There is no
 	// dedicated "falls from above" keyframe, so playback reuses `flyInTop`,
 	// even though authoring/catalog agree on "Descend".
 	'entr.47',
-	// exit.18 = Strips, confirmed via a fresh COM pass (`msoAnimEffectStrips`
-	// with `Effect.Exit = True` serializes as presetID 18, the SAME id as its
-	// entrance form). This CONTRADICTS `animation-write-mappings.ts`'s
-	// existing (unverified) `collapseOut: { presetClass: 'exit', presetId: 18
-	// }` entry, which is almost certainly wrong (a pre-existing guess never
-	// COM-checked); correcting the authoring table is a separate, larger fix
-	// out of this pass's scope, so playback keeps its COM-verified `wipeOut`
-	// approximation (matching the entrance side's Strips treatment) and this
-	// id is allowlisted rather than silently made to agree with an unverified
-	// label.
-	'exit.18',
 	// The following entries close the "68 entrance / 68 exit preset IDs, only
 	// 54/200 non-path IDs covered" gap (W3-A). Each of these ids now has a
 	// playback effect, but no dedicated keyframe exists for its exact
@@ -359,13 +341,12 @@ describe('animation preset table cross-consistency', () => {
 		// entr.19 (Swivel) is ALSO covered by playback (see "a further COM
 		// verification pass resolves more ids" below). entr.18 (Strips) is now
 		// ALSO covered by playback (a further, later COM pass; see the note on
-		// `PRESET_ID_TO_EFFECT.entr[18]`), via the same `wipeIn` approximation
-		// the Strips filter family already used - hence its
-		// APPROXIMATION_ALLOWLIST entry rather than a plain identity match.
+		// `PRESET_ID_TO_EFFECT.entr[18]`), via its own diagonal corner sweep
+		// (`animation-strips-reveal`, derived from CreateVideo frames).
 		it.each([{ presetId: 18, effect: 'strips' }])(
-			'entr.$presetId -> $effect (authoring, catalog agree; playback uses the documented wipeIn approximation)',
+			'entr.$presetId -> $effect (authoring, catalog and playback agree)',
 			({ presetId, effect }) => {
-				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBe('wipeIn');
+				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBe('stripsInDownLeft');
 
 				const fromAuthoring = ooxmlToPresetName({ presetClass: 'entr', presetId });
 				expect(fromAuthoring, `entr.${presetId} should be covered by authoring`).toBeDefined();
@@ -586,8 +567,8 @@ describe('animation preset table cross-consistency', () => {
 			},
 		);
 
-		it('exit.18 (Strips) reuses the wipeOut approximation, matching the entrance side', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
+		it('exit.18 (Strips) plays the time-reversed Strips sweep, matching the entrance side', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('stripsOutDownLeft');
 		});
 
 		it('entr.47 (Descend) is now covered by playback via the flyInTop approximation', () => {

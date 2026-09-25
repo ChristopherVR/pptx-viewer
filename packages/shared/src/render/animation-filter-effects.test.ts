@@ -39,7 +39,7 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'wheel', subtype: '4', entr: 'wheelIn4', exit: 'fadeOut' },
 	{ family: 'zoom', entr: 'zoomIn', exit: 'zoomOut' },
 	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsInHorizontal', exit: 'fadeOut' },
-	{ family: 'strips', subtype: 'downLeft', entr: 'wipeIn', exit: 'wipeOut' },
+	{ family: 'strips', subtype: 'downLeft', entr: 'stripsInDownLeft', exit: 'stripsOutDownLeft' },
 	{ family: 'comb', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
 	{ family: 'diamond', entr: 'diamondIn', exit: 'fadeOut' },
 	{ family: 'plus', entr: 'plusIn', exit: 'fadeOut' },
@@ -238,9 +238,9 @@ describe('resolveFilterPresetSubtype', () => {
 		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outHorizontal', 'exit'))).toBe(5);
 	});
 
-	it('derives an approximated strips presetSubtype off the nearest wipe edge', () => {
-		expect(resolveFilterPresetSubtype(filterAnim('strips', 'downLeft', 'entr'))).toBe(4);
-		expect(resolveFilterPresetSubtype(filterAnim('strips', 'upRight', 'entr'))).toBe(1);
+	it('synthesises no wipe presetSubtype for strips (its direction lives in the effect name)', () => {
+		expect(resolveFilterPresetSubtype(filterAnim('strips', 'downLeft', 'entr'))).toBeUndefined();
+		expect(resolveFilterPresetSubtype(filterAnim('strips', 'upRight', 'entr'))).toBeUndefined();
 	});
 
 	it('returns undefined for a non-directional family', () => {

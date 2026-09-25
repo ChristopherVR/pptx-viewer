@@ -29,9 +29,9 @@
  *    diagonal subtype tokens (`fromTopLeft`, etc.) that
  *    {@link SLIDE_TOKEN_TO_SUFFIX} does not enumerate; those fall through to
  *    the same default bottom edge as an unrecognised `slide` subtype.
- *  - `strips` (diagonal corner reveal) has no dedicated element-level mask
- *    shape; it is approximated by reusing the Wipe engine off the nearest
- *    cardinal edge (documented on {@link STRIPS_TOKEN_TO_WIPE_TOKEN}).
+ *  - `strips` resolves to the diagonal corner-to-corner sweep in
+ *    `animation-strips-reveal` (one keyframe per travel direction), the same
+ *    keyframes a preset-driven Strips effect (`presetID` 18) plays.
  *  - `diamond` / `plus` / `wedge` reuse the box/circle mask-SIZE technique
  *    (`diamondOut` / `plusOut` / `wedgeOut` in `animation-mask-reveal`): a
  *    fixed mask shape whose `mask-size` animates 0 -> full, so `diamond`
@@ -101,6 +101,7 @@ import {
 	redirectMaskEffectByFilterSubtype,
 	WIPE_FILTER_TOKEN_TO_SUBTYPE,
 } from './animation-presets';
+import { resolveStripsDirection, stripsEffectName } from './animation-strips-reveal';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
@@ -135,9 +136,6 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	wheel: { entr: 'wheelIn', exit: 'fadeOut' },
 	zoom: { entr: 'zoomIn', exit: 'zoomOut' },
 	randombar: { entr: 'randomBarsIn', exit: 'fadeOut' },
-	// Strips is a diagonal corner reveal; approximated via the Wipe mask
-	// engine off the nearest cardinal edge (see STRIPS_TOKEN_TO_WIPE_TOKEN).
-	strips: { entr: 'wipeIn', exit: 'wipeOut' },
 	// Comb is an ordered alternating-strip reveal; close enough to the
 	// randombar shape family that it reuses the same keyframe rather than a
 	// bespoke ordered-strip mask.
@@ -226,23 +224,6 @@ function resolveStretchEffect(subtype: string | undefined, isExit: boolean): Eff
 }
 
 // ==========================================================================
-// Strips -> nearest cardinal Wipe edge (diagonal approximation)
-// ==========================================================================
-
-/**
- * Strips travels diagonally from a screen corner; the element-level mask
- * engine only has cardinal-edge wipes, so each corner token is approximated
- * by its vertical component (matches the direction most viewers read as
- * dominant for a corner sweep).
- */
-const STRIPS_TOKEN_TO_WIPE_TOKEN: Readonly<Record<string, string>> = {
-	downLeft: 'down',
-	downRight: 'down',
-	upLeft: 'up',
-	upRight: 'up',
-};
-
-// ==========================================================================
 // Public resolvers
 // ==========================================================================
 
@@ -268,6 +249,9 @@ export function resolveFilterEffect(
 	const isExit = anim.presetClass === 'exit';
 	if (filter.family === 'random') {
 		return resolveRandomEffect(anim, isExit);
+	}
+	if (filter.family === 'strips') {
+		return stripsEffectName(resolveStripsDirection(filter.subtype, anim.presetSubtype), isExit);
 	}
 	if (filter.family === 'stretch') {
 		return resolveStretchEffect(filter.subtype, isExit);
@@ -299,8 +283,8 @@ export function resolveFilterEffect(
  * animation's own `presetSubtype` when present (real preset data always
  * wins), otherwise a value synthesised from the filter's subtype token for
  * the two directional families (`wipe`, `barn`) that have one. Every other
- * family (or a filter-only Strips animation, approximated non-directionally
- * via its nearest Wipe edge) returns `undefined`, matching `undefined`'s
+ * family (Strips carries its direction in its own effect name) returns
+ * `undefined`, matching `undefined`'s
  * existing meaning of "use the non-directional static effect".
  */
 export function resolveFilterPresetSubtype(anim: PptxNativeAnimation): number | undefined {
@@ -316,10 +300,6 @@ export function resolveFilterPresetSubtype(anim: PptxNativeAnimation): number | 
 	}
 	if (filter.family === 'barn') {
 		return BARN_FILTER_TOKEN_TO_SUBTYPE[filter.subtype];
-	}
-	if (filter.family === 'strips') {
-		const wipeToken = STRIPS_TOKEN_TO_WIPE_TOKEN[filter.subtype];
-		return wipeToken ? WIPE_FILTER_TOKEN_TO_SUBTYPE[wipeToken] : undefined;
 	}
 	return undefined;
 }
