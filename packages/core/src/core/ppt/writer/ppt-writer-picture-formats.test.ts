@@ -81,15 +81,27 @@ describe('.ppt export of picture formats (vs PowerPoint 97-2003 SaveAs)', () => 
 
 	it('embeds every raster and metafile picture a loaded deck carries only by part path', async () => {
 		const { blips, warnings } = await exportFixture();
-		// Node has no SVG rasteriser, so only the fallback-less SVG degrades.
+		// The fallback-less SVG is rasterised in Node too (through the optional
+		// @napi-rs/canvas peer), so nothing degrades to a placeholder.
 		expect(blips.map((b) => b.recType)).toStrictEqual([
 			OA.BlipPng,
 			OA.BlipPng,
 			OA.BlipPng,
 			OA.BlipEmf,
 			OA.BlipWmf,
+			OA.BlipPng,
 		]);
-		expect(warnings.filter((code) => code === 'ppt-image-format-unsupported')).toHaveLength(1);
+		expect(warnings.filter((code) => code === 'ppt-image-format-unsupported')).toHaveLength(0);
+	});
+
+	it('rasterises the fallback-less SVG at twice its intrinsic size, as PowerPoint does', async () => {
+		const { blips } = await exportFixture();
+		// rgbUid (16) + tag (1), then the PNG; IHDR width/height at PNG offset 16.
+		const png = blips[5]!.data.subarray(17);
+		const view = new DataView(png.buffer, png.byteOffset, png.byteLength);
+		expect(Array.from(png.subarray(1, 4))).toStrictEqual([0x50, 0x4e, 0x47]); // "PNG"
+		// The fixture SVG is 100 x 60; PowerPoint's own SaveAs writes a 200 x 120 PNG.
+		expect([view.getUint32(16), view.getUint32(20)]).toStrictEqual([200, 120]);
 	});
 
 	it('writes the same rgbUid (MD4 of the picture data) PowerPoint writes', async () => {
