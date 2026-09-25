@@ -102,6 +102,23 @@ describe('buildPrimaryAxis display units', () => {
 		expect(cap?.transform).toContain('rotate(-90');
 	});
 
+	// COM-verified charts-com.pptx slide 4: values 1..6 at "thousands" tick as
+	// 0.001 .. 0.006 (General format), with the caption hung from the axis top.
+	it('keeps the decimals a small scaled tick needs', () => {
+		const small: ValueRange = { min: 0, max: 6, span: 6 };
+		const texts = buildPrimaryAxis(small, layout, axis).axisLabels.map((l) => l.text);
+		expect(texts).toContain('0.006');
+		expect(texts).not.toContain('0.0');
+	});
+
+	it('hangs the caption from the top of the axis', () => {
+		const cap = buildPrimaryAxis(range, layout, axis).axisLabels.find(
+			(l) => l.text === 'Thousands',
+		);
+		expect(cap?.y).toBe(layout.plotTop);
+		expect(cap?.textAnchor).toBe('end');
+	});
+
 	it('uses text from a typed display-units label', () => {
 		const { axisLabels } = buildPrimaryAxis(range, layout, {
 			...axis,

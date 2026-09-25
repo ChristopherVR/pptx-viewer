@@ -89,14 +89,32 @@ export function getDisplayUnitLabel(
 	return DISPLAY_UNIT_LABELS[unit] ?? '';
 }
 
-/** Format an axis value with display unit scaling applied. */
+/**
+ * Format an axis value with display unit scaling applied. PowerPoint writes
+ * the scaled value in the axis' General number format, i.e. with as many
+ * decimals as it needs (COM-verified charts-com.pptx slide 4: ticks of
+ * 1..6 at "thousands" read 0.001 .. 0.006); rounding to one decimal turned
+ * every tick of that axis into "0.0".
+ */
 export function formatAxisValueWithUnits(value: number, axis?: PptxChartAxisFormatting): string {
 	if (!axis?.displayUnits) {
 		return String(value);
 	}
 	const divisor = getDisplayUnitDivisor(axis.displayUnits, axis.displayUnitsValue);
-	const scaled = value / divisor;
-	return Number.isInteger(scaled) ? String(scaled) : scaled.toFixed(1);
+	// Ten significant digits drops the binary-float noise of the division
+	// (0.0030000000000000001) without truncating any authored precision.
+	return String(Number((value / divisor).toPrecision(10)));
+}
+
+/** Distance left of the plot for a units caption: past the widest tick label. */
+export function unitsCaptionOffset(
+	tickLabels: ReadonlyArray<{ text: string; fontSize?: number }>,
+): number {
+	const widest = tickLabels.reduce(
+		(w, label) => Math.max(w, label.text.length * (label.fontSize ?? 9) * 0.55),
+		0,
+	);
+	return Math.max(24, widest + 14);
 }
 
 // ── Layout options (secondary axes + data table) ─────────────────

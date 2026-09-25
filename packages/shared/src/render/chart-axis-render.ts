@@ -17,6 +17,7 @@ import {
 	generateAxisTicks,
 	generateMinorAxisTicks,
 	getDisplayUnitLabel,
+	unitsCaptionOffset,
 } from './chart-axis';
 import {
 	buildStyledGridline,
@@ -153,20 +154,23 @@ export function buildPrimaryAxis(
 		}
 	}
 
-	// Display-units caption (e.g. "Thousands"), rotated alongside the left axis.
+	// Units caption: rotated, past the widest tick, hung from the axis top (COM).
 	if (axis?.displayUnits) {
 		const unitLabel = getDisplayUnitLabel(axis.displayUnits, axis.displayUnitsLabel);
 		if (unitLabel) {
-			const labelX = layout.plotLeft - 36;
-			const midY = (layout.plotTop + layout.plotBottom) / 2;
+			const style = unitsLabelTextStyle(axis, chartAxisTextStyle(axis));
+			const labelX = Math.max(
+				layout.plotLeft - unitsCaptionOffset(axisLabels),
+				style.fontSize ?? 12,
+			);
 			axisLabels.push({
 				kind: 'text',
 				x: labelX,
-				y: midY,
+				y: layout.plotTop,
 				text: unitLabel,
-				...unitsLabelTextStyle(axis, chartAxisTextStyle(axis)),
-				textAnchor: 'middle',
-				transform: `rotate(-90, ${labelX}, ${midY})`,
+				...style,
+				textAnchor: 'end',
+				transform: `rotate(-90, ${labelX}, ${layout.plotTop})`,
 			});
 		}
 	}

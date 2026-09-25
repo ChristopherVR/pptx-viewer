@@ -49,6 +49,12 @@ function categoryAxisBand(chartData: PptxChartData): number {
 	return Math.max(24, offset + fontPx * 1.2);
 }
 
+/** Whether the primary value axis shows a display-units caption. */
+function hasDisplayUnitsCaption(chartData: PptxChartData): boolean {
+	const axis = chartData.axes?.find((a) => a.axisType === 'valAx' && a.axPos !== 'r');
+	return Boolean(axis?.displayUnits) && axis?.displayUnitsLabel !== null;
+}
+
 /**
  * Horizontal space to reserve to the LEFT of the plot for the axis band.
  *
@@ -115,6 +121,11 @@ export function computePlotLayout(
 		}));
 	}
 
+	// A display-units caption ("Thousands") needs its own band left of the
+	// primary value axis' tick labels, as PowerPoint gives it.
+	if (hasAxes && hasDisplayUnitsCaption(chartData)) {
+		plotLeft += 20;
+	}
 	// Secondary value axis on the right.
 	if (options?.hasSecondaryValueAxis) {
 		plotRight -= 40;
