@@ -10,6 +10,99 @@ dated sections beneath it are generated from
 
 ## 2026-09-25
 
+_Releases: pptx-viewer-core@4.4.0, pptx-react-viewer@4.7.0, pptx-vue-viewer@4.7.0, pptx-angular-viewer@4.7.0, pptx-vanilla-viewer@3.7.0, pptx-svelte-viewer@4.7.0, @christophervr/pptx-viewer@2.29.0_
+
+### Features
+
+- **shared:** Edit points model, sessions and freeform tools (by @ChristopherVR) ([481dd57](https://github.com/ChristopherVR/pptx-viewer/commit/481dd5758c023d726255cfaab6473e075453ba8a))
+- **locales:** Translate edit points and freeform tool strings (by @ChristopherVR) ([eef2d4a](https://github.com/ChristopherVR/pptx-viewer/commit/eef2d4ab7a099697b9711748d30315e7d0ffd6ac))
+- **shared:** Keep preset text box and place edit points menu in slide space (by @ChristopherVR) ([a4699df](https://github.com/ChristopherVR/pptx-viewer/commit/a4699dfc4ad3ea442ee2d43116b0f620882bb7bc))
+- **react:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([cc35380](https://github.com/ChristopherVR/pptx-viewer/commit/cc3538005566f73341e9cd35d2cfc6b9af11b7e7))
+- **angular:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([39ca9cd](https://github.com/ChristopherVR/pptx-viewer/commit/39ca9cd839c4ab3cbe6da1f6454bb6d104705950))
+- **vue:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([904b838](https://github.com/ChristopherVR/pptx-viewer/commit/904b838a13dda3ec6fa30f628a7f2191f9d0e659))
+- **svelte:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([7cf4b10](https://github.com/ChristopherVR/pptx-viewer/commit/7cf4b10cad8880541aa568037baa753d8c4ccab3))
+- **vanilla:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([715dc69](https://github.com/ChristopherVR/pptx-viewer/commit/715dc698c5a70ecac92b86a56a9f26556a377c41))
+- **shared:** Merge shapes engine and on-canvas picture crop geometry (by @ChristopherVR) ([0e13020](https://github.com/ChristopherVR/pptx-viewer/commit/0e130203710ff109629330e6cf6efe097e962875))
+- **locales:** Translate merge shapes and picture crop strings (by @ChristopherVR) ([2388efb](https://github.com/ChristopherVR/pptx-viewer/commit/2388efb4d4ed17c3ec212d5f64e9dba3cd18f268))
+- **react:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([d4d6813](https://github.com/ChristopherVR/pptx-viewer/commit/d4d6813a4d3316ea70d9a92e0b53ea148e052a7b))
+- **svelte:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([46018ee](https://github.com/ChristopherVR/pptx-viewer/commit/46018eed08d29372ce09ee9b1e8fa6b4c8811e50))
+- **angular:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([d1920ef](https://github.com/ChristopherVR/pptx-viewer/commit/d1920ef66c3f551c631813d26ec247e27bd59513))
+- **vue:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([29a22f0](https://github.com/ChristopherVR/pptx-viewer/commit/29a22f0ad5d5befe28f4ed80e81a8f6346fa8ad6))
+- **vanilla:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([14ab278](https://github.com/ChristopherVR/pptx-viewer/commit/14ab27843aaa73cea8b00d03e6328a8dc37b7624))
+- **core:** Expose the zoom transition's in/out direction (by @ChristopherVR) ([e9d9da5](https://github.com/ChristopherVR/pptx-viewer/commit/e9d9da5a017f42b2318b6a93394dd8c3f6c34051))
+- **core:** Read and write media-bookmark triggers the way PowerPoint does (by @ChristopherVR) ([cbe17f9](https://github.com/ChristopherVR/pptx-viewer/commit/cbe17f9a00c639fb3a5666b41222cc5de21d302e))
+- **shared:** Add the "On bookmark" trigger and its bookmark picker model (by @ChristopherVR) ([95f07a7](https://github.com/ChristopherVR/pptx-viewer/commit/95f07a77ff3d0750acbf7495dc77fe84072817d3))
+- **locales:** Translate the On bookmark trigger picker (by @ChristopherVR) ([e06e9dc](https://github.com/ChristopherVR/pptx-viewer/commit/e06e9dc000158534405c9b372d52a9827447465c))
+- **react:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([b0e3fa2](https://github.com/ChristopherVR/pptx-viewer/commit/b0e3fa21406b0a884a4a18b8fa8c09ae72df04c1))
+- **vue:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([635c1ba](https://github.com/ChristopherVR/pptx-viewer/commit/635c1bafb186cd1210234525f8e85fbd523a40e6))
+- **angular:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([a9caeb3](https://github.com/ChristopherVR/pptx-viewer/commit/a9caeb323a22211e7a080475c42285aca1d9b122))
+- **svelte:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([585be2e](https://github.com/ChristopherVR/pptx-viewer/commit/585be2e82938b7debb4019311868acda9c93a85d))
+- **vanilla:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([2fcee92](https://github.com/ChristopherVR/pptx-viewer/commit/2fcee92be7e9422cf4140d0c909b97d24420553c))
+- **core:** Break smartart engine-vs-legacy geometry ties on fonts (by @ChristopherVR) ([9b23ac0](https://github.com/ChristopherVR/pptx-viewer/commit/9b23ac04ad4366da7b67c80d1e5222675c564698))
+- **core:** Lay smartart hierarchies out as packed outlines, then scale (by @ChristopherVR) ([74b7bce](https://github.com/ChristopherVR/pptx-viewer/commit/74b7bcea5fe2b985efdf93c0bfd3cfd6b05e04cc))
+- **core:** Lay smartart snake grids out from their cells' own sizes (by @ChristopherVR) ([e9526ff](https://github.com/ChristopherVR/pptx-viewer/commit/e9526ffc30b0829eb2231c693da69c562a0ed454))
+- **core:** Parse chart-area, plot-area and series gradient fills (by @ChristopherVR) ([4db5abc](https://github.com/ChristopherVR/pptx-viewer/commit/4db5abc3c3c57428b231a6cb4aed041b0e4b2d8b))
+- **shared:** Paint chart gradient fills in all five bindings (by @ChristopherVR) ([7f22964](https://github.com/ChristopherVR/pptx-viewer/commit/7f229642cda0b1388df4c6be560478192152f051))
+- **core:** Parse data-label boxes, callout shapes and c15 leader lines (by @ChristopherVR) ([763cadd](https://github.com/ChristopherVR/pptx-viewer/commit/763cadd268d5f57b91129c1597bef610cb7b3bf4))
+
+### Bug Fixes
+
+- **shared:** Restore absent crop insets as undefined on cancel (by @ChristopherVR) ([33b5094](https://github.com/ChristopherVR/pptx-viewer/commit/33b509485634bfee452e5ce8a9f4fb7acc9bdc6e))
+- **vue,docs:** Merge Edit Points and picture crop wiring cleanly (by @ChristopherVR) ([b620d25](https://github.com/ChristopherVR/pptx-viewer/commit/b620d25260d3e54de6e092cd1ffbfcd46091c63c))
+- **react:** Take the shared crop cancel update as-is (by @ChristopherVR) ([46ece07](https://github.com/ChristopherVR/pptx-viewer/commit/46ece078a09dfd16a46f0a5bb6bdbf4e0a1b28d7))
+- **vue:** Accept the shared crop cancel update type (by @ChristopherVR) ([2a8bc46](https://github.com/ChristopherVR/pptx-viewer/commit/2a8bc46efe3f7ed043cb755a57b3ec82de269623))
+- **svelte:** Accept the shared crop cancel update type (by @ChristopherVR) ([8016412](https://github.com/ChristopherVR/pptx-viewer/commit/80164126042dad7180dba6cbc7f50f60f4f14502))
+- **vanilla:** Accept the shared crop cancel update type (by @ChristopherVR) ([5a117a4](https://github.com/ChristopherVR/pptx-viewer/commit/5a117a45c79e09d0c7554f3de2627d3b5d2eaf3b))
+- **core:** Keep runs apart that differ only by an authored baseline="0" (by @ChristopherVR) ([aea3c57](https://github.com/ChristopherVR/pptx-viewer/commit/aea3c57542823e311332a15ac85ff045cfbb3331))
+- **shared:** Play the zoom transition as PowerPoint's box reveal (by @ChristopherVR) ([6194b84](https://github.com/ChristopherVR/pptx-viewer/commit/6194b846fcc7284efe9780d97037bf1e2706136e))
+- **react:** Start the legacy zoom transition style as a centred box (by @ChristopherVR) ([88f7781](https://github.com/ChristopherVR/pptx-viewer/commit/88f778167267c88435a52c5cef73420c4024bc47))
+- **shared:** Fit the Bounce End settle curve to PowerPoint's own frames (by @ChristopherVR) ([5268384](https://github.com/ChristopherVR/pptx-viewer/commit/5268384724177b188da4a47fdf9678f2ba16acdb))
+- **core:** Keep authored buClr on a rewritten paragraph (by @ChristopherVR) ([77f1f86](https://github.com/ChristopherVR/pptx-viewer/commit/77f1f86d946c8f058183f787696198d4035b7a81))
+- **core:** Keep an authored tab-stop algn="l" on rewrite (by @ChristopherVR) ([e6050da](https://github.com/ChristopherVR/pptx-viewer/commit/e6050dae8683be269b1c9675bb195369d5dfda7a))
+- **core:** Stop unedited animation metadata growing on save (by @ChristopherVR) ([d0fce7c](https://github.com/ChristopherVR/pptx-viewer/commit/d0fce7c59c599588dba6e950b66629276d4df481))
+- **core:** Keep a source commentAuthors part nothing removed (by @ChristopherVR) ([03f6967](https://github.com/ChristopherVR/pptx-viewer/commit/03f6967ed3cdd57de1896e03e631c2999716149c))
+- **core:** Read media bookmarks where PowerPoint nests them (by @ChristopherVR) ([7ec0f27](https://github.com/ChristopherVR/pptx-viewer/commit/7ec0f27c35c12458db1d8a480014049c8e81cfcf))
+- **core:** Size smartart engine text from primFontSz rules and groups (by @ChristopherVR) ([e957395](https://github.com/ChristopherVR/pptx-viewer/commit/e957395722c0d80f878f81f282e2e271461d945f))
+- **core:** Measure smartart text with kerned boundwidth aptos metrics (by @ChristopherVR) ([9603333](https://github.com/ChristopherVR/pptx-viewer/commit/960333342c7676a35b9c9e845017615fdd8a0b2a))
+- **core:** Lay smartart engine text out by tx paragraph levels (by @ChristopherVR) ([ff90fd8](https://github.com/ChristopherVR/pptx-viewer/commit/ff90fd8e6277dbc5a396c887ac87f77c2e7d7a65))
+- **core:** Draw smartart engine boxes that present text after a blank (by @ChristopherVR) ([e049efb](https://github.com/ChristopherVR/pptx-viewer/commit/e049efba80b8f79f544cf8223fa33379d11e2e59))
+- **core:** Match PowerPoint's auto-number schemes past the basics (by @ChristopherVR) ([aa10890](https://github.com/ChristopherVR/pptx-viewer/commit/aa10890d99ea75f712170403ab0b1f6a9217d5cd))
+- **core:** Render picture-filled text runs instead of solid black (by @ChristopherVR) ([e1021f9](https://github.com/ChristopherVR/pptx-viewer/commit/e1021f9f4fb8efe07bb0dbb70c63e342ec764d49))
+- **shared:** Draw a dashed text outline for a:ln/a:prstDash (by @ChristopherVR) ([af7eb60](https://github.com/ChristopherVR/pptx-viewer/commit/af7eb60fb210a418ac3fb032039e1ca3b5d4c674))
+- **shared:** Match PowerPoint's underline variants (by @ChristopherVR) ([46ad363](https://github.com/ChristopherVR/pptx-viewer/commit/46ad3637a88ed2d9b18c3fdee0aa98ba57207b3f))
+- **core:** Let a paragraph's own rtl beat the level default on its runs (by @ChristopherVR) ([4ae3d68](https://github.com/ChristopherVR/pptx-viewer/commit/4ae3d68362a956680cfe12bf1022f13c9e877510))
+- **shared:** Align decimal and right-to-left tab stops like PowerPoint (by @ChristopherVR) ([1575f61](https://github.com/ChristopherVR/pptx-viewer/commit/1575f61f3cefa9f703e21d2f914ec567e541f81a))
+- **shared:** Ignore a paragraph's trailing spaces when aligning it (by @ChristopherVR) ([3973465](https://github.com/ChristopherVR/pptx-viewer/commit/39734651a091b43ecc9c41689ce5ce899e91b5ac))
+- **shared:** Clip an overflowing text body at a whole line (by @ChristopherVR) ([7f77dcd](https://github.com/ChristopherVR/pptx-viewer/commit/7f77dcda9d17c9b569c5d2a7fddf2144ef196b6a))
+- **shared:** Colour and label waterfall bars like PowerPoint (by @ChristopherVR) ([44a4fec](https://github.com/ChristopherVR/pptx-viewer/commit/44a4fec1284837b3249202e2a40053ef934ba85f))
+- **shared:** Draw PowerPoint's automatic chart titles (by @ChristopherVR) ([8f435a4](https://github.com/ChristopherVR/pptx-viewer/commit/8f435a4d199250421ab947a12a360bd881273995))
+- **shared:** Lay out pie-of-pie and bar-of-pie like PowerPoint (by @ChristopherVR) ([578d524](https://github.com/ChristopherVR/pptx-viewer/commit/578d524dd7fefcb09a583f0abafb787db866938d))
+- **shared:** Format and place display-unit axis labels like PowerPoint (by @ChristopherVR) ([73acba4](https://github.com/ChristopherVR/pptx-viewer/commit/73acba45b8940cf44fe16164c564ca18661dba36))
+- **shared:** Lay out chart data tables like PowerPoint (by @ChristopherVR) ([0220fd6](https://github.com/ChristopherVR/pptx-viewer/commit/0220fd62c63e1de4febeaeef963ff258b91cbcd4))
+- **shared:** Draw data-label callouts and leader lines on bar charts (by @ChristopherVR) ([68296ef](https://github.com/ChristopherVR/pptx-viewer/commit/68296ef4e729ece9c0a51eff3b9e03b011b986e4))
+- **core:** Parse series gradients through a pure helper (by @ChristopherVR) ([1f83eaf](https://github.com/ChristopherVR/pptx-viewer/commit/1f83eaf9f5c461430e7d54c1e212ee43b7519819))
+
+### Documentation
+
+- Drop edit points from the editor coverage gaps (by @ChristopherVR) ([e107f5e](https://github.com/ChristopherVR/pptx-viewer/commit/e107f5e92b4be72779ccc936552868e46fe17a50))
+- Drop merge shapes and crop handles from the editor gaps (by @ChristopherVR) ([67c68fa](https://github.com/ChristopherVR/pptx-viewer/commit/67c68fa9697a81c48c345ede99f6d7e18f5738db))
+- **core:** Describe p14:bounceEnd as the bouncing share of the duration (by @ChristopherVR) ([80caab6](https://github.com/ChristopherVR/pptx-viewer/commit/80caab642e04a548a912fdbe8d937732096792f9))
+- Narrow the animation and save-residue limitations to what is open (by @ChristopherVR) ([1cb7c28](https://github.com/ChristopherVR/pptx-viewer/commit/1cb7c28f49208561779daf8896edaf3d03c59a2c))
+- **core:** Record the smartart font, hierarchy and snake measurements (by @ChristopherVR) ([2187e69](https://github.com/ChristopherVR/pptx-viewer/commit/2187e692746fbde2e9f3c6399c1fde6a83ca57cb))
+- Narrow the open text and chart gaps in the limitations guide (by @ChristopherVR) ([d68a869](https://github.com/ChristopherVR/pptx-viewer/commit/d68a86939cb16117dd3aa402b6650a1753c651c3))
+- Sync the translated limitations pages with the English (by @ChristopherVR) ([80e9826](https://github.com/ChristopherVR/pptx-viewer/commit/80e982621a7ecf3a420dbbf8f39ad0741d00e867))
+
+### Testing
+
+- **e2e:** Cover edit points and the freeform / curve tools (by @ChristopherVR) ([b2d18fa](https://github.com/ChristopherVR/pptx-viewer/commit/b2d18fa4bb53b8117266bb7f48466a113bcfbcdc))
+- **e2e:** Cover merge shapes and picture crop in every demo (by @ChristopherVR) ([a7e7bed](https://github.com/ChristopherVR/pptx-viewer/commit/a7e7bed63129981afba50ef12ae2cdd4ee854d3f))
+- **react:** Expect the On bookmark trigger and the zoom box reveal (by @ChristopherVR) ([56b00ba](https://github.com/ChristopherVR/pptx-viewer/commit/56b00ba045107a1f5ccf23d2e3edc3b0c1bc3e8d))
+- **e2e:** Author an On bookmark trigger in every demo and check the save (by @ChristopherVR) ([aa3ff3c](https://github.com/ChristopherVR/pptx-viewer/commit/aa3ff3c9764192dd81b65874668cdb09da0e81ce))
+- **core,vanilla:** Register the edit-points fixture and type the bookmark test store (by @ChristopherVR) ([9114d7c](https://github.com/ChristopherVR/pptx-viewer/commit/9114d7cec7a1f60b44bab5ef21d1cf9bcbccb054))
+- **e2e:** Check the u="words" gap by the space inside the run (by @ChristopherVR) ([f95b0de](https://github.com/ChristopherVR/pptx-viewer/commit/f95b0deb52a53bfe1c3d6ec625999811fc458844))
+
+## 2026-09-25
+
 _Releases: pptx-react-viewer@4.6.0, pptx-vue-viewer@4.6.0, pptx-angular-viewer@4.6.0, pptx-vanilla-viewer@3.6.0, pptx-svelte-viewer@4.6.0, @christophervr/pptx-viewer@2.28.0_
 
 ### Features

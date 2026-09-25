@@ -7,6 +7,28 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.29.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.29.0) - 2026-09-25
+
+### Features
+
+- **react:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([cc35380](https://github.com/ChristopherVR/pptx-viewer/commit/cc3538005566f73341e9cd35d2cfc6b9af11b7e7))
+- **react:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([d4d6813](https://github.com/ChristopherVR/pptx-viewer/commit/d4d6813a4d3316ea70d9a92e0b53ea148e052a7b))
+- **react:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([b0e3fa2](https://github.com/ChristopherVR/pptx-viewer/commit/b0e3fa21406b0a884a4a18b8fa8c09ae72df04c1))
+- **shared:** Paint chart gradient fills in all five bindings (by @ChristopherVR) ([7f22964](https://github.com/ChristopherVR/pptx-viewer/commit/7f229642cda0b1388df4c6be560478192152f051))
+
+### Bug Fixes
+
+- **react:** Take the shared crop cancel update as-is (by @ChristopherVR) ([46ece07](https://github.com/ChristopherVR/pptx-viewer/commit/46ece078a09dfd16a46f0a5bb6bdbf4e0a1b28d7))
+- **react:** Start the legacy zoom transition style as a centred box (by @ChristopherVR) ([88f7781](https://github.com/ChristopherVR/pptx-viewer/commit/88f778167267c88435a52c5cef73420c4024bc47))
+- **core:** Render picture-filled text runs instead of solid black (by @ChristopherVR) ([e1021f9](https://github.com/ChristopherVR/pptx-viewer/commit/e1021f9f4fb8efe07bb0dbb70c63e342ec764d49))
+- **shared:** Match PowerPoint's underline variants (by @ChristopherVR) ([46ad363](https://github.com/ChristopherVR/pptx-viewer/commit/46ad3637a88ed2d9b18c3fdee0aa98ba57207b3f))
+- **shared:** Align decimal and right-to-left tab stops like PowerPoint (by @ChristopherVR) ([1575f61](https://github.com/ChristopherVR/pptx-viewer/commit/1575f61f3cefa9f703e21d2f914ec567e541f81a))
+- **shared:** Colour and label waterfall bars like PowerPoint (by @ChristopherVR) ([44a4fec](https://github.com/ChristopherVR/pptx-viewer/commit/44a4fec1284837b3249202e2a40053ef934ba85f))
+
+### Testing
+
+- **react:** Expect the On bookmark trigger and the zoom box reveal (by @ChristopherVR) ([56b00ba](https://github.com/ChristopherVR/pptx-viewer/commit/56b00ba045107a1f5ccf23d2e3edc3b0c1bc3e8d))
+
 ## [2.28.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.28.0) - 2026-09-25
 
 ### Features

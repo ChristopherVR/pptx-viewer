@@ -7,6 +7,48 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.4.0) - 2026-09-25
+
+### Features
+
+- **core:** Expose the zoom transition's in/out direction (by @ChristopherVR) ([e9d9da5](https://github.com/ChristopherVR/pptx-viewer/commit/e9d9da5a017f42b2318b6a93394dd8c3f6c34051))
+- **core:** Read and write media-bookmark triggers the way PowerPoint does (by @ChristopherVR) ([cbe17f9](https://github.com/ChristopherVR/pptx-viewer/commit/cbe17f9a00c639fb3a5666b41222cc5de21d302e))
+- **core:** Break smartart engine-vs-legacy geometry ties on fonts (by @ChristopherVR) ([9b23ac0](https://github.com/ChristopherVR/pptx-viewer/commit/9b23ac04ad4366da7b67c80d1e5222675c564698))
+- **core:** Lay smartart hierarchies out as packed outlines, then scale (by @ChristopherVR) ([74b7bce](https://github.com/ChristopherVR/pptx-viewer/commit/74b7bcea5fe2b985efdf93c0bfd3cfd6b05e04cc))
+- **core:** Lay smartart snake grids out from their cells' own sizes (by @ChristopherVR) ([e9526ff](https://github.com/ChristopherVR/pptx-viewer/commit/e9526ffc30b0829eb2231c693da69c562a0ed454))
+- **core:** Parse chart-area, plot-area and series gradient fills (by @ChristopherVR) ([4db5abc](https://github.com/ChristopherVR/pptx-viewer/commit/4db5abc3c3c57428b231a6cb4aed041b0e4b2d8b))
+- **core:** Parse data-label boxes, callout shapes and c15 leader lines (by @ChristopherVR) ([763cadd](https://github.com/ChristopherVR/pptx-viewer/commit/763cadd268d5f57b91129c1597bef610cb7b3bf4))
+
+### Bug Fixes
+
+- **core:** Parse SmartArt layout XML with a linear scanner, not backtracking regexes (by @ChristopherVR) ([85b9117](https://github.com/ChristopherVR/pptx-viewer/commit/85b9117cbc94bd7dfa1fc1274d636348ce13eb3a))
+- **core:** Keep runs apart that differ only by an authored baseline="0" (by @ChristopherVR) ([aea3c57](https://github.com/ChristopherVR/pptx-viewer/commit/aea3c57542823e311332a15ac85ff045cfbb3331))
+- **core:** Keep authored buClr on a rewritten paragraph (by @ChristopherVR) ([77f1f86](https://github.com/ChristopherVR/pptx-viewer/commit/77f1f86d946c8f058183f787696198d4035b7a81))
+- **core:** Keep an authored tab-stop algn="l" on rewrite (by @ChristopherVR) ([e6050da](https://github.com/ChristopherVR/pptx-viewer/commit/e6050dae8683be269b1c9675bb195369d5dfda7a))
+- **core:** Stop unedited animation metadata growing on save (by @ChristopherVR) ([d0fce7c](https://github.com/ChristopherVR/pptx-viewer/commit/d0fce7c59c599588dba6e950b66629276d4df481))
+- **core:** Keep a source commentAuthors part nothing removed (by @ChristopherVR) ([03f6967](https://github.com/ChristopherVR/pptx-viewer/commit/03f6967ed3cdd57de1896e03e631c2999716149c))
+- **core:** Read media bookmarks where PowerPoint nests them (by @ChristopherVR) ([7ec0f27](https://github.com/ChristopherVR/pptx-viewer/commit/7ec0f27c35c12458db1d8a480014049c8e81cfcf))
+- **core:** Size smartart engine text from primFontSz rules and groups (by @ChristopherVR) ([e957395](https://github.com/ChristopherVR/pptx-viewer/commit/e957395722c0d80f878f81f282e2e271461d945f))
+- **core:** Measure smartart text with kerned boundwidth aptos metrics (by @ChristopherVR) ([9603333](https://github.com/ChristopherVR/pptx-viewer/commit/960333342c7676a35b9c9e845017615fdd8a0b2a))
+- **core:** Lay smartart engine text out by tx paragraph levels (by @ChristopherVR) ([ff90fd8](https://github.com/ChristopherVR/pptx-viewer/commit/ff90fd8e6277dbc5a396c887ac87f77c2e7d7a65))
+- **core:** Draw smartart engine boxes that present text after a blank (by @ChristopherVR) ([e049efb](https://github.com/ChristopherVR/pptx-viewer/commit/e049efba80b8f79f544cf8223fa33379d11e2e59))
+- **core:** Match PowerPoint's auto-number schemes past the basics (by @ChristopherVR) ([aa10890](https://github.com/ChristopherVR/pptx-viewer/commit/aa10890d99ea75f712170403ab0b1f6a9217d5cd))
+- **core:** Render picture-filled text runs instead of solid black (by @ChristopherVR) ([e1021f9](https://github.com/ChristopherVR/pptx-viewer/commit/e1021f9f4fb8efe07bb0dbb70c63e342ec764d49))
+- **core:** Let a paragraph's own rtl beat the level default on its runs (by @ChristopherVR) ([4ae3d68](https://github.com/ChristopherVR/pptx-viewer/commit/4ae3d68362a956680cfe12bf1022f13c9e877510))
+- **shared:** Draw PowerPoint's automatic chart titles (by @ChristopherVR) ([8f435a4](https://github.com/ChristopherVR/pptx-viewer/commit/8f435a4d199250421ab947a12a360bd881273995))
+- **core:** Parse series gradients through a pure helper (by @ChristopherVR) ([1f83eaf](https://github.com/ChristopherVR/pptx-viewer/commit/1f83eaf9f5c461430e7d54c1e212ee43b7519819))
+
+### Documentation
+
+- **core:** Describe p14:bounceEnd as the bouncing share of the duration (by @ChristopherVR) ([80caab6](https://github.com/ChristopherVR/pptx-viewer/commit/80caab642e04a548a912fdbe8d937732096792f9))
+- **core:** Record the smartart font, hierarchy and snake measurements (by @ChristopherVR) ([2187e69](https://github.com/ChristopherVR/pptx-viewer/commit/2187e692746fbde2e9f3c6399c1fde6a83ca57cb))
+
+### Testing
+
+- **e2e:** Cover merge shapes and picture crop in every demo (by @ChristopherVR) ([a7e7bed](https://github.com/ChristopherVR/pptx-viewer/commit/a7e7bed63129981afba50ef12ae2cdd4ee854d3f))
+- **e2e:** Author an On bookmark trigger in every demo and check the save (by @ChristopherVR) ([aa3ff3c](https://github.com/ChristopherVR/pptx-viewer/commit/aa3ff3c9764192dd81b65874668cdb09da0e81ce))
+- **core,vanilla:** Register the edit-points fixture and type the bookmark test store (by @ChristopherVR) ([9114d7c](https://github.com/ChristopherVR/pptx-viewer/commit/9114d7cec7a1f60b44bab5ef21d1cf9bcbccb054))
+
 ## [4.3.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.3.1) - 2026-09-24
 
 ### Bug Fixes
