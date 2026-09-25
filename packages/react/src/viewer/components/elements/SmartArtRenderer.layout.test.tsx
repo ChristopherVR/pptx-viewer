@@ -111,6 +111,27 @@ describe('smartArtRenderer - 2-D fallback routes through the shared engine', () 
 		expect(html).toContain('Alpha');
 	});
 
+	it('paints a cached Venn circle at its fill alpha (fill-opacity)', () => {
+		const html = render(
+			makeElement({
+				drawingShapes: [
+					{
+						id: 'v1',
+						x: 0,
+						y: 0,
+						width: 200,
+						height: 200,
+						shapeType: 'ellipse',
+						fillColor: '#156082',
+						fillOpacity: 0.5,
+					},
+				],
+			}),
+		);
+
+		expect(html).toMatch(/<ellipse[^>]*fill-opacity="0.5"/u);
+	});
+
 	it('tags every rendered node with its model id and a11y label', () => {
 		const html = render(
 			makeElement({ resolvedLayoutType: 'list', layoutDefinition: cycleLayoutDefinition() }),

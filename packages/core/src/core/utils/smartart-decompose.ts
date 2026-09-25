@@ -99,6 +99,8 @@ function convertDrawingShapes(
 			ds.text ?? '',
 			{
 				rotation: ds.rotation,
+				shapeAdjustments: ds.shapeAdjustments,
+				fillOpacity: ds.fillColor ? ds.fillOpacity : undefined,
 				skewX: ds.skewX,
 				skewY: ds.skewY,
 				pathData: ds.pathData,

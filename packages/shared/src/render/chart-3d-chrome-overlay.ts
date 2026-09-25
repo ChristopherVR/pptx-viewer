@@ -21,7 +21,31 @@ import {
 	renderChartTextSvg,
 } from './chart-view-model-dom';
 import { createSvgEl } from './chart-view-model-dom-helpers';
-import type { ChartViewModel } from './chart-view-model-types';
+import type { ChartViewModel, LegendEntry } from './chart-view-model-types';
+
+/** A 3D scene's own axis labels, in chart px. */
+export interface Chart3DBoxLabel {
+	text: string;
+	x: number;
+	y: number;
+	anchor: 'start' | 'middle' | 'end';
+	fontSize: number;
+	/** Defaults to `central` (text centred on `y`). */
+	baseline?: 'central' | 'hanging';
+}
+
+/**
+ * Chrome for a scene that draws its own plot box (the oblique and perspective
+ * layouts): its labels replace the flat axes, and the title and legend move
+ * to where PowerPoint puts them on a 3D chart.
+ */
+export interface Chart3DBoxChrome {
+	labels: ReadonlyArray<Chart3DBoxLabel>;
+	/** List the legend bottom-up (a clustered horizontal bar chart does). */
+	reverseLegend: boolean;
+	/** Legend entries replacing the flat chart's (a surface lists its value bands). */
+	legend?: LegendEntry[];
+}
 
 /**
  * Render a `ChartViewModel`'s chrome (everything except data marks) to an
@@ -29,7 +53,12 @@ import type { ChartViewModel } from './chart-view-model-types';
  * scene's own world-unit convention (1 world unit = 1 authored chart px) so
  * an element positioned from the same view-model's rects lines up exactly.
  */
-export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel): SVGSVGElement {
+export function renderChart3DChromeOverlaySvg(
+	doc: Document,
+	source: ChartViewModel,
+	box?: Chart3DBoxChrome,
+): SVGSVGElement {
+	const vm = box ? withBoxChromePositions(source) : source;
 	const svg = createSvgEl(doc, 'svg', {
 		class: 'pptxv-chart-3d-chrome',
 		viewBox: `0 0 ${vm.svgWidth} ${vm.svgHeight}`,
@@ -86,6 +115,17 @@ export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel)
 		svg.appendChild(title);
 	}
 
+	if (box) {
+		// The box's gridlines are drawn in the scene (marks hide the back
+		// wall); only its axis labels go here.
+		appendBoxLabels(doc, svg, vm, box.labels);
+		// A 3D chart keys every series with a plain swatch, lines included.
+		const legend = box.legend ?? vm.legend.map((item) => ({ ...item, lineSwatch: undefined }));
+		const legendVm = { ...vm, legend: box.reverseLegend ? legend.reverse() : legend };
+		appendChartLegendSvg(doc, svg, legendVm);
+		return svg;
+	}
+
 	for (const gl of vm.gridlines) {
 		svg.appendChild(renderChartLineSvg(doc, gl));
 	}
@@ -107,4 +147,45 @@ export function renderChart3DChromeOverlaySvg(doc: Document, vm: ChartViewModel)
 
 	appendChartLegendSvg(doc, svg, vm);
 	return svg;
+}
+
+/** Points to chart px (96 dpi). */
+const PT = 4 / 3;
+/** Title baseline below the chart top, and legend baseline above its bottom, measured on `gt/chart-01`. */
+const OBLIQUE_TITLE_BASELINE = 24 * PT;
+const OBLIQUE_LEGEND_BASELINE = 14 * PT;
+
+/** The flat view model with its title and legend moved to where PowerPoint puts them on a 3D chart. */
+function withBoxChromePositions(vm: ChartViewModel): ChartViewModel {
+	const legendBottom = (vm.legendY ?? vm.svgHeight - 8) >= vm.svgHeight / 2;
+	return {
+		...vm,
+		titleY: OBLIQUE_TITLE_BASELINE,
+		// Legend text sits 3px below `legendY` (see `appendChartLegendSvg`).
+		legendY: legendBottom ? vm.svgHeight - OBLIQUE_LEGEND_BASELINE - 3 : vm.legendY,
+	};
+}
+
+function appendBoxLabels(
+	doc: Document,
+	svg: SVGElement,
+	vm: ChartViewModel,
+	labels: ReadonlyArray<Chart3DBoxLabel>,
+): void {
+	const style = vm.axisLabels[0];
+	for (const label of labels) {
+		svg.appendChild(
+			renderChartTextSvg(doc, {
+				kind: 'text',
+				x: label.x,
+				y: label.y,
+				text: label.text,
+				fontSize: label.fontSize,
+				fill: style?.fill ?? '#595959',
+				fontFamily: style?.fontFamily,
+				textAnchor: label.anchor,
+				dominantBaseline: label.baseline ?? 'central',
+			}),
+		);
+	}
 }

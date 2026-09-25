@@ -2,7 +2,7 @@
  * Tests for PptxHandlerRuntimeSaveTextWriter:
  *   - applyAutoFitToBodyPr logic
  *   - applyBodyInsets logic
- *   - applyText3d logic
+ *   - applyText3d logic (the real shared `applyTextBodySp3d` writer)
  *   - text wrap and column settings
  *   - linked text box chain
  */
@@ -10,6 +10,7 @@ import { describe, it, expect } from 'vitest';
 
 import type { XmlObject, TextStyle } from '../../types';
 import { writeBodyPrBooleanAttrs } from '../../utils/body-properties-parser';
+import { applyTextBodySp3d as applyText3d } from '../../utils/text-body-sp3d-writer';
 
 const EMU_PER_PX = 9525;
 
@@ -88,59 +89,6 @@ function applyBodyInsets(bodyPr: XmlObject, textStyle: TextStyle | undefined): v
 	}
 	if (typeof textStyle.bodyInsetBottom === 'number' && Number.isFinite(textStyle.bodyInsetBottom)) {
 		bodyPr['@_bIns'] = String(Math.round(textStyle.bodyInsetBottom * EMU_PER_PX));
-	}
-}
-
-// ---------------------------------------------------------------------------
-// Reimplemented: applyText3d
-// ---------------------------------------------------------------------------
-function applyText3d(bodyPr: XmlObject, textStyle: TextStyle | undefined): void {
-	// a:sp3d / a:flatTx are a mutually exclusive choice (EG_Text3D).
-	if (textStyle?.flatText) {
-		bodyPr['a:flatTx'] = {};
-		delete bodyPr['a:sp3d'];
-		return;
-	}
-	delete bodyPr['a:flatTx'];
-	const t3d = textStyle?.text3d;
-	if (t3d && Object.keys(t3d).length > 0) {
-		const sp3dXml: XmlObject = {};
-		if (t3d.extrusionHeight) {
-			sp3dXml['@_extrusionH'] = t3d.extrusionHeight;
-		}
-		if (t3d.presetMaterial) {
-			sp3dXml['@_prstMaterial'] = t3d.presetMaterial;
-		}
-		if (t3d.bevelTopType && t3d.bevelTopType !== 'none') {
-			const bvt: XmlObject = { '@_prst': t3d.bevelTopType };
-			if (t3d.bevelTopWidth) {
-				bvt['@_w'] = t3d.bevelTopWidth;
-			}
-			if (t3d.bevelTopHeight) {
-				bvt['@_h'] = t3d.bevelTopHeight;
-			}
-			sp3dXml['a:bevelT'] = bvt;
-		}
-		if (t3d.bevelBottomType && t3d.bevelBottomType !== 'none') {
-			const bvb: XmlObject = { '@_prst': t3d.bevelBottomType };
-			if (t3d.bevelBottomWidth) {
-				bvb['@_w'] = t3d.bevelBottomWidth;
-			}
-			if (t3d.bevelBottomHeight) {
-				bvb['@_h'] = t3d.bevelBottomHeight;
-			}
-			sp3dXml['a:bevelB'] = bvb;
-		}
-		if (t3d.extrusionColor) {
-			sp3dXml['a:extrusionClr'] = {
-				'a:srgbClr': {
-					'@_val': t3d.extrusionColor.replace('#', ''),
-				},
-			};
-		}
-		bodyPr['a:sp3d'] = sp3dXml;
-	} else {
-		delete bodyPr['a:sp3d'];
 	}
 }
 

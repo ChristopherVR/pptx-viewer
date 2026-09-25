@@ -14,12 +14,8 @@
  */
 import type { Options as Html2CanvasOptions } from 'html2canvas-pro';
 
-import {
-	normalizeColorsForCapture,
-	_testing,
-} from '../internal/shared-src/export/canvas-color-fix';
-import { preprocessCssForCapture } from '../internal/shared-src/export/css-preprocessing';
-import { prepareExportClone } from '../internal/shared-src/render/export-clone';
+import { _testing } from '../internal/shared-src/export/canvas-color-fix';
+import { prepareHtml2CanvasClone } from '../internal/shared-src/export/html2canvas-clone';
 
 export { _testing };
 
@@ -45,9 +41,7 @@ export async function renderToCanvas(
 	return html2canvasPro(element, {
 		...options,
 		onclone: async (doc: Document, clonedEl: HTMLElement) => {
-			prepareExportClone(clonedEl);
-			await normalizeColorsForCapture(doc, clonedEl);
-			preprocessCssForCapture(clonedEl);
+			await prepareHtml2CanvasClone(element, doc, clonedEl);
 
 			if (typeof userOnClone === 'function') {
 				userOnClone(doc, clonedEl);

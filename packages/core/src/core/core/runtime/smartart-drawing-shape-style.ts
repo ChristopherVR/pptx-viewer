@@ -25,6 +25,8 @@ export interface DrawingShapeFill {
 	/** The shape declares `a:noFill` and must not be painted at all. */
 	fillNone?: boolean;
 	fillColor?: string;
+	/** Opacity (0..1) of a solid fill's colour (`a:alpha` etc.); absent when opaque. */
+	fillOpacity?: number;
 	fillGradientStops?: DrawingShapeGradientStop[];
 	fillGradientType?: 'linear' | 'radial';
 	fillGradientAngle?: number;
@@ -42,6 +44,8 @@ export interface DrawingShapeStyleDeps {
 	hasChild(node: XmlObject | undefined, local: string): boolean;
 	getChildren(node: XmlObject | undefined, local: string): XmlObject[];
 	parseColor(node: XmlObject | undefined): string | undefined;
+	/** Opacity (0..1) folded from a colour's `a:alpha`/`alphaMod`/`alphaOff`. */
+	extractColorOpacity(node: XmlObject | undefined): number | undefined;
 	extractGradientStops(gradFill: XmlObject): DrawingShapeGradientStop[];
 	extractGradientType(gradFill: XmlObject): 'linear' | 'radial';
 	extractGradientAngle(gradFill: XmlObject): number;
@@ -81,6 +85,12 @@ export function extractDrawingShapeFill(
 	const solidFill = deps.getChild(spPr, 'solidFill');
 	if (solidFill) {
 		result.fillColor = deps.parseColor(solidFill) ?? undefined;
+		// Venn-style layouts (`vennNode1`) paint semi-transparent circles so the
+		// overlaps blend; `parseColor` returns an opaque hex, so keep the alpha.
+		const opacity = deps.extractColorOpacity(solidFill);
+		if (result.fillColor && opacity !== undefined && opacity < 1) {
+			result.fillOpacity = opacity;
+		}
 	}
 
 	const gradFill = !solidFill ? deps.getChild(spPr, 'gradFill') : undefined;

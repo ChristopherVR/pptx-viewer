@@ -379,6 +379,28 @@ describe('projectDrawingShapes', () => {
 		expect(onDark.fontSize).toBe(14);
 	});
 
+	it('reads label contrast from a gradient fill itself, not the shape below', () => {
+		const [r] = projectDrawingShapes(
+			ID,
+			[
+				shape({
+					text: 'Alpha',
+					fillGradientStops: [
+						{ color: '#2a6f93', position: 0 },
+						{ color: '#156082', position: 50 },
+						{ color: '#0b4a66', position: 100 },
+					],
+					fillGradientAngle: 90,
+				}),
+			],
+			VB,
+			DEFAULT_PALETTE,
+			'flat',
+		);
+		expect(r.fill.startsWith('url(')).toBeTruthy();
+		expect(r.fontColor).toBe('#ffffff');
+	});
+
 	it('leaves an a:noFill shape unpainted and reads contrast from the shape below', () => {
 		const [panel, label] = projectDrawingShapes(
 			ID,

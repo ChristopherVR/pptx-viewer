@@ -16,22 +16,22 @@
  *
  * @module chart-3d-spec
  */
-import type {
-	ChartPptxElement,
-	PptxBar3DShape,
-	PptxChartData,
-	PptxElement,
-} from 'pptx-viewer-core';
+import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 
 import { buildAreaChart3DDataForElement } from './area-chart-3d-data';
 import type { AreaChart3DSceneOptions } from './area-chart-3d-data';
 import { buildBarChart3DDataForElement } from './bar-chart-3d-data';
 import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
-import { computeDepthVector } from './chart-3d-depth';
+import { computeObliqueBarLayout } from './chart-3d-oblique-layout';
+import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
+import { computePerspChartLayout } from './chart-3d-persp-layout';
+import type { PerspChartLayout } from './chart-3d-persp-layout';
+import { computePieChartLayout, widenPieViewModel } from './chart-3d-pie-layout';
+import type { PieChartLayout } from './chart-3d-pie-layout';
 import type { Chart3DProjection } from './chart-3d-projection';
 import { resolveChart3DProjection } from './chart-3d-projection';
 import { buildChartViewModel } from './chart-view-model-build';
-import type { ChartViewModel, SvgRect } from './chart-view-model-types';
+import type { ChartViewModel } from './chart-view-model-types';
 import { buildLineChart3DDataForElement } from './line-chart-3d-data';
 import type { LineChart3DSceneOptions } from './line-chart-3d-data';
 import { buildPieChart3DDataForElement } from './pie-chart-3d-data';
@@ -49,46 +49,37 @@ export const CHART_3D_TYPES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * One `bar3D` box: front-face rectangle in the flat 2D view-model's own SVG
- * pixel space (already gap-width/clustering/stacking-correct), extruded
- * backward in world Z by `depthMagnitude`.
+ * A right-angle-axes `bar3D` chart laid out as a real box in world space
+ * (walls, gridlines, bars, axis labels); see `chart-3d-oblique-layout.ts`.
  */
-export interface Chart3DBarBox {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-	color: string;
-	seriesIndex: number;
-	categoryIndex: number;
-	/** The point's authored value (hover tooltip, drag start). */
-	value: number;
-	shape: PptxBar3DShape | undefined;
-	/**
-	 * World-Z extrusion depth (SVG px units), the SAME quantity the flat 2D
-	 * fallback's `chart-3d-depth.ts#computeDepthVector` uses for its
-	 * `magnitude`. Every box in a supported (`clustered` / `stacked` /
-	 * `percentStacked`) grouping shares one chart-wide depth: those groupings
-	 * keep every series COPLANAR (one Z plane), matching PowerPoint's own
-	 * `gt/chart-01.webp` (no visible per-series depth separation). `standard`
-	 * grouping (each series its own full depth ROW, see `gt/chart-04.webp`)
-	 * is NOT yet modelled; see the chart track's progress log.
-	 */
-	depthMagnitude: number;
+export interface Chart3DObliqueGeometry {
+	kind: 'oblique';
+	layout: ObliqueChartLayout;
 }
 
-export interface Chart3DBarGeometry {
-	kind: 'bar';
-	boxes: readonly Chart3DBarBox[];
+/** A perspective (`rAngAx=0`) line / area chart on PowerPoint's box (`chart-3d-persp-layout.ts`). */
+export interface Chart3DPerspGeometry {
+	kind: 'perspective';
+	layout: PerspChartLayout;
 }
 
-/** `null` until a chart type/grouping's oblique geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
-export type Chart3DGeometry = Chart3DBarGeometry | null;
+/** A 3-D Pie on PowerPoint's fitted perspective camera (`chart-3d-pie-layout.ts`). */
+export interface Chart3DPieGeometry {
+	kind: 'pie';
+	layout: PieChartLayout;
+}
+
+/** `null` until a chart type's geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
+export type Chart3DGeometry =
+	| Chart3DObliqueGeometry
+	| Chart3DPerspGeometry
+	| Chart3DPieGeometry
+	| null;
 
 /**
  * The perspective scene a chart falls back to when the oblique geometry does
- * not cover it yet (line/area/pie/surface, and bar3D's `standard` grouping,
- * horizontal bars and round shapes). Each is a hosted scene module from the
+ * not cover it (line/area/pie/surface, and a bar3D chart without right-angle
+ * axes). Each is a hosted scene module from the
  * pre-`<pptx-three-view>` renderer, now drawn through the shared renderer.
  */
 export type Chart3DPerspectiveScene =
@@ -120,74 +111,26 @@ export interface Chart3DSpec {
 	perspective: Chart3DPerspectiveScene | null;
 }
 
-const SUPPORTED_BAR_GROUPINGS: ReadonlySet<string> = new Set([
-	'clustered',
-	'stacked',
-	'percentStacked',
-]);
-
-/** Resolve a box's `c:bar3DChart/c:shape`, overridden per-series by `c:ser/c:shape`. */
-function resolveBoxShape(
-	chartData: PptxChartData,
-	seriesIndex: number,
-): PptxBar3DShape | undefined {
-	return chartData.series[seriesIndex]?.shape ?? chartData.barShape;
+/**
+ * Build the right-angle-axes `bar3D` geometry: every grouping, direction and
+ * `c:shape` (`chart-3d-oblique-layout.ts`, `chart-3d-oblique-shape-mesh.ts`).
+ */
+function buildBarGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
+	const layout = computeObliqueBarLayout(element, vm);
+	return layout && layout.bars.length > 0 ? { kind: 'oblique', layout } : null;
 }
 
-/**
- * `c:shape` values this pass renders as a true 3D box (the ONLY shape
- * visually verified against ground truth so far: `gt/chart-01.webp`'s
- * thin, subtly-beveled columns). `cylinder`/`cone`/`pyramid` (gt/chart-07..09)
- * are a materially different PowerPoint convention (a genuinely round,
- * full-width volume, not a thin oblique bevel - see the chart track's
- * progress log) and are deliberately NOT modelled yet; a chart using them
- * falls back to the flat 2D render rather than an unverified guess.
- */
-function isSupportedBoxShape(shape: PptxBar3DShape | undefined): boolean {
-	return shape === undefined || shape === 'box';
+/** Chart types drawn on the perspective box layout. */
+const PERSP_BOX_TYPES: ReadonlySet<string> = new Set(['line3D', 'area3D', 'surface', 'bar3D']);
+
+function buildPieGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
+	const layout = computePieChartLayout(element, widenPieViewModel(vm, element));
+	return layout ? { kind: 'pie', layout } : null;
 }
 
-/**
- * Build the `bar3D` box geometry from the flat 2D view-model's own front-face
- * rectangles. Returns `null` when the chart's grouping/direction/shape is not
- * yet modelled (`standard` grouping, a horizontal `c:barDir val="bar"` chart,
- * or a non-`box` `c:shape`) so the caller falls back to the flat 2D render
- * instead of a wrong or unverified one.
- */
-function buildBarGeometry(vm: ChartViewModel, chartData: PptxChartData): Chart3DGeometry {
-	const grouping = chartData.grouping ?? 'clustered';
-	if (!SUPPORTED_BAR_GROUPINGS.has(grouping) || chartData.barDirection === 'bar') {
-		return null;
-	}
-	const depthMagnitude = computeDepthVector(chartData.view3D).magnitude;
-	const boxes: Chart3DBarBox[] = [];
-	for (const prim of vm.primitives) {
-		if (prim.kind !== 'rect' || prim.part?.role !== 'dataPoint') {
-			continue;
-		}
-		const rect = prim as SvgRect;
-		const seriesIndex = rect.part?.seriesIndex ?? 0;
-		const shape = resolveBoxShape(chartData, seriesIndex);
-		if (!isSupportedBoxShape(shape)) {
-			return null;
-		}
-		boxes.push({
-			x: rect.x,
-			y: rect.y,
-			w: rect.w,
-			h: rect.h,
-			color: rect.fill,
-			seriesIndex,
-			categoryIndex: rect.part?.pointIndex ?? 0,
-			value: chartData.series[seriesIndex]?.values[rect.part?.pointIndex ?? 0] ?? 0,
-			shape,
-			depthMagnitude,
-		});
-	}
-	if (boxes.length === 0) {
-		return null;
-	}
-	return { kind: 'bar', boxes };
+function buildPerspGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
+	const layout = computePerspChartLayout(element, vm);
+	return layout ? { kind: 'perspective', layout } : null;
 }
 
 /**
@@ -213,7 +156,14 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	}
 	const vm = buildChartViewModel(element);
 	const projection = resolveChart3DProjection(chartType, chartData.view3D);
-	const geometry = chartType === 'bar3D' ? buildBarGeometry(vm, chartData) : null;
+	const geometry =
+		chartType === 'bar3D' && projection.mode === 'oblique'
+			? buildBarGeometry(element, vm)
+			: projection.mode === 'perspective' && PERSP_BOX_TYPES.has(chartType)
+				? buildPerspGeometry(element, vm)
+				: chartType === 'pie3D'
+					? buildPieGeometry(element, vm)
+					: null;
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0

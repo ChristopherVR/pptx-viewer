@@ -72,6 +72,7 @@ function shapeBody(shape: RenderedShape): React.ReactElement {
 					rx={shape.width / 2}
 					ry={shape.height / 2}
 					fill={shape.fill}
+					fillOpacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					strokeWidth={shape.strokeWidth}
 					transform={shape.transform}
@@ -82,6 +83,7 @@ function shapeBody(shape: RenderedShape): React.ReactElement {
 				<path
 					d={shape.pathData}
 					fill={shape.fill}
+					fillOpacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					strokeWidth={shape.strokeWidth}
 					transform={shape.pathTransform}
@@ -96,6 +98,7 @@ function shapeBody(shape: RenderedShape): React.ReactElement {
 					height={shape.height}
 					rx={shape.rx}
 					fill={shape.fill}
+					fillOpacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					strokeWidth={shape.strokeWidth}
 					transform={shape.transform}

@@ -6,8 +6,10 @@ import type {
 } from 'pptx-viewer-core';
 
 import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
+import { chartFontPx } from './chart-font';
 import { reserveLegendSpace } from './chart-legend-placement';
 import { formatChartNumber } from './chart-number-format';
+import { chartTitleBand } from './chart-title-band';
 
 /**
  * Framework-agnostic chart helpers, a focused Vue port of the React package's
@@ -348,7 +350,9 @@ export function computeLayout(
 	let plotBottom = svgHeight - (hasAxes ? 24 : 8);
 
 	if (style?.hasTitle) {
-		plotTop += 20;
+		plotTop += chartTitleBand(
+			style.titleFontSize !== undefined ? chartFontPx(style.titleFontSize) : 12,
+		).bandHeight;
 	}
 	if (style?.hasLegend) {
 		// `tr` (top-right corner) overlays the plot per PowerPoint's own

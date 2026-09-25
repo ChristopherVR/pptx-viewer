@@ -208,6 +208,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 			// Extract grouping mode (bar/line/area)
 			let grouping: PptxChartData['grouping'];
+			let groupingStandard = false;
 			const groupingNode = this.xmlLookupService.getChildByLocalName(seriesContainer, 'grouping');
 			if (groupingNode?.['@_val']) {
 				const groupingVal = String(groupingNode['@_val']).trim();
@@ -217,6 +218,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					grouping = 'percentStacked';
 				} else {
 					grouping = 'clustered';
+					groupingStandard = groupingVal === 'standard';
 				}
 			}
 
@@ -489,6 +491,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(titleRuns ? { titleRuns } : {}),
 				style: chartStyle,
 				grouping,
+				...(groupingStandard ? { groupingStandard } : {}),
 				...(varyColors !== undefined ? { varyColors } : {}),
 				...(firstSliceAngle !== undefined ? { firstSliceAngle } : {}),
 				...(doughnutHoleSize !== undefined ? { doughnutHoleSize } : {}),

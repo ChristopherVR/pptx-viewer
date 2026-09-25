@@ -22,5 +22,10 @@ export default defineConfig({
 			{ find: 'pptx-viewer-shared', replacement: pkg('shared', 'src', 'index.ts') },
 		],
 	},
-	optimizeDeps: { include: ['jszip', 'fast-xml-parser', 'three'] },
+	optimizeDeps: {
+		include: ['jszip', 'fast-xml-parser', 'three'],
+		// Same as the binding demos: a pre-bundled emf-converter 500s on its
+		// guarded optional `import('@napi-rs/canvas')`.
+		exclude: ['emf-converter'],
+	},
 });

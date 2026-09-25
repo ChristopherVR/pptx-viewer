@@ -54,7 +54,7 @@ function buildFlatFill(
 }
 
 /** Build the stroke outline (and hole outlines) as line loops. */
-function buildStrokeLines(
+export function buildStrokeLines(
 	three: ThreeModule,
 	mesh: SmartArt3DMesh,
 	disposables: Disposable[],
@@ -75,7 +75,7 @@ function buildStrokeLines(
 }
 
 /** Build the text label plane, or `null` when the mesh has no text. */
-function buildTextPlane(
+export function buildTextPlane(
 	three: ThreeModule,
 	mesh: SmartArt3DMesh,
 	group: THREE.Group,

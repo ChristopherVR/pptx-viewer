@@ -4,8 +4,8 @@ import * as THREE from 'three';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { ThreeViewContext, ThreeViewSceneEvent } from '../three-view/types';
+import { obliqueToScreen } from './chart-3d-oblique-layout';
 import { buildChart3DSpecForElement } from './chart-3d-spec';
-import type { Chart3DBarBox } from './chart-3d-spec';
 import { buildObliqueCamera, mountChart3DView } from './chart-3d-view-scene';
 import { CHART_INTERACTIVE_CLASS } from './chart-canvas-drag';
 
@@ -27,10 +27,18 @@ function barChart(chartData: Partial<PptxChartData> = {}): PptxElement {
 	} as unknown as PptxElement;
 }
 
+/** A bar's front face in screen (chart) px. */
+interface ScreenBox {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
 interface Mounted {
 	events: ThreeViewSceneEvent[];
 	canvas: HTMLCanvasElement;
-	boxes: readonly Chart3DBarBox[];
+	boxes: readonly ScreenBox[];
 	svgWidth: number;
 	svgHeight: number;
 	requestRender: ReturnType<typeof vi.fn>;
@@ -54,7 +62,7 @@ afterEach(() => {
  */
 async function mount(element: PptxElement, armed: boolean, interactive = true): Promise<Mounted> {
 	const spec = buildChart3DSpecForElement(element);
-	if (!spec || spec.geometry?.kind !== 'bar') {
+	if (!spec || spec.geometry?.kind !== 'oblique') {
 		throw new Error('expected an oblique bar spec');
 	}
 	const root = document.createElement('div');
@@ -84,12 +92,16 @@ async function mount(element: PptxElement, armed: boolean, interactive = true): 
 		requestRender,
 		emit: (event) => events.push(event),
 	};
+	const { layout } = spec.geometry;
 	const scene = await mountChart3DView(spec, ctx);
 	cleanups.push(() => scene.dispose());
 	return {
 		events,
 		canvas,
-		boxes: spec.geometry.boxes,
+		boxes: layout.bars.map((bar) => {
+			const topLeft = obliqueToScreen(layout, [bar.x, bar.y + bar.h, bar.z]);
+			return { x: topLeft.x, y: topLeft.y, w: bar.w, h: bar.h };
+		}),
 		svgWidth,
 		svgHeight,
 		requestRender,
@@ -99,7 +111,7 @@ async function mount(element: PptxElement, armed: boolean, interactive = true): 
 }
 
 /** Screen point at the middle of a box's front face (the front face is unsheared). */
-function centerOf(box: Chart3DBarBox): { clientX: number; clientY: number } {
+function centerOf(box: ScreenBox): { clientX: number; clientY: number } {
 	return { clientX: box.x + box.w / 2, clientY: box.y + box.h / 2 };
 }
 

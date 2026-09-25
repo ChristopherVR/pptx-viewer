@@ -37,6 +37,37 @@ describe('evaluatePresetShape', () => {
 		expect(result?.svgPath.endsWith('Z')).toBeTruthy();
 	});
 
+	// ECMA-376 trapezoid: inset = ss * a / 100000, a pinned to 50000 * w / ss.
+	function trapezoidTop(w: number, h: number, adj?: number): [number, number] {
+		const svg = evaluatePresetShape(
+			'trapezoid',
+			w,
+			h,
+			adj === undefined ? undefined : { adj },
+		)!.svgPath;
+		const pts = [...svg.matchAll(/[ML] (-?[\d.]+) (-?[\d.]+)/gu)].map((m) => Number(m[1]));
+		return [pts[1]!, pts[2]!];
+	}
+
+	it('trapezoid measures its top inset on the short side', () => {
+		// Default adj 25000 on a square: the top edge spans the middle half.
+		const [left, right] = trapezoidTop(100, 100);
+		expect(left).toBeCloseTo(25, 6);
+		expect(right).toBeCloseTo(75, 6);
+	});
+
+	it('trapezoid stacks SmartArt Basic Pyramid tiers edge to edge', () => {
+		// Tier 2 of the ground-truth pyramid (drawing57.xml, EMU / 12700): a
+		// 400x105 box with adj 95238 keeps a 200-wide top, the base of tier 1.
+		const [left, right] = trapezoidTop(400, 105, 95238);
+		expect(left).toBeCloseTo(100, 2);
+		expect(right).toBeCloseTo(300, 2);
+		// The same adj on the 200x105 apex tier pins to maxAdj: a triangle.
+		const [apexLeft, apexRight] = trapezoidTop(200, 105, 95238);
+		expect(apexLeft).toBeCloseTo(100, 2);
+		expect(apexRight).toBeCloseTo(100, 2);
+	});
+
 	it('heart scales its native control points into element space', () => {
 		// Regression: the heart humps were authored as literal 21600-grid
 		// coordinates but its anchors resolve into element space, so unscaled
@@ -149,6 +180,17 @@ describe('evaluatePresetShape', () => {
 		const wide = evaluatePresetShape('parallelogram', 400, 100, { adj: 50000 });
 		expect(wide?.svgPath).toContain('L 50 0');
 		expect(wide?.svgPath).not.toContain('L 200 0');
+	});
+
+	it('trapezoid insets each top corner by ss * adj, as PowerPoint does', () => {
+		// Default adj 25000 on a square: the top edge runs 25%..75%.
+		const square = evaluatePresetShape('trapezoid', 200, 200);
+		expect(square?.svgPath).toContain('L 50 0 L 150 0');
+		// A Basic Pyramid tier: wide and short at adj = maxAdj (50000 * w / ss).
+		// The top edge is inset by the HEIGHT (140), not half the width, so the
+		// tiers stack into one pyramid instead of separate triangles.
+		const tier = evaluatePresetShape('trapezoid', 533, 140, { adj: 95238 });
+		expect(tier?.svgPath).toMatch(/L 133\.3\d* 0 L 399\.6\d* 0/u);
 	});
 
 	it('parallelogram pins adj against maxAdj so the skew cannot exceed the width', () => {

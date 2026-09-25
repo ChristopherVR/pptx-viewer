@@ -140,6 +140,10 @@ export function renderChartSvg(element: ChartPptxElement): string | null {
 }
 
 function renderSmartArtShape(shape: PptxSmartArtDrawingShape): string {
+	const fillOpacity =
+		shape.fillOpacity !== undefined && shape.fillOpacity < 1
+			? ` fill-opacity="${shape.fillOpacity}"`
+			: '';
 	const fill = esc(shape.fillColor ?? '#4472C4');
 	const stroke = esc(shape.strokeColor ?? '#FFFFFF');
 	const transform = shape.rotation
@@ -147,11 +151,11 @@ function renderSmartArtShape(shape: PptxSmartArtDrawingShape): string {
 		: '';
 	let geometry: string;
 	if (shape.shapeType === 'ellipse') {
-		geometry = `<ellipse cx="${shape.x + shape.width / 2}" cy="${shape.y + shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}" fill="${fill}" stroke="${stroke}" />`;
+		geometry = `<ellipse cx="${shape.x + shape.width / 2}" cy="${shape.y + shape.height / 2}" rx="${shape.width / 2}" ry="${shape.height / 2}" fill="${fill}"${fillOpacity} stroke="${stroke}" />`;
 	} else if (shape.shapeType === 'diamond') {
-		geometry = `<polygon points="${shape.x + shape.width / 2},${shape.y} ${shape.x + shape.width},${shape.y + shape.height / 2} ${shape.x + shape.width / 2},${shape.y + shape.height} ${shape.x},${shape.y + shape.height / 2}" fill="${fill}" stroke="${stroke}" />`;
+		geometry = `<polygon points="${shape.x + shape.width / 2},${shape.y} ${shape.x + shape.width},${shape.y + shape.height / 2} ${shape.x + shape.width / 2},${shape.y + shape.height} ${shape.x},${shape.y + shape.height / 2}" fill="${fill}"${fillOpacity} stroke="${stroke}" />`;
 	} else {
-		geometry = `<rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.12 : 0}" fill="${fill}" stroke="${stroke}" stroke-width="${shape.strokeWidth ?? 1}" />`;
+		geometry = `<rect x="${shape.x}" y="${shape.y}" width="${shape.width}" height="${shape.height}" rx="${shape.shapeType === 'roundRect' ? Math.min(shape.width, shape.height) * 0.12 : 0}" fill="${fill}"${fillOpacity} stroke="${stroke}" stroke-width="${shape.strokeWidth ?? 1}" />`;
 	}
 	const text = shape.text
 		? `<text x="${shape.x + shape.width / 2}" y="${shape.y + shape.height / 2}" text-anchor="middle" dominant-baseline="central" font-family="Arial" font-size="${shape.fontSize ?? 12}" fill="${esc(shape.fontColor ?? '#FFFFFF')}">${esc(shape.text)}</text>`

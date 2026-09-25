@@ -1,71 +1,131 @@
 /**
- * Build the real WebGL box meshes for a `bar3D` chart's `Chart3DBarGeometry`
- * (see `chart-3d-spec.ts`). Split out of `chart-3d-view-scene.ts` to keep
- * that file within the repo's ~300-LOC limit.
+ * WebGL geometry for a right-angle-axes `bar3D` chart
+ * (`chart-3d-oblique-layout.ts`): one box mesh per bar and the wall/floor
+ * gridlines, in the oblique scene's frame (`chart-3d-view-scene.ts`).
  *
- * Every box is positioned so its FRONT face (world Z=0) sits exactly where
- * the flat 2D fallback's front-face rectangle would be drawn, in "1 world
- * unit = 1 authored chart px" coordinates matching `chart-3d-chrome-overlay.ts`'s
- * overlay `<svg>` viewBox. The box then extrudes backward (negative Z) by its
- * own depth, so the oblique camera's shear (`chart-3d-view-scene.ts`) shifts
- * only the BACK face, reproducing the same silhouette the flat 2D depth pass
- * draws as a hand-built parallelogram (`chart-3d-depth.ts#barExtrusion`).
+ * Scene frame: X/Y in chart px centred on the chart (Y up), Z = minus the
+ * layout's world depth, so the scene camera's shear moves only what recedes.
+ * A layout point `(x, y, z)` sits at scene
+ * `(origin.x + x - W/2, H/2 - origin.y + y, -z)`, which the camera projects to
+ * exactly the chart px `obliqueToScreen` returns.
  *
- * Only `PptxBar3DShape === 'box'` reaches this module today
- * (`chart-3d-spec.ts#isSupportedBoxShape` gates everything else out at the
- * spec level), so every box gets flat, per-face-group `MeshBasicMaterial`s
- * (no lights involved: PowerPoint's box faces are flat-shaded in chart
- * space, not lit) built from `chart-3d-shading.ts`'s measured multipliers.
+ * Box faces are flat `MeshBasicMaterial`s (PowerPoint shades box faces flat
+ * in chart space, not by lighting) from `chart-3d-shading.ts`'s measured
+ * multipliers. Gridlines are drawn in the scene rather than the SVG overlay
+ * because bars must hide the back-wall lines behind them.
  *
  * @module chart-3d-bar-mesh
  */
 import type * as THREE from 'three';
 
+import type { ObliqueBar, ObliqueChartLayout } from './chart-3d-oblique-layout';
+import {
+	buildObliqueShapeGeometry,
+	isShapedObliqueBar,
+	obliqueShapeKey,
+	shadeObliqueShapeGeometry,
+} from './chart-3d-oblique-shape-mesh';
 import { buildChart3DBoxFaceColors } from './chart-3d-shading';
-import type { Chart3DBarBox } from './chart-3d-spec';
 
 type ThreeModule = typeof THREE;
 
+/** PowerPoint's default major gridline colour (tx1 at 15% tint, `#D9D9D9`). */
+const GRIDLINE_COLOR = 0xd9d9d9;
+
 export interface Chart3DBarMeshResult {
 	group: THREE.Group;
-	/** One mesh per box, same order as `boxes`; carries `{ seriesIndex, categoryIndex }` in `userData`. */
+	/** One mesh per bar, same order as `layout.bars`; carries `{ seriesIndex, categoryIndex }` in `userData`. */
 	meshes: THREE.Mesh[];
 	dispose: () => void;
 }
 
+/** Scene position of a layout world point. */
+export function obliqueToScene(
+	layout: ObliqueChartLayout,
+	svgWidth: number,
+	svgHeight: number,
+	p: readonly [number, number, number],
+): [number, number, number] {
+	return [layout.origin.x + p[0] - svgWidth / 2, svgHeight / 2 - layout.origin.y + p[1], -p[2]];
+}
+
 /**
- * Build one `THREE.Mesh` per box and add them to a new `THREE.Group`. World
- * coordinates: X/Y centred on the chart's own `svgWidth`/`svgHeight` (X
- * right, Y UP - the SVG Y-down front rect is flipped here), Z=0 at the
- * front face, extending negative (away from the camera) by the box's own
- * depth.
+ * Place (and for a `c:shape` bar, reshape and reshade) a bar's mesh at a
+ * bar's current world box. Used at build time and for the drag preview.
  */
+export function placeObliqueBarMesh(
+	three: ThreeModule,
+	mesh: THREE.Mesh,
+	layout: ObliqueChartLayout,
+	svgWidth: number,
+	svgHeight: number,
+	bar: ObliqueBar,
+): void {
+	mesh.position.set(
+		...obliqueToScene(layout, svgWidth, svgHeight, [
+			bar.x + bar.w / 2,
+			bar.y + bar.h / 2,
+			bar.z + bar.d / 2,
+		]),
+	);
+	mesh.scale.set(Math.max(bar.w, 0.001), Math.max(bar.h, 0.001), bar.d);
+	if (!isShapedObliqueBar(bar)) {
+		return;
+	}
+	const key = obliqueShapeKey(bar, layout.horizontal);
+	const data = mesh.userData as { shapeKey?: string };
+	if (data.shapeKey !== key) {
+		const previous = mesh.geometry;
+		mesh.geometry = buildObliqueShapeGeometry(three, bar, layout.horizontal);
+		previous.dispose();
+		data.shapeKey = key;
+	}
+	shadeObliqueShapeGeometry(three, mesh.geometry, bar, mesh.scale, Math.atan(layout.shear.x));
+}
+
+/** Build the bar boxes and gridlines of an oblique layout into a new group. */
 export function buildChart3DBarMeshes(
 	three: ThreeModule,
-	boxes: ReadonlyArray<Chart3DBarBox>,
+	layout: ObliqueChartLayout,
 	svgWidth: number,
 	svgHeight: number,
 ): Chart3DBarMeshResult {
 	const group = new three.Group();
 	const meshes: THREE.Mesh[] = [];
-	const geometries: THREE.BufferGeometry[] = [];
+	const lineGeometries: THREE.BufferGeometry[] = [];
 	const materials: THREE.Material[] = [];
-	const halfW = svgWidth / 2;
-	const halfH = svgHeight / 2;
 
-	for (const box of boxes) {
-		const geometry = new three.BoxGeometry(1, 1, 1);
-		geometries.push(geometry);
-		const faceMaterials = buildChart3DBoxFaceColors(box.color).map(
-			(color) => new three.MeshBasicMaterial({ color }),
+	const points: number[] = [];
+	for (const line of layout.gridlines) {
+		points.push(
+			...obliqueToScene(layout, svgWidth, svgHeight, line.from),
+			...obliqueToScene(layout, svgWidth, svgHeight, line.to),
 		);
-		materials.push(...faceMaterials);
+	}
+	if (points.length > 0) {
+		const lineGeometry = new three.BufferGeometry();
+		lineGeometry.setAttribute('position', new three.Float32BufferAttribute(points, 3));
+		const lineMaterial = new three.LineBasicMaterial({ color: GRIDLINE_COLOR });
+		lineGeometries.push(lineGeometry);
+		materials.push(lineMaterial);
+		group.add(new three.LineSegments(lineGeometry, lineMaterial));
+	}
 
-		const mesh = new three.Mesh(geometry, faceMaterials);
-		const zDepth = box.depthMagnitude;
-		mesh.position.set(box.x + box.w / 2 - halfW, halfH - (box.y + box.h / 2), -zDepth / 2);
-		mesh.scale.set(box.w, box.h, zDepth);
-		mesh.userData = { seriesIndex: box.seriesIndex, categoryIndex: box.categoryIndex };
+	for (const bar of layout.bars) {
+		let mesh: THREE.Mesh;
+		if (isShapedObliqueBar(bar)) {
+			const material = new three.MeshBasicMaterial({ vertexColors: true });
+			materials.push(material);
+			mesh = new three.Mesh(new three.BufferGeometry(), material);
+		} else {
+			const faceMaterials = buildChart3DBoxFaceColors(bar.color).map(
+				(color) => new three.MeshBasicMaterial({ color }),
+			);
+			materials.push(...faceMaterials);
+			mesh = new three.Mesh(new three.BoxGeometry(1, 1, 1), faceMaterials);
+		}
+		mesh.userData = { seriesIndex: bar.seriesIndex, categoryIndex: bar.categoryIndex };
+		placeObliqueBarMesh(three, mesh, layout, svgWidth, svgHeight, bar);
 		group.add(mesh);
 		meshes.push(mesh);
 	}
@@ -74,7 +134,9 @@ export function buildChart3DBarMeshes(
 		group,
 		meshes,
 		dispose: () => {
-			for (const geometry of geometries) {
+			// A drag preview may have swapped a shaped bar's geometry, so free
+			// whatever each mesh holds now.
+			for (const geometry of [...lineGeometries, ...meshes.map((m) => m.geometry)]) {
 				geometry.dispose();
 			}
 			for (const material of materials) {

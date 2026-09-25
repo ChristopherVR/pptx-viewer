@@ -68,7 +68,11 @@ function createRenderer(three: ThreeModule, state: HostState): THREE.WebGLRender
 		const renderer = new three.WebGLRenderer({
 			antialias: true,
 			alpha: true,
-			premultipliedAlpha: false,
+			// An antialiased edge resolves to colour x coverage over the
+			// transparent clear: premultiplied. Declaring the buffer straight
+			// alpha made every edge composite too dark (a #D9D9D9 gridline
+			// half-covering a pixel landed at #B6B6B6 on white).
+			premultipliedAlpha: true,
 			powerPreference: 'default',
 		});
 		renderer.setPixelRatio(1);

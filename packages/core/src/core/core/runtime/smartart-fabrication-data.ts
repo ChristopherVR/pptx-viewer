@@ -31,6 +31,22 @@ export function xmlEscape(value: string): string {
 		.replaceAll("'", '&apos;');
 }
 
+/**
+ * `a:avLst` for a fabricated preset geometry. Keeping the cached adjustments
+ * matters: a Basic Pyramid tier is a `trapezoid` at `adj 95238`, and an empty
+ * list would redraw it at the 25000 default.
+ */
+export function avLstXml(adjustments: Record<string, number> | undefined): string {
+	const entries = Object.entries(adjustments ?? {}).filter(([, v]) => Number.isFinite(v));
+	if (entries.length === 0) {
+		return '<a:avLst/>';
+	}
+	const gds = entries
+		.map(([name, v]) => `<a:gd name="${xmlEscape(name)}" fmla="val ${Math.round(v)}"/>`)
+		.join('');
+	return `<a:avLst>${gds}</a:avLst>`;
+}
+
 const GUID_MODEL_ID = /^\{[0-9A-Fa-f]{8}(?:-[0-9A-Fa-f]{4}){3}-[0-9A-Fa-f]{12}\}$/u;
 
 /** Unique-id URNs of the fabricated layout / quick-style / colors parts. */

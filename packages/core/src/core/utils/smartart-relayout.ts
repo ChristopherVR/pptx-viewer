@@ -15,7 +15,8 @@
 
 import { smartArtElementsToDrawingShapes } from '../core/runtime/smartart-fabrication-drawing';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../types';
-import { computeSmartArtElementsWithoutCache } from './smartart-decompose';
+import { computeSmartArtElementsWithoutCache, decomposeSmartArt } from './smartart-decompose';
+import { applySmartArtQuickStyle3d } from './smartart-quick-style-3d';
 
 /**
  * Re-evaluate SmartArt layout after an editing operation.
@@ -26,6 +27,10 @@ import { computeSmartArtElementsWithoutCache } from './smartart-decompose';
  * convention for cached drawing shapes. Falls back to the existing
  * `drawingShapes`, unchanged, when nothing can be computed (e.g. every node
  * has empty text, or the layout type is unrecognised).
+ *
+ * The recomputed shapes carry the quick style's per-label 3D
+ * ({@link applySmartArtQuickStyle3d}), so a bevel / scene styled diagram
+ * stays 3D after a node is added, removed or reordered.
  *
  * @param smartArtData    - The SmartArt data model (nodes, layout type, etc.).
  * @param containerWidth  - Width of the container on the slide (pixels).
@@ -49,5 +54,25 @@ export function relayoutSmartArt(
 	if (!elements || elements.length === 0) {
 		return smartArtData.drawingShapes ?? [];
 	}
-	return smartArtElementsToDrawingShapes(elements);
+	return applySmartArtQuickStyle3d(smartArtElementsToDrawingShapes(elements), smartArtData);
+}
+
+/**
+ * The drawing shapes the save pipeline caches for a SmartArt whose cached
+ * drawing was dropped (a structural edit) or never existed (SDK-created):
+ * the decompose/layout output, plus the quick style's per-label 3D the way
+ * PowerPoint bakes it onto each shape when it re-lays out a diagram.
+ */
+export function regenerateSmartArtDrawingShapes(
+	smartArtData: PptxSmartArtData,
+	containerWidth: number,
+	containerHeight: number,
+): PptxSmartArtDrawingShape[] {
+	const elements = decomposeSmartArt(smartArtData, {
+		x: 0,
+		y: 0,
+		width: Math.max(containerWidth, 1),
+		height: Math.max(containerHeight, 1),
+	});
+	return applySmartArtQuickStyle3d(smartArtElementsToDrawingShapes(elements), smartArtData);
 }

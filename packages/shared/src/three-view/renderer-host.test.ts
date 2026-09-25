@@ -17,6 +17,7 @@ interface FakeRenderer {
 	clear: () => void;
 	outputColorSpace: string;
 	autoClear: boolean;
+	options: Record<string, unknown>;
 }
 
 let created: FakeRenderer[] = [];
@@ -28,7 +29,9 @@ function fakeThree(): ThreeModule {
 		sizes: Array<[number, number]> = [];
 		outputColorSpace = '';
 		autoClear = true;
-		constructor() {
+		options: Record<string, unknown>;
+		constructor(options: Record<string, unknown> = {}) {
+			this.options = options;
 			created.push(this);
 		}
 		setPixelRatio(): void {}
@@ -78,6 +81,12 @@ describe('three renderer host', () => {
 		}
 		expect(getThreeRendererHost(fakeThree())).toBe(host);
 		expect(created).toHaveLength(1);
+	});
+
+	it('declares its buffer premultiplied (an antialiased edge resolves premultiplied)', () => {
+		getThreeRendererHost(fakeThree()).register(fakeView(100, 50).view);
+		expect(created[0].options).toMatchObject({ alpha: true, antialias: true });
+		expect(created[0].options.premultipliedAlpha ?? true).toBeTruthy();
 	});
 
 	it('draws each dirty view once and copies it to the view canvas', () => {

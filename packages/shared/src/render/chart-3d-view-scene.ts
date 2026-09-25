@@ -28,6 +28,9 @@ import { createBarChart3DScene } from './bar-chart-3d-scene';
 import { buildChart3DBarMeshes } from './chart-3d-bar-mesh';
 import { renderChart3DChromeOverlaySvg } from './chart-3d-chrome-overlay';
 import { attachObliqueBarInteraction } from './chart-3d-oblique-interaction';
+import { mountPerspChartView } from './chart-3d-persp-scene';
+import { widenPieViewModel } from './chart-3d-pie-layout';
+import { mountPieChartView } from './chart-3d-pie-scene';
 import type { Chart3DPerspectiveScene, Chart3DSpec } from './chart-3d-spec';
 import { createLineChart3DScene } from './line-chart-3d-scene';
 import { createPieChart3DScene } from './pie-chart-3d-scene';
@@ -100,7 +103,33 @@ export async function mountChart3DView(
 	spec: Chart3DSpec,
 	ctx: ThreeViewContext,
 ): Promise<ThreeViewScene> {
-	if (spec.projection.mode !== 'oblique' || spec.geometry?.kind !== 'bar') {
+	if (spec.geometry?.kind === 'pie') {
+		const chartData = (spec.element as ChartPptxElement).chartData;
+		if (!chartData) {
+			throw new Error('3D chart spec without chart data');
+		}
+		return mountPieChartView(
+			{
+				element: spec.element,
+				vm: widenPieViewModel(spec.vm, spec.element),
+				layout: spec.geometry.layout,
+				chartData,
+				categoryLabels: spec.categoryLabels,
+			},
+			ctx,
+		);
+	}
+	if (spec.geometry?.kind === 'perspective') {
+		const chartData = (spec.element as ChartPptxElement).chartData;
+		if (!chartData) {
+			throw new Error('3D chart spec without chart data');
+		}
+		return mountPerspChartView(
+			{ vm: spec.vm, layout: spec.geometry.layout, chartData, categoryLabels: spec.categoryLabels },
+			ctx,
+		);
+	}
+	if (spec.projection.mode !== 'oblique' || spec.geometry?.kind !== 'oblique') {
 		if (spec.perspective) {
 			return mountPerspectiveScene(spec.perspective, ctx);
 		}
@@ -122,18 +151,25 @@ export async function mountChart3DView(
 	);
 
 	const scene = new three.Scene();
-	const bars = buildChart3DBarMeshes(three, geometry.boxes, vm.svgWidth, vm.svgHeight);
+	const { layout } = geometry;
+	const bars = buildChart3DBarMeshes(three, layout, vm.svgWidth, vm.svgHeight);
 	scene.add(bars.group);
 
-	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm);
+	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm, {
+		labels: layout.labels,
+		// PowerPoint lists a clustered horizontal bar chart's legend bottom-up,
+		// matching the order the series stack up the category axis.
+		reverseLegend: layout.horizontal && layout.grouping === 'clustered',
+	});
 	ctx.overlay.appendChild(overlay);
 
 	const interaction = attachObliqueBarInteraction({
 		ctx,
 		camera,
 		meshes: bars.meshes,
-		boxes: geometry.boxes,
-		vm,
+		layout,
+		svgWidth: vm.svgWidth,
+		svgHeight: vm.svgHeight,
 		chartData,
 		categoryLabels: spec.categoryLabels,
 		seriesNames: chartData.series.map((series) => series.name),

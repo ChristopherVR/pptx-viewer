@@ -164,8 +164,11 @@ function buildScene3dBackdrop(s3d: Pptx3DScene): XmlObject | undefined {
 	};
 }
 
-/** Write (or clear) the `a:scene3d` child. */
-function writeScene3d(spPr: XmlObject, shapeStyle: ShapeStyle): void {
+/**
+ * Write (or clear) the `a:scene3d` child. Exported so other `spPr` writers
+ * (e.g. the SmartArt cached-drawing fabricator) reuse the same serialiser.
+ */
+export function writeScene3d(spPr: XmlObject, shapeStyle: Pick<ShapeStyle, 'scene3d'>): void {
 	if (shapeStyle.scene3d) {
 		const s3d = shapeStyle.scene3d;
 		const hasData = s3d.cameraPreset || s3d.lightRigType;
@@ -197,8 +200,8 @@ function writeScene3d(spPr: XmlObject, shapeStyle: ShapeStyle): void {
 	}
 }
 
-/** Write (or clear) the `a:sp3d` child. */
-function writeShape3d(spPr: XmlObject, shapeStyle: ShapeStyle): void {
+/** Write (or clear) the `a:sp3d` child. Exported for reuse, see {@link writeScene3d}. */
+export function writeShape3d(spPr: XmlObject, shapeStyle: Pick<ShapeStyle, 'shape3d'>): void {
 	if (shapeStyle.shape3d) {
 		const sh3d = shapeStyle.shape3d;
 		const hasData =

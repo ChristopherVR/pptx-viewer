@@ -5,72 +5,29 @@
  * every mesh is a zero-depth `ShapeGeometry` face, unlit (`MeshBasicMaterial`),
  * under a fixed orthographic camera framing the diagram's own viewBox
  * (`model.bounds`) - the same geometry/fills/text the 2D SVG renderer draws,
- * built by `render/smartart-3d-drawing-model.ts`. Bevel/scene quick styles are
- * not implemented yet: `model.styleCategory` is `'bevel'`/`'scene'` for those
- * (currently unreachable, since `buildSmartArt3DSpecForElement` only emits
- * `'flat'`/legacy-layout models) and this module renders them with the same
- * flat pipeline as a stopgap rather than refusing to mount.
+ * built by `render/smartart-3d-drawing-model.ts`.
+ *
+ * Bevel and scene quick styles (`model.styleCategory` `'bevel'`/`'scene'`):
+ * each mesh becomes a lit solid (`lit-mesh-object.ts`: bevel bands,
+ * extrusion, contour, per-vertex shading from the model's light rig). A scene
+ * style also turns the whole diagram by its quick-style camera
+ * (`model.camera`, `view-camera.ts`).
  *
  * Must not import `three` at runtime (use `ctx.three`): this module is
  * reachable from the main barrel through the scene registry.
  *
  * @module smartart-3d/view-scene
  */
-import type * as THREE from 'three';
 
+import { resolveSmartArt3DLightModel } from '../render/smartart-3d-lighting';
+import { smartArt3DCameraMatrix, smartArt3DEyeInDiagram } from '../render/smartart-3d-scene-camera';
 import type { SmartArt3DModel } from '../render/smartart-3d-types';
-import type {
-	ThreeOrbitControls,
-	ThreeViewContext,
-	ThreeViewScene,
-	ThreeViewSize,
-} from '../three-view/types';
+import type { ThreeOrbitControls, ThreeViewContext, ThreeViewScene } from '../three-view/types';
 import type { Disposable } from './flat-mesh-object';
 import { buildFlatMeshObject } from './flat-mesh-object';
-
-/** Camera distance from the origin along +z (orthographic, so magnitude only matters for near/far). */
-const CAMERA_DISTANCE = 1000;
-/** Fractional margin added around the diagram's own bounds when framing it. */
-const FRAME_MARGIN = 1.06;
-
-function buildOrthographicCamera(
-	bounds: { width: number; height: number },
-	three: typeof THREE,
-): THREE.OrthographicCamera {
-	const w = Math.max(1, bounds.width) * FRAME_MARGIN;
-	const h = Math.max(1, bounds.height) * FRAME_MARGIN;
-	const camera = new three.OrthographicCamera(
-		-w / 2,
-		w / 2,
-		h / 2,
-		-h / 2,
-		-CAMERA_DISTANCE * 2,
-		CAMERA_DISTANCE * 2,
-	);
-	camera.position.set(0, 0, CAMERA_DISTANCE);
-	camera.lookAt(0, 0, 0);
-	return camera;
-}
-
-/** Fit the camera's frustum to `bounds`, letterboxing to the view's own aspect ratio. */
-function fitCamera(
-	camera: THREE.OrthographicCamera,
-	bounds: { width: number; height: number },
-	size: ThreeViewSize,
-): void {
-	const w = Math.max(1, bounds.width) * FRAME_MARGIN;
-	const h = Math.max(1, bounds.height) * FRAME_MARGIN;
-	const aspect = Math.max(1, size.pixelWidth) / Math.max(1, size.pixelHeight);
-	const halfW = w / 2;
-	const halfH = h / 2;
-	const fitHalfH = Math.max(halfH, halfW / aspect);
-	const fitHalfW = fitHalfH * aspect;
-	camera.left = -fitHalfW;
-	camera.right = fitHalfW;
-	camera.top = fitHalfH;
-	camera.bottom = -fitHalfH;
-	camera.updateProjectionMatrix();
-}
+import { buildLitMeshObject } from './lit-mesh-object';
+import { buildSmartArtViewCamera, fitSmartArtViewCamera } from './view-camera';
+import { frameSmartArtOverflow } from './view-overflow';
 
 export async function mountSmartArt3DView(
 	model: SmartArt3DModel,
@@ -83,15 +40,49 @@ export async function mountSmartArt3DView(
 	}
 
 	const disposables: Disposable[] = [];
+	const lit = model.styleCategory === 'bevel' || model.styleCategory === 'scene';
+	const view = model.camera ? smartArt3DCameraMatrix(model.camera) : undefined;
+	const eye = model.camera ? smartArt3DEyeInDiagram(model.camera) : undefined;
+	const root = new three.Group();
+	if (view) {
+		root.matrixAutoUpdate = false;
+		root.matrix.set(
+			view[0],
+			view[1],
+			view[2],
+			0,
+			view[3],
+			view[4],
+			view[5],
+			0,
+			view[6],
+			view[7],
+			view[8],
+			0,
+			0,
+			0,
+			0,
+			1,
+		);
+	}
+	scene.add(root);
 	for (const mesh of model.meshes) {
-		const built = buildFlatMeshObject(three, mesh);
-		scene.add(built.group);
+		const built = lit
+			? buildLitMeshObject(
+					three,
+					mesh,
+					resolveSmartArt3DLightModel(model.lighting, mesh.solid?.material, eye !== undefined),
+					eye,
+				)
+			: buildFlatMeshObject(three, mesh);
+		root.add(built.group);
 		disposables.push(...built.disposables);
 	}
 
-	const camera = buildOrthographicCamera(model.bounds, three);
+	const camera = buildSmartArtViewCamera(three, model.bounds, model.camera, ctx.size);
 	const authoredPosition = camera.position.clone();
-	fitCamera(camera, model.bounds, ctx.size);
+	// A turned diagram draws past its box as PowerPoint does (view-overflow.ts).
+	let overflow = frameSmartArtOverflow(three, root, camera, ctx.size, Boolean(model.camera));
 
 	let controls: ThreeOrbitControls | null = null;
 	let dampingActive = false;
@@ -129,7 +120,11 @@ export async function mountSmartArt3DView(
 			renderer.render(scene, camera);
 		},
 		resize(size) {
-			fitCamera(camera, model.bounds, size);
+			fitSmartArtViewCamera(camera, model.bounds, size);
+			overflow = frameSmartArtOverflow(three, root, camera, size, Boolean(model.camera));
+		},
+		overflow() {
+			return overflow;
 		},
 		isAnimating() {
 			return dampingActive;

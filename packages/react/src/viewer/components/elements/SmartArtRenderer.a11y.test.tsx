@@ -150,3 +150,35 @@ describe('smartArtRenderer - process layout style', () => {
 		expect(html).toContain('aria-label="Node 1 of 2: Step"');
 	});
 });
+
+describe('smartArtRenderer - cached drawing fill opacity', () => {
+	it("paints a translucent drawing fill with the shape's own fill-opacity", () => {
+		const html = render(
+			makeElement({
+				drawingShapes: [
+					{
+						id: 'd1',
+						shapeType: 'ellipse',
+						x: 0,
+						y: 0,
+						width: 100,
+						height: 100,
+						fillColor: '#156082',
+						fillOpacity: 0.5,
+					},
+					{
+						id: 'd2',
+						shapeType: 'rect',
+						x: 120,
+						y: 0,
+						width: 100,
+						height: 100,
+						fillColor: '#156082',
+					},
+				],
+			}),
+		);
+		expect(html).toMatch(/<ellipse[^>]*fill-opacity="0.5"/u);
+		expect(html).not.toMatch(/<rect[^>]*fill-opacity/u);
+	});
+});

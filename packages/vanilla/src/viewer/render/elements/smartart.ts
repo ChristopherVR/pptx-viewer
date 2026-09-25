@@ -223,6 +223,7 @@ function buildDrawingShapesSvg(
 					rx: shape.width / 2,
 					ry: shape.height / 2,
 					fill: shape.fill,
+					'fill-opacity': shape.fillOpacity,
 					stroke: shape.stroke,
 					'stroke-width': shape.strokeWidth,
 					transform: shape.transform,
@@ -233,6 +234,7 @@ function buildDrawingShapesSvg(
 				createSvgEl(doc, 'path', {
 					d: shape.pathData,
 					fill: shape.fill,
+					'fill-opacity': shape.fillOpacity,
 					stroke: shape.stroke,
 					'stroke-width': shape.strokeWidth,
 					transform: shape.pathTransform,
@@ -247,6 +249,7 @@ function buildDrawingShapesSvg(
 					height: shape.height,
 					rx: shape.rx,
 					fill: shape.fill,
+					'fill-opacity': shape.fillOpacity,
 					stroke: shape.stroke,
 					'stroke-width': shape.strokeWidth,
 					transform: shape.transform,

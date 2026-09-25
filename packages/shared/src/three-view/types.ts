@@ -39,6 +39,18 @@ export interface ThreeViewSize {
 	pixelHeight: number;
 }
 
+/**
+ * How far a scene draws past each edge of the element box, as fractions of
+ * the box's width (`left`/`right`) or height (`top`/`bottom`). See
+ * `view-overflow.ts`.
+ */
+export interface ThreeViewOverflow {
+	top: number;
+	right: number;
+	bottom: number;
+	left: number;
+}
+
 /** A value drag on a chart mark, in progress (`move`) or finished (`commit`). */
 export interface ThreeViewDragDetail {
 	part: ChartPartRef;
@@ -96,6 +108,13 @@ export interface ThreeViewScene {
 	render: (renderer: THREE.WebGLRenderer) => void;
 	/** The view's size changed; update camera aspect / overlay layout. */
 	resize: (size: ThreeViewSize) => void;
+	/**
+	 * How far the scene draws past the element box (see `view-overflow.ts`).
+	 * A scene that implements it must frame its camera for the grown buffer
+	 * (`overflowViewOffset`) whenever it reports a non-zero overflow; it is
+	 * read after mount and after every {@link resize}. Omitted: no overflow.
+	 */
+	overflow?: () => ThreeViewOverflow;
 	/** `true` while the scene needs continuous frames (damping, auto-rotate, a tween). */
 	isAnimating?: () => boolean;
 	setInteractive?: (on: boolean) => void;

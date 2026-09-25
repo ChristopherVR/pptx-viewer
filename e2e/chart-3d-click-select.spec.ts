@@ -17,7 +17,7 @@
  * For a 3D canvas mark the SAME text is instead set as the canvas element's own
  * `title` ATTRIBUTE on pointer-move (`chart-3d-hover-tooltip.ts`'s
  * `attachChart3DHoverTooltip`, `canvas.title = tooltip`), so
- * `canvas.getAttribute('title')` after hovering identifies the mark under the
+ * the pointer layer's `title` after hovering (see `tooltipOf`) identifies the mark under the
  * pointer without needing pixel-perfect knowledge of the WebGL scene's camera
  * projection. Every candidate point in the probed grid below, and the exact
  * gating behaviour asserted, was discovered by running this spec against the
@@ -228,6 +228,17 @@ const PROBE_POINTS: ReadonlyArray<{ fx: number; fy: number }> = (() => {
  * its sibling 3D specs already use. See {@link PROBE_POINTS} for the probe
  * order.
  */
+/**
+ * The tooltip lives on the element the pointer actually hits: the view's
+ * pointer layer (`.hit`, sized to the element box) sits over the canvas so a
+ * scene drawn past its box never takes clicks from its neighbours.
+ */
+function tooltipOf(canvas: Locator): Promise<string | null> {
+	return canvas.evaluate(
+		(el) => el.parentElement?.querySelector('.hit')?.getAttribute('title') ?? null,
+	);
+}
+
 async function findMark(page: Page, canvas: Locator): Promise<MarkHit> {
 	const box = await canvas.boundingBox();
 	if (!box) {
@@ -238,7 +249,7 @@ async function findMark(page: Page, canvas: Locator): Promise<MarkHit> {
 		const y = box.y + box.height * fy;
 		await page.mouse.move(x, y);
 		await page.waitForTimeout(20);
-		const title = await canvas.getAttribute('title');
+		const title = await tooltipOf(canvas);
 		if (title) {
 			return { x, y, title };
 		}
@@ -301,7 +312,7 @@ test.describe('3D chart click-to-select (barChart3D opt-in)', () => {
 				await page.waitForTimeout(20);
 				await page.mouse.move(hit.x, hit.y);
 				await page.waitForTimeout(20);
-				const titleAfterClick = await canvas.getAttribute('title');
+				const titleAfterClick = await tooltipOf(canvas);
 
 				const inspector = page.locator('[data-pptx-inspector]:visible').first();
 				const highlightCount = await inspector
@@ -414,7 +425,7 @@ test.describe('3D surface chart click-to-select + drag-to-value (surfaceChart3D 
 				await page.waitForTimeout(20);
 				await page.mouse.move(hit.x, hit.y);
 				await page.waitForTimeout(20);
-				const titleAfterSelect = await canvas.getAttribute('title');
+				const titleAfterSelect = await tooltipOf(canvas);
 				const canvasVisibleAfterSelect = await canvas.isVisible();
 				const canvasBoxAfterSelect = await canvas.boundingBox();
 
@@ -434,7 +445,7 @@ test.describe('3D surface chart click-to-select + drag-to-value (surfaceChart3D 
 				await page.waitForTimeout(20);
 				await page.mouse.move(hit.x, hit.y);
 				await page.waitForTimeout(20);
-				const titleAfterDrag = await canvas.getAttribute('title');
+				const titleAfterDrag = await tooltipOf(canvas);
 
 				return {
 					pageErrors,
@@ -548,7 +559,7 @@ test.describe('3D pie chart click-to-select + drag-to-value (pieChart3D opt-in)'
 				await page.waitForTimeout(20);
 				await page.mouse.move(hit.x, hit.y);
 				await page.waitForTimeout(20);
-				const titleAfterSelect = await canvas.getAttribute('title');
+				const titleAfterSelect = await tooltipOf(canvas);
 				const canvasVisibleAfterSelect = await canvas.isVisible();
 				const canvasBoxAfterSelect = await canvas.boundingBox();
 
@@ -571,7 +582,7 @@ test.describe('3D pie chart click-to-select + drag-to-value (pieChart3D opt-in)'
 				await page.waitForTimeout(20);
 				await page.mouse.move(hit.x, hit.y);
 				await page.waitForTimeout(20);
-				const titleAfterDrag = await canvas.getAttribute('title');
+				const titleAfterDrag = await tooltipOf(canvas);
 
 				return {
 					pageErrors,

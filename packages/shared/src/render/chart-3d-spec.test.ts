@@ -44,8 +44,8 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'S1', values: [1, 2] }],
 			}),
 		);
-		expect(spec?.geometry).toBeNull();
-		expect(spec?.perspective?.kind).toBe('surface');
+		expect(spec?.geometry?.kind).toBe('perspective');
+		expect(spec?.perspective).toBeNull();
 	});
 
 	it('returns a spec for a surface chart that DOES carry c:view3D (surface3D)', () => {
@@ -57,9 +57,8 @@ describe('buildChart3DSpecForElement', () => {
 				view3D: { rotX: 15, rotY: 20, rAngAx: false },
 			}),
 		);
-		expect(spec).not.toBeNull();
-		expect(spec?.geometry).toBeNull(); // no oblique surface geometry
-		expect(spec?.perspective?.kind).toBe('surface');
+		expect(spec?.geometry?.kind).toBe('perspective');
+		expect(spec?.perspective).toBeNull();
 	});
 
 	it('resolves an oblique projection for a default bar3D chart', () => {
@@ -74,7 +73,7 @@ describe('buildChart3DSpecForElement', () => {
 		expect(spec?.projection.mode).toBe('oblique');
 	});
 
-	it('builds one box per data point for a clustered bar3D chart, positions matching the flat rects', () => {
+	it('lays a clustered bar3D chart out as one depth row, each bar as deep as it is wide', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
@@ -86,49 +85,44 @@ describe('buildChart3DSpecForElement', () => {
 				],
 			}),
 		);
-		expect(spec?.geometry?.kind).toBe('bar');
-		const boxes = spec?.geometry?.kind === 'bar' ? spec.geometry.boxes : [];
-		expect(boxes).toHaveLength(4);
-		// Every box in a clustered chart shares the SAME depth magnitude (one
-		// coplanar Z plane), matching gt/chart-01.webp (no visible per-series
-		// depth separation).
-		const magnitudes = new Set(boxes.map((b) => b.depthMagnitude));
-		expect(magnitudes.size).toBe(1);
-		// Box x/y/w/h must equal the flat 2D fallback's own front-face rects
-		// (the same underlying cartesian bar layout), so chrome and geometry
-		// never disagree about where a bar sits.
-		const flatRects = spec!.vm.primitives.filter(
-			(p) => p.kind === 'rect' && p.part?.role === 'dataPoint',
-		);
-		expect(flatRects).toHaveLength(4);
-		for (const rect of flatRects) {
-			const box = boxes.find(
-				(b) =>
-					b.seriesIndex === rect.part?.seriesIndex && b.categoryIndex === rect.part?.pointIndex,
-			);
-			expect(box).toBeDefined();
-			expect(box?.x).toBe((rect as { x: number }).x);
-			expect(box?.w).toBe((rect as { w: number }).w);
+		expect(spec?.geometry?.kind).toBe('oblique');
+		const layout = spec?.geometry?.kind === 'oblique' ? spec.geometry.layout : undefined;
+		expect(layout?.bars).toHaveLength(4);
+		for (const bar of layout?.bars ?? []) {
+			expect(bar.d).toBeCloseTo(bar.w, 6);
+			// Centred in the one row, which is barWidth * (1 + gapDepth 150%) deep.
+			expect(bar.z).toBeCloseTo(0.75 * bar.w, 6);
+			expect(layout?.box.d).toBeCloseTo(2.5 * bar.w, 6);
 		}
 	});
 
-	it('returns null geometry (falls back to the 2D render) for standard grouping', () => {
+	it('puts each series of a standard bar3D chart on its own depth row', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
-				// The core type only declares clustered/stacked/percentStacked;
-				// "standard" flows through from the raw XML value untyped.
-				grouping: 'standard' as PptxChartData['grouping'],
+				grouping: 'clustered',
+				groupingStandard: true,
 				categories: ['Q1', 'Q2'],
-				series: [{ name: 'Revenue', values: [100, 150] }],
+				series: [
+					{ name: 'Revenue', values: [100, 150] },
+					{ name: 'Cost', values: [80, 90] },
+				],
 			}),
 		);
-		expect(spec).not.toBeNull();
-		expect(spec?.geometry).toBeNull();
-		expect(spec?.perspective?.kind).toBe('bar');
+		const layout = spec?.geometry?.kind === 'oblique' ? spec.geometry.layout : undefined;
+		expect(layout?.grouping).toBe('standard');
+		const front = layout?.bars.find((b) => b.seriesIndex === 0 && b.categoryIndex === 0);
+		const back = layout?.bars.find((b) => b.seriesIndex === 1 && b.categoryIndex === 0);
+		// Same category position, one row (2.5 bar widths) further back.
+		expect(back?.x).toBeCloseTo(front?.x ?? Number.NaN, 6);
+		expect((back?.z ?? 0) - (front?.z ?? 0)).toBeCloseTo(2.5 * (front?.w ?? 0), 6);
+		expect(layout?.labels.filter((l) => l.role === 'series').map((l) => l.text)).toStrictEqual([
+			'Revenue',
+			'Cost',
+		]);
 	});
 
-	it('returns null geometry (falls back to the 2D render) for a horizontal bar3D chart', () => {
+	it('lays a horizontal bar3D chart out along the value axis on X', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
@@ -137,12 +131,19 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'Revenue', values: [100, 150] }],
 			}),
 		);
-		expect(spec?.geometry).toBeNull();
-		expect(spec?.perspective?.kind).toBe('bar');
-		expect(spec?.perspective?.kind === 'bar' && spec.perspective.options.horizontal).toBeTruthy();
+		const layout = spec?.geometry?.kind === 'oblique' ? spec.geometry.layout : undefined;
+		expect(layout?.horizontal).toBeTruthy();
+		const [q1, q2] = layout?.bars ?? [];
+		expect(q1.x).toBe(0);
+		expect(q2.w / q1.w).toBeCloseTo(1.5, 6);
+		// Category 1 at the bottom.
+		expect(q1.y).toBeLessThan(q2.y);
+		// Back-wall gridlines are vertical.
+		const back = layout?.gridlines[0];
+		expect(back?.from[0]).toBe(back?.to[0]);
 	});
 
-	it('resolves a box shape from c:ser/c:shape, falling back to the chart-level c:shape', () => {
+	it('uses the oblique geometry when every series is a box, via c:ser/c:shape or the chart level', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
@@ -150,28 +151,31 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'A', values: [1], shape: 'box' }],
 			}),
 		);
-		const boxes = spec?.geometry?.kind === 'bar' ? spec.geometry.boxes : [];
-		expect(boxes.find((b) => b.seriesIndex === 0)?.shape).toBe('box');
+		expect(spec?.geometry?.kind).toBe('oblique');
 	});
 
-	it('returns null geometry (falls back to the 2D render) for a non-box c:shape', () => {
-		// cylinder/cone/pyramid are a materially different PowerPoint volume
-		// convention (round, full column width) not modelled yet.
-		for (const shape of ['cylinder', 'cone', 'pyramid'] as const) {
+	it('lays round and pointed c:shape bars out on the oblique box, per-series shape winning', () => {
+		for (const shape of ['cylinder', 'cone', 'pyramid', 'coneToMax'] as const) {
 			const spec = buildChart3DSpecForElement(
 				chartEl({
 					chartType: 'bar3D',
 					barShape: shape,
 					categories: ['Q1'],
-					series: [{ name: 'A', values: [1] }],
+					series: [
+						{ name: 'A', values: [1] },
+						{ name: 'B', values: [2], shape: 'box' },
+					],
 				}),
 			);
-			expect(spec?.geometry).toBeNull();
-			expect(spec?.perspective?.kind).toBe('bar');
+			expect(spec?.perspective).toBeNull();
+			if (spec?.geometry?.kind !== 'oblique') {
+				throw new Error('expected oblique geometry');
+			}
+			expect(spec.geometry.layout.bars.map((b) => b.shape)).toStrictEqual([shape, 'box']);
 		}
 	});
 
-	it('gives an oblique bar spec no perspective scene, and each box its authored value', () => {
+	it('gives an oblique bar spec no perspective scene, and each bar its authored value', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
@@ -180,27 +184,33 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(spec?.perspective).toBeNull();
-		const boxes = spec?.geometry?.kind === 'bar' ? spec.geometry.boxes : [];
-		expect(boxes.map((b) => b.value)).toStrictEqual([100, 150]);
+		const bars = spec?.geometry?.kind === 'oblique' ? spec.geometry.layout.bars : [];
+		expect(bars.map((b) => b.value)).toStrictEqual([100, 150]);
 		expect(spec?.categoryLabels).toStrictEqual(['Q1', 'Q2']);
 	});
 
-	it('routes line3D / area3D / pie3D to their perspective scenes', () => {
-		for (const [chartType, kind] of [
-			['line3D', 'line'],
-			['area3D', 'area'],
-			['pie3D', 'pie'],
-		] as const) {
+	it('lays line3D / area3D on the perspective box and pie3D on its own layout', () => {
+		for (const chartType of ['line3D', 'area3D'] as const) {
 			const spec = buildChart3DSpecForElement(
 				chartEl({
 					chartType,
 					categories: ['A', 'B'],
 					series: [{ name: 'S1', values: [1, 2] }],
+					view3D: { rotX: 15, rotY: 20, rAngAx: false },
 				}),
 			);
-			expect(spec?.geometry).toBeNull();
-			expect(spec?.perspective?.kind).toBe(kind);
+			expect(spec?.geometry?.kind).toBe('perspective');
+			expect(spec?.perspective).toBeNull();
 		}
+		const pie = buildChart3DSpecForElement(
+			chartEl({
+				chartType: 'pie3D',
+				categories: ['A', 'B'],
+				series: [{ name: 'S1', values: [1, 2] }],
+			}),
+		);
+		expect(pie?.geometry?.kind).toBe('pie');
+		expect(pie?.perspective).toBeNull();
 	});
 
 	it('numbers the categories 1..n when the chart has none', () => {

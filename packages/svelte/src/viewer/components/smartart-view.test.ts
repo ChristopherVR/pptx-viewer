@@ -136,6 +136,19 @@ describe('smartArtView', () => {
 		expect(group?.getAttribute('style')).toContain('drop-shadow');
 	});
 
+	it('paints a cached Venn circle at its fill alpha (fill-opacity)', () => {
+		const element = drawingShapesElement();
+		if (element.type !== 'smartArt') {
+			throw new Error('expected smartArt');
+		}
+		const shapes = element.smartArtData!.drawingShapes!;
+		shapes[1] = { ...shapes[1]!, fillColor: '#156082', fillOpacity: 0.5 };
+		const target = mountEl(element);
+		const svg = target.querySelector('svg.pptx-svelte-smartart-svg');
+		expect(svg?.querySelector('ellipse')?.getAttribute('fill-opacity')).toBe('0.5');
+		expect(svg?.querySelector('rect')?.hasAttribute('fill-opacity')).toBeFalsy();
+	});
+
 	it('describes the diagram to assistive tech via role img + aria-label', () => {
 		const target = mountEl(drawingShapesElement());
 		const chrome = target.querySelector('.pptx-svelte-smartart-chrome');

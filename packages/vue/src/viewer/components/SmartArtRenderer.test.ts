@@ -124,6 +124,24 @@ describe('smartArtRenderer', () => {
 		expect(wrapper.find('rect').exists()).toBeFalsy();
 	});
 
+	it('paints a cached Venn circle at its fill alpha (fill-opacity)', () => {
+		const wrapper = mount(SmartArtRenderer, {
+			props: {
+				element: smartArt({
+					nodes: [],
+					drawingShapes: [
+						shape({ id: 's1', shapeType: 'ellipse', fillColor: '#156082', fillOpacity: 0.5 }),
+						shape({ id: 's2', shapeType: 'ellipse', y: 70, fillColor: '#156082' }),
+					],
+				}),
+				zIndex: 0,
+			},
+		});
+		const ellipses = wrapper.findAll('ellipse');
+		expect(ellipses[0]?.attributes('fill-opacity')).toBe('0.5');
+		expect(ellipses[1]?.attributes('fill-opacity')).toBeUndefined();
+	});
+
 	it('falls back to an SVG layout when no drawing shapes exist', () => {
 		const wrapper = mount(SmartArtRenderer, {
 			props: {

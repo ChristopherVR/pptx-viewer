@@ -11,6 +11,7 @@ import { parseSmartArtConnection } from '../../utils/smartart-data-model-attribu
 import { projectSmartArtNodeText } from '../../utils/smartart-node-text-projection';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtXmlUtils';
 import { extractDrawingShape3d } from './smartart-drawing-shape-3d';
+import { extractDrawingShapeFontRefColor } from './smartart-drawing-shape-font-ref';
 import {
 	drawingTextEmuAttribute,
 	extractDrawingShapeFill,
@@ -142,6 +143,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				resolveThemeLineRef: this.resolveThemeLineRef.bind(this),
 				resolveThemeEffectRef: this.resolveThemeEffectRef.bind(this),
 				resolveThemeTypeface: this.resolveThemeTypeface.bind(this),
+				parseColor: (node) => this.parseColor(node),
 			});
 		} catch {
 			return undefined;
@@ -272,6 +274,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const text = textValues.join('').trim() || undefined;
 
 		const textStyle = extractDrawingShapeTextStyle(txBody, this.drawingShapeStyleDeps(), emuPerPx);
+		// A run without its own fill takes the style matrix's `a:fontRef` colour.
+		textStyle.fontColor ??= extractDrawingShapeFontRefColor(sp, this.drawingShapeStyleDeps());
 		const { fontSize, fontColor } = textStyle;
 		const txXfrm = this.xmlLookupService.getChildByLocalName(sp, 'txXfrm');
 		const txOff = this.xmlLookupService.getChildByLocalName(txXfrm, 'off');
@@ -348,6 +352,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasChild: (node, local) => this.xmlLookupService.hasChildByLocalName(node, local),
 			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
 			parseColor: (node) => this.parseColor(node),
+			extractColorOpacity: (node) => this.extractColorOpacity(node),
 			extractGradientStops: (gradFill) => this.extractGradientStops(gradFill),
 			extractGradientType: (gradFill) => this.extractGradientType(gradFill),
 			extractGradientAngle: (gradFill) => this.extractGradientAngle(gradFill),

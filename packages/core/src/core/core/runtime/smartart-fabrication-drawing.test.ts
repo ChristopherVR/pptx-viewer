@@ -38,6 +38,21 @@ describe('buildFabricatedDrawingXml', () => {
 		expect(xml.match(/<dsp:sp\b/gu) || []).toHaveLength(3);
 	});
 
+	it('keeps preset adjustments and a solid fill alpha', () => {
+		const xml = buildFabricatedDrawingXml(
+			[
+				{ ...SHAPES[1]!, shapeAdjustments: { adj: 95238 } },
+				{ ...SHAPES[2]!, fillColor: '#156082', fillOpacity: 0.5 },
+			],
+			NODES,
+			GUIDS,
+		)!;
+		expect(xml).toContain('<a:avLst><a:gd name="adj" fmla="val 95238"/></a:avLst>');
+		expect(xml).toContain(
+			'<a:solidFill><a:srgbClr val="156082"><a:alpha val="50000"/></a:srgbClr></a:solidFill>',
+		);
+	});
+
 	it('uses presentation-point GUIDs for cached shape model ids', () => {
 		const xml = buildFabricatedDrawingXml(SHAPES, NODES, GUIDS)!;
 		// `engine-<nodeId>` ids resolve to the matching node GUID.
@@ -155,6 +170,24 @@ describe('smartArtElementsToDrawingShapes', () => {
 			fontSize: 12,
 			fontColor: '#FFFFFF',
 		});
+	});
+
+	it('carries fill opacity and preset adjustments back onto the drawing shape', () => {
+		const [shape] = smartArtElementsToDrawingShapes([
+			{
+				id: 's1',
+				type: 'shape',
+				x: 0,
+				y: 0,
+				width: 100,
+				height: 50,
+				shapeType: 'trapezoid',
+				shapeAdjustments: { adj: 95238 },
+				shapeStyle: { fillColor: '#156082', fillOpacity: 0.5 },
+			} as unknown as PptxElement,
+		]);
+		expect(shape?.fillOpacity).toBe(0.5);
+		expect(shape?.shapeAdjustments).toStrictEqual({ adj: 95238 });
 	});
 
 	it('returns an empty array for missing or empty input', () => {

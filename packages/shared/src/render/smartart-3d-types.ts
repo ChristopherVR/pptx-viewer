@@ -11,6 +11,14 @@
  * front face of every extruded block facing +z. Layout (SVG) space is y-down
  * with the origin at the top-left; the model builder performs the flip.
  */
+import type {
+	SmartArt3DCamera,
+	SmartArt3DGradient,
+	SmartArt3DLighting,
+	SmartArt3DSolid,
+} from './smartart-3d-solid-types';
+
+export type * from './smartart-3d-solid-types';
 
 /** A point in the world's XZ-agnostic 2D outline space (y-up). */
 export interface Point2 {
@@ -94,6 +102,13 @@ export interface SmartArt3DMesh {
 	halfWidth: number;
 	/** Half-height of the footprint. */
 	halfHeight: number;
+	/**
+	 * Lit solid (bevel / extrusion / contour) from the cached shape's `a:sp3d`,
+	 * for the `'bevel'` and `'scene'` style categories. Absent: a flat face.
+	 */
+	solid?: SmartArt3DSolid;
+	/** Gradient fill to paint instead of {@link fill}, when the shape has one. */
+	gradient?: SmartArt3DGradient;
 }
 
 /**
@@ -118,6 +133,14 @@ export interface SmartArt3DTextBlock {
 	fontFamily?: string;
 	fontWeight?: number;
 	fontStyle?: 'normal' | 'italic';
+	/**
+	 * The label's own extrusion (`a:bodyPr/a:sp3d`, e.g. Bird's Eye Scene),
+	 * in layout px toward the viewer: the letters stand this far off the
+	 * shape face, and their sides are drawn in {@link extrusionColor} (the
+	 * text colour when absent).
+	 */
+	extrusion?: number;
+	extrusionColor?: string;
 }
 
 /** A connector poly-line drawn between meshes on the base plane. */
@@ -154,10 +177,11 @@ export type SmartArt3DFamily =
  * Which PowerPoint quick-style family this model was built for, so the scene
  * builder can pick the right camera/shading/geometry pipeline: `'flat'`
  * (unlit, zero-depth, orthographic matching the 2D viewBox), `'bevel'`
- * (per-shape `orthographicFront` camera + `shape3d` bevel/material, not yet
- * built by any model builder), or `'scene'` (one whole-diagram camera from
- * the quick style, not yet built). Undefined for the legacy layout-engine
- * model (`buildSmartArt3DModel`), which predates this distinction.
+ * (per-shape `orthographicFront` camera + lit `a:sp3d` bevel/material), or
+ * `'scene'` (one whole-diagram camera from the quick style, lit extruded
+ * solids). See `resolveSmartArt3DStylePath`. Undefined for the legacy
+ * layout-engine model (`buildSmartArt3DModel`), which predates this
+ * distinction.
  */
 export type SmartArt3DStyleCategory = 'flat' | 'bevel' | 'scene';
 
@@ -172,6 +196,10 @@ export interface SmartArt3DModel {
 	background?: string;
 	/** See {@link SmartArt3DStyleCategory}. */
 	styleCategory?: SmartArt3DStyleCategory;
+	/** Whole-diagram camera (`'scene'` only). */
+	camera?: SmartArt3DCamera;
+	/** Light rig the lit solids are shaded with (`'bevel'` / `'scene'`). */
+	lighting?: SmartArt3DLighting;
 }
 
 /** Tunables for {@link buildSmartArt3DModel}. */

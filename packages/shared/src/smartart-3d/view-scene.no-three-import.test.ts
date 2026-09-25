@@ -14,7 +14,13 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /** Files reachable through the SmartArt `<pptx-three-view>` scene module. */
-const SCENE_FILES = ['view-scene.ts', 'flat-mesh-object.ts', 'text-block-texture.ts'] as const;
+const SCENE_FILES = [
+	'view-scene.ts',
+	'flat-mesh-object.ts',
+	'lit-mesh-object.ts',
+	'view-camera.ts',
+	'text-block-texture.ts',
+] as const;
 
 /**
  * A non-type `from 'three'`/`from "three"` import: any `import` statement

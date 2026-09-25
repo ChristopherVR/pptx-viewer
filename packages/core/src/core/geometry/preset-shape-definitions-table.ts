@@ -296,20 +296,29 @@ const parallelogram: PresetShapeGeometryDefinition = {
 const trapezoid: PresetShapeGeometryDefinition = {
 	name: 'trapezoid',
 	avLst: { adj: 25000 },
+	// ECMA-376 presetShapeDefinitions.xml: the top inset is `ss * a / 100000`
+	// with `a` pinned to `50000 * w / ss`, so the inset is measured on the SHORT
+	// side and a wide shape keeps a wide top edge. Scaling the inset by `w`
+	// instead turned a stack of wide pyramid tiers (SmartArt Basic Pyramid,
+	// adj 95238) into near-triangles.
 	gdLst: [
-		gd('a', 'pin 0 adj 100000'),
-		gd('x1', '*/ w a 200000'),
-		gd('x2', '+- r 0 x1'),
-		gd('x3', '*/ x1 1 2'),
-		gd('x4', '+- r 0 x3'),
+		gd('maxAdj', '*/ 50000 w ss'),
+		gd('a', 'pin 0 adj maxAdj'),
+		gd('x1', '*/ ss a 200000'),
+		gd('x2', '*/ ss a 100000'),
+		gd('x3', '+- r 0 x2'),
+		gd('x4', '+- r 0 x1'),
+		gd('il', '*/ wd3 a maxAdj'),
+		gd('it', '*/ hd3 a maxAdj'),
+		gd('ir', '+- r 0 il'),
 	],
-	rect: { l: 'x3', t: 't', r: 'x4', b: 'b' },
+	rect: { l: 'il', t: 'it', r: 'ir', b: 'b' },
 	pathLst: [
 		{
 			commands: [
 				{ kind: 'moveTo', x: 'l', y: 'b' },
-				{ kind: 'lnTo', x: 'x1', y: 't' },
 				{ kind: 'lnTo', x: 'x2', y: 't' },
+				{ kind: 'lnTo', x: 'x3', y: 't' },
 				{ kind: 'lnTo', x: 'r', y: 'b' },
 				{ kind: 'close' },
 			],
