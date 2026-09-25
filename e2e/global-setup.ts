@@ -15,6 +15,7 @@ import { generateFixture } from './fixtures/generate-format-painter-fixture';
 import { generateLineFillFidelityFixture } from './fixtures/generate-line-fill-fidelity-fixture';
 import { generateLinkedTextBoxFixture } from './fixtures/generate-linked-textbox-fixture';
 import { generateMasterViewsFixture } from './fixtures/generate-master-views-fixture';
+import { generateFixture as generateMediaBookmarkTriggerFixture } from './fixtures/generate-media-bookmark-trigger-editable-fixture';
 import { generateMorphShapeSwapFixture } from './fixtures/generate-morph-shape-swap-fixture';
 import { generateInkFixture, generateOleFixture } from './fixtures/generate-ole-ink-fixtures';
 import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fixture';
@@ -52,6 +53,7 @@ export default async function globalSetup() {
 	await generateDegenerateShapeFixture();
 	await generateTransitionsAnimationsFixture();
 	await generateEffectSoundGalleryFixture();
+	await generateMediaBookmarkTriggerFixture();
 	await generateBoxCubeTransitionFixture();
 	await generateCinematicFragmentsFixture();
 	await generateTemplateEditingFixture();
