@@ -42,9 +42,10 @@ type LayoutCore = Pick<
 	| 'rowDepth'
 	| 'markDepth'
 	| 'colors'
+	| 'horizontal'
 >;
 
-/** Box y of a value, clipped to the axis. */
+/** Position of a value along the value axis (box y, or box x for horizontal bars), clipped to the axis. */
 export function perspValueY(layout: Pick<LayoutCore, 'range' | 'valueScale'>, v: number): number {
 	const clamped = Math.min(Math.max(v, layout.range.min), layout.range.max);
 	return (clamped - layout.range.min) * layout.valueScale;

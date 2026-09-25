@@ -23,12 +23,12 @@
  */
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
+import { buildPerspGridlines } from './chart-3d-persp-gridlines';
 import { buildPerspLabels } from './chart-3d-persp-labels';
 import type { PerspLabel } from './chart-3d-persp-labels';
 import { fitPerspView, perspCameraFor } from './chart-3d-persp-view';
 import type { PerspView } from './chart-3d-persp-view';
 import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
-import { axisTickValues } from './chart-view-model-chrome';
 import type { ChartViewModel } from './chart-view-model-types';
 
 export type { PerspLabel } from './chart-3d-persp-labels';
@@ -52,6 +52,12 @@ const RECT_TOP_NO_TITLE = 14 * PT;
 const RECT_BOTTOM_WITH_LEGEND = 62 * PT;
 const RECT_BOTTOM_NO_LEGEND = 31 * PT;
 const DEFAULT_GAP = 150;
+/**
+ * Category extent per unit of value extent for a horizontal bar box (no
+ * ground truth for a perspective one; the right-angle-axes export,
+ * `gt/chart-05`, keeps its box at 0.483).
+ */
+const HORIZONTAL_CATEGORY_EXTENT = 0.483;
 /** Fitted box depth per nominal depth: 0.94-0.99 for multi-row boxes (`gt/chart-10,11,16`), 1.04 for one row (`gt/chart-12`). */
 const DEPTH_FIT_MULTI_ROW = 0.96;
 const DEPTH_FIT_SINGLE_ROW = 1.04;
@@ -70,9 +76,11 @@ export interface PerspChartLayout {
 	grouping: PerspGrouping;
 	view: PerspView;
 	range: { min: number; max: number; majorUnit: number };
-	/** Box units per value unit. */
+	/** Values run along box x and categories up box y (a `c:barDir="bar"` bar chart). */
+	horizontal: boolean;
+	/** Box units per value unit, along the value axis. */
 	valueScale: number;
-	/** Box x of each category. */
+	/** Position of each category along the category axis (box x, or box y when `horizontal`). */
 	categoryX: number[];
 	/** Number of depth rows and each row's depth. */
 	rows: number;
@@ -157,11 +165,10 @@ export function computePerspChartLayout(
 	const kind = kindOf(chartData.chartType);
 	const nSer = chartData.series.length;
 	const nCat = chartData.series.reduce((m, s) => Math.max(m, s.values.length), 0);
-	// A horizontal (`c:barDir="bar"`) bar box without right-angle axes is not
-	// modelled; it keeps its hosted scene.
-	if (!kind || nSer === 0 || nCat === 0 || (kind === 'bar' && chartData.barDirection === 'bar')) {
+	if (!kind || nSer === 0 || nCat === 0) {
 		return null;
 	}
+	const horizontal = kind === 'bar' && chartData.barDirection === 'bar';
 	const grouping = groupingOf(kind, chartData);
 	const valAx = chartData.axes?.find((a) => a.axisType === 'valAx');
 	const midCat =
@@ -179,10 +186,14 @@ export function computePerspChartLayout(
 		((view3D?.depthPercent ?? 100) / 100) * (rows > 1 ? DEPTH_FIT_MULTI_ROW : DEPTH_FIT_SINGLE_ROW);
 	const d = rows * rowDepth * depthScale;
 	const baseHeight = rows > 1 ? MULTI_ROW_HEIGHT_PER_EXTENT * (1 + d) : SINGLE_ROW_HEIGHT;
-	const h = baseHeight * ((view3D?.hPercent ?? 100) / 100);
+	const heightScale = (view3D?.hPercent ?? 100) / 100;
+	// Value extent along its axis, and the box.
+	const valueExtent = horizontal ? 1 : baseHeight * heightScale;
+	const catExtent = horizontal ? HORIZONTAL_CATEGORY_EXTENT * heightScale : 1;
+	const box = horizontal ? { w: valueExtent, h: catExtent, d } : { w: 1, h: valueExtent, d };
 
 	const camera = perspCameraFor(
-		{ w: 1, h, d },
+		box,
 		view3D?.rotX ?? 15,
 		view3D?.rotY ?? 20,
 		view3D?.perspective ?? undefined,
@@ -197,7 +208,7 @@ export function computePerspChartLayout(
 	});
 
 	const [lo, hi] = dataExtent(chartData, grouping, nCat);
-	const auto = niceValueAxisBounds(lo, hi, axisTargetIntervals(view.focal * h), 0);
+	const auto = niceValueAxisBounds(lo, hi, axisTargetIntervals(view.focal * valueExtent), 0);
 	const min = typeof valAx?.min === 'number' ? valAx.min : auto.min;
 	let max = typeof valAx?.max === 'number' ? valAx.max : auto.max;
 	if (max <= min) {
@@ -206,21 +217,23 @@ export function computePerspChartLayout(
 	const majorUnit = valAx?.majorUnit && valAx.majorUnit > 0 ? valAx.majorUnit : auto.majorUnit;
 	const range = { min, max, majorUnit };
 
-	const categoryX = Array.from({ length: nCat }, (_, c) =>
-		midCat ? (nCat > 1 ? c / (nCat - 1) : 0.5) : (c + 0.5) * slot,
+	const categoryX = Array.from(
+		{ length: nCat },
+		(_, c) => (midCat ? (nCat > 1 ? c / (nCat - 1) : 0.5) : (c + 0.5) * slot) * catExtent,
 	);
 	const layout: PerspChartLayout = {
 		kind,
 		grouping,
 		view,
 		range,
-		valueScale: h / (max - min),
+		horizontal,
+		valueScale: valueExtent / (max - min),
 		categoryX,
 		rows,
 		rowDepth: rowDepth * depthScale,
 		markDepth: markDepth * depthScale,
 		colors: perspSeriesColors(chartData, vm),
-		gridlines: buildGridlines(view, range, h),
+		gridlines: buildPerspGridlines(box, range, horizontal),
 		labels: [],
 	};
 	const catLabels =
@@ -235,22 +248,4 @@ export function computePerspChartLayout(
 		percent: grouping === 'percentStacked',
 	});
 	return layout;
-}
-
-function buildGridlines(
-	view: PerspView,
-	range: PerspChartLayout['range'],
-	h: number,
-): PerspGridline[] {
-	const { w, d } = view.box;
-	const lines: PerspGridline[] = [
-		{ from: [0, 0, 0], to: [w, 0, 0] },
-		{ from: [w, 0, 0], to: [w, 0, d] },
-	];
-	const span = range.max - range.min;
-	for (const v of axisTickValues({ ...range, span })) {
-		const y = ((v - range.min) / span) * h;
-		lines.push({ from: [0, y, 0], to: [0, y, d] }, { from: [0, y, d], to: [w, y, d] });
-	}
-	return lines;
 }

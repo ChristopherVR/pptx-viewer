@@ -126,12 +126,11 @@ function buildBarMarkSet(
 			if (!prism) {
 				return [0, perspValueY(layout, value), 0];
 			}
-			const xs = prism.outline.map(([x]) => x);
-			return [
-				(Math.min(...xs) + Math.max(...xs)) / 2,
-				perspValueY(layout, value),
-				(prism.z0 + prism.z1) / 2,
-			];
+			const along = prism.outline.map(([x, y]) => (layout.horizontal ? y : x));
+			const mid = (Math.min(...along) + Math.max(...along)) / 2;
+			const v = perspValueY(layout, value);
+			const z = (prism.z0 + prism.z1) / 2;
+			return layout.horizontal ? [v, mid, z] : [mid, v, z];
 		},
 		draggable: layout.grouping === 'clustered' || layout.grouping === 'standard',
 		preview(point, value) {

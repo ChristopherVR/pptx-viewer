@@ -78,7 +78,7 @@ export function mountPerspChartView(input: PerspSceneInput, ctx: ThreeViewContex
 
 	const overlay = renderChart3DChromeOverlaySvg(ctx.document, vm, {
 		labels: layout.labels,
-		reverseLegend: false,
+		reverseLegend: layout.horizontal && layout.grouping === 'clustered',
 		legend:
 			layout.kind === 'surface'
 				? surfaceLegend(
@@ -117,15 +117,24 @@ export function mountPerspChartView(input: PerspSceneInput, ctx: ThreeViewContex
 				if (!marks.draggable || start === undefined) {
 					return null;
 				}
+				// Screen px per value unit along the value axis at this point (up for
+				// columns, right for horizontal bars); the pointer delta is projected
+				// onto it, so either direction drags.
 				const unit = layout.range.majorUnit || 1;
-				const [x, y, z] = marks.anchor(point, start);
-				const y0 = perspToScreen(layout.view, [x, y, z]).y;
-				const y1 = perspToScreen(layout.view, [x, y + unit * layout.valueScale, z]).y;
-				const pxPerValue = (y0 - y1) / unit || 1;
+				const a = marks.anchor(point, start);
+				const step = unit * layout.valueScale;
+				const b: [number, number, number] = layout.horizontal
+					? [a[0] + step, a[1], a[2]]
+					: [a[0], a[1] + step, a[2]];
+				const s0 = perspToScreen(layout.view, a);
+				const s1 = perspToScreen(layout.view, b);
+				const ux = (s1.x - s0.x) / unit;
+				const uy = (s1.y - s0.y) / unit;
+				const len2 = ux * ux + uy * uy || 1;
 				const span = layout.range.max - layout.range.min;
 				return {
-					preview(_dx, dy) {
-						const value = roundDragValue(start - dy / pxPerValue, {
+					preview(dx, dy) {
+						const value = roundDragValue(start + (dx * ux + dy * uy) / len2, {
 							min: layout.range.min,
 							max: layout.range.max,
 							span,

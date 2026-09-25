@@ -42,11 +42,27 @@ const xRange = (outline: Array<[number, number]>): [number, number] => [
 ];
 
 describe('bar3D without right-angle axes', () => {
-	it('lays vertical bars on the perspective box, horizontal ones stay hosted', () => {
+	it('lays vertical and horizontal bars on the perspective box', () => {
 		expect(buildChart3DSpecForElement(bars())?.geometry?.kind).toBe('perspective');
 		const horizontal = buildChart3DSpecForElement(bars({ barDirection: 'bar' }));
-		expect(horizontal?.geometry).toBeNull();
-		expect(horizontal?.perspective?.kind).toBe('bar');
+		expect(horizontal?.geometry?.kind).toBe('perspective');
+		expect(horizontal?.perspective).toBeNull();
+	});
+
+	it('runs a horizontal chart value-along-x with categories up the left edge', () => {
+		const { layout, prisms } = layoutOf(bars({ barDirection: 'bar' }));
+		expect(layout.horizontal).toBeTruthy();
+		const first = prisms[0];
+		const xs = first.outline.map(([x]) => x);
+		expect(Math.min(...xs)).toBe(0);
+		expect(Math.max(...xs)).toBeCloseTo(layout.valueScale, 9);
+		// Categories stack upward: category 2 sits above category 1.
+		const yOf = (p: typeof first) => Math.min(...p.outline.map(([, y]) => y));
+		expect(yOf(prisms[2])).toBeGreaterThan(yOf(prisms[0]));
+		const category = layout.labels.find((l) => l.role === 'category');
+		expect(category?.anchor).toBe('end');
+		const value = layout.labels.find((l) => l.role === 'value');
+		expect(value?.anchor).toBe('middle');
 	});
 
 	it('puts clustered series side by side in one row, one prism per point', () => {

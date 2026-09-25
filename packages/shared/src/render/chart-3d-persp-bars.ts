@@ -1,6 +1,6 @@
 /**
- * Column bars of a `bar3D` chart WITHOUT right-angle axes
- * (`c:view3D/@rAngAx=0`) on the perspective box (`chart-3d-persp-layout.ts`),
+ * Bars of a `bar3D` chart WITHOUT right-angle axes (`c:view3D/@rAngAx=0`):
+ * columns, or horizontal bars for `c:barDir="bar"`, on the perspective box (`chart-3d-persp-layout.ts`),
  * as box-space prisms. The bar sizing follows the right-angle-axes layout
  * (`chart-3d-oblique-bars.ts`), whose conventions PowerPoint shares: a bar's
  * depth equals its width, `clustered` series sit side by side in one row,
@@ -17,7 +17,7 @@ const DEFAULT_GAP_WIDTH = 150;
 
 type LayoutCore = Pick<
 	PerspChartLayout,
-	'grouping' | 'range' | 'valueScale' | 'categoryX' | 'rowDepth' | 'colors'
+	'grouping' | 'range' | 'valueScale' | 'categoryX' | 'rowDepth' | 'colors' | 'horizontal' | 'view'
 >;
 
 function valueY(layout: Pick<LayoutCore, 'range' | 'valueScale'>, v: number): number {
@@ -33,7 +33,9 @@ export function buildPerspBarPrisms(
 ): PerspPrism[] {
 	const nCat = layout.categoryX.length;
 	const nSer = chartData.series.length;
-	const slot = nCat > 0 ? 1 / nCat : 1;
+	// Slots divide the category axis: box x for columns, box y for horizontal bars.
+	const catExtent = layout.horizontal ? layout.view.box.h : layout.view.box.w;
+	const slot = nCat > 0 ? catExtent / nCat : catExtent;
 	const gapWidth = (chartData.barGapWidth ?? DEFAULT_GAP_WIDTH) / 100;
 	const slots = layout.grouping === 'clustered' ? nSer : 1;
 	const barW = slot / (slots + gapWidth);
@@ -68,9 +70,13 @@ export function buildPerspBarPrisms(
 			}
 			const slotIndex = layout.grouping === 'clustered' ? s : 0;
 			const row = layout.grouping === 'standard' ? s : 0;
-			const x0 = c * slot + (gapWidth * barW) / 2 + slotIndex * barW;
-			const y0 = valueY(layout, Math.min(from, to));
-			const y1 = Math.max(valueY(layout, Math.max(from, to)), y0 + 1e-6);
+			const c0 = c * slot + (gapWidth * barW) / 2 + slotIndex * barW;
+			const v0 = valueY(layout, Math.min(from, to));
+			const v1 = Math.max(valueY(layout, Math.max(from, to)), v0 + 1e-6);
+			// Column: category along x, value up y. Horizontal: value along x, category up y.
+			const [x0, x1, y0, y1] = layout.horizontal
+				? [v0, v1, c0, c0 + barW]
+				: [c0, c0 + barW, v0, v1];
 			const z0 = row * layout.rowDepth + (layout.rowDepth - depth) / 2;
 			prisms.push({
 				seriesIndex: s,
@@ -78,8 +84,8 @@ export function buildPerspBarPrisms(
 				color: layout.colors[s],
 				outline: [
 					[x0, y0],
-					[x0 + barW, y0],
-					[x0 + barW, y1],
+					[x1, y0],
+					[x1, y1],
 					[x0, y1],
 				],
 				z0,
