@@ -23,6 +23,7 @@ export const sidebar: DefaultTheme.Sidebar = {
 				{ text: '架构说明', link: '/zh/guide/architecture' },
 				{ text: 'PptxData 数据模型', link: '/zh/guide/data-model' },
 				{ text: '主题', link: '/zh/guide/theming' },
+				{ text: '界面自定义（英文）', link: '/guide/customization' },
 				{ text: '视口适配', link: '/zh/guide/viewport-fit' },
 				{ text: '本地化（i18n）', link: '/zh/guide/localization' },
 				{ text: '智能助手', link: '/zh/guide/ai-assistant' },
