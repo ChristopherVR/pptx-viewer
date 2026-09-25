@@ -104,7 +104,7 @@ describe('sLIDE_TRANSITION_KEYFRAMES', () => {
 			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('translate(');
 		});
 
-		it('contains scale transforms for zoom', () => {
+		it('contains scale transforms (newsflash)', () => {
 			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('scale(');
 		});
 
@@ -194,8 +194,8 @@ describe('sLIDE_TRANSITION_KEYFRAMES', () => {
 	// -------------------------------------------------------------------
 	describe('additional transition keyframes', () => {
 		it('contains zoom keyframes', () => {
-			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-zoom-in');
-			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-zoom-out');
+			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-zoom-box-grow');
+			expect(SLIDE_TRANSITION_KEYFRAMES).toContain('@keyframes pptx-tr-zoom-box-shrink');
 		});
 
 		it('contains dissolve-in keyframe', () => {

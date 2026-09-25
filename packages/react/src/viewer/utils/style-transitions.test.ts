@@ -121,9 +121,9 @@ describe('getPresentationTransitionStyle', () => {
 			expect(style.clipPath).toContain('polygon');
 		});
 
-		it('zoom: scales to 0.01', () => {
+		it('zoom: starts as a collapsed centred box (PowerPoint Box Out)', () => {
 			const style = getPresentationTransitionStyle(false, 'zoom', 400, undefined);
-			expect(style.transform).toContain('scale(0.01)');
+			expect(style.clipPath).toBe('inset(50% 50% 50% 50%)');
 		});
 
 		it('morph: scales to 0.85 with blur', () => {

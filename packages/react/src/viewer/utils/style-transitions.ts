@@ -127,7 +127,8 @@ export function getPresentationTransitionStyle(
 					transition,
 				};
 			case 'zoom':
-				return { opacity: 0, transform: 'scale(0.01)', transition };
+				// PowerPoint's Zoom is a centred box reveal (COM-verified).
+				return { opacity: 0, clipPath: 'inset(50% 50% 50% 50%)', transition };
 			case 'morph':
 				return {
 					opacity: 0,
