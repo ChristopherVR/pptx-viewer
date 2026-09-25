@@ -296,6 +296,15 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'chart-stacked-line-legend-swatch.spec.ts.',
 	},
 	{
+		file: 'by-paragraph-letter-ripple.pptx',
+		dir: 'e2e',
+		provenance: 'powerpoint',
+		status: 'roundtrip',
+		note:
+			'COM-authored by-paragraph text build whose effect animates by letter inside each ' +
+			'paragraph; pins the per-letter ripple within a paragraph step.',
+	},
+	{
 		file: 'chart-label-callouts.pptx',
 		dir: 'e2e',
 		provenance: 'powerpoint',
