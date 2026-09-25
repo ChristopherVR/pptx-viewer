@@ -18,3 +18,19 @@ export function elementRectEmu(el: PptxElementBase): WRect {
 		h: el.heightEmu ?? Math.round(el.height * EMU_PER_PX),
 	};
 }
+
+/**
+ * `el` without its parsed EMU geometry, so {@link elementRectEmu} falls back
+ * to its pixel geometry. A group member's pixels are local to its group
+ * (origin at the group's top-left, in the group's own size), while its parsed
+ * EMU are raw `a:chOff`/`a:chExt` child-space values; the `.ppt` group
+ * writer needs every member in ONE space, the group-local one.
+ */
+export function withoutEmuGeometry<T extends PptxElementBase>(el: T): T {
+	const copy = { ...el };
+	delete copy.xEmu;
+	delete copy.yEmu;
+	delete copy.widthEmu;
+	delete copy.heightEmu;
+	return copy;
+}

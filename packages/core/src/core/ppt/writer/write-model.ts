@@ -147,6 +147,11 @@ export interface WPicture extends WShapeBase {
 export interface WGroup extends WShapeBase {
 	kind: 'group';
 	children: WAnyShape[];
+	/**
+	 * The coordinate space the children's anchors are in (the group's FSPGR);
+	 * the group's own anchor when omitted (children in slide space).
+	 */
+	childRect?: WRect;
 }
 
 /**

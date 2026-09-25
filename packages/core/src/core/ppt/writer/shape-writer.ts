@@ -6,7 +6,7 @@
  */
 
 import { OA, RT } from '../record-types';
-import { buildClientAnchor } from './anchor-writer';
+import { buildChildAnchor, buildClientAnchor } from './anchor-writer';
 import { ByteWriter, record } from './byte-writer';
 import { buildFopt, buildMetroBlobTertiaryFopt } from './fopt-writer';
 import { buildInteractiveInfo } from './hyperlink-writer';
@@ -17,7 +17,7 @@ import type { OleCollector } from './ole-writer';
 import type { ShapeIdAllocator } from './shape-id-allocator';
 import { buildShapeFoptProps } from './shape-props-writer';
 import { buildTextAtoms } from './text-atom-writer';
-import type { WHyperlink, WMedia, WPicture, WShape } from './write-model';
+import type { WHyperlink, WMedia, WPicture, WRect, WShape } from './write-model';
 
 const FSP_FLAG_FLIPH = 0x0040;
 const FSP_FLAG_FLIPV = 0x0080;
@@ -32,6 +32,24 @@ const FSP_FLAG_FLIPV = 0x0080;
  * were `0xa10` (`fHaveSpt | fHaveAnchor | fOleShape`).
  */
 const FSP_FLAG_OLE_SHAPE = 0x0010;
+/**
+ * [MS-ODRAW] `fChild`: the shape is a member of a group. PowerPoint writes a
+ * group member with this bit set and an `OfficeArtChildAnchor` in the
+ * group's child space instead of a `ClientAnchor` (COM-measured on its own
+ * 97-2003 SaveAs: child FSP flags `0x0a02`). Written as a top-level shape
+ * inside a group, PowerPoint rejected the whole file as corrupt.
+ */
+export const FSP_FLAG_CHILD = 0x0002;
+
+/**
+ * The anchor of a shape: a `ClientAnchor` (master units) at the top level, an
+ * `OfficeArtChildAnchor` inside a group. Group children carry absolute EMU
+ * coordinates here and every group's FSPGR child space is its own EMU
+ * anchor, so the child rect needs no remapping.
+ */
+export function buildShapeAnchor(rect: WRect, inGroup: boolean): Uint8Array {
+	return inGroup ? buildChildAnchor(rect) : buildClientAnchor(rect);
+}
 
 const PLACEHOLDER_ID: Record<NonNullable<WShape['placeholderType']>, number> = {
 	title: 13,
@@ -100,8 +118,9 @@ export function buildShapeContainer(
 	fonts: string[],
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
+	inGroup = false,
 ): Uint8Array {
-	let flags = 0;
+	let flags = inGroup ? FSP_FLAG_CHILD : 0;
 	if (shape.flipH) {
 		flags |= FSP_FLAG_FLIPH;
 	}
@@ -123,7 +142,7 @@ export function buildShapeContainer(
 	if (shape.metroBlob) {
 		parts.push(buildMetroBlobTertiaryFopt(shape.metroBlob));
 	}
-	parts.push(buildClientAnchor(shape.anchor));
+	parts.push(buildShapeAnchor(shape.anchor, inGroup));
 
 	if (shape.placeholderType || shape.hyperlink) {
 		const placeholderId = shape.placeholderType ? PLACEHOLDER_ID[shape.placeholderType] : undefined;
@@ -146,8 +165,9 @@ export function buildPictureContainer(
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
+	inGroup = false,
 ): Uint8Array {
-	let flags = 0;
+	let flags = inGroup ? FSP_FLAG_CHILD : 0;
 	if (picture.flipH) {
 		flags |= FSP_FLAG_FLIPH;
 	}
@@ -171,7 +191,7 @@ export function buildPictureContainer(
 		// PowerPoint's own record order: FSP, FOPT, TertiaryFOPT, ClientAnchor.
 		w.bytes(buildMetroBlobTertiaryFopt(picture.metroBlob));
 	}
-	w.bytes(buildClientAnchor(picture.anchor));
+	w.bytes(buildShapeAnchor(picture.anchor, inGroup));
 	const exObjId = picture.ole ? oleEmbeds.register(picture.ole) : undefined;
 	if (picture.hyperlink || exObjId !== undefined) {
 		w.bytes(buildClientData(undefined, picture.hyperlink, hyperlinks, exObjId));
@@ -192,8 +212,9 @@ export function buildMediaShapeContainer(
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
 	mediaEmbeds: MediaCollector,
+	inGroup = false,
 ): Uint8Array {
-	let flags = 0;
+	let flags = inGroup ? FSP_FLAG_CHILD : 0;
 	if (media.flipH) {
 		flags |= FSP_FLAG_FLIPH;
 	}
@@ -205,7 +226,7 @@ export function buildMediaShapeContainer(
 	const w = new ByteWriter()
 		.bytes(buildFsp(allocator.next(), 75, flags))
 		.bytes(buildFopt(props.simple, props.complex))
-		.bytes(buildClientAnchor(media.anchor))
+		.bytes(buildShapeAnchor(media.anchor, inGroup))
 		.bytes(buildClientData(undefined, media.hyperlink, hyperlinks, exObjId));
 	return record(OA.SpContainer, w.toBytes(), 0, true);
 }
