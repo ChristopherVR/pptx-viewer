@@ -209,6 +209,37 @@
 			</section>
 		}
 
+		<!-- Bookmark (onMediaBookmark only) -->
+		@if (current()?.trigger === 'onMediaBookmark') {
+			<section class="pptx-ng-anim__section">
+				<label class="pptx-ng-anim__label" for="anim-trigger-bookmark">{{
+					'pptx.animation.trigger.bookmarkLabel' | translate
+				}}</label>
+				<pptx-ui-select
+					id="anim-trigger-bookmark"
+					class="pptx-ng-anim__select"
+					data-pptx-animation-bookmark-picker
+					[disabled]="!canEdit() || bookmarkOptions().length === 0"
+					[value]="selectedBookmark()"
+					(change)="onTriggerBookmarkChange($event)"
+				>
+					<option value="" [selected]="selectedBookmark() === ''">
+						{{
+							(bookmarkOptions().length === 0
+								? 'pptx.animation.trigger.noBookmarks'
+								: 'pptx.animation.trigger.selectBookmark'
+							) | translate
+						}}
+					</option>
+					@for (opt of bookmarkOptions(); track opt.value) {
+						<option [value]="opt.value" [selected]="opt.value === selectedBookmark()">
+							{{ opt.label }}
+						</option>
+					}
+				</pptx-ui-select>
+			</section>
+		}
+
 		<!-- ── Duration ─────────────────────────────────────────────── -->
 		<section class="pptx-ng-anim__section">
 			@if (elementKey(); as key) {
