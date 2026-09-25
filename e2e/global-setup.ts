@@ -4,6 +4,7 @@ import { generateBar3DHorizontalFixture } from './fixtures/generate-bar3d-horizo
 import { generateBar3DPictureFillFixture } from './fixtures/generate-bar3d-picture-fill-fixture';
 import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/generate-box-cube-transition-fixture';
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
+import { generateChartPieBestFitFixture } from './fixtures/generate-chart-pie-best-fit-fixture';
 import { generateChartTopAxisFixture } from './fixtures/generate-chart-top-axis-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
 import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
@@ -44,6 +45,7 @@ export default async function globalSetup() {
 	await assertDistFreshness();
 	await generateFixture();
 	await generateChartFixture();
+	await generateChartPieBestFitFixture();
 	await generateChartTopAxisFixture();
 	await generateChartUserShapeGroupFixture();
 	await generateBar3DHorizontalFixture();
