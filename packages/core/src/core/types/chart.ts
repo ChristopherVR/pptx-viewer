@@ -267,6 +267,20 @@ export type PptxChartScatterStyle =
 	| 'smoothMarker';
 
 /** Shape properties extracted from c:spPr for chart formatting. */
+/**
+ * A render-ready gradient fill from a chart `c:spPr/a:gradFill` (chart area,
+ * plot area or series). Positions are 0..100; a linear gradient's `angle` is
+ * in degrees clockwise from left-to-right (`a:lin/@ang`); a radial (`a:path`)
+ * gradient centres on `focalPoint` (0..1 fractions of the box), the middle
+ * when absent.
+ */
+export interface PptxChartGradientFill {
+	type: 'linear' | 'radial';
+	stops: Array<{ color: string; position: number; opacity?: number }>;
+	angle?: number;
+	focalPoint?: { x: number; y: number };
+}
+
 export interface PptxChartShapeProps {
 	fillColor?: string;
 	strokeColor?: string;
@@ -638,6 +652,12 @@ export interface PptxChartSeries {
 	idx?: number;
 	values: number[];
 	/**
+	 * Series gradient fill (`c:ser/c:spPr/a:gradFill`), painted on every mark
+	 * of the series that has no per-point override. Render-only: the series'
+	 * own `c:spPr` round-trips untouched.
+	 */
+	gradientFill?: PptxChartGradientFill;
+	/**
 	 * Per-series x values from `c:ser/c:xVal` (scatter and bubble series only).
 	 *
 	 * Every `CT_ScatterSer` / `CT_BubbleSer` carries its OWN `c:xVal`, so two
@@ -941,6 +961,10 @@ export interface PptxChartStyle {
 	chartAreaFill?: string;
 	/** Plot-area fill from `c:plotArea/c:spPr`. See {@link chartAreaFill}. */
 	plotAreaFill?: string;
+	/** Chart-area gradient (`c:chartSpace/c:spPr/a:gradFill`); wins over {@link chartAreaFill}. */
+	chartAreaGradient?: PptxChartGradientFill;
+	/** Plot-area gradient (`c:plotArea/c:spPr/a:gradFill`); wins over {@link plotAreaFill}. */
+	plotAreaGradient?: PptxChartGradientFill;
 	/** Whether data labels are shown. */
 	hasDataLabels?: boolean;
 	/** Chart-level data-label content/position options (when `hasDataLabels`). */
