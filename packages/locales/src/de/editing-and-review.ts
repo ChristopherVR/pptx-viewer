@@ -105,6 +105,7 @@ export const translations = {
 	'pptx.tags.title': 'Schlagworte',
 	'pptx.tags.value': 'Wert',
 	'pptx.contextMenu.ariaLabel': 'Kontextmenü',
+	'pptx.contextMenu.editPoints': 'Punkte bearbeiten',
 	'pptx.editorToolbar.ariaLabel': 'Editor-Symbolleiste',
 	'pptx.editorToolbar.insert': 'Einfügen',
 	'pptx.editorToolbar.insertTextBox': 'Textfeld einfügen',

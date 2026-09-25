@@ -153,6 +153,8 @@ const SECTION_DEFINITIONS = [
 			'bevelTypes',
 			'resizeHandles',
 			'shapePresets',
+			'editPoints',
+			'freeformTool',
 			'elementType',
 			'selectionOverlay',
 		],

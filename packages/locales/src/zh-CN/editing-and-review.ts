@@ -105,6 +105,7 @@ export const translations = {
 	'pptx.tags.title': '标签',
 	'pptx.tags.value': '值',
 	'pptx.contextMenu.ariaLabel': '上下文菜单',
+	'pptx.contextMenu.editPoints': '编辑顶点',
 	'pptx.editorToolbar.ariaLabel': '编辑器工具栏',
 	'pptx.editorToolbar.insert': '插入',
 	'pptx.editorToolbar.insertTextBox': '插入文本框',

@@ -105,6 +105,7 @@ export const translations = {
 	'pptx.tags.title': 'Etiquetas',
 	'pptx.tags.value': 'Valor',
 	'pptx.contextMenu.ariaLabel': 'Menú contextual',
+	'pptx.contextMenu.editPoints': 'Modificar puntos',
 	'pptx.editorToolbar.ariaLabel': 'Barra de herramientas del editor',
 	'pptx.editorToolbar.insert': 'Insertar',
 	'pptx.editorToolbar.insertTextBox': 'Insertar cuadro de texto',
