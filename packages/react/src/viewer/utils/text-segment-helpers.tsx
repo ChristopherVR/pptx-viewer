@@ -1,5 +1,5 @@
 import type { RunStyle } from 'pptx-viewer-shared';
-import { sanitizeMathMl, splitRunByScriptFont } from 'pptx-viewer-shared';
+import { followingText, sanitizeMathMl, splitRunByScriptFont } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
@@ -123,7 +123,7 @@ export function renderSegmentContent(
 								metric?.nestedStyle,
 								isUnderlineWords,
 							)
-						: renderLeaf(line, lineKey)}
+						: renderLeaf(line, lineKey, lineIndex < lines.length - 1 ? '\n' : metric?.following)}
 					{lineIndex < lines.length - 1 ? <br /> : null}
 				</React.Fragment>
 			);
@@ -172,10 +172,12 @@ export function renderSegmentContent(
 					borderRadius: 2,
 				}}
 			>
-				{renderLeaf(chunk.text, chunkKey)}
+				{renderLeaf(chunk.text, chunkKey, followingText(chunks, ci, metric?.following))}
 			</mark>
 		) : (
-			<React.Fragment key={chunkKey}>{renderLeaf(chunk.text, chunkKey)}</React.Fragment>
+			<React.Fragment key={chunkKey}>
+				{renderLeaf(chunk.text, chunkKey, followingText(chunks, ci, metric?.following))}
+			</React.Fragment>
 		);
 	});
 }

@@ -26,6 +26,7 @@ export const UNTITLED_SLIDE_TITLE = 'PowerPoint Presentation';
 
 const SLIDE_REL_TYPE_SUFFIX = '/relationships/slide';
 const NOTES_SLIDE_REL_TYPE_SUFFIX = '/relationships/notesSlide';
+const DIAGRAM_DATA_REL_TYPE_SUFFIX = '/relationships/diagramData';
 
 /** Map derived slide titles onto the entries PowerPoint records for them. */
 export function toAppTitleEntries(titles: string[]): string[] {
@@ -69,18 +70,28 @@ function resolveTarget(baseDir: string, target: string): string {
 	return parts.join('/');
 }
 
+/** A saved slide part with the notes page and SmartArt data parts it links to. */
+export interface SlidePartEntry {
+	slidePath: string;
+	notesPath?: string;
+	diagramDataPaths: string[];
+}
+
 /**
- * Count the saved package's slides that carry a notes page, following
- * `presentation.xml.rels` to each slide and that slide's own rels, so an
- * orphaned `notesSlide` part left behind by a deleted slide is not counted.
- * Returns `undefined` when the package has no presentation rels to follow.
+ * List the saved package's slides in `presentation.xml.rels` order, each with
+ * the notes page and SmartArt data parts its own rels point at, so an orphaned
+ * `notesSlide` part left behind by a deleted slide is never reached. Returns
+ * `undefined` when the package has no presentation rels to follow.
  */
-export async function countNotesPages(zip: JSZip, parser: XMLParser): Promise<number | undefined> {
+export async function listSlideParts(
+	zip: JSZip,
+	parser: XMLParser,
+): Promise<SlidePartEntry[] | undefined> {
 	const presentationRels = await readRelationships(zip, parser, 'ppt/_rels/presentation.xml.rels');
 	if (!presentationRels) {
 		return undefined;
 	}
-	let count = 0;
+	const entries: SlidePartEntry[] = [];
 	for (const rel of presentationRels) {
 		const type = String(rel['@_Type'] ?? '');
 		if (!type.endsWith(SLIDE_REL_TYPE_SUFFIX)) {
@@ -88,11 +99,29 @@ export async function countNotesPages(zip: JSZip, parser: XMLParser): Promise<nu
 		}
 		const slidePath = resolveTarget('ppt', String(rel['@_Target'] ?? ''));
 		const slash = slidePath.lastIndexOf('/');
-		const relsPath = `${slidePath.slice(0, slash)}/_rels/${slidePath.slice(slash + 1)}.rels`;
+		const slideDir = slidePath.slice(0, slash);
+		const relsPath = `${slideDir}/_rels/${slidePath.slice(slash + 1)}.rels`;
 		const slideRels = (await readRelationships(zip, parser, relsPath)) ?? [];
-		if (slideRels.some((r) => String(r['@_Type'] ?? '').endsWith(NOTES_SLIDE_REL_TYPE_SUFFIX))) {
-			count++;
-		}
+		const targetOf = (entry: XmlObject) => resolveTarget(slideDir, String(entry['@_Target'] ?? ''));
+		const typeOf = (entry: XmlObject) => String(entry['@_Type'] ?? '');
+		const notesRel = slideRels.find((r) => typeOf(r).endsWith(NOTES_SLIDE_REL_TYPE_SUFFIX));
+		entries.push({
+			slidePath,
+			...(notesRel ? { notesPath: targetOf(notesRel) } : {}),
+			diagramDataPaths: slideRels
+				.filter((r) => typeOf(r).endsWith(DIAGRAM_DATA_REL_TYPE_SUFFIX))
+				.map(targetOf),
+		});
 	}
-	return count;
+	return entries;
+}
+
+/**
+ * Count the saved package's slides that carry a notes page (see
+ * {@link listSlideParts}). Returns `undefined` when the package has no
+ * presentation rels to follow.
+ */
+export async function countNotesPages(zip: JSZip, parser: XMLParser): Promise<number | undefined> {
+	const slides = await listSlideParts(zip, parser);
+	return slides?.filter((entry) => entry.notesPath !== undefined).length;
 }

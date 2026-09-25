@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import { Layers, PaintBucket, PenLine, Shapes, Sparkles } from 'lucide-vue-next';
+import { Layers, PaintBucket, PenLine, Shapes } from 'lucide-vue-next';
 /**
  * DrawingGroup: Drawing ribbon group with Shapes dropdown, Arrange layer
- * controls, Shape Fill/Outline colour popovers, and a Shape Effects placeholder.
+ * controls, Shape Fill/Outline colour popovers, and the Quick Styles / Shape
+ * Effects galleries (built from the shared ribbon gallery descriptors).
  * Vue port of React's `toolbar/DrawingGroup.tsx`.
  */
 import type { PptxElement, PptxThemeColorRef, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
-import { RIBBON_SHAPE_SWATCHES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
+import { shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
-import { injectRecentColors } from '../../composables/recent-colors-context';
-import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.vue';
-import RecentColorsRow from '../RecentColorsRow.vue';
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
+import RibbonGallery from './RibbonGallery.vue';
+import ShapeColorPopover from './ShapeColorPopover.vue';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
@@ -39,7 +38,6 @@ interface Props {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
-const recentColors = injectRecentColors();
 
 const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 	{ type: 'rect', labelKey: 'pptx.editorToolbar.shapeRectangle' },
@@ -56,12 +54,8 @@ const TOP_SHAPES: Array<{ type: SupportedShapeType; labelKey: string }> = [
 	{ type: 'cloud', labelKey: 'pptx.shapePresets.cloud' },
 ];
 
-const FILL_COLORS = RIBBON_SHAPE_SWATCHES;
-
 const shapesMenu = useDropdown();
 const arrangeMenu = useDropdown();
-const fillMenu = useDropdown();
-const outlineMenu = useDropdown();
 
 const selectedShapeStyle = computed<ShapeStyle | undefined>(() =>
 	props.selectedElement && hasShapeProperties(props.selectedElement)
@@ -86,30 +80,18 @@ function handleArrange(action: string, edge: boolean): void {
 
 function handleFill(color: string, ref?: PptxThemeColorRef): void {
 	props.onUpdateElementStyle?.(shapeFillChange(color, ref));
-	recentColors?.push(color);
-	fillMenu.close();
 }
 
 function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 	props.onUpdateElementStyle?.(shapeOutlineChange(color, ref));
-	recentColors?.push(color);
-	outlineMenu.close();
-}
-
-function handleFillThemePick(commit: ThemeColorPickerCommit): void {
-	handleFill(commit.hex, commit.ref);
-}
-
-function handleOutlineThemePick(commit: ThemeColorPickerCommit): void {
-	handleOutline(commit.hex, commit.ref);
 }
 </script>
 
 <template>
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.drawing">
 		<div class="flex items-center gap-1">
 			<!-- Shapes dropdown -->
-			<div :ref="shapesMenu.root" class="relative">
+			<div :ref="shapesMenu.root" class="relative" data-ribbon-control="home.drawing.shapes">
 				<button
 					type="button"
 					:disabled="!props.canEdit"
@@ -140,7 +122,7 @@ function handleOutlineThemePick(commit: ThemeColorPickerCommit): void {
 			</div>
 
 			<!-- Arrange dropdown -->
-			<div :ref="arrangeMenu.root" class="relative">
+			<div :ref="arrangeMenu.root" class="relative" data-ribbon-control="home.drawing.arrange">
 				<button
 					type="button"
 					:disabled="!props.canEdit || !props.selectedElement"
@@ -173,115 +155,31 @@ function handleOutlineThemePick(commit: ThemeColorPickerCommit): void {
 				</div>
 			</div>
 
-			<!-- Shape Fill -->
-			<div :ref="fillMenu.root" class="relative">
-				<button
-					type="button"
-					:disabled="!props.canEdit || !props.selectedElement"
-					:class="pill"
-					:title="t('pptx.drawing.shapeFill')"
-					@click="fillMenu.toggle()"
-				>
-					<PaintBucket :class="ic" />
-				</button>
-				<div
-					v-if="fillMenu.open.value"
-					class="z-50 pt-1"
-					v-anchored-popup="{ anchor: fillMenu.root.value }"
-				>
-					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
-						<ThemeColorSwatchGrid
-							:disabled="!props.canEdit || !props.selectedElement"
-							:selected-ref="selectedShapeStyle?.fillColorRef"
-							:selected-hex="selectedShapeStyle?.fillColor"
-							@pick="handleFillThemePick"
-						/>
-						<div class="mt-1 text-[10px] text-muted-foreground mb-1">
-							{{ t('pptx.colorPicker.standardColors') }}
-						</div>
-						<div class="grid grid-cols-6 gap-1">
-							<button
-								v-for="c in FILL_COLORS"
-								:key="c"
-								type="button"
-								:aria-label="`Fill colour ${c}`"
-								class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
-								data-pptx-compact
-								:style="{ backgroundColor: c }"
-								:title="c"
-								@mousedown.prevent
-								@click="handleFill(c)"
-							/>
-						</div>
-						<RecentColorsRow
-							v-if="recentColors"
-							:colors="recentColors.recent.value"
-							:disabled="!props.canEdit || !props.selectedElement"
-							@pick="handleFill"
-						/>
-					</div>
-				</div>
-			</div>
+			<!-- Shape Fill / Shape Outline -->
+			<ShapeColorPopover
+				data-ribbon-control="home.drawing.shapeFill"
+				:disabled="!props.canEdit || !props.selectedElement"
+				:icon="PaintBucket"
+				title-key="pptx.drawing.shapeFill"
+				swatch-aria-prefix="Fill colour"
+				:selected-ref="selectedShapeStyle?.fillColorRef"
+				:selected-hex="selectedShapeStyle?.fillColor"
+				@pick="handleFill"
+			/>
+			<ShapeColorPopover
+				data-ribbon-control="home.drawing.shapeOutline"
+				:disabled="!props.canEdit || !props.selectedElement"
+				:icon="PenLine"
+				title-key="pptx.drawing.shapeOutline"
+				swatch-aria-prefix="Outline colour"
+				:selected-ref="selectedShapeStyle?.strokeColorRef"
+				:selected-hex="selectedShapeStyle?.strokeColor"
+				@pick="handleOutline"
+			/>
 
-			<!-- Shape Outline -->
-			<div :ref="outlineMenu.root" class="relative">
-				<button
-					type="button"
-					:disabled="!props.canEdit || !props.selectedElement"
-					:class="pill"
-					:title="t('pptx.drawing.shapeOutline')"
-					@click="outlineMenu.toggle()"
-				>
-					<PenLine :class="ic" />
-				</button>
-				<div
-					v-if="outlineMenu.open.value"
-					class="z-50 pt-1"
-					v-anchored-popup="{ anchor: outlineMenu.root.value }"
-				>
-					<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
-						<ThemeColorSwatchGrid
-							:disabled="!props.canEdit || !props.selectedElement"
-							:selected-ref="selectedShapeStyle?.strokeColorRef"
-							:selected-hex="selectedShapeStyle?.strokeColor"
-							@pick="handleOutlineThemePick"
-						/>
-						<div class="mt-1 text-[10px] text-muted-foreground mb-1">
-							{{ t('pptx.colorPicker.standardColors') }}
-						</div>
-						<div class="grid grid-cols-6 gap-1">
-							<button
-								v-for="c in FILL_COLORS"
-								:key="c"
-								type="button"
-								:aria-label="`Outline colour ${c}`"
-								class="w-5 h-5 rounded border border-border/60 hover:scale-110 transition-transform"
-								data-pptx-compact
-								:style="{ backgroundColor: c }"
-								:title="c"
-								@mousedown.prevent
-								@click="handleOutline(c)"
-							/>
-						</div>
-						<RecentColorsRow
-							v-if="recentColors"
-							:colors="recentColors.recent.value"
-							:disabled="!props.canEdit || !props.selectedElement"
-							@pick="handleOutline"
-						/>
-					</div>
-				</div>
-			</div>
-
-			<!-- Shape Effects (placeholder) -->
-			<button
-				type="button"
-				disabled
-				:class="cn(pill, 'opacity-50 cursor-not-allowed')"
-				:title="t('pptx.drawing.shapeEffectsUnavailable')"
-			>
-				<Sparkles :class="ic" />
-			</button>
+			<!-- Quick Styles (Shape Styles) and Shape Effects galleries (shared descriptors) -->
+			<RibbonGallery gallery="shapeStyles" control="home.drawing.quickStyles" mode="dropdown" />
+			<RibbonGallery gallery="shapeEffects" control="home.drawing.shapeEffects" mode="dropdown" />
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{
 			t('pptx.ribbon.groupDrawing')

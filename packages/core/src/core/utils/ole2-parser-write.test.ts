@@ -239,3 +239,53 @@ describe('buildOle2 directory ordering (CFB / PowerPoint compatibility)', () => 
 		expect(entries[0]!.childId).not.toBe(NOSTREAM);
 	});
 });
+
+describe('buildOle2 past 109 FAT sectors', () => {
+	// 109 header FAT slots x 128 entries x 512 bytes is ~6.8 MB: a larger file
+	// needs DIFAT sectors. Without them PowerPoint rejected an exported .ppt
+	// holding one 1920x1080 GIF (re-encoded as an 8 MB PNG).
+	it('chains DIFAT sectors so every FAT sector is listed', () => {
+		const big = new Uint8Array(7.5 * 1024 * 1024);
+		for (let i = 0; i < big.length; i++) {
+			big[i] = (i * 31) & 0xff;
+		}
+		const streams = new Map<string, Uint8Array>([
+			['Big', big],
+			['Small', new Uint8Array(100).fill(7)],
+		]);
+		const ole2 = buildOle2(streams);
+		const view = new DataView(ole2);
+		const numFAT = view.getUint32(0x2c, true);
+		const numDIFAT = view.getUint32(0x48, true);
+		expect(numFAT).toBeGreaterThan(109);
+		expect(numDIFAT).toBe(Math.ceil((numFAT - 109) / 127));
+
+		// Walk the DIFAT chain the way a conformant reader does.
+		const fatSectors: number[] = [];
+		for (let i = 0; i < 109; i++) {
+			fatSectors.push(view.getUint32(0x4c + i * 4, true));
+		}
+		let difat = view.getUint32(0x44, true);
+		for (let d = 0; d < numDIFAT; d++) {
+			const base = (difat + 1) * 512;
+			for (let j = 0; j < 127; j++) {
+				fatSectors.push(view.getUint32(base + j * 4, true));
+			}
+			difat = view.getUint32(base + 127 * 4, true);
+		}
+		expect(difat).toBe(0xfffffffe);
+		const listed = fatSectors.filter((sector) => sector !== 0xffffffff);
+		expect(listed).toHaveLength(numFAT);
+		expect(new Set(listed).size).toBe(numFAT);
+
+		const parsed = parseOle2(ole2);
+		const back = parsed.getStream('Big')!;
+		expect(back).toHaveLength(big.length);
+		let mismatches = 0;
+		for (let i = 0; i < big.length; i++) {
+			mismatches += back[i] === big[i] ? 0 : 1;
+		}
+		expect(mismatches).toBe(0);
+		expect(parsed.getStream('Small')).toStrictEqual(new Uint8Array(100).fill(7));
+	});
+});

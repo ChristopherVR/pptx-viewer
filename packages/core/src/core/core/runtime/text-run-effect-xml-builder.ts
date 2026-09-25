@@ -210,8 +210,14 @@ function buildReflectionNode(style: TextStyle): XmlObject {
 	if (typeof style.textReflectionEndOpacity === 'number') {
 		refl['@_endA'] = String(Math.round(style.textReflectionEndOpacity * 100000));
 	}
+	if (typeof style.textReflectionEndPosition === 'number') {
+		refl['@_endPos'] = String(Math.round(style.textReflectionEndPosition * 100000));
+	}
 	if (typeof style.textReflectionOffset === 'number') {
 		refl['@_dist'] = String(Math.round(style.textReflectionOffset * EMU_PER_PX));
+	}
+	if (typeof style.textReflectionDirection === 'number') {
+		refl['@_dir'] = positiveFixedAngleAttribute(style.textReflectionDirection);
 	}
 	// The five attributes the shape-level reflection writer
 	// (`buildReflectionXml`) already emits: scale, skew, independent rotation,

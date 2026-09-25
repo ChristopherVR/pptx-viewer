@@ -341,6 +341,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		getChrome: deps.getChrome,
 		selectedElement: (state) => ops.selectedElement(state),
 		layoutPreviews: ensureLayoutPreviews,
+		getHandler: deps.getHandler,
 	});
 
 	const interactions = createStageInteractions({

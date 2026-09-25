@@ -1,8 +1,10 @@
+import type { RibbonControlId } from 'pptx-viewer-shared';
 import { EMPTY_RESOLVED_CUSTOMIZATION, isDialogAvailable } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonNavHandlers } from '../ribbon-types';
 
 export interface ReviewTab {
@@ -57,22 +59,48 @@ export function createReviewTab(
 	comments.title = t('pptx.review.toggleComments');
 	const showComments = command('pptx.review.showComments', handlers.openComments);
 
+	const ph = (key: string, id: RibbonControlId): HTMLButtonElement =>
+		tagRibbonControl(placeholder(key), id);
 	el.append(
-		spelling,
-		placeholder('pptx.review.thesaurus'),
-		accessibility.btn,
-		placeholder('pptx.review.translate'),
-		language,
-		placeholder('pptx.review.markAllRead'),
-		compare.btn,
-		comments,
-		placeholder('pptx.common.delete'),
-		placeholder('pptx.common.previous'),
-		placeholder('pptx.common.next'),
-		showComments,
-		placeholder('pptx.review.readOnly'),
-		placeholder('pptx.review.restrictPermission'),
-		placeholder('pptx.review.hideInk'),
+		wrapRibbonGroup(
+			doc,
+			'review.proofing',
+			tagRibbonControl(spelling, 'review.proofing.spelling'),
+			ph('pptx.review.thesaurus', 'review.proofing.thesaurus'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'review.accessibility',
+			tagRibbonControl(accessibility.btn, 'review.accessibility.check'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'review.language',
+			ph('pptx.review.translate', 'review.language.translate'),
+			language,
+		),
+		wrapRibbonGroup(
+			doc,
+			'review.compare',
+			ph('pptx.review.markAllRead', 'review.compare.markAllRead'),
+			tagRibbonControl(compare.btn, 'review.compare.compare'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'review.comments',
+			tagRibbonControl(comments, 'review.comments.newComment'),
+			ph('pptx.common.delete', 'review.comments.delete'),
+			ph('pptx.common.previous', 'review.comments.previous'),
+			ph('pptx.common.next', 'review.comments.next'),
+			tagRibbonControl(showComments, 'review.comments.showComments'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'review.protect',
+			ph('pptx.review.readOnly', 'review.protect.readOnly'),
+			ph('pptx.review.restrictPermission', 'review.protect.restrictPermission'),
+		),
+		wrapRibbonGroup(doc, 'review.ink', ph('pptx.review.hideInk', 'review.ink.hideInk')),
 	);
 	// Language opens File > Options, so it goes with that dialog.
 	if (

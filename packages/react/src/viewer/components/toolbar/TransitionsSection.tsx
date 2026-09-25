@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { LuCopy, LuPanelRight, LuPlay } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { controlAttr, RibbonGroupScope } from './PowerPointRibbonControls';
 import { ic, ics, pill, sep } from './toolbar-constants';
 import { useTransitionSoundPicker } from './useTransitionSoundPicker';
 
@@ -76,162 +77,185 @@ export function TransitionsSection(p: TransitionsSectionProps): React.ReactEleme
 			    to re-commit the slide's own transition, which puts back the values
 			    the slide already had: an edit with no visible effect, and one no
 			    test could tell apart from the dead button Vanilla shipped. */}
-			<button
-				type='button'
-				className={pill}
-				title={t('pptx.ribbon.previewTransition')}
-				onClick={() => playSlideTransitionPreview(p.activeSlide?.transition, document)}
-			>
-				<LuPlay className={ics} />
-				{t('pptx.ribbon.preview')}
-			</button>
+			<RibbonGroupScope id='transitions.preview'>
+				<button
+					type='button'
+					className={pill}
+					title={t('pptx.ribbon.previewTransition')}
+					onClick={() => playSlideTransitionPreview(p.activeSlide?.transition, document)}
+					{...controlAttr('transitions.preview.preview')}
+				>
+					<LuPlay className={ics} />
+					{t('pptx.ribbon.preview')}
+				</button>
+			</RibbonGroupScope>
 
 			{sep}
 
 			{/* Transition preset gallery */}
-			<div className='inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]'>
-				{RIBBON_TRANSITION_PRESETS.map((preset) => (
-					<button
-						key={preset.type}
-						type='button'
+			<RibbonGroupScope id='transitions.transitionToThisSlide'>
+				<div
+					className='inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]'
+					{...controlAttr('transitions.transitionToThisSlide.gallery')}
+				>
+					{RIBBON_TRANSITION_PRESETS.map((preset) => (
+						<button
+							key={preset.type}
+							type='button'
+							disabled={!canEdit}
+							onClick={() => commit({ type: preset.type })}
+							className={cn(
+								'flex-shrink-0 px-2 py-1 max-md:min-h-[44px] rounded border text-[11px] leading-tight transition-colors',
+								draft.type === preset.type
+									? 'border-primary bg-primary/10 text-primary font-medium'
+									: 'border-border bg-muted hover:bg-accent text-foreground',
+							)}
+							title={t('pptx.ribbon.transitionTitle', { name: t(preset.labelKey) })}
+						>
+							{t(preset.labelKey)}
+						</button>
+					))}
+				</div>
+			</RibbonGroupScope>
+
+			{sep}
+
+			<RibbonGroupScope id='transitions.timing'>
+				{/* Duration */}
+				<label
+					className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'
+					{...controlAttr('transitions.timing.duration')}
+				>
+					<span className='whitespace-nowrap'>{t('pptx.ribbon.duration')}</span>
+					<input
+						type='number'
+						min={0}
+						max={20}
+						step={0.25}
 						disabled={!canEdit}
-						onClick={() => commit({ type: preset.type })}
-						className={cn(
-							'flex-shrink-0 px-2 py-1 max-md:min-h-[44px] rounded border text-[11px] leading-tight transition-colors',
-							draft.type === preset.type
-								? 'border-primary bg-primary/10 text-primary font-medium'
-								: 'border-border bg-muted hover:bg-accent text-foreground',
-						)}
-						title={t('pptx.ribbon.transitionTitle', { name: t(preset.labelKey) })}
-					>
-						{t(preset.labelKey)}
-					</button>
-				))}
-			</div>
+						value={durationBuffer ?? String(draft.durationSec)}
+						onChange={(e) => {
+							setDurationBuffer(e.target.value);
+							const seconds = Number(e.target.value);
+							if (Number.isFinite(seconds) && e.target.value !== '') {
+								commit({ durationSec: seconds });
+							}
+						}}
+						onBlur={() => setDurationBuffer(null)}
+						className='w-16 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center'
+						title={t('pptx.ribbon.transitionDurationTitle')}
+					/>
+				</label>
 
-			{sep}
+				{sep}
 
-			{/* Duration */}
-			<label className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
-				<span className='whitespace-nowrap'>{t('pptx.ribbon.duration')}</span>
-				<input
-					type='number'
-					min={0}
-					max={20}
-					step={0.25}
-					disabled={!canEdit}
-					value={durationBuffer ?? String(draft.durationSec)}
-					onChange={(e) => {
-						setDurationBuffer(e.target.value);
-						const seconds = Number(e.target.value);
-						if (Number.isFinite(seconds) && e.target.value !== '') {
-							commit({ durationSec: seconds });
-						}
-					}}
-					onBlur={() => setDurationBuffer(null)}
-					className='w-16 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center'
-					title={t('pptx.ribbon.transitionDurationTitle')}
-				/>
-			</label>
-
-			{sep}
-
-			{/* Sound: "Other Sound..." opens a native file picker and the chosen
+				{/* Sound: "Other Sound..." opens a native file picker and the chosen
 			    file is embedded into the package on save (`embedTransitionSound`,
 			    packages/core). "None" clears any sound the slide carries. */}
-			<label className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'>
-				<span className='whitespace-nowrap'>{t('pptx.ribbon.sound')}</span>
-				<select
-					aria-label={t('pptx.ribbon.sound')}
-					className='w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50'
-					disabled={!canEdit}
-					value={transitionSoundSelectedValue(p.activeSlide?.transition)}
-					onChange={handleSoundSelectChange}
+				<label
+					className='inline-flex items-center gap-1.5 text-xs text-muted-foreground'
+					{...controlAttr('transitions.timing.sound')}
 				>
-					{transitionSoundOptions(p.activeSlide?.transition).map((option) => (
-						<option key={option.value} value={option.value}>
-							{option.i18nKey ? t(option.i18nKey) : option.label}
-						</option>
-					))}
-				</select>
+					<span className='whitespace-nowrap'>{t('pptx.ribbon.sound')}</span>
+					<select
+						aria-label={t('pptx.ribbon.sound')}
+						className='w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50'
+						disabled={!canEdit}
+						value={transitionSoundSelectedValue(p.activeSlide?.transition)}
+						onChange={handleSoundSelectChange}
+					>
+						{transitionSoundOptions(p.activeSlide?.transition).map((option) => (
+							<option key={option.value} value={option.value}>
+								{option.i18nKey ? t(option.i18nKey) : option.label}
+							</option>
+						))}
+					</select>
+					<button
+						type='button'
+						aria-label={t('pptx.animation.sound.preview')}
+						onClick={handleSoundPreview}
+						disabled={!stockSoundId}
+						className='shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40'
+					>
+						<LuPlay className='h-3 w-3' />
+					</button>
+					<input
+						ref={soundFileInputRef}
+						type='file'
+						accept='audio/*'
+						className='hidden'
+						onChange={handleSoundFileChange}
+					/>
+				</label>
+
+				{sep}
+
+				{/* Apply to All */}
 				<button
 					type='button'
-					aria-label={t('pptx.animation.sound.preview')}
-					onClick={handleSoundPreview}
-					disabled={!stockSoundId}
-					className='shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40'
+					disabled={!canEdit}
+					className={pill}
+					title={t('pptx.ribbon.applyTransitionToAll')}
+					{...controlAttr('transitions.timing.applyToAll')}
+					onClick={p.onApplyTransitionToAll}
 				>
-					<LuPlay className='h-3 w-3' />
+					<LuCopy className={ics} />
+					{t('pptx.headerFooter.applyToAll')}
 				</button>
-				<input
-					ref={soundFileInputRef}
-					type='file'
-					accept='audio/*'
-					className='hidden'
-					onChange={handleSoundFileChange}
-				/>
-			</label>
 
-			{sep}
+				{sep}
 
-			{/* Apply to All */}
-			<button
-				type='button'
-				disabled={!canEdit}
-				className={pill}
-				title={t('pptx.ribbon.applyTransitionToAll')}
-				onClick={p.onApplyTransitionToAll}
-			>
-				<LuCopy className={ics} />
-				{t('pptx.headerFooter.applyToAll')}
-			</button>
-
-			{sep}
-
-			{/* Advance Slide group */}
-			<div className='inline-flex flex-col gap-1 text-xs text-muted-foreground'>
-				<span className='text-[10px] font-medium text-foreground'>
-					{t('pptx.ribbon.advanceSlide')}
-				</span>
-				<label className='inline-flex items-center gap-1.5 cursor-pointer'>
-					<input
-						type='checkbox'
-						disabled={!canEdit}
-						checked={draft.advanceOnClick}
-						onChange={(e) => commit({ advanceOnClick: e.target.checked })}
-						className='accent-primary h-3 w-3'
-					/>
-					<span className='whitespace-nowrap'>{t('pptx.ribbon.onMouseClick')}</span>
-				</label>
-				{/* Two controls under one `<label>`: the label names only its FIRST
+				{/* Advance Slide group */}
+				<div className='inline-flex flex-col gap-1 text-xs text-muted-foreground'>
+					<span className='text-[10px] font-medium text-foreground'>
+						{t('pptx.ribbon.advanceSlide')}
+					</span>
+					<label
+						className='inline-flex items-center gap-1.5 cursor-pointer'
+						{...controlAttr('transitions.timing.advanceOnClick')}
+					>
+						<input
+							type='checkbox'
+							disabled={!canEdit}
+							checked={draft.advanceOnClick}
+							onChange={(e) => commit({ advanceOnClick: e.target.checked })}
+							className='accent-primary h-3 w-3'
+						/>
+						<span className='whitespace-nowrap'>{t('pptx.ribbon.onMouseClick')}</span>
+					</label>
+					{/* Two controls under one `<label>`: the label names only its FIRST
 				    labelable descendant, so without these the seconds field had an
 				    EMPTY accessible name and the checkbox took the field's value into
 				    its own ("After 5 seconds"). Both are named explicitly instead. */}
-				<label className='inline-flex items-center gap-1.5 cursor-pointer'>
-					<input
-						type='checkbox'
-						aria-label={t('pptx.ribbon.afterDuration')}
-						disabled={!canEdit}
-						checked={draft.advanceAfter}
-						onChange={(e) => commit({ advanceAfter: e.target.checked })}
-						className='accent-primary h-3 w-3'
-					/>
-					<span className='whitespace-nowrap'>{t('pptx.ribbon.afterDuration')}</span>
-					<input
-						type='text'
-						aria-label={t('pptx.ribbon.advanceAfterSeconds')}
-						value={advanceBuffer ?? draft.advanceAfterText}
-						onChange={(e) => {
-							setAdvanceBuffer(e.target.value);
-							commit({ advanceAfter: true, advanceAfterText: e.target.value });
-						}}
-						onBlur={() => setAdvanceBuffer(null)}
-						disabled={!canEdit || !draft.advanceAfter}
-						className='w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50'
-						title={t('pptx.ribbon.advanceAfterSeconds')}
-					/>
-				</label>
-			</div>
+					<label
+						className='inline-flex items-center gap-1.5 cursor-pointer'
+						{...controlAttr('transitions.timing.advanceAfter')}
+					>
+						<input
+							type='checkbox'
+							aria-label={t('pptx.ribbon.afterDuration')}
+							disabled={!canEdit}
+							checked={draft.advanceAfter}
+							onChange={(e) => commit({ advanceAfter: e.target.checked })}
+							className='accent-primary h-3 w-3'
+						/>
+						<span className='whitespace-nowrap'>{t('pptx.ribbon.afterDuration')}</span>
+						<input
+							type='text'
+							aria-label={t('pptx.ribbon.advanceAfterSeconds')}
+							value={advanceBuffer ?? draft.advanceAfterText}
+							onChange={(e) => {
+								setAdvanceBuffer(e.target.value);
+								commit({ advanceAfter: true, advanceAfterText: e.target.value });
+							}}
+							onBlur={() => setAdvanceBuffer(null)}
+							disabled={!canEdit || !draft.advanceAfter}
+							className='w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50'
+							title={t('pptx.ribbon.advanceAfterSeconds')}
+						/>
+					</label>
+				</div>
+			</RibbonGroupScope>
 
 			{sep}
 

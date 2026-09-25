@@ -107,6 +107,10 @@ export default defineConfig({
 				// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
 				// `import('ai')` inside shared stays a real optional runtime import.
 				'ai',
+				// Node-only optional canvas backend that emf-converter and core's .ppt SVG
+				// rasteriser import lazily behind a Node check. Once installed in the
+				// workspace it resolves, and bundling its native binding breaks the build.
+				'@napi-rs/canvas',
 				// Optional `@ai-sdk/vue` peer, reachable only through the lazily-
 				// loaded AI chat panel chunk. Kept external so the binding never
 				// bundles it and hosts dedupe a single copy from node_modules.

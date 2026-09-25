@@ -1,25 +1,27 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { AccountAuthConfig, ToolbarActionId } from 'pptx-viewer-shared';
-import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
+import type { AccountAuthConfig, RibbonContextualTabId, ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	filterVisibleTabs,
+	isActionHidden,
+	resolveActiveRibbonTab,
+	visibleContextualTabs,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { createEquationPanel } from './equation-panel';
 import { createFindReplacePanel } from './find-replace-panel';
 import { createFormatBackgroundPanel } from './format-background-panel';
+import { createContextualTabPanes, mountVisibleContextualPanes } from './gallery/contextual-tabs';
+import { createRibbonGalleryHub } from './gallery/gallery-hub';
 import type { HomeTab } from './home/home-tab';
 import { createHomeTab } from './home/home-tab';
+import type { Ribbon } from './ribbon-api';
+import { buildHomeSyncState } from './ribbon-home-sync';
 import { createRibbonPrimaryRow } from './ribbon-primary-row';
 import { createRibbonTabBar } from './ribbon-tab-bar';
 import { DEFAULT_RIBBON_TAB, RIBBON_TABS } from './ribbon-tabs';
-import type {
-	RibbonDrawState,
-	RibbonEditState,
-	RibbonHandlers,
-	RibbonNavState,
-	RibbonSelectionState,
-	RibbonTabId,
-} from './ribbon-types';
+import type { RibbonHandlers, RibbonSelectionState, RibbonTabId } from './ribbon-types';
 import type { AnimationsTab } from './tabs/animations-tab';
 import { createAnimationsTab } from './tabs/animations-tab';
 import type { DesignTab } from './tabs/design-tab';
@@ -35,48 +37,9 @@ import { createReviewTab } from './tabs/review-tab';
 import { createSlideShowTab } from './tabs/slide-show-tab';
 import type { TransitionsTab } from './tabs/transitions-tab';
 import { createTransitionsTab } from './tabs/transitions-tab';
-import type { ViewToggleState } from './tabs/view-tab';
 import { createViewTab } from './tabs/view-tab';
 
-export interface Ribbon {
-	el: HTMLElement;
-	update(state: RibbonNavState): void;
-	setEditState(state: RibbonEditState): void;
-	setNotesExpanded(expanded: boolean): void;
-	setAutosaveStatus(label: string, kind: 'idle' | 'saving' | 'saved' | 'error'): void;
-	/** Show/hide the whole editing surface (Home/Insert tab content + find/replace). */
-	setEditable(editable: boolean): void;
-	/** Reflect the current selection across the Home tab's Font/Paragraph/Arrange groups. */
-	updateSelection(selectedElement: PptxElement | undefined, extra: RibbonSelectionState): void;
-	/** Reflect the current Draw tab tool/colour/width (store-driven). */
-	setDrawState(state: RibbonDrawState): void;
-	setTemplateEditing(active: boolean): void;
-	/** Reflect the View tab's Show toggles (rulers/grid/guides/snapping). */
-	setViewOptions(options: ViewToggleState): void;
-	setHasMacros(hasMacros: boolean): void;
-	setSubtitlesVisible(visible: boolean): void;
-	/** Reflect the active slide's `hidden` flag on the Hide Slide toggle. */
-	setHideSlideActive(active: boolean): void;
-	/** Reflect the inspector panel's open state on the quick-access toggle. */
-	setInspectorOpen(open: boolean): void;
-	/**
-	 * Show or hide the docked Find & Replace panel. Same action as Home >
-	 * Editing > Find; exposed so the editor keymap can drive Ctrl/Cmd+F, which
-	 * this binding had no shortcut for at all.
-	 */
-	toggleFindReplace(): void;
-	openEquationEditor(id: string, omml: Record<string, unknown>): void;
-	/**
-	 * Hide ribbon tabs unticked in Options > Customize Ribbon. The File tab
-	 * always survives; a hidden active tab falls back to Home (or the first
-	 * remaining tab).
-	 */
-	setHiddenOptionTabs(tabIds: readonly string[]): void;
-	/** Leave the File backstage and show the normal default ribbon tab. */
-	showDefaultTab(): void;
-	/** Apply Options > General ScreenTip style to the tab-bar tooltips. */
-	applyScreenTips(tip: (label: string) => string | undefined): void;
-}
+export type { Ribbon } from './ribbon-api';
 
 /**
  * The tabbed editing ribbon: a React-aligned command row, tab bar, and
@@ -119,6 +82,9 @@ export function createRibbon(
 	const formatBackgroundPanel = createFormatBackgroundPanel(doc, t, handlers.edit);
 	el.appendChild(formatBackgroundPanel.el);
 
+	const galleryHub = createRibbonGalleryHub((result) =>
+		handlers.edit.applyRibbonGalleryResult(result),
+	);
 	const hidden = (id: RibbonTabId): boolean => isActionHidden(id, hiddenActions);
 	const fileTab = hidden('file')
 		? null
@@ -129,6 +95,7 @@ export function createRibbon(
 				edit: handlers.edit,
 				onToggleFindReplace: () => findReplace.toggle(),
 				hiddenActions,
+				galleryHub,
 			});
 	const insertTab: InsertTab | null = hidden('insert')
 		? null
@@ -158,7 +125,14 @@ export function createRibbon(
 	};
 	const designTab: DesignTab | null = hidden('design')
 		? null
-		: createDesignTab(doc, t, handlers.design, () => formatBackgroundPanel.toggle(), openSlideSize);
+		: createDesignTab(
+				doc,
+				t,
+				handlers.design,
+				() => formatBackgroundPanel.toggle(),
+				openSlideSize,
+				galleryHub,
+			);
 	const transitionsTab: TransitionsTab | null = hidden('transitions')
 		? null
 		: createTransitionsTab(doc, t, handlers.transitions, openInspector);
@@ -173,7 +147,8 @@ export function createRibbon(
 	const viewTab = hidden('view') ? null : createViewTab(doc, t, handlers.nav, hiddenActions);
 	const helpTab = hidden('help') ? null : createHelpTab(doc, t, handlers.nav);
 
-	const panes: Partial<Record<RibbonTabId, HTMLElement>> = {
+	type AnyTabId = RibbonTabId | RibbonContextualTabId;
+	const panes: Partial<Record<AnyTabId, HTMLElement>> = {
 		file: fileTab?.el,
 		home: homeTab?.el,
 		insert: insertTab?.el,
@@ -196,18 +171,29 @@ export function createRibbon(
 		}
 	}
 
+	// Contextual tabs (Shape Format, ...) sit after the fixed tabs, mounted only
+	// while the selection brings them up (`mountVisibleContextualPanes`).
+	const contextualPanes = createContextualTabPanes(doc, t, galleryHub);
+	for (const [id, pane] of contextualPanes) {
+		pane.hidden = true;
+		panes[id] = pane;
+	}
+
 	const defaultVisibleTab: RibbonTabId =
 		visibleTabs.find((tab) => tab.id === DEFAULT_RIBBON_TAB)?.id ??
 		visibleTabs[0]?.id ??
 		DEFAULT_RIBBON_TAB;
-	let activeTab = defaultVisibleTab;
-	function setActiveTab(tab: RibbonTabId): void {
+	let activeTab: AnyTabId = defaultVisibleTab;
+	function setActiveTab(tab: AnyTabId): void {
 		if (!panes[tab]) {
 			return;
 		}
+		if (tab !== activeTab) {
+			galleryHub.closeAll();
+		}
 		activeTab = tab;
 		tabBar.setActive(tab);
-		for (const id of Object.keys(panes) as RibbonTabId[]) {
+		for (const id of Object.keys(panes) as AnyTabId[]) {
 			const pane = panes[id];
 			if (pane) {
 				pane.hidden = id !== tab;
@@ -219,27 +205,22 @@ export function createRibbon(
 	let latestSelected: PptxElement | undefined;
 	let latestExtra: RibbonSelectionState = { hasClipboard: false, slideCount: 0, selectedCount: 0 };
 
+	const syncContextual = (): void => {
+		const visible = visibleContextualTabs(
+			latestSelected ?? null,
+			handlers.nav.getCustomization?.(),
+		);
+		tabBar.setContextualTabs(visible);
+		mountVisibleContextualPanes(el, contextualPanes, visible);
+		const next = resolveActiveRibbonTab(activeTab, visible, defaultVisibleTab);
+		if (next !== activeTab) {
+			setActiveTab(next);
+		}
+	};
 	const syncHome = (): void => {
-		homeTab?.update({
-			editable: lastEditable,
-			selectedElement: latestSelected,
-			hasClipboard: latestExtra.hasClipboard,
-			formatPainterActive: latestExtra.formatPainterActive ?? false,
-			slideCount: latestExtra.slideCount,
-			selectedCount: latestExtra.selectedCount ?? 0,
-			selectionGroupable: latestExtra.selectionGroupable ?? true,
-			layouts: latestExtra.layouts ?? [],
-			layoutPreviews: latestExtra.layoutPreviews,
-			currentLayoutPath: latestExtra.currentLayoutPath,
-			themeFonts: latestExtra.themeFonts,
-			embeddedFontFamilies: latestExtra.embeddedFontFamilies,
-			customFontFamilies: latestExtra.customFontFamilies,
-			recentColors: latestExtra.recentColors ?? [],
-			themeColorMap: latestExtra.themeColorMap,
-			canMergeShapes: latestExtra.canMergeShapes,
-			canCrop: latestExtra.canCrop,
-			cropActive: latestExtra.cropActive,
-		});
+		galleryHub.sync(latestExtra.galleryContext, lastEditable);
+		syncContextual();
+		homeTab?.update(buildHomeSyncState(lastEditable, latestSelected, latestExtra));
 	};
 	const syncAnimations = (): void => {
 		animationsTab?.update({

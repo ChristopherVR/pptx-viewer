@@ -77,11 +77,11 @@
 	}
 </script>
 
-<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.slides')}>
+<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.slides')} data-ribbon-group="home.slides">
 	<div class="pptx-svelte-rgroup-row">
 		<!-- New Slide split button: primary inserts a blank slide; the chevron
 		     dropdown re-houses Duplicate / Delete (no thumbnail context menu). -->
-		<div class="pptx-svelte-rgroup-split" bind:this={newSplitEl} onfocusout={onFocusOut}>
+		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.newSlide" bind:this={newSplitEl} onfocusout={onFocusOut}>
 			<button
 				type="button"
 				class="pptx-svelte-rgroup-main"
@@ -117,7 +117,7 @@
 		<SlideTemplatesLauncher {editor} {onnavigate} />
 
 		<!-- Layout dropdown: re-map the current slide onto another layout. -->
-		<div class="pptx-svelte-rgroup-split" bind:this={layoutSplitEl} onfocusout={onFocusOut}>
+		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.layout" bind:this={layoutSplitEl} onfocusout={onFocusOut}>
 			<button
 				type="button"
 				class="pptx-svelte-rgroup-main"
@@ -147,7 +147,7 @@
 			type="button"
 			class="pptx-svelte-rgroup-main"
 			disabled={!editor.editable}
-			title={t('pptx.sections.resetSlideTitle')}
+			title={t('pptx.sections.resetSlideTitle')} data-ribbon-control="home.slides.reset"
 			onclick={() => void runAsync(() => editor.slidesOps.resetSlide())}
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 3v2.4h-2.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -158,7 +158,7 @@
 			type="button"
 			class="pptx-svelte-rgroup-main"
 			disabled={!editor.editable || editor.slides.length === 0}
-			title={t('pptx.sections.addSection')}
+			title={t('pptx.sections.addSection')} data-ribbon-control="home.slides.section"
 			onclick={() => editor.sectionOps.add(t('pptx.sections.defaultName'))}
 		>
 			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h10M3 8h6M3 13h10M11.5 6v4M9.5 8h4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>

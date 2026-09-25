@@ -1,7 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
-import { RIBBON_TAB_IDS, TOOLBAR_BUTTON_IDS } from 'pptx-viewer-shared';
+import type { PptxElement } from 'pptx-viewer-core';
+import {
+	contextualTabsForElement,
+	RIBBON_CONTROL_IDS,
+	RIBBON_GROUP_IDS,
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+} from 'pptx-viewer-shared';
 import type { ViewerCustomization, ViewerCustomizationApi } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -24,7 +31,11 @@ afterEach(() => {
 	cleanup = undefined;
 });
 
-type ViewerInstance = ViewerCustomizationApi;
+type ViewerInstance = ViewerCustomizationApi & {
+	getElements(slideIndex?: number): PptxElement[];
+	selectElements(ids: string[]): void;
+	clearSelection(): void;
+};
 
 async function mountViewer(
 	props: Partial<PowerPointViewerProps> = {},
@@ -127,10 +138,93 @@ describe('powerPointViewer customization', () => {
 	});
 });
 
+describe('ribbon group / control customisation', () => {
+	it('renders one scoped style element for hidden groups and controls', async () => {
+		const { target, instance } = await mountViewer({
+			customization: {
+				ribbon: { hiddenGroups: ['home.font'], hiddenButtons: ['home.paragraph.bullets'] },
+			},
+		});
+		const root = target.querySelector<HTMLElement>('.pptx-svelte-viewer');
+		const scope = root?.getAttribute('data-pptx-ribbon-scope') ?? '';
+		expect(scope).toMatch(/^pptx-svelte-\d+$/u);
+		const styles = target.querySelectorAll('style[data-pptx-ribbon-customization]');
+		expect(styles).toHaveLength(1);
+		const css = styles[0]?.textContent ?? '';
+		expect(css).toContain(`[data-pptx-ribbon-scope="${scope}"] [data-ribbon-group="home.font"]`);
+		expect(css).toContain(
+			`[data-pptx-ribbon-scope="${scope}"] [data-ribbon-control="home.paragraph.bullets"]`,
+		);
+
+		instance.hideRibbonGroup('home.editing');
+		flushSync();
+		expect(target.querySelector('style[data-pptx-ribbon-customization]')?.textContent).toContain(
+			'[data-ribbon-group="home.editing"]',
+		);
+	});
+
+	it('tags every Home group and the paragraph list controls', async () => {
+		const { target } = await mountViewer();
+		for (const group of [
+			'clipboard',
+			'slides',
+			'font',
+			'paragraph',
+			'drawing',
+			'arrange',
+			'editing',
+		]) {
+			expect(
+				target
+					.querySelector(`[data-ribbon-group="home.${group}"]`)
+					?.getAttribute('data-ribbon-group'),
+			).toBe(`home.${group}`);
+		}
+		const bullets = target.querySelector('[data-ribbon-control="home.paragraph.bullets"]');
+		expect(bullets?.querySelector('[data-ribbon-gallery="bullets"]')).not.toBeNull();
+		expect(
+			target.querySelector('[data-ribbon-control="home.drawing.shapeEffects"]'),
+		).not.toBeNull();
+	});
+
+	it('shows the Shape Format tab for a shape selection and falls back to Home', async () => {
+		const { target, instance } = await mountViewer();
+		expect(target.querySelector('[data-ribbon-contextual-tab]')).toBeNull();
+		const shape = instance
+			.getElements(0)
+			.find((element) => contextualTabsForElement(element).includes('shapeFormat'));
+		expect(shape).toBeDefined();
+		instance.selectElements([shape?.id ?? '']);
+		flushSync();
+		const tab = target.querySelector<HTMLButtonElement>(
+			'[data-ribbon-contextual-tab="shapeFormat"]',
+		);
+		expect(tab?.textContent?.trim()).toBe('Shape Format');
+		// Selecting never switches tabs by itself.
+		expect(target.querySelector('[data-ribbon-group="home.clipboard"]')).not.toBeNull();
+
+		tab?.click();
+		flushSync();
+		expect(target.querySelector('[data-ribbon-group="shapeFormat.shapeStyles"]')).not.toBeNull();
+		expect(
+			target.querySelector(
+				'[data-ribbon-control="shapeFormat.shapeStyles.gallery"] [data-gallery-item]',
+			),
+		).not.toBeNull();
+
+		instance.clearSelection();
+		flushSync();
+		expect(target.querySelector('[data-ribbon-contextual-tab]')).toBeNull();
+		expect(target.querySelector('[data-ribbon-group="home.clipboard"]')).not.toBeNull();
+	});
+});
+
 describe('public customisation exports', () => {
 	it('re-exports the id catalogues from the package entry', () => {
 		expect(publicApi.RIBBON_TAB_IDS).toBe(RIBBON_TAB_IDS);
 		expect(publicApi.TOOLBAR_BUTTON_IDS).toBe(TOOLBAR_BUTTON_IDS);
+		expect(publicApi.RIBBON_GROUP_IDS).toBe(RIBBON_GROUP_IDS);
+		expect(publicApi.RIBBON_CONTROL_IDS).toBe(RIBBON_CONTROL_IDS);
 		const catalogues = [
 			publicApi.OPTIONS_PAGE_IDS,
 			publicApi.OPTIONS_SECTION_IDS,

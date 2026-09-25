@@ -74,23 +74,24 @@
 </script>
 
 <div class="pptx-svelte-viewtab">
-	<RibbonGroup label={t('pptx.view.presentationViews')}>
-		<RibbonCommand label={t('pptx.view.normal')} title={t('pptx.statusBar.normalView')} onclick={onnormal}>
+	<RibbonGroup label={t('pptx.view.presentationViews')} group="view.presentationViews">
+		<RibbonCommand control="view.presentationViews.normal" label={t('pptx.view.normal')} title={t('pptx.statusBar.normalView')} onclick={onnormal}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="4" width="15" height="11" rx="1" /><path d="M2.5 7.5h15" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.slideSorter.title')} title={t('pptx.statusBar.slideSorter')} onclick={onslidesorter}>
+		<RibbonCommand control="view.presentationViews.slideSorter" label={t('pptx.slideSorter.title')} title={t('pptx.statusBar.slideSorter')} onclick={onslidesorter}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2.5" y="3.5" width="6" height="5" /><rect x="11.5" y="3.5" width="6" height="5" /><rect x="2.5" y="11.5" width="6" height="5" /><rect x="11.5" y="11.5" width="6" height="5" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.view.outlineView')} title={t('pptx.view.outlineViewTooltip')} onclick={onoutlineview}>
+		<RibbonCommand control="view.presentationViews.outline" label={t('pptx.view.outlineView')} title={t('pptx.view.outlineViewTooltip')} onclick={onoutlineview}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M8.5 5h9M8.5 10h9M8.5 15h9M2.5 7l2.5 3-2.5 3" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.view.readingView')} title={t('pptx.view.readingView')} onclick={onreadingview}>
+		<RibbonCommand control="view.presentationViews.readingView" label={t('pptx.view.readingView')} title={t('pptx.view.readingView')} onclick={onreadingview}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 4.5h6a2 2 0 0 1 1.5.7 2 2 0 0 1 1.5-.7h6v11h-6a2 2 0 0 0-1.5.7 2 2 0 0 0-1.5-.7h-6zM10 5.2v10" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.view.masterViews')}>
+	<RibbonGroup label={t('pptx.view.masterViews')} group="view.masterViews">
 		<RibbonCommand
+			control="view.masterViews.slideMaster"
 			label={t('pptx.master.title')}
 			title={t('pptx.view.slideMasterTooltip')}
 			disabled={!editor.editable}
@@ -98,15 +99,15 @@
 		>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="11" rx="1" /><path d="M6 8h8M6 11h5M5 2v3M15 2v3" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.master.handoutMasterTitle')} disabled>
+		<RibbonCommand control="view.masterViews.handoutMaster" label={t('pptx.master.handoutMasterTitle')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="3" width="6" height="6" /><rect x="11" y="3" width="6" height="6" /><rect x="3" y="11" width="6" height="6" /><rect x="11" y="11" width="6" height="6" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.master.notesMasterTitle')} disabled>
+		<RibbonCommand control="view.masterViews.notesMaster" label={t('pptx.master.notesMasterTitle')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="4" y="2.5" width="12" height="15" rx="1" /><path d="M7 6h6M7 9h6M7 12h4" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.view.show')}>
+	<RibbonGroup label={t('pptx.view.show')} group="view.show">
 		<ViewShowGroup
 			{editor}
 			{preferences}
@@ -120,17 +121,18 @@
 		/>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.slideSorter.zoom')}>
-		<RibbonCommand label={t('pptx.slideSorter.zoom')} disabled>
+	<RibbonGroup label={t('pptx.slideSorter.zoom')} group="view.zoom">
+		<RibbonCommand control="view.zoom.zoom" label={t('pptx.slideSorter.zoom')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="9" cy="9" r="5.5" /><path d="m13 13 4 4M6.8 9h4.4M9 6.8v4.4" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.view.zoomToFit')} title={t('pptx.view.zoomToFitTooltip')} onclick={onzoomfit}>
+		<RibbonCommand control="view.zoom.fitToWindow" label={t('pptx.view.zoomToFit')} title={t('pptx.view.zoomToFitTooltip')} onclick={onzoomfit}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 8V3h5M17 8V3h-5M3 12v5h5M17 12v5h-5" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.view.window')}>
+	<RibbonGroup label={t('pptx.view.window')} group="view.window">
 		<RibbonCommand
+			control="view.window.templateEditing"
 			label={t(editTemplateMode ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')}
 			title={t('pptx.view.templateEditingTooltip')}
 			testid="template-edit-toggle"
@@ -140,7 +142,7 @@
 		>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="3" y="4" width="14" height="12" rx="1" /><path d="M6 2v3M14 2v3M6 13h8" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.view.macros')} disabled>
+		<RibbonCommand control="view.window.macros" label={t('pptx.view.macros')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m7 6-4 4 4 4M13 6l4 4-4 4" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>

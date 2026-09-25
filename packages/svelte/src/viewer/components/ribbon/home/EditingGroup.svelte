@@ -44,11 +44,12 @@
 
 <svelte:window onpointerdown={onWindowPointerDown} />
 
-<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.editing.find')}>
+<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.editing.find')} data-ribbon-group="home.editing">
 	<div class="pptx-svelte-rgroup-cluster">
 		<div class="pptx-svelte-rgroup-row">
 			<button
 				type="button"
+				data-ribbon-control="home.editing.find"
 				aria-label={t('pptx.editing.find')}
 				title={t('pptx.editing.find')}
 				aria-pressed={findReplace.open}
@@ -58,6 +59,7 @@
 			</button>
 			<button
 				type="button"
+				data-ribbon-control="home.editing.replace"
 				aria-label={t('pptx.ribbon.replace')}
 				title={t('pptx.ribbon.replace')}
 				aria-pressed={findReplace.open}
@@ -69,7 +71,7 @@
 		<!-- Outside `.pptx-svelte-rgroup-row` on purpose: that row is
 		     `overflow: hidden`, which would clip the popover (the same trap the
 		     Angular port documents). -->
-		<div class="pptx-svelte-select-host" bind:this={selectHost}>
+		<div class="pptx-svelte-select-host" data-ribbon-control="home.editing.select" bind:this={selectHost}>
 			<button
 				bind:this={selectTrigger}
 				type="button"

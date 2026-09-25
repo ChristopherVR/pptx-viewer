@@ -3,6 +3,7 @@ import { NO_ADVANCE_AFTER_TEXT } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import { tagRibbonControl } from '../ribbon-tagging';
 
 /** The slice of the tab's draft this group owns. */
 export type AdvanceDraft = Pick<
@@ -86,6 +87,8 @@ export function createAdvanceGroup(
 	// bare letters as commands; the seconds box has to keep its own typing.
 	afterSeconds.addEventListener('keydown', (event) => event.stopPropagation());
 
+	tagRibbonControl(clickLabel, 'transitions.timing.advanceOnClick');
+	tagRibbonControl(afterLabel, 'transitions.timing.advanceAfter');
 	el.append(clickLabel, afterLabel);
 
 	return {

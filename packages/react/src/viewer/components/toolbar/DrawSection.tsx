@@ -1,10 +1,20 @@
+import type { RibbonControlId } from 'pptx-viewer-shared';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { DrawingTool } from '../../types';
 import { cn } from '../../utils';
 import { useRecentColors } from '../inspector/RecentColorsContext';
+import { controlAttr, RibbonGroupScope } from './PowerPointRibbonControls';
 import { gB, gL, grp, DRAW_TOOLS } from './toolbar-constants';
+
+/** Catalogue ids of the drawing tools (Freeform has none). */
+const DRAW_TOOL_CONTROL: Partial<Record<DrawingTool, RibbonControlId>> = {
+	select: 'draw.tools.select',
+	pen: 'draw.tools.pen',
+	highlighter: 'draw.tools.highlighter',
+	eraser: 'draw.tools.eraser',
+};
 
 export interface DrawSectionProps {
 	activeTool: DrawingTool;
@@ -35,7 +45,7 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 	}, [pushColor]);
 
 	return (
-		<>
+		<RibbonGroupScope id='draw.tools'>
 			<div className={grp}>
 				{DRAW_TOOLS.map((tool, i, a) => (
 					<button
@@ -47,6 +57,7 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 							p.activeTool === tool.id ? (tool.ac ?? 'bg-accent text-foreground') : '',
 						)}
 						title={t(tool.labelKey)}
+						{...controlAttr(DRAW_TOOL_CONTROL[tool.id])}
 					>
 						{tool.icon}
 					</button>
@@ -56,6 +67,7 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 				<label
 					className='inline-flex items-center gap-1 text-muted-foreground'
 					title={t('pptx.ribbon.penColour')}
+					{...controlAttr('draw.tools.penColor')}
 				>
 					{t('pptx.ribbon.colour')}
 					<input
@@ -69,6 +81,7 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 				<label
 					className='inline-flex items-center gap-1 text-muted-foreground'
 					title={t('pptx.ribbon.strokeWidth')}
+					{...controlAttr('draw.tools.penWidth')}
 				>
 					{t('pptx.ribbon.width')}
 					<input
@@ -82,6 +95,6 @@ export function DrawSection(p: DrawSectionProps): React.ReactElement {
 					<span className='text-foreground w-4 text-right'>{p.drawingWidth}</span>
 				</label>
 			</div>
-		</>
+		</RibbonGroupScope>
 	);
 }

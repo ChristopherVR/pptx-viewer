@@ -58,7 +58,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-paradd" bind:this={directionAnchor} onfocusout={onFocusOut}>
+<div class="pptx-svelte-paradd" data-ribbon-control="home.paragraph.textDirection" bind:this={directionAnchor} onfocusout={onFocusOut}>
 	<button
 		type="button"
 		disabled={!active}
@@ -83,7 +83,7 @@
 	{/if}
 </div>
 
-<div class="pptx-svelte-paradd" bind:this={columnsAnchor} onfocusout={onFocusOut}>
+<div class="pptx-svelte-paradd" data-ribbon-control="home.paragraph.columns" bind:this={columnsAnchor} onfocusout={onFocusOut}>
 	<button
 		type="button"
 		disabled={!active}

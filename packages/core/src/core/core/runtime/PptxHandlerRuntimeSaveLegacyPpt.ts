@@ -1,4 +1,5 @@
 import {
+	buildMasterRoundTripFromPptx,
 	buildMetroBlobs,
 	buildPptFile,
 	convertDeckToWriteModel,
@@ -88,12 +89,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	private async resolveMetroBlobs(
 		slides: PptxSlide[],
-		saveAsPptx: LegacyPptxSerializer | undefined,
+		pptxBytes: Uint8Array | undefined,
 	): Promise<Map<string, Uint8Array> | undefined> {
-		if (!saveAsPptx || !deckNeedsMetroBlobs(slides)) {
+		if (!pptxBytes || !deckNeedsMetroBlobs(slides)) {
 			return undefined;
 		}
-		return buildMetroBlobs(await saveAsPptx(), slides);
+		return buildMetroBlobs(pptxBytes, slides);
 	}
 
 	/**
@@ -126,14 +127,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 *   `.ppt` counterpart and is ignored.
 	 * @param saveAsPptx - Serialises the same slides as a Transitional `.pptx`
 	 *   (the save pipeline's own OOXML path), the source of the `metroBlob`
-	 *   packages; omit to write plain fallbacks only.
+	 *   packages and of the master's placeholders and theme round-trip atoms;
+	 *   omit to write plain fallbacks and a default master only.
 	 */
 	protected async saveAsLegacyPpt(
 		slides: PptxSlide[],
 		options: PptxHandlerSaveOptions | undefined,
 		saveAsPptx?: LegacyPptxSerializer,
 	): Promise<Uint8Array> {
-		const metroBlobs = await this.resolveMetroBlobs(slides, saveAsPptx);
+		// One Transitional .pptx save feeds both the metroBlob packages and the
+		// main master's placeholders, theme and text-style round-trip atoms.
+		const pptxBytes = saveAsPptx ? await saveAsPptx() : undefined;
+		const metroBlobs = await this.resolveMetroBlobs(slides, pptxBytes);
+		const master = pptxBytes ? await buildMasterRoundTripFromPptx(pptxBytes) : undefined;
 		this.compatibilityService.resetWarnings();
 		const resolvedMedia = await this.resolveAudioMediaBytes(slides);
 		const resolvedPictures = await resolvePictureSources(slides, async (path) =>
@@ -149,7 +155,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			metroBlobs,
 			resolvedPictures,
 		);
-		deck.masterStyles = convertMasterTextStyles(this.legacyMasterTextStyles(slides, options));
+		deck.masterStyles = convertMasterTextStyles(
+			this.legacyMasterTextStyles(slides, options),
+			master?.themeFonts,
+		);
+		deck.master = master;
 		return buildPptFile(deck, { password: options?.pptPassword });
 	}
 }

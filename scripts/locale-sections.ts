@@ -222,6 +222,7 @@ const SECTION_DEFINITIONS = [
 	{ name: 'viewer-options', prefixes: ['options'] },
 	{ name: 'slide-templates', prefixes: ['slideTemplates'] },
 	{ name: 'ribbon', prefixes: ['ribbon', 'home', 'insert'] },
+	{ name: 'ribbon-galleries', prefixes: ['gallery'] },
 ] as const;
 
 export const MAX_LOCALE_SECTION_ENTRIES = 180;

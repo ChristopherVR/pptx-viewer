@@ -1,17 +1,27 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
-import { shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
-import React, { useState, useRef, useEffect } from 'react';
+import { FIXED_TAB_GALLERIES, shapeFillChange, shapeOutlineChange } from 'pptx-viewer-shared';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuLayers, LuPaintBucket, LuPenLine, LuShapes, LuSparkles } from 'react-icons/lu';
+import {
+	LuLayers,
+	LuPaintBucket,
+	LuPalette,
+	LuPenLine,
+	LuShapes,
+	LuSparkles,
+} from 'react-icons/lu';
 
 import { SHAPE_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types-core';
 import { cn } from '../../utils';
 import { useRecentColors } from '../inspector/RecentColorsContext';
+import { controlAttr, groupAttr } from './PowerPointRibbonControls';
+import { RibbonGallery } from './RibbonGallery';
 import { RibbonMenu } from './RibbonMenu';
 import { ShapeColorPopover } from './ShapeColorPopover';
 import { ic, pill, sep } from './toolbar-constants';
+import { useRibbonDropdown } from './useRibbonDropdown';
 
 export interface DrawingGroupProps {
 	canEdit: boolean;
@@ -31,6 +41,11 @@ export interface DrawingGroupProps {
 
 const TOP_SHAPES = SHAPE_PRESETS.slice(0, 12);
 
+/** Home > Drawing's galleries, in ribbon order (Quick Styles, Shape Effects). */
+const HOME_DRAWING_GALLERIES = FIXED_TAB_GALLERIES.filter((placement) =>
+	placement.control.startsWith('home.drawing.'),
+);
+
 export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 	const { t } = useTranslation();
 	const { pushColor } = useRecentColors();
@@ -38,73 +53,19 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 		p.selectedElement && hasShapeProperties(p.selectedElement)
 			? p.selectedElement.shapeStyle
 			: undefined;
-	const [shapesOpen, setShapesOpen] = useState(false);
-	const [arrangeOpen, setArrangeOpen] = useState(false);
-	const [fillOpen, setFillOpen] = useState(false);
-	const [outlineOpen, setOutlineOpen] = useState(false);
-	const shapesRef = useRef<HTMLDivElement>(null);
-	const arrangeRef = useRef<HTMLDivElement>(null);
-	const fillRef = useRef<HTMLDivElement>(null);
-	const outlineRef = useRef<HTMLDivElement>(null);
-
-	useEffect(() => {
-		if (!shapesOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (shapesRef.current && !shapesRef.current.contains(e.target as Node)) {
-				setShapesOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [shapesOpen]);
-
-	useEffect(() => {
-		if (!arrangeOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (arrangeRef.current && !arrangeRef.current.contains(e.target as Node)) {
-				setArrangeOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [arrangeOpen]);
-
-	useEffect(() => {
-		if (!fillOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (fillRef.current && !fillRef.current.contains(e.target as Node)) {
-				setFillOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [fillOpen]);
-
-	useEffect(() => {
-		if (!outlineOpen) {
-			return;
-		}
-		const handler = (e: MouseEvent) => {
-			if (outlineRef.current && !outlineRef.current.contains(e.target as Node)) {
-				setOutlineOpen(false);
-			}
-		};
-		document.addEventListener('mousedown', handler);
-		return () => document.removeEventListener('mousedown', handler);
-	}, [outlineOpen]);
+	const shapes = useRibbonDropdown();
+	const arrange = useRibbonDropdown();
+	const fill = useRibbonDropdown();
+	const outline = useRibbonDropdown();
+	const setShapesOpen = shapes.setOpen;
+	const setArrangeOpen = arrange.setOpen;
 
 	return (
 		<>
-			<div className='flex flex-col items-center gap-0.5'>
+			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.drawing')}>
 				<div className='flex items-center gap-1'>
 					{/* Shapes dropdown */}
-					<div className='relative' ref={shapesRef}>
+					<div className='relative' ref={shapes.ref} {...controlAttr('home.drawing.shapes')}>
 						<button
 							type='button'
 							disabled={!p.canEdit}
@@ -115,8 +76,8 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							<LuShapes className={ic} />
 							{t('pptx.drawing.shapes')}
 						</button>
-						{shapesOpen && (
-							<RibbonMenu anchorRef={shapesRef} className='flex flex-col w-52 pt-1'>
+						{shapes.open && (
+							<RibbonMenu anchorRef={shapes.ref} className='flex flex-col w-52 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1 max-h-60 overflow-y-auto'>
 									{TOP_SHAPES.map((s) => (
 										<button
@@ -142,7 +103,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 					</div>
 
 					{/* Arrange dropdown */}
-					<div className='relative' ref={arrangeRef}>
+					<div className='relative' ref={arrange.ref} {...controlAttr('home.drawing.arrange')}>
 						<button
 							type='button'
 							disabled={!p.canEdit || !p.selectedElement}
@@ -153,8 +114,8 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							<LuLayers className={ic} />
 							{t('pptx.ribbon.arrange')}
 						</button>
-						{arrangeOpen && (
-							<RibbonMenu anchorRef={arrangeRef} className='flex flex-col w-44 pt-1'>
+						{arrange.open && (
+							<RibbonMenu anchorRef={arrange.ref} className='flex flex-col w-44 pt-1'>
 								<div className='rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1'>
 									<button
 										type='button'
@@ -206,9 +167,10 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						icon={<LuPaintBucket className={ic} />}
 						title={t('pptx.drawing.shapeFill')}
 						prefix='shape-fill'
-						anchorRef={fillRef}
-						open={fillOpen}
-						onToggle={() => setFillOpen((v) => !v)}
+						anchorRef={fill.ref}
+						open={fill.open}
+						onToggle={() => fill.setOpen((v) => !v)}
+						controlId='home.drawing.shapeFill'
 						disabled={!p.canEdit || !p.selectedElement}
 						swatchAriaLabel='Fill colour'
 						selectedRef={selectedShapeStyle?.fillColorRef}
@@ -217,7 +179,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							p.onUpdateElementStyle?.(shapeFillChange(c, ref));
 							pushColor(c);
 						}}
-						onClose={() => setFillOpen(false)}
+						onClose={() => fill.setOpen(false)}
 					/>
 
 					{/* Shape Outline */}
@@ -225,9 +187,10 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 						icon={<LuPenLine className={ic} />}
 						title={t('pptx.drawing.shapeOutline')}
 						prefix='shape-outline'
-						anchorRef={outlineRef}
-						open={outlineOpen}
-						onToggle={() => setOutlineOpen((v) => !v)}
+						anchorRef={outline.ref}
+						open={outline.open}
+						onToggle={() => outline.setOpen((v) => !v)}
+						controlId='home.drawing.shapeOutline'
 						disabled={!p.canEdit || !p.selectedElement}
 						swatchAriaLabel='Outline colour'
 						selectedRef={selectedShapeStyle?.strokeColorRef}
@@ -236,18 +199,23 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 							p.onUpdateElementStyle?.(shapeOutlineChange(c, ref));
 							pushColor(c);
 						}}
-						onClose={() => setOutlineOpen(false)}
+						onClose={() => outline.setOpen(false)}
 					/>
 
-					{/* Shape Effects (placeholder) */}
-					<button
-						type='button'
-						disabled
-						className={pill}
-						title={t('pptx.drawing.shapeEffectsUnavailable')}
-					>
-						<LuSparkles className={ic} />
-					</button>
+					{/* Quick Styles + Shape Effects: shared galleries (FIXED_TAB_GALLERIES) */}
+					{HOME_DRAWING_GALLERIES.map((placement) => (
+						<RibbonGallery
+							key={placement.control}
+							placement={placement}
+							icon={
+								placement.gallery === 'shapeEffects' ? (
+									<LuSparkles className={ic} />
+								) : (
+									<LuPalette className={ic} />
+								)
+							}
+						/>
+					))}
 				</div>
 				<span className='text-[9px] text-muted-foreground leading-none'>
 					{t('pptx.ribbon.groupDrawing')}

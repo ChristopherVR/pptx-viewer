@@ -17,7 +17,9 @@ import {
 } from './document-writer';
 import { buildExObjList } from './ex-obj-list-writer';
 import { HyperlinkCollector } from './hyperlink-writer';
+import { MASTER_PLACEHOLDER_ORDER } from './master-placeholders-writer';
 import { masterStyleFonts } from './master-style-convert';
+import { buildOtherTextStyle } from './master-text-styles-writer';
 import { buildSoundCollection, MediaCollector } from './media-writer';
 import { buildNotesContainer } from './notes-writer';
 import { buildExOleObjStg, OleCollector } from './ole-writer';
@@ -52,8 +54,12 @@ function collectFonts(deck: WDeck): string[] {
 			p.runs.map((r) => r.fontName).filter((n): n is string => Boolean(n)),
 		);
 	};
+	// Font 0 is the default face of every run and master level that names
+	// none: the theme's minor (body) face, as PowerPoint's own SaveAs orders it.
+	const themeMinor = deck.master?.themeFonts?.minor;
 	const fonts = Array.from(
 		new Set([
+			...(themeMinor ? [themeMinor] : []),
 			...deck.slides.flatMap((slide) => slide.shapes.flatMap(collect)),
 			...masterStyleFonts(deck.masterStyles),
 		]),
@@ -94,7 +100,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		slide.notesParagraphs?.length ? nextDrawingId++ : 0,
 	);
 	const shapesPerDrawing = [
-		1, // master: patriarch only, no decorative shapes
+		1 + MASTER_PLACEHOLDER_ORDER.length, // master: patriarch + its placeholders
 		...deck.slides.map((slide) => countDrawingShapes(slide.shapes)),
 		...deck.slides.filter((s) => s.notesParagraphs?.length).map(() => 2), // patriarch + body placeholder
 	];
@@ -150,6 +156,7 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		mediaEmbeds,
 		deck.masterStyles,
 		fonts,
+		deck.master,
 	);
 	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, MASTER_SLIDE_ID_SENTINEL);
 	// flags=4: real (COM-written) files set this bit on a SLIDE's own
@@ -182,6 +189,10 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		dggContainer,
 		exObjList,
 		soundCollection,
+		otherTextStyle: buildOtherTextStyle(deck.masterStyles, (name) => {
+			const idx = name ? fonts.indexOf(name) : -1;
+			return idx >= 0 ? idx : undefined;
+		}),
 	};
 	const maxPersistId = nextId - 1;
 	const contentSizeWithoutPadding =

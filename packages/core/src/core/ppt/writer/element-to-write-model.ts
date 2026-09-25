@@ -15,7 +15,7 @@
 import type { GroupPptxElement, PptxCustomShow, PptxElement, PptxSlide } from '../../types';
 import type { PptxCompatibilityWarning } from '../../types/metadata';
 import { degradeElement, placeholderShape } from './degrade-element';
-import { elementRectEmu } from './element-rect';
+import { elementRectEmu, withoutEmuGeometry } from './element-rect';
 import type { HyperlinkResolveContext } from './hyperlink-model';
 import { resolveHyperlink } from './hyperlink-model';
 import { convertMedia } from './media-element-convert';
@@ -172,14 +172,17 @@ function convertPicture(element: PptxElement, ctx: ConvertContext): WAnyShape {
 
 /** Convert a group element (recursively converting its children). */
 function convertGroup(element: GroupPptxElement, ctx: ConvertContext): WGroup {
+	// Members are written in group-local space (see `withoutEmuGeometry`).
+	const local = elementRectEmu(withoutEmuGeometry(element));
 	return {
 		kind: 'group',
 		name: element.name,
 		anchor: elementRectEmu(element),
+		childRect: { x: 0, y: 0, w: local.w, h: local.h },
 		rotationDeg: element.rotation,
 		flipH: element.flipHorizontal,
 		flipV: element.flipVertical,
-		children: element.children.map((child) => convertElement(child, ctx)),
+		children: element.children.map((child) => convertElement(withoutEmuGeometry(child), ctx)),
 		hyperlink: resolveHyperlink(element.actionClick, ctx.hyperlinkCtx),
 	};
 }

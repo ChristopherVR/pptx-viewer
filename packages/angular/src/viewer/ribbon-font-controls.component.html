@@ -4,6 +4,7 @@
 		[attr.aria-label]="'pptx.ribbon.fontFamily' | translate"
 		[disabled]="!canEdit() || !isText()"
 		(change)="setFontFamily($event)"
+		data-ribbon-control="home.font.fontFamily"
 	>
 		@for (group of fontGroups(); track group.id) {
 			<optgroup [label]="group.labelKey | translate">
@@ -27,6 +28,7 @@
 		[attr.aria-label]="'pptx.ribbon.fontSize' | translate"
 		[disabled]="!canEdit() || !isText()"
 		(change)="setFontSize($event)"
+		data-ribbon-control="home.font.fontSize"
 	>
 		@if (!fontSizes.includes(curFontSize())) {
 			<option [value]="curFontSize()" selected>{{ curFontSize() }}</option>
@@ -44,6 +46,7 @@
 		[title]="'pptx.text.increaseFontSize' | translate"
 		[attr.aria-label]="'pptx.text.increaseFontSize' | translate"
 		(click)="stepFontSize(1)"
+		data-ribbon-control="home.font.increaseFontSize"
 	>
 		<svg lucideAArrowUp class="h-4 w-4"></svg>
 	</button>
@@ -54,6 +57,7 @@
 		[title]="'pptx.text.decreaseFontSize' | translate"
 		[attr.aria-label]="'pptx.text.decreaseFontSize' | translate"
 		(click)="stepFontSize(-1)"
+		data-ribbon-control="home.font.decreaseFontSize"
 	>
 		<svg lucideAArrowDown class="h-4 w-4"></svg>
 	</button>
@@ -63,6 +67,7 @@
 		[disabled]="!isText()"
 		[title]="'pptx.ribbon.clearFormatting' | translate"
 		(click)="clearFormatting()"
+		data-ribbon-control="home.font.clearFormatting"
 	>
 		<svg lucideRemoveFormatting class="h-4 w-4"></svg>
 	</button>
@@ -76,6 +81,7 @@
 		[title]="'pptx.notes.bold' | translate"
 		[attr.aria-label]="'pptx.notes.bold' | translate"
 		(click)="toggleStyle('bold')"
+		data-ribbon-control="home.font.bold"
 	>
 		B
 	</button>
@@ -87,6 +93,7 @@
 		[title]="'pptx.notes.italic' | translate"
 		[attr.aria-label]="'pptx.notes.italic' | translate"
 		(click)="toggleStyle('italic')"
+		data-ribbon-control="home.font.italic"
 	>
 		I
 	</button>
@@ -98,6 +105,7 @@
 		[title]="'pptx.notes.underline' | translate"
 		[attr.aria-label]="'pptx.notes.underline' | translate"
 		(click)="toggleStyle('underline')"
+		data-ribbon-control="home.font.underline"
 	>
 		U
 	</button>
@@ -109,6 +117,7 @@
 		[title]="'pptx.notes.strikethrough' | translate"
 		[attr.aria-label]="'pptx.notes.strikethrough' | translate"
 		(click)="toggleStyle('strikethrough')"
+		data-ribbon-control="home.font.strikethrough"
 	>
 		S
 	</button>
@@ -122,6 +131,7 @@
 	[title]="'pptx.textEffects.shadow' | translate"
 	[attr.aria-label]="'pptx.textEffects.shadow' | translate"
 	(click)="toggleShadow()"
+	data-ribbon-control="home.font.shadow"
 >
 	<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 		<text x="6" y="17" font-size="16" font-weight="bold" fill="currentColor" stroke="none">S</text>
@@ -145,6 +155,7 @@
 	[attr.aria-label]="'pptx.text.characterSpacing' | translate"
 	[disabled]="!isText()"
 	(change)="setCharSpacing($event)"
+	data-ribbon-control="home.font.characterSpacing"
 >
 	@for (opt of charSpacingOptions; track opt.value) {
 		<option [value]="opt.value" [selected]="opt.value === curCharSpacing()">
@@ -158,6 +169,7 @@
 	[attr.aria-label]="'pptx.text.changeCase' | translate"
 	[disabled]="!isText()"
 	(change)="setChangeCase($event)"
+	data-ribbon-control="home.font.changeCase"
 >
 	<option value="" selected disabled>Aa</option>
 	@for (opt of changeCaseOptions; track opt.value) {
@@ -174,6 +186,7 @@
 	titleKey="pptx.text.fontColor"
 	swatchAriaKey="pptx.ribbon.fontColourValue"
 	(pick)="setColor($event)"
+	data-ribbon-control="home.font.fontColor"
 	(pickThemeColor)="setColorRef($event)"
 >
 	<svg
@@ -196,6 +209,7 @@
 	titleKey="pptx.text.highlightColor"
 	swatchAriaKey="pptx.ribbon.highlightColourValue"
 	(pick)="setHighlight($event)"
+	data-ribbon-control="home.font.highlightColor"
 >
 	<svg lucideHighlighter class="h-3.5 w-3.5"></svg>
 </pptx-ribbon-color-popover>

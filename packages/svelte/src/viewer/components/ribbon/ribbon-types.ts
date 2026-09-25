@@ -1,10 +1,9 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import type {
 	AccountAuthConfig,
 	CanvasSize,
 	ToolbarActionId,
 	ViewerPreferences,
-	ViewerTheme,
 } from 'pptx-viewer-shared';
 
 import type { FindReplaceState } from '../../editor/editor-find-replace.svelte';
@@ -134,11 +133,11 @@ export interface RibbonProps {
 	onopenrecent?: (key: string) => void;
 
 	/**
-	 * Design tab: the current effective viewer-chrome theme (for highlighting
-	 * the active swatch) and the setter its gallery calls to switch presets.
+	 * Publish a new PRESENTATION theme (Design > Browse Themes / Edit Theme and
+	 * the Variants Colors / Fonts galleries), the same callback the
+	 * inspector's theme editor uses.
 	 */
-	theme: ViewerTheme | undefined;
-	onsettheme: (theme: ViewerTheme | undefined) => void;
+	onthemechange?: (theme: PptxTheme) => void;
 
 	/** File tab > Account: disabled-by-default sign-in hook point. */
 	accountAuth?: AccountAuthConfig;

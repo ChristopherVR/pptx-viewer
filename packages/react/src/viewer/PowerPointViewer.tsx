@@ -37,6 +37,7 @@ import {
 	isPanelVisible,
 	openPptxFile,
 	playFeedbackSound,
+	RIBBON_SCOPE_ATTR,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
 	resolve3DRenderingFlags,
@@ -89,6 +90,11 @@ import { RecentColorsProvider } from './components/inspector/RecentColorsContext
 import { ThemeColorMapProvider } from './components/inspector/ThemeColorMapContext';
 import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { ReadOnlyBanner } from './components/ReadOnlyBanner';
+import { RibbonGalleryCommandsContext } from './components/ribbon-gallery-context';
+import {
+	RibbonCustomizationStyle,
+	useRibbonScopeToken,
+} from './components/RibbonCustomizationStyle';
 import { RunProgramNotices } from './components/RunProgramNotices';
 import { SettingsDialog } from './components/SettingsDialog';
 import { ShapeFormatContext } from './components/shape-format-context';
@@ -116,6 +122,7 @@ import { useReadOnlyRecommendationState } from './hooks/useReadOnlyRecommendatio
 import { useRecentColorsSync } from './hooks/useRecentColorsSync';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
+import { useRibbonGalleryCommands } from './hooks/useRibbonGalleryCommands';
 import { useRunProgramNoticesState } from './hooks/useRunProgramNoticesState';
 import { useShapeFormatCommands } from './hooks/useShapeFormatCommands';
 import { useTouchGestures } from './hooks/useTouchGestures';
@@ -912,6 +919,19 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 		// `ppt/viewProps.xml` once per completed load (`loadVersion`), and writes
 		// a View-ribbon toggle back into `state.viewProperties` so a save
 		// round-trips it (see `useSerialize`'s `viewProperties` save option).
+		// ── Ribbon style galleries + group/control customisation ──────
+		const ribbonGalleries = useRibbonGalleryCommands({
+			selectedElement,
+			theme: state.theme,
+			themeColorMap: themeColorMapValue,
+			handlerRef,
+			editable: canEdit && (mode === 'edit' || mode === 'master'),
+			updateElementById: editorOps.ops.updateElementById,
+			updateThemeColorScheme: themeHandlers.handleUpdateThemeColorScheme,
+			updateThemeFontScheme: themeHandlers.handleUpdateThemeFontScheme,
+		});
+		const ribbonScope = useRibbonScopeToken();
+
 		const viewPreferencesSync = useViewPreferencesSync({
 			loadVersion,
 			viewProperties: state.viewProperties,
@@ -1084,12 +1104,14 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			<div
 				style={themeStyle}
 				data-pptx-viewer=''
+				{...{ [RIBBON_SCOPE_ATTR]: ribbonScope }}
 				aria-busy={loading}
 				className={cn(
 					'h-full w-full bg-background text-foreground relative',
 					...resolveOptionRootClasses(viewerOptions, 'pptx'),
 				)}
 			>
+				<RibbonCustomizationStyle resolved={customizationResolved} scope={ribbonScope} />
 				{/* Inner measured container: only layout content (toolbar, canvas,
 				    bottom panels) lives here. Fixed-position dialogs/overlays are
 				    rendered as siblings below to prevent their mount/unmount from
@@ -1571,7 +1593,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										slideCount={slides.length}
 									/>
 									<ShapeFormatContext.Provider value={shapeFormat}>
-										{viewerContent}
+										<RibbonGalleryCommandsContext.Provider value={ribbonGalleries}>
+											{viewerContent}
+										</RibbonGalleryCommandsContext.Provider>
 									</ShapeFormatContext.Provider>
 								</CollaborationProvider>
 							</ViewerThemeProvider>

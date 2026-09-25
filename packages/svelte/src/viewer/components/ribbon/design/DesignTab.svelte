@@ -1,48 +1,51 @@
 <script lang="ts">
 	/**
 	 * DesignTab: the ribbon's Design tab, at React's `DesignSection` control set
-	 * (Browse Themes / Edit Theme / Slide Size / Format Background).
+	 * (Browse Themes / Edit Theme / Slide Size / Format Background), plus the
+	 * Variants Colors / Fonts galleries.
 	 *
-	 * The theme-preset swatches used to sit loose on the tab, which made Svelte
-	 * offer three top-level controls no other binding has. They now live behind
-	 * "Browse Themes", the button React uses to open its own theme gallery, so
-	 * the tab presents the same four commands everywhere and the presets are one
-	 * click away instead of zero.
-	 *
-	 * "Edit Theme" opens `ThemeEditorPanel.svelte` (see the scope note there:
-	 * viewer-chrome theme, not the deck's OOXML colour scheme). "Slide Size"
-	 * opens the document-properties dialog the ribbon shell owns, which is where
-	 * the slide dimensions live.
+	 * Both theme commands act on the PRESENTATION theme, as in React, Vue and
+	 * Angular: "Browse Themes" drops down the shared gallery presets
+	 * (`DeckThemeMenu`) and a pick re-themes the deck through the ribbon's
+	 * gallery host (undoable); "Edit Theme" docks the deck theme editor
+	 * (`DeckThemeEditor`, the same editor the inspector hosts). The viewer's
+	 * own chrome theme is chosen in Options > Appearance, not here. "Slide
+	 * Size" opens the document-properties dialog the ribbon shell owns, which
+	 * is where the slide dimensions live.
 	 */
-	import type { ViewerTheme } from 'pptx-viewer-shared';
+	import type { PptxHandler } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import DeckThemeEditor from '../../inspector/DeckThemeEditor.svelte';
 	import { anchoredPopup } from '../anchored-popup';
+	import { fixedGalleryPlacement } from '../galleries/fixed-placements';
+	import { createRibbonGalleryHost, useRibbonGalleryHost } from '../galleries/ribbon-gallery-host';
+	import RibbonGallery from '../galleries/RibbonGallery.svelte';
+	import DeckThemeMenu from './DeckThemeMenu.svelte';
 	import FormatBackgroundPanel from './FormatBackgroundPanel.svelte';
-	import ChromeThemeEditor from './ChromeThemeEditor.svelte';
-	import { THEME_SWATCHES } from './theme-swatches';
 
 	const {
 		editor,
-		theme,
-		onsettheme,
 		onslidesize,
 	}: {
 		editor: EditorState;
-		theme: ViewerTheme | undefined;
-		onsettheme: (theme: ViewerTheme | undefined) => void;
 		onslidesize?: () => void;
 	} = $props();
 	const t = useTranslator();
+	// The ribbon publishes one host for every tab; a tab mounted on its own
+	// (tests, the mobile sheet before it provides one) builds its own.
+	// svelte-ignore state_referenced_locally
+	const host = useRibbonGalleryHost() ?? createRibbonGalleryHost(editor);
 
 	let galleryOpen = $state(false);
-	// eslint-disable-next-line prefer-const
-	let editorOpen = $state(false);
 	// eslint-disable-next-line prefer-const
 	let backgroundOpen = $state(false);
 	// eslint-disable-next-line prefer-const
 	let galleryAnchor: HTMLElement | undefined = $state();
+	/** The deck handler while Edit Theme is open (null = closed). */
+	let themeHandler = $state.raw<PptxHandler | null>(null);
+	const editorOpen = $derived(themeHandler !== null);
 
 	function onFocusOut(event: FocusEvent): void {
 		const root = event.currentTarget as HTMLElement;
@@ -50,10 +53,17 @@
 			galleryOpen = false;
 		}
 	}
+
+	function toggleThemeEditor(): void {
+		themeHandler = themeHandler ? null : editor.getHandler();
+	}
+	const VARIANT_COLORS = fixedGalleryPlacement('design.variants.colors');
+	const VARIANT_FONTS = fixedGalleryPlacement('design.variants.fonts');
 </script>
 
 <div class="pptx-svelte-designtab" role="group" aria-label={t('pptx.ribbon.tab.design')}>
-	<div class="pptx-svelte-designtab-menu" bind:this={galleryAnchor} onfocusout={onFocusOut}>
+	<div class="pptx-svelte-designtab-contents" data-ribbon-group="design.themes">
+	<div class="pptx-svelte-designtab-menu" data-ribbon-control="design.themes.browseThemes" bind:this={galleryAnchor} onfocusout={onFocusOut}>
 		<button
 			type="button"
 			disabled={!editor.editable}
@@ -66,24 +76,15 @@
 			<span>{t('pptx.ribbon.browseThemes')}</span>
 		</button>
 		{#if galleryOpen}
-			<div class="pptx-svelte-designtab-pop" role="menu" use:anchoredPopup={{ anchor: galleryAnchor }}>
-				{#each THEME_SWATCHES as swatch (swatch.labelKey)}
-					<button
-						type="button"
-						role="menuitem"
-						class:pptx-svelte-designtab-active={swatch.theme?.colors?.primary === theme?.colors?.primary}
-						onclick={() => {
-							onsettheme(swatch.theme);
-							galleryOpen = false;
-						}}
-					>
-						<span
-							class="pptx-svelte-designtab-swatch"
-							style={`background:${swatch.theme?.colors?.primary ?? '#6b7280'}`}
-						></span>
-						{t(swatch.labelKey)}
-					</button>
-				{/each}
+			<div class="pptx-svelte-designtab-pop" role="menu" aria-label={t('pptx.themes.gallery.ariaLabel')} use:anchoredPopup={{ anchor: galleryAnchor }}>
+				<DeckThemeMenu
+					theme={editor.theme}
+					disabled={!editor.editable}
+					onpick={(preset) => {
+						galleryOpen = false;
+						void host.applyThemePreset(preset);
+					}}
+				/>
 			</div>
 		{/if}
 	</div>
@@ -91,15 +92,28 @@
 	<button
 		type="button"
 		disabled={!editor.editable}
+		aria-expanded={editorOpen}
 		class:pptx-svelte-designtab-active={editorOpen}
+		data-ribbon-control="design.themes.editTheme"
 		title={t('pptx.ribbon.editThemeTitle')}
-		onclick={() => (editorOpen = !editorOpen)}
+		onclick={toggleThemeEditor}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5 13.5 5.5 5.5 13.5 2 14l.5-3.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.ribbon.editTheme')}</span>
 	</button>
+	</div>
 
-	<button type="button" title={t('pptx.ribbon.slideSizeTitle')} onclick={() => onslidesize?.()}>
+	<div class="pptx-svelte-designtab-group" data-ribbon-group="design.variants">
+		<div class="pptx-svelte-designtab-row">
+			<RibbonGallery placement={VARIANT_COLORS} />
+			<RibbonGallery placement={VARIANT_FONTS} />
+		</div>
+		<span class="pptx-svelte-designtab-label">{t('pptx.ribbon.groupVariants')}</span>
+	</div>
+
+	<div class="pptx-svelte-designtab-contents" data-ribbon-group="design.customize">
+
+	<button type="button" data-ribbon-control="design.customize.slideSize" title={t('pptx.ribbon.slideSizeTitle')} onclick={() => onslidesize?.()}>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M5.5 14.5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 		<span>{t('pptx.ribbon.slideSize')}</span>
 	</button>
@@ -109,16 +123,18 @@
 		disabled={!editor.editable}
 		aria-haspopup="dialog"
 		aria-expanded={backgroundOpen}
+		data-ribbon-control="design.customize.formatBackground"
 		title={t('pptx.ribbon.formatBackgroundTitle')}
 		onclick={() => (backgroundOpen = !backgroundOpen)}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11z" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M2.5 10.5l3-3 2.5 2.5 3-4 2.5 3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.ribbon.formatBackground')}</span>
 	</button>
+	</div>
 
-	{#if editorOpen}
-		<div class="pptx-svelte-designtab-panel">
-			<ChromeThemeEditor {theme} {onsettheme} onclose={() => (editorOpen = false)} />
+	{#if themeHandler}
+		<div class="pptx-svelte-designtab-panel" data-deck-theme-editor>
+			<DeckThemeEditor {editor} handler={themeHandler} theme={editor.theme} onthemechange={(next) => host.publishTheme(next)} />
 		</div>
 	{/if}
 	{#if backgroundOpen}
@@ -134,6 +150,34 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 4px;
+	}
+
+	/* Group wrappers that only carry a `data-ribbon-group` id. */
+	.pptx-svelte-designtab-contents {
+		display: contents;
+	}
+
+	.pptx-svelte-designtab-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+		padding: 0 6px;
+		border-left: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 40%, transparent);
+		border-right: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 40%, transparent);
+	}
+
+	.pptx-svelte-designtab-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.pptx-svelte-designtab-label {
+		font-size: 9px;
+		line-height: 1;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		white-space: nowrap;
 	}
 
 	.pptx-svelte-designtab-menu {
@@ -172,13 +216,6 @@
 		outline-offset: -2px;
 	}
 
-	.pptx-svelte-designtab-swatch {
-		width: 12px;
-		height: 12px;
-		border-radius: 50%;
-		border: 1px solid var(--pptx-border, #33334d);
-	}
-
 	.pptx-svelte-designtab svg {
 		width: 15px;
 		height: 15px;
@@ -202,10 +239,28 @@
 		box-shadow: 0 10px 15px -3px rgb(0 0 0 / 35%), 0 4px 6px -4px rgb(0 0 0 / 35%);
 	}
 
-	.pptx-svelte-designtab-pop button {
+	/* The preset entries are `DeckThemeMenu`'s own buttons, so reach them globally. */
+	.pptx-svelte-designtab-pop :global(button) {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
 		width: 100%;
+		height: 28px;
+		padding: 0 8px;
+		border: none;
+		border-radius: var(--pptx-radius, 6px);
 		justify-content: flex-start;
 		background: transparent;
+		color: inherit;
+		cursor: pointer;
+		font: inherit;
+		font-size: 12px;
+		white-space: nowrap;
+	}
+
+	.pptx-svelte-designtab-pop :global(button:hover:not(:disabled)) {
+		background: var(--pptx-accent, #33334d);
+		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
 	.pptx-svelte-designtab-panel {

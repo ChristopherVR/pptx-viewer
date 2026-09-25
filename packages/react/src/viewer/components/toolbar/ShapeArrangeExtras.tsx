@@ -13,6 +13,7 @@ import { LuGroup, LuUngroup } from 'react-icons/lu';
 import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
 import { CropRibbonControls } from './CropRibbonControls';
 import { MergeShapesMenu } from './MergeShapesMenu';
+import { controlAttr } from './PowerPointRibbonControls';
 import { gB, gL, grp, ic } from './toolbar-constants';
 
 export interface ShapeArrangeExtrasProps {
@@ -57,6 +58,7 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 					disabled={!canGroup}
 					className={gB}
 					title={t('pptx.contextMenu.group')}
+					{...controlAttr('home.arrange.group')}
 					aria-label={t('pptx.contextMenu.group')}
 				>
 					<LuGroup className={ic} />
@@ -67,6 +69,7 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 					disabled={!canUngroup}
 					className={gL}
 					title={t('pptx.contextMenu.ungroup')}
+					{...controlAttr('home.arrange.ungroup')}
 					aria-label={t('pptx.contextMenu.ungroup')}
 				>
 					<LuUngroup className={ic} />
@@ -84,6 +87,7 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 				// so without this it announces itself as an anonymous number box.
 				aria-label={t('pptx.ribbon.strokeWidth')}
 				title={t('pptx.ribbon.strokeWidth')}
+				{...controlAttr('home.arrange.outlineWidth')}
 				value={strokeWidth}
 				onChange={(event) => {
 					const next = Number(event.target.value);

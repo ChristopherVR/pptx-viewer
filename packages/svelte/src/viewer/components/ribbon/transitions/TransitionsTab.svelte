@@ -154,17 +154,17 @@
 </script>
 
 <div class="pptx-svelte-transitionstab" role="group" aria-label={t('pptx.ribbon.tab.transitions')}>
-	<button
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="transitions.preview"><button
 		type="button"
-		class="pptx-svelte-transitionstab-pill"
+		class="pptx-svelte-transitionstab-pill" data-ribbon-control="transitions.preview.preview"
 		title={t('pptx.ribbon.previewTransition')}
 		onclick={preview}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="m4 3 9 5-9 5z" fill="currentColor" /></svg>
 		{t('pptx.ribbon.preview')}
-	</button>
+	</button></span>
 
-	<div class="pptx-svelte-transitionstab-gallery">
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="transitions.transitionToThisSlide"><div class="pptx-svelte-transitionstab-gallery" data-ribbon-control="transitions.transitionToThisSlide.gallery">
 		{#each TRANSITION_PRESETS as preset (preset.type)}
 			<button
 				type="button"
@@ -177,9 +177,9 @@
 				{t(preset.labelKey)}
 			</button>
 		{/each}
-	</div>
+	</div></span>
 
-	<label class="pptx-svelte-transitionstab-field">
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="transitions.timing"><label class="pptx-svelte-transitionstab-field" data-ribbon-control="transitions.timing.duration">
 		<span>{t('pptx.ribbon.duration')}</span>
 		<input
 			type="number"
@@ -196,7 +196,7 @@
 	<!-- "Other Sound..." opens a native file picker and the chosen file is
 	     embedded into the package on save (core's `embedTransitionSound`).
 	     "None" clears any sound the slide carries. -->
-	<label class="pptx-svelte-transitionstab-field">
+	<label class="pptx-svelte-transitionstab-field" data-ribbon-control="transitions.timing.sound">
 		<span>{t('pptx.ribbon.sound')}</span>
 		<select
 			aria-label={t('pptx.ribbon.sound')}
@@ -230,7 +230,7 @@
 		type="button"
 		class="pptx-svelte-transitionstab-pill"
 		disabled={!editor.editable}
-		title={t('pptx.ribbon.applyTransitionToAll')}
+		title={t('pptx.ribbon.applyTransitionToAll')} data-ribbon-control="transitions.timing.applyToAll"
 		onclick={applyToAll}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="6" y="6" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M3 10H2.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5h7a.5.5 0 0 1 .5.5V3" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
@@ -239,7 +239,7 @@
 
 	<div class="pptx-svelte-transitionstab-advance">
 		<span class="pptx-svelte-transitionstab-advance-title">{t('pptx.ribbon.advanceSlide')}</span>
-		<label class="pptx-svelte-transitionstab-field">
+		<label class="pptx-svelte-transitionstab-field" data-ribbon-control="transitions.timing.advanceOnClick">
 			<input
 				type="checkbox"
 				disabled={!editor.editable}
@@ -252,7 +252,7 @@
 		     labelable descendant, so without these the seconds field had an EMPTY
 		     accessible name and the checkbox took the field's value into its own
 		     ("After 5 seconds"). Both are named explicitly instead. -->
-		<label class="pptx-svelte-transitionstab-field">
+		<label class="pptx-svelte-transitionstab-field" data-ribbon-control="transitions.timing.advanceAfter">
 			<input
 				type="checkbox"
 				aria-label={t('pptx.ribbon.afterDuration')}
@@ -274,7 +274,7 @@
 				onchange={(e) => commit({ advanceAfterText: e.currentTarget.value })}
 			/>
 		</label>
-	</div>
+	</div></span>
 
 	<button
 		type="button"

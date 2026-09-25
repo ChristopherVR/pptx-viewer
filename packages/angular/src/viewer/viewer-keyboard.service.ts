@@ -307,8 +307,10 @@ export class ViewerKeyboardService {
 	/**
 	 * Escape unwinds the transient chrome one layer at a time: an armed format
 	 * painter first (it is modal over the pointer), then the shortcut cheat
-	 * sheet. Before this the branch stopped after the painter, so the panel "?"
-	 * had just opened stayed on screen with no key that could dismiss it.
+	 * sheet, then the selection itself (as in React, Svelte and Vanilla, so the
+	 * selection's contextual ribbon tabs go away too). Before this the branch
+	 * stopped after the painter, so the panel "?" had just opened stayed on
+	 * screen with no key that could dismiss it.
 	 */
 	private handleEscape(): void {
 		if (this.formatPainter.active()) {
@@ -317,6 +319,8 @@ export class ViewerKeyboardService {
 		}
 		if (this.dialogs.showShortcuts()) {
 			this.dialogs.showShortcuts.set(false);
+			return;
 		}
+		this.editor.clearSelection();
 	}
 }

@@ -33,6 +33,7 @@ import type { ModifyPasswordErrorReason, ReadOnlyBanner } from './read-only-bann
 import { createReadOnlyBanner } from './read-only-banner';
 import type { Ribbon } from './ribbon/ribbon';
 import { createRibbon } from './ribbon/ribbon';
+import { mountRibbonCustomizationStyle } from './ribbon/ribbon-customization-style';
 import type { RibbonHandlers } from './ribbon/ribbon-types';
 import type { RunProgramNoticeStack } from './run-program-notices';
 import { createRunProgramNoticeStack } from './run-program-notices';
@@ -228,6 +229,10 @@ export function buildViewerChrome(
 			ribbon.setEditable(false);
 		}
 		root.appendChild(ribbon.el);
+		// Group / control hiding from the host customisation (`ribbon.hiddenGroups`
+		// / `hiddenButtons`): one scoped stylesheet built by shared. A
+		// customisation change rebuilds the chrome, and with it this element.
+		mountRibbonCustomizationStyle(doc, root, options.ribbonHandlers.nav.getCustomization?.());
 		// Below-the-Ribbon Quick Access dock (Options > Quick Access Toolbar).
 		// Hidden until `setQuickAccessPosition('below')` moves the live strip
 		// element in; otherwise it stays docked inside the title bar.

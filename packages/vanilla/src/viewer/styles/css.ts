@@ -30,6 +30,7 @@ import { PRESENTATION_TOUCH_CSS } from './presentation-touch-css';
 import { PRESENTER_VIEW_CSS } from './presenter-view-css';
 import { READING_VIEW_CSS } from './reading-view-css';
 import { RIBBON_CSS } from './ribbon-css';
+import { RIBBON_GALLERY_CSS } from './ribbon-gallery-css';
 import { RIBBON_QUICK_CSS } from './ribbon-quick-css';
 import { SLIDE_TEMPLATE_DIALOG_CSS } from './slide-template-dialog-css';
 import { SMARTART_DIALOG_CSS } from './smartart-dialog-css';
@@ -964,6 +965,7 @@ ${CHROME_CSS}
 ${EDITOR_CSS}
 ${RIBBON_CSS}
 ${RIBBON_QUICK_CSS}
+${RIBBON_GALLERY_CSS}
 ${DOCUMENT_PROPERTIES_CSS}
 ${FILE_INFO_CSS}
 ${SMARTART_DIALOG_CSS}

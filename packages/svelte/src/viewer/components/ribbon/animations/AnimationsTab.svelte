@@ -38,8 +38,9 @@
 </script>
 
 <div class="pptx-svelte-animationstab" role="group" aria-label={t('pptx.ribbon.tab.animations')}>
-	<RibbonGroup label={t('pptx.animations.preview')}>
+	<RibbonGroup label={t('pptx.animations.preview')} group="animations.preview">
 		<RibbonCommand
+			control="animations.preview.preview"
 			label={t('pptx.animations.preview')}
 			disabled={disabled}
 			onclick={() => {
@@ -52,8 +53,8 @@
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.animations.animation')} maxWidth={500}>
-		<div class="pptx-svelte-animationstab-galleries">
+	<RibbonGroup label={t('pptx.animations.animation')} maxWidth={500} group="animations.animation">
+		<div class="pptx-svelte-animationstab-galleries" data-ribbon-control="animations.animation.gallery">
 			{#each ANIMATION_CATEGORIES as category (category.group)}
 				<div class="pptx-svelte-animationstab-group">
 					<span class="pptx-svelte-animationstab-label">{t(category.labelKey)}</span>
@@ -74,11 +75,11 @@
 		</div>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.animation.motionPath')}>
-		<MotionPathGallery
+	<RibbonGroup label={t('pptx.animation.motionPath')} group="animations.motionPath">
+		<span class="pptx-svelte-rb-contents" data-ribbon-control="animations.motionPath.gallery"><MotionPathGallery
 			{disabled}
 			onapply={(presetId) => editor.animationOps.applyMotionPath(presetId)}
-		/>
+		/></span>
 	</RibbonGroup>
 
 	<AnimationsAdvancedGroup {editor} {chromeUi} {disabled} />

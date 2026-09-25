@@ -22,6 +22,10 @@ import { translations as presenting_and_slide_show } from './presenting-and-slid
 import { translations as presenting_and_slide_show_2 } from './presenting-and-slide-show-2';
 import { translations as ribbon } from './ribbon';
 import { translations as ribbon_2 } from './ribbon-2';
+import { translations as ribbon_galleries } from './ribbon-galleries';
+import { translations as ribbon_galleries_data } from './ribbon-galleries-data';
+import { translations as ribbon_galleries_effects } from './ribbon-galleries-effects';
+import { translations as ribbon_galleries_picture } from './ribbon-galleries-picture';
 import { translations as slide_templates } from './slide-templates';
 import { translations as smart_art } from './smart-art';
 import { translations as tables } from './tables';
@@ -60,4 +64,8 @@ export const translationsZhCN: Record<string, string> = {
 	...viewer_options,
 	...viewer_options_2,
 	...backstage,
+	...ribbon_galleries,
+	...ribbon_galleries_effects,
+	...ribbon_galleries_picture,
+	...ribbon_galleries_data,
 };

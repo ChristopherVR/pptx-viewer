@@ -46,7 +46,7 @@
 	}
 </script>
 
-<RibbonGroup label={t('pptx.animations.advanced')}>
+<RibbonGroup label={t('pptx.animations.advanced')} group="animations.advancedAnimation">
 	<RibbonCommand
 		label={t('pptx.animations.exitEffects')}
 		{disabled}
@@ -62,11 +62,12 @@
 		{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 10h11M11 6.5 14.5 10 11 13.5" /></svg>{/snippet}
 	</RibbonCommand>
 	<RibbonCommandStack>
-		<RibbonCommand compact label={t('pptx.animations.effectOptions')} {disabled} onclick={openAnimationPanel}>
+		<RibbonCommand compact control="animations.animation.effectOptions" label={t('pptx.animations.effectOptions')} {disabled} onclick={openAnimationPanel}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M10 3v3M10 14v3M3 10h3M14 10h3M5.4 5.4l2 2M12.6 12.6l2 2M14.6 5.4l-2 2M7.4 12.6l-2 2" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
 			compact
+			control="animations.advancedAnimation.animationPane"
 			label={t('pptx.animations.animationPanel')}
 			active={chromeUi?.inspectorOpen}
 			onclick={openAnimationPanel}
@@ -75,14 +76,15 @@
 		</RibbonCommand>
 	</RibbonCommandStack>
 	<RibbonCommandStack>
-		<RibbonCommand compact label={t('pptx.animations.trigger')} {disabled} onclick={openAnimationPanel}>
+		<RibbonCommand compact control="animations.advancedAnimation.trigger" label={t('pptx.animations.trigger')} {disabled} onclick={openAnimationPanel}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m5 3 4 12 2-4.5L15.5 9z" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand compact label={t('pptx.animations.painter')} disabled>
+		<RibbonCommand compact control="animations.advancedAnimation.animationPainter" label={t('pptx.animations.painter')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M4 8V4h9v4zM8 8v3h5v6H8" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonCommandStack>
 	<RibbonCommand
+		control="animations.advancedAnimation.remove"
 		label={t('pptx.animations.remove')}
 		title={t('pptx.animation.remove')}
 		{disabled}
@@ -92,10 +94,10 @@
 	</RibbonCommand>
 </RibbonGroup>
 
-<RibbonGroup label={t('pptx.animations.timing')}>
+<RibbonGroup label={t('pptx.animations.timing')} group="animations.timing">
 	<div class="pptx-svelte-animtiming">
 		<label for="pptx-svelte-animation-start">{t('pptx.animations.start')}</label>
-		<select id="pptx-svelte-animation-start" disabled>
+		<select id="pptx-svelte-animation-start" data-ribbon-control="animations.timing.start" disabled>
 			<option>{t('pptx.animations.onClick')}</option>
 			<option>{t('pptx.animations.withPrevious')}</option>
 			<option>{t('pptx.animations.afterPrevious')}</option>
@@ -113,6 +115,7 @@
 			step="0.1"
 			value="0.5"
 			aria-label={t('pptx.animations.duration')}
+			data-ribbon-control="animations.timing.duration"
 			disabled
 		/>
 	</div>

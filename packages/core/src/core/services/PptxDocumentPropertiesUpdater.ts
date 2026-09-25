@@ -9,6 +9,7 @@ import type {
 	XmlObject,
 } from '../types';
 import { countNotesPages, toAppTitleEntries } from '../utils/app-properties-counts';
+import { countPresentationTextStatistics } from '../utils/app-properties-text-stats';
 import { applySlideTitlesToAppProps } from '../utils/app-properties-titles';
 import { deriveSlideTitles } from '../utils/slide-title';
 
@@ -107,6 +108,17 @@ export class PptxDocumentPropertiesUpdater {
 			appProps['Slides'] = String(slides.length);
 			appProps['HiddenSlides'] = String(hiddenSlidesCount);
 			appProps['Notes'] = String(notesCount);
+
+			// PowerPoint recomputes the text statistics too, from slide AND notes
+			// text (see `app-properties-text-stats.ts`).
+			const textStatistics = await countPresentationTextStatistics(
+				this.context.zip,
+				this.context.parser,
+			);
+			if (textStatistics) {
+				appProps['Words'] = String(textStatistics.words);
+				appProps['Paragraphs'] = String(textStatistics.paragraphs);
+			}
 
 			this.updateSlideTitleProperties(appProps, slides);
 

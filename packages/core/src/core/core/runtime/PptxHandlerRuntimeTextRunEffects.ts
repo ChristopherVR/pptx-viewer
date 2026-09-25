@@ -201,6 +201,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (attrs.reflectionDistance !== undefined) {
 				style.textReflectionOffset = attrs.reflectionDistance;
 			}
+			if (attrs.reflectionEndPosition !== undefined) {
+				style.textReflectionEndPosition = attrs.reflectionEndPosition;
+			}
+			if (attrs.reflectionDirection !== undefined) {
+				style.textReflectionDirection = attrs.reflectionDirection;
+			}
 			if (attrs.reflectionFadeDirection !== undefined) {
 				style.textReflectionFadeDirection = attrs.reflectionFadeDirection;
 			}

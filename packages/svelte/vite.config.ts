@@ -93,6 +93,10 @@ export default defineConfig({
 				// runes `Chat` is never inlined into the base bundle.
 				'ai',
 				/^@ai-sdk\//u,
+				// Node-only optional canvas backend that emf-converter and core's .ppt SVG
+				// rasteriser import lazily behind a Node check. Once installed in the
+				// workspace it resolves, and bundling its native binding breaks the build.
+				'@napi-rs/canvas',
 			],
 		},
 	},

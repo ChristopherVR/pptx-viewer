@@ -64,67 +64,72 @@ const DRAW_TOOLS: readonly DrawToolDef[] = [
 			real ink elements on stroke completion (see onDrawToolChange/
 			onInkStrokeComplete there).
 		-->
-		<!-- Tool selector -->
-		<div class="pptx-rb-grp">
-			@for (tool of drawTools; track tool.id; let last = $last) {
-				<button
-					type="button"
-					[class]="last ? 'pptx-rb-gl' : 'pptx-rb-gb'"
-					[ngClass]="activeTool() === tool.id ? 'bg-primary text-primary-foreground' : ''"
-					[title]="tool.labelKey | translate"
-					(click)="selectTool(tool.id)"
-				>
-					@switch (tool.id) {
-						@case ('select') {
-							<svg lucideMoveRight class="h-4 w-4"></svg>
+		<span class="contents" data-ribbon-group="draw.tools">
+			<!-- Tool selector -->
+			<div class="pptx-rb-grp">
+				@for (tool of drawTools; track tool.id; let last = $last) {
+					<button
+						type="button"
+						[class]="last ? 'pptx-rb-gl' : 'pptx-rb-gb'"
+						[ngClass]="activeTool() === tool.id ? 'bg-primary text-primary-foreground' : ''"
+						[title]="tool.labelKey | translate"
+						[attr.data-ribbon-control]="drawControlIds[tool.id]"
+						(click)="selectTool(tool.id)"
+					>
+						@switch (tool.id) {
+							@case ('select') {
+								<svg lucideMoveRight class="h-4 w-4"></svg>
+							}
+							@case ('pen') {
+								<svg lucidePencil class="h-4 w-4"></svg>
+							}
+							@case ('highlighter') {
+								<svg lucideType class="h-4 w-4"></svg>
+							}
+							@case ('eraser') {
+								<svg lucideMinus class="h-4 w-4"></svg>
+							}
+							@case ('freeform') {
+								<svg lucideSpline class="h-4 w-4"></svg>
+							}
 						}
-						@case ('pen') {
-							<svg lucidePencil class="h-4 w-4"></svg>
-						}
-						@case ('highlighter') {
-							<svg lucideType class="h-4 w-4"></svg>
-						}
-						@case ('eraser') {
-							<svg lucideMinus class="h-4 w-4"></svg>
-						}
-						@case ('freeform') {
-							<svg lucideSpline class="h-4 w-4"></svg>
-						}
-					}
-				</button>
-			}
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Colour + width -->
-		<label
-			class="inline-flex items-center gap-1 text-xs text-muted-foreground"
-			[title]="'pptx.ribbon.penColour' | translate"
-		>
-			{{ 'pptx.ribbon.colour' | translate }}
-			<input
-				type="color"
-				[value]="drawingColor()"
-				(input)="onColorInput($event)"
-				(change)="onColorCommit($event)"
-				class="h-6 w-6 cursor-pointer rounded border border-border bg-transparent"
-			/>
-		</label>
-		<span class="pptx-rb-sep"></span>
-		<label
-			class="inline-flex items-center gap-1 text-xs text-muted-foreground"
-			[title]="'pptx.ribbon.strokeWidth' | translate"
-		>
-			{{ 'pptx.ribbon.width' | translate }}
-			<input
-				type="range"
-				min="1"
-				max="12"
-				[value]="drawingWidth()"
-				(input)="onWidthInput($event)"
-				class="h-1 w-16 accent-primary"
-			/>
-			<span class="w-4 text-right text-foreground">{{ drawingWidth() }}</span>
-		</label>
+					</button>
+				}
+			</div>
+			<span class="pptx-rb-sep"></span>
+			<!-- Colour + width -->
+			<label
+				data-ribbon-control="draw.tools.penColor"
+				class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+				[title]="'pptx.ribbon.penColour' | translate"
+			>
+				{{ 'pptx.ribbon.colour' | translate }}
+				<input
+					type="color"
+					[value]="drawingColor()"
+					(input)="onColorInput($event)"
+					(change)="onColorCommit($event)"
+					class="h-6 w-6 cursor-pointer rounded border border-border bg-transparent"
+				/>
+			</label>
+			<span class="pptx-rb-sep"></span>
+			<label
+				data-ribbon-control="draw.tools.penWidth"
+				class="inline-flex items-center gap-1 text-xs text-muted-foreground"
+				[title]="'pptx.ribbon.strokeWidth' | translate"
+			>
+				{{ 'pptx.ribbon.width' | translate }}
+				<input
+					type="range"
+					min="1"
+					max="12"
+					[value]="drawingWidth()"
+					(input)="onWidthInput($event)"
+					class="h-1 w-16 accent-primary"
+				/>
+				<span class="w-4 text-right text-foreground">{{ drawingWidth() }}</span>
+			</label>
+		</span>
 	`,
 })
 export class RibbonDrawSectionComponent {
@@ -138,6 +143,14 @@ export class RibbonDrawSectionComponent {
 	private readonly recentColors = inject(RecentColorsService, { optional: true });
 
 	protected readonly drawTools = DRAW_TOOLS;
+	/** Catalogue ids of the tool buttons (Freeform has none: PowerPoint files it under Insert). */
+	protected readonly drawControlIds: Readonly<Record<DrawTool, string | null>> = {
+		select: 'draw.tools.select',
+		pen: 'draw.tools.pen',
+		highlighter: 'draw.tools.highlighter',
+		eraser: 'draw.tools.eraser',
+		freeform: null,
+	};
 
 	protected selectTool(tool: DrawTool): void {
 		this.drawToolChange.emit({ tool, color: this.drawingColor(), width: this.drawingWidth() });

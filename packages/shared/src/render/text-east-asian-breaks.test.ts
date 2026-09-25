@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	followingText,
 	isEastAsianChar,
 	resolveEastAsianBreakOptions,
 	splitEastAsianBreaks,
@@ -113,6 +114,58 @@ describe('splitEastAsianBreaks: eaLnBrk="0"', () => {
 	});
 });
 
+describe('splitEastAsianBreaks: the character after the text (run boundaries)', () => {
+	const BOTH = { hangingPunctuation: true, breakAnywhere: true };
+
+	it('with kinsoku off, a closing bracket in the next run may start a line (COM: XBREAK)', () => {
+		const [piece] = splitEastAsianBreaks('まみむめ', ANYWHERE, FONT, '」やゆよわ');
+		expect(piece.text).toBe(`ま${ZW}み${ZW}む${ZW}め${ZW}`);
+		expect(piece.sourceLength).toBe(4);
+	});
+
+	it('adds no break before a following space, Latin word boundary, or paragraph end', () => {
+		expect(splitEastAsianBreaks('語', ANYWHERE, FONT, ' next')[0].text).toBe('語');
+		expect(splitEastAsianBreaks('語', ANYWHERE, FONT)[0].text).toBe('語');
+		expect(splitEastAsianBreaks('abc', ANYWHERE, FONT, 'def')[0].text).toBe('abc');
+	});
+
+	it('does not hang a run-final mark when the next run opens with a closing bracket', () => {
+		// COM XHANG_BRACKET: `ばびぶべ。` + `」ぼぱぴ` breaks as ばびぶ | べ。」ぼ.
+		expect(splitEastAsianBreaks('ばびぶべ。', HANG, FONT, '」ぼぱぴ')).toHaveLength(1);
+		expect(splitEastAsianBreaks('ばびぶべ。', HANG, FONT, 'ざじ')).toHaveLength(3);
+	});
+
+	it('hangs the mark before a bracket once kinsoku is off (COM: はひふへ。 | 」ほまみ)', () => {
+		const pieces = splitEastAsianBreaks('はひふへ。」ほ', BOTH, FONT);
+		expect(pieces.map((piece) => piece.text)).toStrictEqual([
+			`は${ZW}ひ${ZW}ふ${ZW}へ${WJ}`,
+			'。',
+			' ',
+			`」${ZW}ほ`,
+		]);
+	});
+
+	it('adds no break before a hanging mark that opens the next run', () => {
+		expect(splitEastAsianBreaks('らりるれ', BOTH, FONT, '。を')[0].text).toBe(
+			`ら${ZW}り${ZW}る${ZW}れ`,
+		);
+	});
+});
+
+describe('followingText', () => {
+	it('is the next non-empty text, or the given `next` after the last', () => {
+		const pieces = [{ text: 'a' }, { text: '' }, { text: 'b' }];
+		expect(followingText(pieces, 0, 'z')).toBe('b');
+		expect(followingText(pieces, 2, 'z')).toBe('z');
+		expect(followingText(pieces, 2)).toBeUndefined();
+	});
+
+	it('stops at an inline equation', () => {
+		const runs = [{ text: 'a' }, { text: '', equation: {} }, { text: 'b' }];
+		expect(followingText(runs, 0, 'z')).toBeUndefined();
+	});
+});
+
 describe('splitEastAsianRunPieces', () => {
 	it("carries each piece's own style and lays the hanging layout on top", () => {
 		const out = splitEastAsianRunPieces(
@@ -128,6 +181,20 @@ describe('splitEastAsianRunPieces', () => {
 			inlineSize: '0px',
 		});
 		expect(out[2].hangingSpace).toBeTruthy();
+	});
+
+	it('looks ahead into the next piece, and past the last into `next`', () => {
+		const pieces = [
+			{ text: 'がぎぐげ。', style: {} },
+			{ text: '」', style: {} },
+		];
+		expect(splitEastAsianRunPieces(pieces, HANG, FONT).map((p) => p.text)).toStrictEqual([
+			'がぎぐげ。',
+			'」',
+		]);
+		expect(
+			splitEastAsianRunPieces([{ text: 'がぎ。', style: {} }], HANG, FONT, '」').map((p) => p.text),
+		).toStrictEqual(['がぎ。']);
 	});
 
 	it('returns the pieces unchanged without options', () => {

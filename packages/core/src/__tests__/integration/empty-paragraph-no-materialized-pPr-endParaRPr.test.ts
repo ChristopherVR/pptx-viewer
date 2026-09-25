@@ -4,12 +4,10 @@
  * whenever no end properties were captured, regardless of whether the source
  * paragraph authored either at all.
  *
- * `<a:pPr/>` (no attributes, no children) parses identically to "no `a:pPr`
- * at all": fast-xml-parser gives a childless, attribute-less element back as
- * `''`, which `!pPr` treats the same as `undefined`. That collapsed
- * distinction is fine for READING, but the writer must not use "nothing was
- * captured" as license to invent `<a:pPr></a:pPr>` where the source had
- * neither shape.
+ * `<a:pPr/>` (no attributes, no children) parses to the same empty paragraph
+ * properties as "no `a:pPr` at all", so the parser records which of the two
+ * the source wrote (`emptyParagraphPropertiesAuthored`): the writer gives an
+ * authored `<a:pPr/>` back and never invents one where the source had none.
  *
  * A paragraph with real run content and no authored `a:endParaRPr` is
  * likewise untouched content, not a blank line; the blank-line stub belongs
@@ -54,11 +52,10 @@ describe('empty a:pPr / missing a:endParaRPr are not materialized on real-conten
 		const savedZip = await JSZip.loadAsync(saved);
 		const savedXml = await savedZip.file('ppt/slides/slide1.xml')!.async('string');
 
-		// Neither paragraph authored a pPr (one had none at all, the other a
-		// bare self-closed `<a:pPr/>`, which parses identically): no empty
-		// `<a:pPr></a:pPr>` should appear anywhere in the shape.
-		expect(savedXml).not.toContain('<a:pPr/>');
-		expect(savedXml).not.toContain('<a:pPr></a:pPr>');
+		// The first paragraph authored no pPr and gets none; the second's
+		// authored empty `<a:pPr/>` comes back exactly once.
+		expect(savedXml.match(/<a:pPr\/>|<a:pPr><\/a:pPr>/g) ?? []).toHaveLength(1);
+		expect(savedXml).toMatch(/<a:p>(<a:pPr\/>|<a:pPr><\/a:pPr>)<a:r>[\s\S]*?Second line/);
 		// Neither paragraph authored an endParaRPr, and both have real run
 		// content, so neither is a blank line: no fabricated stub either.
 		expect(savedXml).not.toContain('a:endParaRPr');

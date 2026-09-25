@@ -9,6 +9,7 @@ import {
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonSlideShowHandlers } from '../ribbon-types';
 
 export interface SlideShowTab {
@@ -119,6 +120,7 @@ export function createSlideShowTab(
 				onClick: handlers.openBroadcast,
 			});
 	if (broadcast) {
+		tagRibbonControl(broadcast.btn, 'slideShow.present.broadcast');
 		broadcast.btn.title = t('pptx.slideShow.broadcastTooltip');
 	}
 	const rehearseCoach = makeButton(doc, {
@@ -180,20 +182,35 @@ export function createSlideShowTab(
 	};
 	syncOptions();
 
+	tagRibbonControl(fromBeginning.btn, 'slideShow.startSlideShow.fromBeginning');
+	tagRibbonControl(fromCurrent.btn, 'slideShow.startSlideShow.fromCurrent');
+	tagRibbonControl(presenter.btn, 'slideShow.present.presenterView');
+	tagRibbonControl(customShow.btn, 'slideShow.startSlideShow.customShow');
+	tagRibbonControl(rehearseCoach.btn, 'slideShow.setUp.rehearseWithCoach');
+	tagRibbonControl(setUp.btn, 'slideShow.setUp.setUpSlideShow');
+	tagRibbonControl(hideSlide.btn, 'slideShow.setUp.hideSlide');
+	tagRibbonControl(rehearse.btn, 'slideShow.setUp.rehearseTimings');
+	tagRibbonControl(record.btn, 'slideShow.setUp.record');
+	tagRibbonControl(subtitles.btn, 'slideShow.captions.subtitles');
+	tagRibbonControl(subtitleSettings.btn, 'slideShow.captions.subtitleSettings');
+	// React's order interleaves Start and Present, so those two groups each
+	// own two `display: contents` runs (the stylesheet hides every run).
 	el.append(
-		fromBeginning.btn,
-		fromCurrent.btn,
-		presenter.btn,
-		customShow.btn,
-		...(broadcast ? [broadcast.btn] : []),
-		rehearseCoach.btn,
-		setUp.btn,
-		hideSlide.btn,
-		rehearse.btn,
-		record.btn,
+		wrapRibbonGroup(doc, 'slideShow.startSlideShow', fromBeginning.btn, fromCurrent.btn),
+		wrapRibbonGroup(doc, 'slideShow.present', presenter.btn),
+		wrapRibbonGroup(doc, 'slideShow.startSlideShow', customShow.btn),
+		wrapRibbonGroup(doc, 'slideShow.present', ...(broadcast ? [broadcast.btn] : [])),
+		wrapRibbonGroup(
+			doc,
+			'slideShow.setUp',
+			rehearseCoach.btn,
+			setUp.btn,
+			hideSlide.btn,
+			rehearse.btn,
+			record.btn,
+		),
 		options,
-		subtitles.btn,
-		subtitleSettings.btn,
+		wrapRibbonGroup(doc, 'slideShow.captions', subtitles.btn, subtitleSettings.btn),
 	);
 	return {
 		el,

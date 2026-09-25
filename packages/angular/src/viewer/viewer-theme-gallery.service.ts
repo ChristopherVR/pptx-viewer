@@ -55,6 +55,34 @@ export class ViewerThemeGalleryService {
 		fontScheme: PptxThemeFontScheme,
 		name: string,
 	): void {
+		this.applySchemes(colorScheme, fontScheme, name, name);
+		this.showThemeGallery.set(false);
+	}
+
+	/**
+	 * Design > Variants (Colors / Fonts galleries): swap ONE scheme of the
+	 * current theme and keep the other, without renaming the theme. Same
+	 * undoable path as {@link applyCustomTheme}; `name` only labels the undo
+	 * entry. A colour-less theme with a fonts pick has nothing to re-resolve
+	 * against, so it is a no-op.
+	 */
+	applyThemeVariant(
+		variant: { colorScheme?: PptxThemeColorScheme; fontScheme?: PptxThemeFontScheme },
+		name: string,
+	): void {
+		const colorScheme = variant.colorScheme ?? this.loader.theme()?.colorScheme;
+		if (!colorScheme) {
+			return;
+		}
+		this.applySchemes(colorScheme, variant.fontScheme, undefined, name);
+	}
+
+	private applySchemes(
+		colorScheme: PptxThemeColorScheme,
+		fontScheme: PptxThemeFontScheme | undefined,
+		themeName: string | undefined,
+		label: string,
+	): void {
 		const currentSlides = this.editor.slides();
 		const previousColorMap = this.loader.themeColorMap() ?? {};
 		const result = applyThemeToData(
@@ -65,12 +93,12 @@ export class ViewerThemeGalleryService {
 			} as unknown as PptxData,
 			colorScheme,
 			fontScheme,
-			name,
+			themeName,
 		);
 		// Write slides back through the editor (records undo history).
 		this.editor.applyReplacement(
 			result.slides,
-			this.translate.instant('pptx.undoAction.applyTheme', { name }),
+			this.translate.instant('pptx.undoAction.applyTheme', { name: label }),
 		);
 		// Master/layout elements render as a separate per-slide layer (not part
 		// of `slide.elements`), so `applyReplacement` above never touches them;
@@ -86,6 +114,5 @@ export class ViewerThemeGalleryService {
 		// Update the loader's theme signals so the check-mark and future switches are correct.
 		this.loader.theme.set(result.theme);
 		this.loader.themeColorMap.set(result.themeColorMap);
-		this.showThemeGallery.set(false);
 	}
 }

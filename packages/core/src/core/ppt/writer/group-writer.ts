@@ -2,16 +2,16 @@
  * OfficeArtSpgrContainer writer for a group of shapes, the inverse of
  * `escher/sp-container.ts`'s `parseGroup`.
  *
- * Group children carry ABSOLUTE EMU coordinates in this project's element
- * model (the same space as top-level slide shapes), so the patriarch's
- * FSPGR child-space rect is written identical to its own anchor: a 1:1
- * mapping, no coordinate remapping needed.
+ * A group's FSPGR child-space rect is `WGroup.childRect`: the group-local
+ * space its members were converted into (see `element-to-write-model.ts`),
+ * or the group's own anchor for a group whose members are already in slide
+ * space (a table's cell rectangles).
  *
  * @module ppt/writer/group-writer
  */
 
 import { OA } from '../record-types';
-import { buildChildAnchorData, buildClientAnchor } from './anchor-writer';
+import { buildChildAnchorData } from './anchor-writer';
 import { ByteWriter, record } from './byte-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
 import type { MediaCollector } from './media-writer';
@@ -21,13 +21,20 @@ import {
 	buildClientData,
 	buildMediaShapeContainer,
 	buildPictureContainer,
+	buildShapeAnchor,
 	buildShapeContainer,
+	FSP_FLAG_CHILD,
 } from './shape-writer';
 import type { WAnyShape, WGroup, WRect } from './write-model';
 
 const FSP_FLAG_GROUP = 0x0001;
 /** [MS-ODRAW] 2.2.9: this shape is the drawing's own top-level canvas group. */
 const FSP_FLAG_PATRIARCH = 0x0004;
+/**
+ * [MS-ODRAW] `fHaveAnchor`: set on a nested group's own FSP, as PowerPoint's
+ * 97-2003 SaveAs writes it (`0x0201` for a top-level group).
+ */
+const FSP_FLAG_HAVE_ANCHOR = 0x0200;
 
 const ZERO_RECT: WRect = { x: 0, y: 0, w: 0, h: 0 };
 
@@ -56,16 +63,22 @@ export function buildCanvasPatriarch(allocator: ShapeIdAllocator): Uint8Array {
 	return record(OA.SpContainer, data, 0, true);
 }
 
-/** Build a nested group's own patriarch: `FSPGR` (child rect) + `FSP` + `ClientAnchor` [+ `ClientData`]. */
+/**
+ * Build a nested group's own patriarch: `FSPGR` (child rect) + `FSP` + its
+ * anchor (`ClientAnchor` at the top level, `ChildAnchor` inside another
+ * group) [+ `ClientData`].
+ */
 function buildNestedGroupPatriarch(
 	group: WGroup,
 	allocator: ShapeIdAllocator,
 	hyperlinks: HyperlinkCollector,
+	inGroup: boolean,
 ): Uint8Array {
+	const flags = FSP_FLAG_GROUP | FSP_FLAG_HAVE_ANCHOR | (inGroup ? FSP_FLAG_CHILD : 0);
 	const data = new ByteWriter()
-		.bytes(buildFspgr(group.anchor))
-		.bytes(buildGroupFsp(allocator.next(), FSP_FLAG_GROUP))
-		.bytes(buildClientAnchor(group.anchor));
+		.bytes(buildFspgr(group.childRect ?? group.anchor))
+		.bytes(buildGroupFsp(allocator.next(), flags))
+		.bytes(buildShapeAnchor(group.anchor, inGroup));
 	if (group.hyperlink) {
 		data.bytes(buildClientData(undefined, group.hyperlink, hyperlinks));
 	}
@@ -80,17 +93,18 @@ export function buildAnyShapeContainer(
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
 	mediaEmbeds: MediaCollector,
+	inGroup = false,
 ): Uint8Array {
 	if (shape.kind === 'shape') {
-		return buildShapeContainer(shape, fonts, allocator, hyperlinks);
+		return buildShapeContainer(shape, fonts, allocator, hyperlinks, inGroup);
 	}
 	if (shape.kind === 'picture') {
-		return buildPictureContainer(shape, allocator, hyperlinks, oleEmbeds);
+		return buildPictureContainer(shape, allocator, hyperlinks, oleEmbeds, inGroup);
 	}
 	if (shape.kind === 'media') {
-		return buildMediaShapeContainer(shape, allocator, hyperlinks, mediaEmbeds);
+		return buildMediaShapeContainer(shape, allocator, hyperlinks, mediaEmbeds, inGroup);
 	}
-	return buildGroupContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds);
+	return buildGroupContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds, inGroup);
 }
 
 /** Build a framed OfficeArtSpgrContainer for a nested group. */
@@ -101,10 +115,15 @@ export function buildGroupContainer(
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
 	mediaEmbeds: MediaCollector,
+	inGroup = false,
 ): Uint8Array {
-	const data = new ByteWriter().bytes(buildNestedGroupPatriarch(group, allocator, hyperlinks));
+	const data = new ByteWriter().bytes(
+		buildNestedGroupPatriarch(group, allocator, hyperlinks, inGroup),
+	);
 	for (const child of group.children) {
-		data.bytes(buildAnyShapeContainer(child, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds));
+		data.bytes(
+			buildAnyShapeContainer(child, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds, true),
+		);
 	}
 	return record(OA.SpgrContainer, data.toBytes(), 0, true);
 }

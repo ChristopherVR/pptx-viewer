@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuMousePointer2, LuReplace, LuSearch } from 'react-icons/lu';
 
+import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, ic, pill, sep } from './toolbar-constants';
 
@@ -32,7 +33,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 		<>
 			{sep}
 
-			<div className='flex flex-col items-center gap-0.5'>
+			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.editing')}>
 				<div className='flex items-center gap-1'>
 					{/* Find & Replace */}
 					<div className={grp}>
@@ -42,6 +43,7 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							onClick={p.onToggleFindReplace}
 							className={gB}
 							title={t('pptx.editing.find')}
+							{...controlAttr('home.editing.find')}
 						>
 							<LuSearch className={ic} />
 						</button>
@@ -51,13 +53,14 @@ export function EditingSection(p: EditingSectionProps): React.ReactElement {
 							onClick={p.onToggleFindReplace}
 							className={gL}
 							title={t('pptx.ribbon.replace')}
+							{...controlAttr('home.editing.replace')}
 						>
 							<LuReplace className={ic} />
 						</button>
 					</div>
 
 					{/* Select dropdown */}
-					<div className='relative' ref={menuRef}>
+					<div className='relative' ref={menuRef} {...controlAttr('home.editing.select')}>
 						<button
 							type='button'
 							onMouseDown={(e) => e.preventDefault()}

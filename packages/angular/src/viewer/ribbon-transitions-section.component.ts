@@ -67,6 +67,8 @@ import { EditorStateService } from './editor-state.service';
 			name, in one binding out of five.
 		-->
 		<button
+			data-ribbon-group="transitions.preview"
+			data-ribbon-control="transitions.preview.preview"
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.ribbon.previewTransition' | translate"
@@ -76,7 +78,11 @@ import { EditorStateService } from './editor-state.service';
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Preset gallery -->
-		<div class="inline-flex max-w-[420px] items-center gap-0.5 overflow-x-auto">
+		<div
+			class="inline-flex max-w-[420px] items-center gap-0.5 overflow-x-auto"
+			data-ribbon-group="transitions.transitionToThisSlide"
+			data-ribbon-control="transitions.transitionToThisSlide.gallery"
+		>
 			@for (t of transitionPresets; track t.type) {
 				<button
 					type="button"
@@ -94,110 +100,125 @@ import { EditorStateService } from './editor-state.service';
 			}
 		</div>
 		<span class="pptx-rb-sep"></span>
-		<!-- Duration -->
-		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-			<span class="whitespace-nowrap">{{ 'pptx.ribbon.duration' | translate }}</span>
-			<input
-				type="number"
-				min="0"
-				max="10"
-				step="0.1"
-				[value]="draft().durationSec"
-				(change)="onDurationChange($event)"
-				class="pptx-rb-select w-16 text-center"
-				[title]="'pptx.ribbon.transitionDurationTitle' | translate"
-			/>
-			<span>s</span>
-		</label>
-		<span class="pptx-rb-sep"></span>
-		<!--
+		<span class="contents" data-ribbon-group="transitions.timing">
+			<!-- Duration -->
+			<label
+				data-ribbon-control="transitions.timing.duration"
+				class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+			>
+				<span class="whitespace-nowrap">{{ 'pptx.ribbon.duration' | translate }}</span>
+				<input
+					type="number"
+					min="0"
+					max="10"
+					step="0.1"
+					[value]="draft().durationSec"
+					(change)="onDurationChange($event)"
+					class="pptx-rb-select w-16 text-center"
+					[title]="'pptx.ribbon.transitionDurationTitle' | translate"
+				/>
+				<span>s</span>
+			</label>
+			<span class="pptx-rb-sep"></span>
+			<!--
 			Sound. "Other Sound..." opens a native file picker and the chosen file
 			is embedded into the package on save (core's embedTransitionSound).
 			"None" clears any sound the slide carries.
 		-->
-		<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-			<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
-			<select
-				[attr.aria-label]="'pptx.ribbon.sound' | translate"
-				class="pptx-rb-select w-24 disabled:opacity-50"
-				[value]="soundSelectedValue()"
-				(change)="onSoundSelectChange($event)"
+			<label
+				data-ribbon-control="transitions.timing.sound"
+				class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
 			>
-				@for (option of soundOptions(); track option.value) {
-					<option [value]="option.value" [selected]="option.value === soundSelectedValue()">
-						{{ option.i18nKey ? (option.i18nKey | translate) : option.label }}
-					</option>
-				}
-			</select>
+				<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
+				<select
+					[attr.aria-label]="'pptx.ribbon.sound' | translate"
+					class="pptx-rb-select w-24 disabled:opacity-50"
+					[value]="soundSelectedValue()"
+					(change)="onSoundSelectChange($event)"
+				>
+					@for (option of soundOptions(); track option.value) {
+						<option [value]="option.value" [selected]="option.value === soundSelectedValue()">
+							{{ option.i18nKey ? (option.i18nKey | translate) : option.label }}
+						</option>
+					}
+				</select>
+				<button
+					type="button"
+					class="pptx-rb-pill"
+					[attr.aria-label]="'pptx.animation.sound.preview' | translate"
+					[disabled]="!stockSoundId()"
+					(click)="onSoundPreview()"
+				>
+					<svg lucidePlay class="h-3 w-3"></svg>
+				</button>
+				<input
+					#soundFileInput
+					type="file"
+					accept="audio/*"
+					class="hidden"
+					(change)="onSoundFileChange($event)"
+				/>
+			</label>
+			<span class="pptx-rb-sep"></span>
+			<!-- Apply to all -->
 			<button
+				data-ribbon-control="transitions.timing.applyToAll"
 				type="button"
 				class="pptx-rb-pill"
-				[attr.aria-label]="'pptx.animation.sound.preview' | translate"
-				[disabled]="!stockSoundId()"
-				(click)="onSoundPreview()"
+				[title]="'pptx.ribbon.applyTransitionToAll' | translate"
+				[attr.aria-label]="'pptx.headerFooter.applyToAll' | translate"
+				(click)="applyToAll()"
 			>
-				<svg lucidePlay class="h-3 w-3"></svg>
+				<span aria-hidden="true">⧉</span> {{ 'pptx.headerFooter.applyToAll' | translate }}
 			</button>
-			<input
-				#soundFileInput
-				type="file"
-				accept="audio/*"
-				class="hidden"
-				(change)="onSoundFileChange($event)"
-			/>
-		</label>
-		<span class="pptx-rb-sep"></span>
-		<!-- Apply to all -->
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.ribbon.applyTransitionToAll' | translate"
-			[attr.aria-label]="'pptx.headerFooter.applyToAll' | translate"
-			(click)="applyToAll()"
-		>
-			<span aria-hidden="true">⧉</span> {{ 'pptx.headerFooter.applyToAll' | translate }}
-		</button>
-		<span class="pptx-rb-sep"></span>
-		<!-- Advance Slide -->
-		<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="text-[10px] font-medium text-foreground">{{
-				'pptx.ribbon.advanceSlide' | translate
-			}}</span>
-			<label class="inline-flex cursor-pointer items-center gap-1.5">
-				<input
-					type="checkbox"
-					[checked]="draft().advanceOnClick"
-					(change)="onAdvanceOnClick($event)"
-					class="accent-primary h-3 w-3"
-				/>
-				<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
-			</label>
-			<!--
+			<span class="pptx-rb-sep"></span>
+			<!-- Advance Slide -->
+			<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
+				<span class="text-[10px] font-medium text-foreground">{{
+					'pptx.ribbon.advanceSlide' | translate
+				}}</span>
+				<label
+					data-ribbon-control="transitions.timing.advanceOnClick"
+					class="inline-flex cursor-pointer items-center gap-1.5"
+				>
+					<input
+						type="checkbox"
+						[checked]="draft().advanceOnClick"
+						(change)="onAdvanceOnClick($event)"
+						class="accent-primary h-3 w-3"
+					/>
+					<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
+				</label>
+				<!--
 				Two controls under one label element: a label names only its FIRST
 				labelable descendant, so without these the seconds field had an EMPTY
 				accessible name and the checkbox took the field's value into its own
 				("After 5 seconds"). Both are named explicitly instead.
 			-->
-			<label class="inline-flex cursor-pointer items-center gap-1.5">
-				<input
-					type="checkbox"
-					[attr.aria-label]="'pptx.ribbon.afterDuration' | translate"
-					[checked]="draft().advanceAfter"
-					(change)="onAdvanceAfter($event)"
-					class="accent-primary h-3 w-3"
-				/>
-				<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
-				<input
-					type="text"
-					[attr.aria-label]="'pptx.ribbon.advanceAfterSeconds' | translate"
-					[value]="draft().advanceAfterText"
-					(change)="onAdvanceAfterText($event)"
-					[disabled]="!draft().advanceAfter"
-					class="pptx-rb-select w-16 text-center disabled:opacity-50"
-					[title]="'pptx.ribbon.advanceAfterSeconds' | translate"
-				/>
-			</label>
-		</div>
+				<label
+					data-ribbon-control="transitions.timing.advanceAfter"
+					class="inline-flex cursor-pointer items-center gap-1.5"
+				>
+					<input
+						type="checkbox"
+						[attr.aria-label]="'pptx.ribbon.afterDuration' | translate"
+						[checked]="draft().advanceAfter"
+						(change)="onAdvanceAfter($event)"
+						class="accent-primary h-3 w-3"
+					/>
+					<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
+					<input
+						type="text"
+						[attr.aria-label]="'pptx.ribbon.advanceAfterSeconds' | translate"
+						[value]="draft().advanceAfterText"
+						(change)="onAdvanceAfterText($event)"
+						[disabled]="!draft().advanceAfter"
+						class="pptx-rb-select w-16 text-center disabled:opacity-50"
+						[title]="'pptx.ribbon.advanceAfterSeconds' | translate"
+					/>
+				</label>
+			</div>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Inspector -->
 		<button

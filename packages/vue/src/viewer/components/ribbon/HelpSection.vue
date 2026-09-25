@@ -29,6 +29,8 @@ const optionsAvailable = computed(() => isDialogAvailable(customization.value, '
 	<button
 		v-if="optionsAvailable"
 		type="button"
+		data-ribbon-group="help.help"
+		data-ribbon-control="help.help.options"
 		:class="pill"
 		:title="t('pptx.settings.title')"
 		@click="(props.onOpenSettings ?? props.onToggleShortcuts)()"
@@ -37,6 +39,8 @@ const optionsAvailable = computed(() => isDialogAvailable(customization.value, '
 	</button>
 	<button
 		type="button"
+		data-ribbon-group="help.help"
+		data-ribbon-control="help.help.keyboardShortcuts"
 		:class="pill"
 		:title="t('pptx.settings.keyboardShortcuts')"
 		@click="props.onToggleShortcuts()"
@@ -45,6 +49,8 @@ const optionsAvailable = computed(() => isDialogAvailable(customization.value, '
 	</button>
 	<button
 		type="button"
+		data-ribbon-group="help.help"
+		data-ribbon-control="help.help.accessibility"
 		:class="pill"
 		:title="t('pptx.ribbon.accessibilityCheck')"
 		@click="props.onRunAccessibilityCheck()"

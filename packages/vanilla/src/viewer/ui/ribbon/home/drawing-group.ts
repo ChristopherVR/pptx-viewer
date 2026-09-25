@@ -1,12 +1,15 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
-import type { ShapePresetType } from 'pptx-viewer-shared';
-import { RIBBON_SHAPE_SWATCHES, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
+import type { RibbonGalleryPlacement, ShapePresetType } from 'pptx-viewer-shared';
+import { FIXED_TAB_GALLERIES, RIBBON_SHAPE_SWATCHES, SHAPE_PRESET_DEFS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
 import { makeDropdown } from '../../dropdown';
 import { makeSwatchPicker } from '../../swatch-picker';
+import type { RibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGallery } from '../gallery/ribbon-gallery';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface DrawingGroupHandlers {
 	insertShape(shapeType: ShapePresetType): void;
@@ -46,8 +49,9 @@ const TOP_SHAPE_COUNT = 12;
 
 /**
  * The ribbon Home tab's Drawing group, mirroring React's `DrawingGroup`: a
- * Shapes menu, an Arrange menu, Shape Fill / Shape Outline swatch pickers and
- * the not-yet-implemented Shape Effects placeholder.
+ * Shapes menu, an Arrange menu, the Quick Styles (Shape Styles) gallery,
+ * Shape Fill / Shape Outline swatch pickers and the Shape Effects gallery,
+ * both galleries rendered from the shared descriptors.
  *
  * Group/Ungroup ride in the Arrange menu rather than as their own ribbon
  * buttons: React offers no such buttons, and a menu entry keeps this binding's
@@ -58,8 +62,10 @@ export function createDrawingGroup(
 	doc: Document,
 	t: Translator,
 	handlers: DrawingGroupHandlers,
+	galleryHub: RibbonGalleryHub = createRibbonGalleryHub(() => {}),
 ): DrawingGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.drawing');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -114,17 +120,31 @@ export function createDrawingGroup(
 		onSelectTheme: (commit) => handlers.setShapeStroke(commit.hex, commit.ref),
 	});
 
-	// Shape Effects has no implementation in any binding yet; React ships it
-	// permanently disabled with a "(not available)" label, so this one does too
-	// rather than pretending the feature exists.
-	const effects = makeButton(doc, {
-		label: t('pptx.drawing.shapeEffectsUnavailable'),
-		icon: 'sparkles',
-		onClick: () => {},
-	});
-	effects.setDisabled(true);
+	const fixedGallery = (control: RibbonGalleryPlacement['control']): RibbonGalleryPlacement => {
+		const placement = FIXED_TAB_GALLERIES.find((entry) => entry.control === control);
+		if (!placement) {
+			throw new Error(`Missing fixed gallery placement ${control}`);
+		}
+		return placement;
+	};
+	const quickStyles = createRibbonGallery(
+		doc,
+		t,
+		fixedGallery('home.drawing.quickStyles'),
+		galleryHub,
+	);
+	const effects = createRibbonGallery(
+		doc,
+		t,
+		fixedGallery('home.drawing.shapeEffects'),
+		galleryHub,
+	);
 
-	row.append(shapes.el, arrange.el, fill.el, outline.el, effects.btn);
+	tagRibbonControl(shapes.el, 'home.drawing.shapes');
+	tagRibbonControl(arrange.el, 'home.drawing.arrange');
+	tagRibbonControl(fill.el, 'home.drawing.shapeFill');
+	tagRibbonControl(outline.el, 'home.drawing.shapeOutline');
+	row.append(shapes.el, arrange.el, quickStyles.el, fill.el, outline.el, effects.el);
 
 	return {
 		el,
@@ -155,7 +175,6 @@ export function createDrawingGroup(
 			if (strokeColor !== undefined) {
 				outline.setValue(strokeColor);
 			}
-			effects.setDisabled(true);
 		},
 	};
 }

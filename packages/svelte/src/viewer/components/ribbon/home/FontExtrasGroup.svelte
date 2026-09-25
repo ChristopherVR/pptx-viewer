@@ -72,6 +72,7 @@
 		class:pptx-svelte-fontx-on={strikethrough}
 		disabled={!active}
 		aria-pressed={strikethrough}
+		data-ribbon-control="home.font.strikethrough"
 		aria-label={t('pptx.textPanel.strikethrough')}
 		title={t('pptx.textPanel.strikethrough')}
 		onclick={() => el && apply((current) => toggleStrikethroughPatch(current))}
@@ -83,6 +84,7 @@
 		type="button"
 		class="pptx-svelte-fontx-btn"
 		disabled={!active}
+		data-ribbon-control="home.font.clearFormatting"
 		aria-label={t('pptx.text.clearFormatting')}
 		title={t('pptx.text.clearFormatting')}
 		onclick={() => el && apply((current) => clearFormattingPatch(current))}
@@ -90,7 +92,7 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h7l3 3-7 7-3-3z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /><path d="M3 13h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
 
-	<div class="pptx-svelte-fontx-menu" bind:this={caseMenuEl} onfocusout={onFocusOut}>
+	<div class="pptx-svelte-fontx-menu" data-ribbon-control="home.font.changeCase" bind:this={caseMenuEl} onfocusout={onFocusOut}>
 		<button
 			type="button"
 			class="pptx-svelte-fontx-btn"
@@ -126,7 +128,7 @@
 		{/if}
 	</div>
 
-	<div class="pptx-svelte-fontx-menu" bind:this={spacingMenuEl} onfocusout={onFocusOut}>
+	<div class="pptx-svelte-fontx-menu" data-ribbon-control="home.font.characterSpacing" bind:this={spacingMenuEl} onfocusout={onFocusOut}>
 		<button
 			type="button"
 			class="pptx-svelte-fontx-btn"
@@ -162,6 +164,7 @@
 		value={textColor}
 		disabled={!active}
 		label={t('pptx.text.fontColor')}
+		control="home.font.fontColor"
 		title={t('pptx.textProperties.textColor')}
 		glyph="A"
 		recentColors={editor.mruColors}
@@ -184,6 +187,7 @@
 		value={highlight}
 		disabled={!active}
 		label={t('pptx.text.highlightColor')}
+		control="home.font.highlightColor"
 		glyph="H"
 		swatches={['#ffff00', '#00ff00', '#00ffff', '#ff00ff', '#0000ff', '#ff0000', '#000080', '#008080', '#008000', '#800080']}
 		onselect={(hex) => {

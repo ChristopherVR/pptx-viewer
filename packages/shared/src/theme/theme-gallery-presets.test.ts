@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
+import { activeGalleryThemePreset, GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 
 describe('theme-gallery-presets', () => {
 	it('exposes the gallery set in the canonical order', () => {
@@ -34,5 +34,15 @@ describe('theme-gallery-presets', () => {
 			expect(preset.fontScheme.majorFont.latin).toBeTypeOf('string');
 			expect(preset.fontScheme.minorFont.latin).toBeTypeOf('string');
 		}
+	});
+
+	it('finds the active preset by colour scheme, then by name', () => {
+		const berlin = GALLERY_THEME_PRESETS.find((p) => p.id === 'berlin');
+		expect(
+			activeGalleryThemePreset({ name: 'Renamed', colorScheme: berlin?.colorScheme })?.id,
+		).toBe('berlin');
+		expect(activeGalleryThemePreset({ name: 'Ion' })?.id).toBe('ion');
+		expect(activeGalleryThemePreset({ name: 'Custom Theme' })).toBeUndefined();
+		expect(activeGalleryThemePreset(undefined)).toBeUndefined();
 	});
 });

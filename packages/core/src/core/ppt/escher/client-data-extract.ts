@@ -15,7 +15,18 @@ import { collectTextBodies, findOutlineTextRef } from '../text/text-atoms';
 import { buildTextBody } from '../text/text-builder';
 import type { DrawingContext } from './sp-container';
 
+/**
+ * PlaceholderEnum ([MS-PPT] 2.13.21) to ST_PlaceholderType. The master ids
+ * (1, 2, 7-9) matter as much as the slide ones: a master's date, footer and
+ * slide-number placeholders must be recognised as placeholders, or an empty
+ * one survives the master's placeholder filter as a stray no-fill shape.
+ */
 const PLACEHOLDER_TYPE_MAP: Record<number, string> = {
+	1: 'title',
+	2: 'body',
+	7: 'dt',
+	8: 'sldNum',
+	9: 'ftr',
 	13: 'title',
 	14: 'body',
 	15: 'ctrTitle',

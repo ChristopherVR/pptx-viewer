@@ -67,6 +67,7 @@
 		value={/^#/.test(fill) ? fill : '#ffffff'}
 		disabled={!active}
 		label={t('pptx.drawing.shapeFill')}
+		control="home.drawing.shapeFill"
 		glyph="F"
 		swatches={RIBBON_SHAPE_SWATCHES}
 		recentColors={editor.mruColors}
@@ -80,6 +81,7 @@
 		value={/^#/.test(stroke) ? stroke : '#000000'}
 		disabled={!active}
 		label={t('pptx.drawing.shapeOutline')}
+		control="home.drawing.shapeOutline"
 		glyph="O"
 		swatches={RIBBON_SHAPE_SWATCHES}
 		recentColors={editor.mruColors}
@@ -96,6 +98,7 @@
 		step="0.5"
 		disabled={!active}
 		aria-label={t('pptx.ribbon.strokeWidth')}
+		data-ribbon-control="home.arrange.outlineWidth"
 		title={t('pptx.ribbon.strokeWidth')}
 		value={strokeWidth}
 		onchange={(e) => setWidth(e.currentTarget.value)}

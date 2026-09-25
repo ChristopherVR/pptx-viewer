@@ -22,15 +22,18 @@ import { valueToY } from './chart-view-model-scale';
 import type { ValueRange } from './chart-view-model-scale';
 import type { PlotLayout } from './chart-view-model-types';
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Pie / doughnut
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface PieSliceGeometry {
 	d: string;
 	midAngle: number;
 	labelX: number;
 	labelY: number;
+	/** Edge angles (radians) and centre (after any explosion), for `bestFit` labels. */
+	startAngle: number;
+	endAngle: number;
+	cx: number;
+	cy: number;
 }
 
 export function computePieSlicePath(
@@ -65,7 +68,7 @@ export function computePieSlicePath(
 		labelX = cx + labelR * Math.cos(midAngle),
 		labelY = cy + labelR * Math.sin(midAngle);
 
-	return { d, midAngle, labelX, labelY };
+	return { d, midAngle, labelX, labelY, startAngle, endAngle, cx, cy };
 }
 
 export function computePieLayout(
@@ -153,9 +156,7 @@ export function computePieSlices(
 	});
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 // Scatter
-// ─────────────────────────────────────────────────────────────────────────────
 
 export interface ScatterDot {
 	cx: number;

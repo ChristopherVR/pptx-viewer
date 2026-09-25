@@ -95,10 +95,14 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 </script>
 
 <template>
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.slides">
 		<div class="flex items-center gap-1">
 			<!-- New Slide split button -->
-			<div :ref="layoutMenu.root" class="relative inline-flex items-center">
+			<div
+				:ref="layoutMenu.root"
+				class="relative inline-flex items-center"
+				data-ribbon-control="home.slides.newSlide"
+			>
 				<button
 					type="button"
 					:disabled="!props.canEdit || props.layoutOptions.length === 0"
@@ -134,6 +138,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 			<button
 				v-if="props.onInsertSlideFromTemplate"
 				type="button"
+				data-ribbon-control="home.slides.slideTemplates"
 				:disabled="!props.canEdit"
 				:class="pill"
 				:title="t('pptx.home.slideTemplates')"
@@ -144,7 +149,11 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 			</button>
 
 			<!-- Layout (apply to current slide) -->
-			<div :ref="layoutApplyMenu.root" class="relative inline-flex items-center">
+			<div
+				:ref="layoutApplyMenu.root"
+				class="relative inline-flex items-center"
+				data-ribbon-control="home.slides.layout"
+			>
 				<button
 					type="button"
 					:disabled="!props.canEdit || props.layoutOptions.length === 0"
@@ -168,6 +177,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 			<!-- Reset -->
 			<button
 				type="button"
+				data-ribbon-control="home.slides.reset"
 				:disabled="!props.canEdit"
 				:class="pill"
 				:title="t('pptx.sections.resetSlideTitle')"
@@ -180,6 +190,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 			<!-- Section -->
 			<button
 				type="button"
+				data-ribbon-control="home.slides.section"
 				:disabled="!props.canEdit"
 				:class="pill"
 				:title="t('pptx.sections.addSection')"

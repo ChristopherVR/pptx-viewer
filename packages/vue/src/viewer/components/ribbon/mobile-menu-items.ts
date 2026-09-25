@@ -12,12 +12,13 @@ import {
 	Type,
 	Wand,
 } from 'lucide-vue-next';
+import type { RibbonContextualTabId } from 'pptx-viewer-shared';
 import type { Component } from 'vue';
 
 import type { ToolbarSection } from './ribbon-types';
 
 /** Sections surfaced as chips in `MobileMenuSheet`, in the same order as React's MENU_ITEMS. */
-export type MobileMenuKey = Exclude<ToolbarSection, 'help'>;
+export type MobileMenuKey = Exclude<ToolbarSection, 'help' | RibbonContextualTabId>;
 
 export interface MobileMenuItemDef {
 	key: MobileMenuKey;

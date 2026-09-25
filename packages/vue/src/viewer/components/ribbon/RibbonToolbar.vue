@@ -12,13 +12,21 @@
  * renders its own mobile chrome (`MobileBottomBar`) at the host level, so this
  * shell always renders the desktop ribbon (the host hides it on mobile).
  */
-import { computed, inject } from 'vue';
+import {
+	RIBBON_CONTEXTUAL_TABS,
+	resolveActiveRibbonTab,
+	visibleContextualTabs,
+} from 'pptx-viewer-shared';
+import type { RibbonContextualTabId } from 'pptx-viewer-shared';
+import { computed, inject, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import { ViewerOptionsKey } from '../../composables/useViewerOptionsStore';
 import AnimationsSection from './AnimationsSection.vue';
 import ArrangeSection from './ArrangeSection.vue';
+import ContextualTabSection from './ContextualTabSection.vue';
 import DesignSection from './DesignSection.vue';
 import DrawingGroup from './DrawingGroup.vue';
 import DrawSection from './DrawSection.vue';
@@ -39,7 +47,28 @@ const props = defineProps<Props>();
 const { t } = useI18n();
 
 const showRibbon = computed(() => props.mode === 'edit' || props.mode === 'master');
-const s = computed(() => props.toolbarSection);
+/**
+ * Contextual tabs (Shape Format, Picture Format, ...) follow the selection;
+ * the shared `resolveActiveRibbonTab` drops back to Home when the active one
+ * disappears, and the host's state is told so the two never disagree.
+ */
+const customization = useResolvedCustomization();
+const contextualTabs = computed(() =>
+	visibleContextualTabs(props.selectedElement, customization.value),
+);
+const s = computed(() =>
+	resolveActiveRibbonTab(props.toolbarSection, contextualTabs.value, 'home'),
+);
+watch(s, (next) => {
+	if (next !== props.toolbarSection) {
+		props.onSetToolbarSection(next);
+	}
+});
+const activeContextualTab = computed(() =>
+	RIBBON_CONTEXTUAL_TABS.some((tab) => tab.id === s.value)
+		? (s.value as RibbonContextualTabId)
+		: null,
+);
 /** The Text group shows on both the Home and Text tabs (mirrors React). */
 const showText = computed(() => s.value === 'home' || s.value === 'text');
 /**
@@ -67,8 +96,9 @@ const { visibleTabs } = useToolbarVisibility(
 		<!-- Ribbon Tab Bar -->
 		<RibbonTabBar
 			v-if="showRibbon"
-			:toolbar-section="props.toolbarSection"
+			:toolbar-section="s"
 			:visible-tabs="visibleTabs"
+			:contextual-tabs="contextualTabs"
 			:on-set-toolbar-section="props.onSetToolbarSection"
 			:can-edit="props.canEdit"
 			:on-enter-rehearsal-mode="props.onEnterRehearsalMode"
@@ -260,6 +290,8 @@ const { visibleTabs } = useToolbarVisibility(
 			/>
 
 			<RibbonTailSections v-bind="props" />
+
+			<ContextualTabSection v-if="activeContextualTab" :tab="activeContextualTab" />
 		</div>
 	</div>
 </template>

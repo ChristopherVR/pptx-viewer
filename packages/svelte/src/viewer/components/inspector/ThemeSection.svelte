@@ -7,31 +7,20 @@
 	 * mapping rows when active. The panel already renders the "THEME OVERRIDE"
 	 * heading, so this component starts straight at the checkbox.
 	 *
-	 * Below it, an "Edit Theme" disclosure hosts {@link ThemeEditorPanel}, this
-	 * binding's port of React's theme editor (React reaches the same panel from
-	 * a side panel rather than the inspector).
-	 *
-	 * WHY two update paths: a colour-picker drag fires continuously, so a live
-	 * colour edit takes the CHEAP route React settled on (write the scheme into
-	 * the archive, then re-resolve the live slides' colours in place via core's
-	 * `reResolveSlideColors`). Only the explicit "Apply to Presentation" button
-	 * runs the heavy `switchTheme` round-trip. Doing the heavy path per picker
-	 * frame is what previously froze the React renderer for seconds.
+	 * Below it, an "Edit Theme" disclosure hosts {@link DeckThemeEditor}, this
+	 * binding's port of React's theme editor (Design > Edit Theme opens the
+	 * same editor from the ribbon).
 	 */
 	import type {
 		ColorMapAliasKey,
 		PptxHandler,
 		PptxTheme,
 		PptxThemeColorScheme,
-		PptxThemeFontScheme,
 	} from 'pptx-viewer-core';
 	import {
 		applyThemeOverrideToSlide,
-		buildThemeColorMap,
 		COLOR_MAP_ALIAS_KEYS,
 		DEFAULT_COLOR_MAP,
-		reResolveElementColors,
-		reResolveSlideColors,
 		THEME_COLOR_SCHEME_KEYS,
 		THEME_PRESETS,
 	} from 'pptx-viewer-core';
@@ -39,7 +28,7 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
-	import ThemeEditorPanel from './ThemeEditorPanel.svelte';
+	import DeckThemeEditor from './DeckThemeEditor.svelte';
 
 	const {
 		editor,
@@ -53,7 +42,6 @@
 		onthemechange: (theme: PptxTheme) => void;
 	} = $props();
 	const t = useTranslator();
-	let busy = $state(false);
 	const current = $derived(
 		theme ?? {
 			name: 'Custom Theme',
@@ -63,51 +51,6 @@
 	);
 	const activeSlide = $derived(editor.slides[editor.currentSlideIndex]);
 	const canEdit = $derived(editor.editable);
-
-	/** Cheap live colour edit: rewrite the archive scheme + remap live slides. */
-	async function updateColorScheme(colorScheme: PptxThemeColorScheme): Promise<void> {
-		const previousMap = current.colorScheme ? buildThemeColorMap(current.colorScheme) : {};
-		await handler.updateThemeColorScheme(colorScheme);
-		editor.commitSlides(reResolveSlideColors(editor.slides, previousMap, colorScheme));
-		// Master/layout elements render as a separate per-slide layer (not part
-		// of `slide.elements`), so `commitSlides` above never touches them; left
-		// alone they'd keep painting the old scheme's colours until a full reload.
-		if (Object.keys(editor.templateElementsBySlideId).length > 0) {
-			const recoloured: typeof editor.templateElementsBySlideId = {};
-			for (const [slideId, elements] of Object.entries(editor.templateElementsBySlideId)) {
-				recoloured[slideId] = reResolveElementColors(elements, previousMap, colorScheme);
-			}
-			editor.templateElementsBySlideId = recoloured;
-		}
-		onthemechange({ ...current, colorScheme });
-	}
-
-	async function updateFontScheme(fontScheme: PptxThemeFontScheme): Promise<void> {
-		await handler.updateThemeFontScheme(fontScheme);
-		onthemechange({ ...current, fontScheme });
-	}
-
-	async function updateName(name: string): Promise<void> {
-		await handler.updateThemeName(name);
-		onthemechange({ ...current, name });
-	}
-
-	/** Heavy path: re-derive every slide from the theme (explicit button only). */
-	async function applyToPresentation(): Promise<void> {
-		busy = true;
-		try {
-			const result = await handler.switchTheme(
-				{ slides: editor.slides, width: 0, height: 0, theme: current },
-				current.colorScheme ?? THEME_PRESETS[0].colorScheme,
-				current.fontScheme ?? {},
-				current.name ?? 'Custom Theme',
-			);
-			editor.commitSlides(result.slides);
-			onthemechange(result.theme ?? current);
-		} finally {
-			busy = false;
-		}
-	}
 
 	function setOverride(next: Record<string, string> | undefined): void {
 		if (!activeSlide) {
@@ -186,14 +129,7 @@
 
 <details class="edit-theme">
 	<summary>{t('pptx.themeEditor.title')}</summary>
-	<ThemeEditorPanel
-		theme={current}
-		canEdit={canEdit && !busy}
-		onupdatecolorscheme={(colorScheme) => void updateColorScheme(colorScheme)}
-		onupdatefontscheme={(fontScheme) => void updateFontScheme(fontScheme)}
-		onupdatename={(name) => void updateName(name)}
-		onapply={() => void applyToPresentation()}
-	/>
+	<DeckThemeEditor {editor} {handler} {theme} {onthemechange} />
 </details>
 
 <style>

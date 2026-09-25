@@ -305,11 +305,20 @@ export function applyBulletProperties(paragraphProps: XmlObject, bulletInfo: Bul
 	}
 }
 
+/** Markup-only facts about the source paragraph; see `paragraph-markup-flags.ts`. */
+export interface ParagraphMarkupFlags {
+	/** The source wrote an empty `<a:pPr/>`. */
+	emptyParagraphPropertiesAuthored?: boolean;
+	/** The source had no run content and no `a:endParaRPr`. */
+	bareParagraph?: boolean;
+}
+
 /** Assemble a paragraph XML object from runs and pre-built paragraph properties. */
 export function assembleParagraphXml(
 	runs: XmlObject[],
 	paragraphProps: XmlObject,
 	endParaRunProperties?: Record<string, unknown>,
+	markup?: ParagraphMarkupFlags,
 ): XmlObject {
 	// OOXML CT_TextParagraph requires child order: pPr?, (r|br|fld)*, endParaRPr?.
 	// Since fast-xml-parser serialises keys in insertion order, build the
@@ -325,9 +334,11 @@ export function assembleParagraphXml(
 	// assigned regardless of whether it carried anything. Both sides of that
 	// collapsed distinction re-emit as "no pPr", which is lossless: an empty
 	// `<a:pPr/>` carries no attributes or children, so dropping it and never
-	// having had one are semantically identical.
+	// having had one are semantically identical. The parser records which of
+	// the two the source wrote (`emptyParagraphPropertiesAuthored`), so a
+	// PowerPoint-authored `<a:pPr/>` is still given back as written.
 	const paragraph: XmlObject = {};
-	if (Object.keys(paragraphProps).length > 0) {
+	if (Object.keys(paragraphProps).length > 0 || markup?.emptyParagraphPropertiesAuthored) {
 		paragraph['a:pPr'] = paragraphProps;
 	}
 
@@ -354,10 +365,12 @@ export function assembleParagraphXml(
 	// `a:endParaRPr` of its own is untouched content, not a blank line, and
 	// must pass through without inventing a trailing endParaRPr its source
 	// never had (measured: fabricated `<a:endParaRPr lang="en-US"/>` after the
-	// last authored run of every such paragraph in a rewritten slide).
+	// last authored run of every such paragraph in a rewritten slide). A
+	// source paragraph that was already runless WITHOUT one (`bareParagraph`,
+	// a bare `<a:p/>`) goes back the same way.
 	if (endParaRunProperties && typeof endParaRunProperties === 'object') {
 		paragraph['a:endParaRPr'] = endParaRunProperties as XmlObject;
-	} else if (runs.length === 0) {
+	} else if (runs.length === 0 && !markup?.bareParagraph) {
 		paragraph['a:endParaRPr'] = { '@_lang': 'en-US' };
 	}
 

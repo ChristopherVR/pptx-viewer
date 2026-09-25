@@ -433,6 +433,40 @@ describe('per-paragraph kinsoku / tab-default override', () => {
 		expect(runs.map((run) => run.charStart)).toStrictEqual([0, 2, 3, 3]);
 	});
 
+	it('breaks between two differently formatted runs by the same rules (eaLnBrk="0")', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: 'まみ',
+						style: {},
+						paragraphProperties: { eaLineBreak: false },
+					},
+					{ text: '」や', style: { color: '#C00000' } },
+				],
+				{ textStyle: {} },
+			),
+		);
+		expect(paras[0].runs.map((run) => run.text)).toStrictEqual(['ま​み​', '」​や']);
+	});
+
+	it('does not hang a run-final mark when the next run opens with a closing bracket', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: 'べ。',
+						style: {},
+						paragraphProperties: { hangingPunctuation: true },
+					},
+					{ text: '」ぼ', style: { color: '#C00000' } },
+				],
+				{ textStyle: {} },
+			),
+		);
+		expect(paras[0].runs.map((run) => run.text)).toStrictEqual(['べ。', '」ぼ']);
+	});
+
 	it('keeps the hanging space of a centred paragraph-final mark', () => {
 		const paras = buildParagraphs(
 			textEl(

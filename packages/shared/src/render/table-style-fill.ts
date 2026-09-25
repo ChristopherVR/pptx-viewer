@@ -24,6 +24,7 @@ import type {
 import { buildGradientCss, colorWithOpacity, getPatternSvg, normalizeHexColor } from './fill-style';
 import type { TableCellCss } from './table-style';
 import { isDisplayableImageUrl } from './table-style-image';
+import { tableSchemeColor } from './table-style-scheme';
 
 // ---------------------------------------------------------------------------
 // Theme colour helpers (tint / shade) — mirrors React viewer/utils/theme.ts
@@ -92,7 +93,7 @@ export function resolveStyleFillColor(
 	}
 	let base: string | undefined;
 	if (fill.schemeColor && colorScheme) {
-		base = (colorScheme as unknown as Record<string, string | undefined>)[fill.schemeColor];
+		base = tableSchemeColor(colorScheme, fill.schemeColor);
 	}
 	if (!base && fill.color) {
 		base = fill.color;
@@ -298,9 +299,7 @@ export function applyStyleText(
 		}
 	}
 	if (text.fontSchemeColor && colorScheme) {
-		const base = (colorScheme as unknown as Record<string, string | undefined>)[
-			text.fontSchemeColor
-		];
+		const base = tableSchemeColor(colorScheme, text.fontSchemeColor);
 		if (base) {
 			let color = base;
 			if (text.fontTint !== undefined && text.fontTint > 0) {

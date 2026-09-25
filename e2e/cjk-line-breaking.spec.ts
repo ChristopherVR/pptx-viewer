@@ -1,15 +1,18 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * PowerPoint's East Asian line breaking in every binding: `hangingPunct="1"`
- * keeps an overflowing `。` on its line past the margin, `hangingPunct="0"`
- * wraps it with the character before it, and `eaLnBrk="0"` drops kinsoku so
- * a closing bracket may start a line (COM-verified; see
+ * PowerPoint's East Asian line breaking in every binding, box for box against
+ * the lines PowerPoint itself produced (COM `TextRange.Lines()`, recorded in
+ * `generate-cjk-line-breaking-fixture.ts`): `hangingPunct="1"` keeps an
+ * overflowing `。` on its line past the margin unless a closing bracket
+ * follows it, `hangingPunct="0"` wraps it with the character before it,
+ * `eaLnBrk="0"` drops kinsoku, and none of it changes when the break falls
+ * between two differently formatted runs (see
  * `packages/shared/src/render/text-east-asian-breaks.ts`).
  *
- * Each box is 4.6em wide with zero insets and the fifth character is the one
- * at issue. The spec reads character rectangles from DOM ranges, so it makes
- * no assumption about any binding's span structure, and it skips a box whose
- * font does not give the fullwidth advances the geometry relies on.
+ * Each box is 4.6em wide with zero insets. The spec reads character
+ * rectangles from DOM ranges, so it makes no assumption about any binding's
+ * span structure, and it skips a box whose font does not give the fullwidth
+ * advances the geometry relies on.
  *
  * Fixture: `cjk-line-breaking.pptx` (`generate-cjk-line-breaking-fixture.ts`).
  *
@@ -18,7 +21,7 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 
-import { CJK_BREAK_BOXES } from './fixtures/generate-cjk-line-breaking-fixture';
+import { CJK_BREAK_BOXES, cjkBoxText } from './fixtures/generate-cjk-line-breaking-fixture';
 import { fixture, loadDeckAt, slideStage } from './support/deck';
 import { acrossFrameworks } from './support/parity';
 
@@ -75,11 +78,7 @@ async function readSlide(page: Page, origin: string): Promise<BoxLayout[]> {
 	await slideStage(page).waitFor();
 	await page.waitForFunction(() => document.fonts.status === 'loaded');
 	await page.waitForTimeout(400);
-	return measure(page, [
-		CJK_BREAK_BOXES.hang.text,
-		CJK_BREAK_BOXES.noHang.text,
-		CJK_BREAK_BOXES.breakAnywhere.text,
-	]);
+	return measure(page, CJK_BREAK_BOXES.map(cjkBoxText));
 }
 
 /** Whether the font gave the first four characters (near) equal fullwidth advances. */
@@ -91,40 +90,43 @@ function fullwidth(layout: BoxLayout): boolean {
 	);
 }
 
-const sameLine = (a: CharBox, b: CharBox) => Math.abs(a.top - b.top) < 2;
+/** The characters grouped into rendered lines (by top edge), in reading order. */
+function renderedLines(layout: BoxLayout): string[] {
+	const lines: Array<{ top: number; text: string }> = [];
+	for (const c of layout.chars) {
+		const line = lines.find((l) => Math.abs(l.top - c.top) < 2);
+		if (line) {
+			line.text += c.ch;
+		} else {
+			lines.push({ top: c.top, text: c.ch });
+		}
+	}
+	return [...lines].sort((a, b) => a.top - b.top).map((l) => l.text);
+}
 
 test.describe('CJK line breaking', () => {
-	test('every binding hangs 。 and drops kinsoku like PowerPoint', async ({
+	test('every binding breaks East Asian text where PowerPoint does', async ({
 		browser,
 	}, testInfo) => {
 		test.slow();
 		const results = await acrossFrameworks(browser, testInfo, readSlide);
 
 		const failures = results.flatMap(({ framework, value }) => {
-			const [hang, noHang, anywhere] = value;
-			const problems: string[] = [];
-			if (fullwidth(hang)) {
-				const [first, , , fourth, mark] = hang.chars;
-				if (!sameLine(first, mark) || !sameLine(fourth, mark)) {
-					problems.push('hangingPunct="1": the 。 wrapped instead of hanging');
-				} else if (mark.right <= hang.boxRight) {
-					problems.push('hangingPunct="1": the 。 does not reach past the margin');
+			const problems = CJK_BREAK_BOXES.flatMap((box, i) => {
+				const layout = value[i];
+				if (!fullwidth(layout)) {
+					return [];
 				}
-			}
-			if (fullwidth(noHang)) {
-				const [first, , , fourth, mark] = noHang.chars;
-				if (sameLine(first, mark) || !sameLine(fourth, mark)) {
-					problems.push('hangingPunct="0": え。 should wrap together');
+				const lines = renderedLines(layout);
+				if (lines.join('|') !== box.lines.join('|')) {
+					return [`${box.name}: rendered ${lines.join('|')}, PowerPoint ${box.lines.join('|')}`];
 				}
-			}
-			if (fullwidth(anywhere)) {
-				const [first, , , fourth, bracket] = anywhere.chars;
-				if (!sameLine(first, fourth) || sameLine(fourth, bracket)) {
-					problems.push('eaLnBrk="0": 」 should start line 2 on its own');
-				} else if (Math.abs(bracket.left - first.left) > 2) {
-					problems.push('eaLnBrk="0": 」 is not at the start of line 2');
+				const mark = layout.chars[box.lines[0].length - 1];
+				if (box.hangs && mark.right <= layout.boxRight) {
+					return [`${box.name}: the hanging ${mark.ch} does not reach past the margin`];
 				}
-			}
+				return [];
+			});
 			return problems.length > 0 ? [`${framework.name}: ${problems.join('; ')}`] : [];
 		});
 

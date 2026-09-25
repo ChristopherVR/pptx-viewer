@@ -61,130 +61,143 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 </script>
 
 <template>
-	<div :class="grp">
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="home.arrange">
+		<div :class="grp" data-ribbon-control="home.arrange.align">
+			<button
+				v-for="(a, i) in ALIGN_BTNS"
+				:key="a.k"
+				type="button"
+				:class="i < ALIGN_BTNS.length - 1 ? gB : gL"
+				:disabled="!canMut"
+				:title="t(ALIGNMENT_LABEL_KEYS[a.k])"
+				@click="props.onAlignElements(a.k)"
+			>
+				<component :is="a.icon" :class="[ic, a.rotate && 'rotate-90']" />
+			</button>
+		</div>
+		<div :class="grp">
+			<button
+				v-for="(d, i) in DISTRIBUTE_BTNS"
+				:key="d.k"
+				type="button"
+				:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
+				:disabled="!props.canEdit || !props.canDistribute"
+				:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
+				@click="props.onDistributeElements(d.k)"
+			>
+				<component :is="d.icon" :class="ic" />
+			</button>
+		</div>
 		<button
-			v-for="(a, i) in ALIGN_BTNS"
-			:key="a.k"
+			v-if="props.onToggleFormatPainter"
 			type="button"
-			:class="i < ALIGN_BTNS.length - 1 ? gB : gL"
-			:disabled="!canMut"
-			:title="t(ALIGNMENT_LABEL_KEYS[a.k])"
-			@click="props.onAlignElements(a.k)"
+			:disabled="
+				!props.canEdit || (props.canActivateFormatPainter === false && !props.formatPainterActive)
+			"
+			data-testid="format-painter-toggle"
+			:data-active="props.formatPainterActive ? 'true' : 'false'"
+			:class="
+				cn(pill, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
+			"
+			:title="t('pptx.arrange.formatPainter')"
+			@click="props.onToggleFormatPainter"
 		>
-			<component :is="a.icon" :class="[ic, a.rotate && 'rotate-90']" />
+			<Paintbrush :class="ic" />
+			{{ t('pptx.arrange.format') }}
+		</button>
+		<div :class="grp">
+			<button
+				type="button"
+				data-ribbon-control="home.arrange.flipHorizontal"
+				:class="gB"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.flipHorizontally')"
+				@click="props.onFlip('horizontal')"
+			>
+				{{ t('pptx.arrange.flipH') }}
+			</button>
+			<button
+				type="button"
+				data-ribbon-control="home.arrange.flipVertical"
+				:class="gL"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.flipVertically')"
+				@click="props.onFlip('vertical')"
+			>
+				{{ t('pptx.arrange.flipV') }}
+			</button>
+		</div>
+		<ShapeArrangeExtras
+			:can-edit="props.canEdit"
+			:selected-element="props.selectedElement"
+			:selected-count="props.selectedCount"
+			:selection-groupable="props.selectionGroupable"
+			:on-group-elements="props.onGroupElements"
+			:on-ungroup-element="props.onUngroupElement"
+			:on-update-element-style="props.onUpdateElementStyle"
+		/>
+		<MergeShapesMenu
+			v-if="!isHidden('mergeShapes')"
+			data-ribbon-control="home.arrange.mergeShapes"
+		/>
+		<CropControls v-if="!isHidden('crop')" data-ribbon-control="home.arrange.crop" />
+		<div :class="grp">
+			<button
+				data-ribbon-control="home.arrange.sendBackward"
+				:class="gB"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.sendBackward')"
+				@click="props.onMoveLayer('backward')"
+			>
+				<ChevronDown :class="ic" />
+			</button>
+			<button
+				data-ribbon-control="home.arrange.bringForward"
+				:class="gB"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.bringForward')"
+				@click="props.onMoveLayer('forward')"
+			>
+				<ChevronUp :class="ic" />
+			</button>
+			<button
+				data-ribbon-control="home.arrange.sendToBack"
+				:class="gB"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.sendToBack')"
+				@click="props.onMoveLayerToEdge('back')"
+			>
+				{{ t('pptx.arrange.back') }}
+			</button>
+			<button
+				data-ribbon-control="home.arrange.bringToFront"
+				:class="gL"
+				:disabled="!canMut"
+				:title="t('pptx.arrange.bringToFront')"
+				@click="props.onMoveLayerToEdge('front')"
+			>
+				{{ t('pptx.arrange.front') }}
+			</button>
+		</div>
+		<button
+			data-ribbon-control="home.arrange.duplicate"
+			:class="pill"
+			:disabled="!canMut"
+			:title="t('pptx.arrange.duplicate')"
+			@click="props.onDuplicate"
+		>
+			<Copy :class="ic" />
+			{{ t('pptx.arrange.duplicate') }}
+		</button>
+		<button
+			data-ribbon-control="home.arrange.delete"
+			:disabled="!canMut"
+			class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
+			:title="t('pptx.arrange.delete')"
+			@click="props.onDelete"
+		>
+			<Trash2 :class="ic" />
+			{{ t('pptx.arrange.delete') }}
 		</button>
 	</div>
-	<div :class="grp">
-		<button
-			v-for="(d, i) in DISTRIBUTE_BTNS"
-			:key="d.k"
-			type="button"
-			:class="i < DISTRIBUTE_BTNS.length - 1 ? gB : gL"
-			:disabled="!props.canEdit || !props.canDistribute"
-			:title="t('pptx.arrange.distribute' + d.k.charAt(0).toUpperCase() + d.k.slice(1))"
-			@click="props.onDistributeElements(d.k)"
-		>
-			<component :is="d.icon" :class="ic" />
-		</button>
-	</div>
-	<button
-		v-if="props.onToggleFormatPainter"
-		type="button"
-		:disabled="
-			!props.canEdit || (props.canActivateFormatPainter === false && !props.formatPainterActive)
-		"
-		data-testid="format-painter-toggle"
-		:data-active="props.formatPainterActive ? 'true' : 'false'"
-		:class="
-			cn(pill, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
-		"
-		:title="t('pptx.arrange.formatPainter')"
-		@click="props.onToggleFormatPainter"
-	>
-		<Paintbrush :class="ic" />
-		{{ t('pptx.arrange.format') }}
-	</button>
-	<div :class="grp">
-		<button
-			type="button"
-			:class="gB"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.flipHorizontally')"
-			@click="props.onFlip('horizontal')"
-		>
-			{{ t('pptx.arrange.flipH') }}
-		</button>
-		<button
-			type="button"
-			:class="gL"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.flipVertically')"
-			@click="props.onFlip('vertical')"
-		>
-			{{ t('pptx.arrange.flipV') }}
-		</button>
-	</div>
-	<ShapeArrangeExtras
-		:can-edit="props.canEdit"
-		:selected-element="props.selectedElement"
-		:selected-count="props.selectedCount"
-		:selection-groupable="props.selectionGroupable"
-		:on-group-elements="props.onGroupElements"
-		:on-ungroup-element="props.onUngroupElement"
-		:on-update-element-style="props.onUpdateElementStyle"
-	/>
-	<MergeShapesMenu v-if="!isHidden('mergeShapes')" />
-	<CropControls v-if="!isHidden('crop')" />
-	<div :class="grp">
-		<button
-			:class="gB"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.sendBackward')"
-			@click="props.onMoveLayer('backward')"
-		>
-			<ChevronDown :class="ic" />
-		</button>
-		<button
-			:class="gB"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.bringForward')"
-			@click="props.onMoveLayer('forward')"
-		>
-			<ChevronUp :class="ic" />
-		</button>
-		<button
-			:class="gB"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.sendToBack')"
-			@click="props.onMoveLayerToEdge('back')"
-		>
-			{{ t('pptx.arrange.back') }}
-		</button>
-		<button
-			:class="gL"
-			:disabled="!canMut"
-			:title="t('pptx.arrange.bringToFront')"
-			@click="props.onMoveLayerToEdge('front')"
-		>
-			{{ t('pptx.arrange.front') }}
-		</button>
-	</div>
-	<button
-		:class="pill"
-		:disabled="!canMut"
-		:title="t('pptx.arrange.duplicate')"
-		@click="props.onDuplicate"
-	>
-		<Copy :class="ic" />
-		{{ t('pptx.arrange.duplicate') }}
-	</button>
-	<button
-		:disabled="!canMut"
-		class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors"
-		:title="t('pptx.arrange.delete')"
-		@click="props.onDelete"
-	>
-		<Trash2 :class="ic" />
-		{{ t('pptx.arrange.delete') }}
-	</button>
 </template>

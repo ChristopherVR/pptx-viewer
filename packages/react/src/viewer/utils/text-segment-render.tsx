@@ -47,6 +47,11 @@ export interface RunRenderContext {
 	requireCtrlClick?: boolean;
 	/** The paragraph's hanging-punctuation / kinsoku-off pieces (shared). */
 	eastAsianBreaks?: EastAsianBreakOptions;
+	/**
+	 * The text of the run after this one (shared `followingText`), so an East
+	 * Asian break at the run boundary follows PowerPoint's rules too.
+	 */
+	eastAsianFollowing?: string;
 }
 
 /**
@@ -212,6 +217,7 @@ export function renderParagraphRun(
 		authoredPx: authoredLetterSpacing,
 		nestedStyle,
 		eastAsian: ctx.eastAsianBreaks,
+		following: ctx.eastAsianFollowing,
 	};
 
 	// Shared owns the run's paint: decorations, caps, highlight, outline stroke,

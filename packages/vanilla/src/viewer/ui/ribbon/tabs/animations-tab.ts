@@ -14,6 +14,7 @@ import type { AnimationActions } from '../../../editor/editor-animation-actions'
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 import { createAnimationPresetGallery } from './animation-preset-gallery';
 import {
 	animationRow,
@@ -87,7 +88,8 @@ export function createAnimationsTab(
 		onClick: playPreview,
 	});
 	preview.btn.title = t('pptx.animations.previewTooltip');
-	const previewGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const previewGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.preview');
+	tagRibbonControl(preview.btn, 'animations.preview.preview');
 	const previewRow = createEl(doc, 'div', 'pptxv-rgroup-row');
 	previewRow.appendChild(preview.btn);
 	const previewLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -95,23 +97,25 @@ export function createAnimationsTab(
 	previewGroup.append(previewRow, previewLabel);
 	el.appendChild(previewGroup);
 
-	const galleryGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const galleryGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.animation');
 	const galleryLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
 	galleryLabel.textContent = t('pptx.animations.animation');
 	const gallery = createAnimationPresetGallery(doc, t, (group, preset) =>
 		handlers.addAnimation(group, preset),
 	);
+	tagRibbonControl(gallery.el, 'animations.animation.gallery');
 	galleryGroup.append(gallery.el, galleryLabel);
 	el.appendChild(galleryGroup);
 
 	// Motion paths get their own group: a path coexists with an entrance /
 	// emphasis / exit preset on the same entry rather than replacing one.
-	const motionGroup = createEl(doc, 'div', 'pptxv-rgroup');
+	const motionGroup = tagRibbonGroup(createEl(doc, 'div', 'pptxv-rgroup'), 'animations.motionPath');
 	const motionLabel = createEl(doc, 'span', 'pptxv-rgroup-label');
 	motionLabel.textContent = t('pptx.animation.motionPath');
 	const motionGallery = createMotionPathGallery(doc, t, (presetId) =>
 		handlers.applyMotionPath(presetId),
 	);
+	tagRibbonControl(motionGallery.el, 'animations.motionPath.gallery');
 	motionGroup.append(motionGallery.el, motionLabel);
 	el.appendChild(motionGroup);
 

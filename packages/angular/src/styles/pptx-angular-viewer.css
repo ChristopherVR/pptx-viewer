@@ -73,6 +73,32 @@
 	.pptx-rb-sep {
 		@apply mx-1 w-px shrink-0 self-stretch bg-border/40;
 	}
+	/* Ribbon style galleries (pptx-ribbon-gallery): the inline tile strip,
+	   its "more" button, the dropped-down panel and the SVG preview tiles. */
+	.pptx-rb-gallery-strip {
+		@apply inline-flex shrink-0 items-center gap-0.5 rounded border border-border bg-muted p-0.5;
+	}
+	.pptx-rb-gallery-more {
+		@apply inline-flex h-9 shrink-0 items-center justify-center rounded px-0.5 text-foreground hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-gallery-tile {
+		@apply inline-flex shrink-0 items-center justify-center rounded border border-transparent bg-background p-0.5 leading-none hover:border-primary/60 disabled:cursor-not-allowed disabled:opacity-40;
+	}
+	.pptx-rb-gallery-tile-strip {
+		@apply h-9 overflow-hidden;
+	}
+	.pptx-rb-gallery-tile-strip > svg {
+		@apply h-8 w-auto;
+	}
+	.pptx-rb-gallery-tile-applied {
+		@apply border-primary ring-1 ring-primary;
+	}
+	.pptx-rb-gallery-popup {
+		@apply z-50 mt-0.5 flex max-h-[420px] flex-col gap-1 overflow-y-auto rounded border border-border bg-popover p-2 text-foreground shadow-md;
+	}
+	.pptx-rb-gallery-heading {
+		@apply px-0.5 pt-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground;
+	}
 	/* Compact checkbox/label row used by the ribbon's "Options"-style groups
 	   (Slide Show, View), where PowerPoint stacks three small toggles in the
 	   height of one command button. */
@@ -126,6 +152,7 @@ pptx-ribbon-shape-extras,
 pptx-ribbon-hyperlink-button,
 pptx-ribbon-paragraph-controls,
 pptx-ribbon-insert-fields,
+pptx-ribbon-contextual-section,
 pptx-ribbon-font-controls {
 	display: contents;
 }

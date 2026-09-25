@@ -18,6 +18,12 @@
 -->
 
 <style>
+	/* A layout-neutral wrapper that only carries a `data-ribbon-group` /
+	   `data-ribbon-control` catalogue id (shared ribbon customisation). */
+	:global(.pptx-svelte-viewer .pptx-svelte-rb-contents) {
+		display: contents;
+	}
+
 	:global(.pptx-svelte-viewer :is(button, a, input, select, textarea, [tabindex]):not([data-pptx-search-input]):focus-visible) {
 		outline: 2px solid var(--pptx-ring, #818cf8) !important;
 		outline-offset: 2px;

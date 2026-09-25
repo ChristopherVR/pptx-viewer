@@ -19,10 +19,11 @@ import type { BackstageCardId } from '../backstage-cards';
 import type { CanvasContextMenuCommandId } from '../canvas-context-menu-commands';
 import type { ContextMenuCommandId } from '../context-menu-commands';
 import type { EditPointsCommandId } from '../edit-points/edit-points-menu';
-import type { ToolbarActionId } from '../toolbar-actions';
+import type { RibbonContextualTabId, ToolbarActionId } from '../toolbar-actions';
 import { VIEWER_EXPORT_FORMAT_IDS } from './customization-catalog';
 import { resolveKeyboardCustomization } from './customization-keymap';
 import type { ResolvedKeyboardCustomization } from './customization-keymap';
+import { resolveRibbonCustomization } from './customization-resolve-ribbon';
 import type {
 	OptionsPageId,
 	OptionsSectionId,
@@ -34,10 +35,17 @@ import type {
 	ViewerFeatureId,
 	ViewerPanelId,
 } from './customization-types';
+import type { RibbonControlId, RibbonGroupId } from './ribbon-control-ids';
 
 /** The normalised, set-based view of a customisation. Treat as immutable. */
 export interface ResolvedCustomization {
 	hiddenActions: ReadonlySet<ToolbarActionId>;
+	/** Contextual tabs (`shapeFormat`, ...) the host never wants shown. */
+	hiddenContextualTabs: ReadonlySet<RibbonContextualTabId>;
+	/** Catalogued ribbon groups to hide (`ribbon.hiddenGroups`). */
+	hiddenRibbonGroups: ReadonlySet<RibbonGroupId>;
+	/** Catalogued ribbon controls to hide (the `<tab>.<group>.<control>` part of `ribbon.hiddenButtons`). */
+	hiddenRibbonControls: ReadonlySet<RibbonControlId>;
 	hiddenOptionsPages: ReadonlySet<OptionsPageId>;
 	hiddenOptionsSections: ReadonlySet<OptionsSectionId>;
 	hiddenSettings: ReadonlySet<OptionsSettingId>;
@@ -94,9 +102,8 @@ export function resolveCustomization(
 	customization: ViewerCustomization | undefined,
 ): ResolvedCustomization {
 	const c = customization ?? {};
-	const hiddenActions = new Set<ToolbarActionId>();
-	addAll(hiddenActions, c.ribbon?.hiddenTabs);
-	addAll(hiddenActions, c.ribbon?.hiddenButtons);
+	const ribbon = resolveRibbonCustomization(c.ribbon);
+	const hiddenActions = ribbon.actions;
 	const pages = new Set<BackstagePage>(c.backstage?.hiddenPages ?? []);
 	const cards = new Set<BackstageCardId>(c.backstage?.hiddenCards ?? []);
 	addAll(cards, c.hiddenExportFormats);
@@ -126,6 +133,9 @@ export function resolveCustomization(
 	}
 	return {
 		hiddenActions,
+		hiddenContextualTabs: ribbon.contextualTabs,
+		hiddenRibbonGroups: ribbon.groups,
+		hiddenRibbonControls: ribbon.controls,
 		hiddenOptionsPages: optionsPages,
 		hiddenOptionsSections: new Set(c.options?.hiddenSections ?? []),
 		hiddenSettings: new Set(c.options?.hiddenSettings ?? []),

@@ -93,88 +93,117 @@ function commitOption(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id'], checked: bo
 </script>
 
 <template>
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.fromBeginningTooltip')"
-		@click="props.onPresentFromBeginning()"
-	>
-		<Play :class="ic" />
-		{{ t('pptx.slideShow.fromBeginning') }}
-	</button>
-	<button :class="pill" :title="t('pptx.slideShow.fromCurrentTooltip')" @click="props.onPresent()">
-		<Play :class="ic" />
-		{{ t('pptx.slideShow.fromCurrent') }}
-	</button>
-	<div :class="SEP" />
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.presenterViewTooltip')"
-		@click="props.onEnterPresenterView()"
-	>
-		<Monitor :class="ic" />
-		{{ t('pptx.slideShow.presenterView') }}
-	</button>
-	<div :ref="showsMenu.root" class="relative">
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="slideShow.startSlideShow">
 		<button
-			type="button"
-			:class="cn(pill, showsMenu.open.value ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-			:aria-expanded="showsMenu.open.value"
-			:title="t('pptx.customShows.customShowTooltip')"
-			@click="showsMenu.toggle()"
+			data-ribbon-control="slideShow.startSlideShow.fromBeginning"
+			:class="pill"
+			:title="t('pptx.slideShow.fromBeginningTooltip')"
+			@click="props.onPresentFromBeginning()"
 		>
-			<ListVideo :class="ic" />
-			{{ t('pptx.slideShow.customShow') }}
+			<Play :class="ic" />
+			{{ t('pptx.slideShow.fromBeginning') }}
+		</button>
+		<button
+			data-ribbon-control="slideShow.startSlideShow.fromCurrent"
+			:class="pill"
+			:title="t('pptx.slideShow.fromCurrentTooltip')"
+			@click="props.onPresent()"
+		>
+			<Play :class="ic" />
+			{{ t('pptx.slideShow.fromCurrent') }}
+		</button>
+	</div>
+	<div :class="SEP" />
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="slideShow.present">
+		<button
+			data-ribbon-control="slideShow.present.presenterView"
+			:class="pill"
+			:title="t('pptx.slideShow.presenterViewTooltip')"
+			@click="props.onEnterPresenterView()"
+		>
+			<Monitor :class="ic" />
+			{{ t('pptx.slideShow.presenterView') }}
 		</button>
 		<div
-			v-if="showsMenu.open.value"
-			class="z-50 flex flex-col pt-1"
-			v-anchored-popup="{ anchor: showsMenu.root.value }"
+			:ref="showsMenu.root"
+			class="relative"
+			data-ribbon-control="slideShow.startSlideShow.customShow"
 		>
-			<div
-				class="flex items-center gap-1 rounded-lg border border-border bg-popover p-2 shadow-2xl"
+			<button
+				type="button"
+				:class="cn(pill, showsMenu.open.value ? 'bg-primary hover:bg-primary/80 text-white' : '')"
+				:aria-expanded="showsMenu.open.value"
+				:title="t('pptx.customShows.customShowTooltip')"
+				@click="showsMenu.toggle()"
 			>
-				<CustomShowsControls v-bind="props.customShowControls" />
+				<ListVideo :class="ic" />
+				{{ t('pptx.slideShow.customShow') }}
+			</button>
+			<div
+				v-if="showsMenu.open.value"
+				class="z-50 flex flex-col pt-1"
+				v-anchored-popup="{ anchor: showsMenu.root.value }"
+			>
+				<div
+					class="flex items-center gap-1 rounded-lg border border-border bg-popover p-2 shadow-2xl"
+				>
+					<CustomShowsControls v-bind="props.customShowControls" />
+				</div>
 			</div>
 		</div>
+		<button
+			v-if="!isHidden('broadcast')"
+			data-ribbon-control="slideShow.present.broadcast"
+			:class="pill"
+			:title="t('pptx.slideShow.broadcastTooltip')"
+			@click="props.onOpenBroadcastDialog()"
+		>
+			<Cast :class="ic" />
+			{{ t('pptx.slideShow.broadcast') }}
+		</button>
 	</div>
-	<button
-		v-if="!isHidden('broadcast')"
-		:class="pill"
-		:title="t('pptx.slideShow.broadcastTooltip')"
-		@click="props.onOpenBroadcastDialog()"
-	>
-		<Cast :class="ic" />
-		{{ t('pptx.slideShow.broadcast') }}
-	</button>
 	<div :class="SEP" />
-	<button disabled :class="pill">
-		<Video :class="ic" />
-		{{ t('pptx.slideShow.rehearseCoach') }}
-	</button>
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.setUpTooltip')"
-		@click="props.onOpenSetUpSlideShow()"
-	>
-		<Settings :class="ic" />
-		{{ t('pptx.slideShow.setUp') }}
-	</button>
-	<button :class="pill" :aria-pressed="props.activeSlideHidden" @click="props.onToggleHideSlide()">
-		<EyeOff :class="ic" />
-		{{ t('pptx.slideShow.hideSlide') }}
-	</button>
-	<button
-		:class="pill"
-		:title="t('pptx.slideShow.rehearseTimingsTooltip')"
-		@click="props.onEnterRehearsalMode()"
-	>
-		<Clock :class="ic" />
-		{{ t('pptx.slideShow.rehearseTimings') }}
-	</button>
-	<button :class="pill" @click="props.onEnterRehearsalMode()">
-		<Video :class="ic" />
-		{{ t('pptx.titleBar.record') }}
-	</button>
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="slideShow.setUp">
+		<button disabled :class="pill" data-ribbon-control="slideShow.setUp.rehearseWithCoach">
+			<Video :class="ic" />
+			{{ t('pptx.slideShow.rehearseCoach') }}
+		</button>
+		<button
+			data-ribbon-control="slideShow.setUp.setUpSlideShow"
+			:class="pill"
+			:title="t('pptx.slideShow.setUpTooltip')"
+			@click="props.onOpenSetUpSlideShow()"
+		>
+			<Settings :class="ic" />
+			{{ t('pptx.slideShow.setUp') }}
+		</button>
+		<button
+			data-ribbon-control="slideShow.setUp.hideSlide"
+			:class="pill"
+			:aria-pressed="props.activeSlideHidden"
+			@click="props.onToggleHideSlide()"
+		>
+			<EyeOff :class="ic" />
+			{{ t('pptx.slideShow.hideSlide') }}
+		</button>
+		<button
+			data-ribbon-control="slideShow.setUp.rehearseTimings"
+			:class="pill"
+			:title="t('pptx.slideShow.rehearseTimingsTooltip')"
+			@click="props.onEnterRehearsalMode()"
+		>
+			<Clock :class="ic" />
+			{{ t('pptx.slideShow.rehearseTimings') }}
+		</button>
+		<button
+			data-ribbon-control="slideShow.setUp.record"
+			:class="pill"
+			@click="props.onEnterRehearsalMode()"
+		>
+			<Video :class="ic" />
+			{{ t('pptx.titleBar.record') }}
+		</button>
+	</div>
 	<div :class="SEP" />
 	<div class="flex flex-col justify-start gap-0.5">
 		<label v-for="option in optionsColumnOne" :key="option.id" :class="toggleRow">
@@ -198,19 +227,28 @@ function commitOption(id: (typeof SLIDE_SHOW_OPTIONS)[number]['id'], checked: bo
 			/>
 			{{ t(mediaControlsOption.labelKey) }}
 		</label>
-		<label :class="cn(toggleRow, props.showSubtitles ? 'bg-primary/15 text-primary' : '')">
-			<input
-				type="checkbox"
-				class="h-3 w-3 accent-primary"
-				:checked="props.showSubtitles"
-				:title="t('pptx.slideShow.subtitlesTooltip')"
-				@change="props.onToggleSubtitles()"
-			/>
-			{{ t('pptx.slideShow.subtitles') }}
-		</label>
-		<button :class="pill" @click="props.onToggleSubtitles()">
-			<Captions :class="ic" />
-			{{ t('pptx.slideShow.subtitleSettings') }}
-		</button>
+		<div class="contents [&>*]:shrink-0" data-ribbon-group="slideShow.captions">
+			<label
+				data-ribbon-control="slideShow.captions.subtitles"
+				:class="cn(toggleRow, props.showSubtitles ? 'bg-primary/15 text-primary' : '')"
+			>
+				<input
+					type="checkbox"
+					class="h-3 w-3 accent-primary"
+					:checked="props.showSubtitles"
+					:title="t('pptx.slideShow.subtitlesTooltip')"
+					@change="props.onToggleSubtitles()"
+				/>
+				{{ t('pptx.slideShow.subtitles') }}
+			</label>
+			<button
+				data-ribbon-control="slideShow.captions.subtitleSettings"
+				:class="pill"
+				@click="props.onToggleSubtitles()"
+			>
+				<Captions :class="ic" />
+				{{ t('pptx.slideShow.subtitleSettings') }}
+			</button>
+		</div>
 	</div>
 </template>

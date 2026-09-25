@@ -88,6 +88,8 @@ export function findSelectedAnimation(
 		     the canvas. This used to start the FULL slide show instead, leaving
 		     the editor entirely for what should be a one-shot in-canvas replay. -->
 		<button
+			data-ribbon-group="animations.preview"
+			data-ribbon-control="animations.preview.preview"
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
@@ -99,6 +101,8 @@ export function findSelectedAnimation(
 		<span class="pptx-rb-sep"></span>
 		<!-- Preset gallery: the whole shared catalogue, one button per preset -->
 		<pptx-ribbon-animation-gallery
+			data-ribbon-group="animations.animation"
+			data-ribbon-control="animations.animation.gallery"
 			[disabled]="!canAuthor()"
 			(addAnimation)="onGalleryPick($event)"
 		/>
@@ -110,28 +114,16 @@ export function findSelectedAnimation(
 			single-row ribbon and squeeze the Advanced Animation pills beside them
 			until their labels overlap.
 
-			shrink-0, not shrink: this section used to opt INTO shrinking
-			(shrink = flex-shrink: 1) with no min-width, and overflow-hidden
-			removes the browser's automatic min-content-size floor a flex item
-			would otherwise get. With the ribbon row tight on space (which is the
-			normal case once Advanced Animation and Timing claim their own
-			content-sized width), ALL of the row's required shrinkage landed on
-			this one section, collapsing it to ~50px wide, i.e. hard-clipping four
-			of the five families (Arcs/Turns/Shapes/Loops), reachable by neither
-			scroll nor sight. pptx-ribbon-animations-section renders with
-			display: contents (see its host below), so the ribbon row's own
-			shrink-0-on-every-child safety net (ribbon.component.ts) never reaches
-			this section either: that rule is a real CSS child combinator, so it
-			lands on the custom element itself, not on the elements its
-			display: contents template promotes up into the row's flex layout.
-			Every element promoted that way needs its own shrink-0, the same fix
-			already applied to the View tab's Eyedropper control (see the
-			shrink-0-on-every-child comment in pptx-angular-viewer.css). shrink-0
-			keeps this section at its own content width (capped at max-w-420px)
-			and lets the row's own horizontal scroll handle any total overflow,
-			same as every other group.
+			shrink-0, not shrink: with flex-shrink 1 and overflow-hidden (no
+			min-content floor) the tight ribbon row collapsed this section to
+			~50px, clipping four of the five families. The row's own
+			shrink-0-on-every-child rule never reaches it through this host's
+			display: contents (see the comment in pptx-angular-viewer.css), so it
+			carries its own shrink-0 and the row scrolls instead.
 		-->
 		<section
+			data-ribbon-group="animations.motionPath"
+			data-ribbon-control="animations.motionPath.gallery"
 			class="relative flex max-w-[420px] shrink-0 items-start gap-1 overflow-hidden pb-3"
 			[attr.aria-label]="'pptx.animation.motionPath' | translate"
 		>
@@ -148,6 +140,8 @@ export function findSelectedAnimation(
 		<span class="pptx-rb-sep"></span>
 		<!-- Advanced Animation -->
 		<button
+			data-ribbon-group="animations.advancedAnimation"
+			data-ribbon-control="animations.advancedAnimation.addAnimation"
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
@@ -170,6 +164,8 @@ export function findSelectedAnimation(
 			{{ 'pptx.animations.pathAnimation' | translate }}
 		</button>
 		<button
+			data-ribbon-group="animations.animation"
+			data-ribbon-control="animations.animation.effectOptions"
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
@@ -179,6 +175,8 @@ export function findSelectedAnimation(
 			{{ 'pptx.animations.effectOptions' | translate }}
 		</button>
 		<button
+			data-ribbon-group="animations.advancedAnimation"
+			data-ribbon-control="animations.advancedAnimation.trigger"
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
@@ -188,11 +186,19 @@ export function findSelectedAnimation(
 			{{ 'pptx.animations.trigger' | translate }}
 		</button>
 		<!-- Animation Painter: no cross-element animation copy API yet. -->
-		<button type="button" class="pptx-rb-pill" disabled>
+		<button
+			data-ribbon-group="animations.advancedAnimation"
+			data-ribbon-control="animations.advancedAnimation.animationPainter"
+			type="button"
+			class="pptx-rb-pill"
+			disabled
+		>
 			<svg lucidePaintbrush class="h-4 w-4"></svg>
 			{{ 'pptx.animations.painter' | translate }}
 		</button>
 		<button
+			data-ribbon-group="animations.advancedAnimation"
+			data-ribbon-control="animations.advancedAnimation.remove"
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
@@ -207,6 +213,8 @@ export function findSelectedAnimation(
 		     Angular inspector's sections are collapsible, so a plain toggle left
 		     the effect-sound and after-animation rows hidden). -->
 		<button
+			data-ribbon-group="animations.advancedAnimation"
+			data-ribbon-control="animations.advancedAnimation.animationPane"
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.animations.openPanelTooltip' | translate"
@@ -222,9 +230,17 @@ export function findSelectedAnimation(
 			same across bindings. Both fields are disabled until the Animation Panel
 			can author them.
 		-->
-		<div class="grid grid-cols-[auto_5.5rem] items-center gap-x-1 gap-y-1 text-[10px]">
+		<div
+			class="grid grid-cols-[auto_5.5rem] items-center gap-x-1 gap-y-1 text-[10px]"
+			data-ribbon-group="animations.timing"
+		>
 			<label for="pptx-animation-start">{{ 'pptx.animations.start' | translate }}</label>
-			<select id="pptx-animation-start" class="pptx-rb-select h-6" disabled>
+			<select
+				id="pptx-animation-start"
+				class="pptx-rb-select h-6"
+				data-ribbon-control="animations.timing.start"
+				disabled
+			>
 				<option>{{ 'pptx.animations.onClick' | translate }}</option>
 				<option>{{ 'pptx.animations.withPrevious' | translate }}</option>
 				<option>{{ 'pptx.animations.afterPrevious' | translate }}</option>
@@ -238,6 +254,7 @@ export function findSelectedAnimation(
 				min="0"
 				step="0.1"
 				value="0.5"
+				data-ribbon-control="animations.timing.duration"
 				class="pptx-rb-select h-6"
 				[attr.aria-label]="'pptx.animations.duration' | translate"
 				disabled

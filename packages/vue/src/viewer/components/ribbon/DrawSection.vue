@@ -8,6 +8,7 @@
  * The shared `DRAW_TOOLS` table supplies lucide icon component refs, rendered via
  * `<component :is="…" />`.
  */
+import type { RibbonControlId } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
@@ -28,6 +29,14 @@ const props = defineProps<Props>();
 
 const { t } = useI18n();
 
+/** Catalogue ids of the tool buttons (Freeform has none). */
+const DRAW_TOOL_CONTROLS: Partial<Record<DrawingTool, RibbonControlId>> = {
+	select: 'draw.tools.select',
+	pen: 'draw.tools.pen',
+	highlighter: 'draw.tools.highlighter',
+	eraser: 'draw.tools.eraser',
+};
+
 // The pen colour joins the deck's "Recent colours" list like every other
 // picker, but only on `change` (the committed pick): `input` is the continuous
 // stream while the dialog is dragged, which keeps driving the live pen colour.
@@ -38,11 +47,12 @@ function commitPenColor(event: Event): void {
 </script>
 
 <template>
-	<div :class="grp">
+	<div :class="grp" data-ribbon-group="draw.tools">
 		<button
 			v-for="(tool, i) in DRAW_TOOLS"
 			:key="tool.id"
 			type="button"
+			:data-ribbon-control="DRAW_TOOL_CONTROLS[tool.id]"
 			:class="
 				cn(
 					i < DRAW_TOOLS.length - 1 ? gB : gL,
@@ -55,8 +65,9 @@ function commitPenColor(event: Event): void {
 			<component :is="tool.icon" :class="ic" />
 		</button>
 	</div>
-	<div class="inline-flex items-center gap-2 text-xs">
+	<div class="inline-flex items-center gap-2 text-xs" data-ribbon-group="draw.tools">
 		<label
+			data-ribbon-control="draw.tools.penColor"
 			class="inline-flex items-center gap-1 text-muted-foreground"
 			:title="t('pptx.ribbon.penColour')"
 		>
@@ -70,6 +81,7 @@ function commitPenColor(event: Event): void {
 			/>
 		</label>
 		<label
+			data-ribbon-control="draw.tools.penWidth"
 			class="inline-flex items-center gap-1 text-muted-foreground"
 			:title="t('pptx.ribbon.strokeWidth')"
 		>

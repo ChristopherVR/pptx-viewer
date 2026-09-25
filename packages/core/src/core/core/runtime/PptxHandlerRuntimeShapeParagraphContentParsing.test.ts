@@ -1016,9 +1016,13 @@ describe('collectShapeParagraphContent - empty paragraph metadata (real runtime)
 		expect(last.segments[0].endParaRunProperties?.['@_kern']).toBe('1200');
 	});
 
-	it('leaves a genuinely bare empty paragraph without a segment', () => {
-		const { segments } = new ParagraphContentRuntime().collect({}, 0, 1);
-		expect(segments).toStrictEqual([]);
+	it('gives a genuinely bare empty paragraph a zero-length carrier flagged bare', () => {
+		const { segments, parts } = new ParagraphContentRuntime().collect({}, 0, 1);
+		expect(parts).toStrictEqual([]);
+		expect(segments).toHaveLength(1);
+		expect(segments[0]?.text).toBe('');
+		expect(segments[0]?.bareParagraph).toBeTruthy();
+		expect(segments[0]?.endParaRunProperties).toBeUndefined();
 	});
 });
 

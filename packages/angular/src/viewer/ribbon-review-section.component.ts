@@ -22,22 +22,32 @@ import { EditorStateService } from './editor-state.service';
 	imports: [TranslatePipe],
 	template: `
 		<!-- Proofing -->
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[class.is-active]="spellCheckEnabled()"
-			[attr.aria-pressed]="spellCheckEnabled()"
-			[title]="'pptx.review.toggleSpellCheck' | translate"
-			(click)="spellCheckChange.emit(!spellCheckEnabled())"
-		>
-			{{ 'pptx.review.spelling' | translate }}
-		</button>
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.review.thesaurus' | translate }}
-		</button>
+		<span class="contents" data-ribbon-group="review.proofing">
+			<button
+				data-ribbon-control="review.proofing.spelling"
+				type="button"
+				class="pptx-rb-pill"
+				[class.is-active]="spellCheckEnabled()"
+				[attr.aria-pressed]="spellCheckEnabled()"
+				[title]="'pptx.review.toggleSpellCheck' | translate"
+				(click)="spellCheckChange.emit(!spellCheckEnabled())"
+			>
+				{{ 'pptx.review.spelling' | translate }}
+			</button>
+			<button
+				data-ribbon-control="review.proofing.thesaurus"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.review.thesaurus' | translate }}
+			</button>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Accessibility -->
 		<button
+			data-ribbon-group="review.accessibility"
+			data-ribbon-control="review.accessibility.check"
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.review.accessibilityCheckTooltip' | translate"
@@ -47,61 +57,116 @@ import { EditorStateService } from './editor-state.service';
 		</button>
 		<span class="pptx-rb-sep"></span>
 		<!-- Language -->
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.review.translate' | translate }}
-		</button>
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.review.languageTooltip' | translate"
-			(click)="language.emit()"
-		>
-			{{ 'pptx.review.language' | translate }}
-		</button>
+		<span class="contents" data-ribbon-group="review.language">
+			<button
+				data-ribbon-control="review.language.translate"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.review.translate' | translate }}
+			</button>
+			<button
+				type="button"
+				class="pptx-rb-pill"
+				[title]="'pptx.review.languageTooltip' | translate"
+				(click)="language.emit()"
+			>
+				{{ 'pptx.review.language' | translate }}
+			</button>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Changes -->
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.review.markAllRead' | translate }}
-		</button>
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[disabled]="!canEdit()"
-			[title]="'pptx.ribbon.compareTitle' | translate"
-			(click)="openCompare.emit()"
-		>
-			{{ 'pptx.ribbon.compare' | translate }}
-		</button>
+		<span class="contents" data-ribbon-group="review.compare">
+			<button
+				data-ribbon-control="review.compare.markAllRead"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.review.markAllRead' | translate }}
+			</button>
+			<button
+				data-ribbon-control="review.compare.compare"
+				type="button"
+				class="pptx-rb-pill"
+				[disabled]="!canEdit()"
+				[title]="'pptx.ribbon.compareTitle' | translate"
+				(click)="openCompare.emit()"
+			>
+				{{ 'pptx.ribbon.compare' | translate }}
+			</button>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Comments -->
-		<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
-			{{ 'pptx.toolbar.comments' | translate }}
-		</button>
-		<div class="flex flex-col justify-center gap-0.5">
-			<button type="button" class="pptx-rb-toggle" disabled>
-				{{ 'pptx.common.delete' | translate }}
+		<span class="contents" data-ribbon-group="review.comments">
+			<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
+				{{ 'pptx.toolbar.comments' | translate }}
 			</button>
-			<button type="button" class="pptx-rb-toggle" disabled>
-				{{ 'pptx.common.previous' | translate }}
-			</button>
-		</div>
-		<div class="flex flex-col justify-center gap-0.5">
-			<button type="button" class="pptx-rb-toggle" disabled>
-				{{ 'pptx.common.next' | translate }}
-			</button>
-			<button type="button" class="pptx-rb-toggle hover:bg-accent" (click)="comments.emit()">
-				{{ 'pptx.review.showComments' | translate }}
-			</button>
-		</div>
+			<div class="flex flex-col justify-center gap-0.5">
+				<button
+					data-ribbon-control="review.comments.delete"
+					type="button"
+					class="pptx-rb-toggle"
+					disabled
+				>
+					{{ 'pptx.common.delete' | translate }}
+				</button>
+				<button
+					data-ribbon-control="review.comments.previous"
+					type="button"
+					class="pptx-rb-toggle"
+					disabled
+				>
+					{{ 'pptx.common.previous' | translate }}
+				</button>
+			</div>
+			<div class="flex flex-col justify-center gap-0.5">
+				<button
+					data-ribbon-control="review.comments.next"
+					type="button"
+					class="pptx-rb-toggle"
+					disabled
+				>
+					{{ 'pptx.common.next' | translate }}
+				</button>
+				<button
+					data-ribbon-control="review.comments.showComments"
+					type="button"
+					class="pptx-rb-toggle hover:bg-accent"
+					(click)="comments.emit()"
+				>
+					{{ 'pptx.review.showComments' | translate }}
+				</button>
+			</div>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Protect -->
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.review.readOnly' | translate }}
-		</button>
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.review.restrictPermission' | translate }}
-		</button>
-		<button type="button" class="pptx-rb-pill" disabled>
+		<span class="contents" data-ribbon-group="review.protect">
+			<button
+				data-ribbon-control="review.protect.readOnly"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.review.readOnly' | translate }}
+			</button>
+			<button
+				data-ribbon-control="review.protect.restrictPermission"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.review.restrictPermission' | translate }}
+			</button>
+		</span>
+		<button
+			data-ribbon-group="review.ink"
+			data-ribbon-control="review.ink.hideInk"
+			type="button"
+			class="pptx-rb-pill"
+			disabled
+		>
 			{{ 'pptx.review.hideInk' | translate }}
 		</button>
 		@if (hasSel()) {

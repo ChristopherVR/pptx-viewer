@@ -1,18 +1,53 @@
+import type { RibbonControlId, RibbonGroupId } from 'pptx-viewer-shared';
+import { RIBBON_CONTROL_ATTR, RIBBON_GROUP_ATTR } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { cn } from '../../utils';
+
+/** `data-ribbon-control` for an optional catalogue id (nothing when absent). */
+export function controlAttr(id: RibbonControlId | undefined): Record<string, string> {
+	return id ? { [RIBBON_CONTROL_ATTR]: id } : {};
+}
+
+/** `data-ribbon-group` for an optional catalogue id (nothing when absent). */
+export function groupAttr(id: RibbonGroupId | undefined): Record<string, string> {
+	return id ? { [RIBBON_GROUP_ATTR]: id } : {};
+}
+
+/**
+ * A layout-neutral (`display: contents`) wrapper naming a ribbon group, for
+ * groups whose markup has no wrapper of its own. Several scopes may carry the
+ * same id when a group's controls are not contiguous.
+ */
+export function RibbonGroupScope({
+	id,
+	children,
+}: {
+	id: RibbonGroupId;
+	children: React.ReactNode;
+}): React.ReactElement {
+	return (
+		<div className='contents' {...groupAttr(id)}>
+			{children}
+		</div>
+	);
+}
 
 export function RibbonGroup({
 	label,
 	children,
 	className,
+	groupId,
 }: {
 	label: string;
 	children: React.ReactNode;
 	className?: string;
+	/** Catalogue id (`<tab>.<group>`) for host customisation. */
+	groupId?: RibbonGroupId;
 }): React.ReactElement {
 	return (
 		<section
+			{...groupAttr(groupId)}
 			className={cn(
 				'relative flex min-h-[78px] self-stretch shrink-0 items-start gap-1 border-r border-border/60 px-2 pb-4 pt-1 last:border-r-0',
 				className,
@@ -36,6 +71,7 @@ export function RibbonCommand({
 	compact = false,
 	title,
 	pressed,
+	controlId,
 }: {
 	label: string;
 	icon: React.ReactNode;
@@ -46,10 +82,13 @@ export function RibbonCommand({
 	title?: string;
 	/** Renders the command as a two-state toggle (PowerPoint's Hide Slide). */
 	pressed?: boolean;
+	/** Catalogue id (`<tab>.<group>.<control>`) for host customisation. */
+	controlId?: RibbonControlId;
 }): React.ReactElement {
 	return (
 		<button
 			type='button'
+			{...controlAttr(controlId)}
 			onClick={onClick}
 			disabled={disabled}
 			title={title ?? label}
@@ -90,15 +129,18 @@ export function RibbonToggle({
 	onChange,
 	disabled,
 	title,
+	controlId,
 }: {
 	label: string;
 	checked: boolean;
 	onChange?: (checked: boolean) => void;
 	disabled?: boolean;
 	title?: string;
+	controlId?: RibbonControlId;
 }): React.ReactElement {
 	return (
 		<label
+			{...controlAttr(controlId)}
 			title={title}
 			className={cn(
 				'flex h-[19px] items-center gap-1 whitespace-nowrap rounded-sm px-1 text-[10px] text-foreground',

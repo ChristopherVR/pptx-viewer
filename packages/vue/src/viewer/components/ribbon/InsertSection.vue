@@ -313,6 +313,8 @@ function previewTime(): string {
 
 <template>
 	<button
+		data-ribbon-group="insert.text"
+		data-ribbon-control="insert.text.textBox"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.insert.addTextBox')"
@@ -321,7 +323,11 @@ function previewTime(): string {
 		<Type :class="ic" />
 		{{ t('pptx.ribbon.textBox') }}
 	</button>
-	<div :class="grp">
+	<div
+		:class="grp"
+		data-ribbon-group="insert.illustrations"
+		data-ribbon-control="insert.illustrations.shapes"
+	>
 		<select
 			:value="props.newShapeType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
@@ -351,6 +357,8 @@ function previewTime(): string {
 	</div>
 	<FreeformToolButtons :can-edit="canEdit" />
 	<button
+		data-ribbon-group="insert.images"
+		data-ribbon-control="insert.images.pictures"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.ribbon.insertImage')"
@@ -360,6 +368,8 @@ function previewTime(): string {
 		{{ t('pptx.ribbon.image') }}
 	</button>
 	<button
+		data-ribbon-group="insert.media"
+		data-ribbon-control="insert.media.media"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.ribbon.insertMedia')"
@@ -369,6 +379,8 @@ function previewTime(): string {
 		{{ t('pptx.ribbon.media') }}
 	</button>
 	<button
+		data-ribbon-group="insert.tables"
+		data-ribbon-control="insert.tables.table"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.insert.insertTable')"
@@ -377,7 +389,12 @@ function previewTime(): string {
 		<Database :class="ic" />
 		{{ t('pptx.ribbon.table') }}
 	</button>
-	<div v-if="props.onAddChart" :class="grp">
+	<div
+		v-if="props.onAddChart"
+		:class="grp"
+		data-ribbon-group="insert.illustrations"
+		data-ribbon-control="insert.illustrations.chart"
+	>
 		<select
 			:value="newChartType"
 			class="bg-transparent py-1.5 pl-2 pr-1 outline-none text-xs"
@@ -412,6 +429,8 @@ function previewTime(): string {
 		</button>
 	</div>
 	<button
+		data-ribbon-group="insert.illustrations"
+		data-ribbon-control="insert.illustrations.smartArt"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.insert.insertSmartArt')"
@@ -421,6 +440,8 @@ function previewTime(): string {
 		{{ t('pptx.ribbon.smartArt') }}
 	</button>
 	<button
+		data-ribbon-group="insert.symbols"
+		data-ribbon-control="insert.symbols.equation"
 		:disabled="!canEdit"
 		:class="pill"
 		:title="t('pptx.insert.insertEquation')"
@@ -440,7 +461,11 @@ function previewTime(): string {
 		{{ t('pptx.ribbon.equation') }}
 	</button>
 	<!-- Action Buttons dropdown -->
-	<div class="relative group">
+	<div
+		class="relative group"
+		data-ribbon-group="insert.links"
+		data-ribbon-control="insert.links.action"
+	>
 		<button
 			ref="actionButtonTriggerRef"
 			type="button"
@@ -493,7 +518,12 @@ function previewTime(): string {
 		</div>
 	</div>
 	<!-- Insert Field dropdown -->
-	<div v-if="props.onInsertField" class="relative group">
+	<div
+		v-if="props.onInsertField"
+		class="relative group"
+		data-ribbon-group="insert.text"
+		data-ribbon-control="insert.text.field"
+	>
 		<button
 			ref="insertFieldTriggerRef"
 			type="button"
@@ -557,6 +587,8 @@ function previewTime(): string {
 		</div>
 	</div>
 	<InsertHyperlinkButton
+		data-ribbon-group="insert.links"
+		data-ribbon-control="insert.links.link"
 		:has-selection="props.hasSelection"
 		:on-open-hyperlink-dialog="props.onOpenHyperlinkDialog"
 	/>

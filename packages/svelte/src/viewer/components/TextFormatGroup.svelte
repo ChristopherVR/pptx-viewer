@@ -58,6 +58,7 @@
 		class:pptx-svelte-fmt-on={bold}
 		disabled={!active}
 		aria-pressed={bold}
+		data-ribbon-control="home.font.bold"
 		aria-label={t('pptx.inspector.bold')}
 		title={t('pptx.inspector.bold')}
 		onclick={() => toggle('bold')}
@@ -70,6 +71,7 @@
 		class:pptx-svelte-fmt-on={italic}
 		disabled={!active}
 		aria-pressed={italic}
+		data-ribbon-control="home.font.italic"
 		aria-label={t('pptx.inspector.italic')}
 		title={t('pptx.inspector.italic')}
 		onclick={() => toggle('italic')}
@@ -82,6 +84,7 @@
 		class:pptx-svelte-fmt-on={underline}
 		disabled={!active}
 		aria-pressed={underline}
+		data-ribbon-control="home.font.underline"
 		aria-label={t('pptx.inspector.underline')}
 		title={t('pptx.inspector.underline')}
 		onclick={() => toggle('underline')}
@@ -95,6 +98,7 @@
 		type="button"
 		class="pptx-svelte-fmt-btn"
 		disabled={!active}
+		data-ribbon-control="home.font.decreaseFontSize"
 		aria-label={t('pptx.text.decreaseFontSize')}
 		title={t('pptx.text.decreaseFontSize')}
 		onclick={() => step(-2)}
@@ -108,6 +112,7 @@
 		min="1"
 		max="400"
 		step="any"
+		data-ribbon-control="home.font.fontSize"
 		aria-label={t('pptx.ribbon.fontSize')}
 		disabled={!editor.editable || !active}
 		title={t('pptx.ribbon.fontSize')}
@@ -118,6 +123,7 @@
 		type="button"
 		class="pptx-svelte-fmt-btn"
 		disabled={!active}
+		data-ribbon-control="home.font.increaseFontSize"
 		aria-label={t('pptx.text.increaseFontSize')}
 		title={t('pptx.text.increaseFontSize')}
 		onclick={() => step(2)}

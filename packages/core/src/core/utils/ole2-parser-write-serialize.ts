@@ -27,6 +27,9 @@ export function writeHeader(
 		firstMiniFATSector: number;
 		numMiniFATSectors: number;
 		firstFATSector: number;
+		/** First DIFAT sector, when the FAT outgrows the header's 109 slots. */
+		firstDIFATSector?: number;
+		numDIFATSectors?: number;
 	},
 ): void {
 	outBytes.set(OLE_MAGIC, 0);
@@ -59,17 +62,87 @@ export function writeHeader(
 	// Total mini FAT sectors
 	outView.setUint32(0x40, params.numMiniFATSectors, true);
 	// First DIFAT sector (none needed if <= 109 FAT sectors)
-	outView.setUint32(0x44, ENDOFCHAIN, true);
+	const numDIFATSectors = params.numDIFATSectors ?? 0;
+	outView.setUint32(
+		0x44,
+		numDIFATSectors > 0 ? (params.firstDIFATSector ?? ENDOFCHAIN) : ENDOFCHAIN,
+		true,
+	);
 	// Total DIFAT sectors
-	outView.setUint32(0x48, 0, true);
+	outView.setUint32(0x48, numDIFATSectors, true);
 
 	// DIFAT entries in header (up to 109)
-	for (let i = 0; i < 109; i++) {
+	for (let i = 0; i < HEADER_DIFAT_ENTRIES; i++) {
 		if (i < params.numFATSectors) {
 			outView.setUint32(0x4c + i * 4, params.firstFATSector + i, true);
 		} else {
 			outView.setUint32(0x4c + i * 4, FREESECT, true);
 		}
+	}
+}
+
+/** FAT sector ids the header itself holds ([MS-CFB] 2.2). */
+export const HEADER_DIFAT_ENTRIES = 109;
+
+/**
+ * DIFAT sectors needed to list `numFATSectors` FAT sectors: the header holds
+ * the first 109, and each DIFAT sector holds `sectorSize / 4 - 1` more plus
+ * the id of the next DIFAT sector ([MS-CFB] 2.5). A file past ~6.8 MB (512
+ * byte sectors) needs them; without, PowerPoint could not read the FAT
+ * beyond the header's slots and rejected the file.
+ */
+export function difatSectorsFor(numFATSectors: number, sectorSize: number): number {
+	const overflow = numFATSectors - HEADER_DIFAT_ENTRIES;
+	return overflow > 0 ? Math.ceil(overflow / (sectorSize / 4 - 1)) : 0;
+}
+
+/**
+ * Size the FAT and DIFAT for a file whose other sectors number `dataSectors`:
+ * the FAT must map every sector, its own and the DIFAT's included.
+ */
+export function sizeFatSectors(
+	dataSectors: number,
+	sectorSize: number,
+): { numFATSectors: number; numDIFATSectors: number } {
+	const entriesPerFAT = sectorSize / 4;
+	let numFATSectors = 1;
+	while (true) {
+		const numDIFATSectors = difatSectorsFor(numFATSectors, sectorSize);
+		const needed = Math.ceil((dataSectors + numFATSectors + numDIFATSectors) / entriesPerFAT);
+		if (needed <= numFATSectors) {
+			return { numFATSectors, numDIFATSectors };
+		}
+		numFATSectors = needed;
+	}
+}
+
+/**
+ * Write the DIFAT sectors that list FAT sectors 110 onwards, chained through
+ * each sector's last slot and terminated with ENDOFCHAIN.
+ */
+export function writeDifatSectors(
+	outView: DataView,
+	params: {
+		firstFATSector: number;
+		numFATSectors: number;
+		firstDIFATSector: number;
+		numDIFATSectors: number;
+		sectorSize: number;
+	},
+): void {
+	const perSector = params.sectorSize / 4 - 1;
+	for (let d = 0; d < params.numDIFATSectors; d++) {
+		const base = (params.firstDIFATSector + d + 1) * params.sectorSize; // +1: header
+		for (let j = 0; j < perSector; j++) {
+			const fatIndex = HEADER_DIFAT_ENTRIES + d * perSector + j;
+			outView.setUint32(
+				base + j * 4,
+				fatIndex < params.numFATSectors ? params.firstFATSector + fatIndex : FREESECT,
+				true,
+			);
+		}
+		const next = d < params.numDIFATSectors - 1 ? params.firstDIFATSector + d + 1 : ENDOFCHAIN;
+		outView.setUint32(base + perSector * 4, next, true);
 	}
 }
 

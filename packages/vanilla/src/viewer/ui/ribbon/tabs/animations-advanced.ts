@@ -6,6 +6,7 @@ import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface AdvancedAnimationHandlers {
 	addAnimation(group: AnimationGroup, preset: PptxAnimationPreset): void;
@@ -35,6 +36,7 @@ export function createAdvancedAnimationGroup(
 	handlers: AdvancedAnimationHandlers,
 ): AdvancedAnimationGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'animations.advancedAnimation');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -88,6 +90,11 @@ export function createAdvancedAnimationGroup(
 	});
 	remove.btn.title = t('pptx.animations.removeTooltip');
 
+	tagRibbonControl(effectOptions.btn, 'animations.animation.effectOptions');
+	tagRibbonControl(animationPanel.btn, 'animations.advancedAnimation.animationPane');
+	tagRibbonControl(trigger.btn, 'animations.advancedAnimation.trigger');
+	tagRibbonControl(painter.btn, 'animations.advancedAnimation.animationPainter');
+	tagRibbonControl(remove.btn, 'animations.advancedAnimation.remove');
 	row.append(
 		exitEffects.btn,
 		pathAnimation.btn,

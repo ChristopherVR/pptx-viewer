@@ -6,6 +6,7 @@ import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { createIcon } from '../../icons';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 import type { LayoutOption } from '../ribbon-types';
 import { createSlideTemplateDialog } from './slide-template-dialog';
 
@@ -200,6 +201,7 @@ export function createSlidesGroup(
 	handlers: SlidesGroupHandlers,
 ): SlidesGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.slides');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -276,6 +278,11 @@ export function createSlidesGroup(
 	});
 	section.btn.title = t('pptx.sections.addSection');
 
+	tagRibbonControl(newSlideSplit, 'home.slides.newSlide');
+	tagRibbonControl(templates.btn, 'home.slides.slideTemplates');
+	tagRibbonControl(layoutHost, 'home.slides.layout');
+	tagRibbonControl(reset.btn, 'home.slides.reset');
+	tagRibbonControl(section.btn, 'home.slides.section');
 	row.append(newSlideSplit, templates.btn, layoutHost, reset.btn, section.btn);
 
 	return {

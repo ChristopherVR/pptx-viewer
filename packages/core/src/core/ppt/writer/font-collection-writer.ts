@@ -68,7 +68,7 @@ function buildEnvironmentLeadingRecord(): Uint8Array {
 	return record(0x0fc8, child, 2, true);
 }
 
-function buildEnvironmentTrailingRecords(): Uint8Array {
+function buildEnvironmentTrailingRecords(otherTextStyle: Uint8Array | undefined): Uint8Array {
 	const unknown0fa4 = record(
 		0x0fa4,
 		new Uint8Array([0x80, 0x00, 0x40, 0x00, 0x00, 0x00, 0x00, 0x00]),
@@ -90,18 +90,14 @@ function buildEnvironmentTrailingRecords(): Uint8Array {
 		false,
 		0,
 	);
-	const otherTextStyle = record(
-		RT.TextMasterStyleAtom,
-		new ByteWriter().u16(1).u32(0).u32(0).toBytes(),
-		4,
-		false,
-		0,
-	);
+	const style =
+		otherTextStyle ??
+		record(RT.TextMasterStyleAtom, new ByteWriter().u16(1).u32(0).u32(0).toBytes(), 4, false, 0);
 	return new ByteWriter()
 		.bytes(unknown0fa4)
 		.bytes(unknown0fa5)
 		.bytes(unknown0fa9)
-		.bytes(otherTextStyle)
+		.bytes(style)
 		.toBytes();
 }
 
@@ -114,14 +110,14 @@ function buildEnvironmentTrailingRecords(): Uint8Array {
  * must stay 0 like every other plain atom); the reader agrees, walking
  * `FontEntityAtom` children positionally.
  */
-export function buildEnvironment(fonts: string[]): Uint8Array {
+export function buildEnvironment(fonts: string[], otherTextStyle?: Uint8Array): Uint8Array {
 	const collectionData = new ByteWriter();
 	fonts.forEach((name, i) => collectionData.bytes(buildFontEntityAtom(name, i)));
 	const fontCollection = record(RT.FontCollection, collectionData.toBytes(), 0, true);
 	const data = new ByteWriter()
 		.bytes(buildEnvironmentLeadingRecord())
 		.bytes(fontCollection)
-		.bytes(buildEnvironmentTrailingRecords())
+		.bytes(buildEnvironmentTrailingRecords(otherTextStyle))
 		.toBytes();
 	return record(RT.Environment, data, 0, true);
 }

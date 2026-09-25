@@ -4,7 +4,6 @@
  * markup are unchanged. Font/Paragraph controls are the shared
  * {@link RibbonFontControlsComponent} / {@link RibbonParagraphControlsComponent}.
  */
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -17,15 +16,11 @@ import {
 } from '@angular/core';
 import {
 	LucideChevronDown,
-	LucideClipboardPaste,
-	LucideCopy,
 	LucideFolderPlus,
 	LucideLayoutGrid,
 	LucideLayoutTemplate,
-	LucidePaintbrush,
 	LucidePlus,
 	LucideRotateCcw,
-	LucideScissors,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
@@ -34,6 +29,7 @@ import { resetSlideLayoutPath } from '../internal/shared';
 import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
+import { RibbonClipboardGroupComponent } from './ribbon-clipboard-group.component';
 import { RibbonEditingSectionComponent } from './ribbon-editing-section.component';
 import { RibbonFontControlsComponent } from './ribbon-font-controls.component';
 import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
@@ -66,80 +62,33 @@ export function performResetSlide(
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	imports: [
-		NgClass,
 		TranslatePipe,
 		RibbonLayoutGalleryComponent,
 		LucidePlus,
 		LucideChevronDown,
-		LucideClipboardPaste,
-		LucideCopy,
 		LucideFolderPlus,
 		LucideLayoutGrid,
 		LucideLayoutTemplate,
-		LucidePaintbrush,
 		LucideRotateCcw,
-		LucideScissors,
 		RibbonFontControlsComponent,
 		RibbonParagraphControlsComponent,
 		RibbonEditingSectionComponent,
+		RibbonClipboardGroupComponent,
 		AnchoredPopupDirective,
 	],
 	template: `
 		<!-- Clipboard -->
-		<div class="flex flex-col items-center gap-0.5">
-			<div class="pptx-rb-grp">
-				<!-- Icon-only clipboard buttons with title tooltips, matching React's HomeSection. -->
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[title]="'pptx.arrange.paste' | translate"
-					[attr.aria-label]="'pptx.arrange.paste' | translate"
-					[disabled]="!editor.hasClipboard() || !canEdit()"
-					(click)="paste()"
-				>
-					<svg lucideClipboardPaste class="h-4 w-4"></svg>
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[title]="'pptx.arrange.cut' | translate"
-					[attr.aria-label]="'pptx.arrange.cut' | translate"
-					[disabled]="!canEdit() || !selectedElement()"
-					(click)="cut()"
-				>
-					<svg lucideScissors class="h-4 w-4"></svg>
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[title]="'pptx.arrange.copy' | translate"
-					[attr.aria-label]="'pptx.arrange.copy' | translate"
-					[disabled]="!selectedElement()"
-					(click)="copy()"
-				>
-					<svg lucideCopy class="h-4 w-4"></svg>
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-gl"
-					data-testid="format-painter-toggle"
-					[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
-					[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
-					[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-					[title]="'pptx.arrange.formatPainter' | translate"
-					[attr.aria-label]="'pptx.arrange.formatPainter' | translate"
-					(click)="toggleFormatPainter.emit()"
-				>
-					<svg lucidePaintbrush class="h-4 w-4"></svg>
-				</button>
-			</div>
-			<span class="text-[9px] leading-none text-muted-foreground">
-				{{ 'pptx.ribbon.clipboard' | translate }}
-			</span>
-		</div>
+		<pptx-ribbon-clipboard-group
+			[slideIndex]="slideIndex()"
+			[selectedElement]="selectedElement()"
+			[canEdit]="canEdit()"
+			[formatPainterActive]="formatPainterActive()"
+			[canActivateFormatPainter]="canActivateFormatPainter()"
+			(toggleFormatPainter)="toggleFormatPainter.emit()"
+		/>
 		<span class="pptx-rb-sep"></span>
 		<!-- Slides -->
-		<div class="flex flex-col items-center gap-0.5">
+		<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.slides">
 			<div class="flex items-center gap-1">
 				<!--
 					New Slide is a split button (React SlidesGroup parity): the face adds
@@ -148,41 +97,43 @@ export function performResetSlide(
 					class is overflow-hidden, which would clip the menu, and the menu
 					itself only renders for a deck that actually has layouts.
 				-->
-				<div class="pptx-rb-grp">
-					<button
-						type="button"
-						class="pptx-rb-gl gap-1.5 whitespace-nowrap"
-						[title]="'pptx.home.newSlide' | translate"
-						(click)="editor.addSlide(slideIndex())"
-					>
-						<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.home.newSlide' | translate }}
-					</button>
-				</div>
-				@if (layoutOptions().length > 0) {
-					<div class="group relative">
+				<span class="contents" data-ribbon-control="home.slides.newSlide">
+					<div class="pptx-rb-grp">
 						<button
-							#newSlideLayoutTrigger
 							type="button"
-							class="pptx-rb-pill px-1.5"
-							[disabled]="!canEdit()"
-							[title]="'pptx.home.chooseLayout' | translate"
-							[attr.aria-label]="'pptx.home.chooseLayout' | translate"
+							class="pptx-rb-gl gap-1.5 whitespace-nowrap"
+							[title]="'pptx.home.newSlide' | translate"
+							(click)="editor.addSlide(slideIndex())"
 						>
-							<svg lucideChevronDown class="h-3 w-3"></svg>
+							<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.home.newSlide' | translate }}
 						</button>
-						<div
-							class="z-50 hidden pt-1 group-hover:block"
-							[pptxAnchoredPopup]="newSlideLayoutTrigger"
-						>
-							<pptx-ribbon-layout-gallery
-								[layoutOptions]="layoutOptions()"
-								[previews]="layoutPreviews()"
-								[disabled]="!canEdit()"
-								(select)="editor.addSlide(slideIndex(), $event.path)"
-							></pptx-ribbon-layout-gallery>
-						</div>
 					</div>
-				}
+					@if (layoutOptions().length > 0) {
+						<div class="group relative">
+							<button
+								#newSlideLayoutTrigger
+								type="button"
+								class="pptx-rb-pill px-1.5"
+								[disabled]="!canEdit()"
+								[title]="'pptx.home.chooseLayout' | translate"
+								[attr.aria-label]="'pptx.home.chooseLayout' | translate"
+							>
+								<svg lucideChevronDown class="h-3 w-3"></svg>
+							</button>
+							<div
+								class="z-50 hidden pt-1 group-hover:block"
+								[pptxAnchoredPopup]="newSlideLayoutTrigger"
+							>
+								<pptx-ribbon-layout-gallery
+									[layoutOptions]="layoutOptions()"
+									[previews]="layoutPreviews()"
+									[disabled]="!canEdit()"
+									(select)="editor.addSlide(slideIndex(), $event.path)"
+								></pptx-ribbon-layout-gallery>
+							</div>
+						</div>
+					}
+				</span>
 				<div class="pptx-rb-grp">
 					<!--
 						Slide Templates gallery (React SlidesGroup parity): opens the
@@ -195,6 +146,7 @@ export function performResetSlide(
 						[disabled]="!canEdit()"
 						[title]="'pptx.home.slideTemplates' | translate"
 						(click)="openTemplateGallery.emit()"
+						data-ribbon-control="home.slides.slideTemplates"
 					>
 						<svg lucideLayoutTemplate class="h-4 w-4"></svg>
 						{{ 'pptx.home.slideTemplates' | translate }}
@@ -205,7 +157,7 @@ export function performResetSlide(
 						and it is a different operation from the New Slide chevron above,
 						which inserts a slide that inherits from the layout picked.
 					-->
-					<div class="group relative">
+					<div class="group relative" data-ribbon-control="home.slides.layout">
 						<button
 							#applyLayoutTrigger
 							type="button"
@@ -236,6 +188,7 @@ export function performResetSlide(
 						[disabled]="!canEdit()"
 						[title]="'pptx.sections.resetSlideTitle' | translate"
 						(click)="onResetSlide()"
+						data-ribbon-control="home.slides.reset"
 					>
 						<svg lucideRotateCcw class="h-4 w-4"></svg> {{ 'pptx.animations.reset' | translate }}
 					</button>
@@ -244,6 +197,7 @@ export function performResetSlide(
 						class="pptx-rb-gl whitespace-nowrap"
 						[title]="'pptx.sections.addSection' | translate"
 						(click)="editor.addSection(slideIndex())"
+						data-ribbon-control="home.slides.section"
 					>
 						<svg lucideFolderPlus class="h-4 w-4"></svg>
 						{{ 'pptx.sections.sectionButtonLabel' | translate }}
@@ -256,7 +210,7 @@ export function performResetSlide(
 		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Font -->
-		<div class="flex flex-col items-center gap-0.5">
+		<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
 			<div class="flex items-center gap-1">
 				<pptx-ribbon-font-controls
 					[canEdit]="canEdit()"
@@ -270,7 +224,7 @@ export function performResetSlide(
 		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Paragraph -->
-		<div class="flex flex-col items-center gap-0.5">
+		<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.paragraph">
 			<div class="flex items-center gap-1">
 				<pptx-ribbon-paragraph-controls
 					[canEdit]="canEdit()"
@@ -284,7 +238,7 @@ export function performResetSlide(
 		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Editing -->
-		<div class="flex flex-col items-center gap-0.5">
+		<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
 			<pptx-ribbon-editing-section
 				(toggleFindReplace)="findReplace.emit()"
 				(selectAll)="onSelectAll()"
@@ -370,15 +324,6 @@ export class RibbonHomeSectionComponent {
 		this.resetSlide.emit();
 	}
 
-	protected copy(): void {
-		this.editor.copySelected(this.slideIndex());
-	}
-	protected cut(): void {
-		this.editor.cutSelected(this.slideIndex());
-	}
-	protected paste(): void {
-		this.editor.paste(this.slideIndex());
-	}
 	protected onSelectAll(): void {
 		this.editor.selectAll(this.slideIndex());
 	}

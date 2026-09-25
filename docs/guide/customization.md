@@ -19,7 +19,11 @@ and can change at runtime:
 import type { ViewerCustomization } from 'pptx-react-viewer'; // or vue / angular / svelte / vanilla
 
 const customization: ViewerCustomization = {
-	ribbon: { hiddenTabs: ['draw', 'record'], hiddenButtons: ['broadcast'] },
+	ribbon: {
+		hiddenTabs: ['draw', 'record'],
+		hiddenGroups: ['insert.media'],
+		hiddenButtons: ['broadcast', 'home.font.changeCase'],
+	},
 	options: {
 		hiddenPages: ['trust', 'addIns'],
 		locked: { 'general.userName': 'Ada Lovelace' },
@@ -111,6 +115,40 @@ The older `hiddenActions` prop keeps working. It is unioned with
 pace. The user's own File > Options > Customize Ribbon choices are unioned on
 top: a tab is shown only if neither the host nor the user hid it.
 
+### Ribbon groups and controls
+
+Below the tab level, every ribbon group and every control inside a group has
+a stable id from one shared catalogue: `<tab>.<group>` for a group and
+`<tab>.<group>.<control>` for a control, named after PowerPoint's own
+captions (`home.font`, `home.font.bold`, `insert.media.media`,
+`view.show.ruler`). The contextual tabs that appear for a selection
+(`shapeFormat`, `pictureFormat`, `tableDesign`, `chartDesign`,
+`smartArtDesign`) are addressed the same way, and their tab ids are accepted
+by `ribbon.hiddenTabs`.
+
+```ts
+const customization: ViewerCustomization = {
+	ribbon: {
+		hiddenGroups: ['home.editing', 'insert.media'],
+		hiddenButtons: ['home.font.changeCase', 'home.paragraph.columns', 'mergeShapes'],
+		hiddenTabs: ['chartDesign'],
+	},
+};
+```
+
+`ribbon.hiddenButtons` takes both kinds of id: the older top-level toolbar
+buttons (`share`, `zoom`, ...) and the catalogued ribbon controls.
+`mergeShapes` / `home.arrange.mergeShapes` and `crop` / `home.arrange.crop`
+name the same control, so either spelling hides it. The full lists are in the
+[reference](#ribbon-groups-ribbon-hiddengroups) below.
+
+Every binding tags its ribbon markup with `data-ribbon-group` and
+`data-ribbon-control` and renders one stylesheet the shared model generates
+from the resolved customisation, scoped to that viewer
+(`data-pptx-ribbon-scope`), so a hidden group or control is removed from
+layout and from the accessibility tree in all five bindings the same way.
+The attributes are also a stable hook for your own styling or tests.
+
 ## The imperative API
 
 Every binding exposes these methods on its component handle (React `ref`, Vue
@@ -122,8 +160,10 @@ template ref, Angular component instance, Svelte `bind:this`, Vanilla instance):
 | `setCustomization(c)`                                                   | Replace the whole customisation.                                           |
 | `updateCustomization(patch)`                                            | Merge a partial customisation.                                             |
 | `resetCustomization()`                                                  | Back to the stock UI.                                                      |
-| `hideRibbonTab(id)` / `showRibbonTab(id)`                               | Toggle one ribbon tab.                                                     |
-| `hideToolbarButton(id)` / `showToolbarButton(id)`                       | Toggle one toolbar button or control cluster.                              |
+| `hideRibbonTab(id)` / `showRibbonTab(id)`                               | Toggle one ribbon tab (a contextual tab id stops that tab appearing).      |
+| `hideRibbonGroup(id)` / `showRibbonGroup(id)`                           | Toggle one group inside a tab (`home.font`).                               |
+| `hideToolbarButton(id)` / `showToolbarButton(id)`                       | Toggle one toolbar button, control cluster or ribbon control.              |
+| `hideRibbonControl(id)` / `showRibbonControl(id)`                       | Toggle one ribbon control (`home.font.bold`).                              |
 | `hideOptionsPage(id)` / `showOptionsPage(id)`                           | Toggle one File > Options page.                                            |
 | `hideOptionsSection(id)` / `showOptionsSection(id)`                     | Toggle one section of an Options page.                                     |
 | `hideSetting(id)` / `showSetting(id)`                                   | Toggle one setting.                                                        |
@@ -381,10 +421,9 @@ object per tenant, and feed it back through `setCustomization`.
 
 ## What is not customisable yet
 
-- **Individual ribbon groups and controls inside a tab.** Tabs and the
-  top-level toolbar buttons are customisable; the groups inside a tab (Home >
-  Font, Insert > Media, ...) are hand-built per binding and have no shared id
-  catalogue yet, so they cannot be addressed without the bindings drifting.
+- **Controls inside a dropped-down menu or gallery** (a single entry of the
+  Bullets library, one Shape Styles tile) are not addressable; hide the
+  control that opens the menu instead.
 - **The slide-show, slide-sorter and presenter keymaps.** `keyboard` covers the
   editor keymap. The only show key it affects is F5 / Shift+F5, through the
   `presentMode` feature.
@@ -419,20 +458,267 @@ unit test fails if an id is missing here.
 
 ### Ribbon tabs (`ribbon.hiddenTabs`)
 
-| Id            | Tab         |
-| ------------- | ----------- |
-| `file`        | File        |
-| `home`        | Home        |
-| `insert`      | Insert      |
-| `draw`        | Draw        |
-| `design`      | Design      |
-| `transitions` | Transitions |
-| `animations`  | Animations  |
-| `slideShow`   | Slide Show  |
-| `record`      | Record      |
-| `review`      | Review      |
-| `view`        | View        |
-| `help`        | Help        |
+| Id               | Tab             |
+| ---------------- | --------------- |
+| `file`           | File            |
+| `home`           | Home            |
+| `insert`         | Insert          |
+| `draw`           | Draw            |
+| `design`         | Design          |
+| `transitions`    | Transitions     |
+| `animations`     | Animations      |
+| `slideShow`      | Slide Show      |
+| `record`         | Record          |
+| `review`         | Review          |
+| `view`           | View            |
+| `help`           | Help            |
+| `shapeFormat`    | Shape Format    |
+| `pictureFormat`  | Picture Format  |
+| `tableDesign`    | Table Design    |
+| `chartDesign`    | Chart Design    |
+| `smartArtDesign` | SmartArt Design |
+
+### Ribbon groups (`ribbon.hiddenGroups`)
+
+| Id                                  | Group                    |
+| ----------------------------------- | ------------------------ |
+| `home.clipboard`                    | Clipboard                |
+| `home.slides`                       | Slides                   |
+| `home.font`                         | Font                     |
+| `home.paragraph`                    | Paragraph                |
+| `home.drawing`                      | Drawing                  |
+| `home.arrange`                      | Arrange                  |
+| `home.editing`                      | Editing                  |
+| `insert.slides`                     | Slides                   |
+| `insert.tables`                     | Tables                   |
+| `insert.images`                     | Images                   |
+| `insert.illustrations`              | Illustrations            |
+| `insert.links`                      | Links                    |
+| `insert.comments`                   | Comments                 |
+| `insert.text`                       | Text                     |
+| `insert.symbols`                    | Symbols                  |
+| `insert.media`                      | Media                    |
+| `draw.tools`                        | Drawing Tools            |
+| `draw.convert`                      | Convert                  |
+| `design.themes`                     | Themes                   |
+| `design.variants`                   | Variants                 |
+| `design.customize`                  | Customize                |
+| `transitions.preview`               | Preview                  |
+| `transitions.transitionToThisSlide` | Transition to This Slide |
+| `transitions.timing`                | Timing                   |
+| `animations.preview`                | Preview                  |
+| `animations.animation`              | Animation                |
+| `animations.motionPath`             | Motion Paths             |
+| `animations.advancedAnimation`      | Advanced Animation       |
+| `animations.timing`                 | Timing                   |
+| `slideShow.startSlideShow`          | Start Slide Show         |
+| `slideShow.present`                 | Present                  |
+| `slideShow.setUp`                   | Set Up                   |
+| `slideShow.captions`                | Captions & Subtitles     |
+| `record.camera`                     | Camera                   |
+| `record.record`                     | Record                   |
+| `record.manage`                     | Manage                   |
+| `record.help`                       | Help                     |
+| `review.proofing`                   | Proofing                 |
+| `review.accessibility`              | Accessibility            |
+| `review.language`                   | Language                 |
+| `review.comments`                   | Comments                 |
+| `review.compare`                    | Compare                  |
+| `review.protect`                    | Protect                  |
+| `review.ink`                        | Ink                      |
+| `view.presentationViews`            | Presentation Views       |
+| `view.masterViews`                  | Master Views             |
+| `view.show`                         | Show                     |
+| `view.zoom`                         | Zoom                     |
+| `view.window`                       | Window                   |
+| `help.help`                         | Help                     |
+| `shapeFormat.shapeStyles`           | Shape Styles             |
+| `shapeFormat.wordArtStyles`         | WordArt Styles           |
+| `pictureFormat.pictureStyles`       | Picture Styles           |
+| `tableDesign.tableStyles`           | Table Styles             |
+| `chartDesign.chartLayouts`          | Chart Layouts            |
+| `chartDesign.chartStyles`           | Chart Styles             |
+| `smartArtDesign.smartArtStyles`     | SmartArt Styles          |
+
+### Ribbon controls (`ribbon.hiddenButtons`)
+
+| Id                                                | Control                             |
+| ------------------------------------------------- | ----------------------------------- |
+| `home.clipboard.paste`                            | Paste                               |
+| `home.clipboard.cut`                              | Cut                                 |
+| `home.clipboard.copy`                             | Copy                                |
+| `home.clipboard.formatPainter`                    | Format Painter                      |
+| `home.slides.newSlide`                            | New Slide                           |
+| `home.slides.layout`                              | Layout                              |
+| `home.slides.reset`                               | Reset                               |
+| `home.slides.section`                             | Section                             |
+| `home.slides.slideTemplates`                      | Slide templates                     |
+| `home.font.fontFamily`                            | Font                                |
+| `home.font.fontSize`                              | Font Size                           |
+| `home.font.increaseFontSize`                      | Increase Font Size                  |
+| `home.font.decreaseFontSize`                      | Decrease Font Size                  |
+| `home.font.clearFormatting`                       | Clear All Formatting                |
+| `home.font.bold`                                  | Bold                                |
+| `home.font.italic`                                | Italic                              |
+| `home.font.underline`                             | Underline                           |
+| `home.font.strikethrough`                         | Strikethrough                       |
+| `home.font.shadow`                                | Text Shadow                         |
+| `home.font.characterSpacing`                      | Character Spacing                   |
+| `home.font.changeCase`                            | Change Case                         |
+| `home.font.fontColor`                             | Font Color                          |
+| `home.font.highlightColor`                        | Text Highlight Color                |
+| `home.font.superscript`                           | Superscript                         |
+| `home.font.subscript`                             | Subscript                           |
+| `home.paragraph.bullets`                          | Bullets (toggle and gallery)        |
+| `home.paragraph.numbering`                        | Numbering (toggle and gallery)      |
+| `home.paragraph.decreaseIndent`                   | Decrease List Level                 |
+| `home.paragraph.increaseIndent`                   | Increase List Level                 |
+| `home.paragraph.lineSpacing`                      | Line Spacing                        |
+| `home.paragraph.alignLeft`                        | Align Left                          |
+| `home.paragraph.alignCenter`                      | Center                              |
+| `home.paragraph.alignRight`                       | Align Right                         |
+| `home.paragraph.justify`                          | Justify                             |
+| `home.paragraph.columns`                          | Columns                             |
+| `home.paragraph.textDirection`                    | Text Direction                      |
+| `home.paragraph.alignText`                        | Align Text                          |
+| `home.drawing.shapes`                             | Shapes                              |
+| `home.drawing.arrange`                            | Arrange                             |
+| `home.drawing.quickStyles`                        | Quick Styles (Shape Styles gallery) |
+| `home.drawing.shapeFill`                          | Shape Fill                          |
+| `home.drawing.shapeOutline`                       | Shape Outline                       |
+| `home.drawing.shapeEffects`                       | Shape Effects gallery               |
+| `home.arrange.bringForward`                       | Bring Forward                       |
+| `home.arrange.sendBackward`                       | Send Backward                       |
+| `home.arrange.bringToFront`                       | Bring to Front                      |
+| `home.arrange.sendToBack`                         | Send to Back                        |
+| `home.arrange.flipHorizontal`                     | Flip Horizontal                     |
+| `home.arrange.flipVertical`                       | Flip Vertical                       |
+| `home.arrange.duplicate`                          | Duplicate                           |
+| `home.arrange.delete`                             | Delete                              |
+| `home.arrange.group`                              | Group                               |
+| `home.arrange.ungroup`                            | Ungroup                             |
+| `home.arrange.align`                              | Align                               |
+| `home.arrange.mergeShapes`                        | Merge Shapes                        |
+| `home.arrange.crop`                               | Crop                                |
+| `home.arrange.outlineWidth`                       | Outline width                       |
+| `home.editing.find`                               | Find                                |
+| `home.editing.replace`                            | Replace                             |
+| `home.editing.select`                             | Select                              |
+| `insert.slides.newSlide`                          | New Slide                           |
+| `insert.tables.table`                             | Table                               |
+| `insert.images.pictures`                          | Pictures                            |
+| `insert.illustrations.shapes`                     | Shapes                              |
+| `insert.illustrations.smartArt`                   | SmartArt                            |
+| `insert.illustrations.chart`                      | Chart                               |
+| `insert.links.link`                               | Link                                |
+| `insert.links.action`                             | Action button                       |
+| `insert.comments.comment`                         | Comment                             |
+| `insert.text.textBox`                             | Text Box                            |
+| `insert.text.field`                               | Header, date, slide number field    |
+| `insert.symbols.equation`                         | Equation                            |
+| `insert.symbols.symbol`                           | Symbol                              |
+| `insert.media.media`                              | Video / Audio                       |
+| `draw.tools.select`                               | Select                              |
+| `draw.tools.pen`                                  | Pen                                 |
+| `draw.tools.highlighter`                          | Highlighter                         |
+| `draw.tools.eraser`                               | Eraser                              |
+| `draw.tools.penColor`                             | Pen colour                          |
+| `draw.tools.penWidth`                             | Pen width                           |
+| `draw.convert.inkToShape`                         | Ink to Shape                        |
+| `design.themes.browseThemes`                      | Themes gallery                      |
+| `design.themes.editTheme`                         | Edit theme                          |
+| `design.variants.colors`                          | Variants: Colors gallery            |
+| `design.variants.fonts`                           | Variants: Fonts gallery             |
+| `design.customize.slideSize`                      | Slide Size                          |
+| `design.customize.formatBackground`               | Format Background                   |
+| `transitions.preview.preview`                     | Preview                             |
+| `transitions.transitionToThisSlide.gallery`       | Transition gallery                  |
+| `transitions.transitionToThisSlide.effectOptions` | Effect Options                      |
+| `transitions.timing.sound`                        | Sound                               |
+| `transitions.timing.duration`                     | Duration                            |
+| `transitions.timing.applyToAll`                   | Apply To All                        |
+| `transitions.timing.advanceOnClick`               | On Mouse Click                      |
+| `transitions.timing.advanceAfter`                 | After                               |
+| `animations.preview.preview`                      | Preview                             |
+| `animations.animation.gallery`                    | Animation gallery                   |
+| `animations.animation.effectOptions`              | Effect Options                      |
+| `animations.motionPath.gallery`                   | Motion path gallery                 |
+| `animations.advancedAnimation.addAnimation`       | Add Animation                       |
+| `animations.advancedAnimation.animationPane`      | Animation Pane                      |
+| `animations.advancedAnimation.trigger`            | Trigger                             |
+| `animations.advancedAnimation.animationPainter`   | Animation Painter                   |
+| `animations.advancedAnimation.remove`             | Remove animation                    |
+| `animations.timing.start`                         | Start                               |
+| `animations.timing.duration`                      | Duration                            |
+| `animations.timing.delay`                         | Delay                               |
+| `animations.timing.reorder`                       | Reorder                             |
+| `slideShow.startSlideShow.fromBeginning`          | From Beginning                      |
+| `slideShow.startSlideShow.fromCurrent`            | From Current Slide                  |
+| `slideShow.startSlideShow.customShow`             | Custom Slide Show                   |
+| `slideShow.present.presenterView`                 | Presenter View                      |
+| `slideShow.present.broadcast`                     | Present Online                      |
+| `slideShow.setUp.setUpSlideShow`                  | Set Up Slide Show                   |
+| `slideShow.setUp.hideSlide`                       | Hide Slide                          |
+| `slideShow.setUp.rehearseTimings`                 | Rehearse Timings                    |
+| `slideShow.setUp.record`                          | Record                              |
+| `slideShow.setUp.rehearseWithCoach`               | Rehearse with Coach                 |
+| `slideShow.captions.subtitles`                    | Always Use Subtitles                |
+| `slideShow.captions.subtitleSettings`             | Subtitle Settings                   |
+| `record.camera.cameo`                             | Cameo                               |
+| `record.record.fromBeginning`                     | From Beginning                      |
+| `record.record.fromCurrent`                       | From Current Slide                  |
+| `record.manage.clear`                             | Clear                               |
+| `record.manage.reset`                             | Reset to Cameo                      |
+| `record.help.learnMore`                           | Learn more                          |
+| `review.proofing.spelling`                        | Spelling                            |
+| `review.proofing.thesaurus`                       | Thesaurus                           |
+| `review.accessibility.check`                      | Check Accessibility                 |
+| `review.language.translate`                       | Translate                           |
+| `review.comments.newComment`                      | New Comment                         |
+| `review.comments.delete`                          | Delete                              |
+| `review.comments.previous`                        | Previous                            |
+| `review.comments.next`                            | Next                                |
+| `review.comments.showComments`                    | Show Comments                       |
+| `review.compare.compare`                          | Compare                             |
+| `review.compare.markAllRead`                      | Mark all read                       |
+| `review.protect.readOnly`                         | Read-only                           |
+| `review.protect.restrictPermission`               | Restrict Permission                 |
+| `review.ink.hideInk`                              | Hide Ink                            |
+| `view.presentationViews.normal`                   | Normal                              |
+| `view.presentationViews.outline`                  | Outline View                        |
+| `view.presentationViews.slideSorter`              | Slide Sorter                        |
+| `view.presentationViews.notesPage`                | Notes Page                          |
+| `view.presentationViews.readingView`              | Reading View                        |
+| `view.masterViews.slideMaster`                    | Slide Master                        |
+| `view.masterViews.handoutMaster`                  | Handout Master                      |
+| `view.masterViews.notesMaster`                    | Notes Master                        |
+| `view.show.ruler`                                 | Ruler                               |
+| `view.show.gridlines`                             | Gridlines                           |
+| `view.show.guides`                                | Guides                              |
+| `view.show.snapToGrid`                            | Snap to Grid                        |
+| `view.show.snapToShape`                           | Snap to Shape                       |
+| `view.show.addGuide`                              | Add horizontal / vertical guide     |
+| `view.show.selectionPane`                         | Selection Pane                      |
+| `view.show.eyedropper`                            | Eyedropper                          |
+| `view.show.notes`                                 | Notes                               |
+| `view.zoom.zoom`                                  | Zoom                                |
+| `view.zoom.fitToWindow`                           | Fit to Window                       |
+| `view.window.templateEditing`                     | Edit template elements              |
+| `view.window.macros`                              | Macros                              |
+| `help.help.options`                               | Options                             |
+| `help.help.keyboardShortcuts`                     | Keyboard shortcuts                  |
+| `help.help.accessibility`                         | Accessibility checker               |
+| `shapeFormat.shapeStyles.gallery`                 | Shape Styles gallery                |
+| `shapeFormat.shapeStyles.shapeEffects`            | Shape Effects gallery               |
+| `shapeFormat.wordArtStyles.gallery`               | WordArt Styles gallery              |
+| `pictureFormat.pictureStyles.gallery`             | Picture Styles gallery              |
+| `pictureFormat.pictureStyles.pictureEffects`      | Picture Effects gallery             |
+| `tableDesign.tableStyles.gallery`                 | Table Styles gallery                |
+| `chartDesign.chartLayouts.quickLayout`            | Quick Layout gallery                |
+| `chartDesign.chartStyles.changeColors`            | Change Colors gallery               |
+| `chartDesign.chartStyles.gallery`                 | Chart Styles gallery                |
+| `smartArtDesign.smartArtStyles.changeColors`      | Change Colors gallery               |
+| `smartArtDesign.smartArtStyles.gallery`           | SmartArt Styles gallery             |
 
 ### Toolbar buttons (`ribbon.hiddenButtons`)
 

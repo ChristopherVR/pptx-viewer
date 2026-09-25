@@ -16,6 +16,7 @@
  */
 
 import {
+	DIFSECT,
 	ENDOFCHAIN,
 	ENTRY_TYPE_ROOT,
 	ENTRY_TYPE_STREAM,
@@ -31,6 +32,8 @@ import {
 import type { DirEntry, SectorChain } from './ole2-parser-write-helpers';
 import {
 	serializeDirectoryEntries,
+	sizeFatSectors,
+	writeDifatSectors,
 	writeHeader,
 	writeStreamSectors,
 } from './ole2-parser-write-serialize';
@@ -198,20 +201,12 @@ export function buildOle2(
 		nextSector += numMiniFATSectors;
 	}
 
-	// Allocate FAT sectors
-	// Total sectors so far + FAT sectors must be coverable by FAT
-	let numFATSectors = 1;
-	while (true) {
-		const totalSectors = nextSector + numFATSectors;
-		const entriesPerFAT = sectorSize / 4;
-		const neededFATSectors = Math.ceil(totalSectors / entriesPerFAT);
-		if (neededFATSectors <= numFATSectors) {
-			break;
-		}
-		numFATSectors = neededFATSectors;
-	}
+	// Allocate FAT (and DIFAT) sectors: they must cover every sector, themselves included.
+	const { numFATSectors, numDIFATSectors } = sizeFatSectors(nextSector, sectorSize);
 	const firstFATSector = nextSector;
 	nextSector += numFATSectors;
+	const firstDIFATSector = nextSector;
+	nextSector += numDIFATSectors;
 
 	const totalSectors = nextSector;
 
@@ -229,6 +224,9 @@ export function buildOle2(
 	}
 	for (let i = 0; i < numFATSectors; i++) {
 		fat[firstFATSector + i] = FATSECT;
+	}
+	for (let i = 0; i < numDIFATSectors; i++) {
+		fat[firstDIFATSector + i] = DIFSECT;
 	}
 
 	// Build mini FAT
@@ -255,6 +253,8 @@ export function buildOle2(
 		firstMiniFATSector,
 		numMiniFATSectors,
 		firstFATSector,
+		firstDIFATSector,
+		numDIFATSectors,
 	});
 
 	// Write regular stream data
@@ -286,6 +286,13 @@ export function buildOle2(
 
 	// Write FAT sectors
 	writeInt32Sectors(outBytes, fat, firstFATSector, numFATSectors, sectorSize);
+	writeDifatSectors(outView, {
+		firstFATSector,
+		numFATSectors,
+		firstDIFATSector,
+		numDIFATSectors,
+		sectorSize,
+	});
 
 	return output;
 }

@@ -20,7 +20,7 @@ import { FREEFORM_TOOL_LABEL_KEYS } from '../edit-points/freeform-tool-geometry'
 import { DEFAULT_VIEWER_OPTIONS } from '../options/viewer-options';
 import type { ViewerOptionsGroupId } from '../options/viewer-options';
 import { VIEWER_OPTIONS_TABS } from '../options/viewer-options-schema';
-import { TOOLBAR_TABS } from '../toolbar-actions';
+import { RIBBON_CONTEXTUAL_TABS, TOOLBAR_TABS } from '../toolbar-actions';
 import {
 	CANVAS_CONTEXT_MENU_COMMAND_IDS,
 	DRAWING_TOOL_IDS,
@@ -42,6 +42,7 @@ import {
 	VIEWER_FEATURE_DESCRIPTIONS,
 	VIEWER_PANEL_DESCRIPTIONS,
 } from './customization-descriptions';
+import { RIBBON_GROUPS } from './ribbon-control-ids';
 
 export const REFERENCE_START_MARKER = '<!-- customization-reference:start -->';
 export const REFERENCE_END_MARKER = '<!-- customization-reference:end -->';
@@ -90,7 +91,22 @@ export function buildCustomizationReference(): string {
 		'### Ribbon tabs (`ribbon.hiddenTabs`)',
 		table(
 			['Id', 'Tab'],
-			TOOLBAR_TABS.map((tab) => [code(tab.id), label(tab.labelKey)]),
+			[...TOOLBAR_TABS, ...RIBBON_CONTEXTUAL_TABS].map((tab) => [
+				code(tab.id),
+				label(tab.labelKey),
+			]),
+		),
+		'### Ribbon groups (`ribbon.hiddenGroups`)',
+		table(
+			['Id', 'Group'],
+			RIBBON_GROUPS.map((group) => [code(group.id), group.label]),
+		),
+		'### Ribbon controls (`ribbon.hiddenButtons`)',
+		table(
+			['Id', 'Control'],
+			RIBBON_GROUPS.flatMap((group) =>
+				group.controls.map((control) => [code(control.id), control.label]),
+			),
 		),
 		'### Toolbar buttons (`ribbon.hiddenButtons`)',
 		table(['Id', 'What it removes'], describe(TOOLBAR_BUTTON_IDS, TOOLBAR_BUTTON_DESCRIPTIONS)),

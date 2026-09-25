@@ -156,6 +156,11 @@ import { usePrint } from './composables/usePrint';
 import { useReadOnlyRecommendation } from './composables/useReadOnlyRecommendation';
 import { useRecentColors } from './composables/useRecentColors';
 import { useRibbonActions } from './composables/useRibbonActions';
+import {
+	RibbonCustomizationStyle,
+	useRibbonCustomizationStyle,
+} from './composables/useRibbonCustomizationStyle';
+import { provideRibbonGalleryHost } from './composables/useRibbonGalleryHost';
 import { useRibbonUiState } from './composables/useRibbonUiState';
 import { useSectionOperations } from './composables/useSectionOperations';
 import { useSelectionModel } from './composables/useSelectionModel';
@@ -235,6 +240,8 @@ const { optionsStore, viewerOptions } = useViewerOptionsStore();
 const customization = useViewerCustomization({ props, optionsStore });
 const { panelVisible, dialogAvailable, effectiveHiddenActions, aiEnabled, aiConfig } =
 	customization;
+// Ribbon group/control hiding: a scoped stylesheet from the shared rules.
+const ribbonScope = useRibbonCustomizationStyle(customization.resolved);
 
 const deck = useLoadContent(() => activeContent.value, {
 	getPendingInlineEdit: () => {
@@ -1526,6 +1533,16 @@ function applyAiTheme(updates: Partial<PptxTheme>): void {
 		updates.name ?? current?.name ?? 'Theme',
 	);
 }
+// Ribbon style galleries: context from the deck, picks through the same
+// history-tracked element update / theme paths the inspector uses.
+provideRibbonGalleryHost({
+	selectedElement: () => selectedElements.value[0] ?? null,
+	theme: pptxTheme,
+	themeColorMap,
+	handler,
+	updateElement: (id, patch) => ops.updateElement(id, patch),
+	applyTheme: applyAiTheme,
+});
 const aiBridge = useAiBridge({
 	slides,
 	activeSlideIndex,
@@ -1748,10 +1765,12 @@ defineExpose<PowerPointViewerExpose>({
 		class="pptx-vue-viewer"
 		:class="[props.class, { 'pptx-vue-reduced-motion': reducedMotion }, ...optionRootClasses]"
 		:style="themeStyle"
+		v-bind="ribbonScope.rootAttrs"
 		:aria-busy="loading ? 'true' : 'false'"
 		:tabindex="canEditEffective ? 0 : undefined"
 		@keydown="onEditorKeydown"
 	>
+		<RibbonCustomizationStyle :css="ribbonScope.css.value" />
 		<!-- Loading -->
 		<div v-if="loading" class="pptx-vue-state pptx-vue-loading" role="status" aria-live="polite">
 			<div class="pptx-vue-spinner" aria-hidden="true" />

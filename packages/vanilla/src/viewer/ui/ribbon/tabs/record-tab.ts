@@ -1,6 +1,7 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonSlideShowHandlers } from '../ribbon-types';
 
 /**
@@ -38,12 +39,24 @@ export function createRecordTab(
 	});
 	el.append(
 		dot,
-		cameo,
-		fromBeginning.btn,
-		fromCurrent.btn,
-		placeholder('pptx.record.clear'),
-		placeholder('pptx.record.resetToCameo'),
-		placeholder('pptx.record.learnMore'),
+		wrapRibbonGroup(doc, 'record.camera', tagRibbonControl(cameo, 'record.camera.cameo')),
+		wrapRibbonGroup(
+			doc,
+			'record.record',
+			tagRibbonControl(fromBeginning.btn, 'record.record.fromBeginning'),
+			tagRibbonControl(fromCurrent.btn, 'record.record.fromCurrent'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'record.manage',
+			tagRibbonControl(placeholder('pptx.record.clear'), 'record.manage.clear'),
+			tagRibbonControl(placeholder('pptx.record.resetToCameo'), 'record.manage.reset'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'record.help',
+			tagRibbonControl(placeholder('pptx.record.learnMore'), 'record.help.learnMore'),
+		),
 	);
 	return el;
 }

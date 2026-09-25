@@ -83,6 +83,10 @@ describe('resolveStyleMatrixReferences', () => {
 		const spPr = /<p:spPr>(.*?)<\/p:spPr>/su.exec(xml)?.[1] ?? '';
 		expect(spPr).not.toContain('solidFill');
 		expect(spPr).not.toContain('<a:ln');
+		// CT_Shape order: a NEW p:style must sit between spPr and txBody, or
+		// PowerPoint ignores it.
+		expect(xml.indexOf('<p:style>')).toBeLessThan(xml.indexOf('<p:txBody>'));
+		expect(xml.indexOf('<p:style>')).toBeGreaterThan(xml.indexOf('</p:spPr>'));
 		const style = /<p:style>(.*?)<\/p:style>/su.exec(xml)?.[1] ?? '';
 		// fast-xml-parser writes empty elements as open/close pairs.
 		const norm = style.replace(/<(a:\w+)([^>]*)><\/\1>/gu, '<$1$2/>');

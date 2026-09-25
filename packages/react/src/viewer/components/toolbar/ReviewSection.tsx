@@ -35,8 +35,12 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 	const { t } = useTranslation();
 	return (
 		<>
-			<RibbonGroup label={t('pptx.review.proofing', { defaultValue: 'Proofing' })}>
+			<RibbonGroup
+				label={t('pptx.review.proofing', { defaultValue: 'Proofing' })}
+				groupId='review.proofing'
+			>
 				<RibbonCommand
+					controlId='review.proofing.spelling'
 					label={t('pptx.review.spelling')}
 					icon={<LuSpellCheck />}
 					onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
@@ -44,20 +48,26 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 					title={t('pptx.review.toggleSpellCheck')}
 				/>
 				<RibbonCommand
+					controlId='review.proofing.thesaurus'
 					label={t('pptx.review.thesaurus', { defaultValue: 'Thesaurus' })}
 					icon={<LuBookOpen />}
 					disabled
 				/>
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.review.accessibility', { defaultValue: 'Accessibility' })}>
+			<RibbonGroup
+				label={t('pptx.review.accessibility', { defaultValue: 'Accessibility' })}
+				groupId='review.accessibility'
+			>
 				<RibbonCommand
+					controlId='review.accessibility.check'
 					label={t('pptx.review.accessibilityCheck')}
 					icon={<LuShieldCheck />}
 					onClick={p.onOpenAccessibilityCheck}
 				/>
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.review.language')}>
+			<RibbonGroup label={t('pptx.review.language')} groupId='review.language'>
 				<RibbonCommand
+					controlId='review.language.translate'
 					label={t('pptx.review.translate', { defaultValue: 'Translate' })}
 					icon={<LuLanguages />}
 					disabled
@@ -69,14 +79,19 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 					onClick={p.onSetLanguage}
 				/>
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.review.changes', { defaultValue: 'Changes' })}>
+			<RibbonGroup
+				label={t('pptx.review.changes', { defaultValue: 'Changes' })}
+				groupId='review.compare'
+			>
 				<RibbonCommand
+					controlId='review.compare.markAllRead'
 					label={t('pptx.review.markAllRead', { defaultValue: 'Mark All as Read' })}
 					icon={<LuCopy />}
 					disabled
 				/>
 				{p.onCompare && (
 					<RibbonCommand
+						controlId='review.compare.compare'
 						label={t('pptx.ribbon.compare')}
 						icon={<LuGitCompare />}
 						onClick={p.onCompare}
@@ -85,10 +100,11 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 					/>
 				)}
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.toolbar.comments')}>
+			<RibbonGroup label={t('pptx.toolbar.comments')} groupId='review.comments'>
 				{p.onToggleComments && (
 					<div className='relative'>
 						<RibbonCommand
+							controlId='review.comments.newComment'
 							label={t('pptx.toolbar.comments')}
 							icon={<LuMessageSquarePlus />}
 							onClick={p.onToggleComments}
@@ -105,12 +121,14 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 				<RibbonCommandStack>
 					<RibbonCommand
 						compact
+						controlId='review.comments.delete'
 						label={t('pptx.common.delete', { defaultValue: 'Delete' })}
 						icon={<LuTrash2 />}
 						disabled
 					/>
 					<RibbonCommand
 						compact
+						controlId='review.comments.previous'
 						label={t('pptx.common.previous', { defaultValue: 'Previous' })}
 						icon={<LuChevronLeft />}
 						disabled
@@ -119,30 +137,38 @@ export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 				<RibbonCommandStack>
 					<RibbonCommand
 						compact
+						controlId='review.comments.next'
 						label={t('pptx.common.next', { defaultValue: 'Next' })}
 						icon={<LuChevronRight />}
 						disabled
 					/>
 					<RibbonCommand
 						compact
+						controlId='review.comments.showComments'
 						label={t('pptx.review.showComments', { defaultValue: 'Show Comments' })}
 						icon={<LuMessageSquare />}
 						onClick={p.onToggleComments}
 					/>
 				</RibbonCommandStack>
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.review.protect', { defaultValue: 'Protect' })}>
+			<RibbonGroup
+				label={t('pptx.review.protect', { defaultValue: 'Protect' })}
+				groupId='review.protect'
+			>
 				<RibbonCommand
+					controlId='review.protect.readOnly'
 					label={t('pptx.review.readOnly', { defaultValue: 'Always Open Read-only' })}
 					icon={<LuLockKeyhole />}
 					disabled
 				/>
 				<RibbonCommand
+					controlId='review.protect.restrictPermission'
 					label={t('pptx.review.restrictPermission', { defaultValue: 'Restrict Permission' })}
 					icon={<LuShieldCheck />}
 					disabled
 				/>
 				<RibbonCommand
+					controlId='review.ink.hideInk'
 					label={t('pptx.review.hideInk', { defaultValue: 'Hide Ink' })}
 					icon={<LuEyeOff />}
 					disabled

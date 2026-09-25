@@ -1,5 +1,6 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
+import { tagRibbonGroup, wrapRibbonControl } from '../ribbon-tagging';
 
 /** Distinguishes the Start select of a second viewer mounted on the same page. */
 let timingInstance = 0;
@@ -17,6 +18,7 @@ export interface TimingGroup {
  */
 export function createTimingGroup(doc: Document, t: Translator): TimingGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'animations.timing');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row pptxv-animation-timing-grid');
 	el.appendChild(row);
 	const caption = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -50,6 +52,9 @@ export function createTimingGroup(doc: Document, t: Translator): TimingGroup {
 	// box reads as an anonymous number field.
 	duration.setAttribute('aria-label', t('pptx.animations.duration'));
 
-	row.append(startLabel, start, durationCaption, duration);
+	row.append(
+		wrapRibbonControl(doc, 'animations.timing.start', startLabel, start),
+		wrapRibbonControl(doc, 'animations.timing.duration', durationCaption, duration),
+	);
 	return { el };
 }

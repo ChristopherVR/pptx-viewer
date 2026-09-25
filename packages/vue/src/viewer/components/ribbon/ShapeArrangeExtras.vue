@@ -61,6 +61,7 @@ function onStrokeWidthInput(event: Event): void {
 	<div :class="grp">
 		<button
 			type="button"
+			data-ribbon-control="home.arrange.group"
 			:disabled="!canGroup"
 			:class="gB"
 			:title="t('pptx.contextMenu.group')"
@@ -71,6 +72,7 @@ function onStrokeWidthInput(event: Event): void {
 		</button>
 		<button
 			type="button"
+			data-ribbon-control="home.arrange.ungroup"
 			:disabled="!canUngroup"
 			:class="gL"
 			:title="t('pptx.contextMenu.ungroup')"
@@ -86,6 +88,7 @@ function onStrokeWidthInput(event: Event): void {
 	-->
 	<input
 		type="number"
+		data-ribbon-control="home.arrange.outlineWidth"
 		min="0"
 		max="120"
 		step="0.5"

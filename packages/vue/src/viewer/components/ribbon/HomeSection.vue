@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ChevronDown, ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-vue-next';
+import { ChevronDown } from 'lucide-vue-next';
 /**
  * HomeSection: the Vue 3 port of React's
  * `toolbar/HomeSection.tsx`. Renders the Home ribbon tab's Clipboard, Slides and
@@ -18,23 +18,13 @@ import {
 	textFontSizePxToPt,
 } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
-import { computed, ref, watch } from 'vue';
+import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
 import { vAnchoredPopup } from './anchored-popup';
+import ClipboardGroup from './ClipboardGroup.vue';
 import FontFamilyMenu from './FontFamilyMenu.vue';
-import {
-	COMMON_SIZES,
-	gB,
-	gL,
-	grp,
-	ic,
-	MENU_ITEM,
-	MENU_PANEL,
-	pill,
-	SEP,
-} from './ribbon-constants';
+import { COMMON_SIZES, MENU_ITEM, MENU_PANEL, SEP } from './ribbon-constants';
 import type { ElementClipboardPayload, LayoutOption, TableCellEditorState } from './ribbon-types';
 import SlidesGroup from './SlidesGroup.vue';
 import { useDropdown } from './use-dropdown';
@@ -136,25 +126,6 @@ watch(canFormat, (enabled) => {
 	}
 });
 
-const copiedFeedback = ref(false);
-const cutFeedback = ref(false);
-
-function handleCut(): void {
-	props.onCut();
-	cutFeedback.value = true;
-	setTimeout(() => {
-		cutFeedback.value = false;
-	}, 600);
-}
-
-function handleCopy(): void {
-	props.onCopy();
-	copiedFeedback.value = true;
-	setTimeout(() => {
-		copiedFeedback.value = false;
-	}, 600);
-}
-
 function handlePickFont(f: string): void {
 	props.onUpdateTextStyle?.({ fontFamily: f });
 	fontMenu.close();
@@ -171,56 +142,17 @@ function handlePickSize(s: number): void {
 
 <template>
 	<!-- Clipboard group -->
-	<div class="flex flex-col items-center gap-0.5">
-		<div :class="grp">
-			<button
-				type="button"
-				:disabled="!props.clipboardPayload || !props.canEdit"
-				:class="gB"
-				:title="t('pptx.arrange.paste')"
-				@click="props.onPaste()"
-			>
-				<ClipboardPaste :class="ic" />
-			</button>
-			<button
-				type="button"
-				:disabled="!props.canEdit || !hasSelection"
-				:class="cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')"
-				:title="t('pptx.arrange.cut')"
-				@click="handleCut()"
-			>
-				<Scissors :class="ic" />
-			</button>
-			<button
-				type="button"
-				:disabled="!hasSelection"
-				:class="cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')"
-				:title="t('pptx.arrange.copy')"
-				@click="handleCopy()"
-			>
-				<Copy :class="ic" />
-			</button>
-			<button
-				v-if="props.onToggleFormatPainter"
-				type="button"
-				:disabled="
-					!props.canEdit || (props.canActivateFormatPainter === false && !props.formatPainterActive)
-				"
-				data-testid="format-painter-toggle"
-				:data-active="props.formatPainterActive ? 'true' : 'false'"
-				:class="
-					cn(gL, props.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '')
-				"
-				:title="t('pptx.arrange.formatPainter')"
-				@click="props.onToggleFormatPainter()"
-			>
-				<Paintbrush :class="ic" />
-			</button>
-		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.ribbon.clipboard')
-		}}</span>
-	</div>
+	<ClipboardGroup
+		:can-edit="props.canEdit"
+		:has-selection="hasSelection"
+		:clipboard-payload="props.clipboardPayload"
+		:format-painter-active="props.formatPainterActive"
+		:can-activate-format-painter="props.canActivateFormatPainter"
+		:on-copy="props.onCopy"
+		:on-cut="props.onCut"
+		:on-paste="props.onPaste"
+		:on-toggle-format-painter="props.onToggleFormatPainter"
+	/>
 
 	<div :class="SEP" />
 
@@ -241,9 +173,9 @@ function handlePickSize(s: number): void {
 	<div :class="SEP" />
 
 	<!-- Font group -->
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
 		<div class="flex items-center gap-1">
-			<div :ref="fontMenu.root" class="relative">
+			<div :ref="fontMenu.root" class="relative" data-ribbon-control="home.font.fontFamily">
 				<button
 					type="button"
 					:aria-label="t('pptx.ribbon.fontFamily')"
@@ -263,7 +195,7 @@ function handlePickSize(s: number): void {
 					@select="handlePickFont"
 				/>
 			</div>
-			<div :ref="sizeMenu.root" class="relative">
+			<div :ref="sizeMenu.root" class="relative" data-ribbon-control="home.font.fontSize">
 				<button
 					type="button"
 					:aria-label="t('pptx.ribbon.fontSize')"

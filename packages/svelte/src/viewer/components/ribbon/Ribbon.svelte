@@ -6,33 +6,47 @@
 	 * the ribbon tabs.
 	 */
 	import { useTranslator } from '../../../i18n/context';
-	import { collectUsedFonts, createBackstagePresentation, isActionHidden } from 'pptx-viewer-shared';
-	import AnimationsTab from './animations/AnimationsTab.svelte';
-	import DesignTab from './design/DesignTab.svelte';
-	import DrawTab from './draw/DrawTab.svelte';
+	import {
+		collectUsedFonts,
+		createBackstagePresentation,
+		isActionHidden,
+		resolveActiveRibbonTab,
+		visibleContextualTabs,
+	} from 'pptx-viewer-shared';
+	import type { RibbonContextualTabId } from 'pptx-viewer-shared';
+	import { useViewerCustomization } from '../../state/viewer-customization.svelte';
 	import FileTab from './file/FileTab.svelte';
 	import DocumentPropertiesDialog from './file/DocumentPropertiesDialog.svelte';
 	import DigitalSignaturesDialog from './file/DigitalSignaturesDialog.svelte';
 	import FontEmbeddingPanel from './file/FontEmbeddingPanel.svelte';
 	import PasswordProtectionDialog from './file/PasswordProtectionDialog.svelte';
 	import FindReplacePanel from './FindReplacePanel.svelte';
-	import HomeTab from './home/HomeTab.svelte';
-	import InsertTab from './insert/InsertTab.svelte';
+	import { createRibbonGalleryHost, provideRibbonGalleryHost } from './galleries/ribbon-gallery-host';
 	import RibbonPrimaryRow from './RibbonPrimaryRow.svelte';
 	import RibbonTabBar from './RibbonTabBar.svelte';
-	import SlideShowTab from './slideshow/SlideShowTab.svelte';
-	import ReviewTab from './review/ReviewTab.svelte';
-	import RecordTab from './record/RecordTab.svelte';
-	import HelpTab from './help/HelpTab.svelte';
+	import RibbonTabContent from './RibbonTabContent.svelte';
 	import { DEFAULT_RIBBON_TAB } from './ribbon-tabs';
+	import type { RibbonTabId } from './ribbon-tabs';
 	import type { RibbonProps } from './ribbon-types';
-	import TransitionsTab from './transitions/TransitionsTab.svelte';
-	import ViewTab from './view/ViewTab.svelte';
 
 	const props: RibbonProps = $props();
 	const t = useTranslator();
 
-	let activeTab = $state(DEFAULT_RIBBON_TAB);
+	let activeTab = $state<RibbonTabId | RibbonContextualTabId>(DEFAULT_RIBBON_TAB);
+	const custom = useViewerCustomization();
+	// Contextual tabs follow the selection; a vanished one falls back to Home
+	// (shared `resolveActiveRibbonTab`). Selecting never auto-switches to one.
+	const contextualTabs = $derived(
+		visibleContextualTabs(props.editor.selectedElement ?? null, custom.resolved),
+	);
+	const shownTab = $derived(resolveActiveRibbonTab(activeTab, contextualTabs, DEFAULT_RIBBON_TAB));
+	$effect(() => {
+		if (shownTab !== activeTab) {
+			activeTab = shownTab;
+		}
+	});
+	// svelte-ignore state_referenced_locally
+	provideRibbonGalleryHost(createRibbonGalleryHost(props.editor, (next) => props.onthemechange?.(next)));
 	let propertiesOpen = $state(false);
 	// eslint-disable-next-line prefer-const
 	let fontsOpen = $state(false);
@@ -112,8 +126,9 @@
 		onsignatures={() => (signaturesOpen = true)}
 	/>
 	<RibbonTabBar
-		active={activeTab}
+		active={shownTab}
 		onselect={selectTab}
+		{contextualTabs}
 		onrecord={props.onrehearse}
 		onshare={props.onshare}
 		collabActive={props.collabActive}
@@ -149,67 +164,7 @@
 			hiddenActions={props.hiddenActions}
 		/>
 	{/if}
-	<div class="pptx-svelte-ribbon-content">
-		{#if activeTab === 'home'}
-			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} hiddenActions={props.hiddenActions} />
-		{:else if activeTab === 'insert'}
-			<InsertTab editor={props.editor} canvasSize={props.canvasSize} onheaderfooter={props.onheaderfooter} />
-		{:else if activeTab === 'draw'}
-			<DrawTab editor={props.editor} />
-		{:else if activeTab === 'design'}
-			<DesignTab
-				editor={props.editor}
-				theme={props.theme}
-				onsettheme={props.onsettheme}
-				onslidesize={openSlideSize}
-			/>
-		{:else if activeTab === 'transitions'}
-			<TransitionsTab editor={props.editor} chromeUi={props.chromeUi} />
-		{:else if activeTab === 'animations'}
-			<AnimationsTab editor={props.editor} chromeUi={props.chromeUi} />
-		{:else if activeTab === 'slideShow'}
-			<SlideShowTab
-				editor={props.editor}
-				onfrombeginning={props.onfrombeginning}
-				onfromcurrent={props.onfromcurrent}
-				onpresenter={props.onpresenter}
-				onsetup={props.onsetupslideshow}
-				onrehearse={props.onrehearse}
-				onsubtitles={props.onsubtitles}
-				oncustomshows={props.oncustomshows}
-				onhideslide={props.onhideslide}
-				activeSlideHidden={Boolean(props.slides?.[props.current]?.hidden)}
-				subtitlesEnabled={props.subtitlesEnabled}
-				onbroadcast={props.onbroadcast}
-			/>
-		{:else if activeTab === 'review'}
-			<ReviewTab slides={props.slides} onnavigate={props.onnavigatetoissue} editor={props.editor} oncompare={props.oncompare} onlanguage={props.onsettings} spellCheck={props.preferences.spellCheck} onspellcheckchange={(enabled) => props.onpreferenceschange({ ...props.preferences, spellCheck: enabled })} />
-		{:else if activeTab === 'record'}
-			<RecordTab onfrombeginning={props.onrecordfrombeginning} onfromcurrent={props.onrecordfromcurrent} />
-		{:else if activeTab === 'view'}
-			<ViewTab
-				editor={props.editor}
-				preferences={props.preferences}
-				onpreferenceschange={props.onpreferenceschange}
-				showGuides={props.showGuides}
-				onshowguideschange={props.onshowguideschange}
-				snapToShape={props.snapToShape}
-				onsnapToShapechange={props.onsnapToShapechange}
-				onaddguide={props.onaddguide}
-				onzoomfit={props.onzoomfit}
-				onnormal={props.onnormal}
-				editTemplateMode={props.editor.editTemplateMode}
-				onsettemplateediting={(enabled) => props.editor.setTemplateEditing(enabled)}
-				onentermasterview={props.onentermasterview}
-				onselectionpane={props.onselectionpane}
-				onslidesorter={props.onslidesorter}
-				onoutlineview={props.onoutlineview}
-				onreadingview={props.onreadingview}
-			/>
-		{:else if activeTab === 'help'}
-			<HelpTab onaccessibility={() => (activeTab = 'review')} onshortcuts={props.onshortcuts} onsettings={props.onsettings} />
-		{/if}
-	</div>
+	<RibbonTabContent ribbon={props} tab={shownTab} onselecttab={selectTab} onslidesize={openSlideSize} />
 </div>
 
 {#if fontsOpen}
@@ -234,33 +189,6 @@
 		border-bottom: 1px solid var(--pptx-border, #33334d);
 		font-family: system-ui, sans-serif;
 		flex: none;
-	}
-
-	/* One horizontal, non-wrapping row of ribbon groups (React parity:
-	   `flex min-h-[82px] items-center gap-0 px-1 py-0.5 overflow-x-auto
-	   flex-nowrap`). `items-center` (not `stretch`): a plain single-row button
-	   or group has no internal layout that uses extra height, so stretching it
-	   to the row's full 82px just padded it out top and bottom into an
-	   oversized pill. A group that genuinely wants the full height still gets
-	   it via its own explicit sizing (e.g. a stacked icon-over-label button),
-	   unaffected by this default. Narrow viewports scroll sideways. */
-	.pptx-svelte-ribbon-content {
-		display: flex;
-		align-items: center;
-		flex-wrap: nowrap;
-		gap: 0;
-		min-height: 82px;
-		padding: 2px 4px;
-		overflow-x: auto;
-		overflow-y: hidden;
-		scrollbar-width: thin;
-	}
-
-	/* Stretch the tab wrapper, but keep its plain controls centered. Labelled
-	   RibbonGroups opt into stretching so their captions share a baseline. */
-	.pptx-svelte-ribbon-content > :global(*) {
-		align-self: stretch;
-		align-items: center;
 	}
 
 	/* Shared compact dark select for ribbon dropdowns (font family, change

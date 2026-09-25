@@ -86,6 +86,17 @@ export function effectiveHiddenActions(
 	return [...(resolveEffectiveHiddenActions(resolved, legacy) ?? []), ...ribbonHiddenTabs];
 }
 
+let ribbonScopeCounter = 0;
+
+/**
+ * A fresh per-viewer `data-pptx-ribbon-scope` token, so the generated ribbon
+ * customisation rules only reach this viewer's own ribbon.
+ */
+export function nextRibbonScopeToken(): string {
+	ribbonScopeCounter += 1;
+	return `pptx-svelte-${ribbonScopeCounter}`;
+}
+
 const VIEWER_CUSTOMIZATION_CONTEXT_KEY = Symbol('pptx-svelte-viewer-customization');
 
 /** The reader for a subtree with no provider: "customise nothing". */

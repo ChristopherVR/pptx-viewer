@@ -1,10 +1,11 @@
-import type { ToolbarActionId } from 'pptx-viewer-shared';
+import type { RibbonControlId, ToolbarActionId } from 'pptx-viewer-shared';
 import { isActionHidden } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, wrapRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonNavHandlers } from '../ribbon-types';
 
 /** The View > Show toggles, as the viewer state currently holds them. */
@@ -104,27 +105,55 @@ export function createViewTab(
 	templates.btn.dataset.testid = 'template-edit-toggle';
 	templates.btn.title = t('pptx.view.templateEditingTooltip');
 
+	const tagged = (handle: ButtonHandle, id: RibbonControlId): HTMLButtonElement =>
+		tagRibbonControl(handle.btn, id);
+	const ph = (key: string, id: RibbonControlId): HTMLButtonElement =>
+		tagRibbonControl(placeholder(key), id);
 	el.append(
-		normal.btn,
-		sorter.btn,
-		outline.btn,
-		reading.btn,
-		masterView.btn,
-		placeholder('pptx.master.handoutMasterTitle'),
-		placeholder('pptx.master.notesMasterTitle'),
-		rulers.btn,
-		grid.btn,
-		guides.btn,
-		snapGrid.btn,
-		selection.btn,
-		eyedropper.btn,
-		snapShape.btn,
-		horizontalGuide.btn,
-		verticalGuide.btn,
-		...(showZoom ? [placeholder('pptx.slideSorter.zoom'), zoomToFit?.btn ?? []].flat() : []),
-		templates.btn,
-		placeholder('pptx.view.macros'),
+		wrapRibbonGroup(
+			doc,
+			'view.presentationViews',
+			tagged(normal, 'view.presentationViews.normal'),
+			tagged(sorter, 'view.presentationViews.slideSorter'),
+			tagged(outline, 'view.presentationViews.outline'),
+			tagged(reading, 'view.presentationViews.readingView'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'view.masterViews',
+			tagged(masterView, 'view.masterViews.slideMaster'),
+			ph('pptx.master.handoutMasterTitle', 'view.masterViews.handoutMaster'),
+			ph('pptx.master.notesMasterTitle', 'view.masterViews.notesMaster'),
+		),
+		wrapRibbonGroup(
+			doc,
+			'view.show',
+			tagged(rulers, 'view.show.ruler'),
+			tagged(grid, 'view.show.gridlines'),
+			tagged(guides, 'view.show.guides'),
+			tagged(snapGrid, 'view.show.snapToGrid'),
+			tagged(selection, 'view.show.selectionPane'),
+			tagged(eyedropper, 'view.show.eyedropper'),
+			tagged(snapShape, 'view.show.snapToShape'),
+			wrapRibbonControl(doc, 'view.show.addGuide', horizontalGuide.btn, verticalGuide.btn),
+		),
+		wrapRibbonGroup(
+			doc,
+			'view.zoom',
+			...(showZoom
+				? [ph('pptx.slideSorter.zoom', 'view.zoom.zoom'), zoomToFit?.btn ?? []].flat()
+				: []),
+		),
+		wrapRibbonGroup(
+			doc,
+			'view.window',
+			tagged(templates, 'view.window.templateEditing'),
+			ph('pptx.view.macros', 'view.window.macros'),
+		),
 	);
+	if (zoomToFit) {
+		tagRibbonControl(zoomToFit.btn, 'view.zoom.fitToWindow');
+	}
 
 	return {
 		el,

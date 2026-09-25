@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuChevronUp, LuCopy, LuPaintbrush, LuTrash2 } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { ShapeArrangeExtras } from './ShapeArrangeExtras';
 import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './toolbar-constants';
 
@@ -40,9 +41,9 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 	const canMut = hasSel && p.canEdit;
 
 	return (
-		<div className='flex flex-col items-center gap-0.5'>
+		<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.arrange')}>
 			<div className='flex items-center gap-1'>
-				<div className={grp}>
+				<div className={grp} {...controlAttr('home.arrange.align')}>
 					{ALIGN_BTNS.map((a, i, arr) => (
 						<button
 							key={a.k}
@@ -84,6 +85,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 							p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
 						)}
 						title={t('pptx.arrange.formatPainter')}
+						{...controlAttr('home.clipboard.formatPainter')}
 					>
 						<LuPaintbrush className={ic} />
 						{t('pptx.arrange.format')}
@@ -96,6 +98,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gB}
 						title={t('pptx.arrange.flipHorizontally')}
+						{...controlAttr('home.arrange.flipHorizontal')}
 					>
 						{t('pptx.arrange.flipH')}
 					</button>
@@ -105,6 +108,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gL}
 						title={t('pptx.arrange.flipVertically')}
+						{...controlAttr('home.arrange.flipVertical')}
 					>
 						{t('pptx.arrange.flipV')}
 					</button>
@@ -125,6 +129,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gB}
 						title={t('pptx.arrange.sendBackward')}
+						{...controlAttr('home.arrange.sendBackward')}
 					>
 						<LuChevronDown className={ic} />
 					</button>
@@ -133,6 +138,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gB}
 						title={t('pptx.arrange.bringForward')}
+						{...controlAttr('home.arrange.bringForward')}
 					>
 						<LuChevronUp className={ic} />
 					</button>
@@ -141,6 +147,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gB}
 						title={t('pptx.arrange.sendToBack')}
+						{...controlAttr('home.arrange.sendToBack')}
 					>
 						{t('pptx.arrange.back')}
 					</button>
@@ -149,6 +156,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 						disabled={!canMut}
 						className={gL}
 						title={t('pptx.arrange.bringToFront')}
+						{...controlAttr('home.arrange.bringToFront')}
 					>
 						{t('pptx.arrange.front')}
 					</button>
@@ -158,6 +166,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					disabled={!canMut}
 					className={pill}
 					title={t('pptx.arrange.duplicate')}
+					{...controlAttr('home.arrange.duplicate')}
 				>
 					<LuCopy className={ic} />
 					{t('pptx.arrange.duplicate')}
@@ -167,6 +176,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					disabled={!canMut}
 					className='inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-red-700/80 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-colors'
 					title={t('pptx.arrange.delete')}
+					{...controlAttr('home.arrange.delete')}
 				>
 					<LuTrash2 className={ic} />
 					{t('pptx.arrange.delete')}

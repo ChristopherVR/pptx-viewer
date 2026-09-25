@@ -14,7 +14,6 @@ import type {
 	FreeformToolKind,
 	ResolvedCustomization,
 	RibbonTransitionDraft,
-	ViewerTheme,
 } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -129,8 +128,7 @@ export interface ChromeCallbackDeps {
 	presentationProperties(): PptxPresentationProperties;
 	/** Lazily resolve the editor's find/replace actions (same timing as edit actions). */
 	getFindReplaceActions(): FindReplaceActions;
-	/** Swap the viewer chrome's `ViewerTheme` (Design tab theme gallery). */
-	setTheme(theme: ViewerTheme | undefined): void;
+	/** Design > Browse Themes: re-theme the deck with a shared gallery preset. */
 	applyPresentationTheme(presetId: string): void;
 	/** Switch the Draw ribbon tab's active tool. */
 	setDrawTool(tool: DrawTool): void;
@@ -259,8 +257,8 @@ export function buildChromeCallbacks(
 		},
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 		design: {
-			setTheme: (theme) => deps.setTheme(theme),
 			applyPresentationTheme: (presetId) => deps.applyPresentationTheme(presetId),
+			applyThemeEdit: (payload) => deps.getEditActions().applyThemeEdit(payload),
 		},
 		transitions: {
 			readDraft: () => deps.readTransitionDraft(),

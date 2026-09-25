@@ -37,7 +37,8 @@
 	import { createViewerState } from './state/create-viewer-state.svelte';
 	import { ThemeLocaleState } from './state/theme-locale.svelte';
 	import { toViewerStateOptions } from './state/viewer-state-options';
-	import { effectiveHiddenActions, useCustomizationConstraints, useViewerCustomizationRoot } from './state/viewer-customization.svelte';
+	import { effectiveHiddenActions, nextRibbonScopeToken, useCustomizationConstraints, useViewerCustomizationRoot } from './state/viewer-customization.svelte';
+	import RibbonCustomizationStyle from './components/RibbonCustomizationStyle.svelte';
 	import { useWindowViewport } from './state/window-viewport.svelte';
 	import { styleToString } from './style';
 	import type { PowerPointViewerProps } from './types';
@@ -89,6 +90,7 @@
 
 	// Host UI customisation (`customization` prop + the imperative API below).
 	const customization = useViewerCustomizationRoot(() => props.customization);
+	const ribbonScope = nextRibbonScopeToken();
 	const vm = createViewerState(
 		toViewerStateOptions(() => props, {
 			t,
@@ -187,7 +189,7 @@
 	export const moveSlide = vm.deck.moveSlide;
 	export const toggleHideSlides = vm.deck.toggleHideSlides;
 	// oxfmt-ignore
-	export const { getCustomization, setCustomization, updateCustomization, resetCustomization, hideRibbonTab, showRibbonTab, hideToolbarButton, showToolbarButton, hideOptionsPage, showOptionsPage, hideOptionsSection, showOptionsSection, hideSetting, showSetting, lockSetting, unlockSetting, setSettingDefault, hideBackstagePage, showBackstagePage, hideBackstageCard, showBackstageCard, hideContextMenuCommand, showContextMenuCommand, hideCanvasContextMenuCommand, showCanvasContextMenuCommand, disableShortcut, enableShortcut, remapShortcut, setPanelVisible, setFeatureEnabled, setDialogAvailable } = customization.api;
+	export const { getCustomization, setCustomization, updateCustomization, resetCustomization, hideRibbonTab, showRibbonTab, hideRibbonGroup, showRibbonGroup, hideRibbonControl, showRibbonControl, hideToolbarButton, showToolbarButton, hideOptionsPage, showOptionsPage, hideOptionsSection, showOptionsSection, hideSetting, showSetting, lockSetting, unlockSetting, setSettingDefault, hideBackstagePage, showBackstagePage, hideBackstageCard, showBackstageCard, hideContextMenuCommand, showContextMenuCommand, hideCanvasContextMenuCommand, showCanvasContextMenuCommand, disableShortcut, enableShortcut, remapShortcut, setPanelVisible, setFeatureEnabled, setDialogAvailable } = customization.api;
 </script>
 
 <svelte:document onfullscreenchange={vm.onFullscreenChange} />
@@ -213,6 +215,7 @@
 	class:pptx-svelte-show-guides={parityUi.showGuides}
 	class:pptx-svelte-reduced-motion={parityUi.preferences.reducedMotion}
 	style={rootStyle}
+	data-pptx-ribbon-scope={ribbonScope}
 	role="region"
 	aria-label={t('pptx.titleBar.defaultFileName')}
 	aria-busy={loader.loading}
@@ -225,6 +228,7 @@
 		}
 	}}
 >
+	<RibbonCustomizationStyle scope={ribbonScope} />
 	{#if showToolbar && vm.chromeVisible}
 		<ViewerChrome
 			{vm}
@@ -232,8 +236,6 @@
 			{showNotes}
 			{hiddenActions}
 			accountAuth={props.accountAuth}
-			theme={themeLocale.effectiveTheme}
-			onsettheme={(next) => themeLocale.setTheme(next)}
 			{aiEnabled}
 			onpresenter={vm.enterPresenterView}
 		/>

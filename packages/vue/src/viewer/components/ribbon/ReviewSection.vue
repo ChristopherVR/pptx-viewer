@@ -51,6 +51,8 @@ const { t } = useI18n();
 <template>
 	<!-- Proofing -->
 	<button
+		data-ribbon-group="review.proofing"
+		data-ribbon-control="review.proofing.spelling"
 		:class="cn(pill, props.spellCheckEnabled ? 'bg-primary hover:bg-primary/80 text-white' : '')"
 		:title="t('pptx.review.toggleSpellCheck')"
 		@click="props.onSetSpellCheckEnabled(!props.spellCheckEnabled)"
@@ -58,7 +60,12 @@ const { t } = useI18n();
 		<SpellCheck :class="ic" />
 		{{ t('pptx.review.spelling') }}
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.proofing"
+		data-ribbon-control="review.proofing.thesaurus"
+	>
 		<BookOpen :class="ic" />
 		{{ t('pptx.review.thesaurus') }}
 	</button>
@@ -68,6 +75,8 @@ const { t } = useI18n();
 	<!-- Accessibility -->
 	<button
 		v-if="props.onOpenAccessibilityCheck"
+		data-ribbon-group="review.accessibility"
+		data-ribbon-control="review.accessibility.check"
 		:class="pill"
 		:title="t('pptx.review.accessibilityCheckTooltip')"
 		@click="props.onOpenAccessibilityCheck()"
@@ -79,12 +88,18 @@ const { t } = useI18n();
 	<div :class="SEP" />
 
 	<!-- Language -->
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.language"
+		data-ribbon-control="review.language.translate"
+	>
 		<Languages :class="ic" />
 		{{ t('pptx.review.translate') }}
 	</button>
 	<button
 		v-if="props.onSetLanguage"
+		data-ribbon-group="review.language"
 		:class="pill"
 		:title="t('pptx.review.languageTooltip')"
 		@click="props.onSetLanguage()"
@@ -96,12 +111,19 @@ const { t } = useI18n();
 	<div :class="SEP" />
 
 	<!-- Changes -->
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.compare"
+		data-ribbon-control="review.compare.markAllRead"
+	>
 		<Copy :class="ic" />
 		{{ t('pptx.review.markAllRead') }}
 	</button>
 	<button
 		v-if="props.onCompare"
+		data-ribbon-group="review.compare"
+		data-ribbon-control="review.compare.compare"
 		:disabled="!props.canEdit"
 		:class="pill"
 		:title="t('pptx.ribbon.compareTitle')"
@@ -116,6 +138,7 @@ const { t } = useI18n();
 	<!-- Comments -->
 	<button
 		v-if="props.onToggleComments"
+		data-ribbon-group="review.comments"
 		:class="cn(pill, props.isCommentsPanelOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
 		:title="t('pptx.review.toggleComments')"
 		@click="props.onToggleComments()"
@@ -129,19 +152,39 @@ const { t } = useI18n();
 			{{ props.slideCommentCount }}
 		</span>
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.comments"
+		data-ribbon-control="review.comments.delete"
+	>
 		<Trash2 :class="ic" />
 		{{ t('pptx.common.delete') }}
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.comments"
+		data-ribbon-control="review.comments.previous"
+	>
 		<ChevronLeft :class="ic" />
 		{{ t('pptx.common.previous') }}
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.comments"
+		data-ribbon-control="review.comments.next"
+	>
 		<ChevronRight :class="ic" />
 		{{ t('pptx.common.next') }}
 	</button>
-	<button :class="pill" @click="props.onToggleComments?.()">
+	<button
+		:class="pill"
+		data-ribbon-group="review.comments"
+		data-ribbon-control="review.comments.showComments"
+		@click="props.onToggleComments?.()"
+	>
 		<MessageSquare :class="ic" />
 		{{ t('pptx.review.showComments') }}
 	</button>
@@ -149,15 +192,30 @@ const { t } = useI18n();
 	<div :class="SEP" />
 
 	<!-- Protect -->
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.protect"
+		data-ribbon-control="review.protect.readOnly"
+	>
 		<LockKeyhole :class="ic" />
 		{{ t('pptx.review.readOnly') }}
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.protect"
+		data-ribbon-control="review.protect.restrictPermission"
+	>
 		<ShieldCheck :class="ic" />
 		{{ t('pptx.review.restrictPermission') }}
 	</button>
-	<button disabled :class="pill">
+	<button
+		disabled
+		:class="pill"
+		data-ribbon-group="review.ink"
+		data-ribbon-control="review.ink.hideInk"
+	>
 		<EyeOff :class="ic" />
 		{{ t('pptx.review.hideInk') }}
 	</button>

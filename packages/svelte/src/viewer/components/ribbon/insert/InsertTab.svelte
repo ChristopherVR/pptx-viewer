@@ -99,9 +99,11 @@
 </script>
 
 <div class="pptx-svelte-inserttab" role="group" aria-label={t('pptx.ribbon.insert')}>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.text">
 	<button
 		type="button"
 		disabled={!editor.editable}
+		data-ribbon-control="insert.text.textBox"
 		aria-label={t('pptx.ribbon.textBox')}
 		title={t('pptx.ribbon.textBox')}
 		onclick={() => editor.insertElement(newTextElement())}
@@ -109,45 +111,56 @@
 		<span aria-hidden="true">T</span>
 		<span>{t('pptx.ribbon.textBox')}</span>
 	</button>
+	</span>
 
-	<ShapePicker {editor} />
-	<FreeformToolButtons {editor} />
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.illustrations"><span class="pptx-svelte-rb-contents" data-ribbon-control="insert.illustrations.shapes"><ShapePicker {editor} /></span><FreeformToolButtons {editor} /></span>
 
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.images">
 	<button
 		type="button"
 		disabled={!editor.editable}
+		data-ribbon-control="insert.images.pictures"
 		title={t('pptx.ribbon.insertImage')}
 		onclick={() => imageInput?.click()}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM4 11l3-3 2 2 2.5-3 1.5 2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /><circle cx="5.5" cy="6" r="1" fill="currentColor" /></svg>
 		<span>{t('pptx.ribbon.image')}</span>
 	</button>
+	</span>
 
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.media">
 	<button
 		type="button"
 		disabled={!editor.editable}
+		data-ribbon-control="insert.media.media"
 		title={t('pptx.ribbon.insertMedia')}
 		onclick={() => mediaInput?.click()}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 4h11v8h-11z" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M6.5 6.2 10 8l-3.5 1.8Z" fill="currentColor" /></svg>
 		<span>{t('pptx.ribbon.media')}</span>
 	</button>
+	</span>
 
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.tables">
 	<button
 		type="button"
 		disabled={!editor.editable}
+		data-ribbon-control="insert.tables.table"
 		title={t('pptx.insert.insertTable')}
 		onclick={() => editor.insertElement(newTableElement())}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 3.5h11v9h-11zM2.5 6.5h11M2.5 9.5h11M6 3.5v9M10 3.5v9" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
 		<span>{t('pptx.ribbon.table')}</span>
 	</button>
+	</span>
 
-	<ChartMenu {editor} {canvasSize} />
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.illustrations"><span class="pptx-svelte-rb-contents" data-ribbon-control="insert.illustrations.chart"><ChartMenu {editor} {canvasSize} /></span></span>
 
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.symbols">
 	<button
 		type="button"
 		disabled={!editor.editable}
+		data-ribbon-control="insert.symbols.equation"
 		aria-haspopup="dialog"
 		aria-expanded={equationOpen}
 		title={t('pptx.ribbon.insertEquation')}
@@ -156,16 +169,17 @@
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 3h6l-3 5 3 5H4M9 8h3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.ribbon.equation')}</span>
 	</button>
+	</span>
 
-	<SmartArtMenu {editor} {canvasSize} />
-	<ActionButtonMenu {editor} {canvasSize} />
-	<FieldMenu {editor} {canvasSize} />
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.illustrations"><span class="pptx-svelte-rb-contents" data-ribbon-control="insert.illustrations.smartArt"><SmartArtMenu {editor} {canvasSize} /></span></span>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.links"><span class="pptx-svelte-rb-contents" data-ribbon-control="insert.links.action"><ActionButtonMenu {editor} {canvasSize} /></span></span>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.text"><span class="pptx-svelte-rb-contents" data-ribbon-control="insert.text.field"><FieldMenu {editor} {canvasSize} /></span></span>
 	<!-- No icon, matching React/Vue's plain-text Header & Footer pill (every
 	     other Insert control pairs an icon with its label; this one doesn't). -->
 	{#if onheaderfooter}<button type="button" onclick={onheaderfooter}><span>{t('pptx.headerFooter.title')}</span></button>{/if}
 	<!-- `pptx.hyperlink.title` has no dictionary entry, so this button used to
 	     render as the humanised key fallback, "Title". -->
-	<button type="button" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlinkDialog.title')}</span></button>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="insert.links"><button type="button" data-ribbon-control="insert.links.link" disabled={!editor.selectedElementId} onclick={() => (hyperlinkOpen = true)}><Link size={15} aria-hidden="true" /> <span>{t('pptx.hyperlinkDialog.title')}</span></button></span>
 
 	<input bind:this={imageInput} type="file" accept="image/*" class="pptx-svelte-inserttab-file" onchange={onImageFileChange} />
 	<input bind:this={mediaInput} type="file" accept="video/*,audio/*" class="pptx-svelte-inserttab-file" onchange={onMediaFileChange} />
@@ -195,7 +209,8 @@
 		gap: 4px;
 	}
 
-	.pptx-svelte-inserttab > button {
+	.pptx-svelte-inserttab > button,
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button {
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
@@ -210,12 +225,14 @@
 		font-size: 12px;
 	}
 
-	.pptx-svelte-inserttab > button:hover:not(:disabled) {
+	.pptx-svelte-inserttab > button:hover:not(:disabled),
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button:hover:not(:disabled) {
 		background: var(--pptx-accent, #33334d);
 		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
-	.pptx-svelte-inserttab > button:disabled {
+	.pptx-svelte-inserttab > button:disabled,
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button:disabled {
 		opacity: 0.35;
 		cursor: default;
 	}

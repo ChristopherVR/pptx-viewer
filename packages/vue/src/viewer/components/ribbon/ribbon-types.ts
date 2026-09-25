@@ -23,6 +23,7 @@ import type {
 	AnimationApplyGroup,
 	ChangeCaseMode,
 	InsertChartKind,
+	RibbonContextualTabId,
 	SlideTemplateId,
 	ToolbarActionId,
 } from 'pptx-viewer-shared';
@@ -30,7 +31,10 @@ import type {
 /** Viewer interaction mode. Mirrors React `ViewerMode`. */
 export type ViewerMode = 'preview' | 'edit' | 'present' | 'master';
 
-/** Ribbon tab id. Mirrors React `ToolbarSection`. */
+/**
+ * Ribbon tab id. Mirrors React `ToolbarSection`, plus the contextual tabs
+ * (Shape Format, Picture Format, ...) a selection brings up.
+ */
 export type ToolbarSection =
 	| 'file'
 	| 'home'
@@ -45,7 +49,8 @@ export type ToolbarSection =
 	| 'record'
 	| 'review'
 	| 'view'
-	| 'help';
+	| 'help'
+	| RibbonContextualTabId;
 
 /** Active drawing/inking tool. Mirrors React `DrawingTool`. */
 export type DrawingTool = 'select' | 'pen' | 'highlighter' | 'eraser' | 'freeform';

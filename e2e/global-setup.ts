@@ -4,6 +4,7 @@ import { generateBar3DHorizontalFixture } from './fixtures/generate-bar3d-horizo
 import { generateBar3DPictureFillFixture } from './fixtures/generate-bar3d-picture-fill-fixture';
 import { generateFixture as generateBoxCubeTransitionFixture } from './fixtures/generate-box-cube-transition-fixture';
 import { generateChartFixture } from './fixtures/generate-chart-fixture';
+import { generateChartPieBestFitFixture } from './fixtures/generate-chart-pie-best-fit-fixture';
 import { generateChartTopAxisFixture } from './fixtures/generate-chart-top-axis-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
 import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
@@ -23,6 +24,7 @@ import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fix
 import { generatePie3DFixture } from './fixtures/generate-pie3d-fixture';
 import { generatePresetTextInsetsFixture } from './fixtures/generate-preset-text-insets-fixture';
 import { generateRectPathGradientFixture } from './fixtures/generate-rectpath-gradient-fixture';
+import { generateRibbonGalleriesFixture } from './fixtures/generate-ribbon-galleries-fixture';
 import { generateRunProgramFixture } from './fixtures/generate-run-program-fixture';
 import { generateSmartArtBuildFixture } from './fixtures/generate-smartart-build-fixture';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
@@ -43,7 +45,9 @@ export default async function globalSetup() {
 	// disk, and can report a spurious PASS. Fail with the build command instead.
 	await assertDistFreshness();
 	await generateFixture();
+	await generateRibbonGalleriesFixture();
 	await generateChartFixture();
+	await generateChartPieBestFitFixture();
 	await generateChartTopAxisFixture();
 	await generateChartUserShapeGroupFixture();
 	await generateBar3DHorizontalFixture();

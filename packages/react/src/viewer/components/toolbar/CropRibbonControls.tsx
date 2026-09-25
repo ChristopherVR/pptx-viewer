@@ -13,6 +13,7 @@ import { LuChevronDown, LuCrop } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { useShapeFormatContext } from '../shape-format-context';
+import { controlAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { gB, gL, grp, ic } from './toolbar-constants';
 import {
@@ -45,7 +46,7 @@ export function CropRibbonControls({ canEdit }: CropRibbonControlsProps): React.
 		action();
 	};
 	return (
-		<div className='relative' ref={ref}>
+		<div className='relative' ref={ref} {...controlAttr('home.arrange.crop')}>
 			<div className={grp}>
 				<button
 					type='button'

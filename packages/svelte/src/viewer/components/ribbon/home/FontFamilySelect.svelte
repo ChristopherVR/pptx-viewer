@@ -42,6 +42,7 @@
 <!-- This edits selected text; it does not configure future inserted text. -->
 <select
 	class="pptx-svelte-ribbon-select pptx-svelte-fontx-family"
+	data-ribbon-control="home.font.fontFamily"
 	aria-label={t('pptx.ribbon.fontFamily')}
 	disabled={!editor.editable || !active}
 	title={t('pptx.ribbon.fontFamily')}

@@ -6,6 +6,7 @@ import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import type { IconName } from '../../icons';
+import { tagRibbonControl, tagRibbonGroup, wrapRibbonControl } from '../ribbon-tagging';
 import type { ArrangeExtrasHandlers } from './arrange-extras';
 import { createArrangeExtras } from './arrange-extras';
 import type { MergeCropHandlers } from './merge-crop-controls';
@@ -79,6 +80,7 @@ export function createArrangeGroup(
 	hiddenActions?: readonly ToolbarActionId[],
 ): ArrangeGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.arrange');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -161,10 +163,22 @@ export function createArrangeGroup(
 	const extras = createArrangeExtras(doc, t, handlers);
 	const mergeCrop = createMergeCropControls(doc, t, handlers, hiddenActions);
 
+	tagRibbonControl(flipH.btn, 'home.arrange.flipHorizontal');
+	tagRibbonControl(flipV.btn, 'home.arrange.flipVertical');
+	tagRibbonControl(backward.btn, 'home.arrange.sendBackward');
+	tagRibbonControl(forward.btn, 'home.arrange.bringForward');
+	tagRibbonControl(back.btn, 'home.arrange.sendToBack');
+	tagRibbonControl(front.btn, 'home.arrange.bringToFront');
+	tagRibbonControl(duplicate.btn, 'home.arrange.duplicate');
+	tagRibbonControl(del.btn, 'home.arrange.delete');
 	row.append(
-		...alignButtons.map((b) => b.btn),
-		distributeH.btn,
-		distributeV.btn,
+		wrapRibbonControl(
+			doc,
+			'home.arrange.align',
+			...alignButtons.map((b) => b.btn),
+			distributeH.btn,
+			distributeV.btn,
+		),
 		painter.btn,
 		flipH.btn,
 		flipV.btn,

@@ -4,12 +4,14 @@ import type {
 	PptxLayoutPreview,
 	PptxPresentationProperties,
 	PptxSlideTransition,
+	PptxThemeColorScheme,
+	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
 import type {
 	FreeformToolKind,
 	ResolvedCustomization,
+	RibbonGalleryContext,
 	RibbonTransitionDraft,
-	ViewerTheme,
 } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -170,16 +172,20 @@ export interface RibbonTransitionHandlers {
 }
 
 /**
- * Design tab handler: swap the viewer chrome's `ViewerTheme` (the shared
- * light/dark "vermilion" presets, see `theme/presets.ts`), the same mechanism
- * `PptxViewer.setTheme` already exposes on the public API. This is UI-chrome
- * styling, not presentation content, so unlike `EditActions` it isn't
- * history-integrated (same class as the always-available zoom/present nav
- * actions).
+ * Design tab handlers. Both theme commands act on the PRESENTATION theme, as
+ * in React, Vue and Angular: Browse Themes applies a shared gallery preset
+ * (`GALLERY_THEME_PRESETS`), Edit Theme applies the deck theme editor's staged
+ * colours/fonts/name (the same `applyThemeEdit` the inspector's THEME EDITOR
+ * card uses). Both are history-integrated. The viewer chrome's own theme is
+ * `PptxViewer.setTheme` / Options, never the Design tab.
  */
 export interface RibbonDesignHandlers {
-	setTheme(theme: ViewerTheme | undefined): void;
 	applyPresentationTheme(presetId: string): void;
+	applyThemeEdit(payload: {
+		colorScheme: PptxThemeColorScheme;
+		fontScheme: PptxThemeFontScheme;
+		name: string;
+	}): void;
 }
 
 /**
@@ -296,4 +302,6 @@ export interface RibbonSelectionState {
 	canCrop?: boolean;
 	/** Picture crop mode is on (the Crop toggle's pressed state). */
 	cropActive?: boolean;
+	/** What the shared ribbon galleries build their descriptors from. */
+	galleryContext?: RibbonGalleryContext;
 }

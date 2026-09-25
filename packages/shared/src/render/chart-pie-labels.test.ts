@@ -4,8 +4,26 @@ import { buildPieDataLabels, isOutsidePosition } from './chart-pie-labels';
 import type { PieSliceGeometry } from './chart-view-model';
 
 const slices: PieSliceGeometry[] = [
-	{ d: 'M0,0', midAngle: 0, labelX: 170, labelY: 100 },
-	{ d: 'M0,0', midAngle: Math.PI, labelX: 30, labelY: 100 },
+	{
+		d: 'M0,0',
+		midAngle: 0,
+		labelX: 170,
+		labelY: 100,
+		startAngle: -0.3 * Math.PI,
+		endAngle: 0.3 * Math.PI,
+		cx: 100,
+		cy: 100,
+	},
+	{
+		d: 'M0,0',
+		midAngle: Math.PI,
+		labelX: 30,
+		labelY: 100,
+		startAngle: 0.3 * Math.PI,
+		endAngle: 1.7 * Math.PI,
+		cx: 100,
+		cy: 100,
+	},
 ];
 const values = [60, 40];
 const geom = { cx: 100, cy: 100, outerR: 80 };
@@ -75,6 +93,44 @@ describe('buildPieDataLabels', () => {
 		expect(result.leaderLines).toHaveLength(2);
 		expect(result.leaderLines[0].stroke).toBe('#a6a6a6');
 		expect(result.leaderLines[1].stroke).toBe('#a6a6a6');
+	});
+
+	it('puts a bestFit label that fits INSIDE its slice, near the rim, with no leader line', () => {
+		const result = buildPieDataLabels({
+			slices,
+			values,
+			...geom,
+			positionFor: () => 'bestFit',
+		});
+		expect(result.leaderLines).toHaveLength(0);
+		const [label] = result.labels;
+		expect(label.textAnchor).toBe('middle');
+		expect(label.dominantBaseline).toBe('central');
+		expect(label.x).toBeGreaterThan(geom.cx + geom.outerR * 0.7);
+		expect(label.x).toBeLessThan(geom.cx + geom.outerR);
+	});
+
+	it('lets a point position override the chart-level one', () => {
+		const result = buildPieDataLabels({
+			slices,
+			values,
+			...geom,
+			position: 'outEnd',
+			positionFor: (i) => (i === 0 ? 'bestFit' : undefined),
+		});
+		expect(result.labels[0].textAnchor).toBe('middle');
+		expect(result.labels[1].textAnchor).toBe('end');
+	});
+
+	it('keeps a doughnut bestFit label on the old outside placement', () => {
+		const result = buildPieDataLabels({
+			slices,
+			values,
+			...geom,
+			position: 'bestFit',
+			doughnut: true,
+		});
+		expect(result.labels[0].textAnchor).toBe('start');
 	});
 
 	it('skips slices with an undefined value', () => {

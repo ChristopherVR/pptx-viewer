@@ -27,6 +27,7 @@
 	class:pptx-svelte-textshadow-on={on}
 	disabled={!active}
 	aria-pressed={on}
+	data-ribbon-control="home.font.shadow"
 	aria-label={t('pptx.textEffects.shadow')}
 	title={t('pptx.textEffects.shadow')}
 	onclick={() => el && editor.patchSelected((current) => toggleTextShadowPatch(current))}

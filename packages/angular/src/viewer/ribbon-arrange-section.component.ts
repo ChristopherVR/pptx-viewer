@@ -50,200 +50,217 @@ import { toolbarVisibility } from './toolbar-visibility';
 		RibbonCropComponent,
 	],
 	template: `
-		<!-- Order -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.bringToFront' | translate"
-				(click)="editor.bringSelectedToFront(slideIndex())"
-			>
-				{{ 'pptx.arrange.front' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.sendToBack' | translate"
-				(click)="editor.sendSelectedToBack(slideIndex())"
-			>
-				{{ 'pptx.arrange.back' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.bringForward' | translate"
-				[attr.aria-label]="'pptx.arrange.bringForward' | translate"
-				(click)="editor.bringSelectedForward(slideIndex())"
-			>
-				{{ 'pptx.ribbon.fwd' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.sendBackward' | translate"
-				[attr.aria-label]="'pptx.arrange.sendBackward' | translate"
-				(click)="editor.sendSelectedBackward(slideIndex())"
-			>
-				{{ 'pptx.ribbon.bwd' | translate }}
-			</button>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Align -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignLeft' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'left')"
-			>
-				<svg lucideTextAlignStart class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignCenter' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'centerH')"
-			>
-				<svg lucideTextAlignCenter class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignRight' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'right')"
-			>
-				<svg lucideTextAlignEnd class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignTop' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'top')"
-			>
-				<svg lucideChevronUp class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignMiddle' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'middle')"
-			>
-				<svg lucideTextAlignCenter class="h-4 w-4 rotate-90"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!hasSel()"
-				[title]="'pptx.ribbon.alignBottom' | translate"
-				(click)="editor.alignSelected(slideIndex(), 'bottom')"
-			>
-				<svg lucideChevronDown class="h-4 w-4"></svg>
-			</button>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Distribute -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!canDistribute()"
-				[title]="'pptx.arrange.distributeHorizontal' | translate"
-				(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
-			>
-				<svg lucideAlignHorizontalSpaceAround class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!canDistribute()"
-				[title]="'pptx.arrange.distributeVertical' | translate"
-				(click)="editor.distributeSelected(slideIndex(), 'vertical')"
-			>
-				<svg lucideAlignVerticalSpaceAround class="h-4 w-4"></svg>
-			</button>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Format painter + flip -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				data-testid="format-painter-toggle"
-				[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
-				[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
-				[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
-				[title]="'pptx.arrange.formatPainter' | translate"
-				(click)="toggleFormatPainter.emit()"
-			>
-				{{ 'pptx.arrange.format' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.flipHorizontally' | translate"
-				(click)="flipSelected('horizontal')"
-			>
-				{{ 'pptx.arrange.flipH' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.flipVertically' | translate"
-				(click)="flipSelected('vertical')"
-			>
-				{{ 'pptx.arrange.flipV' | translate }}
-			</button>
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<!-- Group / ungroup / outline width -->
-		<pptx-ribbon-shape-extras
-			[slideIndex]="slideIndex()"
-			[selectedElement]="selectedElement()"
-			[canEdit]="canEdit()"
-		/>
-		<!-- Merge Shapes + Crop (each hideable through the host's customisation) -->
-		@if (!toolbar.isHidden('mergeShapes')) {
-			<pptx-ribbon-merge-shapes [slideIndex]="slideIndex()" [canEdit]="canEdit()" />
-		}
-		@if (!toolbar.isHidden('crop')) {
-			<pptx-ribbon-crop
+		<div class="contents" data-ribbon-group="home.arrange">
+			<!-- Order -->
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.bringToFront' | translate"
+					(click)="editor.bringSelectedToFront(slideIndex())"
+					data-ribbon-control="home.arrange.bringToFront"
+				>
+					{{ 'pptx.arrange.front' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.sendToBack' | translate"
+					(click)="editor.sendSelectedToBack(slideIndex())"
+					data-ribbon-control="home.arrange.sendToBack"
+				>
+					{{ 'pptx.arrange.back' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.bringForward' | translate"
+					[attr.aria-label]="'pptx.arrange.bringForward' | translate"
+					(click)="editor.bringSelectedForward(slideIndex())"
+					data-ribbon-control="home.arrange.bringForward"
+				>
+					{{ 'pptx.ribbon.fwd' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.sendBackward' | translate"
+					[attr.aria-label]="'pptx.arrange.sendBackward' | translate"
+					(click)="editor.sendSelectedBackward(slideIndex())"
+					data-ribbon-control="home.arrange.sendBackward"
+				>
+					{{ 'pptx.ribbon.bwd' | translate }}
+				</button>
+			</div>
+			<span class="pptx-rb-sep"></span>
+			<span class="contents" data-ribbon-control="home.arrange.align">
+				<!-- Align -->
+				<div class="pptx-rb-grp">
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignLeft' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'left')"
+					>
+						<svg lucideTextAlignStart class="h-4 w-4"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignCenter' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'centerH')"
+					>
+						<svg lucideTextAlignCenter class="h-4 w-4"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignRight' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'right')"
+					>
+						<svg lucideTextAlignEnd class="h-4 w-4"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignTop' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'top')"
+					>
+						<svg lucideChevronUp class="h-4 w-4"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignMiddle' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'middle')"
+					>
+						<svg lucideTextAlignCenter class="h-4 w-4 rotate-90"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gl"
+						[disabled]="!hasSel()"
+						[title]="'pptx.ribbon.alignBottom' | translate"
+						(click)="editor.alignSelected(slideIndex(), 'bottom')"
+					>
+						<svg lucideChevronDown class="h-4 w-4"></svg>
+					</button>
+				</div>
+				<span class="pptx-rb-sep"></span>
+				<!-- Distribute -->
+				<div class="pptx-rb-grp">
+					<button
+						type="button"
+						class="pptx-rb-gb"
+						[disabled]="!canDistribute()"
+						[title]="'pptx.arrange.distributeHorizontal' | translate"
+						(click)="editor.distributeSelected(slideIndex(), 'horizontal')"
+					>
+						<svg lucideAlignHorizontalSpaceAround class="h-4 w-4"></svg>
+					</button>
+					<button
+						type="button"
+						class="pptx-rb-gl"
+						[disabled]="!canDistribute()"
+						[title]="'pptx.arrange.distributeVertical' | translate"
+						(click)="editor.distributeSelected(slideIndex(), 'vertical')"
+					>
+						<svg lucideAlignVerticalSpaceAround class="h-4 w-4"></svg>
+					</button>
+				</div>
+			</span>
+			<span class="pptx-rb-sep"></span>
+			<!-- Format painter + flip -->
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					data-testid="format-painter-toggle"
+					[attr.data-active]="formatPainterActive() ? 'true' : 'false'"
+					[ngClass]="formatPainterActive() ? 'bg-primary text-primary-foreground' : ''"
+					[disabled]="!canActivateFormatPainter() && !formatPainterActive()"
+					[title]="'pptx.arrange.formatPainter' | translate"
+					(click)="toggleFormatPainter.emit()"
+				>
+					{{ 'pptx.arrange.format' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.flipHorizontally' | translate"
+					(click)="flipSelected('horizontal')"
+					data-ribbon-control="home.arrange.flipHorizontal"
+				>
+					{{ 'pptx.arrange.flipH' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.flipVertically' | translate"
+					(click)="flipSelected('vertical')"
+					data-ribbon-control="home.arrange.flipVertical"
+				>
+					{{ 'pptx.arrange.flipV' | translate }}
+				</button>
+			</div>
+			<span class="pptx-rb-sep"></span>
+			<!-- Group / ungroup / outline width -->
+			<pptx-ribbon-shape-extras
 				[slideIndex]="slideIndex()"
 				[selectedElement]="selectedElement()"
 				[canEdit]="canEdit()"
 			/>
-		}
-		<span class="pptx-rb-sep"></span>
-		<!-- Duplicate / delete -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.duplicate' | translate"
-				(click)="editor.duplicateSelected(slideIndex())"
-			>
-				{{ 'pptx.arrange.duplicate' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!hasSel()"
-				[title]="'pptx.arrange.delete' | translate"
-				(click)="editor.deleteSelected(slideIndex())"
-			>
-				{{ 'pptx.arrange.delete' | translate }}
-			</button>
+			<!-- Merge Shapes + Crop (each hideable through the host's customisation) -->
+			@if (!toolbar.isHidden('mergeShapes')) {
+				<pptx-ribbon-merge-shapes
+					data-ribbon-control="home.arrange.mergeShapes"
+					[slideIndex]="slideIndex()"
+					[canEdit]="canEdit()"
+				/>
+			}
+			@if (!toolbar.isHidden('crop')) {
+				<pptx-ribbon-crop
+					data-ribbon-control="home.arrange.crop"
+					[slideIndex]="slideIndex()"
+					[selectedElement]="selectedElement()"
+					[canEdit]="canEdit()"
+				/>
+			}
+			<span class="pptx-rb-sep"></span>
+			<!-- Duplicate / delete -->
+			<div class="pptx-rb-grp">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.duplicate' | translate"
+					(click)="editor.duplicateSelected(slideIndex())"
+					data-ribbon-control="home.arrange.duplicate"
+				>
+					{{ 'pptx.arrange.duplicate' | translate }}
+				</button>
+				<button
+					type="button"
+					class="pptx-rb-gl"
+					[disabled]="!hasSel()"
+					[title]="'pptx.arrange.delete' | translate"
+					(click)="editor.deleteSelected(slideIndex())"
+					data-ribbon-control="home.arrange.delete"
+				>
+					{{ 'pptx.arrange.delete' | translate }}
+				</button>
+			</div>
 		</div>
 	`,
 })

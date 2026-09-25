@@ -90,8 +90,9 @@
 </script>
 
 <div class="pptx-svelte-slideshowtab">
-	<RibbonGroup label={t('pptx.slideShow.start')}>
+	<RibbonGroup label={t('pptx.slideShow.start')} group="slideShow.startSlideShow">
 		<RibbonCommand
+			control="slideShow.startSlideShow.fromBeginning"
 			label={t('pptx.slideShow.fromBeginning')}
 			title={t('pptx.slideShow.fromBeginningTooltip')}
 			onclick={onfrombeginning}
@@ -99,6 +100,7 @@
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m4 3 11 7-11 7zM16.5 3v14" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
+			control="slideShow.startSlideShow.fromCurrent"
 			label={t('pptx.slideShow.fromCurrent')}
 			title={t('pptx.slideShow.fromCurrentTooltip')}
 			onclick={onfromcurrent}
@@ -107,8 +109,9 @@
 		</RibbonCommand>
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.slideShow.present')}>
+	<RibbonGroup label={t('pptx.slideShow.present')} group="slideShow.present">
 		<RibbonCommand
+			control="slideShow.present.presenterView"
 			label={t('pptx.slideShow.presenterView')}
 			title={t('pptx.slideShow.presenterViewTooltip')}
 			onclick={onpresenter}
@@ -116,6 +119,7 @@
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="3" width="16" height="11" rx="1" /><path d="M7 18h6M10 14v4" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
+			control="slideShow.startSlideShow.customShow"
 			label={t('pptx.slideShow.customShow')}
 			title={t('pptx.customShows.customShowTooltip')}
 			onclick={oncustomshows}
@@ -124,6 +128,7 @@
 		</RibbonCommand>
 		{#if onbroadcast}
 			<RibbonCommand
+				control="slideShow.present.broadcast"
 				label={t('pptx.slideShow.broadcast')}
 				title={t('pptx.slideShow.broadcastTooltip')}
 				onclick={onbroadcast}
@@ -133,11 +138,12 @@
 		{/if}
 	</RibbonGroup>
 
-	<RibbonGroup label={t('pptx.slideShow.setUpGroup')}>
-		<RibbonCommand label={t('pptx.slideShow.rehearseCoach')} disabled>
+	<RibbonGroup label={t('pptx.slideShow.setUpGroup')} group="slideShow.setUp">
+		<RibbonCommand control="slideShow.setUp.rehearseWithCoach" label={t('pptx.slideShow.rehearseCoach')} disabled>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="5" width="11" height="10" rx="2" /><path d="m13 10 5-3v6z" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
+			control="slideShow.setUp.setUpSlideShow"
 			label={t('pptx.slideShow.setUp')}
 			title={t('pptx.slideShow.setUpTooltip')}
 			onclick={onsetup}
@@ -145,6 +151,7 @@
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M8 15h4M6 3v4M12 8v4M10 13v4" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
+			control="slideShow.setUp.hideSlide"
 			label={t('pptx.slideShow.hideSlide')}
 			active={activeSlideHidden}
 			onclick={onhideslide}
@@ -152,13 +159,14 @@
 			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 10S5.5 5 10 5s7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" /><path d="m4 4 12 12" /></svg>{/snippet}
 		</RibbonCommand>
 		<RibbonCommand
+			control="slideShow.setUp.rehearseTimings"
 			label={t('pptx.slideShow.rehearseTimings')}
 			title={t('pptx.slideShow.rehearseTimingsTooltip')}
 			onclick={onrehearse}
 		>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" /><path d="M10 6v4l3 2" /></svg>{/snippet}
 		</RibbonCommand>
-		<RibbonCommand label={t('pptx.titleBar.record')} onclick={onrehearse}>
+		<RibbonCommand control="slideShow.setUp.record" label={t('pptx.titleBar.record')} onclick={onrehearse}>
 			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" /></svg>{/snippet}
 		</RibbonCommand>
 	</RibbonGroup>
@@ -184,12 +192,13 @@
 				/>
 			{/each}
 			<RibbonToggle
+				control="slideShow.captions.subtitles"
 				label={t('pptx.slideShow.subtitles')}
 				title={t('pptx.slideShow.subtitlesTooltip')}
 				checked={subtitlesEnabled}
 				onchange={() => onsubtitles()}
 			/>
-			<RibbonCommand compact label={t('pptx.slideShow.subtitleSettings')} onclick={onsubtitles}>
+			<RibbonCommand compact control="slideShow.captions.subtitleSettings" label={t('pptx.slideShow.subtitleSettings')} onclick={onsubtitles}>
 				{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="2" /><path d="M5 9h4M11 9h4M5 12h3M10 12h5" /></svg>{/snippet}
 			</RibbonCommand>
 		</RibbonCommandStack>

@@ -3,6 +3,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuColumns3 } from 'react-icons/lu';
 
+import { controlAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { ic, pill } from './toolbar-constants';
 
@@ -63,7 +64,7 @@ export function LineSpacingDropdown(p: DropdownProps): React.ReactElement {
 	useCloseOnClickOutside(ref, open, setOpen);
 
 	return (
-		<div className='relative' ref={ref}>
+		<div className='relative' ref={ref} {...controlAttr('home.paragraph.lineSpacing')}>
 			<button
 				type='button'
 				disabled={!p.canMut}
@@ -118,7 +119,7 @@ export function TextDirectionDropdown(p: SimpleDropdownProps): React.ReactElemen
 	useCloseOnClickOutside(ref, open, setOpen);
 
 	return (
-		<div className='relative' ref={ref}>
+		<div className='relative' ref={ref} {...controlAttr('home.paragraph.textDirection')}>
 			<button
 				type='button'
 				disabled={!p.canMut}
@@ -170,7 +171,7 @@ export function ColumnsDropdown(p: SimpleDropdownProps): React.ReactElement {
 	useCloseOnClickOutside(ref, open, setOpen);
 
 	return (
-		<div className='relative' ref={ref}>
+		<div className='relative' ref={ref} {...controlAttr('home.paragraph.columns')}>
 			<button
 				type='button'
 				disabled={!p.canMut}

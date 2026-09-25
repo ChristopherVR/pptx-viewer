@@ -16,12 +16,22 @@
  * the public `<pptx-ribbon>` API (and `PowerPointViewerComponent`'s bindings
  * to it) unchanged.
  */
-import { ChangeDetectionStrategy, Component, inject, input, output, signal } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	inject,
+	input,
+	output,
+	signal,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import type { ToolbarActionId } from '../internal/shared';
 import { RibbonAnimationsSectionComponent } from './ribbon-animations-section.component';
+import { RibbonContextualSectionComponent } from './ribbon-contextual-section.component';
+import { isContextualRibbonTab } from './ribbon-contextual-tabs';
 import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
 import type { DrawTool, DrawToolState } from './ribbon-draw-section.component';
 import { RibbonDrawSectionComponent } from './ribbon-draw-section.component';
@@ -48,6 +58,7 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 		RibbonTransitionsSectionComponent,
 		RibbonAnimationsSectionComponent,
 		RibbonRecordSectionComponent,
+		RibbonContextualSectionComponent,
 	],
 	template: `
 		@switch (activeTab()) {
@@ -118,6 +129,9 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 			@case ('design') {
 				<pptx-ribbon-design-section
 					[themeGalleryOpen]="themeGalleryOpen()"
+					[selectedElement]="selectedElement()"
+					[slideIndex]="slideIndex()"
+					[canEdit]="canEdit()"
 					(toggleThemeGallery)="toggleThemeGallery.emit()"
 					(editTheme)="editTheme.emit()"
 					(openSlideSize)="openSlideSize.emit()"
@@ -140,23 +154,50 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 				/>
 			}
 			@case ('help') {
-				@if (customization?.dialogAvailable('options') !== false) {
-					<button type="button" class="pptx-rb-pill" (click)="openSettings.emit()">
-						{{ 'pptx.settings.title' | translate }}
+				<span class="contents" data-ribbon-group="help.help">
+					@if (customization?.dialogAvailable('options') !== false) {
+						<button
+							type="button"
+							class="pptx-rb-pill"
+							data-ribbon-control="help.help.options"
+							(click)="openSettings.emit()"
+						>
+							{{ 'pptx.settings.title' | translate }}
+						</button>
+					}
+					<button
+						type="button"
+						class="pptx-rb-pill"
+						data-ribbon-control="help.help.keyboardShortcuts"
+						(click)="openShortcuts.emit()"
+					>
+						{{ 'pptx.settings.keyboardShortcuts' | translate }}
 					</button>
-				}
-				<button type="button" class="pptx-rb-pill" (click)="openShortcuts.emit()">
-					{{ 'pptx.settings.keyboardShortcuts' | translate }}
-				</button>
-				<button type="button" class="pptx-rb-pill" (click)="a11y.emit()">
-					{{ 'pptx.ribbon.accessibilityCheck' | translate }}
-				</button>
+					<button
+						type="button"
+						class="pptx-rb-pill"
+						data-ribbon-control="help.help.accessibility"
+						(click)="a11y.emit()"
+					>
+						{{ 'pptx.ribbon.accessibilityCheck' | translate }}
+					</button>
+				</span>
 			}
 			@case ('record') {
 				<pptx-ribbon-record-section
 					(recordFromBeginning)="recordFromBeginning.emit()"
 					(recordFromCurrent)="recordFromCurrent.emit()"
 				/>
+			}
+			@default {
+				@if (contextualTab(); as tab) {
+					<pptx-ribbon-contextual-section
+						[tab]="tab"
+						[selectedElement]="selectedElement()"
+						[slideIndex]="slideIndex()"
+						[canEdit]="canEdit()"
+					/>
+				}
 			}
 		}
 	`,
@@ -165,6 +206,11 @@ export class RibbonContentSecondaryComponent {
 	/** Host UI customisation (optional: absent outside a viewer). */
 	protected readonly customization = inject(ViewerCustomizationService, { optional: true });
 	readonly activeTab = input.required<RibbonTab>();
+	/** The active tab when it is a contextual one (Shape Format, ...), else null. */
+	protected readonly contextualTab = computed(() => {
+		const tab = this.activeTab();
+		return isContextualRibbonTab(tab) ? tab : null;
+	});
 	readonly slideIndex = input<number>(0);
 	readonly slideCount = input<number>(0);
 	readonly canEdit = input<boolean>(false);

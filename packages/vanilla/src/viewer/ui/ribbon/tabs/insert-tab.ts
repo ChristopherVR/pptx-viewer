@@ -3,6 +3,7 @@ import type { FreeformToolKind } from 'pptx-viewer-shared';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonInsertHandlers } from '../ribbon-types';
 import { createActionButtonDropdown } from './insert/action-button-group';
 import { createChartControl } from './insert/chart-group';
@@ -92,20 +93,32 @@ export function createInsertTab(
 		onClick: onOpenHeaderFooter,
 	});
 
+	tagRibbonControl(textBox.btn, 'insert.text.textBox');
+	tagRibbonControl(shape.el, 'insert.illustrations.shapes');
+	tagRibbonControl(image.btn, 'insert.images.pictures');
+	tagRibbonControl(media.btn, 'insert.media.media');
+	tagRibbonControl(table.btn, 'insert.tables.table');
+	tagRibbonControl(chart.el, 'insert.illustrations.chart');
+	tagRibbonControl(smartArt.el, 'insert.illustrations.smartArt');
+	tagRibbonControl(equation.btn, 'insert.symbols.equation');
+	tagRibbonControl(actionButtonDropdown.el, 'insert.links.action');
+	tagRibbonControl(fieldDropdown.el, 'insert.text.field');
+	tagRibbonControl(hyperlink.btn, 'insert.links.link');
+	// React's order interleaves PowerPoint's groups (Text Box before Shapes,
+	// Field after Action), so a group can own more than one `display: contents`
+	// run; the shared stylesheet hides every element carrying the group id.
 	el.append(
-		textBox.btn,
-		shape.el,
-		...freeformTools.buttons,
-		image.btn,
-		media.btn,
-		table.btn,
-		chart.el,
-		smartArt.el,
-		equation.btn,
-		actionButtonDropdown.el,
-		fieldDropdown.el,
-		hyperlink.btn,
-		headerFooter.btn,
+		wrapRibbonGroup(doc, 'insert.text', textBox.btn),
+		wrapRibbonGroup(doc, 'insert.illustrations', shape.el, ...freeformTools.buttons),
+		wrapRibbonGroup(doc, 'insert.images', image.btn),
+		wrapRibbonGroup(doc, 'insert.media', media.btn),
+		wrapRibbonGroup(doc, 'insert.tables', table.btn),
+		wrapRibbonGroup(doc, 'insert.illustrations', chart.el, smartArt.el),
+		wrapRibbonGroup(doc, 'insert.symbols', equation.btn),
+		wrapRibbonGroup(doc, 'insert.links', actionButtonDropdown.el),
+		wrapRibbonGroup(doc, 'insert.text', fieldDropdown.el),
+		wrapRibbonGroup(doc, 'insert.links', hyperlink.btn),
+		wrapRibbonGroup(doc, 'insert.text', headerFooter.btn),
 	);
 
 	const gated: Array<{ setDisabled(disabled: boolean): void }> = [
