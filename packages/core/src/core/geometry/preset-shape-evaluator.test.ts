@@ -182,6 +182,17 @@ describe('evaluatePresetShape', () => {
 		expect(wide?.svgPath).not.toContain('L 200 0');
 	});
 
+	it('trapezoid insets each top corner by ss * adj, as PowerPoint does', () => {
+		// Default adj 25000 on a square: the top edge runs 25%..75%.
+		const square = evaluatePresetShape('trapezoid', 200, 200);
+		expect(square?.svgPath).toContain('L 50 0 L 150 0');
+		// A Basic Pyramid tier: wide and short at adj = maxAdj (50000 * w / ss).
+		// The top edge is inset by the HEIGHT (140), not half the width, so the
+		// tiers stack into one pyramid instead of separate triangles.
+		const tier = evaluatePresetShape('trapezoid', 533, 140, { adj: 95238 });
+		expect(tier?.svgPath).toMatch(/L 133\.3\d* 0 L 399\.6\d* 0/u);
+	});
+
 	it('parallelogram pins adj against maxAdj so the skew cannot exceed the width', () => {
 		// `adj` is a percentage OF THE SHORT SIDE, so on a wide shape a value
 		// past `maxAdj = 100000 * w / ss` would push the vertex beyond the right
