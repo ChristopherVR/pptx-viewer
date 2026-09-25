@@ -114,7 +114,10 @@ export function parseRunPropertyAttributes(rPr: XmlObject | undefined): TextStyl
 	// Superscript / subscript baseline shift (thousandths of percent)
 	if (rPr['@_baseline'] !== undefined) {
 		const baselineVal = Number.parseInt(String(rPr['@_baseline']), 10);
-		if (Number.isFinite(baselineVal) && baselineVal !== 0) {
+		// An authored `baseline="0"` is kept as 0 (not collapsed to unset):
+		// two runs differing only by it must not compare equal, or the save
+		// path merges them into one run.
+		if (Number.isFinite(baselineVal)) {
 			style.baseline = baselineVal;
 		}
 	}

@@ -166,8 +166,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['@_strike'] = style.strikethrough ? style.strikeType || 'sngStrike' : 'noStrike';
 		}
 		// Superscript / subscript baseline
-		if (typeof style.baseline === 'number' && style.baseline !== 0 && owns('baseline')) {
-			runProps['@_baseline'] = String(style.baseline);
+		if (typeof style.baseline === 'number' && owns('baseline')) {
+			// A zero shift is only worth writing when the run authored it or it
+			// cancels an inherited shift; otherwise it is the default.
+			const zeroIsMeaningful =
+				style.authoredRunStyle?.baseline !== undefined ||
+				(style.inheritedRunStyle?.baseline ?? 0) !== 0;
+			if (style.baseline !== 0 || zeroIsMeaningful) {
+				runProps['@_baseline'] = String(style.baseline);
+			}
 		}
 		// Character spacing
 		if (
@@ -373,6 +380,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 		if (textEffectLst) {
 			runProps['a:effectLst'] = textEffectLst;
+		} else if (style.textEffectsExplicitNone) {
+			runProps['a:effectLst'] = {};
 		}
 
 		// 3b. a:effectDag (run-level effect graph). Per ECMA-376 §21.1.2.3.6

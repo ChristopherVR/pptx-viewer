@@ -158,6 +158,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'underlineFillFollowsText',
 			'strikeType',
 			'baseline',
+			'textEffectsExplicitNone',
 			'characterSpacing',
 			'kerning',
 			'highlightColor',

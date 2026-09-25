@@ -279,9 +279,10 @@ describe('parseRunPropertyAttributes — scalar attributes', () => {
 		expect(style.baseline).toBe(-25000);
 	});
 
-	it('does not set baseline when value is 0', () => {
+	it('keeps an authored baseline of 0 distinct from an unset one', () => {
 		const style = parseRunPropertyAttributes({ '@_baseline': '0' });
-		expect(style.baseline).toBeUndefined();
+		expect(style.baseline).toBe(0);
+		expect(parseRunPropertyAttributes({}).baseline).toBeUndefined();
 	});
 
 	// ── Character spacing ────────────────────────────────────────────────────

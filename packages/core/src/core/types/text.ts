@@ -204,6 +204,12 @@ export interface TextStyle {
 	textOutlineColor?: string;
 	/** When true, the text body has no fill (`a:rPr > a:noFill`), producing hollow/outline-only text. */
 	textFillNone?: boolean;
+	/**
+	 * When true, the run authored an EMPTY `<a:effectLst/>`: an explicit "no
+	 * effects" override that blocks an inherited shadow or glow. Kept so a
+	 * rewrite re-emits it instead of letting the inherited effect return.
+	 */
+	textEffectsExplicitNone?: boolean;
 	/** Superscript/subscript baseline shift as percentage (`a:rPr/@baseline`). Positive = super, negative = sub. */
 	baseline?: number;
 	/** Character spacing in hundredths of a point (`a:rPr/@spc`). */

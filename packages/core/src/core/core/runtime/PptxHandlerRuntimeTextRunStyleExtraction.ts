@@ -171,7 +171,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Superscript / subscript baseline shift (percentage)
 		if (runProperties['@_baseline'] !== undefined) {
 			const baselineVal = Number.parseInt(String(runProperties['@_baseline']), 10);
-			if (Number.isFinite(baselineVal) && baselineVal !== 0) {
+			// An authored `baseline="0"` is kept as 0 (not collapsed to unset):
+			// two runs differing only by it must not compare equal, or the save
+			// path merges them into one run.
+			if (Number.isFinite(baselineVal)) {
 				style.baseline = baselineVal;
 			}
 		}
@@ -365,8 +368,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Text run effects (a:effectLst on a:rPr)
 		const runEffectList = runProperties['a:effectLst'] as XmlObject | undefined;
-		if (runEffectList) {
+		if (runEffectList && typeof runEffectList === 'object') {
 			this.applyTextRunEffects(style, runEffectList);
+		}
+		if (
+			includeDefaultAlignment &&
+			runEffectList !== undefined &&
+			(typeof runEffectList !== 'object' || Object.keys(runEffectList).length === 0)
+		) {
+			style.textEffectsExplicitNone = true;
 		}
 
 		// Text run effect graph (a:effectDag on a:rPr): ECMA-376
