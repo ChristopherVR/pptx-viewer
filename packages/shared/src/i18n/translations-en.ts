@@ -1,4 +1,7 @@
 import { animationPresetTranslationsEn } from './translations-en-animation-presets';
+import { galleryTranslationsEn } from './translations-en-galleries';
+import { galleryDataTranslationsEn } from './translations-en-galleries-data';
+import { galleryEffectsTranslationsEn } from './translations-en-galleries-effects';
 
 /**
  * The canonical English UI-string dictionary for pptx-viewer. None of the
@@ -13,6 +16,9 @@ export const translationsEn: Record<string, string> = {
 	// Animation effect names for both preset vocabularies (278 mechanical
 	// entries), kept in their own module so they don't drown the UI copy here.
 	...animationPresetTranslationsEn,
+	...galleryTranslationsEn,
+	...galleryEffectsTranslationsEn,
+	...galleryDataTranslationsEn,
 
 	// Status bar
 	'pptx.statusBar.allSaved': 'All saved',

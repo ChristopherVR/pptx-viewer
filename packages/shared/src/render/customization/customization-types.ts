@@ -27,7 +27,8 @@ import type {
 	ViewerOptionsGroupId,
 } from '../options/viewer-options';
 import type { ViewerOptionsTabId } from '../options/viewer-options-controls';
-import type { ToolbarButtonId, ToolbarTabId } from '../toolbar-actions';
+import type { RibbonContextualTabId, ToolbarButtonId, ToolbarTabId } from '../toolbar-actions';
+import type { RibbonControlId, RibbonGroupId } from './ribbon-control-ids';
 
 /** Keys of an options group whose value is a primitive (not an array). */
 type PrimitiveKeys<T> = {
@@ -62,10 +63,20 @@ export type OptionsSettingValues = Partial<Record<OptionsSettingId, ViewerOption
 
 /** Ribbon and toolbar customisation. */
 export interface RibbonCustomization {
-	/** Ribbon tabs to remove (the File tab included, unlike Customize Ribbon). */
-	hiddenTabs?: readonly ToolbarTabId[];
-	/** Top-level toolbar buttons / control clusters to remove. */
-	hiddenButtons?: readonly ToolbarButtonId[];
+	/**
+	 * Ribbon tabs to remove (the File tab included, unlike Customize Ribbon),
+	 * and contextual tabs (`shapeFormat`, `pictureFormat`, ...) that should
+	 * never appear.
+	 */
+	hiddenTabs?: readonly (ToolbarTabId | RibbonContextualTabId)[];
+	/** Groups inside a tab to remove, as `<tab>.<group>` (`home.font`). */
+	hiddenGroups?: readonly RibbonGroupId[];
+	/**
+	 * Controls to remove: a top-level toolbar button / control cluster
+	 * (`share`, `zoom`, ...) or any ribbon control as
+	 * `<tab>.<group>.<control>` (`home.font.bold`).
+	 */
+	hiddenButtons?: readonly (ToolbarButtonId | RibbonControlId)[];
 }
 
 /** File > Options (the Settings dialog) customisation. */

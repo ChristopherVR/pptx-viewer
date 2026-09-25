@@ -17,7 +17,7 @@ import type { CanvasContextMenuCommandId } from '../canvas-context-menu-commands
 import type { ContextMenuCommandId } from '../context-menu-commands';
 import type { EditorKeyActionName } from '../editor-keymap';
 import type { ViewerOptionPrimitive } from '../options/viewer-options';
-import type { ToolbarButtonId, ToolbarTabId } from '../toolbar-actions';
+import type { RibbonContextualTabId, ToolbarButtonId, ToolbarTabId } from '../toolbar-actions';
 import { createViewerStore } from '../viewer-store';
 import { mergeCustomization, toggleInList, withRecordEntry } from './customization-merge';
 import { resolveCustomization } from './customization-resolve';
@@ -32,6 +32,7 @@ import type {
 	ViewerFeatureId,
 	ViewerPanelId,
 } from './customization-types';
+import type { RibbonControlId, RibbonGroupId } from './ribbon-control-ids';
 
 /** The imperative methods every binding's component handle exposes. */
 export interface ViewerCustomizationApi {
@@ -43,10 +44,18 @@ export interface ViewerCustomizationApi {
 	updateCustomization(patch: ViewerCustomization): void;
 	/** Drop every customisation, back to the stock UI. */
 	resetCustomization(): void;
-	hideRibbonTab(tab: ToolbarTabId): void;
-	showRibbonTab(tab: ToolbarTabId): void;
-	hideToolbarButton(button: ToolbarButtonId): void;
-	showToolbarButton(button: ToolbarButtonId): void;
+	/** Hide a fixed tab, or stop a contextual tab (`shapeFormat`, ...) from appearing. */
+	hideRibbonTab(tab: ToolbarTabId | RibbonContextualTabId): void;
+	showRibbonTab(tab: ToolbarTabId | RibbonContextualTabId): void;
+	/** Hide a group inside a tab (`home.font`). */
+	hideRibbonGroup(group: RibbonGroupId): void;
+	showRibbonGroup(group: RibbonGroupId): void;
+	/** Hide a top-level toolbar button or any ribbon control (`home.font.bold`). */
+	hideToolbarButton(button: ToolbarButtonId | RibbonControlId): void;
+	showToolbarButton(button: ToolbarButtonId | RibbonControlId): void;
+	/** Alias of `hideToolbarButton` for a ribbon control id. */
+	hideRibbonControl(control: RibbonControlId): void;
+	showRibbonControl(control: RibbonControlId): void;
 	hideOptionsPage(page: OptionsPageId): void;
 	showOptionsPage(page: OptionsPageId): void;
 	hideOptionsSection(section: OptionsSectionId): void;
@@ -142,6 +151,13 @@ export function createCustomizationController(
 			ribbon((r) => (r.hiddenButtons = toggleInList(r.hiddenButtons, b, true))),
 		showToolbarButton: (b) =>
 			ribbon((r) => (r.hiddenButtons = toggleInList(r.hiddenButtons, b, false))),
+		hideRibbonControl: (b) =>
+			ribbon((r) => (r.hiddenButtons = toggleInList(r.hiddenButtons, b, true))),
+		showRibbonControl: (b) =>
+			ribbon((r) => (r.hiddenButtons = toggleInList(r.hiddenButtons, b, false))),
+		hideRibbonGroup: (g) => ribbon((r) => (r.hiddenGroups = toggleInList(r.hiddenGroups, g, true))),
+		showRibbonGroup: (g) =>
+			ribbon((r) => (r.hiddenGroups = toggleInList(r.hiddenGroups, g, false))),
 		hideOptionsPage: (p) => options((o) => (o.hiddenPages = toggleInList(o.hiddenPages, p, true))),
 		showOptionsPage: (p) => options((o) => (o.hiddenPages = toggleInList(o.hiddenPages, p, false))),
 		hideOptionsSection: (s) =>

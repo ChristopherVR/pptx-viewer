@@ -1565,6 +1565,7 @@ export * from './options';
 // File tab, context menus, keyboard, panels, features, dialogs) plus the
 // per-viewer controller whose helpers every binding exposes imperatively.
 export * from './customization';
+export * from './ribbon-galleries';
 
 // small helper extractions (wave 2)
 // OLE placeholder icon SVG-fragment primitives (rect/line/text builders +

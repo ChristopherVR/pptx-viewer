@@ -50,6 +50,33 @@ export type ToolbarTabId =
 
 export type ToolbarActionId = ToolbarButtonId | ToolbarTabId;
 
+/**
+ * PowerPoint's contextual tabs: they join the tab row only while the
+ * selection is of their kind (see `contextualTabsForElement` in
+ * `ribbon-galleries/`). Kept apart from `ToolbarTabId` because they are not
+ * part of the fixed tab order every binding renders.
+ */
+export type RibbonContextualTabId =
+	| 'shapeFormat'
+	| 'pictureFormat'
+	| 'tableDesign'
+	| 'chartDesign'
+	| 'smartArtDesign';
+
+export interface RibbonContextualTabDefinition {
+	id: RibbonContextualTabId;
+	labelKey: string;
+}
+
+/** The contextual tabs, in the order PowerPoint appends them. */
+export const RIBBON_CONTEXTUAL_TABS: readonly RibbonContextualTabDefinition[] = [
+	{ id: 'shapeFormat', labelKey: 'pptx.ribbon.tab.shapeFormat' },
+	{ id: 'pictureFormat', labelKey: 'pptx.ribbon.tab.pictureFormat' },
+	{ id: 'tableDesign', labelKey: 'pptx.ribbon.tab.tableDesign' },
+	{ id: 'chartDesign', labelKey: 'pptx.ribbon.tab.chartDesign' },
+	{ id: 'smartArtDesign', labelKey: 'pptx.ribbon.tab.smartArtDesign' },
+];
+
 export interface ToolbarTabDefinition {
 	id: ToolbarTabId;
 	labelKey: string;
