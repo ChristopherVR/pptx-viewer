@@ -50,21 +50,21 @@ describe('ribbon gallery registry', () => {
 			),
 		]);
 		for (const id of RIBBON_GALLERY_IDS) {
-			expect(placed.has(id)).toBe(true);
+			expect(placed.has(id)).toBeTruthy();
 		}
 	});
 });
 
-describe('Shape Styles gallery', () => {
+describe('shape Styles gallery', () => {
 	it('offers PowerPoint 42 theme styles and 35 presets as SVG tiles', () => {
 		const descriptor = buildRibbonGallery('shapeStyles', {
 			element: shape(),
 			themeColorMap: colorMap,
 		});
-		expect(descriptor.disabled).toBe(false);
-		expect(descriptor.sections.map((s) => s.items.length)).toEqual([42, 35]);
+		expect(descriptor.disabled).toBeFalsy();
+		expect(descriptor.sections.map((s) => s.items.length)).toStrictEqual([42, 35]);
 		const first = descriptor.sections[0].items[0];
-		expect(first.previewSvg.startsWith('<svg')).toBe(true);
+		expect(first.previewSvg.startsWith('<svg')).toBeTruthy();
 		expect(inlineGalleryItems(descriptor)).toHaveLength(6);
 		expect(galleryItemLabel(first, (key) => key)).toBe('Colored Outline - Dark 1');
 	});
@@ -84,7 +84,7 @@ describe('Shape Styles gallery', () => {
 			themeColorMap: colorMap,
 			resolveStyleMatrix,
 		});
-		expect(calls[0]).toEqual({
+		expect(calls[0]).toStrictEqual({
 			'a:lnRef': {
 				'@_idx': '2',
 				'a:schemeClr': { '@_val': 'accent1', 'a:shade': { '@_val': '15000' } },
@@ -94,7 +94,9 @@ describe('Shape Styles gallery', () => {
 			'a:fontRef': { '@_idx': 'minor', 'a:schemeClr': { '@_val': 'lt1' } },
 		});
 		expect(result?.kind).toBe('element');
-		if (result?.kind !== 'element') return;
+		if (result?.kind !== 'element') {
+			return;
+		}
 		const style = (result.patch as { shapeStyle: Record<string, unknown> }).shapeStyle;
 		expect(style.fillRefIdx).toBe(1);
 		expect(style.glowColor).toBeUndefined();
@@ -109,9 +111,11 @@ describe('Shape Styles gallery', () => {
 			element: shape(),
 			themeColorMap: colorMap,
 		});
-		if (result?.kind !== 'element') throw new Error('expected an element patch');
+		if (result?.kind !== 'element') {
+			throw new Error('expected an element patch');
+		}
 		const style = (result.patch as { shapeStyle: Record<string, unknown> }).shapeStyle;
-		expect(style.fillColorRef).toEqual({ scheme: 'accent2', alpha: 0.5 });
+		expect(style.fillColorRef).toStrictEqual({ scheme: 'accent2', alpha: 0.5 });
 		expect(style.fillOpacity).toBe(0.5);
 		expect(style.strokeWidth).toBe(0);
 	});
@@ -124,16 +128,16 @@ describe('Shape Styles gallery', () => {
 
 describe('contextual tabs', () => {
 	it('follows the selection kind', () => {
-		expect(contextualTabsForElement(shape())).toEqual(['shapeFormat']);
-		expect(contextualTabsForElement({ ...shape(), type: 'table' } as PptxElement)).toEqual([
+		expect(contextualTabsForElement(shape())).toStrictEqual(['shapeFormat']);
+		expect(contextualTabsForElement({ ...shape(), type: 'table' } as PptxElement)).toStrictEqual([
 			'tableDesign',
 		]);
-		expect(contextualTabsForElement(null)).toEqual([]);
+		expect(contextualTabsForElement(null)).toStrictEqual([]);
 	});
 
 	it('honours hidden contextual tabs and falls back to Home', () => {
 		const resolved = resolveCustomization({ ribbon: { hiddenTabs: ['shapeFormat'] } });
-		expect(visibleContextualTabs(shape(), resolved)).toEqual([]);
+		expect(visibleContextualTabs(shape(), resolved)).toStrictEqual([]);
 		expect(resolveActiveRibbonTab('shapeFormat', [], 'home')).toBe('home');
 		expect(resolveActiveRibbonTab('shapeFormat', ['shapeFormat'], 'home')).toBe('shapeFormat');
 		expect(resolveActiveRibbonTab('insert', [], 'home')).toBe('insert');

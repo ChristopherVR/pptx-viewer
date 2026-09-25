@@ -124,7 +124,9 @@ function filterDefs(effects: TileEffects | undefined, id: string): { defs: strin
 		return { defs: '', attr: '' };
 	}
 	const merge: string[] = [];
-	if (effects.glow) merge.push('<feMergeNode in="glow"/>');
+	if (effects.glow) {
+		merge.push('<feMergeNode in="glow"/>');
+	}
 	merge.push(
 		`<feMergeNode in="${effects.shadow && !effects.shadow.inner ? 'shadow' : effects.softEdge ? 'soft' : 'SourceGraphic'}"/>`,
 	);

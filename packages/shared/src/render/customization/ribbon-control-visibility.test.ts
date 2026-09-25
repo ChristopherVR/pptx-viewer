@@ -36,23 +36,23 @@ describe('ribbon group / control customisation', () => {
 				hiddenButtons: ['share', 'home.paragraph.bullets', 'mergeShapes'],
 			},
 		});
-		expect(resolved.hiddenActions.has('share')).toBe(true);
-		expect(resolved.hiddenActions.has('draw')).toBe(true);
-		expect(resolved.hiddenContextualTabs.has('chartDesign')).toBe(true);
-		expect(resolved.hiddenActions.has('chartDesign' as never)).toBe(false);
-		expect(resolved.hiddenRibbonGroups.has('home.font')).toBe(true);
-		expect(resolved.hiddenRibbonControls.has('home.paragraph.bullets')).toBe(true);
+		expect(resolved.hiddenActions.has('share')).toBeTruthy();
+		expect(resolved.hiddenActions.has('draw')).toBeTruthy();
+		expect(resolved.hiddenContextualTabs.has('chartDesign')).toBeTruthy();
+		expect(resolved.hiddenActions.has('chartDesign' as never)).toBeFalsy();
+		expect(resolved.hiddenRibbonGroups.has('home.font')).toBeTruthy();
+		expect(resolved.hiddenRibbonControls.has('home.paragraph.bullets')).toBeTruthy();
 		// The legacy button id and its catalogued control hide together.
-		expect(resolved.hiddenRibbonControls.has('home.arrange.mergeShapes')).toBe(true);
-		expect(isRibbonGroupVisible(resolved, 'home.font')).toBe(false);
-		expect(isRibbonControlVisible(resolved, 'home.font.bold')).toBe(false);
-		expect(isRibbonControlVisible(resolved, 'home.paragraph.bullets')).toBe(false);
-		expect(isRibbonControlVisible(resolved, 'home.paragraph.numbering')).toBe(true);
+		expect(resolved.hiddenRibbonControls.has('home.arrange.mergeShapes')).toBeTruthy();
+		expect(isRibbonGroupVisible(resolved, 'home.font')).toBeFalsy();
+		expect(isRibbonControlVisible(resolved, 'home.font.bold')).toBeFalsy();
+		expect(isRibbonControlVisible(resolved, 'home.paragraph.bullets')).toBeFalsy();
+		expect(isRibbonControlVisible(resolved, 'home.paragraph.numbering')).toBeTruthy();
 	});
 
 	it('hides a catalogued control through its legacy toolbar id too', () => {
 		const resolved = resolveCustomization({ ribbon: { hiddenButtons: ['home.arrange.crop'] } });
-		expect(resolved.hiddenActions.has('crop')).toBe(true);
+		expect(resolved.hiddenActions.has('crop')).toBeTruthy();
 	});
 
 	it('builds one scoped stylesheet, and nothing when nothing is hidden', () => {
@@ -77,7 +77,7 @@ describe('ribbon group / control customisation', () => {
 			resolveCustomization({ ribbon: { hiddenGroups: ['home.font'] } }),
 			'bad"scope',
 		);
-		expect(css.startsWith('[data-ribbon-group="home.font"]')).toBe(true);
+		expect(css.startsWith('[data-ribbon-group="home.font"]')).toBeTruthy();
 	});
 
 	it('exposes group and control helpers on the controller', () => {
@@ -87,13 +87,15 @@ describe('ribbon group / control customisation', () => {
 		controller.api.hideToolbarButton('home.font.bold');
 		controller.api.hideRibbonTab('pictureFormat');
 		const resolved = controller.getResolved();
-		expect(resolved.hiddenRibbonGroups.has('home.editing')).toBe(true);
-		expect(resolved.hiddenRibbonControls.has('home.font.italic')).toBe(true);
-		expect(resolved.hiddenRibbonControls.has('home.font.bold')).toBe(true);
-		expect(resolved.hiddenContextualTabs.has('pictureFormat')).toBe(true);
+		expect(resolved.hiddenRibbonGroups.has('home.editing')).toBeTruthy();
+		expect(resolved.hiddenRibbonControls.has('home.font.italic')).toBeTruthy();
+		expect(resolved.hiddenRibbonControls.has('home.font.bold')).toBeTruthy();
+		expect(resolved.hiddenContextualTabs.has('pictureFormat')).toBeTruthy();
 		controller.api.showRibbonGroup('home.editing');
 		controller.api.showRibbonControl('home.font.italic');
 		expect(controller.getResolved().hiddenRibbonGroups.size).toBe(0);
-		expect(controller.api.getCustomization().ribbon?.hiddenButtons).toEqual(['home.font.bold']);
+		expect(controller.api.getCustomization().ribbon?.hiddenButtons).toStrictEqual([
+			'home.font.bold',
+		]);
 	});
 });
