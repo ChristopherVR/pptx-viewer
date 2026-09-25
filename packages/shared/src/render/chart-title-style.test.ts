@@ -1,7 +1,7 @@
 import type { PptxChartData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import { resolveChartTitleTextStyle } from './chart-title-style';
+import { resolveChartTitleTextStyle, titleBaselineFor } from './chart-title-style';
 import { buildChartViewModel } from './chart-view-model-build';
 
 function chart(style: PptxChartData['style'] = {}): PptxChartData {
@@ -52,5 +52,33 @@ describe('resolveChartTitleTextStyle', () => {
 		});
 		expect(vm.title).toBe('Sales');
 		expect(vm.titleStyle).toStrictEqual({ fontSize: 20, fontWeight: 600, fill: '#123456' });
+	});
+});
+
+describe('style-part title defaults (COM: charts-com.pptx slides 24, 26)', () => {
+	const styled = (): PptxChartData => ({
+		...chart(),
+		chartStyleDefinition: { title: { fontSize: 18.62, bold: false, color: '#595959' } },
+	});
+
+	it('takes the non-bold weight and grey colour from the style part', () => {
+		expect(resolveChartTitleTextStyle(styled())).toMatchObject({
+			fontWeight: 400,
+			fill: '#595959',
+		});
+	});
+
+	it('keeps a large style-part title inside the chart', () => {
+		const vm = buildChartViewModel({
+			id: 'c',
+			type: 'chart',
+			x: 0,
+			y: 0,
+			width: 600,
+			height: 400,
+			chartData: styled(),
+		} as never);
+		expect(vm.titleY).toBeGreaterThanOrEqual(titleBaselineFor(vm.titleStyle!.fontSize));
+		expect(vm.titleY - vm.titleStyle!.fontSize * 0.8).toBeGreaterThanOrEqual(0);
 	});
 });

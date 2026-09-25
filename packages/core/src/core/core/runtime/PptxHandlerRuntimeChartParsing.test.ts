@@ -64,7 +64,7 @@ const CHART_STYLE_XML = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
  xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
  <cs:title>
   <cs:lnRef idx="0"/><cs:fillRef idx="0"/><cs:effectRef idx="0"/>
-  <cs:fontRef idx="minor"><a:schemeClr val="tx1"/></cs:fontRef>
+  <cs:fontRef idx="minor"><a:schemeClr val="tx1"><a:lumMod val="65000"/><a:lumOff val="35000"/></a:schemeClr></cs:fontRef>
   <cs:defRPr sz="1862" b="0"/>
  </cs:title>
 </cs:chartStyle>`;
@@ -188,8 +188,9 @@ describe('classic chart chartSpace-level and chart-style-part parsing', () => {
 			fontSize: 18.62,
 			bold: false,
 			// cs:fontRef's a:schemeClr val="tx1" resolves through the deck's
-			// theme colour map, matching how classic chart colours resolve.
-			color: '#000000',
+			// theme colour map WITH its lumMod/lumOff transforms (every built-in
+			// style's grey #595959 title; COM: charts-com.pptx slide 24).
+			color: '#595959',
 		});
 	});
 });
