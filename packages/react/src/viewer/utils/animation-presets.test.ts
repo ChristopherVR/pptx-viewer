@@ -200,8 +200,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 	});
 
 	describe('additional exit presets', () => {
-		it('should map preset ID 6 to "shrinkOut"', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
+		it('should map preset ID 6 to "circleOut"', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('circleOut');
 		});
 
 		it('should map preset ID 9 to "dissolveOut"', () => {
