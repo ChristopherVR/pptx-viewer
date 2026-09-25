@@ -63,7 +63,7 @@ import {
 } from './animation-author-fields';
 import type { AnimationNumberField, AnimationSelectField } from './animation-author-fields';
 import {
-	DIRECTION_OPTIONS,
+	directionPickerState,
 	EMPHASIS_PRESETS,
 	ENTRANCE_PRESETS,
 	EXIT_PRESETS,
@@ -148,7 +148,10 @@ export class AnimationAuthorPanelComponent {
 	protected readonly triggerOptions = TRIGGER_OPTIONS;
 	protected readonly timingCurveOptions = TIMING_CURVE_OPTIONS;
 	protected readonly repeatModeOptions = REPEAT_MODE_OPTIONS;
-	protected readonly directionOptions = DIRECTION_OPTIONS;
+	/** Direction options the preset offers (PowerPoint's variants only) and the active one. */
+	protected readonly directionPicker = computed(() =>
+		directionPickerState(this.animations(), this.element().id),
+	);
 	protected readonly sequenceOptions = SEQUENCE_OPTIONS;
 
 	// ── Stable identity key (caret-reset guard for number inputs) ────────────

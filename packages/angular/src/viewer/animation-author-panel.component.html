@@ -110,11 +110,11 @@
 			<section class="pptx-ng-anim__section">
 				<span class="pptx-ng-anim__label">{{ 'pptx.animations.direction' | translate }}</span>
 				<div class="pptx-ng-anim__direction-grid">
-					@for (opt of directionOptions; track opt.value) {
+					@for (opt of directionPicker().options; track opt.value) {
 						<button
 							type="button"
 							class="pptx-ng-anim__dir-btn"
-							[class.is-active]="current()?.direction === opt.value"
+							[class.is-active]="directionPicker().active === opt.value"
 							[disabled]="!canEdit()"
 							[title]="opt.labelKey | translate"
 							(click)="onDirectionChange(opt.value)"

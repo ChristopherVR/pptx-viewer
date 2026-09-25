@@ -8,7 +8,7 @@
  */
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 
-import { buildMotionPathPreview, buildPreviewAnimation } from '../internal/shared';
+import { buildAnimationRibbonPreview } from '../internal/shared';
 import type { AnimationPreviewDescriptor } from '../internal/shared';
 
 interface ActiveAnimationPreview {
@@ -20,10 +20,6 @@ interface ActiveAnimationPreview {
 }
 
 let activePreview: ActiveAnimationPreview | undefined;
-
-/** Slide size assumed when the stage cannot be measured (detached preview). */
-const FALLBACK_SLIDE_WIDTH = 1280;
-const FALLBACK_SLIDE_HEIGHT = 720;
 
 /**
  * The element a preview should play on.
@@ -67,26 +63,12 @@ export function buildAngularPreviewDescriptor(
 	animation: PptxElementAnimation,
 	element: HTMLElement,
 ): AnimationPreviewDescriptor | undefined {
-	if (animation.motionPath) {
-		const stage = element.offsetParent as HTMLElement | null;
-		return buildMotionPathPreview({
-			path: animation.motionPath,
-			slideWidth: stage?.offsetWidth || FALLBACK_SLIDE_WIDTH,
-			slideHeight: stage?.offsetHeight || FALLBACK_SLIDE_HEIGHT,
-			durationMs: animation.durationMs,
-			delayMs: animation.delayMs,
-			timingCurve: animation.timingCurve,
-		});
-	}
-	const preset = animation.entrance ?? animation.emphasis ?? animation.exit;
-	if (!preset || preset === 'none') {
-		return undefined;
-	}
-	return buildPreviewAnimation(preset, {
-		direction: animation.direction,
-		durationMs: animation.durationMs ?? 500,
-		timingCurve: animation.timingCurve,
-	});
+	// Shared decision (motion path first, else PowerPoint's own tree for the
+	// preset measured against the stage, else the preset keyframe).
+	return buildAnimationRibbonPreview(
+		{ ...animation, durationMs: animation.durationMs ?? 500 },
+		element,
+	);
 }
 
 export function previewAngularAnimation(animation: PptxElementAnimation): boolean {

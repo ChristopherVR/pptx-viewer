@@ -19,7 +19,10 @@ import type {
 	PptxAnimationRepeatMode,
 	PptxAnimationSequence,
 	PptxAnimationTimingCurve,
+	PptxElementAnimation,
 } from 'pptx-viewer-core';
+
+import { animationFor, directionValuesFor, effectiveDirection } from '../internal/shared';
 
 // ── Pure authoring functions (consolidated in shared) ──
 export {
@@ -194,6 +197,22 @@ export const DIRECTION_OPTIONS: ReadonlyArray<{
 		arrow: '↖',
 	},
 ];
+
+/**
+ * The labelled direction options an element's preset offers (only the
+ * directions PowerPoint has a variant for, from shared `directionValuesFor`),
+ * plus the one the picker shows as active.
+ */
+export function directionPickerState(
+	animations: readonly PptxElementAnimation[],
+	elementId: string,
+): { options: typeof DIRECTION_OPTIONS; active: PptxAnimationDirection | undefined } {
+	const values = directionValuesFor(animations, elementId);
+	return {
+		options: DIRECTION_OPTIONS.filter((option) => values.includes(option.value)),
+		active: effectiveDirection(animationFor(animations, elementId), values),
+	};
+}
 
 /** Sequence options for paragraph/word/letter builds. */
 export const SEQUENCE_OPTIONS: ReadonlyArray<{

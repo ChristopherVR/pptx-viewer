@@ -27,6 +27,7 @@ import {
 	setTrigger,
 	setTriggerShapeId,
 	showDirectionPicker,
+	directionPickerState,
 } from './animation-author-helpers';
 
 // ==========================================================================
@@ -119,6 +120,30 @@ describe('showDirectionPicker', () => {
 
 	it('returns false when element has no entry', () => {
 		expect(showDirectionPicker(ANIMS, 'unknown')).toBeFalsy();
+	});
+});
+
+describe('directionPickerState', () => {
+	it("offers a Wipe's four edges with PowerPoint's default From Bottom active", () => {
+		const anims: PptxElementAnimation[] = [
+			{ elementId: 'el-1', entrance: 'wipeIn', order: 0, trigger: 'onClick' },
+		];
+		const state = directionPickerState(anims, 'el-1');
+		expect(state.options.map((o) => o.value)).toStrictEqual([
+			'fromTop',
+			'fromBottom',
+			'fromLeft',
+			'fromRight',
+		]);
+		expect(state.active).toBe('fromBottom');
+	});
+
+	it('offers nothing for Float In, which PowerPoint saves with no direction', () => {
+		const anims: PptxElementAnimation[] = [
+			{ elementId: 'el-1', entrance: 'floatIn', order: 0, trigger: 'onClick' },
+		];
+		expect(showDirectionPicker(anims, 'el-1')).toBeFalsy();
+		expect(directionPickerState(anims, 'el-1').options).toHaveLength(0);
 	});
 });
 
