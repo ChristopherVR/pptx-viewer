@@ -209,7 +209,8 @@
 		gap: 4px;
 	}
 
-	.pptx-svelte-inserttab > button {
+	.pptx-svelte-inserttab > button,
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button {
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
@@ -224,12 +225,14 @@
 		font-size: 12px;
 	}
 
-	.pptx-svelte-inserttab > button:hover:not(:disabled) {
+	.pptx-svelte-inserttab > button:hover:not(:disabled),
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button:hover:not(:disabled) {
 		background: var(--pptx-accent, #33334d);
 		color: var(--pptx-accent-foreground, #f8fafc);
 	}
 
-	.pptx-svelte-inserttab > button:disabled {
+	.pptx-svelte-inserttab > button:disabled,
+	.pptx-svelte-inserttab > .pptx-svelte-rb-contents > button:disabled {
 		opacity: 0.35;
 		cursor: default;
 	}
