@@ -30,7 +30,7 @@ import {
 	readCropInsets,
 	startCropSession,
 } from 'pptx-viewer-shared';
-import type { CropElementUpdate, CropSession } from 'pptx-viewer-shared';
+import type { CropElementUpdate, CropRestoreUpdate, CropSession } from 'pptx-viewer-shared';
 import { computed, onScopeDispose, shallowRef, watch } from 'vue';
 import type { Ref } from 'vue';
 
@@ -65,7 +65,7 @@ export function usePictureCrop(input: UsePictureCropInput): PictureCropControlle
 	const findOn = (slideId: string, id: string): PptxElement | undefined =>
 		slides.value.find((s) => s.id === slideId)?.elements.find((el) => el.id === id);
 
-	function patch(slideId: string, id: string, update: CropElementUpdate): void {
+	function patch(slideId: string, id: string, update: CropElementUpdate | CropRestoreUpdate): void {
 		slides.value = slides.value.map((s) =>
 			s.id === slideId
 				? {
