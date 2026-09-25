@@ -109,7 +109,7 @@ function clearDataPointFill(point: PptxChartDataPoint): PptxChartDataPoint {
 }
 
 /** Drop a series' own colour overrides (and its points'), keeping shape/symbol/size. */
-function clearSeriesColor(series: PptxChartSeries): PptxChartSeries {
+export function clearSeriesColor(series: PptxChartSeries): PptxChartSeries {
 	const { color: _color, marker, dataPoints, ...rest } = series;
 	const nextMarker = marker?.spPr && { ...marker, spPr: { ...marker.spPr, fillColor: undefined } };
 	return {

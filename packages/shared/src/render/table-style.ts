@@ -41,6 +41,7 @@ import {
 	resolveStyleFillColor,
 } from './table-style-fill';
 import { cellImageFillCss } from './table-style-image';
+import { styleDeclaresFills } from './table-style-scheme';
 
 export { resolveStyleDiagonalBorders } from './table-style-borders';
 export { resolveTableStyleCell3D } from './table-style-cell3d';
@@ -554,6 +555,10 @@ export function getTableCellBandStyle(
 	}
 
 	const styleEntry = resolveTableStyleEntry(tableData.tableStyleId, styleCtx?.tableStyleMap);
+	// A style that declares its own fills (every built-in does) decides each
+	// section itself: one without a band1H / firstRow part ("No Style, No
+	// Grid") paints nothing there. The generic tints only stand in for none.
+	const authoredFills = styleDeclaresFills(styleEntry);
 	const colorScheme = styleCtx?.colorScheme;
 	const fontScheme = styleCtx?.fontScheme;
 
@@ -625,7 +630,7 @@ export function getTableCellBandStyle(
 		const rowCycle = Math.max(tableData.bandRowCycle ?? 1, 1);
 		const bandGroup = Math.floor(bandIndex / rowCycle) % 2;
 		if (bandGroup === 0) {
-			paintFill(styleEntry?.band1HFill, 'rgba(217, 226, 243, 0.5)');
+			paintFill(styleEntry?.band1HFill, authoredFills ? '' : 'rgba(217, 226, 243, 0.5)');
 			applyStyleText(styleEntry?.band1HText, colorScheme, style, fontScheme);
 			applied = true;
 		} else if (styleEntry?.band2HFill) {
@@ -649,7 +654,7 @@ export function getTableCellBandStyle(
 			const canOverride = !style.backgroundColor || !tableData.bandedRows;
 			if (colBandGroup === 0) {
 				if (canOverride) {
-					paintFill(styleEntry?.band1VFill, 'rgba(217, 226, 243, 0.35)');
+					paintFill(styleEntry?.band1VFill, authoredFills ? '' : 'rgba(217, 226, 243, 0.35)');
 					applyStyleText(styleEntry?.band1VText, colorScheme, style, fontScheme);
 					applied = true;
 				}
@@ -716,11 +721,15 @@ export function getTableCellBandStyle(
 	// ── Header row (first row). ──
 	if (atTop) {
 		style.fontWeight = 700;
-		paintFill(styleEntry?.firstRowFill, 'rgba(68, 114, 196, 0.85)');
+		paintFill(styleEntry?.firstRowFill, authoredFills ? '' : 'rgba(68, 114, 196, 0.85)');
 		// White header text belongs with a painted header band. `a:noFill` is an
-		// authored transparent header, and forcing white on it leaves the header
-		// row's text invisible against the slide.
-		if (!styleEntry?.firstRowFill?.noFill) {
+		// authored transparent header, and a resolved style with no firstRow fill
+		// at all ("No Style, No Grid") paints none either; forcing white on those
+		// leaves the header row's text invisible against the slide.
+		const headerPainted = authoredFills
+			? Boolean(styleEntry?.firstRowFill && !styleEntry.firstRowFill.noFill)
+			: !styleEntry?.firstRowFill?.noFill;
+		if (headerPainted) {
 			style.color = '#ffffff';
 		}
 		applyStyleText(styleEntry?.firstRowText, colorScheme, style, fontScheme);
