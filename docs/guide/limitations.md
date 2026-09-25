@@ -22,7 +22,7 @@ An effect authored in the animation panel is reconciled into the slide's existin
 
 - **A few saved effects still fall back to a fade in PowerPoint.** Entrance, exit and emphasis effects are written with PowerPoint's own behaviour tree (Fly In, Float, Bounce, Grow & Turn, the filter reveals, Pulse, Teeter, Wave and others, verified by reopening in PowerPoint); Crawl and Spiral still save as a fade, and Blink is an approximation.
 - **Some presets are approximated on playback:** `strips`, `wedge`, the circle exit and the `slide` filter play as PowerPoint does (matched to its own recorded frames), and `cover`/`uncover`/`push`/`pull` cut as PowerPoint does; about 40 PowerPoint preset IDs still play a substitute effect (for example Basic Swivel and Float Out play as a fade), and the preset catalogue's labels for IDs 27 and above do not all match PowerPoint's names yet.
-- **Partially supported:** per-letter ripple inside a by-paragraph build is not played; a `p14:bounceEnd` of 100% (no travel left, which PowerPoint itself renders erratically) is clamped to 95%. Media-bookmark triggers ("On bookmark"), the p15 transitions with their direction options, and the Zoom transition's In/Out direction are authored in all five bindings, and the Bounce End settle curve is fitted to PowerPoint's own frames.
+- **Partially supported:** a `p14:bounceEnd` of 100% (no travel left, which PowerPoint itself renders erratically) is clamped to 95%. Media-bookmark triggers ("On bookmark"), the p15 transitions with their direction options, and the Zoom transition's In/Out direction are authored in all five bindings, and the Bounce End settle curve is fitted to PowerPoint's own frames.
 
 ### Detecting gaps at runtime
 

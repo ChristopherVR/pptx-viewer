@@ -9,6 +9,7 @@ import {
 	readTimingAttr,
 	extractStartConditionDelayMs,
 	extractChildBehaviourDurationMs,
+	extractTextTarget,
 } from './native-animation-extended-helpers';
 import { ensureArray } from './native-animation-helpers';
 
@@ -309,5 +310,23 @@ describe('extractChildBehaviourDurationMs', () => {
 
 	it('returns undefined when no behaviour carries a duration', () => {
 		expect(extractChildBehaviourDurationMs({}, ensureArray)).toBeUndefined();
+	});
+});
+
+describe('extractTextTarget paragraph ranges', () => {
+	it('reads the inclusive p:pRg end PowerPoint writes for one by-paragraph step', () => {
+		// PowerPoint scopes the second step of a "By paragraph" build as
+		// `<p:pRg st="1" end="1"/>`: exactly paragraph 1, not an empty range.
+		expect(
+			extractTextTarget({ 'p:txEl': { 'p:pRg': { '@_st': '1', '@_end': '1' } } }),
+		).toStrictEqual({ type: 'pRg', start: 1, end: 2 });
+	});
+
+	it('defaults a missing end to the start paragraph', () => {
+		expect(extractTextTarget({ 'p:txEl': { 'p:pRg': { '@_st': '2' } } })).toStrictEqual({
+			type: 'pRg',
+			start: 2,
+			end: 3,
+		});
 	});
 });
