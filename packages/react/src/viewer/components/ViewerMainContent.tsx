@@ -3,7 +3,11 @@
  * canvas, context menu, and side panels.
  */
 import type { PptxElement, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
-import { resetSlideLayoutPath, setMasterViewBackgroundColor } from 'pptx-viewer-shared';
+import {
+	resetSlideLayoutPath,
+	resolveEditPointsAvailability,
+	setMasterViewBackgroundColor,
+} from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { useMemo, useRef, useState } from 'react';
@@ -334,6 +338,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						hasMultiSelection={state.effectiveSelectedIds.length > 1}
 						selectionGroupable={manipulation.selectionGroupable}
 						hasClipboard={Boolean(state.clipboardPayload)}
+						editPointsAvailability={resolveEditPointsAvailability(selectedElement)}
 						onAction={manipulation.handleContextMenuAction}
 						onInsertTableRow={tableOps.handleInsertTableRow}
 						onDeleteTableRow={tableOps.handleDeleteTableRow}

@@ -1,5 +1,5 @@
 import { INSERT_CHART_TYPES, DEFAULT_INSERT_CHART_KIND } from 'pptx-viewer-shared';
-import type { InsertChartKind } from 'pptx-viewer-shared';
+import type { FreeformToolKind, InsertChartKind } from 'pptx-viewer-shared';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,6 +15,7 @@ import {
 import { SHAPE_PRESETS, ACTION_BUTTON_PRESETS } from '../../constants';
 import type { SupportedShapeType } from '../../types';
 import { cn } from '../../utils';
+import { FreeformToolButtons } from './FreeformToolButtons';
 import { InsertHyperlinkButton } from './InsertHyperlinkButton';
 import { RibbonMenu } from './RibbonMenu';
 import { grp, ic, pill } from './toolbar-constants';
@@ -23,6 +24,10 @@ export interface InsertSectionProps {
 	canEdit: boolean;
 	newShapeType: SupportedShapeType;
 	onSetNewShapeType: (type: SupportedShapeType) => void;
+	/** The armed Freeform: Shape / Curve tool, or null. */
+	activeFreeformTool?: FreeformToolKind | null;
+	/** Arm (or, with null, disarm) a Freeform: Shape / Curve tool. */
+	onArmFreeformTool?: (tool: FreeformToolKind | null) => void;
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;
@@ -149,6 +154,13 @@ export function InsertSection(p: InsertSectionProps): React.ReactElement {
 					{t('pptx.insert.shape')}
 				</button>
 			</div>
+			{p.onArmFreeformTool && (
+				<FreeformToolButtons
+					canEdit={canEdit}
+					activeTool={p.activeFreeformTool}
+					onArm={p.onArmFreeformTool}
+				/>
+			)}
 			<button
 				onClick={p.onOpenImagePicker}
 				disabled={!canEdit}

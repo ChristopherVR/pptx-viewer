@@ -1,4 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
+import type { EditPointsAvailability } from 'pptx-viewer-shared';
 
 import type {
 	ElementContextMenuAction,
@@ -19,6 +20,8 @@ export interface ContextMenuProps {
 	 * four bindings do; omitted keeps it enabled (the shared default).
 	 */
 	hasClipboard?: boolean;
+	/** Edit Points for the right-clicked shape (`resolveEditPointsAvailability`). */
+	editPointsAvailability?: EditPointsAvailability;
 	onAction: (action: ElementContextMenuAction) => void;
 	onInsertTableRow: (position: 'above' | 'below') => void;
 	onDeleteTableRow: () => void;

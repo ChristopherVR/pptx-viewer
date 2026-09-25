@@ -89,6 +89,7 @@ export type ElementContextMenuAction =
 	| 'group'
 	| 'ungroup'
 	| 'editPoints'
+	| 'edit-points'
 	| 'editHyperlink'
 	| 'edit-text'
 	| 'save-as-picture'

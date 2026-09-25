@@ -72,6 +72,22 @@ describe('contextMenuHandlers', () => {
 		expect(props.onAction).toHaveBeenCalledWith('size-and-position');
 		handlers['format-shape']?.();
 		expect(props.onAction).toHaveBeenCalledWith('format-shape');
+		handlers['edit-points']?.();
+		expect(props.onAction).toHaveBeenCalledWith('edit-points');
+	});
+
+	it('offers Edit Points for an editable shape and greys it for a noEditPoints lock', () => {
+		const props = makeProps();
+		const entry = (availability: 'available' | 'locked') =>
+			buildContextMenuEntries(
+				contextMenuContext({
+					...props,
+					selectedElement: { id: 's', type: 'shape', x: 0, y: 0, width: 10, height: 10 },
+					editPointsAvailability: availability,
+				}),
+			).find((e) => e.id === 'edit-points');
+		expect(entry('available')?.disabled).toBeUndefined();
+		expect(entry('locked')?.disabled).toBeTruthy();
 	});
 
 	it('leaves commands without a handler undefined (offered greyed, not dropped)', () => {

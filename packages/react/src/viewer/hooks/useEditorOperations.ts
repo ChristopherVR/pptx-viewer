@@ -4,7 +4,12 @@ import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
  * slide management, table operations, format painter) into a single return value.
  */
-import { downloadBlob, elementPictureFilename, rasterResultToPngBlob } from 'pptx-viewer-shared';
+import {
+	canEditElementPoints,
+	downloadBlob,
+	elementPictureFilename,
+	rasterResultToPngBlob,
+} from 'pptx-viewer-shared';
 import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
@@ -321,6 +326,11 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		history,
 		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
 		onEditText: handleEditTextFromContextMenu,
+		onEditPoints: (elementId) => {
+			if (canEditElementPoints(state.elementLookup.get(elementId))) {
+				state.setEditPointsElementId(elementId);
+			}
+		},
 		onSaveElementAsPicture: handleSaveElementAsPicture,
 		onPasted: pasteSpecial.notePastedElement,
 	});

@@ -34,6 +34,8 @@ export interface UseElementManipulationInput {
 	 * production, only in tests that do not exercise "Edit Text".
 	 */
 	onEditText?: (elementId: string) => void;
+	/** Enter Edit Points mode on `elementId` (context menu "Edit Points"). */
+	onEditPoints?: (elementId: string) => void;
 	/**
 	 * Rasterise `elementId`'s own DOM node and download it as PNG ("Save as
 	 * Picture"). Lives outside this hook because it needs the binding's

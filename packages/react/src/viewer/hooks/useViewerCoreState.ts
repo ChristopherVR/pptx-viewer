@@ -46,6 +46,7 @@ import type {
 } from '../types';
 import type { ViewerMode } from '../types-core';
 import { useDerivedElementState } from './useDerivedElementState';
+import { useEditPointsState } from './useEditPointsState';
 import { useInlineEditingState } from './useInlineEditingState';
 import { useSlideState } from './useSlideState';
 import type { UseViewerCoreStateInput, ViewerCoreState } from './viewer-core-state-types';
@@ -125,6 +126,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		[livePatcher, slidesRef],
 	);
 	const inlineEditing = useInlineEditingState(publishInlineText);
+	const editPointsMode = useEditPointsState();
 	const [editTemplateMode, setEditTemplateMode] = useState(false);
 	const [newShapeType, setNewShapeType] = useState<SupportedShapeType>('rect');
 	const [clipboardPayload, setClipboardPayload] = useState<ElementClipboardPayload | null>(null);
@@ -186,6 +188,7 @@ export function useViewerCoreState(_input: UseViewerCoreStateInput): ViewerCoreS
 		mediaInputRef,
 		activeSlideIndexRef,
 		...inlineEditing,
+		...editPointsMode,
 		dragStateRef,
 		resizeStateRef,
 		shapeAdjustmentDragStateRef,

@@ -29,6 +29,7 @@ import type { DrawingTool } from '../../types-ui';
 import type { ElementAnimationState } from '../../utils/animation-timeline';
 import type { TableStyleContext } from '../../utils/table-parse';
 import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
+import type { OutlineAuthoringProps } from './OutlineAuthoringLayer';
 import type { RulerUnit } from './ruler-utils';
 
 /* ------------------------------------------------------------------ */
@@ -223,4 +224,7 @@ export interface SlideCanvasProps {
 	 * changes tween while the AI assistant is working (see AiFocusHighlightOverlay).
 	 */
 	aiActive?: boolean;
+
+	/* ── Edit Points / Freeform: Shape / Curve ────────────────────────── */
+	outlineAuthoring?: OutlineAuthoringProps;
 }

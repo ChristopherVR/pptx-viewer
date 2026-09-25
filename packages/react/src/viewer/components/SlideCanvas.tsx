@@ -14,6 +14,7 @@ import { ConnectorOverlay } from './canvas/ConnectorOverlay';
 import { DrawingOverlaySvg } from './canvas/DrawingOverlaySvg';
 import { GridOverlay } from './canvas/GridOverlay';
 import { MotionPathOverlay } from './canvas/MotionPathOverlay';
+import { OutlineAuthoringLayer } from './canvas/OutlineAuthoringLayer';
 import { Ruler } from './canvas/Ruler';
 import { RULER_THICKNESS } from './canvas/ruler-utils';
 import { SelectionHandleOverlay } from './canvas/SelectionHandleOverlay';
@@ -142,6 +143,7 @@ function SlideCanvasContent({
 	tableStyleContext,
 	collaborationOverlay,
 	aiActive = false,
+	outlineAuthoring,
 }: SlideCanvasProps) {
 	// True when the stage is an interactive editing surface (drag/resize/marquee
 	// are live). Drives touch-action: none and the touch pointer-down wiring so
@@ -460,7 +462,8 @@ function SlideCanvasContent({
 					    extra is needed to keep caret placement working. */}
 					{selectedElement &&
 						shouldShowElementHandles(isEditableCanvas, true, selectedElementIdSet.size) &&
-						!isConnectorOrLineElement(selectedElement) && (
+						!isConnectorOrLineElement(selectedElement) &&
+						outlineAuthoring?.editPointsElementId !== selectedElement.id && (
 							<SelectionHandleOverlay
 								element={selectedElement}
 								adjustmentHandles={getShapeAdjustmentHandleDescriptors(selectedElement)}
@@ -560,6 +563,15 @@ function SlideCanvasContent({
 							onPointerDown={handleDrawPointerDown}
 							onPointerMove={handleDrawPointerMove}
 							onPointerUp={handleDrawPointerUp}
+						/>
+					)}
+
+					{isEditableCanvas && outlineAuthoring && (
+						<OutlineAuthoringLayer
+							{...outlineAuthoring}
+							activeSlide={activeSlide}
+							canvasSize={canvasSize}
+							scale={zoom.editorScale}
 						/>
 					)}
 

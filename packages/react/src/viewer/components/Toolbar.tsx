@@ -216,6 +216,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							canEdit={p.canEdit}
 							newShapeType={p.newShapeType}
 							onSetNewShapeType={p.onSetNewShapeType}
+							activeFreeformTool={p.activeFreeformTool}
+							onArmFreeformTool={p.onArmFreeformTool}
 							onAddTextBox={p.onAddTextBox}
 							onAddShape={p.onAddShape}
 							onAddTable={p.onAddTable}

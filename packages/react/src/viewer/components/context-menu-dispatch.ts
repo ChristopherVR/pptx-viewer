@@ -38,6 +38,7 @@ export function contextMenuContext(props: ContextMenuProps): ContextMenuContext 
 		hasMultiSelection: Boolean(props.hasMultiSelection),
 		selectionGroupable: props.selectionGroupable,
 		hasClipboard: props.hasClipboard,
+		editPoints: props.editPointsAvailability,
 		// Both AI entries appear together or not at all, so a viewer that wired
 		// only one of them does not produce a menu the other bindings cannot match.
 		aiEnabled: Boolean(props.onAskAi) && Boolean(props.onFixAi),
@@ -86,6 +87,7 @@ export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandler
 		group: andClose(() => onAction('group')),
 		ungroup: andClose(() => onAction('ungroup')),
 		'edit-text': andClose(() => onAction('edit-text')),
+		'edit-points': andClose(() => onAction('edit-points')),
 		'save-as-picture': andClose(() => onAction('save-as-picture')),
 		'edit-alt-text': andClose(() => onAction('edit-alt-text')),
 		'size-and-position': andClose(() => onAction('size-and-position')),
