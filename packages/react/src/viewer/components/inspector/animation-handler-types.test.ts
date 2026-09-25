@@ -22,8 +22,13 @@ describe('dIRECTIONAL_PRESETS', () => {
 	it('contains the broader directional presets from shared', () => {
 		expect(DIRECTIONAL_PRESETS.has('wipeIn')).toBeTruthy();
 		expect(DIRECTIONAL_PRESETS.has('wipeOut')).toBeTruthy();
-		expect(DIRECTIONAL_PRESETS.has('floatIn')).toBeTruthy();
 		expect(DIRECTIONAL_PRESETS.has('peekIn')).toBeTruthy();
+		expect(DIRECTIONAL_PRESETS.has('crawlIn')).toBeTruthy();
+		expect(DIRECTIONAL_PRESETS.has('stretchIn')).toBeTruthy();
+	});
+
+	it('leaves out Float In, which PowerPoint saves with no direction variant', () => {
+		expect(DIRECTIONAL_PRESETS.has('floatIn')).toBeFalsy();
 	});
 
 	it('does not contain non-directional presets', () => {

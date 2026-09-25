@@ -40,6 +40,8 @@ export interface AnimationHandlers {
 	timelineRows: AnimationTimelineRow[];
 	hasAnimation: boolean;
 	showDirectionPicker: boolean;
+	/** Directions the selected preset offers (see shared `directionValuesFor`). */
+	directionValues: readonly PptxAnimationDirection[];
 	dragIndex: number | null;
 	dragOverIndex: number | null;
 	timelineBarData: Array<{

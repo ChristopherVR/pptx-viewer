@@ -12,7 +12,11 @@ import type {
 	PptxAnimationDirection,
 	PptxAnimationTimingCurve,
 } from 'pptx-viewer-core';
-import { buildMotionPathPreview, buildPreviewAnimation } from 'pptx-viewer-shared';
+import {
+	buildMotionPathPreview,
+	buildPreviewAnimation,
+	measurePreviewGeometry,
+} from 'pptx-viewer-shared';
 import type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
 
 export type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
@@ -52,7 +56,13 @@ export function startPreviewAnimation(
 	// Cancel any existing preview
 	stopPreviewAnimation();
 
-	const descriptor = buildPreviewAnimation(preset, options);
+	// Measured against the stage so an entrance/exit plays PowerPoint's own
+	// behaviour tree (Fly from the slide edge), as the slide show does.
+	const domEl = document.querySelector(`[data-element-id="${elementId}"]`) as HTMLElement | null;
+	const descriptor = buildPreviewAnimation(preset, {
+		...options,
+		geometry: domEl ? measurePreviewGeometry(domEl) : undefined,
+	});
 	if (!descriptor) {
 		return;
 	}
