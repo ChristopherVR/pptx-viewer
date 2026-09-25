@@ -131,6 +131,20 @@ function presetStyle(
 	return style;
 }
 
+/**
+ * The all-zero references PowerPoint writes beside a preset's own `spPr`
+ * (`<a:lnRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:lnRef>` and so on).
+ */
+const ZERO_SCRGB: XmlObject = { 'a:scrgbClr': { '@_r': '0', '@_g': '0', '@_b': '0' } };
+const PRESET_ZERO_REFS: ShapeStyle = {
+	lnRefIdx: 0,
+	lnRefColorXml: ZERO_SCRGB,
+	fillRefIdx: 0,
+	fillRefColorXml: ZERO_SCRGB,
+	effectRefIdx: 0,
+	effectRefColorXml: ZERO_SCRGB,
+};
+
 interface ResolvedItem {
 	shapeStyle: ShapeStyle;
 	fontColor?: string;
@@ -147,7 +161,13 @@ function resolveItem(id: string, ctx: RibbonGalleryContext): ResolvedItem | null
 	const spec = SHAPE_PRESET_ROWS[parsed.row];
 	const fontScheme = spec.font === 'col' ? parsed.column : 'lt1';
 	return {
-		shapeStyle: { ...presetStyle(spec, parsed.column, ctx), fontRefIdx: 'minor' },
+		shapeStyle: {
+			...presetStyle(spec, parsed.column, ctx),
+			...PRESET_ZERO_REFS,
+			fontRefIdx: 'minor',
+			fontRefColorXml: { 'a:schemeClr': { '@_val': fontScheme } },
+			styleMatrixReset: true,
+		},
 		fontColor: schemeHex({ scheme: fontScheme as PptxThemeColorSchemeName }, ctx),
 	};
 }
@@ -157,7 +177,7 @@ function styleMatches(element: PptxElement | null, style: ShapeStyle): boolean {
 		return false;
 	}
 	const current = element.shapeStyle;
-	if (style.fillRefIdx !== undefined || style.lnRefIdx !== undefined) {
+	if ((style.fillRefIdx ?? 0) > 0 || (style.lnRefIdx ?? 0) > 0) {
 		return (
 			current.fillRefIdx === style.fillRefIdx &&
 			current.lnRefIdx === style.lnRefIdx &&
