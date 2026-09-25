@@ -38,6 +38,44 @@ describe('shadeSmartArt3DNormal', () => {
 	});
 });
 
+describe('light rig specular lights', () => {
+	const rig = { rig: 'threePt', direction: 't', revDeg: 344 };
+
+	it("keeps the default highlight for a parallel view (the bevel fit's light)", () => {
+		const model = resolveSmartArt3DLightModel(rig, 'metal');
+		expect(model.highlights).toHaveLength(1);
+		expect(model.highlights[0].direction.z).toBeCloseTo(Math.sin(Math.PI / 3), 6);
+	});
+
+	it("switches to the rig's own lights under a perspective scene camera", () => {
+		const model = resolveSmartArt3DLightModel(rig, 'metal', true);
+		// threePt's highlight light sits up and to the left of the key light.
+		expect(model.highlights).toHaveLength(1);
+		expect(model.highlights[0].direction.x).toBeLessThan(0);
+		expect(model.highlights[0].direction.y).toBeGreaterThan(0);
+		expect(
+			resolveSmartArt3DLightModel({ ...rig, rig: 'flat' }, 'metal', true).highlights[0],
+		).toStrictEqual(resolveSmartArt3DLightModel({ ...rig, rig: 'flat' }, 'metal').highlights[0]);
+	});
+
+	it("sweeps Metallic Scene's metal highlight from the top-left to the bottom-right", () => {
+		// perspectiveLeft: the eye sits in front of the diagram, to its right.
+		const model = resolveSmartArt3DLightModel(rig, 'metal', true);
+		const eye = { x: 560, y: 0, z: 1490 };
+		const at = (x: number, y: number) =>
+			shadeSmartArt3DNormal(FACE, model, {
+				x: (eye.x - x) / Math.hypot(eye.x - x, eye.y - y, eye.z),
+				y: (eye.y - y) / Math.hypot(eye.x - x, eye.y - y, eye.z),
+				z: eye.z / Math.hypot(eye.x - x, eye.y - y, eye.z),
+			});
+		const topLeft = at(-450, 250);
+		const bottomRight = at(450, -250);
+		expect(topLeft.mul).toBe(1);
+		expect(topLeft.add).toBeGreaterThan(0.3);
+		expect(bottomRight.add).toBeLessThan(0.05);
+	});
+});
+
 describe('shadeSmartArt3DVertices', () => {
 	it('gives a face-on vertex a unit factor under a neutral rig', () => {
 		const model = resolveSmartArt3DLightModel({ rig: 'flat', direction: 't', revDeg: 0 }, 'matte');

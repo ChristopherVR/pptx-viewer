@@ -24,7 +24,8 @@ import type { Rgb } from '../render/smartart-3d-vertex-shading';
 import { hexToRgb, shadeSmartArt3DVertices } from '../render/smartart-3d-vertex-shading';
 import type { ThreeModule } from '../three-view/types';
 import type { Disposable, MeshObject } from './flat-mesh-object';
-import { buildStrokeLines, buildTextPlane } from './flat-mesh-object';
+import { buildStrokeLines } from './flat-mesh-object';
+import { buildLitTextObject } from './lit-text-object';
 
 /** Width of the 1D gradient lookup texture. */
 const GRADIENT_TEXELS = 256;
@@ -179,6 +180,12 @@ export function buildLitMeshObject(
 		for (const part of parts) {
 			const built = buildPart(three, part, light, localEye, disposables);
 			if (built) {
+				if (mesh.opacity < 1) {
+					// A translucent fill (Basic Venn): the whole solid shows through.
+					const material = built.material as THREE.MeshBasicMaterial;
+					material.transparent = true;
+					material.opacity = mesh.opacity;
+				}
 				group.add(built);
 			}
 		}
@@ -186,6 +193,6 @@ export function buildLitMeshObject(
 	for (const line of buildStrokeLines(three, mesh, disposables)) {
 		group.add(line);
 	}
-	buildTextPlane(three, mesh, group, disposables);
+	buildLitTextObject(three, mesh, group, light, disposables);
 	return { group, disposables };
 }

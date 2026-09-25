@@ -286,6 +286,7 @@ export function projectDrawingShapes(
 					}
 				: {}),
 			...(gradient ? { gradient } : {}),
+			...(fillOpacity !== undefined ? { fillOpacity } : {}),
 			x: relX,
 			y: relY,
 			width: shape.width,

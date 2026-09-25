@@ -54,7 +54,9 @@ export function buildTextBlockTexture(
 	ctx2d.clearRect(0, 0, canvas.width, canvas.height);
 	ctx2d.fillStyle = block.color;
 	ctx2d.textAlign = 'center';
-	ctx2d.textBaseline = 'alphabetic';
+	// `dy` places each line's CENTRE (as `centeredSvgTextLines` lays it out,
+	// and the 2D renderers draw with `dominant-baseline: central`).
+	ctx2d.textBaseline = 'middle';
 	ctx2d.font = `${italic}${weight} ${px}px ${family}`;
 	const centerX = canvas.width / 2;
 	const centerY = canvas.height / 2;

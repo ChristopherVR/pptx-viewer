@@ -18,6 +18,7 @@
  *
  * @module render/smartart-3d-lighting
  */
+import { smartArt3DRigSpecularLights } from './smartart-3d-light-rig';
 import type { SmartArt3DLighting } from './smartart-3d-solid-types';
 import type { Vec3 } from './smartart-3d-types';
 import { getBevelHighlightDirection } from './visual-3d-bevel-light';
@@ -27,18 +28,26 @@ import { getMaterialLighting } from './visual-3d-bevel-lighting-tables';
 export interface SmartArt3DLightModel {
 	/** Unit vector toward the key (diffuse) light (diagram space: y-up, +z toward the viewer). */
 	light: Vec3;
-	/** Unit vector toward the light the specular highlight reflects (same azimuth, higher). */
-	specularLight: Vec3;
+	/** The rig's specular lights (see `smartart-3d-light-rig.ts`). */
+	highlights: SmartArt3DHighlight[];
 	/** Share of the diffuse response that does not depend on the normal. */
 	ambient: number;
 	diffuse: number;
-	specular: number;
-	exponent: number;
 	/**
 	 * Linear per-channel factor the rig applies to every surface, including a
 	 * face-on one (see {@link RIG_FACE_READING}).
 	 */
 	tint: [number, number, number];
+}
+
+/** One specular light, resolved to diagram space. */
+export interface SmartArt3DHighlight {
+	/** Unit vector toward the light. */
+	direction: Vec3;
+	/** Specular weight (material constant times the rig light's intensity). */
+	weight: number;
+	/** Specular exponent (material exponent times the rig light's sharpness). */
+	exponent: number;
 }
 
 /** A vertex's shading: display colour = `fill * mul + add` (per channel, 0..1). */
@@ -54,8 +63,6 @@ export interface SmartArt3DShade {
  * brightness (Polished's top band), which only a grazing key light gives.
  */
 const KEY_ELEVATION_DEG = 5;
-/** Elevation of the light the specular highlight reflects, degrees. */
-const SPECULAR_ELEVATION_DEG = 60;
 /** Ambient share of the diffuse response. */
 const AMBIENT = 0.5;
 /** Scales the material table's specular constant to this shading model. */
@@ -101,10 +108,17 @@ function normalize(v: Vec3): Vec3 {
 	return { x: v.x / len, y: v.y / len, z: v.z / len };
 }
 
-/** Resolve the light model for a rig and an `a:sp3d/@prstMaterial`. */
+/**
+ * Resolve the light model for a rig and an `a:sp3d/@prstMaterial`.
+ *
+ * @param perspective - the solid is seen through a perspective scene camera,
+ *   which switches on the rig's own specular lights (see
+ *   `smartart-3d-light-rig.ts`).
+ */
 export function resolveSmartArt3DLightModel(
 	lighting: SmartArt3DLighting | undefined,
 	material: string | undefined,
+	perspective = false,
 ): SmartArt3DLightModel {
 	// CSS space (y-down) -> view space (y-up), then the rig's own revolution.
 	const snap = getBevelHighlightDirection(lighting?.direction ?? 't');
@@ -114,22 +128,28 @@ export function resolveSmartArt3DLightModel(
 	const az = Math.hypot(ax, ay) || 1;
 	const azX = (ax * Math.cos(rev) - ay * Math.sin(rev)) / az;
 	const azY = (ax * Math.sin(rev) + ay * Math.cos(rev)) / az;
-	const toward = (elevationDeg: number): Vec3 => {
+	const toward = (elevationDeg: number, azimuthDeg = 0): Vec3 => {
 		const elevation = (elevationDeg * Math.PI) / 180;
+		const turn = (azimuthDeg * Math.PI) / 180;
+		const dx = azX * Math.cos(turn) - azY * Math.sin(turn);
+		const dy = azX * Math.sin(turn) + azY * Math.cos(turn);
 		return normalize({
-			x: azX * Math.cos(elevation),
-			y: azY * Math.cos(elevation),
+			x: dx * Math.cos(elevation),
+			y: dy * Math.cos(elevation),
 			z: Math.sin(elevation),
 		});
 	};
 	const response = getMaterialLighting(material);
+	const specular = response.specularConstant * SPECULAR_GAIN;
 	return {
 		light: toward(KEY_ELEVATION_DEG),
-		specularLight: toward(SPECULAR_ELEVATION_DEG),
+		highlights: smartArt3DRigSpecularLights(lighting?.rig, perspective).map((rigLight) => ({
+			direction: toward(rigLight.elevationDeg, rigLight.azimuthDeg),
+			weight: specular * rigLight.intensity,
+			exponent: response.specularExponent * rigLight.sharpness,
+		})),
 		ambient: AMBIENT,
 		diffuse: response.diffuseConstant,
-		specular: response.specularConstant * SPECULAR_GAIN,
-		exponent: response.specularExponent,
 		tint: rigTint(lighting?.rig),
 	};
 }
@@ -153,12 +173,15 @@ export function shadeSmartArt3DNormal(
 		model.ambient + model.diffuse * Math.max(0, dot(n, model.light));
 	const mul = lambert(normal) / lambert(VIEW);
 	const view = eye ?? VIEW;
-	const half = normalize({
-		x: model.specularLight.x + view.x,
-		y: model.specularLight.y + view.y,
-		z: model.specularLight.z + view.z,
-	});
-	const peak = (n: Vec3): number => Math.max(0, dot(n, half)) ** model.exponent;
-	const add = model.specular * Math.max(0, peak(normal) - (eye ? 0 : peak(VIEW)));
+	let add = 0;
+	for (const highlight of model.highlights) {
+		const half = normalize({
+			x: highlight.direction.x + view.x,
+			y: highlight.direction.y + view.y,
+			z: highlight.direction.z + view.z,
+		});
+		const peak = (n: Vec3): number => Math.max(0, dot(n, half)) ** highlight.exponent;
+		add += highlight.weight * Math.max(0, peak(normal) - (eye ? 0 : peak(VIEW)));
+	}
 	return { mul, add };
 }

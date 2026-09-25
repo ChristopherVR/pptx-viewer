@@ -21,6 +21,7 @@ import type { Point2, SmartArt3DMesh, SmartArt3DStyleCategory } from './smartart
 import type { Rgb } from './smartart-3d-vertex-shading';
 import { hexToRgb } from './smartart-3d-vertex-shading';
 import type { RenderedShape } from './smartart-drawing';
+import { EMU_PER_PX } from './visual-3d-constants';
 
 const DEG_PER_UNIT = 60000;
 
@@ -117,6 +118,13 @@ export function decorateSmartArt3DMesh(
 	);
 	if (solid) {
 		mesh.solid = solid;
+	}
+	const textExtrusion = (shape.text3d?.extrusionHeight ?? 0) / EMU_PER_PX;
+	if (mesh.textBlock && textExtrusion > 0) {
+		mesh.textBlock.extrusion = textExtrusion;
+		if (shape.text3d?.extrusionColor) {
+			mesh.textBlock.extrusionColor = shape.text3d.extrusionColor;
+		}
 	}
 	const gradient = buildSmartArt3DGradient(rendered, toLocal);
 	if (gradient) {

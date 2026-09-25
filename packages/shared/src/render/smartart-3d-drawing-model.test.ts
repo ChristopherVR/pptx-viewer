@@ -84,6 +84,39 @@ describe('buildSmartArt3DDrawingModel', () => {
 		expect(mesh.textBlock?.color).toBe('#ffffff');
 	});
 
+	it("paints a translucent fill's opacity, or a gradient's mean stop opacity", () => {
+		const solid = buildSmartArt3DDrawingModel(dataWith([shape({ fillOpacity: 0.5 })]));
+		expect(solid!.meshes[0].opacity).toBe(0.5);
+		const gradient = buildSmartArt3DDrawingModel(
+			dataWith([
+				shape({
+					fillGradientStops: [
+						{ color: '#336699', position: 0, opacity: 0.5 },
+						{ color: '#224466', position: 100, opacity: 0.5 },
+					],
+					fillGradientType: 'linear',
+					fillGradientAngle: 90,
+				}),
+			]),
+		);
+		expect(gradient!.meshes[0].opacity).toBeCloseTo(0.5, 6);
+		expect(buildSmartArt3DDrawingModel(dataWith([shape()]))!.meshes[0].opacity).toBe(1);
+	});
+
+	it("extrudes a scene style's label by its text3d depth", () => {
+		const model = buildSmartArt3DDrawingModel(
+			dataWith([
+				shape({
+					text: 'Alpha',
+					shape3d: { extrusionHeight: 152250 },
+					text3d: { extrusionHeight: 28000 },
+				}),
+			]),
+		);
+		expect(model?.styleCategory).toBe('scene');
+		expect(model!.meshes[0].textBlock?.extrusion).toBeCloseTo(28000 / 9525, 6);
+	});
+
 	it('omits the text block when the shape has no text', () => {
 		const model = buildSmartArt3DDrawingModel(dataWith([shape()]));
 		expect(model!.meshes[0].textBlock).toBeUndefined();

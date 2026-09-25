@@ -133,6 +133,14 @@ export interface SmartArt3DTextBlock {
 	fontFamily?: string;
 	fontWeight?: number;
 	fontStyle?: 'normal' | 'italic';
+	/**
+	 * The label's own extrusion (`a:bodyPr/a:sp3d`, e.g. Bird's Eye Scene),
+	 * in layout px toward the viewer: the letters stand this far off the
+	 * shape face, and their sides are drawn in {@link extrusionColor} (the
+	 * text colour when absent).
+	 */
+	extrusion?: number;
+	extrusionColor?: string;
 }
 
 /** A connector poly-line drawn between meshes on the base plane. */
