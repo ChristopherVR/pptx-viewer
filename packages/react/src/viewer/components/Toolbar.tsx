@@ -296,6 +296,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							formatPainterActive={p.formatPainterActive}
 							onToggleFormatPainter={p.onToggleFormatPainter}
 							canActivateFormatPainter={p.canActivateFormatPainter}
+							hiddenActions={p.hiddenActions}
 						/>
 					)}
 

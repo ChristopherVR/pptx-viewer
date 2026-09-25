@@ -91,6 +91,7 @@ import { MobileChromeOverlay } from './components/mobile/MobileChromeOverlay';
 import { ReadOnlyBanner } from './components/ReadOnlyBanner';
 import { RunProgramNotices } from './components/RunProgramNotices';
 import { SettingsDialog } from './components/SettingsDialog';
+import { ShapeFormatContext } from './components/shape-format-context';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
 import { ViewerCustomizationContext } from './components/viewer-customization-context';
 import { ViewerOptionsContext } from './components/viewer-options-context';
@@ -116,6 +117,7 @@ import { useRecentColorsSync } from './hooks/useRecentColorsSync';
 import { useReducedMotion } from './hooks/useReducedMotion';
 import { useResizablePanels } from './hooks/useResizablePanels';
 import { useRunProgramNoticesState } from './hooks/useRunProgramNoticesState';
+import { useShapeFormatCommands } from './hooks/useShapeFormatCommands';
 import { useTouchGestures } from './hooks/useTouchGestures';
 import { useViewerCustomization } from './hooks/useViewerCustomization';
 import { useViewerDialogs } from './hooks/useViewerDialogs';
@@ -597,7 +599,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					state.resizeStateRef.current ||
 					state.marqueeStateRef.current ||
 					state.shapeAdjustmentDragStateRef.current ||
-					state.isDrawingRef.current,
+					state.isDrawingRef.current ||
+					state.cropSessionRef.current,
 				),
 			[
 				state.dragStateRef,
@@ -605,6 +608,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				state.marqueeStateRef,
 				state.shapeAdjustmentDragStateRef,
 				state.isDrawingRef,
+				state.cropSessionRef,
 			],
 		);
 
@@ -819,6 +823,8 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			transformCommittedText: (text) => applyAutoCorrect(text, viewerOptions.proofing),
 			keyboard: customizationResolved.keyboard,
 		});
+		// Merge Shapes + on-canvas picture crop, shared by ribbon, menu and canvas.
+		const shapeFormat = useShapeFormatCommands({ state, editorOps, history, canEdit, mode });
 
 		// ── Integration (pointers, lifecycle, I/O, annotations, etc.) ─
 		const {
@@ -1564,7 +1570,9 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 										setActiveSlideIndex={state.setActiveSlideIndex}
 										slideCount={slides.length}
 									/>
-									{viewerContent}
+									<ShapeFormatContext.Provider value={shapeFormat}>
+										{viewerContent}
+									</ShapeFormatContext.Provider>
 								</CollaborationProvider>
 							</ViewerThemeProvider>
 						</Rendering3DFlagsContext.Provider>

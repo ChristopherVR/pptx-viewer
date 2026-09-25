@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
 import { ContextMenuItem, ContextMenuSeparator } from './context-menu-parts';
 import type { ContextMenuProps } from './context-menu-types';
+import { useShapeFormatContext } from './shape-format-context';
 import { useClampedMenuPosition } from './useClampedMenuPosition';
 import { useViewerCustomizationContext } from './viewer-customization-context';
 
@@ -23,6 +24,7 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 	const { contextMenuState, mode, onClose } = props;
 	const { t } = useTranslation();
 	const customization = useViewerCustomizationContext();
+	const shapeFormat = useShapeFormatContext();
 	const open = Boolean(contextMenuState) && mode === 'edit';
 	const menuPosition = useClampedMenuPosition<HTMLDivElement>(
 		contextMenuState?.x ?? 0,
@@ -49,11 +51,11 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 		return null;
 	}
 
-	const handlers = contextMenuHandlers(props);
+	const handlers = contextMenuHandlers(props, shapeFormat);
 	// Host customisation drops hidden commands; a menu left empty (or one the
 	// host disabled outright) renders nothing at all.
 	const entries = customizeContextMenuEntries(
-		buildContextMenuEntries(contextMenuContext(props)),
+		buildContextMenuEntries(contextMenuContext(props, shapeFormat)),
 		customization,
 	);
 	if (entries.length === 0) {
