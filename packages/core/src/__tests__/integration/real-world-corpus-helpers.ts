@@ -14,6 +14,7 @@ export const REQUIRED_CORPUS_FIXTURES = [
 	'ole-embedded-media.pptx',
 	'preset-geometry-wordart.pptx',
 	'smartart-chart-table-mix.pptx',
+	'smartart-orgchart-assistants.pptx',
 	'smartart-orgchart-fan-variants.pptx',
 	'smartart-orgchart-hierbranch.pptx',
 	'smartart-orgchart-many.pptx',
