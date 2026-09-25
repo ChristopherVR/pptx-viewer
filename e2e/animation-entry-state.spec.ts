@@ -14,14 +14,17 @@
  *     frame), then visibly snapped back to replay.
  *
  *  2. WIPE DIRECTION + GEOMETRY: a `wipe(up)` entrance (presetSubtype 1) must
- *     reveal from the BOTTOM edge, and the reveal must be a CSS `mask` sweep
+ *     reveal from the TOP edge (`wipe(X)` works from edge X; PowerPoint's
+ *     CreateVideo shows its default subtype 4, `wipe(down)`, growing up from
+ *     the bottom), and the reveal must be a CSS `mask` sweep
  *     that COMPOSES with the element's own geometry `clip-path`. The old
  *     `clip-path` keyframes both mapped the subtype to the opposite edge and
  *     replaced the geometry clip, so a thin diagonal stripe wiped in as its
  *     full bounding box (a filled rectangle "blob").
  *
  *  3. FLY-IN DIRECTION: presetSubtype 8 = fly in from the LEFT
- *     (origin-edge bitmask), pinned via the assigned keyframe name.
+ *     (origin-edge bitmask). The deck's own behaviour tree plays, so the
+ *     keyframe's start pose must sit to the LEFT of the resting position.
  *
  * Every assertion reads the rendered DOM through the framework-neutral
  * contract (`#file-input`, `[data-element-id]`, role=button), so the same spec
@@ -146,7 +149,7 @@ test.describe('slide-entry animation state (issue #132 deck)', () => {
 			.toBeGreaterThan(0);
 	});
 
-	test('a wipe(up) entrance sweeps a mask from the bottom and keeps the shape geometry clip', async ({
+	test('a wipe(up) entrance sweeps a mask from the top and keeps the shape geometry clip', async ({
 		page,
 	}) => {
 		await loadDeck(page);
@@ -177,9 +180,9 @@ test.describe('slide-entry animation state (issue #132 deck)', () => {
 		await expect.poll(probeStripe, { timeout: 10000 }).toBeDefined();
 		const stripe = (await probeStripe())!;
 
-		// Direction: wipe(up) = reveal grows from the BOTTOM edge, which the
-		// mask encodes as a to-top hard-stop gradient.
-		expect(stripe.mask).toContain('linear-gradient(to top');
+		// Direction: wipe(up) = reveal grows from the TOP edge, which the
+		// mask encodes as a to-bottom hard-stop gradient.
+		expect(stripe.mask).toContain('linear-gradient(to bottom');
 		// The blob regression: the reveal must never replace the element's own
 		// geometry clip-path. Mid-animation the parallelogram outline is still
 		// clipping (a path/polygon, not 'none'), while the mask does the reveal.
@@ -195,26 +198,45 @@ test.describe('slide-entry animation state (issue #132 deck)', () => {
 		await page.waitForTimeout(600);
 		await page.keyboard.press('ArrowRight');
 
-		const flyProbe = (): Promise<string | undefined> =>
+		// The start pose's horizontal offset (px) of a flying ellipse, whether
+		// it plays the deck's behaviour tree (`pptx-tl-bhvr-*`) or the preset
+		// keyframe (`pptx-flyIn*`).
+		const flyProbe = (): Promise<number | undefined> =>
 			page.evaluate(() => {
 				for (const el of document.querySelectorAll<HTMLElement>(
 					'[data-element-id^="ppt/slides/slide8.xml"]',
 				)) {
-					if (el.style.animation.includes('pptx-flyIn')) {
-						return el.style.animation;
+					const animation = el
+						.getAnimations()
+						.find((a) => /^pptx-(tl-bhvr|flyIn)/u.test((a as CSSAnimation).animationName));
+					if (!animation) {
+						continue;
 					}
+					// Seek just past the start, read the computed transform, then
+					// leave the playback where it was.
+					const timing = animation.effect!.getComputedTiming();
+					const resume = animation.currentTime;
+					const running = animation.playState === 'running';
+					animation.pause();
+					animation.currentTime = Number(timing.delay ?? 0) + Number(timing.duration ?? 0) * 0.01;
+					const matrix = new DOMMatrix(getComputedStyle(el).transform);
+					animation.currentTime = resume;
+					if (running) {
+						animation.play();
+					}
+					return matrix.m41;
 				}
 				return undefined;
 			});
 
 		// One advance is enough on this slide to start its fly-in group; a second
 		// covers a binding that needed the first press to finish the transition.
-		let animation = await flyProbe();
-		if (!animation) {
+		let offset = await flyProbe();
+		if (offset === undefined) {
 			await page.keyboard.press('ArrowRight');
 			await expect.poll(flyProbe, { timeout: 8000 }).toBeDefined();
-			animation = await flyProbe();
+			offset = await flyProbe();
 		}
-		expect(animation).toContain('pptx-flyInLeft');
+		expect(offset).toBeLessThan(0);
 	});
 });

@@ -228,6 +228,17 @@ const E2E_FIXTURES: readonly FixtureEntry[] = [
 			'object is read-only over COM.',
 	},
 	{
+		file: 'animation-behavior-playback.pptx',
+		dir: 'e2e',
+		provenance: 'powerpoint',
+		status: 'roundtrip',
+		note:
+			'Genuine PowerPoint deck, 35 KB, from scripts/make-animation-behavior-fixture.ps1: a Fly In ' +
+			'from the left on a square at x = 700 pt (travels from the slide edge, eight of its widths) ' +
+			'and a Wipe From Bottom, both with PowerPoint-written behaviour trees, for ' +
+			'animation-behavior-playback.spec.ts.',
+	},
+	{
 		file: 'animation-builds-color.pptx',
 		dir: 'e2e',
 		provenance: 'powerpoint',
