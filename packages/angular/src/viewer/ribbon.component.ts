@@ -17,10 +17,11 @@ import type { PptxElement } from 'pptx-viewer-core';
 import type { AccountAuthConfig, ToolbarActionId } from '../internal/shared';
 import { RibbonContentSecondaryComponent } from './ribbon-content-secondary.component';
 import { RibbonContentComponent } from './ribbon-content.component';
+import { createRibbonTabState } from './ribbon-contextual-tabs';
 import type { DrawToolState } from './ribbon-draw-section.component';
 import { RibbonPrimaryRowComponent } from './ribbon-primary-row.component';
 import { RibbonTabListComponent } from './ribbon-tab-list.component';
-import type { RibbonTab } from './ribbon-types';
+import { injectResolvedCustomization } from './viewer-customization.service';
 
 @Component({
 	selector: 'pptx-ribbon',
@@ -78,6 +79,7 @@ import type { RibbonTab } from './ribbon-types';
 
 			<pptx-ribbon-tab-list
 				[activeTab]="activeTab()"
+				[contextualTabs]="contextualTabs()"
 				[canEdit]="canEdit()"
 				[collabConnected]="collabConnected()"
 				[connectedCount]="connectedCount()"
@@ -370,7 +372,13 @@ export class RibbonComponent {
 	/** Emitted when the user opens viewer preferences from the Help tab. */
 	readonly openSettings = output<void>();
 
-	protected readonly activeTab = signal<RibbonTab>('home');
+	/** Active tab + the selection's contextual tabs (falls back to Home when one disappears). */
+	private readonly tabState = createRibbonTabState(
+		this.selectedElement,
+		injectResolvedCustomization(),
+	);
+	protected readonly activeTab = this.tabState.activeTab;
+	protected readonly contextualTabs = this.tabState.contextualTabs;
 
 	/** Ribbon content expanded (true) vs collapsed to just the tab bar (false). */
 	protected readonly ribbonExpanded = signal(true);

@@ -16,6 +16,9 @@ import type {
 	OptionsPageId,
 	OptionsSectionId,
 	OptionsSettingId,
+	RibbonContextualTabId,
+	RibbonControlId,
+	RibbonGroupId,
 	ShortcutChord,
 	ToolbarButtonId,
 	ToolbarTabId,
@@ -48,17 +51,29 @@ export abstract class ViewerCustomizationHandle implements ViewerCustomizationAp
 	resetCustomization(): void {
 		this.customizationApi.resetCustomization();
 	}
-	hideRibbonTab(tab: ToolbarTabId): void {
+	hideRibbonTab(tab: ToolbarTabId | RibbonContextualTabId): void {
 		this.customizationApi.hideRibbonTab(tab);
 	}
-	showRibbonTab(tab: ToolbarTabId): void {
+	showRibbonTab(tab: ToolbarTabId | RibbonContextualTabId): void {
 		this.customizationApi.showRibbonTab(tab);
 	}
-	hideToolbarButton(button: ToolbarButtonId): void {
+	hideRibbonGroup(group: RibbonGroupId): void {
+		this.customizationApi.hideRibbonGroup(group);
+	}
+	showRibbonGroup(group: RibbonGroupId): void {
+		this.customizationApi.showRibbonGroup(group);
+	}
+	hideToolbarButton(button: ToolbarButtonId | RibbonControlId): void {
 		this.customizationApi.hideToolbarButton(button);
 	}
-	showToolbarButton(button: ToolbarButtonId): void {
+	showToolbarButton(button: ToolbarButtonId | RibbonControlId): void {
 		this.customizationApi.showToolbarButton(button);
+	}
+	hideRibbonControl(control: RibbonControlId): void {
+		this.customizationApi.hideRibbonControl(control);
+	}
+	showRibbonControl(control: RibbonControlId): void {
+		this.customizationApi.showRibbonControl(control);
 	}
 	hideOptionsPage(page: OptionsPageId): void {
 		this.customizationApi.hideOptionsPage(page);

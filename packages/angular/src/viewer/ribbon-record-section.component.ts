@@ -18,25 +18,61 @@ import { TranslatePipe } from '@ngx-translate/core';
 	imports: [TranslatePipe],
 	template: `
 		<div class="flex items-center gap-1">
-			<button type="button" class="pptx-rb-pill" disabled>
+			<button
+				data-ribbon-group="record.camera"
+				data-ribbon-control="record.camera.cameo"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
 				{{ 'pptx.record.cameo' | translate }}
 			</button>
 			<span class="pptx-rb-sep"></span>
-			<button type="button" class="pptx-rb-pill" (click)="recordFromBeginning.emit()">
-				{{ 'pptx.slideShow.fromBeginning' | translate }}
-			</button>
-			<button type="button" class="pptx-rb-pill" (click)="recordFromCurrent.emit()">
-				{{ 'pptx.slideShow.fromCurrent' | translate }}
-			</button>
+			<span class="contents" data-ribbon-group="record.record">
+				<button
+					data-ribbon-control="record.record.fromBeginning"
+					type="button"
+					class="pptx-rb-pill"
+					(click)="recordFromBeginning.emit()"
+				>
+					{{ 'pptx.slideShow.fromBeginning' | translate }}
+				</button>
+				<button
+					data-ribbon-control="record.record.fromCurrent"
+					type="button"
+					class="pptx-rb-pill"
+					(click)="recordFromCurrent.emit()"
+				>
+					{{ 'pptx.slideShow.fromCurrent' | translate }}
+				</button>
+			</span>
 			<span class="pptx-rb-sep"></span>
-			<button type="button" class="pptx-rb-pill" disabled>
-				{{ 'pptx.record.clear' | translate }}
-			</button>
-			<button type="button" class="pptx-rb-pill" disabled>
-				{{ 'pptx.record.resetToCameo' | translate }}
-			</button>
+			<span class="contents" data-ribbon-group="record.manage">
+				<button
+					data-ribbon-control="record.manage.clear"
+					type="button"
+					class="pptx-rb-pill"
+					disabled
+				>
+					{{ 'pptx.record.clear' | translate }}
+				</button>
+				<button
+					data-ribbon-control="record.manage.reset"
+					type="button"
+					class="pptx-rb-pill"
+					disabled
+				>
+					{{ 'pptx.record.resetToCameo' | translate }}
+				</button>
+			</span>
 			<span class="pptx-rb-sep"></span>
-			<button type="button" class="pptx-rb-pill" disabled>
+			<button
+				data-ribbon-group="record.help"
+				data-ribbon-control="record.help.learnMore"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
 				{{ 'pptx.record.learnMore' | translate }}
 			</button>
 		</div>

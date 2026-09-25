@@ -37,22 +37,26 @@ import { toolbarVisibility } from './toolbar-visibility';
 	host: { class: 'contents' },
 	imports: [TranslatePipe],
 	template: `
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[disabled]="slideCount() === 0"
-			(click)="presentFromBeginning.emit()"
-		>
-			{{ 'pptx.ribbon.fromBeginning' | translate }}
-		</button>
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[disabled]="slideCount() === 0"
-			(click)="presentFromCurrent.emit()"
-		>
-			{{ 'pptx.slideShow.fromCurrent' | translate }}
-		</button>
+		<span class="contents" data-ribbon-group="slideShow.startSlideShow">
+			<button
+				data-ribbon-control="slideShow.startSlideShow.fromBeginning"
+				type="button"
+				class="pptx-rb-pill"
+				[disabled]="slideCount() === 0"
+				(click)="presentFromBeginning.emit()"
+			>
+				{{ 'pptx.ribbon.fromBeginning' | translate }}
+			</button>
+			<button
+				data-ribbon-control="slideShow.startSlideShow.fromCurrent"
+				type="button"
+				class="pptx-rb-pill"
+				[disabled]="slideCount() === 0"
+				(click)="presentFromCurrent.emit()"
+			>
+				{{ 'pptx.slideShow.fromCurrent' | translate }}
+			</button>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<!-- Presenter View. Deliberately NOT gated on slideCount(): no other
 		     binding disables it, and e2e/ribbon-control-inventory.spec.ts diffs
@@ -61,6 +65,8 @@ import { toolbarVisibility } from './toolbar-visibility';
 		     happens to carry the same English, so the inventory's accessible-name
 		     diff passed by luck and would have broken on any locale edit. -->
 		<button
+			data-ribbon-group="slideShow.present"
+			data-ribbon-control="slideShow.present.presenterView"
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.slideShow.presenterViewTooltip' | translate"
@@ -69,6 +75,8 @@ import { toolbarVisibility } from './toolbar-visibility';
 			{{ 'pptx.slideShow.presenterView' | translate }}
 		</button>
 		<button
+			data-ribbon-group="slideShow.startSlideShow"
+			data-ribbon-control="slideShow.startSlideShow.customShow"
 			type="button"
 			class="pptx-rb-pill"
 			[title]="'pptx.customShows.customShowTooltip' | translate"
@@ -77,39 +85,64 @@ import { toolbarVisibility } from './toolbar-visibility';
 			{{ 'pptx.slideShow.customShow' | translate }}
 		</button>
 		@if (!toolbar.isHidden('broadcast')) {
-			<button type="button" class="pptx-rb-pill" (click)="broadcast.emit()">
+			<button
+				data-ribbon-group="slideShow.present"
+				data-ribbon-control="slideShow.present.broadcast"
+				type="button"
+				class="pptx-rb-pill"
+				(click)="broadcast.emit()"
+			>
 				{{ 'pptx.ribbon.broadcast' | translate }}
 			</button>
 		}
 		<span class="pptx-rb-sep"></span>
 		<!-- Speaker Coach has no local speech-analysis backend yet. -->
-		<button type="button" class="pptx-rb-pill" disabled>
-			{{ 'pptx.slideShow.rehearseCoach' | translate }}
-		</button>
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.ribbon.setUpShowTitle' | translate"
-			(click)="openSetUpSlideShow.emit()"
-		>
-			{{ 'pptx.slideShow.setUp' | translate }}
-		</button>
-		<!-- PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
+		<span class="contents" data-ribbon-group="slideShow.setUp">
+			<button
+				data-ribbon-control="slideShow.setUp.rehearseWithCoach"
+				type="button"
+				class="pptx-rb-pill"
+				disabled
+			>
+				{{ 'pptx.slideShow.rehearseCoach' | translate }}
+			</button>
+			<button
+				data-ribbon-control="slideShow.setUp.setUpSlideShow"
+				type="button"
+				class="pptx-rb-pill"
+				[title]="'pptx.ribbon.setUpShowTitle' | translate"
+				(click)="openSetUpSlideShow.emit()"
+			>
+				{{ 'pptx.slideShow.setUp' | translate }}
+			</button>
+			<!-- PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
 		     leaving it in the deck, the thumbnail rail and the sorter. -->
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[attr.aria-pressed]="activeSlideHidden()"
-			(click)="toggleHideSlide.emit()"
-		>
-			{{ 'pptx.slideShow.hideSlide' | translate }}
-		</button>
-		<button type="button" class="pptx-rb-pill" (click)="rehearseTimings.emit()">
-			{{ 'pptx.slideShow.rehearseTimings' | translate }}
-		</button>
-		<button type="button" class="pptx-rb-pill" (click)="record.emit()">
-			{{ 'pptx.titleBar.record' | translate }}
-		</button>
+			<button
+				data-ribbon-control="slideShow.setUp.hideSlide"
+				type="button"
+				class="pptx-rb-pill"
+				[attr.aria-pressed]="activeSlideHidden()"
+				(click)="toggleHideSlide.emit()"
+			>
+				{{ 'pptx.slideShow.hideSlide' | translate }}
+			</button>
+			<button
+				data-ribbon-control="slideShow.setUp.rehearseTimings"
+				type="button"
+				class="pptx-rb-pill"
+				(click)="rehearseTimings.emit()"
+			>
+				{{ 'pptx.slideShow.rehearseTimings' | translate }}
+			</button>
+			<button
+				data-ribbon-control="slideShow.setUp.record"
+				type="button"
+				class="pptx-rb-pill"
+				(click)="record.emit()"
+			>
+				{{ 'pptx.titleBar.record' | translate }}
+			</button>
+		</span>
 		<span class="pptx-rb-sep"></span>
 		<div class="flex flex-col justify-center gap-0.5">
 			@for (option of primaryOptions; track option.id) {
@@ -138,23 +171,26 @@ import { toolbarVisibility } from './toolbar-visibility';
 					{{ option.labelKey | translate }}
 				</label>
 			}
-			<label class="pptx-rb-toggle">
-				<input
-					type="checkbox"
-					class="h-3 w-3 accent-primary"
-					[checked]="showSubtitles()"
-					[title]="'pptx.slideShow.subtitlesTooltip' | translate"
-					(change)="toggleSubtitles.emit()"
-				/>
-				{{ 'pptx.slideShow.subtitles' | translate }}
-			</label>
-			<button
-				type="button"
-				class="pptx-rb-toggle hover:bg-accent"
-				(click)="openSubtitleSettings.emit()"
-			>
-				{{ 'pptx.slideShow.subtitleSettings' | translate }}
-			</button>
+			<span class="contents" data-ribbon-group="slideShow.captions">
+				<label data-ribbon-control="slideShow.captions.subtitles" class="pptx-rb-toggle">
+					<input
+						type="checkbox"
+						class="h-3 w-3 accent-primary"
+						[checked]="showSubtitles()"
+						[title]="'pptx.slideShow.subtitlesTooltip' | translate"
+						(change)="toggleSubtitles.emit()"
+					/>
+					{{ 'pptx.slideShow.subtitles' | translate }}
+				</label>
+				<button
+					data-ribbon-control="slideShow.captions.subtitleSettings"
+					type="button"
+					class="pptx-rb-toggle hover:bg-accent"
+					(click)="openSubtitleSettings.emit()"
+				>
+					{{ 'pptx.slideShow.subtitleSettings' | translate }}
+				</button>
+			</span>
 		</div>
 	`,
 })

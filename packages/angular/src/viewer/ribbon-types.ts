@@ -5,12 +5,13 @@
  * them has to import a type from a sibling that also imports it, mirroring
  * the Svelte binding's `ribbon/ribbon-types.ts`.
  */
-import type { ToolbarTabId } from '../internal/shared';
+import type { RibbonContextualTabId, ToolbarTabId } from '../internal/shared';
 
 /**
  * Ribbon tab identifiers. Includes 'text' and 'arrange' on top of the shared
  * {@link ToolbarTabId} catalogue: two extra content-only tabs that don't get
  * their own tab-bar button (no `TOOLBAR_TABS` entry) but are still reachable
- * as `@switch` cases.
+ * as `@switch` cases, plus the contextual tabs (Shape Format, ...) a
+ * selection brings up.
  */
-export type RibbonTab = ToolbarTabId | 'text' | 'arrange';
+export type RibbonTab = ToolbarTabId | 'text' | 'arrange' | RibbonContextualTabId;

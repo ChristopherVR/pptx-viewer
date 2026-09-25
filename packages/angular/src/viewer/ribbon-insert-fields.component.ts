@@ -64,7 +64,11 @@ function newFieldGuid(): string {
 	imports: [TranslatePipe, LucideChevronDown, AnchoredPopupDirective],
 	template: `
 		<!-- Action Buttons dropdown (hover-reveal, mirrors React/Vue) -->
-		<div class="group relative">
+		<div
+			class="group relative"
+			data-ribbon-group="insert.links"
+			data-ribbon-control="insert.links.action"
+		>
 			<button
 				#actionTrigger
 				type="button"
@@ -113,7 +117,11 @@ function newFieldGuid(): string {
 		</div>
 
 		<!-- Insert Field dropdown -->
-		<div class="group relative">
+		<div
+			class="group relative"
+			data-ribbon-group="insert.text"
+			data-ribbon-control="insert.text.field"
+		>
 			<button
 				#fieldTrigger
 				type="button"

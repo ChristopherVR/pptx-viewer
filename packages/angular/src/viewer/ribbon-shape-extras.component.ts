@@ -63,6 +63,7 @@ export function resolveRibbonCanGroup(
 				[title]="'pptx.contextMenu.group' | translate"
 				[attr.aria-label]="'pptx.contextMenu.group' | translate"
 				(click)="editor.groupSelected(slideIndex())"
+				data-ribbon-control="home.arrange.group"
 			>
 				<svg lucideGroup class="h-4 w-4"></svg>
 			</button>
@@ -73,6 +74,7 @@ export function resolveRibbonCanGroup(
 				[title]="'pptx.contextMenu.ungroup' | translate"
 				[attr.aria-label]="'pptx.contextMenu.ungroup' | translate"
 				(click)="editor.ungroupSelected(slideIndex())"
+				data-ribbon-control="home.arrange.ungroup"
 			>
 				<svg lucideUngroup class="h-4 w-4"></svg>
 			</button>
@@ -92,6 +94,7 @@ export function resolveRibbonCanGroup(
 			[attr.aria-label]="'pptx.ribbon.strokeWidth' | translate"
 			[value]="strokeWidth()"
 			(change)="onStrokeWidth($event)"
+			data-ribbon-control="home.arrange.outlineWidth"
 		/>
 	`,
 })

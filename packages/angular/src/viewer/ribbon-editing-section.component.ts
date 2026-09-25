@@ -35,6 +35,7 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 					type="button"
 					class="pptx-rb-gb"
 					[title]="'pptx.editing.find' | translate"
+					data-ribbon-control="home.editing.find"
 					(click)="toggleFindReplace.emit()"
 				>
 					{{ 'pptx.editing.find' | translate }}
@@ -43,12 +44,13 @@ import { AnchoredPopupDirective } from './anchored-popup.directive';
 					type="button"
 					class="pptx-rb-gl"
 					[title]="'pptx.ribbon.replace' | translate"
+					data-ribbon-control="home.editing.replace"
 					(click)="toggleFindReplace.emit()"
 				>
 					{{ 'pptx.ribbon.replace' | translate }}
 				</button>
 			</div>
-			<div class="group relative">
+			<div class="group relative" data-ribbon-control="home.editing.select">
 				<button
 					#selectTrigger
 					type="button"

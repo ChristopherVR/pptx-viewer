@@ -46,6 +46,7 @@ import { RibbonFreeformToolsComponent } from './ribbon-freeform-tools.component'
 import { RibbonHyperlinkButtonComponent } from './ribbon-hyperlink-button.component';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-picker';
+import { RibbonInsertGlyphComponent } from './ribbon-insert-glyph.component';
 
 @Component({
 	selector: 'pptx-ribbon-insert-section',
@@ -63,132 +64,152 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 		HeaderFooterRibbonButtonComponent,
 		RibbonHyperlinkButtonComponent,
 		RibbonFreeformToolsComponent,
+		RibbonInsertGlyphComponent,
 	],
 	template: `
 		<!-- Shapes group -->
 		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				(click)="insertText()"
-				[title]="'pptx.ribbon.textBox' | translate"
+			<span class="contents" data-ribbon-group="insert.text">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					data-ribbon-control="insert.text.textBox"
+					(click)="insertText()"
+					[title]="'pptx.ribbon.textBox' | translate"
+				>
+					{{ 'pptx.ribbon.textBox' | translate }}
+				</button>
+			</span>
+			<span
+				class="contents"
+				data-ribbon-group="insert.illustrations"
+				data-ribbon-control="insert.illustrations.shapes"
 			>
-				{{ 'pptx.ribbon.textBox' | translate }}
-			</button>
-			<select
-				class="pptx-rb-select rounded-none border-y-0 border-l-0"
-				[title]="'pptx.insert.shapeType' | translate"
-				[value]="newShapeType()"
-				(change)="setShapeType($event)"
+				<select
+					class="pptx-rb-select rounded-none border-y-0 border-l-0"
+					[title]="'pptx.insert.shapeType' | translate"
+					[value]="newShapeType()"
+					(change)="setShapeType($event)"
+				>
+					@for (sp of shapePresets; track sp.type) {
+						<option [value]="sp.type" [selected]="sp.type === newShapeType()">
+							{{ sp.i18nKey | translate }}
+						</option>
+					}
+				</select>
+				<button
+					type="button"
+					class="pptx-rb-gb gap-1.5"
+					(click)="insertShape()"
+					[title]="'pptx.insert.addShape' | translate"
+				>
+					<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.insert.shape' | translate }}
+				</button>
+				<pptx-ribbon-freeform-tools />
+			</span>
+			<span
+				class="contents"
+				data-ribbon-group="insert.images"
+				data-ribbon-control="insert.images.pictures"
 			>
-				@for (sp of shapePresets; track sp.type) {
-					<option [value]="sp.type" [selected]="sp.type === newShapeType()">
-						{{ sp.i18nKey | translate }}
-					</option>
-				}
-			</select>
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertShape()"
-				[title]="'pptx.insert.addShape' | translate"
+				<button
+					type="button"
+					class="pptx-rb-gb gap-1.5"
+					(click)="insertImage()"
+					[title]="'pptx.ribbon.insertImage' | translate"
+				>
+					<svg lucideImage class="h-4 w-4"></svg> {{ 'pptx.ribbon.image' | translate }}
+				</button>
+			</span>
+			<span
+				class="contents"
+				data-ribbon-group="insert.media"
+				data-ribbon-control="insert.media.media"
 			>
-				<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.insert.shape' | translate }}
-			</button>
-			<pptx-ribbon-freeform-tools />
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertImage()"
-				[title]="'pptx.ribbon.insertImage' | translate"
-			>
-				<svg lucideImage class="h-4 w-4"></svg> {{ 'pptx.ribbon.image' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl gap-1.5"
-				(click)="insertMedia()"
-				[title]="'pptx.ribbon.insertMedia' | translate"
-			>
-				<svg lucideVideo class="h-4 w-4"></svg> {{ 'pptx.ribbon.media' | translate }}
-			</button>
+				<button
+					type="button"
+					class="pptx-rb-gl gap-1.5"
+					(click)="insertMedia()"
+					[title]="'pptx.ribbon.insertMedia' | translate"
+				>
+					<svg lucideVideo class="h-4 w-4"></svg> {{ 'pptx.ribbon.media' | translate }}
+				</button>
+			</span>
 		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Data / diagram group -->
 		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertTable()"
-				[title]="'pptx.ribbon.insertTable' | translate"
+			<span
+				class="contents"
+				data-ribbon-group="insert.tables"
+				data-ribbon-control="insert.tables.table"
 			>
-				<svg lucideDatabase class="h-4 w-4"></svg> {{ 'pptx.ribbon.table' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="openSmartArtDialog.emit()"
-				[title]="'pptx.ribbon.insertSmartArt' | translate"
-			>
-				<svg lucideLayers class="h-4 w-4"></svg> {{ 'pptx.ribbon.smartArt' | translate }}
-			</button>
-			<select
-				class="pptx-rb-gl"
-				[title]="'pptx.ribbon.chartType' | translate"
-				[value]="newChartType()"
-				(change)="setChartType($event)"
-			>
-				@for (ct of chartTypes; track ct.id) {
-					<option [value]="ct.id" [selected]="ct.id === newChartType()">
-						{{ ct.labelKey | translate }}
-					</option>
-				}
-			</select>
-			<button
-				type="button"
-				class="pptx-rb-gb gap-1.5"
-				(click)="insertChart()"
-				[title]="'pptx.ribbon.insertChart' | translate"
-			>
-				<svg
-					class="h-4 w-4"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+				<button
+					type="button"
+					class="pptx-rb-gb gap-1.5"
+					(click)="insertTable()"
+					[title]="'pptx.ribbon.insertTable' | translate"
 				>
-					<path d="M3 3v18h18" />
-					<rect x="7" y="11" width="3" height="6" />
-					<rect x="12" y="7" width="3" height="10" />
-					<rect x="17" y="13" width="3" height="4" />
-				</svg>
-				{{ 'pptx.ribbon.chart' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl gap-1.5"
-				(click)="openEquationDialog.emit()"
-				[title]="'pptx.ribbon.insertEquation' | translate"
-			>
-				<svg
-					class="h-4 w-4"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
+					<svg lucideDatabase class="h-4 w-4"></svg> {{ 'pptx.ribbon.table' | translate }}
+				</button>
+			</span>
+			<span class="contents" data-ribbon-group="insert.illustrations">
+				<button
+					data-ribbon-control="insert.illustrations.smartArt"
+					type="button"
+					class="pptx-rb-gb gap-1.5"
+					(click)="openSmartArtDialog.emit()"
+					[title]="'pptx.ribbon.insertSmartArt' | translate"
 				>
-					<path d="M4 17h6M7 14v6M14 7l4.5 10M15.5 14h5" />
-				</svg>
-				{{ 'pptx.ribbon.equation' | translate }}
-			</button>
+					<svg lucideLayers class="h-4 w-4"></svg> {{ 'pptx.ribbon.smartArt' | translate }}
+				</button>
+				<span class="contents" data-ribbon-control="insert.illustrations.chart">
+					<select
+						class="pptx-rb-gl"
+						[title]="'pptx.ribbon.chartType' | translate"
+						[value]="newChartType()"
+						(change)="setChartType($event)"
+					>
+						@for (ct of chartTypes; track ct.id) {
+							<option [value]="ct.id" [selected]="ct.id === newChartType()">
+								{{ ct.labelKey | translate }}
+							</option>
+						}
+					</select>
+					<button
+						type="button"
+						class="pptx-rb-gb gap-1.5"
+						(click)="insertChart()"
+						[title]="'pptx.ribbon.insertChart' | translate"
+					>
+						<pptx-ribbon-insert-glyph name="chart" />
+						{{ 'pptx.ribbon.chart' | translate }}
+					</button>
+				</span>
+			</span>
+			<span
+				class="contents"
+				data-ribbon-group="insert.symbols"
+				data-ribbon-control="insert.symbols.equation"
+			>
+				<button
+					type="button"
+					class="pptx-rb-gl gap-1.5"
+					(click)="openEquationDialog.emit()"
+					[title]="'pptx.ribbon.insertEquation' | translate"
+				>
+					<pptx-ribbon-insert-glyph name="equation" />
+					{{ 'pptx.ribbon.equation' | translate }}
+				</button>
+			</span>
 		</div>
 		<span class="pptx-rb-sep"></span>
 		<!-- Links -->
-		<pptx-ribbon-hyperlink-button (openHyperlink)="openHyperlink.emit()" />
+		<pptx-ribbon-hyperlink-button
+			data-ribbon-group="insert.links"
+			data-ribbon-control="insert.links.link"
+			(openHyperlink)="openHyperlink.emit()"
+		/>
 		<span class="pptx-rb-sep"></span>
 		<!-- Action button + Field dropdowns -->
 		<pptx-ribbon-insert-fields [slideIndex]="slideIndex()" />

@@ -26,6 +26,7 @@ import {
 	selectionBulletKind,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { RibbonGalleryComponent } from './ribbon-gallery.component';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 
@@ -59,34 +60,53 @@ const COLUMN_OPTIONS = [1, 2, 3];
 		LucideTextAlignCenter,
 		LucideTextAlignEnd,
 		LucideTextAlignJustify,
+		RibbonGalleryComponent,
 	],
 	template: `
 		<!-- List style: bullets + numbering -->
 		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!canEdit() || !isText()"
-				[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
-				[attr.aria-pressed]="listKind() === 'bullet'"
-				[title]="'pptx.ribbon.bulletList' | translate"
-				(mousedown)="$event.preventDefault()"
-				(click)="toggleList('bullet')"
-			>
-				<svg lucideList class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!canEdit() || !isText()"
-				[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
-				[attr.aria-pressed]="listKind() === 'numbered'"
-				[title]="'pptx.notes.numberedList' | translate"
-				(mousedown)="$event.preventDefault()"
-				(click)="toggleList('numbered')"
-			>
-				<svg lucideListOrdered class="h-4 w-4"></svg>
-			</button>
+			<span class="contents" data-ribbon-control="home.paragraph.bullets">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!canEdit() || !isText()"
+					[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
+					[attr.aria-pressed]="listKind() === 'bullet'"
+					[title]="'pptx.ribbon.bulletList' | translate"
+					(mousedown)="$event.preventDefault()"
+					(click)="toggleList('bullet')"
+				>
+					<svg lucideList class="h-4 w-4"></svg>
+				</button>
+				<pptx-ribbon-gallery
+					gallery="bullets"
+					[chevronOnly]="true"
+					[element]="selectedElement()"
+					[slideIndex]="slideIndex()"
+					[canEdit]="canEdit() && isText()"
+				/>
+			</span>
+			<span class="contents" data-ribbon-control="home.paragraph.numbering">
+				<button
+					type="button"
+					class="pptx-rb-gb"
+					[disabled]="!canEdit() || !isText()"
+					[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
+					[attr.aria-pressed]="listKind() === 'numbered'"
+					[title]="'pptx.notes.numberedList' | translate"
+					(mousedown)="$event.preventDefault()"
+					(click)="toggleList('numbered')"
+				>
+					<svg lucideListOrdered class="h-4 w-4"></svg>
+				</button>
+				<pptx-ribbon-gallery
+					gallery="numbering"
+					[chevronOnly]="true"
+					[element]="selectedElement()"
+					[slideIndex]="slideIndex()"
+					[canEdit]="canEdit() && isText()"
+				/>
+			</span>
 		</div>
 		<!-- Indent: outdent + indent -->
 		<div class="pptx-rb-grp">
@@ -96,6 +116,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[disabled]="!isText()"
 				[title]="'pptx.notes.outdent' | translate"
 				(click)="changeIndent(-24)"
+				data-ribbon-control="home.paragraph.decreaseIndent"
 			>
 				<svg lucideListIndentDecrease class="h-4 w-4"></svg>
 			</button>
@@ -105,6 +126,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[disabled]="!isText()"
 				[title]="'pptx.notes.indent' | translate"
 				(click)="changeIndent(24)"
+				data-ribbon-control="home.paragraph.increaseIndent"
 			>
 				<svg lucideListIndentIncrease class="h-4 w-4"></svg>
 			</button>
@@ -118,6 +140,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="curStyle()?.align === 'left' ? 'bg-accent' : ''"
 				[title]="'pptx.ribbon.alignLeft' | translate"
 				(click)="setAlign('left')"
+				data-ribbon-control="home.paragraph.alignLeft"
 			>
 				<svg lucideTextAlignStart class="h-4 w-4"></svg>
 			</button>
@@ -128,6 +151,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="curStyle()?.align === 'center' ? 'bg-accent' : ''"
 				[title]="'pptx.ribbon.alignCenter' | translate"
 				(click)="setAlign('center')"
+				data-ribbon-control="home.paragraph.alignCenter"
 			>
 				<svg lucideTextAlignCenter class="h-4 w-4"></svg>
 			</button>
@@ -138,6 +162,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="curStyle()?.align === 'right' ? 'bg-accent' : ''"
 				[title]="'pptx.ribbon.alignRight' | translate"
 				(click)="setAlign('right')"
+				data-ribbon-control="home.paragraph.alignRight"
 			>
 				<svg lucideTextAlignEnd class="h-4 w-4"></svg>
 			</button>
@@ -148,6 +173,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 				[ngClass]="curStyle()?.align === 'justify' ? 'bg-accent' : ''"
 				[title]="'pptx.ribbon.justify' | translate"
 				(click)="setAlign('justify')"
+				data-ribbon-control="home.paragraph.justify"
 			>
 				<svg lucideTextAlignJustify class="h-4 w-4"></svg>
 			</button>
@@ -158,6 +184,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 			[attr.aria-label]="'pptx.paragraph.lineSpacing' | translate"
 			[disabled]="!isText()"
 			(change)="setLineSpacing($event)"
+			data-ribbon-control="home.paragraph.lineSpacing"
 		>
 			@for (ls of lineSpacingOptions; track ls) {
 				<option [value]="ls" [selected]="ls === curLineSpacing()">{{ ls }}</option>
@@ -169,6 +196,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 			[attr.aria-label]="'pptx.paragraph.textDirection' | translate"
 			[disabled]="!isText()"
 			(change)="setTextDirection($event)"
+			data-ribbon-control="home.paragraph.textDirection"
 		>
 			@for (dir of textDirectionOptions; track dir.value) {
 				<option [value]="dir.value" [selected]="dir.value === curTextDirection()">
@@ -182,6 +210,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 			[attr.aria-label]="'pptx.paragraph.columns' | translate"
 			[disabled]="!isText()"
 			(change)="setColumns($event)"
+			data-ribbon-control="home.paragraph.columns"
 		>
 			@for (c of columnOptions; track c) {
 				<option [value]="c" [selected]="c === curColumns()">{{ c }}</option>

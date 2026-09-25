@@ -55,6 +55,7 @@ import {
 	resolveAuthoredSlideRange,
 	resolveExpiredAutosaveSnapshots,
 	resolveThemeCatalogEntry,
+	ribbonCustomizationCss,
 	shouldShowAutosaveRecoveryPrompt,
 	setMasterViewBackgroundColor,
 	setMotionPath,
@@ -161,6 +162,10 @@ import { RecentColorsService } from './recent-colors.service';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { Rendering3DService } from './rendering-3d.service';
+import {
+	nextRibbonScope,
+	RibbonCustomizationStyleDirective,
+} from './ribbon-customization-style.directive';
 import { performResetSlide } from './ribbon-home-section.component';
 import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
 import { layoutOptionsFrom } from './ribbon-layout-options';
@@ -277,6 +282,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		NotesPanelComponent,
 		QuickAccessStripComponent,
 		RibbonComponent,
+		RibbonCustomizationStyleDirective,
 		TitleBarComponent,
 		ThemeGalleryComponent,
 		SelectionPaneComponent,
@@ -297,7 +303,10 @@ import { ZoomTargetService } from './zoom-target.service';
 			[ngClass]="rootClasses()"
 			[ngStyle]="rootStyle()"
 			[attr.aria-busy]="loader.loading()"
+			[attr.data-pptx-ribbon-scope]="ribbonScope"
 		>
+			<!-- Host ribbon customisation: hides the groups/controls named in customization.ribbon. -->
+			<span hidden [pptxRibbonCustomizationStyle]="ribbonCustomizationCss()"></span>
 			@if (loader.loading()) {
 				<div class="pptx-ng-state pptx-ng-loading" role="status" aria-live="polite">
 					<div class="pptx-ng-spinner" aria-hidden="true"></div>
@@ -1692,6 +1701,13 @@ export class PowerPointViewerComponent
 	 * tab off in Customize Ribbon changes what the pane displays without
 	 * changing what actually renders.
 	 */
+	/** Per-instance token scoping {@link ribbonCustomizationCss} to this viewer's ribbon. */
+	protected readonly ribbonScope = nextRibbonScope();
+	/** Shared stylesheet hiding the host's `ribbon.hiddenGroups` / `hiddenButtons` ids. */
+	protected readonly ribbonCustomizationCss = computed(() =>
+		ribbonCustomizationCss(this.customizationService.resolved(), this.ribbonScope),
+	);
+
 	protected readonly effectiveHiddenActions = computed<ToolbarActionId[]>(() =>
 		this.customizationService.effectiveHiddenActions(
 			mergeHiddenActions(this.hiddenActions(), this.viewerOpts.options().ribbon.hiddenTabIds),

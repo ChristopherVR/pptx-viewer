@@ -12,8 +12,13 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, output } f
 import { LucideChevronDown, LucideChevronUp, LucideShare2 } from '@lucide/angular';
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import { filterVisibleTabs, TAB_ROW_ACTION_CLASSES, TOOLBAR_TABS } from '../internal/shared';
-import type { ToolbarActionId, ToolbarTabId } from '../internal/shared';
+import {
+	contextualTabLabelKey,
+	filterVisibleTabs,
+	TAB_ROW_ACTION_CLASSES,
+	TOOLBAR_TABS,
+} from '../internal/shared';
+import type { RibbonContextualTabId, ToolbarActionId } from '../internal/shared';
 import type { RibbonTab } from './ribbon-types';
 import { toolbarVisibility } from './toolbar-visibility';
 import { ViewerOptionsService } from './viewer-options.service';
@@ -48,6 +53,25 @@ import { ViewerOptionsService } from './viewer-options.service';
 						"
 					>
 						{{ t.labelKey | translate }}
+					</button>
+				}
+				<!-- Contextual tabs (Shape Format, ...): shown for the selection, never auto-selected. -->
+				@for (id of contextualTabs(); track id) {
+					<button
+						type="button"
+						role="tab"
+						[attr.data-ribbon-contextual-tab]="id"
+						[attr.aria-selected]="activeTab() === id"
+						[title]="tabTip(contextualLabelKey(id))"
+						(click)="selectTab.emit(id)"
+						class="relative whitespace-nowrap px-3.5 py-2 text-[12px] font-medium text-primary transition-colors"
+						[ngClass]="
+							activeTab() === id
+								? 'after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
+								: 'hover:bg-primary/10'
+						"
+					>
+						{{ contextualLabelKey(id) | translate }}
 					</button>
 				}
 			</div>
@@ -129,14 +153,17 @@ export class RibbonTabListComponent {
 	readonly ribbonExpanded = input<boolean>(true);
 	/** Toolbar tabs/buttons the host wants hidden (filters the tab strip; gates Record/Share). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	/** Contextual tabs the selection brings up, appended after the fixed tabs. */
+	readonly contextualTabs = input<readonly RibbonContextualTabId[]>([]);
 
-	readonly selectTab = output<ToolbarTabId>();
+	readonly selectTab = output<RibbonTab>();
 	readonly record = output<void>();
 	readonly share = output<void>();
 	readonly toggleRibbonExpanded = output<void>();
 
 	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 	protected readonly tra = TAB_ROW_ACTION_CLASSES;
+	protected readonly contextualLabelKey = contextualTabLabelKey;
 	protected readonly visibleTabs = computed(() =>
 		filterVisibleTabs(TOOLBAR_TABS, this.hiddenActions()),
 	);
