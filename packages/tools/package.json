@@ -1,7 +1,7 @@
 {
 	"name": "pptx-viewer-mcp",
 	"version": "2.5.5",
-	"description": "PowerPoint PPTX tools and MCP server: manipulate, convert, and collaborate on .pptx files from AI agents.",
+	"description": "pptx-viewer MCP server and tools: manipulate, convert, and collaborate on PowerPoint .pptx files from AI agents.",
 	"keywords": [
 		"ai",
 		"collaboration",
@@ -12,6 +12,7 @@
 		"powerpoint",
 		"ppt",
 		"pptx",
+		"pptx-viewer",
 		"presentation",
 		"tools"
 	],
