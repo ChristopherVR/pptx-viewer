@@ -8,6 +8,7 @@ import { bookmarkOptionValue, motionPathPresetById } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
+import type { ViewerState } from '../state';
 import { createAnimationActions } from './editor-animation-actions';
 import { createEditorOps } from './editor-operations';
 
@@ -340,7 +341,7 @@ describe('createAnimationActions', () => {
 	});
 
 	it('points an effect at a media bookmark from a picker option value', () => {
-		const store = createStore({
+		const store = createStore<ViewerState>({
 			...createInitialViewerState(),
 			slides: [
 				{
