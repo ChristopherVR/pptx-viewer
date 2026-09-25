@@ -22,8 +22,10 @@ import type {
 } from 'pptx-viewer-core';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
 import { computed, useTemplateRef } from 'vue';
+import { inject, useTemplateRef } from 'vue';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
+import { MergeCropKey } from '../composables/merge-crop-context';
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
 import type { UseElementDragResult } from '../composables/useElementDrag';
 import type { UseInkDrawingResult } from '../composables/useInkDrawing';
@@ -45,6 +47,7 @@ import InlineTextEditor from './InlineTextEditor.vue';
 import MarqueeOverlay from './MarqueeOverlay.vue';
 import MotionPathOverlay from './MotionPathOverlay.vue';
 import OutlineAuthoringLayer from './OutlineAuthoringLayer.vue';
+import PictureCropOverlay from './PictureCropOverlay.vue';
 import RemoteSelectionOverlay from './RemoteSelectionOverlay.vue';
 import type { DrawingTool } from './ribbon/ribbon-types';
 import SelectionOverlay from './SelectionOverlay.vue';
@@ -100,6 +103,8 @@ const selectionElements = computed(() => {
 		? props.selectedElements.filter((el) => el.id !== editing)
 		: props.selectedElements;
 });
+/** Picture crop mode: replaces the selection chrome with the crop overlay. */
+const crop = inject(MergeCropKey, undefined);
 const selectionOverlay = useTemplateRef('selectionOverlay');
 const drawingOverlay = useTemplateRef('drawingOverlay');
 const connectorOverlay = useTemplateRef('connectorOverlay');
@@ -199,6 +204,8 @@ defineExpose({
 		ref="selectionOverlay"
 		v-if="canEdit && !presenting"
 		:elements="selectionElements"
+		v-if="canEdit && !presenting && !crop?.cropElement.value"
+		:elements="selectedElements"
 		:selected-ids="selectedElementIds"
 		:zoom="effectiveZoom"
 		:inline-editing="Boolean(inlineEdit.inlineEditingElement.value)"
@@ -209,6 +216,14 @@ defineExpose({
 		@adjust="drag.onAdjust"
 		@adjust-end="drag.onAdjustEnd"
 		@request-edit="(p) => onRequestEdit(p.id)"
+	/>
+
+	<PictureCropOverlay
+		v-if="canEdit && !presenting && crop?.cropElement.value"
+		:element="crop.cropElement.value"
+		:image-src="crop.cropImageSrc.value"
+		:zoom="effectiveZoom"
+		:apply-live="crop.applyLive"
 	/>
 
 	<!-- PowerPoint's floating "Chart Elements"/"Chart Styles"/"Chart Filters"

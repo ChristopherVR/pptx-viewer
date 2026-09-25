@@ -179,6 +179,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:format-painter-active="props.formatPainterActive"
 						:on-toggle-format-painter="props.onToggleFormatPainter"
 						:can-activate-format-painter="props.canActivateFormatPainter"
+						:hidden-actions="props.hiddenActions"
 					/>
 				</div>
 

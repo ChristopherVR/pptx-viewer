@@ -221,6 +221,7 @@ const { visibleTabs } = useToolbarVisibility(
 				:format-painter-active="props.formatPainterActive"
 				:on-toggle-format-painter="props.onToggleFormatPainter"
 				:can-activate-format-painter="props.canActivateFormatPainter"
+				:hidden-actions="props.hiddenActions"
 			/>
 
 			<DesignSection

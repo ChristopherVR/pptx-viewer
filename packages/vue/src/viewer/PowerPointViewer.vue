@@ -97,6 +97,7 @@ import { useChartCanvasEditContext } from './composables/chart-part-selection';
 import { useCustomizedRibbonProps } from './composables/customization-ribbon-gates';
 import { readDeckData } from './composables/deck-data';
 import { FieldContextKey } from './composables/field-context';
+import { MergeCropKey } from './composables/merge-crop-context';
 import { RecentColorsKey } from './composables/recent-colors-context';
 import { Rendering3DFlagsKey } from './composables/rendering-3d-flags';
 import { TableThemeKey } from './composables/table-theme';
@@ -143,11 +144,13 @@ import { useLoadContent } from './composables/useLoadContent';
 import { useMarqueeSelection } from './composables/useMarqueeSelection';
 import { useMasterViewCrud } from './composables/useMasterViewCrud';
 import { useMasterViewWiring } from './composables/useMasterViewWiring';
+import { useMergeShapes } from './composables/useMergeShapes';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
 import { provideOutlineAuthoring } from './composables/useOutlineAuthoring';
 import { usePasswordProtection } from './composables/usePasswordProtection';
 import { usePasteSpecial } from './composables/usePasteSpecial';
+import { usePictureCrop } from './composables/usePictureCrop';
 import { usePresentationControls } from './composables/usePresentationControls';
 import { usePrint } from './composables/usePrint';
 import { useReadOnlyRecommendation } from './composables/useReadOnlyRecommendation';
@@ -817,6 +820,20 @@ const {
 	pushHistory: history.pushHistory,
 });
 
+// -- Merge Shapes + on-canvas picture crop (ribbon, context menu, overlay) --
+const mergeCropInput = {
+	canEdit: () => canEditEffective.value && !presentation.presenting.value,
+	slides,
+	activeSlideIndex,
+	selectedElementIds,
+	pushHistory: () => history.pushHistory(),
+};
+const mergeCrop = {
+	...useMergeShapes(mergeCropInput),
+	...usePictureCrop({ ...mergeCropInput, mediaDataUrls }),
+};
+provide(MergeCropKey, mergeCrop);
+
 // -- Office-style ribbon UI state (hoisted above the context menu) -----
 // Owns no dependency on anything below; hoisted here (out of its original
 // position just before the ribbon-wiring block) so `activeTool` exists in
@@ -918,6 +935,7 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	aiEnabled: () => aiEnabled.value,
 	customization: () => customization.resolved.value,
 	onEditPoints: outlineAuthoring.startEditPoints,
+	mergeCrop,
 	onAskAi: () => {
 		aiPanel.askAboutSelection();
 		aiPanelOpen.value = true;
