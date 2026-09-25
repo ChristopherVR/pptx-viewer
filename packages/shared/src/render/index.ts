@@ -731,6 +731,7 @@ export * from './morph-plan';
 export * from './text-advanced';
 export * from './text-theme';
 export * from './kinsoku-styles';
+export * from './text-east-asian-breaks';
 export * from './tab-leader';
 // Measured tab-stop layout (per-stop alignment + leader glyphs), folded into
 // `ParagraphRun.tabLines` by `paragraph-run-build`. Extracted from React's

@@ -82,12 +82,12 @@ export function renderTextSegments(
 		return element.text || emptyFallback || '';
 	}
 
-	const paragraphs = buildParagraphs(
-		element,
-		fieldContext,
-		segmentOverrides,
-		inlineListSeed ? { preserveTrailingEmpty: true } : undefined,
-	);
+	// East Asian break pieces are rebuilt inside each segment's span
+	// (`text-metric-pieces.tsx`), so shared leaves them out of the runs.
+	const paragraphs = buildParagraphs(element, fieldContext, segmentOverrides, {
+		preserveTrailingEmpty: inlineListSeed ? true : undefined,
+		eastAsianRunPieces: false,
+	});
 	const ctx: Omit<RunRenderContext, 'paragraphRtl'> = {
 		element,
 		fallbackColor,
@@ -144,7 +144,11 @@ function renderParagraph(
 	inlineListSeed?: InlineListSeed,
 ): React.ReactNode {
 	const element = ctx.element;
-	const runCtx: RunRenderContext = { ...ctx, paragraphRtl: para.rtl };
+	const runCtx: RunRenderContext = {
+		...ctx,
+		paragraphRtl: para.rtl,
+		eastAsianBreaks: para.eastAsianBreaks,
+	};
 	const runs = joinRunsBySegment(para.runs);
 	const listParagraph = inlineListSeed?.paragraphs[paraIndex];
 	const renderedRuns = listParagraph

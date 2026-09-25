@@ -1,6 +1,7 @@
 import { getSubstituteFontFamily, parsePanoseString } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment, TextStyle } from 'pptx-viewer-core';
 import {
+	authoredLetterSpacingPx,
 	hollowTextFillStyle,
 	nestedTextDecorationStyle,
 	pieceLetterSpacing,
@@ -12,7 +13,7 @@ import {
 	splitsUnderlineIntoWords,
 	stripUnderlineDecoration,
 } from 'pptx-viewer-shared';
-import type { ParagraphRun, RunStyle } from 'pptx-viewer-shared';
+import type { EastAsianBreakOptions, ParagraphRun, RunStyle } from 'pptx-viewer-shared';
 import React from 'react';
 
 import { DEFAULT_TEXT_FONT_SIZE, DEFAULT_FONT_FAMILY, HYPERLINK_COLOR } from '../constants';
@@ -44,6 +45,8 @@ export interface RunRenderContext {
 	paragraphRtl?: boolean;
 	/** When true, hyperlinks require Ctrl+Click (editing mode). */
 	requireCtrlClick?: boolean;
+	/** The paragraph's hanging-punctuation / kinsoku-off pieces (shared). */
+	eastAsianBreaks?: EastAsianBreakOptions;
 }
 
 /**
@@ -191,10 +194,7 @@ export function renderParagraphRun(
 	// split and the per-piece tracking come from shared `splitRunForMetrics`; the
 	// value below is the run-level fallback and `metricContext` gives each word
 	// its own, which is what makes a LINE exact rather than just the whole run.
-	const authoredLetterSpacing =
-		typeof segmentStyle.characterSpacing === 'number' && segmentStyle.characterSpacing !== 0
-			? (segmentStyle.characterSpacing / 100) * (96 / 72)
-			: 0;
+	const authoredLetterSpacing = authoredLetterSpacingPx(segmentStyle);
 	const metricFont = {
 		fontFamily: baseFontFamily,
 		fontSizePx: baseFontSize * baselineFontScale,
@@ -207,7 +207,12 @@ export function renderParagraphRun(
 	// the element that directly parents the text - the one a reader's browser and
 	// our parity harness both read - declared `text-decoration-line: none`.
 	const nestedStyle = nestedTextDecorationStyle(run.style) as React.CSSProperties | undefined;
-	const metricContext = { font: metricFont, authoredPx: authoredLetterSpacing, nestedStyle };
+	const metricContext = {
+		font: metricFont,
+		authoredPx: authoredLetterSpacing,
+		nestedStyle,
+		eastAsian: ctx.eastAsianBreaks,
+	};
 
 	// Shared owns the run's paint: decorations, caps, highlight, outline stroke,
 	// gradient/pattern fill, shadow, filter chain, opacity, reflection and the

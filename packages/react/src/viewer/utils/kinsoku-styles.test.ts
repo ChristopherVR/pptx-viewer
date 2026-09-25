@@ -17,22 +17,22 @@ describe('getKinsokuLineBreakStyles', () => {
 
 	// ── eaLineBreak ──────────────────────────────────────────────────────
 
-	it('sets lineBreak=normal and keeps Latin words whole when eaLineBreak is true', () => {
+	it('sets lineBreak=strict and keeps Latin words whole when eaLineBreak is true', () => {
 		const style: TextStyle = { eaLineBreak: true };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('normal');
+		expect(result.lineBreak).toBe('strict');
 		expect(result.wordBreak).toBe('normal');
 		expect(result.overflowWrap).toBe('break-word');
 	});
 
-	it('sets lineBreak=strict when eaLineBreak is false', () => {
+	it('leaves kinsoku-off to the run text when eaLineBreak is false (no strict mode)', () => {
 		const style: TextStyle = { eaLineBreak: false };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('strict');
+		expect(result.lineBreak).toBeUndefined();
 		expect(result.overflowWrap).toBe('break-word');
 	});
 
-	it('does not set wordBreak when eaLineBreak is false (strict mode)', () => {
+	it('does not set wordBreak when eaLineBreak is false', () => {
 		const style: TextStyle = { eaLineBreak: false };
 		const result = getKinsokuLineBreakStyles(style);
 		expect(result.wordBreak).toBeUndefined();
@@ -40,16 +40,16 @@ describe('getKinsokuLineBreakStyles', () => {
 
 	// ── hangingPunctuation ───────────────────────────────────────────────
 
-	it('sets hangingPunctuation=last when hangingPunctuation is true', () => {
+	it('emits no CSS hanging-punctuation when hangingPunctuation is true (run pieces do it)', () => {
 		const style: TextStyle = { hangingPunctuation: true };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.hangingPunctuation).toBe('last');
+		expect(result.hangingPunctuation).toBeUndefined();
 	});
 
-	it('sets hangingPunctuation=none when hangingPunctuation is false', () => {
+	it('emits no CSS hanging-punctuation when hangingPunctuation is false', () => {
 		const style: TextStyle = { hangingPunctuation: false };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.hangingPunctuation).toBe('none');
+		expect(result.hangingPunctuation).toBeUndefined();
 	});
 
 	it('does not set hangingPunctuation when flag is undefined', () => {
@@ -78,24 +78,24 @@ describe('getKinsokuLineBreakStyles', () => {
 	it('combines eaLineBreak=true with hangingPunctuation=true', () => {
 		const style: TextStyle = { eaLineBreak: true, hangingPunctuation: true };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('normal');
+		expect(result.lineBreak).toBe('strict');
 		expect(result.wordBreak).toBe('normal');
 		expect(result.overflowWrap).toBe('break-word');
-		expect(result.hangingPunctuation).toBe('last');
+		expect(result.hangingPunctuation).toBeUndefined();
 	});
 
 	it('combines eaLineBreak=false with hangingPunctuation=false', () => {
 		const style: TextStyle = { eaLineBreak: false, hangingPunctuation: false };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('strict');
+		expect(result.lineBreak).toBeUndefined();
 		expect(result.overflowWrap).toBe('break-word');
-		expect(result.hangingPunctuation).toBe('none');
+		expect(result.hangingPunctuation).toBeUndefined();
 	});
 
 	it('combines eaLineBreak=true with latinLineBreak=true', () => {
 		const style: TextStyle = { eaLineBreak: true, latinLineBreak: true };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('normal');
+		expect(result.lineBreak).toBe('strict');
 		// only latinLineBreak=true licenses mid-word breaks; eaLineBreak alone never does
 		expect(result.wordBreak).toBe('break-all');
 		expect(result.overflowWrap).toBe('break-word');
@@ -108,19 +108,18 @@ describe('getKinsokuLineBreakStyles', () => {
 			latinLineBreak: true,
 		};
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('normal');
+		expect(result.lineBreak).toBe('strict');
 		expect(result.wordBreak).toBe('break-all');
 		expect(result.overflowWrap).toBe('break-word');
-		expect(result.hangingPunctuation).toBe('last');
+		expect(result.hangingPunctuation).toBeUndefined();
 	});
 
-	it('combines eaLineBreak=false with hangingPunctuation=true (strict with hanging)', () => {
+	it('combines eaLineBreak=false with hangingPunctuation=true', () => {
 		const style: TextStyle = { eaLineBreak: false, hangingPunctuation: true };
 		const result = getKinsokuLineBreakStyles(style);
-		expect(result.lineBreak).toBe('strict');
+		expect(result.lineBreak).toBeUndefined();
 		expect(result.overflowWrap).toBe('break-word');
-		expect(result.hangingPunctuation).toBe('last');
-		// wordBreak should not be set (strict kinsoku does not force break-all)
+		expect(result.hangingPunctuation).toBeUndefined();
 		expect(result.wordBreak).toBeUndefined();
 	});
 
@@ -129,9 +128,8 @@ describe('getKinsokuLineBreakStyles', () => {
 	it('latinLineBreak=true sets wordBreak even when eaLineBreak is false', () => {
 		const style: TextStyle = { eaLineBreak: false, latinLineBreak: true };
 		const result = getKinsokuLineBreakStyles(style);
-		// eaLineBreak=false sets lineBreak=strict (no wordBreak),
-		// but latinLineBreak=true then sets wordBreak=break-all
-		expect(result.lineBreak).toBe('strict');
+		// latinLineBreak=true alone licenses wordBreak=break-all
+		expect(result.lineBreak).toBeUndefined();
 		expect(result.wordBreak).toBe('break-all');
 		expect(result.overflowWrap).toBe('break-word');
 	});

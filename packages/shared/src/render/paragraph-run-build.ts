@@ -19,6 +19,8 @@ import {
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { ReflectionWrapperStyle } from './reflection';
 import { splitWordsForUnderline, splitsUnderlineIntoWords } from './text-decoration';
+import { splitEastAsianRunPieces } from './text-east-asian-breaks';
+import type { EastAsianBreakOptions } from './text-east-asian-breaks';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { applyFontAlignmentFallback } from './text-font-alignment';
@@ -80,6 +82,8 @@ export interface BuiltRun {
 	 * place of `text`, exactly as it renders `scriptRuns`.
 	 */
 	underlineWordPieces?: ScriptFontPiece[];
+	/** The advance-carrying space after a hanging `、`/`。` (`text-east-asian-breaks`). */
+	hangingSpace?: true;
 }
 
 /** Everything the run builder needs besides the paragraph's own segments. */
@@ -109,6 +113,8 @@ export interface ParagraphRunBuildInput {
 	fieldContext: FieldSubstitutionContext | undefined;
 	/** Whether the paragraph is right-to-left (tab stops measure from the right). */
 	rtl?: boolean;
+	/** `@hangingPunct` / `@eaLnBrk="0"` pieces (see `text-east-asian-breaks`). */
+	eastAsianBreaks?: EastAsianBreakOptions;
 }
 
 /**
@@ -128,6 +134,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		fontAlignment,
 		fieldContext,
 		rtl,
+		eastAsianBreaks,
 	} = input;
 	const runs: BuiltRun[] = [];
 	for (const [at, seg] of paraSegments.entries()) {
@@ -313,12 +320,10 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// Vue/Svelte/Vanilla with no binding change: they already render one span
 		// per run.
 		let charStart = 0;
-		for (const piece of splitStyledRun(
-			text,
-			style,
+		for (const { sourceLength, ...piece } of splitEastAsianRunPieces(
+			splitStyledRun(text, style, runFont, authoredLetterSpacingPx(seg.style), underlineWords),
+			eastAsianBreaks,
 			runFont,
-			authoredLetterSpacingPx(seg.style),
-			underlineWords,
 		)) {
 			const run: BuiltRun = { ...piece, segmentIndex, charStart };
 			if (hyperlink) {
@@ -330,7 +335,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 				run.scriptRuns = scriptRuns;
 			}
 			runs.push(run);
-			charStart += piece.text.length;
+			charStart += sourceLength;
 		}
 	}
 	// Adjacent runs authored with the identical gradient/pattern text fill

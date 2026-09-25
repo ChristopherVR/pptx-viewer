@@ -18,14 +18,15 @@ describe('getKinsokuLineBreakStyles', () => {
 
 	it('eaLineBreak=true keeps Latin words whole (word-break normal, never break-all)', () => {
 		const result = getKinsokuLineBreakStyles({ eaLineBreak: true });
-		expect(result.lineBreak).toBe('normal');
+		expect(result.lineBreak).toBe('strict');
 		expect(result.wordBreak).toBe('normal');
 		expect(result.overflowWrap).toBe('break-word');
 	});
 
-	it('eaLineBreak=false is strict kinsoku without forcing word-break', () => {
+	it('eaLineBreak=false leaves kinsoku-off to the run text (no strict mode)', () => {
+		// PowerPoint drops kinsoku with eaLnBrk="0" (COM); `strict` did the opposite.
 		const result = getKinsokuLineBreakStyles({ eaLineBreak: false });
-		expect(result.lineBreak).toBe('strict');
+		expect(result.lineBreak).toBeUndefined();
 		expect(result.wordBreak).toBeUndefined();
 		expect(result.overflowWrap).toBe('break-word');
 	});
@@ -41,11 +42,12 @@ describe('getKinsokuLineBreakStyles', () => {
 		expect(getKinsokuLineBreakStyles({ latinLineBreak: false }).wordBreak).toBeUndefined();
 	});
 
-	it('maps hangingPunctuation to hanging-punctuation', () => {
-		expect(getKinsokuLineBreakStyles({ hangingPunctuation: true }).hangingPunctuation).toBe('last');
-		expect(getKinsokuLineBreakStyles({ hangingPunctuation: false }).hangingPunctuation).toBe(
-			'none',
-		);
-		expect(getKinsokuLineBreakStyles({ eaLineBreak: true }).hangingPunctuation).toBeUndefined();
+	it('emits no CSS hanging-punctuation (it is built as run pieces instead)', () => {
+		expect(
+			getKinsokuLineBreakStyles({ hangingPunctuation: true }).hangingPunctuation,
+		).toBeUndefined();
+		expect(
+			getKinsokuLineBreakStyles({ hangingPunctuation: false }).hangingPunctuation,
+		).toBeUndefined();
 	});
 });

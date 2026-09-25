@@ -2,7 +2,9 @@
  * Compute CSS properties for East Asian (kinsoku) line-breaking rules.
  *
  * These properties enforce CJK typographic rules based on OOXML paragraph
- * properties: `eaLineBreak`, `hangingPunctuation`, and `latinLineBreak`.
+ * properties `eaLineBreak` and `latinLineBreak`. (`hangingPunctuation`, and
+ * the kinsoku-off half of `eaLineBreak`, are run-text pieces built by
+ * `text-east-asian-breaks`, not CSS.)
  * Returns a plain CSS style map (binding-agnostic); each binding maps the
  * keys onto its own style binding.
  */
@@ -25,29 +27,27 @@ export function getKinsokuLineBreakStyles(textStyle: TextStyle | undefined): Kin
 
 	const result: KinsokuStyle = {};
 
-	// East Asian line break (ECMA-376 21.1.2.2.7 `eaLnBrk`): when true, an East
-	// Asian word may be broken between characters, which is exactly what the
-	// browser's default `word-break: normal` already does for CJK runs. It says
-	// NOTHING about Latin words: `eaLnBrk="1"` is the default in every
-	// PowerPoint master, so mapping it to `break-all` (as this once did) split
-	// every Latin paragraph mid-word ("electro / nic"). Only `latinLnBrk`
-	// licenses mid-word breaks in Latin text (below). When false, use strict
-	// mode to prevent breaks at kinsoku characters.
+	// East Asian line break (`eaLnBrk`). With it on (the default in every
+	// PowerPoint master) PowerPoint applies its kinsoku rules, and those are
+	// CSS `strict` (COM: neither a small kana nor the prolonged-sound mark `ー`
+	// may start a line; `normal` lets both through). It says
+	// NOTHING about Latin words: mapping it to `break-all` (as this once did)
+	// split every Latin paragraph mid-word ("electro / nic"). Only `latinLnBrk`
+	// licenses mid-word breaks in Latin text (below).
+	//
+	// With it off, PowerPoint drops kinsoku entirely (COM: a line may start
+	// with `」`, `。` or a small kana). No CSS value does that without also
+	// splitting Latin words, so the break opportunities are inserted into the
+	// run text instead (`text-east-asian-breaks`); this map only keeps an
+	// over-long word from overflowing. `a:pPr/@hangingPunct` is realised there
+	// too: CSS `hanging-punctuation` is Safari-only, and its `last` value hangs
+	// closing brackets, which PowerPoint never does.
 	if (textStyle.eaLineBreak === true) {
-		result.lineBreak = 'normal';
+		result.lineBreak = 'strict';
 		result.wordBreak = 'normal';
 		result.overflowWrap = 'break-word';
 	} else if (textStyle.eaLineBreak === false) {
-		result.lineBreak = 'strict';
 		result.overflowWrap = 'break-word';
-	}
-
-	// Hanging punctuation: when enabled, CJK punctuation at the end of a line is
-	// allowed to "hang" past the text box edge rather than forcing a line break.
-	if (textStyle.hangingPunctuation === true) {
-		result.hangingPunctuation = 'last';
-	} else if (textStyle.hangingPunctuation === false) {
-		result.hangingPunctuation = 'none';
 	}
 
 	// Latin line break: when true, allow breaking within Latin words (useful for
