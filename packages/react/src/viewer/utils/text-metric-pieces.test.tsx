@@ -56,3 +56,41 @@ describe('react East Asian break pieces', () => {
 		expect(html.replaceAll(/<[^>]+>/gu, '')).toBe('あいう。えお');
 	});
 });
+
+/** Two differently formatted runs of one paragraph (the second one red). */
+function twoRuns(
+	first: string,
+	second: string,
+	paragraph: TextSegment['paragraphProperties'],
+): string {
+	const element = {
+		id: 'ppt/slides/slide1.xml-shape-4',
+		type: 'text',
+		x: 0,
+		y: 0,
+		width: 200,
+		height: 100,
+		textStyle: { fontSize: 20 } satisfies TextStyle,
+		textSegments: [
+			{ text: first, style: { fontSize: 20 }, paragraphProperties: paragraph },
+			{ text: second, style: { fontSize: 20, color: '#C00000' } },
+		],
+	} as unknown as PptxElement;
+	const html = renderToStaticMarkup(<>{renderTextSegments(element, '#000000')}</>);
+	return html.replaceAll(/<[^>]+>/gu, '');
+}
+
+describe('react East Asian breaks across runs (COM: PowerPoint ignores the boundary)', () => {
+	it('lets a closing bracket that opens the next run start a line with eaLnBrk="0"', () => {
+		expect(twoRuns('まみ', '」や', { eaLineBreak: false })).toBe('ま​み​」​や');
+	});
+
+	it('does not hang a run-final 。 when the next run opens with a closing bracket', () => {
+		const text = twoRuns('べ。', '」ぼ', { hangingPunctuation: true });
+		expect(text).toBe('べ。」ぼ');
+	});
+
+	it('still hangs a run-final 。 before ordinary text', () => {
+		expect(twoRuns('べ。', 'ざ', { hangingPunctuation: true })).toBe('べ⁠。 ざ');
+	});
+});

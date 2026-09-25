@@ -1,5 +1,9 @@
 import type { RunStyle } from 'pptx-viewer-shared';
-import { splitWordsForUnderline, stripUnderlineDecoration } from 'pptx-viewer-shared';
+import {
+	followingText,
+	splitWordsForUnderline,
+	stripUnderlineDecoration,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 import type { MetricTextContext, ScriptFonts } from './text-segment-helpers';
@@ -53,12 +57,17 @@ export function renderUnderlineWords(
 		: undefined;
 	return pieces.map((piece, i) => {
 		const key = `${keyPrefix}-u${i}`;
+		const following = followingText(pieces, i, metric?.following);
 		if (!piece.underline) {
-			return <React.Fragment key={key}>{inner(piece.text, key, gapMetric)}</React.Fragment>;
+			return (
+				<React.Fragment key={key}>
+					{inner(piece.text, key, gapMetric && { ...gapMetric, following })}
+				</React.Fragment>
+			);
 		}
 		return (
 			<span key={key} style={wordDecoration}>
-				{inner(piece.text, key, metric)}
+				{inner(piece.text, key, metric && { ...metric, following })}
 			</span>
 		);
 	});
@@ -78,13 +87,14 @@ export function makeSegmentPieceRenderer(
 	isUnderlineWords: boolean,
 	wordDecoration: React.CSSProperties | undefined,
 	metric: MetricTextContext | undefined,
-): (text: string, key: string) => React.ReactNode {
-	return (text: string, key: string) =>
+): (text: string, key: string, following?: string) => React.ReactNode {
+	// `following`: what comes right after this leaf (see `MetricTextContext`).
+	return (text: string, key: string, following?: string) =>
 		renderUnderlineWords(
 			text,
 			isUnderlineWords,
 			wordDecoration,
-			metric,
+			metric && { ...metric, following },
 			key,
 			(subText, subKey, subMetric) =>
 				renderMetricPieces(subText, subMetric, subKey, (pieceText, pieceKey) =>

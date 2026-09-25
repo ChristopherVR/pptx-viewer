@@ -2,6 +2,7 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextSegment } from 'pptx-viewer-core';
 import {
 	buildParagraphs,
+	followingText,
 	resolveCssTextAlign,
 	resolveParagraphAlign,
 	resolveParagraphRtl,
@@ -153,7 +154,12 @@ function renderParagraph(
 	const listParagraph = inlineListSeed?.paragraphs[paraIndex];
 	const renderedRuns = listParagraph
 		? listParagraph.runs.map((run) => renderSeededListRun(run, runs, segments, runCtx))
-		: runs.map((run) => renderParagraphRun(run, segments[run.segmentIndex ?? -1], runCtx));
+		: runs.map((run, i) =>
+				renderParagraphRun(run, segments[run.segmentIndex ?? -1], {
+					...runCtx,
+					eastAsianFollowing: para.eastAsianBreaks ? followingText(runs, i) : undefined,
+				}),
+			);
 
 	const paraStyle: React.CSSProperties = {
 		// `text-align`, BiDi `direction` / `unicode-bidi` and the kinsoku

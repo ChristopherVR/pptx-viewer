@@ -1,5 +1,10 @@
 import type { EastAsianBreakOptions, RunFontSpec } from 'pptx-viewer-shared';
-import { pieceLetterSpacing, splitEastAsianBreaks, splitRunForMetrics } from 'pptx-viewer-shared';
+import {
+	followingText,
+	pieceLetterSpacing,
+	splitEastAsianBreaks,
+	splitRunForMetrics,
+} from 'pptx-viewer-shared';
 import React from 'react';
 
 /** What a caller needs to give a run's pieces their own metric tracking. */
@@ -22,6 +27,12 @@ export interface MetricTextContext {
 	 * `splitEastAsianBreaks`, as it does the metric pieces.
 	 */
 	eastAsian?: EastAsianBreakOptions;
+	/**
+	 * The text right after the text being rendered (the next piece, line or
+	 * run), so an East Asian break at that boundary follows the same rules as
+	 * one inside it (shared `followingText`). Absent at a paragraph end.
+	 */
+	following?: string;
 }
 
 type Inner = (text: string, key: string) => React.ReactNode;
@@ -39,8 +50,9 @@ function renderEastAsianPieces(
 	keyPrefix: string,
 	inner: Inner,
 	baseStyle: React.CSSProperties | undefined,
+	following: string | undefined,
 ): React.ReactNode {
-	const parts = splitEastAsianBreaks(text, metric.eastAsian, metric.font);
+	const parts = splitEastAsianBreaks(text, metric.eastAsian, metric.font, following);
 	if (parts.length === 1 && !parts[0].style) {
 		return inner(parts[0].text, keyPrefix);
 	}
@@ -80,7 +92,7 @@ export function renderMetricPieces(
 	}
 	const pieces = splitRunForMetrics(text, metric.font);
 	if (pieces.length <= 1) {
-		return renderEastAsianPieces(text, metric, keyPrefix, inner, undefined);
+		return renderEastAsianPieces(text, metric, keyPrefix, inner, undefined, metric.following);
 	}
 	return pieces.map((piece, i) => {
 		const key = `${keyPrefix}-w${i}`;
@@ -90,7 +102,14 @@ export function renderMetricPieces(
 		};
 		return (
 			<span key={key} style={style}>
-				{renderEastAsianPieces(piece.text, metric, key, inner, style)}
+				{renderEastAsianPieces(
+					piece.text,
+					metric,
+					key,
+					inner,
+					style,
+					followingText(pieces, i, metric.following),
+				)}
 			</span>
 		);
 	});
