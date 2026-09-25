@@ -234,6 +234,17 @@ describe('buildTextRunEffectListXml', () => {
 	 * not just `@dist`/`@stA`/`@endA`/`@blurRad`.
 	 */
 	describe('reflection', () => {
+		it('should serialize the end position and offset direction PowerPoint WordArt writes', () => {
+			const refl = buildTextRunEffectListXml({
+				textReflection: true,
+				textReflectionStartOpacity: 0.28,
+				textReflectionEndPosition: 0.45,
+				textReflectionDirection: 90,
+			})?.['a:reflection'] as Record<string, unknown>;
+			expect(refl['@_endPos']).toBe('45000');
+			expect(refl['@_dir']).toBe('5400000');
+		});
+
 		it('should serialize scale, skew, rotation, fade direction and alignment', () => {
 			const style: TextStyle = {
 				textReflection: true,

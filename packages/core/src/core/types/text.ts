@@ -687,6 +687,16 @@ export interface TextStyle {
 	/** Text reflection offset distance in px. */
 	textReflectionOffset?: number;
 	/**
+	 * Text reflection end position (`@endPos`) as a 0-1 fraction of the text
+	 * height the fade reaches. Mirrors `ShapeStyle.reflectionEndPosition`.
+	 */
+	textReflectionEndPosition?: number;
+	/**
+	 * Text reflection offset direction (`@dir`) in degrees. Mirrors
+	 * `ShapeStyle.reflectionDirection`.
+	 */
+	textReflectionDirection?: number;
+	/**
 	 * Text reflection fade direction (`a:rPr/a:effectLst/a:reflection/@fadeDir`)
 	 * in degrees. Mirrors `ShapeStyle.reflectionFadeDirection`.
 	 */
