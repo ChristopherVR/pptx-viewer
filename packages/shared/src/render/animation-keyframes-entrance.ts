@@ -18,6 +18,7 @@ import {
 	wheelDecl,
 } from './animation-mask-reveal';
 import { PIXELATE_IN_KEYFRAMES } from './animation-pixelate-filter';
+import { sampledMaskKeyframes } from './animation-sampled-mask-keyframes';
 import { WEDGE_KEYFRAME_DEFINITIONS } from './animation-wedge-reveal';
 
 // The wipe/peek/blinds/split/box/random-bars reveals are CSS `mask` sweeps,
@@ -75,46 +76,21 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	// `wheelIn` (no resolvable spoke-count subtype) defaults to PowerPoint's
 	// own default of 4 spokes; see `wheelIn4` and its siblings below for the
 	// subtype-aware variants `resolveEffect` redirects to.
-	wheelIn: `@keyframes pptx-wheelIn {
-	0% { ${wheelDecl(4, 0)} opacity: 1; }
-	100% { ${wheelDecl(4, 1)} opacity: 1; }
-}`,
-	wheelIn1: `@keyframes pptx-wheelIn1 {
-	0% { ${wheelDecl(1, 0)} opacity: 1; }
-	100% { ${wheelDecl(1, 1)} opacity: 1; }
-}`,
-	wheelIn2: `@keyframes pptx-wheelIn2 {
-	0% { ${wheelDecl(2, 0)} opacity: 1; }
-	100% { ${wheelDecl(2, 1)} opacity: 1; }
-}`,
-	wheelIn3: `@keyframes pptx-wheelIn3 {
-	0% { ${wheelDecl(3, 0)} opacity: 1; }
-	100% { ${wheelDecl(3, 1)} opacity: 1; }
-}`,
-	wheelIn4: `@keyframes pptx-wheelIn4 {
-	0% { ${wheelDecl(4, 0)} opacity: 1; }
-	100% { ${wheelDecl(4, 1)} opacity: 1; }
-}`,
-	wheelIn8: `@keyframes pptx-wheelIn8 {
-	0% { ${wheelDecl(8, 0)} opacity: 1; }
-	100% { ${wheelDecl(8, 1)} opacity: 1; }
-}`,
+	wheelIn: sampledMaskKeyframes('pptx-wheelIn', (f) => wheelDecl(4, f)),
+	wheelIn1: sampledMaskKeyframes('pptx-wheelIn1', (f) => wheelDecl(1, f)),
+	wheelIn2: sampledMaskKeyframes('pptx-wheelIn2', (f) => wheelDecl(2, f)),
+	wheelIn3: sampledMaskKeyframes('pptx-wheelIn3', (f) => wheelDecl(3, f)),
+	wheelIn4: sampledMaskKeyframes('pptx-wheelIn4', (f) => wheelDecl(4, f)),
+	wheelIn8: sampledMaskKeyframes('pptx-wheelIn8', (f) => wheelDecl(8, f)),
 	// `blindsIn` (no resolvable direction subtype) defaults to PowerPoint's
 	// own default direction, Horizontal; see `blindsInVertical`/
 	// `blindsInHorizontal` for the subtype-aware variants `resolveEffect`
 	// redirects to.
-	blindsIn: `@keyframes pptx-blindsIn {
-	from { ${blindsDecl('horizontal', 0)} opacity: 1; }
-	to { ${blindsDecl('horizontal', 1)} opacity: 1; }
-}`,
-	blindsInVertical: `@keyframes pptx-blindsInVertical {
-	from { ${blindsDecl('vertical', 0)} opacity: 1; }
-	to { ${blindsDecl('vertical', 1)} opacity: 1; }
-}`,
-	blindsInHorizontal: `@keyframes pptx-blindsInHorizontal {
-	from { ${blindsDecl('horizontal', 0)} opacity: 1; }
-	to { ${blindsDecl('horizontal', 1)} opacity: 1; }
-}`,
+	blindsIn: sampledMaskKeyframes('pptx-blindsIn', (f) => blindsDecl('horizontal', f)),
+	blindsInVertical: sampledMaskKeyframes('pptx-blindsInVertical', (f) => blindsDecl('vertical', f)),
+	blindsInHorizontal: sampledMaskKeyframes('pptx-blindsInHorizontal', (f) =>
+		blindsDecl('horizontal', f),
+	),
 	boxIn: `@keyframes pptx-boxIn {
 	from { ${maskHoleDecl('box', 'hidden')} opacity: 1; }
 	to { ${maskHoleDecl('box', 'shown')} opacity: 1; }
@@ -122,6 +98,24 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	circleIn: `@keyframes pptx-circleIn {
 	from { ${maskHoleDecl('circle', 'hidden')} opacity: 1; }
 	to { ${maskHoleDecl('circle', 'shown')} opacity: 1; }
+}`,
+	// Effect Options "Out" (`box(out)` ...): grows from the centre (CreateVideo:
+	// a 2 s Box Out shows a 52 px centred square 0.5 s in, 168 px at 1.5 s).
+	boxInFromCenter: `@keyframes pptx-boxInFromCenter {
+	from { ${maskShapeDecl('boxOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
+}`,
+	circleInFromCenter: `@keyframes pptx-circleInFromCenter {
+	from { ${maskShapeDecl('circleOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('circleOut', 'shown')} opacity: 1; }
+}`,
+	diamondInFromCenter: `@keyframes pptx-diamondInFromCenter {
+	from { ${maskShapeDecl('diamondOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('diamondOut', 'shown')} opacity: 1; }
+}`,
+	plusInFromCenter: `@keyframes pptx-plusInFromCenter {
+	from { ${maskShapeDecl('plusOut', 'hidden')} opacity: 1; }
+	to { ${maskShapeDecl('plusOut', 'shown')} opacity: 1; }
 }`,
 	floatIn: `@keyframes pptx-floatIn {
 	from { opacity: 0; transform: translateY(40px); }
@@ -143,18 +137,13 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	// PowerPoint's own default direction, Across; see `checkerboardInAcross`/
 	// `checkerboardInDown` for the subtype-aware variants `resolveEffect`
 	// redirects to.
-	checkerboardIn: `@keyframes pptx-checkerboardIn {
-	0% { ${checkerboardDecl('across', 0)} opacity: 1; }
-	100% { ${checkerboardDecl('across', 1)} opacity: 1; }
-}`,
-	checkerboardInAcross: `@keyframes pptx-checkerboardInAcross {
-	0% { ${checkerboardDecl('across', 0)} opacity: 1; }
-	100% { ${checkerboardDecl('across', 1)} opacity: 1; }
-}`,
-	checkerboardInDown: `@keyframes pptx-checkerboardInDown {
-	0% { ${checkerboardDecl('down', 0)} opacity: 1; }
-	100% { ${checkerboardDecl('down', 1)} opacity: 1; }
-}`,
+	checkerboardIn: sampledMaskKeyframes('pptx-checkerboardIn', (f) => checkerboardDecl('across', f)),
+	checkerboardInAcross: sampledMaskKeyframes('pptx-checkerboardInAcross', (f) =>
+		checkerboardDecl('across', f),
+	),
+	checkerboardInDown: sampledMaskKeyframes('pptx-checkerboardInDown', (f) =>
+		checkerboardDecl('down', f),
+	),
 	flashIn: `@keyframes pptx-flashIn {
 	0% { opacity: 0; }
 	25% { opacity: 1; }
@@ -171,18 +160,15 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	// `randomBarsInVertical`/`randomBarsInHorizontal` for the subtype-aware
 	// variants `resolveEffect` redirects to. See `randomBarsBandDecl`'s doc
 	// for why this is a directional band sweep, not a genuinely randomised one.
-	randomBarsIn: `@keyframes pptx-randomBarsIn {
-	0% { ${randomBarsBandDecl('horizontal', 0)} opacity: 1; }
-	100% { ${randomBarsBandDecl('horizontal', 1)} opacity: 1; }
-}`,
-	randomBarsInVertical: `@keyframes pptx-randomBarsInVertical {
-	0% { ${randomBarsBandDecl('vertical', 0)} opacity: 1; }
-	100% { ${randomBarsBandDecl('vertical', 1)} opacity: 1; }
-}`,
-	randomBarsInHorizontal: `@keyframes pptx-randomBarsInHorizontal {
-	0% { ${randomBarsBandDecl('horizontal', 0)} opacity: 1; }
-	100% { ${randomBarsBandDecl('horizontal', 1)} opacity: 1; }
-}`,
+	randomBarsIn: sampledMaskKeyframes('pptx-randomBarsIn', (f) =>
+		randomBarsBandDecl('horizontal', f),
+	),
+	randomBarsInVertical: sampledMaskKeyframes('pptx-randomBarsInVertical', (f) =>
+		randomBarsBandDecl('vertical', f),
+	),
+	randomBarsInHorizontal: sampledMaskKeyframes('pptx-randomBarsInHorizontal', (f) =>
+		randomBarsBandDecl('horizontal', f),
+	),
 	spinnerIn: `@keyframes pptx-spinnerIn {
 	from { opacity: 0; transform: rotate(-720deg) scale(0.4); }
 	to { opacity: 1; transform: rotate(0deg) scale(1); }

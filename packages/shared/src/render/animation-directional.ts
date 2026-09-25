@@ -8,8 +8,9 @@
  * `p:animEffect/@filter` direction):
  *  - Fly / Peek / Blinds use the origin-edge bitmask (1=top, 2=right,
  *    4=bottom, 8=left): the code names the edge the object/reveal comes FROM.
- *  - Wipe uses the TRAVEL direction: subtype 1 = `wipe(up)` (reveal grows
- *    from the bottom edge), i.e. the opposite edge of the fly encoding.
+ *  - Wipe uses the same bitmask for the edge the wipe works from: subtype 1
+ *    = `wipe(up)` reveals from the top edge; the exit conceals from the top,
+ *    so what is left of the shape retreats toward the bottom edge.
  *  - Split uses barn-door variant codes (21 = `barn(inVertical)`, etc.).
  *
  * The reveals are CSS `mask` sweeps rather than `clip-path` keyframes: a
@@ -36,6 +37,13 @@ const WIPE_ENCODED: ReadonlySet<EffectName> = new Set<EffectName>(['wipeIn', 'wi
 /** Effects whose subtype is an origin-edge code (like Fly). */
 const ORIGIN_ENCODED: ReadonlySet<EffectName> = new Set<EffectName>(['peekIn', 'blindsIn']);
 
+const OPPOSITE_EDGE: Readonly<Record<RevealEdge, RevealEdge>> = {
+	top: 'bottom',
+	bottom: 'top',
+	left: 'right',
+	right: 'left',
+};
+
 /** Build a mask reveal (entrance) keyframe growing from `edge`. */
 function maskRevealCss(name: string, edge: RevealEdge): string {
 	return `@keyframes ${name} {\n\tfrom { ${maskEdgeDecl(edge, 'hidden')} opacity: 1; }\n\tto { ${maskEdgeDecl(edge, 'shown')} opacity: 1; }\n}`;
@@ -43,7 +51,9 @@ function maskRevealCss(name: string, edge: RevealEdge): string {
 
 /** Build a mask hide (exit) keyframe collapsing toward `edge`. */
 function maskHideCss(name: string, edge: RevealEdge): string {
-	return `@keyframes ${name} {\n\tfrom { ${maskEdgeDecl(edge, 'shown')} opacity: 1; }\n\tto { ${maskEdgeDecl(edge, 'hidden')} opacity: 0; }\n}`;
+	// No fade: PowerPoint's wipe exit keeps the shape opaque while it is
+	// masked away (the playback engine hides it once the step ends).
+	return `@keyframes ${name} {\n\tfrom { ${maskEdgeDecl(edge, 'shown')} opacity: 1; }\n\tto { ${maskEdgeDecl(edge, 'hidden')} opacity: 1; }\n}`;
 }
 
 /** Build a split (barn-door) reveal keyframe for the given variant. */
@@ -78,7 +88,9 @@ export function buildDirectionalKeyframe(
 		if (!edge) {
 			return undefined;
 		}
-		const css = effect === 'wipeOut' ? maskHideCss(name, edge) : maskRevealCss(name, edge);
+		// An exit conceals from `edge`, so its mask retreats toward the far edge.
+		const css =
+			effect === 'wipeOut' ? maskHideCss(name, OPPOSITE_EDGE[edge]) : maskRevealCss(name, edge);
 		return { keyframeName: name, css };
 	}
 	if (ORIGIN_ENCODED.has(effect)) {

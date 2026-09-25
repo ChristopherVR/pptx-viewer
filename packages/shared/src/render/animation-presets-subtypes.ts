@@ -43,23 +43,24 @@ export const FLY_SUBTYPE_TO_EDGE: Readonly<Record<number, FlyEdge>> = {
 };
 
 /**
- * Map a Wipe `presetSubtype` to the edge the reveal GROWS FROM.
+ * Map a Wipe `presetSubtype` to the edge the wipe works FROM: the edge an
+ * entrance reveals from first and an exit conceals from first.
  *
- * Unlike Fly / Peek (whose subtype is the object's ORIGIN edge), Wipe encodes
- * the direction the wipe front TRAVELS: subtype 1 pairs with
- * `filter="wipe(up)"` (the front moves up, so the reveal starts at the
- * BOTTOM edge), 2 with `wipe(right)` (starts at the left), 4 with
- * `wipe(down)` (starts at the top) and 8 with `wipe(left)` (starts at the
- * right). Verified against PowerPoint-authored XML (issue #132 deck), where
- * every wipe carries both the subtype and the explicit filter direction.
- * Routing these through {@link FLY_SUBTYPE_TO_EDGE} rendered every
- * directional wipe from the OPPOSITE side.
+ * Subtype 1 pairs with `filter="wipe(up)"`, 2 with `wipe(right)`, 4 with
+ * `wipe(down)` and 8 with `wipe(left)`, and `wipe(X)` starts at edge X. The
+ * same bitmask Fly uses (1 = top, 2 = right, 4 = bottom, 8 = left).
+ * CreateVideo ground truth (200 px square, 2 s): Wipe subtype 4, PowerPoint's
+ * default "From Bottom", grows up from the bottom edge (visible top edge
+ * 361 -> 238 px over the first 1.2 s, bottom fixed at 370); the exit with
+ * subtype 1 conceals from the top down (top edge 170 -> 282, bottom fixed).
+ * An earlier reading of the filter token as the direction the front
+ * TRAVELS played every directional wipe entrance from the opposite side.
  */
 export const WIPE_SUBTYPE_TO_EDGE: Readonly<Record<number, FlyEdge>> = {
-	1: 'bottom',
-	2: 'left',
-	4: 'top',
-	8: 'right',
+	1: 'top',
+	2: 'right',
+	4: 'bottom',
+	8: 'left',
 };
 
 /** Split (`barn`) subtype -> reveal orientation + in/out direction. */
@@ -70,15 +71,19 @@ export type SplitVariant =
 	| 'splitVerticalOut';
 
 /**
- * Map a Split `presetSubtype` to its barn-door variant. 21 = `barn(inVertical)`
- * (verified against PowerPoint-authored XML), 26 = `barn(inHorizontal)`,
- * 10 = `barn(outVertical)`, 5 = `barn(outHorizontal)`.
+ * Map a Split `presetSubtype` to its barn-door variant. PowerPoint (COM
+ * `EffectParameters.Direction` on msoAnimEffectSplit, saved and read back)
+ * writes only 21 = `barn(inVertical)`, 26 = `barn(inHorizontal)`,
+ * 37 = `barn(outVertical)` and 42 = `barn(outHorizontal)`. 5 and 10 are kept
+ * for files that borrowed the Blinds codes for the two "out" variants.
  */
 export const SPLIT_SUBTYPE_TO_VARIANT: Readonly<Record<number, SplitVariant>> = {
 	5: 'splitHorizontalOut',
 	10: 'splitVerticalOut',
 	21: 'splitVerticalIn',
 	26: 'splitHorizontalIn',
+	37: 'splitVerticalOut',
+	42: 'splitHorizontalOut',
 };
 
 // ==========================================================================
@@ -108,8 +113,8 @@ export const WIPE_FILTER_TOKEN_TO_SUBTYPE: Readonly<Record<string, number>> = {
  * decks; see `resolveFilterPresetSubtype` in `animation-filter-effects`.
  */
 export const BARN_FILTER_TOKEN_TO_SUBTYPE: Readonly<Record<string, number>> = {
-	outHorizontal: 5,
-	outVertical: 10,
+	outHorizontal: 42,
+	outVertical: 37,
 	inVertical: 21,
 	inHorizontal: 26,
 };
@@ -161,6 +166,14 @@ export function resolveAnimationWheelSpokeCount(subtypeToken: string | undefined
 	return nearest;
 }
 
+/** Shape reveals whose Effect Options "Out" grows from the centre on entrance. */
+const FROM_CENTER_REVEAL: Partial<Record<EffectName, { family: string; variant: EffectName }>> = {
+	boxIn: { family: 'box', variant: 'boxInFromCenter' },
+	circleIn: { family: 'circle', variant: 'circleInFromCenter' },
+	diamondIn: { family: 'diamond', variant: 'diamondInFromCenter' },
+	plusIn: { family: 'plus', variant: 'plusInFromCenter' },
+};
+
 /**
  * Redirect the DEFAULT `blindsIn`/`checkerboardIn`/`randomBarsIn`/`wheelIn`
  * {@link EffectName} to its direction/spoke-count-aware variant, when the
@@ -203,6 +216,10 @@ export function redirectMaskEffectByFilterSubtype(
 		if (filter.subtype === 'horizontal') {
 			return 'randomBarsInHorizontal';
 		}
+	}
+	const fromCenter = FROM_CENTER_REVEAL[effect];
+	if (filter.subtype === 'out' && fromCenter?.family === filter.family) {
+		return fromCenter.variant;
 	}
 	if (effect === 'wheelIn' && filter.family === 'wheel') {
 		return `wheelIn${resolveAnimationWheelSpokeCount(filter.subtype)}` as EffectName;

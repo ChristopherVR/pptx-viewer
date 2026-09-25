@@ -64,6 +64,12 @@ export type EffectName =
 	| 'growTurnIn'
 	| 'diamondIn'
 	| 'plusIn'
+	// `box|circle|diamond|plus(out)` entrance variants (Effect Options "Out"):
+	// the reveal grows from the centre instead of closing in from the edges.
+	| 'boxInFromCenter'
+	| 'circleInFromCenter'
+	| 'diamondInFromCenter'
+	| 'plusInFromCenter'
 	| 'wedgeIn'
 	// entr.15/25/27/28/29/32/36/38/41/43/44/51/52/56/57/59: dedicated keyframes
 	// for the "extended" (post-2007) entrance gallery families with no cheap

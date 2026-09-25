@@ -38,6 +38,10 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'circleIn',
 	'diamondIn',
 	'plusIn',
+	'boxInFromCenter',
+	'circleInFromCenter',
+	'diamondInFromCenter',
+	'plusInFromCenter',
 	'wedgeIn',
 	'floatIn',
 	'riseUp',
@@ -139,6 +143,14 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 			return maskHoleInitialStyle('diamond');
 		case 'plusIn':
 			return maskPlusHoleInitialStyle();
+		case 'boxInFromCenter':
+			return maskShapeInitialStyle('boxOut');
+		case 'circleInFromCenter':
+			return maskShapeInitialStyle('circleOut');
+		case 'diamondInFromCenter':
+			return maskShapeInitialStyle('diamondOut');
+		case 'plusInFromCenter':
+			return maskShapeInitialStyle('plusOut');
 		case 'wedgeIn':
 			return wedgeInitialStyle();
 		case 'peekIn':

@@ -183,7 +183,8 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('@keyframes pptx-wipeOut');
 		expect(kf).not.toContain('clip-path');
 		expect(kf).toContain('mask-image');
-		expect(kf).toContain('opacity: 0');
+		// A wipe exit masks the shape away without fading it.
+		expect(kf).not.toContain('opacity: 0');
 	});
 
 	it('should return keyframes for "dissolveOut"', () => {
