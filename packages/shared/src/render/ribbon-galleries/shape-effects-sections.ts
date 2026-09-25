@@ -52,7 +52,7 @@ function glowEntries(ctx: RibbonGalleryContext, base: string): ShapeEffectEntry[
 			return {
 				id,
 				labelKey: `${KEY}.glowVariation`,
-				labelParams: { size: sizePt, color: `Accent ${index + 1}` },
+				labelParams: { size: sizePt, accent: index + 1 },
 				label: `Glow: ${sizePt} pt; Accent ${index + 1}`,
 				edit: (style) => withGlow(style, { sizePt, scheme, hex }),
 				matches: (style) =>
