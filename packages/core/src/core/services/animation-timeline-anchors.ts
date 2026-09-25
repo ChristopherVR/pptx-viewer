@@ -91,7 +91,15 @@ export function computeAnimationTimelineOrder(
 			.map((key) => orderByOwnedKey.get(key))
 			.filter((order): order is number => order !== undefined);
 		const order = knownOrders.length > 0 ? Math.min(...knownOrders) : (anim.order ?? fallbackOrder);
-		return order === anim.order ? anim : { ...anim, order };
+		if (order === anim.order) {
+			return anim;
+		}
+		// An entry that stored no `@order` gets its position from the tree
+		// alone; remember that so the writer does not persist a value the tree
+		// already carries (see `orderFromTimeline`).
+		return anim.order === undefined && knownOrders.length > 0
+			? { ...anim, order, orderFromTimeline: order }
+			: { ...anim, order };
 	});
 
 	return { animations: reconciled, anchors };

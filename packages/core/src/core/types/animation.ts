@@ -972,6 +972,15 @@ export interface PptxElementAnimation {
 	durationMs?: number;
 	delayMs?: number;
 	order?: number;
+	/**
+	 * The {@link order} the loader derived from the slide's `p:timing` tree for
+	 * an entry whose `pptx:editorMeta` record authored no `@order`. The tree
+	 * already expresses that position (and every load re-derives it), so the
+	 * writer omits `@order` while `order` still equals this value; a reorder
+	 * changes `order` and the attribute is written again. Load-time bookkeeping
+	 * only; never set it by hand.
+	 */
+	orderFromTimeline?: number;
 	trigger?: PptxAnimationTrigger;
 	/**
 	 * Shape ID that triggers this animation: the shape clicked for
