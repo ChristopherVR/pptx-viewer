@@ -22,9 +22,21 @@ interface Measure {
 	spacing: number;
 }
 
-function measure(node: EngineNode, box: Box, horizontal: boolean, scale: number): Measure {
-	const refW = horizontal ? box.w * scale : box.w;
-	const refH = horizontal ? box.h : box.h * scale;
+/**
+ * `uniform` scales both reference axes: "Process List"'s header is `4 x`
+ * its own height, which is the whole node's height, so only shrinking the
+ * cross axis shortens the row (650pt of 1599pt-wide headers: the cached
+ * headers are 198 x 49.5pt, the frame height scaled by 0.124).
+ */
+function measure(
+	node: EngineNode,
+	box: Box,
+	horizontal: boolean,
+	scale: number,
+	uniform = false,
+): Measure {
+	const refW = horizontal || uniform ? box.w * scale : box.w;
+	const refH = !horizontal || uniform ? box.h * scale : box.h;
 	evaluateWithReference(node, refW, refH);
 	const sizes = node.children.map((child) =>
 		boundedSize(
@@ -51,19 +63,33 @@ function measure(node: EngineNode, box: Box, horizontal: boolean, scale: number)
  * `txAndLines` row inside its `fromT` column is as tall as its `desTx`).
  */
 function boundedSize(child: EngineNode, size: Size, horizontal: boolean): Size {
-	const unsized =
-		child.children.length > 0 &&
-		(child.alg.type === 'lin' || child.alg.type === 'composite') &&
-		!child.values.has(horizontal ? 'w' : 'h');
-	if (Number.isFinite(size.w) && Number.isFinite(size.h) && !unsized) {
+	const nested =
+		child.children.length > 0 && (child.alg.type === 'lin' || child.alg.type === 'composite');
+	// A nested run no constraint sizes across the flow either is as thick as
+	// its content ("Process List"'s `vertFlow` columns hang from a band as
+	// tall as the tallest column, not the frame).
+	const unsizedAlong = nested && !child.values.has(horizontal ? 'w' : 'h');
+	const unsizedAcross =
+		nested && child.alg.type === 'lin' && !isAssigned(child, horizontal ? 'h' : 'w');
+	if (Number.isFinite(size.w) && Number.isFinite(size.h) && !unsizedAlong && !unsizedAcross) {
 		return size;
 	}
+	const unsizedW = horizontal ? unsizedAlong : unsizedAcross;
+	const unsizedH = horizontal ? unsizedAcross : unsizedAlong;
 	const extent = (alongW: boolean): number =>
-		unsized ? measuredExtent(child, size, alongW) : contentExtent(child, alongW);
+		unsizedAlong || unsizedAcross
+			? measuredExtent(child, size, alongW)
+			: contentExtent(child, alongW);
 	return {
-		w: Number.isFinite(size.w) && !(unsized && horizontal) ? size.w : extent(true),
-		h: Number.isFinite(size.h) && !(unsized && !horizontal) ? size.h : extent(false),
+		w: Number.isFinite(size.w) && !unsizedW ? size.w : extent(true),
+		h: Number.isFinite(size.h) && !unsizedH ? size.h : extent(false),
 	};
+}
+
+/** Whether an ancestor assigned `node`'s `type`, rather than its own last layout. */
+function isAssigned(node: EngineNode, type: 'w' | 'h'): boolean {
+	const value = node.values.get(type);
+	return value !== undefined && value !== node.selfRef?.[type];
 }
 
 /** {@link contentExtent} after evaluating `node`'s own constraints at `size` (then restored). */
@@ -118,7 +144,39 @@ export function fitLinear(node: EngineNode, box: Box, horizontal: boolean): Meas
 		scale *= factor;
 		current = next;
 	}
+	// Only a run the flow reference left clearly too long (the loop above
+	// stops within 0.001% of an exact fit).
+	if (current.total > along * 1.001) {
+		const uniform = fitUniform(node, box, horizontal, current);
+		if (uniform) {
+			return uniform;
+		}
+	}
 	return refineAlong(node, box, horizontal, scale, current, full, crossLimited);
+}
+
+/** Shrink both reference axes until a run the flow reference cannot shorten fits. */
+function fitUniform(
+	node: EngineNode,
+	box: Box,
+	horizontal: boolean,
+	stuck: Measure,
+): Measure | undefined {
+	const along = horizontal ? box.w : box.h;
+	let scale = 1;
+	let current = measure(node, box, horizontal, 1, true);
+	for (let iteration = 0; iteration < 12 && current.total > along + 1e-3; iteration++) {
+		const next = measure(node, box, horizontal, scale * (along / current.total), true);
+		if (next.total >= current.total - 1e-6) {
+			break;
+		}
+		scale *= along / current.total;
+		current = next;
+	}
+	if (current.total >= stuck.total - 1e-6) {
+		return undefined;
+	}
+	return current;
 }
 
 /**
@@ -189,14 +247,24 @@ export function arrangeLinear(node: EngineNode): void {
 	const groupOffset = horizontal
 		? alignOffset(along - fitted.total, params.nodeHorzAlign, 'l', 'r')
 		: alignOffset(along - fitted.total, params.nodeVertAlign, 't', 'b');
+	// The run's own band (its thickest item) sits in the node per
+	// `vertAlign`/`horzAlign` (centred by default), and each item in the band
+	// per `nodeVertAlign`/`nodeHorzAlign`: "Process List"'s columns hang from
+	// the top of a band centred in the frame.
+	const band = Math.min(across, fitted.cross);
+	const bandOffset = horizontal
+		? alignOffset(across - band, params.vertAlign, 't', 'b')
+		: alignOffset(across - band, params.horzAlign, 'l', 'r');
 	let cursor = groupOffset;
 	node.children.forEach((child, index) => {
 		const size = fitted.sizes[index];
 		const length = horizontal ? size.w : size.h;
 		const thickness = horizontal ? size.h : size.w;
-		const crossOffset = horizontal
-			? alignOffset(across - thickness, params.nodeVertAlign, 't', 'b')
-			: alignOffset(across - thickness, params.nodeHorzAlign, 'l', 'r');
+		const crossOffset =
+			bandOffset +
+			(horizontal
+				? alignOffset(band - thickness, params.nodeVertAlign, 't', 'b')
+				: alignOffset(band - thickness, params.nodeHorzAlign, 'l', 'r'));
 		const start = reverse ? along - cursor - length : cursor;
 		child.box = horizontal
 			? { x: box.x + start, y: box.y + crossOffset, w: size.w, h: size.h }

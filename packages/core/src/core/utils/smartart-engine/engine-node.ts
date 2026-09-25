@@ -59,6 +59,8 @@ export interface EngineNode extends PresNode {
 	 * length constraint that reads this node's font resolves against it.
 	 */
 	forcedFontPt?: number;
+	/** The reference size the node's own last constraint evaluation wrote into `values`. */
+	selfRef?: { w: number; h: number };
 	/** Minimum size a text-grown node takes (an `op="equ"` group's largest need). */
 	growFloor?: { w?: number; h?: number };
 }

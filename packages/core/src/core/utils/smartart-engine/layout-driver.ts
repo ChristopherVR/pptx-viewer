@@ -43,6 +43,7 @@ export function evaluateWithReference(node: EngineNode, refW: number, refH: numb
 		}
 		node.values.set('w', refW);
 		node.values.set('h', refH);
+		node.selfRef = { w: refW, h: refH };
 		if (pass > 0 && snapshot(node) === before) {
 			break;
 		}
