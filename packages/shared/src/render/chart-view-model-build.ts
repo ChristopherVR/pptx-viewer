@@ -18,6 +18,7 @@ import { chartAreaCornerRadius, chartAreaFill, plotAreaFill } from './chart-area
 import { withAutoTitle } from './chart-auto-title';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { labelsBesideTable } from './chart-data-table-metrics';
 import { applyDataPointPictureFills } from './chart-datapoint-picture-fills';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
@@ -186,6 +187,7 @@ function withChartAreaFill(vm: ChartViewModel, chartData: PptxChartData): ChartV
 		// title (18.62pt in every built-in style, e.g. PowerPoint's auto
 		// "Chart Title") would otherwise poke out of the top of the chart.
 		...(manualLayoutOf(chartData, 'title') ? {} : fitTitleBand(vm, titleStyle.fontSize)),
+		categoryLabels: labelsBesideTable(chartData, { labels: vm.categoryLabels }),
 		areaFill: chartAreaFill(chartData),
 		areaRadius: chartAreaCornerRadius(chartData),
 		titleStyle,
