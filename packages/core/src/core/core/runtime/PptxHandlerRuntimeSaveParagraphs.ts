@@ -9,6 +9,7 @@ import {
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
+import { buildRubyRunXml } from './ruby-run-writing';
 import { toParsedSegmentUnderlay, toRunScopedTextStyle } from './run-scoped-text-style';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -109,53 +110,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return fld;
 		};
 
-		/**
-		 * Create a run with `a:ruby` containing phonetic annotation.
-		 * Produces the OOXML `a:r > a:ruby > { a:rubyPr, a:rt, a:rubyBase }` structure.
-		 */
-		const createRubyRun = (segment: TextSegment, style: TextStyle) => {
-			const rubyPr: XmlObject = {};
-			if (segment.rubyAlignment) {
-				rubyPr['@_algn'] = segment.rubyAlignment;
-			}
-			if (segment.rubyFontSize !== undefined) {
-				// Store as half-point size (hps)
-				rubyPr['@_hps'] = String(Math.round(segment.rubyFontSize * 2));
-			}
-			// Ruby text run (phonetic annotation)
-			const rtRunProps = this.createRunPropertiesFromTextStyle(
-				segment.rubyStyle ?? style,
-				resolveHyperlinkRelationshipId,
+		/** A run with `a:ruby` (phonetic annotation); see `ruby-run-writing.ts`. */
+		const createRubyRun = (segment: TextSegment, style: TextStyle) =>
+			buildRubyRunXml(segment, style, (runStyle) =>
+				this.createRunPropertiesFromTextStyle(runStyle, resolveHyperlinkRelationshipId),
 			);
-			const rtRun: XmlObject = {};
-			if (rtRunProps) {
-				rtRun['a:rPr'] = rtRunProps;
-			}
-			rtRun['a:t'] = createTextNode(segment.rubyText ?? '');
-			// Base text run
-			const baseRunProps = this.createRunPropertiesFromTextStyle(
-				style,
-				resolveHyperlinkRelationshipId,
-			);
-			const baseRun: XmlObject = {};
-			if (baseRunProps) {
-				baseRun['a:rPr'] = baseRunProps;
-			}
-			baseRun['a:t'] = createTextNode(segment.text);
-			const outerRPr = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
-			const rubyRun: XmlObject = {};
-			if (outerRPr) {
-				rubyRun['a:rPr'] = outerRPr;
-			}
-			return {
-				...rubyRun,
-				'a:ruby': {
-					'a:rubyPr': rubyPr,
-					'a:rt': { 'a:r': rtRun },
-					'a:rubyBase': { 'a:r': baseRun },
-				},
-			};
-		};
 
 		const paragraphs: XmlObject[] = [];
 		let currentRuns: XmlObject[] = [];

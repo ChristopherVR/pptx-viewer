@@ -1039,4 +1039,17 @@ export interface TextSegment {
 	 * Used by the renderer to apply font family, colour, etc. to the `<rt>` element.
 	 */
 	rubyStyle?: TextStyle;
+	/**
+	 * The parsed `a:rubyPr` node, kept verbatim so its attributes (`hps`,
+	 * `hpsRaise`, `hpsBaseText`, `lid`, ...) round-trip exactly; only an
+	 * edited {@link rubyAlignment} is written over it on save.
+	 */
+	rubyPropertiesXml?: XmlObject;
+	/**
+	 * What each of a ruby run's two base-side `a:rPr`s authored on its own:
+	 * `outer` is the containing `a:r`'s, `base` the `a:rubyBase` run's. The
+	 * flat {@link style} merges both for rendering; these let the writer give
+	 * each `a:rPr` back only its own properties (plus any later edit).
+	 */
+	rubyRunAuthoredStyles?: { outer?: TextStyle; base?: TextStyle };
 }
