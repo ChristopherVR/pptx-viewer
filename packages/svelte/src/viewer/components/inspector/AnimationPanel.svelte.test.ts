@@ -149,6 +149,31 @@ describe('animationPanel', () => {
 		expect(editor.slides[0].animations?.[0].direction).toBe('fromLeft');
 	});
 
+	it('hides the direction picker for Float In, which PowerPoint saves with no direction', () => {
+		const editor = makeEditor(
+			[shapeEl('a')],
+			[{ elementId: 'a', entrance: 'floatIn', durationMs: 500, order: 0, trigger: 'onClick' }],
+		);
+		editor.select('a');
+		const { target } = mountPanel(editor);
+		expect(target.querySelectorAll('.pptx-svelte-animp-direction-row button')).toHaveLength(0);
+	});
+
+	it("marks a Wipe's default From Bottom active before any pick", () => {
+		const editor = makeEditor(
+			[shapeEl('a')],
+			[{ elementId: 'a', entrance: 'wipeIn', durationMs: 500, order: 0, trigger: 'onClick' }],
+		);
+		editor.select('a');
+		const { target } = mountPanel(editor);
+		const buttons = [
+			...target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-animp-direction-row button'),
+		];
+		// Order: fromTop, fromBottom, fromLeft, fromRight.
+		expect(buttons).toHaveLength(4);
+		expect(buttons.findIndex((button) => button.classList.contains('is-active'))).toBe(1);
+	});
+
 	it('grows the direction-picker and preview buttons to a touch target below the dense-panel breakpoint', () => {
 		const originalWidth = window.innerWidth;
 		Object.defineProperty(window, 'innerWidth', {

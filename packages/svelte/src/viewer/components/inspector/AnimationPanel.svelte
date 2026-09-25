@@ -34,6 +34,8 @@
 		setAnimationEmphasis,
 		setAnimationEntrance,
 		setAnimationExit,
+		directionValuesFor,
+		effectiveDirection,
 		setDirection,
 		setEffectSound,
 		setEffectStockSound,
@@ -74,6 +76,10 @@
 	const anim = $derived(el ? animationFor(anims, el.id) : undefined);
 	const hasAnim = $derived(el ? hasAnimation(anims, el.id) : false);
 	const showDirection = $derived(el ? showDirectionPicker(anims, el.id) : false);
+	// Only the directions PowerPoint has a variant for (shared catalogue).
+	const directionValues = $derived(el ? directionValuesFor(anims, el.id) : []);
+	const directionOptions = $derived(PANEL_DIRECTION_OPTIONS.filter((option) => directionValues.includes(option.value)));
+	const activeDirection = $derived(effectiveDirection(anim, directionValues));
 	const canEdit = $derived(editor.editable);
 	const soundState = $derived(el ? getEffectSoundState(anims, el.id) : { hasSound: false });
 
@@ -198,12 +204,12 @@
 				<div class="pptx-svelte-animp-direction">
 					<span>{t('pptx.animation.direction')}</span>
 					<div class="pptx-svelte-animp-direction-row">
-						{#each PANEL_DIRECTION_OPTIONS as option (option.value)}
+						{#each directionOptions as option (option.value)}
 							<button
 								type="button"
 								disabled={!canEdit}
 								style={touchStyle}
-								class:is-active={anim?.direction === option.value}
+								class:is-active={activeDirection === option.value}
 								title={t(option.labelKey)}
 								aria-label={t(option.labelKey)}
 								onclick={() => el && commit(setDirection(anims, el.id, option.value as PptxAnimationDirection))}
