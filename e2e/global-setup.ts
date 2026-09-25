@@ -24,6 +24,7 @@ import { generateParityWave4Fixture } from './fixtures/generate-parity-wave4-fix
 import { generatePie3DFixture } from './fixtures/generate-pie3d-fixture';
 import { generatePresetTextInsetsFixture } from './fixtures/generate-preset-text-insets-fixture';
 import { generateRectPathGradientFixture } from './fixtures/generate-rectpath-gradient-fixture';
+import { generateRibbonGalleriesFixture } from './fixtures/generate-ribbon-galleries-fixture';
 import { generateRunProgramFixture } from './fixtures/generate-run-program-fixture';
 import { generateSmartArtBuildFixture } from './fixtures/generate-smartart-build-fixture';
 import { generateFixture as generateTemplateEditingFixture } from './fixtures/generate-template-editing-fixture';
@@ -44,6 +45,7 @@ export default async function globalSetup() {
 	// disk, and can report a spurious PASS. Fail with the build command instead.
 	await assertDistFreshness();
 	await generateFixture();
+	await generateRibbonGalleriesFixture();
 	await generateChartFixture();
 	await generateChartPieBestFitFixture();
 	await generateChartTopAxisFixture();
