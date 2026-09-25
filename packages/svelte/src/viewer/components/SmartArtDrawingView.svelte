@@ -74,6 +74,7 @@
 					rx={shape.width / 2}
 					ry={shape.height / 2}
 					fill={shape.fill}
+					fill-opacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					stroke-width={shape.strokeWidth}
 					transform={shape.transform}
@@ -82,6 +83,7 @@
 				<path
 					d={shape.pathData}
 					fill={shape.fill}
+					fill-opacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					stroke-width={shape.strokeWidth}
 					transform={shape.pathTransform}
@@ -94,6 +96,7 @@
 					height={shape.height}
 					rx={shape.rx}
 					fill={shape.fill}
+					fill-opacity={shape.fillOpacity}
 					stroke={shape.stroke}
 					stroke-width={shape.strokeWidth}
 					transform={shape.transform}
