@@ -27,6 +27,7 @@ import { resolveParagraphGeometryOverrides } from './paragraph-geometry-override
 import { buildBulletMarkerStyle, buildParagraphRuns } from './paragraph-run-build';
 import { resolveParagraphSpacing } from './paragraph-spacing';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
+import { trimParagraphTrailingSpaces } from './paragraph-trailing-space';
 import type { ParagraphRun, RenderParagraph } from './paragraph-types';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import {
@@ -228,7 +229,7 @@ export function buildParagraphs(
 			}
 
 			const para: RenderParagraph = {
-				runs,
+				runs: trimParagraphTrailingSpaces(runs, cssAlign, rtl === true),
 				bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
 				bulletPicture: bullet?.picture,
 				bulletStyle,
