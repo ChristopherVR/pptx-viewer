@@ -49,6 +49,7 @@ function editorStub(hasSelection: boolean, selectedIds: readonly string[] = []) 
 		selectedIds: idsSignal,
 		slides: slidesSignal,
 		select: vi.fn(),
+		clearSelection: vi.fn(),
 		updateElement: vi.fn(),
 		addSlide: vi.fn(),
 		undo: vi.fn(),
@@ -214,6 +215,13 @@ describe('viewerKeyboardService: the shortcut cheat sheet', () => {
 		h.showShortcuts.set(true);
 		h.press('Escape');
 		expect(h.showShortcuts()).toBeFalsy();
+		expect(h.editor.clearSelection).not.toHaveBeenCalled();
+	});
+
+	it('clears the selection on Escape once no chrome is left to close', () => {
+		const h = harness();
+		h.press('Escape');
+		expect(h.editor.clearSelection).toHaveBeenCalledOnce();
 	});
 
 	it('lets an armed format painter consume Escape first, leaving the panel open', () => {
@@ -222,6 +230,7 @@ describe('viewerKeyboardService: the shortcut cheat sheet', () => {
 		h.press('Escape');
 		expect(h.cancelPainter).toHaveBeenCalledOnce();
 		expect(h.showShortcuts()).toBeTruthy();
+		expect(h.editor.clearSelection).not.toHaveBeenCalled();
 	});
 });
 
