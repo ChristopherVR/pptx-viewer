@@ -17,6 +17,31 @@ function isEnabled(value: unknown): boolean {
 	return value === true || value === 1 || value === '1' || value === 'true';
 }
 
+const TIMED_BEHAVIOUR_TAGS = PRIMARY_BEHAVIOUR_FAMILIES.flat();
+
+function allTimedBehavioursReverseTogether(
+	childTnLst: XmlObject,
+	toArray: (value: unknown) => XmlObject[],
+): boolean {
+	let shared: number | undefined;
+	for (const tag of TIMED_BEHAVIOUR_TAGS) {
+		for (const behaviour of toArray(childTnLst[tag])) {
+			const inner = (behaviour['p:cBhvr'] as XmlObject | undefined)?.['p:cTn'] as
+				| XmlObject
+				| undefined;
+			const durationMs = readTimingAttr(inner?.['@_dur']);
+			if (durationMs === undefined || durationMs <= 1) {
+				continue;
+			}
+			if (!isEnabled(inner?.['@_autoRev']) || (shared !== undefined && durationMs !== shared)) {
+				return false;
+			}
+			shared = durationMs;
+		}
+	}
+	return true;
+}
+
 /**
  * Read an auto-reverse timing authored on the behaviour `p:cTn`, rather than
  * on the enclosing effect `p:cTn`.
@@ -36,6 +61,13 @@ export function extractChildAutoReverseTiming(
 		return undefined;
 	}
 
+	// A reversing child only speaks for the whole effect when EVERY timed
+	// behaviour reverses on the same clock. Light Speed's 400 ms wobble
+	// reverses while its 600 ms fly-in does not; treating the wobble as the
+	// effect's timing played the entire entrance as a 400 ms back-and-forth.
+	if (!allTimedBehavioursReverseTogether(childTnLst, toArray)) {
+		return undefined;
+	}
 	for (const family of PRIMARY_BEHAVIOUR_FAMILIES) {
 		const behaviours = family.flatMap((tag) => toArray(childTnLst[tag]));
 		if (behaviours.length === 0) {

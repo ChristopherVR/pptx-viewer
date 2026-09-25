@@ -5,6 +5,7 @@
  * @module pptx-types/animation
  */
 
+import type { PptxAnimationBehavior } from './animation-behavior';
 import type { PptxThemeColorRef } from './color-ref';
 import type { XmlObject } from './common';
 
@@ -611,6 +612,14 @@ export interface PptxNativeAnimation {
 	 * shared playback (round-trip/typed-model only so far).
 	 */
 	setAnimations?: PptxSetAnimation[];
+	/**
+	 * Every behaviour child of this effect (`p:set`, `p:anim`, `p:animEffect`,
+	 * `p:animScale`, `p:animRot`, `p:animMotion`) with its own timing, as
+	 * authored. The single-valued fields above flatten a composed preset;
+	 * this keeps the whole tree so playback can follow what PowerPoint wrote
+	 * (see `animation-behavior-player` in `pptx-viewer-shared`).
+	 */
+	behaviors?: PptxAnimationBehavior[];
 }
 
 /**

@@ -397,12 +397,28 @@ const BEHAVIOUR_TAGS = [
 	'p:cmd',
 ] as const;
 
+/** When a behaviour with `dur` ends, relative to the effect start. */
+function behaviourEndMs(inner: XmlObject, dur: number): number {
+	const delay = extractStartConditionDelayMs(inner) ?? 0;
+	const autoRev = inner['@_autoRev'];
+	const reverse = autoRev === '1' || autoRev === 'true';
+	const rawRepeat = Number.parseInt(String(inner['@_repeatCount'] ?? ''), 10);
+	const repeat = Number.isFinite(rawRepeat) && rawRepeat > 0 ? rawRepeat / 1000 : 1;
+	return delay + dur * (reverse ? 2 : 1) * repeat;
+}
+
 /**
- * The effect's duration, taken from its child behaviour's `p:cBhvr/p:cTn/@dur`.
+ * The effect's duration: the latest END among its child behaviours
+ * (`p:cBhvr/p:cTn` start delay + `@dur`, doubled by `@autoRev` and multiplied
+ * by `@repeatCount`).
  *
- * An effect `p:cTn` is a container: the real duration sits on the behaviour it
- * wraps. `p:set` is skipped when a longer behaviour exists because PowerPoint
- * emits it as a 1ms visibility flip that would otherwise mask the real timing.
+ * An effect `p:cTn` is a container: the real duration sits on the behaviours
+ * it wraps. PowerPoint composes presets from behaviours that start at
+ * different times (Swish's three `ppt_y` legs each cover under half the
+ * effect, Light Speed's wobble starts at 60%), so the longest single `@dur`
+ * cut those effects short. Behaviours of 1 ms or less are skipped: PowerPoint
+ * emits the visibility flip as a 1ms `p:set` that would otherwise mask the
+ * real timing of a preset with no other behaviour.
  */
 export function extractChildBehaviourDurationMs(
 	cTn: XmlObject,
@@ -418,8 +434,12 @@ export function extractChildBehaviourDurationMs(
 			const bhvr = behaviour['p:cBhvr'] as XmlObject | undefined;
 			const inner = bhvr?.['p:cTn'] as XmlObject | undefined;
 			const dur = readTimingAttr(inner?.['@_dur']);
-			if (dur !== undefined && dur > 1 && (longest === undefined || dur > longest)) {
-				longest = dur;
+			if (dur === undefined || dur <= 1) {
+				continue;
+			}
+			const end = behaviourEndMs(inner as XmlObject, dur);
+			if (longest === undefined || end > longest) {
+				longest = end;
 			}
 		}
 	}
