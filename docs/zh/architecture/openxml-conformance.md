@@ -165,7 +165,9 @@ Transitional:  http://schemas.openxmlformats.org/<family>/2006/<tail...>
 - 对真正的 97-2003 时代阅读器来说，图表也仍会栅格化为图片。PowerPoint 16.0 另存为 97-2003 时，则会将现代图表保留为嵌入的 `Excel.Chart.8` OLE 对象，即旧式 MS Graph。`scripts/measure-chart-ole-97.ps1` 测得 `Shape.Type` 为 7 / `msoEmbeddedOLEObject`，`OLEFormat.ProgID` 为 `"Excel.Chart.8"`，`Shape.HasChart` 为 `False`。针对这条纯 97-2003 的路径，目前仍不计划写入真正的 `Excel.Chart.8` 对象：上面已实现的 `ExOleObjStg` 有 [MS-PPT]/[MS-ODRAW] 文档，而旧式 MS Graph 图表内部二进制布局没有公开 Microsoft 规范可供验证；上面的 `metroBlob` 则完全绕开了这个问题，让任何 PowerPoint 2007+ 阅读器都能直接拿到真正的现代图表部件。
 - 导入不支持 CryptoAPI 之前的 Office 95 RC4/XOR 混淆方案。导入保真度受格式早于 DrawingML 这一事实限制：没有可传递的主题字体方案，转换器会根据文稿收集到的第一个字体合成名为“Imported PPT”的主题，回退字体为 Arial；没有二进制对应形式的效果会降级。每个降级元素都以 `save` 作用域的 `PptxCompatibilityWarning` 标记。
 
-**仍然存在的 `.ppt` 差距：** 图片来源不是 PNG 或 JPEG 时，会写为占位矩形而不是图片，因为 `raster-utils.ts` 只能把这两种格式解码为可嵌入 `.ppt` 的 blip；母版级别的文本样式覆盖（`p:titleStyle` / `p:bodyStyle` / `p:otherStyle`）不会写入；视频以及 WAV 之外的任何嵌入音频格式都会降级为图片（见上文）；加密 `.ppt` 导入仅支持 CryptoAPI 的 RC4，不支持早于 CryptoAPI 的 Office 95 方案（同样见上文）。
+- 母版会写入演示文稿自身的文本样式、占位符形状（标题、正文、日期、页脚、幻灯片编号）、由主题推导的配色方案，以及 PowerPoint 2007+ 写入的 `RoundTripTheme12Atom` / `RoundTripColorMapping12Atom` / `RoundTripOArtTextStyles12Atom`（`master-roundtrip-writer.ts`），因此重新打开后 `SlideMaster.TextStyles`、主题颜色和字体都与源演示文稿一致。组合成员按 PowerPoint 的方式写入（`fChild` 与组合子坐标空间中的 `OfficeArtChildAnchor`），超过 109 个 FAT 扇区的复合文件会写入 DIFAT 扇区，因此含组合、表格或超过约 7 MB 的文稿都能在 PowerPoint 中打开（均通过 COM 验证）。
+
+**仍然存在的 `.ppt` 差距：** 只写入第一张幻灯片的母版，因此包含多个母版的演示文稿的每张幻灯片都会使用这一个母版；视频以及 WAV 之外的任何嵌入音频格式都会降级为图片（见上文）；加密 `.ppt` 导入仅支持 CryptoAPI 的 RC4，不支持早于 CryptoAPI 的 Office 95 方案（同样见上文）。
 
 **`metroBlob` 是如何被找到的。** 与图表、视频和三维模型不同，PowerPoint 16.0 在同样的 97-2003 往返过程中仍原生保留墨迹和 SmartArt，因此写入器早先仅把它们降级为图片的做法，并未达到 PowerPoint 自身上限。墨迹使用真实 PowerPoint 创建、带真正 `p14:` 墨迹内容的样例测量（`e2e/fixtures/ink-contentpart.pptx`、`scripts/measure-ink-ole-97.ps1`），每个墨迹形状读回后仍为 `Shape.Type` = 23 / `msoInk`。SmartArt 使用真实 COM 创建的样例测量（`packages/core/src/__tests__/fixtures/corpus/smartart-orgchart-many.pptx`、`scripts/measure-smartart-ole-97.ps1`），前后 `Shape.HasSmartArt` 都为 `True`，`Shape.Type` 为 24 / `msoDiagram`。
 
