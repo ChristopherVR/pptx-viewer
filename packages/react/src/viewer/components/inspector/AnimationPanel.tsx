@@ -1,5 +1,9 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { effectiveTimingCurve, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
+import {
+	effectiveDirection,
+	effectiveTimingCurve,
+	getDensePanelTouchTargetPx,
+} from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlay } from 'react-icons/lu';
@@ -85,6 +89,7 @@ export function AnimationPanel({
 		selectedElementAnimation,
 		hasAnimation,
 		showDirectionPicker,
+		directionValues,
 		handleEntranceChange,
 		handleExitChange,
 		handleEmphasisChange,
@@ -204,28 +209,31 @@ export function AnimationPanel({
 								{t('pptx.animation.direction')}
 							</span>
 							<div className='flex gap-1'>
-								{DIRECTION_OPTIONS.map((opt) => {
-									const Icon = opt.icon;
-									const isActive = selectedElementAnimation?.direction === opt.value;
-									return (
-										<button
-											key={opt.value}
-											type='button'
-											disabled={!canEdit}
-											style={{ minWidth: directionBtnPx, minHeight: directionBtnPx }}
-											className={cn(
-												'flex items-center justify-center rounded border transition-colors',
-												isActive
-													? 'border-primary bg-primary/20 text-primary'
-													: 'border-border bg-muted text-muted-foreground hover:bg-accent',
-											)}
-											onClick={() => handleDirectionChange(opt.value)}
-											title={t(opt.labelKey)}
-										>
-											<Icon className='w-3.5 h-3.5' />
-										</button>
-									);
-								})}
+								{DIRECTION_OPTIONS.filter((opt) => directionValues.includes(opt.value)).map(
+									(opt) => {
+										const Icon = opt.icon;
+										const isActive =
+											effectiveDirection(selectedElementAnimation, directionValues) === opt.value;
+										return (
+											<button
+												key={opt.value}
+												type='button'
+												disabled={!canEdit}
+												style={{ minWidth: directionBtnPx, minHeight: directionBtnPx }}
+												className={cn(
+													'flex items-center justify-center rounded border transition-colors',
+													isActive
+														? 'border-primary bg-primary/20 text-primary'
+														: 'border-border bg-muted text-muted-foreground hover:bg-accent',
+												)}
+												onClick={() => handleDirectionChange(opt.value)}
+												title={t(opt.labelKey)}
+											>
+												<Icon className='w-3.5 h-3.5' />
+											</button>
+										);
+									},
+								)}
 							</div>
 						</div>
 					)}

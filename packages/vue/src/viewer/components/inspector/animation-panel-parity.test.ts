@@ -35,8 +35,13 @@ afterEach(() => {
 
 describe('vue animation parity controls', () => {
 	it('edits timing, direction, sequence, curve, and repeat fields', async () => {
+		// Fly has direction variants; Fade (the shared fixture) shows no picker.
+		const flying = {
+			...selected,
+			animations: [{ ...selected.animations[0], entrance: 'flyIn' as const }],
+		};
 		const wrapper = mount(AnimationPanel, {
-			props: { element: selected, slideElements: elements },
+			props: { element: flying, slideElements: elements },
 		});
 		await setControlValue(wrapper.get('[aria-label="Duration (ms)"]'), 750);
 		expect(latestAnimation(wrapper).durationMs).toBe(750);

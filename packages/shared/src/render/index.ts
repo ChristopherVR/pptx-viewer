@@ -485,6 +485,7 @@ export * from './animation-media-playback';
 // to a CSS timing function, measured against PowerPoint: none is `linear`.
 export * from './animation-easing';
 export * from './animation-preview';
+export * from './animation-preview-behavior';
 // Motion-path authoring (`p:animMotion`): the Lines/Arcs/Turns/Shapes/Loops
 // preset catalogue, the slide-space geometry the canvas overlay draws and drags,
 // and the slide-`animations[]` patch builders + preview descriptor. The gallery,

@@ -31,7 +31,7 @@ import { buildEntranceExitChildren } from './animation-write-node-entr-exit';
  * Build behavior nodes specific to emphasis effects.
  * Returns the appropriate OOXML behavior node(s) for the given emphasis preset.
  */
-function buildEmphasisBehaviorNodes(
+export function buildEmphasisBehaviorNodes(
 	shapeId: string,
 	duration: number,
 	preset: PptxAnimationPreset,

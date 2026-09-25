@@ -210,6 +210,25 @@ describe('createAnimationsTab', () => {
 		expect(curve.value).toBe('linear');
 	});
 
+	it('offers a direction only when PowerPoint has variants for the preset', () => {
+		const t = createTranslator();
+		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
+		const state = (entrance: 'wipeIn' | 'fadeIn') => ({
+			editable: true,
+			hasSelection: true,
+			selectedElementId: 'el1',
+			animations: [{ elementId: 'el1', entrance, order: 0 }],
+		});
+		const direction = control(tab, t('pptx.animation.direction')) as HTMLSelectElement;
+
+		tab.update(state('wipeIn'));
+		expect(direction.closest('label')?.hidden).toBeFalsy();
+		expect(direction.value).toBe('fromBottom');
+
+		tab.update(state('fadeIn'));
+		expect(direction.closest('label')?.hidden).toBeTruthy();
+	});
+
 	it('applies the motion path its gallery button names', () => {
 		const t = createTranslator();
 		const actions = handlers();

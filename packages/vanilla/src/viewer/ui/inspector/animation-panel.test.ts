@@ -86,6 +86,26 @@ describe('inspector animation panel', () => {
 		expect(direction?.hidden).toBeFalsy();
 	});
 
+	it('offers only the directions PowerPoint has for the preset', () => {
+		const panel = createAnimationPanel(document, t, makeHandlers());
+		const direction = panel.el.querySelector<HTMLElement>('.pptxv-anim-direction');
+		const visible = () =>
+			[...panel.el.querySelectorAll<HTMLButtonElement>('.pptxv-anim-direction-btn')].filter(
+				(btn) => !btn.hidden,
+			);
+
+		panel.update(makeState({ animations: [{ elementId: 'el1', entrance: 'wipeIn', order: 0 }] }));
+		expect(direction?.hidden).toBeFalsy();
+		expect(visible()).toHaveLength(4);
+		expect(visible().find((btn) => btn.classList.contains('is-active'))?.textContent).toBe(
+			t('pptx.animation.direction.fromBottom'),
+		);
+
+		// Float In has no direction variant in PowerPoint: no picker at all.
+		panel.update(makeState({ animations: [{ elementId: 'el1', entrance: 'floatIn', order: 0 }] }));
+		expect(direction?.hidden).toBeTruthy();
+	});
+
 	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {
 		const panel = createAnimationPanel(document, t, makeHandlers());
 		panel.update(makeState({ animations: [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }] }));

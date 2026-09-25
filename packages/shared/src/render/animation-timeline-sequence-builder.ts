@@ -138,7 +138,7 @@ export function buildSequenceGroups(
 			}
 
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-			const easing = cssEasingForAnimation(anim);
+			const easing = resolved.easing ?? cssEasingForAnimation(anim);
 			const baseCssAnimation = isCommand
 				? ''
 				: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;

@@ -11,7 +11,8 @@ import type {
 import type { AnimationGroup } from 'pptx-viewer-shared';
 import {
 	buildAnimationTimelineRows,
-	DIRECTIONAL_PRESETS,
+	directionValuesFor,
+	effectiveDirection,
 	effectiveTimingCurve,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
@@ -278,12 +279,13 @@ export function createAnimationPanel(
 			motionPath.update({ motionPath: animation?.motionPath, editable: state.editable });
 			previewBtn.hidden = !hasEffect;
 			options.hidden = !hasEffect;
-			const directional =
-				DIRECTIONAL_PRESETS.has(animation?.entrance ?? '') ||
-				DIRECTIONAL_PRESETS.has(animation?.exit ?? '');
-			directionWrap.hidden = !directional;
+			// Only the directions PowerPoint has a variant for (shared catalogue).
+			const directions = animation ? directionValuesFor([animation], animation.elementId) : [];
+			const activeDirection = effectiveDirection(animation, directions);
+			directionWrap.hidden = directions.length === 0;
 			for (const { value, btn } of directionButtons) {
-				btn.classList.toggle('is-active', animation?.direction === value);
+				btn.hidden = !directions.includes(value);
+				btn.classList.toggle('is-active', activeDirection === value);
 				btn.disabled = !state.editable;
 			}
 			sequence.value = animation?.sequence ?? 'asOne';

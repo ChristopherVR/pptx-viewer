@@ -67,4 +67,19 @@ describe('buildTransformKeyframes', () => {
 		expect(result?.css).toContain('var(--pptx-slide-w, 1280px)');
 		expect(result?.css).toContain('var(--pptx-slide-h, 720px)');
 	});
+
+	it('travels a motion path at an even pace along its length', () => {
+		// A 0.3-long leg then a 0.1-long one on a square slide: the corner is
+		// reached at 75% of the time, not at the halfway point count.
+		const result = buildTransformKeyframes(
+			{ targetId: 'shape-1', presetClass: 'path', motionPath: 'M 0 0 L 0.3 0 L 0.3 0.1 E' },
+			2,
+			PREFIXES,
+			{ x: 0, y: 0, width: 0.1, height: 0.1, slideAspect: 1 },
+		);
+		expect(result?.css).toContain(
+			'75% { transform: translate(calc(var(--pptx-slide-w, 1280px) * 0.3000), calc(var(--pptx-slide-h, 720px) * 0.0000)); }',
+		);
+		expect(result?.css).not.toContain('	50%');
+	});
 });

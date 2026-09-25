@@ -7,7 +7,12 @@ import type {
 	PptxAnimationTrigger,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
-import { buildAnimationTimelineRows, effectiveTimingCurve } from 'pptx-viewer-shared';
+import {
+	buildAnimationTimelineRows,
+	directionValuesFor,
+	effectiveDirection,
+	effectiveTimingCurve,
+} from 'pptx-viewer-shared';
 
 import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
@@ -270,7 +275,15 @@ export function createAnimationsTab(
 			triggerShape.label.hidden = trigger.value !== 'onShapeClick';
 			duration.input.value = String(selectedAnimation?.durationMs ?? 500);
 			delay.input.value = String(selectedAnimation?.delayMs ?? 0);
-			direction.select.value = selectedAnimation?.direction ?? 'fromTop';
+			// Only the directions PowerPoint has a variant for (shared catalogue).
+			const directions = selectedAnimation
+				? directionValuesFor([selectedAnimation], selectedAnimation.elementId)
+				: [];
+			direction.label.hidden = directions.length === 0;
+			for (const option of direction.select.options) {
+				option.hidden = !directions.includes(option.value as PptxAnimationDirection);
+			}
+			direction.select.value = effectiveDirection(selectedAnimation, directions) ?? 'fromBottom';
 			sequence.select.value = selectedAnimation?.sequence ?? 'asOne';
 			easing.select.value = effectiveTimingCurve(selectedAnimation?.timingCurve);
 			repeatMode.select.value = selectedAnimation?.repeatMode ?? 'none';

@@ -15,6 +15,8 @@ import type {
 
 import { cssEasingForTimingCurve } from './animation-easing';
 import { getEffectKeyframes } from './animation-keyframes';
+import type { PreviewGeometry } from './animation-preview-behavior';
+import { buildBehaviorPreview } from './animation-preview-behavior';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
@@ -104,7 +106,12 @@ export interface AnimationPreviewDescriptor {
 /**
  * Build a preview animation descriptor for a given preset.
  *
- * Returns `undefined` if the preset doesn't have a known effect.
+ * With `geometry` (the element's measured box on its stage, see
+ * `measurePreviewGeometry`), an entrance or exit plays PowerPoint's own
+ * behaviour tree for the preset and direction, exactly what the saved file
+ * does in PowerPoint; otherwise, or for a preset without one, the preset
+ * keyframe plays. Returns `undefined` if the preset doesn't have a known
+ * effect.
  */
 export function buildPreviewAnimation(
 	preset: PptxAnimationPreset,
@@ -113,10 +120,17 @@ export function buildPreviewAnimation(
 		durationMs?: number;
 		timingCurve?: PptxAnimationTimingCurve;
 		cubicBezier?: string;
+		geometry?: PreviewGeometry;
 	},
 ): AnimationPreviewDescriptor | undefined {
 	if (preset === 'none') {
 		return undefined;
+	}
+	if (options?.geometry && !options.cubicBezier) {
+		const played = buildBehaviorPreview(preset, options, options.geometry);
+		if (played) {
+			return played;
+		}
 	}
 
 	const effectName = resolvePreviewEffect(preset, options?.direction);

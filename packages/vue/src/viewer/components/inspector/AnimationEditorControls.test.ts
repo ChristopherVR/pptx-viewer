@@ -13,31 +13,34 @@ import { setControlValue } from './test-control-value';
  * diffed against; a value change here would be a behaviour change, not a
  * wording one.
  */
-function animation(): PptxElementAnimation {
+function animation(entrance: string = 'flyIn'): PptxElementAnimation {
 	return {
 		elementId: 'el-1',
 		order: 0,
 		trigger: 'onClick',
-		entrance: 'fade',
+		entrance,
 	} as PptxElementAnimation;
 }
 
-function selectByLabel(label: string) {
-	const wrapper = mount(AnimationEditorControls, {
-		props: { animation: animation(), elements: [] },
+function mountWith(entrance?: string) {
+	return mount(AnimationEditorControls, {
+		props: { animation: animation(entrance), elements: [] },
 	});
-	return wrapper.get(`pptx-ui-select[aria-label="${label}"]`).findAll('option');
+}
+
+function selectByLabel(label: string, entrance?: string) {
+	return mountWith(entrance).get(`pptx-ui-select[aria-label="${label}"]`).findAll('option');
 }
 
 describe('animationEditorControls - direction', () => {
-	it('keeps all eight direction values', () => {
+	it("offers Fly's eight directions (edges first), from the shared catalogue", () => {
 		expect(
 			selectByLabel('Direction').map((o) => (o.element as HTMLOptionElement).value),
 		).toStrictEqual([
-			'fromLeft',
-			'fromRight',
 			'fromTop',
 			'fromBottom',
+			'fromLeft',
+			'fromRight',
 			'fromTopLeft',
 			'fromTopRight',
 			'fromBottomLeft',
@@ -47,15 +50,25 @@ describe('animationEditorControls - direction', () => {
 
 	it('spells each direction', () => {
 		expect(selectByLabel('Direction').map((o) => o.text())).toStrictEqual([
-			'From Left',
-			'From Right',
 			'From Top',
 			'From Bottom',
+			'From Left',
+			'From Right',
 			'From Top Left',
 			'From Top Right',
 			'From Bottom Left',
 			'From Bottom Right',
 		]);
+	});
+
+	it('offers only the four edges PowerPoint has for Wipe', () => {
+		expect(
+			selectByLabel('Direction', 'wipeIn').map((o) => (o.element as HTMLOptionElement).value),
+		).toStrictEqual(['fromTop', 'fromBottom', 'fromLeft', 'fromRight']);
+	});
+
+	it('shows no direction for a preset without variants', () => {
+		expect(mountWith('fadeIn').find('pptx-ui-select[aria-label="Direction"]').exists()).toBeFalsy();
 	});
 });
 

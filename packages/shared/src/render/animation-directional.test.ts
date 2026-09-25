@@ -6,10 +6,12 @@ import { buildDirectionalKeyframe } from './animation-directional';
  * Direction ground truth comes from PowerPoint-authored XML (issue #132 deck),
  * where each directional effect carries BOTH the `presetSubtype` and an
  * explicit `p:animEffect/@filter` direction:
- *  - wipe subtype 1 <-> `wipe(up)`    (reveal grows from the BOTTOM edge)
- *  - wipe subtype 2 <-> `wipe(right)` (grows from the LEFT edge)
- *  - wipe subtype 4 <-> `wipe(down)`  (grows from the TOP edge)
- *  - wipe subtype 8 <-> `wipe(left)`  (grows from the RIGHT edge)
+ *  - wipe subtype 1 <-> `wipe(up)`    (reveal grows from the TOP edge)
+ *  - wipe subtype 2 <-> `wipe(right)` (grows from the RIGHT edge)
+ *  - wipe subtype 4 <-> `wipe(down)`  (grows from the BOTTOM edge)
+ *  - wipe subtype 8 <-> `wipe(left)`  (grows from the LEFT edge)
+ *    (the edge sides are CreateVideo ground truth: subtype 4, PowerPoint's
+ *    default "From Bottom", grows up from the bottom edge)
  *  - peek subtype 8 <-> `wipe(right)` (peek IN FROM THE LEFT: origin-edge code)
  *  - split subtype 21 <-> `barn(inVertical)`
  *
@@ -34,45 +36,47 @@ describe('buildDirectionalKeyframe', () => {
 		}
 	});
 
-	it('wipe subtype 1 (= wipe(up)) reveals from the BOTTOM edge', () => {
+	it('wipe subtype 1 (= wipe(up)) reveals from the TOP edge', () => {
 		const result = buildDirectionalKeyframe('wipeIn', 1, 3);
 		expect(result).toBeDefined();
 		expect(result!.keyframeName).toBe('pptx-tl-dir-3');
-		// Bottom-edge reveal: vertical 2x mask, black at the bottom of the image,
-		// position sweeping 0% -> 100%.
-		expect(result!.css).toContain('linear-gradient(to top, #000 50%, transparent 50%)');
+		// Top-edge reveal: vertical 2x mask, black at the top of the image,
+		// position sweeping 100% -> 0%.
+		expect(result!.css).toContain('linear-gradient(to bottom, #000 50%, transparent 50%)');
 		expect(result!.css).toContain('mask-size: 100% 200%');
-		expect(result!.css).toContain('from { mask-image: linear-gradient(to top');
-		expect(result!.css).toContain('mask-position: 0% 0%; opacity: 1');
+		expect(result!.css).toContain('from { mask-image: linear-gradient(to bottom');
 		expect(result!.css).toContain('mask-position: 0% 100%; opacity: 1');
+		expect(result!.css).toContain('mask-position: 0% 0%; opacity: 1');
 	});
 
-	it('wipe subtype 2 (= wipe(right)) reveals from the LEFT edge', () => {
+	it('wipe subtype 2 (= wipe(right)) reveals from the RIGHT edge', () => {
 		const result = buildDirectionalKeyframe('wipeIn', 2, 1);
+		expect(result).toBeDefined();
+		expect(result!.css).toContain('linear-gradient(to left, #000 50%, transparent 50%)');
+	});
+
+	it('wipe subtype 4 (= wipe(down), the default "From Bottom") reveals from the BOTTOM edge', () => {
+		const result = buildDirectionalKeyframe('wipeIn', 4, 1);
+		expect(result).toBeDefined();
+		expect(result!.css).toContain('linear-gradient(to top, #000 50%, transparent 50%)');
+	});
+
+	it('wipe subtype 8 (= wipe(left)) reveals from the LEFT edge', () => {
+		const result = buildDirectionalKeyframe('wipeIn', 8, 1);
 		expect(result).toBeDefined();
 		expect(result!.css).toContain('linear-gradient(to right, #000 50%, transparent 50%)');
 		expect(result!.css).toContain('mask-position: 100% 0%');
 		expect(result!.css).toContain('mask-position: 0% 0%');
 	});
 
-	it('wipe subtype 4 (= wipe(down)) reveals from the TOP edge', () => {
-		const result = buildDirectionalKeyframe('wipeIn', 4, 1);
+	it('conceals a wipe-out from its edge and never fades', () => {
+		// Exit wipe subtype 1 = wipe(up): the top goes first, so what is left
+		// retreats toward the bottom edge (CreateVideo: top edge 170 -> 282 px
+		// over the first 1.2 s of a 2 s exit, bottom fixed at 370).
+		const result = buildDirectionalKeyframe('wipeOut', 1, 0);
 		expect(result).toBeDefined();
-		expect(result!.css).toContain('linear-gradient(to bottom, #000 50%, transparent 50%)');
-	});
-
-	it('wipe subtype 8 (= wipe(left)) reveals from the RIGHT edge', () => {
-		const result = buildDirectionalKeyframe('wipeIn', 8, 1);
-		expect(result).toBeDefined();
-		expect(result!.css).toContain('linear-gradient(to left, #000 50%, transparent 50%)');
-	});
-
-	it('collapses a wipe-out along the travel direction and ends transparent', () => {
-		// Exit wipe subtype 4 = wipe(down): collapse toward the top edge.
-		const result = buildDirectionalKeyframe('wipeOut', 4, 0);
-		expect(result).toBeDefined();
-		expect(result!.css).toContain('opacity: 0');
-		expect(result!.css).toContain('linear-gradient(to bottom, #000 50%, transparent 50%)');
+		expect(result!.css).not.toContain('opacity: 0');
+		expect(result!.css).toContain('linear-gradient(to top, #000 50%, transparent 50%)');
 		// Reversed sweep: starts shown, ends hidden.
 		expect(result!.css).toContain('from { mask-image');
 	});

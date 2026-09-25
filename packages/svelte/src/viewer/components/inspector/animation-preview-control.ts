@@ -1,10 +1,6 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
-import {
-	buildMotionPathPreview,
-	buildPreviewAnimation,
-	findCanvasElementNode,
-} from 'pptx-viewer-shared';
+import { buildAnimationRibbonPreview, findCanvasElementNode } from 'pptx-viewer-shared';
 
 /**
  * Cancellable DOM preview player for the docked AnimationPanel: the Svelte
@@ -28,10 +24,6 @@ function findTarget(elementId: string): HTMLElement | null {
 	return findCanvasElementNode(document, elementId);
 }
 
-/** Slide size assumed when the stage cannot be measured (detached preview). */
-const FALLBACK_SLIDE_WIDTH = 1280;
-const FALLBACK_SLIDE_HEIGHT = 720;
-
 /**
  * Build the descriptor for one animation entry.
  *
@@ -44,26 +36,9 @@ function describe(
 	anim: PptxElementAnimation,
 	target: HTMLElement,
 ): AnimationPreviewDescriptor | undefined {
-	if (anim.motionPath) {
-		const stage = target.offsetParent as HTMLElement | null;
-		return buildMotionPathPreview({
-			path: anim.motionPath,
-			slideWidth: stage?.offsetWidth || FALLBACK_SLIDE_WIDTH,
-			slideHeight: stage?.offsetHeight || FALLBACK_SLIDE_HEIGHT,
-			durationMs: anim.durationMs,
-			delayMs: anim.delayMs,
-			timingCurve: anim.timingCurve,
-		});
-	}
-	const preset = anim.entrance ?? anim.emphasis ?? anim.exit;
-	if (!preset || preset === 'none') {
-		return undefined;
-	}
-	return buildPreviewAnimation(preset, {
-		direction: anim.direction,
-		durationMs: anim.durationMs ?? 500,
-		timingCurve: anim.timingCurve,
-	});
+	// Shared decision (motion path first, else PowerPoint's own tree for the
+	// preset measured against the stage, else the preset keyframe).
+	return buildAnimationRibbonPreview({ ...anim, durationMs: anim.durationMs ?? 500 }, target);
 }
 
 /**

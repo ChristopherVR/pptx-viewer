@@ -48,7 +48,7 @@ export const EXIT_KEYFRAME_DEFINITIONS: Record<string, string> = {
 }`,
 	wipeOut: `@keyframes pptx-wipeOut {
 	from { ${maskEdgeDecl('right', 'shown')} opacity: 1; }
-	to { ${maskEdgeDecl('right', 'hidden')} opacity: 0; }
+	to { ${maskEdgeDecl('right', 'hidden')} opacity: 1; }
 }`,
 	shrinkOut: `@keyframes pptx-shrinkOut {
 	from { opacity: 1; transform: scale(1); }

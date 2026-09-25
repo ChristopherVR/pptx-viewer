@@ -34,6 +34,7 @@ export * from './table';
 export * from './table-style-edit';
 export * from './transition';
 export * from './animation';
+export * from './animation-behavior';
 export * from './media';
 export * from './actions';
 export * from './comment-mentions';

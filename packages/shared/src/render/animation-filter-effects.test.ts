@@ -230,8 +230,9 @@ describe('resolveFilterPresetSubtype', () => {
 	it('derives the barn presetSubtype from the filter token', () => {
 		expect(resolveFilterPresetSubtype(filterAnim('barn', 'inVertical', 'entr'))).toBe(21);
 		expect(resolveFilterPresetSubtype(filterAnim('barn', 'inHorizontal', 'entr'))).toBe(26);
-		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outVertical', 'exit'))).toBe(10);
-		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outHorizontal', 'exit'))).toBe(5);
+		// PowerPoint's own codes for the "out" variants (COM round trip).
+		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outVertical', 'exit'))).toBe(37);
+		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outHorizontal', 'exit'))).toBe(42);
 	});
 
 	it('synthesises no wipe presetSubtype for strips (its direction lives in the effect name)', () => {

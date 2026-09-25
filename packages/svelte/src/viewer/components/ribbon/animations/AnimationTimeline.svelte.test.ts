@@ -47,7 +47,10 @@ function translated(keys: Readonly<Record<string, string>>, tokens: readonly str
 	return tokens.map((token) => translationsEn[keys[token]]);
 }
 
-function mountTimeline(locale = 'en'): { target: HTMLElement; editor: EditorState } {
+function mountTimeline(
+	locale = 'en',
+	entrance: 'flyIn' | 'fadeIn' = 'flyIn',
+): { target: HTMLElement; editor: EditorState } {
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
 	editor.setSlides([
@@ -56,7 +59,8 @@ function mountTimeline(locale = 'en'): { target: HTMLElement; editor: EditorStat
 			rId: 'rId1',
 			slideNumber: 1,
 			elements: [],
-			animations: [{ elementId: 'e1', preset: 'fadeIn', order: 1 }],
+			// Fly has all eight direction variants, so the Direction select shows.
+			animations: [{ elementId: 'e1', entrance, order: 1 }],
 		},
 	]);
 	const target = document.createElement('div');
@@ -108,6 +112,11 @@ describe('animationTimeline schema selects', () => {
 		);
 
 		expect(labels).toStrictEqual(['Trigger', 'Direction', 'Sequence', 'Timing curve', 'Repeat']);
+	});
+
+	it('drops the Direction select for a preset PowerPoint saves with no direction', () => {
+		const { target } = mountTimeline('en', 'fadeIn');
+		expect(target.querySelector('select[aria-label="Direction"]')).toBeNull();
 	});
 
 	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {

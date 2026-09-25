@@ -17,6 +17,7 @@ import { extractCTnTimingAttrs } from './animation-timing-attrs';
 import { extractAfterAnimationFromSubTnLst } from './native-animation-after-effect';
 import { extractChildKeyframeAttrName } from './native-animation-attr-name';
 import { extractAttributeAnimations } from './native-animation-attribute-components';
+import { extractBehaviors } from './native-animation-behaviors';
 import { extractChildCBhvrAttrs, extractChildCalcMode } from './native-animation-cbhvr-attrs';
 import { extractChildAutoReverseTiming } from './native-animation-child-timing';
 import {
@@ -236,6 +237,7 @@ export function buildTimingNodeAnimation(
 		attrName: keyframeAttrName,
 		attributeAnimations,
 		setAnimations,
+		behaviors: extractBehaviors(childTnList),
 		repeatCount: repeatInfo.repeatCount,
 		autoReverse: repeatInfo.autoReverse ?? childAutoReverseTiming?.autoReverse,
 		soundRId: soundInfo.soundRId,
@@ -276,7 +278,6 @@ function extractTextTargetFromCTn(cTn: XmlObject): PptxTextAnimationTarget | und
 	if (!childTnList) {
 		return undefined;
 	}
-
 	const animNodes = [
 		...ensureArray(childTnList['p:animEffect']),
 		...ensureArray(childTnList['p:anim']),

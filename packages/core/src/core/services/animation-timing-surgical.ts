@@ -19,6 +19,7 @@
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
 import { applyAfterAnimationBehavior } from './animation-after-effect-write';
+import { getCapturedPreset } from './animation-behavior-captured';
 import { reconcileBuildList } from './animation-timing-build-surgical';
 import {
 	effectOwnershipKey,
@@ -27,14 +28,11 @@ import {
 } from './animation-timing-ownership';
 import type { AuthoredPresetClass } from './animation-timing-place';
 import { insertAuthoredEffect, reorderOwnedGroups } from './animation-timing-place';
+import { refreshEffectBehaviors } from './animation-timing-surgical-behaviors';
 import type { EffectNodeRef } from './animation-timing-tree';
 import { indexEffectNodes, maxTimeNodeId, removeEffectNode } from './animation-timing-tree';
 import { desiredTriggerContainer, triggerContainerOf } from './animation-timing-trigger-container';
-import {
-	PRESET_TO_OOXML,
-	DIRECTION_TO_SUBTYPE,
-	triggerToNodeType,
-} from './animation-write-mappings';
+import { resolveOoxmlPresetMapping, triggerToNodeType } from './animation-write-mappings';
 import { applySoundToEffectCTn } from './animation-write-node-builders';
 import { ensureArray, isXmlObject } from './native-animation-helpers';
 
@@ -122,16 +120,19 @@ function updateEffectNodeAttributes(
 	anim: PptxElementAnimation,
 	presetClass: string,
 	shapeId: string,
+	allocateId: () => number,
 ): void {
 	const presetName = presetNameForClass(anim, presetClass);
-	const mapping = presetName ? PRESET_TO_OOXML[presetName] : undefined;
-	if (mapping) {
+	// Catalogue tokens (`entr.41`) resolve here too, like in the full writer.
+	const mapping = presetName
+		? resolveOoxmlPresetMapping(presetName, (cls, id) => getCapturedPreset(cls, id)?.defaultSubtype)
+		: undefined;
+	if (presetName && mapping && mapping.presetClass !== 'path') {
+		// Rebuild/retime the behaviours first: it reads the node's current
+		// preset, subtype and duration, and writes the subtype it settles on.
+		refreshEffectBehaviors(cTn, anim, presetName, mapping, shapeId, allocateId);
 		cTn['@_presetID'] = String(mapping.presetId);
 		cTn['@_presetClass'] = mapping.presetClass;
-		const subtype = anim.direction
-			? (DIRECTION_TO_SUBTYPE[anim.direction] ?? mapping.defaultSubtype)
-			: mapping.defaultSubtype;
-		cTn['@_presetSubtype'] = String(subtype);
 	}
 
 	if (anim.durationMs !== undefined) {
@@ -215,6 +216,7 @@ export function surgicallyUpdateTimingTree(
 				entry.anim,
 				entry.presetClass,
 				current.spid ?? entry.anim.elementId,
+				allocateId,
 			);
 			continue;
 		}

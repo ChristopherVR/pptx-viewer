@@ -10,6 +10,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { createAttributeTransformModel } from './animation-attribute-transform';
 import { parseMotionPathPoints } from './animation-motion-path';
+import { pacedFractions, pacedPointAt } from './animation-motion-path-paced';
 import type { AnimationElementBox } from './animation-render-context';
 
 export interface TransformKeyframePrefixes {
@@ -134,23 +135,15 @@ function rotateMotionPathPoints(
 	});
 }
 
-function pointAt(
-	points: ReadonlyArray<{ x: number; y: number }>,
-	progress: number,
-): { x: number; y: number } {
-	if (points.length < 2) {
-		return { x: 0, y: 0 };
+/** Index of the sampled point whose paced fraction is closest to `progress`. */
+function nearestIndex(fractions: ReadonlyArray<number>, progress: number): number {
+	let best = 0;
+	for (let index = 1; index < fractions.length; index += 1) {
+		if (Math.abs(fractions[index] - progress) < Math.abs(fractions[best] - progress)) {
+			best = index;
+		}
 	}
-	const position = progress * (points.length - 1);
-	const leftIndex = Math.floor(position);
-	const rightIndex = Math.min(points.length - 1, leftIndex + 1);
-	const ratio = position - leftIndex;
-	const left = points[leftIndex];
-	const right = points[rightIndex];
-	return {
-		x: left.x + (right.x - left.x) * ratio,
-		y: left.y + (right.y - left.y) * ratio,
-	};
+	return best;
 }
 
 function keyframeName(
@@ -197,13 +190,17 @@ export function buildTransformKeyframes(
 		return undefined;
 	}
 
+	// A motion path is travelled at an even pace along its length (see
+	// `animation-motion-path-paced`), so each sampled point sits at its share
+	// of the length rather than of the point count.
+	const fractions = pacedFractions(points, box?.slideAspect);
 	const progressSet = new Set<number>(attributeModel?.progresses ?? [0, 1]);
-	for (let index = 0; index < points.length; index += 1) {
-		progressSet.add(index / (points.length - 1));
+	for (const fraction of fractions) {
+		progressSet.add(fraction);
 	}
 	const progresses = [...progressSet].sort((left, right) => left - right);
 	const lines = progresses.map((progress) => {
-		const point = pointAt(points, progress);
+		const point = points.length >= 2 ? pacedPointAt(points, fractions, progress) : { x: 0, y: 0 };
 		const attributeState = attributeModel?.stateAt(progress);
 		const declarations: string[] = [];
 		const opacity = attributeState?.opacity ?? opacityAt(anim, progress);
@@ -230,7 +227,7 @@ export function buildTransformKeyframes(
 			(points.length > 0 && anim.motionPathRotateAuto) ||
 			attributeState?.rotation !== undefined
 		) {
-			const pointIndex = Math.round(progress * Math.max(0, points.length - 1));
+			const pointIndex = nearestIndex(fractions, progress);
 			const pathRotation = anim.motionPathRotateAuto ? tangentAngle(points, pointIndex) : 0;
 			const angle = pathRotation + (attributeState?.rotation ?? rotationAt(anim, progress));
 			transforms.push(

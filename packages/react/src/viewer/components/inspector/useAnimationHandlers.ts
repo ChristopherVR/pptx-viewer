@@ -20,6 +20,7 @@ import {
 	buildAnimationTimelineBars,
 	buildAnimationTimelineRows,
 	clearMotionPath,
+	directionValuesFor,
 	getEffectSoundState,
 	setAfterAnimation,
 	setAfterAnimationColor,
@@ -31,7 +32,6 @@ import {
 import React, { useCallback, useMemo } from 'react';
 
 import { getElementLabel } from '../../utils';
-import { DIRECTIONAL_PRESETS } from './animation-handler-types';
 import { useAnimationDragDrop } from './useAnimationDragDrop';
 import { useAnimationPreview } from './useAnimationPreview';
 
@@ -359,10 +359,11 @@ export function useAnimationHandlers({
 		selectedElementAnimation?.motionPath,
 	);
 
-	const showDirectionPicker =
-		hasAnimation &&
-		(DIRECTIONAL_PRESETS.has(selectedElementAnimation?.entrance ?? '') ||
-			DIRECTIONAL_PRESETS.has(selectedElementAnimation?.exit ?? ''));
+	// Only the directions PowerPoint has a variant for (shared catalogue).
+	const directionValues = selectedElementAnimation
+		? directionValuesFor([selectedElementAnimation], selectedElementAnimation.elementId)
+		: [];
+	const showDirectionPicker = hasAnimation && directionValues.length > 0;
 
 	const timelineBarData = useMemo(() => {
 		const bars = buildAnimationTimelineBars(sortedAnimations);
@@ -379,6 +380,7 @@ export function useAnimationHandlers({
 		timelineRows,
 		hasAnimation,
 		showDirectionPicker,
+		directionValues,
 		timelineBarData,
 		handleEntranceChange,
 		handleExitChange,

@@ -11,6 +11,8 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 import {
+	directionValuesFor,
+	effectiveDirection,
 	effectiveTimingCurve,
 	getEffectSoundState,
 	schemaLabel,
@@ -56,16 +58,8 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 
-const directions: readonly PptxAnimationDirection[] = [
-	'fromLeft',
-	'fromRight',
-	'fromTop',
-	'fromBottom',
-	'fromTopLeft',
-	'fromTopRight',
-	'fromBottomLeft',
-	'fromBottomRight',
-];
+// Only the directions PowerPoint has a variant for, from the shared catalogue.
+const directions = computed(() => directionValuesFor([props.animation], props.animation.elementId));
 const sequences: readonly PptxAnimationSequence[] = ['asOne', 'byParagraph', 'byWord', 'byLetter'];
 const curves: readonly PptxAnimationTimingCurve[] = ['ease', 'ease-in', 'ease-out', 'linear'];
 
@@ -226,11 +220,11 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				/>
 			</label>
 		</div>
-		<label
+		<label v-if="directions.length > 0"
 			>{{ t('pptx.animation.direction') }}
 			<pptx-ui-select
 				:aria-label="t('pptx.animation.direction')"
-				:value="animation.direction ?? 'fromLeft'"
+				:value="effectiveDirection(animation, directions)"
 				@change="emit('patch', { direction: value($event) as PptxAnimationDirection })"
 			>
 				<option v-for="item in directions" :key="item" :value="item">

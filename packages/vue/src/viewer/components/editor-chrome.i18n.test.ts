@@ -67,7 +67,7 @@ describe('editor chrome localization', () => {
 			translator();
 			const wrapper = mount(AnimationEditorControls, {
 				props: {
-					animation: { elementId: 'e1', order: 0, trigger: 'onShapeClick', preset: 'fadeIn' },
+					animation: { elementId: 'e1', order: 0, trigger: 'onShapeClick', entrance: 'flyIn' },
 					elements: [],
 				},
 			});
