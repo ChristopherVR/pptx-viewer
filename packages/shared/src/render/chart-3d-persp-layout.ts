@@ -26,6 +26,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 import { buildPerspGridlines } from './chart-3d-persp-gridlines';
 import { buildPerspLabels } from './chart-3d-persp-labels';
 import type { PerspLabel } from './chart-3d-persp-labels';
+import { perspObliqueCameraFor } from './chart-3d-persp-oblique';
 import { fitPerspView, perspCameraFor } from './chart-3d-persp-view';
 import type { PerspView } from './chart-3d-persp-view';
 import { axisTargetIntervals, niceValueAxisBounds } from './chart-axis-nice';
@@ -153,10 +154,15 @@ export function perspSeriesColors(chartData: PptxChartData, vm: ChartViewModel):
 	);
 }
 
-/** The perspective layout of a line3D / area3D / surface chart, or `null`. */
+/**
+ * The perspective layout of a line3D / area3D / surface chart (or a bar3D
+ * chart without right-angle axes), or `null`; `oblique` draws the same box
+ * with a right-angle-axes projection.
+ */
 export function computePerspChartLayout(
 	element: PptxElement,
 	vm: ChartViewModel,
+	options: { oblique?: boolean } = {},
 ): PerspChartLayout | null {
 	if (element.type !== 'chart' || !element.chartData) {
 		return null;
@@ -192,12 +198,10 @@ export function computePerspChartLayout(
 	const catExtent = horizontal ? HORIZONTAL_CATEGORY_EXTENT * heightScale : 1;
 	const box = horizontal ? { w: valueExtent, h: catExtent, d } : { w: 1, h: valueExtent, d };
 
-	const camera = perspCameraFor(
-		box,
-		view3D?.rotX ?? 15,
-		view3D?.rotY ?? 20,
-		view3D?.perspective ?? undefined,
-	);
+	// Right-angle axes: the same box through an oblique projection.
+	const camera = options.oblique
+		? perspObliqueCameraFor(box, view3D?.rotX ?? 15, view3D?.rotY ?? 20)
+		: perspCameraFor(box, view3D?.rotX ?? 15, view3D?.rotY ?? 20, view3D?.perspective ?? undefined);
 	const hasLegend =
 		chartData.style?.hasLegend !== false && (chartData.style?.legendPosition ?? 'b') === 'b';
 	const view = fitPerspView(camera, {

@@ -128,8 +128,12 @@ function buildPieGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeom
 	return layout ? { kind: 'pie', layout } : null;
 }
 
-function buildPerspGeometry(element: PptxElement, vm: ChartViewModel): Chart3DGeometry {
-	const layout = computePerspChartLayout(element, vm);
+function buildPerspGeometry(
+	element: PptxElement,
+	vm: ChartViewModel,
+	oblique: boolean,
+): Chart3DGeometry {
+	const layout = computePerspChartLayout(element, vm, { oblique });
 	return layout ? { kind: 'perspective', layout } : null;
 }
 
@@ -159,8 +163,9 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 	const geometry =
 		chartType === 'bar3D' && projection.mode === 'oblique'
 			? buildBarGeometry(element, vm)
-			: projection.mode === 'perspective' && PERSP_BOX_TYPES.has(chartType)
-				? buildPerspGeometry(element, vm)
+			: PERSP_BOX_TYPES.has(chartType) &&
+				  (projection.mode === 'perspective' || chartType !== 'bar3D')
+				? buildPerspGeometry(element, vm, projection.mode === 'oblique')
 				: chartType === 'pie3D'
 					? buildPieGeometry(element, vm)
 					: null;

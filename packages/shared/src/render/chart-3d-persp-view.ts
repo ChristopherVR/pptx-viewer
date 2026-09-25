@@ -24,6 +24,13 @@
  */
 import type * as THREE from 'three';
 
+import {
+	buildPerspObliqueCamera,
+	perspObliqueBoxMatrix,
+	perspObliqueToCamera,
+} from './chart-3d-persp-oblique';
+import type { PerspOblique } from './chart-3d-persp-oblique';
+
 type ThreeModule = typeof THREE;
 
 /** Fitted pitch per degree of `rotX`. */
@@ -45,6 +52,8 @@ export interface PerspCamera {
 	pitch: number;
 	/** Camera distance from the box centre, world units. */
 	dist: number;
+	/** Set for a right-angle-axes chart: an oblique projection instead (`chart-3d-persp-oblique.ts`). */
+	oblique?: PerspOblique;
 }
 
 export interface PerspView extends PerspCamera {
@@ -60,6 +69,9 @@ export function perspToCamera(
 	camera: PerspCamera,
 	p: readonly [number, number, number],
 ): [number, number, number] {
+	if (camera.oblique) {
+		return perspObliqueToCamera(camera.box, camera.oblique, p);
+	}
 	const x = p[0] - camera.box.w / 2;
 	const y = p[1] - camera.box.h / 2;
 	const z = p[2] - camera.box.d / 2;
@@ -205,7 +217,10 @@ export function buildPerspCamera(
 	view: PerspView,
 	svgWidth: number,
 	svgHeight: number,
-): THREE.PerspectiveCamera {
+): THREE.Camera {
+	if (view.oblique) {
+		return buildPerspObliqueCamera(three, view, view.oblique, svgWidth, svgHeight);
+	}
 	const reach = Math.hypot(view.box.w, view.box.h, view.box.d);
 	const near = Math.max(view.dist - reach, view.dist * 0.05);
 	const far = view.dist + reach;
@@ -239,6 +254,9 @@ export function buildPerspCamera(
 
 /** The matrix taking box space to the view space of {@link buildPerspCamera}. */
 export function perspBoxMatrix(three: ThreeModule, view: PerspCamera): THREE.Matrix4 {
+	if (view.oblique) {
+		return perspObliqueBoxMatrix(three, view.box);
+	}
 	const { w, h, d } = view.box;
 	return new three.Matrix4()
 		.makeScale(1, 1, -1)
