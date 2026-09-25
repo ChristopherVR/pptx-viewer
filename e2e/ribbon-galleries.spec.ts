@@ -17,7 +17,14 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
-import { elementWithText, fixture, loadDeck, openRibbonTab, selectElement } from './support/deck';
+import {
+	elementsOfType,
+	elementWithText,
+	fixture,
+	loadDeck,
+	openRibbonTab,
+	selectElement,
+} from './support/deck';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -115,6 +122,33 @@ test.describe('ribbon galleries', () => {
 		const group = page.locator('[data-ribbon-group="tableDesign.tableStyles"]').first();
 		const panel = await openGallery(page, group, 'tableStyles');
 		expect(await panel.locator('[data-gallery-item]').count()).toBeGreaterThan(60);
+	});
+
+	test('a picture brings up Picture Format, whose Picture Styles pick sticks', async ({ page }) => {
+		await loadDeck(page, DECK);
+		const picture = elementsOfType(page, 'image').first();
+		await expect(contextualTab(page, 'pictureFormat')).toHaveCount(0);
+		await selectElement(page, picture);
+		await expect(contextualTab(page, 'pictureFormat')).toBeVisible();
+		await expect(contextualTab(page, 'shapeFormat')).toHaveCount(0);
+		await contextualTab(page, 'pictureFormat').click();
+
+		const group = page.locator('[data-ribbon-group="pictureFormat.pictureStyles"]').first();
+		await expect(group).toBeVisible();
+		const panel = await openGallery(page, group, 'pictureStyles');
+		await expect(panel.locator('[data-gallery-item]')).toHaveCount(28);
+		await panel.locator('[data-gallery-item="metalOval"]').click();
+		await expect(popup(page, 'pictureStyles')).toBeHidden();
+
+		const reopened = await openGallery(page, group, 'pictureStyles');
+		await expect(reopened.locator('[data-gallery-item="metalOval"]')).toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
+		await expect(reopened.locator('[data-gallery-item="simpleFrameWhite"]')).not.toHaveAttribute(
+			'aria-pressed',
+			'true',
+		);
 	});
 
 	test('the contextual tab goes away when the selection does', async ({ page }) => {

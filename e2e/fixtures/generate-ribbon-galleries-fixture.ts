@@ -1,8 +1,8 @@
 /**
  * Generates `ribbon-galleries.pptx`: one slide with a red rectangle
- * ("GALLERY SHAPE"), a 3x3 table and a clustered column chart, so the
- * ribbon-galleries spec can bring up the Shape Format, Table Design and
- * Chart Design contextual tabs in every binding.
+ * ("GALLERY SHAPE"), a 3x3 table, a clustered column chart and a picture, so
+ * the ribbon-galleries spec can bring up the Shape Format, Table Design,
+ * Chart Design and Picture Format contextual tabs in every binding.
  *
  * Re-runnable; globalSetup invokes it.
  */
@@ -15,6 +15,10 @@ import { PptxHandler } from 'pptx-viewer-core';
 import { writeFixtureDeterministic } from './write-fixture';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** A 2x2 PNG (blue, orange / green, white), enough to show a picture style's frame. */
+const PICTURE_PNG =
+	'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAFklEQVR4nGNwKTryttaQoWCt+////wEtjAd3MXQ87gAAAABJRU5ErkJggg==';
 
 export async function generateRibbonGalleriesFixture(): Promise<string> {
 	const { handler, data, createSlide } = await PptxHandler.createBlank({
@@ -53,6 +57,13 @@ export async function generateRibbonGalleriesFixture(): Promise<string> {
 				},
 				{ x: 60, y: 260, width: 400, height: 240 },
 			)
+			.addImage(PICTURE_PNG, {
+				x: 520,
+				y: 280,
+				width: 240,
+				height: 180,
+				altText: 'Gallery picture',
+			})
 			.build(),
 	);
 	const bytes = await handler.save(data.slides);
