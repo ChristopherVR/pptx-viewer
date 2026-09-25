@@ -125,4 +125,11 @@ describe('buildFreeformShapeElement', () => {
 		const shape = buildFreeformShapeElement(OPEN_SQUIGGLE, { color: '#000', width: 1 });
 		expect(shape?.id.startsWith('shape-')).toBeTruthy();
 	});
+
+	it('carries the SVG pathData every renderer paints a freeform from', () => {
+		const shape = buildFreeformShapeElement(OPEN_SQUIGGLE, { color: '#000000', width: 2 });
+		expect(shape?.pathData?.startsWith('M ')).toBeTruthy();
+		expect(shape?.pathWidth).toBe(shape?.customGeometryPaths?.[0].width);
+		expect(shape?.pathHeight).toBe(shape?.customGeometryPaths?.[0].height);
+	});
 });

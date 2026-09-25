@@ -614,6 +614,7 @@ unit test fails if an id is missing here.
 | `paste`                  | Paste                |
 | `duplicate`              | Duplicate            |
 | `edit-text`              | Edit Text            |
+| `edit-points`            | Edit Points          |
 | `bring-forward`          | Bring Forward        |
 | `send-backward`          | Send Backward        |
 | `bring-front`            | Bring to Front       |
@@ -650,6 +651,22 @@ unit test fails if an id is missing here.
 | `format-background` | Format Background... |
 | `grid-and-guides`   | Grid and Guides      |
 | `ruler`             | Ruler                |
+
+### Edit Points menu (`contextMenu.hiddenEditPointsCommands`)
+
+| Id                 | Entry            |
+| ------------------ | ---------------- |
+| `add-point`        | Add Point        |
+| `delete-point`     | Delete Point     |
+| `delete-segment`   | Delete Segment   |
+| `open-path`        | Open Path        |
+| `close-path`       | Close Path       |
+| `smooth-point`     | Smooth Point     |
+| `straight-point`   | Straight Point   |
+| `corner-point`     | Corner Point     |
+| `straight-segment` | Straight Segment |
+| `curved-segment`   | Curved Segment   |
+| `exit`             | Exit Edit Points |
 
 ### Editor shortcuts (`keyboard.disabled`, `keyboard.remap`)
 
@@ -706,6 +723,7 @@ unit test fails if an id is missing here.
 | `collaboration` | Real-time collaboration: Share and Broadcast buttons, dialogs and File pages.           |
 | `comments`      | Commenting: the Add Comment context-menu entry.                                         |
 | `presentMode`   | Slide-show entry points: the Slide Show ribbon tab.                                     |
+| `editPoints`    | Edit Points: the Edit Points context-menu entry and the point-editing mode it opens.    |
 
 ### Dialogs (`hiddenDialogs`)
 
@@ -727,5 +745,12 @@ unit test fails if an id is missing here.
 | `gif`       | Export the deck as an animated GIF.                  |
 | `json`      | Export the parsed deck as JSON.                      |
 | `copyImage` | Copy the current slide to the clipboard as an image. |
+
+### Drawing tools (`hiddenDrawingTools`)
+
+| Id              | Tool            |
+| --------------- | --------------- |
+| `freeformShape` | Freeform: Shape |
+| `curve`         | Curve           |
 
 <!-- customization-reference:end -->

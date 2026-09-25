@@ -15,12 +15,16 @@ import { BACKSTAGE_NAV } from '../backstage';
 import { BACKSTAGE_CARDS } from '../backstage-cards';
 import { canvasContextMenuLabelKey } from '../canvas-context-menu-commands';
 import { contextMenuLabelKey } from '../context-menu-commands';
+import { editPointsCommandLabelKey } from '../edit-points/edit-points-menu';
+import { FREEFORM_TOOL_LABEL_KEYS } from '../edit-points/freeform-tool-geometry';
 import { DEFAULT_VIEWER_OPTIONS } from '../options/viewer-options';
 import type { ViewerOptionsGroupId } from '../options/viewer-options';
 import { VIEWER_OPTIONS_TABS } from '../options/viewer-options-schema';
 import { TOOLBAR_TABS } from '../toolbar-actions';
 import {
 	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	DRAWING_TOOL_IDS,
+	EDIT_POINTS_MENU_COMMAND_IDS,
 	EDITOR_SHORTCUT_ACTION_IDS,
 	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
 	OPTIONS_SETTING_IDS,
@@ -127,6 +131,11 @@ export function buildCustomizationReference(): string {
 			['Id', 'Entry'],
 			CANVAS_CONTEXT_MENU_COMMAND_IDS.map((id) => [code(id), label(canvasContextMenuLabelKey(id))]),
 		),
+		'### Edit Points menu (`contextMenu.hiddenEditPointsCommands`)',
+		table(
+			['Id', 'Entry'],
+			EDIT_POINTS_MENU_COMMAND_IDS.map((id) => [code(id), label(editPointsCommandLabelKey(id))]),
+		),
 		'### Editor shortcuts (`keyboard.disabled`, `keyboard.remap`)',
 		table(['Id', 'Command'], describe(EDITOR_SHORTCUT_ACTION_IDS, EDITOR_SHORTCUT_DESCRIPTIONS)),
 		'### Panels (`hiddenPanels`)',
@@ -140,6 +149,11 @@ export function buildCustomizationReference(): string {
 		table(['Id', 'What it removes'], describe(VIEWER_DIALOG_IDS, VIEWER_DIALOG_DESCRIPTIONS)),
 		'### Export formats (`hiddenExportFormats`)',
 		table(['Id', 'Format'], describe(VIEWER_EXPORT_FORMAT_IDS, VIEWER_EXPORT_FORMAT_DESCRIPTIONS)),
+		'### Drawing tools (`hiddenDrawingTools`)',
+		table(
+			['Id', 'Tool'],
+			DRAWING_TOOL_IDS.map((id) => [code(id), label(FREEFORM_TOOL_LABEL_KEYS[id])]),
+		),
 	];
 	return `${parts.join('\n\n')}\n`;
 }

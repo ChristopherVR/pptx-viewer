@@ -18,6 +18,8 @@ import type { BackstagePage } from '../backstage';
 import type { BackstageCardId } from '../backstage-cards';
 import type { CanvasContextMenuCommandId } from '../canvas-context-menu-commands';
 import type { ContextMenuCommandId } from '../context-menu-commands';
+import type { EditPointsCommandId } from '../edit-points/edit-points-menu';
+import type { FreeformToolKind } from '../edit-points/freeform-tool-geometry';
 import type { EditorKeyActionName } from '../editor-keymap';
 import type {
 	ViewerOptionPrimitive,
@@ -101,6 +103,11 @@ export interface ContextMenuCustomization {
 	hiddenElementCommands?: readonly ContextMenuCommandId[];
 	/** Entries to remove from the empty-canvas menu. */
 	hiddenCanvasCommands?: readonly CanvasContextMenuCommandId[];
+	/**
+	 * Entries to remove from the Edit Points menu (right-click a vertex or a
+	 * segment while editing a shape's points).
+	 */
+	hiddenEditPointsCommands?: readonly EditPointsCommandId[];
 	/** Remove the element context menu entirely. */
 	disableElementMenu?: boolean;
 	/** Remove the empty-canvas context menu entirely. */
@@ -140,7 +147,13 @@ export type ViewerPanelId =
 	| 'titleBar';
 
 /** Feature areas that can be switched off as a whole. */
-export type ViewerFeatureId = 'ai' | 'collaboration' | 'comments' | 'presentMode';
+export type ViewerFeatureId = 'ai' | 'collaboration' | 'comments' | 'presentMode' | 'editPoints';
+
+/**
+ * The click-to-place drawing tools of Insert > Shapes > Lines: Freeform:
+ * Shape and Curve.
+ */
+export type ViewerDrawingToolId = FreeformToolKind;
 
 /** Dialogs (and the entry points that open them) a host can remove. */
 export type ViewerDialogId = 'options' | 'share' | 'broadcast' | 'print' | 'export';
@@ -166,4 +179,6 @@ export interface ViewerCustomization {
 	hiddenDialogs?: readonly ViewerDialogId[];
 	/** Export formats to remove from File > Export. */
 	hiddenExportFormats?: readonly ViewerExportFormatId[];
+	/** Drawing tools to remove from the Insert > Shapes gallery. */
+	hiddenDrawingTools?: readonly ViewerDrawingToolId[];
 }

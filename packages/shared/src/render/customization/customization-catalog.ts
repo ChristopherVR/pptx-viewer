@@ -16,6 +16,7 @@ import { BACKSTAGE_CARDS } from '../backstage-cards';
 import type { BackstageCardId } from '../backstage-cards';
 import type { CanvasContextMenuCommandId } from '../canvas-context-menu-commands';
 import type { ContextMenuCommandId } from '../context-menu-commands';
+import type { EditPointsCommandId } from '../edit-points/edit-points-menu';
 import type { EditorKeyActionName } from '../editor-keymap';
 import { DEFAULT_VIEWER_OPTIONS } from '../options/viewer-options';
 import type { ViewerOptionsGroupId } from '../options/viewer-options';
@@ -27,6 +28,7 @@ import type {
 	OptionsSectionId,
 	OptionsSettingId,
 	ViewerDialogId,
+	ViewerDrawingToolId,
 	ViewerExportFormatId,
 	ViewerFeatureId,
 	ViewerPanelId,
@@ -94,6 +96,7 @@ export const ELEMENT_CONTEXT_MENU_COMMAND_IDS = exhaustive<ContextMenuCommandId>
 	'paste',
 	'duplicate',
 	'edit-text',
+	'edit-points',
 	'bring-forward',
 	'send-backward',
 	'bring-front',
@@ -178,7 +181,24 @@ export const VIEWER_FEATURE_IDS = exhaustive<ViewerFeatureId>()([
 	'collaboration',
 	'comments',
 	'presentMode',
+	'editPoints',
 ]);
+
+export const EDIT_POINTS_MENU_COMMAND_IDS = exhaustive<EditPointsCommandId>()([
+	'add-point',
+	'delete-point',
+	'delete-segment',
+	'open-path',
+	'close-path',
+	'smooth-point',
+	'straight-point',
+	'corner-point',
+	'straight-segment',
+	'curved-segment',
+	'exit',
+]);
+
+export const DRAWING_TOOL_IDS = exhaustive<ViewerDrawingToolId>()(['freeformShape', 'curve']);
 
 export const VIEWER_DIALOG_IDS = exhaustive<ViewerDialogId>()([
 	'options',

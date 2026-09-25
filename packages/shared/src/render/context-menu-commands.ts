@@ -22,6 +22,7 @@
  */
 import type { PptxTableData } from 'pptx-viewer-core';
 
+import type { EditPointsAvailability } from './edit-points/edit-points-availability';
 import type { CellCoord } from './table-merge';
 
 /**
@@ -54,6 +55,7 @@ export type ContextMenuCommandId =
 	| 'paste'
 	| 'duplicate'
 	| 'edit-text'
+	| 'edit-points'
 	| 'bring-forward'
 	| 'send-backward'
 	| 'bring-front'
@@ -123,6 +125,13 @@ export interface ContextMenuContext {
 	 * it: Paste is then offered enabled, which is what React has always done.
 	 */
 	hasClipboard?: boolean;
+	/**
+	 * Edit Points for the right-clicked element, from
+	 * `resolveEditPointsAvailability`: offered when `available`, greyed out when
+	 * `locked` (`a:spLocks/@noEditPoints`), absent otherwise. Omit when the
+	 * binding does not support Edit Points.
+	 */
+	editPoints?: EditPointsAvailability;
 }
 
 const LABEL_KEYS: Record<ContextMenuCommandId, string> = {
@@ -151,6 +160,7 @@ const LABEL_KEYS: Record<ContextMenuCommandId, string> = {
 	group: 'pptx.contextMenu.group',
 	ungroup: 'pptx.contextMenu.ungroup',
 	'edit-text': 'pptx.contextMenu.editText',
+	'edit-points': 'pptx.contextMenu.editPoints',
 	'save-as-picture': 'pptx.contextMenu.saveAsPicture',
 	'edit-alt-text': 'pptx.contextMenu.editAltText',
 	'size-and-position': 'pptx.contextMenu.sizeAndPosition',
@@ -211,8 +221,15 @@ const TEXT_EDITABLE_ELEMENT_TYPES = new Set(['text', 'shape']);
  * present, permanently greyed Group is noise on a single shape.
  */
 export function buildContextMenuEntries(context: ContextMenuContext = {}): ContextMenuEntry[] {
-	const { elementType, table, hasMultiSelection, aiEnabled, hasClipboard, selectionGroupable } =
-		context;
+	const {
+		elementType,
+		table,
+		hasMultiSelection,
+		aiEnabled,
+		hasClipboard,
+		selectionGroupable,
+		editPoints,
+	} = context;
 	const lockedOut = selectionGroupable === false;
 	const entries: ContextMenuEntry[] = [
 		entry('copy'),
@@ -222,6 +239,11 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 	];
 	if (elementType && TEXT_EDITABLE_ELEMENT_TYPES.has(elementType)) {
 		entries.push(entry('edit-text'));
+	}
+	// PowerPoint lists Edit Points right under Edit Text, greyed out when the
+	// shape's points are locked.
+	if (!hasMultiSelection && (editPoints === 'available' || editPoints === 'locked')) {
+		entries.push(entry('edit-points', editPoints === 'locked' ? { disabled: true } : {}));
 	}
 	entries.push(
 		entry('bring-forward', { separatorBefore: true }),

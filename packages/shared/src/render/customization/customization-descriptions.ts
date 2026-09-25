@@ -42,6 +42,8 @@ export const VIEWER_FEATURE_DESCRIPTIONS: Record<ViewerFeatureId, string> = {
 	collaboration: 'Real-time collaboration: Share and Broadcast buttons, dialogs and File pages.',
 	comments: 'Commenting: the Add Comment context-menu entry.',
 	presentMode: 'Slide-show entry points: the Slide Show ribbon tab.',
+	editPoints:
+		'Edit Points: the Edit Points context-menu entry and the point-editing mode it opens.',
 };
 
 export const VIEWER_DIALOG_DESCRIPTIONS: Record<ViewerDialogId, string> = {

@@ -7,6 +7,8 @@ import {
 	BACKSTAGE_CARD_IDS,
 	BACKSTAGE_PAGE_IDS,
 	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	DRAWING_TOOL_IDS,
+	EDIT_POINTS_MENU_COMMAND_IDS,
 	EDITOR_SHORTCUT_ACTION_IDS,
 	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
 	OPTIONS_PAGE_IDS,
@@ -51,6 +53,8 @@ describe('docs/guide/customization.md', () => {
 			...VIEWER_FEATURE_IDS,
 			...VIEWER_DIALOG_IDS,
 			...VIEWER_EXPORT_FORMAT_IDS,
+			...EDIT_POINTS_MENU_COMMAND_IDS,
+			...DRAWING_TOOL_IDS,
 		];
 		const missing = ids.filter((id) => !doc.includes(`\`${id}\``));
 		expect(missing).toStrictEqual([]);

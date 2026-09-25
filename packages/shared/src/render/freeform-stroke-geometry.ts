@@ -192,5 +192,27 @@ export function buildFreeformShapeElement(
 			strokeWidth: options.width,
 		},
 		customGeometryPaths: [geometry.path],
+		// The renderers paint a freeform from its aggregate SVG `pathData`; with
+		// only the structured path the new shape drew as its bounding box until
+		// the deck was saved and reopened.
+		pathData: freeformPathToSvg(geometry.path),
+		pathWidth: geometry.path.width,
+		pathHeight: geometry.path.height,
 	};
+}
+
+/** The straight-segment freeform path as SVG path data in its own space. */
+function freeformPathToSvg(path: CustomGeometryPath): string {
+	return path.segments
+		.map((segment) => {
+			if (segment.type === 'moveTo') {
+				return `M ${segment.pt.x} ${segment.pt.y}`;
+			}
+			if (segment.type === 'lineTo') {
+				return `L ${segment.pt.x} ${segment.pt.y}`;
+			}
+			return segment.type === 'close' ? 'Z' : '';
+		})
+		.filter(Boolean)
+		.join(' ');
 }

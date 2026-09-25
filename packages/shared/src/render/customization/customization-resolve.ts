@@ -7,6 +7,7 @@
  *  - switching off `collaboration` removes the Share and Broadcast dialogs;
  *  - switching off `comments` removes the Add Comment menu entry;
  *  - switching off `presentMode` removes the Slide Show tab;
+ *  - switching off `editPoints` removes the Edit Points menu entry;
  *  - hiding a dialog removes every entry point that opens it (toolbar button,
  *    File tab page, action card);
  *  - hiding every export format removes the Export page and button.
@@ -17,6 +18,7 @@ import type { BackstagePage } from '../backstage';
 import type { BackstageCardId } from '../backstage-cards';
 import type { CanvasContextMenuCommandId } from '../canvas-context-menu-commands';
 import type { ContextMenuCommandId } from '../context-menu-commands';
+import type { EditPointsCommandId } from '../edit-points/edit-points-menu';
 import type { ToolbarActionId } from '../toolbar-actions';
 import { VIEWER_EXPORT_FORMAT_IDS } from './customization-catalog';
 import { resolveKeyboardCustomization } from './customization-keymap';
@@ -28,6 +30,7 @@ import type {
 	OptionsSettingValues,
 	ViewerCustomization,
 	ViewerDialogId,
+	ViewerDrawingToolId,
 	ViewerFeatureId,
 	ViewerPanelId,
 } from './customization-types';
@@ -44,6 +47,8 @@ export interface ResolvedCustomization {
 	hiddenBackstageCards: ReadonlySet<BackstageCardId>;
 	hiddenElementCommands: ReadonlySet<ContextMenuCommandId>;
 	hiddenCanvasCommands: ReadonlySet<CanvasContextMenuCommandId>;
+	hiddenEditPointsCommands: ReadonlySet<EditPointsCommandId>;
+	hiddenDrawingTools: ReadonlySet<ViewerDrawingToolId>;
 	elementMenuEnabled: boolean;
 	canvasMenuEnabled: boolean;
 	hiddenPanels: ReadonlySet<ViewerPanelId>;
@@ -116,6 +121,9 @@ export function resolveCustomization(
 	if (features.has('presentMode')) {
 		hiddenActions.add('slideShow');
 	}
+	if (features.has('editPoints')) {
+		elementCommands.add('edit-points');
+	}
 	return {
 		hiddenActions,
 		hiddenOptionsPages: optionsPages,
@@ -127,6 +135,8 @@ export function resolveCustomization(
 		hiddenBackstageCards: cards,
 		hiddenElementCommands: elementCommands,
 		hiddenCanvasCommands: new Set(c.contextMenu?.hiddenCanvasCommands ?? []),
+		hiddenEditPointsCommands: new Set(c.contextMenu?.hiddenEditPointsCommands ?? []),
+		hiddenDrawingTools: new Set(c.hiddenDrawingTools ?? []),
 		elementMenuEnabled: c.contextMenu?.disableElementMenu !== true,
 		canvasMenuEnabled: c.contextMenu?.disableCanvasMenu !== true,
 		hiddenPanels: new Set(c.hiddenPanels ?? []),
@@ -176,4 +186,23 @@ export function isDialogAvailable(
 	dialog: ViewerDialogId,
 ): boolean {
 	return !resolved.hiddenDialogs.has(dialog);
+}
+
+/**
+ * True unless the host switched Edit Points off (the feature, or just its
+ * element context-menu entry, which is its only entry point).
+ */
+export function isEditPointsEnabled(resolved: ResolvedCustomization): boolean {
+	return (
+		!resolved.disabledFeatures.has('editPoints') &&
+		!resolved.hiddenElementCommands.has('edit-points')
+	);
+}
+
+/** True unless the host removed this Insert > Shapes drawing tool. */
+export function isDrawingToolVisible(
+	resolved: ResolvedCustomization,
+	tool: ViewerDrawingToolId,
+): boolean {
+	return !resolved.hiddenDrawingTools.has(tool);
 }
