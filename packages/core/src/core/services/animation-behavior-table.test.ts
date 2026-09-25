@@ -70,16 +70,19 @@ describe('animation behaviour table: entrance/exit filter presets', () => {
 		expect(exit).toBeDefined();
 	});
 
-	it('flash once writes a bare p:animEffect with no filter attribute', () => {
+	it('flash once is a single un-held visibility set lasting the whole effect (COM)', () => {
 		const anim: PptxElementAnimation = {
 			elementId: 'sp1',
 			entrance: 'flashOnceIn',
 			durationMs: 500,
 		};
 		const node = buildSingleEffectNode(anim, 'flashOnceIn', 'entr', createIdAllocator())!;
-		const animEffect = effectChildTnLst(node)['p:animEffect'] as XmlObject;
-		expect(animEffect['@_filter']).toBeUndefined();
-		expect(animEffect['@_transition']).toBe('in');
+		const childTnLst = effectChildTnLst(node);
+		expect(childTnLst['p:animEffect']).toBeUndefined();
+		const set = childTnLst['p:set'] as XmlObject;
+		const cTn = (set['p:cBhvr'] as XmlObject)['p:cTn'] as XmlObject;
+		expect(cTn['@_dur']).toBe('500');
+		expect(cTn['@_fill']).toBeUndefined();
 	});
 });
 

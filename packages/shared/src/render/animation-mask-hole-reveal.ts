@@ -15,7 +15,7 @@
  * verbatim, which is PowerPoint's `msoAnimDirectionOut` visual, not `In` -
  * the wrong direction for what is, by far, the common case (it is also the
  * direction this project's own writer always authors,
- * `animation-behavior-simple-filters.ts`'s hardcoded `filter: 'box(in)'`).
+ * the captured `box(in)` tree in core's `animation-behavior-captures.json`).
  *
  * Implemented with `mask-composite: exclude` (boolean XOR) against an
  * always-solid base layer: XORing a solid layer with a shape inverts that

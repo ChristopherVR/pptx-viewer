@@ -46,7 +46,7 @@ export function buildVisibilitySet(
 				'@_fill': 'hold',
 				'p:stCondLst': {
 					'p:cond': {
-						'@_delay': makeVisible ? '0' : String(duration),
+						'@_delay': makeVisible ? '0' : String(Math.max(0, duration - 1)),
 					},
 				},
 			},

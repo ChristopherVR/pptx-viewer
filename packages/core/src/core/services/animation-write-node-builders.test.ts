@@ -39,13 +39,13 @@ describe('buildVisibilitySet', () => {
 		expect(cond['@_delay']).toBe('0');
 	});
 
-	it('sets delay to duration for hidden (exit) sets', () => {
+	it('sets delay 1 ms before the end for hidden (exit) sets, like PowerPoint', () => {
 		const node = buildVisibilitySet('sp1', 750, false, createIdAllocator());
 		const cBhvr = node['p:cBhvr'] as XmlObject;
 		const cTn = cBhvr['p:cTn'] as XmlObject;
 		const stCondLst = cTn['p:stCondLst'] as XmlObject;
 		const cond = stCondLst['p:cond'] as XmlObject;
-		expect(cond['@_delay']).toBe('750');
+		expect(cond['@_delay']).toBe('749');
 	});
 
 	it('targets the correct shape ID', () => {

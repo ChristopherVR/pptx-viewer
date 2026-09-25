@@ -101,7 +101,7 @@ describe('pRESET_TO_OOXML', () => {
 
 		it('should map "floatIn" to entr, presetId 30', () => {
 			expect(PRESET_TO_OOXML['floatIn'].presetClass).toBe('entr');
-			// COM-verified (`animation-behavior-float-growturn.ts`): `msoAnimEffectFloat`
+			// COM-verified (`animation-behavior-captures.json`): `msoAnimEffectFloat`
 			// serialises presetID="30", not 42.
 			expect(PRESET_TO_OOXML['floatIn'].presetId).toBe(30);
 		});

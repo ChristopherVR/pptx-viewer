@@ -5,10 +5,12 @@
  */
 import type { PptxAnimationPreset, PptxElementAnimation, XmlObject } from '../types';
 import { applyAfterAnimationBehavior } from './animation-after-effect-write';
+import { getCapturedPreset } from './animation-behavior-captured';
 import { getAnimationBehaviorNodes } from './animation-behavior-table';
+import { groupBehaviorChildren } from './animation-write-child-groups';
 import { applyEffectCTnExtras, buildRepeatAttrs } from './animation-write-effect-extras';
 import {
-	PRESET_TO_OOXML,
+	resolveOoxmlPresetMapping,
 	DIRECTION_TO_SUBTYPE,
 	triggerToNodeType,
 	timingCurveToAccelDecel,
@@ -18,12 +20,12 @@ import {
 	buildAnimPropertyNode,
 	buildAnimRotNode,
 	buildAnimScaleNode,
-	buildVisibilitySet,
 	applySoundToEffectCTn,
 	ROTATION_EMPHASIS,
 	SCALE_EMPHASIS,
 	OPACITY_EMPHASIS,
 } from './animation-write-node-behaviors';
+import { buildEntranceExitChildren } from './animation-write-node-entr-exit';
 
 /**
  * Build behavior nodes specific to emphasis effects.
@@ -71,8 +73,11 @@ export function buildSingleEffectNode(
 	presetClass: 'entr' | 'exit' | 'emph',
 	allocateId: () => number,
 ): XmlObject | undefined {
-	const mapping = PRESET_TO_OOXML[preset];
-	if (!mapping) {
+	const mapping = resolveOoxmlPresetMapping(
+		preset,
+		(cls, id) => getCapturedPreset(cls, id)?.defaultSubtype,
+	);
+	if (!mapping || mapping.presetClass === 'path') {
 		return undefined;
 	}
 
@@ -80,22 +85,19 @@ export function buildSingleEffectNode(
 	const delay = anim.delayMs ?? 0;
 	const trigger = anim.trigger ?? 'onClick';
 	const nodeType = triggerToNodeType(trigger);
-	const { accel, decel } = timingCurveToAccelDecel(anim.timingCurve);
-	const subtype = anim.direction
+	let { accel, decel } = timingCurveToAccelDecel(anim.timingCurve);
+	let subtype = anim.direction
 		? (DIRECTION_TO_SUBTYPE[anim.direction] ?? mapping.defaultSubtype)
 		: mapping.defaultSubtype;
 
 	const effectId = allocateId();
 	const shapeId = anim.elementId;
 
-	const childElements: XmlObject[] = [];
-
-	if (presetClass === 'entr') {
-		childElements.push(buildVisibilitySet(shapeId, duration, true, allocateId));
-	}
+	let childElements: XmlObject[] = [];
+	let presetIterate: { type: string; tmPct?: number } | undefined;
 
 	if (presetClass === 'emph') {
-		const emphNodes = buildEmphasisBehaviorNodes(
+		childElements = buildEmphasisBehaviorNodes(
 			shapeId,
 			duration,
 			preset,
@@ -103,35 +105,21 @@ export function buildSingleEffectNode(
 			mapping.presetId,
 			subtype,
 		);
-		for (const n of emphNodes) {
-			childElements.push(n);
-		}
 	} else {
-		const real = getAnimationBehaviorNodes(
+		const built = buildEntranceExitChildren(
+			anim,
 			presetClass,
 			mapping.presetId,
 			subtype,
-			shapeId,
 			duration,
+			{ accel, decel },
 			allocateId,
 		);
-		if (real) {
-			for (const n of real.nodes) {
-				childElements.push(n);
-			}
-		} else {
-			const animEffectNode = buildAnimEffectNode(
-				shapeId,
-				duration,
-				presetClass === 'entr' ? 'in' : 'out',
-				allocateId,
-			);
-			childElements.push(animEffectNode);
-		}
-	}
-
-	if (presetClass === 'exit') {
-		childElements.push(buildVisibilitySet(shapeId, duration, false, allocateId));
+		childElements = built.children;
+		subtype = built.presetSubtype;
+		accel = built.accel;
+		decel = built.decel;
+		presetIterate = built.iterate;
 	}
 
 	const repeatAttrs = buildRepeatAttrs(anim);
@@ -160,71 +148,7 @@ export function buildSingleEffectNode(
 		effectCTn['@_decel'] = String(decel);
 	}
 
-	const childTnLst: XmlObject = {};
-	const setNodes: XmlObject[] = [];
-	const animEffectNodes: XmlObject[] = [];
-	const animNodes: XmlObject[] = [];
-	const animRotNodes: XmlObject[] = [];
-	const animScaleNodes: XmlObject[] = [];
-	const animClrNodes: XmlObject[] = [];
-	const animMotionNodes: XmlObject[] = [];
-
-	for (const child of childElements) {
-		const childNodeType = child['_type'] as string | undefined;
-		delete child['_type'];
-		switch (childNodeType) {
-			case 'set':
-				setNodes.push(child);
-				break;
-			case 'animEffect':
-				animEffectNodes.push(child);
-				break;
-			case 'anim':
-				animNodes.push(child);
-				break;
-			case 'animRot':
-				animRotNodes.push(child);
-				break;
-			case 'animScale':
-				animScaleNodes.push(child);
-				break;
-			case 'animClr':
-				animClrNodes.push(child);
-				break;
-			case 'animMotion':
-				animMotionNodes.push(child);
-				break;
-			default:
-				animEffectNodes.push(child);
-				break;
-		}
-	}
-
-	if (setNodes.length > 0) {
-		childTnLst['p:set'] = setNodes.length === 1 ? setNodes[0] : setNodes;
-	}
-	if (animEffectNodes.length > 0) {
-		childTnLst['p:animEffect'] =
-			animEffectNodes.length === 1 ? animEffectNodes[0] : animEffectNodes;
-	}
-	if (animClrNodes.length > 0) {
-		childTnLst['p:animClr'] = animClrNodes.length === 1 ? animClrNodes[0] : animClrNodes;
-	}
-	if (animMotionNodes.length > 0) {
-		childTnLst['p:animMotion'] =
-			animMotionNodes.length === 1 ? animMotionNodes[0] : animMotionNodes;
-	}
-	if (animNodes.length > 0) {
-		childTnLst['p:anim'] = animNodes.length === 1 ? animNodes[0] : animNodes;
-	}
-	if (animRotNodes.length > 0) {
-		childTnLst['p:animRot'] = animRotNodes.length === 1 ? animRotNodes[0] : animRotNodes;
-	}
-	if (animScaleNodes.length > 0) {
-		childTnLst['p:animScale'] = animScaleNodes.length === 1 ? animScaleNodes[0] : animScaleNodes;
-	}
-
-	effectCTn['p:childTnLst'] = childTnLst;
+	effectCTn['p:childTnLst'] = groupBehaviorChildren(childElements);
 
 	// "After animation" describes what happens once an entrance/emphasis
 	// effect finishes; an exit effect already ends by hiding, so it never
@@ -235,6 +159,16 @@ export function buildSingleEffectNode(
 		applyAfterAnimationBehavior(effectCTn, anim, shapeId);
 	}
 	applySoundToEffectCTn(effectCTn, anim);
+	// A preset PowerPoint authors letter by letter (Color Typewriter, Swish,
+	// Whip...) keeps that default unless the author picked a sequence.
+	if (presetIterate && anim.sequence === undefined) {
+		effectCTn['p:iterate'] = {
+			'@_type': presetIterate.type,
+			...(presetIterate.tmPct !== undefined
+				? { 'p:tmPct': { '@_val': String(presetIterate.tmPct) } }
+				: {}),
+		};
+	}
 	applyEffectCTnExtras(effectCTn, anim);
 
 	const wrapperId = allocateId();

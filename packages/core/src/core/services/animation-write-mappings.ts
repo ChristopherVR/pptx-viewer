@@ -50,6 +50,34 @@ export const PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	...EMPH_PRESET_TO_OOXML,
 };
 
+const CATALOG_TOKEN_RE = /^(entr|exit|emph)\.(\d+)$/u;
+
+/**
+ * Resolve an editor effect token to its OOXML mapping: a typed preset name
+ * (`flyIn`) through {@link PRESET_TO_OOXML}, or a catalogue id (`entr.41`,
+ * what the "Add animation > Effect" pickers store) directly, taking the
+ * default subtype from `defaultSubtypeFor` (the captured PowerPoint table)
+ * when one is known. `undefined` for anything else.
+ */
+export function resolveOoxmlPresetMapping(
+	token: string,
+	defaultSubtypeFor?: (presetClass: 'entr' | 'exit', presetId: number) => number | undefined,
+): OoxmlPresetMapping | undefined {
+	const typed = PRESET_TO_OOXML[token];
+	if (typed) {
+		return typed;
+	}
+	const match = CATALOG_TOKEN_RE.exec(token);
+	if (!match) {
+		return undefined;
+	}
+	const presetClass = match[1] as 'entr' | 'exit' | 'emph';
+	const presetId = Number(match[2]);
+	const defaultSubtype =
+		presetClass === 'emph' ? 0 : (defaultSubtypeFor?.(presetClass, presetId) ?? 0);
+	return { presetClass, presetId, defaultSubtype };
+}
+
 /**
  * Reverse lookup helpers — for a parsed `(presetClass, presetID)` pair,
  * resolve back to the canonical preset name (the value in
