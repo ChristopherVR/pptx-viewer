@@ -25,8 +25,12 @@ interface NodeCanvasModule {
 	loadImage(source: Uint8Array): Promise<NodeCanvasImage>;
 }
 
-/** Module specifier kept in a variable so browser bundlers never try to resolve it. */
-const NODE_CANVAS_SPECIFIER = '@napi-rs/canvas';
+/**
+ * Module specifier built at runtime: esbuild folds a plain string constant
+ * into `import('@napi-rs/canvas')` and then tries to bundle the Node-only
+ * package (and `fs`, `path`, ...) into every browser build that inlines core.
+ */
+const NODE_CANVAS_SPECIFIER = ['@napi-rs', 'canvas'].join('/');
 
 let nodeCanvas: Promise<NodeCanvasModule | undefined> | undefined;
 
