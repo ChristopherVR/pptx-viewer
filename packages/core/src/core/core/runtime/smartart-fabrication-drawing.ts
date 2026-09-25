@@ -25,7 +25,7 @@ import type {
 	ShapePptxElement,
 } from '../../types';
 import { drawingShape3dXml } from './smartart-fabrication-3d';
-import { XML_PROLOG, xmlEscape } from './smartart-fabrication-data';
+import { XML_PROLOG, avLstXml, xmlEscape } from './smartart-fabrication-data';
 import { drawingTextBodyXml } from './smartart-fabrication-text';
 
 /** Content type for the cached diagram drawing part. */
@@ -152,9 +152,17 @@ function shapePropsXml(shape: PptxSmartArtDrawingShape): string {
 						),
 					}),
 				)
-			: `<a:prstGeom prst="${xmlEscape(prst)}"><a:avLst/></a:prstGeom>`;
+			: `<a:prstGeom prst="${xmlEscape(prst)}">${avLstXml(shape.shapeAdjustments)}</a:prstGeom>`;
 	const fillHex = normalizeHex(shape.fillColor);
-	const fill = fillHex ? `<a:solidFill><a:srgbClr val="${fillHex}"/></a:solidFill>` : '';
+	const fillAlpha =
+		shape.fillOpacity !== undefined && shape.fillOpacity < 1
+			? `<a:alpha val="${Math.round(Math.max(0, shape.fillOpacity) * 100000)}"/>`
+			: '';
+	const fill = fillHex
+		? fillAlpha
+			? `<a:solidFill><a:srgbClr val="${fillHex}">${fillAlpha}</a:srgbClr></a:solidFill>`
+			: `<a:solidFill><a:srgbClr val="${fillHex}"/></a:solidFill>`
+		: '';
 	const strokeHex = normalizeHex(shape.strokeColor);
 	const strokeW =
 		shape.strokeWidth && shape.strokeWidth > 0
@@ -255,6 +263,10 @@ export function smartArtElementsToDrawingShapes(
 					}
 				: {}),
 			fillColor: shape.shapeStyle?.fillColor,
+			...(shape.shapeStyle?.fillOpacity !== undefined && shape.shapeStyle.fillOpacity < 1
+				? { fillOpacity: shape.shapeStyle.fillOpacity }
+				: {}),
+			...(shape.shapeAdjustments ? { shapeAdjustments: shape.shapeAdjustments } : {}),
 			strokeColor: shape.shapeStyle?.strokeColor,
 			strokeWidth: shape.shapeStyle?.strokeWidth,
 			text: shape.text,

@@ -96,12 +96,17 @@ export function makeShapeElement(
 		textAlign?: 'left' | 'center' | 'right';
 		textVAlign?: 'top' | 'middle' | 'bottom';
 		cornerRadius?: number;
+		/** Preset adjustments (`a:avLst`), e.g. a pyramid tier's trapezoid `adj`. */
+		shapeAdjustments?: Record<string, number>;
+		/** Solid fill opacity (0..1), e.g. a Venn circle's 50% alpha. */
+		fillOpacity?: number;
 		textSegments?: TextSegment[];
 	},
 ): ShapePptxElement {
 	const shapeStyle: ShapeStyle = {
 		fillColor,
 		fillMode: 'solid',
+		...(opts?.fillOpacity !== undefined ? { fillOpacity: opts.fillOpacity } : {}),
 		strokeColor: opts?.strokeColor ?? lighten(fillColor, 0.2),
 		strokeWidth: opts?.strokeWidth ?? 1,
 	};
@@ -126,9 +131,10 @@ export function makeShapeElement(
 		skewY: opts?.skewY,
 		shapeType,
 		shapeAdjustments:
-			opts !== undefined && opts.cornerRadius !== undefined
+			opts?.shapeAdjustments ??
+			(opts !== undefined && opts.cornerRadius !== undefined
 				? { adj: opts.cornerRadius }
-				: undefined,
+				: undefined),
 		shapeStyle,
 		text,
 		textStyle,

@@ -237,6 +237,11 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	/** Solid fill colour (hex). */
 	fillColor?: string;
 	/**
+	 * Opacity (0..1) of the solid fill, from the colour's `a:alpha` (Basic Venn
+	 * paints its circles at 50% so overlaps blend). Absent when opaque.
+	 */
+	fillOpacity?: number;
+	/**
 	 * Gradient fill stops when the cached shape uses `a:gradFill`. Positions are
 	 * 0..100 (percent). Renderers emit an SVG/CSS gradient instead of a flat box.
 	 */

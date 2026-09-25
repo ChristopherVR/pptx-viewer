@@ -69,6 +69,10 @@ const deps: DrawingShapeStyleDeps = {
 	hasChild,
 	getChildren,
 	parseColor,
+	extractColorOpacity: (node) => {
+		const alpha = getChild(getChild(node, 'srgbClr') ?? getChild(node, 'schemeClr'), 'alpha');
+		return alpha ? Number(alpha['@_val']) / 100000 : undefined;
+	},
 	extractGradientStops: (gradFill) =>
 		getChildren(getChild(gradFill, 'gsLst'), 'gs').map((gs) => ({
 			color: parseColor(gs) ?? '#000000',
@@ -108,6 +112,22 @@ describe('extractDrawingShapeFill', () => {
 
 		expect(result.fillNone).toBeUndefined();
 		expect(result.fillColor).toBe('#156082');
+	});
+
+	it('keeps a solid fill alpha as fillOpacity (Basic Venn circles)', () => {
+		const spPr: XmlObject = {
+			'a:solidFill': { 'a:srgbClr': { '@_val': '156082', 'a:alpha': { '@_val': '50000' } } },
+		};
+		const result = extractDrawingShapeFill(spPr, deps);
+
+		expect(result.fillColor).toBe('#156082');
+		expect(result.fillOpacity).toBe(0.5);
+	});
+
+	it('leaves fillOpacity unset for an opaque solid fill', () => {
+		const spPr: XmlObject = { 'a:solidFill': { 'a:srgbClr': { '@_val': '156082' } } };
+
+		expect(extractDrawingShapeFill(spPr, deps).fillOpacity).toBeUndefined();
 	});
 
 	it('parses a gradient fill onto the drawing-shape model (issue #73)', () => {

@@ -349,6 +349,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			hasChild: (node, local) => this.xmlLookupService.hasChildByLocalName(node, local),
 			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
 			parseColor: (node) => this.parseColor(node),
+			extractColorOpacity: (node) => this.extractColorOpacity(node),
 			extractGradientStops: (gradFill) => this.extractGradientStops(gradFill),
 			extractGradientType: (gradFill) => this.extractGradientType(gradFill),
 			extractGradientAngle: (gradFill) => this.extractGradientAngle(gradFill),
