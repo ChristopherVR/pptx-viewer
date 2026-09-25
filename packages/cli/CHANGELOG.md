@@ -7,6 +7,73 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.29.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.29.0) - 2026-09-25
+
+### Features
+
+- **react:** Edit points and freeform shape / curve tools (by @ChristopherVR) ([cc35380](https://github.com/ChristopherVR/pptx-viewer/commit/cc3538005566f73341e9cd35d2cfc6b9af11b7e7))
+- **react:** Merge shapes and on-canvas picture crop (by @ChristopherVR) ([d4d6813](https://github.com/ChristopherVR/pptx-viewer/commit/d4d6813a4d3316ea70d9a92e0b53ea148e052a7b))
+- **react:** Pick the media bookmark for an On bookmark trigger (by @ChristopherVR) ([b0e3fa2](https://github.com/ChristopherVR/pptx-viewer/commit/b0e3fa21406b0a884a4a18b8fa8c09ae72df04c1))
+- **shared:** Paint chart gradient fills in all five bindings (by @ChristopherVR) ([7f22964](https://github.com/ChristopherVR/pptx-viewer/commit/7f229642cda0b1388df4c6be560478192152f051))
+
+### Bug Fixes
+
+- **react:** Take the shared crop cancel update as-is (by @ChristopherVR) ([46ece07](https://github.com/ChristopherVR/pptx-viewer/commit/46ece078a09dfd16a46f0a5bb6bdbf4e0a1b28d7))
+- **react:** Start the legacy zoom transition style as a centred box (by @ChristopherVR) ([88f7781](https://github.com/ChristopherVR/pptx-viewer/commit/88f778167267c88435a52c5cef73420c4024bc47))
+- **core:** Render picture-filled text runs instead of solid black (by @ChristopherVR) ([e1021f9](https://github.com/ChristopherVR/pptx-viewer/commit/e1021f9f4fb8efe07bb0dbb70c63e342ec764d49))
+- **shared:** Match PowerPoint's underline variants (by @ChristopherVR) ([46ad363](https://github.com/ChristopherVR/pptx-viewer/commit/46ad3637a88ed2d9b18c3fdee0aa98ba57207b3f))
+- **shared:** Align decimal and right-to-left tab stops like PowerPoint (by @ChristopherVR) ([1575f61](https://github.com/ChristopherVR/pptx-viewer/commit/1575f61f3cefa9f703e21d2f914ec567e541f81a))
+- **shared:** Colour and label waterfall bars like PowerPoint (by @ChristopherVR) ([44a4fec](https://github.com/ChristopherVR/pptx-viewer/commit/44a4fec1284837b3249202e2a40053ef934ba85f))
+
+### Testing
+
+- **react:** Expect the On bookmark trigger and the zoom box reveal (by @ChristopherVR) ([56b00ba](https://github.com/ChristopherVR/pptx-viewer/commit/56b00ba045107a1f5ccf23d2e3edc3b0c1bc3e8d))
+
+## [2.28.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.28.0) - 2026-09-25
+
+### Features
+
+- **react:** Expose the ui customization model (by @ChristopherVR) ([99a34a1](https://github.com/ChristopherVR/pptx-viewer/commit/99a34a13ebff6056791909eee2dc747fd2c48853))
+
+### Bug Fixes
+
+- **shared,react,vue,angular,svelte,vanilla:** Leave Tab on chrome controls to focus navigation (by @ChristopherVR) ([6561c8d](https://github.com/ChristopherVR/pptx-viewer/commit/6561c8dd0ecf506b6e97cf1991616e40a2204e41))
+- **react,angular:** Keep right-click menus inside the viewport (by @ChristopherVR) ([39642d7](https://github.com/ChristopherVR/pptx-viewer/commit/39642d7955daec7c48543aae3c135d729f70a177))
+- **react:** Open the empty-canvas menu and grey Paste with an empty clipboard (by @ChristopherVR) ([8699d03](https://github.com/ChristopherVR/pptx-viewer/commit/8699d03ef75c929ab3f3b9331829e3d09acc0ebe))
+
+## [2.27.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.27.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Empty-canvas context menu (by @ChristopherVR) ([15b9a88](https://github.com/ChristopherVR/pptx-viewer/commit/15b9a88356ef91fda565d65ee107249d32aeb0b8))
+- **shared,react,vue,angular,svelte,vanilla:** Slides pane multi-select + thumbnail menu (by @ChristopherVR) ([4078a33](https://github.com/ChristopherVR/pptx-viewer/commit/4078a33160a1edbabdf37ac7f3163bad37898752))
+- **shared,react,vue,angular,svelte,vanilla:** Real in-place ribbon animation preview (by @ChristopherVR) ([9b98bac](https://github.com/ChristopherVR/pptx-viewer/commit/9b98bac62f90c02c78afe0fa2989ab57dc9e7928))
+
+### Bug Fixes
+
+- **shared,react:** Round normAutofit fontScale to a whole point (by @ChristopherVR) ([cda09e4](https://github.com/ChristopherVR/pptx-viewer/commit/cda09e4eb35619701663fbfcb81892ef23ee377c))
+- **shared,core:** Fix text reflection mirror, inner shadow, glow, soft edge (by @ChristopherVR) ([1796d14](https://github.com/ChristopherVR/pptx-viewer/commit/1796d14015e6d1a1db2221bcfc90bf446536a453))
+- **core,shared,react:** Size inline equations from their own paragraph; assert anchorCtr on painted text (by @ChristopherVR) ([16ecb59](https://github.com/ChristopherVR/pptx-viewer/commit/16ecb593ba301bced3d68bfb323d1040b1874904))
+
+## [2.26.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.26.0) - 2026-09-24
+
+### Features
+
+- **shared,react,vue,angular,svelte,vanilla:** Element context menu format commands + Paste Special (by @ChristopherVR) ([ae48518](https://github.com/ChristopherVR/pptx-viewer/commit/ae485188df20eb0c309a6a4f2ee8b4302d7e7024))
+- **shared,react,vue,angular,svelte,vanilla:** Render online video links as an iframe embed (by @ChristopherVR) ([6ba33e2](https://github.com/ChristopherVR/pptx-viewer/commit/6ba33e26119e20393984625c0e7a7958da5ec466))
+- **shared,react,vue,angular,svelte,vanilla:** Apply Zoom returnToParent/transitionDur during slide-show playback (by @ChristopherVR) ([673afa5](https://github.com/ChristopherVR/pptx-viewer/commit/673afa5c7b62ff61378588b87ddbc1c7b433067e))
+- **core,shared,react,vue,angular,svelte,vanilla:** P15/p14 transition direction, pattern and Through Black options (by @ChristopherVR) ([8b5ec7e](https://github.com/ChristopherVR/pptx-viewer/commit/8b5ec7ec976ad2779bec48d92a7177ad6fe92d38))
+
+### Bug Fixes
+
+- **shared,react:** Correct Box/Circle/Diamond/Plus entrance "In" mask reveal (by @ChristopherVR) ([cf6ddcf](https://github.com/ChristopherVR/pptx-viewer/commit/cf6ddcf8876cfed3743b6de5a3fb12695aeb5f10))
+- **react,vue,angular,svelte,vanilla,shared:** Stop OLE actions nesting a <button> inside slide thumbnails (by @ChristopherVR) ([82da5a7](https://github.com/ChristopherVR/pptx-viewer/commit/82da5a73896a8498318882051078d65d38e5cb41))
+- **angular,react,locales:** Unblock the build after the transition and paste-special merges (by @ChristopherVR) ([f08cd7c](https://github.com/ChristopherVR/pptx-viewer/commit/f08cd7c2a4c2eea56f46557b38c9e484061a43bb))
+
+### Refactor
+
+- **shared,react,angular,svelte,vue:** Consolidate trigger options into shared, add afterDelay parity (by @ChristopherVR) ([819582f](https://github.com/ChristopherVR/pptx-viewer/commit/819582f5713c050c7e646385f17c40f9d8a41027))
+
 ## [2.25.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.25.0) - 2026-09-24
 
 ### Features

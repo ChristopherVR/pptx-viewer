@@ -23,6 +23,7 @@ import {
 	computed,
 	ElementRef,
 	HostListener,
+	inject,
 	input,
 	output,
 	signal,
@@ -44,6 +45,7 @@ import { TranslatePipe } from '@ngx-translate/core';
 import { isActionHidden } from '../internal/shared';
 import type { ToolbarActionId } from '../internal/shared';
 import { toolbarVisibility } from './toolbar-visibility';
+import { ViewerCustomizationService } from './viewer-customization.service';
 
 /** Overflow menu items (mirrors React's File/overflow actions that exist here). */
 const ALL_OVERFLOW_ITEMS: ReadonlyArray<{
@@ -230,15 +232,17 @@ export function visibleOverflowItems(
 			}
 
 			<!-- Settings (mirrors React: between the panel toggle and the overflow "...") -->
-			<button
-				type="button"
-				class="pptx-rb-icon text-muted-foreground"
-				[title]="'pptx.toolbar.settingsShortcuts' | translate"
-				[attr.aria-label]="'pptx.toolbar.settings' | translate"
-				(click)="openSettings.emit()"
-			>
-				<svg lucideSettings class="h-3.5 w-3.5"></svg>
-			</button>
+			@if (customization?.dialogAvailable('options') !== false) {
+				<button
+					type="button"
+					class="pptx-rb-icon text-muted-foreground"
+					[title]="'pptx.toolbar.settingsShortcuts' | translate"
+					[attr.aria-label]="'pptx.toolbar.settings' | translate"
+					(click)="openSettings.emit()"
+				>
+					<svg lucideSettings class="h-3.5 w-3.5"></svg>
+				</button>
+			}
 
 			<!-- Overflow menu -->
 			<div class="relative inline-flex items-center" #overflowRoot>
@@ -321,7 +325,13 @@ export class RibbonPrimaryRowComponent {
 	protected readonly presentMenuOpen = signal(false);
 	protected readonly overflowOpen = signal(false);
 	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
-	protected readonly overflowItems = computed(() => visibleOverflowItems(this.hiddenActions()));
+	/** Host UI customisation (optional: absent outside a viewer). */
+	protected readonly customization = inject(ViewerCustomizationService, { optional: true });
+	protected readonly overflowItems = computed(() =>
+		visibleOverflowItems(this.hiddenActions()).filter(
+			(item) => item.key !== 'print' || this.customization?.dialogAvailable('print') !== false,
+		),
+	);
 
 	private readonly presentRoot = viewChild<ElementRef<HTMLElement>>('presentRoot');
 	private readonly overflowRoot = viewChild<ElementRef<HTMLElement>>('overflowRoot');

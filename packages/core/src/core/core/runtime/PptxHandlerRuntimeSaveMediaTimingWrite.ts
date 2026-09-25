@@ -1,5 +1,6 @@
 import { XmlObject, PptxElement } from '../../types';
 import type { MediaPptxElement } from '../../types';
+import { resolvePlayAcrossSlides } from './PptxHandlerRuntimeMediaParsingUtils';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSavePresPropsAndSignatures';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
@@ -85,14 +86,26 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					delete cTn['@_nodeType'];
 				}
 
-				// Play across slides: dur=indefinite means audio timeline spans slides
+				// Play across slides has two storage forms (see
+				// `resolvePlayAcrossSlides`): cTn `dur="indefinite"` and PowerPoint's
+				// own `cMediaNode/@numSld` span. When the node already says it through
+				// `numSld`, adding `dur` too only grows the XML (issue-132 decks gained
+				// a `dur` on every rewrite), so write `dur` only when nothing else
+				// carries the flag.
+				const spansSlides = resolvePlayAcrossSlides(cMediaNode, false, mediaTag);
 				if (media.playAcrossSlides && mediaTag === 'p:audio') {
-					cTn['@_dur'] = 'indefinite';
+					if (!spansSlides) {
+						cTn['@_dur'] = 'indefinite';
+					}
 				} else if (!media.playAcrossSlides) {
 					// Only remove if we're sure it was previously set for play-across
 					// Leave dur alone if it was set for other reasons
 					if (String(cTn['@_dur']) === 'indefinite') {
 						delete cTn['@_dur'];
+					}
+					// A multi-slide span would read back as "play across" again.
+					if (spansSlides) {
+						delete cMediaNode['@_numSld'];
 					}
 				}
 
@@ -237,7 +250,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		if (hasBookmarks && media.bookmarks) {
-			let bmkExt = existingExts.find((e) => e['p14:bmkLst'] !== undefined);
+			// Update the list where it already lives: inside `p14:media` (the
+			// form PowerPoint writes) or, for a deck saved by an older build, a
+			// sibling extension. Adding a second list beside PowerPoint's own
+			// would leave two disagreeing copies.
+			const p14MediaExt = existingExts.find((e) => e['p14:media'] !== undefined);
+			const p14Media = p14MediaExt?.['p14:media'] as XmlObject | undefined;
+			let bmkExt: XmlObject | undefined =
+				p14Media && p14Media['p14:bmkLst'] !== undefined
+					? p14Media
+					: existingExts.find((e) => e['p14:bmkLst'] !== undefined);
 			if (!bmkExt) {
 				bmkExt = { '@_uri': '{C809E50D-3E49-4677-B9B1-B2B30C8E0B5F}' };
 				existingExts.push(bmkExt);

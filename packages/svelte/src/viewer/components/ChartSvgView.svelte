@@ -27,9 +27,23 @@
 	{#if vm.defs && vm.defs.length > 0}
 		<defs>
 			{#each vm.defs as def (def.id)}
-				<pattern id={def.id} patternUnits={def.patternUnits} x={def.x} y={def.y} width={def.width} height={def.height}>
-					<image href={def.href} x="0" y="0" width={def.width} height={def.height} preserveAspectRatio={def.preserveAspectRatio} />
-				</pattern>
+				{#if def.kind === 'linearGradient'}
+					<linearGradient id={def.id} x1={def.x1} y1={def.y1} x2={def.x2} y2={def.y2}>
+						{#each def.stops as stop, si (si)}
+							<stop offset={stop.offset} stop-color={stop.color} stop-opacity={stop.opacity} />
+						{/each}
+					</linearGradient>
+				{:else if def.kind === 'radialGradient'}
+					<radialGradient id={def.id} cx={def.cx} cy={def.cy} r={def.r}>
+						{#each def.stops as stop, si (si)}
+							<stop offset={stop.offset} stop-color={stop.color} stop-opacity={stop.opacity} />
+						{/each}
+					</radialGradient>
+				{:else}
+					<pattern id={def.id} patternUnits={def.patternUnits} x={def.x} y={def.y} width={def.width} height={def.height}>
+						<image href={def.href} x="0" y="0" width={def.width} height={def.height} preserveAspectRatio={def.preserveAspectRatio} />
+					</pattern>
+				{/if}
 			{/each}
 		</defs>
 	{/if}
@@ -71,7 +85,7 @@
 	{/if}
 
 	{#each vm.categoryLabels as lbl, i (`cl${i}`)}
-		<text x={lbl.x} y={lbl.y} text-anchor={lbl.textAnchor} font-size={lbl.fontSize} fill={lbl.fill} font-weight={lbl.fontWeight ?? 'normal'} dominant-baseline={lbl.dominantBaseline}>{lbl.text}</text>
+		<text x={lbl.x} y={lbl.y} text-anchor={lbl.textAnchor} font-size={lbl.fontSize} fill={lbl.fill} font-weight={lbl.fontWeight ?? 'normal'} dominant-baseline={lbl.dominantBaseline} opacity={lbl.opacity ?? 1} transform={lbl.transform}>{lbl.text}</text>
 	{/each}
 
 	{#each vm.primitives as prim, i (`p${i}`)}
@@ -98,7 +112,7 @@
 	{/each}
 
 	{#each vm.dataLabels as dl, i (`dl${i}`)}
-		<text x={dl.x} y={dl.y} text-anchor={dl.textAnchor} font-size={dl.fontSize} fill={dl.fill} font-weight={dl.fontWeight ?? 'normal'} dominant-baseline={dl.dominantBaseline}>{dl.text}</text>
+		<text x={dl.x} y={dl.y} text-anchor={dl.textAnchor} font-size={dl.fontSize} fill={dl.fill} font-weight={dl.fontWeight ?? 'normal'} dominant-baseline={dl.dominantBaseline} opacity={dl.opacity ?? 1} transform={dl.transform}>{dl.text}</text>
 	{/each}
 
 	{#each legendItems as entry (entry.key)}

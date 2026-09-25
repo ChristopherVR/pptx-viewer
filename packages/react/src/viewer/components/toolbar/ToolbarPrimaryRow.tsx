@@ -1,9 +1,11 @@
+import { isDialogAvailable, isFeatureEnabled, isPanelVisible } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuMessageSquare, LuPanelLeft, LuPanelRight, LuSettings, LuSparkles } from 'react-icons/lu';
 
 import { cn } from '../../utils';
 import { useCollaboration, UserAvatarBar } from '../collaboration';
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { CustomShowsControls } from './CustomShowsControls';
 import { ModeSwitcher } from './ModeSwitcher';
 import { OverflowMenu } from './OverflowMenu';
@@ -22,6 +24,14 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 	} = p;
 
 	const collab = useCollaboration();
+	// Host customisation: hidden panes lose their toggles, a removed Options
+	// dialog loses its gear, disabled comments / sharing lose their chrome.
+	const customization = useViewerCustomizationContext();
+	const showSlidesToggle = isPanelVisible(customization, 'slidesPane');
+	const showInspectorToggle = isPanelVisible(customization, 'inspector');
+	const showComments = isFeatureEnabled(customization, 'comments');
+	const showShare = isDialogAvailable(customization, 'share');
+	const showSettings = isDialogAvailable(customization, 'options');
 
 	const qab =
 		'p-1 max-md:p-2 max-md:min-h-[40px] max-md:min-w-[40px] rounded-sm transition-colors hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 active:opacity-70';
@@ -29,7 +39,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 	return (
 		<div className='flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1'>
 			{/* Left: Slides pane toggle + Undo/Redo + Find */}
-			{mode !== 'present' && (
+			{mode !== 'present' && showSlidesToggle && (
 				<button
 					type='button'
 					onClick={onToggleSidebar}
@@ -44,7 +54,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 			<div className='flex-1 min-w-2 max-md:min-w-1' />
 
 			{/* Right: Comments + Present + Share + Inspector + Settings + Overflow */}
-			{(mode === 'edit' || mode === 'master') && (
+			{(mode === 'edit' || mode === 'master') && showComments && (
 				<button
 					type='button'
 					onClick={p.onToggleComments}
@@ -67,6 +77,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 
 			{/* Collaboration user avatars (inline, PowerPoint-style) */}
 			{collab &&
+				showShare &&
 				(collab.status === 'connected' || collab.status === 'connecting') &&
 				collab.remoteUsers.length > 0 && (
 					<button
@@ -112,7 +123,7 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 
 			{sep}
 
-			{(mode === 'edit' || mode === 'master') && (
+			{(mode === 'edit' || mode === 'master') && showInspectorToggle && (
 				<button
 					type='button'
 					onClick={onToggleInspector}
@@ -138,15 +149,17 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 			)}
 
 			{/* Settings */}
-			<button
-				type='button'
-				onClick={p.onOpenSettings ?? p.onToggleShortcuts}
-				className={cn(qab, 'text-muted-foreground')}
-				title={t('pptx.toolbar.settingsShortcuts')}
-				aria-label={t('pptx.toolbar.settings')}
-			>
-				<LuSettings className={ics} />
-			</button>
+			{showSettings && (
+				<button
+					type='button'
+					onClick={p.onOpenSettings ?? p.onToggleShortcuts}
+					className={cn(qab, 'text-muted-foreground')}
+					title={t('pptx.toolbar.settingsShortcuts')}
+					aria-label={t('pptx.toolbar.settings')}
+				>
+					<LuSettings className={ics} />
+				</button>
+			)}
 
 			{!canEdit && p.isProtectedView && p.onEnableEditing ? (
 				<button

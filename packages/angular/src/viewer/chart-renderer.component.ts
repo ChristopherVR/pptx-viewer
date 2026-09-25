@@ -65,23 +65,56 @@ const LEGEND_SWATCH_SIZE = 10;
 			@if ((vm().defs ?? []).length > 0) {
 				<defs>
 					@for (def of vm().defs ?? []; track def.id) {
-						<pattern
-							[attr.id]="def.id"
-							[attr.patternUnits]="def.patternUnits"
-							[attr.x]="def.x"
-							[attr.y]="def.y"
-							[attr.width]="def.width"
-							[attr.height]="def.height"
-						>
-							<image
-								[attr.href]="def.href"
-								x="0"
-								y="0"
+						@if (def.kind === 'linearGradient') {
+							<linearGradient
+								[attr.id]="def.id"
+								[attr.x1]="def.x1"
+								[attr.y1]="def.y1"
+								[attr.x2]="def.x2"
+								[attr.y2]="def.y2"
+							>
+								@for (stop of def.stops; track $index) {
+									<stop
+										[attr.offset]="stop.offset"
+										[attr.stop-color]="stop.color"
+										[attr.stop-opacity]="stop.opacity"
+									/>
+								}
+							</linearGradient>
+						} @else if (def.kind === 'radialGradient') {
+							<radialGradient
+								[attr.id]="def.id"
+								[attr.cx]="def.cx"
+								[attr.cy]="def.cy"
+								[attr.r]="def.r"
+							>
+								@for (stop of def.stops; track $index) {
+									<stop
+										[attr.offset]="stop.offset"
+										[attr.stop-color]="stop.color"
+										[attr.stop-opacity]="stop.opacity"
+									/>
+								}
+							</radialGradient>
+						} @else {
+							<pattern
+								[attr.id]="def.id"
+								[attr.patternUnits]="def.patternUnits"
+								[attr.x]="def.x"
+								[attr.y]="def.y"
 								[attr.width]="def.width"
 								[attr.height]="def.height"
-								[attr.preserveAspectRatio]="def.preserveAspectRatio"
-							/>
-						</pattern>
+							>
+								<image
+									[attr.href]="def.href"
+									x="0"
+									y="0"
+									[attr.width]="def.width"
+									[attr.height]="def.height"
+									[attr.preserveAspectRatio]="def.preserveAspectRatio"
+								/>
+							</pattern>
+						}
 					}
 				</defs>
 			}
@@ -149,6 +182,7 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.font-size]="lbl.fontSize"
 					[attr.fill]="lbl.fill"
 					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
+					[attr.transform]="lbl.transform ?? null"
 				>
 					{{ lbl.text }}
 				</text>
@@ -205,6 +239,7 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.font-size]="lbl.fontSize"
 					[attr.fill]="lbl.fill"
 					[attr.dominant-baseline]="lbl.dominantBaseline ?? 'auto'"
+					[attr.transform]="lbl.transform ?? null"
 				>
 					{{ lbl.text }}
 				</text>
@@ -224,6 +259,8 @@ const LEGEND_SWATCH_SIZE = 10;
 					[attr.fill]="dl.fill"
 					[attr.font-weight]="dl.fontWeight ?? 'normal'"
 					[attr.dominant-baseline]="dl.dominantBaseline ?? 'auto'"
+					[attr.opacity]="dl.opacity ?? 1"
+					[attr.transform]="dl.transform ?? null"
 				>
 					{{ dl.text }}
 				</text>

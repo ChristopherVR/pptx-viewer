@@ -13,6 +13,7 @@ import type { InspectorSectionAnchor, RasterStrategyOptions } from 'pptx-viewer-
 import {
 	buildRasterPictureElement,
 	elementPictureFilename,
+	findCanvasElementNode,
 	rasterizeElementToDataUrl,
 	saveElementAsPicture,
 	scrollInspectorSectionIntoView,
@@ -24,7 +25,7 @@ import type { Store, ViewerState } from '../state';
 
 /** The mounted DOM node for `elementId`, or null when it is not on screen. */
 function findElementNode(doc: Document, elementId: string): HTMLElement | null {
-	return doc.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+	return findCanvasElementNode(doc, elementId);
 }
 
 /**

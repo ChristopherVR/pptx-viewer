@@ -85,6 +85,8 @@ export function readOptionValue(
 									class="pptx-ng-options-check"
 									[checked]="value(control) === true"
 									[attr.aria-label]="control.labelKey | translate"
+									[attr.disabled]="control.readOnly ? '' : null"
+									[attr.title]="control.readOnly ? ('pptx.options.lockedByHost' | translate) : null"
 									(change)="emitToggle(control, $event)"
 								/>
 							</label>
@@ -107,6 +109,10 @@ export function readOptionValue(
 											class="pptx-ng-options-select"
 											[value]="value(control)"
 											[attr.aria-label]="control.labelKey | translate"
+											[attr.disabled]="control.readOnly ? '' : null"
+											[attr.title]="
+												control.readOnly ? ('pptx.options.lockedByHost' | translate) : null
+											"
 											(change)="emitSelect(control, $event)"
 										>
 											@for (choice of selectChoices(control); track choice.value) {
@@ -124,6 +130,10 @@ export function readOptionValue(
 												[max]="numberMax(control)"
 												[value]="value(control)"
 												[attr.aria-label]="control.labelKey | translate"
+												[attr.disabled]="control.readOnly ? '' : null"
+												[attr.title]="
+													control.readOnly ? ('pptx.options.lockedByHost' | translate) : null
+												"
 												(change)="emitNumber(control, $event)"
 											/>
 											@if (numberUnitKey(control); as unitKey) {
@@ -138,6 +148,10 @@ export function readOptionValue(
 											maxlength="64"
 											[value]="value(control) ?? ''"
 											[attr.aria-label]="control.labelKey | translate"
+											[attr.disabled]="control.readOnly ? '' : null"
+											[attr.title]="
+												control.readOnly ? ('pptx.options.lockedByHost' | translate) : null
+											"
 											(change)="emitText(control, $event)"
 										/>
 									}
@@ -221,6 +235,10 @@ export class OptionsPaneComponent {
 	}
 
 	private emit(control: ViewerOptionsControl, value: ViewerOptionPrimitive): void {
+		// A host-locked setting (customization.options.locked) never changes.
+		if (control.readOnly === true) {
+			return;
+		}
 		this.valueChange.emit({ group: control.group, key: control.key, value });
 	}
 }

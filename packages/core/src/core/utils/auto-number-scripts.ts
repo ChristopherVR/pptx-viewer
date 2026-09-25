@@ -13,6 +13,18 @@
  * @module auto-number-scripts
  */
 
+import {
+	ARABIC_ABJADI_LETTERS,
+	ARABIC_HIJAI_LETTERS,
+	HINDI_CONSONANTS,
+	HINDI_VOWELS,
+	THAI_CONSONANTS,
+	hebrewAlphaLabel,
+	repeatedLabel,
+	toCjkDigitString,
+	toEa1ChtNumeral,
+} from './auto-number-alphabets';
+
 /** Clamp to a positive integer for indexing/formatting. */
 function posInt(n: number, max: number): number {
 	return Math.max(1, Math.min(Math.floor(n), max));
@@ -57,99 +69,18 @@ export function bijectiveLabel(n: number, alphabet: ReadonlyArray<string>): stri
 	return result;
 }
 
-/** Devanagari independent vowels, for the Hindi `hindiAlpha*` schemes. */
-export const HINDI_VOWELS: ReadonlyArray<string> = [
-	'अ',
-	'आ',
-	'इ',
-	'ई',
-	'उ',
-	'ऊ',
-	'ए',
-	'ऐ',
-	'ओ',
-	'औ',
-	'अं',
-	'अः',
-];
-
-/** Devanagari consonants, for the Hindi `hindiAlpha1*` schemes. */
-export const HINDI_CONSONANTS: ReadonlyArray<string> = [
-	'क',
-	'ख',
-	'ग',
-	'घ',
-	'ङ',
-	'च',
-	'छ',
-	'ज',
-	'झ',
-	'ञ',
-	'ट',
-	'ठ',
-	'ड',
-	'ढ',
-	'ण',
-	'त',
-	'थ',
-	'द',
-	'ध',
-	'न',
-	'प',
-	'फ',
-	'ब',
-	'भ',
-	'म',
-	'य',
-	'र',
-	'ल',
-	'व',
-	'श',
-	'ष',
-	'स',
-	'ह',
-];
-
-/**
- * The 44 Thai consonants `ก…ฮ` for the `thaiAlpha*` schemes. Generated across
- * `U+0E01…U+0E2E`, excluding the two vowel-like code points `ฤ` (U+0E24) and
- * `ฦ` (U+0E26) that fall inside the block but are not counted as consonants.
- */
-export const THAI_CONSONANTS: ReadonlyArray<string> = Array.from({ length: 46 }, (_v, i) => i)
-	.filter((i) => i !== 0x0e24 - 0x0e01 && i !== 0x0e26 - 0x0e01)
-	.map((i) => String.fromCodePoint(0x0e01 + i));
-
-/** The 28 Arabic letters in hija'i (alphabetical) order, for `arabic1Minus`. */
-export const ARABIC_HIJAI_LETTERS: ReadonlyArray<string> = [
-	'ا',
-	'ب',
-	'ت',
-	'ث',
-	'ج',
-	'ح',
-	'خ',
-	'د',
-	'ذ',
-	'ر',
-	'ز',
-	'س',
-	'ش',
-	'ص',
-	'ض',
-	'ط',
-	'ظ',
-	'ع',
-	'غ',
-	'ف',
-	'ق',
-	'ك',
-	'ل',
-	'م',
-	'ن',
-	'ه',
-	'و',
-	'ي',
-];
+export {
+	HINDI_VOWELS,
+	HINDI_CONSONANTS,
+	THAI_CONSONANTS,
+	ARABIC_HIJAI_LETTERS,
+	ARABIC_ABJADI_LETTERS,
+	HEBREW_LETTERS,
+	repeatedLabel,
+	hebrewAlphaLabel,
+	toCjkDigitString,
+	toEa1ChtNumeral,
+} from './auto-number-alphabets';
 
 /**
  * Hebrew alphabetic (gematria) numeral for the `hebrew2Minus` scheme.
@@ -231,6 +162,16 @@ export function toChineseNumeral(n: number, traditional: boolean): string {
 	return result;
 }
 
+/**
+ * `ea1Chs*` numeral (COM-verified): below 100 the `十` form (`十一`,
+ * `四十五`, `九十九`); from 100 up PowerPoint switches to digit-by-digit
+ * (`一〇〇`, `一〇一`, `一二三四五`).
+ */
+export function toEa1ChsNumeral(n: number): string {
+	const value = posInt(n, 99_999_999);
+	return value < 100 ? toChineseNumeral(value, false) : toCjkDigitString(value);
+}
+
 /** Apply an OOXML suffix convention to a raw numeral label. */
 function suffixed(
 	label: string,
@@ -261,35 +202,35 @@ export function formatScriptAutoNumber(autoNumType: string, n: number): string |
 	switch (autoNumType) {
 		// ── East Asian (Chinese / Japanese / Korean) ──
 		case 'ea1ChsPeriod':
-			return suffixed(toChineseNumeral(n, false), 'period');
+			return suffixed(toEa1ChsNumeral(n), 'period');
 		case 'ea1ChsPlain':
-			return toChineseNumeral(n, false);
+			return toEa1ChsNumeral(n);
 		case 'ea1ChtPeriod':
-			return suffixed(toChineseNumeral(n, true), 'period');
+			return suffixed(toEa1ChtNumeral(n), 'period');
 		case 'ea1ChtPlain':
-			return toChineseNumeral(n, true);
+			return toEa1ChtNumeral(n);
 		case 'ea1JpnChsDbPeriod':
-			return suffixed(toChineseNumeral(n, false), 'dbPeriod');
+			return suffixed(toCjkDigitString(n), 'dbPeriod');
 		case 'ea1JpnKorPlain':
-			return toFullWidthDigits(n);
+			return toCjkDigitString(n);
 		case 'ea1JpnKorPeriod':
-			return suffixed(toFullWidthDigits(n), 'period');
+			return suffixed(toCjkDigitString(n), 'period');
 		// ── Hebrew / Arabic (gematria-style, trailing minus separator) ──
 		case 'hebrew2Minus':
-			return suffixed(toHebrewNumeral(n), 'minus');
+			return suffixed(hebrewAlphaLabel(n), 'minus');
 		case 'arabic1Minus':
-			return suffixed(bijectiveLabel(n, ARABIC_HIJAI_LETTERS), 'minus');
+			return suffixed(repeatedLabel(n, ARABIC_HIJAI_LETTERS), 'minus');
 		case 'arabic2Minus':
-			return suffixed(toArabicAbjadNumeral(n), 'minus');
+			return suffixed(repeatedLabel(n, ARABIC_ABJADI_LETTERS), 'minus');
 		// ── Hindi (Devanagari) ──
 		case 'hindiNumPeriod':
 			return suffixed(toDevanagariDigits(n), 'period');
 		case 'hindiNumParenR':
 			return suffixed(toDevanagariDigits(n), 'parenR');
 		case 'hindiAlphaPeriod':
-			return suffixed(bijectiveLabel(n, HINDI_VOWELS), 'period');
+			return suffixed(repeatedLabel(n, HINDI_VOWELS), 'period');
 		case 'hindiAlpha1Period':
-			return suffixed(bijectiveLabel(n, HINDI_CONSONANTS), 'period');
+			return suffixed(repeatedLabel(n, HINDI_CONSONANTS), 'period');
 		// ── Thai ──
 		case 'thaiNumPeriod':
 			return suffixed(toThaiDigits(n), 'period');
@@ -298,11 +239,11 @@ export function formatScriptAutoNumber(autoNumType: string, n: number): string |
 		case 'thaiNumParenBoth':
 			return suffixed(toThaiDigits(n), 'parenBoth');
 		case 'thaiAlphaPeriod':
-			return suffixed(bijectiveLabel(n, THAI_CONSONANTS), 'period');
+			return suffixed(repeatedLabel(n, THAI_CONSONANTS), 'period');
 		case 'thaiAlphaParenR':
-			return suffixed(bijectiveLabel(n, THAI_CONSONANTS), 'parenR');
+			return suffixed(repeatedLabel(n, THAI_CONSONANTS), 'parenR');
 		case 'thaiAlphaParenBoth':
-			return suffixed(bijectiveLabel(n, THAI_CONSONANTS), 'parenBoth');
+			return suffixed(repeatedLabel(n, THAI_CONSONANTS), 'parenBoth');
 		default:
 			return undefined;
 	}

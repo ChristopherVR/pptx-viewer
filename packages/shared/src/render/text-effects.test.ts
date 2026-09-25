@@ -7,6 +7,7 @@ import {
 	buildTextHslFilter,
 	buildTextInnerShadowCss,
 	buildTextShadowCss,
+	buildTextSoftEdgeFilter,
 	getTextAlphaOpacity,
 } from './text-effects';
 import { buildTextBody3DSceneStyle } from './text-effects-3d';
@@ -25,6 +26,47 @@ describe('buildTextFillCss', () => {
 	it('returns undefined when no fill is configured', () => {
 		expect(buildTextFillCss({} as TextStyle)).toBeUndefined();
 	});
+
+	describe('picture (a:blipFill) text fill', () => {
+		// Regression: `a:blipFill` on a text run was documented ("Handles
+		// gradient fills, pattern fills, and image fills on text runs") but
+		// never actually implemented, so a picture-filled run fell through to
+		// its plain `color` and painted solid black (COM-verified: audit-text
+		// slide 13's "PICTURE FILL" run shows the fill image through the
+		// glyphs in PowerPoint).
+		it('clips a resolved image URL to the glyphs, stretched by default', () => {
+			const css = buildTextFillCss({
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+			} as TextStyle);
+			expect(css).toMatchObject({
+				background: 'url("data:image/png;base64,AAAA")',
+				backgroundSize: '100% 100%',
+				backgroundRepeat: 'no-repeat',
+				backgroundClip: 'text',
+				WebkitBackgroundClip: 'text',
+				WebkitTextFillColor: 'transparent',
+			});
+		});
+
+		it('tiles the image at its natural size when a:tile was authored', () => {
+			const css = buildTextFillCss({
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+				textFillBlipMode: 'tile',
+			} as TextStyle);
+			expect(css).toMatchObject({
+				backgroundSize: 'auto',
+				backgroundRepeat: 'repeat',
+			});
+		});
+
+		it('gradient fill still wins when a run somehow carries both (gradient checked first)', () => {
+			const css = buildTextFillCss({
+				textFillGradient: 'linear-gradient(red, blue)',
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+			} as TextStyle);
+			expect(css?.background).toBe('linear-gradient(red, blue)');
+		});
+	});
 });
 
 describe('text effect css builders', () => {
@@ -39,12 +81,18 @@ describe('text effect css builders', () => {
 		expect(out).toBe('2px 3px 4px rgba(0,0,0,0.5)');
 	});
 
-	it('builds an inner shadow drop-shadow filter', () => {
+	it('builds an inset box-shadow, never an outer drop-shadow', () => {
+		// Regression: `filter: drop-shadow(...)` can only paint OUTSIDE an
+		// element's alpha silhouette, so an inner shadow rendered as a diffuse
+		// halo bleeding past the glyphs instead of shading inside them
+		// (COM-verified against `audit-text` slide 14's "INNERSHDW" run).
+		// `inset` is the fix: it is CSS's own inside-the-box primitive.
 		const out = buildTextInnerShadowCss({
 			textInnerShadowColor: '#ff0000',
 			textInnerShadowBlur: 3,
 		} as TextStyle);
-		expect(out).toContain('drop-shadow(');
+		expect(out).toContain('inset ');
+		expect(out).not.toContain('drop-shadow');
 		expect(out).toContain('rgba(255,0,0');
 	});
 
@@ -67,9 +115,23 @@ describe('text effect css builders', () => {
 		expect(getTextAlphaOpacity({} as TextStyle)).toBeUndefined();
 	});
 
-	it('builds a glow drop-shadow', () => {
+	it('builds a layered glow (tight halo), not one wide blur pass', () => {
+		// Regression: a single `drop-shadow(0 0 <radius>px ...)` is one Gaussian
+		// blur, which spreads out far more diffusely than PowerPoint's own glow
+		// (COM-verified against `audit-text` slide 14's "GLOW" run). Three
+		// stacked layers at increasing radius / decreasing opacity build a
+		// denser near-glyph core, matching a shape's `getGlowBoxShadowCss`.
 		const out = buildTextGlowFilter({ textGlowColor: '#ffff00', textGlowRadius: 6 } as TextStyle);
+		expect(out).toContain('drop-shadow(0 0 2px');
+		expect(out).toContain('drop-shadow(0 0 4px');
 		expect(out).toContain('drop-shadow(0 0 6px');
+		expect(out?.match(/drop-shadow\(/gu)?.length).toBe(3);
+	});
+
+	it('builds a soft-edge blur filter only for a positive radius', () => {
+		expect(buildTextSoftEdgeFilter({ textSoftEdgeRadius: 5 } as TextStyle)).toBe('blur(5px)');
+		expect(buildTextSoftEdgeFilter({ textSoftEdgeRadius: 0 } as TextStyle)).toBeUndefined();
+		expect(buildTextSoftEdgeFilter({} as TextStyle)).toBeUndefined();
 	});
 });
 

@@ -3,28 +3,19 @@
  * `a:rPr/@u="words"` through the two paths a plain run does not exercise:
  * a `a:ruby` run's BASE text, and a run split into tab-separated pieces.
  *
- * `e2e/underline-words.spec.ts` (wave 2) already pins the ordinary per-word
- * sibling-run split. Both paths here render the SAME word/gap distinction
- * through a DIFFERENT mechanism instead:
+ * PowerPoint draws `u="words"` as one continuous line, gaps included, exactly
+ * like `sng` (COM-verified in the 2026-09 limitations wave; see
+ * `e2e/underline-words.spec.ts`). Both paths must therefore keep the gap
+ * underlined too: the ruby base text stays one underlined run, and every
+ * tab-separated piece repeats the run's underline.
  *
- *  - A ruby run stays ONE `BuiltRun` (the annotation reads over the whole
- *    base text), so `paragraph-run-build.ts` hands a binding
- *    `underlineWordPieces`: word/gap pieces nested INSIDE that one run's own
- *    span, with the run's own underline stripped so it cannot bleed through
- *    the gap the way a plain ancestor underline would.
- *  - A tab-containing run gets a measured `TabbedRunPiece[]` layout instead of
- *    the per-word split; `text-tab-run-build.ts` gives each tab-separated
- *    PIECE its own nested word/gap sub-pieces (`TabbedRunPiece.words`).
+ * Read the same framework-agnostic way as the plain spec: walk the DOM text
+ * NODES under the element and read whether each one's PARENT computes
+ * `text-decoration-line: underline`, without assuming any span structure.
+ * Only pieces that belong to the base/tab text are classified, because the
+ * ruby annotation's own reading text sits in the same element.
  *
- * Both are read the same framework-agnostic way as the wave-2 spec: walk the
- * DOM text NODES under the element and read whether each one's PARENT
- * computes `text-decoration-line: underline`, without assuming any span
- * structure. Classification is by EXACT marker text rather than "every
- * non-whitespace piece", because the ruby scenario's own annotation reading
- * text sits in the same element and must not be mistaken for a base word.
- *
- * Fixture: `underline-words-ruby-tab.pptx` (a NEW fixture; the wave-2 one is
- * untouched).
+ * Fixture: `underline-words-ruby-tab.pptx`.
  *
  * Run: bunx playwright test underline-words-ruby-tab
  */
@@ -81,14 +72,28 @@ async function measureDecoration(page: Page, marker: string): Promise<DecoratedP
 	}, marker);
 }
 
-/** Every piece whose TRIMMED text exactly equals one of `words`. */
-function piecesMatching(pieces: DecoratedPiece[], words: readonly string[]): DecoratedPiece[] {
-	return pieces.filter((piece) => words.includes(piece.text.trim()));
+/** Pieces of `source` (its words or the whitespace between them) that are not underlined. */
+function undecoratedWithin(pieces: DecoratedPiece[], source: string): DecoratedPiece[] {
+	// Whitespace-only nodes are template formatting (Svelte) outside any run;
+	// the real gap has to ride an underlined piece (see the gap check below).
+	return pieces.filter(
+		(piece) =>
+			piece.text.trim().length > 0 && source.includes(piece.text.trim()) && !piece.underlined,
+	);
 }
 
-/** Whether some piece between two word pieces is pure whitespace and NOT underlined. */
-function hasUndecoratedGap(pieces: DecoratedPiece[]): boolean {
-	return pieces.some((piece) => piece.text.trim().length === 0 && !piece.underlined);
+/**
+ * Whether the space inside `source` rides an underlined piece: either an
+ * underlined piece carrying the space next to a word of `source`, or an
+ * underlined whitespace-only piece (a binding that splits words and gaps).
+ */
+function gapUnderlinedWithin(pieces: DecoratedPiece[], source: string): boolean {
+	return pieces.some(
+		(piece) =>
+			piece.underlined &&
+			/\s/u.test(piece.text) &&
+			(piece.text.trim().length === 0 || source.includes(piece.text.trim().split(/\s+/u)[0] ?? '')),
+	);
 }
 
 interface ScenarioResult {
@@ -107,7 +112,7 @@ async function readSlide(page: Page, origin: string): Promise<ScenarioResult> {
 }
 
 test.describe('u="words" through ruby and tab-stop runs', () => {
-	test('every binding underlines the words but not the gaps, in both paths', async ({
+	test('every binding underlines the words and the gaps, in both paths', async ({
 		browser,
 	}, testInfo) => {
 		test.slow();
@@ -115,47 +120,22 @@ test.describe('u="words" through ruby and tab-stop runs', () => {
 
 		const failures = results.flatMap(({ framework, value }) => {
 			const problems: string[] = [];
+			const describe = (pieces: DecoratedPiece[]) =>
+				pieces.map((p) => JSON.stringify(p.text)).join(', ');
 
-			// Ruby scenario: base-text words ALFA / BETO underlined, the gap
-			// between them not. The annotation's own reading text is deliberately
-			// NOT asserted on here (it renders through a different run entirely).
-			const rubyWords = piecesMatching(value.ruby, ['ALFA', 'BETO']);
-			if (rubyWords.length < 2) {
-				problems.push(
-					`ruby: expected both "ALFA" and "BETO" as separate pieces, found ${rubyWords.length} ` +
-						`(${JSON.stringify(value.ruby)})`,
-				);
-			} else if (!rubyWords.every((p) => p.underlined)) {
-				problems.push(
-					`ruby: word piece(s) not underlined: ${rubyWords
-						.filter((p) => !p.underlined)
-						.map((p) => JSON.stringify(p.text))
-						.join(', ')}`,
-				);
+			const rubyBad = undecoratedWithin(value.ruby, RUBY_BASE_TEXT);
+			if (rubyBad.length > 0) {
+				problems.push(`ruby: piece(s) not underlined: ${describe(rubyBad)}`);
 			}
-			if (!hasUndecoratedGap(value.ruby)) {
-				problems.push('ruby: no undecorated whitespace piece found between "ALFA" and "BETO"');
+			if (!gapUnderlinedWithin(value.ruby, RUBY_BASE_TEXT)) {
+				problems.push('ruby: the gap between the base words is not underlined');
 			}
-
-			// Tab scenario: GAMA / DELTO (before the tab, with an internal gap) and
-			// EPSI (the whole piece after the tab) all underlined; the gap between
-			// GAMA and DELTO is not.
-			const tabWords = piecesMatching(value.tab, ['GAMA', 'DELTO', 'EPSI']);
-			if (tabWords.length < 3) {
-				problems.push(
-					`tab: expected "GAMA", "DELTO" and "EPSI" as separate pieces, found ${tabWords.length} ` +
-						`(${JSON.stringify(value.tab)})`,
-				);
-			} else if (!tabWords.every((p) => p.underlined)) {
-				problems.push(
-					`tab: word piece(s) not underlined: ${tabWords
-						.filter((p) => !p.underlined)
-						.map((p) => JSON.stringify(p.text))
-						.join(', ')}`,
-				);
+			if (!gapUnderlinedWithin(value.tab, TAB_PIECE_TEXT)) {
+				problems.push('tab: the gap inside the tab piece is not underlined');
 			}
-			if (!hasUndecoratedGap(value.tab)) {
-				problems.push('tab: no undecorated whitespace piece found between "GAMA" and "DELTO"');
+			const tabBad = undecoratedWithin(value.tab, `${TAB_PIECE_TEXT} ${TAB_SECOND_PIECE_TEXT}`);
+			if (tabBad.length > 0) {
+				problems.push(`tab: piece(s) not underlined: ${describe(tabBad)}`);
 			}
 
 			const fullRubyText = value.ruby.map((p) => p.text).join('');

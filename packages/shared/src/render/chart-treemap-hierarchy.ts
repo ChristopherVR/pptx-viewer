@@ -1,6 +1,8 @@
 import type { PptxChartData, PptxChartParentLabelLayout, PptxChartSeries } from 'pptx-viewer-core';
 
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
+import type { TreemapBox } from './chart-treemap-squarify';
+import { squarify } from './chart-treemap-squarify';
 import type { SvgRect, SvgText } from './chart-view-model';
 import { paletteColor } from './chart-view-model';
 
@@ -12,13 +14,6 @@ interface TreemapNode {
 	pointIndex?: number;
 	colorIndex: number;
 	parentLabelLayout: PptxChartParentLabelLayout;
-}
-
-interface TreemapBox {
-	x: number;
-	y: number;
-	w: number;
-	h: number;
 }
 
 export type TreemapPrimitive = SvgRect | SvgText;
@@ -96,27 +91,14 @@ function aggregate(node: TreemapNode): number {
 	return node.weight;
 }
 
-function splitNodes(nodes: TreemapNode[], box: TreemapBox): Array<[TreemapNode, TreemapBox]> {
-	const sorted = [...nodes].sort((a, b) => b.weight - a.weight);
-	const total = sorted.reduce((sum, node) => sum + node.weight, 0);
-	const fallback = total === 0 ? sorted.length : total;
-	let remaining = fallback;
-	let current = { ...box };
-	return sorted.map((node) => {
-		const weight = total === 0 ? 1 : node.weight;
-		const fraction = remaining > 0 ? weight / remaining : 0;
-		const splitWidth = current.w >= current.h;
-		const allocated: TreemapBox = splitWidth
-			? { ...current, w: current.w * fraction }
-			: { ...current, h: current.h * fraction };
-		if (splitWidth) {
-			current = { ...current, x: current.x + allocated.w, w: current.w - allocated.w };
-		} else {
-			current = { ...current, y: current.y + allocated.h, h: current.h - allocated.h };
+/** Propagate a single colour index from a top-level branch down to every one of its leaves. */
+function propagateColor(node: TreemapNode, colorIndex: number): void {
+	node.colorIndex = colorIndex;
+	if (node.children) {
+		for (const child of node.children) {
+			propagateColor(child, colorIndex);
 		}
-		remaining -= weight;
-		return [node, allocated];
-	});
+	}
 }
 
 function renderNodes(
@@ -126,7 +108,7 @@ function renderNodes(
 	primitives: TreemapPrimitive[],
 ): void {
 	const colorPalette = chartData.colorPalette;
-	for (const [node, allocation] of splitNodes(nodes, box)) {
+	for (const [node, allocation] of squarify(nodes, box)) {
 		const cell = {
 			x: allocation.x + 1,
 			y: allocation.y + 1,
@@ -190,12 +172,47 @@ function renderNodes(
 	}
 }
 
+/**
+ * The top-level branch labels a treemap's legend should show, in the same
+ * order `buildHierarchicalTreemapPrimitives` assigns colour indexes to its
+ * roots: one label per authored `c:ser`/`cx:series` when there is more than
+ * one, else one per unique top ChartEx category level, else (a flat,
+ * non-hierarchical treemap) one per leaf category. A legend built from
+ * anything else would show swatches that do not match what a leaf's fill
+ * colour actually is.
+ */
+export function treemapBranchLabels(
+	chartData: PptxChartData,
+	categoryLabels: ReadonlyArray<string>,
+): string[] {
+	if (chartData.series.length > 1) {
+		return chartData.series.map((series) => series.name);
+	}
+	const levels = chartData.categoryLevels;
+	if (levels && levels.length > 1) {
+		const pointCount = chartData.series[0]?.values.length ?? categoryLabels.length;
+		const topLevel = normalizedLevels(levels, pointCount).at(-1) ?? [];
+		const seen: string[] = [];
+		for (const label of topLevel) {
+			if (!seen.includes(label)) {
+				seen.push(label);
+			}
+		}
+		return seen;
+	}
+	return [...categoryLabels];
+}
+
 /** Build nested treemap rectangles from ChartEx leaf-first category levels. */
 export function buildHierarchicalTreemapPrimitives(
 	chartData: PptxChartData,
 	categoryLabels: ReadonlyArray<string>,
 	box: TreemapBox,
 ): TreemapPrimitive[] {
+	// Only used to keep each node's initial colorIndex distinct while the tree
+	// is being built; propagateColor (below) overwrites every one of them with
+	// its top-level branch's colour before rendering, so this stride never
+	// actually reaches the renderer.
 	const colorStride = Math.max(
 		categoryLabels.length,
 		...chartData.series.map((s) => s.values.length),
@@ -228,6 +245,12 @@ export function buildHierarchicalTreemapPrimitives(
 	for (const root of roots) {
 		aggregate(root);
 	}
+	// One colour per TOP-LEVEL branch, propagated to every one of its leaves
+	// (COM-verified against charts-com.pptx slide 28 / chartEx3.xml: every
+	// leaf under "Branch 1" paints the same colour as "Branch 1"'s legend
+	// swatch). A flat, non-hierarchical treemap has one leaf per root, so
+	// this is equivalent to the previous per-category colour there.
+	roots.forEach((root, index) => propagateColor(root, index));
 	const primitives: TreemapPrimitive[] = [];
 	renderNodes(roots, box, chartData, primitives);
 	return primitives;

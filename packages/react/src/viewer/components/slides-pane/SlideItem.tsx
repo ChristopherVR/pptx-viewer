@@ -31,6 +31,8 @@ export interface SlideItemProps {
 	templateElements: PptxElement[];
 	slideIndex: number;
 	isActive: boolean;
+	/** Part of a Ctrl/Shift multi-selection (independent of `isActive`). */
+	isSelected?: boolean;
 	canvasSize: CanvasSize;
 	canEdit: boolean;
 	rehearsalTimings?: Record<number, number>;
@@ -40,9 +42,8 @@ export interface SlideItemProps {
 	fieldContext?: FieldSubstitutionContext;
 	/** Theme + table style map for resolving table band/header colours. */
 	tableStyleContext?: TableStyleContext;
-	onSelectSlide: (index: number) => void;
+	onSelectSlide: (index: number, e: React.MouseEvent) => void;
 	onSlideContextMenu: (e: React.MouseEvent, index: number) => void;
-	onAddSection?: (name: string, afterSlideIndex: number) => void;
 	onOpenSlideCtxMenu: (x: number, y: number, slideIndex: number) => void;
 	onDragStart: (e: React.DragEvent, slideIndex: number) => void;
 	onDragOver: (e: React.DragEvent) => void;
@@ -59,6 +60,7 @@ function SlideItemInner({
 	templateElements,
 	slideIndex,
 	isActive,
+	isSelected = false,
 	canvasSize,
 	canEdit,
 	rehearsalTimings,
@@ -67,7 +69,6 @@ function SlideItemInner({
 	tableStyleContext,
 	onSelectSlide,
 	onSlideContextMenu,
-	onAddSection,
 	onOpenSlideCtxMenu,
 	onDragStart,
 	onDragOver,
@@ -84,7 +85,7 @@ function SlideItemInner({
 
 	const handleContextMenu = useCallback(
 		(e: React.MouseEvent) => {
-			if (canEdit && onAddSection) {
+			if (canEdit) {
 				e.preventDefault();
 				e.stopPropagation();
 				onOpenSlideCtxMenu(e.clientX, e.clientY, slideIndex);
@@ -92,7 +93,7 @@ function SlideItemInner({
 				onSlideContextMenu(e, slideIndex);
 			}
 		},
-		[canEdit, onAddSection, onOpenSlideCtxMenu, onSlideContextMenu, slideIndex],
+		[canEdit, onOpenSlideCtxMenu, onSlideContextMenu, slideIndex],
 	);
 
 	// Pre-compute the thumbnail height for the placeholder
@@ -113,10 +114,11 @@ function SlideItemInner({
 				'group relative flex w-full items-center gap-1 cursor-pointer border-0 bg-transparent py-0.5 px-1 text-left transition-all',
 				isActive &&
 					'bg-accent/40 before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[3px] before:bg-primary before:rounded-r',
+				isSelected && !isActive && 'bg-accent/20 ring-1 ring-inset ring-primary/50',
 				isHidden && 'opacity-50',
 			)}
 			draggable={canEdit}
-			onClick={() => onSelectSlide(slideIndex)}
+			onClick={(e) => onSelectSlide(slideIndex, e)}
 			onContextMenu={handleContextMenu}
 			onDragStart={(e) => onDragStart(e, slideIndex)}
 			onDragOver={onDragOver}

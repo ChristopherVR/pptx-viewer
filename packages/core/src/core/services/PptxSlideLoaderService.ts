@@ -21,6 +21,7 @@ import { computeAnimationTimelineOrder } from './animation-timeline-anchors';
 import { attachRealMediaDurations } from './native-animation-media-duration';
 import type { IPptxSlideLoaderService, PptxSlideLoaderParams } from './slide-loader-types';
 import { readCommonSlideDataName } from './slide-name';
+import { resolveSlideTimingNode } from './slide-transition-envelope';
 
 export type {
 	PptxMediaTimingEntry,
@@ -303,9 +304,10 @@ export class PptxSlideLoaderService implements IPptxSlideLoaderService {
 			const transition = params.parseSlideTransition(slideXmlObj, path);
 			let animations = params.parseEditorAnimations(slideXmlObj);
 			const nativeAnimations = params.parseNativeAnimations(slideXmlObj, path);
-			const rawTiming = (slideXmlObj['p:sld'] as XmlObject | undefined)?.['p:timing'] as
-				| XmlObject
-				| undefined;
+			// Read through a slide-root `mc:AlternateContent` envelope too (any
+			// tree using p14 markup): the save path writes it back to the same
+			// envelope via `reconcileSlideTiming`.
+			const rawTiming = resolveSlideTimingNode(slideXmlObj['p:sld'] as XmlObject | undefined);
 			// Re-ground each editor animation's `order` in the live `p:timing`
 			// tree, and collect anchors for the deck's own (non-editor) effect
 			// groups, BEFORE the id-space rewrite below: both operate on the raw

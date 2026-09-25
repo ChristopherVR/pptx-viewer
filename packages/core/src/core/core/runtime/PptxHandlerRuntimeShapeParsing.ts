@@ -170,6 +170,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				'left',
 				slideRelationshipMap,
 				false,
+				slidePath,
 			);
 			const bodyDefaultRunStyle = {
 				...inheritedBodyDefaultRunStyle,
@@ -178,6 +179,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					'left',
 					slideRelationshipMap,
 					false,
+					slidePath,
 				),
 			} as TextStyle;
 			Object.assign(textStyle, bodyDefaultRunStyle);

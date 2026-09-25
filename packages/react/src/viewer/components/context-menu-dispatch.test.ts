@@ -7,6 +7,7 @@
  * ai-ask/ai-fix and the z-order commands).
  */
 import type { TablePptxElement } from 'pptx-viewer-core';
+import { buildContextMenuEntries } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { contextMenuContext, contextMenuHandlers } from './context-menu-dispatch';
@@ -71,6 +72,22 @@ describe('contextMenuHandlers', () => {
 		expect(props.onAction).toHaveBeenCalledWith('size-and-position');
 		handlers['format-shape']?.();
 		expect(props.onAction).toHaveBeenCalledWith('format-shape');
+		handlers['edit-points']?.();
+		expect(props.onAction).toHaveBeenCalledWith('edit-points');
+	});
+
+	it('offers Edit Points for an editable shape and greys it for a noEditPoints lock', () => {
+		const props = makeProps();
+		const entry = (availability: 'available' | 'locked') =>
+			buildContextMenuEntries(
+				contextMenuContext({
+					...props,
+					selectedElement: { id: 's', type: 'shape', x: 0, y: 0, width: 10, height: 10 },
+					editPointsAvailability: availability,
+				}),
+			).find((e) => e.id === 'edit-points');
+		expect(entry('available')?.disabled).toBeUndefined();
+		expect(entry('locked')?.disabled).toBeTruthy();
 	});
 
 	it('leaves commands without a handler undefined (offered greyed, not dropped)', () => {
@@ -125,5 +142,20 @@ describe('merged table cell menu context', () => {
 			hasMultiCellSelection: true,
 			isMergedCell: true,
 		});
+	});
+});
+
+describe('element menu Paste with an empty clipboard', () => {
+	function paste(hasClipboard: boolean) {
+		const props = { ...makeProps(), hasClipboard };
+		return buildContextMenuEntries(contextMenuContext(props)).find((entry) => entry.id === 'paste');
+	}
+
+	it('greys Paste out when the viewer has nothing to paste, like the other bindings', () => {
+		expect(paste(false)?.disabled).toBeTruthy();
+	});
+
+	it('offers Paste enabled once something was copied', () => {
+		expect(paste(true)?.disabled).toBeFalsy();
 	});
 });

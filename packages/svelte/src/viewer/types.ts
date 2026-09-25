@@ -8,6 +8,8 @@ import type {
 	PowerPointViewerAPI,
 	ThemeCatalogEntry,
 	ToolbarActionId,
+	ViewerCustomization,
+	ViewerCustomizationApi,
 	ViewerFontSource,
 	ViewerTheme,
 	ViewportFitOptions,
@@ -128,6 +130,18 @@ export interface PowerPointViewerProps extends ViewportFitOptions {
 	 * hidden, matching the pre-existing always-visible behaviour.
 	 */
 	hiddenActions?: ToolbarActionId[];
+	/**
+	 * Framework-neutral UI customisation. See docs/guide/customization.md.
+	 *
+	 * Hides ribbon tabs, toolbar buttons, Options pages / sections / settings,
+	 * File tab pages and cards, context-menu entries, panels, features and
+	 * dialogs; locks settings and sets host defaults; disables or remaps editor
+	 * shortcuts. Unioned with `hiddenActions`. Passing a NEW object replaces the
+	 * whole customisation, discarding edits made through the imperative
+	 * helpers (`hideRibbonTab`, `lockSetting`, ...) on the component instance;
+	 * mutating the same object in place is not observed.
+	 */
+	customization?: ViewerCustomization;
 	/**
 	 * Show the speaker-notes panel and its toolbar toggle. Default true. The
 	 * panel is plain-text only and reads the active slide's notes; pass
@@ -316,9 +330,10 @@ export interface PowerPointViewerProps extends ViewportFitOptions {
 /**
  * Imperative editing API exposed on the `<PowerPointViewer>` component
  * instance (via `bind:this`). Mirrors the vanilla binding's `EditorController`
- * surface subset the host drives directly.
+ * surface subset the host drives directly, plus the shared UI-customisation
+ * helpers (`ViewerCustomizationApi`: `hideRibbonTab`, `lockSetting`, ...).
  */
-export interface PowerPointViewerApi extends PowerPointViewerAPI {
+export interface PowerPointViewerApi extends PowerPointViewerAPI, ViewerCustomizationApi {
 	/** Undo the last committed edit. */
 	undo(): void;
 	/** Redo the last undone edit. */

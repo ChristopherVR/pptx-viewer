@@ -15,12 +15,17 @@ import {
 	restoreSessionDeck,
 	themeToCssVars,
 } from 'pptx-vue-viewer';
-import type { CollaborationConfig, PowerPointViewerExpose } from 'pptx-vue-viewer';
+import type {
+	CollaborationConfig,
+	PowerPointViewerExpose,
+	ViewerCustomization,
+} from 'pptx-vue-viewer';
 import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watchEffect } from 'vue';
 import 'pptx-vue-viewer/styles';
 import { useI18n } from 'vue-i18n';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { currentDemoCustomization } from '../../shared/demo-customization';
 import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { useDemoAiConfig } from './ai-config';
 import {
@@ -134,6 +139,8 @@ const urlServer = isWebrtcJoin ? '' : (params.get('server') ?? resolveDefaultSer
 // demos/shared/rendering-3d-flags.ts for the rules and why.
 const { smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D } =
 	currentDemo3DFlags();
+// `?customization=<json>` (demos/shared/demo-customization.ts), for e2e.
+const customization = currentDemoCustomization() as ViewerCustomization | undefined;
 // `?sample=1` auto-loads the bundled sample deck (used by the docs landing
 // page to embed a live, pre-populated viewer).
 const urlSample = params.get('sample') === '1';
@@ -539,6 +546,7 @@ function onZoneClick(e: MouseEvent): void {
 			:lineChart3D="lineChart3D"
 			:areaChart3D="areaChart3D"
 			:pieChart3D="pieChart3D"
+			:customization="customization"
 			:ai="aiConfig"
 			:author-name="collaborationConfig?.userName ?? autoName"
 			:collaboration="collaborationConfig ?? undefined"

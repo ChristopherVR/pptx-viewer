@@ -16,6 +16,40 @@ export interface SunburstArc {
 	level?: number;
 	/** Category label represented by this arc when hierarchy data is available. */
 	label?: string;
+	/** Label anchor X, at the arc's mid-angle and mid-radius. */
+	labelX: number;
+	/** Label anchor Y, at the arc's mid-angle and mid-radius. */
+	labelY: number;
+	/**
+	 * SVG rotation in degrees to draw the label radiating outward from the
+	 * centre, flipped upright whenever a literal radial angle would otherwise
+	 * render the text upside down (COM-verified against charts-com.pptx slide
+	 * 29 / chartEx4.xml: every ring's labels, at every angle around the
+	 * circle, read left-to-right rather than upside down on the wedge's
+	 * "far" half).
+	 */
+	labelRotation: number;
+}
+
+/** Label position + upright radial rotation for a wedge spanning `[startAngle, endAngle)`. */
+function arcLabelPlacement(
+	cx: number,
+	cy: number,
+	radius: number,
+	startAngle: number,
+	endAngle: number,
+): { labelX: number; labelY: number; labelRotation: number } {
+	const midAngle = (startAngle + endAngle) / 2;
+	let rotation = (midAngle * 180) / Math.PI + 90;
+	// Flip upright: a rotation in (90, 270) draws the text upside down.
+	if (rotation > 90 && rotation < 270) {
+		rotation -= 180;
+	}
+	return {
+		labelX: cx + radius * Math.cos(midAngle),
+		labelY: cy + radius * Math.sin(midAngle),
+		labelRotation: rotation,
+	};
 }
 
 function arcPath(
@@ -65,6 +99,7 @@ export function computeSunburstArcs(
 				opacity: Math.max(0.1, 0.9 - si * 0.1),
 				pointIndex,
 				level: si,
+				...arcLabelPlacement(cx, cy, (innerRadius + outerRadius) / 2, startAngle, endAngle),
 			});
 			startAngle = endAngle;
 		}
@@ -133,6 +168,7 @@ export function computeHierarchicalSunburstArcs(
 				level: ringIndex,
 				label: levels[level][start] ?? '',
 				...(level === 0 && end === start + 1 ? { pointIndex: start } : {}),
+				...arcLabelPlacement(cx, cy, (innerRadius + outerRadius) / 2, startAngle, endAngle),
 			});
 			start = end;
 		}

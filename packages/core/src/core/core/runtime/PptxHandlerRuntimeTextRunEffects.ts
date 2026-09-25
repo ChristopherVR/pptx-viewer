@@ -231,6 +231,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (color) {
 				style.textInnerShadowColor = color;
 			}
+			// Preserve the original colour choice (e.g. `a:prstClr`) so the
+			// writer can re-emit it instead of always resolving to a flat
+			// `a:srgbClr`, which would silently swap an authored preset colour
+			// for its resolved hex on every round trip.
+			const innerShadowColorXml = extractColorChoiceXml(innerShdw);
+			if (innerShadowColorXml) {
+				style.textInnerShadowColorXml = innerShadowColorXml;
+			}
+			const innerShadowColorRef = themeColorRefFromColorChoice(innerShdw);
+			if (innerShadowColorRef) {
+				style.textInnerShadowColorRef = innerShadowColorRef;
+			}
 			const opacity = this.extractColorOpacity(innerShdw);
 			if (opacity !== undefined) {
 				style.textInnerShadowOpacity = opacity;
@@ -280,6 +292,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const radRaw = Number.parseInt(String(blurNode['@_rad'] || ''), 10);
 			if (Number.isFinite(radRaw) && radRaw >= 0) {
 				style.textBlurRadius = radRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
+			}
+		}
+
+		// Soft edge (feathers the glyph's own alpha silhouette; see the
+		// `textSoftEdgeRadius` doc comment for why this never rendered before).
+		const softEdgeNode = runEffectList['a:softEdge'] as XmlObject | undefined;
+		if (softEdgeNode) {
+			const radRaw = Number.parseInt(String(softEdgeNode['@_rad'] || ''), 10);
+			if (Number.isFinite(radRaw) && radRaw >= 0) {
+				style.textSoftEdgeRadius = radRaw / PptxHandlerRuntimeBase.EMU_PER_PX;
 			}
 		}
 

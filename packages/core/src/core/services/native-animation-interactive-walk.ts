@@ -1,4 +1,9 @@
-import type { PptxAnimationTrigger, PptxNativeAnimation, XmlObject } from '../types';
+import type {
+	PptxAnimationTrigger,
+	PptxMediaBookmarkTarget,
+	PptxNativeAnimation,
+	XmlObject,
+} from '../types';
 /**
  * Interactive-sequence (`p:seq` triggered by clicking a specific shape)
  * discovery for the native OOXML animation timing-tree walk. Extracted from
@@ -7,7 +12,11 @@ import type { PptxAnimationTrigger, PptxNativeAnimation, XmlObject } from '../ty
 import type { AnimationGroupContext } from './animation-group-context';
 import { createGroupContext } from './animation-group-context';
 import { extractSeqAttrs } from './animation-timing-attrs';
-import { extractTriggerShapeId, ensureArray } from './native-animation-helpers';
+import {
+	extractBookmarkTrigger,
+	extractTriggerShapeId,
+	ensureArray,
+} from './native-animation-helpers';
 import { isInteractiveSequence } from './native-animation-interactive-predicate';
 
 /**
@@ -72,8 +81,19 @@ export function parseInteractiveSequences(
 	const sequences: XmlObject[] = [];
 	collectInteractiveSequences(rootPar, sequences);
 
+	const bookmarkAnims: PptxNativeAnimation[] = [];
 	for (const seq of sequences) {
 		const seqCTn = seq['p:cTn'] as XmlObject | undefined;
+		const bookmark = seqCTn ? extractBookmarkTrigger(seqCTn) : undefined;
+		if (bookmark) {
+			const seqAnims: PptxNativeAnimation[] = [];
+			walk(seq, seqAnims, 'withPrevious', { ...createGroupContext(), ...extractSeqAttrs(seq) });
+			for (const anim of seqAnims) {
+				gateOnBookmark(anim, bookmark);
+				bookmarkAnims.push(anim);
+			}
+			continue;
+		}
 		const triggerShapeId = seqCTn ? extractTriggerShapeId(seqCTn) : undefined;
 		if (!triggerShapeId) {
 			continue;
@@ -104,4 +124,24 @@ export function parseInteractiveSequences(
 			animations.push(anim);
 		}
 	}
+	// A bookmark sequence runs independently of the click sequence: it is armed
+	// as the slide starts and fires when the media reaches the bookmark, so its
+	// effects lead the list (the timeline turns a leading non-click run into
+	// the slide-entry group, which is what wires the media listener).
+	animations.unshift(...bookmarkAnims);
+}
+
+/**
+ * Re-gate an effect from a bookmark-triggered interactive sequence on the
+ * bookmark itself. PowerPoint puts the `onMediaBookmark` condition on the
+ * SEQUENCE and a plain `delay="0"` on each effect; the playback side reads
+ * the effect's own start conditions, so the bookmark is copied down.
+ */
+function gateOnBookmark(anim: PptxNativeAnimation, bookmark: PptxMediaBookmarkTarget): void {
+	anim.trigger = 'onMediaBookmark';
+	anim.triggerShapeId = bookmark.shapeId;
+	anim.triggerBookmark = bookmark.bookmarkName;
+	// Armed on slide entry rather than on a click (see the unshift above).
+	anim.groupAutoStart = true;
+	anim.startConditions = [{ event: 'onMediaBookmark', delay: 0, bookmarkTarget: { ...bookmark } }];
 }

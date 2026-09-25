@@ -25,9 +25,18 @@ import {
 	LucideTrash2,
 } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxAnimationPreset, PptxElement, PptxSlide } from 'pptx-viewer-core';
+import type {
+	PptxAnimationPreset,
+	PptxElement,
+	PptxElementAnimation,
+	PptxSlide,
+} from 'pptx-viewer-core';
 
-import { DEFAULT_MOTION_PATH_PRESET_ID, applyMotionPathPreset } from '../internal/shared';
+import {
+	applyMotionPathPreset,
+	DEFAULT_MOTION_PATH_PRESET_ID,
+	playAnimationRibbonPreview,
+} from '../internal/shared';
 import type { AnimationGroup } from '../internal/shared';
 import {
 	removeAnimation,
@@ -42,6 +51,17 @@ import { RibbonMotionPathGalleryComponent } from './ribbon-motion-path-gallery.c
 
 export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boolean {
 	return canEdit && hasSelection;
+}
+
+/** The selected element's own animation entry, the one the Preview button plays. */
+export function findSelectedAnimation(
+	animations: readonly PptxElementAnimation[] | undefined,
+	elementId: string | undefined,
+): PptxElementAnimation | undefined {
+	if (!elementId) {
+		return undefined;
+	}
+	return animations?.find((a) => a.elementId === elementId);
 }
 
 @Component({
@@ -64,13 +84,15 @@ export function canAuthorAnimation(canEdit: boolean, hasSelection: boolean): boo
 		RibbonMotionPathGalleryComponent,
 	],
 	template: `
-		<!-- Preview: plays presentation from this slide; no element-only preview API yet -->
+		<!-- Preview: plays the selected element's own authored effect in place on
+		     the canvas. This used to start the FULL slide show instead, leaving
+		     the editor entirely for what should be a one-shot in-canvas replay. -->
 		<button
 			type="button"
 			class="pptx-rb-pill"
 			[disabled]="!canAuthor()"
 			[title]="'pptx.animations.previewTooltip' | translate"
-			(click)="present.emit()"
+			(click)="previewAnimation()"
 		>
 			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.animations.preview' | translate }}
 		</button>
@@ -230,7 +252,6 @@ export class RibbonAnimationsSectionComponent {
 	readonly selectedElement = input<PptxElement | null>(null);
 	readonly canEdit = input<boolean>(false);
 
-	readonly present = output<void>();
 	readonly toggleInspector = output<void>();
 	/** "Animation Panel": open the inspector and expand its Animation section. */
 	readonly openAnimationPanel = output<void>();
@@ -241,6 +262,24 @@ export class RibbonAnimationsSectionComponent {
 
 	protected canAuthor(): boolean {
 		return canAuthorAnimation(this.canEdit(), this.hasSel());
+	}
+
+	/**
+	 * Play the selected element's own authored effect in place on the canvas,
+	 * via the shared player also used by react/vue/svelte/vanilla's ribbons.
+	 * A no-op (matching those four) when the selection has no animation entry
+	 * to preview.
+	 */
+	protected previewAnimation(): void {
+		if (!this.canAuthor()) {
+			return;
+		}
+		const el = this.selectedElement();
+		if (!el) {
+			return;
+		}
+		const slide = this.editor.slides()[this.slideIndex()];
+		playAnimationRibbonPreview(document, findSelectedAnimation(slide?.animations, el.id));
 	}
 
 	/** The path the one-click "Path Animation" command applies. */

@@ -1,7 +1,9 @@
 import type { PptxSaveFormat } from 'pptx-viewer-core';
 import {
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	buildFieldSubstitutionContext,
 	deleteAutosaveSnapshot,
+	isFeatureEnabled,
 	listAutosaveSnapshots,
 	resolve3DRenderingFlags,
 	resolveExpiredAutosaveSnapshots,
@@ -67,6 +69,7 @@ import { ViewerState } from './viewer-state.svelte';
  */
 export function createViewerState(options: CreateViewerStateOptions): ViewerStateBag {
 	provideTranslator(options.t);
+	const getCustomization = () => options.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
 
 	// The live editable flag. Seeded from the host prop, but writable, because
 	// an AI edit and `deck.setMode()` both have to flip editing without waiting
@@ -277,6 +280,7 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		getEditingActive: () => derived.editingActive,
 		getStageHolderEl: options.getStageHolderEl,
 		getRootEl: options.getRootEl,
+		isPresentModeEnabled: () => isFeatureEnabled(getCustomization(), 'presentMode'),
 	});
 	presentationApi.current = presentationCluster.presentation;
 
@@ -475,6 +479,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		set stageContextMenu(next) {
 			editorUi.stageContextMenu = next;
 		},
+		get stageCanvasContextMenu() {
+			return editorUi.stageCanvasContextMenu;
+		},
+		set stageCanvasContextMenu(next) {
+			editorUi.stageCanvasContextMenu = next;
+		},
 		get activeMobileSheet() {
 			return exportNotes.activeMobileSheet;
 		},
@@ -495,7 +505,12 @@ export function createViewerState(options: CreateViewerStateOptions): ViewerStat
 		closeSignatureWarning: collabCluster.closeSignatureWarning,
 		openFile: createOpenFile(loader, () => options.onopenfile),
 		runQuickAccessCommand: (id) =>
-			runQuickAccessCommand(id, { deck, exportingApi, parityUi: editorUi.parityUi }),
+			runQuickAccessCommand(id, {
+				deck,
+				exportingApi,
+				parityUi: editorUi.parityUi,
+				customization: getCustomization(),
+			}),
 		fieldContext,
 		onNotesToggle: exportNotes.onNotesToggle,
 		onNotesCommit: exportNotes.onNotesCommit,

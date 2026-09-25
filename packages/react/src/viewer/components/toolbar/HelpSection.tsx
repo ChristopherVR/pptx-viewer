@@ -1,6 +1,8 @@
+import { isDialogAvailable } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { pill } from './toolbar-constants';
 
 export interface HelpSectionProps {
@@ -20,16 +22,19 @@ export interface HelpSectionProps {
  */
 export function HelpSection(p: HelpSectionProps): React.ReactElement {
 	const { t } = useTranslation();
+	const showSettings = isDialogAvailable(useViewerCustomizationContext(), 'options');
 	return (
 		<>
-			<button
-				type='button'
-				onClick={p.onOpenSettings ?? p.onToggleShortcuts}
-				className={pill}
-				title={t('pptx.settings.title')}
-			>
-				{t('pptx.settings.title')}
-			</button>
+			{showSettings && (
+				<button
+					type='button'
+					onClick={p.onOpenSettings ?? p.onToggleShortcuts}
+					className={pill}
+					title={t('pptx.settings.title')}
+				>
+					{t('pptx.settings.title')}
+				</button>
+			)}
 			<button
 				type='button'
 				onClick={p.onToggleShortcuts}

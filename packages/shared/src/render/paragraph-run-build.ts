@@ -16,8 +16,9 @@ import {
 	resolveRunExtrasContext,
 	resolveRunReflection,
 } from './paragraph-run-enrich';
+import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { ReflectionWrapperStyle } from './reflection';
-import { splitWordsForUnderline } from './text-decoration';
+import { splitWordsForUnderline, splitsUnderlineIntoWords } from './text-decoration';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { applyFontAlignmentFallback } from './text-font-alignment';
@@ -106,6 +107,8 @@ export interface ParagraphRunBuildInput {
 	fontAlignment: string | undefined;
 	/** Context for `a:fld` substitution, when the caller supplied one. */
 	fieldContext: FieldSubstitutionContext | undefined;
+	/** Whether the paragraph is right-to-left (tab stops measure from the right). */
+	rtl?: boolean;
 }
 
 /**
@@ -124,6 +127,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		defaultTabSize,
 		fontAlignment,
 		fieldContext,
+		rtl,
 	} = input;
 	const runs: BuiltRun[] = [];
 	for (const [at, seg] of paraSegments.entries()) {
@@ -137,9 +141,46 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// happened in Vue, Svelte and Vanilla.
 		const equation = resolveRunEquation(seg);
 		if (equation) {
+			const equationStyle = segmentStyleToCss(seg, fontScale, { blockFont });
+			// `m:oMath` carries no `a:rPr/@sz` of its own, so `segmentStyleToCss`
+			// (which only sets `fontSize` when the SEGMENT authors one) leaves it
+			// unset here, and the equation's `<span>` fell back to whatever
+			// `font-size` its ancestor happened to resolve to. That is not a
+			// stable fact: it is a coincidence of DOM nesting rather than a shared
+			// decision, and it broke Vue, Angular, Svelte and Vanilla for
+			// `LinkedAndMaths` (text-layout.pptx): the paragraph's own runs are
+			// 14pt while the shape default is 24pt, and the equation inherited the
+			// 24pt shape default there instead of the paragraph's own 14pt, while
+			// React's different DOM nesting happened to inherit the right value.
+			// Setting it explicitly, from the same "smallest run in the
+			// paragraph" rule the line-height strut uses (falling back to the
+			// body default when the paragraph declares nothing smaller), makes
+			// the size a decision every binding reaches identically instead of
+			// one that depends on how deep the equation node sits.
+			if (typeof equationStyle.fontSize !== 'string') {
+				// `resolveParagraphStrutFontSize` compares its segments' RAW
+				// (pre-`fontScale`) sizes against the body's own RAW size, then
+				// scales the result itself - the same contract `text-paragraphs.ts`
+				// calls it under. `blockFont.fontSizePx` is already scaled (see
+				// `RunFontSpec.fontSizePx`'s doc comment), so it is un-scaled back
+				// here rather than passed straight through, which would compare a
+				// scaled body size against unscaled run sizes and double-scale the
+				// fallback below.
+				const bodyFontSizeRaw =
+					typeof blockFont.fontSizePx === 'number' && fontScale !== 0
+						? blockFont.fontSizePx / fontScale
+						: blockFont.fontSizePx;
+				const strutFontSize = resolveParagraphStrutFontSize(
+					paraSegments,
+					bodyFontSizeRaw,
+					fontScale,
+				);
+				const fallbackFontSize = strutFontSize ?? blockFont.fontSizePx ?? DEFAULT_TEXT_FONT_SIZE;
+				equationStyle.fontSize = `${fallbackFontSize}px`;
+			}
 			runs.push({
 				text: '',
-				style: segmentStyleToCss(seg, fontScale, { blockFont }),
+				style: equationStyle,
 				equation,
 				segmentIndex,
 				charStart: 0,
@@ -166,7 +207,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// so without this they fell back to `resolveUnderlineDecorationStyle`'s
 		// continuous-underline approximation even when the run's OWN text has
 		// no ruby/tab in the way.
-		const underlineWords = seg.style?.underline === true && seg.style?.underlineStyle === 'words';
+		const underlineWords = splitsUnderlineIntoWords(seg.style);
 		// `a:pPr/@fontAlgn` positions the run within the LINE box when the
 		// paragraph mixes run sizes; a run's own super/subscript shift always
 		// wins (see `applyFontAlignmentFallback`).
@@ -191,6 +232,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			blockScriptStyle,
 			tabStops,
 			defaultTabSize,
+			rtl,
 		});
 
 		// A ruby run is emitted WHOLE, never through the per-word metric split

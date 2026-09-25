@@ -9,6 +9,8 @@
  *
  * @module useViewerState
  */
+import { useCropSessionState } from './useCropSessionState';
+import type { CropSessionState } from './useCropSessionState';
 import { useViewerCoreState } from './useViewerCoreState';
 import type { ViewerCoreState } from './useViewerCoreState';
 import { useViewerUIState } from './useViewerUIState';
@@ -33,7 +35,7 @@ export interface UseViewerStateInput {
  * The unified viewer state: intersection of core state (slides, elements,
  * refs, presentation metadata) and UI state (panel toggles, tools, grid/snap).
  */
-export type ViewerState = ViewerCoreState & ViewerUIState;
+export type ViewerState = ViewerCoreState & ViewerUIState & CropSessionState;
 
 /* ------------------------------------------------------------------ */
 /*  Hook                                                              */
@@ -54,5 +56,7 @@ export function useViewerState(input: UseViewerStateInput): ViewerState {
 	const core = useViewerCoreState(input);
 	// UI state: toolbar, panels, drawing tools, grid, snapping, etc.
 	const ui = useViewerUIState();
-	return { ...core, ...ui };
+	// On-canvas picture crop session (read by the history gate).
+	const crop = useCropSessionState();
+	return { ...core, ...ui, ...crop };
 }

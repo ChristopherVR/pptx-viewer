@@ -26,6 +26,11 @@ export { ViewerCanvasEditingService } from './viewer/viewer-canvas-editing.servi
 export { ViewerCollabCursorService } from './viewer/viewer-collab-cursor.service';
 export { ViewerCollaborationSessionService } from './viewer/viewer-collaboration-session.service';
 export { ViewerCustomShowsService } from './viewer/viewer-custom-shows.service';
+export {
+	ViewerCustomizationService,
+	injectResolvedCustomization,
+} from './viewer/viewer-customization.service';
+export { ViewerCustomizationHandle } from './viewer/viewer-customization-handle';
 export { ViewerDocumentPropertiesService } from './viewer/viewer-document-properties.service';
 export { ViewerExportService } from './viewer/viewer-export.service';
 export { ViewerFileIOService } from './viewer/viewer-file-io.service';

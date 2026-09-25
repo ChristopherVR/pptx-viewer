@@ -35,6 +35,7 @@ function child(point?: DataPoint, algType = 'sp'): EngineNode {
 		alg: { type: algType, params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

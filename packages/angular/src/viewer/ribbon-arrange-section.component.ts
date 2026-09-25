@@ -10,7 +10,7 @@
  * left. One command, one place per tab.
  */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import {
 	LucideAlignHorizontalSpaceAround,
 	LucideAlignVerticalSpaceAround,
@@ -23,8 +23,12 @@ import {
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
+import type { ToolbarActionId } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { RibbonCropComponent } from './ribbon-crop.component';
+import { RibbonMergeShapesComponent } from './ribbon-merge-shapes.component';
 import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
+import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
 	selector: 'pptx-ribbon-arrange-section',
@@ -42,6 +46,8 @@ import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
 		LucideAlignHorizontalSpaceAround,
 		LucideAlignVerticalSpaceAround,
 		RibbonShapeExtrasComponent,
+		RibbonMergeShapesComponent,
+		RibbonCropComponent,
 	],
 	template: `
 		<!-- Order -->
@@ -206,6 +212,17 @@ import { RibbonShapeExtrasComponent } from './ribbon-shape-extras.component';
 			[selectedElement]="selectedElement()"
 			[canEdit]="canEdit()"
 		/>
+		<!-- Merge Shapes + Crop (each hideable through the host's customisation) -->
+		@if (!toolbar.isHidden('mergeShapes')) {
+			<pptx-ribbon-merge-shapes [slideIndex]="slideIndex()" [canEdit]="canEdit()" />
+		}
+		@if (!toolbar.isHidden('crop')) {
+			<pptx-ribbon-crop
+				[slideIndex]="slideIndex()"
+				[selectedElement]="selectedElement()"
+				[canEdit]="canEdit()"
+			/>
+		}
 		<span class="pptx-rb-sep"></span>
 		<!-- Duplicate / delete -->
 		<div class="pptx-rb-grp">
@@ -240,6 +257,9 @@ export class RibbonArrangeSectionComponent {
 	readonly canEdit = input<boolean>(false);
 	readonly formatPainterActive = input<boolean>(false);
 	readonly canActivateFormatPainter = input<boolean>(false);
+	/** Toolbar buttons the host hides (gates Merge Shapes and Crop). */
+	readonly hiddenActions = input<ToolbarActionId[]>([]);
+	protected readonly toolbar = toolbarVisibility(computed(() => this.hiddenActions()));
 
 	readonly toggleFormatPainter = output<void>();
 

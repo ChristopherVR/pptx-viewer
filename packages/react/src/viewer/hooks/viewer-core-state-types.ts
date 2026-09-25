@@ -35,6 +35,7 @@ import type {
 	SupportedShapeType,
 } from '../types';
 import type { ViewerMode } from '../types-core';
+import type { EditPointsModeState } from './useEditPointsState';
 import type { InlineEditingState } from './useInlineEditingState';
 
 /* ------------------------------------------------------------------ */
@@ -63,7 +64,7 @@ export interface UseViewerCoreStateInput {
  * that comprises the core viewer state. It is merged with {@link ViewerUIState}
  * inside {@link useViewerState} to produce the unified {@link ViewerState}.
  */
-export interface ViewerCoreState extends InlineEditingState {
+export interface ViewerCoreState extends InlineEditingState, EditPointsModeState {
 	// ── Refs ──────────────────────────────────────────────────────────
 
 	/** Ref to the outermost container `<div>` wrapping the viewer. */

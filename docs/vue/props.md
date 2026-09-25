@@ -86,6 +86,25 @@ callback-prop shape rather than the emit convention used elsewhere in this compo
 />
 ```
 
+## UI customization {#ui-customization}
+
+| Prop            | Type                  | Default | Description                                                                                                                                                                                                                                                                                                                                      |
+| --------------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `customization` | `ViewerCustomization` | -       | Hide, lock or remap any part of the chrome: ribbon tabs and buttons, File > Options pages, sections and settings (lock a value, set a default), File tab pages and cards, context-menu entries, editor shortcuts, panels, features (AI, collaboration) and dialogs. Unioned with `hiddenActions`. A new object replaces the whole customisation. |
+
+```vue
+<PowerPointViewer
+	:content="bytes"
+	can-edit
+	:customization="{ ribbon: { hiddenTabs: ['draw'] }, disabledFeatures: ['ai'] }"
+/>
+```
+
+The same helpers (`hideRibbonTab`, `lockSetting`, `remapShortcut`, ...) are
+available on the template ref to change it at runtime; see [the API page](/vue/handle#ui-customization).
+Every id, the rules and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Collaboration
 
 These props enable and control real-time co-editing. See [Collaboration](/vue/collaboration) for

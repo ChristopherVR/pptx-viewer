@@ -192,6 +192,15 @@ describe('parseCondition', () => {
 // parseCondition: onMediaBookmark / p14:bmkTgt (Office 2010 p14 extension)
 // ==========================================================================
 describe('parseCondition: onMediaBookmark', () => {
+	it('parses onMediaBookmark with p14:bmkTgt inside p:tgtEl (what PowerPoint writes)', () => {
+		const result = parseCondition({
+			'@_evt': 'onMediaBookmark',
+			'@_delay': '0',
+			'p:tgtEl': { 'p14:bmkTgt': { '@_spid': '2', '@_bmkName': 'BM1' } },
+		});
+		expect(result.bookmarkTarget).toStrictEqual({ shapeId: '2', bookmarkName: 'BM1' });
+	});
+
 	it('parses onMediaBookmark with a direct p14:bmkTgt child', () => {
 		const result = parseCondition({
 			'@_evt': 'onMediaBookmark',
@@ -339,13 +348,14 @@ describe('serializeCondition', () => {
 		expect(result['p:tgtEl']).toBeUndefined();
 	});
 
-	it('serializes onMediaBookmark as a direct p14:bmkTgt child', () => {
+	it('serializes onMediaBookmark with p14:bmkTgt as the target element (PowerPoint form)', () => {
 		const result = serializeCondition({
 			event: 'onMediaBookmark',
 			bookmarkTarget: { shapeId: '4', bookmarkName: 'Bookmark 1' },
 		});
 		expect(result['@_evt']).toBe('onMediaBookmark');
-		const bmkTgt = result['p14:bmkTgt'] as XmlObject;
+		expect(result['p14:bmkTgt']).toBeUndefined();
+		const bmkTgt = (result['p:tgtEl'] as XmlObject)['p14:bmkTgt'] as XmlObject;
 		expect(bmkTgt['@_spid']).toBe('4');
 		expect(bmkTgt['@_bmkName']).toBe('Bookmark 1');
 	});
@@ -358,9 +368,8 @@ describe('serializeCondition', () => {
 		});
 		const reserialized = serializeCondition(parsed);
 		expect(reserialized['@_evt']).toBe('onMediaBookmark');
-		expect(reserialized['p14:bmkTgt']).toStrictEqual({
-			'@_spid': '4',
-			'@_bmkName': 'Bookmark 1',
+		expect(reserialized['p:tgtEl']).toStrictEqual({
+			'p14:bmkTgt': { '@_spid': '4', '@_bmkName': 'Bookmark 1' },
 		});
 	});
 

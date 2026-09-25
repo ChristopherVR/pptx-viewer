@@ -14,6 +14,8 @@ import { ConnectorOverlay } from './canvas/ConnectorOverlay';
 import { DrawingOverlaySvg } from './canvas/DrawingOverlaySvg';
 import { GridOverlay } from './canvas/GridOverlay';
 import { MotionPathOverlay } from './canvas/MotionPathOverlay';
+import { OutlineAuthoringLayer } from './canvas/OutlineAuthoringLayer';
+import { PictureCropOverlay } from './canvas/PictureCropOverlay';
 import { Ruler } from './canvas/Ruler';
 import { RULER_THICKNESS } from './canvas/ruler-utils';
 import { SelectionHandleOverlay } from './canvas/SelectionHandleOverlay';
@@ -25,6 +27,7 @@ import { useStableCallbacks } from './canvas/useStableCallbacks';
 import { ElementRenderer } from './ElementRenderer';
 import { ActiveXControlOverlay } from './elements/ActiveXControlOverlay';
 import { InlineCollaborationContext } from './elements/InlineCollaborationContext';
+import { useShapeFormatContext } from './shape-format-context';
 import { SlideBackgroundImageLayer } from './SlideBackgroundImageLayer';
 
 /**
@@ -101,6 +104,7 @@ function SlideCanvasContent({
 	onMouseDown,
 	onContextMenu,
 	onCanvasMouseDown,
+	onCanvasContextMenu,
 	onResizePointerDown,
 	onAdjustmentPointerDown,
 	onRotate,
@@ -141,11 +145,16 @@ function SlideCanvasContent({
 	tableStyleContext,
 	collaborationOverlay,
 	aiActive = false,
+	outlineAuthoring,
 }: SlideCanvasProps) {
 	// True when the stage is an interactive editing surface (drag/resize/marquee
 	// are live). Drives touch-action: none and the touch pointer-down wiring so
 	// finger gestures manipulate elements instead of scrolling the page.
 	const isEditableCanvas = (mode === 'edit' || mode === 'master') && canEdit;
+	// On-canvas picture crop: its overlay replaces the picture's selection
+	// handles (and, by covering the picture, its move-drag) while open.
+	const crop = useShapeFormatContext()?.crop;
+	const cropElement = isEditableCanvas ? (crop?.element ?? null) : null;
 	useSlideCanvasImagePaste({
 		imagePaste,
 		zoom,
@@ -208,6 +217,7 @@ function SlideCanvasContent({
 	} = useCanvasEventHandlers({
 		cbRef,
 		onCanvasMouseDown,
+		onCanvasContextMenu,
 		findResults,
 		findResultIndex,
 		activeSlideIndex,
@@ -457,8 +467,10 @@ function SlideCanvasContent({
 					    precisely on a handle to the shape/caret underneath, so nothing
 					    extra is needed to keep caret placement working. */}
 					{selectedElement &&
+						selectedElement.id !== cropElement?.id &&
 						shouldShowElementHandles(isEditableCanvas, true, selectedElementIdSet.size) &&
-						!isConnectorOrLineElement(selectedElement) && (
+						!isConnectorOrLineElement(selectedElement) &&
+						outlineAuthoring?.editPointsElementId !== selectedElement.id && (
 							<SelectionHandleOverlay
 								element={selectedElement}
 								adjustmentHandles={getShapeAdjustmentHandleDescriptors(selectedElement)}
@@ -490,6 +502,15 @@ function SlideCanvasContent({
 								onUpdateElement={stableUpdateSmartArtElement}
 							/>
 						)}
+
+					{cropElement && crop && (
+						<PictureCropOverlay
+							element={cropElement}
+							scale={zoom.editorScale}
+							onUpdate={crop.liveUpdate}
+							onContextMenu={onContextMenu}
+						/>
+					)}
 
 					<MarqueeOverlay marqueeSelectionState={marqueeSelectionState} />
 
@@ -558,6 +579,15 @@ function SlideCanvasContent({
 							onPointerDown={handleDrawPointerDown}
 							onPointerMove={handleDrawPointerMove}
 							onPointerUp={handleDrawPointerUp}
+						/>
+					)}
+
+					{isEditableCanvas && outlineAuthoring && (
+						<OutlineAuthoringLayer
+							{...outlineAuthoring}
+							activeSlide={activeSlide}
+							canvasSize={canvasSize}
+							scale={zoom.editorScale}
 						/>
 					)}
 

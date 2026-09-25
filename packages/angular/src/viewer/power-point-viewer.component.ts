@@ -22,6 +22,8 @@ import type {
 	PptxCoreProperties,
 	PptxElement,
 	PptxHandoutMaster,
+	PptxLayoutOption,
+	PptxLayoutPreview,
 	PptxNotesMaster,
 	PptxSlide,
 	PptxSlideMaster,
@@ -45,6 +47,7 @@ import {
 	observeElementHeight,
 	readBackstageRecentFile,
 	readStoredViewerPrefs,
+	findCanvasElementNode,
 	recoverySnapshotIntent,
 	resolve3DRenderingFlags,
 	resolveAutosaveActivation,
@@ -75,6 +78,7 @@ import type {
 	SlideTemplateId,
 	ThemeCatalogEntry,
 	ToolbarActionId,
+	ViewerCustomization,
 	ViewerMode,
 	ViewerQuickAccessOptions,
 	ViewerSettings,
@@ -137,6 +141,8 @@ import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { MotionPathOverlayComponent } from './motion-path-overlay.component';
 import { NotesPanelComponent } from './notes-panel.component';
+import { OutlineAuthoringLayerComponent } from './outline-authoring-layer.component';
+import { OutlineAuthoringService } from './outline-authoring.service';
 import { OutlineViewOverlayComponent } from './outline-view-overlay.component';
 import type { OutlineCommit } from './outline-view-overlay.component';
 import { PasteOptionsToolbarComponent } from './paste-options-toolbar.component';
@@ -155,11 +161,15 @@ import { RecentColorsService } from './recent-colors.service';
 import { RehearseTimingsComponent } from './rehearse-timings.component';
 import { RemoteSelectionOverlayComponent } from './remote-selection-overlay.component';
 import { Rendering3DService } from './rendering-3d.service';
+import { performResetSlide } from './ribbon-home-section.component';
+import { RibbonLayoutGalleryComponent } from './ribbon-layout-gallery.component';
+import { layoutOptionsFrom } from './ribbon-layout-options';
 import { patchTextStyle } from './ribbon-text-helpers';
 import { RibbonComponent } from './ribbon.component';
 import { SelectionPaneComponent } from './selection-pane.component';
 import { ShareDialogComponent } from './share-dialog.component';
 import { SignaturesPanelComponent } from './signatures-panel.component';
+import { SlideCanvasContextMenuComponent } from './slide-canvas-context-menu.component';
 import { SlideCanvasComponent } from './slide-canvas.component';
 import { SlideDefaultInspectorComponent } from './slide-default-inspector.component';
 import { SlideSorterOverlayComponent } from './slide-sorter-overlay.component';
@@ -178,6 +188,8 @@ import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
+import { ViewerCustomizationHandle } from './viewer-customization-handle';
+import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerExportService } from './viewer-export.service';
@@ -235,6 +247,8 @@ import { ZoomTargetService } from './zoom-target.service';
 		StatusBarComponent,
 		EditorToolbarComponent,
 		EditorContextMenuComponent,
+		SlideCanvasContextMenuComponent,
+		RibbonLayoutGalleryComponent,
 		ExportProgressModalComponent,
 		CommentMarkersOverlayComponent,
 		CommentsPanelComponent,
@@ -245,6 +259,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		CollaborationCursorsComponent,
 		RemoteSelectionOverlayComponent,
 		MotionPathOverlayComponent,
+		OutlineAuthoringLayerComponent,
 		FollowModeBarComponent,
 		PropertiesDialogComponent,
 		HyperlinkDialogComponent,
@@ -332,27 +347,29 @@ import { ZoomTargetService } from './zoom-target.service';
 					/>
 				}
 				@if (!mobile.isMobile() && chromeVisible()) {
-					<pptx-title-bar
-						[canEdit]="canEdit()"
-						[fileName]="fileName()"
-						[isDirty]="editor.dirty()"
-						[autosaveStatus]="autosave.status()"
-						[autosaveEnabled]="autosaveActivation().active"
-						[canUndo]="editor.canUndo()"
-						[canRedo]="editor.canRedo()"
-						[undoLabel]="editor.undoLabel()"
-						[redoLabel]="editor.redoLabel()"
-						[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
-						[hiddenActions]="effectiveHiddenActions()"
-						[quickAccess]="viewerOpts.options().quickAccess"
-						(toggleAutosave)="toggleAutosave()"
-						(save)="fileIO.saveAsPptx()"
-						(undo)="editor.undo()"
-						(redo)="editor.redo()"
-						(quickCommand)="onQuickAccessCommand($event)"
-						(toggleFindReplace)="toggleFindReplace()"
-						(commandSearch)="handleCommandSearch($event)"
-					/>
+					@if (customizationService.panelVisible('titleBar')) {
+						<pptx-title-bar
+							[canEdit]="canEdit()"
+							[fileName]="fileName()"
+							[isDirty]="editor.dirty()"
+							[autosaveStatus]="autosave.status()"
+							[autosaveEnabled]="autosaveActivation().active"
+							[canUndo]="editor.canUndo()"
+							[canRedo]="editor.canRedo()"
+							[undoLabel]="editor.undoLabel()"
+							[redoLabel]="editor.redoLabel()"
+							[findReplaceOpen]="findReplace.showFind() || findReplace.showFindReplace()"
+							[hiddenActions]="effectiveHiddenActions()"
+							[quickAccess]="customizationService.quickAccess(viewerOpts.options().quickAccess)"
+							(toggleAutosave)="toggleAutosave()"
+							(save)="fileIO.saveAsPptx()"
+							(undo)="editor.undo()"
+							(redo)="editor.redo()"
+							(quickCommand)="onQuickAccessCommand($event)"
+							(toggleFindReplace)="toggleFindReplace()"
+							(commandSearch)="handleCommandSearch($event)"
+						/>
+					}
 					<pptx-ribbon
 						[slideIndex]="activeSlideIndex()"
 						[slideCount]="slideCount()"
@@ -504,14 +521,30 @@ import { ZoomTargetService } from './zoom-target.service';
 				}
 
 				<div class="pptx-ng-body">
-					@if (canEdit() && !mobile.isMobile() && !slidesPanelCollapsed() && chromeVisible()) {
+					@if (
+						canEdit() &&
+						!mobile.isMobile() &&
+						!slidesPanelCollapsed() &&
+						chromeVisible() &&
+						customizationService.panelVisible('slidesPane')
+					) {
 						<pptx-slides-panel
 							[canvasSize]="loader.canvasSize()"
 							[mediaDataUrls]="loader.mediaDataUrls()"
 							[activeIndex]="activeSlideIndex()"
 							(select)="goTo($event)"
+							(addSlideAfter)="editor.addSlide($event)"
+							(duplicateSlides)="duplicateSlides($event)"
+							(deleteSlides)="deleteSlides($event)"
+							(toggleHideSlides)="toggleHideSlides($event)"
+							(addSectionAt)="editor.addSection($event)"
+							(openLayoutForSlide)="
+								goTo($event.index); canvasLayoutGalleryPos.set({ x: $event.x, y: $event.y })
+							"
 						/>
-					} @else if (!canEdit() && chromeVisible()) {
+					} @else if (
+						!canEdit() && chromeVisible() && customizationService.panelVisible('slidesPane')
+					) {
 						<nav class="pptx-ng-thumbnails" [attr.aria-label]="'pptx.sections.slides' | translate">
 							@for (slide of displaySlides(); track slide.id; let i = $index) {
 								<button
@@ -536,7 +569,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[fitPadding]="fitPadding()"
 							[maxFitScale]="maxFitScale()"
 							[editable]="canEdit()"
-							[selectedIds]="editor.selectedIds()"
+							[selectedIds]="outlineAuthoring.canvasSelectedIds()"
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
@@ -614,6 +647,14 @@ import { ZoomTargetService } from './zoom-target.service';
 								[canEdit]="canEdit()"
 								(pathChange)="onMotionPathChange($event)"
 							/>
+							<!-- Edit Points / Freeform: Shape / Curve: projected for the same reason. -->
+							<pptx-outline-authoring-layer
+								[slide]="activeSlide()"
+								[slideIndex]="activeSlideIndex()"
+								[canvasSize]="loader.canvasSize()"
+								[zoom]="zoomSvc.zoom()"
+								[canEdit]="canEdit()"
+							/>
 							<!--
 								Numbered comment markers: projected for the same reason the
 								collaboration overlays are (inside the scaled stage, raw slide
@@ -647,7 +688,12 @@ import { ZoomTargetService } from './zoom-target.service';
 						swipe past the threshold sets mobileInspectorHidden so the user
 						reclaims the canvas.
 					-->
-					@if (chromeVisible() ? inspectorPanel.visibleInspectorKind() : null; as kind) {
+					@if (
+						chromeVisible() && customizationService.panelVisible('inspector')
+							? inspectorPanel.visibleInspectorKind()
+							: null;
+						as kind
+					) {
 						<!--
 							Mobile-only tap-to-dismiss backdrop behind the inspector sheet
 							(hidden on desktop via CSS, mirroring React's MobileDismissSheet).
@@ -746,7 +792,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					-->
 					@defer (when ai() && aiPanelOpen()) {
 						@if (ai(); as aiConfig) {
-							@if (aiPanelOpen() && chromeVisible()) {
+							@if (aiPanelOpen() && chromeVisible() && aiEnabled()) {
 								<pptx-ai-chat-panel
 									[bridge]="aiBridge"
 									[config]="aiConfig"
@@ -763,7 +809,12 @@ import { ZoomTargetService } from './zoom-target.service';
 					status bar to match React/Vanilla, rather than nested under the
 					canvas column inside <main>.
 				-->
-				@if (canEdit() && !mobile.isMobile() && chromeVisible()) {
+				@if (
+					canEdit() &&
+					!mobile.isMobile() &&
+					chromeVisible() &&
+					customizationService.panelVisible('notes')
+				) {
 					<aside
 						#notesBar
 						class="pptx-ng-notes"
@@ -779,7 +830,9 @@ import { ZoomTargetService } from './zoom-target.service';
 					</aside>
 				}
 
-				@if (!mobile.isMobile() && chromeVisible()) {
+				@if (
+					!mobile.isMobile() && chromeVisible() && customizationService.panelVisible('statusBar')
+				) {
 					<pptx-status-bar
 						[slideIndex]="activeSlideIndex()"
 						[slideCount]="slideCount()"
@@ -1005,6 +1058,40 @@ import { ZoomTargetService } from './zoom-target.service';
 				/>
 			}
 
+			@if (canEdit() && canvasEditing.canvasContextMenuPos(); as cm) {
+				<pptx-slide-canvas-context-menu
+					[x]="cm.x"
+					[y]="cm.y"
+					[hasClipboard]="editor.hasClipboard()"
+					[showGrid]="showGrid()"
+					[showRulers]="showRulers()"
+					(paste)="editor.paste(activeSlideIndex())"
+					(openLayoutGallery)="canvasLayoutGalleryPos.set({ x: cm.x, y: cm.y })"
+					(resetSlide)="performResetSlide(editor, activeSlideIndex())"
+					(openFormatBackground)="editor.clearSelection(); inspectorPanel.openFormatPanel()"
+					(toggleGrid)="showGrid.update((v) => !v)"
+					(toggleRulers)="showRulers.update((v) => !v)"
+					(closed)="canvasEditing.canvasContextMenuPos.set(null)"
+				/>
+			}
+
+			<!-- Canvas context menu's "Layout" gallery, anchored at the click point -->
+			@if (canvasLayoutGalleryPos(); as lg) {
+				<div
+					class="fixed inset-0 z-[119]"
+					(click)="canvasLayoutGalleryPos.set(null)"
+					(contextmenu)="$event.preventDefault(); canvasLayoutGalleryPos.set(null)"
+				></div>
+				<div class="fixed z-[120]" [style.left.px]="lg.x" [style.top.px]="lg.y">
+					<pptx-ribbon-layout-gallery
+						[layoutOptions]="canvasLayoutOptions()"
+						[previews]="canvasLayoutPreviews()"
+						[currentLayoutPath]="activeSlide()?.layoutPath"
+						(select)="onCanvasLayoutSelect($event)"
+					/>
+				</div>
+			}
+
 			<pptx-paste-special-dialog
 				[open]="editor.isPasteSpecialDialogOpen()"
 				(cancel)="editor.isPasteSpecialDialogOpen.set(false)"
@@ -1097,7 +1184,7 @@ import { ZoomTargetService } from './zoom-target.service';
 			/>
 
 			<pptx-share-dialog
-				[open]="session.showShare()"
+				[open]="session.showShare() && customizationService.dialogAvailable('share')"
 				[active]="collab.active()"
 				[connected]="collab.connected()"
 				[userCount]="collab.connectedCount()"
@@ -1113,7 +1200,7 @@ import { ZoomTargetService } from './zoom-target.service';
 			/>
 
 			<pptx-broadcast-dialog
-				[open]="session.showBroadcast()"
+				[open]="session.showBroadcast() && customizationService.dialogAvailable('broadcast')"
 				[active]="collab.active()"
 				[connected]="collab.connected()"
 				[viewerCount]="collab.presence().length"
@@ -1196,7 +1283,7 @@ import { ZoomTargetService } from './zoom-target.service';
 				     the visual viewport ends up below the document on mobile (100vh layout
 				     viewport < dynamic viewport), leaving its textarea unreachable to taps.
 				     Mirrors React, where the notes panel is a flow sibling below the canvas. -->
-				@if (mobileSheetSvc.showNotes()) {
+				@if (mobileSheetSvc.showNotes() && customizationService.panelVisible('notes')) {
 					<div
 						class="pptx-ng-mobile-notes-sheet"
 						[style.transform]="
@@ -1257,7 +1344,10 @@ import { ZoomTargetService } from './zoom-target.service';
 		</div>
 	`,
 })
-export class PowerPointViewerComponent implements PowerPointViewerAPI {
+export class PowerPointViewerComponent
+	extends ViewerCustomizationHandle
+	implements PowerPointViewerAPI
+{
 	/** PowerPoint content as Uint8Array (or ArrayBuffer). */
 	readonly content = input<Uint8Array | ArrayBuffer | null>(null);
 	/** Licensed fonts supplied by the host application. No fonts are bundled. */
@@ -1440,6 +1530,15 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * `ai` prop.
 	 */
 	readonly ai = input<PptxAiConfig | undefined>(undefined);
+	/**
+	 * Framework-neutral UI customisation. See docs/guide/customization.md.
+	 * Unioned with `hiddenActions`. A new object identity REPLACES the whole
+	 * customisation, including edits made through the imperative helpers
+	 * (`hideRibbonTab`, `lockSetting`, ...).
+	 */
+	readonly customization = input<ViewerCustomization | undefined>(undefined);
+	protected readonly customizationService = inject(ViewerCustomizationService);
+	private readonly customizationInputSync = this.customizationService.bindInput(this.customization);
 
 	/** Fired when the active slide changes. */
 	readonly activeSlideChange = output<number>();
@@ -1513,6 +1612,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly fileIO = inject(ViewerFileIOService);
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
+	protected readonly outlineAuthoring = inject(OutlineAuthoringService);
 	/** Shared AI panel scope + on-canvas highlight store (pick mode, tool focus). */
 	protected readonly aiPanelStore = inject(AiPanelStore);
 	protected readonly collabCursor = inject(ViewerCollabCursorService);
@@ -1593,7 +1693,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * changing what actually renders.
 	 */
 	protected readonly effectiveHiddenActions = computed<ToolbarActionId[]>(() =>
-		mergeHiddenActions(this.hiddenActions(), this.viewerOpts.options().ribbon.hiddenTabIds),
+		this.customizationService.effectiveHiddenActions(
+			mergeHiddenActions(this.hiddenActions(), this.viewerOpts.options().ribbon.hiddenTabIds),
+		),
 	);
 
 	/**
@@ -1606,7 +1708,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	 * the commands render in exactly one place.
 	 */
 	protected readonly belowRibbonQuickAccess = computed<ViewerQuickAccessOptions | null>(() =>
-		resolveBelowRibbonQuickAccess(this.viewerOpts.options().quickAccess),
+		resolveBelowRibbonQuickAccess(
+			this.customizationService.quickAccess(this.viewerOpts.options().quickAccess),
+		),
 	);
 
 	protected readonly activeSlideIndex = signal(0);
@@ -1795,6 +1899,45 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	protected readonly showGrid = signal(false);
 	/** Whether ruler strips are visible on the editor canvas. */
 	protected readonly showRulers = signal(false);
+
+	// ── Empty-canvas context menu's "Layout" gallery ──────────────────────────
+	/** Home > Reset re-exposed for the canvas menu's "Reset Slide" entry. */
+	protected readonly performResetSlide = performResetSlide;
+	/** Anchor point (click coords) of the canvas menu's Layout gallery, or null when closed. */
+	protected readonly canvasLayoutGalleryPos = signal<{ x: number; y: number } | null>(null);
+	/** Layouts offered by the canvas menu's Layout gallery (same source as the ribbon's). */
+	protected readonly canvasLayoutOptions = computed(() =>
+		layoutOptionsFrom(this.loader.slideMasters()),
+	);
+	/** Layout artwork, fetched the first time the canvas menu's gallery opens. */
+	protected readonly canvasLayoutPreviews = signal<ReadonlyMap<string, PptxLayoutPreview>>(
+		new Map(),
+	);
+
+	/** Lazily loads layout artwork the first time the canvas menu's gallery opens. */
+	private readonly loadCanvasLayoutPreviewsEffect = effect(() => {
+		if (!this.canvasLayoutGalleryPos() || this.canvasLayoutPreviews().size > 0) {
+			return;
+		}
+		const handler = this.loader.getHandler();
+		if (!handler) {
+			return;
+		}
+		void handler
+			.getLayoutPreviews()
+			.then((previews) => {
+				this.canvasLayoutPreviews.set(new Map(previews.map((preview) => [preview.path, preview])));
+				return undefined;
+			})
+			.catch(() => undefined);
+	});
+
+	/** Apply the picked layout to the active slide and close the gallery. */
+	protected onCanvasLayoutSelect(layout: PptxLayoutOption): void {
+		void this.editor.applyLayout(this.activeSlideIndex(), layout.path);
+		this.canvasLayoutGalleryPos.set(null);
+	}
+
 	/** Whether center-crosshair guide lines are visible on the editor canvas. */
 	protected readonly showGuides = signal(false);
 	/** Whether snap-to-grid is active on the editor canvas. */
@@ -1872,7 +2015,9 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 			: 0,
 	);
 	/** Whether the AI assistant toggle is shown (host supplied an `ai` config). */
-	protected readonly aiEnabled = computed(() => aiToggleVisible(this.ai()));
+	protected readonly aiEnabled = computed(
+		() => aiToggleVisible(this.ai()) && this.customizationService.featureEnabled('ai'),
+	);
 	/**
 	 * Stable {@link PptxAiBridge} exposing this viewer's live state + editor to
 	 * the AI core. Its three write choke points route through
@@ -1962,6 +2107,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 	});
 
 	constructor() {
+		super();
 		// Wire the AI panel store to the live canvas selection so its
 		// follow-selection focus (and the bridge's getFocusedTargets) stay current.
 		this.aiPanelStore.bind({
@@ -3136,7 +3282,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		if (!element) {
 			return;
 		}
-		const node = document.querySelector<HTMLElement>(`[data-element-id="${element.id}"]`);
+		const node = findCanvasElementNode(document, element.id);
 		if (!node) {
 			return;
 		}
@@ -3186,7 +3332,7 @@ export class PowerPointViewerComponent implements PowerPointViewerAPI {
 		elementId: string,
 		sourceClone: PptxElement,
 	): Promise<void> {
-		const node = document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+		const node = findCanvasElementNode(document, elementId);
 		if (!node) {
 			return;
 		}

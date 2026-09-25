@@ -184,4 +184,15 @@ export const translations = {
 	'pptx.media.playbackSpeed': 'Vitesse de lecture',
 	'pptx.media.trimEnd': 'Fin du rognage',
 	'pptx.media.trimStart': 'Début du rognage',
+	'pptx.image.crop': 'Rogner',
+	'pptx.image.cropToAspectRatio': 'Rogner selon les proportions',
+	'pptx.image.cropFill': 'Remplissage',
+	'pptx.image.cropFit': 'Ajuster',
+	'pptx.image.cropSquare': 'Carré',
+	'pptx.image.cropPortrait': 'Portrait',
+	'pptx.image.cropLandscape': 'Paysage',
+	'pptx.image.cropHandle': 'Poignée de rognage',
+	'pptx.image.cropModeHint':
+		'Faites glisser les poignées noires pour rogner. Appuyez sur Entrée pour appliquer ou Échap pour annuler.',
+	'pptx.image.cropHint': 'Sélectionnez une image pour la rogner',
 } as const;

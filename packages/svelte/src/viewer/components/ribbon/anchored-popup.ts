@@ -54,3 +54,13 @@ export function anchoredPopup(node: HTMLElement, options: AnchoredPopupOptions) 
 		},
 	};
 }
+
+/**
+ * Hand focus back to the viewer root after a ribbon menu item closes its own
+ * popup. The clicked item is unmounted with the menu, which drops focus onto
+ * `document.body`, outside the root's keydown listener, so Ctrl+Z straight
+ * after (say) a merge would otherwise be silently ignored.
+ */
+export function refocusViewerRoot(from: HTMLElement | undefined): void {
+	from?.closest<HTMLElement>('.pptx-svelte-viewer')?.focus({ preventScroll: true });
+}

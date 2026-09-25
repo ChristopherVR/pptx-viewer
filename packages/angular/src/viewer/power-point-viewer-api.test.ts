@@ -111,8 +111,8 @@ describe('powerPointViewerComponent API conformance', () => {
 	});
 
 	it('declares the shared contract, so the compiler checks it', () => {
-		expect(source).toContain(
-			'export class PowerPointViewerComponent implements PowerPointViewerAPI',
+		expect(source).toMatch(
+			/export class PowerPointViewerComponent\s+extends ViewerCustomizationHandle\s+implements PowerPointViewerAPI/u,
 		);
 	});
 

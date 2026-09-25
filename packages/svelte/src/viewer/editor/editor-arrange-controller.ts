@@ -1,4 +1,5 @@
-import type { AlignEdge, DistributeAxis } from 'pptx-viewer-shared';
+import type { AlignEdge, DistributeAxis, MergeShapeOperation } from 'pptx-viewer-shared';
+import { applyMergeShapesPlan, planMergeShapes } from 'pptx-viewer-shared';
 
 import {
 	alignSelectedOnSlide,
@@ -83,5 +84,23 @@ export class EditorArrangeController {
 		if (childIds.length > 0) {
 			this.#editor.selection.setAll(childIds);
 		}
+	}
+
+	/**
+	 * Merge Shapes (Union / Combine / Fragment / Intersect / Subtract) over the
+	 * selection IN SELECTION ORDER, so the first-selected shape's formatting
+	 * survives. One undo step; selects the new shape(s). False when a no-op.
+	 */
+	mergeSelected(operation: MergeShapeOperation): boolean {
+		if (!this.#editor.editable) {
+			return false;
+		}
+		const plan = planMergeShapes(operation, this.#editor.selectedElements);
+		if (!plan) {
+			return false;
+		}
+		this.#editor.commitActiveElements(applyMergeShapesPlan(this.#editor.activeElements, plan));
+		this.#editor.selection.setAll(plan.created.map((element) => element.id));
+		return true;
 	}
 }

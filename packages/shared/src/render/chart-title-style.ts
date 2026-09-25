@@ -33,6 +33,32 @@ export interface ChartTitleTextStyle {
 }
 
 /**
+ * The lowest baseline that keeps a title of `fontSizePx` inside the chart:
+ * its ascent (about 0.8em) plus the chart's own 8px top margin.
+ */
+export function titleBaselineFor(fontSizePx: number): number {
+	return Math.round((fontSizePx * 0.8 + 8) * 100) / 100;
+}
+
+/**
+ * Lower an automatic title baseline that a large title font would push out of
+ * the chart (see {@link titleBaselineFor}), and move a top legend sitting in
+ * the title band down by the same amount so the two do not collide.
+ */
+export function fitTitleBand(
+	vm: { title: string | undefined; titleY: number; legendY: number; legend: readonly unknown[] },
+	fontSizePx: number,
+): { titleY: number; legendY: number } {
+	const target = titleBaselineFor(fontSizePx);
+	if (vm.title === undefined || vm.titleY >= target) {
+		return { titleY: vm.titleY, legendY: vm.legendY };
+	}
+	const delta = target - vm.titleY;
+	const topLegend = vm.legend.length > 0 && vm.legendY <= target + 4;
+	return { titleY: target, legendY: topLegend ? vm.legendY + delta : vm.legendY };
+}
+
+/**
  * Resolve the title font for `chartData`. Pure; safe to call for a chart with
  * no title (the result is simply unused).
  */
@@ -44,12 +70,11 @@ export function resolveChartTitleTextStyle(
 	const hasStylePartTitle = chartData?.chartStyleDefinition?.title !== undefined;
 	const fontSize =
 		style?.titleFontSize !== undefined ? chartFontPx(style.titleFontSize) : defaults.titleTextPx;
-	const fontWeight =
-		style?.titleFontBold === undefined
-			? DEFAULT_TITLE_FONT_WEIGHT
-			: style.titleFontBold
-				? 700
-				: 400;
+	// The title's own run properties, then the style part's `cs:title` entry
+	// (every built-in style authors `b="0"`: PowerPoint's auto title is not
+	// bold), then the viewer default.
+	const bold = style?.titleFontBold ?? chartData?.chartStyleDefinition?.title?.bold;
+	const fontWeight = bold === undefined ? DEFAULT_TITLE_FONT_WEIGHT : bold ? 700 : 400;
 	const fill =
 		style?.titleFontColor ?? (hasStylePartTitle ? defaults.titleTextColor : DEFAULT_TITLE_FILL);
 	const fontFamily = style?.titleFontFamily?.trim() || undefined;

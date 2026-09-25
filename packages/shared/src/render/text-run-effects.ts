@@ -3,10 +3,11 @@
  *
  * Pure, framework-agnostic. Mirrors React's per-run effect composition in
  * `packages/react/src/viewer/utils/text-segment-render.tsx`: it folds the
- * gradient/pattern fill record, the merged `text-shadow` (outer + preset), the
- * merged `filter` chain (glow + inner-shadow + blur + HSL), and the alpha
- * `opacity` into ONE neutral CSS record (`Record<string, string | number>`).
- * Each binding casts the record into its own style type at the call site.
+ * gradient/pattern fill record, the merged `text-shadow` (outer + preset), an
+ * `inset box-shadow` (inner shadow), the merged `filter` chain (glow + blur +
+ * soft-edge + HSL), and the alpha `opacity` into ONE neutral CSS record
+ * (`Record<string, string | number>`). Each binding casts the record into its
+ * own style type at the call site.
  *
  * Reflection (`a:reflection`) is NOT part of this record: unlike the other
  * effects, it cannot be expressed as CSS properties on the run's own span (a
@@ -31,15 +32,21 @@ import {
 	buildTextHslFilter,
 	buildTextInnerShadowCss,
 	buildTextShadowCss,
+	buildTextSoftEdgeFilter,
 	getTextAlphaOpacity,
 } from './text-effects';
 import { buildTextFillCss } from './text-fill';
 import type { TextCssProperties } from './text-fill';
 
 /**
- * Combine all text-run CSS `filter` effects into a single space-joined chain,
- * mirroring React's `buildTextRunFilterChain`: glow, inner-shadow, blur, then
- * HSL (in that order). Returns `undefined` when no filter effect applies.
+ * Combine all text-run CSS `filter` effects into a single space-joined chain:
+ * glow, blur, soft edge, then HSL (in that order). Returns `undefined` when
+ * no filter effect applies.
+ *
+ * Inner shadow (`a:innerShdw`) is NOT part of this chain: `filter:
+ * drop-shadow(...)` can only ever paint OUTSIDE an element's silhouette, so
+ * it is composed as a `box-shadow: inset` in {@link buildRunEffectStyle}
+ * instead - see {@link buildTextInnerShadowCss}'s doc comment.
  */
 export function buildTextRunFilterChain(style: TextStyle): string | undefined {
 	const parts: string[] = [];
@@ -47,13 +54,13 @@ export function buildTextRunFilterChain(style: TextStyle): string | undefined {
 	if (glow) {
 		parts.push(glow);
 	}
-	const innerShadow = buildTextInnerShadowCss(style);
-	if (innerShadow) {
-		parts.push(innerShadow);
-	}
 	const blur = buildTextBlurFilter(style);
 	if (blur) {
 		parts.push(blur);
+	}
+	const softEdge = buildTextSoftEdgeFilter(style);
+	if (softEdge) {
+		parts.push(softEdge);
 	}
 	const hsl = buildTextHslFilter(style);
 	if (hsl) {
@@ -71,8 +78,10 @@ export function buildTextRunFilterChain(style: TextStyle): string | undefined {
  *    (spreads the fill record's `background` / `backgroundClip` /
  *    `WebkitBackgroundClip` / `WebkitTextFillColor` keys);
  *  - `textShadow` from {@link buildTextShadowCss} (outer + preset);
- *  - `filter` from {@link buildTextRunFilterChain} (glow + inner-shadow + blur
- *    + HSL);
+ *  - `boxShadow` from {@link buildTextInnerShadowCss} (`inset`, so it renders
+ *    inside the run's own line-fragment box rather than around the outside);
+ *  - `filter` from {@link buildTextRunFilterChain} (glow + blur + soft-edge +
+ *    HSL);
  *  - `opacity` from {@link getTextAlphaOpacity} (alpha modulation).
  *
  * Reflection is deliberately absent: see the module doc.
@@ -91,6 +100,11 @@ export function buildRunEffectStyle(style: TextStyle): TextCssProperties {
 	const textShadow = buildTextShadowCss(style);
 	if (textShadow) {
 		css.textShadow = textShadow;
+	}
+
+	const innerShadow = buildTextInnerShadowCss(style);
+	if (innerShadow) {
+		css.boxShadow = innerShadow;
 	}
 
 	const filter = buildTextRunFilterChain(style);

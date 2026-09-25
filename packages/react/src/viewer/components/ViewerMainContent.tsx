@@ -2,18 +2,23 @@
  * ViewerMainContent: The primary content area containing sidebars,
  * canvas, context menu, and side panels.
  */
-import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { setMasterViewBackgroundColor } from 'pptx-viewer-shared';
+import type { PptxElement, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
+import {
+	resetSlideLayoutPath,
+	resolveEditPointsAvailability,
+	setMasterViewBackgroundColor,
+} from 'pptx-viewer-shared';
 import type { ToolbarActionId } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu } from '.';
+import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu, CanvasContextMenu } from '.';
 import type { AiPanelController } from '../hooks/ai/useAiPanelController';
 import type { UseCommentsResult } from '../hooks/useComments-helpers';
 import type { EditorHistoryResult } from '../hooks/useEditorHistory';
 import type { EditorOperationsResult } from '../hooks/useEditorOperations';
+import { useLayoutPreviews } from '../hooks/useLayoutPreviews';
 import type { UseMasterViewCrudResult } from '../hooks/useMasterViewCrud';
 import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
@@ -27,6 +32,7 @@ import type { ViewerMode } from '../types-core';
 import { AiChangeOverlay, AiFocusHighlightOverlay } from './ai';
 import { ChartPartSelectionProvider } from './chart-part-selection';
 import { ResizeHandle } from './ResizeHandle';
+import { LayoutGalleryMenu } from './toolbar/LayoutGalleryMenu';
 import { ViewerCanvasArea } from './ViewerCanvasArea';
 import { ViewerSidePanels } from './ViewerSidePanels';
 
@@ -83,6 +89,10 @@ export interface ViewerMainContentProps {
 	aiBridge?: PptxAiBridge;
 	/** AI panel open state + focus/prefill controller (present when `ai` is set). */
 	aiPanel?: AiPanelController;
+	/** Applies a layout to the active slide; used by the canvas context menu's Layout entry. */
+	onApplyLayout?: (path: string) => void;
+	/** Fetches layout artwork for the canvas context menu's Layout gallery. */
+	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
 }
 
 // ---------------------------------------------------------------------------
@@ -126,6 +136,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		aiConfig,
 		aiBridge,
 		aiPanel,
+		onApplyLayout,
+		loadLayoutPreviews,
 	} = props;
 
 	const {
@@ -161,6 +173,17 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		[state.theme, state.tableStyleMap],
 	);
 
+	// The canvas context menu's "Layout" entry opens the same gallery the
+	// ribbon's Home > Layout button does, anchored at the click point instead
+	// of the ribbon button: an invisible zero-size anchor positioned at the
+	// click coordinates gives `LayoutGalleryMenu` (which anchors off a rect,
+	// not a point) somewhere to hang from.
+	const [layoutGalleryAnchor, setLayoutGalleryAnchor] = useState<{ x: number; y: number } | null>(
+		null,
+	);
+	const layoutGalleryAnchorRef = useRef<HTMLDivElement>(null);
+	const layoutGalleryPreviews = useLayoutPreviews(loadLayoutPreviews, layoutGalleryAnchor !== null);
+
 	// Recent-colours ("Most Recently Used") support, shared by every colour
 	// picker in BOTH the ribbon toolbar and the inspector via context, is
 	// provided by `PowerPointViewer` above `ViewerToolbarSection` and this
@@ -185,6 +208,14 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 							onSlideContextMenu={slideOps.handleSlideContextMenu}
 							onMoveSlide={slideOps.handleMoveSlide}
 							onAddSlide={slideOps.handleAddSlide}
+							onAddSlideAfter={slideOps.handleAddSlideAfter}
+							onDuplicateSlides={slideOps.handleDuplicateSlides}
+							onDeleteSlides={slideOps.handleDeleteSlides}
+							onHideSlides={slideOps.handleToggleHideSlides}
+							onOpenLayoutForSlide={(index, x, y) => {
+								state.setActiveSlideIndex(index);
+								setLayoutGalleryAnchor({ x, y });
+							}}
 							onCollapse={() => state.setIsSlidesPaneOpen(false)}
 							onAddSection={sectionOps.addSection}
 							onRenameSection={sectionOps.renameSection}
@@ -306,6 +337,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						tableEditorState={state.tableEditorState}
 						hasMultiSelection={state.effectiveSelectedIds.length > 1}
 						selectionGroupable={manipulation.selectionGroupable}
+						hasClipboard={Boolean(state.clipboardPayload)}
+						editPointsAvailability={resolveEditPointsAvailability(selectedElement)}
 						onAction={manipulation.handleContextMenuAction}
 						onInsertTableRow={tableOps.handleInsertTableRow}
 						onDeleteTableRow={tableOps.handleDeleteTableRow}
@@ -333,6 +366,64 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 						}
 						onClose={() => state.setContextMenuState(null)}
 					/>
+				)}
+
+				{state.canvasContextMenuState && (
+					<CanvasContextMenu
+						canvasContextMenuState={state.canvasContextMenuState}
+						mode={mode}
+						hasClipboard={Boolean(state.clipboardPayload)}
+						showGrid={state.showGrid}
+						showRulers={state.showRulers}
+						onPaste={() => manipulation.handlePaste()}
+						onOpenLayoutGallery={() => {
+							const pos = state.canvasContextMenuState;
+							if (pos) {
+								setLayoutGalleryAnchor(pos);
+							}
+						}}
+						onResetSlide={() => {
+							const path = resetSlideLayoutPath(activeSlide);
+							if (path) {
+								onApplyLayout?.(path);
+							}
+						}}
+						onOpenFormatBackground={() => {
+							state.setSelectedElementId(null);
+							state.setSelectedElementIds([]);
+							state.setSidebarPanelMode('properties');
+							state.setIsInspectorPaneOpen(true);
+						}}
+						onToggleGrid={() => state.setShowGrid((v) => !v)}
+						onToggleRulers={() => state.setShowRulers((v) => !v)}
+						onClose={() => state.setCanvasContextMenuState(null)}
+					/>
+				)}
+
+				{layoutGalleryAnchor && (
+					<>
+						<div
+							ref={layoutGalleryAnchorRef}
+							style={{
+								position: 'fixed',
+								left: layoutGalleryAnchor.x,
+								top: layoutGalleryAnchor.y,
+								width: 0,
+								height: 0,
+							}}
+						/>
+						<div className='fixed inset-0 z-[119]' onClick={() => setLayoutGalleryAnchor(null)} />
+						<LayoutGalleryMenu
+							anchorRef={layoutGalleryAnchorRef}
+							layoutOptions={state.layoutOptions}
+							previews={layoutGalleryPreviews}
+							currentLayoutPath={activeSlide?.layoutPath}
+							onSelect={(layout) => {
+								onApplyLayout?.(layout.path);
+								setLayoutGalleryAnchor(null);
+							}}
+						/>
+					</>
 				)}
 
 				<ViewerSidePanels

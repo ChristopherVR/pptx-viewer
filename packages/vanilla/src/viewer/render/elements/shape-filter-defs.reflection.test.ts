@@ -31,7 +31,8 @@ describe('renderReflectionOverlay', () => {
 		expect(layer).not.toBeNull();
 		expect(layer?.className).toBe('pptxv-reflection');
 		expect(layer?.style.position).toBe('absolute');
-		expect(layer?.style.transform).toBe('scaleY(-1)');
+		// `@sy` defaults to -100% (the mirror), not OOXML's generic +100%.
+		expect(layer?.style.transform).toBe('scale(1, -1)');
 		expect(layer?.getAttribute('aria-hidden')).toBe('true');
 		expect(layer?.outerHTML).not.toContain('box-reflect');
 	});
@@ -155,16 +156,14 @@ describe('renderReflectionOverlay', () => {
 			shape({
 				reflectionStartOpacity: 0.5,
 				reflectionScaleX: 80000,
-				reflectionScaleY: 80000,
+				reflectionScaleY: -80000,
 				reflectionSkewX: 300000,
 				reflectionRotation: 1800000,
 				reflectionAlignment: 'tl',
 			}),
 			new Map(),
 		);
-		expect(layer?.style.transform).toBe(
-			'scaleY(-1) scale(0.8, 0.8) skew(5deg, 0deg) rotate(30deg)',
-		);
+		expect(layer?.style.transform).toBe('scale(0.8, -0.8) skew(5deg, 0deg) rotate(30deg)');
 		expect(layer?.style.transformOrigin).toBe('left top');
 	});
 });

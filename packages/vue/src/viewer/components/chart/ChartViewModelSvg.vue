@@ -89,25 +89,57 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 		:preserveAspectRatio="preserveAspectRatio"
 	>
 		<defs v-if="vm.defs && vm.defs.length > 0">
-			<pattern
-				v-for="(def, i) in vm.defs"
-				:key="`${elementId}-def-${i}`"
-				:id="def.id"
-				:patternUnits="def.patternUnits"
-				:x="def.x"
-				:y="def.y"
-				:width="def.width"
-				:height="def.height"
-			>
-				<image
-					:href="def.href"
-					:x="0"
-					:y="0"
+			<template v-for="(def, i) in vm.defs" :key="`${elementId}-def-${i}`">
+				<linearGradient
+					v-if="def.kind === 'linearGradient'"
+					:id="def.id"
+					:x1="def.x1"
+					:y1="def.y1"
+					:x2="def.x2"
+					:y2="def.y2"
+				>
+					<stop
+						v-for="(stop, si) in def.stops"
+						:key="si"
+						:offset="stop.offset"
+						:stop-color="stop.color"
+						:stop-opacity="stop.opacity"
+					/>
+				</linearGradient>
+				<radialGradient
+					v-else-if="def.kind === 'radialGradient'"
+					:id="def.id"
+					:cx="def.cx"
+					:cy="def.cy"
+					:r="def.r"
+				>
+					<stop
+						v-for="(stop, si) in def.stops"
+						:key="si"
+						:offset="stop.offset"
+						:stop-color="stop.color"
+						:stop-opacity="stop.opacity"
+					/>
+				</radialGradient>
+				<pattern
+					v-else
+					:id="def.id"
+					:patternUnits="def.patternUnits"
+					:x="def.x"
+					:y="def.y"
 					:width="def.width"
 					:height="def.height"
-					:preserveAspectRatio="def.preserveAspectRatio"
-				/>
-			</pattern>
+				>
+					<image
+						:href="def.href"
+						:x="0"
+						:y="0"
+						:width="def.width"
+						:height="def.height"
+						:preserveAspectRatio="def.preserveAspectRatio"
+					/>
+				</pattern>
+			</template>
 		</defs>
 
 		<rect
@@ -223,6 +255,8 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:fill="lbl.fill"
 			:font-weight="lbl.fontWeight ?? 'normal'"
 			:dominant-baseline="lbl.dominantBaseline"
+			:opacity="lbl.opacity ?? 1"
+			:transform="lbl.transform"
 		>
 			{{ lbl.text }}
 		</text>
@@ -330,6 +364,8 @@ const legendItems = computed(() => computeChartLegendLayout(props.vm));
 			:fill="dl.fill"
 			:font-weight="dl.fontWeight ?? 'normal'"
 			:dominant-baseline="dl.dominantBaseline"
+			:opacity="dl.opacity ?? 1"
+			:transform="dl.transform"
 		>
 			{{ dl.text }}
 		</text>

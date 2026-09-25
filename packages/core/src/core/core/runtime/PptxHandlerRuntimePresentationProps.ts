@@ -6,6 +6,7 @@ import {
 	dataLabelsGroupShowsContent,
 } from '../../utils/chart-data-labels-visibility';
 import { parseDefRPrTextStyle, resolveTxPrDefRPr } from '../../utils/chart-def-rpr-style';
+import { parseChartGradientFill } from '../../utils/chart-gradient-fill';
 import { parseChartLegendEntries } from '../../utils/chart-legend-serializer';
 import { parseChartTitleStyle } from '../../utils/chart-title-style-parser';
 import { parseShowProperties } from './pptx-presentation-props-helpers';
@@ -184,6 +185,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.chartAreaFill = chartAreaFill;
 			hasStyle = true;
 		}
+		const chartAreaGradient = parseChartGradientFill(
+			this.xmlLookupService.getChildByLocalName(chartSpace, 'spPr'),
+			this.xmlLookupService,
+			this.colorStyleCodec,
+		);
+		if (chartAreaGradient) {
+			style.chartAreaGradient = chartAreaGradient;
+			hasStyle = true;
+		}
 
 		if (chartRoot) {
 			// Legend
@@ -249,6 +259,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// Plot area gridlines
 			const plotArea = this.xmlLookupService.getChildByLocalName(chartRoot, 'plotArea');
 			if (plotArea) {
+				const plotAreaGradient = parseChartGradientFill(
+					this.xmlLookupService.getChildByLocalName(plotArea, 'spPr'),
+					this.xmlLookupService,
+					this.colorStyleCodec,
+				);
+				if (plotAreaGradient) {
+					style.plotAreaGradient = plotAreaGradient;
+				}
 				const plotAreaFill = this.parseChartContainerFill(plotArea);
 				if (plotAreaFill) {
 					style.plotAreaFill = plotAreaFill;

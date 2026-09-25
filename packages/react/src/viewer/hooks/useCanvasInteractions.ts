@@ -13,6 +13,7 @@ import {
 import { useLayoutEffect, useRef } from 'react';
 
 import type {
+	CanvasContextMenuState,
 	CanvasSize,
 	DragState,
 	MarqueeSelectionState,
@@ -57,6 +58,7 @@ export interface UseCanvasInteractionsInput {
 	setInlineEditingElementId: React.Dispatch<React.SetStateAction<string | null>>;
 	setInlineEditingText: React.Dispatch<React.SetStateAction<string>>;
 	setContextMenuState: React.Dispatch<React.SetStateAction<ElementContextMenuState | null>>;
+	setCanvasContextMenuState: React.Dispatch<React.SetStateAction<CanvasContextMenuState | null>>;
 	setMarqueeSelectionState: React.Dispatch<React.SetStateAction<MarqueeSelectionState | null>>;
 	setSnapLines: React.Dispatch<React.SetStateAction<Array<{ axis: string; position: number }>>>;
 	inlineEditingText: string;
@@ -121,6 +123,7 @@ export function useCanvasInteractions(
 		setInlineEditingElementId,
 		setInlineEditingText,
 		setContextMenuState,
+		setCanvasContextMenuState,
 		setMarqueeSelectionState,
 		setSnapLines,
 		inlineEditingText,
@@ -150,7 +153,9 @@ export function useCanvasInteractions(
 		if (el && hasTextProperties(el)) {
 			const reader = inlineEditingReaderRef?.current;
 			const read = reader?.elementId === editId ? reader.read() : undefined;
-			if (read?.kind === 'unsupported') return;
+			if (read?.kind === 'unsupported') {
+				return;
+			}
 			// AutoCorrect runs on the typed text before it becomes segments.
 			const liveText = read?.snapshot.text ?? inlineEditingTextRef?.current ?? inlineEditingText;
 			const committedText = transformCommittedText ? transformCommittedText(liveText) : liveText;
@@ -372,6 +377,23 @@ export function useCanvasInteractions(
 		setContextMenuState({ x: e.clientX, y: e.clientY, elementId });
 	};
 
+	/**
+	 * Right-click on the empty canvas (no element under the cursor). Sibling of
+	 * {@link handleElementContextMenu}: this repo used to just let this fall
+	 * through to the browser's own menu, matching neither PowerPoint nor a
+	 * viewer that offers Paste/Layout/Reset Slide/Format Background/view
+	 * toggles from here. See `pptx-viewer-shared`'s `canvas-context-menu-commands`.
+	 */
+	const handleCanvasContextMenu = (e: React.MouseEvent) => {
+		if (mode === 'present') {
+			return;
+		}
+		e.preventDefault();
+		e.stopPropagation();
+		setContextMenuState(null);
+		setCanvasContextMenuState({ x: e.clientX, y: e.clientY });
+	};
+
 	const handleCanvasMouseDown = (e: React.MouseEvent) => {
 		if (mode !== 'edit' || !canEdit || e.button !== 0 || activeTool !== 'select') {
 			return;
@@ -402,6 +424,7 @@ export function useCanvasInteractions(
 		marqueeStateRef.current = nextMarquee;
 		setMarqueeSelectionState(nextMarquee);
 		setContextMenuState(null);
+		setCanvasContextMenuState(null);
 	};
 
 	const handleResizePointerDown = (elementId: string, e: React.MouseEvent, handle: string) => {
@@ -501,6 +524,7 @@ export function useCanvasInteractions(
 		handleElementDoubleClick,
 		handleElementMouseDown,
 		handleElementContextMenu,
+		handleCanvasContextMenu,
 		handleCanvasMouseDown,
 		handleResizePointerDown,
 		handleAdjustmentPointerDown,

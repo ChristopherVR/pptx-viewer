@@ -1,6 +1,8 @@
 import { themeColorRefToSolidFillWithOpacity } from '../../color/theme-color-ref';
 import { XmlObject, TextStyle } from '../../types';
 import type { BulletInfo } from '../../types';
+import { applyParagraphBulletOverrides } from '../../utils/paragraph-bullet-overrides';
+import { serializeTabStop } from '../../utils/tab-stops';
 import type { ParagraphChild } from './paragraph-child-assembly';
 import { classifyParagraphChild, writeParagraphChildren } from './paragraph-child-assembly';
 
@@ -166,24 +168,16 @@ export function buildParagraphPropertiesXml(
 	// SDK-built bullet), which is written same as before this gate existed.
 	if (bulletInfo && bulletInfo.ownedByParagraph !== false) {
 		applyBulletProperties(paragraphProps, bulletInfo);
+	} else {
+		// The paragraph authored only a colour/size/font override for a bullet
+		// it inherits: re-emit exactly that, read from the paragraph's OWN
+		// properties (never the shape-level merge).
+		applyParagraphBulletOverrides(paragraphProps, authoredProperties?.paragraphBulletPropertiesXml);
 	}
 
 	// Tab stops
 	if (textStyle?.tabStops && textStyle.tabStops.length > 0 && owns('tabStops')) {
-		paragraphProps['a:tabLst'] = {
-			'a:tab': textStyle.tabStops.map((tab) => {
-				const tabObj: XmlObject = {
-					'@_pos': String(Math.round(tab.position * EMU_PER_PX)),
-				};
-				if (tab.align && tab.align !== 'l') {
-					tabObj['@_algn'] = tab.align;
-				}
-				if (tab.leader && tab.leader !== 'none') {
-					tabObj['@_leader'] = tab.leader;
-				}
-				return tabObj;
-			}),
-		};
+		paragraphProps['a:tabLst'] = { 'a:tab': textStyle.tabStops.map(serializeTabStop) };
 	} else if (authoredProperties?.tabStopsExplicitEmpty) {
 		// This specific paragraph authored `<a:tabLst/>` with no tab stops
 		// (see `tabStopsExplicitEmpty`): re-emit it exactly, regardless of
@@ -317,9 +311,22 @@ export function assembleParagraphXml(
 	// OOXML CT_TextParagraph requires child order: pPr?, (r|br|fld)*, endParaRPr?.
 	// Since fast-xml-parser serialises keys in insertion order, build the
 	// object in that exact sequence.
-	const paragraph: XmlObject = {
-		'a:pPr': paragraphProps,
-	};
+	//
+	// `a:pPr` is OPTIONAL (CT_TextParagraph, ECMA-376 21.1.2.2.7): a paragraph
+	// that authored no properties of its own parses `<a:pPr/>` and "no pPr at
+	// all" to the SAME empty result (fast-xml-parser gives a childless,
+	// attribute-less element back as `''`, which is falsy exactly like
+	// `undefined`), so `buildParagraphPropertiesXml` returns `{}` for both.
+	// Writing that empty object back as a key materialized `<a:pPr></a:pPr>`
+	// on every paragraph that never had one, purely because the key was always
+	// assigned regardless of whether it carried anything. Both sides of that
+	// collapsed distinction re-emit as "no pPr", which is lossless: an empty
+	// `<a:pPr/>` carries no attributes or children, so dropping it and never
+	// having had one are semantically identical.
+	const paragraph: XmlObject = {};
+	if (Object.keys(paragraphProps).length > 0) {
+		paragraph['a:pPr'] = paragraphProps;
+	}
 
 	// `runs` already arrives in segment order, so the authored sequence of
 	// runs / fields / breaks / inline math is simply its order.
@@ -336,11 +343,18 @@ export function assembleParagraphXml(
 	}
 
 	// Re-emit parsed end-paragraph run properties verbatim. When none were
-	// captured (e.g. SDK-built paragraphs) fall back to the minimal
-	// `lang="en-US"` stub PowerPoint itself emits for new paragraphs.
+	// captured, fall back to the minimal `lang="en-US"` stub PowerPoint itself
+	// emits for new paragraphs, but ONLY for a paragraph with no run content:
+	// that stub is what a blank line's style lives in (SDK-built or authored),
+	// so a genuinely empty paragraph still needs something to carry it. A
+	// paragraph that already has real run content but happened to author no
+	// `a:endParaRPr` of its own is untouched content, not a blank line, and
+	// must pass through without inventing a trailing endParaRPr its source
+	// never had (measured: fabricated `<a:endParaRPr lang="en-US"/>` after the
+	// last authored run of every such paragraph in a rewritten slide).
 	if (endParaRunProperties && typeof endParaRunProperties === 'object') {
 		paragraph['a:endParaRPr'] = endParaRunProperties as XmlObject;
-	} else {
+	} else if (runs.length === 0) {
 		paragraph['a:endParaRPr'] = { '@_lang': 'en-US' };
 	}
 

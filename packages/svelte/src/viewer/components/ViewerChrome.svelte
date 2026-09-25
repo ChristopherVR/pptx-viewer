@@ -16,6 +16,7 @@
 
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import { nextGuideId } from '../state/guide-id';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import Ribbon from './ribbon/Ribbon.svelte';
 	import ProtectedViewBanner from './ProtectedViewBanner.svelte';
 	import ReadOnlyBanner from './ReadOnlyBanner.svelte';
@@ -57,15 +58,15 @@
 	// svelte-ignore state_referenced_locally
 	const { loader, viewer, editor, parityUi, readOnlyRec, chromeUi, findReplace, collab, dialogs, autosaveCtl, exportUi, ai } = vm;
 
-	// Options > Customize Ribbon hides tabs on top of whatever the host already
-	// hid via `hiddenActions`: both feed the same `ToolbarActionId` gate every
-	// tab-bearing surface below already reads, so a checkbox toggled in the
-	// Options dialog reaches the ribbon, the mobile command bar, and the
-	// read-only toolbar in one place instead of three.
-	const effectiveHiddenActions = $derived([
-		...(hiddenActions ?? []),
-		...vm.optionsState.hiddenRibbonTabIds,
-	]);
+	// The root already merged the host's `hiddenActions`, the `customization`
+	// prop and Options > Customize Ribbon into this one `ToolbarActionId` gate
+	// (see `effectiveHiddenActions`), so the ribbon, the mobile command bar and
+	// the read-only toolbar below all read the same list.
+	const effectiveHiddenActions = $derived(hiddenActions ?? []);
+	const custom = useViewerCustomization();
+	// A host-removed dialog loses every entry point: `undefined` hides the button.
+	const openSettings = $derived(custom.isDialogAvailable('options') ? () => { parityUi.syncAutosave(vm.autosaveEnabled); parityUi.settingsOpen = true; } : undefined);
+	const openPrint = $derived(custom.isDialogAvailable('print') ? () => (parityUi.printSettingsOpen = true) : undefined);
 
 	const notesAvailable = $derived(showNotes && loader.slides.length > 0);
 	const autosaveStatus = $derived(vm.autosaveActive ? autosaveCtl.status : undefined);
@@ -106,8 +107,9 @@
 		oncancelpassword={() => readOnlyRec.cancelPasswordPrompt()}
 	/>
 {/if}
-<TitleBar
+{#if custom.isPanelVisible('titleBar')}<TitleBar
 	{fileName}
+	hiddenActions={effectiveHiddenActions}
 	editable={vm.editingActive}
 	isDirty={editor.dirty}
 	autosaveEnabled={vm.autosaveEnabled}
@@ -121,7 +123,7 @@
 	onredo={() => editor.redo()}
 	onfindreplace={() => findReplace.toggle()}
 	onquickcommand={vm.runQuickAccessCommand}
-/>
+/>{/if}
 {#if vm.showRibbon}
 	<Ribbon
 		{fileName}
@@ -189,11 +191,8 @@
 		onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}
 		onai={toggleAi}
 		aiActive={ai.panelOpen}
-		onsettings={() => {
-			parityUi.syncAutosave(vm.autosaveEnabled);
-			parityUi.settingsOpen = true;
-		}}
-		onprintsettings={() => (parityUi.printSettingsOpen = true)}
+		onsettings={openSettings}
+		onprintsettings={openPrint}
 		onrehearse={() => {
 			parityUi.rehearse.start(viewer.current);
 			vm.onFullscreenToggle();
@@ -314,11 +313,8 @@
 			onshortcuts={() => (parityUi.shortcutsOpen = !parityUi.shortcutsOpen)}
 			onai={toggleAi}
 			aiActive={ai.panelOpen}
-			onsettings={() => {
-				parityUi.syncAutosave(vm.autosaveEnabled);
-				parityUi.settingsOpen = true;
-			}}
-			onprintsettings={() => (parityUi.printSettingsOpen = true)}
+			onsettings={openSettings}
+			onprintsettings={openPrint}
 			onrehearse={() => {
 				parityUi.rehearse.start(viewer.current);
 				vm.onFullscreenToggle();
@@ -396,4 +392,4 @@
 		hiddenActions={effectiveHiddenActions}
 	/>
 {/if}
-{#if vm.showRibbon}<QuickAccessToolbar onexec={vm.runQuickAccessCommand} />{/if}
+{#if vm.showRibbon && custom.isPanelVisible('quickAccessToolbar')}<QuickAccessToolbar onexec={vm.runQuickAccessCommand} />{/if}

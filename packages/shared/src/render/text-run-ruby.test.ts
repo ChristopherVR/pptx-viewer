@@ -104,25 +104,14 @@ describe('buildParagraphs ruby runs', () => {
 		} as unknown as PptxElement;
 	}
 
-	it('attaches underlineWordPieces to a ruby run whose underline is "words"', () => {
+	it('underlines a "words" ruby run continuously, like PowerPoint (COM: audit-text slide 12)', () => {
 		const [paragraph] = buildParagraphs(rubyElementWithUnderline('two words', 'reading', 'words'));
 		expect(paragraph.runs).toHaveLength(1);
 		const [run] = paragraph.runs;
 		expect(run.ruby?.text).toBe('reading');
-		// The base text stays ONE run (so the ruby annotation still reads over
-		// the whole thing)...
 		expect(run.text).toBe('two words');
-		// ...but the word/gap breakdown is available for a binding to render in
-		// place of `text` (same shape as `scriptRuns`): only a word entry carries
-		// the decoration, a gap entry is bare text.
-		expect(run.underlineWordPieces).toStrictEqual([
-			{ text: 'two', style: expect.objectContaining({ textDecoration: 'underline' }) },
-			{ text: ' ' },
-			{ text: 'words', style: expect.objectContaining({ textDecoration: 'underline' }) },
-		]);
-		// The run's own span gives the underline up: an ancestor's underline is
-		// drawn through every inline descendant, so the gap could never lose it.
-		expect(run.style.textDecoration).toBeUndefined();
+		expect(run.underlineWordPieces).toBeUndefined();
+		expect(run.style.textDecoration).toBe('underline');
 	});
 
 	it('keeps a plain-underline ruby run continuously underlined on its own span', () => {

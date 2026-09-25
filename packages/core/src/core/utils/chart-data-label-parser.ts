@@ -4,6 +4,7 @@ import type {
 	PptxChartDataLabelOptions,
 	XmlObject,
 } from '../types';
+import { parseDataLabelBox } from './chart-data-label-box';
 import {
 	findChart15Ext,
 	parseDataLabelFieldTable,
@@ -290,6 +291,7 @@ export function parseChartDataLabelOptions(
 		if (leaderLineStyle) {
 			result.leaderLineStyle = leaderLineStyle;
 		}
+		parseDataLabelBox(group, xmlLookup, colorParser, result);
 	}
 	return result;
 }

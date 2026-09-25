@@ -701,4 +701,11 @@ export {
 	HINDI_CONSONANTS,
 	THAI_CONSONANTS,
 	ARABIC_HIJAI_LETTERS,
+	ARABIC_ABJADI_LETTERS,
+	HEBREW_LETTERS,
+	repeatedLabel,
+	hebrewAlphaLabel,
+	toCjkDigitString,
+	toEa1ChtNumeral,
+	toEa1ChsNumeral,
 } from './auto-number-scripts';

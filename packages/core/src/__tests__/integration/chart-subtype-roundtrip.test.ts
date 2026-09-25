@@ -181,4 +181,28 @@ describe('surface wireframe integration', () => {
 		const data = await handler.load(await buildDeck(chartXml));
 		expect(chartElement(data).chartData!.wireframe).toBeUndefined();
 	});
+
+	it('flags a 2-D c:surfaceChart as surfaceTopView (COM: "Contour" types)', async () => {
+		const chartXml = chartSpace(
+			`<c:plotArea><c:layout/><c:surfaceChart>${series(
+				'Sales',
+				'10',
+			)}<c:axId val="10"/><c:axId val="20"/><c:axId val="30"/></c:surfaceChart></c:plotArea>`,
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeck(chartXml));
+		expect(chartElement(data).chartData!.surfaceTopView).toBeTruthy();
+	});
+
+	it('leaves a 3-D c:surface3DChart as surfaceTopView=false (COM: "3-D Surface" types)', async () => {
+		const chartXml = chartSpace(
+			`<c:plotArea><c:layout/><c:surface3DChart>${series(
+				'Sales',
+				'10',
+			)}<c:axId val="10"/><c:axId val="20"/><c:axId val="30"/></c:surface3DChart></c:plotArea>`,
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(await buildDeck(chartXml));
+		expect(chartElement(data).chartData!.surfaceTopView).toBeFalsy();
+	});
 });

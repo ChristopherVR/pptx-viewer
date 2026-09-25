@@ -108,6 +108,7 @@ import type { RibbonTab } from './ribbon-types';
 					tab below stays unchanged.
 				-->
 				<pptx-ribbon-arrange-section
+					[hiddenActions]="hiddenActions()"
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 					[canEdit]="canEdit()"
@@ -143,6 +144,7 @@ import type { RibbonTab } from './ribbon-types';
 			}
 			@case ('arrange') {
 				<pptx-ribbon-arrange-section
+					[hiddenActions]="hiddenActions()"
 					[slideIndex]="slideIndex()"
 					[selectedElement]="selectedElement()"
 					[canEdit]="canEdit()"
@@ -164,7 +166,7 @@ export class RibbonContentComponent {
 	readonly canActivateFormatPainter = input<boolean>(false);
 	readonly exporting = input<boolean>(false);
 	readonly hasMacros = input<boolean>(false);
-	/** Toolbar buttons the host wants hidden (threaded to the File section). */
+	/** Toolbar buttons the host wants hidden (threaded to the File and Arrange sections). */
 	readonly hiddenActions = input<ToolbarActionId[]>([]);
 	/** Optional sign-in hook point for File > Account. Absent/disabled by default. */
 	readonly accountAuth = input<AccountAuthConfig | undefined>(undefined);

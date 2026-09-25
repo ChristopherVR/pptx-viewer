@@ -287,10 +287,11 @@ describe('getSlideTransitionAnimations', () => {
 		expect(getSlideTransitionAnimations('wheel', 500, undefined).incoming).toContain('wheel-in');
 	});
 
-	it('produces zoom animations', () => {
-		const result = getSlideTransitionAnimations('zoom', 600, undefined);
-		expect(result.outgoing).toContain('zoom-out');
-		expect(result.incoming).toContain('zoom-in');
+	it('produces the zoom box reveal, dir="in" shrinking the outgoing slide', () => {
+		expect(getSlideTransitionAnimations('zoom', 600, undefined).incoming).toContain(
+			'zoom-box-grow',
+		);
+		expect(getSlideTransitionAnimations('zoom', 600, 'in').outgoing).toContain('zoom-box-shrink');
 	});
 
 	it('handles blinds with orientation', () => {

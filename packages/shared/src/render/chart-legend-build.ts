@@ -27,6 +27,41 @@ const TRENDLINE_LEGEND_PREFIX: Record<PptxChartTrendlineType, string> = {
 };
 
 /**
+ * Resolve a legend's anchor position from its declared side, independent of
+ * what entries it holds. Split out of `buildLegend` so a non-series legend
+ * (the surface chart's value-band legend, `chart-surface-legend.ts`) can
+ * reuse the exact same placement rules instead of re-deriving them.
+ */
+export function resolveLegendAnchorPosition(
+	svgWidth: number,
+	svgHeight: number,
+	plotTop: number,
+	legendPos: string,
+): { legendX: number; legendY: number; legendAnchor: 'start' | 'middle' | 'end' } {
+	let legendX = svgWidth / 2,
+		legendY = svgHeight - 8,
+		legendAnchor: 'start' | 'middle' | 'end' = 'middle';
+
+	// `tr` shares `'r'`'s coordinates (a right-aligned column starting at
+	// plotTop): that is already "top-right corner"; it just does not reserve
+	// plot-area space the way a reserved `'r'` legend does (see computePlotLayout).
+	const side = resolveLegendPlacement(legendPos).side;
+	if (side === 'r') {
+		legendX = svgWidth - 75;
+		legendY = plotTop;
+		legendAnchor = 'start';
+	} else if (side === 'l') {
+		legendX = 4;
+		legendY = plotTop;
+		legendAnchor = 'start';
+	} else if (side === 't') {
+		legendY = 28;
+	}
+
+	return { legendX, legendY, legendAnchor };
+}
+
+/**
  * Build the base legend entries + anchor position for a chart view model.
  *
  * @param swatchKind Which legend entries draw a line + marker sample instead
@@ -84,25 +119,12 @@ export function buildLegend(
 		});
 	});
 
-	let legendX = svgWidth / 2,
-		legendY = svgHeight - 8,
-		legendAnchor: 'start' | 'middle' | 'end' = 'middle';
-
-	// `tr` shares `'r'`'s coordinates (a right-aligned column starting at
-	// plotTop): that is already "top-right corner"; it just does not reserve
-	// plot-area space the way a reserved `'r'` legend does (see computePlotLayout).
-	const side = resolveLegendPlacement(legendPos).side;
-	if (side === 'r') {
-		legendX = svgWidth - 75;
-		legendY = plotTop;
-		legendAnchor = 'start';
-	} else if (side === 'l') {
-		legendX = 4;
-		legendY = plotTop;
-		legendAnchor = 'start';
-	} else if (side === 't') {
-		legendY = 28;
-	}
+	const { legendX, legendY, legendAnchor } = resolveLegendAnchorPosition(
+		svgWidth,
+		svgHeight,
+		plotTop,
+		legendPos,
+	);
 
 	return { legend, legendX, legendY, legendAnchor };
 }

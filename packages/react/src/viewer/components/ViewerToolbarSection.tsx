@@ -14,10 +14,11 @@ import {
 	applyMotionPathPreset,
 	createBackstagePresentation,
 	DEFAULT_INSERT_CHART_KIND,
+	isPanelVisible,
 	resetSlideLayoutPath,
 	templateSchemeFromTheme,
 } from 'pptx-viewer-shared';
-import type { AnimationApplyGroup, ToolbarActionId } from 'pptx-viewer-shared';
+import type { AnimationApplyGroup, FreeformToolKind, ToolbarActionId } from 'pptx-viewer-shared';
 /**
  * ViewerToolbarSection: Renders the top toolbar, signature badge,
  * and hidden file-input elements.
@@ -42,6 +43,7 @@ import type { ElementClipboardPayload } from '../types-core';
 import type { DrawingTool, TableCellEditorState, ToolbarSection } from '../types-ui';
 import { hasCopyableFormat } from '../utils/format-painter';
 import { TitleBar } from './toolbar/TitleBar';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -71,6 +73,8 @@ export interface ViewerToolbarSectionProps {
 		setIsDirty: React.Dispatch<React.SetStateAction<boolean>>;
 		newShapeType: SupportedShapeType;
 		setNewShapeType: React.Dispatch<React.SetStateAction<SupportedShapeType>>;
+		activeFreeformTool: FreeformToolKind | null;
+		setActiveFreeformTool: (tool: FreeformToolKind | null) => void;
 		activeTool: DrawingTool;
 		setActiveTool: React.Dispatch<React.SetStateAction<DrawingTool>>;
 		drawingColor: string;
@@ -258,6 +262,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 	} = props;
 
 	const { t } = useTranslation();
+	const customization = useViewerCustomizationContext();
 
 	const handleAddAnimation = useCallback(
 		(preset: string, group: AnimationApplyGroup) => {
@@ -536,7 +541,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 
 	return (
 		<>
-			{!dialogs.isNarrowViewport && (
+			{!dialogs.isNarrowViewport && isPanelVisible(customization, 'titleBar') && (
 				<TitleBar
 					mode={mode}
 					canEdit={canEdit}
@@ -586,6 +591,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				tableEditorState={s.tableEditorState}
 				editTemplateMode={s.editTemplateMode}
 				newShapeType={s.newShapeType}
+				activeFreeformTool={s.activeFreeformTool}
 				activeTool={s.activeTool}
 				drawingColor={s.drawingColor}
 				drawingWidth={s.drawingWidth}
@@ -609,6 +615,7 @@ export function ViewerToolbarSection(props: ViewerToolbarSectionProps) {
 				onRedo={history.handleRedo}
 				onToggleFindReplace={() => findReplace.setFindReplaceOpen(!findReplace.findReplaceOpen)}
 				onSetNewShapeType={s.setNewShapeType}
+				onArmFreeformTool={s.setActiveFreeformTool}
 				onAddTextBox={insertHandlers.handleAddTextBox}
 				onAddShape={insertHandlers.handleAddShape}
 				onAddTable={insertHandlers.handleAddTable}

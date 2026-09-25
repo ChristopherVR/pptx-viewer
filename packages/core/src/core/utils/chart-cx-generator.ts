@@ -189,9 +189,13 @@ export function buildChartExSeries(
 		}
 	}
 	if (chartData.chartType === 'histogram') {
-		const binning = buildHistogramBinning(series);
-		if (series.histogramOptions?.layout !== 'pareto' || Object.keys(binning).length > 0) {
-			result['cx:layoutPr'] = { 'cx:binning': binning };
+		if (series.histogramOptions?.aggregateByCategory) {
+			result['cx:layoutPr'] = { 'cx:aggregation': {} };
+		} else {
+			const binning = buildHistogramBinning(series);
+			if (series.histogramOptions?.layout !== 'pareto' || Object.keys(binning).length > 0) {
+				result['cx:layoutPr'] = { 'cx:binning': binning };
+			}
 		}
 	}
 	if (chartData.chartType === 'waterfall' && series.waterfallOptions) {

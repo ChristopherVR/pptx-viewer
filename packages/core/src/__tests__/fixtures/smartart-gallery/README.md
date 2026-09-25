@@ -98,15 +98,19 @@ the interpreter found and fixed six real, previously-unknown bugs:
    arranger-declared entries only. See that function's doc comment for the
    measured numbers.
 
-**Despite those six fixes, `smartart-gallery-ground-truth.test.ts` fails for
-219 of the 229 fixtures against the full acceptance gate** (same shape count,
-preset, font size, and geometry within 1% of bounding size). Measured via
-`bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
-last regeneration): 227/229 fixtures have matching text-bearing shape counts;
-87 are within 1% geometry deviation, 110 within 5%, 121 within 10%, and 180
-within 50%; 11 pass the full gate (re-measured 2026-09-24, after the
-engine-first routing wave below).
-Two fixtures fail structurally before geometry is compared.
+**`smartart-gallery-ground-truth.test.ts` still fails for 132 of the 229
+fixtures against the full acceptance gate** (same shape count, preset, font
+size, and geometry within 1% of bounding size). Measured via
+`bun run scripts/gen-smartart-gallery-baseline.ts` (re-measured 2026-09-25,
+after the tenth wave at the end of this section): 228/229 fixtures have
+matching text-bearing shape counts; 126 are within 1% geometry deviation, 161
+within 5%, 171 within 10%, and 217 within 50%; 222 match every preset, 114
+every font size, and 97 pass the full gate (2026-09-24: 97, 128, 137, 194,
+212, 24 and 11).
+Three fixtures fail structurally before geometry is compared (one
+pre-existing, two a side effect of the eighth wave's own fix - see that
+wave's paragraph; a second pre-existing one, `segmented-process--hier5`, was
+closed by the ninth wave below).
 
 `computeSmartArtElementsWithoutCache` runs a legacy family-based interpreter
 (one arranger chosen for the whole diagram) AND a per-point DiagramML engine
@@ -116,11 +120,11 @@ declines. `scripts/measure-smartart-engine-vs-legacy.ts` runs both
 independently against every fixture (bypassing that fallback order) to find
 `layoutDefinition.uniqueId`s where the engine is strictly more accurate on
 EVERY dataset of that layout with no shape-set loss versus legacy;
-`smartart-engine/engine-first-allowlist.ts` lists the 60 layouts that
-measurement found (e.g. "Gear": legacy 76% deviation vs. engine 0.1%, since
-the legacy composite arranger cannot reach Gear's rotated/decorative
-named-slot children at all), and `computeDiagramMlElements` now tries the
-engine first only for those.
+`smartart-engine/engine-first-allowlist.ts` lists the layouts (99 as of the
+ninth wave below) that measurement found (e.g. "Gear": legacy 76% deviation
+vs. engine 0.1%, since the legacy composite arranger cannot reach Gear's
+rotated/decorative named-slot children at all), and `computeDiagramMlElements`
+now tries the engine first only for those.
 
 Two waves moved the numbers above. Introducing the allowlist (55 layouts)
 moved geometry-within-1% from 39 to 82, zero fixtures regressing out of that
@@ -231,6 +235,147 @@ worse than legacy, so neither layout newly qualifies for
 the change touches ONLY these two layouts, zero regressions, gate numbers
 unchanged (still 87/229 within 1%, 11/229 full gate; `pyra` is not yet
 allowlisted, so production behaviour for these two layouts is unchanged).
+
+A seventh pass closed that `pyraAcctRatio` gap: `alg-pyra.ts` gained a
+POST-pass (`applyPyraAccentSplit`, run by `layout-driver.ts`'s new
+`LayoutRegistry.resolvePost` hook after a `pyra` node's own children have
+finished laying out) porting legacy's COM-verified `repositionPyramidBands`.
+Once `pyraAcctRatio` resolves positive, every row's "level" band shrinks to
+`(1 - pyraAcctRatio)` of its natural width anchored at the diagram box's own
+left edge, and a row whose data point has a child gets an "acctBkgd"/"acctTx"
+column filling the remainder out to the diagram's right edge. The first
+attempt filled that remainder from "level"'s own shrunk (WIDE-edge) right
+corner and measured 0.1142 on `hier5`/`hier8` (down from 0.5663, still worse
+than legacy's 0.0019); diffing per-shape geometry against the cached ground
+truth showed the accent column's true left edge is the row's scaled NARROW
+(top) trapezoid corner, not the wide one `arrangePyra`'s own tight bounding
+box collapsed to, so the post-pass recomputes that corner independently
+(mirroring legacy's own `pyramidRowGeometry`). With that correction,
+`hier5`/`hier8` tie legacy exactly (0.0019, matching `flat3`), so Basic and
+Inverted Pyramid both now qualify for `engine-first-allowlist.ts` under the
+tie-or-better rule and route engine-first in production. Re-measuring the
+full 229-fixture corpus confirms zero regressions elsewhere and the gate
+numbers hold at 87/229 within 1%, 11/229 full gate (both layouts already
+matched within 1% via legacy before this wave, so the routing change alone
+does not move those counts).
+
+An eighth wave fixed the `numbered-title-list`/`numbered-card-list`
+shape-drop bug named in the second wave above: their "1"/"2"/"3" ordinal
+badges rendered blank because the badge text is presented off the SIBLING
+transition point (`dgm:presOf axis="self" ptType="sibTrans"`), and
+`data-points.ts`'s `buildDataModel` only ever copied a connection's resolved
+`label` onto its `parTrans` `DataPoint`, never the paired `sibTrans` one;
+`engine-to-result.ts` also only ever read a presented point's content-node
+`.text`, never a transition point's own `.label`. Both fixed:
+`sibTrans` now carries `label` like `parTrans` already did, and
+`buildRenderedNode` falls back to a presented point's `.label`
+(`RenderedNodeIdentity.literalText`) when no content point is presented. Both
+layouts now match all 6 cached shapes (previously 3 of 6) and measurably beat
+legacy (Numbered Title List 0.5854 -> 0.3415, Numbered Card List 0.4465 ->
+0.2458), qualifying for the allowlist. Since this is a general engine fix
+(not scoped to numbered lists), re-measuring the whole corpus per the
+allowlist's own "regenerate after any engine change" rule found three more,
+unrelated qualifiers from the same fix: Converging Arrows and Diverging
+Arrows (0.0638 -> 0.0375, an opposing-arrow pair's own middle sibTrans label)
+and Tabbed Arc (0.2364 -> 0.0131) - all three match every cached shape with
+no extras, unlike the two numbered-list layouts (see below). 74 layouts on
+the allowlist total. The two numbered-list fixtures are the source of this
+wave's four (up from two) structural misses: each accented item's `bgRect`
+background shape independently presents the same "self" point its actual
+text overlay (`nodeText`, `hideGeom`, `desOrSelf`) also presents, so on an
+UNaccented row both render identical text and collide harmlessly under exact-
+text dedup, but on an accented row `bgRect`'s unfolded self-only text and
+`nodeText`'s folded self+descendant text differ and both survive as separate,
+unmatched shapes. Root-causing when a background sibling's own `presOf`
+should be suppressed in favour of a `hideGeom` overlay's (matching real
+PowerPoint's single-text-per-item rendering) is a genuinely separate, deeper
+question than the shape-loss bug fixed here - the layoutDef's own
+`moveWith="bgRect"` on `nodeText` (already parsed into `LdLayoutNode.moveWith`
+but never threaded through `PresNode`/`EngineNode`) is the likely ECMA-376
+signal such a fix would key off - tracked here as an open gap, not attempted
+in this wave. Re-measuring with `gen-smartart-gallery-baseline.ts --compare`
+confirms geometry-within-1% and the full gate hold exactly (still 87/229,
+11/229), structural drops 227->225 (the two phantom-shape fixtures above),
+and within-5%/10%/50% each improve slightly (110->113, 121->122, 180->181)
+from the arrow/Tabbed-Arc wins.
+
+A ninth wave, while attempting `hierRoot`/`hierChild`, found a much bigger,
+unrelated bug: `engine-to-result.ts`'s `isFiniteGeometry` gate declined the
+WHOLE diagram whenever ANY rendered node had a zero-area box, with no
+exception for a shape that legitimately renders that way and carries no text
+(a `conn`-alg node's own `arrange` only produces a real box for its supported
+2-D-straight case, leaving `{w:0, h:0}` for `connRout="bend"` routing; a
+`hierChild` continuation for a childless leaf is deliberately `{w:0, h:0}`
+too). Since connector geometry is separately, and always, discarded
+downstream, a `conn`-alg node was never meant to reach the rect-shape
+collector at all, and a zero-area, textless node was never going to render
+anything visible either way; both are now excluded instead of failing the
+whole result. This single, layout-family-agnostic fix unblocked 40
+previously fully-declining layouts at once; re-measuring found 25 of them
+measurably beat legacy on every dataset with no shape loss, including the
+entire "Meet the Team" family (previously 4979%-9979% legacy deviation, the
+worst in the whole corpus, down to under 83% engine deviation) and
+`segmented-process--hier5` (0.714 -> 0, closing one of the two pre-existing
+structural misses named above). All 25 are now on
+`engine-first-allowlist.ts` (99 layouts total): geometry-within-1% jumps
+87->97, within-5% 113->128, within-10% 122->137, within-50% 181->194, preset
+204->210, structural 225->226; the full gate holds at 11/229 and font-match
+drops 25->24 (one newly-engine-first fixture's font size is very slightly
+off where legacy happened to be exact - not chased further). `hierRoot`/
+`hierChild` themselves were then actually ported (`smartart-engine/
+alg-hier.ts`): every generation must render its item at the exact SAME size,
+so the outermost `hierChild` call walks its whole subtree once (leaf-weighted
+width units, generation depth) to derive ONE shared item size and seeds it
+onto every descendant before any of them are positioned, rather than each
+`hierChild` call sizing its own row independently (right topology, wrong
+scale). Only the plain "std" fanned-row case is implemented (`hierBranch`
+hanging columns, `chMax`/`chPref` wrapping, and `orgChart` assistant slots
+are not attempted - each a genuinely separate branch in legacy's own
+~8800-line `smartart-hierarchy-*.ts` family). Measured against the whole
+8-layout, 14-fixture hierarchy family: a substantial improvement over full
+decline (e.g. real "Hierarchy" 0.7767 -> 0.2687), but still measurably worse
+than legacy on every single dataset (legacy sits at 0.0019-0.3 for this
+family), so `hierRoot`/`hierChild` are NOT added to the allowlist this wave -
+an honest "attempted, not yet sufficient" outcome. Zero regressions either
+way.
+
+A tenth wave (2026-09-25) moved the numbers above; each step was
+re-measured with `gen-smartart-gallery-baseline.ts --compare` (no fixture left
+the 1% band) and `measure-smartart-engine-vs-legacy.ts`, which now also breaks
+a geometry tie on font matches. The allowlist grew from 99 to 131 layouts.
+
+- Font size: the engine sizes each `tx` node from its `primFontSz` start and
+  `dgm:rule` floor, equalises `op="equ"` groups and same-name nodes, fits the
+  preset's own text rectangle with margins in points, and lays paragraphs out
+  by `stBulletLvl`/`lnSpAfParP`/`lnSpAfChP`. Text is measured with a
+  re-measured Aptos table (`TextRange.BoundWidth` plus pair kerning, COM
+  widths within 0.2pt) and SmartArt's own line pitch (0.9 x 1.2207em, plus
+  0.00695em per block). Font matches: 24 -> 114.
+- Hierarchy: `alg-hier.ts` measures the tree once in unscaled space, packs
+  siblings by outline, hangs `tL`/`tR` nodes' `fromT` columns `0.25 W` in,
+  and scales once to fit. Organization Chart 0.0231 -> 0.0019, Horizontal
+  Organization Chart 0.0225 -> 0.0019, Horizontal Multi-Level Hierarchy
+  0.2987 -> 0.0012; Hierarchy and Horizontal Hierarchy tie legacy on geometry
+  with every font right. Assistants stay with the legacy interpreter.
+- Snake: cells keep their constraint sizes, spacers set the gaps, and the
+  line length that scales largest wins. Basic Block List, the Bending
+  Process/Picture families, Picture Grid and the Text Card family (legacy
+  58-139, the worst in the corpus) move to 0-0.0225 (Text Card Short Line
+  0.1257).
+- A typeless `dgm:shape` draws nothing, and a borderless box presenting an
+  empty placeholder before real text still draws (the dot-list layouts, now
+  0.0012-0.0019).
+
+Still open after it: nodes sized by their own text (Vertical Bullet List,
+Vertical Box List, Horizontal Bullet List, Basic Chevron Process, Sub-Step
+Process, all still legacy), org-chart assistants, Name and Title / Half
+Circle Organization Chart, the labelled and table hierarchies, and Meet the
+Team (0/6 within 1%). Four fixtures lost an exact font match they had only
+reached through offsetting errors in the legacy interpreter
+(`basic-bending-process--hier5` and `repeating-bending-process--hier5`, since
+moved engine-first and exact again, `vertical-bullet-list--hier5`, and
+`organization-chart--hier5`, where PowerPoint picks 33pt although COM shows
+the longest label wrapping to two fitting lines at 34pt).
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,

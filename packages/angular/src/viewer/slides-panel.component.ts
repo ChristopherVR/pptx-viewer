@@ -5,6 +5,7 @@ import {
 	computed,
 	effect,
 	ElementRef,
+	HostListener,
 	inject,
 	input,
 	output,
@@ -31,6 +32,8 @@ import {
 import type { CanvasSize, HiddenSlideCue } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { SlideCanvasComponent } from './slide-canvas.component';
+import { SlidePaneContextMenuComponent } from './slide-pane-context-menu.component';
+import { SlidePaneRailSelection } from './slide-pane-rail-selection';
 import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 
 /** Pixel width of each thumbnail clipping box inside the panel. Slightly
@@ -66,6 +69,7 @@ const THUMB_CARD_CHROME_HEIGHT = 12;
 	imports: [
 		NgStyle,
 		SlideCanvasComponent,
+		SlidePaneContextMenuComponent,
 		TranslatePipe,
 		LucideCopy,
 		LucideTrash2,
@@ -88,6 +92,17 @@ export class SlidesPanelComponent {
 
 	/** Emits the zero-based index of the card the user clicked. */
 	readonly select = output<number>();
+	/** Insert a new slide after `index` (thumbnail menu's New Slide, and Enter on the panel). */
+	readonly addSlideAfter = output<number>();
+	readonly duplicateSlides = output<number[]>();
+	readonly deleteSlides = output<number[]>();
+	readonly toggleHideSlides = output<number[]>();
+	/** Makes `index` active, then opens the Layout gallery anchored at (x, y). */
+	readonly openLayoutForSlide = output<{ index: number; x: number; y: number }>();
+	readonly addSectionAt = output<number>();
+
+	/** Ctrl/Shift multi-select + the thumbnail context menu's open state. */
+	protected readonly rail = new SlidePaneRailSelection();
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly translate = inject(TranslateService);
@@ -198,6 +213,36 @@ export class SlidesPanelComponent {
 
 	onAddSlide(): void {
 		this.editor.addSlide(this.activeIndex());
+	}
+
+	/** A click (even a Ctrl/Shift one) both updates the multi-selection AND
+	 * moves the canvas to the slide clicked, matching the sorter overlay. */
+	onThumbClick(event: MouseEvent, index: number): void {
+		const slide = this.editor.slides()[index];
+		if (slide) {
+			this.rail.onClick(event, slide.id, this.orderedIds());
+		}
+		this.select.emit(index);
+	}
+
+	onThumbContextMenu(event: MouseEvent, index: number): void {
+		event.preventDefault();
+		this.rail.openContextMenu(event.clientX, event.clientY, index, this.orderedIds());
+	}
+
+	/** PowerPoint's Enter on a focused thumbnail inserts a new slide after it. */
+	@HostListener('keydown.enter', ['$event'])
+	onPanelKeydown(event: Event): void {
+		const target = event.target;
+		if (target instanceof HTMLElement && target.tagName === 'INPUT') {
+			return;
+		}
+		event.preventDefault();
+		this.addSlideAfter.emit(this.activeIndex());
+	}
+
+	private orderedIds(): string[] {
+		return this.editor.slides().map((s) => s.id);
 	}
 
 	onRenameSection(sectionId: string, currentName: string): void {

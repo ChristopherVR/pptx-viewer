@@ -19,7 +19,12 @@ import {
 	themeToCssVars,
 	translationsEn,
 } from 'pptx-angular-viewer';
-import type { CollaborationConfig, PptxAiConfig, ViewerTheme } from 'pptx-angular-viewer';
+import type {
+	CollaborationConfig,
+	PptxAiConfig,
+	ViewerCustomization,
+	ViewerTheme,
+} from 'pptx-angular-viewer';
 import { PptxHandler } from 'pptx-viewer-core';
 import {
 	translationsDe,
@@ -30,6 +35,7 @@ import {
 import 'pptx-angular-viewer/styles';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { currentDemoCustomization } from '../../shared/demo-customization';
 import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { buildDemoAiConfig, readStoredAiFields } from './ai-config';
 import {
@@ -92,6 +98,7 @@ type DemoContent = Uint8Array | ArrayBuffer;
 					[fileName]="fileName()"
 					[filePath]="fileName() || undefined"
 					[autosaveIntervalMs]="2000"
+					[customization]="customization"
 					[smartArt3D]="smartArt3D"
 					[surfaceChart3D]="surfaceChart3D"
 					[barChart3D]="barChart3D"
@@ -135,6 +142,8 @@ export class AppComponent {
 	 * demos/shared/rendering-3d-flags.ts for the rules and why.
 	 */
 	private readonly rendering3D = currentDemo3DFlags();
+	/** `?customization=<json>` (demos/shared/demo-customization.ts), for e2e. */
+	readonly customization = currentDemoCustomization() as ViewerCustomization | undefined;
 	readonly smartArt3D = this.rendering3D.smartArt3D;
 	readonly surfaceChart3D = this.rendering3D.surfaceChart3D;
 	readonly barChart3D = this.rendering3D.barChart3D;

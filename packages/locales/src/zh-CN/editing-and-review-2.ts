@@ -30,4 +30,10 @@ export const translations = {
 	'pptx.hyperlink.actionPlayMedia': '播放媒体',
 	'pptx.hyperlink.actionOleVerb': '对象动作',
 	'pptx.hyperlink.actionRunProgram': '运行程序',
+	'pptx.contextMenu.crop': '裁剪',
+	'pptx.contextMenu.mergeUnion': '结合形状',
+	'pptx.contextMenu.mergeCombine': '组合形状',
+	'pptx.contextMenu.mergeFragment': '拆分形状',
+	'pptx.contextMenu.mergeIntersect': '相交形状',
+	'pptx.contextMenu.mergeSubtract': '剪除形状',
 } as const;

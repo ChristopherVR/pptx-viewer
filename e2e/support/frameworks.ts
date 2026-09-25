@@ -21,11 +21,14 @@ export interface FrameworkDemo {
 	readonly port: number;
 }
 
-export const REACT: FrameworkDemo = { name: 'react', port: 4173 };
-export const ANGULAR: FrameworkDemo = { name: 'angular', port: 4174 };
-export const VUE: FrameworkDemo = { name: 'vue', port: 4175 };
-export const VANILLA: FrameworkDemo = { name: 'vanilla', port: 4176 };
-export const SVELTE: FrameworkDemo = { name: 'svelte', port: 4177 };
+/** Mirrors `PPTX_E2E_PORT_OFFSET` in `playwright.config.ts`. */
+const PORT_OFFSET = Number(process.env.PPTX_E2E_PORT_OFFSET ?? 0);
+
+export const REACT: FrameworkDemo = { name: 'react', port: 4173 + PORT_OFFSET };
+export const ANGULAR: FrameworkDemo = { name: 'angular', port: 4174 + PORT_OFFSET };
+export const VUE: FrameworkDemo = { name: 'vue', port: 4175 + PORT_OFFSET };
+export const VANILLA: FrameworkDemo = { name: 'vanilla', port: 4176 + PORT_OFFSET };
+export const SVELTE: FrameworkDemo = { name: 'svelte', port: 4177 + PORT_OFFSET };
 
 /** Every demo, in ribbon-parity order (reference first). */
 export const FRAMEWORKS: readonly FrameworkDemo[] = [REACT, VUE, ANGULAR, VANILLA, SVELTE];

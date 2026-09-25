@@ -21,8 +21,10 @@ import { HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './fill-style';
 import type { RunFontSpec } from './text-metric-tracking';
 import { resolveMetricTrackingPx } from './text-metric-tracking';
+import { resolveTextOutlineDashCss } from './text-outline-dash';
 import { hollowTextFillStyle } from './text-run-hollow';
 import { authoredLetterSpacingPx, pieceLetterSpacing } from './text-run-spacing';
+import { scaleFontSizeForAutoFit } from './text-style-helpers';
 
 /** A plain CSS style map (keys are CSS properties; binding-agnostic). */
 export type RunStyle = Record<string, string | number>;
@@ -129,12 +131,19 @@ function applyExtraRunProps(
 	}
 	// Hollow / outline-only text (`a:rPr > a:noFill`), applied LAST so it wins
 	// over the `color` set above. See {@link hollowTextFillStyle}.
+	const fillColor = typeof style.color === 'string' ? style.color : undefined;
 	const hollow = hollowTextFillStyle(s, {
 		color: typeof style.color === 'string' ? style.color : undefined,
 		textStroke: typeof style.WebkitTextStroke === 'string' ? style.WebkitTextStroke : undefined,
 	});
 	if (hollow) {
 		Object.assign(style, hollow);
+	}
+	// Dashed outline (`a:ln/a:prstDash`): applied after hollow so a hollow
+	// run keeps its transparent fill; see {@link resolveTextOutlineDashCss}.
+	const dashed = resolveTextOutlineDashCss(s, fillColor);
+	if (dashed) {
+		Object.assign(style, dashed);
 	}
 }
 
@@ -214,7 +223,11 @@ export function segmentStyleToCss(
 	// editor). Appending `pt` inflates every run by ~1.33×.
 	if (typeof s.fontSize === 'number') {
 		const scale = baselineShift ? BASELINE_FONT_SCALE : 1;
-		style.fontSize = `${s.fontSize * fontScale * scale}px`;
+		// Round the `fontScale` multiply to the nearest whole point BEFORE the
+		// (unrelated) super/subscript shrink, matching PowerPoint's own
+		// whole-point rounding of a `normAutofit`-shrunk run. See
+		// `scaleFontSizeForAutoFit`'s doc comment for the COM ground truth.
+		style.fontSize = `${scaleFontSizeForAutoFit(s.fontSize, fontScale) * scale}px`;
 	}
 	if (baselineShift) {
 		style.verticalAlign = baselineShift;
@@ -249,6 +262,8 @@ export function segmentStyleToCss(
 	}
 	if (deco.length > 0) {
 		style.textDecoration = deco.join(' ');
+		// PowerPoint's underline runs straight through descenders (COM-verified).
+		style.textDecorationSkipInk = 'none';
 	}
 	applyExtraRunProps(
 		style,

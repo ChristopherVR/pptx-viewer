@@ -120,13 +120,28 @@ function masterPartShape(page: Page, prefix: 'slide-master-' | 'slide-layout-'):
  * per-binding rail markup is not.
  */
 async function canvasCopyOf(shapes: Locator): Promise<Locator> {
-	const areas = await shapes.evaluateAll((nodes) =>
-		nodes.map((node) => {
-			const rect = node.getBoundingClientRect();
-			return rect.width * rect.height;
-		}),
-	);
-	return shapes.nth(areas.indexOf(Math.max(...areas)));
+	// Polled, not read once: the slide frame mounts before its inherited
+	// template artwork has painted, and Vanilla in particular can be a frame
+	// behind on CI. A single read then found no sized copy, `indexOf(-Infinity)`
+	// picked nth(-1), and its null box failed the test as "not on screen".
+	let index = -1;
+	await expect
+		.poll(
+			async () => {
+				const areas = await shapes.evaluateAll((nodes) =>
+					nodes.map((node) => {
+						const rect = node.getBoundingClientRect();
+						return rect.width * rect.height;
+					}),
+				);
+				const largest = Math.max(0, ...areas);
+				index = largest > 0 ? areas.indexOf(largest) : -1;
+				return index;
+			},
+			{ message: 'a sized canvas copy of the shape is painted' },
+		)
+		.toBeGreaterThanOrEqual(0);
+	return shapes.nth(index);
 }
 
 /** The text a Slide Master shape is retitled to by the editing spec. */

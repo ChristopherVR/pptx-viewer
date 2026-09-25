@@ -42,6 +42,7 @@ function bodyPlaceholderXml(): string {
 		'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>' +
 		'<p:txBody><a:bodyPr/><a:lstStyle/>' +
 		'<a:p><a:r><a:rPr lang="en-US"/><a:t>BodyText</a:t></a:r></a:p>' +
+		'<a:p><a:pPr rtl="0"/><a:r><a:rPr lang="en-US"/><a:t>OwnLtrText</a:t></a:r></a:p>' +
 		'</p:txBody></p:sp>'
 	);
 }
@@ -134,6 +135,15 @@ describe('master p:bodyStyle level cascade fidelity', () => {
 		expect(segments![0]?.bulletInfo?.color).toMatch(/^#[0-9A-Fa-f]{6}$/u);
 	});
 
+	// COM-verified (2026-09 RTL tab slide): the paragraph's own a:pPr/@rtl sits
+	// above the level default in the cascade, so the level's rtl must not reach
+	// the run style of a paragraph that authors its own direction.
+	it("(b2) lets a paragraph's own pPr rtl beat the level default on its runs", () => {
+		const segments = findBodySegments(data.slides[0]!.elements);
+		const segment = segments!.find((s) => s.text.includes('OwnLtrText'));
+		expect(segment!.style).toMatchObject({ rtl: false });
+	});
+
 	it('(c) re-serialises an edited level with the scheme bullet colour and all attributes intact', async () => {
 		const master = data.slideMasters![0]!;
 		const level0 = master.txStyles!.bodyStyle![0]!;
@@ -152,8 +162,9 @@ describe('master p:bodyStyle level cascade fidelity', () => {
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*marR="190500"/u);
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*algn="thaiDist"/u);
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*rtl="1"/u);
+		// The source spelled out the default `algn="l"`, so it is kept.
 		expect(bodyStyle).toMatch(
-			/<a:tabLst><a:tab pos="914400"\s*\/?>(<\/a:tab>)?<a:tab pos="1828800" algn="dec" leader="dot"\s*\/?>(<\/a:tab>)?<\/a:tabLst>/u,
+			/<a:tabLst><a:tab pos="914400" algn="l"\s*\/?>(<\/a:tab>)?<a:tab pos="1828800" algn="dec" leader="dot"\s*\/?>(<\/a:tab>)?<\/a:tabLst>/u,
 		);
 		// The run colour keeps its theme alias too; only the size was edited.
 		expect(bodyStyle).toMatch(

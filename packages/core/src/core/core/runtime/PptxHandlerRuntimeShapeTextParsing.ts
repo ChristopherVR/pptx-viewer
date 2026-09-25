@@ -1,4 +1,5 @@
 import { XmlObject, TextStyle } from '../../types';
+import { captureParagraphBulletOverrides } from '../../utils/paragraph-bullet-overrides';
 import {
 	parseAlignmentAttr,
 	parseParagraphExtraAttributes,
@@ -117,6 +118,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const pPrExtLst = pPr['a:extLst'];
 		if (pPrExtLst && typeof pPrExtLst === 'object') {
 			pp.paragraphPropertiesExtLstXml = pPrExtLst as XmlObject;
+		}
+		// A bullet colour/size/font restyling an INHERITED bullet (no bullet type
+		// on this paragraph); see `captureParagraphBulletOverrides`.
+		const bulletOverrides = captureParagraphBulletOverrides(pPr);
+		if (bulletOverrides) {
+			pp.paragraphBulletPropertiesXml = bulletOverrides;
 		}
 		return Object.keys(pp).length > 0 ? pp : undefined;
 	}
@@ -242,26 +249,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Tab stops (a:tabLst > a:tab)
 		if (!textStyle.tabStops) {
-			const tabLst = pPr?.['a:tabLst'] as XmlObject | undefined;
-			if (tabLst) {
-				const tabNodes = this.ensureArray(tabLst['a:tab']) as XmlObject[];
-				if (tabNodes.length > 0) {
-					textStyle.tabStops = tabNodes
-						.filter((t) => t?.['@_pos'] !== undefined)
-						.map((t) => {
-							const posRaw = Number.parseInt(String(t['@_pos']), 10);
-							const position = Number.isFinite(posRaw) ? posRaw / PptxHandlerRuntime.EMU_PER_PX : 0;
-							const algn = String(t['@_algn'] || 'l').trim();
-							const align =
-								algn === 'ctr' || algn === 'r' || algn === 'dec' ? algn : ('l' as const);
-							const leaderVal = String(t['@_leader'] || '').trim();
-							const leader =
-								leaderVal === 'dot' || leaderVal === 'hyphen' || leaderVal === 'underscore'
-									? leaderVal
-									: undefined;
-							return { position, align, ...(leader ? { leader } : {}) };
-						});
-				}
+			const tabStops = parseTabStops(pPr);
+			if (tabStops) {
+				textStyle.tabStops = tabStops;
 			}
 		}
 
@@ -303,6 +293,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		// `level`/`levelKey` are computed above from the paragraph's direct
 		// properties; `a:defPPr` run defaults already sit beneath this merge via
@@ -316,6 +307,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		const bodyLevelStyle = this.extractTextRunStyle(
 			(
@@ -324,6 +316,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		const mergedDefaultRunStyle = {
 			...ctx.bodyDefaultRunStyle,
@@ -353,6 +346,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (ctx.effectiveLevelStyles) {
 			const phLevel = ctx.effectiveLevelStyles[level];
 			const phBase = ctx.effectiveLevelStyles[-1];
+			const runOwnRtl = mergedDefaultRunStyle.rtl;
 			if (phLevel) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phLevel);
 				this.applyPlaceholderLevelDefaults(textStyle, phLevel);
@@ -360,6 +354,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (phBase) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phBase);
 				this.applyPlaceholderLevelDefaults(textStyle, phBase);
+			}
+			// A level's `lvlNpPr/@rtl` cascades onto the run style, but the
+			// paragraph's OWN `a:pPr/@rtl` sits above it in that cascade: a stock
+			// master's `rtl="0"` otherwise read as a run-level LTR override on
+			// every run of an `rtl="1"` paragraph (COM-verified RTL tab slide).
+			if (runOwnRtl === undefined && paragraphRtl !== undefined) {
+				mergedDefaultRunStyle.rtl = paragraphRtl;
 			}
 		}
 

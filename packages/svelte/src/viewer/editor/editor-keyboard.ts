@@ -1,4 +1,9 @@
-import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
+import {
+	isEditorControlTarget,
+	isEditorTextInputTarget,
+	mapCustomizedEditorKey,
+} from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 
 import type {
 	EditorTextAlign,
@@ -70,6 +75,8 @@ export interface EditorKeyboardDeps {
 	cycleSelection?(direction: SelectionCycleDirection): void;
 	/** Open the Paste Special dialog (Ctrl/Cmd+Alt+V). */
 	onPasteSpecial?(): void;
+	/** Host keyboard customisation; omitted keeps the built-in keymap. */
+	getKeyboardCustomization?(): ResolvedKeyboardCustomization | undefined;
 }
 
 export function createEditorKeydownHandler(
@@ -79,11 +86,16 @@ export function createEditorKeydownHandler(
 		if (!deps.isActive()) {
 			return;
 		}
-		const { action, dx, dy } = mapEditorKey(event, {
-			canPaste: deps.canPaste?.(),
-			hasSelection: deps.getSelectedId() !== null,
-			isTextInputTarget: isEditorTextInputTarget(event.target),
-		});
+		const { action, dx, dy } = mapCustomizedEditorKey(
+			event,
+			{
+				canPaste: deps.canPaste?.(),
+				hasSelection: deps.getSelectedId() !== null,
+				isTextInputTarget: isEditorTextInputTarget(event.target),
+				isControlTarget: isEditorControlTarget(event.target),
+			},
+			deps.getKeyboardCustomization?.(),
+		);
 		// Paging is owned by the root navigation fall-through; see the module note.
 		if (action === null || action === 'prevSlide' || action === 'nextSlide') {
 			return;

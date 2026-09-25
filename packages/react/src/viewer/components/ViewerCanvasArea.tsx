@@ -28,6 +28,7 @@ import {
 } from '.';
 import type { CanvasInteractionHandlers } from '../hooks/useCanvasInteractions';
 import type { InsertElementHandlers } from '../hooks/useInsertElements';
+import { useOutlineAuthoring } from '../hooks/useOutlineAuthoring';
 import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
 import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation';
@@ -150,6 +151,12 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 	const { t } = useTranslation();
 	const { isHidden } = useToolbarVisibility(hiddenActions);
 	const viewerOptions = useViewerOptionsContext();
+
+	const outlineAuthoring = useOutlineAuthoring({
+		state: s,
+		updateElement: canvasHandlers.handleUpdateSmartArtElement,
+		insertShape: insertHandlers.handleAddFreeformShape,
+	});
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
 	// In master mode the pseudo-slide already carries the master's artwork
@@ -516,6 +523,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					onMouseDown={handleElementMouseDown}
 					onContextMenu={canvasHandlers.handleElementContextMenu}
 					onCanvasMouseDown={canvasHandlers.handleCanvasMouseDown}
+					onCanvasContextMenu={canvasHandlers.handleCanvasContextMenu}
 					onResizePointerDown={canvasHandlers.handleResizePointerDown}
 					onAdjustmentPointerDown={canvasHandlers.handleAdjustmentPointerDown}
 					onRotate={canvasHandlers.handleRotate}
@@ -545,6 +553,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
 					aiActive={aiCanvasActive}
+					outlineAuthoring={outlineAuthoring}
 					collaborationOverlay={
 						<>
 							<RemoteSelectionOverlay

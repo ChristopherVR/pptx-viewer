@@ -4,7 +4,13 @@ import type { PptxHandler, PptxSlide, PptxElement, TextStyle } from 'pptx-viewer
  * section ops, find/replace, comments, canvas interactions, insert, manipulate,
  * slide management, table operations, format painter) into a single return value.
  */
-import { downloadBlob, elementPictureFilename, rasterResultToPngBlob } from 'pptx-viewer-shared';
+import {
+	canEditElementPoints,
+	downloadBlob,
+	elementPictureFilename,
+	rasterResultToPngBlob,
+} from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import type React from 'react';
 import { useCallback, useMemo } from 'react';
 
@@ -63,6 +69,8 @@ export interface UseEditorOperationsInput {
 	handlerRef?: React.RefObject<PptxHandler | null> | React.MutableRefObject<PptxHandler | null>;
 	/** AutoCorrect transform applied to committed inline text edits. */
 	transformCommittedText?: (text: string) => string;
+	/** Host keyboard customisation, forwarded to the Find shortcut. */
+	keyboard?: ResolvedKeyboardCustomization;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,6 +126,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		userName,
 		handlerRef,
 		transformCommittedText,
+		keyboard,
 	} = input;
 
 	// View > Slide Master edits a part that is not in `slides`, so element
@@ -190,6 +199,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		onSetSelectedElementId: state.setSelectedElementId,
 		onUpdateSlides: ops.updateSlides,
 		onMarkDirty: history.markDirty,
+		keyboard,
 	});
 
 	const comments = useComments({
@@ -225,6 +235,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		setInlineEditingElementId: state.setInlineEditingElementId,
 		setInlineEditingText: state.setInlineEditingText,
 		setContextMenuState: state.setContextMenuState,
+		setCanvasContextMenuState: state.setCanvasContextMenuState,
 		setMarqueeSelectionState: state.setMarqueeSelectionState,
 		setSnapLines: state.setSnapLines,
 		inlineEditingText: state.inlineEditingText,
@@ -315,6 +326,11 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		history,
 		onOpenHyperlinkDialog: () => dialogs.setIsHyperlinkDialogOpen(true),
 		onEditText: handleEditTextFromContextMenu,
+		onEditPoints: (elementId) => {
+			if (canEditElementPoints(state.elementLookup.get(elementId))) {
+				state.setEditPointsElementId(elementId);
+			}
+		},
 		onSaveElementAsPicture: handleSaveElementAsPicture,
 		onPasted: pasteSpecial.notePastedElement,
 	});

@@ -1,5 +1,9 @@
 /**
- * View-model builders for funnel and sunburst chart kinds.
+ * View-model builder for the funnel chart kind, plus the barrel that
+ * re-exports its sunburst sibling (`chart-sunburst-view.ts`) so every
+ * existing `./chart-funnel-sunburst` import keeps working after the two
+ * were split into their own files to stay under the repo's per-file line
+ * budget.
  *
  * Ported from:
  *   packages/react/src/viewer/utils/chart-sunburst-funnel.tsx (renderFunnelChart,
@@ -11,9 +15,9 @@
  * pure builder per kind that returns the engine's standard `ChartViewModel`
  * (SVG primitives only, zero framework / DOM dependencies).
  *
- * Funnel:   one descending trapezoid per value of series[0]; the bottom width of
- *           each segment equals the next value's top width (last segment tapers
- *           to 30% of its own width). Centred inline labels (category or value).
+ * Funnel:   one descending centred bar per value of series[0], width
+ *           proportional to abs(value), all one colour; value label inline,
+ *           category name on a left-side axis.
  * Sunburst: concentric arc rings, one ring per series, each ring split into arc
  *           segments proportional to abs(value); outer rings fade in opacity.
  *
@@ -24,14 +28,18 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
-import { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
+import { DEFAULT_CHART_TEXT_PX } from './chart-font';
 import type { ChartViewModel, SvgPath, SvgPrimitive, SvgText } from './chart-view-model';
-import { computePlotLayout, formatAxisValue, paletteColor } from './chart-view-model';
+import {
+	AXIS_LABEL_COLOR,
+	computePlotLayout,
+	formatAxisValue,
+	paletteColor,
+} from './chart-view-model';
 
 export type { SunburstArc } from './chart-sunburst-hierarchy';
 export { computeHierarchicalSunburstArcs, computeSunburstArcs } from './chart-sunburst-hierarchy';
-
-type HierarchicalChartData = PptxChartData & { categoryLevels?: string[][] };
+export { buildSunburstViewModel } from './chart-sunburst-view';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared empty-chrome helper (funnel / sunburst have no cartesian axes)
@@ -53,33 +61,41 @@ function emptyChrome(): Pick<
 // Funnel geometry
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** One funnel trapezoid plus its centred label descriptor. */
+/** One funnel bar plus its centred label descriptor. */
 export interface FunnelSegment {
-	/** SVG path `d` of the trapezoid. */
+	/** SVG path `d` of the bar (a plain centred rectangle). */
 	d: string;
-	/** Fill colour (palette by index). */
+	/** Fill colour: the series' own colour, the same for every bar. */
 	fill: string;
-	/** Top edge width in px. */
+	/** Bar width in px. */
 	topW: number;
-	/** Bottom edge width in px. */
+	/** Same as `topW`: a funnel bar has no taper. Kept for API stability. */
 	botW: number;
 	/** Centred label X. */
 	labelX: number;
 	/** Centred label Y. */
 	labelY: number;
-	/** Label text (category or formatted value). */
+	/** Label text: the point's formatted value. */
 	labelText: string;
 	/** Label font size. */
 	fontSize: number;
+	/** Category-axis label X (left of the plot area). */
+	categoryLabelX: number;
+	/** Category-axis label Y (vertically centred on the bar). */
+	categoryLabelY: number;
+	/** Category-axis label text. */
+	categoryText: string;
 }
 
 /**
- * Compute the descending funnel trapezoids for series[0].
+ * Compute the descending funnel bars for series[0].
  *
- * Each segment's top width is proportional to abs(value); its bottom width
- * matches the next value's top width, so consecutive segments share an edge.
- * The final segment tapers to 30% of its own width. Mirrors the React /
- * Vue funnel geometry exactly.
+ * Each bar is a plain rectangle centred on the plot's horizontal midline,
+ * its width proportional to `abs(value) / max(abs(values))`. COM-verified
+ * against charts-com.pptx slide 27 (chartEx2.xml): PowerPoint draws flat
+ * centred bars, not tapering trapezoids, all painted the series' one colour
+ * (never a colour cycling per bar), with the point's VALUE as its inline
+ * label and the category name on a left-side axis instead.
  */
 export function computeFunnelSegments(
 	values: ReadonlyArray<number>,
@@ -98,42 +114,47 @@ export function computeFunnelSegments(
 	const maxVal = Math.max(...values.map((v) => Math.abs(v)), 1);
 	const segH = plotHeight / Math.max(count, 1);
 	const centerX = plotLeft + plotWidth / 2;
+	// An explicit series colour (c:ser/cx:series spPr solidFill) wins over the
+	// palette default; either way every bar takes the SAME single colour.
+	const fill = seriesColorOverride ?? paletteColor(0, colorPalette);
 	const out: FunnelSegment[] = [];
 
 	for (let i = 0; i < count; i++) {
 		const val = values[i];
-		const topW = (Math.abs(val) / maxVal) * plotWidth;
-		const nextVal = i + 1 < count ? Math.abs(values[i + 1]) : Math.abs(val) * 0.3;
-		const botW = (nextVal / maxVal) * plotWidth;
+		const w = (Math.abs(val) / maxVal) * plotWidth;
 		const y = plotTop + i * segH;
+		const labelY = y + segH / 2 + 4;
 
 		const d = [
-			`M ${centerX - topW / 2} ${y}`,
-			`L ${centerX + topW / 2} ${y}`,
-			`L ${centerX + botW / 2} ${y + segH}`,
-			`L ${centerX - botW / 2} ${y + segH}`,
+			`M ${centerX - w / 2} ${y}`,
+			`L ${centerX + w / 2} ${y}`,
+			`L ${centerX + w / 2} ${y + segH}`,
+			`L ${centerX - w / 2} ${y + segH}`,
 			'Z',
 		].join(' ');
 
 		out.push({
 			d,
-			// An explicit series colour (c:ser/cx:series spPr solidFill) wins over
-			// the per-segment palette cycle, as in PowerPoint.
-			fill: seriesColorOverride ?? paletteColor(i, colorPalette),
-			topW,
-			botW,
+			fill,
+			topW: w,
+			botW: w,
 			labelX: centerX,
-			labelY: y + segH / 2 + 4,
-			labelText: categories[i] ?? formatAxisValue(val),
+			labelY,
+			labelText: formatAxisValue(val),
 			fontSize: Math.min(10, segH * 0.4),
+			categoryLabelX: plotLeft - 8,
+			categoryLabelY: labelY,
+			categoryText: categories[i] ?? '',
 		});
 	}
 	return out;
 }
 
 /**
- * Build the view-model for a funnel chart: descending trapezoids from series[0].
- * Mirrors `renderFunnelChart` (React) / `FunnelChart.vue`.
+ * Build the view-model for a funnel chart: descending centred bars from
+ * series[0], each labelled with its value; the category names form a
+ * left-side axis instead of the inline label (COM-verified: charts-com.pptx
+ * slide 27). Mirrors `renderFunnelChart` (React) / `FunnelChart.vue`.
  */
 export function buildFunnelViewModel(
 	element: PptxElement,
@@ -183,6 +204,15 @@ export function buildFunnelViewModel(
 	});
 
 	const title = resolveChartTitleText(chartData);
+	const categoryAxisLabels: SvgText[] = segments.map((seg) => ({
+		kind: 'text',
+		x: seg.categoryLabelX,
+		y: seg.categoryLabelY,
+		text: seg.categoryText,
+		fontSize: DEFAULT_CHART_TEXT_PX,
+		fill: AXIS_LABEL_COLOR,
+		textAnchor: 'end',
+	}));
 
 	return {
 		svgWidth: layout.svgWidth,
@@ -191,76 +221,11 @@ export function buildFunnelViewModel(
 		titleX: layout.svgWidth / 2,
 		titleY: 14,
 		...emptyChrome(),
+		categoryLabels: categoryAxisLabels,
 		primitives,
 		dataLabels,
 		// Funnel does not draw a separate legend swatch list (labels are inline).
 		legend: [],
-		legendX: layout.svgWidth / 2,
-		legendY: layout.svgHeight - 8,
-		legendAnchor: 'middle',
-	};
-}
-
-/**
- * Build the view-model for a sunburst chart: concentric arc rings, one per
- * series. Mirrors `renderSunburstChart` (React) / `SunburstChart.vue`.
- */
-export function buildSunburstViewModel(
-	element: PptxElement,
-	chartData: PptxChartData,
-	categoryLabels: ReadonlyArray<string>,
-): ChartViewModel {
-	const layout = computePlotLayout(element.width, element.height, chartData, false);
-	const cx = layout.plotLeft + layout.plotWidth / 2;
-	const cy = layout.plotTop + layout.plotHeight / 2;
-	const maxR = Math.min(layout.plotWidth, layout.plotHeight) / 2 - 4;
-	const categoryLevels = (chartData as HierarchicalChartData).categoryLevels;
-
-	const arcs = categoryLevels?.length
-		? computeHierarchicalSunburstArcs(
-				categoryLevels,
-				chartData.series[0]?.values ?? [],
-				cx,
-				cy,
-				maxR,
-				chartData.colorPalette,
-			)
-		: computeSunburstArcs(chartData.series, cx, cy, maxR, chartData.colorPalette);
-	const primitives: SvgPrimitive[] = arcs.map(
-		(arc) =>
-			({
-				kind: 'path',
-				d: arc.d,
-				fill: arc.fill,
-				stroke: '#ffffff',
-				strokeWidth: 1,
-				opacity: arc.opacity,
-				part:
-					arc.pointIndex === undefined
-						? undefined
-						: { role: 'dataPoint', seriesIndex: 0, pointIndex: arc.pointIndex },
-			}) satisfies SvgPath,
-	);
-
-	const legendLabels = categoryLevels?.length
-		? [...new Set(categoryLevels[categoryLevels.length - 1]?.filter(Boolean) ?? categoryLabels)]
-		: categoryLabels;
-	const legend = chartData.style?.hasLegend
-		? legendLabels.map((label, i) => ({ color: paletteColor(i, chartData.colorPalette), label }))
-		: [];
-
-	const title = resolveChartTitleText(chartData);
-
-	return {
-		svgWidth: layout.svgWidth,
-		svgHeight: layout.svgHeight,
-		title,
-		titleX: layout.svgWidth / 2,
-		titleY: 14,
-		...emptyChrome(),
-		primitives,
-		dataLabels: [],
-		legend,
 		legendX: layout.svgWidth / 2,
 		legendY: layout.svgHeight - 8,
 		legendAnchor: 'middle',

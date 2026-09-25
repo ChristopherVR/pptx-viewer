@@ -1,8 +1,13 @@
 import type { TablePptxElement } from 'pptx-viewer-core';
 import type { ContextMenuCommandId, ContextMenuContext } from 'pptx-viewer-shared';
-import { hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
+import {
+	canCropElement,
+	hasMultipleSelectedTableCells,
+	MERGE_SHAPES_MENU_ITEMS,
+} from 'pptx-viewer-shared';
 
 import type { ContextMenuProps } from './context-menu-types';
+import type { ShapeFormatCommands } from './shape-format-context';
 
 /**
  * What each context-menu command does in React, and what the menu should offer.
@@ -31,16 +36,38 @@ function tableCell(props: ContextMenuProps): ContextMenuContext['table'] {
 }
 
 /** The state the shared builder needs to decide what this menu contains. */
-export function contextMenuContext(props: ContextMenuProps): ContextMenuContext {
+export function contextMenuContext(
+	props: ContextMenuProps,
+	shapeFormat: ShapeFormatCommands | null = null,
+): ContextMenuContext {
 	return {
 		elementType: props.selectedElement?.type ?? null,
 		table: tableCell(props),
 		hasMultiSelection: Boolean(props.hasMultiSelection),
 		selectionGroupable: props.selectionGroupable,
+		hasClipboard: props.hasClipboard,
+		editPoints: props.editPointsAvailability,
 		// Both AI entries appear together or not at all, so a viewer that wired
 		// only one of them does not produce a menu the other bindings cannot match.
 		aiEnabled: Boolean(props.onAskAi) && Boolean(props.onFixAi),
+		canMergeShapes: Boolean(shapeFormat?.canMergeShapes),
+		canCrop: canCropElement(props.selectedElement),
 	};
+}
+
+/** Merge Shapes and Crop entries, routed to the viewer's shape-format commands. */
+function shapeFormatHandlers(
+	shapeFormat: ShapeFormatCommands | null,
+	andClose: (run: (() => void) | undefined) => (() => void) | undefined,
+): ContextMenuHandlers {
+	if (!shapeFormat) {
+		return {};
+	}
+	const handlers: ContextMenuHandlers = { crop: andClose(shapeFormat.crop.enter) };
+	for (const item of MERGE_SHAPES_MENU_ITEMS) {
+		handlers[item.commandId] = andClose(() => shapeFormat.mergeShapes(item.operation));
+	}
+	return handlers;
 }
 
 /**
@@ -51,7 +78,10 @@ export function contextMenuContext(props: ContextMenuProps): ContextMenuContext 
  * unwrapped entry here left the invisible full-screen backdrop mounted and
  * eating the next click (live-verified with the "comment" entry).
  */
-export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandlers {
+export function contextMenuHandlers(
+	props: ContextMenuProps,
+	shapeFormat: ShapeFormatCommands | null = null,
+): ContextMenuHandlers {
 	const { onAction, onClose } = props;
 	const andClose = (run: (() => void) | undefined): (() => void) | undefined =>
 		run &&
@@ -85,10 +115,12 @@ export function contextMenuHandlers(props: ContextMenuProps): ContextMenuHandler
 		group: andClose(() => onAction('group')),
 		ungroup: andClose(() => onAction('ungroup')),
 		'edit-text': andClose(() => onAction('edit-text')),
+		'edit-points': andClose(() => onAction('edit-points')),
 		'save-as-picture': andClose(() => onAction('save-as-picture')),
 		'edit-alt-text': andClose(() => onAction('edit-alt-text')),
 		'size-and-position': andClose(() => onAction('size-and-position')),
 		'format-shape': andClose(() => onAction('format-shape')),
 		delete: andClose(() => onAction('delete')),
+		...shapeFormatHandlers(shapeFormat, andClose),
 	};
 }

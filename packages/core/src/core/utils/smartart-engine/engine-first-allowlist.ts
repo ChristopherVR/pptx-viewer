@@ -1,19 +1,25 @@
 /**
  * Layouts where the per-point DiagramML engine (`smartart-engine/`) is
- * measurably better than the legacy family-based interpreter
+ * measurably at least as good as the legacy family-based interpreter
  * (`smartart-layout-interpreter.ts`) on EVERY dataset fixture of that
  * layout in the 229-fixture COM gallery corpus, with no shape-set loss
  * (`packages/core/src/__tests__/fixtures/smartart-gallery/`): the engine
  * matches at least as many cached-drawing shapes as legacy on every
- * dataset, and its worst geometry deviation is never larger, strictly
- * smaller on at least one dataset.
+ * dataset, and its worst geometry deviation is never larger than legacy's.
+ * Most entries are strictly smaller on at least one dataset; a few (Basic
+ * Pyramid, Inverted Pyramid) tie legacy exactly on every dataset instead -
+ * still listed since routing to either engine costs nothing when they agree,
+ * and it keeps the pyramid family on one code path. Basic Cycle and Titled
+ * Matrix tie legacy's geometry exactly and are listed because the engine
+ * matches more cached font sizes on the tied datasets (the measurement's
+ * font tie-break, added once the engine sized text from `primFontSz`).
  *
  * `computeDiagramMlElements` (`smartart-decompose-diagram.ts`) consults
  * this set to try the engine BEFORE the legacy interpreter for a listed
  * `layoutDefinition.uniqueId`, falling back to legacy (then the
  * algorithmic heuristic) exactly as before when the engine declines.
  *
- * Measured 2026-09-24 with `scripts/measure-smartart-engine-vs-legacy.ts`;
+ * Measured 2026-09-24, re-measured 2026-09-25, with `scripts/measure-smartart-engine-vs-legacy.ts`;
  * see that script's own doc comment for the exact inclusion rule and
  * `docs/architecture/openxml-conformance.md#smartart-layout-ground-truth`
  * for the resulting gate numbers. Regenerate this list (in comparison
@@ -23,71 +29,135 @@
  */
 
 export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
+	'urn:microsoft.com/office/officeart/2008/layout/AccentedPicture', // Accented Picture (legacy<=0.7542 -> engine<=0.2226)
+	'urn:microsoft.com/office/officeart/2024/layout/AlternatingCircleProcess', // Alternating Circle Process (legacy<=0.4916 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess4', // Alternating Flow (legacy<=0.2083 -> engine<=0.0188)
+	'urn:microsoft.com/office/officeart/2008/layout/AlternatingHexagons', // Alternating Hexagons (legacy<=0.2514 -> engine<=0.0432)
 	'urn:microsoft.com/office/officeart/2008/layout/AlternatingPictureBlocks', // Alternating Picture Blocks (legacy<=0.233 -> engine<=0.0288)
 	'urn:microsoft.com/office/officeart/2008/layout/AlternatingPictureCircles', // Alternating Picture Circles (legacy<=0.4394 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2008/layout/AscendingPictureAccentProcess', // Ascending Picture Accent Process (legacy<=0.3576 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/process5', // Basic Bending Process (legacy<=0.0392 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/default', // Basic Block List (legacy<=0.0035 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/cycle2', // Basic Cycle (legacy<=0.0012 -> engine<=0.0012; tie broken by font matches 0 -> 3 on every dataset)
 	'urn:microsoft.com/office/officeart/2005/8/layout/matrix3', // Basic Matrix (legacy<=0.7601 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/chart3', // Basic Pie (legacy<=0.0375 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid1', // Basic Pyramid (legacy<=0.0019 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/target1', // Basic Target (legacy<=0.3045 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess11', // Basic Timeline (legacy<=0.3583 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/venn1', // Basic Venn (legacy<=0.0938 -> engine<=0.0012)
-	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureBlocks', // Bending Picture Blocks (legacy<=0.4821 -> engine<=0.4671)
-	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureCaption', // Bending Picture Caption (legacy<=0.4014 -> engine<=0.4002)
+	'urn:microsoft.com/office/officeart/2005/8/layout/bList2', // Bending Picture Accent List (legacy<=0.5816 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureBlocks', // Bending Picture Blocks (legacy<=0.4821 -> engine<=0.0519)
+	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureCaption', // Bending Picture Caption (legacy<=0.4014 -> engine<=0.045)
+	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureCaptionList', // Bending Picture Caption List (legacy<=0.6116 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2008/layout/BendingPictureSemiTransparentText', // Bending Picture Semi-Transparent Text (legacy<=0.4544 -> engine<=0.0035)
 	'urn:microsoft.com/office/officeart/2008/layout/BubblePictureList', // Bubble Picture List (legacy<=0.0863 -> engine<=0)
-	'urn:microsoft.com/office/officeart/2008/layout/CaptionedPictures', // Captioned Pictures (legacy<=0.6642 -> engine<=0.6263)
+	'urn:microsoft.com/office/officeart/2024/layout/BulletTimeline', // Bullet Timeline (legacy<=0.3415 -> engine<=0.0092)
+	'urn:microsoft.com/office/officeart/2024/layout/BulletTimelineInverted', // Bullet Timeline Inverted (legacy<=0.3265 -> engine<=0.0188)
+	'urn:microsoft.com/office/officeart/2008/layout/CaptionedPictures', // Captioned Pictures (legacy<=0.6642 -> engine<=0.3276)
 	'urn:microsoft.com/office/officeart/2005/8/layout/chevronAccent+Icon', // Chevron Accent Process (legacy<=0.8161 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2008/layout/CircleAccentTimeline', // Circle Accent Timeline (legacy<=0.7336 -> engine<=0.257)
 	'urn:microsoft.com/office/officeart/2009/layout/CircleArrowProcess', // Circle Arrow Process (legacy<=0.1684 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2011/layout/CircleProcess', // Circle Process (legacy<=0.6632 -> engine<=0.0113)
 	'urn:microsoft.com/office/officeart/2009/3/layout/CircleRelationship', // Circle Relationship (legacy<=0.0356 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/bProcess2', // Circular Bending Process (legacy<=0.3959 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2008/layout/CircularPictureCallout', // Circular Picture Callout (legacy<=0.7317 -> engine<=0.2053)
+	'urn:microsoft.com/office/officeart/2005/8/layout/hChevron3', // Closed Chevron Process (legacy<=0.5009 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess9', // Continuous Block Process (legacy<=0.6004 -> engine<=0.0346)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hList7', // Continuous Picture List (legacy<=0.469 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2005/8/layout/arrow5', // Converging Arrows (legacy<=0.0638 -> engine<=0.0375)
+	'urn:microsoft.com/office/officeart/2011/layout/ConvergingText', // Converging Text (legacy<=0.677 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/arrow3', // Counterbalance Arrows (legacy<=0.2889 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/cycle4', // Cycle Matrix (legacy<=0.227 -> engine<=0.0113)
 	'urn:microsoft.com/office/officeart/2009/3/layout/BlockDescendingList', // Descending Block List (legacy<=0.1696 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2009/3/layout/DescendingProcess', // Descending Process (legacy<=0.7497 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess7', // Detailed Process (legacy<=0.4822 -> engine<=0.182)
+	'urn:microsoft.com/office/officeart/2005/8/layout/arrow1', // Diverging Arrows (legacy<=0.0638 -> engine<=0.0375)
 	'urn:microsoft.com/office/officeart/2005/8/layout/equation1', // Equation (legacy<=0.0281 -> engine<=0.0131)
-	'urn:microsoft.com/office/officeart/2009/3/layout/FramedTextPicture', // Framed Text Picture (legacy<=0.3276 -> engine<=0.2987)
+	'urn:microsoft.com/office/officeart/2009/3/layout/FramedTextPicture', // Framed Text Picture (legacy<=0.3276 -> engine<=0.015)
 	'urn:microsoft.com/office/officeart/2005/8/layout/funnel1', // Funnel (legacy<=0.3068 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/gear1', // Gear (legacy<=0.7589 -> engine<=0.0882)
 	'urn:microsoft.com/office/officeart/2005/8/layout/matrix2', // Grid Matrix (legacy<=0.2514 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/lProcess2', // Grouped List (legacy<=0.5779 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2008/layout/HexagonCluster', // Hexagon Cluster (legacy<=0.0115 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2011/layout/HexagonRadial', // Hexagon Radial (legacy<=0.2941 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1', // Hierarchy (legacy<=0.0019 -> engine<=0.0019; flat3 0.0019 -> 0, font matches 0 -> 3/5/8)
+	'urn:microsoft.com/office/officeart/2005/8/layout/hierarchy2', // Horizontal Hierarchy (legacy<=0.0019 -> engine<=0.0019; font matches 0 -> 5 on hier5/hier8)
+	'urn:microsoft.com/office/officeart/2008/layout/HorizontalMultiLevelHierarchy', // Horizontal Multi-Level Hierarchy (legacy<=0.2987 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2009/3/layout/HorizontalOrganizationChart', // Horizontal Organization Chart (legacy<=0.0225 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/pList2', // Horizontal Picture List (legacy<=0.3415 -> engine<=0)
-	'urn:microsoft.com/office/officeart/2024/layout/IconCircleLabelList', // Icon Circle Label List (legacy<=49.707 -> engine<=0.6401)
+	'urn:microsoft.com/office/officeart/2024/layout/IconCircleLabelList', // Icon Circle Label List (legacy<=49.707 -> engine<=0.4152)
 	'urn:microsoft.com/office/officeart/2009/3/layout/IncreasingArrowsProcess', // Increasing Arrows Process (legacy<=0.1257 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2008/layout/IncreasingCircleProcess', // Increasing Circle Process (legacy<=0.7617 -> engine<=0.1782)
 	'urn:microsoft.com/office/officeart/2011/layout/InterconnectedBlockProcess', // Interconnected Block Process (legacy<=0.6136 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/rings+Icon', // Interconnected Rings (legacy<=0.0634 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid3', // Inverted Pyramid (legacy<=0.0019 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/venn3', // Linear Venn (legacy<=0.1595 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2008/layout/LinedList', // Lined List (legacy<=0.8005 -> engine<=0.4002)
+	'urn:microsoft.com/office/officeart/2024/layout/MeetTheTeam', // Meet The Team (legacy<=49.7924 -> engine<=0.636)
+	'urn:microsoft.com/office/officeart/2024/layout/MeetTheTeamCard', // Meet The Team Card (legacy<=49.7324 -> engine<=0.4764)
+	'urn:microsoft.com/office/officeart/2024/layout/MeetTheTeamCardVertical', // Meet The Team Card Vertical (legacy<=49.7924 -> engine<=0.5098)
+	'urn:microsoft.com/office/officeart/2024/layout/MeetTheTeamOval', // Meet The Team Oval (legacy<=49.7693 -> engine<=0.7486)
 	'urn:microsoft.com/office/officeart/2005/8/layout/target2', // Nested Target (legacy<=0.3991 -> engine<=0.0069)
+	'urn:microsoft.com/office/officeart/2024/layout/NumberedTitleCardList', // Numbered Card List (legacy<=0.4465 -> engine<=0.1914)
+	'urn:microsoft.com/office/officeart/2026/layout/NumberedDotsHorizontal', // Numbered Dots Horizontal (legacy<=0.3021 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2026/layout/NumberedDotsVertical', // Numbered Dots Vertical (legacy<=0.6101 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2024/layout/NumberedTitleList', // Numbered Title List (legacy<=0.5854 -> engine<=0.1463)
 	'urn:microsoft.com/office/officeart/2005/8/layout/arrow4', // Opposing Arrows (legacy<=0.2608 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2009/3/layout/OpposingIdeas', // Opposing Ideas (legacy<=0.5178 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/orgChart1', // Organization Chart (legacy<=0.0231 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2009/3/layout/PhasedProcess', // Phased Process (legacy<=0.3437 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hList2', // Picture Accent List (legacy<=0.621 -> engine<=0.2795)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess10', // Picture Accent Process (legacy<=0.6191 -> engine<=0.0012)
-	'urn:microsoft.com/office/officeart/2011/layout/Picture Frame', // Picture Frame (legacy<=0.4983 -> engine<=0.4694)
+	'urn:microsoft.com/office/officeart/2005/8/layout/pList1', // Picture Caption List (legacy<=0.5816 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2011/layout/Picture Frame', // Picture Frame (legacy<=0.4983 -> engine<=0.0196)
+	'urn:microsoft.com/office/officeart/2008/layout/PictureGrid', // Picture Grid (legacy<=0.4083 -> engine<=0.0225)
+	'urn:microsoft.com/office/officeart/2008/layout/PictureStrips', // Picture Strips (legacy<=0.5306 -> engine<=0.2791)
+	'urn:microsoft.com/office/officeart/2009/3/layout/PieProcess', // Pie Process (legacy<=0.8537 -> engine<=0.0381)
 	'urn:microsoft.com/office/officeart/2009/3/layout/PlusandMinus', // Plus and Minus (legacy<=0.0769 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hProcess6', // Process Arrows (legacy<=0.4071 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid2', // Pyramid List (legacy<=0.1845 -> engine<=0.0694)
 	'urn:microsoft.com/office/officeart/2011/layout/RadialPictureList', // Radial Picture List (legacy<=0.0334 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/bProcess3', // Repeating Bending Process (legacy<=0.0208 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2009/layout/ReverseList', // Reverse List (legacy<=0.606 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/cycle8', // Segmented Cycle (legacy<=0.0638 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2005/8/layout/process4', // Segmented Process (legacy<=0.714 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid4', // Segmented Pyramid (legacy<=0.1926 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2026/layout/SmallDotsHorizontal', // Small Dots Horizontal (legacy<=0.2664 -> engine<=0.0012)
+	'urn:microsoft.com/office/officeart/2026/layout/SmallDotsVertical', // Small Dots Vertical (legacy<=0.4879 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2009/3/layout/SnapshotPictureList', // Snapshot Picture List (legacy<=0.9587 -> engine<=0.0469)
+	'urn:microsoft.com/office/officeart/2005/8/layout/hList9', // Stacked List (legacy<=0.7767 -> engine<=0.3452)
 	'urn:microsoft.com/office/officeart/2005/8/layout/vProcess5', // Staggered Process (legacy<=0.349 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/StepDownProcess', // Step Down Process (legacy<=0.6848 -> engine<=0.3276)
+	'urn:microsoft.com/office/officeart/2011/layout/TabList', // Tab List (legacy<=0.8997 -> engine<=0.0019)
+	'urn:diagrams.loki3.com/TabbedArc+Icon', // Tabbed Arc (legacy<=0.2364 -> engine<=0.0131)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hList3', // Table List (legacy<=0.3696 -> engine<=0)
-	'urn:microsoft.com/office/officeart/2026/layout/TextCardShortLineWide', // Text Card Short Line Wide (legacy<=66.8124 -> engine<=0.1482)
-	'urn:microsoft.com/office/officeart/2026/layout/TextCardSideLineWideImage', // Text Card Side Line Wide Image (legacy<=73.0826 -> engine<=0.5006)
+	'urn:microsoft.com/office/officeart/2005/8/layout/target3', // Target List (legacy<=0.7073 -> engine<=0.0338)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardShortLine', // Text Card Short Line (legacy<=74.8555 -> engine<=0.1257)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardShortLineNumber', // Text Card Short Line Number (legacy<=75.1745 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardShortLineQuote', // Text Card Short Line Quote (legacy<=58.7054 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardShortLineWide', // Text Card Short Line Wide (legacy<=66.8124 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardSideLineIcon', // Text Card Side Line Icon (legacy<=81.833 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardSideLineNumbered', // Text Card Side Line Numbered (legacy<=138.9737 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardSideLineQuote', // Text Card Side Line Quote (legacy<=81.8818 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2026/layout/TextCardSideLineWideImage', // Text Card Side Line Wide Image (legacy<=73.0826 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/cycle1', // Text Cycle (legacy<=0.4916 -> engine<=0.4259)
 	'urn:microsoft.com/office/officeart/2011/layout/ThemePictureAccent', // Theme Picture Accent (legacy<=0.0704 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2011/layout/ThemePictureAlternatingAccent', // Theme Picture Alternating Accent (legacy<=0.3633 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2011/layout/ThemePictureGrid', // Theme Picture Grid (legacy<=0.3299 -> engine<=0.0012)
-	'urn:microsoft.com/office/officeart/2008/layout/TitledPictureBlocks', // Titled Picture Blocks (legacy<=0.474 -> engine<=0.4694)
+	'urn:microsoft.com/office/officeart/2008/layout/TitlePictureLineup', // Title Picture Lineup (legacy<=0.4109 -> engine<=0.0138)
+	'urn:microsoft.com/office/officeart/2005/8/layout/matrix1', // Titled Matrix (legacy<=0 -> engine<=0; tie broken by font matches 0 -> 1)
+	'urn:microsoft.com/office/officeart/2008/layout/TitledPictureBlocks', // Titled Picture Blocks (legacy<=0.474 -> engine<=0.0496)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hList6', // Trapezoid List (legacy<=0.2976 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/arrow2', // Upward Arrow (legacy<=0.0058 -> engine<=0.0019)
 	'urn:diagrams.loki3.com/VaryingWidthList', // Varying Width List (legacy<=0.7278 -> engine<=0.654)
 	'urn:microsoft.com/office/officeart/2008/layout/VerticalAccentList', // Vertical Accent List (legacy<=0.7636 -> engine<=0.2042)
 	'urn:microsoft.com/office/officeart/2024/layout/VerticalActionList', // Vertical Action List (legacy<=1.0469 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/vList6', // Vertical Arrow List (legacy<=0.714 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2005/8/layout/bProcess4', // Vertical Bending Process (legacy<=0.5816 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/vList5', // Vertical Block List (legacy<=0.7692 -> engine<=0.3195)
 	'urn:microsoft.com/office/officeart/2005/8/layout/chevron2', // Vertical Chevron List (legacy<=1.0901 -> engine<=0.3996)
+	'urn:microsoft.com/office/officeart/2008/layout/VerticalCurvedList', // Vertical Curved List (legacy<=0.7428 -> engine<=0.0081)
+	'urn:microsoft.com/office/officeart/2005/8/layout/equation2', // Vertical Equation (legacy<=0.5797 -> engine<=0.2702)
 	'urn:microsoft.com/office/officeart/2005/8/layout/vList3', // Vertical Picture Accent List (legacy<=0.489 -> engine<=0.2664)
 	'urn:microsoft.com/office/officeart/2005/8/layout/vList4', // Vertical Picture List (legacy<=0.8074 -> engine<=0.0019)
 ]);

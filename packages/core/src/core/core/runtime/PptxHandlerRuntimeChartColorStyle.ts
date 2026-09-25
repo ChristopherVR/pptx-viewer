@@ -47,7 +47,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return parseChartStyleDefinition(
 				styleRoot,
 				this.xmlLookupService,
-				(node) => this.resolveChartSchemeColor(node),
+				// Through the full colour parser so a `cs:fontRef` colour keeps its
+				// transforms: every built-in style's title/axis/legend text is
+				// `tx1` with `lumMod 65000 lumOff 35000` (#595959 on a white-text
+				// theme), which the bare scheme lookup flattened to black.
+				(node) =>
+					(node && typeof node === 'object'
+						? this.parseColor({ 'a:schemeClr': node as XmlObject })
+						: undefined) ?? this.resolveChartSchemeColor(node),
 				(fillNode) => this.parseColor(fillNode),
 			);
 		} catch {

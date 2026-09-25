@@ -71,6 +71,8 @@ export interface UsePrintOptions {
 	 * rects, in the `handouts` print mode.
 	 */
 	handoutMaster?: Ref<PptxHandoutMaster | undefined>;
+	/** False while the host removed the Print dialog (UI customisation); opening is a no-op. */
+	canOpen?: () => boolean;
 }
 
 export interface UsePrintResult {
@@ -135,6 +137,9 @@ export function usePrint(options: UsePrintOptions): UsePrintResult {
 	const isPrintDialogOpen = ref(false);
 
 	function openPrintDialog(): void {
+		if (options.canOpen?.() === false) {
+			return;
+		}
 		isPrintDialogOpen.value = true;
 	}
 

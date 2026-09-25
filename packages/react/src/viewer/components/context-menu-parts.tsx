@@ -23,6 +23,12 @@ export interface ContextMenuItemProps {
 	danger?: boolean;
 	/** Offered but not usable now (empty clipboard, unwired handler). */
 	disabled?: boolean;
+	/**
+	 * A checkbox-style toggle (Grid and Guides, Ruler) in this state, rather
+	 * than a one-shot command. Omitted for ordinary commands, which keep
+	 * `role="menuitem"`.
+	 */
+	checked?: boolean;
 	children: React.ReactNode;
 }
 
@@ -31,16 +37,23 @@ export function ContextMenuItem({
 	onSelect,
 	danger,
 	disabled,
+	checked,
 	children,
 }: ContextMenuItemProps): React.ReactElement {
 	return (
 		<button
 			type='button'
-			role='menuitem'
+			role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+			aria-checked={checked === undefined ? undefined : checked}
 			disabled={disabled}
 			className={`${danger ? DANGER_ITEM_CLASS : ITEM_CLASS}${disabled ? DISABLED_CLASS : ''}`}
 			onClick={onSelect}
 		>
+			{checked !== undefined && (
+				<span className='mr-1.5 inline-block w-3' aria-hidden='true'>
+					{checked ? '✓' : ''}
+				</span>
+			)}
 			{children}
 		</button>
 	);

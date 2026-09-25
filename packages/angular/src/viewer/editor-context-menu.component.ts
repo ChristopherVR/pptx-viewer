@@ -14,27 +14,12 @@
  * they were.
  *
  * Renders a small floating panel at (x, y) viewport coordinates, wired to
- * EditorStateService. Closes on:
- *  - Escape key (via @HostListener)
- *  - A pointerdown event whose target is outside this component's host element
- *    (also via @HostListener; the very first outside-pointerdown that would
- *    have opened the menu is guarded by Angular's own event-propagation order:
- *    the host is mounted before the listener fires, so `!host.contains(target)`
- *    is always correct without any extra first-event guard).
+ * EditorStateService. Closes on Escape or a pointerdown outside the host (the
+ * host is mounted before that listener fires, so no first-event guard).
  *
- * Usage:
- * ```html
- * @if (canEdit() && contextMenu(); as m) {
- *   <pptx-editor-context-menu
- *     [x]="m.x"
- *     [y]="m.y"
- *     [slideIndex]="activeSlideIndex()"
- *     (editHyperlink)="docProperties.showHyperlink.set(true)"
- *     (addComment)="openCommentsPanel()"
- *     (closed)="contextMenu.set(null)"
- *   />
- * }
- * ```
+ * The host's UI customisation (hidden commands, a disabled menu) is applied
+ * through the shared `customizeContextMenuEntries`; an emptied menu renders
+ * nothing. See `PowerPointViewerComponent`'s template for the usage.
  */
 
 import {
@@ -47,23 +32,33 @@ import {
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
 import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared';
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	contextMenuInspectorAnchor,
+	MERGE_SHAPES_LABEL_KEY,
+	customizeContextMenuEntries,
+	isEditPointsEnabled,
+	resolveEditPointsAvailability,
 	scrollInspectorSectionIntoView,
 } from '../internal/shared';
+import { clampedMenuPosition } from './context-menu-position';
 import { tableMenuContext } from './editor-context-menu-context';
 import type { ContextMenuActions, TableCommandOp } from './editor-context-menu-dispatch';
 import { runContextMenuCommand } from './editor-context-menu-dispatch';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
+import { canMergeSelection, runMergeShapes } from './merge-shapes-action';
+import { OutlineAuthoringService } from './outline-authoring.service';
+import { PictureCropService } from './picture-crop.service';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
+import { injectResolvedCustomization } from './viewer-customization.service';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
 @Component({
@@ -74,35 +69,38 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 	template: `
 		<!-- data-pptx-context-menu is the neutral cross-binding hook for "this is
 		     the canvas context menu", alongside the role. -->
-		<ul
-			class="pptx-ctx__menu"
-			data-pptx-context-menu="true"
-			role="menu"
-			[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
-		>
-			@for (entry of entries(); track entry.id) {
-				@if (entry.separatorBefore) {
-					<li role="separator" class="pptx-ctx__divider"></li>
+		<!-- An empty menu (host customisation removed every entry) renders nothing. -->
+		@if (entries().length > 0) {
+			<ul
+				class="pptx-ctx__menu"
+				data-pptx-context-menu="true"
+				role="menu"
+				[attr.aria-label]="'pptx.contextMenu.ariaLabel' | translate"
+			>
+				@for (entry of entries(); track entry.id) {
+					@if (entry.separatorBefore) {
+						<li role="separator" class="pptx-ctx__divider"></li>
+					}
+					<li role="none">
+						<button
+							type="button"
+							class="pptx-ctx__item"
+							[class.pptx-ctx__item--danger]="!!entry.danger"
+							role="menuitem"
+							[disabled]="!!entry.disabled"
+							(click)="run(entry.id)"
+						>
+							{{ entry.labelKey | translate }}
+						</button>
+					</li>
 				}
-				<li role="none">
-					<button
-						type="button"
-						class="pptx-ctx__item"
-						[class.pptx-ctx__item--danger]="!!entry.danger"
-						role="menuitem"
-						[disabled]="!!entry.disabled"
-						(click)="run(entry.id)"
-					>
-						{{ entry.labelKey | translate }}
-					</button>
-				</li>
-			}
-		</ul>
+			</ul>
+		}
 	`,
 	styles: EDITOR_CONTEXT_MENU_STYLES,
 	host: {
-		'[style.--pptx-ctx-x]': 'x() + "px"',
-		'[style.--pptx-ctx-y]': 'y() + "px"',
+		'[style.--pptx-ctx-x]': 'position.left() + "px"',
+		'[style.--pptx-ctx-y]': 'position.top() + "px"',
 	},
 })
 export class EditorContextMenuComponent {
@@ -112,10 +110,7 @@ export class EditorContextMenuComponent {
 	readonly y = input.required<number>();
 	/** Zero-based index of the slide being edited. */
 	readonly slideIndex = input.required<number>();
-	/**
-	 * Whether to show the "Ask AI about this" / "Fix with AI" items. Gated by the
-	 * host on the `ai` config + a single selected element.
-	 */
+	/** Show "Ask AI about this" / "Fix with AI" (host: `ai` config + one selection). */
 	readonly showAiActions = input<boolean>(false);
 
 	/** Emitted when the menu should close (Escape or outside click). */
@@ -124,35 +119,26 @@ export class EditorContextMenuComponent {
 	readonly askAi = output<void>();
 	/** "Fix with AI": open the assistant with a prefilled fix directive. */
 	readonly fixAi = output<void>();
-	/**
-	 * "Edit Hyperlink": the dialog lives at viewer level (it needs the selected
-	 * element and the document-properties service), so the menu asks for it
-	 * rather than owning it.
-	 */
+	/** "Edit Hyperlink": the dialog lives at viewer level, so the menu asks for it. */
 	readonly editHyperlink = output<void>();
 	/** "Add Comment": open the right-docked comments panel, as React does. */
 	readonly addComment = output<void>();
-	/**
-	 * "Edit Text": the host owns the same inline-text-edit entry point a
-	 * double-click uses, so the menu just asks for it on the current element.
-	 */
+	/** "Edit Text": the host owns the inline-text-edit entry point a double-click uses. */
 	readonly editText = output<void>();
-	/**
-	 * "Save as Picture": the host owns the DOM lookup + html2canvas fallback
-	 * driver this needs, so the menu asks for it on the current element.
-	 */
+	/** "Save as Picture": the host owns the DOM lookup + html2canvas driver it needs. */
 	readonly saveAsPicture = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
 	private readonly tableSelection = inject(TableSelectionService, { optional: true });
 	private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
+	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
+	private readonly customization = injectResolvedCustomization();
+	private readonly outline = inject(OutlineAuthoringService, { optional: true });
+	private readonly crop = inject(PictureCropService, { optional: true });
+	private readonly translate = inject(TranslateService, { optional: true });
 
-	/**
-	 * The table element + cell selection the menu should act on, or null when the
-	 * current selection is not a single table with a selected cell. Drives the
-	 * table row/column/merge section of the menu.
-	 */
+	/** The single table + selected cell the table commands act on, or null. */
 	protected readonly tableCtx = computed<{
 		element: TablePptxElement;
 		sel: TableCellSelection;
@@ -179,12 +165,7 @@ export class EditorContextMenuComponent {
 		return slide?.elements.find((el) => el.id === ids[0]) ?? null;
 	});
 
-	/**
-	 * Lock-only half of Group/Ungroup gating (`a:spLocks`/`a:grpSpLocks`
-	 * `@noGrp`), independent of selection count, mirroring the guard
-	 * `EditorStateService.groupSelected`/`ungroupSelected` already enforce on
-	 * the commands themselves (`group-lock-guard.ts`).
-	 */
+	/** Lock-only Group/Ungroup gating (`@noGrp`); see `group-lock-guard.ts`. */
 	private readonly selectionGroupable = computed(() =>
 		resolveContextMenuSelectionGroupable(
 			this.editor.slides()[this.slideIndex()],
@@ -195,14 +176,18 @@ export class EditorContextMenuComponent {
 	/** The menu, as the shared command list builds it for this right-click. */
 	protected readonly entries = computed<ContextMenuEntry[]>(() => {
 		const table = this.tableCtx();
-		return buildContextMenuEntries({
+		const built = buildContextMenuEntries({
 			elementType: this.selectedElement()?.type ?? null,
 			table: table ? tableMenuContext(table.element, table.sel) : null,
 			hasMultiSelection: this.editor.selectedIds().length >= 2,
 			selectionGroupable: this.selectionGroupable(),
 			aiEnabled: this.showAiActions(),
 			hasClipboard: this.editor.hasClipboard(),
+			editPoints: this.outline ? resolveEditPointsAvailability(this.selectedElement()) : undefined,
+			canMergeShapes: canMergeSelection(this.editor, this.slideIndex()),
+			canCrop: canCropElement(this.selectedElement()),
 		});
+		return customizeContextMenuEntries(built, this.customization());
 	});
 
 	/** Editor operations behind each command id (see the dispatch module). */
@@ -223,11 +208,24 @@ export class EditorContextMenuComponent {
 		ungroup: () => this.editor.ungroupSelected(this.slideIndex()),
 		remove: () => this.editor.deleteSelected(this.slideIndex()),
 		editText: () => this.editText.emit(),
+		editPoints: () => {
+			if (isEditPointsEnabled(this.customization())) {
+				this.outline?.startEditPoints(this.selectedElement());
+			}
+		},
 		saveAsPicture: () => this.saveAsPicture.emit(),
 		editAltText: () => this.focusInspectorSection('edit-alt-text'),
 		sizeAndPosition: () => this.focusInspectorSection('size-and-position'),
 		formatShape: () => this.focusInspectorSection('format-shape'),
 		applyTable: (op) => this.applyTable(op),
+		mergeShapes: (op) =>
+			runMergeShapes(
+				this.editor,
+				this.slideIndex(),
+				op,
+				this.translate?.instant(MERGE_SHAPES_LABEL_KEY) as string | undefined,
+			),
+		crop: () => this.crop?.enter(this.slideIndex(), this.selectedElement()),
 	};
 
 	// ── Close triggers ───────────────────────────────────────────────────────

@@ -30,11 +30,13 @@
  *    navigation map to the same actions and selection guards as React.
  */
 import {
+	isEditorControlTarget,
 	isEditorTextInputTarget,
-	mapEditorKey,
+	mapCustomizedEditorKey,
 	NUDGE_LARGE,
 	NUDGE_SMALL,
 } from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 import { onMounted, onScopeDispose, toValue } from 'vue';
 import type { MaybeRefOrGetter } from 'vue';
 
@@ -84,6 +86,8 @@ export interface UseKeyboardShortcutsOptions {
 	tableEditorIsEditing?: MaybeRefOrGetter<boolean>;
 	/** Active drawing tool; shortcuts are suppressed unless `'select'`. */
 	activeTool?: MaybeRefOrGetter<string>;
+	/** The host's keyboard customisation (disabled / remapped shortcuts). */
+	keyboard?: () => ResolvedKeyboardCustomization | undefined;
 
 	/**
 	 * Self-attach the handler to `window` on mount (and detach on scope dispose).
@@ -122,6 +126,8 @@ export interface ShortcutGuardState {
 	tableEditorIsEditing: boolean;
 	activeTool: string;
 	isTextInput: boolean;
+	/** The event came from a focusable chrome control (Tab stays focus navigation). */
+	isControl?: boolean;
 }
 
 /**
@@ -139,8 +145,9 @@ export function resolveShortcutAction(
 	shiftKey: boolean,
 	guard: ShortcutGuardState,
 	altKey = false,
+	keyboard?: ResolvedKeyboardCustomization,
 ): MatchedShortcut {
-	return mapEditorKey(
+	return mapCustomizedEditorKey(
 		{ key, ctrlKey: mod, shiftKey, altKey },
 		{
 			canEdit: guard.canEdit,
@@ -150,7 +157,9 @@ export function resolveShortcutAction(
 			isEditingText: Boolean(guard.inlineEditingElementId || guard.tableEditorIsEditing),
 			isDrawing: guard.activeTool !== 'select',
 			isTextInputTarget: guard.isTextInput,
+			isControlTarget: guard.isControl ?? false,
 		},
+		keyboard,
 	);
 }
 
@@ -179,12 +188,20 @@ export function useKeyboardShortcuts(
 			tableEditorIsEditing: resolveFlag(options.tableEditorIsEditing, false),
 			activeTool: resolveFlag(options.activeTool, 'select'),
 			isTextInput: eventTargetIsTextInput(event),
+			isControl: isEditorControlTarget(event.target),
 		};
 	}
 
 	function matchShortcut(event: KeyboardEvent): MatchedShortcut {
 		const mod = event.metaKey || event.ctrlKey;
-		return resolveShortcutAction(event.key, mod, event.shiftKey, readGuard(event), event.altKey);
+		return resolveShortcutAction(
+			event.key,
+			mod,
+			event.shiftKey,
+			readGuard(event),
+			event.altKey,
+			options.keyboard?.(),
+		);
 	}
 
 	/**

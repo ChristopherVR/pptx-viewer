@@ -36,6 +36,7 @@ import {
 	resolveLazyImages,
 	resolveLazyTableCellImages,
 	resolveLazyTableStyleImages,
+	resolveLazyTextFillBlips,
 	resolveMediaUrls,
 	revokeBlobUrls,
 } from './loader-helpers';
@@ -190,8 +191,12 @@ export class PresentationLoader {
 			const media = await resolveMediaUrls(newHandler, parsed.slides);
 			loadBlobUrls.push(...media.blobUrls);
 			const imageResolvedSlides = await resolveLazyImages(newHandler, parsed.slides);
-			const nextSlides = await resolveLazyTableCellImages(newHandler, imageResolvedSlides);
+			const tableCellResolvedSlides = await resolveLazyTableCellImages(
+				newHandler,
+				imageResolvedSlides,
+			);
 			const nextTableStyleMap = await resolveLazyTableStyleImages(newHandler, parsed.tableStyleMap);
+			const nextSlides = await resolveLazyTextFillBlips(newHandler, tableCellResolvedSlides);
 
 			// Commit reactive state.
 			if (token !== this.#renderToken) {

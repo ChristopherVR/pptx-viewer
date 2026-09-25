@@ -1,3 +1,6 @@
+import { EMPTY_RESOLVED_CUSTOMIZATION, isFeatureEnabled } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../i18n/translator';
 import type { PowerPointViewerProps } from '../types';
 import type { CreateViewerStateOptions } from './create-viewer-state-types';
@@ -5,7 +8,8 @@ import type { CreateViewerStateOptions } from './create-viewer-state-types';
 /**
  * The values only the component that renders the markup can supply: its
  * `bind:this` targets, the measured viewport, the master-view scale a child
- * reports back, and the already locale-bound translator.
+ * reports back, the already locale-bound translator, and the resolved UI
+ * customisation the root owns.
  */
 export interface ViewerDomAccessors {
 	t: Translator;
@@ -14,6 +18,7 @@ export interface ViewerDomAccessors {
 	getViewportWidth(): number;
 	getViewportHeight(): number;
 	getMasterScale(): number;
+	getCustomization?(): ResolvedCustomization;
 }
 
 /**
@@ -52,7 +57,10 @@ export function toViewerStateOptions(
 		getFitPadding: () => getProps().fitPadding,
 		getMaxFitScale: () => getProps().maxFitScale,
 		getFileName: () => getProps().fileName,
-		getAiEnabled: () => Boolean(getProps().ai),
+		// The host's `ai` prop AND the customisation's `ai` feature switch.
+		getAiEnabled: () =>
+			Boolean(getProps().ai) &&
+			isFeatureEnabled(dom.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION, 'ai'),
 		get collaboration() {
 			return getProps().collaboration;
 		},

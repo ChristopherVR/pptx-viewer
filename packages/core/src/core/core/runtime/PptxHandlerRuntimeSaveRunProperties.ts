@@ -29,6 +29,54 @@ function applyFontMetadata(
 }
 
 /**
+ * Resolve one `CT_TextFont` metadata field (`@panose`/`@pitchFamily`/
+ * `@charset`) for a font slot (latin/eastAsia/complexScript/symbol),
+ * preferring the run's OWN authored value, then the paragraph's inherited
+ * baseline, over the flat, possibly-leaked `style[key]`.
+ *
+ * `segmentStyle` is assembled as `{...runScopedTextStyle, ...segment.style,
+ * ...uniformSegmentOverrides}` (`PptxHandlerRuntimeSaveParagraphs`): a
+ * metadata field this run's own font node never set is not overridden by
+ * that spread, so `style[key]` can hold a value ANOTHER run's font
+ * resolved, not this one's.
+ *
+ * The baseline half needs one more check the leak fix's first cut missed:
+ * `CT_TextFont`'s typeface and its metadata describe the SAME font, so the
+ * paragraph's `inheritedRunStyle` panose is only valid for the typeface
+ * `inheritedRunStyle` ALSO names for this slot. A run whose own typeface
+ * genuinely differs from that baseline (this run's `<a:ea
+ * typeface="Abraham Lincoln"/>` against a paragraph baseline of "宋体",
+ * used by every OTHER run in the same shape) must not borrow the
+ * baseline's panose either, or it inherits a description of a font it
+ * does not use. `currentFace` is the typeface this call is ABOUT to write
+ * (already resolved by the caller, theme token preferred over the
+ * concrete name, matching how the typeface itself is chosen).
+ *
+ * When NEITHER half was ever recorded (a hand-built `TextStyle`: SDK
+ * content, a synthetic test style), there is no split to prefer, so the
+ * flat field is used as-is, matching `createRunStyleGate`'s own "no
+ * baseline, trust everything" rule.
+ */
+function resolveFontMetadata<K extends keyof TextStyle>(
+	style: TextStyle,
+	metadataKey: K,
+	faceKey: keyof TextStyle,
+	faceThemeTokenKey: keyof TextStyle,
+	currentFace: string,
+): TextStyle[K] | undefined {
+	const authored = style.authoredRunStyle;
+	const baseline = style.inheritedRunStyle;
+	if (authored === undefined && baseline === undefined) {
+		return style[metadataKey];
+	}
+	if (authored?.[metadataKey] !== undefined) {
+		return authored[metadataKey];
+	}
+	const baselineFace = baseline?.[faceThemeTokenKey] ?? baseline?.[faceKey];
+	return baselineFace === currentFace ? baseline?.[metadataKey] : undefined;
+}
+
+/**
  * Build the `a:uLn` (underline line) XML node from the parsed
  * {@link TextStyle.underlineLine}. Follows CT_LineProperties child order
  * (`prstDash`, then `headEnd`, `tailEnd`). The line colour is emitted
@@ -64,13 +112,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createRunPropertiesFromTextStyle(
 		style: TextStyle | undefined,
 		resolveHyperlinkRelationshipId?: (target: string) => string | undefined,
-	): XmlObject {
-		const runProps: XmlObject = {
-			'@_lang': style?.language || 'en-US',
-			'@_dirty': '0',
-		};
+	): XmlObject | undefined {
 		if (!style) {
-			return runProps;
+			// No style at all: this run has no parse provenance to consult, so
+			// stamp the same `dirty="0"` PowerPoint itself writes for freshly
+			// authored text.
+			return { '@_lang': 'en-US', '@_dirty': '0' };
 		}
 
 		// `a:rPr` is a sparse override of the layout/master/theme cascade, not a
@@ -81,6 +128,21 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// nothing that never came from a deck changes shape. See
 		// `authored-run-style.ts`.
 		const owns = createRunStyleGate(style);
+
+		const runProps: XmlObject = {};
+		// `@_lang` used to be stamped unconditionally, which fabricated a whole
+		// `<a:rPr lang="en-US"/>` for every run whose source authored none at
+		// all (measured: ~65 such elements across the fixture corpus, runs and
+		// `a:br` alike). `owns('language')` keeps it sparse exactly like every
+		// other property here: a run that never authored `@lang` and whose
+		// resolved language matches the paragraph/shape baseline inherits it
+		// silently, and `runProps` below can end up with no keys at all, in
+		// which case the caller omits `a:rPr` entirely rather than writing an
+		// empty shell (see the `?? undefined` return at the end of this
+		// function).
+		if (owns('language')) {
+			runProps['@_lang'] = style.language || 'en-US';
+		}
 
 		if (typeof style.fontSize === 'number' && Number.isFinite(style.fontSize) && owns('fontSize')) {
 			runProps['@_sz'] = String(Math.round(style.fontSize * (72 / 96) * 100));
@@ -104,8 +166,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['@_strike'] = style.strikethrough ? style.strikeType || 'sngStrike' : 'noStrike';
 		}
 		// Superscript / subscript baseline
-		if (typeof style.baseline === 'number' && style.baseline !== 0 && owns('baseline')) {
-			runProps['@_baseline'] = String(style.baseline);
+		if (typeof style.baseline === 'number' && owns('baseline')) {
+			// A zero shift is only worth writing when the run authored it or it
+			// cancels an inherited shift; otherwise it is the default.
+			const zeroIsMeaningful =
+				style.authoredRunStyle?.baseline !== undefined ||
+				(style.inheritedRunStyle?.baseline ?? 0) !== 0;
+			if (style.baseline !== 0 || zeroIsMeaningful) {
+				runProps['@_baseline'] = String(style.baseline);
+			}
 		}
 		// Character spacing
 		if (
@@ -150,7 +219,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (style.noProof !== undefined && owns('noProof')) {
 			runProps['@_noProof'] = style.noProof ? '1' : '0';
 		}
-		if (style.dirty !== undefined) {
+		if (owns('dirty')) {
+			// `style.dirty === undefined` here is either "no baseline to
+			// compare against" (SDK-built text, a fabricated shape, a
+			// synthetic test style: `owns` passes everything) or an edit that
+			// flipped it back toward the baseline without clearing the flat
+			// field. Either way, stamp the same `dirty="0"` PowerPoint itself
+			// writes for freshly authored text.
 			runProps['@_dirty'] = style.dirty ? '1' : '0';
 		}
 		if (style.spellingError !== undefined && owns('spellingError')) {
@@ -185,7 +260,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// 1. a:ln (text outline)
 		if (
 			(style.textOutlineWidth || style.textOutlineColor) &&
-			owns('textOutlineWidth', 'textOutlineColor')
+			owns('textOutlineWidth', 'textOutlineColor', 'textOutlineDash')
 		) {
 			const lnObj: XmlObject = {};
 			if (typeof style.textOutlineWidth === 'number' && style.textOutlineWidth > 0) {
@@ -197,6 +272,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						'@_val': style.textOutlineColor.replace('#', ''),
 					},
 				};
+			}
+			// CT_LineProperties order: fill, then prstDash.
+			if (style.textOutlineDash) {
+				lnObj['a:prstDash'] = { '@_val': style.textOutlineDash };
 			}
 			runProps['a:ln'] = lnObj;
 		}
@@ -226,6 +305,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'textFillGradientStops',
 			'textFillGradientType',
 			'textFillPattern',
+			'textFillBlipXml',
 		);
 		if (ownsFill && style.textFillNone) {
 			runProps['a:noFill'] = {};
@@ -297,6 +377,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				};
 			}
 			runProps['a:pattFill'] = pattFill;
+		} else if (ownsFill && style.textFillBlipXml) {
+			// Re-emit the ORIGINAL `a:blipFill` verbatim (same r:embed/r:link,
+			// same a:stretch/a:tile): the run's own relationship isn't
+			// re-targeted on save, so round-tripping the raw node is both
+			// simplest and safest, matching how other preserved colour-choice
+			// XML round-trips elsewhere in this file.
+			runProps['a:blipFill'] = style.textFillBlipXml;
 		}
 
 		// 3. a:effectLst (text run effects)
@@ -305,6 +392,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		);
 		if (textEffectLst) {
 			runProps['a:effectLst'] = textEffectLst;
+		} else if (style.textEffectsExplicitNone) {
+			runProps['a:effectLst'] = {};
 		}
 
 		// 3b. a:effectDag (run-level effect graph). Per ECMA-376 §21.1.2.3.6
@@ -362,40 +451,64 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// well as by authoring, so a CJK deck whose runs carried no `a:ea` still
 		// round-tripped 0 -> 19 of them, resolved off the theme's `a:ea` and
 		// therefore no longer following it. `owns(...)` closes that half.
+		//
+		// The `@panose`/`@pitchFamily`/`@charset` metadata is resolved
+		// SEPARATELY from the typeface, through `resolveFontMetadata`
+		// (preferring this run's own authored value, then the paragraph's
+		// inherited baseline) rather than `style[key]` directly: see that
+		// function's docblock for why the flat, merged style can hold a
+		// value a DIFFERENT run's font resolved. Measured on a real deck: a
+		// run whose own `<a:ea typeface="Abraham Lincoln"/>` carried no
+		// panose came back with `panose="0201…"`, the PANOSE of an unrelated
+		// CJK font ("宋体") used elsewhere in the same shape.
+		// `faceKey`/`themeTokenKey` tell `resolveFontMetadata` which typeface
+		// each metadata triple describes, so it can refuse to borrow the
+		// baseline's panose for a run whose OWN typeface differs from it.
+		const fontNode = (
+			typeface: string,
+			metadataPrefix: 'latinFont' | 'eastAsiaFont' | 'complexScriptFont' | 'symbolFont',
+			faceKey: keyof TextStyle,
+			themeTokenKey: keyof TextStyle,
+		): XmlObject =>
+			applyFontMetadata(
+				{ '@_typeface': typeface },
+				resolveFontMetadata(style, `${metadataPrefix}Panose`, faceKey, themeTokenKey, typeface),
+				resolveFontMetadata(
+					style,
+					`${metadataPrefix}PitchFamily`,
+					faceKey,
+					themeTokenKey,
+					typeface,
+				),
+				resolveFontMetadata(style, `${metadataPrefix}Charset`, faceKey, themeTokenKey, typeface),
+			);
 		const latinFace = style.latinFontThemeToken ?? style.fontFamily;
 		if (latinFace && owns('fontFamily', 'latinFontThemeToken')) {
-			runProps['a:latin'] = applyFontMetadata(
-				{ '@_typeface': latinFace },
-				style.latinFontPanose,
-				style.latinFontPitchFamily,
-				style.latinFontCharset,
-			);
+			runProps['a:latin'] = fontNode(latinFace, 'latinFont', 'fontFamily', 'latinFontThemeToken');
 		}
 		const eastAsiaFace = style.eastAsiaFontThemeToken ?? style.eastAsiaFont;
 		if (eastAsiaFace && owns('eastAsiaFont', 'eastAsiaFontThemeToken')) {
-			runProps['a:ea'] = applyFontMetadata(
-				{ '@_typeface': eastAsiaFace },
-				style.eastAsiaFontPanose,
-				style.eastAsiaFontPitchFamily,
-				style.eastAsiaFontCharset,
+			runProps['a:ea'] = fontNode(
+				eastAsiaFace,
+				'eastAsiaFont',
+				'eastAsiaFont',
+				'eastAsiaFontThemeToken',
 			);
 		}
 		const complexScriptFace = style.complexScriptFontThemeToken ?? style.complexScriptFont;
 		if (complexScriptFace && owns('complexScriptFont', 'complexScriptFontThemeToken')) {
-			runProps['a:cs'] = applyFontMetadata(
-				{ '@_typeface': complexScriptFace },
-				style.complexScriptFontPanose,
-				style.complexScriptFontPitchFamily,
-				style.complexScriptFontCharset,
+			runProps['a:cs'] = fontNode(
+				complexScriptFace,
+				'complexScriptFont',
+				'complexScriptFont',
+				'complexScriptFontThemeToken',
 			);
 		}
 		if (style.symbolFont && owns('symbolFont')) {
-			runProps['a:sym'] = applyFontMetadata(
-				{ '@_typeface': style.symbolFont },
-				style.symbolFontPanose,
-				style.symbolFontPitchFamily,
-				style.symbolFontCharset,
-			);
+			// No theme-token slot exists for the symbol font; reusing
+			// `symbolFont` as both keys makes the baseline comparison a
+			// plain typeface-to-typeface check.
+			runProps['a:sym'] = fontNode(style.symbolFont, 'symbolFont', 'symbolFont', 'symbolFont');
 		}
 
 		// 7. hlinkClick / hlinkMouseOver
@@ -468,7 +581,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			runProps['a:extLst'] = style.runPropertiesExtLstXml;
 		}
 
-		return runProps;
+		// A run/break that authored no `a:rPr` at all, and whose resolved style
+		// owns nothing relative to its baseline, must round-trip with NO `a:rPr`
+		// element: `a:rPr` is optional on `a:r` / `a:br` (ECMA-376 CT_RegularTextRun
+		// / CT_TextLineBreak), so an empty stub is a fabrication, not a
+		// preservation of the source.
+		return Object.keys(runProps).length > 0 ? runProps : undefined;
 	}
 
 	private applyHyperlinkExtraAttrs(hlinkNode: XmlObject, style: TextStyle): void {

@@ -60,6 +60,43 @@ export type {
 // ── Toolbar visibility (hiddenActions) ──
 export type { ToolbarActionId, ToolbarButtonId, ToolbarTabId } from 'pptx-viewer-shared';
 
+// ── UI customisation (`customization` prop + handle helpers) ──
+export type {
+	BackstageCustomization,
+	ContextMenuCustomization,
+	KeyboardCustomization,
+	OptionsCustomization,
+	OptionsPageId,
+	OptionsSectionId,
+	OptionsSettingId,
+	OptionsSettingValues,
+	ResolvedCustomization,
+	RibbonCustomization,
+	ShortcutChord,
+	ViewerCustomization,
+	ViewerCustomizationApi,
+	ViewerDialogId,
+	ViewerExportFormatId,
+	ViewerFeatureId,
+	ViewerPanelId,
+} from 'pptx-viewer-shared';
+export {
+	BACKSTAGE_CARD_IDS,
+	BACKSTAGE_PAGE_IDS,
+	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	EDITOR_SHORTCUT_ACTION_IDS,
+	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
+	OPTIONS_PAGE_IDS,
+	OPTIONS_SECTION_IDS,
+	OPTIONS_SETTING_IDS,
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+	VIEWER_DIALOG_IDS,
+	VIEWER_EXPORT_FORMAT_IDS,
+	VIEWER_FEATURE_IDS,
+	VIEWER_PANEL_IDS,
+} from 'pptx-viewer-shared';
+
 // ── Canvas export (html2canvas oklch wrapper) ──
 export { renderToCanvas } from './lib/canvas-export';
 

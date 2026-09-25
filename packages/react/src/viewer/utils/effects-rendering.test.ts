@@ -77,7 +77,7 @@ describe('text effect CSS output', () => {
 		expect(buildTextShadowCss(style)).toBeUndefined();
 	});
 
-	it('should build inner shadow CSS as drop-shadow filter', () => {
+	it('should build inner shadow CSS as an inset box-shadow, not a drop-shadow filter', () => {
 		const style: TextStyle = {
 			textInnerShadowColor: '#0000FF',
 			textInnerShadowBlur: 3,
@@ -87,7 +87,8 @@ describe('text effect CSS output', () => {
 		};
 		const result = buildTextInnerShadowCss(style);
 		expect(result).toBeDefined();
-		expect(result).toContain('drop-shadow(');
+		expect(result).toContain('inset ');
+		expect(result).not.toContain('drop-shadow');
 		expect(result).toContain('1px');
 		expect(result).toContain('3px');
 		expect(result).toContain('rgba(0,0,255,0.6)');

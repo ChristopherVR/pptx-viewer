@@ -1,6 +1,7 @@
 import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { TextStyle, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { resolveTextFillBlip } from '../../utils/text-fill-blip';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextRunEffects';
 
@@ -23,6 +24,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		align: TextStyle['align'],
 		relationshipMap?: Map<string, string>,
 		includeDefaultAlignment: boolean = true,
+		slidePath?: string,
 	): TextStyle {
 		const style: TextStyle = includeDefaultAlignment ? { align } : {};
 		if (!runProperties) {
@@ -143,6 +145,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (Number.isFinite(textOutlineW) && textOutlineW > 0) {
 				style.textOutlineWidth = textOutlineW / PptxHandlerRuntime.EMU_PER_PX;
 			}
+			const textOutlineDash = (textLn['a:prstDash'] as XmlObject | undefined)?.['@_val'];
+			if (typeof textOutlineDash === 'string' && textOutlineDash !== 'solid') {
+				style.textOutlineDash = textOutlineDash;
+			}
 			const textOutlineFill = textLn['a:solidFill'] as XmlObject | undefined;
 			if (textOutlineFill) {
 				const outlineColor = this.parseColor(textOutlineFill);
@@ -171,7 +177,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// Superscript / subscript baseline shift (percentage)
 		if (runProperties['@_baseline'] !== undefined) {
 			const baselineVal = Number.parseInt(String(runProperties['@_baseline']), 10);
-			if (Number.isFinite(baselineVal) && baselineVal !== 0) {
+			// An authored `baseline="0"` is kept as 0 (not collapsed to unset):
+			// two runs differing only by it must not compare equal, or the save
+			// path merges them into one run.
+			if (Number.isFinite(baselineVal)) {
 				style.baseline = baselineVal;
 			}
 		}
@@ -215,6 +224,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.textFillPattern = textFillVariants.textFillPattern;
 			style.textFillPatternForeground = textFillVariants.textFillPatternForeground;
 			style.textFillPatternBackground = textFillVariants.textFillPatternBackground;
+		}
+		if (textFillVariants.textFillBlipXml) {
+			style.textFillBlipXml = textFillVariants.textFillBlipXml;
+			const rels = slidePath ? this.slideRelsMap.get(slidePath) : undefined;
+			const resolved =
+				slidePath && rels
+					? resolveTextFillBlip(
+							textFillVariants.textFillBlipXml,
+							(relId) => rels.get(relId),
+							(target) => this.resolveImagePath(slidePath, target),
+							this.allowExternalImages === true,
+						)
+					: undefined;
+			if (resolved) {
+				style.textFillBlipUrl = resolved.url;
+				style.textFillBlipMode = resolved.mode;
+			}
 		}
 		// Run-level right-to-left. On CT_TextCharacterProperties `rtl` is a child
 		// ELEMENT of type CT_Boolean (`<a:rtl val="1"/>`) whose `@val` defaults
@@ -365,8 +391,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Text run effects (a:effectLst on a:rPr)
 		const runEffectList = runProperties['a:effectLst'] as XmlObject | undefined;
-		if (runEffectList) {
+		if (runEffectList && typeof runEffectList === 'object') {
 			this.applyTextRunEffects(style, runEffectList);
+		}
+		if (
+			includeDefaultAlignment &&
+			runEffectList !== undefined &&
+			(typeof runEffectList !== 'object' || Object.keys(runEffectList).length === 0)
+		) {
+			style.textEffectsExplicitNone = true;
 		}
 
 		// Text run effect graph (a:effectDag on a:rPr): ECMA-376

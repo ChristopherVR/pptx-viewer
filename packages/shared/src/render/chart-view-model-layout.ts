@@ -15,6 +15,7 @@
 
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import { resolveDataTableMetrics } from './chart-data-table-metrics';
 import { chartFontPx, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { reserveLegendSpace } from './chart-legend-placement';
 import { manualLayoutOf, resolveManualLayoutRect } from './chart-manual-layout';
@@ -48,6 +49,12 @@ function categoryAxisBand(chartData: PptxChartData): number {
 		fontPx = axis?.fontSize !== undefined ? chartFontPx(axis.fontSize) : DEFAULT_CHART_TEXT_PX,
 		offset = 4 + 8 * ((axis?.labelOffset ?? 100) / 100);
 	return Math.max(24, offset + fontPx * 1.2);
+}
+
+/** Whether the primary value axis shows a display-units caption. */
+function hasDisplayUnitsCaption(chartData: PptxChartData): boolean {
+	const axis = chartData.axes?.find((a) => a.axisType === 'valAx' && a.axPos !== 'r');
+	return Boolean(axis?.displayUnits) && axis?.displayUnitsLabel !== null;
 }
 
 /**
@@ -116,6 +123,11 @@ export function computePlotLayout(
 		}));
 	}
 
+	// A display-units caption ("Thousands") needs its own band left of the
+	// primary value axis' tick labels, as PowerPoint gives it.
+	if (hasAxes && hasDisplayUnitsCaption(chartData)) {
+		plotLeft += 20;
+	}
 	// Secondary value axis on the right.
 	if (options?.hasSecondaryValueAxis) {
 		plotRight -= 40;
@@ -124,10 +136,16 @@ export function computePlotLayout(
 	if (options?.hasSecondaryCategoryAxis) {
 		plotTop += 16;
 	}
-	// Data table below the chart.
-	if (options?.hasDataTable) {
-		const rowCount = options.dataTableRowCount ?? 1;
-		plotBottom -= 14 + rowCount * 14;
+	// Data table below the chart: its header row replaces the category axis
+	// labels, and its key column hangs left of the plot (COM-verified
+	// charts-com.pptx slide 2; see chart-data-table-metrics).
+	const tableMetrics = options?.hasDataTable ? resolveDataTableMetrics(chartData) : undefined;
+	if (tableMetrics) {
+		if (hasAxes && !options?.categoryAxisAtTop) {
+			plotBottom += categoryAxisBand(chartData) - 8;
+		}
+		plotBottom -= tableMetrics.height;
+		plotLeft = Math.max(plotLeft, 8 + tableMetrics.keyW);
 	}
 
 	// The automatic plot height, before any manual layout override below can

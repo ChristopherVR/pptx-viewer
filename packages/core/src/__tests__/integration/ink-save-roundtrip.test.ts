@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+
 import JSZip from 'jszip';
 import { describe, it, expect } from 'vitest';
 
@@ -281,5 +284,39 @@ describe('ink graphicFrame round-trip (CH-H2 / CH-H3)', () => {
 		const inkAsCustGeom =
 			savedSlideXml.includes('a:custGeom') && !savedSlideXml.includes('aink:ink');
 		expect(inkAsCustGeom).toBeFalsy();
+	});
+
+	it('keeps an untouched p:contentPart mc:Fallback shape verbatim on a dirty save', async () => {
+		// `updateContentPartFallback` used to rebuild the `mc:Fallback` shape
+		// unconditionally from the CURRENT stroke data, replacing a real
+		// PowerPoint-authored fallback (a `prstGeom` + `solidFill` + a
+		// descriptive txBody reading "ink fallback") with a freshly
+		// synthesized `custGeom` outline traced from the ink, even when the
+		// strokes never changed. `ink-contentpart.pptx` carries exactly that
+		// shape of fallback.
+		const fixturePath = fileURLToPath(
+			new URL('../../../../../e2e/fixtures/ink-contentpart.pptx', import.meta.url),
+		);
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			new Uint8Array(readFileSync(fixturePath)).buffer as ArrayBuffer,
+		);
+
+		const sourceZip = await JSZip.loadAsync(readFileSync(fixturePath));
+		const sourceSlideXml = await sourceZip.file('ppt/slides/slide1.xml')!.async('string');
+		expect(sourceSlideXml).toContain('a:prstGeom');
+		expect(sourceSlideXml).not.toContain('a:custGeom');
+
+		for (const slide of data.slides) {
+			slide.isDirty = true;
+		}
+		const saved = await handler.save(data.slides);
+		const savedZip = await JSZip.loadAsync(saved);
+		const savedSlideXml = await savedZip.file('ppt/slides/slide1.xml')!.async('string');
+
+		// The untouched fallback shape must survive: no synthesized custGeom,
+		// and the original prstGeom/fallback text still present.
+		expect(savedSlideXml).not.toContain('a:custGeom');
+		expect(savedSlideXml).toContain('a:prstGeom');
 	});
 });

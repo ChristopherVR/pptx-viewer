@@ -1,4 +1,4 @@
-import { resolveScreenTip } from 'pptx-viewer-shared';
+import { isPanelVisible, resolveScreenTip } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -25,6 +25,7 @@ import { TitleBarQuickExtras } from './toolbar/TitleBarQuickExtras';
 import type { ToolbarProps } from './toolbar/toolbar-types';
 import { ToolbarPrimaryRow } from './toolbar/ToolbarPrimaryRow';
 import { ViewSection } from './toolbar/ViewSection';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 import { useViewerOptionsContext } from './viewer-options-context';
 
 export type { ToolbarProps } from './toolbar/toolbar-types';
@@ -34,6 +35,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { t } = useTranslation();
 	const { isTabVisible } = useToolbarVisibility(p.hiddenActions);
 	const viewerOptions = useViewerOptionsContext();
+	const customization = useViewerCustomizationContext();
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -130,14 +132,16 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			 * title bar's inline strip, which suppresses itself for the same
 			 * condition (see `TitleBar`).
 			 */}
-			{showRibbon && viewerOptions.quickAccess.position === 'below' && (
-				<div className='flex items-center gap-0.5 border-b border-border/60 px-2 py-1'>
-					<TitleBarQuickExtras
-						quickAccess={viewerOptions.quickAccess}
-						onCommand={p.onQuickCommand}
-					/>
-				</div>
-			)}
+			{showRibbon &&
+				viewerOptions.quickAccess.position === 'below' &&
+				isPanelVisible(customization, 'quickAccessToolbar') && (
+					<div className='flex items-center gap-0.5 border-b border-border/60 px-2 py-1'>
+						<TitleBarQuickExtras
+							quickAccess={viewerOptions.quickAccess}
+							onCommand={p.onQuickCommand}
+						/>
+					</div>
+				)}
 
 			{/* Ribbon Content */}
 			{showRibbon && (
@@ -212,6 +216,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							canEdit={p.canEdit}
 							newShapeType={p.newShapeType}
 							onSetNewShapeType={p.onSetNewShapeType}
+							activeFreeformTool={p.activeFreeformTool}
+							onArmFreeformTool={p.onArmFreeformTool}
 							onAddTextBox={p.onAddTextBox}
 							onAddShape={p.onAddShape}
 							onAddTable={p.onAddTable}
@@ -290,6 +296,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							formatPainterActive={p.formatPainterActive}
 							onToggleFormatPainter={p.onToggleFormatPainter}
 							canActivateFormatPainter={p.canActivateFormatPainter}
+							hiddenActions={p.hiddenActions}
 						/>
 					)}
 
@@ -322,6 +329,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						<AnimationsSection
 							canEdit={p.canEdit}
 							selectedElement={p.selectedElement}
+							activeSlide={p.activeSlide}
 							isInspectorPaneOpen={p.isInspectorPaneOpen}
 							onToggleInspector={p.onToggleInspector}
 							onOpenAnimationPanel={p.onOpenAnimationPanel}

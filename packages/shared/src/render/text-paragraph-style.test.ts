@@ -39,13 +39,16 @@ describe('resolveParagraphRtl', () => {
 		expect(resolveParagraphRtl([entryWithParaProps({ rtl: false })], true)).toBeFalsy();
 	});
 
-	it("prefers an explicit run-level rtl override over the paragraph's own pPr rtl", () => {
+	// A segment's `style.rtl` also carries the master's paragraph default
+	// (`rtl="0"`) folded into the inherited run style, so it must not beat the
+	// paragraph's own `a:pPr@rtl="1"` (COM: PowerPoint flows that line RTL).
+	it("prefers the paragraph's own pPr rtl over a segment's inherited rtl", () => {
 		expect(
 			resolveParagraphRtl(
 				[{ segment: { style: { rtl: false } as TextStyle, paragraphProperties: { rtl: true } } }],
 				undefined,
 			),
-		).toBeFalsy();
+		).toBeTruthy();
 	});
 });
 

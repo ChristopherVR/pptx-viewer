@@ -16,8 +16,17 @@ import {
 	Type,
 	Video,
 } from 'lucide-vue-next';
-import { backstageCardsFor } from 'pptx-viewer-shared';
-import type { BackstageCardId, BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	backstageCardsFor,
+	customizeBackstageCards,
+	EMPTY_RESOLVED_CUSTOMIZATION,
+} from 'pptx-viewer-shared';
+import type {
+	BackstageCardId,
+	BackstagePage,
+	ResolvedCustomization,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
 import type { Component } from 'vue';
 
 import type { FileSectionProps } from './file-section-types';
@@ -75,6 +84,7 @@ export function buildFileSectionActions(
 	page: BackstagePage,
 	props: FileSectionProps,
 	isHidden: (id: ToolbarActionId) => boolean,
+	resolved: ResolvedCustomization = EMPTY_RESOLVED_CUSTOMIZATION,
 ): FileSectionAction[] {
 	if (page === 'export' && isHidden('export')) {
 		return [];
@@ -98,7 +108,9 @@ export function buildFileSectionActions(
 		print: props.onPrint,
 		share: props.onOpenShareDialog,
 	};
-	return backstageCardsFor(page)
+	// Cards the host hid (directly, or through a hidden dialog / export
+	// format) are dropped by the shared customisation filter.
+	return customizeBackstageCards(backstageCardsFor(page), resolved)
 		.filter((card) => card.id !== 'saveAsPptm' || props.hasMacros)
 		.map(
 			(card) =>

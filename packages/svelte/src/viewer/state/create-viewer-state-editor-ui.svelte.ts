@@ -8,7 +8,7 @@ import {
 import { untrack } from 'svelte';
 
 import type { CollaborationController } from '../collab';
-import type { StageContextMenu } from '../components/props';
+import type { StageCanvasContextMenu, StageContextMenu } from '../components/props';
 import { useCanvasImagePaste } from '../editor/canvas-image-paste.svelte';
 import { EditorController } from '../editor/editor-controller.svelte';
 import { FindReplaceState } from '../editor/editor-find-replace.svelte';
@@ -70,6 +70,7 @@ export interface EditorUiCluster {
 	controller: EditorController;
 	findReplace: FindReplaceState;
 	stageContextMenu: StageContextMenu | null;
+	stageCanvasContextMenu: StageCanvasContextMenu | null;
 }
 
 /**
@@ -122,6 +123,7 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 	});
 
 	let stageContextMenu = $state<StageContextMenu | null>(null);
+	let stageCanvasContextMenu = $state<StageCanvasContextMenu | null>(null);
 	const controller = new EditorController(editor, {
 		getScale: () => (editor.masterViewTarget ? options.getMasterScale() : deps.getScale()),
 		getCurrent: () => viewer.current,
@@ -130,9 +132,19 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		getStageRoot: () => options.getStageHolderEl()?.querySelector('.pptx-svelte-stage') ?? null,
 		getHolderEl: () => options.getStageHolderEl() ?? null,
 		onCursorMove: (x, y) => collab.setCursor(x, y, viewer.current),
+		// A host-disabled menu never opens (the entries themselves are filtered
+		// by the menu components through the shared `customize*` functions).
 		onContextMenu: (x, y, cell) => {
-			stageContextMenu = { x, y, cell };
+			stageCanvasContextMenu = null;
+			stageContextMenu =
+				options.getCustomization?.().elementMenuEnabled === false ? null : { x, y, cell };
 		},
+		onCanvasContextMenu: (x, y) => {
+			stageContextMenu = null;
+			stageCanvasContextMenu =
+				options.getCustomization?.().canvasMenuEnabled === false ? null : { x, y };
+		},
+		getKeyboardCustomization: () => options.getCustomization?.().keyboard,
 		getSnapToGrid: () => parityUi.preferences.snapToGrid,
 		getGridSize: () => computeGridSpacingPx(loader.viewProperties?.gridSpacing, 12),
 		getSnapToShape: () => parityUi.snapToShape,
@@ -303,6 +315,12 @@ export function useEditorUiCluster(deps: EditorUiClusterDeps): EditorUiCluster {
 		},
 		set stageContextMenu(next: StageContextMenu | null) {
 			stageContextMenu = next;
+		},
+		get stageCanvasContextMenu() {
+			return stageCanvasContextMenu;
+		},
+		set stageCanvasContextMenu(next: StageCanvasContextMenu | null) {
+			stageCanvasContextMenu = next;
 		},
 	};
 }

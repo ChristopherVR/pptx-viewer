@@ -120,6 +120,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Extract text-level fill variants from a run properties node.
 	 * Handles gradient fills, pattern fills, and image fills on text runs.
+	 *
+	 * `a:blipFill` is only captured RAW here (`textFillBlipXml`), for save
+	 * round-trip: resolving its `r:embed`/`r:link` to a displayable
+	 * `textFillBlipUrl` needs `resolveImagePath`, which lives further up this
+	 * mixin's OWN chain (`PptxHandlerRuntimeSlideMasters`) rather than below
+	 * it, so it is done by the caller (`extractTextRunStyle`, in
+	 * `PptxHandlerRuntimeTextRunStyleExtraction.ts`, which sits above
+	 * `PptxHandlerRuntimeSlideMasters` and so has it) right after this
+	 * returns.
 	 */
 	protected extractTextFillVariants(
 		rPr: XmlObject | undefined,
@@ -132,6 +141,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		| 'textFillPattern'
 		| 'textFillPatternForeground'
 		| 'textFillPatternBackground'
+		| 'textFillBlipXml'
 	> {
 		const result: Pick<
 			TextStyle,
@@ -142,6 +152,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			| 'textFillPattern'
 			| 'textFillPatternForeground'
 			| 'textFillPatternBackground'
+			| 'textFillBlipXml'
 		> = {};
 		if (!rPr) {
 			return result;
@@ -199,6 +210,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (bgClr) {
 				result.textFillPatternBackground = this.parseColor(bgClr);
 			}
+		}
+
+		// Text image (picture) fill. Captured RAW here for save round-trip;
+		// see this method's doc comment for why resolving it to a displayable
+		// URL happens in the caller instead.
+		const blipFill = rPr['a:blipFill'] as XmlObject | undefined;
+		if (blipFill) {
+			result.textFillBlipXml = blipFill;
 		}
 
 		return result;

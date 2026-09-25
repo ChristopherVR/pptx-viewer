@@ -37,10 +37,10 @@ describe('descendantIndentPt', () => {
 		expect(descendantIndentPt(28)).toBeCloseTo(22.5, 5);
 	});
 
-	it('extrapolates beyond the sampled 40pt ceiling by continuing the last measured tier width, never shrinking', () => {
-		expect(descendantIndentPt(41)).toBeCloseTo(27.0, 5);
-		expect(descendantIndentPt(53)).toBeCloseTo(27.0, 5);
-		expect(descendantIndentPt(54)).toBeCloseTo(31.5, 5);
+	it('stays on the 22.5pt plateau above 28pt (cached 41, 45 and 47pt descendants all indent 22.5pt)', () => {
+		expect(descendantIndentPt(41)).toBeCloseTo(22.5, 5);
+		expect(descendantIndentPt(47)).toBeCloseTo(22.5, 5);
+		expect(descendantIndentPt(54)).toBeCloseTo(22.5, 5);
 	});
 });
 

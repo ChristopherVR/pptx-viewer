@@ -11,6 +11,7 @@ import type {
 } from 'pptx-viewer-core';
 import type {
 	AnimationApplyGroup,
+	FreeformToolKind,
 	InsertChartKind,
 	SlideTemplateId,
 	ToolbarActionId,
@@ -54,6 +55,8 @@ export interface ToolbarProps {
 	tableEditorState?: TableCellEditorState | null;
 	editTemplateMode: boolean;
 	newShapeType: SupportedShapeType;
+	/** The armed Freeform: Shape / Curve tool, or null. */
+	activeFreeformTool?: FreeformToolKind | null;
 	activeTool: DrawingTool;
 	drawingColor: string;
 	drawingWidth: number;
@@ -87,6 +90,8 @@ export interface ToolbarProps {
 	onRedo: () => void;
 	onToggleFindReplace: () => void;
 	onSetNewShapeType: (type: SupportedShapeType) => void;
+	/** Arm (or, with null, disarm) a Freeform: Shape / Curve tool. */
+	onArmFreeformTool?: (tool: FreeformToolKind | null) => void;
 	onAddTextBox: () => void;
 	onAddShape: () => void;
 	onAddTable: () => void;

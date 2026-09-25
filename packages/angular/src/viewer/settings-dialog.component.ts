@@ -26,13 +26,12 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import { THEME_CATALOG, VIEWER_OPTIONS_TABS } from '../internal/shared';
+import { customizeOptionsTabs, isOptionsPageVisible, THEME_CATALOG } from '../internal/shared';
 import type {
 	ThemeCatalogEntry,
 	ViewerAddinStatus,
 	ViewerOptions,
 	ViewerOptionsGroupId,
-	ViewerOptionsTabDefinition,
 	ViewerOptionsTabId,
 } from '../internal/shared';
 import { LOCALE_CATALOG } from '../internal/shared-src/i18n';
@@ -46,18 +45,16 @@ import { OptionsRibbonPaneComponent } from './options-ribbon-pane.component';
 import type { RibbonTabHiddenChange } from './options-ribbon-pane.component';
 import { SettingsAppearanceTabComponent } from './settings-appearance-tab.component';
 import { SettingsCustomFontsComponent } from './settings-custom-fonts.component';
+import {
+	OPTIONS_DIALOG_TABS,
+	resolveOptionsTab,
+	resolveVisibleOptionsTabId,
+} from './settings-dialog-tabs';
 import { SettingsLanguageTabComponent } from './settings-language-tab.component';
+import { injectResolvedCustomization } from './viewer-customization.service';
 
 export type { ViewerSettings } from '../internal/shared';
-
-/** The ten File > Options categories the dialog's rail renders, in order. */
-export const OPTIONS_DIALOG_TABS: readonly ViewerOptionsTabDefinition[] = VIEWER_OPTIONS_TABS;
-
-/** Resolve the active tab definition, falling back to the first category. */
-export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefinition {
-	const fallback = OPTIONS_DIALOG_TABS[0] as ViewerOptionsTabDefinition;
-	return OPTIONS_DIALOG_TABS.find((tab) => tab.id === id) ?? fallback;
-}
+export { OPTIONS_DIALOG_TABS, resolveOptionsTab } from './settings-dialog-tabs';
 
 @Component({
 	selector: 'pptx-settings-dialog',
@@ -102,21 +99,21 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 
 				<div class="pptx-ng-options-layout">
 					<nav [attr.aria-label]="'pptx.options.title' | translate">
-						@for (tab of tabs; track tab.id) {
+						@for (tab of tabs(); track tab.id) {
 							<button
 								type="button"
-								[attr.aria-current]="activeTabId() === tab.id"
-								[class.is-active]="activeTabId() === tab.id"
+								[attr.aria-current]="shownTabId() === tab.id"
+								[class.is-active]="shownTabId() === tab.id"
 								(click)="activeTabId.set(tab.id)"
 							>
 								{{ tab.labelKey | translate }}
 							</button>
 						}
-						@if (aiExportVisible()) {
+						@if (aiTabVisible()) {
 							<button
 								type="button"
-								[attr.aria-current]="activeTabId() === 'ai'"
-								[class.is-active]="activeTabId() === 'ai'"
+								[attr.aria-current]="shownTabId() === 'ai'"
+								[class.is-active]="shownTabId() === 'ai'"
 								(click)="activeTabId.set('ai')"
 							>
 								{{ 'pptx.ai.settingsSectionTitle' | translate }}
@@ -125,7 +122,7 @@ export function resolveOptionsTab(id: ViewerOptionsTabId): ViewerOptionsTabDefin
 					</nav>
 
 					<div class="pptx-ng-options-content">
-						@if (activeTabId() === 'ai') {
+						@if (shownTabId() === 'ai') {
 							<p class="pptx-ng-options-headline">
 								{{ 'pptx.ai.settingsSectionTitle' | translate }}
 							</p>
@@ -254,12 +251,23 @@ export class SettingsDialogComponent {
 	readonly localeSelect = output<string>();
 	readonly close = output<void>();
 
-	protected readonly tabs = OPTIONS_DIALOG_TABS;
-	/** Active category id, or the bespoke `'ai'` sentinel for the AI export pane. */
+	private readonly customization = injectResolvedCustomization();
+	/** The categories after the host's customisation (hidden pages/sections/settings dropped). */
+	protected readonly tabs = computed(() =>
+		customizeOptionsTabs(OPTIONS_DIALOG_TABS, this.customization()),
+	);
+	protected readonly aiTabVisible = computed(
+		() => this.aiExportVisible() && isOptionsPageVisible(this.customization(), 'ai'),
+	);
+	/** Requested category id, or the bespoke `'ai'` sentinel for the AI export pane. */
 	protected readonly activeTabId = signal<ViewerOptionsTabId | 'ai'>('general');
+	/** The requested category, or the first visible one when the host hid it. */
+	protected readonly shownTabId = computed(() =>
+		resolveVisibleOptionsTabId(this.activeTabId(), this.tabs(), this.aiTabVisible()),
+	);
 	protected readonly activeTab = computed(() => {
-		const id = this.activeTabId();
-		return resolveOptionsTab(id === 'ai' ? 'general' : id);
+		const id = this.shownTabId();
+		return resolveOptionsTab(id === 'ai' ? 'general' : id, this.tabs());
 	});
 
 	/** Snapshot taken when the dialog opens, restored by Cancel. */

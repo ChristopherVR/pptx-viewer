@@ -27,4 +27,35 @@ export interface ChartSvgPatternDef {
 	preserveAspectRatio?: string;
 }
 
-export type ChartSvgDef = ChartSvgPatternDef;
+/** One `<stop>` of a gradient def (`offset` 0..1). */
+export interface ChartSvgGradientStop {
+	offset: number;
+	color: string;
+	opacity?: number;
+}
+
+/**
+ * A chart gradient fill (`c:spPr/a:gradFill`, see `chart-gradient-defs.ts`),
+ * in `objectBoundingBox` units: a linear gradient's vector runs x1,y1 to
+ * x2,y2; a radial one centres on cx,cy with radius r.
+ */
+export type ChartSvgGradientDef =
+	| {
+			kind: 'linearGradient';
+			id: string;
+			x1: number;
+			y1: number;
+			x2: number;
+			y2: number;
+			stops: ChartSvgGradientStop[];
+	  }
+	| {
+			kind: 'radialGradient';
+			id: string;
+			cx: number;
+			cy: number;
+			r: number;
+			stops: ChartSvgGradientStop[];
+	  };
+
+export type ChartSvgDef = ChartSvgPatternDef | ChartSvgGradientDef;

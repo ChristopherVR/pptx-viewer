@@ -222,6 +222,7 @@ function MobileSectionBody({
 						formatPainterActive={p.formatPainterActive}
 						onToggleFormatPainter={p.onToggleFormatPainter}
 						canActivateFormatPainter={p.canActivateFormatPainter}
+						hiddenActions={p.hiddenActions}
 					/>
 				</div>
 			);
@@ -260,6 +261,7 @@ function MobileSectionBody({
 					<AnimationsSection
 						canEdit={p.canEdit}
 						selectedElement={p.selectedElement}
+						activeSlide={p.activeSlide}
 						isInspectorPaneOpen={p.isInspectorPaneOpen}
 						onToggleInspector={p.onToggleInspector}
 						onOpenAnimationPanel={p.onOpenAnimationPanel}

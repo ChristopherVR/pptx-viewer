@@ -6,7 +6,12 @@
 	 * `?room=<id>` URL param joins a serverless (y-webrtc P2P) collaboration
 	 * session so two tabs on the same URL edit the same deck live.
 	 */
-	import type { CollaborationConfig, PptxAiConfig, PowerPointViewerApi } from 'pptx-svelte-viewer';
+	import type {
+		CollaborationConfig,
+		PptxAiConfig,
+		PowerPointViewerApi,
+		ViewerCustomization,
+	} from 'pptx-svelte-viewer';
 	// The openable-file allow list comes from the binding's public surface, not
 	// a local regex: a hand-rolled `.pptx|.ppt|.json` refused a `.pptm` on drop
 	// that the viewer's own File > Open accepted.
@@ -27,6 +32,7 @@
 	import { resolveAutoName, resolveAutoRoomId, randomUserColor } from './collab';
 	import { language, t } from './demo-i18n.svelte';
 	import { installDevViewerHandle } from '../../dev-viewer-handle';
+	import { currentDemoCustomization } from '../../shared/demo-customization';
 	import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 	import { readStoredTheme, themes } from './themes';
 
@@ -47,6 +53,8 @@
 	// demos/shared/rendering-3d-flags.ts for the rules and why.
 	const { smartArt3D, surfaceChart3D, barChart3D, lineChart3D, areaChart3D, pieChart3D } =
 		currentDemo3DFlags();
+	// `?customization=<json>` (demos/shared/demo-customization.ts), for e2e.
+	const customization = currentDemoCustomization() as ViewerCustomization | undefined;
 	const audienceSession = parsePresentationSessionId(window.location.hash);
 	if (audienceSession) {
 		void loadPresentationDeck(audienceSession).then((content) => {
@@ -307,6 +315,7 @@
 			{lineChart3D}
 			{areaChart3D}
 			{pieChart3D}
+			{customization}
 			editable
 			autosave
 			autosaveIntervalMs={2000}

@@ -1,13 +1,12 @@
 import type { PptxChartBoxWhiskerOptions, PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
-import { computeBoxStats } from './chart-box-whisker-stats';
+import { computeBoxStats, groupRowsByCategory } from './chart-box-whisker-stats';
 import type { BoxStats } from './chart-box-whisker-stats';
 import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
 import { distributionRange } from './chart-distribution-range';
 import type {
 	ChartViewModel,
-	LegendEntry,
 	PlotLayout,
 	SvgCircle,
 	SvgLine,
@@ -20,7 +19,7 @@ import {
 	buildLegend,
 	buildZeroLine,
 	computePlotLayout,
-	paletteColor,
+	seriesColor,
 	valueToY,
 } from './chart-view-model';
 
@@ -31,6 +30,8 @@ interface BoxPoint {
 	x: number;
 	y: number;
 	seriesIndex: number;
+	/** The raw source row this observation came from, its stable point identity. */
+	rowIndex: number;
 	outlier: boolean;
 }
 
@@ -46,65 +47,87 @@ export interface BoxWhiskerGeometry {
 	yMed: number;
 	yMean: number;
 	fill: string;
+	seriesIndex: number;
+	categoryIndex: number;
+	options: PptxChartBoxWhiskerOptions | undefined;
 	points: BoxPoint[];
 }
 
+/**
+ * Build one box per (series, category) pair, the way PowerPoint's
+ * `cx:boxWhisker` chart actually groups data: a series' raw rows repeat their
+ * category label once per underlying observation (see
+ * `groupRowsByCategory`'s doc comment), and each series draws its OWN box in
+ * every category it has observations for, side by side with the other
+ * series' boxes in that same category (COM-verified: `charts-com.pptx` slide
+ * 32 draws 3 colour-coded boxes per category, not one box mixing all series).
+ */
 export function computeBoxWhiskerGeometry(
 	chartData: PptxChartData,
-	catCount: number,
+	rawCategories: ReadonlyArray<string>,
 	layout: PlotLayout,
 	range: ValueRange,
 	colorPalette: readonly string[] | undefined,
-	seriesColorOverride?: string,
 ): BoxWhiskerGeometry[] {
+	const { uniqueCategories, rowIndexesByCategory } = groupRowsByCategory(rawCategories);
+	const catCount = Math.max(uniqueCategories.length, 1);
+	const seriesCount = Math.max(chartData.series.length, 1);
 	const groupWidth = layout.plotWidth / catCount;
-	const boxW = groupWidth * 0.5;
-	const options = chartData.series.find((series) => series.boxWhiskerOptions)?.boxWhiskerOptions;
-	const method = options ? (options.quartileMethod ?? 'exclusive') : undefined;
+	const slotWidth = groupWidth / seriesCount;
+	const boxW = slotWidth * 0.7;
+
 	const output: BoxWhiskerGeometry[] = [];
-	for (let categoryIndex = 0; categoryIndex < catCount; categoryIndex++) {
-		const observations = chartData.series
-			.map((series, seriesIndex) => ({ value: series.values[categoryIndex], seriesIndex }))
-			.filter((item): item is { value: number; seriesIndex: number } => item.value !== undefined);
-		const stats = computeBoxStats(
-			observations.map((item) => item.value),
-			method,
-		);
-		if (!stats) {
-			continue;
-		}
-		const iqr = stats.q3 - stats.q1;
-		const lowerFence = stats.q1 - 1.5 * iqr;
-		const upperFence = stats.q3 + 1.5 * iqr;
-		const inliers = observations.filter(
-			(item) => !options || (item.value >= lowerFence && item.value <= upperFence),
-		);
-		const whiskerMin = Math.min(...inliers.map((item) => item.value));
-		const whiskerMax = Math.max(...inliers.map((item) => item.value));
-		const boxX = layout.plotLeft + groupWidth * categoryIndex + (groupWidth - boxW) / 2;
-		const mean = observations.reduce((sum, item) => sum + item.value, 0) / observations.length;
-		output.push({
-			stats,
-			boxX,
-			boxW,
-			xMid: boxX + boxW / 2,
-			yMin: valueToY(whiskerMin, range, layout.plotTop, layout.plotBottom),
-			yMax: valueToY(whiskerMax, range, layout.plotTop, layout.plotBottom),
-			yQ1: valueToY(stats.q1, range, layout.plotTop, layout.plotBottom),
-			yQ3: valueToY(stats.q3, range, layout.plotTop, layout.plotBottom),
-			yMed: valueToY(stats.median, range, layout.plotTop, layout.plotBottom),
-			yMean: valueToY(mean, range, layout.plotTop, layout.plotBottom),
-			// An explicit series colour (cx:series spPr solidFill) wins over the
-			// per-category palette cycle, as in PowerPoint.
-			fill: seriesColorOverride ?? paletteColor(categoryIndex, colorPalette),
-			points: observations.map((item, index) => ({
-				x: boxX + boxW * (0.2 + (0.6 * (index + 1)) / (observations.length + 1)),
-				y: valueToY(item.value, range, layout.plotTop, layout.plotBottom),
-				seriesIndex: item.seriesIndex,
-				outlier: item.value < whiskerMin || item.value > whiskerMax,
-			})),
+	uniqueCategories.forEach((category, categoryIndex) => {
+		const rows = rowIndexesByCategory.get(category) ?? [];
+		chartData.series.forEach((series, seriesIndex) => {
+			const observations = rows
+				.map((row) => ({ row, value: series.values[row] }))
+				.filter((item): item is { row: number; value: number } => item.value !== undefined);
+			const values = observations.map((item) => item.value);
+			const options = series.boxWhiskerOptions;
+			const stats = computeBoxStats(values, options?.quartileMethod ?? 'exclusive');
+			if (!stats) {
+				return;
+			}
+			const iqr = stats.q3 - stats.q1;
+			const lowerFence = stats.q1 - 1.5 * iqr;
+			const upperFence = stats.q3 + 1.5 * iqr;
+			const inlierValues = values.filter(
+				(value) => !options || (value >= lowerFence && value <= upperFence),
+			);
+			const whiskerMin = inlierValues.length > 0 ? Math.min(...inlierValues) : stats.min;
+			const whiskerMax = inlierValues.length > 0 ? Math.max(...inlierValues) : stats.max;
+			const boxX =
+				layout.plotLeft +
+				groupWidth * categoryIndex +
+				slotWidth * seriesIndex +
+				(slotWidth - boxW) / 2;
+			const mean = values.reduce((sum, value) => sum + value, 0) / values.length;
+			output.push({
+				stats,
+				boxX,
+				boxW,
+				xMid: boxX + boxW / 2,
+				yMin: valueToY(whiskerMin, range, layout.plotTop, layout.plotBottom),
+				yMax: valueToY(whiskerMax, range, layout.plotTop, layout.plotBottom),
+				yQ1: valueToY(stats.q1, range, layout.plotTop, layout.plotBottom),
+				yQ3: valueToY(stats.q3, range, layout.plotTop, layout.plotBottom),
+				yMed: valueToY(stats.median, range, layout.plotTop, layout.plotBottom),
+				yMean: valueToY(mean, range, layout.plotTop, layout.plotBottom),
+				fill: seriesColor(series, seriesIndex, colorPalette),
+				seriesIndex,
+				categoryIndex,
+				options,
+				points: observations.map((item, index) => ({
+					x: boxX + boxW * (0.2 + (0.6 * (index + 1)) / (observations.length + 1)),
+					y: valueToY(item.value, range, layout.plotTop, layout.plotBottom),
+					seriesIndex,
+					rowIndex: item.row,
+					outlier: item.value < whiskerMin || item.value > whiskerMax,
+				})),
+			});
 		});
-	}
+	});
 	return output;
 }
 
@@ -156,6 +179,7 @@ function whiskerPrimitives(geometry: BoxWhiskerGeometry): SvgPrimitive[] {
 			fill: g.fill,
 			rx: 1,
 			opacity: 0.8,
+			part: { role: 'dataPoint', seriesIndex: g.seriesIndex, pointIndex: g.categoryIndex },
 		},
 		{
 			kind: 'line',
@@ -169,11 +193,8 @@ function whiskerPrimitives(geometry: BoxWhiskerGeometry): SvgPrimitive[] {
 	] satisfies Array<SvgLine | SvgRect>;
 }
 
-function optionPrimitives(
-	geometry: BoxWhiskerGeometry,
-	options: PptxChartBoxWhiskerOptions | undefined,
-	categoryIndex: number,
-): SvgPrimitive[] {
+function optionPrimitives(geometry: BoxWhiskerGeometry): SvgPrimitive[] {
+	const options = geometry.options;
 	if (!options) {
 		return [];
 	}
@@ -211,7 +232,7 @@ function optionPrimitives(
 			cy: point.y,
 			r: 2.25,
 			fill: point.outlier ? '#dc2626' : MEDIAN_COLOR,
-			part: { role: 'dataPoint', seriesIndex: point.seriesIndex, pointIndex: categoryIndex },
+			part: { role: 'dataPoint', seriesIndex: point.seriesIndex, pointIndex: point.rowIndex },
 		} satisfies SvgCircle);
 	}
 	return output;
@@ -224,18 +245,16 @@ export function buildBoxWhiskerViewModel(
 ): ChartViewModel {
 	const layout = computePlotLayout(element.width, element.height, chartData, true);
 	const range = distributionRange(chartData.series);
-	const options = chartData.series.find((series) => series.boxWhiskerOptions)?.boxWhiskerOptions;
 	const geometries = computeBoxWhiskerGeometry(
 		chartData,
-		Math.max(categoryLabels.length, 1),
+		categoryLabels,
 		layout,
 		range,
 		chartData.colorPalette,
-		chartData.series[0]?.color,
 	);
-	const primitives = geometries.flatMap((geometry, index) => [
+	const primitives = geometries.flatMap((geometry) => [
 		...whiskerPrimitives(geometry),
-		...optionPrimitives(geometry, options, index),
+		...optionPrimitives(geometry),
 	]);
 	const { gridlines, axisLabels } = buildValueAxisGridlinesAndLabels(
 		range,
@@ -250,10 +269,7 @@ export function buildBoxWhiskerViewModel(
 		layout.svgHeight,
 		layout.plotTop,
 	);
-	const categoryLegend: LegendEntry[] = categoryLabels.map((label, index) => ({
-		color: chartData.series[0]?.color ?? paletteColor(index, chartData.colorPalette),
-		label,
-	}));
+	const { uniqueCategories } = groupRowsByCategory(categoryLabels);
 	return {
 		svgWidth: layout.svgWidth,
 		svgHeight: layout.svgHeight,
@@ -263,10 +279,10 @@ export function buildBoxWhiskerViewModel(
 		gridlines,
 		axisLabels,
 		zeroLine: buildZeroLine(range, layout),
-		categoryLabels: buildCategoryLabels(categoryLabels, layout, 'bar'),
+		categoryLabels: buildCategoryLabels(uniqueCategories, layout, 'bar'),
 		primitives,
 		dataLabels: [],
-		legend: chartData.style?.hasLegend ? (categoryLegend.length ? categoryLegend : legend) : [],
+		legend: chartData.style?.hasLegend ? legend : [],
 		legendX,
 		legendY,
 		legendAnchor,

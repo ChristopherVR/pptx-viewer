@@ -40,7 +40,7 @@ import type { ShortcutPanel } from './shortcut-panel';
 import { createShortcutPanel } from './shortcut-panel';
 import type { StatusBar } from './status-bar';
 import { createStatusBar } from './status-bar';
-import type { ThumbnailRail } from './thumbnails';
+import type { ThumbnailRail, ThumbnailRailMenuDeps } from './thumbnails';
 import { createThumbnailRail } from './thumbnails';
 import type { TitleBar, TitleBarDeps } from './title-bar';
 import { createTitleBar } from './title-bar';
@@ -52,6 +52,10 @@ export interface ChromeOptions {
 	showFormatToolbar: boolean;
 	/** Build the property inspector panel (default true; shown only when editable). */
 	showInspector: boolean;
+	/** Host customisation region gates (default true): see `customization-lifecycle`. */
+	showTitleBar?: boolean;
+	showStatusBar?: boolean;
+	showNotes?: boolean;
 	/** Whether editing is initially enabled (gates ribbon tab content/inspector visibility). */
 	editable: boolean;
 	/**
@@ -62,6 +66,13 @@ export interface ChromeOptions {
 	hiddenActions?: readonly ToolbarActionId[];
 	/** Every ribbon handler (nav/primary/file/insert/edit/findReplace). */
 	ribbonHandlers: RibbonHandlers;
+	/**
+	 * The slides pane thumbnail context menu's multi-select bulk operations
+	 * (New Slide/Duplicate/Delete/Layout/Hide/Add Section). Omit to fall back
+	 * to the rail's single-slide "+ Add Slide" behaviour only, with no
+	 * right-click menu or Ctrl/Shift multi-select.
+	 */
+	thumbnailMenu?: ThumbnailRailMenuDeps;
 	/** Inspector actions (geometry + shape fill/stroke). */
 	inspectorHandlers: InspectorHandlers;
 	/**
@@ -190,7 +201,7 @@ export function buildViewerChrome(
 	let ribbon: Ribbon | null = null;
 	let quickAccessRow: HTMLElement | null = null;
 	let quickAccessDetached = false;
-	if (options.showToolbar) {
+	if (options.showToolbar && options.showTitleBar !== false) {
 		titleBar = createTitleBar(doc, t, {
 			...options.titleBar,
 			// Mirror the strip's own visibility onto the below-the-ribbon dock so
@@ -204,6 +215,8 @@ export function buildViewerChrome(
 			},
 		});
 		root.appendChild(titleBar.el);
+	}
+	if (options.showToolbar) {
 		ribbon = createRibbon(
 			doc,
 			t,
@@ -273,8 +286,12 @@ export function buildViewerChrome(
 	let thumbnails: ThumbnailRail | null = null;
 	if (options.showThumbnails) {
 		// The pinned Add Slide footer reuses the ribbon Home > New Slide action.
-		thumbnails = createThumbnailRail(doc, t, options.onSelectSlide, () =>
-			options.ribbonHandlers.edit.addSlide(),
+		thumbnails = createThumbnailRail(
+			doc,
+			t,
+			options.onSelectSlide,
+			() => options.ribbonHandlers.edit.addSlide(),
+			options.thumbnailMenu,
 		);
 		body.appendChild(thumbnails.el);
 	}
@@ -302,23 +319,27 @@ export function buildViewerChrome(
 	// chrome width, so it stays visible regardless of the thumbnail rail.
 	const notes = createNotesPanel(doc, t, options.onToggleNotes, options.onCommitNotes);
 	root.appendChild(notes.el);
+	if (options.showNotes === false) {
+		notes.el.style.display = 'none';
+	}
 
-	const statusBar = options.showToolbar
-		? createStatusBar(
-				doc,
-				t,
-				{
-					toggleNotes: options.ribbonHandlers.nav.toggleNotes,
-					normalView: options.ribbonHandlers.nav.normalView,
-					openSlideSorter: options.ribbonHandlers.nav.openSlideSorter,
-					togglePresentation: options.ribbonHandlers.nav.togglePresentation,
-					zoomIn: options.ribbonHandlers.nav.zoomIn,
-					zoomOut: options.ribbonHandlers.nav.zoomOut,
-					zoomToFit: options.ribbonHandlers.nav.zoomToFit,
-				},
-				options.hiddenActions,
-			)
-		: null;
+	const statusBar =
+		options.showToolbar && options.showStatusBar !== false
+			? createStatusBar(
+					doc,
+					t,
+					{
+						toggleNotes: options.ribbonHandlers.nav.toggleNotes,
+						normalView: options.ribbonHandlers.nav.normalView,
+						openSlideSorter: options.ribbonHandlers.nav.openSlideSorter,
+						togglePresentation: options.ribbonHandlers.nav.togglePresentation,
+						zoomIn: options.ribbonHandlers.nav.zoomIn,
+						zoomOut: options.ribbonHandlers.nav.zoomOut,
+						zoomToFit: options.ribbonHandlers.nav.zoomToFit,
+					},
+					options.hiddenActions,
+				)
+			: null;
 	if (statusBar) {
 		root.appendChild(statusBar.el);
 	}

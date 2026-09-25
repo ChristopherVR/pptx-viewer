@@ -227,3 +227,38 @@ describe('renderParagraphRun - kerning threshold (a:rPr/@kern)', () => {
 		expect(style.fontKerning).toBeUndefined();
 	});
 });
+
+// Regression: this component re-derives its own `baseFontSize` from
+// `rawFontSize * resolveAutoFitFontScale(...)` and then OVERWRITES the
+// `fontSize` shared's `segmentStyleToCss` already computed (`spanStyle.fontSize
+// = baseFontSize * baselineFontScale`), so shared rounding a `normAutofit`
+// scale to a whole point (see `scaleFontSizeForAutoFit`) does not reach the
+// screen in React unless this component rounds the same way itself.
+describe('renderParagraphRun - normAutofit fontScale rounds to a whole point', () => {
+	function styleWithAutoFit(textStyle: TextStyle, runFontSize: number): React.CSSProperties {
+		const element = { ...makeElement(), textStyle };
+		const segment: TextSegment = { text: 'Hello', style: { fontSize: runFontSize } };
+		const run = buildParagraphs({ ...element, textSegments: [segment] } as PptxElement)[0].runs[0];
+		const node = renderParagraphRun(run, segment, {
+			element,
+			fallbackColor: '#000000',
+		}) as React.ReactElement<{ style: React.CSSProperties }>;
+		return node.props.style;
+	}
+
+	it('paints a 28pt run at 18pt under fontScale 62.5% (COM ground truth)', () => {
+		const style = styleWithAutoFit(
+			{ fontSize: 28, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.625 },
+			28,
+		);
+		expect(style.fontSize).toBe(18);
+	});
+
+	it('paints a 28pt run at 11pt under fontScale 40% (COM ground truth)', () => {
+		const style = styleWithAutoFit(
+			{ fontSize: 28, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.4 },
+			28,
+		);
+		expect(style.fontSize).toBe(11);
+	});
+});

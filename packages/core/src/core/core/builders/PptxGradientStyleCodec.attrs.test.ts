@@ -56,11 +56,27 @@ describe('pptxGradientStyleCodec — flip / rotWithShape / scaled', () => {
 		expect((xml['a:lin'] as XmlObject)['@_scaled']).toBe('0');
 	});
 
-	it('omits @flip when value is "none" (default)', () => {
+	it('re-emits an authored @flip="none" instead of dropping it as the schema default', () => {
+		// `extractGradientFlip` only ever returns a value (including 'none')
+		// when the source explicitly authored `@flip`: 'none' is ALSO
+		// ECMA-376's schema default for `ST_TileFlipMode`, but a value the
+		// source explicitly wrote is not ours to drop just because
+		// PowerPoint would have assumed the same thing anyway. Measured on a
+		// real deck: an authored `<a:gradFill flip="none" .../>` came back
+		// with no `@flip` attribute at all.
 		const style: ShapeStyle = {
 			fillGradientStops: [{ color: '#FF0000', position: 0 }],
 			fillGradientType: 'linear',
 			fillGradientFlip: 'none',
+		};
+		const xml = codec.buildGradientFillXml(style)!;
+		expect(xml['@_flip']).toBe('none');
+	});
+
+	it('omits @flip when the style never authored one', () => {
+		const style: ShapeStyle = {
+			fillGradientStops: [{ color: '#FF0000', position: 0 }],
+			fillGradientType: 'linear',
 		};
 		const xml = codec.buildGradientFillXml(style)!;
 		expect(xml['@_flip']).toBeUndefined();

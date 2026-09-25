@@ -15,7 +15,7 @@ function mountTarget(id: string): HTMLElement {
 
 afterEach(() => {
 	document.body.replaceChildren();
-	for (const style of [...document.querySelectorAll('style[id^="pptxv-anim-preview-"]')]) {
+	for (const style of [...document.querySelectorAll('style[id^="pptx-anim-ribbon-preview-"]')]) {
 		style.remove();
 	}
 });
@@ -64,7 +64,9 @@ describe('playAnimationPreview', () => {
 			durationMs: 800,
 			order: 0,
 		});
-		const style = document.querySelector('style[id^="pptxv-anim-preview-pptx-motion-preview"]');
+		const style = document.querySelector(
+			'style[id^="pptx-anim-ribbon-preview-pptx-motion-preview"]',
+		);
 		expect(style?.textContent).toContain('@keyframes');
 		expect(target.style.animation).toContain('800ms');
 	});
@@ -74,7 +76,7 @@ describe('playAnimationPreview', () => {
 		const base = { elementId: 'el1', durationMs: 800, order: 0 } as const;
 		playAnimationPreview(document, { ...base, motionPath: LINE_RIGHT });
 		playAnimationPreview(document, { ...base, motionPath: 'M 0 0 L 0 -0.5' });
-		const styles = [...document.querySelectorAll('style[id^="pptxv-anim-preview-"]')];
+		const styles = [...document.querySelectorAll('style[id^="pptx-anim-ribbon-preview-"]')];
 		expect(styles).toHaveLength(1);
 		// 0.5 of the 720px fallback slide height, upwards.
 		expect(styles[0].textContent).toContain('-360px');
@@ -84,6 +86,6 @@ describe('playAnimationPreview', () => {
 		expect(() =>
 			playAnimationPreview(document, { elementId: 'missing', motionPath: LINE_RIGHT, order: 0 }),
 		).not.toThrow();
-		expect(document.querySelector('style[id^="pptxv-anim-preview-"]')).toBeNull();
+		expect(document.querySelector('style[id^="pptx-anim-ribbon-preview-"]')).toBeNull();
 	});
 });

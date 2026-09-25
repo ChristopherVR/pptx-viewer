@@ -20,6 +20,7 @@ export function parseCxHistogramOptions(
 	}
 	const layoutPr = xmlLookup.getChildByLocalName(series, 'layoutPr');
 	const binning = xmlLookup.getChildByLocalName(layoutPr, 'binning');
+	const aggregation = xmlLookup.getChildByLocalName(layoutPr, 'aggregation');
 	const rawBinSize = xmlLookup.getScalarChildByLocalName(binning, 'binSize');
 	const rawBinCount = xmlLookup.getScalarChildByLocalName(binning, 'binCount');
 	const binSize = Number.parseFloat(String(rawBinSize ?? ''));
@@ -36,5 +37,6 @@ export function parseCxHistogramOptions(
 		...(binning?.['@_overflow'] !== undefined
 			? { overflow: parseDoubleOrAutomatic(binning['@_overflow']) }
 			: {}),
+		...(aggregation !== undefined ? { aggregateByCategory: true } : {}),
 	};
 }

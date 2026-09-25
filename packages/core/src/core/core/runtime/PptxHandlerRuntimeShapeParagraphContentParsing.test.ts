@@ -837,6 +837,39 @@ describe('collectShapeParagraphContent - bullet marker alignment (real runtime)'
 });
 
 // ---------------------------------------------------------------------------
+// An inline `m:oMath` carries no `a:rPr/@sz` of its own, so it used to be
+// parsed with the PARAGRAPH's own default font size (`mergedDefaultRunStyle`,
+// e.g. the shape's 24pt body default) regardless of what the runs actually
+// next to it in the SAME paragraph authored. A paragraph of 14pt prose with
+// an equation in the middle rendered that equation at 24pt in every binding
+// whose renderer applies the parsed style directly (React's own equation
+// wrapper happened to inherit the right size from unrelated DOM nesting).
+// `pptx-viewer-shared`'s `buildParagraphRuns` now resolves the equation's
+// size from the paragraph's own smallest run when the parsed style leaves it
+// unset (see `paragraph-run-build.ts`), so the parser must leave it unset
+// rather than fixing it to the paragraph default here.
+// ---------------------------------------------------------------------------
+describe('collectShapeParagraphContent - inline equation font size (real runtime)', () => {
+	it("does not fix an equation's font size to the paragraph default", () => {
+		const runtime = new AlignAwareParagraphContentRuntime();
+		const paragraph: XmlObject = {
+			'a:r': [
+				{ 'a:rPr': { '@_sz': '1400' }, 'a:t': 'Given ' },
+				{ 'a:rPr': { '@_sz': '1400' }, 'a:t': ' holds' },
+			],
+			'm:oMath': { 'm:r': { 'm:t': 'x' } },
+		};
+		const { segments } = runtime.collect(paragraph, undefined, { fontSize: 24, color: '#000000' });
+		const equationSegment = segments.find((s) => s.equationXml);
+		expect(equationSegment).toBeDefined();
+		expect(equationSegment?.style.fontSize).toBeUndefined();
+		// Other paragraph-default fields (unrelated to size) still seed it, so
+		// an untouched equation keeps its inherited colour/typeface on save.
+		expect(equationSegment?.style.color).toBe('#000000');
+	});
+});
+
+// ---------------------------------------------------------------------------
 // `a:endParaRPr` on an EMPTY paragraph.
 //
 // A trailing/only empty paragraph produced no segment, so its end-paragraph run

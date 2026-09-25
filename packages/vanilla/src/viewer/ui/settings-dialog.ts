@@ -1,4 +1,5 @@
 import type {
+	ResolvedCustomization,
 	ThemeCatalogEntry,
 	ViewerAddinStatus,
 	ViewerOptionsSection,
@@ -7,7 +8,13 @@ import type {
 	ViewerOptionsTabId,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
-import { cloneViewerOptions, VIEWER_OPTIONS_TABS } from 'pptx-viewer-shared';
+import {
+	cloneViewerOptions,
+	customizeOptionsTabs,
+	EMPTY_RESOLVED_CUSTOMIZATION,
+	isOptionsPageVisible,
+	VIEWER_OPTIONS_TABS,
+} from 'pptx-viewer-shared';
 import type { PptxAiChatStore } from 'pptx-viewer-shared/ai';
 import type { LocaleCatalogEntry } from 'pptx-viewer-shared/i18n';
 
@@ -55,6 +62,8 @@ export interface ViewerOptionsDialogDeps {
 	initialTab?: ViewerOptionsTabId;
 	/** When true, an "AI" section is appended for exporting detailed chat logs. */
 	aiEnabled?: boolean;
+	/** The host's resolved UI customisation: hidden pages/sections/settings, locks. */
+	customization?: ResolvedCustomization;
 	/** Chat store the AI export reads from (defaults to the shared store). */
 	aiChatStore?: PptxAiChatStore;
 	/**
@@ -96,6 +105,9 @@ export function openSettingsDialog(
 	shell.body.appendChild(body);
 
 	const snapshot = cloneViewerOptions(store.getOptions());
+	const customization = deps.customization ?? EMPTY_RESOLVED_CUSTOMIZATION;
+	const tabs = customizeOptionsTabs(VIEWER_OPTIONS_TABS, customization);
+	const showAiTab = deps.aiEnabled === true && isOptionsPageVisible(customization, 'ai');
 	let activeTabId: ViewerOptionsTabId = deps.initialTab ?? 'general';
 	// The AI export lives in a synthetic tab appended after the schema tabs.
 	let aiActive = false;
@@ -193,8 +205,8 @@ export function openSettingsDialog(
 			renderAiPane();
 			return;
 		}
-		const tab =
-			VIEWER_OPTIONS_TABS.find((entry) => entry.id === activeTabId) ?? VIEWER_OPTIONS_TABS[0];
+		// A hidden active tab falls back to the first visible one.
+		const tab = tabs.find((entry) => entry.id === activeTabId) ?? tabs[0];
 		if (!tab) {
 			return;
 		}
@@ -229,12 +241,12 @@ export function openSettingsDialog(
 	const renderNav = (): void => {
 		nav.replaceChildren();
 		nav.setAttribute('aria-label', t('pptx.options.title'));
-		for (const tab of VIEWER_OPTIONS_TABS) {
+		for (const tab of tabs) {
 			const button = appendDialogButton(doc, nav, t(tab.labelKey), () => selectTab(tab.id));
 			button.dataset.tab = tab.id;
 		}
 		aiNavButton = null;
-		if (deps.aiEnabled) {
+		if (showAiTab) {
 			aiNavButton = appendDialogButton(doc, nav, t('pptx.ai.settingsSectionTitle'), () => {
 				aiActive = true;
 				renderPane();

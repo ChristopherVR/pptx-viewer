@@ -43,6 +43,7 @@ import {
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseFilteredTitles } from '../../utils/chart-ext-titles';
 import { parseFilteredSeries } from '../../utils/chart-filtered-series';
+import { seriesGradientFill } from '../../utils/chart-gradient-fill';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
@@ -284,6 +285,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const wireframe =
 				chartType === 'surface' ? this.parseChartBoolVal(seriesContainer, 'wireframe') : undefined;
 
+			// Surface 2-D/3-D projection (c:surfaceChart vs c:surface3DChart), both of
+			// which collapse to chart type "surface" above: the element name is the
+			// only signal left telling the renderer which of PowerPoint's two surface
+			// projections (top-view "Contour" vs isometric "3-D Surface") to draw.
+			const surfaceTopView =
+				chartType === 'surface'
+					? this.compatibilityService.getXmlLocalName(seriesContainerKey) === 'surfaceChart'
+					: undefined;
+
 			// Store the chart part path for round-trip save
 			const chartPartPath = chartPart.partPath;
 
@@ -491,6 +501,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(barShape !== undefined ? { barShape } : {}),
 				...(radarStyle !== undefined ? { radarStyle } : {}),
 				...(wireframe !== undefined ? { wireframe } : {}),
+				...(surfaceTopView !== undefined ? { surfaceTopView } : {}),
 				...(scatterStyle !== undefined ? { scatterStyle } : {}),
 				chartPartPath,
 				chartRelationshipId,
@@ -936,6 +947,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(lineNoFill ? { lineNoFill } : {}),
 				...(seriesNumberFormat ? { numberFormat: seriesNumberFormat } : {}),
 				color: seriesColor,
+				...(this.colorStyleCodec
+					? seriesGradientFill(seriesShapeProperties, this.xmlLookupService, this.colorStyleCodec)
+					: {}),
 				...(trendlines.length > 0 ? { trendlines } : {}),
 				...(errBars.length > 0 ? { errBars } : {}),
 				...(dataPoints.length > 0 ? { dataPoints } : {}),

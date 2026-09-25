@@ -19,6 +19,7 @@ export {
 	resolveLazyImages,
 	resolveLazyTableCellImages,
 	resolveLazyTableStyleImages,
+	resolveLazyTextFillBlips,
 	resolveMediaUrls,
 	revokeBlobUrls,
 } from './loader-helpers';

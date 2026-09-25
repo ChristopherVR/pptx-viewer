@@ -181,7 +181,8 @@ describe('renderImageElement source effects', () => {
 
 		expect(layer).not.toBeNull();
 		expect(layer?.style.position).toBe('absolute');
-		expect(layer?.style.transform).toBe('scaleY(-1)');
+		// A vertical mirror; shared now emits it as scale(1, -1).
+		expect(layer?.style.transform).toBe('scale(1, -1)');
 		expect(node.innerHTML).not.toContain('box-reflect');
 		const reflectedImg = layer?.querySelector('img');
 		expect(reflectedImg?.getAttribute('src')).toBe('data:image/png;base64,source');

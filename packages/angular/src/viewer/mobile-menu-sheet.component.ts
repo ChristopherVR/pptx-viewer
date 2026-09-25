@@ -29,13 +29,14 @@
  *   print         : open print dialog
  */
 
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import type { ToolbarActionId } from '../internal/shared';
 import { buildMobileMenuRows } from './mobile-menu-rows';
 import type { MobileMenuRow } from './mobile-menu-rows';
 import { MobileSheetComponent } from './mobile-sheet.component';
+import { ViewerCustomizationService } from './viewer-customization.service';
 
 @Component({
 	selector: 'pptx-mobile-menu-sheet',
@@ -259,7 +260,16 @@ export class MobileMenuSheetComponent {
 
 	// ── Derived row list ──────────────────────────────────────────────────────
 
+	/** Host UI customisation (optional: absent outside a viewer). */
+	private readonly customization = inject(ViewerCustomizationService, { optional: true });
+
 	readonly rows = computed<MobileMenuRow[]>(() =>
+		this.allRows().filter(
+			(row) => row.key !== 'print' || this.customization?.dialogAvailable('print') !== false,
+		),
+	);
+
+	private readonly allRows = computed<MobileMenuRow[]>(() =>
 		buildMobileMenuRows(
 			{
 				slideCount: this.slideCount(),

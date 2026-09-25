@@ -18,6 +18,7 @@ function node(name: string): EngineNode {
 		alg: { type: 'composite', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

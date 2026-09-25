@@ -25,6 +25,16 @@ import type {
 export interface PresNode {
 	name: string;
 	styleLbl?: string;
+	/**
+	 * `dgm:layoutNode/@moveWith`: the name of a SIBLING layout node (within the
+	 * same parent) this node's geometry tracks (ECMA-376 Part 1, 21.4.2.19).
+	 * Combined with a `hideGeom` shape, this is how a decorative background
+	 * (e.g. `bgRect`) and a borderless text carrier (e.g. `nodeText`) that both
+	 * present the same data point are authored as two layout nodes but meant
+	 * to read as ONE visual shape; see `engine-to-result.ts`'s sibling-merge
+	 * pass, which is the only place this field is consumed.
+	 */
+	moveWith?: string;
 	/** Data point in context when this instance was created. */
 	point: DataPoint;
 	alg: LdAlgorithm;
@@ -33,6 +43,15 @@ export interface PresNode {
 	presOf: DataPoint[];
 	/** Whether the node declared any `dgm:presOf` axis at all. */
 	hasPresOf: boolean;
+	/**
+	 * Whether the `dgm:presOf` iterator's last axis step includes the point
+	 * itself (`self`, `desOrSelf`, `ancstOrSelf`): the first presented point is
+	 * then the text's own top-level paragraph and the rest fold under it as
+	 * smaller bullets ("Basic Pie"'s wedge: "Node One" 23pt, its child 18pt).
+	 * A pure `des`/`ch` iterator presents every point as an equal bullet
+	 * ("Vertical Bullet List"'s `childText`: child and grandchild both 27pt).
+	 */
+	presOfAnchored: boolean;
 	constraints: LdConstraint[];
 	rules: LdRule[];
 	vars: Record<string, string>;
@@ -131,6 +150,7 @@ function walk(
 			case 'presOf':
 				node.presOf = iteratePoints(point, statement.iterator);
 				node.hasPresOf = statement.iterator.axis.length > 0;
+				node.presOfAnchored = /self/i.test(statement.iterator.axis.at(-1) ?? '');
 				break;
 			case 'constrLst':
 				node.constraints.push(...statement.constraints);
@@ -157,10 +177,12 @@ function buildNode(
 	const node: PresNode = {
 		name: def.name,
 		styleLbl: def.styleLbl,
+		moveWith: def.moveWith,
 		point,
 		alg: { type: 'sp', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

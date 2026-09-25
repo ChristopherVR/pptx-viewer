@@ -23,6 +23,7 @@ export const translations = {
 	'pptx.options.screenTipStyle.off': 'Ne pas afficher les info-bulles',
 	'pptx.options.general.personalize': 'Personnaliser votre copie de la visionneuse',
 	'pptx.options.general.userName': "Nom d'utilisateur",
+	'pptx.options.lockedByHost': 'Ce paramètre est géré par votre organisation',
 	'pptx.options.general.userInitials': 'Initiales',
 	'pptx.options.general.appearance': 'Thème de la visionneuse',
 	'pptx.options.general.fonts': 'Polices',

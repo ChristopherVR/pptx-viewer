@@ -7,8 +7,10 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	canInteractWithElement,
 	canMergeCells,
+	canMergeShapes,
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
@@ -17,8 +19,10 @@ import {
 	insertTableElementColumn,
 	insertTableElementRow,
 	mergeCells,
+	mergeOperationForCommand,
 	removeTableElementColumn,
 	removeTableElementRow,
+	resolveEditPointsAvailability,
 } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
@@ -147,6 +151,11 @@ export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): Co
 		// The editor tracks its own clipboard, so Paste can honestly grey out
 		// instead of being offered and silently doing nothing.
 		hasClipboard: editor.hasClipboard,
+		// Offered for a shape, greyed for `a:spLocks/@noEditPoints`.
+		editPoints: resolveEditPointsAvailability(editor.selectedElement),
+		// Merge Shapes on a mergeable multi-selection; Crop on a lone picture.
+		canMergeShapes: canMergeShapes(editor.selectedElements),
+		canCrop: canCropElement(editor.selectedElement),
 	});
 }
 
@@ -306,6 +315,13 @@ export function runContextMenuCommand(
 			}
 			return;
 		}
+		case 'edit-points': {
+			const editPointsId = editor.selectedElement?.id;
+			if (editPointsId) {
+				editor.outlineOps.startEditPoints(editPointsId);
+			}
+			return;
+		}
 		case 'save-as-picture': {
 			const targetId = editor.selectedElement?.id;
 			if (targetId) {
@@ -325,7 +341,16 @@ export function runContextMenuCommand(
 		case 'delete':
 			editor.deleteSelected();
 			return;
-		default:
+		case 'crop':
+			editor.cropOps.enter();
+			return;
+		default: {
+			const mergeOperation = mergeOperationForCommand(id);
+			if (mergeOperation) {
+				editor.arrangeOps.mergeSelected(mergeOperation);
+				return;
+			}
 			runTableCommand(id, deps);
+		}
 	}
 }

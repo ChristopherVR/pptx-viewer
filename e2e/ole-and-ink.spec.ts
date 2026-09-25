@@ -54,6 +54,13 @@ import { resetTabSession } from './support/deck';
 const oleFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/ole-embed.pptx', import.meta.url)),
 );
+/**
+ * An element on the editable canvas. Scoped to the viewport because some
+ * bindings also stamp `data-element-id` on the slide-thumbnail copies, and a
+ * thumbnail never carries the OLE Download/Open bar (`oleActionsVisible`,
+ * 82da5a738), so an unscoped `.first()` can land on the wrong surface.
+ */
+const STAGE_ELEMENT = '[data-pptx-viewport] [data-element-id]';
 const inkFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/ink-annotation.pptx', import.meta.url)),
 );
@@ -71,7 +78,7 @@ async function openFixture(page: Page, fixturePath: string): Promise<void> {
 	await resetTabSession(page);
 	await page.goto('/');
 	await page.locator('#file-input').setInputFiles(fixturePath);
-	await page.locator('[data-element-id]').first().waitFor();
+	await page.locator(STAGE_ELEMENT).first().waitFor();
 }
 
 test.describe('OLE embedded objects', () => {
@@ -80,7 +87,7 @@ test.describe('OLE embedded objects', () => {
 	}) => {
 		await openFixture(page, oleFixturePath);
 
-		const ole = page.locator('[data-element-id]').first();
+		const ole = page.locator(STAGE_ELEMENT).first();
 		await expect(ole).toBeVisible();
 
 		const img = ole.locator('img');
@@ -131,7 +138,7 @@ test.describe('ink annotations', () => {
 	test('renders real multi-point strokes and survives a save + reload cycle', async ({ page }) => {
 		await openFixture(page, inkFixturePath);
 
-		const ink = page.locator('[data-element-id]').first();
+		const ink = page.locator(STAGE_ELEMENT).first();
 		await expect(ink).toBeVisible();
 
 		const paths = ink.locator('svg path');
@@ -166,7 +173,7 @@ test.describe('ink annotations', () => {
 		await resetTabSession(page);
 		await page.goto('/');
 		await page.locator('#file-input').setInputFiles(savedPath);
-		const inkAfterReload = page.locator('[data-element-id]').first();
+		const inkAfterReload = page.locator(STAGE_ELEMENT).first();
 		await expect(inkAfterReload).toBeVisible();
 
 		const pathsAfter = inkAfterReload.locator('svg path');

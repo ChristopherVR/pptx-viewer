@@ -1,4 +1,5 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import {
 	canGroupSelection,
 	canSetStrokeWidth,
@@ -9,6 +10,9 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuGroup, LuUngroup } from 'react-icons/lu';
 
+import { useToolbarVisibility } from '../../hooks/useToolbarVisibility';
+import { CropRibbonControls } from './CropRibbonControls';
+import { MergeShapesMenu } from './MergeShapesMenu';
 import { gB, gL, grp, ic } from './toolbar-constants';
 
 export interface ShapeArrangeExtrasProps {
@@ -21,11 +25,13 @@ export interface ShapeArrangeExtrasProps {
 	onGroupElements: () => void;
 	onUngroupElement: () => void;
 	onUpdateElementStyle: (updates: Partial<ShapeStyle>) => void;
+	/** Host-hidden ribbon buttons (`mergeShapes`, `crop`). */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 /**
- * The Arrange group's shape-level extras: Group, Ungroup, and the outline
- * width spinner.
+ * The Arrange group's shape-level extras: Group, Ungroup, Merge Shapes, Crop,
+ * and the outline width spinner.
  *
  * Kept out of `ArrangeSection` so neither file drifts past the 300-LOC budget,
  * and grouped together because all three are gated on the same thing: a
@@ -40,6 +46,7 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 	const canUngroup = canUngroupSelection(p.canEdit, p.selectedElement);
 	const canStrokeWidth = canSetStrokeWidth(p.canEdit, p.selectedElement);
 	const strokeWidth = strokeWidthOf(p.selectedElement);
+	const { isHidden } = useToolbarVisibility(p.hiddenActions);
 
 	return (
 		<>
@@ -65,6 +72,8 @@ export function ShapeArrangeExtras(p: ShapeArrangeExtrasProps): React.ReactEleme
 					<LuUngroup className={ic} />
 				</button>
 			</div>
+			{!isHidden('mergeShapes') && <MergeShapesMenu canEdit={p.canEdit} />}
+			{!isHidden('crop') && <CropRibbonControls canEdit={p.canEdit} />}
 			<input
 				type='number'
 				min='0'

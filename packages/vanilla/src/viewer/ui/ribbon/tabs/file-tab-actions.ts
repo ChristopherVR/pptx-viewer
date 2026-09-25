@@ -17,8 +17,18 @@ import {
 	Video,
 } from 'lucide';
 import type { IconNode } from 'lucide';
-import type { BackstageCardId, BackstagePage, ToolbarActionId } from 'pptx-viewer-shared';
-import { backstageCardsFor, isActionHidden } from 'pptx-viewer-shared';
+import type {
+	BackstageCardId,
+	BackstagePage,
+	ResolvedCustomization,
+	ToolbarActionId,
+} from 'pptx-viewer-shared';
+import {
+	backstageCardsFor,
+	customizeBackstageCards,
+	EMPTY_RESOLVED_CUSTOMIZATION,
+	isActionHidden,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -62,6 +72,7 @@ export function createFileActionGrid(
 	run: (callback: () => void) => void,
 	t: Translator,
 	hiddenActions?: readonly ToolbarActionId[],
+	customization: ResolvedCustomization = EMPTY_RESOLVED_CUSTOMIZATION,
 ): HTMLElement {
 	const grid = createEl(doc, 'div', 'pptxv-bs-actions');
 	if (page === 'export' && isActionHidden('export', hiddenActions)) {
@@ -86,7 +97,7 @@ export function createFileActionGrid(
 		print: handlers.print,
 		share: handlers.openShare,
 	};
-	for (const card of backstageCardsFor(page)) {
+	for (const card of customizeBackstageCards(backstageCardsFor(page), customization)) {
 		if (card.id === 'saveAsPptm' && !hasMacros) {
 			continue;
 		}

@@ -47,7 +47,10 @@ import type {
 import {
 	applyMotionPathPreset,
 	clearMotionPath,
+	listMediaBookmarkOptions,
 	moveAnimationTimelineRowBy,
+	selectedBookmarkOptionValue,
+	setTriggerBookmark,
 } from '../internal/shared';
 import { AfterAnimationRowComponent } from './after-animation-row.component';
 import {
@@ -211,6 +214,17 @@ export class AnimationAuthorPanelComponent {
 	protected readonly otherElements = computed(() =>
 		getAnimationTriggerElements(this.slideElements(), this.element().id),
 	);
+	/** Every media bookmark on the slide, for the "On bookmark" trigger picker. */
+	protected readonly bookmarkOptions = computed(() =>
+		listMediaBookmarkOptions(this.slideElements()),
+	);
+	protected readonly selectedBookmark = computed(() => selectedBookmarkOptionValue(this.current()));
+	protected onTriggerBookmarkChange(event: Event): void {
+		this.emit(
+			setTriggerBookmark(this.animations(), this.element().id, stringFromSelect(event) ?? ''),
+		);
+	}
+
 	protected elementLabel(element: PptxElement): string {
 		return getAnimationElementLabel(element);
 	}

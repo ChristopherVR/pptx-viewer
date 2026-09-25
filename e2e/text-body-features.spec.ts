@@ -46,7 +46,6 @@ interface BodyFacts {
 	columnCount: string;
 	columnGap: string;
 	tabSize: string;
-	alignItems: string;
 	overflow: string;
 	/** True when some node under the element carries a real 2D rotation. */
 	rotated: boolean;
@@ -142,7 +141,6 @@ async function measureBody(page: Page, marker: string): Promise<BodyFacts> {
 			columnCount: firstOf('column-count', ['auto']),
 			columnGap: firstOf('column-gap', ['normal']),
 			tabSize: firstOf('tab-size', ['8']),
-			alignItems: firstOf('align-items', ['normal', 'stretch']),
 			overflow: firstOf('overflow', ['visible']),
 			rotated,
 			clipsOverflow,
@@ -216,11 +214,21 @@ test.describe('text-body properties', () => {
 		);
 
 		// 3. `anchorCtr="1"` centres the text bounding box on the shape.
-		expectEveryBinding(results, 'anchorCtr centres the text bounding box', (facts) =>
-			facts.anchorCtr.alignItems === 'center'
+		//
+		// Asserted on the PAINTED glyph position, not a CSS property: the shared
+		// implementation centres the shrink-wrapped paragraph box with
+		// `width: fit-content` + auto margins rather than `align-items: center`
+		// (see `fix(shared): centre anchorCtr as one shared box, not per-paragraph`),
+		// and `getComputedStyle` resolves both `width` and `margin` to used pixel
+		// values, so neither keyword is observable from the DOM. What must hold
+		// regardless of mechanism is that the rendered text sits centred in the
+		// shape rather than hard against the left inset.
+		expectEveryBinding(results, 'anchorCtr centres the text bounding box', (facts) => {
+			const center = (facts.anchorCtr.textLeftFraction + facts.anchorCtr.textRightFraction) / 2;
+			return Math.abs(center - 0.5) <= 0.12
 				? undefined
-				: `align-items is "${facts.anchorCtr.alignItems}", expected "center"`,
-		);
+				: `the text's horizontal centre is at ${center.toFixed(3)} of the shape width, expected close to 0.5`;
+		});
 
 		// 4. `vertOverflow="clip"` keeps the overflow inside the shape.
 		expectEveryBinding(results, 'a vertOverflow="clip" body clips', (facts) =>

@@ -159,15 +159,31 @@ describe('computeDataTablePrimitives', () => {
 	// c:dTable/c:spPr + c:txPr honouring
 	// ───────────────────────────────────────────────────────────────────────
 
-	it('uses default border/text colours and 8px cell text when spPr/txPr are absent', () => {
+	// COM-verified charts-com.pptx slide 2: PowerPoint's grey #D9D9D9 rules and
+	// #595959 text, in the chart's axis font rather than a fixed 8px.
+	it("uses PowerPoint's default rule/text colours and the axis font when spPr/txPr are absent", () => {
 		const chartData = makeChartData({ series: [makeSeries()], dataTable: { showOutline: true } });
 		const result = computeDataTablePrimitives(chartData, LAYOUT);
 		const line = result.find((p) => p.kind === 'line');
 		const label = texts(result)[0];
-		expect(line && 'stroke' in line ? line.stroke : undefined).toBe('#cbd5e1');
-		expect(label.fill).toBe('#334155');
-		expect(label.fontSize).toBe(8);
+		expect(line && 'stroke' in line ? line.stroke : undefined).toBe('#D9D9D9');
+		expect(label.fill).toBe('#595959');
+		expect(label.fontSize).toBeGreaterThan(8);
 		expect(label.fontFamily).toBeUndefined();
+	});
+
+	it('aligns the data columns with the plot and hangs the key column left of it', () => {
+		const chartData = makeChartData({
+			series: [makeSeries({ name: 'Revenue' })],
+			dataTable: { showKeys: true },
+		});
+		const result = computeDataTablePrimitives(chartData, LAYOUT);
+		const cellW = LAYOUT.plotWidth / chartData.categories.length;
+		const header = texts(result).find((label) => label.text === 'A');
+		expect(header?.x).toBeCloseTo(LAYOUT.plotLeft + cellW / 2, 5);
+		const key = texts(result).find((label) => label.text === 'Revenue');
+		expect(key?.x).toBeLessThan(LAYOUT.plotLeft);
+		expect(Math.min(...texts(result).map((label) => label.y))).toBeGreaterThan(LAYOUT.plotBottom);
 	});
 
 	it('honours spPr strokeColor/strokeWidth for every border line', () => {
@@ -245,7 +261,7 @@ describe('computeDataTablePrimitives', () => {
 		expect(texts(result).every((label) => label.fontWeight === 'normal')).toBeTruthy();
 	});
 
-	it('defaults the header row to bold and data rows to normal when txPr.bold is unset', () => {
+	it('keeps the header row and data rows normal weight when txPr.bold is unset', () => {
 		const chartData = makeChartData({
 			series: [makeSeries({ name: 'Revenue' })],
 			dataTable: { showKeys: true },
@@ -253,7 +269,7 @@ describe('computeDataTablePrimitives', () => {
 		const result = computeDataTablePrimitives(chartData, LAYOUT);
 		const header = texts(result).find((label) => label.text === 'A');
 		const cell = texts(result).find((label) => label.text === 'Revenue');
-		expect(header?.fontWeight).toBe('bold');
+		expect(header?.fontWeight).toBe('normal');
 		expect(cell?.fontWeight).toBe('normal');
 	});
 

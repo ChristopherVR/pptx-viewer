@@ -41,6 +41,8 @@ export interface ViewportHandlersDeps {
 	onStartFromBeginning?(): void;
 	/** Start the show on the active slide (Shift+F5): the ribbon's "From Current Slide" button. */
 	onStartFromCurrent?(): void;
+	/** False when the host switched the `presentMode` feature off (F5 / Shift+F5 inert). */
+	isPresentModeEnabled?(): boolean;
 }
 
 export interface ViewportHandlers {
@@ -206,7 +208,10 @@ export function createViewportHandlers(deps: ViewportHandlersDeps): ViewportHand
 			// read-only viewer and with the caret sitting in a text box, so this must
 			// run before the editing branch below, which gates on `getEditingActive()`
 			// and swallows keys the inline editor or a text-input target owns.
-			const startAction = mapSlideShowStartKey(event, { isPresenting: deps.viewer.isFullscreen });
+			const startAction =
+				deps.isPresentModeEnabled?.() === false
+					? null
+					: mapSlideShowStartKey(event, { isPresenting: deps.viewer.isFullscreen });
 			if (startAction) {
 				event.preventDefault();
 				if (startAction === 'fromBeginning') {

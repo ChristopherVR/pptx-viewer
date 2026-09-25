@@ -24,11 +24,18 @@ import { defineConfig, devices } from '@playwright/test';
  * so those specs stay as framework-agnostic as every other one: no port
  * literals, no branching on the project name.
  */
-const REACT_PORT = 4173;
-const VUE_PORT = 4175;
-const ANGULAR_PORT = 4174;
-const VANILLA_PORT = 4176;
-const SVELTE_PORT = 4177;
+/**
+ * Shift every demo port (and the collaboration relay) by this amount so two
+ * checkouts, e.g. parallel git worktrees, can run e2e at once without one
+ * `reuseExistingServer` silently testing the other's code. Defaults to 0.
+ */
+const PORT_OFFSET = Number(process.env.PPTX_E2E_PORT_OFFSET ?? 0);
+const REACT_PORT = 4173 + PORT_OFFSET;
+const VUE_PORT = 4175 + PORT_OFFSET;
+const ANGULAR_PORT = 4174 + PORT_OFFSET;
+const VANILLA_PORT = 4176 + PORT_OFFSET;
+const SVELTE_PORT = 4177 + PORT_OFFSET;
+const COLLAB_PORT = 1234 + PORT_OFFSET;
 const isCI = Boolean(process.env.CI);
 
 export default defineConfig({
@@ -146,7 +153,8 @@ export default defineConfig({
 		{
 			// Host-owned collaboration tests use the real relay, not BroadcastChannel.
 			command: 'bun demos/demo-react/collab-server.mjs',
-			port: 1234,
+			env: { PORT: String(COLLAB_PORT) },
+			port: COLLAB_PORT,
 			reuseExistingServer: !isCI,
 			timeout: 30_000,
 			stdout: 'ignore',

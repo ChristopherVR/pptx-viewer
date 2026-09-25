@@ -5,7 +5,17 @@ import type {
 	PptxSlideTransition,
 	TextSegment,
 } from 'pptx-viewer-core';
-import type { RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
+import {
+	EMPTY_RESOLVED_CUSTOMIZATION,
+	FREEFORM_TOOL_IDS,
+	isDrawingToolVisible,
+} from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	ResolvedCustomization,
+	RibbonTransitionDraft,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
@@ -42,6 +52,8 @@ export interface ChromeCallbackDeps {
 	toggleNotes(): void;
 	openAccessibility(): void;
 	openSettings(tab?: 'general' | 'shortcuts'): void;
+	/** The host's resolved UI customisation, read lazily by the ribbon builders. */
+	getCustomization?(): ResolvedCustomization;
 	openHeaderFooter(): void;
 	openCompare(): void;
 	openSetUpSlideShow(): void;
@@ -72,6 +84,14 @@ export interface ChromeCallbackDeps {
 	/** Drop the current selection (Design > Slide Size opens the deck panel). */
 	clearSelection(): void;
 	goToSlide(index: number): void;
+	/** Insert a new slide after `afterIndex` (the thumbnail menu's New Slide, and Enter on a focused thumbnail). */
+	addSlide(afterIndex?: number): void;
+	/** The slides pane thumbnail menu's multi-select bulk Duplicate. */
+	duplicateSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Delete. */
+	deleteSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Hide/Show. */
+	toggleHideSlides(indexes: number[]): void;
 	commitNotes(notes: string, notesSegments?: TextSegment[]): void;
 	exportSlidePng(): Promise<void>;
 	copySlideAsImage(): Promise<void>;
@@ -114,6 +134,8 @@ export interface ChromeCallbackDeps {
 	applyPresentationTheme(presetId: string): void;
 	/** Switch the Draw ribbon tab's active tool. */
 	setDrawTool(tool: DrawTool): void;
+	/** Arm (or, with null, disarm) the Freeform: Shape / Curve drawing tool. */
+	armFreeformTool?(tool: FreeformToolKind | null): void;
 	/** Set the pen/highlighter stroke colour (Draw tab). */
 	setDrawColor(color: string): void;
 	/** Set the pen/highlighter stroke width (Draw tab). */
@@ -151,6 +173,7 @@ export function buildChromeCallbacks(
 			toggleNotes: () => deps.toggleNotes(),
 			openAccessibility: () => deps.openAccessibility(),
 			openSettings: (tab) => deps.openSettings(tab),
+			getCustomization: deps.getCustomization,
 			openHeaderFooter: () => deps.openHeaderFooter(),
 			openCompare: () => deps.openCompare(),
 			openSelectionPane: () => deps.openSelectionPane(),
@@ -178,6 +201,7 @@ export function buildChromeCallbacks(
 			openRecentFile: (key) => deps.openRecentFile(key),
 			createPresentation: (templateId) => deps.createPresentation(templateId),
 			openSettings: () => deps.openSettings('general'),
+			getCustomization: deps.getCustomization,
 			openShare: () => deps.openShare(),
 			openDocumentProperties: () => deps.openDocumentProperties(),
 			openFontEmbedding: () => deps.openFontEmbedding(),
@@ -227,6 +251,11 @@ export function buildChromeCallbacks(
 			insertEquation: (omml) => deps.getEditActions().insertEquation(omml),
 			insertActionButton: (shapeType) => deps.getEditActions().insertActionButton(shapeType),
 			insertField: (fieldType, value) => deps.getEditActions().insertField(fieldType, value),
+			armFreeformTool: (tool) => deps.armFreeformTool?.(tool),
+			visibleDrawingTools: () =>
+				FREEFORM_TOOL_IDS.filter((tool) =>
+					isDrawingToolVisible(deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION, tool),
+				),
 		},
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 		design: {

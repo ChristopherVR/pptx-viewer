@@ -1,10 +1,11 @@
-import type { PptxChartData, PptxChartHistogramOptions, PptxElement } from 'pptx-viewer-core';
+import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
 import { buildValueAxisGridlinesAndLabels, findValueAxis } from './chart-cx-axis-units';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { distributionRange } from './chart-distribution-range';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { aggregateByCategory, computeHistogramBins } from './chart-histogram-binning';
 import { buildParetoAxis, buildParetoPrimitives, orderParetoEntries } from './chart-pareto';
 import type { ParetoEntry } from './chart-pareto';
 import type {
@@ -25,93 +26,16 @@ import {
 	valueToY,
 } from './chart-view-model';
 
+// Re-exported so `chart-distribution.ts`'s existing `export * from
+// './chart-histogram'` barrel keeps surfacing these after the split.
+export {
+	aggregateByCategory,
+	computeHistogramBins,
+	scottBinCount,
+} from './chart-histogram-binning';
+export type { HistogramBin } from './chart-histogram-binning';
+
 const DATA_LABEL_COLOR = '#334155';
-
-export interface HistogramBin {
-	value: number;
-	label: string;
-	sourceIndices: number[];
-}
-
-function binLabel(lower: number, upper: number, closed: 'l' | 'r'): string {
-	return closed === 'r'
-		? `(${formatAxisValue(lower)}, ${formatAxisValue(upper)}]`
-		: `[${formatAxisValue(lower)}, ${formatAxisValue(upper)})`;
-}
-
-/** Bin raw observations according to ChartEx binning properties. */
-export function computeHistogramBins(
-	values: ReadonlyArray<number>,
-	options: PptxChartHistogramOptions,
-): HistogramBin[] {
-	const closed = options.intervalClosed ?? 'l';
-	const finite = values
-		.map((value, sourceIndex) => ({ value, sourceIndex }))
-		.filter((item) => Number.isFinite(item.value));
-	if (finite.length === 0) {
-		return [];
-	}
-	const underflow = typeof options.underflow === 'number' ? options.underflow : undefined;
-	const overflow = typeof options.overflow === 'number' ? options.overflow : undefined;
-	const under =
-		underflow === undefined
-			? []
-			: finite.filter((item) =>
-					closed === 'r' ? item.value <= underflow : item.value < underflow,
-				);
-	const over =
-		overflow === undefined
-			? []
-			: finite.filter((item) => (closed === 'l' ? item.value >= overflow : item.value > overflow));
-	const regular = finite.filter((item) => !under.includes(item) && !over.includes(item));
-	const result: HistogramBin[] = [];
-	if (underflow !== undefined) {
-		result.push({
-			value: under.length,
-			label: `${closed === 'r' ? '≤' : '<'} ${formatAxisValue(underflow)}`,
-			sourceIndices: under.map((item) => item.sourceIndex),
-		});
-	}
-	if (regular.length > 0) {
-		const min = Math.min(...regular.map((item) => item.value));
-		const max = Math.max(...regular.map((item) => item.value));
-		const requestedSize = options.binSize && options.binSize > 0 ? options.binSize : undefined;
-		const requestedCount = options.binCount && options.binCount > 0 ? options.binCount : undefined;
-		const start = requestedSize ? Math.floor(min / requestedSize) * requestedSize : min;
-		const count = requestedSize
-			? Math.max(
-					closed === 'l'
-						? Math.floor((max - start) / requestedSize) + 1
-						: Math.ceil((max - start) / requestedSize),
-					1,
-				)
-			: Math.max(requestedCount ?? Math.ceil(Math.sqrt(regular.length)), 1);
-		const width = requestedSize ?? Math.max((max - start) / count, 1);
-		const bins = Array.from({ length: count }, (_, index) => ({
-			value: 0,
-			label: binLabel(start + index * width, start + (index + 1) * width, closed),
-			sourceIndices: [] as number[],
-		}));
-		for (const item of regular) {
-			const rawIndex =
-				closed === 'r'
-					? Math.ceil((item.value - start) / width) - 1
-					: Math.floor((item.value - start) / width);
-			const index = Math.max(0, Math.min(rawIndex, bins.length - 1));
-			bins[index].value += 1;
-			bins[index].sourceIndices.push(item.sourceIndex);
-		}
-		result.push(...bins);
-	}
-	if (overflow !== undefined) {
-		result.push({
-			value: over.length,
-			label: `${closed === 'l' ? '≥' : '>'} ${formatAxisValue(overflow)}`,
-			sourceIndices: over.map((item) => item.sourceIndex),
-		});
-	}
-	return result;
-}
 
 export interface HistogramBar {
 	x: number;
@@ -132,6 +56,11 @@ export function computeHistogramBars(
 ): HistogramBar[] {
 	const count = Math.max(catCount, values.length, 1);
 	const barWidth = layout.plotWidth / count;
+	// A histogram (and a Pareto's frequency bars) plots ONE distribution, not
+	// one colour-coded category per bar: every bar takes the series' own
+	// colour (COM-verified against charts-com.pptx slides 30-31, chartEx5/6:
+	// PowerPoint paints every bin/bar the same single accent colour).
+	const fill = seriesColorOverride ?? paletteColor(0, colorPalette);
 	return values.map((val, pointIndex) => {
 		const zeroY = valueToY(0, range, layout.plotTop, layout.plotBottom);
 		const valY = valueToY(val, range, layout.plotTop, layout.plotBottom);
@@ -140,7 +69,7 @@ export function computeHistogramBars(
 			y: Math.min(zeroY, valY),
 			w: Math.max(barWidth - 0.5, 1),
 			h: Math.max(Math.abs(zeroY - valY), 1),
-			fill: seriesColorOverride ?? paletteColor(pointIndex, colorPalette),
+			fill,
 			pointIndex,
 		};
 	});
@@ -163,8 +92,9 @@ export function buildHistogramViewModel(
 	);
 	const series = chartData.series[histogramIndex];
 	const options = series?.histogramOptions;
-	const bins =
-		options?.layout === 'histogram'
+	const bins = options?.aggregateByCategory
+		? aggregateByCategory(series?.values ?? [], categoryLabels)
+		: options?.layout === 'histogram'
 			? computeHistogramBins(series?.values ?? [], options)
 			: undefined;
 	const baseEntries: ParetoEntry[] = (

@@ -22,6 +22,48 @@ function makeHandlers(over: Partial<RibbonInsertHandlers> = {}): RibbonInsertHan
 describe('createInsertTab', () => {
 	afterEach(() => document.body.replaceChildren());
 
+	it('offers the Freeform: Shape and Curve tools and arms / disarms them', () => {
+		const t = createTranslator();
+		const armFreeformTool = vi.fn();
+		const tab = createInsertTab(
+			document,
+			t,
+			makeHandlers({
+				armFreeformTool,
+				visibleDrawingTools: () => ['freeformShape', 'curve'],
+			}),
+			vi.fn(),
+			vi.fn(),
+			vi.fn(),
+		);
+		const freeform = tab.el.querySelector<HTMLButtonElement>(
+			'[data-pptx-drawing-tool="freeformShape"]',
+		);
+		const curve = tab.el.querySelector<HTMLButtonElement>('[data-pptx-drawing-tool="curve"]');
+		expect(freeform?.getAttribute('aria-label')).toBe('Freeform: Shape');
+		expect(curve?.getAttribute('aria-pressed')).toBe('false');
+		curve?.click();
+		expect(armFreeformTool).toHaveBeenLastCalledWith('curve');
+		tab.setFreeformTool('curve');
+		expect(curve?.getAttribute('aria-pressed')).toBe('true');
+		curve?.click();
+		expect(armFreeformTool).toHaveBeenLastCalledWith(null);
+	});
+
+	it('leaves the drawing tools out when the host hides them', () => {
+		const t = createTranslator();
+		const tab = createInsertTab(
+			document,
+			t,
+			makeHandlers({ armFreeformTool: vi.fn(), visibleDrawingTools: () => ['curve'] }),
+			vi.fn(),
+			vi.fn(),
+			vi.fn(),
+		);
+		expect(tab.el.querySelector('[data-pptx-drawing-tool="freeformShape"]')).toBeNull();
+		expect(tab.el.querySelector('[data-pptx-drawing-tool="curve"]')).not.toBeNull();
+	});
+
 	it('renders the React-aligned insert commands and a single SmartArt trigger', () => {
 		const t = createTranslator();
 		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), vi.fn());

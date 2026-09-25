@@ -3,6 +3,7 @@ import type {
 	ToolbarTabId,
 	ViewerOptionPrimitive,
 	ViewerOptions,
+	ViewerOptionsConstraints,
 	ViewerOptionsGroupId,
 	ViewerOptionsStore,
 	ViewerOptionsStoreInit,
@@ -76,6 +77,16 @@ export class ViewerOptionsState {
 
 	setValue(group: ViewerOptionsGroupId, key: string, value: ViewerOptionPrimitive): void {
 		this.#store.setValue(group, key, value);
+	}
+
+	/** Host locks + defaults (from the `customization` prop); see the shared store. */
+	setConstraints(constraints: ViewerOptionsConstraints): void {
+		this.#store.setConstraints(constraints);
+	}
+
+	/** True when the host locked `<group>.<key>`. */
+	isLocked(group: ViewerOptionsGroupId, key: string): boolean {
+		return this.#store.isLocked(group, key);
 	}
 
 	/** Restore a snapshot wholesale (the dialog's Cancel semantics). */

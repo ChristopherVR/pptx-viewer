@@ -1,4 +1,4 @@
-import { backstageCardsFor } from 'pptx-viewer-shared';
+import { backstageCardsFor, customizeBackstageCards } from 'pptx-viewer-shared';
 import type { BackstageCardId, BackstagePage } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,7 @@ import {
 	LuVideo,
 } from 'react-icons/lu';
 
+import { useViewerCustomizationContext } from '../viewer-customization-context';
 import { BackstageAction } from './file-backstage-parts';
 import type { FileSectionProps } from './file-backstage-parts';
 
@@ -84,8 +85,10 @@ export function BackstageCards({
 	};
 	// The macro format is offered only when the open deck actually carries VBA,
 	// matching PowerPoint's own Save As list.
-	const cards = backstageCardsFor(page).filter(
-		(card) => card.id !== 'saveAsPptm' || props.hasMacros,
+	const customization = useViewerCustomizationContext();
+	const cards = customizeBackstageCards(
+		backstageCardsFor(page).filter((card) => card.id !== 'saveAsPptm' || props.hasMacros),
+		customization,
 	);
 	if (cards.length === 0) {
 		return null;

@@ -132,10 +132,10 @@ describe('slideTextBlock - reflection (a:rPr/a:effectLst/a:reflection)', () => {
 });
 
 /**
- * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
- * already emits sibling runs, but a tab-separated piece and a ruby base text
- * each stay ONE piece, so shared hands the word/gap breakdown over as
- * `piece.words` / `run.underlineWordPieces` and the template renders it.
+ * `a:rPr/@u="words"` renders like PowerPoint: one continuous underline, gaps
+ * included, exactly like `sng` (COM-verified in the 2026-09 limitations wave;
+ * see `splitsUnderlineIntoWords` in shared). A tab-separated piece and a
+ * ruby base text therefore stay whole and underlined.
  */
 describe('slideTextBlock - u="words" on tab pieces and ruby runs', () => {
 	const wordsStyle = {
@@ -145,7 +145,7 @@ describe('slideTextBlock - u="words" on tab pieces and ruby runs', () => {
 		underlineStyle: 'words',
 	};
 
-	it('renders a tab piece as one span per word with no underline under the gap', () => {
+	it('keeps a tab piece whole and underlined, gap included', () => {
 		const seg = { text: 'Hello World\t12', style: wordsStyle } as unknown as TextSegment;
 		const el = {
 			...element({ textStyle: { tabStops: [{ position: 300, align: 'r' }] } }),
@@ -154,17 +154,12 @@ describe('slideTextBlock - u="words" on tab pieces and ruby runs', () => {
 		const wrapper = mount(SlideTextBlock, {
 			props: { paragraphs: buildParagraphs(el), textStyle: {} },
 		});
-		const spans = wrapper.findAll('span');
-		expect(spans.find((s) => s.text() === 'Hello World')).toBeUndefined();
-		const hello = spans.find((s) => s.text() === 'Hello');
-		expect(hello?.attributes('style')).toContain('underline');
-		expect(hello?.attributes('style')).toContain('inline-block');
-		const gap = spans.find((s) => s.element.textContent === ' ');
-		expect(gap).toBeDefined();
-		expect(gap?.attributes('style') ?? '').not.toContain('underline');
+		const piece = wrapper.findAll('span').find((s) => s.text() === 'Hello World');
+		expect(piece?.attributes('style')).toContain('underline');
+		expect(piece?.attributes('style')).toContain('inline-block');
 	});
 
-	it('renders a ruby base text word by word, the ruby element itself undecorated', () => {
+	it('keeps a ruby base text as one underlined run', () => {
 		const seg = {
 			text: 'two words',
 			rubyText: 'reading',
@@ -175,9 +170,7 @@ describe('slideTextBlock - u="words" on tab pieces and ruby runs', () => {
 			props: { paragraphs: buildParagraphs(el), textStyle: {} },
 		});
 		const ruby = wrapper.get('ruby');
-		expect(ruby.attributes('style') ?? '').not.toContain('underline');
-		const word = ruby.findAll('span').find((s) => s.text() === 'two');
-		expect(word?.attributes('style')).toContain('underline');
 		expect(ruby.text()).toContain('two words');
+		expect(ruby.element.closest('[style*="underline"]')).not.toBeNull();
 	});
 });

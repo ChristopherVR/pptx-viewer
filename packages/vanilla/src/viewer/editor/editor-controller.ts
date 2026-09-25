@@ -17,11 +17,16 @@ import {
 	armEditorKeyboard,
 	cycleSelectableElement,
 	downloadBlob,
-	mapEditorKey,
+	mapCustomizedEditorKey,
 	mapInlineTextFormatKey,
 	moveGuide,
 	removeGuide,
 	savedPresentationFileName,
+} from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	ResolvedCustomization,
+	ResolvedKeyboardCustomization,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
@@ -35,6 +40,7 @@ import { createChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import type { ChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import { createConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import type { ConnectorEndpointOverlay } from './connector-endpoint-overlay';
+import { createCropModeController } from './crop-mode-controller';
 import { createEditingChromeSync } from './editing-chrome-sync';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import { selectionOverlayBox } from './editor-controller-overlay';
@@ -50,6 +56,7 @@ import { createEditorOps } from './editor-operations';
 import { recordRecentColor } from './editor-recent-colors';
 import { createStageInteractions } from './editor-stage-interactions';
 import { createMotionPathController } from './motion-path-controller';
+import { createOutlineAuthoringController } from './outline-authoring-controller';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
 import { selectedAdjustmentDescriptors } from './shape-adjust-gesture';
@@ -76,6 +83,10 @@ export interface EditorControllerDeps {
 	onInlineTextInput?: (elementId: string, text: string) => void;
 	/** Push any queued live-preview frame out before an inline commit lands. */
 	flushInlineTextInput?: () => void;
+	/** The host's keyboard customisation, read on every key press. */
+	getKeyboardCustomization?: () => ResolvedKeyboardCustomization | undefined;
+	/** The host's resolved UI customisation (Edit Points gating, hidden commands). */
+	getCustomization?: () => ResolvedCustomization | undefined;
 }
 
 export interface EditorController {
@@ -109,6 +120,10 @@ export interface EditorController {
 	setDrawColor(color: string): void;
 	/** Set the pen/highlighter stroke width used by the next committed stroke. */
 	setDrawWidth(width: number): void;
+	/** Start Edit Points on `id` (context menu); false when it cannot be edited. */
+	startEditPoints(id: string): boolean;
+	/** Arm (or, with null, disarm) the Freeform: Shape / Curve drawing tool. */
+	armFreeformTool(tool: FreeformToolKind | null): void;
 	/** The formatting / insert / arrange actions for the editing chrome. */
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
@@ -245,11 +260,11 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			editActions.toggleUnderline();
 			return true;
 		}
-		const { action } = mapEditorKey(event, {
-			isEditingText: true,
-			canEdit: true,
-			hasSelection: true,
-		});
+		const { action } = mapCustomizedEditorKey(
+			event,
+			{ isEditingText: true, canEdit: true, hasSelection: true },
+			deps.getKeyboardCustomization?.(),
+		);
 		switch (action) {
 			case 'alignLeft':
 				editActions.setTextAlign('left');
@@ -370,19 +385,48 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onChangePath: (path) => editActions.setMotionPathData(path),
 	});
 
+	// Edit Points and the Freeform: Shape / Curve tools, also inside the stage.
+	const outlineAuthoring = createOutlineAuthoringController({
+		doc,
+		store,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		getStageWrap: () => attachedWrap,
+		getCustomization: deps.getCustomization,
+		applyElementPatch: (id, patch) => applyElementPatch(id, patch),
+		insertElement: (element) => editActions.insertElement(element),
+	});
+
+	// Picture crop mode's on-canvas overlay; like the motion path it lives
+	// inside the stage transform and re-mounts after every stage rebuild.
+	const cropMode = createCropModeController({
+		doc,
+		store,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		getStageWrap: () => attachedWrap,
+		actions: editActions,
+	});
+
 	const syncOverlay = (): void => {
 		// The format toolbar + inspector track selection even before the overlay
 		// layer is mounted, so refresh them regardless of the overlay guard.
 		syncEditingChrome();
 		motionPath.sync();
+		outlineAuthoring.sync();
+		cropMode.sync();
 		if (!overlay) {
 			return;
 		}
 		const state = store.get();
+		// Crop mode replaces the selection chrome with its own crop handles.
 		const selected =
-			state.editable && !state.presenting
-				? getActiveElements(state).filter((element) =>
-						state.selectedElementIds.includes(element.id),
+			state.editable && !state.presenting && !state.cropSession
+				? getActiveElements(state).filter(
+						(element) =>
+							state.selectedElementIds.includes(element.id) &&
+							// A shape in Edit Points mode shows its vertices, not its box.
+							!outlineAuthoring.isEditingPoints(element.id),
 					)
 				: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
@@ -390,7 +434,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		// `noResize` shape shows no resize handles, a `noRotation` one no knob.
 		const allowed = selectionInteractivity(state);
 		overlay.setHandleVisibility({ resizable: allowed.resizable, rotatable: allowed.rotatable });
-		overlay.setAdjustHandles(selectedAdjustmentDescriptors(state), deps.getScale());
+		overlay.setAdjustHandles(
+			state.cropSession ? [] : selectedAdjustmentDescriptors(state),
+			deps.getScale(),
+		);
 		connectorEndpoints?.sync();
 		chartQuickActions?.sync();
 		// View > Guides hides the overlay, never the model: `state.guides` stays
@@ -418,6 +465,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	};
 
 	const onKeyDown = createEditorKeydownHandler({
+		getKeyboardCustomization: deps.getKeyboardCustomization,
 		isActive: () => {
 			const state = store.get();
 			return state.editable && !state.presenting && !interactions.inlineActive();
@@ -536,6 +584,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		chartQuickActions?.dispose();
 		chartQuickActions = null;
 		motionPath.detach();
+		outlineAuthoring.detach();
+		cropMode.detach();
 	};
 
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
@@ -619,6 +669,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
+			cropMode.attach(attachedRoot);
 			detachImagePaste = attachCanvasImagePaste(attachedRoot, attachedWrap, {
 				store,
 				getHandler: deps.getHandler,
@@ -648,6 +699,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		hasActivePointerInteraction: () =>
 			interactions.hasActivePointerInteraction() ||
 			drawMode.isActive() ||
+			cropMode.isDragging() ||
 			Boolean(connectorEndpoints?.isActive()),
 		capturesKeyboard() {
 			const state = store.get();
@@ -663,7 +715,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				dirty: false,
 				interactionActive: false,
 				drawTool: 'select',
+				editPointsElementId: null,
+				freeformTool: null,
 				formatPainterSourceId: null,
+				cropSession: null,
 				editTemplateMode: false,
 				masterViewTarget: null,
 				masterViewTab: 'slides',
@@ -712,6 +767,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			drawMode.setColor(color);
 		},
 		setDrawWidth: (width) => drawMode.setWidth(width),
+		startEditPoints: (id) => outlineAuthoring.startEditPoints(id),
+		armFreeformTool: (tool) => outlineAuthoring.armFreeformTool(tool),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),
@@ -738,6 +795,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		destroy() {
 			unsubscribe();
+			cropMode.destroy();
 			interactions.dispose();
 			drawMode.dispose();
 			detachChrome();

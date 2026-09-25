@@ -148,6 +148,11 @@
 		onContextMenuClose={() => {
 			vm.stageContextMenu = null;
 		}}
+		canvasContextMenu={vm.stageCanvasContextMenu}
+		onCanvasContextMenuClose={() => {
+			vm.stageCanvasContextMenu = null;
+		}}
+		{parityUi}
 		onmoveSlide={(fromIndex, toIndex) => {
 			const target = editor.slidesOps.moveSlide(fromIndex, toIndex);
 			if (target !== null) viewer.goTo(target);

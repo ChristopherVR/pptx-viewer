@@ -20,6 +20,8 @@ import {
 	setEffectSound,
 	setEffectStockSound,
 	setRepeatCount,
+	TRIGGER_OPTIONS,
+	triggerChangePatch,
 } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -31,6 +33,7 @@ import {
 	ANIMATION_TIMING_CURVE_LABEL_KEYS,
 } from './animation-editor-label-keys';
 import { animationElementLabel, animationPresetLabel } from './animation-panel-model';
+import BookmarkTriggerRow from './BookmarkTriggerRow.vue';
 import EffectSoundRow from './EffectSoundRow.vue';
 
 const props = defineProps<{
@@ -52,14 +55,6 @@ const emit = defineEmits<{
 }>();
 const { t } = useI18n();
 
-const triggers: readonly PptxAnimationTrigger[] = [
-	'onClick',
-	'withPrevious',
-	'afterPrevious',
-	'afterDelay',
-	'onHover',
-	'onShapeClick',
-];
 const directions: readonly PptxAnimationDirection[] = [
 	'fromLeft',
 	'fromRight',
@@ -260,17 +255,20 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 				:aria-label="t('pptx.animation.triggerAria')"
 				:value="animation.trigger ?? 'onClick'"
 				@change="
-					emit('patch', {
-						trigger: value($event) as PptxAnimationTrigger,
-						triggerShapeId: value($event) === 'onShapeClick' ? animation.triggerShapeId : undefined,
-					})
+					emit('patch', triggerChangePatch(animation, value($event) as PptxAnimationTrigger))
 				"
 			>
-				<option v-for="item in triggers" :key="item" :value="item">
-					{{ t(`pptx.animation.trigger.${item}`) }}
+				<option v-for="item in TRIGGER_OPTIONS" :key="item.value" :value="item.value">
+					{{ t(item.labelKey) }}
 				</option>
 			</pptx-ui-select>
 		</label>
+		<BookmarkTriggerRow
+			v-if="animation.trigger === 'onMediaBookmark'"
+			:animation="animation"
+			:elements="elements"
+			@patch="(patch) => emit('patch', patch)"
+		/>
 		<label v-if="animation.trigger === 'onShapeClick'"
 			>{{ t('pptx.animation.trigger.shapeLabel') }}
 			<pptx-ui-select

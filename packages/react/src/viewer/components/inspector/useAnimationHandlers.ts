@@ -25,6 +25,8 @@ import {
 	setAfterAnimationColor,
 	setEffectSound,
 	setEffectStockSound,
+	setTrigger,
+	setTriggerBookmark,
 } from 'pptx-viewer-shared';
 import React, { useCallback, useMemo } from 'react';
 
@@ -195,13 +197,18 @@ export function useAnimationHandlers({
 
 	const handleTriggerChange = useCallback(
 		(event: React.ChangeEvent<HTMLSelectElement>) => {
+			// One update: two `updateAnimationField` calls each patched the SAME
+			// stale list, so the second (clearing the target) undid the first.
 			const newTrigger = event.target.value as PptxAnimationTrigger;
-			updateAnimationField('trigger', newTrigger);
-			if (newTrigger !== 'onShapeClick') {
-				updateAnimationField('triggerShapeId', undefined);
-			}
+			updateAnimations((anims) => setTrigger(anims, selectedElement.id, newTrigger));
 		},
-		[updateAnimationField],
+		[updateAnimations, selectedElement.id],
+	);
+
+	const handleTriggerBookmarkChange = useCallback(
+		(optionValue: string) =>
+			updateAnimations((anims) => setTriggerBookmark(anims, selectedElement.id, optionValue)),
+		[updateAnimations, selectedElement.id],
 	);
 
 	const handleTriggerShapeChange = useCallback(
@@ -378,6 +385,7 @@ export function useAnimationHandlers({
 		handleEmphasisChange,
 		handleTriggerChange,
 		handleTriggerShapeChange,
+		handleTriggerBookmarkChange,
 		handleTimingCurveChange,
 		handleDurationChange,
 		handleDelayChange,

@@ -242,6 +242,8 @@ export type {
 	SupportedChartKind,
 	PlotLayoutOptions,
 	ChartSvgDef,
+	ChartSvgGradientDef,
+	ChartSvgGradientStop,
 	ChartSvgPatternDef,
 } from './chart-view-model';
 // `c:manualLayout` (CT_ManualLayout) conversion: the pure edge / factor
@@ -370,6 +372,7 @@ export * from './animation-css';
 // `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
 // services / RAF loops stay in each binding.
 export * from './animation-authoring';
+export * from './animation-bookmark-trigger';
 // Merges `animations[]` with the deck's own read-only effect anchors into one
 // draggable timeline, so drag-to-reorder can target the FULL sequence
 // (editor-authored AND deck-native effects), not just the editor's own.
@@ -484,6 +487,12 @@ export * from './animation-preview';
 export * from './motion-path-presets';
 export * from './motion-path-geometry';
 export * from './motion-path-authoring';
+// The ribbon Animations tab's "Preview" command: a one-shot in-place replay of
+// the selected element's own authored effect on the live canvas node. Lifted
+// out of the vanilla/svelte bindings (the only two that ever played a real
+// preview instead of a button highlight or a full slide-show entry) so all
+// five ribbons share one implementation.
+export * from './animation-ribbon-preview';
 // `visual-3d` is the public surface; it re-exports the symbols from its sibling
 // modules (`visual-3d-camera`, `visual-3d-materials`, `visual-3d-extrusion`,
 // `visual-3d-color`, `visual-3d-constants`), so they are NOT flattened here to
@@ -677,6 +686,7 @@ export * from './text-run-effects';
 export * from './text-run-style';
 // Hollow/outline-only text fill decision, split out of `text-run-style`.
 export * from './text-run-hollow';
+export * from './text-outline-dash';
 // Per-run letter-spacing + metric-tracking split helpers, split out of
 // `text-run-style`.
 export * from './text-run-spacing';
@@ -1223,6 +1233,8 @@ export * from './slide-show-start-keymap';
 // with its own keys (slide clipboard, duplicate, delete, thumbnail zoom, and an
 // Escape that collapses a multi-selection before it closes).
 export * from './slide-sorter-keymap';
+export * from './slide-pane-selection';
+export * from './slide-pane-context-menu';
 // Focus repair for bindings whose canvas gesture preventDefault()s the click,
 // which would otherwise park focus on document.body and kill their keymap.
 export * from './editor-keyboard-focus';
@@ -1239,6 +1251,7 @@ export * from './context-menu-commands';
 // Background, Grid and Guides, Ruler): distinct command set from the
 // per-element menu above, offered when the right-click hits no element.
 export * from './canvas-context-menu-commands';
+export * from './canvas-element-node';
 // Which inspector section a "format object" command (Edit Alt Text, Size and
 // Position, Format Shape) should scroll into view once the properties tab is open.
 export * from './context-menu-inspector-anchor';
@@ -1542,6 +1555,10 @@ export * from './toolbar-actions';
 // File > Options parity: schema, store, persistence, and behavior helpers
 // behind the PowerPoint-style Options dialog in every binding.
 export * from './options';
+// Host UI customisation: one framework-neutral model (ribbon, File > Options,
+// File tab, context menus, keyboard, panels, features, dialogs) plus the
+// per-viewer controller whose helpers every binding exposes imperatively.
+export * from './customization';
 
 // small helper extractions (wave 2)
 // OLE placeholder icon SVG-fragment primitives (rect/line/text builders +
@@ -1707,6 +1724,11 @@ export { readInlineListSelection, restoreInlineListBodySelection } from './inlin
 export type { InlineListSelectionResult } from './inline-list-selection';
 export { reconcileInlineListFormatting } from './inline-list-format';
 export * from './freeform-stroke-geometry';
+// Edit Points (reshape a shape's outline) and the Freeform: Shape / Curve
+// click-to-place drawing tools.
+export * from './edit-points';
+export * from './merge-shapes';
+export * from './picture-crop';
 export { isExportIgnoredElement, prepareExportClone } from './export-clone';
 
 export * from './element-update-batch';

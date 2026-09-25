@@ -1,28 +1,25 @@
-import type { PptxElement, PptxTableData, TablePptxElement } from 'pptx-viewer-core';
+import type { PptxElement } from 'pptx-viewer-core';
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	contextMenuInspectorAnchor,
+	customizeContextMenuEntries,
 	hasMultipleSelectedTableCells,
+	mergeOperationForCommand,
 	resolveContextMenuElementId,
+	resolveEditPointsAvailability,
 	resolveTopLevelElementId,
 	scrollInspectorSectionIntoView,
 } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import type { ContextMenuItem } from '../components/ContextMenu.vue';
 import { saveContextMenuElementAsPicture } from '../export/save-element-as-picture';
-import {
-	applyDeleteColumn,
-	applyDeleteRow,
-	applyInsertColumn,
-	applyInsertRow,
-	applyMergeDown,
-	applyMergeRight,
-	applyMergeSelected,
-	applySplitCell,
-} from './table-mutations';
+import { runContextTableAction } from './context-menu-table-actions';
+import type { MergeCropController } from './merge-crop-context';
 import type { TableSelectionState } from './table-selection';
 import { isElementIdInteractive } from './template-editing';
 import type { EditorOperations } from './useEditorOperations';
@@ -75,6 +72,18 @@ export interface UseContextMenuInput {
 	onAskAi?: () => void;
 	/** Open the AI panel with a prefilled "fix this element" directive (not sent). */
 	onFixAi?: () => void;
+	/**
+	 * Right-click landed on empty canvas (no interactive element under the
+	 * cursor). Wired to `useCanvasContextMenu`'s opener; when omitted the
+	 * click is left unhandled (browser's own menu), matching the old behaviour.
+	 */
+	onEmptyCanvasContextMenu?: (x: number, y: number) => void;
+	/** The host's resolved UI customisation (hidden commands / disabled menu). */
+	customization?: () => ResolvedCustomization;
+	/** "Edit Points": offered (per the shared lock / type rules) only when wired. */
+	onEditPoints?: (element: PptxElement) => void;
+	/** Merge Shapes + picture Crop (the `merge-*` and `crop` entries). */
+	mergeCrop?: MergeCropController;
 }
 
 export interface UseContextMenuResult {
@@ -115,6 +124,10 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		aiEnabled,
 		onAskAi,
 		onFixAi,
+		onEmptyCanvasContextMenu,
+		customization,
+		onEditPoints,
+		mergeCrop,
 	} = input;
 
 	const contextMenu = ref<ContextMenuState>({
@@ -157,14 +170,18 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 	 */
 	const contextItems = computed<ContextMenuItem[]>(() => {
 		const tbl = contextTable.value;
-		const entries = buildContextMenuEntries({
+		const built = buildContextMenuEntries({
 			elementType: contextElement.value?.type ?? null,
 			table: tbl ? { hasMultiCellSelection: tbl.hasMulti, isMergedCell: tbl.isMerged } : null,
 			hasMultiSelection: canGroup.value,
 			selectionGroupable: selectionGroupable.value,
 			aiEnabled: aiEnabled?.(),
 			hasClipboard: hasClipboard.value,
+			editPoints: onEditPoints ? resolveEditPointsAvailability(contextElement.value) : undefined,
+			canMergeShapes: mergeCrop?.canMerge.value,
+			canCrop: canCropElement(contextElement.value),
 		});
+		const entries = customization ? customizeContextMenuEntries(built, customization()) : built;
 		return entries.flatMap((entry, index) => {
 			const item: ContextMenuItem = {
 				id: entry.id,
@@ -177,24 +194,6 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		});
 	});
 
-	/** Apply a table op result (or no-op when null) to the context-menu table. */
-	function applyContextTableData(next: PptxTableData | null): void {
-		const tbl = contextTable.value;
-		if (tbl && next) {
-			ops.updateElement(tbl.el.id, { tableData: next } as Partial<PptxElement>);
-		}
-	}
-
-	/** Apply a structural result with its synchronised raw table XML. */
-	function applyContextTableElement(next: TablePptxElement | null): void {
-		const tbl = contextTable.value;
-		if (tbl && next && next !== tbl.el) {
-			ops.updateElement(tbl.el.id, {
-				tableData: next.tableData,
-				rawXml: next.rawXml,
-			} as Partial<PptxElement>);
-		}
-	}
 	function onCanvasContextMenu(event: MouseEvent): void {
 		if (!canEdit()) {
 			return;
@@ -209,8 +208,17 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		// hit-test above therefore comes back empty for a right-click on the very
 		// element the user just picked, so fall back to the element being edited.
 		const id = resolveContextMenuElementId(hitId, event.target, inlineEditingElementId.value);
+		if (!id) {
+			// Empty canvas: offer Paste/Layout/Reset/Format Background/Grid/Ruler
+			// instead of leaving this a no-op (the browser's own menu used to win).
+			if (onEmptyCanvasContextMenu) {
+				event.preventDefault();
+				onEmptyCanvasContextMenu(event.clientX, event.clientY);
+			}
+			return;
+		}
 		// Locked template elements (edit-template mode off) are not actionable.
-		if (!id || !isElementIdInteractive(id, editTemplateMode.value)) {
+		if (!isElementIdInteractive(id, editTemplateMode.value)) {
 			return;
 		}
 		event.preventDefault();
@@ -218,6 +226,10 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			selectedElementIds.value = [id];
 		}
 		contextMenu.value = { open: true, x: event.clientX, y: event.clientY, elementId: id };
+		// The host removed every entry (or the whole menu): render nothing.
+		if (contextItems.value.length === 0) {
+			contextMenu.value = { ...contextMenu.value, open: false };
+		}
 	}
 	function onContextSelect(actionId: string): void {
 		const target = contextMenu.value.elementId;
@@ -274,6 +286,11 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			case 'edit-text':
 				enterInlineEdit(target);
 				break;
+			case 'edit-points':
+				if (contextElement.value) {
+					onEditPoints?.(contextElement.value);
+				}
+				break;
 			case 'save-as-picture':
 				void saveContextMenuElementAsPicture(
 					target,
@@ -290,9 +307,18 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			case 'format-shape':
 				focusInspectorSection(contextMenuInspectorAnchor('format-shape'));
 				break;
-			default:
-				onContextTableSelect(actionId);
+			case 'crop':
+				mergeCrop?.enterCrop(target);
 				break;
+			default: {
+				const op = mergeOperationForCommand(actionId);
+				if (op) {
+					mergeCrop?.merge(op);
+				} else {
+					runContextTableAction(actionId, contextTable.value, ops);
+				}
+				break;
+			}
 		}
 	}
 
@@ -309,51 +335,6 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		requestAnimationFrame(() => {
 			requestAnimationFrame(() => scrollInspectorSectionIntoView(document, anchor));
 		});
-	}
-
-	/** Handle the table-specific context-menu entries (row / column / merge / split). */
-	function onContextTableSelect(actionId: string): void {
-		const tbl = contextTable.value;
-		if (!tbl) {
-			return;
-		}
-		const td = tbl.el.tableData;
-		if (!td) {
-			return;
-		}
-		const { rowIndex, columnIndex } = tbl.sel;
-		switch (actionId) {
-			case 'table-insert-row-above':
-				applyContextTableElement(applyInsertRow(tbl.el, rowIndex, 'above'));
-				break;
-			case 'table-insert-row-below':
-				applyContextTableElement(applyInsertRow(tbl.el, rowIndex, 'below'));
-				break;
-			case 'table-delete-row':
-				applyContextTableElement(applyDeleteRow(tbl.el, rowIndex));
-				break;
-			case 'table-insert-col-left':
-				applyContextTableElement(applyInsertColumn(tbl.el, columnIndex, 'left'));
-				break;
-			case 'table-insert-col-right':
-				applyContextTableElement(applyInsertColumn(tbl.el, columnIndex, 'right'));
-				break;
-			case 'table-delete-col':
-				applyContextTableElement(applyDeleteColumn(tbl.el, columnIndex));
-				break;
-			case 'table-merge-right':
-				applyContextTableData(applyMergeRight(td, rowIndex, columnIndex));
-				break;
-			case 'table-merge-down':
-				applyContextTableData(applyMergeDown(td, rowIndex, columnIndex));
-				break;
-			case 'table-merge-selected':
-				applyContextTableData(applyMergeSelected(td, tbl.sel.selectedCells));
-				break;
-			case 'table-split':
-				applyContextTableData(applySplitCell(td, rowIndex, columnIndex));
-				break;
-		}
 	}
 
 	return { contextMenu, contextItems, onCanvasContextMenu, onContextSelect };

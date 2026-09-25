@@ -2,6 +2,7 @@ import type {
 	CollaborationConfig,
 	PptxViewerInstance,
 	PptxViewerSource,
+	ViewerCustomization,
 } from 'pptx-vanilla-viewer';
 import {
 	createPptxViewer,
@@ -15,6 +16,7 @@ import {
 import { PptxHandler } from 'pptx-viewer-core';
 
 import { installDevViewerHandle } from '../../dev-viewer-handle';
+import { currentDemoCustomization } from '../../shared/demo-customization';
 import { externalSessionRequested } from '../../shared/host-owned-collaboration';
 import { currentDemo3DFlags } from '../../shared/rendering-3d-flags';
 import { buildViewerAiConfig } from './ai-config';
@@ -166,6 +168,8 @@ function openViewer(
 		pieChart3D,
 		ai: buildViewerAiConfig(),
 		shareDefaults: { userName },
+		// `?customization=<json>` (demos/shared/demo-customization.ts), for e2e.
+		customization: currentDemoCustomization() as ViewerCustomization | undefined,
 		onError: (message, error) => {
 			console.error('pptx-vanilla-viewer failed to load', message, error);
 			// A deck the viewer cannot load must not be reopened on every refresh.

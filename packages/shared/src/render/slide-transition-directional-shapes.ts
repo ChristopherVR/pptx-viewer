@@ -12,25 +12,36 @@ import { EASE, resolveOrientation } from './slide-transition-types';
 import type { SlideTransitionAnimations } from './slide-transition-types';
 
 /**
- * `p:zoom/@dir` (in/out): PowerPoint's Zoom Out swaps which layer scales up
- * vs down compared to the default Zoom (In). Not COM-verified against a real
- * PowerPoint deck; see G11 in the timing/transition audit.
+ * `p:zoom/@dir` (`ST_TransitionInOutDirectionType`, default `out`).
+ *
+ * COM-verified against PowerPoint's own CreateVideo frames: PowerPoint opens
+ * `<p:zoom/>` and `<p:zoom dir="out"/>` as `ppEffectBoxOut` and
+ * `<p:zoom dir="in"/>` as `ppEffectBoxIn`, and neither SCALES a slide. Both
+ * are a centred, slide-proportioned rectangle whose half-extent moves
+ * linearly between 0 and the full slide, and only for HALF the duration
+ * (measured at 1s and 2s, 62.5fps):
+ *  - `out` (and no `@dir`): nothing moves for the first half, then the
+ *    incoming slide is revealed through a box growing out from the centre,
+ *    over the untouched outgoing slide.
+ *  - `in`: during the first half the outgoing slide is cut down to a box
+ *    shrinking into the centre, uncovering the untouched incoming slide; the
+ *    second half just holds the incoming slide.
  */
 export function resolveZoomTransition(
 	direction: string | undefined,
 	dur: string,
 ): SlideTransitionAnimations {
-	if (direction === 'out') {
+	if (direction === 'in') {
 		return {
-			outgoing: `pptx-tr-zoom-out-rev ${dur} ${EASE} forwards`,
-			incoming: `pptx-tr-zoom-in-rev ${dur} ${EASE} forwards`,
-			outgoingOnTop: false,
+			outgoing: `pptx-tr-zoom-box-shrink ${dur} linear forwards`,
+			incoming: 'none',
+			outgoingOnTop: true,
 		};
 	}
 	return {
-		outgoing: `pptx-tr-zoom-out ${dur} ${EASE} forwards`,
-		incoming: `pptx-tr-zoom-in ${dur} ${EASE} forwards`,
-		outgoingOnTop: true,
+		outgoing: 'none',
+		incoming: `pptx-tr-zoom-box-grow ${dur} linear forwards`,
+		outgoingOnTop: false,
 	};
 }
 

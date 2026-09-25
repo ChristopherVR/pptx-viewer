@@ -2,57 +2,45 @@
  * chart-data-table-render.ts - SVG primitives for a chart's data table
  * (`c:dTable`), rendered as a grid below the plot area.
  *
- * Split out of `chart-overlays.ts` (approaching this repo's 300-line-ish
- * module guideline) so the data-table concern has its own home alongside its
- * dedicated test file.
+ * Laid out the way PowerPoint lays it out (COM-verified, charts-com.pptx
+ * slide 2; geometry in `chart-data-table-metrics.ts`): directly under the
+ * plot, the category header row standing in for the category axis labels,
+ * one data column per plot category band, and the series-key column hanging
+ * left of the plot. The table used to start 4px below the plot with its own
+ * key column INSIDE the plot width, so its columns drifted off the bars and
+ * its header collided with the category labels drawn in the same band.
  *
  * Honours every flag `PptxChartDataTable` carries: `showHorzBorder` /
- * `showVertBorder` / `showOutline` / `showKeys` (unchanged from the original
- * engine), plus `spPr` (border stroke colour/width, optional background fill)
- * and `txPr` (cell text colour/font-family/bold/italic; `txPr.fontSize`
- * overrides the 8px geometry-fit default below when explicitly set).
+ * `showVertBorder` / `showOutline` / `showKeys`, plus `spPr` (border stroke
+ * colour/width, optional background fill) and `txPr` (cell text colour /
+ * font-family / size / bold / italic).
  *
  * @module chart-data-table-render
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
-import { chartFontPx } from './chart-font';
-import type { PlotLayout, SvgLine, SvgPrimitive, SvgRect, SvgText } from './chart-view-model';
+import { resolveDataTableMetrics } from './chart-data-table-metrics';
+import type { PlotLayout, SvgLine, SvgPrimitive, SvgText } from './chart-view-model';
 import { formatAxisValue, seriesColor } from './chart-view-model';
 
-/**
- * Layout constants for the SVG data table rendered below the plot area.
- * Kept as named constants so tests can assert against them without magic numbers.
- * Cell text defaults to 8 px deliberately: it is sized to fit this 14 px row
- * grid (a geometry fit, not a PowerPoint text-class default; see chart-font.ts).
- * An explicit `dataTable.txPr.fontSize` overrides that default.
- */
+/** Minimum row height; the real height scales with the cell font. */
 export const DATA_TABLE_ROW_H = 14;
+/** Minimum header-row height. */
 export const DATA_TABLE_HEADER_H = 14;
-export const DATA_TABLE_KEY_W = 60;
+/** Minimum width of the series-key column. */
+export const DATA_TABLE_KEY_W = 40;
 export const DATA_TABLE_PADDING = 4;
-const DEFAULT_CELL_FONT_PX = 8;
-const DEFAULT_BORDER_COLOR = '#cbd5e1';
-const DEFAULT_TEXT_COLOR = '#334155';
+/** PowerPoint's built-in table rule colour (tx1 at 15%). */
+const DEFAULT_BORDER_COLOR = '#D9D9D9';
+/** PowerPoint's built-in chart text colour (tx1 at 65%). */
+const DEFAULT_TEXT_COLOR = '#595959';
 
 /**
- * Build `SvgPrimitive[]` for a simple data table rendered below the plot area.
- *
- * The table is rendered as SVG `rect` (borders/fill) + `text` (labels)
- * primitives. Columns = categories; rows = series (with an optional
- * series-key column on the left when `dataTable.showKeys !== false`).
- *
- * Border flags from `PptxChartDataTable` are respected:
- *   - `showHorzBorder` - horizontal rules between rows
- *   - `showVertBorder` - vertical rules between columns
- *   - `showOutline`    - outer border rectangle
- *   - `showKeys`       - series name/colour key column
- *
- * Mirrors `renderChartDataTable` in chart-data-table.tsx (React), translated
- * to pure SVG primitives so every binding's projector renders it identically.
+ * Build `SvgPrimitive[]` for the data table below the plot area. Columns =
+ * categories; rows = series, with an optional series-key column.
  *
  * @param chartData  Full parsed chart data (`dataTable` must be present).
- * @param layout     Plot-area bounding box - the table is placed at `plotBottom + 4`.
+ * @param layout     Plot-area bounding box; the table hangs from `plotBottom`.
  * @param colorPalette  Optional resolved colour palette (same as chart).
  */
 export function computeDataTablePrimitives(
@@ -61,231 +49,108 @@ export function computeDataTablePrimitives(
 	colorPalette?: readonly string[],
 ): SvgPrimitive[] {
 	const table = chartData.dataTable;
-	if (!table) {
-		return [];
-	}
-
+	const metrics = resolveDataTableMetrics(chartData);
 	const categories = chartData.categories;
 	const series = chartData.series;
-	if (categories.length === 0 && series.length === 0) {
+	if (!table || !metrics || (categories.length === 0 && series.length === 0)) {
 		return [];
 	}
 
 	const out: SvgPrimitive[] = [];
-
 	const showH = table.showHorzBorder !== false;
 	const showV = table.showVertBorder !== false;
 	const showO = table.showOutline !== false;
 	const showK = table.showKeys !== false;
+	const stroke = table.spPr?.strokeColor ?? DEFAULT_BORDER_COLOR;
+	const strokeWidth = table.spPr?.strokeWidth ?? 1;
+	const text = {
+		fontSize: metrics.fontSize,
+		fill: table.txPr?.color ?? DEFAULT_TEXT_COLOR,
+		fontFamily: table.txPr?.fontFamily,
+		fontStyle: (table.txPr?.italic ? 'italic' : 'normal') as 'italic' | 'normal',
+		fontWeight: (table.txPr?.bold ? 'bold' : 'normal') as 'bold' | 'normal',
+		dominantBaseline: 'central' as const,
+	};
+	const { rowH, keyW } = metrics;
+	const catCount = Math.max(categories.length, 1);
+	const cellW = layout.plotWidth / catCount;
+	const top = layout.plotBottom;
+	const bottom = top + metrics.height;
+	const left = layout.plotLeft - keyW;
+	const right = layout.plotLeft + layout.plotWidth;
+	const line = (x1: number, y1: number, x2: number, y2: number): SvgLine => ({
+		kind: 'line',
+		x1,
+		y1,
+		x2,
+		y2,
+		stroke,
+		strokeWidth,
+	});
+	const label = (x: number, y: number, value: string, anchor: 'start' | 'middle'): SvgText => ({
+		kind: 'text',
+		x,
+		y,
+		text: value,
+		textAnchor: anchor,
+		...text,
+	});
 
-	const borderColor = table.spPr?.strokeColor ?? DEFAULT_BORDER_COLOR;
-	const borderWidth = table.spPr?.strokeWidth ?? 1;
-	const textColor = table.txPr?.color ?? DEFAULT_TEXT_COLOR;
-	const fontFamily = table.txPr?.fontFamily;
-	const fontSize =
-		table.txPr?.fontSize !== undefined ? chartFontPx(table.txPr.fontSize) : DEFAULT_CELL_FONT_PX;
-	// A default header weight of bold matches the original (pre-txPr) engine;
-	// an explicit `txPr.bold` overrides the whole table uniformly, header
-	// included, since CT_TextCharacterProperties is one cell-wide default.
-	const headerWeight: 'bold' | 'normal' = table.txPr?.bold === false ? 'normal' : 'bold';
-	const cellWeight: 'bold' | 'normal' = table.txPr?.bold ? 'bold' : 'normal';
-	const fontStyle: 'italic' | 'normal' = table.txPr?.italic ? 'italic' : 'normal';
-
-	const catCount = categories.length;
-	const seriesCount = series.length;
-
-	// Column metrics
-	const keyColW = showK ? DATA_TABLE_KEY_W : 0;
-	const totalW = layout.plotWidth;
-	const cellW = catCount > 0 ? (totalW - keyColW) / catCount : totalW - keyColW;
-
-	// Table top edge (just below the plot bottom)
-	const tableTop = layout.plotBottom + DATA_TABLE_PADDING;
-
-	// Total table height: 1 header row + N series rows
-	const tableH = DATA_TABLE_HEADER_H + seriesCount * DATA_TABLE_ROW_H;
-
-	// Background fill (c:dTable/c:spPr solid fill), painted first so every
-	// border/text primitive layers on top of it.
 	if (table.spPr?.fillColor) {
 		out.push({
 			kind: 'rect',
-			x: layout.plotLeft,
-			y: tableTop,
-			w: totalW,
-			h: tableH,
+			x: left,
+			y: top,
+			w: right - left,
+			h: bottom - top,
 			fill: table.spPr.fillColor,
-		} satisfies SvgRect);
-	}
-
-	// Outer border - rendered as four SvgLine segments because SvgRect has no
-	// `stroke` field (only `fill`).
-	if (showO) {
-		const mkBorderLine = (x1: number, y1: number, x2: number, y2: number): SvgLine => ({
-			kind: 'line',
-			x1,
-			y1,
-			x2,
-			y2,
-			stroke: borderColor,
-			strokeWidth: borderWidth,
 		});
-		out.push(mkBorderLine(layout.plotLeft, tableTop, layout.plotLeft + totalW, tableTop));
-		out.push(
-			mkBorderLine(layout.plotLeft + totalW, tableTop, layout.plotLeft + totalW, tableTop + tableH),
-		);
-		out.push(
-			mkBorderLine(layout.plotLeft + totalW, tableTop + tableH, layout.plotLeft, tableTop + tableH),
-		);
-		out.push(mkBorderLine(layout.plotLeft, tableTop + tableH, layout.plotLeft, tableTop));
+	}
+	if (showO) {
+		// The header row spans the data columns only; the key column starts
+		// under it, exactly as PowerPoint frames the table.
+		out.push(line(layout.plotLeft, top, right, top));
+		out.push(line(right, top, right, bottom));
+		out.push(line(right, bottom, left, bottom));
+		out.push(line(left, bottom, left, top + rowH));
+		out.push(line(left, top + rowH, layout.plotLeft, top + rowH));
+		out.push(line(layout.plotLeft, top, layout.plotLeft, top + rowH));
 	}
 
-	// Helper: x-position of column ci (0-based category columns, after key col)
-	function colX(ci: number): number {
-		return layout.plotLeft + keyColW + ci * cellW;
-	}
-
-	// Helper: y-position of row ri (0 = header)
-	function rowY(ri: number): number {
-		return tableTop + (ri === 0 ? 0 : DATA_TABLE_HEADER_H + (ri - 1) * DATA_TABLE_ROW_H);
-	}
-
-	// Header row: category labels
 	categories.forEach((cat, ci) => {
-		const x = colX(ci) + cellW / 2;
-		const y = rowY(0) + DATA_TABLE_HEADER_H / 2 + 3;
-		const label: SvgText = {
-			kind: 'text',
-			x,
-			y,
-			text: cat,
-			fontSize,
-			fill: textColor,
-			textAnchor: 'middle',
-			fontWeight: headerWeight,
-			fontFamily,
-			fontStyle,
-		};
-		out.push(label);
-
-		// Vertical border after this column header (not after the last)
-		if (showV && ci < catCount - 1) {
-			const vx = colX(ci) + cellW;
-			const vLine: SvgLine = {
-				kind: 'line',
-				x1: vx,
-				y1: tableTop,
-				x2: vx,
-				y2: tableTop + tableH,
-				stroke: borderColor,
-				strokeWidth: borderWidth,
-			};
-			out.push(vLine);
+		out.push(label(layout.plotLeft + ci * cellW + cellW / 2, top + rowH / 2, cat, 'middle'));
+		if (showV && ci > 0) {
+			const x = layout.plotLeft + ci * cellW;
+			out.push(line(x, top, x, bottom));
 		}
 	});
-
-	// Horizontal border under header
-	if (showH) {
-		const hy = tableTop + DATA_TABLE_HEADER_H;
-		const hLine: SvgLine = {
-			kind: 'line',
-			x1: layout.plotLeft,
-			y1: hy,
-			x2: layout.plotLeft + totalW,
-			y2: hy,
-			stroke: borderColor,
-			strokeWidth: borderWidth,
-		};
-		out.push(hLine);
+	if (showV && showK) {
+		out.push(line(layout.plotLeft, top, layout.plotLeft, bottom));
 	}
 
-	// Vertical border between key column and first data column
-	if (showK && showV) {
-		const kvx = layout.plotLeft + keyColW;
-		const kvLine: SvgLine = {
-			kind: 'line',
-			x1: kvx,
-			y1: tableTop,
-			x2: kvx,
-			y2: tableTop + tableH,
-			stroke: borderColor,
-			strokeWidth: borderWidth,
-		};
-		out.push(kvLine);
-	}
-
-	// Data rows
 	series.forEach((s: PptxChartSeries, si: number) => {
-		const rowIndex = si + 1; // row 0 is the header
-		const ry = rowY(rowIndex);
-		const cellCy = ry + DATA_TABLE_ROW_H / 2 + 3;
-
-		// Series key cell (colour swatch + name)
+		const rowTop = top + rowH * (si + 1);
+		const cy = rowTop + rowH / 2;
+		if (showH) {
+			out.push(line(showK ? left : layout.plotLeft, rowTop, right, rowTop));
+		}
 		if (showK) {
-			const swatchX = layout.plotLeft + DATA_TABLE_PADDING;
-			const swatchY = ry + DATA_TABLE_ROW_H / 2 - 3;
-			const swatchColor = seriesColor(s, si, colorPalette);
-
-			// Colour swatch as a small filled rect
+			const swatch = Math.max(6, Math.round(metrics.fontSize * 0.55));
 			out.push({
 				kind: 'rect',
-				x: swatchX,
-				y: swatchY,
-				w: 7,
-				h: 7,
-				fill: swatchColor,
-				rx: 1,
+				x: left + DATA_TABLE_PADDING,
+				y: cy - swatch / 2,
+				w: swatch,
+				h: swatch,
+				fill: seriesColor(s, si, colorPalette),
 			});
-
-			// Series name text
-			const nameX = swatchX + 9;
-			const nameLabel: SvgText = {
-				kind: 'text',
-				x: nameX,
-				y: cellCy,
-				text: s.name,
-				fontSize,
-				fill: textColor,
-				textAnchor: 'start',
-				fontWeight: cellWeight,
-				fontFamily,
-				fontStyle,
-			};
-			out.push(nameLabel);
+			out.push(label(left + DATA_TABLE_PADDING + swatch + 3, cy, s.name, 'start'));
 		}
-
-		// Data cells
 		categories.forEach((_cat, ci) => {
 			const val = s.values[ci];
-			const cellLabel: SvgText = {
-				kind: 'text',
-				x: colX(ci) + cellW / 2,
-				y: cellCy,
-				text: val !== undefined ? formatAxisValue(val) : '',
-				fontSize,
-				fill: textColor,
-				textAnchor: 'middle',
-				fontWeight: cellWeight,
-				fontFamily,
-				fontStyle,
-			};
-			out.push(cellLabel);
+			const x = layout.plotLeft + ci * cellW + cellW / 2;
+			out.push(label(x, cy, val !== undefined ? formatAxisValue(val) : '', 'middle'));
 		});
-
-		// Horizontal border below this row (not after the last)
-		if (showH && si < seriesCount - 1) {
-			const hy2 = ry + DATA_TABLE_ROW_H;
-			const hRowLine: SvgLine = {
-				kind: 'line',
-				x1: layout.plotLeft,
-				y1: hy2,
-				x2: layout.plotLeft + totalW,
-				y2: hy2,
-				stroke: borderColor,
-				strokeWidth: borderWidth,
-			};
-			out.push(hRowLine);
-		}
 	});
 
 	return out;

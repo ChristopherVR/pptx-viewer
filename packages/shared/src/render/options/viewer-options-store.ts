@@ -7,12 +7,15 @@ import type {
 	ViewerOptions,
 	ViewerOptionsGroupId,
 } from './viewer-options';
+import { cloneViewerOptions, diffViewerOptions, mergeViewerOptions } from './viewer-options';
+import type { ViewerOptionsConstraints } from './viewer-options-constraints';
 import {
-	DEFAULT_VIEWER_OPTIONS,
-	cloneViewerOptions,
-	diffViewerOptions,
-	mergeViewerOptions,
-} from './viewer-options';
+	applyLockedOptions,
+	buildOptionsBaseline,
+	diffOptionsAgainstBaseline,
+	isOptionLocked,
+	rebaseOptions,
+} from './viewer-options-constraints';
 
 /**
  * Framework-neutral store behind the File > Options dialog.
@@ -62,6 +65,15 @@ export interface ViewerOptionsStore {
 	 * operation costs a single render instead of one per field.
 	 */
 	batch(write: () => void): void;
+	/**
+	 * Apply host constraints (see `ViewerOptionsConstraints`): `locked` values
+	 * are forced in and every later write to them is ignored; `defaults`
+	 * replace the built-in defaults for settings the user never saved, and
+	 * become what `reset` returns to. Replaces any previous constraints.
+	 */
+	setConstraints(constraints: ViewerOptionsConstraints): void;
+	/** True when the host locked `<group>.<key>`. */
+	isLocked(group: ViewerOptionsGroupId, key: string): boolean;
 }
 
 export interface ViewerOptionsStoreInit {
@@ -74,19 +86,27 @@ export interface ViewerOptionsStoreInit {
 export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerOptionsStore {
 	const persist = init?.persist !== false;
 	const seeded = mergeViewerOptions(init?.initial);
+	const stored = persist ? readStoredViewerPrefs().options : undefined;
+	// Settings the user saved before this session: host defaults never
+	// override those (see `setConstraints`).
+	const userSaved = new Set(savedSettingIds(stored));
 	// Backed by the shared selectively-subscribable runtime rather than a private
 	// listener Set, so consumers can subscribe to one option instead of to "the
 	// options" and a multi-field write can land as a single notification.
-	const store = createViewerStore(
-		persist ? overlayStored(seeded, readStoredViewerPrefs().options) : seeded,
-	);
+	const store = createViewerStore(persist ? overlayStored(seeded, stored) : seeded);
 	const options = (): ViewerOptions => store.getState();
+	let constraints: ViewerOptionsConstraints = {};
+	let baseline = buildOptionsBaseline(undefined);
 
-	function commit(next: ViewerOptions): void {
+	function commit(raw: ViewerOptions): void {
+		const next = applyLockedOptions(raw, constraints.locked);
 		// Persist before notifying, so a subscriber that reads storage during its
-		// callback sees the value it was just told about.
+		// callback sees the value it was just told about. Neither a host default
+		// nor a host lock is persisted as the user's own choice.
 		if (persist) {
-			writeStoredViewerPrefs({ options: diffViewerOptions(next) });
+			writeStoredViewerPrefs({
+				options: diffOptionsAgainstBaseline(next, baseline, constraints.locked),
+			});
 		}
 		store.setState(next);
 	}
@@ -95,8 +115,12 @@ export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerO
 		getOptions: options,
 		setOptions: (next) => commit(cloneViewerOptions(next)),
 		setValue: (group, key, value) => {
-			const defaults = DEFAULT_VIEWER_OPTIONS[group] as unknown as Record<string, unknown>;
-			if (!(key in defaults) || typeof defaults[key] !== typeof value) {
+			const defaults = baseline[group] as unknown as Record<string, unknown>;
+			if (
+				!(key in defaults) ||
+				typeof defaults[key] !== typeof value ||
+				isOptionLocked(constraints.locked, group, key)
+			) {
 				return;
 			}
 			const next = cloneViewerOptions(options());
@@ -132,11 +156,11 @@ export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerO
 		},
 		reset: (group) => {
 			if (!group) {
-				commit(cloneViewerOptions(DEFAULT_VIEWER_OPTIONS));
+				commit(cloneViewerOptions(baseline));
 				return;
 			}
 			const next = cloneViewerOptions(options());
-			const defaults = cloneViewerOptions(DEFAULT_VIEWER_OPTIONS);
+			const defaults = cloneViewerOptions(baseline);
 			(next as Record<ViewerOptionsGroupId, unknown>)[group] = defaults[group];
 			commit(next);
 		},
@@ -144,7 +168,23 @@ export function createViewerOptionsStore(init?: ViewerOptionsStoreInit): ViewerO
 		subscribeSelector: (selector, listener, isEqual) =>
 			store.subscribeSelector(selector, listener, isEqual),
 		batch: (write) => store.batch(write),
+		setConstraints: (next) => {
+			const previousBaseline = baseline;
+			constraints = { locked: { ...next.locked }, defaults: { ...next.defaults } };
+			baseline = buildOptionsBaseline(constraints.defaults);
+			commit(rebaseOptions(options(), previousBaseline, baseline, userSaved));
+		},
+		isLocked: (group, key) => isOptionLocked(constraints.locked, group, key),
 	};
+}
+
+function savedSettingIds(stored: StoredViewerOptions | undefined): string[] {
+	if (!stored) {
+		return [];
+	}
+	return Object.entries(stored).flatMap(([group, values]) =>
+		values && typeof values === 'object' ? Object.keys(values).map((key) => `${group}.${key}`) : [],
+	);
 }
 
 function overlayStored(

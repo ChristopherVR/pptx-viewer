@@ -41,7 +41,26 @@ const props = defineProps<{
 	slideOps: UseSlideOperationsResult;
 	goTo: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
+	/** Makes `index` active, then opens the Layout gallery anchored at (x, y). */
+	onOpenLayoutForSlide: (index: number, x: number, y: number) => void;
 }>();
+
+/** Thin bulk wrappers over the single-slide ops (mirrors `useViewerApi`'s public API). */
+function duplicateSlides(indexes: number[]): void {
+	for (const i of indexes) {
+		props.slideOps.duplicateSlide(i);
+	}
+}
+function deleteSlides(indexes: number[]): void {
+	for (const i of [...indexes].sort((a, b) => b - a)) {
+		props.slideOps.deleteSlide(i);
+	}
+}
+function toggleHideSlides(indexes: number[]): void {
+	for (const i of indexes) {
+		props.toggleSlideHidden(i);
+	}
+}
 
 const { t } = useI18n();
 
@@ -67,9 +86,12 @@ const mergedSlidesBySection = computed(() =>
 		@select="goTo"
 		@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
 		@add-slide="slideOps.addSlide()"
-		@duplicate="(i) => slideOps.duplicateSlide(i)"
-		@delete="(i) => slideOps.deleteSlide(i)"
-		@toggle-hidden="toggleSlideHidden"
+		@add-slide-after="(i) => slideOps.addSlide(i)"
+		@duplicate="duplicateSlides"
+		@delete="deleteSlides"
+		@toggle-hidden="toggleHideSlides"
+		@layout="(p) => onOpenLayoutForSlide(p.index, p.x, p.y)"
+		@add-section="(i) => sectionOps.addSection(t('pptx.sections.defaultName'), i)"
 	/>
 	<nav v-else class="pptx-vue-thumbnails" :aria-label="t('pptx.sections.slides')">
 		<SectionList

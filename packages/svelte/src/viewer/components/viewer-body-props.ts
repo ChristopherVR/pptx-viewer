@@ -16,7 +16,8 @@ import type { EditorState } from '../editor/editor-state.svelte';
 import type { TransitionState } from '../presentation';
 import type { PresentationAnnotations } from '../presentation/presentation-annotations.svelte';
 import type { ChromeUiState } from '../state/chrome-ui.svelte';
-import type { StageContextMenu } from './props';
+import type { ViewerParityUiState } from '../state/viewer-parity-ui.svelte';
+import type { StageCanvasContextMenu, StageContextMenu } from './props';
 
 /**
  * Prop contracts for the viewer body and the sub-views it composes
@@ -105,6 +106,11 @@ export interface ViewerBodyProps {
 	/** Open element menu position + hit table cell, from the editing controller. */
 	contextMenu: StageContextMenu | null;
 	onContextMenuClose: () => void;
+	/** Open empty-canvas (no element hit) menu position, from the editing controller. */
+	canvasContextMenu: StageCanvasContextMenu | null;
+	onCanvasContextMenuClose: () => void;
+	/** View preferences (Grid and Guides, Ruler), for the canvas menu's toggles. */
+	parityUi?: ViewerParityUiState;
 	onmoveSlide?: (fromIndex: number, toIndex: number) => void;
 	annotations: PresentationAnnotations;
 	guides?: readonly ViewerGuide[];
@@ -168,6 +174,9 @@ export type ViewerStageProps = Pick<
 	| 'collabPresences'
 	| 'contextMenu'
 	| 'onContextMenuClose'
+	| 'canvasContextMenu'
+	| 'onCanvasContextMenuClose'
+	| 'parityUi'
 	| 'annotations'
 	| 'guides'
 	| 'onchangeguide'

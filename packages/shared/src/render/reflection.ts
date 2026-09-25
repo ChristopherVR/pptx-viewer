@@ -12,10 +12,22 @@
  *
  * This module replaces it with a wrapper style for a mirrored SIBLING node a
  * binding renders just below (or per `@algn`, from) the source element:
- *   - `transform: scaleY(-1)` does the mirror (the flip `-webkit-box-reflect`
- *     did for free); `scale()`/`skew()`/`rotate()` add `@sx`/`@sy`, `@kx`/
- *     `@ky`, `@rot` on top of it, all CSS properties Firefox has always
- *     supported.
+ *   - `transform: scale(@sx, @sy)` does BOTH the mirror and the size: OOXML's
+ *     `@sy` (ST_Percentage) carries the flip in its SIGN, not as a separate
+ *     always-on negation. PowerPoint's own "Reflection, touching" gallery
+ *     preset - byte-for-byte what this module's tests and the `audit-text`
+ *     COM corpus use - emits `sy="-100000"` (-100%) for an ordinary full
+ *     mirror; there is no separate flip flag. Hardcoding an unconditional
+ *     `scaleY(-1)` AND then layering `scale(sx, sy)` on top of it (the
+ *     pre-fix code) double-applied the flip for every reflection authored
+ *     this way: `scaleY(-1) scale(1, -1)` composes to the identity matrix,
+ *     so the "reflected" copy rendered as a plain, unmirrored, faded
+ *     duplicate - confirmed live in the React demo against `audit-text`
+ *     slide 14 ("REFLECTION" rendered twice, both right-side up) before this
+ *     fix. `@sy` defaults to `-100000` (not OOXML's own generic
+ *     `ST_Percentage` default of `100000`) so a bare `<a:reflection/>` with
+ *     no authored scale still mirrors, matching every reflection preset
+ *     PowerPoint's gallery actually emits.
  *   - `mask-image`/`-webkit-mask-image` with a `linear-gradient` alpha ramp
  *     reproduces the fade (`@stA`/`@endA`/`@stPos`/`@endPos`/`@blurRad`), at
  *     an angle driven by `@fadeDir` (falling back to the same "fades toward
@@ -66,7 +78,7 @@ export interface ReflectionWrapperStyle {
 	top: string;
 	width: string;
 	height: string;
-	/** Mirror (`scaleY(-1)`) composed with `@sx`/`@sy`/`@kx`/`@ky`/`@rot`. */
+	/** `scale(@sx, @sy)` (the sign of `@sy` IS the mirror) composed with `@kx`/`@ky`/`@rot`. */
 	transform: string;
 	/** Anchor point for the transform above, from `@algn` (default `center top`). */
 	transformOrigin: string;
@@ -172,16 +184,16 @@ export function getReflectionWrapperStyle(
 	const fadeDirectionDeg = style.reflectionFadeDirection ?? 90;
 	const cssAngleDeg = (((fadeDirectionDeg + 90) % 360) + 360) % 360;
 
+	// `@sy` defaults to -100% (mirrored, unscaled), not OOXML's generic
+	// `ST_Percentage` default of +100%: see the module doc comment for why the
+	// sign is the flip itself, not a separate always-on negation.
 	const scaleX = (style.reflectionScaleX ?? 100000) / 100000;
-	const scaleY = (style.reflectionScaleY ?? 100000) / 100000;
+	const scaleY = (style.reflectionScaleY ?? -100000) / 100000;
 	const skewX = (style.reflectionSkewX ?? 0) / 60000;
 	const skewY = (style.reflectionSkewY ?? 0) / 60000;
 	const rotation = (style.reflectionRotation ?? 0) / 60000;
 
-	const transformParts = ['scaleY(-1)'];
-	if (scaleX !== 1 || scaleY !== 1) {
-		transformParts.push(`scale(${scaleX}, ${scaleY})`);
-	}
+	const transformParts = [`scale(${scaleX}, ${scaleY})`];
 	if (skewX !== 0 || skewY !== 0) {
 		transformParts.push(`skew(${skewX}deg, ${skewY}deg)`);
 	}

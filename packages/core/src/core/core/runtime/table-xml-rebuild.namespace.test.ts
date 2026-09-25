@@ -90,4 +90,74 @@ describe('slideContainsA16Element', () => {
 		const slide = { 'p:cSld': { 'p:spTree': { 'p:sp': [] } } };
 		expect(slideContainsA16Element(slide)).toBeFalsy();
 	});
+
+	it('returns false for a self-declaring a16:creationId (parser-produced input)', () => {
+		// PowerPoint's own "Insert" UI stamps every shape with a stable
+		// a16:creationId inside a URI-guarded a:ext, declaring xmlns:a16
+		// locally. A reader that does not know the URI skips the whole
+		// a:ext block, so this needs no root-level mc:Ignorable, and
+		// treating it as needing one materialized mc:Ignorable="a16" on
+		// every slide with authored creation-id metadata.
+		const slide = {
+			'p:cSld': {
+				'p:spTree': {
+					'p:sp': {
+						'p:nvSpPr': {
+							'p:cNvPr': {
+								'a:extLst': {
+									'a:ext': {
+										'@_uri': '{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}',
+										'a16:creationId': {
+											'@_xmlns:a16': 'http://schemas.microsoft.com/office/drawing/2014/main',
+											'@_id': '{00000000-0000-0000-0000-000000000000}',
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+		expect(slideContainsA16Element(slide)).toBeFalsy();
+	});
+
+	it('still returns true when a bare a16:colId sits alongside a self-declaring a16:creationId', () => {
+		const slide = {
+			'p:cSld': {
+				'p:spTree': {
+					'p:graphicFrame': {
+						'a:graphic': {
+							'a:graphicData': {
+								'a:tbl': {
+									'a:tblGrid': {
+										'a:gridCol': {
+											'a:extLst': {
+												'a:ext': { 'a16:colId': { '@_val': '1' } },
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					'p:sp': {
+						'p:nvSpPr': {
+							'p:cNvPr': {
+								'a:extLst': {
+									'a:ext': {
+										'a16:creationId': {
+											'@_xmlns:a16': 'http://schemas.microsoft.com/office/drawing/2014/main',
+											'@_id': '{00000000-0000-0000-0000-000000000000}',
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		};
+		expect(slideContainsA16Element(slide)).toBeTruthy();
+	});
 });

@@ -69,7 +69,12 @@ describe('drawingML custom line dash', () => {
 			'd:custDash': { 'd:ds': { '@_d': '1', '@_sp': '1' } },
 		};
 		applyDrawingLineDash(line, { strokeDash: 'solid' });
-		expect(line).toStrictEqual({});
+		// `parseDrawingLineDash` only ever returns `'solid'` from a REAL,
+		// present `<a:prstDash val="solid"/>` (never as an assumed default:
+		// see the module docblock), so an authored `val="solid"` must
+		// round-trip like any other preset instead of being stripped as
+		// "the schema default, omit it".
+		expect(line).toStrictEqual({ 'd:prstDash': { '@_val': 'solid' } });
 	});
 
 	it('inserts custom dash before line joins and extensions', () => {

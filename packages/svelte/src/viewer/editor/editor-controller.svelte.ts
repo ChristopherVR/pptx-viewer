@@ -33,6 +33,7 @@ import {
 	createTransformGestures,
 } from './editor-controller-wiring';
 import type { EditorControllerHost } from './editor-controller-wiring';
+import { isInsideCropOverlay } from './editor-crop-controller.svelte';
 import { createHandleHandlers } from './editor-handle-handlers';
 import type { HandleHandlers } from './editor-handle-handlers';
 import type { InkGestureController } from './editor-ink-gesture';
@@ -125,7 +126,13 @@ export class EditorController {
 	}
 
 	get overlayBox() {
-		if (!this.#editor.editable || this.#deps.getPresenting()) {
+		// Crop mode draws its own handles over the picture instead.
+		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.cropOps.active) {
+			return null;
+		}
+		// Edit Points replaces the resize / rotate chrome with vertex handles.
+		const editPointsId = this.#editor.outlineOps.editPointsId;
+		if (editPointsId && this.#editor.selectedElements.some((el) => el.id === editPointsId)) {
 			return null;
 		}
 		return selectionOverlayBox(this.#editor.selectedElements);
@@ -168,6 +175,14 @@ export class EditorController {
 		// silently dead after the most ordinary interaction there is: clicking a
 		// shape and pressing Delete.
 		armEditorKeyboard(this.#deps.getRootEl?.() ?? null);
+		// Crop mode owns pointer-downs inside its overlay; one anywhere else
+		// commits the crop and then carries on as a normal stage click.
+		if (this.#editor.cropOps.active) {
+			if (isInsideCropOverlay(event.target)) {
+				return;
+			}
+			this.#editor.cropOps.commit();
+		}
 		if (
 			!this.#editor.editable ||
 			this.#deps.getPresenting() ||
@@ -276,7 +291,16 @@ export class EditorController {
 			event.target,
 			this.editingId,
 		);
-		if (!id || !this.#editor.isElementInteractive(id)) {
+		if (!id) {
+			// Empty canvas: offer Paste/Layout/Reset/Format Background/Grid/Ruler
+			// instead of leaving this a no-op (the browser's own menu used to win).
+			if (this.#deps.onCanvasContextMenu) {
+				event.preventDefault();
+				this.#deps.onCanvasContextMenu(event.clientX, event.clientY);
+			}
+			return;
+		}
+		if (!this.#editor.isElementInteractive(id)) {
 			return;
 		}
 		event.preventDefault();
@@ -383,6 +407,10 @@ export class EditorController {
 	};
 
 	onKeyDown = (event: KeyboardEvent): void => {
+		// Enter/Escape commit/cancel crop mode, instead of their normal action.
+		if (this.#editor.cropOps.handleKey(event)) {
+			return;
+		}
 		this.#keydown(event);
 	};
 

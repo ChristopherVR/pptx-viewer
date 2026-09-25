@@ -9,7 +9,7 @@
 	 * its own list, which is how it shipped with no Group, Ungroup, Add Comment,
 	 * Edit Hyperlink, and no table commands at all.
 	 */
-	import { clampFlyoutPosition } from 'pptx-viewer-shared';
+	import { clampFlyoutPosition, customizeContextMenuEntries } from 'pptx-viewer-shared';
 	import type { ContextMenuCommandId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -17,6 +17,7 @@
 		buildEditorContextMenuEntries,
 		runContextMenuCommand,
 	} from '../editor/context-menu-dispatch';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import type { ElementContextMenuProps } from './props';
 
 	const {
@@ -66,7 +67,17 @@
 		onSaveAsPicture: onsaveaspicture,
 		onFocusInspectorSection: onfocusinspectorsection,
 	});
-	const entries = $derived(buildEditorContextMenuEntries(dispatch));
+	const customization = useViewerCustomization();
+	// The host's customisation filters the shared list (hidden commands, repaired
+	// separators); an empty result means no menu at all, so close instead.
+	const entries = $derived(
+		customizeContextMenuEntries(buildEditorContextMenuEntries(dispatch), customization.resolved),
+	);
+	$effect(() => {
+		if (entries.length === 0) {
+			onclose();
+		}
+	});
 
 	function run(id: ContextMenuCommandId): void {
 		runContextMenuCommand(id, dispatch);
@@ -80,6 +91,7 @@
 	}}
 />
 
+{#if entries.length > 0}
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div class="pptx-svelte-context-backdrop" aria-hidden="true" onclick={onclose} oncontextmenu={(event) => { event.preventDefault(); onclose(); }}></div>
 <!-- `data-pptx-context-menu` is the neutral cross-binding hook for "this is the
@@ -99,6 +111,7 @@
 		<button type="button" role="menuitem" class:pptx-svelte-context-delete={entry.danger} disabled={entry.disabled} onclick={() => run(entry.id)}>{t(entry.labelKey)}</button>
 	{/each}
 </div>
+{/if}
 
 <style>
 	.pptx-svelte-context-backdrop { position: fixed; inset: 0; z-index: 119; }

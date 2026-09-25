@@ -21,6 +21,7 @@ export const translations = {
 	'pptx.options.screenTipStyle.off': 'QuickInfos nicht anzeigen',
 	'pptx.options.general.personalize': 'Ihre Kopie des Viewers personalisieren',
 	'pptx.options.general.userName': 'Benutzername',
+	'pptx.options.lockedByHost': 'Diese Einstellung wird von Ihrer Organisation verwaltet',
 	'pptx.options.general.userInitials': 'Initialen',
 	'pptx.options.general.appearance': 'Viewer-Design',
 	'pptx.options.general.fonts': 'Schriftarten',

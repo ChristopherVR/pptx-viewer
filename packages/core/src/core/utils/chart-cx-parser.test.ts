@@ -441,6 +441,30 @@ describe('parseCxChartSeries', () => {
 		expect(result?.series[1].histogramOptions).toStrictEqual({ layout: 'pareto' });
 	});
 
+	it('flags cx:aggregation (COM: charts-com.pptx slide 31 / chartEx6.xml) over numeric binning', () => {
+		const plotArea: XmlObject = {
+			'cx:plotAreaRegion': {
+				'cx:series': [
+					{
+						'@_layoutId': 'clusteredColumn',
+						'cx:data': {
+							'cx:strDim': { '@_type': 'cat', 'cx:lvl': { 'cx:pt': [{ '#text': 'Category 1' }] } },
+							'cx:numDim': { 'cx:lvl': { 'cx:pt': [{ '#text': '1' }] } },
+						},
+						'cx:layoutPr': { 'cx:aggregation': {} },
+					},
+					{ '@_layoutId': 'paretoLine' },
+				],
+			},
+		};
+
+		const result = parseCxChartSeries(plotArea, xmlLookup);
+		expect(result?.series[0].histogramOptions).toStrictEqual({
+			layout: 'histogram',
+			aggregateByCategory: true,
+		});
+	});
+
 	it('parses region-map entity IDs and geographic layout properties', () => {
 		const plotArea: XmlObject = {
 			'cx:plotAreaRegion': {

@@ -17,6 +17,7 @@ import {
 	applyPasteSpecialFormat,
 	buildRasterPictureElement,
 	cloneElementForPaste,
+	findCanvasElementNode,
 	isTemplateElementId,
 	rasterizeElementToDataUrl,
 } from 'pptx-viewer-shared';
@@ -56,7 +57,7 @@ export interface UsePasteSpecialResult {
 
 /** The mounted DOM node for `elementId`, matching the context-menu's own lookup. */
 function findElementNode(elementId: string): HTMLElement | null {
-	return document.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+	return findCanvasElementNode(document, elementId);
 }
 
 /** Rasterise the mounted node for `elementId` to a PNG data URL, or null if unmounted. */

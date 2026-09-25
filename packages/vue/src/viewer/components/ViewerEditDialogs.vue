@@ -13,22 +13,37 @@
  * (`hyperlink`, `collaboration`) are unaffected, since property access on a
  * plain object does not unwrap.
  */
-import type { PptxTheme } from 'pptx-viewer-core';
+import type { PptxLayoutOption, PptxLayoutPreview, PptxTheme } from 'pptx-viewer-core';
+import { isDialogAvailable } from 'pptx-viewer-shared';
+import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
+import type { CanvasContextMenuState } from '../composables/useCanvasContextMenu';
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
 import type { ContextMenuState } from '../composables/useContextMenu';
 import type { UseHyperlinkDialogResult } from '../composables/useHyperlinkDialog';
 import type { UsePasteSpecialResult } from '../composables/usePasteSpecial';
 import type { UseThemeEditingResult } from '../composables/useThemeEditing';
+import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import type { ContextMenuItem } from './ContextMenu.vue';
 import ContextMenu from './ContextMenu.vue';
 import HyperlinkDialog from './HyperlinkDialog.vue';
 import ThemeEditorPanel from './inspector/ThemeEditorPanel.vue';
 import PasteOptionsToolbar from './PasteOptionsToolbar.vue';
 import PasteSpecialDialog from './PasteSpecialDialog.vue';
+import LayoutGalleryMenu from './ribbon/LayoutGalleryMenu.vue';
 import ShareDialog from './ShareDialog.vue';
 import ThemeGallery from './ThemeGallery.vue';
+
+/** The canvas context menu's "Layout" gallery, anchored at the click point. */
+interface LayoutGalleryProps {
+	anchor: { x: number; y: number } | null;
+	layoutOptions: PptxLayoutOption[];
+	previews: ReadonlyMap<string, PptxLayoutPreview>;
+	currentLayoutPath?: string;
+	onSelect: (layout: PptxLayoutOption) => void;
+	onClose: () => void;
+}
 
 defineProps<{
 	canEdit: boolean;
@@ -42,6 +57,11 @@ defineProps<{
 	contextItems: ContextMenuItem[];
 	onContextSelect: (id: string) => void;
 	onCloseContextMenu: () => void;
+	canvasContextMenu: CanvasContextMenuState;
+	canvasContextItems: ContextMenuItem[];
+	onCanvasContextSelect: (id: string) => void;
+	onCloseCanvasContextMenu: () => void;
+	layoutGallery: LayoutGalleryProps;
 	hyperlink: UseHyperlinkDialogResult;
 	slideCount: number;
 	collaboration: UseCollaborationWiringResult;
@@ -51,6 +71,12 @@ defineProps<{
 }>();
 
 const { t } = useI18n();
+// The host can remove the Share dialog (hiddenDialogs / disabled collaboration).
+const customization = useResolvedCustomization();
+const shareAvailable = computed(() => isDialogAvailable(customization.value, 'share'));
+
+/** Zero-size anchor positioned at the canvas menu's click point; `LayoutGalleryMenu` hangs off its rect. */
+const layoutGalleryAnchorEl = ref<HTMLElement | null>(null);
 </script>
 
 <template>
@@ -83,6 +109,44 @@ const { t } = useI18n();
 		@close="onCloseContextMenu"
 	/>
 
+	<!-- Empty-canvas context menu (edit mode) -->
+	<ContextMenu
+		:open="canvasContextMenu.open"
+		:x="canvasContextMenu.x"
+		:y="canvasContextMenu.y"
+		:items="canvasContextItems"
+		:aria-label="t('pptx.canvasContextMenu.ariaLabel')"
+		:is-canvas-menu="true"
+		@select="onCanvasContextSelect"
+		@close="onCloseCanvasContextMenu"
+	/>
+
+	<!-- Canvas context menu's "Layout" gallery, anchored at the click point -->
+	<template v-if="layoutGallery.anchor">
+		<div
+			ref="layoutGalleryAnchorEl"
+			class="fixed"
+			:style="{
+				left: `${layoutGallery.anchor.x}px`,
+				top: `${layoutGallery.anchor.y}px`,
+				width: 0,
+				height: 0,
+			}"
+		/>
+		<div
+			class="fixed inset-0 z-[119]"
+			@click="layoutGallery.onClose"
+			@contextmenu.prevent="layoutGallery.onClose"
+		/>
+		<LayoutGalleryMenu
+			:anchor="layoutGalleryAnchorEl"
+			:layout-options="layoutGallery.layoutOptions"
+			:previews="layoutGallery.previews"
+			:current-layout-path="layoutGallery.currentLayoutPath"
+			@select="layoutGallery.onSelect"
+		/>
+	</template>
+
 	<!-- Hyperlink editor -->
 	<HyperlinkDialog
 		:open="hyperlink.hyperlinkOpen.value"
@@ -94,7 +158,7 @@ const { t } = useI18n();
 
 	<!-- Share / collaboration -->
 	<ShareDialog
-		:open="collaboration.shareOpen.value"
+		:open="collaboration.shareOpen.value && shareAvailable"
 		:defaults="shareDefaults"
 		:active="collaboration.collabActive.value"
 		:collab="collaboration.collab"

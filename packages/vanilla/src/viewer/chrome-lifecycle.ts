@@ -1,14 +1,18 @@
 import type { ParsedTableStyleMap, PptxSaveFormat, TextSegment } from 'pptx-viewer-core';
 import {
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	INSPECTOR_PANEL_DEFAULT_WIDTH,
+	isFeatureEnabled,
 	readRibbonTransitionDraft,
 	safeOpenUrl,
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
 import type {
+	FreeformToolKind,
 	PresentationPointerState,
 	PresentationPointerTool,
 	PresentationSnapshot,
+	ResolvedCustomization,
 	RunProgramNotice,
 	ViewerQuickAccessOptions,
 	ViewerTheme,
@@ -16,6 +20,7 @@ import type {
 
 import { buildChromeCallbacks } from './chrome-callbacks';
 import type { ChromeCallbackDeps } from './chrome-callbacks';
+import { customizeQuickAccessState, resolveChromePanelFlags } from './customization-lifecycle';
 import type { EditActions } from './editor';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
 import type { Translator } from './i18n';
@@ -166,7 +171,10 @@ function buildQuickAccessRunner(deps: MountChromeDeps): (id: string) => void {
  */
 export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 	const { doc, container, t, options, store, renderer } = deps;
+	const customization = (): ResolvedCustomization =>
+		deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
 	const chrome = buildViewerChrome(doc, t, {
+		...resolveChromePanelFlags(customization()),
 		showToolbar: options.showToolbar ?? true,
 		showThumbnails: options.showThumbnails ?? true,
 		showFormatToolbar: options.showFormatToolbar ?? true,
@@ -188,7 +196,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 			// Without this the strip fell back to a hardcoded Save/Undo/Redo trio
 			// and ignored File > Options entirely.
 			quickAccess: {
-				getState: () => deps.getQuickAccessOptions(),
+				getState: () => customizeQuickAccessState(deps.getQuickAccessOptions(), customization()),
 				run: buildQuickAccessRunner(deps),
 				screenTip: (label) => deps.quickAccessScreenTip(label),
 			},
@@ -212,6 +220,14 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		onDismissCompatToast: (id) => deps.dismissCompatToast(id),
 		onDismissAllCompatToasts: () => deps.dismissAllCompatToasts(),
 		onDismissRunProgramNotice: (id) => deps.dismissRunProgramNotice(id),
+		thumbnailMenu: {
+			store,
+			getEditActions: () => deps.getEditActions(),
+			addSlideAfter: (index) => deps.addSlide(index),
+			duplicateSlides: (indexes) => deps.duplicateSlides(indexes),
+			deleteSlides: (indexes) => deps.deleteSlides(indexes),
+			toggleHideSlides: (indexes) => deps.toggleHideSlides(indexes),
+		},
 		...buildChromeCallbacks(deps),
 	});
 	const appliedThemeVars = applyThemeVars(chrome.root, deps.initialTheme ?? options.theme, []);
@@ -272,6 +288,7 @@ export function mountChrome(deps: MountChromeDeps): ChromeLifecycle {
 		// the button seed the same slide and cannot disagree.
 		startFromBeginning: () => deps.startPresentationFromBeginning(),
 		startFromCurrent: () => deps.startPresentationFromCurrent(),
+		isSlideShowStartEnabled: () => isFeatureEnabled(customization(), 'presentMode'),
 	});
 	const detachTouchGestures = attachTouchGestures(chrome.root, {
 		getScale: () => renderer.effectiveScale(),
@@ -564,6 +581,10 @@ export interface ChromeHost {
 	store: Store<ViewerState>;
 	renderer: RenderController;
 	lifecycle: ChromeLifecycle;
+	/** The host options with the UI customisation folded into the chrome flags. */
+	getChromeOptions(): PptxViewerOptions;
+	/** The live resolved UI customisation. */
+	getResolvedCustomization(): ResolvedCustomization;
 	/** The viewer's live theme (kept in sync by `setTheme`); read on mount/remount instead of the static `options.theme`. */
 	currentTheme: ViewerTheme | undefined;
 	editor: {
@@ -573,6 +594,7 @@ export interface ChromeHost {
 		setDrawTool(tool: DrawTool): void;
 		setDrawColor(color: string): void;
 		setDrawWidth(width: number): void;
+		armFreeformTool(tool: FreeformToolKind | null): void;
 	};
 	prev(): void;
 	next(): void;
@@ -618,6 +640,14 @@ export interface ChromeHost {
 	goToSlide(index: number): void;
 	/** Home: the show's first slide (skips a hidden slide 1 while presenting). */
 	goToFirstSlide(): void;
+	/** Insert a new slide after `afterIndex` (the thumbnail menu's New Slide, and Enter on a focused thumbnail). */
+	addSlide(afterIndex?: number): void;
+	/** The slides pane thumbnail menu's multi-select bulk Duplicate. */
+	duplicateSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Delete. */
+	deleteSlides(indexes: number[]): void;
+	/** The slides pane thumbnail menu's multi-select bulk Hide/Show. */
+	toggleHideSlides(indexes: number[]): void;
 	/** End: the show's last slide (skips trailing hidden slides while presenting). */
 	goToLastSlide(): void;
 	/**
@@ -709,7 +739,8 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		doc: host.doc,
 		container: host.container,
 		t: host.t,
-		options: host.options,
+		options: host.getChromeOptions(),
+		getCustomization: () => host.getResolvedCustomization(),
 		store: host.store,
 		renderer: host.renderer,
 		initialTheme: host.currentTheme,
@@ -788,6 +819,10 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		downloadAs: (format) => host.downloadAs(format),
 		toggleNotes: () => host.toggleNotes(),
 		goToSlide: (index) => host.goToSlide(index),
+		addSlide: (afterIndex) => host.addSlide(afterIndex),
+		duplicateSlides: (indexes) => host.duplicateSlides(indexes),
+		deleteSlides: (indexes) => host.deleteSlides(indexes),
+		toggleHideSlides: (indexes) => host.toggleHideSlides(indexes),
 		goToFirstSlide: () => host.goToFirstSlide(),
 		goToLastSlide: () => host.goToLastSlide(),
 		firstShowSlideIndex: () => host.firstShowSlideIndex(),
@@ -859,6 +894,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
 		setDrawColor: (color) => host.editor.setDrawColor(color),
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),
+		armFreeformTool: (tool) => host.editor.armFreeformTool(tool),
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),
 		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
 		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),

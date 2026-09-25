@@ -41,7 +41,7 @@
 	<RibbonGroup label={t('pptx.animations.preview')}>
 		<RibbonCommand
 			label={t('pptx.animations.preview')}
-			disabled={!selectedAnimation}
+			disabled={disabled}
 			onclick={() => {
 				if (selectedAnimation) {
 					previewElementAnimation(selectedAnimation);

@@ -5,10 +5,29 @@ import {
 	computeAutoFitTextStyle,
 	isVerticalTextDirection,
 	resolveVerticalAnchorJustifyContent,
+	scaleFontSizeForAutoFit,
 	toCssTextOrientation,
 	toCssVerticalDirection,
 	toCssWritingMode,
 } from './text-style-helpers';
+
+describe('scaleFontSizeForAutoFit', () => {
+	it('rounds a normAutofit-scaled size to the nearest whole point (COM ground truth)', () => {
+		// audit-text corpus: PowerPoint scales a 28pt run by fontScale 62.5% and
+		// paints 18pt, not the raw 17.5pt product.
+		expect(scaleFontSizeForAutoFit(28, 0.625)).toBe(18);
+		// fontScale 40% on the same 28pt run: 11.2 rounds to 11.
+		expect(scaleFontSizeForAutoFit(28, 0.4)).toBe(11);
+	});
+
+	it('leaves the size untouched (including fractional points) when fontScale is 1', () => {
+		expect(scaleFontSizeForAutoFit(10.5, 1)).toBe(10.5);
+	});
+
+	it('rounds half up, matching Math.round', () => {
+		expect(scaleFontSizeForAutoFit(20, 0.875)).toBe(18); // 17.5 -> 18
+	});
+});
 
 describe('vertical text mapping', () => {
 	it('maps text directions to writing-mode', () => {

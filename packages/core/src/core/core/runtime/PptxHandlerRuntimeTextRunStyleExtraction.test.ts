@@ -645,3 +645,106 @@ describe('extractTextRunStyle (real runtime)', () => {
 		});
 	});
 });
+
+// ---------------------------------------------------------------------------
+// a:blipFill (picture text fill) - audit-text slide 13 regression: the
+// method's own doc comment claimed image fills on text runs were handled,
+// but the branch never existed, so a picture-filled run fell through to its
+// plain `color` and rendered solid black.
+// ---------------------------------------------------------------------------
+
+class BlipFillRuntime extends PptxHandlerRuntime {
+	public setRelationship(slidePath: string, rId: string, target: string): void {
+		if (!this.slideRelsMap.has(slidePath)) {
+			this.slideRelsMap.set(slidePath, new Map());
+		}
+		this.slideRelsMap.get(slidePath)!.set(rId, target);
+	}
+
+	public extractWithSlide(
+		runProperties: XmlObject | undefined,
+		slidePath: string | undefined,
+	): TextStyle {
+		return this.extractTextRunStyle(runProperties, 'left', undefined, true, slidePath);
+	}
+}
+
+describe('extractTextRunStyle - a:blipFill resolution (real runtime)', () => {
+	const slidePath = 'ppt/slides/slide1.xml';
+
+	it('resolves the archive path when slidePath and the relationship are known', () => {
+		const runtime = new BlipFillRuntime();
+		runtime.setRelationship(slidePath, 'rIdImg', '../media/image1.png');
+		const style = runtime.extractWithSlide(
+			{ 'a:blipFill': { 'a:blip': { '@_r:embed': 'rIdImg' } } },
+			slidePath,
+		);
+		expect(style.textFillBlipUrl).toBe('ppt/media/image1.png');
+		expect(style.textFillBlipMode).toBe('stretch');
+		// The raw node is ALSO preserved, for save round-trip.
+		expect(style.textFillBlipXml).toStrictEqual({ 'a:blip': { '@_r:embed': 'rIdImg' } });
+	});
+
+	it('marks tile mode when a:blipFill/a:tile is present', () => {
+		const runtime = new BlipFillRuntime();
+		runtime.setRelationship(slidePath, 'rIdImg', '../media/image1.png');
+		const style = runtime.extractWithSlide(
+			{
+				'a:blipFill': { 'a:blip': { '@_r:embed': 'rIdImg' }, 'a:tile': {} },
+			},
+			slidePath,
+		);
+		expect(style.textFillBlipMode).toBe('tile');
+	});
+
+	it('passes an already-external URL through unresolved', () => {
+		const runtime = new BlipFillRuntime();
+		runtime.setRelationship(slidePath, 'rIdImg', 'https://example.com/image.png');
+		const style = runtime.extractWithSlide(
+			{ 'a:blipFill': { 'a:blip': { '@_r:embed': 'rIdImg' } } },
+			slidePath,
+		);
+		// `allowExternalImages` defaults to false, so an external target is
+		// left unresolved (still captured raw for round-trip).
+		expect(style.textFillBlipUrl).toBeUndefined();
+		expect(style.textFillBlipXml).toBeDefined();
+	});
+
+	it('captures the raw node but leaves textFillBlipUrl unset without a slidePath', () => {
+		const runtime = new BlipFillRuntime();
+		const style = runtime.extractWithSlide(
+			{ 'a:blipFill': { 'a:blip': { '@_r:embed': 'rIdImg' } } },
+			undefined,
+		);
+		expect(style.textFillBlipUrl).toBeUndefined();
+		expect(style.textFillBlipXml).toBeDefined();
+	});
+
+	it('leaves textFillBlipUrl unset when the relationship is unknown', () => {
+		const runtime = new BlipFillRuntime();
+		const style = runtime.extractWithSlide(
+			{ 'a:blipFill': { 'a:blip': { '@_r:embed': 'rIdMissing' } } },
+			slidePath,
+		);
+		expect(style.textFillBlipUrl).toBeUndefined();
+	});
+});
+
+describe('extractTextRunStyle - a:ln/a:prstDash (real runtime)', () => {
+	it('captures a dashed outline preset (audit-text slide 13 "DASH OUTLINE")', () => {
+		const style = new BlipFillRuntime().extractWithSlide(
+			{ 'a:ln': { '@_w': '28575', 'a:prstDash': { '@_val': 'dash' } } },
+			undefined,
+		);
+		expect(style.textOutlineDash).toBe('dash');
+		expect(style.textOutlineWidth).toBe(3);
+	});
+
+	it('treats an explicit solid dash as no dash', () => {
+		const style = new BlipFillRuntime().extractWithSlide(
+			{ 'a:ln': { '@_w': '12700', 'a:prstDash': { '@_val': 'solid' } } },
+			undefined,
+		);
+		expect(style.textOutlineDash).toBeUndefined();
+	});
+});

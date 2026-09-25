@@ -1,7 +1,7 @@
-import type { PptxElement } from 'pptx-viewer-core';
-import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { DEFAULT_MOTION_PATH_PRESET_ID, playAnimationRibbonPreview } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup } from 'pptx-viewer-shared';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
 	LuClock3,
@@ -22,6 +22,8 @@ import { RibbonCommand, RibbonCommandStack, RibbonGroup } from './PowerPointRibb
 export interface AnimationsSectionProps {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
+	/** The slide holding `selectedElement`; animations are stored per-slide, keyed by elementId. */
+	activeSlide?: Pick<PptxSlide, 'animations'>;
 	isInspectorPaneOpen: boolean;
 	onToggleInspector: () => void;
 	onOpenAnimationPanel?: () => void;
@@ -33,12 +35,23 @@ export function AnimationsSection(p: AnimationsSectionProps): React.ReactElement
 	const { t } = useTranslation();
 	const [previewActive, setPreviewActive] = useState(false);
 	const disabled = !p.canEdit || p.selectedElement === null;
+	const selectedAnimation = useMemo(
+		() =>
+			p.selectedElement
+				? (p.activeSlide?.animations ?? []).find((a) => a.elementId === p.selectedElement?.id)
+				: undefined,
+		[p.activeSlide?.animations, p.selectedElement],
+	);
 	const preview = () => {
 		if (disabled) {
 			return;
 		}
+		// The button briefly highlights itself AND plays the selected element's
+		// own authored effect in place on the canvas; previously it only did the
+		// former, which was indistinguishable from any other button flash.
 		setPreviewActive(true);
 		setTimeout(() => setPreviewActive(false), 1200);
+		playAnimationRibbonPreview(document, selectedAnimation);
 	};
 	return (
 		<>

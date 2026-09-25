@@ -55,18 +55,59 @@
  * `h` constraint on it is dropped outright, letting the composite fill idiom
  * decide "level"'s size undisturbed.
  *
- * NOT ported: `pyraAcctPos`/`pyraAcctRatio` accent-column splitting (an
- * accented row's "level" shrinking to make room for a sibling "acctTx", real
- * "Basic Pyramid"/"Inverted Pyramid"'s `hier5`/`hier8` datasets) and
- * `pyraLvlNode` actually narrowing a band by a genuine sub-1 ratio (dropped
- * above rather than applied - no fixture in the 229-fixture gallery corpus
- * declares one). Both are genuinely per-item-role, POST-composite geometry
- * passes in the legacy interpreter (`repositionPyramidBands`), not attempted
- * here; a `hier5`/`hier8` measurement regressing relative to legacy on this
- * account is expected and tracked, not a silent correctness gap.
+ * `pyraLvlNode` actually narrowing a band by a genuine sub-1 ratio is dropped
+ * (sanitized away) rather than applied above, since no fixture in the
+ * 229-fixture gallery corpus declares one.
+ *
+ * ## `pyraAcctRatio` accent-column split (`applyPyraAccentSplit`)
+ *
+ * Real "Basic Pyramid"/"Inverted Pyramid" also declare `pyraAcctRatio`
+ * (`dgm:constr type="pyraAcctRatio"`, `for="self"` on the `pyra` node
+ * itself, `dgm:choose`-gated on `func="maxDepth" op="gte" val="2"` - true
+ * whenever ANY point in the whole diagram has a child), ported here from the
+ * legacy interpreter's COM-verified `repositionPyramidBands` (see
+ * `smartart-layout-interpreter-pyramid.ts`'s own module doc comment for the
+ * full derivation this mirrors). Once active, EVERY row's own `pyraLvlNode`
+ * ("level") shrinks to `(1 - pyraAcctRatio)` of its natural width, anchored
+ * at the diagram box's own LEFT edge, even a row with no accent (the ratio is
+ * diagram-wide, not per-row, so an unaccented row is left with a visible gap
+ * on its right rather than staying full width - COM-verified). A row whose
+ * own data point has a child (so the layout definition actually created
+ * `pyraAcctBkgdNode`/`pyraAcctTxNode` - "acctBkgd"/"acctTx" by default -
+ * instances for it) then has that accent column fill the remainder of the
+ * row's natural slot, out to the diagram box's own right edge (see the
+ * "accent column's own LEFT edge" section below for exactly where that
+ * remainder starts).
+ *
+ * This has to run as a POST-pass, after `pyraLvlNode`'s own subtree
+ * (including a text overlay like "levelTx", positioned by the composite
+ * fill idiom relative to "level"'s box) has already been laid out by the
+ * generic composite algorithm: only then does "level" have a final box to
+ * shrink. `applyPyraAccentSplit` therefore scales every box in
+ * `pyraLvlNode`'s own subtree by the SAME (anchor, scale) affine transform,
+ * not just `pyraLvlNode`'s own box: since a fill-idiom child's box is
+ * already some fraction of "level"'s box under a uniform x-scale, applying
+ * the identical transform to it preserves that fraction and its centring
+ * exactly, without needing to know each child's own derivation.
+ *
+ * ### The accent column's own LEFT edge is not `pyraLvlNode`'s shrunk right edge
+ *
+ * Each row is itself a trapezoid (`arrangePyramid`'s legacy geometry has a
+ * narrower top edge and a wider bottom edge within the SAME row, `fTop =
+ * effectiveI/n` vs `fBot = (effectiveI+1)/n`); `arrangePyra`'s own item box
+ * already collapses that to its tight bounding box using the WIDE (`fBot`)
+ * edge only (see the module doc comment above), so `pyraLvlNode`'s shrunk
+ * right edge is the scaled WIDE corner, not the narrow one. COM-verified
+ * (`basic-pyramid--hier5.pptx`/`--hier8.pptx`): the accent column's own left
+ * edge is the scaled NARROW (`fTop`) corner, which sits to the LEFT of the
+ * shrunk level's own right edge, not flush against it - recomputed
+ * independently here (mirroring the legacy interpreter's own
+ * `pyramidRowGeometry`) since the row's narrow-edge fraction isn't
+ * recoverable from the item's already-collapsed wide-edge box alone.
  */
 
-import type { EngineNode } from './engine-node';
+import type { Box, EngineNode } from './engine-node';
+import { flattenEngineTree } from './engine-node';
 
 /** `node`'s own content children: the per-data-point `Name8` composite instances. */
 function contentChildren(node: EngineNode): EngineNode[] {
@@ -130,5 +171,88 @@ export function arrangePyra(node: EngineNode): void {
 		// The wide edge of this band, at (effectiveI + 1) / n of the full base.
 		const halfWide = (box.w * (effectiveI + 1)) / n / 2;
 		child.box = { x: bandCx - halfWide, y: top, w: halfWide * 2, h: bandH };
+	});
+}
+
+/** Scale `x` by `scale`, anchored at `anchorX` (`anchorX` itself is a fixed point). */
+function scaleFromAnchor(x: number, anchorX: number, scale: number): number {
+	return anchorX + scale * (x - anchorX);
+}
+
+/**
+ * `pyraAcctRatio` band-splitting post-pass (see the module doc comment for
+ * the full derivation). Run by the layout driver AFTER `node`'s children
+ * (the per-point composite items) and their whole subtrees have already been
+ * laid out, so `pyraLvlNode`'s own subtree has a final box to shrink.
+ */
+export function applyPyraAccentSplit(node: EngineNode): void {
+	const box = node.box;
+	const ratio = node.values.get('pyraAcctRatio') ?? 0;
+	if (!box || ratio <= 0) {
+		return;
+	}
+	const scale = 1 - ratio;
+	const bkgdName = node.alg.params.pyraAcctBkgdNode ?? 'acctBkgd';
+	const txName = node.alg.params.pyraAcctTxNode ?? 'acctTx';
+	const inverted = node.alg.params.linDir === 'fromT';
+	const items = contentChildren(node);
+	const n = items.length;
+	const bandCx = box.x + box.w / 2;
+	items.forEach((item, i) => {
+		const itemBox = item.box;
+		if (!itemBox) {
+			return;
+		}
+		// "acctBkgd"/"acctTx" (only present on a row whose own data point has a
+		// child) are the ONLY item descendants that must NOT shrink with the
+		// self-role content: everything else - "level" (the visible band) and
+		// a sibling text overlay like "levelTx", positioned by Name8's OWN
+		// composite constraints relative to "level", not nested inside it -
+		// is self-role content and shrinks together.
+		const accentRoots = [
+			findNamedDescendant(item, bkgdName),
+			findNamedDescendant(item, txName),
+		].filter((candidate): candidate is EngineNode => Boolean(candidate));
+		const accentSubtree = new Set<EngineNode>();
+		for (const root of accentRoots) {
+			for (const descendant of flattenEngineTree(root)) {
+				accentSubtree.add(descendant);
+			}
+		}
+		// Scale every self-role descendant's box by the same transform: a
+		// uniform x-scale anchored at a fixed point preserves each one's own
+		// natural centring and width fraction of the item's (unshrunk) box
+		// exactly, whether it fills that box outright ("level") or occupies a
+		// fraction of it ("levelTx", `fact="0.65"` on later rows).
+		for (const descendant of flattenEngineTree(item)) {
+			if (descendant === item || accentSubtree.has(descendant) || !descendant.box) {
+				continue;
+			}
+			descendant.box = {
+				x: scaleFromAnchor(descendant.box.x, box.x, scale),
+				y: descendant.box.y,
+				w: descendant.box.w * scale,
+				h: descendant.box.h,
+			};
+		}
+		// The accent column's own left edge is this row's scaled NARROW
+		// (`fTop`) corner, not `pyraLvlNode`'s own shrunk right edge (the
+		// scaled WIDE, `fBot`, corner `newSelfRight` below) - see the module
+		// doc comment. Recomputed from `i`/`n`/`inverted` the same way
+		// `arrangePyra` derived the row's wide edge, since the narrow edge
+		// isn't recoverable from the item's already-collapsed box alone.
+		const effectiveI = inverted ? n - 1 - i : i;
+		const halfNarrow = (box.w * effectiveI) / n / 2;
+		const accentLeft = scaleFromAnchor(bandCx + halfNarrow, box.x, scale);
+		const accentRight = box.x + box.w;
+		for (const root of accentRoots) {
+			const filled: Box = {
+				x: accentLeft,
+				y: itemBox.y,
+				w: Math.max(0, accentRight - accentLeft),
+				h: itemBox.h,
+			};
+			root.box = filled;
+		}
 	});
 }

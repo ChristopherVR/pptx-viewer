@@ -79,7 +79,15 @@ export type PptxAnimationTrigger =
 	| 'onHover'
 	| 'afterPrevious'
 	| 'withPrevious'
-	| 'afterDelay';
+	| 'afterDelay'
+	/**
+	 * Starts when a media element's playback reaches a named bookmark
+	 * (PowerPoint's "Trigger > On Bookmark"). The media element is
+	 * {@link PptxElementAnimation.triggerShapeId} and the bookmark
+	 * {@link PptxElementAnimation.triggerBookmark}; saved as an interactive
+	 * sequence gated on `p:cond evt="onMediaBookmark"` with a `p14:bmkTgt`.
+	 */
+	| 'onMediaBookmark';
 
 /**
  * Native animation kind. The historic shape-targeted preset animations are
@@ -229,8 +237,13 @@ export interface PptxNativeAnimation {
 	target?: PptxAnimationTarget;
 	/** Trigger type. */
 	trigger?: PptxAnimationTrigger;
-	/** Shape ID that triggers this animation when clicked (interactive sequence). */
+	/**
+	 * Shape ID that triggers this animation: the clicked shape of an
+	 * interactive sequence, or the media element of an `onMediaBookmark` one.
+	 */
 	triggerShapeId?: string;
+	/** Bookmark name an `onMediaBookmark` interactive sequence waits for. */
+	triggerBookmark?: string;
 	/** Whether this effect belongs to an OOXML `interactiveSeq`. */
 	interactiveSequence?: boolean;
 	/** Whether `p:endSync/p:rtn[@val="all"]` makes that sequence replayable. */
@@ -733,12 +746,15 @@ export interface PptxAttributeAnimation {
 	/**
 	 * `p:anim/@_p14:bounceEnd` (Office 2010 `p14` extension attribute,
 	 * MS-OI29500), normalized to a 0-1 fraction of this behaviour's own
-	 * duration. PowerPoint's Fly In "Bounce End" effect option writes this on
-	 * the position-ramp `p:anim` node(s): the fraction of the duration at
-	 * which the primary travel completes, with the remainder spent bouncing
-	 * and settling at the final value. Mirrored verbatim by PowerPoint onto
-	 * the enclosing `p:cTn/@_p14:presetBounceEnd`. Absent for every animation
-	 * that doesn't use this effect option (the overwhelming majority).
+	 * duration. PowerPoint's "Bounce End" effect option (COM:
+	 * `Effect.Timing.BounceEnd` + `BounceEndIntensity`) writes this on the
+	 * position-ramp `p:anim` node(s): the share of the duration spent
+	 * BOUNCING at the end. Measured from PowerPoint's own CreateVideo frames,
+	 * the travel completes at `1 - bounceEnd` and the rest is a damped
+	 * oscillation about the final value (see shared's `animation-bounce-end`).
+	 * Mirrored verbatim by PowerPoint onto the enclosing
+	 * `p:cTn/@_p14:presetBounceEnd`. Absent for every animation that doesn't
+	 * use this effect option (the overwhelming majority).
 	 */
 	bounceEnd?: number;
 }
@@ -956,9 +972,24 @@ export interface PptxElementAnimation {
 	durationMs?: number;
 	delayMs?: number;
 	order?: number;
+	/**
+	 * The {@link order} the loader derived from the slide's `p:timing` tree for
+	 * an entry whose `pptx:editorMeta` record authored no `@order`. The tree
+	 * already expresses that position (and every load re-derives it), so the
+	 * writer omits `@order` while `order` still equals this value; a reorder
+	 * changes `order` and the attribute is written again. Load-time bookkeeping
+	 * only; never set it by hand.
+	 */
+	orderFromTimeline?: number;
 	trigger?: PptxAnimationTrigger;
-	/** Shape ID that triggers this animation when clicked (interactive sequence). */
+	/**
+	 * Shape ID that triggers this animation: the shape clicked for
+	 * `onShapeClick`, or the media element whose bookmark fires it for
+	 * `onMediaBookmark`.
+	 */
 	triggerShapeId?: string;
+	/** Bookmark name (`p14:bmk/@name`) an `onMediaBookmark` trigger waits for. */
+	triggerBookmark?: string;
 	timingCurve?: PptxAnimationTimingCurve;
 	repeatCount?: number;
 	repeatMode?: PptxAnimationRepeatMode;

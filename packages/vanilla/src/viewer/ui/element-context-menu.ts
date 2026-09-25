@@ -15,12 +15,17 @@
  */
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	canInteractWithElement,
+	canMergeShapes,
 	clampFlyoutPosition,
+	customizeContextMenuEntries,
+	EMPTY_RESOLVED_CUSTOMIZATION,
 	isElementIdInteractive,
 	resolveContextMenuElementId,
+	resolveEditPointsAvailability,
 } from 'pptx-viewer-shared';
-import type { ContextMenuEntry } from 'pptx-viewer-shared';
+import type { ContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
 
 import { findActiveElement } from '../editor/editor-active-elements';
 import { resolveTopLevelElementId } from '../editor/element-hit';
@@ -50,6 +55,8 @@ export interface ElementContextMenuDeps extends ContextMenuCommandDeps {
 	getStageRoot(): HTMLElement | null;
 	/** Make `id` the selection before a command acts on it. */
 	selectElement(id: string): void;
+	/** The host's resolved UI customisation, read at open time (omitted: none). */
+	getCustomization?(): ResolvedCustomization;
 }
 
 export interface ElementContextMenu {
@@ -154,7 +161,9 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 
 	const onContextMenu = (event: MouseEvent): void => {
 		const state = store.get();
-		if (!state.editable || state.presenting) {
+		const customization = deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION;
+		// A host-disabled menu behaves like no menu: the native one shows.
+		if (!state.editable || state.presenting || !customization.elementMenuEnabled) {
 			return;
 		}
 		// A right-click inside an open inline text editor still belongs to the
@@ -188,7 +197,7 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 		const next = store.get();
 		const element = findActiveElement(next, id) ?? null;
 		const table = resolveTableTarget(next, element, event.target);
-		open(
+		const entries = customizeContextMenuEntries(
 			buildContextMenuEntries({
 				elementType: element?.type ?? null,
 				table: table?.context ?? null,
@@ -202,11 +211,20 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 				),
 				aiEnabled: deps.getAi() !== null,
 				hasClipboard: next.clipboardPayload !== null,
+				// Offered only when the host wired Edit Points in (greyed for a
+				// `noEditPoints` lock by the shared builder).
+				editPoints: deps.startEditPoints ? resolveEditPointsAvailability(element) : undefined,
+				// Merge Shapes reads the selection in SELECTION order.
+				canMergeShapes: canMergeShapes(
+					next.selectedElementIds.map((selectedId) => findActiveElement(next, selectedId)),
+				),
+				canCrop: canCropElement(element),
 			}),
-			table,
-			event.clientX,
-			event.clientY,
+			customization,
 		);
+		if (entries.length > 0) {
+			open(entries, table, event.clientX, event.clientY);
+		}
 	};
 
 	viewport.addEventListener('contextmenu', onContextMenu);

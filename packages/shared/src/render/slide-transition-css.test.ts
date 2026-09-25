@@ -178,12 +178,6 @@ describe('getSlideTransitionAnimations', () => {
 		);
 	});
 
-	it('zooms both layers', () => {
-		const result = getSlideTransitionAnimations('zoom', 400, undefined);
-		expect(result.outgoing).toContain('pptx-tr-zoom-out');
-		expect(result.incoming).toContain('pptx-tr-zoom-in');
-	});
-
 	it('resolves orientation-aware blinds / comb / randomBar', () => {
 		expect(getSlideTransitionAnimations('blinds', 400, undefined, 'vert').incoming).toContain(
 			'pptx-tr-blinds-v',
@@ -217,14 +211,20 @@ describe('getSlideTransitionAnimations', () => {
 		);
 	});
 
-	it('resolves p:zoom/@dir="out" to the reversed zoom keyframes (G11)', () => {
-		const zoomIn = getSlideTransitionAnimations('zoom', 400, undefined);
-		expect(zoomIn.incoming).toContain('pptx-tr-zoom-in ');
-		expect(zoomIn.outgoing).toContain('pptx-tr-zoom-out ');
-
-		const zoomOut = getSlideTransitionAnimations('zoom', 400, 'out');
-		expect(zoomOut.incoming).toContain('pptx-tr-zoom-in-rev');
-		expect(zoomOut.outgoing).toContain('pptx-tr-zoom-out-rev');
+	it("plays p:zoom as PowerPoint's centred box reveal, defaulting to dir=out (COM-verified)", () => {
+		// No @dir and dir="out" are both Box Out: the incoming slide grows out of
+		// the centre over a still outgoing slide, linearly.
+		for (const dir of [undefined, 'out']) {
+			const out = getSlideTransitionAnimations('zoom', 400, dir);
+			expect(out.incoming).toBe('pptx-tr-zoom-box-grow 400ms linear forwards');
+			expect(out.outgoing).toBe('none');
+			expect(out.outgoingOnTop).toBeFalsy();
+		}
+		// dir="in" is Box In: the outgoing slide shrinks into the centre on top.
+		const boxIn = getSlideTransitionAnimations('zoom', 400, 'in');
+		expect(boxIn.outgoing).toBe('pptx-tr-zoom-box-shrink 400ms linear forwards');
+		expect(boxIn.incoming).toBe('none');
+		expect(boxIn.outgoingOnTop).toBeTruthy();
 	});
 
 	it('resolves p:wheel/@spokes to the matching N-spoke keyframe (G9)', () => {

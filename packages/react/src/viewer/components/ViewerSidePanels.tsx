@@ -5,7 +5,7 @@
 import { themeColorSchemesEqual } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
-import { scaleSlidesForSizeChange, slideSizeToCanvasPx } from 'pptx-viewer-shared';
+import { isPanelVisible, scaleSlidesForSizeChange, slideSizeToCanvasPx } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
 
 import { ViewerInspector, SelectionPane } from '.';
@@ -26,6 +26,7 @@ import { MobileDismissSheet } from './mobile/MobileDismissSheet';
 import { ResizeHandle } from './ResizeHandle';
 import type { ThemeDefinition } from './toolbar/ThemeGallery';
 import { BUILT_IN_THEMES, ThemeGallery } from './toolbar/ThemeGallery';
+import { useViewerCustomizationContext } from './viewer-customization-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -115,6 +116,11 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 	});
 
 	const effectiveSlide = mode === 'master' ? masterPseudoSlide : activeSlide;
+	const customization = useViewerCustomizationContext();
+	const inspectorOpen =
+		(mode === 'edit' || mode === 'master') &&
+		s.isInspectorPaneOpen &&
+		isPanelVisible(customization, 'inspector');
 	const currentBuiltInTheme =
 		BUILT_IN_THEMES.find((candidate) =>
 			themeColorSchemesEqual(s.theme?.colorScheme, candidate.colorScheme),
@@ -122,11 +128,11 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 
 	return (
 		<>
-			{(mode === 'edit' || mode === 'master') && s.isInspectorPaneOpen && onResizeRight && (
+			{inspectorOpen && onResizeRight && (
 				<ResizeHandle direction='horizontal' onResize={onResizeRight} />
 			)}
 			<ViewerInspector
-				isOpen={(mode === 'edit' || mode === 'master') && s.isInspectorPaneOpen}
+				isOpen={inspectorOpen}
 				canEdit={canEdit}
 				mode={mode}
 				activeSlide={effectiveSlide}

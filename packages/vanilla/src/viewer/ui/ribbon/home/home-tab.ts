@@ -1,5 +1,6 @@
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../../editor/editor-edit-ops';
 import { canFormatText, readTextFormatState } from '../../../editor/editor-format-mutations';
@@ -27,6 +28,8 @@ const MAX_PREVIEW_ELEMENTS = 100;
 export interface HomeTabDeps {
 	edit: EditActions;
 	onToggleFindReplace(): void;
+	/** Host-hidden ribbon controls (Merge Shapes / Crop are never built when hidden). */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 export interface HomeTabSyncState {
@@ -53,6 +56,12 @@ export interface HomeTabSyncState {
 	recentColors?: readonly string[];
 	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
 	themeColorMap?: Record<string, string>;
+	/** Shared `canMergeShapes` over the selection. */
+	canMergeShapes?: boolean;
+	/** A single croppable picture is selected. */
+	canCrop?: boolean;
+	/** Picture crop mode is on. */
+	cropActive?: boolean;
 }
 
 export interface HomeTab {
@@ -141,22 +150,32 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		setShapeFill: edit.setShapeFill,
 		setShapeStroke: edit.setShapeStroke,
 	});
-	const arrange: ArrangeGroup = createArrangeGroup(doc, t, {
-		bringForward: edit.bringForward,
-		sendBackward: edit.sendBackward,
-		bringToFront: edit.bringToFront,
-		sendToBack: edit.sendToBack,
-		alignElements: edit.alignElements,
-		distributeElements: edit.distributeElements,
-		flipHorizontal: edit.flipHorizontal,
-		flipVertical: edit.flipVertical,
-		groupSelected: edit.groupSelected,
-		ungroupSelected: edit.ungroupSelected,
-		setStrokeWidth: edit.setShapeStrokeWidth,
-		toggleFormatPainter: edit.toggleFormatPainter,
-		duplicate: edit.duplicateSelected,
-		delete: edit.deleteSelected,
-	});
+	const arrange: ArrangeGroup = createArrangeGroup(
+		doc,
+		t,
+		{
+			bringForward: edit.bringForward,
+			sendBackward: edit.sendBackward,
+			bringToFront: edit.bringToFront,
+			sendToBack: edit.sendToBack,
+			alignElements: edit.alignElements,
+			distributeElements: edit.distributeElements,
+			flipHorizontal: edit.flipHorizontal,
+			flipVertical: edit.flipVertical,
+			groupSelected: edit.groupSelected,
+			ungroupSelected: edit.ungroupSelected,
+			setStrokeWidth: edit.setShapeStrokeWidth,
+			toggleFormatPainter: edit.toggleFormatPainter,
+			duplicate: edit.duplicateSelected,
+			delete: edit.deleteSelected,
+			mergeShapes: edit.mergeShapes,
+			toggleCropMode: edit.toggleCropMode,
+			cropToAspect: edit.cropToAspect,
+			cropFill: edit.cropFill,
+			cropFit: edit.cropFit,
+		},
+		deps.hiddenActions,
+	);
 
 	el.append(clipboard.el, slides.el, font.el, paragraph.el, editing.el, drawing.el, arrange.el);
 
@@ -178,6 +197,9 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 			customFontFamilies,
 			recentColors,
 			themeColorMap,
+			canMergeShapes,
+			canCrop,
+			cropActive,
 		}) {
 			const canFormat = canFormatText(selectedElement);
 			const text = readTextFormatState(selectedElement);
@@ -217,6 +239,9 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 				selectedCount,
 				selectionGroupable,
 				selectedElement,
+				canMergeShapes,
+				canCrop,
+				cropActive,
 			});
 		},
 	};

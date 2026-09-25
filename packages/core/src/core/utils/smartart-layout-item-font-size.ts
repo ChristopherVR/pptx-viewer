@@ -161,7 +161,17 @@ export function proportionalMarginFraction(
 		}
 		return undefined;
 	}
-	return { horizontal: (left ?? 0) + (right ?? 0), vertical: (top ?? 0) + (bottom ?? 0) };
+	// A side with no margin constraint of its own takes PowerPoint's default
+	// `0.56 x size` inset even when other sides are declared (cached corpus:
+	// "Ascending Picture Accent Process"'s `desTx`, "Basic Target", "Opposing
+	// Arrows"); a side declared as a literal stays out of this proportional
+	// sum, exactly as before.
+	const side = (type: string, factor: number | undefined): number =>
+		factor ?? (constraintFor(type) === undefined ? DEFAULT_NO_CONSTRAINT_MARGIN_FACTOR : 0);
+	return {
+		horizontal: side('lMarg', left) + side('rMarg', right),
+		vertical: side('tMarg', top) + side('bMarg', bottom),
+	};
 }
 
 /**

@@ -1,4 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { resolveCustomization } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../editor';
@@ -23,6 +25,8 @@ function stubActions() {
 		sendToBack: vi.fn(),
 		groupSelected: vi.fn(),
 		ungroupSelected: vi.fn(),
+		mergeShapes: vi.fn(),
+		enterCropMode: vi.fn(),
 		mutateTableStructure: vi.fn(),
 		mergeTableCells: vi.fn(),
 		splitTableCell: vi.fn(),
@@ -80,6 +84,7 @@ function harness(
 	options: {
 		state?: Partial<ViewerState>;
 		ai?: { askAboutSelection: () => void; fixElement: () => void } | null;
+		customization?: ResolvedCustomization;
 		decorate?(element: HTMLElement): HTMLElement;
 	} = {},
 ): Harness {
@@ -115,6 +120,7 @@ function harness(
 		openComments,
 		openHyperlink,
 		getAi: () => options.ai ?? null,
+		getCustomization: options.customization ? () => options.customization! : undefined,
 	});
 	return {
 		actions,
@@ -155,6 +161,26 @@ afterEach(() => {
 });
 
 describe('mountElementContextMenu', () => {
+	it('drops the commands the host customisation hides', () => {
+		const customization = resolveCustomization({
+			contextMenu: { hiddenElementCommands: ['copy'] },
+		});
+		const context = harness(shapeSlide(), { customization });
+		rightClick(context.target);
+		expect(labels()).not.toContain('Copy');
+		expect(labels()).toContain('Cut');
+		context.destroy();
+	});
+
+	it('opens nothing (and leaves the native menu) when the host disables the menu', () => {
+		const customization = resolveCustomization({ contextMenu: { disableElementMenu: true } });
+		const context = harness(shapeSlide(), { customization });
+		const event = rightClick(context.target);
+		expect(event.defaultPrevented).toBeFalsy();
+		expect(openMenu()).toBeNull();
+		context.destroy();
+	});
+
 	it('opens an accessible menu of the shared command set on a right-clicked shape', () => {
 		const context = harness(shapeSlide());
 		const event = rightClick(context.target);
@@ -387,5 +413,50 @@ describe('mountElementContextMenu', () => {
 		expect(rightClick(stage as HTMLElement).defaultPrevented).toBeFalsy();
 		expect(openMenu()).toBeNull();
 		editing.destroy();
+	});
+
+	it('offers Merge Shapes on a mergeable multi-selection and routes each operation', () => {
+		const slide = shapeSlide();
+		for (const element of slide.elements) {
+			Object.assign(element, { shapeType: 'rect' });
+		}
+		const context = harness(slide, {
+			state: { selectedElementId: 'el-2', selectedElementIds: ['el-1', 'el-2'] },
+		});
+		rightClick(context.target);
+		expect(labels()).toStrictEqual(
+			expect.arrayContaining([
+				'Union Shapes',
+				'Combine Shapes',
+				'Fragment Shapes',
+				'Intersect Shapes',
+				'Subtract Shapes',
+			]),
+		);
+		clickCommand('Subtract Shapes');
+		expect(context.actions.mergeShapes).toHaveBeenCalledWith('subtract');
+		context.destroy();
+	});
+
+	it('offers Crop on a single picture and enters crop mode', () => {
+		const slide = {
+			id: 's1',
+			slideNumber: 1,
+			elements: [
+				{ id: 'pic-1', type: 'picture', x: 0, y: 0, width: 40, height: 30, imageData: 'data:,' },
+			],
+		} as unknown as PptxSlide;
+		const context = harness(slide);
+		rightClick(context.target);
+		expect(labels()).toContain('Crop');
+		clickCommand('Crop');
+		expect(context.actions.enterCropMode).toHaveBeenCalledOnce();
+		context.destroy();
+
+		const shapes = harness(shapeSlide());
+		rightClick(shapes.target);
+		expect(labels()).not.toContain('Crop');
+		expect(labels().some((label) => label.endsWith('Shapes'))).toBeFalsy();
+		shapes.destroy();
 	});
 });

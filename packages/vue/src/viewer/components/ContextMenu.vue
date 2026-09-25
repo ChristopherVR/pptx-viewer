@@ -16,6 +16,12 @@ export interface ContextMenuItem {
 	disabled?: boolean;
 	/** When true the entry renders as a divider instead of a button. */
 	separator?: boolean;
+	/**
+	 * A checkbox-style toggle (Grid and Guides, Ruler) in this state, rather
+	 * than a one-shot command. Omitted for ordinary commands, which keep
+	 * `role="menuitem"`.
+	 */
+	checked?: boolean;
 }
 </script>
 
@@ -33,6 +39,8 @@ const props = defineProps<{
 	 * unnamed menu, which is what three of the five bindings used to do.
 	 */
 	ariaLabel?: string;
+	/** Adds `data-pptx-canvas-context-menu="true"` alongside the usual marker. */
+	isCanvasMenu?: boolean;
 }>();
 
 const emit = defineEmits<{
@@ -162,6 +170,7 @@ onBeforeUnmount(removeListeners);
 			:aria-label="ariaLabel"
 			:style="menuStyle"
 			data-pptx-context-menu="true"
+			:data-pptx-canvas-context-menu="isCanvasMenu ? 'true' : undefined"
 			@contextmenu.prevent
 		>
 			<template v-for="(item, index) in items" :key="item.separator ? `sep-${index}` : item.id">
@@ -173,7 +182,8 @@ onBeforeUnmount(removeListeners);
 				<button
 					v-else
 					type="button"
-					role="menuitem"
+					:role="item.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
+					:aria-checked="item.checked === undefined ? undefined : item.checked"
 					class="pptx-vue-context-menu__item block w-full cursor-pointer border-0 bg-transparent px-3 py-1.5 text-left text-inherit hover:bg-muted focus-visible:bg-muted focus-visible:outline-none"
 					:class="{
 						'pptx-vue-context-menu__item--disabled pointer-events-none cursor-default opacity-45 hover:bg-transparent':
@@ -184,6 +194,12 @@ onBeforeUnmount(removeListeners);
 					:data-item-id="item.id"
 					@click="onItemClick(item)"
 				>
+					<span
+						v-if="item.checked !== undefined"
+						class="mr-1.5 inline-block w-3"
+						aria-hidden="true"
+						>{{ item.checked ? '✓' : '' }}</span
+					>
 					{{ item.label }}
 				</button>
 			</template>

@@ -56,3 +56,31 @@ describe('buildChartExSpaceXml: c:userShapes overlay reference (full-regenerate 
 		expect(chartSpace['@_xmlns:c']).toBeUndefined();
 	});
 });
+
+describe('buildChartExSpaceXml: histogramOptions.aggregateByCategory', () => {
+	it('writes cx:aggregation instead of cx:binning for a category-aggregated Pareto bar series', () => {
+		const chartData: PptxChartData = {
+			chartType: 'histogram',
+			categories: ['Category 1', 'Category 2'],
+			series: [
+				{
+					name: 'S',
+					values: [1, 1],
+					histogramOptions: { layout: 'histogram', aggregateByCategory: true },
+				},
+			],
+		};
+		const xml = buildChartExSpaceXml(chartData) as {
+			'cx:chartSpace': {
+				'cx:chart': {
+					'cx:plotArea': {
+						'cx:plotAreaRegion': { 'cx:series': Array<Record<string, unknown>> };
+					};
+				};
+			};
+		};
+		const [series] =
+			xml['cx:chartSpace']['cx:chart']['cx:plotArea']['cx:plotAreaRegion']['cx:series'];
+		expect(series['cx:layoutPr']).toStrictEqual({ 'cx:aggregation': {} });
+	});
+});

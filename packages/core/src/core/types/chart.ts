@@ -267,6 +267,20 @@ export type PptxChartScatterStyle =
 	| 'smoothMarker';
 
 /** Shape properties extracted from c:spPr for chart formatting. */
+/**
+ * A render-ready gradient fill from a chart `c:spPr/a:gradFill` (chart area,
+ * plot area or series). Positions are 0..100; a linear gradient's `angle` is
+ * in degrees clockwise from left-to-right (`a:lin/@ang`); a radial (`a:path`)
+ * gradient centres on `focalPoint` (0..1 fractions of the box), the middle
+ * when absent.
+ */
+export interface PptxChartGradientFill {
+	type: 'linear' | 'radial';
+	stops: Array<{ color: string; position: number; opacity?: number }>;
+	angle?: number;
+	focalPoint?: { x: number; y: number };
+}
+
 export interface PptxChartShapeProps {
 	fillColor?: string;
 	strokeColor?: string;
@@ -534,6 +548,15 @@ export interface PptxChartHistogramOptions {
 	intervalClosed?: 'l' | 'r';
 	underflow?: number | 'auto';
 	overflow?: number | 'auto';
+	/**
+	 * `c:layoutPr/cx:aggregation` was authored instead of `cx:binning`: the
+	 * raw rows are CATEGORICAL (a Pareto chart's `clusteredColumn` series
+	 * counting occurrences of each authored category, COM-verified against
+	 * charts-com.pptx slide 31 / chartEx6.xml), not a numeric range to bin.
+	 * Mutually exclusive with `binSize`/`binCount`/`intervalClosed`, which
+	 * only apply to a true numeric-value histogram.
+	 */
+	aggregateByCategory?: boolean;
 }
 
 /** Office 2016 ChartEx waterfall series layout options. */
@@ -628,6 +651,12 @@ export interface PptxChartSeries {
 	 */
 	idx?: number;
 	values: number[];
+	/**
+	 * Series gradient fill (`c:ser/c:spPr/a:gradFill`), painted on every mark
+	 * of the series that has no per-point override. Render-only: the series'
+	 * own `c:spPr` round-trips untouched.
+	 */
+	gradientFill?: PptxChartGradientFill;
 	/**
 	 * Per-series x values from `c:ser/c:xVal` (scatter and bubble series only).
 	 *
@@ -804,6 +833,12 @@ export interface PptxChartFilteredSeries {
  * and `c:dLblPos`.
  */
 export interface PptxChartDataLabelOptions {
+	/** Label box fill/outline (`c:dLbls/c:spPr`), see `chart-data-label-box.ts`. */
+	labelShape?: PptxChartShapeProps;
+	/** Callout geometry of the label box (`c15:spPr/a:prstGeom/@prst`, e.g. `wedgeRectCallout`). */
+	calloutShape?: string;
+	/** The chart15 extension's `c15:showLeaderLines`, which wins for a moved label's leader line. */
+	extLeaderLines?: boolean;
 	/** Show the numeric value (`c:showVal`). */
 	showValue?: boolean;
 	/** Show the category name (`c:showCatName`). */
@@ -932,6 +967,10 @@ export interface PptxChartStyle {
 	chartAreaFill?: string;
 	/** Plot-area fill from `c:plotArea/c:spPr`. See {@link chartAreaFill}. */
 	plotAreaFill?: string;
+	/** Chart-area gradient (`c:chartSpace/c:spPr/a:gradFill`); wins over {@link chartAreaFill}. */
+	chartAreaGradient?: PptxChartGradientFill;
+	/** Plot-area gradient (`c:plotArea/c:spPr/a:gradFill`); wins over {@link plotAreaFill}. */
+	plotAreaGradient?: PptxChartGradientFill;
 	/** Whether data labels are shown. */
 	hasDataLabels?: boolean;
 	/** Chart-level data-label content/position options (when `hasDataLabels`). */
@@ -1232,6 +1271,18 @@ export interface PptxChartData {
 	 * the source" and callers should treat it as `true`. Surface only.
 	 */
 	wireframe?: boolean;
+	/**
+	 * Whether the surface chart is the 2-D "top view" projection
+	 * (`c:surfaceChart`, PowerPoint's "Contour" / "Wireframe Contour" types)
+	 * rather than the 3-D isometric one (`c:surface3DChart`, "3-D Surface" /
+	 * "3-D Surface (Wireframe)"). Both element names map to chart type
+	 * `"surface"`; this bit is the only thing that tells the renderer which
+	 * of the two projections PowerPoint actually drew, since a top-view
+	 * surface has no Z-axis at all (only category and series axes) while the
+	 * 3-D one draws all three. Surface only; `undefined` for every other
+	 * chart type.
+	 */
+	surfaceTopView?: boolean;
 	/**
 	 * Scatter presentation mode (`c:scatterChart/c:scatterStyle/@val`).
 	 *

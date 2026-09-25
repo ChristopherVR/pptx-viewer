@@ -16,9 +16,11 @@ export type {
 export type { SlideCanvasProps, SlideStageProps } from './props-stage';
 export type { NotesPanelProps, ThumbnailRailProps, ViewerToolbarProps } from './props-chrome';
 export type {
+	CanvasContextMenuProps,
 	EditorLayerProps,
 	ElementContextMenuProps,
 	InlineTextEditorProps,
 	SelectionOverlayProps,
+	StageCanvasContextMenu,
 	StageContextMenu,
 } from './props-editing';

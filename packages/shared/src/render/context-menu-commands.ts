@@ -22,6 +22,9 @@
  */
 import type { PptxTableData } from 'pptx-viewer-core';
 
+import type { EditPointsAvailability } from './edit-points/edit-points-availability';
+import type { MergeShapesCommandId } from './merge-shapes/merge-shapes-menu';
+import { MERGE_SHAPES_MENU_ITEMS } from './merge-shapes/merge-shapes-menu';
 import type { CellCoord } from './table-merge';
 
 /**
@@ -54,6 +57,7 @@ export type ContextMenuCommandId =
 	| 'paste'
 	| 'duplicate'
 	| 'edit-text'
+	| 'edit-points'
 	| 'bring-forward'
 	| 'send-backward'
 	| 'bring-front'
@@ -74,6 +78,8 @@ export type ContextMenuCommandId =
 	| 'table-split'
 	| 'group'
 	| 'ungroup'
+	| 'crop'
+	| MergeShapesCommandId
 	| 'save-as-picture'
 	| 'edit-alt-text'
 	| 'size-and-position'
@@ -119,10 +125,27 @@ export interface ContextMenuContext {
 	/** The AI assistant is configured by the host. */
 	aiEnabled?: boolean;
 	/**
+	 * Two or more mergeable shapes are selected (shared `canMergeShapes`), so
+	 * the five Merge Shapes entries are offered.
+	 */
+	canMergeShapes?: boolean;
+	/**
+	 * For a picture: whether it may be cropped (shared `canCropElement`).
+	 * Omitted means croppable; false greys Crop out (`a:picLocks/@noCrop`).
+	 */
+	canCrop?: boolean;
+	/**
 	 * Whether there is anything to paste. Omit when the binding does not track
 	 * it: Paste is then offered enabled, which is what React has always done.
 	 */
 	hasClipboard?: boolean;
+	/**
+	 * Edit Points for the right-clicked element, from
+	 * `resolveEditPointsAvailability`: offered when `available`, greyed out when
+	 * `locked` (`a:spLocks/@noEditPoints`), absent otherwise. Omit when the
+	 * binding does not support Edit Points.
+	 */
+	editPoints?: EditPointsAvailability;
 }
 
 const LABEL_KEYS: Record<ContextMenuCommandId, string> = {
@@ -150,7 +173,14 @@ const LABEL_KEYS: Record<ContextMenuCommandId, string> = {
 	'table-split': 'pptx.contextMenu.splitCell',
 	group: 'pptx.contextMenu.group',
 	ungroup: 'pptx.contextMenu.ungroup',
+	crop: 'pptx.contextMenu.crop',
+	'merge-union': 'pptx.contextMenu.mergeUnion',
+	'merge-combine': 'pptx.contextMenu.mergeCombine',
+	'merge-fragment': 'pptx.contextMenu.mergeFragment',
+	'merge-intersect': 'pptx.contextMenu.mergeIntersect',
+	'merge-subtract': 'pptx.contextMenu.mergeSubtract',
 	'edit-text': 'pptx.contextMenu.editText',
+	'edit-points': 'pptx.contextMenu.editPoints',
 	'save-as-picture': 'pptx.contextMenu.saveAsPicture',
 	'edit-alt-text': 'pptx.contextMenu.editAltText',
 	'size-and-position': 'pptx.contextMenu.sizeAndPosition',
@@ -211,8 +241,15 @@ const TEXT_EDITABLE_ELEMENT_TYPES = new Set(['text', 'shape']);
  * present, permanently greyed Group is noise on a single shape.
  */
 export function buildContextMenuEntries(context: ContextMenuContext = {}): ContextMenuEntry[] {
-	const { elementType, table, hasMultiSelection, aiEnabled, hasClipboard, selectionGroupable } =
-		context;
+	const {
+		elementType,
+		table,
+		hasMultiSelection,
+		aiEnabled,
+		hasClipboard,
+		selectionGroupable,
+		editPoints,
+	} = context;
 	const lockedOut = selectionGroupable === false;
 	const entries: ContextMenuEntry[] = [
 		entry('copy'),
@@ -222,6 +259,14 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 	];
 	if (elementType && TEXT_EDITABLE_ELEMENT_TYPES.has(elementType)) {
 		entries.push(entry('edit-text'));
+	}
+	// PowerPoint lists Edit Points right under Edit Text, greyed out when the
+	// shape's points are locked.
+	if (!hasMultiSelection && (editPoints === 'available' || editPoints === 'locked')) {
+		entries.push(entry('edit-points', editPoints === 'locked' ? { disabled: true } : {}));
+	}
+	if (!hasMultiSelection && (elementType === 'picture' || elementType === 'image')) {
+		entries.push(entry('crop', context.canCrop === false ? { disabled: true } : {}));
 	}
 	entries.push(
 		entry('bring-forward', { separatorBefore: true }),
@@ -245,6 +290,11 @@ export function buildContextMenuEntries(context: ContextMenuContext = {}): Conte
 				separatorBefore: !hasMultiSelection,
 				...(lockedOut ? { disabled: true } : {}),
 			}),
+		);
+	}
+	if (hasMultiSelection && context.canMergeShapes) {
+		MERGE_SHAPES_MENU_ITEMS.forEach((item, i) =>
+			entries.push(entry(item.commandId, i === 0 ? { separatorBefore: true } : {})),
 		);
 	}
 	// PowerPoint's own "Format Object" cluster: alt text, save-as-picture,

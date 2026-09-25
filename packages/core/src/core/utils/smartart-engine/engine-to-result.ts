@@ -16,7 +16,7 @@
  * default.
  *
  * Declines (`undefined`) whenever the layout definition uses an algorithm
- * this engine does not implement yet (`hierRoot`/`hierChild`): the
+ * this engine does not implement (none in the gallery corpus today): the
  * registry (`registry.ts`) silently substitutes
  * `composite` for an unknown type so the layout still runs to completion,
  * which would otherwise produce plausible-looking but wrong geometry with no
@@ -36,13 +36,28 @@ import {
 	styleStroke,
 } from '../smartart-layout-style-helpers';
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
+import { isAssistantItem } from './alg-hier';
 import { runSmartArtEngine } from './engine';
+import { applyEngineFonts } from './engine-fonts';
+import type { RenderedEngineNode } from './engine-fonts';
 import type { EngineNode } from './engine-node';
+import { computeMoveWithMerge, sourceIdsOf } from './move-with-merge';
+import { isRenderable, transitionLabelOf } from './render-filter';
 import { shapeTransform } from './shape-transform';
-import { resolveEngineFontSizePt } from './text-fit';
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
-const SUPPORTED_ALGS = new Set(['composite', 'lin', 'conn', 'snake', 'cycle', 'pyra', 'sp', 'tx']);
+const SUPPORTED_ALGS = new Set([
+	'composite',
+	'lin',
+	'conn',
+	'snake',
+	'cycle',
+	'pyra',
+	'hierRoot',
+	'hierChild',
+	'sp',
+	'tx',
+]);
 
 /** 1 CSS pixel (96 dpi, this codebase's convention) in DrawingML points. */
 const PT_PER_PX = 72 / 96;
@@ -52,7 +67,7 @@ const PX_PER_PT = 1 / PT_PER_PX;
 function isFullySupported(root: EngineNode): boolean {
 	let ok = true;
 	const visit = (node: EngineNode): void => {
-		if (!SUPPORTED_ALGS.has(node.alg.type)) {
+		if (!SUPPORTED_ALGS.has(node.alg.type) || isAssistantItem(node)) {
 			ok = false;
 		}
 		node.children.forEach(visit);
@@ -61,47 +76,13 @@ function isFullySupported(root: EngineNode): boolean {
 	return ok;
 }
 
-/** Data-model nodes this rendered point presents text for, in `presOf` order. */
-function sourceIdsOf(node: EngineNode): string[] {
-	const ids: string[] = [];
-	for (const point of node.presOf) {
-		if (point.source && !ids.includes(point.source.id)) {
-			ids.push(point.source.id);
-		}
-	}
-	return ids;
-}
-
-/**
- * `hideGeom` (ECMA-376 Part 1, 21.4.7.16 `ST_OnOffStyleType`) means the node
- * draws NO visible border/fill, not that it is not a node: PowerPoint still
- * places its own text-bearing shape there (invisible outline, real text),
- * commonly a "descendant" role box folded under a sibling's card (see
- * `Vertical Action List`/`Descending Block List`/`Numbered Title List`: an
- * item's own child node text renders as a second, borderless line inside the
- * same visual card). Dropping every `hideGeom` node outright previously lost
- * those boxes entirely (2-3 of 5-6 text-bearing shapes per fixture) even
- * though the engine placed correct geometry for them; a `hideGeom` node with
- * NO presented text (a genuinely decorative/structural placeholder, e.g. a
- * sibling row with no descendant) is still skipped, since it carries nothing
- * to compare or display.
- */
-function isRenderable(node: EngineNode, primary: PptxSmartArtNode | undefined): boolean {
-	if (!node.shape || !node.box) {
-		return false;
-	}
-	if (!node.shape.hideGeom) {
-		return true;
-	}
-	return Boolean(primary?.text && primary.text.trim().length > 0);
-}
-
 function buildRenderedNode(
 	node: EngineNode,
 	index: number,
 	nodeById: Map<string, PptxSmartArtNode>,
 	palette: string[],
 	style: SmartArtStyle,
+	mergedSourceIds?: string[],
 ): RenderedRectNode | undefined {
 	const transform = shapeTransform(node);
 	if (!transform) {
@@ -109,17 +90,25 @@ function buildRenderedNode(
 	}
 	const sourceIds = sourceIdsOf(node);
 	const primary = sourceIds.length > 0 ? nodeById.get(sourceIds[0]) : undefined;
-	if (!isRenderable(node, primary)) {
+	const literalText = sourceIds.length === 0 ? transitionLabelOf(node) : undefined;
+	// Any presented point with text makes a borderless box worth drawing, not
+	// just the first: "Small Dots Vertical"'s `descText` under Node Two
+	// presents an empty placeholder point before Node Three.
+	const presented = sourceIds.map((id) => nodeById.get(id));
+	if (!isRenderable(node, presented, literalText)) {
 		return undefined;
 	}
 	const hidden = Boolean(node.shape?.hideGeom);
-	const text = primary?.text ?? '';
-	const fontSizePt = resolveEngineFontSizePt(node, text);
+	const text = primary?.text ?? literalText ?? '';
 	const sw = hidden ? 0 : styleStroke(style);
 	const x = transform.x * PX_PER_PT;
 	const y = transform.y * PX_PER_PT;
 	const width = transform.w * PX_PER_PT;
 	const height = transform.h * PX_PER_PT;
+	const foldedNodeIds = [
+		...sourceIds.slice(1),
+		...(mergedSourceIds ?? []).filter((id) => !sourceIds.includes(id)),
+	];
 	return {
 		kind: 'rect',
 		key: `${node.name || 'engine-node'}-${index}`,
@@ -133,32 +122,62 @@ function buildRenderedNode(
 		strokeWidth: sw,
 		opacity: hidden ? 1 : nodeOpacity(index, index + 1, style),
 		text,
-		fontSize: fontSizePt * PX_PER_PT,
+		// Placeholder: `applyEngineFonts` resolves every node's size jointly
+		// (equality groups span nodes) once the whole list is collected.
+		fontSize: 0,
 		textX: x + width / 2,
 		textY: y + height / 2,
 		nodeId: primary?.id,
 		rotation: transform.rotation === 0 ? undefined : transform.rotation,
 		presetOverride: node.shape?.type ?? 'roundRect',
-		foldedNodeIds: sourceIds.length > 1 ? sourceIds.slice(1) : undefined,
+		foldedNodeIds: foldedNodeIds.length > 0 ? foldedNodeIds : undefined,
+		literalText,
 	};
 }
 
-/** Every node the engine gives its own visible shape, in document order. */
+/**
+ * Every node the engine gives its own visible shape, in document order.
+ * `conn`-alg nodes are skipped: a connector's own `arrange` (`layoutTree`'s
+ * dedicated final routing pass, `alg-connector.ts`) produces a real box only
+ * for its supported "2-D, straight" case, leaving a degenerate zero-size box
+ * for a `connRout="bend"` routing (real "Hierarchy"'s own manager-to-report
+ * lines) - since `SmartArtLayoutResult.connectors` is separately, and always,
+ * discarded downstream (`smartart-interpreter-drawing-bridge.ts`'s own doc
+ * comment: PowerPoint reconstructs `dsp:cxn` connector shapes itself from the
+ * data-model connections, so this bridge never converts connector geometry),
+ * a connector was never meant to reach this rect-shape collector at all; one
+ * that does previously failed `isFiniteGeometry` below and declined the
+ * WHOLE diagram over a shape nothing downstream would have used anyway.
+ */
 function collectRenderedNodes(
 	root: EngineNode,
 	nodeById: Map<string, PptxSmartArtNode>,
 	palette: string[],
 	style: SmartArtStyle,
-): RenderedRectNode[] {
-	const out: RenderedRectNode[] = [];
-	const visit = (node: EngineNode): void => {
-		const rendered = buildRenderedNode(node, out.length, nodeById, palette, style);
-		if (rendered) {
-			out.push(rendered);
+): RenderedEngineNode[] {
+	const out: RenderedEngineNode[] = [];
+	// `moveWith` only ever pairs SIBLINGS (same parent), so the merge is
+	// scoped to one node's `children` at a time; `[root]` is a trivial
+	// one-element "sibling group" with nothing to merge.
+	const visitSiblings = (siblings: EngineNode[]): void => {
+		const { extraIdsByTarget, suppressed, carrierByTarget } = computeMoveWithMerge(siblings);
+		for (const node of siblings) {
+			if (node.alg.type !== 'conn' && !suppressed.has(node)) {
+				const mergedIds = extraIdsByTarget.get(node.name);
+				const rendered = buildRenderedNode(node, out.length, nodeById, palette, style, mergedIds);
+				if (rendered) {
+					// The folded carrier sizes the text only when it is the text
+					// algorithm itself ("Basic Pie"'s `wedgeTx`), not a decorative
+					// `sp` riding along ("Organization Chart"'s `rootConnector`).
+					const carrier = carrierByTarget.get(node.name);
+					const textNode = carrier?.alg.type === 'tx' ? carrier : undefined;
+					out.push({ node, rendered, mergedIds, textNode });
+				}
+			}
+			visitSiblings(node.children);
 		}
-		node.children.forEach(visit);
 	};
-	visit(root);
+	visitSiblings([root]);
 	return out;
 }
 
@@ -204,7 +223,9 @@ export function runEngineLayout(
 		return undefined;
 	}
 	const nodeById = new Map(nodes.map((n) => [n.id, n]));
-	const rendered = collectRenderedNodes(run.root, nodeById, palette, style);
+	const collected = collectRenderedNodes(run.root, nodeById, palette, style);
+	applyEngineFonts(collected, nodeById, smartArtData.themeMinorFont);
+	const rendered = collected.map((entry) => entry.rendered);
 	if (rendered.length === 0 || !rendered.every(isFiniteGeometry)) {
 		return undefined;
 	}

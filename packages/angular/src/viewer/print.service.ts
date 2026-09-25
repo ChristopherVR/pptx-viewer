@@ -42,6 +42,7 @@ import {
 	validatePrintSettings,
 } from './print-helpers';
 import type { PrintSettings } from './print-helpers';
+import { ViewerCustomizationService } from './viewer-customization.service';
 
 /**
  * Captures the slide at `index` (zero-based) to a PNG `data:` URL. The viewer
@@ -53,6 +54,7 @@ export type CaptureSlideFn = (index: number) => Promise<string | null>;
 @Injectable()
 export class PrintService {
 	private readonly translate = inject(TranslateService);
+	private readonly customization = inject(ViewerCustomizationService, { optional: true });
 
 	/** Whether the print dialog is currently open. */
 	readonly isDialogOpen = signal(false);
@@ -60,9 +62,11 @@ export class PrintService {
 	/** The current (validated) print settings. */
 	readonly settings = signal<PrintSettings>({ ...DEFAULT_PRINT_SETTINGS });
 
-	/** Open the print dialog. */
+	/** Open the print dialog (a no-op when the host removed the `print` dialog). */
 	openDialog(): void {
-		this.isDialogOpen.set(true);
+		if (this.customization?.dialogAvailable('print') !== false) {
+			this.isDialogOpen.set(true);
+		}
 	}
 
 	/** Close the print dialog. */

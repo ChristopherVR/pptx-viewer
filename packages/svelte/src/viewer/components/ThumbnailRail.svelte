@@ -21,14 +21,43 @@
 
 	import { useTranslator } from '../../i18n/context';
 	import SlideStage from './SlideStage.svelte';
+	import ThumbnailContextMenu from './ThumbnailContextMenu.svelte';
+	import { ThumbnailRailMenu } from './thumbnail-rail-menu.svelte';
 	import type { ThumbnailRailProps } from './props';
 
 	const {
 		slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove, onaddslide,
 		sections = [], onsectiontoggle, onsectionrename, onsectiondelete, onsectionmove,
+		onaddslideafter, onduplicateslides, ondeleteslides, ontogglehideslides, onopenlayoutforslide, onaddsectionat,
 	}: ThumbnailRailProps = $props();
 
 	const t = useTranslator();
+	const railMenu = new ThumbnailRailMenu();
+	const orderedIds = $derived(slides.map((s) => s.id));
+
+	function onThumbClick(event: MouseEvent, index: number): void {
+		const slide = slides[index];
+		if (slide) {
+			railMenu.onClick(event, slide.id, orderedIds);
+		}
+		onselect(index);
+	}
+
+	function onThumbContextMenu(event: MouseEvent, index: number): void {
+		if (!editable) {
+			return;
+		}
+		event.preventDefault();
+		railMenu.openContextMenu(event.clientX, event.clientY, index, orderedIds);
+	}
+
+	/** PowerPoint's Enter on a focused thumbnail inserts a new slide after it. */
+	function onRailKeydown(event: KeyboardEvent): void {
+		if (event.key === 'Enter' && editable) {
+			event.preventDefault();
+			onaddslideafter?.(current);
+		}
+	}
 
 	const THUMB_WIDTH = 148;
 	const thumbScale = $derived(canvasSize.width > 0 ? THUMB_WIDTH / canvasSize.width : 0.1);
@@ -102,6 +131,7 @@
 		type="button"
 		class="pptx-svelte-thumb"
 		class:pptx-svelte-thumb-active={index === current}
+		class:pptx-svelte-thumb-selected={railMenu.isSelected(slide.id) && index !== current}
 		aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
 		aria-current={index === current ? 'true' : undefined}
 		aria-describedby={cue.labelId}
@@ -109,7 +139,8 @@
 		draggable={editable}
 		class:pptx-svelte-thumb-dragging={draggedIndex === index}
 		class:pptx-svelte-thumb-drop-target={draggedIndex !== null && draggedIndex !== index}
-		onclick={() => onselect(index)}
+		onclick={(event) => onThumbClick(event, index)}
+		oncontextmenu={(event) => onThumbContextMenu(event, index)}
 		ondragstart={(event) => onDragStart(index, event)}
 		ondragend={() => { draggedIndex = null; }}
 		ondragover={editable ? (event) => event.preventDefault() : undefined}
@@ -134,7 +165,8 @@
 	</button>
 {/snippet}
 
-<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')}>
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -- Enter here only catches the keydown bubbled up from a focused (interactive) thumbnail button -->
+<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onkeydown={onRailKeydown}>
 	<div bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs-scroll" onscroll={onScroll}>
 	{#if hasSections}
 		{#each sectionGroups as group, groupIndex (group.section?.id ?? 'ungrouped')}
@@ -186,6 +218,21 @@
 		</div>
 	{/if}
 </nav>
+
+{#if railMenu.contextMenu}
+	<ThumbnailContextMenu
+		menu={railMenu}
+		{slides}
+		actions={{
+			addSlideAfter: onaddslideafter,
+			duplicateSlides: onduplicateslides,
+			deleteSlides: ondeleteslides,
+			openLayoutForSlide: onopenlayoutforslide,
+			toggleHideSlides: ontogglehideslides,
+			addSectionAt: onaddsectionat,
+		}}
+	/>
+{/if}
 
 <style>
 	.pptx-svelte-thumbs {
@@ -318,6 +365,13 @@
 
 	.pptx-svelte-thumb-active .pptx-svelte-thumb-frame {
 		outline: 2px solid var(--pptx-primary, #6366f1);
+	}
+
+	.pptx-svelte-thumb-selected {
+		background: color-mix(in srgb, var(--pptx-primary, #6366f1) 12%, transparent);
+	}
+	.pptx-svelte-thumb-selected .pptx-svelte-thumb-frame {
+		outline: 2px solid color-mix(in srgb, var(--pptx-primary, #6366f1) 50%, transparent);
 	}
 
 	.pptx-svelte-thumb:hover .pptx-svelte-thumb-frame {

@@ -106,7 +106,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// PowerPoint's difference-encoded traces, its `definitions` block and its
 		// brush units on a save that changed nothing about the ink. Only rewrite
 		// when the strokes actually differ from what the part decodes to.
-		if (!this.inkPartMatchesStrokes(el)) {
+		// Captured before the rewrite below: once `el.inkPartRawXml` is
+		// replaced with data derived from `el.inkStrokes`, comparing the two
+		// again would trivially agree even after a real stroke edit.
+		const strokesUnchanged = this.inkPartMatchesStrokes(el);
+		if (!strokesUnchanged) {
 			const inkData = buildInkMlContent(el.inkStrokes, el.inkPartRawXml);
 			this.zip.file(inkPath, this.builder.build(inkData));
 			el.inkPartRawXml = inkData;
@@ -121,7 +125,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 		shape['@_r:id'] = relationshipId;
 		this.applyContentPartTransform(shape, el);
-		this.updateContentPartFallback(shape, el);
+		// A real PowerPoint-authored `mc:Fallback` shape (a `prstGeom` +
+		// `solidFill` + descriptive txBody reading "ink fallback" is a
+		// common one) must survive a save that touched nothing about this
+		// ink element byte for byte. Rebuilding it unconditionally replaced
+		// that authored fallback with a freshly synthesized `custGeom`
+		// outline traced from the CURRENT stroke data on every save, even
+		// when the strokes never changed.
+		if (!strokesUnchanged) {
+			this.updateContentPartFallback(shape, el);
+		}
 		return shape;
 	}
 

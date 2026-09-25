@@ -39,6 +39,8 @@ export interface KeyboardHandlers {
 	startFromBeginning?(): void;
 	/** Shift+F5: the exact entry point the ribbon's "From Current Slide" button calls. */
 	startFromCurrent?(): void;
+	/** False when the host switched the slide show off: F5 / Shift+F5 then fall through. */
+	isSlideShowStartEnabled?(): boolean;
 }
 
 /**
@@ -64,9 +66,10 @@ export function attachKeyboardNavigation(
 		// every editing gate. A running show already owns F5 through the
 		// presentation keymap below, which `mapSlideShowStartKey`'s own guard
 		// mirrors.
-		const startAction = mapSlideShowStartKey(event, {
-			isPresenting: handlers.isPresenting?.() ?? false,
-		});
+		const startAction =
+			handlers.isSlideShowStartEnabled?.() === false
+				? null
+				: mapSlideShowStartKey(event, { isPresenting: handlers.isPresenting?.() ?? false });
 		if (startAction) {
 			event.preventDefault();
 			if (startAction === 'fromBeginning') {

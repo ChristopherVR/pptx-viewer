@@ -7,7 +7,7 @@
  * `PasteOptionsToolbar.tsx`.
  */
 import type { PasteSpecialFormat } from 'pptx-viewer-shared';
-import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
+import { findCanvasElementNode, PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -31,7 +31,7 @@ function measure(): void {
 		rect.value = null;
 		return;
 	}
-	const node = document.querySelector<HTMLElement>(`[data-element-id="${id}"]`);
+	const node = findCanvasElementNode(document, id, { canvasOnly: true });
 	if (!node) {
 		rect.value = null;
 		return;

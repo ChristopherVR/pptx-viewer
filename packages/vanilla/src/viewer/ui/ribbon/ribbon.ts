@@ -128,6 +128,7 @@ export function createRibbon(
 		: createHomeTab(doc, t, {
 				edit: handlers.edit,
 				onToggleFindReplace: () => findReplace.toggle(),
+				hiddenActions,
 			});
 	const insertTab: InsertTab | null = hidden('insert')
 		? null
@@ -235,6 +236,9 @@ export function createRibbon(
 			customFontFamilies: latestExtra.customFontFamilies,
 			recentColors: latestExtra.recentColors ?? [],
 			themeColorMap: latestExtra.themeColorMap,
+			canMergeShapes: latestExtra.canMergeShapes,
+			canCrop: latestExtra.canCrop,
+			cropActive: latestExtra.cropActive,
 		});
 	};
 	const syncAnimations = (): void => {
@@ -292,7 +296,10 @@ export function createRibbon(
 			syncHome();
 			syncAnimations();
 		},
-		setDrawState: (state) => drawTab?.update(state),
+		setDrawState: (state) => {
+			drawTab?.update(state);
+			insertTab?.setFreeformTool(state.freeformTool ?? null);
+		},
 		setTemplateEditing: (active) => viewTab?.setTemplateEditing(active),
 		setViewOptions: (options) => viewTab?.setViewOptions(options),
 		setHasMacros: (hasMacros) => fileTab?.setHasMacros(hasMacros),

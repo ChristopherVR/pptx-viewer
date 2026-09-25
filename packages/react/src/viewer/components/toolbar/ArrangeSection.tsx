@@ -1,4 +1,5 @@
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -29,6 +30,8 @@ export interface ArrangeSectionProps {
 	formatPainterActive?: boolean;
 	onToggleFormatPainter?: () => void;
 	canActivateFormatPainter?: boolean;
+	/** Host-hidden ribbon buttons, for the Merge Shapes / Crop controls. */
+	hiddenActions?: readonly ToolbarActionId[];
 }
 
 export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
@@ -114,6 +117,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onGroupElements={p.onGroupElements}
 					onUngroupElement={p.onUngroupElement}
 					onUpdateElementStyle={p.onUpdateElementStyle}
+					hiddenActions={p.hiddenActions}
 				/>
 				<div className={grp}>
 					<button

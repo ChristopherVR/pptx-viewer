@@ -2,10 +2,12 @@ import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxSlide, TextStyle } from 'pptx-viewer-core';
 import {
 	cycleSelectableElement,
+	isFeatureEnabled,
 	stepFontSizePt,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 } from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 import { ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
 
@@ -70,6 +72,8 @@ export interface UseEditorKeyboardInput {
 	applyFormatToTarget: (id: string) => void;
 	/** Disarm the format painter without applying (used after `pasteFormat`). */
 	cancelFormatPainter: () => void;
+	/** The host's resolved UI customisation (keyboard remaps, `presentMode`). */
+	customization?: () => ResolvedCustomization;
 }
 
 export interface UseEditorKeyboardResult {
@@ -254,6 +258,7 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 		inlineEditingElementId,
 		tableEditorIsEditing,
 		activeTool,
+		keyboard: () => input.customization?.().keyboard,
 	});
 
 	/**
@@ -270,7 +275,11 @@ export function useEditorKeyboard(input: UseEditorKeyboardInput): UseEditorKeybo
 	 * `canEdit` / text-input gates. See `dispatchSlideShowStartKey`.
 	 */
 	function onEditorKeydown(event: KeyboardEvent): void {
+		const presentModeEnabled = input.customization
+			? isFeatureEnabled(input.customization(), 'presentMode')
+			: true;
 		if (
+			presentModeEnabled &&
 			dispatchSlideShowStartKey(event, presenting.value, { presentFromBeginning, startPresenting })
 		) {
 			return;

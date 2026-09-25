@@ -39,23 +39,23 @@ export function resolveParagraphRtl(
 	paraSegments: ReadonlyArray<ParagraphStyleEntry>,
 	elementRtl: boolean | undefined,
 ): boolean | undefined {
-	for (const entry of paraSegments) {
-		const segRtl = entry.segment.style?.rtl;
-		if (segRtl !== undefined) {
-			return segRtl;
-		}
-	}
-	// A run-level `<a:rtl>` override (above) beats the paragraph's own
-	// `a:pPr@rtl`, but most decks only ever set the paragraph-level flag, and
-	// that flag is not stamped onto every run's `style.rtl` (only `align` is).
-	// Falling straight to `elementRtl` here read the SHAPE's rtl instead of
-	// THIS paragraph's, so every paragraph after the first one in a shape,
-	// or any shape whose inherited placeholder default resolved rtl before
-	// this paragraph's own value could be recorded, lost its own direction.
+	// The paragraph's own `a:pPr@rtl` decides its direction. It is checked
+	// FIRST: a segment's `style.rtl` also carries the master/layout
+	// paragraph default (`lvl1pPr rtl="0"`) folded into the inherited run
+	// style, so reading it first made every `rtl="1"` paragraph on a stock
+	// master lay out left-to-right (COM-verified Hebrew tab slide, 2026-09
+	// limitations wave: PowerPoint flows the line right-to-left).
 	for (const entry of paraSegments) {
 		const paraRtl = entry.segment.paragraphProperties?.rtl;
 		if (paraRtl !== undefined) {
 			return paraRtl;
+		}
+	}
+	// A run-level `<a:rtl>` is the fallback when the paragraph authors none.
+	for (const entry of paraSegments) {
+		const segRtl = entry.segment.style?.rtl;
+		if (segRtl !== undefined) {
+			return segRtl;
 		}
 	}
 	return elementRtl;

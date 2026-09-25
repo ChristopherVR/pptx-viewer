@@ -281,6 +281,7 @@ export default defineConfig({
 						{ text: 'Architecture', link: '/guide/architecture' },
 						{ text: 'The PptxData Model', link: '/guide/data-model' },
 						{ text: 'Theming', link: '/guide/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Viewport Fitting', link: '/guide/viewport-fit' },
 						{ text: 'Host-owned Collaboration', link: '/guide/host-owned-collaboration' },
 						{ text: 'Localization (i18n)', link: '/guide/localization' },
@@ -350,6 +351,7 @@ export default defineConfig({
 					text: 'Customisation',
 					items: [
 						{ text: 'Theming', link: '/react/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Hooks', link: '/react/hooks' },
 						{ text: 'Complete Hooks Reference', link: '/react/hooks-reference' },
 						{ text: 'Export', link: '/react/export' },
@@ -372,6 +374,7 @@ export default defineConfig({
 					text: 'Customisation',
 					items: [
 						{ text: 'Theming', link: '/vue/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Composables', link: '/vue/composables' },
 						{ text: 'Complete Composables Reference', link: '/vue/composables-reference' },
 						{ text: 'Export', link: '/vue/export' },
@@ -394,6 +397,7 @@ export default defineConfig({
 					text: 'Customisation',
 					items: [
 						{ text: 'Theming', link: '/angular/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Services', link: '/angular/services' },
 						{ text: 'Complete Services Reference', link: '/angular/services-reference' },
 						{ text: 'Export', link: '/angular/export' },
@@ -416,6 +420,7 @@ export default defineConfig({
 					text: 'Customisation',
 					items: [
 						{ text: 'Theming', link: '/vanilla/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Element Renderers', link: '/vanilla/renderers' },
 					],
 				},
@@ -435,6 +440,7 @@ export default defineConfig({
 					text: 'Customisation',
 					items: [
 						{ text: 'Theming', link: '/svelte/theming' },
+						{ text: 'UI Customization', link: '/guide/customization' },
 						{ text: 'Export & Print', link: '/svelte/export' },
 						{ text: 'Collaboration', link: '/svelte/collaboration' },
 						{ text: 'Localization', link: '/svelte/i18n' },

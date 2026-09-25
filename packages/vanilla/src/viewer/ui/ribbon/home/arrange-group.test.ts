@@ -20,6 +20,11 @@ function handlers() {
 		toggleFormatPainter: vi.fn(),
 		duplicate: vi.fn(),
 		delete: vi.fn(),
+		mergeShapes: vi.fn(),
+		toggleCropMode: vi.fn(),
+		cropToAspect: vi.fn(),
+		cropFill: vi.fn(),
+		cropFit: vi.fn(),
 	};
 }
 

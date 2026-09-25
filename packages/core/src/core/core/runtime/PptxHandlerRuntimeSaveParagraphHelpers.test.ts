@@ -468,6 +468,18 @@ describe('assembleParagraphXml', () => {
 		expect(result['a:pPr']).toBe(pProps);
 	});
 
+	it('omits a:pPr and a:endParaRPr for a paragraph with real content and no authored end properties', () => {
+		// A paragraph that carries actual run content but no `a:pPr` / no
+		// `a:endParaRPr` in the source is untouched, unremarkable content, not
+		// a blank line (see the module docblock): materializing an empty
+		// `<a:pPr/>` or a fabricated `<a:endParaRPr lang="en-US"/>` on it churns
+		// every such paragraph on any save that rewrites its shape.
+		const run: XmlObject = { 'a:rPr': { '@_lang': 'en-US' }, 'a:t': 'Hello' };
+		const result = assembleParagraphXml([run], {});
+		expect(result['a:pPr']).toBeUndefined();
+		expect(result['a:endParaRPr']).toBeUndefined();
+	});
+
 	it('should unwrap a single regular run', () => {
 		const run: XmlObject = {
 			'a:rPr': { '@_lang': 'en-US' },
@@ -685,8 +697,12 @@ describe('assembleParagraphXml', () => {
 		//   pPr? , (r | br | fld)* , endParaRPr?
 		// fast-xml-parser serialises object keys in insertion order, so the
 		// key order of the returned paragraph object IS the emitted XML order.
+		// endParaRunProperties is passed explicitly: a paragraph with real run
+		// content and no parsed end properties now omits `a:endParaRPr` entirely
+		// (see the round-trip test below), so this order check needs a case
+		// where all three siblings are actually present.
 		const run: XmlObject = { 'a:rPr': { '@_lang': 'en-US' }, 'a:t': 'text' };
-		const result = assembleParagraphXml([run], { '@_algn': 'ctr' });
+		const result = assembleParagraphXml([run], { '@_algn': 'ctr' }, { '@_lang': 'en-US' });
 		const keys = Object.keys(result).filter((k) => !k.startsWith('@_'));
 		const pPrIdx = keys.indexOf('a:pPr');
 		const runIdx = keys.indexOf('a:r');
@@ -847,12 +863,10 @@ describe('assembleParagraphXml sibling order', () => {
 			{},
 		);
 		expect(Object.keys(result)).toStrictEqual([
-			'a:pPr',
 			'a:r#pptx-order-0',
 			'a:fld#pptx-order-1',
 			'a:r#pptx-order-2',
 			'a:fld#pptx-order-3',
-			'a:endParaRPr',
 		]);
 		expect(result['a:r#pptx-order-0']).toStrictEqual({ 'a:t': 'Slide ' });
 		expect(result['a:fld#pptx-order-3']).toStrictEqual({ '@_type': 'slidetitle' });
@@ -863,24 +877,18 @@ describe('assembleParagraphXml sibling order', () => {
 			[literal('one'), { __isLineBreak: true }, literal('two')],
 			{},
 		);
-		expect(Object.keys(result)).toStrictEqual([
-			'a:pPr',
-			'a:r#pptx-order-0',
-			'a:br',
-			'a:r#pptx-order-2',
-			'a:endParaRPr',
-		]);
+		expect(Object.keys(result)).toStrictEqual(['a:r#pptx-order-0', 'a:br', 'a:r#pptx-order-2']);
 	});
 
 	it('leaves an already-grouped paragraph on plain keys', () => {
 		const result = assembleParagraphXml([literal('a'), literal('b'), field('slidenum')], {});
-		expect(Object.keys(result)).toStrictEqual(['a:pPr', 'a:r', 'a:fld', 'a:endParaRPr']);
+		expect(Object.keys(result)).toStrictEqual(['a:r', 'a:fld']);
 		expect(result['a:r']).toStrictEqual([{ 'a:t': 'a' }, { 'a:t': 'b' }]);
 	});
 
 	it('emits a grouped paragraph in its authored key order, not a fixed one', () => {
 		// A field-first footer ("#fld of N") must not be re-ordered to runs-first.
 		const result = assembleParagraphXml([field('slidenum'), literal(' of 10')], {});
-		expect(Object.keys(result)).toStrictEqual(['a:pPr', 'a:fld', 'a:r', 'a:endParaRPr']);
+		expect(Object.keys(result)).toStrictEqual(['a:fld', 'a:r']);
 	});
 });

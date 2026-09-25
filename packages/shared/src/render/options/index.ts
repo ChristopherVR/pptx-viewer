@@ -3,6 +3,7 @@ export * from './quick-access';
 export * from './viewer-addins';
 export * from './viewer-options';
 export * from './viewer-options-apply';
+export * from './viewer-options-constraints';
 export * from './viewer-options-controls';
 export * from './viewer-options-schema';
 export * from './viewer-options-store';

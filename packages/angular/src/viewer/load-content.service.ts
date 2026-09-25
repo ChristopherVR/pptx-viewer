@@ -50,6 +50,7 @@ import {
 	resolveSlideSizeSelection,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	resolveTextFillBlipUrls,
 	saveDeckWithPassword,
 	slideSizeToCanvasPx,
 } from '../internal/shared';
@@ -490,6 +491,11 @@ export class LoadContentService {
 
 			// ── Resolve whole-table-STYLE image-fill Blob URLs ──
 			const nextTableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, (path) =>
+				newHandler.getImageData(path),
+			);
+
+			// ── Resolve text-run picture-fill (a:rPr > a:blipFill) Blob URLs ──
+			nextSlides = await resolveTextFillBlipUrls(nextSlides, (path) =>
 				newHandler.getImageData(path),
 			);
 

@@ -117,3 +117,42 @@ export type { SavedPresentationFormat } from 'pptx-viewer-shared';
 // theme tokens are authored in). React and Angular have always exported this;
 // the other three did not, which is the asymmetry this closes.
 export { renderToCanvas } from './viewer/export/render-to-canvas';
+
+// ── UI customisation ────────────────────────────────────────────────────
+// The framework-neutral `customization` prop model and its id catalogues
+// (identical across all five bindings). See docs/guide/customization.md.
+export type {
+	BackstageCustomization,
+	ContextMenuCustomization,
+	KeyboardCustomization,
+	OptionsCustomization,
+	OptionsPageId,
+	OptionsSectionId,
+	OptionsSettingId,
+	OptionsSettingValues,
+	ResolvedCustomization,
+	RibbonCustomization,
+	ShortcutChord,
+	ViewerCustomization,
+	ViewerCustomizationApi,
+	ViewerDialogId,
+	ViewerExportFormatId,
+	ViewerFeatureId,
+	ViewerPanelId,
+} from 'pptx-viewer-shared';
+export {
+	BACKSTAGE_CARD_IDS,
+	BACKSTAGE_PAGE_IDS,
+	CANVAS_CONTEXT_MENU_COMMAND_IDS,
+	EDITOR_SHORTCUT_ACTION_IDS,
+	ELEMENT_CONTEXT_MENU_COMMAND_IDS,
+	OPTIONS_PAGE_IDS,
+	OPTIONS_SECTION_IDS,
+	OPTIONS_SETTING_IDS,
+	RIBBON_TAB_IDS,
+	TOOLBAR_BUTTON_IDS,
+	VIEWER_DIALOG_IDS,
+	VIEWER_EXPORT_FORMAT_IDS,
+	VIEWER_FEATURE_IDS,
+	VIEWER_PANEL_IDS,
+} from 'pptx-viewer-shared';

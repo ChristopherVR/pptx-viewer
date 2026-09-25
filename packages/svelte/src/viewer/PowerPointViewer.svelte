@@ -37,6 +37,7 @@
 	import { createViewerState } from './state/create-viewer-state.svelte';
 	import { ThemeLocaleState } from './state/theme-locale.svelte';
 	import { toViewerStateOptions } from './state/viewer-state-options';
+	import { effectiveHiddenActions, useCustomizationConstraints, useViewerCustomizationRoot } from './state/viewer-customization.svelte';
 	import { useWindowViewport } from './state/window-viewport.svelte';
 	import { styleToString } from './style';
 	import type { PowerPointViewerProps } from './types';
@@ -86,6 +87,8 @@
 	// eslint-disable-next-line prefer-const
 	let viewportHeight = $state(0);
 
+	// Host UI customisation (`customization` prop + the imperative API below).
+	const customization = useViewerCustomizationRoot(() => props.customization);
 	const vm = createViewerState(
 		toViewerStateOptions(() => props, {
 			t,
@@ -94,9 +97,13 @@
 			getViewportWidth: () => viewportWidth,
 			getViewportHeight: () => viewportHeight,
 			getMasterScale: () => masterScale,
+			getCustomization: () => customization.resolved,
 		}),
 	);
 	onDestroy(() => vm.destroy());
+	useCustomizationConstraints(customization, vm.optionsState);
+	const aiEnabled = $derived(Boolean(props.ai) && customization.isFeatureEnabled('ai'));
+	const hiddenActions = $derived(effectiveHiddenActions(customization.resolved, props.hiddenActions, vm.optionsState.hiddenRibbonTabIds));
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
@@ -179,6 +186,8 @@
 	export const duplicateSlides = vm.deck.duplicateSlides;
 	export const moveSlide = vm.deck.moveSlide;
 	export const toggleHideSlides = vm.deck.toggleHideSlides;
+	// oxfmt-ignore
+	export const { getCustomization, setCustomization, updateCustomization, resetCustomization, hideRibbonTab, showRibbonTab, hideToolbarButton, showToolbarButton, hideOptionsPage, showOptionsPage, hideOptionsSection, showOptionsSection, hideSetting, showSetting, lockSetting, unlockSetting, setSettingDefault, hideBackstagePage, showBackstagePage, hideBackstageCard, showBackstageCard, hideContextMenuCommand, showContextMenuCommand, hideCanvasContextMenuCommand, showCanvasContextMenuCommand, disableShortcut, enableShortcut, remapShortcut, setPanelVisible, setFeatureEnabled, setDialogAvailable } = customization.api;
 </script>
 
 <svelte:document onfullscreenchange={vm.onFullscreenChange} />
@@ -221,11 +230,11 @@
 			{vm}
 			fileName={props.fileName}
 			{showNotes}
-			hiddenActions={props.hiddenActions}
+			{hiddenActions}
 			accountAuth={props.accountAuth}
 			theme={themeLocale.effectiveTheme}
 			onsettheme={(next) => themeLocale.setTheme(next)}
-			aiEnabled={Boolean(props.ai)}
+			{aiEnabled}
 			onpresenter={vm.enterPresenterView}
 		/>
 	{/if}
@@ -250,13 +259,13 @@
 	{/if}
 	{#if vm.versionHistoryOpen}<VersionHistoryPanel filePath={props.filePath} onclose={() => (vm.versionHistoryOpen = false)} onrestore={(bytes) => loader.load(bytes)} />{/if}
 	{#if vm.signatureWarningOpen}<SignatureStrippedDialog signatureCount={loader.digitalSignatureCount} onclose={vm.closeSignatureWarning} />{/if}
-	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={vm.displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={themeLocale.effectiveLocale} themeKey={themeLocale.themeKey} themeCatalog={themeLocale.catalog} onsetthemekey={(key) => themeLocale.setThemeKey(key)} availableLocales={props.availableLocales} onsetlocale={(code) => themeLocale.setLocale(code)} onselectslide={(index) => viewer.goTo(index)} onmoveslide={vm.deck.moveSlide} optionsState={vm.optionsState} autosaveRecovery={vm.autosaveRecovery} aiEnabled={Boolean(props.ai)} collabActive={vm.collab.active} />
+	<ViewerParityOverlays ui={parityUi} {editor} {exportUi} slides={vm.displaySlides} canvasSize={loader.canvasSize} mediaDataUrls={loader.mediaDataUrls} current={viewer.current} fullscreen={viewer.isFullscreen} locale={themeLocale.effectiveLocale} themeKey={themeLocale.themeKey} themeCatalog={themeLocale.catalog} onsetthemekey={(key) => themeLocale.setThemeKey(key)} availableLocales={props.availableLocales} onsetlocale={(code) => themeLocale.setLocale(code)} onselectslide={(index) => viewer.goTo(index)} onmoveslide={vm.deck.moveSlide} optionsState={vm.optionsState} autosaveRecovery={vm.autosaveRecovery} {aiEnabled} collabActive={vm.collab.active} />
 	<ViewerMain
 		{vm}
 		{t}
 		{showThumbnails}
 		{showNotes}
-		ai={props.ai}
+		ai={aiEnabled ? props.ai : undefined}
 		onnotesupdate={props.onnotesupdate}
 		onstageholder={(el) => {
 			stageHolderEl = el ?? undefined;
@@ -285,8 +294,8 @@
 			onselect={(index) => viewer.goTo(index)}
 		/>
 	{/if}
-	{#if showToolbar && vm.chromeVisible}
-		<ViewerStatusBar {vm} {showNotes} collaboration={props.collaboration} />
+	{#if showToolbar && vm.chromeVisible && customization.isPanelVisible('statusBar')}
+		<ViewerStatusBar {vm} {showNotes} {hiddenActions} collaboration={props.collaboration} />
 	{/if}
 	<CollaborationChrome
 		{collab}
@@ -294,7 +303,7 @@
 		shareDefaults={props.shareDefaults}
 		showOverlay={collab.active && vm.chromeVisible}
 	/>
-	{#if props.ai && vm.ai.panelOpen && vm.chromeVisible}
+	{#if props.ai && aiEnabled && vm.ai.panelOpen && vm.chromeVisible}
 		<AiDock
 			bridge={vm.ai.bridge}
 			config={props.ai}

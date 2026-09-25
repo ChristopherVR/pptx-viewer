@@ -12,4 +12,11 @@ export const translations = {
 	'pptx.connectorArrows.endLength': '末端长度',
 	'pptx.shape.shadowDistance': '阴影距离',
 	'pptx.shape.softEdges': '软边',
+	'pptx.shape.mergeShapes': '合并形状',
+	'pptx.shape.mergeShapesHint': '选择两个或更多形状以进行合并',
+	'pptx.shape.mergeUnion': '结合',
+	'pptx.shape.mergeCombine': '组合',
+	'pptx.shape.mergeFragment': '拆分',
+	'pptx.shape.mergeIntersect': '相交',
+	'pptx.shape.mergeSubtract': '剪除',
 } as const;

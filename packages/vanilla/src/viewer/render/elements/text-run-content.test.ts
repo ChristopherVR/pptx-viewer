@@ -126,10 +126,10 @@ describe('renderTextBlock - reflection (a:rPr/a:effectLst/a:reflection)', () => 
 });
 
 /**
- * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
- * already emits sibling runs, but a tab-separated piece and a ruby base text
- * each stay ONE piece, so shared hands the word/gap breakdown over as
- * `piece.words` / `run.underlineWordPieces` and the renderer honours it.
+ * `a:rPr/@u="words"` renders like PowerPoint: one continuous underline, gaps
+ * included, exactly like `sng` (COM-verified in the 2026-09 limitations wave;
+ * see `splitsUnderlineIntoWords` in shared). A tab-separated piece and a
+ * ruby base text therefore stay whole and underlined.
  */
 describe('renderTextBlock - u="words" on tab pieces and ruby runs', () => {
 	const wordsStyle = {
@@ -139,24 +139,19 @@ describe('renderTextBlock - u="words" on tab pieces and ruby runs', () => {
 		underlineStyle: 'words',
 	};
 
-	it('renders a tab piece as one span per word with no underline under the gap', () => {
+	it('keeps a tab piece whole and underlined, gap included', () => {
 		const seg = { text: 'Hello World\t12', style: wordsStyle } as unknown as TextSegment;
 		const el = {
 			...element({ textStyle: { tabStops: [{ position: 300, align: 'r' }] } }),
 			textSegments: [seg],
 		} as PptxElement;
 		const block = renderTextBlock(document, buildParagraphs(el), {});
-		const spans = [...block.querySelectorAll('span')];
-		expect(spans.find((s) => s.textContent === 'Hello World')).toBeUndefined();
-		const hello = spans.find((s) => s.textContent === 'Hello');
-		expect(hello?.style.textDecoration).toContain('underline');
-		expect(hello?.style.display).toBe('inline-block');
-		const gap = spans.find((s) => s.textContent === ' ');
-		expect(gap).toBeDefined();
-		expect(gap?.style.textDecoration ?? '').not.toContain('underline');
+		const piece = [...block.querySelectorAll('span')].find((s) => s.textContent === 'Hello World');
+		expect(piece?.style.textDecoration).toContain('underline');
+		expect(piece?.style.display).toBe('inline-block');
 	});
 
-	it('renders a ruby base text word by word, the ruby element itself undecorated', () => {
+	it('keeps a ruby base text as one underlined run', () => {
 		const seg = {
 			text: 'two words',
 			rubyText: 'reading',
@@ -165,10 +160,7 @@ describe('renderTextBlock - u="words" on tab pieces and ruby runs', () => {
 		const el = { ...element(), textSegments: [seg] } as PptxElement;
 		const block = renderTextBlock(document, buildParagraphs(el), {});
 		const ruby = block.querySelector('ruby');
-		expect(ruby).toBeTruthy();
-		expect(ruby?.style.textDecoration ?? '').not.toContain('underline');
-		const word = [...(ruby?.querySelectorAll('span') ?? [])].find((s) => s.textContent === 'two');
-		expect(word?.style.textDecoration).toContain('underline');
 		expect(ruby?.textContent).toContain('two words');
+		expect(ruby?.closest('[style*="underline"]')).not.toBeNull();
 	});
 });

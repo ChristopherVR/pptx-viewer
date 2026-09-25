@@ -7,6 +7,9 @@
 	 * horizontally when the viewport is narrow. Every group is thin
 	 * presentation; all logic lives in the editor modules each group imports.
 	 */
+	import { isActionHidden } from 'pptx-viewer-shared';
+	import type { ToolbarActionId } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { FindReplaceState } from '../../../editor/editor-find-replace.svelte';
@@ -15,9 +18,11 @@
 	import TextFormatGroup from '../../TextFormatGroup.svelte';
 	import ArrangeExtras from './ArrangeExtras.svelte';
 	import ClipboardGroup from './ClipboardGroup.svelte';
+	import CropControls from './CropControls.svelte';
 	import DrawingGroup from './DrawingGroup.svelte';
 	import EditingGroup from './EditingGroup.svelte';
 	import FontExtrasGroup from './FontExtrasGroup.svelte';
+	import MergeShapesButton from './MergeShapesButton.svelte';
 	import ParagraphDropdowns from './ParagraphDropdowns.svelte';
 	import ParagraphGroup from './ParagraphGroup.svelte';
 	import SlidesGroup from './SlidesGroup.svelte';
@@ -27,10 +32,13 @@
 		editor,
 		findReplace,
 		onnavigateslide,
+		hiddenActions,
 	}: {
 		editor: EditorState;
 		findReplace: FindReplaceState;
 		onnavigateslide: (index: number) => void;
+		/** Toolbar buttons the host hid (legacy prop folded with `customization`). */
+		hiddenActions?: readonly ToolbarActionId[];
 	} = $props();
 	const t = useTranslator();
 </script>
@@ -63,6 +71,8 @@
 			<ShapeFormatGroup {editor} />
 			<ArrangeGroup {editor} />
 			<ArrangeExtras {editor} />
+			{#if !isActionHidden('mergeShapes', hiddenActions)}<MergeShapesButton {editor} />{/if}
+			{#if !isActionHidden('crop', hiddenActions)}<CropControls {editor} />{/if}
 		</div>
 		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.arrange')}</span>
 	</div>

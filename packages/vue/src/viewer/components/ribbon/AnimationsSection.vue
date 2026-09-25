@@ -20,8 +20,8 @@ import {
 	Star,
 	Trash2,
 } from 'lucide-vue-next';
-import type { PptxElement } from 'pptx-viewer-core';
-import { DEFAULT_MOTION_PATH_PRESET_ID } from 'pptx-viewer-shared';
+import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
+import { DEFAULT_MOTION_PATH_PRESET_ID, playAnimationRibbonPreview } from 'pptx-viewer-shared';
 import type { AnimationApplyGroup } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -34,6 +34,8 @@ import { ANIMATION_START_MODES, GROUP_LABEL, ic, pill, SEP } from './ribbon-cons
 interface Props {
 	canEdit: boolean;
 	selectedElement: PptxElement | null;
+	/** The slide holding `selectedElement`; animations are stored per-slide, keyed by elementId. */
+	activeSlide?: Pick<PptxSlide, 'animations'>;
 	isInspectorPaneOpen: boolean;
 	onToggleInspector: () => void;
 	/** Opens the inspector and switches to properties tab to show the animation panel. */
@@ -54,6 +56,11 @@ const { t } = useI18n();
 
 const previewActive = ref(false);
 const disabled = computed(() => !props.canEdit || props.selectedElement === null);
+const selectedAnimation = computed(() =>
+	props.selectedElement
+		? (props.activeSlide?.animations ?? []).find((a) => a.elementId === props.selectedElement?.id)
+		: undefined,
+);
 
 function handlePreview(): void {
 	if (disabled.value) {
@@ -64,6 +71,9 @@ function handlePreview(): void {
 	setTimeout(() => {
 		previewActive.value = false;
 	}, 1200);
+	// Plays the selected element's own authored effect in place on the canvas;
+	// the highlight above used to be the ONLY thing this button did.
+	playAnimationRibbonPreview(document, selectedAnimation.value);
 }
 
 function openPanel(): void {

@@ -194,7 +194,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const appendRun = (runText: string, runProps: XmlObject | undefined) => {
 			const runStyle = withAuthoredSplit(
-				this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
+				this.extractTextRunStyle(
+					runProps,
+					paraAlign,
+					ctx.slideRelationshipMap,
+					true,
+					ctx.slidePath,
+				),
 			);
 			// #83: annotate a per-script fallback face when the run's text is
 			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
@@ -256,6 +262,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					field['a:rPr'] as XmlObject | undefined,
 					paraAlign,
 					ctx.slideRelationshipMap,
+					true,
+					ctx.slidePath,
 				),
 			);
 			const fldType = String(field['@_type'] || '').trim() || undefined;
@@ -306,9 +314,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			const eqText = '[Equation]';
 			parts.push(eqText);
+			// `mergedDefaultRunStyle` is the PARAGRAPH's own default (its `a:pPr`
+			// merged with the body/theme cascade) - the right seed for colour,
+			// bold, italic and typeface, none of which `m:oMath` authors itself.
+			// `fontSize` is different: `m:oMath` has no `a:rPr/@sz` of its own, so
+			// carrying the paragraph default's size forward here fixes it to that
+			// abstract default REGARDLESS of what the runs actually next to it in
+			// the SAME paragraph authored, e.g. a paragraph of 14pt runs inside a
+			// 24pt-default shape rendered its equation at 24pt. Render-time
+			// (`buildParagraphRuns` in `pptx-viewer-shared`) makes the same
+			// decision correctly, from the paragraph's actual smallest run, but
+			// only when the parsed style leaves `fontSize` unset for it to fill
+			// in; omitted here rather than fixed, so an edit/save round-trip of an
+			// untouched equation still never invents an `a:rPr/@sz` PowerPoint's
+			// own writer never authors on `m:oMath`.
+			const { fontSize: _paragraphDefaultFontSize, ...equationDefaultStyle } =
+				mergedDefaultRunStyle;
 			segments.push({
 				text: eqText,
-				style: { ...mergedDefaultRunStyle },
+				style: equationDefaultStyle,
 				equationXml: mathEl as Record<string, unknown>,
 				equationSourceXml: { [wrapperTag]: wrapperNode } as Record<string, unknown>,
 			});
@@ -396,7 +420,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const brNode = (item ?? {}) as XmlObject;
 					const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
 					const brStyle = withAuthoredSplit(
-						this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
+						this.extractTextRunStyle(
+							brRunProps,
+							paraAlign,
+							ctx.slideRelationshipMap,
+							true,
+							ctx.slidePath,
+						),
 					);
 					parts.push('\n');
 					const brSegment: TextSegment = {
@@ -499,13 +529,22 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				}
 			}
 			const endParaRPrRaw = p['a:endParaRPr'];
-			if (endParaRPrRaw && typeof endParaRPrRaw === 'object') {
-				// Shallow clone so later mutations on the writer side don't
-				// leak back into the parsed XML object that other parts of
-				// the load pipeline still hold a reference to.
-				segments[firstSegmentIndex].endParaRunProperties = {
-					...(endParaRPrRaw as Record<string, unknown>),
-				};
+			if (endParaRPrRaw !== undefined) {
+				// A present-but-attribute-less `<a:endParaRPr/>` parses to `''`
+				// (fast-xml-parser gives a childless, attribute-less element back
+				// as an empty string), which is NOT the same thing as the key
+				// being absent: the element was authored, it just carries no
+				// properties. Capturing it as `{}` re-emits an equally empty
+				// element on save; treating `''` as "nothing captured" made the
+				// writer fall back to its `lang="en-US"` stub, materializing an
+				// attribute the source never had. Shallow clone so later
+				// mutations on the writer side don't leak back into the parsed
+				// XML object that other parts of the load pipeline still hold a
+				// reference to.
+				segments[firstSegmentIndex].endParaRunProperties =
+					typeof endParaRPrRaw === 'object' && endParaRPrRaw !== null
+						? { ...(endParaRPrRaw as Record<string, unknown>) }
+						: {};
 			}
 			if (entries.length === 0) {
 				segments[firstSegmentIndex].paragraphInsertionStyle = withAuthoredSplit(
@@ -514,6 +553,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								endParaRPrRaw as XmlObject,
 								paraAlign,
 								ctx.slideRelationshipMap,
+								true,
+								ctx.slidePath,
 							)
 						: {},
 				);

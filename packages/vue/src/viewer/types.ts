@@ -5,6 +5,8 @@ import type {
 	CollaborationRole,
 	PowerPointViewerAPI,
 	ToolbarActionId,
+	ViewerCustomization,
+	ViewerCustomizationApi,
 	ViewerFontSource,
 	ViewportFitOptions,
 	ViewportFitPadding,
@@ -195,6 +197,17 @@ export interface PowerPointViewerProps {
 	 */
 	hiddenActions?: ToolbarActionId[];
 	/**
+	 * Framework-neutral UI customisation. See docs/guide/customization.md.
+	 *
+	 * Hides ribbon tabs/buttons, Options pages/sections/settings, File tab
+	 * pages/cards, context-menu commands, panels, features and dialogs; locks
+	 * settings or sets host defaults; disables or remaps editor shortcuts.
+	 * Unioned with `hiddenActions`. The imperative helpers on the component
+	 * handle (`hideRibbonTab`, `lockSetting`, ...) edit the same state, and a
+	 * NEW object passed here replaces those imperative edits wholesale.
+	 */
+	customization?: ViewerCustomization;
+	/**
 	 * Initial theme-catalog selection key (e.g. `'vermilionDark'`), used only
 	 * when no persisted preference exists. Has no effect when the `theme` prop
 	 * is set: an explicit `theme` always wins over the catalog selection.
@@ -298,7 +311,7 @@ export interface PowerPointViewerEmits {
  * </script>
  * ```
  */
-export interface PowerPointViewerExpose extends PowerPointViewerAPI {
+export interface PowerPointViewerExpose extends PowerPointViewerAPI, ViewerCustomizationApi {
 	/** Serialise the current presentation to `.pptx` bytes. */
 	getContent: () => Promise<Uint8Array>;
 }

@@ -134,6 +134,9 @@ export const TRANSITION_VALID_DIRECTIONS: Readonly<
 	pull: ['l', 'r', 'u', 'd', 'lu', 'ld', 'ru', 'rd'] as const,
 	strips: ['lu', 'ld', 'ru', 'rd'] as const,
 	split: ['in', 'out'] as const,
+	// `p:zoom/@dir`, COM-verified: PowerPoint opens `dir="in"` as Box In and
+	// `dir="out"` (the schema default, also what no `@dir` means) as Box Out.
+	zoom: ['in', 'out'] as const,
 	blinds: ['horz', 'vert'] as const,
 	checker: ['horz', 'vert'] as const,
 	comb: ['horz', 'vert'] as const,

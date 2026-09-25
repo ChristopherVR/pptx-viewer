@@ -9,6 +9,7 @@ import {
 	resolveDefaultPrintSettings,
 } from 'pptx-viewer-shared';
 import type {
+	ResolvedCustomization,
 	ThemeCatalogEntry,
 	ViewerAddinStatus,
 	ViewerOptionsStore,
@@ -52,8 +53,10 @@ export interface ParityWorkflowHost {
 	 * (File > Options > Fonts), so the Home tab's font list offers it.
 	 */
 	registerCustomFont(family: string): void;
-	/** Whether the host enabled the `ai` option (adds the Options > AI section). */
+	/** Whether the AI assistant is available (adds the Options > AI section); read live. */
 	aiEnabled: boolean;
+	/** The host's resolved UI customisation (hidden Options pages/settings, locks). */
+	getCustomization?(): ResolvedCustomization;
 	root(): HTMLElement;
 	setAutosaveEnabled(enabled: boolean): void;
 	print(options: PrintOptions): Promise<boolean>;
@@ -122,6 +125,7 @@ export function createParityWorkflows(host: ParityWorkflowHost): ParityWorkflows
 				store: host.optionsStore,
 				initialTab,
 				aiEnabled: host.aiEnabled,
+				customization: host.getCustomization?.(),
 				addinStatus: host.getAddinStatus(),
 				onClearCache: () => host.clearOptionsCache(),
 				themeOptions: {

@@ -202,7 +202,9 @@ export function createAnimationsTab(
 			timingCurve: easing.select.value as PptxAnimationTimingCurve,
 			repeatCount: repeatCount.input.valueAsNumber,
 			repeatMode: repeatMode.select.value as PptxAnimationRepeatMode | 'none',
-			triggerShapeId: triggerShape.input.value,
+			// Only a shape-click trigger owns this field: re-sending it for any other
+			// trigger cleared the media element an "On bookmark" trigger points at.
+			triggerShapeId: trigger.value === 'onShapeClick' ? triggerShape.input.value : undefined,
 		});
 	};
 	for (const control of [

@@ -3,10 +3,13 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	deleteSlideAt,
+	deleteSlidesAt,
 	duplicateSlideAt,
+	duplicateSlidesAt,
 	insertBlankSlideAfter,
 	insertTemplateSlideAfter,
 	moveSlide,
+	toggleHiddenAt,
 } from './editor-slide-ops';
 
 function el(id: string): PptxElement {
@@ -108,5 +111,45 @@ describe('editor-slide-ops moveSlide', () => {
 		expect(moveSlide(slides, 0, 0)).toBeNull();
 		expect(moveSlide(slides, -1, 1)).toBeNull();
 		expect(moveSlide(slides, 0, 2)).toBeNull();
+	});
+});
+
+describe('editor-slide-ops duplicateSlidesAt', () => {
+	it('duplicates every selected slide right after its own source, non-contiguous selection included', () => {
+		const slides = [slide('a', 1), slide('b', 2), slide('c', 3), slide('d', 4)];
+		const next = duplicateSlidesAt(slides, [0, 2]);
+		const ids = next.map((s) => s.id);
+		expect(ids).toHaveLength(6);
+		// Originals keep their id, in order, still followed by their own clone.
+		expect(ids[0]).toBe('a');
+		expect(ids[2]).toBe('b');
+		expect(ids[3]).toBe('c');
+		expect(ids[5]).toBe('d');
+		// The two duplicates are fresh ids, immediately after their source.
+		expect(ids[1]).not.toBe('a');
+		expect(new Set(ids).size).toBe(6);
+		expect(next.map((s) => s.slideNumber)).toStrictEqual([1, 2, 3, 4, 5, 6]);
+	});
+});
+
+describe('editor-slide-ops deleteSlidesAt', () => {
+	it('removes every selected slide and renumbers the rest', () => {
+		const slides = [slide('a', 1), slide('b', 2), slide('c', 3)];
+		const next = deleteSlidesAt(slides, [0, 2])!;
+		expect(next.map((s) => s.id)).toStrictEqual(['b']);
+		expect(next.map((s) => s.slideNumber)).toStrictEqual([1]);
+	});
+
+	it('refuses to empty the deck', () => {
+		const slides = [slide('a', 1), slide('b', 2)];
+		expect(deleteSlidesAt(slides, [0, 1])).toBeNull();
+	});
+});
+
+describe('editor-slide-ops toggleHiddenAt', () => {
+	it('flips hidden on every selected slide, leaving the rest untouched', () => {
+		const slides = [slide('a', 1), slide('b', 2), slide('c', 3)];
+		const next = toggleHiddenAt(slides, [0, 2]);
+		expect(next.map((s) => Boolean(s.hidden))).toStrictEqual([true, false, true]);
 	});
 });

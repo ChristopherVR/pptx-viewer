@@ -55,7 +55,8 @@ describe('salt-less modifyVerifier fixtures (packages/core/src/__tests__/fixture
 			await expect(verifyModifyPassword(data.modifyVerifier!, 'wrong')).resolves.toBeFalsy();
 		},
 		// WHIRLPOOL is a pure-TypeScript digest (no Web Crypto implementation);
-		// 100000 spin-count iterations of it take longer than the default 30s.
-		60_000,
+		// each case runs 2 x 100000 spin-count iterations, which exceeded 60s on
+		// a loaded CI runner.
+		180_000,
 	);
 });

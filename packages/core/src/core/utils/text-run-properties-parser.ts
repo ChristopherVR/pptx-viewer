@@ -114,7 +114,10 @@ export function parseRunPropertyAttributes(rPr: XmlObject | undefined): TextStyl
 	// Superscript / subscript baseline shift (thousandths of percent)
 	if (rPr['@_baseline'] !== undefined) {
 		const baselineVal = Number.parseInt(String(rPr['@_baseline']), 10);
-		if (Number.isFinite(baselineVal) && baselineVal !== 0) {
+		// An authored `baseline="0"` is kept as 0 (not collapsed to unset):
+		// two runs differing only by it must not compare equal, or the save
+		// path merges them into one run.
+		if (Number.isFinite(baselineVal)) {
 			style.baseline = baselineVal;
 		}
 	}
@@ -358,8 +361,8 @@ export function parseRunUnderlineColor(rPr: XmlObject | undefined): string | und
  */
 export function parseRunTextOutline(
 	rPr: XmlObject | undefined,
-): Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor'> {
-	const result: Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor'> = {};
+): Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor' | 'textOutlineDash'> {
+	const result: Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor' | 'textOutlineDash'> = {};
 	if (!rPr) {
 		return result;
 	}
@@ -372,6 +375,11 @@ export function parseRunTextOutline(
 	const textOutlineW = Number.parseInt(String(textLn['@_w'] || ''), 10);
 	if (Number.isFinite(textOutlineW) && textOutlineW > 0) {
 		result.textOutlineWidth = textOutlineW / EMU_PER_PX;
+	}
+
+	const dash = (textLn['a:prstDash'] as XmlObject | undefined)?.['@_val'];
+	if (typeof dash === 'string' && dash !== 'solid') {
+		result.textOutlineDash = dash;
 	}
 
 	const solidFill = textLn['a:solidFill'] as XmlObject | undefined;

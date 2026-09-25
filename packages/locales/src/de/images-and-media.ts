@@ -185,4 +185,15 @@ export const translations = {
 	'pptx.media.playbackSpeed': 'Wiedergabegeschwindigkeit',
 	'pptx.media.trimEnd': 'Ende kürzen',
 	'pptx.media.trimStart': 'Anfang kürzen',
+	'pptx.image.crop': 'Zuschneiden',
+	'pptx.image.cropToAspectRatio': 'Auf Seitenverhältnis zuschneiden',
+	'pptx.image.cropFill': 'Füllen',
+	'pptx.image.cropFit': 'Anpassen',
+	'pptx.image.cropSquare': 'Quadrat',
+	'pptx.image.cropPortrait': 'Hochformat',
+	'pptx.image.cropLandscape': 'Querformat',
+	'pptx.image.cropHandle': 'Zuschneide-Ziehpunkt',
+	'pptx.image.cropModeHint':
+		'Ziehen Sie die schwarzen Ziehpunkte zum Zuschneiden. Eingabetaste übernimmt, Esc bricht ab.',
+	'pptx.image.cropHint': 'Wählen Sie ein Bild aus, um es zuzuschneiden',
 } as const;

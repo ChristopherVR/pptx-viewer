@@ -1,7 +1,8 @@
 /**
- * D2-G3: `a:rPr/@u="words"` underlines only the non-whitespace characters of
- * a run, leaving inter-word spaces unmarked - distinct from `sng`, which
- * underlines the whole run including its spaces.
+ * `a:rPr/@u="words"` is specified as "underline words only", but PowerPoint
+ * draws it continuously, gaps included, exactly like `sng` (COM-verified in
+ * the 2026-09 limitations wave; see `splitsUnderlineIntoWords` in shared).
+ * These pin React to that: the run keeps one continuous underline.
  *
  * As in `text-segment-decoration.test.tsx`, `splitRunForMetrics` is stood in
  * for since there is no canvas under vitest; everything else - `buildParagraphs`,
@@ -65,83 +66,54 @@ function underlinedSpans(markup: string): string[] {
 	);
 }
 
-describe('u="words" underline (D2-G3)', () => {
-	it('does not underline the run through a continuous decoration', () => {
-		// The whole point of the gap: a plain `text-decoration:underline` on the
-		// outer run span would draw straight through the space regardless of what
-		// any inner span declares, so the outer span itself must not carry it.
+/** Text of every leaf `<span>` (one with text and no child tag) that lacks an underline. */
+function undecoratedLeaves(markup: string): string[] {
+	return [...markup.matchAll(/<span( style="[^"]*")?>([^<]+)<\/span>/gu)]
+		.filter((m) => !(m[1] ?? '').includes('text-decoration:underline'))
+		.map((m) => m[2]);
+}
+
+describe('u="words" underline renders like PowerPoint (continuous)', () => {
+	it('underlines the run continuously, through the gap', () => {
 		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'Two Words');
 		const outerSpanStyle = markup.match(/<span[^>]*data-seg-idx[^>]*style="([^"]*)"/u)?.[1] ?? '';
-		expect(outerSpanStyle).not.toContain('text-decoration');
-	});
-
-	it('wraps each word in its own underlined span', () => {
-		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'Two Words');
-		const wordSpans = [...markup.matchAll(/<span style="([^"]*text-decoration:underline[^"]*)"/gu)];
-		expect(wordSpans).toHaveLength(2);
-	});
-
-	it('leaves the whitespace between words undecorated', () => {
-		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'Two Words');
-		// The space renders as plain text (or a span with no decoration), never
-		// wrapped in an underlined span of its own.
-		expect(markup).not.toMatch(/<span style="[^"]*text-decoration:underline[^"]*"[^>]*> <\/span>/u);
-	});
-
-	it('still underlines the whole run when u="sng" (regression, not "words")', () => {
-		const markup = markupOf({ underline: true, underlineStyle: 'sng' }, 'Two Words');
-		const outerSpanStyle = markup.match(/<span[^>]*data-seg-idx[^>]*style="([^"]*)"/u)?.[1] ?? '';
-		// `sng` keeps the continuous underline on the run's own span - only
-		// `words` splits it into per-word pieces.
 		expect(outerSpanStyle).toContain('text-decoration:underline');
+		// No whitespace-only piece is left undecorated inside the run.
+		expect(markup).not.toMatch(/<span style="(?![^"]*text-decoration:underline)[^"]*"> <\/span>/u);
 	});
 
-	it('renders a single word with no whitespace as one still-underlined span (no DOM blow-up)', () => {
-		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'Word');
-		// The outer run span never carries the decoration once `u="words"`
-		// applies (see the first test above); the single word piece's own inner
-		// span carries it instead - one extra span, not a whole new pipeline.
-		expect(markup.match(/text-decoration:underline/gu)).toHaveLength(1);
-		expect(markup.match(/<span/gu)?.length).toBe(2);
+	it('draws the underline through descenders (no ink skipping)', () => {
+		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'gypsy');
+		expect(markup).toContain('text-decoration-skip-ink:none');
 	});
 
-	// The two run shapes that stay ONE run (ruby base text, a tab-separated
-	// piece) reached React with no per-word underline at all: shared had already
-	// stripped the ruby run's own decoration (so `nestedStyle` was empty and the
-	// word spans redeclared nothing), and the tab layout was built without the
-	// `u="words"` split (so the piece span kept a continuous underline through
-	// the gap). Vue/Angular/Svelte/Vanilla render `run.underlineWordPieces` /
-	// `TabbedRunPiece.words`; these pin React to the same output.
-	it('underlines each word of a ruby base text, not the gap (underlineWordPieces)', () => {
+	it('renders the same as u="sng"', () => {
+		const words = markupOf({ underline: true, underlineStyle: 'words' }, 'Two Words');
+		const sng = markupOf({ underline: true, underlineStyle: 'sng' }, 'Two Words');
+		expect(underlinedSpans(words)).toHaveLength(underlinedSpans(sng).length);
+	});
+
+	it('keeps a ruby base text as one underlined run', () => {
 		const markup = markupOf({ underline: true, underlineStyle: 'words' }, 'ALFA BETO', {
 			rubyText: 'reading',
 		});
 		expect(markup).toContain('<ruby>');
 		const outerSpanStyle = markup.match(/<span[^>]*data-seg-idx[^>]*style="([^"]*)"/u)?.[1] ?? '';
-		expect(outerSpanStyle).not.toContain('text-decoration');
-		expect(underlinedSpans(markup)).toHaveLength(2);
-		expect(markup).not.toMatch(/<span style="[^"]*text-decoration:underline[^"]*"[^>]*> <\/span>/u);
+		expect(outerSpanStyle).toContain('text-decoration:underline');
+		// Every leaf text piece (words and the space riding on "ALFA ") repeats the underline.
+		expect(undecoratedLeaves(markup)).toStrictEqual([]);
 	});
 
-	it('renders the words of a tab-separated piece as sibling spans with an undecorated gap', () => {
+	it('keeps a tab-separated piece as one continuously underlined span', () => {
 		const markup = markupOf(
 			{ underline: true, underlineStyle: 'words' },
 			'GAMA DELTO\tEPSILON',
 			{},
 			{ fontSize: 18, tabStops: [{ position: 300, align: 'l' }] },
 		);
-		// The piece before the tab is no longer ONE continuously underlined span
-		// wrapping "GAMA DELTO"...
-		expect(markup).not.toContain('GAMA DELTO');
-		// ...but sibling inline-block spans: each word underlined, the gap between
-		// them a piece span of its own with no decoration (an underlined ancestor
-		// would draw straight through it).
-		expect(markup).toMatch(
-			/<span style="display:inline-block;white-space:pre;letter-spacing:normal"> <\/span>/u,
-		);
-		expect(markup).not.toMatch(/<span style="[^"]*text-decoration:underline[^"]*"[^>]*> <\/span>/u);
 		expect(
 			markup.match(/<span style="text-decoration:underline[^"]*display:inline-block/gu),
-		).toHaveLength(3);
+		).toHaveLength(2);
+		expect(undecoratedLeaves(markup)).toStrictEqual([]);
 	});
 });

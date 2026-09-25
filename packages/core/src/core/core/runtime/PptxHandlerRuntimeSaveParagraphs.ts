@@ -87,13 +87,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
 		};
 
-		const createTextNode = (value: string): string | XmlObject =>
-			/^[\t\n\r ]|[\t\n\r ]$/.test(value) ? { '@_xml:space': 'preserve', '#text': value } : value;
+		// `xml:space="preserve"` is NOT a usable signal for `a:t` (see
+		// `utils/xml-whitespace.ts`): it appears zero times across the corpus of
+		// real decks in this repository, including ones PowerPoint itself
+		// wrote, because XML preserves text-node whitespace by default and the
+		// OOXML parser here runs with `trimValues: false` plus its own
+		// whitespace-preserving allow-list, so nothing depends on the
+		// attribute for round-tripping. Stamping it anyway materialized an
+		// attribute the source never had on every run with boundary
+		// whitespace whenever the shape's paragraphs were rewritten, even
+		// when that specific run's text was untouched.
+		const createTextNode = (value: string): string | XmlObject => value;
 
-		const createRun = (runText: string, style: TextStyle | undefined) => ({
-			'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
-			'a:t': createTextNode(runText),
-		});
+		const createRun = (runText: string, style: TextStyle | undefined) => {
+			const rPr = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+			const run: XmlObject = {};
+			if (rPr) {
+				run['a:rPr'] = rPr;
+			}
+			run['a:t'] = createTextNode(runText);
+			return run;
+		};
 
 		const createFieldRun = (
 			runText: string,
@@ -114,7 +128,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					fld['@_id'] = fieldGuid;
 				}
 			}
-			fld['a:rPr'] = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+			const fldRPr = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+			if (fldRPr) {
+				fld['a:rPr'] = fldRPr;
+			}
 			if (fieldParagraphPropertiesXml && typeof fieldParagraphPropertiesXml === 'object') {
 				fld['a:pPr'] = fieldParagraphPropertiesXml;
 			}
@@ -140,21 +157,28 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				segment.rubyStyle ?? style,
 				resolveHyperlinkRelationshipId,
 			);
-			const rtRun = {
-				'a:rPr': rtRunProps,
-				'a:t': createTextNode(segment.rubyText ?? ''),
-			};
+			const rtRun: XmlObject = {};
+			if (rtRunProps) {
+				rtRun['a:rPr'] = rtRunProps;
+			}
+			rtRun['a:t'] = createTextNode(segment.rubyText ?? '');
 			// Base text run
 			const baseRunProps = this.createRunPropertiesFromTextStyle(
 				style,
 				resolveHyperlinkRelationshipId,
 			);
-			const baseRun = {
-				'a:rPr': baseRunProps,
-				'a:t': createTextNode(segment.text),
-			};
+			const baseRun: XmlObject = {};
+			if (baseRunProps) {
+				baseRun['a:rPr'] = baseRunProps;
+			}
+			baseRun['a:t'] = createTextNode(segment.text);
+			const outerRPr = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
+			const rubyRun: XmlObject = {};
+			if (outerRPr) {
+				rubyRun['a:rPr'] = outerRPr;
+			}
 			return {
-				'a:rPr': this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
+				...rubyRun,
 				'a:ruby': {
 					'a:rubyPr': rubyPr,
 					'a:rt': { 'a:r': rtRun },
@@ -235,7 +259,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					currentEndParaRunProperties = updateEndParagraphProperties(
 						currentEndParaRunProperties as XmlObject | undefined,
 						segment.paragraphInsertionStyle,
-						(style) => this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId),
+						(style) =>
+							this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId) ?? {},
 					);
 					if (segment.paragraphProperties) {
 						currentParagraphProperties = segment.paragraphProperties;
@@ -256,10 +281,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (segment.breakRunProperties && typeof segment.breakRunProperties === 'object') {
 						brNode['a:rPr'] = { ...(segment.breakRunProperties as XmlObject) };
 					} else {
-						brNode['a:rPr'] = this.createRunPropertiesFromTextStyle(
+						const brRPr = this.createRunPropertiesFromTextStyle(
 							segmentStyle,
 							resolveHyperlinkRelationshipId,
 						);
+						if (brRPr) {
+							brNode['a:rPr'] = brRPr;
+						}
 					}
 					(brNode as Record<string, unknown>)['__isLineBreak'] = true;
 					currentRuns.push(brNode);
@@ -348,6 +376,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const normalizedText = typeof text === 'string' ? text : '';
 		const textLines = normalizedText.split('\n');
+		// This plain-string fallback is used whenever a shape's runs collapsed
+		// to one uniform style (`areTextSegmentsUniform`), including a shape
+		// whose sole run has EMPTY text but a real, authored `a:rPr` (a common
+		// decorative-rectangle pattern): `runScopedTextStyle` still carries that
+		// run's `authoredRunStyle`/`inheritedRunStyle` split (seeded from it at
+		// parse time), so `createRun` must still be called for an empty line;
+		// only `createRunPropertiesFromTextStyle`'s own ownership gate decides
+		// whether the resulting `a:rPr` carries anything. Unconditionally
+		// skipping the run for an empty line (as an earlier version of this fix
+		// did) silently dropped that authored `a:rPr` outright.
 		textLines.forEach((line) => {
 			paragraphs.push(createParagraph([createRun(line, runScopedTextStyle)]));
 		});

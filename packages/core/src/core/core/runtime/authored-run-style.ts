@@ -39,9 +39,30 @@ import type { TextStyle } from '../../types';
  */
 export type RunStyleGate = (...keys: Array<keyof TextStyle>) => boolean;
 
-/** Keys whose values are objects/arrays, compared by identity below. */
+/**
+ * Compare one style key against its baseline, treating `undefined` and
+ * `false` as the SAME value for a boolean-typed key.
+ *
+ * `segmentStyle` is built as `{...runScopedTextStyle, ...segment.style,
+ * ...uniformSegmentOverrides}` (see `PptxHandlerRuntimeSaveParagraphs`): a
+ * key `segment.style` never sets at all is not overridden by that spread, so
+ * a boolean flag another run in the same shape resolved to `false` (e.g.
+ * `smartTagClean`, `dirty`, `noProof`) can leak through from
+ * `runScopedTextStyle` onto a run that never authored it. `baseline` (the
+ * paragraph's `a:defRPr`-derived default) almost never carries these
+ * run-metadata flags at all, so the leaked `false` compared against an
+ * `undefined` baseline registered as "differs", and `owns()` wrote a
+ * `smtClean="0"`/`dirty="0"` the run's own source never had. An unset
+ * boolean attribute and an explicit `false` are the same fact for an OOXML
+ * boolean attribute (both mean "not set"), so they must compare equal here.
+ */
 function differsFromBaseline(style: TextStyle, baseline: TextStyle, key: keyof TextStyle): boolean {
-	return style[key] !== baseline[key];
+	const styleValue = style[key];
+	const baselineValue = baseline[key];
+	if (typeof styleValue === 'boolean' || typeof baselineValue === 'boolean') {
+		return Boolean(styleValue) !== Boolean(baselineValue);
+	}
+	return styleValue !== baselineValue;
 }
 
 /**

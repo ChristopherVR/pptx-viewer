@@ -57,3 +57,34 @@ describe('parseAction - a:hlinkClick/@endSnd (issue G14)', () => {
 		expect(action?.endSnd).toBeTruthy();
 	});
 });
+
+interface RuntimeWithFillVariants {
+	extractTextFillVariants(rPr: XmlObject | undefined): {
+		textFillGradient?: string;
+		textFillPattern?: string;
+		textFillBlipXml?: XmlObject;
+	};
+}
+
+const fillRuntime = new PptxHandlerRuntime() as unknown as RuntimeWithFillVariants;
+
+describe('extractTextFillVariants - a:blipFill (picture text fill)', () => {
+	// Regression: this method's own doc comment claimed "Handles gradient
+	// fills, pattern fills, and image fills on text runs", but only the first
+	// two branches existed; `a:blipFill` was silently dropped, so a
+	// picture-filled run fell through to its plain `color` and rendered solid
+	// black (COM-verified: audit-text slide 13's "PICTURE FILL" run).
+	it('captures the raw a:blipFill node for later async resolution', () => {
+		const blipFill: XmlObject = {
+			'a:blip': { '@_r:embed': 'rIdImg' },
+			'a:stretch': { 'a:fillRect': {} },
+		};
+		const result = fillRuntime.extractTextFillVariants({ 'a:blipFill': blipFill });
+		expect(result.textFillBlipXml).toBe(blipFill);
+	});
+
+	it('leaves textFillBlipXml unset when the run has no a:blipFill', () => {
+		const result = fillRuntime.extractTextFillVariants({ 'a:solidFill': {} });
+		expect(result.textFillBlipXml).toBeUndefined();
+	});
+});

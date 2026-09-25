@@ -2,15 +2,21 @@ import type { PptxElement, PptxHandler, PptxModifyVerifier, PptxSlide } from 'pp
 import type {
 	CompatibilityWarningToast,
 	ReadOnlyRecommendation,
+	ResolvedCustomization,
+	ViewerCustomizationApi,
 	ViewerMode,
 } from 'pptx-viewer-shared';
-import { clampZoomScale, prepareElementForInsertion } from 'pptx-viewer-shared';
+import {
+	clampZoomScale,
+	createCustomizationController,
+	prepareElementForInsertion,
+} from 'pptx-viewer-shared';
 /**
  * useViewerIntegration: Wires pointer handling, content lifecycle,
  * I/O, annotations, recovery, imperative handle, parent callbacks,
  * and keyboard shortcuts into the viewer orchestrator.
  */
-import { useEffect, useImperativeHandle, useState } from 'react';
+import { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { Dispatch, ForwardedRef, RefObject, SetStateAction } from 'react';
 
 import type { PowerPointViewerHandle } from '../types';
@@ -111,6 +117,10 @@ export interface UseViewerIntegrationInput {
 	onZoomChange: ((zoom: number) => void) | undefined;
 	onSelectionChange: ((ids: string[]) => void) | undefined;
 	onSlideCountChange: ((count: number) => void) | undefined;
+	/** Host UI customisation helpers, spread onto the imperative handle. */
+	customizationApi?: ViewerCustomizationApi;
+	/** Resolved host UI customisation, read by the keyboard shortcuts. */
+	customization?: ResolvedCustomization;
 }
 
 // ---------------------------------------------------------------------------
@@ -302,11 +312,18 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 	});
 
 	const updateElements = useElementUpdateBatch(input);
+	// Callers without a customisation store (headless building blocks) still
+	// get a complete handle; their helpers drive an unobserved controller.
+	const fallbackCustomizationRef = useRef<ViewerCustomizationApi | null>(null);
+	const customizationApi =
+		input.customizationApi ??
+		(fallbackCustomizationRef.current ??= createCustomizationController().api);
 
 	// ── Imperative handle ─────────────────────────────────────────
 	useImperativeHandle(
 		ref,
 		() => ({
+			...customizationApi,
 			async getContent() {
 				const data = await serializeSlides();
 				if (data && onContentChange) {
@@ -479,6 +496,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 			zoom,
 			mode,
 			editorOps,
+			customizationApi,
 		],
 	);
 
@@ -540,6 +558,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		copyFormatFromSelection: editorOps.copyFormatFromSelection,
 		pasteFormatToSelection: editorOps.pasteFormatToSelection,
 		onPasteSpecial: editorOps.pasteSpecial.openPasteSpecialDialog,
+		customization: input.customization,
 	});
 
 	return {

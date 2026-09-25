@@ -23,13 +23,23 @@ describe('segmentStyleToCss run properties', () => {
 	it('scales an authored run size by the body autofit font scale', () => {
 		// A run's own `sz` overrides the (scaled) body font-size, so the scale has
 		// to reach the run or a shrink-to-fit title paints at full size.
-		expect(segmentStyleToCss(seg({ fontSize: 53.33 }), 0.7).fontSize).toBe(`${53.33 * 0.7}px`);
-		// Composed with the super/subscript reduction, not replaced by it.
+		//
+		// COM-measured ground truth (audit-text corpus): PowerPoint rounds the
+		// scaled size to the nearest WHOLE POINT, never a fractional one. 28pt at
+		// fontScale 62.5% renders at 18pt (not 17.5pt); 28pt at fontScale 40%
+		// renders at 11pt (not 11.2pt).
+		expect(segmentStyleToCss(seg({ fontSize: 28 }), 0.625).fontSize).toBe('18px');
+		expect(segmentStyleToCss(seg({ fontSize: 28 }), 0.4).fontSize).toBe('11px');
+		// Composed with the super/subscript reduction, not replaced by it: the
+		// fontScale rounding happens first, then the (unrelated) baseline shrink
+		// applies on top of the rounded whole-point size.
 		expect(segmentStyleToCss(seg({ fontSize: 20, baseline: 30000 }), 0.5).fontSize).toBe(
-			`${20 * 0.5 * 0.65}px`,
+			`${10 * 0.65}px`,
 		);
-		// Default scale of 1 leaves every existing caller unchanged.
+		// Default scale of 1 leaves every existing caller unchanged, including a
+		// sub-point authored size (e.g. an unscaled 10.5pt theme default).
 		expect(segmentStyleToCss(seg({ fontSize: 20 })).fontSize).toBe('20px');
+		expect(segmentStyleToCss(seg({ fontSize: 10.5 })).fontSize).toBe('10.5px');
 	});
 
 	it('maps kerning to font-kerning', () => {
@@ -86,6 +96,21 @@ describe('segmentStyleToCss run properties', () => {
 		expect(css.textDecorationColor).toBe('#FF0000');
 		expect(css.WebkitTextStroke).toBe('2px #0000FF');
 		expect(css.paintOrder).toBe('stroke fill');
+	});
+
+	it('paints a:ln/a:prstDash as a dashed outline instead of a solid stroke', () => {
+		const css = segmentStyleToCss(
+			seg({
+				color: '#FFC000',
+				textOutlineWidth: 3,
+				textOutlineColor: '#000000',
+				textOutlineDash: 'dash',
+			}),
+		);
+		expect(css.WebkitTextStroke).toBe('3px transparent');
+		expect(css.WebkitTextFillColor).toBe('#FFC000');
+		expect(css.backgroundClip).toBe('text');
+		expect(String(css.background)).toContain('repeating-linear-gradient(45deg, #000000');
 	});
 
 	it('falls back to currentColor when an outline has width but no colour', () => {

@@ -98,7 +98,8 @@ export function useViewerBuildingBlocksCore(
 				state.resizeStateRef.current ||
 				state.marqueeStateRef.current ||
 				state.shapeAdjustmentDragStateRef.current ||
-				state.isDrawingRef.current,
+				state.isDrawingRef.current ||
+				state.cropSessionRef.current,
 			),
 		[
 			state.dragStateRef,
@@ -106,6 +107,7 @@ export function useViewerBuildingBlocksCore(
 			state.marqueeStateRef,
 			state.shapeAdjustmentDragStateRef,
 			state.isDrawingRef,
+			state.cropSessionRef,
 		],
 	);
 

@@ -36,6 +36,8 @@ import { GoogleWebfontsService } from './google-webfonts.service';
 import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
 import { LoadNoticesService } from './load-notices.service';
+import { OutlineAuthoringService } from './outline-authoring.service';
+import { PictureCropService } from './picture-crop.service';
 import { PrintService } from './print.service';
 import { RecentColorsService } from './recent-colors.service';
 import { Rendering3DService } from './rendering-3d.service';
@@ -45,6 +47,7 @@ import { ViewerCollabCursorService } from './viewer-collab-cursor.service';
 import { ViewerCollaborationSessionService } from './viewer-collaboration-session.service';
 import { ViewerCompareService } from './viewer-compare.service';
 import { ViewerCustomShowsService } from './viewer-custom-shows.service';
+import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
 import { ViewerDocumentPropertiesService } from './viewer-document-properties.service';
 import { ViewerExportService } from './viewer-export.service';
@@ -104,8 +107,11 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	ViewerKeyboardService,
 	ViewerMobileSheetService,
 	ViewerOptionsService,
+	ViewerCustomizationService,
 	ViewerPresentationModeService,
 	ViewerThemeGalleryService,
 	ViewerTouchGesturesService,
 	ViewerZoomService,
+	OutlineAuthoringService,
+	PictureCropService,
 ] as const;

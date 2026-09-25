@@ -24,7 +24,7 @@ describe('alphaLabel', () => {
 		expect(alphaLabel(1)).toBe('a');
 		expect(alphaLabel(26)).toBe('z');
 		expect(alphaLabel(27)).toBe('aa');
-		expect(alphaLabel(53)).toBe('ba');
+		expect(alphaLabel(53)).toBe('aaa');
 	});
 });
 
@@ -76,9 +76,9 @@ describe('single implementation shared with the load path', () => {
 		expect(formatAutoNumber('ea1ChsPeriod', 1)).toBe('一.');
 		expect(formatAutoNumber('thaiNumPeriod', 1)).toBe('๑.');
 		expect(formatAutoNumber('hindiAlphaPeriod', 1)).toBe('अ.');
-		expect(formatAutoNumber('hebrew2Minus', 15)).toBe('טו-');
+		expect(formatAutoNumber('hebrew2Minus', 15)).toBe('ס-');
 		// Neither formatter covered the two Arabic minus schemes before.
-		expect(formatAutoNumber('arabic1Minus', 1)).toBe('ا-');
+		expect(formatAutoNumber('arabic1Minus', 1)).toBe('أ-');
 		expect(formatAutoNumber('arabic2Minus', 3)).toBe('ج-');
 	});
 });

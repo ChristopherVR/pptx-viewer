@@ -15,17 +15,21 @@ import type { ChartPptxElement, PptxChartData, PptxElement } from 'pptx-viewer-c
 
 import { applyChart3DDepth } from './chart-3d-depth';
 import { chartAreaCornerRadius, chartAreaFill, plotAreaFill } from './chart-area-fill';
+import { withAutoTitle } from './chart-auto-title';
 import { buildCartesianViewModel } from './chart-cartesian';
 import { buildComboViewModel, buildStockViewModel } from './chart-combo-stock';
+import { labelsBesideTable } from './chart-data-table-metrics';
 import { applyDataPointPictureFills } from './chart-datapoint-picture-fills';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { withGradientFills } from './chart-gradient-defs';
 import { applyLegendEntryOverrides } from './chart-legend-entries';
+import { manualLayoutOf } from './chart-manual-layout';
 import { buildOfPieViewModel } from './chart-ofpie';
 import { buildSurfaceViewModel, buildTreemapViewModel } from './chart-surface-treemap';
 import { withChartTitleBand } from './chart-title-band';
 import { resolveChartTitleRunSpans } from './chart-title-runs';
-import { resolveChartTitleTextStyle } from './chart-title-style';
+import { fitTitleBand, resolveChartTitleTextStyle } from './chart-title-style';
 import { buildChartUserShapeOverlay } from './chart-user-shape-overlay';
 import { resolveChartKind } from './chart-view-model-kinds';
 import type { SupportedChartKind } from './chart-view-model-kinds';
@@ -45,7 +49,7 @@ export function buildChartViewModel(element: PptxElement): ChartViewModel {
 		return buildFallbackViewModel(element.width, element.height, 'Chart');
 	}
 	const chartEl = element as ChartPptxElement,
-		chartData = chartEl.chartData;
+		chartData = chartEl.chartData ? withAutoTitle(chartEl.chartData) : chartEl.chartData;
 
 	if (!chartData || chartData.series.length === 0) {
 		return buildFallbackViewModel(element.width, element.height, chartData?.title ?? 'Chart');
@@ -125,16 +129,20 @@ function finishViewModel(
 	frame: { id: string; width: number; height: number },
 ): ChartViewModel {
 	return withLegendEntries(
-		withChartAreaFill(
-			withDataPointPictureFills(
-				withUserShapeOverlay(
-					withManualLayouts(withChartTitleBand(vm, chartData), chartData, frame),
+		withGradientFills(
+			withChartAreaFill(
+				withDataPointPictureFills(
+					withUserShapeOverlay(
+						withManualLayouts(withChartTitleBand(vm, chartData), chartData, frame),
+						chartData,
+					),
 					chartData,
+					frame.id,
 				),
 				chartData,
-				frame.id,
 			),
 			chartData,
+			frame.id,
 		),
 		chartData,
 	);
@@ -181,11 +189,17 @@ function withLegendEntries(vm: ChartViewModel, chartData: PptxChartData): ChartV
  */
 function withChartAreaFill(vm: ChartViewModel, chartData: PptxChartData): ChartViewModel {
 	const titleRunSpans = resolveChartTitleRunSpans(chartData);
+	const titleStyle = resolveChartTitleTextStyle(chartData);
 	return {
 		...vm,
+		// The kinds lay the title baseline out for a 12px title; a style-part
+		// title (18.62pt in every built-in style, e.g. PowerPoint's auto
+		// "Chart Title") would otherwise poke out of the top of the chart.
+		...(manualLayoutOf(chartData, 'title') ? {} : fitTitleBand(vm, titleStyle.fontSize)),
+		categoryLabels: labelsBesideTable(chartData, { labels: vm.categoryLabels }),
 		areaFill: chartAreaFill(chartData),
 		areaRadius: chartAreaCornerRadius(chartData),
-		titleStyle: resolveChartTitleTextStyle(chartData),
+		titleStyle,
 		...(titleRunSpans ? { titleRunSpans } : {}),
 		plotFill: plotAreaFill(chartData),
 	};

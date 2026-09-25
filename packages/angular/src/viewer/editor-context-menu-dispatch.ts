@@ -16,7 +16,8 @@
 
 import type { TablePptxElement } from 'pptx-viewer-core';
 
-import type { ContextMenuCommandId } from '../internal/shared';
+import type { ContextMenuCommandId, MergeShapeOperation } from '../internal/shared';
+import { mergeOperationForCommand } from '../internal/shared';
 import {
 	insertColumn,
 	insertRow,
@@ -84,6 +85,8 @@ export interface ContextMenuActions {
 	remove(): void;
 	/** "Edit Text": enter inline text edit for the right-clicked element. */
 	editText(): void;
+	/** "Edit Points": reshape the right-clicked shape's outline. */
+	editPoints(): void;
 	/** "Save as Picture": rasterise the right-clicked element and download it. */
 	saveAsPicture(): void;
 	/** "Edit Alt Text...": open the properties tab, focused on the Accessibility section. */
@@ -94,6 +97,10 @@ export interface ContextMenuActions {
 	formatShape(): void;
 	/** Commit a table transform against the current cell selection. */
 	applyTable(op: TableCommandOp): void;
+	/** Merge Shapes (Union / Combine / Fragment / Intersect / Subtract) on the selection. */
+	mergeShapes(operation: MergeShapeOperation): void;
+	/** "Crop": enter on-canvas crop mode on the selected picture. */
+	crop(): void;
 }
 
 /**
@@ -105,6 +112,11 @@ export function runContextMenuCommand(id: ContextMenuCommandId, actions: Context
 	const tableOp = TABLE_OPS[id];
 	if (tableOp) {
 		actions.applyTable(tableOp);
+		return;
+	}
+	const mergeOp = mergeOperationForCommand(id);
+	if (mergeOp) {
+		actions.mergeShapes(mergeOp);
 		return;
 	}
 	switch (id) {
@@ -156,6 +168,9 @@ export function runContextMenuCommand(id: ContextMenuCommandId, actions: Context
 		case 'edit-text':
 			actions.editText();
 			break;
+		case 'edit-points':
+			actions.editPoints();
+			break;
 		case 'save-as-picture':
 			actions.saveAsPicture();
 			break;
@@ -167,6 +182,9 @@ export function runContextMenuCommand(id: ContextMenuCommandId, actions: Context
 			break;
 		case 'format-shape':
 			actions.formatShape();
+			break;
+		case 'crop':
+			actions.crop();
 			break;
 		default:
 			break;

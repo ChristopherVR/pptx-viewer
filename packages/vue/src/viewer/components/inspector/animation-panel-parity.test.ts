@@ -80,6 +80,42 @@ describe('vue animation parity controls', () => {
 		});
 	});
 
+	it('picks the media bookmark an On bookmark trigger waits for', async () => {
+		const video = {
+			type: 'media',
+			id: 'video',
+			name: 'Clip',
+			mediaType: 'video',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			bookmarks: [
+				{ label: 'BM1', time: 0.5 },
+				{ label: 'BM2', time: 1.5 },
+			],
+		} as PptxElement;
+		const bookmarked = {
+			...selected,
+			animations: [{ elementId: 'selected', entrance: 'fadeIn', trigger: 'onMediaBookmark' }],
+		} as PptxElement & { animations: PptxElementAnimation[] };
+		const wrapper = mount(AnimationPanel, {
+			props: { element: bookmarked, slideElements: [bookmarked, video] },
+		});
+		const picker = wrapper.get('[data-pptx-animation-bookmark-picker]');
+		expect(picker.findAll('option').map((o) => o.text())).toStrictEqual([
+			'Select a bookmark',
+			'BM1',
+			'BM2',
+		]);
+		await setControlValue(picker, picker.findAll('option')[2]!.attributes('value')!);
+		expect(latestAnimation(wrapper)).toMatchObject({
+			trigger: 'onMediaBookmark',
+			triggerShapeId: 'video',
+			triggerBookmark: 'BM2',
+		});
+	});
+
 	it('reorders the native full-slide timeline by drag and drop', async () => {
 		const animations = [
 			{ elementId: 'selected', entrance: 'fadeIn', order: 0 },

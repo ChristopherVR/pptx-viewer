@@ -300,12 +300,10 @@ describe('buildAngularParagraphs - reflection (a:rPr/a:effectLst/a:reflection)',
 });
 
 /**
- * `a:rPr/@u="words"` underlines only the words. The ordinary per-word split
- * already emits sibling runs, but a tab-separated piece and a ruby base text
- * each stay ONE piece, so shared hands the word/gap breakdown over as
- * `piece.words` / `run.underlineWordPieces`; the `runContent` template in
- * `element-renderer.component.html` renders one span per entry in place of
- * the piece / base text.
+ * `a:rPr/@u="words"` renders like PowerPoint: one continuous underline, gaps
+ * included, exactly like `sng` (COM-verified in the 2026-09 limitations wave;
+ * see `splitsUnderlineIntoWords` in shared). A tab-separated piece and a
+ * ruby base text therefore stay whole and underlined.
  */
 describe('buildAngularParagraphs - u="words" on tab pieces and ruby runs', () => {
 	const wordsStyle = {
@@ -315,24 +313,21 @@ describe('buildAngularParagraphs - u="words" on tab pieces and ruby runs', () =>
 		underlineStyle: 'words',
 	} as TextSegment['style'];
 
-	it('carries per-word pieces on a multi-word tab piece, the gap undecorated', () => {
+	it('keeps a multi-word tab piece whole and underlined', () => {
 		const element = textElement([{ text: 'Hello World\t12', style: wordsStyle }], {
 			textStyle: { tabStops: [{ position: 300, align: 'r' }] },
 		});
 		const [piece] = buildAngularParagraphs(element)[0].runs[0].tabLines?.[0].pieces ?? [];
-		expect(piece?.words?.map((w) => w.text)).toStrictEqual(['Hello', ' ', 'World']);
-		expect(piece?.words?.[0].style.textDecoration).toContain('underline');
-		expect(piece?.words?.[0].style.display).toBe('inline-block');
-		expect(piece?.words?.[1].style.textDecoration ?? '').not.toContain('underline');
+		expect(piece?.text).toBe('Hello World');
+		expect(piece?.words).toBeUndefined();
+		expect(piece?.style.textDecoration).toContain('underline');
 	});
 
-	it('strips the underline off a ruby run and hands the words over as pieces', () => {
+	it('keeps a ruby run underlined as a whole', () => {
 		const element = textElement([{ text: 'two words', rubyText: 'reading', style: wordsStyle }]);
 		const run = buildAngularParagraphs(element)[0].runs[0];
 		expect(run.rubyText).toBe('reading');
-		expect(run.style.textDecoration ?? '').not.toContain('underline');
-		expect(run.underlineWordPieces?.map((p) => p.text)).toStrictEqual(['two', ' ', 'words']);
-		expect(run.underlineWordPieces?.[0].style?.textDecoration).toContain('underline');
-		expect(run.underlineWordPieces?.[1].style).toBeUndefined();
+		expect(run.style.textDecoration).toContain('underline');
+		expect(run.underlineWordPieces).toBeUndefined();
 	});
 });

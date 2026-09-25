@@ -43,8 +43,9 @@ function buildPrimarySlices(
 	primaryValues: number[],
 	fills: string[],
 	showLabels: boolean,
+	startAngle: number,
 ): { primitives: SvgPath[]; labels: SvgText[] } {
-	const angles = sliceAngles(primaryValues);
+	const angles = sliceAngles(primaryValues, startAngle);
 	const primitives: SvgPath[] = [];
 	const labels: SvgText[] = [];
 	angles.forEach((a, i) => {
@@ -91,35 +92,45 @@ export function buildOfPieViewModel(
 	const keptIndices = values.map((_v, i) => i).filter((i) => !secondaryIdx.has(i));
 	const secondaryIndices = values.map((_v, i) => i).filter((i) => secondaryIdx.has(i));
 
-	const geom = computeOfPieGeom(element, options.secondPieSize ?? 75);
+	const geom = computeOfPieGeom(element, options.secondPieSize ?? 75, options.ofPieType === 'bar');
 
-	// Colours: each point keeps its original palette colour; the aggregated slice
-	// takes the next free palette index. A per-point c:dPt fill still wins.
+	// Colours: each point keeps its original palette colour. The aggregated
+	// "Other" slice is the series' point AFTER the last real one: PowerPoint
+	// styles it with the `c:dPt` whose idx equals the point count (accent1
+	// lumMod 60% in every built-in style; COM-verified charts-com.pptx slides
+	// 5-6), falling back to the next palette colour.
 	const pointFill = (i: number): string =>
 		series ? resolveVaryColorFill(series, i, paletteColor(i, palette)) : paletteColor(i, palette);
 	const keptFills = keptIndices.map(pointFill);
 	const secondaryFills = secondaryIndices.map(pointFill);
-	const otherFill = paletteColor(values.length, palette);
+	const otherFill = pointFill(values.length);
 
 	const otherSum = secondaryIndices.reduce((s, i) => s + Math.abs(values[i]), 0);
 	const primaryValues = [...keptIndices.map((i) => Math.abs(values[i])), otherSum];
 	const primaryFills = [...keptFills, otherFill];
 
-	const primary = buildPrimarySlices(geom, primaryValues, primaryFills, showLabels);
+	// Rotation: PowerPoint turns the primary pie so the "Other" slice is
+	// centred on 3 o'clock, facing the secondary plot, and starts the
+	// secondary pie where that slice ends (COM-verified charts-com.pptx
+	// slide 5: kept slices from +28.4deg clockwise, Other centred on 0deg,
+	// secondary slices from +28.4deg).
+	const primaryTotal = primaryValues.reduce((s, v) => s + v, 0) || 1;
+	const otherHalfSpan = (otherSum / primaryTotal) * Math.PI;
+	const primary = buildPrimarySlices(geom, primaryValues, primaryFills, showLabels, otherHalfSpan);
 	const secondaryValues = secondaryIndices.map((i) => Math.abs(values[i]));
 	const toBar = options.ofPieType === 'bar';
 	const secondary =
 		secondaryValues.length > 0
 			? toBar
 				? buildSecondaryBar(geom, secondaryValues, secondaryFills, showLabels)
-				: buildSecondaryPie(geom, secondaryValues, secondaryFills, showLabels)
+				: buildSecondaryPie(geom, secondaryValues, secondaryFills, showLabels, otherHalfSpan)
 			: { primitives: [], labels: [] };
 
 	const primitives: SvgPrimitive[] = [];
 	// Connector lines behind the plots.
 	if (options.serLines !== false && secondaryValues.length > 0) {
-		const primaryAngles = sliceAngles(primaryValues);
-		primitives.push(...buildSerLines(geom, primaryAngles[primaryAngles.length - 1]));
+		const primaryAngles = sliceAngles(primaryValues, otherHalfSpan);
+		primitives.push(...buildSerLines(geom, primaryAngles[primaryAngles.length - 1], toBar));
 	}
 	primitives.push(...primary.primitives, ...secondary.primitives);
 

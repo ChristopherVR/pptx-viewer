@@ -1,4 +1,11 @@
-import { isEditorTextInputTarget, mapEditorKey, mapSlideShowStartKey } from 'pptx-viewer-shared';
+import {
+	isEditorControlTarget,
+	isEditorTextInputTarget,
+	isFeatureEnabled,
+	mapCustomizedEditorKey,
+	mapSlideShowStartKey,
+} from 'pptx-viewer-shared';
+import type { ResolvedCustomization } from 'pptx-viewer-shared';
 /**
  * useKeyboardShortcuts: the editor keymap, wired into React.
  *
@@ -48,6 +55,11 @@ export interface UseKeyboardShortcutsInput {
 
 	/** Whether at least one element is selected. */
 	hasSelection: boolean;
+	/**
+	 * Host UI customisation: disabled / remapped editor shortcuts, and the
+	 * `presentMode` feature gate for F5 / Shift+F5. Omitted customises nothing.
+	 */
+	customization?: ResolvedCustomization;
 	/** The IDs of the currently selected elements (effective). */
 	effectiveSelectedIds: string[];
 
@@ -134,7 +146,10 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 		// PowerPoint starts the show from F5 with the caret in a text box, and a
 		// read-only viewer can still start a show (it has a "From Beginning"
 		// button too), so neither gate may sit in front of this check.
-		const startAction = mapSlideShowStartKey(e, { isPresenting: current.mode === 'present' });
+		const startAction =
+			current.customization && !isFeatureEnabled(current.customization, 'presentMode')
+				? null
+				: mapSlideShowStartKey(e, { isPresenting: current.mode === 'present' });
 		if (startAction !== null) {
 			e.preventDefault();
 			if (startAction === 'fromBeginning') {
@@ -145,22 +160,29 @@ export function useKeyboardShortcuts(input: UseKeyboardShortcutsInput): void {
 			return;
 		}
 
-		const { action, dx, dy } = mapEditorKey(e, {
-			canEdit: current.canEdit,
-			canPaste: current.canPaste,
-			// The Slide Master view is an editing surface, not a viewing one.
-			// Gating on `mode !== 'edit'` alone made `mapEditorKey` return
-			// NO_ACTION there, so Delete, the arrow-key nudges and the clipboard
-			// keys were all inert over a master shape even though the write path
-			// behind them routes to the owning part correctly. Svelte and
-			// vanilla, which render the master into their ordinary editable
-			// stage, never had the gap.
-			isPresenting: current.mode !== 'edit' && current.mode !== 'master',
-			hasSelection: current.hasSelection,
-			isEditingText: Boolean(current.inlineEditingElementId || current.tableEditorState?.isEditing),
-			isDrawing: current.activeTool !== 'select',
-			isTextInputTarget: isEditorTextInputTarget(e.target),
-		});
+		const { action, dx, dy } = mapCustomizedEditorKey(
+			e,
+			{
+				canEdit: current.canEdit,
+				canPaste: current.canPaste,
+				// The Slide Master view is an editing surface, not a viewing one.
+				// Gating on `mode !== 'edit'` alone made `mapEditorKey` return
+				// NO_ACTION there, so Delete, the arrow-key nudges and the clipboard
+				// keys were all inert over a master shape even though the write path
+				// behind them routes to the owning part correctly. Svelte and
+				// vanilla, which render the master into their ordinary editable
+				// stage, never had the gap.
+				isPresenting: current.mode !== 'edit' && current.mode !== 'master',
+				hasSelection: current.hasSelection,
+				isEditingText: Boolean(
+					current.inlineEditingElementId || current.tableEditorState?.isEditing,
+				),
+				isDrawing: current.activeTool !== 'select',
+				isTextInputTarget: isEditorTextInputTarget(e.target),
+				isControlTarget: isEditorControlTarget(e.target),
+			},
+			current.customization?.keyboard,
+		);
 		if (action === null) {
 			return;
 		}

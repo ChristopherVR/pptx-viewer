@@ -30,6 +30,11 @@ interface ControlBase {
 	infoKey?: string;
 	/** Renders indented under the preceding control, PowerPoint-style. */
 	indent?: boolean;
+	/**
+	 * The host locked this setting (see `customizeOptionsTabs`): render the
+	 * control disabled. Never set by the static schema itself.
+	 */
+	readOnly?: boolean;
 }
 
 export interface ViewerOptionsToggleControl extends ControlBase {

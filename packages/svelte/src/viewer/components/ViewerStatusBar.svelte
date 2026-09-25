@@ -5,10 +5,12 @@
 	 * file under the repo's file-size budget; state stays owned by the viewer's
 	 * composition bag.
 	 */
-	import type { CollaborationConfig } from 'pptx-viewer-shared';
+	import { isActionHidden } from 'pptx-viewer-shared';
+	import type { CollaborationConfig, ToolbarActionId } from 'pptx-viewer-shared';
 
 	import CollaborationStatusIndicator from '../collab/components/CollaborationStatusIndicator.svelte';
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 	import StatusBar from './StatusBar.svelte';
 
 	interface ViewerStatusBarProps {
@@ -17,9 +19,12 @@
 		showNotes: boolean;
 		/** Host collaboration config, replayed by the indicator's retry button. */
 		collaboration?: CollaborationConfig;
+		/** The viewer's effective hidden actions (`zoom`, `notes`, `fullscreen`). */
+		hiddenActions?: readonly ToolbarActionId[];
 	}
 
-	const { vm, showNotes, collaboration }: ViewerStatusBarProps = $props();
+	const { vm, showNotes, collaboration, hiddenActions }: ViewerStatusBarProps = $props();
+	const customization = useViewerCustomization();
 
 	// Stable controller references (the bag is built once and never reassigned).
 	// svelte-ignore state_referenced_locally
@@ -39,7 +44,9 @@
 	zoomPercent={vm.effectivePercent}
 	isDirty={editor.dirty}
 	autosaveStatus={vm.autosaveActive ? autosaveCtl.status : undefined}
-	showNotes={showNotes && loader.slides.length > 0}
+	showNotes={showNotes && loader.slides.length > 0 && !isActionHidden('notes', hiddenActions)}
+	hideZoom={isActionHidden('zoom', hiddenActions)}
+	hideFullscreen={isActionHidden('fullscreen', hiddenActions)}
 	notesExpanded={vm.notesExpanded}
 	isFullscreen={viewer.isFullscreen}
 	slideSorterActive={parityUi.slideSorterOpen}
@@ -57,5 +64,5 @@
 		parityUi.outlineViewOpen = false;
 	}}
 	onslidesorter={() => (parityUi.slideSorterOpen = true)}
-	collaborationSlot={collab.active ? collabStatus : undefined}
+	collaborationSlot={collab.active && customization.isDialogAvailable('share') ? collabStatus : undefined}
 />

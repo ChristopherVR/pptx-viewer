@@ -14,6 +14,7 @@
 	 */
 	import { useTranslator } from '../../../i18n/context';
 	import type { ExportUiState } from '../../export/export-ui.svelte';
+	import { useViewerCustomization } from '../../state/viewer-customization.svelte';
 
 	const {
 		exportUi,
@@ -66,6 +67,10 @@
 		open = false;
 		action();
 	}
+	// Host customisation: hidden export formats (the resolver folds them into
+	// the card set) and a removed Print dialog drop their entries.
+	const customization = useViewerCustomization();
+	const hiddenFormats = $derived(customization.resolved.hiddenBackstageCards);
 </script>
 
 <svelte:window onresize={() => open && sync()} onscroll={() => open && sync()} />
@@ -92,16 +97,16 @@
 			onclick={() => (open = false)}
 		></button>
 		<div class="pptx-svelte-overflow-menu" role="menu" style={pos ? `left:${pos.left}px;top:${pos.top}px` : 'visibility:hidden'}>
-			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runPng())}>{t('pptx.export.pngCurrentSlide')}</button>
-			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runPdf())}>{t('pptx.export.pdfAllSlides')}</button>
-			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runGif())}>{t('pptx.export.gifAnimated')}</button>
-			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runVideo())}>{t('pptx.export.webmVideo')}</button>
+			{#if !hiddenFormats.has('png')}<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runPng())}>{t('pptx.export.pngCurrentSlide')}</button>{/if}
+			{#if !hiddenFormats.has('pdf')}<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runPdf())}>{t('pptx.export.pdfAllSlides')}</button>{/if}
+			{#if !hiddenFormats.has('gif')}<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runGif())}>{t('pptx.export.gifAnimated')}</button>{/if}
+			{#if !hiddenFormats.has('video')}<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => void exportUi.runVideo())}>{t('pptx.export.webmVideo')}</button>{/if}
 			{#if onsaveppsx}<button type="button" role="menuitem" onclick={() => choose(onsaveppsx)}>{t('pptx.file.saveAsPpsxTooltip')}</button>{/if}
 			{#if onsavepptm}<button type="button" role="menuitem" onclick={() => choose(onsavepptm)}>{t('pptx.file.saveAsPptmTooltip')}</button>{/if}
 			{#if onsaveppt}<button type="button" role="menuitem" onclick={() => choose(onsaveppt)}>{t('pptx.file.saveAsPptTooltip')}</button>{/if}
 			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
-			<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>{t('pptx.print.title')}</button>
-			<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runCopyImage())}>{t('pptx.file.copyImageTooltip')}</button>
+			{#if customization.isDialogAvailable('print')}<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>{t('pptx.print.title')}</button>{/if}
+			{#if !hiddenFormats.has('copyImage')}<button type="button" role="menuitem" disabled={exportUi.exporting} onclick={() => choose(() => exportUi.runCopyImage())}>{t('pptx.file.copyImageTooltip')}</button>{/if}
 			<div class="pptx-svelte-overflow-sep" aria-hidden="true"></div>
 			{#if oninfo}<button type="button" role="menuitem" onclick={() => choose(oninfo)}>{t('pptx.ribbon.documentProperties')}</button>{/if}
 			{#if ona11y}<button type="button" role="menuitem" onclick={() => choose(ona11y)}>{t('pptx.ribbon.accessibilityCheck')}</button>{/if}

@@ -24,6 +24,7 @@ import { firstConstraintDeclaredBy } from './smartart-constraint-declared-by';
 import type { ConstraintIndex } from './smartart-constraint-solver';
 import { hasReference } from './smartart-constraint-solver';
 import { itemMarginsPx, proportionalMarginFraction } from './smartart-layout-item-font-size';
+import { smartArtLineEm } from './smartart-line-pitch';
 import { wrappedLineCount } from './smartart-text-wrap-fit';
 
 /**
@@ -74,7 +75,7 @@ export function resolveContentSizedExtents(
 		const lines = Math.max(1, wrappedLineCount(text, availWidthPx, fontSizePx, table));
 		return Math.max(
 			12,
-			lines * fontSizePx * table.lineHeightRatio * lineSpacingFactor +
+			lines * fontSizePx * smartArtLineEm(table) * lineSpacingFactor +
 				marginVerticalPx +
 				2 * cornerInsetPx,
 		);

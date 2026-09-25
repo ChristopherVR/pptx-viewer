@@ -227,51 +227,10 @@ export function parseParagraphLevel(pPr: XmlObject | undefined): number {
 }
 
 // ---------------------------------------------------------------------------
-// Tab stops
+// Tab stops (implemented in `tab-stops`; re-exported for existing callers)
 // ---------------------------------------------------------------------------
 
-/**
- * Parse tab stops from `a:pPr > a:tabLst > a:tab`.
- *
- * Each tab has `@_pos` (EMU), `@_algn`, and optional `@_leader`.
- */
-export function parseTabStops(pPr: XmlObject | undefined): TextStyle['tabStops'] | undefined {
-	if (!pPr) {
-		return undefined;
-	}
-	const tabLst = pPr['a:tabLst'] as XmlObject | undefined;
-	if (!tabLst) {
-		return undefined;
-	}
-
-	const tabNodes: XmlObject[] = Array.isArray(tabLst['a:tab'])
-		? (tabLst['a:tab'] as XmlObject[])
-		: tabLst['a:tab']
-			? [tabLst['a:tab'] as XmlObject]
-			: [];
-
-	if (tabNodes.length === 0) {
-		return undefined;
-	}
-
-	return tabNodes
-		.filter((t) => t?.['@_pos'] !== undefined)
-		.map((t) => {
-			const posRaw = Number.parseInt(String(t['@_pos']), 10);
-			const position = Number.isFinite(posRaw) ? posRaw / EMU_PER_PX : 0;
-			const algn = String(t['@_algn'] || 'l').trim();
-			const align =
-				algn === 'ctr' || algn === 'r' || algn === 'dec'
-					? (algn as 'ctr' | 'r' | 'dec')
-					: ('l' as const);
-			const leaderVal = String(t['@_leader'] || '').trim();
-			const leader =
-				leaderVal === 'dot' || leaderVal === 'hyphen' || leaderVal === 'underscore'
-					? leaderVal
-					: undefined;
-			return { position, align, ...(leader ? { leader } : {}) };
-		});
-}
+export { parseTabStops, serializeTabStop } from './tab-stops';
 
 // ---------------------------------------------------------------------------
 // Additional paragraph attributes

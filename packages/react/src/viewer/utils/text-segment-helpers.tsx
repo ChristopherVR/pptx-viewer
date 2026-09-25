@@ -248,6 +248,17 @@ export function renderEquationSegment(
 	segmentIndex: number,
 	equationXml: Record<string, unknown>,
 	equationNumber?: string,
+	/**
+	 * Shared's resolved font size for this equation (`ParagraphRun.style.fontSize`),
+	 * e.g. `"18.67px"`. `m:oMath` authors no `a:rPr/@sz` of its own, so without
+	 * this the equation's `<span>` falls back to whatever `font-size` its
+	 * ancestor happens to resolve to - a DOM-nesting coincidence, not a shared
+	 * decision (see `buildParagraphRuns`'s equation branch in
+	 * `paragraph-run-build.ts`, which computes the same "paragraph's smallest
+	 * run, falling back to the body default" value every other binding reads
+	 * off `run.style`).
+	 */
+	fontSize?: string,
 ): React.ReactNode {
 	const mathml = convertOmmlToMathMl(equationXml as OmmlNode);
 	const safeMathml = mathml ? sanitizeMathMl(mathml) : '';
@@ -277,6 +288,7 @@ export function renderEquationSegment(
 					justifyContent: 'space-between',
 					alignItems: 'center',
 					width: '100%',
+					fontSize,
 				}}
 			>
 				{/* Left spacer to balance the right-aligned number */}
@@ -294,7 +306,11 @@ export function renderEquationSegment(
 		);
 	}
 
-	return <span key={`${elementId}-seg-${segmentIndex}`}>{equationContent}</span>;
+	return (
+		<span key={`${elementId}-seg-${segmentIndex}`} style={fontSize ? { fontSize } : undefined}>
+			{equationContent}
+		</span>
+	);
 }
 
 // Picture bullets are no longer rendered here. Shared `buildParagraphs` resolves

@@ -16,6 +16,7 @@ import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntim
 import { applyShapeIdMapToSlide } from './save-structural-id-gate';
 import { fingerprintSlide, slideMatchesFingerprint } from './slide-fingerprint';
 import { buildOrderedSlideXml, SpTreeChildOrderTracker } from './slide-save-xml-order';
+import { reconcileSlideTiming } from './slide-timing-reconcile';
 import { reconcileSlideTransition } from './slide-transition-reconcile';
 import {
 	ensureA16NamespaceOnSlideRoot,
@@ -288,22 +289,31 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// An EMPTY list must still reach the writer: it is how "the user deleted
 		// the last effect" gets to `p:timing`. Gating on a non-empty list left the
 		// removed effect in the file forever, still playing in PowerPoint.
+		// `p:timing` may live inside a slide-root `mc:AlternateContent` envelope
+		// (any tree using p14 markup, e.g. a media-bookmark trigger), so it is
+		// written through `reconcileSlideTiming` rather than assigned: that keeps
+		// exactly one copy and re-envelopes a tree that needs it.
+		let timingToWrite: XmlObject | undefined;
 		if (shapeIdAnimations !== undefined) {
 			// When rawTiming exists, surgical update preserves complex structures
 			const generatedTiming = this.animationWriteService.buildTimingXml(
 				shapeIdAnimations,
 				slide.rawTiming,
 			);
-			if (generatedTiming) {
-				this.applyMediaTimingToRawTiming(generatedTiming, slide.elements);
-				slideNode['p:timing'] = generatedTiming;
-			} else if (slide.rawTiming) {
-				this.applyMediaTimingToRawTiming(slide.rawTiming, slide.elements);
-				slideNode['p:timing'] = slide.rawTiming;
-			}
-		} else if (slide.rawTiming) {
-			this.applyMediaTimingToRawTiming(slide.rawTiming, slide.elements);
-			slideNode['p:timing'] = slide.rawTiming;
+			timingToWrite = generatedTiming ?? slide.rawTiming;
+		} else {
+			timingToWrite = slide.rawTiming;
+		}
+		if (timingToWrite) {
+			this.applyMediaTimingToRawTiming(timingToWrite, slide.elements);
+		}
+		if (timingToWrite || slide.rawTiming) {
+			reconcileSlideTiming({
+				slideNode,
+				timingNode: timingToWrite,
+				sourceNode: slide.rawTiming,
+				getLocalName: (key) => this.compatibilityService.getXmlLocalName(key),
+			});
 		}
 		xmlObj['p:sld'] = slideNode;
 

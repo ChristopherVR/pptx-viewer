@@ -117,7 +117,33 @@ export function slideContainsMathElement(node: unknown): boolean {
 }
 
 /**
- * Detect whether any element under `node` uses an `a16:` qualified name.
+ * Whether a parsed `a16:*` element node declares its own `xmlns:a16`.
+ *
+ * PowerPoint emits `a16:creationId` inside a URI-guarded `<a:ext>`, self-
+ * declaring the namespace on the leaf; a reader that does not know the URI
+ * skips the whole `a:ext` block, so no root-level `mc:Ignorable` is needed
+ * for it. `a16:colId` (emitted by {@link rebuildTableXmlFromData}) omits the
+ * inline declaration and relies on the root instead. Only the second shape
+ * needs {@link ensureA16NamespaceOnSlideRoot}.
+ */
+function declaresOwnA16Namespace(value: unknown): boolean {
+	if (Array.isArray(value)) {
+		return value.every((entry) => declaresOwnA16Namespace(entry));
+	}
+	return (
+		typeof value === 'object' &&
+		value !== null &&
+		'@_xmlns:a16' in (value as Record<string, unknown>)
+	);
+}
+
+/**
+ * Detect whether any element under `node` uses an `a16:` qualified name
+ * that still NEEDS the root-level `xmlns:a16` / `mc:Ignorable="a16"`
+ * declaration (see {@link declaresOwnA16Namespace}). A self-declaring
+ * `a16:creationId` does not count: it is already valid without any root
+ * change, so counting it would materialize an unrequested `mc:Ignorable`
+ * on every slide that merely has PowerPoint-authored creation-id metadata.
  *
  * Walks the parsed XML object tree (fast-xml-parser format). Bails out as
  * soon as a match is found.
@@ -138,7 +164,7 @@ export function slideContainsA16Element(node: unknown): boolean {
 		return false;
 	}
 	for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
-		if (key.startsWith('a16:')) {
+		if (key.startsWith('a16:') && !declaresOwnA16Namespace(value)) {
 			return true;
 		}
 		if (slideContainsA16Element(value)) {

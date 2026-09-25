@@ -45,11 +45,19 @@ export function buildSrcRectXml(insets: CropInsets): XmlObject | undefined {
 	// Individual magnitudes, not the signed sum: a negative left inset paired
 	// with a zero/positive right inset can sum near zero yet still be an
 	// authored outward crop that must be written.
+	//
+	// The test is against the ROUNDED `a:srcRect` attribute value (thousandths
+	// of a percent), not a fixed fraction threshold: a fraction threshold of
+	// 0.0001 (0.01%) discarded a genuinely authored crop as small as
+	// `l="2" r="2"` (0.00002, i.e. 0.002%), which rounds to a real nonzero
+	// attribute and must survive. Only a crop that rounds all the way to `0`
+	// on every side (floating-point noise from an edit that cancelled itself
+	// out) counts as "no crop".
 	const hasCrop =
-		Math.abs(cropLeft) > 0.0001 ||
-		Math.abs(cropTop) > 0.0001 ||
-		Math.abs(cropRight) > 0.0001 ||
-		Math.abs(cropBottom) > 0.0001;
+		Math.round(cropLeft * 100000) !== 0 ||
+		Math.round(cropTop * 100000) !== 0 ||
+		Math.round(cropRight * 100000) !== 0 ||
+		Math.round(cropBottom * 100000) !== 0;
 	if (!hasCrop) {
 		return undefined;
 	}
@@ -67,10 +75,26 @@ export function buildSrcRectXml(insets: CropInsets): XmlObject | undefined {
 	const normalizedTop = clampCropForSave(cropTop * safeVerticalScale);
 	const normalizedBottom = clampCropForSave(cropBottom * safeVerticalScale);
 
-	return {
-		'@_l': String(Math.round(normalizedLeft * 100000)),
-		'@_t': String(Math.round(normalizedTop * 100000)),
-		'@_r': String(Math.round(normalizedRight * 100000)),
-		'@_b': String(Math.round(normalizedBottom * 100000)),
-	};
+	// Only an inset the source actually authored gets an attribute: a source
+	// `<a:srcRect l="..." r="..."/>` with no `t`/`b` means the top/bottom
+	// crop is 0%, exactly as a written `t="0"`/`b="0"` would, so writing them
+	// anyway materialized two attributes the source never had on every
+	// picture with a partial (not-all-four-sides) authored crop. "Authored"
+	// is judged on the ORIGINAL inset (`insets.crop*`), not the
+	// post-rescale `normalized*` value, since an edit to one side must not
+	// suddenly print the other, untouched sides too.
+	const result: XmlObject = {};
+	if (insets.cropLeft !== undefined) {
+		result['@_l'] = String(Math.round(normalizedLeft * 100000));
+	}
+	if (insets.cropTop !== undefined) {
+		result['@_t'] = String(Math.round(normalizedTop * 100000));
+	}
+	if (insets.cropRight !== undefined) {
+		result['@_r'] = String(Math.round(normalizedRight * 100000));
+	}
+	if (insets.cropBottom !== undefined) {
+		result['@_b'] = String(Math.round(normalizedBottom * 100000));
+	}
+	return result;
 }

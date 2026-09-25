@@ -14,11 +14,15 @@
 <script setup lang="ts">
 import { ChevronDown, ChevronUp, Copy, Paintbrush, Trash2 } from 'lucide-vue-next';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
+import type { ToolbarActionId } from 'pptx-viewer-shared';
 import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
+import CropControls from './CropControls.vue';
+import MergeShapesMenu from './MergeShapesMenu.vue';
 import { gB, gL, grp, ic, pill, ALIGN_BTNS, DISTRIBUTE_BTNS } from './ribbon-constants';
 import ShapeArrangeExtras from './ShapeArrangeExtras.vue';
 
@@ -43,11 +47,14 @@ interface Props {
 	formatPainterActive?: boolean;
 	onToggleFormatPainter?: () => void;
 	canActivateFormatPainter?: boolean;
+	/** Host + customisation hidden actions (gates Merge Shapes and Crop). */
+	hiddenActions?: ToolbarActionId[];
 }
 
 const props = defineProps<Props>();
 
 const { t } = useI18n();
+const { isHidden } = useToolbarVisibility(() => props.hiddenActions);
 
 const hasSel = computed(() => Boolean(props.selectedElement));
 const canMut = computed(() => hasSel.value && props.canEdit);
@@ -126,6 +133,8 @@ const canMut = computed(() => hasSel.value && props.canEdit);
 		:on-ungroup-element="props.onUngroupElement"
 		:on-update-element-style="props.onUpdateElementStyle"
 	/>
+	<MergeShapesMenu v-if="!isHidden('mergeShapes')" />
+	<CropControls v-if="!isHidden('crop')" />
 	<div :class="grp">
 		<button
 			:class="gB"

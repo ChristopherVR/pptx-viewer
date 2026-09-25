@@ -298,3 +298,63 @@ describe('chartViewModelSvg: chart title rich text (titleRunSpans)', () => {
 		expect(titleText?.text()).toBe('Sales');
 	});
 });
+
+describe('chartViewModelSvg: text transforms', () => {
+	it('keeps the rotation and opacity on data, axis and category labels', () => {
+		const rotated = (text: string): SvgText => ({
+			...secondaryLabel(40, text),
+			opacity: 0.5,
+			transform: 'rotate(30, 10, 40)',
+		});
+		const wrapper = mountVm(
+			baseViewModel({
+				dataLabels: [rotated('dl')],
+				axisLabels: [rotated('al')],
+				categoryLabels: [rotated('cl')],
+			}),
+		);
+		for (const text of ['dl', 'al', 'cl']) {
+			const node = wrapper.findAll('text').find((t) => t.text() === text);
+			expect(node?.attributes('transform')).toBe('rotate(30, 10, 40)');
+			expect(node?.attributes('opacity')).toBe('0.5');
+		}
+	});
+});
+
+describe('chartViewModelSvg: gradient defs (COM: charts-com.pptx slide 23)', () => {
+	it('renders linear and radial gradient defs with their stops', () => {
+		const wrapper = mountVm(
+			baseViewModel({
+				areaFill: 'url(#g-rad)',
+				defs: [
+					{
+						kind: 'linearGradient',
+						id: 'g-lin',
+						x1: 0.5,
+						y1: 0,
+						x2: 0.5,
+						y2: 1,
+						stops: [
+							{ offset: 0, color: '#ff0000' },
+							{ offset: 1, color: '#0000ff' },
+						],
+					},
+					{
+						kind: 'radialGradient',
+						id: 'g-rad',
+						cx: 0.5,
+						cy: 0.5,
+						r: 0.7,
+						stops: [
+							{ offset: 0, color: '#595959' },
+							{ offset: 1, color: '#262626' },
+						],
+					},
+				],
+			}),
+		);
+		expect(wrapper.find('linearGradient#g-lin').attributes('y2')).toBe('1');
+		expect(wrapper.findAll('radialGradient#g-rad stop')).toHaveLength(2);
+		expect(wrapper.find('rect').attributes('fill')).toBe('url(#g-rad)');
+	});
+});

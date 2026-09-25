@@ -19,7 +19,18 @@ import {
 	normalizeSequence,
 	normalizeAfterAnimation,
 } from './editor-animation-normalizers';
+import {
+	interactiveTriggerAttributes,
+	interactiveTriggerFields,
+} from './editor-animation-trigger-meta';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
+
+/** Sort key matching the parsed `@order` (rounded; absent or invalid is 0). */
+function sortOrder(animation: PptxElementAnimation): number {
+	return typeof animation.order === 'number' && Number.isFinite(animation.order)
+		? Math.round(animation.order)
+		: 0;
+}
 
 /**
  * Configuration options for creating a {@link PptxEditorAnimationService}.
@@ -150,6 +161,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 				delayMs: Number.isFinite(delayRaw) && delayRaw >= 0 ? delayRaw : undefined,
 				order: Number.isFinite(orderRaw) ? orderRaw : undefined,
 				trigger,
+				...interactiveTriggerFields(animationNode),
 				timingCurve,
 				repeatCount:
 					Number.isFinite(repeatCountRaw) && repeatCountRaw > 0 ? repeatCountRaw : undefined,
@@ -178,7 +190,10 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 	 */
 	public applyEditorAnimations(slideNode: XmlObject, animations: PptxElementAnimation[]): void {
 		// Validate, sanitize, and convert each animation to XML attribute format
-		const sanitizedAnimations = animations
+		// Sequence by the model `order` up front (stable; missing counts as 0):
+		// `@order` itself may be omitted below, so it cannot drive the sort.
+		const sequenced = [...animations].sort((left, right) => sortOrder(left) - sortOrder(right));
+		const sanitizedAnimations = sequenced
 			.map((animation) => {
 				const elementId = String(animation.elementId || '').trim();
 				if (elementId.length === 0) {
@@ -200,8 +215,14 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 					animation.delayMs >= 0
 						? Math.round(animation.delayMs)
 						: undefined;
+				// An unchanged tree-derived order is already expressed by `p:timing`.
+				const orderIsTreeDerived =
+					animation.orderFromTimeline !== undefined &&
+					animation.order === animation.orderFromTimeline;
 				const order =
-					typeof animation.order === 'number' && Number.isFinite(animation.order)
+					typeof animation.order === 'number' &&
+					Number.isFinite(animation.order) &&
+					!orderIsTreeDerived
 						? Math.round(animation.order)
 						: undefined;
 				const repeatCount =
@@ -224,6 +245,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 					'@_delayMs': delayMs !== undefined ? String(Math.max(0, delayMs)) : undefined,
 					'@_order': order !== undefined ? String(order) : undefined,
 					'@_trigger': animation.trigger ?? undefined,
+					...interactiveTriggerAttributes(animation),
 					'@_timingCurve': animation.timingCurve ?? undefined,
 					'@_repeatCount': repeatCount !== undefined ? String(repeatCount) : undefined,
 					'@_repeatMode': animation.repeatMode ?? undefined,
@@ -234,12 +256,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 					'@_motionPath': animation.motionPath ?? undefined,
 				} as XmlObject;
 			})
-			.filter((entry): entry is XmlObject => Boolean(entry))
-			.sort((left, right) => {
-				const leftOrder = Number.parseInt(String(left['@_order'] || '0'), 10);
-				const rightOrder = Number.parseInt(String(right['@_order'] || '0'), 10);
-				return leftOrder - rightOrder;
-			});
+			.filter((entry): entry is XmlObject => Boolean(entry));
 
 		// Collect existing extensions, excluding the old editor meta extension
 		const existingExtensionList =

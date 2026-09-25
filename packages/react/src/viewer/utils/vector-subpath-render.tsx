@@ -189,10 +189,12 @@ export function renderCustomGeometryVector(
 		}
 	}
 
+	// Absolutely positioned: in normal flow this full-height svg pushed a
+	// freeform's text body down by the shape's own height, below the outline.
 	return (
 		<svg
 			viewBox={`0 0 ${pathWidth} ${pathHeight}`}
-			className='w-full h-full pointer-events-none'
+			className='absolute inset-0 w-full h-full pointer-events-none'
 			preserveAspectRatio='none'
 		>
 			{animatesFill ? null : renderSvgGradientDefs(gradient)}

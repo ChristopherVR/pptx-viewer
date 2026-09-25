@@ -57,13 +57,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				pPr?.['a:defRPr'] as XmlObject | undefined,
 				paraAlign,
 				slideRelationshipMap,
+				true,
+				slidePath,
 			);
 			const mergedDefaultRunStyle = { ...defaultRunStyle } as TextStyle;
 
 			const appendRun = (runText: string, runProps: XmlObject | undefined) => {
 				const runStyle = {
 					...mergedDefaultRunStyle,
-					...this.extractTextRunStyle(runProps, paraAlign, slideRelationshipMap),
+					...this.extractTextRunStyle(runProps, paraAlign, slideRelationshipMap, true, slidePath),
 				} as TextStyle;
 
 				textParts.push(runText);

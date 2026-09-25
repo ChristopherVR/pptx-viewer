@@ -44,6 +44,11 @@ const MC_NAMESPACE_CAPABILITIES: Readonly<Record<string, ReadonlySet<string>>> =
 		'fade',
 		'bmkLst',
 		'bmk',
+		// A timing tree's media-bookmark trigger (`p:tgtEl/p14:bmkTgt`), the one
+		// p14 element PowerPoint puts in the `mc:Choice` copy of `p:timing`.
+		// Without it that Choice was rejected and the Fallback timing, which
+		// omits every bookmark-triggered sequence, was the one parsed.
+		'bmkTgt',
 		'hiddenFill',
 		'hiddenLine',
 		// Ink. PowerPoint writes every inked stroke as

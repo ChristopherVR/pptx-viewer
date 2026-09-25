@@ -18,6 +18,8 @@ import type {
 	PptxPresentationProperties,
 	PptxSlide,
 } from 'pptx-viewer-core';
+import { isPanelVisible } from 'pptx-viewer-shared';
+import type { ViewerPanelId } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
 import type { UseCommentsWiringResult } from '../composables/useCommentsWiring';
@@ -25,6 +27,7 @@ import type { UseInspectorDeckActionsResult } from '../composables/useInspectorD
 import type { UseLoadContentResult } from '../composables/useLoadContent';
 import type { UseMobileChromeResult } from '../composables/useMobileChrome';
 import type { UseSlideOperationsResult } from '../composables/useSlideOperations';
+import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import CommentsPanel from './CommentsPanel.vue';
 import MobileBottomBar from './MobileBottomBar.vue';
 import MobileSheet from './MobileSheet.vue';
@@ -59,6 +62,7 @@ const props = defineProps<{
 	notesMaster?: PptxNotesMaster;
 	goTo: (index: number) => void;
 	toggleSlideHidden: (index: number) => void;
+	onAddSection: (name: string, afterSlideIndex: number) => void;
 	onNotesUpdate: (notes: string) => void;
 	onInspectorUpdate: (patch: Partial<PptxElement>) => void;
 	onUpdateSlideAnimations: (animations: PptxSlide['animations']) => void;
@@ -71,6 +75,12 @@ const props = defineProps<{
 
 // oxlint-disable-next-line eslint/one-var -- distinct concern from the `defineProps` macro call above, forcing one statement hurts readability
 const { t } = useI18n();
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `t` above, forcing one statement hurts readability
+const customization = useResolvedCustomization();
+/** Host UI customisation: a hidden panel drops its mobile sheet too. */
+function panelVisible(panel: ViewerPanelId): boolean {
+	return isPanelVisible(customization.value, panel);
+}
 
 /** Commit a comments mutation through the history-aware wiring. */
 function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]): void {
@@ -95,6 +105,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 	     inline on mobile). Reuses SlidesPaneSidebar inside the shared
 	     swipe-dismiss MobileSheet; selecting a slide closes it. -->
 	<MobileSlidesSheet
+		v-if="panelVisible('slidesPane')"
 		:open="chrome.mobileSlidesOpen.value"
 		:slides="mergedSlides"
 		:active-index="activeSlideIndex"
@@ -105,14 +116,19 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 		@select="goTo"
 		@reorder="(p) => slideOps.moveSlide(p.from, p.to)"
 		@add-slide="slideOps.addSlide()"
-		@duplicate="(i) => slideOps.duplicateSlide(i)"
-		@delete="(i) => slideOps.deleteSlide(i)"
-		@toggle-hidden="toggleSlideHidden"
+		@add-slide-after="(i) => slideOps.addSlide(i)"
+		@duplicate="(indexes) => indexes.forEach((i) => slideOps.duplicateSlide(i))"
+		@delete="
+			(indexes) => [...indexes].sort((a, b) => b - a).forEach((i) => slideOps.deleteSlide(i))
+		"
+		@toggle-hidden="(indexes) => indexes.forEach((i) => toggleSlideHidden(i))"
+		@add-section="(i) => onAddSection(t('pptx.sections.defaultName'), i)"
 	/>
 
 	<!-- Speaker-notes sheet (toggled from the bottom bar). Uses the shared
 	     MobileSheet so it swipe-dismisses like Format/Comments. -->
 	<MobileSheet
+		v-if="panelVisible('notes')"
 		:open="chrome.mobileNotesOpen.value"
 		:title="t('pptx.notes.title')"
 		@close="chrome.mobileNotesOpen.value = false"
@@ -128,7 +144,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 
 	<!-- Format / properties sheet (right-rail inspector on desktop) -->
 	<MobileSheet
-		v-if="canEdit"
+		v-if="canEdit && panelVisible('inspector')"
 		:open="chrome.mobileInspectorOpen.value"
 		inspector
 		:title="t('pptx.arrange.format')"

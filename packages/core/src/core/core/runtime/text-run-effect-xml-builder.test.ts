@@ -64,6 +64,14 @@ describe('buildTextRunEffectListXml', () => {
 		expect(blur['@_rad']).toBe(String(Math.round(6 * 9525)));
 	});
 
+	it('should serialize soft edge effect (round-trip for a:softEdge)', () => {
+		const style: TextStyle = { textSoftEdgeRadius: 5 };
+		const result = buildTextRunEffectListXml(style);
+		expect(result).toBeDefined();
+		const softEdge = result?.['a:softEdge'] as Record<string, unknown>;
+		expect(softEdge['@_rad']).toBe(String(Math.round(5 * 9525)));
+	});
+
 	it('should serialize alphaModFix', () => {
 		const style: TextStyle = { textAlphaModFix: 50 };
 		const result = buildTextRunEffectListXml(style);

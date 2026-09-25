@@ -13,23 +13,22 @@
   `scripts/pptx-com-open.ps1` and `scripts/make-smartart-gallery.ps1` use
   PowerPoint itself as ground truth for other geometry.
 
-  Method: one reused AutoText-fit text box (`TextFrame.WordWrap = False`,
-  `TextFrame.AutoSize = ppAutoSizeShapeToFitText`) is given two strings that
-  differ ONLY in how many times a glyph repeats in the middle, sandwiched
-  between fixed anchor characters so leading/trailing runs of the SAME glyph
-  (most importantly space, which PowerPoint would otherwise trim) are never
-  at the string's edge:
+  Method: one reused, non-wrapping text box with zero left/right insets.
+  Each glyph's advance is `BoundWidth("H" + glyph + "H") - BoundWidth("HH")`
+  at a 100pt reference size: `TextRange.BoundWidth` is the laid-out text's
+  own extent, so the box's insets never enter it, and 'H' is a
+  kerning-neutral anchor (it also keeps a space away from the run's edge,
+  where PowerPoint would trim it). An earlier revision differenced
+  `Shape.Width` of an AutoSize box instead; that read every Aptos advance
+  about 1.1% too wide (space 206 vs 203.75 per-1000-em), enough to move
+  SmartArt line breaks and so the fitted font size.
 
-      anchor + glyph * N1 + anchor
-      anchor + glyph * N2 + anchor
-
-  `(width(N2) - width(N1)) / (N2 - N1)` is the glyph's own advance in points
-  at the fixed 100pt reference size, with the box's own (fixed, non-scaling)
-  internal margins and the anchor characters' own widths cancelled out
-  exactly - no assumption about the margin size is needed. Averaging over a
-  large N2 (default 21) also dilutes any single-run rounding PowerPoint's
-  text-fit applies to the whole shape width, rather than trying to guess a
-  quantisation grid up front.
+  Pair kerning: PowerPoint kerns runs at or above 12pt (the default
+  `kern="1200"`), so for every printable pair `ab` the script also records
+  `BoundWidth("H" + a + b + "H") - BoundWidth("HH") - advance(a) - advance(b)`
+  and keeps the non-zero ones. Advances plus pair kerning, each snapped to
+  PowerPoint's 1/8pt glyph grid, reproduce COM `BoundWidth` of whole labels
+  to within 0.2pt at 20pt and 37pt (and, with kerning off, at 11pt).
 
   The advance is stored per-1000-em (`advance_pt / referenceSize * 1000`), a
   size-independent form, so the generated table works at ANY font size the
@@ -43,12 +42,17 @@
   Fonts to measure. Defaults to the Office theme's default minor font
   (Calibri) plus a handful of other common SmartArt/theme minor-font choices.
 
+.PARAMETER SkipBarrel
+  Write only the per-font files for -Fonts (e.g. `-Fonts Aptos -SkipBarrel`),
+  leaving the barrel and every other font's file untouched.
+
 .NOTES
   Requires a local PowerPoint install (COM automation, Windows only).
 #>
 param(
   [string]$OutFile = "$PSScriptRoot\..\packages\core\src\core\utils\font-advance-widths.generated.ts",
-  [string[]]$Fonts = @('Calibri', 'Calibri Light', 'Arial', 'Times New Roman', 'Segoe UI')
+  [string[]]$Fonts = @('Calibri', 'Calibri Light', 'Arial', 'Times New Roman', 'Segoe UI'),
+  [switch]$SkipBarrel
 )
 
 $ErrorActionPreference = 'Stop'
@@ -73,15 +77,13 @@ try {
   $shape.TextFrame.AutoSize = $ppAutoSizeShapeToFitText
 
   $REF_SIZE = 100.0
-  $N1 = 1
-  $N2 = 21
-  $ANCHOR = 'n'
+  $ANCHOR = 'H'
 
   function Measure-Width([string]$Text, [string]$FontName) {
     $shape.TextFrame.TextRange.Text = $Text
     $shape.TextFrame.TextRange.Font.Name = $FontName
     $shape.TextFrame.TextRange.Font.Size = $REF_SIZE
-    return [double]$shape.Width
+    return [double]$shape.TextFrame2.TextRange.BoundWidth
   }
 
   $fontResults = [ordered]@{}
@@ -96,17 +98,30 @@ try {
     $marginTopPt = [double]$shape.TextFrame.MarginTop
     $marginBottomPt = [double]$shape.TextFrame.MarginBottom
 
+    $shape.TextFrame.MarginLeft = 0
+    $shape.TextFrame.MarginRight = 0
+    $anchorWidth = Measure-Width ($ANCHOR + $ANCHOR) $font
     $advances = [ordered]@{}
+    $advancePtByCode = @{}
     for ($code = 32; $code -le 126; $code++) {
-      $ch = [char]$code
-      $strA = $ANCHOR + [string]::new($ch, $N1) + $ANCHOR
-      $strB = $ANCHOR + [string]::new($ch, $N2) + $ANCHOR
-      $wA = Measure-Width $strA $font
-      $wB = Measure-Width $strB $font
-      $advancePt = ($wB - $wA) / ($N2 - $N1)
-      $per1000 = [Math]::Round(($advancePt / $REF_SIZE) * 1000.0)
-      $advances["$code"] = [int]$per1000
+      $ch = [string][char]$code
+      $advancePt = (Measure-Width ($ANCHOR + $ch + $ANCHOR) $font) - $anchorWidth
+      $advancePtByCode[$code] = $advancePt
+      $advances["$code"] = [Math]::Round(($advancePt / $REF_SIZE) * 1000.0, 2)
     }
+    # Case-SENSITIVE keys: a plain PowerShell hashtable would fold "Ta" into "TA".
+    $kerning = New-Object System.Collections.Specialized.OrderedDictionary ([StringComparer]::Ordinal)
+    for ($a = 33; $a -le 126; $a++) {
+      for ($b = 33; $b -le 126; $b++) {
+        $pairPt = (Measure-Width ($ANCHOR + [char]$a + [char]$b + $ANCHOR) $font) - $anchorWidth
+        $kernPt = $pairPt - $advancePtByCode[$a] - $advancePtByCode[$b]
+        if ([Math]::Abs($kernPt) -ge 0.05) {
+          $kerning[[string][char]$a + [char]$b] = [Math]::Round(($kernPt / $REF_SIZE) * 1000.0, 2)
+        }
+      }
+    }
+    $shape.TextFrame.MarginLeft = $marginLeftPt
+    $shape.TextFrame.MarginRight = $marginRightPt
 
     # Ground-truth PowerPoint's own rendered `a:rPr/@sz`: pick a declared
     # ceiling and a long label, force autofit-shrink-worthy geometry, then
@@ -182,6 +197,7 @@ try {
       marginTopPt     = $marginTopPt
       marginBottomPt  = $marginBottomPt
       lineHeightRatio = $lineHeightRatio
+      kerning         = $kerning
     }
   }
 
@@ -225,6 +241,7 @@ try {
     $fLines.Add(' */')
     $fLines.Add('')
     $fLines.Add("import type { FontAdvanceTable } from './font-advance-widths.generated';")
+    $fLines.Add("import { decodeKerningPairs } from './font-kerning';")
     $fLines.Add('')
     $fLines.Add("export const FONT_NAME = '$font';")
     $fLines.Add('')
@@ -242,11 +259,28 @@ try {
     $fLines.Add("	marginTopPt: $($entry.marginTopPt),")
     $fLines.Add("	marginBottomPt: $($entry.marginBottomPt),")
     $fLines.Add("	lineHeightRatio: $($entry.lineHeightRatio),")
+    # Kerning is emitted as whitespace-separated `<pair><value>` tokens (the
+    # pair is always exactly two non-space characters) and decoded once at
+    # load, so a font's ~700 pairs cost ~70 lines instead of one line each.
+    $tokens = @()
+    foreach ($pair in $entry.kerning.Keys) { $tokens += "$pair$($entry.kerning[$pair])" }
+    $fLines.Add('	kerning: decodeKerningPairs(')
+    for ($t = 0; $t -lt $tokens.Count; $t += 10) {
+      $chunk = ($tokens[$t..([Math]::Min($t + 9, $tokens.Count - 1))] -join ' ').Replace('\', '\\').Replace("'", "\'")
+      $sep = if ($t + 10 -lt $tokens.Count) { ' +' } else { ',' }
+      $fLines.Add("		'$chunk '$sep")
+    }
+    $fLines.Add('	),')
     $fLines.Add('};')
     $fLines.Add('')
     $fontFile = Join-Path $outDir "font-advance-widths-$slug.generated.ts"
     Set-Content -LiteralPath $fontFile -Value $fLines -Encoding utf8
     "Wrote $fontFile" | Write-Host
+  }
+
+  if ($SkipBarrel) {
+    'Skipped the barrel (-SkipBarrel).' | Write-Host
+    return
   }
 
   $defaultPairs = New-Object System.Collections.Generic.List[string]
@@ -270,13 +304,12 @@ try {
   $lines.Add(' * `pwsh -File scripts/make-font-advance-table.ps1`.')
   $lines.Add(' *')
   $lines.Add(' * Method (see the script''s own header comment for the full derivation): for')
-  $lines.Add(' * each printable ASCII code point 32-126, PowerPoint measured the difference')
-  $lines.Add(' * in `Shape.Width` (`TextFrame.AutoSize = ppAutoSizeShapeToFitText`,')
-  $lines.Add(' * `TextFrame.WordWrap = False`) between two run lengths of the same glyph')
-  $lines.Add(' * sandwiched between fixed anchor characters, isolating the glyph''s own')
-  $lines.Add(' * advance in points at a 100pt reference size, independent of the text box''s')
-  $lines.Add(' * own margins. Stored per-1000-em (`advance_pt / 100 * 1000`), so it applies')
-  $lines.Add(' * at any font size.')
+  $lines.Add(' * each printable ASCII code point 32-126, PowerPoint measured')
+  $lines.Add(' * `TextRange.BoundWidth` of the glyph between two kerning-neutral anchors at a')
+  $lines.Add(' * 100pt reference size, plus every non-zero pair kerning. Stored per-1000-em')
+  $lines.Add(' * (`advance_pt / 100 * 1000`), so it applies at any font size. A font file')
+  $lines.Add(' * with no `kerning` field predates that method (it differenced an AutoSize')
+  $lines.Add(' * box''s `Shape.Width`, which read Aptos about 1.1% wide).')
   $lines.Add(' *')
   $lines.Add(' * `marginLeftPt`/`marginRightPt`/`marginTopPt`/`marginBottomPt` are')
   $lines.Add(' * PowerPoint''s OWN default `a:bodyPr` text-frame insets for this font (read')
@@ -305,6 +338,8 @@ try {
   $lines.Add('	marginBottomPt: number;')
   $lines.Add('	/** Line-height-to-font-size multiple (e.g. 1.2 means a line is 1.2x the font size tall). */')
   $lines.Add('	lineHeightRatio: number;')
+  $lines.Add('	/** Per-1000-em pair kerning (`"To"` -> negative), applied at 12pt and above. */')
+  $lines.Add('	kerning?: Readonly<Record<string, number>>;')
   $lines.Add('}')
   $lines.Add('')
   $lines.Add('export const FONT_ADVANCE_TABLES: Record<string, FontAdvanceTable> = {')

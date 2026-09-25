@@ -27,6 +27,7 @@ import { resolveParagraphGeometryOverrides } from './paragraph-geometry-override
 import { buildBulletMarkerStyle, buildParagraphRuns } from './paragraph-run-build';
 import { resolveParagraphSpacing } from './paragraph-spacing';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
+import { trimParagraphTrailingSpaces } from './paragraph-trailing-space';
 import type { ParagraphRun, RenderParagraph } from './paragraph-types';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import {
@@ -146,6 +147,10 @@ export function buildParagraphs(
 				bodyStyle,
 			);
 
+			const rtl = resolveParagraphRtl(
+				paraSegments.map((seg) => ({ segment: seg })),
+				bodyStyle?.rtl,
+			);
 			const runs: ParagraphRun[] = buildParagraphRuns({
 				paraSegments,
 				paraIndices,
@@ -157,6 +162,7 @@ export function buildParagraphs(
 				defaultTabSize: geometryOverrides.defaultTabSize,
 				fontAlignment: geometryOverrides.fontAlignment,
 				fieldContext,
+				rtl: rtl === true,
 			});
 
 			// Suppress bullets for paragraphs with no visible text content.
@@ -194,10 +200,6 @@ export function buildParagraphs(
 				hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
 				fontScale,
 			);
-			const rtl = resolveParagraphRtl(
-				paraSegments.map((seg) => ({ segment: seg })),
-				bodyStyle?.rtl,
-			);
 			const align = resolveParagraphAlign(
 				paraSegments.map((seg) => ({ segment: seg })),
 				bodyStyle?.align,
@@ -227,7 +229,7 @@ export function buildParagraphs(
 			}
 
 			const para: RenderParagraph = {
-				runs,
+				runs: trimParagraphTrailingSpaces(runs, cssAlign, rtl === true),
 				bulletMarker: bullet?.picture?.src ? undefined : bullet?.marker,
 				bulletPicture: bullet?.picture,
 				bulletStyle,

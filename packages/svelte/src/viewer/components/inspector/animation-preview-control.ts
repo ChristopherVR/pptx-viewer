@@ -1,6 +1,10 @@
 import type { PptxElementAnimation } from 'pptx-viewer-core';
 import type { AnimationPreviewDescriptor } from 'pptx-viewer-shared';
-import { buildMotionPathPreview, buildPreviewAnimation } from 'pptx-viewer-shared';
+import {
+	buildMotionPathPreview,
+	buildPreviewAnimation,
+	findCanvasElementNode,
+} from 'pptx-viewer-shared';
 
 /**
  * Cancellable DOM preview player for the docked AnimationPanel: the Svelte
@@ -21,7 +25,7 @@ interface ActivePreview {
 let activePreview: ActivePreview | null = null;
 
 function findTarget(elementId: string): HTMLElement | null {
-	return document.querySelector<HTMLElement>(`[data-element-id="${CSS.escape(elementId)}"]`);
+	return findCanvasElementNode(document, elementId);
 }
 
 /** Slide size assumed when the stage cannot be measured (detached preview). */

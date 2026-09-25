@@ -3,7 +3,7 @@
    merging them isn't a style choice here. */
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 import { buildThemeColorMap } from 'pptx-viewer-core';
-import { canInteractWithElement } from 'pptx-viewer-shared';
+import { canCropElement, canInteractWithElement, canMergeShapes } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -26,12 +26,20 @@ function resolveSelectionGroupable(state: ViewerState): boolean {
 	);
 }
 
+/** The selected elements in selection order (Merge Shapes keeps the first one's format). */
+function selectedElements(state: ViewerState): PptxElement[] {
+	const active = getActiveElements(state);
+	return state.selectedElementIds
+		.map((id) => active.find((element) => element.id === id))
+		.filter((element): element is PptxElement => element !== undefined);
+}
+
 /**
  * Flatten every slide master's layouts into the `{ path, name }` options the
  * Home > Slides group's New Slide / Layout menus consume (React derives the
  * same list from the load pipeline's `layoutOptions`).
  */
-function collectLayoutOptions(state: ViewerState): LayoutOption[] {
+export function collectLayoutOptions(state: ViewerState): LayoutOption[] {
 	const options: LayoutOption[] = [];
 	const seen = new Set<string>();
 	for (const master of state.slideMasters) {
@@ -120,12 +128,16 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			customFontFamilies: state.customFontFamilies,
 			recentColors: currentRecentColors(state),
 			themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
+			canMergeShapes: editingVisible && canMergeShapes(selectedElements(state)),
+			canCrop: state.selectedElementIds.length === 1 && canCropElement(el),
+			cropActive: state.cropSession !== null,
 		});
 		ribbon?.setDrawState({
 			tool: state.drawTool,
 			color: state.drawColor,
 			width: state.drawWidth,
 			recentColors: currentRecentColors(state),
+			freeformTool: state.freeformTool,
 		});
 
 		inspector?.update(

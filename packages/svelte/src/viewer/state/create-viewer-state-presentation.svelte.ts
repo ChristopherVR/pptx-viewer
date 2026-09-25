@@ -32,6 +32,8 @@ export interface PresentationClusterDeps {
 	getEditingActive(): boolean;
 	getStageHolderEl(): HTMLDivElement | undefined;
 	getRootEl(): HTMLDivElement | undefined;
+	/** False when the host switched the `presentMode` feature off. */
+	isPresentModeEnabled?(): boolean;
 }
 
 export interface PresentationCluster extends ViewportHandlers {
@@ -175,6 +177,7 @@ export function usePresentationCluster(deps: PresentationClusterDeps): Presentat
 		viewer,
 		controller,
 		getEditingActive: deps.getEditingActive,
+		isPresentModeEnabled: deps.isPresentModeEnabled,
 		presentation,
 		onEndShow: () => handlers.onFullscreenToggle(),
 		// F5 / the ribbon's "From Beginning": same two calls `ViewerChrome`'s

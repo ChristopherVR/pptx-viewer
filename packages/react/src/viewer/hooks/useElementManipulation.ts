@@ -47,6 +47,7 @@ export function useElementManipulation(
 		setSidebarPanelMode,
 		onOpenHyperlinkDialog,
 		onEditText,
+		onEditPoints,
 		onSaveElementAsPicture,
 	} = input;
 
@@ -117,6 +118,12 @@ export function useElementManipulation(
 			case 'edit-text':
 				if (selectedElement) {
 					onEditText?.(selectedElement.id);
+				}
+				break;
+			case 'edit-points':
+			case 'editPoints':
+				if (selectedElement) {
+					onEditPoints?.(selectedElement.id);
 				}
 				break;
 			case 'save-as-picture':

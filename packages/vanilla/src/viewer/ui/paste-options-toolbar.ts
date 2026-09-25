@@ -8,7 +8,7 @@
  * field changes (set/cleared by the clipboard actions and the dialog).
  */
 import type { PasteSpecialFormat } from 'pptx-viewer-shared';
-import { PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
+import { findCanvasElementNode, PASTE_SPECIAL_OPTIONS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import { createEl } from '../render';
@@ -24,6 +24,9 @@ export interface PasteOptionsToolbarDeps {
 export interface PasteOptionsToolbarHandle {
 	destroy(): void;
 }
+
+/** Frames to wait for a just-pasted element to render before giving up. */
+const MAX_PAINT_ATTEMPTS = 10;
 
 export function mountPasteOptionsToolbar(deps: PasteOptionsToolbarDeps): PasteOptionsToolbarHandle {
 	const { doc, store, getTranslator, onChoose } = deps;
@@ -41,15 +44,24 @@ export function mountPasteOptionsToolbar(deps: PasteOptionsToolbarDeps): PasteOp
 		toolbar = null;
 	}
 
-	function paint(): void {
+	function paint(attempt = 0): void {
 		unmount();
 		const entries = store.get().pasteOptionsToolbar;
 		const elementId = entries?.[0]?.id;
 		if (!elementId) {
 			return;
 		}
-		const node = doc.querySelector<HTMLElement>(`[data-element-id="${elementId}"]`);
+		const node = findCanvasElementNode(doc, elementId, { canvasOnly: true });
 		if (!node) {
+			// The store notifies this subscriber in the same tick as the paste,
+			// before the stage has re-rendered the pasted element, so the node
+			// is usually not in the DOM yet: the toolbar then never appeared at
+			// all. Retry on the next frames instead of giving up.
+			const view = doc.defaultView;
+			if (view && attempt < MAX_PAINT_ATTEMPTS) {
+				const frame = view.requestAnimationFrame(() => paint(attempt + 1));
+				removeOutsideListeners = () => view.cancelAnimationFrame(frame);
+			}
 			return;
 		}
 		const box = node.getBoundingClientRect();

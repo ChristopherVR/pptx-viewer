@@ -65,6 +65,25 @@ ribbon tab; unlike `showToolbar`, this hides individual pieces rather than the w
 `'record'` hides both the quick-access Record control and the Record ribbon tab, since they surface
 the same feature.
 
+## UI customization {#ui-customization}
+
+| Option          | Type                  | Default | Description                                                                                                                                                                                                                                                                                                                                      |
+| --------------- | --------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `customization` | `ViewerCustomization` | -       | Hide, lock or remap any part of the chrome: ribbon tabs and buttons, File > Options pages, sections and settings (lock a value, set a default), File tab pages and cards, context-menu entries, editor shortcuts, panels, features (AI, collaboration) and dialogs. Unioned with `hiddenActions`. A new object replaces the whole customisation. |
+
+```ts
+createPptxViewer(el, {
+	source: bytes,
+	editable: true,
+	customization: { ribbon: { hiddenTabs: ['draw'] }, disabledFeatures: ['ai'] },
+});
+```
+
+The same helpers (`hideRibbonTab`, `lockSetting`, `remapShortcut`, ...) are
+available on the returned instance to change it at runtime; see [the API page](/vanilla/api#ui-customization).
+Every id, the rules and recipes are in the
+[UI Customization guide](/guide/customization).
+
 ## Theming & localization {#theming--localization}
 
 | Option             | Type                            | Default                 | Description                                                                                                                                                     |

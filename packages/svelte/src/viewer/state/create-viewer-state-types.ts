@@ -6,6 +6,7 @@ import type {
 	CollaborationShellState,
 	FieldSubstitutionContext,
 	MobileSheetKey,
+	ResolvedCustomization,
 	ViewerMode,
 	ViewportFitPadding,
 } from 'pptx-viewer-shared';
@@ -13,7 +14,7 @@ import type {
 import type { Translator } from '../../i18n/translator';
 import type { CollaborationController, CollaborationDialogsState } from '../collab';
 import type { ShareDefaultsInput } from '../collab/collaboration-dialogs.svelte';
-import type { StageContextMenu } from '../components/props';
+import type { StageCanvasContextMenu, StageContextMenu } from '../components/props';
 import type { DeckApi } from '../editor/deck-api';
 import type { EditingApi } from '../editor/editing-api';
 import type { EditorController } from '../editor/editor-controller.svelte';
@@ -77,6 +78,11 @@ export interface CreateViewerStateOptions {
 	getFileName?: () => string | undefined;
 	/** Whether the host enabled the AI assistant (the `ai` prop). */
 	getAiEnabled?: () => boolean;
+	/**
+	 * The resolved host UI customisation (`customization` prop plus imperative
+	 * edits). Omitted means "customise nothing".
+	 */
+	getCustomization?: () => ResolvedCustomization;
 
 	onload?: (detail: ViewerLoadDetail) => void;
 	onerror?: (message: string) => void;
@@ -203,6 +209,7 @@ export interface ViewerStateBag {
 	/** `Date.now()` timestamp of the last `enterPresenterView()` call; the presenter view's elapsed-time display. */
 	readonly presenterStartedAt: number;
 	stageContextMenu: StageContextMenu | null;
+	stageCanvasContextMenu: StageCanvasContextMenu | null;
 	readonly activeMobileSheet: MobileSheetKey;
 	setActiveMobileSheet(next: MobileSheetKey): void;
 	readonly notesExpanded: boolean;

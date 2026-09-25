@@ -18,7 +18,9 @@ import type {
 	PptxPresentationProperties,
 	PptxSlide,
 } from 'pptx-viewer-core';
+import { isPanelVisible } from 'pptx-viewer-shared';
 import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { computed } from 'vue';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
 import type { UseAccessibilityResult } from '../composables/useAccessibility';
@@ -29,6 +31,7 @@ import type { UseInspectorDeckActionsResult } from '../composables/useInspectorD
 import type { UseLoadContentResult } from '../composables/useLoadContent';
 import type { UseSelectionPaneWiringResult } from '../composables/useSelectionPaneWiring';
 import type { UseSignatureWorkflowResult } from '../composables/useSignatureWorkflow';
+import { useResolvedCustomization } from '../composables/useViewerCustomization';
 import AccessibilityPanel from './AccessibilityPanel.vue';
 import { AiChatPanelLazy } from './ai';
 import CommentsPanel from './CommentsPanel.vue';
@@ -76,6 +79,11 @@ const props = defineProps<{
 	onPresentationUpdate: (patch: Partial<PptxPresentationProperties>) => void;
 }>();
 
+// oxlint-disable-next-line eslint/one-var -- distinct concern from the `defineProps` macro call above, forcing one statement hurts readability
+const customization = useResolvedCustomization();
+// oxlint-disable-next-line eslint/one-var -- distinct concern from `customization` above, forcing one statement hurts readability
+const inspectorVisible = computed(() => isPanelVisible(customization.value, 'inspector'));
+
 /** Commit a comments mutation through the history-aware wiring. */
 function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]): void {
 	props.comments.commitComments(next);
@@ -86,7 +94,7 @@ function commit(next: Parameters<UseCommentsWiringResult['commitComments']>[0]):
 	<!-- Property inspector (single selection, edit mode). On mobile this
 	     becomes a swipe-dismissable bottom sheet (see ViewerMobileSheets). -->
 	<SlideDeckInspector
-		v-if="canEdit && !isMobile && inspectorOpen"
+		v-if="canEdit && !isMobile && inspectorOpen && inspectorVisible"
 		:deck="deck"
 		:element="inspectorElement"
 		:active-slide="activeSlide"

@@ -9,10 +9,14 @@
 	 */
 	import { useTranslator } from '../../i18n/context';
 	import type { ExportUiState } from '../export/export-ui.svelte';
+	import { useViewerCustomization } from '../state/viewer-customization.svelte';
 
 	const { exportUi }: { exportUi: ExportUiState } = $props();
 
 	const t = useTranslator();
+	// Host customisation: hidden export formats and a removed Print dialog.
+	const customization = useViewerCustomization();
+	const hiddenFormats = $derived(customization.resolved.hiddenBackstageCards);
 
 	let open = $state(false);
 
@@ -48,21 +52,21 @@
 	</button>
 	{#if open}
 		<div class="pptx-svelte-export-menu" role="menu">
-			<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPng())}>
+			{#if !hiddenFormats.has('png')}<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPng())}>
 				{t('pptx.export.pngCurrentSlide')}
-			</button>
-			<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runPdf())}>
+			</button>{/if}
+			{#if !hiddenFormats.has('pdf')}<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runPdf())}>
 				{t('pptx.export.pdfAllSlides')}
-			</button>
-			<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runGif())}>
+			</button>{/if}
+			{#if !hiddenFormats.has('gif')}<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runGif())}>
 				{t('pptx.export.gifAnimated')}
-			</button>
-			<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runVideo())}>
+			</button>{/if}
+			{#if !hiddenFormats.has('video')}<button type="button" role="menuitem" onclick={() => choose(() => void exportUi.runVideo())}>
 				{t('pptx.export.webmVideo')}
-			</button>
-			<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>
+			</button>{/if}
+			{#if customization.isDialogAvailable('print')}<button type="button" role="menuitem" onclick={() => choose(() => exportUi.runPrint())}>
 				{t('pptx.print.title')}
-			</button>
+			</button>{/if}
 		</div>
 	{/if}
 </div>

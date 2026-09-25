@@ -11,6 +11,13 @@ import { describe, expect, it, vi } from 'vitest';
 import { translationsEn } from '../../../i18n';
 import AnimationsSection from './AnimationsSection.vue';
 
+const { playAnimationRibbonPreview } = vi.hoisted(() => ({ playAnimationRibbonPreview: vi.fn() }));
+
+vi.mock(import('pptx-viewer-shared'), async (original) => ({
+	...(await original()),
+	playAnimationRibbonPreview,
+}));
+
 function mountAnimations(overrides: Record<string, unknown> = {}) {
 	return mount(AnimationsSection, {
 		props: {
@@ -154,5 +161,41 @@ describe('animationsSection', () => {
 		expect(
 			gallery.findAll('button').every((b) => b.attributes('disabled') !== undefined),
 		).toBeTruthy();
+	});
+
+	/**
+	 * Preview used to just flash the button for 1200ms and do nothing else.
+	 * Clicking it must now also play the selected element's own authored
+	 * effect in place, via the same shared player the other four bindings use.
+	 */
+	describe('preview button', () => {
+		it('plays the selected element own animation via the shared player', async () => {
+			playAnimationRibbonPreview.mockClear();
+			const wrapper = mountAnimations({
+				activeSlide: {
+					animations: [{ elementId: 'e1', entrance: 'fadeIn', durationMs: 500, order: 0 }],
+				},
+			});
+			const preview = wrapper
+				.findAll('button')
+				.find((b) => b.text().includes(translationsEn['pptx.animations.preview']));
+			await preview?.trigger('click');
+
+			expect(playAnimationRibbonPreview).toHaveBeenCalledExactlyOnceWith(
+				document,
+				expect.objectContaining({ elementId: 'e1' }),
+			);
+		});
+
+		it('does not play a preview when disabled (no selection)', async () => {
+			playAnimationRibbonPreview.mockClear();
+			const wrapper = mountAnimations({ selectedElement: null });
+			const preview = wrapper
+				.findAll('button')
+				.find((b) => b.text().includes(translationsEn['pptx.animations.preview']));
+			await preview?.trigger('click');
+
+			expect(playAnimationRibbonPreview).not.toHaveBeenCalled();
+		});
 	});
 });

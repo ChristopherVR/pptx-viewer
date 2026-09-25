@@ -64,13 +64,16 @@ describe('buildParagraphs autofit + bullet typeface', () => {
 		expect(editable[1].runs.every((run) => run.text === '')).toBeTruthy();
 	});
 
-	it("scales every authored run size by the body's normAutofit font scale", () => {
+	it("scales every authored run size by the body's normAutofit font scale, rounded to a whole point", () => {
+		// PowerPoint rounds a normAutofit-scaled run to the nearest whole point
+		// (see `scaleFontSizeForAutoFit`'s COM-verified doc comment): 53.33 * 0.7
+		// = 37.331, not the raw fractional product.
 		const paras = buildParagraphs(
 			textEl([{ text: 'Title', style: { fontSize: 53.33 } }], {
 				textStyle: { fontSize: 53.33, autoFit: true, autoFitMode: 'normal', autoFitFontScale: 0.7 },
 			}),
 		);
-		expect(paras[0].runs[0].style.fontSize).toBe(`${53.33 * 0.7}px`);
+		expect(paras[0].runs[0].style.fontSize).toBe('37px');
 	});
 
 	it('leaves run sizes alone when the body does not shrink its text', () => {
@@ -461,5 +464,48 @@ describe('per-run vertical-align from a:pPr/@fontAlgn', () => {
 			]),
 		);
 		expect(paras[0].runs[0].style.verticalAlign).toBe('super');
+	});
+});
+
+describe('inline equation font size', () => {
+	// `m:oMath` authors no `a:rPr/@sz` of its own (it is not a run), so a
+	// binding that applies `run.style` verbatim to the equation's `<span>` (Vue,
+	// Angular, Svelte, Vanilla) needs an explicit `fontSize` here, or the
+	// equation inherits whatever its ANCESTOR resolves to instead of the
+	// paragraph it actually sits in - a DOM-nesting coincidence, not a shared
+	// decision. React re-implements its own equation wrapper but now reads this
+	// same value (`renderEquationSegment`'s `fontSize` argument) rather than
+	// separately relying on inheritance.
+	it("takes the paragraph's smaller run size, not the shape default", () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{ text: 'Given ', style: { fontSize: 18.6667 } },
+					{ text: '', style: {}, equationXml: { 'm:r': { 'm:t': 'x' } } },
+					{ text: ' holds', style: { fontSize: 18.6667 } },
+				],
+				{ textStyle: { fontSize: 24 } },
+			),
+		);
+		const equationRun = paras[0].runs.find((run) => run.equation);
+		expect(equationRun?.style.fontSize).toBe('18.6667px');
+	});
+
+	it('falls back to the shape default when the paragraph authors no run size', () => {
+		const paras = buildParagraphs(
+			textEl([{ text: '', style: {}, equationXml: { 'm:r': { 'm:t': 'x' } } }], {
+				textStyle: { fontSize: 24 },
+			}),
+		);
+		expect(paras[0].runs[0].style.fontSize).toBe('24px');
+	});
+
+	it("never overrides an equation's own authored run size", () => {
+		const paras = buildParagraphs(
+			textEl([{ text: '', style: { fontSize: 40 }, equationXml: { 'm:r': { 'm:t': 'x' } } }], {
+				textStyle: { fontSize: 24 },
+			}),
+		);
+		expect(paras[0].runs[0].style.fontSize).toBe('40px');
 	});
 });

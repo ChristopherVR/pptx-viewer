@@ -29,14 +29,19 @@ export function sliceLabel(x: number, y: number, value: number): SvgText {
 	};
 }
 
-/** Secondary pie plot: expands the aggregated "Other" slice into its points. */
+/**
+ * Secondary pie plot: expands the aggregated "Other" slice into its points.
+ * `startAngle` is where its first slice begins (PowerPoint starts it where the
+ * primary "Other" slice ends; see `buildOfPieViewModel`).
+ */
 export function buildSecondaryPie(
 	geom: OfPieGeom,
 	secondaryValues: number[],
 	fills: string[],
 	showLabels: boolean,
+	startAngle?: number,
 ): { primitives: SvgPath[]; labels: SvgText[] } {
-	const angles = sliceAngles(secondaryValues);
+	const angles = sliceAngles(secondaryValues, startAngle);
 	const primitives: SvgPath[] = [];
 	const labels: SvgText[] = [];
 	angles.forEach((a, i) => {
@@ -70,10 +75,7 @@ export function buildSecondaryBar(
 	showLabels: boolean,
 ): { primitives: SvgRect[]; labels: SvgText[] } {
 	const total = secondaryValues.reduce((s, v) => s + Math.abs(v), 0) || 1;
-	const barW = geom.secondaryR * 1.1;
-	const barH = geom.secondaryR * 2;
-	const barX = geom.secondaryCx - barW / 2;
-	const barTop = geom.secondaryCy - barH / 2;
+	const { x: barX, y: barTop, w: barW, h: barH } = secondaryBarBox(geom);
 	const primitives: SvgRect[] = [];
 	const labels: SvgText[] = [];
 	let cursorY = barTop;
@@ -88,29 +90,38 @@ export function buildSecondaryBar(
 	return { primitives, labels };
 }
 
-/** Two connector lines (c:serLines) from the "Other" slice to the secondary plot. */
-export function buildSerLines(geom: OfPieGeom, otherAngle: SliceAngle): SvgLine[] {
-	const rimStart = {
-		x: geom.primaryCx + geom.primaryR * Math.cos(otherAngle.start),
-		y: geom.primaryCy + geom.primaryR * Math.sin(otherAngle.start),
-	};
-	const rimEnd = {
-		x: geom.primaryCx + geom.primaryR * Math.cos(otherAngle.end),
-		y: geom.primaryCy + geom.primaryR * Math.sin(otherAngle.end),
-	};
-	const targetX = geom.secondaryCx - geom.secondaryR * 1.05;
+/**
+ * Two connector lines (c:serLines) from the rim ends of the "Other" slice to
+ * the secondary plot: its top and bottom points for a pie, its left corners
+ * for a bar. PowerPoint draws them solid, thin and grey (the built-in
+ * `tx1` 35% line; COM-verified charts-com.pptx slides 5 and 6).
+ */
+export function buildSerLines(geom: OfPieGeom, otherAngle: SliceAngle, toBar: boolean): SvgLine[] {
+	const rim = (angle: number) => ({
+		x: geom.primaryCx + geom.primaryR * Math.cos(angle),
+		y: geom.primaryCy + geom.primaryR * Math.sin(angle),
+	});
+	const upper = rim(otherAngle.start);
+	const lower = rim(otherAngle.end);
+	const bar = secondaryBarBox(geom);
+	const targetX = toBar ? bar.x : geom.secondaryCx;
+	const topY = toBar ? bar.y : geom.secondaryCy - geom.secondaryR;
+	const bottomY = toBar ? bar.y + bar.h : geom.secondaryCy + geom.secondaryR;
 	const line = (from: { x: number; y: number }, ty: number): SvgLine => ({
 		kind: 'line',
 		x1: from.x,
 		y1: from.y,
 		x2: targetX,
 		y2: ty,
-		stroke: '#94a3b8',
+		stroke: '#A6A6A6',
 		strokeWidth: 1,
-		dashArray: '3 2',
 	});
-	return [
-		line(rimStart, geom.secondaryCy - geom.secondaryR),
-		line(rimEnd, geom.secondaryCy + geom.secondaryR),
-	];
+	return [line(upper, topY), line(lower, bottomY)];
+}
+
+/** The secondary bar's box (bar-of-pie), shared by the bar and its serLines. */
+export function secondaryBarBox(geom: OfPieGeom): { x: number; y: number; w: number; h: number } {
+	const w = geom.secondaryR * 1.1;
+	const h = geom.secondaryR * 2;
+	return { x: geom.secondaryCx - w / 2, y: geom.secondaryCy - h / 2, w, h };
 }

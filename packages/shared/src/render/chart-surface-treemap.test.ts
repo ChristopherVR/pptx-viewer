@@ -72,11 +72,22 @@ describe('buildSurfaceViewModel — isometric (≥2 series, ≥2 categories)', (
 		expect(polygons).toHaveLength(12);
 	});
 
-	it('has no cartesian gridlines or axis labels', () => {
+	it('draws a left-side value axis (COM: slides 7-8 both show one)', () => {
 		const vm = buildSurfaceViewModel(el, data, labels);
-		expect(vm.gridlines).toHaveLength(0);
-		expect(vm.axisLabels).toHaveLength(0);
+		expect(vm.gridlines.length).toBeGreaterThan(0);
+		expect(vm.axisLabels.length).toBeGreaterThan(0);
 		expect(vm.zeroLine).toBeUndefined();
+	});
+
+	it('labels the category and series edges, not a cartesian x-axis', () => {
+		const vm = buildSurfaceViewModel(el, data, labels);
+		const texts = vm.categoryLabels.map((t) => t.text);
+		for (const cat of labels) {
+			expect(texts).toContain(cat);
+		}
+		for (const s of data.series) {
+			expect(texts).toContain(s.name);
+		}
 	});
 
 	it('svgWidth and svgHeight match the element frame box exactly', () => {
@@ -85,13 +96,17 @@ describe('buildSurfaceViewModel — isometric (≥2 series, ≥2 categories)', (
 		expect(vm.svgHeight).toBe(50);
 	});
 
-	it('includes legend entries when hasLegend is true', () => {
+	it('legend entries are value bands, never series names (COM: slides 7-10)', () => {
 		const withLegend: PptxChartData = {
 			...data,
 			style: { hasLegend: true, legendPosition: 'b' },
 		};
 		const vm = buildSurfaceViewModel(el, withLegend, labels);
-		expect(vm.legend).toHaveLength(data.series.length);
+		expect(vm.legend.length).toBeGreaterThan(0);
+		for (const entry of vm.legend) {
+			expect(data.series.map((s) => s.name)).not.toContain(entry.label);
+			expect(entry.label).toMatch(/^-?\d+(\.\d+)?-\d+(\.\d+)?$/u);
+		}
 	});
 
 	it('returns empty legend when hasLegend is false/absent', () => {
@@ -178,40 +193,45 @@ describe('buildSurfaceViewModel - bandFmts and floor/wall panels', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// buildSurfaceViewModel — flat fallback (<2 series or <2 categories)
+// buildSurfaceViewModel — 2-D top view (c:surfaceChart, "Contour")
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('buildSurfaceViewModel — flat fallback (<2 series or <2 categories)', () => {
-	it('falls back to rect primitives for a single series', () => {
+describe('buildSurfaceViewModel — 2-D top view (chartData.surfaceTopView)', () => {
+	it('draws a flat grid of polygons, one per (series, category) cell', () => {
 		const el = makeElement();
-		const data = makeSurfaceData(1, 4);
+		const data: PptxChartData = { ...makeSurfaceData(1, 4), surfaceTopView: true };
 		const vm = buildSurfaceViewModel(el, data, data.categories);
-		const rects = vm.primitives.filter((p) => p.kind === 'rect');
-		expect(rects.length).toBeGreaterThan(0);
 		const polygons = vm.primitives.filter((p) => p.kind === 'polygon');
-		expect(polygons).toHaveLength(0);
+		expect(polygons).toHaveLength(4);
 	});
 
-	it('falls back for a single category column', () => {
+	it('produces seriesCount × catCount cells', () => {
 		const el = makeElement();
-		const data = makeSurfaceData(3, 1);
+		const data: PptxChartData = { ...makeSurfaceData(2, 3), surfaceTopView: true };
 		const vm = buildSurfaceViewModel(el, data, data.categories);
-		const rects = vm.primitives.filter((p) => p.kind === 'rect');
-		expect(rects.length).toBeGreaterThan(0);
+		const polygons = vm.primitives.filter((p) => p.kind === 'polygon');
+		expect(polygons).toHaveLength(6);
 	});
 
-	it('produces seriesCount × catCount rect cells', () => {
+	it('labels category (bottom) and series (right edge) axes', () => {
 		const el = makeElement();
-		const data = makeSurfaceData(1, 3);
+		const data: PptxChartData = { ...makeSurfaceData(2, 3), surfaceTopView: true };
 		const vm = buildSurfaceViewModel(el, data, data.categories);
-		const rects = vm.primitives.filter((p) => p.kind === 'rect');
-		// 1 series × 3 categories = 3 cells.
-		expect(rects).toHaveLength(3);
+		const texts = vm.categoryLabels.map((t) => t.text);
+		expect(texts).toStrictEqual(expect.arrayContaining([...data.categories, 'S1', 'S2']));
+	});
+
+	it('draws no value (Z) axis: a top view has no Z dimension', () => {
+		const el = makeElement();
+		const data: PptxChartData = { ...makeSurfaceData(2, 3), surfaceTopView: true };
+		const vm = buildSurfaceViewModel(el, data, data.categories);
+		expect(vm.gridlines).toHaveLength(0);
+		expect(vm.axisLabels).toHaveLength(0);
 	});
 
 	it('carries a valueDrag context so a cell can be dragged to a new value', () => {
 		const el = makeElement();
-		const data = makeSurfaceData(1, 3);
+		const data: PptxChartData = { ...makeSurfaceData(1, 3), surfaceTopView: true };
 		const vm = buildSurfaceViewModel(el, data, data.categories);
 		expect(vm.valueDrag).toBeDefined();
 		expect(vm.valueDrag?.range.min).toBeLessThan(vm.valueDrag!.range.max);
@@ -221,19 +241,46 @@ describe('buildSurfaceViewModel — flat fallback (<2 series or <2 categories)',
 		}
 	});
 
-	it('uses bandFmts colours for rect fills instead of the continuous ramp', () => {
+	it('fills each band-coloured cell when not wireframe', () => {
 		const el = makeElement();
 		const data: PptxChartData = {
 			...makeSurfaceData(1, 2),
+			surfaceTopView: true,
 			bandFmts: [
 				{ index: 0, spPr: { fillColor: '#FF0000' } },
 				{ index: 1, spPr: { fillColor: '#00FF00' } },
 			],
 		};
 		const vm = buildSurfaceViewModel(el, data, data.categories);
-		const fills = vm.primitives.filter((p) => p.kind === 'rect').map((p) => p.fill);
-		for (const fill of fills) {
-			expect(['#FF0000', '#00FF00']).toContain(fill);
+		const cells = vm.primitives.filter((p) => p.kind === 'polygon');
+		for (const cell of cells) {
+			expect(cell.kind).toBe('polygon');
+			if (cell.kind === 'polygon') {
+				expect(['#FF0000', '#00FF00']).toContain(cell.fill);
+				expect(cell.stroke).toBe('none');
+			}
+		}
+	});
+
+	it('draws unfilled band-coloured outlines when wireframe (COM: slide 10)', () => {
+		const el = makeElement();
+		const data: PptxChartData = {
+			...makeSurfaceData(1, 2),
+			surfaceTopView: true,
+			wireframe: true,
+			bandFmts: [
+				{ index: 0, spPr: { fillColor: '#FF0000' } },
+				{ index: 1, spPr: { fillColor: '#00FF00' } },
+			],
+		};
+		const vm = buildSurfaceViewModel(el, data, data.categories);
+		const cells = vm.primitives.filter((p) => p.kind === 'polygon');
+		expect(cells.length).toBeGreaterThan(0);
+		for (const cell of cells) {
+			if (cell.kind === 'polygon') {
+				expect(cell.fill).toBe('none');
+				expect(['#FF0000', '#00FF00']).toContain(cell.stroke);
+			}
 		}
 	});
 });
@@ -460,6 +507,47 @@ describe('buildTreemapViewModel - ChartEx hierarchy', () => {
 		expect(bannerTop).toBeGreaterThan(overlappingTop);
 	});
 
+	it('paints every leaf under a branch the SAME colour (COM: slide 28 / chartEx3.xml)', () => {
+		const data = hierarchicalData();
+		const vm = buildTreemapViewModel(makeElement(600, 400), data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		// Hardware/Software share the "North" branch, Services/Support share
+		// "South": each pair must be the exact same fill, and the two branches
+		// must differ from each other.
+		const byCategory = new Map(
+			data.categories.map((category, pointIndex) => [
+				category,
+				rects.find((rect) => rect.part?.pointIndex === pointIndex)?.fill,
+			]),
+		);
+		expect(byCategory.get('Hardware')).toBe(byCategory.get('Software'));
+		expect(byCategory.get('Services')).toBe(byCategory.get('Support'));
+		expect(byCategory.get('Hardware')).not.toBe(byCategory.get('Services'));
+	});
+
+	it('legend shows one entry per top-level branch, not one per leaf', () => {
+		const data: PptxChartData = { ...hierarchicalData(), style: { hasLegend: true } };
+		const vm = buildTreemapViewModel(makeElement(600, 400), data, data.categories);
+		expect(vm.legend.map((entry) => entry.label)).toStrictEqual(['North', 'South']);
+	});
+
+	it('gives each series its own single colour across all its leaves (multi-series legend)', () => {
+		const data = hierarchicalData();
+		data.series.push({ name: 'Profit', values: [20, 15, 8, 4] });
+		const vm = buildTreemapViewModel(makeElement(700, 400), data, data.categories);
+		expect(vm.legend).toHaveLength(0); // hasLegend not set on this fixture.
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		const revenueFills = new Set(
+			rects.filter((rect) => rect.part?.seriesIndex === 0).map((rect) => rect.fill),
+		);
+		const profitFills = new Set(
+			rects.filter((rect) => rect.part?.seriesIndex === 1).map((rect) => rect.fill),
+		);
+		expect(revenueFills.size).toBe(1);
+		expect(profitFills.size).toBe(1);
+		expect([...revenueFills][0]).not.toBe([...profitFills][0]);
+	});
+
 	it('keeps series and point alignment for multiple series', () => {
 		const data = hierarchicalData();
 		data.series.push({
@@ -483,6 +571,49 @@ describe('buildTreemapViewModel - ChartEx hierarchy', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 // buildTreemapViewModel — edge cases
 // ─────────────────────────────────────────────────────────────────────────────
+
+describe('buildTreemapViewModel — squarified layout', () => {
+	it('mixes row AND column splits within one square-ish box, unlike a single-axis slice-and-dice', () => {
+		// The exact 7 leaf weights under "Branch 1" on charts-com.pptx slide 28
+		// (chartEx3.xml): two large near-equal leaves (Leaf 4/5) plus five much
+		// smaller ones. A plain "always split the longer side" slice-and-dice
+		// would place every rect along a single axis (all sharing either every
+		// x or every y); PowerPoint's own squarified layout instead groups the
+		// small leaves into their own row/column beside the large ones, which
+		// needs BOTH more than one distinct x and more than one distinct y.
+		const el = makeElement(450, 450);
+		const data: PptxChartData = {
+			chartType: 'treemap',
+			categories: ['Leaf1', 'Leaf2', 'Leaf3', 'Leaf4', 'Leaf5', 'Leaf6', 'Leaf7'],
+			series: [{ name: 'S', values: [22, 12, 18, 87, 88, 17, 9] }],
+		};
+		const vm = buildTreemapViewModel(el, data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects).toHaveLength(7);
+		const distinctX = new Set(rects.map((rect) => Math.round(rect.x)));
+		const distinctY = new Set(rects.map((rect) => Math.round(rect.y)));
+		expect(distinctX.size).toBeGreaterThan(1);
+		expect(distinctY.size).toBeGreaterThan(1);
+	});
+
+	it('keeps every leaf rect within the plot box and areas proportional to value', () => {
+		const el = makeElement(500, 350);
+		const data: PptxChartData = {
+			chartType: 'treemap',
+			categories: ['Big', 'Mid', 'Small', 'Tiny'],
+			series: [{ name: 'S', values: [40, 30, 20, 10] }],
+		};
+		const vm = buildTreemapViewModel(el, data, data.categories);
+		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
+		expect(rects).toHaveLength(4);
+		for (const rect of rects) {
+			expect(rect.x).toBeGreaterThanOrEqual(0);
+			expect(rect.y).toBeGreaterThanOrEqual(0);
+			expect(rect.x + rect.w).toBeLessThanOrEqual(el.width + 2);
+			expect(rect.y + rect.h).toBeLessThanOrEqual(el.height + 2);
+		}
+	});
+});
 
 describe('buildTreemapViewModel — edge cases', () => {
 	it('does not crash on an empty series', () => {
@@ -569,9 +700,10 @@ describe('surface: interactive marks', () => {
 		}
 	});
 
-	it('tags each flat-fallback cell with its own (series, category)', () => {
+	it('tags each top-view cell with its own (series, category)', () => {
 		const chartData: PptxChartData = {
 			chartType: 'surface',
+			surfaceTopView: true,
 			categories: ['Q1', 'Q2', 'Q3'],
 			series: [{ name: 'A', values: [10, 20, 30] }],
 			style: {},
@@ -582,7 +714,7 @@ describe('surface: interactive marks', () => {
 			chartData.categories,
 		);
 		const cells = vm.primitives.filter(
-			(primitive) => primitive.kind === 'rect' && primitive.part !== undefined,
+			(primitive) => primitive.kind === 'polygon' && primitive.part !== undefined,
 		);
 		expect(cells).toHaveLength(3);
 		expect(cells.map((cell) => cell.part!.pointIndex)).toStrictEqual([0, 1, 2]);

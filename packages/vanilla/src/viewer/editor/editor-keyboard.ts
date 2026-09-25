@@ -1,4 +1,9 @@
-import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
+import {
+	isEditorControlTarget,
+	isEditorTextInputTarget,
+	mapCustomizedEditorKey,
+} from 'pptx-viewer-shared';
+import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
 
 /**
  * Editing keyboard shortcuts, attached alongside the slideshow navigation
@@ -13,6 +18,8 @@ import { isEditorTextInputTarget, mapEditorKey } from 'pptx-viewer-shared';
 export interface EditorKeyboardDeps {
 	/** False disables everything (not editable, presenting, inline editing). */
 	isActive(): boolean;
+	/** The host's keyboard customisation (disabled / remapped commands), read per key. */
+	getKeyboardCustomization?(): ResolvedKeyboardCustomization | undefined;
 	getSelectedId(): string | null;
 	deselect(): void;
 	deleteSelected(): void;
@@ -73,11 +80,16 @@ export function createEditorKeydownHandler(
 		if (!deps.isActive()) {
 			return;
 		}
-		const { action, dx, dy } = mapEditorKey(event, {
-			canPaste: deps.canPaste?.(),
-			hasSelection: deps.getSelectedId() !== null,
-			isTextInputTarget: isEditorTextInputTarget(event.target),
-		});
+		const { action, dx, dy } = mapCustomizedEditorKey(
+			event,
+			{
+				canPaste: deps.canPaste?.(),
+				hasSelection: deps.getSelectedId() !== null,
+				isTextInputTarget: isEditorTextInputTarget(event.target),
+				isControlTarget: isEditorControlTarget(event.target),
+			},
+			deps.getKeyboardCustomization?.(),
+		);
 		// Paging is owned by the root navigation handler; see the module note.
 		if (action === null || action === 'prevSlide' || action === 'nextSlide') {
 			return;

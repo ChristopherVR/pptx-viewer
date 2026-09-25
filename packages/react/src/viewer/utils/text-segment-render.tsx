@@ -8,6 +8,8 @@ import {
 	resolveFontKerning,
 	resolveMetricTrackingPx,
 	resolveScriptFontSet,
+	scaleFontSizeForAutoFit,
+	splitsUnderlineIntoWords,
 	stripUnderlineDecoration,
 } from 'pptx-viewer-shared';
 import type { ParagraphRun, RunStyle } from 'pptx-viewer-shared';
@@ -84,8 +86,16 @@ export function renderParagraphRun(
 	const key = `${element.id}-seg-${segmentIndex}${keySuffix}`;
 
 	// Inline equation (`m:oMath`): the run has no text, the maths is the content.
+	// `run.style.fontSize` is shared's resolved value (see `buildParagraphRuns`'s
+	// equation branch), not left to ancestor inheritance.
 	if (run.equation) {
-		return renderEquationSegment(element.id, segmentIndex, run.equation.xml, run.equation.number);
+		return renderEquationSegment(
+			element.id,
+			segmentIndex,
+			run.equation.xml,
+			run.equation.number,
+			typeof run.style.fontSize === 'string' ? run.style.fontSize : undefined,
+		);
 	}
 
 	const segmentStyle = segment?.style ?? {};
@@ -118,7 +128,15 @@ export function renderParagraphRun(
 		DEFAULT_TEXT_FONT_SIZE) as number;
 	// `a:normAutofit/@fontScale` (e.g. 0.9 = 90%), resolved by the shared helper
 	// all five bindings use, so a body that shrinks its text shrinks it alike.
-	const baseFontSize = rawFontSize * resolveAutoFitFontScale(element.textStyle);
+	// Rounded to the nearest whole point via `scaleFontSizeForAutoFit`: PowerPoint
+	// itself never paints a fractional point size for a shrunk run (COM: 28pt at
+	// 62.5% renders at 18pt, not 17.5pt), and this component overwrites shared's
+	// `segmentStyleToCss` output below, so it has to apply the same rounding or
+	// this binding alone drifted back to the fractional size.
+	const baseFontSize = scaleFontSizeForAutoFit(
+		rawFontSize,
+		resolveAutoFitFontScale(element.textStyle),
+	);
 	const baselineShift = baselineFraction !== 0 ? `${baselineFraction * baseFontSize}px` : undefined;
 
 	// Kerning → CSS font-kerning. OOXML `@kern` is a threshold: kerning applies
@@ -242,8 +260,7 @@ export function renderParagraphRun(
 	// one run, so `run.style` carries no underline and `nestedStyle` is empty;
 	// the decoration a word must redeclare rides `run.underlineWordPieces`
 	// instead (the same field Vue/Angular/Svelte/Vanilla render directly).
-	const isUnderlineWords =
-		Boolean(segmentStyle.underline) && segmentStyle.underlineStyle === 'words';
+	const isUnderlineWords = splitsUnderlineIntoWords(segmentStyle);
 	const wordDecoration = isUnderlineWords
 		? (nestedStyle ??
 			(run.underlineWordPieces?.find((piece) => piece.style)?.style as
@@ -275,6 +292,7 @@ export function renderParagraphRun(
 			baseFontFamily,
 			Boolean(segmentStyle.bold),
 			Boolean(segmentStyle.italic),
+			{ language: segmentStyle.language, rtl: ctx.paragraphRtl === true },
 		),
 		metricContext,
 		isUnderlineWords,

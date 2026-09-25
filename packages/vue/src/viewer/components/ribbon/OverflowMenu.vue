@@ -7,9 +7,12 @@
  * `onSetOverflowMenuOpen`) exactly as React, and each OV key maps to its handler.
  */
 import { Ellipsis } from 'lucide-vue-next';
+import { isDialogAvailable } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
+import { useResolvedCustomization } from '../../composables/useViewerCustomization';
 import { ic, ics, OV } from './ribbon-constants';
 import type { RibbonProps } from './ribbon-types';
 
@@ -17,6 +20,12 @@ interface Props extends RibbonProps {}
 
 const props = defineProps<Props>();
 const { t } = useI18n();
+const customization = useResolvedCustomization();
+// The overflow entries left after the macro gate and the host's Print gate.
+const entries = computed(() => {
+	const print = isDialogAvailable(customization.value, 'print');
+	return OV.filter((o) => (o.k !== 'pptm' || props.hasMacros) && (o.k !== 'print' || print));
+});
 
 function ovAct(k: string): void {
 	props.onSetOverflowMenuOpen(false);
@@ -69,7 +78,7 @@ function ovAct(k: string): void {
 			<div
 				class="absolute right-0 top-full mt-1 z-50 w-44 rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl py-1"
 			>
-				<template v-for="o in OV.filter((o) => o.k !== 'pptm' || props.hasMacros)" :key="o.k">
+				<template v-for="o in entries" :key="o.k">
 					<div v-if="o.k.startsWith('---')" class="my-1 border-t border-border/60" />
 					<button
 						v-else

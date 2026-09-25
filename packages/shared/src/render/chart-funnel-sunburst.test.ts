@@ -48,17 +48,12 @@ describe('computeFunnelSegments', () => {
 		expect(segs[0].topW).toBeCloseTo(200);
 	});
 
-	it('matches each segment bottom width to the next value top width', () => {
+	it('draws a flat bar: bottom width always equals its own top width (COM: slide 27)', () => {
 		const segs = computeFunnelSegments([100, 50], 0, 0, 200, 300, [], undefined);
-		// next value 50 of max 100 -> 0.5 * 200 = 100.
-		expect(segs[0].botW).toBeCloseTo(100);
+		expect(segs[0].botW).toBeCloseTo(segs[0].topW);
+		expect(segs[1].botW).toBeCloseTo(segs[1].topW);
+		// 50 of max 100 -> 0.5 * 200 = 100, its own width, not the next bar's.
 		expect(segs[1].topW).toBeCloseTo(100);
-	});
-
-	it('tapers the final segment bottom to 30% of its own width', () => {
-		const segs = computeFunnelSegments([100], 0, 0, 200, 300, [], undefined);
-		// last segment: nextVal = abs(100) * 0.3 = 30; 30/100 * 200 = 60.
-		expect(segs[0].botW).toBeCloseTo(60);
 	});
 
 	it('produces strictly descending top widths for descending values', () => {
@@ -67,11 +62,19 @@ describe('computeFunnelSegments', () => {
 		expect(segs[1].topW).toBeGreaterThan(segs[2].topW);
 	});
 
-	it('uses the category label when present, else the formatted value', () => {
+	it('labels the bar with its value, always, and the category on a side axis (COM: slide 27)', () => {
 		const withCats = computeFunnelSegments([100], 0, 0, 200, 300, ['Leads'], undefined);
-		expect(withCats[0].labelText).toBe('Leads');
+		expect(withCats[0].labelText).toBe('100');
+		expect(withCats[0].categoryText).toBe('Leads');
 		const noCats = computeFunnelSegments([100], 0, 0, 200, 300, [], undefined);
 		expect(noCats[0].labelText).toBe('100');
+		expect(noCats[0].categoryText).toBe('');
+	});
+
+	it("paints every bar the series' own single colour, never a per-bar cycle", () => {
+		const segs = computeFunnelSegments([100, 50, 25], 0, 0, 200, 300, [], undefined);
+		const fills = new Set(segs.map((seg) => seg.fill));
+		expect(fills.size).toBe(1);
 	});
 
 	it('emits a closed trapezoid path', () => {
@@ -146,10 +149,18 @@ describe('buildFunnelViewModel', () => {
 		expect(paths).toHaveLength(3);
 	});
 
-	it('produces one centred data label per segment', () => {
+	it('produces one centred VALUE data label per segment (COM: slide 27)', () => {
 		const vm = buildFunnelViewModel(chartElement(chartData), chartData, chartData.categories);
 		expect(vm.dataLabels).toHaveLength(3);
-		expect(vm.dataLabels[0].text).toBe('A');
+		expect(vm.dataLabels.map((label) => label.text)).toStrictEqual(['100', '60', '30']);
+	});
+
+	it('lists the category names on a left-side axis, one per bar', () => {
+		const vm = buildFunnelViewModel(chartElement(chartData), chartData, chartData.categories);
+		expect(vm.categoryLabels.map((label) => label.text)).toStrictEqual(['A', 'B', 'C']);
+		for (const label of vm.categoryLabels) {
+			expect(label.textAnchor).toBe('end');
+		}
 	});
 
 	it('has no cartesian gridlines or axis labels', () => {
@@ -239,6 +250,54 @@ describe('buildSunburstViewModel', () => {
 			[1, 'B1'],
 			[1, 'B2'],
 		]);
+	});
+
+	it('draws a text label per arc, every ring (COM: slide 29 / chartEx4.xml)', () => {
+		const hierarchical: PptxChartData = {
+			chartType: 'sunburst',
+			categories: ['A1', 'A2', 'B1', 'B2'],
+			categoryLevels: [
+				['A1', 'A2', 'B1', 'B2'],
+				['A', 'A', 'B', 'B'],
+			],
+			series: [{ name: 'Size', values: [10, 30, 20, 40] }],
+		};
+		const vm = buildSunburstViewModel(
+			chartElement(hierarchical),
+			hierarchical,
+			hierarchical.categories,
+		);
+		expect(vm.dataLabels.map((label) => label.text)).toStrictEqual(
+			expect.arrayContaining(['A', 'B', 'A1', 'A2', 'B1', 'B2']),
+		);
+		for (const label of vm.dataLabels) {
+			expect(label.transform).toMatch(/^rotate\(/u);
+		}
+	});
+
+	it('paints every ring of the same top-level branch the SAME colour', () => {
+		const hierarchical: PptxChartData = {
+			chartType: 'sunburst',
+			categories: ['A1', 'A2', 'B1', 'B2'],
+			categoryLevels: [
+				['A1', 'A2', 'B1', 'B2'],
+				['A', 'A', 'B', 'B'],
+			],
+			series: [{ name: 'Size', values: [10, 30, 20, 40] }],
+		};
+		const vm = buildSunburstViewModel(
+			chartElement(hierarchical),
+			hierarchical,
+			hierarchical.categories,
+		);
+		const paths = vm.primitives.filter((primitive) => primitive.kind === 'path');
+		const byLabel = new Map(vm.dataLabels.map((label, index) => [label.text, paths[index]?.fill]));
+		// A1/A2's inner "A" wedge and outer wedges must all share one colour,
+		// and it must differ from B's.
+		expect(byLabel.get('A1')).toBe(byLabel.get('A'));
+		expect(byLabel.get('A2')).toBe(byLabel.get('A'));
+		expect(byLabel.get('B1')).toBe(byLabel.get('B'));
+		expect(byLabel.get('A')).not.toBe(byLabel.get('B'));
 	});
 });
 

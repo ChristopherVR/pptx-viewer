@@ -202,8 +202,16 @@ export interface TextStyle {
 	textOutlineWidth?: number;
 	/** Text outline colour as hex string (`a:rPr > a:ln > a:solidFill`). */
 	textOutlineColor?: string;
+	/** Text outline dash preset (`a:rPr > a:ln > a:prstDash/@val`), e.g. `dash`; absent for solid. */
+	textOutlineDash?: string;
 	/** When true, the text body has no fill (`a:rPr > a:noFill`), producing hollow/outline-only text. */
 	textFillNone?: boolean;
+	/**
+	 * When true, the run authored an EMPTY `<a:effectLst/>`: an explicit "no
+	 * effects" override that blocks an inherited shadow or glow. Kept so a
+	 * rewrite re-emits it instead of letting the inherited effect return.
+	 */
+	textEffectsExplicitNone?: boolean;
 	/** Superscript/subscript baseline shift as percentage (`a:rPr/@baseline`). Positive = super, negative = sub. */
 	baseline?: number;
 	/** Character spacing in hundredths of a point (`a:rPr/@spc`). */
@@ -237,6 +245,25 @@ export interface TextStyle {
 	textFillPatternForeground?: string;
 	/** Text-level pattern background colour. */
 	textFillPatternBackground?: string;
+	/**
+	 * Raw `a:rPr > a:blipFill` XML, preserved verbatim for round-trip
+	 * serialization AND as the input to the image resolution pass that fills
+	 * in {@link textFillBlipUrl} (parsing a run's fill happens synchronously,
+	 * with no zip/relationship access at that point; resolving the blip to a
+	 * displayable URL needs both, so it happens in a later async pass over
+	 * the slide's parsed elements, mirroring how a shape's OWN image fill is
+	 * resolved). A picture-filled text run (`a:rPr > a:blipFill`) was
+	 * documented as handled ("Handles gradient fills, pattern fills, and
+	 * image fills on text runs") but never actually parsed, so it silently
+	 * fell through to the run's plain `color` and rendered solid black
+	 * (COM-verified: `audit-text` slide 13's "PICTURE FILL" run shows the
+	 * fill image through the glyphs in PowerPoint).
+	 */
+	textFillBlipXml?: XmlObject;
+	/** Resolved displayable URL for {@link textFillBlipXml}, or the archive-relative path when unresolved (lazy decode). */
+	textFillBlipUrl?: string;
+	/** Tiling mode for {@link textFillBlipUrl} (`a:blipFill/a:tile` present -> 'tile', else 'stretch'). */
+	textFillBlipMode?: 'stretch' | 'tile';
 	hyperlink?: string;
 	/** Relationship ID for the hyperlink (`a:hlinkClick/@r:id`) — preserved for round-trip serialization. */
 	hyperlinkRId?: string;
@@ -329,6 +356,13 @@ export interface TextStyle {
 		position: number;
 		align: 'l' | 'ctr' | 'r' | 'dec';
 		leader?: 'none' | 'dot' | 'hyphen' | 'underscore';
+		/**
+		 * True when the source spelled out the schema-default `@algn="l"`, so the
+		 * writer re-emits it instead of treating it as an omitted default.
+		 */
+		alignAuthored?: boolean;
+		/** True when the source spelled out the schema-default `@leader="none"`. */
+		leaderAuthored?: boolean;
 	}>;
 	/**
 	 * True when the paragraph's own `a:pPr` authored an EMPTY `<a:tabLst/>`
@@ -548,6 +582,15 @@ export interface TextStyle {
 	textInnerShadowOffsetX?: number;
 	/** Text inner shadow vertical offset in px. */
 	textInnerShadowOffsetY?: number;
+	/**
+	 * Original inner-shadow colour-choice XML (`a:innerShdw`'s
+	 * `a:prstClr`/`a:schemeClr`/`a:srgbClr`/… child), preserved verbatim so an
+	 * authored preset or theme colour round-trips instead of always being
+	 * re-serialized as a resolved `a:srgbClr`. Mirrors {@link textGlowColorXml}.
+	 */
+	textInnerShadowColorXml?: XmlObject;
+	/** Theme colour slot the inner shadow colour resolved from, when it is `a:schemeClr`. */
+	textInnerShadowColorRef?: PptxThemeColorRef;
 
 	/** Preset shadow type from `a:prstShdw/@prst` (e.g. "shdw1"..."shdw20"). */
 	textPresetShadowName?: string;
@@ -562,6 +605,19 @@ export interface TextStyle {
 
 	/** Text blur effect radius in px (`a:blur`). */
 	textBlurRadius?: number;
+
+	/**
+	 * Text soft-edge radius in px (`a:softEdge/@rad`).
+	 *
+	 * Feathers the glyph's own edges (a uniform blur of the alpha silhouette,
+	 * the same effect a shape's `a:softEdge` gives its fill), unrelated to
+	 * `a:blur` (which blurs the whole run, colour included) or a shadow. Never
+	 * parsed before this field existed, so `a:softEdge` on a run was silently
+	 * dropped: PowerPoint fades the glyphs to near-transparent at their
+	 * outline (COM-verified, `audit-text` slide 14's "SOFTEDGE" run), while
+	 * the viewer painted them fully crisp.
+	 */
+	textSoftEdgeRadius?: number;
 
 	// ── Effect DAG properties (from `a:rPr/a:effectDag`) ──
 	// ECMA-376 §21.1.2.3.6 lists `a:effectDag` as a valid child of
@@ -708,6 +764,20 @@ export interface TextStyle {
 	 * convention used for {@link bulletInfo} / {@link endParaRunProperties}).
 	 */
 	paragraphDefaultRunPropertiesXml?: XmlObject;
+
+	/**
+	 * The bullet colour / size / typeface children (`a:buClrTx`, `a:buClr`,
+	 * `a:buSzTx`, `a:buSzPct`, `a:buSzPts`, `a:buFontTx`, `a:buFont`) a
+	 * paragraph authored in its own `<a:pPr>` WITHOUT a bullet type
+	 * (`a:buNone` / `a:buChar` / `a:buAutoNum` / `a:buBlip`), captured
+	 * verbatim in source order. Such a paragraph restyles an inherited bullet
+	 * rather than declaring one, so its {@link BulletInfo} resolves from the
+	 * cascade and is (correctly) not written back; without this capture the
+	 * paragraph's own override vanished on every rewrite.
+	 *
+	 * Only meaningful on a paragraph's own authored properties.
+	 */
+	paragraphBulletPropertiesXml?: XmlObject;
 }
 
 /**

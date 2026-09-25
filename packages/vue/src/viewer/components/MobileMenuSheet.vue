@@ -179,6 +179,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 						:format-painter-active="props.formatPainterActive"
 						:on-toggle-format-painter="props.onToggleFormatPainter"
 						:can-activate-format-painter="props.canActivateFormatPainter"
+						:hidden-actions="props.hiddenActions"
 					/>
 				</div>
 
@@ -211,6 +212,7 @@ const WRAP = 'flex flex-wrap items-center gap-2';
 					<AnimationsSection
 						:can-edit="props.canEdit"
 						:selected-element="props.selectedElement"
+						:active-slide="props.activeSlide"
 						:is-inspector-pane-open="props.isInspectorPaneOpen"
 						:on-toggle-inspector="props.onToggleInspector"
 						:on-open-animation-panel="props.onOpenAnimationPanel"
