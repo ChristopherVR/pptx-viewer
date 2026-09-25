@@ -97,7 +97,11 @@ export const EXIT_PRESET_TO_OOXML: Record<string, OoxmlPresetMapping> = {
 	peekOut: { presetClass: 'exit', presetId: 16, defaultSubtype: 0 },
 	splitOut: { presetClass: 'exit', presetId: 17, defaultSubtype: 0 },
 	collapseOut: { presetClass: 'exit', presetId: 18, defaultSubtype: 0 },
-	stripsOut: { presetClass: 'exit', presetId: 19, defaultSubtype: 0 },
+	// exit.18 verified via COM: `msoAnimEffectStrips` with `Effect.Exit = True`
+	// re-emits presetID 18 (the same id as the entrance), presetSubtype 12,
+	// `filter="strips(downLeft)"`. This previously pointed at 19, which COM
+	// shows is Swivel's exit form (`msoAnimEffectSwivel`).
+	stripsOut: { presetClass: 'exit', presetId: 18, defaultSubtype: 12 },
 	wedgeOut: { presetClass: 'exit', presetId: 20, defaultSubtype: 0 },
 	wheelOut: { presetClass: 'exit', presetId: 21, defaultSubtype: 1 },
 	randomEffectsOut: { presetClass: 'exit', presetId: 24, defaultSubtype: 0 },
@@ -179,6 +183,9 @@ export const EXIT_CANONICAL: ReadonlyArray<[number, string]> = [
 	// `filter="wipe(down)"`. Not named `peekOut` here for the same
 	// non-collision reason.
 	[12, 'peekOutDown'],
+	// exit.18 is Strips (COM-verified, see `EXIT_PRESET_TO_OOXML.stripsOut`);
+	// `collapseOut` is a pre-existing alias with no PowerPoint counterpart.
+	[18, 'stripsOut'],
 	[22, 'wipeOut'],
 	[23, 'zoomOut'],
 	// exit.26/37 verified via a fresh COM pass: `msoAnimEffectBounce` with
