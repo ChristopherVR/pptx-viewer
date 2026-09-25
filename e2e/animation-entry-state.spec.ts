@@ -181,8 +181,9 @@ test.describe('slide-entry animation state (issue #132 deck)', () => {
 		const stripe = (await probeStripe())!;
 
 		// Direction: wipe(up) = reveal grows from the TOP edge, which the
-		// mask encodes as a to-bottom hard-stop gradient.
-		expect(stripe.mask).toContain('linear-gradient(to bottom');
+		// mask encodes as a to-bottom hard-stop gradient (`to bottom` is the
+		// default direction, so the computed value omits it).
+		expect(stripe.mask).toMatch(/linear-gradient\((to bottom, )?rgb\(0, 0, 0\) 50%/u);
 		// The blob regression: the reveal must never replace the element's own
 		// geometry clip-path. Mid-animation the parallelogram outline is still
 		// clipping (a path/polygon, not 'none'), while the mask does the reveal.
