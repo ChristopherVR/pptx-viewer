@@ -98,15 +98,15 @@ the interpreter found and fixed six real, previously-unknown bugs:
    arranger-declared entries only. See that function's doc comment for the
    measured numbers.
 
-**`smartart-gallery-ground-truth.test.ts` still fails for 132 of the 229
+**`smartart-gallery-ground-truth.test.ts` still fails for 116 of the 229
 fixtures against the full acceptance gate** (same shape count, preset, font
 size, and geometry within 1% of bounding size). Measured via
 `bun run scripts/gen-smartart-gallery-baseline.ts` (re-measured 2026-09-25,
-after the tenth wave at the end of this section): 228/229 fixtures have
-matching text-bearing shape counts; 126 are within 1% geometry deviation, 161
-within 5%, 171 within 10%, and 217 within 50%; 222 match every preset, 114
-every font size, and 97 pass the full gate (2026-09-24: 97, 128, 137, 194,
-212, 24 and 11).
+after the eleventh wave at the end of this section): 228/229 fixtures have
+matching text-bearing shape counts; 143 are within 1% geometry deviation, 181
+within 5%, 191 within 10%, and 226 within 50%; 224 match every preset, 129
+every font size, and 113 pass the full gate (after the tenth wave: 126, 161,
+171, 217, 222, 114 and 97; 2026-09-24: 97, 128, 137, 194, 212, 24 and 11).
 Three fixtures fail structurally before geometry is compared (one
 pre-existing, two a side effect of the eighth wave's own fix - see that
 wave's paragraph; a second pre-existing one, `segmented-process--hier5`, was
@@ -366,7 +366,7 @@ a geometry tie on font matches. The allowlist grew from 99 to 131 layouts.
   empty placeholder before real text still draws (the dot-list layouts, now
   0.0012-0.0019).
 
-Still open after it: nodes sized by their own text (Vertical Bullet List,
+Still open after the tenth wave (the eleventh below closed the first three): nodes sized by their own text (Vertical Bullet List,
 Vertical Box List, Horizontal Bullet List, Basic Chevron Process, Sub-Step
 Process, all still legacy), org-chart assistants, Name and Title / Half
 Circle Organization Chart, the labelled and table hierarchies, and Meet the
@@ -376,6 +376,31 @@ reached through offsetting errors in the legacy interpreter
 moved engine-first and exact again, `vertical-bullet-list--hier5`, and
 `organization-chart--hier5`, where PowerPoint picks 33pt although COM shows
 the longest label wrapping to two fitting lines at 34pt).
+
+An eleventh wave (2026-09-25, later) closed three of those, each step
+re-measured with `gen-smartart-gallery-baseline.ts --compare` (no fixture left
+the 1% band) and `measure-smartart-engine-vs-legacy.ts` (allowlist 131 -> 143,
+rewritten by `scripts/update-smartart-allowlist.ts`):
+
+- Text-driven sizing: the node owning a `primFontSz` rule searches whole
+  points until every text fits its (grown) box, with font-relative lengths
+  resolved at the candidate size and `h val="INF"` rule nodes grown to their
+  text. Vertical Bullet List, Vertical Box List and Horizontal Bullet List
+  0.0019, Basic Chevron Process 0.0075, Sub-Step Process 0.0281, all
+  engine-first.
+- Org-chart assistants: a band one `sp` below the manager, paired either side
+  of its centre line, left first; per-node `hierBranch` from the presentation
+  points. All 21 corpus org charts with assistants within 0.0017 (new COM
+  fixture `corpus/smartart-orgchart-assistants.pptx`: 1, 3 and 4 assistants).
+- Rule-shrunk grids: a snake whose `dgm:rule type="w"` shrinks growing cells
+  bisects with five probes, EMU-exact on Meet the Team (now 5/6 within 1%,
+  hier8 0.0496); a lin its flow reference cannot shorten shrinks both axes
+  (Process List 0.8762 -> 0.0012).
+
+Still open after it: Meet the Team hier8, the bold name font (no Aptos Bold
+metrics), Name and Title Organization Chart, the labelled and table
+hierarchies, Circle Picture Hierarchy, horizontal org charts with assistants,
+and three fixtures beyond 50% (Arrow Ribbon, Balance, Varying Width List).
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
