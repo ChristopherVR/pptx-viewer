@@ -290,4 +290,10 @@ export interface RibbonSelectionState {
 	recentColors?: readonly string[];
 	/** The deck's resolved theme colour map, feeding the font-colour "Theme Colors" grid. */
 	themeColorMap?: Record<string, string>;
+	/** Shared `canMergeShapes` over the selection (Home > Arrange > Merge Shapes). */
+	canMergeShapes?: boolean;
+	/** A single croppable picture is selected (Home > Arrange > Crop). */
+	canCrop?: boolean;
+	/** Picture crop mode is on (the Crop toggle's pressed state). */
+	cropActive?: boolean;
 }

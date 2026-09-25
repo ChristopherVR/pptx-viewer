@@ -3,7 +3,7 @@
    merging them isn't a style choice here. */
 import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
 import { buildThemeColorMap } from 'pptx-viewer-core';
-import { canInteractWithElement } from 'pptx-viewer-shared';
+import { canCropElement, canInteractWithElement, canMergeShapes } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -24,6 +24,14 @@ function resolveSelectionGroupable(state: ViewerState): boolean {
 	return state.selectedElementIds.every((id) =>
 		canInteractWithElement(active.find((element) => element.id === id) ?? null, 'group'),
 	);
+}
+
+/** The selected elements in selection order (Merge Shapes keeps the first one's format). */
+function selectedElements(state: ViewerState): PptxElement[] {
+	const active = getActiveElements(state);
+	return state.selectedElementIds
+		.map((id) => active.find((element) => element.id === id))
+		.filter((element): element is PptxElement => element !== undefined);
 }
 
 /**
@@ -120,6 +128,9 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			customFontFamilies: state.customFontFamilies,
 			recentColors: currentRecentColors(state),
 			themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
+			canMergeShapes: editingVisible && canMergeShapes(selectedElements(state)),
+			canCrop: state.selectedElementIds.length === 1 && canCropElement(el),
+			cropActive: state.cropSession !== null,
 		});
 		ribbon?.setDrawState({
 			tool: state.drawTool,

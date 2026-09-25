@@ -27,6 +27,8 @@ import type { ClipboardActions } from './editor-clipboard-actions';
 import { createClipboardActions } from './editor-clipboard-actions';
 import type { CommentActions } from './editor-comment-actions';
 import { createCommentActions } from './editor-comment-actions';
+import type { CropActions } from './editor-crop-actions';
+import { createCropActions } from './editor-crop-actions';
 import type { DeckActions } from './editor-deck-actions';
 import { createDeckActions } from './editor-deck-actions';
 import { patchShapeStyle } from './editor-format-mutations';
@@ -47,6 +49,8 @@ import type { InspectorActions } from './editor-inspector-actions';
 import { createInspectorActions } from './editor-inspector-actions';
 import type { MasterViewCrudActions } from './editor-master-view-crud-actions';
 import { createMasterViewCrudActions } from './editor-master-view-crud-actions';
+import type { MergeActions } from './editor-merge-actions';
+import { createMergeActions } from './editor-merge-actions';
 import type { EditorOps } from './editor-operations';
 import { recordRecentColor } from './editor-recent-colors';
 import type { SectionActions } from './editor-section-actions';
@@ -88,7 +92,9 @@ export interface EditActions
 		AnimationActions,
 		InspectorActions,
 		InkActions,
-		DeckActions {
+		DeckActions,
+		MergeActions,
+		CropActions {
 	/** Slide section CRUD and ordering actions. */
 	sections: SectionActions;
 	/** Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename Layout/Master). */
@@ -189,6 +195,8 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createInspectorActions(applyToSelected),
 		...createInkActions({ store, ops }),
 		...createDeckActions({ store, ops, getHandler: deps.getHandler }),
+		...createMergeActions({ store, ops }),
+		...createCropActions({ doc, store, ops }),
 		sections: createSectionActions(store, ops),
 		masterView: createMasterViewCrudActions({
 			doc,

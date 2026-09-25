@@ -14,7 +14,11 @@
  */
 import type { PptxElement } from 'pptx-viewer-core';
 import type { ContextMenuCommandId, ContextMenuTableContext } from 'pptx-viewer-shared';
-import { contextMenuInspectorAnchor, hasMultipleSelectedTableCells } from 'pptx-viewer-shared';
+import {
+	contextMenuInspectorAnchor,
+	hasMultipleSelectedTableCells,
+	mergeOperationForCommand,
+} from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import type { TableCellPosition } from '../editor/table-editor-mutations';
@@ -113,6 +117,10 @@ export function runContextMenuCommand(
 ): void {
 	const actions = deps.getEditActions();
 	const cell = table?.cell ?? null;
+	const mergeOperation = mergeOperationForCommand(id);
+	if (mergeOperation) {
+		return actions.mergeShapes(mergeOperation);
+	}
 	switch (id) {
 		case 'copy':
 			return actions.copy();
@@ -136,6 +144,8 @@ export function runContextMenuCommand(
 			return actions.groupSelected();
 		case 'ungroup':
 			return actions.ungroupSelected();
+		case 'crop':
+			return actions.enterCropMode();
 		case 'comment':
 			return deps.openComments();
 		case 'hyperlink':

@@ -26,6 +26,7 @@ import type {
 import type {
 	CanvasSize,
 	CompatibilityWarningToast,
+	CropSession,
 	ElementClipboardPayload,
 	FreeformToolKind,
 	InlineTextSelection,
@@ -288,6 +289,11 @@ export interface ViewerState {
 	showGuides: boolean;
 	guides: Guide[];
 	eyedropperActive: boolean;
+	/**
+	 * The on-canvas picture crop session (Picture Format > Crop), or null when
+	 * crop mode is off. Holds the pre-crop snapshot Escape restores.
+	 */
+	cropSession: CropSession | null;
 	spellCheckEnabled: boolean;
 	/**
 	 * Whether the loaded deck recommends opening read-only (`p:modifyVerifier`
@@ -418,6 +424,7 @@ export function createInitialViewerState(): ViewerState {
 		showGuides: true,
 		guides: [],
 		eyedropperActive: false,
+		cropSession: null,
 		spellCheckEnabled: false,
 		readOnlyRecommendation: null,
 		readOnlyBannerDismissed: false,

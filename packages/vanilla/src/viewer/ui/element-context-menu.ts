@@ -15,7 +15,9 @@
  */
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	canInteractWithElement,
+	canMergeShapes,
 	clampFlyoutPosition,
 	customizeContextMenuEntries,
 	EMPTY_RESOLVED_CUSTOMIZATION,
@@ -212,6 +214,11 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 				// Offered only when the host wired Edit Points in (greyed for a
 				// `noEditPoints` lock by the shared builder).
 				editPoints: deps.startEditPoints ? resolveEditPointsAvailability(element) : undefined,
+				// Merge Shapes reads the selection in SELECTION order.
+				canMergeShapes: canMergeShapes(
+					next.selectedElementIds.map((selectedId) => findActiveElement(next, selectedId)),
+				),
+				canCrop: canCropElement(element),
 			}),
 			customization,
 		);

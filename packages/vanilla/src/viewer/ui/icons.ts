@@ -132,7 +132,10 @@ export type IconName =
 	| 'arrow-left-right'
 	// Chart quick-actions (Elements/Styles/Filters), see chart-quick-actions-overlay.ts.
 	| 'paintbrush'
-	| 'filter';
+	| 'filter'
+	// Home > Arrange: Merge Shapes and picture Crop.
+	| 'merge-shapes'
+	| 'crop';
 
 const ICON_PATHS: Record<IconName, string[]> = {
 	'chevron-left': ['M15 18l-6-6 6-6'],
@@ -402,6 +405,8 @@ const ICON_PATHS: Record<IconName, string[]> = {
 	filter: [
 		'M10 20a1 1 0 0 0 .553.895l2 1A1 1 0 0 0 14 21v-7a2 2 0 0 1 .517-1.341L21.74 4.67A1 1 0 0 0 21 3H3a1 1 0 0 0-.742 1.67l7.225 7.989A2 2 0 0 1 10 14z',
 	],
+	'merge-shapes': ['M3 3h12v12H3z', 'M9 9h12v12H9z'],
+	crop: ['M6 2v14a2 2 0 0 0 2 2h14', 'M18 22V8a2 2 0 0 0-2-2H2'],
 };
 
 const SVG_NS = 'http://www.w3.org/2000/svg';

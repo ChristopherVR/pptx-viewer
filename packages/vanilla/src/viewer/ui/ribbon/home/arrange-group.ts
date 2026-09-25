@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { AlignEdge } from 'pptx-viewer-shared';
+import type { AlignEdge, ToolbarActionId } from 'pptx-viewer-shared';
 import { ALIGNMENT_LABEL_KEYS } from 'pptx-viewer-shared/i18n';
 
 import type { Translator } from '../../../i18n';
@@ -8,8 +8,10 @@ import { makeButton } from '../../controls';
 import type { IconName } from '../../icons';
 import type { ArrangeExtrasHandlers } from './arrange-extras';
 import { createArrangeExtras } from './arrange-extras';
+import type { MergeCropHandlers } from './merge-crop-controls';
+import { createMergeCropControls } from './merge-crop-controls';
 
-export interface ArrangeGroupHandlers extends ArrangeExtrasHandlers {
+export interface ArrangeGroupHandlers extends ArrangeExtrasHandlers, MergeCropHandlers {
 	bringForward(): void;
 	sendBackward(): void;
 	bringToFront(): void;
@@ -31,6 +33,12 @@ export interface ArrangeGroupState {
 	/** Whether every selected element allows `a:spLocks/@noGrp` grouping. */
 	selectionGroupable: boolean;
 	selectedElement: PptxElement | undefined;
+	/** Shared `canMergeShapes` over the selection (Merge Shapes). */
+	canMergeShapes?: boolean;
+	/** A single croppable picture is selected (Crop). */
+	canCrop?: boolean;
+	/** Picture crop mode is on. */
+	cropActive?: boolean;
 }
 
 export interface ArrangeGroup {
@@ -68,6 +76,7 @@ export function createArrangeGroup(
 	doc: Document,
 	t: Translator,
 	handlers: ArrangeGroupHandlers,
+	hiddenActions?: readonly ToolbarActionId[],
 ): ArrangeGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
@@ -150,6 +159,7 @@ export function createArrangeGroup(
 	});
 
 	const extras = createArrangeExtras(doc, t, handlers);
+	const mergeCrop = createMergeCropControls(doc, t, handlers, hiddenActions);
 
 	row.append(
 		...alignButtons.map((b) => b.btn),
@@ -159,6 +169,7 @@ export function createArrangeGroup(
 		flipH.btn,
 		flipV.btn,
 		extras.el,
+		mergeCrop.el,
 		backward.btn,
 		forward.btn,
 		back.btn,
@@ -176,6 +187,9 @@ export function createArrangeGroup(
 			selectedCount,
 			selectionGroupable,
 			selectedElement,
+			canMergeShapes = false,
+			canCrop = false,
+			cropActive = false,
 		}) {
 			const canMut = editable && hasSelection;
 			for (const b of [
@@ -192,6 +206,7 @@ export function createArrangeGroup(
 				b.setDisabled(!canMut);
 			}
 			extras.update({ editable, selectedCount, selectionGroupable, selectedElement });
+			mergeCrop.update({ editable, canMergeShapes, canCrop, cropActive });
 			painter.setDisabled(!editable || (!hasSelection && !formatPainterActive));
 			painter.btn.dataset.active = String(formatPainterActive);
 			distributeH.setDisabled(!editable || selectedCount < MIN_DISTRIBUTE_SELECTION);

@@ -40,6 +40,7 @@ import { createChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import type { ChartQuickActionsOverlay } from './chart-quick-actions-overlay';
 import { createConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import type { ConnectorEndpointOverlay } from './connector-endpoint-overlay';
+import { createCropModeController } from './crop-mode-controller';
 import { createEditingChromeSync } from './editing-chrome-sync';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
 import { selectionOverlayBox } from './editor-controller-overlay';
@@ -396,18 +397,31 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		insertElement: (element) => editActions.insertElement(element),
 	});
 
+	// Picture crop mode's on-canvas overlay; like the motion path it lives
+	// inside the stage transform and re-mounts after every stage rebuild.
+	const cropMode = createCropModeController({
+		doc,
+		store,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		getStageWrap: () => attachedWrap,
+		actions: editActions,
+	});
+
 	const syncOverlay = (): void => {
 		// The format toolbar + inspector track selection even before the overlay
 		// layer is mounted, so refresh them regardless of the overlay guard.
 		syncEditingChrome();
 		motionPath.sync();
 		outlineAuthoring.sync();
+		cropMode.sync();
 		if (!overlay) {
 			return;
 		}
 		const state = store.get();
+		// Crop mode replaces the selection chrome with its own crop handles.
 		const selected =
-			state.editable && !state.presenting
+			state.editable && !state.presenting && !state.cropSession
 				? getActiveElements(state).filter(
 						(element) =>
 							state.selectedElementIds.includes(element.id) &&
@@ -420,7 +434,10 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		// `noResize` shape shows no resize handles, a `noRotation` one no knob.
 		const allowed = selectionInteractivity(state);
 		overlay.setHandleVisibility({ resizable: allowed.resizable, rotatable: allowed.rotatable });
-		overlay.setAdjustHandles(selectedAdjustmentDescriptors(state), deps.getScale());
+		overlay.setAdjustHandles(
+			state.cropSession ? [] : selectedAdjustmentDescriptors(state),
+			deps.getScale(),
+		);
 		connectorEndpoints?.sync();
 		chartQuickActions?.sync();
 		// View > Guides hides the overlay, never the model: `state.guides` stays
@@ -568,6 +585,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		chartQuickActions = null;
 		motionPath.detach();
 		outlineAuthoring.detach();
+		cropMode.detach();
 	};
 
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
@@ -651,6 +669,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			motionPath.attach();
 			attachedWrap = chrome.stageWrap;
 			attachedRoot = chrome.root;
+			cropMode.attach(attachedRoot);
 			detachImagePaste = attachCanvasImagePaste(attachedRoot, attachedWrap, {
 				store,
 				getHandler: deps.getHandler,
@@ -680,6 +699,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		hasActivePointerInteraction: () =>
 			interactions.hasActivePointerInteraction() ||
 			drawMode.isActive() ||
+			cropMode.isDragging() ||
 			Boolean(connectorEndpoints?.isActive()),
 		capturesKeyboard() {
 			const state = store.get();
@@ -698,6 +718,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				editPointsElementId: null,
 				freeformTool: null,
 				formatPainterSourceId: null,
+				cropSession: null,
 				editTemplateMode: false,
 				masterViewTarget: null,
 				masterViewTab: 'slides',
@@ -774,6 +795,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		destroy() {
 			unsubscribe();
+			cropMode.destroy();
 			interactions.dispose();
 			drawMode.dispose();
 			detachChrome();
