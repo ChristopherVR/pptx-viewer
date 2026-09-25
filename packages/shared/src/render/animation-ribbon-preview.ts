@@ -27,6 +27,7 @@ import type { PptxElementAnimation } from 'pptx-viewer-core';
 
 import type { AnimationPreviewDescriptor } from './animation-preview';
 import { buildPreviewAnimation } from './animation-preview';
+import { measurePreviewGeometry } from './animation-preview-behavior';
 import { findCanvasElementNode } from './canvas-element-node';
 import { buildMotionPathPreview } from './motion-path-authoring';
 
@@ -68,6 +69,8 @@ export function buildAnimationRibbonPreview(
 		direction: animation.direction,
 		durationMs: animation.durationMs,
 		timingCurve: animation.timingCurve,
+		// PowerPoint's own tree for the preset, measured against the stage.
+		geometry: measurePreviewGeometry(target),
 	});
 }
 
