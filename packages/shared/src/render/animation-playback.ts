@@ -42,7 +42,12 @@ export interface AnimationClickGroup {
  * (`withPrevious`, `afterPrevious`, `afterDelay`) folds into the current group.
  */
 function startsNewGroup(trigger: PptxAnimationTrigger | undefined): boolean {
-	return trigger === 'onClick' || trigger === 'onShapeClick' || trigger === 'onHover';
+	return (
+		trigger === 'onClick' ||
+		trigger === 'onShapeClick' ||
+		trigger === 'onHover' ||
+		trigger === 'onMediaBookmark'
+	);
 }
 
 /**

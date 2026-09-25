@@ -106,6 +106,9 @@ export const TRIGGER_VALUES: readonly PptxAnimationTrigger[] = [
 	'afterPrevious',
 	'withPrevious',
 	'afterDelay',
+	// "On bookmark": starts when a media element reaches a bookmark. Pairs with
+	// the bookmark picker from `animation-bookmark-trigger`.
+	'onMediaBookmark',
 ];
 
 /**
@@ -324,13 +327,28 @@ export function setTrigger(
 	elementId: string,
 	trigger: PptxAnimationTrigger,
 ): PptxElementAnimation[] {
-	return upsert(anims, elementId, (cur) => {
-		const next: PptxElementAnimation = { ...cur, trigger };
-		if (trigger !== 'onShapeClick') {
-			next.triggerShapeId = undefined;
-		}
-		return next;
-	});
+	return upsert(anims, elementId, (cur) => ({ ...cur, ...triggerChangePatch(cur, trigger) }));
+}
+
+/**
+ * The fields a trigger change sets on one animation entry. The trigger target
+ * (the clicked shape, or the media element and its bookmark) only means
+ * something for the trigger that chose it, so it is cleared unless the same
+ * interactive trigger is picked again. For bindings that patch one entry.
+ */
+export function triggerChangePatch(
+	current: PptxElementAnimation | undefined,
+	trigger: PptxAnimationTrigger,
+): Pick<PptxElementAnimation, 'trigger' | 'triggerShapeId' | 'triggerBookmark'> {
+	const keepsTarget =
+		trigger === current?.trigger && (trigger === 'onShapeClick' || trigger === 'onMediaBookmark');
+	return keepsTarget
+		? {
+				trigger,
+				triggerShapeId: current?.triggerShapeId,
+				triggerBookmark: current?.triggerBookmark,
+			}
+		: { trigger, triggerShapeId: undefined, triggerBookmark: undefined };
 }
 
 /**

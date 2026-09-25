@@ -1108,6 +1108,10 @@ export const translationsEn: Record<string, string> = {
 	'pptx.animation.trigger': 'Trigger',
 	'pptx.animation.trigger.selectShape': 'Select a shape',
 	'pptx.animation.trigger.shapeLabel': 'Trigger shape',
+	'pptx.animation.trigger.onMediaBookmark': 'On bookmark',
+	'pptx.animation.trigger.bookmarkLabel': 'Bookmark',
+	'pptx.animation.trigger.selectBookmark': 'Select a bookmark',
+	'pptx.animation.trigger.noBookmarks': 'No media bookmarks on this slide',
 
 	// Chart (additions)
 	'pptx.chart.heading': 'Chart',

@@ -369,6 +369,7 @@ export * from './animation-css';
 // `animation-css` for the preset → CSS keyframe mapping. The stateful hooks /
 // services / RAF loops stay in each binding.
 export * from './animation-authoring';
+export * from './animation-bookmark-trigger';
 // Merges `animations[]` with the deck's own read-only effect anchors into one
 // draggable timeline, so drag-to-reorder can target the FULL sequence
 // (editor-authored AND deck-native effects), not just the editor's own.
