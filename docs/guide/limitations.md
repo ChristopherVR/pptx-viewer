@@ -68,7 +68,7 @@ A September 2026 audit against real PowerPoint found these gaps that are still o
 - **Charts:** waterfall colours and legend, pie-of-pie, data-label callouts, display-unit labels and chart-area gradient fills are approximate.
 - **Animations and transitions:** the Zoom transition's direction, authoring a trigger on a media bookmark, and the exact shape of the `p14:bounceEnd` settle curve are not yet matched to PowerPoint.
 - **3D models** ignore the camera, transform and lights authored in PowerPoint.
-- **Editor coverage** is a subset of PowerPoint's: Edit Points, Merge Shapes, on-canvas crop handles and several ribbon galleries are not available yet. Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
+- **Editor coverage** is a subset of PowerPoint's: Merge Shapes, on-canvas crop handles and several ribbon galleries are not available yet. Edit Points (with the Freeform: Shape and Curve drawing tools), Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
 
 ## EMF/WMF metafiles (`emf-converter` dependency)
 
