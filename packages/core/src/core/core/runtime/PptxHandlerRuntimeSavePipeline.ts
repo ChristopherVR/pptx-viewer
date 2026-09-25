@@ -5,6 +5,7 @@ import { persistModernCommentPackage } from '../../utils/modern-comment-package'
 import { PptxSaveStateBuilder } from '../builders';
 import { createPptxSaveConstants } from '../factories';
 import type { PptxHandlerSaveOptions } from '../types';
+import { shouldKeepSourceCommentAuthors } from './comment-authors-retention';
 import { applyHeaderFooterToMaster } from './header-footer-parts';
 import { slidesPerPageToPrintOutput } from './pptx-print-properties';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveStructuralIds';
@@ -106,8 +107,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		// Comment authors
-		const hasCommentAuthors = saveSession.hasUsedCommentAuthors();
-		if (hasCommentAuthors) {
+		const hasUsedCommentAuthors = saveSession.hasUsedCommentAuthors();
+		const keepSourceAuthors = shouldKeepSourceCommentAuthors({
+			hasUsedCommentAuthors,
+			authorsPartPresent: this.zip.file('ppt/commentAuthors.xml') !== null,
+			existingLegacyCommentPartCount: saveSession.getExistingCommentPaths().size,
+		});
+		// A kept source part (left exactly as loaded, with its relationship)
+		// still needs its content-type override.
+		const hasCommentAuthors = hasUsedCommentAuthors || keepSourceAuthors;
+		if (hasUsedCommentAuthors) {
 			this.zip.file(
 				'ppt/commentAuthors.xml',
 				this.builder.build(
@@ -117,7 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					}),
 				),
 			);
-		} else {
+		} else if (!keepSourceAuthors) {
 			this.zip.remove('ppt/commentAuthors.xml');
 			// Strip the matching Relationship from presentation.xml.rels; otherwise
 			// the dangling reference causes PowerPoint to flag the file as corrupted

@@ -49,26 +49,80 @@ async function buildPptxWithOrphanableCommentAuthors(): Promise<ArrayBuffer> {
 	return zip.generateAsync({ type: 'arraybuffer' });
 }
 
-describe('commentAuthors orphan relationship cleanup', () => {
-	it('removes both commentAuthors.xml and its presentation.xml.rels Relationship when no comments are active', async () => {
-		const inputBytes = await buildPptxWithOrphanableCommentAuthors();
+/**
+ * The part, its presentation relationship and its content-type override must
+ * always travel together: a relationship left behind by a removed part makes
+ * PowerPoint prompt for repair.
+ */
+async function authorPackageState(bytes: Uint8Array | ArrayBuffer): Promise<{
+	part: string | undefined;
+	rel: boolean;
+	override: boolean;
+}> {
+	const zip = await JSZip.loadAsync(bytes);
+	const rels = await zip.file('ppt/_rels/presentation.xml.rels')!.async('string');
+	const contentTypes = await zip.file('[Content_Types].xml')!.async('string');
+	return {
+		part: await zip.file('ppt/commentAuthors.xml')?.async('string'),
+		rel: rels.includes(COMMENT_AUTHORS_REL_TYPE) && rels.includes('commentAuthors.xml'),
+		override: contentTypes.includes('/ppt/commentAuthors.xml'),
+	};
+}
 
-		const inputZip = await JSZip.loadAsync(inputBytes);
-		expect(inputZip.file('ppt/commentAuthors.xml')).not.toBeNull();
-		await expect(
-			inputZip.file('ppt/_rels/presentation.xml.rels')!.async('string'),
-		).resolves.toContain(COMMENT_AUTHORS_REL_TYPE);
+describe('commentAuthors part, relationship and override stay consistent', () => {
+	it('keeps an author list the source shipped without comments, with its rel and override', async () => {
+		const inputBytes = await buildPptxWithOrphanableCommentAuthors();
+		const before = await authorPackageState(inputBytes);
+		expect(before.part).toContain('name="Alice"');
+		expect(before.rel).toBeTruthy();
+		expect(before.override).toBeTruthy();
 
 		const handler = new PptxHandler();
 		const data = await handler.load(inputBytes);
-		const savedBytes = await handler.save(data.slides);
+		for (const slide of data.slides) {
+			slide.isDirty = true;
+		}
+		const after = await authorPackageState(await handler.save(data.slides));
 
-		const savedZip = await JSZip.loadAsync(savedBytes);
+		// Nothing this session deleted the authors: all three survive untouched.
+		expect(after).toStrictEqual(before);
+	});
 
-		expect(savedZip.file('ppt/commentAuthors.xml')).toBeNull();
+	it('keeps an empty <p:cmAuthorLst/> the source shipped', async () => {
+		const inputBytes = await buildPptxWithOrphanableCommentAuthors();
+		const zip = await JSZip.loadAsync(inputBytes);
+		const emptyList = `<?xml version="1.0" encoding="UTF-8"?>\n<p:cmAuthorLst xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"/>`;
+		zip.file('ppt/commentAuthors.xml', emptyList);
+		const bytes = await zip.generateAsync({ type: 'uint8array' });
 
-		const savedRels = await savedZip.file('ppt/_rels/presentation.xml.rels')!.async('string');
-		expect(savedRels).not.toContain(COMMENT_AUTHORS_REL_TYPE);
-		expect(savedRels).not.toContain('commentAuthors.xml');
+		const handler = new PptxHandler();
+		const data = await handler.load(
+			bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength) as ArrayBuffer,
+		);
+		data.slides[0]!.isDirty = true;
+		const after = await authorPackageState(await handler.save(data.slides));
+
+		expect(after).toStrictEqual({ part: emptyList, rel: true, override: true });
+	});
+
+	it('removes all three once the last comment is deleted this session', async () => {
+		const { handler, data, createSlide } = await PresentationBuilder.create();
+		const slide = createSlide('Blank').build();
+		slide.comments = [{ id: '0', author: 'Alice', text: 'Remove me' }];
+		data.slides.push(slide);
+		const withComment = await handler.save(data.slides);
+
+		const reloaded = new PptxHandler();
+		const loaded = await reloaded.load(
+			withComment.buffer.slice(
+				withComment.byteOffset,
+				withComment.byteOffset + withComment.byteLength,
+			) as ArrayBuffer,
+		);
+		loaded.slides[0]!.comments = [];
+		loaded.slides[0]!.isDirty = true;
+		const after = await authorPackageState(await reloaded.save(loaded.slides));
+
+		expect(after).toStrictEqual({ part: undefined, rel: false, override: false });
 	});
 });
