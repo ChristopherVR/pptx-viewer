@@ -3,14 +3,15 @@
  * `RibbonGalleryContext` from the editor's live selection and deck, asks
  * shared for descriptors, and dispatches a pick's `RibbonGalleryApplyResult`
  * onto this binding's existing update paths (the undoable element patch the
- * inspector uses, and the theme editor's scheme path). Every decision about
+ * inspector uses, and the theme editor's scheme path). Design > Browse Themes
+ * and Edit Theme reach the presentation theme through the same host. Every decision about
  * WHAT a gallery offers lives in `pptx-viewer-shared`.
  *
  * Published to the ribbon subtree through Svelte context so every tab (Home,
  * Design and the contextual tabs) reaches the same host without prop
  * threading.
  */
-import type { PptxTheme, XmlObject } from 'pptx-viewer-core';
+import type { PptxTheme, PptxThemePreset, XmlObject } from 'pptx-viewer-core';
 import { THEME_PRESETS } from 'pptx-viewer-core';
 import { applyRibbonGalleryItem, buildRibbonGallery } from 'pptx-viewer-shared';
 import type {
@@ -22,7 +23,11 @@ import type {
 import { getContext, setContext } from 'svelte';
 
 import type { EditorState } from '../../../editor/editor-state.svelte';
-import { applyThemeColorScheme, applyThemeFontScheme } from '../../../editor/editor-theme-scheme';
+import {
+	applyThemeColorScheme,
+	applyThemeFontScheme,
+	applyThemePreset,
+} from '../../../editor/editor-theme-scheme';
 
 export interface RibbonGalleryHost {
 	/** The context shared galleries read; reading it inside `$derived` tracks the editor. */
@@ -30,6 +35,10 @@ export interface RibbonGalleryHost {
 	build(id: RibbonGalleryId): RibbonGalleryDescriptor;
 	/** Apply tile `itemId` of gallery `id` to the selection / deck. */
 	apply(id: RibbonGalleryId, itemId: string): Promise<void>;
+	/** Design > Browse Themes: re-theme the presentation with `preset` (undoable). */
+	applyThemePreset(preset: PptxThemePreset): Promise<void>;
+	/** Publish a new presentation theme (Design > Edit Theme's editor calls this). */
+	publishTheme(theme: PptxTheme): void;
 }
 
 /** Build the host over `editor`; `onthemechange` publishes a new presentation theme. */
@@ -67,6 +76,10 @@ export function createRibbonGalleryHost(
 			result.kind === 'themeColorScheme'
 				? await applyThemeColorScheme(editor, handler, current, result.colorScheme)
 				: await applyThemeFontScheme(handler, current, result.fontScheme);
+		publishTheme(next);
+	}
+
+	function publishTheme(next: PptxTheme): void {
 		editor.theme = next;
 		onthemechange?.(next);
 	}
@@ -80,6 +93,14 @@ export function createRibbonGalleryHost(
 				await dispatch(result);
 			}
 		},
+		applyThemePreset: async (preset) => {
+			const handler = editor.getHandler();
+			if (!handler || !editor.editable) {
+				return;
+			}
+			publishTheme(await applyThemePreset(editor, handler, editor.theme, preset));
+		},
+		publishTheme,
 	};
 }
 

@@ -48,12 +48,7 @@
 	{:else if tab === 'draw'}
 		<DrawTab editor={ribbon.editor} />
 	{:else if tab === 'design'}
-		<DesignTab
-			editor={ribbon.editor}
-			theme={ribbon.theme}
-			onsettheme={ribbon.onsettheme}
-			{onslidesize}
-		/>
+		<DesignTab editor={ribbon.editor} {onslidesize} />
 	{:else if tab === 'transitions'}
 		<TransitionsTab editor={ribbon.editor} chromeUi={ribbon.chromeUi} />
 	{:else if tab === 'animations'}

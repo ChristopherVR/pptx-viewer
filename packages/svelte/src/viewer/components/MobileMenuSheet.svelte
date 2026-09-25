@@ -110,7 +110,7 @@
 			{:else if active === 'draw'}
 				<DrawTab editor={props.editor} />
 			{:else if active === 'design'}
-				<DesignTab editor={props.editor} theme={props.theme} onsettheme={props.onsettheme} onslidesize={openSlideSize} />
+				<DesignTab editor={props.editor} onslidesize={openSlideSize} />
 			{:else if active === 'transitions'}
 				<TransitionsTab editor={props.editor} chromeUi={props.chromeUi} />
 			{:else if active === 'animations'}

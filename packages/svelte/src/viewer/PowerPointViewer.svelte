@@ -236,8 +236,6 @@
 			{showNotes}
 			{hiddenActions}
 			accountAuth={props.accountAuth}
-			theme={themeLocale.effectiveTheme}
-			onsettheme={(next) => themeLocale.setTheme(next)}
 			{aiEnabled}
 			onpresenter={vm.enterPresenterView}
 		/>

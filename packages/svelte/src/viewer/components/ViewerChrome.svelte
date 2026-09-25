@@ -12,7 +12,7 @@
 	 * viewer's single composition root and the chrome reads most of it.
 	 */
 	import { createGuide, readBackstageRecentFile, toggleSheet } from 'pptx-viewer-shared';
-	import type { AccountAuthConfig, ToolbarActionId, ViewerTheme } from 'pptx-viewer-shared';
+	import type { AccountAuthConfig, ToolbarActionId } from 'pptx-viewer-shared';
 
 	import type { ViewerStateBag } from '../state/create-viewer-state-types';
 	import { nextGuideId } from '../state/guide-id';
@@ -33,9 +33,6 @@
 		showNotes: boolean;
 		hiddenActions?: ToolbarActionId[];
 		accountAuth?: AccountAuthConfig;
-		/** The resolved chrome theme (Design tab gallery selection). */
-		theme: ViewerTheme | undefined;
-		onsettheme: (next: ViewerTheme | undefined) => void;
 		/** Whether the host enabled the AI assistant (the `ai` prop). */
 		aiEnabled: boolean;
 		/** Enter the presenter view (a root-owned overlay, not part of the chrome). */
@@ -48,8 +45,6 @@
 		showNotes,
 		hiddenActions,
 		accountAuth,
-		theme,
-		onsettheme,
 		aiEnabled,
 		onpresenter,
 	}: ViewerChromeProps = $props();
@@ -240,8 +235,7 @@
 				if (bytes) await loader.load(bytes);
 			})();
 		}}
-		{theme}
-		{onsettheme} onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
+		onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 		{accountAuth}
 		onentermasterview={() => editor.masterOps.enter()}
 		hiddenActions={effectiveHiddenActions}
@@ -362,8 +356,7 @@
 					if (bytes) await loader.load(bytes);
 				})();
 			}}
-			{theme}
-			{onsettheme} onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
+			onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 			{accountAuth}
 			onentermasterview={() => editor.masterOps.enter()}
 			hiddenActions={effectiveHiddenActions}
