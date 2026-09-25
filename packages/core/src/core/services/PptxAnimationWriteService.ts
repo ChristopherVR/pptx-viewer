@@ -1,6 +1,7 @@
 import type { PptxElementAnimation, XmlObject } from '../types';
 import { writeOwnedEffectKeys } from './animation-timing-ownership';
 import { ownedEffectKeysFor, surgicallyUpdateTimingTree } from './animation-timing-surgical';
+import { bookmarkTriggerOf, buildBookmarkSequences } from './animation-write-bookmark-sequence';
 import type { IPptxAnimationWriteService } from './animation-write-mappings';
 import {
 	buildEffectNodesForAnimation,
@@ -78,7 +79,10 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		this.nextId = 1;
 
 		// Separate regular and interactive (onShapeClick) animations
-		const regularAnimations = validAnimations.filter((a) => a.trigger !== 'onShapeClick');
+		const bookmarkAnimations = validAnimations.filter((a) => bookmarkTriggerOf(a) !== undefined);
+		const regularAnimations = validAnimations.filter(
+			(a) => a.trigger !== 'onShapeClick' && bookmarkTriggerOf(a) === undefined,
+		);
 		const interactiveAnimations = validAnimations.filter(
 			(a) => a.trigger === 'onShapeClick' && a.triggerShapeId,
 		);
@@ -86,7 +90,11 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		// Build the animation sequence nodes grouped by trigger
 		const { nodes: animationNodes, firstGroupAutoStarts } =
 			this.buildAnimationSequence(regularAnimations);
-		if (animationNodes.length === 0 && interactiveAnimations.length === 0) {
+		if (
+			animationNodes.length === 0 &&
+			interactiveAnimations.length === 0 &&
+			bookmarkAnimations.length === 0
+		) {
 			return existingRawTiming;
 		}
 
@@ -107,10 +115,14 @@ export class PptxAnimationWriteService implements IPptxAnimationWriteService {
 		const mainSeqNode = buildMainSequenceNode(mainSeqId, [...animationNodes]);
 
 		// Build interactive sequence nodes
-		const interactiveSeqNodes = buildInteractiveSequences(
-			interactiveAnimations,
-			this.allocateId.bind(this),
-		);
+		const interactiveSeqNodes = [
+			...buildInteractiveSequences(interactiveAnimations, this.allocateId.bind(this)),
+			...buildBookmarkSequences(
+				bookmarkAnimations,
+				(a) => buildEffectNodesForAnimation(a, this.allocateId.bind(this)),
+				this.allocateId.bind(this),
+			),
+		];
 
 		// Combine main seq + interactive sequences into the child list
 		const seqNodes: XmlObject | XmlObject[] =

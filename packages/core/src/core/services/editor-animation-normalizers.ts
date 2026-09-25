@@ -77,6 +77,11 @@ export function normalizeTrigger(value: unknown): PptxAnimationTrigger | undefin
 	}
 	const map: Record<string, PptxAnimationTrigger> = {
 		onClick: 'onClick',
+		// Both interactive triggers used to be missing here, so an effect the
+		// panel set to "On click of" / "On bookmark" reloaded with no trigger at
+		// all and fell back to a plain click step.
+		onShapeClick: 'onShapeClick',
+		onMediaBookmark: 'onMediaBookmark',
 		onHover: 'onHover',
 		afterPrevious: 'afterPrevious',
 		withPrevious: 'withPrevious',

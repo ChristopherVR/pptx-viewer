@@ -3,7 +3,7 @@
  * Extracted from `PptxNativeAnimationService` to keep file sizes manageable.
  */
 import type { XmlObject } from '../types';
-import { extractTriggerShapeId } from './native-animation-helpers';
+import { extractBookmarkTrigger, extractTriggerShapeId } from './native-animation-helpers';
 
 /**
  * True when a `p:seq` is an INTERACTIVE sequence: one that only runs when the
@@ -25,5 +25,5 @@ export function isInteractiveSequence(seq: XmlObject): boolean {
 	if (!cTn || String(cTn['@_nodeType'] || '') === 'mainSeq') {
 		return false;
 	}
-	return extractTriggerShapeId(cTn) !== undefined;
+	return extractTriggerShapeId(cTn) !== undefined || extractBookmarkTrigger(cTn) !== undefined;
 }

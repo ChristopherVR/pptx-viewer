@@ -628,6 +628,23 @@ export function parseBuildType(value: unknown): PptxTextBuildType {
 /**
  * Extract trigger shape ID from a `p:cTn` node's start condition list.
  */
+/**
+ * The media bookmark an interactive sequence's `p:cTn` is started by
+ * (`p:stCondLst/p:cond[@evt="onMediaBookmark"]`), when it is one.
+ */
+export function extractBookmarkTrigger(cTn: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const stCondList = cTn['p:stCondLst'] as XmlObject | undefined;
+	for (const cond of ensureArray(stCondList?.['p:cond'])) {
+		if (cond['@_evt'] === 'onMediaBookmark') {
+			const target = extractBookmarkTarget(cond);
+			if (target) {
+				return target;
+			}
+		}
+	}
+	return undefined;
+}
+
 export function extractTriggerShapeId(cTn: XmlObject): string | undefined {
 	const stCondList = cTn['p:stCondLst'] as XmlObject | undefined;
 	if (!stCondList) {
@@ -781,17 +798,22 @@ const VALID_CONDITION_EVENTS = new Set<string>([
 
 /**
  * Read a `p14:bmkTgt` (Office 2010 `p14` extension, MS-OI29500) off a parsed
- * `p:cond` element, when present. This project has no COM-authored or
- * real-world fixture sample of an `onMediaBookmark` condition to confirm
- * PowerPoint's exact placement, so BOTH plausible shapes are checked: a
- * direct child of `p:cond` (`condXml['p14:bmkTgt']`, mirroring how a plain
- * `p:tgtEl` sits directly under `p:cond`), and inside a `p:cond/p:extLst`
- * (mirroring how other `p14` additions to non-extensible OOXML elements are
- * commonly authored). {@link serializeCondition} writes the first (direct
- * child) shape, so a deck round-tripped through THIS project keeps its
- * shape; a deck authored elsewhere using the second shape still parses.
+ * `p:cond` element, when present.
+ *
+ * COM-verified placement: PowerPoint writes it INSIDE the condition's target
+ * element, in place of a `p:spTgt`, and only inside an
+ * `mc:Choice Requires="p14"` timing branch:
+ * `<p:cond evt="onMediaBookmark" delay="0"><p:tgtEl><p14:bmkTgt spid="2"
+ * bmkName="BM1"/></p:tgtEl></p:cond>`. Two older guesses (a direct child of
+ * `p:cond`, and a `p:cond/p:extLst` extension) are still read so a deck saved
+ * by an earlier build of this project keeps its trigger.
  */
 function extractBookmarkTarget(condXml: XmlObject): PptxMediaBookmarkTarget | undefined {
+	const tgtEl = condXml['p:tgtEl'] as XmlObject | undefined;
+	const inTarget = tgtEl?.['p14:bmkTgt'] as XmlObject | undefined;
+	if (inTarget) {
+		return bookmarkTargetFromNode(inTarget);
+	}
 	const direct = condXml['p14:bmkTgt'] as XmlObject | undefined;
 	if (direct) {
 		return bookmarkTargetFromNode(direct);
@@ -916,15 +938,16 @@ export function serializeCondition(condition: AnimationCondition): XmlObject {
 		condXml['@_tn'] = String(condition.targetTimeNodeId);
 	}
 
+	// Target element. A bookmark target IS the condition's target element
+	// (PowerPoint's own placement, see `extractBookmarkTarget`).
 	if (condition.bookmarkTarget) {
-		condXml['p14:bmkTgt'] = {
-			'@_spid': condition.bookmarkTarget.shapeId,
-			'@_bmkName': condition.bookmarkTarget.bookmarkName,
+		condXml['p:tgtEl'] = {
+			'p14:bmkTgt': {
+				'@_spid': condition.bookmarkTarget.shapeId,
+				'@_bmkName': condition.bookmarkTarget.bookmarkName,
+			},
 		};
-	}
-
-	// Target element
-	if (condition.target) {
+	} else if (condition.target) {
 		condXml['p:tgtEl'] = serializeTimeTargetElement(condition.target);
 	} else if (condition.targetShapeId || condition.targetSlide) {
 		const tgtEl: XmlObject = {};

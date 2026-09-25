@@ -141,6 +141,16 @@ export function reconcileAnimationTargets(
 					anim.triggerShapeId = resolved;
 				}
 			}
+			// A bookmark condition names its MEDIA element by native id too; the
+			// playback side finds that element (and its bookmark times) by the
+			// positional element id.
+			for (const cond of anim.startConditions ?? []) {
+				const bookmarkShape = cond.bookmarkTarget?.shapeId;
+				const resolvedBookmarkShape = bookmarkShape ? map.get(bookmarkShape) : undefined;
+				if (cond.bookmarkTarget && resolvedBookmarkShape) {
+					cond.bookmarkTarget.shapeId = resolvedBookmarkShape;
+				}
+			}
 		}
 	}
 

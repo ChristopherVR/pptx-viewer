@@ -29,6 +29,7 @@ import type { AuthoredPresetClass } from './animation-timing-place';
 import { insertAuthoredEffect, reorderOwnedGroups } from './animation-timing-place';
 import type { EffectNodeRef } from './animation-timing-tree';
 import { indexEffectNodes, maxTimeNodeId, removeEffectNode } from './animation-timing-tree';
+import { desiredTriggerContainer, triggerContainerOf } from './animation-timing-trigger-container';
 import {
 	PRESET_TO_OOXML,
 	DIRECTION_TO_SUBTYPE,
@@ -197,12 +198,23 @@ export function surgicallyUpdateTimingTree(
 		ownedNow.add(entry.key);
 		orderByKey.set(entry.key, entry.order);
 		const existing = byKey.get(entry.key);
-		if (existing) {
+		const desiredContainer = desiredTriggerContainer(entry.anim);
+		if (
+			existing &&
+			desiredContainer !== undefined &&
+			desiredContainer !== triggerContainerOf(existing)
+		) {
+			// The trigger moved the effect to another sequence: rebuild it there.
+			removeEffectNode(existing);
+			byKey.delete(entry.key);
+		}
+		const current = byKey.get(entry.key);
+		if (current) {
 			updateEffectNodeAttributes(
-				existing.cTn,
+				current.cTn,
 				entry.anim,
 				entry.presetClass,
-				existing.spid ?? entry.anim.elementId,
+				current.spid ?? entry.anim.elementId,
 			);
 			continue;
 		}

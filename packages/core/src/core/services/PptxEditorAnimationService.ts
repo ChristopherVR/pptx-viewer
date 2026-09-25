@@ -19,6 +19,10 @@ import {
 	normalizeSequence,
 	normalizeAfterAnimation,
 } from './editor-animation-normalizers';
+import {
+	interactiveTriggerAttributes,
+	interactiveTriggerFields,
+} from './editor-animation-trigger-meta';
 import type { IPptxXmlLookupService } from './PptxXmlLookupService';
 
 /**
@@ -150,6 +154,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 				delayMs: Number.isFinite(delayRaw) && delayRaw >= 0 ? delayRaw : undefined,
 				order: Number.isFinite(orderRaw) ? orderRaw : undefined,
 				trigger,
+				...interactiveTriggerFields(animationNode),
 				timingCurve,
 				repeatCount:
 					Number.isFinite(repeatCountRaw) && repeatCountRaw > 0 ? repeatCountRaw : undefined,
@@ -224,6 +229,7 @@ export class PptxEditorAnimationService implements IPptxEditorAnimationService {
 					'@_delayMs': delayMs !== undefined ? String(Math.max(0, delayMs)) : undefined,
 					'@_order': order !== undefined ? String(order) : undefined,
 					'@_trigger': animation.trigger ?? undefined,
+					...interactiveTriggerAttributes(animation),
 					'@_timingCurve': animation.timingCurve ?? undefined,
 					'@_repeatCount': repeatCount !== undefined ? String(repeatCount) : undefined,
 					'@_repeatMode': animation.repeatMode ?? undefined,

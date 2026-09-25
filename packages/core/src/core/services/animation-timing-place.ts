@@ -17,6 +17,7 @@ import {
 	findMainSequenceCTn,
 	reorderContainersByRank,
 } from './animation-timing-tree';
+import { bookmarkTriggerOf, wrapInBookmarkSequence } from './animation-write-bookmark-sequence';
 import { buildMotionPathNode, buildSingleEffectNode } from './animation-write-node-builders';
 import {
 	buildClickGroupNode,
@@ -66,6 +67,15 @@ export function insertAuthoredEffect(args: {
 	);
 	if (!mainSeqCTn) {
 		return;
+	}
+
+	const bookmark = bookmarkTriggerOf(anim);
+	if (bookmark) {
+		const holder = sequenceHolderOf(rawTiming, mainSeqCTn);
+		if (holder) {
+			appendContainer(holder, 'p:seq', wrapInBookmarkSequence([effectNode], bookmark, allocateId));
+			return;
+		}
 	}
 
 	if (anim.trigger === 'onShapeClick' && anim.triggerShapeId) {
