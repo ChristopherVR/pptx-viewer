@@ -7,6 +7,50 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.5.0) - 2026-09-25
+
+### Features
+
+- **core:** Resolve p:style references on demand for style galleries (by @ChristopherVR) ([e4303f7](https://github.com/ChristopherVR/pptx-viewer/commit/e4303f74a42c745929e9c4296f34686124c10bf9))
+- **core:** Size smartart engine nodes from their own text (by @ChristopherVR) ([34c33cb](https://github.com/ChristopherVR/pptx-viewer/commit/34c33cbb48f225cda606a397f19b31ac841b82e2))
+- **core:** Lay org-chart assistants out in the smartart engine (by @ChristopherVR) ([722a465](https://github.com/ChristopherVR/pptx-viewer/commit/722a465d5225e6d96bdae5cc3a4570c843e89c7b))
+- **core:** Fit meet the team and process list grids in the smartart engine (by @ChristopherVR) ([6ee431c](https://github.com/ChristopherVR/pptx-viewer/commit/6ee431c4f1b3af4469c8824c02a7a5ec1be0abed))
+- **core:** Keep c:grouping standard distinct from clustered (by @claude) ([c3472e2](https://github.com/ChristopherVR/pptx-viewer/commit/c3472e2cbf2bec39d8f8bbbcae2ec59084acc41f))
+- **core:** Write SmartArt drawing-shape 3D properties back on save (by @claude) ([45ec2db](https://github.com/ChristopherVR/pptx-viewer/commit/45ec2db46147c9a022e2bdc9ba1e1e5c64f4d94f))
+- **core:** Keep smartart quick-style 3d across structural edits (by @claude) ([a815448](https://github.com/ChristopherVR/pptx-viewer/commit/a815448a7ce291f1989fd3306df523670a2d3d1a))
+- **core:** Read SmartArt label colour from fontRef and keep fill alpha (by @claude) ([866c7ee](https://github.com/ChristopherVR/pptx-viewer/commit/866c7ee9227ecbc58f0ab8b691513dc072824c1f))
+- **core:** Rasterise fallback-less svg pictures for .ppt export in node (by @ChristopherVR) ([b2f86e8](https://github.com/ChristopherVR/pptx-viewer/commit/b2f86e8a675c899778275c163d1fd974df31f3ea))
+
+### Bug Fixes
+
+- **core:** Author the strips exit at presetID 18 (by @ChristopherVR) ([eb1daca](https://github.com/ChristopherVR/pptx-viewer/commit/eb1daca918d26168e07e52e8eb6e421d1af58bfe))
+- **core:** Embed every picture format in the .ppt export (by @ChristopherVR) ([956f1dc](https://github.com/ChristopherVR/pptx-viewer/commit/956f1dc065eabb6977ee6581261662bd38b88162))
+- **core:** Write placeholder text and master text styles in .ppt export (by @ChristopherVR) ([81681c8](https://github.com/ChristopherVR/pptx-viewer/commit/81681c8e52fec68f2d039bd3473023eb76d4a5cd))
+- **core:** Keep an authored pPr lvl="0" on a rewritten slide (by @ChristopherVR) ([97a8cff](https://github.com/ChristopherVR/pptx-viewer/commit/97a8cff45834f963644067aac5bd4a5d2ae0a440))
+- **core:** Stop the first run's b and err leaking onto later runs (by @ChristopherVR) ([4738cd4](https://github.com/ChristopherVR/pptx-viewer/commit/4738cd43c77aadee833d7ab41e071ab7506c3157))
+- **core:** Do not invent an outline width on a rewritten slide (by @ChristopherVR) ([089362a](https://github.com/ChristopherVR/pptx-viewer/commit/089362ac0746031ea28d0bd1ac92bcce093eb4bd))
+- **core:** Refresh app.xml notes and untitled titles like PowerPoint (by @ChristopherVR) ([52a8a53](https://github.com/ChristopherVR/pptx-viewer/commit/52a8a5395de8497553f8aceb9aa980b0bf25d838))
+- **core:** Write each ruby run property set back as authored (by @ChristopherVR) ([94e7b76](https://github.com/ChristopherVR/pptx-viewer/commit/94e7b7656c32642a47748f6ad95c00955cb3fddb))
+- **core:** Follow ecma-376 for the trapezoid preset inset (by @claude) ([eca6c9f](https://github.com/ChristopherVR/pptx-viewer/commit/eca6c9f739a9d6a46d410801ba9bcb0a685f58da))
+- **core:** Keep smartart drawing fill alpha and preset adjustments (by @claude) ([d8d2f37](https://github.com/ChristopherVR/pptx-viewer/commit/d8d2f37b85937e125021afc17b9245148edf9186))
+- **core:** Drop the old preset's guides when a shape's geometry changes (by @ChristopherVR) ([118d8a0](https://github.com/ChristopherVR/pptx-viewer/commit/118d8a0651c18b4e5585286628946818f9c241c5))
+- **core:** Relabel entrance/exit presets from PowerPoint COM ids (by @ChristopherVR) ([ade27dc](https://github.com/ChristopherVR/pptx-viewer/commit/ade27dce6d771ea7dee6068ae7da0a7aa067b6cf))
+- **core:** Write PowerPoint's captured behaviour tree for every preset (by @ChristopherVR) ([b9fa2d6](https://github.com/ChristopherVR/pptx-viewer/commit/b9fa2d68f90c646ccd9abdc1584a78b5e3c2c39b))
+- **animation:** Ripple letters inside a by-paragraph text build (by @ChristopherVR) ([1676539](https://github.com/ChristopherVR/pptx-viewer/commit/16765398bd7e0d6966ee59c9cb97d0936bafcc80))
+- **core:** Open PowerPoint's own password-protected .ppt files (by @ChristopherVR) ([ca38faa](https://github.com/ChristopherVR/pptx-viewer/commit/ca38faae35c761b0a3ae98ca79084251641026dc))
+- **core:** Keep the node canvas import opaque to browser bundlers (by @ChristopherVR) ([22f61ea](https://github.com/ChristopherVR/pptx-viewer/commit/22f61ea3f6811d3c82530593eccad0afd957c0f1))
+
+### Documentation
+
+- **core:** Record the eleventh smartart engine wave's measured numbers (by @ChristopherVR) ([8395cb8](https://github.com/ChristopherVR/pptx-viewer/commit/8395cb847ff5984c47908b270193622373e30fe0))
+
+### Testing
+
+- **core:** Declare the new callout, CJK and org-chart assistant fixtures (by @ChristopherVR) ([1ff7f05](https://github.com/ChristopherVR/pptx-viewer/commit/1ff7f05d254f151a42005a0e4591897e7c508889))
+- **core:** Lock the ECMA-376 trapezoid inset against the short side (by @claude) ([26462a0](https://github.com/ChristopherVR/pptx-viewer/commit/26462a034bb4752497244ff42e787af60f24406d))
+- **core:** Declare the by-paragraph letter ripple fixture (by @ChristopherVR) ([532a448](https://github.com/ChristopherVR/pptx-viewer/commit/532a448c1b952051c5926e0ad25ef2d534a45818))
+- **core:** Pin the browser canvas ahead of the node svg rasteriser (by @ChristopherVR) ([8ae3fed](https://github.com/ChristopherVR/pptx-viewer/commit/8ae3fedd58b236b77dc56533010683b9cd91a7a2))
+
 ## [4.4.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.4.0) - 2026-09-25
 
 ### Features

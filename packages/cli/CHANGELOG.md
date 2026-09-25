@@ -7,6 +7,26 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.29.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.29.1) - 2026-09-25
+
+### Bug Fixes
+
+- **shared:** Hang CJK punctuation and drop kinsoku like PowerPoint (by @ChristopherVR) ([770b708](https://github.com/ChristopherVR/pptx-viewer/commit/770b7081432d08acfa00a17de9bc83da22efc18b))
+- **react,vue,angular,svelte,vanilla:** Use the shared html2canvas clone pass (by @claude) ([ca9f608](https://github.com/ChristopherVR/pptx-viewer/commit/ca9f6089ed304dcc71abe216b984c41237cefbfb))
+- **react:** Bind smartart drawing fill-opacity (by @claude) ([8329ad3](https://github.com/ChristopherVR/pptx-viewer/commit/8329ad37f36f42c7e66b88720de1b33cfcb3af4e))
+- **core:** Relabel entrance/exit presets from PowerPoint COM ids (by @ChristopherVR) ([ade27dc](https://github.com/ChristopherVR/pptx-viewer/commit/ade27dce6d771ea7dee6068ae7da0a7aa067b6cf))
+- **shared:** Play steps without accel/decel linearly like PowerPoint (by @ChristopherVR) ([5c1158b](https://github.com/ChristopherVR/pptx-viewer/commit/5c1158b2240c96a234a312ea56aa07404b330fcc))
+
+### Testing
+
+- **react:** Exit.19 has no authoring name once strips authors exit.18 (by @ChristopherVR) ([e8d6d66](https://github.com/ChristopherVR/pptx-viewer/commit/e8d6d667c95a6b9160569d3075f7b77e27eef4a2))
+- **react:** Exit.6 plays the circle iris (by @ChristopherVR) ([63ac838](https://github.com/ChristopherVR/pptx-viewer/commit/63ac838f36f2c1ee8c951da41d23f40038d472ac))
+- **react:** Cover translucent SmartArt drawing fills in the a11y suite (by @claude) ([2b14580](https://github.com/ChristopherVR/pptx-viewer/commit/2b145806ec403d0959b1c603394de9b14e566aaf))
+
+### Build & CI
+
+- **react,vanilla:** Keep the optional node canvas peer external (by @ChristopherVR) ([6b0ae09](https://github.com/ChristopherVR/pptx-viewer/commit/6b0ae09448bab9ece71448ca50dfc969a7c72a02))
+
 ## [2.29.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.29.0) - 2026-09-25
 
 ### Features

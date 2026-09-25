@@ -10,6 +10,107 @@ dated sections beneath it are generated from
 
 ## 2026-09-25
 
+_Releases: pptx-viewer-core@4.5.0, pptx-react-viewer@4.8.0, pptx-vue-viewer@4.8.0, pptx-angular-viewer@4.8.0, pptx-vanilla-viewer@3.8.0, pptx-svelte-viewer@4.8.0, @christophervr/pptx-viewer@2.29.1_
+
+### Features
+
+- **core:** Resolve p:style references on demand for style galleries (by @ChristopherVR) ([e4303f7](https://github.com/ChristopherVR/pptx-viewer/commit/e4303f74a42c745929e9c4296f34686124c10bf9))
+- **core:** Size smartart engine nodes from their own text (by @ChristopherVR) ([34c33cb](https://github.com/ChristopherVR/pptx-viewer/commit/34c33cbb48f225cda606a397f19b31ac841b82e2))
+- **core:** Lay org-chart assistants out in the smartart engine (by @ChristopherVR) ([722a465](https://github.com/ChristopherVR/pptx-viewer/commit/722a465d5225e6d96bdae5cc3a4570c843e89c7b))
+- **core:** Fit meet the team and process list grids in the smartart engine (by @ChristopherVR) ([6ee431c](https://github.com/ChristopherVR/pptx-viewer/commit/6ee431c4f1b3af4469c8824c02a7a5ec1be0abed))
+- **core:** Keep c:grouping standard distinct from clustered (by @claude) ([c3472e2](https://github.com/ChristopherVR/pptx-viewer/commit/c3472e2cbf2bec39d8f8bbbcae2ec59084acc41f))
+- **shared:** Lay out right-angle-axes 3D bar charts as PowerPoint does (by @claude) ([0985f9d](https://github.com/ChristopherVR/pptx-viewer/commit/0985f9d36253eabcc681115cfbb07c6253fcb868))
+- **shared:** Draw cylinder, cone and pyramid 3D bars as PowerPoint does (by @claude) ([668aa8d](https://github.com/ChristopherVR/pptx-viewer/commit/668aa8d3446d3a6b5f72f421bf01e00affdaf00e))
+- **shared:** Draw perspective 3D line and area charts as PowerPoint does (by @claude) ([0ab4a7d](https://github.com/ChristopherVR/pptx-viewer/commit/0ab4a7da69f3993a74a24b0c804685681fd707f2))
+- **shared:** Draw 3D surface charts in value bands as PowerPoint does (by @claude) ([cc87ef4](https://github.com/ChristopherVR/pptx-viewer/commit/cc87ef4cba6574f6aee68dc5178b25c46082d1cf))
+- **shared:** Draw 3D pie charts as PowerPoint does (by @claude) ([553a935](https://github.com/ChristopherVR/pptx-viewer/commit/553a935c2257b7ef0280dbd82abcbf22a1d790a5))
+- **core:** Write SmartArt drawing-shape 3D properties back on save (by @claude) ([45ec2db](https://github.com/ChristopherVR/pptx-viewer/commit/45ec2db46147c9a022e2bdc9ba1e1e5c64f4d94f))
+- **shared:** Render SmartArt bevel and scene quick styles in 3D (by @claude) ([3bdf7e9](https://github.com/ChristopherVR/pptx-viewer/commit/3bdf7e959fed36302350bcbfd2c664d07b0cad86))
+- **shared:** Draw 3D columns without right-angle axes on the perspective box (by @claude) ([e65a8c9](https://github.com/ChristopherVR/pptx-viewer/commit/e65a8c9dba2bcb21ccd81fb471a7b2c019b40d51))
+- **core:** Keep smartart quick-style 3d across structural edits (by @claude) ([a815448](https://github.com/ChristopherVR/pptx-viewer/commit/a815448a7ce291f1989fd3306df523670a2d3d1a))
+- **shared:** Render structurally edited smartart with its quick-style 3d (by @claude) ([2c31bed](https://github.com/ChristopherVR/pptx-viewer/commit/2c31bede6f30886fe1f5f78cb55ad59492485838))
+- **core:** Read SmartArt label colour from fontRef and keep fill alpha (by @claude) ([866c7ee](https://github.com/ChristopherVR/pptx-viewer/commit/866c7ee9227ecbc58f0ab8b691513dc072824c1f))
+- **shared:** Light, extrude and fade SmartArt 3D scenes as PowerPoint does (by @claude) ([b6864d8](https://github.com/ChristopherVR/pptx-viewer/commit/b6864d8d9ca181e953d6cdd389629052f6712d5b))
+- **shared:** Draw a turned SmartArt diagram past its element box (by @claude) ([f46c9b7](https://github.com/ChristopherVR/pptx-viewer/commit/f46c9b7af800e213ee0d7f29cca61d9b2a29c0c4))
+- **core:** Rasterise fallback-less svg pictures for .ppt export in node (by @ChristopherVR) ([b2f86e8](https://github.com/ChristopherVR/pptx-viewer/commit/b2f86e8a675c899778275c163d1fd974df31f3ea))
+
+### Bug Fixes
+
+- **shared:** Hang CJK punctuation and drop kinsoku like PowerPoint (by @ChristopherVR) ([770b708](https://github.com/ChristopherVR/pptx-viewer/commit/770b7081432d08acfa00a17de9bc83da22efc18b))
+- **shared:** Draw data-label callouts on line, area, pie, xy and radar (by @ChristopherVR) ([a60aa17](https://github.com/ChristopherVR/pptx-viewer/commit/a60aa17d713848297264ffdd27e89ba9192321ed))
+- **core:** Author the strips exit at presetID 18 (by @ChristopherVR) ([eb1daca](https://github.com/ChristopherVR/pptx-viewer/commit/eb1daca918d26168e07e52e8eb6e421d1af58bfe))
+- **shared:** Play strips as a diagonal corner-to-corner sweep (by @ChristopherVR) ([1e15f73](https://github.com/ChristopherVR/pptx-viewer/commit/1e15f73c5624b0578ea4f1125ea573dfbc1bab73))
+- **shared:** Play wedge as two sweeping wedges and circle exit as an iris (by @ChristopherVR) ([c7fe573](https://github.com/ChristopherVR/pptx-viewer/commit/c7fe5738e03c7b02efaead29621c743e071ecb1e))
+- **shared:** Play the slide filter through a window, cover/push as a cut (by @ChristopherVR) ([a252b87](https://github.com/ChristopherVR/pptx-viewer/commit/a252b8753c2743eb9f91ca1f5b2f4ace86b5cac3))
+- **shared:** Restore arc-length glyph placement for wordart envelopes (by @ChristopherVR) ([4264ab0](https://github.com/ChristopherVR/pptx-viewer/commit/4264ab0917b91f7bd6a7cf278d334135bec27883))
+- **core:** Embed every picture format in the .ppt export (by @ChristopherVR) ([956f1dc](https://github.com/ChristopherVR/pptx-viewer/commit/956f1dc065eabb6977ee6581261662bd38b88162))
+- **core:** Write placeholder text and master text styles in .ppt export (by @ChristopherVR) ([81681c8](https://github.com/ChristopherVR/pptx-viewer/commit/81681c8e52fec68f2d039bd3473023eb76d4a5cd))
+- **core:** Keep an authored pPr lvl="0" on a rewritten slide (by @ChristopherVR) ([97a8cff](https://github.com/ChristopherVR/pptx-viewer/commit/97a8cff45834f963644067aac5bd4a5d2ae0a440))
+- **core:** Stop the first run's b and err leaking onto later runs (by @ChristopherVR) ([4738cd4](https://github.com/ChristopherVR/pptx-viewer/commit/4738cd43c77aadee833d7ab41e071ab7506c3157))
+- **core:** Do not invent an outline width on a rewritten slide (by @ChristopherVR) ([089362a](https://github.com/ChristopherVR/pptx-viewer/commit/089362ac0746031ea28d0bd1ac92bcce093eb4bd))
+- **core:** Refresh app.xml notes and untitled titles like PowerPoint (by @ChristopherVR) ([52a8a53](https://github.com/ChristopherVR/pptx-viewer/commit/52a8a5395de8497553f8aceb9aa980b0bf25d838))
+- **core:** Write each ruby run property set back as authored (by @ChristopherVR) ([94e7b76](https://github.com/ChristopherVR/pptx-viewer/commit/94e7b7656c32642a47748f6ad95c00955cb3fddb))
+- **shared:** Composite pptx-three-view frames as premultiplied alpha (by @claude) ([074fd9e](https://github.com/ChristopherVR/pptx-viewer/commit/074fd9edf2df8d32e9b54327e53fb27b489c4267))
+- **shared:** Size the chart title band from the title font (by @claude) ([c5f0254](https://github.com/ChristopherVR/pptx-viewer/commit/c5f0254036f578f80ab25ed68e250f0d34984523))
+- **shared:** One html2canvas clone pass that snapshots 3D views (by @claude) ([56a8a81](https://github.com/ChristopherVR/pptx-viewer/commit/56a8a81a53ffb2bd9cd8863d6c2cb8d703104804))
+- **react,vue,angular,svelte,vanilla:** Use the shared html2canvas clone pass (by @claude) ([ca9f608](https://github.com/ChristopherVR/pptx-viewer/commit/ca9f6089ed304dcc71abe216b984c41237cefbfb))
+- **shared:** Read SmartArt label contrast from a gradient fill (by @claude) ([d43c866](https://github.com/ChristopherVR/pptx-viewer/commit/d43c866ec2eeb655d02dc586c546c02c93877558))
+- **shared:** Fit the perspective 3D chart box to PowerPoint's height and centring (by @claude) ([157008a](https://github.com/ChristopherVR/pptx-viewer/commit/157008a988c95edba606c6bab5c11308967d0785))
+- **shared:** Size standard-grouping 3D columns as PowerPoint does (by @claude) ([907223f](https://github.com/ChristopherVR/pptx-viewer/commit/907223f735c83b65afd42d5147848f8a28839e1c))
+- **shared:** Shade exploded 3D pie cut faces as PowerPoint does (by @claude) ([5ad3905](https://github.com/ChristopherVR/pptx-viewer/commit/5ad3905503872041e5afc7da528cad0cae354a96))
+- **core:** Follow ecma-376 for the trapezoid preset inset (by @claude) ([eca6c9f](https://github.com/ChristopherVR/pptx-viewer/commit/eca6c9f739a9d6a46d410801ba9bcb0a685f58da))
+- **core:** Keep smartart drawing fill alpha and preset adjustments (by @claude) ([d8d2f37](https://github.com/ChristopherVR/pptx-viewer/commit/d8d2f37b85937e125021afc17b9245148edf9186))
+- **shared:** Paint smartart drawing fill alpha in 2d and 3d (by @claude) ([070cda5](https://github.com/ChristopherVR/pptx-viewer/commit/070cda5a4927c68ea9352c6e7d40e6526d5080fe))
+- **react:** Bind smartart drawing fill-opacity (by @claude) ([8329ad3](https://github.com/ChristopherVR/pptx-viewer/commit/8329ad37f36f42c7e66b88720de1b33cfcb3af4e))
+- **vue:** Bind smartart drawing fill-opacity (by @claude) ([dba4665](https://github.com/ChristopherVR/pptx-viewer/commit/dba46653e2ebb045fa16efdb985439ffd76393bc))
+- **angular:** Bind smartart drawing fill-opacity (by @claude) ([404539c](https://github.com/ChristopherVR/pptx-viewer/commit/404539c23543b0775fa97640b72a2c78e8575aa0))
+- **svelte:** Bind smartart drawing fill-opacity (by @claude) ([e304314](https://github.com/ChristopherVR/pptx-viewer/commit/e3043149af8946be386d09c1b840b9f609359870))
+- **vanilla:** Bind smartart drawing fill-opacity (by @claude) ([7e681a0](https://github.com/ChristopherVR/pptx-viewer/commit/7e681a0d09301102810366af80812fe950722e0a))
+- **core:** Drop the old preset's guides when a shape's geometry changes (by @ChristopherVR) ([118d8a0](https://github.com/ChristopherVR/pptx-viewer/commit/118d8a0651c18b4e5585286628946818f9c241c5))
+- **core:** Relabel entrance/exit presets from PowerPoint COM ids (by @ChristopherVR) ([ade27dc](https://github.com/ChristopherVR/pptx-viewer/commit/ade27dce6d771ea7dee6068ae7da0a7aa067b6cf))
+- **core:** Write PowerPoint's captured behaviour tree for every preset (by @ChristopherVR) ([b9fa2d6](https://github.com/ChristopherVR/pptx-viewer/commit/b9fa2d68f90c646ccd9abdc1584a78b5e3c2c39b))
+- **shared:** Play steps without accel/decel linearly like PowerPoint (by @ChristopherVR) ([5c1158b](https://github.com/ChristopherVR/pptx-viewer/commit/5c1158b2240c96a234a312ea56aa07404b330fcc))
+- **animation:** Ripple letters inside a by-paragraph text build (by @ChristopherVR) ([1676539](https://github.com/ChristopherVR/pptx-viewer/commit/16765398bd7e0d6966ee59c9cb97d0936bafcc80))
+- **core:** Open PowerPoint's own password-protected .ppt files (by @ChristopherVR) ([ca38faa](https://github.com/ChristopherVR/pptx-viewer/commit/ca38faae35c761b0a3ae98ca79084251641026dc))
+- **core:** Keep the node canvas import opaque to browser bundlers (by @ChristopherVR) ([22f61ea](https://github.com/ChristopherVR/pptx-viewer/commit/22f61ea3f6811d3c82530593eccad0afd957c0f1))
+
+### Documentation
+
+- Narrow the text and chart gaps in the limitations guide (by @ChristopherVR) ([03a6d9e](https://github.com/ChristopherVR/pptx-viewer/commit/03a6d9e44588b74565ad3bf87d3d9f5ab6b259a4))
+- Record the measured wordart can interior outline error (by @ChristopherVR) ([691dbb2](https://github.com/ChristopherVR/pptx-viewer/commit/691dbb26145ef02e69c1ae789441a12bf00619e1))
+- Update the wordart envelope row with the measured can numbers (by @ChristopherVR) ([52fcf31](https://github.com/ChristopherVR/pptx-viewer/commit/52fcf318ca3f159bad23a89cf7ec8f8945510503))
+- **core:** Record the eleventh smartart engine wave's measured numbers (by @ChristopherVR) ([8395cb8](https://github.com/ChristopherVR/pptx-viewer/commit/8395cb847ff5984c47908b270193622373e30fe0))
+- **guide:** Update the .ppt export, save and playback rows after this wave (by @ChristopherVR) ([8e11158](https://github.com/ChristopherVR/pptx-viewer/commit/8e111582d1b6ffc35b13c8fa3bd4c493aa9ec79c))
+- Record the title band and SmartArt 3D save in the parity status (by @claude) ([7ce422c](https://github.com/ChristopherVR/pptx-viewer/commit/7ce422c4782cbb91eb170571e05301eb3d78c0ab))
+- Mark the 3D smoke spec and html2canvas export verified (by @claude) ([d311363](https://github.com/ChristopherVR/pptx-viewer/commit/d3113638ce889858c588dbb4b64d224af37d9572))
+- Record SmartArt bevel and scene style parity in the 3D harness (by @claude) ([d915d53](https://github.com/ChristopherVR/pptx-viewer/commit/d915d53f425fdb71d3b6bab3818b9dce48c674e1))
+- **demo:** Mark smartart structural-edit 3d round-trip done (by @claude) ([27ca13d](https://github.com/ChristopherVR/pptx-viewer/commit/27ca13d82b9f461212ddf534308037af617de632))
+- Record smartart pyramid and venn flat-path parity in the 3d harness (by @claude) ([f51d11d](https://github.com/ChristopherVR/pptx-viewer/commit/f51d11d8c4092b08f52142e4778969df5282c31d))
+- Record the SmartArt 3D follow-ups in the parity harness (by @claude) ([fb7b92e](https://github.com/ChristopherVR/pptx-viewer/commit/fb7b92e78111865b08942817d2b24b8c5995ae69))
+- **guide:** Record the .ppt encryption and svg fixes; sync two bullets (by @ChristopherVR) ([c4851c6](https://github.com/ChristopherVR/pptx-viewer/commit/c4851c6eb4529c8d5e048ceb3152f791ff199828))
+
+### Testing
+
+- **react:** Exit.19 has no authoring name once strips authors exit.18 (by @ChristopherVR) ([e8d6d66](https://github.com/ChristopherVR/pptx-viewer/commit/e8d6d667c95a6b9160569d3075f7b77e27eef4a2))
+- **react:** Exit.6 plays the circle iris (by @ChristopherVR) ([63ac838](https://github.com/ChristopherVR/pptx-viewer/commit/63ac838f36f2c1ee8c951da41d23f40038d472ac))
+- Add wordart can com measurement scripts (by @ChristopherVR) ([9f1670e](https://github.com/ChristopherVR/pptx-viewer/commit/9f1670e9c3a6d1c8cee68c43858d42ab519564f2))
+- **core:** Declare the new callout, CJK and org-chart assistant fixtures (by @ChristopherVR) ([1ff7f05](https://github.com/ChristopherVR/pptx-viewer/commit/1ff7f05d254f151a42005a0e4591897e7c508889))
+- **e2e:** Walk every 3D chart and export it in every binding (by @claude) ([2e17799](https://github.com/ChristopherVR/pptx-viewer/commit/2e177994d0f262fe30e1175fdde7f8e8745a6d7f))
+- **e2e:** Check smartart pyramid tiers and venn alpha in every binding (by @claude) ([5f4895b](https://github.com/ChristopherVR/pptx-viewer/commit/5f4895bd6d3151b808ddb912cf70f13c6f8a3545))
+- **core:** Lock the ECMA-376 trapezoid inset against the short side (by @claude) ([26462a0](https://github.com/ChristopherVR/pptx-viewer/commit/26462a034bb4752497244ff42e787af60f24406d))
+- **react:** Cover translucent SmartArt drawing fills in the a11y suite (by @claude) ([2b14580](https://github.com/ChristopherVR/pptx-viewer/commit/2b145806ec403d0959b1c603394de9b14e566aaf))
+- **e2e:** Check a turned 3D SmartArt draws past its frame in every binding (by @claude) ([f30be4b](https://github.com/ChristopherVR/pptx-viewer/commit/f30be4bb2d1809545cae331863114e240e131763))
+- **e2e:** Read the 3D chart hover tooltip from the view's pointer layer (by @claude) ([07b8016](https://github.com/ChristopherVR/pptx-viewer/commit/07b8016dc1f3332cd90a4c9905ffba7fa8d1890d))
+- **angular:** Expect the window slide keyframe for the slide filter (by @ChristopherVR) ([ea9f030](https://github.com/ChristopherVR/pptx-viewer/commit/ea9f030e0c66a1253e77532a67a069036390549a))
+- **core:** Declare the by-paragraph letter ripple fixture (by @ChristopherVR) ([532a448](https://github.com/ChristopherVR/pptx-viewer/commit/532a448c1b952051c5926e0ad25ef2d534a45818))
+- **core:** Pin the browser canvas ahead of the node svg rasteriser (by @ChristopherVR) ([8ae3fed](https://github.com/ChristopherVR/pptx-viewer/commit/8ae3fedd58b236b77dc56533010683b9cd91a7a2))
+
+### Build & CI
+
+- **react,vanilla:** Keep the optional node canvas peer external (by @ChristopherVR) ([6b0ae09](https://github.com/ChristopherVR/pptx-viewer/commit/6b0ae09448bab9ece71448ca50dfc969a7c72a02))
+
+## 2026-09-25
+
 _Releases: pptx-viewer-core@4.4.0, pptx-react-viewer@4.7.0, pptx-vue-viewer@4.7.0, pptx-angular-viewer@4.7.0, pptx-vanilla-viewer@3.7.0, pptx-svelte-viewer@4.7.0, @christophervr/pptx-viewer@2.29.0_
 
 ### Features
