@@ -11,7 +11,7 @@
  * @module three-view/view-controller
  */
 import type { TextStyleAnimationDescriptor } from '../render/animation-text-style-resolve';
-import { loadChart3DOrbitControls, loadChart3DThree } from '../render/chart-3d-three-loader';
+import { loadChart3DThree } from '../render/chart-3d-three-loader';
 import type { ChartPartRef } from '../render/chart-view-model';
 import { getThreeRendererHost } from './renderer-host';
 import type { HostedView, ThreeRendererHost } from './renderer-host';
@@ -89,10 +89,7 @@ export class ThreeViewController {
 				return;
 			}
 			this.host = host;
-			const [OrbitControls, factory] = await Promise.all([
-				loadChart3DOrbitControls(),
-				loadThreeViewScene(spec.kind),
-			]);
+			const factory = await loadThreeViewScene(spec.kind);
 			if (token !== this.token) {
 				return;
 			}
@@ -106,7 +103,10 @@ export class ThreeViewController {
 				spec.spec,
 				{
 					three,
-					OrbitControls,
+					// No camera orbit: PowerPoint never rotates a chart or SmartArt
+					// under the pointer, and an orbit would turn the scene while the
+					// user drags the element to move it on the slide.
+					OrbitControls: null,
 					size: this.size,
 					eventTarget: this.opts.eventTarget,
 					overlay,

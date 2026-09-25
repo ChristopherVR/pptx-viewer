@@ -66,16 +66,20 @@ export type ThreeViewSceneEvent =
 /** What the element gives a scene when mounting it. */
 export interface ThreeViewContext {
 	three: ThreeModule;
-	/** OrbitControls constructor, or `null` when the addon is unavailable. */
+	/**
+	 * OrbitControls constructor. The view controller always passes `null`: a
+	 * hosted scene never orbits, because the pointer that lands on the view is
+	 * also the one dragging the element across the slide.
+	 */
 	OrbitControls: (new (camera: THREE.Camera, dom: HTMLElement) => ThreeOrbitControls) | null;
 	size: ThreeViewSize;
-	/** The element pointer input lands on (attach OrbitControls / raycast listeners here). */
+	/** The element pointer input lands on (attach raycast listeners here). */
 	eventTarget: HTMLElement;
 	/** Absolutely positioned layer above the canvas, same box, for HTML/SVG chrome (titles, labels, tooltips). */
 	overlay: HTMLElement;
 	/** The document the view lives in (use it to create overlay nodes). */
 	document: Document;
-	/** Whether pointer interaction (orbit, select, drag) is enabled at mount. */
+	/** Whether pointer interaction (select, drag) is enabled at mount. */
 	interactive: boolean;
 	/** Schedule a redraw of this view on the next frame. Cheap; coalesced. */
 	requestRender: () => void;

@@ -14,7 +14,7 @@ const factoryMock = vi.hoisted(() => vi.fn());
 
 vi.mock(import('../render/chart-3d-three-loader'), () => ({
 	loadChart3DThree: async () => ({}),
-	loadChart3DOrbitControls: async () => null,
+	loadChart3DOrbitControls: async () => function FakeOrbit() {},
 }));
 vi.mock(import('./renderer-host'), () => ({
 	MAX_VIEW_PIXELS: 4096,
@@ -65,6 +65,14 @@ describe('three view controller', () => {
 		expect(hostMock.register).toHaveBeenCalledOnce();
 		expect(overlay.childElementCount).toBe(1);
 		expect(scene.setSelectedPart).toHaveBeenCalledWith(null);
+	});
+
+	it('never hands a scene an orbit, so dragging the element cannot rotate it', async () => {
+		factoryMock.mockResolvedValue(makeScene());
+		const { controller } = makeController();
+		await controller.setSpec(spec('a'));
+		const ctx = factoryMock.mock.calls[0]?.[1] as { OrbitControls: unknown };
+		expect(ctx.OrbitControls).toBeNull();
 	});
 
 	it('reports unavailable when WebGL cannot start', async () => {

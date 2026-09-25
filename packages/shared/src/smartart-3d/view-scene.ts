@@ -13,6 +13,9 @@
  * style also turns the whole diagram by its quick-style camera
  * (`model.camera`, `view-camera.ts`).
  *
+ * The camera is fixed (no orbit): PowerPoint never turns a SmartArt under the
+ * pointer, and dragging the element to move it must not rotate the diagram.
+ *
  * Must not import `three` at runtime (use `ctx.three`): this module is
  * reachable from the main barrel through the scene registry.
  *
@@ -22,7 +25,7 @@
 import { resolveSmartArt3DLightModel } from '../render/smartart-3d-lighting';
 import { smartArt3DCameraMatrix, smartArt3DEyeInDiagram } from '../render/smartart-3d-scene-camera';
 import type { SmartArt3DModel } from '../render/smartart-3d-types';
-import type { ThreeOrbitControls, ThreeViewContext, ThreeViewScene } from '../three-view/types';
+import type { ThreeViewContext, ThreeViewScene } from '../three-view/types';
 import type { Disposable } from './flat-mesh-object';
 import { buildFlatMeshObject } from './flat-mesh-object';
 import { buildLitMeshObject } from './lit-mesh-object';
@@ -80,43 +83,11 @@ export async function mountSmartArt3DView(
 	}
 
 	const camera = buildSmartArtViewCamera(three, model.bounds, model.camera, ctx.size);
-	const authoredPosition = camera.position.clone();
 	// A turned diagram draws past its box as PowerPoint does (view-overflow.ts).
 	let overflow = frameSmartArtOverflow(three, root, camera, ctx.size, Boolean(model.camera));
 
-	let controls: ThreeOrbitControls | null = null;
-	let dampingActive = false;
-	if (ctx.OrbitControls) {
-		controls = new ctx.OrbitControls(camera, ctx.eventTarget);
-		controls.enableDamping = true;
-		controls.enablePan = false;
-		controls.enabled = ctx.interactive;
-		controls.enableRotate = ctx.interactive;
-		controls.enableZoom = ctx.interactive;
-		const onChange = (): void => {
-			dampingActive = true;
-			ctx.requestRender();
-		};
-		controls.addEventListener('change', onChange);
-	}
-
-	const resetView = (): void => {
-		camera.position.copy(authoredPosition);
-		camera.lookAt(0, 0, 0);
-		if (controls) {
-			controls.target.set(0, 0, 0);
-			controls.update();
-		}
-		ctx.requestRender();
-	};
-	const onDoubleClick = (): void => resetView();
-	ctx.eventTarget.addEventListener('dblclick', onDoubleClick);
-
 	return {
 		render(renderer) {
-			if (controls) {
-				dampingActive = controls.update();
-			}
 			renderer.render(scene, camera);
 		},
 		resize(size) {
@@ -126,23 +97,7 @@ export async function mountSmartArt3DView(
 		overflow() {
 			return overflow;
 		},
-		isAnimating() {
-			return dampingActive;
-		},
-		setInteractive(on) {
-			if (!controls) {
-				return;
-			}
-			controls.enabled = on;
-			controls.enableRotate = on;
-			controls.enableZoom = on;
-			if (!on) {
-				resetView();
-			}
-		},
 		dispose() {
-			ctx.eventTarget.removeEventListener('dblclick', onDoubleClick);
-			controls?.dispose();
 			for (const d of disposables) {
 				d.dispose();
 			}
