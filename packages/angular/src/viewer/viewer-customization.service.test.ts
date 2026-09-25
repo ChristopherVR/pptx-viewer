@@ -31,7 +31,11 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 import { ViewerOptionsService } from './viewer-options.service';
 
 function makeInjector(extra: (Provider | StaticProvider)[] = []): Injector {
+	// Parented on the TestBed injector so platform services the menus need
+	// (e.g. AfterRenderManager, used by the viewport clamp's afterRender hook)
+	// resolve.
 	return Injector.create({
+		parent: TestBed.inject(Injector),
 		providers: [
 			{ provide: ViewerOptionsService, deps: [] },
 			{ provide: ViewerCustomizationService, deps: [] },
