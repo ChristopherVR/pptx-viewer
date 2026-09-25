@@ -335,6 +335,13 @@ describe('smartArtRenderer template bindings', () => {
 		);
 	});
 
+	it('binds a cached shape fill alpha on every drawing primitive (Basic Venn)', () => {
+		const fills = drawingBranch.match(/\[attr\.fill\]="shape\.fill"/gu) ?? [];
+		const opacities = drawingBranch.match(/\[attr\.fill-opacity\]="shape\.fillOpacity"/gu) ?? [];
+		expect(fills.length).toBeGreaterThanOrEqual(3);
+		expect(opacities).toHaveLength(fills.length);
+	});
+
 	it('keeps the existing fallback-node edit path intact', () => {
 		expect(fallbackBranch).toContain('(dblclick)="onNodeDblClick($event, node, ni)"');
 		expect(fallbackBranch).toContain('(keydown)="onNodeKeydown($event, node, ni)"');
