@@ -4,6 +4,16 @@ import { reorderObjectKeys, SHAPE_STYLE_ORDER } from '../../utils/xml-reorder';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveXmlHelpers';
 import { writeShapeFillAndStroke } from './save-shape-fill-stroke';
 
+/** Child order of `p:sp` / `p:cxnSp` up to `p:txBody` (CT_Shape, CT_Connector). */
+const SHAPE_CHILD_ORDER: readonly string[] = [
+	'p:nvSpPr',
+	'p:nvCxnSpPr',
+	'p:spPr',
+	'p:style',
+	'p:txBody',
+	'p:extLst',
+];
+
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	/**
 	 * Serialize shape fill, stroke, dash, arrows, line join/cap/compound,
@@ -101,7 +111,19 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			styleNode[key] = reordered[key];
 		}
 
+		const created = existing === undefined;
 		shape['p:style'] = styleNode;
+		if (created) {
+			// A NEW `p:style` lands after `p:txBody` in insertion order, but
+			// CT_Shape / CT_Connector put it straight after `spPr`
+			// (§19.3.1.43). PowerPoint ignores an out-of-order `p:style`
+			// (COM reads the shape as unfilled and unoutlined), so move it.
+			const ordered = reorderObjectKeys(shape, SHAPE_CHILD_ORDER);
+			for (const key of Object.keys(shape)) {
+				delete shape[key];
+			}
+			Object.assign(shape, ordered);
+		}
 	}
 
 	/**
