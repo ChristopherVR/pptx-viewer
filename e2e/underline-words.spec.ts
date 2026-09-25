@@ -67,7 +67,15 @@ async function measureDecoration(page: Page, marker: string): Promise<DecoratedP
 
 /** The pieces (words or gaps) that are NOT underlined. */
 function undecoratedPieces(pieces: DecoratedPiece[]): DecoratedPiece[] {
-	return pieces.filter((piece) => !piece.underlined);
+	// Whitespace-only nodes are skipped: a template's own formatting
+	// whitespace (Svelte) sits between run spans, outside any run. The gap
+	// that matters is the space INSIDE the run, checked by `gapUnderlined`.
+	return pieces.filter((piece) => piece.text.trim().length > 0 && !piece.underlined);
+}
+
+/** Whether the inter-word space rides an underlined piece (a continuous line). */
+function gapUnderlined(pieces: DecoratedPiece[]): boolean {
+	return pieces.some((piece) => piece.underlined && /\s/u.test(piece.text));
 }
 
 /** The full text reconstructed from the pieces, for a sanity check. */
@@ -95,6 +103,9 @@ test.describe('u="words" underline', () => {
 			const rendered = fullText(value);
 			if (!UNDERLINE_WORDS_TEXT.split('').every((ch) => ch === ' ' || rendered.includes(ch))) {
 				problems.push(`renders "${rendered}", expected the fixture's "${UNDERLINE_WORDS_TEXT}"`);
+			}
+			if (!gapUnderlined(value)) {
+				problems.push('the inter-word space is not underlined');
 			}
 			const bad = undecoratedPieces(value);
 			if (bad.length > 0) {

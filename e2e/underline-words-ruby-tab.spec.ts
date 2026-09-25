@@ -74,7 +74,26 @@ async function measureDecoration(page: Page, marker: string): Promise<DecoratedP
 
 /** Pieces of `source` (its words or the whitespace between them) that are not underlined. */
 function undecoratedWithin(pieces: DecoratedPiece[], source: string): DecoratedPiece[] {
-	return pieces.filter((piece) => source.includes(piece.text.trim()) && !piece.underlined);
+	// Whitespace-only nodes are template formatting (Svelte) outside any run;
+	// the real gap has to ride an underlined piece (see the gap check below).
+	return pieces.filter(
+		(piece) =>
+			piece.text.trim().length > 0 && source.includes(piece.text.trim()) && !piece.underlined,
+	);
+}
+
+/**
+ * Whether the space inside `source` rides an underlined piece: either an
+ * underlined piece carrying the space next to a word of `source`, or an
+ * underlined whitespace-only piece (a binding that splits words and gaps).
+ */
+function gapUnderlinedWithin(pieces: DecoratedPiece[], source: string): boolean {
+	return pieces.some(
+		(piece) =>
+			piece.underlined &&
+			/\s/u.test(piece.text) &&
+			(piece.text.trim().length === 0 || source.includes(piece.text.trim().split(/\s+/u)[0] ?? '')),
+	);
 }
 
 interface ScenarioResult {
@@ -107,6 +126,12 @@ test.describe('u="words" through ruby and tab-stop runs', () => {
 			const rubyBad = undecoratedWithin(value.ruby, RUBY_BASE_TEXT);
 			if (rubyBad.length > 0) {
 				problems.push(`ruby: piece(s) not underlined: ${describe(rubyBad)}`);
+			}
+			if (!gapUnderlinedWithin(value.ruby, RUBY_BASE_TEXT)) {
+				problems.push('ruby: the gap between the base words is not underlined');
+			}
+			if (!gapUnderlinedWithin(value.tab, TAB_PIECE_TEXT)) {
+				problems.push('tab: the gap inside the tab piece is not underlined');
 			}
 			const tabBad = undecoratedWithin(value.tab, `${TAB_PIECE_TEXT} ${TAB_SECOND_PIECE_TEXT}`);
 			if (tabBad.length > 0) {
