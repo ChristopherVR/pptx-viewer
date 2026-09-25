@@ -18,7 +18,7 @@ import { isImageLikeElement } from 'pptx-viewer-core';
 
 import { canInteractWithElement } from '../element-locks';
 import { cropFrameOf, readCropInsets } from './crop-geometry';
-import type { CropElementUpdate } from './crop-geometry';
+import type { CropElementUpdate, CropInsets, CropRect } from './crop-geometry';
 
 /** A picture PowerPoint would let you crop: image-like and not `noCrop`-locked. */
 export function canCropElement(el: PptxElement | null | undefined): boolean {
@@ -31,19 +31,44 @@ export function canCropElement(el: PptxElement | null | undefined): boolean {
 export interface CropSession {
 	elementId: string;
 	original: CropElementUpdate;
+	/** Insets the picture did not carry at all (no `a:srcRect` opinion). */
+	absentInsets: readonly (keyof CropInsets)[];
 }
+
+/**
+ * The cancel update: the snapshot, with insets the picture never had written
+ * back as `undefined` rather than 0, so a cancelled session leaves the element
+ * (and any serialised history snapshot of it) exactly as it was.
+ */
+export type CropRestoreUpdate = CropRect & { [K in keyof CropInsets]: number | undefined };
+
+const INSET_KEYS: readonly (keyof CropInsets)[] = [
+	'cropLeft',
+	'cropTop',
+	'cropRight',
+	'cropBottom',
+];
 
 /** Start crop mode on `el`, or null when it cannot be cropped. */
 export function startCropSession(el: PptxElement | null | undefined): CropSession | null {
 	if (!el || !canCropElement(el)) {
 		return null;
 	}
-	return { elementId: el.id, original: { ...cropFrameOf(el), ...readCropInsets(el) } };
+	const raw = el as Partial<Record<keyof CropInsets, unknown>>;
+	return {
+		elementId: el.id,
+		original: { ...cropFrameOf(el), ...readCropInsets(el) },
+		absentInsets: INSET_KEYS.filter((key) => typeof raw[key] !== 'number'),
+	};
 }
 
 /** The update that undoes every change made during the session. */
-export function cancelCropUpdate(session: CropSession): CropElementUpdate {
-	return { ...session.original };
+export function cancelCropUpdate(session: CropSession): CropRestoreUpdate {
+	const update: CropRestoreUpdate = { ...session.original };
+	for (const key of session.absentInsets) {
+		update[key] = undefined;
+	}
+	return update;
 }
 
 /** Whether the element differs from the session's snapshot (so commit records undo). */

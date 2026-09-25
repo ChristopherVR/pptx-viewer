@@ -150,7 +150,10 @@ describe('crop session', () => {
 		const session = startCropSession(el)!;
 		expect(cropSessionChanged(session, el)).toBeFalsy();
 		expect(cropSessionChanged(session, { ...el, cropTop: 0.2 } as PptxElement)).toBeTruthy();
-		expect(cancelCropUpdate(session)).toMatchObject({ x: 100, cropTop: 0.1, cropLeft: 0 });
+		const restore = cancelCropUpdate(session);
+		expect(restore).toMatchObject({ x: 100, cropTop: 0.1 });
+		// Insets the picture never carried come back undefined, not 0.
+		expect(restore.cropLeft).toBeUndefined();
 	});
 
 	it('maps Enter and Escape', () => {
