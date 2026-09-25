@@ -148,6 +148,8 @@ export function buildDocumentContainer(input: {
 	paddingBytes?: number;
 	exObjList?: Uint8Array;
 	soundCollection?: Uint8Array;
+	/** The document-level "other" TextMasterStyleAtom (see `buildOtherTextStyle`). */
+	otherTextStyle?: Uint8Array;
 }): Uint8Array {
 	const drawingGroup = record(RT.DrawingGroup, input.dggContainer, 0, true);
 	// A real (COM-written) DocumentContainer's LAST child is always a
@@ -159,7 +161,7 @@ export function buildDocumentContainer(input: {
 	if (input.exObjList) {
 		w.bytes(input.exObjList);
 	}
-	w.bytes(buildEnvironment(input.fonts));
+	w.bytes(buildEnvironment(input.fonts, input.otherTextStyle));
 	if (input.soundCollection) {
 		w.bytes(input.soundCollection);
 	}

@@ -43,6 +43,8 @@ export const SHAPE_ID_CLUSTER_SIZE = 1024;
  * Build a framed `Drawing` record (`RT.Drawing`) containing one
  * `OfficeArtDgContainer` for a slide or master's shapes.
  *
+ * @param prebuiltShapes - Builds ready-made shape containers (the main
+ *   master's placeholders) written before `shapes`, from the same allocator.
  * @param drawingId - This drawing's unique id (`OfficeArtFDG.drawingId`,
  *   [MS-ODRAW] 2.2.24): every drawing (the master's own, and each slide's)
  *   in a document MUST have a distinct id, matching the `OfficeArtIDCL`
@@ -61,6 +63,7 @@ export function buildDrawing(
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
 	mediaEmbeds: MediaCollector,
+	prebuiltShapes?: (allocator: ShapeIdAllocator) => Uint8Array[],
 ): Uint8Array {
 	const allocator = new ShapeIdAllocator(drawingId, SHAPE_ID_CLUSTER_SIZE);
 	const spgrData = new ByteWriter().bytes(buildCanvasPatriarch(allocator));
@@ -70,6 +73,11 @@ export function buildDrawing(
 	// defines for it: written inside the group (this writer's earlier
 	// layout) PowerPoint counts it as an ordinary zero-size slide shape.
 	const background = backgroundRgb ? buildBackgroundShape(backgroundRgb, allocator) : undefined;
+	// Ready-built shape containers (the master's placeholders) come first.
+	const prebuilt = prebuiltShapes?.(allocator) ?? [];
+	for (const container of prebuilt) {
+		spgrData.bytes(container);
+	}
 	for (const shape of shapes) {
 		spgrData.bytes(
 			buildAnyShapeContainer(shape, fonts, allocator, hyperlinks, oleEmbeds, mediaEmbeds),
@@ -86,7 +94,7 @@ export function buildDrawing(
 	// it can never drift out of sync with what was actually allocated.
 	const lastShapeId = allocator.lastIssued;
 	const dgData = new ByteWriter()
-		.bytes(buildDg(drawingId, shapes.length, lastShapeId))
+		.bytes(buildDg(drawingId, prebuilt.length + shapes.length, lastShapeId))
 		.bytes(spgrContainer)
 		.bytes(background ?? new Uint8Array(0))
 		.toBytes();

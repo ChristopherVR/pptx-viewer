@@ -78,29 +78,32 @@ export function encodeComplexString(name: string): Uint8Array {
 /**
  * Build a framed OfficeArtFOPT record from simple and complex properties.
  *
- * Complex properties are automatically sorted to the end of the fixed-entry
- * table (order among themselves is preserved) since their payload order
- * must match their entry order.
+ * Every entry, simple or complex, is sorted by its PID (`id & 0x3fff`,
+ * ignoring `fBid`), with the complex payloads following the entry table in
+ * that same order, as PowerPoint writes it. Keeping complex entries at the
+ * END of the table instead (this writer's earlier layout) went unnoticed
+ * while no simple PID exceeded `wzName`'s 0x380; the master placeholders'
+ * group-shape booleans (0x3BF) after `wzName` made PowerPoint report the
+ * whole file as corrupt (COM-measured).
  *
  * A simple entry's `id` is written verbatim (not masked to the low 14 bits):
  * a caller MAY pre-OR the `fBid` bit (`0x4000`) onto it for a "blip
  * identifier" property (`pib`; see `shape-props-writer.ts`), confirmed
- * required by real PowerPoint's Office File Validation. Entries are sorted
- * by their PID (`id & 0x3fff`, ignoring `fBid`) so a flagged id still sorts
- * into its correct numeric position.
+ * required by real PowerPoint's Office File Validation.
  */
 export function buildFopt(simple: FoptSimpleEntry[], complex: FoptComplexEntry[] = []): Uint8Array {
+	const pid = (id: number): number => id & 0x3fff;
+	const all: Array<{ id: number; value: number; bytes?: Uint8Array }> = [
+		...simple,
+		...complex.map((entry) => ({ id: entry.id, value: entry.bytes.length, bytes: entry.bytes })),
+	].sort((a, b) => pid(a.id) - pid(b.id));
 	const entries = new ByteWriter();
-	const allSorted = [...simple].sort((a, b) => (a.id & 0x3fff) - (b.id & 0x3fff));
-	for (const entry of allSorted) {
-		entries.u16(entry.id & 0x7fff).u32(entry.value >>> 0);
-	}
-	for (const entry of complex) {
-		entries.u16((entry.id & 0x3fff) | 0x8000).u32(entry.bytes.length >>> 0);
-	}
 	const payload = new ByteWriter();
-	for (const entry of complex) {
-		payload.bytes(entry.bytes);
+	for (const { id, value, bytes } of all) {
+		entries.u16(bytes ? pid(id) | 0x8000 : id & 0x7fff).u32(value >>> 0);
+		if (bytes) {
+			payload.bytes(bytes);
+		}
 	}
 	const count = simple.length + complex.length;
 	const data = new ByteWriter().append(entries).append(payload).toBytes();

@@ -79,6 +79,16 @@ export const RT = {
 	ProgBinaryTag: 0x138a,
 	BinaryTagDataBlob: 0x138b,
 	RoundTripCustomTableStyles12Atom: 0x428c,
+	/** [MS-PPT] 2.11.21: a master's theme as a zipped OOXML package. */
+	RoundTripTheme12Atom: 0x040e,
+	/** [MS-PPT] 2.11.19: a master's `a:clrMap` as an XML string. */
+	RoundTripColorMapping12Atom: 0x040f,
+	/** [MS-PPT] 2.11.22: a master's `p:txStyles` as a zipped OOXML package. */
+	RoundTripOArtTextStyles12Atom: 0x0423,
+	/** [MS-PPT] 2.9.28: a date field (`*`) in a master date placeholder. */
+	GenericDateMCAtom: 0x0ff8,
+	/** [MS-PPT] 2.9.25: a slide-number field (`*`) in a placeholder. */
+	SlideNumberMCAtom: 0x0fd8,
 } as const;
 
 /** OfficeArt (Escher / MS-ODRAW) record types. */

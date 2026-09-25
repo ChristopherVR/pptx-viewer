@@ -89,6 +89,22 @@ function buildFixedInstanceAtom(recInstance: number): Uint8Array {
 }
 
 /**
+ * The "other" text type's TextMasterStyleAtom (instance 4): the deck's own
+ * `p:otherStyle`, else PowerPoint's default. PowerPoint writes the same atom
+ * a second time in the document `Environment`, where `SlideMaster.
+ * TextStyles(ppDefaultStyle)` reads it (COM-measured: a style-less atom
+ * there reports Arial instead of the theme's body face).
+ */
+export function buildOtherTextStyle(
+	styles: WMasterTextStyles | undefined,
+	fontIndex: FontIndexer,
+): Uint8Array {
+	return styles?.other
+		? buildMasterStyleAtom(4, styles.other, fontIndex)
+		: buildFixedInstanceAtom(4);
+}
+
+/**
  * Build every TextMasterStyleAtom instance a `MainMaster` needs (0, 1, 2, 4,
  * 5, 6, 7, 8), in that order.
  */
@@ -101,9 +117,7 @@ export function buildMasterTextStyles(
 		.bytes(buildMasterStyleAtom(1, styles?.body ?? EMPTY_LEVELS, fontIndex));
 	for (const instance of [2, 4, 5, 6, 7, 8]) {
 		w.bytes(
-			instance === 4 && styles?.other
-				? buildMasterStyleAtom(4, styles.other, fontIndex)
-				: buildFixedInstanceAtom(instance),
+			instance === 4 ? buildOtherTextStyle(styles, fontIndex) : buildFixedInstanceAtom(instance),
 		);
 	}
 	return w.toBytes();

@@ -9,10 +9,11 @@ import { ByteWriter, record } from './byte-writer';
 import { buildColorSchemeAtom } from './color-scheme-writer';
 import { buildDrawing } from './drawing-writer';
 import type { HyperlinkCollector } from './hyperlink-writer';
+import { buildMasterPlaceholders, completeMasterPlaceholders } from './master-placeholders-writer';
 import { buildMasterTextStyles } from './master-text-styles-writer';
 import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
-import type { WMasterTextStyles, WRect, WSlide } from './write-model';
+import type { WMasterRoundTrip, WMasterTextStyles, WRect, WSlide } from './write-model';
 
 const SLIDE_FLAG_MASTER_OBJECTS = 0x0001;
 const SLIDE_FLAG_MASTER_SCHEME = 0x0002;
@@ -107,7 +108,8 @@ export function buildSlideContainer(
 
 /**
  * Build a framed `MainMaster` container: leading SlideAtom, colour scheme,
- * decorative shapes and default title/body text styles.
+ * text styles, the placeholder shapes (see `master-placeholders-writer.ts`)
+ * and, when the deck has a source master, the theme round-trip atoms.
  *
  * A real (COM-written) `MainMaster` starts with the SAME `RT.SlideAtom`
  * shape used by a `Slide` container (verified against `sample-deck.ppt`,
@@ -149,19 +151,45 @@ export function buildMainMasterContainer(
 	mediaEmbeds: MediaCollector,
 	masterStyles: WMasterTextStyles | undefined,
 	fonts: string[],
+	master: WMasterRoundTrip | undefined,
 ): Uint8Array {
 	const fontIndex = (name?: string): number | undefined => {
 		const idx = name ? fonts.indexOf(name) : -1;
 		return idx >= 0 ? idx : undefined;
 	};
+	const placeholders = completeMasterPlaceholders(
+		master?.placeholders ?? [],
+		slideRect.w,
+		slideRect.h,
+	);
+	const roundTrip = (recType: number, payload: Uint8Array | undefined): Uint8Array =>
+		payload ? record(recType, payload, 0, false, 0) : new Uint8Array(0);
+	// PowerPoint's own child order (SaveAs format 1): the text styles atom
+	// sits between the TextMasterStyleAtoms and the Drawing (COM-measured:
+	// written after the Drawing, PowerPoint loses the master altogether),
+	// the theme and colour mapping after the trailing ColorSchemeAtom.
 	const data = new ByteWriter()
 		.bytes(buildMasterSlideAtom())
-		.bytes(buildColorSchemeAtom(MASTER_FIRST_COLOR_SCHEME_INSTANCE))
+		.bytes(buildColorSchemeAtom(MASTER_FIRST_COLOR_SCHEME_INSTANCE, master?.schemeColors))
 		.bytes(buildMasterTextStyles(masterStyles, fontIndex))
+		.bytes(roundTrip(RT.RoundTripOArtTextStyles12Atom, master?.oartTextStyles))
 		.bytes(
-			buildDrawing(slideRect, [], undefined, [], drawingId, hyperlinks, oleEmbeds, mediaEmbeds),
+			buildDrawing(
+				slideRect,
+				[],
+				undefined,
+				[],
+				drawingId,
+				hyperlinks,
+				oleEmbeds,
+				mediaEmbeds,
+				(allocator) =>
+					buildMasterPlaceholders(placeholders, allocator, fontIndex(master?.themeFonts?.minor)),
+			),
 		)
-		.bytes(buildColorSchemeAtom())
+		.bytes(buildColorSchemeAtom(undefined, master?.schemeColors))
+		.bytes(roundTrip(RT.RoundTripTheme12Atom, master?.theme))
+		.bytes(roundTrip(RT.RoundTripColorMapping12Atom, master?.colorMapping))
 		.toBytes();
 	return record(RT.MainMaster, data, 0, true);
 }

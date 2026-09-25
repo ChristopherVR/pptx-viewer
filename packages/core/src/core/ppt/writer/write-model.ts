@@ -209,6 +209,36 @@ export interface WMasterTextStyles {
 	other?: WMasterLevel[];
 }
 
+/** One of the main master's placeholders (see `master-placeholders-writer.ts`). */
+export type WMasterPlaceholderKind = 'title' | 'body' | 'date' | 'footer' | 'slideNumber';
+
+/** A main-master placeholder: its frame, plus the field text size for date/footer/number. */
+export interface WMasterPlaceholder {
+	kind: WMasterPlaceholderKind;
+	rect: WRect;
+	sizePt?: number;
+}
+
+/**
+ * What the main master carries beyond its text styles, from the deck's own
+ * source master (see `master-roundtrip-source.ts`): placeholder frames, the
+ * theme-derived colour scheme, and the three round-trip atoms PowerPoint
+ * 2007+ writes (already serialised, see `master-roundtrip-writer.ts`).
+ */
+export interface WMasterRoundTrip {
+	placeholders: WMasterPlaceholder[];
+	/** ColorSchemeAtom colours (8 '#'-less RGB values). */
+	schemeColors?: string[];
+	/** RoundTripOArtTextStyles12Atom payload (zipped `p:txStyles`). */
+	oartTextStyles?: Uint8Array;
+	/** RoundTripTheme12Atom payload (zipped theme package). */
+	theme?: Uint8Array;
+	/** RoundTripColorMapping12Atom payload (`a:clrMap` XML). */
+	colorMapping?: Uint8Array;
+	/** The theme's major / minor Latin faces (resolve `+mj-lt` / `+mn-lt` master fonts). */
+	themeFonts?: { major?: string; minor?: string };
+}
+
 /** The complete deck the writer serialises. */
 export interface WDeck {
 	widthEmu: number;
@@ -216,4 +246,6 @@ export interface WDeck {
 	slides: WSlide[];
 	pictures: WPictureData[];
 	masterStyles?: WMasterTextStyles;
+	/** Main-master placeholders and round-trip records; defaults when absent. */
+	master?: WMasterRoundTrip;
 }

@@ -33,7 +33,8 @@ function buildTextCharsAtom(text: string): Uint8Array {
 	return record(RT.TextCharsAtom, data, 0, false, 0);
 }
 
-function buildStyleTextPropAtom(
+/** Build a StyleTextPropAtom (paragraph + character runs) for `body`. */
+export function buildStyleTextPropAtom(
 	body: WTextBody,
 	fontIndex: (name?: string) => number | undefined,
 ): Uint8Array {
