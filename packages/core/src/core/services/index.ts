@@ -59,7 +59,9 @@ export {
 	OOXML_TO_PRESET_EMPH,
 	ooxmlToPresetName,
 	resolveOoxmlPresetMapping,
+	timingCurveToAccelDecel,
 } from './animation-write-mappings';
+export { resolveDirectionSubtype } from './animation-timing-surgical-behaviors';
 export {
 	capturedPresetIds,
 	capturedSubtypes,
