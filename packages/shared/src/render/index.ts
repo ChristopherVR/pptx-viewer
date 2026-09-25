@@ -104,6 +104,8 @@ export * from './equation-compile';
 export * from './chart-helpers';
 export * from './chart-area-fill';
 export * from './chart-font';
+// Measured data-label boxes (`setChartTextMeasurer` lets a host replace the canvas).
+export * from './chart-label-measure';
 export * from './chart-style-defaults';
 export * from './chart-title-style';
 export * from './chart-title-band';

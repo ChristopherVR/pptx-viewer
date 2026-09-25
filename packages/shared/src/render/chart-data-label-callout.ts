@@ -15,23 +15,8 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { findPointLabel } from './chart-data-label-anchor';
+import { dataLabelBox } from './chart-label-measure';
 import type { SvgPolygon, SvgPolyline, SvgPrimitive, SvgText } from './chart-view-model-types';
-
-/** The rectangle a label's text occupies, estimated from its font size. */
-function labelBox(label: SvgText): { x: number; y: number; w: number; h: number } {
-	const pad = 3;
-	const w = label.text.length * label.fontSize * 0.52 + pad * 2;
-	const h = label.fontSize * 1.3 + pad;
-	const x =
-		label.textAnchor === 'middle'
-			? label.x - w / 2
-			: label.textAnchor === 'end'
-				? label.x - w + pad
-				: label.x - pad;
-	const centred = label.dominantBaseline === 'central' || label.dominantBaseline === 'middle';
-	const y = centred ? label.y - h / 2 : label.y - label.fontSize * 0.95 - pad / 2;
-	return { x, y, w, h };
-}
 
 const r2 = (v: number) => Math.round(v * 100) / 100;
 
@@ -138,7 +123,7 @@ export function buildDataLabelDecorations(
 	if (!shape && !callout && !leader) {
 		return [];
 	}
-	const box = labelBox(label);
+	const box = dataLabelBox(label);
 	const out: SvgPrimitive[] = leader ? [leaderLine(box, target, opts)] : [];
 	if (shape || callout) {
 		// The pointer only shows when the point lies outside the box: a label
