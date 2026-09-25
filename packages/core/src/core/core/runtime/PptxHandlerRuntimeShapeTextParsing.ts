@@ -346,6 +346,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (ctx.effectiveLevelStyles) {
 			const phLevel = ctx.effectiveLevelStyles[level];
 			const phBase = ctx.effectiveLevelStyles[-1];
+			const runOwnRtl = mergedDefaultRunStyle.rtl;
 			if (phLevel) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phLevel);
 				this.applyPlaceholderLevelDefaults(textStyle, phLevel);
@@ -353,6 +354,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (phBase) {
 				this.applyPlaceholderLevelDefaults(mergedDefaultRunStyle, phBase);
 				this.applyPlaceholderLevelDefaults(textStyle, phBase);
+			}
+			// A level's `lvlNpPr/@rtl` cascades onto the run style, but the
+			// paragraph's OWN `a:pPr/@rtl` sits above it in that cascade: a stock
+			// master's `rtl="0"` otherwise read as a run-level LTR override on
+			// every run of an `rtl="1"` paragraph (COM-verified RTL tab slide).
+			if (runOwnRtl === undefined && paragraphRtl !== undefined) {
+				mergedDefaultRunStyle.rtl = paragraphRtl;
 			}
 		}
 

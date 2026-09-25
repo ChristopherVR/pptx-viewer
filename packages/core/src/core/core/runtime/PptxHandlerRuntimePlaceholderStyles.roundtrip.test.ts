@@ -42,6 +42,7 @@ function bodyPlaceholderXml(): string {
 		'<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>' +
 		'<p:txBody><a:bodyPr/><a:lstStyle/>' +
 		'<a:p><a:r><a:rPr lang="en-US"/><a:t>BodyText</a:t></a:r></a:p>' +
+		'<a:p><a:pPr rtl="0"/><a:r><a:rPr lang="en-US"/><a:t>OwnLtrText</a:t></a:r></a:p>' +
 		'</p:txBody></p:sp>'
 	);
 }
@@ -132,6 +133,15 @@ describe('master p:bodyStyle level cascade fidelity', () => {
 		// The inherited bullet is stamped as its own leading segment.
 		expect(segments![0]?.bulletInfo?.char).toBe('•');
 		expect(segments![0]?.bulletInfo?.color).toMatch(/^#[0-9A-Fa-f]{6}$/u);
+	});
+
+	// COM-verified (2026-09 RTL tab slide): the paragraph's own a:pPr/@rtl sits
+	// above the level default in the cascade, so the level's rtl must not reach
+	// the run style of a paragraph that authors its own direction.
+	it("(b2) lets a paragraph's own pPr rtl beat the level default on its runs", () => {
+		const segments = findBodySegments(data.slides[0]!.elements);
+		const segment = segments!.find((s) => s.text.includes('OwnLtrText'));
+		expect(segment!.style).toMatchObject({ rtl: false });
 	});
 
 	it('(c) re-serialises an edited level with the scheme bullet colour and all attributes intact', async () => {
