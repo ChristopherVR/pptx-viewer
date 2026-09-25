@@ -44,6 +44,18 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
+import { directionValuesFor } from './animation-direction-options';
+
+// The direction catalogue moved to its own module; re-exported so existing
+// `animation-authoring` imports keep working.
+export {
+	DIRECTION_VALUES,
+	DIRECTIONAL_PRESETS,
+	directionValuesFor,
+	directionValuesForPreset,
+	effectiveDirection,
+} from './animation-direction-options';
+
 /** One of the three animation buckets a preset can occupy on an element. */
 export type AnimationGroup = 'entrance' | 'emphasis' | 'exit';
 
@@ -138,18 +150,6 @@ export const REPEAT_MODE_VALUES: readonly ('none' | PptxAnimationRepeatMode)[] =
 	'untilEndOfSlide',
 ];
 
-/** Direction option values for directional presets (fly in/out, wipe). */
-export const DIRECTION_VALUES: readonly PptxAnimationDirection[] = [
-	'fromTop',
-	'fromBottom',
-	'fromLeft',
-	'fromRight',
-	'fromTopLeft',
-	'fromTopRight',
-	'fromBottomLeft',
-	'fromBottomRight',
-];
-
 /** Sequence option values for paragraph/word/letter builds. */
 export const SEQUENCE_VALUES: readonly PptxAnimationSequence[] = [
 	'asOne',
@@ -157,19 +157,6 @@ export const SEQUENCE_VALUES: readonly PptxAnimationSequence[] = [
 	'byWord',
 	'byLetter',
 ];
-
-/**
- * Presets that expose the direction picker. Superset of the per-binding sets
- * (Angular surfaced more directional presets than React's `flyIn`/`flyOut`).
- */
-export const DIRECTIONAL_PRESETS = new Set<string>([
-	'flyIn',
-	'flyOut',
-	'wipeIn',
-	'wipeOut',
-	'floatIn',
-	'peekIn',
-]);
 
 // ==========================================================================
 // Defaults for a freshly-created animation entry
@@ -211,17 +198,14 @@ export function hasAnimation(
 
 /**
  * Returns `true` when the active animation entry has a preset that supports
- * direction picking (fly in/out, wipe, etc.).
+ * direction picking (fly, crawl, wipe, peek, stretch); see
+ * `animation-direction-options` for which directions each offers.
  */
 export function showDirectionPicker(
 	slideAnimations: readonly PptxElementAnimation[],
 	elementId: string,
 ): boolean {
-	const entry = animationFor(slideAnimations, elementId);
-	if (!entry) {
-		return false;
-	}
-	return DIRECTIONAL_PRESETS.has(entry.entrance ?? '') || DIRECTIONAL_PRESETS.has(entry.exit ?? '');
+	return directionValuesFor(slideAnimations, elementId).length > 0;
 }
 
 // ==========================================================================
