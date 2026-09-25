@@ -88,4 +88,42 @@ describe('powerPointViewer UI customization', () => {
 		expect(mounted.find('[data-pptx-title-bar]').exists()).toBeFalsy();
 		expect(mounted.find('button[aria-label="Settings"]').exists()).toBeFalsy();
 	});
+
+	it('hides ribbon groups and controls through one scoped stylesheet', async () => {
+		mounted = await mountViewer({
+			ribbon: { hiddenGroups: ['home.font'], hiddenButtons: ['home.paragraph.bullets'] },
+		});
+		const root = mounted.get('.pptx-vue-viewer');
+		const scope = root.attributes('data-pptx-ribbon-scope');
+		expect(scope).toMatch(/^[\w-]+$/u);
+		const styles = mounted.findAll('style[data-pptx-ribbon-customization]');
+		expect(styles).toHaveLength(1);
+		const css = styles[0].element.textContent ?? '';
+		expect(css).toContain(`[data-pptx-ribbon-scope="${scope}"] [data-ribbon-group="home.font"]`);
+		expect(css).toContain(
+			`[data-pptx-ribbon-scope="${scope}"] [data-ribbon-control="home.paragraph.bullets"]`,
+		);
+		expect(css).toContain('display: none !important');
+		for (const group of ['clipboard', 'slides', 'font', 'paragraph', 'drawing', 'editing']) {
+			expect(root.find(`[data-ribbon-group="home.${group}"]`).exists()).toBeTruthy();
+		}
+		expect(root.find('[data-ribbon-control="home.paragraph.bullets"]').exists()).toBeTruthy();
+	});
+
+	it('updates the ribbon stylesheet live through the imperative handle', async () => {
+		mounted = await mountViewer();
+		const viewer = mounted.vm as unknown as PowerPointViewerExpose;
+		const style = mounted.get('style[data-pptx-ribbon-customization]');
+		expect(style.element.textContent).toBe('');
+
+		viewer.hideRibbonGroup('home.editing');
+		viewer.hideRibbonControl('home.font.italic');
+		await flushPromises();
+		expect(style.element.textContent).toContain('[data-ribbon-group="home.editing"]');
+		expect(style.element.textContent).toContain('[data-ribbon-control="home.font.italic"]');
+
+		viewer.showRibbonGroup('home.editing');
+		await flushPromises();
+		expect(style.element.textContent).not.toContain('home.editing');
+	});
 });

@@ -1,15 +1,5 @@
 <script setup lang="ts">
-import {
-	AArrowDown,
-	AArrowUp,
-	ChevronDown,
-	Highlighter,
-	IndentDecrease,
-	IndentIncrease,
-	List,
-	ListOrdered,
-	RemoveFormatting,
-} from 'lucide-vue-next';
+import { AArrowDown, AArrowUp, ChevronDown, Highlighter, RemoveFormatting } from 'lucide-vue-next';
 /**
  * Text ribbon section: the Vue port of React's `toolbar/TextSection.tsx`.
  *
@@ -23,19 +13,14 @@ import {
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
-import {
-	elementBulletKind,
-	getInlineEditorSelectionResult,
-	selectionBulletKind,
-	OFFICE_COLOR_SWATCH_HEXES,
-	textFontSizePtToPx,
-} from 'pptx-viewer-shared';
+import { OFFICE_COLOR_SWATCH_HEXES, textFontSizePtToPx } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
-import ParagraphDropdowns from './ParagraphDropdowns.vue';
-import { gB, gL, grp, FMT, ATXT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
+import { getEffectiveTextStyle } from './effective-text-style';
+import ParagraphGroup from './ParagraphGroup.vue';
+import { gB, gL, grp, FMT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
 import TextColorPopover from './TextColorPopover.vue';
 import { useDropdown } from './use-dropdown';
@@ -51,35 +36,6 @@ interface Props {
 const props = defineProps<Props>();
 
 const { t } = useI18n();
-
-/**
- * Returns the text style currently in effect for toolbar toggles:
- * - For text/shape/connector elements, the element's own `textStyle`.
- * - For tables with a focused cell, that cell's style (a superset of the
- *   relevant `TextStyle` fields like `bold`/`italic`/`underline`/`fontSize`).
- * - `undefined` otherwise.
- *
- * Without this lookup, table-cell toggles always read `undefined` (since
- * `hasTextProperties` is false for tables) and `!undefined === true`, so
- * re-clicking Bold/Italic/Underline never turns the formatting off.
- */
-function getEffectiveTextStyle(
-	element: PptxElement | null,
-	tableEditorState: TableCellEditorState | null | undefined,
-): Partial<TextStyle> | undefined {
-	if (!element) {
-		return undefined;
-	}
-	if (hasTextProperties(element)) {
-		return element.textStyle;
-	}
-	if (element.type === 'table' && tableEditorState && element.tableData) {
-		const cell =
-			element.tableData.rows[tableEditorState.rowIndex]?.cells[tableEditorState.columnIndex];
-		return cell?.style as Partial<TextStyle> | undefined;
-	}
-	return undefined;
-}
 
 const FONT_COLOR_PRESETS = OFFICE_COLOR_SWATCH_HEXES;
 
@@ -104,9 +60,6 @@ const isTextEl = computed(
 const isTable = computed(() => hasSel.value && props.selectedElement?.type === 'table');
 // Enable formatting for text elements AND table cells
 const canFormat = computed(() => isTextEl.value || isTable.value);
-const listKind = computed(() =>
-	props.selectedElement ? elementBulletKind(props.selectedElement) : 'none',
-);
 const effectiveTs = computed(() =>
 	getEffectiveTextStyle(props.selectedElement, props.tableEditorState),
 );
@@ -201,69 +154,6 @@ function handleClearFormatting(): void {
 	});
 }
 
-function currentListKind() {
-	const element = props.selectedElement;
-	if (!element || !hasTextProperties(element)) {
-		return 'none';
-	}
-	const result = getInlineEditorSelectionResult(element.textSegments, { preserveCaret: true });
-	return result.kind === 'supported' &&
-		(!result.snapshot || result.snapshot.elementId === element.id)
-		? selectionBulletKind(element, result.selection, result.snapshot?.textSegments)
-		: undefined;
-}
-
-function handleBulletList(): void {
-	if (!canMut.value || !isTextEl.value) {
-		return;
-	}
-	const current = currentListKind();
-	if (current === undefined) {
-		return;
-	}
-	props.onUpdateTextStyle({
-		listType: current === 'bullet' ? 'none' : 'bullet',
-	});
-}
-
-function handleNumberedList(): void {
-	if (!canMut.value || !isTextEl.value) {
-		return;
-	}
-	const current = currentListKind();
-	if (current === undefined) {
-		return;
-	}
-	props.onUpdateTextStyle({
-		listType: current === 'numbered' ? 'none' : 'numbered',
-	});
-}
-
-function handleDecreaseIndent(): void {
-	if (!canFormat.value || !props.selectedElement) {
-		return;
-	}
-	const current = effectiveTs.value?.paragraphMarginLeft ?? 0;
-	props.onUpdateTextStyle({ paragraphMarginLeft: Math.max(0, current - 24) });
-}
-
-function handleIncreaseIndent(): void {
-	if (!canFormat.value || !props.selectedElement) {
-		return;
-	}
-	const current = effectiveTs.value?.paragraphMarginLeft ?? 0;
-	props.onUpdateTextStyle({ paragraphMarginLeft: current + 24 });
-}
-
-function handleAlignClick(id: string): void {
-	if (!canFormat.value) {
-		return;
-	}
-	if (id === 'left' || id === 'center' || id === 'right' || id === 'justify') {
-		props.onUpdateTextStyle({ align: id });
-	}
-}
-
 /* ── Text Shadow ── */
 function handleToggleTextShadow(): void {
 	if (!canFormat.value) {
@@ -329,13 +219,14 @@ function handleChangeCase(value: string): void {
 
 <template>
 	<!-- ── Font group ── -->
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
 		<div class="flex items-center gap-1">
 			<div :class="grp">
 				<button
 					v-for="(b, i) in FMT"
 					:key="b.id"
 					type="button"
+					:data-ribbon-control="`home.font.${b.id}`"
 					:disabled="!canMut"
 					:class="i < FMT.length - 1 ? gB : gL"
 					:title="t(b.labelKey)"
@@ -350,6 +241,7 @@ function handleChangeCase(value: string): void {
 			<div :class="grp">
 				<button
 					type="button"
+					data-ribbon-control="home.font.increaseFontSize"
 					:disabled="!canMut"
 					:class="gB"
 					:title="t('pptx.text.increaseFontSize')"
@@ -360,6 +252,7 @@ function handleChangeCase(value: string): void {
 				</button>
 				<button
 					type="button"
+					data-ribbon-control="home.font.decreaseFontSize"
 					:disabled="!canMut"
 					:class="gB"
 					:title="t('pptx.text.decreaseFontSize')"
@@ -370,6 +263,7 @@ function handleChangeCase(value: string): void {
 				</button>
 				<button
 					type="button"
+					data-ribbon-control="home.font.clearFormatting"
 					:disabled="!canMut"
 					:class="gL"
 					:title="t('pptx.text.clearFormatting')"
@@ -382,6 +276,7 @@ function handleChangeCase(value: string): void {
 
 			<!-- Font colour -->
 			<TextColorPopover
+				data-ribbon-control="home.font.fontColor"
 				:current="currentColor"
 				:current-ref="currentColorThemeRef"
 				:show-theme-colors="true"
@@ -405,6 +300,7 @@ function handleChangeCase(value: string): void {
 
 			<!-- Text highlight colour -->
 			<TextColorPopover
+				data-ribbon-control="home.font.highlightColor"
 				:current="currentHighlight"
 				:presets="HIGHLIGHT_COLOR_PRESETS"
 				:disabled="!canMut"
@@ -417,6 +313,7 @@ function handleChangeCase(value: string): void {
 			<!-- Text Shadow toggle -->
 			<button
 				type="button"
+				data-ribbon-control="home.font.shadow"
 				:disabled="!canMut"
 				:class="[pill, effectiveTs?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
 				:title="t('pptx.textEffects.shadow')"
@@ -443,7 +340,11 @@ function handleChangeCase(value: string): void {
 			</button>
 
 			<!-- Character Spacing dropdown -->
-			<div :ref="charSpacingMenu.root" class="relative">
+			<div
+				:ref="charSpacingMenu.root"
+				class="relative"
+				data-ribbon-control="home.font.characterSpacing"
+			>
 				<button
 					type="button"
 					:disabled="!canMut"
@@ -477,7 +378,7 @@ function handleChangeCase(value: string): void {
 			</div>
 
 			<!-- Change Case (Aa) dropdown -->
-			<div :ref="changeCaseMenu.root" class="relative">
+			<div :ref="changeCaseMenu.root" class="relative" data-ribbon-control="home.font.changeCase">
 				<button
 					type="button"
 					:disabled="!canMut"
@@ -519,79 +420,10 @@ function handleChangeCase(value: string): void {
 	<div :class="SEP" />
 
 	<!-- ── Paragraph group ── -->
-	<div class="flex flex-col items-center gap-0.5">
-		<div class="flex items-center gap-1">
-			<!-- List style -->
-			<div :class="grp">
-				<button
-					type="button"
-					:disabled="!canMut || !isTextEl"
-					:class="[gB, listKind === 'bullet' ? 'bg-accent' : '']"
-					:aria-pressed="listKind === 'bullet'"
-					:title="t('pptx.text.bulletList')"
-					@mousedown.prevent
-					@click="handleBulletList"
-				>
-					<List :class="ic" />
-				</button>
-				<button
-					type="button"
-					:disabled="!canMut || !isTextEl"
-					:class="[gL, listKind === 'numbered' ? 'bg-accent' : '']"
-					:aria-pressed="listKind === 'numbered'"
-					:title="t('pptx.text.numberedList')"
-					@mousedown.prevent
-					@click="handleNumberedList"
-				>
-					<ListOrdered :class="ic" />
-				</button>
-			</div>
-
-			<!-- Indent decrease / increase -->
-			<div :class="grp">
-				<button
-					type="button"
-					:disabled="!canMut"
-					:class="gB"
-					:title="t('pptx.text.decreaseIndent')"
-					@mousedown.prevent
-					@click="handleDecreaseIndent"
-				>
-					<IndentDecrease :class="ic" />
-				</button>
-				<button
-					type="button"
-					:disabled="!canMut"
-					:class="gL"
-					:title="t('pptx.text.increaseIndent')"
-					@mousedown.prevent
-					@click="handleIncreaseIndent"
-				>
-					<IndentIncrease :class="ic" />
-				</button>
-			</div>
-
-			<!-- Alignment -->
-			<div :class="grp">
-				<button
-					v-for="(b, i) in ATXT"
-					:key="b.id"
-					type="button"
-					:disabled="!canMut"
-					:class="i < ATXT.length - 1 ? gB : gL"
-					:title="t(b.labelKey)"
-					@mousedown.prevent
-					@click="handleAlignClick(b.id)"
-				>
-					<component :is="b.icon" :class="ic" />
-				</button>
-			</div>
-
-			<!-- Line Spacing / Text Direction / Columns -->
-			<ParagraphDropdowns :can-mut="canMut" :on-update-text-style="props.onUpdateTextStyle" />
-		</div>
-		<span class="text-[9px] text-muted-foreground leading-none">{{
-			t('pptx.ribbon.paragraph')
-		}}</span>
-	</div>
+	<ParagraphGroup
+		:can-edit="props.canEdit"
+		:selected-element="props.selectedElement"
+		:table-editor-state="props.tableEditorState"
+		:on-update-text-style="props.onUpdateTextStyle"
+	/>
 </template>

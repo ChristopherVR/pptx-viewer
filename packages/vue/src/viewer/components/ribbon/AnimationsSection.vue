@@ -90,6 +90,8 @@ function applyMotionPath(presetId: string): void {
 	<!-- Preview -->
 	<button
 		type="button"
+		data-ribbon-group="animations.preview"
+		data-ribbon-control="animations.preview.preview"
 		:disabled="disabled"
 		:class="cn(pill, previewActive ? 'bg-primary hover:bg-primary/80 text-white' : '')"
 		:title="t('pptx.animations.previewTooltip')"
@@ -102,81 +104,121 @@ function applyMotionPath(presetId: string): void {
 	<div :class="SEP" />
 
 	<!-- Preset gallery (full shared catalogue) -->
-	<AnimationPresetGallery :disabled="disabled" :on-add-animation="props.onAddAnimation" />
+	<AnimationPresetGallery
+		data-ribbon-group="animations.animation"
+		data-ribbon-control="animations.animation.gallery"
+		:disabled="disabled"
+		:on-add-animation="props.onAddAnimation"
+	/>
 
 	<div :class="SEP" />
 
 	<!-- Motion Paths: geometry, so its own captioned group beside the presets -->
-	<div class="flex flex-col items-center gap-0.5">
-		<MotionPathGallery :disabled="disabled" :on-apply-motion-path="applyMotionPath" />
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="animations.motionPath">
+		<MotionPathGallery
+			data-ribbon-control="animations.motionPath.gallery"
+			:disabled="disabled"
+			:on-apply-motion-path="applyMotionPath"
+		/>
 		<span :class="GROUP_LABEL">{{ t('pptx.animation.motionPath') }}</span>
 	</div>
 
 	<div :class="SEP" />
 
 	<!-- Advanced Animation -->
-	<button
-		type="button"
-		:disabled="disabled"
-		:class="pill"
-		@click="props.onAddAnimation?.('fadeOut', 'exit')"
-	>
-		<Star :class="cn(ic, 'text-red-500')" />
-		{{ t('pptx.animations.exitEffects') }}
-	</button>
-	<!--
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="animations.advancedAnimation">
+		<button
+			type="button"
+			data-ribbon-control="animations.advancedAnimation.addAnimation"
+			:disabled="disabled"
+			:class="pill"
+			@click="props.onAddAnimation?.('fadeOut', 'exit')"
+		>
+			<Star :class="cn(ic, 'text-red-500')" />
+			{{ t('pptx.animations.exitEffects') }}
+		</button>
+		<!--
 		One-click default path (Lines: Right). It used to apply a Fly In entrance,
 		which is not a path at all.
 	-->
+		<button
+			type="button"
+			:disabled="disabled"
+			:class="pill"
+			@click="applyMotionPath(DEFAULT_MOTION_PATH_PRESET_ID)"
+		>
+			<MoveRight :class="ic" />
+			{{ t('pptx.animations.pathAnimation') }}
+		</button>
+	</div>
 	<button
 		type="button"
+		data-ribbon-group="animations.animation"
+		data-ribbon-control="animations.animation.effectOptions"
 		:disabled="disabled"
 		:class="pill"
-		@click="applyMotionPath(DEFAULT_MOTION_PATH_PRESET_ID)"
+		@click="openPanel"
 	>
-		<MoveRight :class="ic" />
-		{{ t('pptx.animations.pathAnimation') }}
-	</button>
-	<button type="button" :disabled="disabled" :class="pill" @click="openPanel">
 		<Sparkles :class="ic" />
 		{{ t('pptx.animations.effectOptions') }}
 	</button>
-	<button
-		type="button"
-		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.animations.openPanelTooltip')"
-		@click="openPanel"
-	>
-		<PanelRight :class="ic" />
-		{{ t('pptx.animations.animationPanel') }}
-	</button>
-	<button type="button" :disabled="disabled" :class="pill" @click="openPanel">
-		<MousePointerClick :class="ic" />
-		{{ t('pptx.animations.trigger') }}
-	</button>
-	<!-- Animation Painter has no behaviour in any binding yet; inert, not absent. -->
-	<button type="button" disabled :class="pill">
-		<Paintbrush :class="ic" />
-		{{ t('pptx.animations.painter') }}
-	</button>
-	<button
-		type="button"
-		:disabled="disabled"
-		:class="pill"
-		:title="t('pptx.animations.removeTooltip')"
-		@click="props.onRemoveAnimation?.()"
-	>
-		<Trash2 :class="ic" />
-		{{ t('pptx.animations.remove') }}
-	</button>
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="animations.advancedAnimation">
+		<button
+			type="button"
+			data-ribbon-control="animations.advancedAnimation.animationPane"
+			:class="
+				cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')
+			"
+			:title="t('pptx.animations.openPanelTooltip')"
+			@click="openPanel"
+		>
+			<PanelRight :class="ic" />
+			{{ t('pptx.animations.animationPanel') }}
+		</button>
+		<button
+			type="button"
+			data-ribbon-control="animations.advancedAnimation.trigger"
+			:disabled="disabled"
+			:class="pill"
+			@click="openPanel"
+		>
+			<MousePointerClick :class="ic" />
+			{{ t('pptx.animations.trigger') }}
+		</button>
+		<!-- Animation Painter has no behaviour in any binding yet; inert, not absent. -->
+		<button
+			type="button"
+			data-ribbon-control="animations.advancedAnimation.animationPainter"
+			disabled
+			:class="pill"
+		>
+			<Paintbrush :class="ic" />
+			{{ t('pptx.animations.painter') }}
+		</button>
+		<button
+			type="button"
+			data-ribbon-control="animations.advancedAnimation.remove"
+			:disabled="disabled"
+			:class="pill"
+			:title="t('pptx.animations.removeTooltip')"
+			@click="props.onRemoveAnimation?.()"
+		>
+			<Trash2 :class="ic" />
+			{{ t('pptx.animations.remove') }}
+		</button>
+	</div>
 
 	<div :class="SEP" />
 
 	<!-- Timing -->
-	<div class="grid grid-cols-[48px_82px] items-center gap-x-1 gap-y-1 text-[10px]">
+	<div
+		class="grid grid-cols-[48px_82px] items-center gap-x-1 gap-y-1 text-[10px]"
+		data-ribbon-group="animations.timing"
+	>
 		<label for="pptx-animation-start">{{ t('pptx.animations.start') }}</label>
 		<select
 			id="pptx-animation-start"
+			data-ribbon-control="animations.timing.start"
 			disabled
 			class="h-6 rounded-sm border border-border bg-muted px-1 text-[10px]"
 		>
@@ -191,6 +233,7 @@ function applyMotionPath(presetId: string): void {
 			step="0.1"
 			value="0.5"
 			disabled
+			data-ribbon-control="animations.timing.duration"
 			:aria-label="t('pptx.animations.duration')"
 			class="h-6 rounded-sm border border-border bg-muted px-1 text-[10px]"
 		/>

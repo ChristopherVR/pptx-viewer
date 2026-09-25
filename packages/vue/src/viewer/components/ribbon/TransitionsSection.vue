@@ -103,6 +103,8 @@ const {
 	<!-- Preview -->
 	<button
 		type="button"
+		data-ribbon-group="transitions.preview"
+		data-ribbon-control="transitions.preview.preview"
 		:class="pill"
 		:title="t('pptx.ribbon.previewTransition')"
 		@click="preview()"
@@ -114,7 +116,11 @@ const {
 	<div :class="SEP" />
 
 	<!-- Transition preset gallery -->
-	<div class="inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]">
+	<div
+		class="inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]"
+		data-ribbon-group="transitions.transitionToThisSlide"
+		data-ribbon-control="transitions.transitionToThisSlide.gallery"
+	>
 		<button
 			v-for="preset in presets"
 			:key="preset.type"
@@ -137,113 +143,131 @@ const {
 
 	<div :class="SEP" />
 
-	<!-- Duration -->
-	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-		<span class="whitespace-nowrap">{{ t('pptx.ribbon.duration') }}</span>
-		<input
-			type="number"
-			min="0"
-			max="20"
-			step="0.25"
-			:disabled="!editable"
-			:value="durationBuffer ?? String(draft.durationSec)"
-			class="w-16 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center"
-			:title="t('pptx.ribbon.transitionDurationTitle')"
-			@input="onDurationInput"
-			@blur="durationBuffer = null"
-		/>
-	</label>
+	<!-- Timing (Duration, Sound, Apply To All, Advance Slide) -->
+	<div class="contents [&>*]:shrink-0" data-ribbon-group="transitions.timing">
+		<!-- Duration -->
+		<label
+			class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+			data-ribbon-control="transitions.timing.duration"
+		>
+			<span class="whitespace-nowrap">{{ t('pptx.ribbon.duration') }}</span>
+			<input
+				type="number"
+				min="0"
+				max="20"
+				step="0.25"
+				:disabled="!editable"
+				:value="durationBuffer ?? String(draft.durationSec)"
+				class="w-16 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center"
+				:title="t('pptx.ribbon.transitionDurationTitle')"
+				@input="onDurationInput"
+				@blur="durationBuffer = null"
+			/>
+		</label>
 
-	<div :class="SEP" />
+		<div :class="SEP" />
 
-	<!-- Sound: "Other Sound..." opens a native file picker and the chosen file
+		<!-- Sound: "Other Sound..." opens a native file picker and the chosen file
 	     is embedded into the package on save (core's `embedTransitionSound`).
 	     "None" clears any sound the slide carries. -->
-	<label class="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-		<span class="whitespace-nowrap">{{ t('pptx.ribbon.sound') }}</span>
-		<select
-			:aria-label="t('pptx.ribbon.sound')"
-			:disabled="!editable"
-			:value="soundSelectedValue"
-			class="w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50"
-			@change="onSoundSelectChange"
+		<label
+			class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+			data-ribbon-control="transitions.timing.sound"
 		>
-			<option v-for="option in soundOptions" :key="option.value" :value="option.value">
-				{{ option.i18nKey ? t(option.i18nKey) : option.label }}
-			</option>
-		</select>
+			<span class="whitespace-nowrap">{{ t('pptx.ribbon.sound') }}</span>
+			<select
+				:aria-label="t('pptx.ribbon.sound')"
+				:disabled="!editable"
+				:value="soundSelectedValue"
+				class="w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50"
+				@change="onSoundSelectChange"
+			>
+				<option v-for="option in soundOptions" :key="option.value" :value="option.value">
+					{{ option.i18nKey ? t(option.i18nKey) : option.label }}
+				</option>
+			</select>
+			<button
+				type="button"
+				:aria-label="t('pptx.animation.sound.preview')"
+				:disabled="!stockSoundId"
+				class="shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40"
+				@click="onSoundPreview"
+			>
+				<Play class="h-3 w-3" />
+			</button>
+			<input
+				ref="soundFileInput"
+				type="file"
+				accept="audio/*"
+				class="hidden"
+				@change="onSoundFileChange"
+			/>
+		</label>
+
+		<div :class="SEP" />
+
+		<!-- Apply to All -->
 		<button
 			type="button"
-			:aria-label="t('pptx.animation.sound.preview')"
-			:disabled="!stockSoundId"
-			class="shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40"
-			@click="onSoundPreview"
+			data-ribbon-control="transitions.timing.applyToAll"
+			:disabled="!editable"
+			:class="pill"
+			:title="t('pptx.ribbon.applyTransitionToAll')"
+			@click="props.onApplyTransitionToAll()"
 		>
-			<Play class="h-3 w-3" />
+			<Copy :class="ics" />
+			{{ t('pptx.headerFooter.applyToAll') }}
 		</button>
-		<input
-			ref="soundFileInput"
-			type="file"
-			accept="audio/*"
-			class="hidden"
-			@change="onSoundFileChange"
-		/>
-	</label>
 
-	<div :class="SEP" />
+		<div :class="SEP" />
 
-	<!-- Apply to All -->
-	<button
-		type="button"
-		:disabled="!editable"
-		:class="pill"
-		:title="t('pptx.ribbon.applyTransitionToAll')"
-		@click="props.onApplyTransitionToAll()"
-	>
-		<Copy :class="ics" />
-		{{ t('pptx.headerFooter.applyToAll') }}
-	</button>
-
-	<div :class="SEP" />
-
-	<!-- Advance Slide group -->
-	<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
-		<span class="text-[10px] font-medium text-foreground">{{ t('pptx.ribbon.advanceSlide') }}</span>
-		<label class="inline-flex items-center gap-1.5 cursor-pointer">
-			<input
-				type="checkbox"
-				:disabled="!editable"
-				:checked="draft.advanceOnClick"
-				class="accent-primary h-3 w-3"
-				@change="commit({ advanceOnClick: ($event.target as HTMLInputElement).checked })"
-			/>
-			<span class="whitespace-nowrap">{{ t('pptx.ribbon.onMouseClick') }}</span>
-		</label>
-		<!-- Two controls under one `<label>`: the label names only its FIRST
+		<!-- Advance Slide group -->
+		<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
+			<span class="text-[10px] font-medium text-foreground">{{
+				t('pptx.ribbon.advanceSlide')
+			}}</span>
+			<label
+				class="inline-flex items-center gap-1.5 cursor-pointer"
+				data-ribbon-control="transitions.timing.advanceOnClick"
+			>
+				<input
+					type="checkbox"
+					:disabled="!editable"
+					:checked="draft.advanceOnClick"
+					class="accent-primary h-3 w-3"
+					@change="commit({ advanceOnClick: ($event.target as HTMLInputElement).checked })"
+				/>
+				<span class="whitespace-nowrap">{{ t('pptx.ribbon.onMouseClick') }}</span>
+			</label>
+			<!-- Two controls under one `<label>`: the label names only its FIRST
 		     labelable descendant, so without these the seconds field had an EMPTY
 		     accessible name and the checkbox took the field's value into its own
 		     ("After 5 seconds"). Both are named explicitly instead. -->
-		<label class="inline-flex items-center gap-1.5 cursor-pointer">
-			<input
-				type="checkbox"
-				:aria-label="t('pptx.ribbon.afterDuration')"
-				:disabled="!editable"
-				:checked="draft.advanceAfter"
-				class="accent-primary h-3 w-3"
-				@change="commit({ advanceAfter: ($event.target as HTMLInputElement).checked })"
-			/>
-			<span class="whitespace-nowrap">{{ t('pptx.ribbon.afterDuration') }}</span>
-			<input
-				type="text"
-				:aria-label="t('pptx.ribbon.advanceAfterSeconds')"
-				:value="advanceBuffer ?? draft.advanceAfterText"
-				:disabled="!editable || !draft.advanceAfter"
-				class="w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50"
-				:title="t('pptx.ribbon.advanceAfterSeconds')"
-				@input="onAdvanceTextInput"
-				@blur="advanceBuffer = null"
-			/>
-		</label>
+			<label
+				class="inline-flex items-center gap-1.5 cursor-pointer"
+				data-ribbon-control="transitions.timing.advanceAfter"
+			>
+				<input
+					type="checkbox"
+					:aria-label="t('pptx.ribbon.afterDuration')"
+					:disabled="!editable"
+					:checked="draft.advanceAfter"
+					class="accent-primary h-3 w-3"
+					@change="commit({ advanceAfter: ($event.target as HTMLInputElement).checked })"
+				/>
+				<span class="whitespace-nowrap">{{ t('pptx.ribbon.afterDuration') }}</span>
+				<input
+					type="text"
+					:aria-label="t('pptx.ribbon.advanceAfterSeconds')"
+					:value="advanceBuffer ?? draft.advanceAfterText"
+					:disabled="!editable || !draft.advanceAfter"
+					class="w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50"
+					:title="t('pptx.ribbon.advanceAfterSeconds')"
+					@input="onAdvanceTextInput"
+					@blur="advanceBuffer = null"
+				/>
+			</label>
+		</div>
 	</div>
 
 	<div :class="SEP" />

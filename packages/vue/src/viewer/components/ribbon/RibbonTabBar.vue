@@ -7,7 +7,12 @@
  * `RibbonToolbar` already reads off `RibbonProps`.
  */
 import { ChevronDown, ChevronUp } from 'lucide-vue-next';
-import type { ToolbarActionId, ToolbarTabDefinition } from 'pptx-viewer-shared';
+import { contextualTabLabelKey } from 'pptx-viewer-shared';
+import type {
+	RibbonContextualTabId,
+	ToolbarActionId,
+	ToolbarTabDefinition,
+} from 'pptx-viewer-shared';
 import { inject } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -19,6 +24,8 @@ import TabRowActions from './TabRowActions.vue';
 interface Props {
 	toolbarSection: ToolbarSection;
 	visibleTabs: ToolbarTabDefinition[];
+	/** Contextual tabs the selection brings up (shared `visibleContextualTabs`). */
+	contextualTabs?: readonly RibbonContextualTabId[];
 	onSetToolbarSection: (section: ToolbarSection) => void;
 	canEdit: boolean;
 	onEnterRehearsalMode?: () => void;
@@ -63,6 +70,25 @@ const screenTip = inject(ScreenTipKey, (label: string) => label);
 			@click="props.onSetToolbarSection(sec.id)"
 		>
 			{{ t(sec.labelKey) }}
+		</button>
+		<button
+			v-for="tab in props.contextualTabs ?? []"
+			:key="tab"
+			type="button"
+			role="tab"
+			:data-ribbon-contextual-tab="tab"
+			:aria-selected="props.toolbarSection === tab"
+			:title="screenTip(t(contextualTabLabelKey(tab)))"
+			:class="
+				cn(
+					'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors text-amber-600 dark:text-amber-400 hover:bg-amber-500/10 max-md:min-h-[36px] max-md:px-3',
+					props.toolbarSection === tab &&
+						'after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-amber-500',
+				)
+			"
+			@click="props.onSetToolbarSection(tab)"
+		>
+			{{ t(contextualTabLabelKey(tab)) }}
 		</button>
 		<div class="flex-1" />
 		<TabRowActions

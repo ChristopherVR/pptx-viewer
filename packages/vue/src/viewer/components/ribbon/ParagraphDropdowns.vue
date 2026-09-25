@@ -77,7 +77,11 @@ function handleColumns(value: number): void {
 
 <template>
 	<!-- Line Spacing -->
-	<div :ref="lineSpacingMenu.root" class="relative">
+	<div
+		:ref="lineSpacingMenu.root"
+		class="relative"
+		data-ribbon-control="home.paragraph.lineSpacing"
+	>
 		<button
 			type="button"
 			:disabled="!props.canMut"
@@ -111,7 +115,11 @@ function handleColumns(value: number): void {
 	</div>
 
 	<!-- Text Direction -->
-	<div :ref="textDirectionMenu.root" class="relative">
+	<div
+		:ref="textDirectionMenu.root"
+		class="relative"
+		data-ribbon-control="home.paragraph.textDirection"
+	>
 		<button
 			type="button"
 			:disabled="!props.canMut"
@@ -143,7 +151,7 @@ function handleColumns(value: number): void {
 	</div>
 
 	<!-- Columns -->
-	<div :ref="columnsMenu.root" class="relative">
+	<div :ref="columnsMenu.root" class="relative" data-ribbon-control="home.paragraph.columns">
 		<button
 			type="button"
 			:disabled="!props.canMut"

@@ -29,11 +29,12 @@ function handleSelectAll(): void {
 <template>
 	<div :class="SEP" />
 
-	<div class="flex flex-col items-center gap-0.5">
+	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
 		<div class="flex items-center gap-1">
 			<!-- Find -->
 			<button
 				type="button"
+				data-ribbon-control="home.editing.find"
 				:class="pill"
 				:title="t('pptx.editing.find')"
 				@mousedown.prevent
@@ -45,6 +46,7 @@ function handleSelectAll(): void {
 			<!-- Replace -->
 			<button
 				type="button"
+				data-ribbon-control="home.editing.replace"
 				:class="pill"
 				:title="t('pptx.ribbon.replace')"
 				@mousedown.prevent
@@ -54,7 +56,7 @@ function handleSelectAll(): void {
 			</button>
 
 			<!-- Select dropdown -->
-			<div :ref="selectMenu.root" class="relative">
+			<div :ref="selectMenu.root" class="relative" data-ribbon-control="home.editing.select">
 				<button
 					type="button"
 					:class="pill"
