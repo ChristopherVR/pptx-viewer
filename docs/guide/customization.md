@@ -436,18 +436,20 @@ unit test fails if an id is missing here.
 
 ### Toolbar buttons (`ribbon.hiddenButtons`)
 
-| Id           | What it removes                                                 |
-| ------------ | --------------------------------------------------------------- |
-| `share`      | Share / collaboration button in the tab row and mobile toolbar. |
-| `broadcast`  | Broadcast (present online) button.                              |
-| `export`     | Export button and the File > Export page.                       |
-| `undo`       | Undo button in the quick-access strip.                          |
-| `redo`       | Redo button in the quick-access strip.                          |
-| `record`     | Record button and the Record ribbon tab.                        |
-| `notes`      | Notes toggle in the status bar.                                 |
-| `fullscreen` | Full-screen toggle.                                             |
-| `zoom`       | The zoom cluster (zoom in, zoom out, fit).                      |
-| `navigation` | The previous / next slide cluster.                              |
+| Id            | What it removes                                                                                          |
+| ------------- | -------------------------------------------------------------------------------------------------------- |
+| `share`       | Share / collaboration button in the tab row and mobile toolbar.                                          |
+| `broadcast`   | Broadcast (present online) button.                                                                       |
+| `export`      | Export button and the File > Export page.                                                                |
+| `undo`        | Undo button in the quick-access strip.                                                                   |
+| `redo`        | Redo button in the quick-access strip.                                                                   |
+| `record`      | Record button and the Record ribbon tab.                                                                 |
+| `notes`       | Notes toggle in the status bar.                                                                          |
+| `fullscreen`  | Full-screen toggle.                                                                                      |
+| `zoom`        | The zoom cluster (zoom in, zoom out, fit).                                                               |
+| `navigation`  | The previous / next slide cluster.                                                                       |
+| `mergeShapes` | The Merge Shapes dropdown (Union, Combine, Fragment, Intersect, Subtract) in the Home tab Arrange group. |
+| `crop`        | The picture Crop control (crop mode, Crop to Aspect Ratio, Fill, Fit) in the Home tab Arrange group.     |
 
 ### Options pages (`options.hiddenPages`)
 
@@ -635,6 +637,12 @@ unit test fails if an id is missing here.
 | `table-split`            | Split Cell           |
 | `group`                  | Group                |
 | `ungroup`                | Ungroup              |
+| `crop`                   | Crop                 |
+| `merge-union`            | Union Shapes         |
+| `merge-combine`          | Combine Shapes       |
+| `merge-fragment`         | Fragment Shapes      |
+| `merge-intersect`        | Intersect Shapes     |
+| `merge-subtract`         | Subtract Shapes      |
 | `save-as-picture`        | Save as Picture...   |
 | `edit-alt-text`          | Edit Alt Text...     |
 | `size-and-position`      | Size and Position... |

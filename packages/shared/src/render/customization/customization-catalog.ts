@@ -58,6 +58,8 @@ export const TOOLBAR_BUTTON_IDS = exhaustive<ToolbarButtonId>()([
 	'fullscreen',
 	'zoom',
 	'navigation',
+	'mergeShapes',
+	'crop',
 ]);
 
 export const OPTIONS_PAGE_IDS: readonly OptionsPageId[] = [
@@ -117,6 +119,12 @@ export const ELEMENT_CONTEXT_MENU_COMMAND_IDS = exhaustive<ContextMenuCommandId>
 	'table-split',
 	'group',
 	'ungroup',
+	'crop',
+	'merge-union',
+	'merge-combine',
+	'merge-fragment',
+	'merge-intersect',
+	'merge-subtract',
 	'save-as-picture',
 	'edit-alt-text',
 	'size-and-position',

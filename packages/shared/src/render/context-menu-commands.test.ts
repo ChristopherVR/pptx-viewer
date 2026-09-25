@@ -281,4 +281,33 @@ describe('buildContextMenuEntries', () => {
 			expect(item.labelKey.startsWith('pptx.')).toBeTruthy();
 		}
 	});
+
+	it('offers Crop on a single picture, greyed when the picture is noCrop-locked', () => {
+		expect(ids({ elementType: 'picture' })).toContain('crop');
+		expect(ids({ elementType: 'image' })).toContain('crop');
+		expect(ids({ elementType: 'shape' })).not.toContain('crop');
+		expect(ids({ elementType: 'picture', hasMultiSelection: true })).not.toContain('crop');
+		const locked = buildContextMenuEntries({ elementType: 'picture', canCrop: false });
+		expect(locked.find((item) => item.id === 'crop')?.disabled).toBeTruthy();
+	});
+
+	it('offers the five Merge Shapes operations only on a mergeable multi-selection', () => {
+		const merge = [
+			'merge-union',
+			'merge-combine',
+			'merge-fragment',
+			'merge-intersect',
+			'merge-subtract',
+		];
+		expect(
+			ids({ hasMultiSelection: true, canMergeShapes: true }).filter((id) =>
+				id.startsWith('merge-'),
+			),
+		).toStrictEqual(merge);
+		expect(ids({ hasMultiSelection: true }).some((id) => id.startsWith('merge-'))).toBeFalsy();
+		expect(ids({ canMergeShapes: true }).some((id) => id.startsWith('merge-'))).toBeFalsy();
+		const entries = buildContextMenuEntries({ hasMultiSelection: true, canMergeShapes: true });
+		expect(entries.find((item) => item.id === 'merge-union')?.separatorBefore).toBeTruthy();
+		expect(contextMenuLabelKey('merge-union')).toBe('pptx.contextMenu.mergeUnion');
+	});
 });

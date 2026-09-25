@@ -26,6 +26,9 @@ export const TOOLBAR_BUTTON_DESCRIPTIONS: Record<ToolbarButtonId, string> = {
 	fullscreen: 'Full-screen toggle.',
 	zoom: 'The zoom cluster (zoom in, zoom out, fit).',
 	navigation: 'The previous / next slide cluster.',
+	mergeShapes:
+		'The Merge Shapes dropdown (Union, Combine, Fragment, Intersect, Subtract) in the Home tab Arrange group.',
+	crop: 'The picture Crop control (crop mode, Crop to Aspect Ratio, Fill, Fit) in the Home tab Arrange group.',
 };
 
 export const VIEWER_PANEL_DESCRIPTIONS: Record<ViewerPanelId, string> = {

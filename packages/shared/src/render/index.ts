@@ -1722,6 +1722,8 @@ export * from './freeform-stroke-geometry';
 // Edit Points (reshape a shape's outline) and the Freeform: Shape / Curve
 // click-to-place drawing tools.
 export * from './edit-points';
+export * from './merge-shapes';
+export * from './picture-crop';
 export { isExportIgnoredElement, prepareExportClone } from './export-clone';
 
 export * from './element-update-batch';
