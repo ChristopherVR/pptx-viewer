@@ -1107,6 +1107,18 @@ const CORPUS_FIXTURES: readonly FixtureEntry[] = [
 		note: 'COM-authored: SmartArt diagrams, a chart and a table on one deck.',
 	},
 	{
+		file: 'smartart-orgchart-assistants.pptx',
+		dir: 'corpus',
+		provenance: 'powerpoint',
+		status: 'roundtrip',
+		note:
+			'COM-authored (`scripts/make-smartart-orgchart-assistants.ps1`, "Organization Chart"): 3 ' +
+			'slides, a manager with 1, 3 and 4 assistants above its 3 reports. The witness for the ' +
+			'assistant band: assistants pair up either side of the centre line under the manager (left first), ' +
+			'further pairs stack one `sp` lower, and the reports start one `sp` below the band. See ' +
+			'`smartart-engine/hier-assistants.test.ts`.',
+	},
+	{
 		file: 'smartart-orgchart-fan-variants.pptx',
 		dir: 'corpus',
 		provenance: 'powerpoint',

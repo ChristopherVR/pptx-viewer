@@ -73,15 +73,19 @@ function placeScaled(node: EngineNode, shape: HierShape): void {
 }
 
 /**
- * Whether `node` is an org-chart assistant's hierarchy item. Assistants sit
- * beside their manager's connector, above the reports, with their own
- * spacing (`smartart-orgchart-hierbranch.pptx`: the assistant starts `0.1 W`
- * right of the manager's centre, one `sp` below it, and the reports drop a
- * further `h + 2 sp`), which this port does not model yet, so a diagram with
- * one is left to the legacy interpreter (see `engine-to-result.ts`).
+ * Whether `node` is an org-chart assistant this port cannot place: an
+ * assistant band is modelled below a manager that heads its rows from the
+ * top (`hier-assistants.ts`); a manager aligned to another side (a
+ * horizontal org chart) is left to the legacy interpreter (see
+ * `engine-to-result.ts`).
  */
 export function isAssistantItem(node: EngineNode): boolean {
-	return node.alg.type === 'hierRoot' && node.point.type === 'asst';
+	if (node.alg.type !== 'hierRoot' || node.point.type !== 'asst') {
+		return false;
+	}
+	const manager = node.parent?.parent;
+	const hierAlign = manager?.alg.params.hierAlign ?? 'tCtrCh';
+	return manager?.alg.type !== 'hierRoot' || !hierAlign.startsWith('t');
 }
 
 export function arrangeHierChild(node: EngineNode): void {

@@ -28,6 +28,13 @@ envelopes, namespace verbosity, etc.), which synthetic fixtures never do.
   never emits `a:prstTxWarp` - it only applies styled-text formatting to a
   plain rectangle) and the modern `TextFrame2.WarpFormat` property (which
   does emit real `a:prstTxWarp` curve/arch/wave geometry).
+- **smartart-orgchart-assistants.pptx** - 3 slides on the "Organization
+  Chart" layout (`scripts/make-smartart-orgchart-assistants.ps1`): a manager
+  with 1, 3 and 4 assistants above its 3 reports. The witness for the
+  assistant band: assistants pair up either side of the manager's centre line
+  (the left one first, `sibSp / 2` from the line), further pairs stack one
+  `sp` lower, and the reports start one `sp` below the band. See
+  `smartart-engine/hier-assistants.test.ts`.
 - **smartart-orgchart-fan-variants.pptx** - 11 slides, one org chart each, on
   the "Organization Chart" layout (Standard hierBranch throughout): a
   systematic matrix probing the "manager row not exactly chPref wide"

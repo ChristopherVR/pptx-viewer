@@ -80,6 +80,7 @@ export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
 	'urn:microsoft.com/office/officeart/2005/8/layout/gear1', // Gear (legacy<=0.7589 -> engine<=0.0882)
 	'urn:microsoft.com/office/officeart/2005/8/layout/matrix2', // Grid Matrix (legacy<=0.2514 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/lProcess2', // Grouped List (legacy<=0.5779 -> engine<=0.0019)
+	'urn:microsoft.com/office/officeart/2008/layout/HalfCircleOrganizationChart', // Half Circle Organization Chart (legacy<=0.0019 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2008/layout/HexagonCluster', // Hexagon Cluster (legacy<=0.0115 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2011/layout/HexagonRadial', // Hexagon Radial (legacy<=0.2941 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hierarchy1', // Hierarchy (legacy<=0.0019 -> engine<=0.0019)

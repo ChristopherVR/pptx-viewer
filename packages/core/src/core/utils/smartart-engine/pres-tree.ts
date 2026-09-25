@@ -159,10 +159,19 @@ function walk(
 				node.rules.push(...statement.rules);
 				break;
 			case 'varLst':
-				Object.assign(node.vars, statement.vars);
+				Object.assign(node.vars, statement.vars, recordedVars(point, node.name));
 				break;
 		}
 	}
+}
+
+/**
+ * The variables PowerPoint recorded for this instance on its presentation
+ * point (a per-node "Left Hanging" `hierBranch`), which override the
+ * definition's own `dgm:varLst` defaults.
+ */
+function recordedVars(point: DataPoint, name: string): Record<string, string> {
+	return point.source?.presLayoutVarsByName?.[name] ?? {};
 }
 
 function buildNode(
@@ -185,7 +194,7 @@ function buildNode(
 		presOfAnchored: false,
 		constraints: [],
 		rules: [],
-		vars: {},
+		vars: { ...recordedVars(point, def.name) },
 		children: [],
 		parent,
 		order: state.counter++,

@@ -1,10 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
 import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../../utils';
-import {
-	resolveSmartArtNodeCoherent3DOff,
-	resolveSmartArtNodeStyleRoles,
-} from '../../utils/smartart-node-style-role';
+import { resolveSmartArtPointMetadata } from '../../utils/smartart-point-metadata';
 import { parseSmartArtPresLayoutVars } from '../../utils/smartart-pres-layout-vars';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
@@ -54,20 +51,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// ── Parse connections ────────────────────────────────────────────
 		const { parsedConnections, parentByNodeId } = this.parseSmartArtConnections(dataModel);
-		// Each content node's own quick-style role (`node1`, `asst0`, `bgShp`,
-		// `revTx`, ...), resolved from its paired `pres` point via a `presOf`
-		// connection, so the renderer can pick that role's own colour list
-		// instead of a generic cycled palette. Needs the FULL (unfiltered)
-		// `points` array: `pres` points are excluded from `isContentPoint`.
+		// Each content node's quick-style role, coherent-3D opt-out and
+		// per-presentation-node layout variables, from its `pres` points.
 		const localName = (key: string) => this.compatibilityService.getXmlLocalName(key);
-		const styleRoleByNodeId = resolveSmartArtNodeStyleRoles(points, parsedConnections, localName);
-		// G12: nodes opting out of the coherent-3D scene rotation via their
-		// presentation point's `prSet/@coherent3DOff`.
-		const coherent3DOffNodeIds = resolveSmartArtNodeCoherent3DOff(
-			points,
-			parsedConnections,
-			localName,
-		);
+		const metadataOf = resolveSmartArtPointMetadata(points, parsedConnections, localName);
 
 		// ── Parse nodes ──────────────────────────────────────────────────
 		// Every user-editable content point (`type="node"`/`"asst"`, or no
@@ -108,8 +95,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					connectionId: String(point?.['@_cxnId'] || '').trim() || undefined,
 					parentId: parentByNodeId.get(pointId),
 					nodeType,
-					styleRole: styleRoleByNodeId.get(pointId),
-					coherent3DOff: coherent3DOffNodeIds.has(pointId) || undefined,
+					...metadataOf(pointId),
 					runs,
 					paragraphs,
 					style,
