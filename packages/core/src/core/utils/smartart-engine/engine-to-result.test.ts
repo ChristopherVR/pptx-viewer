@@ -217,3 +217,45 @@ describe('runEngineLayout sibTrans ordinal-badge text', () => {
 		},
 	);
 });
+
+describe('runEngineLayout presented text and typeless shapes', () => {
+	async function engineNodes(file: string): Promise<{ text?: string; nodeId?: string }[]> {
+		const handler = new PptxHandler();
+		const { slides } = await handler.load(readFixture(file));
+		const element = slides
+			.flatMap((s) => s.elements)
+			.find((el): el is SmartArtPptxElement => el.type === 'smartArt');
+		const data = element?.smartArtData;
+		if (!element || !data?.layoutDefinition) {
+			throw new Error(`${file} missing a layout definition`);
+		}
+		const bounds = { width: element.width, height: element.height };
+		const result = runEngineLayout(
+			data,
+			bounds,
+			data.nodes ?? [],
+			['#4472C4'],
+			data.style ?? 'flat',
+		);
+		return (result?.nodes ?? []) as { text?: string; nodeId?: string }[];
+	}
+
+	it('draws a borderless box whose first presented point is an empty placeholder', async () => {
+		// "Small Dots Vertical": Node Two's `descText` presents an empty point,
+		// then Node Three; the cached drawing gives Node Three its own box.
+		const nodes = await engineNodes('small-dots-vertical--hier5.pptx');
+		const boxes = nodes.filter(
+			(n) => (n as { foldedNodeIds?: string[] }).foldedNodeIds?.length && n.text === '',
+		);
+		// Before the fix no borderless descendant box survived, so Node Three
+		// folded into Node Two's own title instead.
+		expect(boxes.length).toBeGreaterThan(0);
+	});
+
+	it('does not draw a dgm:shape that declares no type', async () => {
+		// "Organization Chart"'s rootComposite/hierRoot carriers host presOf only.
+		const nodes = await engineNodes('organization-chart--flat3.pptx');
+		const withText = nodes.filter((n) => (n.text ?? '').length > 0);
+		expect(withText).toHaveLength(3);
+	});
+});
