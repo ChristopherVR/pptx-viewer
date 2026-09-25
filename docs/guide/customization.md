@@ -19,7 +19,11 @@ and can change at runtime:
 import type { ViewerCustomization } from 'pptx-react-viewer'; // or vue / angular / svelte / vanilla
 
 const customization: ViewerCustomization = {
-	ribbon: { hiddenTabs: ['draw', 'record'], hiddenButtons: ['broadcast'] },
+	ribbon: {
+		hiddenTabs: ['draw', 'record'],
+		hiddenGroups: ['insert.media'],
+		hiddenButtons: ['broadcast', 'home.font.changeCase'],
+	},
 	options: {
 		hiddenPages: ['trust', 'addIns'],
 		locked: { 'general.userName': 'Ada Lovelace' },
@@ -111,6 +115,40 @@ The older `hiddenActions` prop keeps working. It is unioned with
 pace. The user's own File > Options > Customize Ribbon choices are unioned on
 top: a tab is shown only if neither the host nor the user hid it.
 
+### Ribbon groups and controls
+
+Below the tab level, every ribbon group and every control inside a group has
+a stable id from one shared catalogue: `<tab>.<group>` for a group and
+`<tab>.<group>.<control>` for a control, named after PowerPoint's own
+captions (`home.font`, `home.font.bold`, `insert.media.media`,
+`view.show.ruler`). The contextual tabs that appear for a selection
+(`shapeFormat`, `pictureFormat`, `tableDesign`, `chartDesign`,
+`smartArtDesign`) are addressed the same way, and their tab ids are accepted
+by `ribbon.hiddenTabs`.
+
+```ts
+const customization: ViewerCustomization = {
+	ribbon: {
+		hiddenGroups: ['home.editing', 'insert.media'],
+		hiddenButtons: ['home.font.changeCase', 'home.paragraph.columns', 'mergeShapes'],
+		hiddenTabs: ['chartDesign'],
+	},
+};
+```
+
+`ribbon.hiddenButtons` takes both kinds of id: the older top-level toolbar
+buttons (`share`, `zoom`, ...) and the catalogued ribbon controls.
+`mergeShapes` / `home.arrange.mergeShapes` and `crop` / `home.arrange.crop`
+name the same control, so either spelling hides it. The full lists are in the
+[reference](#ribbon-groups-ribbon-hiddengroups) below.
+
+Every binding tags its ribbon markup with `data-ribbon-group` and
+`data-ribbon-control` and renders one stylesheet the shared model generates
+from the resolved customisation, scoped to that viewer
+(`data-pptx-ribbon-scope`), so a hidden group or control is removed from
+layout and from the accessibility tree in all five bindings the same way.
+The attributes are also a stable hook for your own styling or tests.
+
 ## The imperative API
 
 Every binding exposes these methods on its component handle (React `ref`, Vue
@@ -122,8 +160,10 @@ template ref, Angular component instance, Svelte `bind:this`, Vanilla instance):
 | `setCustomization(c)`                                                   | Replace the whole customisation.                                           |
 | `updateCustomization(patch)`                                            | Merge a partial customisation.                                             |
 | `resetCustomization()`                                                  | Back to the stock UI.                                                      |
-| `hideRibbonTab(id)` / `showRibbonTab(id)`                               | Toggle one ribbon tab.                                                     |
-| `hideToolbarButton(id)` / `showToolbarButton(id)`                       | Toggle one toolbar button or control cluster.                              |
+| `hideRibbonTab(id)` / `showRibbonTab(id)`                               | Toggle one ribbon tab (a contextual tab id stops that tab appearing).      |
+| `hideRibbonGroup(id)` / `showRibbonGroup(id)`                           | Toggle one group inside a tab (`home.font`).                               |
+| `hideToolbarButton(id)` / `showToolbarButton(id)`                       | Toggle one toolbar button, control cluster or ribbon control.              |
+| `hideRibbonControl(id)` / `showRibbonControl(id)`                       | Toggle one ribbon control (`home.font.bold`).                              |
 | `hideOptionsPage(id)` / `showOptionsPage(id)`                           | Toggle one File > Options page.                                            |
 | `hideOptionsSection(id)` / `showOptionsSection(id)`                     | Toggle one section of an Options page.                                     |
 | `hideSetting(id)` / `showSetting(id)`                                   | Toggle one setting.                                                        |
@@ -381,10 +421,9 @@ object per tenant, and feed it back through `setCustomization`.
 
 ## What is not customisable yet
 
-- **Individual ribbon groups and controls inside a tab.** Tabs and the
-  top-level toolbar buttons are customisable; the groups inside a tab (Home >
-  Font, Insert > Media, ...) are hand-built per binding and have no shared id
-  catalogue yet, so they cannot be addressed without the bindings drifting.
+- **Controls inside a dropped-down menu or gallery** (a single entry of the
+  Bullets library, one Shape Styles tile) are not addressable; hide the
+  control that opens the menu instead.
 - **The slide-show, slide-sorter and presenter keymaps.** `keyboard` covers the
   editor keymap. The only show key it affects is F5 / Shift+F5, through the
   `presentMode` feature.
