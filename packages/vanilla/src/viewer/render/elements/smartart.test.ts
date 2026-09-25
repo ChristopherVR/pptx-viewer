@@ -115,6 +115,19 @@ describe('renderSmartArtElement', () => {
 		expect(node?.querySelector('title')?.textContent).toBe('Node 1 of 1: Alpha');
 	});
 
+	it('paints a cached Venn circle at its fill alpha (fill-opacity)', () => {
+		const element = drawingShapesElement();
+		if (element.type !== 'smartArt') {
+			throw new Error('expected smartArt');
+		}
+		const shapes = element.smartArtData!.drawingShapes!;
+		shapes[1] = { ...shapes[1]!, fillColor: '#156082', fillOpacity: 0.5 };
+		const node = renderSmartArtElement(element, 0, makeContext()) as HTMLElement;
+		const svg = node.querySelector('svg.pptxv-smartart-svg');
+		expect(svg?.querySelector('ellipse')?.getAttribute('fill-opacity')).toBe('0.5');
+		expect(svg?.querySelector('rect')?.hasAttribute('fill-opacity')).toBeFalsy();
+	});
+
 	it('renders pre-computed drawing shapes as SVG rect/ellipse with labels', () => {
 		const node = renderSmartArtElement(drawingShapesElement(), 3, makeContext()) as HTMLElement;
 		expect(node.dataset.elementId).toBe('sa-1');
