@@ -44,7 +44,10 @@ describe('ribbon gallery (vanilla)', () => {
 		expect(gallery.popup.getAttribute('data-ribbon-gallery-popup')).toBe('shapeStyles');
 		// The panel's tiles are built when it opens, not on every selection sync.
 		expect(gallery.popup.querySelectorAll('[data-gallery-item]')).toHaveLength(0);
+		// ... and it is only in the DOM while open, like the other bindings' popups.
+		expect(gallery.el.contains(gallery.popup)).toBeFalsy();
 		gallery.trigger.click();
+		expect(gallery.el.contains(gallery.popup)).toBeTruthy();
 		const tiles = gallery.popup.querySelectorAll('[data-gallery-item]');
 		expect(tiles.length).toBeGreaterThan(6);
 		expect(tiles[0].querySelector('svg')).not.toBeNull();

@@ -75,3 +75,23 @@ export function createContextualTabPanes(
 	}
 	return panes;
 }
+
+/**
+ * Keep only the contextual panes the selection brings up in the ribbon's DOM,
+ * as the other bindings do (their panes are rendered conditionally): a pane
+ * for a tab that is not showing is detached, so its groups are gone from the
+ * accessibility tree and from `[data-ribbon-group]` queries, not merely hidden.
+ */
+export function mountVisibleContextualPanes(
+	host: HTMLElement,
+	panes: ReadonlyMap<RibbonContextualTabId, HTMLElement>,
+	visible: readonly RibbonContextualTabId[],
+): void {
+	for (const [id, pane] of panes) {
+		if (!visible.includes(id)) {
+			pane.remove();
+		} else if (pane.parentElement !== host) {
+			host.appendChild(pane);
+		}
+	}
+}

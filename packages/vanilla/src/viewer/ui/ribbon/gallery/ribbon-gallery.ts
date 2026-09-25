@@ -104,7 +104,9 @@ export function createRibbonGallery(
 	if (strip) {
 		el.appendChild(strip);
 	}
-	el.append(trigger, popup);
+	// The panel is only in the DOM while open (see `setOpen`), like the other
+	// bindings' conditionally rendered popups.
+	el.append(trigger);
 
 	let descriptor: RibbonGalleryDescriptor | null = null;
 	let disabled = true;
@@ -132,6 +134,11 @@ export function createRibbonGallery(
 			renderPopupIfStale();
 		}
 		popup.hidden = !next;
+		if (next) {
+			el.append(popup);
+		} else {
+			popup.remove();
+		}
 		trigger.setAttribute('aria-expanded', String(next));
 		trigger.classList.toggle('is-active', next);
 		anchor?.destroy();

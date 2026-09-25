@@ -12,7 +12,7 @@ import { createEl } from '../../render';
 import { createEquationPanel } from './equation-panel';
 import { createFindReplacePanel } from './find-replace-panel';
 import { createFormatBackgroundPanel } from './format-background-panel';
-import { createContextualTabPanes } from './gallery/contextual-tabs';
+import { createContextualTabPanes, mountVisibleContextualPanes } from './gallery/contextual-tabs';
 import { createRibbonGalleryHub } from './gallery/gallery-hub';
 import type { HomeTab } from './home/home-tab';
 import { createHomeTab } from './home/home-tab';
@@ -171,12 +171,12 @@ export function createRibbon(
 		}
 	}
 
-	// Contextual tabs (Shape Format, ...) sit after the fixed tabs; the tab row
-	// only shows the ones the current selection brings up.
-	for (const [id, pane] of createContextualTabPanes(doc, t, galleryHub)) {
+	// Contextual tabs (Shape Format, ...) sit after the fixed tabs, mounted only
+	// while the selection brings them up (`mountVisibleContextualPanes`).
+	const contextualPanes = createContextualTabPanes(doc, t, galleryHub);
+	for (const [id, pane] of contextualPanes) {
 		pane.hidden = true;
 		panes[id] = pane;
-		el.appendChild(pane);
 	}
 
 	const defaultVisibleTab: RibbonTabId =
@@ -211,6 +211,7 @@ export function createRibbon(
 			handlers.nav.getCustomization?.(),
 		);
 		tabBar.setContextualTabs(visible);
+		mountVisibleContextualPanes(el, contextualPanes, visible);
 		const next = resolveActiveRibbonTab(activeTab, visible, defaultVisibleTab);
 		if (next !== activeTab) {
 			setActiveTab(next);

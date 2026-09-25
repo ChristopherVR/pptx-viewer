@@ -111,6 +111,8 @@ describe('ribbon contextual tabs (vanilla)', () => {
 			.click();
 		ribbon.updateSelection(undefined, selection(undefined));
 		expect(ribbon.el.querySelector('[data-ribbon-contextual-tab]')).toBeNull();
+		// The pane goes with it, as in the other bindings, not just hidden.
+		expect(ribbon.el.querySelector('[data-ribbon-group="shapeFormat.shapeStyles"]')).toBeNull();
 		expect(
 			visiblePane(ribbon.el)?.querySelector('[data-ribbon-group="home.clipboard"]'),
 		).not.toBeNull();
