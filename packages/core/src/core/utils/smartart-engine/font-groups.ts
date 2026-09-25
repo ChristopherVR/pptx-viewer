@@ -101,6 +101,22 @@ export function resolveEngineFonts(
 			}
 		}
 	}
+	// Same layout node, same size: across the gallery corpus's cached
+	// drawings, 510 of 514 (fixture, presName) groups with text render every
+	// shape at ONE size even where the layout declares no `op="equ"` for them
+	// ("Organization Chart"'s `rootText` boxes all share 33pt although each
+	// only declares its own `primFontSz val="65"`). The 4 exceptions are
+	// timeline/dot-list label containers whose members sit in different
+	// equality groups.
+	const firstByName = new Map<string, EngineNode>();
+	for (const { node } of entries) {
+		const first = firstByName.get(node.name);
+		if (first) {
+			groups.union(first, node);
+		} else {
+			firstByName.set(node.name, node);
+		}
+	}
 	for (let pass = 0; pass < 8; pass++) {
 		let changed = false;
 		const groupMin = new Map<EngineNode, number>();

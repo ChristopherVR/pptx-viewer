@@ -40,6 +40,7 @@
 
 import type { FontAdvanceTable } from './font-advance-widths.generated';
 import type { TieredFontFitItem } from './smartart-layout-item-font-tier';
+import { SMARTART_TEXT_BLOCK_EXTRA_EM, smartArtLineEm } from './smartart-line-pitch';
 import { wrappedLineCount, wrappedWidestLineWidth } from './smartart-text-wrap-fit';
 
 const ROOT_SPCAFT_FACTOR = 0.35;
@@ -70,13 +71,17 @@ const PX_PER_PT = 96 / 72;
  * and the item box's own width/height - checked against 30+ distinct
  * fixtures with zero exceptions. The measured steps: 4.5pt for descendant
  * size in `[5, 11]`, 9.0pt for `[12, 15]`, 13.5pt for `[16, 19]`, 18.0pt
- * for `[20, 27]`, 22.5pt for `[28, 40]` (the corpus's own descendant-size
- * range tops out at 40pt; sizes above that are extrapolated, see below).
+ * for `[20, 27]`, and 22.5pt from 28pt up: a later scan that also covered
+ * descendant-only text boxes ("Basic Pyramid"'s `acctTx` at 47pt, others at
+ * 41 and 45pt) found the same 22.5pt through 47pt, so the last step is a
+ * plateau, not the start of a +4.5pt-per-13pt ramp (an extrapolation this
+ * table used to apply above 40pt, which gave 27pt at 47pt against a cached
+ * 22.5pt).
  * Matches round 14/15's own hand-measured numbers exactly: `basic-
  * process--hier5.pptx`/`vertical-process--hier5.pptx` (descendant 19pt)
  * both fall in `[16,19]` -> 13.5pt; `basic-process--hier8.pptx`
  * (descendant 15pt) falls in `[12,15]` -> 9.0pt; `basic-block-list--
- * hier5.pptx` (descendant 37pt) falls in `[28,40]` -> 22.5pt.
+ * hier5.pptx` (descendant 37pt) -> 22.5pt.
  */
 const DESCENDANT_INDENT_STEPS_PT: ReadonlyArray<{
 	readonly maxSz: number;
@@ -86,22 +91,10 @@ const DESCENDANT_INDENT_STEPS_PT: ReadonlyArray<{
 	{ maxSz: 15, indentPt: 9.0 },
 	{ maxSz: 19, indentPt: 13.5 },
 	{ maxSz: 27, indentPt: 18.0 },
-	{ maxSz: 40, indentPt: 22.5 },
 ];
 
-/**
- * `descendantIndentPt`'s value for a descendant size beyond the sampled
- * corpus (round 16's scan tops out at 40pt): the last measured tier
- * spanned `[28, 40]` (a 13pt-wide step) at 22.5pt; continue at the SAME
- * +4.5pt-per-13pt rate rather than assuming the table stops growing. Not
- * itself corpus-verified (no fixture samples above 40pt) - a defensive
- * extrapolation, not a measured rule.
- */
-function extrapolatedIndentPt(descendantSizePt: number): number {
-	const last = DESCENDANT_INDENT_STEPS_PT[DESCENDANT_INDENT_STEPS_PT.length - 1];
-	const tiersBeyond = Math.floor((descendantSizePt - last.maxSz - 1) / 13) + 1;
-	return last.indentPt + tiersBeyond * 4.5;
-}
+/** The plateau every descendant size from 28pt up (measured through 47pt) indents by. */
+const DESCENDANT_INDENT_PLATEAU_PT = 22.5;
 
 /** See {@link DESCENDANT_INDENT_STEPS_PT}'s doc comment. */
 export function descendantIndentPt(descendantSizePt: number): number {
@@ -110,7 +103,7 @@ export function descendantIndentPt(descendantSizePt: number): number {
 			return step.indentPt;
 		}
 	}
-	return extrapolatedIndentPt(descendantSizePt);
+	return DESCENDANT_INDENT_PLATEAU_PT;
 }
 
 /** One paragraph's own content-height contribution, including its trailing `spcAft` unless it is the box's last paragraph. */
@@ -156,7 +149,7 @@ export function itemFits(
 	let totalPx = paragraphBlockPx(
 		rootLines,
 		rootPx,
-		table.lineHeightRatio,
+		smartArtLineEm(table),
 		lineSpacingFactor,
 		ROOT_SPCAFT_FACTOR,
 		!hasDescendants || item.separateDescendantBox === true,
@@ -173,11 +166,11 @@ export function itemFits(
 		totalPx += paragraphBlockPx(
 			lines,
 			descendantPx,
-			table.lineHeightRatio,
+			smartArtLineEm(table),
 			lineSpacingFactor,
 			DESCENDANT_SPCAFT_FACTOR,
 			isLast,
 		);
 	}
-	return totalPx <= availHeightPx;
+	return totalPx + SMARTART_TEXT_BLOCK_EXTRA_EM * rootPx <= availHeightPx;
 }

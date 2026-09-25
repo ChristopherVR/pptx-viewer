@@ -619,7 +619,7 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 	/** `roundRectCornerInsetPx` at `basic-process`'s real box/adjustment (see `smartart-layout-shape-preset.test.ts`). */
 	const cornerInsetPx = 0.1 * Math.min(BOX_W_PT, BOX_H_PT) * (1 - Math.SQRT2 / 2) * PT_TO_PX;
 
-	it("resolves basic-process--hier5.pptx to 25pt (round 13: 1pt over cached 24pt, COM-confirmed WIDTH-bound; round 16's descendantIndentPt fixed --hier8.pptx's identical-shaped residual but NOT this one - see resolveTieredItemFontSize's own doc comment)", () => {
+	it('resolves basic-process--hier5.pptx to its cached 24pt (the round 13-16 1pt-over residual closed once the Aptos advances were re-measured with BoundWidth and pair kerning)', () => {
 		const { plan, index } = basicProcessBounds();
 		const { rootSizePx } = resolveTieredItemFontSize(
 			plan,
@@ -648,7 +648,7 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 			0.6,
 			cornerInsetPx,
 		);
-		expect(rootSizePx / PT_TO_PX).toBeCloseTo(25, 0);
+		expect(rootSizePx / PT_TO_PX).toBeCloseTo(24, 0);
 	});
 
 	it('resolves basic-process--hier8.pptx to 19pt exactly (round 16: descendantIndentPt closes the round-13 1pt-over residual - see smartart-layout-item-font-tier-fit.ts)', () => {
@@ -712,7 +712,9 @@ describe('resolveTieredItemFontSize roundRect corner inset (basic-process--hier5
 			0.6,
 			// no cornerInsetPx argument: defaults to 0.
 		);
-		expect(rootSizePx / PT_TO_PX).toBeCloseTo(27, 0);
+		// 26pt once the SmartArt line pitch (0.9 x 1.2207em for Aptos) and
+		// the kerned, BoundWidth-measured advances replaced the 1.08 pitch.
+		expect(rootSizePx / PT_TO_PX).toBeCloseTo(26, 0);
 	});
 });
 

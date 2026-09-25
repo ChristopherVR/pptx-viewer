@@ -6,13 +6,12 @@
  * `pwsh -File scripts/make-font-advance-table.ps1`.
  *
  * Method (see the script's own header comment for the full derivation): for
- * each printable ASCII code point 32-126, PowerPoint measured the difference
- * in `Shape.Width` (`TextFrame.AutoSize = ppAutoSizeShapeToFitText`,
- * `TextFrame.WordWrap = False`) between two run lengths of the same glyph
- * sandwiched between fixed anchor characters, isolating the glyph's own
- * advance in points at a 100pt reference size, independent of the text box's
- * own margins. Stored per-1000-em (`advance_pt / 100 * 1000`), so it applies
- * at any font size.
+ * each printable ASCII code point 32-126, PowerPoint measured
+ * `TextRange.BoundWidth` of the glyph between two kerning-neutral anchors at a
+ * 100pt reference size, plus every non-zero pair kerning. Stored per-1000-em
+ * (`advance_pt / 100 * 1000`), so it applies at any font size. A font file
+ * with no `kerning` field predates that method (it differenced an AutoSize
+ * box's `Shape.Width`, which read Aptos about 1.1% wide).
  *
  * `marginLeftPt`/`marginRightPt`/`marginTopPt`/`marginBottomPt` are
  * PowerPoint's OWN default `a:bodyPr` text-frame insets for this font (read
@@ -66,6 +65,8 @@ export interface FontAdvanceTable {
 	marginBottomPt: number;
 	/** Line-height-to-font-size multiple (e.g. 1.2 means a line is 1.2x the font size tall). */
 	lineHeightRatio: number;
+	/** Per-1000-em pair kerning (`"To"` -> negative), applied at 12pt and above. */
+	kerning?: Readonly<Record<string, number>>;
 }
 
 export const FONT_ADVANCE_TABLES: Record<string, FontAdvanceTable> = {

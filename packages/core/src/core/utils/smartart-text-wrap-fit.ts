@@ -15,6 +15,8 @@
 
 import { DEFAULT_FONT_ADVANCE_TABLE } from './font-advance-widths.generated';
 import type { FontAdvanceTable } from './font-advance-widths.generated';
+import { KERNING_MIN_SIZE_PX } from './font-kerning';
+import { SMARTART_TEXT_BLOCK_EXTRA_EM, smartArtLineEm } from './smartart-line-pitch';
 
 const BINARY_SEARCH_ITERATIONS = 20;
 
@@ -73,14 +75,26 @@ export const SMARTART_LINE_SPACING_FACTOR = 0.9;
  */
 const ADVANCE_STEPS_PER_PX = 6;
 
-/** `text`'s rendered width at `fontSize` (same unit as `table`'s advances were measured in per-em), with each glyph's advance snapped to PowerPoint's own 1/6-CSS-px hinting grid. */
+/**
+ * `text`'s rendered width at `fontSize` (same unit as `table`'s advances were
+ * measured in per-em), with each glyph's advance snapped to PowerPoint's own
+ * 1/6-CSS-px hinting grid, plus the table's pair kerning (each adjustment
+ * snapped the same way) at 12pt/16px and above - see `font-kerning.ts`.
+ */
 export function measureTextWidth(text: string, fontSize: number, table: FontAdvanceTable): number {
+	const kerning = fontSize >= KERNING_MIN_SIZE_PX ? table.kerning : undefined;
 	let widthPx = 0;
+	let previous = '';
 	for (const ch of text) {
 		const code = ch.codePointAt(0) ?? 0;
 		const unitsPerEm = table.advances[code] ?? table.averageAdvance;
 		const rawPx = (unitsPerEm / 1000) * fontSize;
 		widthPx += Math.round(rawPx * ADVANCE_STEPS_PER_PX) / ADVANCE_STEPS_PER_PX;
+		const kern = kerning?.[previous + ch];
+		if (kern !== undefined) {
+			widthPx += Math.round((kern / 1000) * fontSize * ADVANCE_STEPS_PER_PX) / ADVANCE_STEPS_PER_PX;
+		}
+		previous = ch;
 	}
 	return widthPx;
 }
@@ -179,8 +193,9 @@ function fitsAt(
 	return (
 		wrappedLineCount(text, maxWidth, size, table) *
 			size *
-			table.lineHeightRatio *
-			lineSpacingFactor <=
+			smartArtLineEm(table) *
+			lineSpacingFactor +
+			SMARTART_TEXT_BLOCK_EXTRA_EM * size <=
 		maxHeight
 	);
 }

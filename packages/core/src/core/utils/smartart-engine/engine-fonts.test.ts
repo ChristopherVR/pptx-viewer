@@ -19,6 +19,8 @@ import type { EngineNode } from './engine-node';
 import { runEngineLayout } from './engine-to-result';
 import { resolveEngineFonts } from './font-groups';
 import type { LdConstraint } from './layout-def-types';
+import { presetAdjustments } from './shape-adjust';
+import { nodeFontBounds } from './text-fit';
 import { paragraphsFit, textMetricsFor } from './text-measure';
 
 const GALLERY_DIR = path.resolve(__dirname, '../../../__tests__/fixtures/smartart-gallery');
@@ -109,7 +111,7 @@ describe('engine text-frame margins are points', () => {
 });
 
 describe('resolveEngineFonts equalisation', () => {
-	const metrics = textMetricsFor('Aptos', FONT_ADVANCE_TABLES.Aptos);
+	const metrics = textMetricsFor(FONT_ADVANCE_TABLES.Aptos);
 
 	it('shrinks every member of an op="equ" group to the worst fit', () => {
 		const parent = bareNode('parent');
@@ -144,8 +146,51 @@ describe('resolveEngineFonts equalisation', () => {
 	});
 });
 
+describe('same layout node, same size', () => {
+	const metrics = textMetricsFor(FONT_ADVANCE_TABLES.Aptos);
+
+	it('equalises nodes sharing a layout-node name with no op="equ" declared', () => {
+		const a = bareNode('rootText');
+		const b = bareNode('rootText');
+		for (const n of [a, b]) {
+			n.values.set('primFontSz', 40);
+			n.rules = [{ type: 'primFontSz', for: 'self', ptType: 'all', val: 5, fact: NaN, max: NaN }];
+		}
+		const sizes = resolveEngineFonts(
+			[
+				{ node: a, text: { own: 'Hi', descendants: [] } },
+				{ node: b, text: { own: 'A much longer label that has to wrap', descendants: [] } },
+			],
+			metrics,
+		);
+		expect(sizes.get(a)).toBe(sizes.get(b));
+	});
+});
+
+describe('secFontSz-driven text', () => {
+	it('follows secFontSz and its rules when primFontSz is declared as secFontSz', () => {
+		const n = bareNode('acctTx');
+		n.values.set('secFontSz', 65);
+		n.deferred = [
+			{ source: {}, type: 'primFontSz', op: 'none', ref: n, refType: 'secFontSz', fact: 1 },
+		];
+		n.rules = [{ type: 'secFontSz', for: 'self', ptType: 'all', val: 5, fact: NaN, max: NaN }];
+		expect(nodeFontBounds(n)).toStrictEqual({ start: 65, floor: 5 });
+	});
+});
+
+describe('presetAdjustments', () => {
+	it('reads a length handle as a fraction and an angle handle as degrees', () => {
+		expect(presetAdjustments('roundRect', { 1: 0.1 })).toStrictEqual({ adj: 10000 });
+		expect(presetAdjustments('blockArc', { 1: 90, 3: 0.25 })).toStrictEqual({
+			adj1: 5400000,
+			adj3: 25000,
+		});
+	});
+});
+
 describe('paragraphsFit line pitch', () => {
-	const metrics = textMetricsFor('Aptos', FONT_ADVANCE_TABLES.Aptos);
+	const metrics = textMetricsFor(FONT_ADVANCE_TABLES.Aptos);
 
 	it('uses the 0.9 x 1.2207em SmartArt pitch, so four 36pt lines overflow 162.3pt', () => {
 		// "Basic Block List" flat3 (cached 36pt): at 37pt the four-line label

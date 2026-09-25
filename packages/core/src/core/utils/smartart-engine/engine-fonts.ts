@@ -90,7 +90,7 @@ export function applyEngineFonts(
 			entries.push({ node, text });
 		}
 	}
-	const sizes = resolveEngineFonts(entries, textMetricsFor(fontName, resolveFontTable(fontName)));
+	const sizes = resolveEngineFonts(entries, textMetricsFor(resolveFontTable(fontName)));
 	for (const [node, twin] of twinOf) {
 		const size = sizes.get(twin);
 		if (size !== undefined) {

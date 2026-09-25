@@ -9,13 +9,8 @@
  *   (`font-advance-widths.generated.ts`), greedy word-wrapped per paragraph
  *   (`smartart-text-wrap-fit.ts`), in CSS pixels so each advance snaps to
  *   PowerPoint's 1/6-px hinting grid.
- * - Line pitch: every cached SmartArt paragraph carries `lnSpc 90%`, applied
- *   to the font's own line height. For Aptos that is 1.2207em (ascent +
- *   descent), so a line advances `0.9 x 1.2207 = 1.0986` x the size: COM
- *   `TextRange.BoundHeight` on the gallery fixtures' SmartArt shapes reads
- *   0.0986-1.100 x size per line at 19, 20, 26, 36 and 43pt ("Basic Chevron
- *   Process", "Basic Process", "Tab List", "Basic Block List", "Lined
- *   List"), not the 1.08 a plain text box's 1.2 ratio would give.
+ * - Line pitch: `lnSpc 90%` of the font's own line height, plus a fixed
+ *   extra per text block (`smartart-line-pitch.ts` has the COM numbers).
  * - A folded descendant renders at `round(0.78 x size)` in a hanging-indented
  *   column (`descendantIndentPt`); paragraphs are separated by their
  *   `spcAft` (35% after the node's own, 15% after a folded descendant, 20% in
@@ -24,6 +19,7 @@
 
 import type { FontAdvanceTable } from '../font-advance-widths.generated';
 import { descendantIndentPt } from '../smartart-layout-item-font-tier-fit';
+import { SMARTART_TEXT_BLOCK_EXTRA_EM, smartArtLineEm } from '../smartart-line-pitch';
 import {
 	SMARTART_LINE_SPACING_FACTOR,
 	wrappedLineCount,
@@ -40,11 +36,6 @@ const OWN_SPC_AFT = 0.35;
 const FOLDED_SPC_AFT = 0.15;
 const DESCENDANT_ONLY_SPC_AFT = 0.2;
 
-/** Font line heights (em) SmartArt's 90% line spacing applies to, where measured (see module doc). */
-const SMARTART_LINE_EM: Readonly<Record<string, number>> = {
-	Aptos: 1.2207,
-};
-
 /** The text one rendered node shows: its own paragraph (if it presents itself) and any folded descendants. */
 export interface NodeText {
 	own?: string;
@@ -58,9 +49,9 @@ export interface TextMetrics {
 	lineEm: number;
 }
 
-/** Metrics for `fontName` (the theme minor font), falling back to the advance table's own line ratio. */
-export function textMetricsFor(fontName: string | undefined, table: FontAdvanceTable): TextMetrics {
-	return { table, lineEm: SMARTART_LINE_EM[fontName ?? ''] ?? table.lineHeightRatio };
+/** Metrics for text measured with `table` (see `smartart-line-pitch.ts` for the line height). */
+export function textMetricsFor(table: FontAdvanceTable): TextMetrics {
+	return { table, lineEm: smartArtLineEm(table) };
 }
 
 interface Paragraph {
@@ -120,5 +111,6 @@ export function paragraphsFit(
 			height += p.spcAft * line;
 		}
 	}
+	height += SMARTART_TEXT_BLOCK_EXTRA_EM * sizePt;
 	return height <= availH + 1e-6;
 }

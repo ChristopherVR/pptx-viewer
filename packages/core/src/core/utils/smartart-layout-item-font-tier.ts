@@ -197,13 +197,16 @@ export function resolveTieredItemFontSize(
 	const proportional = proportionalMarginFraction(index, role);
 	const lineSpacingFactor = SMARTART_LINE_SPACING_FACTOR;
 
-	/** Whether every item fits at candidate `rootPx`, with margins resolved against `marginBasisPx`. */
-	const fitsAtMarginBasis = (rootPx: number, marginBasisPx: number): boolean => {
+	/**
+	 * Whether every item fits at the whole-point candidate `rootPt`: its
+	 * descendants at `round(0.78 x rootPt)` (the size PowerPoint actually
+	 * renders them at), proportional margins at the candidate itself.
+	 */
+	const fitsAtPoint = (rootPt: number): boolean => {
+		const rootPx = rootPt * PX_PER_PT;
+		const descendantPx = Math.round(rootPt * SMARTART_DESCENDANT_FONT_SCALE) * PX_PER_PT;
 		const margins = proportional
-			? {
-					horizontal: proportional.horizontal * marginBasisPx,
-					vertical: proportional.vertical * marginBasisPx,
-				}
+			? { horizontal: proportional.horizontal * rootPx, vertical: proportional.vertical * rootPx }
 			: fixedMargins;
 		for (const item of items) {
 			const naturalHeight =
@@ -213,7 +216,6 @@ export function resolveTieredItemFontSize(
 			const availWidthPx = Math.max(1, item.width - margins.horizontal - 2 * cornerInsetPx);
 			const verticalReduction = margins.vertical + 2 * cornerInsetPx;
 			const availHeightPx = Math.max(1, naturalHeight - verticalReduction);
-			const descendantPx = rootPx * SMARTART_DESCENDANT_FONT_SCALE;
 			const fits = itemFits(
 				item,
 				availWidthPx,
@@ -230,58 +232,21 @@ export function resolveTieredItemFontSize(
 		return true;
 	};
 
-	/** Largest `rootPx` in `[floorPx, ceilingPx]` for which every item fits, margins fixed for this pass. */
-	const solveRootAtMarginBasis = (marginBasisPx: number): number => {
-		const fitsAt = (rootPx: number): boolean => fitsAtMarginBasis(rootPx, marginBasisPx);
-		if (fitsAt(ceilingPx)) {
-			return ceilingPx;
-		}
-		if (!fitsAt(floorPx)) {
-			return floorPx;
-		}
-		let lo = floorPx;
-		let hi = ceilingPx;
-		for (let i = 0; i < 20; i++) {
-			const mid = (lo + hi) / 2;
-			if (fitsAt(mid)) {
-				lo = mid;
-			} else {
-				hi = mid;
-			}
-		}
-		return lo;
-	};
-
-	let rootPx = solveRootAtMarginBasis(ceilingPx);
-	if (proportional) {
-		// Same margin-shrinks-with-font convergence as `fitSharedFontSize`.
-		for (let i = 0; i < 6; i++) {
-			const next = solveRootAtMarginBasis(rootPx);
-			if (Math.abs(next - rootPx) < 0.01) {
-				rootPx = next;
-				break;
-			}
-			rootPx = next;
+	// PowerPoint only ever renders whole points, so walk down from the
+	// ceiling one point at a time and take the first size every item fits
+	// at (the floor when none does). Round 8's "continuous search, then
+	// snap and re-verify" existed to stop a converged 19.9pt rounding up to
+	// an unfitting 20pt; stepping whole points cannot produce that case.
+	const ceilingPt = Math.max(1, Math.floor(ceilingPx / PX_PER_PT + 1e-9));
+	const floorPt = Math.min(ceilingPt, Math.max(1, Math.ceil(floorPx / PX_PER_PT - 1e-9)));
+	let rootPt = floorPt;
+	for (let candidate = ceilingPt; candidate > floorPt; candidate--) {
+		if (fitsAtPoint(candidate)) {
+			rootPt = candidate;
+			break;
 		}
 	}
-	// `rootPx` is a CONTINUOUS value the binary search proved fits (its own
-	// `lo` invariant). `Math.round` can snap it to the whole point ABOVE that
-	// continuous value (e.g. a converged 19.9pt rounds to 20pt) even when
-	// that rounded-UP point size does NOT itself fit - `basic-process--
-	// flat3.pptx`'s cached 19pt (continuous convergence ~19.9pt) is exactly
-	// this case: the wrapped content only barely clears 19pt's own budget,
-	// and 20pt's needs MORE room than even the continuous search found, not
-	// less. Verify the rounded-up candidate against the SAME per-item fit
-	// check (at the final, self-consistent margin basis) before accepting
-	// it; fall back to the next point DOWN when it does not (never fails:
-	// `rootPx` itself already fits, and fit is monotonic in size, so
-	// anything at or below `rootPx` fits too).
-	const rounded = snapToWholePoint(rootPx);
-	const roundedUp = rounded > rootPx;
-	const rootSizePx =
-		roundedUp && !fitsAtMarginBasis(rounded, rootPx)
-			? Math.floor(rootPx / PX_PER_PT) * PX_PER_PT
-			: rounded;
+	const rootSizePx = rootPt * PX_PER_PT;
 	const descendantSizePx = snapToWholePoint(rootSizePx * SMARTART_DESCENDANT_FONT_SCALE);
 	return { rootSizePx, descendantSizePx };
 }
