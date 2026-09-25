@@ -10,6 +10,95 @@ dated sections beneath it are generated from
 
 ## 2026-09-25
 
+_Releases: pptx-viewer-core@4.6.0, pptx-react-viewer@4.9.0, pptx-vue-viewer@4.9.0, pptx-angular-viewer@4.9.0, pptx-vanilla-viewer@3.9.0, pptx-svelte-viewer@4.9.0, pptx-viewer-mcp@2.5.6, @christophervr/pptx-viewer@2.30.0_
+
+### Features
+
+- **shared:** Draw horizontal 3D bars without right-angle axes on the perspective box (by @claude) ([e0c1aad](https://github.com/ChristopherVR/pptx-viewer/commit/e0c1aad3797be9fe75e2b02cd225d19106d38eb0))
+- **shared:** Draw right-angle-axes 3D line, area and surface charts obliquely (by @claude) ([e74306a](https://github.com/ChristopherVR/pptx-viewer/commit/e74306a1a2cf6a69cd3f9672c560cc80550cff16))
+- **core:** Write the slide master's placeholders and theme into .ppt (by @ChristopherVR) ([95b2e26](https://github.com/ChristopherVR/pptx-viewer/commit/95b2e26e31a5f8a5da931394f19b460c38177981))
+- **shared:** Ribbon group/control ids and the style gallery framework (by @ChristopherVR) ([adda887](https://github.com/ChristopherVR/pptx-viewer/commit/adda8870353bdb2f476ff63532fe8c726f9cab50))
+- **locales:** Translate the ribbon gallery and contextual tab strings (by @ChristopherVR) ([dad9566](https://github.com/ChristopherVR/pptx-viewer/commit/dad95669edd0a8298f8b4f5a6c685e785312cdc1))
+- **react:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([4e67c19](https://github.com/ChristopherVR/pptx-viewer/commit/4e67c195b700dec326c20e839ed9221a89c29846))
+- **core:** Keep a text reflection's end position and direction (by @ChristopherVR) ([afb807d](https://github.com/ChristopherVR/pptx-viewer/commit/afb807d81d18c017367d1af5bd01ddf5bb9a036e))
+- **shared:** Fill the ribbon style galleries (by @ChristopherVR) ([2a743b9](https://github.com/ChristopherVR/pptx-viewer/commit/2a743b97996e32f2cef891329c9ea86b070e2a0f))
+- **locales:** Translate the table, chart, SmartArt and theme gallery names (by @ChristopherVR) ([a80c0a8](https://github.com/ChristopherVR/pptx-viewer/commit/a80c0a875ab180f7804fd08fa1f7e9be71ac15a4))
+- **vue:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([7170181](https://github.com/ChristopherVR/pptx-viewer/commit/7170181bf4e62eb676cec2287b4c4f8a410fa1c7))
+- **angular:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([127100f](https://github.com/ChristopherVR/pptx-viewer/commit/127100fce46b653be3387825fa7dc91d33d71127))
+- **svelte:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([670fbf8](https://github.com/ChristopherVR/pptx-viewer/commit/670fbf8cde646bc9e47f9f7a7ed2010e70d4a3a6))
+- **vanilla:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([5a9a9da](https://github.com/ChristopherVR/pptx-viewer/commit/5a9a9da9859e24e083924cee7e1926835cce22af))
+- **locales:** Translate the Shape Effects, WordArt and list gallery tiles (by @ChristopherVR) ([7b665fe](https://github.com/ChristopherVR/pptx-viewer/commit/7b665fed8d6bfca94ab43721aaab597509f9c9f2))
+- **shared:** Picture Styles gallery with PowerPoint's 28 styles (by @ChristopherVR) ([2d56881](https://github.com/ChristopherVR/pptx-viewer/commit/2d56881a23e1a49b631e8554d42a2bdc9366f527))
+- **locales:** Translate the Picture Styles gallery names (by @ChristopherVR) ([0e1eab2](https://github.com/ChristopherVR/pptx-viewer/commit/0e1eab2bd66ed087cc71f75f66506b99cbc17d79))
+- **shared:** Find the gallery theme preset a deck's theme matches (by @ChristopherVR) ([15d0e41](https://github.com/ChristopherVR/pptx-viewer/commit/15d0e41ad8b560325e366dbc36aa4303af2d9e36))
+- **shared:** Play entrances and exits from the deck's behaviour tree (by @ChristopherVR) ([18c512e](https://github.com/ChristopherVR/pptx-viewer/commit/18c512ecf11aeaa19140124f2c85c66f525af010))
+- **shared:** Offer only the directions PowerPoint has for a preset (by @ChristopherVR) ([999208d](https://github.com/ChristopherVR/pptx-viewer/commit/999208d9906bd26b6b7d1d36ce143acaf6630957))
+- **shared:** Preview entrances and exits with PowerPoint's own tree (by @ChristopherVR) ([b3cc6c6](https://github.com/ChristopherVR/pptx-viewer/commit/b3cc6c67383c236c3d9ed386a20f8c7e478bd2a5))
+- **react:** Offer PowerPoint's directions and preview from its tree (by @ChristopherVR) ([033c4c0](https://github.com/ChristopherVR/pptx-viewer/commit/033c4c034e51693bc1fb5264a07381e9e23af64d))
+- **vue:** Offer PowerPoint's directions and preview from its tree (by @ChristopherVR) ([90383c8](https://github.com/ChristopherVR/pptx-viewer/commit/90383c8a01e97e32db20d4c7f13e651c1f895696))
+- **angular:** Offer PowerPoint's directions and preview from its tree (by @ChristopherVR) ([1f8ebd1](https://github.com/ChristopherVR/pptx-viewer/commit/1f8ebd11b7c15d346227f2f5a7cdf699b8dfff26))
+- **svelte:** Offer PowerPoint's directions and preview from its tree (by @ChristopherVR) ([5e9c310](https://github.com/ChristopherVR/pptx-viewer/commit/5e9c310389761e7b976a91ba349cbe0c4956a91c))
+- **vanilla:** Offer PowerPoint's directions for each preset (by @ChristopherVR) ([617c304](https://github.com/ChristopherVR/pptx-viewer/commit/617c304018759a5b49b018b044eb8d61cca9e6a9))
+
+### Bug Fixes
+
+- **shared:** Break East Asian text across runs like PowerPoint (by @ChristopherVR) ([56ea24e](https://github.com/ChristopherVR/pptx-viewer/commit/56ea24eb3afb76a32689ee917f3ccb2759d8039f))
+- **react:** Hand East Asian breaks the text after each run (by @ChristopherVR) ([b59b51f](https://github.com/ChristopherVR/pptx-viewer/commit/b59b51f206a3704204cbcd3b5820b8557983d9b9))
+- **shared:** Size data-label boxes from the measured text (by @ChristopherVR) ([328d0f0](https://github.com/ChristopherVR/pptx-viewer/commit/328d0f074b794a4a0e4c58815c7b4ccf3d9dce99))
+- **shared:** Place bestFit pie labels where PowerPoint does (by @ChristopherVR) ([63e1dc3](https://github.com/ChristopherVR/pptx-viewer/commit/63e1dc35dbddc50fe2cf9337e55b4bdff0df1be7))
+- **core:** Keep paragraph markup on a rewritten slide (by @ChristopherVR) ([ff79c00](https://github.com/ChristopherVR/pptx-viewer/commit/ff79c002df8e79eb4f9967c0261b7259fee44223))
+- **core:** Recompute Words and Paragraphs in docProps/app.xml on save (by @ChristopherVR) ([85ef0d6](https://github.com/ChristopherVR/pptx-viewer/commit/85ef0d6c9879670b8fb85b3c072c8105397d3d55))
+- **core:** Write .ppt group members the way PowerPoint reads them (by @ChristopherVR) ([8cf3852](https://github.com/ChristopherVR/pptx-viewer/commit/8cf3852a1cde14e089dbdbca8fcba50005c982c2))
+- **core:** Write DIFAT sectors for compound files past 109 FAT sectors (by @ChristopherVR) ([9e26fe8](https://github.com/ChristopherVR/pptx-viewer/commit/9e26fe8775a14d7e3ae2b69fbc982167a76cadf3))
+- **core:** Write a new p:style between spPr and txBody (by @ChristopherVR) ([c7a45b9](https://github.com/ChristopherVR/pptx-viewer/commit/c7a45b9c077c94355d62a2e1e6196d1c33598458))
+- **shared:** Write Shape Styles presets with PowerPoint's zero references (by @ChristopherVR) ([fdea69d](https://github.com/ChristopherVR/pptx-viewer/commit/fdea69d93436881bf7038e1b32792d7fe8b87e89))
+- **shared:** Name every Shape Effects, WordArt and list gallery tile (by @ChristopherVR) ([0e16dae](https://github.com/ChristopherVR/pptx-viewer/commit/0e16dae2cf34c1c611746b8ad1b4eaa2cd806d85))
+- **svelte:** Browse Themes and Edit Theme change the presentation theme (by @ChristopherVR) ([d72eb48](https://github.com/ChristopherVR/pptx-viewer/commit/d72eb48e7b4158dab0040eb9fc8504a12b549a97))
+- **vanilla:** Browse Themes and Edit Theme change the presentation theme (by @ChristopherVR) ([d17caab](https://github.com/ChristopherVR/pptx-viewer/commit/d17caabe2879f026b8896b4afcc5b60b64e25d56))
+- **angular:** Escape clears the selection once no chrome is left to close (by @ChristopherVR) ([76edabb](https://github.com/ChristopherVR/pptx-viewer/commit/76edabb0e4e55a292df63e93502d5c1900a48fa8))
+- **vanilla:** Mount gallery popups and contextual panes only while shown (by @ChristopherVR) ([4a288ab](https://github.com/ChristopherVR/pptx-viewer/commit/4a288abe49c13cd6c9c5ebd9989368fe68483a48))
+- **svelte:** Keep the Insert tab buttons compact inside their group wrappers (by @ChristopherVR) ([eb21a41](https://github.com/ChristopherVR/pptx-viewer/commit/eb21a41ce56253a7249f2426196e16d56fd4d39c))
+- **react:** Stop ribbon controls in a group scope from shrinking (by @ChristopherVR) ([bb18a71](https://github.com/ChristopherVR/pptx-viewer/commit/bb18a717184a5a1405c93604af60be954aba40a5))
+- **shared:** Stop 3D SmartArt and charts rotating while dragged (by @claude) ([1f4e09e](https://github.com/ChristopherVR/pptx-viewer/commit/1f4e09e3c797acf365cb4d34aaa9b5a9e72ed157))
+- **core:** Parse every behaviour of an effect with its own timing (by @ChristopherVR) ([12ea267](https://github.com/ChristopherVR/pptx-viewer/commit/12ea26750633b1315e8b05cc78386fcc5c289151))
+- **core:** Rebuild an edited effect's behaviour tree on save (by @ChristopherVR) ([d6e22c7](https://github.com/ChristopherVR/pptx-viewer/commit/d6e22c70e67126d38f7880de658b3258db3c66ad))
+- **shared:** Reveal wipes, splits and mask reveals the way PowerPoint does (by @ChristopherVR) ([87ff378](https://github.com/ChristopherVR/pptx-viewer/commit/87ff378d591a3caf0d78a0b6f18d6312319fe559))
+- **react:** Give the slide show the slide size and theme colours (by @ChristopherVR) ([6a94502](https://github.com/ChristopherVR/pptx-viewer/commit/6a94502acecc86b484828ea4ba11f03f4b33a9ff))
+
+### Documentation
+
+- **guide:** Close the cjk and chart-label gaps in limitations (by @ChristopherVR) ([9d83d5a](https://github.com/ChristopherVR/pptx-viewer/commit/9d83d5af86b2cfc45c90fa302939f6bcd9cab13b))
+- **guide:** Record the save-residue and .ppt master fixes; sync translations (by @ChristopherVR) ([a0b631c](https://github.com/ChristopherVR/pptx-viewer/commit/a0b631ce80fb62a2040f670afcc50875e11f084b))
+- **guide:** Document ribbon group and control customisation (by @ChristopherVR) ([8a14b54](https://github.com/ChristopherVR/pptx-viewer/commit/8a14b54e23270b80172bf925361af1e4c0dc9e1e))
+- **guide:** List which ribbon galleries ship and which are still missing (by @ChristopherVR) ([ecc6354](https://github.com/ChristopherVR/pptx-viewer/commit/ecc635485cc043603f711900d3ebdbf0179827d0))
+- Drop orbit wording from 3D view and chart flag docs (by @claude) ([a1fa63d](https://github.com/ChristopherVR/pptx-viewer/commit/a1fa63d34f0c61a16f10c1e2c3c53f178dcec947))
+- **guide:** Record behaviour-tree playback and direction saving (by @ChristopherVR) ([ab5ad64](https://github.com/ChristopherVR/pptx-viewer/commit/ab5ad64c6a89cf3283623aac258531ee6163fb50))
+
+### Testing
+
+- **e2e:** Keep the slow cross-binding GIF resolution test off hosted CI (by @ChristopherVR) ([f5dba83](https://github.com/ChristopherVR/pptx-viewer/commit/f5dba8342ff2bf4d4c60daf01061d91f8b857207))
+- **e2e:** Pin East Asian breaks to PowerPoint's own lines (by @ChristopherVR) ([a358b4f](https://github.com/ChristopherVR/pptx-viewer/commit/a358b4fdd5beeccdf81be9eb50166138430e292d))
+- **e2e:** Pin pie bestFit labels and label boxes to PowerPoint (by @ChristopherVR) ([3480d42](https://github.com/ChristopherVR/pptx-viewer/commit/3480d429183f8b44ae8427a17f6823fb596aceb7))
+- **e2e:** Ribbon galleries and group customisation in all five bindings (by @ChristopherVR) ([9c4dca8](https://github.com/ChristopherVR/pptx-viewer/commit/9c4dca8fc1937521496e6dbf682ae82508e7ff0b))
+- **e2e:** Pick a Picture Styles tile from Picture Format in every binding (by @ChristopherVR) ([27c37ad](https://github.com/ChristopherVR/pptx-viewer/commit/27c37adffae73f7901af3230cc0aa127c8012277))
+- **e2e:** Pin behaviour-tree playback and PowerPoint's wipe edge (by @ChristopherVR) ([4cbb061](https://github.com/ChristopherVR/pptx-viewer/commit/4cbb061eaca3042229cd601b4cacffa8d97f076e))
+- **e2e:** Read the wipe mask direction from its computed gradient (by @ChristopherVR) ([c566acf](https://github.com/ChristopherVR/pptx-viewer/commit/c566acfac825a77f59bbba028001466cf73a3c3c))
+- **vanilla:** Give full-viewer unit tests a 30s timeout like core and svelte (by @ChristopherVR) ([179ec80](https://github.com/ChristopherVR/pptx-viewer/commit/179ec8039096f8c607e35d4b29a1479b9b6e1926))
+
+### Build & CI
+
+- **vue,svelte:** Keep the node-only @napi-rs/canvas out of the bundles (by @ChristopherVR) ([b62783e](https://github.com/ChristopherVR/pptx-viewer/commit/b62783e08658f7e38ce6d9e82c9ed2557b482001))
+
+### Styling
+
+- **shared:** Clear the lint warnings in the ribbon gallery modules (by @ChristopherVR) ([f178627](https://github.com/ChristopherVR/pptx-viewer/commit/f1786274cfe55be4189724b10e3e2b3c8c1e75f2))
+
+### Chores
+
+- **npm:** Surface every package in an npm search for pptx-viewer (by @ChristopherVR) ([ac67fda](https://github.com/ChristopherVR/pptx-viewer/commit/ac67fdafcfaf664412f59eee9a0627182340782f))
+
+## 2026-09-25
+
 _Releases: pptx-viewer-core@4.5.0, pptx-react-viewer@4.8.0, pptx-vue-viewer@4.8.0, pptx-angular-viewer@4.8.0, pptx-vanilla-viewer@3.8.0, pptx-svelte-viewer@4.8.0, @christophervr/pptx-viewer@2.29.1_
 
 ### Features

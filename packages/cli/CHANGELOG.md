@@ -7,6 +7,27 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.30.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.0) - 2026-09-25
+
+### Features
+
+- **react:** Ribbon style galleries, contextual tabs and group customisation (by @ChristopherVR) ([4e67c19](https://github.com/ChristopherVR/pptx-viewer/commit/4e67c195b700dec326c20e839ed9221a89c29846))
+- **react:** Offer PowerPoint's directions and preview from its tree (by @ChristopherVR) ([033c4c0](https://github.com/ChristopherVR/pptx-viewer/commit/033c4c034e51693bc1fb5264a07381e9e23af64d))
+
+### Bug Fixes
+
+- **react:** Hand East Asian breaks the text after each run (by @ChristopherVR) ([b59b51f](https://github.com/ChristopherVR/pptx-viewer/commit/b59b51f206a3704204cbcd3b5820b8557983d9b9))
+- **react:** Stop ribbon controls in a group scope from shrinking (by @ChristopherVR) ([bb18a71](https://github.com/ChristopherVR/pptx-viewer/commit/bb18a717184a5a1405c93604af60be954aba40a5))
+- **react:** Give the slide show the slide size and theme colours (by @ChristopherVR) ([6a94502](https://github.com/ChristopherVR/pptx-viewer/commit/6a94502acecc86b484828ea4ba11f03f4b33a9ff))
+
+### Documentation
+
+- Drop orbit wording from 3D view and chart flag docs (by @claude) ([a1fa63d](https://github.com/ChristopherVR/pptx-viewer/commit/a1fa63d34f0c61a16f10c1e2c3c53f178dcec947))
+
+### Chores
+
+- **npm:** Surface every package in an npm search for pptx-viewer (by @ChristopherVR) ([ac67fda](https://github.com/ChristopherVR/pptx-viewer/commit/ac67fdafcfaf664412f59eee9a0627182340782f))
+
 ## [2.29.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.29.1) - 2026-09-25
 
 ### Bug Fixes

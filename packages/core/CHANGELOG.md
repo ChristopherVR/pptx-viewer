@@ -7,6 +7,34 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.6.0) - 2026-09-25
+
+### Features
+
+- **core:** Write the slide master's placeholders and theme into .ppt (by @ChristopherVR) ([95b2e26](https://github.com/ChristopherVR/pptx-viewer/commit/95b2e26e31a5f8a5da931394f19b460c38177981))
+- **core:** Keep a text reflection's end position and direction (by @ChristopherVR) ([afb807d](https://github.com/ChristopherVR/pptx-viewer/commit/afb807d81d18c017367d1af5bd01ddf5bb9a036e))
+
+### Bug Fixes
+
+- **core:** Keep paragraph markup on a rewritten slide (by @ChristopherVR) ([ff79c00](https://github.com/ChristopherVR/pptx-viewer/commit/ff79c002df8e79eb4f9967c0261b7259fee44223))
+- **core:** Recompute Words and Paragraphs in docProps/app.xml on save (by @ChristopherVR) ([85ef0d6](https://github.com/ChristopherVR/pptx-viewer/commit/85ef0d6c9879670b8fb85b3c072c8105397d3d55))
+- **core:** Write .ppt group members the way PowerPoint reads them (by @ChristopherVR) ([8cf3852](https://github.com/ChristopherVR/pptx-viewer/commit/8cf3852a1cde14e089dbdbca8fcba50005c982c2))
+- **core:** Write DIFAT sectors for compound files past 109 FAT sectors (by @ChristopherVR) ([9e26fe8](https://github.com/ChristopherVR/pptx-viewer/commit/9e26fe8775a14d7e3ae2b69fbc982167a76cadf3))
+- **core:** Write a new p:style between spPr and txBody (by @ChristopherVR) ([c7a45b9](https://github.com/ChristopherVR/pptx-viewer/commit/c7a45b9c077c94355d62a2e1e6196d1c33598458))
+- **core:** Parse every behaviour of an effect with its own timing (by @ChristopherVR) ([12ea267](https://github.com/ChristopherVR/pptx-viewer/commit/12ea26750633b1315e8b05cc78386fcc5c289151))
+- **core:** Rebuild an edited effect's behaviour tree on save (by @ChristopherVR) ([d6e22c7](https://github.com/ChristopherVR/pptx-viewer/commit/d6e22c70e67126d38f7880de658b3258db3c66ad))
+
+### Testing
+
+- **e2e:** Pin East Asian breaks to PowerPoint's own lines (by @ChristopherVR) ([a358b4f](https://github.com/ChristopherVR/pptx-viewer/commit/a358b4fdd5beeccdf81be9eb50166138430e292d))
+- **e2e:** Pin pie bestFit labels and label boxes to PowerPoint (by @ChristopherVR) ([3480d42](https://github.com/ChristopherVR/pptx-viewer/commit/3480d429183f8b44ae8427a17f6823fb596aceb7))
+- **e2e:** Pick a Picture Styles tile from Picture Format in every binding (by @ChristopherVR) ([27c37ad](https://github.com/ChristopherVR/pptx-viewer/commit/27c37adffae73f7901af3230cc0aa127c8012277))
+- **e2e:** Pin behaviour-tree playback and PowerPoint's wipe edge (by @ChristopherVR) ([4cbb061](https://github.com/ChristopherVR/pptx-viewer/commit/4cbb061eaca3042229cd601b4cacffa8d97f076e))
+
+### Chores
+
+- **npm:** Surface every package in an npm search for pptx-viewer (by @ChristopherVR) ([ac67fda](https://github.com/ChristopherVR/pptx-viewer/commit/ac67fdafcfaf664412f59eee9a0627182340782f))
+
 ## [4.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.5.0) - 2026-09-25
 
 ### Features
