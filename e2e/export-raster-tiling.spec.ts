@@ -343,6 +343,9 @@ test.describe('PDF export tiles beyond the browser canvas cap', () => {
 	test('every binding tiles PDF pages without error and agrees on page count', async ({
 		isolatedBrowser,
 	}, testInfo) => {
+		// Five sequential tiled PDF exports take ~1.4 min on the hosted runner,
+		// so the file's 90s default timed out every first attempt in CI.
+		test.setTimeout(180_000);
 		const results = await acrossFrameworks(
 			isolatedBrowser,
 			testInfo,
@@ -588,95 +591,102 @@ test.describe('GIF export honors Default Resolution identically across bindings'
 		return gifDimensions(await downloadBytes(download));
 	}
 
-	test('boosting File > Options > Advanced > Default Resolution changes the GIF frame size the same way on all five bindings', async ({
-		isolatedBrowser,
-	}, testInfo) => {
-		// Two full sweeps (default, then boosted) of one GIF capture per
-		// binding; each capture gets the same generous per-download budget the
-		// single-binding GIF/video tests above use for a cold page.
-		test.setTimeout(240_000);
-		const sweepOptions = { viewport: VIEWPORT, concurrency: 'sequential' as const };
-		const defaultResults = await acrossFrameworks(
-			isolatedBrowser,
-			testInfo,
-			(page, origin) => captureGifDims(page, origin, false),
-			sweepOptions,
-		);
-		const boostedResults = await acrossFrameworks(
-			isolatedBrowser,
-			testInfo,
-			(page, origin) => captureGifDims(page, origin, true),
-			sweepOptions,
-		);
+	test(
+		'boosting File > Options > Advanced > Default Resolution changes the GIF frame size the same way on all five bindings',
+		// Ten sequential GIF captures (two sweeps of five bindings) run past
+		// the 240s budget on the hosted runner: CI run 36134518281 lost 8 min
+		// to two timed-out attempts and pushed e2e-react shard 3/8 over its
+		// 25-minute job limit, and the last green run already needed a retry.
+		// Same exclusion as the video tests above; the pre-push hook runs it.
+		{ tag: '@local-only' },
+		async ({ isolatedBrowser }, testInfo) => {
+			// Two full sweeps (default, then boosted) of one GIF capture per
+			// binding; each capture gets the same generous per-download budget the
+			// single-binding GIF/video tests above use for a cold page.
+			test.setTimeout(240_000);
+			const sweepOptions = { viewport: VIEWPORT, concurrency: 'sequential' as const };
+			const defaultResults = await acrossFrameworks(
+				isolatedBrowser,
+				testInfo,
+				(page, origin) => captureGifDims(page, origin, false),
+				sweepOptions,
+			);
+			const boostedResults = await acrossFrameworks(
+				isolatedBrowser,
+				testInfo,
+				(page, origin) => captureGifDims(page, origin, true),
+				sweepOptions,
+			);
 
-		const defaultRows = byBinding(defaultResults);
-		const boostedByName = new Map(byBinding(boostedResults).map((row) => [row.name, row.value]));
+			const defaultRows = byBinding(defaultResults);
+			const boostedByName = new Map(byBinding(boostedResults).map((row) => [row.name, row.value]));
 
-		const problems = defaultRows.flatMap(({ name, value: defaultDims }) => {
-			const boostedDims = boostedByName.get(name);
-			const issues: string[] = [];
-			if (defaultDims.width <= 0 || defaultDims.height <= 0) {
-				issues.push(`${name}: default-resolution GIF frame was degenerate (zero-size)`);
-			}
-			if (!boostedDims) {
-				issues.push(`${name}: no boosted-resolution result was recorded`);
-				return issues;
-			}
-			if (boostedDims.width <= 0 || boostedDims.height <= 0) {
-				issues.push(`${name}: boosted-resolution GIF frame was degenerate (zero-size)`);
-			}
-			// The shared `resolveExportCaptureDecision` scales GIF capture with the
-			// option and then downscales via the shared `GIF_POST_CAPTURE_MAX_SIDE`
-			// (1920px) cap, so boosting the option must never shrink the frame by
-			// more than a rounding pixel - it either grows it or (once the cap is
-			// hit, which the default 2x baseline already reaches on this deck at
-			// this viewport) leaves the longer side at the cap. A couple of px of
-			// slack absorbs `clampGifDimensions`' proportional-rounding jitter
-			// between two different pre-clamp scales that land on the same capped
-			// side (measured: 1920x1080 at default, 1920x1079 at boosted on the
-			// same binding).
-			const SHRINK_TOLERANCE_PX = 3;
-			if (
-				boostedDims.width < defaultDims.width - SHRINK_TOLERANCE_PX ||
-				boostedDims.height < defaultDims.height - SHRINK_TOLERANCE_PX
-			) {
-				issues.push(
-					`${name}: boosting Default Resolution shrank the GIF frame (default ${defaultDims.width}x${defaultDims.height}, boosted ${boostedDims.width}x${boostedDims.height})`,
-				);
-			}
-			return issues;
-		});
-
-		// Cross-binding parity: every binding computes its capture scale and cap
-		// from the same shared `resolveExportCaptureDecision`, so for the same
-		// deck and the same option value every binding's frame size should agree
-		// (a few px of tolerance for per-binding DOM/layout rounding).
-		const DIMENSION_TOLERANCE_PX = 4;
-		const reference = defaultRows[0];
-		const referenceBoosted = reference ? boostedByName.get(reference.name) : undefined;
-		if (reference && referenceBoosted) {
-			for (const { name, value: defaultDims } of defaultRows.slice(1)) {
+			const problems = defaultRows.flatMap(({ name, value: defaultDims }) => {
 				const boostedDims = boostedByName.get(name);
-				const pairs: Array<[string, number, number]> = [
-					['default width', defaultDims.width, reference.value.width],
-					['default height', defaultDims.height, reference.value.height],
-				];
-				if (boostedDims) {
-					pairs.push(
-						['boosted width', boostedDims.width, referenceBoosted.width],
-						['boosted height', boostedDims.height, referenceBoosted.height],
+				const issues: string[] = [];
+				if (defaultDims.width <= 0 || defaultDims.height <= 0) {
+					issues.push(`${name}: default-resolution GIF frame was degenerate (zero-size)`);
+				}
+				if (!boostedDims) {
+					issues.push(`${name}: no boosted-resolution result was recorded`);
+					return issues;
+				}
+				if (boostedDims.width <= 0 || boostedDims.height <= 0) {
+					issues.push(`${name}: boosted-resolution GIF frame was degenerate (zero-size)`);
+				}
+				// The shared `resolveExportCaptureDecision` scales GIF capture with the
+				// option and then downscales via the shared `GIF_POST_CAPTURE_MAX_SIDE`
+				// (1920px) cap, so boosting the option must never shrink the frame by
+				// more than a rounding pixel - it either grows it or (once the cap is
+				// hit, which the default 2x baseline already reaches on this deck at
+				// this viewport) leaves the longer side at the cap. A couple of px of
+				// slack absorbs `clampGifDimensions`' proportional-rounding jitter
+				// between two different pre-clamp scales that land on the same capped
+				// side (measured: 1920x1080 at default, 1920x1079 at boosted on the
+				// same binding).
+				const SHRINK_TOLERANCE_PX = 3;
+				if (
+					boostedDims.width < defaultDims.width - SHRINK_TOLERANCE_PX ||
+					boostedDims.height < defaultDims.height - SHRINK_TOLERANCE_PX
+				) {
+					issues.push(
+						`${name}: boosting Default Resolution shrank the GIF frame (default ${defaultDims.width}x${defaultDims.height}, boosted ${boostedDims.width}x${boostedDims.height})`,
 					);
 				}
-				for (const [label, a, b] of pairs) {
-					if (Math.abs(a - b) > DIMENSION_TOLERANCE_PX) {
-						problems.push(
-							`${name}: ${label} ${a} disagrees with ${reference.name}'s ${b} (tolerance ${DIMENSION_TOLERANCE_PX}px)`,
+				return issues;
+			});
+
+			// Cross-binding parity: every binding computes its capture scale and cap
+			// from the same shared `resolveExportCaptureDecision`, so for the same
+			// deck and the same option value every binding's frame size should agree
+			// (a few px of tolerance for per-binding DOM/layout rounding).
+			const DIMENSION_TOLERANCE_PX = 4;
+			const reference = defaultRows[0];
+			const referenceBoosted = reference ? boostedByName.get(reference.name) : undefined;
+			if (reference && referenceBoosted) {
+				for (const { name, value: defaultDims } of defaultRows.slice(1)) {
+					const boostedDims = boostedByName.get(name);
+					const pairs: Array<[string, number, number]> = [
+						['default width', defaultDims.width, reference.value.width],
+						['default height', defaultDims.height, reference.value.height],
+					];
+					if (boostedDims) {
+						pairs.push(
+							['boosted width', boostedDims.width, referenceBoosted.width],
+							['boosted height', boostedDims.height, referenceBoosted.height],
 						);
+					}
+					for (const [label, a, b] of pairs) {
+						if (Math.abs(a - b) > DIMENSION_TOLERANCE_PX) {
+							problems.push(
+								`${name}: ${label} ${a} disagrees with ${reference.name}'s ${b} (tolerance ${DIMENSION_TOLERANCE_PX}px)`,
+							);
+						}
 					}
 				}
 			}
-		}
 
-		expect(problems.join('\n')).toBe('');
-	});
+			expect(problems.join('\n')).toBe('');
+		},
+	);
 });
