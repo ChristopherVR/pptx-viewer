@@ -11,9 +11,18 @@
  *    (`）` `」` `』` `】` `〉` `》`), `！` `？` `：` `・`, the prolonged-sound
  *    mark and small kana all wrap exactly as with `hangingPunct="0"`, pulling
  *    the preceding character down with them.
+ *  - A hanging mark directly followed by a closing bracket (`。」`, `、）`,
+ *    `、」』`) does NOT hang while kinsoku is on: the bracket may not start a
+ *    line, so PowerPoint wraps the mark, the bracket AND the character before
+ *    them together (`え。」` starts line 2). With `eaLnBrk="0"` the mark hangs
+ *    and the bracket starts line 2 on its own.
  *  - `eaLnBrk="0"` switches the kinsoku rules off: a line may then start with
  *    `」`, `。`, `、` or a small kana, i.e. East Asian text breaks between any
  *    two characters. Latin words still break only between words.
+ *  - None of this depends on run boundaries: a break between two differently
+ *    formatted runs (`あいうえ` + a red `」たち`) follows exactly the same
+ *    rules as inside one run. Callers therefore pass the character that
+ *    FOLLOWS the text (`next`), taken from the next run.
  *
  * Only Safari implements CSS `hanging-punctuation`, and CSS `line-break:
  * anywhere` / `word-break: break-all` also split Latin words, so both are done
@@ -129,15 +138,36 @@ function hangSpaceWordSpacing(ch: string, font: RunFontSpec): string {
 	return `${Math.round((glyph - space) * 1000) / 1000}px`;
 }
 
+/** Whether a break opportunity must be inserted between `ch` and `next` (kinsoku off). */
+function breaksBetween(
+	ch: string,
+	next: string | undefined,
+	options: EastAsianBreakOptions,
+): boolean {
+	return (
+		options.breakAnywhere &&
+		next !== undefined &&
+		(isEastAsianChar(ch) || isEastAsianChar(next)) &&
+		!/\s/u.test(ch) &&
+		!/\s/u.test(next) &&
+		!(options.hangingPunctuation && HANGING.has(next))
+	);
+}
+
 /**
  * Split `text` into the pieces that realise `options` (see the module doc).
  * Returns the text as one plain piece when nothing applies, which is every
  * run without East Asian punctuation or with both behaviours off.
+ *
+ * @param next The character right after `text` in the paragraph (the next
+ *             run's first character), so a break at the run boundary follows
+ *             the same rules as one inside the run. Omit at a paragraph end.
  */
 export function splitEastAsianBreaks(
 	text: string,
 	options: EastAsianBreakOptions | undefined,
 	font: RunFontSpec,
+	next?: string,
 ): EastAsianPiece[] {
 	if (!options || !text) {
 		return [{ text, sourceLength: text.length }];
@@ -153,11 +183,16 @@ export function splitEastAsianBreaks(
 		current = '';
 		currentSource = 0;
 	};
+	const following = next ? [...next][0] : undefined;
 	for (let i = 0; i < chars.length; i++) {
 		const ch = chars[i];
-		const next = chars[i + 1];
+		const after = i + 1 < chars.length ? chars[i + 1] : following;
+		// COM: under kinsoku a bracket after the mark may not start a line, so the
+		// pair wraps together; with kinsoku off the mark hangs and the bracket wraps.
 		const hangs =
-			options.hangingPunctuation && HANGING.has(ch) && (next === undefined || !NO_START.has(next));
+			options.hangingPunctuation &&
+			HANGING.has(ch) &&
+			(options.breakAnywhere || after === undefined || !NO_START.has(after));
 		if (hangs) {
 			current += WORD_JOINER;
 			flush();
@@ -176,14 +211,7 @@ export function splitEastAsianBreaks(
 		}
 		current += ch;
 		currentSource += ch.length;
-		if (
-			options.breakAnywhere &&
-			next !== undefined &&
-			(isEastAsianChar(ch) || isEastAsianChar(next)) &&
-			!/\s/u.test(ch) &&
-			!/\s/u.test(next) &&
-			!(options.hangingPunctuation && HANGING.has(next))
-		) {
+		if (breaksBetween(ch, after, options)) {
 			current += ZERO_WIDTH_SPACE;
 		}
 	}
@@ -195,19 +223,43 @@ export function splitEastAsianBreaks(
  * {@link splitEastAsianBreaks} over a run already split into styled pieces
  * (`splitStyledRun`): each piece's own style carries over, with a hanging
  * piece's extra layout merged on top. The input comes back untouched when
- * `options` is absent.
+ * `options` is absent. `next` is the character after the whole run (see
+ * {@link splitEastAsianBreaks}); each piece looks ahead into the one after it.
  */
 export function splitEastAsianRunPieces(
 	pieces: ReadonlyArray<{ text: string; style: RunStyle }>,
 	options: EastAsianBreakOptions | undefined,
 	font: RunFontSpec,
+	next?: string,
 ): Array<{ text: string; style: RunStyle; sourceLength: number; hangingSpace?: true }> {
-	return pieces.flatMap((piece) =>
-		splitEastAsianBreaks(piece.text, options, font).map((part) => ({
+	return pieces.flatMap((piece, i) =>
+		splitEastAsianBreaks(piece.text, options, font, followingText(pieces, i, next)).map((part) => ({
 			text: part.text,
 			style: part.style ? { ...piece.style, ...part.style } : piece.style,
 			sourceLength: part.sourceLength,
 			...(part.hangingSpace ? { hangingSpace: part.hangingSpace } : {}),
 		})),
 	);
+}
+
+/**
+ * What follows piece `i` of a sequence of consecutive texts (a run's pieces,
+ * or a paragraph's runs): the next non-empty piece's text, or `next`
+ * (whatever follows the whole sequence) after the last one. An inline
+ * equation in between is its own box, so nothing reaches across it.
+ */
+export function followingText(
+	pieces: ReadonlyArray<{ text: string; equation?: unknown }>,
+	i: number,
+	next?: string,
+): string | undefined {
+	for (let j = i + 1; j < pieces.length; j++) {
+		if (pieces[j].equation) {
+			return undefined;
+		}
+		if (pieces[j].text) {
+			return pieces[j].text;
+		}
+	}
+	return next;
 }

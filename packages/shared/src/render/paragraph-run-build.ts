@@ -16,13 +16,13 @@ import {
 	resolveRunExtrasContext,
 	resolveRunReflection,
 } from './paragraph-run-enrich';
+import { resolveFollowingSegmentTexts, resolveSegmentRunText } from './paragraph-run-text';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { ReflectionWrapperStyle } from './reflection';
 import { splitWordsForUnderline, splitsUnderlineIntoWords } from './text-decoration';
 import { splitEastAsianRunPieces } from './text-east-asian-breaks';
 import type { EastAsianBreakOptions } from './text-east-asian-breaks';
 import type { FieldSubstitutionContext } from './text-field-substitution';
-import { substituteFieldText } from './text-field-substitution';
 import { applyFontAlignmentFallback } from './text-font-alignment';
 import type { RunFontSpec } from './text-metric-tracking';
 import { applyUnderlineVariant, nestedTextDecorationStyle } from './text-run-decoration';
@@ -137,6 +137,11 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		eastAsianBreaks,
 	} = input;
 	const runs: BuiltRun[] = [];
+	// What follows each segment, so an East Asian break AT a run boundary obeys
+	// the same rules as one inside a run (COM: PowerPoint ignores the boundary).
+	const followingTexts = eastAsianBreaks
+		? resolveFollowingSegmentTexts(paraSegments, markerSegment, fieldContext)
+		: undefined;
 	for (const [at, seg] of paraSegments.entries()) {
 		if (seg === markerSegment) {
 			continue;
@@ -194,14 +199,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			});
 			continue;
 		}
-		const rawText = seg.isLineBreak ? '\n' : seg.text;
-		// The field's own `a:fld/a:rPr@lang` (`seg.style.language`) takes
-		// priority over the deck-wide `fieldContext.locale` for date/time
-		// formatting: a field authored in a specific language renders in that
-		// language even inside an otherwise English deck.
-		const text = seg.fieldType
-			? substituteFieldText(rawText, seg.fieldType, fieldContext, seg.style?.language)
-			: rawText;
+		const text = resolveSegmentRunText(seg, fieldContext);
 		if (!text) {
 			continue;
 		}
@@ -324,6 +322,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			splitStyledRun(text, style, runFont, authoredLetterSpacingPx(seg.style), underlineWords),
 			eastAsianBreaks,
 			runFont,
+			followingTexts?.[at],
 		)) {
 			const run: BuiltRun = { ...piece, segmentIndex, charStart };
 			if (hyperlink) {
