@@ -226,8 +226,14 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			captureResolvedBodyProperties(textStyle);
 
 			const txBodyObj = txBody as XmlObject | undefined;
-			if (txBodyObj?.['a:p']) {
-				const paras = this.ensureArray(txBodyObj['a:p']) as XmlObject[];
+			// A lone bare `<a:p/>` parses to `''`, which is falsy: it still has to
+			// be walked, or the writer cannot tell it from a paragraph it should
+			// backfill with an empty run.
+			if (txBodyObj?.['a:p'] !== undefined && txBodyObj['a:p'] !== null) {
+				const rawParas: unknown = txBodyObj['a:p'];
+				const paras = (Array.isArray(rawParas) ? rawParas : [rawParas]).map((p: unknown) =>
+					typeof p === 'object' && p !== null ? (p as XmlObject) : {},
+				);
 				const textParts: string[] = [];
 				let didSeedPrimaryTextStyle = false;
 				const effectiveLevelStyles =

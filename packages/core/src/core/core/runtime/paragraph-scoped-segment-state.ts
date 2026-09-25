@@ -31,6 +31,8 @@ interface ParagraphScopedState {
 	endParaRunProperties?: Record<string, unknown>;
 	paragraphLevel?: number;
 	bulletInfo?: BulletInfo;
+	emptyParagraphPropertiesAuthored?: boolean;
+	bareParagraph?: boolean;
 }
 
 /** Extract the paragraph-scope facts a paragraph's first segment carries. */
@@ -50,6 +52,14 @@ function paragraphStateOf(segment: TextSegment): ParagraphScopedState {
 	if (segment.bulletInfo) {
 		state.bulletInfo = segment.bulletInfo;
 	}
+	// Markup-only facts (see `paragraph-markup-flags.ts`): an authored empty
+	// `<a:pPr/>`, and a paragraph with no runs and no `a:endParaRPr`.
+	if (segment.emptyParagraphPropertiesAuthored) {
+		state.emptyParagraphPropertiesAuthored = true;
+	}
+	if (segment.bareParagraph) {
+		state.bareParagraph = true;
+	}
 	return state;
 }
 
@@ -58,7 +68,9 @@ function isEmptyState(state: ParagraphScopedState): boolean {
 		state.paragraphProperties === undefined &&
 		state.endParaRunProperties === undefined &&
 		state.paragraphLevel === undefined &&
-		state.bulletInfo === undefined
+		state.bulletInfo === undefined &&
+		state.emptyParagraphPropertiesAuthored === undefined &&
+		state.bareParagraph === undefined
 	);
 }
 
@@ -143,6 +155,12 @@ function assignParagraphStates(
 				}
 				if (state.bulletInfo && next.bulletInfo === undefined) {
 					next.bulletInfo = state.bulletInfo;
+				}
+				if (state.emptyParagraphPropertiesAuthored) {
+					next.emptyParagraphPropertiesAuthored = true;
+				}
+				if (state.bareParagraph) {
+					next.bareParagraph = true;
 				}
 			}
 		}

@@ -125,4 +125,31 @@ describe('preserveNotesParagraphXml', () => {
 		).not.toThrow();
 		expect(rebuilt[0]['a:pPr']).toStrictEqual({});
 	});
+
+	it('writes an adopted a:pPr before the runs', () => {
+		const rebuilt: XmlObject[] = [{ 'a:r': { 'a:t': 'note' } }];
+
+		preserveNotesParagraphXml([authoredParagraph()], rebuilt);
+
+		expect(Object.keys(rebuilt[0]!)).toStrictEqual(['a:pPr', 'a:r', 'a:endParaRPr']);
+	});
+
+	it('keeps an authored empty <a:pPr/> and <a:endParaRPr/>', () => {
+		const rebuilt: XmlObject[] = [{ 'a:r': { 'a:t': 'note' } }];
+
+		preserveNotesParagraphXml(
+			[{ 'a:pPr': '', 'a:r': { 'a:t': 'note' }, 'a:endParaRPr': '' }],
+			rebuilt,
+		);
+
+		expect(rebuilt[0]).toStrictEqual({ 'a:pPr': {}, 'a:r': { 'a:t': 'note' }, 'a:endParaRPr': {} });
+	});
+
+	it('drops the lang stub from a blank line that had no end properties', () => {
+		const rebuilt: XmlObject[] = [{ 'a:endParaRPr': { '@_lang': 'en-US' } }];
+
+		preserveNotesParagraphXml([''], rebuilt);
+
+		expect(rebuilt[0]).toStrictEqual({});
+	});
 });

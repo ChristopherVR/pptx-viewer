@@ -7,7 +7,10 @@ import {
 	assembleParagraphXml,
 	computeUniformSegmentOverrides,
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
-import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
+import type {
+	ParagraphMarkupFlags,
+	ParagraphSpacingConfig,
+} from './PptxHandlerRuntimeSaveParagraphHelpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
 import { buildRubyRunXml } from './ruby-run-writing';
 import { toParsedSegmentUnderlay, toRunScopedTextStyle } from './run-scoped-text-style';
@@ -36,6 +39,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			level?: number,
 			endParaRunProperties?: Record<string, unknown>,
 			paragraphProperties?: TextStyle,
+			markup?: ParagraphMarkupFlags,
 		): XmlObject => {
 			const effectiveStyle: TextStyle | undefined = paragraphProperties
 				? ({ ...textStyle, ...paragraphProperties } as TextStyle)
@@ -55,7 +59,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				level,
 				paragraphProperties,
 			);
-			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties);
+			return assembleParagraphXml(runs, paragraphProps, endParaRunProperties, markup);
 		};
 
 		// `xml:space="preserve"` is NOT a usable signal for `a:t` (see
@@ -122,6 +126,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		let currentLevel: number | undefined;
 		let currentEndParaRunProperties: Record<string, unknown> | undefined;
 		let currentParagraphProperties: TextStyle | undefined;
+		let currentMarkup: ParagraphMarkupFlags = {};
 		// #69: track whether this paragraph has taken its metadata yet.
 		// `currentRuns.length === 0` cannot stand in for "new paragraph", because
 		// a paragraph-break segment (`\n`) can open one that has no runs yet, and
@@ -135,6 +140,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				currentLevel,
 				currentEndParaRunProperties,
 				currentParagraphProperties,
+				currentMarkup,
 			);
 			if (currentRuns.length === 0) {
 				// A paragraph with no content is `<a:p><a:pPr/><a:endParaRPr/></a:p>`,
@@ -155,6 +161,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			currentLevel = undefined;
 			currentEndParaRunProperties = undefined;
 			currentParagraphProperties = undefined;
+			currentMarkup = {};
 			capturedParagraphMeta = false;
 		};
 
@@ -197,6 +204,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					if (segment.paragraphProperties) {
 						currentParagraphProperties = segment.paragraphProperties;
 					}
+					currentMarkup = {
+						emptyParagraphPropertiesAuthored: segment.emptyParagraphPropertiesAuthored,
+						bareParagraph: segment.bareParagraph,
+					};
 					capturedParagraphMeta = true;
 				}
 
@@ -249,11 +260,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				const segmentText = segment.isParagraphBreak ? '\n' : String(segment.text ?? '');
 				if (
 					segmentText === '' &&
-					segment.paragraphInsertionStyle &&
+					(segment.paragraphInsertionStyle || segment.bareParagraph) &&
 					!segment.fieldType &&
 					segment.rubyText === undefined
 				) {
-					// Runless end-paragraph and picture-marker carriers author no a:r.
+					// Runless end-paragraph and picture-marker carriers, and the
+					// zero-length carrier of a bare `<a:p/>`, author no a:r.
 					return;
 				}
 				const lineParts = segmentText.split('\n');

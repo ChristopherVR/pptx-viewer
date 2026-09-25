@@ -1014,6 +1014,21 @@ export interface TextSegment {
 	 * populated; unrelated fields fall back to the shape-level style.
 	 */
 	paragraphProperties?: TextStyle;
+	/**
+	 * The paragraph this segment starts authored an EMPTY `<a:pPr/>`. Only
+	 * meaningful on the first segment of a paragraph. The writer re-emits the
+	 * empty element when it has no paragraph property of its own to write, so
+	 * a rewritten slide keeps the markup PowerPoint wrote.
+	 */
+	emptyParagraphPropertiesAuthored?: boolean;
+	/**
+	 * The paragraph this segment starts has no run content and authored no
+	 * `a:endParaRPr` (a bare `<a:p/>`, possibly with an `a:pPr`). Only
+	 * meaningful on the first segment of a paragraph. It stops the writer
+	 * inventing an empty run or an `<a:endParaRPr lang="en-US"/>` stub for a
+	 * paragraph that still has no content when saved.
+	 */
+	bareParagraph?: boolean;
 
 	// ── Ruby text (phonetic guides) ──
 

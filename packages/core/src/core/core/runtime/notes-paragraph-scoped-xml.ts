@@ -52,6 +52,55 @@ function isDefaultEndParaRunProperties(node: unknown): boolean {
 	return keys.length === 1 && obj['@_lang'] === DEFAULT_END_PARA_RPR['@_lang'];
 }
 
+/** The node a present element parsed to, `{}` for an empty `''` element. */
+function presentNode(value: unknown): XmlObject | undefined {
+	if (value === '') {
+		return {};
+	}
+	return asXmlObject(value);
+}
+
+const PARAGRAPH_FRAME_KEYS = new Set(['a:pPr', 'a:endParaRPr']);
+
+/** True when a paragraph has no run, field, break or math content. */
+function isRunless(paragraph: XmlObject): boolean {
+	return Object.keys(paragraph).every(
+		(key) => key.startsWith('@_') || PARAGRAPH_FRAME_KEYS.has(key),
+	);
+}
+
+/**
+ * Rebuild `paragraph` with `a:pPr` first and `a:endParaRPr` last: the
+ * `CT_TextParagraph` child order (`pPr?`, `(r|br|fld)*`, `endParaRPr?`) that
+ * fast-xml-parser derives from key insertion order. Adding `a:pPr` to a
+ * paragraph the builder wrote without one would otherwise land it AFTER the
+ * runs, which is invalid markup.
+ */
+function withParagraphFrame(
+	paragraph: XmlObject,
+	pPr: XmlObject | undefined,
+	endParaRPr: XmlObject | undefined,
+): XmlObject {
+	const ordered: XmlObject = {};
+	for (const key of Object.keys(paragraph)) {
+		if (key.startsWith('@_')) {
+			ordered[key] = paragraph[key];
+		}
+	}
+	if (pPr !== undefined) {
+		ordered['a:pPr'] = pPr;
+	}
+	for (const key of Object.keys(paragraph)) {
+		if (!key.startsWith('@_') && !PARAGRAPH_FRAME_KEYS.has(key)) {
+			ordered[key] = paragraph[key];
+		}
+	}
+	if (endParaRPr !== undefined) {
+		ordered['a:endParaRPr'] = endParaRPr;
+	}
+	return ordered;
+}
+
 /**
  * Re-attach each original notes paragraph's `a:pPr` and `a:endParaRPr` to the
  * paragraph the save path rebuilt in its place.
@@ -63,43 +112,45 @@ function isDefaultEndParaRunProperties(node: unknown): boolean {
  * Nothing the builder produced is overwritten. `a:pPr` is adopted only when the
  * rebuilt paragraph's own is empty, so a future notes path that starts emitting
  * paragraph properties wins and no illegal mixture of the two (say `a:buNone`
- * beside an inherited `a:buChar`) can be assembled. `a:endParaRPr` is adopted
- * only when the rebuilt one is missing (the builder omits it for a paragraph
- * with run content and no captured end properties) or is the synthesised
- * `lang="en-US"` stub it emits for a runless one.
- *
- * Both nodes are written back onto the key the builder already created, so the
- * `CT_TextParagraph` child order (`pPr?`, `(r|br|fld)*`, `endParaRPr?`) that
- * fast-xml-parser derives from insertion order is unaffected.
+ * beside an inherited `a:buChar`) can be assembled. An authored EMPTY
+ * `<a:pPr/>` is kept as written. `a:endParaRPr` is adopted only when the
+ * rebuilt one is missing (the builder omits it for a paragraph with run
+ * content and no captured end properties) or is the synthesised
+ * `lang="en-US"` stub it emits for a runless one; an authored empty
+ * `<a:endParaRPr/>` counts. A stub the builder added to a runless paragraph
+ * whose original was runless without one is dropped again.
  *
  * @param originalParagraphs The `a:p` list read from the notes part on disk.
  * @param rebuiltParagraphs The `a:p` list `createParagraphsFromTextContent` produced.
- * @returns `rebuiltParagraphs`, mutated in place and returned for convenience.
+ * @returns `rebuiltParagraphs`, updated in place and returned for convenience.
  */
 export function preserveNotesParagraphXml(
-	originalParagraphs: XmlObject[],
+	originalParagraphs: unknown[],
 	rebuiltParagraphs: XmlObject[],
 ): XmlObject[] {
 	for (let index = 0; index < rebuiltParagraphs.length; index++) {
-		const original = asXmlObject(originalParagraphs[index]);
+		const original = presentNode(originalParagraphs[index]);
 		const rebuilt = asXmlObject(rebuiltParagraphs[index]);
 		if (!original || !rebuilt) {
 			continue;
 		}
 
-		const originalPPr = asXmlObject(original['a:pPr']);
-		if (originalPPr && !isEmptyNode(originalPPr) && isEmptyNode(rebuilt['a:pPr'])) {
-			rebuilt['a:pPr'] = originalPPr;
+		let pPr = presentNode(rebuilt['a:pPr']);
+		const originalPPr = presentNode(original['a:pPr']);
+		if (originalPPr && isEmptyNode(pPr)) {
+			pPr = originalPPr;
 		}
 
-		const originalEndParaRPr = asXmlObject(original['a:endParaRPr']);
-		if (
-			originalEndParaRPr &&
-			(rebuilt['a:endParaRPr'] === undefined ||
-				isDefaultEndParaRunProperties(rebuilt['a:endParaRPr']))
-		) {
-			rebuilt['a:endParaRPr'] = originalEndParaRPr;
+		let endParaRPr = rebuilt['a:endParaRPr'] as XmlObject | undefined;
+		const originalEndParaRPr = presentNode(original['a:endParaRPr']);
+		const rebuiltIsStub = isDefaultEndParaRunProperties(endParaRPr);
+		if (originalEndParaRPr && (endParaRPr === undefined || rebuiltIsStub)) {
+			endParaRPr = originalEndParaRPr;
+		} else if (!originalEndParaRPr && rebuiltIsStub && isRunless(original) && isRunless(rebuilt)) {
+			endParaRPr = undefined;
 		}
+
+		rebuiltParagraphs[index] = withParagraphFrame(rebuilt, pPr, endParaRPr);
 	}
 	return rebuiltParagraphs;
 }

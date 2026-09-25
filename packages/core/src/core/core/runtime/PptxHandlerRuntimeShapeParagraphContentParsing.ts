@@ -3,6 +3,7 @@ import { xmlText } from '../../utils';
 import { parseParagraphLevel } from '../../utils/paragraph-properties-parser';
 import { xmlHasChild } from '../../utils/xml-access';
 import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
+import { stampParagraphMarkupFlags } from './paragraph-markup-flags';
 import { hasOwnFontDeclaration, paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
@@ -468,7 +469,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			}
 			parts.push('\n');
 			segments.push({ text: '\n', style: separatorStyle });
-		} else if (segments.length === 0 && this.paragraphCarriesOwnMetadata(p)) {
+		} else if (segments.length === 0) {
 			// The LAST paragraph of a body gets no terminating separator, so an
 			// empty one produced no segment at all and its `a:endParaRPr` /
 			// `a:pPr` were captured nowhere: the writer then rebuilt it as the
@@ -483,6 +484,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// empty run for an empty paragraph either way) and no text to the
 			// element, and it takes the blank line's size from `a:endParaRPr sz`
 			// exactly as the separator above does.
+			//
+			// A genuinely bare `<a:p/>` gets one too, flagged `bareParagraph`:
+			// without it a trailing bare paragraph was dropped from a segment
+			// rewrite, or regained an empty run from the flat-text rebuild.
 			const emptyParagraphStyle = withAuthoredSplit({}) as TextStyle;
 			const endParaSz = (p['a:endParaRPr'] as XmlObject | undefined)?.['@_sz'];
 			const endParaPoints = endParaSz !== undefined ? parseInt(String(endParaSz)) / 100 : NaN;
@@ -572,20 +577,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (paragraphOwnProps) {
 				segments[firstSegmentIndex].paragraphProperties = paragraphOwnProps;
 			}
+			stampParagraphMarkupFlags(segments[firstSegmentIndex], p, entries.length > 0);
 		}
 
 		return { parts, segments, seedStyle };
-	}
-
-	/**
-	 * True when a paragraph authored properties of its own that only a segment
-	 * can carry through the model: its end-paragraph run properties
-	 * (`a:endParaRPr`) or its paragraph properties (`a:pPr`). Used to decide
-	 * whether an EMPTY trailing paragraph is worth a zero-length segment; a
-	 * genuinely bare `<a:p/>` gets none.
-	 */
-	protected paragraphCarriesOwnMetadata(p: XmlObject): boolean {
-		return p['a:endParaRPr'] !== undefined || p['a:pPr'] !== undefined;
 	}
 
 	/**

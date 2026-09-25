@@ -173,9 +173,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					'@_fmla': `val ${el.textStyle.textWarpAdj2}`,
 				});
 			}
-			if (adjGds.length > 0) {
-				prstTxWarpNode['a:avLst'] = { 'a:gd': adjGds.length === 1 ? adjGds[0] : adjGds };
-			}
+			// PowerPoint always writes `a:avLst`, empty when the warp keeps its
+			// default adjustments; omitting it lost markup on every rewrite.
+			prstTxWarpNode['a:avLst'] =
+				adjGds.length > 0 ? { 'a:gd': adjGds.length === 1 ? adjGds[0] : adjGds } : {};
 			bodyPr['a:prstTxWarp'] = prstTxWarpNode;
 		} else {
 			delete bodyPr['a:prstTxWarp'];
