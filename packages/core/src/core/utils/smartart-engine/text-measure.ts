@@ -31,16 +31,39 @@ const PX_PER_PT = 96 / 72;
 /** A folded descendant paragraph's size relative to the node's own text (cached corpus: 54/56 pairs). */
 export const DESCENDANT_FONT_SCALE = 0.78;
 
-/** `spcAft` (fraction of one line) after the node's own paragraph, a folded descendant, and a descendant-only box's paragraph. */
-const OWN_SPC_AFT = 0.35;
-const FOLDED_SPC_AFT = 0.15;
-const DESCENDANT_ONLY_SPC_AFT = 0.2;
-
-/** The text one rendered node shows: its own paragraph (if it presents itself) and any folded descendants. */
+/**
+ * The text one rendered node shows, as PowerPoint lays it out. Paragraph
+ * levels follow the `tx` algorithm's parameters (ECMA-376 21.4.2.x):
+ * `stBulletLvl` is the first (1-based) level drawn as a bullet, default 2,
+ * `0` meaning none; an anchored node's own paragraph is level 1 and every
+ * folded descendant level 2, a descendant-only box's paragraphs are all
+ * level 1. `lnSpAfParP`/`lnSpAfChP` are the percent spacing after a plain
+ * and a bullet paragraph (defaults 35 and 15). Cached corpus: "Basic Block
+ * List" (defaults: bullets at 0.78x after a 35% gap), "Vertical Bullet
+ * List"'s `childText` (`stBulletLvl=1`, `lnSpAfChP=20`: every paragraph a
+ * bullet), "Descending Block List"'s `childText` (default: level-1 plain
+ * paragraphs, no indent), "Vertical Action List" (`stBulletLvl=0`).
+ */
 export interface NodeText {
+	/** The node's own (level 1) paragraph, when its `presOf` includes the point itself. */
 	own?: string;
 	descendants: string[];
+	/** `tx` `stBulletLvl` (default 2; 0 = no bullets). */
+	bulletLevel?: number;
+	/** Percent `spcAft` after a plain / a bullet paragraph. */
+	spaceAfterParent?: number;
+	spaceAfterChild?: number;
+	/**
+	 * `secFontSz` as a multiple of `primFontSz`: 0.78 by default (cached
+	 * corpus, 54 of 56 folded pairs), 1 where the node declares
+	 * `primFontSz refType="secFontSz"` and is sized by `secFontSz` itself.
+	 */
+	secondaryScale?: number;
 }
+
+const DEFAULT_BULLET_LEVEL = 2;
+const DEFAULT_SPACE_AFTER_PARENT = 35;
+const DEFAULT_SPACE_AFTER_CHILD = 15;
 
 /** Font metrics a fit runs against. */
 export interface TextMetrics {
@@ -61,30 +84,43 @@ interface Paragraph {
 	spcAft: number;
 }
 
+/**
+ * Bullet paragraphs and every folded descendant render at the node's
+ * `secFontSz`, plain level-1 paragraphs at its `primFontSz`: "Gear"'s child
+ * box (`stBulletLvl=1`, equalised with the gear at 17pt) draws its bullets
+ * at 13pt, "Circle Arrow Process"'s bulleted children 18pt under a 23pt cap,
+ * while "Descending Block List"'s unbulleted child text stays at 33pt.
+ */
+export function paragraphSizesPt(
+	text: NodeText,
+	sizePt: number,
+): { first: number; secondary: number } {
+	const scale = text.secondaryScale ?? DESCENDANT_FONT_SCALE;
+	const secondary = Math.max(1, Math.round(sizePt * scale));
+	const bulletLevel = text.bulletLevel ?? DEFAULT_BULLET_LEVEL;
+	const firstIsBullet = text.own === undefined && bulletLevel > 0 && bulletLevel <= 1;
+	return { first: firstIsBullet ? secondary : sizePt, secondary };
+}
+
 function paragraphsAt(text: NodeText, sizePt: number): Paragraph[] {
-	const out: Paragraph[] = [];
-	if (text.own !== undefined) {
-		out.push({ text: text.own, size: sizePt, indent: 0, spcAft: OWN_SPC_AFT });
-		const secondary = Math.max(1, Math.round(sizePt * DESCENDANT_FONT_SCALE));
-		for (const d of text.descendants) {
-			out.push({
-				text: d,
-				size: secondary,
-				indent: descendantIndentPt(secondary),
-				spcAft: FOLDED_SPC_AFT,
-			});
-		}
-		return out;
+	const bulletLevel = text.bulletLevel ?? DEFAULT_BULLET_LEVEL;
+	const afterParent = (text.spaceAfterParent ?? DEFAULT_SPACE_AFTER_PARENT) / 100;
+	const afterChild = (text.spaceAfterChild ?? DEFAULT_SPACE_AFTER_CHILD) / 100;
+	const { secondary } = paragraphSizesPt(text, sizePt);
+	const paragraph = (value: string, level: number): Paragraph => {
+		const bullet = bulletLevel > 0 && level >= bulletLevel;
+		const size = bullet || level >= 2 ? secondary : sizePt;
+		return {
+			text: value,
+			size,
+			indent: bullet ? descendantIndentPt(size) : 0,
+			spcAft: bullet ? afterChild : afterParent,
+		};
+	};
+	if (text.own === undefined) {
+		return text.descendants.map((d) => paragraph(d, 1));
 	}
-	for (const d of text.descendants) {
-		out.push({
-			text: d,
-			size: sizePt,
-			indent: descendantIndentPt(sizePt),
-			spcAft: DESCENDANT_ONLY_SPC_AFT,
-		});
-	}
-	return out;
+	return [paragraph(text.own, 1), ...text.descendants.map((d) => paragraph(d, 2))];
 }
 
 /** Whether `text` at `sizePt` fits `availW` x `availH` points (net of margins). */

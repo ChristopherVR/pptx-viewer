@@ -43,6 +43,15 @@ export interface PresNode {
 	presOf: DataPoint[];
 	/** Whether the node declared any `dgm:presOf` axis at all. */
 	hasPresOf: boolean;
+	/**
+	 * Whether the `dgm:presOf` iterator's last axis step includes the point
+	 * itself (`self`, `desOrSelf`, `ancstOrSelf`): the first presented point is
+	 * then the text's own top-level paragraph and the rest fold under it as
+	 * smaller bullets ("Basic Pie"'s wedge: "Node One" 23pt, its child 18pt).
+	 * A pure `des`/`ch` iterator presents every point as an equal bullet
+	 * ("Vertical Bullet List"'s `childText`: child and grandchild both 27pt).
+	 */
+	presOfAnchored: boolean;
 	constraints: LdConstraint[];
 	rules: LdRule[];
 	vars: Record<string, string>;
@@ -141,6 +150,7 @@ function walk(
 			case 'presOf':
 				node.presOf = iteratePoints(point, statement.iterator);
 				node.hasPresOf = statement.iterator.axis.length > 0;
+				node.presOfAnchored = /self/i.test(statement.iterator.axis.at(-1) ?? '');
 				break;
 			case 'constrLst':
 				node.constraints.push(...statement.constraints);
@@ -172,6 +182,7 @@ function buildNode(
 		alg: { type: 'sp', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

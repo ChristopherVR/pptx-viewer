@@ -30,12 +30,18 @@ export const DEFAULT_START_PT = 65;
 const ABSOLUTE_FLOOR_PT = 1;
 
 /**
- * PowerPoint's own default text-frame inset when a text node declares no
- * margin constraint at all: `0.56 x font size` per side (see
+ * PowerPoint's own default text-frame inset for a side a text node declares
+ * no margin constraint for: `0.56 x font size` (see
  * `smartart-layout-item-font-size.ts`'s `DEFAULT_NO_CONSTRAINT_MARGIN_FACTOR`
- * for the COM measurement).
+ * for the COM measurement). It applies per side: "Ascending Picture Accent
+ * Process"'s `desTx`, "Basic Target"'s labels and "Opposing Arrows"'s arrow
+ * text declare only some sides, and each undeclared side's cached inset is
+ * exactly `0.56 x` the cached size.
  */
 const DEFAULT_MARGIN_FACTOR = 0.56;
+
+/** Another node's current font size, for a margin that references it (undefined: use the fitted node's own). */
+export type FontSizeOf = (node: EngineNode) => number | undefined;
 
 /** Whole-point bounds a node's size may take before any cross-node equalisation. */
 export interface FontBoundsPt {
@@ -76,7 +82,7 @@ function ruleFloors(node: EngineNode, type: string): number[] {
  * `primFontSz` rule at all, a `secFontSz` rule down to 5pt, cached at 35pt
  * instead of the 65pt start).
  */
-function sizingVariable(node: EngineNode): string {
+export function sizingVariable(node: EngineNode): 'primFontSz' | 'secFontSz' {
 	const linked = node.deferred.some(
 		(d) => d.type === 'primFontSz' && d.refType === 'secFontSz' && d.ref === node,
 	);
@@ -106,9 +112,13 @@ export function nodeFontBounds(node: EngineNode): FontBoundsPt {
 /**
  * The upright text box (points) inside `node`'s shape: the preset's own
  * ECMA-376 `<a:rect>` text rectangle when it declares one, else the full
- * shape. A shape stood on its side (`rot` 90/270) keeps its text upright, so
- * the text rectangle is computed in the unrotated shape frame and read back
- * with its axes swapped.
+ * shape. The text rectangle is computed in the unrotated shape frame. A
+ * shape stood on its side (`rot` 90/270) keeps its text upright by default
+ * (`tx` param `autoTxRot="upr"`), so the rectangle is read back with its
+ * axes swapped; with `autoTxRot="grav"` or `"none"` the text turns with the
+ * shape and runs along the rectangle's own width ("Descending Block List"'s
+ * `rot="-90"` parent labels: cached `dsp:txXfrm` 270 x 41pt, read along the
+ * 270pt side).
  */
 const textBoxCache = new WeakMap<EngineNode, { w: number; h: number }>();
 
@@ -140,7 +150,8 @@ function computeTextBox(node: EngineNode): { w: number; h: number } | undefined 
 		: undefined;
 	const tw = rect ? Math.max(0, rect.r - rect.l) : w;
 	const th = rect ? Math.max(0, rect.b - rect.t) : h;
-	return sideways ? { w: th, h: tw } : { w: tw, h: th };
+	const upright = (node.alg.params.autoTxRot ?? 'upr') === 'upr';
+	return sideways && upright ? { w: th, h: tw } : { w: tw, h: th };
 }
 
 type MarginSide = 'lMarg' | 'rMarg' | 'tMarg' | 'bMarg';
@@ -149,30 +160,31 @@ const SIDES: readonly MarginSide[] = ['lMarg', 'rMarg', 'tMarg', 'bMarg'];
 /**
  * Per-side margins (points) at candidate size `sizePt`: a margin referencing
  * a font size (`refType="primFontSz"`, or `"secFontSz"` on a node whose text
- * follows its `secFontSz`) scales with the font (`fact x size`), a literal one is
+ * follows its `secFontSz`) scales with that font (`fact x size`, where a
+ * reference to ANOTHER node reads that node's size via `refSize`: "Circle
+ * Arrow Process"'s 18pt child boxes inset `0.05 x` their 23pt parent's
+ * size, 1.15pt, not 0.9pt), a literal one is
  * fixed, and a node declaring none gets PowerPoint's default proportional
  * inset.
  */
-export function nodeMarginsPt(node: EngineNode, sizePt: number): Record<MarginSide, number> {
+export function nodeMarginsPt(
+	node: EngineNode,
+	sizePt: number,
+	refSize?: FontSizeOf,
+): Record<MarginSide, number> {
 	const out: Record<MarginSide, number> = { lMarg: 0, rMarg: 0, tMarg: 0, bMarg: 0 };
-	let declaredAny = false;
 	for (const side of SIDES) {
 		const deferred = node.deferred.find((d) => d.type === side && FONT_TYPES.has(d.refType));
 		if (deferred) {
-			out[side] = deferred.fact * sizePt;
-			declaredAny = true;
+			const base = deferred.ref === node ? sizePt : (refSize?.(deferred.ref) ?? sizePt);
+			// A `secFontSz` margin on a node sized by `primFontSz` reads its
+			// secondary size, `round(0.78 x primFontSz)`.
+			const secondary =
+				deferred.refType === 'secFontSz' && sizingVariable(deferred.ref) === 'primFontSz';
+			out[side] = deferred.fact * (secondary ? Math.max(1, Math.round(base * 0.78)) : base);
 			continue;
 		}
-		const literal = node.values.get(side);
-		if (literal !== undefined) {
-			out[side] = literal;
-			declaredAny = true;
-		}
-	}
-	if (!declaredAny) {
-		for (const side of SIDES) {
-			out[side] = DEFAULT_MARGIN_FACTOR * sizePt;
-		}
+		out[side] = node.values.get(side) ?? DEFAULT_MARGIN_FACTOR * sizePt;
 	}
 	return out;
 }
@@ -183,12 +195,13 @@ export function textFitsAt(
 	text: NodeText,
 	sizePt: number,
 	metrics: TextMetrics,
+	refSize?: FontSizeOf,
 ): boolean {
 	const box = nodeTextBox(node);
 	if (!box) {
 		return true;
 	}
-	const m = nodeMarginsPt(node, sizePt);
+	const m = nodeMarginsPt(node, sizePt, refSize);
 	const availW = box.w - m.lMarg - m.rMarg;
 	const availH = box.h - m.tMarg - m.bMarg;
 	if (availW <= 0 || availH <= 0) {
@@ -203,9 +216,10 @@ export function fitNodeFontPt(
 	text: NodeText,
 	bounds: FontBoundsPt,
 	metrics: TextMetrics,
+	refSize?: FontSizeOf,
 ): number {
 	for (let size = bounds.start; size > bounds.floor; size--) {
-		if (textFitsAt(node, text, size, metrics)) {
+		if (textFitsAt(node, text, size, metrics, refSize)) {
 			return size;
 		}
 	}

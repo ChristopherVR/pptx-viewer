@@ -18,6 +18,7 @@ function child(): EngineNode {
 		alg: { type: 'sp', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

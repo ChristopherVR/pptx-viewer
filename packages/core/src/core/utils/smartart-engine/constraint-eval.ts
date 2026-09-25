@@ -67,6 +67,17 @@ const LENGTH_TYPES = new Set([
  */
 const MARGIN_TYPES = new Set(['lMarg', 'rMarg', 'tMarg', 'bMarg']);
 
+/**
+ * A reference whose value is a length: a geometry type, or a `userA`-`userZ`
+ * variable, which the built-in layouts only ever assign lengths to and read
+ * back in margins as `fact="2.834"` (points per millimetre) - "Upward
+ * Arrow"'s `lMarg refType="userA" fact="2.834"` is an 8.8pt inset for a
+ * 3.1mm `userA`.
+ */
+function isLengthReference(refType: string): boolean {
+	return LENGTH_TYPES.has(refType) || /^user[A-Z]$/.test(refType);
+}
+
 export const FONT_TYPES = new Set(['primFontSz', 'secFontSz']);
 
 /** Types an algorithm computes itself; a bare constraint must not zero them. */
@@ -245,7 +256,7 @@ export function applyConstraint(node: EngineNode, constraint: LdConstraint): voi
 		}
 		// A margin read off a length is that length in millimetres, as points.
 		const unit =
-			MARGIN_TYPES.has(constraint.type) && LENGTH_TYPES.has(constraint.refType)
+			MARGIN_TYPES.has(constraint.type) && isLengthReference(constraint.refType)
 				? 1 / POINTS_PER_MM
 				: 1;
 		for (const target of targets) {

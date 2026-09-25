@@ -12,7 +12,10 @@
  * Each text node first gets its own best fit (`text-fit.ts`), then groups
  * collapse to their minimum and references cap their dependants, repeating
  * until nothing changes (every step only ever lowers a size, so this
- * terminates).
+ * terminates). A margin that references ANOTHER node's font size ("Gear"'s
+ * child box: `lMarg` = 0.3 x the gear's own `primFontSz`) is fitted against
+ * that node's size from the previous round, so the whole resolution runs
+ * again until the sizes it reads are the sizes it produced.
  */
 
 import type { EngineNode } from './engine-node';
@@ -45,6 +48,12 @@ class UnionFind {
 	}
 }
 
+interface Cap {
+	target: EngineNode;
+	ref: EngineNode;
+	fact: number;
+}
+
 function allNodes(entries: readonly FontFitEntry[]): EngineNode[] {
 	const roots = new Set<EngineNode>();
 	for (const { node } of entries) {
@@ -63,24 +72,9 @@ function allNodes(entries: readonly FontFitEntry[]): EngineNode[] {
 	return out;
 }
 
-/**
- * Resolve every entry's primary font size in whole POINTS. Nodes that are
- * not in `entries` (no text) still take part in equality groups only as
- * bridges; they never lower anyone's size themselves.
- */
-export function resolveEngineFonts(
-	entries: readonly FontFitEntry[],
-	metrics: TextMetrics,
-): Map<EngineNode, number> {
-	const sizes = new Map<EngineNode, number>();
-	const starts = new Map<EngineNode, number>();
-	for (const entry of entries) {
-		const bounds = nodeFontBounds(entry.node);
-		starts.set(entry.node, bounds.start);
-		sizes.set(entry.node, fitNodeFontPt(entry.node, entry.text, bounds, metrics));
-	}
+function buildLinks(entries: readonly FontFitEntry[]): { groups: UnionFind; caps: Cap[] } {
 	const groups = new UnionFind();
-	const caps: { target: EngineNode; ref: EngineNode; fact: number }[] = [];
+	const caps: Cap[] = [];
 	for (const node of allNodes(entries)) {
 		for (const group of node.groups) {
 			if (group.type !== 'primFontSz') {
@@ -117,6 +111,15 @@ export function resolveEngineFonts(
 			firstByName.set(node.name, node);
 		}
 	}
+	return { groups, caps };
+}
+
+function equalise(
+	sizes: Map<EngineNode, number>,
+	starts: Map<EngineNode, number>,
+	groups: UnionFind,
+	caps: readonly Cap[],
+): void {
 	for (let pass = 0; pass < 8; pass++) {
 		let changed = false;
 		const groupMin = new Map<EngineNode, number>();
@@ -150,8 +153,39 @@ export function resolveEngineFonts(
 			}
 		}
 		if (!changed) {
+			return;
+		}
+	}
+}
+
+/**
+ * Resolve every entry's primary font size in whole POINTS. Nodes that are
+ * not in `entries` (no text) still take part in equality groups only as
+ * bridges; they never lower anyone's size themselves.
+ */
+export function resolveEngineFonts(
+	entries: readonly FontFitEntry[],
+	metrics: TextMetrics,
+): Map<EngineNode, number> {
+	const { groups, caps } = buildLinks(entries);
+	const starts = new Map<EngineNode, number>();
+	for (const entry of entries) {
+		starts.set(entry.node, nodeFontBounds(entry.node).start);
+	}
+	let resolved = new Map<EngineNode, number>();
+	for (let round = 0; round < 4; round++) {
+		const previous = resolved;
+		const refSize = (ref: EngineNode): number | undefined => previous.get(ref) ?? starts.get(ref);
+		const sizes = new Map<EngineNode, number>();
+		for (const entry of entries) {
+			const bounds = nodeFontBounds(entry.node);
+			sizes.set(entry.node, fitNodeFontPt(entry.node, entry.text, bounds, metrics, refSize));
+		}
+		equalise(sizes, starts, groups, caps);
+		resolved = sizes;
+		if ([...sizes].every(([node, size]) => previous.get(node) === size)) {
 			break;
 		}
 	}
-	return sizes;
+	return resolved;
 }

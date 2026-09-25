@@ -37,6 +37,7 @@ function child(point?: DataPoint): EngineNode {
 		alg: { type: 'composite', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},

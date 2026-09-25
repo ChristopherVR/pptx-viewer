@@ -20,8 +20,8 @@ import { runEngineLayout } from './engine-to-result';
 import { resolveEngineFonts } from './font-groups';
 import type { LdConstraint } from './layout-def-types';
 import { presetAdjustments } from './shape-adjust';
-import { nodeFontBounds } from './text-fit';
-import { paragraphsFit, textMetricsFor } from './text-measure';
+import { nodeFontBounds, nodeMarginsPt } from './text-fit';
+import { paragraphSizesPt, paragraphsFit, textMetricsFor } from './text-measure';
 
 const GALLERY_DIR = path.resolve(__dirname, '../../../__tests__/fixtures/smartart-gallery');
 const PX_PER_PT = 96 / 72;
@@ -63,6 +63,7 @@ function bareNode(name: string): EngineNode {
 		alg: { type: 'tx', params: {} },
 		presOf: [],
 		hasPresOf: false,
+		presOfAnchored: false,
 		constraints: [],
 		rules: [],
 		vars: {},
@@ -176,6 +177,36 @@ describe('secFontSz-driven text', () => {
 		];
 		n.rules = [{ type: 'secFontSz', for: 'self', ptType: 'all', val: 5, fact: NaN, max: NaN }];
 		expect(nodeFontBounds(n)).toStrictEqual({ start: 65, floor: 5 });
+	});
+});
+
+describe('paragraph levels', () => {
+	it('draws a stBulletLvl=1 descendant-only box at its secondary size', () => {
+		// "Gear": the child box shares the gear's 17pt primFontSz, bullets at 13pt.
+		expect(paragraphSizesPt({ descendants: ['x'], bulletLevel: 1 }, 17).first).toBe(13);
+	});
+
+	it('keeps default (stBulletLvl=2) descendant-only paragraphs at primFontSz', () => {
+		// "Descending Block List"'s child text: plain paragraphs at 33pt.
+		expect(paragraphSizesPt({ descendants: ['x'] }, 33).first).toBe(33);
+	});
+});
+
+describe('margins', () => {
+	it('gives each undeclared side the 0.56 x size default', () => {
+		const n = bareNode('desTx');
+		n.values.set('tMarg', 2);
+		const m = nodeMarginsPt(n, 23);
+		expect(m.tMarg).toBe(2);
+		expect(m.lMarg).toBeCloseTo(12.88, 2);
+	});
+
+	it('reads a userA-referenced margin as that length in millimetres', () => {
+		const n = bareNode('textBox3a');
+		n.values.set('userA', 8.82);
+		applyConstraint(n, constraint({ type: 'lMarg', refType: 'userA', fact: 2.834 }));
+		// 8.82pt is 3.11mm; 3.11 x 2.834 = 8.82pt ("Upward Arrow"'s cached lIns).
+		expect(n.values.get('lMarg')).toBeCloseTo(8.82, 1);
 	});
 });
 

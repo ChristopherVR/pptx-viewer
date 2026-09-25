@@ -13,7 +13,8 @@ import type { FontFitEntry } from './font-groups';
 import { resolveEngineFonts } from './font-groups';
 import { sourceIdsOf } from './move-with-merge';
 import type { NodeText } from './text-fit';
-import { DESCENDANT_FONT_SCALE, textMetricsFor } from './text-measure';
+import { sizingVariable } from './text-fit';
+import { DESCENDANT_FONT_SCALE, paragraphSizesPt, textMetricsFor } from './text-measure';
 
 /** A rendered node paired with the engine node that produced it. */
 export interface RenderedEngineNode {
@@ -48,11 +49,22 @@ export function nodeTextOf(
 		const literal = entry.rendered.literalText ?? entry.rendered.text;
 		return literal && literal.trim().length > 0 ? { own: literal, descendants: [] } : undefined;
 	}
-	const selfId = entry.node.point.source?.id;
-	if (selfId && ids[0] === selfId) {
-		return { own: textOf(selfId), descendants: ids.slice(1).map(textOf) };
+	const params = entry.node.alg.params;
+	const numberParam = (name: string): number | undefined => {
+		const value = Number(params[name]);
+		return params[name] !== undefined && Number.isFinite(value) ? value : undefined;
+	};
+	const fitNode = entry.textNode ?? entry.node;
+	const layout = {
+		bulletLevel: numberParam('stBulletLvl'),
+		spaceAfterParent: numberParam('lnSpAfParP'),
+		spaceAfterChild: numberParam('lnSpAfChP'),
+		secondaryScale: sizingVariable(fitNode) === 'secFontSz' ? 1 : undefined,
+	};
+	if (entry.node.presOfAnchored) {
+		return { own: textOf(ids[0]), descendants: ids.slice(1).map(textOf), ...layout };
 	}
-	return { descendants: ids.map(textOf) };
+	return { descendants: ids.map(textOf), ...layout };
 }
 
 /** Resolve and assign every collected node's font size (pixels). */
@@ -104,9 +116,11 @@ export function applyEngineFonts(
 	for (const { node: renderedNode, rendered, textNode } of collected) {
 		const node = textNode ?? renderedNode;
 		const pt = sizes.get(node) ?? 18;
-		rendered.fontSize = pt * PX_PER_PT;
-		rendered.descendantFontSize = hasDescendants(node)
-			? Math.max(1, Math.round(pt * DESCENDANT_FONT_SCALE)) * PX_PER_PT
-			: undefined;
+		const text = texts.get(node);
+		const { first, secondary } = text
+			? paragraphSizesPt(text, pt)
+			: { first: pt, secondary: Math.round(pt * DESCENDANT_FONT_SCALE) };
+		rendered.fontSize = first * PX_PER_PT;
+		rendered.descendantFontSize = hasDescendants(node) ? secondary * PX_PER_PT : undefined;
 	}
 }
