@@ -19,7 +19,9 @@ const PLAYABLE_NOT_YET_AUTHORABLE_ENTR_IDS = ['47', '42', '53'];
 // entr/exit.42 still play as Float for decks that carry them, but PowerPoint
 // itself saves Float as presetID 30 (COM-verified), so authoring writes 30;
 // likewise Grow & Turn saves as 31, not the entr.53 playback alias.
-const PLAYABLE_NOT_YET_AUTHORABLE_EXIT_IDS = ['42'];
+// exit.19 is Swivel's exit form (COM: `msoAnimEffectSwivel` + `Effect.Exit`);
+// `stripsOut` used to claim it and now correctly authors exit.18.
+const PLAYABLE_NOT_YET_AUTHORABLE_EXIT_IDS = ['42', '19'];
 
 describe('pRESET_TO_OOXML', () => {
 	it('should cover all entrance effects from the rendering engine', () => {
