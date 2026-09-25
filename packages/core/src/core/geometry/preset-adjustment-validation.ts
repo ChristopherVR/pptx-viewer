@@ -26,6 +26,7 @@
  *
  * @module preset-adjustment-validation
  */
+import type { XmlObject } from '../types';
 import { lookupPresetShape } from './preset-shape-evaluator';
 
 /**
@@ -61,4 +62,26 @@ export function filterValidShapeAdjustmentEntries(
 		([name, value]) =>
 			name.trim().length > 0 && Number.isFinite(value) && (!validNames || validNames.has(name)),
 	);
+}
+
+/**
+ * A retained `<a:avLst>` cut down to the guides `presetGeometry` defines.
+ * When an edit swaps the preset (a picture style, a crop to shape) without
+ * new adjustments, the old preset's guides are stale: harmless on `rect`,
+ * file-corrupting on a preset with differently named guides (see above).
+ * PowerPoint writes the new preset with an empty `<a:avLst/>`.
+ */
+export function avLstForPreset(avLst: unknown, presetGeometry: string): XmlObject {
+	if (!avLst || typeof avLst !== 'object') {
+		return {};
+	}
+	const raw = (avLst as XmlObject)['a:gd'];
+	const guides = (Array.isArray(raw) ? raw : raw ? [raw] : []) as XmlObject[];
+	const def = lookupPresetShape(presetGeometry);
+	const valid = def ? new Set(Object.keys(def.avLst ?? {})) : undefined;
+	const kept = guides.filter((gd) => !valid || valid.has(String(gd['@_name'] ?? '')));
+	if (kept.length === 0) {
+		return {};
+	}
+	return { 'a:gd': kept.length === 1 ? kept[0] : kept };
 }
