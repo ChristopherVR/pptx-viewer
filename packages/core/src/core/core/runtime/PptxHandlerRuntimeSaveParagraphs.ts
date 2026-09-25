@@ -9,7 +9,7 @@ import {
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
-import { toRunScopedTextStyle } from './run-scoped-text-style';
+import { toParsedSegmentUnderlay, toRunScopedTextStyle } from './run-scoped-text-style';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	protected createParagraphsFromTextContent(
@@ -208,9 +208,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				textSegments,
 			);
 
+			// A parsed segment inherits only EDITED element keys; see
+			// `toParsedSegmentUnderlay`.
+			const parsedUnderlay = toParsedSegmentUnderlay(runScopedTextStyle);
 			textSegments.forEach((segment) => {
 				const segmentStyle = {
-					...runScopedTextStyle,
+					...(segment.style?.inheritedRunStyle ? parsedUnderlay : runScopedTextStyle),
 					...segment.style,
 					...uniformSegmentOverrides,
 				} as TextStyle;
