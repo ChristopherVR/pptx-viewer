@@ -338,11 +338,20 @@ export function writeShapeStroke(
 		// INHERITED width baked in as soon as the color made the block run,
 		// because the combined gate does not distinguish "some property in
 		// the group differs" from "this specific one does".
-		if (shapeStyle.strokeWidth !== 0 && owns('strokeWidth')) {
-			// A zero width is how `<a:ln><a:noFill/></a:ln>` parses. The `|| 1`
-			// fallback below would turn it into `w="9525"`, inventing a 0.75pt
-			// outline that reappears the moment the user re-enables the line.
-			lineNode['@_w'] = String(Math.round((shapeStyle.strokeWidth || 1) * ctx.emuPerPx));
+		// A zero width is how `<a:ln><a:noFill/></a:ln>` parses, and an
+		// UNDEFINED one is how `<a:ln>` with no `@w` (and no `a:lnRef` to
+		// resolve one) parses. Both used to fall through a `|| 1` fallback into
+		// `w="9525"`, inventing a 0.75pt width the source never authored
+		// (measured: every colour-only outline on `text-body.pptx` and
+		// `preset-text-insets.pptx` gained one on a rewritten slide). Only a
+		// real width is written; an absent one stays absent and PowerPoint
+		// applies its own default, exactly as it did for the source.
+		if (
+			typeof shapeStyle.strokeWidth === 'number' &&
+			shapeStyle.strokeWidth > 0 &&
+			owns('strokeWidth')
+		) {
+			lineNode['@_w'] = String(Math.round(shapeStyle.strokeWidth * ctx.emuPerPx));
 		}
 		writeLineFill(lineNode, shapeStyle, ctx.parseColor);
 	}
