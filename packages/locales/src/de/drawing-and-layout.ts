@@ -209,4 +209,11 @@ export const translations = {
 	'pptx.editPoints.straightSegment': 'Gerades Segment',
 	'pptx.freeformTool.overlay':
 		'Klicken, um Punkte hinzuzufügen; Doppelklick oder Eingabetaste zum Beenden',
+	'pptx.shape.mergeShapes': 'Formen zusammenführen',
+	'pptx.shape.mergeShapesHint': 'Wählen Sie zwei oder mehr Formen aus, um sie zusammenzuführen',
+	'pptx.shape.mergeUnion': 'Vereinigen',
+	'pptx.shape.mergeCombine': 'Kombinieren',
+	'pptx.shape.mergeFragment': 'Fragmentieren',
+	'pptx.shape.mergeIntersect': 'Überschneiden',
+	'pptx.shape.mergeSubtract': 'Subtrahieren',
 } as const;

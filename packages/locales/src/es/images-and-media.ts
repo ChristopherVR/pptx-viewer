@@ -185,4 +185,15 @@ export const translations = {
 	'pptx.media.playbackSpeed': 'Velocidad de reproducción',
 	'pptx.media.trimEnd': 'Fin del recorte',
 	'pptx.media.trimStart': 'Inicio del recorte',
+	'pptx.image.crop': 'Recortar',
+	'pptx.image.cropToAspectRatio': 'Recortar a la relación de aspecto',
+	'pptx.image.cropFill': 'Rellenar',
+	'pptx.image.cropFit': 'Ajustar',
+	'pptx.image.cropSquare': 'Cuadrado',
+	'pptx.image.cropPortrait': 'Vertical',
+	'pptx.image.cropLandscape': 'Horizontal',
+	'pptx.image.cropHandle': 'Controlador de recorte',
+	'pptx.image.cropModeHint':
+		'Arrastre los controladores negros para recortar. Pulse Intro para aplicar o Esc para cancelar.',
+	'pptx.image.cropHint': 'Seleccione una imagen para recortarla',
 } as const;

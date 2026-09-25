@@ -8,6 +8,7 @@ import { translations as charts } from './charts';
 import { translations as collaboration_and_sharing } from './collaboration-and-sharing';
 import { translations as drawing_and_layout } from './drawing-and-layout';
 import { translations as editing_and_review } from './editing-and-review';
+import { translations as editing_and_review_2 } from './editing-and-review-2';
 import { translations as fills_and_strokes } from './fills-and-strokes';
 import { translations as images_and_media } from './images-and-media';
 import { translations as masters_and_themes } from './masters-and-themes';
@@ -25,6 +26,7 @@ export const translationsEs: Record<string, string> = {
 	...backstage,
 	...ai_assistant,
 	...editing_and_review,
+	...editing_and_review_2,
 	...drawing_and_layout,
 	...accessibility_print_and_export,
 	...animations,
