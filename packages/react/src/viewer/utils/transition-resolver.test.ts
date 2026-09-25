@@ -79,10 +79,10 @@ describe('getSlideTransitionAnimations', () => {
 		expect(result.outgoing).toBe('none');
 	});
 
-	it('should produce zoom animations', () => {
+	it('should produce the zoom box reveal', () => {
 		const result = getSlideTransitionAnimations('zoom', 600, undefined);
-		expect(result.outgoing).toContain('zoom-out');
-		expect(result.incoming).toContain('zoom-in');
+		expect(result.outgoing).toBe('none');
+		expect(result.incoming).toContain('zoom-box-grow');
 	});
 
 	it('should handle blinds with orientation', () => {

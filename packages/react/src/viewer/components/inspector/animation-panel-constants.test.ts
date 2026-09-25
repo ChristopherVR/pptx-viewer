@@ -139,8 +139,8 @@ describe('eMPHASIS_PRESETS', () => {
 // ---------------------------------------------------------------------------
 
 describe('tRIGGER_OPTIONS', () => {
-	it('has exactly 6 trigger types', () => {
-		expect(TRIGGER_OPTIONS).toHaveLength(6);
+	it('has exactly 7 trigger types (including On bookmark)', () => {
+		expect(TRIGGER_OPTIONS).toHaveLength(7);
 	});
 
 	it('contains onClick, onShapeClick, onHover, afterPrevious, withPrevious, afterDelay', () => {
