@@ -249,26 +249,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		// Tab stops (a:tabLst > a:tab)
 		if (!textStyle.tabStops) {
-			const tabLst = pPr?.['a:tabLst'] as XmlObject | undefined;
-			if (tabLst) {
-				const tabNodes = this.ensureArray(tabLst['a:tab']) as XmlObject[];
-				if (tabNodes.length > 0) {
-					textStyle.tabStops = tabNodes
-						.filter((t) => t?.['@_pos'] !== undefined)
-						.map((t) => {
-							const posRaw = Number.parseInt(String(t['@_pos']), 10);
-							const position = Number.isFinite(posRaw) ? posRaw / PptxHandlerRuntime.EMU_PER_PX : 0;
-							const algn = String(t['@_algn'] || 'l').trim();
-							const align =
-								algn === 'ctr' || algn === 'r' || algn === 'dec' ? algn : ('l' as const);
-							const leaderVal = String(t['@_leader'] || '').trim();
-							const leader =
-								leaderVal === 'dot' || leaderVal === 'hyphen' || leaderVal === 'underscore'
-									? leaderVal
-									: undefined;
-							return { position, align, ...(leader ? { leader } : {}) };
-						});
-				}
+			const tabStops = parseTabStops(pPr);
+			if (tabStops) {
+				textStyle.tabStops = tabStops;
 			}
 		}
 

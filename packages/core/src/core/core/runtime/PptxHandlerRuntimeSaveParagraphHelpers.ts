@@ -2,6 +2,7 @@ import { themeColorRefToSolidFillWithOpacity } from '../../color/theme-color-ref
 import { XmlObject, TextStyle } from '../../types';
 import type { BulletInfo } from '../../types';
 import { applyParagraphBulletOverrides } from '../../utils/paragraph-bullet-overrides';
+import { serializeTabStop } from '../../utils/tab-stops';
 import type { ParagraphChild } from './paragraph-child-assembly';
 import { classifyParagraphChild, writeParagraphChildren } from './paragraph-child-assembly';
 
@@ -176,20 +177,7 @@ export function buildParagraphPropertiesXml(
 
 	// Tab stops
 	if (textStyle?.tabStops && textStyle.tabStops.length > 0 && owns('tabStops')) {
-		paragraphProps['a:tabLst'] = {
-			'a:tab': textStyle.tabStops.map((tab) => {
-				const tabObj: XmlObject = {
-					'@_pos': String(Math.round(tab.position * EMU_PER_PX)),
-				};
-				if (tab.align && tab.align !== 'l') {
-					tabObj['@_algn'] = tab.align;
-				}
-				if (tab.leader && tab.leader !== 'none') {
-					tabObj['@_leader'] = tab.leader;
-				}
-				return tabObj;
-			}),
-		};
+		paragraphProps['a:tabLst'] = { 'a:tab': textStyle.tabStops.map(serializeTabStop) };
 	} else if (authoredProperties?.tabStopsExplicitEmpty) {
 		// This specific paragraph authored `<a:tabLst/>` with no tab stops
 		// (see `tabStopsExplicitEmpty`): re-emit it exactly, regardless of

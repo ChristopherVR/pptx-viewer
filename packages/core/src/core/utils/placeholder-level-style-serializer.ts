@@ -16,6 +16,7 @@
 import type { PlaceholderTextLevelStyle, XmlObject } from '../types';
 import { colorsEqual } from './color-xml-preservation';
 import { mergeOrderedXml } from './ordered-xml-merge';
+import { serializeTabStop } from './tab-stops';
 
 const EMU_PER_PX = 9525;
 /** px -> hundredths-of-a-point: px * (72/96) * 100. */
@@ -280,18 +281,7 @@ function applyBulletGroup(
 function serializeTabStops(
 	tabStops: NonNullable<PlaceholderTextLevelStyle['tabStops']>,
 ): XmlObject {
-	return {
-		'a:tab': tabStops.map((tab) => {
-			const node: XmlObject = { '@_pos': String(Math.round(tab.position * EMU_PER_PX)) };
-			if (tab.align && tab.align !== 'l') {
-				node['@_algn'] = tab.align;
-			}
-			if (tab.leader && tab.leader !== 'none') {
-				node['@_leader'] = tab.leader;
-			}
-			return node;
-		}),
-	};
+	return { 'a:tab': tabStops.map(serializeTabStop) };
 }
 
 function srgbChoice(hex: string): XmlObject {

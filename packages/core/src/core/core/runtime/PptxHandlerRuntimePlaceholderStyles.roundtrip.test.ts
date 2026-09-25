@@ -152,8 +152,9 @@ describe('master p:bodyStyle level cascade fidelity', () => {
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*marR="190500"/u);
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*algn="thaiDist"/u);
 		expect(bodyStyle).toMatch(/<a:lvl1pPr [^>]*rtl="1"/u);
+		// The source spelled out the default `algn="l"`, so it is kept.
 		expect(bodyStyle).toMatch(
-			/<a:tabLst><a:tab pos="914400"\s*\/?>(<\/a:tab>)?<a:tab pos="1828800" algn="dec" leader="dot"\s*\/?>(<\/a:tab>)?<\/a:tabLst>/u,
+			/<a:tabLst><a:tab pos="914400" algn="l"\s*\/?>(<\/a:tab>)?<a:tab pos="1828800" algn="dec" leader="dot"\s*\/?>(<\/a:tab>)?<\/a:tabLst>/u,
 		);
 		// The run colour keeps its theme alias too; only the size was edited.
 		expect(bodyStyle).toMatch(

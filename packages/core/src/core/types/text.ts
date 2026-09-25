@@ -335,6 +335,13 @@ export interface TextStyle {
 		position: number;
 		align: 'l' | 'ctr' | 'r' | 'dec';
 		leader?: 'none' | 'dot' | 'hyphen' | 'underscore';
+		/**
+		 * True when the source spelled out the schema-default `@algn="l"`, so the
+		 * writer re-emits it instead of treating it as an omitted default.
+		 */
+		alignAuthored?: boolean;
+		/** True when the source spelled out the schema-default `@leader="none"`. */
+		leaderAuthored?: boolean;
 	}>;
 	/**
 	 * True when the paragraph's own `a:pPr` authored an EMPTY `<a:tabLst/>`
