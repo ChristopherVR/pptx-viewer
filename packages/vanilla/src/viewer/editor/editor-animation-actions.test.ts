@@ -4,7 +4,7 @@ import type {
 	PptxElementAnimation,
 	PptxSlide,
 } from 'pptx-viewer-core';
-import { motionPathPresetById } from 'pptx-viewer-shared';
+import { bookmarkOptionValue, motionPathPresetById } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -337,6 +337,31 @@ describe('createAnimationActions', () => {
 				.sort((left, right) => left.order! - right.order!)
 				.map(({ elementId }) => elementId),
 		).toStrictEqual(['c', 'a', 'b']);
+	});
+
+	it('points an effect at a media bookmark from a picker option value', () => {
+		const store = createStore({
+			...createInitialViewerState(),
+			slides: [
+				{
+					...buildSlide('a', [buildElement('a')]),
+					animations: [{ elementId: 'a', entrance: 'fadeIn', order: 0 }],
+				},
+			],
+			currentSlide: 0,
+			editable: true,
+			selectedElementId: 'a',
+		});
+		const ops = createEditorOps({ store, getHandler: () => null, onHistoryChange: vi.fn() });
+		const actions = createAnimationActions({ store, ops });
+
+		actions.setAnimationTiming('a', { triggerBookmark: bookmarkOptionValue('video', 'BM2') });
+
+		expect(store.get().slides[0].animations![0]).toMatchObject({
+			trigger: 'onMediaBookmark',
+			triggerShapeId: 'video',
+			triggerBookmark: 'BM2',
+		});
 	});
 
 	it('moves an editor-authored effect ahead of a deck-native anchor', () => {

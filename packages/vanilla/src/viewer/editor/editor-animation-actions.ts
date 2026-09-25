@@ -38,6 +38,7 @@ import {
 	setSequence,
 	setTimingCurve,
 	setTrigger,
+	setTriggerBookmark,
 	setTriggerShapeId,
 	updateSlide,
 } from 'pptx-viewer-shared';
@@ -69,6 +70,8 @@ export interface AnimationTimingPatch {
 	repeatCount?: number;
 	repeatMode?: PptxAnimationRepeatMode | 'none';
 	triggerShapeId?: string;
+	/** A bookmark picker option value (see `setTriggerBookmark`). */
+	triggerBookmark?: string;
 	afterAnimation?: PptxAfterAnimationAction;
 	afterAnimationColor?: string;
 }
@@ -245,6 +248,9 @@ export function createAnimationActions(deps: AnimationActionsDeps): AnimationAct
 				}
 				if (patch.triggerShapeId !== undefined) {
 					animations = setTriggerShapeId(animations, elementId, patch.triggerShapeId || undefined);
+				}
+				if (patch.triggerBookmark !== undefined) {
+					animations = setTriggerBookmark(animations, elementId, patch.triggerBookmark);
 				}
 				if (patch.afterAnimation !== undefined) {
 					animations = setAfterAnimation(animations, elementId, patch.afterAnimation);

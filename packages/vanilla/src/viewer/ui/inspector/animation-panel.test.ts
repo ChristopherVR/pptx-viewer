@@ -115,6 +115,41 @@ describe('inspector animation panel', () => {
 		expect(Array.from(shapeSelect.options).map((o) => o.value)).toStrictEqual(['', 'el2']);
 	});
 
+	it('offers the slide media bookmarks for an On bookmark trigger and commits the choice', () => {
+		const handlers = makeHandlers();
+		const panel = createAnimationPanel(document, t, handlers);
+		const video = {
+			type: 'media',
+			id: 'video',
+			mediaType: 'video',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			bookmarks: [
+				{ label: 'BM1', time: 0.5 },
+				{ label: 'BM2', time: 1.5 },
+			],
+		} as PptxElement;
+		panel.update(
+			makeState({
+				elements: [makeElement('el1', 'Title'), video],
+				animations: [
+					{ elementId: 'el1', entrance: 'fadeIn', trigger: 'onMediaBookmark', order: 0 },
+				],
+			}),
+		);
+		const picker = panel.el.querySelector<HTMLSelectElement>(
+			'[data-pptx-animation-bookmark-picker]',
+		);
+		expect((picker!.parentElement as HTMLElement).hidden).toBeFalsy();
+		const values = Array.from(picker!.querySelectorAll('option')).map((o) => o.value);
+		expect(values).toHaveLength(3);
+		picker!.value = values[2]!;
+		picker!.dispatchEvent(new Event('change'));
+		expect(handlers.setAnimationTiming).toHaveBeenCalledWith('el1', { triggerBookmark: values[2] });
+	});
+
 	it('renders the play-order list with working move up/down buttons', () => {
 		const handlers = makeHandlers();
 		const panel = createAnimationPanel(document, t, handlers);

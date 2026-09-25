@@ -24,6 +24,7 @@ import { playAnimationPreview } from '../../animation';
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
 import { createAfterAnimationRow } from './after-animation-row';
+import { createBookmarkField } from './animation-bookmark-field';
 import {
 	animField,
 	animNumber,
@@ -206,6 +207,9 @@ export function createAnimationPanel(
 		options,
 	);
 	const triggerShapeWrap = triggerShape.parentElement as HTMLElement;
+	const bookmarkField = createBookmarkField(doc, t, options, (value) =>
+		commit({ triggerBookmark: value }),
+	);
 	const duration = animNumber(
 		doc,
 		t('pptx.animation.duration'),
@@ -325,6 +329,8 @@ export function createAnimationPanel(
 				control.disabled = !state.editable;
 			}
 			duration.disabled = delay.disabled = repeatCount.disabled = !state.editable;
+			bookmarkField.select.disabled = !state.editable;
+			bookmarkField.update(state.elements, animation);
 
 			const ordered = [...state.animations].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
 			// Merges the editor's own animations with the deck's read-only native
