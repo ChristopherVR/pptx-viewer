@@ -21,8 +21,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { computed, useTemplateRef } from 'vue';
-import { inject, useTemplateRef } from 'vue';
+import { computed, inject, useTemplateRef } from 'vue';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
 import { MergeCropKey } from '../composables/merge-crop-context';
@@ -202,10 +201,8 @@ defineExpose({
 	     connector endpoint precedence remains unchanged. -->
 	<SelectionOverlay
 		ref="selectionOverlay"
-		v-if="canEdit && !presenting"
 		:elements="selectionElements"
 		v-if="canEdit && !presenting && !crop?.cropElement.value"
-		:elements="selectedElements"
 		:selected-ids="selectedElementIds"
 		:zoom="effectiveZoom"
 		:inline-editing="Boolean(inlineEdit.inlineEditingElement.value)"
