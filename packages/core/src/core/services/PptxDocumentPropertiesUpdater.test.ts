@@ -374,7 +374,7 @@ describe('pptxDocumentPropertiesUpdater', () => {
 			expect(readSlideTitleCount(props)).toBe(2);
 		});
 
-		it('emits an empty title entry for a slide without a title placeholder', async () => {
+		it('lists a slide without a title as "PowerPoint Presentation", as PowerPoint does', async () => {
 			context.zip.file('docProps/app.xml', APP_XML_WITH_TITLES);
 
 			await updater.updateOnSave([makeTitleSlide('Has Title', 1), makeSlide({ slideNumber: 2 })]);
@@ -384,7 +384,7 @@ describe('pptxDocumentPropertiesUpdater', () => {
 			const props = parsed['Properties'] as Record<string, unknown>;
 
 			const { entries } = readTitlesOfParts(props);
-			expect(entries).toStrictEqual(['Office Theme', 'Has Title', '']);
+			expect(entries).toStrictEqual(['Office Theme', 'Has Title', 'PowerPoint Presentation']);
 			expect(readSlideTitleCount(props)).toBe(2);
 		});
 
