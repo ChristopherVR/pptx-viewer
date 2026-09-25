@@ -1,18 +1,25 @@
-import { THEME_PRESETS } from 'pptx-viewer-core';
-import { buildSaveSlides, partitionTemplateElements } from 'pptx-viewer-shared';
+import {
+	buildSaveSlides,
+	GALLERY_THEME_PRESETS,
+	partitionTemplateElements,
+} from 'pptx-viewer-shared';
 
 import type { EditorController } from './editor';
 import type { LoadingController } from './loading-controller';
 import type { Store, ViewerState } from './state';
 
-/** Apply a core theme preset to both the live archive and rendered slide data. */
+/**
+ * Design > Browse Themes: apply a shared gallery preset (`GALLERY_THEME_PRESETS`,
+ * the set every binding's Browse Themes offers) to both the live archive and
+ * the rendered slide data, as one undoable step.
+ */
 export async function applyPresentationThemePreset(options: {
 	presetId: string;
 	loading: LoadingController;
 	store: Store<ViewerState>;
 	editor: EditorController;
 }): Promise<boolean> {
-	const preset = THEME_PRESETS.find(({ id }) => id === options.presetId);
+	const preset = GALLERY_THEME_PRESETS.find(({ id }) => id === options.presetId);
 	const handler = options.loading.getHandler();
 	if (!preset || !handler) {
 		return false;
@@ -34,6 +41,7 @@ export async function applyPresentationThemePreset(options: {
 		templateElementsBySlideId: partition.templateElementsBySlideId,
 		colorScheme: preset.colorScheme,
 		fontScheme: preset.fontScheme,
+		themeName: preset.name,
 	});
 	return true;
 }

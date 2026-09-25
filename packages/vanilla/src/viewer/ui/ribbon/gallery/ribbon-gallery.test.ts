@@ -42,6 +42,9 @@ describe('ribbon gallery (vanilla)', () => {
 		expect(gallery.el.getAttribute('data-ribbon-control')).toBe('home.drawing.quickStyles');
 		expect(gallery.trigger.getAttribute('data-ribbon-gallery')).toBe('shapeStyles');
 		expect(gallery.popup.getAttribute('data-ribbon-gallery-popup')).toBe('shapeStyles');
+		// The panel's tiles are built when it opens, not on every selection sync.
+		expect(gallery.popup.querySelectorAll('[data-gallery-item]')).toHaveLength(0);
+		gallery.trigger.click();
 		const tiles = gallery.popup.querySelectorAll('[data-gallery-item]');
 		expect(tiles.length).toBeGreaterThan(6);
 		expect(tiles[0].querySelector('svg')).not.toBeNull();

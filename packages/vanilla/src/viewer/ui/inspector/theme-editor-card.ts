@@ -14,6 +14,17 @@ import {
 } from './theme-editor-fields';
 import type { InspectorDeckState, InspectorHandlers } from './types';
 
+/** The slice of the deck state the card reads (the ribbon's Edit Theme feeds just this). */
+export type ThemeEditorCardState = Pick<
+	InspectorDeckState,
+	'editable' | 'colorScheme' | 'fontScheme' | 'themeName'
+>;
+
+/** A {@link DeckCard} whose `update` only needs {@link ThemeEditorCardState}. */
+export interface ThemeEditorCard extends DeckCard {
+	update(state: ThemeEditorCardState): void;
+}
+
 const DEFAULT_MAJOR_FONT = 'Calibri Light';
 const DEFAULT_MINOR_FONT = 'Calibri';
 
@@ -27,12 +38,16 @@ const DEFAULT_MINOR_FONT = 'Calibri';
  * a theme re-resolves every slide's colours, so doing that on each swatch drag
  * would spam the undo history with a dozen full-deck rewrites. "Reset" drops
  * the staged edits back to the deck's loaded theme.
+ *
+ * The inspector's deck panel hosts it, and so does Design > Edit Theme
+ * (`ribbon/tabs/design-tab.ts`), as React, Vue and Angular open their
+ * `ThemeEditorPanel` from that ribbon button.
  */
 export function createThemeEditorCard(
 	doc: Document,
 	t: Translator,
 	handlers: Pick<InspectorHandlers, 'applyThemeEdit'>,
-): DeckCard {
+): ThemeEditorCard {
 	const { el, body } = makeSection(doc, t('pptx.themeEditor.title'));
 
 	let loaded: { colorScheme?: PptxThemeColorScheme; major: string; minor: string; name: string } = {
@@ -141,7 +156,7 @@ export function createThemeEditorCard(
 
 	return {
 		el,
-		update(state: InspectorDeckState) {
+		update(state: ThemeEditorCardState) {
 			editable = state.editable;
 			loaded = {
 				colorScheme: state.colorScheme,

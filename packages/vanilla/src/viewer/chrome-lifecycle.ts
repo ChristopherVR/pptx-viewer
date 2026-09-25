@@ -889,7 +889,6 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		createPresentation: (templateId) => host.createPresentation(templateId),
 		getEditActions: () => host.editor.getEditActions(),
 		getFindReplaceActions: () => host.editor.getFindReplaceActions(),
-		setTheme: (theme) => host.setTheme(theme),
 		applyPresentationTheme: (presetId) => host.applyPresentationTheme(presetId),
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
 		setDrawColor: (color) => host.editor.setDrawColor(color),

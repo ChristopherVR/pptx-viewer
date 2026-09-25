@@ -109,15 +109,40 @@ export function createRibbonGallery(
 	let descriptor: RibbonGalleryDescriptor | null = null;
 	let disabled = true;
 	let anchor: AnchoredPopupHandle | null = null;
+	// The panel's tiles (dozens of preview SVGs per gallery) are built when it
+	// opens, not on every selection sync, and only rebuilt when stale.
+	let popupStale = true;
 
-	const setOpen = (open: boolean): void => {
+	const onOutsidePointer = (event: PointerEvent): void => {
+		if (!el.contains(event.target as Node)) {
+			setOpen(false);
+		}
+	};
+
+	function renderPopupIfStale(): void {
+		if (popupStale && descriptor) {
+			renderGalleryPopup(doc, t, popup, descriptor, disabled, onPick);
+			popupStale = false;
+		}
+	}
+
+	function setOpen(open: boolean): void {
 		const next = open && !disabled;
+		if (next) {
+			renderPopupIfStale();
+		}
 		popup.hidden = !next;
 		trigger.setAttribute('aria-expanded', String(next));
 		trigger.classList.toggle('is-active', next);
 		anchor?.destroy();
 		anchor = next ? attachAnchoredPopup(popup, trigger) : null;
-	};
+		// Listen for the outside press only while open, so a closed (or
+		// discarded, after a ribbon rebuild) gallery holds no document listener.
+		doc.removeEventListener('pointerdown', onOutsidePointer);
+		if (next) {
+			doc.addEventListener('pointerdown', onOutsidePointer);
+		}
+	}
 
 	const onPick = (item: RibbonGalleryItem): void => {
 		setOpen(false);
@@ -131,11 +156,6 @@ export function createRibbonGallery(
 	trigger.addEventListener('click', (event) => {
 		event.stopPropagation();
 		setOpen(popup.hidden === true);
-	});
-	doc.addEventListener('pointerdown', (event) => {
-		if (popup.hidden !== true && !el.contains(event.target as Node)) {
-			setOpen(false);
-		}
 	});
 	el.addEventListener('keydown', (event) => {
 		if (event.key === 'Escape' && popup.hidden !== true) {
@@ -166,7 +186,10 @@ export function createRibbonGallery(
 					createGalleryTile(doc, t, item, disabled, onPick),
 				),
 			);
-			renderGalleryPopup(doc, t, popup, descriptor, disabled, onPick);
+			popupStale = true;
+			if (popup.hidden !== true) {
+				renderPopupIfStale();
+			}
 			if (disabled) {
 				setOpen(false);
 			} else {

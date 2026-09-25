@@ -100,7 +100,7 @@ function buildHandlers(): RibbonHandlers {
 		insert: fakeActions<RibbonInsertHandlers>(),
 		edit: fakeActions<EditActions>(),
 		findReplace: fakeActions<FindReplaceActions>(),
-		design: { setTheme: vi.fn(), applyPresentationTheme: vi.fn() },
+		design: { applyPresentationTheme: vi.fn(), applyThemeEdit: vi.fn() },
 		transitions: {
 			readDraft: () => ({ ...EMPTY_RIBBON_TRANSITION_DRAFT }),
 			applyDraft: vi.fn(),
