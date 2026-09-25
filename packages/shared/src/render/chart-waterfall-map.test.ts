@@ -30,11 +30,15 @@ function makeElement(width = 400, height = 300) {
 	};
 }
 
+/** The Office 2023 theme's accent1..3, as charts-com.pptx slide 26 resolves them. */
+const OFFICE_2023_PALETTE = ['#156082', '#E97132', '#196B24', '#0F9ED5'];
+
 function makeWaterfallData(values: number[]): PptxChartData {
 	return {
 		chartType: 'waterfall',
 		categories: values.map((_, i) => `Cat${i + 1}`),
 		series: [{ name: 'S', values }],
+		colorPalette: OFFICE_2023_PALETTE,
 	};
 }
 
@@ -172,14 +176,13 @@ describe('buildWaterfallViewModel — basic structure', () => {
 		expect(vm.categoryLabels[0].text).toBe('Cat1');
 	});
 
-	it('includes a legend entry per series when hasLegend is true', () => {
+	it('shows the fixed Increase/Decrease/Total legend, never the series name (COM: slide 26)', () => {
 		const withLegend: PptxChartData = {
 			...data,
 			style: { hasLegend: true },
 		};
 		const vm = buildWaterfallViewModel(el, withLegend, labels);
-		expect(vm.legend).toHaveLength(1);
-		expect(vm.legend[0].label).toBe('S');
+		expect(vm.legend.map((entry) => entry.label)).toStrictEqual(['Increase', 'Decrease', 'Total']);
 	});
 
 	it('produces no data labels when hasDataLabels is absent', () => {
@@ -202,7 +205,7 @@ describe('buildWaterfallViewModel — basic structure', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('buildWaterfallViewModel — running-total colouring', () => {
-	it('uses green fill for positive, red for negative, indigo for total bar', () => {
+	it('paints Increase/Decrease/Total with palette colours 1..3 (COM: slide 26)', () => {
 		const el = makeElement();
 		const data = makeWaterfallData([10, -5, 20]);
 		const vm = buildWaterfallViewModel(el, data, data.categories);
@@ -210,12 +213,20 @@ describe('buildWaterfallViewModel — running-total colouring', () => {
 			.filter((p) => p.kind === 'rect')
 			.map((p) => (p.kind === 'rect' ? p.fill : ''));
 
-		// value[0] = 10 → green
-		expect(rects[0]).toBe('#22c55e');
-		// value[1] = -5 → red
-		expect(rects[1]).toBe('#ef4444');
-		// value[2] = 20, isLast → indigo total
-		expect(rects[2]).toBe('#6366f1');
+		// value[0] = 10 → Increase
+		expect(rects[0]).toBe('#156082');
+		// value[1] = -5 → Decrease
+		expect(rects[1]).toBe('#E97132');
+		// value[2] = 20, isLast → Total
+		expect(rects[2]).toBe('#196B24');
+	});
+
+	it('falls back to the default palette when the chart has no colour part', () => {
+		const data = { ...makeWaterfallData([10, -5, 20]), colorPalette: undefined };
+		const rects = buildWaterfallViewModel(makeElement(), data, data.categories)
+			.primitives.filter((p) => p.kind === 'rect')
+			.map((p) => (p.kind === 'rect' ? p.fill : ''));
+		expect(rects).toStrictEqual(['#4472C4', '#ED7D31', '#A5A5A5']);
 	});
 
 	it('uses typed subtotal colors, preserves source indexes, and can hide connectors', () => {
@@ -230,15 +241,16 @@ describe('buildWaterfallViewModel — running-total colouring', () => {
 				},
 			],
 			style: { hasDataLabels: true },
+			colorPalette: OFFICE_2023_PALETTE,
 		};
 		const vm = buildWaterfallViewModel(makeElement(), data, data.categories);
 		const rects = vm.primitives.filter((primitive) => primitive.kind === 'rect');
 		expect(rects.map((rect) => rect.fill)).toStrictEqual([
-			'#6366f1',
-			'#22c55e',
-			'#6366f1',
-			'#ef4444',
-			'#6366f1',
+			'#196B24',
+			'#156082',
+			'#196B24',
+			'#E97132',
+			'#196B24',
 		]);
 		expect(rects.map((rect) => rect.part?.pointIndex)).toStrictEqual([0, 1, 2, 3, 4]);
 		expect(vm.primitives.filter((primitive) => primitive.kind === 'line')).toHaveLength(0);

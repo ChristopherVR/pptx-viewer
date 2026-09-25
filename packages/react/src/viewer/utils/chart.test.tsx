@@ -115,10 +115,11 @@ describe('renderChartElement: waterfall', () => {
 				},
 			],
 		});
-		// The subtotal colour (#6366f1) has to appear on a bar that is NOT the
-		// last one, which the private renderer could never produce.
+		// The subtotal colour (palette colour 3, #A5A5A5 by default) has to
+		// appear on a bar that is NOT the last one, which the private renderer
+		// could never produce.
 		const bars = [...html(withSubtotal).matchAll(/<rect[^>]*>/gu)].map((m) => m[0]);
-		const subtotalBars = bars.filter((bar) => bar.includes('#6366f1'));
+		const subtotalBars = bars.filter((bar) => bar.includes('#A5A5A5'));
 		expect(subtotalBars.length).toBeGreaterThanOrEqual(1);
 	});
 });

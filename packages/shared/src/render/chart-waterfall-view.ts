@@ -20,25 +20,39 @@ import { resolveChartTitleText } from './chart-auto-title';
 import { findValueAxis, buildValueAxisGridlinesAndLabels } from './chart-cx-axis-units';
 import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
-import type { ChartViewModel, SvgLine, SvgRect, SvgText } from './chart-view-model';
+import { resolveLegendAnchorPosition } from './chart-legend-build';
+import type { ChartViewModel, LegendEntry, SvgLine, SvgRect, SvgText } from './chart-view-model';
 import {
-	buildLegend,
 	buildZeroLine,
 	buildCategoryLabels,
 	computePlotLayout,
 	formatAxisValue,
 	valueToY,
 } from './chart-view-model';
+import { paletteColor } from './chart-view-model-scale';
 import { buildWaterfallSteps, computeWaterfallRange } from './chart-waterfall-layout';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Waterfall colours (mirrors React renderWaterfallChart)
+// Waterfall colours: PowerPoint paints the three bar roles with the chart's
+// first three palette colours, Increase / Decrease / Total (COM-verified,
+// charts-com.pptx slide 26: #156082 / #E97132 / #196B24, the Office 2023
+// theme's accent1..3). The legend below uses the same three, in this order.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const WF_COLOR_POSITIVE = '#22c55e';
-const WF_COLOR_NEGATIVE = '#ef4444';
-const WF_COLOR_TOTAL = '#6366f1';
 const WF_CONNECTOR_COLOR = '#94a3b8';
+
+/** The Increase / Decrease / Total colours for a waterfall's palette. */
+export function waterfallRoleColors(colorPalette: readonly string[] | undefined): {
+	increase: string;
+	decrease: string;
+	total: string;
+} {
+	return {
+		increase: paletteColor(0, colorPalette),
+		decrease: paletteColor(1, colorPalette),
+		total: paletteColor(2, colorPalette),
+	};
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public: buildWaterfallViewModel
@@ -69,6 +83,7 @@ export function buildWaterfallViewModel(
 	const barWidth = (layout.plotWidth / catCount) * 0.6;
 	const gap = (layout.plotWidth / catCount) * 0.2;
 
+	const roles = waterfallRoleColors(chartData.colorPalette);
 	const primitives: Array<SvgRect | SvgLine> = [];
 	const dataLabels: SvgText[] = [];
 
@@ -80,11 +95,7 @@ export function buildWaterfallViewModel(
 		const x = layout.plotLeft + (layout.plotWidth / catCount) * i + gap;
 		const y = Math.min(barStartY, barEndY);
 		const h = Math.max(Math.abs(barEndY - barStartY), 1);
-		const barColor = isSubtotal
-			? WF_COLOR_TOTAL
-			: value >= 0
-				? WF_COLOR_POSITIVE
-				: WF_COLOR_NEGATIVE;
+		const barColor = isSubtotal ? roles.total : value >= 0 ? roles.increase : roles.decrease;
 
 		primitives.push({
 			kind: 'rect',
@@ -136,14 +147,21 @@ export function buildWaterfallViewModel(
 	const zeroLine = buildZeroLine(range, layout);
 	const catLabels = buildCategoryLabels(categoryLabels, layout, 'bar');
 
+	// A waterfall's legend always lists its three fixed bar roles, never the
+	// authored series (there is exactly one, and it never appears by name):
+	// COM-verified against charts-com.pptx slide 26, whose legend reads
+	// "Increase / Decrease / Total" in that order and colour.
 	const legendPos = chartData.style?.legendPosition ?? 'b';
-	const { legend, legendX, legendY, legendAnchor } = buildLegend(
-		chartData.series,
-		chartData.colorPalette,
+	const legend: LegendEntry[] = [
+		{ color: roles.increase, label: 'Increase' },
+		{ color: roles.decrease, label: 'Decrease' },
+		{ color: roles.total, label: 'Total' },
+	];
+	const { legendX, legendY, legendAnchor } = resolveLegendAnchorPosition(
 		layout.svgWidth,
-		legendPos,
 		layout.svgHeight,
 		layout.plotTop,
+		legendPos,
 	);
 
 	const title = resolveChartTitleText(chartData);
