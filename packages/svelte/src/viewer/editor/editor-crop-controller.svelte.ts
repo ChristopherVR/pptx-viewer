@@ -1,5 +1,5 @@
 import type { PptxElement } from 'pptx-viewer-core';
-import type { CropElementUpdate, CropSession } from 'pptx-viewer-shared';
+import type { CropElementUpdate, CropRestoreUpdate, CropSession } from 'pptx-viewer-shared';
 import {
 	canCropElement,
 	cancelCropUpdate,
@@ -190,7 +190,7 @@ export class EditorCropController {
 	 * Patch the picture wherever it lives: the active layer, or (after a slide
 	 * change) the slide that still holds it. Returns the patched element.
 	 */
-	#write(id: string, update: CropElementUpdate): PptxElement | null {
+	#write(id: string, update: CropElementUpdate | CropRestoreUpdate): PptxElement | null {
 		const patch = (element: PptxElement): PptxElement => ({ ...element, ...update }) as PptxElement;
 		const active = this.#editor.activeElements;
 		const current = active.find((element) => element.id === id);
