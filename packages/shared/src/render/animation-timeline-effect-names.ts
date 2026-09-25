@@ -6,6 +6,7 @@
  * @module render/animation-timeline-effect-names
  */
 
+import type { SlideFilterEffectName } from './animation-slide-filter';
 import type { StripsEffectName } from './animation-strips-reveal';
 
 /** Catalog of static effect keyframe short-names (without the `pptx-` prefix). */
@@ -13,6 +14,9 @@ export type EffectName =
 	// Strips (entr/exit.18): diagonal corner sweeps, one per travel direction;
 	// see `animation-strips-reveal`.
 	| StripsEffectName
+	// `slide(from*)` filter: content sliding through a fixed window; see
+	// `animation-slide-filter`.
+	| SlideFilterEffectName
 	| 'appear'
 	| 'fadeIn'
 	| 'flyInLeft'

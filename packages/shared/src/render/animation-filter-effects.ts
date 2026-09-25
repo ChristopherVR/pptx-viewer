@@ -20,15 +20,12 @@
  *    (`checkerboardIn`, `blindsIn`, `boxIn`, `circleIn`, `wheelIn`,
  *    `dissolveIn`/`Out`, `fadeIn`/`Out`, `zoomIn`/`Out`, `randomBarsIn`) built
  *    for the SAME preset families in `animation-keyframes`.
- *  - `slide` / `cover` / `uncover` / `push` / `pull` all map onto the same
- *    per-edge Fly keyframes (`flyInLeft`/`flyOutRight`/etc.): each is a
- *    directional translate-and-displace transition in the SMIL sense, and
- *    this single-element playback engine has no separate "the OTHER element
- *    also moves" concept, so all five collapse onto the one Fly mapping (see
- *    {@link resolveSlideEffect}). `cover`/`uncover` additionally carry
- *    diagonal subtype tokens (`fromTopLeft`, etc.) that
- *    {@link SLIDE_TOKEN_TO_SUFFIX} does not enumerate; those fall through to
- *    the same default bottom edge as an unrecognised `slide` subtype.
+ *  - `slide` plays its own content-through-a-window keyframes
+ *    (`animation-slide-filter`), derived from CreateVideo frames of a
+ *    hand-authored `slide(fromLeft)`/`slide(fromBottom)` effect.
+ *  - `cover` / `uncover` / `push` / `pull` are not animated by PowerPoint at
+ *    all (the same CreateVideo method): the entrance appears at its start and
+ *    the exit vanishes at its end, so they resolve to `cutIn` / `cutOut`.
  *  - `strips` resolves to the diagonal corner-to-corner sweep in
  *    `animation-strips-reveal` (one keyframe per travel direction), the same
  *    keyframes a preset-driven Strips effect (`presetID` 18) plays.
@@ -98,6 +95,7 @@ import {
 	redirectMaskEffectByFilterSubtype,
 	WIPE_FILTER_TOKEN_TO_SUBTYPE,
 } from './animation-presets';
+import { slideFilterEffectName } from './animation-slide-filter';
 import { resolveStripsDirection, stripsEffectName } from './animation-strips-reveal';
 import type { EffectName } from './animation-timeline-types';
 
@@ -173,23 +171,14 @@ const PIXELATE_MOSAIC_EFFECT: FilterEffectPair = { entr: 'pixelateIn', exit: 'pi
 export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = ['image'];
 
 // ==========================================================================
-// Slide / cover / uncover / push / pull (direct Fly mapping)
+// Slide (content through a window) / cover, uncover, push, pull (no motion)
 // ==========================================================================
 
 /**
- * Families whose subtype is a `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
- * direction token that maps directly onto a Fly keyframe. `cover` and
- * `uncover` also allow four diagonal tokens (`fromTopLeft`, etc.) that this
- * table does not enumerate; those fall through to the same default bottom
- * edge as an unrecognised `slide` subtype (see {@link resolveSlideEffect}).
+ * Families PowerPoint recognises but does not animate: CreateVideo shows the
+ * entrance appearing at the effect's start and the exit vanishing at its end.
  */
-const DIRECTIONAL_SLIDE_FAMILIES: ReadonlySet<string> = new Set([
-	'slide',
-	'cover',
-	'uncover',
-	'push',
-	'pull',
-]);
+const UNANIMATED_FAMILIES: ReadonlySet<string> = new Set(['cover', 'uncover', 'push', 'pull']);
 
 const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 'Bottom'>> = {
 	fromLeft: 'Left',
@@ -197,11 +186,6 @@ const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 
 	fromTop: 'Top',
 	fromBottom: 'Bottom',
 };
-
-function resolveSlideEffect(subtype: string | undefined, isExit: boolean): EffectName {
-	const suffix = subtype ? (SLIDE_TOKEN_TO_SUFFIX[subtype] ?? 'Bottom') : 'Bottom';
-	return isExit ? (`flyOut${suffix}` as EffectName) : (`flyIn${suffix}` as EffectName);
-}
 
 // ==========================================================================
 // Stretch (directional scale, reuses the slide direction tokens)
@@ -253,8 +237,11 @@ export function resolveFilterEffect(
 	if (filter.family === 'stretch') {
 		return resolveStretchEffect(filter.subtype, isExit);
 	}
-	if (DIRECTIONAL_SLIDE_FAMILIES.has(filter.family)) {
-		return resolveSlideEffect(filter.subtype, isExit);
+	if (filter.family === 'slide') {
+		return slideFilterEffectName(filter.subtype, isExit);
+	}
+	if (UNANIMATED_FAMILIES.has(filter.family)) {
+		return isExit ? 'cutOut' : 'cutIn';
 	}
 	if (filter.family === 'pixelate') {
 		const mapping = pixelateMosaic === true ? PIXELATE_MOSAIC_EFFECT : PIXELATE_SNAP_EFFECT;

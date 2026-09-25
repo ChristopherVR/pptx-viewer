@@ -61,32 +61,28 @@ describe('resolveFilterEffect', () => {
 		expect(resolveFilterEffect(filterAnim('fade'))).toBe('fadeIn');
 	});
 
-	it('maps slide(fromLeft)/slide(fromRight)/slide(fromTop)/slide(fromBottom) directly onto Fly', () => {
-		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'entr'))).toBe('flyInLeft');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromRight', 'entr'))).toBe('flyInRight');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromTop', 'entr'))).toBe('flyInTop');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromBottom', 'entr'))).toBe('flyInBottom');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'exit'))).toBe('flyOutLeft');
+	it('maps slide(fromLeft)/slide(fromRight)/slide(fromTop)/slide(fromBottom) onto the window slide', () => {
+		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'entr'))).toBe('slideInLeft');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromRight', 'entr'))).toBe('slideInRight');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromTop', 'entr'))).toBe('slideInTop');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromBottom', 'entr'))).toBe('slideInBottom');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'exit'))).toBe('slideOutLeft');
 	});
 
 	it('slide with no subtype defaults to the bottom edge', () => {
-		expect(resolveFilterEffect(filterAnim('slide', undefined, 'entr'))).toBe('flyInBottom');
+		expect(resolveFilterEffect(filterAnim('slide', undefined, 'entr'))).toBe('slideInBottom');
 	});
 
+	// CreateVideo of hand-authored `cover`/`uncover`/`push`/`pull` filters:
+	// PowerPoint does not animate them; the entrance appears at the start and
+	// the exit vanishes at the end.
 	it.each(['cover', 'uncover', 'push', 'pull'])(
-		'maps %s(fromLeft)/%s(fromRight) directly onto Fly, like slide',
+		'plays %s as an unanimated appear/vanish, as PowerPoint does',
 		(family) => {
-			expect(resolveFilterEffect(filterAnim(family, 'fromLeft', 'entr'))).toBe('flyInLeft');
-			expect(resolveFilterEffect(filterAnim(family, 'fromRight', 'exit'))).toBe('flyOutRight');
+			expect(resolveFilterEffect(filterAnim(family, 'fromLeft', 'entr'))).toBe('cutIn');
+			expect(resolveFilterEffect(filterAnim(family, 'fromTopLeft', 'exit'))).toBe('cutOut');
 		},
 	);
-
-	it('cover/uncover fall back to the bottom edge for an unenumerated diagonal token', () => {
-		expect(resolveFilterEffect(filterAnim('cover', 'fromTopLeft', 'entr'))).toBe('flyInBottom');
-		expect(resolveFilterEffect(filterAnim('uncover', 'fromBottomRight', 'exit'))).toBe(
-			'flyOutBottom',
-		);
-	});
 
 	it('maps stretch(fromLeft)/stretch(fromRight)/stretch(fromTop)/stretch(fromBottom) onto the directional stretch keyframes', () => {
 		expect(resolveFilterEffect(filterAnim('stretch', 'fromLeft', 'entr'))).toBe('stretchInLeft');
