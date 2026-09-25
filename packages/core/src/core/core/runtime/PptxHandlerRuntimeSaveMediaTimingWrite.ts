@@ -250,7 +250,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		}
 
 		if (hasBookmarks && media.bookmarks) {
-			let bmkExt = existingExts.find((e) => e['p14:bmkLst'] !== undefined);
+			// Update the list where it already lives: inside `p14:media` (the
+			// form PowerPoint writes) or, for a deck saved by an older build, a
+			// sibling extension. Adding a second list beside PowerPoint's own
+			// would leave two disagreeing copies.
+			const p14MediaExt = existingExts.find((e) => e['p14:media'] !== undefined);
+			const p14Media = p14MediaExt?.['p14:media'] as XmlObject | undefined;
+			let bmkExt: XmlObject | undefined =
+				p14Media && p14Media['p14:bmkLst'] !== undefined
+					? p14Media
+					: existingExts.find((e) => e['p14:bmkLst'] !== undefined);
 			if (!bmkExt) {
 				bmkExt = { '@_uri': '{C809E50D-3E49-4677-B9B1-B2B30C8E0B5F}' };
 				existingExts.push(bmkExt);

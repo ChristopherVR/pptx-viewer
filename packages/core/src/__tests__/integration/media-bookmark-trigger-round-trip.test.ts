@@ -137,6 +137,21 @@ describe('media bookmark triggers', () => {
 		expect(count(xml, /bmkName="BM1"/g)).toBe(2);
 	});
 
+	it('reads the bookmarks PowerPoint nests inside p14:media, and keeps one list on save', async () => {
+		const { handler, data } = await load(new Uint8Array(readFileSync(fixture)));
+		const clip = byName(data.slides[0]!.elements, 'Clip') as PptxElement & {
+			bookmarks?: { label: string; time: number }[];
+		};
+		expect(clip.bookmarks?.map((b) => [b.label, b.time])).toStrictEqual([
+			['BM1', 0.5],
+			['BM2', 1.5],
+		]);
+		data.slides[0]!.isDirty = true;
+		const xml = await slideXml(await handler.save(data.slides));
+		expect(count(xml, /<p14:bmkLst>/g)).toBe(1);
+		expect(xml).toMatch(/<p14:media[^>]*>\s*<p14:bmkLst>/);
+	});
+
 	it('keeps an untouched enveloped timing tree exactly once on a rewrite', async () => {
 		const { handler, data } = await load(new Uint8Array(readFileSync(fixture)));
 		data.slides[0]!.isDirty = true;

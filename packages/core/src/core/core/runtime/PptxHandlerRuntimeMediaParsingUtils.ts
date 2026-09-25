@@ -299,8 +299,14 @@ export function parseMediaExtensionData(
 				}
 			}
 
-			// p14:bmkLst — bookmarks
-			const bmkLst = ext['p14:bmkLst'] as XmlObject | undefined;
+			// p14:bmkLst: bookmarks. PowerPoint nests it INSIDE `p14:media`
+			// (COM-verified: `<p14:media r:embed="rId1"><p14:bmkLst>`); a
+			// sibling `p14:bmkLst` extension is what older builds of this
+			// project wrote, so both are read. Reading only the sibling form
+			// left every PowerPoint-authored bookmark invisible.
+			const bmkLst = ((p14Media?.['p14:bmkLst'] as XmlObject | undefined) ?? ext['p14:bmkLst']) as
+				| XmlObject
+				| undefined;
 			if (bmkLst) {
 				const bmks = ensureArray(bmkLst['p14:bmk']);
 				for (const bmk of bmks) {
