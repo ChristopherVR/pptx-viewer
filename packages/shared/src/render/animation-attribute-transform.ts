@@ -6,6 +6,11 @@ import type {
 
 import type { GeometryKind } from './animation-attribute-geometry';
 import { resolveGeometryStops } from './animation-attribute-geometry';
+import {
+	BOUNCE_SETTLE_SAMPLES,
+	bounceEndProgress,
+	bounceSettleStart,
+} from './animation-bounce-end';
 import type { AnimationElementBox } from './animation-render-context';
 
 type AttributeKind = 'opacity' | 'rotation' | 'scaleX' | 'scaleY' | 'translateX' | 'translateY';
@@ -21,74 +26,9 @@ interface ParsedComponent {
 }
 
 /**
- * Number of `%` samples generated across a bounce behaviour's settle phase
- * (from {@link PptxAttributeAnimation.bounceEnd} to the end of the ramp).
- * Only the discrete stops actually present in a `@keyframes` block are
- * visible to CSS's own linear interpolation between them, so the decaying
- * oscillation needs several intermediate samples to read as a bounce rather
- * than a single straight overshoot-and-back triangle.
- */
-const BOUNCE_SETTLE_SAMPLES = 16;
-
-/**
- * How many decaying oscillations the settle phase completes. Still NOT
- * fitted against a confirmed PowerPoint `CreateVideo` capture of a real
- * `bounceEnd` behaviour; chosen to read as a plausible "overshoot, bounce
- * twice, settle" curve.
- *
- * A 2026-09-25 attempt to fit this against real frame data was inconclusive
- * and is recorded here so the next attempt does not repeat it blind: there is
- * no COM-scriptable way found to AUTHOR `p14:bounceEnd` (it is not exposed on
- * `Effect`/`Effect.EffectParameters`/`Effect.Timing`), so the attempt hand-
- * wrote `p14:bounceEnd="40000"` onto a COM-authored Fly In's `<p:anim>`
- * (wrapped in `mc:AlternateContent`/`mc:Choice Requires="p14"`, mirroring how
- * this project already wraps other p14/p15 extensions) and re-opened that
- * file in PowerPoint for `CreateVideo`. PowerPoint accepted the file (no
- * repair prompt) and exported it, but pixel-measuring the shape's leading
- * edge across 60fps frames showed a perfectly smooth, monotonic ramp with NO
- * overshoot or oscillation at all - the opposite of the current
- * approximation's shape. That could mean either (a) the hand-authored file
- * does not actually trigger PowerPoint's own bounceEnd rendering (most
- * likely, since - unlike every other COM measurement in this codebase - this
- * one could not be validated by having PowerPoint itself WRITE the attribute
- * and reading it back), or (b) `CreateVideo`'s export path does not apply
- * this particular enhancement even when authored normally. Neither could be
- * confirmed, so the constants below were deliberately left unchanged rather
- * than "fitted" to an unverified curve. A real fix needs either a confirmed-
- * bouncing real-world corpus fixture (verified via PowerPoint's own live
- * on-screen preview, not just `CreateVideo`) or a COM/UI automation path that
- * actually sets Bounce End through the Effect Options dialog.
- */
-const BOUNCE_OSCILLATIONS = 2.5;
-
-/**
- * Overshoot amplitude as a fraction of the ramp's total travel distance.
- * Same caveat as {@link BOUNCE_OSCILLATIONS}: a reasoned approximation, not a
- * COM-measured constant.
- */
-const BOUNCE_OVERSHOOT_FRACTION = 0.12;
-
-/**
- * Decaying-cosine approximation of PowerPoint's Fly In "Bounce End" settle
- * curve: `s` is the 0-1 fraction of the settle phase (from `bounceEnd` to the
- * end of the behaviour). Returns a signed multiplier that starts at +1 (peak
- * overshoot, in the direction of travel) and decays to exactly 0 at `s = 1`,
- * so the animated value always lands precisely on `last.value` regardless of
- * how many oscillations are configured.
- */
-function bounceSettleMultiplier(s: number): number {
-	const amplitude = (1 - s) ** 2;
-	return amplitude * Math.cos(s * BOUNCE_OSCILLATIONS * 2 * Math.PI);
-}
-
-/**
  * Value for a bounce-shaped 2-stop ramp at a given LOCAL progress (0-1,
- * already relative to this component's own delay/duration). Before
- * `bounceEnd`, travel is the same plain linear ramp `valueAt` already does
- * for every other component; after it, the value oscillates around
- * `last.value` with decaying amplitude, landing exactly on it at
- * `localProgress = 1`. See {@link PptxAttributeAnimation.bounceEnd}'s doc for
- * why this is a reasoned approximation rather than a frame-fitted curve.
+ * already relative to this component's own delay/duration): PowerPoint's
+ * measured Bounce End curve, see `animation-bounce-end`.
  */
 function bounceValueAt(
 	first: { progress: number; value: number },
@@ -96,14 +36,7 @@ function bounceValueAt(
 	bounceEnd: number,
 	localProgress: number,
 ): number {
-	const travel = last.value - first.value;
-	if (localProgress <= bounceEnd) {
-		const ratio = bounceEnd <= 0 ? 1 : localProgress / bounceEnd;
-		return first.value + travel * ratio;
-	}
-	const settleSpan = Math.max(Number.EPSILON, 1 - bounceEnd);
-	const s = clamp01((localProgress - bounceEnd) / settleSpan);
-	return last.value + travel * BOUNCE_OVERSHOOT_FRACTION * bounceSettleMultiplier(s);
+	return first.value + (last.value - first.value) * bounceEndProgress(bounceEnd, localProgress);
 }
 
 export interface AttributeTransformState {
@@ -276,7 +209,8 @@ export function createAttributeTransformModel(
 		// CSS stops with no runtime easing of its own).
 		if (component.bounceEnd !== undefined) {
 			const settleStart = clamp01(
-				(component.delayMs + component.bounceEnd * component.durationMs) / effectDurationMs,
+				(component.delayMs + bounceSettleStart(component.bounceEnd) * component.durationMs) /
+					effectDurationMs,
 			);
 			const settleEnd = clamp01((component.delayMs + component.durationMs) / effectDurationMs);
 			for (let index = 1; index < BOUNCE_SETTLE_SAMPLES; index += 1) {

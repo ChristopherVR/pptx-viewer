@@ -80,7 +80,9 @@ describe('generic p:anim transform composition', () => {
 		// Several intermediate stops are sampled across the settle phase so the
 		// generated `@keyframes` block actually shows a bounce, not a single
 		// straight overshoot triangle.
-		const settlePhaseStops = (model?.progresses ?? []).filter((p) => p > 0.66 && p < 1);
+		// `bounceEnd` is the BOUNCING share of the duration, so the settle phase
+		// is the last 66% (starting at 0.34).
+		const settlePhaseStops = (model?.progresses ?? []).filter((p) => p > 0.34 && p < 1);
 		expect(settlePhaseStops.length).toBeGreaterThan(5);
 	});
 
@@ -100,7 +102,7 @@ describe('generic p:anim transform composition', () => {
 			],
 		});
 
-		// Arrives at the final position exactly at the bounceEnd fraction...
+		// Arrives at the final position after the travel share (1 - bounceEnd)...
 		expect(model?.stateAt(0.5)).toMatchObject({ translateX: 0 });
 		// ...then the settle phase deviates from a flat line before landing back
 		// on the final value.
