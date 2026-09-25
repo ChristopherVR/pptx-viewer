@@ -18,6 +18,7 @@
 	import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.svelte';
 	import AlignmentGuides from './AlignmentGuides.svelte';
 	import ChartQuickActionsOverlay from './ChartQuickActionsOverlay.svelte';
+	import CropOverlay from './CropOverlay.svelte';
 	import EditorLayer from './EditorLayer.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import MotionPathOverlay from './MotionPathOverlay.svelte';
@@ -74,6 +75,7 @@
 {/if}
 {#if editingActive}
 	<EditorLayer {controller} {scale} {spellCheck} />
+	<CropOverlay {editor} {scale} {mediaDataUrls} />
 	<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
 	<OutlineAuthoringLayer {editor} {canvasSize} {scale} />
 {/if}

@@ -151,7 +151,7 @@
 	{/if}
 	<div class="pptx-svelte-ribbon-content">
 		{#if activeTab === 'home'}
-			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} />
+			<HomeTab editor={props.editor} findReplace={props.findReplace} onnavigateslide={props.onnavigateslide} hiddenActions={props.hiddenActions} />
 		{:else if activeTab === 'insert'}
 			<InsertTab editor={props.editor} canvasSize={props.canvasSize} onheaderfooter={props.onheaderfooter} />
 		{:else if activeTab === 'draw'}

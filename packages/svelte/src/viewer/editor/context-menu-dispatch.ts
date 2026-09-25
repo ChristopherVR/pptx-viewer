@@ -7,8 +7,10 @@ import type {
 } from 'pptx-viewer-shared';
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	canInteractWithElement,
 	canMergeCells,
+	canMergeShapes,
 	computeMergeCellDown,
 	computeMergeCellRight,
 	computeSplitCell,
@@ -17,6 +19,7 @@ import {
 	insertTableElementColumn,
 	insertTableElementRow,
 	mergeCells,
+	mergeOperationForCommand,
 	removeTableElementColumn,
 	removeTableElementRow,
 	resolveEditPointsAvailability,
@@ -150,6 +153,9 @@ export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): Co
 		hasClipboard: editor.hasClipboard,
 		// Offered for a shape, greyed for `a:spLocks/@noEditPoints`.
 		editPoints: resolveEditPointsAvailability(editor.selectedElement),
+		// Merge Shapes on a mergeable multi-selection; Crop on a lone picture.
+		canMergeShapes: canMergeShapes(editor.selectedElements),
+		canCrop: canCropElement(editor.selectedElement),
 	});
 }
 
@@ -335,7 +341,16 @@ export function runContextMenuCommand(
 		case 'delete':
 			editor.deleteSelected();
 			return;
-		default:
+		case 'crop':
+			editor.cropOps.enter();
+			return;
+		default: {
+			const mergeOperation = mergeOperationForCommand(id);
+			if (mergeOperation) {
+				editor.arrangeOps.mergeSelected(mergeOperation);
+				return;
+			}
 			runTableCommand(id, deps);
+		}
 	}
 }

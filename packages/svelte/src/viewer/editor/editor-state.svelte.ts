@@ -44,6 +44,7 @@ import { EditorAnimationController } from './editor-animation-controller';
 import { EditorArrangeController } from './editor-arrange-controller';
 import { EditorBackgroundController } from './editor-background-controller';
 import { EditorClipboardController } from './editor-clipboard-controller';
+import { EditorCropController } from './editor-crop-controller.svelte';
 import type { LoadDocumentArgs } from './editor-document-lifecycle';
 import {
 	applyRemoteEditorSlides,
@@ -234,6 +235,8 @@ export class EditorState {
 	readonly slidesOps = new EditorSlidesController(this);
 	readonly sectionOps = new EditorSectionController(this);
 	readonly arrangeOps = new EditorArrangeController(this);
+	/** On-canvas picture crop mode (ribbon Crop / context-menu Crop). */
+	readonly cropOps = new EditorCropController(this);
 	readonly backgroundOps = new EditorBackgroundController(this);
 	readonly transitionOps = new EditorTransitionController(this);
 	readonly animationOps = new EditorAnimationController(this);
@@ -538,10 +541,13 @@ export class EditorState {
 	}
 
 	undo(): void {
+		// Undo in crop mode first commits the crop, so it is the step undone.
+		this.cropOps.commit();
 		restoreEditorSnapshot(this, this.history.undo(this.snapshot()));
 	}
 
 	redo(): void {
+		this.cropOps.commit();
 		restoreEditorSnapshot(this, this.history.redo(this.snapshot()));
 	}
 
