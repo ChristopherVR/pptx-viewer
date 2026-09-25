@@ -668,6 +668,12 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 				mode,
 				slides,
 				visibleSlideIndexes,
+				// The slide size and theme colours let the slide show resolve each
+				// effect against the shape's real box (a Fly In from the slide edge,
+				// Grow & Turn's `-#ppt_w/2`) and scheme-colour ramp stops; without
+				// them every effect fell back to its preset keyframe.
+				canvasSize,
+				themeColorMap: themeColorMapValue,
 				// File > Options > Advanced > "End with black slide". Off means the show
 				// exits straight to the editor instead of raising the black end screen.
 				endWithBlackSlide: viewerOptions.advanced.slideShowEndWithBlackSlide,
