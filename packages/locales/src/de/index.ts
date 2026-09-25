@@ -15,6 +15,9 @@ import { translations as masters_and_themes } from './masters-and-themes';
 import { translations as navigation_and_layout } from './navigation-and-layout';
 import { translations as presenting_and_slide_show } from './presenting-and-slide-show';
 import { translations as ribbon } from './ribbon';
+import { translations as ribbon_galleries } from './ribbon-galleries';
+import { translations as ribbon_galleries_data } from './ribbon-galleries-data';
+import { translations as ribbon_galleries_effects } from './ribbon-galleries-effects';
 import { translations as slide_templates } from './slide-templates';
 import { translations as smart_art } from './smart-art';
 import { translations as tables } from './tables';
@@ -44,4 +47,7 @@ export const translationsDe: Record<string, string> = {
 	...ribbon,
 	...slide_templates,
 	...viewer_options,
+	...ribbon_galleries,
+	...ribbon_galleries_effects,
+	...ribbon_galleries_data,
 };
