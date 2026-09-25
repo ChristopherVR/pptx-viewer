@@ -16,13 +16,25 @@ describe('animation preset catalog', () => {
 	// shipped ~21 entrance / ~8 exit / ~7 emphasis / ~8 motion-path entries.
 	// Each class should now be at least 4× larger to cover canonical PPT presets.
 
-	it('has at least 60 entrance presets', () => {
-		expect(ENTRANCE_PRESETS.length).toBeGreaterThanOrEqual(60);
+	// The 52 entrance/exit ids PowerPoint really has (COM: AddEffect for every
+	// MsoAnimEffect, then a presetID-k deck read back through EffectType).
+	const COM_ENTR_EXIT_IDS = [
+		1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
+		27, 28, 29, 30, 31, 34, 35, 37, 38, 39, 40, 41, 42, 43, 45, 47, 48, 49, 50, 51, 52, 53, 54, 55,
+		56, 58,
+	];
+
+	it('offers exactly the 52 COM-verified entrance presets', () => {
+		expect(ENTRANCE_PRESETS.map((p) => p.presetId)).toStrictEqual(
+			COM_ENTR_EXIT_IDS.map((id) => `entr.${id}`),
+		);
 		expect(ENTRANCE_PRESETS.every((p) => p.category === 'entrance')).toBeTruthy();
 	});
 
-	it('has at least 60 exit presets', () => {
-		expect(EXIT_PRESETS.length).toBeGreaterThanOrEqual(60);
+	it('offers exactly the 52 COM-verified exit presets', () => {
+		expect(EXIT_PRESETS.map((p) => p.presetId)).toStrictEqual(
+			COM_ENTR_EXIT_IDS.map((id) => `exit.${id}`),
+		);
 		expect(EXIT_PRESETS.every((p) => p.category === 'exit')).toBeTruthy();
 	});
 
@@ -210,9 +222,39 @@ describe('catalog round-trip integrity', () => {
 		}
 	});
 
-	it('catalog has at least 4× the previous total of typed presets', () => {
-		// Pre-expansion: ~21 entrance + ~8 exit + ~7 emphasis = 36 typed presets.
-		const totalTyped = ENTRANCE_PRESETS.length + EXIT_PRESETS.length + EMPHASIS_PRESETS.length;
-		expect(totalTyped).toBeGreaterThanOrEqual(36 * 4);
+	it('labels ids 27+ by the preset PowerPoint really saves there (COM)', () => {
+		const label = (presetId: string) => getAnimationPresetInfo(presetId)?.label;
+		expect(label('entr.27')).toBe('Color Typewriter');
+		expect(label('entr.28')).toBe('Credits');
+		expect(label('entr.29')).toBe('Ease In');
+		expect(label('entr.31')).toBe('Grow & Turn');
+		expect(label('entr.34')).toBe('Light Speed');
+		expect(label('entr.35')).toBe('Pinwheel');
+		expect(label('entr.38')).toBe('Swish');
+		expect(label('entr.39')).toBe('Thin Line');
+		expect(label('entr.40')).toBe('Unfold');
+		expect(label('entr.41')).toBe('Whip');
+		expect(label('entr.42')).toBe('Ascend');
+		expect(label('entr.43')).toBe('Center Revolve');
+		expect(label('entr.45')).toBe('Faded Swivel');
+		expect(label('entr.47')).toBe('Descend');
+		expect(label('entr.48')).toBe('Sling');
+		expect(label('entr.50')).toBe('Compress');
+		expect(label('entr.51')).toBe('Zip');
+		expect(label('entr.52')).toBe('Arc Up');
+		expect(label('entr.53')).toBe('Faded Zoom');
+		expect(label('entr.54')).toBe('Glide');
+		expect(label('entr.55')).toBe('Expand');
+		expect(label('entr.56')).toBe('Flip');
+		expect(label('entr.58')).toBe('Fold');
+		expect(label('exit.16')).toBe('Split');
+		expect(label('exit.17')).toBe('Collapse');
+		expect(label('exit.18')).toBe('Strips');
+		expect(label('exit.19')).toBe('Swivel');
+		expect(label('exit.55')).toBe('Contract');
+		for (const id of [32, 33, 36, 44, 46, 57, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68]) {
+			expect(getAnimationPresetInfo(`entr.${id}`), `entr.${id}`).toBeUndefined();
+			expect(getAnimationPresetInfo(`exit.${id}`), `exit.${id}`).toBeUndefined();
+		}
 	});
 });

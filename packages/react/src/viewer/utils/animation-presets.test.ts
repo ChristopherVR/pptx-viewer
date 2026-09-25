@@ -178,12 +178,13 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[26]).toBe('bounceIn');
 		});
 
-		it('should map preset ID 31 to "expandIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[31]).toBe('expandIn');
+		it('should map preset ID 31 to "growTurnIn" (Grow & Turn, COM; Expand is 55)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[31]).toBe('growTurnIn');
+			expect(PRESET_ID_TO_EFFECT.entr[55]).toBe('expandIn');
 		});
 
-		it('should map preset ID 42 to "floatIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
+		it('should map preset ID 42 to "floatUpIn" (Ascend, COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatUpIn');
 		});
 
 		it('should map preset ID 47 to "flyInTop" (Descend), not Swivel (real Swivel is entr.19)', () => {
@@ -194,8 +195,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[49]).toBe('spinnerIn');
 		});
 
-		it('should map preset ID 53 to "growTurnIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[53]).toBe('growTurnIn');
+		it('should map preset ID 53 to "zoomIn" (Faded Zoom, COM)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[53]).toBe('zoomIn');
 		});
 	});
 

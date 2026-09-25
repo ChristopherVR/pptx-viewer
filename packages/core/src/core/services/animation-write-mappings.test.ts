@@ -89,9 +89,9 @@ describe('pRESET_TO_OOXML', () => {
 			expect(PRESET_TO_OOXML['randomBarsIn'].presetId).toBe(14);
 		});
 
-		it('should map "expandIn" to entr, presetId 31 (spec: entr.31 = Expand)', () => {
+		it('should map "expandIn" to entr, presetId 55 (COM: msoAnimEffectExpand saves 55)', () => {
 			expect(PRESET_TO_OOXML['expandIn'].presetClass).toBe('entr');
-			expect(PRESET_TO_OOXML['expandIn'].presetId).toBe(31);
+			expect(PRESET_TO_OOXML['expandIn'].presetId).toBe(55);
 		});
 
 		it('should map "circleIn" to entr, presetId 6 (spec: entr.6 = Circle)', () => {
@@ -143,9 +143,9 @@ describe('pRESET_TO_OOXML', () => {
 			expect(PRESET_TO_OOXML['zoomOut'].presetId).toBe(23);
 		});
 
-		it('should map "shrinkOut" to exit, presetId 6', () => {
+		it('should map "shrinkOut" to exit, presetId 55 (Contract; exit.6 is Circle)', () => {
 			expect(PRESET_TO_OOXML['shrinkOut'].presetClass).toBe('exit');
-			expect(PRESET_TO_OOXML['shrinkOut'].presetId).toBe(6);
+			expect(PRESET_TO_OOXML['shrinkOut'].presetId).toBe(55);
 		});
 
 		it('should map "dissolveOut" to exit, presetId 9', () => {
@@ -176,9 +176,10 @@ describe('pRESET_TO_OOXML', () => {
 			});
 		});
 
-		it('does not collide with the pre-existing (different-id) "peekOut" entry', () => {
-			expect(PRESET_TO_OOXML['peekOut'].presetId).toBe(16);
+		it('"peekOut" is Peek Out (exit.12) too; exit.16 is Split', () => {
+			expect(PRESET_TO_OOXML['peekOut'].presetId).toBe(12);
 			expect(PRESET_TO_OOXML['peekOutDown'].presetId).toBe(12);
+			expect(PRESET_TO_OOXML['splitOut'].presetId).toBe(16);
 		});
 	});
 
@@ -291,12 +292,14 @@ describe('pRESET_TO_OOXML', () => {
 			expect(Object.keys(PRESET_TO_OOXML).length).toBeGreaterThanOrEqual(37 * 4);
 		});
 
-		it('should cover the full PowerPoint preset library (>=60 entr/exit, >=30 emph)', () => {
+		it('should cover the full PowerPoint preset library (52 entr/exit ids, >=30 emph)', () => {
 			const entr = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'entr');
 			const exit = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'exit');
 			const emph = Object.values(PRESET_TO_OOXML).filter((m) => m.presetClass === 'emph');
-			expect(entr.length).toBeGreaterThanOrEqual(60);
-			expect(exit.length).toBeGreaterThanOrEqual(60);
+			// COM: PowerPoint's entrance/exit preset space is exactly 52 ids, and
+			// every one has at least one typed name.
+			expect(new Set(entr.map((m) => m.presetId)).size).toBe(52);
+			expect(new Set(exit.map((m) => m.presetId)).size).toBe(52);
 			// The emphasis threshold was previously >=60, based on ids 1-64 filled
 			// by sequentially GUESSING a name per id with zero verification (see
 			// the header comment on `PRESET_TO_OOXML`'s "Emphasis effects"
@@ -342,8 +345,9 @@ describe('oOXML_TO_PRESET reverse lookups', () => {
 		expect(OOXML_TO_PRESET_ENTR[14]).toBe('randomBarsIn');
 	});
 
-	it('oOXML_TO_PRESET_ENTR maps id 31 back to "expandIn" and id 6 back to "circleIn"', () => {
-		expect(OOXML_TO_PRESET_ENTR[31]).toBe('expandIn');
+	it('oOXML_TO_PRESET_ENTR maps id 55 back to "expandIn", 31 to "growTurnIn" and id 6 back to "circleIn"', () => {
+		expect(OOXML_TO_PRESET_ENTR[55]).toBe('expandIn');
+		expect(OOXML_TO_PRESET_ENTR[31]).toBe('growTurnIn');
 		expect(OOXML_TO_PRESET_ENTR[6]).toBe('circleIn');
 	});
 
@@ -378,9 +382,9 @@ describe('oOXML_TO_PRESET reverse lookups', () => {
 		expect(OOXML_TO_PRESET_EXIT[1]).toBe('disappear');
 	});
 
-	it('oOXML_TO_PRESET_EXIT maps id 12 back to "peekOutDown" (Peek Out, verified via COM)', () => {
-		expect(OOXML_TO_PRESET_EXIT[12]).toBe('peekOutDown');
-		expect(ooxmlToPresetName({ presetClass: 'exit', presetId: 12 })).toBe('peekOutDown');
+	it('oOXML_TO_PRESET_EXIT maps id 12 back to "peekOut" (Peek Out, verified via COM)', () => {
+		expect(OOXML_TO_PRESET_EXIT[12]).toBe('peekOut');
+		expect(ooxmlToPresetName({ presetClass: 'exit', presetId: 12 })).toBe('peekOut');
 	});
 
 	it('oOXML_TO_PRESET_EMPH disambiguates aliased ids to canonical names', () => {

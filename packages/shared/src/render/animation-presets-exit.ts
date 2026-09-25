@@ -22,10 +22,8 @@ export const EXIT_PRESETS: Record<number, EffectName> = {
 	// exit.12 (Peek Out, presetSubtype 4 / bottom edge), verified via COM
 	// (this repo's own PowerShell automation): `AddEffect` with the Peek In
 	// `MsoAnimEffect` constant then `Effect.Exit = True` re-emits
-	// `presetID="12"` with `filter="wipe(down)"`. Named `peekOutDown` (not
-	// `peekOut`) because that name is already bound to exit.16's own
-	// (pre-existing, out-of-scope) "Peek Out" mismatch; see
-	// `animation-keyframes-exit-shapes.ts`'s note on both keyframes.
+	// `presetID="12"` with `filter="wipe(down)"`, played by the
+	// `peekOutDown` keyframe (exit.16 is Split, not a second Peek Out).
 	12: 'peekOutDown',
 	1: 'disappear',
 	2: 'flyOutBottom',
