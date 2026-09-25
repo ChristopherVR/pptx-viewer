@@ -292,6 +292,7 @@ export function renderParagraphRun(
 			baseFontFamily,
 			Boolean(segmentStyle.bold),
 			Boolean(segmentStyle.italic),
+			{ language: segmentStyle.language, rtl: ctx.paragraphRtl === true },
 		),
 		metricContext,
 		isUnderlineWords,

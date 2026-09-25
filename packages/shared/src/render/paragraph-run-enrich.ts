@@ -39,6 +39,8 @@ export interface RunExtrasInput {
 	blockScriptStyle: ScriptFontFields | undefined;
 	tabStops: TabStopSpec[] | undefined;
 	defaultTabSize: number | undefined;
+	/** Whether the paragraph is right-to-left. */
+	rtl?: boolean;
 }
 
 /** Per-segment context, resolved once and reused across a run's word pieces. */
@@ -53,7 +55,7 @@ export interface RunExtrasContext {
  * measurement context, once per segment rather than once per word-piece.
  */
 export function resolveRunExtrasContext(input: RunExtrasInput): RunExtrasContext {
-	const { seg, runFont, blockFont, blockScriptStyle, tabStops, defaultTabSize } = input;
+	const { seg, runFont, blockFont, blockScriptStyle, tabStops, defaultTabSize, rtl } = input;
 	const baseFontFamily = runFont.fontFamily ?? blockFont.fontFamily ?? DEFAULT_FONT_FAMILY;
 	const scriptFonts = resolveScriptFontSet(seg.style, blockScriptStyle, baseFontFamily);
 	const tabContext =
@@ -65,6 +67,7 @@ export function resolveRunExtrasContext(input: RunExtrasInput): RunExtrasContext
 					baseFontFamily,
 					Boolean(seg.style?.bold),
 					Boolean(seg.style?.italic),
+					{ language: seg.style?.language, rtl },
 				)
 			: undefined;
 	return { scriptFonts, baseFontFamily, tabContext };

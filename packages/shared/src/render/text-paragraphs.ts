@@ -146,6 +146,10 @@ export function buildParagraphs(
 				bodyStyle,
 			);
 
+			const rtl = resolveParagraphRtl(
+				paraSegments.map((seg) => ({ segment: seg })),
+				bodyStyle?.rtl,
+			);
 			const runs: ParagraphRun[] = buildParagraphRuns({
 				paraSegments,
 				paraIndices,
@@ -157,6 +161,7 @@ export function buildParagraphs(
 				defaultTabSize: geometryOverrides.defaultTabSize,
 				fontAlignment: geometryOverrides.fontAlignment,
 				fieldContext,
+				rtl: rtl === true,
 			});
 
 			// Suppress bullets for paragraphs with no visible text content.
@@ -193,10 +198,6 @@ export function buildParagraphs(
 				paraSegments.length > 0 ? paraSegments : terminator ? [terminator] : [],
 				hasTextProperties(element) ? element.textStyle?.fontSize : undefined,
 				fontScale,
-			);
-			const rtl = resolveParagraphRtl(
-				paraSegments.map((seg) => ({ segment: seg })),
-				bodyStyle?.rtl,
 			);
 			const align = resolveParagraphAlign(
 				paraSegments.map((seg) => ({ segment: seg })),

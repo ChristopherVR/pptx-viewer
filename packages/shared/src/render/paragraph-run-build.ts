@@ -107,6 +107,8 @@ export interface ParagraphRunBuildInput {
 	fontAlignment: string | undefined;
 	/** Context for `a:fld` substitution, when the caller supplied one. */
 	fieldContext: FieldSubstitutionContext | undefined;
+	/** Whether the paragraph is right-to-left (tab stops measure from the right). */
+	rtl?: boolean;
 }
 
 /**
@@ -125,6 +127,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		defaultTabSize,
 		fontAlignment,
 		fieldContext,
+		rtl,
 	} = input;
 	const runs: BuiltRun[] = [];
 	for (const [at, seg] of paraSegments.entries()) {
@@ -229,6 +232,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 			blockScriptStyle,
 			tabStops,
 			defaultTabSize,
+			rtl,
 		});
 
 		// A ruby run is emitted WHOLE, never through the per-word metric split

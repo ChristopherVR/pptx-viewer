@@ -103,7 +103,16 @@ function buildTabbedLine(
 	const segments = line.split('\t');
 	const trackedMeasure = (text: string) =>
 		resolveTrackedTextWidth(text, ctx.runFont, measure(text));
-	const rawPieces = computeTabbedLayout(segments, ctx.tabStops, trackedMeasure, ctx.defaultTabSize);
+	const rawPieces = computeTabbedLayout(
+		segments,
+		ctx.tabStops,
+		trackedMeasure,
+		ctx.defaultTabSize,
+		{
+			decimalSeparator: ctx.decimalSeparator,
+			rtl: ctx.rtl,
+		},
+	);
 	return rawPieces.map((piece): TabbedRunPiece => {
 		const tracking = resolveMetricTrackingPx(piece.text, ctx.runFont);
 		const style: RunStyle = {

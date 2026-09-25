@@ -25,6 +25,7 @@
 import type { TextStyle } from 'pptx-viewer-core';
 
 import type { RunFontSpec } from './text-metric-tracking';
+import { decimalAnchorIndex, decimalSeparatorForLanguage } from './text-tab-decimal';
 
 export type TabAlign = 'l' | 'ctr' | 'r' | 'dec';
 export type TabLeader = 'none' | 'dot' | 'hyphen' | 'underscore';
@@ -58,6 +59,16 @@ export interface TabRenderContext {
 	 * without re-deriving bold/italic/size from the canvas font string.
 	 */
 	runFont: RunFontSpec;
+	/** The run language's decimal separator, the anchor for `dec` stops. */
+	decimalSeparator?: string;
+	/** Whether the paragraph is right-to-left (stops measured from the right). */
+	rtl?: boolean;
+}
+
+/** Direction and locale inputs for {@link computeTabbedLayout}. */
+export interface TabbedLayoutOptions {
+	decimalSeparator?: string;
+	rtl?: boolean;
 }
 
 const EPS = 0.01;
@@ -75,6 +86,7 @@ export function buildTabContext(
 	fontFamily: string,
 	bold: boolean,
 	italic: boolean,
+	options: { language?: string; rtl?: boolean } = {},
 ): TabRenderContext | undefined {
 	if (!tabStops || tabStops.length === 0) {
 		return undefined;
@@ -85,7 +97,23 @@ export function buildTabContext(
 		defaultTabSize: typeof defaultTabSize === 'number' && defaultTabSize > 0 ? defaultTabSize : 0,
 		font,
 		runFont: { fontFamily, fontSizePx, bold, italic },
+		decimalSeparator: decimalSeparatorForLanguage(options.language),
+		rtl: options.rtl === true,
 	};
+}
+
+/**
+ * The alignment a stop takes in the layout's own start-to-end coordinates.
+ * In a right-to-left paragraph PowerPoint measures stop positions from the
+ * RIGHT edge but keeps `l`/`r` physical (COM-verified Hebrew tab slide:
+ * an `l` stop puts the piece's LEFT edge on the stop, an `r` stop its RIGHT
+ * edge), so in start-to-end terms they swap.
+ */
+function directedAlign(align: TabAlign, rtl: boolean | undefined): TabAlign {
+	if (!rtl) {
+		return align;
+	}
+	return align === 'l' ? 'r' : align === 'r' ? 'l' : align;
 }
 
 /** Map an OOXML leader token to the glyph used to fill the leader gap. */
@@ -103,15 +131,6 @@ export function leaderGlyph(leader: TabLeader | undefined): string {
 }
 
 /**
- * Index of the decimal separator used for decimal-tab alignment, or `-1` when
- * the piece has no decimal point (in which case decimal tabs behave like a
- * right tab, aligning the trailing edge to the stop).
- */
-function decimalIndex(text: string): number {
-	return text.indexOf('.');
-}
-
-/**
  * Compute the laid-out pieces for a single line split on `\t`.
  *
  * `segments` is the result of `line.split('\t')`; `segments[0]` is the text
@@ -123,6 +142,7 @@ export function computeTabbedLayout(
 	tabStops: TabStopSpec[],
 	measure: (text: string) => number,
 	defaultTabSize: number,
+	options: TabbedLayoutOptions = {},
 ): TabbedPiece[] {
 	const stops = tabStops
 		.filter((s) => Number.isFinite(s.position) && s.position > 0)
@@ -146,7 +166,7 @@ export function computeTabbedLayout(
 		let leader: TabLeader | undefined;
 		if (stop) {
 			tabX = stop.position;
-			align = stop.align;
+			align = directedAlign(stop.align, options.rtl);
 			leader = stop.leader;
 		} else {
 			tabX = Math.floor(cursor / step + 1 + EPS) * step;
@@ -160,9 +180,8 @@ export function computeTabbedLayout(
 		} else if (align === 'r') {
 			left = tabX - width;
 		} else if (align === 'dec') {
-			const decIdx = decimalIndex(text);
-			const beforeWidth = decIdx >= 0 ? measure(text.slice(0, decIdx)) : width;
-			left = tabX - beforeWidth;
+			const anchor = decimalAnchorIndex(text, options.decimalSeparator ?? '.');
+			left = tabX - (anchor >= text.length ? width : measure(text.slice(0, anchor)));
 		} else {
 			left = tabX;
 		}

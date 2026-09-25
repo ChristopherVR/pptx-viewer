@@ -66,6 +66,48 @@ describe('computeTabbedLayout', () => {
 		expect(pieces[1].left).toBe(80);
 	});
 
+	// COM-verified decimal-stop anchors (a 300pt `dec` stop, 2026-09 wave).
+	it.each([
+		['en-US', '1234,56 EUR', 7],
+		['de-DE', '1234,56 EUR', 4],
+		['de-DE', '1.234,56 EUR', 5],
+		['en-US', '1,234.56 USD', 5],
+		['fr-FR', '1 234,56 EUR', 1],
+		['en-US', '123 units', 3],
+		['en-US', 'abc def', 7],
+		['en-US', '-3.25x', 2],
+		['de-DE', '7.5 EUR', 3],
+		['en-US', '$12', 3],
+		['en-US', '12abc.5', 2],
+	])('decimal tab in %s anchors "%s" after %i characters', (language, text, before) => {
+		const stops: TabStopSpec[] = [{ position: 200, align: 'dec' }];
+		const separator = buildTabContext(stops, 48, 16, 'Arial', false, false, {
+			language,
+		})?.decimalSeparator;
+		const pieces = computeTabbedLayout(['', text], stops, measure, 48, {
+			decimalSeparator: separator,
+		});
+		expect(pieces[1].left).toBe(200 - before * 10);
+	});
+
+	// COM-verified Hebrew tab slide: in an RTL paragraph the stop positions
+	// are measured from the right, but `l`/`r` stay physical, so in
+	// start-to-end terms an `l` stop aligns like an LTR `r` stop and vice versa.
+	it('mirrors l/r stops in a right-to-left paragraph', () => {
+		const stops: TabStopSpec[] = [
+			{ position: 100, align: 'l' },
+			{ position: 300, align: 'r' },
+		];
+		const pieces = computeTabbedLayout(['A', 'BB', 'CCC'], stops, measure, 48, { rtl: true });
+		expect(pieces[1].left).toBe(80);
+		expect(pieces[2].left).toBe(300);
+	});
+
+	it('keeps default (unlisted) tabs start-aligned in a right-to-left paragraph', () => {
+		const pieces = computeTabbedLayout(['x', 'y'], [], measure, 96, { rtl: true });
+		expect(pieces[1].left).toBe(96);
+	});
+
 	it('fills the gap with the leader glyph', () => {
 		const stops: TabStopSpec[] = [{ position: 100, align: 'r', leader: 'dot' }];
 		const pieces = computeTabbedLayout(['Label', '12'], stops, measure, 48);
