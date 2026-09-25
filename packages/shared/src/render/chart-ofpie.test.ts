@@ -139,3 +139,52 @@ describe('buildOfPieViewModel', () => {
 		expect(lines).toHaveLength(0);
 	});
 });
+
+describe('buildOfPieViewModel matches PowerPoint (COM: charts-com.pptx slides 5-6)', () => {
+	const pathsOf = (vm: ReturnType<typeof buildOfPieViewModel>) =>
+		vm.primitives.filter((p) => p.kind === 'path');
+
+	it('paints the Other slice with the c:dPt one past the last point', () => {
+		const vm = buildOfPieViewModel(
+			chartElement({}),
+			{
+				chartType: 'ofPie',
+				categories: ['A', 'B', 'C', 'D', 'E'],
+				series: [
+					{
+						name: 'S',
+						values: [40, 30, 10, 6, 4],
+						dataPoints: [{ idx: 5, spPr: { fillColor: '#0E3A4F' } }],
+					},
+				],
+				ofPieOptions: { ofPieType: 'pie', splitType: 'pos', splitPos: 2 },
+			} as PptxChartData,
+			['A', 'B', 'C', 'D', 'E'],
+		);
+		// Primary: A, B, C, then Other.
+		expect(pathsOf(vm)[3]?.kind === 'path' && pathsOf(vm)[3].fill).toBe('#0E3A4F');
+	});
+
+	it('centres the Other slice on three o clock and joins it to the secondary pie top and bottom', () => {
+		const element = chartElement({
+			ofPieOptions: { ofPieType: 'pie', splitType: 'pos', splitPos: 2 },
+		});
+		const vm = buildOfPieViewModel(element, (element as { chartData: PptxChartData }).chartData, [
+			'A',
+			'B',
+			'C',
+			'D',
+			'E',
+		]);
+		const lines = vm.primitives.filter((p) => p.kind === 'line');
+		expect(lines).toHaveLength(2);
+		const [upper, lower] = lines as Array<{ x1: number; y1: number; x2: number; y2: number }>;
+		// Symmetric about the horizontal through the primary centre.
+		const cy = 300 * 0.5;
+		expect(upper.y1 - cy).toBeCloseTo(cy - lower.y1, 5);
+		expect(upper.y1).toBeLessThan(cy);
+		// Solid lines ending on the secondary pie's vertical axis.
+		expect(upper.x2).toBeCloseTo(480 * 0.78, 5);
+		expect(lines.every((l) => l.kind === 'line' && l.dashArray === undefined)).toBeTruthy();
+	});
+});

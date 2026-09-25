@@ -81,10 +81,16 @@ export function resolveSecondaryIndices(
 	return result;
 }
 
-/** Cumulative slice angles for a set of values, starting at 12 o'clock. */
-export function sliceAngles(values: ReadonlyArray<number>): SliceAngle[] {
+/**
+ * Cumulative clockwise slice angles for a set of values, starting at
+ * `startAngle` (radians, SVG orientation: 0 = 3 o'clock, positive = down).
+ */
+export function sliceAngles(
+	values: ReadonlyArray<number>,
+	startAngle = -Math.PI / 2,
+): SliceAngle[] {
 	const total = values.reduce((s, v) => s + Math.abs(v), 0) || 1;
-	let cursor = -Math.PI / 2;
+	let cursor = startAngle;
 	return values.map((v) => {
 		const span = (Math.abs(v) / total) * Math.PI * 2;
 		const start = cursor;
@@ -94,21 +100,31 @@ export function sliceAngles(values: ReadonlyArray<number>): SliceAngle[] {
 }
 
 /** Compute the primary + secondary plot placement for a chart element. */
-export function computeOfPieGeom(element: PptxElement, secondPieSize: number): OfPieGeom {
+export function computeOfPieGeom(
+	element: PptxElement,
+	secondPieSize: number,
+	toBar = false,
+): OfPieGeom {
 	// Match the element frame exactly; bindings stretch the viewBox with
 	// preserveAspectRatio "none", so a minimum would scale non-uniformly.
 	const svgWidth = Math.max(element.width, 1);
 	const svgHeight = Math.max(element.height, 1);
-	const primaryR = Math.max(Math.min(svgWidth * 0.28, svgHeight * 0.4), 4);
+	// COM-verified placement (charts-com.pptx slides 5 and 6): pie-of-pie puts
+	// the primary pie at about a quarter of the width with a radius near 30% of
+	// the height and the secondary pie at 78%; bar-of-pie gives the primary pie
+	// far more room (38% across, radius 42% of the height) and a slim bar at 80%.
+	const primaryR = toBar
+		? Math.max(Math.min(svgWidth * 0.24, svgHeight * 0.42), 4)
+		: Math.max(Math.min(svgWidth * 0.2, svgHeight * 0.3), 4);
 	const secScale = Math.min(Math.max(secondPieSize / 100, 0.3), 1.4);
 	return {
 		svgWidth,
 		svgHeight,
-		primaryCx: svgWidth * 0.3,
-		primaryCy: svgHeight * 0.52,
+		primaryCx: svgWidth * (toBar ? 0.38 : 0.25),
+		primaryCy: svgHeight * 0.5,
 		primaryR,
-		secondaryCx: svgWidth * 0.76,
-		secondaryCy: svgHeight * 0.52,
+		secondaryCx: svgWidth * (toBar ? 0.8 : 0.78),
+		secondaryCy: svgHeight * 0.5,
 		secondaryR: Math.max(primaryR * secScale, 4),
 	};
 }
