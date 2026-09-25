@@ -109,6 +109,15 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		if (overrideColorXml) {
 			style.lnRefColorXml = overrideColorXml;
 		}
+		// `idx="0"` references no line style at all: PowerPoint draws no
+		// outline (COM: Shape Styles "Intense Effect" row, Line.Visible = 0),
+		// exactly as `fillRef idx="0"` means no fill. The colour child only
+		// matters for a real list entry.
+		if (idx === 0 && String(refNode['@_idx'] ?? '').trim() === '0') {
+			style.strokeWidth = 0;
+			style.strokeColor = 'transparent';
+			return;
+		}
 
 		if (
 			!Number.isFinite(idx) ||

@@ -483,4 +483,26 @@ export interface ShapeStyle {
 	 * `authored-shape-style.ts`'s `effectIsPurelyStyleMatrix`.
 	 */
 	inheritedEffectStyle?: ShapeStyle;
+	/**
+	 * Set by a style-matrix pick (the Shape Styles gallery): the shape's own
+	 * `spPr` fill, outline and effects were replaced by `<p:style>`, so the
+	 * writer clears whatever the retained `spPr` still authored before it
+	 * writes the (now reference-owned) style. Never parsed; editor state only.
+	 */
+	styleMatrixReset?: boolean;
+}
+
+/**
+ * The result of resolving a `<p:style>` block against the loaded theme.
+ *
+ * `shapeStyle` is exactly what the load pipeline would have produced for a
+ * shape whose `spPr` authors nothing and whose `<p:style>` is `styleXml`:
+ * the flat fill/outline/effect values a renderer needs, the reference indices
+ * and colours the writer re-emits, and the inheritance baselines that tell the
+ * writer to leave `spPr` empty while the flat values still agree with them.
+ */
+export interface ResolvedStyleMatrix {
+	shapeStyle: ShapeStyle;
+	/** The text colour `<a:fontRef>` names, resolved to hex. */
+	fontColor?: string;
 }

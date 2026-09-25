@@ -4,6 +4,7 @@ import { serializeEffectDagContainer } from '../builders/effect-dag-containers';
 import { setEffectChild } from '../builders/effect-list-roundtrip';
 import { effectIsPurelyStyleMatrix } from './authored-shape-style';
 import { writeEffectList } from './save-shape-effect-list';
+import { resetSpPrEffectsForStyleMatrix } from './save-shape-style-reset';
 
 /**
  * Pre-built effect XML the runtime supplies, computed from the shape's
@@ -43,6 +44,7 @@ export function writeShapeEffects(
 	shapeStyle: ShapeStyle,
 	ctx: ShapeEffectsContext,
 ): void {
+	resetSpPrEffectsForStyleMatrix(spPr, shapeStyle);
 	if (effectIsPurelyStyleMatrix(shapeStyle)) {
 		return;
 	}

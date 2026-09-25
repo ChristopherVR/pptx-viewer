@@ -20,7 +20,7 @@ import {
 } from '../builders';
 import { PptxRuntimeDependencyFactory } from '../factories';
 import type { IPptxRuntimeDependencyFactory } from '../factories';
-import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeLoadPipeline';
+import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeStyleMatrixResolve';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	public constructor(

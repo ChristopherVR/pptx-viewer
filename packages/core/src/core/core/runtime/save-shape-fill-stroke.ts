@@ -7,6 +7,7 @@ import { createLineStyleGate, fillIsPurelyStyleMatrix } from './authored-shape-s
 import { setFillChoice } from './fill-choice-group';
 import { fillMatchesInheritedGroupFill } from './save-group-fill';
 import { writeLineFill } from './save-line-fill';
+import { resetSpPrFormattingForStyleMatrix } from './save-shape-style-reset';
 
 /**
  * Everything the fill/stroke writer needs from the save runtime, supplied as
@@ -379,6 +380,7 @@ export function writeShapeFillAndStroke(
 	shapeStyle: ShapeStyle,
 	ctx: ShapeFillStrokeContext,
 ): void {
+	resetSpPrFormattingForStyleMatrix(spPr, shapeStyle);
 	writeShapeFill(spPr, shapeStyle, ctx);
 	writeShapeStroke(spPr, shapeStyle, ctx);
 }

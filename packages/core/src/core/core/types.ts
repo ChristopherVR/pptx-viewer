@@ -34,6 +34,7 @@ import type {
 	PptxViewProperties,
 	ParsedTableStyleMap,
 	XmlObject,
+	ResolvedStyleMatrix,
 } from '../types';
 
 export interface PptxHandlerLoadOptions {
@@ -257,6 +258,8 @@ export interface IPptxHandlerRuntime {
 	updateThemeColorScheme(colorScheme: PptxThemeColorScheme): Promise<void>;
 	updateThemeFontScheme(fontScheme: PptxThemeFontScheme): Promise<void>;
 	updateThemeName(name: string): Promise<void>;
+	/** Resolve a `<p:style>` node against the loaded theme (see PptxHandlerRuntimeStyleMatrixResolve). */
+	resolveStyleMatrixReferences(styleXml: XmlObject): ResolvedStyleMatrix;
 	applyTheme(
 		colorScheme: PptxThemeColorScheme,
 		fontScheme: PptxThemeFontScheme,
