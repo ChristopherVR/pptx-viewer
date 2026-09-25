@@ -30,7 +30,7 @@ describe('angular: native animation @filter fallback', () => {
 		expect(timeline.clickGroups).toHaveLength(1);
 		const step = timeline.clickGroups[0].steps[0];
 		expect(step.elementId).toBe('shape1');
-		expect(step.keyframeName).toBe('pptx-flyInLeft');
+		expect(step.keyframeName).toBe('pptx-slideInLeft');
 	});
 
 	it('falls back to the generic fade for a genuinely unmapped filter family', () => {
