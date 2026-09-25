@@ -198,23 +198,15 @@ const CORE_SLIDE_TRANSITION_KEYFRAMES = `
 }
 
 /* ── Zoom ───────────────────────────────────────────────────────────── */
-@keyframes pptx-tr-zoom-in {
-	from { transform: scale(0); opacity: 0; }
-	to   { transform: scale(1); opacity: 1; }
+/* PowerPoint's Zoom (Box Out / Box In) is a centred box reveal, not a scale,
+ * and each moves during only HALF the duration: see resolveZoomTransition. */
+@keyframes pptx-tr-zoom-box-grow {
+	0%, 50% { clip-path: inset(50% 50% 50% 50%); }
+	100%    { clip-path: inset(0 0 0 0); }
 }
-@keyframes pptx-tr-zoom-out {
-	from { transform: scale(1); opacity: 1; }
-	to   { transform: scale(2); opacity: 0; }
-}
-/* Zoom, dir="out": the outgoing slide shrinks away instead of growing past the
- * viewer, and the incoming slide starts oversized and settles into place. */
-@keyframes pptx-tr-zoom-out-rev {
-	from { transform: scale(1); opacity: 1; }
-	to   { transform: scale(0); opacity: 0; }
-}
-@keyframes pptx-tr-zoom-in-rev {
-	from { transform: scale(2); opacity: 0; }
-	to   { transform: scale(1); opacity: 1; }
+@keyframes pptx-tr-zoom-box-shrink {
+	0%       { clip-path: inset(0 0 0 0); }
+	50%, 100% { clip-path: inset(50% 50% 50% 50%); }
 }
 
 /* ── Blinds ─────────────────────────────────────────────────────────── */
