@@ -145,6 +145,7 @@ import { useMasterViewCrud } from './composables/useMasterViewCrud';
 import { useMasterViewWiring } from './composables/useMasterViewWiring';
 import { useMobileChrome } from './composables/useMobileChrome';
 import { useMultiSelectOps } from './composables/useMultiSelectOps';
+import { provideOutlineAuthoring } from './composables/useOutlineAuthoring';
 import { usePasswordProtection } from './composables/usePasswordProtection';
 import { usePasteSpecial } from './composables/usePasteSpecial';
 import { usePresentationControls } from './composables/usePresentationControls';
@@ -487,6 +488,9 @@ const ops = useEditorOperations({
 	selectedElementIds,
 	templateElementsBySlideId,
 });
+// Edit Points and the Freeform: Shape / Curve tools: one store, injected by
+// the ribbon buttons and the stage overlay (commits are ordinary undo steps).
+const outlineAuthoring = provideOutlineAuthoring(ops, () => customization.resolved.value);
 
 watch(zoom, (level) => {
 	emit('zoom-change', level);
@@ -913,6 +917,7 @@ const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useC
 	},
 	aiEnabled: () => aiEnabled.value,
 	customization: () => customization.resolved.value,
+	onEditPoints: outlineAuthoring.startEditPoints,
 	onAskAi: () => {
 		aiPanel.askAboutSelection();
 		aiPanelOpen.value = true;

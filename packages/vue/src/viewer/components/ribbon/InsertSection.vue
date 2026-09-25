@@ -42,6 +42,7 @@ import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
+import FreeformToolButtons from './FreeformToolButtons.vue';
 import InsertHyperlinkButton from './InsertHyperlinkButton.vue';
 import { grp, ic, pill } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
@@ -348,6 +349,7 @@ function previewTime(): string {
 			{{ t('pptx.insert.shape') }}
 		</button>
 	</div>
+	<FreeformToolButtons :can-edit="canEdit" />
 	<button
 		:disabled="!canEdit"
 		:class="pill"

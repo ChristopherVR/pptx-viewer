@@ -5,6 +5,7 @@ import {
 	customizeContextMenuEntries,
 	hasMultipleSelectedTableCells,
 	resolveContextMenuElementId,
+	resolveEditPointsAvailability,
 	resolveTopLevelElementId,
 	scrollInspectorSectionIntoView,
 } from 'pptx-viewer-shared';
@@ -85,6 +86,8 @@ export interface UseContextMenuInput {
 	onEmptyCanvasContextMenu?: (x: number, y: number) => void;
 	/** The host's resolved UI customisation (hidden commands / disabled menu). */
 	customization?: () => ResolvedCustomization;
+	/** "Edit Points": offered (per the shared lock / type rules) only when wired. */
+	onEditPoints?: (element: PptxElement) => void;
 }
 
 export interface UseContextMenuResult {
@@ -127,6 +130,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 		onFixAi,
 		onEmptyCanvasContextMenu,
 		customization,
+		onEditPoints,
 	} = input;
 
 	const contextMenu = ref<ContextMenuState>({
@@ -176,6 +180,7 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 			selectionGroupable: selectionGroupable.value,
 			aiEnabled: aiEnabled?.(),
 			hasClipboard: hasClipboard.value,
+			editPoints: onEditPoints ? resolveEditPointsAvailability(contextElement.value) : undefined,
 		});
 		const entries = customization ? customizeContextMenuEntries(built, customization()) : built;
 		return entries.flatMap((entry, index) => {
@@ -299,6 +304,11 @@ export function useContextMenu(input: UseContextMenuInput): UseContextMenuResult
 				break;
 			case 'edit-text':
 				enterInlineEdit(target);
+				break;
+			case 'edit-points':
+				if (contextElement.value) {
+					onEditPoints?.(contextElement.value);
+				}
 				break;
 			case 'save-as-picture':
 				void saveContextMenuElementAsPicture(

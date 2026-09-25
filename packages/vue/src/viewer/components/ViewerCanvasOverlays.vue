@@ -21,7 +21,7 @@ import type {
 	TextStyle,
 } from 'pptx-viewer-core';
 import type { PptxAiConfig } from 'pptx-viewer-shared/ai';
-import { useTemplateRef } from 'vue';
+import { computed, useTemplateRef } from 'vue';
 
 import type { AiPanelController } from '../composables/ai/useAiPanelController';
 import type { UseCollaborationWiringResult } from '../composables/useCollaborationWiring';
@@ -30,6 +30,7 @@ import type { UseInkDrawingResult } from '../composables/useInkDrawing';
 import type { UseInlineEditingResult } from '../composables/useInlineEditing';
 import type { UseInspectorWiringResult } from '../composables/useInspectorWiring';
 import type { MarqueeRect } from '../composables/useMarqueeSelection';
+import { useOutlineAuthoring } from '../composables/useOutlineAuthoring';
 import type { CanvasSize } from '../types';
 import AiChangeOverlay from './ai/AiChangeOverlay.vue';
 import AiFocusHighlightOverlay from './ai/AiFocusHighlightOverlay.vue';
@@ -43,12 +44,13 @@ import GridOverlay from './GridOverlay.vue';
 import InlineTextEditor from './InlineTextEditor.vue';
 import MarqueeOverlay from './MarqueeOverlay.vue';
 import MotionPathOverlay from './MotionPathOverlay.vue';
+import OutlineAuthoringLayer from './OutlineAuthoringLayer.vue';
 import RemoteSelectionOverlay from './RemoteSelectionOverlay.vue';
 import type { DrawingTool } from './ribbon/ribbon-types';
 import SelectionOverlay from './SelectionOverlay.vue';
 import SnapLinesOverlay from './SnapLinesOverlay.vue';
 
-defineProps<{
+const props = defineProps<{
 	canEdit: boolean;
 	/** True while the slideshow overlay is up: every editing affordance hides. */
 	presenting: boolean;
@@ -90,6 +92,14 @@ defineProps<{
 	onRequestEdit: (id: string) => void;
 	onFormat: (patch: Partial<TextStyle>) => void;
 }>();
+const outlineAuthoring = useOutlineAuthoring();
+/** A shape in Edit Points mode shows its vertices instead of resize handles. */
+const selectionElements = computed(() => {
+	const editing = outlineAuthoring?.editPointsElementId.value;
+	return editing
+		? props.selectedElements.filter((el) => el.id !== editing)
+		: props.selectedElements;
+});
 const selectionOverlay = useTemplateRef('selectionOverlay');
 const drawingOverlay = useTemplateRef('drawingOverlay');
 const connectorOverlay = useTemplateRef('connectorOverlay');
@@ -188,7 +198,7 @@ defineExpose({
 	<SelectionOverlay
 		ref="selectionOverlay"
 		v-if="canEdit && !presenting"
-		:elements="selectedElements"
+		:elements="selectionElements"
 		:selected-ids="selectedElementIds"
 		:zoom="effectiveZoom"
 		:inline-editing="Boolean(inlineEdit.inlineEditingElement.value)"
@@ -232,6 +242,14 @@ defineExpose({
 		:elements="activeSlide?.elements ?? []"
 		:zoom="effectiveZoom"
 		@commit="drag.onConnectorEndpoint"
+	/>
+
+	<!-- Edit Points / Freeform: Shape / Curve (above the selection chrome) -->
+	<OutlineAuthoringLayer
+		v-if="canEdit && !presenting"
+		:active-slide="activeSlide"
+		:canvas-size="canvasSize"
+		:scale="effectiveZoom"
 	/>
 
 	<InlineTextEditor
