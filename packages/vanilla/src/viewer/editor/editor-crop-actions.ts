@@ -10,7 +10,7 @@ import {
 	readCropInsets,
 	startCropSession,
 } from 'pptx-viewer-shared';
-import type { CropElementUpdate, NaturalImageSize } from 'pptx-viewer-shared';
+import type { CropElementUpdate, CropRestoreUpdate, NaturalImageSize } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import { getActiveElements, replaceActiveElements } from './editor-active-elements';
@@ -63,14 +63,16 @@ function findElementAnywhere(state: ViewerState, id: string): PptxElement | unde
 	return undefined;
 }
 
-const applyUpdate = (element: PptxElement, update: CropElementUpdate): PptxElement =>
-	({ ...element, ...update }) as PptxElement;
+const applyUpdate = (
+	element: PptxElement,
+	update: CropElementUpdate | CropRestoreUpdate,
+): PptxElement => ({ ...element, ...update }) as PptxElement;
 
 /** The state patch writing `update` onto element `id`, wherever it lives. */
 function patchElement(
 	state: ViewerState,
 	id: string,
-	update: CropElementUpdate,
+	update: CropElementUpdate | CropRestoreUpdate,
 ): Partial<ViewerState> {
 	const active = getActiveElements(state);
 	if (active.some((element) => element.id === id)) {
