@@ -77,6 +77,8 @@ interface PaintedPart {
 	triangles: SolidTriangles;
 	color: string;
 	gradient?: SmartArt3DGradient;
+	/** The mesh's fill opacity (a Venn circle's 50% alpha); 1 when opaque. */
+	opacity: number;
 }
 
 function buildPart(
@@ -116,6 +118,8 @@ function buildPart(
 		map: texture,
 		vertexColors: true,
 		side: three.DoubleSide,
+		transparent: part.opacity < 1,
+		opacity: part.opacity,
 	});
 	disposables.push(geometry, material);
 	return new three.Mesh(geometry, material);
@@ -160,9 +164,17 @@ export function buildLitMeshObject(
 			appendCap(three, contour, cap);
 		}
 		const parts: PaintedPart[] = [
-			{ triangles: body, color: mesh.fill, gradient: mesh.gradient },
-			{ triangles: sides, color: mesh.solid?.extrusionColor ?? mesh.fill },
-			{ triangles: contour, color: mesh.solid?.contourColor ?? mesh.fill },
+			{ triangles: body, color: mesh.fill, gradient: mesh.gradient, opacity: mesh.opacity },
+			{
+				triangles: sides,
+				color: mesh.solid?.extrusionColor ?? mesh.fill,
+				opacity: mesh.opacity,
+			},
+			{
+				triangles: contour,
+				color: mesh.solid?.contourColor ?? mesh.fill,
+				opacity: mesh.opacity,
+			},
 		];
 		for (const part of parts) {
 			const built = buildPart(three, part, light, localEye, disposables);

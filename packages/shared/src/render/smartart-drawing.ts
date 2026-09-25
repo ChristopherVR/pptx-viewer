@@ -21,8 +21,11 @@ import type {
 	SmartArtStyle,
 } from 'pptx-viewer-core';
 
-import { contrastTextColor } from './color-contrast';
 import type { CssStyleMap } from './element-style-transform';
+import { resolveDrawingShapeGradient } from './smartart-drawing-gradient';
+import type { RenderedGradient } from './smartart-drawing-gradient';
+import { drawingShapeFillOpacity, drawingShapeLabelColor } from './smartart-drawing-label-color';
+import type { DrawingViewBox } from './smartart-drawing-viewbox';
 import { styleShadow, styleStroke } from './smartart-layout-helpers';
 import { getPresetShapeVectorGeometry } from './stroke-outline';
 import type { SvgTextLine } from './svg-text-lines';
@@ -36,6 +39,11 @@ export const PALETTES: Record<SmartArtColorScheme, string[]> = {
 	monochromatic1: ['#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#2563eb', '#1d4ed8'],
 	monochromatic2: ['#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe', '#4f46e5', '#4338ca'],
 };
+
+export { drawingShapeFillOpacity, drawingShapeLabelColor };
+export { computeDrawingViewBox } from './smartart-drawing-viewbox';
+export type { DrawingViewBox } from './smartart-drawing-viewbox';
+export type { RenderedGradient, RenderedGradientStop } from './smartart-drawing-gradient';
 
 export const DEFAULT_PALETTE: string[] = PALETTES.colorful1;
 
@@ -90,38 +98,6 @@ export function buildChromeStyle(chrome: PptxSmartArtChrome | undefined): CssSty
  */
 export type RenderedShapeKind = 'image' | 'ellipse' | 'path' | 'rect';
 
-/** One stop of a cached shape's gradient fill, ready to place as an SVG `<stop>`. */
-export interface RenderedGradientStop {
-	/** Percentage offset, e.g. `"37%"`. */
-	offset: string;
-	color: string;
-	opacity?: number;
-}
-
-/**
- * A gradient paint server for a cached shape, in SVG terms.
- *
- * The OOXML angle is already converted to the axis endpoints here, because a
- * gradient is not expressible as a plain `fill` string: the binding has to emit
- * a `<defs>` entry and reference it. Keeping the geometry on this side means the
- * conversion happens once instead of once per binding.
- */
-export interface RenderedGradient {
-	/** Element id to emit and reference; unique within the diagram. */
-	id: string;
-	kind: 'linear' | 'radial';
-	/** Axis endpoints as percentages (`kind === 'linear'`). */
-	x1?: string;
-	y1?: string;
-	x2?: string;
-	y2?: string;
-	/** Centre and radius as percentages (`kind === 'radial'`). */
-	cx?: string;
-	cy?: string;
-	r?: string;
-	stops: RenderedGradientStop[];
-}
-
 /** Projected view-model for a single pre-computed drawing shape. */
 export interface RenderedShape {
 	key: string;
@@ -144,6 +120,11 @@ export interface RenderedShape {
 	cy: number;
 	/** Paint for the body, or `'none'` when the shape declares `a:noFill`. */
 	fill: string;
+	/**
+	 * Opacity (0..1) to paint a solid {@link fill} at, from the cached colour's
+	 * `a:alpha`; absent when opaque. Maps onto SVG `fill-opacity`.
+	 */
+	fillOpacity?: number;
 	stroke: string;
 	strokeWidth: number;
 	transform: string | undefined;
@@ -187,152 +168,6 @@ function drawingTextBaseLineHeightRatio(text: string | undefined): number {
 	return CJK_SMARTART_TEXT_RE.test(text ?? '')
 		? CJK_SMARTART_LINE_HEIGHT_RATIO
 		: DEFAULT_SMARTART_LINE_HEIGHT_RATIO;
-}
-
-/**
- * The fill of the nearest shape painted beneath `shape`'s centre.
- *
- * SmartArt layouts commonly stack an unfilled shape over a painted one to hold
- * the label, so what the label has to be readable against is that lower shape,
- * not the transparency of its own box. Shapes are in paint order, so the search
- * runs backwards from the label and takes the first painted hit.
- */
-function underlyingFill(
-	shape: PptxSmartArtDrawingShape,
-	shapes: PptxSmartArtDrawingShape[],
-	index: number,
-): string | undefined {
-	const centerX = shape.x + shape.width / 2;
-	const centerY = shape.y + shape.height / 2;
-	for (let below = index - 1; below >= 0; below--) {
-		const candidate = shapes[below];
-		if (!candidate || candidate.fillNone || !candidate.fillColor) {
-			continue;
-		}
-		if (
-			centerX >= candidate.x &&
-			centerX <= candidate.x + candidate.width &&
-			centerY >= candidate.y &&
-			centerY <= candidate.y + candidate.height
-		) {
-			return candidate.fillColor;
-		}
-	}
-	return undefined;
-}
-
-/**
- * Pick a label colour for a cached shape whose runs declare none.
- *
- * PowerPoint leaves the colour implicit far more often than not, and resolves it
- * against the shape's own fill. Defaulting to white instead makes every label on
- * a light content panel invisible.
- */
-export function drawingShapeLabelColor(
-	shape: PptxSmartArtDrawingShape,
-	shapes: PptxSmartArtDrawingShape[],
-	index: number,
-	resolvedFill: string,
-): string {
-	// A gradient fill is read against its middle stop (what most of the label
-	// sits on), not the shape underneath.
-	const stops = shape.fillGradientStops;
-	const gradientBasis =
-		resolvedFill.startsWith('url(') && stops && stops.length > 0
-			? stops[Math.floor((stops.length - 1) / 2)]?.color
-			: undefined;
-	const basis =
-		gradientBasis ??
-		(resolvedFill === 'none' || resolvedFill.startsWith('url(')
-			? underlyingFill(shape, shapes, index)
-			: resolvedFill);
-	return basis ? contrastTextColor(basis) : '#1a1a1a';
-}
-
-/** SVG `viewBox` bounding-box derived from all drawing shapes. */
-export interface DrawingViewBox {
-	minX: number;
-	minY: number;
-	width: number;
-	height: number;
-}
-
-/** Compute the SVG viewBox that fits all drawing shapes, rebasing to (0, 0). */
-export function computeDrawingViewBox(shapes: readonly PptxSmartArtDrawingShape[]): DrawingViewBox {
-	let minX = Infinity;
-	let minY = Infinity;
-	let maxX = -Infinity;
-	let maxY = -Infinity;
-	for (const s of shapes) {
-		const shapeMinX = Math.min(s.x, s.textFrameX ?? s.x);
-		const shapeMinY = Math.min(s.y, s.textFrameY ?? s.y);
-		const shapeMaxX = Math.max(
-			s.x + s.width,
-			(s.textFrameX ?? s.x) + (s.textFrameWidth ?? s.width),
-		);
-		const shapeMaxY = Math.max(
-			s.y + s.height,
-			(s.textFrameY ?? s.y) + (s.textFrameHeight ?? s.height),
-		);
-		if (shapeMinX < minX) {
-			minX = shapeMinX;
-		}
-		if (shapeMinY < minY) {
-			minY = shapeMinY;
-		}
-		if (shapeMaxX > maxX) {
-			maxX = shapeMaxX;
-		}
-		if (shapeMaxY > maxY) {
-			maxY = shapeMaxY;
-		}
-	}
-	if (!Number.isFinite(minX)) {
-		return { minX: 0, minY: 0, width: 1, height: 1 };
-	}
-	return {
-		minX,
-		minY,
-		width: maxX - minX || 1,
-		height: maxY - minY || 1,
-	};
-}
-
-/**
- * Build the SVG gradient for a cached shape's `a:gradFill`, or `undefined` when
- * it has none.
- *
- * The OOXML angle is clockwise from +x with y pointing down, which is also the
- * SVG convention, so sin/cos map straight onto the axis endpoints.
- */
-function resolveGradient(
-	shape: PptxSmartArtDrawingShape,
-	id: string,
-): RenderedGradient | undefined {
-	const stops = shape.fillGradientStops;
-	if (!stops || stops.length === 0) {
-		return undefined;
-	}
-	const mapped: RenderedGradientStop[] = stops.map((stop) => ({
-		offset: `${Math.max(0, Math.min(100, stop.position))}%`,
-		color: stop.color,
-		...(stop.opacity !== undefined ? { opacity: stop.opacity } : {}),
-	}));
-	if (shape.fillGradientType === 'radial') {
-		return { id, kind: 'radial', cx: '50%', cy: '50%', r: '50%', stops: mapped };
-	}
-	const radians = ((shape.fillGradientAngle ?? 0) * Math.PI) / 180;
-	const dx = Math.cos(radians) / 2;
-	const dy = Math.sin(radians) / 2;
-	return {
-		id,
-		kind: 'linear',
-		x1: `${(0.5 - dx) * 100}%`,
-		y1: `${(0.5 - dy) * 100}%`,
-		x2: `${(0.5 + dx) * 100}%`,
-		y2: `${(0.5 + dy) * 100}%`,
-		stops: mapped,
-	};
 }
 
 /** Which primitive paints this shape's body, from its preset type. */
@@ -382,7 +217,7 @@ export function projectDrawingShapes(
 	return shapes.map((shape, i): RenderedShape => {
 		const gradient = shape.fillNone
 			? undefined
-			: resolveGradient(shape, `${elementId}-dspgrad-${shape.id}-${i}`);
+			: resolveDrawingShapeGradient(shape, `${elementId}-dspgrad-${shape.id}-${i}`);
 		// Precedence: authored transparency, then gradient, then a pattern's
 		// foreground (the closest flat stand-in for one), then solid, then palette.
 		const fill = shape.fillNone
@@ -390,6 +225,7 @@ export function projectDrawingShapes(
 			: gradient
 				? `url(#${gradient.id})`
 				: (shape.fillPatternForegroundColor ?? shape.fillColor ?? paletteColour(i, palette));
+		const fillOpacity = gradient ? undefined : drawingShapeFillOpacity(shape);
 		const relX = shape.x - minX;
 		const relY = shape.y - minY;
 		const kind = resolveShapeKind(shape, Boolean(shape.fillImageUrl));
@@ -458,6 +294,7 @@ export function projectDrawingShapes(
 			cx,
 			cy,
 			fill,
+			...(fillOpacity !== undefined ? { fillOpacity } : {}),
 			stroke,
 			strokeWidth: shape.strokeWidth ?? sw,
 			transform,

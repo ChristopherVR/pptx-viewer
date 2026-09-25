@@ -35,6 +35,7 @@ import type {
 } from './smartart-3d-types';
 import { computeDrawingViewBox, projectDrawingShapes, resolvePalette } from './smartart-drawing';
 import type { RenderedShape } from './smartart-drawing';
+import { drawingShapeMeshOpacity } from './smartart-drawing-label-color';
 import { flattenSvgPath } from './svg-path-flatten';
 
 /** Small world-space z step between successively painted (stacked) shapes. */
@@ -190,7 +191,7 @@ function meshForDrawingShape(
 		fillNone: fill === undefined,
 		stroke: rendered.stroke === 'none' ? 'transparent' : rendered.stroke,
 		strokeWidth: rendered.strokeWidth,
-		opacity: 1,
+		opacity: drawingShapeMeshOpacity(shape),
 		imageUrl: rendered.imageUrl,
 		position: { x: worldX(center.x), y: worldY(center.y), z },
 		rotation: { x: 0, y: 0, z: 0 },
