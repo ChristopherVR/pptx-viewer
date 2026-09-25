@@ -46,10 +46,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 	});
 
 	// ── Heavy ──
-	it('heavy → solid, 3px', () => {
+	it('heavy → solid, 2px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'heavy')).toStrictEqual({
 			textDecorationStyle: 'solid',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 		});
 	});
 
@@ -61,10 +61,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('dottedHeavy → dotted, 3px', () => {
+	it('dottedHeavy → dotted, 2px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dottedHeavy')).toStrictEqual({
 			textDecorationStyle: 'dotted',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 		});
 	});
 
@@ -76,10 +76,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('dashHeavy → dashed, 3px', () => {
+	it('dashHeavy → dashed, 2px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dashHeavy')).toStrictEqual({
 			textDecorationStyle: 'dashed',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 		});
 	});
 
@@ -92,10 +92,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('dashLongHeavy → dashed, 3px, offset 3px', () => {
+	it('dashLongHeavy → dashed, 2px, offset 3px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dashLongHeavy')).toStrictEqual({
 			textDecorationStyle: 'dashed',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 			textUnderlineOffset: '3px',
 		});
 	});
@@ -109,10 +109,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('dotDashHeavy → dashed, 3px, offset 2px', () => {
+	it('dotDashHeavy → dashed, 2px, offset 2px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dotDashHeavy')).toStrictEqual({
 			textDecorationStyle: 'dashed',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 			textUnderlineOffset: '2px',
 		});
 	});
@@ -126,10 +126,10 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('dotDotDashHeavy → dotted, 3px, offset 3px', () => {
+	it('dotDotDashHeavy → dotted, 2px, offset 3px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dotDotDashHeavy')).toStrictEqual({
 			textDecorationStyle: 'dotted',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '2px',
 			textUnderlineOffset: '3px',
 		});
 	});
@@ -142,18 +142,18 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
-	it('wavyHeavy → wavy, 3px', () => {
+	it('wavyHeavy → wavy, 1.5px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'wavyHeavy')).toStrictEqual({
 			textDecorationStyle: 'wavy',
-			textDecorationThickness: '3px',
+			textDecorationThickness: '1.5px',
 		});
 	});
 
 	// ── Wavy double (approximation) ──
-	it('wavyDbl → wavy, 2px, offset 1px', () => {
+	it('wavyDbl → wavy, 1px, offset 1px', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'wavyDbl')).toStrictEqual({
 			textDecorationStyle: 'wavy',
-			textDecorationThickness: '2px',
+			textDecorationThickness: '1px',
 			textUnderlineOffset: '1px',
 		});
 	});

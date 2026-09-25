@@ -18,7 +18,7 @@ import {
 } from './paragraph-run-enrich';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import type { ReflectionWrapperStyle } from './reflection';
-import { splitWordsForUnderline } from './text-decoration';
+import { splitWordsForUnderline, splitsUnderlineIntoWords } from './text-decoration';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import { substituteFieldText } from './text-field-substitution';
 import { applyFontAlignmentFallback } from './text-font-alignment';
@@ -204,7 +204,7 @@ export function buildParagraphRuns(input: ParagraphRunBuildInput): BuiltRun[] {
 		// so without this they fell back to `resolveUnderlineDecorationStyle`'s
 		// continuous-underline approximation even when the run's OWN text has
 		// no ruby/tab in the way.
-		const underlineWords = seg.style?.underline === true && seg.style?.underlineStyle === 'words';
+		const underlineWords = splitsUnderlineIntoWords(seg.style);
 		// `a:pPr/@fontAlgn` positions the run within the LINE box when the
 		// paragraph mixes run sizes; a run's own super/subscript shift always
 		// wins (see `applyFontAlignmentFallback`).

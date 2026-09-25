@@ -12,6 +12,13 @@ import type { TextStyle } from 'pptx-viewer-core';
 /** CSS `text-decoration-style` keyword values. */
 export type CssTextDecorationStyle = 'solid' | 'double' | 'dotted' | 'dashed' | 'wavy';
 
+/**
+ * Stroke of the `*Heavy` underline variants. PowerPoint draws a heavy
+ * underline about twice as thick as a single one (COM-verified, audit-text
+ * slide 12); 3px read as a bar under 24pt text.
+ */
+const HEAVY_PX = '2px';
+
 /** EMU per CSS px, matching every other length conversion in this package. */
 const EMU_PER_PX = 9525;
 
@@ -73,17 +80,10 @@ export function resolveUnderlineDecorationStyle(
 		case 'sng':
 			return { textDecorationStyle: 'solid', textDecorationThickness: '1px' };
 
-		// D2-G3: `words` underlines only the non-whitespace characters, leaving
-		// inter-word spaces unmarked (ST_TextUnderlineType, ECMA-376 §20.1.10.64),
-		// distinct from `sng`'s continuous line. A single `text-decoration` on
-		// the whole run cannot skip spaces (CSS's `text-decoration-skip: spaces`
-		// never shipped in Chromium, the app's target runtime - see the
-		// `hanging-punctuation` precedent in `kinsoku-styles.ts`), so this falls
-		// back to the same continuous solid underline as `sng` rather than
-		// silently drawing nothing (the previous `default: undefined` behaviour).
-		// A binding wanting the true per-word gap needs to split the run into
-		// per-word pieces before applying this decoration - see
-		// {@link splitWordsForUnderline}.
+		// `words` (ST_TextUnderlineType, ECMA-376 §20.1.10.64) is specified as
+		// "underline words only", but PowerPoint draws it as one continuous
+		// line under the spaces too (COM-verified, audit-text slide 12), so it
+		// renders exactly like `sng`; see {@link splitsUnderlineIntoWords}.
 		case 'words':
 			return { textDecorationStyle: 'solid', textDecorationThickness: '1px' };
 
@@ -93,19 +93,19 @@ export function resolveUnderlineDecorationStyle(
 
 		// Heavy (thick solid)
 		case 'heavy':
-			return { textDecorationStyle: 'solid', textDecorationThickness: '3px' };
+			return { textDecorationStyle: 'solid', textDecorationThickness: HEAVY_PX };
 
 		// Dotted
 		case 'dotted':
 			return { textDecorationStyle: 'dotted', textDecorationThickness: '1px' };
 		case 'dottedHeavy':
-			return { textDecorationStyle: 'dotted', textDecorationThickness: '3px' };
+			return { textDecorationStyle: 'dotted', textDecorationThickness: HEAVY_PX };
 
 		// Dashed
 		case 'dash':
 			return { textDecorationStyle: 'dashed', textDecorationThickness: '1px' };
 		case 'dashHeavy':
-			return { textDecorationStyle: 'dashed', textDecorationThickness: '3px' };
+			return { textDecorationStyle: 'dashed', textDecorationThickness: HEAVY_PX };
 
 		// Long dashed (offset to distinguish from regular dash)
 		case 'dashLong':
@@ -117,7 +117,7 @@ export function resolveUnderlineDecorationStyle(
 		case 'dashLongHeavy':
 			return {
 				textDecorationStyle: 'dashed',
-				textDecorationThickness: '3px',
+				textDecorationThickness: HEAVY_PX,
 				textUnderlineOffset: '3px',
 			};
 
@@ -131,7 +131,7 @@ export function resolveUnderlineDecorationStyle(
 		case 'dotDashHeavy':
 			return {
 				textDecorationStyle: 'dashed',
-				textDecorationThickness: '3px',
+				textDecorationThickness: HEAVY_PX,
 				textUnderlineOffset: '2px',
 			};
 
@@ -145,21 +145,22 @@ export function resolveUnderlineDecorationStyle(
 		case 'dotDotDashHeavy':
 			return {
 				textDecorationStyle: 'dotted',
-				textDecorationThickness: '3px',
+				textDecorationThickness: HEAVY_PX,
 				textUnderlineOffset: '3px',
 			};
 
 		// Wavy
+		// PowerPoint's waves are shallow: a CSS wave's amplitude grows with its
+		// thickness, so the heavy/double variants stay thin rather than
+		// turning into a deep zigzag (COM-verified, audit-text slide 12).
 		case 'wavy':
 			return { textDecorationStyle: 'wavy', textDecorationThickness: '1px' };
 		case 'wavyHeavy':
-			return { textDecorationStyle: 'wavy', textDecorationThickness: '3px' };
-
-		// Wavy double (wavy + thicker as closest CSS approximation)
+			return { textDecorationStyle: 'wavy', textDecorationThickness: '1.5px' };
 		case 'wavyDbl':
 			return {
 				textDecorationStyle: 'wavy',
-				textDecorationThickness: '2px',
+				textDecorationThickness: '1px',
 				textUnderlineOffset: '1px',
 			};
 
@@ -208,6 +209,20 @@ export function resolveUnderlineLineDecoration(
 		}
 	}
 	return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/**
+ * Whether a run's underline should be split into per-word pieces with a gap
+ * under the spaces. Always `false`: although `u="words"` is specified as
+ * words-only, PowerPoint 365 draws it continuously, exactly like `sng`
+ * (COM-verified: audit-text slide 12's "words under line" is underlined
+ * across both spaces). The per-word plumbing ({@link splitWordsForUnderline})
+ * stays for callers that opt in explicitly.
+ */
+export function splitsUnderlineIntoWords(
+	_style: { underline?: boolean; underlineStyle?: string } | undefined,
+): boolean {
+	return false;
 }
 
 /** One word-or-whitespace piece of a run's text, for `u="words"` rendering. */

@@ -9,6 +9,7 @@ import {
 	resolveMetricTrackingPx,
 	resolveScriptFontSet,
 	scaleFontSizeForAutoFit,
+	splitsUnderlineIntoWords,
 	stripUnderlineDecoration,
 } from 'pptx-viewer-shared';
 import type { ParagraphRun, RunStyle } from 'pptx-viewer-shared';
@@ -259,8 +260,7 @@ export function renderParagraphRun(
 	// one run, so `run.style` carries no underline and `nestedStyle` is empty;
 	// the decoration a word must redeclare rides `run.underlineWordPieces`
 	// instead (the same field Vue/Angular/Svelte/Vanilla render directly).
-	const isUnderlineWords =
-		Boolean(segmentStyle.underline) && segmentStyle.underlineStyle === 'words';
+	const isUnderlineWords = splitsUnderlineIntoWords(segmentStyle);
 	const wordDecoration = isUnderlineWords
 		? (nestedStyle ??
 			(run.underlineWordPieces?.find((piece) => piece.style)?.style as

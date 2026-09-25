@@ -262,6 +262,8 @@ export function segmentStyleToCss(
 	}
 	if (deco.length > 0) {
 		style.textDecoration = deco.join(' ');
+		// PowerPoint's underline runs straight through descenders (COM-verified).
+		style.textDecorationSkipInk = 'none';
 	}
 	applyExtraRunProps(
 		style,

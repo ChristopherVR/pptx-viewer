@@ -30,10 +30,15 @@ describe('resolveUnderlineDecorationStyle', () => {
 		});
 	});
 
+	// COM-verified (audit-text slide 12): a heavy underline is about twice a
+	// single one, and PowerPoint's waves stay shallow in every wavy variant.
 	it('uses thickness for heavy variants', () => {
-		expect(resolveUnderlineDecorationStyle(false, 'heavy')!.textDecorationThickness).toBe('3px');
+		expect(resolveUnderlineDecorationStyle(false, 'heavy')!.textDecorationThickness).toBe('2px');
 		expect(resolveUnderlineDecorationStyle(false, 'dottedHeavy')!.textDecorationThickness).toBe(
-			'3px',
+			'2px',
+		);
+		expect(resolveUnderlineDecorationStyle(false, 'wavyHeavy')!.textDecorationThickness).toBe(
+			'1.5px',
 		);
 	});
 
@@ -42,7 +47,7 @@ describe('resolveUnderlineDecorationStyle', () => {
 		expect(resolveUnderlineDecorationStyle(false, 'dotDotDash')!.textUnderlineOffset).toBe('3px');
 		expect(resolveUnderlineDecorationStyle(false, 'wavyDbl')).toStrictEqual({
 			textDecorationStyle: 'wavy',
-			textDecorationThickness: '2px',
+			textDecorationThickness: '1px',
 			textUnderlineOffset: '1px',
 		});
 	});

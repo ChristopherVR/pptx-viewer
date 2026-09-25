@@ -1,15 +1,14 @@
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright spec, `test`/`expect` come from @playwright/test */
 /**
- * `a:rPr/@u="words"` underlines only the words of a run, leaving the
- * inter-word space unmarked - distinct from `sng`'s continuous line.
- *
- * `packages/shared/src/render/text-run-spacing.ts`'s `splitStyledRun` (with
- * `text-decoration.ts`'s `splitWordsForUnderline`) splits such a run into
- * per-word and per-gap text pieces so only the words carry the CSS
- * `text-decoration-line: underline`. A binding that renders the run as one
- * span underlines the gap too, which is exactly the class of bug this spec
- * pins: it inspects the DOM text NODES rather than assuming any particular
- * span layout, so it holds regardless of how a binding structures its markup.
+ * `a:rPr/@u="words"` is specified as "underline words only", but PowerPoint
+ * draws it as one continuous line under the spaces too, exactly like `sng`
+ * (COM-verified in the 2026-09 limitations wave: an exported slide shows the
+ * line across both gaps, and PowerPoint's own object model rejects
+ * `msoUnderlineWords` as out of range). `splitsUnderlineIntoWords` in
+ * `packages/shared/src/render/text-decoration.ts` therefore keeps such a run
+ * whole. This spec pins that every binding underlines the gap as well: it
+ * inspects the DOM text NODES rather than assuming any particular span
+ * layout, so it holds regardless of how a binding structures its markup.
  *
  * Fixture: `underline-words.pptx` (`ALPHA BETA`, one run, `u="words"`).
  *
@@ -66,14 +65,9 @@ async function measureDecoration(page: Page, marker: string): Promise<DecoratedP
 	}, marker);
 }
 
-/** True when every piece that has non-whitespace content is underlined. */
-function everyWordUnderlined(pieces: DecoratedPiece[]): boolean {
-	return pieces.every((piece) => piece.text.trim().length === 0 || piece.underlined);
-}
-
-/** True when at least one piece is PURE whitespace and NOT underlined. */
-function someGapUndecorated(pieces: DecoratedPiece[]): boolean {
-	return pieces.some((piece) => piece.text.trim().length === 0 && !piece.underlined);
+/** The pieces (words or gaps) that are NOT underlined. */
+function undecoratedPieces(pieces: DecoratedPiece[]): DecoratedPiece[] {
+	return pieces.filter((piece) => !piece.underlined);
 }
 
 /** The full text reconstructed from the pieces, for a sanity check. */
@@ -90,7 +84,7 @@ async function readSlide(page: Page, origin: string): Promise<DecoratedPiece[]> 
 }
 
 test.describe('u="words" underline', () => {
-	test('every binding underlines the words but not the inter-word gap', async ({
+	test('every binding underlines the words and the gap, like PowerPoint', async ({
 		browser,
 	}, testInfo) => {
 		test.slow();
@@ -102,16 +96,11 @@ test.describe('u="words" underline', () => {
 			if (!UNDERLINE_WORDS_TEXT.split('').every((ch) => ch === ' ' || rendered.includes(ch))) {
 				problems.push(`renders "${rendered}", expected the fixture's "${UNDERLINE_WORDS_TEXT}"`);
 			}
-			if (!everyWordUnderlined(value)) {
-				const bad = value.filter((p) => p.text.trim().length > 0 && !p.underlined);
+			const bad = undecoratedPieces(value);
+			if (bad.length > 0) {
 				problems.push(
-					`word piece(s) not underlined: ${bad.map((p) => JSON.stringify(p.text)).join(', ')}`,
-				);
-			}
-			if (!someGapUndecorated(value)) {
-				problems.push(
-					'no whitespace-only piece is left undecorated: the inter-word gap is underlined too ' +
-						'(the run was rendered as one continuous span rather than split at word boundaries)',
+					`piece(s) not underlined: ${bad.map((p) => JSON.stringify(p.text)).join(', ')} ` +
+						'(PowerPoint underlines u="words" continuously, gaps included)',
 				);
 			}
 			return problems.length > 0 ? [`${framework.name}: ${problems.join('; ')}`] : [];
