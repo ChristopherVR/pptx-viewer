@@ -524,7 +524,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const lvlRaw = pPrRaw?.['@_lvl'];
 			if (lvlRaw !== undefined) {
 				const lvlParsed = Number.parseInt(String(lvlRaw), 10);
-				if (Number.isFinite(lvlParsed) && lvlParsed > 0) {
+				// An authored `lvl="0"` is kept as level 0 (not dropped as the
+				// schema default) so a rewritten slide re-emits the attribute.
+				if (Number.isFinite(lvlParsed) && lvlParsed >= 0) {
 					segments[firstSegmentIndex].paragraphLevel = Math.min(Math.max(lvlParsed, 0), 8);
 				}
 			}

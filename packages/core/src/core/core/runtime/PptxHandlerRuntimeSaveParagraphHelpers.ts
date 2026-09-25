@@ -67,9 +67,12 @@ export function buildParagraphPropertiesXml(
 	const paragraphProps: XmlObject = {};
 	const owns = authoredPropertyGate(authoredProperties, level);
 
-	// CT_TextParagraphProperties: `lvl` is an attribute on `a:pPr`. Only emit
-	// when non-zero — PowerPoint omits the attribute for top-level paragraphs.
-	if (typeof level === 'number' && Number.isFinite(level) && level > 0) {
+	// CT_TextParagraphProperties: `lvl` is an attribute on `a:pPr`. A level
+	// reaches here only when the paragraph carries one (its own parsed `lvl`,
+	// including an authored `lvl="0"` PowerPoint itself often writes, or one
+	// set by an edit), so it is written whenever present; a paragraph that
+	// never had one gets none.
+	if (typeof level === 'number' && Number.isFinite(level) && level >= 0) {
 		paragraphProps['@_lvl'] = String(Math.min(Math.max(Math.round(level), 0), 8));
 	}
 

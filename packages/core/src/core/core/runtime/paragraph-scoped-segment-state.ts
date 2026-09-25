@@ -42,9 +42,9 @@ function paragraphStateOf(segment: TextSegment): ParagraphScopedState {
 	if (segment.endParaRunProperties && typeof segment.endParaRunProperties === 'object') {
 		state.endParaRunProperties = segment.endParaRunProperties;
 	}
-	// `lvl="0"` is the schema default and is never written, so a zero level is
-	// not state worth preserving.
-	if (typeof segment.paragraphLevel === 'number' && segment.paragraphLevel > 0) {
+	// An authored `lvl="0"` is written back as-is, so a zero level is state
+	// worth preserving like any other.
+	if (typeof segment.paragraphLevel === 'number' && segment.paragraphLevel >= 0) {
 		state.paragraphLevel = segment.paragraphLevel;
 	}
 	if (segment.bulletInfo) {
