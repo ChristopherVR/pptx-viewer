@@ -8,6 +8,45 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-25
+
+_Releases: pptx-react-viewer@4.6.0, pptx-vue-viewer@4.6.0, pptx-angular-viewer@4.6.0, pptx-vanilla-viewer@3.6.0, pptx-svelte-viewer@4.6.0, @christophervr/pptx-viewer@2.28.0_
+
+### Features
+
+- **shared:** Add a framework-neutral ui customization model (by @ChristopherVR) ([7e67dbd](https://github.com/ChristopherVR/pptx-viewer/commit/7e67dbdd859aef4a71c697c0ee5f607ce8cdc731))
+- **vanilla:** Expose the ui customization model (by @ChristopherVR) ([e99cf60](https://github.com/ChristopherVR/pptx-viewer/commit/e99cf602d030f4ce9d2b81abdde414ebbd0d13a4))
+- **angular:** Expose the ui customization model (by @ChristopherVR) ([5a6e448](https://github.com/ChristopherVR/pptx-viewer/commit/5a6e44878b6c84c47a554b36dedb376a6e49873d))
+- **react:** Expose the ui customization model (by @ChristopherVR) ([99a34a1](https://github.com/ChristopherVR/pptx-viewer/commit/99a34a13ebff6056791909eee2dc747fd2c48853))
+- **svelte:** Expose the ui customization model (by @ChristopherVR) ([c5e0852](https://github.com/ChristopherVR/pptx-viewer/commit/c5e08527d7c60236a749fda43a6a46b07c728883))
+- **vue:** Expose the ui customization model (by @ChristopherVR) ([cc378da](https://github.com/ChristopherVR/pptx-viewer/commit/cc378da614f0798403bc329cd2dbc4b342150aea))
+
+### Bug Fixes
+
+- **vue,angular,svelte:** Keep rotation and opacity on chart text labels (by @ChristopherVR) ([174039d](https://github.com/ChristopherVR/pptx-viewer/commit/174039d91b3de3ee9d1ce229c1dd4abec0ae9771))
+- **shared,react,vue,angular,svelte,vanilla:** Leave Tab on chrome controls to focus navigation (by @ChristopherVR) ([6561c8d](https://github.com/ChristopherVR/pptx-viewer/commit/6561c8dd0ecf506b6e97cf1991616e40a2204e41))
+- **react,angular:** Keep right-click menus inside the viewport (by @ChristopherVR) ([39642d7](https://github.com/ChristopherVR/pptx-viewer/commit/39642d7955daec7c48543aae3c135d729f70a177))
+- **react:** Open the empty-canvas menu and grey Paste with an empty clipboard (by @ChristopherVR) ([8699d03](https://github.com/ChristopherVR/pptx-viewer/commit/8699d03ef75c929ab3f3b9331829e3d09acc0ebe))
+- **shared,vue,angular,svelte,vanilla:** Target the canvas node, not a thumbnail's (by @ChristopherVR) ([84df4fa](https://github.com/ChristopherVR/pptx-viewer/commit/84df4fafa2f8a04669b9f527af3e6ec9142cdfc0))
+
+### Documentation
+
+- Add the ui customization guide and link it from every binding (by @ChristopherVR) ([566b84b](https://github.com/ChristopherVR/pptx-viewer/commit/566b84b49ee0687424cd9cb09702cd954b8ddfa2))
+- List the per-binding customization gaps (by @ChristopherVR) ([4ab8e5c](https://github.com/ChristopherVR/pptx-viewer/commit/4ab8e5c6ba1982c5e3b47bcda5f25237f75a2ca9))
+
+### Testing
+
+- **e2e:** Catch the entrance animation by its animationstart event (by @ChristopherVR) ([9ce557c](https://github.com/ChristopherVR/pptx-viewer/commit/9ce557c56eaf5fd9e3784169c11242f2c9e979b7))
+- **e2e:** Poll for the painted canvas copy in master-views (by @ChristopherVR) ([4125ebe](https://github.com/ChristopherVR/pptx-viewer/commit/4125ebe4674bee7aca89364178f232c7d027bd34))
+- **e2e:** Measure the stage wrapper in table-row-autogrow (by @ChristopherVR) ([f55f448](https://github.com/ChristopherVR/pptx-viewer/commit/f55f448a62a2f8964ef5db09de42219efcfe88a5))
+- **e2e:** Give the box-whisker gallery chart repeated category rows (by @ChristopherVR) ([4613b78](https://github.com/ChristopherVR/pptx-viewer/commit/4613b7842441326241cfee46bf4dd6bbf8a61d95))
+- **e2e:** Expect native-size a:tile backgrounds in line-fill parity (by @ChristopherVR) ([3d476c6](https://github.com/ChristopherVR/pptx-viewer/commit/3d476c6dbec99448bd7befe0bce3f6450140224e))
+- **e2e:** Scope the OLE and ink probes to the editable canvas (by @ChristopherVR) ([9b5ff9a](https://github.com/ChristopherVR/pptx-viewer/commit/9b5ff9ab21f3950205c9522bd6cd4ef79b7bf764))
+- **e2e:** Take ribbon-tab-parity demo ports from the shared harness (by @ChristopherVR) ([45ccb74](https://github.com/ChristopherVR/pptx-viewer/commit/45ccb7466a6a6b07d8ba74d4e1bef509e753e0e3))
+- **shared:** Compare the customization reference ignoring table padding (by @ChristopherVR) ([8695b36](https://github.com/ChristopherVR/pptx-viewer/commit/8695b362ab25a3a35a9683a67ed9bce30afc40b2))
+- **e2e:** Cover the ui customization model in all five demos (by @ChristopherVR) ([6856fd6](https://github.com/ChristopherVR/pptx-viewer/commit/6856fd63cc0f595f8982fb71149e50b4bb5908c5))
+- **angular:** Parent the customisation test injector on TestBed (by @ChristopherVR) ([2bfc13d](https://github.com/ChristopherVR/pptx-viewer/commit/2bfc13d8c26bdcf58c38b42cb9962b02263aef38))
+
 ## 2026-09-24
 
 _Releases: pptx-viewer-core@4.3.1, pptx-react-viewer@4.5.0, pptx-vue-viewer@4.5.0, pptx-angular-viewer@4.5.0, pptx-vanilla-viewer@3.5.0, pptx-svelte-viewer@4.5.0, @christophervr/pptx-viewer@2.27.0_

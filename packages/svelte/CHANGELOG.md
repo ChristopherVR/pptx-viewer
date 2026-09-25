@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.6.0) - 2026-09-25
+
+### Features
+
+- **shared:** Add a framework-neutral ui customization model (by @ChristopherVR) ([7e67dbd](https://github.com/ChristopherVR/pptx-viewer/commit/7e67dbdd859aef4a71c697c0ee5f607ce8cdc731))
+- **svelte:** Expose the ui customization model (by @ChristopherVR) ([c5e0852](https://github.com/ChristopherVR/pptx-viewer/commit/c5e08527d7c60236a749fda43a6a46b07c728883))
+
+### Bug Fixes
+
+- **vue,angular,svelte:** Keep rotation and opacity on chart text labels (by @ChristopherVR) ([174039d](https://github.com/ChristopherVR/pptx-viewer/commit/174039d91b3de3ee9d1ce229c1dd4abec0ae9771))
+- **shared,react,vue,angular,svelte,vanilla:** Leave Tab on chrome controls to focus navigation (by @ChristopherVR) ([6561c8d](https://github.com/ChristopherVR/pptx-viewer/commit/6561c8dd0ecf506b6e97cf1991616e40a2204e41))
+- **shared,vue,angular,svelte,vanilla:** Target the canvas node, not a thumbnail's (by @ChristopherVR) ([84df4fa](https://github.com/ChristopherVR/pptx-viewer/commit/84df4fafa2f8a04669b9f527af3e6ec9142cdfc0))
+
+### Testing
+
+- **shared:** Compare the customization reference ignoring table padding (by @ChristopherVR) ([8695b36](https://github.com/ChristopherVR/pptx-viewer/commit/8695b362ab25a3a35a9683a67ed9bce30afc40b2))
+
 ## [4.5.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.5.0) - 2026-09-24
 
 ### Features

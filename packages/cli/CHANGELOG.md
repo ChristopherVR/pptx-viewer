@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.28.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.28.0) - 2026-09-25
+
+### Features
+
+- **react:** Expose the ui customization model (by @ChristopherVR) ([99a34a1](https://github.com/ChristopherVR/pptx-viewer/commit/99a34a13ebff6056791909eee2dc747fd2c48853))
+
+### Bug Fixes
+
+- **shared,react,vue,angular,svelte,vanilla:** Leave Tab on chrome controls to focus navigation (by @ChristopherVR) ([6561c8d](https://github.com/ChristopherVR/pptx-viewer/commit/6561c8dd0ecf506b6e97cf1991616e40a2204e41))
+- **react,angular:** Keep right-click menus inside the viewport (by @ChristopherVR) ([39642d7](https://github.com/ChristopherVR/pptx-viewer/commit/39642d7955daec7c48543aae3c135d729f70a177))
+- **react:** Open the empty-canvas menu and grey Paste with an empty clipboard (by @ChristopherVR) ([8699d03](https://github.com/ChristopherVR/pptx-viewer/commit/8699d03ef75c929ab3f3b9331829e3d09acc0ebe))
+
 ## [2.27.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.27.0) - 2026-09-24
 
 ### Features
