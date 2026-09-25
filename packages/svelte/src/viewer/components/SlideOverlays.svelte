@@ -21,6 +21,7 @@
 	import EditorLayer from './EditorLayer.svelte';
 	import InkDrawingOverlay from './InkDrawingOverlay.svelte';
 	import MotionPathOverlay from './MotionPathOverlay.svelte';
+	import OutlineAuthoringLayer from './OutlineAuthoringLayer.svelte';
 	import PresentationAnnotationOverlay from './PresentationAnnotationOverlay.svelte';
 	import type { SlideOverlaysProps } from './viewer-body-props';
 
@@ -74,6 +75,7 @@
 {#if editingActive}
 	<EditorLayer {controller} {scale} {spellCheck} />
 	<InkDrawingOverlay ink={editor.inkOps} {canvasSize} />
+	<OutlineAuthoringLayer {editor} {canvasSize} {scale} />
 {/if}
 {#if editingActive && selectedElement?.type === 'chart'}
 	<ChartQuickActionsOverlay

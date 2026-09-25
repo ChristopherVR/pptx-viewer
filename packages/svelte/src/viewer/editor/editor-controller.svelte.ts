@@ -128,6 +128,11 @@ export class EditorController {
 		if (!this.#editor.editable || this.#deps.getPresenting()) {
 			return null;
 		}
+		// Edit Points replaces the resize / rotate chrome with vertex handles.
+		const editPointsId = this.#editor.outlineOps.editPointsId;
+		if (editPointsId && this.#editor.selectedElements.some((el) => el.id === editPointsId)) {
+			return null;
+		}
 		return selectionOverlayBox(this.#editor.selectedElements);
 	}
 

@@ -64,6 +64,7 @@ import { EditorInkController } from './editor-ink-controller.svelte';
 import { EditorMasterController } from './editor-master-controller';
 import type { MasterViewTarget } from './editor-master-controller';
 import { EditorMasterCrudController } from './editor-master-crud';
+import { EditorOutlineController } from './editor-outline-controller.svelte';
 import { EditorPresentationMetadata } from './editor-presentation-metadata.svelte';
 import { EditorSectionController } from './editor-section-controller';
 import { EditorSelection, resolveSelectedElements } from './editor-selection.svelte';
@@ -237,6 +238,8 @@ export class EditorState {
 	readonly transitionOps = new EditorTransitionController(this);
 	readonly animationOps = new EditorAnimationController(this);
 	readonly inkOps = new EditorInkController(this);
+	/** Edit Points and the Freeform: Shape / Curve tools. */
+	readonly outlineOps = new EditorOutlineController(this);
 	readonly masterOps = new EditorMasterController(this);
 	readonly masterCrud = new EditorMasterCrudController(this);
 	readonly formatPainter = new EditorFormatPainterController(this);

@@ -19,6 +19,7 @@ import {
 	mergeCells,
 	removeTableElementColumn,
 	removeTableElementRow,
+	resolveEditPointsAvailability,
 } from 'pptx-viewer-shared';
 
 import type { EditorState } from './editor-state.svelte';
@@ -147,6 +148,8 @@ export function buildEditorContextMenuEntries(deps: ContextMenuDispatchDeps): Co
 		// The editor tracks its own clipboard, so Paste can honestly grey out
 		// instead of being offered and silently doing nothing.
 		hasClipboard: editor.hasClipboard,
+		// Offered for a shape, greyed for `a:spLocks/@noEditPoints`.
+		editPoints: resolveEditPointsAvailability(editor.selectedElement),
 	});
 }
 
@@ -303,6 +306,13 @@ export function runContextMenuCommand(
 			// placeholder and destroy the OMML on commit).
 			if (editTextId && !editor.equationOps.open(editTextId)) {
 				deps.onEnterInlineEdit?.(editTextId);
+			}
+			return;
+		}
+		case 'edit-points': {
+			const editPointsId = editor.selectedElement?.id;
+			if (editPointsId) {
+				editor.outlineOps.startEditPoints(editPointsId);
 			}
 			return;
 		}

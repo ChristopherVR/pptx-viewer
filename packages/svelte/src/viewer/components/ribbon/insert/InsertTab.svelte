@@ -21,6 +21,7 @@
 	import ChartMenu from './ChartMenu.svelte';
 	import EquationEditorDialog from './EquationEditorDialog.svelte';
 	import FieldMenu from './FieldMenu.svelte';
+	import FreeformToolButtons from './FreeformToolButtons.svelte';
 	import HyperlinkDialog from './HyperlinkDialog.svelte';
 	import ShapePicker from './ShapePicker.svelte';
 	import SmartArtMenu from './SmartArtMenu.svelte';
@@ -110,6 +111,7 @@
 	</button>
 
 	<ShapePicker {editor} />
+	<FreeformToolButtons {editor} />
 
 	<button
 		type="button"
