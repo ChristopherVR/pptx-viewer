@@ -479,6 +479,9 @@ export * from './presentation-animation-controller';
 // through its element registry; the rest query the stage by `data-element-id`).
 export * from './animation-media-commands';
 export * from './animation-media-playback';
+// The one mapping from an effect's accel/decel (or an editor timing curve)
+// to a CSS timing function, measured against PowerPoint: none is `linear`.
+export * from './animation-easing';
 export * from './animation-preview';
 // Motion-path authoring (`p:animMotion`): the Lines/Arcs/Turns/Shapes/Loops
 // preset catalogue, the slide-space geometry the canvas overlay draws and drags,

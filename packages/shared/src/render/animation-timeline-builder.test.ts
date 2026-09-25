@@ -1,6 +1,7 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { cssEasingForAccelDecel } from './animation-easing';
 import type { AnimationRenderContext } from './animation-render-context';
 import { buildTimeline } from './animation-timeline-builder';
 
@@ -405,7 +406,8 @@ describe('buildTimeline', () => {
 		const step = result.clickGroups[0].steps[0];
 		expect(step.cssAnimation).toContain('pptx-fadeIn');
 		expect(step.cssAnimation).toContain('1000ms');
-		expect(step.cssAnimation).toContain('ease');
+		// No accel/decel: PowerPoint plays at constant speed.
+		expect(step.cssAnimation).toContain(' linear ');
 		expect(step.cssAnimation).toContain('both');
 	});
 
@@ -903,37 +905,38 @@ describe('buildTimeline', () => {
 	});
 
 	// -------------------------------------------------------------------
-	// accel / decel easing (mapped to an accurate cubic-bezier)
+	// accel / decel easing (PowerPoint's measured speed profile)
 	// -------------------------------------------------------------------
-	it('uses neutral ease when neither accel nor decel is set', () => {
+	it('plays linearly when neither accel nor decel is set, like PowerPoint', () => {
 		const result = buildTimeline([makeAnim()]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' linear ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).not.toContain(' ease ');
 	});
 
-	it('maps accel to an ease-in cubic-bezier reflecting its magnitude', () => {
+	it('maps accel to the exact speed-up curve as a linear() easing', () => {
 		const result = buildTimeline([makeAnim({ accel: 0.5 })]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
-			'cubic-bezier(0.500, 0, 1.000, 1)',
-		);
+		const css = result.clickGroups[0].steps[0].cssAnimation;
+		expect(css).toContain(`ms ${cssEasingForAccelDecel(0.5, 0, true)} `);
+		expect(css).toContain('linear(0, ');
 	});
 
-	it('maps decel to an ease-out cubic-bezier reflecting its magnitude', () => {
+	it('maps decel to the exact slow-down curve', () => {
 		const result = buildTimeline([makeAnim({ decel: 0.5 })]);
 		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
-			'cubic-bezier(0.000, 0, 0.500, 1)',
+			cssEasingForAccelDecel(0, 0.5, true),
 		);
 	});
 
-	it('maps accel + decel to an ease-in-out cubic-bezier', () => {
+	it('maps accel + decel to one curve with both ramps', () => {
 		const result = buildTimeline([makeAnim({ accel: 0.3, decel: 0.3 })]);
 		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(
-			'cubic-bezier(0.300, 0, 0.700, 1)',
+			cssEasingForAccelDecel(0.3, 0.3, true),
 		);
 	});
 
-	it('ignores a zero accel fraction (stays neutral ease)', () => {
+	it('ignores a zero accel fraction (stays linear)', () => {
 		const result = buildTimeline([makeAnim({ accel: 0 })]);
-		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' ease ');
+		expect(result.clickGroups[0].steps[0].cssAnimation).toContain(' linear ');
 	});
 
 	// -------------------------------------------------------------------

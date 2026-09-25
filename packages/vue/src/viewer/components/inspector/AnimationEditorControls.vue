@@ -11,6 +11,7 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 import {
+	effectiveTimingCurve,
 	getEffectSoundState,
 	schemaLabel,
 	setAfterAnimation,
@@ -301,7 +302,7 @@ function curveLabel(curve: PptxAnimationTimingCurve): string {
 			>{{ t('pptx.animation.timingCurve') }}
 			<pptx-ui-select
 				:aria-label="t('pptx.animation.timingCurve')"
-				:value="animation.timingCurve ?? 'ease'"
+				:value="effectiveTimingCurve(animation.timingCurve)"
 				@change="emit('patch', { timingCurve: value($event) as PptxAnimationTimingCurve })"
 			>
 				<option v-for="item in curves" :key="item" :value="item">

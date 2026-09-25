@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
+import { effectiveTimingCurve, getDensePanelTouchTargetPx } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlay } from 'react-icons/lu';
@@ -365,7 +365,7 @@ export function AnimationPanel({
 						</span>
 						<WebSelect
 							aria-label={t('pptx.animation.timingCurve')}
-							value={selectedElementAnimation?.timingCurve ?? 'ease'}
+							value={effectiveTimingCurve(selectedElementAnimation?.timingCurve)}
 							onChange={handleTimingCurveChange}
 							disabled={!canEdit}
 							className={SELECT_CLS}

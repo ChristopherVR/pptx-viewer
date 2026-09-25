@@ -198,7 +198,7 @@ describe('animationSequencer', () => {
 			);
 			const timeline = seq.buildTimeline();
 			expect(timeline[0].cssAnimation).toContain('500ms');
-			expect(timeline[0].cssAnimation).toContain('ease');
+			expect(timeline[0].cssAnimation).toBe('pptx-appear 500ms linear 0ms 1 normal both');
 		});
 
 		it('should set fillMode based on preset class', () => {

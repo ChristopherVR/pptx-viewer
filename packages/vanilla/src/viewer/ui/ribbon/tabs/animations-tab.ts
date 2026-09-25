@@ -7,7 +7,7 @@ import type {
 	PptxAnimationTrigger,
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
-import { buildAnimationTimelineRows } from 'pptx-viewer-shared';
+import { buildAnimationTimelineRows, effectiveTimingCurve } from 'pptx-viewer-shared';
 
 import { playAnimationPreview } from '../../../animation';
 import type { AnimationActions } from '../../../editor/editor-animation-actions';
@@ -268,7 +268,7 @@ export function createAnimationsTab(
 			delay.input.value = String(selectedAnimation?.delayMs ?? 0);
 			direction.select.value = selectedAnimation?.direction ?? 'fromTop';
 			sequence.select.value = selectedAnimation?.sequence ?? 'asOne';
-			easing.select.value = selectedAnimation?.timingCurve ?? 'ease';
+			easing.select.value = effectiveTimingCurve(selectedAnimation?.timingCurve);
 			repeatMode.select.value = selectedAnimation?.repeatMode ?? 'none';
 			repeatCount.input.value = String(selectedAnimation?.repeatCount ?? 1);
 			for (const control of [

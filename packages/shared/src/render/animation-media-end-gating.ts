@@ -40,6 +40,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 import { findMediaElementByElementId } from './animation-media-playback';
 import type { PlaybackContext } from './animation-playback-engine';
 import type { TimelineClickGroup, TimelineStep } from './animation-timeline-types';
+import { splitCssList, splitCssTokens } from './css-top-level-split';
 
 /**
  * Whether `step` waits for a SPECIFIC media element's real completion
@@ -98,10 +99,11 @@ const DELAY_TOKEN_INDEX = 3;
  * more than a crash here) is returned unchanged.
  */
 export function zeroDelayCssAnimation(cssAnimation: string): string {
-	return cssAnimation
-		.split(', ')
+	// Split at top level only: the easing token may be `cubic-bezier(...)` or
+	// `linear(...)`, whose own commas and spaces are not separators.
+	return splitCssList(cssAnimation)
 		.map((segment) => {
-			const tokens = segment.trim().split(/\s+/u);
+			const tokens = splitCssTokens(segment);
 			if (tokens.length !== CSS_ANIMATION_TOKEN_COUNT) {
 				return segment;
 			}

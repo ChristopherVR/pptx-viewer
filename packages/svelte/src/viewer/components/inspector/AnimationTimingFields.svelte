@@ -15,6 +15,7 @@
 	} from 'pptx-viewer-core';
 	import {
 		animationFor,
+		effectiveTimingCurve,
 		getElementLabel,
 		listMediaBookmarkOptions,
 		selectedBookmarkOptionValue,
@@ -97,7 +98,7 @@
 </label>
 <label>
 	<span>{t('pptx.animation.timingCurve')}</span>
-	<pptx-ui-select aria-label={t('pptx.animation.timingCurve')} class="pptx-svelte-animp-curve" disabled={!canEdit} value={anim?.timingCurve ?? 'ease'} onchange={(e) => el && commit(setTimingCurve(anims, el.id, e.currentTarget.value as PptxAnimationTimingCurve))}>
+	<pptx-ui-select aria-label={t('pptx.animation.timingCurve')} class="pptx-svelte-animp-curve" disabled={!canEdit} value={effectiveTimingCurve(anim?.timingCurve)} onchange={(e) => el && commit(setTimingCurve(anims, el.id, e.currentTarget.value as PptxAnimationTimingCurve))}>
 		{#each PANEL_TIMING_CURVE_OPTIONS as option (option.value)}<option value={option.value}>{t(option.labelKey)}</option>{/each}
 	</pptx-ui-select>
 </label>

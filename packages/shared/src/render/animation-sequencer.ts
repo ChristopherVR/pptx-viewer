@@ -12,6 +12,7 @@ import type { PptxSlide, PptxElement, PptxAnimationTrigger } from 'pptx-viewer-c
 import { resolveAnimationStart } from './animation-advanced-triggers';
 import { getInitialStyleForEffect } from './animation-effects';
 import { getEffectKeyframes } from './animation-keyframes';
+import { cssEasingForAnimation } from './animation-timeline-builder-helpers';
 import {
 	resolveEffect,
 	buildDynamicKeyframes,
@@ -151,7 +152,7 @@ export class AnimationSequencer {
 					break;
 			}
 
-			const easing = 'ease';
+			const easing = cssEasingForAnimation(anim);
 			const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
 			const cssAnimation = `${keyframeName} ${duration}ms ${easing} ${stepDelay}ms ${iterStr} ${direction} ${fill}`;
 

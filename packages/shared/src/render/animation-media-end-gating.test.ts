@@ -98,6 +98,16 @@ describe('zeroDelayCssAnimation', () => {
 		);
 	});
 
+	it('keeps a linear() / cubic-bezier() easing intact while rewriting the delay', () => {
+		const composed =
+			'pptx-fadeIn 500ms linear(0, 0.1 25%, 1) 3500ms 1 normal both, ' +
+			'pptx-tl-motion-1 400ms cubic-bezier(0.500, 0, 1.000, 1) 2000ms 1 normal both';
+		expect(zeroDelayCssAnimation(composed)).toBe(
+			'pptx-fadeIn 500ms linear(0, 0.1 25%, 1) 0ms 1 normal both, ' +
+				'pptx-tl-motion-1 400ms cubic-bezier(0.500, 0, 1.000, 1) 0ms 1 normal both',
+		);
+	});
+
 	it('leaves a malformed / unexpected-shape string unchanged', () => {
 		expect(zeroDelayCssAnimation('not-a-valid-shorthand')).toBe('not-a-valid-shorthand');
 	});

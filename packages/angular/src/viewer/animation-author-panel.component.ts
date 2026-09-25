@@ -47,6 +47,7 @@ import type {
 import {
 	applyMotionPathPreset,
 	clearMotionPath,
+	effectiveTimingCurve,
 	listMediaBookmarkOptions,
 	moveAnimationTimelineRowBy,
 	selectedBookmarkOptionValue,
@@ -163,6 +164,10 @@ export class AnimationAuthorPanelComponent {
 
 	/** The animation entry for the currently selected element, if any. */
 	protected readonly current = computed(() => animationFor(this.animations(), this.element().id));
+	/** Unset curve shows as `linear`: that is what the writer saves and PowerPoint plays. */
+	protected readonly currentTimingCurve = computed(() =>
+		effectiveTimingCurve(this.current()?.timingCurve),
+	);
 
 	/** True when the element has at least one effect (entrance/exit/emphasis). */
 	protected readonly currentHasAnimation = computed(() =>

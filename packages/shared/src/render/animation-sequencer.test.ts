@@ -1,6 +1,7 @@
 import type { PptxSlide, PptxNativeAnimation } from 'pptx-viewer-core';
 import { describe, it, expect } from 'vitest';
 
+import { cssEasingForAccelDecel } from './animation-easing';
 import { AnimationSequencer } from './animation-sequencer';
 
 function makeSlide(
@@ -198,7 +199,27 @@ describe('animationSequencer', () => {
 			);
 			const timeline = seq.buildTimeline();
 			expect(timeline[0].cssAnimation).toContain('500ms');
-			expect(timeline[0].cssAnimation).toContain('ease');
+			expect(timeline[0].cssAnimation).toBe('pptx-appear 500ms linear 0ms 1 normal both');
+		});
+
+		it("uses the effect's accel/decel curve instead of a hard-coded ease", () => {
+			const seq = new AnimationSequencer(
+				makeSlide([
+					{
+						targetId: 'el-1',
+						presetClass: 'entr',
+						presetId: 1,
+						trigger: 'onClick',
+						durationMs: 500,
+						accel: 0.5,
+					},
+				]),
+			);
+			const timeline = seq.buildTimeline();
+			expect(timeline[0].cssAnimation).toBe(
+				`pptx-appear 500ms ${cssEasingForAccelDecel(0.5, 0)} 0ms 1 normal both`,
+			);
+			expect(timeline[0].cssAnimation).not.toContain(' ease ');
 		});
 
 		it('should set fillMode based on preset class', () => {

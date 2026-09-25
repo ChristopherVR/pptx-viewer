@@ -86,6 +86,15 @@ describe('inspector animation panel', () => {
 		expect(direction?.hidden).toBeFalsy();
 	});
 
+	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {
+		const panel = createAnimationPanel(document, t, makeHandlers());
+		panel.update(makeState({ animations: [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }] }));
+		const curve = panel.el.querySelector<HTMLSelectElement>(
+			`[aria-label="${t('pptx.animation.timingCurve')}"]`,
+		);
+		expect(curve?.value).toBe('linear');
+	});
+
 	it('commits timing edits for the selected element via setAnimationTiming', () => {
 		const handlers = makeHandlers();
 		const panel = createAnimationPanel(document, t, handlers);

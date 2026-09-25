@@ -39,6 +39,7 @@
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 
+import { splitCssList } from './css-top-level-split';
 import {
 	generateFullMorphTransition,
 	morphPairIncomingFadesIn,
@@ -442,7 +443,7 @@ function liftCrossfadeToWrapper(
 				other += 1;
 				continue;
 			}
-			for (const track of splitAnimationTracks(animation.animation)) {
+			for (const track of splitCssList(animation.animation)) {
 				const block = keyframesBlockOf(track.split(/\s+/u)[0], animation.keyframes);
 				if (block === undefined) {
 					other += 1;
@@ -481,31 +482,6 @@ function liftCrossfadeToWrapper(
 		outgoingAnimation: outgoing.fade.join(', '),
 		incomingAnimation: incoming.fade.join(', '),
 	};
-}
-
-/**
- * Split an `animation` shorthand into its tracks.
- *
- * Not a plain `split(',')`: an easing is `cubic-bezier(0.2, 0, 0.4, 1)` and its
- * commas are nested, so the depth has to be tracked.
- */
-function splitAnimationTracks(shorthand: string): string[] {
-	const tracks: string[] = [];
-	let depth = 0;
-	let start = 0;
-	for (let index = 0; index < shorthand.length; index += 1) {
-		const character = shorthand[index];
-		if (character === '(') {
-			depth += 1;
-		} else if (character === ')') {
-			depth -= 1;
-		} else if (character === ',' && depth === 0) {
-			tracks.push(shorthand.slice(start, index).trim());
-			start = index + 1;
-		}
-	}
-	tracks.push(shorthand.slice(start).trim());
-	return tracks.filter((track) => track.length > 0);
 }
 
 /**
