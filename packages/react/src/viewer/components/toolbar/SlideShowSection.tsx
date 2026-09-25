@@ -21,9 +21,11 @@ import type { ViewerMode } from '../../types';
 import { CustomShowsControls } from './CustomShowsControls';
 import type { CustomShowsControlsProps } from './CustomShowsControls';
 import {
+	controlAttr,
 	RibbonCommand,
 	RibbonCommandStack,
 	RibbonGroup,
+	RibbonGroupScope,
 	RibbonToggle,
 } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
@@ -87,28 +89,41 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 	}, [showsOpen]);
 	return (
 		<>
-			<RibbonGroup label={t('pptx.slideShow.start', { defaultValue: 'Start Slide Show' })}>
+			<RibbonGroup
+				label={t('pptx.slideShow.start', { defaultValue: 'Start Slide Show' })}
+				groupId='slideShow.startSlideShow'
+			>
 				<RibbonCommand
+					controlId='slideShow.startSlideShow.fromBeginning'
 					label={t('pptx.slideShow.fromBeginning')}
 					icon={<LuPlay />}
 					onClick={p.onPresentFromBeginning ?? (() => p.onSetMode('present'))}
 					title={t('pptx.slideShow.fromBeginningTooltip')}
 				/>
 				<RibbonCommand
+					controlId='slideShow.startSlideShow.fromCurrent'
 					label={t('pptx.slideShow.fromCurrent')}
 					icon={<LuMonitorPlay />}
 					onClick={p.onPresent}
 					title={t('pptx.slideShow.fromCurrentTooltip')}
 				/>
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.slideShow.present', { defaultValue: 'Present' })}>
+			<RibbonGroup
+				label={t('pptx.slideShow.present', { defaultValue: 'Present' })}
+				groupId='slideShow.present'
+			>
 				<RibbonCommand
+					controlId='slideShow.present.presenterView'
 					label={t('pptx.slideShow.presenterView')}
 					icon={<LuPresentation />}
 					onClick={p.onEnterPresenterView}
 					title={t('pptx.slideShow.presenterViewTooltip')}
 				/>
-				<div className='relative' ref={showsRef}>
+				<div
+					className='relative'
+					ref={showsRef}
+					{...controlAttr('slideShow.startSlideShow.customShow')}
+				>
 					<RibbonCommand
 						label={t('pptx.slideShow.customShow', { defaultValue: 'Custom Show' })}
 						icon={<LuListVideo />}
@@ -126,6 +141,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 				</div>
 				{!isHidden('broadcast') && (
 					<RibbonCommand
+						controlId='slideShow.present.broadcast'
 						label={t('pptx.slideShow.broadcast')}
 						icon={<LuCast />}
 						onClick={p.onOpenBroadcastDialog}
@@ -133,19 +149,25 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					/>
 				)}
 			</RibbonGroup>
-			<RibbonGroup label={t('pptx.slideShow.setUpGroup', { defaultValue: 'Set Up' })}>
+			<RibbonGroup
+				label={t('pptx.slideShow.setUpGroup', { defaultValue: 'Set Up' })}
+				groupId='slideShow.setUp'
+			>
 				<RibbonCommand
+					controlId='slideShow.setUp.rehearseWithCoach'
 					label={t('pptx.slideShow.rehearseCoach', { defaultValue: 'Rehearse with Coach' })}
 					icon={<LuVideo />}
 					disabled
 				/>
 				<RibbonCommand
+					controlId='slideShow.setUp.setUpSlideShow'
 					label={t('pptx.slideShow.setUp')}
 					icon={<LuSettings2 />}
 					onClick={p.onOpenSetUpSlideShow}
 					title={t('pptx.slideShow.setUpTooltip')}
 				/>
 				<RibbonCommand
+					controlId='slideShow.setUp.hideSlide'
 					label={t('pptx.slideShow.hideSlide', { defaultValue: 'Hide Slide' })}
 					icon={<LuEyeOff />}
 					onClick={p.onToggleHideSlide}
@@ -153,12 +175,14 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 					pressed={p.activeSlideHidden}
 				/>
 				<RibbonCommand
+					controlId='slideShow.setUp.rehearseTimings'
 					label={t('pptx.slideShow.rehearseTimings')}
 					icon={<LuClock3 />}
 					onClick={p.onEnterRehearsalMode}
 					title={t('pptx.slideShow.rehearseTimingsTooltip')}
 				/>
 				<RibbonCommand
+					controlId='slideShow.setUp.record'
 					label={t('pptx.titleBar.record')}
 					icon={<LuVideo />}
 					onClick={p.onEnterRehearsalMode}
@@ -195,18 +219,22 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 						checked={readSlideShowOption(p.presentationProperties, SLIDE_SHOW_OPTIONS[3].id)}
 						disabled={SLIDE_SHOW_OPTIONS[3].unsupported}
 					/>
-					<RibbonToggle
-						label={t('pptx.slideShow.subtitles')}
-						checked={p.showSubtitles}
-						onChange={() => p.onToggleSubtitles()}
-						title={t('pptx.slideShow.subtitlesTooltip')}
-					/>
-					<RibbonCommand
-						compact
-						label={t('pptx.slideShow.subtitleSettings', { defaultValue: 'Subtitle Settings' })}
-						icon={<LuCaptions />}
-						onClick={p.onToggleSubtitles}
-					/>
+					<RibbonGroupScope id='slideShow.captions'>
+						<RibbonToggle
+							controlId='slideShow.captions.subtitles'
+							label={t('pptx.slideShow.subtitles')}
+							checked={p.showSubtitles}
+							onChange={() => p.onToggleSubtitles()}
+							title={t('pptx.slideShow.subtitlesTooltip')}
+						/>
+						<RibbonCommand
+							compact
+							controlId='slideShow.captions.subtitleSettings'
+							label={t('pptx.slideShow.subtitleSettings', { defaultValue: 'Subtitle Settings' })}
+							icon={<LuCaptions />}
+							onClick={p.onToggleSubtitles}
+						/>
+					</RibbonGroupScope>
 				</RibbonCommandStack>
 			</RibbonGroup>
 		</>

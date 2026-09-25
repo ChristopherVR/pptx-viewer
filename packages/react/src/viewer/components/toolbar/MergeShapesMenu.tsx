@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { LuChevronDown, LuCombine } from 'react-icons/lu';
 
 import { useShapeFormatContext } from '../shape-format-context';
+import { controlAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { ic, pill } from './toolbar-constants';
 import {
@@ -32,7 +33,7 @@ export function MergeShapesMenu({ canEdit }: MergeShapesMenuProps): React.ReactE
 	const enabled = canEdit && Boolean(commands?.canMergeShapes);
 	const label = t(MERGE_SHAPES_LABEL_KEY);
 	return (
-		<div className='relative' ref={ref}>
+		<div className='relative' ref={ref} {...controlAttr('home.arrange.mergeShapes')}>
 			<button
 				type='button'
 				data-pptx-ribbon-control='merge-shapes'

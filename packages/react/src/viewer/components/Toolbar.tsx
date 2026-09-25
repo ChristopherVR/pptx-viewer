@@ -1,30 +1,28 @@
-import { isPanelVisible, resolveScreenTip } from 'pptx-viewer-shared';
-import React from 'react';
+import { isPanelVisible } from 'pptx-viewer-shared';
+import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { TOOLBAR_SECTIONS } from '../constants';
 import { useToolbarVisibility } from '../hooks/useToolbarVisibility';
+import type { ToolbarSection } from '../types';
 import { cn } from '../utils';
 import { MobileToolbar } from './mobile/MobileToolbar';
-import { AnimationsSection } from './toolbar/AnimationsSection';
 import { ArrangeSection } from './toolbar/ArrangeSection';
-import { DesignSection, TransitionsSection } from './toolbar/DesignTransitionsReviewSection';
+import { ContextualTabSection } from './toolbar/ContextualTabSection';
+import { DesignSection } from './toolbar/DesignTransitionsReviewSection';
 import { DrawingGroup } from './toolbar/DrawingGroup';
 import { DrawSection } from './toolbar/DrawSection';
 import { EditingSection } from './toolbar/EditingSection';
 import { FileSection } from './toolbar/FileSection';
-import { HelpSection } from './toolbar/HelpSection';
 import { HomeSection } from './toolbar/HomeSection';
 import { InsertSection } from './toolbar/InsertSection';
-import { RecordSection } from './toolbar/RecordSection';
-import { ReviewSection } from './toolbar/ReviewSection';
-import { SlideShowSection } from './toolbar/SlideShowSection';
+import { RibbonTabBar } from './toolbar/RibbonTabBar';
 import { TabRowActions } from './toolbar/TabRowActions';
 import { TextSection } from './toolbar/TextSection';
 import { TitleBarQuickExtras } from './toolbar/TitleBarQuickExtras';
 import type { ToolbarProps } from './toolbar/toolbar-types';
 import { ToolbarPrimaryRow } from './toolbar/ToolbarPrimaryRow';
-import { ViewSection } from './toolbar/ViewSection';
+import { useContextualRibbonTab } from './toolbar/useContextualRibbonTab';
+import { ToolbarLateTabs } from './ToolbarLateTabs';
 import { useViewerCustomizationContext } from './viewer-customization-context';
 import { useViewerOptionsContext } from './viewer-options-context';
 
@@ -36,6 +34,8 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	const { isTabVisible } = useToolbarVisibility(p.hiddenActions);
 	const viewerOptions = useViewerOptionsContext();
 	const customization = useViewerCustomizationContext();
+	const fallBackHome = useCallback(() => onSetToolbarSection('home'), [onSetToolbarSection]);
+	const contextual = useContextualRibbonTab(p.selectedElement, customization, fallBackHome);
 
 	// Mobile-first: at <768px we swap the entire desktop ribbon for a compact
 	// top bar plus a slide-up sheet exposing every section. The bottom action
@@ -44,20 +44,20 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 		return <MobileToolbar {...p} />;
 	}
 
-	const sFil = toolbarSection === 'file';
-	const sHome = toolbarSection === 'home';
-	const sIns = toolbarSection === 'insert';
-	const sTxt = sHome || toolbarSection === 'text';
-	const sArr = sHome || toolbarSection === 'arrange';
-	const sDrw = toolbarSection === 'draw';
-	const sDes = toolbarSection === 'design';
-	const sTrn = toolbarSection === 'transitions';
-	const sAni = toolbarSection === 'animations';
-	const sSlw = toolbarSection === 'slideShow';
-	const sRec = toolbarSection === 'record';
-	const sRev = toolbarSection === 'review';
-	const sViw = toolbarSection === 'view';
-	const sHlp = toolbarSection === 'help';
+	// While a contextual tab is shown no fixed section renders; the one render
+	// between losing that tab and the fallback landing already shows Home.
+	const section: ToolbarSection | null = contextual.active
+		? null
+		: contextual.fellBack
+			? 'home'
+			: toolbarSection;
+	const sFil = section === 'file';
+	const sHome = section === 'home';
+	const sIns = section === 'insert';
+	const sTxt = sHome || section === 'text';
+	const sArr = sHome || section === 'arrange';
+	const sDrw = section === 'draw';
+	const sDes = section === 'design';
 
 	const showRibbon = mode === 'edit' || mode === 'master';
 
@@ -72,33 +72,17 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 
 			{/* Ribbon Tab Bar */}
 			{showRibbon && (
-				<div
-					role='tablist'
-					className='flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none'
+				<RibbonTabBar
+					isTabVisible={isTabVisible}
+					activeSection={contextual.active ? null : section}
+					contextualTabs={contextual.visible}
+					activeContextual={contextual.active}
+					onSelectSection={(id) => {
+						contextual.select(null);
+						onSetToolbarSection(id);
+					}}
+					onSelectContextual={contextual.select}
 				>
-					{TOOLBAR_SECTIONS.filter((s) => isTabVisible(s.id)).map((s) => (
-						<button
-							key={s.id}
-							type='button'
-							role='tab'
-							aria-selected={toolbarSection === s.id}
-							title={resolveScreenTip(viewerOptions, t(s.labelKey))}
-							onClick={() => onSetToolbarSection(s.id)}
-							className={cn(
-								'relative px-3.5 py-2 text-[12px] font-medium whitespace-nowrap transition-colors max-md:min-h-[36px] max-md:px-3',
-								toolbarSection === s.id
-									? s.id === 'file'
-										? 'text-white bg-primary/80 rounded-sm'
-										: 'text-foreground after:absolute after:-bottom-px after:left-0 after:right-0 after:h-[2.5px] after:bg-primary'
-									: s.id === 'file'
-										? 'text-primary hover:bg-primary/15 rounded-sm'
-										: 'text-muted-foreground hover:text-foreground hover:bg-accent/30',
-							)}
-						>
-							{t(s.labelKey)}
-						</button>
-					))}
-					<div className='flex-1' />
 					<TabRowActions
 						onEnterRehearsalMode={p.canEdit ? p.onEnterRehearsalMode : undefined}
 						onOpenShareDialog={p.onOpenShareDialog}
@@ -121,7 +105,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 							{t(isCompactToolbarOpen ? 'pptx.ribbon.collapseRibbon' : 'pptx.ribbon.expandRibbon')}
 						</button>
 					)}
-				</div>
+				</RibbonTabBar>
 			)}
 
 			{/*
@@ -314,109 +298,9 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 						/>
 					)}
 
-					{sTrn && (
-						<TransitionsSection
-							isInspectorPaneOpen={p.isInspectorPaneOpen}
-							onToggleInspector={p.onToggleInspector}
-							canEdit={p.canEdit}
-							activeSlide={p.activeSlide}
-							onTransitionChange={p.onTransitionChange}
-							onApplyTransitionToAll={p.onApplyTransitionToAll}
-						/>
-					)}
+					<ToolbarLateTabs p={p} section={section} />
 
-					{sAni && (
-						<AnimationsSection
-							canEdit={p.canEdit}
-							selectedElement={p.selectedElement}
-							activeSlide={p.activeSlide}
-							isInspectorPaneOpen={p.isInspectorPaneOpen}
-							onToggleInspector={p.onToggleInspector}
-							onOpenAnimationPanel={p.onOpenAnimationPanel}
-							onAddAnimation={p.onAddAnimation}
-							onRemoveAnimation={p.onRemoveAnimation}
-						/>
-					)}
-
-					{sSlw && (
-						<SlideShowSection
-							onPresent={() => p.onSetMode('present')}
-							onPresentFromBeginning={p.onPresentFromBeginning}
-							onEnterPresenterView={p.onEnterPresenterView ?? (() => {})}
-							onEnterRehearsalMode={p.onEnterRehearsalMode ?? (() => {})}
-							onOpenSetUpSlideShow={p.onOpenSetUpSlideShow ?? (() => {})}
-							onToggleHideSlide={p.onToggleHideSlide ?? (() => {})}
-							activeSlideHidden={p.activeSlideHidden ?? false}
-							onOpenBroadcastDialog={p.onOpenBroadcastDialog ?? (() => {})}
-							onToggleSubtitles={p.onToggleSubtitles ?? (() => {})}
-							showSubtitles={p.showSubtitles ?? false}
-							onSetMode={p.onSetMode}
-							customShowControls={p}
-							hiddenActions={p.hiddenActions}
-							presentationProperties={p.presentationProperties}
-							onPresentationPropertiesChange={p.onPresentationPropertiesChange}
-						/>
-					)}
-
-					{sRec && (
-						<RecordSection
-							onRecordFromBeginning={p.onEnterRehearsalMode ?? (() => {})}
-							onRecordFromCurrent={p.onEnterRehearsalMode ?? (() => {})}
-						/>
-					)}
-
-					{sRev && (
-						<ReviewSection
-							canEdit={p.canEdit}
-							spellCheckEnabled={p.spellCheckEnabled}
-							onSetSpellCheckEnabled={p.onSetSpellCheckEnabled}
-							onToggleComments={p.onToggleComments}
-							isCommentsPanelOpen={p.isCommentsPanelOpen}
-							slideCommentCount={p.slideCommentCount}
-							onCompare={p.onCompare}
-							onOpenAccessibilityCheck={p.onRunAccessibilityCheck}
-							onSetLanguage={p.onOpenSettings}
-						/>
-					)}
-
-					{sViw && (
-						<ViewSection
-							canEdit={p.canEdit}
-							editTemplateMode={p.editTemplateMode}
-							onSetEditTemplateMode={p.onSetEditTemplateMode}
-							spellCheckEnabled={p.spellCheckEnabled}
-							onSetSpellCheckEnabled={p.onSetSpellCheckEnabled}
-							showGrid={p.showGrid}
-							showRulers={p.showRulers}
-							showGuides={p.showGuides}
-							snapToGrid={p.snapToGrid}
-							snapToShape={p.snapToShape}
-							onSetShowGrid={p.onSetShowGrid}
-							onSetShowRulers={p.onSetShowRulers}
-							onSetShowGuides={p.onSetShowGuides}
-							onSetSnapToGrid={p.onSetSnapToGrid}
-							onSetSnapToShape={p.onSetSnapToShape}
-							onAddGuide={p.onAddGuide}
-							onEnterMasterView={p.onEnterMasterView}
-							isSelectionPaneOpen={p.isSelectionPaneOpen}
-							onToggleSelectionPane={p.onToggleSelectionPane}
-							eyedropperActive={p.eyedropperActive}
-							onToggleEyedropper={p.onToggleEyedropper}
-							onToggleSlideSorter={p.onToggleSlideSorter}
-							onGoToNormalView={p.onGoToNormalView}
-							onOpenReadingView={p.onOpenReadingView}
-							onOpenOutlineView={p.onOpenOutlineView}
-							onZoomToFit={p.onZoomToFit}
-						/>
-					)}
-
-					{sHlp && (
-						<HelpSection
-							onOpenSettings={p.onOpenSettings}
-							onToggleShortcuts={p.onToggleShortcuts}
-							onRunAccessibilityCheck={p.onRunAccessibilityCheck}
-						/>
-					)}
+					{contextual.active && <ContextualTabSection tab={contextual.active} />}
 				</div>
 			)}
 		</div>

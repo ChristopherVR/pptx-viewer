@@ -1,10 +1,12 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
+import type { RibbonControlId } from 'pptx-viewer-shared';
 import { RIBBON_SHAPE_SWATCHES } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { RecentColorsRow } from '../inspector/RecentColorsRow';
 import { ThemeColorSwatchGrid } from '../inspector/ThemeColorSwatchGrid';
+import { controlAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { pill } from './toolbar-constants';
 
@@ -38,6 +40,7 @@ export function ShapeColorPopover({
 	selectedHex,
 	onApply,
 	onClose,
+	controlId,
 }: {
 	icon: React.ReactNode;
 	title: string;
@@ -56,10 +59,12 @@ export function ShapeColorPopover({
 	/** Apply the picked colour (and ref, for a theme-swatch pick) to the selected shape. */
 	onApply: (color: string, ref?: PptxThemeColorRef) => void;
 	onClose: () => void;
+	/** Catalogue id for host customisation (`home.drawing.shapeFill`, ...). */
+	controlId?: RibbonControlId;
 }): React.ReactElement {
 	const { t } = useTranslation();
 	return (
-		<div className='relative' ref={anchorRef}>
+		<div className='relative' ref={anchorRef} {...controlAttr(controlId)}>
 			<button type='button' disabled={disabled} className={pill} title={title} onClick={onToggle}>
 				{icon}
 			</button>

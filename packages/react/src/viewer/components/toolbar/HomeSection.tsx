@@ -9,14 +9,15 @@ import {
 import type { SlideTemplateId } from 'pptx-viewer-shared';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuChevronDown, LuClipboardPaste, LuCopy, LuPaintbrush, LuScissors } from 'react-icons/lu';
+import { LuChevronDown } from 'react-icons/lu';
 
 import type { ElementClipboardPayload, TableCellEditorState } from '../../types';
-import { cn } from '../../utils';
+import { ClipboardGroup } from './ClipboardGroup';
 import { FontFamilyMenu } from './FontFamilyMenu';
+import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { SlidesGroup } from './SlidesGroup';
-import { gB, gL, grp, ic, sep } from './toolbar-constants';
+import { sep } from './toolbar-constants';
 
 export interface HomeSectionProps {
 	canEdit: boolean;
@@ -90,8 +91,6 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 	const { t } = useTranslation();
 	const [fontMenuOpen, setFontMenuOpen] = useState(false);
 	const [sizeMenuOpen, setSizeMenuOpen] = useState(false);
-	const [copiedFeedback, setCopiedFeedback] = useState(false);
-	const [cutFeedback, setCutFeedback] = useState(false);
 	const fontMenuRef = useRef<HTMLDivElement>(null);
 	const sizeMenuRef = useRef<HTMLDivElement>(null);
 	const { fontFamily, fontSize } = extractFontInfo(p.selectedElement, p.themeFonts);
@@ -144,67 +143,17 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 
 	return (
 		<>
-			{/* Clipboard group */}
-			<div className='flex flex-col items-center gap-0.5'>
-				<div className={grp}>
-					<button
-						type='button'
-						onClick={p.onPaste}
-						disabled={!p.clipboardPayload || !p.canEdit}
-						className={gB}
-						title={t('pptx.arrange.paste')}
-					>
-						<LuClipboardPaste className={ic} />
-					</button>
-					<button
-						type='button'
-						onClick={() => {
-							p.onCut();
-							setCutFeedback(true);
-							setTimeout(() => setCutFeedback(false), 600);
-						}}
-						disabled={!p.canEdit || !hasSelection}
-						className={cn(gB, cutFeedback && 'bg-green-600/20 text-green-400')}
-						title={t('pptx.arrange.cut')}
-					>
-						<LuScissors className={ic} />
-					</button>
-					<button
-						type='button'
-						onClick={() => {
-							p.onCopy();
-							setCopiedFeedback(true);
-							setTimeout(() => setCopiedFeedback(false), 600);
-						}}
-						disabled={!hasSelection}
-						className={cn(gB, copiedFeedback && 'bg-green-600/20 text-green-400')}
-						title={t('pptx.arrange.copy')}
-					>
-						<LuCopy className={ic} />
-					</button>
-					{p.onToggleFormatPainter && (
-						<button
-							type='button'
-							onClick={p.onToggleFormatPainter}
-							disabled={
-								!p.canEdit || (p.canActivateFormatPainter === false && !p.formatPainterActive)
-							}
-							data-testid='format-painter-toggle'
-							data-active={p.formatPainterActive ? 'true' : 'false'}
-							className={cn(
-								gL,
-								p.formatPainterActive ? 'bg-amber-600 hover:bg-amber-500 text-amber-50' : '',
-							)}
-							title={t('pptx.arrange.formatPainter')}
-						>
-							<LuPaintbrush className={ic} />
-						</button>
-					)}
-				</div>
-				<span className='text-[9px] text-muted-foreground leading-none'>
-					{t('pptx.ribbon.clipboard')}
-				</span>
-			</div>
+			<ClipboardGroup
+				canEdit={p.canEdit}
+				hasSelection={hasSelection}
+				canPaste={Boolean(p.clipboardPayload)}
+				formatPainterActive={p.formatPainterActive}
+				canActivateFormatPainter={p.canActivateFormatPainter}
+				onCopy={p.onCopy}
+				onCut={p.onCut}
+				onPaste={p.onPaste}
+				onToggleFormatPainter={p.onToggleFormatPainter}
+			/>
 
 			{sep}
 
@@ -222,9 +171,9 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 			/>
 
 			{/* Font group */}
-			<div className='flex flex-col items-center gap-0.5'>
+			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.font')}>
 				<div className='flex items-center gap-1'>
-					<div className='relative' ref={fontMenuRef}>
+					<div className='relative' ref={fontMenuRef} {...controlAttr('home.font.fontFamily')}>
 						<button
 							type='button'
 							onClick={() => setFontMenuOpen((v) => !v)}
@@ -251,7 +200,7 @@ export function HomeSection(p: HomeSectionProps): React.ReactElement {
 							/>
 						)}
 					</div>
-					<div className='relative' ref={sizeMenuRef}>
+					<div className='relative' ref={sizeMenuRef} {...controlAttr('home.font.fontSize')}>
 						<button
 							type='button'
 							onClick={() => setSizeMenuOpen((v) => !v)}

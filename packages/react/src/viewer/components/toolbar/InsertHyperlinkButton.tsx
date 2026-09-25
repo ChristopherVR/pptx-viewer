@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuLink } from 'react-icons/lu';
 
+import { controlAttr } from './PowerPointRibbonControls';
 import { ic, pill } from './toolbar-constants';
 
 export interface InsertHyperlinkButtonProps {
@@ -28,6 +29,7 @@ export function InsertHyperlinkButton(p: InsertHyperlinkButtonProps): React.Reac
 			disabled={!p.hasSelection}
 			className={pill}
 			title={t('pptx.hyperlinkDialog.title')}
+			{...controlAttr('insert.links.link')}
 		>
 			<LuLink className={ic} />
 			{t('pptx.hyperlinkDialog.title')}

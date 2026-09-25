@@ -15,6 +15,7 @@ import { useLayoutPreviews } from '../../hooks/useLayoutPreviews';
 import { cn } from '../../utils';
 import { SlideTemplateGalleryDialog } from '../SlideTemplateGalleryDialog';
 import { LayoutGalleryMenu } from './LayoutGalleryMenu';
+import { controlAttr, groupAttr } from './PowerPointRibbonControls';
 import { ic, pill, sep } from './toolbar-constants';
 
 export interface SlidesGroupProps {
@@ -77,10 +78,14 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 
 	return (
 		<>
-			<div className='flex flex-col items-center gap-0.5'>
+			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.slides')}>
 				<div className='flex items-center gap-1'>
 					{/* New Slide split button */}
-					<div className='relative inline-flex items-center' ref={newSlideMenuRef}>
+					<div
+						className='relative inline-flex items-center'
+						ref={newSlideMenuRef}
+						{...controlAttr('home.slides.newSlide')}
+					>
 						<button
 							type='button'
 							onClick={handleNewSlide}
@@ -126,6 +131,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 							disabled={!p.canEdit}
 							className={pill}
 							title={t('pptx.home.slideTemplates')}
+							{...controlAttr('home.slides.slideTemplates')}
 							onClick={() => setTemplateGalleryOpen(true)}
 						>
 							<LuLayoutTemplate className={ic} />
@@ -134,7 +140,11 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 					)}
 
 					{/* Layout button */}
-					<div className='relative inline-flex items-center' ref={layoutMenuRef}>
+					<div
+						className='relative inline-flex items-center'
+						ref={layoutMenuRef}
+						{...controlAttr('home.slides.layout')}
+					>
 						<button
 							type='button'
 							disabled={!p.canEdit || p.layoutOptions.length === 0}
@@ -165,6 +175,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						disabled={!p.canEdit}
 						className={pill}
 						title={t('pptx.sections.resetSlideTitle')}
+						{...controlAttr('home.slides.reset')}
 						onClick={p.onResetSlide}
 					>
 						<LuRotateCcw className={ic} />
@@ -177,6 +188,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						disabled={!p.canEdit}
 						className={pill}
 						title={t('pptx.sections.addSection')}
+						{...controlAttr('home.slides.section')}
 						onClick={p.onAddSection}
 					>
 						<LuFolderPlus className={ic} />

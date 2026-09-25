@@ -1,9 +1,17 @@
+import { FIXED_TAB_GALLERIES } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuMonitor, LuPaintBucket, LuPalette, LuPencil } from 'react-icons/lu';
+import { LuMonitor, LuPaintBucket, LuPalette, LuPencil, LuType } from 'react-icons/lu';
 
 import { cn } from '../../utils';
+import { controlAttr, groupAttr, RibbonGroupScope } from './PowerPointRibbonControls';
+import { RibbonGallery } from './RibbonGallery';
 import { ics, pill, sep } from './toolbar-constants';
+
+/** Design > Variants' galleries (Colors, Fonts), in ribbon order. */
+const DESIGN_VARIANT_GALLERIES = FIXED_TAB_GALLERIES.filter((placement) =>
+	placement.control.startsWith('design.variants.'),
+);
 
 /* ── Design ────────────────────────────────────────────── */
 
@@ -31,54 +39,89 @@ export function DesignSection(p: DesignSectionProps): React.ReactElement {
 	return (
 		<>
 			{/* Themes */}
-			<button
-				onClick={p.onToggleThemeGallery}
-				disabled={!p.canEdit}
-				className={cn(
-					pill,
-					p.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
-				)}
-				title={t('pptx.ribbon.browseThemesTitle')}
-			>
-				<LuPalette className={ics} />
-				{t('pptx.ribbon.browseThemes')}
-			</button>
-			<button
-				onClick={p.onToggleThemeEditor}
-				disabled={!p.canEdit}
-				className={cn(pill, p.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')}
-				title={t('pptx.ribbon.editThemeTitle')}
-			>
-				<LuPencil className={ics} />
-				{t('pptx.ribbon.editTheme')}
-			</button>
+			<RibbonGroupScope id='design.themes'>
+				<button
+					onClick={p.onToggleThemeGallery}
+					disabled={!p.canEdit}
+					className={cn(
+						pill,
+						p.isThemeGalleryOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
+					)}
+					title={t('pptx.ribbon.browseThemesTitle')}
+					{...controlAttr('design.themes.browseThemes')}
+				>
+					<LuPalette className={ics} />
+					{t('pptx.ribbon.browseThemes')}
+				</button>
+				<button
+					onClick={p.onToggleThemeEditor}
+					disabled={!p.canEdit}
+					className={cn(
+						pill,
+						p.isThemeEditorOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
+					)}
+					title={t('pptx.ribbon.editThemeTitle')}
+					{...controlAttr('design.themes.editTheme')}
+				>
+					<LuPencil className={ics} />
+					{t('pptx.ribbon.editTheme')}
+				</button>
+			</RibbonGroupScope>
+
+			{sep}
+
+			{/* Variants: the shared theme Colors / Fonts galleries */}
+			<div className='flex flex-col items-center gap-0.5' {...groupAttr('design.variants')}>
+				<div className='flex items-center gap-1'>
+					{DESIGN_VARIANT_GALLERIES.map((placement) => (
+						<RibbonGallery
+							key={placement.control}
+							placement={placement}
+							icon={
+								placement.gallery === 'themeFonts' ? (
+									<LuType className={ics} />
+								) : (
+									<LuPalette className={ics} />
+								)
+							}
+						/>
+					))}
+				</div>
+				<span className='text-[9px] text-muted-foreground leading-none'>
+					{t('pptx.ribbon.groupVariants')}
+				</span>
+			</div>
 
 			{sep}
 
 			{/* Customize */}
-			{(p.onOpenSlideSize ?? p.onOpenDocumentProperties) && (
-				<button
-					onClick={p.onOpenSlideSize ?? p.onOpenDocumentProperties}
-					className={pill}
-					title={t('pptx.ribbon.slideSizeTitle')}
-				>
-					<LuMonitor className={ics} />
-					{t('pptx.ribbon.slideSize')}
-				</button>
-			)}
-			{p.onToggleInspector && (
-				<button
-					onClick={p.onToggleInspector}
-					className={cn(
-						pill,
-						p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
-					)}
-					title={t('pptx.ribbon.formatBackgroundTitle')}
-				>
-					<LuPaintBucket className={ics} />
-					{t('pptx.ribbon.formatBackground')}
-				</button>
-			)}
+			<RibbonGroupScope id='design.customize'>
+				{(p.onOpenSlideSize ?? p.onOpenDocumentProperties) && (
+					<button
+						onClick={p.onOpenSlideSize ?? p.onOpenDocumentProperties}
+						className={pill}
+						title={t('pptx.ribbon.slideSizeTitle')}
+						{...controlAttr('design.customize.slideSize')}
+					>
+						<LuMonitor className={ics} />
+						{t('pptx.ribbon.slideSize')}
+					</button>
+				)}
+				{p.onToggleInspector && (
+					<button
+						onClick={p.onToggleInspector}
+						className={cn(
+							pill,
+							p.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '',
+						)}
+						title={t('pptx.ribbon.formatBackgroundTitle')}
+						{...controlAttr('design.customize.formatBackground')}
+					>
+						<LuPaintBucket className={ics} />
+						{t('pptx.ribbon.formatBackground')}
+					</button>
+				)}
+			</RibbonGroupScope>
 		</>
 	);
 }
