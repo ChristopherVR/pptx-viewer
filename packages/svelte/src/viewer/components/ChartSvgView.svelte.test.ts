@@ -66,3 +66,53 @@ describe('chartSvgView text transforms', () => {
 		}
 	});
 });
+
+describe('chartSvgView gradient defs (COM: charts-com.pptx slide 23)', () => {
+	it('renders linear and radial gradient defs with their stops', () => {
+		const target = document.createElement('div');
+		document.body.appendChild(target);
+		const component = mount(ChartSvgView, {
+			target,
+			props: {
+				vm: {
+					...viewModel(),
+					areaFill: 'url(#g-rad)',
+					defs: [
+						{
+							kind: 'linearGradient',
+							id: 'g-lin',
+							x1: 0.5,
+							y1: 0,
+							x2: 0.5,
+							y2: 1,
+							stops: [
+								{ offset: 0, color: '#ff0000' },
+								{ offset: 1, color: '#0000ff' },
+							],
+						},
+						{
+							kind: 'radialGradient',
+							id: 'g-rad',
+							cx: 0.5,
+							cy: 0.5,
+							r: 0.7,
+							stops: [
+								{ offset: 0, color: '#595959' },
+								{ offset: 1, color: '#262626' },
+							],
+						},
+					],
+				},
+				preserveAspectRatio: 'none',
+				legendItems: [],
+			},
+		});
+		flushSync();
+		cleanup = () => {
+			void unmount(component);
+			target.remove();
+		};
+		expect(target.querySelector('linearGradient#g-lin')?.getAttribute('y2')).toBe('1');
+		expect(target.querySelectorAll('radialGradient#g-rad stop')).toHaveLength(2);
+	});
+});

@@ -320,3 +320,41 @@ describe('chartViewModelSvg: text transforms', () => {
 		}
 	});
 });
+
+describe('chartViewModelSvg: gradient defs (COM: charts-com.pptx slide 23)', () => {
+	it('renders linear and radial gradient defs with their stops', () => {
+		const wrapper = mountVm(
+			baseViewModel({
+				areaFill: 'url(#g-rad)',
+				defs: [
+					{
+						kind: 'linearGradient',
+						id: 'g-lin',
+						x1: 0.5,
+						y1: 0,
+						x2: 0.5,
+						y2: 1,
+						stops: [
+							{ offset: 0, color: '#ff0000' },
+							{ offset: 1, color: '#0000ff' },
+						],
+					},
+					{
+						kind: 'radialGradient',
+						id: 'g-rad',
+						cx: 0.5,
+						cy: 0.5,
+						r: 0.7,
+						stops: [
+							{ offset: 0, color: '#595959' },
+							{ offset: 1, color: '#262626' },
+						],
+					},
+				],
+			}),
+		);
+		expect(wrapper.find('linearGradient#g-lin').attributes('y2')).toBe('1');
+		expect(wrapper.findAll('radialGradient#g-rad stop')).toHaveLength(2);
+		expect(wrapper.find('rect').attributes('fill')).toBe('url(#g-rad)');
+	});
+});

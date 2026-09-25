@@ -16,7 +16,12 @@ import type { ChartTitleRunSpan } from './chart-title-runs';
 import type { ChartTitleTextStyle } from './chart-title-style';
 import type { ValueRange } from './chart-view-model-scale';
 
-export type { ChartSvgDef, ChartSvgPatternDef } from './chart-svg-def-types';
+export type {
+	ChartSvgDef,
+	ChartSvgGradientDef,
+	ChartSvgGradientStop,
+	ChartSvgPatternDef,
+} from './chart-svg-def-types';
 export * from './chart-svg-primitives';
 
 /** Bounding-box of the chart's usable plot area in SVG coordinates. */

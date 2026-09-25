@@ -33,8 +33,34 @@ export function createSvgEl<K extends keyof SVGElementTagNameMap>(
 	return el;
 }
 
-/** One `ChartSvgDef` (a data point's picture-fill `<pattern>`) to its SVG node. */
+/**
+ * One `ChartSvgDef` to its SVG node: a data point's picture-fill
+ * `<pattern>`, or a chart gradient (`<linearGradient>` / `<radialGradient>`
+ * in bounding-box units, see `chart-gradient-defs.ts`).
+ */
 export function renderPatternDef(doc: Document, def: ChartSvgDef): SVGElement {
+	if (def.kind !== 'pattern') {
+		const gradient =
+			def.kind === 'linearGradient'
+				? createSvgEl(doc, 'linearGradient', {
+						id: def.id,
+						x1: def.x1,
+						y1: def.y1,
+						x2: def.x2,
+						y2: def.y2,
+					})
+				: createSvgEl(doc, 'radialGradient', { id: def.id, cx: def.cx, cy: def.cy, r: def.r });
+		for (const stop of def.stops) {
+			gradient.appendChild(
+				createSvgEl(doc, 'stop', {
+					offset: stop.offset,
+					'stop-color': stop.color,
+					'stop-opacity': stop.opacity,
+				}),
+			);
+		}
+		return gradient;
+	}
 	const pattern = createSvgEl(doc, 'pattern', {
 		id: def.id,
 		patternUnits: def.patternUnits,

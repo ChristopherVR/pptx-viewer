@@ -365,3 +365,45 @@ describe('renderChartViewModel: chart title rich text (titleRunSpans)', () => {
 		expect(html).toContain('>Sales</text>');
 	});
 });
+
+describe('renderChartViewModel gradient defs (COM: charts-com.pptx slide 23)', () => {
+	it('renders linear and radial gradient defs with their stops', () => {
+		const html = renderToStaticMarkup(
+			renderChartViewModel(
+				'c1',
+				baseViewModel({
+					areaFill: 'url(#g-rad)',
+					defs: [
+						{
+							kind: 'linearGradient',
+							id: 'g-lin',
+							x1: 0.5,
+							y1: 0,
+							x2: 0.5,
+							y2: 1,
+							stops: [
+								{ offset: 0, color: '#ff0000' },
+								{ offset: 1, color: '#0000ff' },
+							],
+						},
+						{
+							kind: 'radialGradient',
+							id: 'g-rad',
+							cx: 0.5,
+							cy: 0.5,
+							r: 0.7,
+							stops: [
+								{ offset: 0, color: '#595959' },
+								{ offset: 1, color: '#262626' },
+							],
+						},
+					],
+				}),
+			),
+		);
+		expect(html).toContain('<linearGradient id="g-lin" x1="0.5" y1="0" x2="0.5" y2="1">');
+		expect(html).toContain('<radialGradient id="g-rad"');
+		expect(html).toContain('stop-color="#262626"');
+		expect(html).toContain('fill="url(#g-rad)"');
+	});
+});

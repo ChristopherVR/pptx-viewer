@@ -37,6 +37,8 @@ import type {
 } from 'pptx-viewer-shared';
 import React from 'react';
 
+import { renderGradientStops } from './chart-gradient-stops';
+
 /**
  * `data-chart-*` hit-testing attributes for a tagged data-mark primitive.
  * Always emitted (they are inert without pointer events); `ChartElementView`
@@ -264,26 +266,49 @@ export function renderChartViewModel(
 		>
 			{vm.defs && vm.defs.length > 0 && (
 				<defs>
-					{vm.defs.map((def, i) => (
-						<pattern
-							key={`${elementId}-def-${i}`}
-							id={def.id}
-							patternUnits={def.patternUnits}
-							x={def.x}
-							y={def.y}
-							width={def.width}
-							height={def.height}
-						>
-							<image
-								href={def.href}
-								x={0}
-								y={0}
+					{vm.defs.map((def, i) =>
+						def.kind === 'linearGradient' ? (
+							<linearGradient
+								key={`${elementId}-def-${i}`}
+								id={def.id}
+								x1={def.x1}
+								y1={def.y1}
+								x2={def.x2}
+								y2={def.y2}
+							>
+								{renderGradientStops(def.stops)}
+							</linearGradient>
+						) : def.kind === 'radialGradient' ? (
+							<radialGradient
+								key={`${elementId}-def-${i}`}
+								id={def.id}
+								cx={def.cx}
+								cy={def.cy}
+								r={def.r}
+							>
+								{renderGradientStops(def.stops)}
+							</radialGradient>
+						) : (
+							<pattern
+								key={`${elementId}-def-${i}`}
+								id={def.id}
+								patternUnits={def.patternUnits}
+								x={def.x}
+								y={def.y}
 								width={def.width}
 								height={def.height}
-								preserveAspectRatio={def.preserveAspectRatio}
-							/>
-						</pattern>
-					))}
+							>
+								<image
+									href={def.href}
+									x={0}
+									y={0}
+									width={def.width}
+									height={def.height}
+									preserveAspectRatio={def.preserveAspectRatio}
+								/>
+							</pattern>
+						),
+					)}
 				</defs>
 			)}
 

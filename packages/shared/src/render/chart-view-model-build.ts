@@ -22,6 +22,7 @@ import { labelsBesideTable } from './chart-data-table-metrics';
 import { applyDataPointPictureFills } from './chart-datapoint-picture-fills';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
+import { withGradientFills } from './chart-gradient-defs';
 import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { manualLayoutOf } from './chart-manual-layout';
 import { buildOfPieViewModel } from './chart-ofpie';
@@ -127,13 +128,17 @@ function finishViewModel(
 	frame: { id: string; width: number; height: number },
 ): ChartViewModel {
 	return withLegendEntries(
-		withChartAreaFill(
-			withDataPointPictureFills(
-				withUserShapeOverlay(withManualLayouts(vm, chartData, frame), chartData),
+		withGradientFills(
+			withChartAreaFill(
+				withDataPointPictureFills(
+					withUserShapeOverlay(withManualLayouts(vm, chartData, frame), chartData),
+					chartData,
+					frame.id,
+				),
 				chartData,
-				frame.id,
 			),
 			chartData,
+			frame.id,
 		),
 		chartData,
 	);

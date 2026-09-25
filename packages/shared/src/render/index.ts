@@ -241,6 +241,8 @@ export type {
 	SupportedChartKind,
 	PlotLayoutOptions,
 	ChartSvgDef,
+	ChartSvgGradientDef,
+	ChartSvgGradientStop,
 	ChartSvgPatternDef,
 } from './chart-view-model';
 // `c:manualLayout` (CT_ManualLayout) conversion: the pure edge / factor
