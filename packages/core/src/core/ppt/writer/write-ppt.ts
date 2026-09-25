@@ -80,12 +80,10 @@ async function finishEncrypted(
 	const offsetToCurrentEdit = w.size;
 	w.bytes(userEdit);
 
-	const skipRanges = [
-		{ start: cryptOffset, end: cryptOffset + ctx.cryptSessionRecord.length },
-		{ start: dirOffset, end: dirOffset + dirAtom.length },
-		{ start: offsetToCurrentEdit, end: offsetToCurrentEdit + userEdit.length },
-	];
-	const documentBytes = await encryptDocumentStream(w.toBytes(), skipRanges, ctx);
+	// The PersistDirectoryAtom and UserEditAtom are not persist objects, so
+	// enciphering only the directory's objects leaves them plaintext.
+	const directory = new Map<number, number>(layout.offsets);
+	const documentBytes = await encryptDocumentStream(w.toBytes(), directory, cryptId, ctx);
 	const picturesBytes = layout.picturesStream
 		? await encryptPicturesStream(layout.picturesStream, ctx)
 		: undefined;
