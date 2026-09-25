@@ -17,11 +17,13 @@
 import { evaluatePresetShape } from '../../geometry';
 import { FONT_TYPES } from './constraint-eval';
 import type { EngineNode } from './engine-node';
+import { layoutFontOf, sizingVariable } from './layout-font';
 import { presetAdjustments } from './shape-adjust';
 import type { NodeText, TextMetrics } from './text-measure';
 import { paragraphsFit } from './text-measure';
 
 export type { NodeText, TextMetrics } from './text-measure';
+export { sizingVariable } from './layout-font';
 
 /** Starting size (points) for a text node with no `primFontSz` constraint. */
 export const DEFAULT_START_PT = 65;
@@ -75,27 +77,19 @@ function ruleFloors(node: EngineNode, type: string): number[] {
 }
 
 /**
- * The font-size variable a node's text is sized by: `primFontSz`, unless the
- * node declares `<dgm:constr type="primFontSz" refType="secFontSz"/>` on
- * itself, in which case its text follows its own `secFontSz` and the
- * `secFontSz` rules ("Basic Pyramid"'s `acctTx` accent column: no
- * `primFontSz` rule at all, a `secFontSz` rule down to 5pt, cached at 35pt
- * instead of the 65pt start).
- */
-export function sizingVariable(node: EngineNode): 'primFontSz' | 'secFontSz' {
-	const linked = node.deferred.some(
-		(d) => d.type === 'primFontSz' && d.refType === 'secFontSz' && d.ref === node,
-	);
-	return linked ? 'secFontSz' : 'primFontSz';
-}
-
-/**
  * The node's starting size (its `primFontSz` constraint value, capped by any
  * literal `op="lte"` bound) and its shrink floor (the lowest `primFontSz`
  * rule reaching it). With no rule, PowerPoint does not shrink the text at
  * all, so the floor is the start itself.
  */
 export function nodeFontBounds(node: EngineNode): FontBoundsPt {
+	// A text-driven font search already chose the size the layout was built
+	// around (and grew the boxes to fit it).
+	const searched = layoutFontOf(node);
+	if (searched !== undefined) {
+		const fixed = Math.max(ABSOLUTE_FLOOR_PT, Math.floor(searched + 1e-9));
+		return { start: fixed, floor: fixed };
+	}
 	const variable = sizingVariable(node);
 	const declared = node.values.get(variable);
 	const cap = node.maxValues.get(variable);
@@ -120,30 +114,32 @@ export function nodeFontBounds(node: EngineNode): FontBoundsPt {
  * `rot="-90"` parent labels: cached `dsp:txXfrm` 270 x 41pt, read along the
  * 270pt side).
  */
-const textBoxCache = new WeakMap<EngineNode, { w: number; h: number }>();
+const textBoxCache = new WeakMap<
+	EngineNode,
+	{ w: number; h: number; box: { w: number; h: number } }
+>();
 
 export function nodeTextBox(node: EngineNode): { w: number; h: number } | undefined {
-	const cached = textBoxCache.get(node);
-	if (cached) {
-		return cached;
-	}
-	const computed = computeTextBox(node);
-	if (computed) {
-		textBoxCache.set(node, computed);
-	}
-	return computed;
-}
-
-function computeTextBox(node: EngineNode): { w: number; h: number } | undefined {
 	const box = node.box;
 	if (!box) {
 		return undefined;
 	}
+	const cached = textBoxCache.get(node);
+	if (cached && cached.w === box.w && cached.h === box.h) {
+		return cached.box;
+	}
+	const computed = textBoxAt(node, box.w, box.h);
+	textBoxCache.set(node, { w: box.w, h: box.h, box: computed });
+	return computed;
+}
+
+/** {@link nodeTextBox} for a `w` x `h` footprint (a size the node is being grown to). */
+export function textBoxAt(node: EngineNode, boxW: number, boxH: number): { w: number; h: number } {
 	const rot = node.shape?.rot ?? 0;
 	const quarter = Math.round(rot / 90);
 	const sideways = Math.abs(quarter) % 2 === 1 && Math.abs(rot - quarter * 90) < 1e-6;
-	const w = sideways ? box.h : box.w;
-	const h = sideways ? box.w : box.h;
+	const w = sideways ? boxH : boxW;
+	const h = sideways ? boxW : boxH;
 	const rect = node.shape?.type
 		? evaluatePresetShape(node.shape.type, w, h, presetAdjustments(node.shape.type, node.shape.adj))
 				?.textRect

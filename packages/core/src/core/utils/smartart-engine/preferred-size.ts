@@ -5,8 +5,9 @@
  * fact="0.6"/>` declared on the child itself keeps its aspect).
  */
 
-import { applyConstraint } from './constraint-eval';
+import { applyConstraint, fontAssigned } from './constraint-eval';
 import type { EngineNode } from './engine-node';
+import { grownSize } from './text-grow';
 
 const SIZE_TYPES = new Set(['w', 'h']);
 
@@ -27,17 +28,38 @@ export interface Size {
  * dimension to `fallback`.
  */
 export function preferredSize(child: EngineNode, fallback: Size): Size {
-	for (let i = 0; i < child.constraints.length; i++) {
-		if (isSelfSizeConstraint(child, i)) {
-			applyConstraint(child, child.constraints[i]);
-		}
-	}
+	applySelfSizeConstraints(child);
 	const w = child.values.get('w');
 	const h = child.values.get('h');
-	return {
+	// Text growth is bounded by the node's own `op="lte"` constraints: "Horizontal
+	// Bullet List"'s `parTx` may grow to fit its label but never past `0.4 x w`,
+	// so a label that would need a second line there shrinks the font instead.
+	const grown = grownSize(child, {
 		w: clamp(child, 'w', w ?? fallback.w),
 		h: clamp(child, 'h', h ?? fallback.h),
-	};
+	});
+	return { w: clamp(child, 'w', grown.w), h: clamp(child, 'h', grown.h) };
+}
+
+/**
+ * Re-apply `node`'s own self-scoped `w`/`h` constraints over what its
+ * ancestors assigned. A bare literal one (`<dgm:constr type="h"/>`, no
+ * reference) is only the node's DEFAULT: it yields to a value an ancestor
+ * assigned during a text-driven font search ("Basic Chevron Process"'s
+ * `parTx` declares a bare `h` while the diagram sizes it `1.5 x primFontSz`).
+ */
+export function applySelfSizeConstraints(node: EngineNode): void {
+	for (let i = 0; i < node.constraints.length; i++) {
+		if (!isSelfSizeConstraint(node, i)) {
+			continue;
+		}
+		const constraint = node.constraints[i];
+		const literal = constraint.refType === 'none' && constraint.op === 'none';
+		if (literal && fontAssigned.has(node, constraint.type)) {
+			continue;
+		}
+		applyConstraint(node, constraint);
+	}
 }
 
 function clamp(node: EngineNode, type: string, value: number): number {

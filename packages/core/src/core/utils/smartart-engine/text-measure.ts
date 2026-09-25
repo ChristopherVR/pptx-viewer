@@ -123,14 +123,16 @@ function paragraphsAt(text: NodeText, sizePt: number): Paragraph[] {
 	return [paragraph(text.own, 1), ...text.descendants.map((d) => paragraph(d, 2))];
 }
 
-/** Whether `text` at `sizePt` fits `availW` x `availH` points (net of margins). */
-export function paragraphsFit(
+/**
+ * The height (points) `text` takes at `sizePt` wrapped to `availW` points,
+ * or `undefined` when a word is wider than the line (no wrap can fit it).
+ */
+export function paragraphsHeight(
 	text: NodeText,
 	sizePt: number,
 	availW: number,
-	availH: number,
 	metrics: TextMetrics,
-): boolean {
+): number | undefined {
 	const { table, lineEm } = metrics;
 	const paragraphs = paragraphsAt(text, sizePt);
 	let height = 0;
@@ -138,7 +140,7 @@ export function paragraphsFit(
 		const widthPx = Math.max(1, availW - p.indent) * PX_PER_PT;
 		const sizePx = p.size * PX_PER_PT;
 		if (wrappedWidestLineWidth(p.text, widthPx, sizePx, table) > widthPx) {
-			return false;
+			return undefined;
 		}
 		const line = p.size * lineEm;
 		height +=
@@ -147,6 +149,17 @@ export function paragraphsFit(
 			height += p.spcAft * line;
 		}
 	}
-	height += SMARTART_TEXT_BLOCK_EXTRA_EM * sizePt;
-	return height <= availH + 1e-6;
+	return height + SMARTART_TEXT_BLOCK_EXTRA_EM * sizePt;
+}
+
+/** Whether `text` at `sizePt` fits `availW` x `availH` points (net of margins). */
+export function paragraphsFit(
+	text: NodeText,
+	sizePt: number,
+	availW: number,
+	availH: number,
+	metrics: TextMetrics,
+): boolean {
+	const height = paragraphsHeight(text, sizePt, availW, metrics);
+	return height !== undefined && height <= availH + 1e-6;
 }

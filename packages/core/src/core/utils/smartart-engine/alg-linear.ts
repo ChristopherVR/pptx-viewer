@@ -27,7 +27,11 @@ function measure(node: EngineNode, box: Box, horizontal: boolean, scale: number)
 	const refH = horizontal ? box.h : box.h * scale;
 	evaluateWithReference(node, refW, refH);
 	const sizes = node.children.map((child) =>
-		preferredSize(child, horizontal ? { w: 0, h: refH } : { w: refW, h: 0 }),
+		boundedSize(
+			child,
+			preferredSize(child, horizontal ? { w: 0, h: refH } : { w: refW, h: 0 }),
+			horizontal,
+		),
 	);
 	const spacing = node.values.get('sibSp') ?? 0;
 	let total = spacing * Math.max(0, sizes.length - 1);
@@ -39,12 +43,63 @@ function measure(node: EngineNode, box: Box, horizontal: boolean, scale: number)
 	return { sizes, total, cross, spacing };
 }
 
+/**
+ * A child sized `INF` along either axis ("Vertical Box List"'s `parentLin`,
+ * `h val="INF"`) takes its content's own extent instead: the tallest of a
+ * horizontal run's items, the sum of a vertical one's. So does a nested
+ * arrangement no constraint sizes along the flow ("Sub-Step Process"'s
+ * `txAndLines` row inside its `fromT` column is as tall as its `desTx`).
+ */
+function boundedSize(child: EngineNode, size: Size, horizontal: boolean): Size {
+	const unsized =
+		child.children.length > 0 &&
+		(child.alg.type === 'lin' || child.alg.type === 'composite') &&
+		!child.values.has(horizontal ? 'w' : 'h');
+	if (Number.isFinite(size.w) && Number.isFinite(size.h) && !unsized) {
+		return size;
+	}
+	const extent = (alongW: boolean): number =>
+		unsized ? measuredExtent(child, size, alongW) : contentExtent(child, alongW);
+	return {
+		w: Number.isFinite(size.w) && !(unsized && horizontal) ? size.w : extent(true),
+		h: Number.isFinite(size.h) && !(unsized && !horizontal) ? size.h : extent(false),
+	};
+}
+
+/** {@link contentExtent} after evaluating `node`'s own constraints at `size` (then restored). */
+function measuredExtent(node: EngineNode, size: Size, horizontal: boolean): number {
+	const saved = new Map(node.values);
+	evaluateWithReference(node, size.w, size.h);
+	const extent = contentExtent(node, horizontal);
+	node.values = saved;
+	return extent;
+}
+
+function contentExtent(node: EngineNode, horizontal: boolean): number {
+	const dir = node.alg.params.linDir ?? 'fromL';
+	const flowsHorizontally = dir === 'fromL' || dir === 'fromR';
+	const sizes = node.children.map((child) => {
+		const size = preferredSize(child, { w: 0, h: 0 });
+		const value = horizontal ? size.w : size.h;
+		return Number.isFinite(value) ? value : 0;
+	});
+	if (sizes.length === 0) {
+		return 0;
+	}
+	if (node.alg.type === 'lin' && flowsHorizontally === horizontal) {
+		const spacing = node.values.get('sibSp') ?? 0;
+		return sizes.reduce((sum, v) => sum + v, 0) + spacing * (sizes.length - 1);
+	}
+	return Math.max(0, ...sizes);
+}
+
 /** Fit the run: shrink the flow-axis reference until length and thickness fit. */
 export function fitLinear(node: EngineNode, box: Box, horizontal: boolean): Measure {
 	const along = horizontal ? box.w : box.h;
 	const across = horizontal ? box.h : box.w;
 	let scale = 1;
 	let current = measure(node, box, horizontal, scale);
+	const full = current;
 	let crossLimited = true;
 	for (let iteration = 0; iteration < 12; iteration++) {
 		const fitAlong = current.total > along + 1e-6 ? along / current.total : 1;
@@ -63,7 +118,50 @@ export function fitLinear(node: EngineNode, box: Box, horizontal: boolean): Meas
 		scale *= factor;
 		current = next;
 	}
-	return current;
+	return refineAlong(node, box, horizontal, scale, current, full, crossLimited);
+}
+
+/**
+ * Shrinking by `along / total` undershoots when part of the run does not
+ * scale with the reference (a fixed or negative `sibSp`, a literal spacer
+ * width): "Basic Chevron Process"'s `-6mm` overlaps leave the three chevrons
+ * 23pt short of the 650pt row after one step. The run's length is linear in
+ * the reference scale, so a secant step between the unscaled measure and the
+ * shrunk one lands on the exact scale that fills the row.
+ */
+function refineAlong(
+	node: EngineNode,
+	box: Box,
+	horizontal: boolean,
+	scale: number,
+	current: Measure,
+	full: Measure,
+	crossLimited: boolean,
+): Measure {
+	const along = horizontal ? box.w : box.h;
+	const across = horizontal ? box.h : box.w;
+	let best = current;
+	let s0 = 1;
+	let t0 = full.total;
+	let s1 = scale;
+	let t1 = current.total;
+	for (let i = 0; i < 6 && s1 < 1 && Math.abs(t1 - along) > 1e-3 && Math.abs(t0 - t1) > 1e-9; i++) {
+		const next = Math.min(1, Math.max(1e-6, s1 + ((along - t1) * (s0 - s1)) / (t0 - t1)));
+		const measured = measure(node, box, horizontal, next);
+		if (measured.total > along + 1e-3 || (crossLimited && measured.cross > across + 1e-6)) {
+			break;
+		}
+		best = measured;
+		s0 = s1;
+		t0 = t1;
+		s1 = next;
+		t1 = measured.total;
+	}
+	if (best !== current) {
+		return best;
+	}
+	// Leave the node's values as the kept measure evaluated them.
+	return measure(node, box, horizontal, scale);
 }
 
 function alignOffset(free: number, align: string | undefined, start: string, end: string): number {

@@ -6,6 +6,8 @@
 
 import type { PptxSmartArtData } from '../../types';
 import { buildDataModel } from './data-points';
+import { setLayoutContext } from './engine-context';
+import type { EngineLayoutContext } from './engine-context';
 import type { EngineNode } from './engine-node';
 import { toEngineTree } from './engine-node';
 import { parseLayoutDefinitionXml } from './layout-def-parse';
@@ -18,7 +20,8 @@ export interface EngineRun {
 }
 
 /**
- * Run the engine for `data` in a `width` x `height` point frame. Returns
+ * Run the engine for `data` in a `width` x `height` point frame, measuring
+ * text through `context` where the layout depends on it. Returns
  * `undefined` when the diagram carries no layout-definition source.
  */
 export function runSmartArtEngine(
@@ -26,6 +29,7 @@ export function runSmartArtEngine(
 	layoutXml: string,
 	width: number,
 	height: number,
+	context?: EngineLayoutContext,
 ): EngineRun | undefined {
 	const def = parseLayoutDefinitionXml(layoutXml);
 	if (!def) {
@@ -39,6 +43,9 @@ export function runSmartArtEngine(
 		return undefined;
 	}
 	const root = toEngineTree(tree);
+	if (context) {
+		setLayoutContext(root, context);
+	}
 	layoutTree(root, { x: 0, y: 0, w: width, h: height }, DEFAULT_REGISTRY);
 	return { root };
 }

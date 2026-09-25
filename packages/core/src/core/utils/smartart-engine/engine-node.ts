@@ -53,6 +53,14 @@ export interface EngineNode extends PresNode {
 	secondaryFontSize?: number;
 	/** Text box (absolute) when it differs from the shape box. */
 	textBox?: Box;
+	/**
+	 * The font size (points) a text-driven font search (`font-search.ts`)
+	 * fixed for this node while laying its ancestor out; while set, every
+	 * length constraint that reads this node's font resolves against it.
+	 */
+	forcedFontPt?: number;
+	/** Minimum size a text-grown node takes (an `op="equ"` group's largest need). */
+	growFloor?: { w?: number; h?: number };
 }
 
 /** Promote a presentation tree to engine nodes in place. */
