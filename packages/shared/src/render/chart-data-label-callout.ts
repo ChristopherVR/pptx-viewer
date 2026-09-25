@@ -14,7 +14,8 @@
  */
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
-import type { SvgLine, SvgPolygon, SvgPrimitive, SvgText } from './chart-view-model-types';
+import { findPointLabel } from './chart-data-label-anchor';
+import type { SvgPolygon, SvgPolyline, SvgPrimitive, SvgText } from './chart-view-model-types';
 
 /** The rectangle a label's text occupies, estimated from its font size. */
 function labelBox(label: SvgText): { x: number; y: number; w: number; h: number } {
@@ -121,7 +122,7 @@ export function calloutLabelLift(
  * label back to its point. Empty when the label authors none of these.
  *
  * @param moved Whether the label was dragged (`c:dLbl/c:layout`); PowerPoint
- *              draws a leader line only for a moved label.
+ *              draws a leader line only for a moved label, callout or not.
  */
 export function buildDataLabelDecorations(
 	chartData: PptxChartData,
@@ -133,44 +134,99 @@ export function buildDataLabelDecorations(
 	const opts = series.dataLabelOptions ?? chartData.style?.dataLabels;
 	const shape = opts?.labelShape;
 	const callout = opts?.calloutShape?.toLowerCase().includes('callout') === true;
-	if (!shape && !callout && !(moved && (opts?.extLeaderLines ?? opts?.showLeaderLines))) {
+	const leader = moved && (opts?.extLeaderLines ?? opts?.showLeaderLines) === true;
+	if (!shape && !callout && !leader) {
 		return [];
 	}
 	const box = labelBox(label);
+	const out: SvgPrimitive[] = leader ? [leaderLine(box, target, opts)] : [];
 	if (shape || callout) {
-		const polygon: SvgPolygon = {
+		// The pointer only shows when the point lies outside the box: a label
+		// PowerPoint centres on its point (area, doughnut) draws a plain box.
+		const pointer = callout && !contains(box, target) ? target : undefined;
+		out.push({
 			kind: 'polygon',
-			points: calloutPoints(box, callout ? target : undefined),
+			points: calloutPoints(box, pointer),
 			fill: shape?.fillColor ?? 'none',
 			stroke: shape?.strokeColor ?? 'none',
-			strokeWidth: shape?.strokeWidth ?? 0,
-		};
-		if (callout) {
-			return [polygon];
-		}
-		if (!moved || !(opts?.extLeaderLines ?? opts?.showLeaderLines)) {
-			return [polygon];
-		}
-		return [polygon, leaderLine(box, target, opts)];
+			// An `a:ln` with no `@w` is PowerPoint's hairline default, not "no line".
+			strokeWidth: shape?.strokeWidth ?? (shape?.strokeColor ? 1 : 0),
+		} satisfies SvgPolygon);
 	}
-	return [leaderLine(box, target, opts)];
+	return out;
 }
+
+/**
+ * {@link buildDataLabelDecorations} for the label of point `pointIndex`,
+ * reading whether the author dragged it (`c:dLbl/c:layout`) itself. The
+ * `target` is what PowerPoint points the callout and leader line at: the
+ * marker (line, scatter, radar), the bubble or band centre (bubble, area), the
+ * rim (pie) or the middle of the ring (doughnut).
+ */
+export function buildPointLabelDecorations(
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+	pointIndex: number,
+	label: SvgText,
+	target: { x: number; y: number },
+): SvgPrimitive[] {
+	const moved = Boolean(findPointLabel(series, pointIndex)?.layout);
+	return buildDataLabelDecorations(chartData, series, label, target, moved);
+}
+
+function contains(
+	box: { x: number; y: number; w: number; h: number },
+	p: { x: number; y: number },
+) {
+	return p.x >= box.x && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + box.h;
+}
+
+/** PowerPoint's elbow stub: the leader leaves the box edge facing the point. */
+const LEADER_STUB = 5;
 
 function leaderLine(
 	box: { x: number; y: number; w: number; h: number },
 	target: { x: number; y: number },
 	opts: { leaderLineStyle?: { strokeColor?: string; strokeWidth?: number } } | undefined,
-): SvgLine {
-	const fromX = Math.min(Math.max(target.x, box.x), box.x + box.w);
-	const fromY =
-		target.y > box.y + box.h ? box.y + box.h : target.y < box.y ? box.y : box.y + box.h / 2;
+): SvgPolyline {
+	// COM: a leader leaves the middle of the box side that faces the point with
+	// a short horizontal stub, then runs straight to the point.
+	let from: [number, number];
+	let elbow: [number, number];
+	if (target.x < box.x || target.x > box.x + box.w) {
+		const x = target.x < box.x ? box.x : box.x + box.w;
+		const dir = target.x < box.x ? -1 : 1;
+		from = [x, box.y + box.h / 2];
+		elbow = [x + dir * LEADER_STUB, box.y + box.h / 2];
+	} else {
+		const y = target.y > box.y + box.h ? box.y + box.h : box.y;
+		const dir = target.y > box.y + box.h ? 1 : -1;
+		from = [box.x + box.w / 2, y];
+		elbow = [box.x + box.w / 2, y + dir * LEADER_STUB];
+	}
 	return {
-		kind: 'line',
-		x1: r2(fromX),
-		y1: r2(fromY),
-		x2: r2(target.x),
-		y2: r2(target.y),
+		kind: 'polyline',
+		points: [from, elbow, [target.x, target.y]].map(([x, y]) => `${r2(x)},${r2(y)}`).join(' '),
+		fill: 'none',
 		stroke: opts?.leaderLineStyle?.strokeColor ?? '#A6A6A6',
 		strokeWidth: opts?.leaderLineStyle?.strokeWidth ?? 1,
 	};
+}
+
+/**
+ * Push a point's label and, into `boxes`, its decorations (see
+ * {@link buildPointLabelDecorations}). A builder appends `boxes` after its own
+ * marks, so the box sits over the series and under the label text.
+ */
+export function pushPointLabel(
+	dataLabels: SvgText[],
+	boxes: SvgPrimitive[],
+	chartData: PptxChartData,
+	series: PptxChartSeries,
+	pointIndex: number,
+	target: { x: number; y: number },
+	label: SvgText,
+): void {
+	dataLabels.push(label);
+	boxes.push(...buildPointLabelDecorations(chartData, series, pointIndex, label, target));
 }

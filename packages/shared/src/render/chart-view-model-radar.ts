@@ -12,12 +12,23 @@
 import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { resolveChartTitleText } from './chart-auto-title';
-import { dataLabelFontOverride, resolveDataLabelTextStyle } from './chart-data-label-text';
+import {
+	findPointLabel,
+	resolveLabelPosition,
+	resolveMarkerLabelPlacement,
+} from './chart-data-label-anchor';
+import { pushPointLabel } from './chart-data-label-callout';
+import {
+	buildDataLabelText,
+	dataLabelFontOverride,
+	resolveDataLabelTextStyle,
+} from './chart-data-label-text';
 import { DEFAULT_CHART_DATA_LABEL_PX, DEFAULT_CHART_TEXT_PX } from './chart-font';
 import { buildLegend } from './chart-legend-build';
+import { applyLabelManualLayout } from './chart-manual-layout';
 import { computeRadarPoints, radarAngle, radarRingPoints } from './chart-radar-geometry';
 import { computePlotLayout } from './chart-view-model-layout';
-import { buildMarkTooltip, formatAxisValue, seriesColor } from './chart-view-model-scale';
+import { buildMarkTooltip, seriesColor } from './chart-view-model-scale';
 import type {
 	ChartViewModel,
 	SvgCircle,
@@ -30,7 +41,12 @@ import type {
 const RADAR_RINGS = 4,
 	RADAR_RING_COLOR = '#cbd5e1',
 	RADAR_SPOKE_COLOR = '#94a3b8',
-	RADAR_LABEL_COLOR = '#64748b';
+	RADAR_LABEL_COLOR = '#64748b',
+	// COM (callouts-com.pptx): with no c:dLblPos, PowerPoint centres a radar
+	// label on the spoke, this many label font sizes out past its point.
+	RADAR_LABEL_RADIAL_EM = 3.5;
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi));
 
 /**
  * Build the view-model for a radar / spider chart. Polar, so it has no
@@ -99,7 +115,9 @@ export function buildRadarViewModel(
 	const radarStyle = chartData.radarStyle ?? 'marker',
 		polygonFill = radarStyle === 'standard' ? 'none' : undefined,
 		polygonOpacity = radarStyle === 'filled' ? 0.6 : radarStyle === 'standard' ? undefined : 0.2;
-	const dataLabels: SvgText[] = [];
+	const dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
+		frame = { width: layout.svgWidth, height: layout.svgHeight };
 	chartData.series.forEach((series, si) => {
 		const c = seriesColor(series, si, chartData.colorPalette),
 			pts = computeRadarPoints(series.values, maxVal, radius, cx, cy, catCount);
@@ -138,19 +156,40 @@ export function buildRadarViewModel(
 
 		if (chartData.style?.hasDataLabels) {
 			pts.forEach((p, vi) => {
-				const val = series.values[vi];
-				if (val === undefined) {
+				const val = series.values[vi],
+					label =
+						val === undefined
+							? undefined
+							: buildDataLabelText({ chartData, series, pointIndex: vi, value: val });
+				if (label === undefined) {
 					return;
 				}
-				dataLabels.push({
+				const font = dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, vi)),
+					fontSize = font.fontSize ?? DEFAULT_CHART_DATA_LABEL_PX;
+				let anchor: Pick<SvgText, 'x' | 'y' | 'textAnchor' | 'dominantBaseline'>;
+				if (resolveLabelPosition(chartData, series, vi) === undefined) {
+					const angle = radarAngle(vi, catCount),
+						out = RADAR_LABEL_RADIAL_EM * fontSize,
+						// Kept inside the chart box, as PowerPoint keeps every label.
+						auto = {
+							x: clamp(p.x + out * Math.cos(angle), fontSize, frame.width - fontSize),
+							y: clamp(p.y + out * Math.sin(angle), fontSize, frame.height - fontSize),
+						};
+					anchor = {
+						...applyLabelManualLayout(findPointLabel(series, vi)?.layout, frame, auto),
+						textAnchor: 'middle',
+						dominantBaseline: 'central',
+					};
+				} else {
+					anchor = resolveMarkerLabelPlacement(chartData, series, vi, p, frame, 7);
+				}
+				pushPointLabel(dataLabels, labelBoxes, chartData, series, vi, p, {
 					kind: 'text',
-					x: p.x,
-					y: p.y - 8,
-					text: formatAxisValue(val, series.numberFormat),
+					...anchor,
+					text: label.text,
 					fontSize: DEFAULT_CHART_DATA_LABEL_PX,
-					fill: '#334155',
-					textAnchor: 'middle',
-					...dataLabelFontOverride(resolveDataLabelTextStyle(chartData, series, vi)),
+					fill: label.color ?? '#334155',
+					...font,
 				});
 			});
 		}
@@ -177,7 +216,7 @@ export function buildRadarViewModel(
 		axisLabels: [],
 		zeroLine: undefined,
 		categoryLabels: perimeterLabels,
-		primitives,
+		primitives: [...primitives, ...labelBoxes],
 		dataLabels,
 		legend: chartData.style?.hasLegend ? legend : [],
 		legendX,

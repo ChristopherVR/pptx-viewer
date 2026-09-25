@@ -17,6 +17,7 @@ import { resolveBlankDisplay, visibleRuns } from './chart-blank-display';
 import { pushMarker } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
+import { pushPointLabel } from './chart-data-label-callout';
 import {
 	buildDataLabelText,
 	dataLabelFontOverride,
@@ -73,6 +74,7 @@ export function buildLines(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
 		// C2 wave-1 skip: the chart-style number (`c:style`/`c14:style`) drives
 		// the default series line width via its `cs:dataPointLine`/`cs:dataPoint`
 		// entry when one is directly authored; falls back to the historical
@@ -229,7 +231,8 @@ export function buildLines(
 					return;
 				}
 				// c:dLblPos (t/b/l/r/ctr) decides where round the marker the label
-				// sits; a per-point c:dLbl/c:layout drag shifts it further.
+				// sits (right of it when none is authored: COM, callouts-com.pptx);
+				// a per-point c:dLbl/c:layout drag shifts it further.
 				const anchor = resolveMarkerLabelPlacement(
 					chartData,
 					series,
@@ -237,8 +240,9 @@ export function buildLines(
 					pt,
 					{ width: layout.svgWidth, height: layout.svgHeight },
 					7,
+					'r',
 				);
-				dataLabels.push({
+				pushPointLabel(dataLabels, labelBoxes, chartData, series, pointIndex, pt, {
 					kind: 'text',
 					x: anchor.x,
 					y: anchor.y,
@@ -252,5 +256,5 @@ export function buildLines(
 			});
 		}
 	}
-	return { primitives, dataLabels };
+	return { primitives: [...primitives, ...labelBoxes], dataLabels };
 }

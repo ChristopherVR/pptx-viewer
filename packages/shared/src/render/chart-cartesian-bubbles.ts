@@ -11,6 +11,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { elementFrame, xyMarkTooltip } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
+import { pushPointLabel } from './chart-data-label-callout';
 import {
 	buildDataLabelText,
 	dataLabelFontOverride,
@@ -50,6 +51,7 @@ export function buildBubbles(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
 		showLabels = chartData.style?.hasDataLabels,
 		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
 		maxXIndex = Math.max(1, ...allIndices),
@@ -116,15 +118,20 @@ export function buildBubbles(
 				if (!dot || label === undefined) {
 					return;
 				}
-				const anchor = resolveMarkerLabelPlacement(
-					chartData,
-					series,
-					vi,
-					{ x: dot.cx, y: dot.cy },
-					elementFrame(layout),
-					10,
-				);
-				dataLabels.push({
+				// Right of the bubble's EDGE when no c:dLblPos is authored (COM,
+				// callouts-com.pptx); the callout / leader line points at its centre.
+				const target = { x: dot.cx, y: dot.cy },
+					r = computeBubbleRadius(size, maxBubble, medianRadius, radiusOptions),
+					anchor = resolveMarkerLabelPlacement(
+						chartData,
+						series,
+						vi,
+						target,
+						elementFrame(layout),
+						r + 3,
+						'r',
+					);
+				pushPointLabel(dataLabels, labelBoxes, chartData, series, vi, target, {
 					kind: 'text',
 					x: anchor.x,
 					y: anchor.y,
@@ -138,5 +145,5 @@ export function buildBubbles(
 			});
 		}
 	}
-	return { primitives, dataLabels };
+	return { primitives: [...primitives, ...labelBoxes], dataLabels };
 }

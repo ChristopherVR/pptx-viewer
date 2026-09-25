@@ -12,6 +12,7 @@
 import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
+import { pushPointLabel } from './chart-data-label-callout';
 import {
 	buildDataLabelText,
 	dataLabelFontOverride,
@@ -144,6 +145,7 @@ export function buildScatter(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
 		showLabels = chartData.style?.hasDataLabels,
 		allIndices = chartData.series.flatMap((s) => s.values.map((_, i) => i)),
 		maxXIndex = Math.max(1, ...allIndices),
@@ -212,16 +214,19 @@ export function buildScatter(
 					return;
 				}
 				// c:dLblPos (t/b/l/r/ctr) decides where round the marker the label
-				// sits; a per-point c:dLbl/c:layout drag shifts it further.
-				const anchor = resolveMarkerLabelPlacement(
-					chartData,
-					series,
-					vi,
-					{ x: dot.cx, y: dot.cy },
-					elementFrame(layout),
-					6,
-				);
-				dataLabels.push({
+				// sits (right of it when none is authored: COM, callouts-com.pptx);
+				// a per-point c:dLbl/c:layout drag shifts it further.
+				const target = { x: dot.cx, y: dot.cy },
+					anchor = resolveMarkerLabelPlacement(
+						chartData,
+						series,
+						vi,
+						target,
+						elementFrame(layout),
+						6,
+						'r',
+					);
+				pushPointLabel(dataLabels, labelBoxes, chartData, series, vi, target, {
 					kind: 'text',
 					x: anchor.x,
 					y: anchor.y,
@@ -235,5 +240,5 @@ export function buildScatter(
 			});
 		}
 	}
-	return { primitives, dataLabels };
+	return { primitives: [...primitives, ...labelBoxes], dataLabels };
 }

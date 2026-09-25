@@ -24,7 +24,7 @@ import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
 import type { ChartAnchorPoint, ChartFrameSize } from './chart-manual-layout';
 import { applyLabelManualLayout, chartFrameToViewOffset } from './chart-manual-layout';
 import { formatAxisValue } from './chart-view-model';
-import type { PieSliceGeometry, SvgLine, SvgText } from './chart-view-model';
+import type { PieSliceGeometry, SvgLine, SvgPrimitive, SvgText } from './chart-view-model';
 
 /** Distance (px) an outside label sits beyond the slice rim. */
 const LEADER_LENGTH = 14;
@@ -81,11 +81,21 @@ export interface PieLabelParams {
 	/** The pie's own SVG viewBox size, needed to convert `frame`-space offsets. */
 	svgWidth?: number;
 	svgHeight?: number;
+	/**
+	 * The label box / callout decorations for one label (see
+	 * `chart-data-label-callout`), given the point its pointer aims at: the
+	 * rim at the slice's mid-angle, or `targetRadius` out along it.
+	 */
+	decorate?: (pointIndex: number, label: SvgText, target: ChartAnchorPoint) => SvgPrimitive[];
+	/** Where along the mid-angle a callout points; defaults to `outerR` (the rim). */
+	targetRadius?: number;
 }
 
 export interface PieLabelResult {
 	labels: SvgText[];
 	leaderLines: SvgLine[];
+	/** Label boxes / callouts from `decorate`, painted under the labels. */
+	boxes: SvgPrimitive[];
 }
 
 /** Whether a data-label position renders outside the pie rim. */
@@ -152,10 +162,20 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		numberFormat,
 		labelText,
 		leaderLineStyle,
+		decorate,
 	} = params;
 	const outside = isOutsidePosition(position);
 	const labels: SvgText[] = [];
 	const leaderLines: SvgLine[] = [];
+	const boxes: SvgPrimitive[] = [];
+	const push = (i: number, label: SvgText, midAngle: number) => {
+		labels.push(label);
+		const r = params.targetRadius ?? outerR;
+		if (decorate) {
+			const target = { x: cx + r * Math.cos(midAngle), y: cy + r * Math.sin(midAngle) };
+			boxes.push(...decorate(i, label, target));
+		}
+	};
 
 	slices.forEach((slice, i) => {
 		const val = values[i];
@@ -169,16 +189,23 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		const { text, color } = resolved;
 		if (!outside) {
 			const { x, y } = applyManualDrag({ x: slice.labelX, y: slice.labelY }, i, params);
-			labels.push({
-				kind: 'text',
-				x,
-				y,
-				text,
-				fill: color ?? '#ffffff',
-				textAnchor: 'middle',
-				dominantBaseline: 'central',
-				...labelTextStyle(resolved, { fontSize: DEFAULT_CHART_DATA_LABEL_PX, fontWeight: 'bold' }),
-			});
+			push(
+				i,
+				{
+					kind: 'text',
+					x,
+					y,
+					text,
+					fill: color ?? '#ffffff',
+					textAnchor: 'middle',
+					dominantBaseline: 'central',
+					...labelTextStyle(resolved, {
+						fontSize: DEFAULT_CHART_DATA_LABEL_PX,
+						fontWeight: 'bold',
+					}),
+				},
+				slice.midAngle,
+			);
 			return;
 		}
 
@@ -191,16 +218,20 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		const { x: labelX, y: labelY } = applyManualDrag({ x: autoLabelX, y: autoLabelY }, i, params);
 		const anchor: 'start' | 'end' = cos >= 0 ? 'start' : 'end';
 
-		labels.push({
-			kind: 'text',
-			x: labelX + (cos >= 0 ? 2 : -2),
-			y: labelY,
-			text,
-			fill: color ?? '#334155',
-			textAnchor: anchor,
-			dominantBaseline: 'central',
-			...labelTextStyle(resolved, { fontSize: DEFAULT_CHART_DATA_LABEL_PX }),
-		});
+		push(
+			i,
+			{
+				kind: 'text',
+				x: labelX + (cos >= 0 ? 2 : -2),
+				y: labelY,
+				text,
+				fill: color ?? '#334155',
+				textAnchor: anchor,
+				dominantBaseline: 'central',
+				...labelTextStyle(resolved, { fontSize: DEFAULT_CHART_DATA_LABEL_PX }),
+			},
+			slice.midAngle,
+		);
 
 		// Leader lines default ON for offset labels (only suppressed when the source
 		// explicitly clears c:showLeaderLines). Points at the MOVED label position
@@ -218,5 +249,5 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		}
 	});
 
-	return { labels, leaderLines };
+	return { labels, leaderLines, boxes };
 }
