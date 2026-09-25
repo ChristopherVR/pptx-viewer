@@ -13,6 +13,7 @@ import { maskEdgeInitialStyle, maskShapeInitialStyle } from './animation-mask-re
 import { stripsEntranceDirection, stripsInitialStyle } from './animation-strips-reveal';
 import { resolveEffect } from './animation-timeline-helpers';
 import type { AnimationStyle, EffectName } from './animation-timeline-types';
+import { wedgeInitialStyle } from './animation-wedge-reveal';
 
 // ==========================================================================
 // Entrance effects that should initially hide elements
@@ -36,6 +37,7 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'circleIn',
 	'diamondIn',
 	'plusIn',
+	'wedgeIn',
 	'floatIn',
 	'riseUp',
 	'swivel',
@@ -128,6 +130,8 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 			return maskHoleInitialStyle('diamond');
 		case 'plusIn':
 			return maskPlusHoleInitialStyle();
+		case 'wedgeIn':
+			return wedgeInitialStyle();
 		case 'peekIn':
 			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':

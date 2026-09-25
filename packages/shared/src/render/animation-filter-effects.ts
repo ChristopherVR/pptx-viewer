@@ -32,14 +32,11 @@
  *  - `strips` resolves to the diagonal corner-to-corner sweep in
  *    `animation-strips-reveal` (one keyframe per travel direction), the same
  *    keyframes a preset-driven Strips effect (`presetID` 18) plays.
- *  - `diamond` / `plus` / `wedge` reuse the box/circle mask-SIZE technique
- *    (`diamondOut` / `plusOut` / `wedgeOut` in `animation-mask-reveal`): a
- *    fixed mask shape whose `mask-size` animates 0 -> full, so `diamond`
- *    grows a rotated square from centre, `plus` unions a horizontal and a
- *    vertical bar growing from centre into a cross, and `wedge` grows a
- *    convex hexagon standing in for PowerPoint's two-wedge bowtie sweep
- *    (an animated sweep ANGLE is not expressible with this position/size-only
- *    technique, see `animation-mask-reveal`'s module doc).
+ *  - `diamond` / `plus` reuse the box/circle mask-SIZE technique
+ *    (`diamondOut` / `plusOut` in `animation-mask-reveal`): a fixed mask
+ *    shape whose `mask-size` animates 0 -> full.
+ *  - `wedge` plays the two-sided angular sweep in `animation-wedge-reveal`
+ *    (the same keyframes as the Wedge preset, `presetID` 20).
  *  - `comb` reuses `randomBarsIn`: both are an alternating-strip reveal of
  *    the same shape family as `randombar`/`checkerboard`, and PowerPoint's
  *    only structural difference (ordered teeth vs. random bars) is not worth
@@ -132,7 +129,7 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	checkerboard: { entr: 'checkerboardIn', exit: 'fadeOut' },
 	blinds: { entr: 'blindsIn', exit: 'fadeOut' },
 	box: { entr: 'boxIn', exit: 'fadeOut' },
-	circle: { entr: 'circleIn', exit: 'shrinkOut' },
+	circle: { entr: 'circleIn', exit: 'circleOut' },
 	wheel: { entr: 'wheelIn', exit: 'fadeOut' },
 	zoom: { entr: 'zoomIn', exit: 'zoomOut' },
 	randombar: { entr: 'randomBarsIn', exit: 'fadeOut' },
@@ -142,7 +139,7 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	comb: { entr: 'randomBarsIn', exit: 'fadeOut' },
 	diamond: { entr: 'diamondIn', exit: 'fadeOut' },
 	plus: { entr: 'plusIn', exit: 'fadeOut' },
-	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
+	wedge: { entr: 'wedgeIn', exit: 'wedgeOut' },
 	cut: { entr: 'cutIn', exit: 'cutOut' },
 	newsflash: { entr: 'newsflashIn', exit: 'newsflashOut' },
 };

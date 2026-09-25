@@ -25,7 +25,7 @@ const FAMILY_TO_EFFECT: Readonly<Record<string, { entr: EffectName; exit: Effect
 	blinds: { entr: 'blindsIn', exit: 'blindsOut' },
 	box: { entr: 'boxIn', exit: 'boxOut' },
 	checkerboard: { entr: 'checkerboardIn', exit: 'checkerboardOut' },
-	circle: { entr: 'circleIn', exit: 'shrinkOut' }, // exit.6 keeps its documented shrinkOut approximation
+	circle: { entr: 'circleIn', exit: 'circleOut' },
 	diamond: { entr: 'diamondIn', exit: 'diamondOut' },
 	dissolve: { entr: 'dissolveIn', exit: 'dissolveOut' },
 	plus: { entr: 'plusIn', exit: 'plusOut' },

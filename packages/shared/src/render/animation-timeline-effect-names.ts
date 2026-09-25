@@ -119,6 +119,7 @@ export type EffectName =
 	// Exit-side counterpart of `pixelateIn` (see above).
 	| 'pixelateOut'
 	| 'boxOut'
+	| 'circleOut'
 	| 'checkerboardOut'
 	| 'blindsOut'
 	| 'wheelOut'

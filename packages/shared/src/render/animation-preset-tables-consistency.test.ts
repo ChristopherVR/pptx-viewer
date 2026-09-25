@@ -73,12 +73,6 @@ function identitiesAgree(a: string, b: string): boolean {
  */
 const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
 	'entr.17', // Stretch has no dedicated keyframe; expandIn is the closest existing match
-	// exit.6 = Circle, confirmed via COM (see the note on
-	// `PRESET_ID_TO_EFFECT.exit[6]` in `animation-presets.ts`). There is no
-	// dedicated exit iris/circle-mask keyframe yet, so playback keeps the
-	// `shrinkOut` approximation (both read as "collapse to nothing") even
-	// though authoring/catalog now correctly agree on `circleOut`/"Circle".
-	'exit.6',
 	// entr.47 = Descend, confirmed via a fresh COM pass (see the note on
 	// `PRESET_ID_TO_EFFECT.entr[47]` in `animation-presets.ts`). There is no
 	// dedicated "falls from above" keyframe, so playback reuses `flyInTop`,
@@ -382,18 +376,16 @@ describe('animation preset table cross-consistency', () => {
 			},
 		);
 
-		// exit.6 (Circle) has no dedicated exit iris/circle-mask keyframe, so
-		// playback keeps the `shrinkOut` approximation (see
-		// APPROXIMATION_ALLOWLIST above); authoring and the catalog now agree
-		// with each other AND with reality.
-		it('exit.6 (Circle): authoring and catalog agree, playback uses the documented shrinkOut approximation', () => {
+		// exit.6 (Circle) plays its own CreateVideo-derived closing iris
+		// (`animation-circle-iris`), so all three tables agree.
+		it('exit.6 (Circle): authoring, catalog and playback agree', () => {
 			const fromAuthoring = ooxmlToPresetName({ presetClass: 'exit', presetId: 6 });
 			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'circle')).toBeTruthy();
 
 			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'exit', presetId: 6 });
 			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'circle')).toBeTruthy();
 
-			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
+			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('circleOut');
 		});
 
 		// exit.11 (Flash Once) now has its own dedicated `flashOnceOut`

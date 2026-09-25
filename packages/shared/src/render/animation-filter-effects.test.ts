@@ -35,7 +35,7 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'checkerboard', subtype: 'across', entr: 'checkerboardInAcross', exit: 'fadeOut' },
 	{ family: 'blinds', subtype: 'horizontal', entr: 'blindsInHorizontal', exit: 'fadeOut' },
 	{ family: 'box', entr: 'boxIn', exit: 'fadeOut' },
-	{ family: 'circle', entr: 'circleIn', exit: 'shrinkOut' },
+	{ family: 'circle', entr: 'circleIn', exit: 'circleOut' },
 	{ family: 'wheel', subtype: '4', entr: 'wheelIn4', exit: 'fadeOut' },
 	{ family: 'zoom', entr: 'zoomIn', exit: 'zoomOut' },
 	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsInHorizontal', exit: 'fadeOut' },
@@ -43,7 +43,7 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'comb', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
 	{ family: 'diamond', entr: 'diamondIn', exit: 'fadeOut' },
 	{ family: 'plus', entr: 'plusIn', exit: 'fadeOut' },
-	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
+	{ family: 'wedge', entr: 'wedgeIn', exit: 'wedgeOut' },
 	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
 	{ family: 'newsflash', entr: 'newsflashIn', exit: 'newsflashOut' },
 ];
@@ -314,7 +314,7 @@ describe('resolveEffect: filter fallback integration', () => {
 				presetClass: 'exit',
 				trigger: 'onClick',
 				durationMs: 400,
-				effectFilter: { family: 'wedge', transition: 'out', raw: 'wedge' },
+				effectFilter: { family: 'image', transition: 'out', raw: 'image' },
 			} as PptxNativeAnimation,
 		]);
 		const step = timeline.clickGroups[0].steps[0];

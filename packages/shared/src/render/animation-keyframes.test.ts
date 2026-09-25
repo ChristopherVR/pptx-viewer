@@ -245,8 +245,7 @@ describe('getEffectKeyframes', () => {
 		const kf = getEffectKeyframes('wedgeIn');
 		expect(kf).toContain('@keyframes pptx-wedgeIn');
 		expect(kf).not.toContain('clip-path');
-		expect(kf).toContain('mask-size: 0% 0%');
-		expect(kf).toContain('mask-size: 220% 220%');
+		expect(kf).toContain('conic-gradient(from 0deg at 50% 50%');
 	});
 
 	it('should return a near-instant opacity swap for "cutIn" (not a gradual fade)', () => {
@@ -318,11 +317,10 @@ describe('getEffectKeyframes', () => {
 		expect(kf).toContain('mask-size: 100% 0%, 0% 100%');
 	});
 
-	it('should return a mask-reveal keyframe for "wedgeOut" that closes (shown -> hidden)', () => {
+	it('should return a mask-reveal keyframe for "wedgeOut" that hides wedges opening from the top', () => {
 		const kf = getEffectKeyframes('wedgeOut');
 		expect(kf).toContain('@keyframes pptx-wedgeOut');
-		expect(kf).toContain('mask-size: 220% 220%');
-		expect(kf).toContain('mask-size: 0% 0%');
+		expect(kf).toContain('at 50% 50%, transparent 0deg');
 	});
 
 	it('should return keyframes for "flash"', () => {

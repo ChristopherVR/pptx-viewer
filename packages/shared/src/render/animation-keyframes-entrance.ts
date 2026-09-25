@@ -18,6 +18,7 @@ import {
 	wheelDecl,
 } from './animation-mask-reveal';
 import { PIXELATE_IN_KEYFRAMES } from './animation-pixelate-filter';
+import { WEDGE_KEYFRAME_DEFINITIONS } from './animation-wedge-reveal';
 
 // The wipe/peek/blinds/split/box/random-bars reveals are CSS `mask` sweeps,
 // NOT `clip-path` keyframes: a `clip-path` animation replaces the element's
@@ -198,10 +199,9 @@ export const ENTRANCE_KEYFRAME_DEFINITIONS: Record<string, string> = {
 	from { ${maskPlusHoleDecl('hidden')} opacity: 1; }
 	to { ${maskPlusHoleDecl('shown')} opacity: 1; }
 }`,
-	wedgeIn: `@keyframes pptx-wedgeIn {
-	from { ${maskShapeDecl('wedgeOut', 'hidden')} opacity: 1; }
-	to { ${maskShapeDecl('wedgeOut', 'shown')} opacity: 1; }
-}`,
+	// Two wedges opening from 12 o'clock (CreateVideo-derived, see
+	// `animation-wedge-reveal`).
+	wedgeIn: WEDGE_KEYFRAME_DEFINITIONS.wedgeIn,
 	// A `cut` filter is an instant swap, not a gradual reveal: the element
 	// jumps to fully visible almost immediately rather than fading in over
 	// the whole effect duration.

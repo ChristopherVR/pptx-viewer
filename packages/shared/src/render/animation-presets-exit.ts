@@ -30,13 +30,10 @@ export const EXIT_PRESETS: Record<number, EffectName> = {
 	1: 'disappear',
 	2: 'flyOutBottom',
 	// exit.6 = Circle, confirmed via COM (`msoAnimEffectCircle` with
-	// `Effect.Exit = True` serializes as presetID 6, filter="circle(in)"),
-	// matching the catalog label and `circleOut` in the authoring reverse
-	// lookup. There is no dedicated exit iris/circle-mask keyframe yet, so
-	// `shrinkOut` remains as a documented visual APPROXIMATION (both read
-	// as "collapse to nothing"); see the APPROXIMATION_ALLOWLIST entry in
-	// `animation-preset-tables-consistency.test.ts`.
-	6: 'shrinkOut',
+	// `Effect.Exit = True` serializes as presetID 6, filter="circle(in)").
+	// CreateVideo frames show a circular iris closing on the centre, which
+	// `circleOut` plays.
+	6: 'circleOut',
 	9: 'dissolveOut',
 	10: 'fadeOut',
 	22: 'wipeOut',

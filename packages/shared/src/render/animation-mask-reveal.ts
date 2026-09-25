@@ -85,10 +85,6 @@ const EDGE_CONFIG: Record<RevealEdge, MaskRevealConfig> = {
  *  - `plusOut`: a horizontal bar and a vertical bar, both centred, growing
  *    outward simultaneously; their union traces a cross/plus shape from a
  *    point at centre to full coverage, for the `plus` SMIL filter family.
- *  - `wedgeOut`: a centred convex hexagon (a vertical lens shape standing in
- *    for PowerPoint's two-wedge bowtie sweep, which needs an animated sweep
- *    ANGLE that this mask-size/position-only technique cannot express) for
- *    the `wedge` SMIL filter family.
  */
 export type MaskRevealShape =
 	| 'splitHorizontalIn'
@@ -98,8 +94,7 @@ export type MaskRevealShape =
 	| 'boxOut'
 	| 'circleOut'
 	| 'diamondOut'
-	| 'plusOut'
-	| 'wedgeOut';
+	| 'plusOut';
 
 interface MaskSizeConfig {
 	image: string;
@@ -174,16 +169,6 @@ const SHAPE_CONFIG: Record<MaskRevealShape, MaskSizeConfig> = {
 		repeat: 'no-repeat, no-repeat',
 		hiddenSize: '100% 0%, 0% 100%',
 		shownSize: '100% 101%, 101% 100%',
-	},
-	wedgeOut: {
-		// A convex hexagon (vertical lens) approximating PowerPoint's
-		// two-wedge bowtie sweep. Needs generous headroom (~195%) for its
-		// narrower mid-height vertices to still reach the box's corners.
-		image: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cpolygon points='50,0 90,38 90,62 50,100 10,62 10,38' fill='%23000'/%3E%3C/svg%3E")`,
-		position: 'center',
-		repeat: 'no-repeat',
-		hiddenSize: '0% 0%',
-		shownSize: '220% 220%',
 	},
 };
 
