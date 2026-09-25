@@ -15,8 +15,8 @@
  * `{ majorFont: { latin }, minorFont: { latin } }` font-scheme shape.
  */
 
-import { THEME_PRESETS } from 'pptx-viewer-core';
-import type { PptxThemePreset } from 'pptx-viewer-core';
+import { THEME_PRESETS, themeColorSchemesEqual } from 'pptx-viewer-core';
+import type { PptxTheme, PptxThemePreset } from 'pptx-viewer-core';
 
 /** Look up a canonical core preset by id (must exist in `THEME_PRESETS`). */
 function corePreset(id: string): PptxThemePreset {
@@ -140,3 +140,25 @@ export const GALLERY_THEME_PRESETS: readonly PptxThemePreset[] = [
 	SLICE_PRESET,
 	DIVIDEND_PRESET,
 ];
+
+/**
+ * The gallery preset the deck's theme currently is, for highlighting the
+ * active tile in Design > Browse Themes: the preset whose colour scheme the
+ * theme carries, else the one whose name it carries, else undefined (a
+ * custom or edited theme).
+ */
+export function activeGalleryThemePreset(
+	theme: Pick<PptxTheme, 'name' | 'colorScheme'> | undefined,
+): PptxThemePreset | undefined {
+	if (!theme) {
+		return undefined;
+	}
+	const colorScheme = theme.colorScheme;
+	return (
+		(colorScheme &&
+			GALLERY_THEME_PRESETS.find((preset) =>
+				themeColorSchemesEqual(colorScheme, preset.colorScheme),
+			)) ||
+		GALLERY_THEME_PRESETS.find((preset) => preset.name === theme.name)
+	);
+}
