@@ -132,7 +132,10 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 				<div
 					className={cn(
 						// Plain controls stay compact; labelled RibbonGroups opt into stretching.
-						'flex min-h-[82px] items-center gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0',
+						// `RibbonGroupScope` wraps controls in a `display: contents` div, so its
+						// children are this row's flex items too and must not shrink (a shrunk
+						// "Text Box" pill wraps its caption onto two lines).
+						'flex min-h-[82px] items-center gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0 [&>.contents>*]:shrink-0',
 						isNarrowViewport && !isCompactToolbarOpen && 'hidden',
 					)}
 				>
