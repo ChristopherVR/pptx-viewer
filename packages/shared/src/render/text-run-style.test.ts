@@ -98,6 +98,21 @@ describe('segmentStyleToCss run properties', () => {
 		expect(css.paintOrder).toBe('stroke fill');
 	});
 
+	it('paints a:ln/a:prstDash as a dashed outline instead of a solid stroke', () => {
+		const css = segmentStyleToCss(
+			seg({
+				color: '#FFC000',
+				textOutlineWidth: 3,
+				textOutlineColor: '#000000',
+				textOutlineDash: 'dash',
+			}),
+		);
+		expect(css.WebkitTextStroke).toBe('3px transparent');
+		expect(css.WebkitTextFillColor).toBe('#FFC000');
+		expect(css.backgroundClip).toBe('text');
+		expect(String(css.background)).toContain('repeating-linear-gradient(45deg, #000000');
+	});
+
 	it('falls back to currentColor when an outline has width but no colour', () => {
 		expect(segmentStyleToCss(seg({ textOutlineWidth: 1 })).WebkitTextStroke).toBe(
 			'1px currentColor',

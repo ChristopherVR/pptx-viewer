@@ -21,6 +21,7 @@ import { HYPERLINK_COLOR } from '../constants';
 import { normalizeHexColor } from './fill-style';
 import type { RunFontSpec } from './text-metric-tracking';
 import { resolveMetricTrackingPx } from './text-metric-tracking';
+import { resolveTextOutlineDashCss } from './text-outline-dash';
 import { hollowTextFillStyle } from './text-run-hollow';
 import { authoredLetterSpacingPx, pieceLetterSpacing } from './text-run-spacing';
 import { scaleFontSizeForAutoFit } from './text-style-helpers';
@@ -130,12 +131,19 @@ function applyExtraRunProps(
 	}
 	// Hollow / outline-only text (`a:rPr > a:noFill`), applied LAST so it wins
 	// over the `color` set above. See {@link hollowTextFillStyle}.
+	const fillColor = typeof style.color === 'string' ? style.color : undefined;
 	const hollow = hollowTextFillStyle(s, {
 		color: typeof style.color === 'string' ? style.color : undefined,
 		textStroke: typeof style.WebkitTextStroke === 'string' ? style.WebkitTextStroke : undefined,
 	});
 	if (hollow) {
 		Object.assign(style, hollow);
+	}
+	// Dashed outline (`a:ln/a:prstDash`): applied after hollow so a hollow
+	// run keeps its transparent fill; see {@link resolveTextOutlineDashCss}.
+	const dashed = resolveTextOutlineDashCss(s, fillColor);
+	if (dashed) {
+		Object.assign(style, dashed);
 	}
 }
 

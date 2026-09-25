@@ -683,6 +683,7 @@ export * from './text-run-effects';
 export * from './text-run-style';
 // Hollow/outline-only text fill decision, split out of `text-run-style`.
 export * from './text-run-hollow';
+export * from './text-outline-dash';
 // Per-run letter-spacing + metric-tracking split helpers, split out of
 // `text-run-style`.
 export * from './text-run-spacing';
