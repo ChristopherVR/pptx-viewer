@@ -15,12 +15,7 @@
  */
 
 import { XmlObject } from '../../types';
-import type {
-	PptxChartData,
-	PptxChartScatterStyle,
-	PptxChartSeries,
-	PptxChartType,
-} from '../../types';
+import type { PptxChartData, PptxChartScatterStyle, PptxChartType } from '../../types';
 import {
 	parseSeriesTrendlines,
 	parseSeriesErrBars,
@@ -48,7 +43,7 @@ import {
 import { parseChartDateCategories } from '../../utils/chart-date-categories';
 import { parseFilteredTitles } from '../../utils/chart-ext-titles';
 import { parseFilteredSeries } from '../../utils/chart-filtered-series';
-import { parseChartGradientFill } from '../../utils/chart-gradient-fill';
+import { seriesGradientFill } from '../../utils/chart-gradient-fill';
 import { parseChartLayouts } from '../../utils/chart-layout';
 import { parseChartPivotFormats } from '../../utils/chart-pivot-formats';
 import { parseChartPrintSettings } from '../../utils/chart-print-settings';
@@ -78,14 +73,6 @@ const SCATTER_STYLES = new Set<PptxChartScatterStyle>([
 ]);
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	/** A series' gradient fill, spread onto the parsed series (see {@link PptxChartSeries.gradientFill}). */
-	private parseSeriesGradientFill(
-		spPr: XmlObject | undefined,
-	): Pick<PptxChartSeries, 'gradientFill'> {
-		const gradientFill = parseChartGradientFill(spPr, this.xmlLookupService, this.colorStyleCodec);
-		return gradientFill ? { gradientFill } : {};
-	}
-
 	/**
 	 * Parse chart data from a graphic frame element on a slide.
 	 *
@@ -957,7 +944,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				...(lineNoFill ? { lineNoFill } : {}),
 				...(seriesNumberFormat ? { numberFormat: seriesNumberFormat } : {}),
 				color: seriesColor,
-				...this.parseSeriesGradientFill(seriesShapeProperties),
+				...(this.colorStyleCodec
+					? seriesGradientFill(seriesShapeProperties, this.xmlLookupService, this.colorStyleCodec)
+					: {}),
 				...(trendlines.length > 0 ? { trendlines } : {}),
 				...(errBars.length > 0 ? { errBars } : {}),
 				...(dataPoints.length > 0 ? { dataPoints } : {}),

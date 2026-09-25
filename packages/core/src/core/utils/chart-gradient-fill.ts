@@ -10,7 +10,7 @@
  *
  * @module chart-gradient-fill
  */
-import type { PptxChartGradientFill, XmlObject } from '../types';
+import type { PptxChartGradientFill, PptxChartSeries, XmlObject } from '../types';
 
 interface XmlLookupLike {
 	getChildByLocalName: (parent: XmlObject | undefined, name: string) => XmlObject | undefined;
@@ -54,4 +54,14 @@ export function parseChartGradientFill(
 		return focalPoint ? { type, stops, focalPoint } : { type, stops };
 	}
 	return { type, stops, angle: codec.extractGradientAngle(gradFill) };
+}
+
+/** A series' gradient fill, spread onto the parsed series (see `PptxChartSeries.gradientFill`). */
+export function seriesGradientFill(
+	spPr: XmlObject | undefined,
+	lookup: XmlLookupLike,
+	codec: ChartGradientCodec,
+): Pick<PptxChartSeries, 'gradientFill'> {
+	const gradientFill = parseChartGradientFill(spPr, lookup, codec);
+	return gradientFill ? { gradientFill } : {};
 }
