@@ -21,8 +21,8 @@ description: What is not supported across the core engine and the viewer binding
 An effect authored in the animation panel is reconciled into the slide's existing `p:timing` tree; the deck's own effects are left byte-identical. Known gaps:
 
 - **A few saved effects still fall back to a fade in PowerPoint.** Entrance, exit and emphasis effects are written with PowerPoint's own behaviour tree (Fly In, Float, Bounce, Grow & Turn, the filter reveals, Pulse, Teeter, Wave and others, verified by reopening in PowerPoint); Crawl and Spiral still save as a fade, and Blink is an approximation.
-- **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade). Box, Circle, Diamond and Plus play only their "out" direction.
-- **Partially supported:** per-letter ripple inside a by-paragraph build is not played; p15 transitions play when present in a file but cannot be authored, and their direction options are ignored; a `p14:bounceEnd` of 100% (no travel left, which PowerPoint itself renders erratically) is clamped to 95%. Media-bookmark triggers ("On bookmark") are authored in all five bindings and the Bounce End settle curve is fitted to PowerPoint's own frames.
+- **Some filter families and presets are approximated on playback:** `strips` plays as an edge wipe, `wedge` as a growing hexagon, `slide`/`cover`/`uncover`/`push`/`pull` share one fly-in, and 45 PowerPoint preset IDs play a substitute effect (for example Basic Swivel and Float Out play as a fade).
+- **Partially supported:** per-letter ripple inside a by-paragraph build is not played; a `p14:bounceEnd` of 100% (no travel left, which PowerPoint itself renders erratically) is clamped to 95%. Media-bookmark triggers ("On bookmark"), the p15 transitions with their direction options, and the Zoom transition's In/Out direction are authored in all five bindings, and the Bounce End settle curve is fitted to PowerPoint's own frames.
 
 ### Detecting gaps at runtime
 
@@ -64,8 +64,8 @@ Reflections, soft edges and path gradients are also approximations, but hold up 
 A September 2026 audit against real PowerPoint found these gaps that are still open:
 
 - **Saving an edited slide can still touch minor markup.** Equations, line breaks, inherited formatting, master text styles, theme backgrounds, comment timestamps, picture fills, media click actions, run languages, run properties, inner-shadow colours, gradient insets and untouched charts now round-trip; so do bullet colours on an inherited bullet, authored default tab alignment, animation and play-across-slides audio metadata, and an unused comment-author list. A small residue remains on a rewritten slide: some run attributes (`err`, `b`) and ruby-run properties are written out explicitly, some shapes gain an explicit outline width, and `docProps` revision, modified time and slide counts are refreshed. Unedited slides round-trip cleanly.
-- **Text:** decimal tabs on a comma, `hangingPunct`, a few East Asian/Thai numbering schemes and some underline variants differ from PowerPoint.
-- **Charts:** waterfall colours and legend, pie-of-pie, data-label callouts, display-unit labels and chart-area gradient fills are approximate.
+- **Text:** CJK punctuation that PowerPoint lets hang past the right margin (`hangingPunct`) wraps to the next line instead, because only Safari implements CSS hanging punctuation, and `eaLnBrk="0"` does not switch the East Asian line-breaking (kinsoku) rules off the way PowerPoint does.
+- **Charts:** data-label callout boxes and leader lines are drawn for bar and column charts only.
 - **3D models** ignore the camera, transform and lights authored in PowerPoint.
 - **Editor coverage** is a subset of PowerPoint's: several ribbon galleries are not available yet. Edit Points (with the Freeform: Shape and Curve drawing tools), Merge Shapes, on-canvas picture cropping (crop handles, Crop to Aspect Ratio, Fill, Fit), Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
 
