@@ -15,7 +15,8 @@ import type { PptxChartData, PptxChartSeries } from 'pptx-viewer-core';
 import { buildPercentStackedBars } from './chart-cartesian-percent-stacked';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { pushClusteredStackedLabels } from './chart-cartesian-stacked-labels';
-import { resolveBarLabelPlacement } from './chart-data-label-anchor';
+import { findPointLabel, resolveBarLabelPlacement } from './chart-data-label-anchor';
+import { buildDataLabelDecorations, calloutLabelLift } from './chart-data-label-callout';
 import {
 	buildDataLabelText,
 	dataLabelFontOverride,
@@ -89,6 +90,7 @@ export function buildBars(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
 		series = chartData.series,
 		palette = chartData.colorPalette,
 		showLabels = chartData.style?.hasDataLabels,
@@ -195,10 +197,17 @@ export function buildBars(
 							'vertical',
 							{ width: layout.svgWidth, height: layout.svgHeight },
 						);
-						dataLabels.push({
+						const moved = Boolean(findPointLabel(series[si], sourceIndex)?.layout);
+						const lift = calloutLabelLift(
+							chartData,
+							series[si],
+							DEFAULT_CHART_DATA_LABEL_PX,
+							moved,
+						);
+						const text: SvgText = {
 							kind: 'text',
 							x: anchor.x,
-							y: anchor.y,
+							y: anchor.y - lift,
 							text: label.text,
 							fontSize: DEFAULT_CHART_DATA_LABEL_PX,
 							fill: label.color ?? '#334155',
@@ -207,12 +216,23 @@ export function buildBars(
 							...dataLabelFontOverride(
 								resolveDataLabelTextStyle(chartData, series[si], sourceIndex),
 							),
-						});
+						};
+						dataLabels.push(text);
+						// Label box / callout pointer / leader line (chart-data-label-callout).
+						labelBoxes.push(
+							...buildDataLabelDecorations(
+								chartData,
+								series[si],
+								text,
+								{ x: x + singleBarWidth / 2, y: val >= 0 ? y : y + h },
+								moved,
+							),
+						);
 					}
 				}
 			}
 		}
-		return { primitives, dataLabels };
+		return { primitives: [...primitives, ...labelBoxes], dataLabels };
 	}
 
 	// Non-percent stacked: preserve the original `computeStackedBarRects` geometry
