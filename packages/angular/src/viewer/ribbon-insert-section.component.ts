@@ -42,6 +42,7 @@ import {
 } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
 import { HeaderFooterRibbonButtonComponent } from './header-footer-ribbon-button.component';
+import { RibbonFreeformToolsComponent } from './ribbon-freeform-tools.component';
 import { RibbonHyperlinkButtonComponent } from './ribbon-hyperlink-button.component';
 import { RibbonInsertFieldsComponent } from './ribbon-insert-fields.component';
 import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-picker';
@@ -61,6 +62,7 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 		LucideLayers,
 		HeaderFooterRibbonButtonComponent,
 		RibbonHyperlinkButtonComponent,
+		RibbonFreeformToolsComponent,
 	],
 	template: `
 		<!-- Shapes group -->
@@ -93,6 +95,7 @@ import { imageDimensions, pickFile, readAsDataUrl } from './ribbon-insert-file-p
 			>
 				<svg lucideSquare class="h-4 w-4"></svg> {{ 'pptx.insert.shape' | translate }}
 			</button>
+			<pptx-ribbon-freeform-tools />
 			<button
 				type="button"
 				class="pptx-rb-gb gap-1.5"

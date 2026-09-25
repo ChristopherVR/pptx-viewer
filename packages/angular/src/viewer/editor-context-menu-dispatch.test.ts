@@ -54,6 +54,7 @@ function recorder(): { calls: string[]; actions: ContextMenuActions } {
 			ungroup: note('ungroup'),
 			remove: note('remove'),
 			editText: note('editText'),
+			editPoints: note('editPoints'),
 			saveAsPicture: note('saveAsPicture'),
 			editAltText: note('editAltText'),
 			sizeAndPosition: note('sizeAndPosition'),
@@ -136,6 +137,7 @@ const ELEMENT_ROUTES: [ContextMenuCommandId, string][] = [
 	['ungroup', 'ungroup'],
 	['delete', 'remove'],
 	['edit-text', 'editText'],
+	['edit-points', 'editPoints'],
 	['save-as-picture', 'saveAsPicture'],
 	['edit-alt-text', 'editAltText'],
 	['size-and-position', 'sizeAndPosition'],
@@ -184,7 +186,9 @@ describe('runContextMenuCommand', () => {
 			...buildContextMenuEntries({
 				table: { hasMultiCellSelection: false, isMergedCell: true },
 			}).map((entry) => entry.id),
-			...buildContextMenuEntries({ elementType: 'shape' }).map((entry) => entry.id),
+			...buildContextMenuEntries({ elementType: 'shape', editPoints: 'available' }).map(
+				(entry) => entry.id,
+			),
 			'table-merge-right',
 			'table-merge-down',
 		]);

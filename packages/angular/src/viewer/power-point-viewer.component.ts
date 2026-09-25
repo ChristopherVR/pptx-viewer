@@ -141,6 +141,8 @@ import { MobileSlidesSheetComponent } from './mobile-slides-sheet.component';
 import { MobileToolbarComponent } from './mobile-toolbar.component';
 import { MotionPathOverlayComponent } from './motion-path-overlay.component';
 import { NotesPanelComponent } from './notes-panel.component';
+import { OutlineAuthoringLayerComponent } from './outline-authoring-layer.component';
+import { OutlineAuthoringService } from './outline-authoring.service';
 import { OutlineViewOverlayComponent } from './outline-view-overlay.component';
 import type { OutlineCommit } from './outline-view-overlay.component';
 import { PasteOptionsToolbarComponent } from './paste-options-toolbar.component';
@@ -257,6 +259,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		CollaborationCursorsComponent,
 		RemoteSelectionOverlayComponent,
 		MotionPathOverlayComponent,
+		OutlineAuthoringLayerComponent,
 		FollowModeBarComponent,
 		PropertiesDialogComponent,
 		HyperlinkDialogComponent,
@@ -566,7 +569,7 @@ import { ZoomTargetService } from './zoom-target.service';
 							[fitPadding]="fitPadding()"
 							[maxFitScale]="maxFitScale()"
 							[editable]="canEdit()"
-							[selectedIds]="editor.selectedIds()"
+							[selectedIds]="outlineAuthoring.canvasSelectedIds()"
 							[showGrid]="showGrid()"
 							[showRulers]="showRulers()"
 							[showGuides]="showGuides()"
@@ -643,6 +646,14 @@ import { ZoomTargetService } from './zoom-target.service';
 								[canvasSize]="loader.canvasSize()"
 								[canEdit]="canEdit()"
 								(pathChange)="onMotionPathChange($event)"
+							/>
+							<!-- Edit Points / Freeform: Shape / Curve: projected for the same reason. -->
+							<pptx-outline-authoring-layer
+								[slide]="activeSlide()"
+								[slideIndex]="activeSlideIndex()"
+								[canvasSize]="loader.canvasSize()"
+								[zoom]="zoomSvc.zoom()"
+								[canEdit]="canEdit()"
 							/>
 							<!--
 								Numbered comment markers: projected for the same reason the
@@ -1601,6 +1612,7 @@ export class PowerPointViewerComponent
 	protected readonly fileIO = inject(ViewerFileIOService);
 	protected readonly themeGallery = inject(ViewerThemeGalleryService);
 	protected readonly canvasEditing = inject(ViewerCanvasEditingService);
+	protected readonly outlineAuthoring = inject(OutlineAuthoringService);
 	/** Shared AI panel scope + on-canvas highlight store (pick mode, tool focus). */
 	protected readonly aiPanelStore = inject(AiPanelStore);
 	protected readonly collabCursor = inject(ViewerCollabCursorService);

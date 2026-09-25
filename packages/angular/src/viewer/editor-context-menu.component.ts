@@ -45,6 +45,8 @@ import {
 	buildContextMenuEntries,
 	contextMenuInspectorAnchor,
 	customizeContextMenuEntries,
+	isEditPointsEnabled,
+	resolveEditPointsAvailability,
 	scrollInspectorSectionIntoView,
 } from '../internal/shared';
 import { clampedMenuPosition } from './context-menu-position';
@@ -54,6 +56,7 @@ import { runContextMenuCommand } from './editor-context-menu-dispatch';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
+import { OutlineAuthoringService } from './outline-authoring.service';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
 import { injectResolvedCustomization } from './viewer-customization.service';
@@ -145,12 +148,9 @@ export class EditorContextMenuComponent {
 	protected readonly position = clampedMenuPosition(this.host, this.x, this.y);
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
 	private readonly customization = injectResolvedCustomization();
+	private readonly outline = inject(OutlineAuthoringService, { optional: true });
 
-	/**
-	 * The table element + cell selection the menu should act on, or null when the
-	 * current selection is not a single table with a selected cell. Drives the
-	 * table row/column/merge section of the menu.
-	 */
+	/** The single table + selected cell the table commands act on, or null. */
 	protected readonly tableCtx = computed<{
 		element: TablePptxElement;
 		sel: TableCellSelection;
@@ -177,12 +177,7 @@ export class EditorContextMenuComponent {
 		return slide?.elements.find((el) => el.id === ids[0]) ?? null;
 	});
 
-	/**
-	 * Lock-only half of Group/Ungroup gating (`a:spLocks`/`a:grpSpLocks`
-	 * `@noGrp`), independent of selection count, mirroring the guard
-	 * `EditorStateService.groupSelected`/`ungroupSelected` already enforce on
-	 * the commands themselves (`group-lock-guard.ts`).
-	 */
+	/** Lock-only Group/Ungroup gating (`@noGrp`); see `group-lock-guard.ts`. */
 	private readonly selectionGroupable = computed(() =>
 		resolveContextMenuSelectionGroupable(
 			this.editor.slides()[this.slideIndex()],
@@ -200,6 +195,7 @@ export class EditorContextMenuComponent {
 			selectionGroupable: this.selectionGroupable(),
 			aiEnabled: this.showAiActions(),
 			hasClipboard: this.editor.hasClipboard(),
+			editPoints: this.outline ? resolveEditPointsAvailability(this.selectedElement()) : undefined,
 		});
 		return customizeContextMenuEntries(built, this.customization());
 	});
@@ -222,6 +218,11 @@ export class EditorContextMenuComponent {
 		ungroup: () => this.editor.ungroupSelected(this.slideIndex()),
 		remove: () => this.editor.deleteSelected(this.slideIndex()),
 		editText: () => this.editText.emit(),
+		editPoints: () => {
+			if (isEditPointsEnabled(this.customization())) {
+				this.outline?.startEditPoints(this.selectedElement());
+			}
+		},
 		saveAsPicture: () => this.saveAsPicture.emit(),
 		editAltText: () => this.focusInspectorSection('edit-alt-text'),
 		sizeAndPosition: () => this.focusInspectorSection('size-and-position'),

@@ -84,6 +84,8 @@ export interface ContextMenuActions {
 	remove(): void;
 	/** "Edit Text": enter inline text edit for the right-clicked element. */
 	editText(): void;
+	/** "Edit Points": reshape the right-clicked shape's outline. */
+	editPoints(): void;
 	/** "Save as Picture": rasterise the right-clicked element and download it. */
 	saveAsPicture(): void;
 	/** "Edit Alt Text...": open the properties tab, focused on the Accessibility section. */
@@ -155,6 +157,9 @@ export function runContextMenuCommand(id: ContextMenuCommandId, actions: Context
 			break;
 		case 'edit-text':
 			actions.editText();
+			break;
+		case 'edit-points':
+			actions.editPoints();
 			break;
 		case 'save-as-picture':
 			actions.saveAsPicture();
