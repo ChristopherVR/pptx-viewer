@@ -1,6 +1,6 @@
 import { XmlObject, TextStyle, TextSegment } from '../../types';
 import type { BulletInfo } from '../../types';
-import { formatAutoNumberMarker } from '../../utils/auto-number-format';
+import { isRenderedBulletMarker } from '../../utils/rendered-bullet-marker';
 import { updateEndParagraphProperties } from './paragraph-insertion-style';
 import {
 	buildParagraphPropertiesXml,
@@ -12,36 +12,6 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 import { toRunScopedTextStyle } from './run-scoped-text-style';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	private isRenderedBulletMarker(segment: TextSegment): boolean {
-		const bullet = segment.bulletInfo;
-		if (!bullet || bullet.none) {
-			return false;
-		}
-		if (
-			segment.text === '' &&
-			(bullet.imageRelId || bullet.imageDataUrl) &&
-			!segment.fieldType &&
-			!segment.equationXml &&
-			segment.rubyText === undefined
-		) {
-			return true;
-		}
-		if (bullet.autoNumType) {
-			if (bullet.paragraphIndex === undefined) {
-				return false;
-			}
-			const ordinal = Math.max(1, (bullet.autoNumStartAt ?? 1) + bullet.paragraphIndex);
-			const marker = formatAutoNumberMarker(bullet.autoNumType, ordinal);
-			return segment.text === marker || segment.text === `${marker} `;
-		}
-		const marker = bullet.char
-			? `${bullet.char} `
-			: bullet.imageRelId || bullet.imageDataUrl
-				? '\u{1F4CE} '
-				: '• ';
-		return segment.text === marker;
-	}
-
 	protected createParagraphsFromTextContent(
 		text: string | undefined,
 		textStyle: TextStyle | undefined,
@@ -270,7 +240,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Parsed bullet markers are display-only segments. The native
 				// paragraph properties above already represent them in OOXML.
-				if (this.isRenderedBulletMarker(segment)) {
+				if (isRenderedBulletMarker(segment)) {
 					return;
 				}
 

@@ -67,11 +67,17 @@ export function buildClientData(
 ): Uint8Array {
 	const w = new ByteWriter();
 	if (placeholderId !== undefined) {
+		// [MS-PPT] PlaceholderAtom (OEPlaceholderAtom): position (i32), placementId (u8),
+		// size (u8), unused (u16). A slide's own placeholders write position -1
+		// (COM-measured on PowerPoint's 97-2003 SaveAs: `ffffffff 0d 00 0000` for
+		// a title). This writer used to emit a 4-byte atom with the id in its
+		// second byte, which PowerPoint rejected outright ("Office has detected a
+		// problem with this file") for any deck with a title/body placeholder.
 		const placeholderData = new ByteWriter()
-			.u8(0) // placeholderId high byte unused
-			.u8(placeholderId)
-			.u8(0) // size
-			.u8(0) // placementId
+			.i32(-1) // position: none (a slide placeholder)
+			.u8(placeholderId) // placementId (PlaceholderEnum)
+			.u8(0) // size: full
+			.u16(0) // unused
 			.toBytes();
 		w.bytes(record(RT.OEPlaceholderAtom, placeholderData, 0, false, 0));
 	}

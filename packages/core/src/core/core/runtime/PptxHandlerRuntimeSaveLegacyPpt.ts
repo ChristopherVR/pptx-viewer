@@ -3,9 +3,10 @@ import {
 	buildPptFile,
 	convertDeckToWriteModel,
 	deckNeedsMetroBlobs,
+	convertMasterTextStyles,
 	resolvePictureSources,
 } from '../../ppt/writer';
-import type { PptxSlide } from '../../types';
+import type { PptxMasterTextStyles, PptxSlide } from '../../types';
 import type { PptxHandlerSaveOptions } from '../types';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveHandoutInfrastructure';
 
@@ -96,6 +97,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
+	 * The master text styles the `.ppt`'s single main master carries: those of
+	 * the first slide's own master (a binary `.ppt` written here has one
+	 * master), preferring an edited copy passed in `options.slideMasters` over
+	 * the styles parsed at load.
+	 */
+	private legacyMasterTextStyles(
+		slides: PptxSlide[],
+		options: PptxHandlerSaveOptions | undefined,
+	): PptxMasterTextStyles | undefined {
+		const layoutPath = slides[0]?.layoutPath;
+		const masterPath =
+			(layoutPath ? this.resolveMasterPathForLayout(layoutPath) : undefined) ??
+			this.masterTxStylesCache.keys().next().value;
+		if (!masterPath) {
+			return undefined;
+		}
+		const edited = options?.slideMasters?.find((master) => master.path === masterPath)?.txStyles;
+		return edited ?? this.masterTxStylesCache.get(masterPath);
+	}
+
+	/**
 	 * Serialise `slides` to a legacy binary PowerPoint 97-2003 (`.ppt`) file.
 	 *
 	 * @param slides - The (possibly mutated) live slide array.
@@ -127,6 +149,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			metroBlobs,
 			resolvedPictures,
 		);
+		deck.masterStyles = convertMasterTextStyles(this.legacyMasterTextStyles(slides, options));
 		return buildPptFile(deck, { password: options?.pptPassword });
 	}
 }

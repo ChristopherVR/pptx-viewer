@@ -191,10 +191,29 @@ export interface WSlide {
 	notesParagraphs?: WParagraph[];
 }
 
+/** One indent level of a master text style: paragraph + character defaults. */
+export interface WMasterLevel {
+	paragraph: Omit<WParagraph, 'runs' | 'indentLevel'>;
+	run: Omit<WRun, 'text' | 'hyperlink'>;
+}
+
+/**
+ * The deck's own master text styles (`p:titleStyle`/`p:bodyStyle`/
+ * `p:otherStyle`), levels 0-4, written as the main master's
+ * `TextMasterStyleAtom` instances 0/1/4. An absent category keeps
+ * PowerPoint's built-in defaults.
+ */
+export interface WMasterTextStyles {
+	title?: WMasterLevel[];
+	body?: WMasterLevel[];
+	other?: WMasterLevel[];
+}
+
 /** The complete deck the writer serialises. */
 export interface WDeck {
 	widthEmu: number;
 	heightEmu: number;
 	slides: WSlide[];
 	pictures: WPictureData[];
+	masterStyles?: WMasterTextStyles;
 }

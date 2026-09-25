@@ -93,6 +93,28 @@ function buildTextBody(
 	return paragraphs.length > 0 ? { textType, paragraphs } : undefined;
 }
 
+/**
+ * [MS-PPT] TextTypeEnum for a shape's text: which master text style it
+ * inherits. A non-placeholder text box or shape is `Tx_TYPE_OTHER` (4), as
+ * PowerPoint writes it; this writer used to give it `Tx_TYPE_BODY` (1), so
+ * every plain text box inherited the body style's bullets (COM-measured:
+ * `ParagraphFormat.Bullet.Visible` read -1 on each).
+ */
+function textTypeFor(placeholderType: WShape['placeholderType']): number {
+	switch (placeholderType) {
+		case 'title':
+			return 0;
+		case 'body':
+			return 1;
+		case 'subTitle':
+			return 5; // Tx_TYPE_CENTERBODY
+		case 'ctrTitle':
+			return 6; // Tx_TYPE_CENTERTITLE
+		default:
+			return 4; // Tx_TYPE_OTHER
+	}
+}
+
 /** Convert a text/shape/connector element into a `WShape`. */
 function convertShapeLike(element: PptxElement, ctx: ConvertContext): WShape {
 	const isText = element.type === 'text';
@@ -113,11 +135,7 @@ function convertShapeLike(element: PptxElement, ctx: ConvertContext): WShape {
 		flipV: element.flipVertical,
 		fill: resolveFill(el.shapeStyle),
 		line: resolveLine(el.shapeStyle),
-		text: buildTextBody(
-			element,
-			placeholderType === 'title' || placeholderType === 'ctrTitle' ? 0 : 1,
-			ctx.hyperlinkCtx,
-		),
+		text: buildTextBody(element, textTypeFor(placeholderType), ctx.hyperlinkCtx),
 		placeholderType,
 		hyperlink: resolveHyperlink(element.actionClick, ctx.hyperlinkCtx),
 	};

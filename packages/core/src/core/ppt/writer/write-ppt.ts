@@ -14,6 +14,7 @@ import { ByteWriter } from './byte-writer';
 import { buildCurrentUserStream } from './current-user-writer';
 import { layoutDocumentStream } from './document-stream-layout';
 import { buildCryptSession, encryptDocumentStream, encryptPicturesStream } from './encrypt-writer';
+import { withMasterRelativeRunStyles } from './master-relative-runs';
 import {
 	buildEncryptedUserEditAtom,
 	buildPersistDirectoryAtom,
@@ -96,7 +97,7 @@ export async function buildPptFile(
 	deck: WDeck,
 	options: BuildPptOptions = {},
 ): Promise<Uint8Array> {
-	const layout = layoutDocumentStream(deck);
+	const layout = layoutDocumentStream(withMasterRelativeRunStyles(deck));
 	const lastSlideId = 256 + Math.max(0, deck.slides.length - 1);
 	const encrypted = Boolean(options.password);
 

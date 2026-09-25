@@ -17,6 +17,7 @@ import {
 } from './document-writer';
 import { buildExObjList } from './ex-obj-list-writer';
 import { HyperlinkCollector } from './hyperlink-writer';
+import { masterStyleFonts } from './master-style-convert';
 import { buildSoundCollection, MediaCollector } from './media-writer';
 import { buildNotesContainer } from './notes-writer';
 import { buildExOleObjStg, OleCollector } from './ole-writer';
@@ -51,7 +52,12 @@ function collectFonts(deck: WDeck): string[] {
 			p.runs.map((r) => r.fontName).filter((n): n is string => Boolean(n)),
 		);
 	};
-	const fonts = Array.from(new Set(deck.slides.flatMap((slide) => slide.shapes.flatMap(collect))));
+	const fonts = Array.from(
+		new Set([
+			...deck.slides.flatMap((slide) => slide.shapes.flatMap(collect)),
+			...masterStyleFonts(deck.masterStyles),
+		]),
+	);
 	return fonts.length > 0 ? fonts : ['Calibri'];
 }
 
@@ -142,6 +148,8 @@ export function layoutDocumentStream(deck: WDeck): DocumentStreamLayout {
 		hyperlinks,
 		oleEmbeds,
 		mediaEmbeds,
+		deck.masterStyles,
+		fonts,
 	);
 	const masterPersistAtom = buildSlidePersistAtom(MASTER_ID, MASTER_SLIDE_ID_SENTINEL);
 	// flags=4: real (COM-written) files set this bit on a SLIDE's own
