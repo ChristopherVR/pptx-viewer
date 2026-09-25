@@ -833,6 +833,12 @@ export interface PptxChartFilteredSeries {
  * and `c:dLblPos`.
  */
 export interface PptxChartDataLabelOptions {
+	/** Label box fill/outline (`c:dLbls/c:spPr`), see `chart-data-label-box.ts`. */
+	labelShape?: PptxChartShapeProps;
+	/** Callout geometry of the label box (`c15:spPr/a:prstGeom/@prst`, e.g. `wedgeRectCallout`). */
+	calloutShape?: string;
+	/** The chart15 extension's `c15:showLeaderLines`, which wins for a moved label's leader line. */
+	extLeaderLines?: boolean;
 	/** Show the numeric value (`c:showVal`). */
 	showValue?: boolean;
 	/** Show the category name (`c:showCatName`). */
