@@ -43,9 +43,20 @@ export interface MoveWithMerge {
 	extraIdsByTarget: Map<string, string[]>;
 	/** Carrier nodes that were folded into a target and must not render on their own. */
 	suppressed: Set<EngineNode>;
+	/**
+	 * `moveWith` target layout-node name -> the carrier folded into it. The
+	 * carrier is the `tx` node that actually sized the text (its own box,
+	 * margins and `primFontSz` constraints), so font fitting reads it rather
+	 * than the decorative target shape.
+	 */
+	carrierByTarget: Map<string, EngineNode>;
 }
 
-const NO_MERGE: MoveWithMerge = { extraIdsByTarget: new Map(), suppressed: new Set() };
+const NO_MERGE: MoveWithMerge = {
+	extraIdsByTarget: new Map(),
+	suppressed: new Set(),
+	carrierByTarget: new Map(),
+};
 
 /**
  * `moveWith` only ever pairs SIBLINGS (nodes sharing the same parent), so
@@ -59,6 +70,7 @@ export function computeMoveWithMerge(siblings: EngineNode[]): MoveWithMerge {
 	const byName = new Map(siblings.map((s) => [s.name, s]));
 	const extraIdsByTarget = new Map<string, string[]>();
 	const suppressed = new Set<EngineNode>();
+	const carrierByTarget = new Map<string, EngineNode>();
 	for (const sibling of siblings) {
 		const targetName = sibling.moveWith;
 		if (!sibling.shape?.hideGeom || !targetName || targetName === sibling.name) {
@@ -82,6 +94,9 @@ export function computeMoveWithMerge(siblings: EngineNode[]): MoveWithMerge {
 			extraIdsByTarget.set(targetName, [...(extraIdsByTarget.get(targetName) ?? []), ...extra]);
 		}
 		suppressed.add(sibling);
+		if (!carrierByTarget.has(targetName)) {
+			carrierByTarget.set(targetName, sibling);
+		}
 	}
-	return { extraIdsByTarget, suppressed };
+	return { extraIdsByTarget, suppressed, carrierByTarget };
 }

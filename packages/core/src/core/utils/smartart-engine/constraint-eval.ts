@@ -53,11 +53,19 @@ const LENGTH_TYPES = new Set([
 	'bendDist',
 	'diam',
 	'stemThick',
-	'lMarg',
-	'rMarg',
-	'tMarg',
-	'bMarg',
 ]);
+
+/**
+ * Text-frame margins are POINTS, not millimetres (the font-size unit, so a
+ * `refType="primFontSz"` margin is simply `fact x size`). Measured against
+ * the cached drawings: a literal `rMarg val="20"` ("Increasing Arrows
+ * Process") is a 20pt `rIns`, a literal `lMarg val="1"` ("Horizontal
+ * Hierarchy") a 1pt `lIns`, and a length-referenced `tMarg refType="h"
+ * fact="0.28"` ("Vertical Action List") is `0.28 x` the node's height
+ * IN MILLIMETRES read as points (a 128.1pt = 45.2mm tall box gets a
+ * 12.66pt `tIns`, not 35.9pt).
+ */
+const MARGIN_TYPES = new Set(['lMarg', 'rMarg', 'tMarg', 'bMarg']);
 
 export const FONT_TYPES = new Set(['primFontSz', 'secFontSz']);
 
@@ -72,7 +80,9 @@ export function relatedNodes(
 	ptType: string,
 ): EngineNode[] {
 	const matches = (candidate: EngineNode): boolean =>
-		(!name || candidate.name === name) && matchesPointType(candidate.point, ptType);
+		(!name || candidate.name === name) &&
+		(matchesPointType(candidate.point, ptType) ||
+			(candidate.presOf.length > 0 && matchesPointType(candidate.presOf[0], ptType)));
 	if (relation === 'self') {
 		return name && node.name !== name ? [] : [node];
 	}
@@ -233,8 +243,13 @@ export function applyConstraint(node: EngineNode, constraint: LdConstraint): voi
 		if (base === undefined) {
 			return;
 		}
+		// A margin read off a length is that length in millimetres, as points.
+		const unit =
+			MARGIN_TYPES.has(constraint.type) && LENGTH_TYPES.has(constraint.refType)
+				? 1 / POINTS_PER_MM
+				: 1;
 		for (const target of targets) {
-			assign(target, constraint, base * constraint.fact);
+			assign(target, constraint, base * constraint.fact * unit);
 		}
 		return;
 	}

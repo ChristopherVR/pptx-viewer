@@ -37,10 +37,11 @@ import {
 } from '../smartart-layout-style-helpers';
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
 import { runSmartArtEngine } from './engine';
+import { applyEngineFonts } from './engine-fonts';
+import type { RenderedEngineNode } from './engine-fonts';
 import type { EngineNode } from './engine-node';
 import { computeMoveWithMerge, sourceIdsOf } from './move-with-merge';
 import { shapeTransform } from './shape-transform';
-import { resolveEngineFontSizePt } from './text-fit';
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
 const SUPPORTED_ALGS = new Set([
@@ -156,7 +157,6 @@ function buildRenderedNode(
 	}
 	const hidden = Boolean(node.shape?.hideGeom);
 	const text = primary?.text ?? literalText ?? '';
-	const fontSizePt = resolveEngineFontSizePt(node, text);
 	const sw = hidden ? 0 : styleStroke(style);
 	const x = transform.x * PX_PER_PT;
 	const y = transform.y * PX_PER_PT;
@@ -179,7 +179,9 @@ function buildRenderedNode(
 		strokeWidth: sw,
 		opacity: hidden ? 1 : nodeOpacity(index, index + 1, style),
 		text,
-		fontSize: fontSizePt * PX_PER_PT,
+		// Placeholder: `applyEngineFonts` resolves every node's size jointly
+		// (equality groups span nodes) once the whole list is collected.
+		fontSize: 0,
 		textX: x + width / 2,
 		textY: y + height / 2,
 		nodeId: primary?.id,
@@ -209,25 +211,19 @@ function collectRenderedNodes(
 	nodeById: Map<string, PptxSmartArtNode>,
 	palette: string[],
 	style: SmartArtStyle,
-): RenderedRectNode[] {
-	const out: RenderedRectNode[] = [];
+): RenderedEngineNode[] {
+	const out: RenderedEngineNode[] = [];
 	// `moveWith` only ever pairs SIBLINGS (same parent), so the merge is
 	// scoped to one node's `children` at a time; `[root]` is a trivial
 	// one-element "sibling group" with nothing to merge.
 	const visitSiblings = (siblings: EngineNode[]): void => {
-		const { extraIdsByTarget, suppressed } = computeMoveWithMerge(siblings);
+		const { extraIdsByTarget, suppressed, carrierByTarget } = computeMoveWithMerge(siblings);
 		for (const node of siblings) {
 			if (node.alg.type !== 'conn' && !suppressed.has(node)) {
-				const rendered = buildRenderedNode(
-					node,
-					out.length,
-					nodeById,
-					palette,
-					style,
-					extraIdsByTarget.get(node.name),
-				);
+				const mergedIds = extraIdsByTarget.get(node.name);
+				const rendered = buildRenderedNode(node, out.length, nodeById, palette, style, mergedIds);
 				if (rendered) {
-					out.push(rendered);
+					out.push({ node, rendered, mergedIds, textNode: carrierByTarget.get(node.name) });
 				}
 			}
 			visitSiblings(node.children);
@@ -279,7 +275,9 @@ export function runEngineLayout(
 		return undefined;
 	}
 	const nodeById = new Map(nodes.map((n) => [n.id, n]));
-	const rendered = collectRenderedNodes(run.root, nodeById, palette, style);
+	const collected = collectRenderedNodes(run.root, nodeById, palette, style);
+	applyEngineFonts(collected, nodeById, smartArtData.themeMinorFont);
+	const rendered = collected.map((entry) => entry.rendered);
 	if (rendered.length === 0 || !rendered.every(isFiniteGeometry)) {
 		return undefined;
 	}

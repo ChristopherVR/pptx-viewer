@@ -1,47 +1,209 @@
 /**
- * Per-node font-size resolution for the per-point layout engine's output
- * stage. Not a full implementation of ECMA-376's deferred font-linked
- * constraints (`constraint-eval.ts`'s `FONT_TYPES` deferral); this resolves
- * the common case (a literal `primFontSz` ceiling declared on the node
- * itself or inherited via a non-deferred constraint) and falls back to a
- * fixed default otherwise, then fits it to the node's own box net of its
- * resolved margins.
+ * Per-node text fitting for the per-point layout engine's output stage
+ * (ECMA-376 Part 1, 21.4.2.x: a `tx` node's `primFontSz` constraint is the
+ * STARTING size, and a `dgm:rule type="primFontSz"` lets PowerPoint shrink
+ * it, down to the rule's `val`, until the node's text fits its own text
+ * box). Equalisation across nodes (`op="equ"` groups, `op="lte"` links)
+ * happens one level up, in `font-groups.ts`; this module answers the
+ * single-node question "what is the largest whole point this node's text
+ * fits at?".
  *
- * All arithmetic here is in POINTS, matching the engine's internal
- * coordinate space (`constraint-eval.ts`'s literal-length conversion); the
- * caller converts the result to pixels once, at the same point it converts
- * geometry.
+ * All arithmetic is in POINTS, matching the engine's internal coordinate
+ * space. The paragraph model itself (line pitch, folded descendants,
+ * spacing) lives in `text-measure.ts`; this module supplies the node-level
+ * inputs: the preset's text rectangle, the margins and the size bounds.
  */
 
-import { fitFontSize } from '../smartart-layout-style-helpers';
+import { evaluatePresetShape } from '../../geometry';
 import type { EngineNode } from './engine-node';
+import type { NodeText, TextMetrics } from './text-measure';
+import { paragraphsFit } from './text-measure';
 
-/** Default font-size ceiling (points) when no `primFontSz` constraint resolved. */
-const DEFAULT_CEILING_PT = 18;
+export type { NodeText, TextMetrics } from './text-measure';
 
-/** Default per-side margin (points) when no `*Marg` constraint resolved. */
-const DEFAULT_MARGIN_PT = 4;
+/** Starting size (points) for a text node with no `primFontSz` constraint. */
+export const DEFAULT_START_PT = 65;
 
-function marginPt(node: EngineNode, near: string, far: string): number {
-	const a = node.values.get(near);
-	const b = node.values.get(far);
-	if (a === undefined && b === undefined) {
-		return DEFAULT_MARGIN_PT * 2;
+/** Smallest size (points) any shrink may reach. */
+const ABSOLUTE_FLOOR_PT = 1;
+
+/**
+ * PowerPoint's own default text-frame inset when a text node declares no
+ * margin constraint at all: `0.56 x font size` per side (see
+ * `smartart-layout-item-font-size.ts`'s `DEFAULT_NO_CONSTRAINT_MARGIN_FACTOR`
+ * for the COM measurement).
+ */
+const DEFAULT_MARGIN_FACTOR = 0.56;
+
+/** Whole-point bounds a node's size may take before any cross-node equalisation. */
+export interface FontBoundsPt {
+	start: number;
+	floor: number;
+}
+
+function ruleFloors(node: EngineNode): number[] {
+	const floors: number[] = [];
+	const collect = (declaring: EngineNode, relation: 'self' | 'ch' | 'des'): void => {
+		for (const rule of declaring.rules) {
+			if (rule.type !== 'primFontSz' || rule.for !== relation) {
+				continue;
+			}
+			if (rule.forName && rule.forName !== node.name) {
+				continue;
+			}
+			if (Number.isFinite(rule.val)) {
+				floors.push(rule.val);
+			}
+		}
+	};
+	collect(node, 'self');
+	if (node.parent) {
+		collect(node.parent, 'ch');
 	}
-	return (a ?? 0) + (b ?? 0);
+	for (let anc = node.parent; anc; anc = anc.parent) {
+		collect(anc, 'des');
+	}
+	return floors;
 }
 
 /**
- * Resolve `node`'s font size in POINTS for `text`, fitted to its own box
- * (already laid out) net of its resolved `lMarg`/`rMarg`/`tMarg`/`bMarg`.
+ * The node's starting size (its `primFontSz` constraint value, capped by any
+ * literal `op="lte"` bound) and its shrink floor (the lowest `primFontSz`
+ * rule reaching it). With no rule, PowerPoint does not shrink the text at
+ * all, so the floor is the start itself.
  */
-export function resolveEngineFontSizePt(node: EngineNode, text: string): number {
+export function nodeFontBounds(node: EngineNode): FontBoundsPt {
+	const declared = node.values.get('primFontSz');
+	const cap = node.maxValues.get('primFontSz');
+	let start = declared !== undefined && declared > 0 ? declared : DEFAULT_START_PT;
+	if (cap !== undefined && cap > 0) {
+		start = Math.min(start, cap);
+	}
+	start = Math.max(ABSOLUTE_FLOOR_PT, Math.floor(start + 1e-9));
+	const floors = ruleFloors(node);
+	const floor = floors.length > 0 ? Math.max(ABSOLUTE_FLOOR_PT, Math.min(...floors)) : start;
+	return { start, floor: Math.min(floor, start) };
+}
+
+function adjustmentsOf(node: EngineNode): Record<string, number> | undefined {
+	const adj = node.shape?.adj;
+	if (!adj) {
+		return undefined;
+	}
+	const out: Record<string, number> = {};
+	for (const [key, value] of Object.entries(adj)) {
+		const index = Number(key);
+		out[`adj${index}`] = value;
+		if (index === 1) {
+			out.adj = value;
+		}
+	}
+	return out;
+}
+
+/**
+ * The upright text box (points) inside `node`'s shape: the preset's own
+ * ECMA-376 `<a:rect>` text rectangle when it declares one, else the full
+ * shape. A shape stood on its side (`rot` 90/270) keeps its text upright, so
+ * the text rectangle is computed in the unrotated shape frame and read back
+ * with its axes swapped.
+ */
+const textBoxCache = new WeakMap<EngineNode, { w: number; h: number }>();
+
+export function nodeTextBox(node: EngineNode): { w: number; h: number } | undefined {
+	const cached = textBoxCache.get(node);
+	if (cached) {
+		return cached;
+	}
+	const computed = computeTextBox(node);
+	if (computed) {
+		textBoxCache.set(node, computed);
+	}
+	return computed;
+}
+
+function computeTextBox(node: EngineNode): { w: number; h: number } | undefined {
 	const box = node.box;
 	if (!box) {
-		return DEFAULT_CEILING_PT;
+		return undefined;
 	}
-	const ceiling = node.values.get('primFontSz') ?? DEFAULT_CEILING_PT;
-	const netW = Math.max(1, box.w - marginPt(node, 'lMarg', 'rMarg'));
-	const netH = Math.max(1, box.h - marginPt(node, 'tMarg', 'bMarg'));
-	return fitFontSize(text || ' ', netW, netH, ceiling);
+	const rot = node.shape?.rot ?? 0;
+	const quarter = Math.round(rot / 90);
+	const sideways = Math.abs(quarter) % 2 === 1 && Math.abs(rot - quarter * 90) < 1e-6;
+	const w = sideways ? box.h : box.w;
+	const h = sideways ? box.w : box.h;
+	const rect = node.shape?.type
+		? evaluatePresetShape(node.shape.type, w, h, adjustmentsOf(node))?.textRect
+		: undefined;
+	const tw = rect ? Math.max(0, rect.r - rect.l) : w;
+	const th = rect ? Math.max(0, rect.b - rect.t) : h;
+	return sideways ? { w: th, h: tw } : { w: tw, h: th };
+}
+
+type MarginSide = 'lMarg' | 'rMarg' | 'tMarg' | 'bMarg';
+const SIDES: readonly MarginSide[] = ['lMarg', 'rMarg', 'tMarg', 'bMarg'];
+
+/**
+ * Per-side margins (points) at candidate size `sizePt`: a `refType=
+ * "primFontSz"` margin scales with the font (`fact x size`), a literal one is
+ * fixed, and a node declaring none gets PowerPoint's default proportional
+ * inset.
+ */
+export function nodeMarginsPt(node: EngineNode, sizePt: number): Record<MarginSide, number> {
+	const out: Record<MarginSide, number> = { lMarg: 0, rMarg: 0, tMarg: 0, bMarg: 0 };
+	let declaredAny = false;
+	for (const side of SIDES) {
+		const deferred = node.deferred.find((d) => d.type === side && d.refType === 'primFontSz');
+		if (deferred) {
+			out[side] = deferred.fact * sizePt;
+			declaredAny = true;
+			continue;
+		}
+		const literal = node.values.get(side);
+		if (literal !== undefined) {
+			out[side] = literal;
+			declaredAny = true;
+		}
+	}
+	if (!declaredAny) {
+		for (const side of SIDES) {
+			out[side] = DEFAULT_MARGIN_FACTOR * sizePt;
+		}
+	}
+	return out;
+}
+
+/** Whether `text` fits `node`'s text box at whole-point size `sizePt`. */
+export function textFitsAt(
+	node: EngineNode,
+	text: NodeText,
+	sizePt: number,
+	metrics: TextMetrics,
+): boolean {
+	const box = nodeTextBox(node);
+	if (!box) {
+		return true;
+	}
+	const m = nodeMarginsPt(node, sizePt);
+	const availW = box.w - m.lMarg - m.rMarg;
+	const availH = box.h - m.tMarg - m.bMarg;
+	if (availW <= 0 || availH <= 0) {
+		return false;
+	}
+	return paragraphsFit(text, sizePt, availW, availH, metrics);
+}
+
+/** Largest whole point in `[bounds.floor, bounds.start]` at which `text` fits (the floor when nothing does). */
+export function fitNodeFontPt(
+	node: EngineNode,
+	text: NodeText,
+	bounds: FontBoundsPt,
+	metrics: TextMetrics,
+): number {
+	for (let size = bounds.start; size > bounds.floor; size--) {
+		if (textFitsAt(node, text, size, metrics)) {
+			return size;
+		}
+	}
+	return bounds.floor;
 }
