@@ -52,6 +52,8 @@ export interface AnimationHandlers {
 	handleEmphasisChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 	handleTriggerChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 	handleTriggerShapeChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+	/** Picks the media bookmark an "On bookmark" trigger waits for. */
+	handleTriggerBookmarkChange: (optionValue: string) => void;
 	handleTimingCurveChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 	handleDurationChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 	handleDelayChange: (e: React.ChangeEvent<HTMLInputElement>) => void;

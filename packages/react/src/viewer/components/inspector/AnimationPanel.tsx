@@ -21,6 +21,7 @@ import {
 	SEQUENCE_OPTIONS,
 } from './animation-panel-constants';
 import { AnimationTimelineSection } from './AnimationTimelineSection';
+import { BookmarkTriggerRow } from './BookmarkTriggerRow';
 import { EffectSoundRow } from './EffectSoundRow';
 import { MotionPathRow } from './MotionPathRow';
 import { useAnimationHandlers } from './useAnimationHandlers';
@@ -89,6 +90,7 @@ export function AnimationPanel({
 		handleEmphasisChange,
 		handleTriggerChange,
 		handleTriggerShapeChange,
+		handleTriggerBookmarkChange,
 		handleTimingCurveChange,
 		handleDurationChange,
 		handleDelayChange,
@@ -313,6 +315,17 @@ export function AnimationPanel({
 									))}
 							</WebSelect>
 						</label>
+					)}
+
+					{/* Bookmark picker for the "On bookmark" trigger */}
+					{selectedElementAnimation?.trigger === 'onMediaBookmark' && (
+						<BookmarkTriggerRow
+							elements={activeSlide.elements}
+							animation={selectedElementAnimation}
+							canEdit={canEdit}
+							style={fieldStyle}
+							onChange={handleTriggerBookmarkChange}
+						/>
 					)}
 
 					{/* Duration / Delay / Timing / Repeat */}
