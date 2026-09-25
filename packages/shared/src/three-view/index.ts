@@ -40,11 +40,21 @@ export {
 export type { PptxThreeViewElement } from './element';
 export { computeThreeViewSize, MAX_DEVICE_PIXEL_RATIO } from './view-size';
 export { MAX_VIEW_PIXELS } from './renderer-host';
+export {
+	hasThreeViewOverflow,
+	MAX_THREE_VIEW_OVERFLOW,
+	NO_THREE_VIEW_OVERFLOW,
+	overflowCanvasCss,
+	overflowPixelSize,
+	overflowViewOffset,
+	threeViewOverflowFromNdc,
+} from './view-overflow';
 export type {
 	ThreeModule,
 	ThreeOrbitControls,
 	ThreeViewContext,
 	ThreeViewDragDetail,
+	ThreeViewOverflow,
 	ThreeViewScene,
 	ThreeViewSceneEvent,
 	ThreeViewSceneFactory,

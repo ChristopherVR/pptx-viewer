@@ -106,6 +106,28 @@ describe('snapshotThreeViewsIntoClone', () => {
 		expect(img?.getAttribute('src')).toBe('data:image/png;base64,fake');
 	});
 
+	it('places the snapshot of an overflowing view where its canvas was', () => {
+		const original = document.createElement('div');
+		const view = fakeView('ready');
+		(view as unknown as { overflowInsets: object }).overflowInsets = {
+			top: 0.1,
+			right: 0,
+			bottom: 0.25,
+			left: 0,
+		};
+		original.append(view);
+		const clone = original.cloneNode(true) as HTMLElement;
+
+		snapshotThreeViewsIntoClone(original, clone);
+
+		const clonedView = clone.querySelector<HTMLElement>(`[${THREE_VIEW_MARKER_ATTR}]`);
+		const img = clonedView?.querySelector<HTMLImageElement>(`img[${THREE_VIEW_SNAPSHOT_ATTR}]`);
+		expect(img?.style.top).toBe('-10%');
+		expect(img?.style.height).toBe('135%');
+		expect(img?.style.left).toBe('0%');
+		expect(clonedView?.style.overflow).toBe('visible');
+	});
+
 	it('leaves a non-ready view untouched (its 2D fallback stays)', () => {
 		const original = document.createElement('div');
 		const view = fakeView('unavailable', false);

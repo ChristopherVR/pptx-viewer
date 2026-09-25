@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import type { ThreeViewScene, ThreeViewSpec, ThreeViewState } from './types';
+import type { ThreeViewOverflow, ThreeViewScene, ThreeViewSpec, ThreeViewState } from './types';
 
 const hostMock = vi.hoisted(() => ({
 	available: true,
@@ -30,7 +30,7 @@ function makeScene(): ThreeViewScene {
 	return { render: vi.fn(), resize: vi.fn(), dispose: vi.fn(), setSelectedPart: vi.fn() };
 }
 
-function makeController() {
+function makeController(onOverflow?: (o: ThreeViewOverflow) => void) {
 	const states: ThreeViewState[] = [];
 	const overlay = document.createElement('div');
 	const controller = new ThreeViewController({
@@ -41,6 +41,7 @@ function makeController() {
 		isVisible: () => true,
 		onState: (s) => states.push(s),
 		onSceneEvent: () => {},
+		onOverflow,
 	});
 	return { controller, states, overlay };
 }
@@ -127,5 +128,20 @@ describe('three view controller', () => {
 		expect(states).toStrictEqual(['loading', 'ready', 'ready']);
 		expect(first.dispose).toHaveBeenCalledOnce();
 		expect(overlay.childElementCount).toBe(1);
+	});
+
+	it('grows the drawing buffer by the scene overflow and reports it to the element', async () => {
+		const overflow = { top: 0.1, right: 0, bottom: 0.5, left: 0 };
+		factoryMock.mockResolvedValue({ ...makeScene(), overflow: () => overflow });
+		const reported: ThreeViewOverflow[] = [];
+		const { controller } = makeController((o) => reported.push(o));
+		await controller.setSpec(spec('a'));
+		expect(reported).toStrictEqual([overflow]);
+		const view = hostMock.register.mock.calls[0]?.[0] as {
+			pixelSize: () => { width: number; height: number };
+		};
+		expect(view.pixelSize()).toStrictEqual({ width: 100, height: 80 });
+		controller.dispose();
+		expect(reported.at(-1)).toStrictEqual({ top: 0, right: 0, bottom: 0, left: 0 });
 	});
 });

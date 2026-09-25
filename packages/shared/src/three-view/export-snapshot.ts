@@ -19,6 +19,7 @@
 import { THREE_VIEW_MARKER_ATTR, THREE_VIEW_TAG } from './element';
 import type { PptxThreeViewElement } from './element';
 import type { ThreeViewState } from './types';
+import { hasThreeViewOverflow, overflowCanvasCss } from './view-overflow';
 
 /** Longest {@link settleThreeViews} waits for a view still loading, in ms. */
 export const THREE_VIEW_SETTLE_TIMEOUT_MS = 4000;
@@ -151,7 +152,10 @@ export function snapshotThreeViewsIntoClone(originalRoot: ParentNode, cloneRoot:
 		img.setAttribute(THREE_VIEW_SNAPSHOT_ATTR, 'true');
 		img.setAttribute('src', url);
 		img.setAttribute('alt', '');
-		img.style.cssText = FILL_CSS;
+		// A view drawing past its box (a turned scene-style SmartArt) keeps the
+		// canvas's own placement, so the overflow lands where it was on screen.
+		const insets = original.overflowInsets;
+		img.style.cssText = `${FILL_CSS}${insets ? overflowCanvasCss(insets) : ''}`;
 		const overlay = overlayCopy(original, doc);
 		const layers: Node[] = overlay ? [img, overlay] : [img];
 		clone.replaceChildren(...layers);
@@ -164,6 +168,9 @@ export function snapshotThreeViewsIntoClone(originalRoot: ParentNode, cloneRoot:
 		const height = (original as HTMLElement).clientHeight;
 		clone.style.display = 'block';
 		clone.style.position = 'relative';
+		if (hasThreeViewOverflow(insets)) {
+			clone.style.overflow = 'visible';
+		}
 		if (width > 0 && height > 0) {
 			clone.style.width = `${width}px`;
 			clone.style.height = `${height}px`;

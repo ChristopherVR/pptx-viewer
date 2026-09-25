@@ -23,8 +23,14 @@
  */
 import type { TextStyleAnimationDescriptor } from '../render/animation-text-style-resolve';
 import type { ChartPartRef } from '../render/chart-view-model';
-import type { ThreeViewSceneEvent, ThreeViewSpec, ThreeViewState } from './types';
+import type {
+	ThreeViewOverflow,
+	ThreeViewSceneEvent,
+	ThreeViewSpec,
+	ThreeViewState,
+} from './types';
 import { ThreeViewController } from './view-controller';
+import { hasThreeViewOverflow, NO_THREE_VIEW_OVERFLOW, overflowCanvasCss } from './view-overflow';
 import { measureThreeViewSize } from './view-size';
 
 /** The element's tag name. */
@@ -40,7 +46,9 @@ const SHADOW_CSS = `
 :host { display: block; position: relative; width: 100%; height: 100%; contain: layout paint; }
 .fallback { position: absolute; inset: 0; }
 .stage { position: absolute; inset: 0; visibility: hidden; }
-canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+.hit { position: absolute; inset: 0; }
+:host([data-overflow]) { contain: layout; }
 .overlay { position: absolute; inset: 0; pointer-events: none; }
 :host([data-state='ready']) .fallback { display: none; }
 :host([data-state='ready']) .stage { visibility: visible; }
@@ -55,6 +63,11 @@ export interface PptxThreeViewElement extends HTMLElement {
 	readonly state: ThreeViewState;
 	/** The 2D canvas the scene is drawn onto (for export/snapshot). */
 	readonly canvas: HTMLCanvasElement | null;
+	/**
+	 * How far {@link canvas} reaches past the element box, as fractions of it
+	 * (a turned scene-style SmartArt; see `view-overflow.ts`).
+	 */
+	readonly overflowInsets: ThreeViewOverflow;
 	/** Draw any pending frame now. */
 	flush: () => void;
 }
@@ -69,6 +82,7 @@ function createElementClass(): CustomElementConstructor {
 		#textStyle: TextStyleAnimationDescriptor | undefined;
 		#controller: ThreeViewController | null = null;
 		#canvas: HTMLCanvasElement | null = null;
+		#overflow: ThreeViewOverflow = NO_THREE_VIEW_OVERFLOW;
 		#visible = true;
 		#resize: ResizeObserver | null = null;
 		#intersect: IntersectionObserver | null = null;
@@ -118,6 +132,10 @@ function createElementClass(): CustomElementConstructor {
 			return this.#canvas;
 		}
 
+		get overflowInsets(): ThreeViewOverflow {
+			return this.#overflow;
+		}
+
 		flush(): void {
 			this.#controller?.flush();
 		}
@@ -134,19 +152,23 @@ function createElementClass(): CustomElementConstructor {
 			this.setAttribute(THREE_VIEW_MARKER_ATTR, '');
 			const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
 			if (!this.#canvas) {
-				root.innerHTML = `<style>${SHADOW_CSS}</style><div class="fallback" part="fallback"><slot></slot></div><div class="stage" part="stage"><canvas></canvas><div class="overlay" part="overlay"></div></div>`;
+				root.innerHTML = `<style>${SHADOW_CSS}</style><div class="fallback" part="fallback"><slot></slot></div><div class="stage" part="stage"><canvas></canvas><div class="hit" part="hit"></div><div class="overlay" part="overlay"></div></div>`;
 				this.#canvas = root.querySelector('canvas');
 			}
 			const canvas = this.#canvas as HTMLCanvasElement;
 			const overlay = root.querySelector('.overlay') as HTMLElement;
+			const hit = root.querySelector('.hit') as HTMLElement;
 			this.#controller = new ThreeViewController({
 				canvas,
 				overlay,
-				eventTarget: canvas,
+				// Pointer input lands on the element box only, never on the part
+				// of an overflowing canvas that reaches over its neighbours.
+				eventTarget: hit,
 				measure: () => measureThreeViewSize(this),
 				isVisible: () => this.isConnected && this.#visible,
 				onState: (state) => this.#setState(state),
 				onSceneEvent: (event) => this.#dispatchSceneEvent(event),
+				onOverflow: (overflow) => this.#setOverflow(overflow),
 			});
 			this.#controller.setInteractive(this.interactive);
 			this.#controller.setSelectedPart(this.#selectedPart);
@@ -189,6 +211,14 @@ function createElementClass(): CustomElementConstructor {
 					this.#controller?.remeasure();
 				}
 			}, ZOOM_POLL_MS);
+		}
+
+		#setOverflow(overflow: ThreeViewOverflow): void {
+			this.#overflow = overflow;
+			if (this.#canvas) {
+				this.#canvas.style.cssText = overflowCanvasCss(overflow);
+			}
+			this.toggleAttribute('data-overflow', hasThreeViewOverflow(overflow));
 		}
 
 		#setState(state: ThreeViewState): void {

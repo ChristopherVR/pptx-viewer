@@ -17,12 +17,18 @@ import { getThreeRendererHost } from './renderer-host';
 import type { HostedView, ThreeRendererHost } from './renderer-host';
 import { loadThreeViewScene } from './scene-registry';
 import type {
+	ThreeViewOverflow,
 	ThreeViewScene,
 	ThreeViewSceneEvent,
 	ThreeViewSize,
 	ThreeViewSpec,
 	ThreeViewState,
 } from './types';
+import {
+	NO_THREE_VIEW_OVERFLOW,
+	overflowPixelSize,
+	threeViewOverflowChanged,
+} from './view-overflow';
 
 /** What the controller needs from its host element. */
 export interface ThreeViewControllerOptions {
@@ -33,6 +39,8 @@ export interface ThreeViewControllerOptions {
 	isVisible: () => boolean;
 	onState: (state: ThreeViewState) => void;
 	onSceneEvent: (event: ThreeViewSceneEvent) => void;
+	/** The scene now draws this far past the element box (see `view-overflow.ts`). */
+	onOverflow?: (overflow: ThreeViewOverflow) => void;
 }
 
 interface Mounted {
@@ -48,6 +56,7 @@ export class ThreeViewController {
 	private mounted: Mounted | null = null;
 	private token = 0;
 	private size: ThreeViewSize;
+	private overflow: ThreeViewOverflow = NO_THREE_VIEW_OVERFLOW;
 	private interactive = false;
 	private selectedPart: ChartPartRef | null = null;
 	private textStyle: TextStyleAnimationDescriptor | undefined;
@@ -121,7 +130,7 @@ export class ThreeViewController {
 			}
 			view = {
 				canvas: this.opts.canvas,
-				pixelSize: () => ({ width: this.size.pixelWidth, height: this.size.pixelHeight }),
+				pixelSize: () => overflowPixelSize(this.size, this.overflow),
 				isVisible: this.opts.isVisible,
 				draw: (renderer) => scene.render(renderer),
 				isAnimating: () => scene.isAnimating?.() ?? false,
@@ -129,6 +138,7 @@ export class ThreeViewController {
 			this.unmount();
 			this.opts.overlay.appendChild(overlay);
 			this.mounted = { scene, view, overlay };
+			this.syncOverflow();
 			scene.setSelectedPart?.(this.selectedPart);
 			if (this.textStyle) {
 				scene.setTextStyle?.(this.textStyle);
@@ -159,7 +169,18 @@ export class ThreeViewController {
 		}
 		this.size = next;
 		this.mounted?.scene.resize(next);
+		this.syncOverflow();
 		this.requestRender();
+	}
+
+	/** Read the mounted scene's overflow and report a change to the element. */
+	private syncOverflow(): void {
+		const next = this.mounted?.scene.overflow?.() ?? NO_THREE_VIEW_OVERFLOW;
+		if (!threeViewOverflowChanged(next, this.overflow)) {
+			return;
+		}
+		this.overflow = next;
+		this.opts.onOverflow?.(next);
 	}
 
 	requestRender(): void {
@@ -209,6 +230,7 @@ export class ThreeViewController {
 			return;
 		}
 		this.mounted = null;
+		this.syncOverflow();
 		this.host?.unregister(current.view);
 		current.overlay.remove();
 		try {

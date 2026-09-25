@@ -27,6 +27,7 @@ import type { Disposable } from './flat-mesh-object';
 import { buildFlatMeshObject } from './flat-mesh-object';
 import { buildLitMeshObject } from './lit-mesh-object';
 import { buildSmartArtViewCamera, fitSmartArtViewCamera } from './view-camera';
+import { frameSmartArtOverflow } from './view-overflow';
 
 export async function mountSmartArt3DView(
 	model: SmartArt3DModel,
@@ -70,7 +71,7 @@ export async function mountSmartArt3DView(
 			? buildLitMeshObject(
 					three,
 					mesh,
-					resolveSmartArt3DLightModel(model.lighting, mesh.solid?.material),
+					resolveSmartArt3DLightModel(model.lighting, mesh.solid?.material, eye !== undefined),
 					eye,
 				)
 			: buildFlatMeshObject(three, mesh);
@@ -80,6 +81,8 @@ export async function mountSmartArt3DView(
 
 	const camera = buildSmartArtViewCamera(three, model.bounds, model.camera, ctx.size);
 	const authoredPosition = camera.position.clone();
+	// A turned diagram draws past its box as PowerPoint does (view-overflow.ts).
+	let overflow = frameSmartArtOverflow(three, root, camera, ctx.size, Boolean(model.camera));
 
 	let controls: ThreeOrbitControls | null = null;
 	let dampingActive = false;
@@ -118,6 +121,10 @@ export async function mountSmartArt3DView(
 		},
 		resize(size) {
 			fitSmartArtViewCamera(camera, model.bounds, size);
+			overflow = frameSmartArtOverflow(three, root, camera, size, Boolean(model.camera));
+		},
+		overflow() {
+			return overflow;
 		},
 		isAnimating() {
 			return dampingActive;
