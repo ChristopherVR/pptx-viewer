@@ -30,7 +30,10 @@ export function cloneSubpath(sub: EditSubpath): EditSubpath {
 }
 
 export function cloneGeometry(geometry: EditGeometry): EditGeometry {
-	return { subpaths: geometry.subpaths.map(cloneSubpath) };
+	return {
+		subpaths: geometry.subpaths.map(cloneSubpath),
+		...(geometry.textRect ? { textRect: { ...geometry.textRect } } : {}),
+	};
 }
 
 /** The index of the node a segment ends on. */

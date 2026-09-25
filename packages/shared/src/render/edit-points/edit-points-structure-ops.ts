@@ -70,7 +70,7 @@ export function addEditPoint(
 
 function dropEmptySubpaths(geometry: EditGeometry): EditGeometry | undefined {
 	const subpaths = geometry.subpaths.filter((sub) => sub.nodes.length >= 2);
-	return subpaths.length > 0 ? { subpaths } : undefined;
+	return subpaths.length > 0 ? { ...geometry, subpaths } : undefined;
 }
 
 /**

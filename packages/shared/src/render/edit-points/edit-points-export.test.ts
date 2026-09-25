@@ -83,4 +83,18 @@ describe('editGeometryToElementPatch', () => {
 			editGeometryToElementPatch({ subpaths: [] }, editFrameFromElement(shape({}))),
 		).toBeUndefined();
 	});
+
+	it('keeps a converted preset text box where the preset had it', () => {
+		const element = shape({ shapeType: 'ellipse' });
+		const patch = editGeometryToElementPatch(
+			editGeometryFromElement(element)!,
+			editFrameFromElement(element),
+		)!;
+		const rect = patch.customGeometryTextRect!;
+		// An ellipse's text box is inset from its bounding box on every side.
+		expect(Number(rect.l)).toBeGreaterThan(0);
+		expect(Number(rect.t)).toBeGreaterThan(0);
+		expect(Number(rect.r)).toBeLessThan(patch.pathWidth!);
+		expect(Number(rect.b)).toBeLessThan(patch.pathHeight!);
+	});
 });

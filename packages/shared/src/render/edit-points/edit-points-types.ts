@@ -85,6 +85,20 @@ export interface EditSubpath {
 /** A whole editable outline: every sub-path of the shape. */
 export interface EditGeometry {
 	subpaths: EditSubpath[];
+	/**
+	 * The text rectangle (local px) the shape had when editing began: a
+	 * converted preset keeps its own text box (a star's text stays in the
+	 * star's centre) instead of spreading over the new bounding box.
+	 */
+	textRect?: EditTextRect;
+}
+
+/** A text rectangle as absolute left / top / right / bottom edges. */
+export interface EditTextRect {
+	l: number;
+	t: number;
+	r: number;
+	b: number;
 }
 
 /** Address of one node. */

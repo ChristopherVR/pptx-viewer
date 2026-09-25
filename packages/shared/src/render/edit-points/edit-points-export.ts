@@ -196,6 +196,13 @@ export function editGeometryToElementPatch(
 		customGeometryAdjustHandlesXY: undefined,
 		customGeometryAdjustHandlesPolar: undefined,
 		customGeometryConnectionSites: undefined,
-		customGeometryTextRect: undefined,
+		customGeometryTextRect: geometry.textRect
+			? {
+					l: String(Math.round((geometry.textRect.l - bounds.minX) * EDIT_POINTS_PATH_SCALE)),
+					t: String(Math.round((geometry.textRect.t - bounds.minY) * EDIT_POINTS_PATH_SCALE)),
+					r: String(Math.round((geometry.textRect.r - bounds.minX) * EDIT_POINTS_PATH_SCALE)),
+					b: String(Math.round((geometry.textRect.b - bounds.minY) * EDIT_POINTS_PATH_SCALE)),
+				}
+			: undefined,
 	};
 }

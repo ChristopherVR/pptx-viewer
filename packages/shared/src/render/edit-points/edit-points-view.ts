@@ -65,8 +65,16 @@ export interface EditPointsSegmentView {
 	d: string;
 }
 
-/** The right-click menu, positioned in viewport (client) pixels. */
+/**
+ * The right-click menu. `x`/`y` place it in slide pixels (inside the scaled
+ * stage, drawn at `transform: scale(inverseScale)` from its top-left so it
+ * stays screen-sized at any zoom); `clientX`/`clientY` are the same spot in
+ * viewport pixels for a binding that renders it outside the stage instead.
+ */
 export interface EditPointsMenuView {
+	x: number;
+	y: number;
+	inverseScale: number;
 	clientX: number;
 	clientY: number;
 	entries: EditPointsMenuEntry[];
@@ -129,7 +137,7 @@ export function buildEditPointsView(
 	geometry: EditGeometry,
 	selected: EditNodeRef | null,
 	scale: number,
-	menu: EditPointsMenuView | null,
+	menu: Omit<EditPointsMenuView, 'inverseScale'> | null,
 ): EditPointsView {
 	const k = 1 / (scale > 0 ? scale : 1);
 	const segments: EditPointsSegmentView[] = [];
@@ -186,6 +194,6 @@ export function buildEditPointsView(
 		nodes,
 		handles,
 		hitStrokeWidth: EDIT_POINTS_STYLE.hitStrokeWidth * k,
-		menu,
+		menu: menu ? { ...menu, inverseScale: k } : null,
 	};
 }

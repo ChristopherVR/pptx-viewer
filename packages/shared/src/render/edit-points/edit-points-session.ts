@@ -51,7 +51,8 @@ export class EditPointsSession {
 	private geometry: EditGeometry;
 	private selected: EditNodeRef | null = null;
 	private drag: EditPointsDrag | null = null;
-	private menu: (EditPointsMenuView & { target: EditPointsTarget }) | null = null;
+	private menu: (Omit<EditPointsMenuView, 'inverseScale'> & { target: EditPointsTarget }) | null =
+		null;
 	private signature: string;
 	private ended = false;
 	/** Where on the right-clicked segment the menu was opened (for Add Point). */
@@ -80,7 +81,13 @@ export class EditPointsSession {
 	/** The descriptor to draw at editor zoom `scale`. */
 	view(scale = 1): EditPointsView {
 		const menu = this.menu
-			? { clientX: this.menu.clientX, clientY: this.menu.clientY, entries: this.menu.entries }
+			? {
+					x: this.menu.x,
+					y: this.menu.y,
+					clientX: this.menu.clientX,
+					clientY: this.menu.clientY,
+					entries: this.menu.entries,
+				}
 			: null;
 		return buildEditPointsView(this.frame, this.geometry, this.selected, scale, menu);
 	}
@@ -208,7 +215,7 @@ export class EditPointsSession {
 		}
 		const entries = buildEditPointsMenu(this.geometry, target, this.options.hiddenCommands);
 		this.menu = entries
-			? { clientX: input.clientX, clientY: input.clientY, entries, target }
+			? { x: input.x, y: input.y, clientX: input.clientX, clientY: input.clientY, entries, target }
 			: null;
 		if (this.menu && target.kind === 'segment') {
 			const sub = this.geometry.subpaths[target.ref.subpath];

@@ -21,7 +21,7 @@ import { evaluateCustomGeometryPaths, evaluatePresetShape, getShapeType } from '
 import { ellipseArcToCubics, quadToCubicControls } from './edit-points-bezier';
 import { EditGeometryPen } from './edit-points-pen';
 import { feedSvgPath } from './edit-points-svg';
-import type { EditGeometry, EditPoint } from './edit-points-types';
+import type { EditGeometry, EditPoint, EditTextRect } from './edit-points-types';
 
 /** Element types whose outline Edit Points can reshape. */
 const EDITABLE_TYPES = new Set<PptxElement['type']>(['shape']);
@@ -34,6 +34,7 @@ interface CustomGeometrySlots {
 	pathHeight?: number;
 	customGeometryPaths?: CustomGeometryPath[];
 	customGeometryRawData?: Parameters<typeof evaluateCustomGeometryPaths>[0];
+	customGeometryTextRect?: { l?: string; t?: string; r?: string; b?: string };
 	shapeAdjustments?: Record<string, number>;
 }
 
@@ -117,6 +118,30 @@ function feedStructuredPaths(
 	pen.setPaint(undefined, undefined);
 }
 
+function withTextRect(geometry: EditGeometry, rect: EditTextRect | undefined): EditGeometry {
+	return rect ? { ...geometry, textRect: { ...rect } } : geometry;
+}
+
+/** A custom geometry's literal (path-space) text rectangle, in local px. */
+function customTextRect(
+	slots: CustomGeometrySlots,
+	width: number,
+	height: number,
+): EditTextRect | undefined {
+	const rect = slots.customGeometryTextRect;
+	if (!rect || !slots.pathWidth || !slots.pathHeight) {
+		return undefined;
+	}
+	const tokens = [rect.l, rect.t, rect.r, rect.b];
+	const edges = tokens.map((token) => (token === undefined ? Number.NaN : Number(token)));
+	if (edges.some((value) => !Number.isFinite(value))) {
+		return undefined;
+	}
+	const sx = width / slots.pathWidth;
+	const sy = height / slots.pathHeight;
+	return { l: edges[0] * sx, t: edges[1] * sy, r: edges[2] * sx, b: edges[3] * sy };
+}
+
 /**
  * Whether `element` is a shape Edit Points can work on at all (lock state is a
  * separate question; see `canEditElementPoints`).
@@ -149,13 +174,13 @@ export function editGeometryFromElement(element: PptxElement): EditGeometry | un
 			: undefined) ?? slots.customGeometryPaths;
 	if (structured && structured.length > 0) {
 		feedStructuredPaths(pen, structured, width, height);
-		return pen.finish();
+		return withTextRect(pen.finish(), customTextRect(slots, width, height));
 	}
 	if (slots.pathData && slots.pathWidth && slots.pathHeight) {
 		const sx = width / slots.pathWidth;
 		const sy = height / slots.pathHeight;
 		feedSvgPath(pen, slots.pathData, (p) => ({ x: p.x * sx, y: p.y * sy }));
-		return pen.finish();
+		return withTextRect(pen.finish(), customTextRect(slots, width, height));
 	}
 	const shapeType = slots.shapeType ? getShapeType(slots.shapeType) : 'rect';
 	const preset =
@@ -168,5 +193,5 @@ export function editGeometryFromElement(element: PptxElement): EditGeometry | un
 		pen.setPaint(sub.fill as CustomGeometryPath['fillMode'], sub.stroke);
 		feedSvgPath(pen, sub.d);
 	}
-	return pen.finish();
+	return withTextRect(pen.finish(), preset.textRect);
 }
