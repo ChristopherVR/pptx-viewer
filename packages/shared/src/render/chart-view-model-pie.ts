@@ -14,7 +14,7 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_AREA_FILL } from './chart-area-fill';
 import { resolveChartTitleText } from './chart-auto-title';
-import { findPointLabel } from './chart-data-label-anchor';
+import { findPointLabel, resolveLabelPosition } from './chart-data-label-anchor';
 import { buildDataLabelDecorations } from './chart-data-label-callout';
 import { buildDataLabelText, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
@@ -141,6 +141,12 @@ export function buildPieViewModel(
 				cy,
 				outerR,
 				position: chartData.style.dataLabels?.position,
+				// PowerPoint writes a pie's `c:dLblPos` on the series (`c:ser/c:dLbls`),
+				// which the chart-level `position` above never saw.
+				positionFor: pieSeries
+					? (pointIndex) => resolveLabelPosition(chartData, pieSeries, pointIndex)
+					: undefined,
+				doughnut: isDoughnut,
 				showLeaderLines: chartData.style.dataLabels?.showLeaderLines,
 				// Series-level `c:ser/c:dLbls` (where PowerPoint actually writes the
 				// leader-line style, see chart-data-label-parser.ts) overrides the

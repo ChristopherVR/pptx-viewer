@@ -21,8 +21,10 @@ import type {
 } from 'pptx-viewer-core';
 
 import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { dataLabelBoxSize } from './chart-label-measure';
 import type { ChartAnchorPoint, ChartFrameSize } from './chart-manual-layout';
 import { applyLabelManualLayout, chartFrameToViewOffset } from './chart-manual-layout';
+import { placeBestFitLabel } from './chart-pie-best-fit';
 import { formatAxisValue } from './chart-view-model';
 import type { PieSliceGeometry, SvgLine, SvgPrimitive, SvgText } from './chart-view-model';
 
@@ -45,8 +47,12 @@ export interface PieLabelParams {
 	cx: number;
 	cy: number;
 	outerR: number;
-	/** Resolved `c:dLblPos`; `outEnd` / `bestFit` place labels outside the rim. */
+	/** Resolved `c:dLblPos`; `outEnd` places labels outside the rim, `bestFit` inside or out. */
 	position?: PptxChartDataLabelPosition;
+	/** A point's own `c:dLblPos` (point > series > chart cascade), overriding `position`. */
+	positionFor?: (pointIndex: number) => PptxChartDataLabelPosition | undefined;
+	/** A doughnut has no `bestFit` of its own: its labels keep the ring placement. */
+	doughnut?: boolean;
 	/** `c:showLeaderLines`. Defaults to on for outside labels. */
 	showLeaderLines?: boolean;
 	/**
@@ -98,7 +104,7 @@ export interface PieLabelResult {
 	boxes: SvgPrimitive[];
 }
 
-/** Whether a data-label position renders outside the pie rim. */
+/** Whether a data-label position renders outside the pie rim (a doughnut's `bestFit` too). */
 export function isOutsidePosition(position: PptxChartDataLabelPosition | undefined): boolean {
 	return position === 'outEnd' || position === 'bestFit';
 }
@@ -145,10 +151,31 @@ function applyManualDrag(
 	return { x: shifted.x - viewOffset.x, y: shifted.y - viewOffset.y };
 }
 
+/** A leader line from the slice's rim point to a label at `to`. */
+function leaderLine(
+	slice: PieSliceGeometry,
+	cx: number,
+	cy: number,
+	outerR: number,
+	to: ChartAnchorPoint,
+	style: PptxChartShapeProps | undefined,
+): SvgLine {
+	return {
+		kind: 'line',
+		x1: cx + outerR * Math.cos(slice.midAngle),
+		y1: cy + outerR * Math.sin(slice.midAngle),
+		x2: to.x,
+		y2: to.y,
+		stroke: style?.strokeColor ?? '#94a3b8',
+		strokeWidth: 0.75,
+	};
+}
+
 /**
  * Build pie/doughnut data labels. Inside positions reuse each slice's centroid
  * (white bold, centred). Outside positions place the label beyond the rim with a
- * leader line from the rim point to the label anchor.
+ * leader line from the rim point to the label anchor. `bestFit` goes inside the
+ * slice near the rim when the label fits, else just outside (`chart-pie-best-fit`).
  */
 export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 	const {
@@ -164,7 +191,6 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		leaderLineStyle,
 		decorate,
 	} = params;
-	const outside = isOutsidePosition(position);
 	const labels: SvgText[] = [];
 	const leaderLines: SvgLine[] = [];
 	const boxes: SvgPrimitive[] = [];
@@ -187,7 +213,29 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			return;
 		}
 		const { text, color } = resolved;
-		if (!outside) {
+		const pointPosition = params.positionFor?.(i) ?? position;
+		if (pointPosition === 'bestFit' && !params.doughnut) {
+			const label: SvgText = {
+				kind: 'text',
+				x: 0,
+				y: 0,
+				text,
+				fill: color ?? '#334155',
+				textAnchor: 'middle',
+				dominantBaseline: 'central',
+				...labelTextStyle(resolved, { fontSize: DEFAULT_CHART_DATA_LABEL_PX }),
+			};
+			const { w, h } = dataLabelBoxSize(label);
+			const auto = placeBestFitLabel({ ...slice, outerR }, w, h);
+			const moved = applyManualDrag(auto, i, params);
+			push(i, { ...label, x: moved.x, y: moved.y }, slice.midAngle);
+			// PowerPoint draws a leader line only to a label that left its spot.
+			if (showLeaderLines !== false && (moved.x !== auto.x || moved.y !== auto.y)) {
+				leaderLines.push(leaderLine(slice, cx, cy, outerR, moved, leaderLineStyle));
+			}
+			return;
+		}
+		if (!isOutsidePosition(pointPosition)) {
 			const { x, y } = applyManualDrag({ x: slice.labelX, y: slice.labelY }, i, params);
 			push(
 				i,
@@ -211,8 +259,6 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 
 		const cos = Math.cos(slice.midAngle);
 		const sin = Math.sin(slice.midAngle);
-		const rimX = cx + outerR * cos;
-		const rimY = cy + outerR * sin;
 		const autoLabelX = cx + (outerR + LEADER_LENGTH) * cos;
 		const autoLabelY = cy + (outerR + LEADER_LENGTH) * sin;
 		const { x: labelX, y: labelY } = applyManualDrag({ x: autoLabelX, y: autoLabelY }, i, params);
@@ -237,15 +283,9 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 		// explicitly clears c:showLeaderLines). Points at the MOVED label position
 		// so a dragged label keeps its connector pointing at it.
 		if (showLeaderLines !== false) {
-			leaderLines.push({
-				kind: 'line',
-				x1: rimX,
-				y1: rimY,
-				x2: labelX,
-				y2: labelY,
-				stroke: leaderLineStyle?.strokeColor ?? '#94a3b8',
-				strokeWidth: 0.75,
-			});
+			leaderLines.push(
+				leaderLine(slice, cx, cy, outerR, { x: labelX, y: labelY }, leaderLineStyle),
+			);
 		}
 	});
 
