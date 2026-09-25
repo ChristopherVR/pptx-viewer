@@ -98,14 +98,15 @@ the interpreter found and fixed six real, previously-unknown bugs:
    arranger-declared entries only. See that function's doc comment for the
    measured numbers.
 
-**Despite those six fixes, `smartart-gallery-ground-truth.test.ts` fails for
-218 of the 229 fixtures against the full acceptance gate** (same shape count,
-preset, font size, and geometry within 1% of bounding size). Measured via
-`bun run scripts/gen-smartart-gallery-baseline.ts` (numbers current as of the
-last regeneration): 226/229 fixtures have matching text-bearing shape counts;
-97 are within 1% geometry deviation, 128 within 5%, 137 within 10%, and 194
-within 50%; 11 pass the full gate (re-measured 2026-09-24, after the
-engine-first routing waves below).
+**`smartart-gallery-ground-truth.test.ts` still fails for 132 of the 229
+fixtures against the full acceptance gate** (same shape count, preset, font
+size, and geometry within 1% of bounding size). Measured via
+`bun run scripts/gen-smartart-gallery-baseline.ts` (re-measured 2026-09-25,
+after the tenth wave at the end of this section): 228/229 fixtures have
+matching text-bearing shape counts; 126 are within 1% geometry deviation, 161
+within 5%, 171 within 10%, and 217 within 50%; 222 match every preset, 114
+every font size, and 97 pass the full gate (2026-09-24: 97, 128, 137, 194,
+212, 24 and 11).
 Three fixtures fail structurally before geometry is compared (one
 pre-existing, two a side effect of the eighth wave's own fix - see that
 wave's paragraph; a second pre-existing one, `segmented-process--hier5`, was
@@ -337,6 +338,44 @@ than legacy on every single dataset (legacy sits at 0.0019-0.3 for this
 family), so `hierRoot`/`hierChild` are NOT added to the allowlist this wave -
 an honest "attempted, not yet sufficient" outcome. Zero regressions either
 way.
+
+A tenth wave (2026-09-25) moved the numbers above; each step was
+re-measured with `gen-smartart-gallery-baseline.ts --compare` (no fixture left
+the 1% band) and `measure-smartart-engine-vs-legacy.ts`, which now also breaks
+a geometry tie on font matches. The allowlist grew from 99 to 131 layouts.
+
+- Font size: the engine sizes each `tx` node from its `primFontSz` start and
+  `dgm:rule` floor, equalises `op="equ"` groups and same-name nodes, fits the
+  preset's own text rectangle with margins in points, and lays paragraphs out
+  by `stBulletLvl`/`lnSpAfParP`/`lnSpAfChP`. Text is measured with a
+  re-measured Aptos table (`TextRange.BoundWidth` plus pair kerning, COM
+  widths within 0.2pt) and SmartArt's own line pitch (0.9 x 1.2207em, plus
+  0.00695em per block). Font matches: 24 -> 114.
+- Hierarchy: `alg-hier.ts` measures the tree once in unscaled space, packs
+  siblings by outline, hangs `tL`/`tR` nodes' `fromT` columns `0.25 W` in,
+  and scales once to fit. Organization Chart 0.0231 -> 0.0019, Horizontal
+  Organization Chart 0.0225 -> 0.0019, Horizontal Multi-Level Hierarchy
+  0.2987 -> 0.0012; Hierarchy and Horizontal Hierarchy tie legacy on geometry
+  with every font right. Assistants stay with the legacy interpreter.
+- Snake: cells keep their constraint sizes, spacers set the gaps, and the
+  line length that scales largest wins. Basic Block List, the Bending
+  Process/Picture families, Picture Grid and the Text Card family (legacy
+  58-139, the worst in the corpus) move to 0-0.0225 (Text Card Short Line
+  0.1257).
+- A typeless `dgm:shape` draws nothing, and a borderless box presenting an
+  empty placeholder before real text still draws (the dot-list layouts, now
+  0.0012-0.0019).
+
+Still open after it: nodes sized by their own text (Vertical Bullet List,
+Vertical Box List, Horizontal Bullet List, Basic Chevron Process, Sub-Step
+Process, all still legacy), org-chart assistants, Name and Title / Half
+Circle Organization Chart, the labelled and table hierarchies, and Meet the
+Team (0/6 within 1%). Four fixtures lost an exact font match they had only
+reached through offsetting errors in the legacy interpreter
+(`basic-bending-process--hier5` and `repeating-bending-process--hier5`, since
+moved engine-first and exact again, `vertical-bullet-list--hier5`, and
+`organization-chart--hier5`, where PowerPoint picks 33pt although COM shows
+the longest label wrapping to two fitting lines at 34pt).
 
 By resolved arrangement family (`discoverArrangement`'s `plan.kind`, out of
 229 fixtures): `linear` 87, `text` (aux tx-leaf fallback) 36, `snake` 35,
