@@ -1,4 +1,4 @@
-import type { PptxSlide } from 'pptx-viewer-core';
+import type { PptxSlide, PptxTheme } from 'pptx-viewer-core';
 import type {
 	AccountAuthConfig,
 	CanvasSize,
@@ -139,6 +139,11 @@ export interface RibbonProps {
 	 */
 	theme: ViewerTheme | undefined;
 	onsettheme: (theme: ViewerTheme | undefined) => void;
+	/**
+	 * Publish a new PRESENTATION theme (the Design > Variants Colors / Fonts
+	 * galleries), the same callback the inspector's theme editor uses.
+	 */
+	onthemechange?: (theme: PptxTheme) => void;
 
 	/** File tab > Account: disabled-by-default sign-in hook point. */
 	accountAuth?: AccountAuthConfig;

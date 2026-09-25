@@ -9,6 +9,7 @@
 	 * the drift `e2e/ribbon-control-inventory.spec.ts` diffs the bindings on.
 	 * The tooltip carries the longer explanation instead.
 	 */
+	import type { RibbonControlId } from 'pptx-viewer-shared';
 	import type { Snippet } from 'svelte';
 
 	const {
@@ -19,6 +20,7 @@
 		disabled = false,
 		active = false,
 		testid,
+		control,
 		onclick,
 	}: {
 		label: string;
@@ -30,6 +32,8 @@
 		active?: boolean;
 		/** `data-testid`, for the few commands the e2e contract addresses by hook. */
 		testid?: string;
+		/** Catalogue id (`data-ribbon-control`) the host can hide this command by. */
+		control?: RibbonControlId;
 		onclick?: () => void;
 	} = $props();
 </script>
@@ -42,6 +46,7 @@
 	{disabled}
 	title={title ?? label}
 	data-testid={testid}
+	data-ribbon-control={control}
 	data-active={testid ? String(active) : undefined}
 	aria-pressed={active ? true : undefined}
 	onclick={() => onclick?.()}

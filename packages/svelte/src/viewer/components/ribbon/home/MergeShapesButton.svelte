@@ -46,7 +46,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-merge" bind:this={anchor} onfocusout={onFocusOut}>
+<div class="pptx-svelte-merge" data-ribbon-control="home.arrange.mergeShapes" bind:this={anchor} onfocusout={onFocusOut}>
 	<button
 		type="button"
 		class="pptx-svelte-merge-trigger"

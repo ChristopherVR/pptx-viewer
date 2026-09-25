@@ -10,7 +10,7 @@ import TextShadowToggle from './TextShadowToggle.svelte';
 
 /**
  * The Home-tab controls added to close the gap with React's ribbon: the
- * Drawing group (Shapes gallery, Arrange menu, Shape Effects placeholder), the
+ * Drawing group (Shapes gallery, Arrange menu, Quick Styles / Shape Effects galleries), the
  * Text Direction / Columns dropdowns, and the Text Shadow toggle.
  */
 
@@ -73,15 +73,23 @@ function byText(target: HTMLElement, text: string): HTMLButtonElement | undefine
 }
 
 describe('home drawing group', () => {
-	it('offers Shapes, Arrange and the Shape Effects placeholder', () => {
+	it('offers Shapes, Arrange and the Quick Styles / Shape Effects galleries', () => {
 		const target = mountComponent(DrawingGroup, makeEditor());
 
 		expect(byText(target, 'Shapes')).toBeDefined();
 		expect(byText(target, 'Arrange')).toBeDefined();
-		const effects = target.querySelector<HTMLButtonElement>(
-			'button[title="Shape Effects (not available)"]',
-		);
-		expect(effects?.disabled).toBeTruthy();
+		// The old disabled placeholder is gone; the shared gallery replaced it.
+		expect(target.querySelector('button[title="Shape Effects (not available)"]')).toBeNull();
+		expect(
+			target.querySelector(
+				'[data-ribbon-control="home.drawing.shapeEffects"] [data-ribbon-gallery="shapeEffects"]',
+			),
+		).not.toBeNull();
+		expect(
+			target.querySelector(
+				'[data-ribbon-control="home.drawing.quickStyles"] [data-ribbon-gallery="shapeStyles"]',
+			),
+		).not.toBeNull();
 	});
 
 	it('inserts a preset from the Shapes gallery', () => {

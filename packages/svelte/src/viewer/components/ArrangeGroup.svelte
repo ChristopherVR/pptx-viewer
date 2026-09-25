@@ -27,6 +27,7 @@
 		disabled={!enabled}
 		aria-label={t('pptx.arrange.front')}
 		title={t('pptx.arrange.bringToFront')}
+		data-ribbon-control="home.arrange.bringToFront"
 		onclick={() => move('front')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4.5" y="4.5" width="9" height="9" rx="1" fill="var(--pptx-muted-foreground, #94a3b8)" /><rect x="2.5" y="2.5" width="8" height="8" rx="1" fill="currentColor" stroke="var(--pptx-card, #1e1e2e)" stroke-width="1" /></svg>
@@ -37,6 +38,7 @@
 		disabled={!enabled}
 		aria-label={t('pptx.arrange.bringForward')}
 		title={t('pptx.arrange.bringForward')}
+		data-ribbon-control="home.arrange.bringForward"
 		onclick={() => move('forward')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 12.5V4m0 0 3 3M8 4 5 7" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -47,6 +49,7 @@
 		disabled={!enabled}
 		aria-label={t('pptx.arrange.sendBackward')}
 		title={t('pptx.arrange.sendBackward')}
+		data-ribbon-control="home.arrange.sendBackward"
 		onclick={() => move('backward')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5V12m0 0 3-3M8 12 5 9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
@@ -57,6 +60,7 @@
 		disabled={!enabled}
 		aria-label={t('pptx.arrange.back')}
 		title={t('pptx.arrange.sendToBack')}
+		data-ribbon-control="home.arrange.sendToBack"
 		onclick={() => move('back')}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="8" height="8" rx="1" fill="var(--pptx-muted-foreground, #94a3b8)" /><rect x="4.5" y="4.5" width="9" height="9" rx="1" fill="currentColor" stroke="var(--pptx-card, #1e1e2e)" stroke-width="1" /></svg>

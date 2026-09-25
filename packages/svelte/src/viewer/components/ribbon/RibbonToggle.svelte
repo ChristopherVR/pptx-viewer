@@ -7,22 +7,27 @@
 	 * `aria-label` on the input, which is what makes the accessible name the
 	 * user-visible one in every binding.
 	 */
+	import type { RibbonControlId } from 'pptx-viewer-shared';
+
 	const {
 		label,
 		checked,
 		disabled = false,
 		title,
+		control,
 		onchange,
 	}: {
 		label: string;
 		checked: boolean;
 		disabled?: boolean;
 		title?: string;
+		/** Catalogue id (`data-ribbon-control`) the host can hide this toggle by. */
+		control?: RibbonControlId;
 		onchange?: (checked: boolean) => void;
 	} = $props();
 </script>
 
-<label class="pptx-svelte-rbtoggle" class:pptx-svelte-rbtoggle-on={checked} {title}>
+<label class="pptx-svelte-rbtoggle" class:pptx-svelte-rbtoggle-on={checked} {title} data-ribbon-control={control}>
 	<input
 		type="checkbox"
 		{checked}

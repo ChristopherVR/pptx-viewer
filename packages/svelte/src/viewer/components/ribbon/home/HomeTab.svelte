@@ -1,11 +1,13 @@
 <script lang="ts">
 	/**
 	 * HomeTab: composes the Home tab's ribbon groups (Clipboard, Slides,
-	 * Font, Paragraph, Arrange, Editing) into React's layout: one horizontal
+	 * Font, Paragraph, Drawing, Arrange, Editing) into React's layout: one horizontal
 	 * non-wrapping row of group columns, each with its controls on top and a
 	 * tiny muted label below, separated by thin vertical rules, scrolling
 	 * horizontally when the viewport is narrow. Every group is thin
 	 * presentation; all logic lives in the editor modules each group imports.
+	 * Every group wrapper carries its catalogue `data-ribbon-group` id so a
+	 * host customisation can hide it (shared `ribbonCustomizationCss`).
 	 */
 	import { isActionHidden } from 'pptx-viewer-shared';
 	import type { ToolbarActionId } from 'pptx-viewer-shared';
@@ -48,7 +50,7 @@
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
 	<SlidesGroup {editor} onnavigate={onnavigateslide} />
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<div class="pptx-svelte-hometab-group">
+	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.font">
 		<div class="pptx-svelte-hometab-row">
 			<TextFormatGroup {editor} />
 			<FontExtrasGroup {editor} />
@@ -57,7 +59,7 @@
 		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.font')}</span>
 	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<div class="pptx-svelte-hometab-group">
+	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.paragraph">
 		<div class="pptx-svelte-hometab-row">
 			<ParagraphGroup {editor} />
 			<ParagraphDropdowns {editor} />
@@ -65,10 +67,16 @@
 		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.paragraph')}</span>
 	</div>
 	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
-	<div class="pptx-svelte-hometab-group">
+	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.drawing">
 		<div class="pptx-svelte-hometab-row">
 			<DrawingGroup {editor} />
 			<ShapeFormatGroup {editor} />
+		</div>
+		<span class="pptx-svelte-hometab-label">{t('pptx.ribbon.groupDrawing')}</span>
+	</div>
+	<span class="pptx-svelte-hometab-sep" aria-hidden="true"></span>
+	<div class="pptx-svelte-hometab-group" data-ribbon-group="home.arrange">
+		<div class="pptx-svelte-hometab-row">
 			<ArrangeGroup {editor} />
 			<ArrangeExtras {editor} />
 			{#if !isActionHidden('mergeShapes', hiddenActions)}<MergeShapesButton {editor} />{/if}

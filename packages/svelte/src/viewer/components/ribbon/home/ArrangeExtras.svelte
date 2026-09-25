@@ -48,6 +48,7 @@
 		<button
 			type="button"
 			disabled={!canAlign}
+			data-ribbon-control="home.arrange.align"
 			aria-label={t(btn.key)}
 			title={t(btn.key)}
 			onclick={() => editor.arrangeOps.alignSelected(btn.edge)}
@@ -59,6 +60,7 @@
 	<button
 		type="button"
 		disabled={!canDistribute}
+		data-ribbon-control="home.arrange.align"
 		aria-label={t('pptx.arrange.distributeHorizontal')}
 		title={t('pptx.arrange.distributeHorizontal')}
 		onclick={() => editor.arrangeOps.distributeSelected('horizontal')}
@@ -68,6 +70,7 @@
 	<button
 		type="button"
 		disabled={!canDistribute}
+		data-ribbon-control="home.arrange.align"
 		aria-label={t('pptx.arrange.distributeVertical')}
 		title={t('pptx.arrange.distributeVertical')}
 		onclick={() => editor.arrangeOps.distributeSelected('vertical')}
@@ -78,6 +81,7 @@
 	<button
 		type="button"
 		disabled={!canFlip}
+		data-ribbon-control="home.arrange.flipHorizontal"
 		aria-label={t('pptx.arrange.flipH')}
 		title={t('pptx.arrange.flipHorizontally')}
 		onclick={() => editor.arrangeOps.flipSelected('horizontal')}
@@ -87,6 +91,7 @@
 	<button
 		type="button"
 		disabled={!canFlip}
+		data-ribbon-control="home.arrange.flipVertical"
 		aria-label={t('pptx.arrange.flipV')}
 		title={t('pptx.arrange.flipVertically')}
 		onclick={() => editor.arrangeOps.flipSelected('vertical')}
@@ -97,6 +102,7 @@
 	<button
 		type="button"
 		disabled={!canGroup}
+		data-ribbon-control="home.arrange.group"
 		aria-label={t('pptx.contextMenu.group')}
 		title={t('pptx.contextMenu.group')}
 		onclick={() => editor.arrangeOps.groupSelected()}
@@ -106,6 +112,7 @@
 	<button
 		type="button"
 		disabled={!canUngroup}
+		data-ribbon-control="home.arrange.ungroup"
 		aria-label={t('pptx.contextMenu.ungroup')}
 		title={t('pptx.contextMenu.ungroup')}
 		onclick={() => editor.arrangeOps.ungroupSelected()}
@@ -124,6 +131,7 @@
 		data-active={editor.formatPainter.active}
 		aria-pressed={editor.formatPainter.active}
 		disabled={!editor.formatPainter.enabled}
+		data-ribbon-control="home.clipboard.formatPainter"
 		title={t('pptx.arrange.formatPainter')}
 		onclick={() => editor.formatPainter.toggle()}
 	>

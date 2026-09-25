@@ -43,6 +43,7 @@
 	type="button"
 	class="pptx-svelte-slide-templates-launch"
 	disabled={!editor.editable}
+	data-ribbon-control="home.slides.slideTemplates"
 	aria-label={t('pptx.home.slideTemplates')}
 	title={t('pptx.home.slideTemplates')}
 	onclick={() => (galleryOpen = true)}

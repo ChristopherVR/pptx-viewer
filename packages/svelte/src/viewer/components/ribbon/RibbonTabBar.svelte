@@ -4,8 +4,8 @@
 	 * plus the right-side quick actions React keeps on the tab row
 	 * (`TabRowActions`): Record and the highlighted Share button.
 	 */
-	import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
-	import type { ToolbarActionId } from 'pptx-viewer-shared';
+	import { contextualTabLabelKey, filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
+	import type { RibbonContextualTabId, ToolbarActionId } from 'pptx-viewer-shared';
 	import { useTranslator } from '../../../i18n/context';
 	import { useViewerOptions } from '../../state/viewer-options-context';
 	import { RIBBON_TABS } from './ribbon-tabs';
@@ -18,9 +18,12 @@
 		onshare,
 		collabActive = false,
 		hiddenActions,
+		contextualTabs = [],
 	}: {
-		active: RibbonTabId;
-		onselect: (id: RibbonTabId) => void;
+		active: RibbonTabId | RibbonContextualTabId;
+		onselect: (id: RibbonTabId | RibbonContextualTabId) => void;
+		/** Selection-driven tabs (Shape Format, ...), appended after the fixed tabs. */
+		contextualTabs?: readonly RibbonContextualTabId[];
 		onrecord?: () => void;
 		onshare?: () => void;
 		collabActive?: boolean;
@@ -45,6 +48,20 @@
 				onclick={() => onselect(tab.id)}
 			>
 				{t(tab.labelKey)}
+			</button>
+		{/each}
+		{#each contextualTabs as tab (tab)}
+			<button
+				type="button"
+				class="pptx-svelte-ribbon-tab pptx-svelte-ribbon-tab-contextual"
+				class:pptx-svelte-ribbon-tab-active={active === tab}
+				role="tab"
+				aria-selected={active === tab}
+				data-ribbon-contextual-tab={tab}
+				title={optionsState.screenTip(t(contextualTabLabelKey(tab)))}
+				onclick={() => onselect(tab)}
+			>
+				{t(contextualTabLabelKey(tab))}
 			</button>
 		{/each}
 	</div>
@@ -174,6 +191,11 @@
 	.pptx-svelte-ribbon-tab:hover {
 		color: var(--pptx-card-foreground, #e2e8f0);
 		background: var(--pptx-accent, #33334d);
+	}
+
+	/* PowerPoint tints its contextual tabs with an accent colour. */
+	.pptx-svelte-ribbon-tab-contextual {
+		color: var(--pptx-contextual-tab, #c084fc);
 	}
 
 	.pptx-svelte-ribbon-tab-active {

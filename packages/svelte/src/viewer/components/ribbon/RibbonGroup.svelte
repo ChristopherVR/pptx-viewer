@@ -8,6 +8,7 @@
 	 * cross-binding ribbon inventory; the group's own name is carried by
 	 * `aria-label` on the section instead.
 	 */
+	import type { RibbonGroupId } from 'pptx-viewer-shared';
 	import type { Snippet } from 'svelte';
 
 	/**
@@ -23,14 +24,22 @@
 	const {
 		label,
 		maxWidth,
+		group,
 		children,
-	}: { label: string; maxWidth?: number; children: Snippet } = $props();
+	}: {
+		label: string;
+		maxWidth?: number;
+		/** Catalogue id (`data-ribbon-group`) the host can hide this group by. */
+		group?: RibbonGroupId;
+		children: Snippet;
+	} = $props();
 </script>
 
 <section
 	class="pptx-svelte-rbgroup"
 	style={maxWidth !== undefined ? `max-width: ${maxWidth}px; overflow: hidden;` : undefined}
 	aria-label={label}
+	data-ribbon-group={group}
 >
 	<div class="pptx-svelte-rbgroup-row">{@render children()}</div>
 	<span class="pptx-svelte-rbgroup-label">{label}</span>

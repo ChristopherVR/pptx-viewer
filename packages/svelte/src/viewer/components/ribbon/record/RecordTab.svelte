@@ -25,31 +25,31 @@
 </script>
 
 <div class="record" role="group" aria-label={t('pptx.ribbon.tab.record')}>
-	<button type="button" class="record-flat" disabled title={t('pptx.record.cameo')}>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="record.camera"><button type="button" class="record-flat" data-ribbon-control="record.camera.cameo" disabled title={t('pptx.record.cameo')}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="11" height="10" rx="2" /><path d="m13 10 5-3v6z" /></svg>
 		<span>{t('pptx.record.cameo')}</span>
-	</button>
+	</button></span>
 	<span class="record-sep" aria-hidden="true"></span>
-	<button type="button" onclick={onfrombeginning} title={t('pptx.slideShow.fromBeginningTooltip')}>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="record.record"><button type="button" data-ribbon-control="record.record.fromBeginning" onclick={onfrombeginning} title={t('pptx.slideShow.fromBeginningTooltip')}>
 		<span class="record-dot" aria-hidden="true"></span>{t('pptx.slideShow.fromBeginning')}
 	</button>
-	<button type="button" onclick={onfromcurrent} title={t('pptx.slideShow.fromCurrentTooltip')}>
+	<button type="button" data-ribbon-control="record.record.fromCurrent" onclick={onfromcurrent} title={t('pptx.slideShow.fromCurrentTooltip')}>
 		<span class="record-dot" aria-hidden="true"></span>{t('pptx.slideShow.fromCurrent')}
-	</button>
+	</button></span>
 	<span class="record-sep" aria-hidden="true"></span>
-	<button type="button" class="record-flat" disabled title={t('pptx.record.clear')}>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="record.manage"><button type="button" class="record-flat" data-ribbon-control="record.manage.clear" disabled title={t('pptx.record.clear')}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="m4 13 6-6 4 4-6 6H6zM3 17h14" /></svg>
 		<span>{t('pptx.record.clear')}</span>
 	</button>
-	<button type="button" class="record-flat" disabled title={t('pptx.record.resetToCameo')}>
+	<button type="button" class="record-flat" data-ribbon-control="record.manage.reset" disabled title={t('pptx.record.resetToCameo')}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 10a6 6 0 1 1 1.8 4.2M4 6v4h4" /></svg>
 		<span>{t('pptx.record.resetToCameo')}</span>
-	</button>
+	</button></span>
 	<span class="record-sep" aria-hidden="true"></span>
-	<button type="button" class="record-flat" disabled title={t('pptx.record.learnMore')}>
+	<span class="pptx-svelte-rb-contents" data-ribbon-group="record.help"><button type="button" class="record-flat" data-ribbon-control="record.help.learnMore" disabled title={t('pptx.record.learnMore')}>
 		<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7" /><path d="M8.3 8a1.8 1.8 0 1 1 2.4 1.7c-.5.2-.7.6-.7 1.1M10 13.6v.01" /></svg>
 		<span>{t('pptx.record.learnMore')}</span>
-	</button>
+	</button></span>
 </div>
 
 <style>

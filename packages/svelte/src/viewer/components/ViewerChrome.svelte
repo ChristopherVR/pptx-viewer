@@ -241,7 +241,7 @@
 			})();
 		}}
 		{theme}
-		{onsettheme}
+		{onsettheme} onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 		{accountAuth}
 		onentermasterview={() => editor.masterOps.enter()}
 		hiddenActions={effectiveHiddenActions}
@@ -363,7 +363,7 @@
 				})();
 			}}
 			{theme}
-			{onsettheme}
+			{onsettheme} onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }}
 			{accountAuth}
 			onentermasterview={() => editor.masterOps.enter()}
 			hiddenActions={effectiveHiddenActions}

@@ -16,7 +16,7 @@
 	const canMutate = $derived(editor.editable && hasSelection);
 </script>
 
-<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.clipboard')}>
+<div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.clipboard')} data-ribbon-group="home.clipboard">
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
@@ -24,6 +24,7 @@
 			data-active={editor.formatPainter.active}
 			aria-pressed={editor.formatPainter.active}
 			disabled={!editor.formatPainter.enabled}
+			data-ribbon-control="home.clipboard.formatPainter"
 			aria-label={t('pptx.arrange.formatPainter')}
 			title={t('pptx.arrange.formatPainter')}
 			onclick={() => editor.formatPainter.toggle()}
@@ -33,6 +34,7 @@
 		<button
 			type="button"
 			disabled={!editor.hasClipboard || !editor.editable}
+			data-ribbon-control="home.clipboard.paste"
 			aria-label={t('pptx.arrange.paste')}
 			title={t('pptx.arrange.paste')}
 			onclick={() => editor.clipboardOps.pasteClipboard()}
@@ -42,6 +44,7 @@
 		<button
 			type="button"
 			disabled={!canMutate}
+			data-ribbon-control="home.clipboard.cut"
 			aria-label={t('pptx.arrange.cut')}
 			title={t('pptx.arrange.cut')}
 			onclick={() => editor.clipboardOps.cutSelected()}
@@ -51,6 +54,7 @@
 		<button
 			type="button"
 			disabled={!hasSelection}
+			data-ribbon-control="home.clipboard.copy"
 			aria-label={t('pptx.arrange.copy')}
 			title={t('pptx.arrange.copy')}
 			onclick={() => editor.clipboardOps.copySelected()}
@@ -60,6 +64,7 @@
 		<button
 			type="button"
 			disabled={!canMutate}
+			data-ribbon-control="home.arrange.duplicate"
 			aria-label={t('pptx.arrange.duplicate')}
 			title={t('pptx.arrange.duplicate')}
 			onclick={() => editor.duplicateSelected()}
@@ -70,6 +75,7 @@
 			type="button"
 			class="pptx-svelte-rgroup-danger"
 			disabled={!canMutate}
+			data-ribbon-control="home.arrange.delete"
 			aria-label={t('pptx.arrange.delete')}
 			title={t('pptx.arrange.delete')}
 			onclick={() => editor.deleteSelected()}

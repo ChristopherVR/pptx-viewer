@@ -41,7 +41,11 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 
 function topLevelButtons(target: HTMLElement): string[] {
 	return [...target.querySelectorAll<HTMLButtonElement>('button')]
-		.filter((button) => !button.closest('[role="menu"]'))
+		.filter(
+			(button) =>
+				!button.closest('[role="menu"]') &&
+				!button.closest('[data-ribbon-group="design.variants"]'),
+		)
 		.map((button) => button.textContent?.trim() ?? '');
 }
 
@@ -53,6 +57,24 @@ describe('designTab', () => {
 			'Slide Size',
 			'Format Background',
 		]);
+	});
+
+	it('adds the Variants group with the Colors and Fonts galleries', () => {
+		const target = mountTab();
+		const group = target.querySelector('[data-ribbon-group="design.variants"]');
+		expect(group?.textContent).toContain('Variants');
+		expect(
+			group?.querySelector(
+				'[data-ribbon-control="design.variants.colors"] [data-ribbon-gallery="themeColors"]',
+			),
+		).not.toBeNull();
+		expect(
+			group?.querySelector(
+				'[data-ribbon-control="design.variants.fonts"] [data-ribbon-gallery="themeFonts"]',
+			),
+		).not.toBeNull();
+		expect(target.querySelector('[data-ribbon-group="design.themes"]')).not.toBeNull();
+		expect(target.querySelector('[data-ribbon-group="design.customize"]')).not.toBeNull();
 	});
 
 	it('keeps the theme presets inside the Browse Themes menu', () => {

@@ -10,6 +10,8 @@
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
+	import { fixedGalleryPlacement } from '../galleries/fixed-placements';
+	import RibbonGallery from '../galleries/RibbonGallery.svelte';
 	import {
 		adjustIndentPatch,
 		setAlignPatch,
@@ -29,15 +31,19 @@
 		editor.patchSelected(patch);
 	}
 
+	const BULLETS = fixedGalleryPlacement('home.paragraph.bullets');
+	const NUMBERING = fixedGalleryPlacement('home.paragraph.numbering');
+
 	const ALIGN_BUTTONS = [
-		{ value: 'left', d: 'M2 4h12M2 8h8M2 12h10', key: 'pptx.ribbon.alignLeft' },
-		{ value: 'center', d: 'M2 4h12M4 8h8M3 12h10', key: 'pptx.ribbon.alignCenter' },
-		{ value: 'right', d: 'M2 4h12M6 8h8M4 12h10', key: 'pptx.ribbon.alignRight' },
-		{ value: 'justify', d: 'M2 4h12M2 8h12M2 12h12', key: 'pptx.ribbon.justify' },
+		{ value: 'left', d: 'M2 4h12M2 8h8M2 12h10', key: 'pptx.ribbon.alignLeft', control: 'home.paragraph.alignLeft' },
+		{ value: 'center', d: 'M2 4h12M4 8h8M3 12h10', key: 'pptx.ribbon.alignCenter', control: 'home.paragraph.alignCenter' },
+		{ value: 'right', d: 'M2 4h12M6 8h8M4 12h10', key: 'pptx.ribbon.alignRight', control: 'home.paragraph.alignRight' },
+		{ value: 'justify', d: 'M2 4h12M2 8h12M2 12h12', key: 'pptx.ribbon.justify', control: 'home.paragraph.justify' },
 	] as const;
 </script>
 
 <div class="pptx-svelte-para" role="group" aria-label={t('pptx.ribbon.paragraph')}>
+	<span class="pptx-svelte-para-split" data-ribbon-control={BULLETS.control}>
 	<button
 		type="button"
 		class="pptx-svelte-para-btn"
@@ -51,6 +57,9 @@
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1" fill="currentColor" /><circle cx="3" cy="8" r="1" fill="currentColor" /><circle cx="3" cy="12" r="1" fill="currentColor" /><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
+	<RibbonGallery placement={BULLETS} chevronOnly tagControl={false} />
+	</span>
+	<span class="pptx-svelte-para-split" data-ribbon-control={NUMBERING.control}>
 	<button
 		type="button"
 		class="pptx-svelte-para-btn"
@@ -64,6 +73,8 @@
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><text x="1" y="5.5" font-size="4" fill="currentColor">1</text><text x="1" y="9.5" font-size="4" fill="currentColor">2</text><text x="1" y="13.5" font-size="4" fill="currentColor">3</text><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 	</button>
+	<RibbonGallery placement={NUMBERING} chevronOnly tagControl={false} />
+	</span>
 
 	<span class="pptx-svelte-para-sep" aria-hidden="true"></span>
 
@@ -71,6 +82,7 @@
 		type="button"
 		class="pptx-svelte-para-btn"
 		disabled={!active}
+		data-ribbon-control="home.paragraph.decreaseIndent"
 		aria-label={t('pptx.text.decreaseIndent')}
 		title={t('pptx.text.decreaseIndent')}
 		onclick={() => el && apply((current) => adjustIndentPatch(current, -1))}
@@ -81,6 +93,7 @@
 		type="button"
 		class="pptx-svelte-para-btn"
 		disabled={!active}
+		data-ribbon-control="home.paragraph.increaseIndent"
 		aria-label={t('pptx.text.increaseIndent')}
 		title={t('pptx.text.increaseIndent')}
 		onclick={() => el && apply((current) => adjustIndentPatch(current, 1))}
@@ -97,6 +110,7 @@
 			class:pptx-svelte-para-on={style.align === btn.value}
 			disabled={!active}
 			aria-pressed={style.align === btn.value}
+			data-ribbon-control={btn.control}
 			aria-label={t(btn.key)}
 			title={t(btn.key)}
 			onclick={() => el && apply((current) => setAlignPatch(current, btn.value as TextStyle['align']))}
@@ -108,6 +122,7 @@
 	<select
 		class="pptx-svelte-ribbon-select"
 		disabled={!active}
+		data-ribbon-control="home.paragraph.lineSpacing"
 		aria-label={t('pptx.paragraph.lineSpacing')}
 		title={t('pptx.paragraph.lineSpacing')}
 		onchange={(e) => {
@@ -163,6 +178,11 @@
 	.pptx-svelte-para-btn svg {
 		width: 14px;
 		height: 14px;
+	}
+
+	.pptx-svelte-para-split {
+		display: inline-flex;
+		align-items: center;
 	}
 
 	.pptx-svelte-para-sep {

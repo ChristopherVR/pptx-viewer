@@ -40,7 +40,7 @@
 	];
 </script>
 
-<div class="pptx-svelte-drawtab" role="group" aria-label={t('pptx.ribbon.tab.draw')}>
+<div class="pptx-svelte-drawtab" role="group" aria-label={t('pptx.ribbon.tab.draw')} data-ribbon-group="draw.tools">
 	<div class="pptx-svelte-drawtab-tools" role="group" aria-label={t('pptx.ribbon.tab.draw')}>
 		{#each TOOLS as tool (tool.id)}
 			<button
@@ -49,6 +49,7 @@
 				class:pptx-svelte-drawtab-tool-active={ink.tool === tool.id}
 				disabled={!editor.editable}
 				aria-pressed={ink.tool === tool.id}
+				data-ribbon-control={tool.id === 'freeform' ? undefined : `draw.tools.${tool.id}`}
 				aria-label={t(tool.labelKey)}
 				title={t(tool.labelKey)}
 				onclick={() => ink.setTool(tool.id)}
@@ -111,6 +112,7 @@
 		value={ink.color}
 		disabled={!editor.editable}
 		label={t('pptx.ribbon.colour')}
+		control="draw.tools.penColor"
 		title={t('pptx.ribbon.penColour')}
 		glyph="P"
 		recentColors={editor.mruColors}
@@ -120,7 +122,7 @@
 		}}
 	/>
 
-	<label class="pptx-svelte-drawtab-width" title={t('pptx.ribbon.strokeWidth')}>
+	<label class="pptx-svelte-drawtab-width" title={t('pptx.ribbon.strokeWidth')} data-ribbon-control="draw.tools.penWidth">
 		<span>{t('pptx.ribbon.width')}</span>
 		<input
 			type="range"

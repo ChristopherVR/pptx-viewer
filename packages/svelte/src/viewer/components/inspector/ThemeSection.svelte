@@ -27,11 +27,8 @@
 	} from 'pptx-viewer-core';
 	import {
 		applyThemeOverrideToSlide,
-		buildThemeColorMap,
 		COLOR_MAP_ALIAS_KEYS,
 		DEFAULT_COLOR_MAP,
-		reResolveElementColors,
-		reResolveSlideColors,
 		THEME_COLOR_SCHEME_KEYS,
 		THEME_PRESETS,
 	} from 'pptx-viewer-core';
@@ -39,6 +36,7 @@
 
 	import { useTranslator } from '../../../i18n/context';
 	import type { EditorState } from '../../editor/editor-state.svelte';
+	import { applyThemeColorScheme, applyThemeFontScheme } from '../../editor/editor-theme-scheme';
 	import ThemeEditorPanel from './ThemeEditorPanel.svelte';
 
 	const {
@@ -66,25 +64,11 @@
 
 	/** Cheap live colour edit: rewrite the archive scheme + remap live slides. */
 	async function updateColorScheme(colorScheme: PptxThemeColorScheme): Promise<void> {
-		const previousMap = current.colorScheme ? buildThemeColorMap(current.colorScheme) : {};
-		await handler.updateThemeColorScheme(colorScheme);
-		editor.commitSlides(reResolveSlideColors(editor.slides, previousMap, colorScheme));
-		// Master/layout elements render as a separate per-slide layer (not part
-		// of `slide.elements`), so `commitSlides` above never touches them; left
-		// alone they'd keep painting the old scheme's colours until a full reload.
-		if (Object.keys(editor.templateElementsBySlideId).length > 0) {
-			const recoloured: typeof editor.templateElementsBySlideId = {};
-			for (const [slideId, elements] of Object.entries(editor.templateElementsBySlideId)) {
-				recoloured[slideId] = reResolveElementColors(elements, previousMap, colorScheme);
-			}
-			editor.templateElementsBySlideId = recoloured;
-		}
-		onthemechange({ ...current, colorScheme });
+		onthemechange(await applyThemeColorScheme(editor, handler, current, colorScheme));
 	}
 
 	async function updateFontScheme(fontScheme: PptxThemeFontScheme): Promise<void> {
-		await handler.updateThemeFontScheme(fontScheme);
-		onthemechange({ ...current, fontScheme });
+		onthemechange(await applyThemeFontScheme(handler, current, fontScheme));
 	}
 
 	async function updateName(name: string): Promise<void> {

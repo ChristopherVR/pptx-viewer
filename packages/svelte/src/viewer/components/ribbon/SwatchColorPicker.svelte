@@ -8,7 +8,7 @@
 	 * uses a standard Office theme-color set local to the component.
 	 */
 	import type { PptxThemeColorRef } from 'pptx-viewer-core';
-	import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
+	import type { RibbonControlId, ThemeColorPickerCommit } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../i18n/context';
 	import RecentColorsRow from '../inspector/RecentColorsRow.svelte';
@@ -27,6 +27,7 @@
 		themeColorMap,
 		currentRef,
 		onselectTheme,
+		control,
 	}: {
 		value: string;
 		onselect: (hex: string) => void;
@@ -54,6 +55,8 @@
 		currentRef?: PptxThemeColorRef;
 		/** Fired ONLY by a theme-swatch click, carrying both the hex and the ref. */
 		onselectTheme?: (commit: ThemeColorPickerCommit) => void;
+		/** Catalogue id (`data-ribbon-control`) the host can hide this picker by. */
+		control?: RibbonControlId;
 	} = $props();
 
 	const t = useTranslator();
@@ -89,7 +92,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-swatch" onfocusout={onFocusOut}>
+<div class="pptx-svelte-swatch" data-ribbon-control={control} onfocusout={onFocusOut}>
 	<button
 		bind:this={triggerEl}
 		type="button"

@@ -79,7 +79,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-crop" bind:this={anchor} onfocusout={onFocusOut}>
+<div class="pptx-svelte-crop" data-ribbon-control="home.arrange.crop" bind:this={anchor} onfocusout={onFocusOut}>
 	<button
 		type="button"
 		data-pptx-ribbon-control="crop"

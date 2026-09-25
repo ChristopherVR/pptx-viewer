@@ -19,6 +19,8 @@
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import { anchoredPopup } from '../anchored-popup';
+	import { fixedGalleryPlacement } from '../galleries/fixed-placements';
+	import RibbonGallery from '../galleries/RibbonGallery.svelte';
 	import FormatBackgroundPanel from './FormatBackgroundPanel.svelte';
 	import ChromeThemeEditor from './ChromeThemeEditor.svelte';
 	import { THEME_SWATCHES } from './theme-swatches';
@@ -50,10 +52,13 @@
 			galleryOpen = false;
 		}
 	}
+	const VARIANT_COLORS = fixedGalleryPlacement('design.variants.colors');
+	const VARIANT_FONTS = fixedGalleryPlacement('design.variants.fonts');
 </script>
 
 <div class="pptx-svelte-designtab" role="group" aria-label={t('pptx.ribbon.tab.design')}>
-	<div class="pptx-svelte-designtab-menu" bind:this={galleryAnchor} onfocusout={onFocusOut}>
+	<div class="pptx-svelte-designtab-contents" data-ribbon-group="design.themes">
+	<div class="pptx-svelte-designtab-menu" data-ribbon-control="design.themes.browseThemes" bind:this={galleryAnchor} onfocusout={onFocusOut}>
 		<button
 			type="button"
 			disabled={!editor.editable}
@@ -92,14 +97,26 @@
 		type="button"
 		disabled={!editor.editable}
 		class:pptx-svelte-designtab-active={editorOpen}
+		data-ribbon-control="design.themes.editTheme"
 		title={t('pptx.ribbon.editThemeTitle')}
 		onclick={() => (editorOpen = !editorOpen)}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10.5 2.5 13.5 5.5 5.5 13.5 2 14l.5-3.5z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.ribbon.editTheme')}</span>
 	</button>
+	</div>
 
-	<button type="button" title={t('pptx.ribbon.slideSizeTitle')} onclick={() => onslidesize?.()}>
+	<div class="pptx-svelte-designtab-group" data-ribbon-group="design.variants">
+		<div class="pptx-svelte-designtab-row">
+			<RibbonGallery placement={VARIANT_COLORS} />
+			<RibbonGallery placement={VARIANT_FONTS} />
+		</div>
+		<span class="pptx-svelte-designtab-label">{t('pptx.ribbon.groupVariants')}</span>
+	</div>
+
+	<div class="pptx-svelte-designtab-contents" data-ribbon-group="design.customize">
+
+	<button type="button" data-ribbon-control="design.customize.slideSize" title={t('pptx.ribbon.slideSizeTitle')} onclick={() => onslidesize?.()}>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="3.5" width="13" height="9" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M5.5 14.5h5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
 		<span>{t('pptx.ribbon.slideSize')}</span>
 	</button>
@@ -109,12 +126,14 @@
 		disabled={!editor.editable}
 		aria-haspopup="dialog"
 		aria-expanded={backgroundOpen}
+		data-ribbon-control="design.customize.formatBackground"
 		title={t('pptx.ribbon.formatBackgroundTitle')}
 		onclick={() => (backgroundOpen = !backgroundOpen)}
 	>
 		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h11v11h-11z" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M2.5 10.5l3-3 2.5 2.5 3-4 2.5 3" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
 		<span>{t('pptx.ribbon.formatBackground')}</span>
 	</button>
+	</div>
 
 	{#if editorOpen}
 		<div class="pptx-svelte-designtab-panel">
@@ -134,6 +153,34 @@
 		align-items: center;
 		flex-wrap: wrap;
 		gap: 4px;
+	}
+
+	/* Group wrappers that only carry a `data-ribbon-group` id. */
+	.pptx-svelte-designtab-contents {
+		display: contents;
+	}
+
+	.pptx-svelte-designtab-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 3px;
+		padding: 0 6px;
+		border-left: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 40%, transparent);
+		border-right: 1px solid color-mix(in srgb, var(--pptx-border, #33334d) 40%, transparent);
+	}
+
+	.pptx-svelte-designtab-row {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+	}
+
+	.pptx-svelte-designtab-label {
+		font-size: 9px;
+		line-height: 1;
+		color: var(--pptx-muted-foreground, #94a3b8);
+		white-space: nowrap;
 	}
 
 	.pptx-svelte-designtab-menu {

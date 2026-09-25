@@ -72,21 +72,25 @@
 
 <RibbonCommandStack>
 	<RibbonToggle
+		control="view.show.ruler"
 		label={t('pptx.ruler.rulers')}
 		checked={preferences.showRulers}
 		onchange={() => ontogglepreference('showRulers')}
 	/>
 	<RibbonToggle
+		control="view.show.gridlines"
 		label={t('pptx.grid.grid')}
 		checked={preferences.showGrid}
 		onchange={() => ontogglepreference('showGrid')}
 	/>
 	<RibbonToggle
+		control="view.show.guides"
 		label={t('pptx.view.guides')}
 		checked={showGuides}
 		onchange={(next) => onguideschange(next)}
 	/>
 	<RibbonToggle
+		control="view.show.snapToGrid"
 		label={t('pptx.grid.snapToGrid')}
 		checked={preferences.snapToGrid}
 		onchange={() => ontogglepreference('snapToGrid')}
@@ -96,6 +100,7 @@
 <RibbonCommandStack>
 	<RibbonCommand
 		compact
+		control="view.show.selectionPane"
 		label={t('pptx.view.selection')}
 		title={t('pptx.selectionPane.title')}
 		onclick={onselectionpane}
@@ -104,6 +109,7 @@
 	</RibbonCommand>
 	<RibbonCommand
 		compact
+		control="view.show.eyedropper"
 		label={t('pptx.ribbon.eyedropper')}
 		title={t('pptx.ribbon.eyedropperTitle')}
 		disabled={!editor.editable}
@@ -113,6 +119,7 @@
 	</RibbonCommand>
 	<RibbonCommand
 		compact
+		control="view.show.snapToShape"
 		label={t('pptx.view.snapToShape')}
 		title={t('pptx.view.snapToShape')}
 		active={snapToShape}
@@ -122,6 +129,7 @@
 	</RibbonCommand>
 	<RibbonCommand
 		compact
+		control="view.show.addGuide"
 		label={t('pptx.view.hGuide')}
 		title={t('pptx.view.addHorizontalGuide')}
 		onclick={() => onaddguide('h')}
@@ -130,6 +138,7 @@
 	</RibbonCommand>
 	<RibbonCommand
 		compact
+		control="view.show.addGuide"
 		label={t('pptx.view.vGuide')}
 		title={t('pptx.view.addVerticalGuide')}
 		onclick={() => onaddguide('v')}

@@ -39,6 +39,7 @@
 	import TransitionsTab from './ribbon/transitions/TransitionsTab.svelte';
 	import ViewTab from './ribbon/view/ViewTab.svelte';
 	import MobileSheet from './MobileSheet.svelte';
+	import { createRibbonGalleryHost, provideRibbonGalleryHost } from './ribbon/galleries/ribbon-gallery-host';
 
 	interface Props extends RibbonProps {
 		onclose: () => void;
@@ -46,6 +47,8 @@
 
 	const props: Props = $props();
 	const t = useTranslator();
+	// svelte-ignore state_referenced_locally
+	provideRibbonGalleryHost(createRibbonGalleryHost(props.editor, (next) => props.onthemechange?.(next)));
 
 	const visibleTabs = $derived(filterVisibleTabs(RIBBON_TABS, props.hiddenActions));
 
