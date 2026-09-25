@@ -16,7 +16,7 @@
  * default.
  *
  * Declines (`undefined`) whenever the layout definition uses an algorithm
- * this engine does not implement yet (`hierRoot`/`hierChild`): the
+ * this engine does not implement (none in the gallery corpus today): the
  * registry (`registry.ts`) silently substitutes
  * `composite` for an unknown type so the layout still runs to completion,
  * which would otherwise produce plausible-looking but wrong geometry with no
@@ -36,6 +36,7 @@ import {
 	styleStroke,
 } from '../smartart-layout-style-helpers';
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
+import { isAssistantItem } from './alg-hier';
 import { runSmartArtEngine } from './engine';
 import { applyEngineFonts } from './engine-fonts';
 import type { RenderedEngineNode } from './engine-fonts';
@@ -65,7 +66,7 @@ const PX_PER_PT = 1 / PT_PER_PX;
 function isFullySupported(root: EngineNode): boolean {
 	let ok = true;
 	const visit = (node: EngineNode): void => {
-		if (!SUPPORTED_ALGS.has(node.alg.type)) {
+		if (!SUPPORTED_ALGS.has(node.alg.type) || isAssistantItem(node)) {
 			ok = false;
 		}
 		node.children.forEach(visit);
@@ -109,9 +110,8 @@ function transitionLabelOf(node: EngineNode): string | undefined {
  * to compare or display.
  *
  * A ZERO-AREA node is also skipped regardless of `hideGeom`/text: a
- * `hierChild` continuation for a childless leaf (`alg-hier.ts`'s
- * `arrangeHierRoot` deliberately gives one a `{w:0, h:0}` box, since it has
- * nothing of its own to fan) presents no text either way, so it was never
+ * `hierChild` continuation for a childless leaf (the layout driver gives an
+ * unplaced child a `{w:0, h:0}` box) presents no text either way, so it was never
  * going to draw anything visible - but it still reached `isFiniteGeometry`
  * below as a "real" shape with degenerate geometry, declining the WHOLE
  * diagram over a box nothing would have shown (the same failure mode
@@ -122,7 +122,11 @@ function isRenderable(
 	primary: PptxSmartArtNode | undefined,
 	literalText: string | undefined,
 ): boolean {
-	if (!node.shape || !node.box) {
+	// A `dgm:shape` with no `type` draws no geometry (ECMA-376 21.4.3.8's
+	// default `none`): "Organization Chart"'s `rootComposite`/`hierRoot`
+	// carriers declare one only to host `presOf`, and drawing them added a
+	// phantom rounded rectangle over every node.
+	if (!node.shape?.type || node.shape.type === 'none' || !node.box) {
 		return false;
 	}
 	if (node.box.w <= 0 || node.box.h <= 0) {
@@ -223,7 +227,12 @@ function collectRenderedNodes(
 				const mergedIds = extraIdsByTarget.get(node.name);
 				const rendered = buildRenderedNode(node, out.length, nodeById, palette, style, mergedIds);
 				if (rendered) {
-					out.push({ node, rendered, mergedIds, textNode: carrierByTarget.get(node.name) });
+					// The folded carrier sizes the text only when it is the text
+					// algorithm itself ("Basic Pie"'s `wedgeTx`), not a decorative
+					// `sp` riding along ("Organization Chart"'s `rootConnector`).
+					const carrier = carrierByTarget.get(node.name);
+					const textNode = carrier?.alg.type === 'tx' ? carrier : undefined;
+					out.push({ node, rendered, mergedIds, textNode });
 				}
 			}
 			visitSiblings(node.children);
