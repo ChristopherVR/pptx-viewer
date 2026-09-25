@@ -12,6 +12,7 @@
 
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
+import { buildBehaviorKeyframes } from './animation-behavior-keyframes';
 import { buildDirectionalKeyframe } from './animation-directional';
 import { resolveFilterPresetSubtype } from './animation-filter-effects';
 import { isMediaCommandAnimation } from './animation-media-commands';
@@ -47,6 +48,12 @@ export interface StepEffectResolution {
 	nextDynamicUid: number;
 	/** True when this animation maps to nothing at all and must be skipped (`continue`). */
 	skip: boolean;
+	/**
+	 * CSS easing the step must use instead of its accel/decel easing, when the
+	 * keyframes already bake the effect's time warp in (see
+	 * `animation-behavior-keyframes`).
+	 */
+	easing?: string;
 }
 
 /**
@@ -69,6 +76,22 @@ export function resolveStepEffect(
 ): StepEffectResolution {
 	let dynamicUid = dynamicUidStart;
 	const box = boxForAnimation(singleAnim, renderContext);
+	// PowerPoint's own behaviour tree wins over any preset approximation when
+	// it carries a transform the player can resolve (Fly from the slide edge,
+	// Swish's three legs, Bounce's decaying hops...).
+	const played = buildBehaviorKeyframes(singleAnim, dynamicUid, box);
+	if (played) {
+		return {
+			effect: undefined,
+			keyframe: played.keyframeName,
+			isCommand: false,
+			tavColorApplied: false,
+			dynamicCss: played.css,
+			nextDynamicUid: dynamicUid + 1,
+			skip: false,
+			...(played.easing ? { easing: played.easing } : {}),
+		};
+	}
 	const authoredTransform = hasAuthoredTransform(singleAnim, box);
 	const staticEffect = resolveEffect(singleAnim, pixelateMosaic);
 	// A directional Fly In/Out's authored `ppt_x`/`ppt_y` sibling formula

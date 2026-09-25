@@ -26,6 +26,11 @@ export interface AnimationElementBox {
 	y: number;
 	width: number;
 	height: number;
+	/**
+	 * Slide width / height, when known. Motion paths are authored in slide
+	 * fractions of each axis, so their real (paced) arc length needs it.
+	 */
+	slideAspect?: number;
 }
 
 /**
@@ -80,6 +85,7 @@ export function buildAnimationRenderContext(
 				y: element.y / slideSize.heightPx,
 				width: element.width / slideSize.widthPx,
 				height: element.height / slideSize.heightPx,
+				slideAspect: slideSize.widthPx / slideSize.heightPx,
 			});
 		}
 	}

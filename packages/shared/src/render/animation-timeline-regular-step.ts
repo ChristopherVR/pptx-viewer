@@ -188,7 +188,7 @@ export function processRegularAnimation(
 		);
 
 		const iterStr = iterCount === Infinity ? 'infinite' : String(iterCount);
-		const easing = cssEasingForAnimation(singleAnim);
+		const easing = resolved.easing ?? cssEasingForAnimation(singleAnim);
 		const baseCssAnimation = isCommand
 			? ''
 			: `${keyframe} ${duration}ms ${easing} ${delayMs}ms ${iterStr} ${direction} ${fill}`;
