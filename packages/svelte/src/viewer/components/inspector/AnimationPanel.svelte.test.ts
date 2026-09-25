@@ -256,4 +256,41 @@ describe('animationPanel', () => {
 			dock?.previousElementSibling?.classList.contains('pptx-svelte-inspector-body'),
 		).toBeTruthy();
 	});
+
+	it('picks the media bookmark an On bookmark trigger waits for', () => {
+		const video = {
+			type: 'media',
+			id: 'video',
+			mediaType: 'video',
+			x: 0,
+			y: 0,
+			width: 10,
+			height: 10,
+			bookmarks: [
+				{ label: 'BM1', time: 0.5 },
+				{ label: 'BM2', time: 1.5 },
+			],
+		} as PptxElement;
+		const editor = makeEditor(
+			[shapeEl('a'), video],
+			[{ elementId: 'a', entrance: 'fadeIn', order: 0, trigger: 'onClick' }],
+		);
+		editor.select('a');
+		const { target } = mountPanel(editor);
+		expect(target.querySelector('[data-pptx-animation-bookmark-picker]')).toBeNull();
+
+		setSelect(target, '.pptx-svelte-animp-trigger', 'onMediaBookmark');
+		const picker = target.querySelector<HTMLSelectElement>('[data-pptx-animation-bookmark-picker]');
+		expect(picker).not.toBeNull();
+		expect(Array.from(picker!.querySelectorAll('option')).map((o) => o.textContent)).toHaveLength(
+			3,
+		);
+		const bm2 = picker!.querySelectorAll('option')[2]!.value;
+		setSelect(target, '[data-pptx-animation-bookmark-picker]', bm2);
+		expect(editor.slides[0].animations?.[0]).toMatchObject({
+			trigger: 'onMediaBookmark',
+			triggerShapeId: 'video',
+			triggerBookmark: 'BM2',
+		});
+	});
 });

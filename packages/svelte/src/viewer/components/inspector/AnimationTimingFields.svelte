@@ -16,12 +16,15 @@
 	import {
 		animationFor,
 		getElementLabel,
+		listMediaBookmarkOptions,
+		selectedBookmarkOptionValue,
 		setDelay,
 		setDuration,
 		setRepeatCount,
 		setRepeatMode,
 		setTimingCurve,
 		setTrigger,
+		setTriggerBookmark,
 		setTriggerShapeId,
 	} from 'pptx-viewer-shared';
 
@@ -46,6 +49,8 @@
 		(slide?.elements ?? []).filter((candidate) => candidate.id !== el?.id),
 	);
 
+	const bookmarkOptions = $derived(listMediaBookmarkOptions(slide?.elements));
+
 	function commit(next: PptxElementAnimation[]): void {
 		if (canEdit) {
 			commitSlideAnimations(editor, next);
@@ -68,6 +73,16 @@
 		<pptx-ui-select aria-label={t('pptx.animation.trigger.shapeLabel')} class="pptx-svelte-animp-trigger-shape" disabled={!canEdit} value={anim?.triggerShapeId ?? ''} onchange={(e) => el && commit(setTriggerShapeId(anims, el.id, e.currentTarget.value || undefined))}>
 			<option value="">{t('pptx.animation.trigger.selectShape')}</option>
 			{#each triggerShapes as shape (shape.id)}<option value={shape.id}>{getElementLabel(shape)}</option>{/each}
+		</pptx-ui-select>
+	</label>
+{/if}
+
+{#if anim?.trigger === 'onMediaBookmark'}
+	<label>
+		<span>{t('pptx.animation.trigger.bookmarkLabel')}</span>
+		<pptx-ui-select aria-label={t('pptx.animation.trigger.bookmarkLabel')} class="pptx-svelte-animp-trigger-bookmark" data-pptx-animation-bookmark-picker disabled={!canEdit || bookmarkOptions.length === 0} value={selectedBookmarkOptionValue(anim)} onchange={(e) => el && commit(setTriggerBookmark(anims, el.id, e.currentTarget.value))}>
+			<option value="">{t(bookmarkOptions.length === 0 ? 'pptx.animation.trigger.noBookmarks' : 'pptx.animation.trigger.selectBookmark')}</option>
+			{#each bookmarkOptions as option (option.value)}<option value={option.value}>{option.label}</option>{/each}
 		</pptx-ui-select>
 	</label>
 {/if}
