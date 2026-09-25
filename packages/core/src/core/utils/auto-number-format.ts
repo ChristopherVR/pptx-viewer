@@ -16,7 +16,8 @@
  * @module auto-number-format
  */
 
-import { formatScriptAutoNumber } from './auto-number-scripts';
+import { repeatedLabel } from './auto-number-alphabets';
+import { formatScriptAutoNumber, toFullWidthDigits } from './auto-number-scripts';
 
 /**
  * Convert a positive integer to a Roman numeral string (upper-case).
@@ -55,19 +56,15 @@ export function romanNumeral(n: number): string {
 }
 
 /**
- * Convert a positive integer to a spreadsheet-style alphabetic label
- * (lower-case). 1 -> "a", 26 -> "z", 27 -> "aa", 52 -> "az", 53 -> "ba", …
+ * PowerPoint's Latin alphabetic label (lower-case), COM-verified: past `z` the
+ * letter repeats rather than counting spreadsheet-style
+ * (1 -> "a", 26 -> "z", 27 -> "aa", 52 -> "zz", 53 -> "aaa").
  */
 export function alphaLabel(n: number): string {
-	let remaining = Math.max(1, n);
-	let result = '';
-	while (remaining > 0) {
-		remaining -= 1;
-		result = String.fromCharCode(97 + (remaining % 26)) + result;
-		remaining = Math.floor(remaining / 26);
-	}
-	return result;
+	return repeatedLabel(n, LATIN_LOWER);
 }
+
+const LATIN_LOWER: ReadonlyArray<string> = Array.from('abcdefghijklmnopqrstuvwxyz');
 
 /**
  * Circled digit for the white/double-byte circle schemes: `①`..`⑳`
@@ -101,6 +98,11 @@ function toCircledBlack(v: number): string {
 	return `${v}`;
 }
 
+/** Fold `n` onto 1..10 for the cycling Wingdings circle schemes. */
+function cycleOfTen(n: number): number {
+	return ((Math.max(1, Math.floor(n)) - 1) % 10) + 1;
+}
+
 /**
  * Render the n-th (1-based) marker for an OOXML auto-numbering scheme.
  *
@@ -115,15 +117,18 @@ export function formatAutoNumberMarker(autoNumType: string | undefined, n: numbe
 
 	switch (autoNumType) {
 		case 'arabicPeriod':
-		case 'arabicDbPeriod':
 			return `${n}.`;
+		case 'arabicDbPeriod':
+			// Full-width digits and full-width full stop (COM: "１．").
+			return `${toFullWidthDigits(n)}\uFF0E`;
 		case 'arabicParenR':
 			return `${n})`;
 		case 'arabicParenBoth':
 			return `(${n})`;
 		case 'arabicPlain':
-		case 'arabicDbPlain':
 			return `${n}`;
+		case 'arabicDbPlain':
+			return toFullWidthDigits(n);
 		case 'alphaLcPeriod':
 			return `${alphaLabel(n)}.`;
 		case 'alphaUcPeriod':
@@ -149,10 +154,13 @@ export function formatAutoNumberMarker(autoNumType: string | undefined, n: numbe
 		case 'romanUcParenBoth':
 			return `(${romanNumeral(n)})`;
 		case 'circleNumDbPlain':
-		case 'circleNumWdWhitePlain':
 			return toCircledStd(n);
+		// The Wingdings circle schemes only have glyphs for 1..10 and cycle
+		// (COM-verified: 11 -> 1, 20 -> 10, 45 -> 5, 100 -> 10).
+		case 'circleNumWdWhitePlain':
+			return toCircledStd(cycleOfTen(n));
 		case 'circleNumWdBlackPlain':
-			return toCircledBlack(n);
+			return toCircledBlack(cycleOfTen(n));
 		default:
 			// East-Asian (ea1*) / Hebrew / Arabic / Hindi / Thai schemes; falls
 			// through to the Arabic `n.` default only when the scheme is

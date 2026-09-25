@@ -312,10 +312,10 @@ describe('formatAutoNumber on the real runtime', () => {
 	it('formats the East-Asian / Thai / Hindi / Hebrew schemes in their own script', () => {
 		expect(runtime.format('ea1ChsPeriod', 1)).toBe('一. ');
 		expect(runtime.format('ea1ChtPeriod', 3)).toBe('三. ');
-		expect(runtime.format('ea1JpnKorPeriod', 5)).toBe('５. ');
+		expect(runtime.format('ea1JpnKorPeriod', 5)).toBe('五. ');
 		expect(runtime.format('thaiNumPeriod', 1)).toBe('๑. ');
 		expect(runtime.format('hindiAlphaPeriod', 1)).toBe('अ. ');
-		expect(runtime.format('hebrew2Minus', 15)).toBe('טו- ');
+		expect(runtime.format('hebrew2Minus', 15)).toBe('ס- ');
 		expect(runtime.format('arabic2Minus', 3)).toBe('ج- ');
 	});
 

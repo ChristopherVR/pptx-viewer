@@ -64,14 +64,14 @@ describe('formatScriptAutoNumber', () => {
 	it('formats East-Asian schemes with suffixes', () => {
 		expect(formatScriptAutoNumber('ea1ChsPeriod', 3)).toBe('三.');
 		expect(formatScriptAutoNumber('ea1ChsPlain', 3)).toBe('三');
-		expect(formatScriptAutoNumber('ea1ChtPlain', 10000)).toBe('一萬');
+		expect(formatScriptAutoNumber('ea1ChtPlain', 10000)).toBe('一〇〇〇〇');
 		expect(formatScriptAutoNumber('ea1JpnChsDbPeriod', 2)).toBe('二．');
-		expect(formatScriptAutoNumber('ea1JpnKorPlain', 4)).toBe('４');
-		expect(formatScriptAutoNumber('ea1JpnKorPeriod', 4)).toBe('４.');
+		expect(formatScriptAutoNumber('ea1JpnKorPlain', 4)).toBe('四');
+		expect(formatScriptAutoNumber('ea1JpnKorPeriod', 4)).toBe('四.');
 	});
 
 	it('formats Hebrew, Hindi and Thai schemes', () => {
-		expect(formatScriptAutoNumber('hebrew2Minus', 15)).toBe('טו-');
+		expect(formatScriptAutoNumber('hebrew2Minus', 15)).toBe('ס-');
 		expect(formatScriptAutoNumber('hindiNumPeriod', 12)).toBe('१२.');
 		expect(formatScriptAutoNumber('hindiNumParenR', 3)).toBe('३)');
 		expect(formatScriptAutoNumber('hindiAlphaPeriod', 1)).toBe('अ.');
