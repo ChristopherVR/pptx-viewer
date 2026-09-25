@@ -26,6 +26,47 @@ describe('buildTextFillCss', () => {
 	it('returns undefined when no fill is configured', () => {
 		expect(buildTextFillCss({} as TextStyle)).toBeUndefined();
 	});
+
+	describe('picture (a:blipFill) text fill', () => {
+		// Regression: `a:blipFill` on a text run was documented ("Handles
+		// gradient fills, pattern fills, and image fills on text runs") but
+		// never actually implemented, so a picture-filled run fell through to
+		// its plain `color` and painted solid black (COM-verified: audit-text
+		// slide 13's "PICTURE FILL" run shows the fill image through the
+		// glyphs in PowerPoint).
+		it('clips a resolved image URL to the glyphs, stretched by default', () => {
+			const css = buildTextFillCss({
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+			} as TextStyle);
+			expect(css).toMatchObject({
+				background: 'url("data:image/png;base64,AAAA")',
+				backgroundSize: '100% 100%',
+				backgroundRepeat: 'no-repeat',
+				backgroundClip: 'text',
+				WebkitBackgroundClip: 'text',
+				WebkitTextFillColor: 'transparent',
+			});
+		});
+
+		it('tiles the image at its natural size when a:tile was authored', () => {
+			const css = buildTextFillCss({
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+				textFillBlipMode: 'tile',
+			} as TextStyle);
+			expect(css).toMatchObject({
+				backgroundSize: 'auto',
+				backgroundRepeat: 'repeat',
+			});
+		});
+
+		it('gradient fill still wins when a run somehow carries both (gradient checked first)', () => {
+			const css = buildTextFillCss({
+				textFillGradient: 'linear-gradient(red, blue)',
+				textFillBlipUrl: 'data:image/png;base64,AAAA',
+			} as TextStyle);
+			expect(css?.background).toBe('linear-gradient(red, blue)');
+		});
+	});
 });
 
 describe('text effect css builders', () => {

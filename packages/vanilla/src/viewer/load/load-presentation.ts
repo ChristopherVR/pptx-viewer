@@ -35,6 +35,7 @@ import {
 	resolveMediaElementSource,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	resolveTextFillBlipUrls,
 } from 'pptx-viewer-shared';
 
 /**
@@ -142,8 +143,12 @@ export async function loadPresentation(
 		const getImageData = (path: string): Promise<string | undefined> => handler.getImageData(path);
 		const mediaDataUrls = await resolveMediaUrls(handler, parsed.slides, blobUrls);
 		const imageResolvedSlides = await resolveImageUrls(handler, parsed.slides);
-		const slides = await resolveTableCellImageUrls(imageResolvedSlides, getImageData);
+		const tableCellResolvedSlides = await resolveTableCellImageUrls(
+			imageResolvedSlides,
+			getImageData,
+		);
 		const tableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, getImageData);
+		const slides = await resolveTextFillBlipUrls(tableCellResolvedSlides, getImageData);
 
 		return {
 			handler,

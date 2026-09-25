@@ -20,6 +20,7 @@ import {
 	applyTableStyleImagePatches,
 	collectTableStyleImagePaths,
 } from './table-style-image-paths';
+import { applyTextFillBlipPatches, collectTextFillBlipPaths } from './text-fill-image-paths';
 
 /** Resolve a single archive path to a displayable URL, or `undefined`. */
 export type GetImageData = (path: string) => Promise<string | undefined>;
@@ -95,4 +96,42 @@ export async function resolveTableStyleImageUrls(
 	}
 
 	return applyTableStyleImagePatches(tableStyleMap, resolvedMap, refs);
+}
+
+/**
+ * Resolve lazily-loaded text-run picture-fill URLs (`a:rPr > a:blipFill`,
+ * COM-verified regression: `audit-text` slide 13's "PICTURE FILL" run) and
+ * patch them into the slide tree immutably. Returns the input `slides` array
+ * reference unchanged when there is nothing to resolve.
+ */
+export async function resolveTextFillBlipUrls(
+	slides: PptxSlide[],
+	getImageData: GetImageData,
+): Promise<PptxSlide[]> {
+	const { paths, refs } = collectTextFillBlipPaths(slides);
+	if (paths.size === 0) {
+		return slides;
+	}
+
+	const resolvedMap = new Map<string, string>();
+	await Promise.all(
+		Array.from(paths).map(async (path) => {
+			try {
+				const url = await getImageData(path);
+				if (url) {
+					resolvedMap.set(path, url);
+				}
+			} catch {
+				// Non-critical: the run falls back to its plain colour.
+			}
+		}),
+	);
+	if (resolvedMap.size === 0) {
+		return slides;
+	}
+
+	return slides.map((slide) => {
+		const newElements = applyTextFillBlipPatches(slide.elements, resolvedMap, refs);
+		return newElements === slide.elements ? slide : { ...slide, elements: newElements };
+	});
 }

@@ -361,8 +361,8 @@ export function parseRunUnderlineColor(rPr: XmlObject | undefined): string | und
  */
 export function parseRunTextOutline(
 	rPr: XmlObject | undefined,
-): Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor'> {
-	const result: Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor'> = {};
+): Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor' | 'textOutlineDash'> {
+	const result: Pick<TextStyle, 'textOutlineWidth' | 'textOutlineColor' | 'textOutlineDash'> = {};
 	if (!rPr) {
 		return result;
 	}
@@ -375,6 +375,11 @@ export function parseRunTextOutline(
 	const textOutlineW = Number.parseInt(String(textLn['@_w'] || ''), 10);
 	if (Number.isFinite(textOutlineW) && textOutlineW > 0) {
 		result.textOutlineWidth = textOutlineW / EMU_PER_PX;
+	}
+
+	const dash = (textLn['a:prstDash'] as XmlObject | undefined)?.['@_val'];
+	if (typeof dash === 'string' && dash !== 'solid') {
+		result.textOutlineDash = dash;
 	}
 
 	const solidFill = textLn['a:solidFill'] as XmlObject | undefined;

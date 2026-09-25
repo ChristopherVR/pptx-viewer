@@ -202,6 +202,8 @@ export interface TextStyle {
 	textOutlineWidth?: number;
 	/** Text outline colour as hex string (`a:rPr > a:ln > a:solidFill`). */
 	textOutlineColor?: string;
+	/** Text outline dash preset (`a:rPr > a:ln > a:prstDash/@val`), e.g. `dash`; absent for solid. */
+	textOutlineDash?: string;
 	/** When true, the text body has no fill (`a:rPr > a:noFill`), producing hollow/outline-only text. */
 	textFillNone?: boolean;
 	/**
@@ -243,6 +245,25 @@ export interface TextStyle {
 	textFillPatternForeground?: string;
 	/** Text-level pattern background colour. */
 	textFillPatternBackground?: string;
+	/**
+	 * Raw `a:rPr > a:blipFill` XML, preserved verbatim for round-trip
+	 * serialization AND as the input to the image resolution pass that fills
+	 * in {@link textFillBlipUrl} (parsing a run's fill happens synchronously,
+	 * with no zip/relationship access at that point; resolving the blip to a
+	 * displayable URL needs both, so it happens in a later async pass over
+	 * the slide's parsed elements, mirroring how a shape's OWN image fill is
+	 * resolved). A picture-filled text run (`a:rPr > a:blipFill`) was
+	 * documented as handled ("Handles gradient fills, pattern fills, and
+	 * image fills on text runs") but never actually parsed, so it silently
+	 * fell through to the run's plain `color` and rendered solid black
+	 * (COM-verified: `audit-text` slide 13's "PICTURE FILL" run shows the
+	 * fill image through the glyphs in PowerPoint).
+	 */
+	textFillBlipXml?: XmlObject;
+	/** Resolved displayable URL for {@link textFillBlipXml}, or the archive-relative path when unresolved (lazy decode). */
+	textFillBlipUrl?: string;
+	/** Tiling mode for {@link textFillBlipUrl} (`a:blipFill/a:tile` present -> 'tile', else 'stretch'). */
+	textFillBlipMode?: 'stretch' | 'tile';
 	hyperlink?: string;
 	/** Relationship ID for the hyperlink (`a:hlinkClick/@r:id`) — preserved for round-trip serialization. */
 	hyperlinkRId?: string;

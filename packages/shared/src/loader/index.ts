@@ -15,9 +15,15 @@ export {
 	collectTableStyleImagePaths,
 	applyTableStyleImagePatches,
 } from './table-style-image-paths';
+export type { TextFillBlipRef } from './text-fill-image-paths';
+export { collectTextFillBlipPaths, applyTextFillBlipPatches } from './text-fill-image-paths';
 
 // small helper extractions (wave 2)
 export type { ElementPatcher } from './element-patch-walker';
 export { walkAndPatchElements, applyImagePathPatches } from './element-patch-walker';
 export type { GetImageData } from './lazy-image-resolution';
-export { resolveTableCellImageUrls, resolveTableStyleImageUrls } from './lazy-image-resolution';
+export {
+	resolveTableCellImageUrls,
+	resolveTableStyleImageUrls,
+	resolveTextFillBlipUrls,
+} from './lazy-image-resolution';

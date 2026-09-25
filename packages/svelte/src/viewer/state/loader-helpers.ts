@@ -12,6 +12,7 @@ import {
 	resolveMediaElementSource,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	resolveTextFillBlipUrls,
 } from 'pptx-viewer-shared';
 
 /**
@@ -149,4 +150,17 @@ export function resolveLazyTableStyleImages(
 	tableStyleMap: ParsedTableStyleMap | undefined,
 ): Promise<ParsedTableStyleMap | undefined> {
 	return resolveTableStyleImageUrls(tableStyleMap, (path) => handler.getImageData(path));
+}
+
+/**
+ * Resolve lazily-loaded text-run picture-fill URLs (`a:rPr > a:blipFill`,
+ * COM-verified regression: `audit-text` slide 13's "PICTURE FILL" run) and
+ * patch them into the slide tree immutably. Same lazy-load story as
+ * {@link resolveLazyTableCellImages}, but for a run's `textFillBlipUrl`.
+ */
+export function resolveLazyTextFillBlips(
+	handler: PptxHandler,
+	slides: PptxSlide[],
+): Promise<PptxSlide[]> {
+	return resolveTextFillBlipUrls(slides, (path) => handler.getImageData(path));
 }

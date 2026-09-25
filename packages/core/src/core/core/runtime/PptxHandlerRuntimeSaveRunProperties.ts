@@ -260,7 +260,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		// 1. a:ln (text outline)
 		if (
 			(style.textOutlineWidth || style.textOutlineColor) &&
-			owns('textOutlineWidth', 'textOutlineColor')
+			owns('textOutlineWidth', 'textOutlineColor', 'textOutlineDash')
 		) {
 			const lnObj: XmlObject = {};
 			if (typeof style.textOutlineWidth === 'number' && style.textOutlineWidth > 0) {
@@ -272,6 +272,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 						'@_val': style.textOutlineColor.replace('#', ''),
 					},
 				};
+			}
+			// CT_LineProperties order: fill, then prstDash.
+			if (style.textOutlineDash) {
+				lnObj['a:prstDash'] = { '@_val': style.textOutlineDash };
 			}
 			runProps['a:ln'] = lnObj;
 		}
@@ -301,6 +305,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'textFillGradientStops',
 			'textFillGradientType',
 			'textFillPattern',
+			'textFillBlipXml',
 		);
 		if (ownsFill && style.textFillNone) {
 			runProps['a:noFill'] = {};
@@ -372,6 +377,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				};
 			}
 			runProps['a:pattFill'] = pattFill;
+		} else if (ownsFill && style.textFillBlipXml) {
+			// Re-emit the ORIGINAL `a:blipFill` verbatim (same r:embed/r:link,
+			// same a:stretch/a:tile): the run's own relationship isn't
+			// re-targeted on save, so round-tripping the raw node is both
+			// simplest and safest, matching how other preserved colour-choice
+			// XML round-trips elsewhere in this file.
+			runProps['a:blipFill'] = style.textFillBlipXml;
 		}
 
 		// 3. a:effectLst (text run effects)

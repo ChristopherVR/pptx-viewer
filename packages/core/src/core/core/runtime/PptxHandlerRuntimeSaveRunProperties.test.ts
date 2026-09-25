@@ -497,6 +497,45 @@ describe('createRunPropertiesFromTextStyle (real runtime)', () => {
 		});
 	});
 
+	describe('a:blipFill - picture text fill round-trip', () => {
+		// Regression: `a:blipFill` on a text run was documented as handled but
+		// never actually parsed OR re-emitted, so a picture-filled run's fill
+		// was silently discarded on save (COM-verified: audit-text slide 13's
+		// "PICTURE FILL" run).
+		it('re-emits the preserved a:blipFill verbatim', () => {
+			const blipFill = {
+				'a:blip': { '@_r:embed': 'rIdImg' },
+				'a:stretch': { 'a:fillRect': {} },
+			};
+			const result = runtime.build({ textFillBlipXml: blipFill });
+			expect(result['a:blipFill']).toBe(blipFill);
+			expect(result['a:gradFill']).toBeUndefined();
+			expect(result['a:pattFill']).toBeUndefined();
+		});
+
+		it('prefers a:noFill over a preserved blip fill', () => {
+			const result = runtime.build({
+				textFillNone: true,
+				textFillBlipXml: { 'a:blip': { '@_r:embed': 'rIdImg' } },
+			});
+			expect(result['a:noFill']).toStrictEqual({});
+			expect(result['a:blipFill']).toBeUndefined();
+		});
+	});
+
+	describe('a:ln/a:prstDash - dashed text outline round-trip', () => {
+		it('writes the dash preset after the outline fill', () => {
+			const result = runtime.build({
+				textOutlineWidth: 3,
+				textOutlineColor: '#000000',
+				textOutlineDash: 'dash',
+			});
+			const ln = result['a:ln'] as XmlObject;
+			expect(Object.keys(ln)).toStrictEqual(['@_w', 'a:solidFill', 'a:prstDash']);
+			expect(ln['a:prstDash']).toStrictEqual({ '@_val': 'dash' });
+		});
+	});
+
 	describe('a:rtl - run-level right-to-left', () => {
 		it('emits a:rtl as a CT_Boolean child element, not an attribute', () => {
 			const on = runtime.build({ rtl: true });

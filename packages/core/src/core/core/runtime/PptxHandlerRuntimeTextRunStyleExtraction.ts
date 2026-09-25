@@ -1,6 +1,7 @@
 import { themeColorRefFromColorChoice } from '../../color/theme-color-ref';
 import { TextStyle, XmlObject } from '../../types';
 import { extractColorChoiceXml } from '../../utils/color-xml-preservation';
+import { resolveTextFillBlip } from '../../utils/text-fill-blip';
 import { xmlAttr, xmlChild } from '../../utils/xml-access';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeTextRunEffects';
 
@@ -23,6 +24,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		align: TextStyle['align'],
 		relationshipMap?: Map<string, string>,
 		includeDefaultAlignment: boolean = true,
+		slidePath?: string,
 	): TextStyle {
 		const style: TextStyle = includeDefaultAlignment ? { align } : {};
 		if (!runProperties) {
@@ -143,6 +145,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			if (Number.isFinite(textOutlineW) && textOutlineW > 0) {
 				style.textOutlineWidth = textOutlineW / PptxHandlerRuntime.EMU_PER_PX;
 			}
+			const textOutlineDash = (textLn['a:prstDash'] as XmlObject | undefined)?.['@_val'];
+			if (typeof textOutlineDash === 'string' && textOutlineDash !== 'solid') {
+				style.textOutlineDash = textOutlineDash;
+			}
 			const textOutlineFill = textLn['a:solidFill'] as XmlObject | undefined;
 			if (textOutlineFill) {
 				const outlineColor = this.parseColor(textOutlineFill);
@@ -218,6 +224,23 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			style.textFillPattern = textFillVariants.textFillPattern;
 			style.textFillPatternForeground = textFillVariants.textFillPatternForeground;
 			style.textFillPatternBackground = textFillVariants.textFillPatternBackground;
+		}
+		if (textFillVariants.textFillBlipXml) {
+			style.textFillBlipXml = textFillVariants.textFillBlipXml;
+			const rels = slidePath ? this.slideRelsMap.get(slidePath) : undefined;
+			const resolved =
+				slidePath && rels
+					? resolveTextFillBlip(
+							textFillVariants.textFillBlipXml,
+							(relId) => rels.get(relId),
+							(target) => this.resolveImagePath(slidePath, target),
+							this.allowExternalImages === true,
+						)
+					: undefined;
+			if (resolved) {
+				style.textFillBlipUrl = resolved.url;
+				style.textFillBlipMode = resolved.mode;
+			}
 		}
 		// Run-level right-to-left. On CT_TextCharacterProperties `rtl` is a child
 		// ELEMENT of type CT_Boolean (`<a:rtl val="1"/>`) whose `@val` defaults

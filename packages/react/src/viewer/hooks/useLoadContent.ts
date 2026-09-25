@@ -35,6 +35,7 @@ import {
 	resolveAuthoredCustomShowId,
 	resolveTableCellImageUrls,
 	resolveTableStyleImageUrls,
+	resolveTextFillBlipUrls,
 	seedRecentColors,
 } from 'pptx-viewer-shared';
 /**
@@ -309,6 +310,12 @@ export function useLoadContent({
 					handler.getImageData(path),
 				);
 				const nextTableStyleMap = await resolveTableStyleImageUrls(parsed.tableStyleMap, (path) =>
+					handler.getImageData(path),
+				);
+				// ── Resolve text-run picture-fill (a:rPr > a:blipFill) Blob URLs ──
+				// Same lazy-load story as above: `TextStyle.textFillBlipUrl` parses
+				// to an archive path, resolved here to a displayable URL.
+				nextSlides = await resolveTextFillBlipUrls(nextSlides, (path) =>
 					handler.getImageData(path),
 				);
 

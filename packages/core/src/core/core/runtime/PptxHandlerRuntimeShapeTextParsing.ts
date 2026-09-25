@@ -293,6 +293,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		// `level`/`levelKey` are computed above from the paragraph's direct
 		// properties; `a:defPPr` run defaults already sit beneath this merge via
@@ -306,6 +307,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		const bodyLevelStyle = this.extractTextRunStyle(
 			(
@@ -314,6 +316,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			paraAlign,
 			ctx.slideRelationshipMap,
 			false,
+			ctx.slidePath,
 		);
 		const mergedDefaultRunStyle = {
 			...ctx.bodyDefaultRunStyle,

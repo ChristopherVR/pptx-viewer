@@ -194,7 +194,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 		const appendRun = (runText: string, runProps: XmlObject | undefined) => {
 			const runStyle = withAuthoredSplit(
-				this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
+				this.extractTextRunStyle(
+					runProps,
+					paraAlign,
+					ctx.slideRelationshipMap,
+					true,
+					ctx.slidePath,
+				),
 			);
 			// #83: annotate a per-script fallback face when the run's text is
 			// dominantly CJK / Arabic / Hebrew / Thai and the theme declares a
@@ -256,6 +262,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					field['a:rPr'] as XmlObject | undefined,
 					paraAlign,
 					ctx.slideRelationshipMap,
+					true,
+					ctx.slidePath,
 				),
 			);
 			const fldType = String(field['@_type'] || '').trim() || undefined;
@@ -412,7 +420,13 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					const brNode = (item ?? {}) as XmlObject;
 					const brRunProps = brNode['a:rPr'] as XmlObject | undefined;
 					const brStyle = withAuthoredSplit(
-						this.extractTextRunStyle(brRunProps, paraAlign, ctx.slideRelationshipMap),
+						this.extractTextRunStyle(
+							brRunProps,
+							paraAlign,
+							ctx.slideRelationshipMap,
+							true,
+							ctx.slidePath,
+						),
 					);
 					parts.push('\n');
 					const brSegment: TextSegment = {
@@ -539,6 +553,8 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 								endParaRPrRaw as XmlObject,
 								paraAlign,
 								ctx.slideRelationshipMap,
+								true,
+								ctx.slidePath,
 							)
 						: {},
 				);
