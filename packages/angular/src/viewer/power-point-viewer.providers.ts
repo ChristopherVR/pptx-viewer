@@ -37,6 +37,7 @@ import { IsMobileService } from './is-mobile';
 import { LoadContentService } from './load-content.service';
 import { LoadNoticesService } from './load-notices.service';
 import { OutlineAuthoringService } from './outline-authoring.service';
+import { PictureCropService } from './picture-crop.service';
 import { PrintService } from './print.service';
 import { RecentColorsService } from './recent-colors.service';
 import { Rendering3DService } from './rendering-3d.service';
@@ -112,4 +113,5 @@ export const POWER_POINT_VIEWER_PROVIDERS = [
 	ViewerTouchGesturesService,
 	ViewerZoomService,
 	OutlineAuthoringService,
+	PictureCropService,
 ] as const;

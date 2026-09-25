@@ -33,6 +33,7 @@ import {
 	mapSlideShowStartKey,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
+import { PictureCropService } from './picture-crop.service';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 import { ViewerCustomizationService } from './viewer-customization.service';
 import { ViewerDialogsService } from './viewer-dialogs.service';
@@ -79,6 +80,7 @@ export class ViewerKeyboardService {
 	private readonly docProperties = inject(ViewerDocumentPropertiesService);
 	private readonly canvasEditing = inject(ViewerCanvasEditingService, { optional: true });
 	private readonly customization = inject(ViewerCustomizationService, { optional: true });
+	private readonly crop = inject(PictureCropService, { optional: true });
 
 	private host: KeyboardHost | null = null;
 
@@ -90,6 +92,11 @@ export class ViewerKeyboardService {
 	handleKeyDown(event: KeyboardEvent): void {
 		const host = this.host;
 		if (!host) {
+			return;
+		}
+		// Crop mode owns Enter (commit) and Escape (cancel) outright: an Escape
+		// that cancels a crop must not also run the normal Escape unwinding.
+		if (this.crop?.handleKeyDown(event)) {
 			return;
 		}
 

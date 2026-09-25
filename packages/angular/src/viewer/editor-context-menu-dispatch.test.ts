@@ -62,6 +62,10 @@ function recorder(): { calls: string[]; actions: ContextMenuActions } {
 			applyTable: (_op: TableCommandOp) => {
 				calls.push('applyTable');
 			},
+			mergeShapes: (op) => {
+				calls.push(`merge:${op}`);
+			},
+			crop: note('crop'),
 		},
 	};
 }
@@ -142,6 +146,12 @@ const ELEMENT_ROUTES: [ContextMenuCommandId, string][] = [
 	['edit-alt-text', 'editAltText'],
 	['size-and-position', 'sizeAndPosition'],
 	['format-shape', 'formatShape'],
+	['crop', 'crop'],
+	['merge-union', 'merge:union'],
+	['merge-combine', 'merge:combine'],
+	['merge-fragment', 'merge:fragment'],
+	['merge-intersect', 'merge:intersect'],
+	['merge-subtract', 'merge:subtract'],
 ];
 
 // ---------------------------------------------------------------------------
@@ -182,7 +192,9 @@ describe('runContextMenuCommand', () => {
 				table: { hasMultiCellSelection: true, isMergedCell: false },
 				hasMultiSelection: true,
 				aiEnabled: true,
+				canMergeShapes: true,
 			}).map((entry) => entry.id),
+			...buildContextMenuEntries({ elementType: 'picture' }).map((entry) => entry.id),
 			...buildContextMenuEntries({
 				table: { hasMultiCellSelection: false, isMergedCell: true },
 			}).map((entry) => entry.id),

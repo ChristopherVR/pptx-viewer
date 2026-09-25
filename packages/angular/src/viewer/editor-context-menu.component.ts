@@ -14,13 +14,8 @@
  * they were.
  *
  * Renders a small floating panel at (x, y) viewport coordinates, wired to
- * EditorStateService. Closes on:
- *  - Escape key (via @HostListener)
- *  - A pointerdown event whose target is outside this component's host element
- *    (also via @HostListener; the very first outside-pointerdown that would
- *    have opened the menu is guarded by Angular's own event-propagation order:
- *    the host is mounted before the listener fires, so `!host.contains(target)`
- *    is always correct without any extra first-event guard).
+ * EditorStateService. Closes on Escape or a pointerdown outside the host (the
+ * host is mounted before that listener fires, so no first-event guard).
  *
  * The host's UI customisation (hidden commands, a disabled menu) is applied
  * through the shared `customizeContextMenuEntries`; an emptied menu renders
@@ -37,13 +32,15 @@ import {
 	input,
 	output,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
 import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared';
 import {
 	buildContextMenuEntries,
+	canCropElement,
 	contextMenuInspectorAnchor,
+	MERGE_SHAPES_LABEL_KEY,
 	customizeContextMenuEntries,
 	isEditPointsEnabled,
 	resolveEditPointsAvailability,
@@ -56,7 +53,9 @@ import { runContextMenuCommand } from './editor-context-menu-dispatch';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
 import { EditorStateService } from './editor-state.service';
 import { resolveContextMenuSelectionGroupable } from './group-lock-guard';
+import { canMergeSelection, runMergeShapes } from './merge-shapes-action';
 import { OutlineAuthoringService } from './outline-authoring.service';
+import { PictureCropService } from './picture-crop.service';
 import type { TableCellSelection } from './table-selection.service';
 import { TableSelectionService } from './table-selection.service';
 import { injectResolvedCustomization } from './viewer-customization.service';
@@ -111,10 +110,7 @@ export class EditorContextMenuComponent {
 	readonly y = input.required<number>();
 	/** Zero-based index of the slide being edited. */
 	readonly slideIndex = input.required<number>();
-	/**
-	 * Whether to show the "Ask AI about this" / "Fix with AI" items. Gated by the
-	 * host on the `ai` config + a single selected element.
-	 */
+	/** Show "Ask AI about this" / "Fix with AI" (host: `ai` config + one selection). */
 	readonly showAiActions = input<boolean>(false);
 
 	/** Emitted when the menu should close (Escape or outside click). */
@@ -123,23 +119,13 @@ export class EditorContextMenuComponent {
 	readonly askAi = output<void>();
 	/** "Fix with AI": open the assistant with a prefilled fix directive. */
 	readonly fixAi = output<void>();
-	/**
-	 * "Edit Hyperlink": the dialog lives at viewer level (it needs the selected
-	 * element and the document-properties service), so the menu asks for it
-	 * rather than owning it.
-	 */
+	/** "Edit Hyperlink": the dialog lives at viewer level, so the menu asks for it. */
 	readonly editHyperlink = output<void>();
 	/** "Add Comment": open the right-docked comments panel, as React does. */
 	readonly addComment = output<void>();
-	/**
-	 * "Edit Text": the host owns the same inline-text-edit entry point a
-	 * double-click uses, so the menu just asks for it on the current element.
-	 */
+	/** "Edit Text": the host owns the inline-text-edit entry point a double-click uses. */
 	readonly editText = output<void>();
-	/**
-	 * "Save as Picture": the host owns the DOM lookup + html2canvas fallback
-	 * driver this needs, so the menu asks for it on the current element.
-	 */
+	/** "Save as Picture": the host owns the DOM lookup + html2canvas driver it needs. */
 	readonly saveAsPicture = output<void>();
 
 	protected readonly editor = inject(EditorStateService);
@@ -149,6 +135,8 @@ export class EditorContextMenuComponent {
 	private readonly inspectorPanel = inject(ViewerInspectorPanelService);
 	private readonly customization = injectResolvedCustomization();
 	private readonly outline = inject(OutlineAuthoringService, { optional: true });
+	private readonly crop = inject(PictureCropService, { optional: true });
+	private readonly translate = inject(TranslateService, { optional: true });
 
 	/** The single table + selected cell the table commands act on, or null. */
 	protected readonly tableCtx = computed<{
@@ -196,6 +184,8 @@ export class EditorContextMenuComponent {
 			aiEnabled: this.showAiActions(),
 			hasClipboard: this.editor.hasClipboard(),
 			editPoints: this.outline ? resolveEditPointsAvailability(this.selectedElement()) : undefined,
+			canMergeShapes: canMergeSelection(this.editor, this.slideIndex()),
+			canCrop: canCropElement(this.selectedElement()),
 		});
 		return customizeContextMenuEntries(built, this.customization());
 	});
@@ -228,6 +218,14 @@ export class EditorContextMenuComponent {
 		sizeAndPosition: () => this.focusInspectorSection('size-and-position'),
 		formatShape: () => this.focusInspectorSection('format-shape'),
 		applyTable: (op) => this.applyTable(op),
+		mergeShapes: (op) =>
+			runMergeShapes(
+				this.editor,
+				this.slideIndex(),
+				op,
+				this.translate?.instant(MERGE_SHAPES_LABEL_KEY) as string | undefined,
+			),
+		crop: () => this.crop?.enter(this.slideIndex(), this.selectedElement()),
 	};
 
 	// ── Close triggers ───────────────────────────────────────────────────────

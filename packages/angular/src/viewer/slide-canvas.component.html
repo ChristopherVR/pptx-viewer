@@ -90,6 +90,14 @@
 					[style.height.px]="box.height"
 				></div>
 			}
+			<!-- Picture crop mode: ghost, frame and the eight crop handles. -->
+			@if (cropElement(); as cropEl) {
+				<pptx-crop-overlay
+					[element]="cropEl"
+					[zoom]="effectiveScalePublic()"
+					[mediaDataUrls]="mediaDataUrls()"
+				/>
+			}
 			@for (h of handleBoxes(); track h.handle) {
 				@let controlArtwork = selectionControlArtwork(h, h.handle);
 				<button

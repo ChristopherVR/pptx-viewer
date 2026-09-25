@@ -398,13 +398,24 @@ export class EditorStateService {
 	/**
 	 * Apply a live transform during a gesture WITHOUT recording history (the
 	 * gesture's snapshot was taken in {@link beginTransform}). Accepts any subset
-	 * of x/y/width/height. Routes by id: template (master/layout) elements mutate
+	 * of x/y/width/height (plus a picture's crop insets, for crop mode's live
+	 * handle drags). Routes by id: template (master/layout) elements mutate
 	 * the template store, normal elements mutate the slide.
 	 */
 	applyTransform(
 		slideIndex: number,
 		id: string,
-		box: { x?: number; y?: number; width?: number; height?: number; rotation?: number },
+		box: {
+			x?: number;
+			y?: number;
+			width?: number;
+			height?: number;
+			rotation?: number;
+			cropLeft?: number;
+			cropTop?: number;
+			cropRight?: number;
+			cropBottom?: number;
+		},
 	): void {
 		const slides = this.slides();
 		const target = slides[slideIndex];

@@ -71,6 +71,7 @@ import { AiFocusHighlightOverlayComponent } from './ai/ai-focus-highlight-overla
 import { CanvasFitService } from './canvas-fit.service';
 import { ChartQuickActionsOverlayComponent } from './chart-quick-actions-overlay.component';
 import { CollaborationService } from './collaboration.service';
+import { CropOverlayComponent } from './crop-overlay.component';
 import { applyMove, applyResize, marqueeHitIds } from './drag-resize';
 import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
@@ -82,6 +83,7 @@ import {
 	resolveCommitTextNormAutofitShrink,
 } from './inline-edit-autofit-commit';
 import { InlineListEditorComponent } from './inline-list-editor.component';
+import { PictureCropService } from './picture-crop.service';
 import { RotateHandlePlacementDirective } from './rotate-handle-placement.directive';
 import { RulerGuidesService } from './ruler-guides.service';
 import { rulerHighlight, rulerStripTicks } from './ruler-strips';
@@ -198,6 +200,7 @@ function plainText(el: PptxElement): string {
 		InlineListEditorComponent,
 		RotateHandlePlacementDirective,
 		ChartQuickActionsOverlayComponent,
+		CropOverlayComponent,
 	],
 	styleUrl: './slide-canvas.component.css',
 	templateUrl: './slide-canvas.component.html',
@@ -715,6 +718,18 @@ export class SlideCanvasComponent implements SlideContext {
 		return box ? (this.elementById(box.id) ?? null) : null;
 	});
 
+	private readonly pictureCrop = inject(PictureCropService, { optional: true });
+
+	/**
+	 * The picture in crop mode, when it is this editable canvas's single
+	 * selection. Drives the crop overlay and hides the normal resize / rotate /
+	 * adjust handles for it (the overlay also swallows its move-drag).
+	 */
+	readonly cropElement = computed<PptxElement | null>(() => {
+		const el = this.singleSelectedElement();
+		return el && this.editable() && this.pictureCrop?.isCropping(el.id) ? el : null;
+	});
+
 	/**
 	 * The single selected element when (and only when) it is a chart: gates
 	 * the "Chart Elements"/"Chart Styles"/"Chart Filters" quick-action overlay,
@@ -732,7 +747,7 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly handleBoxes = computed(() =>
 		computeResizeHandleBoxes(
 			this.singleSelectedElement(),
-			this.singleSelected(),
+			this.cropElement() ? null : this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
 			this.effectiveScale(),
@@ -748,7 +763,7 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly rotateHandle = computed(() =>
 		computeRotateHandleBox(
 			this.singleSelectedElement(),
-			this.singleSelected(),
+			this.cropElement() ? null : this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
 			24,
@@ -768,7 +783,7 @@ export class SlideCanvasComponent implements SlideContext {
 	readonly adjustHandles = computed(() =>
 		computeAdjustHandles(
 			this.singleSelectedElement(),
-			this.singleSelected(),
+			this.cropElement() ? null : this.singleSelected(),
 			this.editable(),
 			HANDLE_SCREEN_PX,
 			this.effectiveScale(),
