@@ -4,7 +4,7 @@
  * elements their own converters cannot embed).
  *
  * The shape is written as the element's rasterised preview picture when one
- * is available (PNG/JPEG only, see `raster-utils.ts`), otherwise as a
+ * is available (any format `raster-utils.ts` embeds), otherwise as a
  * labelled placeholder rectangle. For ink, SmartArt, charts and 3D models the
  * shape also carries a `metroBlob` (see `metro-blob-package.ts`) when one was
  * built for the element, which PowerPoint 2007 and later reopen as the native,
@@ -18,6 +18,7 @@
 import type { PptxElement } from '../../types';
 import { elementRectEmu } from './element-rect';
 import type { ConvertContext } from './element-to-write-model';
+import { pictureSourceOf } from './picture-source';
 import { dataUrlToPicture } from './raster-utils';
 import type { WAnyShape, WShape } from './write-model';
 
@@ -50,9 +51,8 @@ export function degradeElement(
 	label: string,
 ): WAnyShape {
 	const preview =
-		(element as { previewImageData?: string; posterImage?: string }).previewImageData ??
-		(element as { posterImage?: string }).posterImage;
-	const picture = dataUrlToPicture(preview);
+		(element as { previewImageData?: string }).previewImageData ?? pictureSourceOf(element)?.inline;
+	const picture = ctx.resolvedPictures?.get(element) ?? dataUrlToPicture(preview);
 	const metroBlob = ctx.metroBlobs?.get(element.id);
 	ctx.report(
 		metroBlob

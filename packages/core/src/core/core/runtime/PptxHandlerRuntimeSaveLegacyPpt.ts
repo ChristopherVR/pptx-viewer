@@ -3,6 +3,7 @@ import {
 	buildPptFile,
 	convertDeckToWriteModel,
 	deckNeedsMetroBlobs,
+	resolvePictureSources,
 } from '../../ppt/writer';
 import type { PptxSlide } from '../../types';
 import type { PptxHandlerSaveOptions } from '../types';
@@ -113,6 +114,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const metroBlobs = await this.resolveMetroBlobs(slides, saveAsPptx);
 		this.compatibilityService.resetWarnings();
 		const resolvedMedia = await this.resolveAudioMediaBytes(slides);
+		const resolvedPictures = await resolvePictureSources(slides, async (path) =>
+			this.zip.file(path)?.async('uint8array'),
+		);
 		const deck = convertDeckToWriteModel(
 			slides,
 			this.rawSlideWidthEmu || 9144000,
@@ -121,6 +125,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			options?.customShows,
 			resolvedMedia,
 			metroBlobs,
+			resolvedPictures,
 		);
 		return buildPptFile(deck, { password: options?.pptPassword });
 	}

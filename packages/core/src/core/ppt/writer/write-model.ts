@@ -169,9 +169,19 @@ export type WAnyShape = WShape | WPicture | WGroup | WMedia;
 
 /** A picture stored in the deck's Pictures stream / BStore. */
 export interface WPictureData {
-	/** 'png' or 'jpg': the only formats the writer embeds as-is. */
-	extension: 'png' | 'jpg';
+	/** BLIP kind (see `picture-encode.ts` for which source formats map to which). */
+	extension: 'png' | 'jpg' | 'emf' | 'wmf' | 'dib';
+	/** Raw BLIP file data (a WMF without its placeable header, a BMP without its file header). */
 	bytes: Uint8Array;
+	/** `OfficeArtMetafileHeader` geometry, present for `emf`/`wmf` only. */
+	metafile?: WMetafileGeometry;
+}
+
+/** A metafile BLIP's `rcBounds` (left, top, right, bottom) and `ptSize` in EMU. */
+export interface WMetafileGeometry {
+	bounds: [number, number, number, number];
+	widthEmu: number;
+	heightEmu: number;
 }
 
 /** A parsed slide ready for binary serialisation. */

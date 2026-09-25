@@ -20,6 +20,7 @@ import type { HyperlinkResolveContext } from './hyperlink-model';
 import { resolveHyperlink } from './hyperlink-model';
 import { convertMedia } from './media-element-convert';
 import { convertOle } from './ole-element-convert';
+import type { ResolvedPictures } from './picture-resolve';
 import { dataUrlToPicture } from './raster-utils';
 import { resolveFill, resolveLine } from './shape-style-to-fill-line';
 import { sptForPreset } from './shape-type-map';
@@ -59,6 +60,8 @@ export interface ConvertContext {
 	 * SmartArt, charts and 3D models reopen natively in PowerPoint 2007+.
 	 */
 	metroBlobs?: Map<string, Uint8Array>;
+	/** Pictures the async pre-pass resolved (`picture-resolve.ts`), keyed by the live element. */
+	resolvedPictures?: ResolvedPictures;
 }
 
 const PLACEHOLDER_TYPES = new Set(['title', 'body', 'ctrTitle', 'subTitle']);
@@ -123,7 +126,7 @@ function convertShapeLike(element: PptxElement, ctx: ConvertContext): WShape {
 /** Convert an image/picture element, embedding PNG/JPEG or degrading with a warning. */
 function convertPicture(element: PptxElement, ctx: ConvertContext): WAnyShape {
 	const el = element as PptxElement & { imageData?: string; altText?: string };
-	const picture = dataUrlToPicture(el.imageData);
+	const picture = ctx.resolvedPictures?.get(element) ?? dataUrlToPicture(el.imageData);
 	if (picture) {
 		ctx.pictures.push(picture);
 		return {
@@ -140,7 +143,7 @@ function convertPicture(element: PptxElement, ctx: ConvertContext): WAnyShape {
 	ctx.report({
 		code: 'ppt-image-format-unsupported',
 		message:
-			'Image is not PNG or JPEG; the .ppt writer only embeds those two raster formats, so this image was replaced with a placeholder.',
+			'Image could not be embedded in the .ppt (it is not PNG, JPEG, GIF, BMP, TIFF, EMF or WMF, or it is an SVG with no raster fallback), so it was replaced with a placeholder.',
 		severity: 'warning',
 		scope: 'element',
 		slideId: ctx.slideId,
@@ -234,6 +237,7 @@ function convertSlide(slide: PptxSlide, ctx: ConvertContext): WSlide {
  *   none available; custom-show actions then degrade to no hyperlink.
  * @param resolvedMedia - See `ConvertContext.resolvedMedia`'s doc.
  * @param metroBlobs - See `ConvertContext.metroBlobs`'s doc.
+ * @param resolvedPictures - See `ConvertContext.resolvedPictures`'s doc.
  */
 export function convertDeckToWriteModel(
 	slides: PptxSlide[],
@@ -243,6 +247,7 @@ export function convertDeckToWriteModel(
 	customShows?: PptxCustomShow[],
 	resolvedMedia?: Map<string, Uint8Array>,
 	metroBlobs?: Map<string, Uint8Array>,
+	resolvedPictures?: ResolvedPictures,
 ): WDeck {
 	const pictures: WPictureData[] = [];
 	const hyperlinkCtx: HyperlinkResolveContext = { slides, customShows };
@@ -254,6 +259,7 @@ export function convertDeckToWriteModel(
 			hyperlinkCtx,
 			resolvedMedia,
 			metroBlobs,
+			resolvedPictures,
 		}),
 	);
 	return { widthEmu, heightEmu, slides: wSlides, pictures };

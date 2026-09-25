@@ -65,6 +65,37 @@ function dibToBmp(dib: Uint8Array): Uint8Array {
 	return out;
 }
 
+/**
+ * Re-add the 22-byte placeable ("Aldus") header a WMF BLIP stores without
+ * (PowerPoint strips it and keeps its bounding box as the metafile header's
+ * `rcBounds`, COM-measured), so the extracted `.wmf` is a standalone file
+ * that GDI and `emf-converter` size correctly. Units-per-inch is recovered
+ * from `rcBounds` against `ptSize` (EMU). A metafile already carrying the
+ * header is returned unchanged.
+ */
+function withPlaceableHeader(view: DataView, headerOffset: number, wmf: Uint8Array): Uint8Array {
+	if (wmf.length >= 4 && wmf[0] === 0xd7 && wmf[1] === 0xcd && wmf[2] === 0xc6 && wmf[3] === 0x9a) {
+		return wmf;
+	}
+	const [left, top, right, bottom] = [4, 8, 12, 16].map((o) =>
+		view.getInt32(headerOffset + o, true),
+	);
+	const widthEmu = view.getInt32(headerOffset + 20, true);
+	const inch =
+		widthEmu > 0 && right! > left! ? Math.round(((right! - left!) * 914400) / widthEmu) : 1440;
+	const out = new Uint8Array(22 + wmf.length);
+	const out16 = new DataView(out.buffer);
+	const words = [0xcdd7, 0x9ac6, 0, left!, top!, right!, bottom!, inch, 0, 0];
+	let checksum = 0;
+	words.forEach((word, i) => {
+		out16.setUint16(i * 2, word & 0xffff, true);
+		checksum ^= word & 0xffff;
+	});
+	out16.setUint16(20, checksum, true);
+	out.set(wmf, 22);
+	return out;
+}
+
 /** Decode one BLIP record's payload into picture data. */
 async function decodeBlip(
 	view: DataView,
@@ -87,14 +118,14 @@ async function decodeBlip(
 		}
 		const compression = view.getUint8(cursor + 32);
 		const payload = data.subarray(cursor + 34, end);
-		if (compression === 0) {
-			const inflated = await inflateZlib(payload);
-			if (!inflated) {
-				return undefined; // cannot decompress in this runtime
-			}
-			return { extension: info.extension, bytes: inflated };
+		const metafile = compression === 0 ? await inflateZlib(payload) : payload.slice();
+		if (!metafile) {
+			return undefined; // cannot decompress in this runtime
 		}
-		return { extension: info.extension, bytes: payload.slice() };
+		return {
+			extension: info.extension,
+			bytes: rec.recType === OA.BlipWmf ? withPlaceableHeader(view, cursor, metafile) : metafile,
+		};
 	}
 
 	cursor += 1; // tag byte

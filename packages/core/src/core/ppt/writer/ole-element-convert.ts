@@ -21,7 +21,9 @@ import type { WAnyShape } from './write-model';
  * than degrading to a static picture.
  */
 export function convertOle(element: OlePptxElement, ctx: ConvertContext): WAnyShape {
-	const picture = dataUrlToPicture(element.previewImageData ?? element.previewImage);
+	const picture =
+		ctx.resolvedPictures?.get(element) ??
+		dataUrlToPicture(element.previewImageData ?? element.previewImage);
 	if (!picture) {
 		return degradeElement(element, ctx, element.fileName ?? '[Embedded Object]');
 	}

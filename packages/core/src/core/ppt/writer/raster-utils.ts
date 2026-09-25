@@ -1,14 +1,19 @@
 /**
- * Data-URL -> embeddable raster bytes for the `.ppt` writer's picture
- * handling. Only PNG and JPEG are embedded as-is; every other format (GIF,
- * BMP, SVG, WEBP, ...) has no direct binary-`.ppt` BLIP counterpart cheaply
- * reachable without a DOM/canvas re-encode, so callers degrade those to a
- * placeholder shape with a compatibility warning instead.
+ * Data-URL -> embeddable bytes for the `.ppt` writer's picture and sound
+ * handling.
+ *
+ * A picture data URL is decoded and handed to `picture-encode.ts`, which
+ * sniffs the actual bytes (not the MIME type, which is often generic or
+ * wrong) and maps PNG/JPEG/GIF/BMP/EMF/WMF onto a BLIP. TIFF and a bare SVG
+ * have no synchronous path; `picture-resolve.ts` pre-resolves a TIFF
+ * asynchronously, and an SVG picture carries its own PNG fallback in
+ * `imageData`.
  *
  * @module ppt/writer/raster-utils
  */
 
 import { base64Decode } from '../../utils/ooxml-crypto-primitives';
+import { bytesToPicture } from './picture-encode';
 import type { WPictureData } from './write-model';
 
 /**
@@ -16,8 +21,8 @@ import type { WPictureData } from './write-model';
  * bytes, or `undefined` when the MIME type is not WAV. The binary `.ppt`
  * `SoundDataBlob` record ([MS-PPT] 2.4.16.5, see `media-writer.ts`) embeds
  * WAV/AIFF only; other audio containers (MP3, AAC, OGG, ...) have no direct
- * `.ppt` equivalent, so callers degrade those to a placeholder with a
- * compatibility warning, mirroring `dataUrlToPicture`'s PNG/JPEG-only rule.
+ * `.ppt` equivalent, so callers degrade those to a picture with a
+ * compatibility warning, exactly as PowerPoint's own 97-2003 SaveAs does.
  */
 export function dataUrlToWav(dataUrl: string | undefined): Uint8Array | undefined {
 	if (!dataUrl) {
@@ -34,22 +39,24 @@ export function dataUrlToWav(dataUrl: string | undefined): Uint8Array | undefine
 	}
 }
 
-/**
- * Decode a `data:image/...;base64,...` URL into embeddable picture bytes,
- * or `undefined` when the MIME type is not PNG/JPEG.
- */
-export function dataUrlToPicture(dataUrl: string | undefined): WPictureData | undefined {
-	if (!dataUrl) {
-		return undefined;
-	}
-	const match = /^data:image\/(png|jpe?g);base64,(.+)$/isu.exec(dataUrl);
+/** Decode a base64 `data:` URL's payload, or `undefined` when it is not one. */
+export function decodeBase64DataUrl(dataUrl: string | undefined): Uint8Array | undefined {
+	const match = dataUrl ? /^data:[^;,]*(?:;[^;,]*)*;base64,(.+)$/isu.exec(dataUrl) : null;
 	if (!match) {
 		return undefined;
 	}
-	const extension = match[1]!.toLowerCase().startsWith('png') ? 'png' : 'jpg';
 	try {
-		return { extension, bytes: base64Decode(match[2]!) };
+		return base64Decode(match[1]!);
 	} catch {
 		return undefined;
 	}
+}
+
+/**
+ * Decode a `data:image/...;base64,...` URL into embeddable picture bytes,
+ * or `undefined` when the payload is not a format `bytesToPicture` embeds.
+ */
+export function dataUrlToPicture(dataUrl: string | undefined): WPictureData | undefined {
+	const bytes = decodeBase64DataUrl(dataUrl);
+	return bytes ? bytesToPicture(bytes) : undefined;
 }
