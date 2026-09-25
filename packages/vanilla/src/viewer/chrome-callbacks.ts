@@ -5,7 +5,17 @@ import type {
 	PptxSlideTransition,
 	TextSegment,
 } from 'pptx-viewer-core';
-import type { ResolvedCustomization, RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
+import {
+	EMPTY_RESOLVED_CUSTOMIZATION,
+	FREEFORM_TOOL_IDS,
+	isDrawingToolVisible,
+} from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	ResolvedCustomization,
+	RibbonTransitionDraft,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
 import type { FindReplaceActions } from './editor/editor-find-replace-actions';
@@ -124,6 +134,8 @@ export interface ChromeCallbackDeps {
 	applyPresentationTheme(presetId: string): void;
 	/** Switch the Draw ribbon tab's active tool. */
 	setDrawTool(tool: DrawTool): void;
+	/** Arm (or, with null, disarm) the Freeform: Shape / Curve drawing tool. */
+	armFreeformTool?(tool: FreeformToolKind | null): void;
 	/** Set the pen/highlighter stroke colour (Draw tab). */
 	setDrawColor(color: string): void;
 	/** Set the pen/highlighter stroke width (Draw tab). */
@@ -239,6 +251,11 @@ export function buildChromeCallbacks(
 			insertEquation: (omml) => deps.getEditActions().insertEquation(omml),
 			insertActionButton: (shapeType) => deps.getEditActions().insertActionButton(shapeType),
 			insertField: (fieldType, value) => deps.getEditActions().insertField(fieldType, value),
+			armFreeformTool: (tool) => deps.armFreeformTool?.(tool),
+			visibleDrawingTools: () =>
+				FREEFORM_TOOL_IDS.filter((tool) =>
+					isDrawingToolVisible(deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION, tool),
+				),
 		},
 		findReplace: createLazyActions(() => deps.getFindReplaceActions()),
 		design: {

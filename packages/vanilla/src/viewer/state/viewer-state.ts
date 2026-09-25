@@ -27,6 +27,7 @@ import type {
 	CanvasSize,
 	CompatibilityWarningToast,
 	ElementClipboardPayload,
+	FreeformToolKind,
 	InlineTextSelection,
 	Guide,
 	ModifyPasswordCheckResult,
@@ -264,6 +265,10 @@ export interface ViewerState {
 	pasteOptionsToolbar: { id: string; sourceClone: PptxElement }[] | null;
 	/** Active Draw ribbon tool; `'select'` disables the ink-drawing gesture controller. */
 	drawTool: DrawTool;
+	/** The shape in Edit Points mode (right-click > Edit Points), or null. */
+	editPointsElementId: string | null;
+	/** The armed Freeform: Shape / Curve drawing tool, or null. */
+	freeformTool: FreeformToolKind | null;
 	/** Stroke colour for the pen/highlighter tools. */
 	drawColor: string;
 	/** Stroke width (px) for the pen/highlighter tools. */
@@ -402,6 +407,8 @@ export function createInitialViewerState(): ViewerState {
 		clipboardPayload: null,
 		pasteOptionsToolbar: null,
 		drawTool: 'select',
+		editPointsElementId: null,
+		freeformTool: null,
 		drawColor: DEFAULT_STROKE_COLOR,
 		drawWidth: 3,
 		showGrid: false,

@@ -126,6 +126,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			color: state.drawColor,
 			width: state.drawWidth,
 			recentColors: currentRecentColors(state),
+			freeformTool: state.freeformTool,
 		});
 
 		inspector?.update(

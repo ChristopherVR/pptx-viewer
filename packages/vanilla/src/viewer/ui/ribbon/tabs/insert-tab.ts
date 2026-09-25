@@ -1,3 +1,5 @@
+import type { FreeformToolKind } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
@@ -5,6 +7,7 @@ import type { RibbonInsertHandlers } from '../ribbon-types';
 import { createActionButtonDropdown } from './insert/action-button-group';
 import { createChartControl } from './insert/chart-group';
 import { createFieldDropdown } from './insert/field-group';
+import { createFreeformToolButtons } from './insert/freeform-tool-buttons';
 import { createHyperlinkButton } from './insert/hyperlink-button';
 import { createShapeControl } from './insert/shape-group';
 import { createSmartArtControl } from './insert/smartart-group';
@@ -14,6 +17,8 @@ export interface InsertTab {
 	setEditable(editable: boolean): void;
 	/** Gate the selection-scoped commands (Link attaches to a selected element). */
 	setHasSelection(hasSelection: boolean): void;
+	/** Reflect the armed Freeform: Shape / Curve tool. */
+	setFreeformTool(tool: FreeformToolKind | null): void;
 }
 
 /**
@@ -43,6 +48,12 @@ export function createInsertTab(
 		onClick: () => handlers.insert('text'),
 	});
 	const shape = createShapeControl(doc, t, (shapeType) => handlers.insert('shape', shapeType));
+	const freeformTools = createFreeformToolButtons(
+		doc,
+		t,
+		handlers.armFreeformTool ? (handlers.visibleDrawingTools?.() ?? []) : [],
+		(tool) => handlers.armFreeformTool?.(tool),
+	);
 	const image = makeButton(doc, {
 		label: t('pptx.ribbon.image'),
 		icon: 'image',
@@ -84,6 +95,7 @@ export function createInsertTab(
 	el.append(
 		textBox.btn,
 		shape.el,
+		...freeformTools.buttons,
 		image.btn,
 		media.btn,
 		table.btn,
@@ -99,6 +111,7 @@ export function createInsertTab(
 	const gated: Array<{ setDisabled(disabled: boolean): void }> = [
 		textBox,
 		shape,
+		freeformTools,
 		image,
 		media,
 		table,
@@ -122,6 +135,9 @@ export function createInsertTab(
 		},
 		setHasSelection(hasSelection) {
 			hyperlink.setDisabled(!hasSelection);
+		},
+		setFreeformTool(tool) {
+			freeformTools.setActive(tool);
 		},
 	};
 }

@@ -8,6 +8,7 @@ import {
 	toggleBlackboard,
 } from 'pptx-viewer-shared';
 import type {
+	FreeformToolKind,
 	PresentationPointerState,
 	PresentationPointerTool,
 	PresentationSnapshot,
@@ -593,6 +594,7 @@ export interface ChromeHost {
 		setDrawTool(tool: DrawTool): void;
 		setDrawColor(color: string): void;
 		setDrawWidth(width: number): void;
+		armFreeformTool(tool: FreeformToolKind | null): void;
 	};
 	prev(): void;
 	next(): void;
@@ -892,6 +894,7 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		setDrawTool: (tool) => host.editor.setDrawTool(tool),
 		setDrawColor: (color) => host.editor.setDrawColor(color),
 		setDrawWidth: (width) => host.editor.setDrawWidth(width),
+		armFreeformTool: (tool) => host.editor.armFreeformTool(tool),
 		getQuickAccessOptions: () => host.getQuickAccessOptions(),
 		quickAccessScreenTip: (label) => host.quickAccessScreenTip(label),
 		enableEditingFromProtectedView: () => host.enableEditingFromProtectedView(),

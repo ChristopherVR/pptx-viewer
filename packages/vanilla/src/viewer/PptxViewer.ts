@@ -408,6 +408,7 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 			getLivePatcher: () => this.sessions.getCollaborationLivePatcher(),
 			flushInlineTextInput: () => this.sessions.flushCollaborationLivePatch(),
 			getKeyboardCustomization: () => this.customization.getResolved().keyboard,
+			getCustomization: () => this.customization.getResolved(),
 		});
 		this.editor.attachChrome();
 		this.rulers = createRulerController({
@@ -778,6 +779,7 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 			openHyperlink: () => this.parityWorkflows.openHyperlink(),
 			getAi: () => this.aiFocus,
 			getCustomization: () => this.customization.getResolved(),
+			startEditPoints: (id) => this.editor.startEditPoints(id),
 		});
 		this.canvasContextMenu?.destroy();
 		this.canvasContextMenu = mountCanvasContextMenu({

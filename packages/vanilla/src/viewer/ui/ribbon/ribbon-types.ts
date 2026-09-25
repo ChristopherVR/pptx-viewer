@@ -5,7 +5,12 @@ import type {
 	PptxPresentationProperties,
 	PptxSlideTransition,
 } from 'pptx-viewer-core';
-import type { ResolvedCustomization, RibbonTransitionDraft, ViewerTheme } from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	ResolvedCustomization,
+	RibbonTransitionDraft,
+	ViewerTheme,
+} from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
 import type { FindReplaceActions } from '../../editor/editor-find-replace-actions';
@@ -197,6 +202,8 @@ export interface RibbonDrawState {
 	width: number;
 	/** B6: the deck's `p:clrMru`, most-recent-first. */
 	recentColors?: readonly string[];
+	/** The armed Insert > Shapes drawing tool, or null. */
+	freeformTool?: FreeformToolKind | null;
 }
 
 /** Insert tab handler: build + insert an element of the given kind/shape preset. */
@@ -209,6 +216,10 @@ export interface RibbonInsertHandlers {
 	insertEquation: EditActions['insertEquation'];
 	insertActionButton: EditActions['insertActionButton'];
 	insertField: EditActions['insertField'];
+	/** Arm (or, with null, disarm) a Freeform: Shape / Curve tool. */
+	armFreeformTool?(tool: FreeformToolKind | null): void;
+	/** The drawing tools the host keeps (read when the tab is built). */
+	visibleDrawingTools?(): readonly FreeformToolKind[];
 }
 
 /** Every handler the ribbon dispatches, grouped by concern. */

@@ -23,7 +23,11 @@ import {
 	removeGuide,
 	savedPresentationFileName,
 } from 'pptx-viewer-shared';
-import type { ResolvedKeyboardCustomization } from 'pptx-viewer-shared';
+import type {
+	FreeformToolKind,
+	ResolvedCustomization,
+	ResolvedKeyboardCustomization,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 import type { DrawTool, Store, ViewerState } from '../state';
@@ -51,6 +55,7 @@ import { createEditorOps } from './editor-operations';
 import { recordRecentColor } from './editor-recent-colors';
 import { createStageInteractions } from './editor-stage-interactions';
 import { createMotionPathController } from './motion-path-controller';
+import { createOutlineAuthoringController } from './outline-authoring-controller';
 import type { SelectionOverlay } from './selection-overlay';
 import { createSelectionOverlay } from './selection-overlay';
 import { selectedAdjustmentDescriptors } from './shape-adjust-gesture';
@@ -79,6 +84,8 @@ export interface EditorControllerDeps {
 	flushInlineTextInput?: () => void;
 	/** The host's keyboard customisation, read on every key press. */
 	getKeyboardCustomization?: () => ResolvedKeyboardCustomization | undefined;
+	/** The host's resolved UI customisation (Edit Points gating, hidden commands). */
+	getCustomization?: () => ResolvedCustomization | undefined;
 }
 
 export interface EditorController {
@@ -112,6 +119,10 @@ export interface EditorController {
 	setDrawColor(color: string): void;
 	/** Set the pen/highlighter stroke width used by the next committed stroke. */
 	setDrawWidth(width: number): void;
+	/** Start Edit Points on `id` (context menu); false when it cannot be edited. */
+	startEditPoints(id: string): boolean;
+	/** Arm (or, with null, disarm) the Freeform: Shape / Curve drawing tool. */
+	armFreeformTool(tool: FreeformToolKind | null): void;
 	/** The formatting / insert / arrange actions for the editing chrome. */
 	getEditActions(): EditActions;
 	/** The Find & Replace actions for the ribbon's docked panel. */
@@ -373,19 +384,35 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		onChangePath: (path) => editActions.setMotionPathData(path),
 	});
 
+	// Edit Points and the Freeform: Shape / Curve tools, also inside the stage.
+	const outlineAuthoring = createOutlineAuthoringController({
+		doc,
+		store,
+		getTranslator: deps.getTranslator,
+		getScale: deps.getScale,
+		getStageWrap: () => attachedWrap,
+		getCustomization: deps.getCustomization,
+		applyElementPatch: (id, patch) => applyElementPatch(id, patch),
+		insertElement: (element) => editActions.insertElement(element),
+	});
+
 	const syncOverlay = (): void => {
 		// The format toolbar + inspector track selection even before the overlay
 		// layer is mounted, so refresh them regardless of the overlay guard.
 		syncEditingChrome();
 		motionPath.sync();
+		outlineAuthoring.sync();
 		if (!overlay) {
 			return;
 		}
 		const state = store.get();
 		const selected =
 			state.editable && !state.presenting
-				? getActiveElements(state).filter((element) =>
-						state.selectedElementIds.includes(element.id),
+				? getActiveElements(state).filter(
+						(element) =>
+							state.selectedElementIds.includes(element.id) &&
+							// A shape in Edit Points mode shows its vertices, not its box.
+							!outlineAuthoring.isEditingPoints(element.id),
 					)
 				: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
@@ -540,6 +567,7 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		chartQuickActions?.dispose();
 		chartQuickActions = null;
 		motionPath.detach();
+		outlineAuthoring.detach();
 	};
 
 	// -- Store subscription: keep selection/overlay/toolbar consistent -------------
@@ -667,6 +695,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 				dirty: false,
 				interactionActive: false,
 				drawTool: 'select',
+				editPointsElementId: null,
+				freeformTool: null,
 				formatPainterSourceId: null,
 				editTemplateMode: false,
 				masterViewTarget: null,
@@ -716,6 +746,8 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 			drawMode.setColor(color);
 		},
 		setDrawWidth: (width) => drawMode.setWidth(width),
+		startEditPoints: (id) => outlineAuthoring.startEditPoints(id),
+		armFreeformTool: (tool) => outlineAuthoring.armFreeformTool(tool),
 		getEditActions: () => editActions,
 		getFindReplaceActions: () => findReplaceActions,
 		commitNotes: (notes, notesSegments) => ops.commitNotes(notes, notesSegments),

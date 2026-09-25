@@ -47,6 +47,8 @@ export interface ContextMenuCommandDeps {
 	openHyperlink(): void;
 	/** AI focus controller when the host configured `ai`, otherwise null. */
 	getAi(): ContextMenuAiHooks | null;
+	/** Enter Edit Points on a shape (omitted: the entry does nothing). */
+	startEditPoints?(elementId: string): boolean;
 }
 
 /** The `{row, column}` a right-click landed on, when it landed inside a table cell. */
@@ -164,6 +166,8 @@ export function runContextMenuCommand(
 			return cell ? actions.splitTableCell(cell) : undefined;
 		case 'edit-text':
 			return runOnSelectedElement(deps, (elementId) => startEditingElement(deps.doc, elementId));
+		case 'edit-points':
+			return runOnSelectedElement(deps, (elementId) => void deps.startEditPoints?.(elementId));
 		case 'save-as-picture':
 			return runOnSelectedElement(deps, (elementId) =>
 				saveElementAsPictureById(deps.doc, deps.store, elementId),

@@ -21,6 +21,7 @@ import {
 	EMPTY_RESOLVED_CUSTOMIZATION,
 	isElementIdInteractive,
 	resolveContextMenuElementId,
+	resolveEditPointsAvailability,
 } from 'pptx-viewer-shared';
 import type { ContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
 
@@ -208,6 +209,9 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 				),
 				aiEnabled: deps.getAi() !== null,
 				hasClipboard: next.clipboardPayload !== null,
+				// Offered only when the host wired Edit Points in (greyed for a
+				// `noEditPoints` lock by the shared builder).
+				editPoints: deps.startEditPoints ? resolveEditPointsAvailability(element) : undefined,
 			}),
 			customization,
 		);
