@@ -9,14 +9,17 @@
  * Most entries are strictly smaller on at least one dataset; a few (Basic
  * Pyramid, Inverted Pyramid) tie legacy exactly on every dataset instead -
  * still listed since routing to either engine costs nothing when they agree,
- * and it keeps the pyramid family on one code path.
+ * and it keeps the pyramid family on one code path. Basic Cycle and Titled
+ * Matrix tie legacy's geometry exactly and are listed because the engine
+ * matches more cached font sizes on the tied datasets (the measurement's
+ * font tie-break, added once the engine sized text from `primFontSz`).
  *
  * `computeDiagramMlElements` (`smartart-decompose-diagram.ts`) consults
  * this set to try the engine BEFORE the legacy interpreter for a listed
  * `layoutDefinition.uniqueId`, falling back to legacy (then the
  * algorithmic heuristic) exactly as before when the engine declines.
  *
- * Measured 2026-09-24 with `scripts/measure-smartart-engine-vs-legacy.ts`;
+ * Measured 2026-09-24, re-measured 2026-09-25, with `scripts/measure-smartart-engine-vs-legacy.ts`;
  * see that script's own doc comment for the exact inclusion rule and
  * `docs/architecture/openxml-conformance.md#smartart-layout-ground-truth`
  * for the resulting gate numbers. Regenerate this list (in comparison
@@ -32,6 +35,7 @@ export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
 	'urn:microsoft.com/office/officeart/2008/layout/AlternatingPictureBlocks', // Alternating Picture Blocks (legacy<=0.233 -> engine<=0.0288)
 	'urn:microsoft.com/office/officeart/2008/layout/AlternatingPictureCircles', // Alternating Picture Circles (legacy<=0.4394 -> engine<=0.0019)
 	'urn:microsoft.com/office/officeart/2008/layout/AscendingPictureAccentProcess', // Ascending Picture Accent Process (legacy<=0.3576 -> engine<=0)
+	'urn:microsoft.com/office/officeart/2005/8/layout/cycle2', // Basic Cycle (legacy<=0.0012 -> engine<=0.0012; tie broken by font matches 0 -> 3 on every dataset)
 	'urn:microsoft.com/office/officeart/2005/8/layout/matrix3', // Basic Matrix (legacy<=0.7601 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/chart3', // Basic Pie (legacy<=0.0375 -> engine<=0)
 	'urn:microsoft.com/office/officeart/2005/8/layout/pyramid1', // Basic Pyramid (legacy<=0.0019 -> engine<=0.0019)
@@ -112,6 +116,7 @@ export const ENGINE_FIRST_LAYOUT_IDS: ReadonlySet<string> = new Set([
 	'urn:microsoft.com/office/officeart/2011/layout/ThemePictureAlternatingAccent', // Theme Picture Alternating Accent (legacy<=0.3633 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2011/layout/ThemePictureGrid', // Theme Picture Grid (legacy<=0.3299 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2008/layout/TitlePictureLineup', // Title Picture Lineup (legacy<=0.4109 -> engine<=0.0138)
+	'urn:microsoft.com/office/officeart/2005/8/layout/matrix1', // Titled Matrix (legacy<=0 -> engine<=0; tie broken by font matches 0 -> 1)
 	'urn:microsoft.com/office/officeart/2008/layout/TitledPictureBlocks', // Titled Picture Blocks (legacy<=0.474 -> engine<=0.4694)
 	'urn:microsoft.com/office/officeart/2005/8/layout/hList6', // Trapezoid List (legacy<=0.2976 -> engine<=0.0012)
 	'urn:microsoft.com/office/officeart/2005/8/layout/arrow2', // Upward Arrow (legacy<=0.0058 -> engine<=0.0019)

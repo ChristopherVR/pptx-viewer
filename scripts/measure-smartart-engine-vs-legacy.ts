@@ -17,11 +17,16 @@
  *   - the engine drops no shape the legacy interpreter matched (no
  *     shape-set loss: `engine.matched >= legacy.matched`), and
  *   - the engine's worst geometry deviation is never larger than legacy's
- *     (`engine.maxDeltaFraction <= legacy.maxDeltaFraction`),
+ *     (`engine.maxDeltaFraction <= legacy.maxDeltaFraction`), and
+ *   - where the two deviations TIE, the engine matches the cached font size
+ *     on at least as many shapes as legacy (`fontMatched`, the same 0.5pt
+ *     tolerance the gallery gate uses),
  *
- * and STRICTLY better (smaller deviation) on at least one dataset, so a
- * layout where the two engines tie everywhere does not churn the routing
- * for no measured benefit.
+ * and STRICTLY better on at least one dataset: a smaller deviation, or a
+ * tied deviation with more font matches. Font matches only ever break a
+ * geometry tie, so a layout the engine lays out measurably better is never
+ * held back by its font sizes, and a layout where the two engines tie on
+ * both everywhere does not churn the routing for no measured benefit.
  *
  * Usage: `bun run scripts/measure-smartart-engine-vs-legacy.ts [--only <substr>] [--json]`
  */
@@ -53,6 +58,8 @@ interface EngineMetric {
 	cachedTotal: number;
 	interpretedTotal: number;
 	maxDeltaFraction: number;
+	/** Matched shapes whose font size is within 0.5 of the cached one. */
+	fontMatched: number;
 	declined: boolean;
 }
 
@@ -61,6 +68,7 @@ const DECLINED: EngineMetric = {
 	cachedTotal: 0,
 	interpretedTotal: 0,
 	maxDeltaFraction: 1,
+	fontMatched: 0,
 	declined: true,
 };
 
@@ -100,6 +108,7 @@ function scoreAgainstCached(
 	}
 	const interpretedByText = textKeyed(interpreted);
 	let matched = 0;
+	let fontMatched = 0;
 	let maxDeltaFraction = 0;
 	for (const [text, cached] of cachedByText) {
 		const found = interpretedByText.get(text);
@@ -107,6 +116,10 @@ function scoreAgainstCached(
 			continue;
 		}
 		matched++;
+		const font = found.textStyle?.fontSize;
+		if (font !== undefined && Math.abs(font - (cached.textStyle?.fontSize ?? 0)) < 0.5) {
+			fontMatched++;
+		}
 		maxDeltaFraction = Math.max(
 			maxDeltaFraction,
 			Math.abs(cached.x - found.x) / boundW,
@@ -123,6 +136,7 @@ function scoreAgainstCached(
 		cachedTotal: cachedByText.size,
 		interpretedTotal: interpretedByText.size,
 		maxDeltaFraction: Math.round(maxDeltaFraction * 10000) / 10000,
+		fontMatched,
 		declined: false,
 	};
 }
@@ -244,10 +258,17 @@ function summarizeByLayout(comparisons: FixtureComparison[]): LayoutVerdict[] {
 		for (const c of list) {
 			const noShapeLoss = c.engine.matched >= c.legacy.matched;
 			const notWorse = c.engine.maxDeltaFraction <= c.legacy.maxDeltaFraction + 1e-9;
-			if (!noShapeLoss || !notWorse) {
+			const geometryTie = Math.abs(c.engine.maxDeltaFraction - c.legacy.maxDeltaFraction) <= 1e-9;
+			// Font matches only decide a geometry tie: a strictly smaller
+			// deviation wins on its own, as it always has.
+			const noFontLossOnTie = !geometryTie || c.engine.fontMatched >= c.legacy.fontMatched;
+			if (!noShapeLoss || !notWorse || !noFontLossOnTie) {
 				engineBetterOnEvery = false;
 			}
-			if (c.engine.maxDeltaFraction < c.legacy.maxDeltaFraction - 1e-9) {
+			if (
+				c.engine.maxDeltaFraction < c.legacy.maxDeltaFraction - 1e-9 ||
+				(geometryTie && c.engine.fontMatched > c.legacy.fontMatched)
+			) {
 				strictlyBetterSomewhere = true;
 			}
 			worstLegacyDelta = Math.max(worstLegacyDelta, c.legacy.maxDeltaFraction);
