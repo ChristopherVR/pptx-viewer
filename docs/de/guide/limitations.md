@@ -69,6 +69,7 @@ Ein Audit vom September 2026 gegen echtes PowerPoint fand diese offenen Luecken;
 - **Tabellen und Bilder:** Integrierte Tabellenformate ignorieren die Transparenz der Fuellung (Themenformat 2 wird unsichtbar dargestellt), automatisch vergroesserte Zeilen werden vom Tabellenrahmen abgeschnitten, Tabellentext ignoriert den Sonstigen-Text-Stil des Masters, und Graustufen-Neueinfaerbung/Ausbleichen werden nicht angewendet.
 - **3D-Modelle** ignorieren die in PowerPoint erstellte Kamera, Transformation und Beleuchtung.
 - **Editor-Abdeckung** ist eine Teilmenge der von PowerPoint: Formen zusammenfuehren, Zuschneide-Griffe auf der Zeichenflaeche, Inhalte einfuegen (Spezial) und viele Standard-Tastenkuerzel (Absatzausrichtung, Schriftgroesse, Format kopieren/einfuegen) sowie mehrere Ribbon-Galerien sind noch nicht verfuegbar. Punkte bearbeiten sowie die Zeichenwerkzeuge Freihandform: Form und Kurve sind in allen fuenf Bindings verfuegbar.
+- **Editor-Abdeckung** ist eine Teilmenge der von PowerPoint: Bearbeitungspunkte, Inhalte einfuegen (Spezial) und viele Standard-Tastenkuerzel (Absatzausrichtung, Schriftgroesse, Format kopieren/einfuegen) sowie mehrere Ribbon-Galerien sind noch nicht verfuegbar.
 
 ## EMF/WMF-Metadateien (`emf-converter`-Abhaengigkeit)
 

@@ -69,6 +69,7 @@ Un audit de septembre 2026 face au vrai PowerPoint a trouve ces lacunes ouvertes
 - **Tableaux et images :** les styles de tableau integres ignorent la transparence du remplissage (le style de theme 2 devient invisible), les lignes agrandies automatiquement sont rognees par le cadre du tableau, le texte du tableau ignore le style de texte "autre" du masque, et la recoloration en niveaux de gris/le delavage ne sont pas appliques.
 - **Les modeles 3D** ignorent la camera, la transformation et les eclairages crees dans PowerPoint.
 - **La couverture de l'editeur** est un sous-ensemble de celle de PowerPoint : Fusionner les formes, les poignees de recadrage sur le canevas, le collage special, de nombreux raccourcis standard (alignement de paragraphe, taille de police, copier/coller la mise en forme) et plusieurs galeries du ruban ne sont pas encore disponibles. Modifier les points et les outils de dessin Forme libre : forme et Courbe sont disponibles dans les cinq bindings.
+- **La couverture de l'editeur** est un sous-ensemble de celle de PowerPoint : Modifier les points, le collage special, de nombreux raccourcis standard (alignement de paragraphe, taille de police, copier/coller la mise en forme) et plusieurs galeries du ruban ne sont pas encore disponibles.
 
 ## Metafichiers EMF/WMF (dependance `emf-converter`)
 

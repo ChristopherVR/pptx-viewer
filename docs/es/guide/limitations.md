@@ -69,6 +69,7 @@ Una auditoria de septiembre de 2026 contra PowerPoint real encontro estas carenc
 - **Tablas e imagenes:** los estilos de tabla integrados ignoran la transparencia del relleno (el Estilo de tema 2 se renderiza invisible), las filas que crecen automaticamente se recortan por el marco de la tabla, el texto de la tabla ignora el estilo de "otro texto" del patron, y Reconvertir a escala de grises/Lavado no se aplican.
 - **Los modelos 3D** ignoran la camara, la transformacion y las luces creadas en PowerPoint.
 - **La cobertura del editor** es un subconjunto de la de PowerPoint: Combinar formas, los controladores de recorte en el lienzo, Pegado especial, muchos atajos estandar (alineacion de parrafo, tamano de fuente, copiar/pegar formato) y varias galerias de la cinta aun no estan disponibles. Modificar puntos y las herramientas de dibujo Forma libre: forma y Curva estan disponibles en los cinco bindings.
+- **La cobertura del editor** es un subconjunto de la de PowerPoint: Editar puntos, Pegado especial, muchos atajos estandar (alineacion de parrafo, tamano de fuente, copiar/pegar formato) y varias galerias de la cinta aun no estan disponibles.
 
 ## Metarchivos EMF/WMF (dependencia `emf-converter`)
 
