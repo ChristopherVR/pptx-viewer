@@ -41,24 +41,57 @@ describe('createEnvelopeWarp', () => {
 		}
 	});
 
-	it('places horizontal position at a plain linear fraction of box width (COM-remeasured 2026-09-24)', () => {
-		// PowerPoint COM: an 8-stem Arial "I" caption in a 320x110pt `textCanUp`/
-		// `textCanDown` box measured BIT-IDENTICAL stem positions at adj 15000
-		// and adj 50000 (very different curve steepness), which a
-		// curvature-sensitive law (the arc-length hypothesis this replaced)
-		// cannot produce; only a law independent of curve shape can. This pins
-		// that the mapping's horizontal component is exactly `s * width`.
+	it('places horizontal position by arc length along the can half-ellipse', () => {
+		// `textCanUp` adj 66667 in a 600x200 box: the top path is a half
+		// ellipse, rx = 300, ry = h - adj * h = 66.67. Independently measure the
+		// point at arc-length fraction s on a fine parametric polyline.
+		const rx = 300;
+		const ry = 200 * (1 - 0.66667);
+		const n = 20000;
+		const pts: { x: number; len: number }[] = [];
+		let len = 0;
+		let prev = { x: 0, y: 0 };
+		for (let i = 0; i <= n; i++) {
+			const t = Math.PI - (Math.PI * i) / n;
+			const p = { x: rx + rx * Math.cos(t), y: -ry * Math.sin(t) };
+			if (i > 0) {
+				len += Math.hypot(p.x - prev.x, p.y - prev.y);
+			}
+			pts.push({ x: p.x, len });
+			prev = p;
+		}
+		const xAtFraction = (f: number) => pts.find((p) => p.len >= f * len)!.x;
 		const warp = createEnvelopeWarp('textCanUp', 600, 200, 66667, undefined, BLOCK)!;
-		for (const s of [0, 0.0892, 0.2654, 0.5, 0.7046, 0.8808, 1]) {
-			expect(warp.map(s, 0.5).x).toBeCloseTo(s * 600, 6);
+		for (const s of [0.02, 0.1, 0.25, 0.5, 0.75, 0.9, 0.98]) {
+			expect(Math.abs(warp.map(s, 0.5).x - xAtFraction(s))).toBeLessThan(0.6);
+		}
+		// Steep cylinder ends compress: near an end, arc length covers less x.
+		expect(warp.map(0.05, 0.5).x).toBeLessThan(0.05 * 600 - 5);
+		expect(warp.map(0.95, 0.5).x).toBeGreaterThan(0.95 * 600 + 5);
+	});
+
+	it('moves glyphs with curve depth, as PowerPoint does (COM 2026-09-25)', () => {
+		// PowerPoint COM, 8-stem Arial "IIIIIIII" in a 600x285pt `textCanUp` box,
+		// exported at 1920px: the second stem's left ink edge sits at 327px at
+		// adj 66667 (deep) but 373px at adj 96667 (shallow). A placement law
+		// independent of curve shape (linear x) cannot move it at all.
+		const deep = createEnvelopeWarp('textCanUp', 600, 285, 66667, undefined, BLOCK)!;
+		const shallow = createEnvelopeWarp('textCanUp', 600, 285, 96667, undefined, BLOCK)!;
+		for (const s of [0.1, 0.2, 0.35]) {
+			expect(shallow.map(s, 0.5).x - deep.map(s, 0.5).x).toBeGreaterThan(5);
 		}
 	});
 
-	it('keeps the horizontal mapping independent of adj (COM-remeasured 2026-09-24)', () => {
-		const low = createEnvelopeWarp('textCanUp', 600, 200, 15000, undefined, BLOCK)!;
-		const high = createEnvelopeWarp('textCanUp', 600, 200, 85000, undefined, BLOCK)!;
-		for (const s of [0.1, 0.35, 0.5, 0.8]) {
-			expect(low.map(s, 0.5).x).toBeCloseTo(high.map(s, 0.5).x, 6);
+	it('clamps adj to the preset pin range, so out-of-range values draw the pinned shape', () => {
+		// `textCanUp` pins adj to [66667, 100000]: 15000 and 50000 both draw the
+		// 66667 cylinder (why an earlier "adj-independent" reading was void).
+		const pinned = createEnvelopeWarp('textCanUp', 600, 200, 66667, undefined, BLOCK)!;
+		for (const adj of [15000, 50000]) {
+			const warp = createEnvelopeWarp('textCanUp', 600, 200, adj, undefined, BLOCK)!;
+			for (const s of [0.1, 0.35, 0.8]) {
+				expect(warp.map(s, 0.5).x).toBeCloseTo(pinned.map(s, 0.5).x, 6);
+				expect(warp.map(s, 0.5).y).toBeCloseTo(pinned.map(s, 0.5).y, 6);
+			}
 		}
 	});
 

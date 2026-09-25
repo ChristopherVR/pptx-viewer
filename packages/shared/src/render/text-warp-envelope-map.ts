@@ -1,8 +1,8 @@
 /**
  * PowerPoint's point mapping for the WordArt two-curve envelope presets
  * (`textInflate`/`textDeflate`/`textCanUp`/`textCanDown` and the rest of
- * {@link GLYPH_ENVELOPE_PRESETS}), COM-remeasured (2026-09-24, see
- * `docs/guide/visual-effects.md`).
+ * {@link GLYPH_ENVELOPE_PRESETS}), derived from PowerPoint COM renders
+ * (2026-09-24, re-measured 2026-09-25; see `docs/guide/visual-effects.md`).
  *
  * The whole text block (every paragraph, laid out unwarped) is normalised by
  * its own bounding box `[left, right] x [top, bottom]` into `(s, v)`, both in
@@ -10,22 +10,29 @@
  *
  *   P(s, v) = (1 - v) * T(s) + v * B(s)
  *
- * where `T(s)` is the point at LINEAR fraction `s` along the preset's top
- * path (`x = s * width`) and `B(s)` the point at the same linear fraction
- * along its bottom path. An earlier version of this mapping used arc-length
- * fraction instead (denser sampling where a curve is steep), reasoned from
- * first principles but never COM-checked; an 8-stem vertical-caption COM
- * measurement (`textCanUp`/`textCanDown`, 3 `adj` values each) falsified it
- * directly: the measured stem positions were BIT-IDENTICAL across `adj`
- * values that produce very different curve steepness, which a
- * curvature-sensitive arc-length law cannot produce, but a law independent of
- * curve shape (plain linear `x`) does. The measured positions matched linear,
- * evenly-spaced glyph anchors to within the font's own side bearing.
- * Per-point outline warping (`text-warp-glyph-outline.ts`) already samples
- * every glyph coordinate through this same `map`, so a glyph's width/shear
- * now falls out of the curve's local slope at its own `x` automatically; no
- * separate per-preset "widen the glyph too" / "widen only the gaps"
- * special-casing is needed here any more.
+ * where `T(s)` is the point at ARC-LENGTH fraction `s` along the preset's top
+ * path and `B(s)` the point at arc-length fraction `s` along its bottom path,
+ * each measured independently in the shape's own (aspect-correct) units. So
+ * the horizontal position is not `s * width`: a steep stretch of a curve
+ * (the ends of the `can` cylinder, the shoulders of a strong `deflate`)
+ * consumes more arc length per unit of x, which compresses glyphs there and
+ * pushes the rest outward. Measured on vertical-stem captions (24 `I` stems,
+ * both edges of every stem, 38 preset/adj/aspect combinations) this law
+ * lands within ~0.1% of box width on every family, where the previous
+ * linear-`x` placement missed `can` by 5-18%.
+ *
+ * A later change briefly replaced this with linear `x` placement, citing
+ * stem positions that were bit-identical between `textCanUp` adj 15000 and
+ * adj 50000. That evidence was void: `textCanUp` pins `adj` to
+ * [66667, 100000], so both values clamp to 66667 and draw the same shape.
+ * A 2026-09-25 whole-outline ink-mask re-measurement against PowerPoint
+ * (`scripts/measure-wordart-can-*.{ps1,mjs}`, in-range adj values) confirmed
+ * arc length: at the deepest `can` (adj 66667 / 33333) ink IoU rose from
+ * 0.35-0.39 under linear `x` to 0.94-0.95, and from 0.86-0.88 to 0.95-0.97 at
+ * the shallow end, where the half-ellipse still turns vertical at both ends;
+ * `textDeflate` adj 37500 went from 0.57 to 0.96. The residual left at some
+ * middle `adj` values is PowerPoint ending a row short of its path end, a
+ * non-monotonic flattening artifact this mapping does not model.
  */
 import { envelopeCurveAt } from './text-warp-envelope-curves';
 
@@ -42,17 +49,58 @@ export interface EnvelopeWarp {
 	map(x: number, y: number): { x: number; y: number };
 }
 
-/** Samples per curve; linear interpolation is used between them. */
+/** Samples per curve; the arc-length inverse is linear between them. */
 const CURVE_SAMPLES = 512;
 
-/** The curve height (box units) at linear fraction `t` (clamped to `[0, 1]`) in `ys`. */
-function heightAtFraction(ys: Float64Array, t: number): number {
+interface ArcTable {
+	/** Curve x (box units) at each sample. */
+	xs: Float64Array;
+	/** Curve y (box units) at each sample. */
+	ys: Float64Array;
+	/** Cumulative arc length at each sample, normalised to `[0, 1]`. */
+	s: Float64Array;
+}
+
+function buildArcTable(ys: Float64Array, width: number): ArcTable {
+	const xs = new Float64Array(ys.length);
+	const s = new Float64Array(ys.length);
+	let total = 0;
+	for (let i = 0; i < ys.length; i++) {
+		xs[i] = (i / (ys.length - 1)) * width;
+		if (i > 0) {
+			total += Math.hypot(xs[i] - xs[i - 1], ys[i] - ys[i - 1]);
+		}
+		s[i] = total;
+	}
+	if (total > 0) {
+		for (let i = 0; i < s.length; i++) {
+			s[i] /= total;
+		}
+	} else {
+		for (let i = 0; i < s.length; i++) {
+			s[i] = i / (s.length - 1);
+		}
+	}
+	return { xs, ys, s };
+}
+
+/** The point at arc-length fraction `t` (clamped to `[0, 1]`) along `table`. */
+function pointAtArcFraction(table: ArcTable, t: number): { x: number; y: number } {
+	const { xs, ys, s } = table;
 	const clamped = Math.max(0, Math.min(1, t));
-	const pos = clamped * (ys.length - 1);
-	const lo = Math.floor(pos);
-	const hi = Math.min(ys.length - 1, lo + 1);
-	const f = pos - lo;
-	return ys[lo] + (ys[hi] - ys[lo]) * f;
+	let lo = 0;
+	let hi = s.length - 1;
+	while (hi - lo > 1) {
+		const mid = (lo + hi) >> 1;
+		if (s[mid] <= clamped) {
+			lo = mid;
+		} else {
+			hi = mid;
+		}
+	}
+	const span = s[hi] - s[lo];
+	const f = span > 0 ? (clamped - s[lo]) / span : 0;
+	return { x: xs[lo] + (xs[hi] - xs[lo]) * f, y: ys[lo] + (ys[hi] - ys[lo]) * f };
 }
 
 /**
@@ -83,13 +131,15 @@ export function createEnvelopeWarp(
 		topYs[i] = band.top * height;
 		bottomYs[i] = band.bottom * height;
 	}
+	const top = buildArcTable(topYs, width);
+	const bottom = buildArcTable(bottomYs, width);
 	return {
 		map(x: number, y: number) {
 			const s = (x - block.left) / blockW;
 			const v = (y - block.top) / blockH;
-			const topY = heightAtFraction(topYs, s);
-			const bottomY = heightAtFraction(bottomYs, s);
-			return { x: Math.max(0, Math.min(1, s)) * width, y: topY + (bottomY - topY) * v };
+			const t = pointAtArcFraction(top, s);
+			const b = pointAtArcFraction(bottom, s);
+			return { x: t.x + (b.x - t.x) * v, y: t.y + (b.y - t.y) * v };
 		},
 	};
 }
