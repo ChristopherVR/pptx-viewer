@@ -38,6 +38,7 @@ import {
 } from './text-body-layout';
 import { resolveTextBodyRectPadding } from './text-body-rect';
 import { lineHeightToPx, resolveLineHeight } from './text-line-height';
+import { resolveVertOverflowClipLines } from './text-overflow-lines';
 import { resolveCssTextAlign } from './text-paragraph-style';
 import {
 	computeAutoFitTextStyle,
@@ -318,6 +319,11 @@ export function buildTextBlockStyle(
 	const lineHeightPx = lineHeightToPx(fontSizePx, style.lineHeight);
 	const contentHeightPx = element.height - style.paddingTop - style.paddingBottom;
 	Object.assign(style, resolveVertOverflowEllipsisStyle(ts, contentHeightPx, lineHeightPx));
+	// `vertOverflow="clip"` hides whole lines only (see text-overflow-lines).
+	Object.assign(
+		style,
+		resolveVertOverflowClipLines(ts, contentHeightPx, style.paddingBottom, lineHeightPx),
+	);
 
 	return options.pxLengths ? toPxLengths(style) : style;
 }
