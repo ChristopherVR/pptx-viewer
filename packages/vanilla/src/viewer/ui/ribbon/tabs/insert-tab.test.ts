@@ -67,10 +67,12 @@ describe('createInsertTab', () => {
 	it('renders the React-aligned insert commands and a single SmartArt trigger', () => {
 		const t = createTranslator();
 		const tab = createInsertTab(document, t, makeHandlers(), vi.fn(), vi.fn(), vi.fn());
-		// Top-level append order: text, shape picker, image, media, table, chart
-		// picker, SmartArt, equation, action dropdown, field dropdown, hyperlink,
-		// header.
-		expect(tab.el.children).toHaveLength(12);
+		// Top-level order: text, shape picker (+ drawing tools), image, media,
+		// table, chart + SmartArt, equation, action dropdown, field dropdown,
+		// hyperlink, header, each run in its catalogue group's
+		// `display: contents` wrapper.
+		expect(tab.el.children).toHaveLength(11);
+		expect(tab.el.querySelectorAll('[data-ribbon-group="insert.text"]')).toHaveLength(3);
 		expect(tab.el.querySelectorAll('[aria-label="SmartArt"]')).toHaveLength(1);
 		expect(tab.el.querySelector('.pptxv-smartart-grid')).toBeNull();
 		// The shape and chart pickers are select + commit pairs, like React's.

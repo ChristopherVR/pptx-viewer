@@ -32,6 +32,8 @@ import { createCropActions } from './editor-crop-actions';
 import type { DeckActions } from './editor-deck-actions';
 import { createDeckActions } from './editor-deck-actions';
 import { patchShapeStyle } from './editor-format-mutations';
+import type { GalleryActions } from './editor-gallery-actions';
+import { createGalleryActions } from './editor-gallery-actions';
 import type { InkActions } from './editor-ink-actions';
 import { createInkActions } from './editor-ink-actions';
 import type { InsertKind } from './editor-insert';
@@ -93,6 +95,7 @@ export interface EditActions
 		InspectorActions,
 		InkActions,
 		DeckActions,
+		GalleryActions,
 		MergeActions,
 		CropActions {
 	/** Slide section CRUD and ordering actions. */
@@ -164,6 +167,7 @@ export interface EditActionsDeps {
 export function createEditActions(deps: EditActionsDeps): EditActions {
 	const { doc, store, ops } = deps;
 	const applyToSelected = createApplyToSelected(store, ops);
+	const deckActions = createDeckActions({ store, ops, getHandler: deps.getHandler });
 
 	/** Append a freshly-built element to the current slide, selected. */
 	const insertElement = (element: PptxElement | null): void => {
@@ -194,7 +198,8 @@ export function createEditActions(deps: EditActionsDeps): EditActions {
 		...createAnimationActions({ store, ops }),
 		...createInspectorActions(applyToSelected),
 		...createInkActions({ store, ops }),
-		...createDeckActions({ store, ops, getHandler: deps.getHandler }),
+		...deckActions,
+		...createGalleryActions({ store, ops, deck: deckActions }),
 		...createMergeActions({ store, ops }),
 		...createCropActions({ doc, store, ops }),
 		sections: createSectionActions(store, ops),

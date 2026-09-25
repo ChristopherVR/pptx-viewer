@@ -1,5 +1,10 @@
-import type { ToolbarActionId } from 'pptx-viewer-shared';
-import { filterVisibleTabs, isActionHidden } from 'pptx-viewer-shared';
+import type { RibbonContextualTabId, ToolbarActionId } from 'pptx-viewer-shared';
+import {
+	contextualTabLabelKey,
+	filterVisibleTabs,
+	isActionHidden,
+	RIBBON_CONTEXTUAL_TAB_ATTR,
+} from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
@@ -8,7 +13,12 @@ import type { RibbonTabId } from './ribbon-types';
 
 export interface RibbonTabBar {
 	el: HTMLElement;
-	setActive(tab: RibbonTabId): void;
+	setActive(tab: RibbonTabId | RibbonContextualTabId): void;
+	/**
+	 * Show the selection's contextual tabs (Shape Format, Picture Format, ...)
+	 * after the fixed tabs, PowerPoint-style.
+	 */
+	setContextualTabs(tabs: readonly RibbonContextualTabId[]): void;
 	/** Hide/show tab buttons per Options > Customize Ribbon (File always shown). */
 	setHiddenTabs(hidden: ReadonlySet<string>): void;
 	/** Set each tab's `title` from a ScreenTip resolver (Options > General). */
@@ -31,7 +41,7 @@ export interface RibbonTabBarActions {
 export function createRibbonTabBar(
 	doc: Document,
 	t: Translator,
-	onSelect: (tab: RibbonTabId) => void,
+	onSelect: (tab: RibbonTabId | RibbonContextualTabId) => void,
 	hiddenActions?: readonly ToolbarActionId[],
 	actions?: RibbonTabBarActions,
 ): RibbonTabBar {
@@ -55,8 +65,43 @@ export function createRibbonTabBar(
 		labels.set(tab.id, label);
 	}
 
+	const contextualButtons = new Map<RibbonContextualTabId, HTMLButtonElement>();
+	let contextualIds: readonly RibbonContextualTabId[] = [];
+	let activeTab: RibbonTabId | RibbonContextualTabId | null = null;
+	let trailing: HTMLElement | null = null;
+	const reflectActive = (): void => {
+		const all: Array<[string, HTMLButtonElement]> = [...buttons, ...contextualButtons];
+		for (const [id, btn] of all) {
+			const active = id === activeTab;
+			btn.classList.toggle('is-active', active);
+			btn.setAttribute('aria-selected', String(active));
+		}
+	};
+	const setContextualTabs = (tabs: readonly RibbonContextualTabId[]): void => {
+		if (tabs.length === contextualIds.length && tabs.every((id, i) => contextualIds[i] === id)) {
+			return;
+		}
+		contextualIds = [...tabs];
+		for (const btn of contextualButtons.values()) {
+			btn.remove();
+		}
+		contextualButtons.clear();
+		for (const id of tabs) {
+			const btn = createEl(doc, 'button', 'pptxv-ribbon-tab pptxv-ribbon-tab-contextual');
+			btn.type = 'button';
+			btn.setAttribute('role', 'tab');
+			btn.setAttribute(RIBBON_CONTEXTUAL_TAB_ATTR, id);
+			btn.textContent = t(contextualTabLabelKey(id));
+			btn.addEventListener('click', () => onSelect(id));
+			el.insertBefore(btn, trailing);
+			contextualButtons.set(id, btn);
+		}
+		reflectActive();
+	};
+
 	if (actions) {
-		el.appendChild(createEl(doc, 'span', 'pptxv-tabrow-spacer'));
+		trailing = createEl(doc, 'span', 'pptxv-tabrow-spacer');
+		el.appendChild(trailing);
 		const actionsHost = createEl(doc, 'div', 'pptxv-tabrow-actions');
 		if (!isActionHidden('record', hiddenActions)) {
 			const record = createEl(doc, 'button', 'pptxv-tabrow-record');
@@ -77,12 +122,10 @@ export function createRibbonTabBar(
 	return {
 		el,
 		setActive(tab) {
-			for (const [id, btn] of buttons) {
-				const active = id === tab;
-				btn.classList.toggle('is-active', active);
-				btn.setAttribute('aria-selected', String(active));
-			}
+			activeTab = tab;
+			reflectActive();
 		},
+		setContextualTabs,
 		setHiddenTabs(hidden) {
 			for (const [id, btn] of buttons) {
 				btn.hidden = id !== 'file' && hidden.has(id);

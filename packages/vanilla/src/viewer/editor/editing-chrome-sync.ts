@@ -1,9 +1,10 @@
 /* oxlint-disable eslint/one-var -- pervasive pre-existing pattern in this file
    (many independent short-lived `const`s building each chrome update payload);
    merging them isn't a style choice here. */
-import type { PptxElement, PptxLayoutPreview } from 'pptx-viewer-core';
+import type { PptxElement, PptxHandler, PptxLayoutPreview } from 'pptx-viewer-core';
 import { buildThemeColorMap } from 'pptx-viewer-core';
 import { canCropElement, canInteractWithElement, canMergeShapes } from 'pptx-viewer-shared';
+import type { RibbonGalleryContext } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
@@ -58,6 +59,24 @@ export function collectLayoutOptions(state: ViewerState): LayoutOption[] {
 }
 
 /**
+ * The shared ribbon galleries' context: the primary selection, the deck theme
+ * and, once a deck is loaded, the handler's style-matrix resolver (so Shape
+ * Styles previews resolve `<p:style>` exactly as the load path does).
+ */
+export function buildRibbonGalleryContext(
+	state: ViewerState,
+	element: PptxElement | undefined,
+	handler: PptxHandler | null | undefined,
+): RibbonGalleryContext {
+	return {
+		element: element ?? null,
+		themeColorMap: state.colorScheme ? buildThemeColorMap(state.colorScheme) : undefined,
+		theme: { name: state.themeName, colorScheme: state.colorScheme, fontScheme: state.fontScheme },
+		resolveStyleMatrix: handler ? (xml) => handler.resolveStyleMatrixReferences(xml) : undefined,
+	};
+}
+
+/**
  * Keep the editing chrome (ribbon + property inspector) in sync with the
  * selected element. Extracted from `editor-controller` to keep that file
  * within the size budget; pure aside from the imperative chrome `update`
@@ -75,6 +94,8 @@ export interface EditingChromeSyncDeps {
 	 * first sync because parsing them is deferred until a deck is loaded.
 	 */
 	layoutPreviews?(): ReadonlyMap<string, PptxLayoutPreview>;
+	/** The loaded deck's handler (ribbon gallery style-matrix resolution); null before a load. */
+	getHandler?(): PptxHandler | null;
 }
 
 /** Build the `sync()` function that refreshes the ribbon + inspector. */
@@ -131,6 +152,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			canMergeShapes: editingVisible && canMergeShapes(selectedElements(state)),
 			canCrop: state.selectedElementIds.length === 1 && canCropElement(el),
 			cropActive: state.cropSession !== null,
+			galleryContext: buildRibbonGalleryContext(state, el, deps.getHandler?.()),
 		});
 		ribbon?.setDrawState({
 			tool: state.drawTool,

@@ -16,6 +16,7 @@ import type { CropAspectGroup, ToolbarActionId } from 'pptx-viewer-shared';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl } from '../ribbon-tagging';
 import type { ActionMenuItem } from './ribbon-action-menu';
 import { makeActionMenu } from './ribbon-action-menu';
 
@@ -75,6 +76,7 @@ export function createMergeCropControls(
 				})),
 			});
 	if (merge) {
+		tagRibbonControl(merge.el, 'home.arrange.mergeShapes');
 		el.appendChild(merge.el);
 	}
 
@@ -119,6 +121,7 @@ export function createMergeCropControls(
 			control: 'crop-menu',
 			items,
 		});
+		tagRibbonControl(cropWrap, 'home.arrange.crop');
 		cropWrap.append(crop.btn, cropMenu.el);
 		el.appendChild(cropWrap);
 	}

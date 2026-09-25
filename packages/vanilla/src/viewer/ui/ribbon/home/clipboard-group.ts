@@ -1,6 +1,7 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface ClipboardGroupHandlers {
 	copy(): void;
@@ -28,6 +29,7 @@ export function createClipboardGroup(
 	handlers: ClipboardGroupHandlers,
 ): ClipboardGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.clipboard');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -51,6 +53,10 @@ export function createClipboardGroup(
 		onClick: handlers.toggleFormatPainter,
 	});
 	painter.btn.dataset.testid = 'format-painter-toggle';
+	tagRibbonControl(paste.btn, 'home.clipboard.paste');
+	tagRibbonControl(cut.btn, 'home.clipboard.cut');
+	tagRibbonControl(copy.btn, 'home.clipboard.copy');
+	tagRibbonControl(painter.btn, 'home.clipboard.formatPainter');
 	row.append(paste.btn, cut.btn, copy.btn, painter.btn);
 
 	return {

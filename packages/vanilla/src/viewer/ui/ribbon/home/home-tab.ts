@@ -6,6 +6,8 @@ import type { EditActions } from '../../../editor/editor-edit-ops';
 import { canFormatText, readTextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createDefaultRegistry, createEl, renderSlideStage } from '../../../render';
+import type { RibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGalleryHub } from '../gallery/gallery-hub';
 import type { LayoutOption } from '../ribbon-types';
 import type { ArrangeGroup } from './arrange-group';
 import { createArrangeGroup } from './arrange-group';
@@ -30,6 +32,8 @@ export interface HomeTabDeps {
 	onToggleFindReplace(): void;
 	/** Host-hidden ribbon controls (Merge Shapes / Crop are never built when hidden). */
 	hiddenActions?: readonly ToolbarActionId[];
+	/** The ribbon's gallery hub (omitted: a private one dispatching through `edit`). */
+	galleryHub?: RibbonGalleryHub;
 }
 
 export interface HomeTabSyncState {
@@ -76,6 +80,8 @@ export interface HomeTab {
 export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): HomeTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 	const { edit } = deps;
+	const galleryHub =
+		deps.galleryHub ?? createRibbonGalleryHub((result) => edit.applyRibbonGalleryResult(result));
 
 	const clipboard: ClipboardGroup = createClipboardGroup(doc, t, {
 		copy: edit.copy,
@@ -125,31 +131,41 @@ export function createHomeTab(doc: Document, t: Translator, deps: HomeTabDeps): 
 		changeCase: edit.changeCase,
 		clearFormatting: edit.clearFormatting,
 	});
-	const paragraph: ParagraphGroup = createParagraphGroup(doc, t, {
-		toggleBulletList: edit.toggleBulletList,
-		toggleNumberedList: edit.toggleNumberedList,
-		increaseIndent: edit.increaseIndent,
-		decreaseIndent: edit.decreaseIndent,
-		setTextAlign: edit.setTextAlign,
-		setLineSpacing: edit.setLineSpacing,
-		setTextDirection: edit.setTextDirection,
-		setColumnCount: edit.setColumnCount,
-	});
+	const paragraph: ParagraphGroup = createParagraphGroup(
+		doc,
+		t,
+		{
+			toggleBulletList: edit.toggleBulletList,
+			toggleNumberedList: edit.toggleNumberedList,
+			increaseIndent: edit.increaseIndent,
+			decreaseIndent: edit.decreaseIndent,
+			setTextAlign: edit.setTextAlign,
+			setLineSpacing: edit.setLineSpacing,
+			setTextDirection: edit.setTextDirection,
+			setColumnCount: edit.setColumnCount,
+		},
+		galleryHub,
+	);
 	const editing: EditingGroup = createEditingGroup(doc, t, {
 		toggleFindReplace: deps.onToggleFindReplace,
 		selectAll: edit.selectAll,
 	});
-	const drawing: DrawingGroup = createDrawingGroup(doc, t, {
-		insertShape: (shapeType) => edit.insert('shape', shapeType),
-		bringForward: edit.bringForward,
-		sendBackward: edit.sendBackward,
-		bringToFront: edit.bringToFront,
-		sendToBack: edit.sendToBack,
-		groupSelected: edit.groupSelected,
-		ungroupSelected: edit.ungroupSelected,
-		setShapeFill: edit.setShapeFill,
-		setShapeStroke: edit.setShapeStroke,
-	});
+	const drawing: DrawingGroup = createDrawingGroup(
+		doc,
+		t,
+		{
+			insertShape: (shapeType) => edit.insert('shape', shapeType),
+			bringForward: edit.bringForward,
+			sendBackward: edit.sendBackward,
+			bringToFront: edit.bringToFront,
+			sendToBack: edit.sendToBack,
+			groupSelected: edit.groupSelected,
+			ungroupSelected: edit.ungroupSelected,
+			setShapeFill: edit.setShapeFill,
+			setShapeStroke: edit.setShapeStroke,
+		},
+		galleryHub,
+	);
 	const arrange: ArrangeGroup = createArrangeGroup(
 		doc,
 		t,

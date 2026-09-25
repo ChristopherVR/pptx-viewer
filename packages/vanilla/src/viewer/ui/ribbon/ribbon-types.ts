@@ -8,6 +8,7 @@ import type {
 import type {
 	FreeformToolKind,
 	ResolvedCustomization,
+	RibbonGalleryContext,
 	RibbonTransitionDraft,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
@@ -296,4 +297,6 @@ export interface RibbonSelectionState {
 	canCrop?: boolean;
 	/** Picture crop mode is on (the Crop toggle's pressed state). */
 	cropActive?: boolean;
+	/** What the shared ribbon galleries build their descriptors from. */
+	galleryContext?: RibbonGalleryContext;
 }

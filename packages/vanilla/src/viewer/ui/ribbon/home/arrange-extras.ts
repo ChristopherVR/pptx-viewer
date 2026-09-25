@@ -10,6 +10,7 @@ import {
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl } from '../ribbon-tagging';
 
 export interface ArrangeExtrasHandlers {
 	groupSelected(): void;
@@ -83,6 +84,9 @@ export function createArrangeExtras(
 		}
 	});
 
+	tagRibbonControl(group.btn, 'home.arrange.group');
+	tagRibbonControl(ungroup.btn, 'home.arrange.ungroup');
+	tagRibbonControl(stroke, 'home.arrange.outlineWidth');
 	el.append(group.btn, ungroup.btn, stroke);
 
 	return {

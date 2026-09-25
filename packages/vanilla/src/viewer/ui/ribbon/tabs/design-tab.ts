@@ -1,11 +1,15 @@
 import { THEME_PRESETS } from 'pptx-viewer-core';
 import type { ViewerTheme } from 'pptx-viewer-shared';
-import { vermilionDarkTheme, vermilionLightTheme } from 'pptx-viewer-shared';
+import { FIXED_TAB_GALLERIES, vermilionDarkTheme, vermilionLightTheme } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
+import { createRibbonGroupShell } from '../gallery/contextual-tabs';
+import type { RibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGallery } from '../gallery/ribbon-gallery';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonDesignHandlers } from '../ribbon-types';
 
 /** One chrome-theme swatch: a label plus the `ViewerTheme` it applies (`undefined` resets). */
@@ -89,6 +93,7 @@ export function createDesignTab(
 	handlers: RibbonDesignHandlers,
 	onToggleFormatBackground: () => void,
 	onOpenSlideSize: () => void,
+	galleryHub?: RibbonGalleryHub,
 ): DesignTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
@@ -161,7 +166,23 @@ export function createDesignTab(
 	});
 	formatBackground.btn.title = t('pptx.ribbon.formatBackgroundTitle');
 
-	el.append(browse.el, editTheme.el, slideSize.btn, formatBackground.btn);
+	tagRibbonControl(browse.el, 'design.themes.browseThemes');
+	tagRibbonControl(editTheme.el, 'design.themes.editTheme');
+	tagRibbonControl(slideSize.btn, 'design.customize.slideSize');
+	tagRibbonControl(formatBackground.btn, 'design.customize.formatBackground');
+	el.appendChild(wrapRibbonGroup(doc, 'design.themes', browse.el, editTheme.el));
+	// Design > Variants: the deck theme's Colors / Fonts libraries, straight
+	// from the shared gallery placements.
+	if (galleryHub) {
+		const variants = createRibbonGroupShell(doc, 'design.variants', t('pptx.ribbon.groupVariants'));
+		for (const placement of FIXED_TAB_GALLERIES) {
+			if (placement.control.startsWith('design.variants.')) {
+				variants.row.appendChild(createRibbonGallery(doc, t, placement, galleryHub).el);
+			}
+		}
+		el.appendChild(variants.el);
+	}
+	el.appendChild(wrapRibbonGroup(doc, 'design.customize', slideSize.btn, formatBackground.btn));
 
 	return {
 		el,

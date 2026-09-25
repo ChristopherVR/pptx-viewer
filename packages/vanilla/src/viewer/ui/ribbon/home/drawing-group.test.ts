@@ -54,7 +54,7 @@ function menuFor(group: ReturnType<typeof createDrawingGroup>, label: string): H
 }
 
 describe('createDrawingGroup', () => {
-	it('offers the five Drawing commands React does', () => {
+	it('offers the Drawing commands plus the Quick Styles and Shape Effects galleries', () => {
 		const t = createTranslator();
 		const group = createDrawingGroup(document, t, handlers());
 		for (const label of [
@@ -62,10 +62,20 @@ describe('createDrawingGroup', () => {
 			t('pptx.ribbon.arrange'),
 			t('pptx.drawing.shapeFill'),
 			t('pptx.drawing.shapeOutline'),
-			t('pptx.drawing.shapeEffectsUnavailable'),
 		]) {
 			expect(control(group, label)).toBeTruthy();
 		}
+		expect(group.el.getAttribute('data-ribbon-group')).toBe('home.drawing');
+		expect(
+			group.el.querySelector(
+				'[data-ribbon-control="home.drawing.quickStyles"] [data-ribbon-gallery="shapeStyles"]',
+			),
+		).not.toBeNull();
+		expect(
+			group.el.querySelector(
+				'[data-ribbon-control="home.drawing.shapeEffects"] [data-ribbon-gallery="shapeEffects"]',
+			),
+		).not.toBeNull();
 	});
 
 	it('inserts a preset from the Shapes menu', () => {
@@ -92,11 +102,13 @@ describe('createDrawingGroup', () => {
 		expect(actions.ungroupSelected).toHaveBeenCalledOnce();
 	});
 
-	it('leaves Shape Effects permanently unavailable, as React does', () => {
+	it('no longer renders the disabled Shape Effects placeholder', () => {
 		const t = createTranslator();
 		const group = createDrawingGroup(document, t, handlers());
 		group.update({ editable: true, hasSelection: true });
-		expect(control(group, t('pptx.drawing.shapeEffectsUnavailable')).disabled).toBeTruthy();
+		expect(
+			group.el.querySelector(`[aria-label="${t('pptx.drawing.shapeEffectsUnavailable')}"]`),
+		).toBeNull();
 	});
 
 	// B6: both pickers show the same deck-level "Recent colours" row.

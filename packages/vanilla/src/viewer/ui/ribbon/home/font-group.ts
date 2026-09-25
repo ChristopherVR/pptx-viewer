@@ -15,6 +15,7 @@ import { makeButton } from '../../controls';
 import type { DropdownItem } from '../../dropdown';
 import { makeDropdown } from '../../dropdown';
 import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface FontGroupHandlers {
 	toggleBold(): void;
@@ -83,6 +84,7 @@ export function createFontGroup(
 	handlers: FontGroupHandlers,
 ): FontGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.font');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -181,6 +183,20 @@ export function createFontGroup(
 		onSelect: handlers.setHighlightColor,
 	});
 
+	tagRibbonControl(fontFamily.el, 'home.font.fontFamily');
+	tagRibbonControl(fontSize.el, 'home.font.fontSize');
+	tagRibbonControl(shrink.btn, 'home.font.decreaseFontSize');
+	tagRibbonControl(grow.btn, 'home.font.increaseFontSize');
+	tagRibbonControl(bold.btn, 'home.font.bold');
+	tagRibbonControl(italic.btn, 'home.font.italic');
+	tagRibbonControl(underline.btn, 'home.font.underline');
+	tagRibbonControl(strike.btn, 'home.font.strikethrough');
+	tagRibbonControl(shadow.btn, 'home.font.shadow');
+	tagRibbonControl(clear.btn, 'home.font.clearFormatting');
+	tagRibbonControl(charSpacing.el, 'home.font.characterSpacing');
+	tagRibbonControl(changeCase.el, 'home.font.changeCase');
+	tagRibbonControl(fontColor.el, 'home.font.fontColor');
+	tagRibbonControl(highlight.el, 'home.font.highlightColor');
 	row.append(
 		fontFamily.el,
 		fontSize.el,

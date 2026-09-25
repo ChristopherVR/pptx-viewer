@@ -1,5 +1,6 @@
 import type { TextStyle } from 'pptx-viewer-core';
-import { LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
+import type { RibbonControlId } from 'pptx-viewer-shared';
+import { FIXED_TAB_GALLERIES, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
 
 import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
@@ -7,6 +8,10 @@ import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { makeDropdown } from '../../dropdown';
 import type { IconName } from '../../icons';
+import type { RibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGalleryHub } from '../gallery/gallery-hub';
+import { createRibbonGallery } from '../gallery/ribbon-gallery';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface ParagraphGroupHandlers {
 	toggleBulletList(): void;
@@ -51,20 +56,63 @@ const ALIGN_BUTTONS: ReadonlyArray<{
 	align: NonNullable<TextStyle['align']>;
 	icon: IconName;
 	labelKey: string;
+	control: RibbonControlId;
 }> = [
-	{ align: 'left', icon: 'align-left', labelKey: 'pptx.ribbon.alignLeft' },
-	{ align: 'center', icon: 'align-center', labelKey: 'pptx.ribbon.alignCenter' },
-	{ align: 'right', icon: 'align-right', labelKey: 'pptx.ribbon.alignRight' },
-	{ align: 'justify', icon: 'align-justify', labelKey: 'pptx.ribbon.justify' },
+	{
+		align: 'left',
+		icon: 'align-left',
+		labelKey: 'pptx.ribbon.alignLeft',
+		control: 'home.paragraph.alignLeft',
+	},
+	{
+		align: 'center',
+		icon: 'align-center',
+		labelKey: 'pptx.ribbon.alignCenter',
+		control: 'home.paragraph.alignCenter',
+	},
+	{
+		align: 'right',
+		icon: 'align-right',
+		labelKey: 'pptx.ribbon.alignRight',
+		control: 'home.paragraph.alignRight',
+	},
+	{
+		align: 'justify',
+		icon: 'align-justify',
+		labelKey: 'pptx.ribbon.justify',
+		control: 'home.paragraph.justify',
+	},
 ];
+
+/**
+ * A list toggle plus the chevron that drops its shared library gallery
+ * (Bullets / Numbering), tagged as one catalogue control.
+ */
+function listToggleWithGallery(
+	doc: Document,
+	t: Translator,
+	toggle: HTMLElement,
+	control: 'home.paragraph.bullets' | 'home.paragraph.numbering',
+	hub: RibbonGalleryHub,
+): HTMLElement {
+	const placement = FIXED_TAB_GALLERIES.find((entry) => entry.control === control);
+	const wrap = tagRibbonControl(createEl(doc, 'div', 'pptxv-split-gallery'), control);
+	wrap.appendChild(toggle);
+	if (placement) {
+		wrap.appendChild(createRibbonGallery(doc, t, placement, hub, { chevronOnly: true }).el);
+	}
+	return wrap;
+}
 
 /** The ribbon Home tab's Paragraph group: bullets/numbering, indent, align, line spacing. */
 export function createParagraphGroup(
 	doc: Document,
 	t: Translator,
 	handlers: ParagraphGroupHandlers,
+	galleryHub: RibbonGalleryHub = createRibbonGalleryHub(() => {}),
 ): ParagraphGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.paragraph');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -133,9 +181,17 @@ export function createParagraphGroup(
 	});
 	columns.el.querySelector('.pptxv-dropdown-text')?.remove();
 
+	tagRibbonControl(indentDec.btn, 'home.paragraph.decreaseIndent');
+	tagRibbonControl(indentInc.btn, 'home.paragraph.increaseIndent');
+	for (const [i, def] of ALIGN_BUTTONS.entries()) {
+		tagRibbonControl(alignButtons[i].btn, def.control);
+	}
+	tagRibbonControl(lineSpacing.el, 'home.paragraph.lineSpacing');
+	tagRibbonControl(textDirection.el, 'home.paragraph.textDirection');
+	tagRibbonControl(columns.el, 'home.paragraph.columns');
 	row.append(
-		bullets.btn,
-		numbered.btn,
+		listToggleWithGallery(doc, t, bullets.btn, 'home.paragraph.bullets', galleryHub),
+		listToggleWithGallery(doc, t, numbered.btn, 'home.paragraph.numbering', galleryHub),
 		indentDec.btn,
 		indentInc.btn,
 		...alignButtons.map((b) => b.btn),

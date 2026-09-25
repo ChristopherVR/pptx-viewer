@@ -1,6 +1,7 @@
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
+import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 
 export interface EditingGroupHandlers {
 	toggleFindReplace(): void;
@@ -19,6 +20,7 @@ export function createEditingGroup(
 	handlers: EditingGroupHandlers,
 ): EditingGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	tagRibbonGroup(el, 'home.editing');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
@@ -44,6 +46,9 @@ export function createEditingGroup(
 	// to skip this binding entirely. Plain buttons in a plain popover, exactly
 	// the other three bindings' shape.
 	const select = createSelectMenu(doc, t, handlers);
+	tagRibbonControl(find.btn, 'home.editing.find');
+	tagRibbonControl(replace.btn, 'home.editing.replace');
+	tagRibbonControl(select.el, 'home.editing.select');
 	row.append(find.btn, replace.btn, select.el);
 
 	return {

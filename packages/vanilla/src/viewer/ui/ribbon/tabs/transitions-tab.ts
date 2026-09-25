@@ -20,6 +20,7 @@ import { playAnimationSound } from '../../../animation/animation-sound';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton, makeNumberField } from '../../controls';
+import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonTransitionHandlers } from '../ribbon-types';
 import { createAdvanceGroup } from './transitions-advance';
 
@@ -221,6 +222,26 @@ export function createTransitionsTab(
 	});
 	inspector.btn.title = t('pptx.ribbon.openInspectorTransitions');
 	el.appendChild(inspector.btn);
+
+	tagRibbonControl(preview.btn, 'transitions.preview.preview');
+	tagRibbonControl(gallery, 'transitions.transitionToThisSlide.gallery');
+	tagRibbonControl(durationField.el, 'transitions.timing.duration');
+	tagRibbonControl(soundLabel, 'transitions.timing.sound');
+	tagRibbonControl(applyToAll.btn, 'transitions.timing.applyToAll');
+	// Catalogue groups as `display: contents` runs (layout unchanged).
+	el.replaceChildren(
+		wrapRibbonGroup(doc, 'transitions.preview', preview.btn),
+		wrapRibbonGroup(doc, 'transitions.transitionToThisSlide', gallery),
+		wrapRibbonGroup(
+			doc,
+			'transitions.timing',
+			durationField.el,
+			soundLabel,
+			applyToAll.btn,
+			advance.el,
+		),
+		inspector.btn,
+	);
 
 	const paint = (): void => {
 		paintGallery();
