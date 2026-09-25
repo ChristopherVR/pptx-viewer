@@ -201,7 +201,7 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	/**
 	 * Opt in to the interactive Three.js surface-chart renderer (default
 	 * `false`). When `true`, `surface`/`surface3D` charts render as a
-	 * camera-orbitable WebGL mesh (drag to rotate, scroll to zoom) instead of
+	 * WebGL mesh instead of
 	 * the static SVG isometric projection. Chart marks are not
 	 * selectable/draggable in this mode. `three` is an optional peer
 	 * dependency, lazily imported only when this is `true`; when it is
@@ -212,8 +212,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	surfaceChart3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js bar3D-chart renderer (default
-	 * `false`). When `true`, `bar3D` charts render as camera-orbitable real
-	 * box meshes (drag to rotate, scroll to zoom) instead of the flat SVG
+	 * `false`). When `true`, `bar3D` charts render as real
+	 * box meshes instead of the flat SVG
 	 * oblique-projection illusion. Chart marks are not selectable/draggable in
 	 * this mode. `three` is an optional peer dependency, lazily imported only
 	 * when this is `true`; when it is unavailable, the chart has no plottable
@@ -224,9 +224,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	barChart3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js line3D-chart renderer (default
-	 * `false`). When `true`, `line3D` charts render as camera-orbitable real
-	 * tube-path meshes, one per depth ("series") plane (drag to rotate, scroll
-	 * to zoom), instead of the flat SVG oblique-projection illusion. Chart
+	 * `false`). When `true`, `line3D` charts render as real
+	 * tube-path meshes, one per depth ("series") plane, instead of the flat SVG oblique-projection illusion. Chart
 	 * marks are not selectable/draggable in this mode. `three` is an optional
 	 * peer dependency, lazily imported only when this is `true`; when it is
 	 * unavailable or the chart has no plottable grid, the SVG renderer is used
@@ -236,9 +235,9 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	lineChart3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js area3D-chart renderer (default
-	 * `false`). When `true`, `area3D` charts render as camera-orbitable real
+	 * `false`). When `true`, `area3D` charts render as real
 	 * tube-path meshes plus a filled ribbon mesh per series, one per depth
-	 * ("series") plane (drag to rotate, scroll to zoom), instead of the flat
+	 * ("series") plane, instead of the flat
 	 * SVG oblique-projection illusion. Chart marks are not selectable/draggable
 	 * in this mode. `three` is an optional peer dependency, lazily imported
 	 * only when this is `true`; when it is unavailable or the chart has no
@@ -249,8 +248,8 @@ export interface PptxViewerOptions extends PptxViewerCallbacks, ViewportFitOptio
 	areaChart3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js pie3D-chart renderer (default
-	 * `false`). When `true`, `pie3D` charts render as camera-orbitable real
-	 * wedge meshes (drag to rotate, scroll to zoom) instead of the flat SVG
+	 * `false`). When `true`, `pie3D` charts render as real
+	 * wedge meshes instead of the flat SVG
 	 * oblique-projection illusion. Chart marks are not selectable/draggable in
 	 * this mode. `three` is an optional peer dependency, lazily imported only
 	 * when this is `true`; when it is unavailable or the chart has no

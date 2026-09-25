@@ -34,7 +34,7 @@ export default defineComponent({
 	props: {
 		/** The scene to mount, or `null` to show only the slotted 2D fallback. */
 		spec: { type: Object as PropType<ThreeViewSpec | null>, default: null },
-		/** Whether pointer interaction (orbit, select, drag) is enabled. */
+		/** Whether pointer interaction (select, drag) is enabled. */
 		interactive: { type: Boolean, default: false },
 		/** Mirrors an externally chosen chart part (e.g. picked in the inspector) onto the scene. */
 		selectedPart: { type: Object as PropType<ChartPartRef | null>, default: null },

@@ -134,8 +134,8 @@ export interface PowerPointViewerProps {
 	smartArt3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js surface-chart renderer. When `true`,
-	 * `surface`/`surface3D` charts render as a camera-orbitable WebGL mesh
-	 * (drag to rotate, scroll to zoom) instead of the static SVG isometric
+	 * `surface`/`surface3D` charts render as a WebGL mesh
+	 * instead of the static SVG isometric
 	 * projection. Chart marks are not selectable/draggable in this mode.
 	 * Requires the optional `three` peer dependency; when it is not installed
 	 * (or the chart has no plottable grid), the viewer transparently falls back
@@ -145,8 +145,7 @@ export interface PowerPointViewerProps {
 
 	/**
 	 * Opt in to the interactive Three.js bar3D-chart renderer. When `true`,
-	 * `bar3D` charts render as camera-orbitable real box meshes (drag to
-	 * rotate, scroll to zoom) instead of the flat SVG oblique-projection
+	 * `bar3D` charts render as real box meshes instead of the flat SVG oblique-projection
 	 * illusion. Chart marks are not selectable/draggable in this mode.
 	 * Requires the optional `three` peer dependency; when it is not installed
 	 * (or the chart has no plottable grid, or it is a horizontal 3-D Bar), the
@@ -157,8 +156,8 @@ export interface PowerPointViewerProps {
 
 	/**
 	 * Opt in to the interactive Three.js line3D-chart renderer. When `true`,
-	 * `line3D` charts render as a camera-orbitable real tube-path mesh per
-	 * series, one per depth ("series") plane (drag to rotate, scroll to zoom),
+	 * `line3D` charts render as a real tube-path mesh per
+	 * series, one per depth ("series") plane,
 	 * instead of the flat SVG oblique-projection illusion. Chart marks are not
 	 * selectable/draggable in this mode. Requires the optional `three` peer
 	 * dependency; when it is not installed (or the chart has no plottable
@@ -169,9 +168,8 @@ export interface PowerPointViewerProps {
 
 	/**
 	 * Opt in to the interactive Three.js area3D-chart renderer. When `true`,
-	 * `area3D` charts render as a camera-orbitable real tube path + filled
-	 * ribbon mesh per series, one per depth ("series") plane (drag to rotate,
-	 * scroll to zoom), instead of the flat SVG oblique-projection illusion.
+	 * `area3D` charts render as a real tube path + filled
+	 * ribbon mesh per series, one per depth ("series") plane, instead of the flat SVG oblique-projection illusion.
 	 * Chart marks are not selectable/draggable in this mode. Requires the
 	 * optional `three` peer dependency; when it is not installed (or the chart
 	 * has no plottable grid), the viewer transparently falls back to the flat
@@ -180,8 +178,7 @@ export interface PowerPointViewerProps {
 	areaChart3D?: boolean;
 	/**
 	 * Opt in to the interactive Three.js pie3D-chart renderer. When `true`,
-	 * `pie3D` charts render as camera-orbitable real wedge meshes (drag to
-	 * rotate, scroll to zoom) instead of the flat SVG oblique-projection
+	 * `pie3D` charts render as real wedge meshes instead of the flat SVG oblique-projection
 	 * illusion. Chart marks are not selectable/draggable in this mode.
 	 * Requires the optional `three` peer dependency; when it is not installed
 	 * (or the chart has no plottable series), the viewer transparently falls

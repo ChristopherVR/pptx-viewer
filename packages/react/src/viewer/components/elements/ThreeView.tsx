@@ -33,7 +33,7 @@ defineThreeViewElement();
 export interface ThreeViewProps {
 	/** The scene to mount, or `null` to show only the slotted 2D fallback. */
 	spec: ThreeViewSpec | null;
-	/** Whether pointer interaction (orbit, select, drag) is enabled. Defaults to `true`. */
+	/** Whether pointer interaction (select, drag) is enabled. Defaults to `true`. */
 	interactive?: boolean;
 	/** Mirrors an externally chosen chart part (e.g. picked in the inspector) onto the scene. */
 	selectedPart?: ChartPartRef | null;

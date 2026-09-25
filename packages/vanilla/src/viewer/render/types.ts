@@ -82,35 +82,31 @@ export interface ElementRenderContext {
 	readonly smartArt3D: boolean;
 	/**
 	 * Opt-in flag: render `surface`/`surface3D` charts as an interactive,
-	 * camera-orbitable Three.js mesh instead of the static SVG isometric
+	 * Three.js mesh instead of the static SVG isometric
 	 * projection (see `PptxViewerOptions.surfaceChart3D`). Defaults to `false`
 	 * when the option is unset.
 	 */
 	readonly surfaceChart3D: boolean;
 	/**
-	 * Opt-in flag: render `bar3D` charts as an interactive, camera-orbitable
-	 * Three.js box-mesh scene instead of the flat SVG oblique-projection
+	 * Opt-in flag: render `bar3D` charts as an interactive Three.js box-mesh scene instead of the flat SVG oblique-projection
 	 * illusion (see `PptxViewerOptions.barChart3D`). Defaults to `false` when
 	 * the option is unset.
 	 */
 	readonly barChart3D: boolean;
 	/**
-	 * Opt-in flag: render `line3D` charts as an interactive, camera-orbitable
-	 * Three.js tube-path scene instead of the flat SVG oblique-projection
+	 * Opt-in flag: render `line3D` charts as an interactive Three.js tube-path scene instead of the flat SVG oblique-projection
 	 * illusion (see `PptxViewerOptions.lineChart3D`). Defaults to `false` when
 	 * the option is unset.
 	 */
 	readonly lineChart3D: boolean;
 	/**
-	 * Opt-in flag: render `area3D` charts as an interactive, camera-orbitable
-	 * Three.js tube-path + ribbon-fill scene instead of the flat SVG
+	 * Opt-in flag: render `area3D` charts as an interactive Three.js tube-path + ribbon-fill scene instead of the flat SVG
 	 * oblique-projection illusion (see `PptxViewerOptions.areaChart3D`).
 	 * Defaults to `false` when the option is unset.
 	 */
 	readonly areaChart3D: boolean;
 	/**
-	 * Opt-in flag: render `pie3D` charts as an interactive, camera-orbitable
-	 * Three.js wedge-mesh scene instead of the flat SVG oblique-projection
+	 * Opt-in flag: render `pie3D` charts as an interactive Three.js wedge-mesh scene instead of the flat SVG oblique-projection
 	 * illusion (see `PptxViewerOptions.pieChart3D`). Defaults to `false` when
 	 * the option is unset.
 	 */

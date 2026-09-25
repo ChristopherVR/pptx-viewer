@@ -34,7 +34,7 @@ export interface Chart3DView {
 	/** The chart part selected on this element (mirrored onto the scene). */
 	selectedPart: ComputedRef<ChartPartRef | null>;
 	/**
-	 * Whether the scene takes pointer input (orbit, select, drag): on the
+	 * Whether the scene takes pointer input (select, drag): on the
 	 * editable canvas AND with this chart selected, the same gate that arms
 	 * its 2D marks, so a first click on an unselected chart selects it.
 	 */

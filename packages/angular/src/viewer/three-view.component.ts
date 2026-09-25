@@ -50,7 +50,7 @@ defineThreeViewElement();
 export class ThreeViewComponent {
 	/** The scene to mount, or `null` to show only the projected 2D fallback. */
 	readonly spec = input<ThreeViewSpec | null>(null);
-	/** Whether pointer interaction (orbit, select, drag) is enabled. */
+	/** Whether pointer interaction (select, drag) is enabled. */
 	readonly interactive = input<boolean>(false);
 	/** Mirrors an externally chosen chart part onto the scene. */
 	readonly selectedPart = input<ChartPartRef | null>(null);
