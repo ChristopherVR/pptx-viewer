@@ -85,27 +85,6 @@ function naturalSizeOf(elementId: string): NaturalImageSize | undefined {
 		: undefined;
 }
 
-const INSET_KEYS = ['cropLeft', 'cropTop', 'cropRight', 'cropBottom'] as const;
-
-/**
- * The cancel update, with insets the picture never had written back as
- * ABSENT rather than as 0: the shared snapshot reads a missing inset as 0, and
- * an explicit `cropLeft: 0` on a picture that had none would read to the
- * history hook as an edit, leaving an undo step behind a cancelled crop.
- */
-function restoreUpdate(
-	update: CropElementUpdate,
-	original: PptxElement | null,
-): Partial<PptxElement> {
-	const restored: Record<string, number | undefined> = { ...update };
-	for (const key of INSET_KEYS) {
-		if (original && !(key in original)) {
-			restored[key] = undefined;
-		}
-	}
-	return restored as Partial<PptxElement>;
-}
-
 function isEditableTarget(target: EventTarget | null): boolean {
 	return (
 		target instanceof HTMLElement &&
@@ -122,7 +101,6 @@ export function usePictureCropMode(input: UsePictureCropModeInput): PictureCropC
 	const lookupRef = useRef(elementLookup);
 	lookupRef.current = elementLookup;
 	const sessionSlideRef = useRef(activeSlideIndex);
-	const originalRef = useRef<PptxElement | null>(null);
 
 	const commit = useCallback(() => {
 		const session = cropSessionRef.current;
@@ -144,10 +122,7 @@ export function usePictureCropMode(input: UsePictureCropModeInput): PictureCropC
 			return;
 		}
 		if (lookupRef.current.has(session.elementId)) {
-			updateElementById(
-				session.elementId,
-				restoreUpdate(cancelCropUpdate(session), originalRef.current),
-			);
+			updateElementById(session.elementId, cancelCropUpdate(session) as Partial<PptxElement>);
 		}
 		setCropSession(null);
 	}, [cropSessionRef, setCropSession, updateElementById]);
@@ -157,7 +132,6 @@ export function usePictureCropMode(input: UsePictureCropModeInput): PictureCropC
 			return;
 		}
 		sessionSlideRef.current = activeSlideIndex;
-		originalRef.current = single;
 		setCropSession(startCropSession(single));
 	}, [activeSlideIndex, canCrop, cropSessionRef, setCropSession, single]);
 
