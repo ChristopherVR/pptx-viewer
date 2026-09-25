@@ -393,18 +393,67 @@ describe('per-paragraph kinsoku / tab-default override', () => {
 			),
 		);
 		expect(paras).toHaveLength(2);
-		expect(paras[0].paragraphStyle?.lineBreak).toBe('normal');
+		expect(paras[0].paragraphStyle?.lineBreak).toBe('strict');
 		expect(paras[0].paragraphStyle?.wordBreak).toBe('normal');
-		expect(paras[0].paragraphStyle?.hangingPunctuation).toBe('last');
-		expect(paras[1].paragraphStyle?.lineBreak).toBe('strict');
-		expect(paras[1].paragraphStyle?.hangingPunctuation).toBe('none');
+		expect(paras[0].eastAsianBreaks).toStrictEqual({
+			hangingPunctuation: true,
+			breakAnywhere: false,
+		});
+		// Kinsoku off is realised as run-text break opportunities, not CSS.
+		expect(paras[1].paragraphStyle?.lineBreak).toBeUndefined();
+		expect(paras[1].eastAsianBreaks).toStrictEqual({
+			hangingPunctuation: false,
+			breakAnywhere: true,
+		});
+	});
+
+	it('splits a paragraph with hangingPunct around its hanging marks', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: '\u65e5\u672c\u3002\u8a9e',
+						style: {},
+						paragraphProperties: { hangingPunctuation: true },
+					},
+				],
+				{ textStyle: {} },
+			),
+		);
+		const runs = paras[0].runs;
+		expect(runs.map((run) => run.text)).toStrictEqual([
+			'\u65e5\u672c\u2060',
+			'\u3002',
+			' ',
+			'\u8a9e',
+		]);
+		expect(runs[1].style.display).toBe('inline-block');
+		expect(runs[1].style.inlineSize).toBe('0px');
+		expect(runs[2].hangingSpace).toBeTruthy();
+		expect(runs.map((run) => run.charStart)).toStrictEqual([0, 2, 3, 3]);
+	});
+
+	it('keeps the hanging space of a centred paragraph-final mark', () => {
+		const paras = buildParagraphs(
+			textEl(
+				[
+					{
+						text: '\u65e5\u672c\u3002',
+						style: { align: 'center' },
+						paragraphProperties: { hangingPunctuation: true, align: 'center' },
+					},
+				],
+				{ textStyle: { align: 'center' } },
+			),
+		);
+		expect(paras[0].runs.at(-1)?.text).toBe(' ');
 	});
 
 	it('falls back to the body value for a paragraph that authors none of its own', () => {
 		const paras = buildParagraphs(
 			textEl([{ text: 'Body-driven', style: {} }], { textStyle: { eaLineBreak: true } }),
 		);
-		expect(paras[0].paragraphStyle?.lineBreak).toBe('normal');
+		expect(paras[0].paragraphStyle?.lineBreak).toBe('strict');
 		expect(paras[0].paragraphStyle?.wordBreak).toBe('normal');
 	});
 });

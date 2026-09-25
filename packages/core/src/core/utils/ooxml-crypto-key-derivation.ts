@@ -106,17 +106,12 @@ export async function deriveAgileKey(
 // ---------------------------------------------------------------------------
 
 /**
- * Compute the expensive, password/salt-dependent (but block-independent)
- * part of standard/legacy-RC4 key derivation: `H50000`, the result of
- * hashing salt+password and then iterating 50,000 times.
+ * Compute the expensive, password/salt-dependent part of Standard
+ * Encryption key derivation: `H50000`, the result of hashing salt+password
+ * and then iterating 50,000 times.
  *
- * This is the same value for every 512-byte re-keying block of a legacy
- * `.ppt` file (and for the single "block 0" used by the password
- * verifier), so callers that need many blocks' worth of keys -- decrypting
- * a whole legacy `.ppt` stream can mean hundreds of blocks -- should call
- * this ONCE and pass the result to {@link deriveStandardKeyFromBase}
- * instead of calling {@link deriveStandardKey} per block, which would
- * needlessly redo all 50,000 iterations for every single block.
+ * Only OOXML Standard Encryption spins. The legacy `.ppt` "RC4 CryptoAPI"
+ * scheme has no spin rounds and lives in `ppt/rc4-cryptoapi-key.ts`.
  *
  * @param password - User's password.
  * @param salt - Salt from the verifier.
@@ -137,7 +132,7 @@ export async function computeStandardKeyBase(
 }
 
 /**
- * Finish standard/legacy-RC4 key derivation for one block, given the
+ * Finish Standard Encryption key derivation for one block, given the
  * expensive base from {@link computeStandardKeyBase}.
  *
  * Implements the tail of [MS-OFFCRYPTO] 2.3.6.2 -- Password Key
@@ -146,9 +141,7 @@ export async function computeStandardKeyBase(
  *
  * @param base - Result of {@link computeStandardKeyBase}.
  * @param keySize - Key size in bits (e.g. 128).
- * @param blockNumber - Re-keying block number (0 for the password
- *   verifier, `floor(streamOffset / 512)` for a content block in a legacy
- *   `.ppt`).
+ * @param blockNumber - Block number (0 for Standard Encryption).
  * @returns Derived encryption key.
  */
 export async function deriveStandardKeyFromBase(
@@ -188,29 +181,17 @@ export async function deriveStandardKeyFromBase(
 }
 
 /**
- * Derive the encryption key for standard encryption (Office 2007), or for
- * one 512-byte re-keying block of the legacy binary "RC4 CryptoAPI
- * Encryption" scheme ([MS-OFFCRYPTO] 2.3.5.1) used by password-protected
- * PowerPoint 97-2003 (`.ppt`) compound files.
+ * Derive the encryption key for OOXML Standard Encryption (Office 2007).
  *
- * Implements [MS-OFFCRYPTO] 2.3.6.2 -- Password Key Generation. The legacy
- * binary scheme reuses this exact derivation, substituting the block number
- * being encrypted/decrypted for the fixed `blockKey = 0` used by the
- * password verifier (block 0 IS the verifier's block, so the default
- * matches that case).
- *
- * A convenience wrapper around {@link computeStandardKeyBase} +
- * {@link deriveStandardKeyFromBase} for single-key use sites (the password
- * verifier). Deriving MANY block keys for the same password (decrypting a
- * whole legacy `.ppt` stream) should call those two directly and reuse the
- * base instead of calling this once per block.
+ * Implements [MS-OFFCRYPTO] 2.3.4.7 (50,000 spin rounds). NOT the legacy
+ * `.ppt` RC4 CryptoAPI derivation (2.3.5.2), which has no spin rounds: see
+ * `ppt/rc4-cryptoapi-key.ts`.
  *
  * @param password - User's password.
  * @param salt - Salt from the verifier.
  * @param keySize - Key size in bits (e.g. 128).
  * @param algIdHash - Algorithm ID for hashing (from the encryption header).
- * @param blockNumber - Re-keying block number (0 for the password verifier,
- *   `floor(streamOffset / 512)` for a content block in a legacy `.ppt`).
+ * @param blockNumber - Block number (0 for Standard Encryption).
  * @returns Derived encryption key.
  */
 export async function deriveStandardKey(

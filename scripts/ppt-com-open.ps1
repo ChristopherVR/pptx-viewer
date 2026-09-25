@@ -23,11 +23,17 @@
 .PARAMETER Paths
   One or more `.ppt` paths.
 
+.PARAMETER Password
+  Optional open password, passed the way PowerPoint accepts one through COM
+  (`<path>::<password>::`), for the writer's RC4 CryptoAPI encrypted output.
+
 .NOTES
   Requires a local PowerPoint install. Windows + pwsh only. Called by
   `scripts/com-acceptance-ppt.mjs`, which is the entry point you normally want.
 #>
+[CmdletBinding(PositionalBinding = $false)]
 param(
+  [string]$Password = '',
   [Parameter(Mandatory = $true, ValueFromRemainingArguments = $true)][string[]]$Paths
 )
 
@@ -52,7 +58,8 @@ foreach ($p in $Paths) {
   }
   $pres = $null
   try {
-    $pres = $app.Presentations.Open($resolved, $true, $false, $false)
+    $target = if ($Password) { "${resolved}::${Password}::" } else { $resolved }
+    $pres = $app.Presentations.Open($target, $true, $false, $false)
     $slides = $pres.Slides.Count
     $shapes = 0
     foreach ($s in $pres.Slides) { $shapes += $s.Shapes.Count }

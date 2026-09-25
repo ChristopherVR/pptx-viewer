@@ -72,85 +72,38 @@ function identitiesAgree(a: string, b: string): boolean {
  * escape hatch - a new mismatch must be diagnosed, not added here reflexively.
  */
 const APPROXIMATION_ALLOWLIST: ReadonlySet<string> = new Set([
-	'entr.17', // Stretch has no dedicated keyframe; expandIn is the closest existing match
-	// exit.6 = Circle, confirmed via COM (see the note on
-	// `PRESET_ID_TO_EFFECT.exit[6]` in `animation-presets.ts`). There is no
-	// dedicated exit iris/circle-mask keyframe yet, so playback keeps the
-	// `shrinkOut` approximation (both read as "collapse to nothing") even
-	// though authoring/catalog now correctly agree on `circleOut`/"Circle".
-	'exit.6',
-	// entr.18 = Strips, confirmed via a fresh COM pass (see the note on
-	// `PRESET_ID_TO_EFFECT.entr[18]` in `animation-presets.ts`). There is no
-	// dedicated diagonal-strip keyframe, so playback reuses the `wipeIn` mask
-	// (the same approximation the Strips filter family already uses in
-	// `animation-filter-effects.ts`), even though authoring/catalog agree on
-	// "Strips".
-	'entr.18',
-	// entr.47 = Descend, confirmed via a fresh COM pass (see the note on
-	// `PRESET_ID_TO_EFFECT.entr[47]` in `animation-presets.ts`). There is no
-	// dedicated "falls from above" keyframe, so playback reuses `flyInTop`,
-	// even though authoring/catalog agree on "Descend".
-	'entr.47',
-	// exit.18 = Strips, confirmed via a fresh COM pass (`msoAnimEffectStrips`
-	// with `Effect.Exit = True` serializes as presetID 18, the SAME id as its
-	// entrance form). This CONTRADICTS `animation-write-mappings.ts`'s
-	// existing (unverified) `collapseOut: { presetClass: 'exit', presetId: 18
-	// }` entry, which is almost certainly wrong (a pre-existing guess never
-	// COM-checked); correcting the authoring table is a separate, larger fix
-	// out of this pass's scope, so playback keeps its COM-verified `wipeOut`
-	// approximation (matching the entrance side's Strips treatment) and this
-	// id is allowlisted rather than silently made to agree with an unverified
-	// label.
-	'exit.18',
-	// The following entries close the "68 entrance / 68 exit preset IDs, only
-	// 54/200 non-path IDs covered" gap (W3-A). Each of these ids now has a
-	// playback effect, but no dedicated keyframe exists for its exact
-	// real-world visual, so it deliberately reuses the closest existing
-	// family (documented per-id next to `PRESET_ID_TO_EFFECT` in
-	// `animation-presets.ts`), and its name has no textual overlap with the
-	// authoring/catalog name. See `animation-preset-ground-truth.ts` for the
-	// COM evidence (and its limits) behind the entrance-side ids.
+	// Every id is COM-verified (see `animation-presets-extended.ts`); each of
+	// these reuses the closest existing keyframe family as its STATIC fallback
+	// because no keyframe of its own exists. A PowerPoint deck carries the
+	// real behaviour tree, which playback uses instead of this fallback.
 	'entr.7', // Crawl In -> flyInBottom
+	'entr.17', // Stretch -> expandIn
 	'entr.24', // Random Effects -> fadeIn
-	'entr.33', // Arrive -> riseUp
-	'entr.35', // Beveled Arrival -> flipIn
-	'entr.45', // Grow & Rotate -> growTurnIn
-	'entr.46', // Grow with Color -> expandIn
-	'entr.48', // Magnify -> zoomIn
-	'entr.50', // Sling -> flyInBottom
-	'entr.54', // Zoom Rotate -> spinnerIn
-	'entr.55', // Curvy Star -> spinnerIn
-	'entr.58', // Thread -> wipeIn
-	'entr.60', // Ascend -> riseUp
-	'entr.61', // Descend -> flyInTop
-	'entr.62', // Center Stage -> zoomIn
-	'entr.63', // Ease In -> riseUp
-	'entr.64', // Stretchy -> stretchInBottom
-	'entr.65', // Zip -> flyInRight
-	'entr.67', // Cover -> wipeIn
-	'entr.68', // Reveal -> wipeIn
+	'entr.27', // Color Typewriter -> appear
+	'entr.29', // Ease In -> fadeIn
+	'entr.38', // Swish -> curveUpIn
+	'entr.39', // Thin Line -> expandIn
+	'entr.42', // Ascend -> floatUpIn
+	'entr.47', // Descend -> flyInTop
+	'entr.48', // Sling -> dropIn
+	'entr.51', // Zip -> flyInRight
+	'entr.52', // Arc Up -> curveUpIn
 	'exit.7', // Crawl Out -> flyOutBottom
-	'exit.19', // Strips (authoring: `stripsOut`) -> wipeOut, matching exit.18's treatment
+	'exit.17', // Collapse -> shrinkOut
+	'exit.19', // Swivel -> fadeOut
 	'exit.24', // Random Effects -> fadeOut
-	'exit.31', // Contract -> shrinkOut
-	'exit.33', // Leave -> flyOutBottom
-	'exit.34', // Basic Swivel -> fadeOut
-	'exit.35', // Beveled Departure -> fadeOut
-	'exit.30', // Float Out (msoAnimEffectFloat) -> fadeOut
-	'exit.42', // Float Out -> fadeOut
-	'exit.47', // Swivel Out -> fadeOut
-	'exit.50', // Sling Out -> flyOutBottom
-	'exit.54', // Zoom Rotate Out -> spinnerOut
-	'exit.55', // Curvy Star Out -> spinnerOut
-	'exit.58', // Thread Out -> wipeOut
-	'exit.60', // Ascend (exit) -> flyOutTop
-	'exit.61', // Descend (exit) -> flyOutBottom
-	'exit.62', // Exit Stage -> zoomOut
-	'exit.63', // Ease Out -> fadeOut
-	'exit.64', // Stretchy Out -> stretchOutBottom
-	'exit.65', // Zip Out -> flyOutRight
-	'exit.67', // Uncover -> wipeOut
-	'exit.68', // Conceal -> wipeOut
+	'exit.27', // Color Typewriter -> disappear
+	'exit.29', // Ease Out -> fadeOut
+	'exit.30', // Float -> fadeOut
+	'exit.38', // Swish -> curveDownOut
+	'exit.39', // Thin Line -> shrinkOut
+	'exit.42', // Ascend -> flyOutTop
+	'exit.47', // Descend -> floatDownOut
+	'exit.48', // Sling -> dropOut
+	'exit.50', // Stretchy -> stretchOutBottom
+	'exit.51', // Zip -> flyOutRight
+	'exit.52', // Arc Up -> curveDownOut
+	'exit.55', // Contract -> shrinkOut
 ]);
 
 function checkClassAgreement(presetClass: PresetClass): void {
@@ -359,13 +312,12 @@ describe('animation preset table cross-consistency', () => {
 		// entr.19 (Swivel) is ALSO covered by playback (see "a further COM
 		// verification pass resolves more ids" below). entr.18 (Strips) is now
 		// ALSO covered by playback (a further, later COM pass; see the note on
-		// `PRESET_ID_TO_EFFECT.entr[18]`), via the same `wipeIn` approximation
-		// the Strips filter family already used - hence its
-		// APPROXIMATION_ALLOWLIST entry rather than a plain identity match.
+		// `PRESET_ID_TO_EFFECT.entr[18]`), via its own diagonal corner sweep
+		// (`animation-strips-reveal`, derived from CreateVideo frames).
 		it.each([{ presetId: 18, effect: 'strips' }])(
-			'entr.$presetId -> $effect (authoring, catalog agree; playback uses the documented wipeIn approximation)',
+			'entr.$presetId -> $effect (authoring, catalog and playback agree)',
 			({ presetId, effect }) => {
-				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBe('wipeIn');
+				expect(PRESET_ID_TO_EFFECT.entr[presetId]).toBe('stripsInDownLeft');
 
 				const fromAuthoring = ooxmlToPresetName({ presetClass: 'entr', presetId });
 				expect(fromAuthoring, `entr.${presetId} should be covered by authoring`).toBeDefined();
@@ -401,18 +353,16 @@ describe('animation preset table cross-consistency', () => {
 			},
 		);
 
-		// exit.6 (Circle) has no dedicated exit iris/circle-mask keyframe, so
-		// playback keeps the `shrinkOut` approximation (see
-		// APPROXIMATION_ALLOWLIST above); authoring and the catalog now agree
-		// with each other AND with reality.
-		it('exit.6 (Circle): authoring and catalog agree, playback uses the documented shrinkOut approximation', () => {
+		// exit.6 (Circle) plays its own CreateVideo-derived closing iris
+		// (`animation-circle-iris`), so all three tables agree.
+		it('exit.6 (Circle): authoring, catalog and playback agree', () => {
 			const fromAuthoring = ooxmlToPresetName({ presetClass: 'exit', presetId: 6 });
 			expect(identitiesAgree(canonicalIdentity(fromAuthoring!), 'circle')).toBeTruthy();
 
 			const fromCatalog = getNativeAnimationPresetMetadata({ presetClass: 'exit', presetId: 6 });
 			expect(identitiesAgree(canonicalIdentity(fromCatalog!.label), 'circle')).toBeTruthy();
 
-			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
+			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('circleOut');
 		});
 
 		// exit.11 (Flash Once) now has its own dedicated `flashOnceOut`
@@ -586,8 +536,8 @@ describe('animation preset table cross-consistency', () => {
 			},
 		);
 
-		it('exit.18 (Strips) reuses the wipeOut approximation, matching the entrance side', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
+		it('exit.18 (Strips) plays the time-reversed Strips sweep, matching the entrance side', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('stripsOutDownLeft');
 		});
 
 		it('entr.47 (Descend) is now covered by playback via the flyInTop approximation', () => {

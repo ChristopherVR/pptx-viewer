@@ -14,6 +14,7 @@
 
 import type { PictureBulletMarker } from './bullet-list';
 import type { ReflectionWrapperStyle } from './reflection';
+import type { EastAsianBreakOptions } from './text-east-asian-breaks';
 import type { RunEquation, RunHyperlink } from './text-run-meta';
 import type { RunRuby } from './text-run-ruby';
 import type { RunStyle } from './text-run-style';
@@ -90,6 +91,8 @@ export interface ParagraphRun {
 	 * `paragraph-run-build.ts`).
 	 */
 	underlineWordPieces?: ScriptFontPiece[];
+	/** The advance-carrying space after a hanging `、`/`。` (`text-east-asian-breaks`). */
+	hangingSpace?: true;
 	/**
 	 * `a:reflection` mirrored-sibling wrapper style for this run (the text-run
 	 * counterpart of a shape/picture's `ComputedEffectStyle.reflection`), or
@@ -174,4 +177,10 @@ export interface RenderParagraph {
 	 * break rules, rendered differently in the other four bindings.
 	 */
 	paragraphStyle?: RunStyle;
+	/**
+	 * `@hangingPunct` / `@eaLnBrk="0"` as resolved for this paragraph. The runs
+	 * above already carry their pieces; React, which rebuilds each segment's
+	 * pieces inside one span, re-applies `splitEastAsianBreaks` from this.
+	 */
+	eastAsianBreaks?: EastAsianBreakOptions;
 }

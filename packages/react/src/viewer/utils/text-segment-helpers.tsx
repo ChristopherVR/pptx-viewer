@@ -1,18 +1,17 @@
-import type { RunFontSpec, RunStyle } from 'pptx-viewer-shared';
-import {
-	pieceLetterSpacing,
-	sanitizeMathMl,
-	splitRunByScriptFont,
-	splitRunForMetrics,
-} from 'pptx-viewer-shared';
+import type { RunStyle } from 'pptx-viewer-shared';
+import { sanitizeMathMl, splitRunByScriptFont } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React from 'react';
 
 import { convertOmmlToMathMl } from './omml-to-mathml';
 import type { OmmlNode } from './omml-to-mathml';
+import type { MetricTextContext } from './text-metric-pieces';
 import { makeSegmentPieceRenderer } from './text-segment-underline-words';
 import { renderTabbedLine } from './text-tab-layout';
 import type { TabRenderContext } from './text-tab-layout';
+
+export { renderMetricPieces } from './text-metric-pieces';
+export type { MetricTextContext } from './text-metric-pieces';
 
 /* Highlight info for a single segment, used by Find & Replace */
 export interface TextSegmentHighlight {
@@ -72,60 +71,6 @@ export function renderScriptAwareText(
 			<React.Fragment key={`${keyPrefix}-r${i}`}>{piece.text}</React.Fragment>
 		),
 	);
-}
-
-/** What a caller needs to give a run's pieces their own metric tracking. */
-export interface MetricTextContext {
-	/** The font the run paints with, for measuring each piece. */
-	font: RunFontSpec;
-	/** Authored `a:rPr/@spc` in px; each piece's tracking layers on top. */
-	authoredPx: number;
-	/**
-	 * The run's own decoration, which every span nested inside the run has to
-	 * repeat: `text-decoration-*` does not inherit, so a piece span reports
-	 * `none` of its own even while the run's underline is drawn through it.
-	 * Shared `nestedTextDecorationStyle` decides the subset.
-	 */
-	nestedStyle?: React.CSSProperties;
-}
-
-/**
- * Wrap each word (and each whitespace gap) of `text` in its own span carrying
- * the tracking that renders it at PowerPoint's width, so a line assembled out
- * of whole pieces measures exactly what PowerPoint measured (issue #149).
- *
- * The four shared-builder bindings get this by emitting sibling runs; React
- * builds its own spans, so it splits here, at the one place plain run text
- * becomes nodes. `inner` keeps whatever the caller was already doing with the
- * text (script-aware fonts) intact inside each piece.
- *
- * With no metric context, or nothing to split, this is the caller's own
- * rendering unchanged - one text node, no extra DOM.
- */
-export function renderMetricPieces(
-	text: string,
-	metric: MetricTextContext | undefined,
-	keyPrefix: string,
-	inner: (text: string, key: string) => React.ReactNode,
-): React.ReactNode {
-	if (!metric || !text) {
-		return inner(text, keyPrefix);
-	}
-	const pieces = splitRunForMetrics(text, metric.font);
-	if (pieces.length <= 1) {
-		return inner(text, keyPrefix);
-	}
-	return pieces.map((piece, i) => (
-		<span
-			key={`${keyPrefix}-w${i}`}
-			style={{
-				...metric.nestedStyle,
-				letterSpacing: pieceLetterSpacing(metric.authoredPx, piece.tracking),
-			}}
-		>
-			{inner(piece.text, `${keyPrefix}-w${i}`)}
-		</span>
-	));
 }
 
 /**

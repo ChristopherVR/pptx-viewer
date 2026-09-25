@@ -21,67 +21,21 @@
 
 import { matchesPointType } from './axis';
 import { fillIdiomFraction, hasFillIdiomPeer } from './constraint-fill-idiom';
+import {
+	assign,
+	COMPUTED_TYPES,
+	FONT_TYPES,
+	isLengthReference,
+	LENGTH_TYPES,
+	MARGIN_TYPES,
+	POINTS_PER_MM,
+} from './constraint-units';
 import type { EngineNode } from './engine-node';
+import { isShadowedBound, resolveFontLength } from './font-length';
 import type { LdConstraint } from './layout-def-types';
 
-const POINTS_PER_MM = 72 / 25.4;
-
-/** Constraint types that are lengths (literal values in millimetres). */
-const LENGTH_TYPES = new Set([
-	'w',
-	'h',
-	'l',
-	't',
-	'r',
-	'b',
-	'ctrX',
-	'ctrY',
-	'lOff',
-	'tOff',
-	'rOff',
-	'bOff',
-	'ctrXOff',
-	'ctrYOff',
-	'wOff',
-	'hOff',
-	'sp',
-	'sibSp',
-	'secSibSp',
-	'begPad',
-	'endPad',
-	'connDist',
-	'bendDist',
-	'diam',
-	'stemThick',
-]);
-
-/**
- * Text-frame margins are POINTS, not millimetres (the font-size unit, so a
- * `refType="primFontSz"` margin is simply `fact x size`). Measured against
- * the cached drawings: a literal `rMarg val="20"` ("Increasing Arrows
- * Process") is a 20pt `rIns`, a literal `lMarg val="1"` ("Horizontal
- * Hierarchy") a 1pt `lIns`, and a length-referenced `tMarg refType="h"
- * fact="0.28"` ("Vertical Action List") is `0.28 x` the node's height
- * IN MILLIMETRES read as points (a 128.1pt = 45.2mm tall box gets a
- * 12.66pt `tIns`, not 35.9pt).
- */
-const MARGIN_TYPES = new Set(['lMarg', 'rMarg', 'tMarg', 'bMarg']);
-
-/**
- * A reference whose value is a length: a geometry type, or a `userA`-`userZ`
- * variable, which the built-in layouts only ever assign lengths to and read
- * back in margins as `fact="2.834"` (points per millimetre) - "Upward
- * Arrow"'s `lMarg refType="userA" fact="2.834"` is an 8.8pt inset for a
- * 3.1mm `userA`.
- */
-function isLengthReference(refType: string): boolean {
-	return LENGTH_TYPES.has(refType) || /^user[A-Z]$/.test(refType);
-}
-
-export const FONT_TYPES = new Set(['primFontSz', 'secFontSz']);
-
-/** Types an algorithm computes itself; a bare constraint must not zero them. */
-const COMPUTED_TYPES = new Set(['connDist']);
+export { FONT_TYPES } from './constraint-units';
+export { fontAssigned } from './font-length';
 
 /** Nodes a constraint addresses relative to `node`. */
 export function relatedNodes(
@@ -184,10 +138,30 @@ const AXIS_LOOKUP: Record<string, [AxisKeys, keyof AxisKeys]> = {
 export function valueOf(node: EngineNode, type: string): number | undefined {
 	const direct = node.values.get(type);
 	if (direct !== undefined) {
-		return direct;
+		return boundedValue(node, type, direct);
 	}
 	const axis = AXIS_LOOKUP[type];
 	return axis ? axisValue(node, axis[0], axis[1]) : undefined;
+}
+
+/**
+ * A value as the node will actually take it: within its `op="gte"`/`"lte"`
+ * bounds ("Basic Chevron Process"'s `parTx` is `1.5 x primFontSz` tall but
+ * capped at `0.4 x w`, and its `desTx` hangs `1.125 x` the CAPPED height
+ * below it), and no smaller than the size its text grew it to.
+ */
+function boundedValue(node: EngineNode, type: string, value: number): number {
+	let out = value;
+	const max = node.maxValues.get(type);
+	const min = node.minValues.get(type);
+	if (max !== undefined && out > max) {
+		out = max;
+	}
+	if (min !== undefined && out < min) {
+		out = min;
+	}
+	const grown = type === 'w' || type === 'h' ? node.growFloor?.[type] : undefined;
+	return grown !== undefined && grown > out ? grown : out;
 }
 
 function literal(node: EngineNode, constraint: LdConstraint): number | undefined {
@@ -197,29 +171,13 @@ function literal(node: EngineNode, constraint: LdConstraint): number | undefined
 	return LENGTH_TYPES.has(constraint.type) ? constraint.val * POINTS_PER_MM : constraint.val;
 }
 
-function assign(target: EngineNode, constraint: LdConstraint, value: number): void {
-	switch (constraint.op) {
-		case 'gte':
-			target.minValues.set(
-				constraint.type,
-				Math.max(target.minValues.get(constraint.type) ?? -Infinity, value),
-			);
-			return;
-		case 'lte':
-			target.maxValues.set(
-				constraint.type,
-				Math.min(target.maxValues.get(constraint.type) ?? Infinity, value),
-			);
-			return;
-		default:
-			target.values.set(constraint.type, value);
-	}
-}
-
 /** Apply one constraint declared on `node`. */
 export function applyConstraint(node: EngineNode, constraint: LdConstraint): void {
 	const targets = relatedNodes(node, constraint.for, constraint.forName, constraint.ptType);
 	if (targets.length === 0) {
+		return;
+	}
+	if (isShadowedBound(node, constraint)) {
 		return;
 	}
 	if (constraint.op === 'equ' && targets.length > 0) {
@@ -248,6 +206,7 @@ export function applyConstraint(node: EngineNode, constraint: LdConstraint): voi
 			if (constraint.op === 'equ') {
 				node.groups.push({ type: constraint.type, members: [...targets, ref] });
 			}
+			resolveFontLength(targets, constraint, ref);
 			return;
 		}
 		const base = valueOf(ref, constraint.refType);

@@ -57,9 +57,6 @@ export const ENTR_PRESETS: Record<number, EffectName> = {
 	// for some effects.
 	26: 'bounceIn',
 	21: 'wheelIn',
-	31: 'expandIn',
-	37: 'riseUp',
-	42: 'floatIn',
 	// entr.19 = Swivel, confirmed via COM (`msoAnimEffectSwivel` serializes
 	// as presetID 19, presetClass="entr", no filter); already COM-verified
 	// in `animation-write-mappings.ts`'s `ENTR_CANONICAL` and in the UI
@@ -67,8 +64,6 @@ export const ENTR_PRESETS: Record<number, EffectName> = {
 	// (rotateY entrance) already existed and was already used for its
 	// initial-style resolution in `animation-effects.ts`.
 	19: 'swivel',
-	49: 'spinnerIn',
-	53: 'growTurnIn',
 	// entr.8/13/20 (Diamond/Plus/Wedge) confirmed via a fresh COM pass
 	// (AddEffect + raw OOXML inspection): each serializes as
 	// presetClass="entr" with exactly the presetID this table already
@@ -81,27 +76,13 @@ export const ENTR_PRESETS: Record<number, EffectName> = {
 	8: 'diamondIn',
 	13: 'plusIn',
 	20: 'wedgeIn',
-	// entr.18 (Strips) confirmed via the same COM pass: presetID 18,
-	// matching the already-COM-verified catalog label ("Strips"). There is
-	// no dedicated diagonal-strip keyframe, so this reuses the `wipeIn`
-	// mask (the same approximation already used by the Strips filter
-	// family in `animation-filter-effects.ts`); see the
-	// APPROXIMATION_ALLOWLIST entry in
-	// `animation-preset-tables-consistency.test.ts`.
-	18: 'wipeIn',
-	// entr.47 (Descend) confirmed via the same COM pass: presetID 47,
-	// matching the already-COM-verified catalog label ("Descend"; see
-	// `animation-preset-catalog.ts`). No dedicated "falls from above"
-	// keyframe exists, so this reuses `flyInTop` (falls from the top edge
-	// into place), the closest existing motion; see the
-	// APPROXIMATION_ALLOWLIST entry in
-	// `animation-preset-tables-consistency.test.ts`.
-	47: 'flyInTop',
-	// entr.7/15/24/25/27-68 (minus the ids already covered above): closes
-	// the "68 entrance IDs, 54/200 non-path IDs covered" gap. Split into
-	// `animation-presets-extended.ts` to keep this file under the repo's
-	// file-size guideline; see that module's doc for the per-id rationale
-	// and confidence level (entr.15 is COM-confirmed, the rest are matched
-	// by NAME against the authoring reverse lookup).
+	// entr.18 (Strips) confirmed via COM: presetID 18 with
+	// `filter="strips(<dir>)"`. CreateVideo frames show a diagonal
+	// corner-to-corner sweep (see `animation-strips-reveal`); the default
+	// direction here is redirected per the animation's own filter token or
+	// presetSubtype by `redirectStripsEffect`.
+	18: 'stripsInDownLeft',
+	// entr.7/15/17/24/25 and every real id from 27 up live in
+	// `animation-presets-extended.ts` (COM-derived ids; see its doc).
 	...EXTENDED_ENTR_PRESETS,
 };

@@ -1,5 +1,5 @@
 /**
- * `animation-timeline-text-build` — pure expansion of text-build animations
+ * `animation-timeline-text-build`: pure expansion of text-build animations
  * (by-paragraph / by-word / by-char) into staggered per-segment sub-animations.
  *
  * @module render/animation-timeline-text-build
@@ -15,6 +15,7 @@ import {
 	TEXT_BUILD_ID_SEP,
 } from './animation-timeline-text-build-pieces';
 import type { TextBuildSegmentCounts } from './animation-timeline-text-build-pieces';
+import { emitParagraphGroupRipple } from './animation-timeline-text-build-ripple';
 
 export type { TextBuildSegmentCounts } from './animation-timeline-text-build-pieces';
 export { TEXT_BUILD_ID_SEP } from './animation-timeline-text-build-pieces';
@@ -128,7 +129,7 @@ export function expandTextBuildAnimations(
 				(buildType === 'byWord' || buildType === 'byChar' ? buildType : undefined);
 			const before = result.length;
 			if (baseCounts && granularity) {
-				emitStaggeredPieces(anim, granularity, baseCounts, result, false, scoped);
+				emitStaggeredPieces(anim, granularity, baseCounts, result, scoped);
 			}
 			// An empty paragraph has no pieces; keep its step so the click count
 			// still matches PowerPoint's.
@@ -178,15 +179,6 @@ function expandSingleBuildAnimation(
 	const targetId = anim.targetId ?? '';
 
 	if (buildType === 'byParagraph') {
-		// A by-paragraph build whose effect also iterates by letter / word still
-		// ripples inside each paragraph; only the step boundaries are paragraphs.
-		// (`p:bldP/@bldLvl` grouping below is not composed with this rarer
-		// combination: every paragraph still opens its own click here.)
-		const granularity = iterateGranularity(anim);
-		if (granularity) {
-			emitStaggeredPieces(anim, granularity, counts, output, true);
-			return;
-		}
 		// `p:bldP/@bldLvl` ("Group text: By Nth Level Paragraphs") groups a
 		// top-level paragraph with its nested sub-bullets into ONE click step
 		// instead of giving every paragraph its own click, regardless of
@@ -196,6 +188,34 @@ function expandSingleBuildAnimation(
 		// `p:bldP/@rev` reverses the GROUP reveal order (last group first);
 		// a group's own members stay in their original ascending order.
 		const orderedGroups = anim.buildReverse === true ? [...groups].reverse() : groups;
+
+		// A by-paragraph build whose effect also iterates by letter / word still
+		// ripples inside each paragraph; only the step boundaries are paragraph
+		// groups.
+		const granularity = iterateGranularity(anim);
+		if (granularity) {
+			orderedGroups.forEach((members, index) => {
+				const next = index === 0 ? undefined : nextBuildStepTrigger(anim.buildAdvAutoMs);
+				const head = next
+					? {
+							...next,
+							delayMs: 0,
+							startConditions: undefined,
+							parGroupIndex: undefined,
+							parGroupDelayMs: undefined,
+						}
+					: {
+							trigger: anim.trigger,
+							triggerDelayMs: anim.triggerDelayMs,
+							delayMs: anim.delayMs,
+							startConditions: anim.startConditions,
+							parGroupIndex: anim.parGroupIndex,
+							parGroupDelayMs: anim.parGroupDelayMs,
+						};
+				emitParagraphGroupRipple(anim, granularity, counts, members, head, output);
+			});
+			return;
+		}
 
 		let isFirstStep = true;
 		for (const members of orderedGroups) {
@@ -234,10 +254,10 @@ function expandSingleBuildAnimation(
 	}
 
 	if (buildType === 'byWord' || buildType === 'byChar') {
-		emitStaggeredPieces(anim, buildType, counts, output, false);
+		emitStaggeredPieces(anim, buildType, counts, output);
 		return;
 	}
 
-	// Unknown build type — keep original
+	// Unknown build type: keep original
 	output.push(anim);
 }

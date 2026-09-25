@@ -1,6 +1,6 @@
 import { XmlObject, TextStyle, TextSegment } from '../../types';
 import type { BulletInfo } from '../../types';
-import { formatAutoNumberMarker } from '../../utils/auto-number-format';
+import { isRenderedBulletMarker } from '../../utils/rendered-bullet-marker';
 import { updateEndParagraphProperties } from './paragraph-insertion-style';
 import {
 	buildParagraphPropertiesXml,
@@ -9,39 +9,10 @@ import {
 } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import type { ParagraphSpacingConfig } from './PptxHandlerRuntimeSaveParagraphHelpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSaveRunProperties';
-import { toRunScopedTextStyle } from './run-scoped-text-style';
+import { buildRubyRunXml } from './ruby-run-writing';
+import { toParsedSegmentUnderlay, toRunScopedTextStyle } from './run-scoped-text-style';
 
 export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
-	private isRenderedBulletMarker(segment: TextSegment): boolean {
-		const bullet = segment.bulletInfo;
-		if (!bullet || bullet.none) {
-			return false;
-		}
-		if (
-			segment.text === '' &&
-			(bullet.imageRelId || bullet.imageDataUrl) &&
-			!segment.fieldType &&
-			!segment.equationXml &&
-			segment.rubyText === undefined
-		) {
-			return true;
-		}
-		if (bullet.autoNumType) {
-			if (bullet.paragraphIndex === undefined) {
-				return false;
-			}
-			const ordinal = Math.max(1, (bullet.autoNumStartAt ?? 1) + bullet.paragraphIndex);
-			const marker = formatAutoNumberMarker(bullet.autoNumType, ordinal);
-			return segment.text === marker || segment.text === `${marker} `;
-		}
-		const marker = bullet.char
-			? `${bullet.char} `
-			: bullet.imageRelId || bullet.imageDataUrl
-				? '\u{1F4CE} '
-				: '• ';
-		return segment.text === marker;
-	}
-
 	protected createParagraphsFromTextContent(
 		text: string | undefined,
 		textStyle: TextStyle | undefined,
@@ -139,53 +110,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return fld;
 		};
 
-		/**
-		 * Create a run with `a:ruby` containing phonetic annotation.
-		 * Produces the OOXML `a:r > a:ruby > { a:rubyPr, a:rt, a:rubyBase }` structure.
-		 */
-		const createRubyRun = (segment: TextSegment, style: TextStyle) => {
-			const rubyPr: XmlObject = {};
-			if (segment.rubyAlignment) {
-				rubyPr['@_algn'] = segment.rubyAlignment;
-			}
-			if (segment.rubyFontSize !== undefined) {
-				// Store as half-point size (hps)
-				rubyPr['@_hps'] = String(Math.round(segment.rubyFontSize * 2));
-			}
-			// Ruby text run (phonetic annotation)
-			const rtRunProps = this.createRunPropertiesFromTextStyle(
-				segment.rubyStyle ?? style,
-				resolveHyperlinkRelationshipId,
+		/** A run with `a:ruby` (phonetic annotation); see `ruby-run-writing.ts`. */
+		const createRubyRun = (segment: TextSegment, style: TextStyle) =>
+			buildRubyRunXml(segment, style, (runStyle) =>
+				this.createRunPropertiesFromTextStyle(runStyle, resolveHyperlinkRelationshipId),
 			);
-			const rtRun: XmlObject = {};
-			if (rtRunProps) {
-				rtRun['a:rPr'] = rtRunProps;
-			}
-			rtRun['a:t'] = createTextNode(segment.rubyText ?? '');
-			// Base text run
-			const baseRunProps = this.createRunPropertiesFromTextStyle(
-				style,
-				resolveHyperlinkRelationshipId,
-			);
-			const baseRun: XmlObject = {};
-			if (baseRunProps) {
-				baseRun['a:rPr'] = baseRunProps;
-			}
-			baseRun['a:t'] = createTextNode(segment.text);
-			const outerRPr = this.createRunPropertiesFromTextStyle(style, resolveHyperlinkRelationshipId);
-			const rubyRun: XmlObject = {};
-			if (outerRPr) {
-				rubyRun['a:rPr'] = outerRPr;
-			}
-			return {
-				...rubyRun,
-				'a:ruby': {
-					'a:rubyPr': rubyPr,
-					'a:rt': { 'a:r': rtRun },
-					'a:rubyBase': { 'a:r': baseRun },
-				},
-			};
-		};
 
 		const paragraphs: XmlObject[] = [];
 		let currentRuns: XmlObject[] = [];
@@ -238,9 +167,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				textSegments,
 			);
 
+			// A parsed segment inherits only EDITED element keys; see
+			// `toParsedSegmentUnderlay`.
+			const parsedUnderlay = toParsedSegmentUnderlay(runScopedTextStyle);
 			textSegments.forEach((segment) => {
 				const segmentStyle = {
-					...runScopedTextStyle,
+					...(segment.style?.inheritedRunStyle ? parsedUnderlay : runScopedTextStyle),
 					...segment.style,
 					...uniformSegmentOverrides,
 				} as TextStyle;
@@ -270,7 +202,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 
 				// Parsed bullet markers are display-only segments. The native
 				// paragraph properties above already represent them in OOXML.
-				if (this.isRenderedBulletMarker(segment)) {
+				if (isRenderedBulletMarker(segment)) {
 					return;
 				}
 

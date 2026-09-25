@@ -214,6 +214,14 @@ export interface PptxSmartArtNode {
 	 */
 	coherent3DOff?: boolean;
 	/**
+	 * The layout variables PowerPoint recorded for each presentation node
+	 * this point drives (`dgm:prSet/@presName` -> `dgm:presLayoutVars`
+	 * variable -> `@val`), e.g. `{ hierRoot1: { hierBranch: 'l' } }` for an
+	 * org-chart manager set to "Left Hanging". Read-only: the presentation
+	 * points themselves round-trip verbatim.
+	 */
+	presLayoutVarsByName?: Record<string, Record<string, string>>;
+	/**
 	 * Per-run text + run-properties for the node's first paragraph, captured at
 	 * parse time. When the joined run text still equals {@link text} (the node
 	 * was not edited, or was edited only in ways that preserve the run split),

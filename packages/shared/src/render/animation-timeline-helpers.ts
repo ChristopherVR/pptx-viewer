@@ -25,6 +25,7 @@ import {
 	redirectMaskEffectByFilterSubtype,
 } from './animation-presets';
 import type { AnimationElementBox, AnimationRenderContext } from './animation-render-context';
+import { redirectStripsEffect } from './animation-strips-reveal';
 import { resolveAnimationTargetId } from './animation-target-id';
 import type {
 	AnimationStep,
@@ -70,12 +71,20 @@ export function resolveEffect(
 			// ground truth of their own (unlike Fly/Wipe/Barn above), but
 			// PowerPoint always pairs their presetId with the same literal
 			// `p:animEffect/@filter` subtype token this redirect reads.
-			const effect = redirectMaskEffectByFilterSubtype(flyEffect, anim.effectFilter);
+			const effect = redirectStripsEffect(
+				redirectMaskEffectByFilterSubtype(flyEffect, anim.effectFilter),
+				anim.effectFilter,
+				anim.presetSubtype,
+			);
 			if (effect) {
 				return effect;
 			}
 		} else if (cls === 'exit') {
-			const effect = applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype);
+			const effect = redirectStripsEffect(
+				applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype),
+				anim.effectFilter,
+				anim.presetSubtype,
+			);
 			if (effect) {
 				return effect;
 			}

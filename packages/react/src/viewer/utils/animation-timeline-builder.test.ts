@@ -173,7 +173,8 @@ describe('buildTimeline', () => {
 		const step = result.clickGroups[0].steps[0];
 		expect(step.cssAnimation).toContain('pptx-fadeIn');
 		expect(step.cssAnimation).toContain('1000ms');
-		expect(step.cssAnimation).toContain('ease');
+		// No accel/decel: PowerPoint plays at constant speed.
+		expect(step.cssAnimation).toContain(' linear ');
 		expect(step.cssAnimation).toContain('both');
 	});
 

@@ -12,6 +12,7 @@ import type { AnimationGroup } from 'pptx-viewer-shared';
 import {
 	buildAnimationTimelineRows,
 	DIRECTIONAL_PRESETS,
+	effectiveTimingCurve,
 	EMPHASIS_PRESET_VALUES,
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
@@ -313,7 +314,7 @@ export function createAnimationPanel(
 			triggerShape.value = animation?.triggerShapeId ?? '';
 			duration.value = String(animation?.durationMs ?? 450);
 			delay.value = String(animation?.delayMs ?? 0);
-			curve.value = animation?.timingCurve ?? 'ease';
+			curve.value = effectiveTimingCurve(animation?.timingCurve);
 			repeatCount.value = String(animation?.repeatCount ?? 1);
 			repeatMode.value = animation?.repeatMode ?? 'none';
 			for (const control of [

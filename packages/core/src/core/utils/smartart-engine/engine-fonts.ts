@@ -12,8 +12,8 @@ import type { EngineNode } from './engine-node';
 import type { FontFitEntry } from './font-groups';
 import { resolveEngineFonts } from './font-groups';
 import { sourceIdsOf } from './move-with-merge';
+import { nodeTextFor } from './node-text';
 import type { NodeText } from './text-fit';
-import { sizingVariable } from './text-fit';
 import { DESCENDANT_FONT_SCALE, paragraphSizesPt, textMetricsFor } from './text-measure';
 
 /** A rendered node paired with the engine node that produced it. */
@@ -28,11 +28,8 @@ export interface RenderedEngineNode {
 const PX_PER_PT = 96 / 72;
 
 /**
- * The paragraphs `entry` renders. A node whose own context point is among
- * the points it presents shows that point's text as its top-level paragraph
- * and every other presented point as a folded descendant; a node presenting
- * only other points (a descendant-only "child text" box) shows them all as
- * equal-level bullet paragraphs.
+ * The paragraphs `entry` renders (see {@link nodeTextFor}), including any
+ * point a `moveWith` carrier folded into it.
  */
 export function nodeTextOf(
 	entry: RenderedEngineNode,
@@ -44,27 +41,13 @@ export function nodeTextOf(
 			ids.push(id);
 		}
 	}
-	const textOf = (id: string): string => nodeById.get(id)?.text ?? '';
-	if (ids.length === 0) {
-		const literal = entry.rendered.literalText ?? entry.rendered.text;
-		return literal && literal.trim().length > 0 ? { own: literal, descendants: [] } : undefined;
-	}
-	const params = entry.node.alg.params;
-	const numberParam = (name: string): number | undefined => {
-		const value = Number(params[name]);
-		return params[name] !== undefined && Number.isFinite(value) ? value : undefined;
-	};
-	const fitNode = entry.textNode ?? entry.node;
-	const layout = {
-		bulletLevel: numberParam('stBulletLvl'),
-		spaceAfterParent: numberParam('lnSpAfParP'),
-		spaceAfterChild: numberParam('lnSpAfChP'),
-		secondaryScale: sizingVariable(fitNode) === 'secFontSz' ? 1 : undefined,
-	};
-	if (entry.node.presOfAnchored) {
-		return { own: textOf(ids[0]), descendants: ids.slice(1).map(textOf), ...layout };
-	}
-	return { descendants: ids.map(textOf), ...layout };
+	return nodeTextFor(
+		entry.node,
+		ids,
+		entry.rendered.literalText ?? entry.rendered.text,
+		nodeById,
+		entry.textNode ?? entry.node,
+	);
 }
 
 /** Resolve and assign every collected node's font size (pixels). */

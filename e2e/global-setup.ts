@@ -7,6 +7,7 @@ import { generateChartFixture } from './fixtures/generate-chart-fixture';
 import { generateChartTopAxisFixture } from './fixtures/generate-chart-top-axis-fixture';
 import { generateChartUserShapeGroupFixture } from './fixtures/generate-chart-user-shape-group-fixture';
 import { generateFixture as generateCinematicFragmentsFixture } from './fixtures/generate-cinematic-fragments-fixture';
+import { generateCjkLineBreakingFixture } from './fixtures/generate-cjk-line-breaking-fixture';
 import { generateDegenerateShapeFixture } from './fixtures/generate-degenerate-shape-fixture';
 import { generateFixture as generateEffectSoundGalleryFixture } from './fixtures/generate-effect-sound-gallery-fixture';
 import { generateFixture as generateFidelityShowcaseFixture } from './fixtures/generate-fidelity-showcase-fixture';
@@ -69,6 +70,7 @@ export default async function globalSetup() {
 	await generateMorphShapeSwapFixture();
 	await generateLineFillFidelityFixture();
 	await generateParityWave4Fixture();
+	await generateCjkLineBreakingFixture();
 	await generateUnderlineWordsFixture();
 	await generateUnderlineWordsRubyTabFixture();
 	await generatePresetTextInsetsFixture();

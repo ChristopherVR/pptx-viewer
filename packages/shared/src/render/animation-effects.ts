@@ -10,8 +10,11 @@ import type { PptxAnimationPreset, PptxNativeAnimation } from 'pptx-viewer-core'
 
 import { maskHoleInitialStyle, maskPlusHoleInitialStyle } from './animation-mask-hole-reveal';
 import { maskEdgeInitialStyle, maskShapeInitialStyle } from './animation-mask-reveal';
+import { slideEntranceEdge, slideInitialStyle } from './animation-slide-filter';
+import { stripsEntranceDirection, stripsInitialStyle } from './animation-strips-reveal';
 import { resolveEffect } from './animation-timeline-helpers';
 import type { AnimationStyle, EffectName } from './animation-timeline-types';
+import { wedgeInitialStyle } from './animation-wedge-reveal';
 
 // ==========================================================================
 // Entrance effects that should initially hide elements
@@ -35,6 +38,7 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'circleIn',
 	'diamondIn',
 	'plusIn',
+	'wedgeIn',
 	'floatIn',
 	'riseUp',
 	'swivel',
@@ -66,6 +70,14 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
 	'rotateIn',
 	'centerRevolveIn',
 	'dropIn',
+	'stripsInDownLeft',
+	'stripsInUpLeft',
+	'stripsInDownRight',
+	'stripsInUpRight',
+	'slideInLeft',
+	'slideInRight',
+	'slideInTop',
+	'slideInBottom',
 ]);
 
 /**
@@ -76,6 +88,14 @@ const ENTRANCE_EFFECTS: ReadonlySet<EffectName> = new Set<EffectName>([
  * transparent.
  */
 export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
+	const stripsDirection = stripsEntranceDirection(effect);
+	if (stripsDirection) {
+		return stripsInitialStyle(stripsDirection);
+	}
+	const slideEdge = slideEntranceEdge(effect);
+	if (slideEdge) {
+		return slideInitialStyle(slideEdge);
+	}
 	switch (effect) {
 		case 'flyInLeft':
 			return { opacity: 0, transform: 'translateX(-100%)' };
@@ -119,6 +139,8 @@ export function getInitialStyleForEffect(effect: EffectName): AnimationStyle {
 			return maskHoleInitialStyle('diamond');
 		case 'plusIn':
 			return maskPlusHoleInitialStyle();
+		case 'wedgeIn':
+			return wedgeInitialStyle();
 		case 'peekIn':
 			return maskEdgeInitialStyle('bottom');
 		case 'randomBarsIn':

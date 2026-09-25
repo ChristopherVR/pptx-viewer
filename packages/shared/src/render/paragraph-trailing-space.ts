@@ -20,6 +20,8 @@ export interface TrimmableRun {
 	scriptRuns?: unknown;
 	ruby?: unknown;
 	underlineWordPieces?: unknown;
+	/** A hanging punctuation mark's advance (`text-east-asian-breaks`), never trimmed. */
+	hangingSpace?: boolean;
 }
 
 /** Whether a CSS `text-align` value aligns against the end or the centre. */
@@ -56,6 +58,7 @@ export function trimParagraphTrailingSpaces<T extends TrimmableRun>(
 			last.scriptRuns ||
 			last.ruby ||
 			last.underlineWordPieces ||
+			last.hangingSpace ||
 			!/[ 　]$/u.test(last.text) ||
 			last.text.includes('\n') ||
 			(out.length === 1 && /^[ 　]*$/u.test(last.text))

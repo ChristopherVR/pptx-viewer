@@ -14,6 +14,8 @@ import type { PptxChartData, PptxElement } from 'pptx-viewer-core';
 
 import { DEFAULT_CHART_AREA_FILL } from './chart-area-fill';
 import { resolveChartTitleText } from './chart-auto-title';
+import { findPointLabel } from './chart-data-label-anchor';
+import { buildDataLabelDecorations } from './chart-data-label-callout';
 import { buildDataLabelText, resolveDataLabelTextStyle } from './chart-data-label-text';
 import { resolveDataPointExplosion, resolveVaryColorFill } from './chart-datapoint-style';
 import { resolveLegendPlacement } from './chart-legend-placement';
@@ -166,6 +168,8 @@ export function buildPieViewModel(
 								...(style?.fontFamily ? { fontFamily: style.fontFamily } : {}),
 								...(style?.fontSize !== undefined ? { fontSize: style.fontSize } : {}),
 								...(style?.bold !== undefined ? { bold: style.bold } : {}),
+								// The label's own `txPr` colour (a number-format colour wins).
+								...(!built.color && style?.color ? { color: style.color } : {}),
 							};
 						}
 					: undefined,
@@ -175,9 +179,23 @@ export function buildPieViewModel(
 				frame: { width: element.width, height: element.height },
 				svgWidth,
 				svgHeight,
+				// COM (callouts-com.pptx): a pie callout points at the rim, a
+				// doughnut's at the middle of its ring. A dragged doughnut label
+				// also gets a leader line; the pie's own come from `c:leaderLines`.
+				targetRadius: isDoughnut ? (innerR + outerR) / 2 : outerR,
+				decorate: pieSeries
+					? (pointIndex, label, target) =>
+							buildDataLabelDecorations(
+								chartData,
+								pieSeries,
+								label,
+								target,
+								isDoughnut && Boolean(findPointLabel(pieSeries, pointIndex)?.layout),
+							)
+					: undefined,
 			});
 		dataLabels.push(...labelResult.labels);
-		primitives.push(...labelResult.leaderLines);
+		primitives.push(...labelResult.leaderLines, ...labelResult.boxes);
 	}
 
 	const legendPos = chartData.style?.legendPosition ?? 'b',

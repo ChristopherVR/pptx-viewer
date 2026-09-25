@@ -93,6 +93,16 @@ describe('animationEditorControls - timing curve', () => {
 		]);
 		expect(options.map((o) => o.text())).toStrictEqual(['Ease', 'Ease In', 'Ease Out', 'Linear']);
 	});
+
+	it('shows an unset curve as Linear: the writer saves it as accel=0 decel=0', () => {
+		const wrapper = mount(AnimationEditorControls, {
+			props: { animation: animation(), elements: [] },
+		});
+		const select = wrapper.get('pptx-ui-select[aria-label="Timing curve"]').element;
+		const value =
+			(select as HTMLElement & { value?: string }).value ?? select.getAttribute('value');
+		expect(value).toBe('linear');
+	});
 });
 
 /**

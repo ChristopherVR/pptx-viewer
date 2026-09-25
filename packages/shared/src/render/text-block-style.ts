@@ -245,6 +245,10 @@ export function buildTextBlockStyle(
 		style.textDecorationStyle = 'double';
 	}
 	style.lineHeight = resolveLineHeight(ts, italic);
+	// PowerPoint never trims CJK punctuation spacing. Chromium's default
+	// `text-spacing-trim` halves a closing bracket at a line end so that it
+	// fits where PowerPoint wraps it (COM, see `text-east-asian-breaks`).
+	style.textSpacingTrim = 'space-all';
 	// The preset / custGeom TEXT RECTANGLE (`a:rect`), as extra padding. The
 	// body insets (`lIns` and friends) apply INSIDE that rectangle in
 	// PowerPoint, so the two add rather than one replacing the other.

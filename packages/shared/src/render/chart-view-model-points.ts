@@ -59,7 +59,9 @@ export function computePieSlicePath(
 	}
 
 	const midAngle = (startAngle + endAngle) / 2,
-		labelR = outerR * 0.7,
+		// A doughnut label sits on the middle of its ring (COM, callouts-com.pptx);
+		// 0.7 of the radius would put it in the hole of any hole over 40%.
+		labelR = innerR > 0 ? (innerR + outerR) / 2 : outerR * 0.7,
 		labelX = cx + labelR * Math.cos(midAngle),
 		labelY = cy + labelR * Math.sin(midAngle);
 

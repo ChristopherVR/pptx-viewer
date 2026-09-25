@@ -119,6 +119,8 @@ describe('legacy .ppt writer round-trip', () => {
 		});
 		expect(reloaded.slides).toHaveLength(1);
 		expect(collectTexts(reloaded.slides[0]!.elements)).toContain('Title Text');
+		// The Pictures stream is enciphered field by field; the picture must survive.
+		expect(reloaded.slides[0]!.elements.some((el) => el.type === 'picture')).toBeTruthy();
 	});
 
 	it('rejects an encrypted .ppt with the wrong password', async () => {
@@ -129,7 +131,7 @@ describe('legacy .ppt writer round-trip', () => {
 		await expect(
 			reloadHandler.load(bytes.buffer as ArrayBuffer, { password: 'wrong-password' }),
 		).rejects.toThrow(IncorrectPasswordError);
-	}, 120_000); // PBKDF2 verifier: load-sensitive, see modify-password-check.test.ts
+	});
 
 	it('writes an unencrypted .ppt when no password is given, even if requested', async () => {
 		const { handler, slides } = await buildTestDeck();

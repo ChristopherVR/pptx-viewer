@@ -41,6 +41,9 @@ export default defineConfig((options) => ({
 		// import and neither SDK is ever inlined into this bundle.
 		'ai',
 		'@ai-sdk/react',
+		// Node-only canvas backend the core `.ppt` writer loads to rasterise an
+		// SVG outside a browser; optional peer, never part of a browser bundle.
+		'@napi-rs/canvas',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-react-viewer` without also pulling `pptx-viewer-core` from npm.

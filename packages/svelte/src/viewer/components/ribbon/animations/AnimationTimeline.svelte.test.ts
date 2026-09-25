@@ -110,6 +110,12 @@ describe('animationTimeline schema selects', () => {
 		expect(labels).toStrictEqual(['Trigger', 'Direction', 'Sequence', 'Timing curve', 'Repeat']);
 	});
 
+	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {
+		const { target } = mountTimeline();
+
+		expect(selectByAriaLabel(target, 'Timing curve').value).toBe('linear');
+	});
+
 	it('still commits the wire token when a trigger is picked', () => {
 		const { target, editor } = mountTimeline();
 		const trigger = selectByAriaLabel(target, 'Trigger');

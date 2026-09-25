@@ -7,6 +7,9 @@
 export { convertDeckToWriteModel } from './element-to-write-model';
 export type { WarningReporter } from './element-to-write-model';
 export { buildMetroBlobs, deckNeedsMetroBlobs } from './metro-blob-collect';
+export { convertMasterTextStyles } from './master-style-convert';
+export { resolvePictureSources } from './picture-resolve';
+export type { PartReader, ResolvedPictures } from './picture-resolve';
 export { buildPptFile } from './write-ppt';
 export type { BuildPptOptions } from './write-ppt';
 export type {

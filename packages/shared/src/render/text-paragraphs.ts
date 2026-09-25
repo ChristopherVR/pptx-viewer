@@ -29,6 +29,7 @@ import { resolveParagraphSpacing } from './paragraph-spacing';
 import { resolveParagraphStrutFontSize } from './paragraph-strut';
 import { trimParagraphTrailingSpaces } from './paragraph-trailing-space';
 import type { ParagraphRun, RenderParagraph } from './paragraph-types';
+import { resolveEastAsianBreakOptions } from './text-east-asian-breaks';
 import type { FieldSubstitutionContext } from './text-field-substitution';
 import {
 	resolveCssTextAlign,
@@ -72,7 +73,15 @@ export function buildParagraphs(
 	element: PptxElement,
 	fieldContext?: FieldSubstitutionContext,
 	segmentOverrides?: readonly TextSegment[],
-	options?: { preserveTrailingEmpty?: boolean },
+	options?: {
+		preserveTrailingEmpty?: boolean;
+		/**
+		 * `false` leaves the `text-east-asian-breaks` pieces out of the runs, for
+		 * a caller that rebuilds them itself from `RenderParagraph.eastAsianBreaks`
+		 * (React, which re-joins each segment's pieces into one span).
+		 */
+		eastAsianRunPieces?: boolean;
+	},
 ): RenderParagraph[] {
 	if (!hasTextProperties(element)) {
 		return [];
@@ -147,6 +156,7 @@ export function buildParagraphs(
 				bodyStyle,
 			);
 
+			const eastAsianBreaks = resolveEastAsianBreakOptions(geometryOverrides);
 			const rtl = resolveParagraphRtl(
 				paraSegments.map((seg) => ({ segment: seg })),
 				bodyStyle?.rtl,
@@ -163,6 +173,7 @@ export function buildParagraphs(
 				fontAlignment: geometryOverrides.fontAlignment,
 				fieldContext,
 				rtl: rtl === true,
+				eastAsianBreaks: options?.eastAsianRunPieces === false ? undefined : eastAsianBreaks,
 			});
 
 			// Suppress bullets for paragraphs with no visible text content.
@@ -243,6 +254,9 @@ export function buildParagraphs(
 			};
 			if (rtl !== undefined) {
 				para.rtl = rtl;
+			}
+			if (eastAsianBreaks) {
+				para.eastAsianBreaks = eastAsianBreaks;
 			}
 			if (Object.keys(paragraphStyle).length > 0) {
 				para.paragraphStyle = paragraphStyle;

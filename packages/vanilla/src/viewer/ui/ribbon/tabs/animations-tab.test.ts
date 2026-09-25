@@ -197,6 +197,19 @@ describe('createAnimationsTab', () => {
 		expect(actions.moveAnimation).toHaveBeenCalledWith('el1', 0);
 	});
 
+	it('shows an unset timing curve as linear (the writer saves accel=0 decel=0)', () => {
+		const t = createTranslator();
+		const tab = createAnimationsTab(document, t, handlers(), vi.fn());
+		tab.update({
+			editable: true,
+			hasSelection: true,
+			selectedElementId: 'el1',
+			animations: [{ elementId: 'el1', entrance: 'fadeIn', order: 0 }],
+		});
+		const curve = control(tab, t('pptx.animation.timingCurve')) as HTMLSelectElement;
+		expect(curve.value).toBe('linear');
+	});
+
 	it('applies the motion path its gallery button names', () => {
 		const t = createTranslator();
 		const actions = handlers();

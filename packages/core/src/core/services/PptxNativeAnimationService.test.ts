@@ -915,7 +915,8 @@ describe('pptxNativeAnimationService', () => {
 			expect(result![0].textTarget).toBeDefined();
 			expect(result![0].textTarget!.type).toBe('pRg');
 			expect(result![0].textTarget!.start).toBe(0);
-			expect(result![0].textTarget!.end).toBe(3);
+			// `p:pRg/@end` is inclusive; the model's `end` is exclusive.
+			expect(result![0].textTarget!.end).toBe(4);
 		});
 
 		it('extracts color animation from p:animClr', () => {

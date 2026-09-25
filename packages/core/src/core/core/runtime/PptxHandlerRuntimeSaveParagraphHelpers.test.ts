@@ -662,7 +662,7 @@ describe('assembleParagraphXml', () => {
 		expect(result['@_lvl']).toBe('3');
 	});
 
-	it('buildParagraphPropertiesXml omits @_lvl when level is 0 or undefined', () => {
+	it('buildParagraphPropertiesXml writes an explicit level 0 and omits an undefined one', () => {
 		const spacing = {
 			spacingBefore: undefined,
 			spacingAfter: undefined,
@@ -670,7 +670,9 @@ describe('assembleParagraphXml', () => {
 			lineSpacingExactPt: undefined,
 		};
 		const zeroLevel = buildParagraphPropertiesXml(undefined, undefined, undefined, spacing, 0);
-		expect(zeroLevel['@_lvl']).toBeUndefined();
+		// A level only reaches the builder when the paragraph carried one (an
+		// authored `lvl="0"` included), so it is written back as-is.
+		expect(zeroLevel['@_lvl']).toBe('0');
 		const undefinedLevel = buildParagraphPropertiesXml(
 			undefined,
 			undefined,

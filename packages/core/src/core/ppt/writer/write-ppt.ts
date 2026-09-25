@@ -14,6 +14,7 @@ import { ByteWriter } from './byte-writer';
 import { buildCurrentUserStream } from './current-user-writer';
 import { layoutDocumentStream } from './document-stream-layout';
 import { buildCryptSession, encryptDocumentStream, encryptPicturesStream } from './encrypt-writer';
+import { withMasterRelativeRunStyles } from './master-relative-runs';
 import {
 	buildEncryptedUserEditAtom,
 	buildPersistDirectoryAtom,
@@ -79,12 +80,10 @@ async function finishEncrypted(
 	const offsetToCurrentEdit = w.size;
 	w.bytes(userEdit);
 
-	const skipRanges = [
-		{ start: cryptOffset, end: cryptOffset + ctx.cryptSessionRecord.length },
-		{ start: dirOffset, end: dirOffset + dirAtom.length },
-		{ start: offsetToCurrentEdit, end: offsetToCurrentEdit + userEdit.length },
-	];
-	const documentBytes = await encryptDocumentStream(w.toBytes(), skipRanges, ctx);
+	// The PersistDirectoryAtom and UserEditAtom are not persist objects, so
+	// enciphering only the directory's objects leaves them plaintext.
+	const directory = new Map<number, number>(layout.offsets);
+	const documentBytes = await encryptDocumentStream(w.toBytes(), directory, cryptId, ctx);
 	const picturesBytes = layout.picturesStream
 		? await encryptPicturesStream(layout.picturesStream, ctx)
 		: undefined;
@@ -96,7 +95,7 @@ export async function buildPptFile(
 	deck: WDeck,
 	options: BuildPptOptions = {},
 ): Promise<Uint8Array> {
-	const layout = layoutDocumentStream(deck);
+	const layout = layoutDocumentStream(withMasterRelativeRunStyles(deck));
 	const lastSlideId = 256 + Math.max(0, deck.slides.length - 1);
 	const encrypted = Boolean(options.password);
 

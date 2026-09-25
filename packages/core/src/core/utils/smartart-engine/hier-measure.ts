@@ -15,6 +15,7 @@
  */
 
 import type { Box, EngineNode } from './engine-node';
+import { isAssistantRow, isTwoColumnRow, placeTwoColumns } from './hier-assistants';
 import { HANG_OFFSET_RATIO, isColumn } from './hier-hang';
 import { nodeSize } from './hier-node-size';
 import type { HierShape, OutlineRect } from './hier-shape';
@@ -52,7 +53,13 @@ function pack(shapes: HierShape[], vertical: boolean, gap: number, end: boolean)
 		let placed = vertical
 			? shiftShape(shape, crossShift - bounds.x, 0)
 			: shiftShape(shape, 0, crossShift - bounds.y);
-		if (rects.length > 0) {
+		if (rects.length > 0 && vertical) {
+			// A column stacks whole subtrees: "Left Hanging"'s next report
+			// drops below the previous one's deepest child even where it would
+			// tuck under a shallower one (`smartart-orgchart-hierbranch.pptx`).
+			const above = boundsOf(rects);
+			placed = shiftShape(placed, 0, above.y + above.h + gap - boundsOf(placed.rects).y);
+		} else if (rects.length > 0) {
 			let offset = packOffset(rects, placed.rects, gap, vertical);
 			if (offset === -Infinity) {
 				const prev = heads[heads.length - 1];
@@ -108,6 +115,21 @@ function alignShift(node: Box, heads: Box, align: string, vertical: boolean): nu
 }
 
 /**
+ * How far a hanging column sits in from the node's aligned edge, as a
+ * fraction of its width: the node's own `alignOff` (the org charts declare
+ * 0.25, or 0.65 once the node has an assistant), else 0.25.
+ */
+function hangInset(root: EngineNode): number {
+	// Measured before the node evaluates its own constraints, so read the
+	// declaration itself.
+	const own = root.constraints.find(
+		(c) => c.type === 'alignOff' && c.for === 'self' && c.refType === 'none' && c.hasVal,
+	);
+	const declared = own?.val ?? root.values.get('alignOff');
+	return declared !== undefined && declared > 0 ? declared : HANG_OFFSET_RATIO;
+}
+
+/**
  * Measure a `hierRoot`: its own node and, on the side `hierAlign` names,
  * its rows (stacked `sp` apart), the node aligned against the rows' own
  * nodes (`CtrCh`/`CtrDes` centred, `L`/`T` start, `R`/`B` end). A `tL`/`tR`
@@ -131,14 +153,44 @@ export function measureHierRoot(root: EngineNode): HierShape {
 	const sp = Math.max(0, root.values.get('sp') ?? 0);
 	const { side, align } = parseHierAlign(root.alg.params.hierAlign);
 	const vertical = side === 't' || side === 'b';
-	const group = pack(rowNodes.map(measureHierChild), vertical, sp, false);
+	const assistantRows =
+		side === 't' ? rowNodes.filter((row) => isAssistantRow(row, itemsOf(row))) : [];
+	const rows = rowNodes.filter((row) => !assistantRows.includes(row));
+	let top = size.h + sp;
+	const centre = size.dx + size.partW / 2;
+	const assistants: OutlineRect[] = [];
+	if (assistantRows.length > 0) {
+		const band = placeTwoColumns(
+			assistantRows.flatMap((row) => itemsOf(row).map(measureHierRoot)),
+			centre,
+			top,
+			Math.max(0, assistantRows[0].values.get('sibSp') ?? 0),
+			sp,
+		);
+		assistants.push(...band.rects);
+		top = band.bottom + sp;
+	}
+	if (rows.length === 0) {
+		return { rects: [...own, ...assistants], head };
+	}
+	if (side === 't' && rows.every(isTwoColumnRow)) {
+		const hung = placeTwoColumns(
+			rows.flatMap((row) => itemsOf(row).map(measureHierRoot)),
+			centre,
+			top,
+			Math.max(0, rows[0].values.get('sibSp') ?? 0),
+			sp,
+		);
+		return { rects: [...own, ...assistants, ...hung.rects], head };
+	}
+	const group = pack(rows.map(measureHierChild), vertical, sp, false);
 	const groupBounds = boundsOf(group.rects);
 	let placed: HierShape;
 	if (vertical) {
-		const dy = side === 't' ? size.h + sp - groupBounds.y : -sp - (groupBounds.y + groupBounds.h);
+		const dy = side === 't' ? top - groupBounds.y : -sp - (groupBounds.y + groupBounds.h);
 		let dx = alignShift(head, group.head, align, true);
-		if (side === 't' && align !== 'center' && rowNodes.every(isColumn)) {
-			const inset = HANG_OFFSET_RATIO * size.w;
+		if (side === 't' && align !== 'center' && rows.every(isColumn)) {
+			const inset = hangInset(root) * size.w;
 			dx =
 				align === 'start'
 					? head.x + inset - group.head.x
@@ -149,5 +201,5 @@ export function measureHierRoot(root: EngineNode): HierShape {
 		const dx = side === 'l' ? size.w + sp - groupBounds.x : -sp - (groupBounds.x + groupBounds.w);
 		placed = shiftShape(group, dx, alignShift(head, group.head, align, false));
 	}
-	return { rects: [...own, ...placed.rects], head };
+	return { rects: [...own, ...assistants, ...placed.rects], head };
 }

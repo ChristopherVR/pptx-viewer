@@ -77,7 +77,7 @@ const { PptxHandler } = await importFrom('packages/core/src/index.ts');
  * builder API (`PptxHandler.create`, `createSlide`, `.addShape`): no
  * fixture bytes, no internal writer functions called directly.
  */
-async function buildDeck(slideCount, withShape) {
+async function buildDeck(slideCount, withShape, password) {
 	const { handler, data, createSlide } = await PptxHandler.create({ initialSlideCount: 0 });
 	for (let i = 0; i < slideCount; i++) {
 		const slide = createSlide('Blank');
@@ -94,7 +94,10 @@ async function buildDeck(slideCount, withShape) {
 		}
 		data.slides.push(slide.build());
 	}
-	return handler.save(data.slides, { outputFormat: 'ppt' });
+	return handler.save(data.slides, {
+		outputFormat: 'ppt',
+		...(password ? { pptPassword: password } : {}),
+	});
 }
 
 const scratch = mkdtempSync(path.join(tmpdir(), 'pptx-com-ppt-'));
@@ -122,12 +125,21 @@ const cases = [
 		expectShapes: 1,
 		expectText: 'Hello',
 	},
+	{
+		// RC4 CryptoAPI: PowerPoint must accept the password AND the content.
+		name: 'encrypted-one-shape',
+		slideCount: 1,
+		withShape: true,
+		expectShapes: 1,
+		expectText: 'Hello',
+		password: 'acceptance-Pw1',
+	},
 ];
 
 const jobs = [];
 for (const c of cases) {
 	try {
-		const bytes = await buildDeck(c.slideCount, c.withShape);
+		const bytes = await buildDeck(c.slideCount, c.withShape, c.password);
 		const filePath = path.join(scratch, `${c.name}.ppt`);
 		writeFileSync(filePath, Buffer.from(bytes));
 		jobs.push({ ...c, filePath });
@@ -136,11 +148,12 @@ for (const c of cases) {
 	}
 }
 
-function openAll(paths) {
+function openAll(paths, password) {
 	const script = path.join(HERE, 'ppt-com-open.ps1');
+	const passwordArgs = password ? ['-Password', password] : [];
 	const result = spawnSync(
 		'pwsh',
-		['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...paths],
+		['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', script, ...passwordArgs, ...paths],
 		{
 			encoding: 'utf8',
 			maxBuffer: 64 * 1024 * 1024,
@@ -173,7 +186,13 @@ function openAll(paths) {
 	return verdicts;
 }
 
-const verdicts = jobs.length > 0 ? openAll(jobs.map((j) => j.filePath)) : new Map();
+const verdicts = new Map();
+for (const password of new Set(jobs.map((j) => j.password))) {
+	const group = jobs.filter((j) => j.password === password).map((j) => j.filePath);
+	for (const [key, verdict] of openAll(group, password)) {
+		verdicts.set(key, verdict);
+	}
+}
 const look = (p) =>
 	verdicts.get(path.resolve(p).toLowerCase()) ?? { ok: false, message: 'no verdict' };
 

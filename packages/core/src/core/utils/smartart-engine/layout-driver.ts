@@ -14,6 +14,7 @@
 
 import { applyConstraint } from './constraint-eval';
 import type { Box, EngineNode } from './engine-node';
+import { fontSearchPlan, layoutWithFontSearch } from './font-search';
 
 /** Places `node`'s children (sets each child's `box`); `node.box` is final. */
 export type ArrangeAlgorithm = (node: EngineNode) => void;
@@ -42,6 +43,7 @@ export function evaluateWithReference(node: EngineNode, refW: number, refH: numb
 		}
 		node.values.set('w', refW);
 		node.values.set('h', refH);
+		node.selfRef = { w: refW, h: refH };
 		if (pass > 0 && snapshot(node) === before) {
 			break;
 		}
@@ -90,6 +92,18 @@ export interface LayoutRegistry {
 
 /** Lay out `node` (whose box is set) and, recursively, its subtree. */
 export function layoutSubtree(node: EngineNode, registry: LayoutRegistry): void {
+	if (!node.box) {
+		return;
+	}
+	const plan = fontSearchPlan(node);
+	if (plan) {
+		layoutWithFontSearch(node, plan, () => layoutSubtreeOnce(node, registry));
+		return;
+	}
+	layoutSubtreeOnce(node, registry);
+}
+
+function layoutSubtreeOnce(node: EngineNode, registry: LayoutRegistry): void {
 	const box = node.box;
 	if (!box) {
 		return;

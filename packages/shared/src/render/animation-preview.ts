@@ -13,6 +13,7 @@ import type {
 	PptxAnimationTimingCurve,
 } from 'pptx-viewer-core';
 
+import { cssEasingForTimingCurve } from './animation-easing';
 import { getEffectKeyframes } from './animation-keyframes';
 import type { EffectName } from './animation-timeline-types';
 
@@ -68,7 +69,8 @@ function resolvePreviewEffect(
 
 /**
  * Map a timing curve name to a CSS easing string.
- * Supports the standard OOXML timing curves plus cubic-bezier extraction.
+ * Supports the standard OOXML timing curves plus cubic-bezier extraction. An
+ * unset curve plays `linear`, like the `accel=0 decel=0` the writer saves.
  */
 export function timingCurveToCss(
 	curve?: PptxAnimationTimingCurve,
@@ -81,18 +83,7 @@ export function timingCurveToCss(
 			return `cubic-bezier(${parts.join(', ')})`;
 		}
 	}
-	switch (curve) {
-		case 'ease':
-			return 'ease';
-		case 'ease-in':
-			return 'ease-in';
-		case 'ease-out':
-			return 'ease-out';
-		case 'linear':
-			return 'linear';
-		default:
-			return 'ease';
-	}
+	return cssEasingForTimingCurve(curve);
 }
 
 // ==========================================================================

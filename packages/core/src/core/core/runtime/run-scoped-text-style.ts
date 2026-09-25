@@ -30,3 +30,42 @@ export function toRunScopedTextStyle(textStyle: TextStyle | undefined): TextStyl
 	const { rtl: _paragraphDirection, ...runScoped } = textStyle;
 	return runScoped as TextStyle;
 }
+
+/**
+ * The part of the run-scoped ELEMENT style a PARSED segment may inherit.
+ *
+ * Every run's style is assembled as `{...runScopedTextStyle,
+ * ...segment.style, ...uniformSegmentOverrides}`. A parsed segment's own
+ * style is already complete (its `a:rPr` over the resolved defaults), so a
+ * key it lacks means "this run does not set it". The element style, though,
+ * is filled first-run-wins at load, so underlaying it handed the FIRST run's
+ * `b="1"` or `err="1"` to every later run that authored neither, and the
+ * ownership gate saw a value its baseline lacked and wrote it out
+ * (measured on `solution-explorer.pptx`: 85 `@b` and 113 `@err` gained over
+ * three rewritten slides).
+ *
+ * A key whose element value still equals the element's own authored or
+ * baseline value is that load-time resolution, not an edit, so it is
+ * dropped for parsed segments. A key the user changed at element level
+ * differs from both and keeps reaching every run, as before. Styles with no
+ * recorded baseline (SDK-built text) are returned unchanged.
+ */
+export function toParsedSegmentUnderlay(
+	runScopedTextStyle: TextStyle | undefined,
+): TextStyle | undefined {
+	const baseline = runScopedTextStyle?.inheritedRunStyle;
+	if (!runScopedTextStyle || !baseline) {
+		return runScopedTextStyle;
+	}
+	const authored = runScopedTextStyle.authoredRunStyle;
+	const underlay: Record<string, unknown> = {};
+	for (const [key, value] of Object.entries(runScopedTextStyle)) {
+		const styleKey = key as keyof TextStyle;
+		const loaded = authored?.[styleKey] ?? baseline[styleKey];
+		if (loaded !== undefined && loaded === value) {
+			continue;
+		}
+		underlay[key] = value;
+	}
+	return underlay as TextStyle;
+}

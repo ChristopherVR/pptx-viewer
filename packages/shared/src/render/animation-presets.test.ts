@@ -211,12 +211,13 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[26]).toBe('bounceIn');
 		});
 
-		it('should map preset ID 31 to "expandIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[31]).toBe('expandIn');
+		it('should map preset ID 31 to "growTurnIn" (Grow & Turn, COM-verified; Expand is entr.55)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[31]).toBe('growTurnIn');
+			expect(PRESET_ID_TO_EFFECT.entr[55]).toBe('expandIn');
 		});
 
-		it('should map preset ID 42 to "floatIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatIn');
+		it('should map preset ID 42 to "floatUpIn" (Ascend, COM-verified)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[42]).toBe('floatUpIn');
 		});
 
 		it('should map preset ID 47 to "flyInTop" (Descend, verified via COM; real Swivel is entr.19, not 47)', () => {
@@ -239,22 +240,29 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[20]).toBe('wedgeIn');
 		});
 
-		it('should map preset ID 18 to "wipeIn" (Strips, verified via COM; approximation)', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[18]).toBe('wipeIn');
+		it('should map preset ID 18 to "stripsInDownLeft" (Strips, verified via COM + CreateVideo)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[18]).toBe('stripsInDownLeft');
 		});
 
 		it('should map preset ID 49 to "spinnerIn"', () => {
 			expect(PRESET_ID_TO_EFFECT.entr[49]).toBe('spinnerIn');
 		});
 
-		it('should map preset ID 53 to "growTurnIn"', () => {
-			expect(PRESET_ID_TO_EFFECT.entr[53]).toBe('growTurnIn');
+		it('should map preset ID 53 to "zoomIn" (Faded Zoom, COM-verified)', () => {
+			expect(PRESET_ID_TO_EFFECT.entr[53]).toBe('zoomIn');
+		});
+
+		it('has no entry for ids PowerPoint does not treat as presets', () => {
+			for (const id of [32, 33, 36, 44, 46, 57, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68]) {
+				expect(PRESET_ID_TO_EFFECT.entr[id], `entr.${id}`).toBeUndefined();
+				expect(PRESET_ID_TO_EFFECT.exit[id], `exit.${id}`).toBeUndefined();
+			}
 		});
 	});
 
 	describe('additional exit presets', () => {
-		it('should map preset ID 6 to "shrinkOut"', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('shrinkOut');
+		it('should map preset ID 6 to "circleOut" (closing iris, CreateVideo-derived)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[6]).toBe('circleOut');
 		});
 
 		it('should map preset ID 9 to "dissolveOut"', () => {
@@ -297,8 +305,8 @@ describe('pRESET_ID_TO_EFFECT', () => {
 			expect(PRESET_ID_TO_EFFECT.exit[21]).toBe('wheelOut');
 		});
 
-		it('should map preset ID 18 to "wipeOut" (Strips exit, verified via COM; approximation)', () => {
-			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('wipeOut');
+		it('should map preset ID 18 to "stripsOutDownLeft" (Strips exit, verified via COM + CreateVideo)', () => {
+			expect(PRESET_ID_TO_EFFECT.exit[18]).toBe('stripsOutDownLeft');
 		});
 	});
 

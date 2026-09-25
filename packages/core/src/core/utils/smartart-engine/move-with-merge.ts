@@ -59,6 +59,28 @@ const NO_MERGE: MoveWithMerge = {
 };
 
 /**
+ * The sibling a `moveWith` naming no sibling means: the built-in
+ * "Organization Chart" writes its assistant's `rootConnector3`
+ * `moveWith="rootText1"` (the manager's text, a different composite), and
+ * PowerPoint still draws one box per assistant, the `rootText3` presenting
+ * the same point. So the text sibling presenting exactly the carrier's
+ * points stands in.
+ */
+function namesakeTarget(
+	carrier: EngineNode,
+	siblings: readonly EngineNode[],
+	carrierIds: readonly string[],
+): EngineNode | undefined {
+	return siblings.find((s) => {
+		if (s === carrier || s.alg.type !== 'tx') {
+			return false;
+		}
+		const ids = sourceIdsOf(s);
+		return ids.length === carrierIds.length && ids.every((id) => carrierIds.includes(id));
+	});
+}
+
+/**
  * `moveWith` only ever pairs SIBLINGS (nodes sharing the same parent), so
  * this is computed once per sibling group as the engine tree is walked, not
  * globally: see `engine-to-result.ts`'s `collectRenderedNodes`.
@@ -76,11 +98,11 @@ export function computeMoveWithMerge(siblings: EngineNode[]): MoveWithMerge {
 		if (!sibling.shape?.hideGeom || !targetName || targetName === sibling.name) {
 			continue;
 		}
-		const target = byName.get(targetName);
+		const carrierIds = sourceIdsOf(sibling);
+		const target = byName.get(targetName) ?? namesakeTarget(sibling, siblings, carrierIds);
 		if (!target) {
 			continue;
 		}
-		const carrierIds = sourceIdsOf(sibling);
 		const targetIds = sourceIdsOf(target);
 		if (carrierIds.length === 0 || !targetIds.every((id) => carrierIds.includes(id))) {
 			continue;
@@ -91,11 +113,11 @@ export function computeMoveWithMerge(siblings: EngineNode[]): MoveWithMerge {
 		// own `presOf` doesn't reach), if any.
 		const extra = carrierIds.filter((id) => !targetIds.includes(id));
 		if (extra.length > 0) {
-			extraIdsByTarget.set(targetName, [...(extraIdsByTarget.get(targetName) ?? []), ...extra]);
+			extraIdsByTarget.set(target.name, [...(extraIdsByTarget.get(target.name) ?? []), ...extra]);
 		}
 		suppressed.add(sibling);
-		if (!carrierByTarget.has(targetName)) {
-			carrierByTarget.set(targetName, sibling);
+		if (!carrierByTarget.has(target.name)) {
+			carrierByTarget.set(target.name, sibling);
 		}
 	}
 	return { extraIdsByTarget, suppressed, carrierByTarget };

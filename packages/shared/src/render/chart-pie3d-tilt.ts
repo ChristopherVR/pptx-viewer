@@ -96,6 +96,16 @@ export function applyPieTiltForeshortening(
 			const line = p as SvgLine;
 			return { ...line, y1: cy + (line.y1 - cy) * scaleY, y2: cy + (line.y2 - cy) * scaleY };
 		}
+		if (p.kind === 'polygon' || p.kind === 'polyline') {
+			// A data-label box or leader line (`chart-data-label-callout`): moved
+			// with its label rather than squashed, so the box still fits the text.
+			const pts = p.points.split(' ').map((pair) => pair.split(',').map(Number));
+			const dy = (pts.reduce((sum, [, y]) => sum + y, 0) / pts.length - cy) * (scaleY - 1);
+			return {
+				...p,
+				points: pts.map(([x, y]) => `${x},${Math.round((y + dy) * 100) / 100}`).join(' '),
+			};
+		}
 		return p;
 	});
 	const dataLabels = vm.dataLabels.map((label) => ({

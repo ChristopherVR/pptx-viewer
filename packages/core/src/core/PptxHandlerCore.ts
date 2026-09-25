@@ -20,6 +20,7 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
+	ResolvedStyleMatrix,
 	XmlObject,
 } from './types';
 import { detectFileFormat, EncryptedFileError } from './utils/encryption-detection';
@@ -279,6 +280,17 @@ export class PptxHandlerCore {
 	 */
 	public async updateThemeName(name: string): Promise<void> {
 		await this.runtime.updateThemeName(name);
+	}
+
+	/**
+	 * Resolve a `<p:style>` block (`a:lnRef` / `a:fillRef` / `a:effectRef` /
+	 * `a:fontRef`) against the loaded theme, exactly as the load path would for
+	 * a shape whose `spPr` authors nothing. Apply the returned `shapeStyle` to a
+	 * shape and it renders like PowerPoint's Shape Styles entry and saves as a
+	 * bare `<p:style>` with an empty `spPr`, which is what PowerPoint writes.
+	 */
+	public resolveStyleMatrixReferences(styleXml: XmlObject): ResolvedStyleMatrix {
+		return this.runtime.resolveStyleMatrixReferences(styleXml);
 	}
 
 	/**

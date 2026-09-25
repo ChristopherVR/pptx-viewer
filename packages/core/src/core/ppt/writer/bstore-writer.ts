@@ -4,15 +4,15 @@
  * `PowerPoint Document` stream's drawing group, the inverse of
  * `pictures.ts`.
  *
- * Only PNG and JPEG are embedded as-is; `element-to-write-model.ts` is
- * responsible for only ever placing those two extensions in
- * `WDeck.pictures` (anything else is degraded to a placeholder shape with a
- * compatibility warning before it reaches this module).
+ * The BLIP records themselves (PNG, JPEG, DIB, EMF, WMF) are built by
+ * `blip-writer.ts`; `picture-encode.ts` decides which BLIP kind each source
+ * image format becomes.
  *
  * @module ppt/writer/bstore-writer
  */
 
 import { OA } from '../record-types';
+import { buildBlip, buildFbse, pictureUid } from './blip-writer';
 import { ByteWriter, record } from './byte-writer';
 import { buildFopt } from './fopt-writer';
 import type { WPictureData } from './write-model';
@@ -63,38 +63,6 @@ function buildSplitMenuColors(): Uint8Array {
 		.u32(0x100000f7)
 		.toBytes();
 	return record(OA.SplitMenuColors, data, 4, false, 0);
-}
-
-const BLIP_INFO: Record<WPictureData['extension'], { recType: number; instance: number }> = {
-	png: { recType: OA.BlipPng, instance: 0x6e0 },
-	jpg: { recType: OA.BlipJpeg, instance: 0x46a },
-};
-
-function buildBlip(picture: WPictureData): Uint8Array {
-	const info = BLIP_INFO[picture.extension];
-	const data = new ByteWriter()
-		.bytes(new Uint8Array(16)) // rgbUid: not spec-critical for opening/rendering
-		.u8(0xff) // tag
-		.bytes(picture.bytes)
-		.toBytes();
-	return record(info.recType, data, info.instance, false, 2);
-}
-
-function buildFbse(picture: WPictureData, foDelay: number, size: number): Uint8Array {
-	const data = new ByteWriter()
-		.u8(picture.extension === 'png' ? 0x06 : 0x05) // btWin32
-		.u8(picture.extension === 'png' ? 0x06 : 0x05) // btMacOS
-		.bytes(new Uint8Array(16)) // rgbUid
-		.u16(0xff) // tag
-		.u32(size)
-		.u32(1) // cRef
-		.u32(foDelay)
-		.u8(0) // usage: default
-		.u8(0) // cbName
-		.u8(0)
-		.u8(0)
-		.toBytes();
-	return record(OA.FBSE, data, 2, false, 2);
 }
 
 /** Shape-id budget allocated per drawing; must match `drawing-writer.ts`'s own constant. */
@@ -177,9 +145,10 @@ export function buildPictureStore(
 	const fbseEntries = new ByteWriter();
 	for (const picture of pictures) {
 		const foDelay = picturesStream.size;
-		const blip = buildBlip(picture);
+		const uid = pictureUid(picture);
+		const blip = buildBlip(picture, uid);
 		picturesStream.bytes(blip);
-		fbseEntries.bytes(buildFbse(picture, foDelay, blip.length));
+		fbseEntries.bytes(buildFbse(picture, uid, foDelay, blip.length));
 	}
 	const bstoreContainer = record(OA.BStoreContainer, fbseEntries.toBytes(), pictures.length, true);
 

@@ -24,12 +24,9 @@
  * @module composables/animation-css
  */
 
-import type {
-	PptxAnimationPreset,
-	PptxAnimationTimingCurve,
-	PptxElementAnimation,
-} from 'pptx-viewer-core';
+import type { PptxAnimationPreset, PptxElementAnimation } from 'pptx-viewer-core';
 
+import { cssEasingForTimingCurve } from './animation-easing';
 import { maskHoleDecl } from './animation-mask-hole-reveal';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 
@@ -83,24 +80,6 @@ const FILL_MODE: Record<AnimationKind, string> = {
 	emphasis: 'none',
 	exit: 'forwards',
 };
-
-/**
- * Maps a {@link PptxAnimationTimingCurve} to a CSS `animation-timing-function`.
- */
-function timingFunction(curve: PptxAnimationTimingCurve | undefined): string {
-	switch (curve) {
-		case 'linear':
-			return 'linear';
-		case 'ease-in':
-			return 'ease-in';
-		case 'ease-out':
-			return 'ease-out';
-		case 'ease':
-			return 'ease';
-		default:
-			return 'ease';
-	}
-}
 
 /**
  * Maps an entrance {@link PptxAnimationPreset} to a keyframe short-name (without
@@ -277,7 +256,7 @@ export function resolveAnimationCss(
 	const durationMs = animation.durationMs ?? DEFAULT_DURATION_MS[kind];
 	const delayMs = animation.delayMs ?? 0;
 	const fillMode = FILL_MODE[kind];
-	const timing = timingFunction(animation.timingCurve);
+	const timing = cssEasingForTimingCurve(animation.timingCurve);
 
 	const repeat = animation.repeatCount;
 	const iterationCount =

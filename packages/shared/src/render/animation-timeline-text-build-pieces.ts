@@ -45,7 +45,10 @@ export const TEXT_BUILD_ID_SEP = '::';
  * Returns `undefined` only when the animation is not iterate-driven at all, so
  * the caller keeps the slide-build defaults.
  */
-function iterateStaggerMs(anim: PptxNativeAnimation, durationMs: number): number | undefined {
+export function iterateStaggerMs(
+	anim: PptxNativeAnimation,
+	durationMs: number,
+): number | undefined {
 	const iterate = anim.iterate;
 	if (!iterate || iterate.type === 'el') {
 		return undefined;
@@ -103,8 +106,22 @@ export function iterateGranularity(
 	return undefined;
 }
 
+/**
+ * Piece pacing for a split with no `p:iterate` interval (a plain `p:bldP`
+ * by-word / by-letter build): each piece plays a shortened effect, chained
+ * end to end with a small gap.
+ */
+export function fallbackPiecePacing(
+	kind: 'byChar' | 'byWord',
+	baseDuration: number,
+): { durationMs: number; staggerMs: number } {
+	return kind === 'byChar'
+		? { durationMs: Math.max(50, Math.round(baseDuration / 4)), staggerMs: 20 }
+		: { durationMs: Math.max(100, Math.round(baseDuration / 2)), staggerMs: 50 };
+}
+
 /** Per-piece sub-element id prefix and per-paragraph piece count for a split. */
-function pieceCounts(
+export function pieceCounts(
 	kind: 'byChar' | 'byWord',
 	counts: TextBuildSegmentCounts,
 ): { token: 'c' | 'w'; perParagraph: number[] } {
@@ -123,27 +140,26 @@ function pieceCounts(
  * each step's delay yields `base + i * stagger`. The slide-build (`p:bldP`) path
  * keeps its original end-to-end pacing.
  *
- * `newClickStepPerParagraph` reproduces a by-paragraph build: paragraph 0 starts
- * with the parent effect, and every later paragraph waits for its own click,
- * with its pieces rippling from there.
+ * With `onlyParagraph` the split is limited to that one paragraph: that is how
+ * PowerPoint writes each step of a "By paragraph" build (one effect per
+ * paragraph, scoped by `p:txEl/p:pRg`). A by-paragraph build carried by ONE
+ * whole-shape effect goes through `emitParagraphGroupRipple` instead.
  */
 export function emitStaggeredPieces(
 	anim: PptxNativeAnimation,
 	kind: 'byChar' | 'byWord',
 	counts: TextBuildSegmentCounts,
 	output: PptxNativeAnimation[],
-	newClickStepPerParagraph: boolean,
 	onlyParagraph?: ParagraphScopedTarget,
 ): void {
 	const targetId = onlyParagraph?.baseId ?? anim.targetId ?? '';
 	const baseDuration = anim.durationMs ?? 500;
 	const stagger = iterateStaggerMs(anim, baseDuration);
 	const { token, perParagraph } = pieceCounts(kind, counts);
-	const fallbackDuration =
-		kind === 'byChar'
-			? Math.max(50, Math.round(baseDuration / 4))
-			: Math.max(100, Math.round(baseDuration / 2));
-	const fallbackStagger = kind === 'byChar' ? 20 : 50;
+	const { durationMs: fallbackDuration, staggerMs: fallbackStagger } = fallbackPiecePacing(
+		kind,
+		baseDuration,
+	);
 
 	// `p:iterate/@backwards` reverses the REVEAL order within each paragraph
 	// (last letter/word first) while each synthesized step keeps targeting its
@@ -157,25 +173,17 @@ export function emitStaggeredPieces(
 		const pieces = perParagraph[pIdx] ?? 0;
 		for (let step = 0; step < pieces; step++) {
 			const i = backwards ? pieces - 1 - step : step;
-			const opensParagraph = step === 0;
 			const isFirstStep = stepIndex === 0;
-			const startsClickStep = newClickStepPerParagraph && opensParagraph && !isFirstStep;
 			output.push({
 				...anim,
 				targetId: `${targetId}${TEXT_BUILD_ID_SEP}${token}${pIdx}-${i}`,
 				trigger: isFirstStep
 					? anim.trigger
-					: startsClickStep
-						? 'onClick'
-						: stagger !== undefined
-							? 'withPrevious'
-							: 'afterPrevious',
+					: stagger !== undefined
+						? 'withPrevious'
+						: 'afterPrevious',
 				durationMs: stagger !== undefined ? baseDuration : fallbackDuration,
-				delayMs: isFirstStep
-					? (anim.delayMs ?? 0)
-					: startsClickStep
-						? 0
-						: (stagger ?? fallbackStagger),
+				delayMs: isFirstStep ? (anim.delayMs ?? 0) : (stagger ?? fallbackStagger),
 				// Only the first sub-step inherits the parent's start delay; the
 				// rest carry the bare stagger, so these must not re-apply it.
 				// They are synthetic chain steps rather than OOXML `p:par`

@@ -1,6 +1,9 @@
 import { applyCustomGeometryGuideOverrides } from '../../geometry/custom-geometry-guide-writeback';
 import { buildSaveTimeCustomGeometryXml } from '../../geometry/custom-geometry-live-eval';
-import { filterValidShapeAdjustmentEntries } from '../../geometry/preset-adjustment-validation';
+import {
+	avLstForPreset,
+	filterValidShapeAdjustmentEntries,
+} from '../../geometry/preset-adjustment-validation';
 import { hasShapeProperties } from '../../types';
 import type {
 	XmlObject,
@@ -151,6 +154,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 					? this.normalizePresetGeometry(el.shapeType || 'straightConnector1')
 					: this.normalizePresetGeometry(el.shapeType);
 			const prstGeom = spPr['a:prstGeom'] as XmlObject;
+			if (prstGeom['@_prst'] !== presetGeometry) {
+				// The retained guides belong to the previous preset.
+				prstGeom['a:avLst'] = avLstForPreset(prstGeom['a:avLst'], presetGeometry);
+			}
 			prstGeom['@_prst'] = presetGeometry;
 			if (el.shapeAdjustments) {
 				// A `<a:gd>` name PowerPoint doesn't recognise for the RESOLVED preset

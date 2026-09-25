@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { filterValidShapeAdjustmentEntries } from './preset-adjustment-validation';
+import { avLstForPreset, filterValidShapeAdjustmentEntries } from './preset-adjustment-validation';
 
 describe('filterValidShapeAdjustmentEntries', () => {
 	it('keeps a homePlate `adj` entry (its one real ECMA-376 guide)', () => {
@@ -87,5 +87,37 @@ describe('filterValidShapeAdjustmentEntries', () => {
 	it('drops a stray `adj` for gear9 (its real guides are adj1/adj2, not adj)', () => {
 		const entries = filterValidShapeAdjustmentEntries('gear9', { adj: 10000 });
 		expect(entries).toStrictEqual([]);
+	});
+});
+
+describe('avLstForPreset', () => {
+	it('drops the previous preset guides when a roundRect becomes a rect', () => {
+		expect(
+			avLstForPreset({ 'a:gd': { '@_name': 'adj', '@_fmla': 'val 8594' } }, 'rect'),
+		).toStrictEqual({});
+	});
+
+	it('keeps guides the new preset defines and drops the rest', () => {
+		const avLst = {
+			'a:gd': [
+				{ '@_name': 'adj', '@_fmla': 'val 1' },
+				{ '@_name': 'adj1', '@_fmla': 'val 16667' },
+				{ '@_name': 'adj2', '@_fmla': 'val 0' },
+			],
+		};
+		expect(avLstForPreset(avLst, 'round2DiagRect')).toStrictEqual({
+			'a:gd': [
+				{ '@_name': 'adj1', '@_fmla': 'val 16667' },
+				{ '@_name': 'adj2', '@_fmla': 'val 0' },
+			],
+		});
+		expect(avLstForPreset(avLst, 'roundRect')).toStrictEqual({
+			'a:gd': { '@_name': 'adj', '@_fmla': 'val 1' },
+		});
+	});
+
+	it('treats an absent or empty list as empty', () => {
+		expect(avLstForPreset(undefined, 'ellipse')).toStrictEqual({});
+		expect(avLstForPreset('', 'ellipse')).toStrictEqual({});
 	});
 });

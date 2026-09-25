@@ -9,6 +9,7 @@
 import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { resolveColorAnimationTargets } from './animation-color';
+import { cssEasingForAccelDecel } from './animation-easing';
 import { resolveTextStyleAnimation } from './animation-text-style-resolve';
 import type { EffectName, TimelineStep } from './animation-timeline-types';
 
@@ -18,24 +19,13 @@ export function clamp01(value: number): number {
 }
 
 /**
- * Map an animation's parsed `accel`/`decel` fractions to a CSS timing function.
- *
- * PowerPoint's `accel` is the fraction of the duration spent easing in and
- * `decel` the fraction spent easing out. We translate the actual magnitudes to
- * a `cubic-bezier(accel, 0, 1 - decel, 1)` curve so a gentle 10% accel differs
- * from an aggressive 80% accel (the old keyword mapping collapsed both to a flat
- * `ease-in`). With neither set we keep the neutral `ease` default so existing
- * decks are unchanged.
+ * Map an animation's parsed `accel`/`decel` fractions to a CSS timing function
+ * (see `cssEasingForAccelDecel`): neither set plays at constant speed
+ * (`linear`), like PowerPoint; otherwise PowerPoint's exact speed-up / cruise
+ * / slow-down profile.
  */
 export function cssEasingForAnimation(anim: PptxNativeAnimation): string {
-	const accel = anim.accel !== undefined && anim.accel > 0 ? clamp01(anim.accel) : 0;
-	const decel = anim.decel !== undefined && anim.decel > 0 ? clamp01(anim.decel) : 0;
-	if (accel === 0 && decel === 0) {
-		return 'ease';
-	}
-	const x1 = accel.toFixed(3);
-	const x2 = (1 - decel).toFixed(3);
-	return `cubic-bezier(${x1}, 0, ${x2}, 1)`;
+	return cssEasingForAccelDecel(anim.accel, anim.decel);
 }
 
 /**

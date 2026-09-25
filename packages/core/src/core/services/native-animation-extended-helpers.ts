@@ -40,7 +40,7 @@ function extractSingleColorAnimation(node: XmlObject): PptxColorAnimation {
 	const dir = String(node['@_dir'] || '').toLowerCase();
 	const direction = dir === 'cw' ? 'cw' : dir === 'ccw' ? 'ccw' : undefined;
 	// ECMA-376 §19.5.13 also defines `@path` as a companion HSL-direction
-	// hint. Preserve verbatim for round-trip — we don't attempt to interpret
+	// hint. Preserve verbatim for round-trip; we don't attempt to interpret
 	// the value here, only ensure it survives a parse/save cycle.
 	const path = node['@_path'] !== undefined ? String(node['@_path']) : undefined;
 
@@ -248,9 +248,13 @@ export function extractTextTarget(
 
 	const pRg = txEl['p:pRg'] as XmlObject | undefined;
 	if (pRg) {
+		// `p:pRg/@end` is INCLUSIVE: PowerPoint scopes each step of a "By
+		// paragraph" build as `st="N" end="N"`. The model's `end` is exclusive,
+		// so without the `+ 1` every such range read as empty and the effect fell
+		// back to the whole text box, re-splitting it into every paragraph again.
 		const st = Number.parseInt(String(pRg['@_st'] ?? '0'), 10);
-		const end = Number.parseInt(String(pRg['@_end'] ?? '0'), 10);
-		return { type: 'pRg', start: st, end };
+		const end = Number.parseInt(String(pRg['@_end'] ?? String(st)), 10);
+		return { type: 'pRg', start: st, end: end + 1 };
 	}
 
 	return undefined;

@@ -8,6 +8,7 @@ import type {
 	PptxSlide,
 	XmlObject,
 } from '../types';
+import { countNotesPages, toAppTitleEntries } from '../utils/app-properties-counts';
 import { applySlideTitlesToAppProps } from '../utils/app-properties-titles';
 import { deriveSlideTitles } from '../utils/slide-title';
 
@@ -96,10 +97,12 @@ export class PptxDocumentPropertiesUpdater {
 			this.applyAppPropertiesOverrides(appProps, options?.appProperties);
 
 			const hiddenSlidesCount = slides.filter((slide) => slide.hidden).length;
-			const notesCount = slides.filter((slide) => {
-				const notes = String(slide.notes || '').trim();
-				return notes.length > 0;
-			}).length;
+			// PowerPoint counts notes PAGES, empty or not (see
+			// `app-properties-counts.ts`); the text-based count is only the
+			// fallback for a package with no presentation rels to follow.
+			const notesCount =
+				(await countNotesPages(this.context.zip, this.context.parser)) ??
+				slides.filter((slide) => String(slide.notes || '').trim().length > 0).length;
 
 			appProps['Slides'] = String(slides.length);
 			appProps['HiddenSlides'] = String(hiddenSlidesCount);
@@ -181,7 +184,7 @@ export class PptxDocumentPropertiesUpdater {
 	 * helper; here we only derive the ordered titles.
 	 */
 	private updateSlideTitleProperties(appProps: XmlObject, slides: PptxSlide[]): void {
-		applySlideTitlesToAppProps(appProps, deriveSlideTitles(slides));
+		applySlideTitlesToAppProps(appProps, toAppTitleEntries(deriveSlideTitles(slides)));
 	}
 
 	private applyAppPropertiesOverrides(

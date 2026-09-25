@@ -20,26 +20,20 @@
  *    (`checkerboardIn`, `blindsIn`, `boxIn`, `circleIn`, `wheelIn`,
  *    `dissolveIn`/`Out`, `fadeIn`/`Out`, `zoomIn`/`Out`, `randomBarsIn`) built
  *    for the SAME preset families in `animation-keyframes`.
- *  - `slide` / `cover` / `uncover` / `push` / `pull` all map onto the same
- *    per-edge Fly keyframes (`flyInLeft`/`flyOutRight`/etc.): each is a
- *    directional translate-and-displace transition in the SMIL sense, and
- *    this single-element playback engine has no separate "the OTHER element
- *    also moves" concept, so all five collapse onto the one Fly mapping (see
- *    {@link resolveSlideEffect}). `cover`/`uncover` additionally carry
- *    diagonal subtype tokens (`fromTopLeft`, etc.) that
- *    {@link SLIDE_TOKEN_TO_SUFFIX} does not enumerate; those fall through to
- *    the same default bottom edge as an unrecognised `slide` subtype.
- *  - `strips` (diagonal corner reveal) has no dedicated element-level mask
- *    shape; it is approximated by reusing the Wipe engine off the nearest
- *    cardinal edge (documented on {@link STRIPS_TOKEN_TO_WIPE_TOKEN}).
- *  - `diamond` / `plus` / `wedge` reuse the box/circle mask-SIZE technique
- *    (`diamondOut` / `plusOut` / `wedgeOut` in `animation-mask-reveal`): a
- *    fixed mask shape whose `mask-size` animates 0 -> full, so `diamond`
- *    grows a rotated square from centre, `plus` unions a horizontal and a
- *    vertical bar growing from centre into a cross, and `wedge` grows a
- *    convex hexagon standing in for PowerPoint's two-wedge bowtie sweep
- *    (an animated sweep ANGLE is not expressible with this position/size-only
- *    technique, see `animation-mask-reveal`'s module doc).
+ *  - `slide` plays its own content-through-a-window keyframes
+ *    (`animation-slide-filter`), derived from CreateVideo frames of a
+ *    hand-authored `slide(fromLeft)`/`slide(fromBottom)` effect.
+ *  - `cover` / `uncover` / `push` / `pull` are not animated by PowerPoint at
+ *    all (the same CreateVideo method): the entrance appears at its start and
+ *    the exit vanishes at its end, so they resolve to `cutIn` / `cutOut`.
+ *  - `strips` resolves to the diagonal corner-to-corner sweep in
+ *    `animation-strips-reveal` (one keyframe per travel direction), the same
+ *    keyframes a preset-driven Strips effect (`presetID` 18) plays.
+ *  - `diamond` / `plus` reuse the box/circle mask-SIZE technique
+ *    (`diamondOut` / `plusOut` in `animation-mask-reveal`): a fixed mask
+ *    shape whose `mask-size` animates 0 -> full.
+ *  - `wedge` plays the two-sided angular sweep in `animation-wedge-reveal`
+ *    (the same keyframes as the Wedge preset, `presetID` 20).
  *  - `comb` reuses `randomBarsIn`: both are an alternating-strip reveal of
  *    the same shape family as `randombar`/`checkerboard`, and PowerPoint's
  *    only structural difference (ordered teeth vs. random bars) is not worth
@@ -101,6 +95,8 @@ import {
 	redirectMaskEffectByFilterSubtype,
 	WIPE_FILTER_TOKEN_TO_SUBTYPE,
 } from './animation-presets';
+import { slideFilterEffectName } from './animation-slide-filter';
+import { resolveStripsDirection, stripsEffectName } from './animation-strips-reveal';
 import type { EffectName } from './animation-timeline-types';
 
 // ==========================================================================
@@ -131,20 +127,17 @@ const FILTER_FAMILY_EFFECT: Readonly<Record<string, FilterEffectPair>> = {
 	checkerboard: { entr: 'checkerboardIn', exit: 'fadeOut' },
 	blinds: { entr: 'blindsIn', exit: 'fadeOut' },
 	box: { entr: 'boxIn', exit: 'fadeOut' },
-	circle: { entr: 'circleIn', exit: 'shrinkOut' },
+	circle: { entr: 'circleIn', exit: 'circleOut' },
 	wheel: { entr: 'wheelIn', exit: 'fadeOut' },
 	zoom: { entr: 'zoomIn', exit: 'zoomOut' },
 	randombar: { entr: 'randomBarsIn', exit: 'fadeOut' },
-	// Strips is a diagonal corner reveal; approximated via the Wipe mask
-	// engine off the nearest cardinal edge (see STRIPS_TOKEN_TO_WIPE_TOKEN).
-	strips: { entr: 'wipeIn', exit: 'wipeOut' },
 	// Comb is an ordered alternating-strip reveal; close enough to the
 	// randombar shape family that it reuses the same keyframe rather than a
 	// bespoke ordered-strip mask.
 	comb: { entr: 'randomBarsIn', exit: 'fadeOut' },
 	diamond: { entr: 'diamondIn', exit: 'fadeOut' },
 	plus: { entr: 'plusIn', exit: 'fadeOut' },
-	wedge: { entr: 'wedgeIn', exit: 'fadeOut' },
+	wedge: { entr: 'wedgeIn', exit: 'wedgeOut' },
 	cut: { entr: 'cutIn', exit: 'cutOut' },
 	newsflash: { entr: 'newsflashIn', exit: 'newsflashOut' },
 };
@@ -178,23 +171,14 @@ const PIXELATE_MOSAIC_EFFECT: FilterEffectPair = { entr: 'pixelateIn', exit: 'pi
 export const GENERIC_FALLBACK_FILTER_FAMILIES: readonly string[] = ['image'];
 
 // ==========================================================================
-// Slide / cover / uncover / push / pull (direct Fly mapping)
+// Slide (content through a window) / cover, uncover, push, pull (no motion)
 // ==========================================================================
 
 /**
- * Families whose subtype is a `fromLeft`/`fromRight`/`fromTop`/`fromBottom`
- * direction token that maps directly onto a Fly keyframe. `cover` and
- * `uncover` also allow four diagonal tokens (`fromTopLeft`, etc.) that this
- * table does not enumerate; those fall through to the same default bottom
- * edge as an unrecognised `slide` subtype (see {@link resolveSlideEffect}).
+ * Families PowerPoint recognises but does not animate: CreateVideo shows the
+ * entrance appearing at the effect's start and the exit vanishing at its end.
  */
-const DIRECTIONAL_SLIDE_FAMILIES: ReadonlySet<string> = new Set([
-	'slide',
-	'cover',
-	'uncover',
-	'push',
-	'pull',
-]);
+const UNANIMATED_FAMILIES: ReadonlySet<string> = new Set(['cover', 'uncover', 'push', 'pull']);
 
 const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 'Bottom'>> = {
 	fromLeft: 'Left',
@@ -202,11 +186,6 @@ const SLIDE_TOKEN_TO_SUFFIX: Readonly<Record<string, 'Left' | 'Right' | 'Top' | 
 	fromTop: 'Top',
 	fromBottom: 'Bottom',
 };
-
-function resolveSlideEffect(subtype: string | undefined, isExit: boolean): EffectName {
-	const suffix = subtype ? (SLIDE_TOKEN_TO_SUFFIX[subtype] ?? 'Bottom') : 'Bottom';
-	return isExit ? (`flyOut${suffix}` as EffectName) : (`flyIn${suffix}` as EffectName);
-}
 
 // ==========================================================================
 // Stretch (directional scale, reuses the slide direction tokens)
@@ -224,23 +203,6 @@ function resolveStretchEffect(subtype: string | undefined, isExit: boolean): Eff
 	const suffix = subtype ? (SLIDE_TOKEN_TO_SUFFIX[subtype] ?? 'Bottom') : 'Bottom';
 	return isExit ? (`stretchOut${suffix}` as EffectName) : (`stretchIn${suffix}` as EffectName);
 }
-
-// ==========================================================================
-// Strips -> nearest cardinal Wipe edge (diagonal approximation)
-// ==========================================================================
-
-/**
- * Strips travels diagonally from a screen corner; the element-level mask
- * engine only has cardinal-edge wipes, so each corner token is approximated
- * by its vertical component (matches the direction most viewers read as
- * dominant for a corner sweep).
- */
-const STRIPS_TOKEN_TO_WIPE_TOKEN: Readonly<Record<string, string>> = {
-	downLeft: 'down',
-	downRight: 'down',
-	upLeft: 'up',
-	upRight: 'up',
-};
 
 // ==========================================================================
 // Public resolvers
@@ -269,11 +231,17 @@ export function resolveFilterEffect(
 	if (filter.family === 'random') {
 		return resolveRandomEffect(anim, isExit);
 	}
+	if (filter.family === 'strips') {
+		return stripsEffectName(resolveStripsDirection(filter.subtype, anim.presetSubtype), isExit);
+	}
 	if (filter.family === 'stretch') {
 		return resolveStretchEffect(filter.subtype, isExit);
 	}
-	if (DIRECTIONAL_SLIDE_FAMILIES.has(filter.family)) {
-		return resolveSlideEffect(filter.subtype, isExit);
+	if (filter.family === 'slide') {
+		return slideFilterEffectName(filter.subtype, isExit);
+	}
+	if (UNANIMATED_FAMILIES.has(filter.family)) {
+		return isExit ? 'cutOut' : 'cutIn';
 	}
 	if (filter.family === 'pixelate') {
 		const mapping = pixelateMosaic === true ? PIXELATE_MOSAIC_EFFECT : PIXELATE_SNAP_EFFECT;
@@ -299,8 +267,8 @@ export function resolveFilterEffect(
  * animation's own `presetSubtype` when present (real preset data always
  * wins), otherwise a value synthesised from the filter's subtype token for
  * the two directional families (`wipe`, `barn`) that have one. Every other
- * family (or a filter-only Strips animation, approximated non-directionally
- * via its nearest Wipe edge) returns `undefined`, matching `undefined`'s
+ * family (Strips carries its direction in its own effect name) returns
+ * `undefined`, matching `undefined`'s
  * existing meaning of "use the non-directional static effect".
  */
 export function resolveFilterPresetSubtype(anim: PptxNativeAnimation): number | undefined {
@@ -316,10 +284,6 @@ export function resolveFilterPresetSubtype(anim: PptxNativeAnimation): number | 
 	}
 	if (filter.family === 'barn') {
 		return BARN_FILTER_TOKEN_TO_SUBTYPE[filter.subtype];
-	}
-	if (filter.family === 'strips') {
-		const wipeToken = STRIPS_TOKEN_TO_WIPE_TOKEN[filter.subtype];
-		return wipeToken ? WIPE_FILTER_TOKEN_TO_SUBTYPE[wipeToken] : undefined;
 	}
 	return undefined;
 }

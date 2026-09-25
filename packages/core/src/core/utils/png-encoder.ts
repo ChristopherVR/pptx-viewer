@@ -60,8 +60,8 @@ function concatBytes(chunks: Uint8Array[]): Uint8Array {
 	return out;
 }
 
-/** Wrap raw bytes in a zlib stream using only DEFLATE "stored" blocks. */
-function zlibStore(data: Uint8Array): Uint8Array {
+/** Wrap raw bytes in a zlib stream using only DEFLATE "stored" blocks (also used by the `.ppt` metafile BLIP writer). */
+export function zlibStore(data: Uint8Array): Uint8Array {
 	const MAX_BLOCK = 0xffff;
 	const blocks: Uint8Array[] = [];
 	let offset = 0;

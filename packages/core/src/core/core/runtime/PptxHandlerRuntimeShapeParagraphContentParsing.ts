@@ -6,6 +6,7 @@ import { breakAutoNumberRun, nextAutoNumber } from './auto-number-sequence';
 import { hasOwnFontDeclaration, paragraphContentEntries } from './paragraph-sibling-order';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeShapeTextParsing';
 import type { ShapeTextParsingContext, ParagraphContentResult } from './PptxHandlerRuntimeTypes';
+import { parseRubyElement } from './ruby-element-parsing';
 
 /** `a:p` children that contribute renderable content, in no particular order. */
 const PARAGRAPH_CONTENT_TAGS: ReadonlySet<string> = new Set([
@@ -233,12 +234,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			// ── Ruby (phonetic guide) support ──
 			const rubyNode = r['a:ruby'] as XmlObject | undefined;
 			if (rubyNode) {
-				const rubySegment = this.parseRubyElement(
+				const rubySegment = parseRubyElement(
 					rubyNode,
 					r['a:rPr'] as XmlObject | undefined,
-					paraAlign,
 					mergedDefaultRunStyle,
-					ctx.slideRelationshipMap,
+					(runProps) => this.extractTextRunStyle(runProps, paraAlign, ctx.slideRelationshipMap),
 				);
 				if (rubySegment) {
 					parts.push(rubySegment.text);
@@ -524,7 +524,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			const lvlRaw = pPrRaw?.['@_lvl'];
 			if (lvlRaw !== undefined) {
 				const lvlParsed = Number.parseInt(String(lvlRaw), 10);
-				if (Number.isFinite(lvlParsed) && lvlParsed > 0) {
+				// An authored `lvl="0"` is kept as level 0 (not dropped as the
+				// schema default) so a rewritten slide re-emits the attribute.
+				if (Number.isFinite(lvlParsed) && lvlParsed >= 0) {
 					segments[firstSegmentIndex].paragraphLevel = Math.min(Math.max(lvlParsed, 0), 8);
 				}
 			}
@@ -610,133 +612,5 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			return typeof style.fontSize === 'number' ? style.fontSize : undefined;
 		}
 		return undefined;
-	}
-
-	/**
-	 * Parse an `a:ruby` element into a {@link TextSegment} with ruby annotation metadata.
-	 *
-	 * OOXML structure:
-	 * ```xml
-	 * <a:ruby>
-	 *   <a:rubyPr>
-	 *     <a:rubyAlign val="ctr"/>
-	 *   </a:rubyPr>
-	 *   <a:rt><a:r><a:rPr .../><a:t>phonetic</a:t></a:r></a:rt>
-	 *   <a:rubyBase><a:r><a:rPr .../><a:t>base</a:t></a:r></a:rubyBase>
-	 * </a:ruby>
-	 * ```
-	 */
-	protected parseRubyElement(
-		rubyNode: XmlObject,
-		runProps: XmlObject | undefined,
-		paraAlign: TextStyle['align'],
-		mergedDefaultRunStyle: TextStyle,
-		slideRelationshipMap: Map<string, string> | undefined,
-	): TextSegment | undefined {
-		// Extract ruby properties
-		const rubyPr = rubyNode['a:rubyPr'] as XmlObject | undefined;
-		const rubyAlign =
-			String(
-				rubyPr?.['@_algn'] ??
-					(rubyPr?.['a:rubyAlign'] as XmlObject | undefined)?.['@_val'] ??
-					'ctr',
-			).trim() || 'ctr';
-
-		// Extract ruby text (phonetic annotation) from a:rt
-		const rtNode = rubyNode['a:rt'] as XmlObject | undefined;
-		let rubyText = '';
-		let rubyFontSize: number | undefined;
-		let rubyStyle: TextStyle | undefined;
-		if (rtNode) {
-			const rtRuns = this.ensureArray(rtNode['a:r']);
-			const rtParts: string[] = [];
-			for (const rtRun of rtRuns) {
-				if (!rtRun) {
-					continue;
-				}
-				const rtRunObj = rtRun as XmlObject;
-				const t = rtRunObj['a:t'];
-				if (t !== undefined) {
-					rtParts.push(xmlText(t) ?? '');
-				}
-				// Parse style from the first ruby text run
-				if (!rubyStyle) {
-					rubyStyle = {
-						...mergedDefaultRunStyle,
-						...this.extractTextRunStyle(
-							rtRunObj['a:rPr'] as XmlObject | undefined,
-							paraAlign,
-							slideRelationshipMap,
-						),
-					} as TextStyle;
-					if (rubyStyle.fontSize) {
-						rubyFontSize = rubyStyle.fontSize;
-					}
-				}
-			}
-			rubyText = rtParts.join('');
-		}
-
-		// Extract base text from a:rubyBase
-		const rubyBaseNode = rubyNode['a:rubyBase'] as XmlObject | undefined;
-		let baseText = '';
-		let baseStyle: TextStyle = { ...mergedDefaultRunStyle };
-		if (rubyBaseNode) {
-			const baseRuns = this.ensureArray(rubyBaseNode['a:r']);
-			const baseParts: string[] = [];
-			for (const baseRun of baseRuns) {
-				if (!baseRun) {
-					continue;
-				}
-				const baseRunObj = baseRun as XmlObject;
-				const t = baseRunObj['a:t'];
-				if (t !== undefined) {
-					baseParts.push(xmlText(t) ?? '');
-				}
-				// Use style from the first base run
-				if (baseParts.length === 1) {
-					baseStyle = {
-						...mergedDefaultRunStyle,
-						...this.extractTextRunStyle(
-							baseRunObj['a:rPr'] as XmlObject | undefined,
-							paraAlign,
-							slideRelationshipMap,
-						),
-					} as TextStyle;
-				}
-			}
-			baseText = baseParts.join('');
-		}
-
-		// Also merge outer run props (a:rPr on the containing a:r)
-		if (runProps) {
-			const outerStyle = this.extractTextRunStyle(
-				runProps as XmlObject | undefined,
-				paraAlign,
-				slideRelationshipMap,
-			);
-			baseStyle = { ...baseStyle, ...outerStyle };
-		}
-
-		if (!baseText && !rubyText) {
-			return undefined;
-		}
-
-		// Check for hps (half-point size) on rubyPr
-		if (rubyPr?.['@_hps'] !== undefined && rubyFontSize === undefined) {
-			const hps = Number.parseInt(String(rubyPr['@_hps']), 10);
-			if (Number.isFinite(hps)) {
-				rubyFontSize = hps / 2; // half-points to points
-			}
-		}
-
-		return {
-			text: baseText,
-			style: baseStyle,
-			rubyText,
-			rubyAlignment: rubyAlign,
-			rubyFontSize,
-			rubyStyle,
-		};
 	}
 }

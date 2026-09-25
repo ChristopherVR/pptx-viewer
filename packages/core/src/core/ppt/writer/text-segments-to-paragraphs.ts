@@ -8,6 +8,7 @@
 import { EMU_PER_PX } from '../../constants';
 import type { PptxAction } from '../../types/actions';
 import type { TextSegment, TextStyle } from '../../types/text';
+import { isRenderedBulletMarker } from '../../utils/rendered-bullet-marker';
 import type { HyperlinkResolveContext } from './hyperlink-model';
 import { resolveHyperlink } from './hyperlink-model';
 import type { WParagraph, WRun } from './write-model';
@@ -50,7 +51,9 @@ function styleToRun(
 		bold: style?.bold,
 		italic: style?.italic,
 		underline: style?.underline,
-		sizePt: style?.fontSize,
+		// `TextStyle.fontSize` is CSS px (the `.pptx` save writes `sz` as px * 72 / 96);
+		// a TextCFException's size is in points.
+		sizePt: style?.fontSize !== undefined ? (style.fontSize * 72) / 96 : undefined,
 		colorRgb: style?.color?.replace(/^#/u, ''),
 		fontName: style?.fontFamily,
 		hyperlink: segment
@@ -145,10 +148,31 @@ export function textSegmentsToParagraphs(
 		if (meta === undefined) {
 			meta = metaFromSegment(segment, paragraphIndents, paraIndex, fallbackAlign);
 		}
-		const text = segment.isLineBreak ? SOFT_BREAK_CHAR : segment.text;
-		runs.push(styleToRun(text, segment.style, segment, hyperlinkCtx));
+		// The parser's display-only bullet marker ("• ") is paragraph metadata
+		// (`hasBullet`/`bulletChar` above), not text; writing it doubled the bullet.
+		if (isRenderedBulletMarker(segment)) {
+			continue;
+		}
+		if (segment.isLineBreak) {
+			runs.push(styleToRun(SOFT_BREAK_CHAR, segment.style, segment, hyperlinkCtx));
+			continue;
+		}
+		// A parsed deck marks each paragraph boundary with a literal "\n" run
+		// (the `.pptx` save splits on it too); only the SDK sets `isParagraphBreak`.
+		const parts = segment.text.split('\n');
+		for (let i = 0; i < parts.length; i++) {
+			const part = parts[i]!;
+			if (part.length > 0) {
+				runs.push(styleToRun(part, segment.style, segment, hyperlinkCtx));
+			}
+			if (i < parts.length - 1) {
+				flush();
+			}
+		}
 	}
-	flush();
+	if (runs.length > 0 || meta !== undefined || paragraphs.length === 0) {
+		flush();
+	}
 
 	return paragraphs;
 }

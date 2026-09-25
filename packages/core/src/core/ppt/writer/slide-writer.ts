@@ -12,7 +12,7 @@ import type { HyperlinkCollector } from './hyperlink-writer';
 import { buildMasterTextStyles } from './master-text-styles-writer';
 import type { MediaCollector } from './media-writer';
 import type { OleCollector } from './ole-writer';
-import type { WRect, WSlide } from './write-model';
+import type { WMasterTextStyles, WRect, WSlide } from './write-model';
 
 const SLIDE_FLAG_MASTER_OBJECTS = 0x0001;
 const SLIDE_FLAG_MASTER_SCHEME = 0x0002;
@@ -147,11 +147,17 @@ export function buildMainMasterContainer(
 	hyperlinks: HyperlinkCollector,
 	oleEmbeds: OleCollector,
 	mediaEmbeds: MediaCollector,
+	masterStyles: WMasterTextStyles | undefined,
+	fonts: string[],
 ): Uint8Array {
+	const fontIndex = (name?: string): number | undefined => {
+		const idx = name ? fonts.indexOf(name) : -1;
+		return idx >= 0 ? idx : undefined;
+	};
 	const data = new ByteWriter()
 		.bytes(buildMasterSlideAtom())
 		.bytes(buildColorSchemeAtom(MASTER_FIRST_COLOR_SCHEME_INSTANCE))
-		.bytes(buildMasterTextStyles())
+		.bytes(buildMasterTextStyles(masterStyles, fontIndex))
 		.bytes(
 			buildDrawing(slideRect, [], undefined, [], drawingId, hyperlinks, oleEmbeds, mediaEmbeds),
 		)

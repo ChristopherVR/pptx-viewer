@@ -246,25 +246,25 @@ describe('getTextLayoutStyle', () => {
 	});
 
 	// ── Kinsoku line-breaking (CJK) ─────────────────────────────
-	it('applies lineBreak=normal and keeps Latin words whole when eaLineBreak is true', () => {
+	it('applies lineBreak=strict and keeps Latin words whole when eaLineBreak is true', () => {
 		const el = makeTextElement({ eaLineBreak: true });
 		const style = getTextLayoutStyle(el);
-		expect(style.lineBreak).toBe('normal');
+		expect(style.lineBreak).toBe('strict');
 		expect(style.wordBreak).toBe('normal');
 		expect(style.overflowWrap).toBe('break-word');
 	});
 
-	it('applies lineBreak=strict when eaLineBreak is false', () => {
+	it('applies no lineBreak when eaLineBreak is false (run pieces drop kinsoku)', () => {
 		const el = makeTextElement({ eaLineBreak: false });
 		const style = getTextLayoutStyle(el);
-		expect(style.lineBreak).toBe('strict');
+		expect(style.lineBreak).toBeUndefined();
 		expect(style.overflowWrap).toBe('break-word');
 	});
 
-	it('applies hangingPunctuation=last when hangingPunctuation is true', () => {
+	it('applies no CSS hanging-punctuation when hangingPunctuation is true', () => {
 		const el = makeTextElement({ hangingPunctuation: true });
 		const style = getTextLayoutStyle(el);
-		expect(style.hangingPunctuation).toBe('last');
+		expect(style.hangingPunctuation).toBeUndefined();
 	});
 
 	it('does not set kinsoku styles when no flags are present', () => {
@@ -280,8 +280,8 @@ describe('getTextLayoutStyle', () => {
 		const el = makeTextElement({ columnCount: 2, eaLineBreak: true, hangingPunctuation: true });
 		const style = getTextLayoutStyle(el);
 		expect(style.display).toBe('block');
-		expect(style.lineBreak).toBe('normal');
+		expect(style.lineBreak).toBe('strict');
 		expect(style.wordBreak).toBe('normal');
-		expect(style.hangingPunctuation).toBe('last');
+		expect(style.hangingPunctuation).toBeUndefined();
 	});
 });

@@ -58,7 +58,17 @@ export {
 	OOXML_TO_PRESET_EXIT,
 	OOXML_TO_PRESET_EMPH,
 	ooxmlToPresetName,
+	resolveOoxmlPresetMapping,
 } from './animation-write-mappings';
+export {
+	capturedPresetIds,
+	capturedSubtypes,
+	getCapturedPreset,
+	getCapturedTree,
+	type CapturedBehaviorNode,
+	type CapturedPreset,
+} from './animation-behavior-captured';
+export { capturedPresetNativeAnimation } from './animation-behavior-native';
 export { buildSingleEffectNode, applySoundToEffectCTn } from './animation-write-node-builders';
 export { applyAfterAnimationBehavior } from './animation-after-effect-write';
 export { extractAfterAnimationFromSubTnLst } from './native-animation-after-effect';

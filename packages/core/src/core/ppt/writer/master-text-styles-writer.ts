@@ -2,12 +2,17 @@
  * TextMasterStyleAtom writer for a `MainMaster`'s per-text-type defaults,
  * the inverse of `text/master-styles.ts`.
  *
- * Instances 0 (title) and 1 (body) are written with empty (all-inherit)
- * exceptions: PowerPoint supplies its own built-in title/body defaults when
- * a level declares no explicit properties (`masks = 0`), which is both
- * spec-correct and the lowest-risk encoding, since every shape/run in this
- * writer already carries its own explicit character formatting (see
- * `text-atom-writer.ts`) rather than relying on master inheritance.
+ * Instances 0 (title), 1 (body) and 4 (other) carry the deck's own master
+ * text styles (`p:titleStyle`/`p:bodyStyle`/`p:otherStyle`, converted by
+ * `master-style-convert.ts`) as five levels of partial TextPFException +
+ * TextCFException pairs: only the properties the deck sets are written, and
+ * PowerPoint fills the rest from its built-in defaults, as it already did
+ * for the empty (`masks = 0`) exceptions a deck without styles still gets.
+ * Five levels matter beyond the styles themselves: PowerPoint clamps a
+ * shape paragraph's indent level to the levels its master style declares,
+ * so a one-level body style (this writer's earlier output) flattened every
+ * nested bullet to level 1 (COM-measured: `TextRange.IndentLevel` read 1 for
+ * a level-2 paragraph).
  *
  * Instances 2 (notes), 4 (other), 5 (centre title), 6 (centre body), 7
  * (half body) and 8 (quarter body) are copied verbatim, byte for byte, from
@@ -23,23 +28,35 @@
  * Since every from-scratch deck needs the SAME "no explicit master
  * overrides" styling, one fixed byte sequence per instance (matching
  * PowerPoint's own built-in defaults for a brand new deck) covers every
- * caller; a deck with actual master-level style overrides is a distinct,
- * larger feature this writer does not yet support.
+ * caller that has no "other" style of its own.
  *
  * @module ppt/writer/master-text-styles-writer
  */
 
 import { RT } from '../record-types';
 import { ByteWriter, record } from './byte-writer';
+import type { FontIndexer } from './text-exception-writer';
+import { writeCfException, writePfException } from './text-exception-writer';
+import type { WMasterLevel, WMasterTextStyles } from './write-model';
 
-function buildEmptyLevel(): Uint8Array {
-	// One TextPFException (mask=0) followed by one TextCFException (mask=0).
-	return new ByteWriter().u32(0).u32(0).toBytes();
-}
+/** Levels written for a category the deck does not style: one empty level. */
+const EMPTY_LEVELS: WMasterLevel[] = [{ paragraph: {}, run: {} }];
 
-function buildMasterStyleAtom(recInstance: number): Uint8Array {
-	const data = new ByteWriter().u16(1).bytes(buildEmptyLevel()).toBytes();
-	return record(RT.TextMasterStyleAtom, data, recInstance, false, 0);
+/**
+ * Build one TextMasterStyleAtom (instances 0-4: no per-level level prefix)
+ * from `levels`, one TextPFException + TextCFException pair each.
+ */
+export function buildMasterStyleAtom(
+	recInstance: number,
+	levels: WMasterLevel[],
+	fontIndex: FontIndexer,
+): Uint8Array {
+	const w = new ByteWriter().u16(levels.length);
+	for (const level of levels) {
+		writePfException(w, level.paragraph);
+		writeCfException(w, level.run, fontIndex);
+	}
+	return record(RT.TextMasterStyleAtom, w.toBytes(), recInstance, false, 0);
 }
 
 /** Decode a hex string (no separators) into bytes. */
@@ -75,10 +92,19 @@ function buildFixedInstanceAtom(recInstance: number): Uint8Array {
  * Build every TextMasterStyleAtom instance a `MainMaster` needs (0, 1, 2, 4,
  * 5, 6, 7, 8), in that order.
  */
-export function buildMasterTextStyles(): Uint8Array {
-	const w = new ByteWriter().bytes(buildMasterStyleAtom(0)).bytes(buildMasterStyleAtom(1));
+export function buildMasterTextStyles(
+	styles: WMasterTextStyles | undefined,
+	fontIndex: FontIndexer,
+): Uint8Array {
+	const w = new ByteWriter()
+		.bytes(buildMasterStyleAtom(0, styles?.title ?? EMPTY_LEVELS, fontIndex))
+		.bytes(buildMasterStyleAtom(1, styles?.body ?? EMPTY_LEVELS, fontIndex));
 	for (const instance of [2, 4, 5, 6, 7, 8]) {
-		w.bytes(buildFixedInstanceAtom(instance));
+		w.bytes(
+			instance === 4 && styles?.other
+				? buildMasterStyleAtom(4, styles.other, fontIndex)
+				: buildFixedInstanceAtom(instance),
+		);
 	}
 	return w.toBytes();
 }

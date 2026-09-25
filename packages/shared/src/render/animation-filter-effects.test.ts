@@ -35,15 +35,15 @@ const IMPLEMENTED_FAMILIES: ReadonlyArray<{
 	{ family: 'checkerboard', subtype: 'across', entr: 'checkerboardInAcross', exit: 'fadeOut' },
 	{ family: 'blinds', subtype: 'horizontal', entr: 'blindsInHorizontal', exit: 'fadeOut' },
 	{ family: 'box', entr: 'boxIn', exit: 'fadeOut' },
-	{ family: 'circle', entr: 'circleIn', exit: 'shrinkOut' },
+	{ family: 'circle', entr: 'circleIn', exit: 'circleOut' },
 	{ family: 'wheel', subtype: '4', entr: 'wheelIn4', exit: 'fadeOut' },
 	{ family: 'zoom', entr: 'zoomIn', exit: 'zoomOut' },
 	{ family: 'randombar', subtype: 'horizontal', entr: 'randomBarsInHorizontal', exit: 'fadeOut' },
-	{ family: 'strips', subtype: 'downLeft', entr: 'wipeIn', exit: 'wipeOut' },
+	{ family: 'strips', subtype: 'downLeft', entr: 'stripsInDownLeft', exit: 'stripsOutDownLeft' },
 	{ family: 'comb', subtype: 'horizontal', entr: 'randomBarsIn', exit: 'fadeOut' },
 	{ family: 'diamond', entr: 'diamondIn', exit: 'fadeOut' },
 	{ family: 'plus', entr: 'plusIn', exit: 'fadeOut' },
-	{ family: 'wedge', entr: 'wedgeIn', exit: 'fadeOut' },
+	{ family: 'wedge', entr: 'wedgeIn', exit: 'wedgeOut' },
 	{ family: 'cut', entr: 'cutIn', exit: 'cutOut' },
 	{ family: 'newsflash', entr: 'newsflashIn', exit: 'newsflashOut' },
 ];
@@ -61,32 +61,28 @@ describe('resolveFilterEffect', () => {
 		expect(resolveFilterEffect(filterAnim('fade'))).toBe('fadeIn');
 	});
 
-	it('maps slide(fromLeft)/slide(fromRight)/slide(fromTop)/slide(fromBottom) directly onto Fly', () => {
-		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'entr'))).toBe('flyInLeft');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromRight', 'entr'))).toBe('flyInRight');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromTop', 'entr'))).toBe('flyInTop');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromBottom', 'entr'))).toBe('flyInBottom');
-		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'exit'))).toBe('flyOutLeft');
+	it('maps slide(fromLeft)/slide(fromRight)/slide(fromTop)/slide(fromBottom) onto the window slide', () => {
+		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'entr'))).toBe('slideInLeft');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromRight', 'entr'))).toBe('slideInRight');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromTop', 'entr'))).toBe('slideInTop');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromBottom', 'entr'))).toBe('slideInBottom');
+		expect(resolveFilterEffect(filterAnim('slide', 'fromLeft', 'exit'))).toBe('slideOutLeft');
 	});
 
 	it('slide with no subtype defaults to the bottom edge', () => {
-		expect(resolveFilterEffect(filterAnim('slide', undefined, 'entr'))).toBe('flyInBottom');
+		expect(resolveFilterEffect(filterAnim('slide', undefined, 'entr'))).toBe('slideInBottom');
 	});
 
+	// CreateVideo of hand-authored `cover`/`uncover`/`push`/`pull` filters:
+	// PowerPoint does not animate them; the entrance appears at the start and
+	// the exit vanishes at the end.
 	it.each(['cover', 'uncover', 'push', 'pull'])(
-		'maps %s(fromLeft)/%s(fromRight) directly onto Fly, like slide',
+		'plays %s as an unanimated appear/vanish, as PowerPoint does',
 		(family) => {
-			expect(resolveFilterEffect(filterAnim(family, 'fromLeft', 'entr'))).toBe('flyInLeft');
-			expect(resolveFilterEffect(filterAnim(family, 'fromRight', 'exit'))).toBe('flyOutRight');
+			expect(resolveFilterEffect(filterAnim(family, 'fromLeft', 'entr'))).toBe('cutIn');
+			expect(resolveFilterEffect(filterAnim(family, 'fromTopLeft', 'exit'))).toBe('cutOut');
 		},
 	);
-
-	it('cover/uncover fall back to the bottom edge for an unenumerated diagonal token', () => {
-		expect(resolveFilterEffect(filterAnim('cover', 'fromTopLeft', 'entr'))).toBe('flyInBottom');
-		expect(resolveFilterEffect(filterAnim('uncover', 'fromBottomRight', 'exit'))).toBe(
-			'flyOutBottom',
-		);
-	});
 
 	it('maps stretch(fromLeft)/stretch(fromRight)/stretch(fromTop)/stretch(fromBottom) onto the directional stretch keyframes', () => {
 		expect(resolveFilterEffect(filterAnim('stretch', 'fromLeft', 'entr'))).toBe('stretchInLeft');
@@ -238,9 +234,9 @@ describe('resolveFilterPresetSubtype', () => {
 		expect(resolveFilterPresetSubtype(filterAnim('barn', 'outHorizontal', 'exit'))).toBe(5);
 	});
 
-	it('derives an approximated strips presetSubtype off the nearest wipe edge', () => {
-		expect(resolveFilterPresetSubtype(filterAnim('strips', 'downLeft', 'entr'))).toBe(4);
-		expect(resolveFilterPresetSubtype(filterAnim('strips', 'upRight', 'entr'))).toBe(1);
+	it('synthesises no wipe presetSubtype for strips (its direction lives in the effect name)', () => {
+		expect(resolveFilterPresetSubtype(filterAnim('strips', 'downLeft', 'entr'))).toBeUndefined();
+		expect(resolveFilterPresetSubtype(filterAnim('strips', 'upRight', 'entr'))).toBeUndefined();
 	});
 
 	it('returns undefined for a non-directional family', () => {
@@ -314,7 +310,7 @@ describe('resolveEffect: filter fallback integration', () => {
 				presetClass: 'exit',
 				trigger: 'onClick',
 				durationMs: 400,
-				effectFilter: { family: 'wedge', transition: 'out', raw: 'wedge' },
+				effectFilter: { family: 'image', transition: 'out', raw: 'image' },
 			} as PptxNativeAnimation,
 		]);
 		const step = timeline.clickGroups[0].steps[0];

@@ -10,6 +10,7 @@ import type { PptxChartData } from 'pptx-viewer-core';
 import { pushMarker } from './chart-cartesian-plots';
 import type { SeriesPlotResult } from './chart-cartesian-plots';
 import { resolveMarkerLabelPlacement } from './chart-data-label-anchor';
+import { pushPointLabel } from './chart-data-label-callout';
 import {
 	buildDataLabelText,
 	dataLabelFontOverride,
@@ -56,6 +57,7 @@ export function buildAreas(
 ): SeriesPlotResult {
 	const primitives: SvgPrimitive[] = [],
 		dataLabels: SvgText[] = [],
+		labelBoxes: SvgPrimitive[] = [],
 		showLabels = chartData.style?.hasDataLabels,
 		isStackedMode = stacking !== 'clustered',
 		isPercent = stacking === 'percentStacked',
@@ -197,15 +199,23 @@ export function buildAreas(
 				if (label === undefined) {
 					return;
 				}
-				const anchor = resolveMarkerLabelPlacement(
-					chartData,
-					series,
-					pointIndex,
-					pt,
-					{ width: layout.svgWidth, height: layout.svgHeight },
-					6,
-				);
-				dataLabels.push({
+				// PowerPoint centres an area label in the band it names, the
+				// middle of this series' own slice at the category (COM,
+				// callouts-com.pptx), and points its callout / leader line there.
+				const bandBase = plot
+						? valueToY(plot.base[displayIndex] ?? 0, range, layout.plotTop, layout.plotBottom)
+						: baselineY,
+					mid = { x: pt.x, y: (pt.y + bandBase) / 2 },
+					anchor = resolveMarkerLabelPlacement(
+						chartData,
+						series,
+						pointIndex,
+						mid,
+						{ width: layout.svgWidth, height: layout.svgHeight },
+						6,
+						'ctr',
+					);
+				pushPointLabel(dataLabels, labelBoxes, chartData, series, pointIndex, mid, {
 					kind: 'text',
 					x: anchor.x,
 					y: anchor.y,
@@ -219,5 +229,5 @@ export function buildAreas(
 			});
 		}
 	}
-	return { primitives, dataLabels };
+	return { primitives: [...primitives, ...labelBoxes], dataLabels };
 }

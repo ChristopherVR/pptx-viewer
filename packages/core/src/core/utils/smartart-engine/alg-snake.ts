@@ -20,6 +20,7 @@
 import { applyConstraint } from './constraint-eval';
 import type { Box, EngineNode } from './engine-node';
 import { isSelfSizeConstraint } from './preferred-size';
+import { fitSnakeByRule } from './snake-rule-fit';
 
 interface Dims {
 	cols: number;
@@ -140,12 +141,15 @@ export function arrangeSnake(node: EngineNode): void {
 	const spacers = node.children.filter(isSpacer);
 	const params = node.alg.params;
 	const row = params.flowDir !== 'col';
-	const m = metricsOf(node, box, cells, spacers, row);
+	// A rule that shrinks growing cells re-lays the grid per probe instead of
+	// scaling it (`snake-rule-fit.ts`).
+	const ruled = fitSnakeByRule(node, box, cells, spacers, row);
+	const m = ruled ?? metricsOf(node, box, cells, spacers, row);
 	if (!(m.cellW > 0) || !(m.cellH > 0)) {
 		return;
 	}
 	const n = cells.length;
-	const dims = chooseDims(node, n, m, box, row);
+	const dims = ruled ? dimsFor(ruled.cols, n, row) : chooseDims(node, n, m, box, row);
 	const size = gridSize(dims, m, row);
 	// Shrink to fit, never grow: "Text Card Short Line"'s four 0.22 W cards
 	// already fit the frame and keep exactly that width in the cached drawing.

@@ -16,11 +16,14 @@
  * @module render/animation-keyframes-exit-shapes
  */
 
+import { CIRCLE_OUT_KEYFRAMES } from './animation-circle-iris';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
+import { WEDGE_KEYFRAME_DEFINITIONS } from './animation-wedge-reveal';
 
 /** The subset of {@link EffectName} whose `@keyframes` live in this module. */
 export type ExitShapeEffectName =
 	| 'boxOut'
+	| 'circleOut'
 	| 'checkerboardOut'
 	| 'blindsOut'
 	| 'wheelOut'
@@ -37,6 +40,10 @@ export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string
 	from { ${maskShapeDecl('boxOut', 'shown')} opacity: 1; }
 	to { ${maskShapeDecl('boxOut', 'hidden')} opacity: 0; }
 }`,
+	// Circle (exit.6, `circle(in)` with `transition="out"`): CreateVideo
+	// frames show a feathered iris closing on the centre (see
+	// `animation-circle-iris`).
+	circleOut: CIRCLE_OUT_KEYFRAMES,
 	checkerboardOut: `@keyframes pptx-checkerboardOut {
 	0% { opacity: 1; }
 	50% { opacity: 0.5; }
@@ -64,10 +71,9 @@ export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string
 	from { ${maskShapeDecl('plusOut', 'shown')} opacity: 1; }
 	to { ${maskShapeDecl('plusOut', 'hidden')} opacity: 0; }
 }`,
-	wedgeOut: `@keyframes pptx-wedgeOut {
-	from { ${maskShapeDecl('wedgeOut', 'shown')} opacity: 1; }
-	to { ${maskShapeDecl('wedgeOut', 'hidden')} opacity: 0; }
-}`,
+	// The hidden region is the entrance's two wedges opening from 12
+	// o'clock (CreateVideo-derived, see `animation-wedge-reveal`).
+	wedgeOut: WEDGE_KEYFRAME_DEFINITIONS.wedgeOut,
 	// Peek Out (exit.16): the exit-gallery counterpart of Peek In, which had
 	// no dedicated exit keyframe before this pass. Collapses back toward the
 	// same bottom-origin edge Peek In reveals from.

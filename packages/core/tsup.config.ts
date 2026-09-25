@@ -22,6 +22,7 @@ export default defineConfig((options) => ({
 		'node-forge',
 		'xml-crypto',
 		'@xmldom/xmldom',
+		'@napi-rs/canvas',
 		'crypto',
 		'http',
 		'https',

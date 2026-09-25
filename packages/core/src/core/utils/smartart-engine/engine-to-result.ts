@@ -27,6 +27,7 @@
  */
 
 import type { PptxSmartArtData, PptxSmartArtNode, SmartArtStyle } from '../../types';
+import { resolveFontTable } from '../smartart-layout-item-font-size';
 import {
 	colour,
 	nodeFill,
@@ -38,12 +39,15 @@ import {
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
 import { isAssistantItem } from './alg-hier';
 import { runSmartArtEngine } from './engine';
+import type { EngineLayoutContext } from './engine-context';
 import { applyEngineFonts } from './engine-fonts';
 import type { RenderedEngineNode } from './engine-fonts';
 import type { EngineNode } from './engine-node';
 import { computeMoveWithMerge, sourceIdsOf } from './move-with-merge';
+import { nodeTextFor } from './node-text';
 import { isRenderable, transitionLabelOf } from './render-filter';
 import { shapeTransform } from './shape-transform';
+import { textMetricsFor } from './text-measure';
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
 const SUPPORTED_ALGS = new Set([
@@ -213,16 +217,22 @@ export function runEngineLayout(
 	if (!rawXmlText || !(widthPt > 0) || !(heightPt > 0)) {
 		return undefined;
 	}
+	const nodeById = new Map(nodes.map((n) => [n.id, n]));
+	const metrics = textMetricsFor(resolveFontTable(smartArtData.themeMinorFont));
+	const context: EngineLayoutContext = {
+		textOf: (node) => nodeTextFor(node, sourceIdsOf(node), transitionLabelOf(node), nodeById),
+		metrics,
+		searchDepth: 0,
+	};
 	let run: ReturnType<typeof runSmartArtEngine>;
 	try {
-		run = runSmartArtEngine(smartArtData, rawXmlText, widthPt, heightPt);
+		run = runSmartArtEngine(smartArtData, rawXmlText, widthPt, heightPt, context);
 	} catch {
 		return undefined;
 	}
 	if (!run || !isFullySupported(run.root)) {
 		return undefined;
 	}
-	const nodeById = new Map(nodes.map((n) => [n.id, n]));
 	const collected = collectRenderedNodes(run.root, nodeById, palette, style);
 	applyEngineFonts(collected, nodeById, smartArtData.themeMinorFont);
 	const rendered = collected.map((entry) => entry.rendered);

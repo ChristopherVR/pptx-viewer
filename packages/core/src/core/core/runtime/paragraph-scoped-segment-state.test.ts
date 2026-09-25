@@ -208,9 +208,11 @@ describe('preserveParagraphScopedState', () => {
 		expect(result?.[2].paragraphProperties).toStrictEqual({ align: 'right' });
 	});
 
-	it('ignores a zero outline level, which is the schema default', () => {
+	it('keeps an authored zero outline level so lvl="0" is written back', () => {
 		expect(
-			preserveParagraphScopedState(undefined, 'a', [{ text: 'a', style: {}, paragraphLevel: 0 }]),
-		).toBeUndefined();
+			preserveParagraphScopedState(undefined, 'a', [
+				{ text: 'a', style: {}, paragraphLevel: 0 },
+			])?.[0].paragraphLevel,
+		).toBe(0);
 	});
 });

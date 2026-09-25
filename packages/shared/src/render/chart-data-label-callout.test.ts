@@ -40,7 +40,45 @@ describe('buildDataLabelDecorations (COM: charts-com.pptx slide 17)', () => {
 			buildDataLabelDecorations(chart, series(opts), label, { x: 100, y: 90 }, false),
 		).toStrictEqual([]);
 		const [line] = buildDataLabelDecorations(chart, series(opts), label, { x: 100, y: 90 }, true);
-		expect(line).toMatchObject({ kind: 'line', x2: 100, y2: 90 });
+		expect(line).toMatchObject({ kind: 'polyline', fill: 'none' });
+		expect(line.kind === 'polyline' && line.points.endsWith('100,90')).toBeTruthy();
+	});
+
+	it('leaves the box side facing the point with a short horizontal stub (COM)', () => {
+		const [line] = buildDataLabelDecorations(
+			chart,
+			series({ extLeaderLines: true }),
+			{ ...label, textAnchor: 'start', x: 200, y: 40, dominantBaseline: 'central' },
+			{ x: 120, y: 120 },
+			true,
+		);
+		const points = line.kind === 'polyline' ? line.points.split(' ') : [];
+		expect(points).toHaveLength(3);
+		const [from, elbow] = points.map((pair) => pair.split(',').map(Number));
+		expect(elbow[1]).toBe(from[1]);
+		expect(elbow[0]).toBeLessThan(from[0]);
+	});
+
+	it('draws the leader line behind a dragged callout too (COM: both show)', () => {
+		const out = buildDataLabelDecorations(
+			chart,
+			series({ calloutShape: 'wedgeRectCallout', extLeaderLines: true }),
+			label,
+			{ x: 100, y: 90 },
+			true,
+		);
+		expect(out.map((p) => p.kind)).toStrictEqual(['polyline', 'polygon']);
+	});
+
+	it('draws no pointer when the point sits inside the label box (area, doughnut)', () => {
+		const [box] = buildDataLabelDecorations(
+			chart,
+			series({ labelShape: { fillColor: '#FFFFCC' }, calloutShape: 'wedgeRectCallout' }),
+			{ ...label, dominantBaseline: 'central' },
+			{ x: 100, y: 50 },
+			false,
+		);
+		expect(box.kind === 'polygon' && box.points.split(' ')).toHaveLength(4);
 	});
 
 	it('lifts an unmoved callout label so its pointer shows', () => {

@@ -151,7 +151,8 @@ describe('buildTextBodyLayoutStyle', () => {
 		);
 		expect(style.tabSize).toBe('64px');
 		expect(style.wordBreak).toBe('break-all');
-		expect(style.hangingPunctuation).toBe('last');
+		// Hanging punctuation is run pieces (`text-east-asian-breaks`), not CSS.
+		expect(style.hangingPunctuation).toBeUndefined();
 	});
 
 	it('is empty for an element with no text properties', () => {

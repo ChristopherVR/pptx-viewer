@@ -22,21 +22,16 @@ export const EXIT_PRESETS: Record<number, EffectName> = {
 	// exit.12 (Peek Out, presetSubtype 4 / bottom edge), verified via COM
 	// (this repo's own PowerShell automation): `AddEffect` with the Peek In
 	// `MsoAnimEffect` constant then `Effect.Exit = True` re-emits
-	// `presetID="12"` with `filter="wipe(down)"`. Named `peekOutDown` (not
-	// `peekOut`) because that name is already bound to exit.16's own
-	// (pre-existing, out-of-scope) "Peek Out" mismatch; see
-	// `animation-keyframes-exit-shapes.ts`'s note on both keyframes.
+	// `presetID="12"` with `filter="wipe(down)"`, played by the
+	// `peekOutDown` keyframe (exit.16 is Split, not a second Peek Out).
 	12: 'peekOutDown',
 	1: 'disappear',
 	2: 'flyOutBottom',
 	// exit.6 = Circle, confirmed via COM (`msoAnimEffectCircle` with
-	// `Effect.Exit = True` serializes as presetID 6, filter="circle(in)"),
-	// matching the catalog label and `circleOut` in the authoring reverse
-	// lookup. There is no dedicated exit iris/circle-mask keyframe yet, so
-	// `shrinkOut` remains as a documented visual APPROXIMATION (both read
-	// as "collapse to nothing"); see the APPROXIMATION_ALLOWLIST entry in
-	// `animation-preset-tables-consistency.test.ts`.
-	6: 'shrinkOut',
+	// `Effect.Exit = True` serializes as presetID 6, filter="circle(in)").
+	// CreateVideo frames show a circular iris closing on the centre, which
+	// `circleOut` plays.
+	6: 'circleOut',
 	9: 'dissolveOut',
 	10: 'fadeOut',
 	22: 'wipeOut',
@@ -71,17 +66,11 @@ export const EXIT_PRESETS: Record<number, EffectName> = {
 	14: 'randomBarsOut',
 	20: 'wedgeOut',
 	21: 'wheelOut',
-	// exit.18 (Strips) confirmed via the same COM pass: presetID 18 (the
-	// SAME id as its entrance form, entr.18). This CONTRADICTS
-	// `animation-write-mappings.ts`'s existing (unverified) `collapseOut`
-	// entry at exit.18; that entry is almost certainly a pre-existing
-	// guess that was never COM-checked, and correcting it is a separate,
-	// larger fix out of this pass's scope (see the APPROXIMATION_ALLOWLIST
-	// entry in `animation-preset-tables-consistency.test.ts`). No
-	// dedicated diagonal-strip exit keyframe exists, so this reuses
-	// `wipeOut`, matching the approximation `animation-filter-effects.ts`
-	// already uses for the Strips filter family's exit form.
-	18: 'wipeOut',
+	// exit.18 (Strips) confirmed via COM: presetID 18 (the SAME id as its
+	// entrance form), `filter="strips(<dir>)"` with `transition="out"`.
+	// CreateVideo frames show the entrance sweep time-reversed (see
+	// `animation-strips-reveal`).
+	18: 'stripsOutDownLeft',
 	// exit.7/15/16/17/19/24/25/27-68 (minus the ids already covered above):
 	// the exit-side half of the same gap-closing pass, split into
 	// `animation-presets-extended.ts`; see that module's doc for the

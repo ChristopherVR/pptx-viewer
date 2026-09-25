@@ -295,11 +295,11 @@
 				id="anim-timing-curve"
 				class="pptx-ng-anim__select"
 				[disabled]="!canEdit()"
-				[value]="current()?.timingCurve ?? 'ease'"
+				[value]="currentTimingCurve()"
 				(change)="onSelect($event, 'timingCurve')"
 			>
 				@for (opt of timingCurveOptions; track opt.value) {
-					<option [value]="opt.value" [selected]="opt.value === (current()?.timingCurve ?? 'ease')">
+					<option [value]="opt.value" [selected]="opt.value === currentTimingCurve()">
 						{{ opt.labelKey | translate }}
 					</option>
 				}

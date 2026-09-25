@@ -8,8 +8,8 @@ import {
 } from './animation-preview';
 
 describe('timingCurveToCss', () => {
-	it('should return "ease" for undefined curve', () => {
-		expect(timingCurveToCss(undefined)).toBe('ease');
+	it('should return "linear" for undefined curve (the writer saves accel=0 decel=0)', () => {
+		expect(timingCurveToCss(undefined)).toBe('linear');
 	});
 
 	it('should return "ease" for "ease" curve', () => {
@@ -28,8 +28,8 @@ describe('timingCurveToCss', () => {
 		expect(timingCurveToCss('linear')).toBe('linear');
 	});
 
-	it('should return "ease" for unknown curve name', () => {
-		expect(timingCurveToCss('unknownCurve' as unknown as PptxAnimationTimingCurve)).toBe('ease');
+	it('should return "linear" for unknown curve name', () => {
+		expect(timingCurveToCss('unknownCurve' as unknown as PptxAnimationTimingCurve)).toBe('linear');
 	});
 
 	it('should return cubic-bezier when valid cubicBezierValues are provided', () => {
