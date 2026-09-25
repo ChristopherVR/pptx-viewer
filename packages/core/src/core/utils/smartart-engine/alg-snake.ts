@@ -1,129 +1,189 @@
 /**
- * `snake` algorithm (ECMA-376 Part 1, 21.4.2.x): children fill a grid whose
- * `(cols, rows)` dimensions come from the node's own aspect ratio, or from a
- * fixed line length when `bkpt="fixed"` declares one (`bkPtFixedVal`).
- * `flowDir` picks which axis is walked first, `contDir` decides whether
- * alternate lines reverse (the boustrophedon "snake" the algorithm is named
- * for; the ECMA-376 default), `grDir` which corner the grid grows from, and
- * `off="ctr"` centers an incomplete final line under the full lines above it
- * instead of leaving it flush against the growth-corner edge.
+ * `snake` algorithm (ECMA-376 Part 1, 21.4.2.x): the node's content points
+ * fill a grid line by line, each keeping the size its constraints gave it,
+ * with the whole grid scaled uniformly to fit the node.
  *
- * Every cell gets the SAME size (the node's box divided evenly by the grid,
- * less the `sibSp`/`sp`-derived gap between cells) - this mirrors the legacy
- * family interpreter's `arrangeSnake` (`smartart-layout-interpreter-
- * snake.ts`), which the gallery corpus measured accurate for the 35 fixtures
- * that resolve to the `snake` family; unlike that interpreter, which font-fits
- * every cell as one shared decision, this engine leaves each cell's own
- * subtree (its `sp`/`tx`/`composite` children) to size itself the same way
- * every other per-point algorithm does, via the ordinary constraint/font-fit
- * pipeline the layout driver already runs for it.
+ * - Cells are the non-transition children; a `sibTrans` child between two
+ *   cells is a spacer whose own `w` (`h` for `flowDir="col"`) is the gap
+ *   along a line, and the node's `sp` is the gap between lines.
+ * - The line length is `bkPtFixedVal` for `bkpt="fixed"`; otherwise every
+ *   line length is tried and the one whose grid scales largest into the
+ *   node wins (the grid only ever shrinks to fit, never grows) (`bkpt="bal"` then evens the lines out). "Basic Block List":
+ *   three `W x 0.6 W` cells, `0.1 W` apart, fit a 650 x 400 frame largest as
+ *   two columns, at the cached 307.5 x 184.5.
+ * - `flowDir` picks the line axis, `contDir="revDir"` reverses alternate
+ *   lines, `grDir` the starting corner, `off="ctr"` centres a short last
+ *   line, and `horzAlign`/`vertAlign` place the grid in the node (centred
+ *   by default).
  */
 
+import { applyConstraint } from './constraint-eval';
 import type { Box, EngineNode } from './engine-node';
+import { isSelfSizeConstraint } from './preferred-size';
 
-type FlowDir = 'row' | 'col';
-type GrowDir = 'tL' | 'tR' | 'bL' | 'bR';
-
-interface GridDims {
+interface Dims {
 	cols: number;
 	rows: number;
 }
 
-function gridDims(node: EngineNode, n: number, w: number, h: number, flowDir: FlowDir): GridDims {
-	const bkpt = node.alg.params.bkpt;
-	const fixedVal = node.values.get('bkPtFixedVal');
-	if (bkpt === 'fixed' && fixedVal !== undefined && fixedVal > 0) {
-		const lineLength = Math.max(1, Math.min(n, Math.round(fixedVal)));
-		if (flowDir === 'col') {
-			const rows = lineLength;
-			return { cols: Math.max(1, Math.ceil(n / rows)), rows };
-		}
-		const cols = lineLength;
-		return { cols, rows: Math.max(1, Math.ceil(n / cols)) };
-	}
-	if (flowDir === 'col') {
-		const rows = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, h / Math.max(1, w)))));
-		return { cols: Math.max(1, Math.ceil(n / rows)), rows };
-	}
-	const cols = Math.max(1, Math.round(Math.sqrt(n * Math.max(0.2, w / Math.max(1, h)))));
-	return { cols, rows: Math.max(1, Math.ceil(n / cols)) };
+interface Metrics {
+	cellW: number;
+	cellH: number;
+	/** Gap between cells along a line, and between lines. */
+	along: number;
+	across: number;
 }
 
-function snakeCell(
-	i: number,
-	dims: GridDims,
-	flowDir: FlowDir,
-	sameDir: boolean,
-	grDir: GrowDir,
-): { col: number; row: number } {
-	const primaryCount = flowDir === 'col' ? dims.rows : dims.cols;
-	const line = Math.floor(i / primaryCount);
-	let posInLine = i % primaryCount;
-	if (!sameDir && line % 2 === 1) {
-		posInLine = primaryCount - 1 - posInLine;
+function isSpacer(child: EngineNode): boolean {
+	return child.point.type === 'sibTrans' || child.point.type === 'parTrans';
+}
+
+/**
+ * A cell's natural size: what the snake node's constraints assigned it,
+ * completed by the cell's own self-scoped size constraints (`h refType="w"
+ * fact="0.6"` on "Basic Bending Process"'s node). A self-scoped LITERAL size
+ * does not override a dimension the parent already assigned: "Bending
+ * Picture Accent List"'s `compNode` declares `w val="1"` next to its
+ * `h refType="w" fact="1.06"` only to fix the aspect, and the cached cards
+ * are sized from the parent's `w = W`, not 1mm. An unconstrained dimension
+ * defaults to the snake node's own.
+ */
+function cellSize(cell: EngineNode, box: Box): { w: number; h: number } {
+	const assigned = new Set(['w', 'h'].filter((type) => cell.values.has(type)));
+	cell.constraints.forEach((constraint, i) => {
+		if (!isSelfSizeConstraint(cell, i)) {
+			return;
+		}
+		const literal = constraint.refType === 'none';
+		if (literal && assigned.has(constraint.type)) {
+			return;
+		}
+		applyConstraint(cell, constraint);
+	});
+	return { w: cell.values.get('w') ?? box.w, h: cell.values.get('h') ?? box.h };
+}
+
+function metricsOf(
+	node: EngineNode,
+	box: Box,
+	cells: EngineNode[],
+	spacers: EngineNode[],
+	row: boolean,
+): Metrics {
+	const sizes = cells.map((c) => cellSize(c, box));
+	const cellW = Math.max(...sizes.map((s) => s.w));
+	const cellH = Math.max(...sizes.map((s) => s.h));
+	const spacer = spacers[0];
+	const along = spacer
+		? (spacer.values.get(row ? 'w' : 'h') ?? 0)
+		: (node.values.get('sibSp') ?? 0);
+	return {
+		cellW,
+		cellH,
+		along: Math.max(0, along),
+		across: Math.max(0, node.values.get('sp') ?? 0),
+	};
+}
+
+function gridSize(dims: Dims, m: Metrics, row: boolean): { w: number; h: number } {
+	const lineLen = row ? dims.cols : dims.rows;
+	const lines = row ? dims.rows : dims.cols;
+	const alongLen = lineLen * (row ? m.cellW : m.cellH) + (lineLen - 1) * m.along;
+	const acrossLen = lines * (row ? m.cellH : m.cellW) + (lines - 1) * m.across;
+	return row ? { w: alongLen, h: acrossLen } : { w: acrossLen, h: alongLen };
+}
+
+function dimsFor(lineLen: number, n: number, row: boolean): Dims {
+	const lines = Math.max(1, Math.ceil(n / lineLen));
+	return row ? { cols: lineLen, rows: lines } : { cols: lines, rows: lineLen };
+}
+
+function chooseDims(node: EngineNode, n: number, m: Metrics, box: Box, row: boolean): Dims {
+	const fixed = node.values.get('bkPtFixedVal') ?? Number(node.alg.params.bkPtFixedVal);
+	if (node.alg.params.bkpt === 'fixed' && Number.isFinite(fixed) && fixed > 0) {
+		return dimsFor(Math.min(n, Math.round(fixed)), n, row);
 	}
-	let col = flowDir === 'col' ? line : posInLine;
-	let row = flowDir === 'col' ? posInLine : line;
-	if (grDir === 'tR' || grDir === 'bR') {
-		col = dims.cols - 1 - col;
+	let best = dimsFor(n, n, row);
+	let bestScale = -Infinity;
+	for (let lineLen = n; lineLen >= 1; lineLen--) {
+		const dims = dimsFor(lineLen, n, row);
+		const size = gridSize(dims, m, row);
+		const scale = Math.min(box.w / Math.max(1e-9, size.w), box.h / Math.max(1e-9, size.h));
+		if (scale > bestScale + 1e-9) {
+			best = dims;
+			bestScale = scale;
+		}
 	}
-	if (grDir === 'bL' || grDir === 'bR') {
-		row = dims.rows - 1 - row;
+	if (node.alg.params.bkpt === 'bal') {
+		const lines = row ? best.rows : best.cols;
+		return dimsFor(Math.ceil(n / lines), n, row);
 	}
-	return { col, row };
+	return best;
+}
+
+function alignOffset(free: number, align: string | undefined, start: string, end: string): number {
+	if (align === start) {
+		return 0;
+	}
+	if (align === end) {
+		return free;
+	}
+	return free / 2;
 }
 
 export function arrangeSnake(node: EngineNode): void {
 	const box = node.box;
-	const n = node.children.length;
-	if (!box || n === 0) {
+	const cells = node.children.filter((c) => !isSpacer(c));
+	if (!box || cells.length === 0) {
 		return;
 	}
+	const spacers = node.children.filter(isSpacer);
 	const params = node.alg.params;
-	const flowDir: FlowDir = params.flowDir === 'col' ? 'col' : 'row';
-	const grDirRaw = params.grDir;
-	const grDir: GrowDir =
-		grDirRaw === 'tR' || grDirRaw === 'bL' || grDirRaw === 'bR' ? grDirRaw : 'tL';
-	// `contDir` defaults to the boustrophedon (alternating) behaviour; only an
-	// explicit `sameDir` disables the reversal (matches the legacy arranger).
-	const sameDir = params.contDir === 'sameDir';
-	const dims = gridDims(node, n, box.w, box.h, flowDir);
-	const sib = node.values.get('sibSp') ?? node.values.get('sp') ?? 0.15;
-	const mainCount = flowDir === 'col' ? dims.rows : dims.cols;
-	const usableMain = flowDir === 'col' ? box.h : box.w;
-	const gap = (sib * usableMain) / (mainCount + sib * (mainCount - 1));
-	const cellW = (box.w - Math.max(0, dims.cols - 1) * gap) / dims.cols;
-	const cellH = (box.h - Math.max(0, dims.rows - 1) * gap) / dims.rows;
-
-	const cells = node.children.map((_child, i) => snakeCell(i, dims, flowDir, sameDir, grDir));
-	const centerIncompleteLines = params.off === 'ctr';
-	const fullLineCount = flowDir === 'row' ? dims.cols : dims.rows;
-	const lineCounts = new Map<number, number>();
-	if (centerIncompleteLines) {
-		for (const c of cells) {
-			const key = flowDir === 'row' ? c.row : c.col;
-			lineCounts.set(key, (lineCounts.get(key) ?? 0) + 1);
-		}
+	const row = params.flowDir !== 'col';
+	const m = metricsOf(node, box, cells, spacers, row);
+	if (!(m.cellW > 0) || !(m.cellH > 0)) {
+		return;
 	}
-
-	node.children.forEach((child, i) => {
-		const { col, row } = cells[i];
-		let x = box.x + col * (cellW + gap);
-		let y = box.y + row * (cellH + gap);
-		if (centerIncompleteLines) {
-			const key = flowDir === 'row' ? row : col;
-			const count = lineCounts.get(key) ?? fullLineCount;
-			if (count < fullLineCount) {
-				const shift =
-					((fullLineCount - count) * (flowDir === 'row' ? cellW + gap : cellH + gap)) / 2;
-				if (flowDir === 'row') {
-					x += shift;
-				} else {
-					y += shift;
-				}
-			}
+	const n = cells.length;
+	const dims = chooseDims(node, n, m, box, row);
+	const size = gridSize(dims, m, row);
+	// Shrink to fit, never grow: "Text Card Short Line"'s four 0.22 W cards
+	// already fit the frame and keep exactly that width in the cached drawing.
+	const scale = Math.min(1, box.w / size.w, box.h / size.h);
+	const cw = m.cellW * scale;
+	const ch = m.cellH * scale;
+	const along = m.along * scale;
+	const across = m.across * scale;
+	const x0 = box.x + alignOffset(box.w - size.w * scale, params.horzAlign, 'l', 'r');
+	const y0 = box.y + alignOffset(box.h - size.h * scale, params.vertAlign, 't', 'b');
+	const lineLen = row ? dims.cols : dims.rows;
+	const grDir = params.grDir ?? 'tL';
+	const fromRight = grDir === 'tR' || grDir === 'bR';
+	const fromBottom = grDir === 'bL' || grDir === 'bR';
+	const reverseAlternate = params.contDir === 'revDir';
+	cells.forEach((cell, i) => {
+		const line = Math.floor(i / lineLen);
+		const inLine = Math.min(lineLen, n - line * lineLen);
+		// A reversed (boustrophedon) line runs back from the far end of a full
+		// line, so a short last line hugs that far end ("Basic Bending
+		// Process": Node Four under Node Three, not under Node One).
+		const reversedLine = reverseAlternate && line % 2 === 1;
+		const pos = reversedLine ? lineLen - 1 - (i % lineLen) : i % lineLen;
+		const centre = params.off === 'ctr' ? (lineLen - inLine) / 2 : 0;
+		const shortShift = reversedLine ? -centre : centre;
+		let col = row ? pos + shortShift : line;
+		let rowIdx = row ? line : pos + shortShift;
+		if (fromRight) {
+			col = dims.cols - 1 - col;
 		}
-		const cellBox: Box = { x, y, w: cellW, h: cellH };
-		child.box = cellBox;
+		if (fromBottom) {
+			rowIdx = dims.rows - 1 - rowIdx;
+		}
+		const gapX = row ? along : across;
+		const gapY = row ? across : along;
+		cell.box = { x: x0 + col * (cw + gapX), y: y0 + rowIdx * (ch + gapY), w: cw, h: ch };
 	});
+	for (const spacer of spacers) {
+		spacer.box = { x: box.x, y: box.y, w: 0, h: 0 };
+	}
 }
