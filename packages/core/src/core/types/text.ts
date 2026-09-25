@@ -736,6 +736,20 @@ export interface TextStyle {
 	 * convention used for {@link bulletInfo} / {@link endParaRunProperties}).
 	 */
 	paragraphDefaultRunPropertiesXml?: XmlObject;
+
+	/**
+	 * The bullet colour / size / typeface children (`a:buClrTx`, `a:buClr`,
+	 * `a:buSzTx`, `a:buSzPct`, `a:buSzPts`, `a:buFontTx`, `a:buFont`) a
+	 * paragraph authored in its own `<a:pPr>` WITHOUT a bullet type
+	 * (`a:buNone` / `a:buChar` / `a:buAutoNum` / `a:buBlip`), captured
+	 * verbatim in source order. Such a paragraph restyles an inherited bullet
+	 * rather than declaring one, so its {@link BulletInfo} resolves from the
+	 * cascade and is (correctly) not written back; without this capture the
+	 * paragraph's own override vanished on every rewrite.
+	 *
+	 * Only meaningful on a paragraph's own authored properties.
+	 */
+	paragraphBulletPropertiesXml?: XmlObject;
 }
 
 /**

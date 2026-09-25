@@ -1,6 +1,7 @@
 import { themeColorRefToSolidFillWithOpacity } from '../../color/theme-color-ref';
 import { XmlObject, TextStyle } from '../../types';
 import type { BulletInfo } from '../../types';
+import { applyParagraphBulletOverrides } from '../../utils/paragraph-bullet-overrides';
 import type { ParagraphChild } from './paragraph-child-assembly';
 import { classifyParagraphChild, writeParagraphChildren } from './paragraph-child-assembly';
 
@@ -166,6 +167,11 @@ export function buildParagraphPropertiesXml(
 	// SDK-built bullet), which is written same as before this gate existed.
 	if (bulletInfo && bulletInfo.ownedByParagraph !== false) {
 		applyBulletProperties(paragraphProps, bulletInfo);
+	} else {
+		// The paragraph authored only a colour/size/font override for a bullet
+		// it inherits: re-emit exactly that, read from the paragraph's OWN
+		// properties (never the shape-level merge).
+		applyParagraphBulletOverrides(paragraphProps, authoredProperties?.paragraphBulletPropertiesXml);
 	}
 
 	// Tab stops

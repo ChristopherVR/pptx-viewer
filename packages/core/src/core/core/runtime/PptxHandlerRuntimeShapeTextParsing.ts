@@ -1,4 +1,5 @@
 import { XmlObject, TextStyle } from '../../types';
+import { captureParagraphBulletOverrides } from '../../utils/paragraph-bullet-overrides';
 import {
 	parseAlignmentAttr,
 	parseParagraphExtraAttributes,
@@ -117,6 +118,12 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const pPrExtLst = pPr['a:extLst'];
 		if (pPrExtLst && typeof pPrExtLst === 'object') {
 			pp.paragraphPropertiesExtLstXml = pPrExtLst as XmlObject;
+		}
+		// A bullet colour/size/font restyling an INHERITED bullet (no bullet type
+		// on this paragraph); see `captureParagraphBulletOverrides`.
+		const bulletOverrides = captureParagraphBulletOverrides(pPr);
+		if (bulletOverrides) {
+			pp.paragraphBulletPropertiesXml = bulletOverrides;
 		}
 		return Object.keys(pp).length > 0 ? pp : undefined;
 	}
