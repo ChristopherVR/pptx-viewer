@@ -41,6 +41,9 @@ export default defineConfig((options) => ({
 		// `pptx-viewer-shared/ai` subpath. Kept external so the dynamic
 		// `import('ai')` inside shared stays a real optional runtime import.
 		'ai',
+		// Node-only canvas backend the core `.ppt` writer loads to rasterise an
+		// SVG outside a browser; optional peer, never part of a browser bundle.
+		'@napi-rs/canvas',
 	],
 	// Bundle the internal workspace packages so consumers can install just
 	// `pptx-vanilla-viewer` without also pulling `pptx-viewer-core` from npm.
