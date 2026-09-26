@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.30.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.1) - 2026-09-26
+
+### Bug Fixes
+
+- **react:** Keep the slide rail's virtual window after the pane reopens (by @claude) ([fb9e101](https://github.com/ChristopherVR/pptx-viewer/commit/fb9e101bfb111d772cd218182403add205f7962f))
+
 ## [2.30.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.0) - 2026-09-25
 
 ### Features

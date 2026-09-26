@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.10.0) - 2026-09-26
+
+### Features
+
+- **core:** Style regenerated SmartArt shapes by their own style label (by @claude) ([67ea2fb](https://github.com/ChristopherVR/pptx-viewer/commit/67ea2fbe0efdded17cb3cfce73921dcef8712d85))
+
+### Bug Fixes
+
+- **shared:** Page slides with Up, Down, PageUp and PageDown in the editor (by @claude) ([c0cc4dc](https://github.com/ChristopherVR/pptx-viewer/commit/c0cc4dcdff6525e06aac39f7091723aa3bb9d882))
+- **core:** Draw a merged SmartArt text node's labels in its own colour (by @claude) ([7e6232d](https://github.com/ChristopherVR/pptx-viewer/commit/7e6232d6b8115f448c328db4a1a8478c2a934345))
+- **shared:** Blend translucent SmartArt solids once and draw clear as glass (by @claude) ([52128d7](https://github.com/ChristopherVR/pptx-viewer/commit/52128d737ebf2b3b3c37ccd60edc4ccd5fa9ea20))
+
 ## [4.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.9.0) - 2026-09-25
 
 ### Features
