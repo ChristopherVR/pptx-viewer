@@ -10,7 +10,7 @@ import type { CanvasSize } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import type { Translator } from '../i18n';
-import { createEl } from '../render';
+import { collectThreeViews, createEl, withReusableThreeViews } from '../render';
 import type { Store, ViewerState } from '../state';
 import { createIcon } from './icons';
 import { createThumbnailContextMenu } from './thumbnail-context-menu';
@@ -192,7 +192,12 @@ export function createThumbnailRail(
 		return btn;
 	};
 
-	const renderWindow = (): void => {
+	// The rail rebuilds its window on every edit, selection and scroll: carry
+	// the live 3D thumbnails across (render/elements/three-view-reuse.ts) so a
+	// drag on the canvas does not reload every 3D thumbnail's scene per move.
+	const renderWindow = (): void => withReusableThreeViews(collectThreeViews(list), renderWindowNow);
+
+	const renderWindowNow = (): void => {
 		if (!sourceRenderStage) {
 			return;
 		}

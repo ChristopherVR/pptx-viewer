@@ -18,6 +18,7 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { ElementRenderContext } from '../types';
+import { takeReusableThreeView } from './three-view-reuse';
 
 /**
  * three-view: the Vanilla binding's glue for `<pptx-three-view>`, the shared
@@ -54,8 +55,10 @@ export interface ThreeViewMountOptions {
 }
 
 /**
- * Move `wrapper`'s children into a new `<pptx-three-view>` (their fallback
- * slot) and append the view to `wrapper`. Returns the view.
+ * Move `wrapper`'s children into a `<pptx-three-view>` (their fallback slot)
+ * and append the view to `wrapper`. Returns the view: the outgoing stage's
+ * live view for the same spec when a stage rebuild offers one (see
+ * `three-view-reuse.ts`), else a new one.
  */
 export function mountThreeViewInto(
 	doc: Document,
@@ -63,8 +66,10 @@ export function mountThreeViewInto(
 	options: ThreeViewMountOptions,
 ): PptxThreeViewElement {
 	defineThreeViewElement(doc.defaultView?.customElements);
-	const view = doc.createElement(THREE_VIEW_TAG) as PptxThreeViewElement;
-	view.append(...Array.from(wrapper.childNodes));
+	const view =
+		takeReusableThreeView(options.spec) ??
+		(doc.createElement(THREE_VIEW_TAG) as PptxThreeViewElement);
+	view.replaceChildren(...Array.from(wrapper.childNodes));
 	view.spec = options.spec;
 	view.interactive = options.interactive;
 	view.selectedPart = options.selectedPart ?? null;
@@ -143,13 +148,26 @@ export function wireChartThreeViewEvents(
 		},
 		commitChartData: (next) => context.onChartPointChange?.(element, next),
 	};
-	view.addEventListener(THREE_VIEW_EVENTS.select, (event) =>
-		applyChart3DSelect(bridge, (event as CustomEvent<{ part: ChartPartRef | null }>).detail.part),
+	// A reused view (three-view-reuse.ts) still carries the previous render's
+	// listeners, bound to the old element and context: drop them first.
+	chartViewListeners.get(view)?.abort();
+	const listeners = new AbortController();
+	chartViewListeners.set(view, listeners);
+	view.addEventListener(
+		THREE_VIEW_EVENTS.select,
+		(event) =>
+			applyChart3DSelect(bridge, (event as CustomEvent<{ part: ChartPartRef | null }>).detail.part),
+		{ signal: listeners.signal },
 	);
-	view.addEventListener(THREE_VIEW_EVENTS.drag, (event) =>
-		applyChart3DDrag(bridge, (event as CustomEvent).detail),
+	view.addEventListener(
+		THREE_VIEW_EVENTS.drag,
+		(event) => applyChart3DDrag(bridge, (event as CustomEvent).detail),
+		{ signal: listeners.signal },
 	);
 }
+
+/** The select/drag listeners a chart view carries, per view. */
+const chartViewListeners = new WeakMap<PptxThreeViewElement, AbortController>();
 
 /**
  * Forward an animation text-style descriptor to every `<pptx-three-view>`

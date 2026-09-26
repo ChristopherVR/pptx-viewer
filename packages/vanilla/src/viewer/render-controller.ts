@@ -23,7 +23,12 @@ import { createPresentationPlayback } from './animation';
 import { fullTarget, toPptxData } from './editor/editor-master-view-crud-actions';
 import type { Translator } from './i18n';
 import type { ElementRenderContext, ElementRendererRegistry } from './render';
-import { renderSlideStage, reRenderPresentationElements } from './render';
+import {
+	collectThreeViews,
+	renderSlideStage,
+	reRenderPresentationElements,
+	withReusableThreeViews,
+} from './render';
 import { buildRenderFieldContext } from './render-field-context';
 import { appendCommentMarkers } from './render/comment-markers';
 import type { Store, ViewerState } from './state';
@@ -303,6 +308,9 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 							node.querySelector('[data-inline-editor]'),
 					)
 				: undefined;
+		// Keep the outgoing stage's live 3D views for the rebuild below
+		// (render/elements/three-view-reuse.ts).
+		const liveThreeViews = collectThreeViews(chrome.stageWrap);
 		if (liveOverlay) {
 			for (const child of Array.from(chrome.stageWrap.childNodes)) {
 				if (child !== liveOverlay) {
@@ -353,7 +361,9 @@ export function createRenderController(deps: RenderControllerDeps): RenderContro
 							);
 			}
 		} else if (slide) {
-			stageNode = renderStageFor(slide, scale, state.presenting, true, pageSize);
+			stageNode = withReusableThreeViews(liveThreeViews, () =>
+				renderStageFor(slide, scale, state.presenting, true, pageSize),
+			);
 			// Numbered comment markers, drawn inside the stage whenever an editable
 			// slide has comments (Vue's visibility semantics). The stage is rebuilt
 			// on every store change, so the dots track the comment model live.

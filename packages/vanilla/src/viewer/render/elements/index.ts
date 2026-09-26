@@ -28,6 +28,7 @@ export { registerTableChartRenderers } from './register-table-chart';
 export { renderSmartArtElement, renderSmartArtSvg } from './smartart';
 export { renderSmartArt3DElement } from './smartart-3d';
 export { renderTableElement } from './table';
+export { collectThreeViews, withReusableThreeViews } from './three-view-reuse';
 export { renderTextBlock } from './text-block';
 export { renderTextShapeElement } from './text-shape';
 
