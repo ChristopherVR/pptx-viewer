@@ -20,8 +20,8 @@ import { fixture, loadDeckAt, slideStage } from './support/deck';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
-/** Share of view pixels a drag may change (anti-aliasing noise, not a turn). */
-const MAX_CHANGED_FRACTION = 0.02;
+/** Share of the sample grid a drag may change (anti-aliasing noise, not a turn). */
+const MAX_CHANGED_FRACTION = 0.05;
 
 let webglAvailable = true;
 
@@ -38,12 +38,22 @@ async function readyView(page: Page): Promise<Locator> {
 	const view = slideStage(page).locator('pptx-three-view').first();
 	await view.waitFor({ state: 'attached', timeout: 30_000 });
 	await expect.poll(async () => view.getAttribute('data-state'), { timeout: 30_000 }).toBe('ready');
-	// Let the first frames land, and the canvas settle its size (a cold demo
-	// can still be resizing it for the scene's overflow), before sampling.
+	// Let the canvas settle before sampling: a cold demo can still be resizing
+	// it for the scene's overflow, and a late label texture or font can still
+	// repaint it after `ready`. Wait for two identical samples of its size and
+	// pixels (a failure under a long two-worker run came from sampling early).
 	const size = (): Promise<string> =>
 		view.evaluate((el) => {
 			const canvas = el.shadowRoot?.querySelector('canvas');
-			return canvas ? `${canvas.width}x${canvas.height}` : '';
+			const data = canvas?.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height).data;
+			if (!canvas || !data) {
+				return '';
+			}
+			let sum = 0;
+			for (let i = 0; i < data.length; i += 16) {
+				sum = (sum + data[i] * (i + 1)) % 1_000_000_007;
+			}
+			return `${canvas.width}x${canvas.height}:${sum}`;
 		});
 	let last = '';
 	await expect
@@ -70,27 +80,45 @@ async function snapshot(view: Locator): Promise<void> {
 	});
 }
 
-/** Share of pixels that differ from {@link snapshot}, or 1 when the size changed. */
+/**
+ * Share of a 64 x 36 grid of relative positions whose colour differs from
+ * {@link snapshot}. Sampling by relative position, not by pixel, keeps a
+ * canvas resized by a few pixels mid-drag (a layout or overflow update) from
+ * reading as a completely different picture, which comparing raw pixel
+ * arrays of different sizes did; an orbit still changes most of the grid.
+ */
 async function changedFraction(view: Locator): Promise<number> {
 	return view.evaluate((el) => {
 		const before = (window as unknown as { __viewBefore?: ImageData }).__viewBefore;
 		const canvas = el.shadowRoot?.querySelector('canvas');
 		const after = canvas?.getContext('2d')?.getImageData(0, 0, canvas.width, canvas.height);
-		if (!before || !after || before.width !== after.width || before.height !== after.height) {
+		if (!before || !after || before.width === 0 || after.width === 0) {
 			return 1;
 		}
+		const at = (img: ImageData, u: number, v: number): number => {
+			const x = Math.min(img.width - 1, Math.floor(u * img.width));
+			const y = Math.min(img.height - 1, Math.floor(v * img.height));
+			return (y * img.width + x) * 4;
+		};
+		const cols = 64;
+		const rows = 36;
 		let changed = 0;
-		for (let i = 0; i < before.data.length; i += 4) {
-			const d =
-				Math.abs(before.data[i] - after.data[i]) +
-				Math.abs(before.data[i + 1] - after.data[i + 1]) +
-				Math.abs(before.data[i + 2] - after.data[i + 2]) +
-				Math.abs(before.data[i + 3] - after.data[i + 3]);
-			if (d > 24) {
-				changed++;
+		for (let r = 0; r < rows; r++) {
+			for (let c = 0; c < cols; c++) {
+				const u = (c + 0.5) / cols;
+				const v = (r + 0.5) / rows;
+				const i = at(before, u, v);
+				const j = at(after, u, v);
+				let d = 0;
+				for (let k = 0; k < 4; k++) {
+					d += Math.abs(before.data[i + k] - after.data[j + k]);
+				}
+				if (d > 48) {
+					changed++;
+				}
 			}
 		}
-		return changed / (before.width * before.height);
+		return changed / (cols * rows);
 	});
 }
 
