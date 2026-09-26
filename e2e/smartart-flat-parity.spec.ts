@@ -12,6 +12,9 @@
  * - Basic Venn (slide 71): the circles are cached as `accent1` at
  *   `a:alpha 50000`, which PowerPoint blends where they overlap. The alpha
  *   used to be dropped, painting four opaque discs.
+ * - Basic Pyramid labels: the cached `fontRef` says `lt1`, but each tier's
+ *   text comes from its `levelTx` (`revTx`) node, whose colour transform
+ *   `txFillClrLst` is `tx1`, so PowerPoint draws them black.
  */
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -75,6 +78,17 @@ test.describe('smartArt flat path matches PowerPoint', () => {
 			}),
 		);
 		expect(inside).toStrictEqual([true, true, true]);
+	});
+
+	test('basic pyramid labels take the revTx text colour (black)', async ({ page }) => {
+		await openSlide(page, 57);
+		const label = page.locator('[data-pptx-viewport]').getByText('Alpha', { exact: true }).first();
+		await expect(label).toBeVisible({ timeout: 15_000 });
+		const colour = await label.evaluate((node) => {
+			const style = getComputedStyle(node);
+			return node instanceof SVGElement ? style.fill : style.color;
+		});
+		expect(colour).toBe('rgb(0, 0, 0)');
 	});
 
 	test('basic venn circles are semi-transparent', async ({ page }) => {
