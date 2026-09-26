@@ -19,6 +19,12 @@ import { toCcwRing } from '../render/smartart-3d-ring';
 import type { SolidCap, SolidTriangles } from '../render/smartart-3d-solid-geometry';
 import { buildSmartArt3DSolidGeometry } from '../render/smartart-3d-solid-geometry';
 import type { SmartArt3DGradient } from '../render/smartart-3d-solid-types';
+import {
+	isSmartArt3DGlassMaterial,
+	orientSmartArt3DTriangles,
+	smartArt3DGlassLightModel,
+	smartArt3DVertexAlphas,
+} from '../render/smartart-3d-translucency';
 import type { Point2, SmartArt3DMesh, Vec3 } from '../render/smartart-3d-types';
 import type { Rgb } from '../render/smartart-3d-vertex-shading';
 import { hexToRgb, shadeSmartArt3DVertices } from '../render/smartart-3d-vertex-shading';
@@ -26,6 +32,9 @@ import type { ThreeModule } from '../three-view/types';
 import type { Disposable, MeshObject } from './flat-mesh-object';
 import { buildStrokeLines } from './flat-mesh-object';
 import { buildLitTextObject } from './lit-text-object';
+
+/** Render order of a label within its mesh group (after body, sides, contour). */
+const LABEL_RENDER_ORDER = 3;
 
 /** Width of the 1D gradient lookup texture. */
 const GRADIENT_TEXELS = 256;
@@ -80,6 +89,18 @@ interface PaintedPart {
 	gradient?: SmartArt3DGradient;
 	/** The mesh's fill opacity (a Venn circle's 50% alpha); 1 when opaque. */
 	opacity: number;
+	/** `a:sp3d/@prstMaterial` (a `clear` glass varies its alpha per vertex). */
+	material?: string;
+}
+
+/** Interleave linear RGB factors with per-vertex alphas (RGBA). */
+function withAlpha(rgb: Float32Array, alpha: Float32Array): Float32Array {
+	const out = new Float32Array(alpha.length * 4);
+	for (let v = 0; v < alpha.length; v++) {
+		out.set(rgb.subarray(v * 3, v * 3 + 3), v * 4);
+		out[v * 4 + 3] = alpha[v];
+	}
+	return out;
 }
 
 function buildPart(
@@ -89,18 +110,40 @@ function buildPart(
 	eye: Vec3 | undefined,
 	disposables: Disposable[],
 ): THREE.Mesh | null {
-	const { positions, normals } = part.triangles;
-	if (positions.length === 0) {
+	if (part.triangles.positions.length === 0) {
 		return null;
 	}
+	const glass = isSmartArt3DGlassMaterial(part.material);
+	// A translucent solid is blended once: only its surfaces facing the camera
+	// are drawn (render/smartart-3d-translucency.ts).
+	const translucent = part.opacity < 1 || glass;
+	if (translucent) {
+		orientSmartArt3DTriangles(part.triangles);
+	}
+	const { positions, normals } = part.triangles;
 	const gradient = part.gradient;
 	const flatColor = hexToRgb(part.color);
 	const baseAt = (p: Point2): Rgb => (gradient ? smartArt3DGradientColor(gradient, p) : flatColor);
 	const geometry = new three.BufferGeometry();
 	geometry.setAttribute('position', new three.Float32BufferAttribute(positions, 3));
+	const shading = shadeSmartArt3DVertices(
+		positions,
+		normals,
+		baseAt,
+		glass ? smartArt3DGlassLightModel(light) : light,
+		eye,
+	);
 	geometry.setAttribute(
 		'color',
-		new three.BufferAttribute(shadeSmartArt3DVertices(positions, normals, baseAt, light, eye), 3),
+		glass
+			? new three.BufferAttribute(
+					withAlpha(
+						shading,
+						smartArt3DVertexAlphas(positions, normals, part.material, part.opacity, eye),
+					),
+					4,
+				)
+			: new three.BufferAttribute(shading, 3),
 	);
 	const texture = gradient ? buildGradientTexture(three, gradient) : null;
 	if (gradient && texture) {
@@ -118,9 +161,13 @@ function buildPart(
 		color: texture ? '#ffffff' : part.color,
 		map: texture,
 		vertexColors: true,
-		side: three.DoubleSide,
-		transparent: part.opacity < 1,
-		opacity: part.opacity,
+		side: translucent ? three.FrontSide : three.DoubleSide,
+		transparent: translucent,
+		// A glass carries its alpha per vertex; the material then stays at 1.
+		opacity: glass ? 1 : part.opacity,
+		// Translucent solids are layered in paint order, like PowerPoint's
+		// per-shape compositing, rather than hiding one another.
+		depthWrite: !translucent,
 	});
 	disposables.push(geometry, material);
 	return new three.Mesh(geometry, material);
@@ -164,12 +211,20 @@ export function buildLitMeshObject(
 		for (const cap of geometry?.contourCaps ?? []) {
 			appendCap(three, contour, cap);
 		}
+		const material = mesh.solid?.material;
 		const parts: PaintedPart[] = [
-			{ triangles: body, color: mesh.fill, gradient: mesh.gradient, opacity: mesh.opacity },
+			{
+				triangles: body,
+				color: mesh.fill,
+				gradient: mesh.gradient,
+				opacity: mesh.opacity,
+				material,
+			},
 			{
 				triangles: sides,
 				color: mesh.solid?.extrusionColor ?? mesh.fill,
 				opacity: mesh.opacity,
+				material,
 			},
 			{
 				triangles: contour,
@@ -177,22 +232,22 @@ export function buildLitMeshObject(
 				opacity: mesh.opacity,
 			},
 		];
-		for (const part of parts) {
+		parts.forEach((part, order) => {
 			const built = buildPart(three, part, light, localEye, disposables);
 			if (built) {
-				if (mesh.opacity < 1) {
-					// A translucent fill (Basic Venn): the whole solid shows through.
-					const material = built.material as THREE.MeshBasicMaterial;
-					material.transparent = true;
-					material.opacity = mesh.opacity;
-				}
+				built.renderOrder = order;
 				group.add(built);
 			}
-		}
+		});
 	}
 	for (const line of buildStrokeLines(three, mesh, disposables)) {
 		group.add(line);
 	}
+	const labelsFrom = group.children.length;
 	buildLitTextObject(three, mesh, group, light, disposables);
+	for (const label of group.children.slice(labelsFrom)) {
+		// After the solid's own surfaces (see the parts' render order).
+		label.renderOrder = LABEL_RENDER_ORDER;
+	}
 	return { group, disposables };
 }

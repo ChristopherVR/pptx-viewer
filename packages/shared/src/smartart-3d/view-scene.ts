@@ -24,6 +24,7 @@
 
 import { resolveSmartArt3DLightModel } from '../render/smartart-3d-lighting';
 import { smartArt3DCameraMatrix, smartArt3DEyeInDiagram } from '../render/smartart-3d-scene-camera';
+import { isSmartArt3DTranslucentMesh } from '../render/smartart-3d-translucency';
 import type { SmartArt3DModel } from '../render/smartart-3d-types';
 import type { ThreeViewContext, ThreeViewScene } from '../three-view/types';
 import type { Disposable } from './flat-mesh-object';
@@ -69,7 +70,7 @@ export async function mountSmartArt3DView(
 		);
 	}
 	scene.add(root);
-	for (const mesh of model.meshes) {
+	model.meshes.forEach((mesh, index) => {
 		const built = lit
 			? buildLitMeshObject(
 					three,
@@ -78,9 +79,13 @@ export async function mountSmartArt3DView(
 					eye,
 				)
 			: buildFlatMeshObject(three, mesh);
+		if (lit && isSmartArt3DTranslucentMesh(mesh)) {
+			// Translucent solids composite in paint order (lit-mesh-object.ts).
+			built.group.renderOrder = index + 1;
+		}
 		root.add(built.group);
 		disposables.push(...built.disposables);
-	}
+	});
 
 	const camera = buildSmartArtViewCamera(three, model.bounds, model.camera, ctx.size);
 	// A turned diagram draws past its box as PowerPoint does (view-overflow.ts).
