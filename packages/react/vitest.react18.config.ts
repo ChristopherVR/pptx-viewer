@@ -77,6 +77,8 @@ export default defineConfig({
 	test: {
 		globals: true,
 		include: ['src/**/*.test.{ts,tsx}'],
+		// Same shared web controls (`pptx-ui-checkbox`, ...) as the default run.
+		setupFiles: ['./web-controls.test-setup.ts'],
 		// Asserted by src/__tests__/react-version-compat.test.tsx: without it a
 		// broken alias would silently fall back to React 19 and the leg would pass
 		// while testing nothing.

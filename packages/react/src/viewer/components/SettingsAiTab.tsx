@@ -6,6 +6,7 @@ import { LuBug, LuDownload } from 'react-icons/lu';
 
 import type { AiLogFormat } from '../utils/ai-log-export';
 import { exportAiChatLogs } from '../utils/ai-log-export';
+import { WebCheckbox } from './WebControls';
 
 export interface SettingsAiTabProps {
 	/** Chat store to read from. Defaults to the shared `createChatHistoryStore()`. */
@@ -76,12 +77,10 @@ export function SettingsAiTab({ store }: SettingsAiTabProps): React.ReactElement
 			</p>
 
 			<label className='flex items-center gap-2 text-xs text-foreground'>
-				<pptx-ui-checkbox
+				<WebCheckbox
 					checked={detailed}
 					aria-label={t('pptx.ai.exportLogsDetailed')}
-					onChange={(e) =>
-						setDetailed((e.currentTarget as HTMLElement & { checked: boolean }).checked)
-					}
+					onChange={(e) => setDetailed(e.currentTarget.checked)}
 				/>
 				{t('pptx.ai.exportLogsDetailed')}
 			</label>

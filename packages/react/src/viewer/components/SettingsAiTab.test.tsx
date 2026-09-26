@@ -19,6 +19,18 @@ vi.mock(import('../utils/dom-helpers'), () => ({
 	},
 }));
 
+const exportSpy = vi.hoisted(() => vi.fn());
+vi.mock(import('../utils/ai-log-export'), async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		exportAiChatLogs: (options) => {
+			exportSpy(options);
+			return actual.exportAiChatLogs(options);
+		},
+	};
+});
+
 const { SettingsAiTab } = await import('./SettingsAiTab');
 
 let container: HTMLDivElement;
@@ -107,6 +119,25 @@ describe('settingsAiTab', () => {
 		expect(checkbox.getAttribute('aria-label')).toBe('pptx.ai.exportLogsDetailed');
 		expect(container.querySelector('input[type="checkbox"]')).toBeNull();
 		act(() => checkbox.click());
+		expect(checkbox.hasAttribute('checked')).toBeFalsy();
+	});
+
+	it('the detailed checkbox reaches the export (React 18 and 19)', async () => {
+		// A raw custom element under React 18 never fires onChange and renders
+		// `checked={false}` as `checked="false"`, so this must go through state.
+		act(() => root.render(<SettingsAiTab store={mockStore([chatWithToolCall()])} />));
+		await flush();
+		const checkbox = container.querySelector<HTMLElement>('pptx-ui-checkbox')!;
+		act(() => checkbox.click());
+		expect(checkbox.getAttribute('aria-checked')).toBe('false');
+		await act(async () => {
+			buttonByText('pptx.ai.exportLogsJson').click();
+			await Promise.resolve();
+		});
+		await flush();
+		expect(exportSpy).toHaveBeenLastCalledWith(expect.objectContaining({ detailed: false }));
+		// A re-render keeps the unchecked state instead of re-checking it.
+		act(() => root.render(<SettingsAiTab store={mockStore([chatWithToolCall()])} />));
 		expect(checkbox.hasAttribute('checked')).toBeFalsy();
 	});
 
