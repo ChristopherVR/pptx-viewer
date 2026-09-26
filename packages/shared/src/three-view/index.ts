@@ -51,7 +51,6 @@ export {
 } from './view-overflow';
 export type {
 	ThreeModule,
-	ThreeOrbitControls,
 	ThreeViewContext,
 	ThreeViewDragDetail,
 	ThreeViewOverflow,

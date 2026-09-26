@@ -83,7 +83,6 @@ async function mount(element: PptxElement, armed: boolean, interactive = true): 
 	const requestRender = vi.fn();
 	const ctx: ThreeViewContext = {
 		three: THREE,
-		OrbitControls: null,
 		size: { width: svgWidth, height: svgHeight, pixelWidth: svgWidth, pixelHeight: svgHeight },
 		eventTarget: canvas,
 		overlay,

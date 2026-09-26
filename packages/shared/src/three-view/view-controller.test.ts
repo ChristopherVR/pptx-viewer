@@ -14,7 +14,6 @@ const factoryMock = vi.hoisted(() => vi.fn());
 
 vi.mock(import('../render/chart-3d-three-loader'), () => ({
 	loadChart3DThree: async () => ({}),
-	loadChart3DOrbitControls: async () => function FakeOrbit() {},
 }));
 vi.mock(import('./renderer-host'), () => ({
 	MAX_VIEW_PIXELS: 4096,
@@ -71,8 +70,11 @@ describe('three view controller', () => {
 		factoryMock.mockResolvedValue(makeScene());
 		const { controller } = makeController();
 		await controller.setSpec(spec('a'));
-		const ctx = factoryMock.mock.calls[0]?.[1] as { OrbitControls: unknown };
-		expect(ctx.OrbitControls).toBeNull();
+		// No orbit is ever offered: PowerPoint never turns a chart or SmartArt
+		// under the pointer, and an orbit turned the scene while the element
+		// was dragged across the slide.
+		const ctx = factoryMock.mock.calls[0]?.[1] as Record<string, unknown>;
+		expect(Object.keys(ctx).some((key) => /orbit/iu.test(key))).toBeFalsy();
 	});
 
 	it('reports unavailable when WebGL cannot start', async () => {

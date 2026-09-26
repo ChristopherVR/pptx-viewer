@@ -18,10 +18,6 @@
  */
 import type { ChartPptxElement, PptxElement } from 'pptx-viewer-core';
 
-import { buildAreaChart3DDataForElement } from './area-chart-3d-data';
-import type { AreaChart3DSceneOptions } from './area-chart-3d-data';
-import { buildBarChart3DDataForElement } from './bar-chart-3d-data';
-import type { BarChart3DSceneOptions } from './bar-chart-3d-data';
 import { computeObliqueBarLayout } from './chart-3d-oblique-layout';
 import type { ObliqueChartLayout } from './chart-3d-oblique-layout';
 import { computePerspChartLayout } from './chart-3d-persp-layout';
@@ -32,12 +28,6 @@ import type { Chart3DProjection } from './chart-3d-projection';
 import { resolveChart3DProjection } from './chart-3d-projection';
 import { buildChartViewModel } from './chart-view-model-build';
 import type { ChartViewModel } from './chart-view-model-types';
-import { buildLineChart3DDataForElement } from './line-chart-3d-data';
-import type { LineChart3DSceneOptions } from './line-chart-3d-data';
-import { buildPieChart3DDataForElement } from './pie-chart-3d-data';
-import type { PieChart3DSceneOptions } from './pie-chart-3d-data';
-import { buildSurfaceChart3DDataForElement } from './surface-chart-3d-data';
-import type { SurfaceChart3DSceneOptions } from './surface-chart-3d-scene';
 
 /** The chart types the 3D chart scene renders (`surface` covers the 2D and 3D surface charts; see below). */
 export const CHART_3D_TYPES: ReadonlySet<string> = new Set([
@@ -69,25 +59,12 @@ export interface Chart3DPieGeometry {
 	layout: PieChartLayout;
 }
 
-/** `null` until a chart type's geometry is implemented; the scene then uses {@link Chart3DSpec.perspective}. */
+/** A chart's 3D geometry; `null` when it has nothing to draw (no series or categories). */
 export type Chart3DGeometry =
 	| Chart3DObliqueGeometry
 	| Chart3DPerspGeometry
 	| Chart3DPieGeometry
 	| null;
-
-/**
- * The perspective scene a chart falls back to when the oblique geometry does
- * not cover it (line/area/pie/surface, and a bar3D chart without right-angle
- * axes). Each is a hosted scene module from the
- * pre-`<pptx-three-view>` renderer, now drawn through the shared renderer.
- */
-export type Chart3DPerspectiveScene =
-	| { kind: 'bar'; options: BarChart3DSceneOptions }
-	| { kind: 'line'; options: LineChart3DSceneOptions }
-	| { kind: 'area'; options: AreaChart3DSceneOptions }
-	| { kind: 'pie'; options: PieChart3DSceneOptions }
-	| { kind: 'surface'; options: SurfaceChart3DSceneOptions };
 
 export interface Chart3DSpec {
 	/** The chart element the spec was built from (identity drives remounts). */
@@ -107,8 +84,6 @@ export interface Chart3DSpec {
 	geometry: Chart3DGeometry;
 	/** Category labels (authored, or 1..n when the chart has none). */
 	categoryLabels: readonly string[];
-	/** The perspective scene used when `geometry` is `null`; `null` when neither applies (the 2D fallback stays). */
-	perspective: Chart3DPerspectiveScene | null;
 }
 
 /**
@@ -169,6 +144,10 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 				: chartType === 'pie3D'
 					? buildPieGeometry(element, vm)
 					: null;
+	if (!geometry) {
+		// Nothing to draw in 3D (no series or categories): the 2D chart stays.
+		return null;
+	}
 	const longest = chartData.series.reduce((m, series) => Math.max(m, series.values.length), 0);
 	const categoryLabels =
 		chartData.categories.length > 0
@@ -183,35 +162,5 @@ export function buildChart3DSpecForElement(element: PptxElement): Chart3DSpec | 
 		vm,
 		geometry,
 		categoryLabels,
-		perspective: geometry ? null : buildPerspectiveScene(element),
 	};
-}
-
-/** The perspective scene for a chart the oblique geometry does not cover, or `null`. */
-function buildPerspectiveScene(element: PptxElement): Chart3DPerspectiveScene | null {
-	const size = { width: element.width, height: element.height };
-	switch ((element as ChartPptxElement).chartData?.chartType) {
-		case 'bar3D': {
-			const options = buildBarChart3DDataForElement(element, size);
-			return options ? { kind: 'bar', options } : null;
-		}
-		case 'line3D': {
-			const options = buildLineChart3DDataForElement(element, size);
-			return options ? { kind: 'line', options } : null;
-		}
-		case 'area3D': {
-			const options = buildAreaChart3DDataForElement(element, size);
-			return options ? { kind: 'area', options } : null;
-		}
-		case 'pie3D': {
-			const options = buildPieChart3DDataForElement(element, size);
-			return options ? { kind: 'pie', options } : null;
-		}
-		case 'surface': {
-			const options = buildSurfaceChart3DDataForElement(element, size);
-			return options ? { kind: 'surface', options } : null;
-		}
-		default:
-			return null;
-	}
 }

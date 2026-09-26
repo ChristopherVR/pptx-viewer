@@ -66,12 +66,6 @@ export type ThreeViewSceneEvent =
 /** What the element gives a scene when mounting it. */
 export interface ThreeViewContext {
 	three: ThreeModule;
-	/**
-	 * OrbitControls constructor. The view controller always passes `null`: a
-	 * hosted scene never orbits, because the pointer that lands on the view is
-	 * also the one dragging the element across the slide.
-	 */
-	OrbitControls: (new (camera: THREE.Camera, dom: HTMLElement) => ThreeOrbitControls) | null;
 	size: ThreeViewSize;
 	/** The element pointer input lands on (attach raycast listeners here). */
 	eventTarget: HTMLElement;
@@ -85,20 +79,6 @@ export interface ThreeViewContext {
 	requestRender: () => void;
 	/** Raise a select/drag event to the host element. */
 	emit: (event: ThreeViewSceneEvent) => void;
-}
-
-/** The minimal OrbitControls surface scenes use (kept structural so tests can fake it). */
-export interface ThreeOrbitControls {
-	enabled: boolean;
-	enablePan: boolean;
-	enableZoom: boolean;
-	enableRotate: boolean;
-	enableDamping: boolean;
-	target: THREE.Vector3;
-	update: () => boolean;
-	addEventListener: (type: 'change', listener: () => void) => void;
-	removeEventListener: (type: 'change', listener: () => void) => void;
-	dispose: () => void;
 }
 
 /** A mounted scene, driven by the element and the renderer host. */

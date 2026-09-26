@@ -46,7 +46,6 @@ describe('bar3D without right-angle axes', () => {
 		expect(buildChart3DSpecForElement(bars())?.geometry?.kind).toBe('perspective');
 		const horizontal = buildChart3DSpecForElement(bars({ barDirection: 'bar' }));
 		expect(horizontal?.geometry?.kind).toBe('perspective');
-		expect(horizontal?.perspective).toBeNull();
 	});
 
 	it('runs a horizontal chart value-along-x with categories up the left edge', () => {

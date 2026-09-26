@@ -25,10 +25,10 @@ import { buildReactChartViewModel, renderChartViewModel } from './chart-view-mod
  * Surface came back through here too. React used to paint it as an interactive
  * Three.js scene, which made it the only binding whose surface chart was a
  * `<canvas>`: no marks to select, nothing for the SVG parity harness to compare,
- * and a picture no other viewer drew. The scene controller itself is still in
- * shared (`render/surface-chart-3d-scene.ts`, `createSurfaceChart3DScene`) and
- * every binding reaches it through `<pptx-three-view>` when the host opts in
- * with `surfaceChart3D`.
+ * and a picture no other viewer drew. The 3D surface now lives in shared
+ * (`render/chart-3d-persp-scene.ts`, on PowerPoint's perspective box) and every
+ * binding reaches it through `<pptx-three-view>` when the host opts in with
+ * `surfaceChart3D`.
  */
 export function renderChartElement(element: PptxElement): React.ReactNode {
 	if (element.type !== 'chart') {

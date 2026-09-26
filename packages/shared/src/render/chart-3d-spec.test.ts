@@ -45,7 +45,6 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(spec?.geometry?.kind).toBe('perspective');
-		expect(spec?.perspective).toBeNull();
 	});
 
 	it('returns a spec for a surface chart that DOES carry c:view3D (surface3D)', () => {
@@ -58,7 +57,6 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(spec?.geometry?.kind).toBe('perspective');
-		expect(spec?.perspective).toBeNull();
 	});
 
 	it('resolves an oblique projection for a default bar3D chart', () => {
@@ -167,7 +165,6 @@ describe('buildChart3DSpecForElement', () => {
 					],
 				}),
 			);
-			expect(spec?.perspective).toBeNull();
 			if (spec?.geometry?.kind !== 'oblique') {
 				throw new Error('expected oblique geometry');
 			}
@@ -175,7 +172,7 @@ describe('buildChart3DSpecForElement', () => {
 		}
 	});
 
-	it('gives an oblique bar spec no perspective scene, and each bar its authored value', () => {
+	it('gives each oblique bar its authored value', () => {
 		const spec = buildChart3DSpecForElement(
 			chartEl({
 				chartType: 'bar3D',
@@ -183,7 +180,6 @@ describe('buildChart3DSpecForElement', () => {
 				series: [{ name: 'Revenue', values: [100, 150] }],
 			}),
 		);
-		expect(spec?.perspective).toBeNull();
 		const bars = spec?.geometry?.kind === 'oblique' ? spec.geometry.layout.bars : [];
 		expect(bars.map((b) => b.value)).toStrictEqual([100, 150]);
 		expect(spec?.categoryLabels).toStrictEqual(['Q1', 'Q2']);
@@ -200,7 +196,6 @@ describe('buildChart3DSpecForElement', () => {
 				}),
 			);
 			expect(spec?.geometry?.kind).toBe('perspective');
-			expect(spec?.perspective).toBeNull();
 		}
 		const pie = buildChart3DSpecForElement(
 			chartEl({
@@ -210,7 +205,6 @@ describe('buildChart3DSpecForElement', () => {
 			}),
 		);
 		expect(pie?.geometry?.kind).toBe('pie');
-		expect(pie?.perspective).toBeNull();
 	});
 
 	it('numbers the categories 1..n when the chart has none', () => {

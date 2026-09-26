@@ -103,10 +103,6 @@ export class ThreeViewController {
 				spec.spec,
 				{
 					three,
-					// No camera orbit: PowerPoint never rotates a chart or SmartArt
-					// under the pointer, and an orbit would turn the scene while the
-					// user drags the element to move it on the slide.
-					OrbitControls: null,
 					size: this.size,
 					eventTarget: this.opts.eventTarget,
 					overlay,

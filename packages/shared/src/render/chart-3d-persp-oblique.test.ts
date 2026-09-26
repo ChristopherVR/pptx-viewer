@@ -69,7 +69,6 @@ describe('oblique perspective box (right-angle axes)', () => {
 				} as PptxChartData,
 			} as unknown as PptxElement);
 			expect(spec?.geometry?.kind).toBe('perspective');
-			expect(spec?.perspective).toBeNull();
 			if (spec?.geometry?.kind === 'perspective') {
 				expect(spec.geometry.layout.view.oblique).toBeDefined();
 			}
