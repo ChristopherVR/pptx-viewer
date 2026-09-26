@@ -19,6 +19,7 @@ import {
 	elementHitTargetStyle,
 	resolveSmartArtThreeViewSpec,
 	shouldRenderHitTarget,
+	smartArtNodeAtPoint,
 } from '../internal/shared';
 import type { TextStyleAnimationDescriptor } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
@@ -26,11 +27,7 @@ import { getContainerStyle } from './element-style';
 import type { StyleMap } from './element-style';
 import { Rendering3DService } from './rendering-3d.service';
 import { SLIDE_CONTEXT } from './slide-context';
-import {
-	computeNode3DEditBox,
-	findSmartArtNodeElementAtPoint,
-	getSmartArtData,
-} from './smart-art-3d-renderer-helpers';
+import { computeNode3DEditBox, getSmartArtData } from './smart-art-3d-renderer-helpers';
 import { commitNodeText, findOwningSlideIndex } from './smart-art-inline-edit';
 import type { InlineEditState } from './smart-art-inline-edit';
 import { SmartArtRendererComponent } from './smart-art-renderer.component';
@@ -142,24 +139,26 @@ export class SmartArt3DRendererComponent {
 	}
 
 	/**
-	 * Locate the SmartArt node at the click position using `elementsFromPoint`
-	 * (which includes pointer-events:none SVG elements) and open the inline editor.
+	 * Locate the SmartArt node at the click position within the invisible
+	 * overlay and open the inline editor. The overlay's node groups are
+	 * `pointer-events: none`, which hit-testing (`document.elementsFromPoint`
+	 * included) skips, so the node is found by geometry
+	 * (`smartArtNodeAtPoint`).
 	 */
 	onOverlayDblClick(event: MouseEvent): void {
 		const container = this.containerEl()?.nativeElement;
 		const data = this.smartArtData();
-		if (!container || !data) {
+		const overlay = event.currentTarget;
+		if (!container || !data || !(overlay instanceof Element)) {
 			return;
 		}
-		// elementsFromPoint includes pointer-events:none nodes, so this finds the
-		// <g data-smartart-node-id="..."> in the invisible overlay SVG.
-		const nodeEl = findSmartArtNodeElementAtPoint(
-			document.elementsFromPoint(event.clientX, event.clientY),
-		);
+		const nodeEl = smartArtNodeAtPoint(overlay, event.clientX, event.clientY);
 		const nodeId = nodeEl?.getAttribute('data-smartart-node-id');
 		if (!nodeEl || !nodeId) {
 			return;
 		}
+		// The editor owns this double-click: the stage must not act on it too.
+		event.stopPropagation();
 		const currentText = data.nodes.find((n) => n.id === nodeId)?.text ?? '';
 		this.draftText = currentText;
 		this.editSettled = false;

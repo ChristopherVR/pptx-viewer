@@ -5,11 +5,7 @@
 import type { PptxElement, PptxSmartArtData } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
-import {
-	computeNode3DEditBox,
-	findSmartArtNodeElementAtPoint,
-	getSmartArtData,
-} from './smart-art-3d-renderer-helpers';
+import { computeNode3DEditBox, getSmartArtData } from './smart-art-3d-renderer-helpers';
 
 function smartArtData(): PptxSmartArtData {
 	return {
@@ -49,20 +45,6 @@ describe('getSmartArtData', () => {
 			height: 1,
 		} as PptxElement;
 		expect(getSmartArtData(shape)).toBeUndefined();
-	});
-});
-
-describe('findSmartArtNodeElementAtPoint', () => {
-	it('returns the first element bearing data-smartart-node-id', () => {
-		const plain = document.createElement('div');
-		const tagged = document.createElement('div');
-		tagged.setAttribute('data-smartart-node-id', 'n1');
-		expect(findSmartArtNodeElementAtPoint([plain, tagged])).toBe(tagged);
-	});
-
-	it('returns null when nothing in the list is tagged', () => {
-		const plain = document.createElement('div');
-		expect(findSmartArtNodeElementAtPoint([plain])).toBeNull();
 	});
 });
 
