@@ -254,6 +254,23 @@ describe('<pptx-three-view> SmartArt (vanilla)', () => {
 		expect(viewIn(node)?.querySelector('svg')).not.toBeNull();
 	});
 
+	it('adds an invisible edit layer over the scene when node editing is wired', () => {
+		const node = renderSmartArtElement(
+			smartArt,
+			1,
+			buildContext({ smartArt3D: true }, { interactive: true, onSmartArtNodeTextChange: vi.fn() }),
+		) as Element;
+		const layer = node.querySelector<HTMLElement>('[data-smartart-3d-edit-layer]');
+		expect(layer).not.toBeNull();
+		expect(layer?.getAttribute('aria-hidden')).toBe('true');
+		expect(layer?.querySelector('[data-element-id], [data-testid]')).toBeNull();
+	});
+
+	it('omits the edit layer on a read-only mount', () => {
+		const node = renderSmartArtElement(smartArt, 1, buildContext({ smartArt3D: true })) as Element;
+		expect(node.querySelector('[data-smartart-3d-edit-layer]')).toBeNull();
+	});
+
 	it('stays on the SVG renderer when smartArt3D is off', () => {
 		const node = renderSmartArtElement(smartArt, 1, buildContext({})) as Element;
 		expect(viewIn(node)).toBeNull();

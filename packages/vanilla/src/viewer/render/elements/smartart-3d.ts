@@ -1,4 +1,8 @@
-import { resolveSmartArtThreeViewSpec } from 'pptx-viewer-shared';
+import {
+	elementInLocalFrame,
+	resolveSmartArtThreeViewSpec,
+	stripEditLayerMarkers,
+} from 'pptx-viewer-shared';
 
 import type { ElementRenderer } from '../types';
 import { renderSmartArtSvg } from './smartart';
@@ -15,6 +19,13 @@ import { mountThreeViewInto } from './three-view';
  * Active font-style emphasis (`context.presentationStates`) reaches the
  * scene's canvas-drawn captions through the view's `textStyle`
  * (`animation-dom.ts` keeps it live during playback).
+ *
+ * Inline node editing: the SVG becomes the view's fallback, hidden once the
+ * scene is up, so while the diagram is editable a second SVG sits over the
+ * scene in the element's local frame with its paint hidden. Its
+ * `[data-smartart-node-id]` groups still take the double-click, so the same
+ * textarea editor as the 2D path (`smartart-editable.ts`) opens over the node,
+ * as React and Vue do over their 3D scenes.
  */
 export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, context) => {
 	const wrapper = renderSmartArtSvg(element, zIndex, context);
@@ -27,5 +38,21 @@ export const renderSmartArt3DElement: ElementRenderer = (element, zIndex, contex
 		interactive: Boolean(context.interactive) && !context.presenting,
 		textStyle: context.presentationStates?.get(element.id)?.textStyle,
 	});
+	if (context.onSmartArtNodeTextChange && context.interactive && !context.presenting) {
+		const layer = renderSmartArtSvg(elementInLocalFrame(element), 0, context);
+		if (layer) {
+			layer.classList.add('pptxv-smartart-3d-edit-layer');
+			layer.setAttribute('data-smartart-3d-edit-layer', 'true');
+			// One element, one set of markers: the layer is an input surface,
+			// not a second copy of the diagram for tests or assistive tech.
+			stripEditLayerMarkers(layer);
+			layer.setAttribute('aria-hidden', 'true');
+			Object.assign(layer.style, { position: 'absolute', inset: '0', zIndex: '1' });
+			for (const svg of layer.querySelectorAll('svg')) {
+				svg.style.opacity = '0';
+			}
+			wrapper.appendChild(layer);
+		}
+	}
 	return wrapper;
 };
