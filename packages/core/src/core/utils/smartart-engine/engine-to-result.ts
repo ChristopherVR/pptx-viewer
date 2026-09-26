@@ -38,6 +38,7 @@ import {
 } from '../smartart-layout-style-helpers';
 import type { RenderedRectNode, SmartArtLayoutResult } from '../smartart-layout-types';
 import { isAssistantItem } from './alg-hier';
+import { buildConnectorNode } from './connector-shape';
 import { runSmartArtEngine } from './engine';
 import type { EngineLayoutContext } from './engine-context';
 import { applyEngineFonts } from './engine-fonts';
@@ -47,7 +48,10 @@ import { computeMoveWithMerge, sourceIdsOf } from './move-with-merge';
 import { nodeTextFor } from './node-text';
 import { isRenderable, transitionLabelOf } from './render-filter';
 import { shapeTransform } from './shape-transform';
+import { engineStyleLabel } from './style-label';
 import { textMetricsFor } from './text-measure';
+
+type RoleColors = NonNullable<PptxSmartArtData['colorTransform']>['roleColors'];
 
 /** `dgm:alg/@type` values this engine executes (`registry.ts`). */
 const SUPPORTED_ALGS = new Set([
@@ -136,6 +140,7 @@ function buildRenderedNode(
 		presetOverride: node.shape?.type ?? 'roundRect',
 		foldedNodeIds: foldedNodeIds.length > 0 ? foldedNodeIds : undefined,
 		literalText,
+		styleLabel: engineStyleLabel(node),
 	};
 }
 
@@ -158,15 +163,23 @@ function collectRenderedNodes(
 	nodeById: Map<string, PptxSmartArtNode>,
 	palette: string[],
 	style: SmartArtStyle,
-): RenderedEngineNode[] {
+	roleColors: RoleColors,
+): { collected: RenderedEngineNode[]; connectors: RenderedRectNode[] } {
 	const out: RenderedEngineNode[] = [];
+	const connectors: RenderedRectNode[] = [];
 	// `moveWith` only ever pairs SIBLINGS (same parent), so the merge is
 	// scoped to one node's `children` at a time; `[root]` is a trivial
 	// one-element "sibling group" with nothing to merge.
 	const visitSiblings = (siblings: EngineNode[]): void => {
 		const { extraIdsByTarget, suppressed, carrierByTarget } = computeMoveWithMerge(siblings);
 		for (const node of siblings) {
-			if (node.alg.type !== 'conn' && !suppressed.has(node)) {
+			if (node.alg.type === 'conn') {
+				const index = out.length + connectors.length;
+				const arrow = buildConnectorNode(node, index, connectors.length, palette, roleColors);
+				if (arrow) {
+					connectors.push(arrow);
+				}
+			} else if (!suppressed.has(node)) {
 				const mergedIds = extraIdsByTarget.get(node.name);
 				const rendered = buildRenderedNode(node, out.length, nodeById, palette, style, mergedIds);
 				if (rendered) {
@@ -182,7 +195,7 @@ function collectRenderedNodes(
 		}
 	};
 	visitSiblings([root]);
-	return out;
+	return { collected: out, connectors };
 }
 
 function isFiniteGeometry(node: RenderedRectNode): boolean {
@@ -233,9 +246,15 @@ export function runEngineLayout(
 	if (!run || !isFullySupported(run.root)) {
 		return undefined;
 	}
-	const collected = collectRenderedNodes(run.root, nodeById, palette, style);
+	const { collected, connectors } = collectRenderedNodes(
+		run.root,
+		nodeById,
+		palette,
+		style,
+		smartArtData.colorTransform?.roleColors,
+	);
 	applyEngineFonts(collected, nodeById, smartArtData.themeMinorFont);
-	const rendered = collected.map((entry) => entry.rendered);
+	const rendered = [...collected.map((entry) => entry.rendered), ...connectors];
 	if (rendered.length === 0 || !rendered.every(isFiniteGeometry)) {
 		return undefined;
 	}

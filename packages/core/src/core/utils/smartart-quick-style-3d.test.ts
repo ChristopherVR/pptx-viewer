@@ -84,4 +84,23 @@ describe('applySmartArtQuickStyle3d', () => {
 		expect(out[1].shape3d).toBe(own);
 		expect(out[1].scene3d).toStrictEqual(FLAT_RIG_SCENE);
 	});
+
+	it("prefers the layout engine's own label over the node role and the node1 fallback", () => {
+		const nodes: PptxSmartArtNode[] = [{ id: 'a', text: 'A', styleRole: 'node1' }];
+		const out = applySmartArtQuickStyle3d(
+			[
+				// A second shape of node `a` (a pyramid tier's text box) on revTx.
+				{ ...shape('sa-interp-a'), styleLabel: 'revTx' },
+				// A transition arrow presenting no node.
+				{ ...shape('sa-interp-7'), styleLabel: 'node2' },
+				// A label the quick style does not define stays flat.
+				{ ...shape('sa-interp-8'), styleLabel: 'unknown' },
+			],
+			{ nodes, quickStyle: bevelStyle },
+		);
+		expect(out[0].shape3d).toBeUndefined();
+		expect(out[0].scene3d).toBeUndefined();
+		expect(out[1].shape3d).toStrictEqual({ extrusionHeight: 5 });
+		expect(out[2].shape3d).toBeUndefined();
+	});
 });

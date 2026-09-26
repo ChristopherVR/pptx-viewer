@@ -9,11 +9,18 @@
  * A 2-D connector (the default, e.g. an arrow) becomes a shape running from
  * the source's edge to the destination's edge along the centre line, less
  * `begPad`/`endPad`, as thick as the node's own height and rotated to the
- * line; `connDist` is published for constraints to read.
+ * line; `connDist` is published for constraints to read. See
+ * `connector-size.ts` for the thickness, outline and default padding rules.
  */
 
+import {
+	DEFAULT_BEGIN_PAD,
+	DEFAULT_END_PAD,
+	connectorThickness,
+	edgeDistance,
+} from './connector-size';
 import type { DataPoint } from './data-points';
-import type { Box, EngineNode } from './engine-node';
+import type { EngineNode } from './engine-node';
 
 function rootOf(node: EngineNode): EngineNode {
 	let current = node;
@@ -69,15 +76,6 @@ function findShape(
 	return named ?? fallback;
 }
 
-/** Distance from a box's centre to its edge along the unit direction (dx, dy). */
-function edgeDistance(box: Box, dx: number, dy: number): number {
-	const halfW = box.w / 2;
-	const halfH = box.h / 2;
-	const tx = dx === 0 ? Infinity : halfW / Math.abs(dx);
-	const ty = dy === 0 ? Infinity : halfH / Math.abs(dy);
-	return Math.min(tx, ty);
-}
-
 export function arrangeConnector(node: EngineNode): void {
 	const box = node.box;
 	if (!box) {
@@ -96,8 +94,8 @@ export function arrangeConnector(node: EngineNode): void {
 		if (length > 0) {
 			const dx = (ex - sx) / length;
 			const dy = (ey - sy) / length;
-			const startGap = edgeDistance(src.box, dx, dy);
-			const endGap = edgeDistance(dst.box, dx, dy);
+			const startGap = edgeDistance(src, src.box, dx, dy);
+			const endGap = edgeDistance(dst, dst.box, dx, dy);
 			const connDist = Math.max(0, length - startGap - endGap);
 			node.values.set('connDist', connDist);
 			for (const constraint of node.constraints) {
@@ -105,13 +103,13 @@ export function arrangeConnector(node: EngineNode): void {
 					node.values.set(constraint.type, connDist * constraint.fact);
 				}
 			}
-			const begPad = node.values.get('begPad') ?? 0;
-			const endPad = node.values.get('endPad') ?? 0;
+			const begPad = node.values.get('begPad') ?? connDist * DEFAULT_BEGIN_PAD;
+			const endPad = node.values.get('endPad') ?? connDist * DEFAULT_END_PAD;
 			const arrowLength = Math.max(0, connDist - begPad - endPad);
 			const mid = startGap + begPad + arrowLength / 2;
 			const cx = sx + dx * mid;
 			const cy = sy + dy * mid;
-			const thickness = box.h;
+			const thickness = connectorThickness(node, box.h);
 			node.box = { x: cx - arrowLength / 2, y: cy - thickness / 2, w: arrowLength, h: thickness };
 			node.rotation = normaliseAngle((Math.atan2(dy, dx) * 180) / Math.PI);
 		}

@@ -24,6 +24,7 @@ import type {
 	PptxSmartArtNode,
 	ShapePptxElement,
 } from '../../types';
+import { smartArtElementStyleLabel } from '../../utils/smartart-element-style-label';
 import { drawingShape3dXml } from './smartart-fabrication-3d';
 import { XML_PROLOG, avLstXml, xmlEscape } from './smartart-fabrication-data';
 import { drawingTextBodyXml } from './smartart-fabrication-text';
@@ -227,6 +228,11 @@ export function buildFabricatedDrawingXml(
  * instead of recomputing the simplified fabricated layout. Non-shape elements
  * (connectors) are skipped: they are reconstructed by PowerPoint's own layout.
  */
+function withStyleLabel(element: PptxElement): { styleLabel?: string } {
+	const styleLabel = smartArtElementStyleLabel(element);
+	return styleLabel ? { styleLabel } : {};
+}
+
 export function smartArtElementsToDrawingShapes(
 	elements: PptxElement[] | undefined,
 ): PptxSmartArtDrawingShape[] {
@@ -276,6 +282,7 @@ export function smartArtElementsToDrawingShapes(
 			...(shape.shapeStyle?.scene3d ? { scene3d: shape.shapeStyle.scene3d } : {}),
 			...(shape.shapeStyle?.shape3d ? { shape3d: shape.shapeStyle.shape3d } : {}),
 			...(shape.textStyle?.text3d ? { text3d: shape.textStyle.text3d } : {}),
+			...withStyleLabel(el),
 		});
 	}
 	return shapes;

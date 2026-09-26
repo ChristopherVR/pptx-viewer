@@ -135,6 +135,13 @@ export function applySmartArtQuickStyle3d(
 		labelsByName.get(PRIMARY_STYLE_LABEL) ??
 		labelsByName.get(nodeLabels.values().next().value ?? '');
 	return shapes.map((shape) => {
+		// The layout engine's own label for the shape wins: it is exact even
+		// for a shape that presents no node (a transition arrow, a background)
+		// or a second shape of one node (Basic Pyramid's `revTx` text box).
+		const own = shape.styleLabel ? labelsByName.get(shape.styleLabel) : undefined;
+		if (own || shape.styleLabel) {
+			return own ? withLabel3d(shape, own) : shape;
+		}
 		const nodeId = nodeIdForShape(shape.id, data.nodes);
 		const labelName = nodeId ? nodeLabels.get(nodeId) : undefined;
 		const label = (labelName ? labelsByName.get(labelName) : undefined) ?? fallback;

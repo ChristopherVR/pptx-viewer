@@ -332,6 +332,13 @@ export interface PptxSmartArtDrawingShape extends PptxCustomPathProperties {
 	 * shape body.
 	 */
 	text3d?: Text3DStyle;
+	/**
+	 * The presentation style label (`presStyleLbl`: `node1`, `revTx`,
+	 * `sibTrans2D1`, ...) of the layout node a REGENERATED shape was laid out
+	 * from, when the layout engine reports it. Picks the quick-style label
+	 * whose 3D the shape takes; `undefined` on cached (parsed) shapes.
+	 */
+	styleLabel?: string;
 }
 
 // Chrome types (PptxSmartArtChrome, PptxSmartArtRawBackgroundFill) live in

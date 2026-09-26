@@ -111,6 +111,16 @@ export interface RenderedNodeIdentity {
 	 * pre-existing behaviour of reusing `fontSize` for every folded paragraph.
 	 */
 	descendantFontSize?: number;
+	/**
+	 * The presentation style label (`presStyleLbl`) of the layout node this
+	 * shape was laid out from (`node1`, `revTx`, `sibTrans2D1`, ...), when the
+	 * engine knows it. A regenerated shape takes its quick-style 3D from this
+	 * label (`smartart-quick-style-3d.ts`), so a decorative or transition shape
+	 * that presents no node is not styled as `node1`.
+	 */
+	styleLabel?: string;
+	/** Preset adjustments (`a:avLst`) to cache, e.g. a connector arrow's `adj1`/`adj2`. */
+	shapeAdjustments?: Record<string, number>;
 }
 
 /** A node rendered as an SVG rect (rounded or flat). */

@@ -19,6 +19,7 @@
  */
 
 import type { PptxElement, PptxSmartArtConnection, PptxSmartArtNode } from '../types';
+import { tagSmartArtElementStyleLabel } from './smartart-element-style-label';
 import { nextId, makeShapeElement } from './smartart-helpers';
 import { collectFoldedDescendants, projectFoldedNodeText } from './smartart-interpreter-fold-text';
 import type { SmartArtLayoutResult } from './smartart-layout-types';
@@ -159,10 +160,13 @@ export function interpretedLayoutToElements(
 			fontColor: rendered.fontColor ?? '#FFFFFF',
 			textSegments,
 			rotation: rendered.rotation,
+			...(rendered.shapeAdjustments ? { shapeAdjustments: rendered.shapeAdjustments } : {}),
 		};
+		const push = (element: PptxElement) =>
+			elements.push(tagSmartArtElementStyleLabel(element, rendered.styleLabel));
 
 		if (rendered.kind === 'rect') {
-			elements.push(
+			push(
 				makeShapeElement(
 					id,
 					containerBounds.x + rendered.x,
@@ -188,7 +192,7 @@ export function interpretedLayoutToElements(
 			// keeps this bridge's pre-existing `r`-derived square bounding box.
 			const halfWidth = rendered.rx ?? rendered.r;
 			const halfHeight = rendered.ry ?? rendered.r;
-			elements.push(
+			push(
 				makeShapeElement(
 					id,
 					containerBounds.x + rendered.cx - halfWidth,
@@ -212,7 +216,7 @@ export function interpretedLayoutToElements(
 			// is always populated here; `trapezoid` is kept only as a defensive
 			// fallback for a `RenderedPolygonNode` built outside that path.
 			const bbox = polygonBoundingBox(rendered.points);
-			elements.push(
+			push(
 				makeShapeElement(
 					id,
 					containerBounds.x + bbox.x,
