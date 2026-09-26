@@ -259,6 +259,9 @@ jobs:
           bun run --filter 'pptx-viewer-mcp' build
           bun run --filter '@christophervr/pptx-viewer' build
 
+      - name: Verify packed core imports and legacy export without workspace dependencies
+        run: bun run test:core-package
+
       # Framework bindings: each can fail independently without blocking others.
       - name: Build React
         id: build-react
