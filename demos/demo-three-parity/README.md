@@ -125,27 +125,16 @@ same gate that arms the 2D marks.
 | SmartArt scene: scene styles (Brick, Flat, Metallic, Sunset, Bird's Eye)     | Done: whole-diagram camera fitted from the COM homographies (`smartart-3d-scene-camera.ts`), extrusion, contour rims, rig face tints (also on labels). Under a perspective camera a rig brings its own specular lights (`smartart-3d-light-rig.ts`; `threePt`'s highlight light fitted to the Metallic export, face MAE 2.3), label text extrudes by `text3d` (stacked label layers, `smartart-3d-text-extrusion.ts`), and a turned diagram draws past its element box (`three-view/view-overflow.ts`: the canvas and drawing buffer grow by the projected overflow, pointer input stays on the element box, export snapshots keep the placement; `e2e/smartart-3d-overflow.spec.ts` checks all five bindings)       |
 | SmartArt flat path: Basic Pyramid tiers, Basic Venn transparency             | Done in core/shared, so 2D (all five bindings) and the 3D scene both get it. Core's `trapezoid` preset now follows ECMA-376 (top inset `ss * a / 100000`, `a` pinned to `50000 * w / ss`); it scaled the inset by the width, so the pyramid's `adj 95238` tiers came out as near-triangles. The drawing reader keeps a solid fill's `a:alpha` (`fillOpacity`), which the 2D SVG (`fill-opacity`), the label contrast, and the 3D flat and lit meshes use; a gradient whose stops share one alpha (Venn bevel styles) is transparent in 3D too. Harness MAE vs gt: slide 57 24.1 -> 5.5, 71 17.0 -> 2.9, 62-70 20-25 -> 7-10, 76/77/80 11-18 -> 8-12. `e2e/smartart-flat-parity.spec.ts` checks both in every binding |
 | No camera orbit                                                              | Done: `<pptx-three-view>` mounts every scene without OrbitControls (`three-view/view-controller.ts`). The orbit shared the pointer that moves the element, so dragging a 3D SmartArt turned it while the button was held. `e2e/three-d-drag-no-orbit.spec.ts` compares the view's pixels mid-drag in all five bindings                                                                                                                                                                                                                                                                                                                                                                                               |
+| Slide paging keys in the editor                                              | Done: with a thumbnail or the slide focused, Down / PageDown go on and Up / PageUp go back in every binding, as in PowerPoint (`render/editor-keymap-arrows.ts`; PageUp / PageDown page with a selection too). React, Vue and Angular paged only on Left / Right, which also left `e2e/smartart-3d-overflow.spec.ts` unable to reach slide 14 in React. `e2e/thumbnail-keyboard-paging.spec.ts` covers all five                                                                                                                                                                                                                                                                                                      |
 | SmartArt inline node editing over the scene                                  | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | e2e                                                                          | `e2e/three-d-charts-smoke.spec.ts` walks all 17 charts in every binding: each view reaches `ready`, paints, and the page keeps one shared WebGL context (no eviction warning, no context loss)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Next steps
 
-The `three-d-parity` branch is merged into `main` and deleted; everything
+The `three-d-parity` branch is merged into `main` and retired; everything
 below is follow-up work to pick up on `main`. In priority order:
 
-1. e2e: `e2e/smartart-3d-overflow.spec.ts` "Bird's Eye Scene reaches below
-   the frame" fails in React (also before the orbit fix): its `gotoSlide`
-   cannot reach slide 14 of the 112-slide deck. React's windowed rail renders
-   thumbnails 1-11, clicking 11 scrolls the active thumbnail back into view,
-   and ArrowDown on a focused thumbnail does not change slide in React (the
-   spec's keyboard fallback). Scrolling the rail's scroller forward by a
-   screen and searching again was tried and did not reach slide 14 either;
-   the next try is driving navigation through the status bar or the slide
-   stage's keyboard handling rather than the rail. Whether ArrowDown on a
-   focused thumbnail should move the slide in React (as PowerPoint's
-   thumbnail pane does) is a parity question for all five rails. Angular
-   timed out once in the Brick Scene case of the same spec (not reproduced).
-2. SmartArt follow-ups, both started by agents whose uncommitted work was
+1. SmartArt follow-ups, both started by agents whose uncommitted work was
    not merged (it was based on an old commit and unverified):
    - Basic Pyramid labels are black in PowerPoint although the cached
      `fontRef` says `lt1` (`revTx` style label), and a structurally
@@ -157,24 +146,24 @@ below is follow-up work to pick up on `main`. In priority order:
      (slides 76-84) overlap shading, and fitted lights for rigs other than
      `threePt` (other rigs keep the default highlight; a parallel view keeps
      it too because the bevel constants were fitted with it).
-3. SmartArt fidelity still open: the bevel bands of a scene style
+2. SmartArt fidelity still open: the bevel bands of a scene style
    (Metallic's bright top edge, Brick's cyan extrusion top) and Inset's
    groove are approximate; labels run wider than PowerPoint's when the
    theme font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540
    against `gt/`, Chromium + SwiftShader) for Basic Block List: flat 5.4,
    Polished 9.5, Inset 11.2, Cartoon 8.5, Brick 7.3, Metallic 6.0, Sunset
    7.6, Bird's Eye 6.4; Basic Pyramid 6-9; Basic Venn 3-24.
-4. Charts: every slide of the charts deck is on PowerPoint's model, each
+3. Charts: every slide of the charts deck is on PowerPoint's model, each
    traced corner within ~6pt. Open: the surface wireframe's lower layers are
    an approximation; the settings the deck has no export for (bars without
    right-angle axes, line/area/surface with them) follow the same
    conventions unverified; round `c:shape`s draw as boxes without
    right-angle axes.
-5. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
+4. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
    `chart-3d-hosted-stage.ts`, the `*-interaction-wiring.ts` modules) are
    unreachable for normal charts but still exported from `render/index.ts`
    and used by React's `chart.tsx`; delete them once those references go.
    `ThreeViewContext.OrbitControls` is always `null` now and can go with
    them.
-6. SmartArt inline node editing over the 3D scene exists in React, Vue and
+5. SmartArt inline node editing over the 3D scene exists in React, Vue and
    Angular only; Svelte and Vanilla never had it on the 3D path.
