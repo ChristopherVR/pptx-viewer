@@ -104,24 +104,24 @@ describe('applyDrawingColorTransforms', () => {
 		const result = applyDrawingColorTransforms('#FF0000', {
 			'a:shade': { '@_val': '50000' },
 		});
-		expect(result).toBe('#800000');
+		expect(result).toBe('#BC0000');
 	});
 
 	it('applies tint transform (lighten toward white)', () => {
-		// tint=50000 means 50%: mix 50% toward white
-		// R: 0+(255-0)*0.5=128, G: 0+(255-0)*0.5=128, B: 255+(255-255)*0.5=255
+		// tint=50000 means 50%: mix 50% toward white in LINEAR light (as
+		// PowerPoint does): 0 -> 0.5 linear -> 188 (0xBC); 255 stays 255
 		const result = applyDrawingColorTransforms('#0000FF', {
 			'a:tint': { '@_val': '50000' },
 		});
-		expect(result).toBe('#8080FF');
+		expect(result).toBe('#BCBCFF');
 	});
 
 	it('applies tint to pure black', () => {
-		// Black (#000000) tinted 50% -> R/G/B: 0+(255-0)*0.5 = 128
+		// Black (#000000) tinted 50% in linear light -> 0.5 -> 188 (0xBC)
 		const result = applyDrawingColorTransforms('#000000', {
 			'a:tint': { '@_val': '50000' },
 		});
-		expect(result).toBe('#808080');
+		expect(result).toBe('#BCBCBC');
 	});
 
 	it('applies inverse transform', () => {
@@ -279,7 +279,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 
 		it('applies tint transform to sRGB color', () => {
@@ -289,7 +289,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:tint': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#FF8080');
+			expect(parseDrawingColorChoice(node)).toBe('#FFBCBC');
 		});
 
 		it('applies lumMod transform to sRGB color', () => {
@@ -412,7 +412,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:tint': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 
 		it('applies shade to lt1 (white)', () => {
@@ -422,7 +422,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 
 		it('resolves all six accent colors', () => {
@@ -495,7 +495,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 
 		it('applies tint transform to system color', () => {
@@ -505,7 +505,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:tint': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 	});
 
@@ -589,8 +589,8 @@ describe('parseDrawingColorChoice', () => {
 					'a:tint': { '@_val': '50000' },
 				},
 			};
-			// Red (#FF0000) tinted 50%: R stays 255, G: 0+(255-0)*0.5=128, B: same
-			expect(parseDrawingColorChoice(node)).toBe('#FF8080');
+			// Red (#FF0000) tinted 50% in linear light: R stays 255, G/B -> 188
+			expect(parseDrawingColorChoice(node)).toBe('#FFBCBC');
 		});
 
 		it('applies shade transform to preset color', () => {
@@ -600,7 +600,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 	});
 
@@ -715,7 +715,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 
 		it('clamps channel values above 100%', () => {
@@ -875,7 +875,7 @@ describe('parseDrawingColorChoice', () => {
 					'a:shade': { '@_val': '50000' },
 				},
 			};
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 	});
 
@@ -1093,7 +1093,7 @@ describe('parseDrawingColor', () => {
 				},
 			},
 		};
-		expect(parseDrawingColor(node)).toBe('#FF8080');
+		expect(parseDrawingColor(node)).toBe('#FFBCBC');
 	});
 
 	it('applies shade through solidFill path', () => {
@@ -1105,7 +1105,7 @@ describe('parseDrawingColor', () => {
 				},
 			},
 		};
-		expect(parseDrawingColor(node)).toBe('#808080');
+		expect(parseDrawingColor(node)).toBe('#BCBCBC');
 	});
 });
 
