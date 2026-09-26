@@ -54,13 +54,25 @@ export function renderSelectMenu(
 	menu.replaceChildren(...menuItems);
 }
 
-/** Keep the popup anchored below the trigger within the viewport. */
+/** Prefer below the trigger, flipping above when it offers more room. */
 export function positionSelectMenu(menu: HTMLDivElement, trigger: HTMLButtonElement): void {
 	const rect = trigger.getBoundingClientRect();
-	menu.style.minWidth = `${rect.width}px`;
-	menu.style.maxHeight = `${Math.min(240, Math.max(0, window.innerHeight - rect.bottom - 8))}px`;
-	menu.style.top = `${rect.bottom + 4}px`;
-	menu.style.left = `${Math.max(0, Math.min(rect.left, window.innerWidth - menu.offsetWidth))}px`;
+	const margin = 8;
+	const gap = 4;
+	const width = Math.max(0, window.innerWidth - margin * 2);
+	const below = Math.max(0, window.innerHeight - rect.bottom - gap - margin);
+	const above = Math.max(0, rect.top - gap - margin);
+	menu.style.minWidth = `${Math.min(rect.width, width)}px`;
+	menu.style.maxWidth = `${width}px`;
+	// Measure at the normal height cap before choosing a side. Reset the cap
+	// on every reposition so a previously constrained menu can grow again.
+	menu.style.maxHeight = '240px';
+	const preferredHeight = menu.getBoundingClientRect().height;
+	const flip = below < preferredHeight && above > below;
+	menu.style.maxHeight = `${Math.min(240, flip ? above : below)}px`;
+	const { height, width: menuWidth } = menu.getBoundingClientRect();
+	menu.style.top = `${Math.max(margin, flip ? rect.top - gap - height : rect.bottom + gap)}px`;
+	menu.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - menuWidth - margin))}px`;
 }
 
 /** Expose the keyboard target while keeping the selected state separate. */
