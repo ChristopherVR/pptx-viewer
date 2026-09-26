@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.7.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.1) - 2026-09-26
+
+### Bug Fixes
+
+- **core:** Apply a:tint and a:shade in linear light (by @claude) ([edaa544](https://github.com/ChristopherVR/pptx-viewer/commit/edaa544a50e3a593b2cd2c2f76ea421c0f15a76a))
+
+### Testing
+
+- **core:** Expect linear-light tint and shade results (by @claude) ([025ce79](https://github.com/ChristopherVR/pptx-viewer/commit/025ce79e253581f2fa4a82f534c4f8969501ad8e))
+
 ## [4.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.0) - 2026-09-26
 
 ### Features
