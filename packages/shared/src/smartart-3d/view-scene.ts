@@ -75,7 +75,12 @@ export async function mountSmartArt3DView(
 			? buildLitMeshObject(
 					three,
 					mesh,
-					resolveSmartArt3DLightModel(model.lighting, mesh.solid?.material, eye !== undefined),
+					resolveSmartArt3DLightModel(
+						model.lighting,
+						mesh.solid?.material,
+						eye !== undefined,
+						model.camera !== undefined,
+					),
 					eye,
 				)
 			: buildFlatMeshObject(three, mesh);

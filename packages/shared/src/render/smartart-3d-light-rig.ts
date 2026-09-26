@@ -67,3 +67,39 @@ export function smartArt3DRigSpecularLights(
 	const own = perspective && rig ? SMARTART_RIG_SPECULAR_LIGHTS[rig] : undefined;
 	return own ?? DEFAULT_HIGHLIGHT;
 }
+
+/** The key (diffuse) light of a rig, relative to the snapped `a:lightRig/@dir`. */
+export interface SmartArt3DRigKeyLight {
+	/** Azimuth relative to the key light's direction, degrees, counter-clockwise. */
+	azimuthDeg: number;
+	/** Elevation above the diagram plane, degrees. */
+	elevationDeg: number;
+}
+
+/**
+ * Key-light elevations under a scene camera, fitted per rig against the scene
+ * quick styles' exports (whole-slide MAE over all eight layouts of each
+ * style in `e2e/fixtures/three-d-parity/gt/`, sweeping the elevation):
+ * `flat` (Brick Scene, isometric) 4.18 -> 3.94 at 40, `threePt` (Metallic
+ * Scene) 3.89 -> 3.60 at 90, `morning` (Sunset Scene) 3.63 -> 3.53 at 60,
+ * `soft` (Bird's Eye Scene) 3.69 -> 3.12 at 80. Under a parallel view the
+ * grazing default stays: raising it made Polished (`flat`) and Cartoon
+ * (`contrasting`) worse, because the bevel constants were fitted with it.
+ */
+export const SMARTART_RIG_SCENE_KEY_LIGHTS: Record<string, SmartArt3DRigKeyLight> = {
+	flat: { azimuthDeg: 0, elevationDeg: 40 },
+	threePt: { azimuthDeg: 0, elevationDeg: 90 },
+	morning: { azimuthDeg: 0, elevationDeg: 60 },
+	soft: { azimuthDeg: 0, elevationDeg: 80 },
+};
+
+/**
+ * A rig's own key light under a scene camera, or `undefined` for the default
+ * (a grazing light from `@dir`, fitted against the bevel quick styles).
+ */
+export function smartArt3DRigKeyLight(
+	rig: string | undefined,
+	sceneCamera: boolean,
+): SmartArt3DRigKeyLight | undefined {
+	return sceneCamera && rig ? SMARTART_RIG_SCENE_KEY_LIGHTS[rig] : undefined;
+}

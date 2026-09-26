@@ -38,6 +38,31 @@ describe('shadeSmartArt3DNormal', () => {
 	});
 });
 
+describe('light rig key lights', () => {
+	const at = (rig: string) => ({ rig, direction: 't', revDeg: 0 });
+	const elevationDeg = (v: { z: number }) => (Math.asin(v.z) * 180) / Math.PI;
+
+	it("raises a fitted rig's key light under a scene camera", () => {
+		expect(
+			elevationDeg(resolveSmartArt3DLightModel(at('flat'), 'plastic', false, true).light),
+		).toBeCloseTo(40, 6);
+		expect(
+			elevationDeg(resolveSmartArt3DLightModel(at('soft'), 'plastic', true, true).light),
+		).toBeCloseTo(80, 6);
+		expect(
+			elevationDeg(resolveSmartArt3DLightModel(at('morning'), 'plastic', true).light),
+		).toBeCloseTo(60, 6);
+	});
+
+	it('keeps the grazing default for a parallel view and for rigs with no fit', () => {
+		const grazing = resolveSmartArt3DLightModel(at('threePt'), 'plastic').light;
+		expect(resolveSmartArt3DLightModel(at('flat'), 'plastic').light).toStrictEqual(grazing);
+		expect(
+			resolveSmartArt3DLightModel(at('contrasting'), 'plastic', false, true).light,
+		).toStrictEqual(grazing);
+	});
+});
+
 describe('light rig specular lights', () => {
 	const rig = { rig: 'threePt', direction: 't', revDeg: 344 };
 

@@ -18,7 +18,7 @@
  *
  * @module render/smartart-3d-lighting
  */
-import { smartArt3DRigSpecularLights } from './smartart-3d-light-rig';
+import { smartArt3DRigKeyLight, smartArt3DRigSpecularLights } from './smartart-3d-light-rig';
 import type { SmartArt3DLighting } from './smartart-3d-solid-types';
 import type { Vec3 } from './smartart-3d-types';
 import { getBevelHighlightDirection } from './visual-3d-bevel-light';
@@ -114,11 +114,14 @@ function normalize(v: Vec3): Vec3 {
  * @param perspective - the solid is seen through a perspective scene camera,
  *   which switches on the rig's own specular lights (see
  *   `smartart-3d-light-rig.ts`).
+ * @param sceneCamera - the diagram is turned by a quick-style scene camera
+ *   (perspective or not), which switches on the rig's own key light.
  */
 export function resolveSmartArt3DLightModel(
 	lighting: SmartArt3DLighting | undefined,
 	material: string | undefined,
 	perspective = false,
+	sceneCamera = perspective,
 ): SmartArt3DLightModel {
 	// CSS space (y-down) -> view space (y-up), then the rig's own revolution.
 	const snap = getBevelHighlightDirection(lighting?.direction ?? 't');
@@ -141,8 +144,9 @@ export function resolveSmartArt3DLightModel(
 	};
 	const response = getMaterialLighting(material);
 	const specular = response.specularConstant * SPECULAR_GAIN;
+	const key = smartArt3DRigKeyLight(lighting?.rig, sceneCamera);
 	return {
-		light: toward(KEY_ELEVATION_DEG),
+		light: key ? toward(key.elevationDeg, key.azimuthDeg) : toward(KEY_ELEVATION_DEG),
 		highlights: smartArt3DRigSpecularLights(lighting?.rig, perspective).map((rigLight) => ({
 			direction: toward(rigLight.elevationDeg, rigLight.azimuthDeg),
 			weight: specular * rigLight.intensity,
