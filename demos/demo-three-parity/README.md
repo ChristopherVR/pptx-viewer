@@ -138,11 +138,12 @@ The `three-d-parity` branch is merged into `main` and retired; everything
 below is follow-up work to pick up on `main`. In priority order:
 
 1. SmartArt light rigs under a parallel view: Polished (`flat`) and Cartoon
-   (`contrasting`) keep the grazing default key light and highlight, since
-   the bevel constants were fitted with them and raising the key light made
-   both worse; fitting a rig there needs the bevel constants refitted with
-   it. Only key-light elevation was fitted under scene cameras; a rig's own
-   specular lights exist for `threePt` alone.
+   (`contrasting`) keep the grazing default key light (5 degrees). A sweep of
+   its elevation (1-50 degrees) and azimuth (+/-30) moved neither style's
+   whole-slide MAE (4.73, 4.71) by more than 0.15, and the two preferred
+   opposite turns, so no per-rig constant was added: what is left there is in
+   the bevel bands themselves (see 3), which would have to be refitted per
+   rig. Only `threePt` has its own specular lights.
 2. e2e: `e2e/three-d-drag-no-orbit.spec.ts` failed once in Vanilla's
    SmartArt case during a long two-worker run (8/8 on a rerun, and 30/30
    earlier), so it is load-sensitive: sample the canvas more than once
