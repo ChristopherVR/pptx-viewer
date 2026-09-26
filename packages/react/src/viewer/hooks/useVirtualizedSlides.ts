@@ -29,8 +29,8 @@ export interface VirtualizedSlidesOptions {
 }
 
 export interface VirtualizedSlidesResult extends VirtualizedRange {
-	/** Ref to attach to the scroll container element. */
-	scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+	/** Callback ref for the scroll container; re-wires scroll tracking whenever it mounts. */
+	scrollContainerRef: (el: HTMLDivElement | null) => void;
 	/** Call this to scroll a specific index into view. */
 	scrollToIndex: (index: number, behavior?: ScrollBehavior) => void;
 }
@@ -44,13 +44,21 @@ export function useVirtualizedSlides({
 	itemHeight,
 	overscan = DEFAULT_VIRTUAL_OVERSCAN,
 }: VirtualizedSlidesOptions): VirtualizedSlidesResult {
-	const scrollContainerRef = useRef<HTMLDivElement>(null);
+	const containerElRef = useRef<HTMLDivElement | null>(null);
+	// The container is tracked in state, not only in a ref: the rail renders it
+	// only while open, so it can mount after this hook's first effect. A
+	// mount-once effect then never saw it, the viewport stayed 0 px tall and
+	// the rail never rendered past its first dozen thumbnails.
+	const [container, setContainer] = useState<HTMLDivElement | null>(null);
+	const scrollContainerRef = useCallback((el: HTMLDivElement | null) => {
+		containerElRef.current = el;
+		setContainer(el);
+	}, []);
 	const [scrollTop, setScrollTop] = useState(0);
 	const [viewportHeight, setViewportHeight] = useState(0);
 
 	// ── Observe scroll position ──
 	useEffect(() => {
-		const container = scrollContainerRef.current;
 		if (!container) {
 			return;
 		}
@@ -80,7 +88,7 @@ export function useVirtualizedSlides({
 			container.removeEventListener('scroll', handleScroll);
 			resizeObserver?.disconnect();
 		};
-	}, []);
+	}, [container]);
 
 	// ── Calculate visible range ──
 	const range = computeVirtualRange(totalItems, itemHeight, scrollTop, viewportHeight, overscan);
@@ -90,22 +98,22 @@ export function useVirtualizedSlides({
 	// ── Scroll to index ──
 	const scrollToIndex = useCallback(
 		(index: number, behavior: ScrollBehavior = 'smooth') => {
-			const container = scrollContainerRef.current;
-			if (!container) {
+			const el = containerElRef.current;
+			if (!el) {
 				return;
 			}
 
 			const targetTop = index * safeItemHeight;
 			const targetBottom = targetTop + safeItemHeight;
-			const containerTop = container.scrollTop;
-			const containerBottom = containerTop + container.clientHeight;
+			const containerTop = el.scrollTop;
+			const containerBottom = containerTop + el.clientHeight;
 
 			// Only scroll if the target is not fully visible
 			if (targetTop < containerTop) {
-				container.scrollTo({ top: targetTop, behavior });
+				el.scrollTo({ top: targetTop, behavior });
 			} else if (targetBottom > containerBottom) {
-				container.scrollTo({
-					top: targetBottom - container.clientHeight,
+				el.scrollTo({
+					top: targetBottom - el.clientHeight,
 					behavior,
 				});
 			}
