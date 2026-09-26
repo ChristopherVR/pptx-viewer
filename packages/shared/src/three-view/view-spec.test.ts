@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	chartThreeViewSpec,
+	differsOnlyInPosition,
 	isChart3DViewEnabled,
 	resolveChartThreeViewSpec,
 	resolveSmartArtThreeViewSpec,
@@ -90,6 +91,28 @@ describe('chartThreeViewSpec', () => {
 		const first = chartThreeViewSpec(chartElement('pie3D'));
 		const second = chartThreeViewSpec(chartElement('pie3D'));
 		expect(first).not.toBe(second);
+	});
+
+	it('keeps the spec when a move only changes x/y, so the scene is not rebuilt', () => {
+		const el = chartElement('bar3D');
+		const first = chartThreeViewSpec(el);
+		const moved = { ...el, x: 40, y: 25 } as PptxElement;
+		expect(chartThreeViewSpec(moved)).toBe(first);
+	});
+
+	it('rebuilds the spec when a resize changes more than the position', () => {
+		const el = chartElement('bar3D');
+		const first = chartThreeViewSpec(el);
+		const resized = { ...el, width: 500 } as PptxElement;
+		expect(chartThreeViewSpec(resized)).not.toBe(first);
+	});
+});
+
+describe('differsOnlyInPosition', () => {
+	it('ignores x and y and compares every other field by identity', () => {
+		const el = chartElement('bar3D');
+		expect(differsOnlyInPosition(el, { ...el, x: 9, y: 9 } as PptxElement)).toBeTruthy();
+		expect(differsOnlyInPosition(el, { ...el, rotation: 5 } as PptxElement)).toBeFalsy();
 	});
 });
 

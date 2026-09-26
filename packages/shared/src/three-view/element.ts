@@ -87,6 +87,7 @@ function createElementClass(): CustomElementConstructor {
 		#resize: ResizeObserver | null = null;
 		#intersect: IntersectionObserver | null = null;
 		#poll: ReturnType<typeof setInterval> | null = null;
+		#teardownPending = false;
 
 		get spec(): ThreeViewSpec | null {
 			return this.#spec;
@@ -96,9 +97,9 @@ function createElementClass(): CustomElementConstructor {
 				return;
 			}
 			this.#spec = value;
-			if (this.isConnected) {
-				void this.#controller?.setSpec(value);
-			}
+			// A live controller (connected, or detached for a moment within a
+			// re-render, see disconnectedCallback) takes the new spec at once.
+			void this.#controller?.setSpec(value);
 		}
 
 		get interactive(): boolean {
@@ -150,6 +151,12 @@ function createElementClass(): CustomElementConstructor {
 			// Survives html2canvas, which re-creates custom elements as <div>s
 			// (see export-snapshot.ts).
 			this.setAttribute(THREE_VIEW_MARKER_ATTR, '');
+			if (this.#controller) {
+				// Re-attached within the same task (a binding moving the node while
+				// it rebuilds its DOM): keep the running scene.
+				this.#teardownPending = false;
+				return;
+			}
 			const root = this.shadowRoot ?? this.attachShadow({ mode: 'open' });
 			if (!this.#canvas) {
 				root.innerHTML = `<style>${SHADOW_CSS}</style><div class="fallback" part="fallback"><slot></slot></div><div class="stage" part="stage"><canvas></canvas><div class="hit" part="hit"></div><div class="overlay" part="overlay"></div></div>`;
@@ -178,6 +185,19 @@ function createElementClass(): CustomElementConstructor {
 		}
 
 		disconnectedCallback(): void {
+			// Tear down one microtask later, so a node detached and re-attached
+			// in the same task (Vanilla rebuilds its stage on every edit and moves
+			// the live view across) keeps its scene instead of reloading it.
+			this.#teardownPending = true;
+			queueMicrotask(() => {
+				if (this.#teardownPending && !this.isConnected) {
+					this.#teardown();
+				}
+			});
+		}
+
+		#teardown(): void {
+			this.#teardownPending = false;
 			this.#resize?.disconnect();
 			this.#intersect?.disconnect();
 			if (this.#poll !== null) {

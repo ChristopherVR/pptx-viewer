@@ -54,26 +54,61 @@ export function isChart3DViewEnabled(
 const chartSpecs = new WeakMap<PptxElement, ThreeViewSpec | null>();
 const smartArtSpecs = new WeakMap<PptxElement, ThreeViewSpec | null>();
 
+/** The last element (and its spec) seen per element id, per kind. */
+const lastByIdChart = new Map<string, { element: PptxElement; view: ThreeViewSpec | null }>();
+const lastByIdSmartArt = new Map<string, { element: PptxElement; view: ThreeViewSpec | null }>();
+
+/** Fields a spec never reads: moving an element must not rebuild its scene. */
+const POSITION_KEYS = new Set(['x', 'y']);
+
+/**
+ * Whether two versions of an element differ only in position. An editor
+ * move patches `x`/`y` into a fresh element object on every pointer move;
+ * without this the spec (keyed by object) changed each time and the view
+ * rebuilt its whole scene mid-drag.
+ */
+export function differsOnlyInPosition(a: PptxElement, b: PptxElement): boolean {
+	const ra = a as unknown as Record<string, unknown>;
+	const rb = b as unknown as Record<string, unknown>;
+	const keys = new Set([...Object.keys(ra), ...Object.keys(rb)]);
+	for (const key of keys) {
+		if (!POSITION_KEYS.has(key) && ra[key] !== rb[key]) {
+			return false;
+		}
+	}
+	return true;
+}
+
+function memoised(
+	element: PptxElement,
+	byObject: WeakMap<PptxElement, ThreeViewSpec | null>,
+	byId: Map<string, { element: PptxElement; view: ThreeViewSpec | null }>,
+	build: () => ThreeViewSpec | null,
+): ThreeViewSpec | null {
+	if (byObject.has(element)) {
+		return byObject.get(element) ?? null;
+	}
+	const last = byId.get(element.id);
+	const view = last && differsOnlyInPosition(last.element, element) ? last.view : build();
+	byObject.set(element, view);
+	byId.set(element.id, { element, view });
+	return view;
+}
+
 /** The (memoised) chart spec for an element, ignoring flags; `null` when it is not a 3D chart. */
 export function chartThreeViewSpec(element: PptxElement): ThreeViewSpec | null {
-	if (chartSpecs.has(element)) {
-		return chartSpecs.get(element) ?? null;
-	}
-	const spec = buildChart3DSpecForElement(element);
-	const view: ThreeViewSpec | null = spec ? { kind: 'chart', spec } : null;
-	chartSpecs.set(element, view);
-	return view;
+	return memoised(element, chartSpecs, lastByIdChart, () => {
+		const spec = buildChart3DSpecForElement(element);
+		return spec ? { kind: 'chart', spec } : null;
+	});
 }
 
 /** The (memoised) SmartArt spec for an element; `null` when it has nothing to draw. */
 export function smartArtThreeViewSpec(element: PptxElement): ThreeViewSpec | null {
-	if (smartArtSpecs.has(element)) {
-		return smartArtSpecs.get(element) ?? null;
-	}
-	const spec = buildSmartArt3DSpecForElement(element);
-	const view: ThreeViewSpec | null = spec ? { kind: 'smartart', spec } : null;
-	smartArtSpecs.set(element, view);
-	return view;
+	return memoised(element, smartArtSpecs, lastByIdSmartArt, () => {
+		const spec = buildSmartArt3DSpecForElement(element);
+		return spec ? { kind: 'smartart', spec } : null;
+	});
 }
 
 /**
