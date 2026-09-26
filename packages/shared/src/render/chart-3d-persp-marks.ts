@@ -12,8 +12,9 @@
  *
  * @module chart-3d-persp-marks
  */
-import type { PptxChartData } from 'pptx-viewer-core';
+import type { PptxBar3DShape, PptxChartData } from 'pptx-viewer-core';
 
+import type { ObliqueTaper } from './chart-3d-oblique-types';
 import { buildPerspBarPrisms } from './chart-3d-persp-bars';
 import type { PerspChartLayout } from './chart-3d-persp-layout';
 
@@ -29,6 +30,16 @@ export interface PerspPrism {
 	outline: Array<[number, number]>;
 	z0: number;
 	z1: number;
+	/**
+	 * A bar's `c:shape` (cylinder / cone / pyramid and the `...ToMax` slices);
+	 * absent or `box` extrudes the outline. The shape is inscribed in the
+	 * outline's bounding box, as with right-angle axes.
+	 */
+	shape?: PptxBar3DShape;
+	/** Width of a shaped bar at its baseline / value end, 0-1 (see `obliqueBarTaper`). */
+	taper?: ObliqueTaper;
+	/** The bar runs along box x (a horizontal bar chart) rather than y. */
+	horizontal?: boolean;
 }
 
 type LayoutCore = Pick<

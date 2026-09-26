@@ -15,6 +15,7 @@ import type * as THREE from 'three';
 
 import type { PerspChartLayout } from './chart-3d-persp-layout';
 import type { PerspPrism } from './chart-3d-persp-marks';
+import { buildShapedPrismGeometry, isShapedPerspPrism } from './chart-3d-persp-shape-mesh';
 import { perspBoxMatrix } from './chart-3d-persp-view';
 import { chart3DNormalShade } from './chart-3d-shading';
 
@@ -61,6 +62,9 @@ export function shadePerspGeometry(
 
 /** An extruded, shaded prism geometry in box space. */
 export function buildPrismGeometry(three: ThreeModule, prism: PerspPrism): THREE.BufferGeometry {
+	if (isShapedPerspPrism(prism)) {
+		return buildShapedPrismGeometry(three, prism);
+	}
 	const shape = new three.Shape(prism.outline.map(([x, y]) => new three.Vector2(x, y)));
 	const extruded = new three.ExtrudeGeometry(shape, {
 		depth: Math.max(prism.z1 - prism.z0, 1e-6),

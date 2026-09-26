@@ -10,6 +10,7 @@
  */
 import type { PptxChartData } from 'pptx-viewer-core';
 
+import { obliqueBarTaper } from './chart-3d-oblique-bars';
 import type { PerspChartLayout } from './chart-3d-persp-layout';
 import type { PerspPrism } from './chart-3d-persp-marks';
 
@@ -68,6 +69,7 @@ export function buildPerspBarPrisms(
 					neg = to;
 				}
 			}
+			const shape = chartData.series[s]?.shape ?? chartData.barShape ?? 'box';
 			const slotIndex = layout.grouping === 'clustered' ? s : 0;
 			const row = layout.grouping === 'standard' ? s : 0;
 			const c0 = c * slot + (gapWidth * barW) / 2 + slotIndex * barW;
@@ -90,6 +92,15 @@ export function buildPerspBarPrisms(
 				],
 				z0,
 				z1: z0 + depth,
+				shape,
+				taper: obliqueBarTaper(
+					shape,
+					v0,
+					v1,
+					(layout.range.max - layout.range.min) * layout.valueScale,
+					raw,
+				),
+				horizontal: layout.horizontal,
 			});
 		}
 	}
