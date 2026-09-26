@@ -149,7 +149,14 @@ below is follow-up work to pick up on `main`. In priority order:
    Inset's `threePt`), where ours shows almost no side band; an added
    specular rim light from the right moved Polished 3.95 -> 3.96 and Inset
    4.33 -> 4.24 at best (and worse from the left), so the rim comes from the
-   band profile's normals, not a missing light. Labels also run wider than
+   band profile's normals, not a missing light. Measured on Polished
+   (`circle` bevel, `flat` rig, Basic Block List): PowerPoint's top band is a
+   narrow bright ridge (~4 px) behind a dark outer pixel where ours is a
+   ~10 px saturated highlight, its bottom band stays near the face colour
+   where ours is a ~9 px dark band, and its side bands are visible where ours
+   are nearly absent: under the `flat` rig PowerPoint shades the band far more
+   evenly, apart from thin highlights. Fixing it means refitting the band
+   shading per bevel preset and rig against `gt/`. Labels also run wider than
    PowerPoint's where the theme
    font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540 against
    `gt/`, Chromium + SwiftShader), mean over all eight layouts: flat 2.88,
