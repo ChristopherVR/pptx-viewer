@@ -23,8 +23,15 @@
  * @module render/editor-keymap
  */
 
+import { editorNudgeDelta, editorSlideStep } from './editor-keymap-arrows';
 import { resolveChord, resolveLiveFormatChord } from './editor-keymap-chords';
 
+export {
+	NUDGE_LARGE,
+	NUDGE_SMALL,
+	editorNudgeDelta,
+	editorSlideStep,
+} from './editor-keymap-arrows';
 export { mapInlineTextFormatKey } from './editor-keymap-chords';
 export { isEditorControlTarget, isEditorTextInputTarget } from './editor-key-target';
 export type { InlineTextFormatProperty } from './editor-keymap-chords';
@@ -32,19 +39,6 @@ export type { InlineTextFormatProperty } from './editor-keymap-chords';
 // ---------------------------------------------------------------------------
 // Steps
 // ---------------------------------------------------------------------------
-
-/**
- * Slide pixels an unmodified arrow key moves the selection.
- *
- * PowerPoint nudges by the smallest unit it can draw, and the ribbon's position
- * boxes are authored in the same slide-pixel space the renderer lays out in, so
- * one arrow press must equal one slide pixel or the numbers in the inspector
- * disagree with what the keyboard does.
- */
-export const NUDGE_SMALL = 1;
-
-/** Slide pixels a Shift+arrow moves the selection (ten small steps). */
-export const NUDGE_LARGE = 10;
 
 // ---------------------------------------------------------------------------
 // Actions
@@ -143,23 +137,6 @@ const GUARD_DEFAULTS: EditorKeyGuard = {
 
 // `isEditorTextInputTarget` / `isEditorControlTarget` live in
 // `./editor-key-target` and are re-exported above.
-
-/** Map an arrow key to a nudge delta in slide pixels, or `null` for other keys. */
-export function editorNudgeDelta(key: string, large: boolean): { dx: number; dy: number } | null {
-	const step = large ? NUDGE_LARGE : NUDGE_SMALL;
-	switch (key) {
-		case 'ArrowLeft':
-			return { dx: -step, dy: 0 };
-		case 'ArrowRight':
-			return { dx: step, dy: 0 };
-		case 'ArrowUp':
-			return { dx: 0, dy: -step };
-		case 'ArrowDown':
-			return { dx: 0, dy: step };
-		default:
-			return null;
-	}
-}
 
 // ---------------------------------------------------------------------------
 // Mapping
@@ -292,21 +269,13 @@ export function mapEditorKey(
 		}
 	}
 
+	const paging = editorSlideStep(key, state.hasSelection, mod || alt);
+	if (paging) {
+		return { action: paging };
+	}
 	if (state.hasSelection) {
 		const delta = editorNudgeDelta(key, Boolean(input.shiftKey));
-		if (delta) {
-			return { action: 'nudge', dx: delta.dx, dy: delta.dy };
-		}
-		return NO_ACTION;
-	}
-
-	// With nothing selected the horizontal arrows page through the deck, which
-	// is what a viewer-first user expects when no element has the keyboard.
-	if (key === 'ArrowLeft') {
-		return { action: 'prevSlide' };
-	}
-	if (key === 'ArrowRight') {
-		return { action: 'nextSlide' };
+		return delta ? { action: 'nudge', dx: delta.dx, dy: delta.dy } : NO_ACTION;
 	}
 
 	return NO_ACTION;

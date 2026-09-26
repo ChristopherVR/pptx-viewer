@@ -124,9 +124,19 @@ describe('mapEditorKey deletion, nudge and paging', () => {
 		});
 	});
 
-	it('pages the deck with the horizontal arrows when nothing is selected', () => {
+	it('pages the deck with every arrow when nothing is selected', () => {
 		expect(mapEditorKey(press('ArrowLeft')).action).toBe('prevSlide');
+		expect(mapEditorKey(press('ArrowUp')).action).toBe('prevSlide');
 		expect(mapEditorKey(press('ArrowRight')).action).toBe('nextSlide');
+		expect(mapEditorKey(press('ArrowDown')).action).toBe('nextSlide');
+	});
+
+	it('pages the deck with PageUp / PageDown, selection or not', () => {
+		expect(mapEditorKey(press('PageUp')).action).toBe('prevSlide');
+		expect(mapEditorKey(press('PageDown')).action).toBe('nextSlide');
+		expect(mapEditorKey(press('PageUp'), SELECTED).action).toBe('prevSlide');
+		expect(mapEditorKey(press('PageDown'), SELECTED).action).toBe('nextSlide');
+		expect(mapEditorKey(press('PageDown', { ctrlKey: true })).action).toBeNull();
 	});
 
 	it('never pages while an element is selected: the arrows nudge instead', () => {
