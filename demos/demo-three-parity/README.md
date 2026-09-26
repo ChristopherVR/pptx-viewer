@@ -144,7 +144,13 @@ below is follow-up work to pick up on `main`. In priority order:
    edge, Brick's cyan extrusion top), which would have to be refitted per
    rig; the lights are not the lever (a sweep of Polished's and Cartoon's key
    light moved neither by more than 0.15, and only `threePt` has its own
-   specular lights). Labels also run wider than PowerPoint's where the theme
+   specular lights). PowerPoint draws a bright rim on each shape's right edge
+   and a darker one on its left under a top-lit rig (Polished's `flat`,
+   Inset's `threePt`), where ours shows almost no side band; an added
+   specular rim light from the right moved Polished 3.95 -> 3.96 and Inset
+   4.33 -> 4.24 at best (and worse from the left), so the rim comes from the
+   band profile's normals, not a missing light. Labels also run wider than
+   PowerPoint's where the theme
    font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540 against
    `gt/`, Chromium + SwiftShader), mean over all eight layouts: flat 2.88,
    Polished 3.95, Inset 4.33, Cartoon 4.69, Brick 3.91, Metallic 3.57, Sunset
