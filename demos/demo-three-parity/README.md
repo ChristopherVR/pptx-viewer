@@ -126,6 +126,7 @@ same gate that arms the 2D marks.
 | SmartArt flat path: Basic Pyramid tiers, Basic Venn transparency             | Done in core/shared, so 2D (all five bindings) and the 3D scene both get it. Core's `trapezoid` preset now follows ECMA-376 (top inset `ss * a / 100000`, `a` pinned to `50000 * w / ss`); it scaled the inset by the width, so the pyramid's `adj 95238` tiers came out as near-triangles. The drawing reader keeps a solid fill's `a:alpha` (`fillOpacity`), which the 2D SVG (`fill-opacity`), the label contrast, and the 3D flat and lit meshes use; a gradient whose stops share one alpha (Venn bevel styles) is transparent in 3D too. Harness MAE vs gt: slide 57 24.1 -> 5.5, 71 17.0 -> 2.9, 62-70 20-25 -> 7-10, 76/77/80 11-18 -> 8-12. `e2e/smartart-flat-parity.spec.ts` checks both in every binding |
 | No camera orbit                                                              | Done: `<pptx-three-view>` mounts every scene without OrbitControls (`three-view/view-controller.ts`). The orbit shared the pointer that moves the element, so dragging a 3D SmartArt turned it while the button was held. `e2e/three-d-drag-no-orbit.spec.ts` compares the view's pixels mid-drag in all five bindings                                                                                                                                                                                                                                                                                                                                                                                               |
 | Slide paging keys in the editor                                              | Done: with a thumbnail or the slide focused, Down / PageDown go on and Up / PageUp go back in every binding, as in PowerPoint (`render/editor-keymap-arrows.ts`; PageUp / PageDown page with a selection too). React, Vue and Angular paged only on Left / Right, which also left `e2e/smartart-3d-overflow.spec.ts` unable to reach slide 14 in React. `e2e/thumbnail-keyboard-paging.spec.ts` covers all five                                                                                                                                                                                                                                                                                                      |
+| SmartArt text-node colour and per-shape style labels                         | Done in core: a shape paired with a `tx`-algorithm text node (Basic Pyramid's `levelTx`, `revTx`) draws its label in that node's `txFillClrLst` colour (`smartart-merged-text-label.ts`), so the pyramid's labels are black as in PowerPoint (harness MAE on slides 57-70 down about 2). A structural relayout reports each shape's own `presStyleLbl` (`smartart-engine/style-label.ts`), so decorative and transition shapes take their own quick-style 3D rather than `node1`'s, and placed 2-D straight connectors draw as `rightArrow` shapes again (Basic Cycle within about 1px of PowerPoint's cache). `e2e/smartart-flat-parity.spec.ts` checks the pyramid label colour in every binding                   |
 | SmartArt inline node editing over the scene                                  | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | e2e                                                                          | `e2e/three-d-charts-smoke.spec.ts` walks all 17 charts in every binding: each view reaches `ready`, paints, and the page keeps one shared WebGL context (no eviction warning, no context loss)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
@@ -134,18 +135,11 @@ same gate that arms the 2D marks.
 The `three-d-parity` branch is merged into `main` and retired; everything
 below is follow-up work to pick up on `main`. In priority order:
 
-1. SmartArt follow-ups, both started by agents whose uncommitted work was
-   not merged (it was based on an old commit and unverified):
-   - Basic Pyramid labels are black in PowerPoint although the cached
-     `fontRef` says `lt1` (`revTx` style label), and a structurally
-     regenerated shape that presents no node (a layout's decorative or
-     transition shape) takes the `node1` label's 3D; resolving its own
-     `presStyleLbl` needs the layout interpreter (core
-     `smartart-engine`) to report it per shape.
-   - Cartoon's clear/translucent material, Basic Venn's bevel styles
-     (slides 76-84) overlap shading, and fitted lights for rigs other than
-     `threePt` (other rigs keep the default highlight; a parallel view keeps
-     it too because the bevel constants were fitted with it).
+1. SmartArt materials and lights: Cartoon's clear/translucent material,
+   Basic Venn's bevel styles (slides 76-84) overlap shading, and fitted
+   lights for rigs other than `threePt` (other rigs keep the default
+   highlight; a parallel view keeps it too because the bevel constants were
+   fitted with it).
 2. SmartArt fidelity still open: the bevel bands of a scene style
    (Metallic's bright top edge, Brick's cyan extrusion top) and Inset's
    groove are approximate; labels run wider than PowerPoint's when the
