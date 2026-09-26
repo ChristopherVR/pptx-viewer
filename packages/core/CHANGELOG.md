@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.7.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.0) - 2026-09-26
+
+### Features
+
+- **core:** Style regenerated SmartArt shapes by their own style label (by @claude) ([67ea2fb](https://github.com/ChristopherVR/pptx-viewer/commit/67ea2fbe0efdded17cb3cfce73921dcef8712d85))
+
+### Bug Fixes
+
+- **core:** Draw a merged SmartArt text node's labels in its own colour (by @claude) ([7e6232d](https://github.com/ChristopherVR/pptx-viewer/commit/7e6232d6b8115f448c328db4a1a8478c2a934345))
+
 ## [4.6.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.6.0) - 2026-09-25
 
 ### Features

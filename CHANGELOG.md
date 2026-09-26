@@ -8,6 +8,33 @@ dated sections beneath it are generated from
 [git-cliff](https://git-cliff.org). The exact version number and date for
 `2.0.0` are finalized when the release is tagged.
 
+## 2026-09-26
+
+_Releases: pptx-viewer-core@4.7.0, pptx-react-viewer@4.10.0, pptx-vue-viewer@4.10.0, pptx-angular-viewer@4.10.0, pptx-vanilla-viewer@3.10.0, pptx-svelte-viewer@4.10.0, @christophervr/pptx-viewer@2.30.1_
+
+### Features
+
+- **core:** Style regenerated SmartArt shapes by their own style label (by @claude) ([67ea2fb](https://github.com/ChristopherVR/pptx-viewer/commit/67ea2fbe0efdded17cb3cfce73921dcef8712d85))
+
+### Bug Fixes
+
+- **react:** Keep the slide rail's virtual window after the pane reopens (by @claude) ([fb9e101](https://github.com/ChristopherVR/pptx-viewer/commit/fb9e101bfb111d772cd218182403add205f7962f))
+- **shared:** Page slides with Up, Down, PageUp and PageDown in the editor (by @claude) ([c0cc4dc](https://github.com/ChristopherVR/pptx-viewer/commit/c0cc4dcdff6525e06aac39f7091723aa3bb9d882))
+- **core:** Draw a merged SmartArt text node's labels in its own colour (by @claude) ([7e6232d](https://github.com/ChristopherVR/pptx-viewer/commit/7e6232d6b8115f448c328db4a1a8478c2a934345))
+- **shared:** Blend translucent SmartArt solids once and draw clear as glass (by @claude) ([52128d7](https://github.com/ChristopherVR/pptx-viewer/commit/52128d737ebf2b3b3c37ccd60edc4ccd5fa9ea20))
+
+### Documentation
+
+- **guide:** Record the remaining open items from this wave (by @ChristopherVR) ([24fb82b](https://github.com/ChristopherVR/pptx-viewer/commit/24fb82b59df0dc4c010709b18c591f14a4c44fa5))
+- **demos:** Record the 3D parity programme's remaining actions (by @claude) ([ef1ef2f](https://github.com/ChristopherVR/pptx-viewer/commit/ef1ef2f9737f8272b181fe0021424dfbc853e72b))
+- **demos:** Mark editor slide paging done in the 3D parity notes (by @claude) ([2587001](https://github.com/ChristopherVR/pptx-viewer/commit/25870014b0040610cae1369b8c97a8bfb7a462a9))
+- **demos:** Mark SmartArt text-node colour and style labels done (by @claude) ([3d795ac](https://github.com/ChristopherVR/pptx-viewer/commit/3d795ac1b36383db53fafa059a87c8e33427b93d))
+- **demos:** Mark translucent SmartArt solids done, keep rig lights open (by @claude) ([dd6d488](https://github.com/ChristopherVR/pptx-viewer/commit/dd6d4886ef0300fbf12f1208527b099f6391e421))
+
+### Testing
+
+- **e2e:** Check Basic Pyramid labels take the revTx text colour (by @claude) ([6a0ccb1](https://github.com/ChristopherVR/pptx-viewer/commit/6a0ccb1503bc4ad28cb7032a488797827b32120b))
+
 ## 2026-09-25
 
 _Releases: pptx-viewer-core@4.6.0, pptx-react-viewer@4.9.0, pptx-vue-viewer@4.9.0, pptx-angular-viewer@4.9.0, pptx-vanilla-viewer@3.9.0, pptx-svelte-viewer@4.9.0, pptx-viewer-mcp@2.5.6, @christophervr/pptx-viewer@2.30.0_
