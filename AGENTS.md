@@ -220,3 +220,20 @@ commit messages with the required `Co-Authored-By:` trailer.
 5. Add serialization in `*SaveElementWriter.ts`
 6. Add framework-independent rendering logic in `packages/shared/src/render/`, then wire renderers in all five bindings with per-binding and framework-neutral e2e coverage
 7. Add converter processor in `packages/core/src/converter/elements/`
+
+## Shared binary-format source
+
+CFB/OLE2 primitives and Word 97-2003 binary document helpers now live in the
+sibling `../ole2` repository (`@christophervr/ole2`). The former modules in
+`packages/core/src/core/utils/ole2-parser-*.ts` and `ole-document-doc-*.ts`
+are compatibility re-exports. Change implementations and their format tests
+in `ole2`; never copy implementations back into either viewer.
+
+Core uses versioned npm development dependencies and bundles them into
+JavaScript and declaration outputs. A sibling checkout is not required for
+installation, CI, or downstream consumers.
+
+Modern DOCX handling stays outside ole2. Word's core offers an embedded API
+for future reuse, but the Word packages are not published yet. Keep the
+existing PowerPoint DOCX adapter until that dependency can be installed from
+the registry; do not introduce new embedded DOCX implementations.

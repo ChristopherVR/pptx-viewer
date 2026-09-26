@@ -30,4 +30,6 @@ export default defineConfig((options) => ({
 	],
 	treeshake: true,
 	platform: 'neutral',
+	// Inline the shared legacy Office codecs in published viewer bundles.
+	noExternal: [/^@christophervr\/ole2(?:\/|$)/],
 }));

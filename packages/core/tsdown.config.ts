@@ -14,4 +14,6 @@ export default defineConfig((options) => ({
 	clean: !options.watch,
 	treeshake: true,
 	platform: 'neutral',
+	// Inline shared codecs in distributable JS and declarations.
+	deps: { alwaysBundle: [/^@christophervr\/ole2(?:\/|$)/] },
 }));
