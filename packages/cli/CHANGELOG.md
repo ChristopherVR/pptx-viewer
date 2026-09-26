@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.30.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.2) - 2026-09-26
+
+### Bug Fixes
+
+- **ui:** Unify the AI options checkbox (by @ChristopherVR) ([4550665](https://github.com/ChristopherVR/pptx-viewer/commit/4550665eac85aefd3b6a6c76df518dadf82b5309))
+
+### Refactor
+
+- **shared:** Delete the pre-parity hosted 3D chart scenes (by @claude) ([55951a1](https://github.com/ChristopherVR/pptx-viewer/commit/55951a1a92af57d6e3423f8692f57c962d5ca662))
+
+### Testing
+
+- **vue:** Wait for the AI chat panel's composer instead of a tick count (by @claude) ([010c604](https://github.com/ChristopherVR/pptx-viewer/commit/010c60461df9975895b970dcc6cb269cdaabf2c5))
+- **react:** Expect linear-light tint and shade in drawing-color tests (by @claude) ([e1b7c71](https://github.com/ChristopherVR/pptx-viewer/commit/e1b7c719194bf6497324aa02c53399516d865020))
+
 ## [2.30.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.1) - 2026-09-26
 
 ### Bug Fixes

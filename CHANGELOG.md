@@ -10,6 +10,37 @@ dated sections beneath it are generated from
 
 ## 2026-09-26
 
+_Releases: pptx-viewer-core@4.7.1, pptx-react-viewer@4.11.0, pptx-vue-viewer@4.11.0, pptx-angular-viewer@4.11.0, pptx-vanilla-viewer@3.11.0, pptx-svelte-viewer@4.11.0, @christophervr/pptx-viewer@2.30.2_
+
+### Features
+
+- **shared:** Draw c:shape bars on the perspective 3D box (by @claude) ([730cb8f](https://github.com/ChristopherVR/pptx-viewer/commit/730cb8f1ca6c1d7ceea563e7285e8ef036748930))
+
+### Bug Fixes
+
+- **core:** Apply a:tint and a:shade in linear light (by @claude) ([edaa544](https://github.com/ChristopherVR/pptx-viewer/commit/edaa544a50e3a593b2cd2c2f76ea421c0f15a76a))
+- **shared:** Keep select popups within the viewport (by @ChristopherVR) ([f04829c](https://github.com/ChristopherVR/pptx-viewer/commit/f04829c68552e7b787115e52d12d57ae362c74fe))
+- **ui:** Unify the AI options checkbox (by @ChristopherVR) ([4550665](https://github.com/ChristopherVR/pptx-viewer/commit/4550665eac85aefd3b6a6c76df518dadf82b5309))
+
+### Refactor
+
+- **shared:** Delete the pre-parity hosted 3D chart scenes (by @claude) ([55951a1](https://github.com/ChristopherVR/pptx-viewer/commit/55951a1a92af57d6e3423f8692f57c962d5ca662))
+
+### Documentation
+
+- **demos:** Record linear-light tint/shade and current SmartArt numbers (by @claude) ([f87faac](https://github.com/ChristopherVR/pptx-viewer/commit/f87faac135d9499c38fb65915f7d6548d164d0e0))
+- **demos:** Record that a side rim light does not explain the bevel bands (by @claude) ([fc483c7](https://github.com/ChristopherVR/pptx-viewer/commit/fc483c7d8096883749955c6b8211608ffe236111))
+- **demos:** Record the measured bevel band gap under the flat rig (by @claude) ([00c1a2d](https://github.com/ChristopherVR/pptx-viewer/commit/00c1a2d971765c387457eda4b6a41622b4e36985))
+- **demos:** Record c:shape bars on the perspective box (by @claude) ([3263ece](https://github.com/ChristopherVR/pptx-viewer/commit/3263ecec35e6856f8d8652b83eef87dcc98a5f81))
+- **demos:** Record the hosted-scene cleanup (by @claude) ([2af3e6a](https://github.com/ChristopherVR/pptx-viewer/commit/2af3e6a4b1d7295ed4de7206db0eff27b453e89b))
+
+### Testing
+
+- **core:** Expect linear-light tint and shade results (by @claude) ([025ce79](https://github.com/ChristopherVR/pptx-viewer/commit/025ce79e253581f2fa4a82f534c4f8969501ad8e))
+- **react:** Expect linear-light tint and shade in drawing-color tests (by @claude) ([e1b7c71](https://github.com/ChristopherVR/pptx-viewer/commit/e1b7c719194bf6497324aa02c53399516d865020))
+
+## 2026-09-26
+
 _Releases: pptx-react-viewer@4.10.1, pptx-vue-viewer@4.10.1, pptx-angular-viewer@4.10.1, pptx-vanilla-viewer@3.10.1, pptx-svelte-viewer@4.10.1_
 
 ### Bug Fixes

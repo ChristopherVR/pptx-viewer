@@ -7,6 +7,26 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.11.0) - 2026-09-26
+
+### Features
+
+- **shared:** Draw c:shape bars on the perspective 3D box (by @claude) ([730cb8f](https://github.com/ChristopherVR/pptx-viewer/commit/730cb8f1ca6c1d7ceea563e7285e8ef036748930))
+
+### Bug Fixes
+
+- **core:** Apply a:tint and a:shade in linear light (by @claude) ([edaa544](https://github.com/ChristopherVR/pptx-viewer/commit/edaa544a50e3a593b2cd2c2f76ea421c0f15a76a))
+- **shared:** Keep select popups within the viewport (by @ChristopherVR) ([f04829c](https://github.com/ChristopherVR/pptx-viewer/commit/f04829c68552e7b787115e52d12d57ae362c74fe))
+- **ui:** Unify the AI options checkbox (by @ChristopherVR) ([4550665](https://github.com/ChristopherVR/pptx-viewer/commit/4550665eac85aefd3b6a6c76df518dadf82b5309))
+
+### Refactor
+
+- **shared:** Delete the pre-parity hosted 3D chart scenes (by @claude) ([55951a1](https://github.com/ChristopherVR/pptx-viewer/commit/55951a1a92af57d6e3423f8692f57c962d5ca662))
+
+### Testing
+
+- **core:** Expect linear-light tint and shade results (by @claude) ([025ce79](https://github.com/ChristopherVR/pptx-viewer/commit/025ce79e253581f2fa4a82f534c4f8969501ad8e))
+
 ## [4.10.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.10.1) - 2026-09-26
 
 ### Bug Fixes
