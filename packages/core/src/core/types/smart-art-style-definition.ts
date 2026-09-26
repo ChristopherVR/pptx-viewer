@@ -106,7 +106,18 @@ export interface PptxSmartArtColorTransform extends PptxSmartArtDefinitionMetada
 	 * palette (see `PptxSmartArtNode.styleRole` and `applySmartArtRoleColors`)
 	 * instead of a generic cycled colour.
 	 */
-	roleColors?: Record<string, { fill: string[]; line: string[] }>;
+	roleColors?: Record<string, SmartArtRoleColorList>;
+}
+
+/** One colour-transform `styleLbl`'s resolved colour lists. */
+export interface SmartArtRoleColorList {
+	fill: string[];
+	line: string[];
+	/**
+	 * `txFillClrLst`, when the label declares one (`revTx` -> `tx1`). A text
+	 * node's colour comes from here; see `smartart-merged-text-label`.
+	 */
+	textFill?: string[];
 }
 
 /** Typed CT_StyleDefinition metadata and legacy rendering hint. */

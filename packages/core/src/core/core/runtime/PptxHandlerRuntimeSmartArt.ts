@@ -1,6 +1,7 @@
 import { XmlObject } from '../../types';
 import type { PptxSmartArtData, PptxSmartArtDrawingShape } from '../../types';
 import { parseDiagramRelationshipIds, parseSmartArtLayoutDefinition } from '../../utils';
+import { resolveSmartArtMergedTextColors } from '../../utils/smartart-merged-text-label';
 import { resolveSmartArtPointMetadata } from '../../utils/smartart-point-metadata';
 import { parseSmartArtPresLayoutVars } from '../../utils/smartart-pres-layout-vars';
 import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
@@ -167,7 +168,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			drawingExtensionRelId,
 		);
 		const drawingShapes = drawingResolution
-			? await this.parseSmartArtDrawingShapesFromPath(drawingResolution.path)
+			? await this.parseSmartArtDrawingShapesFromPath(
+					drawingResolution.path,
+					resolveSmartArtMergedTextColors(
+						points,
+						parsedConnections,
+						layoutDefinition,
+						colorTransform?.roleColors,
+						localName,
+					),
+				)
 			: [];
 		const drawingRelationshipId = drawingResolution?.relId;
 
@@ -301,18 +311,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	 */
 	private async parseSmartArtDrawingShapesFromPath(
 		drawingPath: string,
+		mergedTextColors?: Map<string, string>,
 	): Promise<PptxSmartArtDrawingShape[]> {
-		return parseDrawingShapesFromPart(drawingPath, this.drawingBlipDeps());
+		return parseDrawingShapesFromPart(drawingPath, this.drawingBlipDeps(mergedTextColors));
 	}
 
 	/** Bind runtime zip / parser / lookup / image helpers for the drawing parser. */
-	private drawingBlipDeps(): DrawingBlipDeps {
+	private drawingBlipDeps(mergedTextColors?: Map<string, string>): DrawingBlipDeps {
 		return {
 			readText: (path) => this.zip.file(path)?.async('string') ?? Promise.resolve(undefined),
 			parse: (xml) => this.parser.parse(xml) as XmlObject,
 			getChild: (node, local) => this.xmlLookupService.getChildByLocalName(node, local),
 			getChildren: (node, local) => this.xmlLookupService.getChildrenArrayByLocalName(node, local),
-			parseDrawingShape: (sp, index, emuPerPx) => this.parseDrawingShape(sp, index, emuPerPx),
+			parseDrawingShape: (sp, index, emuPerPx) =>
+				this.parseDrawingShape(
+					sp,
+					index,
+					emuPerPx,
+					mergedTextColors?.get(String(sp['@_modelId'] ?? '')),
+				),
 			emuPerPx: PptxHandlerRuntime.EMU_PER_PX,
 			ensureArray: (value) => this.ensureArray(value),
 			resolveImagePath: (base, target) => this.resolveImagePath(base, target),

@@ -17,7 +17,10 @@
  */
 
 import type { XmlObject } from '../types';
-import type { PptxSmartArtColorListMetadata } from '../types/smart-art-style-definition';
+import type {
+	PptxSmartArtColorListMetadata,
+	SmartArtRoleColorList,
+} from '../types/smart-art-style-definition';
 
 /** Injected XML/colour accessors so this module needs no runtime instance. */
 export interface SmartArtColorListDeps {
@@ -215,20 +218,25 @@ export function buildSmartArtColorLists(
  * Unlike {@link buildSmartArtColorLists} (which collapses every label down to
  * ONE "primary" node-role palette), this keeps each role's own list so a node
  * can be coloured from ITS OWN role (`node1`, `asst0`, `bgShp`, `revTx`, ...)
- * instead of the generic cycled palette. A label with neither a fill nor a
- * line colour is omitted.
+ * instead of the generic cycled palette. A label with no fill, line or text
+ * fill colour is omitted.
  */
 export function buildSmartArtColorRoleMap(
 	styleLbls: XmlObject[],
 	deps: SmartArtColorListDeps,
-): Record<string, { fill: string[]; line: string[] }> {
-	const map: Record<string, { fill: string[]; line: string[] }> = {};
+): Record<string, SmartArtRoleColorList> {
+	const map: Record<string, SmartArtRoleColorList> = {};
 	for (const lbl of styleLbls) {
 		const parsed = parseLabel(lbl, deps);
-		if (!parsed.name || (parsed.fill.length === 0 && parsed.line.length === 0)) {
+		const hasText = parsed.textFill.length > 0;
+		if (!parsed.name || (parsed.fill.length === 0 && parsed.line.length === 0 && !hasText)) {
 			continue;
 		}
-		map[parsed.name] = { fill: parsed.fill, line: parsed.line };
+		map[parsed.name] = {
+			fill: parsed.fill,
+			line: parsed.line,
+			...(hasText ? { textFill: parsed.textFill } : {}),
+		};
 	}
 	return map;
 }

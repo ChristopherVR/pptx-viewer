@@ -193,6 +193,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		sp: XmlObject,
 		index: number,
 		emuPerPx: number,
+		mergedTextColor?: string,
 	): PptxSmartArtDrawingShape | null {
 		const spPr = this.xmlLookupService.getChildByLocalName(sp, 'spPr');
 		if (!spPr) {
@@ -274,8 +275,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		const text = textValues.join('').trim() || undefined;
 
 		const textStyle = extractDrawingShapeTextStyle(txBody, this.drawingShapeStyleDeps(), emuPerPx);
-		// A run without its own fill takes the style matrix's `a:fontRef` colour.
-		textStyle.fontColor ??= extractDrawingShapeFontRefColor(sp, this.drawingShapeStyleDeps());
+		// A run without its own fill takes the merged text node's colour (Basic
+		// Pyramid's `revTx`, see `smartart-merged-text-label`), else the style
+		// matrix's `a:fontRef` colour.
+		textStyle.fontColor ??=
+			mergedTextColor ?? extractDrawingShapeFontRefColor(sp, this.drawingShapeStyleDeps());
 		const { fontSize, fontColor } = textStyle;
 		const txXfrm = this.xmlLookupService.getChildByLocalName(sp, 'txXfrm');
 		const txOff = this.xmlLookupService.getChildByLocalName(txXfrm, 'off');
