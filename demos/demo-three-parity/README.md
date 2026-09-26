@@ -130,6 +130,7 @@ same gate that arms the 2D marks.
 | Translucent SmartArt solids and `clear` glass                                | Done (`render/smartart-3d-translucency.ts`): a see-through solid (Basic Venn's `a:alpha 50000` fills) is blended once, drawing only the surfaces facing the camera in paint order, so a single circle reads the flat style's 50% blend and an overlap reads two layers; the `clear` material (Venn's Cartoon and Metallic Scene) is a glass whose alpha is a fifth of the fill face-on and grows toward the silhouette. Basic Venn whole-slide MAE against `gt/` (slides 71-84): mean 10.65 -> 3.22, slide 78 24.2 -> 4.8; other layouts unchanged                                                                                                                                                                                            |
 | SmartArt rig key lights under a scene camera                                 | Done (`render/smartart-3d-light-rig.ts`, `SMARTART_RIG_SCENE_KEY_LIGHTS`): the key light's elevation is fitted per rig against each scene style's exports over all eight layouts: `flat` (Brick, isometric) 40 degrees, 4.18 -> 3.94; `threePt` (Metallic) 90, 3.89 -> 3.60; `morning` (Sunset) 60, 3.63 -> 3.53; `soft` (Bird's Eye) 80, 3.69 -> 3.12. The scene camera reaches the light model on its own, so the isometric Brick gets it too                                                                                                                                                                                                                                                                                               |
 | 3D views keep their scene through a drag                                     | Done. Vanilla rebuilds its stage and thumbnail rail on every store change, so every drag move re-created each `<pptx-three-view>` and reloaded its scene (52 stage and 104 thumbnail reloads over four drags; the canvas could read blank mid-drag). The shared spec cache keeps the spec across a position-only change (`three-view/view-spec.ts`), the element keeps its scene when re-attached in the same task (`three-view/element.ts`), and Vanilla carries live views across its rebuilds (`render/elements/three-view-reuse.ts`). `e2e/three-d-drag-keeps-scene.spec.ts` counts reloads during a drag in all five bindings; `e2e/three-d-drag-no-orbit.spec.ts` compares on a relative sample grid and polls while the button is held |
+| `a:tint` / `a:shade` in linear light                                         | Done in core (`color/color-transforms.ts`, `color/color-linear.ts`): PowerPoint mixes a tint / shade with white / black in linear RGB, not sRGB (its default Medium Style 2 - Accent 1 table bands are #CFD5EA / #E9EBF5; the sRGB mix gave #B4C6E7 / #DAE3F3). Every SmartArt quick style improved or held against `gt/` (Polished 4.73 -> 3.95, Inset 5.24 -> 4.33, all-layout means), and every tinted or shaded theme colour in 2D follows                                                                                                                                                                                                                                                                                                |
 | SmartArt inline node editing over the scene                                  | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | e2e                                                                          | `e2e/three-d-charts-smoke.spec.ts` walks all 17 charts in every binding: each view reaches `ready`, paints, and the page keeps one shared WebGL context (no eviction warning, no context loss)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 
@@ -138,31 +139,28 @@ same gate that arms the 2D marks.
 The `three-d-parity` branch is merged into `main` and retired; everything
 below is follow-up work to pick up on `main`. In priority order:
 
-1. SmartArt light rigs under a parallel view: Polished (`flat`) and Cartoon
-   (`contrasting`) keep the grazing default key light (5 degrees). A sweep of
-   its elevation (1-50 degrees) and azimuth (+/-30) moved neither style's
-   whole-slide MAE (4.73, 4.71) by more than 0.15, and the two preferred
-   opposite turns, so no per-rig constant was added: what is left there is in
-   the bevel bands themselves (see 3), which would have to be refitted per
-   rig. Only `threePt` has its own specular lights.
-2. SmartArt fidelity still open: the bevel bands of a scene style
-   (Metallic's bright top edge, Brick's cyan extrusion top) and Inset's
-   groove are approximate; labels run wider than PowerPoint's when the
-   theme font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540
-   against `gt/`, Chromium + SwiftShader) for Basic Block List: flat 5.4,
-   Polished 9.5, Inset 11.2, Cartoon 8.5, Brick 7.3, Metallic 6.0, Sunset
-   7.6, Bird's Eye 6.4; Basic Pyramid 3-7; Basic Venn 2-5.
-3. Charts: every slide of the charts deck is on PowerPoint's model, each
+1. SmartArt bevel bands: what is left in the bevel and scene quick styles
+   is in the bevel bands themselves (Inset's groove, Metallic's bright top
+   edge, Brick's cyan extrusion top), which would have to be refitted per
+   rig; the lights are not the lever (a sweep of Polished's and Cartoon's key
+   light moved neither by more than 0.15, and only `threePt` has its own
+   specular lights). Labels also run wider than PowerPoint's where the theme
+   font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540 against
+   `gt/`, Chromium + SwiftShader), mean over all eight layouts: flat 2.88,
+   Polished 3.95, Inset 4.33, Cartoon 4.69, Brick 3.91, Metallic 3.57, Sunset
+   3.51, Bird's Eye 3.10. The worst single slide is Basic Block List Inset
+   (8.64), about 5.4 of it shared with the flat style (the label font).
+2. Charts: every slide of the charts deck is on PowerPoint's model, each
    traced corner within ~6pt. Open: the surface wireframe's lower layers are
    an approximation; the settings the deck has no export for (bars without
    right-angle axes, line/area/surface with them) follow the same
    conventions unverified; round `c:shape`s draw as boxes without
    right-angle axes.
-4. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
+3. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
    `chart-3d-hosted-stage.ts`, the `*-interaction-wiring.ts` modules) are
    unreachable for normal charts but still exported from `render/index.ts`
    and used by React's `chart.tsx`; delete them once those references go.
    `ThreeViewContext.OrbitControls` is always `null` now and can go with
    them.
-5. SmartArt inline node editing over the 3D scene exists in React, Vue and
+4. SmartArt inline node editing over the 3D scene exists in React, Vue and
    Angular only; Svelte and Vanilla never had it on the 3D path.
