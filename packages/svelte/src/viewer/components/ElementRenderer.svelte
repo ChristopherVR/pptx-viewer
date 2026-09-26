@@ -251,7 +251,7 @@
 {:else if element.type === 'chart'}
 	<ChartView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} selected={isSelected} {onchartpointcommit} {editable} {presenting} />
 {:else if element.type === 'smartArt' && smartArt3D}
-	<SmartArt3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} />
+	<SmartArt3DView {element} {mediaDataUrls} {zIndex} {animationState} interactive={elementInteractive} marked={elementMarked} {editable} {presenting} {onsmartartnodecommit} />
 {:else if element.type === 'smartArt'}
 	<SmartArtView {element} {mediaDataUrls} {zIndex} interactive={elementInteractive} marked={elementMarked} {animationState} {onsmartartnodecommit} {onsmartartnodefill} {editable} {presenting} />
 {:else if element.type === 'media'}

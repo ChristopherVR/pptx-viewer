@@ -233,6 +233,28 @@ describe('<pptx-three-view> SmartArt (svelte)', () => {
 		expect(fallback?.style.transform ?? '').not.toContain('rotate');
 	});
 
+	it('adds an invisible edit layer over the scene when node editing is wired', () => {
+		const target = mountInto(
+			ElementRenderer,
+			{ ...baseProps, element: smartArt, editable: true, onsmartartnodecommit: vi.fn() },
+			flagsContext({ smartArt3D: true }),
+		);
+		const layer = target.querySelector<HTMLElement>('[data-smartart-3d-edit-layer]');
+		expect(layer).not.toBeNull();
+		expect(layer?.getAttribute('aria-hidden')).toBe('true');
+		expect(layer?.querySelector('[data-smartart-node-id]')).not.toBeNull();
+		expect(layer?.querySelector('[data-element-id], [data-testid]')).toBeNull();
+	});
+
+	it('omits the edit layer on a read-only mount', () => {
+		const target = mountInto(
+			ElementRenderer,
+			{ ...baseProps, element: smartArt },
+			flagsContext({ smartArt3D: true }),
+		);
+		expect(target.querySelector('[data-smartart-3d-edit-layer]')).toBeNull();
+	});
+
 	it('stays on the SVG renderer when smartArt3D is off', () => {
 		const target = mountInto(
 			ElementRenderer,
