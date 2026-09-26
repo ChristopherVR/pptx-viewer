@@ -127,6 +127,7 @@ same gate that arms the 2D marks.
 | No camera orbit                                                              | Done: `<pptx-three-view>` mounts every scene without OrbitControls (`three-view/view-controller.ts`). The orbit shared the pointer that moves the element, so dragging a 3D SmartArt turned it while the button was held. `e2e/three-d-drag-no-orbit.spec.ts` compares the view's pixels mid-drag in all five bindings                                                                                                                                                                                                                                                                                                                                                                                               |
 | Slide paging keys in the editor                                              | Done: with a thumbnail or the slide focused, Down / PageDown go on and Up / PageUp go back in every binding, as in PowerPoint (`render/editor-keymap-arrows.ts`; PageUp / PageDown page with a selection too). React, Vue and Angular paged only on Left / Right, which also left `e2e/smartart-3d-overflow.spec.ts` unable to reach slide 14 in React. `e2e/thumbnail-keyboard-paging.spec.ts` covers all five                                                                                                                                                                                                                                                                                                      |
 | SmartArt text-node colour and per-shape style labels                         | Done in core: a shape paired with a `tx`-algorithm text node (Basic Pyramid's `levelTx`, `revTx`) draws its label in that node's `txFillClrLst` colour (`smartart-merged-text-label.ts`), so the pyramid's labels are black as in PowerPoint (harness MAE on slides 57-70 down about 2). A structural relayout reports each shape's own `presStyleLbl` (`smartart-engine/style-label.ts`), so decorative and transition shapes take their own quick-style 3D rather than `node1`'s, and placed 2-D straight connectors draw as `rightArrow` shapes again (Basic Cycle within about 1px of PowerPoint's cache). `e2e/smartart-flat-parity.spec.ts` checks the pyramid label colour in every binding                   |
+| Translucent SmartArt solids and `clear` glass                                | Done (`render/smartart-3d-translucency.ts`): a see-through solid (Basic Venn's `a:alpha 50000` fills) is blended once, drawing only the surfaces facing the camera in paint order, so a single circle reads the flat style's 50% blend and an overlap reads two layers; the `clear` material (Venn's Cartoon and Metallic Scene) is a glass whose alpha is a fifth of the fill face-on and grows toward the silhouette. Basic Venn whole-slide MAE against `gt/` (slides 71-84): mean 10.65 -> 3.22, slide 78 24.2 -> 4.8; other layouts unchanged                                                                                                                                                                   |
 | SmartArt inline node editing over the scene                                  | React, Vue, Angular. Svelte and Vanilla never had it on the 3D path (pre-existing gap)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | e2e                                                                          | `e2e/three-d-charts-smoke.spec.ts` walks all 17 charts in every binding: each view reaches `ready`, paints, and the page keeps one shared WebGL context (no eviction warning, no context loss)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
@@ -135,29 +136,34 @@ same gate that arms the 2D marks.
 The `three-d-parity` branch is merged into `main` and retired; everything
 below is follow-up work to pick up on `main`. In priority order:
 
-1. SmartArt materials and lights: Cartoon's clear/translucent material,
-   Basic Venn's bevel styles (slides 76-84) overlap shading, and fitted
-   lights for rigs other than `threePt` (other rigs keep the default
-   highlight; a parallel view keeps it too because the bevel constants were
-   fitted with it).
-2. SmartArt fidelity still open: the bevel bands of a scene style
+1. SmartArt light rigs: only `threePt` has fitted lights. Other rigs
+   (`morning`, `soft`, `flat`, ...) keep the default highlight, and a parallel
+   view keeps it too because the bevel constants were fitted with it. An
+   earlier attempt added per-rig key lights (`morning` at 50 degrees, `soft`
+   and `flat` at 5) without measuring them against `gt/`; fit each rig from a
+   slide that uses it before adding constants.
+2. e2e: `e2e/three-d-drag-no-orbit.spec.ts` failed once in Vanilla's
+   SmartArt case during a long two-worker run (8/8 on a rerun, and 30/30
+   earlier), so it is load-sensitive: sample the canvas more than once
+   before the drag, or compare against a settled second snapshot.
+3. SmartArt fidelity still open: the bevel bands of a scene style
    (Metallic's bright top edge, Brick's cyan extrusion top) and Inset's
    groove are approximate; labels run wider than PowerPoint's when the
    theme font (Aptos) is not installed. Whole-slide MAE (0-255, 960x540
    against `gt/`, Chromium + SwiftShader) for Basic Block List: flat 5.4,
    Polished 9.5, Inset 11.2, Cartoon 8.5, Brick 7.3, Metallic 6.0, Sunset
-   7.6, Bird's Eye 6.4; Basic Pyramid 6-9; Basic Venn 3-24.
-3. Charts: every slide of the charts deck is on PowerPoint's model, each
+   7.6, Bird's Eye 6.4; Basic Pyramid 3-7; Basic Venn 2-5.
+4. Charts: every slide of the charts deck is on PowerPoint's model, each
    traced corner within ~6pt. Open: the surface wireframe's lower layers are
    an approximation; the settings the deck has no export for (bars without
    right-angle axes, line/area/surface with them) follow the same
    conventions unverified; round `c:shape`s draw as boxes without
    right-angle axes.
-4. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
+5. Cleanup: the old hosted chart scenes (`*-chart-3d-scene.ts`,
    `chart-3d-hosted-stage.ts`, the `*-interaction-wiring.ts` modules) are
    unreachable for normal charts but still exported from `render/index.ts`
    and used by React's `chart.tsx`; delete them once those references go.
    `ThreeViewContext.OrbitControls` is always `null` now and can go with
    them.
-5. SmartArt inline node editing over the 3D scene exists in React, Vue and
+6. SmartArt inline node editing over the 3D scene exists in React, Vue and
    Angular only; Svelte and Vanilla never had it on the 3D path.
