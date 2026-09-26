@@ -159,7 +159,21 @@ function dragTest(c: (typeof CASES)[number]): void {
 		const view = await readyView(page);
 		await snapshot(view);
 		await pressAndDrag(page, view);
-		const changed = await changedFraction(view);
+		// Poll while the button is still held. A move can clear the canvas for
+		// a frame before it is redrawn, and under a loaded CPU (SwiftShader) that
+		// frame can outlast a fixed wait; an orbit, in contrast, keeps the scene
+		// turned for as long as the button is down, so it never clears.
+		let changed = 1;
+		await expect
+			.poll(
+				async () => {
+					changed = await changedFraction(view);
+					return changed;
+				},
+				{ timeout: 5_000, intervals: [250] },
+			)
+			.toBeLessThan(MAX_CHANGED_FRACTION)
+			.catch(() => undefined);
 		await page.mouse.up();
 		expect(changed).toBeLessThan(MAX_CHANGED_FRACTION);
 	});
