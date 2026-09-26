@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.10.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.10.1) - 2026-09-26
+
+### Bug Fixes
+
+- **shared:** Fit SmartArt light rigs' key light under a scene camera (by @claude) ([91394b0](https://github.com/ChristopherVR/pptx-viewer/commit/91394b03ee8f68536e8099e15997465b0d257a95))
+- **shared:** Keep a 3D view's scene across a move and a same-task re-attach (by @claude) ([5bc411c](https://github.com/ChristopherVR/pptx-viewer/commit/5bc411cb3ba2d0613bddb678be7c5eae3972d806))
+
+### Testing
+
+- **vue:** Wait for the AI chat panel's composer instead of a tick count (by @claude) ([010c604](https://github.com/ChristopherVR/pptx-viewer/commit/010c60461df9975895b970dcc6cb269cdaabf2c5))
+
 ## [4.10.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-react-viewer@4.10.0) - 2026-09-26
 
 ### Features
