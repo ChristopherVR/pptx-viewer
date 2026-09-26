@@ -16,6 +16,7 @@
    blocks into shared statements would hurt readability, not help it. */
 
 import type { XmlObject } from '../types';
+import { linearToSrgb255, srgb255ToLinear } from './color-linear';
 import {
 	clampUnitInterval,
 	hexToRgbChannels,
@@ -37,7 +38,7 @@ import {
  *
  * Transform application order (matches PowerPoint behaviour):
  *   1. Structural — `comp` (complement), `inv` (inverse), `gray` (greyscale)
- *   2. RGB-space mixing — `shade` (darken toward black), `tint` (lighten toward white)
+ *   2. Linear-light mixing — `shade` (darken toward black), `tint` (lighten toward white)
  *   3. HSL transforms — `hue`/`hueMod`/`hueOff`, `sat`/`satMod`/`satOff`,
  *      `lum`/`lumMod`/`lumOff` (single RGB-to-HSL round-trip)
  *   4. Direct RGB channels — `red`/`redMod`/`redOff`, `green`/..., `blue`/...
@@ -106,25 +107,30 @@ export function applyDrawingColorTransforms(baseColor: string, colorNode: XmlObj
 		b = gray;
 	}
 
-	// ── 2. Shade & tint (RGB-space mixing with black / white) ────────────
+	// ── 2. Shade & tint (mixing with black / white in linear light) ──────
+	// PowerPoint mixes in linear RGB (scRGB), not in gamma-encoded sRGB: the
+	// default "Medium Style 2 - Accent 1" table bands (accent1 #4472C4 at
+	// tint 40% / 20%) render #CFD5EA / #E9EBF5, which is the linear-light mix;
+	// an sRGB mix gives #B4C6E7 / #DAE3F3. A SmartArt quick style's gradient
+	// stops (tint 94%, shade 78%) read the same way in its COM export.
 
-	// Shade: mix toward black by multiplying each channel by the shade fraction.
-	// shade=0 → pure black, shade=1 → unchanged.
+	// Shade: mix toward black by multiplying each linear channel by the shade
+	// fraction. shade=0 -> pure black, shade=1 -> unchanged.
 	const shade = parseDrawingPercent(getVal('a:shade'));
 	if (shade !== undefined) {
-		r *= shade;
-		g *= shade;
-		b *= shade;
+		r = linearToSrgb255(srgb255ToLinear(r) * shade);
+		g = linearToSrgb255(srgb255ToLinear(g) * shade);
+		b = linearToSrgb255(srgb255ToLinear(b) * shade);
 	}
 
 	// Tint: mix input colour with white. Per ECMA-376 20.1.2.3.32, "a 10%
-	// tint is 10% of the input color combined with 90% white" — tint=1 →
-	// unchanged (100% input), tint=0 → pure white.
+	// tint is 10% of the input color combined with 90% white" - tint=1 ->
+	// unchanged (100% input), tint=0 -> pure white.
 	const tint = parseDrawingPercent(getVal('a:tint'));
 	if (tint !== undefined) {
-		r = 255 - (255 - r) * tint;
-		g = 255 - (255 - g) * tint;
-		b = 255 - (255 - b) * tint;
+		r = linearToSrgb255(1 - (1 - srgb255ToLinear(r)) * tint);
+		g = linearToSrgb255(1 - (1 - srgb255ToLinear(g)) * tint);
+		b = linearToSrgb255(1 - (1 - srgb255ToLinear(b)) * tint);
 	}
 
 	// ── 3. HSL transforms (single conversion round-trip) ─────────────────
