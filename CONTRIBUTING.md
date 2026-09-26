@@ -180,6 +180,14 @@ bun run e2e -- --project=svelte    # a single framework
 bun run e2e:install                # one-time Playwright browser install
 ```
 
+After building the packages, run `bun run test:core-package` and
+`bun run test:binding-packages` to check isolated npm consumers. The core check
+loads ESM and CommonJS entries, compiles public TypeScript imports, and exports
+then reloads a legacy PPT. The binding check packs all five bindings, applies
+the release manifest resolver, installs them outside the workspace, and imports
+their ESM and advertised CommonJS entries. CI runs both checks after their
+required builds; production-demo Playwright tests cover browser behaviour.
+
 ### What CI runs on your PR
 
 CI is **scoped to the paths you changed** (`scripts/affected-packages.mjs`), so a

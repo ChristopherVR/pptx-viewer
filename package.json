@@ -62,7 +62,8 @@
 		"test:scripts": "node --test scripts/*.test.mjs",
 		"test:locale-subpaths": "node scripts/check-locale-subpaths.mjs",
 		"check:published-types": "node scripts/check-published-shared-refs.mjs",
-		"test:core-package": "node scripts/check-core-package.mjs"
+		"test:core-package": "node scripts/check-core-package.mjs",
+		"test:binding-packages": "node scripts/check-binding-packages.mjs"
 	},
 	"dependencies": {
 		"@ai-sdk/openai-compatible": "^3.0.53",

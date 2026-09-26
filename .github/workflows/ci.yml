@@ -326,6 +326,10 @@ jobs:
             echo "| Svelte | ${{ steps.build-svelte.outcome }} |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Import all five packed bindings as an isolated consumer
+        if: steps.build-react.outcome == 'success' && steps.build-vue.outcome == 'success' && steps.build-angular.outcome == 'success' && steps.build-vanilla.outcome == 'success' && steps.build-svelte.outcome == 'success'
+        run: node scripts/check-binding-packages.mjs
+
       # Upload only the built dists (each job runs its own `bun install`, so
       # shipping node_modules around is pure waste). Partial dists are fine.
       - name: Upload build artifacts

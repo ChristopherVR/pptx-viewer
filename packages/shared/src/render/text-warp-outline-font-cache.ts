@@ -25,13 +25,13 @@
  * without a DOM canvas does the layout fall back to an affine fit.
  */
 import type { Font } from 'opentype.js';
-import { parse } from 'opentype.js';
 import type { PptxEmbeddedFont } from 'pptx-viewer-core';
 
 import { DEFAULT_TEXT_FONT_SIZE } from '../constants';
 import { resolveEmbeddedFontClearBytes } from './embedded-fonts';
 import type { GlyphOutlineCommand } from './text-warp-glyph-outline';
 import { traceGlyphOutlineCommands } from './text-warp-glyph-trace';
+import { parseOpenTypeFont } from './text-warp-opentype-parser';
 
 function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
 	// `opentype.parse` wants a real ArrayBuffer; `bytes` may be a view over a
@@ -110,7 +110,7 @@ export class GlyphOutlineFontCache {
 				continue;
 			}
 			try {
-				this.fonts.set(key, parse(toArrayBuffer(bytes)));
+				this.fonts.set(key, parseOpenTypeFont(toArrayBuffer(bytes)));
 			} catch {
 				// Unparseable font (corrupt or an outline format opentype.js does
 				// not support): leave unset so the affine fallback applies.
@@ -131,7 +131,7 @@ export class GlyphOutlineFontCache {
 			return false;
 		}
 		try {
-			this.fonts.set(key, parse(toArrayBuffer(bytes)));
+			this.fonts.set(key, parseOpenTypeFont(toArrayBuffer(bytes)));
 			return true;
 		} catch {
 			return false;
