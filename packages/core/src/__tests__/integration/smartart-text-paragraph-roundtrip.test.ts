@@ -91,7 +91,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 					textGlowRadius: 2,
 					textOutlineColor: '#112233',
 					textOutlineWidth: 2,
-					color: '#FBE5D6',
+					color: '#FCECE8',
 					colorXml: { 'a:schemeClr': { '@_val': 'accent2', 'a:tint': { '@_val': '20000' } } },
 				},
 			},
@@ -144,7 +144,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 			highlightColor: '#FFFF00',
 			textGlowColor: '#00FF00',
 			textOutlineColor: '#112233',
-			color: '#FBE5D6',
+			color: '#FCECE8',
 			colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
 		});
 		expect(renderShape?.textSegments?.[5].style).toMatchObject({
@@ -243,7 +243,7 @@ describe('smartArt data-model paragraph round-trip', () => {
 				highlightColor: '#FFFF00',
 				textGlowColor: '#00FF00',
 				textOutlineColor: '#112233',
-				color: '#FBE5D6',
+				color: '#FCECE8',
 				colorXml: { 'a:schemeClr': { '@_val': 'accent2' } },
 			},
 		});

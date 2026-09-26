@@ -53,8 +53,8 @@ describe('text colour transforms — applyDrawingColorTransforms', () => {
 		const result = applyDrawingColorTransforms('#4472C4', {
 			'a:shade': { '@_val': '50000' },
 		});
-		// Each channel * 0.5: R=68*0.5=34, G=114*0.5=57, B=196*0.5=98
-		expect(result).toBe('#223962');
+		// Each LINEAR channel * 0.5 (PowerPoint shades in linear light).
+		expect(result).toBe('#2F528F');
 	});
 
 	it('shade 100% leaves text colour unchanged', () => {
@@ -78,10 +78,8 @@ describe('text colour transforms — applyDrawingColorTransforms', () => {
 		const result = applyDrawingColorTransforms('#4472C4', {
 			'a:tint': { '@_val': '50000' },
 		});
-		// R: 68 + (255-68)*0.5 = 68+93.5 = 161.5 -> A2
-		// G: 114 + (255-114)*0.5 = 114+70.5 = 184.5 -> B9
-		// B: 196 + (255-196)*0.5 = 196+29.5 = 225.5 -> E2
-		expect(result).toBe('#A2B9E2');
+		// Each LINEAR channel mixed halfway to white: c -> 1 - (1 - c) * 0.5.
+		expect(result).toBe('#C0C9E4');
 	});
 
 	it('tint 100% leaves the base colour unchanged', () => {
@@ -254,14 +252,14 @@ describe('text colour transforms — applyDrawingColorTransforms', () => {
 
 	// ── Multiple combined transforms ───────────────────────────────────
 	it('shade then lumMod applied in correct order on text colour', () => {
-		// shade 50% on white: each channel * 0.5 = 127.5
-		// lumMod 50%: lum of #808080 is 0.5 -> 0.5*0.5 = 0.25
+		// shade 50% on white (linear): 1.0 -> 0.5 -> sRGB 188 (#BCBCBC)
+		// lumMod 50%: lum of #BCBCBC is ~0.737 -> ~0.369 -> #5E5E5E
 		// hslToRgb(0, 0, 0.25) -> (64, 64, 64) = #404040
 		const result = applyDrawingColorTransforms('#FFFFFF', {
 			'a:shade': { '@_val': '50000' },
 			'a:lumMod': { '@_val': '50000' },
 		});
-		expect(result).toBe('#404040');
+		expect(result).toBe('#5E5E5E');
 	});
 
 	it('tint + satMod combined on text colour', () => {
@@ -305,14 +303,14 @@ describe('text colour transforms — PptxColorTransformCodec scheme colours', ()
 	});
 
 	it('scheme colour lt1 with shade 50% (darkened white text)', () => {
-		// lt1 = #FFFFFF, shade 50% -> all channels * 0.5
+		// lt1 = #FFFFFF, shade 50% -> linear 0.5 -> sRGB 188 (#BCBCBC)
 		const node: XmlObject = {
 			'a:schemeClr': {
 				'@_val': 'lt1',
 				'a:shade': { '@_val': '50000' },
 			},
 		};
-		expect(codec.parseColorChoice(node)).toBe('#808080');
+		expect(codec.parseColorChoice(node)).toBe('#BCBCBC');
 	});
 
 	it('scheme colour accent1 with tint 40% (lighter accent text)', () => {
@@ -376,10 +374,11 @@ describe('text colour transforms — PptxColorTransformCodec scheme colours', ()
 		};
 		const result = codec.parseColorChoice(node)!;
 		expect(result).toBeDefined();
-		// Each channel * 0.75: R=255*0.75=191, G=102*0.75=77, B=0*0.75=0
+		// Each LINEAR channel * 0.75 (PowerPoint shades in linear light):
+		// R 1.0 -> 0.75 -> 225, G 0.133 -> 0.0998 -> 89, B stays 0.
 		const rgb = hexToRgbForTest(result);
-		expect(rgb!.r).toBe(191);
-		expect(rgb!.g).toBe(77);
+		expect(rgb!.r).toBe(225);
+		expect(rgb!.g).toBe(89);
 		expect(rgb!.b).toBe(0);
 	});
 
@@ -392,7 +391,7 @@ describe('text colour transforms — PptxColorTransformCodec scheme colours', ()
 		};
 		const result = codec.parseColorChoice(node)!;
 		// 255 - (255-0)*0.6 = 102 each channel = #666666
-		expect(result).toBe('#666666');
+		expect(result).toBe('#AAAAAA');
 	});
 
 	it('srgbClr text colour with lumMod', () => {
@@ -491,7 +490,7 @@ describe('text colour transforms — edge cases', () => {
 			'a:shade': { '@_val': '95000' },
 		});
 		// Each channel * 0.95 = 242.25 -> 242 = 0xF2
-		expect(result).toBe('#F2F2F2');
+		expect(result).toBe('#F9F9F9');
 	});
 });
 

@@ -48,12 +48,12 @@ describe('applyDrawingColorTransforms', () => {
 	// ── Shade & Tint ──────────────────────────────────────────────────────
 
 	it('applies shade (a:shade) — darkens toward black', () => {
-		// shade = 50000 = 50% → channels * 0.5
+		// shade = 50000 = 50%: each LINEAR channel * 0.5 (PowerPoint shades in
+		// linear light), so 255 -> 188 (0xBC), 128 -> 92 (0x5C), 64 -> 44 (0x2C).
 		const result = applyDrawingColorTransforms('#FF8040', {
 			'a:shade': { '@_val': '50000' },
 		});
-		// R: 255*0.5=127.5→80, G: 128*0.5=64→40, B: 64*0.5=32→20
-		expect(result).toBe('#804020');
+		expect(result).toBe('#BC5C2C');
 	});
 
 	it('shade at 100% leaves color unchanged', () => {
@@ -64,11 +64,11 @@ describe('applyDrawingColorTransforms', () => {
 	});
 
 	it('applies tint (a:tint) — lightens toward white', () => {
-		// tint = 50000 = 50%. r = 255 - (255-0)*0.5 = 127.5 → 80
+		// tint = 50000 = 50%: linear 0 -> 1 - (1 - 0) * 0.5 = 0.5 -> sRGB 188 (0xBC)
 		const result = applyDrawingColorTransforms('#000000', {
 			'a:tint': { '@_val': '50000' },
 		});
-		expect(result).toBe('#808080');
+		expect(result).toBe('#BCBCBC');
 	});
 
 	it('tint at 100% leaves color unchanged', () => {
@@ -176,13 +176,13 @@ describe('applyDrawingColorTransforms', () => {
 
 	it('applies shade then tint in order', () => {
 		// Start with white, shade 50% then tint 50%
-		// shade: 255*0.5 = 127.5 for all channels
-		// tint: 127.5 + (255-127.5)*0.5 = 127.5 + 63.75 = 191.25 → 191 = 0xBF
+		// shade 50% (linear): 1.0 -> 0.5; tint 50% (linear): 1 - (1 - 0.5) * 0.5 = 0.75
+		// -> sRGB 225 = 0xE1 for all channels
 		const result = applyDrawingColorTransforms('#FFFFFF', {
 			'a:shade': { '@_val': '50000' },
 			'a:tint': { '@_val': '50000' },
 		});
-		expect(result).toBe('#BFBFBF');
+		expect(result).toBe('#E1E1E1');
 	});
 
 	// ── gamma / invGamma (ECMA-376 §20.1.2.3.8 / §20.1.2.3.16) ────────────

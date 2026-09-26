@@ -51,7 +51,7 @@ describe('parseDrawingColorChoice', () => {
 			},
 		};
 		const result = parseDrawingColorChoice(node);
-		expect(result).toBe('#800000');
+		expect(result).toBe('#BC0000');
 	});
 
 	// ── scRGB colour ────────────────────────────────────────────────────
@@ -129,7 +129,7 @@ describe('parseDrawingColorChoice', () => {
 				'a:tint': { '@_val': '50000' },
 			},
 		};
-		expect(parseDrawingColorChoice(node)).toBe('#808080');
+		expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 	});
 
 	it('returns undefined for unknown scheme color', () => {

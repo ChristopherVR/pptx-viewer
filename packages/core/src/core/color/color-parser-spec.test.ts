@@ -52,7 +52,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 				},
 			};
 			// Red with 50% tint: r = 255 + (255-255)*0.5 = 255, g = 0+(255-0)*0.5 = 128, b same
-			expect(parseDrawingColorChoice(node)).toBe('#FF8080');
+			expect(parseDrawingColorChoice(node)).toBe('#FFBCBC');
 		});
 
 		it('returns undefined for invalid hex (non-hex characters)', () => {
@@ -127,7 +127,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 				},
 			};
 			// shade 50% on pure red: r = 255*0.5 = 127.5 -> 128 = 0x80
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 	});
 
@@ -233,7 +233,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 				},
 			};
 			// dk1 = #000000, tint 50% -> channels: 0 + (255-0)*0.5 = 128 = 0x80
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 
 		it('returns undefined for unknown scheme name', () => {
@@ -319,7 +319,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 				},
 			};
 			// red = #FF0000, shade 50%: r = 255*0.5 = 128 = 0x80
-			expect(parseDrawingColorChoice(node)).toBe('#800000');
+			expect(parseDrawingColorChoice(node)).toBe('#BC0000');
 		});
 	});
 
@@ -383,7 +383,7 @@ describe('parseDrawingColorChoice — spec-accurate XML structures', () => {
 				},
 			};
 			// #000000 with tint 50% -> #808080
-			expect(parseDrawingColorChoice(node)).toBe('#808080');
+			expect(parseDrawingColorChoice(node)).toBe('#BCBCBC');
 		});
 
 		it('returns undefined for unknown system color without lastClr', () => {

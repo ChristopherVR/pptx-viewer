@@ -123,7 +123,7 @@ describe('pptxColorTransformCodec', () => {
 				'a:shade': { '@_val': '50000' },
 			});
 			// R: 255*0.5=127.5→128=80, G: 128*0.5=64→40, B: 64*0.5=32→20
-			expect(result).toBe('#804020');
+			expect(result).toBe('#BC5C2C');
 		});
 
 		it('applies tint (a:tint) — lightens toward white', () => {
@@ -131,7 +131,7 @@ describe('pptxColorTransformCodec', () => {
 			const result = codec.applyColorTransforms('#000000', {
 				'a:tint': { '@_val': '50000' },
 			});
-			expect(result).toBe('#808080');
+			expect(result).toBe('#BCBCBC');
 		});
 
 		it('applies lumMod — luminance modulation', () => {
@@ -157,7 +157,7 @@ describe('pptxColorTransformCodec', () => {
 				'a:shade': { '@_val': '50000' },
 				'a:tint': { '@_val': '50000' },
 			});
-			expect(result).toBe('#BFBFBF');
+			expect(result).toBe('#E1E1E1');
 		});
 
 		it('returns base color for invalid hex input', () => {
@@ -187,7 +187,7 @@ describe('pptxColorTransformCodec', () => {
 				},
 			};
 			// Red + shade 50%: 255*0.5 = 128 = 0x80
-			expect(codec.parseColorChoice(node)).toBe('#800000');
+			expect(codec.parseColorChoice(node)).toBe('#BC0000');
 		});
 
 		it('parses a:schemeClr by resolving from theme', () => {
