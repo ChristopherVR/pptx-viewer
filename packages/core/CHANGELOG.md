@@ -7,6 +7,13 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.7.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.2) - 2026-09-26
+
+### Refactor
+
+- **core:** Share legacy Office codecs through ole2 (by @ChristopherVR) ([375d9a7](https://github.com/ChristopherVR/pptx-viewer/commit/375d9a7d4dac661c18083dfd9e88ebb345ce724c))
+- **core:** Consume shared PPT writer and legacy Excel codecs (by @ChristopherVR) ([439460f](https://github.com/ChristopherVR/pptx-viewer/commit/439460f52a7f851daec2a7850df6eee9bfe608b6))
+
 ## [4.7.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.1) - 2026-09-26
 
 ### Bug Fixes

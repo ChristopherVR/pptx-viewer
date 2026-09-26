@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.30.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.3) - 2026-09-26
+
+### Bug Fixes
+
+- **react:** Route the ai log checkbox through WebCheckbox (by @claude) ([97e622f](https://github.com/ChristopherVR/pptx-viewer/commit/97e622f74ba919cb9c599b7072e384142380561b))
+
 ## [2.30.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.2) - 2026-09-26
 
 ### Bug Fixes

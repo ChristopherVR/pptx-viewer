@@ -10,6 +10,36 @@ dated sections beneath it are generated from
 
 ## 2026-09-26
 
+_Releases: pptx-viewer-core@4.7.2, pptx-react-viewer@4.12.0, pptx-vue-viewer@4.12.0, pptx-angular-viewer@4.12.0, pptx-vanilla-viewer@3.12.0, pptx-svelte-viewer@4.12.0, @christophervr/pptx-viewer@2.30.3_
+
+### Features
+
+- **shared:** Smartart 3d edit-layer helpers (by @claude) ([4780b3d](https://github.com/ChristopherVR/pptx-viewer/commit/4780b3d437bf76cdd634cedde26e7bd1ebad1032))
+- **svelte:** Edit smartart node text over the 3d scene (by @claude) ([acde527](https://github.com/ChristopherVR/pptx-viewer/commit/acde5276886add40e82ef0b70524e193805b2a0f))
+- **vanilla:** Edit smartart node text over the 3d scene (by @claude) ([9c325ef](https://github.com/ChristopherVR/pptx-viewer/commit/9c325ef37c27810a5eeaf288b23460da8fe06c31))
+
+### Bug Fixes
+
+- **angular:** Find the smartart node under a double-click over 3d (by @claude) ([a2644aa](https://github.com/ChristopherVR/pptx-viewer/commit/a2644aa3ab7d8bc09453fde3741b159398221957))
+- **react:** Route the ai log checkbox through WebCheckbox (by @claude) ([97e622f](https://github.com/ChristopherVR/pptx-viewer/commit/97e622f74ba919cb9c599b7072e384142380561b))
+- **packages:** Verify isolated binding imports and repair runtime dependencies (by @ChristopherVR) ([6ec8bef](https://github.com/ChristopherVR/pptx-viewer/commit/6ec8befd524daac570110d2c41f93db6ca45199f))
+
+### Refactor
+
+- **core:** Share legacy Office codecs through ole2 (by @ChristopherVR) ([375d9a7](https://github.com/ChristopherVR/pptx-viewer/commit/375d9a7d4dac661c18083dfd9e88ebb345ce724c))
+- **core:** Consume shared PPT writer and legacy Excel codecs (by @ChristopherVR) ([439460f](https://github.com/ChristopherVR/pptx-viewer/commit/439460f52a7f851daec2a7850df6eee9bfe608b6))
+
+### Documentation
+
+- **demo:** Mark smartart 3d inline editing done in every binding (by @claude) ([966fab1](https://github.com/ChristopherVR/pptx-viewer/commit/966fab16e94b35a8287374555f129691056553b6))
+
+### Testing
+
+- **e2e:** Smartart node editing over the 3d scene in every binding (by @claude) ([6074953](https://github.com/ChristopherVR/pptx-viewer/commit/6074953e34de4642c5cca317303617ba8dc68ccf))
+- **core:** Verify packed imports and legacy PPT roundtrips (by @ChristopherVR) ([558bfa1](https://github.com/ChristopherVR/pptx-viewer/commit/558bfa164711dc0fe81dee69c78954f8713d168f))
+
+## 2026-09-26
+
 _Releases: pptx-viewer-core@4.7.1, pptx-react-viewer@4.11.0, pptx-vue-viewer@4.11.0, pptx-angular-viewer@4.11.0, pptx-vanilla-viewer@3.11.0, pptx-svelte-viewer@4.11.0, @christophervr/pptx-viewer@2.30.2_
 
 ### Features

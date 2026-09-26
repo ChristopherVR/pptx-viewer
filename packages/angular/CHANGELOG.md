@@ -7,6 +7,22 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.12.0) - 2026-09-26
+
+### Features
+
+- **shared:** Smartart 3d edit-layer helpers (by @claude) ([4780b3d](https://github.com/ChristopherVR/pptx-viewer/commit/4780b3d437bf76cdd634cedde26e7bd1ebad1032))
+
+### Bug Fixes
+
+- **angular:** Find the smartart node under a double-click over 3d (by @claude) ([a2644aa](https://github.com/ChristopherVR/pptx-viewer/commit/a2644aa3ab7d8bc09453fde3741b159398221957))
+- **packages:** Verify isolated binding imports and repair runtime dependencies (by @ChristopherVR) ([6ec8bef](https://github.com/ChristopherVR/pptx-viewer/commit/6ec8befd524daac570110d2c41f93db6ca45199f))
+
+### Refactor
+
+- **core:** Share legacy Office codecs through ole2 (by @ChristopherVR) ([375d9a7](https://github.com/ChristopherVR/pptx-viewer/commit/375d9a7d4dac661c18083dfd9e88ebb345ce724c))
+- **core:** Consume shared PPT writer and legacy Excel codecs (by @ChristopherVR) ([439460f](https://github.com/ChristopherVR/pptx-viewer/commit/439460f52a7f851daec2a7850df6eee9bfe608b6))
+
 ## [4.11.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-angular-viewer@4.11.0) - 2026-09-26
 
 ### Features
