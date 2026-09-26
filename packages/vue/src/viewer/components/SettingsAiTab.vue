@@ -69,7 +69,11 @@ async function handleExport(format: AiLogFormat): Promise<void> {
 		</p>
 
 		<label class="flex items-center gap-2 text-xs text-foreground">
-			<input v-model="detailed" type="checkbox" class="h-3.5 w-3.5 rounded border-border" />
+			<pptx-ui-checkbox
+				:checked="detailed"
+				:aria-label="t('pptx.ai.exportLogsDetailed')"
+				@change="detailed = ($event.currentTarget as HTMLElement & { checked: boolean }).checked"
+			/>
 			{{ t('pptx.ai.exportLogsDetailed') }}
 		</label>
 

@@ -102,6 +102,12 @@ describe('settingsAiTab', () => {
 		act(() => root.render(<SettingsAiTab store={mockStore([chatWithToolCall()])} />));
 		await flush();
 		expect(container.textContent).toContain('pptx.ai.exportLogsStoredCount:1');
+		const checkbox = container.querySelector<HTMLElement>('pptx-ui-checkbox')!;
+		expect(checkbox.getAttribute('role')).toBe('checkbox');
+		expect(checkbox.getAttribute('aria-label')).toBe('pptx.ai.exportLogsDetailed');
+		expect(container.querySelector('input[type="checkbox"]')).toBeNull();
+		act(() => checkbox.click());
+		expect(checkbox.hasAttribute('checked')).toBeFalsy();
 	});
 
 	it('exports a JSON blob that includes the tool call name, input, and output', async () => {
