@@ -61,6 +61,65 @@ npm(
 	],
 	consumer,
 );
+await writeFile(
+	join(consumer, 'consumer.mts'),
+	`import { PptxHandler } from 'pptx-viewer-core';
+import type { PptxData, PptxSlide, PptxSaveFormat } from 'pptx-viewer-core';
+import { PptxMarkdownConverter } from 'pptx-viewer-core/converter';
+import type { PptxConverterOptions } from 'pptx-viewer-core/converter';
+type Handler = InstanceType<typeof PptxHandler>;
+type Converter = InstanceType<typeof PptxMarkdownConverter>;
+type PublicTypes = [Handler, Converter, PptxData, PptxSlide, PptxSaveFormat, PptxConverterOptions];
+declare const publicTypes: PublicTypes;
+void publicTypes;
+`,
+);
+await writeFile(
+	join(consumer, 'consumer.cts'),
+	`import core = require('pptx-viewer-core');
+import converter = require('pptx-viewer-core/converter');
+type Data = import('pptx-viewer-core').PptxData;
+type Slide = import('pptx-viewer-core').PptxSlide;
+type Handler = InstanceType<typeof core.PptxHandler>;
+type MarkdownConverter = InstanceType<typeof converter.PptxMarkdownConverter>;
+type PublicTypes = [Data, Slide, Handler, MarkdownConverter];
+declare const publicTypes: PublicTypes;
+void publicTypes;
+`,
+);
+await writeFile(
+	join(consumer, 'tsconfig.types.json'),
+	JSON.stringify(
+		{
+			compilerOptions: {
+				target: 'ES2022',
+				module: 'NodeNext',
+				moduleResolution: 'NodeNext',
+				strict: true,
+				noEmit: true,
+				// Runtime dependencies such as JSZip reference optional @types/node;
+				// this consumer intentionally has no development type dependencies.
+				skipLibCheck: true,
+				types: [],
+			},
+			files: ['./consumer.mts', './consumer.cts'],
+		},
+		null,
+		2,
+	),
+);
+run(
+	process.execPath,
+	[
+		join(root, 'node_modules/typescript/bin/tsc'),
+		'--project',
+		join(consumer, 'tsconfig.types.json'),
+		'--pretty',
+		'false',
+	],
+	consumer,
+);
+console.log('Packed core public types resolve for isolated ESM and CommonJS TypeScript consumers.');
 const verification = `
 const assert = REQUIRE('node:assert/strict');
 const { createRequire } = REQUIRE('node:module');

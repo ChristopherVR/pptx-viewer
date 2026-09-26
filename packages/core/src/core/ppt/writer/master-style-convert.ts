@@ -122,13 +122,5 @@ export function convertMasterTextStyles(
 	return out.title || out.body || out.other ? out : undefined;
 }
 
-/** Every font a master style names, for the document's `FontCollection`. */
-export function masterStyleFonts(styles: WMasterTextStyles | undefined): string[] {
-	if (!styles) {
-		return [];
-	}
-	return [styles.title, styles.body, styles.other]
-		.flatMap((levels) => levels ?? [])
-		.map((level) => level.run.fontName)
-		.filter((name): name is string => Boolean(name));
-}
+/** The binary writer consumes this helper through the shared OLE package. */
+export { masterStyleFonts } from '@christophervr/ole2/legacy-ppt-writer';

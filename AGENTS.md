@@ -223,10 +223,10 @@ commit messages with the required `Co-Authored-By:` trailer.
 
 ## Shared binary-format source
 
-CFB/OLE2 primitives and Word 97-2003 binary document helpers now live in the
+CFB/OLE2 primitives, Word DOC and Excel BIFF8 codecs, and the legacy PPT writer live in the
 sibling `../ole2` repository (`@christophervr/ole2`). The former modules in
 `packages/core/src/core/utils/ole2-parser-*.ts` and `ole-document-doc-*.ts`
-are compatibility re-exports. Change implementations and their format tests
+and legacy PPT writer modules are compatibility re-exports. Shared binary crypto and PNG helpers also come from ole2. Viewer model conversion and modern OOXML packaging remain here. Change implementations and their format tests
 in `ole2`; never copy implementations back into either viewer.
 
 Core uses versioned npm development dependencies and bundles them into
