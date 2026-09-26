@@ -47,9 +47,9 @@ export function createAiSettingsSection(deps: AiSettingsSectionDeps): HTMLElemen
 	count.textContent = t('pptx.ai.exportLogsCounting');
 
 	const detailedLabel = createEl(doc, 'label', 'pptxv-ai-settings-detailed');
-	const detailed = createEl(doc, 'input');
-	detailed.type = 'checkbox';
+	const detailed = doc.createElement('pptx-ui-checkbox') as HTMLElement & { checked: boolean };
 	detailed.checked = true;
+	detailed.setAttribute('aria-label', t('pptx.ai.exportLogsDetailed'));
 	detailedLabel.append(detailed, doc.createTextNode(t('pptx.ai.exportLogsDetailed')));
 
 	const actions = createEl(doc, 'div', 'pptxv-ai-settings-actions');

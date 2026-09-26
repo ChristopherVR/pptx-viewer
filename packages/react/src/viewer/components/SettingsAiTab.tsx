@@ -76,11 +76,12 @@ export function SettingsAiTab({ store }: SettingsAiTabProps): React.ReactElement
 			</p>
 
 			<label className='flex items-center gap-2 text-xs text-foreground'>
-				<input
-					type='checkbox'
+				<pptx-ui-checkbox
 					checked={detailed}
-					onChange={(e) => setDetailed(e.target.checked)}
-					className='h-3.5 w-3.5 rounded border-border'
+					aria-label={t('pptx.ai.exportLogsDetailed')}
+					onChange={(e) =>
+						setDetailed((e.currentTarget as HTMLElement & { checked: boolean }).checked)
+					}
 				/>
 				{t('pptx.ai.exportLogsDetailed')}
 			</label>

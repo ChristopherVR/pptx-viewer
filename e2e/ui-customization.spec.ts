@@ -50,6 +50,30 @@ async function callCustomization(page: Page, ...call: CustomizationCall): Promis
 }
 
 test.describe('UI customization', () => {
+	test('File > Options checkboxes expose one accessible Space-key contract', async ({ page }) => {
+		await loadDeck(page);
+		let dialog = await openOptionsDialog(page, OPTIONS_TITLES);
+		await optionsCategory(dialog, 'General').click();
+		let checkbox = dialog.getByRole('checkbox', {
+			name: 'Show Mini Toolbar on selection',
+		});
+		await expect(checkbox).toBeVisible();
+		await expect(checkbox).toHaveAttribute('role', 'checkbox');
+		await expect(checkbox).toHaveAttribute('checked', '');
+		await checkbox.focus();
+		await page.keyboard.press('Space');
+		await expect(checkbox).not.toHaveAttribute('checked');
+
+		await dialog.getByRole('button', { name: 'OK', exact: true }).click();
+		await expect(dialog).not.toBeVisible();
+		dialog = await openOptionsDialog(page, OPTIONS_TITLES);
+		await optionsCategory(dialog, 'General').click();
+		checkbox = dialog.getByRole('checkbox', {
+			name: 'Show Mini Toolbar on selection',
+		});
+		await expect(checkbox).not.toHaveAttribute('checked');
+	});
+
 	test('a ribbon tab hidden through the customization prop never renders', async ({ page }) => {
 		await loadDeck(page, SAMPLE_DECK, withCustomization({ ribbon: { hiddenTabs: ['draw'] } }));
 		await expect(ribbonTab(page, 'Insert')).toBeVisible();

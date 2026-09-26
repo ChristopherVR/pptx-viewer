@@ -76,8 +76,13 @@
 			: t('pptx.ai.exportLogsStoredCount', { count: chatCount })}
 	</p>
 
+	<!-- svelte-ignore a11y_label_has_associated_control -- the custom element is form-associated. -->
 	<label class="pptx-svelte-ai-settings-detailed">
-		<input type="checkbox" bind:checked={detailed} />
+		<pptx-ui-checkbox
+			checked={detailed}
+			aria-label={t('pptx.ai.exportLogsDetailed')}
+			onchange={(event) => (detailed = event.currentTarget.checked)}
+		></pptx-ui-checkbox>
 		{t('pptx.ai.exportLogsDetailed')}
 	</label>
 

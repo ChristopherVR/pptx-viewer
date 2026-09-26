@@ -44,6 +44,12 @@ describe('createAiSettingsSection', () => {
 		const t = createTranslator();
 		const store = fakeStore([storedChat()]);
 		const section = createAiSettingsSection({ doc: document, t, store });
+		const checkbox = section.querySelector<HTMLElement>('pptx-ui-checkbox')!;
+		expect(checkbox.getAttribute('role')).toBe('checkbox');
+		expect(checkbox.getAttribute('aria-label')).toBe(t('pptx.ai.exportLogsDetailed'));
+		expect(section.querySelector('input[type="checkbox"]')).toBeNull();
+		checkbox.click();
+		expect((checkbox as HTMLElement & { checked: boolean }).checked).toBeFalsy();
 
 		let downloadCount = 0;
 		const anchorClick = HTMLAnchorElement.prototype.click;

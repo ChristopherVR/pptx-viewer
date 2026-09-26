@@ -74,6 +74,12 @@ describe('settingsAiSection', () => {
 		const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockReturnValue(undefined);
 		try {
 			const target = mountSection(store);
+			const checkbox = target.querySelector<HTMLElement>('pptx-ui-checkbox')!;
+			expect(checkbox.getAttribute('role')).toBe('checkbox');
+			expect(checkbox.getAttribute('aria-label')).toBe('Include tool call inputs and outputs');
+			expect(target.querySelector('input[type="checkbox"]')).toBeNull();
+			checkbox.click();
+			expect(checkbox.hasAttribute('checked')).toBeFalsy();
 			// Let the mount-time chat-count effect settle before exporting.
 			await Promise.resolve();
 			await Promise.resolve();
