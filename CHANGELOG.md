@@ -10,6 +10,28 @@ dated sections beneath it are generated from
 
 ## 2026-09-26
 
+_Releases: pptx-react-viewer@4.10.1, pptx-vue-viewer@4.10.1, pptx-angular-viewer@4.10.1, pptx-vanilla-viewer@3.10.1, pptx-svelte-viewer@4.10.1_
+
+### Bug Fixes
+
+- **shared:** Fit SmartArt light rigs' key light under a scene camera (by @claude) ([91394b0](https://github.com/ChristopherVR/pptx-viewer/commit/91394b03ee8f68536e8099e15997465b0d257a95))
+- **shared:** Keep a 3D view's scene across a move and a same-task re-attach (by @claude) ([5bc411c](https://github.com/ChristopherVR/pptx-viewer/commit/5bc411cb3ba2d0613bddb678be7c5eae3972d806))
+- **vanilla:** Stop reloading 3D views on every drag move (by @claude) ([b83a86f](https://github.com/ChristopherVR/pptx-viewer/commit/b83a86f8e9595e135cff48d4cf5c5b6d2f9916f7))
+
+### Documentation
+
+- **demos:** Record the fitted SmartArt rig key lights (by @claude) ([8ea4651](https://github.com/ChristopherVR/pptx-viewer/commit/8ea4651befe08a910ff89e766fefcd82a1099463))
+- **demos:** Record that parallel-view rig key lights gave no measurable gain (by @claude) ([419334a](https://github.com/ChristopherVR/pptx-viewer/commit/419334a79116f7ba6c2718ab7248a8c08d54f6b3))
+- **demos:** Mark 3D views keeping their scene through a drag done (by @claude) ([919240d](https://github.com/ChristopherVR/pptx-viewer/commit/919240dae7f21fe7bdc3b9a943eaddb7e6ea5df3))
+
+### Testing
+
+- **vue:** Wait for the AI chat panel's composer instead of a tick count (by @claude) ([010c604](https://github.com/ChristopherVR/pptx-viewer/commit/010c60461df9975895b970dcc6cb269cdaabf2c5))
+- **e2e:** Compare the dragged 3D view on a relative sample grid (by @claude) ([9e692de](https://github.com/ChristopherVR/pptx-viewer/commit/9e692defc398dfccc84452b1304f9e1adc18e9d2))
+- **e2e:** Poll the dragged 3D view while the button is held (by @claude) ([3360b68](https://github.com/ChristopherVR/pptx-viewer/commit/3360b68979393c6361574df5d1008453883c8581))
+
+## 2026-09-26
+
 _Releases: pptx-viewer-core@4.7.0, pptx-react-viewer@4.10.0, pptx-vue-viewer@4.10.0, pptx-angular-viewer@4.10.0, pptx-vanilla-viewer@3.10.0, pptx-svelte-viewer@4.10.0, @christophervr/pptx-viewer@2.30.1_
 
 ### Features
