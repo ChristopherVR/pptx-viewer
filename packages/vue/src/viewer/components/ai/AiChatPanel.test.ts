@@ -36,16 +36,23 @@ function stubConfig(): PptxAiConfig {
 	return { connection: { kind: 'transport', transport: transport as never } };
 }
 
-async function settle(): Promise<void> {
-	// Drain the queues a few times so the async availability check (a dynamic
-	// `import('ai')` that resolves on a macrotask), the session build, and the
-	// `useChat` mount all settle. Both micro- and macro-task ticks are needed.
-	for (let i = 0; i < 8; i += 1) {
+/**
+ * Wait until the panel reaches its ready state (its composer is rendered).
+ *
+ * The async availability check (a dynamic `import('ai')` that resolves on a
+ * macrotask), the session build and the `useChat` mount all have to settle.
+ * A fixed number of ticks was enough locally but not on a slow CI runner
+ * (CI run 36225299787), so this drains micro- and macro-task ticks until the
+ * composer appears, up to a generous deadline.
+ */
+async function settle(target: ReturnType<typeof mount>): Promise<void> {
+	const deadline = Date.now() + 10_000;
+	do {
 		await flushPromises();
 		await new Promise((resolve) => {
 			setTimeout(resolve, 0);
 		});
-	}
+	} while (!target.find('textarea').exists() && Date.now() < deadline);
 }
 
 let wrapper: ReturnType<typeof mount> | null = null;
@@ -58,7 +65,7 @@ afterEach(() => {
 describe('aiChatPanel', () => {
 	it('reaches the ready state and shows the title, composer, and empty hint', async () => {
 		wrapper = mount(AiChatPanel, { props: { bridge: makeBridge(), config: stubConfig() } });
-		await settle();
+		await settle(wrapper);
 
 		expect(wrapper.text()).toContain('AI Assistant');
 		const textarea = wrapper.find('textarea');
@@ -69,7 +76,7 @@ describe('aiChatPanel', () => {
 
 	it('renders a Chats button that toggles the saved-chat history menu', async () => {
 		wrapper = mount(AiChatPanel, { props: { bridge: makeBridge(), config: stubConfig() } });
-		await settle();
+		await settle(wrapper);
 
 		const chatsBtn = wrapper.findAll('button').find((b) => b.text().trim() === 'Chats');
 		expect(chatsBtn).toBeTruthy();
@@ -85,7 +92,7 @@ describe('aiChatPanel', () => {
 
 	it('emits close when the close button is clicked', async () => {
 		wrapper = mount(AiChatPanel, { props: { bridge: makeBridge(), config: stubConfig() } });
-		await settle();
+		await settle(wrapper);
 
 		const closeBtn = wrapper
 			.findAll('button')

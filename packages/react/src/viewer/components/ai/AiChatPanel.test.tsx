@@ -94,14 +94,22 @@ afterEach(() => {
 	host = null;
 });
 
+/**
+ * Drain micro- and macro-task ticks until the panel reaches its ready state
+ * (its composer is rendered): the async availability check, the session build
+ * and the useChat mount all have to settle. A fixed tick count was enough
+ * locally but raced on a slow CI runner in the Vue twin of this test (CI run
+ * 36225299787), so this waits for the composer, up to a generous deadline.
+ */
 async function flush(): Promise<void> {
-	// Drain the microtask queue a few times so the async availability check +
-	// session build + useChat mount settle.
-	for (let i = 0; i < 6; i += 1) {
+	const deadline = Date.now() + 10_000;
+	do {
 		await act(async () => {
-			await Promise.resolve();
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
 		});
-	}
+	} while (!host?.querySelector('textarea') && Date.now() < deadline);
 }
 
 describe('aiChatPanel', () => {
