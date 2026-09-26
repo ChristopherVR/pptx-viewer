@@ -135,9 +135,11 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			this.text.textContent =
 				this.choices.find((choice) => choice.value === this.value)?.label ?? '';
 			this.trigger.disabled = this.disabled;
+			if (this.disabled) {
+				this.close();
+			}
 			this.trigger.setAttribute('aria-label', this.getAttribute('aria-label') ?? '');
 			this.internals?.setFormValue?.(this.disabled ? null : this.value);
-			// Build the popup lazily when an inspector select opens.
 			if (this.open || this.menu.childElementCount) {
 				this.renderMenu();
 			}
@@ -145,7 +147,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 
 		private renderMenu(): void {
 			renderSelectMenu(this.menu, this.choices, this.value);
-			this.markActive();
+			markSelectActive(this.menu, this.trigger, this.active, this.open);
 		}
 
 		private show(): void {
@@ -155,10 +157,6 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				this.open
 			) {
 				return;
-			}
-			const availableBelow = window.innerHeight - this.trigger.getBoundingClientRect().bottom;
-			if (availableBelow < Math.min(this.choices.length * 32 + 12, 160)) {
-				this.trigger.scrollIntoView?.({ block: 'center' });
 			}
 			this.open = true;
 			this.setAttribute('open', '');
@@ -177,7 +175,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			}
 			this.trigger.setAttribute('aria-expanded', 'true');
 			this.position();
-			this.markActive();
+			markSelectActive(this.menu, this.trigger, this.active, this.open);
 			document.addEventListener('pointerdown', this.onOutside, true);
 			window.addEventListener('resize', this.position);
 			window.addEventListener('scroll', this.position, true);
@@ -188,6 +186,8 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				return;
 			}
 			this.open = false;
+			window.clearTimeout(this.searchTimer);
+			this.search = '';
 			this.removeAttribute('open');
 			if (this.menu.matches(':popover-open')) {
 				this.menu.hidePopover();
@@ -213,10 +213,6 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			positionSelectMenu(this.menu, this.trigger);
 		};
 
-		private markActive(): void {
-			markSelectActive(this.menu, this.trigger, this.active, this.open);
-		}
-
 		private move(step: number): void {
 			if (!this.open) {
 				this.show();
@@ -225,7 +221,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				return;
 			}
 			this.active = nextSelectActive(this.choices, this.active, step);
-			this.markActive();
+			markSelectActive(this.menu, this.trigger, this.active, this.open);
 		}
 
 		private commit(index: number): void {
@@ -257,11 +253,9 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				this.show();
 				this.active =
 					event.key === 'Home'
-						? this.choices.findIndex((choice) => !choice.disabled && !choice.hidden)
-						: this.choices.length -
-							1 -
-							[...this.choices].reverse().findIndex((choice) => !choice.disabled && !choice.hidden);
-				this.markActive();
+						? nextSelectActive(this.choices, -1, 1)
+						: nextSelectActive(this.choices, 0, -1);
+				markSelectActive(this.menu, this.trigger, this.active, this.open);
 			} else if (event.key === 'Enter' || event.key === ' ') {
 				event.preventDefault();
 				event.stopPropagation();
@@ -275,6 +269,8 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				event.stopPropagation();
 				this.close();
 				this.trigger.focus();
+			} else if (event.key === 'Tab') {
+				this.close();
 			} else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
 				event.stopPropagation();
 				this.search += event.key.toLocaleLowerCase();
@@ -291,7 +287,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				);
 				if (index >= 0) {
 					this.active = index;
-					this.markActive();
+					markSelectActive(this.menu, this.trigger, this.active, this.open);
 				}
 			}
 		}

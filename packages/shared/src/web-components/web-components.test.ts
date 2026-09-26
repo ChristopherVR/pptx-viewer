@@ -9,6 +9,27 @@ afterEach(() => {
 });
 
 describe('shared Web Components', () => {
+	it.each(['Tab', 'disabled'])('closes an open select on %s without committing', (action) => {
+		const select = document.createElement('pptx-ui-select');
+		select.innerHTML = '<option value="a">Alpha</option><option value="b">Beta</option>';
+		document.body.append(select);
+		const trigger = select.shadowRoot!.querySelector('button')!;
+		const onChange = vi.fn();
+		select.addEventListener('change', onChange);
+		trigger.click();
+		expect(trigger.getAttribute('aria-expanded')).toBe('true');
+		if (action === 'Tab') {
+			const event = new KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+			trigger.dispatchEvent(event);
+			expect(event.defaultPrevented).toBeFalsy();
+		} else {
+			select.setAttribute('disabled', '');
+		}
+		expect(trigger.getAttribute('aria-expanded')).toBe('false');
+		expect(trigger.hasAttribute('aria-activedescendant')).toBeFalsy();
+		expect(onChange).not.toHaveBeenCalled();
+	});
+
 	it('search reflects its value and emits an input event on the host', () => {
 		const search = document.createElement('pptx-ui-search') as HTMLElement & { value: string };
 		search.setAttribute('placeholder', 'Search recent presentations');

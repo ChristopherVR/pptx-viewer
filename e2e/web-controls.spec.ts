@@ -4,6 +4,45 @@ import { expect, test } from '@playwright/test';
 
 import { loadDeck } from './support/deck';
 
+test('select fits the viewport without scrolling and dismisses on Tab or disable', async ({
+	page,
+}) => {
+	await loadDeck(page);
+	await page.evaluate(() => {
+		const select = document.createElement('pptx-ui-select');
+		select.id = 'edge-select';
+		select.style.cssText = 'position:fixed;bottom:12px;right:8px;width:160px;z-index:99999';
+		select.innerHTML = Array.from(
+			{ length: 20 },
+			(_, index) =>
+				`<option value="${index}">Choice ${index} with a long descriptive label</option>`,
+		).join('');
+		const next = document.createElement('button');
+		next.id = 'after-edge-select';
+		next.textContent = 'Next control';
+		next.style.cssText = 'position:fixed;top:8px;left:8px;z-index:99999';
+		document.body.append(select, next);
+	});
+	const select = page.locator('#edge-select');
+	const trigger = select.locator('[role="combobox"]');
+	const menu = select.locator('[role="listbox"]');
+	const before = await trigger.boundingBox();
+	await trigger.click();
+	await expect(menu).toBeVisible();
+	expect(await trigger.boundingBox()).toEqual(before);
+	const popup = (await menu.boundingBox())!;
+	expect(popup.y + popup.height).toBeLessThanOrEqual(before!.y - 4);
+	expect(popup.x).toBeGreaterThanOrEqual(8);
+	expect(popup.x + popup.width).toBeLessThanOrEqual(page.viewportSize()!.width - 8);
+	await page.keyboard.press('Tab');
+	await expect(menu).not.toBeVisible();
+	await expect(page.locator('#after-edge-select')).toBeFocused();
+	await trigger.click();
+	await expect(menu).toBeVisible();
+	await select.evaluate((element) => element.setAttribute('disabled', ''));
+	await expect(menu).not.toBeVisible();
+});
+
 test('Properties select opens below its trigger and checkbox updates', async ({ page }) => {
 	await loadDeck(page);
 	const select = page.locator('pptx-ui-select:visible:not([disabled])').first();
