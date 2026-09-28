@@ -90,6 +90,7 @@ export function useModel3dScene(options: UseModel3dSceneOptions): UseModel3dScen
 			width: width.value,
 			height: height.value,
 			interactive: interactive.value,
+			scene: el?.scene,
 		}).then((next) => {
 			// Stale resolution: a newer remount (or teardown) ran meanwhile.
 			if (token !== mountToken) {
@@ -103,9 +104,18 @@ export function useModel3dScene(options: UseModel3dSceneOptions): UseModel3dScen
 	}
 
 	// Remount when the model source (data or container) changes.
-	watch([() => element.value?.modelData, () => element.value?.modelMimeType, container], remount, {
-		immediate: true,
-	});
+	watch(
+		[
+			() => element.value?.modelData,
+			() => element.value?.modelMimeType,
+			() => element.value?.scene,
+			container,
+		],
+		remount,
+		{
+			immediate: true,
+		},
+	);
 
 	// Push interactivity changes to the live handle without a remount.
 	watch(interactive, (on) => handle?.setInteractive(on));
