@@ -71,6 +71,9 @@ export function computePieSlicePath(
 	return { d, midAngle, labelX, labelY, startAngle, endAngle, cx, cy };
 }
 
+/** Constant padding (px) PowerPoint leaves inside an automatic pie plot area. */
+export const PIE_AUTO_INSET_PX = 6.7;
+
 export function computePieLayout(
 	elementWidth: number,
 	elementHeight: number,
@@ -82,7 +85,14 @@ export function computePieLayout(
 		legendOffset = chartData.style?.hasLegend ? 20 : 0;
 	let cx = size / 2,
 		cy = titleOffset + (size - titleOffset - legendOffset) / 2,
-		outerR = Math.max((size - titleOffset - legendOffset) * 0.42, 0);
+		// Automatic plot area: 42% of the free height, less a fixed inset.
+		// PowerPoint keeps a constant padding (about 5pt, 6.7px) between the
+		// pie and the plot-area edge, so the pie is smaller than a pure
+		// percentage of the box by the same PIXELS at every size: about 8% of the
+		// radius in a small (~200px) chart, under 1% in a large one, which is
+		// the documented discrepancy. Not COM-measured; the constant is fitted to
+		// that reported worst case.
+		outerR = Math.max((size - titleOffset - legendOffset) * 0.42 - PIE_AUTO_INSET_PX, 0);
 	// c:plotArea/c:layout/c:manualLayout is measured on the element, while the
 	// pie is laid out on a centred `size x size` square: translate the automatic
 	// disc out to the element, resolve, and translate the centre back in. The

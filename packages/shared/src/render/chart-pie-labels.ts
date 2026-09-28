@@ -20,13 +20,25 @@ import type {
 	PptxChartShapeProps,
 } from 'pptx-viewer-core';
 
-import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { splitLabelLines } from './chart-label-lines';
 import { dataLabelBoxSize } from './chart-label-measure';
 import type { ChartAnchorPoint, ChartFrameSize } from './chart-manual-layout';
-import { applyLabelManualLayout, chartFrameToViewOffset } from './chart-manual-layout';
 import { placeBestFitLabel } from './chart-pie-best-fit';
+import { nudgeOutsideLabels } from './chart-pie-label-collision';
+import { applyManualDrag, labelTextStyle, leaderLine } from './chart-pie-label-helpers';
 import { formatAxisValue } from './chart-view-model';
 import type { PieSliceGeometry, SvgLine, SvgPrimitive, SvgText } from './chart-view-model';
+
+/** A `bestFit` label placed outside the rim, held back until collisions are resolved. */
+interface PendingOutside {
+	i: number;
+	slice: PieSliceGeometry;
+	label: SvgText;
+	auto: ChartAnchorPoint;
+	w: number;
+	h: number;
+}
 
 /** Distance (px) an outside label sits beyond the slice rim. */
 const LEADER_LENGTH = 14;
@@ -110,68 +122,6 @@ export function isOutsidePosition(position: PptxChartDataLabelPosition | undefin
 }
 
 /**
- * Resolve a label's SvgText font, starting from the given defaults (the
- * fixed inside/outside styling this module always used) and overriding with
- * a per-point txPr (C2-G1 data-label half) when the resolved label content
- * carries one. Returns every field required by `SvgText` so callers can
- * spread the result without a duplicate-key/optional-override conflict.
- */
-function labelTextStyle(
-	content: PieLabelContent,
-	defaults: Pick<SvgText, 'fontSize'> & Partial<Pick<SvgText, 'fontWeight'>>,
-): Pick<SvgText, 'fontFamily' | 'fontSize' | 'fontWeight'> {
-	const fontWeight =
-		content.bold !== undefined ? (content.bold ? 'bold' : 'normal') : defaults.fontWeight;
-	return {
-		fontSize: content.fontSize !== undefined ? chartFontPx(content.fontSize) : defaults.fontSize,
-		...(fontWeight !== undefined ? { fontWeight } : {}),
-		...(content.fontFamily ? { fontFamily: content.fontFamily } : {}),
-	};
-}
-
-/**
- * Shift an automatic label point by its manual-layout drag, when both a
- * `layoutFor` resolver and the chart `frame` were given. The pie engine lays
- * out on a letterboxed `size x size` SVG square distinct from the element's
- * own box, so the offset is applied in frame-space and converted back.
- */
-function applyManualDrag(
-	point: ChartAnchorPoint,
-	pointIndex: number,
-	params: PieLabelParams,
-): ChartAnchorPoint {
-	const { layoutFor, frame, svgWidth, svgHeight } = params;
-	if (!layoutFor || !frame || svgWidth === undefined || svgHeight === undefined) {
-		return point;
-	}
-	const layout = layoutFor(pointIndex);
-	const viewOffset = chartFrameToViewOffset(frame, { svgWidth, svgHeight });
-	const framePoint = { x: point.x + viewOffset.x, y: point.y + viewOffset.y };
-	const shifted = applyLabelManualLayout(layout, frame, framePoint);
-	return { x: shifted.x - viewOffset.x, y: shifted.y - viewOffset.y };
-}
-
-/** A leader line from the slice's rim point to a label at `to`. */
-function leaderLine(
-	slice: PieSliceGeometry,
-	cx: number,
-	cy: number,
-	outerR: number,
-	to: ChartAnchorPoint,
-	style: PptxChartShapeProps | undefined,
-): SvgLine {
-	return {
-		kind: 'line',
-		x1: cx + outerR * Math.cos(slice.midAngle),
-		y1: cy + outerR * Math.sin(slice.midAngle),
-		x2: to.x,
-		y2: to.y,
-		stroke: style?.strokeColor ?? '#94a3b8',
-		strokeWidth: 0.75,
-	};
-}
-
-/**
  * Build pie/doughnut data labels. Inside positions reuse each slice's centroid
  * (white bold, centred). Outside positions place the label beyond the rim with a
  * leader line from the rim point to the label anchor. `bestFit` goes inside the
@@ -195,11 +145,29 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 	const leaderLines: SvgLine[] = [];
 	const boxes: SvgPrimitive[] = [];
 	const push = (i: number, label: SvgText, midAngle: number) => {
-		labels.push(label);
+		// The box/callout is sized from the whole label; the painted text is
+		// one primitive per line so no binding needs multi-line support.
+		labels.push(...splitLabelLines(label));
 		const r = params.targetRadius ?? outerR;
 		if (decorate) {
 			const target = { x: cx + r * Math.cos(midAngle), y: cy + r * Math.sin(midAngle) };
 			boxes.push(...decorate(i, label, target));
+		}
+	};
+
+	const pendingOutside: PendingOutside[] = [];
+	const placeBestFit = (
+		i: number,
+		slice: PieSliceGeometry,
+		label: SvgText,
+		auto: ChartAnchorPoint,
+		nudged: ChartAnchorPoint = auto,
+	) => {
+		const moved = applyManualDrag(nudged, i, params);
+		push(i, { ...label, x: moved.x, y: moved.y }, slice.midAngle);
+		// PowerPoint draws a leader line only to a label that left its spot.
+		if (showLeaderLines !== false && (moved.x !== auto.x || moved.y !== auto.y)) {
+			leaderLines.push(leaderLine(slice, cx, cy, outerR, moved, leaderLineStyle));
 		}
 	};
 
@@ -227,12 +195,12 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			};
 			const { w, h } = dataLabelBoxSize(label);
 			const auto = placeBestFitLabel({ ...slice, outerR }, w, h);
-			const moved = applyManualDrag(auto, i, params);
-			push(i, { ...label, x: moved.x, y: moved.y }, slice.midAngle);
-			// PowerPoint draws a leader line only to a label that left its spot.
-			if (showLeaderLines !== false && (moved.x !== auto.x || moved.y !== auto.y)) {
-				leaderLines.push(leaderLine(slice, cx, cy, outerR, moved, leaderLineStyle));
+			if (!auto.inside) {
+				// Outside labels may collide: placed after the loop, once nudged apart.
+				pendingOutside.push({ i, slice, label, auto, w, h });
+				return;
 			}
+			placeBestFit(i, slice, label, auto);
 			return;
 		}
 		if (!isOutsidePosition(pointPosition)) {
@@ -288,6 +256,19 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 			);
 		}
 	});
+
+	// Outside bestFit labels: nudge colliding ones apart (a moved label gets a
+	// leader line from placeBestFit), see chart-pie-label-collision.
+	const nudges = nudgeOutsideLabels(
+		pendingOutside.map((p) => ({ id: p.i, x: p.auto.x, y: p.auto.y, w: p.w, h: p.h })),
+		cx,
+		0,
+		params.svgHeight ?? Number.POSITIVE_INFINITY,
+	);
+	for (const p of pendingOutside) {
+		const dy = nudges.find((n) => n.id === p.i)?.dy ?? 0;
+		placeBestFit(p.i, p.slice, p.label, p.auto, { x: p.auto.x, y: p.auto.y + dy });
+	}
 
 	return { labels, leaderLines, boxes };
 }

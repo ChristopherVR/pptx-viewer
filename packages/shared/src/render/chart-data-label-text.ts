@@ -37,7 +37,7 @@ export interface ResolvedDataLabelContent {
 	showSeriesName: boolean;
 	showPercent: boolean;
 	showBubbleSize: boolean;
-	/** Text joining the enabled components. PowerPoint's own default is `", "`. */
+	/** Text joining the enabled components. PowerPoint's default is `", "`, or a newline for category + percentage. */
 	separator: string;
 	/** `c:dLbl/c:delete`: this one label is suppressed. */
 	deleted: boolean;
@@ -47,6 +47,13 @@ export interface ResolvedDataLabelContent {
 
 /** PowerPoint's default separator between combined label components. */
 const DEFAULT_SEPARATOR = ', ';
+
+/**
+ * PowerPoint's default separator when a label shows the category name AND the
+ * percentage and the file carries no `c:separator` (a pie's "Cat 1" over
+ * "25%"): a line break, not ", ". Every other combination keeps ", ".
+ */
+const CATEGORY_PERCENT_SEPARATOR = '\n';
 
 /**
  * Resolve the label content flags for one point.
@@ -128,7 +135,12 @@ export function resolveDataLabelContent(
 		showPercent: showPercent === true,
 		showBubbleSize: showBubbleSize === true,
 		separator:
-			point?.separator ?? seriesLevel?.separator ?? chartLevel?.separator ?? DEFAULT_SEPARATOR,
+			point?.separator ??
+			seriesLevel?.separator ??
+			chartLevel?.separator ??
+			(showCategory === true && showPercent === true
+				? CATEGORY_PERCENT_SEPARATOR
+				: DEFAULT_SEPARATOR),
 		deleted: point?.deleted === true,
 		...(point?.text !== undefined
 			? { customText: point.text }

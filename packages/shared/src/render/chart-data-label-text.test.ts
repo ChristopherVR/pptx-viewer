@@ -148,6 +148,26 @@ describe('buildDataLabelText', () => {
 		);
 	});
 
+	it('defaults category + percentage to a line break when c:separator is absent', () => {
+		const series: PptxChartSeries = {
+			...shareSeries,
+			dataLabelOptions: { showValue: false, showPercent: true, showCategory: true },
+		};
+		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })?.text).toBe(
+			'Partner\n25%',
+		);
+	});
+
+	it('keeps ", " for category + value with no separator', () => {
+		const series: PptxChartSeries = {
+			...shareSeries,
+			dataLabelOptions: { showValue: true, showCategory: true },
+		};
+		expect(buildDataLabelText({ chartData: chart(), series, pointIndex: 1, value: 25 })?.text).toBe(
+			'Partner, 25',
+		);
+	});
+
 	it('honours an explicit percentBase over the series total', () => {
 		const series: PptxChartSeries = {
 			...shareSeries,
