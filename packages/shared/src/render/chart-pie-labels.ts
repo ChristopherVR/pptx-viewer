@@ -261,13 +261,16 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 	// leader line from placeBestFit), see chart-pie-label-collision.
 	const nudges = nudgeOutsideLabels(
 		pendingOutside.map((p) => ({ id: p.i, x: p.auto.x, y: p.auto.y, w: p.w, h: p.h })),
-		cx,
+		{ cx, cy, r: outerR },
 		0,
 		params.svgHeight ?? Number.POSITIVE_INFINITY,
 	);
 	for (const p of pendingOutside) {
-		const dy = nudges.find((n) => n.id === p.i)?.dy ?? 0;
-		placeBestFit(p.i, p.slice, p.label, p.auto, { x: p.auto.x, y: p.auto.y + dy });
+		const nudge = nudges.find((n) => n.id === p.i);
+		placeBestFit(p.i, p.slice, p.label, p.auto, {
+			x: p.auto.x + (nudge?.dx ?? 0),
+			y: p.auto.y + (nudge?.dy ?? 0),
+		});
 	}
 
 	return { labels, leaderLines, boxes };

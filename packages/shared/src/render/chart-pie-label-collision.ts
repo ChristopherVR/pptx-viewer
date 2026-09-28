@@ -29,10 +29,45 @@ export interface OutsideLabelBox {
 	h: number;
 }
 
-/** How far one label moves (vertically only; `dy` is 0 when it stays put). */
+/** How far one label moves (`dx`/`dy` are 0 when it stays put). */
 export interface LabelNudge {
 	id: number;
+	dx: number;
 	dy: number;
+}
+
+/** The pie disc a nudged label must never be pushed into. */
+export interface PieDisc {
+	cx: number;
+	cy: number;
+	r: number;
+}
+
+/** Distance from the disc centre to the nearest point of a box centred at (`x`, `y`). */
+function boxDistanceToCentre(box: OutsideLabelBox, y: number, disc: PieDisc): number {
+	const nearestX = Math.max(box.x - box.w / 2, Math.min(disc.cx, box.x + box.w / 2));
+	const nearestY = Math.max(y - box.h / 2, Math.min(disc.cy, y + box.h / 2));
+	return Math.hypot(nearestX - disc.cx, nearestY - disc.cy);
+}
+
+/**
+ * A vertical nudge moves a label ALONG the rim only near 3 and 9 o'clock; near
+ * 6 and 12 o'clock it drives the label into the pie. Push such a label
+ * outward horizontally until its box clears the disc again.
+ */
+function clearOfDisc(box: OutsideLabelBox, y: number, disc: PieDisc): number {
+	if (boxDistanceToCentre(box, y, disc) >= disc.r) {
+		return 0;
+	}
+	const sign = box.x >= disc.cx ? 1 : -1;
+	let dx = 0;
+	while (
+		dx < disc.r * 2 &&
+		boxDistanceToCentre({ ...box, x: box.x + sign * dx }, y, disc) < disc.r
+	) {
+		dx += 1;
+	}
+	return sign * dx;
 }
 
 /** Whether two boxes overlap horizontally (they share x extent). */
@@ -71,23 +106,27 @@ function sweepSide(
 
 /**
  * Compute the vertical nudges that separate overlapping outside labels.
- * `pieCx` splits the labels into a left and a right column; `minY`/`maxY` bound
- * the drawing area. Labels that do not collide get `dy: 0`.
+ * `disc` splits the labels into a left and a right column and keeps every
+ * nudged label outside the pie; `minY`/`maxY` bound the drawing area. Labels
+ * that do not collide get `dx: 0, dy: 0`.
  */
 export function nudgeOutsideLabels(
 	boxes: ReadonlyArray<OutsideLabelBox>,
-	pieCx: number,
+	disc: PieDisc,
 	minY: number,
 	maxY: number,
 ): LabelNudge[] {
 	const resolved = new Map<number, number>();
 	for (const side of [
-		boxes.filter((box) => box.x >= pieCx),
-		boxes.filter((box) => box.x < pieCx),
+		boxes.filter((box) => box.x >= disc.cx),
+		boxes.filter((box) => box.x < disc.cx),
 	]) {
 		for (const [id, y] of sweepSide(side, minY, maxY)) {
 			resolved.set(id, y);
 		}
 	}
-	return boxes.map((box) => ({ id: box.id, dy: (resolved.get(box.id) ?? box.y) - box.y }));
+	return boxes.map((box) => {
+		const y = resolved.get(box.id) ?? box.y;
+		return { id: box.id, dx: y === box.y ? 0 : clearOfDisc(box, y, disc), dy: y - box.y };
+	});
 }
