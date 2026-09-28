@@ -17,6 +17,7 @@
  */
 
 import { CIRCLE_OUT_KEYFRAMES } from './animation-circle-iris';
+import { maskHoleDecl, maskPlusHoleDecl } from './animation-mask-hole-reveal';
 import { maskEdgeDecl, maskEdgePartialDecl, maskShapeDecl } from './animation-mask-reveal';
 import { WEDGE_KEYFRAME_DEFINITIONS } from './animation-wedge-reveal';
 
@@ -30,6 +31,10 @@ export type ExitShapeEffectName =
 	| 'randomBarsOut'
 	| 'diamondOut'
 	| 'plusOut'
+	| 'boxOutFromCenter'
+	| 'circleOutFromCenter'
+	| 'diamondOutFromCenter'
+	| 'plusOutFromCenter'
 	| 'wedgeOut'
 	| 'peekOut'
 	| 'peekOutDown'
@@ -70,6 +75,25 @@ export const EXIT_SHAPE_KEYFRAME_DEFINITIONS: Record<ExitShapeEffectName, string
 	plusOut: `@keyframes pptx-plusOut {
 	from { ${maskShapeDecl('plusOut', 'shown')} opacity: 1; }
 	to { ${maskShapeDecl('plusOut', 'hidden')} opacity: 0; }
+}`,
+	// Exit Effect Options "Out": a hole shaped like the preset opens at the
+	// centre and grows to the element's edges (the entrance "In" hole
+	// reveal played in reverse), so the element vanishes from the middle.
+	boxOutFromCenter: `@keyframes pptx-boxOutFromCenter {
+	from { ${maskHoleDecl('box', 'shown')} opacity: 1; }
+	to { ${maskHoleDecl('box', 'hidden')} opacity: 1; }
+}`,
+	circleOutFromCenter: `@keyframes pptx-circleOutFromCenter {
+	from { ${maskHoleDecl('circle', 'shown')} opacity: 1; }
+	to { ${maskHoleDecl('circle', 'hidden')} opacity: 1; }
+}`,
+	diamondOutFromCenter: `@keyframes pptx-diamondOutFromCenter {
+	from { ${maskHoleDecl('diamond', 'shown')} opacity: 1; }
+	to { ${maskHoleDecl('diamond', 'hidden')} opacity: 1; }
+}`,
+	plusOutFromCenter: `@keyframes pptx-plusOutFromCenter {
+	from { ${maskPlusHoleDecl('shown')} opacity: 1; }
+	to { ${maskPlusHoleDecl('hidden')} opacity: 1; }
 }`,
 	// The hidden region is the entrance's two wedges opening from 12
 	// o'clock (CreateVideo-derived, see `animation-wedge-reveal`).

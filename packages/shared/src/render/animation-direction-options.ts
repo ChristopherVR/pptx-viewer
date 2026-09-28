@@ -27,6 +27,21 @@ export const DIRECTION_VALUES: readonly PptxAnimationDirection[] = [
 	'fromBottomRight',
 ];
 
+/**
+ * Direction -> i18n dictionary key, for every picker in every binding, so the
+ * bindings spell a direction the same way without each keeping its own map.
+ */
+export const ANIMATION_DIRECTION_LABEL_KEYS: Readonly<Record<PptxAnimationDirection, string>> = {
+	fromTop: 'pptx.animation.direction.fromTop',
+	fromBottom: 'pptx.animation.direction.fromBottom',
+	fromLeft: 'pptx.animation.direction.fromLeft',
+	fromRight: 'pptx.animation.direction.fromRight',
+	fromTopLeft: 'pptx.animation.direction.fromTopLeft',
+	fromTopRight: 'pptx.animation.direction.fromTopRight',
+	fromBottomLeft: 'pptx.animation.direction.fromBottomLeft',
+	fromBottomRight: 'pptx.animation.direction.fromBottomRight',
+};
+
 const EDGES: readonly PptxAnimationDirection[] = DIRECTION_VALUES.slice(0, 4);
 
 const PRESET_DIRECTIONS: Readonly<Record<string, readonly PptxAnimationDirection[]>> = {

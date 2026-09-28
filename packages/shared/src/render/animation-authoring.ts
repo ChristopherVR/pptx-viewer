@@ -49,6 +49,7 @@ import { directionValuesFor } from './animation-direction-options';
 // The direction catalogue moved to its own module; re-exported so existing
 // `animation-authoring` imports keep working.
 export {
+	ANIMATION_DIRECTION_LABEL_KEYS,
 	DIRECTION_VALUES,
 	DIRECTIONAL_PRESETS,
 	directionValuesFor,

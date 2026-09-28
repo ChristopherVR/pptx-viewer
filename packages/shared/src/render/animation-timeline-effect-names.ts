@@ -136,6 +136,13 @@ export type EffectName =
 	| 'randomBarsOut'
 	| 'diamondOut'
 	| 'plusOut'
+	// Exit Effect Options "Out" (`box|circle|diamond|plus(out)`): the element
+	// vanishes from the centre outward (a hole opens and grows to the edges),
+	// the mirror of the entrance's "In" close-in.
+	| 'boxOutFromCenter'
+	| 'circleOutFromCenter'
+	| 'diamondOutFromCenter'
+	| 'plusOutFromCenter'
 	| 'wedgeOut'
 	// Exit-side counterparts of the extended entrance families above, plus
 	// `peekOut`/`splitOut` (exit.16/17: the Peek Out / Split exit forms, which
