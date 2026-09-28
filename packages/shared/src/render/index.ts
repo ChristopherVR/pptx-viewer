@@ -963,6 +963,8 @@ export * from './smartart-node-pane-handlers';
 // optional; returns a no-op sentinel handle when it is not installed, so the
 // barrel stays three-free and each binding (React interactive 3D) can mount it.
 export * from './model3d-scene';
+export * from './model3d-scene-apply';
+export * from './model3d-scene-descriptor';
 // Perspective three.js surface3D scene hosted by `<pptx-three-view>`, plus
 // its pure geometry helpers: a colour-displaced surface mesh (optional
 // wireframe), grid floor, lights, isometric camera and DOM-overlay axis

@@ -14,11 +14,16 @@
  */
 
 import { parseDataUrlToBytes } from 'pptx-viewer-core';
+import type { Model3DSceneData } from 'pptx-viewer-core';
 // Type-only imports are erased at build time, so they do not pull `three` into
 // the bundle; the actual modules are loaded via dynamic `import()` at runtime.
 import type * as THREE from 'three';
 import type { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
+import { buildModel3DRig } from './model3d-scene-apply';
+import type { Model3DRig } from './model3d-scene-apply';
+import { resolveModel3DSceneDescriptor } from './model3d-scene-descriptor';
 
 /** Default MIME for GLB binaries when the element omits `modelMimeType`. */
 export const DEFAULT_MODEL_MIME = 'model/gltf-binary';
@@ -66,6 +71,8 @@ export interface Model3DSceneOptions {
 	background?: string;
 	/** Device pixel-ratio cap. Default `2`. */
 	maxPixelRatio?: number;
+	/** Authored camera/transform/lights; omit for the default framing. */
+	scene?: Model3DSceneData;
 }
 
 /** Imperative handle to a mounted 3D model view. */
@@ -90,8 +97,6 @@ export const THREE_UNAVAILABLE: Model3DHandle = {
 	setInteractive: () => {},
 	dispose: () => {},
 };
-
-const FOV = 50;
 
 /** The subset of the `three` module surface this controller uses at runtime. */
 type ThreeModule = typeof THREE;
@@ -138,7 +143,7 @@ function loadGltf(loader: GLTFLoader, url: string): Promise<GLTF> {
  * Auto-centre the model at the origin and uniformly scale it so its largest
  * dimension fills a 2-unit cube, mirroring the previous react-three-fiber fit.
  */
-function centerAndFit(three: ThreeModule, root: THREE.Object3D): void {
+function centerAndFit(three: ThreeModule, root: THREE.Object3D): number {
 	const box = new three.Box3().setFromObject(root);
 	const size = new three.Vector3();
 	box.getSize(size);
@@ -149,6 +154,7 @@ function centerAndFit(three: ThreeModule, root: THREE.Object3D): void {
 	const center = new three.Vector3();
 	box.getCenter(center);
 	root.position.sub(center.multiplyScalar(root.scale.x));
+	return maxDim;
 }
 
 /**
@@ -191,18 +197,6 @@ export async function mountModel3D(
 		scene.background = new three.Color(options.background);
 	}
 
-	const camera = new three.PerspectiveCamera(FOV, width / height, 0.1, 1000);
-	camera.position.set(0, 0, 5);
-	camera.lookAt(0, 0, 0);
-
-	scene.add(new three.AmbientLight(0xffffff, 0.5));
-	const key = new three.DirectionalLight(0xffffff, 1);
-	key.position.set(5, 5, 5);
-	scene.add(key);
-	const fill = new three.DirectionalLight(0xffffff, 0.3);
-	fill.position.set(-3, -3, 2);
-	scene.add(fill);
-
 	let gltf: GLTF;
 	try {
 		gltf = await loadGltf(new GltfLoaderCtor(), modelUrl);
@@ -213,8 +207,14 @@ export async function mountModel3D(
 	}
 
 	const model = gltf.scene;
-	centerAndFit(three, model);
-	scene.add(model);
+	const maxDim = centerAndFit(three, model);
+	const descriptor = resolveModel3DSceneDescriptor(options.scene);
+	const rig: Model3DRig = buildModel3DRig(three, descriptor, width / height, maxDim);
+	const camera = rig.camera;
+	for (const light of rig.lights) {
+		scene.add(light);
+	}
+	scene.add(rig.placeModel(model));
 
 	let controls: OrbitControls | null = null;
 	const OrbitCtrlCtor = await loadOrbitControlsCtor();
@@ -224,8 +224,8 @@ export async function mountModel3D(
 			controls.enablePan = false;
 			controls.enableZoom = true;
 			controls.enableRotate = true;
-			controls.minDistance = 2;
-			controls.maxDistance = 20;
+			controls.minDistance = descriptor.authored ? rig.distance * 0.2 : 2;
+			controls.maxDistance = descriptor.authored ? rig.distance * 4 : 20;
 			controls.update();
 		} else if (!on && controls) {
 			controls.dispose();
@@ -267,8 +267,7 @@ export async function mountModel3D(
 		resize(w: number, h: number) {
 			const nextW = Math.max(1, w);
 			const nextH = Math.max(1, h);
-			camera.aspect = nextW / nextH;
-			camera.updateProjectionMatrix();
+			rig.setAspect(nextW / nextH);
 			renderer.setSize(nextW, nextH, false);
 			canvas.style.width = `${nextW}px`;
 			canvas.style.height = `${nextH}px`;
