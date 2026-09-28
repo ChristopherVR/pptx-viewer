@@ -213,6 +213,7 @@ export function Model3DRenderer({ element, width, height, interactive }: Model3D
 					interactive={interactive}
 					width={width}
 					height={height}
+					scene={element.scene}
 				/>
 			</Suspense>
 		</Model3DErrorBoundary>
