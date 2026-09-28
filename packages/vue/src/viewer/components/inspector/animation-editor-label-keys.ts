@@ -18,23 +18,10 @@
  *
  * @module animation-editor-label-keys
  */
-import type {
-	PptxAnimationDirection,
-	PptxAnimationSequence,
-	PptxAnimationTimingCurve,
-} from 'pptx-viewer-core';
+import type { PptxAnimationSequence, PptxAnimationTimingCurve } from 'pptx-viewer-core';
 
-/** All eight `PptxAnimationDirection` values the editor offers. */
-export const ANIMATION_DIRECTION_LABEL_KEYS: Readonly<Record<PptxAnimationDirection, string>> = {
-	fromLeft: 'pptx.animation.direction.fromLeft',
-	fromRight: 'pptx.animation.direction.fromRight',
-	fromTop: 'pptx.animation.direction.fromTop',
-	fromBottom: 'pptx.animation.direction.fromBottom',
-	fromTopLeft: 'pptx.animation.direction.fromTopLeft',
-	fromTopRight: 'pptx.animation.direction.fromTopRight',
-	fromBottomLeft: 'pptx.animation.direction.fromBottomLeft',
-	fromBottomRight: 'pptx.animation.direction.fromBottomRight',
-};
+/** Direction keys live in shared so every binding spells them alike. */
+export { ANIMATION_DIRECTION_LABEL_KEYS } from 'pptx-viewer-shared';
 
 /** Text-build granularity (`byParagraph` / `byWord` / `byLetter`). */
 export const ANIMATION_SEQUENCE_LABEL_KEYS: Readonly<Record<PptxAnimationSequence, string>> = {
