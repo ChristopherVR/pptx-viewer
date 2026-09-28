@@ -117,6 +117,8 @@ export {
 	type OleNestedDeckTextElement,
 } from './ole-nested-deck-editor';
 export { encodePng, decodePngDimensions } from './png-encoder';
+export { encodeCompressedPng } from './png-encoder-compressed';
+export { zlibDeflate } from './deflate-encode';
 export { RasterCanvas, rgb, type RasterColor } from './raster-canvas';
 export { renderOleIconPng, oleObjectTypeToGlyph, type OleIconGlyph } from './ole-icon-raster';
 export {

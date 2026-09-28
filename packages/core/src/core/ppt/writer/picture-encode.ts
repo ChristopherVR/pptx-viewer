@@ -30,7 +30,7 @@
  */
 
 import { decodeGifFirstFrame } from '../../utils/gif-decode';
-import { encodePng } from '../../utils/png-encoder';
+import { encodeCompressedPng } from '../../utils/png-encoder-compressed';
 import type { WPictureData } from './write-model';
 
 /** An image container format, sniffed from its leading bytes. */
@@ -164,11 +164,11 @@ function bmpToDib(bytes: Uint8Array): WPictureData | undefined {
 	return { extension: 'dib', bytes: dib };
 }
 
-/** Re-encode a GIF's first frame as PNG (PowerPoint's own 97-2003 choice). */
+/** Re-encode a GIF's first frame as a DEFLATE-compressed PNG (PowerPoint's own 97-2003 choice). */
 function gifToPng(bytes: Uint8Array): WPictureData | undefined {
 	const frame = decodeGifFirstFrame(bytes);
 	return frame
-		? { extension: 'png', bytes: encodePng(frame.width, frame.height, frame.rgba) }
+		? { extension: 'png', bytes: encodeCompressedPng(frame.width, frame.height, frame.rgba) }
 		: undefined;
 }
 
