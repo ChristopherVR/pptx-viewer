@@ -151,6 +151,35 @@ test.describe('ribbon galleries', () => {
 		);
 	});
 
+	test('Picture Format > Adjust offers Corrections, Color and Artistic Effects', async ({
+		page,
+	}) => {
+		await loadDeck(page, DECK);
+		await selectElement(page, elementsOfType(page, 'image').first());
+		await contextualTab(page, 'pictureFormat').click();
+		const group = page.locator('[data-ribbon-group="pictureFormat.adjust"]').first();
+		await expect(group).toBeVisible();
+
+		const picks: Array<[string, string, number]> = [
+			['pictureCorrections', 'bc_b20_c-20', 30],
+			['pictureColor', 'saturation200', 37],
+			['pictureArtisticEffects', 'paintStrokes', 21],
+		];
+		for (const [gallery, item, count] of picks) {
+			const panel = await openGallery(page, group, gallery);
+			await expect(panel.locator('[data-gallery-item]')).toHaveCount(count);
+			await expect(panel.locator('[data-gallery-item] svg').first()).toBeVisible();
+			await panel.locator(`[data-gallery-item="${item}"]`).click();
+			await expect(popup(page, gallery)).toBeHidden();
+			const reopened = await openGallery(page, group, gallery);
+			await expect(reopened.locator(`[data-gallery-item="${item}"]`)).toHaveAttribute(
+				'aria-pressed',
+				'true',
+			);
+			await page.keyboard.press('Escape');
+		}
+	});
+
 	test('the contextual tab goes away when the selection does', async ({ page }) => {
 		await loadDeck(page, DECK);
 		await selectElement(page, elementWithText(page, 'GALLERY SHAPE'));
