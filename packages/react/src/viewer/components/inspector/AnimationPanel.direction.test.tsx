@@ -1,5 +1,6 @@
 // @vitest-environment happy-dom
 import type { PptxElement, PptxElementAnimation, PptxSlide } from 'pptx-viewer-core';
+import { DIRECTION_VALUES } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -64,6 +65,17 @@ describe('animationPanel direction picker', () => {
 		const active = buttons.find((button) => button.className.includes('border-primary'));
 		expect(active?.title).toBe('pptx.animation.direction.fromBottom');
 	});
+
+	it.each(['flyIn', 'crawlIn', 'flyOut', 'crawlOut'] as const)(
+		'offers all eight directions, corners included, for %s',
+		(preset) => {
+			const key = preset.endsWith('In') ? 'entrance' : 'exit';
+			const buttons = renderWith({ [key]: preset });
+			expect(buttons.map((button) => button.title)).toStrictEqual(
+				DIRECTION_VALUES.map((value) => `pptx.animation.direction.${value}`),
+			);
+		},
+	);
 
 	it('hides the picker for Float In, which PowerPoint saves with no direction', () => {
 		expect(renderWith({ entrance: 'floatIn', direction: 'fromLeft' })).toHaveLength(0);

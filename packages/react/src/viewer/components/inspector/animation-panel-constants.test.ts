@@ -1,3 +1,4 @@
+import { DIRECTION_VALUES } from 'pptx-viewer-shared';
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
 import {
@@ -234,8 +235,8 @@ describe('rEPEAT_MODE_OPTIONS', () => {
 // ---------------------------------------------------------------------------
 
 describe('dIRECTION_OPTIONS', () => {
-	it('has exactly 4 items', () => {
-		expect(DIRECTION_OPTIONS).toHaveLength(4);
+	it('has one item per shared direction value', () => {
+		expect(DIRECTION_OPTIONS.map((o) => o.value)).toStrictEqual([...DIRECTION_VALUES]);
 	});
 
 	it('contains fromTop, fromBottom, fromLeft, fromRight', () => {
