@@ -1,0 +1,30 @@
+/** Picture Format > Adjust galleries (Korrekturen, Farbe, Künstlerische Effekte). */
+export const translations: Record<string, string> = {
+	'pptx.ribbon.groupAdjust': 'Anpassen',
+	'pptx.gallery.pictureCorrections.title': 'Korrekturen',
+	'pptx.gallery.pictureCorrections.sharpenSoften': 'Scharfzeichnen/Weichzeichnen',
+	'pptx.gallery.pictureCorrections.brightnessContrastTitle': 'Helligkeit/Kontrast',
+	'pptx.gallery.pictureCorrections.soften': 'Weichzeichnen: {{amount}} %',
+	'pptx.gallery.pictureCorrections.sharpen': 'Scharfzeichnen: {{amount}} %',
+	'pptx.gallery.pictureCorrections.sharpenNormal': 'Scharfzeichnen: 0 % (normal)',
+	'pptx.gallery.pictureCorrections.brightnessContrast':
+		'Helligkeit: {{brightness}} % Kontrast: {{contrast}} %',
+	'pptx.gallery.pictureCorrections.brightnessContrastNormal':
+		'Helligkeit: 0 % Kontrast: 0 % (normal)',
+	'pptx.gallery.pictureColor.title': 'Farbe',
+	'pptx.gallery.pictureColor.saturationTitle': 'Farbsättigung',
+	'pptx.gallery.pictureColor.toneTitle': 'Farbton',
+	'pptx.gallery.pictureColor.recolorTitle': 'Neu einfärben',
+	'pptx.gallery.pictureColor.saturation': 'Sättigung: {{amount}} %',
+	'pptx.gallery.pictureColor.saturationNormal': 'Sättigung: 100 % (normal)',
+	'pptx.gallery.pictureColor.tone': 'Temperatur: {{kelvin}} K',
+	'pptx.gallery.pictureColor.toneNormal': 'Temperatur: 6500 K (normal)',
+	'pptx.gallery.pictureColor.recolorNone': 'Keine Neueinfärbung',
+	'pptx.gallery.pictureColor.recolorGrayscale': 'Graustufen',
+	'pptx.gallery.pictureColor.recolorSepia': 'Sepia',
+	'pptx.gallery.pictureColor.recolorWashout': 'Ausgewaschen',
+	'pptx.gallery.pictureColor.recolorBlackWhite': 'Schwarzweiß: {{amount}} %',
+	'pptx.gallery.pictureColor.recolorAccentDark': 'Akzent {{n}}, dunkel',
+	'pptx.gallery.pictureColor.recolorAccentLight': 'Akzent {{n}}, hell',
+	'pptx.gallery.pictureArtisticEffects.title': 'Künstlerische Effekte',
+};

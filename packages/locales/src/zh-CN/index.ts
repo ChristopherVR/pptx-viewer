@@ -23,6 +23,7 @@ import { translations as presenting_and_slide_show_2 } from './presenting-and-sl
 import { translations as ribbon } from './ribbon';
 import { translations as ribbon_2 } from './ribbon-2';
 import { translations as ribbon_galleries } from './ribbon-galleries';
+import { translations as ribbon_galleries_adjust } from './ribbon-galleries-adjust';
 import { translations as ribbon_galleries_data } from './ribbon-galleries-data';
 import { translations as ribbon_galleries_effects } from './ribbon-galleries-effects';
 import { translations as ribbon_galleries_picture } from './ribbon-galleries-picture';
@@ -67,5 +68,6 @@ export const translationsZhCN: Record<string, string> = {
 	...ribbon_galleries,
 	...ribbon_galleries_effects,
 	...ribbon_galleries_picture,
+	...ribbon_galleries_adjust,
 	...ribbon_galleries_data,
 };
