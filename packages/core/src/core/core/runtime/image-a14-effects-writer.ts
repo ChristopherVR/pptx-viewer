@@ -190,7 +190,8 @@ export function buildA14ImageExtension(effects: PptxImageEffects): XmlObject | u
  * existing entry with the same URI and preserving every other `a:ext`.
  *
  * When the model carries no `a14` effect the entry is removed, and an
- * `a:extLst` left empty by that removal is dropped too.
+ * `a:extLst` left empty by that removal is dropped too (one authored empty
+ * is kept).
  */
 export function applyA14ImageExtension(blip: XmlObject, effects: PptxImageEffects): void {
 	const built = buildA14ImageExtension(effects);
@@ -201,6 +202,12 @@ export function applyA14ImageExtension(blip: XmlObject, effects: PptxImageEffect
 
 	const extLstKey = Object.keys(blip).find((key) => key.endsWith('extLst')) ?? 'a:extLst';
 	if (entries.length === 0) {
+		// An `a:extLst` authored with no `a:ext` at all (PowerPoint writes a bare
+		// `<a:extLst/>` on some blips) has nothing to rebuild: keep it as authored.
+		// Only a list emptied by removing the a14 entry is dropped.
+		if (extLstKey in blip && blipExtensionEntries(blip).length === 0) {
+			return;
+		}
 		delete blip[extLstKey];
 		return;
 	}
