@@ -17,7 +17,7 @@
  * @module animation-timeline-labels
  */
 
-import { TRIGGER_OPTIONS } from 'pptx-viewer-shared';
+import { ANIMATION_DIRECTION_LABEL_KEYS, TRIGGER_OPTIONS } from 'pptx-viewer-shared';
 
 /**
  * `PptxAnimationTrigger` -> dictionary key, derived from shared's
@@ -30,17 +30,9 @@ export const TRIGGER_LABEL_KEYS: Readonly<Record<string, string>> = Object.fromE
 	TRIGGER_OPTIONS.map((option) => [option.value, option.labelKey]),
 );
 
-/** `PptxAnimationDirection` -> dictionary key (all eight compass values). */
-export const DIRECTION_LABEL_KEYS: Readonly<Record<string, string>> = {
-	fromTop: 'pptx.animation.direction.fromTop',
-	fromBottom: 'pptx.animation.direction.fromBottom',
-	fromLeft: 'pptx.animation.direction.fromLeft',
-	fromRight: 'pptx.animation.direction.fromRight',
-	fromTopLeft: 'pptx.animation.direction.fromTopLeft',
-	fromTopRight: 'pptx.animation.direction.fromTopRight',
-	fromBottomLeft: 'pptx.animation.direction.fromBottomLeft',
-	fromBottomRight: 'pptx.animation.direction.fromBottomRight',
-};
+/** `PptxAnimationDirection` -> dictionary key (shared, all eight compass values). */
+export const DIRECTION_LABEL_KEYS: Readonly<Record<string, string>> =
+	ANIMATION_DIRECTION_LABEL_KEYS;
 
 /** `PptxAnimationSequence` -> dictionary key. */
 export const SEQUENCE_LABEL_KEYS: Readonly<Record<string, string>> = {
