@@ -16,7 +16,7 @@
  *  - A label that does not fit goes OUTSIDE, on the mid-angle, with the box
  *    side facing the pie 2pt beyond the rim. PowerPoint then nudges outside
  *    labels apart when they collide and draws leader lines to the nudged
- *    ones; that collision pass is not modelled.
+ *    ones; that pass is `chart-pie-label-collision` (an approximation).
  *
  * All lengths are in the chart's px space (1pt = 4/3px).
  *
