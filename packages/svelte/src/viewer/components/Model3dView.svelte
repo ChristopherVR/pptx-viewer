@@ -91,6 +91,7 @@
 			width: Math.max(1, model.width),
 			height: Math.max(1, model.height),
 			interactive: true,
+			scene: model.scene,
 		});
 		URL.revokeObjectURL(url);
 		if (result.ok) {
