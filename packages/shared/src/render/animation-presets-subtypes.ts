@@ -226,3 +226,39 @@ export function redirectMaskEffectByFilterSubtype(
 	}
 	return effect;
 }
+
+/** Shape reveals whose exit Effect Options "Out" opens a hole at the centre. */
+const EXIT_FROM_CENTER_REVEAL: Partial<
+	Record<EffectName, { family: string; variant: EffectName }>
+> = {
+	boxOut: { family: 'box', variant: 'boxOutFromCenter' },
+	circleOut: { family: 'circle', variant: 'circleOutFromCenter' },
+	diamondOut: { family: 'diamond', variant: 'diamondOutFromCenter' },
+	plusOut: { family: 'plus', variant: 'plusOutFromCenter' },
+};
+
+/** `p:cTn/@presetSubtype` PowerPoint writes for the shape reveals' "Out" direction. */
+const SHAPE_REVEAL_OUT_SUBTYPE = 32;
+
+/**
+ * Redirect the default Box / Circle / Diamond / Plus EXIT (which closes in
+ * toward the centre, PowerPoint's "In") to its "Out" variant when the effect
+ * asks for that direction: the filter's own subtype token (`box(out)`), else,
+ * with no filter to read, `presetSubtype` 32. Mirrors how the entrance side
+ * honours the same token in {@link redirectMaskEffectByFilterSubtype}.
+ * Returns `effect` unchanged for any other effect or direction.
+ */
+export function redirectExitShapeByDirection(
+	effect: EffectName | undefined,
+	filter: { family: string; subtype?: string } | undefined,
+	presetSubtype: number | undefined,
+): EffectName | undefined {
+	const variant = effect ? EXIT_FROM_CENTER_REVEAL[effect] : undefined;
+	if (!effect || !variant) {
+		return effect;
+	}
+	const isOut = filter
+		? filter.family === variant.family && filter.subtype === 'out'
+		: presetSubtype === SHAPE_REVEAL_OUT_SUBTYPE;
+	return isOut ? variant.variant : effect;
+}

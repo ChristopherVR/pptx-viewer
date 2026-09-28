@@ -20,6 +20,7 @@ export { EMPH_FILTER_PRESETS, emphasisFilterKeyframeCss } from './animation-pres
 export {
 	BARN_FILTER_TOKEN_TO_SUBTYPE,
 	FLY_SUBTYPE_TO_EDGE,
+	redirectExitShapeByDirection,
 	redirectMaskEffectByFilterSubtype,
 	resolveAnimationWheelSpokeCount,
 	SPLIT_SUBTYPE_TO_VARIANT,

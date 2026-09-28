@@ -22,6 +22,7 @@ import {
 	emphasisFilterKeyframeCss,
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
+	redirectExitShapeByDirection,
 	redirectMaskEffectByFilterSubtype,
 } from './animation-presets';
 import type { AnimationElementBox, AnimationRenderContext } from './animation-render-context';
@@ -81,7 +82,11 @@ export function resolveEffect(
 			}
 		} else if (cls === 'exit') {
 			const effect = redirectStripsEffect(
-				applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype),
+				redirectExitShapeByDirection(
+					applyFlyDirection(PRESET_ID_TO_EFFECT.exit[id], anim.presetSubtype),
+					anim.effectFilter,
+					anim.presetSubtype,
+				),
 				anim.effectFilter,
 				anim.presetSubtype,
 			);

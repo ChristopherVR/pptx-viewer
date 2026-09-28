@@ -5,8 +5,18 @@ import type {
 	PptxAnimationSequence,
 	PptxAnimationTimingCurve,
 } from 'pptx-viewer-core';
+import { ANIMATION_DIRECTION_LABEL_KEYS } from 'pptx-viewer-shared';
 import type React from 'react';
-import { LuArrowDown, LuArrowLeft, LuArrowRight, LuArrowUp } from 'react-icons/lu';
+import {
+	LuArrowDown,
+	LuArrowDownLeft,
+	LuArrowDownRight,
+	LuArrowLeft,
+	LuArrowRight,
+	LuArrowUp,
+	LuArrowUpLeft,
+	LuArrowUpRight,
+} from 'react-icons/lu';
 
 import { ANIMATION_PRESET_OPTIONS } from '../../constants';
 
@@ -81,23 +91,44 @@ export const DIRECTION_OPTIONS: ReadonlyArray<{
 }> = [
 	{
 		value: 'fromTop',
-		labelKey: 'pptx.animation.direction.fromTop',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTop,
 		icon: LuArrowDown,
 	},
 	{
 		value: 'fromBottom',
-		labelKey: 'pptx.animation.direction.fromBottom',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottom,
 		icon: LuArrowUp,
 	},
 	{
 		value: 'fromLeft',
-		labelKey: 'pptx.animation.direction.fromLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromLeft,
 		icon: LuArrowRight,
 	},
 	{
 		value: 'fromRight',
-		labelKey: 'pptx.animation.direction.fromRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromRight,
 		icon: LuArrowLeft,
+	},
+	// Corners (Fly and Crawl only; the picker filters by the preset's variants).
+	{
+		value: 'fromTopLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTopLeft,
+		icon: LuArrowDownRight,
+	},
+	{
+		value: 'fromTopRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTopRight,
+		icon: LuArrowDownLeft,
+	},
+	{
+		value: 'fromBottomLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottomLeft,
+		icon: LuArrowUpRight,
+	},
+	{
+		value: 'fromBottomRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottomRight,
+		icon: LuArrowUpLeft,
 	},
 ];
 

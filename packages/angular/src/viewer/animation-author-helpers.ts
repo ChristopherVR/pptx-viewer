@@ -22,7 +22,12 @@ import type {
 	PptxElementAnimation,
 } from 'pptx-viewer-core';
 
-import { animationFor, directionValuesFor, effectiveDirection } from '../internal/shared';
+import {
+	ANIMATION_DIRECTION_LABEL_KEYS,
+	animationFor,
+	directionValuesFor,
+	effectiveDirection,
+} from '../internal/shared';
 
 // ── Pure authoring functions (consolidated in shared) ──
 export {
@@ -153,47 +158,52 @@ export const DIRECTION_OPTIONS: ReadonlyArray<{
 	/** Unicode arrow glyph used as an icon substitute in the Angular template. */
 	arrow: string;
 }> = [
-	{ value: 'fromTop', label: 'From Top', labelKey: 'pptx.animation.direction.fromTop', arrow: '↓' },
+	{
+		value: 'fromTop',
+		label: 'From Top',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTop,
+		arrow: '↓',
+	},
 	{
 		value: 'fromBottom',
 		label: 'From Bottom',
-		labelKey: 'pptx.animation.direction.fromBottom',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottom,
 		arrow: '↑',
 	},
 	{
 		value: 'fromLeft',
 		label: 'From Left',
-		labelKey: 'pptx.animation.direction.fromLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromLeft,
 		arrow: '→',
 	},
 	{
 		value: 'fromRight',
 		label: 'From Right',
-		labelKey: 'pptx.animation.direction.fromRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromRight,
 		arrow: '←',
 	},
 	{
 		value: 'fromTopLeft',
 		label: 'From Top Left',
-		labelKey: 'pptx.animation.direction.fromTopLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTopLeft,
 		arrow: '↘',
 	},
 	{
 		value: 'fromTopRight',
 		label: 'From Top Right',
-		labelKey: 'pptx.animation.direction.fromTopRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromTopRight,
 		arrow: '↙',
 	},
 	{
 		value: 'fromBottomLeft',
 		label: 'From Bottom Left',
-		labelKey: 'pptx.animation.direction.fromBottomLeft',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottomLeft,
 		arrow: '↗',
 	},
 	{
 		value: 'fromBottomRight',
 		label: 'From Bottom Right',
-		labelKey: 'pptx.animation.direction.fromBottomRight',
+		labelKey: ANIMATION_DIRECTION_LABEL_KEYS.fromBottomRight,
 		arrow: '↖',
 	},
 ];
