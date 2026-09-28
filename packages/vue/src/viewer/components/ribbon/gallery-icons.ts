@@ -6,6 +6,7 @@ import {
 	Brush,
 	CaseSensitive,
 	ChartColumn,
+	Contrast,
 	Image,
 	LayoutGrid,
 	List,
@@ -15,6 +16,7 @@ import {
 	Sparkles,
 	Table,
 	Type,
+	WandSparkles,
 } from 'lucide-vue-next';
 import type { RibbonGalleryId } from 'pptx-viewer-shared';
 import type { Component } from 'vue';
@@ -24,6 +26,9 @@ export const GALLERY_ICONS: Record<RibbonGalleryId, Component> = {
 	shapeEffects: Sparkles,
 	wordArtStyles: Type,
 	pictureStyles: Image,
+	pictureCorrections: Contrast,
+	pictureColor: Palette,
+	pictureArtisticEffects: WandSparkles,
 	bullets: List,
 	numbering: ListOrdered,
 	tableStyles: Table,
