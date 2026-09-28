@@ -123,7 +123,9 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				// Hide when not playing → showWhenStopped="0"
 				if (media.hideWhenNotPlaying) {
 					cMediaNode['@_showWhenStopped'] = '0';
-				} else {
+				} else if (String(cMediaNode['@_showWhenStopped']) === '0') {
+					// Only a stale "0" is cleared; an authored "1" is the default
+					// value written explicitly and must survive the rewrite.
 					delete cMediaNode['@_showWhenStopped'];
 				}
 
