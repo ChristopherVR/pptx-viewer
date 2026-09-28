@@ -23,6 +23,7 @@ import { applyDataPointPictureFills } from './chart-datapoint-picture-fills';
 import { buildBoxWhiskerViewModel, buildHistogramViewModel } from './chart-distribution';
 import { buildFunnelViewModel, buildSunburstViewModel } from './chart-funnel-sunburst';
 import { withGradientFills } from './chart-gradient-defs';
+import { splitLabelLines } from './chart-label-lines';
 import { applyLegendEntryOverrides } from './chart-legend-entries';
 import { manualLayoutOf } from './chart-manual-layout';
 import { buildOfPieViewModel } from './chart-ofpie';
@@ -45,6 +46,15 @@ import { buildRegionMapViewModel, buildWaterfallViewModel } from './chart-waterf
 // ─────────────────────────────────────────────────────────────────────────────
 
 export function buildChartViewModel(element: PptxElement): ChartViewModel {
+	const vm = buildChartViewModelInner(element);
+	// A label with a line break (a "\n" `c:separator`) paints as one `<text>` per
+	// line in every binding; single-line labels pass through untouched.
+	return vm.dataLabels.some((label) => label.text.includes('\n'))
+		? { ...vm, dataLabels: vm.dataLabels.flatMap(splitLabelLines) }
+		: vm;
+}
+
+function buildChartViewModelInner(element: PptxElement): ChartViewModel {
 	if (element.type !== 'chart') {
 		return buildFallbackViewModel(element.width, element.height, 'Chart');
 	}

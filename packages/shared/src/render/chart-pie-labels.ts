@@ -21,6 +21,7 @@ import type {
 } from 'pptx-viewer-core';
 
 import { chartFontPx, DEFAULT_CHART_DATA_LABEL_PX } from './chart-font';
+import { splitLabelLines } from './chart-label-lines';
 import { dataLabelBoxSize } from './chart-label-measure';
 import type { ChartAnchorPoint, ChartFrameSize } from './chart-manual-layout';
 import { applyLabelManualLayout, chartFrameToViewOffset } from './chart-manual-layout';
@@ -195,7 +196,9 @@ export function buildPieDataLabels(params: PieLabelParams): PieLabelResult {
 	const leaderLines: SvgLine[] = [];
 	const boxes: SvgPrimitive[] = [];
 	const push = (i: number, label: SvgText, midAngle: number) => {
-		labels.push(label);
+		// The box/callout is sized from the whole label; the painted text is
+		// one primitive per line so no binding needs multi-line support.
+		labels.push(...splitLabelLines(label));
 		const r = params.targetRadius ?? outerR;
 		if (decorate) {
 			const target = { x: cx + r * Math.cos(midAngle), y: cy + r * Math.sin(midAngle) };
