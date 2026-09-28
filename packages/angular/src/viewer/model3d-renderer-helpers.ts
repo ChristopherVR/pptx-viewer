@@ -1,4 +1,4 @@
-import type { Model3DPptxElement, PptxElement } from 'pptx-viewer-core';
+import type { Model3DPptxElement, Model3DSceneData, PptxElement } from 'pptx-viewer-core';
 
 import { modelDataToBlobUrl } from '../internal/shared';
 import type { StyleMap } from './element-style';
@@ -57,4 +57,21 @@ export function deriveModel3DBlobUrl(element: PptxElement): string | undefined {
 	}
 	const model: Model3DPptxElement = element;
 	return modelDataToBlobUrl(model.modelData, model.modelMimeType);
+}
+
+/**
+ * Options handed to the shared `mountModel3D` controller: size, interactivity
+ * and the element's authored camera/transform/lights (`scene`, `undefined`
+ * keeps the default framing).
+ */
+export function buildModel3DMountOptions(
+	element: PptxElement,
+	interactive: boolean,
+): { width: number; height: number; interactive: boolean; scene: Model3DSceneData | undefined } {
+	return {
+		width: element.width,
+		height: element.height,
+		interactive,
+		scene: element.type === 'model3d' ? element.scene : undefined,
+	};
 }
