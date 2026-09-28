@@ -28,7 +28,7 @@
  */
 
 import type { PptxElement, PptxSlide } from '../../types';
-import { encodePng } from '../../utils/png-encoder';
+import { encodeCompressedPng } from '../../utils/png-encoder-compressed';
 import { bytesToPicture, sniffImageFormat } from './picture-encode';
 import { pictureSourceOf } from './picture-source';
 import type { PictureSource } from './picture-source';
@@ -60,7 +60,7 @@ async function tiffToPicture(bytes: Uint8Array): Promise<WPictureData | undefine
 		}
 		return {
 			extension: 'png',
-			bytes: encodePng(width, height, new Uint8Array(utif.toRGBA8(page))),
+			bytes: encodeCompressedPng(width, height, new Uint8Array(utif.toRGBA8(page))),
 		};
 	} catch {
 		return undefined;

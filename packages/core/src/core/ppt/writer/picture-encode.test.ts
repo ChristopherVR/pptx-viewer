@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PptxHandler } from '../../PptxHandler';
 import type { PptxSlide } from '../../types';
 import { decodeGifFirstFrame } from '../../utils/gif-decode';
+import { decodePngDimensions, encodePng } from '../../utils/png-encoder';
 import { bytesToPicture, sniffImageFormat } from './picture-encode';
 import { resolvePictureSources } from './picture-resolve';
 
@@ -79,6 +80,18 @@ describe('bytesToPicture', () => {
 		const picture = bytesToPicture(gif)!;
 		expect(picture.extension).toBe('png');
 		expect(sniffImageFormat(picture.bytes)).toBe('png');
+	});
+
+	it('stores the GIF frame as a compressed PNG, far smaller than stored blocks', async () => {
+		const gif = await part(await fixtureParts(), '.gif');
+		const frame = decodeGifFirstFrame(gif)!;
+		const picture = bytesToPicture(gif)!;
+		const stored = encodePng(frame.width, frame.height, frame.rgba);
+		expect(decodePngDimensions(picture.bytes)).toStrictEqual({
+			width: frame.width,
+			height: frame.height,
+		});
+		expect(picture.bytes.length).toBeLessThan(stored.length / 4);
 	});
 
 	it('has no synchronous path for TIFF or SVG', async () => {
