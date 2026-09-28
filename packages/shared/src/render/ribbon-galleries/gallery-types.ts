@@ -29,6 +29,9 @@ export type RibbonGalleryId =
 	| 'shapeEffects'
 	| 'wordArtStyles'
 	| 'pictureStyles'
+	| 'pictureCorrections'
+	| 'pictureColor'
+	| 'pictureArtisticEffects'
 	| 'bullets'
 	| 'numbering'
 	| 'tableStyles'
@@ -56,6 +59,12 @@ export interface RibbonGalleryItem {
 	 * so it is safe to inject as markup.
 	 */
 	previewSvg: string;
+	/**
+	 * CSS `filter` the tile's preview carries (the Picture Adjust galleries),
+	 * for a host that draws the thumbnail over a real image instead of
+	 * `previewSvg`. Omitted when the preset has no CSS-expressible preview.
+	 */
+	previewFilter?: string;
 	/** True when this entry is what the selection currently carries. */
 	applied: boolean;
 }
