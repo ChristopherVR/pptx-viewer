@@ -171,6 +171,7 @@ function buildViewButton(
 			width: Math.max(1, element.width),
 			height: Math.max(1, element.height),
 			interactive: true,
+			scene: element.scene,
 		}).then((handle) => {
 			URL.revokeObjectURL(url);
 			if (handle.ok) {

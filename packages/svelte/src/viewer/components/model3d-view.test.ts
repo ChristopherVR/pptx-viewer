@@ -112,6 +112,24 @@ describe('model3dView', () => {
 		expect(box?.textContent).toContain('3D Model');
 	});
 
+	it('passes the authored scene to the shared controller', async () => {
+		const SCENE = {
+			camera: { projection: 'perspective', fovDeg: 40 },
+			lights: [{ kind: 'ambient' }],
+		};
+		const target = mountEl(
+			model3dElement({ posterImage: POSTER_DATA_URL, modelData: GLB_DATA_URL, scene: SCENE }),
+		);
+		target.querySelector<HTMLButtonElement>('button.pptx-svelte-model3d-view')?.click();
+		await flushMount();
+		expect(mountModel3D).toHaveBeenCalledExactlyOnceWith(expect.anything(), 'blob:fake', {
+			width: 320,
+			height: 240,
+			interactive: true,
+			scene: SCENE,
+		});
+	});
+
 	it('mounts the interactive scene on demand and swaps out the poster', async () => {
 		const target = mountEl(
 			model3dElement({ posterImage: POSTER_DATA_URL, modelData: GLB_DATA_URL }),

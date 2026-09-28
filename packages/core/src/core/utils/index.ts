@@ -449,6 +449,8 @@ export {
 	type AlternateContentBlock,
 } from './alternate-content';
 
+export { parseModel3DScene } from './model3d-scene-parser';
+
 export {
 	extractModel3DTransform,
 	resolveModel3DMimeType,

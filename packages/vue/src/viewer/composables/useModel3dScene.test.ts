@@ -107,6 +107,27 @@ describe('useModel3dScene', () => {
 		expect(result.mounted.value).toBeTruthy();
 	});
 
+	it('passes the authored scene to the shared controller', async () => {
+		mountModel3D.mockResolvedValue(okHandle());
+		const scene = { camera: { projection: 'perspective', fovDeg: 40 }, lights: [] };
+		const refs: SceneRefs = {
+			container: ref(document.createElement('div')),
+			element: ref(model3d({ modelData: GLB_DATA_URL, scene } as never)),
+			width: ref(320),
+			height: ref(240),
+			interactive: ref(true),
+		};
+		run(refs);
+		await nextTick();
+		await Promise.resolve();
+		expect(mountModel3D).toHaveBeenCalledWith(refs.container.value, 'blob:fake', {
+			width: 320,
+			height: 240,
+			interactive: true,
+			scene,
+		});
+	});
+
 	it('does not mount and stays unmounted when there is no modelData', async () => {
 		const refs: SceneRefs = {
 			container: ref(document.createElement('div')),

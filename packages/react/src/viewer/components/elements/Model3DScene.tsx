@@ -12,6 +12,7 @@
  * @module Model3DScene
  */
 
+import type { Model3DSceneData } from 'pptx-viewer-core';
 import { mountModel3D } from 'pptx-viewer-shared';
 import type { Model3DHandle } from 'pptx-viewer-shared';
 import React, { useRef, useEffect } from 'react';
@@ -25,9 +26,17 @@ export interface Model3DSceneProps {
 	interactive: boolean;
 	width: number;
 	height: number;
+	/** Authored camera/transform/lights; omit for the default framing. */
+	scene?: Model3DSceneData;
 }
 
-export default function Model3DScene({ modelUrl, interactive, width, height }: Model3DSceneProps) {
+export default function Model3DScene({
+	modelUrl,
+	interactive,
+	width,
+	height,
+	scene,
+}: Model3DSceneProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const handleRef = useRef<Model3DHandle | null>(null);
 
@@ -39,7 +48,7 @@ export default function Model3DScene({ modelUrl, interactive, width, height }: M
 			return;
 		}
 		let disposed = false;
-		void mountModel3D(container, modelUrl, { width, height, interactive }).then((handle) => {
+		void mountModel3D(container, modelUrl, { width, height, interactive, scene }).then((handle) => {
 			if (disposed) {
 				handle.dispose();
 			} else {
@@ -55,7 +64,7 @@ export default function Model3DScene({ modelUrl, interactive, width, height }: M
 		// Intentionally keyed on modelUrl only: size/interactivity are pushed to
 		// the live handle by the effects below to avoid a costly scene remount.
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [modelUrl]);
+	}, [modelUrl, scene]);
 
 	// Apply interactivity toggles to the live handle.
 	useEffect(() => {

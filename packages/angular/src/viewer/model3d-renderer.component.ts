@@ -22,6 +22,7 @@ import type { Model3DHandle, mountModel3D as MountModel3D } from '../internal/sh
 import type { StyleMap } from './element-style';
 import {
 	buildModel3DContainerStyle,
+	buildModel3DMountOptions,
 	buildModel3DViewModel,
 	deriveModel3DBlobUrl,
 } from './model3d-renderer-helpers';
@@ -197,7 +198,7 @@ export class Model3DRendererComponent implements OnDestroy {
 			if (this.mountedUrl === url && this.handle) {
 				return;
 			}
-			this.mount(fn, container, url, this.element().width, this.element().height);
+			this.mount(fn, container, url);
 		});
 
 		// Push interactivity toggles to the live handle without re-mounting.
@@ -234,18 +235,12 @@ export class Model3DRendererComponent implements OnDestroy {
 		}
 	}
 
-	private mount(
-		fn: MountFn,
-		container: HTMLElement,
-		url: string,
-		width: number,
-		height: number,
-	): void {
+	private mount(fn: MountFn, container: HTMLElement, url: string): void {
 		this.teardownHandle();
-		const interactive = this.interactive();
+		const options = buildModel3DMountOptions(this.element(), this.interactive());
 		const mountedUrl = url;
 		this.mountedUrl = mountedUrl;
-		void fn(container, url, { width, height, interactive }).then((handle) => {
+		void fn(container, url, options).then((handle) => {
 			// A newer mount (or teardown) superseded this one while loading.
 			if (this.mountedUrl !== mountedUrl) {
 				handle.dispose();

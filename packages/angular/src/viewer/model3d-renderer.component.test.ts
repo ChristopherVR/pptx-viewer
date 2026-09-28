@@ -8,7 +8,11 @@
 import type { PptxElement } from 'pptx-viewer-core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { buildModel3DViewModel, deriveModel3DBlobUrl } from './model3d-renderer-helpers';
+import {
+	buildModel3DMountOptions,
+	buildModel3DViewModel,
+	deriveModel3DBlobUrl,
+} from './model3d-renderer-helpers';
 
 // ---------------------------------------------------------------------------
 // Helper
@@ -141,5 +145,22 @@ describe('shared model3d-scene contract', () => {
 		expect(mod.mountModel3D).toBeTypeOf('function');
 		expect(mod.THREE_UNAVAILABLE.ok).toBeFalsy();
 		expect(() => mod.THREE_UNAVAILABLE.dispose()).not.toThrow();
+	});
+});
+
+describe('buildModel3DMountOptions', () => {
+	const scene = {
+		camera: { projection: 'perspective' as const, fovDeg: 40 },
+		lights: [{ kind: 'ambient' as const }],
+	};
+
+	it('passes size, interactivity and the authored scene through', () => {
+		expect(
+			buildModel3DMountOptions(model3d({ scene } as Partial<PptxElement>), true),
+		).toStrictEqual({ width: 320, height: 240, interactive: true, scene });
+	});
+
+	it('leaves scene undefined (default framing) when nothing is authored', () => {
+		expect(buildModel3DMountOptions(model3d(), false).scene).toBeUndefined();
 	});
 });

@@ -29,6 +29,7 @@ import type {
 	MediaMetadata,
 	MediaCaptionTrack,
 } from './media';
+import type { Model3DSceneData } from './model3d-scene';
 import type { ShapeStyle } from './shape-style';
 import type { PptxSmartArtData } from './smart-art';
 import type { PptxTableData } from './table';
@@ -783,6 +784,11 @@ export interface Model3DPptxElement extends PptxElementBase, PptxImageProperties
 	modelMimeType?: string;
 	/** Poster/preview image shown when 3D rendering is unavailable. */
 	posterImage?: string;
+	/**
+	 * Authored camera, model transform and lights (`am3d:camera`, `am3d:trans`,
+	 * lights). Read-only view: the XML round-trips via `rawXml`.
+	 */
+	scene?: Model3DSceneData;
 	/** Unrecognised graphicFrame extLst extensions, captured verbatim for round-trip. */
 	extensionXml?: PptxGraphicFrameExtension[];
 }
