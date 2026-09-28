@@ -63,6 +63,24 @@ export const CONTEXTUAL_TAB_GROUPS: Record<
 	],
 	pictureFormat: [
 		{
+			group: 'pictureFormat.adjust',
+			labelKey: 'pptx.ribbon.groupAdjust',
+			label: 'Adjust',
+			galleries: [
+				{
+					gallery: 'pictureCorrections',
+					control: 'pictureFormat.adjust.corrections',
+					mode: 'dropdown',
+				},
+				{ gallery: 'pictureColor', control: 'pictureFormat.adjust.color', mode: 'dropdown' },
+				{
+					gallery: 'pictureArtisticEffects',
+					control: 'pictureFormat.adjust.artisticEffects',
+					mode: 'dropdown',
+				},
+			],
+		},
+		{
 			group: 'pictureFormat.pictureStyles',
 			labelKey: 'pptx.ribbon.groupPictureStyles',
 			label: 'Picture Styles',

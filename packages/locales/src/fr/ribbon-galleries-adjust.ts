@@ -1,0 +1,30 @@
+/** Picture Format > Adjust galleries (Corrections, Couleur, Effets artistiques). */
+export const translations: Record<string, string> = {
+	'pptx.ribbon.groupAdjust': 'Ajuster',
+	'pptx.gallery.pictureCorrections.title': 'Corrections',
+	'pptx.gallery.pictureCorrections.sharpenSoften': 'Netteté/Adoucissement',
+	'pptx.gallery.pictureCorrections.brightnessContrastTitle': 'Luminosité/Contraste',
+	'pptx.gallery.pictureCorrections.soften': 'Adoucir : {{amount}} %',
+	'pptx.gallery.pictureCorrections.sharpen': 'Accentuer : {{amount}} %',
+	'pptx.gallery.pictureCorrections.sharpenNormal': 'Accentuer : 0 % (normal)',
+	'pptx.gallery.pictureCorrections.brightnessContrast':
+		'Luminosité : {{brightness}} % Contraste : {{contrast}} %',
+	'pptx.gallery.pictureCorrections.brightnessContrastNormal':
+		'Luminosité : 0 % Contraste : 0 % (normal)',
+	'pptx.gallery.pictureColor.title': 'Couleur',
+	'pptx.gallery.pictureColor.saturationTitle': 'Saturation des couleurs',
+	'pptx.gallery.pictureColor.toneTitle': 'Ton de la couleur',
+	'pptx.gallery.pictureColor.recolorTitle': 'Recolorier',
+	'pptx.gallery.pictureColor.saturation': 'Saturation : {{amount}} %',
+	'pptx.gallery.pictureColor.saturationNormal': 'Saturation : 100 % (normal)',
+	'pptx.gallery.pictureColor.tone': 'Température : {{kelvin}} K',
+	'pptx.gallery.pictureColor.toneNormal': 'Température : 6500 K (normal)',
+	'pptx.gallery.pictureColor.recolorNone': 'Aucun recoloriage',
+	'pptx.gallery.pictureColor.recolorGrayscale': 'Niveaux de gris',
+	'pptx.gallery.pictureColor.recolorSepia': 'Sépia',
+	'pptx.gallery.pictureColor.recolorWashout': 'Délavé',
+	'pptx.gallery.pictureColor.recolorBlackWhite': 'Noir et blanc : {{amount}} %',
+	'pptx.gallery.pictureColor.recolorAccentDark': 'Accentuation {{n}}, foncé',
+	'pptx.gallery.pictureColor.recolorAccentLight': 'Accentuation {{n}}, clair',
+	'pptx.gallery.pictureArtisticEffects.title': 'Effets artistiques',
+};
