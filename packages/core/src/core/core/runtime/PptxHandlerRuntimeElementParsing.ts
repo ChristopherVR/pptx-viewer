@@ -8,7 +8,7 @@ import type {
 	Model3DPptxElement,
 	PptxTableData,
 } from '../../types';
-import { parseInkMlContent } from '../../utils';
+import { parseInkMlContent, parseModel3DScene } from '../../utils';
 import { normalizePlaceholderIndex } from '../../utils/placeholder-index';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSavePipeline';
 import type { PlaceholderInfo } from './PptxHandlerRuntimeTypes';
@@ -321,6 +321,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				posterImage,
 				imagePath,
 				imageData,
+				scene: parseModel3DScene(model3d),
 				rawXml: model3d,
 			} as Model3DPptxElement;
 		} catch (e) {

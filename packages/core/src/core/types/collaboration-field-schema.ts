@@ -218,6 +218,7 @@ export const ELEMENT_FIELD_KIND: Record<AnyElementKey, CollabFieldKind> = {
 	modelData: 'asset',
 	modelMimeType: 'scalar',
 	posterImage: 'scalar',
+	scene: 'complex',
 };
 
 export const SLIDE_FIELD_KIND: Record<keyof PptxSlide, CollabFieldKind> = {

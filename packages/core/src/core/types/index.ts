@@ -41,6 +41,7 @@ export * from './comment-mentions';
 export * from './metadata';
 export * from './element-base';
 export * from './elements';
+export * from './model3d-scene';
 export * from './type-guards';
 export * from './theme';
 export * from './theme-presets';
