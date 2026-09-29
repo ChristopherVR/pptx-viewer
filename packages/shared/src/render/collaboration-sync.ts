@@ -261,6 +261,8 @@ export const COMPLEX_ELEMENT_FIELDS: Readonly<Record<string, string>> = {
 	customGeometryAdjustHandlesPolar: '_cgo',
 	customGeometryConnectionSites: '_cgc',
 	customGeometryTextRect: '_cgt',
+	// A 3D model's authored camera, transform and lights (read-only view of `rawXml`).
+	scene: '_m3s',
 };
 const REV_COMPLEX_ELEMENT: Record<string, string> = Object.fromEntries(
 	Object.entries(COMPLEX_ELEMENT_FIELDS).map(([k, v]) => [v, k]),
