@@ -67,22 +67,6 @@ Una auditoría de septiembre de 2026 frente a PowerPoint real encontró estas ca
 - **Los modelos 3D** ignoran la cámara, la transformación y las luces definidas en PowerPoint.
 - **La cobertura del editor** es un subconjunto de la de PowerPoint: varias galerías de la cinta aún no están disponibles. Modificar puntos (con las herramientas de dibujo Forma libre: forma y Curva), Combinar formas, el recorte de imágenes sobre el lienzo (controladores de recorte, Recortar a la relación de aspecto, Rellenar, Ajustar), Pegado especial, los menús contextuales del lienzo vacío y de los elementos, la selección múltiple en el panel de diapositivas, una vista previa real de animaciones en su sitio y los atajos de edición habituales están disponibles en los cinco enlaces.
 
-## Metarchivos EMF/WMF (dependencia `emf-converter`)
-
-::: info No es código de este repositorio
-`emf-converter` es un paquete npm independiente con su propio repositorio; `pptx-viewer-core` solo lo consume. La tabla siguiente recoge lo que ese paquete hace hoy, así que, si ambos llegaran a discrepar, sus propias notas de versión son las que cuentan.
-:::
-
-::: warning Se requiere la API de Canvas
-La conversión de metarchivos necesita `OffscreenCanvas` o `HTMLCanvasElement`. Node.js puro sin un polyfill de canvas no es compatible con imágenes EMF/WMF (el resto del motor principal funciona sin problemas en Node).
-:::
-
-| Función                            | Estado                         | Notas                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| ---------------------------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Pinceles de degradado y de textura | Residuo de remuestreo          | Los degradados, los pinceles de trama y los pinceles de textura EMF+ (incluidos los mapas de bits comprimidos, desde 3.3.0) se renderizan con paradas de color y mosaico exactos; el filtrado de patrones del navegador deja una pequeña diferencia de suavizado de bordes respecto a Windows GDI+ (medida en el README del paquete).                                                                                                                        |
-| Operaciones ráster                 | Exactas                        | Los 256 códigos ROP3 y todos los modos de pluma ROP2 a nivel de bits, también dentro de trazados `BeginPath`/`EndPath` (desde 3.3.0), se evalúan con exactitud.                                                                                                                                                                                                                                                                                              |
-| Texto y transformaciones           | Motor de fuentes del navegador | Las métricas de los glifos pueden diferir de Windows GDI: se respetan las matrices `dx` de `ExtTextOut`, el signo de la altura de `LOGFONT` y el escapement, pero sin una matriz `dx` el espaciado depende de la sustitución de fuentes del navegador. Las transformaciones de mundo con rotación e inclinación se aplican a formas, transferencias de bloques (blits) y texto (desde 3.3.0); el texto bajo una inclinación usa un único ángulo de rotación. |
-
 ## Lecturas relacionadas
 
 - [Introducción](/es/guide/introduction) - lo que admite el proyecto en general.

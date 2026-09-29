@@ -67,22 +67,6 @@ A September 2026 audit against real PowerPoint found these gaps that are still o
 - **3D models** apply the camera (perspective or orthographic, position, up vector, look-at target, field of view), the model transform (scale, rotation, post-translation, metres per model unit) and the ambient, point, spot and directional lights authored in PowerPoint; a model without them keeps the default framing and lights. This is not yet verified against PowerPoint renders: the handedness of `am3d:rot`, the `am3d:preTrans` offset (parsed, not applied), the orthographic scale, light intensity units and spot cone angles are best-effort, and the model is centred on its bounding box rather than on its authored origin.
 - **Editor coverage** is a subset of PowerPoint's. The ribbon style galleries (Shape Styles, Shape Effects, WordArt Styles, Picture Styles, the Picture Format > Adjust Corrections, Color and Artistic Effects galleries, the Bullets and Numbering libraries, Table Styles, Chart Styles, Chart Colors and Quick Layout, SmartArt Styles and Change Colors, and the Design > Variants Colors and Fonts) and the contextual Shape Format, Picture Format, Table Design, Chart Design and SmartArt Design tabs are available in all five bindings; the Variants Effects and Background Styles galleries and SmartArt Design > Layouts have no ribbon gallery yet (the SmartArt layout is set from the inspector). Edit Points (with the Freeform: Shape and Curve drawing tools), Merge Shapes, on-canvas picture cropping (crop handles, Crop to Aspect Ratio, Fill, Fit), Paste Special, the empty-canvas and element context menus, slides-pane multi-select, real in-place animation preview and the standard editing shortcuts are available in all five bindings.
 
-## EMF/WMF metafiles (`emf-converter` dependency)
-
-::: info Not this repository's code
-`emf-converter` is a separate npm package with its own repository; `pptx-viewer-core` only consumes it. The table below records what that package does today, so treat its own release notes as authoritative if the two ever disagree.
-:::
-
-::: warning Canvas API required
-Metafile conversion needs `OffscreenCanvas` or `HTMLCanvasElement`. Pure Node.js without a canvas polyfill is not supported for EMF/WMF images (the rest of the core engine runs fine in Node).
-:::
-
-| Feature                      | Status              | Notes                                                                                                                                                                                                                                                                                                                                        |
-| ---------------------------- | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Gradient and texture brushes | Resampling residual | Gradients, pattern brushes and EMF+ texture brushes (including compressed bitmaps, since 3.3.0) render with exact stops and tiling; the browser's pattern filtering leaves a small edge-smoothing difference from Windows GDI+ (measured in the package README).                                                                             |
-| Raster operations            | Exact               | All 256 ROP3 codes and all bitwise ROP2 pen modes, including inside `BeginPath`/`EndPath` paths (since 3.3.0), evaluate exactly.                                                                                                                                                                                                             |
-| Text and transforms          | Browser font engine | Glyph metrics can differ from Windows GDI: `ExtTextOut` `dx` arrays, the `LOGFONT` height sign and escapement are honoured, but without a `dx` array spacing depends on the browser's font substitution. Rotated and sheared world transforms apply to shapes, blits and text (since 3.3.0); text under a skew uses a single rotation angle. |
-
 ## Related reading
 
 - [Introduction](/guide/introduction) - what the project supports overall.

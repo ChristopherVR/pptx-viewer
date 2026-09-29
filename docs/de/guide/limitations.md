@@ -67,22 +67,6 @@ Ein Audit vom September 2026 gegen echtes PowerPoint fand diese noch offenen Lü
 - **3D-Modelle** ignorieren die in PowerPoint festgelegte Kamera, Transformation und Beleuchtung.
 - **Die Editor-Abdeckung** ist eine Teilmenge von PowerPoint: Mehrere Menüband-Galerien sind noch nicht verfügbar. Punkte bearbeiten (mit den Zeichenwerkzeugen Freihandform: Form und Kurve), Formen zusammenführen, das Zuschneiden von Bildern auf der Zeichenfläche (Zuschneidegriffe, Auf Seitenverhältnis zuschneiden, Ausfüllen, Einpassen), Inhalte einfügen, die Kontextmenüs für leere Zeichenfläche und Elemente, die Mehrfachauswahl im Folienbereich, eine echte Animationsvorschau an Ort und Stelle und die üblichen Bearbeitungs-Tastenkürzel sind in allen fünf Bindings verfügbar.
 
-## EMF/WMF-Metadateien (Abhängigkeit `emf-converter`)
-
-::: info Nicht der Code dieses Repositorys
-`emf-converter` ist ein eigenständiges npm-Paket mit eigenem Repository; `pptx-viewer-core` nutzt es nur. Die folgende Tabelle beschreibt, was dieses Paket heute leistet; falls beide einmal voneinander abweichen, sind seine eigenen Release-Notes maßgeblich.
-:::
-
-::: warning Canvas-API erforderlich
-Die Konvertierung von Metadateien benötigt `OffscreenCanvas` oder `HTMLCanvasElement`. Reines Node.js ohne Canvas-Polyfill wird für EMF/WMF-Bilder nicht unterstützt (der Rest der Core-Engine läuft in Node problemlos).
-:::
-
-| Funktion                   | Status                      | Hinweise                                                                                                                                                                                                                                                                                                                                                                                         |
-| -------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Verlaufs- und Texturpinsel | Resampling-Restfehler       | Verläufe, Musterpinsel und EMF+-Texturpinsel (seit 3.3.0 auch mit komprimierten Bitmaps) werden mit exakten Farbstopps und exakter Kachelung gerendert; die Musterfilterung des Browsers hinterlässt einen kleinen Unterschied bei der Kantenglättung gegenüber Windows GDI+ (gemessen in der README des Pakets).                                                                                |
-| Rasteroperationen          | Exakt                       | Alle 256 ROP3-Codes und alle bitweisen ROP2-Stiftmodi werden exakt ausgewertet, auch innerhalb von `BeginPath`/`EndPath`-Pfaden (seit 3.3.0).                                                                                                                                                                                                                                                    |
-| Text und Transformationen  | Schrift-Engine des Browsers | Glyphenmetriken können von Windows GDI abweichen: `ExtTextOut`-`dx`-Arrays, das Vorzeichen der `LOGFONT`-Höhe und der Escapement-Wert werden berücksichtigt, ohne `dx`-Array hängt der Abstand aber von der Schriftersetzung des Browsers ab. Gedrehte und gescherte Weltmatrizen wirken auf Formen, Blits und Text (seit 3.3.0); Text unter einer Scherung verwendet einen einzigen Drehwinkel. |
-
 ## Weiterführende Seiten
 
 - [Einführung](/de/guide/introduction) - was das Projekt insgesamt unterstützt.

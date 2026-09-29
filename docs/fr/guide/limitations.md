@@ -67,22 +67,6 @@ Un audit de septembre 2026 mené contre le vrai PowerPoint a relevé ces lacunes
 - **Les modèles 3D** ignorent la caméra, la transformation et les éclairages définis dans PowerPoint.
 - **La couverture de l'éditeur** est un sous-ensemble de celle de PowerPoint : plusieurs galeries du ruban ne sont pas encore disponibles. Modifier les points (avec les outils de dessin Forme libre : forme et Courbe), Fusionner les formes, le rognage d'image sur le canevas (poignées de rognage, Rogner selon les proportions, Remplissage, Ajuster), le Collage spécial, les menus contextuels du canevas vide et des éléments, la sélection multiple dans le volet des diapositives, un véritable aperçu des animations sur place et les raccourcis d'édition standard sont disponibles dans les cinq liaisons.
 
-## Métafichiers EMF/WMF (dépendance `emf-converter`)
-
-::: info Ce n'est pas du code de ce dépôt
-`emf-converter` est un package npm distinct doté de son propre dépôt ; `pptx-viewer-core` ne fait que le consommer. Le tableau ci-dessous décrit ce que fait ce package aujourd'hui ; si les deux venaient à diverger, ses propres notes de version font foi.
-:::
-
-::: warning API Canvas requise
-La conversion des métafichiers nécessite `OffscreenCanvas` ou `HTMLCanvasElement`. Node.js pur sans polyfill canvas n'est pas pris en charge pour les images EMF/WMF (le reste du moteur principal fonctionne sans problème dans Node).
-:::
-
-| Fonctionnalité                    | Statut                          | Remarques                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
-| --------------------------------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pinceaux de dégradé et de texture | Résidu de rééchantillonnage     | Les dégradés, les pinceaux à motif et les pinceaux de texture EMF+ (y compris les bitmaps compressés, depuis 3.3.0) sont rendus avec des arrêts de couleur et un pavage exacts ; le filtrage des motifs par le navigateur laisse une petite différence de lissage des bords par rapport à Windows GDI+ (mesurée dans le README du package).                                                                                                                                     |
-| Opérations raster                 | Exactes                         | Les 256 codes ROP3 et tous les modes de stylet ROP2 bit à bit, y compris à l'intérieur des tracés `BeginPath`/`EndPath` (depuis 3.3.0), sont évalués exactement.                                                                                                                                                                                                                                                                                                                |
-| Texte et transformations          | Moteur de polices du navigateur | Les métriques des glyphes peuvent différer de Windows GDI : les tableaux `dx` de `ExtTextOut`, le signe de la hauteur `LOGFONT` et l'escapement sont respectés, mais sans tableau `dx` l'espacement dépend de la substitution de polices du navigateur. Les transformations du monde avec rotation et cisaillement s'appliquent aux formes, aux transferts de blocs (blits) et au texte (depuis 3.3.0) ; le texte soumis à un cisaillement utilise un angle de rotation unique. |
-
 ## Pour aller plus loin
 
 - [Introduction](/fr/guide/introduction) - ce que le projet prend en charge dans son ensemble.
