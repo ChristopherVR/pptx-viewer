@@ -5,6 +5,8 @@ import App from './App.vue';
 import HostOwnedDemo from './HostOwnedDemo.vue';
 import i18n from './i18n';
 
+import '../../shared/dropzone.css';
+
 createApp(externalSessionRequested() ? HostOwnedDemo : App)
 	.use(i18n)
 	.mount('#app');

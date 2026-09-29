@@ -44,6 +44,7 @@ import { HostOwnedDemoApp } from './HostOwnedDemo';
 import i18nInstance from './i18n'; // Initialises i18next before any component renders
 
 import './app.css';
+import '../shared/dropzone.css';
 
 // ── Server URL safety ──────────────────────────────────────────────────────
 // Security model:
@@ -971,7 +972,7 @@ function App() {
 	}
 
 	return (
-		<main className='flex flex-col items-center justify-center h-[100dvh] w-screen bg-background text-foreground'>
+		<main className='demo-stage'>
 			<h1 className='sr-only'>PPTX Viewer</h1>
 			{recoveryOffer && (
 				<div className='max-w-[900px] w-full mb-4 p-4 rounded-lg border border-primary/40 bg-primary/5 flex items-center justify-between gap-4'>
@@ -1001,7 +1002,7 @@ function App() {
 			{/* Drag and drop supplements the keyboard-accessible native file input. */}
 			{/* oxlint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
 			<div
-				className='max-w-[900px] w-full border-2 border-dashed border-border rounded-xl p-12 text-center cursor-pointer transition-colors hover:border-primary hover:bg-accent'
+				className='demo-dropzone'
 				role='group'
 				data-testid='dropzone'
 				aria-label={t('demo.dropzone.uploadAriaLabel')}
@@ -1011,33 +1012,27 @@ function App() {
 			>
 				{urlBroadcast ? (
 					<>
-						<p className='text-foreground mb-2 font-medium'>
-							{t('demo.dropzone.joiningBroadcast')}{' '}
-							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
-								{urlBroadcast}
-							</code>
+						<p className='demo-join'>
+							{t('demo.dropzone.joiningBroadcast')} <code>{urlBroadcast}</code>
 						</p>
-						<p className='text-muted-foreground mb-3'>{t('demo.dropzone.loadingBroadcast')}</p>
+						<p className='demo-hint'>{t('demo.dropzone.loadingBroadcast')}</p>
 					</>
 				) : urlRoom ? (
 					<>
-						<p className='text-foreground mb-2 font-medium'>
-							{t('demo.dropzone.joiningSession')}{' '}
-							<code className='px-1.5 py-0.5 rounded bg-muted text-primary text-sm font-mono'>
-								{urlRoom}
-							</code>
+						<p className='demo-join'>
+							{t('demo.dropzone.joiningSession')} <code>{urlRoom}</code>
 						</p>
-						<label className='text-muted-foreground mb-3 cursor-pointer' htmlFor='file-input'>
+						<label className='demo-hint' htmlFor='file-input'>
 							{t('demo.dropzone.hintCollab')}
 						</label>
 					</>
 				) : (
-					<label className='text-muted-foreground mb-3 cursor-pointer' htmlFor='file-input'>
+					<label className='demo-hint' htmlFor='file-input'>
 						{t('demo.dropzone.hint')}
 					</label>
 				)}
-				<p className='text-sm text-muted-foreground'>{t('demo.dropzone.processed')}</p>
-				<div className='mt-4 flex flex-wrap items-center justify-center gap-2'>
+				<p className='demo-sub'>{t('demo.dropzone.processed')}</p>
+				<div className='demo-actions'>
 					<button
 						type='button'
 						data-testid='browse-files'
@@ -1045,7 +1040,7 @@ function App() {
 							e.stopPropagation();
 							openFilePicker();
 						}}
-						className='px-4 py-2 rounded-lg border border-primary bg-primary text-primary-foreground hover:opacity-90 text-sm font-medium transition-opacity'
+						className='demo-browse'
 					>
 						{t('demo.dropzone.browse')}
 					</button>
@@ -1055,7 +1050,6 @@ function App() {
 							e.stopPropagation();
 							void handleNewPresentation();
 						}}
-						className='px-4 py-2 rounded-lg border border-border bg-muted hover:bg-accent text-foreground text-sm transition-colors'
 					>
 						{t('demo.dropzone.newPresentation')}
 					</button>

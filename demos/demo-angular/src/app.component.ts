@@ -116,7 +116,6 @@ type DemoContent = Uint8Array | ArrayBuffer;
 			</main>
 		} @else {
 			<app-dropzone
-				[theme]="activeTheme()"
 				[urlRoom]="urlRoom"
 				[urlBroadcast]="urlBroadcast"
 				[busy]="isBusy()"
