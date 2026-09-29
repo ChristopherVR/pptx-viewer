@@ -7,6 +7,16 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.9.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.9.0) - 2026-09-29
+
+### Features
+
+- **core:** Write every used slide master to legacy .ppt export (by @claude) ([e629000](https://github.com/ChristopherVR/pptx-viewer/commit/e629000a770ef27a80e47b3c9050ae18f3e0fd72))
+
+### Dependencies
+
+- **deps:** Update @christophervr/ole2 to 0.3.0 (by @claude) ([483e932](https://github.com/ChristopherVR/pptx-viewer/commit/483e93291b316646aa5a1f3442aca0d127ebf123))
+
 ## [4.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.8.0) - 2026-09-29
 
 ### Features

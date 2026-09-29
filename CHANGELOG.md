@@ -10,6 +10,24 @@ dated sections beneath it are generated from
 
 ## 2026-09-29
 
+_Releases: pptx-viewer-core@4.9.0, pptx-react-viewer@4.14.0, pptx-vue-viewer@4.14.0, pptx-angular-viewer@4.14.0, pptx-vanilla-viewer@3.14.0, pptx-svelte-viewer@4.14.0_
+
+### Features
+
+- **core:** Write every used slide master to legacy .ppt export (by @claude) ([e629000](https://github.com/ChristopherVR/pptx-viewer/commit/e629000a770ef27a80e47b3c9050ae18f3e0fd72))
+
+### Documentation
+
+- Drop the emf-converter section from the limitations pages (by @claude) ([8ca78d4](https://github.com/ChristopherVR/pptx-viewer/commit/8ca78d43d2b2a8f3597317ac3d246b5dfa040ee7))
+- **es:** Sync the limitations page with the english source (by @claude) ([e074e97](https://github.com/ChristopherVR/pptx-viewer/commit/e074e976dfe335c05dfc12ee09eee78530be65e1))
+- **i18n:** Sync the de, fr and zh limitations pages with english (by @claude) ([5fc8d8c](https://github.com/ChristopherVR/pptx-viewer/commit/5fc8d8ce4d17dc56ad7fd3a782f0356afc1aba7d))
+
+### Dependencies
+
+- **deps:** Update @christophervr/ole2 to 0.3.0 (by @claude) ([483e932](https://github.com/ChristopherVR/pptx-viewer/commit/483e93291b316646aa5a1f3442aca0d127ebf123))
+
+## 2026-09-29
+
 _Releases: pptx-viewer-core@4.8.0, pptx-react-viewer@4.13.0, pptx-vue-viewer@4.13.0, pptx-angular-viewer@4.13.0, pptx-vanilla-viewer@3.13.0, pptx-svelte-viewer@4.13.0, @christophervr/pptx-viewer@2.31.0_
 
 ### Features
