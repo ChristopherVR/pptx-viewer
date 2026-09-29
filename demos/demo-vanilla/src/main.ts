@@ -27,6 +27,7 @@ import { mountHostOwnedDemo } from './host-owned-demo';
 import { readStoredTheme, themes } from './themes';
 
 import './styles.css';
+import '../../shared/dropzone.css';
 
 /**
  * Demo app for `pptx-vanilla-viewer`, mirroring demos/demo-vue/src/App.vue: the

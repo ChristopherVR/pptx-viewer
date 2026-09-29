@@ -111,6 +111,49 @@ test.describe('landing dropzone browse controls', () => {
 	test.describe('at 1920x1080', () => {
 		test.use({ viewport: { width: 1920, height: 1080 } });
 
+		test('the landing card matches the React reference metrics', async ({ page }) => {
+			await gotoLanding(page);
+			const metrics = await dropzone(page).evaluate((zone) => {
+				const hint = zone.querySelector('.demo-hint')!;
+				const sub = zone.querySelector('.demo-sub')!;
+				const actions = zone.querySelector('.demo-actions')!;
+				const buttons = [...actions.querySelectorAll('button')];
+				const zoneStyle = getComputedStyle(zone);
+				const actionStyle = getComputedStyle(actions);
+				return {
+					width: zone.getBoundingClientRect().width,
+					height: zone.getBoundingClientRect().height,
+					padding: zoneStyle.padding,
+					borderWidth: zoneStyle.borderWidth,
+					radius: zoneStyle.borderRadius,
+					hintSize: getComputedStyle(hint).fontSize,
+					subSize: getComputedStyle(sub).fontSize,
+					actionGap: actionStyle.gap,
+					actionMargin: actionStyle.marginTop,
+					buttons: buttons.map((button) => ({
+						height: button.getBoundingClientRect().height,
+						fontSize: getComputedStyle(button).fontSize,
+						radius: getComputedStyle(button).borderRadius,
+					})),
+				};
+			});
+			expect(metrics).toEqual({
+				width: 900,
+				height: 198,
+				padding: '48px',
+				borderWidth: '2px',
+				radius: '10px',
+				hintSize: '16px',
+				subSize: '14px',
+				actionGap: '8px',
+				actionMargin: '16px',
+				buttons: [
+					{ height: 38, fontSize: '14px', radius: '6px' },
+					{ height: 38, fontSize: '14px', radius: '6px' },
+				],
+			});
+		});
+
 		test('the Browse control is a painted primary button, centred on one row', async ({ page }) => {
 			await gotoLanding(page);
 			const zoneBox = (await dropzone(page).boundingBox())!;

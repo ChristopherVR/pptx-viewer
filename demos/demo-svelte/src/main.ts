@@ -5,6 +5,7 @@ import App from './App.svelte';
 import HostOwnedDemo from './HostOwnedDemo.svelte';
 
 import './styles.css';
+import '../../shared/dropzone.css';
 
 /** Demo entry point: mounts the Svelte demo shell. */
 const appRoot = document.getElementById('app');

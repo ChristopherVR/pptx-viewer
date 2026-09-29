@@ -17,6 +17,8 @@ import { AppComponent } from './app.component';
 import { HostOwnedDemoComponent } from './host-owned-demo.component';
 import { i18nProviders } from './i18n';
 
+import '../../shared/dropzone.css';
+
 bootstrapApplication(externalSessionRequested() ? HostOwnedDemoComponent : AppComponent, {
 	providers: [i18nProviders],
 }).catch((err) => console.error(err));

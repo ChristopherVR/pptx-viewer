@@ -10,7 +10,10 @@
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
 		"useDefineForClassFields": false,
-		"types": []
+		"types": ["vite/client"],
+		"paths": {
+			"pptx-angular-viewer": ["../../packages/angular/dist/types/pptx-angular-viewer.d.ts"]
+		}
 	},
 	"angularCompilerOptions": {
 		"strictTemplates": true
