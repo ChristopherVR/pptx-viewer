@@ -325,7 +325,7 @@
         "utif": "3.1.0",
       },
       "devDependencies": {
-        "@christophervr/ole2": "0.2.0",
+        "@christophervr/ole2": "0.3.0",
         "@napi-rs/canvas": "^1.0.9",
         "@types/node-forge": "^1.3.14",
         "@types/utif": "3.0.6",
@@ -735,7 +735,7 @@
 
     "@bramus/specificity": ["@bramus/specificity@2.4.2", "", { "dependencies": { "css-tree": "^3.0.0" }, "bin": { "specificity": "bin/cli.js" } }, "sha512-ctxtJ/eA+t+6q2++vj5j7FYX3nRu311q1wfYH3xjlLOsczhlhxAg2FWNUXhpGvAw3BWo1xBcvOV6/YLc2r5FJw=="],
 
-    "@christophervr/ole2": ["@christophervr/ole2@0.2.0", "", {}, "sha512-rMFBcdZRDfjnLt1iH4HMYO1L8BkCa0uklG1tDPMiZr4qQ8/lhcsIaoDhjsxCyTdd3v2rUwNTZLy6PskWFBxEJQ=="],
+    "@christophervr/ole2": ["@christophervr/ole2@0.3.0", "", {}, "sha512-qpwGHgYIucnPx/K0sCC1xHft+s5InuW9qz+1hi/vJ61dK9xWX+UURbJMT1DUm40qZAeRadYDbRyRY8/wmp5Ljg=="],
 
     "@christophervr/pptx-viewer": ["@christophervr/pptx-viewer@workspace:packages/cli"],
 
