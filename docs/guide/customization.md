@@ -534,6 +534,7 @@ unit test fails if an id is missing here.
 | `help.help`                         | Help                     |
 | `shapeFormat.shapeStyles`           | Shape Styles             |
 | `shapeFormat.wordArtStyles`         | WordArt Styles           |
+| `pictureFormat.adjust`              | Adjust                   |
 | `pictureFormat.pictureStyles`       | Picture Styles           |
 | `tableDesign.tableStyles`           | Table Styles             |
 | `chartDesign.chartLayouts`          | Chart Layouts            |
@@ -711,6 +712,9 @@ unit test fails if an id is missing here.
 | `shapeFormat.shapeStyles.gallery`                 | Shape Styles gallery                |
 | `shapeFormat.shapeStyles.shapeEffects`            | Shape Effects gallery               |
 | `shapeFormat.wordArtStyles.gallery`               | WordArt Styles gallery              |
+| `pictureFormat.adjust.corrections`                | Corrections gallery                 |
+| `pictureFormat.adjust.color`                      | Color gallery                       |
+| `pictureFormat.adjust.artisticEffects`            | Artistic Effects gallery            |
 | `pictureFormat.pictureStyles.gallery`             | Picture Styles gallery              |
 | `pictureFormat.pictureStyles.pictureEffects`      | Picture Effects gallery             |
 | `tableDesign.tableStyles.gallery`                 | Table Styles gallery                |
