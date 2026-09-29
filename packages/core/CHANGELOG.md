@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.8.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.8.0) - 2026-09-29
+
+### Features
+
+- **core:** Parse camera, transform and lights of 3D models (by @claude) ([c8d2a48](https://github.com/ChristopherVR/pptx-viewer/commit/c8d2a48e6f25a627a1db36689f86b53a791e2084))
+
+### Bug Fixes
+
+- **core:** Compress GIF and TIFF pictures written to legacy .ppt (by @claude) ([aa2dbde](https://github.com/ChristopherVR/pptx-viewer/commit/aa2dbdeb8f7c3b57f8facf479f38c529f30039a0))
+- **core:** Keep empty blip extLst and showWhenStopped=1 on save (by @claude) ([bbe50b5](https://github.com/ChristopherVR/pptx-viewer/commit/bbe50b5648e5885294adcaeb846c70ce5e6cc2d6))
+
 ## [4.7.2](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-core@4.7.2) - 2026-09-26
 
 ### Refactor

@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.31.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.31.0) - 2026-09-29
+
+### Features
+
+- **react:** Render authored 3D model camera, transform and lights (by @claude) ([34b7917](https://github.com/ChristopherVR/pptx-viewer/commit/34b7917938cb96f6f4b39758930acdc027ccfe5f))
+
+### Bug Fixes
+
+- **react:** Offer corner directions for Fly and Crawl in the animation picker (by @claude) ([4e1fc14](https://github.com/ChristopherVR/pptx-viewer/commit/4e1fc14326c97bec5849a0ed97edfe702fa43e3c))
+
+### Testing
+
+- **react:** Cover picture format adjust galleries (by @claude) ([4a8e54c](https://github.com/ChristopherVR/pptx-viewer/commit/4a8e54c85aa87d4659b38963378ea0d723650004))
+- **react:** Cover multi-line pie data labels (by @claude) ([18549c5](https://github.com/ChristopherVR/pptx-viewer/commit/18549c508ff80293cc21ef573e3556b076dea5c3))
+
 ## [2.30.3](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.30.3) - 2026-09-26
 
 ### Bug Fixes

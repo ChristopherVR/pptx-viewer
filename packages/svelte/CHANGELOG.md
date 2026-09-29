@@ -7,6 +7,35 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.13.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.13.0) - 2026-09-29
+
+### Features
+
+- **shared:** Picture adjust galleries for corrections, color and artistic effects (by @claude) ([f2b4ab5](https://github.com/ChristopherVR/pptx-viewer/commit/f2b4ab5bb40d11ffce80efa99b63f92968724f3c))
+- **locales:** Translate picture adjust galleries (de, es, fr, zh-CN) (by @claude) ([21f0f7a](https://github.com/ChristopherVR/pptx-viewer/commit/21f0f7ad2be4315e38fbf9d0c4b4cc6baaf3df5d))
+- **core:** Parse camera, transform and lights of 3D models (by @claude) ([c8d2a48](https://github.com/ChristopherVR/pptx-viewer/commit/c8d2a48e6f25a627a1db36689f86b53a791e2084))
+- **shared:** Apply authored 3D model camera, transform and lights (by @claude) ([17377ca](https://github.com/ChristopherVR/pptx-viewer/commit/17377ca01bcb254446c57e43960b78070ab37015))
+- **svelte:** Render authored 3D model camera, transform and lights (by @claude) ([0cf6048](https://github.com/ChristopherVR/pptx-viewer/commit/0cf60480001380c94296e992e63c735e703d669a))
+- **shared:** Nudge colliding bestFit outside pie labels apart (by @claude) ([3a09967](https://github.com/ChristopherVR/pptx-viewer/commit/3a09967321a4e1c4f4acbb0be3938757f250b089))
+
+### Bug Fixes
+
+- **core:** Compress GIF and TIFF pictures written to legacy .ppt (by @claude) ([aa2dbde](https://github.com/ChristopherVR/pptx-viewer/commit/aa2dbdeb8f7c3b57f8facf479f38c529f30039a0))
+- **shared:** Honour In/Out direction on Box, Circle, Diamond, Plus exits (by @claude) ([757f7c6](https://github.com/ChristopherVR/pptx-viewer/commit/757f7c6570349b92e8c8f5550607832f968975da))
+- **shared:** Break category + percent pie labels onto two lines, tighten auto pie (by @claude) ([499ccd7](https://github.com/ChristopherVR/pptx-viewer/commit/499ccd779f8e8a1cf691eff4e786e8a3605bc997))
+- **core:** Keep empty blip extLst and showWhenStopped=1 on save (by @claude) ([bbe50b5](https://github.com/ChristopherVR/pptx-viewer/commit/bbe50b5648e5885294adcaeb846c70ce5e6cc2d6))
+- **shared:** Keep nudged bestFit pie labels out of the pie (by @claude) ([e2f7c7f](https://github.com/ChristopherVR/pptx-viewer/commit/e2f7c7f58f61ded9b01c60d3c4c41a110e8b990a))
+- **shared:** Sync the 3d model scene field over collaboration (by @claude) ([8db19cd](https://github.com/ChristopherVR/pptx-viewer/commit/8db19cda4af20737ebb97e4a29cc67e5ea50c491))
+
+### Refactor
+
+- **svelte:** Take animation direction label keys from shared (by @claude) ([fb6be0d](https://github.com/ChristopherVR/pptx-viewer/commit/fb6be0d0f5005026299847ebca13e9611bc8d61f))
+
+### Testing
+
+- **svelte:** Cover picture format adjust galleries (by @claude) ([22cdb9c](https://github.com/ChristopherVR/pptx-viewer/commit/22cdb9c79f4b1b996e424f386b2d861a65418934))
+- **svelte:** Cover multi-line pie data labels (by @claude) ([711ec4c](https://github.com/ChristopherVR/pptx-viewer/commit/711ec4c234aa2dc460cc327cfdfe76f1c439a37e))
+
 ## [4.12.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.12.0) - 2026-09-26
 
 ### Features
