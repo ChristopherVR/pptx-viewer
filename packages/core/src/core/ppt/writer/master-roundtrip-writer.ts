@@ -19,7 +19,7 @@
 
 import JSZip from 'jszip';
 
-import { readMasterRoundTripSource } from './master-roundtrip-source';
+import { readMasterRoundTripSource, readSlideMasterPaths } from './master-roundtrip-source';
 import type { MasterRoundTripSource } from './master-roundtrip-source';
 import type { WMasterRoundTrip } from './write-model';
 
@@ -112,4 +112,44 @@ export async function buildMasterRoundTripFromPptx(
 	pptxBytes: Uint8Array,
 ): Promise<WMasterRoundTrip> {
 	return buildMasterRoundTrip(await readMasterRoundTripSource(await JSZip.loadAsync(pptxBytes)));
+}
+
+/** Every master the deck's slides use, and which one each slide follows. */
+export interface DeckMasterRoundTrips {
+	/** Master part paths in first-use order (the `.ppt` master order). */
+	masterPaths: string[];
+	/** One round-trip master per entry of `masterPaths`. */
+	masters: WMasterRoundTrip[];
+	/** Each slide's index into `masters`, in slide order. */
+	slideMasterIndex: number[];
+}
+
+/**
+ * Read every master the saved `.pptx`'s slides use, in first-use order, and
+ * serialise each for its own `.ppt` main master. Masters no slide uses are
+ * left out, as they have nothing to format in the binary file.
+ */
+export async function buildDeckMasterRoundTripsFromPptx(
+	pptxBytes: Uint8Array,
+): Promise<DeckMasterRoundTrips> {
+	const zip = await JSZip.loadAsync(pptxBytes);
+	const slidePaths = await readSlideMasterPaths(zip);
+	const masterPaths = [...new Set(slidePaths)];
+	if (masterPaths.length === 0) {
+		return {
+			masterPaths: [],
+			masters: [await buildMasterRoundTrip(await readMasterRoundTripSource(zip))],
+			slideMasterIndex: [],
+		};
+	}
+	const masters = await Promise.all(
+		masterPaths.map(async (path) =>
+			buildMasterRoundTrip(await readMasterRoundTripSource(zip, path)),
+		),
+	);
+	return {
+		masterPaths,
+		masters,
+		slideMasterIndex: slidePaths.map((path) => masterPaths.indexOf(path)),
+	};
 }

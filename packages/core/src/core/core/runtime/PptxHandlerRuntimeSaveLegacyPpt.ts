@@ -1,5 +1,5 @@
 import {
-	buildMasterRoundTripFromPptx,
+	buildDeckMasterRoundTripsFromPptx,
 	buildMetroBlobs,
 	buildPptFile,
 	convertDeckToWriteModel,
@@ -98,24 +98,25 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 	}
 
 	/**
-	 * The master text styles the `.ppt`'s single main master carries: those of
-	 * the first slide's own master (a binary `.ppt` written here has one
-	 * master), preferring an edited copy passed in `options.slideMasters` over
-	 * the styles parsed at load.
+	 * The text styles of the master at `masterPath` (the first slide's master
+	 * when omitted), preferring an edited copy passed in `options.slideMasters`
+	 * over the styles parsed at load.
 	 */
 	private legacyMasterTextStyles(
 		slides: PptxSlide[],
 		options: PptxHandlerSaveOptions | undefined,
+		masterPath?: string,
 	): PptxMasterTextStyles | undefined {
 		const layoutPath = slides[0]?.layoutPath;
-		const masterPath =
+		const path =
+			(masterPath && this.masterTxStylesCache.has(masterPath) ? masterPath : undefined) ??
 			(layoutPath ? this.resolveMasterPathForLayout(layoutPath) : undefined) ??
 			this.masterTxStylesCache.keys().next().value;
-		if (!masterPath) {
+		if (!path) {
 			return undefined;
 		}
-		const edited = options?.slideMasters?.find((master) => master.path === masterPath)?.txStyles;
-		return edited ?? this.masterTxStylesCache.get(masterPath);
+		const edited = options?.slideMasters?.find((master) => master.path === path)?.txStyles;
+		return edited ?? this.masterTxStylesCache.get(path);
 	}
 
 	/**
@@ -135,11 +136,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		options: PptxHandlerSaveOptions | undefined,
 		saveAsPptx?: LegacyPptxSerializer,
 	): Promise<Uint8Array> {
-		// One Transitional .pptx save feeds both the metroBlob packages and the
+		// One Transitional .pptx save feeds both the metroBlob packages and each
 		// main master's placeholders, theme and text-style round-trip atoms.
 		const pptxBytes = saveAsPptx ? await saveAsPptx() : undefined;
 		const metroBlobs = await this.resolveMetroBlobs(slides, pptxBytes);
-		const master = pptxBytes ? await buildMasterRoundTripFromPptx(pptxBytes) : undefined;
+		const deckMasters = pptxBytes ? await buildDeckMasterRoundTripsFromPptx(pptxBytes) : undefined;
 		this.compatibilityService.resetWarnings();
 		const resolvedMedia = await this.resolveAudioMediaBytes(slides);
 		const resolvedPictures = await resolvePictureSources(slides, async (path) =>
@@ -155,11 +156,27 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			metroBlobs,
 			resolvedPictures,
 		);
-		deck.masterStyles = convertMasterTextStyles(
-			this.legacyMasterTextStyles(slides, options),
-			master?.themeFonts,
-		);
-		deck.master = master;
+		if (deckMasters && deckMasters.masterPaths.length > 1) {
+			// One .ppt main master per source master a slide uses, each slide
+			// pointing at its own (see `buildDeckMasterRoundTripsFromPptx`).
+			deck.masters = deckMasters.masters.map((roundTrip, i) => ({
+				roundTrip,
+				styles: convertMasterTextStyles(
+					this.legacyMasterTextStyles(slides, options, deckMasters.masterPaths[i]),
+					roundTrip.themeFonts,
+				),
+			}));
+			deck.slides.forEach((slide, i) => {
+				slide.masterIndex = deckMasters.slideMasterIndex[i];
+			});
+		} else {
+			const master = deckMasters?.masters[0];
+			deck.masterStyles = convertMasterTextStyles(
+				this.legacyMasterTextStyles(slides, options, deckMasters?.masterPaths[0]),
+				master?.themeFonts,
+			);
+			deck.master = master;
+		}
 		return buildPptFile(deck, { password: options?.pptPassword });
 	}
 }

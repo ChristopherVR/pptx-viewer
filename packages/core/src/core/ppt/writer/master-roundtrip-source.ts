@@ -4,8 +4,8 @@
  * `p:clrMap`, and its theme (the XML itself, plus the 8 ColorSchemeAtom
  * colours PowerPoint derives from it).
  *
- * The master is the first slide's (a `.ppt` written here has one master),
- * found through the package's own relationships, falling back to
+ * Each slide's master is found through the package's own relationships
+ * (slide, then its layout, then that layout's master), falling back to
  * `ppt/slideMasters/slideMaster1.xml`.
  *
  * @module ppt/writer/master-roundtrip-source
@@ -56,16 +56,27 @@ async function followRel(zip: JSZip, from: string, type: string): Promise<string
 	return rel && !rel.external ? resolveTarget(from, rel.target) : undefined;
 }
 
-async function firstSlideMasterPath(zip: JSZip): Promise<string> {
+/**
+ * Every slide's master part path, in `p:sldIdLst` order. A slide whose
+ * layout or master cannot be resolved maps to the fallback master.
+ */
+export async function readSlideMasterPaths(zip: JSZip): Promise<string[]> {
 	const presentation = 'ppt/presentation.xml';
 	const xml = await readText(zip, presentation);
-	const firstSlideRid = xml ? /<p:sldId\b[^>]*\br:id="([^"]+)"/u.exec(xml)?.[1] : undefined;
 	const rels = await readText(zip, relsPath(presentation));
-	const slideRel = rels ? parseRels(rels).find((r) => r.id === firstSlideRid) : undefined;
-	const slide = slideRel ? resolveTarget(presentation, slideRel.target) : undefined;
-	const layout = slide ? await followRel(zip, slide, 'slideLayout') : undefined;
-	const master = layout ? await followRel(zip, layout, 'slideMaster') : undefined;
-	return master && zip.file(master) ? master : FALLBACK_MASTER;
+	const presentationRels = rels ? parseRels(rels) : [];
+	const slideRids = xml
+		? [...xml.matchAll(/<p:sldId\b[^>]*\br:id="([^"]+)"/gu)].map((m) => m[1])
+		: [];
+	const paths: string[] = [];
+	for (const rid of slideRids) {
+		const slideRel = presentationRels.find((r) => r.id === rid);
+		const slide = slideRel ? resolveTarget(presentation, slideRel.target) : undefined;
+		const layout = slide ? await followRel(zip, slide, 'slideLayout') : undefined;
+		const master = layout ? await followRel(zip, layout, 'slideMaster') : undefined;
+		paths.push(master && zip.file(master) ? master : FALLBACK_MASTER);
+	}
+	return paths;
 }
 
 function num(xml: string, pattern: RegExp): number | undefined {
@@ -161,9 +172,15 @@ function latinFace(themeXml: string, scheme: 'majorFont' | 'minorFont'): string 
 	return (body && /<a:latin [^>]*typeface="([^"]+)"/u.exec(body)?.[1]) || undefined;
 }
 
-/** Read the first slide's master (and its theme) out of a saved `.pptx`. */
-export async function readMasterRoundTripSource(zip: JSZip): Promise<MasterRoundTripSource> {
-	const masterPath = await firstSlideMasterPath(zip);
+/**
+ * Read one master (and its theme) out of a saved `.pptx`: `masterPath`, or
+ * the first slide's master when omitted.
+ */
+export async function readMasterRoundTripSource(
+	zip: JSZip,
+	masterPath?: string,
+): Promise<MasterRoundTripSource> {
+	masterPath ??= (await readSlideMasterPaths(zip))[0] ?? FALLBACK_MASTER;
 	const masterXml = await readText(zip, masterPath);
 	if (!masterXml) {
 		return { placeholders: [], themeFonts: {} };
