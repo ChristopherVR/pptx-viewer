@@ -38,6 +38,8 @@ import {
 	describeFontEmbedding,
 	isElementIdInteractive,
 	pushRecentColor,
+	slideSpaceElement,
+	slideSpaceMembers,
 } from 'pptx-viewer-shared';
 
 import { EditorAnimationController } from './editor-animation-controller';
@@ -305,13 +307,20 @@ export class EditorState {
 	}
 
 	get selectedElement(): PptxElement | undefined {
-		return this.selectedElementId
-			? this.activeElements.find((element) => element.id === this.selectedElementId)
-			: undefined;
+		return this.selectedElementId ? this.elementById(this.selectedElementId) : undefined;
 	}
 
 	get selectedElements(): PptxElement[] {
-		return resolveSelectedElements(this.selection.ids, this.activeElements);
+		const ids = this.selection.ids;
+		const elements = this.activeElements;
+		const topLevel = resolveSelectedElements(ids, elements);
+		if (topLevel.length === ids.length) {
+			return topLevel;
+		}
+		// A member selected by drilling into its group (shared `group-drill`)
+		// resolves in slide space, so the chrome, drag and resize treat it like a
+		// top-level element.
+		return resolveSelectedElements(ids, [...elements, ...slideSpaceMembers(elements).values()]);
 	}
 
 	get activeElements(): PptxElement[] {
@@ -390,9 +399,17 @@ export class EditorState {
 		this.tableCells.syncElement(next);
 	}
 
-	/** The element with `id` on the surface the pointer acts on, or undefined. */
+	/**
+	 * The element with `id` on the surface the pointer acts on, or undefined. A
+	 * member of an (enterable) group resolves too, in slide space (shared
+	 * `slideSpaceElement`), so a member selected by drilling into its group
+	 * behaves like a top-level element for the chrome, drag and inline editor.
+	 */
 	elementById(id: string): PptxElement | undefined {
-		return this.activeElements.find((element) => element.id === id);
+		const elements = this.activeElements;
+		return (
+			elements.find((element) => element.id === id) ?? slideSpaceElement(elements, id) ?? undefined
+		);
 	}
 
 	/**

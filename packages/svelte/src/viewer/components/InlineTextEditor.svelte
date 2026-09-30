@@ -9,7 +9,7 @@
 	 * / the shared `remapTextToSegments`), so per-run styles and field metadata
 	 * survive the round trip.
 	 */
- import { attachInlineListController, buildInlineTextCommitPatch, createInlineListSeed, createInlineListModelObserver, initializeInlineListDom, inlineListBodyText, readListActivationSelection, restoreInlineListBodySelection, placeCaretAtEnd } from 'pptx-viewer-shared';
+ import { attachInlineListController, buildInlineTextCommitPatch, createInlineListSeed, createInlineListModelObserver, initializeInlineListDom, inlineListBodyText, readListActivationSelection, restoreInlineListBodySelection, placeCaretAt, takePendingCaretPoint } from 'pptx-viewer-shared';
 	import type { InlineListController } from 'pptx-viewer-shared';
 	import { attachCollaborationInlineEditor } from 'pptx-viewer-shared';
 	import type { CollaborationInlineEditor } from 'pptx-viewer-shared';
@@ -213,9 +213,10 @@
 				el.textContent = initialText;
 			}
 			el.focus();
-			// Caret at the END of the seeded text so typing appends (the contract
-			// the other bindings follow; focus alone leaves the caret at the start).
-			placeCaretAtEnd(el);
+			// The caret goes where the click that opened the editor landed
+			// (PowerPoint), else at the END of the seeded text so typing appends
+			// (the shared contract; focus alone leaves the caret at the start).
+			placeCaretAt(el, takePendingCaretPoint());
 		}
 	});
 

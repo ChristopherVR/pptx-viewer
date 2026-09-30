@@ -12,12 +12,21 @@ import type {
 import {
 	armEditorKeyboard,
 	collectConnectorSiteCandidates,
+	drillSelectionForClick,
+	drillSelectionForDoubleClick,
 	findConnectorSiteNear,
+	findElementPath,
 	inlineListBodyText,
+	isEnterableGroup,
+	isGroupMember,
+	memberChainAtPoint,
 	overlayInlineTextSnapshot,
+	parentSelection,
 	publishLiveInlineText,
 	resolveConnectorEndpointUpdate,
 	resolveContextMenuElementId,
+	setPendingCaretPoint,
+	slideSpaceElement,
 	withConnectorEndpointUpdate,
 } from 'pptx-viewer-shared';
 
@@ -51,6 +60,8 @@ export type { EditorControllerDeps } from './editor-controller-deps';
 const DOUBLE_TAP_MS = 400;
 /** px tolerance for matching the second tap after a selection-induced reflow. */
 const TAP_DISTANCE = 40;
+/** Max pointer travel (px) for a press on the selected member to count as a click. */
+const CLICK_SLOP = 4;
 
 export class EditorController {
 	readonly #editor: EditorState;
@@ -68,6 +79,11 @@ export class EditorController {
 	// two quick taps, so the last tap's element id and coordinates are tracked
 	// by hand. Plain mutable state, never rendered, so it is not a rune.
 	#lastTap: { id: string | undefined; time: number; x: number; y: number } | null = null;
+
+	// A press on the group member that was ALREADY selected (shared `group-drill`):
+	// if it ends as a click, not a drag, the member's text opens for editing with
+	// the caret where the click landed (PowerPoint). Plain state, never rendered.
+	#pressEdit: { id: string; x: number; y: number } | null = null;
 
 	snapLines = $state<readonly SnapLine[]>([]);
 	editingId = $state<string | null>(null);
@@ -156,9 +172,52 @@ export class EditorController {
 	}
 
 	get editingElement(): PptxElement | undefined {
-		return this.editingId
-			? this.#currentElements().find((e) => e.id === this.editingId)
-			: undefined;
+		// A group member resolves in slide space, so the inline editor's box lands
+		// over the member rather than at its group-relative offset.
+		return this.editingId ? this.#editor.elementById(this.editingId) : undefined;
+	}
+
+	/**
+	 * The group the selection has drilled into (shared `parentSelection`), in
+	 * slide space, for its dashed frame; null when the selection is top-level.
+	 */
+	get enteredGroup(): PptxElement | null {
+		const selectedId = this.#editor.selectedElementId;
+		if (!this.#editor.editable || this.#deps.getPresenting() || !selectedId) {
+			return null;
+		}
+		const elements = this.#currentElements();
+		const parentId = parentSelection(elements, selectedId);
+		return parentId ? slideSpaceElement(elements, parentId) : null;
+	}
+
+	/**
+	 * The ids under the pointer inside the top-level group `topId`, innermost
+	 * first (shared `memberChainAtPoint`, geometric because grouped children are
+	 * `pointer-events: none`); null when `topId` is not an enterable group.
+	 */
+	#drillChain(topId: string, event: { clientX: number; clientY: number }): string[] | null {
+		const elements = this.#currentElements();
+		const top = elements.find((element) => element.id === topId);
+		if (!top || !isEnterableGroup(top)) {
+			return null;
+		}
+		return memberChainAtPoint(elements, topId, this.#stagePoint(event));
+	}
+
+	/**
+	 * What a press on the top-level element `topId` selects, PowerPoint-style:
+	 * a group first, then (once it is selected) the member under the pointer,
+	 * and another member of the entered group moves the selection to it.
+	 */
+	#resolvePressTarget(topId: string, event: PointerEvent): string {
+		const chain = this.#drillChain(topId, event);
+		if (!chain) {
+			return topId;
+		}
+		const selectedId = this.#editor.selectedElementId;
+		const selectedPath = selectedId ? findElementPath(this.#currentElements(), selectedId) : null;
+		return drillSelectionForClick(chain, selectedPath) ?? topId;
 	}
 
 	/** True when editing owns the keyboard (a selection or inline edit is live). */
@@ -199,18 +258,27 @@ export class EditorController {
 			this.#ink.handlePointerDown(event);
 			return;
 		}
+		this.#pressEdit = null;
 		const hitId = resolveTopLevelElementId(event.target, this.#deps.getStageRoot());
-		const id = hitId && this.#editor.isElementInteractive(hitId) ? hitId : undefined;
+		const topId = hitId && this.#editor.isElementInteractive(hitId) ? hitId : undefined;
 		// Touch only: native `dblclick` is not reliably synthesised from two quick
 		// taps on mobile, so a matched second tap is handled here instead and
 		// consumes the event (no select / drag / marquee for that tap).
-		if (event.pointerType !== 'mouse' && this.#trackTap(event, id)) {
+		if (event.pointerType !== 'mouse' && this.#trackTap(event, topId)) {
 			return;
 		}
-		if (!id) {
+		if (!topId) {
 			this.#editor.formatPainter.cancel();
 			this.#selectionGestures.beginMarquee(event);
 			return;
+		}
+		// A press on a group drills into it (shared `group-drill`); a modified
+		// press toggles the top-level element as before.
+		const modified = event.shiftKey || event.ctrlKey || event.metaKey;
+		const drilled = modified ? topId : this.#resolvePressTarget(topId, event);
+		const id = this.#editor.isElementInteractive(drilled) ? drilled : topId;
+		if (id === this.#editor.selectedElementId && isGroupMember(this.#currentElements(), id)) {
+			this.#pressEdit = { id, x: event.clientX, y: event.clientY };
 		}
 		// A click in a table cell (re)anchors the cell range; a Shift-click inside
 		// the selected table stretches it and CONSUMES the event, so it never
@@ -219,7 +287,7 @@ export class EditorController {
 			event.preventDefault();
 			return;
 		}
-		if (event.shiftKey || event.ctrlKey || event.metaKey) {
+		if (modified) {
 			this.#editor.selection.toggle(id);
 			return;
 		}
@@ -260,6 +328,29 @@ export class EditorController {
 		);
 	};
 
+	/**
+	 * A click that ends a press on the already-selected group member (see
+	 * `#pressEdit`) opens its text, caret where the click landed. A drag (the
+	 * pointer travelled) or any other click does nothing here.
+	 */
+	onStageClick = (event: MouseEvent): void => {
+		const press = this.#pressEdit;
+		this.#pressEdit = null;
+		if (
+			!press ||
+			!this.#editor.editable ||
+			this.#deps.getPresenting() ||
+			this.editing ||
+			Math.abs(event.clientX - press.x) > CLICK_SLOP ||
+			Math.abs(event.clientY - press.y) > CLICK_SLOP ||
+			this.#editor.selectedElementId !== press.id
+		) {
+			return;
+		}
+		setPendingCaretPoint(event);
+		this.#requestElementEdit(press.id);
+	};
+
 	onStageDblClick = (event: MouseEvent): void => {
 		if (!this.#editor.editable || this.#deps.getPresenting() || this.#editor.inkOps.isDrawing) {
 			return;
@@ -273,9 +364,21 @@ export class EditorController {
 			this.#editor.selectedElementId,
 		);
 		if (id && this.#editor.isElementInteractive(id)) {
-			this.#requestElementEdit(id);
+			// Caret at the END, as for any double-click (typing appends).
+			this.#requestElementEdit(this.#doubleClickTarget(id, event));
 		}
 	};
+
+	/**
+	 * A double-click on a group goes straight to the innermost member under the
+	 * pointer (shared `drillSelectionForDoubleClick`), so its text can be edited
+	 * without ungrouping, as in PowerPoint. Anything else keeps `id`.
+	 */
+	#doubleClickTarget(id: string, event: { clientX: number; clientY: number }): string {
+		const chain = this.#drillChain(id, event);
+		const innermost = chain ? drillSelectionForDoubleClick(chain) : null;
+		return innermost && this.#editor.isElementInteractive(innermost) ? innermost : id;
+	}
 
 	/** Select the right-clicked element and expose the edit context menu. */
 	onStageContextMenu = (event: MouseEvent): void => {
@@ -352,7 +455,7 @@ export class EditorController {
 	}
 
 	/** Pointer position in SLIDE px (this overlay layer is unscaled). */
-	#stagePoint(event: PointerEvent): { x: number; y: number } {
+	#stagePoint(event: { clientX: number; clientY: number }): { x: number; y: number } {
 		const rect = this.#deps.getStageRoot()?.getBoundingClientRect();
 		const scale = this.#deps.getScale() || 1;
 		return {
@@ -440,11 +543,10 @@ export class EditorController {
 		if (!doubleTapId) {
 			return true;
 		}
-		const el = this.#editor.elementById(doubleTapId);
+		const targetId = this.#doubleClickTarget(doubleTapId, event);
+		const el = this.#editor.elementById(targetId);
 		if (el?.type === 'table') {
-			const tableHost = this.#deps
-				.getStageRoot()
-				?.querySelector(`[data-element-id="${doubleTapId}"]`);
+			const tableHost = this.#deps.getStageRoot()?.querySelector(`[data-element-id="${targetId}"]`);
 			const cells = tableHost?.querySelectorAll('td');
 			let closest: HTMLElement | null = null;
 			let minDist = Infinity;
@@ -466,7 +568,7 @@ export class EditorController {
 				return true;
 			}
 		}
-		this.#requestElementEdit(doubleTapId);
+		this.#requestElementEdit(targetId);
 		return true;
 	}
 
@@ -507,7 +609,7 @@ export class EditorController {
 		if (this.editingId) {
 			return;
 		}
-		const el = this.#currentElements().find((e) => e.id === id);
+		const el = this.#editor.elementById(id);
 		if (!el || !canInlineEditElement(el)) {
 			return;
 		}
@@ -601,7 +703,7 @@ export class EditorController {
 		}
 		const nonce = editor.seedNonce;
 		const body = () => {
-			const element = editor.activeElements.find((candidate) => candidate.id === id);
+			const element = editor.elementById(id);
 			return element && 'textSegments' in element
 				? inlineListBodyText(element.textSegments)
 				: undefined;

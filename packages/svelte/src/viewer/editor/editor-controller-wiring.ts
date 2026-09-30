@@ -6,6 +6,7 @@ import {
 	cycleSelectableElement,
 	filterInteractableIds,
 	fontSizeOf,
+	parentSelection,
 	rerouteConnectorsForMovedElements,
 	stepFontSizePt,
 } from 'pptx-viewer-shared';
@@ -176,6 +177,15 @@ export function createEditorKeydown(host: EditorControllerHost): (event: Keyboar
 		getKeyboardCustomization: () => deps.getKeyboardCustomization?.(),
 		getSelectedId: () => editor.selectedElementId,
 		deselect: () => editor.select(null),
+		selectParentGroup: () => {
+			const id = editor.selectedElementId;
+			const parent = id ? parentSelection(editor.activeElements, id) : null;
+			if (!parent) {
+				return false;
+			}
+			editor.select(parent);
+			return true;
+		},
 		deleteSelected: () => editor.deleteSelected(),
 		duplicateSelected: () => void editor.duplicateSelected(),
 		nudgeSelected: (dx, dy) => editor.nudgeSelected(dx, dy),

@@ -6,6 +6,7 @@ import {
 	createBlankSlide,
 	makeSlideId,
 	prepareElementForInsertion,
+	slideSpaceElement,
 } from 'pptx-viewer-shared';
 import type { PowerPointViewerAPI, ViewerMode } from 'pptx-viewer-shared';
 
@@ -151,8 +152,10 @@ export function createDeckApi(deps: DeckApiDeps): DeckApi {
 		},
 
 		getElements,
+		// A group member too (selected by drilling into its group), in slide
+		// space like the editor shows it (shared `slideSpaceElement`).
 		getElementById: (id, slideIndex = viewer.current) =>
-			getElements(slideIndex).find((element) => element.id === id),
+			slideSpaceElement(getElements(slideIndex), id) ?? undefined,
 
 		updateElements: async (updates, options) => {
 			commitElementUpdateBatch(updates, options, {

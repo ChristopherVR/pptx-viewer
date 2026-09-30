@@ -27,6 +27,12 @@ export interface EditorKeyboardDeps {
 	isActive(): boolean;
 	getSelectedId(): string | null;
 	deselect(): void;
+	/**
+	 * Escape on a member selected inside a group: select its parent group
+	 * instead of clearing (shared `parentSelection`). True when it did, so the
+	 * selection is not also cleared.
+	 */
+	selectParentGroup?(): boolean;
 	deleteSelected(): void;
 	duplicateSelected(): void;
 	nudgeSelected(dx: number, dy: number): void;
@@ -105,8 +111,9 @@ export function createEditorKeydownHandler(
 		switch (action) {
 			case 'escape':
 				// Unwind the transient chrome one layer at a time: format painter,
-				// then the cheat sheet, then the selection itself.
-				if (deps.cancelFormatPainter?.() || deps.closeShortcuts?.()) {
+				// then the cheat sheet, then a member selected inside a group steps
+				// out to its group, then the selection itself.
+				if (deps.cancelFormatPainter?.() || deps.closeShortcuts?.() || deps.selectParentGroup?.()) {
 					return;
 				}
 				deps.deselect();
