@@ -21,8 +21,9 @@ export const INSPECTOR_TABS: Array<{
 // Reusable CSS class-name tokens
 // ---------------------------------------------------------------------------
 
-export const HEADING = 'text-[11px] uppercase tracking-wide text-muted-foreground';
-export const CARD = 'rounded border border-border bg-card p-2 space-y-2';
+export const HEADING =
+	'pptx-editor-heading text-[11px] uppercase tracking-wide text-muted-foreground';
+export const CARD = 'pptx-editor-card rounded border border-border bg-card p-2 space-y-2';
 // `max-md:min-h-[44px]!` (Tailwind's `md` breakpoint = 768px = `MOBILE_BREAKPOINT`
 // in `pptx-viewer-shared`'s dense-panel responsive module) gives every field/
 // button across the ~20 inspector sub-panels that reuse these two tokens a

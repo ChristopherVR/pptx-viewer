@@ -18,6 +18,9 @@ export function createSelectValueElement() {
 		get value(): string {
 			const requested = this.getAttribute('value');
 			const options = this.options;
+			if (this.getAttribute('variant') === 'ribbon-font' && requested !== null) {
+				return requested;
+			}
 			if (
 				requested !== null &&
 				(!options.length || options.some((option) => option.value === requested))

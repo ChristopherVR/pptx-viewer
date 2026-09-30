@@ -79,14 +79,16 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 	return (
 		<>
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.slides')}>
-				<div className='flex items-center gap-1'>
+				<div className='flex items-center gap-1' data-pptx-chrome='slides-controls'>
 					{/* New Slide split button */}
 					<div
 						className='relative inline-flex items-center'
 						ref={newSlideMenuRef}
 						{...controlAttr('home.slides.newSlide')}
+						data-pptx-chrome='split-button'
 					>
 						<button
+							data-pptx-chrome='split-main'
 							type='button'
 							onClick={handleNewSlide}
 							disabled={!p.canEdit || p.layoutOptions.length === 0}
@@ -102,6 +104,7 @@ export function SlidesGroup(p: SlidesGroupProps): React.ReactElement {
 						</button>
 						{p.layoutOptions.length > 0 && (
 							<button
+								data-pptx-chrome='split-caret'
 								type='button'
 								disabled={!p.canEdit}
 								className='inline-flex items-center justify-center self-stretch px-1 rounded-r bg-muted hover:bg-accent text-xs transition-colors border-l border-border/40 active:scale-95 active:opacity-80'

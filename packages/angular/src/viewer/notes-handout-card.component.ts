@@ -15,8 +15,8 @@ import { LoadContentService } from './load-content.service';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<section class="icard">
-			<h3 class="icard__heading">
+		<section class="icard" data-pptx-chrome="inspector-card">
+			<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
 				{{ 'pptx.documentProperties.notesHandoutHeading' | translate }}
 			</h3>
 			<div class="icard__row">

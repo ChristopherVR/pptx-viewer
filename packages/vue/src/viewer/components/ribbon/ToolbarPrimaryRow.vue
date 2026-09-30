@@ -42,7 +42,10 @@ const qab =
 </script>
 
 <template>
-	<div class="flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1">
+	<div
+		data-pptx-chrome="ribbon-primary"
+		class="flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1"
+	>
 		<!-- Left: Slides pane toggle -->
 		<button
 			v-if="props.mode !== 'present' && slidesPaneVisible"

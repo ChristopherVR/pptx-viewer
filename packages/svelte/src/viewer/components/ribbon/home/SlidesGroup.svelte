@@ -1,16 +1,6 @@
 <script lang="ts">
-	/**
-	 * SlidesGroup: the Home tab's Slides group, mirroring React's
-	 * `SlidesGroup.tsx` layout and labels: a "New Slide" split button, a
-	 * "Layout" dropdown (re-map the current slide onto another layout), a
-	 * "Reset" button (re-apply the slide's own layout), and "Section". Every op
-	 * is history-integrated through `EditorState.slidesOps`; slide-mutating ops
-	 * return the new active index so the caller can navigate the viewer to it.
-	 *
-	 * React keeps Duplicate/Delete out of this group (they live in the thumbnail
-	 * context menu). This binding has no such menu, so those two ops are
-	 * re-housed into the New Slide split button's dropdown rather than dropped.
-	 */
+	/** Home slide controls; operations preserve history and active-slide navigation. */
+	import { ChevronDown, FolderPlus, LayoutGrid, Plus, RotateCcw } from '@lucide/svelte';
 	import type { PptxLayoutOption, PptxLayoutPreview } from 'pptx-viewer-core';
 	import { scopeLayoutOptionsToSlide } from 'pptx-viewer-shared';
 
@@ -78,11 +68,12 @@
 </script>
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.ribbon.slides')} data-ribbon-group="home.slides">
-	<div class="pptx-svelte-rgroup-row">
+	<div class="pptx-svelte-rgroup-row" data-pptx-chrome="slides-controls">
 		<!-- New Slide split button: primary inserts a blank slide; the chevron
 		     dropdown re-houses Duplicate / Delete (no thumbnail context menu). -->
-		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.newSlide" bind:this={newSplitEl} onfocusout={onFocusOut}>
+		<div class="pptx-svelte-rgroup-split" data-ribbon-control="home.slides.newSlide" data-pptx-chrome="split-button" bind:this={newSplitEl} onfocusout={onFocusOut}>
 			<button
+				data-pptx-chrome="split-main"
 				type="button"
 				class="pptx-svelte-rgroup-main"
 				disabled={!editor.editable}
@@ -90,10 +81,11 @@
 				title={t('pptx.home.newSlide')}
 				onclick={() => run(() => editor.slidesOps.insertSlideAfterCurrent())}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="9" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M11 6h2.5M12.25 4.75v2.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+				<Plus size={16} />
 				<span>{t('pptx.home.newSlide')}</span>
 			</button>
 			<button
+				data-pptx-chrome="split-caret"
 				type="button"
 				class="pptx-svelte-rgroup-caret"
 				disabled={!editor.editable}
@@ -103,7 +95,7 @@
 				title={t('pptx.home.chooseLayout')}
 				onclick={() => (openMenu = openMenu === 'new' ? null : 'new')}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+				<ChevronDown size={16} />
 			</button>
 			{#if openMenu === 'new'}
 				<div class="pptx-svelte-rgroup-pop" role="menu" use:anchoredPopup={{ anchor: newSplitEl }}>
@@ -128,7 +120,7 @@
 				title={t('pptx.master.layout')}
 				onclick={() => void toggleLayoutMenu()}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M2.5 6.5h11M6.5 6.5v7" stroke="currentColor" stroke-width="1.2" /></svg>
+				<LayoutGrid size={16} />
 				<span>{t('pptx.master.layout')}</span>
 			</button>
 			{#if openMenu === 'layout'}
@@ -150,7 +142,7 @@
 			title={t('pptx.sections.resetSlideTitle')} data-ribbon-control="home.slides.reset"
 			onclick={() => void runAsync(() => editor.slidesOps.resetSlide())}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13 8a5 5 0 1 1-1.5-3.6M13 3v2.4h-2.4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			<RotateCcw size={16} />
 			<span>{t('pptx.animations.reset')}</span>
 		</button>
 
@@ -161,7 +153,7 @@
 			title={t('pptx.sections.addSection')} data-ribbon-control="home.slides.section"
 			onclick={() => editor.sectionOps.add(t('pptx.sections.defaultName'))}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h10M3 8h6M3 13h10M11.5 6v4M9.5 8h4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+			<FolderPlus size={16} />
 			<span>{t('pptx.sections.sectionButtonLabel')}</span>
 		</button>
 	</div>
@@ -241,8 +233,8 @@
 		cursor: default;
 	}
 
-	.pptx-svelte-rgroup-main svg,
-	.pptx-svelte-rgroup-caret svg {
+	.pptx-svelte-rgroup-main :global(svg),
+	.pptx-svelte-rgroup-caret :global(svg) {
 		width: 14px;
 		height: 14px;
 	}

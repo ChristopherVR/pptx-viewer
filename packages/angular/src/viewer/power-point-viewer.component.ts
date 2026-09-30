@@ -114,6 +114,7 @@ import type { CommentSubmission } from './comments-panel.component';
 import { CommentsPanelComponent } from './comments-panel.component';
 import { CompatToastsComponent } from './compat-toasts.component';
 import { CustomShowsComponent } from './custom-shows.component';
+import { EditorChromeStyleDirective } from './editor-chrome-style.directive';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { newChartElement, newShapeElement, newTableElement, newTextElement } from './editor-insert';
 import { EditorStateService } from './editor-state.service';
@@ -282,6 +283,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		NotesPanelComponent,
 		QuickAccessStripComponent,
 		RibbonComponent,
+		EditorChromeStyleDirective,
 		RibbonCustomizationStyleDirective,
 		TitleBarComponent,
 		ThemeGalleryComponent,
@@ -299,6 +301,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		<div
 			#viewerRoot
 			class="pptx-ng-viewer"
+			data-pptx-editor-chrome
 			tabindex="0"
 			[ngClass]="rootClasses()"
 			[ngStyle]="rootStyle()"
@@ -306,6 +309,7 @@ import { ZoomTargetService } from './zoom-target.service';
 			[attr.data-pptx-ribbon-scope]="ribbonScope"
 		>
 			<!-- Host ribbon customisation: hides the groups/controls named in customization.ribbon. -->
+			<span hidden pptxEditorChromeStyle></span>
 			<span hidden [pptxRibbonCustomizationStyle]="ribbonCustomizationCss()"></span>
 			@if (loader.loading()) {
 				<div class="pptx-ng-state pptx-ng-loading" role="status" aria-live="polite">
@@ -529,7 +533,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					/>
 				}
 
-				<div class="pptx-ng-body">
+				<div class="pptx-ng-body" data-pptx-chrome="body">
 					@if (
 						canEdit() &&
 						!mobile.isMobile() &&
@@ -716,6 +720,7 @@ import { ZoomTargetService } from './zoom-target.service';
 						<aside
 							data-pptx-inspector
 							class="pptx-ng-inspector-host"
+							data-pptx-chrome="inspector"
 							[attr.aria-label]="inspectorPanel.inspectorLabel() | translate"
 							[style.transform]="
 								inspectorPanel.inspectorDrag.dragY() > 0
@@ -827,6 +832,7 @@ import { ZoomTargetService } from './zoom-target.service';
 					<aside
 						#notesBar
 						class="pptx-ng-notes"
+						data-pptx-chrome="notes-host"
 						[attr.aria-label]="'pptx.notes.speakerNotes' | translate"
 					>
 						<pptx-notes-panel

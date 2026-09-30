@@ -36,6 +36,7 @@ export function createRibbonPrimaryRow(
 	hiddenActions?: readonly ToolbarActionId[],
 ): RibbonPrimaryRow {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-primary');
+	el.dataset.pptxChrome = 'ribbon-primary';
 
 	// -- Comments ------------------------------------------------------------
 	const comments = makeButton(doc, {

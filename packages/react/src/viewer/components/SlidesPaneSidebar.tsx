@@ -1,4 +1,4 @@
-import { SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
+import { editorThumbnailWidth, SLIDE_VIRTUALIZATION_THRESHOLD } from 'pptx-viewer-shared';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuPlus } from 'react-icons/lu';
@@ -83,10 +83,11 @@ export function SlidesPaneSidebar({
 		return map;
 	}, [collab]);
 
+	const previewWidth = editorThumbnailWidth(panelWidth);
 	// Compute a more accurate item height based on canvas aspect ratio
 	const estimatedItemHeight = useMemo(
-		() => estimateSlideItemHeight(canvasSize.width, canvasSize.height),
-		[canvasSize.width, canvasSize.height],
+		() => estimateSlideItemHeight(canvasSize.width, canvasSize.height, previewWidth),
+		[canvasSize.width, canvasSize.height, previewWidth],
 	);
 
 	// Headers show for every real section, however few. The gate here used to be
@@ -245,7 +246,11 @@ export function SlidesPaneSidebar({
 		const visibleItems = flatItems.slice(startIndex, endIndex + 1);
 
 		return (
-			<div ref={scrollContainerRef} className='flex-1 overflow-y-auto px-1.5 pb-2'>
+			<div
+				ref={scrollContainerRef}
+				data-pptx-chrome='slide-list'
+				className='flex-1 overflow-y-auto px-1.5 pb-2'
+			>
 				{/* Spacer element to size the scrollbar correctly */}
 				<div style={{ height: totalHeight, position: 'relative' }}>
 					<div
@@ -256,7 +261,7 @@ export function SlidesPaneSidebar({
 							right: 0,
 						}}
 					>
-						<div className='space-y-1'>
+						<div className='space-y-1' data-pptx-chrome='slide-window'>
 							{visibleItems.map((item) => {
 								if (item.type === 'section') {
 									const section = sectionGroups[item.sectionIndex];
@@ -303,6 +308,7 @@ export function SlidesPaneSidebar({
 										isActive={item.slideIndex === activeSlideIndex}
 										isSelected={selectedSlideIds.includes(slide.id)}
 										canvasSize={canvasSize}
+										previewWidth={previewWidth}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(item.slideIndex)}
@@ -327,12 +333,12 @@ export function SlidesPaneSidebar({
 
 	// ── Render (non-virtualized, for small presentations) ──
 	const renderNonVirtualized = () => (
-		<div className='flex-1 space-y-1 overflow-y-auto px-1.5 pb-2'>
+		<div data-pptx-chrome='slide-list' className='flex-1 space-y-1 overflow-y-auto px-1.5 pb-2'>
 			{sectionGroups.map((section, sectionIndex) => {
 				const isCollapsed = effectiveCollapsed[section.id] ?? false;
 
 				return (
-					<div key={section.id} className='space-y-1'>
+					<div key={section.id} className='space-y-1' data-pptx-chrome='slide-window'>
 						{showSectionHeaders && (
 							<SectionHeader
 								sectionId={section.id}
@@ -371,6 +377,7 @@ export function SlidesPaneSidebar({
 										isActive={idx === activeSlideIndex}
 										isSelected={selectedSlideIds.includes(slide.id)}
 										canvasSize={canvasSize}
+										previewWidth={previewWidth}
 										canEdit={canEdit}
 										rehearsalTimings={rehearsalTimings}
 										presenceUsers={slidePresenceMap?.get(idx)}
@@ -398,6 +405,7 @@ export function SlidesPaneSidebar({
 		<aside
 			role='navigation'
 			aria-label={t('pptx.sections.slides')}
+			data-pptx-chrome='slides'
 			className='flex h-full flex-col border-r border-border bg-secondary/30'
 			style={panelWidth ? { width: panelWidth, flexShrink: 0 } : undefined}
 			onKeyDown={onPaneKeyDown}
@@ -407,7 +415,7 @@ export function SlidesPaneSidebar({
 
 			{/* Bottom: Add Slide button */}
 			{canEdit && (
-				<div className='border-t border-border/60 px-2 py-1.5'>
+				<div data-pptx-chrome='slide-footer' className='border-t border-border/60 px-2 py-1.5'>
 					<button
 						type='button'
 						className='flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:cursor-not-allowed disabled:opacity-40'

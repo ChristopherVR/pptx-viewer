@@ -38,6 +38,7 @@
 	import { ThemeLocaleState } from './state/theme-locale.svelte';
 	import { toViewerStateOptions } from './state/viewer-state-options';
 	import { effectiveHiddenActions, nextRibbonScopeToken, useCustomizationConstraints, useViewerCustomizationRoot } from './state/viewer-customization.svelte';
+	import EditorChromeStyle from './components/EditorChromeStyle.svelte';
 	import RibbonCustomizationStyle from './components/RibbonCustomizationStyle.svelte';
 	import { useWindowViewport } from './state/window-viewport.svelte';
 	import { styleToString } from './style';
@@ -215,6 +216,7 @@
 	class:pptx-svelte-show-guides={parityUi.showGuides}
 	class:pptx-svelte-reduced-motion={parityUi.preferences.reducedMotion}
 	style={rootStyle}
+	data-pptx-editor-chrome
 	data-pptx-ribbon-scope={ribbonScope}
 	role="region"
 	aria-label={t('pptx.titleBar.defaultFileName')}
@@ -228,6 +230,7 @@
 		}
 	}}
 >
+	<EditorChromeStyle />
 	<RibbonCustomizationStyle scope={ribbonScope} />
 	{#if showToolbar && vm.chromeVisible}
 		<ViewerChrome

@@ -29,11 +29,18 @@ import { ViewerOptionsService } from './viewer-options.service';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [NgClass, TranslatePipe, LucideShare2, LucideChevronUp, LucideChevronDown],
 	template: `
-		<div role="tablist" class="flex items-center border-b border-border/60 px-1">
+		<div
+			role="tablist"
+			data-pptx-chrome="ribbon-tabs"
+			class="flex items-center border-b border-border/60 px-1"
+		>
 			<!-- Scrollable tab strip: on narrow widths the tabs scroll instead of
 			     clipping (mirrors React's max-md:overflow-x-auto scrollbar-none),
 			     while the Record/Share actions and collapse toggle stay pinned. -->
-			<div class="flex min-w-0 flex-1 items-center overflow-x-auto pptx-scrollbar-none">
+			<div
+				class="flex min-w-0 flex-1 items-center overflow-x-auto pptx-scrollbar-none"
+				data-pptx-chrome="ribbon-tab-scroll"
+			>
 				@for (t of visibleTabs(); track t.id) {
 					<button
 						type="button"

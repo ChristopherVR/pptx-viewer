@@ -46,6 +46,7 @@ const screenTip = inject(ScreenTipKey, (label: string) => label);
 <template>
 	<div
 		role="tablist"
+		data-pptx-chrome="ribbon-tabs"
 		class="flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none"
 	>
 		<button

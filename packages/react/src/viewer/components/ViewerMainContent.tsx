@@ -193,7 +193,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 
 	return (
 		<ChartPartSelectionProvider>
-			<div className='relative z-10 flex flex-1 min-h-0'>
+			<div data-pptx-chrome='body' className='relative z-10 flex flex-1 min-h-0'>
 				{showSlidesPane && (
 					<>
 						<SlidesPaneSidebar

@@ -17,9 +17,11 @@ const inspectorSource = componentSource(import.meta.dirname, 'inspector-panel.co
 
 describe('ribbonFontControlsComponent FONT_SIZES', () => {
 	it.each(['fontFamily', 'fontSize'])('requires an editable text selection for %s', (label) => {
-		const select = ribbonSource.match(new RegExp(`<select[^>]*pptx.ribbon.${label}[^>]*>`))?.[0];
+		const select = ribbonSource.match(
+			new RegExp(`<pptx-ui-select[^>]*pptx.ribbon.${label}[^>]*>`),
+		)?.[0];
 		expect(select).toBeDefined();
-		expect(select).toContain('[disabled]="!canEdit() || !isText()"');
+		expect(select).toContain('[attr.disabled]="!canEdit() || !isText() ? \'\' : null"');
 	});
 
 	it.each(['ribbon-home-section.component.ts', 'ribbon-content.component.ts'])(

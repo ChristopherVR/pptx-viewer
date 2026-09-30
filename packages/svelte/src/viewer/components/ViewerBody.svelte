@@ -110,7 +110,8 @@
 	const customization = useViewerCustomization();
 </script>
 
-<div class="pptx-svelte-body">
+<div class="pptx-svelte-body-stack">
+<div class="pptx-svelte-body" data-pptx-chrome="body">
 	{#if showThumbnails && !chromeUi?.sidebarCollapsed && chromeVisible && displaySlides.length > 0 && customization.isPanelVisible('slidesPane')}
 		<ThumbnailRail
 			slides={displaySlides}
@@ -223,6 +224,12 @@
 				{onfixai}
 			/>
 		</div>
+
+	</div>
+	{#if editingActive && chromeVisible && displaySlides.length > 0 && chromeUi?.inspectorOpen !== false && customization.isPanelVisible('inspector')}
+		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} ui={chromeUi} {canvasSize} />
+	{/if}
+</div>
 		{#if showNotes && chromeVisible && displaySlides.length > 0 && customization.isPanelVisible('notes')}
 			<NotesPanel
 				slide={activeSlide}
@@ -232,13 +239,10 @@
 				notesStyle={editor.notesMaster?.notesStyle}
 			/>
 		{/if}
-	</div>
-	{#if editingActive && chromeVisible && displaySlides.length > 0 && chromeUi?.inspectorOpen !== false && customization.isPanelVisible('inspector')}
-		<InspectorPanel {editor} {handler} {presentationTheme} {onthemechange} {mediaDataUrls} ui={chromeUi} {canvasSize} />
-	{/if}
 </div>
 
 <style>
+	.pptx-svelte-body-stack { display: flex; flex-direction: column; flex: 1; min-height: 0; }
 	.pptx-svelte-body {
 		display: flex;
 		flex: 1;

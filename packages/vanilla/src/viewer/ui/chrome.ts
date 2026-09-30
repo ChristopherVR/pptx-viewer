@@ -188,6 +188,7 @@ export function buildViewerChrome(
 	options: ChromeOptions,
 ): ViewerChrome {
 	const root = createEl(doc, 'div', 'pptxv');
+	root.dataset.pptxEditorChrome = '';
 	root.tabIndex = 0;
 	root.setAttribute('role', 'region');
 	root.setAttribute('aria-label', t('pptx.titleBar.defaultFileName'));
@@ -280,6 +281,7 @@ export function buildViewerChrome(
 	}
 
 	const body = createEl(doc, 'div', 'pptxv-body');
+	body.dataset.pptxChrome = 'body';
 	root.appendChild(body);
 	const accessibility = createAccessibilityPanel(doc, t, options.onSelectSlide);
 	root.appendChild(accessibility.el);

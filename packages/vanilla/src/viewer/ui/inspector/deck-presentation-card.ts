@@ -26,6 +26,8 @@ export function createDeckPresentationCard(
 	handlers: Pick<InspectorHandlers, 'updatePresentationSettings'>,
 ): DeckCard {
 	const { el, body } = makeSection(doc, t('pptx.slideInspector.presentation'));
+	el.classList.add('pptx-editor-presentation-card');
+	body.dataset.pptxChrome = 'presentation-fields';
 
 	// The change handlers fire outside `update()`, so keep the latest typed print
 	// properties around to spread into each patch.

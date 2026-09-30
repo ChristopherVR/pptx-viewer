@@ -126,6 +126,15 @@ function ribbonIconButtons(root: HTMLElement): HTMLButtonElement[] {
 	return Array.from(root.querySelectorAll<HTMLButtonElement>('button.pptxv-btn'));
 }
 
+/** SVG text (such as the shadow icon's S) is artwork inside the icon box. */
+function hasTextLabel(button: HTMLButtonElement): boolean {
+	const label = button.cloneNode(true) as HTMLButtonElement;
+	for (const svg of label.querySelectorAll('svg')) {
+		svg.remove();
+	}
+	return (label.textContent ?? '').trim().length > 0;
+}
+
 describe('ribbon button hit areas', () => {
 	it('lets every text-labelled ribbon button size to its own label', () => {
 		const ribbon = createRibbon(document, createTranslator(), buildHandlers());
@@ -140,7 +149,7 @@ describe('ribbon button hit areas', () => {
 		// Any name listed here renders a text label inside the fixed 28px icon
 		// box, so the label overflows and steals its neighbour's hit area.
 		const trapped = buttons
-			.filter((button) => (button.textContent ?? '').trim().length > 0)
+			.filter(hasTextLabel)
 			.filter((button) => !sizesToContent(button, selectors))
 			.map((button) => button.getAttribute('aria-label') ?? button.textContent);
 		expect(trapped).toStrictEqual([]);
@@ -148,9 +157,7 @@ describe('ribbon button hit areas', () => {
 
 	it('tags a text-labelled button so the stylesheet can find it', () => {
 		const ribbon = createRibbon(document, createTranslator(), buildHandlers());
-		const labelled = ribbonIconButtons(ribbon.el).filter(
-			(button) => (button.textContent ?? '').trim().length > 0,
-		);
+		const labelled = ribbonIconButtons(ribbon.el).filter(hasTextLabel);
 		expect(labelled.length).toBeGreaterThan(0);
 		// Any name listed here carries no text-button class, so no rule can
 		// widen it however the stylesheet is written.

@@ -9,6 +9,7 @@
  * wrong dialog, a font preset emitting the wrong unit, and Transitions >
  * Preview re-committing the slide's existing transition.
  */
+import type { PptxUiSelectElement } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
@@ -51,6 +52,17 @@ function click(title: string): void {
 	});
 }
 
+function fontPicker(control: 'fontFamily' | 'fontSize') {
+	const host = container.querySelector<PptxUiSelectElement>(
+		`pptx-ui-select[data-ribbon-control="home.font.${control}"]`,
+	)!;
+	return {
+		host,
+		trigger: host.shadowRoot!.querySelector<HTMLButtonElement>('[part="trigger"]')!,
+		popup: host.shadowRoot!.querySelector<HTMLElement>('[role="listbox"]')!,
+	};
+}
+
 describe('design > Slide Size', () => {
 	it('opens the slide-size surface rather than Document Properties', () => {
 		const onOpenSlideSize = vi.fn<() => void>();
@@ -82,7 +94,7 @@ describe('home > font size', () => {
 		['fontFamily', 'read-only mode'],
 		['fontSize', 'deselection'],
 		['fontSize', 'read-only mode'],
-	] as const)('closes %s on %s and re-enables without reopening', (control, reason) => {
+	] as const)('closes %s on %s and re-enables without reopening', async (control, reason) => {
 		const props: import('./HomeSection').HomeSectionProps = {
 			canEdit: true,
 			clipboardPayload: null,
@@ -102,8 +114,8 @@ describe('home > font size', () => {
 			},
 			onUpdateTextStyle: vi.fn(),
 		};
-		const render = (enabled: boolean) =>
-			act(() =>
+		const render = async (enabled: boolean) =>
+			act(async () =>
 				root.render(
 					<HomeSection
 						{...props}
@@ -112,29 +124,27 @@ describe('home > font size', () => {
 					/>,
 				),
 			);
-		render(true);
-		const picker = container.querySelector<HTMLButtonElement>(
-			`button[aria-label="pptx.ribbon.${control}"]`,
-		)!;
-		const popup = () => picker.parentElement!.querySelector('.fixed');
-		act(() => picker.click());
-		expect(popup()).not.toBeNull();
+		await render(true);
+		const { host, trigger: picker } = fontPicker(control);
+		await act(async () => picker.click());
+		expect(host.hasAttribute('open')).toBeTruthy();
 
-		render(false);
+		await render(false);
 		expect(picker.disabled).toBeTruthy();
-		expect(popup()).toBeNull();
+		expect(host.hasAttribute('open')).toBeFalsy();
+		expect(picker.getAttribute('aria-expanded')).toBe('false');
 		expect(props.onUpdateTextStyle).not.toHaveBeenCalled();
 
-		render(true);
+		await render(true);
 		expect(picker.disabled).toBeFalsy();
-		expect(popup()).toBeNull();
-		act(() => picker.click());
-		expect(popup()).not.toBeNull();
+		expect(host.hasAttribute('open')).toBeFalsy();
+		await act(async () => picker.click());
+		expect(host.hasAttribute('open')).toBeTruthy();
 	});
 
-	it('converts a selected point size to model pixels', () => {
+	it('converts a selected point size to model pixels', async () => {
 		const onUpdateTextStyle = vi.fn();
-		act(() => {
+		await act(async () => {
 			root.render(
 				<HomeSection
 					canEdit
@@ -161,25 +171,22 @@ describe('home > font size', () => {
 			);
 		});
 
-		const picker = container.querySelector<HTMLButtonElement>(
-			'button[aria-label="pptx.ribbon.fontSize"]',
-		);
-		expect(picker).not.toBeNull();
-		act(() => picker!.click());
+		const picker = fontPicker('fontSize');
+		await act(async () => picker.trigger.click());
 
-		const tenPointOption = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
-			(button) => button.textContent?.trim() === '10',
-		);
+		const tenPointOption = [
+			...picker.popup.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+		].find((button) => button.textContent?.trim() === '10');
 		expect(tenPointOption).toBeDefined();
-		act(() => tenPointOption!.click());
+		await act(async () => tenPointOption!.click());
 
 		const patch = onUpdateTextStyle.mock.lastCall?.[0] as { fontSize?: number } | undefined;
 		expect(patch?.fontSize).toBeCloseTo(10 * (96 / 72));
 	});
 
-	it('keeps point units when the shared callback targets a table cell', () => {
+	it('keeps point units when the shared callback targets a table cell', async () => {
 		const onUpdateTextStyle = vi.fn();
-		act(() => {
+		await act(async () => {
 			root.render(
 				<HomeSection
 					canEdit
@@ -206,15 +213,12 @@ describe('home > font size', () => {
 			);
 		});
 
-		act(() =>
-			container
-				.querySelector<HTMLButtonElement>('button[aria-label="pptx.ribbon.fontSize"]')
-				?.click(),
-		);
-		const tenPointOption = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
-			(button) => button.textContent?.trim() === '10',
-		);
-		act(() => tenPointOption?.click());
+		const picker = fontPicker('fontSize');
+		await act(async () => picker.trigger.click());
+		const tenPointOption = [
+			...picker.popup.querySelectorAll<HTMLButtonElement>('[role="option"]'),
+		].find((button) => button.textContent?.trim() === '10');
+		await act(async () => tenPointOption?.click());
 		expect(onUpdateTextStyle).toHaveBeenCalledWith({ fontSize: 10 });
 	});
 });

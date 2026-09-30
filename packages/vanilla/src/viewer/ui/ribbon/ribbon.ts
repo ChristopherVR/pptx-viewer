@@ -59,6 +59,7 @@ export function createRibbon(
 	accountAuth?: AccountAuthConfig,
 ): Ribbon {
 	const el = createEl(doc, 'div', 'pptxv-ribbon');
+	el.dataset.pptxChrome = 'ribbon';
 	el.setAttribute('role', 'toolbar');
 	el.setAttribute('aria-label', t('pptx.toolbar.presentationToolbarAria'));
 
@@ -167,6 +168,7 @@ export function createRibbon(
 		const pane = panes[tab.id];
 		if (pane) {
 			pane.hidden = true;
+			pane.dataset.pptxChrome = 'ribbon-content';
 			el.appendChild(pane);
 		}
 	}

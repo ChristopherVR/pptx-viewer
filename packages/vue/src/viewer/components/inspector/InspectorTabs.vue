@@ -39,11 +39,20 @@ const TABS = [
 </script>
 
 <template>
-	<div class="flex items-center justify-between gap-2 px-3 py-2 border-b border-border">
-		<div class="flex items-center gap-1 rounded bg-muted p-0.5">
+	<div
+		data-pptx-chrome="inspector-header"
+		class="flex items-center justify-between gap-2 px-3 py-2 border-b border-border"
+	>
+		<div
+			data-pptx-chrome="inspector-tabs"
+			role="tablist"
+			class="flex items-center gap-1 rounded bg-muted p-0.5"
+		>
 			<button
 				v-for="tab in TABS"
 				:key="tab.key"
+				role="tab"
+				:aria-selected="activeTab === tab.key"
 				type="button"
 				:title="t(tab.labelKey)"
 				:style="touchBtnStyle"

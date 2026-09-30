@@ -50,15 +50,15 @@ describe('editor chrome localization', () => {
 				'pptx.record.resetToCameo',
 				'pptx.record.learnMore',
 			];
+			const buttonLabels = () =>
+				wrapper
+					.findAll('pptx-ui-ribbon-command')
+					.map((host) => host.element.shadowRoot!.querySelector('button')!.textContent?.trim());
 			try {
-				expect(wrapper.findAll('button').map((button) => button.text())).toStrictEqual(
-					keys.map((key) => dictionary[key]),
-				);
+				expect(buttonLabels()).toStrictEqual(keys.map((key) => dictionary[key]));
 				i18n.global.locale.value = 'en';
 				await nextTick();
-				expect(wrapper.findAll('button').map((button) => button.text())).toStrictEqual(
-					keys.map((key) => translationsEn[key]),
-				);
+				expect(buttonLabels()).toStrictEqual(keys.map((key) => translationsEn[key]));
 			} finally {
 				wrapper.unmount();
 			}

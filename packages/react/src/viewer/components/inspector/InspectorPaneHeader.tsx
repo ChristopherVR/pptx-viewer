@@ -24,11 +24,20 @@ export function InspectorPaneHeader({
 	const touchTargetPx = getDensePanelTouchTargetPx(viewportWidth);
 	const touchBtnStyle = { minWidth: touchTargetPx, minHeight: touchTargetPx };
 	return (
-		<div className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'>
-			<div className='flex items-center gap-1 rounded bg-muted p-0.5'>
+		<div
+			data-pptx-chrome='inspector-header'
+			className='flex items-center justify-between gap-2 px-3 py-2 border-b border-border'
+		>
+			<div
+				data-pptx-chrome='inspector-tabs'
+				role='tablist'
+				className='flex items-center gap-1 rounded bg-muted p-0.5'
+			>
 				{INSPECTOR_TABS.map(({ key, labelKey, icon: Icon }) => (
 					<button
 						key={key}
+						role='tab'
+						aria-selected={activeTab === key}
 						type='button'
 						title={t(labelKey)}
 						style={touchBtnStyle}

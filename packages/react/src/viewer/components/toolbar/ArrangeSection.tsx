@@ -42,7 +42,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 
 	return (
 		<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.arrange')}>
-			<div className='flex items-center gap-1'>
+			<div className='flex items-center gap-1' data-pptx-chrome='arrange-controls'>
 				<div className={grp} {...controlAttr('home.arrange.align')}>
 					{ALIGN_BTNS.map((a, i, arr) => (
 						<button
@@ -123,7 +123,7 @@ export function ArrangeSection(p: ArrangeSectionProps): React.ReactElement {
 					onUpdateElementStyle={p.onUpdateElementStyle}
 					hiddenActions={p.hiddenActions}
 				/>
-				<div className={grp}>
+				<div className={grp} data-pptx-chrome='order-controls'>
 					<button
 						onClick={() => p.onMoveLayer('backward')}
 						disabled={!canMut}

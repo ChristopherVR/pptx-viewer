@@ -41,8 +41,10 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 	imports: [TranslatePipe],
 	template: `
 		@if (slide(); as sl) {
-			<section class="icard" [attr.data-slide-key]="slideKey()">
-				<h3 class="icard__heading">{{ 'pptx.viewer.background' | translate }}</h3>
+			<section class="icard" data-pptx-chrome="inspector-card" [attr.data-slide-key]="slideKey()">
+				<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+					{{ 'pptx.viewer.background' | translate }}
+				</h3>
 
 				<label class="icard__row">
 					<span class="icard__label">{{ 'pptx.slideBackground.colour' | translate }}</span>
@@ -123,8 +125,8 @@ const BACKGROUND_IMAGE_ACCEPT = 'image/png,image/jpeg,image/gif,image/webp,image
 			</section>
 		}
 		@if (editTemplateMode() && (templateRows().layout || templateRows().master)) {
-			<section class="icard">
-				<h3 class="icard__heading">
+			<section class="icard" data-pptx-chrome="inspector-card">
+				<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
 					{{ 'pptx.slideBackground.templateBackgroundsHeading' | translate }}
 				</h3>
 				@if (templateRows().layout; as row) {

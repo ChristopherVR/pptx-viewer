@@ -18,6 +18,7 @@
 	 * (so the toolbar's comments/inspector toggles stay in sync); standalone
 	 * mounts fall back to local state.
 	 */
+	import { Layers, MessageSquare, Settings2 } from '@lucide/svelte';
 	import { hasShapeProperties, hasTextProperties, isImageLikeElement } from 'pptx-viewer-core';
 	import type { PptxHandler, PptxTheme } from 'pptx-viewer-core';
 	import { getDensePanelTouchTargetPx, shouldShowAccessibilitySection } from 'pptx-viewer-shared';
@@ -99,11 +100,11 @@
 
 <aside
 	class="pptx-svelte-inspector"
-	data-pptx-inspector
+	data-pptx-inspector data-pptx-chrome="inspector"
 	aria-label={t('pptx.inspector.properties')}
 >
-	<div class="pptx-svelte-inspector-header">
-		<div class="pptx-svelte-inspector-tabs" role="tablist">
+	<div class="pptx-svelte-inspector-header" data-pptx-chrome="inspector-header">
+		<div class="pptx-svelte-inspector-tabs" data-pptx-chrome="inspector-tabs" role="tablist">
 			{#each tabs as tab (tab.id)}
 				<button
 					type="button"
@@ -113,13 +114,14 @@
 					class:pptx-svelte-inspector-tab-active={activeTab === tab.id}
 					onclick={() => setTab(tab.id)}
 				>
+					{#if tab.id === 'elements'}<Layers size={14} aria-hidden="true" />{:else if tab.id === 'properties'}<Settings2 size={14} aria-hidden="true" />{:else}<MessageSquare size={14} aria-hidden="true" />{/if}
 					{tab.label}
 				</button>
 			{/each}
 		</div>
 	</div>
 
-	<div class="pptx-svelte-inspector-body">
+	<div class="pptx-svelte-inspector-body" data-pptx-chrome="inspector-body">
 			{#if activeTab === 'elements'}
 				<ElementsListSection {editor} />
 			{:else if activeTab === 'comments'}

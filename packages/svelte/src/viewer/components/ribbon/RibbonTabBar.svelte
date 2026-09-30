@@ -35,8 +35,8 @@
 	const visibleTabs = $derived(filterVisibleTabs(RIBBON_TABS, hiddenActions));
 </script>
 
-<div class="pptx-svelte-ribbon-tabrow">
-	<div class="pptx-svelte-ribbon-tabs" role="tablist">
+<div class="pptx-svelte-ribbon-tabrow" data-pptx-chrome="ribbon-tabs">
+	<div class="pptx-svelte-ribbon-tabs" role="tablist" data-pptx-chrome="ribbon-tab-scroll">
 		{#each visibleTabs as tab (tab.id)}
 			<button
 				type="button"

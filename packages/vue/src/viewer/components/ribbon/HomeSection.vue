@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ChevronDown } from 'lucide-vue-next';
 /**
  * HomeSection: the Vue 3 port of React's
  * `toolbar/HomeSection.tsx`. Renders the Home ribbon tab's Clipboard, Slides and
@@ -12,22 +11,20 @@ import { ChevronDown } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxLayoutPreview, TextStyle } from 'pptx-viewer-core';
 import {
-	DEFAULT_FONT_SIZE,
+	buildFontCatalog,
+	COMMON_FONT_SIZES,
 	resolveDefaultFontFamily,
 	textFontSizePtToPx,
 	textFontSizePxToPt,
 } from 'pptx-viewer-shared';
 import type { SlideTemplateId } from 'pptx-viewer-shared';
-import { computed, watch } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { vAnchoredPopup } from './anchored-popup';
 import ClipboardGroup from './ClipboardGroup.vue';
-import FontFamilyMenu from './FontFamilyMenu.vue';
-import { COMMON_SIZES, MENU_ITEM, MENU_PANEL, SEP } from './ribbon-constants';
+import { SEP } from './ribbon-constants';
 import type { ElementClipboardPayload, LayoutOption, TableCellEditorState } from './ribbon-types';
 import SlidesGroup from './SlidesGroup.vue';
-import { useDropdown } from './use-dropdown';
 
 interface Props {
 	canEdit: boolean;
@@ -80,10 +77,10 @@ function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fo
 		?.placeholderType;
 	const fontFamilyDefault = resolveDefaultFontFamily(placeholderType, props.themeFonts);
 	if (!element) {
-		return { fontFamily: fontFamilyDefault, fontSize: String(DEFAULT_FONT_SIZE) };
+		return { fontFamily: fontFamilyDefault, fontSize: '24' };
 	}
 	if (!hasTextProperties(element)) {
-		return { fontFamily: fontFamilyDefault, fontSize: String(DEFAULT_FONT_SIZE) };
+		return { fontFamily: fontFamilyDefault, fontSize: '24' };
 	}
 
 	const segStyle = element.textSegments?.[0]?.style;
@@ -94,8 +91,7 @@ function extractFontInfo(element?: PptxElement | null): { fontFamily: string; fo
 
 	return {
 		fontFamily,
-		fontSize:
-			fontSize !== undefined ? String(textFontSizePxToPt(fontSize)) : String(DEFAULT_FONT_SIZE),
+		fontSize: fontSize !== undefined ? String(textFontSizePxToPt(fontSize)) : '18',
 	};
 }
 
@@ -117,18 +113,16 @@ const canFormat = computed(
 const fontFamily = computed(() => fontInfo.value.fontFamily);
 const fontSize = computed(() => fontInfo.value.fontSize);
 
-const fontMenu = useDropdown();
-const sizeMenu = useDropdown();
-watch(canFormat, (enabled) => {
-	if (!enabled) {
-		fontMenu.close();
-		sizeMenu.close();
-	}
-});
+const fontGroups = computed(() =>
+	buildFontCatalog({
+		themeFonts: props.themeFonts,
+		embeddedFonts: props.embeddedFontFamilies,
+		customFonts: props.customFontFamilies,
+	}),
+);
 
 function handlePickFont(f: string): void {
 	props.onUpdateTextStyle?.({ fontFamily: f });
-	fontMenu.close();
 }
 
 function handlePickSize(s: number): void {
@@ -136,7 +130,6 @@ function handlePickSize(s: number): void {
 		fontSize:
 			props.selectedElement && hasTextProperties(props.selectedElement) ? textFontSizePtToPx(s) : s,
 	});
-	sizeMenu.close();
 }
 </script>
 
@@ -174,56 +167,40 @@ function handlePickSize(s: number): void {
 
 	<!-- Font group -->
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
-		<div class="flex items-center gap-1">
-			<div :ref="fontMenu.root" class="relative" data-ribbon-control="home.font.fontFamily">
-				<button
-					type="button"
-					:aria-label="t('pptx.ribbon.fontFamily')"
-					:disabled="!canFormat"
-					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[120px] truncate enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-					@click="fontMenu.toggle()"
-				>
-					<span class="truncate">{{ fontFamily }}</span>
-					<ChevronDown class="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
-				</button>
-				<FontFamilyMenu
-					v-if="fontMenu.open.value && canFormat"
-					:anchor="fontMenu.root.value"
-					:theme-fonts="props.themeFonts"
-					:embedded-fonts="props.embeddedFontFamilies"
-					:custom-fonts="props.customFontFamilies"
-					@select="handlePickFont"
-				/>
-			</div>
-			<div :ref="sizeMenu.root" class="relative" data-ribbon-control="home.font.fontSize">
-				<button
-					type="button"
-					:aria-label="t('pptx.ribbon.fontSize')"
-					:disabled="!canFormat"
-					class="inline-flex items-center justify-between px-2 py-1 rounded-sm border border-border/60 bg-background/60 text-[11px] text-foreground min-w-[50px] text-center enabled:hover:bg-accent/40 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-					@click="sizeMenu.toggle()"
-				>
-					<span class="truncate">{{ fontSize }}</span>
-					<ChevronDown class="w-3 h-3 ml-1 shrink-0 text-muted-foreground" />
-				</button>
-				<div
-					v-if="sizeMenu.open.value && canFormat"
-					class="z-50 flex flex-col w-48 pt-1"
-					v-anchored-popup="{ anchor: sizeMenu.root.value }"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="s in COMMON_SIZES"
-							:key="s"
-							type="button"
-							:class="MENU_ITEM"
-							@click="handlePickSize(s)"
-						>
-							{{ s }}
-						</button>
-					</div>
-				</div>
-			</div>
+		<div data-pptx-chrome="font-picker-controls">
+			<pptx-ui-select
+				variant="ribbon-font"
+				data-font-picker="family"
+				data-ribbon-control="home.font.fontFamily"
+				:aria-label="t('pptx.ribbon.fontFamily')"
+				:disabled="!canFormat"
+				:value="fontFamily"
+				@change="handlePickFont(($event.target as HTMLSelectElement).value)"
+			>
+				<optgroup v-for="group in fontGroups" :key="group.id" :label="t(group.labelKey)">
+					<option
+						v-for="entry in group.entries"
+						:key="entry.family"
+						:value="entry.family"
+						:style="{ fontFamily: entry.family }"
+						:data-display-label="entry.family"
+						:data-description="entry.themeRole ? t(`pptx.font.role.${entry.themeRole}`) : undefined"
+					>
+						{{ entry.family }}
+					</option>
+				</optgroup>
+			</pptx-ui-select>
+			<pptx-ui-select
+				variant="ribbon-font"
+				data-font-picker="size"
+				data-ribbon-control="home.font.fontSize"
+				:aria-label="t('pptx.ribbon.fontSize')"
+				:disabled="!canFormat"
+				:value="fontSize"
+				@change="handlePickSize(Number(($event.target as HTMLSelectElement).value))"
+			>
+				<option v-for="size in COMMON_FONT_SIZES" :key="size" :value="size">{{ size }}</option>
+			</pptx-ui-select>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>

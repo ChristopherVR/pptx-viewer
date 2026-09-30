@@ -4,13 +4,13 @@
  * Painter) with the brief copied / cut feedback flash. Split out of
  * `HomeSection.vue` to keep that file short.
  */
-import { ClipboardPaste, Copy, Paintbrush, Scissors } from 'lucide-vue-next';
 import { ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { cn } from '../../../utils';
 import { gB, gL, grp, ic } from './ribbon-constants';
 import type { ElementClipboardPayload } from './ribbon-types';
+import RibbonIcon from './RibbonIcon';
 
 interface Props {
 	canEdit: boolean;
@@ -59,7 +59,7 @@ function handleCopy(): void {
 				:title="t('pptx.arrange.paste')"
 				@click="props.onPaste()"
 			>
-				<ClipboardPaste :class="ic" />
+				<RibbonIcon name="home.clipboard.paste" :class="ic" />
 			</button>
 			<button
 				type="button"
@@ -69,7 +69,7 @@ function handleCopy(): void {
 				:title="t('pptx.arrange.cut')"
 				@click="handleCut()"
 			>
-				<Scissors :class="ic" />
+				<RibbonIcon name="home.clipboard.cut" :class="ic" />
 			</button>
 			<button
 				type="button"
@@ -79,7 +79,7 @@ function handleCopy(): void {
 				:title="t('pptx.arrange.copy')"
 				@click="handleCopy()"
 			>
-				<Copy :class="ic" />
+				<RibbonIcon name="home.clipboard.copy" :class="ic" />
 			</button>
 			<button
 				v-if="props.onToggleFormatPainter"
@@ -96,7 +96,7 @@ function handleCopy(): void {
 				:title="t('pptx.arrange.formatPainter')"
 				@click="props.onToggleFormatPainter()"
 			>
-				<Paintbrush :class="ic" />
+				<RibbonIcon name="home.clipboard.formatPainter" :class="ic" />
 			</button>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{

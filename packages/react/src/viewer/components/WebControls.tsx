@@ -65,6 +65,7 @@ export function WebSelect({
 	...rest
 }: Omit<React.SelectHTMLAttributes<HTMLSelectElement>, 'value' | 'onChange'> & {
 	value: string | number;
+	variant?: 'ribbon-font';
 	onChange?: React.ChangeEventHandler<HTMLSelectElement>;
 }): React.ReactElement {
 	const ref = useRef<Host>(null);

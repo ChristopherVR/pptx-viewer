@@ -50,6 +50,7 @@ export function CropRibbonControls({ canEdit }: CropRibbonControlsProps): React.
 			<div className={grp}>
 				<button
 					type='button'
+					data-pptx-chrome='crop-main'
 					data-pptx-ribbon-control='crop'
 					aria-label={label}
 					aria-pressed={active}
@@ -63,6 +64,7 @@ export function CropRibbonControls({ canEdit }: CropRibbonControlsProps): React.
 				</button>
 				<button
 					type='button'
+					data-pptx-chrome='crop-caret'
 					data-pptx-ribbon-control='crop-menu'
 					aria-label={t(CROP_ASPECT_LABEL_KEY)}
 					aria-haspopup='menu'

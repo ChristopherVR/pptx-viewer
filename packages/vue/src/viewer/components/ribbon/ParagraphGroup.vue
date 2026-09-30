@@ -4,7 +4,6 @@
  * Bullets / Numbering library galleries, indent, alignment, and the line
  * spacing / direction / columns dropdowns). Split out of `TextSection.vue`.
  */
-import { IndentDecrease, IndentIncrease, List, ListOrdered } from 'lucide-vue-next';
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
@@ -20,6 +19,7 @@ import ParagraphDropdowns from './ParagraphDropdowns.vue';
 import { ATXT, gB, gL, grp, ic } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
 import RibbonGallery from './RibbonGallery.vue';
+import RibbonIcon from './RibbonIcon';
 
 interface Props {
 	canEdit: boolean;
@@ -96,9 +96,9 @@ function handleAlignClick(id: string): void {
 
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.paragraph">
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1" data-pptx-chrome="paragraph-controls">
 			<!-- List style: each toggle with its library gallery chevron -->
-			<div :class="grp">
+			<div :class="grp" data-pptx-chrome="list-controls">
 				<div class="inline-flex items-stretch" data-ribbon-control="home.paragraph.bullets">
 					<button
 						type="button"
@@ -109,7 +109,7 @@ function handleAlignClick(id: string): void {
 						@mousedown.prevent
 						@click="toggleList('bullet')"
 					>
-						<List :class="ic" />
+						<RibbonIcon name="home.paragraph.bullets" :class="ic" />
 					</button>
 					<RibbonGallery gallery="bullets" mode="chevron" class="border-r border-border" />
 				</div>
@@ -123,14 +123,14 @@ function handleAlignClick(id: string): void {
 						@mousedown.prevent
 						@click="toggleList('numbered')"
 					>
-						<ListOrdered :class="ic" />
+						<RibbonIcon name="home.paragraph.numbering" :class="ic" />
 					</button>
 					<RibbonGallery gallery="numbering" mode="chevron" />
 				</div>
 			</div>
 
 			<!-- Indent decrease / increase -->
-			<div :class="grp">
+			<div :class="grp" data-pptx-chrome="control-cluster">
 				<button
 					type="button"
 					data-ribbon-control="home.paragraph.decreaseIndent"
@@ -140,7 +140,7 @@ function handleAlignClick(id: string): void {
 					@mousedown.prevent
 					@click="stepIndent(-24)"
 				>
-					<IndentDecrease :class="ic" />
+					<RibbonIcon name="home.paragraph.decreaseIndent" :class="ic" />
 				</button>
 				<button
 					type="button"
@@ -151,12 +151,12 @@ function handleAlignClick(id: string): void {
 					@mousedown.prevent
 					@click="stepIndent(24)"
 				>
-					<IndentIncrease :class="ic" />
+					<RibbonIcon name="home.paragraph.increaseIndent" :class="ic" />
 				</button>
 			</div>
 
 			<!-- Alignment -->
-			<div :class="grp">
+			<div :class="grp" data-pptx-chrome="control-cluster">
 				<button
 					v-for="(b, i) in ATXT"
 					:key="b.id"
@@ -168,7 +168,7 @@ function handleAlignClick(id: string): void {
 					@mousedown.prevent
 					@click="handleAlignClick(b.id)"
 				>
-					<component :is="b.icon" :class="ic" />
+					<RibbonIcon :name="ALIGN_CONTROL[b.id]" :class="ic" />
 				</button>
 			</div>
 

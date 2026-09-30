@@ -16,8 +16,10 @@ export interface DeckCard {
 /** A titled section (Presentation, Theme, Slide Size, Document, ...). */
 export function makeSection(doc: Document, title: string): { el: HTMLElement; body: HTMLElement } {
 	const el = createEl(doc, 'div', 'pptxv-inspector-section');
+	el.dataset.pptxChrome = 'inspector-card';
 	const caption = createEl(doc, 'h4', 'pptxv-inspector-section-title');
 	caption.textContent = title;
+	caption.dataset.pptxChrome = 'inspector-heading';
 	el.appendChild(caption);
 	const body = createEl(doc, 'div');
 	el.appendChild(body);

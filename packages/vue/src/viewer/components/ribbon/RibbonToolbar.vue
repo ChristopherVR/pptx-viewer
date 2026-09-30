@@ -87,6 +87,7 @@ const { visibleTabs } = useToolbarVisibility(
 <template>
 	<div
 		role="toolbar"
+		data-pptx-chrome="ribbon"
 		:aria-label="t('pptx.toolbar.presentationToolbarAria')"
 		class="relative z-20 border-b border-border bg-secondary/50 overflow-visible"
 	>
@@ -113,6 +114,7 @@ const { visibleTabs } = useToolbarVisibility(
 
 		<!-- Ribbon Content (collapsible via the ribbon toggle) -->
 		<div
+			data-pptx-chrome="ribbon-content"
 			v-if="showRibbon"
 			v-show="props.isCompactToolbarOpen"
 			class="flex min-h-[82px] items-center gap-0 overflow-x-auto px-1 py-0.5 max-md:min-h-0 max-md:px-1 max-md:py-0.5 flex-nowrap [&>*]:shrink-0"

@@ -1,0 +1,45 @@
+<div class="flex items-center gap-1" data-pptx-chrome="editing-controls">
+	<div class="pptx-rb-grp" data-pptx-chrome="control-cluster">
+		<button
+			type="button"
+			class="pptx-rb-gb"
+			[title]="'pptx.editing.find' | translate"
+			data-ribbon-control="home.editing.find"
+			(click)="toggleFindReplace.emit()"
+		>
+			<svg pptxRibbonIcon="home.editing.find"></svg>
+		</button>
+		<button
+			type="button"
+			class="pptx-rb-gl"
+			[title]="'pptx.ribbon.replace' | translate"
+			data-ribbon-control="home.editing.replace"
+			(click)="toggleFindReplace.emit()"
+		>
+			<svg pptxRibbonIcon="home.editing.replace"></svg>
+		</button>
+	</div>
+	<div class="group relative" data-ribbon-control="home.editing.select">
+		<button
+			#selectTrigger
+			type="button"
+			class="pptx-rb-pill"
+			[title]="'pptx.ribbon.tool.select' | translate"
+			(mousedown)="$event.preventDefault()"
+		>
+			<svg pptxRibbonIcon="home.editing.select"></svg>
+		</button>
+		<div class="z-50 hidden w-32 pt-1 group-hover:block" [pptxAnchoredPopup]="selectTrigger">
+			<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
+				<button
+					type="button"
+					class="flex w-full items-center px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
+					(mousedown)="$event.preventDefault()"
+					(click)="selectAll.emit()"
+				>
+					{{ 'pptx.editing.selectAll' | translate }}
+				</button>
+			</div>
+		</div>
+	</div>
+</div>

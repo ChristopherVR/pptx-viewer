@@ -76,7 +76,7 @@
 	const t = useTranslator();
 </script>
 
-<div class="pptx-svelte-ribbon-primary" role="group" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
+<div class="pptx-svelte-ribbon-primary" data-pptx-chrome="ribbon-primary" role="group" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	{#if chromeUi}
 		<button
 			type="button"

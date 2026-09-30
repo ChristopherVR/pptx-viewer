@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Layers, PaintBucket, PenLine, Shapes } from 'lucide-vue-next';
 /**
  * DrawingGroup: Drawing ribbon group with Shapes dropdown, Arrange layer
  * controls, Shape Fill/Outline colour popovers, and the Quick Styles / Shape
@@ -17,6 +16,7 @@ import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
 import type { SupportedShapeType } from './ribbon-types';
 import RibbonGallery from './RibbonGallery.vue';
+import RibbonIcon from './RibbonIcon';
 import ShapeColorPopover from './ShapeColorPopover.vue';
 import { useDropdown } from './use-dropdown';
 
@@ -89,7 +89,7 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.drawing">
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1" data-pptx-chrome="drawing-controls">
 			<!-- Shapes dropdown -->
 			<div :ref="shapesMenu.root" class="relative" data-ribbon-control="home.drawing.shapes">
 				<button
@@ -99,7 +99,7 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 					:title="t('pptx.drawing.shapes')"
 					@click="shapesMenu.toggle()"
 				>
-					<Shapes :class="ic" />
+					<RibbonIcon name="home.drawing.shapes" :class="ic" />
 					{{ t('pptx.drawing.shapes') }}
 				</button>
 				<div
@@ -130,7 +130,7 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 					:title="t('pptx.ribbon.arrange')"
 					@click="arrangeMenu.toggle()"
 				>
-					<Layers :class="ic" />
+					<RibbonIcon name="home.drawing.arrange" :class="ic" />
 					{{ t('pptx.ribbon.arrange') }}
 				</button>
 				<div
@@ -159,7 +159,7 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 			<ShapeColorPopover
 				data-ribbon-control="home.drawing.shapeFill"
 				:disabled="!props.canEdit || !props.selectedElement"
-				:icon="PaintBucket"
+				icon-name="home.drawing.shapeFill"
 				title-key="pptx.drawing.shapeFill"
 				swatch-aria-prefix="Fill colour"
 				:selected-ref="selectedShapeStyle?.fillColorRef"
@@ -169,7 +169,7 @@ function handleOutline(color: string, ref?: PptxThemeColorRef): void {
 			<ShapeColorPopover
 				data-ribbon-control="home.drawing.shapeOutline"
 				:disabled="!props.canEdit || !props.selectedElement"
-				:icon="PenLine"
+				icon-name="home.drawing.shapeOutline"
 				title-key="pptx.drawing.shapeOutline"
 				swatch-aria-prefix="Outline colour"
 				:selected-ref="selectedShapeStyle?.strokeColorRef"

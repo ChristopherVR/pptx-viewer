@@ -35,7 +35,7 @@ export class LayoutState {
 		this.viewportHeight = height;
 	}
 
-	/** Scale that fits the slide into the viewport (24px padding when windowed). */
+	/** Scale that fits the slide using the shared editor padding and ceiling. */
 	get fittedScale(): number {
 		const { width, height } = this.#deps.getCanvasSize();
 		return fitScale(

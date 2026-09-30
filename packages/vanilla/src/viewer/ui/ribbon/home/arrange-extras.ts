@@ -53,6 +53,7 @@ export function createArrangeExtras(
 	handlers: ArrangeExtrasHandlers,
 ): ArrangeExtras {
 	const el = createEl(doc, 'div', 'pptxv-arrange-extras');
+	el.dataset.pptxChrome = 'arrange-extras';
 
 	const group = makeButton(doc, {
 		label: t('pptx.contextMenu.group'),
@@ -87,7 +88,10 @@ export function createArrangeExtras(
 	tagRibbonControl(group.btn, 'home.arrange.group');
 	tagRibbonControl(ungroup.btn, 'home.arrange.ungroup');
 	tagRibbonControl(stroke, 'home.arrange.outlineWidth');
-	el.append(group.btn, ungroup.btn, stroke);
+	const groupControls = createEl(doc, 'div');
+	groupControls.dataset.pptxChrome = 'group-controls';
+	groupControls.append(group.btn, ungroup.btn);
+	el.append(groupControls, stroke);
 
 	return {
 		el,

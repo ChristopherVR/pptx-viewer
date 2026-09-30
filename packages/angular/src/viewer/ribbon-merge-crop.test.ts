@@ -13,6 +13,10 @@ import type { PptxElement, PptxSlide, ShapePptxElement } from 'pptx-viewer-core'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../../../shared/src/i18n/translations-en';
+import {
+	readViewerTestResource,
+	resolveViewerComponentResources,
+} from './component-resources.test-support';
 import { EditorContextMenuComponent } from './editor-context-menu.component';
 import { EditorStateService } from './editor-state.service';
 import { IsMobileService } from './is-mobile';
@@ -22,8 +26,9 @@ import { RibbonCropComponent } from './ribbon-crop.component';
 import { RibbonMergeShapesComponent } from './ribbon-merge-shapes.component';
 import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 
-beforeAll(() => {
+beforeAll(async () => {
 	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	await resolveViewerComponentResources();
 });
 afterEach(() => {
 	TestBed.resetTestingModule();
@@ -53,7 +58,11 @@ interface Mounted {
 }
 
 /** Render `component` with signal inputs (this JIT runner has no signal-input transform). */
-function mount<T>(component: Type<T>, inputs: Record<string, unknown>): Mounted {
+function mount<T>(
+	component: Type<T>,
+	inputs: Record<string, unknown>,
+	templateFile?: string,
+): Mounted {
 	TestBed.configureTestingModule({
 		imports: [component],
 		providers: [
@@ -64,7 +73,18 @@ function mount<T>(component: Type<T>, inputs: Record<string, unknown>): Mounted 
 			IsMobileService,
 		],
 	});
-	TestBed.overrideComponent(component, { add: { inputs: Object.keys(inputs) } });
+	TestBed.overrideComponent(
+		component,
+		templateFile
+			? {
+					set: {
+						inputs: Object.keys(inputs),
+						templateUrl: '',
+						template: readViewerTestResource(templateFile),
+					},
+				}
+			: { add: { inputs: Object.keys(inputs) } },
+	);
 	TestBed.inject(TranslateService).setTranslation('en', translationsEn);
 	TestBed.inject(TranslateService).use('en');
 	const editor = TestBed.inject(EditorStateService);
@@ -174,14 +194,22 @@ describe('ribbon Crop', () => {
 
 describe('ribbon Arrange customisation', () => {
 	it('hides Merge Shapes and Crop when the host hides them', () => {
-		const shown = mount(RibbonArrangeSectionComponent, { hiddenActions: [], canEdit: true });
+		const shown = mount(
+			RibbonArrangeSectionComponent,
+			{ hiddenActions: [], canEdit: true },
+			'ribbon-arrange-section.component.html',
+		);
 		expect(q(shown.root, '[data-pptx-ribbon-control="merge-shapes"]')).not.toBeNull();
 		expect(q(shown.root, '[data-pptx-ribbon-control="crop"]')).not.toBeNull();
 		TestBed.resetTestingModule();
-		const hidden = mount(RibbonArrangeSectionComponent, {
-			hiddenActions: ['mergeShapes', 'crop'],
-			canEdit: true,
-		});
+		const hidden = mount(
+			RibbonArrangeSectionComponent,
+			{
+				hiddenActions: ['mergeShapes', 'crop'],
+				canEdit: true,
+			},
+			'ribbon-arrange-section.component.html',
+		);
 		expect(q(hidden.root, '[data-pptx-ribbon-control="merge-shapes"]')).toBeNull();
 		expect(q(hidden.root, '[data-pptx-ribbon-control="crop"]')).toBeNull();
 	});

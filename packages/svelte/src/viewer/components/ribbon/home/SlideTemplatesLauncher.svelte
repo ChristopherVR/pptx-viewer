@@ -10,6 +10,7 @@
 	 * `EditorSlidesController.insertSlideFromTemplate` and navigates to the
 	 * new slide.
 	 */
+	import { LayoutTemplate } from '@lucide/svelte';
 	import { templateSchemeFromTheme } from 'pptx-viewer-shared';
 	import type { SlideTemplateId } from 'pptx-viewer-shared';
 
@@ -48,7 +49,7 @@
 	title={t('pptx.home.slideTemplates')}
 	onclick={() => (galleryOpen = true)}
 >
-	<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="2.5" width="11" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M2.5 6h11M6.5 6v7.5" stroke="currentColor" stroke-width="1.2" /></svg>
+	<LayoutTemplate size={16} />
 	<span>{t('pptx.home.slideTemplates')}</span>
 </button>
 
@@ -90,7 +91,7 @@
 		cursor: default;
 	}
 
-	.pptx-svelte-slide-templates-launch svg {
+	.pptx-svelte-slide-templates-launch :global(svg) {
 		width: 14px;
 		height: 14px;
 	}

@@ -4,6 +4,7 @@ import {
 	computeResizedColumnWidths,
 	computeResizedRowHeight,
 	DEFAULT_ROW_HEIGHT,
+	getTableResizeScale,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
@@ -128,6 +129,7 @@ function onContainerMouseDown(event: MouseEvent): void {
 	const rect = container.getBoundingClientRect();
 	const localX = event.clientX - rect.left;
 	const localY = event.clientY - rect.top;
+	const scaleY = getTableResizeScale(rect.height, container.offsetHeight);
 
 	// Check column boundaries
 	for (let i = 0; i < colBoundaries.value.length; i++) {
@@ -152,7 +154,7 @@ function onContainerMouseDown(event: MouseEvent): void {
 
 	// Check row boundaries
 	for (let i = 0; i < rowBounds.value.length; i++) {
-		if (Math.abs(localY - rowBounds.value[i]) <= HANDLE_ZONE) {
+		if (Math.abs(localY - rowBounds.value[i] * scaleY) <= HANDLE_ZONE) {
 			event.preventDefault();
 			event.stopPropagation();
 			const table = container.querySelector('table');

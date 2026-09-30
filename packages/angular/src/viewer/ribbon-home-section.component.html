@@ -1,0 +1,165 @@
+<!-- Clipboard -->
+<pptx-ribbon-clipboard-group
+	[slideIndex]="slideIndex()"
+	[selectedElement]="selectedElement()"
+	[canEdit]="canEdit()"
+	[formatPainterActive]="formatPainterActive()"
+	[canActivateFormatPainter]="canActivateFormatPainter()"
+	(toggleFormatPainter)="toggleFormatPainter.emit()"
+/>
+<span class="pptx-rb-sep"></span>
+<!-- Slides -->
+<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.slides">
+	<div class="flex items-center gap-1" data-pptx-chrome="slides-controls">
+		<!--
+					New Slide is a split button (React SlidesGroup parity): the face adds
+					a blank slide, the chevron picks the layout the new slide inherits
+					from. The chevron sits OUTSIDE the pptx-rb-grp wrapper because that
+					class is overflow-hidden, which would clip the menu, and the menu
+					itself only renders for a deck that actually has layouts.
+				-->
+		<span
+			class="contents"
+			data-ribbon-control="home.slides.newSlide"
+			data-pptx-chrome="split-button"
+		>
+			<div class="pptx-rb-grp" data-pptx-chrome="split-segment">
+				<button
+					data-pptx-chrome="split-main"
+					type="button"
+					class="pptx-rb-gl gap-1.5 whitespace-nowrap"
+					[title]="'pptx.home.newSlide' | translate"
+					(click)="editor.addSlide(slideIndex())"
+				>
+					<svg lucidePlus class="h-4 w-4"></svg> {{ 'pptx.home.newSlide' | translate }}
+				</button>
+			</div>
+			@if (layoutOptions().length > 0) {
+				<div class="group relative" data-pptx-chrome="split-segment">
+					<button
+						data-pptx-chrome="split-caret"
+						#newSlideLayoutTrigger
+						type="button"
+						class="pptx-rb-pill px-1.5"
+						[disabled]="!canEdit()"
+						[title]="'pptx.home.chooseLayout' | translate"
+						[attr.aria-label]="'pptx.home.chooseLayout' | translate"
+					>
+						<svg lucideChevronDown class="h-3 w-3"></svg>
+					</button>
+					<div
+						class="z-50 hidden pt-1 group-hover:block"
+						[pptxAnchoredPopup]="newSlideLayoutTrigger"
+					>
+						<pptx-ribbon-layout-gallery
+							[layoutOptions]="layoutOptions()"
+							[previews]="layoutPreviews()"
+							[disabled]="!canEdit()"
+							(select)="editor.addSlide(slideIndex(), $event.path)"
+						></pptx-ribbon-layout-gallery>
+					</div>
+				</div>
+			}
+		</span>
+		<div class="pptx-rb-grp" data-pptx-chrome="slides-buttons">
+			<!--
+						Slide Templates gallery (React SlidesGroup parity): opens the
+						modal template gallery hosted by the viewer, which inserts the
+						chosen pre-designed slide after the active one.
+					-->
+			<button
+				type="button"
+				class="pptx-rb-gb whitespace-nowrap"
+				[disabled]="!canEdit()"
+				[title]="'pptx.home.slideTemplates' | translate"
+				(click)="openTemplateGallery.emit()"
+				data-ribbon-control="home.slides.slideTemplates"
+			>
+				<svg lucideLayoutTemplate class="h-4 w-4"></svg>
+				{{ 'pptx.home.slideTemplates' | translate }}
+			</button>
+			<!--
+						Layout re-maps the ACTIVE slide onto another layout of its master,
+						keeping its content: that is what PowerPoint's Home > Layout does,
+						and it is a different operation from the New Slide chevron above,
+						which inserts a slide that inherits from the layout picked.
+					-->
+			<div class="group relative" data-ribbon-control="home.slides.layout">
+				<button
+					#applyLayoutTrigger
+					type="button"
+					class="pptx-rb-gb whitespace-nowrap"
+					[disabled]="!canEdit() || layoutOptions().length === 0"
+					[title]="'pptx.master.layout' | translate"
+				>
+					<svg lucideLayoutGrid class="h-4 w-4"></svg> {{ 'pptx.master.layout' | translate }}
+				</button>
+				@if (layoutOptions().length > 0) {
+					<div class="z-50 hidden pt-1 group-hover:block" [pptxAnchoredPopup]="applyLayoutTrigger">
+						<pptx-ribbon-layout-gallery
+							[layoutOptions]="layoutOptions()"
+							[previews]="layoutPreviews()"
+							[currentLayoutPath]="currentLayoutPath()"
+							[disabled]="!canEdit()"
+							(select)="onApplyLayout($event.path)"
+						></pptx-ribbon-layout-gallery>
+					</div>
+				}
+			</div>
+			<button
+				type="button"
+				class="pptx-rb-gb whitespace-nowrap"
+				[disabled]="!canEdit()"
+				[title]="'pptx.sections.resetSlideTitle' | translate"
+				(click)="onResetSlide()"
+				data-ribbon-control="home.slides.reset"
+			>
+				<svg lucideRotateCcw class="h-4 w-4"></svg> {{ 'pptx.animations.reset' | translate }}
+			</button>
+			<button
+				type="button"
+				class="pptx-rb-gl whitespace-nowrap"
+				[title]="'pptx.sections.addSection' | translate"
+				(click)="editor.addSection(slideIndex())"
+				data-ribbon-control="home.slides.section"
+			>
+				<svg lucideFolderPlus class="h-4 w-4"></svg>
+				{{ 'pptx.sections.sectionButtonLabel' | translate }}
+			</button>
+		</div>
+	</div>
+	<span class="text-[9px] leading-none text-muted-foreground">
+		{{ 'pptx.sections.slides' | translate }}
+	</span>
+</div>
+<span class="pptx-rb-sep"></span>
+<!-- Font -->
+<pptx-ribbon-font-controls
+	[canEdit]="canEdit()"
+	[slideIndex]="slideIndex()"
+	[selectedElement]="selectedElement()"
+/>
+<!-- Paragraph -->
+<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.paragraph">
+	<div class="flex items-center gap-1" data-pptx-chrome="paragraph-controls">
+		<pptx-ribbon-paragraph-controls
+			[canEdit]="canEdit()"
+			[slideIndex]="slideIndex()"
+			[selectedElement]="selectedElement()"
+		/>
+	</div>
+	<span class="text-[9px] leading-none text-muted-foreground">
+		{{ 'pptx.ribbon.paragraph' | translate }}
+	</span>
+</div>
+<span class="pptx-rb-sep"></span>
+<!-- Editing -->
+<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
+	<pptx-ribbon-editing-section
+		(toggleFindReplace)="findReplace.emit()"
+		(selectAll)="onSelectAll()"
+	/>
+	<span class="text-[9px] leading-none text-muted-foreground">
+		{{ 'pptx.shortcuts.group.editing' | translate }}
+	</span>
+</div>

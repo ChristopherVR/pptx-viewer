@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * ClipboardGroup: cut / copy / paste / duplicate / delete for the Home
 	 * tab. Copy works even read-only (matches React); cut/paste/duplicate/
@@ -20,26 +21,13 @@
 	<div class="pptx-svelte-rgroup-row">
 		<button
 			type="button"
-			data-testid="format-painter-toggle"
-			data-active={editor.formatPainter.active}
-			aria-pressed={editor.formatPainter.active}
-			disabled={!editor.formatPainter.enabled}
-			data-ribbon-control="home.clipboard.formatPainter"
-			aria-label={t('pptx.arrange.formatPainter')}
-			title={t('pptx.arrange.formatPainter')}
-			onclick={() => editor.formatPainter.toggle()}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h8v4H3zM11 4h2v5H8v4H6V8h5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
-		</button>
-		<button
-			type="button"
 			disabled={!editor.hasClipboard || !editor.editable}
 			data-ribbon-control="home.clipboard.paste"
 			aria-label={t('pptx.arrange.paste')}
 			title={t('pptx.arrange.paste')}
 			onclick={() => editor.clipboardOps.pasteClipboard()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 3h6v2H5zM4 4h8v10H4zM6 7h4M6 9.5h4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" /></svg>
+			<RibbonIcon name="home.clipboard.paste" />
 		</button>
 		<button
 			type="button"
@@ -49,7 +37,7 @@
 			title={t('pptx.arrange.cut')}
 			onclick={() => editor.clipboardOps.cutSelected()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 6 12.5 12.5M10 6 3.5 12.5M8 8l4-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /><circle cx="5" cy="5" r="1.4" fill="none" stroke="currentColor" stroke-width="1.1" /><circle cx="5" cy="13" r="1.4" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
+			<RibbonIcon name="home.clipboard.cut" />
 		</button>
 		<button
 			type="button"
@@ -59,28 +47,20 @@
 			title={t('pptx.arrange.copy')}
 			onclick={() => editor.clipboardOps.copySelected()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="5.5" y="5.5" width="8" height="8" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><path d="M3 10V3h7" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+			<RibbonIcon name="home.clipboard.copy" />
 		</button>
 		<button
 			type="button"
-			disabled={!canMutate}
-			data-ribbon-control="home.arrange.duplicate"
-			aria-label={t('pptx.arrange.duplicate')}
-			title={t('pptx.arrange.duplicate')}
-			onclick={() => editor.duplicateSelected()}
+			data-testid="format-painter-toggle"
+			data-active={editor.formatPainter.active}
+			aria-pressed={editor.formatPainter.active}
+			disabled={!editor.formatPainter.enabled}
+			data-ribbon-control="home.clipboard.formatPainter"
+			aria-label={t('pptx.arrange.formatPainter')}
+			title={t('pptx.arrange.formatPainter')}
+			onclick={() => editor.formatPainter.toggle()}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2.5" y="4.5" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /><rect x="6.5" y="6.5" width="7" height="7" rx="1" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
-		</button>
-		<button
-			type="button"
-			class="pptx-svelte-rgroup-danger"
-			disabled={!canMutate}
-			data-ribbon-control="home.arrange.delete"
-			aria-label={t('pptx.arrange.delete')}
-			title={t('pptx.arrange.delete')}
-			onclick={() => editor.deleteSelected()}
-		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 4.5h9M6 4.5V3h4v1.5M5 4.5l.6 8.2c.05.7.6 1.3 1.3 1.3h2.2c.7 0 1.25-.6 1.3-1.3l.6-8.2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			<RibbonIcon name="home.clipboard.formatPainter" />
 		</button>
 	</div>
 	<span class="pptx-svelte-rgroup-label">{t('pptx.ribbon.clipboard')}</span>

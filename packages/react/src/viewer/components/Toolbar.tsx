@@ -64,6 +64,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 	return (
 		<div
 			role='toolbar'
+			data-pptx-chrome='ribbon'
 			aria-label={t('pptx.toolbar.presentationToolbarAria')}
 			className='relative z-20 border-b border-border bg-secondary/50 overflow-visible'
 		>
@@ -130,6 +131,7 @@ export function Toolbar(p: ToolbarProps): React.ReactElement {
 			{/* Ribbon Content */}
 			{showRibbon && (
 				<div
+					data-pptx-chrome='ribbon-content'
 					className={cn(
 						// Plain controls stay compact; labelled RibbonGroups opt into stretching.
 						// `RibbonGroupScope` wraps controls in a `display: contents` div, so its

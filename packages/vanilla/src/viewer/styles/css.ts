@@ -1,5 +1,6 @@
 import {
 	defaultCssVars,
+	EDITOR_CHROME_CSS,
 	HIDDEN_SLIDE_DIM_OPACITY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	STATUS_BAR_METRICS,
@@ -311,6 +312,7 @@ const CHROME_CSS = `
 /* Virtualized rail: block layout for the absolute-positioned window. :where()
    keeps the .pptxv-thumbs-virtualized part at zero specificity so the mobile
    and presenting display:none rules on the rail still win. */
+.pptxv-thumbs-window { gap: 8px; }
 :where(.pptxv-thumbs-virtualized) .pptxv-thumbs-list { display: block; }
 .pptxv-thumbs[hidden] { display: none; }
 .pptxv-thumbs-footer {
@@ -989,5 +991,6 @@ ${AI_FOCUS_CSS}
 ${READING_VIEW_CSS}
 ${OUTLINE_VIEW_CSS}
 ${EXPORT_PROGRESS_CSS}
-${PARITY_BANNERS_CSS}`;
+${PARITY_BANNERS_CSS}
+${EDITOR_CHROME_CSS}`;
 }

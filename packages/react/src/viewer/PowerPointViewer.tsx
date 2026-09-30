@@ -84,6 +84,7 @@ import {
 	FollowModeBar,
 } from './components/collaboration';
 import { CompatibilityToasts } from './components/CompatibilityToasts';
+import { EditorChromeStyle } from './components/EditorChromeStyle';
 import { Rendering3DFlagsContext } from './components/elements/rendering-3d-flags-context';
 import { HeaderFooterPanel } from './components/HeaderFooterPanel';
 import { RecentColorsProvider } from './components/inspector/RecentColorsContext';
@@ -1110,6 +1111,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			<div
 				style={themeStyle}
 				data-pptx-viewer=''
+				data-pptx-editor-chrome=''
 				{...{ [RIBBON_SCOPE_ATTR]: ribbonScope }}
 				aria-busy={loading}
 				className={cn(
@@ -1117,6 +1119,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 					...resolveOptionRootClasses(viewerOptions, 'pptx'),
 				)}
 			>
+				<EditorChromeStyle />
 				<RibbonCustomizationStyle resolved={customizationResolved} scope={ribbonScope} />
 				{/* Inner measured container: only layout content (toolbar, canvas,
 				    bottom panels) lives here. Fixed-position dialogs/overlays are

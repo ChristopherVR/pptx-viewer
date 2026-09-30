@@ -1,0 +1,89 @@
+.pptx-svelte-fontx {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.pptx-svelte-fontx-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 26px;
+	height: 26px;
+	border: none;
+	border-radius: var(--pptx-radius, 6px);
+	background: transparent;
+	color: inherit;
+	cursor: pointer;
+	font: inherit;
+	font-size: 12px;
+}
+
+.pptx-svelte-fontx-btn:hover:not(:disabled) {
+	background: var(--pptx-accent, #33334d);
+	color: var(--pptx-accent-foreground, #f8fafc);
+}
+
+.pptx-svelte-fontx-btn:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+.pptx-svelte-fontx-on {
+	background: var(--pptx-primary, #6366f1);
+	color: #fff;
+}
+
+.pptx-svelte-fontx-btn svg {
+	width: 14px;
+	height: 14px;
+}
+
+.pptx-svelte-fontx-glyph {
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+}
+
+.pptx-svelte-fontx-menu {
+	position: relative;
+	display: inline-flex;
+}
+
+.pptx-svelte-fontx-pop {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 50;
+	margin-top: 4px;
+	display: flex;
+	min-width: 148px;
+	flex-direction: column;
+	border: 1px solid var(--pptx-border, #33334d);
+	border-radius: calc(var(--pptx-radius, 6px) + 2px);
+	background: var(--pptx-popover, #111827);
+	color: var(--pptx-popover-foreground, #f3f4f6);
+	padding: 4px;
+	box-shadow:
+		0 10px 15px -3px rgba(0, 0, 0, 0.35),
+		0 4px 6px -4px rgba(0, 0, 0, 0.35);
+}
+
+.pptx-svelte-fontx-pop button {
+	display: block;
+	width: 100%;
+	border: none;
+	border-radius: var(--pptx-radius, 6px);
+	background: transparent;
+	color: inherit;
+	padding: 6px 10px;
+	text-align: left;
+	font: inherit;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+.pptx-svelte-fontx-pop button:hover {
+	background: var(--pptx-accent, #33334d);
+	color: var(--pptx-accent-foreground, #f8fafc);
+}

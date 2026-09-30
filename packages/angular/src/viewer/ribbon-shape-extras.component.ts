@@ -15,7 +15,6 @@
  * settled on the context-menu wording.
  */
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
-import { LucideGroup, LucideUngroup } from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { hasShapeProperties } from 'pptx-viewer-core';
@@ -28,6 +27,7 @@ import {
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { canGroupSelected } from './group-lock-guard';
+import { RibbonIconDirective } from './ribbon-icon.directive';
 
 export { canGroupSelection, canSetStrokeWidth, canUngroupSelection, strokeWidthOf };
 
@@ -53,9 +53,9 @@ export function resolveRibbonCanGroup(
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, LucideGroup, LucideUngroup],
+	imports: [TranslatePipe, RibbonIconDirective],
 	template: `
-		<div class="pptx-rb-grp">
+		<div class="pptx-rb-grp" data-pptx-chrome="group-controls">
 			<button
 				type="button"
 				class="pptx-rb-gb"
@@ -65,7 +65,7 @@ export function resolveRibbonCanGroup(
 				(click)="editor.groupSelected(slideIndex())"
 				data-ribbon-control="home.arrange.group"
 			>
-				<svg lucideGroup class="h-4 w-4"></svg>
+				<svg pptxRibbonIcon="home.arrange.group"></svg>
 			</button>
 			<button
 				type="button"
@@ -76,7 +76,7 @@ export function resolveRibbonCanGroup(
 				(click)="editor.ungroupSelected(slideIndex())"
 				data-ribbon-control="home.arrange.ungroup"
 			>
-				<svg lucideUngroup class="h-4 w-4"></svg>
+				<svg pptxRibbonIcon="home.arrange.ungroup"></svg>
 			</button>
 		</div>
 		<!--

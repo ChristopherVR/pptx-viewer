@@ -5,9 +5,11 @@ import {
 	nextSelectActive,
 	positionSelectMenu,
 	renderSelectMenu,
+	SELECT_OPTION_ATTRIBUTES,
 } from './select-menu';
 import type { SelectChoice } from './select-menu';
 import { SELECT_STYLES } from './select-styles';
+import { createSelectTrigger, prependSelectCustomSlot } from './select-trigger';
 import { createSelectValueElement } from './select-value';
 
 let nextSelectId = 0;
@@ -43,18 +45,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			}
 			const root = this.attachShadow({ mode: 'open', delegatesFocus: true });
 			attachControlStyles(root, SELECT_STYLES);
-			this.trigger = document.createElement('button');
-			this.trigger.type = 'button';
-			this.trigger.setAttribute('role', 'combobox');
-			this.trigger.setAttribute('aria-haspopup', 'listbox');
-			this.trigger.setAttribute('aria-expanded', 'false');
-			this.text = document.createElement('span');
-			this.text.className = 'value';
-			this.text.setAttribute('part', 'value');
-			const chevron = document.createElement('span');
-			chevron.className = 'chevron';
-			chevron.setAttribute('aria-hidden', 'true');
-			this.trigger.append(this.text, chevron);
+			({ trigger: this.trigger, text: this.text } = createSelectTrigger());
 			this.menu = document.createElement('div');
 			this.menu.className = 'menu';
 			this.menu.id = `pptx-ui-select-options-${++nextSelectId}`;
@@ -65,7 +56,11 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			root.append(this.trigger, this.menu);
 			this.trigger.addEventListener('click', () => (this.open ? this.close() : this.show()));
 			this.trigger.addEventListener('keydown', (event) => this.onKeyDown(event));
-			this.menu.addEventListener('pointerdown', (event) => event.preventDefault());
+			this.menu.addEventListener('pointerdown', (event) => {
+				if ((event.target as Element).closest('[data-index]')) {
+					event.preventDefault();
+				}
+			});
 			this.menu.addEventListener('click', (event) => {
 				const target = (event.target as Element).closest<HTMLElement>('[data-index]');
 				if (target) {
@@ -90,7 +85,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 				subtree: true,
 				attributes: true,
 				characterData: true,
-				attributeFilter: ['value', 'disabled', 'label', 'selected', 'hidden'],
+				attributeFilter: SELECT_OPTION_ATTRIBUTES,
 			});
 			this.refresh();
 		}
@@ -136,7 +131,9 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 					this.choices[0].value;
 			}
 			this.text.textContent =
-				this.choices.find((choice) => choice.value === this.value)?.label ?? '';
+				this.choices.find((choice) => choice.value === this.value)?.displayLabel ??
+				this.choices.find((choice) => choice.value === this.value)?.label ??
+				this.value;
 			this.trigger.disabled = this.disabled;
 			if (this.disabled) {
 				this.close();
@@ -150,6 +147,7 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 
 		private renderMenu(): void {
 			renderSelectMenu(this.menu, this.choices, this.value);
+			prependSelectCustomSlot(this, this.menu);
 			markSelectActive(this.menu, this.trigger, this.active, this.open);
 		}
 
@@ -295,6 +293,5 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 			}
 		}
 	}
-
 	registry.define('pptx-ui-select', PptxSelect);
 }

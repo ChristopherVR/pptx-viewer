@@ -38,7 +38,11 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 				(mousedown)="$event.preventDefault()"
 			>
 				<ng-content />
-				<span class="-mt-0.5 block h-1 w-4 rounded-sm" [style.background]="current()"></span>
+				<span
+					class="-mt-0.5 block h-1 w-4 rounded-sm"
+					data-pptx-chrome="color-swatch"
+					[style.background]="current()"
+				></span>
 			</button>
 			<div class="z-50 hidden pt-1 group-hover:block" [pptxAnchoredPopup]="colorTrigger">
 				<div

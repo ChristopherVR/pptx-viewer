@@ -75,7 +75,6 @@ const ITEM_CLASS = 'whitespace-nowrap rounded px-2 py-0.5 text-left text-[11px] 
 			(click)="toggle()"
 		>
 			<svg lucideCrop class="h-4 w-4"></svg>
-			{{ labelKey | translate }}
 		</button>
 		<button
 			#trigger

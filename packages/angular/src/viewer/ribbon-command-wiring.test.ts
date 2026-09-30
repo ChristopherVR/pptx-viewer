@@ -1,4 +1,5 @@
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import { describe, expect, it } from 'vitest';
 
@@ -216,11 +217,15 @@ describe('restored ribbon commands', () => {
 	it('opens the custom-show manager from the Slide Show tab', () => {
 		// The tab reads/writes the deck's presentation properties for its Options
 		// cluster (see ribbon-slideshow-section.component.test.ts), so the loader
-		// has to be reachable; DestroyRef is the only dependency it needs here.
+		// and translated command labels have to be reachable.
 		const destroyRefStub: Pick<DestroyRef, 'onDestroy'> = { onDestroy: () => () => {} };
 		const section = runInInjectionContext(
 			Injector.create({
-				providers: [{ provide: DestroyRef, useValue: destroyRefStub }, LoadContentService],
+				providers: [
+					{ provide: DestroyRef, useValue: destroyRefStub },
+					LoadContentService,
+					{ provide: TranslateService, useValue: { instant: (key: string) => key } },
+				],
 			}),
 			() => new RibbonSlideshowSectionComponent(),
 		);

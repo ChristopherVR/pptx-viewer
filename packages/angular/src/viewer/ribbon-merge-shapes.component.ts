@@ -29,13 +29,14 @@ import type { MergeShapesMenuItem } from '../internal/shared';
 import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { EditorStateService } from './editor-state.service';
 import { canMergeSelection, runMergeShapes } from './merge-shapes-action';
+import { RibbonIconDirective } from './ribbon-icon.directive';
 
 @Component({
 	selector: 'pptx-ribbon-merge-shapes',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'pptx-rb-grp relative' },
-	imports: [TranslatePipe, LucideChevronDown, AnchoredPopupDirective],
+	imports: [RibbonIconDirective, TranslatePipe, LucideChevronDown, AnchoredPopupDirective],
 	template: `
 		<button
 			#trigger
@@ -49,7 +50,8 @@ import { canMergeSelection, runMergeShapes } from './merge-shapes-action';
 			[title]="(enabled() ? labelKey : hintKey) | translate"
 			(click)="open.set(!open())"
 		>
-			{{ labelKey | translate }} <svg lucideChevronDown class="h-3 w-3"></svg>
+			<svg pptxRibbonIcon="home.arrange.mergeShapes"></svg>
+			<svg lucideChevronDown class="h-3 w-3"></svg>
 		</button>
 		@if (open() && enabled()) {
 			<div

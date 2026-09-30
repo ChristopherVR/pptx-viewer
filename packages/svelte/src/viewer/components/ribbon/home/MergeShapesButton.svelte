@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * MergeShapesButton: the Home tab Arrange group's "Merge Shapes" dropdown
 	 * (PowerPoint's Shape Format > Merge Shapes). The five operations, their
@@ -58,8 +59,8 @@
 		title={enabled ? t(MERGE_SHAPES_LABEL_KEY) : t(MERGE_SHAPES_HINT_KEY)}
 		onclick={() => (open = !open)}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h7v4h5v8H6v-4H2z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
-		<svg class="pptx-svelte-merge-caret" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<RibbonIcon name="home.arrange.mergeShapes" />
+		<svg class="pptx-svelte-merge-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
 	</button>
 	{#if open}
 		<div

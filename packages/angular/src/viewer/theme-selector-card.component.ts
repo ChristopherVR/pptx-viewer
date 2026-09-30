@@ -28,8 +28,10 @@ import { LoadContentService } from './load-content.service';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<section class="icard">
-			<h3 class="icard__heading">{{ 'pptx.documentProperties.themeHeading' | translate }}</h3>
+		<section class="icard" data-pptx-chrome="inspector-card">
+			<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+				{{ 'pptx.documentProperties.themeHeading' | translate }}
+			</h3>
 			<label class="icard__col">
 				<span class="icard__label">{{ 'pptx.documentProperties.themeHeading' | translate }}</span>
 				<pptx-ui-select

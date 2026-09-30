@@ -7,6 +7,7 @@
 	 * `pptx-viewer-shared` (same gap noted by the vanilla binding), so this
 	 * uses a standard Office theme-color set local to the component.
 	 */
+	import RibbonIcon from './RibbonIcon.svelte';
 	import type { PptxThemeColorRef } from 'pptx-viewer-core';
 	import type { RibbonControlId, ThemeColorPickerCommit } from 'pptx-viewer-shared';
 
@@ -104,8 +105,8 @@
 		title={title ?? label}
 		onclick={() => (open = !open)}
 	>
-		<span class="pptx-svelte-swatch-glyph">{glyph}</span>
-		<span class="pptx-svelte-swatch-swab" style={`background-color:${value}`}></span>
+		{#if control}<RibbonIcon name={control} />{:else}<span class="pptx-svelte-swatch-glyph">{glyph}</span>{/if}
+		<span class="pptx-svelte-swatch-swab" data-pptx-chrome="color-swatch" style={`background-color:${value}`}></span>
 	</button>
 	{#if open}
 		<div class="pptx-svelte-swatch-menu" role="menu" use:anchoredPopup={{ anchor: triggerEl }}>

@@ -1,15 +1,17 @@
-/**
- * ribbon-font-controls.component.ts: the ribbon's reusable Font control group
- * (family/size dropdowns, grow/shrink, clear-formatting, bold/italic/underline/
- * strikethrough and the font-colour + highlight popovers). Split out of
- * {@link RibbonComponent}'s `fontControls` ng-template so the Home and Text tabs
- * share one implementation. Behaviour and markup are unchanged.
- */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import {
-	LucideAArrowDown,
-	LucideAArrowUp,
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	computed,
+	inject,
+	input,
+} from '@angular/core';
+import {
+	LucideBold,
+	LucideItalic,
+	LucideUnderline,
+	LucideStrikethrough,
 	LucideHighlighter,
 	LucideRemoveFormatting,
 } from '@lucide/angular';
@@ -34,6 +36,14 @@ import { CustomFontsService } from './custom-fonts.service';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { RibbonColorPopoverComponent } from './ribbon-color-popover.component';
+/**
+ * ribbon-font-controls.component.ts: the ribbon's reusable Font control group
+ * (family/size dropdowns, grow/shrink, clear-formatting, bold/italic/underline/
+ * strikethrough and the font-colour + highlight popovers). Split out of
+ * {@link RibbonComponent}'s `fontControls` ng-template so the Home and Text tabs
+ * share one implementation. Behaviour and markup are unchanged.
+ */
+import { RibbonIconDirective } from './ribbon-icon.directive';
 import {
 	isTextElement,
 	patchTextStyle,
@@ -99,12 +109,16 @@ const CHANGE_CASE_OPTIONS = [
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [
+		RibbonIconDirective,
+		LucideBold,
+		LucideItalic,
+		LucideUnderline,
+		LucideStrikethrough,
 		NgClass,
 		TranslatePipe,
 		RibbonColorPopoverComponent,
-		LucideAArrowUp,
-		LucideAArrowDown,
 		LucideRemoveFormatting,
 		LucideHighlighter,
 	],

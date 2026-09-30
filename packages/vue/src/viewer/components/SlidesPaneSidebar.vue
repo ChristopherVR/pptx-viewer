@@ -19,6 +19,9 @@ import {
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
 	SLIDE_VIRTUALIZATION_THRESHOLD,
+	editorThumbnailHeight,
+	editorThumbnailStep,
+	EDITOR_THUMBNAIL_WIDTH,
 } from 'pptx-viewer-shared';
 import { computed, nextTick, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
@@ -39,7 +42,7 @@ const props = withDefaults(
 		/** Thumbnail content width in px (matches React's SLIDE_NAV_THUMBNAIL_WIDTH). */
 		thumbWidth?: number;
 	}>(),
-	{ thumbWidth: 104 },
+	{ thumbWidth: EDITOR_THUMBNAIL_WIDTH },
 );
 
 const emit = defineEmits<{
@@ -67,12 +70,14 @@ const slashGradient = HIDDEN_SLIDE_SLASH_GRADIENT;
 
 const scale = computed(() => props.thumbWidth / Math.max(1, props.canvasSize.width));
 const previewHeight = computed(() =>
-	Math.max(56, Math.round(props.canvasSize.height * scale.value)),
+	editorThumbnailHeight(props.canvasSize.width, props.canvasSize.height, props.thumbWidth),
 );
 const listEl = ref<HTMLElement | null>(null);
 const scrollTop = ref(0);
 const viewportHeight = ref(600);
-const itemHeight = computed(() => previewHeight.value + 5);
+const itemHeight = computed(() =>
+	editorThumbnailStep(props.canvasSize.width, props.canvasSize.height, props.thumbWidth),
+);
 const shouldVirtualize = computed(() => props.slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
 const virtualRange = computed(() =>
 	computeVirtualRange(props.slides.length, itemHeight.value, scrollTop.value, viewportHeight.value),
@@ -151,10 +156,16 @@ const {
 		role="navigation"
 		:aria-label="t('pptx.sections.slides')"
 		class="flex h-full flex-col border-r border-border bg-secondary/30 shrink-0"
-		:style="{ width: `${thumbWidth + 46}px` }"
+		:style="{ width: `${thumbWidth + 48}px` }"
+		data-pptx-chrome="slides"
 		@keydown="onPaneKeydown"
 	>
-		<div ref="listEl" class="flex-1 overflow-y-auto px-1.5 pb-2 pt-1.5" @scroll="onScroll">
+		<div
+			data-pptx-chrome="slide-list"
+			ref="listEl"
+			class="flex-1 overflow-y-auto px-1.5 pb-2 pt-1.5"
+			@scroll="onScroll"
+		>
 			<div
 				:data-virtualized="shouldVirtualize ? 'true' : undefined"
 				:style="
@@ -165,6 +176,7 @@ const {
 			>
 				<div
 					class="space-y-1"
+					data-pptx-chrome="slide-window"
 					:style="
 						shouldVirtualize
 							? {
@@ -193,6 +205,7 @@ const {
 						:draggable="canEdit"
 						:data-slide-index="index"
 						:aria-label="t('pptx.slidesPanel.goToSlide', { n: index + 1 })"
+						data-pptx-chrome="slide-row"
 						:aria-current="index === activeIndex ? 'true' : undefined"
 						:aria-describedby="hiddenCue(slide.hidden, 'rail', index).labelId"
 						:data-pptx-slide-hidden="hiddenCue(slide.hidden, 'rail', index).marker"
@@ -202,8 +215,10 @@ const {
 						@dragover.prevent
 						@drop="onDrop(index)"
 					>
-						<!-- Slide number column -->
-						<div class="flex flex-col items-center gap-0.5 w-5 shrink-0">
+						<div
+							data-pptx-chrome="slide-number"
+							class="flex flex-col items-center gap-0.5 w-5 shrink-0"
+						>
 							<span
 								:class="
 									cn(
@@ -227,7 +242,8 @@ const {
 										: 'border-transparent group-hover:border-border/40',
 								)
 							"
-							:style="{ height: `${previewHeight}px` }"
+							data-pptx-chrome="slide-frame"
+							:style="{ width: `${thumbWidth}px`, height: `${previewHeight}px`, flex: 'none' }"
 						>
 							<SlideStage
 								:slide="slide"
@@ -257,7 +273,11 @@ const {
 		</div>
 
 		<!-- Bottom: Add Slide -->
-		<div v-if="canEdit" class="border-t border-border/60 px-2 py-1.5">
+		<div
+			v-if="canEdit"
+			data-pptx-chrome="slide-footer"
+			class="border-t border-border/60 px-2 py-1.5"
+		>
 			<button
 				type="button"
 				class="flex w-full items-center justify-center gap-1 rounded-sm px-2 py-1 text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"

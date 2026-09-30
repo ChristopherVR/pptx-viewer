@@ -182,7 +182,9 @@ describe('home tab font controls', () => {
 
 	it('names the font-size picker after the control, not its current value', () => {
 		expect(html).toContain('aria-label="Font size"');
-		expect(html).toContain('>24</span>');
+		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
+			'value="24"',
+		);
 	});
 });
 
@@ -209,8 +211,8 @@ describe('help tab', () => {
 				onRunAccessibilityCheck: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('>Settings</button>');
-		expect(html).toContain('>Keyboard Shortcuts</button>');
-		expect(html).toContain('>Accessibility Check</button>');
+		for (const label of ['Settings', 'Keyboard Shortcuts', 'Accessibility Check']) {
+			expect(html).toContain(`<pptx-ui-ribbon-command label="${label}"`);
+		}
 	});
 });

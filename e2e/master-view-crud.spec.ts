@@ -6,6 +6,7 @@ import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
 
 import { resetTabSession } from './support/deck';
+import { readFixtureLayout } from './support/fixture-layout';
 
 /**
  * Wave-4 B4: the Slide Master view sidebar's Insert / Duplicate / Delete /
@@ -95,9 +96,8 @@ test.describe('slide master view CRUD', () => {
 		await loadDeck(page);
 		await enterMasterView(page);
 
-		// The fixture's slide sits on the first layout: select it and expect
-		// the shared rule to disable Delete with the in-use reason.
-		await sidebar(page).getByRole('button', { name: 'Title Slide' }).first().click();
+		const layout = await readFixtureLayout(fixturePath);
+		await sidebar(page).getByRole('button', { name: layout.name, exact: true }).click();
 		await expect(crudButton(page, 'duplicateLayout')).toBeEnabled();
 		await expect(crudButton(page, 'deleteLayout')).toBeDisabled();
 		await expect(crudButton(page, 'deleteLayout')).toHaveAttribute('title', /in use|used by/iu);

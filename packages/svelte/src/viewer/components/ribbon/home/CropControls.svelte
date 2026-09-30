@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * CropControls: the Home tab Arrange group's "Crop" toggle plus its
 	 * dropdown (Crop to Aspect Ratio presets, Fill, Fit), PowerPoint's Picture
@@ -90,8 +91,7 @@
 		{title}
 		onclick={() => editor.cropOps.toggle()}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1v11h11M1 4h11v11" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
-		<span>{t(CROP_LABEL_KEY)}</span>
+		<RibbonIcon name="home.arrange.crop" />
 	</button>
 	<button
 		type="button"
@@ -104,7 +104,7 @@
 		title={enabled ? t(CROP_ASPECT_LABEL_KEY) : t('pptx.image.cropHint')}
 		onclick={() => (open = !open)}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
 	</button>
 	{#if open}
 		<div class="pptx-svelte-crop-pop" role="menu" aria-label={t(CROP_ASPECT_LABEL_KEY)} use:anchoredPopup={{ anchor }}>

@@ -2,7 +2,7 @@
  * Pure slide-navigation and zoom-step helpers for the Svelte viewer.
  * Kept framework-free so they are trivially unit-testable.
  */
-import { calculateViewportFit } from 'pptx-viewer-shared';
+import { calculateViewportFit, EDITOR_VIEWPORT_FIT } from 'pptx-viewer-shared';
 import type { ViewportFitPadding } from 'pptx-viewer-shared';
 
 /** Clamp a slide index into `[0, count - 1]` (0 when there are no slides). */
@@ -65,11 +65,11 @@ export function fitScale(
 	viewportHeight: number,
 	canvasWidth: number,
 	canvasHeight: number,
-	padding: ViewportFitPadding = 24,
+	padding: ViewportFitPadding = EDITOR_VIEWPORT_FIT.fitPadding,
 	maxFitScale?: number | null,
 ): number {
 	return calculateViewportFit(
 		{ viewportWidth, viewportHeight, canvasWidth, canvasHeight, fitPadding: padding, maxFitScale },
-		{ fitPadding: 24, maxFitScale: null },
+		EDITOR_VIEWPORT_FIT,
 	).scale;
 }

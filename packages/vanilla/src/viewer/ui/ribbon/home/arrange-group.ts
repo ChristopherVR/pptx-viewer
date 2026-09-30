@@ -80,10 +80,13 @@ export function createArrangeGroup(
 	hiddenActions?: readonly ToolbarActionId[],
 ): ArrangeGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.arrange');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'arrange-controls';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.arrange.groupLabel');
 	el.appendChild(label);
 
@@ -107,7 +110,7 @@ export function createArrangeGroup(
 
 	const painter = makeButton(doc, {
 		label: t('pptx.arrange.format'),
-		icon: 'copy',
+		icon: 'paintbrush',
 		textLabel: t('pptx.arrange.format'),
 		onClick: handlers.toggleFormatPainter,
 	});
@@ -115,12 +118,12 @@ export function createArrangeGroup(
 
 	const flipH = makeButton(doc, {
 		label: t('pptx.arrange.flipH'),
-		icon: 'flip-h',
+		textLabel: t('pptx.arrange.flipH'),
 		onClick: handlers.flipHorizontal,
 	});
 	const flipV = makeButton(doc, {
 		label: t('pptx.arrange.flipV'),
-		icon: 'flip-v',
+		textLabel: t('pptx.arrange.flipV'),
 		onClick: handlers.flipVertical,
 	});
 
@@ -136,13 +139,13 @@ export function createArrangeGroup(
 	});
 	const back = makeButton(doc, {
 		label: t('pptx.arrange.back'),
-		icon: 'send-back',
+		textLabel: t('pptx.arrange.back'),
 		onClick: handlers.sendToBack,
 	});
 	back.btn.title = t('pptx.arrange.sendToBack');
 	const front = makeButton(doc, {
 		label: t('pptx.arrange.front'),
-		icon: 'bring-front',
+		textLabel: t('pptx.arrange.front'),
 		onClick: handlers.bringToFront,
 	});
 	front.btn.title = t('pptx.arrange.bringToFront');
@@ -163,6 +166,7 @@ export function createArrangeGroup(
 	const extras = createArrangeExtras(doc, t, handlers);
 	const mergeCrop = createMergeCropControls(doc, t, handlers, hiddenActions);
 
+	tagRibbonControl(painter.btn, 'home.clipboard.formatPainter');
 	tagRibbonControl(flipH.btn, 'home.arrange.flipHorizontal');
 	tagRibbonControl(flipV.btn, 'home.arrange.flipVertical');
 	tagRibbonControl(backward.btn, 'home.arrange.sendBackward');
@@ -171,23 +175,25 @@ export function createArrangeGroup(
 	tagRibbonControl(front.btn, 'home.arrange.bringToFront');
 	tagRibbonControl(duplicate.btn, 'home.arrange.duplicate');
 	tagRibbonControl(del.btn, 'home.arrange.delete');
+	const alignment = wrapRibbonControl(doc, 'home.arrange.align', ...alignButtons.map((b) => b.btn));
+	alignment.dataset.pptxChrome = 'align-controls';
+	const distribution = createEl(doc, 'div');
+	distribution.dataset.pptxChrome = 'distribute-controls';
+	distribution.append(distributeH.btn, distributeV.btn);
+	const flip = createEl(doc, 'div');
+	flip.dataset.pptxChrome = 'flip-controls';
+	flip.append(flipH.btn, flipV.btn);
+	const order = createEl(doc, 'div');
+	order.dataset.pptxChrome = 'order-controls';
+	order.append(backward.btn, forward.btn, back.btn, front.btn);
 	row.append(
-		wrapRibbonControl(
-			doc,
-			'home.arrange.align',
-			...alignButtons.map((b) => b.btn),
-			distributeH.btn,
-			distributeV.btn,
-		),
+		alignment,
+		distribution,
 		painter.btn,
-		flipH.btn,
-		flipV.btn,
+		flip,
 		extras.el,
 		mergeCrop.el,
-		backward.btn,
-		forward.btn,
-		back.btn,
-		front.btn,
+		order,
 		duplicate.btn,
 		del.btn,
 	);

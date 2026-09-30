@@ -13,12 +13,14 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../../../shared/src/i18n/translations-en';
 import { buildRibbonGallery, inlineGalleryItems } from '../internal/shared';
+import { resolveViewerComponentResources } from './component-resources.test-support';
 import { EditorStateService } from './editor-state.service';
 import { dispatchGalleryResult } from './ribbon-gallery-helpers';
 import { RibbonGalleryComponent } from './ribbon-gallery.component';
 
-beforeAll(() => {
+beforeAll(async () => {
 	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	await resolveViewerComponentResources();
 });
 afterEach(() => {
 	TestBed.resetTestingModule();

@@ -147,6 +147,25 @@ describe('svelte table drag-resize', () => {
 		expect(commitRow).not.toHaveBeenCalled();
 	});
 
+	it('lets a scaled cell-center click select the table and hits only the visible row edge', () => {
+		const { controller, root } = makeController();
+		Object.defineProperty(root, 'offsetHeight', { value: 200 });
+		vi.mocked(root.getBoundingClientRect).mockReturnValue({
+			...root.getBoundingClientRect(),
+			width: 250,
+			height: 125,
+			right: 250,
+			bottom: 125,
+		});
+		press(controller, 10, 37.5);
+		expect(controller.dragType).toBeNull();
+		press(controller, 10, 25);
+		expect(controller.dragType).toBe('row');
+		expect(controller.dragIndex).toBe(0);
+		release(10, 25);
+		controller.destroy();
+	});
+
 	it('stops listening after destroy, so a subsequent release commits nothing', () => {
 		const { controller, commitColumns } = makeController();
 		press(controller, 200, 10);

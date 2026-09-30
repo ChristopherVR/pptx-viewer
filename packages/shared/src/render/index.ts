@@ -1727,3 +1727,6 @@ export { isExportIgnoredElement, prepareExportClone } from './export-clone';
 
 export * from './element-update-batch';
 export * from './ribbon-record-commands';
+export * from './editor-chrome';
+
+export * from './ribbon-icons';

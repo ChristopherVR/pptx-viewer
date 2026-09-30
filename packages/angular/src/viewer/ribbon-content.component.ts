@@ -95,7 +95,6 @@ import type { RibbonTab } from './ribbon-types';
 					(findReplace)="find.emit()"
 					(openTemplateGallery)="openTemplateGallery.emit()"
 				/>
-				<span class="pptx-rb-sep"></span>
 				<pptx-ribbon-drawing-group
 					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"

@@ -65,4 +65,9 @@ describe('slideThumbnailPropsEqual', () => {
 			slideThumbnailPropsEqual(base, makeProps({ canvasSize: { width: 1280, height: 720 } })),
 		).toBeFalsy();
 	});
+
+	it('repaints when resizing the rail changes the preview width', () => {
+		const props = makeProps({ previewWidth: 132 });
+		expect(slideThumbnailPropsEqual(props, { ...props, previewWidth: 180 })).toBeFalsy();
+	});
 });

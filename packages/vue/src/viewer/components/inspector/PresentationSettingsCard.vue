@@ -35,7 +35,7 @@ function onNumber(e: Event): number {
 </script>
 
 <template>
-	<div class="space-y-1.5 text-[11px]">
+	<div data-pptx-chrome="presentation-fields" class="space-y-1.5 text-[11px]">
 		<label class="flex items-center justify-between gap-2">
 			<span class="text-muted-foreground">{{ t('pptx.presentationSettings.showType') }}</span>
 			<!-- Nested in its `<label>`, so without this its accessible label would

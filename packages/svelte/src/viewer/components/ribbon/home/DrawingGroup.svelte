@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * DrawingGroup: the Home tab's Drawing controls, React's `DrawingGroup` in
 	 * Svelte form: a Shapes gallery, an Arrange z-order menu, and the Quick
@@ -53,7 +54,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-drawgrp" role="group" aria-label={t('pptx.drawing.shapes')}>
+<div class="pptx-svelte-drawgrp" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.drawing.shapes')}>
 	<div class="pptx-svelte-drawgrp-menu" data-ribbon-control="home.drawing.shapes" bind:this={shapesAnchor} onfocusout={onFocusOut}>
 		<button
 			type="button"
@@ -63,8 +64,8 @@
 			title={t('pptx.drawing.shapes')}
 			onclick={() => (openMenu = openMenu === 'shapes' ? null : 'shapes')}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" fill="none" stroke="currentColor" stroke-width="1.1" /><circle cx="11.5" cy="4.5" r="2.5" fill="none" stroke="currentColor" stroke-width="1.1" /><path d="M2 14 6 8l4 6z" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
-			<span>{t('pptx.drawing.shapes')}</span>
+			<RibbonIcon name="home.drawing.shapes" />
+			<span>{t('pptx.drawing.shapes')}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
 		</button>
 		{#if openMenu === 'shapes'}
 			<div class="pptx-svelte-drawgrp-grid" role="menu" use:anchoredPopup={{ anchor: shapesAnchor }}>
@@ -101,8 +102,8 @@
 			title={t('pptx.ribbon.arrange')}
 			onclick={() => (openMenu = openMenu === 'arrange' ? null : 'arrange')}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 14 5 8 8.5 2 5zM2 8l6 3.5L14 8M2 11l6 3.5L14 11" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linejoin="round" /></svg>
-			<span>{t('pptx.ribbon.arrange')}</span>
+			<RibbonIcon name="home.drawing.arrange" />
+			<span>{t('pptx.ribbon.arrange')}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6" /></svg>
 		</button>
 		{#if openMenu === 'arrange'}
 			<div class="pptx-svelte-drawgrp-pop" role="menu" use:anchoredPopup={{ anchor: arrangeAnchor }}>

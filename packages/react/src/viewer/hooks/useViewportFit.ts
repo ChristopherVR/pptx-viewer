@@ -1,11 +1,15 @@
-import { calculateViewportFit, resolveViewportFitOptions } from 'pptx-viewer-shared';
+import {
+	calculateViewportFit,
+	EDITOR_VIEWPORT_FIT,
+	resolveViewportFitOptions,
+} from 'pptx-viewer-shared';
 import type { ViewportFitOptions } from 'pptx-viewer-shared';
 import { useEffect, useState } from 'react';
 import type { RefObject } from 'react';
 
 import type { CanvasSize } from '../types';
 
-const DEFAULT_FIT = { fitPadding: { horizontal: 4, vertical: 16 }, maxFitScale: 1 };
+const DEFAULT_FIT = EDITOR_VIEWPORT_FIT;
 
 /** Keep measured fit and available selection area on the same host layout policy. */
 export function useViewportFit(

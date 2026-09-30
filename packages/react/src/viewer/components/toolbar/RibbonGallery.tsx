@@ -120,6 +120,7 @@ export function RibbonGallery({
 		<div ref={dropdown.ref} {...controlAttrs} className='relative inline-flex items-center'>
 			<button
 				type='button'
+				data-pptx-chrome={chevronOnly ? 'gallery-caret' : undefined}
 				{...galleryAttrs}
 				aria-haspopup='true'
 				aria-expanded={open}
