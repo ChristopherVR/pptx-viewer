@@ -195,8 +195,13 @@ function harness(hiddenActions?: readonly ['broadcast']) {
 	};
 	const tab = createSlideShowTab(document, (key) => key, handlers, hiddenActions);
 	document.body.append(tab.el);
-	const command = (id: string) =>
-		tab.el.querySelector(`[data-ribbon-control="${id}"]`)!.shadowRoot!.querySelector('button')!;
+	const command = (id: string) => {
+		const root = tab.el.querySelector(`[data-ribbon-control="${id}"]`)!.shadowRoot!;
+		return (
+			root.querySelector('pptx-ui-ribbon-command')?.shadowRoot!.querySelector('button') ??
+			root.querySelector('button')!
+		);
+	};
 	return { tab, handlers, command };
 }
 
@@ -259,7 +264,12 @@ describe('vanilla shared Slide Show ribbon adapter', () => {
 			subtitles.shadowRoot!.querySelector('label')!.click();
 			expect(handlers.toggleSubtitles).toHaveBeenCalledOnce();
 			command('slideShow.captions.subtitleSettings').click();
-			expect(handlers.openSubtitleSettings).toHaveBeenCalledOnce();
+			expect(
+				tab.el.querySelector('pptx-ui-subtitle-settings')!.shadowRoot!.querySelector('dialog')!
+					.open,
+			).toBeTruthy();
+			expect(handlers.toggleSubtitles).toHaveBeenCalledOnce();
+			expect(handlers.openSetUp).not.toHaveBeenCalled();
 		} finally {
 			tab.el.remove();
 		}

@@ -1,84 +1,44 @@
-/**
- * ribbon-record-section.component.ts: the Record ribbon tab (Camera, Record,
- * Manage and Help groups).
- *
- * Only the two Record commands do anything today; Cameo, Clear, Reset to Cameo
- * and Learn More are rendered disabled because there is no camera-overlay
- * feature behind them yet. They are listed rather than omitted so the tab reads
- * the same in every binding and a user can see what the group will hold.
- */
-import { ChangeDetectionStrategy, Component, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, CUSTOM_ELEMENTS_SCHEMA, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
+
+import { RECORD_COMMAND_GROUPS } from '../internal/shared';
 
 @Component({
 	selector: 'pptx-ribbon-record-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [TranslatePipe],
 	template: `
-		<div class="flex items-center gap-1">
-			<button
-				data-ribbon-group="record.camera"
-				data-ribbon-control="record.camera.cameo"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
+		@for (group of groups; track group.id) {
+			<pptx-ui-ribbon-group
+				[attr.label]="group.labelKey | translate"
+				[attr.data-ribbon-group]="group.id"
 			>
-				{{ 'pptx.record.cameo' | translate }}
-			</button>
-			<span class="pptx-rb-sep"></span>
-			<span class="contents" data-ribbon-group="record.record">
-				<button
-					data-ribbon-control="record.record.fromBeginning"
-					type="button"
-					class="pptx-rb-pill"
-					(click)="recordFromBeginning.emit()"
-				>
-					{{ 'pptx.slideShow.fromBeginning' | translate }}
-				</button>
-				<button
-					data-ribbon-control="record.record.fromCurrent"
-					type="button"
-					class="pptx-rb-pill"
-					(click)="recordFromCurrent.emit()"
-				>
-					{{ 'pptx.slideShow.fromCurrent' | translate }}
-				</button>
-			</span>
-			<span class="pptx-rb-sep"></span>
-			<span class="contents" data-ribbon-group="record.manage">
-				<button
-					data-ribbon-control="record.manage.clear"
-					type="button"
-					class="pptx-rb-pill"
-					disabled
-				>
-					{{ 'pptx.record.clear' | translate }}
-				</button>
-				<button
-					data-ribbon-control="record.manage.reset"
-					type="button"
-					class="pptx-rb-pill"
-					disabled
-				>
-					{{ 'pptx.record.resetToCameo' | translate }}
-				</button>
-			</span>
-			<span class="pptx-rb-sep"></span>
-			<button
-				data-ribbon-group="record.help"
-				data-ribbon-control="record.help.learnMore"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.record.learnMore' | translate }}
-			</button>
-		</div>
+				@for (command of group.commands; track command.id) {
+					<pptx-ui-ribbon-command
+						[attr.label]="command.labelKey | translate"
+						[attr.icon]="command.icon"
+						[attr.disabled]="command.unsupported ? '' : null"
+						[attr.data-ribbon-control]="command.id"
+						compact
+						(command-request)="request(command.id)"
+					></pptx-ui-ribbon-command>
+				}
+			</pptx-ui-ribbon-group>
+		}
 	`,
 })
 export class RibbonRecordSectionComponent {
+	protected readonly groups = RECORD_COMMAND_GROUPS;
 	readonly recordFromBeginning = output<void>();
 	readonly recordFromCurrent = output<void>();
+	protected request(id: string): void {
+		if (id === 'record.record.fromBeginning') {
+			this.recordFromBeginning.emit();
+		} else if (id === 'record.record.fromCurrent') {
+			this.recordFromCurrent.emit();
+		}
+	}
 }

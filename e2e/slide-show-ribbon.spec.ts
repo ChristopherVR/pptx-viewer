@@ -19,7 +19,7 @@ test('shared Slide Show ribbon retains its inventory, groups, toggles and keyboa
 			.sort(),
 	).toEqual(['Keep Slides Updated', 'Rehearse with Coach', 'Show Media Controls']);
 	const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
-	const groups = toolbar.locator('pptx-ui-ribbon-group');
+	const groups = toolbar.locator('pptx-ui-ribbon-group:visible');
 	await expect(groups).toHaveCount(4);
 	const boxes = await groups.evaluateAll((elements) =>
 		elements.map((element) => {

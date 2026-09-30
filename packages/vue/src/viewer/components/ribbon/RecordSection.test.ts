@@ -11,10 +11,15 @@ describe('record section', () => {
 			props: { onRecordFromBeginning, onRecordFromCurrent },
 		});
 
-		await wrapper.get('button:nth-of-type(2)').trigger('click');
-		await wrapper.get('button:nth-of-type(3)').trigger('click');
+		for (const id of ['record.record.fromBeginning', 'record.record.fromCurrent']) {
+			const host = wrapper.get(`[data-ribbon-control="${id}"]`).element;
+			host.shadowRoot!.querySelector<HTMLButtonElement>('button')!.click();
+		}
 
 		expect(onRecordFromBeginning).toHaveBeenCalledOnce();
 		expect(onRecordFromCurrent).toHaveBeenCalledOnce();
+		expect(wrapper.findAll('pptx-ui-ribbon-group')).toHaveLength(4);
+		expect(wrapper.findAll('pptx-ui-ribbon-command[disabled]')).toHaveLength(4);
+		wrapper.unmount();
 	});
 });

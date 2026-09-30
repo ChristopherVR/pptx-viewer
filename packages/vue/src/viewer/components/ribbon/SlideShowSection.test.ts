@@ -48,6 +48,10 @@ function customShowButton(wrapper: ReturnType<typeof mountSlideShowSection>) {
 function surfaceText(wrapper: ReturnType<typeof mountSlideShowSection>): string {
 	return (
 		wrapper.text() +
+		(wrapper
+			.find('pptx-ui-subtitle-settings')
+			.element.shadowRoot?.querySelector('pptx-ui-ribbon-command')
+			?.getAttribute('label') ?? '') +
 		wrapper
 			.findAll('pptx-ui-ribbon-command,pptx-ui-ribbon-group,pptx-ui-ribbon-toggle')
 			.map((host) => host.attributes('label'))

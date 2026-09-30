@@ -34,8 +34,11 @@ function navHandlers(over: Partial<RibbonNavHandlers> = {}): RibbonNavHandlers {
 }
 
 function button(el: HTMLElement, label: string): HTMLButtonElement {
-	const match = [...el.querySelectorAll<HTMLButtonElement>('button')].find(
-		(item) => item.getAttribute('aria-label') === label,
+	const controls = [...el.querySelectorAll('pptx-ui-ribbon-command')].map((host) =>
+		host.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+	);
+	const match = [...el.querySelectorAll<HTMLButtonElement>('button'), ...controls].find(
+		(item) => (item.getAttribute('aria-label') ?? item.textContent?.trim()) === label,
 	);
 	if (!match) {
 		throw new Error(`missing command: ${label}`);

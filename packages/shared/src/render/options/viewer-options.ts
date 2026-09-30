@@ -81,6 +81,8 @@ export interface ViewerSaveOptions {
 }
 
 export interface ViewerAccessibilityOptions {
+	/** Browser speech-recognition language; automatic follows the browser language. */
+	subtitleLanguage?: string;
 	showAccessibilityStatus: boolean;
 	feedbackWithSound: boolean;
 	soundScheme: FeedbackSoundScheme;
@@ -207,6 +209,7 @@ export const DEFAULT_VIEWER_OPTIONS: ViewerOptions = {
 		clearCacheOnClose: false,
 	},
 	accessibility: {
+		subtitleLanguage: 'auto',
 		showAccessibilityStatus: true,
 		feedbackWithSound: false,
 		soundScheme: 'modern',

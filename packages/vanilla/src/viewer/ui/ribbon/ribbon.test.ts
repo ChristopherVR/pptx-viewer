@@ -156,6 +156,10 @@ describe('createRibbon', () => {
 		const command = (id: string) =>
 			ribbon.el
 				.querySelector(`[data-ribbon-control="${id}"]`)!
+				.shadowRoot!.querySelector('pptx-ui-ribbon-command')
+				?.shadowRoot?.querySelector('button') ??
+			ribbon.el
+				.querySelector(`[data-ribbon-control="${id}"]`)!
 				.shadowRoot!.querySelector('button')!;
 		command('slideShow.startSlideShow.fromBeginning').click();
 		const subtitles = ribbon.el.querySelector(
@@ -169,7 +173,10 @@ describe('createRibbon', () => {
 		expect(handlers.slideShow.startFromCurrent).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.openBroadcast).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.toggleSubtitles).toHaveBeenCalledOnce();
-		expect(handlers.slideShow.openSubtitleSettings).toHaveBeenCalledOnce();
+		expect(
+			ribbon.el.querySelector('pptx-ui-subtitle-settings')!.shadowRoot!.querySelector('dialog')!
+				.open,
+		).toBeTruthy();
 		ribbon.setSubtitlesVisible(true);
 		expect(subtitles.hasAttribute('checked')).toBeTruthy();
 	});
@@ -181,14 +188,14 @@ describe('createRibbon', () => {
 		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
 		tabs[8].click();
 		const recordButtons = Array.from(
-			ribbon.el.querySelectorAll<HTMLButtonElement>(
-				'.pptxv-ribbon-tab-content:not([hidden]) button',
-			),
-		);
+			ribbon.el.querySelectorAll('.pptxv-ribbon-tab-content:not([hidden]) pptx-ui-ribbon-command'),
+		).map((host) => host.shadowRoot!.querySelector<HTMLButtonElement>('button')!);
 		// Camera / Manage / Help are disabled placeholders, as in React; only the
 		// two Record commands do anything.
 		const byLabel = (label: string) =>
-			recordButtons.find((button) => button.getAttribute('aria-label') === label);
+			recordButtons.find(
+				(button) => (button.getAttribute('aria-label') ?? button.textContent?.trim()) === label,
+			);
 		expect(byLabel('Cameo')?.disabled).toBeTruthy();
 		expect(byLabel('Learn More')?.disabled).toBeTruthy();
 		byLabel(t('pptx.slideShow.fromBeginning'))?.click();

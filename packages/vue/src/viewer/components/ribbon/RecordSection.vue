@@ -1,79 +1,33 @@
 <script setup lang="ts">
-import { CircleHelp, Eraser, Play, RotateCcw, Video } from 'lucide-vue-next';
+import { RECORD_COMMAND_GROUPS } from 'pptx-viewer-shared';
 import { useI18n } from 'vue-i18n';
 
-import { ic, pill, SEP } from './ribbon-constants';
-
-const props = defineProps<{
-	onRecordFromBeginning: () => void;
-	onRecordFromCurrent: () => void;
-}>();
-
+const props = defineProps<{ onRecordFromBeginning: () => void; onRecordFromCurrent: () => void }>();
 const { t } = useI18n();
+function request(id: string): void {
+	if (id === 'record.record.fromBeginning') {
+		props.onRecordFromBeginning();
+	} else if (id === 'record.record.fromCurrent') {
+		props.onRecordFromCurrent();
+	}
+}
 </script>
-
 <template>
-	<button
-		type="button"
-		:class="pill"
-		disabled
-		data-ribbon-group="record.camera"
-		data-ribbon-control="record.camera.cameo"
+	<pptx-ui-ribbon-group
+		v-for="group in RECORD_COMMAND_GROUPS"
+		:key="group.id"
+		:label="t(group.labelKey)"
+		:data-ribbon-group="group.id"
 	>
-		<span class="h-3 w-3 rounded-full border border-current" aria-hidden="true" />
-		{{ t('pptx.record.cameo') }}
-	</button>
-	<div :class="SEP" />
-	<button
-		type="button"
-		:class="pill"
-		data-ribbon-group="record.record"
-		data-ribbon-control="record.record.fromBeginning"
-		@click="props.onRecordFromBeginning()"
-	>
-		<Video :class="ic" />
-		{{ t('pptx.slideShow.fromBeginning') }}
-	</button>
-	<button
-		type="button"
-		:class="pill"
-		data-ribbon-group="record.record"
-		data-ribbon-control="record.record.fromCurrent"
-		@click="props.onRecordFromCurrent()"
-	>
-		<Play :class="ic" />
-		{{ t('pptx.slideShow.fromCurrent') }}
-	</button>
-	<div :class="SEP" />
-	<button
-		type="button"
-		:class="pill"
-		disabled
-		data-ribbon-group="record.manage"
-		data-ribbon-control="record.manage.clear"
-	>
-		<Eraser :class="ic" />
-		{{ t('pptx.record.clear') }}
-	</button>
-	<button
-		type="button"
-		:class="pill"
-		disabled
-		data-ribbon-group="record.manage"
-		data-ribbon-control="record.manage.reset"
-	>
-		<RotateCcw :class="ic" />
-		{{ t('pptx.record.resetToCameo') }}
-	</button>
-	<div :class="SEP" />
-	<button
-		type="button"
-		:class="pill"
-		disabled
-		data-ribbon-group="record.help"
-		data-ribbon-control="record.help.learnMore"
-	>
-		<CircleHelp :class="ic" />
-		{{ t('pptx.record.learnMore') }}
-	</button>
+		<pptx-ui-ribbon-command
+			v-for="command in group.commands"
+			:key="command.id"
+			:label="t(command.labelKey)"
+			:icon="command.icon"
+			:disabled="command.unsupported || undefined"
+			:data-ribbon-control="command.id"
+			compact
+			@command-request="request(command.id)"
+		></pptx-ui-ribbon-command>
+	</pptx-ui-ribbon-group>
 </template>

@@ -3,6 +3,8 @@
     import type { RibbonCommandRequestEvent, RibbonControlId, SlideShowOptionsChangeEvent } from 'pptx-viewer-shared';
     import { useTranslator } from '../../../../i18n/context';
     import type { EditorState } from '../../../editor/editor-state.svelte';
+    import SubtitleSettingsControl from './SubtitleSettingsControl.svelte';
+
 	const {
 		editor,
 		onfrombeginning,
@@ -39,7 +41,7 @@
     const t = useTranslator();
     const optionLabels = $derived(Object.fromEntries(SLIDE_SHOW_OPTIONS.map(option => [option.id, t(option.labelKey)])));
     function commitOptions(event: Event): void {
-        if (!editor?.editable) return;
+        if (!editor?.editable) {return;}
         editor.presentationMetadata.updatePresentationProperties({ ...editor.presentationProperties, ...(event as SlideShowOptionsChangeEvent).detail });
     }
     function requestCommand(event: Event): void {
@@ -79,8 +81,7 @@
             <div class="captions" data-ribbon-group="slideShow.captions">
                 <pptx-ui-ribbon-toggle data-ribbon-control="slideShow.captions.subtitles" label={t('pptx.slideShow.subtitles')}
                     title={t('pptx.slideShow.subtitlesTooltip')} checked={subtitlesEnabled ? '' : undefined} ontoggle-request={() => onsubtitles()}></pptx-ui-ribbon-toggle>
-                <pptx-ui-ribbon-command compact data-ribbon-control="slideShow.captions.subtitleSettings" label={t('pptx.slideShow.subtitleSettings')}
-                    icon="captions" oncommand-request={() => onsubtitles()}></pptx-ui-ribbon-command>
+                <SubtitleSettingsControl />
             </div>
         </pptx-ui-slide-show-options>
     </pptx-ui-ribbon-group>

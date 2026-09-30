@@ -153,6 +153,16 @@ remain in the adapter. Viewer instances must own separate state and callbacks.
 - Verify SSR import, repeated registration and known incompatible ABI rejection.
   Never import a DOM constructor at module scope or redefine an existing tag.
 
+`pptx-ui-subtitle-settings` owns a native dialog, its draft and keyboard focus.
+The adapter supplies `settings`, translated `labels` and `languageDisabled` as
+properties. Apply emits one composed `subtitle-settings-change` event containing
+`{ spokenLanguage }`; Cancel and Escape discard the draft. Disconnect closes the
+dialog. The viewer stores `accessibility.subtitleLanguage` in its options store,
+which handles persistence and host locks. This preference is independent of the
+Subtitles visibility flag and is not written into presentation metadata. `auto`
+uses the browser language. Speech recognition receives the selected language;
+this control does not provide translation or caption positioning.
+
 The neutral `web-control-contract.spec.ts` covers token inheritance, focus,
 forced colors, touch targets, reconnect and two independent control instances.
 Adapter unit tests cover framework mount/remount and callback boundaries. The

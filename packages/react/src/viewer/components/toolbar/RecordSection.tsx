@@ -1,65 +1,36 @@
+import { RECORD_COMMAND_GROUPS } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { LuCamera, LuCircleHelp, LuEraser, LuPlay, LuRotateCcw, LuVideo } from 'react-icons/lu';
 
-import { RibbonCommand, RibbonGroup } from './PowerPointRibbonControls';
+import { WebRibbonCommand, WebRibbonGroup } from './WebRibbonControls';
 
 interface RecordSectionProps {
 	onRecordFromBeginning: () => void;
 	onRecordFromCurrent: () => void;
 }
-
-export function RecordSection({
-	onRecordFromBeginning,
-	onRecordFromCurrent,
-}: RecordSectionProps): React.ReactElement {
+export function RecordSection(props: RecordSectionProps): React.ReactElement {
 	const { t } = useTranslation();
+	const actions: Record<string, (() => void) | undefined> = {
+		'record.record.fromBeginning': props.onRecordFromBeginning,
+		'record.record.fromCurrent': props.onRecordFromCurrent,
+	};
 	return (
 		<>
-			<RibbonGroup label={t('pptx.record.camera')} groupId='record.camera'>
-				<RibbonCommand
-					controlId='record.camera.cameo'
-					icon={<LuCamera />}
-					label={t('pptx.record.cameo')}
-					disabled
-				/>
-			</RibbonGroup>
-			<RibbonGroup label={t('pptx.ribbon.tab.record')} groupId='record.record'>
-				<RibbonCommand
-					controlId='record.record.fromBeginning'
-					icon={<LuVideo />}
-					label={t('pptx.slideShow.fromBeginning')}
-					onClick={onRecordFromBeginning}
-				/>
-				<RibbonCommand
-					icon={<LuPlay />}
-					controlId='record.record.fromCurrent'
-					label={t('pptx.slideShow.fromCurrent')}
-					onClick={onRecordFromCurrent}
-				/>
-			</RibbonGroup>
-			<RibbonGroup label={t('pptx.record.manage')} groupId='record.manage'>
-				<RibbonCommand
-					controlId='record.manage.clear'
-					icon={<LuEraser />}
-					label={t('pptx.record.clear')}
-					disabled
-				/>
-				<RibbonCommand
-					controlId='record.manage.reset'
-					icon={<LuRotateCcw />}
-					label={t('pptx.record.resetToCameo')}
-					disabled
-				/>
-			</RibbonGroup>
-			<RibbonGroup label={t('pptx.ribbon.tab.help')} groupId='record.help'>
-				<RibbonCommand
-					controlId='record.help.learnMore'
-					icon={<LuCircleHelp />}
-					label={t('pptx.record.learnMore')}
-					disabled
-				/>
-			</RibbonGroup>
+			{RECORD_COMMAND_GROUPS.map((group) => (
+				<WebRibbonGroup key={group.id} label={t(group.labelKey)} groupId={group.id}>
+					{group.commands.map((command) => (
+						<WebRibbonCommand
+							key={command.id}
+							controlId={command.id}
+							label={t(command.labelKey)}
+							icon={command.icon}
+							disabled={command.unsupported}
+							compact
+							onCommand={actions[command.id]}
+						/>
+					))}
+				</WebRibbonGroup>
+			))}
 		</>
 	);
 }

@@ -1,5 +1,9 @@
 /** Trusted, shared SVG paths. No host-supplied markup is inserted into the icon. */
 export const RIBBON_ICON_PATHS: Readonly<Record<string, string>> = {
+	camera: 'M2 6h4l2-3h4l2 3h4v11H2ZM7 11a3 3 0 1 0 6 0 3 3 0 1 0-6 0',
+	eraser: 'M3 12l8-8 6 6-7 7H7ZM3 17h14M7 8l6 6',
+	reset: 'M4 10a6 6 0 1 1 1.8 4.2M4 6v4h4',
+	help: 'M3 10a7 7 0 1 0 14 0 7 7 0 1 0-14 0M8 7a2 2 0 1 1 3 1.8c-.7.3-1 .8-1 1.7M10 14v.1',
 	'play-start': 'M4 3 15 10 4 17ZM17 3v14',
 	play: 'M5 3 16 10 5 17Z',
 	presentation: 'M2 3h16v11H2ZM7 18h6M10 14v4',

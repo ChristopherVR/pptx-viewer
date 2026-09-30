@@ -3,14 +3,19 @@ import {
 	captionDisplayText,
 	getSpeechRecognitionCtor,
 	mergeCaptionResults,
+	subtitleRecognitionLanguage,
+	subtitleSettingsFromOptions,
+	DEFAULT_VIEWER_OPTIONS,
 } from 'pptx-viewer-shared';
 import type {
 	SpeechRecognitionEventLite,
 	SpeechRecognitionLite,
 	SpeechSupportState,
 } from 'pptx-viewer-shared';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, inject, onBeforeUnmount, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+
+import { ViewerOptionsKey } from '../composables/useViewerOptionsStore';
 
 /**
  * PresentationSubtitleBar - live subtitle/caption bar shown during presentation
@@ -27,6 +32,13 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
+const options = inject(ViewerOptionsKey, ref(DEFAULT_VIEWER_OPTIONS));
+const language = computed(() =>
+	subtitleRecognitionLanguage(
+		subtitleSettingsFromOptions(options.value),
+		typeof navigator === 'undefined' ? 'en-US' : navigator.language,
+	),
+);
 
 const captionText = ref('');
 const supportState = ref<SpeechSupportState>('unknown');
@@ -56,7 +68,7 @@ function startRecognition(): void {
 	const recog = new RecognitionCtor();
 	recog.continuous = true;
 	recog.interimResults = true;
-	recog.lang = navigator.language || 'en-US';
+	recog.lang = language.value;
 
 	recog.onresult = (event: SpeechRecognitionEventLite): void => {
 		const merged = mergeCaptionResults(event.resultIndex, event.results);
@@ -88,10 +100,10 @@ function startRecognition(): void {
 }
 
 watch(
-	() => props.visible,
-	(visible) => {
+	() => [props.visible, language.value] as const,
+	([visible]) => {
+		stopRecognition();
 		if (!visible) {
-			stopRecognition();
 			captionText.value = '';
 			return;
 		}

@@ -1542,6 +1542,7 @@ export * from './presentation-entry-slide';
 // announces the state without touching the tile's accessible name.
 export * from './hidden-slide-cue';
 export * from './presentation-subtitles';
+export * from './subtitle-settings';
 export * from './account';
 export * from './viewer-prefs-storage';
 // Toolbar action / ribbon-tab visibility: the ToolbarActionId catalogue and
@@ -1725,3 +1726,4 @@ export * from './picture-crop';
 export { isExportIgnoredElement, prepareExportClone } from './export-clone';
 
 export * from './element-update-batch';
+export * from './ribbon-record-commands';

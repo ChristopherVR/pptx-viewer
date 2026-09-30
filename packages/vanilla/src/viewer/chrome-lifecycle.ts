@@ -15,6 +15,7 @@ import type {
 	ResolvedCustomization,
 	RunProgramNotice,
 	ViewerQuickAccessOptions,
+	ViewerOptionsStore,
 	ViewerTheme,
 } from 'pptx-viewer-shared';
 
@@ -574,6 +575,7 @@ export function unmountChrome(lifecycle: ChromeLifecycle, detachEditorChrome: ()
 
 /** The subset of `PptxViewer` needed to build its `MountChromeDeps`. */
 export interface ChromeHost {
+	subtitleOptionsStore?(): ViewerOptionsStore | undefined;
 	doc: Document;
 	container: HTMLElement;
 	t: Translator;
@@ -777,6 +779,9 @@ export function buildMountChromeDeps(host: ChromeHost): MountChromeDeps {
 		openShare: () => host.openShare(),
 		openAccessibility: () => host.openAccessibility(),
 		openSettings: (tab) => host.openSettings(tab),
+		subtitleOptionsStore: host.subtitleOptionsStore
+			? () => host.subtitleOptionsStore!()
+			: undefined,
 		openHeaderFooter: () => host.openHeaderFooter(),
 		openCompare: () => host.openCompare(),
 		openSetUpSlideShow: () => host.openSetUpSlideShow(),

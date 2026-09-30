@@ -47,7 +47,12 @@ function makeEditor(): EditorState {
 
 function buttons(target: HTMLElement): Map<string, HTMLButtonElement> {
 	return new Map(
-		[...target.querySelectorAll('pptx-ui-ribbon-command')]
+		[
+			...target.querySelectorAll('pptx-ui-ribbon-command'),
+			...target
+				.querySelector('pptx-ui-subtitle-settings')!
+				.shadowRoot!.querySelectorAll('pptx-ui-ribbon-command'),
+		]
 			.map((host) => host.shadowRoot!.querySelector('button')!)
 			.map((button) => [button.textContent?.trim() ?? '', button]),
 	);

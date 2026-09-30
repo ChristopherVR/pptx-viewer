@@ -14,6 +14,7 @@ import type {
 	FreeformToolKind,
 	ResolvedCustomization,
 	RibbonTransitionDraft,
+	ViewerOptionsStore,
 } from 'pptx-viewer-shared';
 
 import type { EditActions } from './editor/editor-edit-ops';
@@ -28,6 +29,7 @@ import type { ChromeOptions } from './ui';
  * class) so this module has no circular dependency on `PptxViewer`.
  */
 export interface ChromeCallbackDeps {
+	subtitleOptionsStore?(): ViewerOptionsStore | undefined;
 	prev(): void;
 	next(): void;
 	/** Set an ABSOLUTE stage scale (the units the pinch gesture reports). */
@@ -230,6 +232,7 @@ export function buildChromeCallbacks(
 			openCustomShows: () => deps.openCustomShows(),
 			toggleSubtitles: () => deps.toggleSubtitles(),
 			openSubtitleSettings: () => deps.openSetUpSlideShow(),
+			subtitleOptionsStore: deps.subtitleOptionsStore,
 			// The Options cluster writes the deck's show settings through the same
 			// deck action the Set Up Show dialog and the inspector's PRESENTATION
 			// card use, so all three surfaces agree.

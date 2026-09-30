@@ -100,9 +100,9 @@ import { SettingsDialog } from './components/SettingsDialog';
 import { ShapeFormatContext } from './components/shape-format-context';
 import { AccountAuthContext } from './components/toolbar/account-auth-context';
 import { ViewerCustomizationContext } from './components/viewer-customization-context';
-import { ViewerOptionsContext } from './components/viewer-options-context';
 import { ViewerDialogGroup } from './components/ViewerDialogGroup';
 import { ViewerMainContent } from './components/ViewerMainContent';
+import { ViewerOptionsProvider } from './components/ViewerOptionsProvider';
 import { ViewerPresentationLayer } from './components/ViewerPresentationLayer';
 import { ViewerToolbarSection } from './components/ViewerToolbarSection';
 import { useAiBridge } from './hooks/ai/useAiBridge';
@@ -1551,7 +1551,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 			// Nothing previously provided it, so every one of those consumers was
 			// silently reading `DEFAULT_VIEWER_OPTIONS` forever, no matter what
 			// the user changed in the Options dialog.
-			<ViewerOptionsContext.Provider value={viewerOptions}>
+			<ViewerOptionsProvider options={viewerOptions} store={optionsStore}>
 				<ViewerCustomizationContext.Provider value={customizationResolved}>
 					<AccountAuthContext.Provider value={accountAuth}>
 						<Rendering3DFlagsContext.Provider value={effective3D}>
@@ -1608,7 +1608,7 @@ export const PowerPointViewer = forwardRef<PowerPointViewerHandle, PowerPointVie
 						</Rendering3DFlagsContext.Provider>
 					</AccountAuthContext.Provider>
 				</ViewerCustomizationContext.Provider>
-			</ViewerOptionsContext.Provider>
+			</ViewerOptionsProvider>
 		);
 	},
 );

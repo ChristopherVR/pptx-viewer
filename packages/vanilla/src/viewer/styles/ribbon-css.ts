@@ -95,7 +95,6 @@ export const RIBBON_CSS = `
 /* Design > Edit Theme docks the deck THEME EDITOR card, a column, not a chip row. */
 .pptxv-theme-gallery-host > .pptxv-deck-theme-editor { display: block; width: 300px; max-height: 70vh; overflow-y: auto; padding: 0; }
 .pptxv-theme-swatch-preview { display: block; width: 20px; height: 20px; flex: none; border: 1px solid var(--pptx-border); border-radius: 4px; }
-.pptxv-record-dot { width: 12px; height: 12px; margin: 7px; border-radius: 50%; background: #ef4444; }
 .pptxv-shortcut-help { align-self: center; padding: 5px 8px; color: var(--pptx-muted-foreground); font-size: 11px; }
 .pptxv-ribbon-insert-content {
 	flex-wrap: nowrap;

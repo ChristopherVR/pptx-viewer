@@ -7,9 +7,14 @@ import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
+import { definePptxSubtitleSettings } from './subtitle-settings';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type { RibbonToggleRequestEvent } from './ribbon-toggle';
+export type {
+	PptxUiSubtitleSettingsElement,
+	SubtitleSettingsChangeEvent,
+} from './subtitle-settings';
 
 export type { PptxUiSelectElement } from './select-value';
 export type {
@@ -25,6 +30,7 @@ const controls = [
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
+	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 ] as const;
 
 /** Idempotent browser-only registration. Safe to call from every viewer binding. */

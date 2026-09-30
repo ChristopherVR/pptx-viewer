@@ -18,6 +18,8 @@ import type { InjectionKey, ShallowRef } from 'vue';
 /** Reactive File > Options snapshot, provided by `PowerPointViewer`. */
 export const ViewerOptionsKey: InjectionKey<ShallowRef<ViewerOptions>> =
 	Symbol('pptxViewerOptions');
+export const ViewerOptionsStoreKey: InjectionKey<ViewerOptionsStore> =
+	Symbol('pptxViewerOptionsStore');
 
 /** Tooltip text resolver honoring Options > General > ScreenTip style. */
 export type ScreenTipResolver = (
@@ -45,6 +47,7 @@ export function useViewerOptionsStore(): UseViewerOptionsStoreResult {
 	onScopeDispose(unsubscribe);
 
 	provide(ViewerOptionsKey, viewerOptions);
+	provide(ViewerOptionsStoreKey, optionsStore);
 	provide(ScreenTipKey, (label, description, shortcut) =>
 		resolveScreenTip(viewerOptions.value, label, description, shortcut),
 	);

@@ -11,6 +11,7 @@ import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonSlideShowHandlers } from '../ribbon-types';
+import { createSubtitleSettingsControl } from './subtitle-settings-control';
 
 export interface SlideShowTab {
 	el: HTMLElement;
@@ -88,12 +89,7 @@ export function createSlideShowTab(
 	subtitles.setAttribute('label', t('pptx.slideShow.subtitles'));
 	subtitles.title = t('pptx.slideShow.subtitlesTooltip');
 	subtitles.addEventListener('toggle-request', () => handlers.toggleSubtitles());
-	const subtitleSettings = doc.createElement('pptx-ui-ribbon-command');
-	subtitleSettings.setAttribute('data-ribbon-control', 'slideShow.captions.subtitleSettings');
-	subtitleSettings.setAttribute('label', t('pptx.slideShow.subtitleSettings'));
-	subtitleSettings.setAttribute('icon', 'captions');
-	subtitleSettings.setAttribute('compact', '');
-	subtitleSettings.addEventListener('command-request', () => handlers.openSubtitleSettings());
+	const subtitleSettings = createSubtitleSettingsControl(doc, t, handlers.subtitleOptionsStore);
 	options.append(wrapRibbonGroup(doc, 'slideShow.captions', subtitles, subtitleSettings));
 	optionsGroup.append(options);
 	el.append(optionsGroup);

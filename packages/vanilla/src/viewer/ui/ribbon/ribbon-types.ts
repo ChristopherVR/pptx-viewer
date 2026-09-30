@@ -12,6 +12,7 @@ import type {
 	ResolvedCustomization,
 	RibbonGalleryContext,
 	RibbonTransitionDraft,
+	ViewerOptionsStore,
 } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -117,6 +118,7 @@ export interface RibbonFileHandlers {
 
 /** Slide Show actions already supported by the viewer and collaboration UI. */
 export interface RibbonSlideShowHandlers {
+	subtitleOptionsStore?: () => ViewerOptionsStore | undefined;
 	startFromBeginning(): void;
 	startFromCurrent(): void;
 	openPresenterView(): void;

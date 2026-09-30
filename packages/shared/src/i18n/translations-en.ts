@@ -1512,6 +1512,10 @@ export const translationsEn: Record<string, string> = {
 	// Live captions
 	'pptx.subtitles.listening': 'Listening…',
 	'pptx.subtitles.notSupported': 'Subtitles are not supported in this browser.',
+	'pptx.subtitles.spokenLanguage': 'Spoken language',
+	'pptx.subtitles.browserLanguage': 'Browser language',
+	'pptx.subtitles.settingsDescription':
+		'Choose the language you will speak. Captions use browser speech recognition; translation is not available.',
 
 	// Table (additions)
 	'pptx.table.background': 'Background',

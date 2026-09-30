@@ -5,8 +5,17 @@
  * Uses Web Speech API when available and falls back to a
  * localized "not supported" message otherwise.
  */
+import {
+	getSpeechRecognitionCtor,
+	mergeCaptionResults,
+	subtitleRecognitionLanguage,
+	subtitleSettingsFromOptions,
+} from 'pptx-viewer-shared';
+import type { SpeechRecognitionLite, SpeechRecognitionEventLite } from 'pptx-viewer-shared';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { useViewerOptionsContext } from './viewer-options-context';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -15,47 +24,6 @@ import { useTranslation } from 'react-i18next';
 export interface PresentationSubtitleBarProps {
 	visible: boolean;
 	onCaptionChange?: (caption: string) => void;
-}
-
-interface SpeechRecognitionAlternativeLite {
-	transcript: string;
-	confidence: number;
-}
-
-interface SpeechRecognitionResultLite {
-	readonly isFinal: boolean;
-	readonly length: number;
-	item(index: number): SpeechRecognitionAlternativeLite;
-	[index: number]: SpeechRecognitionAlternativeLite;
-}
-
-interface SpeechRecognitionResultListLite {
-	readonly length: number;
-	item(index: number): SpeechRecognitionResultLite;
-	[index: number]: SpeechRecognitionResultLite;
-}
-
-interface SpeechRecognitionEventLite extends Event {
-	readonly resultIndex: number;
-	readonly results: SpeechRecognitionResultListLite;
-}
-
-interface SpeechRecognitionLite extends EventTarget {
-	continuous: boolean;
-	interimResults: boolean;
-	lang: string;
-	onresult: ((event: SpeechRecognitionEventLite) => void) | null;
-	onerror: ((event: Event) => void) | null;
-	onend: (() => void) | null;
-	start(): void;
-	stop(): void;
-}
-
-type SpeechRecognitionCtor = new () => SpeechRecognitionLite;
-
-interface WindowWithSpeechRecognition {
-	SpeechRecognition?: SpeechRecognitionCtor;
-	webkitSpeechRecognition?: SpeechRecognitionCtor;
 }
 
 // ---------------------------------------------------------------------------
@@ -67,6 +35,10 @@ export function PresentationSubtitleBar({
 	onCaptionChange,
 }: PresentationSubtitleBarProps): React.ReactElement | null {
 	const { t } = useTranslation();
+	const language = subtitleRecognitionLanguage(
+		subtitleSettingsFromOptions(useViewerOptionsContext()),
+		typeof navigator === 'undefined' ? 'en-US' : navigator.language,
+	);
 	const [captionText, setCaptionText] = useState<string>('');
 	const [supportState, setSupportState] = useState<'unknown' | 'supported' | 'unsupported'>(
 		'unknown',
@@ -84,8 +56,7 @@ export function PresentationSubtitleBar({
 		}
 
 		shouldRunRef.current = true;
-		const speechWindow = window as unknown as WindowWithSpeechRecognition;
-		const RecognitionCtor = speechWindow.SpeechRecognition ?? speechWindow.webkitSpeechRecognition;
+		const RecognitionCtor = getSpeechRecognitionCtor();
 		if (!RecognitionCtor) {
 			setSupportState('unsupported');
 			return;
@@ -95,21 +66,10 @@ export function PresentationSubtitleBar({
 		const recognition = new RecognitionCtor();
 		recognition.continuous = true;
 		recognition.interimResults = true;
-		recognition.lang = navigator.language || 'en-US';
+		recognition.lang = language;
 
 		recognition.onresult = (event: SpeechRecognitionEventLite) => {
-			let finalText = '';
-			let interimText = '';
-			for (let index = event.resultIndex; index < event.results.length; index += 1) {
-				const result = event.results[index];
-				const fragment = result?.[0]?.transcript ?? '';
-				if (result?.isFinal) {
-					finalText += fragment;
-				} else {
-					interimText += fragment;
-				}
-			}
-			const merged = `${finalText} ${interimText}`.trim();
+			const merged = mergeCaptionResults(event.resultIndex, event.results);
 			if (merged.length > 0) {
 				setCaptionText(merged);
 				onCaptionChange?.(merged);
@@ -142,7 +102,7 @@ export function PresentationSubtitleBar({
 			recognition.stop();
 			recognitionRef.current = null;
 		};
-	}, [visible, onCaptionChange]);
+	}, [visible, onCaptionChange, language]);
 
 	if (!visible) {
 		return null;

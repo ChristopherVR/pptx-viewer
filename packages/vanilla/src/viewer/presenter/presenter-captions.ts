@@ -1,5 +1,9 @@
-import { getSpeechRecognitionCtor, mergeCaptionResults } from 'pptx-viewer-shared';
-import type { SpeechRecognitionLite } from 'pptx-viewer-shared';
+import {
+	getSpeechRecognitionCtor,
+	mergeCaptionResults,
+	subtitleRecognitionLanguage,
+} from 'pptx-viewer-shared';
+import type { SpeechRecognitionLite, SubtitleSettings } from 'pptx-viewer-shared';
 
 import type { Translator } from '../i18n';
 
@@ -25,6 +29,7 @@ export interface PresenterCaptions {
 }
 
 export interface PresenterCaptionsOptions {
+	settings?: () => SubtitleSettings;
 	doc: Document;
 	t: Translator;
 	/** Publish caption text (or `undefined` to clear) onto the shared snapshot. */
@@ -51,7 +56,10 @@ export function createPresenterCaptions(options: PresenterCaptionsOptions): Pres
 		recognition = new Ctor();
 		recognition.continuous = true;
 		recognition.interimResults = true;
-		recognition.lang = options.doc.documentElement.lang || 'en-US';
+		recognition.lang = subtitleRecognitionLanguage(
+			options.settings?.() ?? { spokenLanguage: 'auto' },
+			options.doc.defaultView?.navigator.language,
+		);
 		recognition.onresult = (event) =>
 			options.emit({
 				subtitlesVisible: true,

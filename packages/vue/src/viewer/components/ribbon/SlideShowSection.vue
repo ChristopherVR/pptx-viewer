@@ -11,6 +11,7 @@ import { useToolbarVisibility } from '../../composables/useToolbarVisibility';
 import { vAnchoredPopup } from './anchored-popup';
 import CustomShowsControls from './CustomShowsControls.vue';
 import type { SlideShowSectionProps } from './slide-show-section-props';
+import SubtitleSettingsControl from './SubtitleSettingsControl.vue';
 import { useDropdown } from './use-dropdown';
 
 const props = defineProps<SlideShowSectionProps>();
@@ -106,13 +107,7 @@ function requestCommand(event: Event): void {
 					:checked="props.showSubtitles ? '' : undefined"
 					@toggle-request="props.onToggleSubtitles()"
 				/>
-				<pptx-ui-ribbon-command
-					compact
-					data-ribbon-control="slideShow.captions.subtitleSettings"
-					:label="t('pptx.slideShow.subtitleSettings')"
-					icon="captions"
-					@command-request="props.onToggleSubtitles()"
-				/>
+				<SubtitleSettingsControl />
 			</div>
 		</pptx-ui-slide-show-options>
 	</pptx-ui-ribbon-group>

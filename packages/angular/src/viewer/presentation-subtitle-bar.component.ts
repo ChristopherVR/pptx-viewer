@@ -31,12 +31,14 @@ import {
 } from '@angular/core';
 import { translate } from '@ngx-translate/core';
 
+import { subtitleRecognitionLanguage, subtitleSettingsFromOptions } from '../internal/shared';
 import {
 	captionDisplayText,
 	getSpeechRecognitionCtor,
 	mergeCaptionResults,
 } from './presentation-subtitle-helpers';
 import type { SpeechRecognitionLite, SpeechSupportState } from './presentation-subtitle-helpers';
+import { ViewerOptionsService } from './viewer-options.service';
 
 @Component({
 	selector: 'pptx-presentation-subtitle-bar',
@@ -121,6 +123,7 @@ export class PresentationSubtitleBarComponent implements OnChanges {
 	private _recognition: SpeechRecognitionLite | null = null;
 
 	private readonly _destroyRef = inject(DestroyRef);
+	private readonly options = inject(ViewerOptionsService, { optional: true });
 
 	constructor() {
 		this._destroyRef.onDestroy(() => {
@@ -163,7 +166,10 @@ export class PresentationSubtitleBarComponent implements OnChanges {
 		const recognition = new Ctor();
 		recognition.continuous = true;
 		recognition.interimResults = true;
-		recognition.lang = typeof navigator !== 'undefined' ? navigator.language || 'en-US' : 'en-US';
+		recognition.lang = subtitleRecognitionLanguage(
+			subtitleSettingsFromOptions(this.options?.options()),
+			typeof navigator === 'undefined' ? 'en-US' : navigator.language,
+		);
 
 		recognition.onresult = (event) => {
 			const merged = mergeCaptionResults(event.resultIndex, event.results);

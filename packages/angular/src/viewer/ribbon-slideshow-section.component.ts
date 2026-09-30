@@ -15,6 +15,7 @@ import type {
 } from '../internal/shared';
 import { SLIDE_SHOW_COMMAND_GROUPS, SLIDE_SHOW_OPTIONS } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
+import { SubtitleSettingsControlComponent } from './subtitle-settings-control.component';
 import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
@@ -23,7 +24,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe],
+	imports: [TranslatePipe, SubtitleSettingsControlComponent],
 	template: `
 		@for (group of groups; track group.id) {
 			<pptx-ui-ribbon-group
@@ -71,13 +72,7 @@ import { toolbarVisibility } from './toolbar-visibility';
 						[attr.title]="'pptx.slideShow.subtitlesTooltip' | translate"
 						(toggle-request)="toggleSubtitles.emit()"
 					/>
-					<pptx-ui-ribbon-command
-						compact
-						data-ribbon-control="slideShow.captions.subtitleSettings"
-						[attr.label]="'pptx.slideShow.subtitleSettings' | translate"
-						icon="captions"
-						(command-request)="openSubtitleSettings.emit()"
-					/>
+					<pptx-subtitle-settings-control />
 				</span>
 			</pptx-ui-slide-show-options>
 		</pptx-ui-ribbon-group>

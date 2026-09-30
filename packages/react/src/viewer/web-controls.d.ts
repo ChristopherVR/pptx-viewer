@@ -24,6 +24,7 @@ declare module 'react' {
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-group': WebControlProps;
 			'pptx-ui-ribbon-toggle': WebControlProps;
+			'pptx-ui-subtitle-settings': WebControlProps;
 		}
 	}
 }

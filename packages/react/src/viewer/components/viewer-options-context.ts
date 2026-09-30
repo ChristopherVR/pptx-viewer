@@ -1,4 +1,4 @@
-import type { ViewerOptions } from 'pptx-viewer-shared';
+import type { ViewerOptions, ViewerOptionsStore } from 'pptx-viewer-shared';
 import { DEFAULT_VIEWER_OPTIONS } from 'pptx-viewer-shared';
 import { createContext, useContext } from 'react';
 
@@ -10,6 +10,7 @@ import { createContext, useContext } from 'react';
  * (unit tests, storybook-style harnesses).
  */
 export const ViewerOptionsContext = createContext<ViewerOptions>(DEFAULT_VIEWER_OPTIONS);
+export const ViewerOptionsStoreContext = createContext<ViewerOptionsStore | null>(null);
 
 /** Read the current File > Options snapshot (defaults when unprovided). */
 export function useViewerOptionsContext(): ViewerOptions {

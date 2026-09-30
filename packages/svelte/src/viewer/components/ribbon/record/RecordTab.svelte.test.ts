@@ -25,9 +25,9 @@ function mountTab(): {
 
 /** Find a control by the accessible name the ribbon-inventory e2e spec reads. */
 function byName(target: HTMLElement, name: string): HTMLButtonElement | undefined {
-	return [...target.querySelectorAll<HTMLButtonElement>('button')].find(
-		(button) => button.textContent?.trim() === name,
-	);
+	return [...target.querySelectorAll('pptx-ui-ribbon-command')]
+		.map((host) => host.shadowRoot!.querySelector<HTMLButtonElement>('button')!)
+		.find((button) => button.textContent?.trim() === name);
 }
 
 describe('recordTab', () => {

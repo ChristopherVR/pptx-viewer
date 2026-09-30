@@ -67,6 +67,7 @@ import {
 	shouldDiscardAutosaveOnSuccessfulSave,
 	THEME_CATALOG,
 	writeStoredViewerPrefs,
+	subtitleSettingsFromOptions,
 } from 'pptx-viewer-shared';
 import type {
 	ElementUpdate,
@@ -1115,6 +1116,10 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 		});
 	}
 
+	subtitleOptionsStore() {
+		return this.optionsController?.optionsStore;
+	}
+
 	openHeaderFooter(): void {
 		this.parityWorkflows.openHeaderFooter();
 	}
@@ -1504,6 +1509,7 @@ export class PptxViewer extends ViewerCustomizationHost implements PptxViewerIns
 	/** Start or stop the console's live captions, publishing onto the snapshot. */
 	private togglePresenterCaptions(): void {
 		this.presenterCaptions ??= createPresenterCaptions({
+			settings: () => subtitleSettingsFromOptions(this.optionsController.getOptions()),
 			doc: this.doc,
 			t: this.t,
 			emit: (patch) => this.updatePresenterSnapshot(patch),

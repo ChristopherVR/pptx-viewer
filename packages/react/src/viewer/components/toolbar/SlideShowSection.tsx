@@ -11,6 +11,7 @@ import type { CustomShowsControlsProps } from './CustomShowsControls';
 import { RibbonGroupScope } from './PowerPointRibbonControls';
 import { RibbonMenu } from './RibbonMenu';
 import { SlideShowOptions } from './SlideShowOptions';
+import { SubtitleSettingsControl } from './SubtitleSettingsControl';
 import { WebRibbonCommand, WebRibbonGroup, WebRibbonToggle } from './WebRibbonControls';
 
 export interface SlideShowSectionProps {
@@ -133,13 +134,7 @@ export function SlideShowSection(p: SlideShowSectionProps): React.ReactElement {
 							title={t('pptx.slideShow.subtitlesTooltip')}
 							onToggle={() => p.onToggleSubtitles()}
 						/>
-						<WebRibbonCommand
-							compact
-							controlId='slideShow.captions.subtitleSettings'
-							label={t('pptx.slideShow.subtitleSettings')}
-							icon='captions'
-							onCommand={p.onToggleSubtitles}
-						/>
+						<SubtitleSettingsControl />
 					</RibbonGroupScope>
 				</SlideShowOptions>
 			</WebRibbonGroup>
