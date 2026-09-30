@@ -4,8 +4,9 @@ import {
 	getInlineEditorSelectionResult,
 	isBulletMarkerSegment,
 	mapInlineTextFormatKey,
-	placeCaretAtEnd,
+	placeCaretAt,
 	readEditableText,
+	takePendingCaretPoint,
 } from 'pptx-viewer-shared';
 import type { InlineTextEditSnapshot } from 'pptx-viewer-shared';
 import React, { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
@@ -135,15 +136,15 @@ export function InlineTextEditor({
 		}
 	}, [list]);
 
-	// Auto-focus on mount and place cursor at end
+	// Auto-focus on mount; the caret goes where the click that opened the editor
+	// landed (PowerPoint), else at the end of the content (shared contract helpers).
 	useEffect(() => {
 		const el = editorRef.current;
 		if (!el) {
 			return;
 		}
 		el.focus();
-		// Place cursor at end of content (shared contract helper).
-		placeCaretAtEnd(el);
+		placeCaretAt(el, takePendingCaretPoint());
 	}, []);
 
 	// After a formatting update, React re-renders the contentEditable children

@@ -6,7 +6,7 @@ import type {
 	PptxSlideLayout,
 	PptxSlideMaster,
 } from 'pptx-viewer-core';
-import { visibleTemplateElements } from 'pptx-viewer-shared';
+import { slideSpaceMembers, visibleTemplateElements } from 'pptx-viewer-shared';
 /**
  * useDerivedElementState: Memoised element and master-view derived state.
  *
@@ -50,7 +50,12 @@ export interface DerivedElementState {
 /*  Pure helper functions (exported for testing)                       */
 /* ------------------------------------------------------------------ */
 
-/** Build a lookup map from template + slide elements. Slide elements override template elements with the same id. */
+/**
+ * Build a lookup map from template + slide elements. Slide elements override template elements with the same id.
+ * Members of the slide's groups are included in slide space (shared `slideSpaceMembers`), so a member selected by
+ * drilling into its group resolves -- for the selection chrome, drag, resize and inline editing -- like a top-level
+ * element.
+ */
 export function buildElementLookup(
 	templateElements: PptxElement[],
 	slideElements: PptxElement[],
@@ -61,6 +66,11 @@ export function buildElementLookup(
 	}
 	for (const el of slideElements) {
 		map.set(el.id, el);
+	}
+	for (const [id, member] of slideSpaceMembers(slideElements)) {
+		if (!map.has(id)) {
+			map.set(id, member);
+		}
 	}
 	return map;
 }

@@ -223,6 +223,7 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 		inlineEditingElementId: state.inlineEditingElementId,
 		effectiveSelectedIds: state.effectiveSelectedIds,
 		elementLookup: state.elementLookup,
+		slideElements: activeSlide?.elements,
 		activeTool: state.activeTool,
 		editTemplateMode: state.editTemplateMode,
 		editorScale: zoom.editorScale,

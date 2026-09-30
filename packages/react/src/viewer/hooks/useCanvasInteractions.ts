@@ -5,9 +5,15 @@ import {
 	beginShapeAdjustment,
 	buildInlineTextCommitPatch,
 	canInteractWithElement,
+	drillSelectionForClick,
+	drillSelectionForDoubleClick,
 	filterInteractableIds,
+	findElementPath,
+	isEnterableGroup,
+	memberChainAtPoint,
 	resolveInlineEditAutoFitHeight,
 	resolveInlineEditNormAutofitShrink,
+	setPendingCaretPoint,
 } from 'pptx-viewer-shared';
 /** useCanvasInteractions: Canvas interaction handlers for the PowerPoint editor. */
 import { useLayoutEffect, useRef } from 'react';
@@ -40,6 +46,12 @@ export interface UseCanvasInteractionsInput {
 	inlineEditingElementId: string | null;
 	effectiveSelectedIds: string[];
 	elementLookup: Map<string, PptxElement>;
+	/**
+	 * The active slide's top-level elements, for selecting inside a group
+	 * (shared `group-drill`): a click on a selected group selects the member under
+	 * the pointer. Omitted, a group always selects as one.
+	 */
+	slideElements?: readonly PptxElement[];
 	activeTool: string;
 	editTemplateMode: boolean;
 	editorScale: number;
@@ -112,6 +124,7 @@ export function useCanvasInteractions(
 		inlineEditingElementId,
 		effectiveSelectedIds,
 		elementLookup,
+		slideElements,
 		activeTool,
 		editorScale,
 		canvasStageRef,
@@ -143,6 +156,49 @@ export function useCanvasInteractions(
 	// This prevents the click handler from immediately entering inline editing
 	// on the same click that selected the element (which would hide resize handles).
 	const justSelectedRef = useRef(false);
+
+	// What the last mousedown resolved a press on a group to (the group, or one of
+	// its members): the click that follows must act on the same target instead of
+	// drilling again from the selection mousedown just made.
+	const pressTargetRef = useRef<{ elementId: string; target: string } | null>(null);
+
+	/** The slide-space point under a mouse event (stage px / editor zoom). */
+	const slidePoint = (e: { clientX: number; clientY: number }) => {
+		const rect = canvasStageRef.current?.getBoundingClientRect();
+		const scale = editorScale || 1;
+		return rect ? { x: (e.clientX - rect.left) / scale, y: (e.clientY - rect.top) / scale } : null;
+	};
+
+	/** The member under the pointer inside a group, as the geometric chain innermost-first. */
+	const drillChain = (
+		elementId: string,
+		e: { clientX: number; clientY: number },
+	): string[] | null => {
+		if (!slideElements) {
+			return null;
+		}
+		const top = slideElements.find((el) => el.id === elementId);
+		const point = slidePoint(e);
+		if (!top || !point || !isEnterableGroup(top)) {
+			return null;
+		}
+		return memberChainAtPoint(slideElements, elementId, point);
+	};
+
+	/**
+	 * What a press on `elementId` (a top-level element) selects, PowerPoint-style:
+	 * a group first, then -- once it's selected -- the member under the pointer.
+	 */
+	const resolvePressTarget = (elementId: string, e: React.MouseEvent): string => {
+		const chain = drillChain(elementId, e);
+		if (!chain || !slideElements) {
+			return elementId;
+		}
+		const selectedPath = selectedElementId
+			? findElementPath(slideElements, selectedElementId)
+			: null;
+		return drillSelectionForClick(chain, selectedPath) ?? elementId;
+	};
 
 	const handleInlineEditCommit = () => {
 		const editId = inlineEditingElementId;
@@ -233,8 +289,13 @@ export function useCanvasInteractions(
 		return true;
 	};
 
-	const handleElementClick = (elementId: string, e: React.MouseEvent) => {
+	const handleElementClick = (pressedId: string, e: React.MouseEvent) => {
 		e.stopPropagation();
+		// The same target the mousedown chose (a group, or the member drilled into).
+		const press = pressTargetRef.current;
+		pressTargetRef.current = null;
+		const elementId =
+			mode !== 'present' && press?.elementId === pressedId ? press.target : pressedId;
 		if (mode === 'present') {
 			const el = elementLookup.get(elementId);
 			if (el?.actionClick) {
@@ -276,6 +337,7 @@ export function useCanvasInteractions(
 					// Equations open the equation editor (same as double-click);
 					// letting them into inline text editing destroys the OMML.
 					if (!openEquationEditorForElement(el)) {
+						setPendingCaretPoint(e);
 						setInlineEditingElementId(elementId);
 						setInlineEditingText(el.text ?? '');
 					}
@@ -286,7 +348,15 @@ export function useCanvasInteractions(
 		}
 	};
 
-	const handleElementDoubleClick = (elementId: string, _e: React.MouseEvent) => {
+	const handleElementDoubleClick = (pressedId: string, e: React.MouseEvent) => {
+		// A double-click on a group goes straight to the shape under the pointer, so
+		// its text can be edited without ungrouping (PowerPoint does the same).
+		const chain = mode === 'present' ? null : drillChain(pressedId, e);
+		const innermost = chain ? drillSelectionForDoubleClick(chain) : null;
+		const elementId = innermost ?? pressedId;
+		if (elementId !== pressedId) {
+			ops.applySelection(elementId);
+		}
 		const el = elementLookup.get(elementId);
 		if (!el) {
 			return;
@@ -295,15 +365,20 @@ export function useCanvasInteractions(
 			return;
 		}
 		if (hasTextProperties(el) && canInteractWithElement(el, 'textEdit')) {
+			setPendingCaretPoint(e);
 			setInlineEditingElementId(elementId);
 			setInlineEditingText(el.text ?? '');
 		}
 	};
 
-	const handleElementMouseDown = (elementId: string, e: React.MouseEvent) => {
+	const handleElementMouseDown = (pressedId: string, e: React.MouseEvent) => {
 		if (e.button !== 0) {
 			return;
 		}
+		const elementId = mouseDownStartsSelectionDrag(e)
+			? resolvePressTarget(pressedId, e)
+			: pressedId;
+		pressTargetRef.current = { elementId: pressedId, target: elementId };
 		// Pressing another element while inline-editing must commit the pending text
 		// first. On touch the editor's blur can fire too late (after pointerup has
 		// run), so commit deterministically rather than relying on blur ordering.
