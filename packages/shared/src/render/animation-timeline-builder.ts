@@ -17,6 +17,7 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 
 import { injectHideOnNextClickSteps } from './animation-after-effect';
 import { getEffectKeyframes } from './animation-keyframes';
+import { mergeChainedMotionPathAnims } from './animation-motion-path-chain';
 import type { AnimationRenderContext } from './animation-render-context';
 import {
 	createRegularBuildState,
@@ -155,8 +156,18 @@ export function buildTimeline(
 		}
 	}
 
+	// Chain same-target path runs (a multi-segment journey authored as several
+	// path effects on one shape) into single synthetic animations BEFORE any
+	// step building, so both the regular and the sequence builders see and
+	// schedule each journey as one animation.
+	const mergedRegularAnims = mergeChainedMotionPathAnims(regularAnims);
+	for (const [shapeId, anims] of interactiveAnims) {
+		interactiveAnims.set(shapeId, mergeChainedMotionPathAnims(anims));
+	}
+	const mergedHoverAnims = mergeChainedMotionPathAnims(hoverAnims);
+
 	const { clickGroups, entranceIds, neededKeyframes, dynamicBlocks, dynamicUid } =
-		buildRegularClickGroups(regularAnims, renderContext, pixelateMosaic);
+		buildRegularClickGroups(mergedRegularAnims, renderContext, pixelateMosaic);
 
 	// Build interactive sequence click-groups
 	const interactiveSequences = buildSequenceGroups(
@@ -171,7 +182,7 @@ export function buildTimeline(
 
 	// Build hover sequence click-groups
 	const { hoverSequences, nextUid } = buildHoverSequences(
-		hoverAnims,
+		mergedHoverAnims,
 		entranceIds,
 		neededKeyframes,
 		dynamicBlocks,

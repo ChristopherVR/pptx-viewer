@@ -1,6 +1,7 @@
 import {
 	ANIMATION_KEYFRAMES_CSS,
 	buildTextStyleOverrideCss,
+	PRESENTATION_ANIM_TRIGGER_ATTRIBUTE,
 	PRESENTATION_HIT_TEST_CSS,
 	SLIDE_TRANSITION_KEYFRAMES_CSS,
 } from 'pptx-viewer-shared';
@@ -112,8 +113,14 @@ export function applyElementAnimationStyles(
 		const state = states.get(id);
 		el.style.animation = state?.cssAnimation ?? '';
 		el.style.visibility = state?.visible === false ? 'hidden' : '';
-		el.style.cursor =
-			interactiveTriggerShapeIds.has(id) || hoverTriggerShapeIds.has(id) ? 'pointer' : '';
+		const isTriggerShape = interactiveTriggerShapeIds.has(id) || hoverTriggerShapeIds.has(id);
+		el.style.cursor = isTriggerShape ? 'pointer' : '';
+		// The running-show hit-test CSS keeps every element pointer-transparent
+		// except what owns its own click; a trigger shape is exactly that, and
+		// the delegated click/hover listeners resolve the target by element id.
+		// Without this opt-in the click landed on the stage, the sequence never
+		// played, and the show advanced instead.
+		el.toggleAttribute(PRESENTATION_ANIM_TRIGGER_ATTRIBUTE, isTriggerShape);
 		applyTextStyleOverride(el, id, state);
 	});
 

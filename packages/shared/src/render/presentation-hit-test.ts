@@ -28,6 +28,21 @@
 export const PRESENTATION_STAGE_ATTRIBUTE = 'data-pptx-presenting';
 
 /**
+ * Marker attribute for an element carrying an interactive (shape-click) or
+ * hover ANIMATION trigger sequence.
+ *
+ * `isElementActionable` cannot stamp `data-pptx-action` for these  -  an
+ * animation trigger is not an Action Setting  -  so the animation playback pass
+ * (`applyElementAnimationStyles` in the vanilla binding, which already knows
+ * the trigger-shape id sets for its cursor styling) writes this one instead.
+ * Without it the blanket rule below made every trigger shape
+ * pointer-transparent: the show's click handler resolved `event.target` to the
+ * stage, the sequence never fired, and the click fell through to
+ * click-to-advance. PowerPoint plays the shape's sequence on such a click.
+ */
+export const PRESENTATION_ANIM_TRIGGER_ATTRIBUTE = 'data-pptx-anim-trigger';
+
+/**
  * Stylesheet text making a running show's scenery pointer-transparent.
  *
  * Inject once, alongside the animation keyframes; the attribute scope makes it
@@ -38,6 +53,7 @@ export const PRESENTATION_HIT_TEST_CSS = `
 	pointer-events: none;
 }
 [${PRESENTATION_STAGE_ATTRIBUTE}] [data-pptx-action],
+[${PRESENTATION_STAGE_ATTRIBUTE}] [${PRESENTATION_ANIM_TRIGGER_ATTRIBUTE}],
 [${PRESENTATION_STAGE_ATTRIBUTE}] [data-element-id] a[href],
 [${PRESENTATION_STAGE_ATTRIBUTE}] [data-element-id] video[controls],
 [${PRESENTATION_STAGE_ATTRIBUTE}] [data-element-id] audio[controls] {

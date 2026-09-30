@@ -66,6 +66,66 @@ describe('applyAnimationGroupSteps', () => {
 		vi.useRealTimers();
 	});
 
+	it('cleans up independent components and still hides a completed exit', () => {
+		vi.useFakeTimers();
+		const { ctx, latest } = makeContext();
+		const motion = step({
+			elementId: 'a',
+			presetClass: 'path',
+			keyframeName: 'pptx-tl-motion-1',
+			cssAnimation: 'pptx-tl-motion-1 2000ms linear 0ms 1 both',
+			durationMs: 2000,
+			holdEndState: true,
+		});
+		const exit = step({
+			elementId: 'a',
+			presetClass: 'exit',
+			keyframeName: 'pptx-fadeOut',
+			cssAnimation: 'pptx-fadeOut 500ms ease 2000ms 1 forwards',
+			delayMs: 2000,
+		});
+		applyAnimationGroupSteps(group([motion, exit]), ctx);
+		vi.advanceTimersByTime(2008);
+		expect(latest().get('a')?.cssAnimation).toContain(exit.cssAnimation);
+		vi.advanceTimersByTime(500);
+		expect(latest().get('a')?.visible).toBeFalsy();
+		expect(latest().get('a')?.cssAnimation).toBe(motion.cssAnimation);
+	});
+
+	it('does not create an element state for sound-only steps', () => {
+		const { ctx, latest } = makeContext();
+		applyAnimationGroupSteps(
+			group([step({ elementId: '', cssAnimation: '', soundPath: 'cue.wav' })]),
+			ctx,
+		);
+		expect(latest().size).toBe(0);
+		expect(ctx.playSound).toHaveBeenCalledWith('cue.wav');
+	});
+
+	it('keeps a replay with identical CSS when the previous run cleans up', () => {
+		const { ctx, latest } = makeContext();
+		const effect = group([step({ elementId: 'a' })]);
+		applyAnimationGroupSteps(effect, ctx);
+		vi.advanceTimersByTime(200);
+		applyAnimationGroupSteps(effect, ctx);
+		vi.advanceTimersByTime(308);
+		expect(latest().get('a')?.cssAnimation).toBe(effect.steps[0].cssAnimation);
+		vi.advanceTimersByTime(200);
+		expect(latest().get('a')?.cssAnimation).toBeUndefined();
+	});
+
+	it('cleans up with a state setter that evaluates updaters twice', () => {
+		let states = new Map<string, ElementAnimationState>();
+		const { ctx } = makeContext();
+		ctx.setStates = (updater) => {
+			updater(states);
+			states = updater(states);
+		};
+		applyAnimationGroupSteps(group([step({ elementId: 'a' })]), ctx);
+		vi.advanceTimersByTime(508);
+		expect(states.get('a')?.cssAnimation).toBeUndefined();
+	});
+
 	it('makes an entrance step visible and applies its css animation', () => {
 		const { ctx, latest } = makeContext();
 		applyAnimationGroupSteps(group([step({ elementId: 'a' })]), ctx);
@@ -131,6 +191,57 @@ describe('applyAnimationGroupSteps', () => {
 		const { ctx } = makeContext();
 		applyAnimationGroupSteps(group([step({ elementId: 'a', soundPath: 'media/click.wav' })]), ctx);
 		expect(ctx.playSound).toHaveBeenCalledWith('media/click.wav');
+	});
+
+	it('keeps a newer step delayed animation when an earlier step cleanup fires', () => {
+		// A chained-motion journey attaches ONE long animation in the delay
+		// phase; the entrance that fired before it must not wipe it when its
+		// own (much earlier) cleanup timer runs.
+		const { ctx, latest } = makeContext();
+		applyAnimationGroupSteps(
+			group([
+				step({
+					elementId: 'a',
+					presetClass: 'entr',
+					keyframeName: 'pptx-appear',
+					cssAnimation: 'pptx-appear 0ms linear 0ms 1 both',
+					delayMs: 0,
+					durationMs: 0,
+				}),
+				step({
+					elementId: 'a',
+					presetClass: 'path',
+					keyframeName: 'pptx-tl-transform-1',
+					cssAnimation: 'pptx-tl-transform-1 6000ms linear 2000ms 1 both',
+					delayMs: 2000,
+					durationMs: 6000,
+					holdEndState: true,
+				}),
+			]),
+			ctx,
+		);
+		const chain = 'pptx-tl-transform-1 6000ms linear 2000ms 1 both';
+		// past the entrance cleanup (0 + 0 + 8ms): the chain must survive.
+		vi.advanceTimersByTime(100);
+		expect(latest().get('a')?.cssAnimation).toBe(chain);
+		// past the chain's own cleanup (2000 + 6000 + 8): hold keeps it attached.
+		vi.advanceTimersByTime(9000);
+		expect(latest().get('a')?.cssAnimation).toBe(chain);
+	});
+
+	it('delays a delayed step sound by its delayMs and keeps delay-0 immediate', () => {
+		const { ctx } = makeContext();
+		applyAnimationGroupSteps(
+			group([
+				step({ elementId: 'a', soundPath: 'media/late.wav', delayMs: 8000 }),
+				step({ elementId: 'b', soundPath: 'media/now.wav' }),
+			]),
+			ctx,
+		);
+		expect(ctx.playSound).toHaveBeenCalledWith('media/now.wav');
+		expect(ctx.playSound).not.toHaveBeenCalledWith('media/late.wav');
+		vi.advanceTimersByTime(8000);
+		expect(ctx.playSound).toHaveBeenCalledWith('media/late.wav');
 	});
 
 	it('calls ctx.stopSound for a stopSound step', () => {
@@ -367,6 +478,120 @@ describe('playGroup', () => {
 		expect(latest().get('dgm')?.diagramReveal).toBe(diagramReveal);
 		expect(latest().get('dgm')?.build?.progress).toBe(1);
 		vi.useRealTimers();
+	});
+
+	// One click group routinely holds SEVERAL steps for the same element, each
+	// with its own delay (a crane claw that "slides right 0-2s, then disappears
+	// 2-2.5s" is one authored sequence). The per-element state holds ONE CSS
+	// animation list, so those steps must accumulate into a comma join - the
+	// historical overwrite handed the element only the LAST step and the claw
+	// never slid at all.
+	it('joins same-element steps with disjoint properties into one animation list', () => {
+		const { ctx, latest } = makeContext();
+		applyAnimationGroupSteps(
+			group([
+				step({
+					elementId: 'claw',
+					keyframeName: 'pptx-tl-transform-7',
+					cssAnimation: 'pptx-tl-transform-7 2000ms linear 0ms 1 both',
+					presetClass: 'path',
+				}),
+				step({
+					elementId: 'claw',
+					keyframeName: 'pptx-disappear',
+					cssAnimation: 'pptx-disappear 500ms ease 2000ms 1 forwards',
+					presetClass: 'exit',
+					delayMs: 2000,
+				}),
+			]),
+			ctx,
+		);
+		expect(latest().get('claw')?.cssAnimation).toBe(
+			'pptx-tl-transform-7 2000ms linear 0ms 1 both, pptx-disappear 500ms ease 2000ms 1 forwards',
+		);
+	});
+
+	it('keeps last-write-wins for same-element steps that animate the same property', () => {
+		const { ctx, latest } = makeContext();
+		applyAnimationGroupSteps(
+			group([
+				step({
+					elementId: 'a',
+					keyframeName: 'pptx-tl-transform-1',
+					cssAnimation: 'pptx-tl-transform-1 1000ms linear 0ms 1 both',
+					presetClass: 'path',
+				}),
+				step({
+					elementId: 'a',
+					keyframeName: 'pptx-tl-transform-2',
+					cssAnimation: 'pptx-tl-transform-2 1000ms linear 1000ms 1 both',
+					presetClass: 'path',
+					delayMs: 1000,
+				}),
+			]),
+			ctx,
+		);
+		// Two transform animations on one element resolve in list order, and the
+		// later one's `fill: both` from-frame would pin the transform through the
+		// earlier one's active window - so the earlier one is dropped instead.
+		expect(latest().get('a')?.cssAnimation).toBe('pptx-tl-transform-2 1000ms linear 1000ms 1 both');
+	});
+
+	it('lets a later exit take over opacity without dropping the motion', () => {
+		// The crane-claw choreography: appear 0-0.5s, slide right 0-2s, fade out
+		// 2-2.5s - three steps on one element in one group. The exit's `opacity`
+		// supersedes the entrance's fade (component takeover) but must not touch
+		// the motion's `transform`: the historical overwrite kept only the exit
+		// and the claw never slid.
+		const { ctx, latest } = makeContext();
+		applyAnimationGroupSteps(
+			group([
+				step({ elementId: 'claw' }),
+				step({
+					elementId: 'claw',
+					keyframeName: 'pptx-tl-motion-45',
+					cssAnimation: 'pptx-tl-motion-45 2000ms linear 0ms 1 both',
+					presetClass: 'path',
+				}),
+				step({
+					elementId: 'claw',
+					keyframeName: 'pptx-disappear',
+					cssAnimation: 'pptx-disappear 500ms ease 2000ms 1 forwards',
+					presetClass: 'exit',
+					delayMs: 2000,
+				}),
+			]),
+			ctx,
+		);
+		expect(latest().get('claw')?.cssAnimation).toBe(
+			'pptx-tl-motion-45 2000ms linear 0ms 1 both, pptx-disappear 500ms ease 2000ms 1 forwards',
+		);
+	});
+
+	it('replaces a stale animation from a previous group or run instead of joining it', () => {
+		const { ctx, latest } = makeContext();
+		// The previous run of this interactive sequence ended with the element
+		// faded out (a held exit). Replaying must hand the element its NEW
+		// animation alone - joining would glue the new motion to the old exit's
+		// held `opacity: 0` and slide the element around invisible.
+		ctx.setStates((prev) =>
+			new Map(prev).set('claw', {
+				visible: false,
+				cssAnimation: 'pptx-disappear 500ms ease 0ms 1 forwards',
+			}),
+		);
+		applyAnimationGroupSteps(
+			group([
+				step({
+					elementId: 'claw',
+					keyframeName: 'pptx-tl-transform-7',
+					cssAnimation: 'pptx-tl-transform-7 2000ms linear 0ms 1 both',
+					presetClass: 'path',
+				}),
+			]),
+			ctx,
+		);
+		expect(latest().get('claw')?.cssAnimation).toBe('pptx-tl-transform-7 2000ms linear 0ms 1 both');
 	});
 });
 

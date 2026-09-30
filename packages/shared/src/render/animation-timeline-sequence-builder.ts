@@ -16,6 +16,7 @@ import {
 import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveEffectTiming } from './animation-fill-repeat';
 import { buildStepCommand } from './animation-media-commands';
+import { isChainedMotionSwallowed } from './animation-motion-path-chain';
 import { canComposeParallelSteps, composeParallelSteps } from './animation-parallel-composition';
 import type { AnimationRenderContext } from './animation-render-context';
 import { resolveAnimationTargetId } from './animation-target-id';
@@ -39,6 +40,9 @@ export function countDynamicUids(interactiveAnims: Map<string, PptxNativeAnimati
 	let count = 0;
 	for (const [, anims] of interactiveAnims) {
 		for (const anim of anims) {
+			if (isChainedMotionSwallowed(anim)) {
+				continue;
+			}
 			const effect = resolveEffect(anim);
 			if (!effect) {
 				count++;
@@ -73,6 +77,29 @@ export function buildSequenceGroups(
 		let subGroupStartMs = 0;
 
 		for (const anim of anims) {
+			// A chained-motion merge consumed this segment's MOTION into the
+			// run's head step. A swallowed member carrying an animation sound
+			// still emits a sound-only step at its authored start, so its cue
+			// fires at the right moment; everything else about it is skipped,
+			// keeping every other step's delay bookkeeping exactly as it was.
+			if (isChainedMotionSwallowed(anim)) {
+				if (anim.soundPath || anim.stopSound) {
+					seqGroup.push({
+						elementId: '',
+						cssAnimation: '',
+						keyframeName: '',
+						trigger: anim.trigger ?? 'onShapeClick',
+						delayMs:
+							(anim.parGroupDelayMs ?? 0) + Math.max(anim.delayMs ?? 0, anim.triggerDelayMs ?? 0),
+						durationMs: anim.durationMs ?? 0,
+						fillMode: 'forwards',
+						presetClass: 'emph',
+						soundPath: anim.soundPath,
+						stopSound: anim.stopSound,
+					});
+				}
+				continue;
+			}
 			// Same authored-tavLst-over-canned-default preference, and the same
 			// (deliberately preserved) absence of the directional-keyframe
 			// substitution, as the historical interactive/hover loop.

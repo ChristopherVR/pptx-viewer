@@ -1,13 +1,13 @@
 /**
- * `animation-timeline-helpers` — pure helpers for the native-animation timeline:
+ * `animation-timeline-helpers` - pure helpers for the native-animation timeline:
  * effect resolution, dynamic (motion-path / rotation / scale / colour) keyframe
  * generation, default durations, fill-mode mapping, and click-group finalisation.
  *
  * Two dynamic-keyframe builders coexist (with deliberately distinct keyframe
  * name prefixes so the two playback models never collide):
- *  - {@link buildDynamicKeyframes} (plural) — `pptx-motionPath-*` / `pptx-rotateBy-*`
+ *  - {@link buildDynamicKeyframes} (plural) - `pptx-motionPath-*` / `pptx-rotateBy-*`
  *    / `pptx-scaleBy-*`. Used by the flat {@link AnimationStep} sequencer.
- *  - {@link buildDynamicKeyframe} (singular) — `pptx-tl-motion-*` / `pptx-tl-rotate-*`
+ *  - {@link buildDynamicKeyframe} (singular) - `pptx-tl-motion-*` / `pptx-tl-rotate-*`
  *    / `pptx-tl-scale-*`, plus motion-path auto-rotate. Used by the click-group
  *    {@link buildTimeline} engine.
  *
@@ -19,6 +19,10 @@ import type { PptxNativeAnimation } from 'pptx-viewer-core';
 import { buildColorAnimationKeyframes } from './animation-color';
 import { resolveFilterEffect } from './animation-filter-effects';
 import {
+	buildChainedMotionKeyframes,
+	isChainedMotionAnimation,
+} from './animation-motion-path-chain';
+import {
 	emphasisFilterKeyframeCss,
 	FLY_SUBTYPE_TO_EDGE,
 	PRESET_ID_TO_EFFECT,
@@ -28,12 +32,7 @@ import {
 import type { AnimationElementBox, AnimationRenderContext } from './animation-render-context';
 import { redirectStripsEffect } from './animation-strips-reveal';
 import { resolveAnimationTargetId } from './animation-target-id';
-import type {
-	AnimationStep,
-	EffectName,
-	TimelineStep,
-	TimelineClickGroup,
-} from './animation-timeline-types';
+import type { EffectName } from './animation-timeline-types';
 import { buildTransformKeyframes } from './animation-transform-keyframes';
 
 // ==========================================================================
@@ -196,6 +195,17 @@ export function buildDynamicKeyframes(
 	uid: number,
 	renderContext?: AnimationRenderContext,
 ): { keyframeName: string; css: string } | undefined {
+	const chained = isChainedMotionAnimation(anim)
+		? buildChainedMotionKeyframes(
+				anim,
+				uid,
+				FLAT_TRANSFORM_PREFIXES,
+				boxForAnimation(anim, renderContext),
+			)
+		: undefined;
+	if (chained) {
+		return chained;
+	}
 	const transform = buildTransformKeyframes(
 		anim,
 		uid,
@@ -242,6 +252,17 @@ export function buildDynamicKeyframe(
 	uid: number,
 	renderContext?: AnimationRenderContext,
 ): { keyframeName: string; css: string } | undefined {
+	const chained = isChainedMotionAnimation(anim)
+		? buildChainedMotionKeyframes(
+				anim,
+				uid,
+				TIMELINE_TRANSFORM_PREFIXES,
+				boxForAnimation(anim, renderContext),
+			)
+		: undefined;
+	if (chained) {
+		return chained;
+	}
 	const transform = buildTransformKeyframes(
 		anim,
 		uid,
@@ -275,73 +296,9 @@ export function buildDynamicKeyframe(
 	return undefined;
 }
 
-// ==========================================================================
-// Naming, durations, fill modes, group finalisation
-// ==========================================================================
-
-export function cssKeyframeName(effect: EffectName | string): string {
-	return `pptx-${effect}`;
-}
-
-export function defaultDuration(presetClass: PptxNativeAnimation['presetClass']): number {
-	switch (presetClass) {
-		case 'entr':
-			return 500;
-		case 'exit':
-			return 500;
-		case 'emph':
-			return 800;
-		case 'path':
-			return 1000;
-		default:
-			return 500;
-	}
-}
-
-export function fillModeForClass(
-	presetClass: PptxNativeAnimation['presetClass'],
-): AnimationStep['fillMode'] {
-	switch (presetClass) {
-		case 'entr':
-			return 'both';
-		case 'exit':
-			return 'forwards';
-		case 'emph':
-			return 'both';
-		default:
-			return 'both';
-	}
-}
-
-export function finalizeClickGroup(
-	steps: TimelineStep[],
-	options?: { autoAdvance?: boolean; autoAdvanceDelayMs?: number },
-): TimelineClickGroup {
-	let maxEnd = 0;
-	for (const step of steps) {
-		const end = step.delayMs + step.durationMs;
-		if (end > maxEnd) {
-			maxEnd = end;
-		}
-	}
-	const group: TimelineClickGroup = { steps, totalDurationMs: maxEnd };
-	if (options?.autoAdvance) {
-		group.autoAdvance = true;
-		group.autoAdvanceDelayMs = options.autoAdvanceDelayMs ?? 0;
-	}
-	// `@concurrent`/`@nextAc`/`@prevAc` are constant across every step governed
-	// by the same enclosing `p:seq` (ECMA-376 S19.5.60), so the first step that
-	// carries one speaks for the whole group.
-	for (const step of steps) {
-		if (group.seqConcurrent === undefined && step.seqConcurrent !== undefined) {
-			group.seqConcurrent = step.seqConcurrent;
-		}
-		if (group.seqNextAction === undefined && step.seqNextAction !== undefined) {
-			group.seqNextAction = step.seqNextAction;
-		}
-		if (group.seqPrevAction === undefined && step.seqPrevAction !== undefined) {
-			group.seqPrevAction = step.seqPrevAction;
-		}
-	}
-	return group;
-}
+export {
+	cssKeyframeName,
+	defaultDuration,
+	fillModeForClass,
+	finalizeClickGroup,
+} from './animation-timeline-group-helpers';

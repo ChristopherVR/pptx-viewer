@@ -43,4 +43,18 @@ describe('pRESENTATION_HIT_TEST_CSS', () => {
 			PRESENTATION_HIT_TEST_CSS.indexOf('[data-element-id] {'),
 		);
 	});
+
+	it('re-enables animation trigger shapes, whose click plays their own sequence', () => {
+		// A shape-click trigger is not an Action Setting, so it never gets
+		// `data-pptx-action`; the animation playback pass stamps
+		// `PRESENTATION_ANIM_TRIGGER_ATTRIBUTE` instead. Without the whitelist
+		// entry the blanket rule made such a shape pointer-transparent and its
+		// sequence could never fire during a show.
+		expect(PRESENTATION_HIT_TEST_CSS).toMatch(
+			/\[data-pptx-anim-trigger\][^}]*pointer-events:\s*auto/u,
+		);
+		expect(PRESENTATION_HIT_TEST_CSS.indexOf('[data-pptx-anim-trigger]')).toBeGreaterThan(
+			PRESENTATION_HIT_TEST_CSS.indexOf('[data-element-id] {'),
+		);
+	});
 });

@@ -407,6 +407,7 @@ export function ViewerCanvasArea(props: ViewerCanvasAreaProps) {
 
 			{mode === 'present' ? (
 				<PresentationStage
+					animationTriggers={presentation}
 					activeSlide={activeSlide}
 					templateElements={templateElements}
 					canvasSize={canvasSize}

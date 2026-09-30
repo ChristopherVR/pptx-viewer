@@ -92,6 +92,17 @@ describe('presentationStageAnimator synchronous playback apply', () => {
 		document.body.innerHTML = '';
 	});
 
+	it('marks and clears animation-only trigger shapes', () => {
+		const root = stage(['a']);
+		const { playback, animator } = harness(() => root);
+		playback.interactiveTriggerShapeIds.set(new Set(['a']));
+		animator.applyAnimationStyles();
+		expect(nodeFor(root, 'a').hasAttribute('data-pptx-anim-trigger')).toBeTruthy();
+		playback.interactiveTriggerShapeIds.set(new Set());
+		animator.applyAnimationStyles();
+		expect(nodeFor(root, 'a').hasAttribute('data-pptx-anim-trigger')).toBeFalsy();
+	});
+
 	it('stamps a click-group animation onto the stage inside advance(), with no render pass', () => {
 		const root = stage(['a', 'b']);
 		const { playback, animator } = harness(() => root);

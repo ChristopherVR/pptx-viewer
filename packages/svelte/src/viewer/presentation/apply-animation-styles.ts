@@ -1,3 +1,4 @@
+import { PRESENTATION_ANIM_TRIGGER_ATTRIBUTE } from 'pptx-viewer-shared';
 import type { ElementAnimationState } from 'pptx-viewer-shared';
 
 /**
@@ -41,6 +42,10 @@ export function applyAnimationStyles(
 		el.style.animation = state?.cssAnimation ?? '';
 		el.style.visibility = state?.visible === false ? 'hidden' : '';
 		el.style.cursor = interactiveIds.has(id) || hoverIds.has(id) ? 'pointer' : '';
+		el.toggleAttribute(
+			PRESENTATION_ANIM_TRIGGER_ATTRIBUTE,
+			interactiveIds.has(id) || hoverIds.has(id),
+		);
 	});
 
 	// Staged text builds render one span per paragraph / word / letter, keyed

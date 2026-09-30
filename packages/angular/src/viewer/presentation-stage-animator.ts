@@ -1,3 +1,4 @@
+import { PRESENTATION_ANIM_TRIGGER_ATTRIBUTE } from '../internal/shared';
 /**
  * presentation-stage-animator.ts: applies the slide show's native-animation
  * state to the rendered DOM, and tracks the hover-trigger shape under the
@@ -91,6 +92,7 @@ export class PresentationStageAnimator {
 			el.style.animation = state?.cssAnimation ?? '';
 			el.style.visibility = state?.visible === false ? 'hidden' : '';
 			el.style.cursor = interactive.has(id) || hover.has(id) ? 'pointer' : '';
+			el.toggleAttribute(PRESENTATION_ANIM_TRIGGER_ATTRIBUTE, interactive.has(id) || hover.has(id));
 		});
 	}
 

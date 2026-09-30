@@ -50,7 +50,10 @@ function makeSlide(): PptxSlide {
 	} as PptxSlide;
 }
 
-function renderStage(onStageClick: (event: React.MouseEvent) => void): void {
+function renderStage(
+	onStageClick: (event: React.MouseEvent) => void,
+	animationTriggers?: import('./PresentationStage').PresentationStageProps['animationTriggers'],
+): void {
 	act(() =>
 		root.render(
 			<PresentationStage
@@ -59,12 +62,35 @@ function renderStage(onStageClick: (event: React.MouseEvent) => void): void {
 				canvasSize={{ width: 960, height: 540 }}
 				mediaDataUrls={new Map<string, string>()}
 				onStageClick={onStageClick}
+				animationTriggers={animationTriggers}
 			/>,
 		),
 	);
 }
 
 describe('presentationStage click-to-advance', () => {
+	it('routes animation-only shape clicks and clears stale trigger markers', () => {
+		const onStageClick = vi.fn();
+		const handleInteractiveShapeClick = vi.fn(() => true);
+		const id = makeSlide().elements[0].id;
+		renderStage(onStageClick, {
+			interactiveTriggerShapeIds: new Set([id]),
+			hoverTriggerShapeIds: new Set(),
+			handleInteractiveShapeClick,
+			handleHoverStart: vi.fn(),
+			handleHoverEnd: vi.fn(),
+		});
+		const element = container.querySelector<HTMLElement>('[data-element-id]')!;
+		expect(element.hasAttribute('data-pptx-anim-trigger')).toBeTruthy();
+		act(() => element.click());
+		expect(handleInteractiveShapeClick).toHaveBeenCalledWith(id);
+		expect(onStageClick).not.toHaveBeenCalled();
+		renderStage(onStageClick);
+		expect(
+			container.querySelector('[data-element-id]')?.hasAttribute('data-pptx-anim-trigger'),
+		).toBeFalsy();
+	});
+
 	it('reports a click on the show surface', () => {
 		const onStageClick = vi.fn();
 		renderStage(onStageClick);

@@ -29,6 +29,14 @@ afterEach(() => {
 const empty: Map<string, ElementAnimationState> = new Map();
 
 describe('applyAnimationStyles', () => {
+	it('marks animation triggers and clears the marker on reset', () => {
+		const { root, e1 } = makeStage();
+		applyAnimationStyles(root, empty, new Set(['e1']));
+		expect(e1.hasAttribute('data-pptx-anim-trigger')).toBeTruthy();
+		applyAnimationStyles(root, empty);
+		expect(e1.hasAttribute('data-pptx-anim-trigger')).toBeFalsy();
+	});
+
 	it('applies the CSS animation and hides a not-yet-visible element', () => {
 		const { root, e1, e2 } = makeStage();
 		const states = new Map<string, ElementAnimationState>([

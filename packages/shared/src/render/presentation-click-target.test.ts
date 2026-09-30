@@ -26,6 +26,11 @@ describe('isPresentationAdvanceClick', () => {
 		expect(
 			isPresentationAdvanceClick(render('<div data-pptx-action="click"><b>go</b></div>')),
 		).toBeFalsy();
+		// A shape-click animation trigger: the click plays the shape's sequence,
+		// so the show must not advance under it either.
+		expect(
+			isPresentationAdvanceClick(render('<div data-pptx-anim-trigger=""><b>play</b></div>')),
+		).toBeFalsy();
 		// Show chrome and media transport.
 		expect(isPresentationAdvanceClick(render('<button type="button">next</button>'))).toBeFalsy();
 		expect(isPresentationAdvanceClick(render('<video controls></video>'))).toBeFalsy();

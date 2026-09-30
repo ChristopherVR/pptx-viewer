@@ -1,3 +1,4 @@
+import { PRESENTATION_ANIM_TRIGGER_ATTRIBUTE } from 'pptx-viewer-shared';
 /**
  * usePresentationAnimationStyles: pushes each element's native-animation state
  * onto its rendered DOM node, and routes the two pointer triggers
@@ -63,6 +64,7 @@ export function usePresentationAnimationStyles(
 			el.style.animation = state?.cssAnimation ?? '';
 			el.style.visibility = state?.visible === false ? 'hidden' : '';
 			el.style.cursor = interactive.has(id) || hover.has(id) ? 'pointer' : '';
+			el.toggleAttribute(PRESENTATION_ANIM_TRIGGER_ATTRIBUTE, interactive.has(id) || hover.has(id));
 		});
 	}
 

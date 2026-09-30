@@ -30,6 +30,8 @@ import type { TableStyleContext } from '../../utils/table-parse';
 import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
 import { ElementRenderer } from '../ElementRenderer';
 import { SlideBackgroundImageLayer } from '../SlideBackgroundImageLayer';
+import { useStageAnimationTriggers } from './useStageAnimationTriggers';
+import type { StageAnimationTriggers } from './useStageAnimationTriggers';
 
 // ---------------------------------------------------------------------------
 // Props
@@ -58,6 +60,7 @@ export interface PresentationStageProps {
 	 * Without it the stage is a dead surface that only the keyboard can drive,
 	 * which is exactly how a presenter experiences a broken show.
 	 */
+	animationTriggers?: StageAnimationTriggers;
 	onStageClick?: (event: React.MouseEvent) => void;
 	/** Overlays drawn inside the scaled slide box, given the live scale. */
 	children?: (scale: number) => React.ReactNode;
@@ -88,10 +91,17 @@ export function PresentationStage({
 	fieldContext,
 	tableStyleContext,
 	onStageClick,
+	animationTriggers,
 	children,
 	screenOverlay,
 }: PresentationStageProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
+	const triggerHandlers = useStageAnimationTriggers(
+		containerRef,
+		activeSlide,
+		animationTriggers,
+		onStageClick,
+	);
 	const [box, setBox] = useState<CanvasSize | null>(null);
 
 	// Measure the show surface. The container is the fullscreen element in a
@@ -140,7 +150,7 @@ export function PresentationStage({
 			ref={containerRef}
 			data-pptx-presentation-stage
 			className='relative flex-1 min-h-0 overflow-hidden bg-black select-none'
-			onClick={onStageClick}
+			{...triggerHandlers}
 		>
 			<div
 				className='absolute'

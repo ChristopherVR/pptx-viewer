@@ -18,6 +18,7 @@ import { resolveAfterAnimationStepFields } from './animation-after-effect';
 import { resolveStepBuildDescriptor } from './animation-build';
 import { resolveEffectTiming } from './animation-fill-repeat';
 import { buildStepCommand } from './animation-media-commands';
+import { isChainedMotionSwallowed } from './animation-motion-path-chain';
 import { canComposeParallelSteps, composeParallelSteps } from './animation-parallel-composition';
 import type { AnimationRenderContext } from './animation-render-context';
 import { resolveAnimationTargetId } from './animation-target-id';
@@ -120,6 +121,28 @@ export function processRegularAnimation(
 	const expandedSteps = expandIterateAnimation(anim);
 
 	for (const singleAnim of expandedSteps) {
+		if (isChainedMotionSwallowed(singleAnim)) {
+			// Consumed into a chained-motion head step; see
+			// `animation-motion-path-chain`. A swallowed member's animation
+			// sound still fires at its authored start via a sound-only step.
+			if (singleAnim.soundPath || singleAnim.stopSound) {
+				state.currentGroup.push({
+					elementId: '',
+					cssAnimation: '',
+					keyframeName: '',
+					trigger: singleAnim.trigger ?? 'onClick',
+					delayMs:
+						(singleAnim.parGroupDelayMs ?? 0) +
+						Math.max(singleAnim.delayMs ?? 0, singleAnim.triggerDelayMs ?? 0),
+					durationMs: singleAnim.durationMs ?? 0,
+					fillMode: 'forwards',
+					presetClass: 'emph',
+					soundPath: singleAnim.soundPath,
+					stopSound: singleAnim.stopSound,
+				});
+			}
+			continue;
+		}
 		const resolved = resolveStepEffect(
 			singleAnim,
 			renderContext,

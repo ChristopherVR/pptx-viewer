@@ -62,10 +62,13 @@ export function resolveAutoAdvanceDelayMs(
  * also step the slide on: hyperlinks and action buttons (PowerPoint follows the
  * link instead of advancing), media transport, form controls, and anything
  * inside a dialog. `[data-pptx-action]` is the attribute every binding stamps
- * on an element carrying an on-click action.
+ * on an element carrying an on-click action. `[data-pptx-anim-trigger]` (see
+ * `PRESENTATION_ANIM_TRIGGER_ATTRIBUTE`) is the animation playback pass's
+ * marker for a shape whose click plays its own animation sequence  -  the show
+ * must not advance under it either.
  */
 export const PRESENTATION_INERT_CLICK_SELECTOR =
-	'a, button, input, select, textarea, video, audio, [data-pptx-action], [role="dialog"]';
+	'a, button, input, select, textarea, video, audio, [data-pptx-action], [data-pptx-anim-trigger], [role="dialog"]';
 
 /**
  * A media element only owns its click while it exposes native transport: with

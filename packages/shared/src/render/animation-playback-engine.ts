@@ -36,10 +36,7 @@
  * @module render/animation-playback-engine
  */
 
-import { wireMediaBookmarkSteps } from './animation-media-bookmark-gating';
-import { wireMediaEndedSteps } from './animation-media-end-gating';
-import { executeMediaCommandInDom } from './animation-media-playback';
-import { mergeTextStyleOnStart, resolveTextStyleOnCleanup } from './animation-text-style-state';
+import { applyAnimationGroupSteps } from './animation-playback-steps';
 import type { ElementAnimationState, TimelineClickGroup } from './animation-timeline-types';
 import { PresentationAnimationController } from './presentation-animation-controller';
 import type { PresentationStatesOptions } from './presentation-animation-controller';
@@ -121,7 +118,7 @@ type BuildStateFields = Pick<
  * with no build at all, which it reads as "reveal everything" - the whole
  * diagram popped in the moment the first stage's fade finished.
  */
-function carryBuildState(state: ElementAnimationState | undefined): BuildStateFields {
+export function carryBuildState(state: ElementAnimationState | undefined): BuildStateFields {
 	if (!state) {
 		return {};
 	}
@@ -141,105 +138,7 @@ function carryBuildState(state: ElementAnimationState | undefined): BuildStateFi
 	return carried;
 }
 
-/**
- * Apply a click-group's steps onto the element-state map: fire sound / media
- * commands, set each step's initial visibility + CSS animation, then schedule
- * cleanup timers to clear the animation (and hide exits) once each step ends.
- *
- * An `onStopAudio`-gated step also gets a real `ended` listener wired via
- * `wireMediaEndedSteps` (`animation-media-end-gating`), which corrects the
- * fallback estimate below once the actual media element finishes; the
- * fallback still fires unconditionally, so no-real-media contexts
- * (export/headless) are unaffected.
- */
-export function applyAnimationGroupSteps(group: TimelineClickGroup, ctx: PlaybackContext): void {
-	wireMediaEndedSteps(group, ctx);
-	wireMediaBookmarkSteps(group, ctx);
-
-	// Sound + media-playback side effects.
-	for (const step of group.steps) {
-		if (step.command) {
-			const command = step.command;
-			const timer = window.setTimeout(
-				() => {
-					executeMediaCommandInDom(command, ctx.frameRoot);
-				},
-				Math.max(0, step.delayMs),
-			);
-			ctx.timers.push(timer);
-			continue;
-		}
-		if (step.stopSound) {
-			ctx.stopSound();
-		} else if (step.soundPath) {
-			(ctx.onPlayActionSound ?? ctx.playSound)(step.soundPath);
-		}
-	}
-
-	// Initial CSS-animation / visibility state. A `p:animClr` step also surfaces
-	// its fill / stroke colour targets so the vector / connector renderers
-	// relinquish their static paint (`inherit`) and the wrapper's colour keyframes
-	// cascade in for the duration of the step.
-	ctx.setStates((previous) => {
-		const next = new Map(previous);
-		for (const step of group.steps) {
-			if (step.command) {
-				continue;
-			}
-			const current = next.get(step.elementId);
-			const shouldBeVisible = step.presetClass === 'exit' ? (current?.visible ?? true) : true;
-			const carried = carryBuildState(current);
-			next.set(step.elementId, {
-				...carried,
-				visible: shouldBeVisible,
-				cssAnimation: step.cssAnimation,
-				animatesFill: step.colorTargets?.includes('fill') ? true : undefined,
-				animatesStroke: step.colorTargets?.includes('stroke') ? true : undefined,
-				textStyle: mergeTextStyleOnStart(carried.textStyle, step.textStyle),
-			});
-		}
-		return next;
-	});
-
-	// Cleanup after each step completes: clear the animation, hide finished exits,
-	// and drop the colour-target flags so the static paint is restored.
-	for (const step of group.steps) {
-		if (step.command) {
-			continue;
-		}
-		const timer = window.setTimeout(
-			() => {
-				ctx.setStates((previous) => {
-					const next = new Map(previous);
-					const current = next.get(step.elementId);
-					// `afterAnimation: "hideAfterAnimation"` hides the element once its
-					// (entrance/emphasis) effect ends, overriding normal visibility.
-					const visibleAfter =
-						step.presetClass === 'exit' || step.hideAfterEffect
-							? false
-							: (current?.visible ?? true);
-					// `p:cTn/@fill="hold"`/`"freeze"`: keep the CSS animation attached so
-					// its final frame persists instead of reverting on cleanup. A
-					// font-style emphasis's text-style override follows the SAME flag.
-					const carried = carryBuildState(current);
-					next.set(step.elementId, {
-						...carried,
-						visible: visibleAfter,
-						cssAnimation: step.holdEndState ? step.cssAnimation : undefined,
-						textStyle: resolveTextStyleOnCleanup(
-							carried.textStyle,
-							step.textStyle,
-							step.holdEndState,
-						),
-					});
-					return next;
-				});
-			},
-			Math.max(0, step.delayMs + step.durationMs + 8),
-		);
-		ctx.timers.push(timer);
-	}
-}
+export { applyAnimationGroupSteps } from './animation-playback-steps';
 
 // ---------------------------------------------------------------------------
 // Staged chart / SmartArt build reveal (RAF-driven)

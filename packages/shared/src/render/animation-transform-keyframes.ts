@@ -33,7 +33,7 @@ export interface TransformKeyframePrefixes {
  * size `--pptx-slide-w`/`-h` uses, matching this module's existing
  * unset-custom-property behaviour rather than silently using the wrong box.
  */
-function slideOffset(percent: number, axis: 'w' | 'h', origin: string | undefined): string {
+export function slideOffset(percent: number, axis: 'w' | 'h', origin: string | undefined): string {
 	const fallback = axis === 'w' ? '1280px' : '720px';
 	const varName = origin === 'parent' ? `--pptx-parent-${axis}` : `--pptx-slide-${axis}`;
 	return `calc(var(${varName}, ${fallback}) * ${(percent / 100).toFixed(4)})`;
@@ -99,7 +99,7 @@ function opacityAt(anim: PptxNativeAnimation, progress: number): number | undefi
 	return undefined;
 }
 
-function formatNumber(value: number, fractionDigits: number = 4): string {
+export function formatNumber(value: number, fractionDigits: number = 4): string {
 	return String(Number(value.toFixed(fractionDigits)));
 }
 
