@@ -37,6 +37,7 @@ import type { Store, ViewerState } from '../state';
 import {
 	findActiveElement,
 	getActiveElements,
+	mapActiveElement,
 	replaceActiveElements,
 } from './editor-active-elements';
 import { setHandoutSlidesPerPage } from './editor-master-actions';
@@ -180,8 +181,12 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 
 	const patchGeometry = (id: string, box: ElementBoxPatch): void => {
 		const state = store.get();
-		const elements = getActiveElements(state).map((element) =>
-			element.id === id ? ({ ...element, ...box } as PptxElement) : element,
+		// A group member's box is slide space; `mapActiveElement` writes it back
+		// into the group's space.
+		const elements = mapActiveElement(
+			state,
+			id,
+			(element) => ({ ...element, ...box }) as PptxElement,
 		);
 		store.set(replaceActiveElements(state, elements));
 	};
@@ -283,10 +288,10 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			store.set(
 				replaceActiveElements(
 					state,
-					getActiveElements(state).map((element) =>
-						element.id === id
-							? ({ ...element, x: el.x + dx, y: el.y + dy } as PptxElement)
-							: element,
+					mapActiveElement(
+						state,
+						id,
+						(element) => ({ ...element, x: el.x + dx, y: el.y + dy }) as PptxElement,
 					),
 				),
 			);
@@ -318,23 +323,24 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			store.set(
 				replaceActiveElements(
 					state,
-					getActiveElements(state).map((element) =>
-						element.id === id
-							? ({
-									...element,
-									...remapInlineText(target, text, richSnapshot),
-									...(newHeight !== undefined ? { height: newHeight } : {}),
-									...(shrink !== 'unchanged'
-										? {
-												textStyle: {
-													...(target as { textStyle?: TextStyle }).textStyle,
-													autoFitFontScale: shrink.fontScale,
-													autoFitLineSpacingReduction: shrink.lnSpcReduction,
-												},
-											}
-										: {}),
-								} as PptxElement)
-							: element,
+					mapActiveElement(
+						state,
+						id,
+						(element) =>
+							({
+								...element,
+								...remapInlineText(target, text, richSnapshot),
+								...(newHeight !== undefined ? { height: newHeight } : {}),
+								...(shrink !== 'unchanged'
+									? {
+											textStyle: {
+												...(target as { textStyle?: TextStyle }).textStyle,
+												autoFitFontScale: shrink.fontScale,
+												autoFitLineSpacingReduction: shrink.lnSpcReduction,
+											},
+										}
+									: {}),
+							}) as PptxElement,
 					),
 				),
 			);
@@ -369,10 +375,8 @@ export function createEditorOps(deps: EditorOpsDeps): EditorOps {
 			store.set(
 				replaceActiveElements(
 					state,
-					getActiveElements(state).map((element) =>
-						element.id === targetId
-							? applyFormatToElement(element, copyFormatFromElement(source))
-							: element,
+					mapActiveElement(state, targetId, (element) =>
+						applyFormatToElement(element, copyFormatFromElement(source)),
 					),
 				),
 			);

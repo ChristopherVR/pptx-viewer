@@ -13,7 +13,7 @@ import {
 } from 'pptx-viewer-shared';
 
 import type { Store, ViewerState } from '../state';
-import { findActiveElement, getActiveElements } from './editor-active-elements';
+import { findActiveElement, findActiveElementsByIds } from './editor-active-elements';
 import { syncConnectorsForMovedElements } from './editor-connector-sync';
 import { interactableIds } from './editor-lock-gates';
 import type { EditorOps } from './editor-operations';
@@ -58,9 +58,7 @@ export function createTransformGestures(deps: TransformGesturesDeps): GestureCon
 
 	const elementBox = (id: string): InteractionBox | undefined => {
 		const state = store.get();
-		const selected = getActiveElements(state).filter((el) =>
-			state.selectedElementIds.includes(el.id),
-		);
+		const selected = findActiveElementsByIds(state, state.selectedElementIds);
 		if (selected.length > 1 && state.selectedElementIds.includes(id)) {
 			return selectionBounds(selected) ?? undefined;
 		}
@@ -81,16 +79,17 @@ export function createTransformGestures(deps: TransformGesturesDeps): GestureCon
 		onStart(id, kind) {
 			const state = store.get();
 			gestureKind = kind;
-			gestureBoxes = getActiveElements(state)
-				.filter((el) => state.selectedElementIds.includes(el.id))
-				.map(({ id: boxId, x, y, width, height, rotation }) => ({
+			// A group member selected inside its group is measured in slide space.
+			gestureBoxes = findActiveElementsByIds(state, state.selectedElementIds).map(
+				({ id: boxId, x, y, width, height, rotation }) => ({
 					id: boxId,
 					x,
 					y,
 					width,
 					height,
 					rotation,
-				}));
+				}),
+			);
 			gestureBounds = selectionBounds(gestureBoxes);
 			gestureAllowedIds = new Set(
 				interactableIds(

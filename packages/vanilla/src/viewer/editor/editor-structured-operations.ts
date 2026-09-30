@@ -5,7 +5,7 @@ import { withCellText } from 'pptx-viewer-shared';
 import type { Store, ViewerState } from '../state';
 import {
 	findActiveElement,
-	getActiveElements,
+	mapActiveElement,
 	replaceActiveElements,
 } from './editor-active-elements';
 
@@ -43,8 +43,8 @@ export function createStructuredEditorOperations(deps: {
 			deps.store.set(
 				replaceActiveElements(
 					state,
-					getActiveElements(state).map((element) =>
-						element.id === id && element.type === 'table'
+					mapActiveElement(state, id, (element) =>
+						element.type === 'table'
 							? { ...element, tableData: { ...element.tableData!, rows } }
 							: element,
 					),
@@ -66,8 +66,8 @@ export function createStructuredEditorOperations(deps: {
 			deps.store.set(
 				replaceActiveElements(
 					state,
-					getActiveElements(state).map((element) =>
-						element.id === id && hasTextProperties(element)
+					mapActiveElement(state, id, (element) =>
+						hasTextProperties(element)
 							? ({
 									...element,
 									textSegments: element.textSegments?.map((segment) => {

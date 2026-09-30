@@ -10,7 +10,7 @@ import type { Store, ViewerState } from '../state';
 import type { ViewerChrome } from '../ui';
 import { combineCommentMentionAuthors } from '../ui/comment-mention-typeahead';
 import type { LayoutOption } from '../ui/ribbon/ribbon-types';
-import { getActiveElements } from './editor-active-elements';
+import { findActiveElement } from './editor-active-elements';
 import { currentRecentColors } from './editor-recent-colors';
 import { buildInspectorState } from './inspector-state-builder';
 
@@ -21,17 +21,16 @@ import { buildInspectorState } from './inspector-state-builder';
  * enforce on the commands themselves.
  */
 function resolveSelectionGroupable(state: ViewerState): boolean {
-	const active = getActiveElements(state);
 	return state.selectedElementIds.every((id) =>
-		canInteractWithElement(active.find((element) => element.id === id) ?? null, 'group'),
+		canInteractWithElement(findActiveElement(state, id) ?? null, 'group'),
 	);
 }
 
 /** The selected elements in selection order (Merge Shapes keeps the first one's format). */
 function selectedElements(state: ViewerState): PptxElement[] {
-	const active = getActiveElements(state);
+	// A group member (selected inside its group) resolves in slide space.
 	return state.selectedElementIds
-		.map((id) => active.find((element) => element.id === id))
+		.map((id) => findActiveElement(state, id))
 		.filter((element): element is PptxElement => element !== undefined);
 }
 

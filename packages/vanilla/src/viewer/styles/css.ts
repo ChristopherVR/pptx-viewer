@@ -479,6 +479,18 @@ const CHROME_CSS = `
 	pointer-events: none;
 	transform-origin: center;
 }
+/* The group a selected member sits in (selecting inside a group): a quiet
+   dashed frame, like PowerPoint's, that never takes the pointer. */
+.pptxv-group-frame {
+	position: absolute;
+	box-sizing: border-box;
+	border: 1px dashed var(--pptx-ring);
+	opacity: 0.7;
+	pointer-events: none;
+}
+.pptxv-group-frame[hidden] {
+	display: none;
+}
 .pptxv-sel-handle {
 	--pptx-handle-hit-inset: 0px;
 	position: absolute;

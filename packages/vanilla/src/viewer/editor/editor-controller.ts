@@ -20,6 +20,7 @@ import {
 	mapCustomizedEditorKey,
 	mapInlineTextFormatKey,
 	moveGuide,
+	parentSelection,
 	removeGuide,
 	savedPresentationFileName,
 } from 'pptx-viewer-shared';
@@ -42,8 +43,14 @@ import { createConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import type { ConnectorEndpointOverlay } from './connector-endpoint-overlay';
 import { createCropModeController } from './crop-mode-controller';
 import { createEditingChromeSync } from './editing-chrome-sync';
-import { getActiveElements, replaceActiveElements } from './editor-active-elements';
-import { selectionOverlayBox } from './editor-controller-overlay';
+import {
+	findActiveElement,
+	findActiveElementsByIds,
+	getActiveElements,
+	mapActiveElement,
+	replaceActiveElements,
+} from './editor-active-elements';
+import { enteredGroupBox, selectionOverlayBox } from './editor-controller-overlay';
 import { createDrawModeController } from './editor-draw-mode';
 import type { EditActions } from './editor-edit-ops';
 import { createEditActions } from './editor-edit-ops';
@@ -198,16 +205,15 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	/** Shared by the `hyperlink` keyboard action and the public `applyElementPatch`. */
 	const applyElementPatch = (id: string, patch: Partial<PptxElement>): void => {
 		const state = store.get();
-		if (!state.editable || !getActiveElements(state).some((element) => element.id === id)) {
+		// A group member (selected inside its group) is patched in place in its group.
+		if (!state.editable || !findActiveElement(state, id)) {
 			return;
 		}
 		ops.pushHistory();
 		store.set(
 			replaceActiveElements(
 				state,
-				getActiveElements(state).map((element) =>
-					element.id === id ? ({ ...element, ...patch } as PptxElement) : element,
-				),
+				mapActiveElement(state, id, (element) => ({ ...element, ...patch }) as PptxElement),
 			),
 		);
 		ops.commitChange();
@@ -216,7 +222,9 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 	/** Ctrl+K: open the hyperlink dialog for the currently selected element. */
 	const openHyperlinkForSelection = (): void => {
 		const state = store.get();
-		const element = getActiveElements(state).find((el) => el.id === state.selectedElementId);
+		const element = state.selectedElementId
+			? findActiveElement(state, state.selectedElementId)
+			: undefined;
 		if (!element) {
 			return;
 		}
@@ -421,16 +429,19 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		}
 		const state = store.get();
 		// Crop mode replaces the selection chrome with its own crop handles.
-		const selected =
-			state.editable && !state.presenting && !state.cropSession
-				? getActiveElements(state).filter(
-						(element) =>
-							state.selectedElementIds.includes(element.id) &&
-							// A shape in Edit Points mode shows its vertices, not its box.
-							!outlineAuthoring.isEditingPoints(element.id),
-					)
-				: [];
+		const chromeShown = state.editable && !state.presenting && !state.cropSession;
+		const selected = chromeShown
+			? // A group member selected inside its group resolves in slide space.
+				findActiveElementsByIds(state, state.selectedElementIds).filter(
+					// A shape in Edit Points mode shows its vertices, not its box.
+					(element) => !outlineAuthoring.isEditingPoints(element.id),
+				)
+			: [];
 		overlay.setBox(selectionOverlayBox(selected), deps.getScale());
+		overlay.setGroupFrame(
+			chromeShown ? enteredGroupBox(getActiveElements(state), state.selectedElementIds) : null,
+			deps.getScale(),
+		);
 		// The chrome must only offer what the selection's `a:spLocks` allow: a
 		// `noResize` shape shows no resize handles, a `noRotation` one no knob.
 		const allowed = selectionInteractivity(state);
@@ -473,6 +484,17 @@ export function createEditorController(deps: EditorControllerDeps): EditorContro
 		},
 		getSelectedId: () => store.get().selectedElementId,
 		deselect: () => ops.select(null),
+		// A member selected inside a group steps back out to its group first.
+		selectParent: () => {
+			const state = store.get();
+			const parent = state.selectedElementId
+				? parentSelection(getActiveElements(state), state.selectedElementId)
+				: null;
+			if (parent) {
+				ops.select(parent);
+			}
+			return parent !== null;
+		},
 		deleteSelected: () => ops.deleteSelected(),
 		duplicateSelected: () => void ops.duplicateSelected(),
 		copySelected: () => editActions.copy(),

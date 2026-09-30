@@ -1,7 +1,17 @@
-import { isAdditiveSelectionPress } from 'pptx-viewer-shared';
+import {
+	drillSelectionForClick,
+	drillSelectionForDoubleClick,
+	findElementPath,
+	isAdditiveSelectionPress,
+	isEnterableGroup,
+	isGroupMember,
+	memberChainAtPoint,
+	setPendingCaretPoint,
+} from 'pptx-viewer-shared';
 import type { PendingInlineTextEdit } from 'pptx-viewer-shared';
 
-import { findActiveElement } from './editor-active-elements';
+import type { ViewerState } from '../state';
+import { findActiveElement, getActiveElements } from './editor-active-elements';
 import {
 	canBeginMoveGesture,
 	isElementIdSelectable,
@@ -55,6 +65,66 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 
 	const stagePoint = (event: PointerEvent) =>
 		resolveStagePoint(deps.getOverlay()?.root, deps.getScale(), event);
+
+	/**
+	 * The ids under the pointer inside the top-level group `id`, innermost first
+	 * and `id` last (shared `memberChainAtPoint`: geometric, since grouped
+	 * children never receive the pointer). Null when `id` isn't an enterable
+	 * group (rotated, flipped, not a group), which then selects as one.
+	 */
+	const drillChain = (state: ViewerState, id: string, event: MouseEvent): string[] | null => {
+		const elements = getActiveElements(state);
+		const top = elements.find((element) => element.id === id);
+		const point = stagePoint(event as PointerEvent);
+		return top && point && isEnterableGroup(top) ? memberChainAtPoint(elements, id, point) : null;
+	};
+
+	/**
+	 * What a press on the top-level element `id` selects, PowerPoint-style: a
+	 * group first, then (once it is selected) the member under the pointer, and
+	 * another member of the entered group moves the selection to it.
+	 */
+	const resolvePressTarget = (state: ViewerState, id: string, event: PointerEvent): string => {
+		const chain = drillChain(state, id, event);
+		if (!chain) {
+			return id;
+		}
+		const selectedPath = state.selectedElementId
+			? findElementPath(getActiveElements(state), state.selectedElementId)
+			: null;
+		return drillSelectionForClick(chain, selectedPath) ?? id;
+	};
+
+	/**
+	 * A press on the already-selected group member: when it is released without
+	 * dragging, its text opens for editing with the caret where the click
+	 * landed (PowerPoint's second click into a card's title).
+	 */
+	let pendingMemberEdit: { id: string; clientX: number; clientY: number } | null = null;
+	const CLICK_SLOP_PX = 4;
+	// On the window, armed AFTER the move gesture's own pointerup listener, so the
+	// gesture has closed (a plain tap commits nothing) before the editor opens.
+	const pointerWindow = (): Window | null => doc.defaultView;
+	const onPendingMemberEditUp = (event: PointerEvent): void => {
+		pointerWindow()?.removeEventListener('pointerup', onPendingMemberEditUp);
+		const pending = pendingMemberEdit;
+		pendingMemberEdit = null;
+		if (
+			!pending ||
+			Math.abs(event.clientX - pending.clientX) > CLICK_SLOP_PX ||
+			Math.abs(event.clientY - pending.clientY) > CLICK_SLOP_PX ||
+			store.get().selectedElementId !== pending.id
+		) {
+			return;
+		}
+		enterInlineEdit(pending.id, event);
+	};
+	const armPendingMemberEdit = (id: string, event: PointerEvent): void => {
+		pendingMemberEdit = { id, clientX: event.clientX, clientY: event.clientY };
+		const win = pointerWindow();
+		win?.removeEventListener('pointerup', onPendingMemberEditUp);
+		win?.addEventListener('pointerup', onPendingMemberEditUp);
+	};
 	const marquee = createMarqueeController({
 		doc,
 		store,
@@ -103,7 +173,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 		findStageElementNode(id)?.classList.toggle('pptxv-inline-editing-source', suppressed);
 	};
 
-	const enterInlineEdit = (id: string): void => {
+	/** `caret`: the click that opens the editor, where its caret goes (else at the end). */
+	const enterInlineEdit = (id: string, caret?: { clientX: number; clientY: number }): void => {
 		const state = store.get();
 		const el = findActiveElement(state, id);
 		const overlay = deps.getOverlay();
@@ -111,6 +182,7 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			return;
 		}
 		ops.select(id);
+		setPendingCaretPoint(caret ?? null);
 		overlay.setEditing(true);
 		setStaticTextSuppressed(id, true);
 		inlineTarget = inlineTextEditTarget(state);
@@ -166,8 +238,16 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			tableInline = structured.tableSession;
 			return;
 		}
-		if (id && isElementIdSelectable(state, id)) {
-			enterInlineEdit(id);
+		// A double-click on a group goes straight to the innermost shape under the
+		// pointer, so its text can be edited without ungrouping (PowerPoint).
+		const chain = id ? drillChain(state, id, event) : null;
+		const target = (chain ? drillSelectionForDoubleClick(chain) : null) ?? id;
+		if (target && isElementIdSelectable(state, target)) {
+			if (target !== id) {
+				ops.select(target);
+			}
+			// Caret at the END, as for any double-click (typing appends).
+			enterInlineEdit(target);
 		}
 	};
 
@@ -236,15 +316,30 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 				ops.select(ids.at(-1) ?? null, ids);
 				return;
 			}
-			if (state.selectedElementId !== id || state.selectedElementIds.length !== 1) {
-				ops.select(id, [id]);
+			// A press on a group selects the group, then the member under the pointer
+			// (shared `group-drill`); `id` stays the top-level hit.
+			const target = resolvePressTarget(state, id, event);
+			if (!isElementIdSelectable(state, target)) {
+				return;
+			}
+			// A click (no drag) on the member that is already selected edits its text.
+			const editOnRelease =
+				state.selectedElementId === target &&
+				state.selectedElementIds.length === 1 &&
+				isGroupMember(getActiveElements(state), target) &&
+				canInlineEditElement(findActiveElement(state, target));
+			if (state.selectedElementId !== target || state.selectedElementIds.length !== 1) {
+				ops.select(target, [target]);
 			}
 			// A `noMove` shape stays SELECTABLE (so it can be unlocked from the
 			// inspector) but must never arm the drag.
-			if (canBeginMoveGesture(store.get(), id)) {
+			if (canBeginMoveGesture(store.get(), target)) {
 				event.preventDefault();
 				event.stopPropagation();
-				gestures.begin('move', id, event);
+				gestures.begin('move', target, event);
+			}
+			if (editOnRelease) {
+				armPendingMemberEdit(target, event);
 			}
 		},
 		onStagePointerMove(event) {
@@ -293,6 +388,8 @@ export function createStageInteractions(deps: StageInteractionsDeps): StageInter
 			gestures.isActive() || adjustGesture.isActive() || marquee.isActive(),
 		inlineActive: () => inline !== null || tableInline !== null,
 		dispose() {
+			pointerWindow()?.removeEventListener('pointerup', onPendingMemberEditUp);
+			pendingMemberEdit = null;
 			closeInline(false);
 			disposeTableTouch();
 			gestures.dispose();
