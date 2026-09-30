@@ -1,60 +1,37 @@
 <script setup lang="ts">
-/**
- * HelpSection: the Help ribbon tab (Settings + Keyboard Shortcuts +
- * Accessibility Check). Extracted from `RibbonToolbar.vue`'s inline
- * `<template>` to keep that file under the repo's ~300 LOC convention and match
- * the one-component-per-tab pattern the other sections already follow.
- */
-import { isDialogAvailable } from 'pptx-viewer-shared';
+import { HELP_RIBBON_COMMANDS, isDialogAvailable } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { useResolvedCustomization } from '../../composables/useViewerCustomization';
-import { pill } from './ribbon-constants';
+import type { HelpSectionProps } from './help-section-props';
 
-interface Props {
-	/** Opens the File > Options dialog; falls back to the shortcuts sheet when unwired. */
-	onOpenSettings?: () => void;
-	onToggleShortcuts: () => void;
-	onRunAccessibilityCheck: () => void;
-}
-
-const props = defineProps<Props>();
+const props = defineProps<HelpSectionProps>();
 const { t } = useI18n();
 const customization = useResolvedCustomization();
-const optionsAvailable = computed(() => isDialogAvailable(customization.value, 'options'));
+const commands = computed(() =>
+	HELP_RIBBON_COMMANDS.filter(
+		(command) =>
+			command.id !== 'help.help.options' || isDialogAvailable(customization.value, 'options'),
+	),
+);
+const actions = computed(() => ({
+	'help.help.options': props.onOpenSettings ?? props.onToggleShortcuts,
+	'help.help.keyboardShortcuts': props.onToggleShortcuts,
+	'help.help.accessibility': props.onRunAccessibilityCheck,
+}));
 </script>
 
 <template>
-	<button
-		v-if="optionsAvailable"
-		type="button"
-		data-ribbon-group="help.help"
-		data-ribbon-control="help.help.options"
-		:class="pill"
-		:title="t('pptx.settings.title')"
-		@click="(props.onOpenSettings ?? props.onToggleShortcuts)()"
-	>
-		{{ t('pptx.settings.title') }}
-	</button>
-	<button
-		type="button"
-		data-ribbon-group="help.help"
-		data-ribbon-control="help.help.keyboardShortcuts"
-		:class="pill"
-		:title="t('pptx.settings.keyboardShortcuts')"
-		@click="props.onToggleShortcuts()"
-	>
-		{{ t('pptx.settings.keyboardShortcuts') }}
-	</button>
-	<button
-		type="button"
-		data-ribbon-group="help.help"
-		data-ribbon-control="help.help.accessibility"
-		:class="pill"
-		:title="t('pptx.ribbon.accessibilityCheck')"
-		@click="props.onRunAccessibilityCheck()"
-	>
-		{{ t('pptx.ribbon.accessibilityCheck') }}
-	</button>
+	<pptx-ui-ribbon-group :label="t('pptx.ribbon.tab.help')" data-ribbon-group="help.help">
+		<pptx-ui-ribbon-command
+			v-for="command in commands"
+			:key="command.id"
+			:data-ribbon-control="command.id"
+			:label="t(command.labelKey)"
+			:icon="command.icon"
+			compact
+			@command-request="actions[command.id as keyof typeof actions]()"
+		></pptx-ui-ribbon-command>
+	</pptx-ui-ribbon-group>
 </template>

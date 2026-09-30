@@ -16,15 +16,7 @@
  * the public `<pptx-ribbon>` API (and `PowerPointViewerComponent`'s bindings
  * to it) unchanged.
  */
-import {
-	ChangeDetectionStrategy,
-	Component,
-	computed,
-	inject,
-	input,
-	output,
-	signal,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -35,13 +27,13 @@ import { isContextualRibbonTab } from './ribbon-contextual-tabs';
 import { RibbonDesignSectionComponent } from './ribbon-design-section.component';
 import type { DrawTool, DrawToolState } from './ribbon-draw-section.component';
 import { RibbonDrawSectionComponent } from './ribbon-draw-section.component';
+import { RibbonHelpSectionComponent } from './ribbon-help-section.component';
 import { RibbonRecordSectionComponent } from './ribbon-record-section.component';
 import { RibbonReviewSectionComponent } from './ribbon-review-section.component';
 import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.component';
 import { RibbonTransitionsSectionComponent } from './ribbon-transitions-section.component';
 import type { RibbonTab } from './ribbon-types';
 import { RibbonViewSectionComponent } from './ribbon-view-section.component';
-import { ViewerCustomizationService } from './viewer-customization.service';
 
 @Component({
 	selector: 'pptx-ribbon-content-secondary',
@@ -58,6 +50,7 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 		RibbonTransitionsSectionComponent,
 		RibbonAnimationsSectionComponent,
 		RibbonRecordSectionComponent,
+		RibbonHelpSectionComponent,
 		RibbonContextualSectionComponent,
 	],
 	template: `
@@ -154,34 +147,11 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 				/>
 			}
 			@case ('help') {
-				<span class="contents" data-ribbon-group="help.help">
-					@if (customization?.dialogAvailable('options') !== false) {
-						<button
-							type="button"
-							class="pptx-rb-pill"
-							data-ribbon-control="help.help.options"
-							(click)="openSettings.emit()"
-						>
-							{{ 'pptx.settings.title' | translate }}
-						</button>
-					}
-					<button
-						type="button"
-						class="pptx-rb-pill"
-						data-ribbon-control="help.help.keyboardShortcuts"
-						(click)="openShortcuts.emit()"
-					>
-						{{ 'pptx.settings.keyboardShortcuts' | translate }}
-					</button>
-					<button
-						type="button"
-						class="pptx-rb-pill"
-						data-ribbon-control="help.help.accessibility"
-						(click)="a11y.emit()"
-					>
-						{{ 'pptx.ribbon.accessibilityCheck' | translate }}
-					</button>
-				</span>
+				<pptx-ribbon-help-section
+					(openSettings)="openSettings.emit()"
+					(openShortcuts)="openShortcuts.emit()"
+					(a11y)="a11y.emit()"
+				/>
 			}
 			@case ('record') {
 				<pptx-ribbon-record-section
@@ -203,8 +173,6 @@ import { ViewerCustomizationService } from './viewer-customization.service';
 	`,
 })
 export class RibbonContentSecondaryComponent {
-	/** Host UI customisation (optional: absent outside a viewer). */
-	protected readonly customization = inject(ViewerCustomizationService, { optional: true });
 	readonly activeTab = input.required<RibbonTab>();
 	/** The active tab when it is a contextual one (Shape Format, ...), else null. */
 	protected readonly contextualTab = computed(() => {

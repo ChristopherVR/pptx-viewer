@@ -12,4 +12,6 @@ export const RIBBON_ICON_PATHS: Readonly<Record<string, string>> = {
 	clock: 'M3 10a7 7 0 1 0 14 0 7 7 0 1 0-14 0M10 6v4l3 2',
 	record: 'M5 10a5 5 0 1 0 10 0 5 5 0 1 0-10 0',
 	captions: 'M2 4h16v12H2ZM5 9h4M11 9h4M5 12h3M10 12h5',
+	keyboard: 'M2 5h16v10H2ZM5 8h1M9 8h1M13 8h1M5 11h1M9 11h5',
+	accessibility: 'M8 3a2 2 0 1 0 4 0 2 2 0 1 0-4 0M3 7l7 2 7-2M10 9v4M10 13l-4 5M10 13l4 5',
 };

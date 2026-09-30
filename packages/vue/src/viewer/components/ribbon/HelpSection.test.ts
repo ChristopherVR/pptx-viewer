@@ -1,6 +1,9 @@
 import { mount } from '@vue/test-utils';
+import { resolveCustomization } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
+import { shallowRef } from 'vue';
 
+import { ViewerCustomizationKey } from '../../composables/useViewerCustomization';
 import HelpSection from './HelpSection.vue';
 
 /**
@@ -12,11 +15,38 @@ import HelpSection from './HelpSection.vue';
  * not.
  */
 describe('helpSection', () => {
+	it('reacts to host dialog availability and updated command callbacks', async () => {
+		const old = vi.fn();
+		const next = vi.fn();
+		const shortcuts = vi.fn();
+		const accessibility = vi.fn();
+		const customization = shallowRef(resolveCustomization({ hiddenDialogs: ['options'] }));
+		const wrapper = mount(HelpSection, {
+			props: {
+				onOpenSettings: old,
+				onToggleShortcuts: shortcuts,
+				onRunAccessibilityCheck: accessibility,
+			},
+			global: { provide: { [ViewerCustomizationKey as symbol]: customization } },
+		});
+		expect(wrapper.find('[data-ribbon-control="help.help.options"]').exists()).toBeFalsy();
+		customization.value = resolveCustomization({});
+		await wrapper.setProps({ onOpenSettings: next });
+		for (const command of wrapper.findAll('pptx-ui-ribbon-command')) {
+			(command.element as HTMLElement).shadowRoot!.querySelector('button')!.click();
+		}
+		expect(old).not.toHaveBeenCalled();
+		expect(next).toHaveBeenCalledOnce();
+		expect(shortcuts).toHaveBeenCalledOnce();
+		expect(accessibility).toHaveBeenCalledOnce();
+		wrapper.unmount();
+	});
+
 	it('offers Settings alongside Keyboard Shortcuts and Accessibility Check', () => {
 		const wrapper = mount(HelpSection, {
 			props: { onToggleShortcuts: () => {}, onRunAccessibilityCheck: () => {} },
 		});
-		const labels = wrapper.findAll('button').map((b) => b.text());
+		const labels = wrapper.findAll('pptx-ui-ribbon-command').map((b) => b.attributes('label'));
 		expect(labels).toStrictEqual(['Settings', 'Keyboard Shortcuts', 'Accessibility Check']);
 	});
 
@@ -26,7 +56,9 @@ describe('helpSection', () => {
 		const wrapper = mount(HelpSection, {
 			props: { onOpenSettings, onToggleShortcuts, onRunAccessibilityCheck: () => {} },
 		});
-		await wrapper.findAll('button')[0].trigger('click');
+		(wrapper.findAll('pptx-ui-ribbon-command')[0].element as HTMLElement)
+			.shadowRoot!.querySelector('button')!
+			.click();
 		expect(onOpenSettings).toHaveBeenCalledOnce();
 		expect(onToggleShortcuts).not.toHaveBeenCalled();
 	});
@@ -36,7 +68,9 @@ describe('helpSection', () => {
 		const wrapper = mount(HelpSection, {
 			props: { onToggleShortcuts, onRunAccessibilityCheck: () => {} },
 		});
-		await wrapper.findAll('button')[0].trigger('click');
+		(wrapper.findAll('pptx-ui-ribbon-command')[0].element as HTMLElement)
+			.shadowRoot!.querySelector('button')!
+			.click();
 		expect(onToggleShortcuts).toHaveBeenCalledOnce();
 	});
 });
