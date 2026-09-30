@@ -12,80 +12,80 @@
  * {@link LoadContentService}, which owns the deck's presentation properties.
  */
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 import { describe, expect, it } from 'vitest';
 
-import type { SlideShowOptionId } from '../internal/shared';
-import { SLIDE_SHOW_OPTIONS } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 import { RibbonSlideshowSectionComponent } from './ribbon-slideshow-section.component';
 
 /** The protected surface the template binds to. */
 interface OptionControls {
-	isOptionChecked: (id: SlideShowOptionId) => boolean;
-	onOptionChange: (id: SlideShowOptionId, event: Event) => void;
-	primaryOptions: readonly { id: SlideShowOptionId; unsupported: boolean }[];
-	secondaryOptions: readonly { id: SlideShowOptionId; unsupported: boolean }[];
+	onOptionsChange: (event: Event) => void;
+	optionLabels: () => Record<string, string>;
+	onCommand: (event: Event) => void;
 }
 
-function harness(): { loader: LoadContentService; controls: OptionControls } {
+function harness(): {
+	loader: LoadContentService;
+	controls: OptionControls;
+	section: RibbonSlideshowSectionComponent;
+} {
 	const destroyRefStub: Pick<DestroyRef, 'onDestroy'> = { onDestroy: () => () => {} };
 	const injector = Injector.create({
-		providers: [{ provide: DestroyRef, useValue: destroyRefStub }, LoadContentService],
+		providers: [
+			{ provide: DestroyRef, useValue: destroyRefStub },
+			LoadContentService,
+			{ provide: TranslateService, useValue: { instant: (key: string) => key } },
+		],
 	});
 	const loader = injector.get(LoadContentService);
 	const section = runInInjectionContext(injector, () => new RibbonSlideshowSectionComponent());
-	return { loader, controls: section as unknown as OptionControls };
+	return { loader, controls: section as unknown as OptionControls, section };
 }
 
-function tick(checked: boolean): Event {
-	return { target: { checked } as HTMLInputElement } as unknown as Event;
-}
-
-describe('slide show ribbon options', () => {
-	it('renders the shared option set, in order, across the two columns', () => {
+describe('slide show ribbon options adapter', () => {
+	it('supplies translated labels for all four shared options', () => {
 		const { controls } = harness();
-
-		expect(
-			[...controls.primaryOptions, ...controls.secondaryOptions].map((o) => o.id),
-		).toStrictEqual(SLIDE_SHOW_OPTIONS.map((o) => o.id));
+		expect(Object.keys(controls.optionLabels())).toStrictEqual([
+			'keepUpdated',
+			'useTimings',
+			'playNarrations',
+			'mediaControls',
+		]);
 	});
 
-	it('unticking Use Timings puts the deck into manual advance', () => {
-		const { loader, controls } = harness();
-		expect(controls.isOptionChecked('useTimings')).toBeTruthy();
-
-		controls.onOptionChange('useTimings', tick(false));
-
-		expect(loader.presentationProperties().advanceMode).toBe('manual');
-		expect(controls.isOptionChecked('useTimings')).toBeFalsy();
-
-		controls.onOptionChange('useTimings', tick(true));
-		expect(loader.presentationProperties().advanceMode).toBe('useTimings');
-	});
-
-	it('commits the narration flag and leaves the rest of the properties alone', () => {
+	it('merges a shared options intent into the current presentation properties', () => {
 		const { loader, controls } = harness();
 		loader.presentationProperties.set({ loopContinuously: true });
-
-		controls.onOptionChange('playNarrations', tick(false));
-
+		controls.onOptionsChange({ detail: { advanceMode: 'manual' } } as unknown as Event);
+		controls.onOptionsChange({ detail: { showWithNarration: false } } as unknown as Event);
 		expect(loader.presentationProperties()).toStrictEqual({
 			loopContinuously: true,
+			advanceMode: 'manual',
 			showWithNarration: false,
 		});
-		expect(controls.isOptionChecked('playNarrations')).toBeFalsy();
 	});
 
-	it('leaves the unsupported options unchecked, disabled and inert', () => {
-		const { loader, controls } = harness();
-		const unsupported = SLIDE_SHOW_OPTIONS.filter((option) => option.unsupported).map((o) => o.id);
-		expect(unsupported).toStrictEqual(['keepUpdated', 'mediaControls']);
-
-		for (const id of unsupported) {
-			expect(controls.isOptionChecked(id)).toBeFalsy();
-			controls.onOptionChange(id, tick(true));
-		}
-
-		expect(loader.presentationProperties()).toStrictEqual({});
+	it('routes command intents to distinct output boundaries', () => {
+		const { controls, section } = harness();
+		let beginning = 0;
+		let current = 0;
+		const subscriptions = [
+			section.presentFromBeginning.subscribe(() => {
+				beginning += 1;
+			}),
+			section.presentFromCurrent.subscribe(() => {
+				current += 1;
+			}),
+		];
+		controls.onCommand({
+			detail: { id: 'slideShow.startSlideShow.fromBeginning' },
+		} as unknown as Event);
+		controls.onCommand({
+			detail: { id: 'slideShow.startSlideShow.fromCurrent' },
+		} as unknown as Event);
+		expect(beginning).toBe(1);
+		expect(current).toBe(1);
+		subscriptions.forEach((subscription) => subscription.unsubscribe());
 	});
 });

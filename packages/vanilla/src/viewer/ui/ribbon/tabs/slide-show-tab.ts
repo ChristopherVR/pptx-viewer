@@ -1,15 +1,15 @@
-import type { SlideShowOptionDescriptor, ToolbarActionId } from 'pptx-viewer-shared';
-import {
-	isActionHidden,
-	readSlideShowOption,
-	slideShowOptionChange,
-	SLIDE_SHOW_OPTIONS,
+import type {
+	PptxUiSlideShowOptionsElement,
+	RibbonCommandRequestEvent,
+	RibbonControlId,
+	SlideShowOptionsChangeEvent,
+	ToolbarActionId,
 } from 'pptx-viewer-shared';
+import { isActionHidden, SLIDE_SHOW_COMMAND_GROUPS, SLIDE_SHOW_OPTIONS } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
-import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
+import { wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonSlideShowHandlers } from '../ribbon-types';
 
 export interface SlideShowTab {
@@ -21,63 +21,7 @@ export interface SlideShowTab {
 	syncOptions(): void;
 }
 
-/** One Options checkbox plus the shared descriptor that decided how it behaves. */
-interface OptionToggle {
-	el: HTMLLabelElement;
-	descriptor: SlideShowOptionDescriptor;
-	input: HTMLInputElement;
-}
-
-/**
- * A show option rendered as a labelled checkbox, mirroring React's
- * `RibbonToggle`.
- *
- * The shared `SLIDE_SHOW_OPTIONS` descriptor decides everything: an
- * `unsupported` entry (Keep Slides Updated, Show Media Controls) renders
- * disabled and unchecked because no binding has any state behind it, and the
- * other two read and write the deck's real `p:showPr` flags. These checkboxes
- * previously had no change listener at all, so all four were inert and "Use
- * Timings" claimed to be on whether or not the deck said so.
- */
-function optionToggle(
-	doc: Document,
-	t: Translator,
-	descriptor: SlideShowOptionDescriptor,
-	handlers: Pick<RibbonSlideShowHandlers, 'showOptions' | 'updateShowOptions'>,
-): OptionToggle {
-	const label = t(descriptor.labelKey);
-	const el = createEl(doc, 'label', 'pptxv-show-option');
-	const input = doc.createElement('input');
-	input.type = 'checkbox';
-	input.disabled = descriptor.unsupported;
-	input.setAttribute('aria-label', label);
-	if (!descriptor.unsupported) {
-		input.addEventListener('change', () => {
-			const change = slideShowOptionChange(descriptor.id, input.checked);
-			if (change) {
-				handlers.updateShowOptions(change);
-			}
-		});
-	}
-	el.append(input, doc.createTextNode(label));
-	return { el, descriptor, input };
-}
-
-/**
- * The Slide Show ribbon tab: Start, Present, Set Up and Options, matching
- * React's `SlideShowSection`.
- *
- * The commands with no implementation in any binding (Rehearse with Coach, and
- * the two Options entries the shared descriptor list marks `unsupported`) ship
- * disabled rather than absent, so the tab reads the same everywhere and a user
- * is never told a feature is missing in one binding only. The Options cluster
- * itself is rendered from the shared `SLIDE_SHOW_OPTIONS` and reads/writes the
- * deck's real show settings, so unticking Use Timings actually stops the
- * auto-advance (`presentation-auto-advance.ts` reads `advanceMode`).
- * Custom Shows is the one deliberate divergence: React
- * disables it, this binding has a working dialog for it, and disabling a
- * feature that works to match a placeholder would be the wrong trade.
- */
+/** DOM adapter: shared components own ribbon layout and activation. */
 export function createSlideShowTab(
 	doc: Document,
 	t: Translator,
@@ -85,140 +29,82 @@ export function createSlideShowTab(
 	hiddenActions?: readonly ToolbarActionId[],
 ): SlideShowTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
-	const fromBeginning = makeButton(doc, {
-		label: t('pptx.slideShow.fromBeginning'),
-		text: t('pptx.slideShow.fromBeginning'),
-		icon: 'play',
-		onClick: handlers.startFromBeginning,
-	});
-	fromBeginning.btn.title = t('pptx.slideShow.fromBeginningTooltip');
-	const fromCurrent = makeButton(doc, {
-		label: t('pptx.slideShow.fromCurrent'),
-		text: t('pptx.slideShow.fromCurrent'),
-		icon: 'presentation',
-		onClick: handlers.startFromCurrent,
-	});
-	fromCurrent.btn.title = t('pptx.slideShow.fromCurrentTooltip');
-	const presenter = makeButton(doc, {
-		label: t('pptx.slideShow.presenterView'),
-		text: t('pptx.slideShow.presenterView'),
-		icon: 'presentation',
-		onClick: handlers.openPresenterView,
-	});
-	presenter.btn.title = t('pptx.slideShow.presenterViewTooltip');
-	const customShow = makeButton(doc, {
-		label: t('pptx.slideShow.customShow'),
-		text: t('pptx.customShows.title'),
-		onClick: handlers.openCustomShows,
-	});
-	const broadcast = isActionHidden('broadcast', hiddenActions)
-		? null
-		: makeButton(doc, {
-				label: t('pptx.slideShow.broadcast'),
-				text: t('pptx.slideShow.broadcast'),
-				icon: 'broadcast',
-				onClick: handlers.openBroadcast,
-			});
-	if (broadcast) {
-		tagRibbonControl(broadcast.btn, 'slideShow.present.broadcast');
-		broadcast.btn.title = t('pptx.slideShow.broadcastTooltip');
-	}
-	const rehearseCoach = makeButton(doc, {
-		label: t('pptx.slideShow.rehearseCoach'),
-		text: t('pptx.slideShow.rehearseCoach'),
-		onClick: () => {},
-	});
-	rehearseCoach.setDisabled(true);
-	const setUp = makeButton(doc, {
-		label: t('pptx.slideShow.setUp'),
-		text: t('pptx.slideShow.setUp'),
-		onClick: handlers.openSetUp,
-	});
-	setUp.btn.title = t('pptx.slideShow.setUpTooltip');
-	// PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
-	// leaving it in the deck, the thumbnail rail and the sorter.
-	const hideSlide = makeButton(doc, {
-		label: t('pptx.slideShow.hideSlide'),
-		text: t('pptx.slideShow.hideSlide'),
-		onClick: () => handlers.toggleHideSlide(),
-	});
-	hideSlide.btn.setAttribute('aria-pressed', 'false');
-	const rehearse = makeButton(doc, {
-		label: t('pptx.slideShow.rehearseTimings'),
-		text: t('pptx.slideShow.rehearseTimings'),
-		onClick: handlers.startRehearsal,
-	});
-	rehearse.btn.title = t('pptx.slideShow.rehearseTimingsTooltip');
-	const record = makeButton(doc, {
-		label: t('pptx.titleBar.record'),
-		text: t('pptx.titleBar.record'),
-		onClick: handlers.startRehearsal,
-	});
-	const subtitles = makeButton(doc, {
-		label: t('pptx.slideShow.subtitles'),
-		text: t('pptx.slideShow.subtitles'),
-		onClick: handlers.toggleSubtitles,
-	});
-	subtitles.btn.title = t('pptx.slideShow.subtitlesTooltip');
-	const subtitleSettings = makeButton(doc, {
-		label: t('pptx.slideShow.subtitleSettings'),
-		text: t('pptx.slideShow.subtitleSettings'),
-		onClick: handlers.openSubtitleSettings,
-	});
-
-	const options = createEl(doc, 'div', 'pptxv-show-options');
-	const optionToggles = SLIDE_SHOW_OPTIONS.map((descriptor) =>
-		optionToggle(doc, t, descriptor, handlers),
-	);
-	options.append(...optionToggles.map((toggle) => toggle.el));
-	/** Pull the two supported flags back off the deck (shared `readSlideShowOption`). */
-	const syncOptions = (): void => {
-		const properties = handlers.showOptions();
-		for (const toggle of optionToggles) {
-			toggle.input.checked = toggle.descriptor.unsupported
-				? false
-				: readSlideShowOption(properties, toggle.descriptor.id);
-		}
+	const actions: Partial<Record<RibbonControlId, () => void>> = {
+		'slideShow.startSlideShow.fromBeginning': handlers.startFromBeginning,
+		'slideShow.startSlideShow.fromCurrent': handlers.startFromCurrent,
+		'slideShow.present.presenterView': handlers.openPresenterView,
+		'slideShow.startSlideShow.customShow': handlers.openCustomShows,
+		'slideShow.present.broadcast': handlers.openBroadcast,
+		'slideShow.setUp.setUpSlideShow': handlers.openSetUp,
+		'slideShow.setUp.hideSlide': handlers.toggleHideSlide,
+		'slideShow.setUp.rehearseTimings': handlers.startRehearsal,
+		'slideShow.setUp.record': handlers.startRehearsal,
 	};
-	syncOptions();
-
-	tagRibbonControl(fromBeginning.btn, 'slideShow.startSlideShow.fromBeginning');
-	tagRibbonControl(fromCurrent.btn, 'slideShow.startSlideShow.fromCurrent');
-	tagRibbonControl(presenter.btn, 'slideShow.present.presenterView');
-	tagRibbonControl(customShow.btn, 'slideShow.startSlideShow.customShow');
-	tagRibbonControl(rehearseCoach.btn, 'slideShow.setUp.rehearseWithCoach');
-	tagRibbonControl(setUp.btn, 'slideShow.setUp.setUpSlideShow');
-	tagRibbonControl(hideSlide.btn, 'slideShow.setUp.hideSlide');
-	tagRibbonControl(rehearse.btn, 'slideShow.setUp.rehearseTimings');
-	tagRibbonControl(record.btn, 'slideShow.setUp.record');
-	tagRibbonControl(subtitles.btn, 'slideShow.captions.subtitles');
-	tagRibbonControl(subtitleSettings.btn, 'slideShow.captions.subtitleSettings');
-	// React's order interleaves Start and Present, so those two groups each
-	// own two `display: contents` runs (the stylesheet hides every run).
-	el.append(
-		wrapRibbonGroup(doc, 'slideShow.startSlideShow', fromBeginning.btn, fromCurrent.btn),
-		wrapRibbonGroup(doc, 'slideShow.present', presenter.btn),
-		wrapRibbonGroup(doc, 'slideShow.startSlideShow', customShow.btn),
-		wrapRibbonGroup(doc, 'slideShow.present', ...(broadcast ? [broadcast.btn] : [])),
-		wrapRibbonGroup(
-			doc,
-			'slideShow.setUp',
-			rehearseCoach.btn,
-			setUp.btn,
-			hideSlide.btn,
-			rehearse.btn,
-			record.btn,
-		),
-		options,
-		wrapRibbonGroup(doc, 'slideShow.captions', subtitles.btn, subtitleSettings.btn),
+	const commands = new Map<RibbonControlId, HTMLElement>();
+	for (const descriptor of SLIDE_SHOW_COMMAND_GROUPS) {
+		const group = doc.createElement('pptx-ui-ribbon-group');
+		group.setAttribute('label', t(descriptor.labelKey));
+		group.setAttribute('data-ribbon-group', descriptor.id);
+		for (const command of descriptor.commands) {
+			if (
+				command.id === 'slideShow.present.broadcast' &&
+				isActionHidden('broadcast', hiddenActions)
+			) {
+				continue;
+			}
+			const button = doc.createElement('pptx-ui-ribbon-command');
+			button.setAttribute('data-ribbon-control', command.id);
+			button.setAttribute('label', t(command.labelKey));
+			button.setAttribute('icon', command.icon);
+			button.title = t(command.tooltipKey ?? command.labelKey);
+			button.toggleAttribute('disabled', Boolean(command.unsupported));
+			if (command.id === 'slideShow.setUp.hideSlide') {
+				button.setAttribute('pressed', 'false');
+			}
+			button.addEventListener('command-request', (event) =>
+				actions[(event as RibbonCommandRequestEvent).detail.id]?.(),
+			);
+			commands.set(command.id, button);
+			group.append(button);
+		}
+		el.append(group);
+	}
+	const optionsGroup = doc.createElement('pptx-ui-ribbon-group');
+	optionsGroup.setAttribute('label', t('pptx.slideShow.options'));
+	const options = doc.createElement('pptx-ui-slide-show-options') as PptxUiSlideShowOptionsElement;
+	options.labels = Object.fromEntries(
+		SLIDE_SHOW_OPTIONS.map((option) => [option.id, t(option.labelKey)]),
 	);
+	const syncOptions = (): void => {
+		options.presentationProperties = handlers.showOptions();
+	};
+	options.addEventListener('show-options-change', (event) => {
+		handlers.updateShowOptions((event as SlideShowOptionsChangeEvent).detail);
+		syncOptions();
+	});
+	syncOptions();
+	const subtitles = doc.createElement('pptx-ui-ribbon-toggle');
+	subtitles.setAttribute('data-ribbon-control', 'slideShow.captions.subtitles');
+	subtitles.setAttribute('label', t('pptx.slideShow.subtitles'));
+	subtitles.title = t('pptx.slideShow.subtitlesTooltip');
+	subtitles.addEventListener('toggle-request', () => handlers.toggleSubtitles());
+	const subtitleSettings = doc.createElement('pptx-ui-ribbon-command');
+	subtitleSettings.setAttribute('data-ribbon-control', 'slideShow.captions.subtitleSettings');
+	subtitleSettings.setAttribute('label', t('pptx.slideShow.subtitleSettings'));
+	subtitleSettings.setAttribute('icon', 'captions');
+	subtitleSettings.setAttribute('compact', '');
+	subtitleSettings.addEventListener('command-request', () => handlers.openSubtitleSettings());
+	options.append(wrapRibbonGroup(doc, 'slideShow.captions', subtitles, subtitleSettings));
+	optionsGroup.append(options);
+	el.append(optionsGroup);
 	return {
 		el,
 		syncOptions,
-		setSubtitlesVisible: (visible) => subtitles.setActive(visible),
+		setSubtitlesVisible: (visible) => subtitles.toggleAttribute('checked', visible),
 		setHideSlideActive: (active) => {
-			hideSlide.setActive(active);
-			hideSlide.btn.setAttribute('aria-pressed', String(active));
+			const button = commands.get('slideShow.setUp.hideSlide')!;
+			button.toggleAttribute('active', active);
+			button.setAttribute('pressed', String(active));
 		},
 	};
 }

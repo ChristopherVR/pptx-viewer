@@ -153,40 +153,25 @@ describe('createRibbon', () => {
 		const ribbon = createRibbon(document, t, handlers);
 		const tabs = ribbon.el.querySelectorAll<HTMLButtonElement>('.pptxv-ribbon-tab');
 		tabs[7].click();
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.fromBeginning')}"]`)
-			?.click();
-		Array.from(
-			ribbon.el.querySelectorAll<HTMLButtonElement>(
-				'.pptxv-ribbon-tab-content:not([hidden]) button',
-			),
-		)
-			.find((button) => button.textContent === t('pptx.slideShow.subtitles'))
-			?.click();
-		Array.from(
-			ribbon.el.querySelectorAll<HTMLButtonElement>(
-				'.pptxv-ribbon-tab-content:not([hidden]) button',
-			),
-		)
-			.find((button) => button.textContent === t('pptx.slideShow.subtitleSettings'))
-			?.click();
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.fromCurrent')}"]`)
-			?.click();
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.slideShow.broadcast')}"]`)
-			?.click();
+		const command = (id: string) =>
+			ribbon.el
+				.querySelector(`[data-ribbon-control="${id}"]`)!
+				.shadowRoot!.querySelector('button')!;
+		command('slideShow.startSlideShow.fromBeginning').click();
+		const subtitles = ribbon.el.querySelector(
+			'[data-ribbon-control="slideShow.captions.subtitles"]',
+		)!;
+		subtitles.shadowRoot!.querySelector('label')!.click();
+		command('slideShow.captions.subtitleSettings').click();
+		command('slideShow.startSlideShow.fromCurrent').click();
+		command('slideShow.present.broadcast').click();
 		expect(handlers.slideShow.startFromBeginning).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.startFromCurrent).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.openBroadcast).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.toggleSubtitles).toHaveBeenCalledOnce();
 		expect(handlers.slideShow.openSubtitleSettings).toHaveBeenCalledOnce();
 		ribbon.setSubtitlesVisible(true);
-		expect(
-			ribbon.el
-				.querySelector(`button[aria-label="${t('pptx.slideShow.subtitles')}"]`)
-				?.getAttribute('aria-pressed'),
-		).toBe('true');
+		expect(subtitles.hasAttribute('checked')).toBeTruthy();
 	});
 
 	it('opens language settings and starts recording from either record command', () => {

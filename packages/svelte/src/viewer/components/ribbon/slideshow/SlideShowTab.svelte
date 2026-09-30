@@ -1,35 +1,8 @@
 <script lang="ts">
-	/**
-	 * SlideShowTab: the ribbon's Slide Show tab, at React's `SlideShowSection`
-	 * control set (Start Slide Show / Present / Set Up / Options).
-	 *
-	 * Custom Show is a disabled placeholder here exactly as it is in React: the
-	 * working custom-show picker lives in the ribbon's always-visible primary
-	 * row (`RibbonPrimaryRow` -> `oncustomshows`), so a second live entry point
-	 * on this tab would be a duplicate rather than a feature.
-	 *
-	 * The Options checkboxes are rendered from shared's `SLIDE_SHOW_OPTIONS`
-	 * descriptors: the two with real OOXML backing (`p:showPr/@useTimings`,
-	 * `@showNarration`) read and write `editor.presentationProperties` through
-	 * the same `updatePresentationProperties` path the Set Up Slide Show dialog
-	 * uses, so unticking Use Timings really stops timed auto-advance. The other
-	 * two have no backing state anywhere and render disabled rather than
-	 * pretending to toggle something.
-	 */
-	import type { SlideShowOptionDescriptor, SlideShowOptionId } from 'pptx-viewer-shared';
-	import {
-		SLIDE_SHOW_OPTIONS,
-		readSlideShowOption,
-		slideShowOptionChange,
-	} from 'pptx-viewer-shared';
-
-	import { useTranslator } from '../../../../i18n/context';
-	import type { EditorState } from '../../../editor/editor-state.svelte';
-	import RibbonCommand from '../RibbonCommand.svelte';
-	import RibbonCommandStack from '../RibbonCommandStack.svelte';
-	import RibbonGroup from '../RibbonGroup.svelte';
-	import RibbonToggle from '../RibbonToggle.svelte';
-
+    import { SLIDE_SHOW_COMMAND_GROUPS, SLIDE_SHOW_OPTIONS } from 'pptx-viewer-shared';
+    import type { RibbonCommandRequestEvent, RibbonControlId, SlideShowOptionsChangeEvent } from 'pptx-viewer-shared';
+    import { useTranslator } from '../../../../i18n/context';
+    import type { EditorState } from '../../../editor/editor-state.svelte';
 	const {
 		editor,
 		onfrombeginning,
@@ -63,152 +36,57 @@
 		activeSlideHidden?: boolean;
 		subtitlesEnabled?: boolean;
 	} = $props();
-	const t = useTranslator();
-
-	/** PowerPoint keeps Media Controls beside Subtitles, in the second stack. */
-	const optionStacks: readonly (readonly SlideShowOptionDescriptor[])[] = [
-		SLIDE_SHOW_OPTIONS.slice(0, 3),
-		SLIDE_SHOW_OPTIONS.slice(3),
-	];
-
-	function optionChecked(option: SlideShowOptionDescriptor): boolean {
-		return readSlideShowOption(editor?.presentationProperties, option.id);
-	}
-
-	function setOption(id: SlideShowOptionId, checked: boolean): void {
-		const change = slideShowOptionChange(id, checked);
-		if (!change || !editor) {
-			return;
-		}
-		// Same commit path as SetUpSlideShowDialog's Advance Slides radios: merged
-		// onto the current properties, because the setter replaces wholesale.
-		editor.presentationMetadata.updatePresentationProperties({
-			...editor.presentationProperties,
-			...change,
-		});
-	}
+    const t = useTranslator();
+    const optionLabels = $derived(Object.fromEntries(SLIDE_SHOW_OPTIONS.map(option => [option.id, t(option.labelKey)])));
+    function commitOptions(event: Event): void {
+        if (!editor?.editable) return;
+        editor.presentationMetadata.updatePresentationProperties({ ...editor.presentationProperties, ...(event as SlideShowOptionsChangeEvent).detail });
+    }
+    function requestCommand(event: Event): void {
+        const actions: Partial<Record<RibbonControlId, (() => void) | undefined>> = {
+            'slideShow.startSlideShow.fromBeginning': onfrombeginning,
+            'slideShow.startSlideShow.fromCurrent': onfromcurrent,
+            'slideShow.present.presenterView': onpresenter,
+            'slideShow.startSlideShow.customShow': oncustomshows,
+            'slideShow.present.broadcast': onbroadcast,
+            'slideShow.setUp.setUpSlideShow': onsetup,
+            'slideShow.setUp.hideSlide': onhideslide,
+            'slideShow.setUp.rehearseTimings': onrehearse,
+            'slideShow.setUp.record': onrehearse,
+        };
+        actions[(event as RibbonCommandRequestEvent).detail.id]?.();
+    }
 </script>
 
 <div class="pptx-svelte-slideshowtab">
-	<RibbonGroup label={t('pptx.slideShow.start')} group="slideShow.startSlideShow">
-		<RibbonCommand
-			control="slideShow.startSlideShow.fromBeginning"
-			label={t('pptx.slideShow.fromBeginning')}
-			title={t('pptx.slideShow.fromBeginningTooltip')}
-			onclick={onfrombeginning}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m4 3 11 7-11 7zM16.5 3v14" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand
-			control="slideShow.startSlideShow.fromCurrent"
-			label={t('pptx.slideShow.fromCurrent')}
-			title={t('pptx.slideShow.fromCurrentTooltip')}
-			onclick={onfromcurrent}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m5 3 11 7-11 7z" /></svg>{/snippet}
-		</RibbonCommand>
-	</RibbonGroup>
-
-	<RibbonGroup label={t('pptx.slideShow.present')} group="slideShow.present">
-		<RibbonCommand
-			control="slideShow.present.presenterView"
-			label={t('pptx.slideShow.presenterView')}
-			title={t('pptx.slideShow.presenterViewTooltip')}
-			onclick={onpresenter}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="3" width="16" height="11" rx="1" /><path d="M7 18h6M10 14v4" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand
-			control="slideShow.startSlideShow.customShow"
-			label={t('pptx.slideShow.customShow')}
-			title={t('pptx.customShows.customShowTooltip')}
-			onclick={oncustomshows}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M4 4h12v12H4zM7 8h6M7 11h6" /></svg>{/snippet}
-		</RibbonCommand>
-		{#if onbroadcast}
-			<RibbonCommand
-				control="slideShow.present.broadcast"
-				label={t('pptx.slideShow.broadcast')}
-				title={t('pptx.slideShow.broadcastTooltip')}
-				onclick={onbroadcast}
-			>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="1.5" /><path d="M7 7a4.2 4.2 0 0 0 0 6M13 7a4.2 4.2 0 0 1 0 6M4.5 4.5a7.8 7.8 0 0 0 0 11M15.5 4.5a7.8 7.8 0 0 1 0 11" /></svg>{/snippet}
-			</RibbonCommand>
-		{/if}
-	</RibbonGroup>
-
-	<RibbonGroup label={t('pptx.slideShow.setUpGroup')} group="slideShow.setUp">
-		<RibbonCommand control="slideShow.setUp.rehearseWithCoach" label={t('pptx.slideShow.rehearseCoach')} disabled>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="5" width="11" height="10" rx="2" /><path d="m13 10 5-3v6z" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand
-			control="slideShow.setUp.setUpSlideShow"
-			label={t('pptx.slideShow.setUp')}
-			title={t('pptx.slideShow.setUpTooltip')}
-			onclick={onsetup}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 5h14M6 10h8M8 15h4M6 3v4M12 8v4M10 13v4" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand
-			control="slideShow.setUp.hideSlide"
-			label={t('pptx.slideShow.hideSlide')}
-			active={activeSlideHidden}
-			onclick={onhideslide}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 10S5.5 5 10 5s7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" /><path d="m4 4 12 12" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand
-			control="slideShow.setUp.rehearseTimings"
-			label={t('pptx.slideShow.rehearseTimings')}
-			title={t('pptx.slideShow.rehearseTimingsTooltip')}
-			onclick={onrehearse}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" /><path d="M10 6v4l3 2" /></svg>{/snippet}
-		</RibbonCommand>
-		<RibbonCommand control="slideShow.setUp.record" label={t('pptx.titleBar.record')} onclick={onrehearse}>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="5" /></svg>{/snippet}
-		</RibbonCommand>
-	</RibbonGroup>
-
-	<RibbonGroup label={t('pptx.slideShow.options')}>
-		<RibbonCommandStack>
-			{#each optionStacks[0] as option (option.id)}
-				<RibbonToggle
-					label={t(option.labelKey)}
-					checked={optionChecked(option)}
-					disabled={option.unsupported || !editor?.editable}
-					onchange={(next) => setOption(option.id, next)}
-				/>
-			{/each}
-		</RibbonCommandStack>
-		<RibbonCommandStack>
-			{#each optionStacks[1] as option (option.id)}
-				<RibbonToggle
-					label={t(option.labelKey)}
-					checked={optionChecked(option)}
-					disabled={option.unsupported || !editor?.editable}
-					onchange={(next) => setOption(option.id, next)}
-				/>
-			{/each}
-			<RibbonToggle
-				control="slideShow.captions.subtitles"
-				label={t('pptx.slideShow.subtitles')}
-				title={t('pptx.slideShow.subtitlesTooltip')}
-				checked={subtitlesEnabled}
-				onchange={() => onsubtitles()}
-			/>
-			<RibbonCommand compact control="slideShow.captions.subtitleSettings" label={t('pptx.slideShow.subtitleSettings')} onclick={onsubtitles}>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="2" y="4" width="16" height="12" rx="2" /><path d="M5 9h4M11 9h4M5 12h3M10 12h5" /></svg>{/snippet}
-			</RibbonCommand>
-		</RibbonCommandStack>
-	</RibbonGroup>
+    {#each SLIDE_SHOW_COMMAND_GROUPS as group (group.id)}
+        <pptx-ui-ribbon-group label={t(group.labelKey)} data-ribbon-group={group.id}>
+            {#each group.commands as command (command.id)}
+                {#if command.id !== 'slideShow.present.broadcast' || onbroadcast}
+                    <pptx-ui-ribbon-command label={t(command.labelKey)} icon={command.icon}
+                        data-ribbon-control={command.id} title={t(command.tooltipKey ?? command.labelKey)}
+                        disabled={command.unsupported ? '' : undefined}
+                        active={command.id === 'slideShow.setUp.hideSlide' && activeSlideHidden ? '' : undefined}
+                        pressed={command.id === 'slideShow.setUp.hideSlide' ? String(activeSlideHidden) : undefined}
+                        oncommand-request={requestCommand}></pptx-ui-ribbon-command>
+                {/if}
+            {/each}
+        </pptx-ui-ribbon-group>
+    {/each}
+    <pptx-ui-ribbon-group label={t('pptx.slideShow.options')}>
+        <pptx-ui-slide-show-options presentationProperties={editor?.presentationProperties} labels={optionLabels}
+            disabled={!editor?.editable} onshow-options-change={commitOptions}>
+            <div class="captions" data-ribbon-group="slideShow.captions">
+                <pptx-ui-ribbon-toggle data-ribbon-control="slideShow.captions.subtitles" label={t('pptx.slideShow.subtitles')}
+                    title={t('pptx.slideShow.subtitlesTooltip')} checked={subtitlesEnabled ? '' : undefined} ontoggle-request={() => onsubtitles()}></pptx-ui-ribbon-toggle>
+                <pptx-ui-ribbon-command compact data-ribbon-control="slideShow.captions.subtitleSettings" label={t('pptx.slideShow.subtitleSettings')}
+                    icon="captions" oncommand-request={() => onsubtitles()}></pptx-ui-ribbon-command>
+            </div>
+        </pptx-ui-slide-show-options>
+    </pptx-ui-ribbon-group>
 </div>
 
 <style>
-	.pptx-svelte-slideshowtab {
-		display: flex;
-		align-items: stretch;
-		flex-wrap: nowrap;
-	}
+    .pptx-svelte-slideshowtab { display: flex; align-items: stretch; flex-wrap: nowrap; }
+    .captions { display: contents; }
 </style>

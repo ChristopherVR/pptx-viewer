@@ -135,8 +135,18 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 			'[role="link"]',
 		].join(', ');
 
+		// Traverse open roots so migrated commands still participate in the parity inventory.
+		const queryDeep = (parent: Element | ShadowRoot): Element[] => {
+			const result = [...parent.querySelectorAll(selector)];
+			for (const node of parent.querySelectorAll('*')) {
+				if (node.shadowRoot) {
+					result.push(...queryDeep(node.shadowRoot));
+				}
+			}
+			return result;
+		};
 		const controls: { name: string; disabled: boolean }[] = [];
-		for (const node of root.querySelectorAll(selector)) {
+		for (const node of queryDeep(root)) {
 			if (node.getAttribute('role') === 'tab' || node.closest('[role="tablist"]')) {
 				continue;
 			}

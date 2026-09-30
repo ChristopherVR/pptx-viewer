@@ -96,6 +96,9 @@ export function definePptxSelect(registry: CustomElementRegistry): void {
 		}
 		disconnectedCallback(): void {
 			this.close();
+			window.clearTimeout(this.searchTimer);
+			this.searchTimer = 0;
+			this.search = '';
 			this.observer.disconnect();
 			cancelAnimationFrame(this.refreshFrame);
 			this.refreshFrame = 0;

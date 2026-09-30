@@ -47,20 +47,45 @@ function makeEditor(): EditorState {
 
 function buttons(target: HTMLElement): Map<string, HTMLButtonElement> {
 	return new Map(
-		[...target.querySelectorAll<HTMLButtonElement>('button')].map((button) => [
-			button.textContent?.trim() ?? '',
-			button,
-		]),
+		[...target.querySelectorAll('pptx-ui-ribbon-command')]
+			.map((host) => host.shadowRoot!.querySelector('button')!)
+			.map((button) => [button.textContent?.trim() ?? '', button]),
 	);
 }
 
 function toggle(target: HTMLElement, label: string): HTMLInputElement | undefined {
-	return [...target.querySelectorAll('label')]
-		.find((node) => node.textContent?.trim() === label)
-		?.querySelector('input') as HTMLInputElement | undefined;
+	const shared = target.querySelector('pptx-ui-slide-show-options')?.shadowRoot;
+	const captions = target.querySelector('pptx-ui-ribbon-toggle')?.shadowRoot;
+	return (shared?.querySelector(`pptx-ui-checkbox[aria-label="${label}"]`) ??
+		captions?.querySelector(`pptx-ui-checkbox[aria-label="${label}"]`)) as
+		| HTMLInputElement
+		| undefined;
 }
 
 describe('slideShowTab', () => {
+	it('remounts one adapter without duplicating or sharing callbacks with another', async () => {
+		const firstAction = vi.fn();
+		const secondAction = vi.fn();
+		const first = mountTab({ onfrombeginning: firstAction });
+		const removeFirst = cleanup!;
+		const second = mountTab({ onfrombeginning: secondAction });
+		const removeSecond = cleanup!;
+		cleanup = undefined;
+		try {
+			buttons(first).get('From Beginning')!.click();
+			expect(firstAction).toHaveBeenCalledOnce();
+			expect(secondAction).not.toHaveBeenCalled();
+			await removeFirst();
+			const remounted = mountTab({ onfrombeginning: firstAction });
+			buttons(remounted).get('From Beginning')!.click();
+			expect(firstAction).toHaveBeenCalledTimes(2);
+			buttons(second).get('From Beginning')!.click();
+			expect(secondAction).toHaveBeenCalledOnce();
+		} finally {
+			await removeSecond();
+		}
+	});
+
 	it('offers the live Start / Present / Set Up commands', () => {
 		const found = buttons(mountTab());
 		for (const name of [

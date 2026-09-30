@@ -1,197 +1,86 @@
-/**
- * ribbon-slideshow-section.component.ts: the Slide Show ribbon tab (Start Slide
- * Show, Present, Set Up and Options groups). Split out of
- * {@link RibbonComponent}.
- *
- * Two controls here are deliberate stand-ins rather than omissions, and are
- * rendered disabled: Rehearse Coach and Hide Slide. Showing a disabled control
- * tells a user the concept exists and where it will appear; omitting it tells
- * them nothing, and leaves the tab reading differently from every other
- * binding.
- *
- * Custom Show used to be a third. It is not: the viewer already owns the whole
- * custom-show manager (`CustomShowsComponent`), it was simply only reachable
- * from the quick-access row above the tabs, where PowerPoint users do not look
- * for it. The button opens that dialog, which stays closed until asked.
- *
- * The Options cluster is rendered from the shared `SLIDE_SHOW_OPTIONS`
- * descriptors. The two that map to real, saved `p:showPr` attributes
- * (Use Timings, Play Narrations) read the deck's presentation properties and
- * commit back to them; the two with no backing state anywhere in the viewer
- * (Keep Slides Updated, Show Media Controls) render disabled and unchecked
- * rather than hard-coded `checked` with a click that was swallowed, which is
- * what they used to do.
- */
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
-import type { SlideShowOptionId, ToolbarActionId } from '../internal/shared';
-import { readSlideShowOption, SLIDE_SHOW_OPTIONS, slideShowOptionChange } from '../internal/shared';
+import type {
+	RibbonCommandRequestEvent,
+	SlideShowOptionsChangeEvent,
+	ToolbarActionId,
+} from '../internal/shared';
+import { SLIDE_SHOW_COMMAND_GROUPS, SLIDE_SHOW_OPTIONS } from '../internal/shared';
 import { LoadContentService } from './load-content.service';
 import { toolbarVisibility } from './toolbar-visibility';
 
 @Component({
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	selector: 'pptx-ribbon-slideshow-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	imports: [TranslatePipe],
 	template: `
-		<span class="contents" data-ribbon-group="slideShow.startSlideShow">
-			<button
-				data-ribbon-control="slideShow.startSlideShow.fromBeginning"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="slideCount() === 0"
-				(click)="presentFromBeginning.emit()"
+		@for (group of groups; track group.id) {
+			<pptx-ui-ribbon-group
+				[attr.label]="group.labelKey | translate"
+				[attr.data-ribbon-group]="group.id"
 			>
-				{{ 'pptx.ribbon.fromBeginning' | translate }}
-			</button>
-			<button
-				data-ribbon-control="slideShow.startSlideShow.fromCurrent"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="slideCount() === 0"
-				(click)="presentFromCurrent.emit()"
-			>
-				{{ 'pptx.slideShow.fromCurrent' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Presenter View. Deliberately NOT gated on slideCount(): no other
-		     binding disables it, and e2e/ribbon-control-inventory.spec.ts diffs
-		     exactly which controls each binding leaves usable. The label key is
-		     pptx.slideShow.* for the same reason: the old pptx.ribbon.* key
-		     happens to carry the same English, so the inventory's accessible-name
-		     diff passed by luck and would have broken on any locale edit. -->
-		<button
-			data-ribbon-group="slideShow.present"
-			data-ribbon-control="slideShow.present.presenterView"
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.slideShow.presenterViewTooltip' | translate"
-			(click)="presenter.emit()"
-		>
-			{{ 'pptx.slideShow.presenterView' | translate }}
-		</button>
-		<button
-			data-ribbon-group="slideShow.startSlideShow"
-			data-ribbon-control="slideShow.startSlideShow.customShow"
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.customShows.customShowTooltip' | translate"
-			(click)="openCustomShows.emit()"
-		>
-			{{ 'pptx.slideShow.customShow' | translate }}
-		</button>
-		@if (!toolbar.isHidden('broadcast')) {
-			<button
-				data-ribbon-group="slideShow.present"
-				data-ribbon-control="slideShow.present.broadcast"
-				type="button"
-				class="pptx-rb-pill"
-				(click)="broadcast.emit()"
-			>
-				{{ 'pptx.ribbon.broadcast' | translate }}
-			</button>
+				@for (command of group.commands; track command.id) {
+					@if (command.id !== 'slideShow.present.broadcast' || !toolbar.isHidden('broadcast')) {
+						<pptx-ui-ribbon-command
+							[attr.label]="command.labelKey | translate"
+							[attr.icon]="command.icon"
+							[attr.data-ribbon-control]="command.id"
+							[attr.title]="command.tooltipKey ?? command.labelKey | translate"
+							[attr.disabled]="
+								command.unsupported ||
+								((command.id === 'slideShow.startSlideShow.fromBeginning' ||
+									command.id === 'slideShow.startSlideShow.fromCurrent') &&
+									slideCount() === 0)
+									? ''
+									: null
+							"
+							[attr.active]="
+								command.id === 'slideShow.setUp.hideSlide' && activeSlideHidden() ? '' : null
+							"
+							[attr.pressed]="
+								command.id === 'slideShow.setUp.hideSlide' ? activeSlideHidden() : null
+							"
+							(command-request)="onCommand($event)"
+						/>
+					}
+				}
+			</pptx-ui-ribbon-group>
 		}
-		<span class="pptx-rb-sep"></span>
-		<!-- Speaker Coach has no local speech-analysis backend yet. -->
-		<span class="contents" data-ribbon-group="slideShow.setUp">
-			<button
-				data-ribbon-control="slideShow.setUp.rehearseWithCoach"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
+		<pptx-ui-ribbon-group [attr.label]="'pptx.slideShow.options' | translate">
+			<pptx-ui-slide-show-options
+				[presentationProperties]="loader.presentationProperties()"
+				[labels]="optionLabels()"
+				(show-options-change)="onOptionsChange($event)"
 			>
-				{{ 'pptx.slideShow.rehearseCoach' | translate }}
-			</button>
-			<button
-				data-ribbon-control="slideShow.setUp.setUpSlideShow"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.ribbon.setUpShowTitle' | translate"
-				(click)="openSetUpSlideShow.emit()"
-			>
-				{{ 'pptx.slideShow.setUp' | translate }}
-			</button>
-			<!-- PowerPoint's Hide Slide: skip the ACTIVE slide during the show while
-		     leaving it in the deck, the thumbnail rail and the sorter. -->
-			<button
-				data-ribbon-control="slideShow.setUp.hideSlide"
-				type="button"
-				class="pptx-rb-pill"
-				[attr.aria-pressed]="activeSlideHidden()"
-				(click)="toggleHideSlide.emit()"
-			>
-				{{ 'pptx.slideShow.hideSlide' | translate }}
-			</button>
-			<button
-				data-ribbon-control="slideShow.setUp.rehearseTimings"
-				type="button"
-				class="pptx-rb-pill"
-				(click)="rehearseTimings.emit()"
-			>
-				{{ 'pptx.slideShow.rehearseTimings' | translate }}
-			</button>
-			<button
-				data-ribbon-control="slideShow.setUp.record"
-				type="button"
-				class="pptx-rb-pill"
-				(click)="record.emit()"
-			>
-				{{ 'pptx.titleBar.record' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<div class="flex flex-col justify-center gap-0.5">
-			@for (option of primaryOptions; track option.id) {
-				<label class="pptx-rb-toggle">
-					<input
-						type="checkbox"
-						class="h-3 w-3 accent-primary disabled:opacity-50"
-						[disabled]="option.unsupported"
-						[checked]="isOptionChecked(option.id)"
-						(change)="onOptionChange(option.id, $event)"
+				<span class="contents" data-ribbon-group="slideShow.captions">
+					<pptx-ui-ribbon-toggle
+						data-ribbon-control="slideShow.captions.subtitles"
+						[attr.label]="'pptx.slideShow.subtitles' | translate"
+						[attr.checked]="showSubtitles() ? '' : null"
+						[attr.title]="'pptx.slideShow.subtitlesTooltip' | translate"
+						(toggle-request)="toggleSubtitles.emit()"
 					/>
-					{{ option.labelKey | translate }}
-				</label>
-			}
-		</div>
-		<div class="flex flex-col justify-center gap-0.5">
-			@for (option of secondaryOptions; track option.id) {
-				<label class="pptx-rb-toggle">
-					<input
-						type="checkbox"
-						class="h-3 w-3 accent-primary disabled:opacity-50"
-						[disabled]="option.unsupported"
-						[checked]="isOptionChecked(option.id)"
-						(change)="onOptionChange(option.id, $event)"
+					<pptx-ui-ribbon-command
+						compact
+						data-ribbon-control="slideShow.captions.subtitleSettings"
+						[attr.label]="'pptx.slideShow.subtitleSettings' | translate"
+						icon="captions"
+						(command-request)="openSubtitleSettings.emit()"
 					/>
-					{{ option.labelKey | translate }}
-				</label>
-			}
-			<span class="contents" data-ribbon-group="slideShow.captions">
-				<label data-ribbon-control="slideShow.captions.subtitles" class="pptx-rb-toggle">
-					<input
-						type="checkbox"
-						class="h-3 w-3 accent-primary"
-						[checked]="showSubtitles()"
-						[title]="'pptx.slideShow.subtitlesTooltip' | translate"
-						(change)="toggleSubtitles.emit()"
-					/>
-					{{ 'pptx.slideShow.subtitles' | translate }}
-				</label>
-				<button
-					data-ribbon-control="slideShow.captions.subtitleSettings"
-					type="button"
-					class="pptx-rb-toggle hover:bg-accent"
-					(click)="openSubtitleSettings.emit()"
-				>
-					{{ 'pptx.slideShow.subtitleSettings' | translate }}
-				</button>
-			</span>
-		</div>
+				</span>
+			</pptx-ui-slide-show-options>
+		</pptx-ui-ribbon-group>
 	`,
 })
 export class RibbonSlideshowSectionComponent {
@@ -218,33 +107,32 @@ export class RibbonSlideshowSectionComponent {
 
 	protected readonly toolbar = toolbarVisibility(this.hiddenActions);
 
-	private readonly loader = inject(LoadContentService);
-
-	/**
-	 * The Options cluster, split across the two columns PowerPoint uses. Both
-	 * halves come from the shared descriptor list, so the set and its order stay
-	 * identical across bindings.
-	 */
-	protected readonly primaryOptions = SLIDE_SHOW_OPTIONS.slice(0, 3);
-	protected readonly secondaryOptions = SLIDE_SHOW_OPTIONS.slice(3);
-
-	/** Whether an Options checkbox reads as ticked for the loaded deck. */
-	protected isOptionChecked(id: SlideShowOptionId): boolean {
-		return readSlideShowOption(this.loader.presentationProperties(), id);
+	protected readonly groups = SLIDE_SHOW_COMMAND_GROUPS;
+	protected readonly loader = inject(LoadContentService);
+	private readonly translate = inject(TranslateService);
+	protected optionLabels(): Record<string, string> {
+		return Object.fromEntries(
+			SLIDE_SHOW_OPTIONS.map((option) => [option.id, this.translate.instant(option.labelKey)]),
+		);
+	}
+	protected onCommand(event: Event): void {
+		const actions = {
+			'slideShow.startSlideShow.fromBeginning': this.presentFromBeginning,
+			'slideShow.startSlideShow.fromCurrent': this.presentFromCurrent,
+			'slideShow.present.presenterView': this.presenter,
+			'slideShow.startSlideShow.customShow': this.openCustomShows,
+			'slideShow.present.broadcast': this.broadcast,
+			'slideShow.setUp.setUpSlideShow': this.openSetUpSlideShow,
+			'slideShow.setUp.hideSlide': this.toggleHideSlide,
+			'slideShow.setUp.rehearseTimings': this.rehearseTimings,
+			'slideShow.setUp.record': this.record,
+		};
+		const id = (event as RibbonCommandRequestEvent).detail.id;
+		actions[id as keyof typeof actions]?.emit();
 	}
 
-	/**
-	 * Commit a tick/untick onto the deck's presentation properties, the same
-	 * signal the inspector's PRESENTATION card patches and the show path reads.
-	 * Unsupported options return no change from shared and are rendered disabled,
-	 * so this is a no-op for them even if a click somehow arrives.
-	 */
-	protected onOptionChange(id: SlideShowOptionId, event: Event): void {
-		const checked = (event.target as HTMLInputElement).checked;
-		const change = slideShowOptionChange(id, checked);
-		if (!change) {
-			return;
-		}
+	protected onOptionsChange(event: Event): void {
+		const change = (event as SlideShowOptionsChangeEvent).detail;
 		this.loader.presentationProperties.update((current) => ({ ...current, ...change }));
 	}
 }

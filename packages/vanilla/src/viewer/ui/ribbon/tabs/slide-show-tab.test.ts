@@ -37,8 +37,18 @@ function withDeck(properties: PptxPresentationProperties): {
 }
 
 function control(tab: { el: HTMLElement }, label: string): HTMLElement {
-	const match = [...tab.el.querySelectorAll<HTMLElement>('button, input')].find(
-		(node) => node.getAttribute('aria-label') === label,
+	const controls: HTMLElement[] = [];
+	const visit = (root: Element | ShadowRoot) => {
+		controls.push(...root.querySelectorAll<HTMLElement>('button, pptx-ui-checkbox'));
+		for (const element of root.querySelectorAll('*')) {
+			if (element.shadowRoot) {
+				visit(element.shadowRoot);
+			}
+		}
+	};
+	visit(tab.el);
+	const match = controls.find(
+		(node) => node.getAttribute('aria-label') === label || node.textContent?.trim() === label,
 	);
 	if (!match) {
 		throw new Error(`missing slide show control: ${label}`);
@@ -165,5 +175,93 @@ describe('createSlideShowTab', () => {
 		const t = createTranslator();
 		const tab = createSlideShowTab(document, t, makeHandlers(), ['broadcast']);
 		expect(() => control(tab, t('pptx.slideShow.broadcast'))).toThrow();
+	});
+});
+
+function harness(hiddenActions?: readonly ['broadcast']) {
+	const handlers: RibbonSlideShowHandlers = {
+		startFromBeginning: vi.fn(),
+		startFromCurrent: vi.fn(),
+		openPresenterView: vi.fn(),
+		openBroadcast: vi.fn(),
+		openSetUp: vi.fn(),
+		toggleHideSlide: vi.fn(),
+		startRehearsal: vi.fn(),
+		openCustomShows: vi.fn(),
+		toggleSubtitles: vi.fn(),
+		openSubtitleSettings: vi.fn(),
+		showOptions: () => ({}),
+		updateShowOptions: vi.fn(),
+	};
+	const tab = createSlideShowTab(document, (key) => key, handlers, hiddenActions);
+	document.body.append(tab.el);
+	const command = (id: string) =>
+		tab.el.querySelector(`[data-ribbon-control="${id}"]`)!.shadowRoot!.querySelector('button')!;
+	return { tab, handlers, command };
+}
+
+describe('vanilla shared Slide Show ribbon adapter', () => {
+	it('reconnects a tab and recreates another without sharing or duplicating handlers', () => {
+		const first = harness();
+		const second = harness();
+		try {
+			for (let i = 0; i < 3; i++) {
+				first.tab.el.remove();
+				document.body.append(first.tab.el);
+			}
+			first.command('slideShow.startSlideShow.fromBeginning').click();
+			expect(first.handlers.startFromBeginning).toHaveBeenCalledOnce();
+			expect(second.handlers.startFromBeginning).not.toHaveBeenCalled();
+			first.tab.el.remove();
+			const remounted = harness();
+			try {
+				remounted.command('slideShow.startSlideShow.fromBeginning').click();
+				expect(remounted.handlers.startFromBeginning).toHaveBeenCalledOnce();
+				expect(first.handlers.startFromBeginning).toHaveBeenCalledOnce();
+			} finally {
+				remounted.tab.el.remove();
+			}
+			second.command('slideShow.startSlideShow.fromBeginning').click();
+			expect(second.handlers.startFromBeginning).toHaveBeenCalledOnce();
+		} finally {
+			first.tab.el.remove();
+			second.tab.el.remove();
+		}
+	});
+
+	it('dispatches commands to distinct host callbacks and reflects Hide Slide state', () => {
+		const { tab, handlers, command } = harness();
+		try {
+			command('slideShow.startSlideShow.fromBeginning').click();
+			command('slideShow.startSlideShow.fromCurrent').click();
+			command('slideShow.setUp.rehearseWithCoach').click();
+			expect(handlers.startFromBeginning).toHaveBeenCalledOnce();
+			expect(handlers.startFromCurrent).toHaveBeenCalledOnce();
+			tab.setHideSlideActive(true);
+			expect(command('slideShow.setUp.hideSlide').getAttribute('aria-pressed')).toBe('true');
+			command('slideShow.setUp.hideSlide').click();
+			expect(handlers.toggleHideSlide).toHaveBeenCalledOnce();
+		} finally {
+			tab.el.remove();
+		}
+	});
+
+	it('keeps caption actions distinct and omits a host-hidden Broadcast command', () => {
+		const { tab, handlers, command } = harness(['broadcast']);
+		try {
+			expect(
+				tab.el.querySelector('[data-ribbon-control="slideShow.present.broadcast"]'),
+			).toBeNull();
+			tab.setSubtitlesVisible(true);
+			const subtitles = tab.el.querySelector(
+				'[data-ribbon-control="slideShow.captions.subtitles"]',
+			)!;
+			subtitles.shadowRoot!.querySelector('label')!.click();
+			expect(handlers.toggleSubtitles).toHaveBeenCalledOnce();
+			command('slideShow.captions.subtitleSettings').click();
+			expect(handlers.openSubtitleSettings).toHaveBeenCalledOnce();
+		} finally {
+			tab.el.remove();
+		}
 	});
 });

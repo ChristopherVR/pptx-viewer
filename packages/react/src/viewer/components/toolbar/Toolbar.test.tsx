@@ -1299,11 +1299,11 @@ describe('toolbar - Slide Show tab', () => {
 		expect(html).toContain('Subtitles');
 	});
 
-	it('subtitles button has active styling when showSubtitles is true', () => {
+	it('subtitles toggle reflects the checked state when showSubtitles is true', () => {
 		const props = createSlideShowProps();
 		props.showSubtitles = true;
 		const html = render(React.createElement(SlideShowSection, props));
-		expect(html).toContain('bg-primary/15');
+		expect(html).toContain('checked=""');
 		expect(html).toContain('title="Toggle subtitles"');
 	});
 });

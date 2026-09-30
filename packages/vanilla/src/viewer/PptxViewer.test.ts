@@ -348,9 +348,11 @@ describe('createPptxViewer', () => {
 	it('unticking the Slide Show tab Use Timings option puts the deck into manual advance', () => {
 		const { container, viewer } = mount({ editable: true });
 		const concrete = viewer as PptxViewer;
-		const useTimings = container.querySelector<HTMLInputElement>(
-			'.pptxv-show-options input[aria-label="Using timings, if present"]',
-		);
+		const useTimings = container
+			.querySelector('pptx-ui-slide-show-options')
+			?.shadowRoot?.querySelector<HTMLInputElement>(
+				'pptx-ui-checkbox[aria-label="Using timings, if present"]',
+			);
 		// Defaults to on, the way PowerPoint does, and reads the deck rather than
 		// claiming to be on regardless.
 		expect(useTimings?.checked).toBeTruthy();

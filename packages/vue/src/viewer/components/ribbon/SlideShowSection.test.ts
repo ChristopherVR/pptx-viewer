@@ -1,5 +1,5 @@
-import { mount } from '@vue/test-utils';
-import { describe, expect, it } from 'vitest';
+import { mount, DOMWrapper } from '@vue/test-utils';
+import { describe, expect, it, vi } from 'vitest';
 
 import SlideShowSection from './SlideShowSection.vue';
 
@@ -26,6 +26,8 @@ function mountSlideShowSection(
 			onEnterPresenterView: () => {},
 			onEnterRehearsalMode: () => {},
 			onOpenSetUpSlideShow: () => {},
+			onToggleHideSlide: () => {},
+			activeSlideHidden: false,
 			onOpenBroadcastDialog: () => {},
 			onToggleSubtitles: () => {},
 			showSubtitles: false,
@@ -35,9 +37,23 @@ function mountSlideShowSection(
 	});
 }
 
-/** The Custom show command, by the accessible name the inventory compares. */
+function commandButtons(wrapper: ReturnType<typeof mountSlideShowSection>) {
+	return wrapper
+		.findAll('pptx-ui-ribbon-command')
+		.map((host) => new DOMWrapper(host.element.shadowRoot!.querySelector('button')!));
+}
 function customShowButton(wrapper: ReturnType<typeof mountSlideShowSection>) {
-	return wrapper.findAll('button').find((b) => b.text() === 'Custom show');
+	return commandButtons(wrapper).find((button) => button.text() === 'Custom show');
+}
+function surfaceText(wrapper: ReturnType<typeof mountSlideShowSection>): string {
+	return (
+		wrapper.text() +
+		wrapper
+			.findAll('pptx-ui-ribbon-command,pptx-ui-ribbon-group,pptx-ui-ribbon-toggle')
+			.map((host) => host.attributes('label'))
+			.join(' ') +
+		wrapper.find('pptx-ui-slide-show-options').element.shadowRoot?.textContent
+	);
 }
 
 /**
@@ -46,22 +62,55 @@ function customShowButton(wrapper: ReturnType<typeof mountSlideShowSection>) {
  * 'broadcast' ToolbarActionId and hides independently of the rest of the tab.
  */
 describe('slideShowSection', () => {
+	it('keeps callbacks local and current after remounting one of two adapters', async () => {
+		const old = vi.fn();
+		const next = vi.fn();
+		const other = vi.fn();
+		const first = mountSlideShowSection(undefined, old);
+		const second = mountSlideShowSection(undefined, other);
+		const click = (view: ReturnType<typeof mountSlideShowSection>) =>
+			commandButtons(view)
+				.find((button) => button.text() === 'From Beginning')!
+				.element.click();
+		try {
+			await first.setProps({ onPresentFromBeginning: next });
+			click(first);
+			expect(old).not.toHaveBeenCalled();
+			expect(next).toHaveBeenCalledOnce();
+			expect(other).not.toHaveBeenCalled();
+			first.unmount();
+			const remount = mountSlideShowSection(undefined, next);
+			try {
+				click(remount);
+				expect(next).toHaveBeenCalledTimes(2);
+			} finally {
+				remount.unmount();
+			}
+			click(second);
+			expect(other).toHaveBeenCalledOnce();
+		} finally {
+			first.unmount();
+			second.unmount();
+		}
+	});
+
 	it('renders the Broadcast button by default (hiddenActions omitted)', () => {
 		const wrapper = mountSlideShowSection(undefined);
-		expect(wrapper.text()).toContain('Broadcast');
+		expect(surfaceText(wrapper)).toContain('Broadcast');
 	});
 
 	it('hides the Broadcast button when "broadcast" is in hiddenActions', () => {
 		const wrapper = mountSlideShowSection(['broadcast']);
-		expect(wrapper.text()).not.toContain('Broadcast');
+		expect(surfaceText(wrapper)).not.toContain('Broadcast');
 		// The rest of the tab stays intact.
-		expect(wrapper.text()).toContain('Presenter View');
+		expect(surfaceText(wrapper)).toContain('Presenter View');
 	});
 
 	// The tab used to offer six controls where the React reference offers
 	// fifteen. A short tab breaks no layout spec, so it is asserted by name.
 	it('offers every control the reference offers', () => {
-		const text = mountSlideShowSection(undefined).text();
+		const wrapper = mountSlideShowSection(undefined);
+		const text = surfaceText(wrapper);
 		for (const control of [
 			'From Beginning',
 			'From Current Slide',
@@ -96,12 +145,12 @@ describe('slideShowSection', () => {
 
 		expect(button?.attributes('disabled')).toBeUndefined();
 		expect(button?.attributes('aria-expanded')).toBe('false');
-		expect(wrapper.text()).not.toContain('+ Show');
+		expect(surfaceText(wrapper)).not.toContain('+ Show');
 
 		await button?.trigger('click');
 
 		expect(customShowButton(wrapper)?.attributes('aria-expanded')).toBe('true');
-		expect(wrapper.text()).toContain('+ Show');
+		expect(surfaceText(wrapper)).toContain('+ Show');
 	});
 
 	/**
@@ -115,7 +164,7 @@ describe('slideShowSection', () => {
 		const wrapper = mountSlideShowSection(undefined, () => {
 			fromBeginningCalls += 1;
 		});
-		const buttons = wrapper.findAll('button');
+		const buttons = commandButtons(wrapper);
 		const fromBeginning = buttons.find((b) => b.text() === 'From Beginning');
 		const fromCurrent = buttons.find((b) => b.text() === 'From Current Slide');
 
@@ -128,11 +177,13 @@ describe('slideShowSection', () => {
 
 	it('exposes the show options as labelled checkboxes', () => {
 		const wrapper = mountSlideShowSection(undefined);
-		const labels = wrapper.findAll('label').map((l) => l.text());
+		const root = wrapper.find('pptx-ui-slide-show-options').element.shadowRoot!;
+		const labels = [...root.querySelectorAll('label')].map((l) => l.textContent);
 		expect(labels).toContain('Play Narrations');
 		// Keep Slides Updated has no backing feature in any binding yet.
-		const keepUpdated = wrapper.findAll('label').find((l) => l.text() === 'Keep Slides Updated');
-		expect(keepUpdated?.find('input').attributes('disabled')).toBeDefined();
+		expect(
+			root.querySelector('[aria-label="Keep Slides Updated"]')?.hasAttribute('disabled'),
+		).toBeTruthy();
 	});
 });
 
@@ -153,6 +204,8 @@ describe('slideShowSection options cluster', () => {
 				onEnterPresenterView: () => {},
 				onEnterRehearsalMode: () => {},
 				onOpenSetUpSlideShow: () => {},
+				onToggleHideSlide: () => {},
+				activeSlideHidden: false,
 				onOpenBroadcastDialog: () => {},
 				onToggleSubtitles: () => {},
 				showSubtitles: false,
@@ -164,10 +217,10 @@ describe('slideShowSection options cluster', () => {
 	}
 
 	function optionBox(wrapper: ReturnType<typeof mountWithProperties>, label: string) {
-		return wrapper
-			.findAll('label')
-			.find((l) => l.text() === label)
-			?.find('input[type="checkbox"]');
+		const checkbox = wrapper
+			.find('pptx-ui-slide-show-options')
+			.element.shadowRoot!.querySelector(`pptx-ui-checkbox[aria-label="${label}"]`)!;
+		return new DOMWrapper(checkbox);
 	}
 
 	it('reflects the deck rather than a hard-coded checked attribute', () => {
@@ -184,7 +237,7 @@ describe('slideShowSection options cluster', () => {
 		const wrapper = mountWithProperties({}, (patch: Record<string, unknown>) =>
 			changes.push(patch),
 		);
-		await optionBox(wrapper, 'Using timings, if present')?.setValue(false);
+		(optionBox(wrapper, 'Using timings, if present').element as HTMLElement).click();
 		expect(changes).toStrictEqual([{ advanceMode: 'manual' }]);
 	});
 
@@ -193,7 +246,7 @@ describe('slideShowSection options cluster', () => {
 		const wrapper = mountWithProperties({}, (patch: Record<string, unknown>) =>
 			changes.push(patch),
 		);
-		await optionBox(wrapper, 'Play Narrations')?.setValue(false);
+		(optionBox(wrapper, 'Play Narrations').element as HTMLElement).click();
 		expect(changes).toStrictEqual([{ showWithNarration: false }]);
 	});
 

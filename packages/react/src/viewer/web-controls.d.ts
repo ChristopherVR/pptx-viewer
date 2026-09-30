@@ -6,6 +6,12 @@ type WebControlProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElemen
 	disabled?: boolean;
 	placeholder?: string;
 	variant?: string;
+	label?: string;
+	icon?: string;
+	active?: boolean;
+	compact?: boolean;
+	pressed?: string;
+	expanded?: string;
 };
 
 declare module 'react' {
@@ -14,6 +20,10 @@ declare module 'react' {
 			'pptx-ui-search': WebControlProps;
 			'pptx-ui-select': WebControlProps;
 			'pptx-ui-checkbox': WebControlProps;
+			'pptx-ui-slide-show-options': WebControlProps;
+			'pptx-ui-ribbon-command': WebControlProps;
+			'pptx-ui-ribbon-group': WebControlProps;
+			'pptx-ui-ribbon-toggle': WebControlProps;
 		}
 	}
 }

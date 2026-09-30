@@ -1,0 +1,85 @@
+import type { RibbonControlId } from '../render';
+import { attachControlStyles } from './control-styles';
+import { RIBBON_COMMAND_STYLES } from './ribbon-command-styles';
+import { RIBBON_ICON_PATHS } from './ribbon-icons';
+
+export type RibbonCommandRequestEvent = CustomEvent<{ id: RibbonControlId }>;
+
+/** Stateless command button. Pointer, Enter and Space emit one host-owned intent. */
+export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
+	if (registry.get('pptx-ui-ribbon-command')) {
+		return;
+	}
+	class RibbonCommand extends HTMLElement {
+		static observedAttributes = [
+			'label',
+			'icon',
+			'disabled',
+			'active',
+			'compact',
+			'pressed',
+			'expanded',
+			'title',
+			'data-ribbon-control',
+		];
+		private readonly button: HTMLButtonElement;
+		private readonly text: HTMLSpanElement;
+		private readonly path: SVGPathElement;
+		constructor() {
+			super();
+			const root = this.attachShadow({ mode: 'open' });
+			attachControlStyles(root, RIBBON_COMMAND_STYLES);
+			this.button = document.createElement('button');
+			this.button.type = 'button';
+			this.button.setAttribute('part', 'button');
+			const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+			svg.setAttribute('viewBox', '0 0 20 20');
+			svg.setAttribute('aria-hidden', 'true');
+			this.path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+			svg.append(this.path);
+			this.text = document.createElement('span');
+			this.button.append(svg, this.text);
+			root.append(this.button);
+			this.button.addEventListener('keydown', (event) => {
+				// Keep native activation out of the viewer's slide-navigation handlers.
+				if (
+					(event.key === ' ' || event.key === 'Enter') &&
+					!event.ctrlKey &&
+					!event.metaKey &&
+					!event.altKey
+				) {
+					event.stopPropagation();
+				}
+			});
+			this.button.addEventListener('click', () => {
+				const id = this.getAttribute('data-ribbon-control');
+				if (!this.button.disabled && id) {
+					this.dispatchEvent(
+						new CustomEvent('command-request', { detail: { id }, bubbles: true, composed: true }),
+					);
+				}
+			});
+		}
+		connectedCallback(): void {
+			this.sync();
+		}
+		attributeChangedCallback(): void {
+			this.sync();
+		}
+		private sync(): void {
+			this.text.textContent = this.getAttribute('label') ?? '';
+			this.button.title = this.getAttribute('title') ?? this.text.textContent;
+			this.button.disabled = this.hasAttribute('disabled');
+			this.path.setAttribute('d', RIBBON_ICON_PATHS[this.getAttribute('icon') ?? ''] ?? '');
+			for (const attr of ['pressed', 'expanded']) {
+				const value = this.getAttribute(attr);
+				if (value === null) {
+					this.button.removeAttribute(`aria-${attr}`);
+				} else {
+					this.button.setAttribute(`aria-${attr}`, value);
+				}
+			}
+		}
+	}
+	registry.define('pptx-ui-ribbon-command', RibbonCommand);
+}
