@@ -7,6 +7,17 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.16.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.16.0) - 2026-09-30
+
+### Features
+
+- **shared:** Add host context menu commands across bindings (by @ChristopherVR) ([4e2d20e](https://github.com/ChristopherVR/pptx-viewer/commit/4e2d20e300d24caf2e9380c60f10b1ec2b82f5b3))
+- **shared:** Unify theme editor across all five bindings (by @ChristopherVR) ([15e3ea7](https://github.com/ChristopherVR/pptx-viewer/commit/15e3ea7d279a6c1f220b1e130c2d0d8125852838))
+
+### Bug Fixes
+
+- **ui:** Align editor appearance across all five bindings (by @yunfeizhu) ([178a1d0](https://github.com/ChristopherVR/pptx-viewer/commit/178a1d00b353346145277b3d834765f3ea01c1f0))
+
 ## [4.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-svelte-viewer@4.15.0) - 2026-09-30
 
 ### Features

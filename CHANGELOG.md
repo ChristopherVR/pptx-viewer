@@ -10,6 +10,24 @@ dated sections beneath it are generated from
 
 ## 2026-09-30
 
+_Releases: pptx-react-viewer@4.16.0, pptx-vue-viewer@4.16.0, pptx-angular-viewer@4.16.0, pptx-vanilla-viewer@3.16.0, pptx-svelte-viewer@4.16.0, @christophervr/pptx-viewer@2.33.0_
+
+### Features
+
+- **shared:** Add host context menu commands across bindings (by @ChristopherVR) ([4e2d20e](https://github.com/ChristopherVR/pptx-viewer/commit/4e2d20e300d24caf2e9380c60f10b1ec2b82f5b3))
+- **shared:** Unify theme editor across all five bindings (by @ChristopherVR) ([15e3ea7](https://github.com/ChristopherVR/pptx-viewer/commit/15e3ea7d279a6c1f220b1e130c2d0d8125852838))
+
+### Bug Fixes
+
+- **ui:** Align editor appearance across all five bindings (by @yunfeizhu) ([178a1d0](https://github.com/ChristopherVR/pptx-viewer/commit/178a1d00b353346145277b3d834765f3ea01c1f0))
+- **react:** Report single selections to hosts (by @pesnik) ([8bbff9b](https://github.com/ChristopherVR/pptx-viewer/commit/8bbff9b2ac881ed56c67a0f923d3a3493d23d310))
+
+### Testing
+
+- **e2e:** Verify thumbnail fit across all five bindings (by @ChristopherVR) ([0828dd9](https://github.com/ChristopherVR/pptx-viewer/commit/0828dd98d63c0f38c69915f86ed7d5dbe2d5f7d8))
+
+## 2026-09-30
+
 _Releases: pptx-viewer-core@4.9.1, pptx-react-viewer@4.15.0, pptx-vue-viewer@4.15.0, pptx-angular-viewer@4.15.0, pptx-vanilla-viewer@3.15.0, pptx-svelte-viewer@4.15.0, pptx-viewer-mcp@2.5.7, @christophervr/pptx-viewer@2.32.0_
 
 ### Features

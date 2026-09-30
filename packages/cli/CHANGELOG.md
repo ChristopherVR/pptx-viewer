@@ -7,6 +7,18 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.33.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.33.0) - 2026-09-30
+
+### Features
+
+- **shared:** Add host context menu commands across bindings (by @ChristopherVR) ([4e2d20e](https://github.com/ChristopherVR/pptx-viewer/commit/4e2d20e300d24caf2e9380c60f10b1ec2b82f5b3))
+- **shared:** Unify theme editor across all five bindings (by @ChristopherVR) ([15e3ea7](https://github.com/ChristopherVR/pptx-viewer/commit/15e3ea7d279a6c1f220b1e130c2d0d8125852838))
+
+### Bug Fixes
+
+- **ui:** Align editor appearance across all five bindings (by @yunfeizhu) ([178a1d0](https://github.com/ChristopherVR/pptx-viewer/commit/178a1d00b353346145277b3d834765f3ea01c1f0))
+- **react:** Report single selections to hosts (by @pesnik) ([8bbff9b](https://github.com/ChristopherVR/pptx-viewer/commit/8bbff9b2ac881ed56c67a0f923d3a3493d23d310))
+
 ## [2.32.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.32.0) - 2026-09-30
 
 ### Features
