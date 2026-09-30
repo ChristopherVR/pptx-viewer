@@ -391,7 +391,7 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 				return state.isDirty;
 			},
 			getSelectedElementIds() {
-				return state.selectedElementIds;
+				return state.effectiveSelectedIds;
 			},
 			selectElements(ids: string[]) {
 				state.setSelectedElementIds(ids);
@@ -529,11 +529,14 @@ export function useViewerIntegration(input: UseViewerIntegrationInput): ViewerIn
 		}
 	}, [zoom.scale, onZoomChange]);
 
+	// The effective selection: a plain click sets only `selectedElementId`
+	// (`selectedElementIds` is for multi-selections), so reporting the array
+	// alone missed every single selection and its clearing (#368).
 	useEffect(() => {
 		if (onSelectionChange) {
-			onSelectionChange(state.selectedElementIds);
+			onSelectionChange(state.effectiveSelectedIds);
 		}
-	}, [state.selectedElementIds, onSelectionChange]);
+	}, [state.effectiveSelectedIds, onSelectionChange]);
 
 	useEffect(() => {
 		if (onSlideCountChange) {
