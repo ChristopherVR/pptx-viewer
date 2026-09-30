@@ -85,7 +85,12 @@ export function MobileMenuSheet(props: MobileMenuSheetProps): React.ReactElement
 	const { isTabVisible } = useToolbarVisibility(props.hiddenActions);
 
 	return (
-		<MobileSheet open={open} onClose={onClose} autoHeight title={t('pptx.mobileToolbar.menu')}>
+		<MobileSheet
+			open={open && !props.isThemeEditorOpen}
+			onClose={onClose}
+			autoHeight
+			title={t('pptx.mobileToolbar.menu')}
+		>
 			<div className='flex flex-col'>
 				{/* Section selector: chips wrap so every section stays reachable
 				    without horizontal scrolling (which hid the trailing sections). */}

@@ -5,6 +5,7 @@ import type {
 	PptxSlideMaster,
 	PptxThemeColorScheme,
 } from 'pptx-viewer-core';
+import { PRESET_THEMES } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import { createInitialViewerState, createStore } from '../state';
@@ -38,6 +39,25 @@ function setup(options: { handler?: PptxHandler | null; editable?: boolean } = {
 }
 
 describe('editor deck actions (no-selection inspector)', () => {
+	it('persists a staged theme before recording one model/history change', async () => {
+		const applyTheme = vi.fn().mockResolvedValue(undefined);
+		const { actions, ops, store } = setup({ handler: { applyTheme } as unknown as PptxHandler });
+		const edit = {
+			name: 'Saved edit',
+			colorScheme: { ...PRESET_THEMES[0].colorScheme, accent1: '#123456' },
+			fontScheme: {},
+		};
+		await actions.applyThemeEdit(edit);
+		expect(applyTheme).toHaveBeenCalledExactlyOnceWith(
+			edit.colorScheme,
+			edit.fontScheme,
+			edit.name,
+		);
+		expect(ops.pushHistory).toHaveBeenCalledOnce();
+		expect(ops.commitChange).toHaveBeenCalledOnce();
+		expect(store.get().themeName).toBe(edit.name);
+	});
+
 	it('updates the canvas size in the store and marks the deck dirty', () => {
 		const { store, actions } = setup();
 		actions.updateCanvasSize({ width: 1280.4, height: 720.2 });
@@ -96,7 +116,7 @@ describe('editor deck actions (no-selection inspector)', () => {
 		expect(setPresentationTheme).not.toHaveBeenCalled();
 	});
 
-	it('re-colours templateElementsBySlideId alongside slides when editing the theme', () => {
+	it('re-colours templateElementsBySlideId alongside slides when editing the theme', async () => {
 		const OFFICE_ACCENT1 = '#4472C4';
 		const ION_ACCENT1 = '#B01513';
 		const officeColors: PptxThemeColorScheme = {
@@ -129,7 +149,7 @@ describe('editor deck actions (no-selection inspector)', () => {
 			templateElementsBySlideId: { s1: [templateShape] },
 		});
 
-		actions.applyThemeEdit({
+		await actions.applyThemeEdit({
 			colorScheme: { ...officeColors, accent1: ION_ACCENT1 },
 			fontScheme: { majorFont: { latin: 'Calibri' }, minorFont: { latin: 'Calibri' } },
 			name: 'Custom',

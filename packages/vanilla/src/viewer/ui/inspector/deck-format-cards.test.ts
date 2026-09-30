@@ -243,10 +243,12 @@ describe('theme editor card', () => {
 			}),
 		);
 
-		const swatches = card.el.querySelectorAll<HTMLInputElement>('.pptxv-theme-slot-input');
+		const swatches = card.el.shadowRoot!.querySelectorAll<HTMLInputElement>('input[type=color]');
 		expect(swatches).toHaveLength(12);
 		expect(Array.from(swatches).some((input) => input.value === '#123456')).toBeTruthy();
-		expect(card.el.querySelector<HTMLInputElement>('.pptxv-field-input')!.value).toBe('Deck theme');
+		expect(card.el.shadowRoot!.querySelector<HTMLInputElement>('input[type=text]')!.value).toBe(
+			'Deck theme',
+		);
 	});
 
 	it('applies staged colours and fonts only on Apply', () => {
@@ -259,12 +261,12 @@ describe('theme editor card', () => {
 			}),
 		);
 
-		const swatch = card.el.querySelectorAll<HTMLInputElement>('.pptxv-theme-slot-input')[0];
+		const swatch = card.el.shadowRoot!.querySelectorAll<HTMLInputElement>('input[type=color]')[0];
 		swatch.value = '#0a0b0c';
-		swatch.dispatchEvent(new Event('change'));
+		swatch.dispatchEvent(new Event('input'));
 		expect(applyThemeEdit).not.toHaveBeenCalled();
 
-		card.el.querySelector<HTMLButtonElement>('.pptxv-inspector-deck-btn')!.click();
+		card.el.shadowRoot!.querySelector<HTMLButtonElement>('.actions button')!.click();
 		expect(applyThemeEdit).toHaveBeenCalledWith(
 			expect.objectContaining({
 				name: 'Deck theme',
@@ -282,12 +284,12 @@ describe('theme editor card', () => {
 		const card = createThemeEditorCard(document, createTranslator(), { applyThemeEdit });
 		card.update(deckState());
 
-		const presets = card.el.querySelectorAll<HTMLButtonElement>('.pptxv-theme-preset');
+		const presets = card.el.shadowRoot!.querySelectorAll<HTMLButtonElement>('.preset');
 		presets[1].click();
-		card.el.querySelector<HTMLButtonElement>('.pptxv-inspector-deck-btn')!.click();
+		card.el.shadowRoot!.querySelector<HTMLButtonElement>('.actions button')!.click();
 
 		expect(applyThemeEdit).toHaveBeenCalledWith(
-			expect.objectContaining({ name: presets[1].title }),
+			expect.objectContaining({ name: presets[1].getAttribute('aria-label') }),
 		);
 	});
 
@@ -295,10 +297,10 @@ describe('theme editor card', () => {
 		const card = createThemeEditorCard(document, createTranslator(), { applyThemeEdit: vi.fn() });
 		card.update(deckState({ themeName: 'Deck theme' }));
 
-		const name = card.el.querySelector<HTMLInputElement>('.pptxv-field-input')!;
+		const name = card.el.shadowRoot!.querySelector<HTMLInputElement>('input[type=text]')!;
 		name.value = 'Scratch';
 		name.dispatchEvent(new Event('input'));
-		const [, reset] = card.el.querySelectorAll<HTMLButtonElement>('.pptxv-inspector-deck-btn');
+		const [, reset] = card.el.shadowRoot!.querySelectorAll<HTMLButtonElement>('.actions button');
 		reset.click();
 
 		expect(name.value).toBe('Deck theme');

@@ -68,7 +68,7 @@ export interface InspectorHandlers {
 		colorScheme: PptxThemeColorScheme;
 		fontScheme: PptxThemeFontScheme;
 		name: string;
-	}): void;
+	}): void | Promise<void>;
 	/** Replace the deck's `ppt/tags/*.xml` collections (TAGS card). */
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/**

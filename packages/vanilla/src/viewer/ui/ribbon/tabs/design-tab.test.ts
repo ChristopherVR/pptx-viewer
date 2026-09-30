@@ -51,14 +51,17 @@ describe('createDesignTab', () => {
 		document.body.appendChild(root);
 		const launcher = button(tab.el, 'Edit Theme');
 		launcher.click();
-		const panel = body.querySelector<HTMLElement>('[data-pptx-chrome="theme-editor"]');
+		const panel = body.querySelector<HTMLElement>('[data-deck-theme-editor]');
 		expect(panel?.hidden).toBeFalsy();
 		expect(launcher.getAttribute('aria-expanded')).toBe('true');
 		panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		expect(panel?.hidden).toBeTruthy();
 		expect(document.activeElement).toBe(launcher);
 		launcher.click();
-		button(panel!, 'Close').click();
+		panel!
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('.close')!
+			.click();
 		expect(panel?.hidden).toBeTruthy();
 		expect(document.activeElement).toBe(launcher);
 		root.remove();
@@ -87,7 +90,7 @@ describe('createDesignTab', () => {
 		tab.el.remove();
 	});
 
-	it('opens the deck theme editor from Edit Theme and applies it to the presentation', () => {
+	it('opens the deck theme editor from Edit Theme and applies it to the presentation', async () => {
 		const { tab, handlers } = mountTab();
 		const panel = tab.el.querySelector<HTMLElement>('[data-deck-theme-editor]');
 		expect(panel?.hidden).toBeTruthy();
@@ -95,10 +98,13 @@ describe('createDesignTab', () => {
 		button(tab.el, 'Edit Theme').click();
 
 		expect(panel?.hidden).toBeFalsy();
-		const name = panel?.querySelector<HTMLInputElement>('input[type="text"]');
+		const shared = panel!.querySelector('pptx-ui-theme-editor')!;
+		const name = shared.shadowRoot!.querySelector<HTMLInputElement>('input[type="text"]');
 		expect(name?.value).toBe('Office Theme');
 		expect(name?.disabled).toBeFalsy();
-		button(panel as HTMLElement, 'Apply to Presentation').click();
+		shared.shadowRoot!.querySelector<HTMLButtonElement>('.apply')!.click();
+		await Promise.resolve();
+		await Promise.resolve();
 		expect(handlers.applyThemeEdit).toHaveBeenCalledWith(
 			expect.objectContaining({
 				name: 'Office Theme',

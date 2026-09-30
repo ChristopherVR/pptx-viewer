@@ -52,7 +52,10 @@ defineProps<{
 	onCloseThemeGallery: () => void;
 	themeEditorOpen: boolean;
 	onCloseThemeEditor: () => void;
-	themeEditing: Pick<UseThemeEditingResult, 'applyThemePreset' | 'applyThemeEdit'>;
+	themeEditing: Pick<
+		UseThemeEditingResult,
+		'applyThemePreset' | 'applyThemeEdit' | 'themeEditorBusy'
+	>;
 	contextMenu: ContextMenuState;
 	contextItems: ContextMenuItem[];
 	onContextSelect: (id: string) => void;
@@ -93,7 +96,7 @@ const layoutGalleryAnchorEl = ref<HTMLElement | null>(null);
 	<ThemeEditorPanel
 		v-if="themeEditorOpen && canEdit"
 		:theme="theme"
-		:can-edit="canEdit"
+		:can-edit="canEdit && !themeEditing.themeEditorBusy.value"
 		@apply="themeEditing.applyThemeEdit"
 		@close="onCloseThemeEditor"
 	/>

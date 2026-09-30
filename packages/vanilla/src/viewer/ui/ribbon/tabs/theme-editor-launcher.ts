@@ -12,9 +12,8 @@ export function createThemeEditorLauncher(
 	handlers: Pick<RibbonDesignHandlers, 'applyThemeEdit'>,
 ) {
 	const el = createEl(doc, 'div');
-	const panel = createEl(doc, 'section', 'pptxv-deck-theme-editor');
+	const panel = createEl(doc, 'section');
 	panel.dataset.deckThemeEditor = '';
-	panel.dataset.pptxChrome = 'theme-editor';
 	panel.setAttribute('aria-label', t('pptx.themeEditor.title'));
 	panel.hidden = true;
 	let editor: ThemeEditorCard | null = null;
@@ -27,18 +26,13 @@ export function createThemeEditorLauncher(
 	const close = (): void => {
 		const wasOpen = !panel.hidden;
 		panel.hidden = true;
+		editor?.el.remove();
+		editor = null;
 		button.btn.setAttribute('aria-expanded', 'false');
 		if (wasOpen) {
 			button.btn.focus();
 		}
 	};
-	const dismiss = makeButton(doc, {
-		label: t('pptx.common.close'),
-		icon: 'close',
-		onClick: close,
-	});
-	dismiss.btn.style.cssText = 'position:absolute;right:10px;top:8px;z-index:1';
-	panel.appendChild(dismiss.btn);
 	const button = makeButton(doc, {
 		label: t('pptx.ribbon.editTheme'),
 		icon: 'wrench',
@@ -49,12 +43,17 @@ export function createThemeEditorLauncher(
 				return;
 			}
 			if (!editor) {
-				editor = createThemeEditorCard(doc, t, {
-					applyThemeEdit: (payload) => {
-						handlers.applyThemeEdit(payload);
-						close();
+				editor = createThemeEditorCard(
+					doc,
+					t,
+					{
+						applyThemeEdit: async (payload) => {
+							await handlers.applyThemeEdit(payload);
+							close();
+						},
 					},
-				});
+					{ inline: false, onClose: close },
+				);
 				panel.appendChild(editor.el);
 			}
 			editor.update(state);
@@ -64,7 +63,6 @@ export function createThemeEditorLauncher(
 			(body ?? el).appendChild(panel);
 			panel.hidden = false;
 			button.btn.setAttribute('aria-expanded', 'true');
-			dismiss.btn.focus();
 		},
 	});
 	button.btn.title = t('pptx.ribbon.editThemeTitle');

@@ -63,6 +63,8 @@ import { GALLERY_THEME_PRESETS } from './theme-gallery-presets';
 					@if (customizing()) {
 						<pptx-theme-editor-fields
 							[theme]="theme()"
+							[inline]="true"
+							(close)="close.emit()"
 							(applyTheme)="applyCustomTheme.emit($event)"
 						/>
 					} @else {

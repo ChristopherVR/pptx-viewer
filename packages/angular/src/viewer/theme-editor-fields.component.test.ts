@@ -1,3 +1,5 @@
+import { Injector, runInInjectionContext } from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 /**
  * theme-editor-fields.component.test.ts: the theme editor's colour swatches.
  *
@@ -14,13 +16,41 @@ import { describe, expect, it } from 'vitest';
 
 import { keyToLabel, translationsEn } from '../internal/shared-src/i18n';
 import { themeColorSlotLabelKey } from './schema-token-labels';
-import { THEME_EDITOR_COLOR_SLOTS } from './theme-editor-fields.component';
+import {
+	ThemeEditorFieldsComponent,
+	THEME_EDITOR_COLOR_SLOTS,
+} from './theme-editor-fields.component';
 
 function renderedLabel(key: string): string {
 	return (translationsEn as Record<string, string | undefined>)[key] ?? keyToLabel(key);
 }
 
 describe('theme editor colour swatches', () => {
+	it('forwards complete staged edits and keeps instance callbacks isolated', () => {
+		const injector = Injector.create({
+			providers: [{ provide: TranslateService, useValue: { instant: (key: string) => key } }],
+		});
+		const first = runInInjectionContext(injector, () => new ThemeEditorFieldsComponent());
+		const second = runInInjectionContext(injector, () => new ThemeEditorFieldsComponent());
+		const received: unknown[] = [];
+		first.applyTheme.subscribe((value) => received.push(value));
+		second.applyTheme.subscribe(() => {
+			throw new Error('cross-instance callback');
+		});
+		const payload = { name: 'Draft', colorScheme: { accent1: '#123456' }, fontScheme: {} };
+		(first as unknown as { apply(event: Event): void }).apply(
+			new CustomEvent('theme-editor-apply', { detail: payload }),
+		);
+		expect(received).toStrictEqual([payload]);
+		let closed = 0;
+		first.close.subscribe(() => {
+			closed += 1;
+		});
+		first.close.emit();
+		expect(closed).toBe(1);
+		injector.destroy();
+	});
+
 	it('still offers exactly the 12 schema slots, in schema order', () => {
 		expect(THEME_EDITOR_COLOR_SLOTS).toStrictEqual([
 			'dk1',

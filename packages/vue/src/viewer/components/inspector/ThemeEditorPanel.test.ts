@@ -1,55 +1,49 @@
 import { mount } from '@vue/test-utils';
-import type { PptxTheme } from 'pptx-viewer-core';
+import { PRESET_THEMES, registerPptxWebControls } from 'pptx-viewer-shared';
 import { describe, expect, it } from 'vitest';
 
 import ThemeEditorPanel from './ThemeEditorPanel.vue';
 
+registerPptxWebControls();
 const theme = {
-	name: 'My Theme',
-	colorScheme: {
-		dk1: '#111111',
-		lt1: '#ffffff',
-		dk2: '#222222',
-		lt2: '#eeeeee',
-		accent1: '#4472c4',
-		accent2: '#ed7d31',
-		accent3: '#a5a5a5',
-		accent4: '#ffc000',
-		accent5: '#5b9bd5',
-		accent6: '#70ad47',
-		hlink: '#0563c1',
-		folHlink: '#954f72',
+	name: 'Loaded',
+	colorScheme: PRESET_THEMES[0].colorScheme,
+	fontScheme: {
+		majorFont: { latin: 'Georgia', eastAsia: 'Yu Gothic' },
+		minorFont: { latin: 'Verdana' },
 	},
-	fontScheme: { majorFont: { latin: 'Georgia' }, minorFont: { latin: 'Verdana' } },
-} as unknown as PptxTheme;
+};
 
-describe('themeEditorPanel', () => {
-	it('renders 12 colour slots + fonts seeded from the theme', () => {
+describe('theme editor Vue adapter', () => {
+	it('stages preset edits and forwards one complete apply payload', () => {
 		const wrapper = mount(ThemeEditorPanel, { props: { theme, canEdit: true } });
-		expect(wrapper.findAll('input[type="color"]')).toHaveLength(12);
-		expect((wrapper.find('input[type="text"]').element as HTMLInputElement).value).toBe('My Theme');
+		const root = wrapper.element.shadowRoot!;
+		expect(root.querySelectorAll('input[type=color]')).toHaveLength(12);
+		root.querySelectorAll<HTMLButtonElement>('.preset')[1].click();
+		expect(wrapper.emitted('apply')).toBeUndefined();
+		root.querySelector<HTMLButtonElement>('.apply')!.click();
+		expect(wrapper.emitted('apply')).toStrictEqual([
+			[
+				expect.objectContaining({
+					name: 'Facet',
+					fontScheme: expect.objectContaining({
+						majorFont: expect.objectContaining({ eastAsia: 'Yu Gothic' }),
+					}),
+				}),
+			],
+		]);
+		wrapper.unmount();
 	});
 
-	it('emits apply with the edited colour scheme, fonts, and name', async () => {
+	it('updates disabled properties and forwards close once', async () => {
 		const wrapper = mount(ThemeEditorPanel, { props: { theme, canEdit: true } });
-		await wrapper.find('button[aria-label="Close"]').exists();
-		const applyBtn = wrapper
-			.findAll('button')
-			.find((b) => b.text().includes('Apply to Presentation'))!;
-		await applyBtn.trigger('click');
-		const payload = wrapper.emitted('apply')?.[0]?.[0] as {
-			colorScheme: { accent1: string };
-			fontScheme: { majorFont: { latin: string } };
-			name: string;
-		};
-		expect(payload.name).toBe('My Theme');
-		expect(payload.colorScheme.accent1).toBe('#4472c4');
-		expect(payload.fontScheme.majorFont.latin).toBe('Georgia');
-	});
-
-	it('emits close from the header button', async () => {
-		const wrapper = mount(ThemeEditorPanel, { props: { theme, canEdit: true } });
-		await wrapper.get('button[aria-label="Close"]').trigger('click');
+		await wrapper.setProps({ canEdit: false });
+		const root = wrapper.element.shadowRoot!;
+		expect(root.querySelector<HTMLButtonElement>('.apply')!.disabled).toBeTruthy();
+		root.querySelector<HTMLButtonElement>('.apply')!.click();
+		expect(wrapper.emitted('apply')).toBeUndefined();
+		root.querySelector<HTMLButtonElement>('.close')!.click();
 		expect(wrapper.emitted('close')).toHaveLength(1);
+		wrapper.unmount();
 	});
 });

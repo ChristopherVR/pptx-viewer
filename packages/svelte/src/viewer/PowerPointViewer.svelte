@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ViewerThemeEditor from './components/ViewerThemeEditor.svelte';
 	/**
 	 * PowerPointViewer: the Svelte 5 viewer root. It is deliberately thin
 	 * composition: every reactive controller (loader, editor, collaboration,
@@ -231,6 +232,7 @@
 	}}
 >
 	<EditorChromeStyle />
+	<ViewerThemeEditor {editor} onthemechange={(next) => { loader.presentationTheme = next; loader.colorScheme = next.colorScheme; }} />
 	<RibbonCustomizationStyle scope={ribbonScope} />
 	{#if showToolbar && vm.chromeVisible}
 		<ViewerChrome

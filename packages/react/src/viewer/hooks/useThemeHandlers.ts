@@ -8,12 +8,14 @@ import type {
 	PptxThemeOption,
 	PptxHandler,
 } from 'pptx-viewer-core';
+import type { ThemeEditorEdit } from 'pptx-viewer-shared';
 /**
  * useThemeHandlers: Theme application, colour-scheme / font-scheme / name
  * updates, presentation-wide theme apply, and template background handling.
  */
 import type { RefObject } from 'react';
 
+import { applyThemeEditorEdit } from './theme-editor-apply';
 import type { EditorHistoryResult } from './useEditorHistory';
 
 export interface UseThemeHandlersInput {
@@ -45,6 +47,7 @@ export interface UseThemeHandlersInput {
 }
 
 export interface ThemeHandlersResult {
+	handleApplyThemeEdit: (edit: ThemeEditorEdit) => Promise<void>;
 	handleApplyTheme: (themePath: string, applyToAllMasters: boolean) => Promise<void>;
 	handleUpdateThemeColorScheme: (colorScheme: PptxThemeColorScheme) => Promise<void>;
 	handleUpdateThemeFontScheme: (fontScheme: PptxThemeFontScheme) => Promise<void>;
@@ -231,7 +234,10 @@ export function useThemeHandlers(input: UseThemeHandlersInput): ThemeHandlersRes
 		await refreshContentAfterThemeChange();
 	};
 
+	const handleApplyThemeEdit = (edit: ThemeEditorEdit) => applyThemeEditorEdit(input, edit);
+
 	return {
+		handleApplyThemeEdit,
 		handleApplyTheme,
 		handleUpdateThemeColorScheme,
 		handleUpdateThemeFontScheme,

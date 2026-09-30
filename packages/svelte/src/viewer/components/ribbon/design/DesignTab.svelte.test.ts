@@ -148,19 +148,14 @@ describe('designTab', () => {
 		expect(onslidesize).toHaveBeenCalledOnce();
 	});
 
-	it('opens the deck theme editor from Edit Theme', () => {
-		const target = mountTab({ editor: makeEditor(fakeHandler()) });
-		expect(target.querySelector('[data-deck-theme-editor]')).toBeNull();
-
+	it('opens the viewer-owned theme editor from Edit Theme', () => {
+		const editor = makeEditor(fakeHandler());
+		const target = mountTab({ editor });
+		expect(editor.themeEditorOpen).toBeFalsy();
 		clickButton(target, 'Edit Theme');
-
-		const panel = target.querySelector('[data-deck-theme-editor]');
-		expect(panel?.querySelector('.pptx-svelte-theme-editor')).not.toBeNull();
-		expect(panel?.querySelector<HTMLInputElement>('input[type="text"]')?.value).toBe(
-			'Office Theme',
-		);
-
+		expect(editor.themeEditorOpen).toBeTruthy();
+		expect(target.querySelector('pptx-ui-theme-editor')).toBeNull();
 		clickButton(target, 'Edit Theme');
-		expect(target.querySelector('[data-deck-theme-editor]')).toBeNull();
+		expect(editor.themeEditorOpen).toBeFalsy();
 	});
 });

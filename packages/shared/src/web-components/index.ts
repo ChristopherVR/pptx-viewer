@@ -8,6 +8,9 @@ import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
 import { definePptxSubtitleSettings } from './subtitle-settings';
+import { definePptxThemeEditor } from './theme-editor';
+
+export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
 export type { RibbonToggleRequestEvent } from './ribbon-toggle';
@@ -31,6 +34,7 @@ const controls = [
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
+	['pptx-ui-theme-editor', definePptxThemeEditor],
 ] as const;
 
 /** Idempotent browser-only registration. Safe to call from every viewer binding. */

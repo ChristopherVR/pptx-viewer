@@ -211,6 +211,8 @@ export class EditorState {
 	clipboard = $state.raw<ElementClipboardPayload | null>(null);
 	/** Ctrl/Cmd+Alt+V dialog visibility. */
 	pasteSpecialDialogOpen = $state(false);
+	/** Shared theme editor stays mounted across ribbon/mobile layout changes. */
+	themeEditorOpen = $state(false);
 	/** The Paste Options toolbar's target: the elements a normal paste just inserted. */
 	pasteOptionsToolbar = $state.raw<{ id: string; sourceClone: PptxElement }[] | null>(null);
 	/**

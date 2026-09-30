@@ -112,7 +112,7 @@ export function MobileChromeOverlay(props: MobileChromeOverlayProps): React.Reac
 	return (
 		<>
 			<MobileSlidesSheet
-				open={s.isSlidesPaneOpen}
+				open={s.isSlidesPaneOpen && !s.isThemeEditorOpen}
 				onClose={() => s.setIsSlidesPaneOpen(false)}
 				slides={slides}
 				templateElementsBySlideId={s.templateElementsBySlideId}

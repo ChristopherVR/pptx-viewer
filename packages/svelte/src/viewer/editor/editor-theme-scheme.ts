@@ -6,8 +6,8 @@
  * A colour-scheme edit takes the CHEAP route React settled on: write the
  * scheme into the archive, then re-resolve the live slides' colours in place
  * via core's `reResolveSlideColors` (an undoable `commitSlides`). Only the
- * theme editor's explicit "Apply to Presentation" runs the heavy
- * `switchTheme` round-trip. Design > Browse Themes applies a whole preset
+ * theme editor's explicit "Apply to Presentation" commits a staged edit.
+ * Design > Browse Themes applies a whole preset
  * (colours, fonts and name) through {@link applyThemePreset}.
  */
 import type {
@@ -22,6 +22,7 @@ import {
 	applyThemeToData,
 	buildThemeColorMap,
 	reResolveElementColors,
+	reResolveElementFonts,
 	reResolveSlideColors,
 } from 'pptx-viewer-core';
 
@@ -78,6 +79,12 @@ export async function applyThemePreset(
 	const result = applyThemeToData(data, preset.colorScheme, preset.fontScheme, preset.name);
 	editor.commitSlides(result.slides);
 	recolourTemplateLayer(editor, previousMap, preset.colorScheme);
+	editor.templateElementsBySlideId = Object.fromEntries(
+		Object.entries(editor.templateElementsBySlideId).map(([id, elements]) => [
+			id,
+			reResolveElementFonts(elements, current?.fontScheme, preset.fontScheme),
+		]),
+	);
 	return (
 		result.theme ?? {
 			...current,

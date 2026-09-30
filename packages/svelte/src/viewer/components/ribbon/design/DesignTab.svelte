@@ -13,11 +13,9 @@
 	 * Size" opens the document-properties dialog the ribbon shell owns, which
 	 * is where the slide dimensions live.
 	 */
-	import type { PptxHandler } from 'pptx-viewer-core';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
-	import DeckThemeEditor from '../../inspector/DeckThemeEditor.svelte';
 	import { anchoredPopup } from '../anchored-popup';
 	import { fixedGalleryPlacement } from '../galleries/fixed-placements';
 	import { createRibbonGalleryHost, useRibbonGalleryHost } from '../galleries/ribbon-gallery-host';
@@ -43,9 +41,7 @@
 	let backgroundOpen = $state(false);
 	// eslint-disable-next-line prefer-const
 	let galleryAnchor: HTMLElement | undefined = $state();
-	/** The deck handler while Edit Theme is open (null = closed). */
-	let themeHandler = $state.raw<PptxHandler | null>(null);
-	const editorOpen = $derived(themeHandler !== null);
+	const editorOpen = $derived(editor.themeEditorOpen);
 
 	function onFocusOut(event: FocusEvent): void {
 		const root = event.currentTarget as HTMLElement;
@@ -55,7 +51,7 @@
 	}
 
 	function toggleThemeEditor(): void {
-		themeHandler = themeHandler ? null : editor.getHandler();
+		editor.themeEditorOpen = !editor.themeEditorOpen;
 	}
 	const VARIANT_COLORS = fixedGalleryPlacement('design.variants.colors');
 	const VARIANT_FONTS = fixedGalleryPlacement('design.variants.fonts');
@@ -132,11 +128,6 @@
 	</button>
 	</div>
 
-	{#if themeHandler}
-		<div class="pptx-svelte-designtab-panel" data-deck-theme-editor>
-			<DeckThemeEditor {editor} handler={themeHandler} theme={editor.theme} onthemechange={(next) => host.publishTheme(next)} />
-		</div>
-	{/if}
 	{#if backgroundOpen}
 		<div class="pptx-svelte-designtab-panel">
 			<FormatBackgroundPanel {editor} open={backgroundOpen} onclose={() => (backgroundOpen = false)} />

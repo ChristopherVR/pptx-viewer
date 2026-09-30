@@ -1508,6 +1508,7 @@ const { drawingActive, addInkStroke, eraseInkAt } = useInkDrawing({
 });
 
 const themeEditing = useThemeEditing({
+	handler,
 	slides,
 	pptxTheme,
 	themeColorMap,

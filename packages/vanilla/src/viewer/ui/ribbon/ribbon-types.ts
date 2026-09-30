@@ -187,7 +187,7 @@ export interface RibbonDesignHandlers {
 		colorScheme: PptxThemeColorScheme;
 		fontScheme: PptxThemeFontScheme;
 		name: string;
-	}): void;
+	}): void | Promise<void>;
 }
 
 /**

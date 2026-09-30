@@ -185,6 +185,7 @@ import { buildSmartArtInsertElement } from './smart-art-insert-helpers';
 import { StatusBarComponent } from './status-bar.component';
 import { TableSelectionService } from './table-selection.service';
 import { buildSaveSlides } from './template-mode';
+import { ThemeEditorFieldsComponent } from './theme-editor-fields.component';
 import { ThemeGalleryComponent } from './theme-gallery.component';
 import { resolveBelowRibbonQuickAccess, TitleBarComponent } from './title-bar.component';
 import { mergeHiddenActions } from './toolbar-visibility';
@@ -287,6 +288,7 @@ import { ZoomTargetService } from './zoom-target.service';
 		RibbonCustomizationStyleDirective,
 		TitleBarComponent,
 		ThemeGalleryComponent,
+		ThemeEditorFieldsComponent,
 		SelectionPaneComponent,
 		CustomShowsComponent,
 		InsertSmartArtDialogComponent,
@@ -1119,15 +1121,20 @@ import { ZoomTargetService } from './zoom-target.service';
 				(dismiss)="editor.pasteOptionsToolbar.set(null)"
 			/>
 
+			@if (themeEditorRequested()) {
+				<pptx-theme-editor-fields
+					[theme]="loader.theme()"
+					[canEdit]="canEdit() && !themeGallery.themeEditorApplying()"
+					(applyTheme)="applyThemeEditor($event)"
+					(close)="themeEditorRequested.set(false)"
+				/>
+			}
 			<pptx-theme-gallery
 				[open]="themeGallery.showThemeGallery()"
-				[startCustomizing]="themeEditorRequested()"
 				[activeName]="themeGallery.activeThemeName()"
 				[theme]="loader.theme()"
 				(applyTheme)="themeGallery.applyThemePreset($event)"
-				(applyCustomTheme)="
-					themeGallery.applyCustomTheme($event.colorScheme, $event.fontScheme, $event.name)
-				"
+				(applyCustomTheme)="applyThemeEditor($event)"
 				(close)="themeGallery.showThemeGallery.set(false)"
 			/>
 
@@ -2840,13 +2847,21 @@ export class PowerPointViewerComponent
 	}
 
 	/**
-	 * Design > Edit Theme: the real theme editor lives inside the gallery
-	 * overlay, so open the gallery already switched to it (it used to open the
-	 * Document Properties dialog, which has nothing to do with themes).
+	 * Design > Edit Theme opens the shared editor against the editor body.
+	 * Browse Themes retains its separate preset gallery entry.
 	 */
 	protected onEditTheme(): void {
-		this.themeEditorRequested.set(true);
-		this.themeGallery.showThemeGallery.set(true);
+		this.themeGallery.showThemeGallery.set(false);
+		this.themeEditorRequested.update((open) => !open);
+	}
+	protected async applyThemeEditor(
+		edit: import('../internal/shared').ThemeEditorEdit,
+	): Promise<void> {
+		if (!this.canEdit()) {
+			return;
+		}
+		await this.themeGallery.applyThemeEditor(edit);
+		this.themeEditorRequested.set(false);
 	}
 
 	/**

@@ -1,5 +1,11 @@
-import type { PptxElement, PptxSlide, PptxTheme, PptxThemeColorScheme } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type {
+	PptxElement,
+	PptxSlide,
+	PptxTheme,
+	PptxThemeColorScheme,
+	PptxHandler,
+} from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 import { ref, shallowRef } from 'vue';
 
 import { useThemeEditing } from './useThemeEditing';
@@ -35,6 +41,34 @@ function makeTemplateShape(): PptxElement {
 }
 
 describe('useThemeEditing', () => {
+	it('writes a staged edit to the archive and records one history update', async () => {
+		const applyTheme = vi.fn().mockResolvedValue(undefined);
+		const pushHistory = vi.fn();
+		const pptxTheme = ref<PptxTheme>();
+		const themeEditorOpen = ref(true);
+		const editing = useThemeEditing({
+			handler: shallowRef({ applyTheme } as unknown as PptxHandler),
+			slides: ref([]),
+			pptxTheme,
+			themeColorMap: ref({}),
+			pushHistory,
+			themeGalleryOpen: ref(false),
+			themeEditorOpen,
+			templateElementsBySlideId: shallowRef({}),
+		});
+		const edit = { name: 'Saved edit', colorScheme: OFFICE_COLORS, fontScheme: {} };
+		await editing.applyThemeEdit(edit);
+		expect(applyTheme).toHaveBeenCalledExactlyOnceWith(
+			edit.colorScheme,
+			edit.fontScheme,
+			edit.name,
+		);
+		expect(pushHistory).toHaveBeenCalledOnce();
+		expect(pptxTheme.value?.name).toBe(edit.name);
+		expect(themeEditorOpen.value).toBeFalsy();
+		expect(editing.themeEditorBusy.value).toBeFalsy();
+	});
+
 	it('re-colours templateElementsBySlideId alongside slides when applying a theme', () => {
 		const slides = ref<PptxSlide[]>([{ elements: [], slideNumber: 1 } as PptxSlide]);
 		const pptxTheme = ref<PptxTheme | undefined>({ colorScheme: OFFICE_COLORS } as PptxTheme);

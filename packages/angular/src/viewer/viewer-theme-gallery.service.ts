@@ -14,7 +14,7 @@
 
 import { computed, inject, Injectable, signal } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
-import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
+import { applyThemeToData, reResolveElementColors, reResolveElementFonts } from 'pptx-viewer-core';
 import type {
 	PptxData,
 	PptxThemeColorScheme,
@@ -22,6 +22,7 @@ import type {
 	PptxThemePreset,
 } from 'pptx-viewer-core';
 
+import type { ThemeEditorEdit } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import type { TemplateElementsBySlideId } from './template-mode';
@@ -34,6 +35,19 @@ export class ViewerThemeGalleryService {
 
 	/** Whether the theme-gallery overlay is visible (Design → Browse Themes). */
 	readonly showThemeGallery = signal(false);
+	readonly themeEditorApplying = signal(false);
+	async applyThemeEditor(edit: ThemeEditorEdit): Promise<void> {
+		if (this.themeEditorApplying()) {
+			return;
+		}
+		this.themeEditorApplying.set(true);
+		try {
+			await this.loader.getHandler()?.applyTheme(edit.colorScheme, edit.fontScheme, edit.name);
+			this.applyCustomTheme(edit.colorScheme, edit.fontScheme, edit.name);
+		} finally {
+			this.themeEditorApplying.set(false);
+		}
+	}
 	/** The `name` property of the loaded deck's theme (for check-mark in gallery). */
 	readonly activeThemeName = computed<string | undefined>(() => this.loader.theme()?.name);
 
@@ -85,6 +99,7 @@ export class ViewerThemeGalleryService {
 	): void {
 		const currentSlides = this.editor.slides();
 		const previousColorMap = this.loader.themeColorMap() ?? {};
+		const previousFonts = this.loader.theme()?.fontScheme;
 		const result = applyThemeToData(
 			{
 				slides: [...currentSlides],
@@ -107,7 +122,11 @@ export class ViewerThemeGalleryService {
 		if (Object.keys(currentTemplateElements).length > 0) {
 			const recoloured: TemplateElementsBySlideId = {};
 			for (const [slideId, elements] of Object.entries(currentTemplateElements)) {
-				recoloured[slideId] = reResolveElementColors(elements, previousColorMap, colorScheme);
+				recoloured[slideId] = reResolveElementFonts(
+					reResolveElementColors(elements, previousColorMap, colorScheme),
+					previousFonts,
+					fontScheme ?? previousFonts ?? {},
+				);
 			}
 			this.editor.templateElementsBySlideId.set(recoloured);
 		}

@@ -1,4 +1,4 @@
-import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
+import { applyThemeToData, reResolveElementColors, reResolveElementFonts } from 'pptx-viewer-core';
 import type {
 	PptxData,
 	PptxElement,
@@ -7,10 +7,13 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 	PptxThemePreset,
+	PptxHandler,
 } from 'pptx-viewer-core';
+import { ref } from 'vue';
 import type { Ref, ShallowRef } from 'vue';
 
 export interface UseThemeEditingInput {
+	handler?: Ref<PptxHandler | null | undefined>;
 	slides: Ref<PptxSlide[]>;
 	pptxTheme: Ref<PptxTheme | undefined>;
 	themeColorMap: Ref<Record<string, string> | undefined>;
@@ -27,6 +30,7 @@ export interface UseThemeEditingInput {
 }
 
 export interface UseThemeEditingResult {
+	themeEditorBusy: Ref<boolean>;
 	applyTheme: (
 		colorScheme: PptxThemeColorScheme,
 		fontScheme: PptxThemeFontScheme | undefined,
@@ -37,7 +41,7 @@ export interface UseThemeEditingResult {
 		colorScheme: PptxThemeColorScheme;
 		fontScheme: PptxThemeFontScheme;
 		name: string;
-	}) => void;
+	}) => Promise<void>;
 }
 
 /**
@@ -47,6 +51,7 @@ export interface UseThemeEditingResult {
  * (history-aware). Extracted verbatim from `PowerPointViewer.vue`.
  */
 export function useThemeEditing(input: UseThemeEditingInput): UseThemeEditingResult {
+	const themeEditorBusy = ref(false);
 	const {
 		slides,
 		pptxTheme,
@@ -64,6 +69,7 @@ export function useThemeEditing(input: UseThemeEditingInput): UseThemeEditingRes
 	): void {
 		pushHistory();
 		const previousColorMap = themeColorMap.value ?? {};
+		const previousFonts = pptxTheme.value?.fontScheme;
 		const result = applyThemeToData(
 			{
 				slides: slides.value,
@@ -80,7 +86,11 @@ export function useThemeEditing(input: UseThemeEditingInput): UseThemeEditingRes
 		if (Object.keys(templateElementsBySlideId.value).length > 0) {
 			const recoloured: Record<string, PptxElement[]> = {};
 			for (const [slideId, elements] of Object.entries(templateElementsBySlideId.value)) {
-				recoloured[slideId] = reResolveElementColors(elements, previousColorMap, colorScheme);
+				recoloured[slideId] = reResolveElementFonts(
+					reResolveElementColors(elements, previousColorMap, colorScheme),
+					previousFonts,
+					fontScheme ?? previousFonts ?? {},
+				);
 			}
 			templateElementsBySlideId.value = recoloured;
 		}
@@ -91,14 +101,23 @@ export function useThemeEditing(input: UseThemeEditingInput): UseThemeEditingRes
 		themeGalleryOpen.value = false;
 	}
 	/** Apply edited theme colours/fonts/name (Design ▸ Edit theme). */
-	function applyThemeEdit(payload: {
+	async function applyThemeEdit(payload: {
 		colorScheme: PptxThemeColorScheme;
 		fontScheme: PptxThemeFontScheme;
 		name: string;
-	}): void {
-		applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
-		themeEditorOpen.value = false;
+	}): Promise<void> {
+		if (themeEditorBusy.value) {
+			return;
+		}
+		themeEditorBusy.value = true;
+		try {
+			await input.handler?.value?.applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
+			applyTheme(payload.colorScheme, payload.fontScheme, payload.name);
+			themeEditorOpen.value = false;
+		} finally {
+			themeEditorBusy.value = false;
+		}
 	}
 
-	return { applyTheme, applyThemePreset, applyThemeEdit };
+	return { applyTheme, applyThemePreset, applyThemeEdit, themeEditorBusy };
 }

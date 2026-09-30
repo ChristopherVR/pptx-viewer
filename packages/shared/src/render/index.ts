@@ -1730,3 +1730,4 @@ export * from './ribbon-record-commands';
 export * from './editor-chrome';
 
 export * from './ribbon-icons';
+export * from './theme-editor-model';

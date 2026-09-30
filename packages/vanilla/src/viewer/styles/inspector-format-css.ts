@@ -342,43 +342,6 @@ export const INSPECTOR_FORMAT_CSS = `
 .pptxv-tags-empty { margin: 6px 0 0; color: var(--pptx-muted-foreground); font-size: 10px; }
 .pptxv-tags-empty[hidden] { display: none; }
 
-/* ── Theme editor card ───────────────────────────────────────────────── */
-.pptxv-theme-name .pptxv-field-input { width: 100%; }
-.pptxv-theme-presets { display: grid; gap: 4px; margin: 8px 0; }
-.pptxv-theme-preset-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-.pptxv-theme-preset {
-	display: grid;
-	min-width: 0;
-	gap: 2px;
-	padding: 4px;
-	border: 1px solid var(--pptx-border);
-	border-radius: var(--pptx-radius);
-	background: transparent;
-	color: var(--pptx-muted-foreground);
-	font: inherit;
-	font-size: 10px;
-	cursor: pointer;
-}
-.pptxv-theme-preset:hover:not(:disabled) { background: var(--pptx-accent); color: var(--pptx-accent-foreground); }
-.pptxv-theme-preset.is-active { border-color: var(--pptx-primary); color: var(--pptx-primary); }
-.pptxv-theme-preset-swatches { display: flex; gap: 2px; }
-.pptxv-theme-preset-dot { display: block; width: 100%; height: 10px; border-radius: 2px; }
-.pptxv-theme-preset-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pptxv-theme-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 8px; margin-bottom: 8px; }
-.pptxv-theme-slot { display: flex; align-items: center; justify-content: space-between; gap: 6px; min-width: 0; font-size: 10px; }
-.pptxv-theme-slot-label { overflow: hidden; color: var(--pptx-muted-foreground); text-overflow: ellipsis; white-space: nowrap; }
-.pptxv-theme-slot-input { width: 26px; height: 20px; padding: 0; border: 1px solid var(--pptx-border); border-radius: 3px; background: transparent; }
-.pptxv-theme-preview {
-	display: grid;
-	gap: 2px;
-	margin: 8px 0;
-	padding: 8px;
-	border: 1px solid var(--pptx-border);
-	border-radius: var(--pptx-radius);
-}
-.pptxv-theme-preview-heading { font-size: 13px; font-weight: 600; }
-.pptxv-theme-preview-body { font-size: 11px; }
-
 /* ── Alt text (image section) ────────────────────────────────────────── */
 .pptxv-image-alt { display: grid; gap: 3px; margin: 6px 0; }
 .pptxv-image-alt-input {

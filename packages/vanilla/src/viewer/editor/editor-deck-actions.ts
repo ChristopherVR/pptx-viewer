@@ -8,7 +8,7 @@ import type {
 	PptxThemeColorScheme,
 	PptxThemeFontScheme,
 } from 'pptx-viewer-core';
-import { applyThemeToData, reResolveElementColors } from 'pptx-viewer-core';
+import { applyThemeToData, reResolveElementColors, reResolveElementFonts } from 'pptx-viewer-core';
 import type { SlideSizeEmu, SlideSizeRescaleMode } from 'pptx-viewer-shared';
 import {
 	applyTableStyleDelete,
@@ -39,7 +39,7 @@ export interface DeckActions {
 		colorScheme: PptxThemeColorScheme;
 		fontScheme: PptxThemeFontScheme;
 		name: string;
-	}): void;
+	}): void | Promise<void>;
 	/** Replace the deck's `ppt/tags/*.xml` collections (inspector TAGS card). */
 	updateTagCollections(next: PptxTagCollection[]): void;
 	/** Patch the active slide (inspector THEME OVERRIDE card). */
@@ -109,11 +109,12 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 			})();
 		},
 
-		applyThemeEdit({ colorScheme, fontScheme, name }) {
-			const state = store.get();
-			if (!state.editable) {
+		async applyThemeEdit({ colorScheme, fontScheme, name }) {
+			if (!store.get().editable) {
 				return;
 			}
+			await deps.getHandler()?.applyTheme(colorScheme, fontScheme, name);
+			const state = store.get();
 			ops.pushHistory();
 			// Core's pure `applyThemeToData` re-resolves every slide's scheme-based
 			// colours against the new palette, which is what makes an edited theme
@@ -136,7 +137,11 @@ export function createDeckActions(deps: DeckActionsDeps): DeckActions {
 				? Object.fromEntries(
 						Object.entries(state.templateElementsBySlideId).map(([slideId, elements]) => [
 							slideId,
-							reResolveElementColors(elements, previousColorMap ?? {}, colorScheme),
+							reResolveElementFonts(
+								reResolveElementColors(elements, previousColorMap ?? {}, colorScheme),
+								state.fontScheme,
+								fontScheme,
+							),
 						]),
 					)
 				: state.templateElementsBySlideId;

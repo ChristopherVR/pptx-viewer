@@ -167,3 +167,20 @@ The neutral `web-control-contract.spec.ts` covers token inheritance, focus,
 forced colors, touch targets, reconnect and two independent control instances.
 Adapter unit tests cover framework mount/remount and callback boundaries. The
 Slide Show browser specs cover real viewer state surviving tab changes.
+
+`pptx-ui-theme-editor` owns the theme draft, preset gallery, color/font fields,
+preview and CSS. Properties are `theme`, translated `labels` and `disabled`.
+`theme-editor-apply` emits one detached `{ name, colorScheme, fontScheme }`
+payload; `theme-editor-close` dismisses without applying. Both events bubble
+and cross the shadow boundary. Reset copies the current host theme. A host
+refresh preserves a dirty draft, and unknown fonts and non-Latin font metadata
+survive editing. The adapter commits the payload through its native document,
+history and save path, then unmounts the editor on Apply or Close.
+
+Design > Edit Theme docks against the shared editor body below the ribbon.
+Below 768px it becomes a bottom sheet with scrollable fields and visible actions.
+Opening focuses the name; Escape and Close return focus to the opener. The
+optional `inline` attribute supports secondary inspector/gallery placement
+without docking or automatic focus. Native adapters must discard dismissed
+instances so reopening starts from the loaded theme. See
+`e2e/theme-editor-migration.spec.ts` for the five-binding integration contract.

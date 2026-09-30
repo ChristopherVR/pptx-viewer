@@ -12,6 +12,7 @@ let cleanup: (() => void) | undefined;
 afterEach(() => cleanup?.());
 
 interface ThemeHandlerMock {
+	applyTheme: ReturnType<typeof vi.fn>;
 	handler: PptxHandler;
 	switchTheme: ReturnType<typeof vi.fn>;
 	updateThemeColorScheme: ReturnType<typeof vi.fn>;
@@ -20,6 +21,7 @@ interface ThemeHandlerMock {
 }
 
 function makeHandler(): ThemeHandlerMock {
+	const applyTheme = vi.fn(async () => undefined);
 	const switchTheme = vi.fn(async (data, colorScheme, fontScheme, name) => ({
 		...data,
 		theme: { name, colorScheme, fontScheme },
@@ -28,7 +30,9 @@ function makeHandler(): ThemeHandlerMock {
 	const updateThemeFontScheme = vi.fn(async () => undefined);
 	const updateThemeName = vi.fn(async () => undefined);
 	return {
+		applyTheme,
 		handler: {
+			applyTheme,
 			switchTheme,
 			updateThemeColorScheme,
 			updateThemeFontScheme,
@@ -123,8 +127,10 @@ describe('themeSection', () => {
 		const mock = makeHandler();
 		const { target } = mountSection(mock);
 
-		expect(target.querySelector('.pptx-svelte-theme-editor')).not.toBeNull();
-		const presets = target.querySelectorAll('.pptx-svelte-theme-presets button');
+		expect(target.querySelector('pptx-ui-theme-editor')).not.toBeNull();
+		const presets = target
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelectorAll('.preset');
 		expect(presets).toHaveLength(PRESET_THEMES.length);
 	});
 
@@ -132,15 +138,25 @@ describe('themeSection', () => {
 		const mock = makeHandler();
 		const { target, onthemechange } = mountSection(mock);
 
-		target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-theme-presets button')[1]?.click();
+		target
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelectorAll<HTMLButtonElement>('.preset')[1]
+			?.click();
+		expect(mock.applyTheme).not.toHaveBeenCalled();
+		target
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('.apply')!
+			.click();
 		await tick();
 
-		expect(mock.updateThemeColorScheme).toHaveBeenCalledWith(PRESET_THEMES[1].colorScheme);
-		expect(mock.updateThemeFontScheme).toHaveBeenCalledWith({
-			majorFont: { latin: PRESET_THEMES[1].majorFont },
-			minorFont: { latin: PRESET_THEMES[1].minorFont },
-		});
-		expect(mock.updateThemeName).toHaveBeenCalledWith(PRESET_THEMES[1].name);
+		expect(mock.applyTheme).toHaveBeenCalledWith(
+			PRESET_THEMES[1].colorScheme,
+			expect.objectContaining({
+				majorFont: expect.objectContaining({ latin: PRESET_THEMES[1].majorFont }),
+			}),
+			PRESET_THEMES[1].name,
+		);
+
 		// A colour-picker drag must never trigger the heavy whole-deck rebuild.
 		expect(mock.switchTheme).not.toHaveBeenCalled();
 		expect(onthemechange).toHaveBeenCalledWith(
@@ -165,7 +181,15 @@ describe('themeSection', () => {
 			],
 		};
 
-		target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-theme-presets button')[1]?.click();
+		target
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelectorAll<HTMLButtonElement>('.preset')[1]
+			?.click();
+		expect(mock.applyTheme).not.toHaveBeenCalled();
+		target
+			.querySelector('pptx-ui-theme-editor')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('.apply')!
+			.click();
 		await tick();
 
 		const patched = editor.templateElementsBySlideId.s1?.[0] as unknown as {
@@ -174,16 +198,19 @@ describe('themeSection', () => {
 		expect(patched?.shapeStyle?.fillColor).toBe(PRESET_THEMES[1].colorScheme.accent1);
 	});
 
-	it('runs the full switchTheme only from Apply to Presentation', async () => {
+	it('writes the archive without reloading from Apply to Presentation', async () => {
 		const mock = makeHandler();
 		const { target } = mountSection(mock);
 
 		const apply = Array.from(
-			target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-theme-actions button'),
+			target
+				.querySelector('pptx-ui-theme-editor')!
+				.shadowRoot!.querySelectorAll<HTMLButtonElement>('.actions button'),
 		)[0];
 		apply?.click();
 		await tick();
 
-		expect(mock.switchTheme).toHaveBeenCalledOnce();
+		expect(mock.applyTheme).toHaveBeenCalledOnce();
+		expect(mock.switchTheme).not.toHaveBeenCalled();
 	});
 });

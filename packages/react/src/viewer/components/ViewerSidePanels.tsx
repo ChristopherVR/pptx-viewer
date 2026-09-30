@@ -207,20 +207,15 @@ export function ViewerSidePanels(props: ViewerSidePanelsProps) {
 			)}
 
 			{s.isThemeEditorOpen && mode === 'edit' && (
-				<MobileDismissSheet
+				<ThemeEditorPanel
+					theme={s.theme}
+					canEdit={canEdit}
+					onApply={async (edit) => {
+						await themeHandlers.handleApplyThemeEdit(edit);
+						s.setIsThemeEditorOpen(false);
+					}}
 					onClose={() => s.setIsThemeEditorOpen(false)}
-					className='absolute right-0 top-0 z-30 h-full w-72 overflow-y-auto border-l border-border bg-card p-2.5 shadow-xl max-md:inset-x-0 max-md:bottom-0 max-md:top-auto max-md:w-full max-md:h-auto max-md:max-h-[60vh] max-md:rounded-t-xl max-md:border-t max-md:border-l-0'
-				>
-					<ThemeEditorPanel
-						theme={s.theme}
-						canEdit={canEdit}
-						onUpdateColorScheme={themeHandlers.handleUpdateThemeColorScheme}
-						onUpdateFontScheme={themeHandlers.handleUpdateThemeFontScheme}
-						onUpdateThemeName={themeHandlers.handleUpdateThemeName}
-						onApplyToPresentation={themeHandlers.handleApplyThemeToPresentation}
-						onClose={() => s.setIsThemeEditorOpen(false)}
-					/>
-				</MobileDismissSheet>
+				/>
 			)}
 
 			{aiPanel?.isOpen && aiConfig && aiBridge && (mode === 'edit' || mode === 'master') && (

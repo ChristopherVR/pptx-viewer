@@ -1,8 +1,8 @@
 import { DestroyRef, Injector, runInInjectionContext } from '@angular/core';
 import { TranslateService } from '@ngx-translate/core';
 import { buildThemeColorMap } from 'pptx-viewer-core';
-import type { PptxElement, PptxThemeColorScheme } from 'pptx-viewer-core';
-import { describe, expect, it } from 'vitest';
+import type { PptxElement, PptxThemeColorScheme, PptxHandler } from 'pptx-viewer-core';
+import { describe, expect, it, vi } from 'vitest';
 
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
@@ -49,6 +49,24 @@ function createService(): {
 }
 
 describe('viewerThemeGalleryService', () => {
+	it('persists a staged edit before one history-aware model update', async () => {
+		const { gallery, editor, loader } = createService();
+		editor.setSlides([{ id: 's1', rId: 's1', slideNumber: 1, elements: [] }]);
+		const applyTheme = vi.fn().mockResolvedValue(undefined);
+		vi.spyOn(loader, 'getHandler').mockReturnValue({ applyTheme } as unknown as PptxHandler);
+		const commit = vi.spyOn(editor, 'applyReplacement');
+		const edit = { name: 'Saved edit', colorScheme: OFFICE_COLORS, fontScheme: {} };
+		await gallery.applyThemeEditor(edit);
+		expect(applyTheme).toHaveBeenCalledExactlyOnceWith(
+			edit.colorScheme,
+			edit.fontScheme,
+			edit.name,
+		);
+		expect(commit).toHaveBeenCalledOnce();
+		expect(loader.theme()?.name).toBe(edit.name);
+		expect(gallery.themeEditorApplying()).toBeFalsy();
+	});
+
 	it('re-colours templateElementsBySlideId alongside slides when applying a theme', () => {
 		const { gallery, editor, loader } = createService();
 		editor.setSlides([{ id: 's1', rId: 's1', slideNumber: 1, elements: [] }]);
