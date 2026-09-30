@@ -1,194 +1,77 @@
-/**
- * ribbon-review-section.component.ts: the Review ribbon tab (Proofing,
- * Accessibility, Language, Changes, Comments and Protect groups). Split out of
- * {@link RibbonComponent}.
- *
- * Several entries are rendered disabled rather than left out: Thesaurus,
- * Translate, Mark All Read, comment Delete/Previous/Next, and the three
- * Protect commands. None of them has a backend in this viewer yet, but a user
- * looking for "Restrict Permission" should find where it will be instead of
- * concluding the tab is broken, and every other binding lists them.
- */
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	computed,
+	inject,
+	Input,
+	output,
+	signal,
+} from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
-import { EditorStateService } from './editor-state.service';
+import { buildReviewRibbon } from '../internal/shared';
+import type { RibbonCommandRequestEvent } from '../internal/shared';
 
 @Component({
 	selector: 'pptx-ribbon-review-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe],
-	template: `
-		<!-- Proofing -->
-		<span class="contents" data-ribbon-group="review.proofing">
-			<button
-				data-ribbon-control="review.proofing.spelling"
-				type="button"
-				class="pptx-rb-pill"
-				[class.is-active]="spellCheckEnabled()"
-				[attr.aria-pressed]="spellCheckEnabled()"
-				[title]="'pptx.review.toggleSpellCheck' | translate"
-				(click)="spellCheckChange.emit(!spellCheckEnabled())"
-			>
-				{{ 'pptx.review.spelling' | translate }}
-			</button>
-			<button
-				data-ribbon-control="review.proofing.thesaurus"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.review.thesaurus' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Accessibility -->
-		<button
-			data-ribbon-group="review.accessibility"
-			data-ribbon-control="review.accessibility.check"
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.review.accessibilityCheckTooltip' | translate"
-			(click)="a11y.emit()"
-		>
-			{{ 'pptx.review.accessibilityCheck' | translate }}
-		</button>
-		<span class="pptx-rb-sep"></span>
-		<!-- Language -->
-		<span class="contents" data-ribbon-group="review.language">
-			<button
-				data-ribbon-control="review.language.translate"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.review.translate' | translate }}
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.review.languageTooltip' | translate"
-				(click)="language.emit()"
-			>
-				{{ 'pptx.review.language' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Changes -->
-		<span class="contents" data-ribbon-group="review.compare">
-			<button
-				data-ribbon-control="review.compare.markAllRead"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.review.markAllRead' | translate }}
-			</button>
-			<button
-				data-ribbon-control="review.compare.compare"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="!canEdit()"
-				[title]="'pptx.ribbon.compareTitle' | translate"
-				(click)="openCompare.emit()"
-			>
-				{{ 'pptx.ribbon.compare' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Comments -->
-		<span class="contents" data-ribbon-group="review.comments">
-			<button type="button" class="pptx-rb-pill" (click)="comments.emit()">
-				{{ 'pptx.toolbar.comments' | translate }}
-			</button>
-			<div class="flex flex-col justify-center gap-0.5">
-				<button
-					data-ribbon-control="review.comments.delete"
-					type="button"
-					class="pptx-rb-toggle"
-					disabled
-				>
-					{{ 'pptx.common.delete' | translate }}
-				</button>
-				<button
-					data-ribbon-control="review.comments.previous"
-					type="button"
-					class="pptx-rb-toggle"
-					disabled
-				>
-					{{ 'pptx.common.previous' | translate }}
-				</button>
-			</div>
-			<div class="flex flex-col justify-center gap-0.5">
-				<button
-					data-ribbon-control="review.comments.next"
-					type="button"
-					class="pptx-rb-toggle"
-					disabled
-				>
-					{{ 'pptx.common.next' | translate }}
-				</button>
-				<button
-					data-ribbon-control="review.comments.showComments"
-					type="button"
-					class="pptx-rb-toggle hover:bg-accent"
-					(click)="comments.emit()"
-				>
-					{{ 'pptx.review.showComments' | translate }}
-				</button>
-			</div>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Protect -->
-		<span class="contents" data-ribbon-group="review.protect">
-			<button
-				data-ribbon-control="review.protect.readOnly"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.review.readOnly' | translate }}
-			</button>
-			<button
-				data-ribbon-control="review.protect.restrictPermission"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.review.restrictPermission' | translate }}
-			</button>
-		</span>
-		<button
-			data-ribbon-group="review.ink"
-			data-ribbon-control="review.ink.hideInk"
-			type="button"
-			class="pptx-rb-pill"
-			disabled
-		>
-			{{ 'pptx.review.hideInk' | translate }}
-		</button>
-		@if (hasSel()) {
-			<button type="button" class="pptx-rb-pill" (click)="link.emit()">
-				{{ 'pptx.ribbon.link' | translate }}
-			</button>
-		}
-	`,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	template: `<pptx-ui-ribbon-section [groups]="groups()" (command-request)="request($event)" />`,
 })
 export class RibbonReviewSectionComponent {
-	private readonly editor = inject(EditorStateService);
-
-	readonly spellCheckEnabled = input(false);
-	readonly canEdit = input(false);
+	private readonly translator = inject(TranslateService);
+	private readonly state = signal({ spellCheck: false, editable: false });
+	@Input() get spellCheckEnabled(): boolean {
+		return this.state().spellCheck;
+	}
+	set spellCheckEnabled(value: boolean) {
+		this.state.update((state) => ({ ...state, spellCheck: value }));
+	}
+	@Input() get canEdit(): boolean {
+		return this.state().editable;
+	}
+	set canEdit(value: boolean) {
+		this.state.update((state) => ({ ...state, editable: value }));
+	}
 	readonly comments = output<void>();
 	readonly spellCheckChange = output<boolean>();
 	readonly a11y = output<void>();
 	readonly openCompare = output<void>();
 	readonly language = output<void>();
 	readonly link = output<void>();
-
-	protected hasSel(): boolean {
-		return this.editor.selectedIds().length > 0;
+	readonly groups = computed(() =>
+		buildReviewRibbon((key) => this.translator.instant(key) as string, {
+			editable: this.canEdit,
+			spellCheck: this.spellCheckEnabled,
+			canAccessibility: true,
+			canLanguage: true,
+			canCompare: true,
+			canComments: true,
+		}),
+	);
+	protected request(event: Event): void {
+		switch ((event as RibbonCommandRequestEvent).detail.id) {
+			case 'review.proofing.spelling':
+				this.spellCheckChange.emit(!this.spellCheckEnabled);
+				break;
+			case 'review.accessibility.check':
+				this.a11y.emit();
+				break;
+			case 'review.language.language':
+				this.language.emit();
+				break;
+			case 'review.compare.compare':
+				if (this.canEdit) {
+					this.openCompare.emit();
+				}
+				break;
+			case 'review.comments.newComment':
+			case 'review.comments.showComments':
+				this.comments.emit();
+				break;
+		}
 	}
 }

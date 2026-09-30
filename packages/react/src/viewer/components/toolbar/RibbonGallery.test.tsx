@@ -300,7 +300,7 @@ describe('contextual ribbon tabs', () => {
 	it('adds a Variants group to Design', () => {
 		act(() => root.render(<Toolbar {...toolbarProps({ toolbarSection: 'design' })} />));
 		const variants = container.querySelector('[data-ribbon-group="design.variants"]');
-		expect(variants?.textContent).toContain('pptx.ribbon.groupVariants');
+		expect(variants?.getAttribute('label')).toBe('pptx.ribbon.groupVariants');
 		expect(
 			variants?.querySelector(
 				'[data-ribbon-control="design.variants.colors"] [data-ribbon-gallery="themeColors"]',

@@ -43,7 +43,11 @@ afterEach(() => {
 
 /** The button whose `title` is `key`, clicked the way a user would. */
 function click(title: string): void {
-	const button = container.querySelector<HTMLButtonElement>(`button[title="${title}"]`);
+	const button =
+		container.querySelector<HTMLButtonElement>(`button[title="${title}"]`) ??
+		container
+			.querySelector(`pptx-ui-ribbon-command[title="${title}"]`)
+			?.shadowRoot?.querySelector<HTMLButtonElement>('button');
 	if (!button) {
 		throw new Error(`no button titled "${title}"`);
 	}

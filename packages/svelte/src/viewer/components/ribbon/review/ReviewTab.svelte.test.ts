@@ -1,9 +1,20 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import ReviewTab from './ReviewTab.svelte';
+
+registerPptxWebControls();
+function allButtons(target: HTMLElement): HTMLButtonElement[] {
+	return [
+		...target.querySelectorAll<HTMLButtonElement>('button'),
+		...Array.from(target.querySelectorAll('pptx-ui-ribbon-command')).map((host) =>
+			host.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+		),
+	];
+}
 
 let cleanup: (() => void) | undefined;
 
@@ -25,7 +36,7 @@ describe('reviewTab', () => {
 			props: { slides: [], onnavigate: vi.fn(), spellCheck: false, onspellcheckchange },
 		});
 		cleanup = () => unmount(instance);
-		const spell = [...target.querySelectorAll('button')].find((button) =>
+		const spell = allButtons(target).find((button) =>
 			button.textContent?.includes('Spell'),
 		) as HTMLButtonElement;
 		spell.click();
@@ -41,7 +52,7 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		const language = [...target.querySelectorAll('button')].find(
+		const language = allButtons(target).find(
 			(button) => button.textContent?.trim() === 'Language',
 		) as HTMLButtonElement;
 		language.click();
@@ -58,7 +69,7 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		const compare = [...target.querySelectorAll('button')].find((button) =>
+		const compare = allButtons(target).find((button) =>
 			button.textContent?.includes('Compare'),
 		) as HTMLButtonElement;
 		expect(compare.disabled).toBeTruthy();
@@ -88,7 +99,7 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		const accessibilityButton = [...target.querySelectorAll('button')].find((button) =>
+		const accessibilityButton = allButtons(target).find((button) =>
 			button.textContent?.includes('Check Accessibility'),
 		) as HTMLButtonElement;
 		accessibilityButton.click();
@@ -126,7 +137,7 @@ describe('reviewTab', () => {
 		});
 		cleanup = () => unmount(instance);
 
-		const accessibilityButton = [...target.querySelectorAll('button')].find((button) =>
+		const accessibilityButton = allButtons(target).find((button) =>
 			button.textContent?.includes('Check Accessibility'),
 		) as HTMLButtonElement;
 		accessibilityButton.click();

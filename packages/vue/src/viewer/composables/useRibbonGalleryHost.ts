@@ -19,6 +19,7 @@ import { computed, inject, provide } from 'vue';
 import type { ComputedRef, InjectionKey, Ref, ShallowRef } from 'vue';
 
 export interface RibbonGalleryHost {
+	editable?: ComputedRef<boolean>;
 	/** The context every descriptor is built from; rebuilt on selection / deck change. */
 	context: ComputedRef<RibbonGalleryContext>;
 	/** Carry out what a tile pick asked for. */
@@ -54,6 +55,7 @@ export function dispatchRibbonGalleryResult(
 }
 
 export interface UseRibbonGalleryHostInput extends RibbonGallerySinks {
+	editable: () => boolean;
 	/** The primary selected element, or null. */
 	selectedElement: () => PptxElement | null;
 	theme: Ref<PptxTheme | undefined>;
@@ -73,6 +75,7 @@ export function provideRibbonGalleryHost(input: UseRibbonGalleryHostInput): Ribb
 		};
 	});
 	const host: RibbonGalleryHost = {
+		editable: computed(input.editable),
 		context,
 		dispatch: (result) => dispatchRibbonGalleryResult(result, input),
 	};

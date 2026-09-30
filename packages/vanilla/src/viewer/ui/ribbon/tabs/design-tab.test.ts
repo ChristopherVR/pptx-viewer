@@ -31,9 +31,12 @@ function mountTab() {
 }
 
 function button(root: HTMLElement, label: string): HTMLButtonElement {
-	const match = [...root.querySelectorAll<HTMLButtonElement>('button')].find(
-		(node) => node.getAttribute('aria-label') === label || node.textContent?.trim() === label,
-	);
+	const match = [
+		...root.querySelectorAll<HTMLButtonElement>('button'),
+		...[...root.querySelectorAll('pptx-ui-ribbon-command')].map((node) =>
+			node.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+		),
+	].find((node) => node.getAttribute('aria-label') === label || node.textContent?.trim() === label);
 	if (!match) {
 		throw new Error(`missing design control: ${label}`);
 	}
@@ -56,14 +59,14 @@ describe('createDesignTab', () => {
 		expect(launcher.getAttribute('aria-expanded')).toBe('true');
 		panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
 		expect(panel?.hidden).toBeTruthy();
-		expect(document.activeElement).toBe(launcher);
+		expect((document.activeElement as HTMLElement).shadowRoot?.activeElement).toBe(launcher);
 		launcher.click();
 		panel!
 			.querySelector('pptx-ui-theme-editor')!
 			.shadowRoot!.querySelector<HTMLButtonElement>('.close')!
 			.click();
 		expect(panel?.hidden).toBeTruthy();
-		expect(document.activeElement).toBe(launcher);
+		expect((document.activeElement as HTMLElement).shadowRoot?.activeElement).toBe(launcher);
 		root.remove();
 	});
 
@@ -72,7 +75,9 @@ describe('createDesignTab', () => {
 		const control = tab.el.querySelector<HTMLElement>(
 			'[data-ribbon-control="design.themes.browseThemes"]',
 		);
-		const presets = [...(control?.querySelectorAll<HTMLElement>('[data-theme-preset]') ?? [])];
+		const presets = [
+			...(control?.parentElement?.querySelectorAll<HTMLElement>('[data-theme-preset]') ?? []),
+		];
 		expect(presets.map((node) => node.dataset.themePreset)).toStrictEqual(
 			GALLERY_THEME_PRESETS.map((preset) => preset.id),
 		);

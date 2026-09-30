@@ -20,7 +20,10 @@ export const SMARTART_STYLES_GALLERY: RibbonGalleryModule = {
 	build(ctx) {
 		const element = ctx.element;
 		const data = element?.type === 'smartArt' ? element.smartArtData : undefined;
-		const current = data ? (data.style ?? 'flat') : undefined;
+		const intensity = data?.quickStyle?.effectIntensity;
+		const current = data
+			? (data.style ?? (intensity === 'moderate' || intensity === 'intense' ? intensity : 'flat'))
+			: undefined;
 		const accent1 = galleryColorScheme(ctx).accent1;
 		return {
 			id: 'smartArtStyles',

@@ -184,3 +184,50 @@ optional `inline` attribute supports secondary inspector/gallery placement
 without docking or automatic focus. Native adapters must discard dismissed
 instances so reopening starts from the loaded theme. See
 `e2e/theme-editor-migration.spec.ts` for the five-binding integration contract.
+
+## Ribbon galleries and Design commands
+
+`pptx-ui-ribbon-gallery` owns the trigger, inline previews, sections, tiles and
+popup layout. Its `descriptor` property is the shared `RibbonGalleryDescriptor`;
+`translateLabel` resolves keys, `disabled` gates every pick, and `open`/`close()`
+control dismissal. Attributes are `mode="inline|dropdown"`, `chevron-only`, and
+optional `icon`. `gallery-pick` bubbles and is composed with
+`{ gallery, itemId }`; programmatic updates emit no intent. Native hosts build
+shared descriptors and apply shared results through their existing document,
+undo, theme and persistence callbacks.
+
+Gallery content intentionally uses scoped light DOM to retain the established
+`data-ribbon-gallery`, `data-ribbon-gallery-popup`, `data-gallery-item` and
+customization selector contract. The shared stylesheet scopes every rule to the
+host; it is installed once per document. This differs from the simpler ribbon
+controls' shadow roots. Popup content attaches only while open. Escape restores
+trigger focus, ArrowDown opens and focuses a choice, an outside pointer dismisses,
+and descriptor refresh preserves the focused item's identity. Disconnect closes
+and removes document listeners. Disabled or missing selection prevents opening.
+Theme tokens, forced colors and 44px coarse-pointer targets are shared.
+
+Design command and group metadata lives in `DESIGN_RIBBON_COMMANDS` and
+`DESIGN_RIBBON_GROUPS`; `designCommandState` controls availability and open state.
+Adapters retain native slide-size inspection, theme editing, preset selection and
+format-background dialogs. Contextual groups use `CONTEXTUAL_TAB_GROUPS` and the
+same shared group and gallery elements in every binding.
+
+Shared gallery buttons carry `data-pptx-compact` to opt out of a native binding's
+generic button size reset. Their own shared media rules retain 44px targets on
+coarse pointers and narrow ribbon layouts.
+
+## Command sections and Review
+
+`pptx-ui-ribbon-section.groups` receives translated `RibbonGroupView` arrays.
+The shared keyed renderer reuses the command and group primitives, preserves
+focused buttons during controlled updates, owns compact stacks, and forwards
+the existing composed `command-request` event. The host retains all callbacks;
+setting the model never invokes one. Removing a group removes its commands, and
+remounting retains the latest controlled model without adding listeners.
+
+`buildReviewRibbon` owns the seven Review groups, labels, icons, disabled
+placeholders, comment badge and controlled proofing/panel state. Language now
+has the public ID `review.language.language`; Hide Ink belongs to `review.ink`.
+Native adapters retain settings, comparison, spell-check preferences, comment
+mutation/history and accessibility panels. The Angular-only duplicate Link
+command is removed from Review; its native output remains compatible.

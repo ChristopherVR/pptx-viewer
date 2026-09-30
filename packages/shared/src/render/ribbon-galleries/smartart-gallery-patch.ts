@@ -31,6 +31,13 @@ export function applySmartArtDataPatch(
 	elementId = 'inspector',
 ): PptxSmartArtData {
 	const next = { ...data, ...patch };
+	if (patch.style !== undefined) {
+		next.quickStyleDirty = true;
+		next.quickStyle = {
+			...next.quickStyle,
+			effectIntensity: patch.style === 'flat' ? 'subtle' : patch.style,
+		};
+	}
 	return box
 		? rebuildDrawingShapesIfCleared(
 				next,

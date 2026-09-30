@@ -56,6 +56,21 @@ function mountGallery(host: RibbonGalleryHost, mode: 'inline' | 'dropdown' = 'in
 }
 
 describe('ribbonGallery', () => {
+	it('blocks choices when the provided edit gate becomes read-only', async () => {
+		const { host, updateElement } = makeHost(shape());
+		const editable = shallowRef(true);
+		host.editable = computed(() => editable.value);
+		const wrapper = mountGallery(host);
+		editable.value = false;
+		await nextTick();
+		const trigger = wrapper.element.querySelector<HTMLButtonElement>('[data-ribbon-gallery]')!;
+		expect(trigger.disabled).toBeTruthy();
+		trigger.click();
+		expect(wrapper.find('[data-ribbon-gallery-popup]').exists()).toBeFalsy();
+		expect(updateElement).not.toHaveBeenCalled();
+		wrapper.unmount();
+	});
+
 	it('renders the inline strip and a tagged "more" trigger from the descriptor', () => {
 		const { host } = makeHost(shape());
 		const wrapper = mountGallery(host);

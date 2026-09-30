@@ -227,13 +227,10 @@ describe('createRibbon', () => {
 		expect(handlers.slideShow.startRehearsal).toHaveBeenCalledTimes(2);
 
 		tabs[9].click();
-		Array.from(
-			ribbon.el.querySelectorAll<HTMLButtonElement>(
-				'.pptxv-ribbon-tab-content:not([hidden]) button',
-			),
-		)
-			.find((button) => button.textContent === t('pptx.review.language'))
-			?.click();
+		ribbon.el
+			.querySelector('[data-ribbon-control="review.language.language"]')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('button')!
+			.click();
 		expect(handlers.nav.openSettings).toHaveBeenCalledWith('general');
 	});
 
@@ -241,9 +238,10 @@ describe('createRibbon', () => {
 		const t = createTranslator();
 		const handlers = buildHandlers();
 		const ribbon = createRibbon(document, t, handlers);
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.ribbon.slideSize')}"]`)
-			?.click();
+		const slideSize = ribbon.el
+			.querySelector('[data-ribbon-control="design.customize.slideSize"]')!
+			.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+		slideSize.click();
 		// The only slide-size control is the inspector deck panel's SLIDE SIZE
 		// card, and that panel only renders with nothing selected.
 		expect(handlers.nav.clearSelection).toHaveBeenCalledOnce();
@@ -252,9 +250,7 @@ describe('createRibbon', () => {
 
 		// Already open: opening it again would close it.
 		ribbon.setInspectorOpen(true);
-		ribbon.el
-			.querySelector<HTMLButtonElement>(`[aria-label="${t('pptx.ribbon.slideSize')}"]`)
-			?.click();
+		slideSize.click();
 		expect(handlers.nav.toggleInspector).toHaveBeenCalledOnce();
 	});
 
@@ -389,7 +385,10 @@ describe('createRibbon', () => {
 		const ribbon = createRibbon(document, t, buildHandlers());
 		ribbon.setEditable(false);
 		const button = (label: string) =>
-			ribbon.el.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+			ribbon.el.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`) ??
+			Array.from(ribbon.el.querySelectorAll(`pptx-ui-ribbon-command[label="${label}"]`)).map(
+				(host) => host.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+			)[0];
 		expect(button(t('pptx.ribbon.compare'))?.disabled).toBeTruthy();
 		expect(button(t('pptx.master.title'))?.disabled).toBeTruthy();
 		expect(button(t('pptx.ribbon.templatesOff'))?.disabled).toBeTruthy();

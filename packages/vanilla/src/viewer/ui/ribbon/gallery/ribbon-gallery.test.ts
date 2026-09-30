@@ -1,12 +1,14 @@
 import type { PptxElement, PptxSlide, PptxThemeColorScheme } from 'pptx-viewer-core';
 import type { RibbonGalleryApplyResult, RibbonGalleryContext } from 'pptx-viewer-shared';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createGalleryActions } from '../../../editor/editor-gallery-actions';
 import { createTranslator } from '../../../i18n';
 import { createInitialViewerState, createStore } from '../../../state';
 import { createRibbonGalleryHub } from './gallery-hub';
 import { createRibbonGallery } from './ribbon-gallery';
+
+afterEach(() => document.body.replaceChildren());
 
 const colorMap = { dk1: '#000000', lt1: '#FFFFFF', accent1: '#156082', accent2: '#E97132' };
 
@@ -38,6 +40,7 @@ describe('ribbon gallery (vanilla)', () => {
 			{ gallery: 'shapeStyles', control: 'home.drawing.quickStyles', mode: 'dropdown' },
 			hub,
 		);
+		document.body.append(gallery.el);
 		hub.sync(context(shape()), true);
 		expect(gallery.el.getAttribute('data-ribbon-control')).toBe('home.drawing.quickStyles');
 		expect(gallery.trigger.getAttribute('data-ribbon-gallery')).toBe('shapeStyles');
@@ -52,7 +55,7 @@ describe('ribbon gallery (vanilla)', () => {
 		expect(tiles.length).toBeGreaterThan(6);
 		expect(tiles[0].querySelector('svg')).not.toBeNull();
 		expect(tiles[0].getAttribute('aria-label')).toBe('Colored Outline - Dark 1');
-		expect(gallery.popup.querySelectorAll('.pptxv-gallery-heading')).toHaveLength(2);
+		expect(gallery.popup.querySelectorAll('.heading')).toHaveLength(2);
 		expect(gallery.trigger.disabled).toBeFalsy();
 	});
 
@@ -65,8 +68,10 @@ describe('ribbon gallery (vanilla)', () => {
 			{ gallery: 'shapeStyles', control: 'home.drawing.quickStyles', mode: 'dropdown' },
 			hub,
 		);
+		document.body.append(gallery.el);
 		hub.sync(context(null), true);
 		expect(gallery.trigger.disabled).toBeTruthy();
+		document.body.append(gallery.el);
 		hub.sync(context(shape()), false);
 		expect(gallery.trigger.disabled).toBeTruthy();
 		gallery.trigger.click();
@@ -83,6 +88,7 @@ describe('ribbon gallery (vanilla)', () => {
 			{ gallery: 'shapeStyles', control: 'shapeFormat.shapeStyles.gallery', mode: 'inline' },
 			hub,
 		);
+		document.body.append(gallery.el);
 		hub.sync(context(shape()), true);
 		const first = gallery.el.querySelector<HTMLButtonElement>('[data-gallery-item]')!;
 		first.click();
@@ -92,6 +98,7 @@ describe('ribbon gallery (vanilla)', () => {
 			return;
 		}
 		const styled = { ...shape(), ...result.patch } as PptxElement;
+		document.body.append(gallery.el);
 		hub.sync(context(styled), true);
 		const pressed = gallery.el.querySelector(`[data-gallery-item="${first.dataset.galleryItem}"]`);
 		expect(pressed?.getAttribute('aria-pressed')).toBe('true');
@@ -107,9 +114,10 @@ describe('ribbon gallery (vanilla)', () => {
 			hub,
 		);
 		document.body.appendChild(gallery.el);
+		document.body.append(gallery.el);
 		hub.sync(context(shape()), true);
 		expect(gallery.el.getAttribute('data-ribbon-control')).toBe('shapeFormat.shapeStyles.gallery');
-		expect(gallery.el.querySelectorAll('.pptxv-gallery-strip [data-gallery-item]')).toHaveLength(6);
+		expect(gallery.el.querySelectorAll('.strip [data-gallery-item]')).toHaveLength(6);
 		expect(gallery.trigger.getAttribute('aria-label')).toBe('More Shape Styles');
 		gallery.trigger.click();
 		expect(gallery.isOpen()).toBeTruthy();
@@ -140,6 +148,7 @@ describe('ribbon gallery (vanilla)', () => {
 			{ gallery: 'shapeStyles', control: 'home.drawing.quickStyles', mode: 'dropdown' },
 			hub,
 		);
+		document.body.append(gallery.el);
 		hub.sync(context(shape()), true);
 		gallery.trigger.click();
 		gallery.popup.querySelector<HTMLButtonElement>('[data-gallery-item]')!.click();

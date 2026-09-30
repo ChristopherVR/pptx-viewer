@@ -73,6 +73,18 @@ function styleOf(editor: EditorState): unknown {
 }
 
 describe('ribbonGallery', () => {
+	it('blocks a selection when editing is disabled after mount', () => {
+		const editor = makeEditor();
+		const target = mountGallery(editor, DROPDOWN);
+		editor.editable = false;
+		flushSync();
+		const trigger = target.querySelector<HTMLButtonElement>('[data-ribbon-gallery]')!;
+		expect(trigger.disabled).toBeTruthy();
+		trigger.click();
+		expect(target.querySelector('[data-ribbon-gallery-popup]')).toBeNull();
+		expect(editor.canUndo).toBeFalsy();
+	});
+
 	it('renders the inline strip with the DOM contract', () => {
 		const target = mountGallery(makeEditor(), INLINE);
 		const wrapper = target.querySelector(`[data-ribbon-control="${INLINE.control}"]`);
@@ -108,7 +120,7 @@ describe('ribbonGallery', () => {
 		const editor = makeEditor();
 		const target = mountGallery(editor, DROPDOWN);
 		const trigger = target.querySelector<HTMLButtonElement>('[data-ribbon-gallery="shapeStyles"]');
-		expect(trigger?.textContent?.trim()).toBe('Shape Styles');
+		expect(trigger?.getAttribute('aria-label')).toBe('Shape Styles');
 		trigger?.click();
 		flushSync();
 

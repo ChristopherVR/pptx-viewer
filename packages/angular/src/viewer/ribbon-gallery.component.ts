@@ -9,8 +9,8 @@
  * the descriptor onto markup and hands the result to
  * {@link dispatchGalleryResult}. Two modes (from the shared placement):
  * `dropdown` (one trigger button) and `inline` (a strip of the first tiles
- * plus a "more" button). Both open the same popup, pinned with the ribbon's
- * `[pptxAnchoredPopup]`, closed by a pick, an outside pointerdown or Escape.
+ * plus a "more" button). The shared control owns positioning, keyboard focus,
+ * outside-pointer dismissal and listener cleanup.
  *
  * DOM contract (identical in all five bindings; see `gallery-view.ts`): the
  * root wrapper carries `data-ribbon-control` when `control` is set, the trigger /
@@ -19,36 +19,28 @@
  */
 import {
 	ChangeDetectionStrategy,
+	CUSTOM_ELEMENTS_SCHEMA,
 	Component,
 	computed,
-	DestroyRef,
 	ElementRef,
 	inject,
 	Input,
 	signal,
 } from '@angular/core';
-import { LucideChevronDown } from '@lucide/angular';
-import { TranslatePipe, TranslateService } from '@ngx-translate/core';
+import { TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
-import {
-	applyRibbonGalleryItem,
-	buildRibbonGallery,
-	galleryHasItems,
-	galleryItemLabel,
-	inlineGalleryItems,
-} from '../internal/shared';
+import { applyRibbonGalleryItem, buildRibbonGallery, galleryHasItems } from '../internal/shared';
 import type {
 	RibbonGalleryDescriptor,
 	RibbonGalleryId,
 	RibbonGalleryItem,
+	RibbonGalleryPickEvent,
+	PptxUiRibbonGalleryElement,
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { LoadContentService } from './load-content.service';
 import { dispatchGalleryResult, galleryContextFor } from './ribbon-gallery-helpers';
-import { RibbonGalleryPopupComponent } from './ribbon-gallery-popup.component';
-import { RibbonGallerySvgPipe } from './ribbon-gallery-svg.pipe';
-import { RibbonIconDirective } from './ribbon-icon.directive';
 import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 
 interface GalleryInputs {
@@ -78,14 +70,16 @@ type Translate = (key: string, params?: Readonly<Record<string, string | number>
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [
-		RibbonIconDirective,
-		TranslatePipe,
-		LucideChevronDown,
-		RibbonGalleryPopupComponent,
-		RibbonGallerySvgPipe,
-	],
-	templateUrl: './ribbon-gallery.component.html',
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	template: `<pptx-ui-ribbon-gallery
+		[attr.data-ribbon-control]="control"
+		[attr.mode]="mode"
+		[attr.chevron-only]="chevronOnly ? '' : null"
+		[descriptor]="descriptor()"
+		[translateLabel]="translate"
+		[disabled]="isDisabled()"
+		(gallery-pick)="pickId($event)"
+	/>`,
 })
 export class RibbonGalleryComponent {
 	private readonly editor = inject(EditorStateService);
@@ -154,61 +148,28 @@ export class RibbonGalleryComponent {
 		this.inputs.update((s) => ({ ...s, chevronOnly }));
 	}
 
-	private readonly openState = signal(false);
-	/** Whether the popup is dropped down (read-only; see {@link setOpen}). */
-	readonly open = this.openState.asReadonly();
-
 	readonly descriptor = computed<RibbonGalleryDescriptor>(() =>
 		buildRibbonGallery(this.gallery, galleryContextFor(this.element, this.loader)),
 	);
-	protected readonly stripItems = computed(() => inlineGalleryItems(this.descriptor()));
 	readonly isDisabled = computed(
 		() => !this.canEdit || this.descriptor().disabled || !galleryHasItems(this.descriptor()),
 	);
-	protected readonly title = computed(() =>
-		this.translated(this.descriptor().labelKey, this.descriptor().label),
-	);
-
-	private readonly t: Translate = (key, params) =>
+	readonly translate: Translate = (key, params) =>
 		this.translateService ? (this.translateService.instant(key, params) as string) : key;
 
-	protected label(item: RibbonGalleryItem): string {
-		return galleryItemLabel(item, this.t);
-	}
-
-	constructor() {
-		inject(DestroyRef, { optional: true })?.onDestroy(() => this.setOpen(false));
-	}
-
-	toggle(): void {
-		this.setOpen(!this.open() && !this.isDisabled());
-	}
-
-	/**
-	 * Open or close the popup. While open, a pointerdown outside this gallery
-	 * or Escape closes it (listeners are attached only while open, rather than
-	 * through `host` metadata, which some Angular linkers drop).
-	 */
-	setOpen(next: boolean): void {
-		if (next === this.openState()) {
-			return;
-		}
-		this.openState.set(next);
-		if (typeof document === 'undefined') {
-			return;
-		}
-		if (next) {
-			document.addEventListener('pointerdown', this.onDocumentPointerDown, true);
-			document.addEventListener('keydown', this.onDocumentKeyDown, true);
-		} else {
-			document.removeEventListener('pointerdown', this.onDocumentPointerDown, true);
-			document.removeEventListener('keydown', this.onDocumentKeyDown, true);
+	protected pickId(event: Event): void {
+		const id = (event as RibbonGalleryPickEvent).detail.itemId;
+		const item = this.descriptor()
+			.sections.flatMap((section) => section.items)
+			.find((entry) => entry.id === id);
+		if (item) {
+			this.pick(item);
 		}
 	}
 
 	/** Apply `item` to the selection (or theme) and close the popup. */
 	pick(item: RibbonGalleryItem): void {
-		this.setOpen(false);
+		this.hostEl.querySelector<PptxUiRibbonGalleryElement>('pptx-ui-ribbon-gallery')?.close();
 		if (this.isDisabled()) {
 			return;
 		}
@@ -218,22 +179,5 @@ export class RibbonGalleryComponent {
 			slideIndex: this.slideIndex,
 			themes: this.themes,
 		});
-	}
-
-	private readonly onDocumentPointerDown = (event: Event): void => {
-		if (!this.hostEl.contains(event.target as Node | null)) {
-			this.setOpen(false);
-		}
-	};
-
-	private readonly onDocumentKeyDown = (event: KeyboardEvent): void => {
-		if (event.key === 'Escape') {
-			this.setOpen(false);
-		}
-	};
-
-	private translated(key: string, fallback: string): string {
-		const out = this.t(key);
-		return out && out !== key ? out : fallback;
 	}
 }

@@ -27,7 +27,8 @@ function mountSection(handlers: {
 }
 
 function slideSizeButton(wrapper: ReturnType<typeof mountSection>) {
-	return wrapper.findAll('button').find((button) => button.text().includes('Slide Size'));
+	const host = wrapper.element.querySelector('[data-ribbon-control="design.customize.slideSize"]')!;
+	return host.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
 }
 
 describe('designSection slide size', () => {
@@ -36,7 +37,7 @@ describe('designSection slide size', () => {
 		const onOpenDocumentProperties = vi.fn();
 		const wrapper = mountSection({ onOpenSlideSize, onOpenDocumentProperties });
 
-		await slideSizeButton(wrapper)?.trigger('click');
+		slideSizeButton(wrapper).click();
 
 		expect(onOpenSlideSize).toHaveBeenCalledOnce();
 		expect(onOpenDocumentProperties).not.toHaveBeenCalled();
@@ -46,7 +47,7 @@ describe('designSection slide size', () => {
 		const onOpenDocumentProperties = vi.fn();
 		const wrapper = mountSection({ onOpenDocumentProperties });
 
-		await slideSizeButton(wrapper)?.trigger('click');
+		slideSizeButton(wrapper).click();
 
 		expect(onOpenDocumentProperties).toHaveBeenCalledOnce();
 	});

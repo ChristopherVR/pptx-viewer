@@ -1,23 +1,9 @@
+import { buildReviewRibbon } from 'pptx-viewer-shared';
+import type { RibbonControlId } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import {
-	LuBookOpen,
-	LuChevronLeft,
-	LuChevronRight,
-	LuCopy,
-	LuEyeOff,
-	LuGitCompare,
-	LuGlobe,
-	LuLanguages,
-	LuLockKeyhole,
-	LuMessageSquare,
-	LuMessageSquarePlus,
-	LuShieldCheck,
-	LuSpellCheck,
-	LuTrash2,
-} from 'react-icons/lu';
 
-import { RibbonCommand, RibbonCommandStack, RibbonGroup } from './PowerPointRibbonControls';
+import { WebRibbonSection } from './WebRibbonSection';
 
 export interface ReviewSectionProps {
 	canEdit: boolean;
@@ -33,147 +19,37 @@ export interface ReviewSectionProps {
 
 export function ReviewSection(p: ReviewSectionProps): React.ReactElement {
 	const { t } = useTranslation();
-	return (
-		<>
-			<RibbonGroup
-				label={t('pptx.review.proofing', { defaultValue: 'Proofing' })}
-				groupId='review.proofing'
-			>
-				<RibbonCommand
-					controlId='review.proofing.spelling'
-					label={t('pptx.review.spelling')}
-					icon={<LuSpellCheck />}
-					onClick={() => p.onSetSpellCheckEnabled(!p.spellCheckEnabled)}
-					active={p.spellCheckEnabled}
-					title={t('pptx.review.toggleSpellCheck')}
-				/>
-				<RibbonCommand
-					controlId='review.proofing.thesaurus'
-					label={t('pptx.review.thesaurus', { defaultValue: 'Thesaurus' })}
-					icon={<LuBookOpen />}
-					disabled
-				/>
-			</RibbonGroup>
-			<RibbonGroup
-				label={t('pptx.review.accessibility', { defaultValue: 'Accessibility' })}
-				groupId='review.accessibility'
-			>
-				<RibbonCommand
-					controlId='review.accessibility.check'
-					label={t('pptx.review.accessibilityCheck')}
-					icon={<LuShieldCheck />}
-					onClick={p.onOpenAccessibilityCheck}
-				/>
-			</RibbonGroup>
-			<RibbonGroup label={t('pptx.review.language')} groupId='review.language'>
-				<RibbonCommand
-					controlId='review.language.translate'
-					label={t('pptx.review.translate', { defaultValue: 'Translate' })}
-					icon={<LuLanguages />}
-					disabled
-				/>
-				<RibbonCommand
-					label={t('pptx.review.language')}
-					icon={<LuGlobe />}
-					disabled={!p.onSetLanguage}
-					onClick={p.onSetLanguage}
-				/>
-			</RibbonGroup>
-			<RibbonGroup
-				label={t('pptx.review.changes', { defaultValue: 'Changes' })}
-				groupId='review.compare'
-			>
-				<RibbonCommand
-					controlId='review.compare.markAllRead'
-					label={t('pptx.review.markAllRead', { defaultValue: 'Mark All as Read' })}
-					icon={<LuCopy />}
-					disabled
-				/>
-				{p.onCompare && (
-					<RibbonCommand
-						controlId='review.compare.compare'
-						label={t('pptx.ribbon.compare')}
-						icon={<LuGitCompare />}
-						onClick={p.onCompare}
-						disabled={!p.canEdit}
-						title={t('pptx.ribbon.compareTitle')}
-					/>
-				)}
-			</RibbonGroup>
-			<RibbonGroup label={t('pptx.toolbar.comments')} groupId='review.comments'>
-				{p.onToggleComments && (
-					<div className='relative'>
-						<RibbonCommand
-							controlId='review.comments.newComment'
-							label={t('pptx.toolbar.comments')}
-							icon={<LuMessageSquarePlus />}
-							onClick={p.onToggleComments}
-							active={p.isCommentsPanelOpen}
-							title={t('pptx.review.toggleComments')}
-						/>
-						{Boolean(p.slideCommentCount) && (
-							<span className='absolute right-0 top-0 rounded-full bg-primary px-1 text-[9px] text-white'>
-								{p.slideCommentCount}
-							</span>
-						)}
-					</div>
-				)}
-				<RibbonCommandStack>
-					<RibbonCommand
-						compact
-						controlId='review.comments.delete'
-						label={t('pptx.common.delete', { defaultValue: 'Delete' })}
-						icon={<LuTrash2 />}
-						disabled
-					/>
-					<RibbonCommand
-						compact
-						controlId='review.comments.previous'
-						label={t('pptx.common.previous', { defaultValue: 'Previous' })}
-						icon={<LuChevronLeft />}
-						disabled
-					/>
-				</RibbonCommandStack>
-				<RibbonCommandStack>
-					<RibbonCommand
-						compact
-						controlId='review.comments.next'
-						label={t('pptx.common.next', { defaultValue: 'Next' })}
-						icon={<LuChevronRight />}
-						disabled
-					/>
-					<RibbonCommand
-						compact
-						controlId='review.comments.showComments'
-						label={t('pptx.review.showComments', { defaultValue: 'Show Comments' })}
-						icon={<LuMessageSquare />}
-						onClick={p.onToggleComments}
-					/>
-				</RibbonCommandStack>
-			</RibbonGroup>
-			<RibbonGroup
-				label={t('pptx.review.protect', { defaultValue: 'Protect' })}
-				groupId='review.protect'
-			>
-				<RibbonCommand
-					controlId='review.protect.readOnly'
-					label={t('pptx.review.readOnly', { defaultValue: 'Always Open Read-only' })}
-					icon={<LuLockKeyhole />}
-					disabled
-				/>
-				<RibbonCommand
-					controlId='review.protect.restrictPermission'
-					label={t('pptx.review.restrictPermission', { defaultValue: 'Restrict Permission' })}
-					icon={<LuShieldCheck />}
-					disabled
-				/>
-				<RibbonCommand
-					controlId='review.ink.hideInk'
-					label={t('pptx.review.hideInk', { defaultValue: 'Hide Ink' })}
-					icon={<LuEyeOff />}
-					disabled
-				/>
-			</RibbonGroup>
-		</>
-	);
+	const groups = buildReviewRibbon(t, {
+		editable: p.canEdit,
+		spellCheck: p.spellCheckEnabled,
+		canAccessibility: Boolean(p.onOpenAccessibilityCheck),
+		canLanguage: Boolean(p.onSetLanguage),
+		canCompare: Boolean(p.onCompare),
+		canComments: Boolean(p.onToggleComments),
+		commentsOpen: p.isCommentsPanelOpen,
+		commentCount: p.slideCommentCount,
+	});
+	const request = (id: RibbonControlId) => {
+		switch (id) {
+			case 'review.proofing.spelling':
+				p.onSetSpellCheckEnabled(!p.spellCheckEnabled);
+				break;
+			case 'review.accessibility.check':
+				p.onOpenAccessibilityCheck?.();
+				break;
+			case 'review.language.language':
+				p.onSetLanguage?.();
+				break;
+			case 'review.compare.compare':
+				if (p.canEdit) {
+					p.onCompare?.();
+				}
+				break;
+			case 'review.comments.newComment':
+			case 'review.comments.showComments':
+				p.onToggleComments?.();
+				break;
+		}
+	};
+	return <WebRibbonSection groups={groups} onCommand={request} />;
 }

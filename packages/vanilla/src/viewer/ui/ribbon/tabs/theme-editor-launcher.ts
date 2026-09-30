@@ -1,9 +1,11 @@
+import { DESIGN_RIBBON_COMMANDS } from 'pptx-viewer-shared';
+
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
-import { makeButton } from '../../controls';
 import { createThemeEditorCard } from '../../inspector/theme-editor-card';
 import type { ThemeEditorCard, ThemeEditorCardState } from '../../inspector/theme-editor-card';
 import type { RibbonDesignHandlers } from '../ribbon-types';
+import { createSharedRibbonCommand } from '../shared-command';
 
 /** Design > Edit Theme opens on the right of the editor body, like React. */
 export function createThemeEditorLauncher(
@@ -28,16 +30,18 @@ export function createThemeEditorLauncher(
 		panel.hidden = true;
 		editor?.el.remove();
 		editor = null;
-		button.btn.setAttribute('aria-expanded', 'false');
+		button.setExpanded(false);
 		if (wasOpen) {
 			button.btn.focus();
 		}
 	};
-	const button = makeButton(doc, {
-		label: t('pptx.ribbon.editTheme'),
-		icon: 'wrench',
-		textLabel: t('pptx.ribbon.editTheme'),
-		onClick: () => {
+	const command = DESIGN_RIBBON_COMMANDS.find((item) => item.id === 'design.themes.editTheme')!;
+	const button = createSharedRibbonCommand(doc, {
+		id: command.id,
+		label: t(command.labelKey),
+		title: t(command.titleKey),
+		icon: command.icon,
+		onCommand: () => {
 			if (!panel.hidden) {
 				close();
 				return;
@@ -62,18 +66,17 @@ export function createThemeEditorLauncher(
 				?.querySelector('[data-pptx-chrome="body"]');
 			(body ?? el).appendChild(panel);
 			panel.hidden = false;
-			button.btn.setAttribute('aria-expanded', 'true');
+			button.setExpanded(true);
 		},
 	});
-	button.btn.title = t('pptx.ribbon.editThemeTitle');
-	button.btn.setAttribute('aria-expanded', 'false');
+	button.setExpanded(false);
 	panel.addEventListener('keydown', (event) => {
 		if (event.key === 'Escape') {
 			event.stopPropagation();
 			close();
 		}
 	});
-	el.append(button.btn, panel);
+	el.append(button.el, panel);
 	return {
 		el,
 		button,

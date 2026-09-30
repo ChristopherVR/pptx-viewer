@@ -6,6 +6,7 @@ type WebControlProps = DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElemen
 	disabled?: boolean;
 	placeholder?: string;
 	variant?: string;
+	mode?: string;
 	label?: string;
 	icon?: string;
 	active?: boolean;
@@ -23,6 +24,8 @@ declare module 'react' {
 			'pptx-ui-slide-show-options': WebControlProps;
 			'pptx-ui-ribbon-command': WebControlProps;
 			'pptx-ui-ribbon-group': WebControlProps;
+			'pptx-ui-ribbon-section': WebControlProps;
+			'pptx-ui-ribbon-gallery': WebControlProps;
 			'pptx-ui-ribbon-toggle': WebControlProps;
 			'pptx-ui-subtitle-settings': WebControlProps;
 			'pptx-ui-theme-editor': WebControlProps;

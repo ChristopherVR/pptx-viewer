@@ -13,6 +13,7 @@ export const translations = {
 	'pptx.review.hideInk': '隐藏墨迹',
 	'pptx.review.markAllRead': '全部标记为已读',
 	'pptx.review.proofing': '校对',
+	'pptx.review.ink': '墨迹',
 	'pptx.review.protect': '保护',
 	'pptx.review.readOnly': '始终以只读方式打开',
 	'pptx.review.restrictPermission': '限制权限',

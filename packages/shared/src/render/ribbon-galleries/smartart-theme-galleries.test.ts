@@ -19,6 +19,21 @@ function smartArt(data: Partial<PptxSmartArtData> = {}): PptxElement {
 }
 
 describe('smartArt galleries', () => {
+	it('marks the saved quick style and makes a subsequent style pick persistable', () => {
+		const element = smartArt({ quickStyle: { effectIntensity: 'intense' } });
+		const items = buildRibbonGallery('smartArtStyles', { element }).sections[0].items;
+		expect(items.filter((item) => item.applied).map((item) => item.id)).toStrictEqual(['intense']);
+		expect(applyRibbonGalleryItem('smartArtStyles', 'flat', { element })).toMatchObject({
+			patch: {
+				smartArtData: {
+					style: 'flat',
+					quickStyleDirty: true,
+					quickStyle: { effectIntensity: 'subtle' },
+				},
+			},
+		});
+	});
+
 	it('offers the model colour schemes under PowerPoint names', () => {
 		const descriptor = buildRibbonGallery('smartArtColors', {
 			element: smartArt({ colorScheme: 'colorful2' }),

@@ -97,7 +97,7 @@ describe('ribbon contextual tabs (vanilla)', () => {
 		expect(pane.querySelector('[data-ribbon-group="shapeFormat.wordArtStyles"]')).not.toBeNull();
 		expect(
 			pane.querySelectorAll(
-				'[data-ribbon-control="shapeFormat.shapeStyles.gallery"] .pptxv-gallery-strip [data-gallery-item]',
+				'[data-ribbon-control="shapeFormat.shapeStyles.gallery"] .strip [data-gallery-item]',
 			),
 		).toHaveLength(6);
 		expect(tab!.getAttribute('aria-selected')).toBe('true');

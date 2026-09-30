@@ -1540,6 +1540,7 @@ function applyAiTheme(updates: Partial<PptxTheme>): void {
 // Ribbon style galleries: context from the deck, picks through the same
 // history-tracked element update / theme paths the inspector uses.
 provideRibbonGalleryHost({
+	editable: () => canEditEffective.value,
 	selectedElement: () => selectedElements.value[0] ?? null,
 	theme: pptxTheme,
 	themeColorMap,

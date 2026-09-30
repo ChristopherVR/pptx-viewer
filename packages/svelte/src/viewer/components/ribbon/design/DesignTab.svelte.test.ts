@@ -42,7 +42,12 @@ function makeEditor(handler: PptxHandler | null = null): EditorState {
 }
 
 function clickButton(target: HTMLElement, label: string): void {
-	[...target.querySelectorAll<HTMLButtonElement>('button')]
+	[
+		...target.querySelectorAll<HTMLButtonElement>('button'),
+		...[...target.querySelectorAll('pptx-ui-ribbon-command')].map((node) =>
+			node.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+		),
+	]
 		.find((button) => button.textContent?.trim() === label)
 		?.click();
 	flushSync();
@@ -53,7 +58,7 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 	document.body.appendChild(target);
 	const instance = mount(DesignTab, {
 		target,
-		props: { editor: makeEditor(), ...overrides },
+		props: { editor: makeEditor(), onslidesize: () => {}, ...overrides },
 	});
 	flushSync();
 	cleanup = () => {
@@ -64,13 +69,9 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 }
 
 function topLevelButtons(target: HTMLElement): string[] {
-	return [...target.querySelectorAll<HTMLButtonElement>('button')]
-		.filter(
-			(button) =>
-				!button.closest('[role="menu"]') &&
-				!button.closest('[data-ribbon-group="design.variants"]'),
-		)
-		.map((button) => button.textContent?.trim() ?? '');
+	return [...target.querySelectorAll('pptx-ui-ribbon-command')].map(
+		(node) => node.getAttribute('label') ?? '',
+	);
 }
 
 describe('designTab', () => {
@@ -86,7 +87,7 @@ describe('designTab', () => {
 	it('adds the Variants group with the Colors and Fonts galleries', () => {
 		const target = mountTab();
 		const group = target.querySelector('[data-ribbon-group="design.variants"]');
-		expect(group?.textContent).toContain('Variants');
+		expect(group?.getAttribute('label')).toBe('Variants');
 		expect(
 			group?.querySelector(
 				'[data-ribbon-control="design.variants.colors"] [data-ribbon-gallery="themeColors"]',
@@ -141,7 +142,12 @@ describe('designTab', () => {
 		const onslidesize = vi.fn();
 		const target = mountTab({ onslidesize });
 
-		[...target.querySelectorAll<HTMLButtonElement>('button')]
+		[
+			...target.querySelectorAll<HTMLButtonElement>('button'),
+			...[...target.querySelectorAll('pptx-ui-ribbon-command')].map((node) =>
+				node.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+			),
+		]
 			.find((button) => button.textContent?.trim() === 'Slide Size')
 			?.click();
 

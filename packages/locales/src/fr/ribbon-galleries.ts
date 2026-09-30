@@ -11,6 +11,8 @@ export const translations: Record<string, string> = {
 	'pptx.ribbon.groupChartLayouts': 'Dispositions du graphique',
 	'pptx.ribbon.groupChartStyles': 'Styles du graphique',
 	'pptx.ribbon.groupSmartArtStyles': 'Styles SmartArt',
+	'pptx.ribbon.groupThemes': 'Thèmes',
+	'pptx.ribbon.groupCustomize': 'Personnaliser',
 	'pptx.ribbon.groupVariants': 'Variantes',
 	'pptx.gallery.more': 'Autres {{name}}',
 	'pptx.gallery.shapeStyles.title': 'Styles de forme',

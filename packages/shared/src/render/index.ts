@@ -917,6 +917,9 @@ export * from './ribbon-transitions';
 export * from './ribbon-slide-show-options';
 export * from './ribbon-slide-show-commands';
 export * from './ribbon-help-commands';
+export * from './ribbon-design-commands';
+export * from './ribbon-command-view';
+export * from './ribbon-review-commands';
 export * from './ribbon-home-commands';
 // Transitions > Preview: replays the slide's transition on the editing stage,
 // which is the one thing that button does in every binding.

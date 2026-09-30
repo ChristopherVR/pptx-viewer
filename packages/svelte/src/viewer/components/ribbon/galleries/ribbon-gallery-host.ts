@@ -86,8 +86,14 @@ export function createRibbonGalleryHost(
 
 	return {
 		context,
-		build: (id) => buildRibbonGallery(id, context()),
+		build: (id) => {
+			const descriptor = buildRibbonGallery(id, context());
+			return { ...descriptor, disabled: descriptor.disabled || !editor.editable };
+		},
 		apply: async (id, itemId) => {
+			if (!editor.editable) {
+				return;
+			}
 			const result = applyRibbonGalleryItem(id, itemId, context());
 			if (result) {
 				await dispatch(result);

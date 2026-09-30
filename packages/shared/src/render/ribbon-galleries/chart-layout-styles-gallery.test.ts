@@ -29,6 +29,23 @@ function patched(result: ReturnType<typeof applyRibbonGalleryItem>): PptxChartDa
 }
 
 describe('chart Styles gallery', () => {
+	it('recognizes saved explicit series colours without an in-memory palette', () => {
+		const data = patched(applyRibbonGalleryItem('chartStyles', 'monochrome', { element: chart() }));
+		const loaded = { ...data, colorPalette: undefined, style: { hasLegend: true } };
+		const descriptor = buildRibbonGallery('chartStyles', {
+			element: { ...chart(), chartData: loaded } as PptxElement,
+		});
+		expect(
+			descriptor.sections[0].items.filter((item) => item.applied).map((item) => item.id),
+		).toStrictEqual(['monochrome']);
+		loaded.series[0] = { ...loaded.series[0], color: '#FF00FF' };
+		expect(
+			buildRibbonGallery('chartStyles', {
+				element: { ...chart(), chartData: loaded } as PptxElement,
+			}).sections[0].items.some((item) => item.applied),
+		).toBeFalsy();
+	});
+
 	it('exposes the quick-action presets and pins their palette per series', () => {
 		const descriptor = buildRibbonGallery('chartStyles', { element: chart() });
 		expect(descriptor.sections[0].items.map((i) => i.id)).toStrictEqual([

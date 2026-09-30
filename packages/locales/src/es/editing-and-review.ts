@@ -212,6 +212,7 @@ export const translations = {
 	'pptx.review.hideInk': 'Ocultar entrada de lápiz',
 	'pptx.review.markAllRead': 'Marcar todo como leído',
 	'pptx.review.proofing': 'Revisión',
+	'pptx.review.ink': 'Tinta',
 	'pptx.review.protect': 'Proteger',
 	'pptx.review.readOnly': 'Abrir siempre como solo lectura',
 	'pptx.review.restrictPermission': 'Restringir permisos',

@@ -111,6 +111,7 @@ export function createEditingChromeSync(deps: EditingChromeSyncDeps): () => void
 			return;
 		}
 		ribbon?.setEditable(editingVisible);
+		ribbon?.setSpellCheck?.(state.spellCheckEnabled);
 		// The panel toggle in the quick-access row hides the inspector without
 		// leaving edit mode (React's `isInspectorPaneOpen`).
 		inspector?.setEditable(editingVisible && state.inspectorOpen);

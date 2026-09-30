@@ -19,9 +19,8 @@
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
-	import RibbonCommand from '../RibbonCommand.svelte';
-	import RibbonCommandStack from '../RibbonCommandStack.svelte';
-	import RibbonGroup from '../RibbonGroup.svelte';
+	import { buildReviewRibbon } from 'pptx-viewer-shared';
+	import type { RibbonCommandRequestEvent } from 'pptx-viewer-shared';
 	import ReviewAccessibilityPanel from './ReviewAccessibilityPanel.svelte';
 	import ReviewCommentsPanel from './ReviewCommentsPanel.svelte';
 
@@ -49,107 +48,27 @@
 	function setPanel(panel: 'accessibility' | 'comments' | null): void {
 		activePanel = panel;
 	}
+ const groups = $derived(buildReviewRibbon(t, {
+  editable: editor?.editable ?? false, spellCheck,
+  canSpellCheck: Boolean(onspellcheckchange), canAccessibility: true, accessibilityOpen: activePanel === 'accessibility',
+  canLanguage: Boolean(onlanguage), canCompare: Boolean(oncompare), canComments: Boolean(editor),
+  commentsOpen: activePanel === 'comments',
+ }));
+ function request(event: Event): void {
+  switch ((event as RibbonCommandRequestEvent).detail.id) {
+   case 'review.proofing.spelling': onspellcheckchange?.(!spellCheck); break;
+   case 'review.accessibility.check': setPanel(activePanel === 'accessibility' ? null : 'accessibility'); break;
+   case 'review.language.language': onlanguage?.(); break;
+   case 'review.compare.compare': if (editor?.editable) {oncompare?.();} break;
+   case 'review.comments.newComment':
+   case 'review.comments.showComments': if (editor) {setPanel(activePanel === 'comments' ? null : 'comments');} break;
+  }
+ }
+
 </script>
 
 <div class="pptx-svelte-review-shell">
-	<div class="pptx-svelte-review-groups">
-		<RibbonGroup label={t('pptx.review.proofing')} group="review.proofing">
-			<RibbonCommand
-				control="review.proofing.spelling"
-				label={t('pptx.review.spelling')}
-				title={t('pptx.settings.spellCheck')}
-				active={spellCheck}
-				onclick={() => onspellcheckchange?.(!spellCheck)}
-			>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2 14 6 5l4 9M3.4 11.4h5.2M12 13.5l2 2 4-4.5" /></svg>{/snippet}
-			</RibbonCommand>
-			<RibbonCommand control="review.proofing.thesaurus" label={t('pptx.review.thesaurus')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 4h5a2 2 0 0 1 2 2v10a2 2 0 0 0-2-2H3zM17 4h-5a2 2 0 0 0-2 2v10a2 2 0 0 1 2-2h5z" /></svg>{/snippet}
-			</RibbonCommand>
-		</RibbonGroup>
-
-		<RibbonGroup label={t('pptx.review.accessibility')} group="review.accessibility">
-			<RibbonCommand
-				control="review.accessibility.check"
-				label={t('pptx.review.accessibilityCheck')}
-				active={activePanel === 'accessibility'}
-				onclick={() => setPanel('accessibility')}
-			>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M10 3 3.5 5.5v4.2c0 3.4 2.7 6.1 6.5 7.3 3.8-1.2 6.5-3.9 6.5-7.3V5.5z" /><path d="m7.3 10 2 2 3.4-3.6" /></svg>{/snippet}
-			</RibbonCommand>
-		</RibbonGroup>
-
-		<RibbonGroup label={t('pptx.review.language')} group="review.language">
-			<RibbonCommand control="review.language.translate" label={t('pptx.review.translate')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 4.5h7M6 3v1.5M8 4.5c0 3-2.4 5.5-5.5 6M4 7.5c.9 1.9 2.6 3.2 4.6 3.6M10.5 17l3.2-8 3.3 8M11.8 14.4h4.4" /></svg>{/snippet}
-			</RibbonCommand>
-			<RibbonCommand
-				label={t('pptx.review.language')}
-				title={t('pptx.review.languageTooltip')}
-				disabled={!onlanguage}
-				onclick={onlanguage}
-			>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" /><path d="M3 10h14M10 3c1.9 2 2.9 4.4 2.9 7s-1 5-2.9 7c-1.9-2-2.9-4.4-2.9-7s1-5 2.9-7z" /></svg>{/snippet}
-			</RibbonCommand>
-		</RibbonGroup>
-
-		<RibbonGroup label={t('pptx.review.changes')} group="review.compare">
-			<RibbonCommand control="review.compare.markAllRead" label={t('pptx.review.markAllRead')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M7 5h9v11H7z" /><path d="M4 15V4h9" /></svg>{/snippet}
-			</RibbonCommand>
-			{#if oncompare}
-				<RibbonCommand
-					control="review.compare.compare"
-					label={t('pptx.ribbon.compare')}
-					title={t('pptx.compare.title')}
-					disabled={!editor?.editable}
-					onclick={oncompare}
-				>
-					{#snippet icon()}<svg viewBox="0 0 20 20"><circle cx="5.5" cy="15" r="2.2" /><circle cx="5.5" cy="5" r="2.2" /><path d="M5.5 7.2v5.6M14.5 5h-4v10h4" /><circle cx="14.5" cy="15" r="2.2" /></svg>{/snippet}
-				</RibbonCommand>
-			{/if}
-		</RibbonGroup>
-
-		<RibbonGroup label={t('pptx.toolbar.comments')} group="review.comments">
-			<RibbonCommand
-				control="review.comments.newComment"
-				label={t('pptx.toolbar.comments')}
-				title={t('pptx.comments.slideComments')}
-				active={activePanel === 'comments'}
-				onclick={() => setPanel('comments')}
-			>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 4h14v9H8l-5 4z" /><path d="M10 6v5M7.5 8.5h5" /></svg>{/snippet}
-			</RibbonCommand>
-			<RibbonCommandStack>
-				<RibbonCommand compact control="review.comments.delete" label={t('pptx.common.delete')} disabled>
-					{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M4 6h12M8 6V4h4v2M6 6l.8 10h6.4L14 6" /></svg>{/snippet}
-				</RibbonCommand>
-				<RibbonCommand compact control="review.comments.previous" label={t('pptx.common.previous')} disabled>
-					{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m12 4-6 6 6 6" /></svg>{/snippet}
-				</RibbonCommand>
-			</RibbonCommandStack>
-			<RibbonCommandStack>
-				<RibbonCommand compact control="review.comments.next" label={t('pptx.common.next')} disabled>
-					{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m8 4 6 6-6 6" /></svg>{/snippet}
-				</RibbonCommand>
-				<RibbonCommand compact control="review.comments.showComments" label={t('pptx.review.showComments')} onclick={() => setPanel('comments')}>
-					{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M3 4h14v9H8l-5 4z" /></svg>{/snippet}
-				</RibbonCommand>
-			</RibbonCommandStack>
-		</RibbonGroup>
-
-		<RibbonGroup label={t('pptx.review.protect')} group="review.protect">
-			<RibbonCommand control="review.protect.readOnly" label={t('pptx.review.readOnly')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><rect x="4" y="9" width="12" height="8" rx="1.5" /><path d="M7 9V6.5a3 3 0 0 1 6 0V9" /></svg>{/snippet}
-			</RibbonCommand>
-			<RibbonCommand control="review.protect.restrictPermission" label={t('pptx.review.restrictPermission')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M10 3 4 5.4v4.1c0 3.3 2.5 6 6 7.1 3.5-1.1 6-3.8 6-7.1V5.4z" /></svg>{/snippet}
-			</RibbonCommand>
-			<RibbonCommand control="review.ink.hideInk" label={t('pptx.review.hideInk')} disabled>
-				{#snippet icon()}<svg viewBox="0 0 20 20"><path d="M2.5 10S5.5 5 10 5s7.5 5 7.5 5-3 5-7.5 5-7.5-5-7.5-5z" /><path d="m4 4 12 12" /></svg>{/snippet}
-			</RibbonCommand>
-		</RibbonGroup>
-	</div>
+	<pptx-ui-ribbon-section {groups} oncommand-request={request}></pptx-ui-ribbon-section>
 
 	{#if activePanel}
 		<!-- Named after the panel, never after the tab: the cross-binding ribbon
@@ -180,7 +99,6 @@
 
 <style>
 	.pptx-svelte-review-shell { position: relative; display: flex; align-items: stretch; min-width: 0; }
-	.pptx-svelte-review-groups { display: flex; align-items: stretch; flex-wrap: nowrap; }
 	.pptx-svelte-review-panel { position: absolute; z-index: 40; top: calc(100% + 8px); left: 0; display: flex; gap: 12px; width: min(920px, calc(100vw - 32px)); max-height: min(520px, calc(100vh - 180px)); padding: 12px; overflow: auto; border: 1px solid var(--pptx-border, #33334d); border-radius: var(--pptx-radius, 6px); background: var(--pptx-card, #1e1e2e); box-shadow: 0 12px 32px rgb(0 0 0 / 35%); }
 	.pptx-svelte-review-close { position: absolute; top: 6px; right: 8px; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; }
 </style>

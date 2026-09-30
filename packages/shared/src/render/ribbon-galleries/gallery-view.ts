@@ -44,3 +44,15 @@ export function galleryItemLabel(
 	const translated = translate(item.labelKey, item.labelParams);
 	return translated && translated !== item.labelKey ? translated : item.label;
 }
+
+export function galleryTextLabel(
+	translate: (key: string) => string,
+	key: string | undefined,
+	fallback: string,
+): string {
+	if (!key) {
+		return fallback;
+	}
+	const translated = translate(key);
+	return translated && translated !== key ? translated : fallback;
+}

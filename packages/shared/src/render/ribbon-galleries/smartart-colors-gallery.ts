@@ -9,6 +9,7 @@
 import type { RibbonGalleryModule } from './gallery-module';
 import { galleryColorScheme } from './gallery-theme';
 import type { RibbonGallerySection } from './gallery-types';
+import { smartArtColorPatch } from './smartart-color-patch';
 import { SMARTART_COLOR_ENTRIES, smartArtElementPatch } from './smartart-gallery-patch';
 import type { SmartArtColorEntry } from './smartart-gallery-patch';
 import { smartArtTileSvg } from './smartart-gallery-tiles';
@@ -34,8 +35,20 @@ export const SMARTART_COLORS_GALLERY: RibbonGalleryModule = {
 	build(ctx) {
 		const element = ctx.element;
 		const data = element?.type === 'smartArt' ? element.smartArtData : undefined;
-		const current = data ? (data.colorScheme ?? 'colorful1') : undefined;
 		const scheme = galleryColorScheme(ctx);
+		const fills = data?.colorTransform?.fillColors;
+		const matched = fills?.length
+			? SMARTART_COLOR_ENTRIES.find(
+					(entry) =>
+						entry.accents.length === fills.length &&
+						entry.accents.every(
+							(accent, index) => scheme[accent].toLowerCase() === fills[index].toLowerCase(),
+						),
+				)?.id
+			: undefined;
+		const current = data
+			? (data.colorScheme ?? matched ?? (fills?.length ? undefined : 'colorful1'))
+			: undefined;
 		const sections: RibbonGallerySection[] = SECTIONS.map((section) => ({
 			id: section.id,
 			titleKey: `pptx.gallery.smartArtColors.section.${section.id}`,
@@ -70,7 +83,18 @@ export const SMARTART_COLORS_GALLERY: RibbonGalleryModule = {
 	},
 	apply(itemId, ctx) {
 		const entry = SMARTART_COLOR_ENTRIES.find((candidate) => candidate.id === itemId);
-		const patch = entry ? smartArtElementPatch(ctx.element, { colorScheme: entry.id }) : null;
+		const data = ctx.element?.type === 'smartArt' ? ctx.element.smartArtData : undefined;
+		const scheme = galleryColorScheme(ctx);
+		const patch =
+			entry && data
+				? smartArtElementPatch(ctx.element, {
+						colorScheme: entry.id,
+						...smartArtColorPatch(
+							data,
+							entry.accents.map((accent) => scheme[accent]),
+						),
+					})
+				: null;
 		return patch ? { kind: 'element', ...patch } : null;
 	},
 };

@@ -1,5 +1,7 @@
 import {
 	activeGalleryThemePreset,
+	DESIGN_RIBBON_COMMANDS,
+	DESIGN_RIBBON_GROUPS,
 	FIXED_TAB_GALLERIES,
 	GALLERY_THEME_PRESETS,
 } from 'pptx-viewer-shared';
@@ -10,11 +12,11 @@ import type { AnchoredPopupHandle } from '../../anchored-popup';
 import { attachAnchoredPopup } from '../../anchored-popup';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
-import { createRibbonGroupShell } from '../gallery/contextual-tabs';
 import type { RibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGallery } from '../gallery/ribbon-gallery';
-import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonDesignHandlers } from '../ribbon-types';
+import { createSharedRibbonCommand } from '../shared-command';
+import type { SharedRibbonCommandHandle } from '../shared-command';
 import { createThemeEditorLauncher } from './theme-editor-launcher';
 
 export interface DesignTab {
@@ -25,18 +27,22 @@ export interface DesignTab {
 /** A ribbon button that toggles a swatch gallery docked underneath it. */
 interface GalleryControl {
 	el: HTMLElement;
-	button: ButtonHandle;
+	button: SharedRibbonCommandHandle;
 	gallery: HTMLElement;
 	close(): void;
 }
 
-function createGalleryControl(doc: Document, button: ButtonHandle, title: string): GalleryControl {
+function createGalleryControl(
+	doc: Document,
+	button: SharedRibbonCommandHandle,
+	title: string,
+): GalleryControl {
 	const el = createEl(doc, 'div', 'pptxv-theme-gallery-host');
 	const gallery = createEl(doc, 'div', 'pptxv-theme-gallery');
 	gallery.hidden = true;
 	button.btn.title = title;
 	button.btn.setAttribute('aria-haspopup', 'true');
-	button.btn.setAttribute('aria-expanded', 'false');
+	button.setExpanded(false);
 	let isOpen = false;
 	// Pinned with `position: fixed` while open, so the popover escapes the
 	// ribbon row's overflow clip (issue #183) like every other ribbon menu.
@@ -44,11 +50,12 @@ function createGalleryControl(doc: Document, button: ButtonHandle, title: string
 	const setOpen = (open: boolean): void => {
 		isOpen = open;
 		gallery.hidden = !open;
-		button.btn.setAttribute('aria-expanded', String(open));
+		button.setExpanded(open);
+		button.setActive(open);
 		anchored?.destroy();
 		anchored = open ? attachAnchoredPopup(gallery, button.btn) : null;
 	};
-	button.btn.addEventListener('click', (event) => {
+	button.el.addEventListener('command-request', (event) => {
 		event.stopPropagation();
 		setOpen(!isOpen);
 	});
@@ -57,7 +64,7 @@ function createGalleryControl(doc: Document, button: ButtonHandle, title: string
 			setOpen(false);
 		}
 	});
-	el.append(button.btn, gallery);
+	el.append(button.el, gallery);
 	return { el, button, gallery, close: () => setOpen(false) };
 }
 
@@ -92,14 +99,26 @@ export function createDesignTab(
 ): DesignTab {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tab-content');
 
+	const command = (id: string, onCommand: () => void) => {
+		const descriptor = DESIGN_RIBBON_COMMANDS.find((item) => item.id === id)!;
+		return createSharedRibbonCommand(doc, {
+			id: descriptor.id,
+			label: t(descriptor.labelKey),
+			title: t(descriptor.titleKey),
+			icon: descriptor.icon,
+			onCommand,
+		});
+	};
+	const group = (id: string) => {
+		const descriptor = DESIGN_RIBBON_GROUPS.find((item) => item.id === id)!;
+		const node = doc.createElement('pptx-ui-ribbon-group');
+		node.setAttribute('data-ribbon-group', descriptor.id);
+		node.setAttribute('label', t(descriptor.labelKey));
+		return node;
+	};
 	const browse = createGalleryControl(
 		doc,
-		makeButton(doc, {
-			label: t('pptx.ribbon.browseThemes'),
-			icon: 'sparkles',
-			textLabel: t('pptx.ribbon.browseThemes'),
-			onClick: () => {},
-		}),
+		command('design.themes.browseThemes', () => {}),
 		t('pptx.ribbon.browseThemesTitle'),
 	);
 	browse.gallery.setAttribute('role', 'menu');
@@ -128,37 +147,21 @@ export function createDesignTab(
 
 	const editTheme = createThemeEditorLauncher(doc, t, handlers);
 
-	const slideSize = makeButton(doc, {
-		label: t('pptx.ribbon.slideSize'),
-		icon: 'monitor',
-		textLabel: t('pptx.ribbon.slideSize'),
-		onClick: onOpenSlideSize,
-	});
-	slideSize.btn.title = t('pptx.ribbon.slideSizeTitle');
-
-	const formatBackground = makeButton(doc, {
-		label: t('pptx.ribbon.formatBackground'),
-		icon: 'square',
-		textLabel: t('pptx.ribbon.formatBackground'),
-		onClick: onToggleFormatBackground,
-	});
-	formatBackground.btn.title = t('pptx.ribbon.formatBackgroundTitle');
-
-	tagRibbonControl(browse.el, 'design.themes.browseThemes');
-	tagRibbonControl(editTheme.el, 'design.themes.editTheme');
-	tagRibbonControl(slideSize.btn, 'design.customize.slideSize');
-	tagRibbonControl(formatBackground.btn, 'design.customize.formatBackground');
-	el.appendChild(wrapRibbonGroup(doc, 'design.themes', browse.el, editTheme.el));
+	const slideSize = command('design.customize.slideSize', onOpenSlideSize);
+	const formatBackground = command('design.customize.formatBackground', onToggleFormatBackground);
+	const themes = group('design.themes');
+	themes.append(browse.el, editTheme.el);
+	el.append(themes);
 	// Design > Variants: the deck theme's Colors / Fonts libraries, straight
 	// from the shared gallery placements.
 	if (galleryHub) {
-		const variants = createRibbonGroupShell(doc, 'design.variants', t('pptx.ribbon.groupVariants'));
+		const variants = group('design.variants');
 		for (const placement of FIXED_TAB_GALLERIES) {
 			if (placement.control.startsWith('design.variants.')) {
-				variants.row.appendChild(createRibbonGallery(doc, t, placement, galleryHub).el);
+				variants.appendChild(createRibbonGallery(doc, t, placement, galleryHub).el);
 			}
 		}
-		el.appendChild(variants.el);
+		el.appendChild(variants);
 		// Keep the Browse Themes check mark and the Edit Theme editor on the
 		// deck's current theme (the hub pushes the theme with every selection sync).
 		galleryHub.register({
@@ -180,7 +183,9 @@ export function createDesignTab(
 			close() {},
 		});
 	}
-	el.appendChild(wrapRibbonGroup(doc, 'design.customize', slideSize.btn, formatBackground.btn));
+	const customize = group('design.customize');
+	customize.append(slideSize.el, formatBackground.el);
+	el.append(customize);
 
 	return {
 		el,

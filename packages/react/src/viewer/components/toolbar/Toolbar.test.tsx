@@ -1046,8 +1046,9 @@ describe('toolbar - Design tab', () => {
 				isThemeEditorOpen: false,
 			}),
 		);
-		// The browse themes button should have bg-primary
-		expect(html).toMatch(/bg-primary[^"]*"[^>]*title="Browse and apply built-in themes"/u);
+		expect(html).toMatch(
+			/data-ribbon-control="design.themes.browseThemes"[^>]*active="(?:true)?"/u,
+		);
 	});
 
 	it('does not render Slide Size when handler is undefined', () => {
@@ -1319,106 +1320,7 @@ describe('toolbar - Slide Show tab', () => {
 // ===========================================================================
 
 describe('toolbar - Review tab', () => {
-	it('renders Comments button', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onToggleComments: vi.fn<() => void>(),
-				isCommentsPanelOpen: false,
-				slideCommentCount: 0,
-				onCompare: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Toggle comments panel"');
-		expect(html).toContain('Comments');
-	});
-
-	it('renders Spelling button', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onToggleComments: vi.fn<() => void>(),
-				isCommentsPanelOpen: false,
-				onCompare: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Toggle spell check"');
-		expect(html).toContain('Spelling');
-	});
-
-	it('renders Compare button', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onCompare: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Compare with another presentation"');
-		expect(html).toContain('Compare');
-	});
-
-	it('shows comment count badge when > 0', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onToggleComments: vi.fn<() => void>(),
-				isCommentsPanelOpen: false,
-				slideCommentCount: 5,
-			}),
-		);
-		expect(html).toContain('>5</span>');
-	});
-
-	it('does not render comment badge when count is 0', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onToggleComments: vi.fn<() => void>(),
-				isCommentsPanelOpen: false,
-				slideCommentCount: 0,
-			}),
-		);
-		// No badge with rounded-full class should exist
-		expect(html).not.toMatch(/rounded-full[^"]*"[^>]*>[0-9]+<\/span>/u);
-	});
-
-	it('comments button has active styling when panel is open', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-				onToggleComments: vi.fn<() => void>(),
-				isCommentsPanelOpen: true,
-			}),
-		);
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Toggle comments panel"');
-	});
-
-	it('spelling button has active styling when enabled', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: true,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Toggle spell check"');
-	});
-
-	it('does not render Comments if onToggleComments is undefined', () => {
+	it('provides a shared view host during server rendering', () => {
 		const html = render(
 			React.createElement(ReviewSection, {
 				canEdit: true,
@@ -1426,18 +1328,7 @@ describe('toolbar - Review tab', () => {
 				onSetSpellCheckEnabled: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).not.toContain('title="Toggle comments panel"');
-	});
-
-	it('does not render Compare if onCompare is undefined', () => {
-		const html = render(
-			React.createElement(ReviewSection, {
-				canEdit: true,
-				spellCheckEnabled: false,
-				onSetSpellCheckEnabled: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).not.toContain('title="Compare with another presentation"');
+		expect(html).toContain('pptx-ui-ribbon-section');
 	});
 });
 
@@ -1953,7 +1844,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'review' })),
 		);
-		expect(html).toContain('Spelling');
+		expect(html).toContain('pptx-ui-ribbon-section');
 	});
 
 	it('renders ViewSection when toolbarSection is view', () => {

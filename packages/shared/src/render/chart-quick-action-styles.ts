@@ -84,7 +84,7 @@ function findPreset(id: string) {
  * currently applied (its resolved palette matches `chartData.colorPalette`).
  */
 export function buildChartStylePresets(
-	chartData: Pick<PptxChartData, 'colorPalette'>,
+	chartData: Pick<PptxChartData, 'colorPalette'> & Partial<Pick<PptxChartData, 'series'>>,
 ): ChartStylePresetDescriptor[] {
 	return CHART_STYLE_PRESETS.map(({ id, labelKey, styleId }) => {
 		const colors = getChartStylePalette(styleId);
@@ -92,7 +92,14 @@ export function buildChartStylePresets(
 			id,
 			labelKey,
 			colors,
-			applied: paletteEquals(colors, chartData.colorPalette),
+			applied:
+				paletteEquals(colors, chartData.colorPalette) ||
+				(!chartData.colorPalette &&
+					Boolean(chartData.series?.length) &&
+					chartData.series!.every(
+						(series, index) =>
+							series.color?.toLowerCase() === colors[index % colors.length]?.toLowerCase(),
+					)),
 		};
 	});
 }

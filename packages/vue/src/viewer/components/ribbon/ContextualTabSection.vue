@@ -10,7 +10,6 @@ import type { RibbonContextualTabId } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { GROUP_LABEL, SEP } from './ribbon-constants';
 import RibbonGallery from './RibbonGallery.vue';
 
 interface Props {
@@ -28,19 +27,18 @@ function caption(labelKey: string, fallback: string): string {
 </script>
 
 <template>
-	<template v-for="(group, index) in groups" :key="group.group">
-		<div v-if="index > 0" :class="SEP" />
-		<div class="flex flex-col items-center gap-0.5" :data-ribbon-group="group.group">
-			<div class="flex items-center gap-1">
-				<RibbonGallery
-					v-for="placement in group.galleries"
-					:key="placement.control"
-					:gallery="placement.gallery"
-					:control="placement.control"
-					:mode="placement.mode"
-				/>
-			</div>
-			<span :class="GROUP_LABEL">{{ caption(group.labelKey, group.label) }}</span>
-		</div>
-	</template>
+	<pptx-ui-ribbon-group
+		v-for="group in groups"
+		:key="group.group"
+		:label="caption(group.labelKey, group.label)"
+		:data-ribbon-group="group.group"
+	>
+		<RibbonGallery
+			v-for="placement in group.galleries"
+			:key="placement.control"
+			:gallery="placement.gallery"
+			:control="placement.control"
+			:mode="placement.mode"
+		/>
+	</pptx-ui-ribbon-group>
 </template>

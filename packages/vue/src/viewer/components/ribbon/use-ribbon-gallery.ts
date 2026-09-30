@@ -50,7 +50,12 @@ export function useRibbonGallery(gallery: () => RibbonGalleryId): UseRibbonGalle
 	};
 
 	const descriptor = computed(() => buildRibbonGallery(gallery(), host.context.value));
-	const disabled = computed(() => descriptor.value.disabled || !galleryHasItems(descriptor.value));
+	const disabled = computed(
+		() =>
+			host.editable?.value === false ||
+			descriptor.value.disabled ||
+			!galleryHasItems(descriptor.value),
+	);
 	return {
 		descriptor,
 		disabled,
@@ -62,6 +67,9 @@ export function useRibbonGallery(gallery: () => RibbonGalleryId): UseRibbonGalle
 		sectionTitle: (section) =>
 			section.titleKey ? orFallback(section.titleKey, section.title) : section.title,
 		pick: (itemId) => {
+			if (disabled.value) {
+				return false;
+			}
 			const result = applyRibbonGalleryItem(gallery(), itemId, host.context.value);
 			if (!result) {
 				return false;

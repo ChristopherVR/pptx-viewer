@@ -253,6 +253,9 @@ export function createRibbon(
 	return {
 		el,
 		update() {},
+		setSpellCheck(enabled) {
+			reviewTab?.setSpellCheck(enabled);
+		},
 		setEditState(state) {
 			primary.setEditState(state);
 			tabBar.el.hidden = !state.editable;

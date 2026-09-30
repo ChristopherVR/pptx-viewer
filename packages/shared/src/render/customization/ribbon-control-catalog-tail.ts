@@ -85,7 +85,7 @@ export const RIBBON_CATALOG_TAIL_TABS = {
 	review: {
 		proofing: { label: 'Proofing', controls: { spelling: 'Spelling', thesaurus: 'Thesaurus' } },
 		accessibility: { label: 'Accessibility', controls: { check: 'Check Accessibility' } },
-		language: { label: 'Language', controls: { translate: 'Translate' } },
+		language: { label: 'Language', controls: { translate: 'Translate', language: 'Language' } },
 		comments: {
 			label: 'Comments',
 			controls: {

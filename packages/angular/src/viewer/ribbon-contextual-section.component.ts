@@ -7,7 +7,13 @@
  * placement is decided here, so a gallery shared adds to a tab appears in
  * all five bindings at once.
  */
-import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	computed,
+	input,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
@@ -21,28 +27,24 @@ import { RibbonGalleryComponent } from './ribbon-gallery.component';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
 	imports: [TranslatePipe, RibbonGalleryComponent],
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
-		@for (group of groups(); track group.group; let last = $last) {
-			<div class="flex flex-col items-center gap-0.5" [attr.data-ribbon-group]="group.group">
-				<div class="flex items-center gap-1">
-					@for (placement of group.galleries; track placement.control) {
-						<pptx-ribbon-gallery
-							[gallery]="placement.gallery"
-							[mode]="placement.mode"
-							[control]="placement.control"
-							[element]="selectedElement()"
-							[slideIndex]="slideIndex()"
-							[canEdit]="canEdit()"
-						/>
-					}
-				</div>
-				<span class="text-[9px] leading-none text-muted-foreground">
-					{{ group.labelKey | translate }}
-				</span>
-			</div>
-			@if (!last) {
-				<span class="pptx-rb-sep"></span>
-			}
+		@for (group of groups(); track group.group) {
+			<pptx-ui-ribbon-group
+				[attr.label]="group.labelKey | translate"
+				[attr.data-ribbon-group]="group.group"
+			>
+				@for (placement of group.galleries; track placement.control) {
+					<pptx-ribbon-gallery
+						[gallery]="placement.gallery"
+						[mode]="placement.mode"
+						[control]="placement.control"
+						[element]="selectedElement()"
+						[slideIndex]="slideIndex()"
+						[canEdit]="canEdit()"
+					/>
+				}
+			</pptx-ui-ribbon-group>
 		}
 	`,
 })

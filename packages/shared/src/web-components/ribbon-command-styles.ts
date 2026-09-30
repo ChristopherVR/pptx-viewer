@@ -1,7 +1,10 @@
 export const RIBBON_COMMAND_STYLES = `
 :host { display: inline-flex; flex: none; }
+:host([hidden]) { display: none !important; }
+.badge { position:absolute; top:0; right:0; border-radius:99px; padding:0 3px; background:var(--pptx-primary,#6366f1); color:var(--pptx-primary-foreground,#fff); font-size:9px; }
+.badge[hidden] { display:none; }
 button {
-	box-sizing: border-box; display: inline-flex; flex-direction: column; align-items: center;
+	box-sizing: border-box; position:relative; display: inline-flex; flex-direction: column; align-items: center;
 	justify-content: flex-start; gap: 2px; min-width: 54px; max-width: 78px; height: 58px;
 	padding: 4px; border: 0; border-radius: 4px; background: transparent;
 	color: var(--pptx-foreground, #f9fafb); cursor: pointer; font: inherit;

@@ -89,7 +89,7 @@ describe('ribbonToolbar fixed-tab galleries', () => {
 	it('adds the Design > Variants group with the Colors and Fonts galleries', () => {
 		const wrapper = mountRibbon({ toolbarSection: 'design' });
 		const group = wrapper.get('[data-ribbon-group="design.variants"]');
-		expect(group.text()).toContain('Variants');
+		expect(group.attributes('label')).toBe('Variants');
 		expect(
 			group
 				.find('[data-ribbon-control="design.variants.colors"] [data-ribbon-gallery="themeColors"]')

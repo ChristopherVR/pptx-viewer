@@ -7,12 +7,12 @@ import {
 	CONTEXTUAL_TAB_GROUPS,
 	RIBBON_CONTEXTUAL_TABS,
 	RIBBON_GROUP_ATTR,
+	galleryTextLabel as translateOr,
 } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import type { RibbonGalleryHub } from './gallery-hub';
-import { translateOr } from './gallery-tiles';
 import { createRibbonGallery } from './ribbon-gallery';
 
 /** A ribbon group in the binding's normal markup, tagged with its catalogue id. */
@@ -26,13 +26,10 @@ export function createRibbonGroupShell(
 	id: RibbonGroupId,
 	caption: string,
 ): RibbonGroupShell {
-	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	const el = doc.createElement('pptx-ui-ribbon-group');
 	el.setAttribute(RIBBON_GROUP_ATTR, id);
-	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
-	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
-	label.textContent = caption;
-	el.append(row, label);
-	return { el, row };
+	el.setAttribute('label', caption);
+	return { el, row: el };
 }
 
 /** One shared gallery group placement (a contextual tab's Shape Styles, ...). */

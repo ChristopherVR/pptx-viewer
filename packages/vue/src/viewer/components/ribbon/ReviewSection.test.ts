@@ -1,10 +1,15 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ReviewSection from './ReviewSection.vue';
 
+registerPptxWebControls();
+const cleanups: (() => void)[] = [];
+afterEach(() => cleanups.splice(0).forEach((cleanup) => cleanup()));
 function mountReview(overrides: Record<string, unknown> = {}) {
-	return mount(ReviewSection, {
+	const wrapper = mount(ReviewSection, {
+		attachTo: document.body,
 		props: {
 			canEdit: true,
 			spellCheckEnabled: false,
@@ -16,61 +21,84 @@ function mountReview(overrides: Record<string, unknown> = {}) {
 			...overrides,
 		},
 	});
+	cleanups.push(() => wrapper.unmount());
+	const host = (id: string) =>
+		wrapper.element.querySelector<HTMLElement>(`[data-ribbon-control="review.${id}"]`)!;
+	const button = (id: string) => host(id).shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+	return { wrapper, host, button };
 }
 
-/**
- * ReviewSection: the Review ribbon tab.
- *
- * Asserted by rendered label because the way this tab drifts is by shipping
- * two thirds of it: a Review tab missing Thesaurus, Translate or the whole
- * Protect group is shorter than the reference, so no layout spec objects.
- */
-describe('reviewSection', () => {
-	it('offers every group the reference offers', () => {
-		const text = mountReview().text();
-		for (const control of [
-			'Spelling',
-			'Thesaurus',
-			'Check Accessibility',
-			'Translate',
-			'Language',
-			'Mark All as Read',
-			'Compare',
-			'Comments',
-			'Delete',
-			'Previous',
-			'Next',
-			'Show Comments',
-			'Always Open Read-Only',
-			'Restrict Permission',
-			'Hide Ink',
+describe('review shared commands', () => {
+	it('renders all seven groups and routes the supported native callbacks', () => {
+		const spelling = vi.fn(),
+			comments = vi.fn(),
+			compare = vi.fn(),
+			accessibility = vi.fn(),
+			language = vi.fn();
+		const view = mountReview({
+			onSetSpellCheckEnabled: spelling,
+			onToggleComments: comments,
+			onCompare: compare,
+			onOpenAccessibilityCheck: accessibility,
+			onSetLanguage: language,
+		});
+		for (const id of [
+			'proofing.spelling',
+			'accessibility.check',
+			'language.language',
+			'compare.compare',
+			'comments.newComment',
+			'comments.showComments',
 		]) {
-			expect(text).toContain(control);
+			view.button(id).click();
 		}
+		expect(spelling).toHaveBeenCalledExactlyOnceWith(true);
+		expect(accessibility).toHaveBeenCalledOnce();
+		expect(language).toHaveBeenCalledOnce();
+		expect(compare).toHaveBeenCalledOnce();
+		expect(comments).toHaveBeenCalledTimes(2);
+		expect(view.wrapper.element.querySelectorAll('pptx-ui-ribbon-group')).toHaveLength(7);
+		expect(
+			view.host('ink.hideInk').closest('[data-ribbon-group]')?.getAttribute('data-ribbon-group'),
+		).toBe('review.ink');
 	});
 
-	it('renders the not-yet-backed commands inert rather than omitting them', () => {
-		const wrapper = mountReview();
-		const inert = wrapper
-			.findAll('button')
-			.filter((b) => b.attributes('disabled') !== undefined)
-			.map((b) => b.text());
-		for (const label of [
-			'Thesaurus',
-			'Translate',
-			'Mark All as Read',
-			'Always Open Read-Only',
-			'Hide Ink',
-		]) {
-			expect(inert).toContain(label);
-		}
+	it('updates controlled state and preserves focus without affecting another instance', async () => {
+		const callback = vi.fn();
+		const first = mountReview({ onCompare: callback });
+		const second = mountReview();
+		first.button('proofing.spelling').focus();
+		await first.wrapper.setProps({
+			spellCheckEnabled: true,
+			isCommentsPanelOpen: true,
+			slideCommentCount: 5,
+			canEdit: false,
+		});
+		expect(first.host('proofing.spelling')).toBe(document.activeElement);
+		expect(first.button('proofing.spelling').getAttribute('aria-pressed')).toBe('true');
+		expect(second.button('proofing.spelling').getAttribute('aria-pressed')).toBe('false');
+		expect(first.host('comments.newComment').getAttribute('badge')).toBe('5');
+		expect(first.button('comments.newComment').getAttribute('aria-expanded')).toBe('true');
+		first.button('compare.compare').click();
+		expect(callback).not.toHaveBeenCalled();
+		await first.wrapper.setProps({ slideCommentCount: 0 });
+		expect(first.host('comments.newComment').hasAttribute('badge')).toBeFalsy();
 	});
 
-	it('routes Show Comments to the comments panel', async () => {
-		const onToggleComments = vi.fn();
-		const wrapper = mountReview({ onToggleComments });
-		const button = wrapper.findAll('button').find((b) => b.text() === 'Show Comments');
-		await button?.trigger('click');
-		expect(onToggleComments).toHaveBeenCalledOnce();
+	it('keeps unsupported commands disabled', () => {
+		const view = mountReview();
+		for (const id of [
+			'proofing.thesaurus',
+			'language.translate',
+			'compare.markAllRead',
+			'comments.delete',
+			'comments.previous',
+			'comments.next',
+			'protect.readOnly',
+			'protect.restrictPermission',
+			'ink.hideInk',
+		]) {
+			expect(view.button(id).disabled).toBeTruthy();
+		}
 	});
 });

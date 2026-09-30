@@ -9,7 +9,6 @@
 	import type { RibbonContextualTabId } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
-	import RibbonGroup from '../RibbonGroup.svelte';
 	import RibbonGallery from './RibbonGallery.svelte';
 	import { translatedOr } from './gallery-labels';
 
@@ -20,11 +19,11 @@
 
 <div class="pptx-svelte-ctxtab" data-ribbon-contextual-panel={tab}>
 	{#each groups as group (group.group)}
-		<RibbonGroup label={translatedOr(t, group.labelKey, group.label)} group={group.group}>
+		<pptx-ui-ribbon-group label={translatedOr(t, group.labelKey, group.label)} data-ribbon-group={group.group}>
 			{#each group.galleries as placement (placement.control)}
 				<RibbonGallery {placement} />
 			{/each}
-		</RibbonGroup>
+		</pptx-ui-ribbon-group>
 	{/each}
 </div>
 

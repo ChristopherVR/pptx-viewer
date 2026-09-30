@@ -21,10 +21,12 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			'expanded',
 			'title',
 			'data-ribbon-control',
+			'badge',
 		];
 		private readonly button: HTMLButtonElement;
 		private readonly text: HTMLSpanElement;
 		private readonly path: SVGPathElement;
+		private readonly badge: HTMLSpanElement;
 		constructor() {
 			super();
 			const root = this.attachShadow({ mode: 'open' });
@@ -39,6 +41,10 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 			svg.append(this.path);
 			this.text = document.createElement('span');
 			this.button.append(svg, this.text);
+			this.badge = document.createElement('span');
+			this.badge.className = 'badge';
+			this.badge.setAttribute('aria-hidden', 'true');
+			this.button.append(this.badge);
 			root.append(this.button);
 			this.button.addEventListener('keydown', (event) => {
 				// Keep native activation out of the viewer's slide-navigation handlers.
@@ -68,6 +74,8 @@ export function definePptxRibbonCommand(registry: CustomElementRegistry): void {
 		}
 		private sync(): void {
 			this.text.textContent = this.getAttribute('label') ?? '';
+			this.badge.textContent = this.getAttribute('badge') ?? '';
+			this.badge.hidden = !this.badge.textContent;
 			this.button.title = this.getAttribute('title') ?? this.text.textContent;
 			this.button.disabled = this.hasAttribute('disabled');
 			this.path.setAttribute('d', RIBBON_ICON_PATHS[this.getAttribute('icon') ?? ''] ?? '');

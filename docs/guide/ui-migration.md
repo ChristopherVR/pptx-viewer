@@ -52,19 +52,40 @@ do not claim that the remaining UI inventory has already migrated.
 | Remaining Home controls                      | #373  | ChristopherVR |
 | Insert                                       | #374  | ChristopherVR |
 | Draw                                         | #375  | ChristopherVR |
-| Design commands and groups                   | #376  | ChristopherVR |
 | Transitions                                  | #377  | ChristopherVR |
 | Animations                                   | #378  | ChristopherVR |
-| Review                                       | #379  | ChristopherVR |
 | View                                         | #380  | ChristopherVR |
-| Shape Format                                 | #381  | ChristopherVR |
-| Picture Format                               | #382  | ChristopherVR |
-| Table Design                                 | #383  | ChristopherVR |
-| Chart Design                                 | #384  | ChristopherVR |
-| SmartArt Design                              | #385  | ChristopherVR |
 | Distinct non-ribbon buttons and icon-buttons | #386  | ChristopherVR |
 
 These are native children of #363 in the Thin UI adapters milestone. Each has
 its own baseline, shared/native boundary and validation requirements. Their
 `ui:planned` status means implementation is still outstanding; contributors
 should claim a bounded family before starting to avoid overlapping changes.
+
+## Design, Review and contextual galleries
+
+Design (#376), Review (#379), Shape Format (#381), Picture Format (#382),
+Table Design (#383), Chart Design (#384) and SmartArt Design (#385) now use
+shared groups, commands and gallery views in all five bindings. The main UI
+rework tracker (#342) remains open for the remaining families above.
+
+Design command metadata controls availability and open state. Review uses
+seven canonical groups and a keyed section view that preserves command focus
+when native state changes. Gallery descriptors supply previews and selection;
+the shared view owns popup placement, keyboard navigation, dismissal, touch
+targets and forced-color styling. Native hosts still own document edits,
+history, selection, comments, dialogs and saving. The property/event contract
+is in `packages/shared/src/web-components/README.md`.
+
+Comparable screenshots use the same decks and 1440 x 900 viewport. Baseline
+files are in `/assets/ui-migration/ribbon-baseline/`; completed views are in
+`/assets/ui-migration/ribbon-after/`. Filenames combine the binding and tab,
+for example `react-review.png` and `vue-shapeFormat.png`.
+
+Neutral browser coverage is in `ribbon-contextual-migration.spec.ts`,
+`ribbon-gallery-migration.spec.ts` and `ribbon-review-migration.spec.ts`.
+It exercises actual chart and SmartArt style/color edits through save and
+reload, Review spelling/language/comments actions, customization, focus,
+narrow layouts, touch targets and forced colors. Save/reload checks also
+identified and fixed missing SmartArt quick-style intensity serialization,
+SmartArt color-definition updates and chart gallery selection reconstruction.

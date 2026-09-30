@@ -2,7 +2,9 @@ import { definePptxCheckbox } from './checkbox';
 import { HOST_STYLES } from './host-styles';
 import { assertWebControlContract, markWebControlContract } from './registration-contract';
 import { definePptxRibbonCommand } from './ribbon-command';
+import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
+import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
@@ -13,6 +15,9 @@ import { definePptxThemeEditor } from './theme-editor';
 export type { PptxUiThemeEditorElement, ThemeEditorApplyEvent } from './theme-editor';
 
 export type { RibbonCommandRequestEvent } from './ribbon-command';
+export type { PptxUiRibbonSectionElement } from './ribbon-section';
+export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
+export type { GalleryTranslate } from './ribbon-gallery-view';
 export type { RibbonToggleRequestEvent } from './ribbon-toggle';
 export type {
 	PptxUiSubtitleSettingsElement,
@@ -32,6 +37,8 @@ const controls = [
 	['pptx-ui-slide-show-options', definePptxSlideShowOptions],
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],
+	['pptx-ui-ribbon-section', definePptxRibbonSection],
+	['pptx-ui-ribbon-gallery', definePptxRibbonGallery],
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 	['pptx-ui-theme-editor', definePptxThemeEditor],
