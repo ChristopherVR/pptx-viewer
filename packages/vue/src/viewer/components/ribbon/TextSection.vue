@@ -1,15 +1,6 @@
 <script setup lang="ts">
-import { AArrowDown, AArrowUp, ChevronDown, Highlighter, RemoveFormatting } from 'lucide-vue-next';
-/**
- * Text ribbon section: the Vue port of React's `toolbar/TextSection.tsx`.
- *
- * Mirrors the React `TextSection` for visual + behavioral parity: character
- * formatting toggles (B/I/U/strikethrough), font-size step/clear, font-colour
- * and highlight-colour pickers (preset swatches + native colour input), list
- * style, indent, and paragraph alignment. Tailwind class strings are copied
- * verbatim; the active text style is derived from the selected element (or the
- * focused table cell) exactly as React does so re-clicking a toggle turns it off.
- */
+import { Highlighter } from 'lucide-vue-next';
+/** Vue's Home character-formatting controls and thin editor wiring. */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, PptxThemeColorRef, TextStyle } from 'pptx-viewer-core';
 import type { ChangeCaseMode } from 'pptx-viewer-shared';
@@ -17,13 +8,13 @@ import { OFFICE_COLOR_SWATCH_HEXES, textFontSizePtToPx } from 'pptx-viewer-share
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { vAnchoredPopup } from './anchored-popup';
 import { getEffectiveTextStyle } from './effective-text-style';
+import FontActionMenus from './FontActionMenus.vue';
+import FontDecorationControls from './FontDecorationControls.vue';
 import ParagraphGroup from './ParagraphGroup.vue';
-import { gB, gL, grp, FMT, pill, ic, SEP, MENU_PANEL, MENU_ITEM } from './ribbon-constants';
+import { ic, SEP } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
 import TextColorPopover from './TextColorPopover.vue';
-import { useDropdown } from './use-dropdown';
 
 interface Props {
 	canEdit: boolean;
@@ -172,108 +163,41 @@ function handleToggleTextShadow(): void {
 	}
 }
 
-/* ── Character Spacing ── */
-const CHAR_SPACING_OPTIONS = [
-	{ labelKey: 'pptx.text.characterSpacingVeryTight', value: -300 },
-	{ labelKey: 'pptx.text.characterSpacingTight', value: -150 },
-	{ labelKey: 'pptx.view.normal', value: 0 },
-	{ labelKey: 'pptx.text.characterSpacingLoose', value: 150 },
-	{ labelKey: 'pptx.text.characterSpacingVeryLoose', value: 300 },
-];
-
-const charSpacingMenu = useDropdown();
-
 function handleCharSpacing(value: number): void {
-	if (!canFormat.value) {
-		return;
+	if (canFormat.value) {
+		props.onUpdateTextStyle({ characterSpacing: value });
 	}
-	props.onUpdateTextStyle({ characterSpacing: value });
-	charSpacingMenu.close();
 }
-
-/* ── Change Case ── */
-const CHANGE_CASE_OPTIONS = [
-	{ label: 'pptx.text.changeCaseSentence', value: 'sentence' },
-	{ label: 'pptx.text.changeCaseLower', value: 'lower' },
-	{ label: 'pptx.text.changeCaseUpper', value: 'upper' },
-	{ label: 'pptx.text.changeCaseCapitalize', value: 'capitalize' },
-	{ label: 'pptx.text.changeCaseToggle', value: 'toggle' },
-];
-
-const changeCaseMenu = useDropdown();
-
-function handleChangeCase(value: string): void {
+function handleChangeCase(value: ChangeCaseMode): void {
 	if (!canFormat.value) {
 		return;
 	}
 	if (isTable.value) {
-		// Table-cell text is plain (no textSegments to rewrite); fall back to
-		// the visual all-caps render hint.
 		props.onUpdateTextStyle({ textCaps: value === 'upper' ? 'all' : 'none' });
 	} else {
-		props.onTransformTextCase(value as ChangeCaseMode);
+		props.onTransformTextCase(value);
 	}
-	changeCaseMenu.close();
 }
 </script>
 
 <template>
 	<!-- ── Font group ── -->
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.font">
-		<div class="flex items-center gap-1">
-			<div :class="grp">
-				<button
-					v-for="(b, i) in FMT"
-					:key="b.id"
-					type="button"
-					:data-ribbon-control="`home.font.${b.id}`"
-					:disabled="!canMut"
-					:class="i < FMT.length - 1 ? gB : gL"
-					:title="t(b.labelKey)"
-					@mousedown.prevent
-					@click="handleFmtClick(b.id)"
-				>
-					<component :is="b.icon" :class="ic" />
-				</button>
-			</div>
-
-			<!-- Font size increase / decrease / clear formatting -->
-			<div :class="grp">
-				<button
-					type="button"
-					data-ribbon-control="home.font.increaseFontSize"
-					:disabled="!canMut"
-					:class="gB"
-					:title="t('pptx.text.increaseFontSize')"
-					@mousedown.prevent
-					@click="handleIncreaseFontSize"
-				>
-					<AArrowUp :class="ic" />
-				</button>
-				<button
-					type="button"
-					data-ribbon-control="home.font.decreaseFontSize"
-					:disabled="!canMut"
-					:class="gB"
-					:title="t('pptx.text.decreaseFontSize')"
-					@mousedown.prevent
-					@click="handleDecreaseFontSize"
-				>
-					<AArrowDown :class="ic" />
-				</button>
-				<button
-					type="button"
-					data-ribbon-control="home.font.clearFormatting"
-					:disabled="!canMut"
-					:class="gL"
-					:title="t('pptx.text.clearFormatting')"
-					@mousedown.prevent
-					@click="handleClearFormatting"
-				>
-					<RemoveFormatting :class="ic" />
-				</button>
-			</div>
-
+		<div class="flex items-center gap-1" data-pptx-chrome="font-controls">
+			<FontDecorationControls
+				:disabled="!canMut || !canFormat"
+				:text-style="effectiveTs"
+				@format="handleFmtClick"
+				@shadow="handleToggleTextShadow"
+				@increase="handleIncreaseFontSize"
+				@decrease="handleDecreaseFontSize"
+				@clear="handleClearFormatting"
+			/>
+			<FontActionMenus
+				:disabled="!canMut || !canFormat"
+				@spacing="handleCharSpacing"
+				@case="handleChangeCase"
+			/>
 			<!-- Font colour -->
 			<TextColorPopover
 				data-ribbon-control="home.font.fontColor"
@@ -281,7 +205,7 @@ function handleChangeCase(value: string): void {
 				:current-ref="currentColorThemeRef"
 				:show-theme-colors="true"
 				:presets="FONT_COLOR_PRESETS"
-				:disabled="!canMut"
+				:disabled="!canMut || !canFormat"
 				title-key="pptx.text.fontColor"
 				@pick="handleColorChange"
 			>
@@ -303,116 +227,12 @@ function handleChangeCase(value: string): void {
 				data-ribbon-control="home.font.highlightColor"
 				:current="currentHighlight"
 				:presets="HIGHLIGHT_COLOR_PRESETS"
-				:disabled="!canMut"
+				:disabled="!canMut || !canFormat"
 				title-key="pptx.text.highlightColor"
 				@pick="handleHighlightChange"
 			>
 				<Highlighter :class="ic" />
 			</TextColorPopover>
-
-			<!-- Text Shadow toggle -->
-			<button
-				type="button"
-				data-ribbon-control="home.font.shadow"
-				:disabled="!canMut"
-				:class="[pill, effectiveTs?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
-				:title="t('pptx.textEffects.shadow')"
-				:aria-label="t('pptx.textEffects.shadow')"
-				@mousedown.prevent
-				@click="handleToggleTextShadow"
-			>
-				<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<text x="5" y="16" font-size="14" font-weight="bold" stroke="none" fill="currentColor">
-						S
-					</text>
-					<text
-						x="7"
-						y="18"
-						font-size="14"
-						font-weight="bold"
-						stroke="none"
-						fill="currentColor"
-						opacity="0.3"
-					>
-						S
-					</text>
-				</svg>
-			</button>
-
-			<!-- Character Spacing dropdown -->
-			<div
-				:ref="charSpacingMenu.root"
-				class="relative"
-				data-ribbon-control="home.font.characterSpacing"
-			>
-				<button
-					type="button"
-					:disabled="!canMut"
-					:class="pill"
-					:title="t('pptx.text.characterSpacing')"
-					@mousedown.prevent
-					@click="charSpacingMenu.toggle()"
-				>
-					<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M3 12h18M7 8l-4 4 4 4M17 8l4 4-4 4" />
-					</svg>
-					<ChevronDown class="w-3 h-3" />
-				</button>
-				<div
-					v-if="charSpacingMenu.open.value"
-					class="z-50 flex flex-col w-36 pt-1"
-					v-anchored-popup="{ anchor: charSpacingMenu.root.value }"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="opt in CHAR_SPACING_OPTIONS"
-							:key="opt.value"
-							type="button"
-							:class="MENU_ITEM"
-							@click="handleCharSpacing(opt.value)"
-						>
-							{{ t(opt.labelKey) }}
-						</button>
-					</div>
-				</div>
-			</div>
-
-			<!-- Change Case (Aa) dropdown -->
-			<div :ref="changeCaseMenu.root" class="relative" data-ribbon-control="home.font.changeCase">
-				<button
-					type="button"
-					:disabled="!canMut"
-					:class="pill"
-					:title="t('pptx.text.changeCase')"
-					:aria-label="t('pptx.text.changeCase')"
-					@mousedown.prevent
-					@click="changeCaseMenu.toggle()"
-				>
-					<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-						<text x="2" y="16" font-size="13" font-weight="bold" fill="currentColor" stroke="none">
-							Aa
-						</text>
-					</svg>
-					<ChevronDown class="w-3 h-3" />
-				</button>
-				<div
-					v-if="changeCaseMenu.open.value"
-					class="z-50 flex flex-col w-44 pt-1"
-					v-anchored-popup="{ anchor: changeCaseMenu.root.value }"
-				>
-					<div :class="MENU_PANEL">
-						<button
-							v-for="opt in CHANGE_CASE_OPTIONS"
-							:key="opt.value"
-							type="button"
-							:class="MENU_ITEM"
-							@click="handleChangeCase(opt.value)"
-						>
-							{{ t(opt.label) }}
-						</button>
-					</div>
-				</div>
-			</div>
 		</div>
 		<span class="text-[9px] text-muted-foreground leading-none">{{ t('pptx.ribbon.font') }}</span>
 	</div>

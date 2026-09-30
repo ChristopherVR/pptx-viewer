@@ -212,7 +212,7 @@ describe('createViewerState', () => {
 		fitOptions.fitPadding = undefined;
 		fitOptions.maxFitScale = undefined;
 		flushSync();
-		expect(state.scale).toBeCloseTo((492 / 540) * 1.5);
+		expect(state.scale).toBeCloseTo((508 / 540) * 1.5);
 		expect(state.editor.dirty).toBeFalsy();
 	});
 

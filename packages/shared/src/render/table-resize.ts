@@ -35,6 +35,12 @@ export const DEFAULT_ROW_HEIGHT = 32;
 /** Minimum proportion a column may be set to via the properties-panel width control. */
 export const MIN_COLUMN_WIDTH_FRACTION = 0.05;
 
+/** Convert authored row offsets to viewport pixels when the slide is scaled. */
+export function getTableResizeScale(renderedSize: number, layoutSize: number): number {
+	const scale = renderedSize / layoutSize;
+	return Number.isFinite(scale) && scale > 0 ? scale : 1;
+}
+
 /**
  * Cumulative left-edge positions (as percentages, 0-100) of the internal column
  * boundaries, i.e. one entry between each adjacent pair of columns. The leading

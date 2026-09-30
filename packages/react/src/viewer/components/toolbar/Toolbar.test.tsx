@@ -573,9 +573,9 @@ describe('toolbar - Home tab', () => {
 			),
 		);
 		for (const label of ['Font family', 'Font size']) {
-			const button = html.match(new RegExp(`<button[^>]*aria-label="${label}"[^>]*>`))?.[0];
+			const button = html.match(new RegExp(`<pptx-ui-select[^>]*aria-label="${label}"[^>]*>`))?.[0];
 			expect(button).toBeDefined();
-			expect(button?.includes('disabled=""')).toBe(disabled);
+			expect(/\sdisabled(?:=|\s|>)/u.test(button!)).toBe(disabled);
 		}
 	});
 
@@ -667,7 +667,9 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('>24</span>');
+		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
+			'value="24"',
+		);
 	});
 
 	it('font size display converts model pixels to exact PowerPoint points', () => {
@@ -694,7 +696,9 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('>48.1</span>');
+		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
+			'value="48.1"',
+		);
 		expect(html).not.toContain('64.133333');
 	});
 
@@ -1303,7 +1307,9 @@ describe('toolbar - Slide Show tab', () => {
 		const props = createSlideShowProps();
 		props.showSubtitles = true;
 		const html = render(React.createElement(SlideShowSection, props));
-		expect(html).toContain('checked=""');
+		const toggle = html.match(/<pptx-ui-ribbon-toggle[^>]*label="Subtitles"[^>]*>/u)?.[0];
+		expect(toggle).toBeDefined();
+		expect(/\schecked(?:=|\s|>)/u.test(toggle!)).toBeTruthy();
 		expect(html).toContain('title="Toggle subtitles"');
 	});
 });

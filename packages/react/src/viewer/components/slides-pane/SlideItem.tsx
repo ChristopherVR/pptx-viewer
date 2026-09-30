@@ -1,6 +1,8 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
 	HIDDEN_SLIDE_LABEL_KEY,
+	EDITOR_THUMBNAIL_WIDTH,
+	editorThumbnailHeight,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
 	hiddenSlideCue,
 } from 'pptx-viewer-shared';
@@ -8,7 +10,6 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LuEyeOff, LuMessageSquare } from 'react-icons/lu';
 
-import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../../constants';
 import type { CanvasSize } from '../../types';
 import { cn } from '../../utils';
 import type { TableStyleContext } from '../../utils/table-band-style';
@@ -34,6 +35,7 @@ export interface SlideItemProps {
 	/** Part of a Ctrl/Shift multi-selection (independent of `isActive`). */
 	isSelected?: boolean;
 	canvasSize: CanvasSize;
+	previewWidth?: number;
 	canEdit: boolean;
 	rehearsalTimings?: Record<number, number>;
 	/** Remote users currently viewing this slide. */
@@ -62,6 +64,7 @@ function SlideItemInner({
 	isActive,
 	isSelected = false,
 	canvasSize,
+	previewWidth = EDITOR_THUMBNAIL_WIDTH,
 	canEdit,
 	rehearsalTimings,
 	presenceUsers,
@@ -99,8 +102,7 @@ function SlideItemInner({
 	// Pre-compute the thumbnail height for the placeholder
 	const safeCanvasWidth = Math.max(canvasSize.width, 1);
 	const safeCanvasHeight = Math.max(canvasSize.height, 1);
-	const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeCanvasWidth;
-	const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
+	const previewHeight = editorThumbnailHeight(safeCanvasWidth, safeCanvasHeight, previewWidth);
 
 	return (
 		<button
@@ -108,6 +110,7 @@ function SlideItemInner({
 			ref={slideRef}
 			aria-label={t('pptx.slidesPanel.goToSlide', { n: slideIndex + 1 })}
 			aria-current={isActive ? 'true' : undefined}
+			data-pptx-chrome='slide-row'
 			aria-describedby={cue.labelId}
 			data-pptx-slide-hidden={cue.marker}
 			className={cn(
@@ -125,7 +128,10 @@ function SlideItemInner({
 			onDrop={(e) => onDrop(e, slideIndex)}
 		>
 			{/* Slide number + presence dots: left of thumbnail */}
-			<div className='flex flex-col items-center gap-0.5 w-5 shrink-0'>
+			<div
+				data-pptx-chrome='slide-number'
+				className='flex flex-col items-center gap-0.5 w-5 shrink-0'
+			>
 				<span
 					className={cn(
 						'text-[10px] tabular-nums text-right select-none w-full',
@@ -155,7 +161,8 @@ function SlideItemInner({
 					'relative shrink-0 overflow-hidden border transition-colors bg-white',
 					isActive ? 'border-primary/60' : 'border-transparent group-hover:border-border/40',
 				)}
-				style={{ width: SLIDE_NAV_THUMBNAIL_WIDTH }}
+				data-pptx-chrome='slide-frame'
+				style={{ width: previewWidth, height: previewHeight }}
 			>
 				{/* Hidden-slide indicator stripe */}
 				{isHidden && (
@@ -166,6 +173,7 @@ function SlideItemInner({
 					templateElements={templateElements}
 					canvasSize={canvasSize}
 					previewHeight={previewHeight}
+					previewWidth={previewWidth}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
 				/>

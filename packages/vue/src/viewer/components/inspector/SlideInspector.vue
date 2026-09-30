@@ -98,6 +98,7 @@ const activeTab = ref<InspectorTab>('properties');
 
 <template>
 	<aside
+		data-pptx-chrome="inspector"
 		:data-pptx-inspector="mobile ? undefined : ''"
 		class="pptx-vue-inspector flex flex-col overflow-hidden bg-background box-border text-xs text-foreground"
 		:class="mobile ? 'w-full' : 'w-72 flex-[0_0_18rem] border-l border-border'"
@@ -109,7 +110,7 @@ const activeTab = ref<InspectorTab>('properties');
 			@close="emit('close')"
 		/>
 
-		<div class="flex-1 overflow-y-auto p-3 space-y-3">
+		<div data-pptx-chrome="inspector-body" class="flex-1 overflow-y-auto p-3 space-y-3">
 			<!-- Elements -->
 			<InspectorElementsTab
 				v-if="activeTab === 'elements'"

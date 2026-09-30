@@ -29,6 +29,30 @@ function makeSlides(count: number): PptxSlide[] {
 }
 
 describe('thumbnail rail display contract', () => {
+	it('moves the current-page cue and delegates row spacing to the shared window', () => {
+		const onSelect = vi.fn();
+		const rail = createThumbnailRail(document, createTranslator(), onSelect);
+		rail.render(makeSlides(3), CANVAS, slideRenderer);
+		const window = rail.el.querySelector<HTMLElement>('[data-pptx-chrome="slide-window"]')!;
+		expect(window.style.gap).toBe('');
+		const rows = window.querySelectorAll<HTMLButtonElement>('[data-pptx-chrome="slide-row"]');
+		rail.setActive(1);
+		expect(rows[0].hasAttribute('aria-current')).toBeFalsy();
+		expect(rows[1].getAttribute('aria-current')).toBe('page');
+		expect(rows[1].querySelector('[data-pptx-chrome="slide-number"]')?.textContent).toBe('2');
+		rows[2].click();
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith(2);
+	});
+
+	it('preserves slide aspect ratio inside the shared desktop rail', () => {
+		const rail = createThumbnailRail(document, createTranslator(), vi.fn());
+		rail.render(makeSlides(3), CANVAS, slideRenderer);
+		const frame = rail.el.querySelector<HTMLElement>('[data-pptx-chrome="slide-frame"]');
+		expect(rail.el.style.width).toBe('180px');
+		expect(frame?.style.width).toBe('132px');
+		expect(frame?.style.height).toBe('74.25px');
+	});
+
 	it('never sets an inline display style (small deck)', () => {
 		const rail = createThumbnailRail(document, createTranslator(), vi.fn());
 		rail.render(makeSlides(3), CANVAS, slideRenderer);

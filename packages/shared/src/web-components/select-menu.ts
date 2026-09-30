@@ -1,3 +1,15 @@
+/** Mutations that can change a select's value, labels or font preview. */
+export const SELECT_OPTION_ATTRIBUTES = [
+	'value',
+	'disabled',
+	'label',
+	'selected',
+	'hidden',
+	'data-display-label',
+	'data-description',
+	'style',
+];
+
 /** The flattened option data consumed by the select popup. */
 export interface SelectChoice {
 	value: string;
@@ -5,6 +17,9 @@ export interface SelectChoice {
 	disabled: boolean;
 	hidden: boolean;
 	group: string;
+	displayLabel?: string;
+	description?: string;
+	fontFamily?: string;
 }
 
 /** Flatten options while retaining optgroup labels and disabled state. */
@@ -17,6 +32,9 @@ export function collectSelectChoices(options: HTMLOptionElement[]): SelectChoice
 			disabled: option.disabled || Boolean(group?.disabled),
 			hidden: Boolean(option.hidden) || Boolean(group?.hidden),
 			group: group?.label ?? '',
+			...(option.dataset.displayLabel ? { displayLabel: option.dataset.displayLabel } : {}),
+			...(option.dataset.description ? { description: option.dataset.description } : {}),
+			...(option.style.fontFamily ? { fontFamily: option.style.fontFamily } : {}),
 		};
 	});
 }
@@ -48,7 +66,16 @@ export function renderSelectMenu(
 		item.setAttribute('aria-disabled', String(choice.disabled));
 		item.id = `${menu.id}-${index}`;
 		item.dataset.index = String(index);
-		item.textContent = choice.label;
+		item.textContent = choice.displayLabel ?? choice.label;
+		if (choice.fontFamily) {
+			item.style.fontFamily = choice.fontFamily;
+		}
+		if (choice.description) {
+			const description = document.createElement('span');
+			description.className = 'description';
+			description.textContent = choice.description;
+			item.append(description);
+		}
 		menuItems.push(item);
 	});
 	menu.replaceChildren(...menuItems);
@@ -66,10 +93,15 @@ export function positionSelectMenu(menu: HTMLDivElement, trigger: HTMLButtonElem
 	menu.style.maxWidth = `${width}px`;
 	// Measure at the normal height cap before choosing a side. Reset the cap
 	// on every reposition so a previously constrained menu can grow again.
-	menu.style.maxHeight = '240px';
+	const heightCap =
+		trigger.getRootNode() instanceof ShadowRoot &&
+		(trigger.getRootNode() as ShadowRoot).host.getAttribute('data-font-picker') === 'family'
+			? 320
+			: 240;
+	menu.style.maxHeight = `${heightCap}px`;
 	const preferredHeight = menu.getBoundingClientRect().height;
 	const flip = below < preferredHeight && above > below;
-	menu.style.maxHeight = `${Math.min(240, flip ? above : below)}px`;
+	menu.style.maxHeight = `${Math.min(heightCap, flip ? above : below)}px`;
 	const { height, width: menuWidth } = menu.getBoundingClientRect();
 	menu.style.top = `${Math.max(margin, flip ? rect.top - gap - height : rect.bottom + gap)}px`;
 	menu.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - menuWidth - margin))}px`;

@@ -96,14 +96,16 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 
 <template>
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.slides">
-		<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1" data-pptx-chrome="slides-controls">
 			<!-- New Slide split button -->
 			<div
 				:ref="layoutMenu.root"
 				class="relative inline-flex items-center"
 				data-ribbon-control="home.slides.newSlide"
+				data-pptx-chrome="split-button"
 			>
 				<button
+					data-pptx-chrome="split-main"
 					type="button"
 					:disabled="!props.canEdit || props.layoutOptions.length === 0"
 					:class="
@@ -116,6 +118,7 @@ function handleApplyLayout(lo: PptxLayoutOption | LayoutOption): void {
 					{{ t('pptx.home.newSlide') }}
 				</button>
 				<button
+					data-pptx-chrome="split-caret"
 					v-if="props.layoutOptions.length > 0"
 					type="button"
 					:disabled="!props.canEdit"

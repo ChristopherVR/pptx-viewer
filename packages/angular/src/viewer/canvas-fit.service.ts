@@ -17,7 +17,7 @@
 
 import { Injectable, signal } from '@angular/core';
 
-import { calculateViewportFit } from '../internal/shared';
+import { calculateViewportFit, EDITOR_VIEWPORT_FIT } from '../internal/shared';
 import type { CanvasSize, ViewportFitOptions } from '../internal/shared';
 
 /** Live host accessors the fit computation needs. */
@@ -73,7 +73,7 @@ export class CanvasFitService {
 				canvasHeight: size.height,
 				...this.host.fitOptions?.(),
 			},
-			{ fitPadding: { horizontal: 8, vertical: 16 }, maxFitScale: 1 },
+			EDITOR_VIEWPORT_FIT,
 		);
 		this.fitScale.set(fit.scale);
 	}

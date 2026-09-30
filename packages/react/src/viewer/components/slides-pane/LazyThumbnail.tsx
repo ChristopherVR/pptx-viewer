@@ -12,7 +12,6 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
  */
 import React, { useEffect, useRef, useState } from 'react';
 
-import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../../constants';
 import type { CanvasSize } from '../../types';
 import type { TableStyleContext } from '../../utils/table-band-style';
 import type { FieldSubstitutionContext } from '../../utils/text-field-substitution';
@@ -28,6 +27,7 @@ interface LazyThumbnailProps {
 	canvasSize: CanvasSize;
 	/** Pre-computed preview height so the placeholder matches exactly. */
 	previewHeight: number;
+	previewWidth: number;
 	/** Presentation-wide field context (date/header/footer/custom props). */
 	fieldContext?: FieldSubstitutionContext;
 	/** Theme + table style map for resolving table band/header colours. */
@@ -43,6 +43,7 @@ function LazyThumbnailInner({
 	templateElements,
 	canvasSize,
 	previewHeight,
+	previewWidth,
 	fieldContext,
 	tableStyleContext,
 }: LazyThumbnailProps): React.ReactElement {
@@ -89,6 +90,7 @@ function LazyThumbnailInner({
 					slide={slide}
 					templateElements={templateElements}
 					canvasSize={canvasSize}
+					previewWidth={previewWidth}
 					fieldContext={fieldContext}
 					tableStyleContext={tableStyleContext}
 				/>
@@ -97,7 +99,7 @@ function LazyThumbnailInner({
 					className='relative w-full overflow-hidden rounded border border-border bg-muted/30 animate-pulse'
 					style={{
 						height: previewHeight,
-						minWidth: SLIDE_NAV_THUMBNAIL_WIDTH,
+						minWidth: previewWidth,
 					}}
 				/>
 			)}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * ArrangeExtras: the multi-select-aware half of the Home tab's Arrange
 	 * group: align / distribute / flip / group / ungroup. Z-order (front /
@@ -43,8 +44,8 @@
 	] as const;
 </script>
 
-<div class="pptx-svelte-arrangex" role="group" aria-label={t('pptx.ribbon.arrange')}>
-	{#each ALIGN_BUTTONS as btn (btn.edge)}
+<div class="pptx-svelte-arrangex" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.ribbon.arrange')}>
+<div data-pptx-chrome="align-controls">	{#each ALIGN_BUTTONS as btn (btn.edge)}
 		<button
 			type="button"
 			disabled={!canAlign}
@@ -53,10 +54,11 @@
 			title={t(btn.key)}
 			onclick={() => editor.arrangeOps.alignSelected(btn.edge)}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d={btn.d} fill="currentColor" /></svg>
+			<RibbonIcon name={`home.arrange.align.${btn.edge === 'centerH' ? 'center' : btn.edge}`} />
 		</button>
-	{/each}
-	<span class="pptx-svelte-arrangex-sep" aria-hidden="true"></span>
+	{/each}</div>
+<div data-pptx-chrome="distribute-controls">
+
 	<button
 		type="button"
 		disabled={!canDistribute}
@@ -65,7 +67,7 @@
 		title={t('pptx.arrange.distributeHorizontal')}
 		onclick={() => editor.arrangeOps.distributeSelected('horizontal')}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="4" width="3" height="8" fill="currentColor" /><rect x="6.5" y="4" width="3" height="8" fill="currentColor" /><rect x="11.5" y="4" width="3" height="8" fill="currentColor" /></svg>
+		<RibbonIcon name="home.arrange.distribute.horizontal" />
 	</button>
 	<button
 		type="button"
@@ -75,51 +77,9 @@
 		title={t('pptx.arrange.distributeVertical')}
 		onclick={() => editor.arrangeOps.distributeSelected('vertical')}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="4" y="1.5" width="8" height="3" fill="currentColor" /><rect x="4" y="6.5" width="8" height="3" fill="currentColor" /><rect x="4" y="11.5" width="8" height="3" fill="currentColor" /></svg>
+		<RibbonIcon name="home.arrange.distribute.vertical" />
 	</button>
-	<span class="pptx-svelte-arrangex-sep" aria-hidden="true"></span>
-	<button
-		type="button"
-		disabled={!canFlip}
-		data-ribbon-control="home.arrange.flipHorizontal"
-		aria-label={t('pptx.arrange.flipH')}
-		title={t('pptx.arrange.flipHorizontally')}
-		onclick={() => editor.arrangeOps.flipSelected('horizontal')}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v12M3 5l2-2 2 2M3 11l2 2 2-2M13 5l-2-2-2 2M13 11l-2 2-2-2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-	</button>
-	<button
-		type="button"
-		disabled={!canFlip}
-		data-ribbon-control="home.arrange.flipVertical"
-		aria-label={t('pptx.arrange.flipV')}
-		title={t('pptx.arrange.flipVertically')}
-		onclick={() => editor.arrangeOps.flipSelected('vertical')}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 8h12M5 3l-2 2 2 2M11 3l2 2-2 2M5 13l-2-2 2-2M11 13l2-2-2-2" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
-	</button>
-	<span class="pptx-svelte-arrangex-sep" aria-hidden="true"></span>
-	<button
-		type="button"
-		disabled={!canGroup}
-		data-ribbon-control="home.arrange.group"
-		aria-label={t('pptx.contextMenu.group')}
-		title={t('pptx.contextMenu.group')}
-		onclick={() => editor.arrangeOps.groupSelected()}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="8.5" y="8.5" width="6" height="6" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><path d="M2 2 14 14" stroke="currentColor" stroke-width="1" stroke-dasharray="1.5 1.5" /></svg>
-	</button>
-	<button
-		type="button"
-		disabled={!canUngroup}
-		data-ribbon-control="home.arrange.ungroup"
-		aria-label={t('pptx.contextMenu.ungroup')}
-		title={t('pptx.contextMenu.ungroup')}
-		onclick={() => editor.arrangeOps.ungroupSelected()}
-	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9.5" y="9.5" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /></svg>
-	</button>
-	<span class="pptx-svelte-arrangex-sep" aria-hidden="true"></span>
+	</div>
 	<!-- The Arrange group's labelled Format Painter, beside the Clipboard
 	     group's icon-only one. Both drive the same controller; PowerPoint (and
 	     React) offer it in both places because the Arrange group is where you
@@ -135,9 +95,52 @@
 		title={t('pptx.arrange.formatPainter')}
 		onclick={() => editor.formatPainter.toggle()}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 3h8v4H3zM11 4h2v5H8v4H6V8h5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" /></svg>
+		<RibbonIcon name="home.clipboard.formatPainter" />
 		<span>{t('pptx.arrange.format')}</span>
+	</button><div data-pptx-chrome="flip-controls">
+	<button
+		type="button"
+		disabled={!canFlip}
+		data-ribbon-control="home.arrange.flipHorizontal"
+		aria-label={t('pptx.arrange.flipH')}
+		title={t('pptx.arrange.flipHorizontally')}
+		onclick={() => editor.arrangeOps.flipSelected('horizontal')}
+	>
+		<span>{t('pptx.arrange.flipH')}</span>
 	</button>
+	<button
+		type="button"
+		disabled={!canFlip}
+		data-ribbon-control="home.arrange.flipVertical"
+		aria-label={t('pptx.arrange.flipV')}
+		title={t('pptx.arrange.flipVertically')}
+		onclick={() => editor.arrangeOps.flipSelected('vertical')}
+	>
+		<span>{t('pptx.arrange.flipV')}</span>
+	</button></div><div data-pptx-chrome="group-controls">
+
+	<button
+		type="button"
+		disabled={!canGroup}
+		data-ribbon-control="home.arrange.group"
+		aria-label={t('pptx.contextMenu.group')}
+		title={t('pptx.contextMenu.group')}
+		onclick={() => editor.arrangeOps.groupSelected()}
+	>
+		<RibbonIcon name="home.arrange.group" />
+	</button>
+	<button
+		type="button"
+		disabled={!canUngroup}
+		data-ribbon-control="home.arrange.ungroup"
+		aria-label={t('pptx.contextMenu.ungroup')}
+		title={t('pptx.contextMenu.ungroup')}
+		onclick={() => editor.arrangeOps.ungroupSelected()}
+	>
+		<RibbonIcon name="home.arrange.ungroup" />
+	</button>
+
+</div>
 </div>
 
 <style>

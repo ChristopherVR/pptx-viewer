@@ -5,7 +5,7 @@
  * come from the shared `MERGE_SHAPES_MENU_ITEMS`; the action is the injected
  * merge controller (`useMergeShapes`), which runs as one undo step.
  */
-import { ChevronDown, SquaresUnite } from 'lucide-vue-next';
+import { ChevronDown } from 'lucide-vue-next';
 import type { MergeShapeOperation } from 'pptx-viewer-core';
 import {
 	MERGE_SHAPES_HINT_KEY,
@@ -18,6 +18,7 @@ import { useI18n } from 'vue-i18n';
 import { MergeCropKey } from '../../composables/merge-crop-context';
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
+import RibbonIcon from './RibbonIcon';
 import { useDropdown } from './use-dropdown';
 
 const { t } = useI18n();
@@ -47,8 +48,7 @@ function run(op: MergeShapeOperation): void {
 			:title="enabled ? t(MERGE_SHAPES_LABEL_KEY) : t(MERGE_SHAPES_HINT_KEY)"
 			@click="menu.toggle()"
 		>
-			<SquaresUnite :class="ic" />
-			{{ t(MERGE_SHAPES_LABEL_KEY) }}
+			<RibbonIcon name="home.arrange.mergeShapes" :class="ic" />
 			<ChevronDown class="w-3 h-3" />
 		</button>
 		<div

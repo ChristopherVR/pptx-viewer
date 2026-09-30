@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * TextShadowToggle: the Home tab's Font-group text-shadow button.
 	 *
@@ -32,10 +33,7 @@
 	title={t('pptx.textEffects.shadow')}
 	onclick={() => el && editor.patchSelected((current) => toggleTextShadowPatch(current))}
 >
-	<svg viewBox="0 0 16 16" aria-hidden="true">
-		<text x="3.5" y="12" font-size="11" font-weight="700" fill="currentColor" opacity="0.35">A</text>
-		<text x="2" y="11" font-size="11" font-weight="700" fill="currentColor">A</text>
-	</svg>
+	<RibbonIcon name="home.font.shadow" />
 </button>
 
 <style>

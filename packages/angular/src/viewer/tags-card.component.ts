@@ -36,7 +36,7 @@ import { LoadContentService } from './load-content.service';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<section class="icard">
+		<section class="icard" data-pptx-chrome="inspector-card">
 			<button
 				type="button"
 				class="tags__toggle"
@@ -44,7 +44,9 @@ import { LoadContentService } from './load-content.service';
 				(click)="toggle()"
 			>
 				<span aria-hidden="true">{{ collapsed() ? '&#9656;' : '&#9662;' }}</span>
-				<h3 class="icard__heading">{{ 'pptx.tags.title' | translate }}</h3>
+				<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+					{{ 'pptx.tags.title' | translate }}
+				</h3>
 				<span class="icard__value">{{ rows().length }}</span>
 			</button>
 

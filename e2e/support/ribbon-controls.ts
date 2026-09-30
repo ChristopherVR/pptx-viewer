@@ -109,7 +109,9 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 		 */
 		const labelText = (label: Element): string => {
 			const copy = label.cloneNode(true) as Element;
-			for (const nested of copy.querySelectorAll('select, option, input, textarea')) {
+			for (const nested of copy.querySelectorAll(
+				'select, option, input, textarea, pptx-ui-select, pptx-ui-search, pptx-ui-checkbox',
+			)) {
 				nested.remove();
 			}
 			const text = collapse(copy.textContent ?? '');
@@ -124,6 +126,9 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 			'select',
 			'textarea',
 			'input',
+			'pptx-ui-select',
+			'pptx-ui-search',
+			'pptx-ui-checkbox',
 			'[role="button"]',
 			'[role="checkbox"]',
 			'[role="switch"]',
@@ -135,11 +140,12 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 			'[role="link"]',
 		].join(', ');
 
-		// Traverse open roots so migrated commands still participate in the parity inventory.
+		const atomicControls = 'pptx-ui-select, pptx-ui-search, pptx-ui-checkbox';
+		// Traverse command roots, counting each form host once rather than its trigger again.
 		const queryDeep = (parent: Element | ShadowRoot): Element[] => {
 			const result = [...parent.querySelectorAll(selector)];
 			for (const node of parent.querySelectorAll('*')) {
-				if (node.shadowRoot) {
+				if (node.shadowRoot && !node.matches(atomicControls)) {
 					result.push(...queryDeep(node.shadowRoot));
 				}
 			}
@@ -158,7 +164,9 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 				continue;
 			}
 
+			const webControl = node.matches(atomicControls);
 			const formish =
+				webControl ||
 				node instanceof HTMLSelectElement ||
 				node instanceof HTMLInputElement ||
 				node instanceof HTMLTextAreaElement;
@@ -175,19 +183,24 @@ async function readTabControls(page: Page, tab: string): Promise<RibbonControl[]
 			const associated = node.id
 				? document.querySelector(`label[for="${CSS.escape(node.id)}"]`)
 				: null;
+			const labelContent = node.cloneNode(true) as Element;
+			for (const hidden of labelContent.querySelectorAll('[aria-hidden="true"]')) {
+				hidden.remove();
+			}
 
 			const name =
 				collapse(node.getAttribute('aria-label') ?? '') ||
 				owned ||
 				(wrapping ? labelText(wrapping) : '') ||
 				(associated ? labelText(associated) : '') ||
-				(formish ? '' : collapse(node.textContent ?? '')) ||
+				(formish ? '' : collapse(labelContent.textContent ?? '')) ||
 				collapse(node.getAttribute('title') ?? '') ||
 				collapse(node.getAttribute('placeholder') ?? '') ||
 				collapse(node.getAttribute('name') ?? '') ||
 				`<unnamed ${node.tagName.toLowerCase()}>`;
 
 			const unavailable =
+				(webControl && node.hasAttribute('disabled')) ||
 				((node instanceof HTMLButtonElement ||
 					node instanceof HTMLSelectElement ||
 					node instanceof HTMLInputElement ||

@@ -70,6 +70,7 @@ import { provideViewerTheme, useThemeStyle } from '../theme';
 import AutosaveRecoveryDialog from './components/AutosaveRecoveryDialog.vue';
 import CollaborationStatusIndicator from './components/CollaborationStatusIndicator.vue';
 import CompatibilityToasts from './components/CompatibilityToasts.vue';
+import EditorChromeStyle from './components/EditorChromeStyle';
 import ExportProgressModal from './components/ExportProgressModal.vue';
 import FindReplaceBar from './components/FindReplaceBar.vue';
 import MasterViewOverlay from './components/MasterViewOverlay.vue';
@@ -1763,6 +1764,7 @@ defineExpose<PowerPointViewerExpose>({
 	<div
 		ref="viewerRootRef"
 		class="pptx-vue-viewer"
+		data-pptx-editor-chrome
 		:class="[props.class, { 'pptx-vue-reduced-motion': reducedMotion }, ...optionRootClasses]"
 		:style="themeStyle"
 		v-bind="ribbonScope.rootAttrs"
@@ -1770,6 +1772,7 @@ defineExpose<PowerPointViewerExpose>({
 		:tabindex="canEditEffective ? 0 : undefined"
 		@keydown="onEditorKeydown"
 	>
+		<EditorChromeStyle />
 		<RibbonCustomizationStyle :css="ribbonScope.css.value" />
 		<!-- Loading -->
 		<div v-if="loading" class="pptx-vue-state pptx-vue-loading" role="status" aria-live="polite">
@@ -1950,7 +1953,7 @@ defineExpose<PowerPointViewerExpose>({
 			     may exclude. The other bindings present in place on the same
 			     stage; Vue keeps the editor mounted so its refs (touch gestures,
 			     inspector state) survive the show. -->
-			<div v-show="!presentation.presenting.value" class="pptx-vue-body">
+			<div v-show="!presentation.presenting.value" class="pptx-vue-body" data-pptx-chrome="body">
 				<!-- Like the ribbon above, unmounted while presenting: the show
 				     overlay hides it visually, but a mounted rail keeps every
 				     thumbnail in the tab order and the accessibility tree during

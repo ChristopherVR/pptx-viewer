@@ -46,7 +46,11 @@ export function createRibbonTabBar(
 	actions?: RibbonTabBarActions,
 ): RibbonTabBar {
 	const el = createEl(doc, 'div', 'pptxv-ribbon-tabs');
+	el.dataset.pptxChrome = 'ribbon-tabs';
 	el.setAttribute('role', 'tablist');
+	const strip = createEl(doc, 'div');
+	strip.dataset.pptxChrome = 'ribbon-tab-scroll';
+	el.appendChild(strip);
 
 	const buttons = new Map<RibbonTabId, HTMLButtonElement>();
 	const labels = new Map<RibbonTabId, string>();
@@ -60,7 +64,7 @@ export function createRibbonTabBar(
 		const label = t(tab.labelKey);
 		btn.textContent = label;
 		btn.addEventListener('click', () => onSelect(tab.id));
-		el.appendChild(btn);
+		strip.appendChild(btn);
 		buttons.set(tab.id, btn);
 		labels.set(tab.id, label);
 	}
@@ -93,7 +97,7 @@ export function createRibbonTabBar(
 			btn.setAttribute(RIBBON_CONTEXTUAL_TAB_ATTR, id);
 			btn.textContent = t(contextualTabLabelKey(id));
 			btn.addEventListener('click', () => onSelect(id));
-			el.insertBefore(btn, trailing);
+			strip.insertBefore(btn, trailing);
 			contextualButtons.set(id, btn);
 		}
 		reflectActive();
@@ -101,7 +105,7 @@ export function createRibbonTabBar(
 
 	if (actions) {
 		trailing = createEl(doc, 'span', 'pptxv-tabrow-spacer');
-		el.appendChild(trailing);
+		strip.appendChild(trailing);
 		const actionsHost = createEl(doc, 'div', 'pptxv-tabrow-actions');
 		if (!isActionHidden('record', hiddenActions)) {
 			const record = createEl(doc, 'button', 'pptxv-tabrow-record');

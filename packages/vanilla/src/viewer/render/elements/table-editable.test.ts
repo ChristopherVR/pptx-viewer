@@ -95,6 +95,36 @@ describe('enableTableResize', () => {
 		vi.restoreAllMocks();
 	});
 
+	it('lets a scaled cell-center click bubble while consuming the visible row edge', () => {
+		const { container, onTableResizeRow } = mountResizableTable();
+		Object.defineProperty(container, 'offsetHeight', { value: 200 });
+		vi.mocked(container.getBoundingClientRect).mockReturnValue({
+			...container.getBoundingClientRect(),
+			width: 250,
+			height: 125,
+			right: 250,
+			bottom: 125,
+		});
+		const center = new MouseEvent('mousedown', {
+			clientX: 10,
+			clientY: 37.5,
+			bubbles: true,
+			cancelable: true,
+		});
+		container.dispatchEvent(center);
+		expect(center.defaultPrevented).toBeFalsy();
+		const edge = new MouseEvent('mousedown', {
+			clientX: 10,
+			clientY: 25,
+			bubbles: true,
+			cancelable: true,
+		});
+		container.dispatchEvent(edge);
+		expect(edge.defaultPrevented).toBeTruthy();
+		window.dispatchEvent(new MouseEvent('mouseup', { clientX: 10, clientY: 25 }));
+		expect(onTableResizeRow).not.toHaveBeenCalled();
+	});
+
 	it.each([
 		[200, 10],
 		[10, 40],

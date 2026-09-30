@@ -21,7 +21,7 @@
 	import type { EditorState } from '../editor/editor-state.svelte';
 	import { adjustFontSizePatch, setFontSizePatch, toggleTextFlagPatch } from '../editor';
 
-	const { editor }: { editor: EditorState } = $props();
+	const { editor, inline = false }: { editor: EditorState; inline?: boolean } = $props();
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
@@ -51,7 +51,21 @@
 	}
 </script>
 
-<div class="pptx-svelte-fmt" role="group" aria-label={t('pptx.inspector.text')}>
+<div class="pptx-svelte-fmt" data-pptx-chrome={inline ? 'font-controls-fragment' : undefined} role="group" aria-label={t('pptx.inspector.text')}>
+	<!-- This edits selected text; it does not configure future inserted text. -->
+	<input
+		class="pptx-svelte-fmt-size"
+		type="number"
+		min="1"
+		max="400"
+		step="any"
+		data-ribbon-control="home.font.fontSize"
+		aria-label={t('pptx.ribbon.fontSize')}
+		disabled={!editor.editable || !active}
+		title={t('pptx.ribbon.fontSize')}
+		value={fontSize}
+		onchange={(e) => setSize(e.currentTarget.value)}
+	/>
 	<button
 		type="button"
 		class="pptx-svelte-fmt-btn"
@@ -92,8 +106,6 @@
 		<span style="text-decoration: underline">U</span>
 	</button>
 
-	<span class="pptx-svelte-fmt-sep" aria-hidden="true"></span>
-
 	<button
 		type="button"
 		class="pptx-svelte-fmt-btn"
@@ -105,20 +117,6 @@
 	>
 		<span aria-hidden="true">A-</span>
 	</button>
-	<!-- This edits selected text; it does not configure future inserted text. -->
-	<input
-		class="pptx-svelte-fmt-size"
-		type="number"
-		min="1"
-		max="400"
-		step="any"
-		data-ribbon-control="home.font.fontSize"
-		aria-label={t('pptx.ribbon.fontSize')}
-		disabled={!editor.editable || !active}
-		title={t('pptx.ribbon.fontSize')}
-		value={fontSize}
-		onchange={(e) => setSize(e.currentTarget.value)}
-	/>
 	<button
 		type="button"
 		class="pptx-svelte-fmt-btn"
@@ -184,12 +182,5 @@
 
 	.pptx-svelte-fmt-size:disabled {
 		opacity: 0.35;
-	}
-
-	.pptx-svelte-fmt-sep {
-		width: 1px;
-		height: 20px;
-		margin: 0 3px;
-		background: var(--pptx-border, #33334d);
 	}
 </style>

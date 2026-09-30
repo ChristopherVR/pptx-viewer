@@ -62,6 +62,7 @@ export function createMergeCropControls(
 	hiddenActions?: readonly ToolbarActionId[],
 ): MergeCropControls {
 	const el = createEl(doc, 'div', 'pptxv-arrange-extras');
+	el.dataset.pptxChrome = 'control-fragment';
 
 	const merge = isActionHidden('mergeShapes', hiddenActions)
 		? null

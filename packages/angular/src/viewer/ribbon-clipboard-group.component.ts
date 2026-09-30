@@ -7,29 +7,17 @@
  */
 import { NgClass } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import {
-	LucideClipboardPaste,
-	LucideCopy,
-	LucidePaintbrush,
-	LucideScissors,
-} from '@lucide/angular';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 
 import { EditorStateService } from './editor-state.service';
+import { RibbonIconDirective } from './ribbon-icon.directive';
 
 @Component({
 	selector: 'pptx-ribbon-clipboard-group',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [
-		NgClass,
-		TranslatePipe,
-		LucideClipboardPaste,
-		LucideCopy,
-		LucidePaintbrush,
-		LucideScissors,
-	],
+	imports: [RibbonIconDirective, NgClass, TranslatePipe],
 	template: `
 		<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.clipboard">
 			<div class="pptx-rb-grp">
@@ -43,7 +31,7 @@ import { EditorStateService } from './editor-state.service';
 					(click)="paste()"
 					data-ribbon-control="home.clipboard.paste"
 				>
-					<svg lucideClipboardPaste class="h-4 w-4"></svg>
+					<svg pptxRibbonIcon="home.clipboard.paste"></svg>
 				</button>
 				<button
 					type="button"
@@ -54,7 +42,7 @@ import { EditorStateService } from './editor-state.service';
 					(click)="cut()"
 					data-ribbon-control="home.clipboard.cut"
 				>
-					<svg lucideScissors class="h-4 w-4"></svg>
+					<svg pptxRibbonIcon="home.clipboard.cut"></svg>
 				</button>
 				<button
 					type="button"
@@ -65,7 +53,7 @@ import { EditorStateService } from './editor-state.service';
 					(click)="copy()"
 					data-ribbon-control="home.clipboard.copy"
 				>
-					<svg lucideCopy class="h-4 w-4"></svg>
+					<svg pptxRibbonIcon="home.clipboard.copy"></svg>
 				</button>
 				<button
 					type="button"
@@ -79,7 +67,7 @@ import { EditorStateService } from './editor-state.service';
 					(click)="toggleFormatPainter.emit()"
 					data-ribbon-control="home.clipboard.formatPainter"
 				>
-					<svg lucidePaintbrush class="h-4 w-4"></svg>
+					<svg pptxRibbonIcon="home.clipboard.formatPainter"></svg>
 				</button>
 			</div>
 			<span class="text-[9px] leading-none text-muted-foreground">

@@ -1,5 +1,5 @@
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { buildPreviewElements } from 'pptx-viewer-shared';
+import { buildPreviewElements, editorThumbnailHeight } from 'pptx-viewer-shared';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +16,7 @@ export interface SlideThumbnailProps {
 	slide: PptxSlide;
 	templateElements: PptxElement[];
 	canvasSize: CanvasSize;
+	previewWidth?: number;
 	/** Presentation-wide field context (date/header/footer/custom props). */
 	fieldContext?: FieldSubstitutionContext;
 	/** Theme + table style map for resolving table band/header colours. */
@@ -26,13 +27,15 @@ function SlideThumbnailImpl({
 	slide,
 	templateElements,
 	canvasSize,
+	previewWidth,
 	fieldContext,
 	tableStyleContext,
 }: SlideThumbnailProps): React.ReactElement {
 	const safeCanvasWidth = Math.max(canvasSize.width, 1);
 	const safeCanvasHeight = Math.max(canvasSize.height, 1);
-	const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeCanvasWidth;
-	const previewHeight = Math.max(56, Math.round(safeCanvasHeight * scale));
+	const width = previewWidth ?? SLIDE_NAV_THUMBNAIL_WIDTH;
+	const scale = width / safeCanvasWidth;
+	const previewHeight = editorThumbnailHeight(safeCanvasWidth, safeCanvasHeight, width);
 	const previewElements = buildPreviewElements(slide, templateElements);
 	const slideFieldContext = deriveSlideFieldContext(fieldContext, slide);
 	const { t } = useTranslation();
@@ -45,7 +48,11 @@ function SlideThumbnailImpl({
 
 	return (
 		<div
-			className='relative w-full overflow-hidden rounded border border-border bg-white'
+			className={
+				previewWidth === undefined
+					? 'relative w-full overflow-hidden rounded border border-border bg-white'
+					: 'relative w-full overflow-hidden bg-white'
+			}
 			style={{
 				height: previewHeight,
 				...getReactSlideBackgroundStyle(slide, {
@@ -100,6 +107,9 @@ export function slideThumbnailPropsEqual(
 	prev: SlideThumbnailProps,
 	next: SlideThumbnailProps,
 ): boolean {
+	if (prev.previewWidth !== next.previewWidth) {
+		return false;
+	}
 	if (prev.slide.id !== next.slide.id) {
 		return false;
 	}

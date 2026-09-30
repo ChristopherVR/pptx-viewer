@@ -11,7 +11,24 @@ import {
 	evenColumnWidths,
 	evenRowHeights,
 	redistributeColumnWidth,
+	getTableResizeScale,
 } from './table-resize';
+
+describe('table row boundary scale', () => {
+	it('maps authored row offsets to their rendered positions', () => {
+		expect(40 * getTableResizeScale(125, 200)).toBe(25);
+		expect(40 * getTableResizeScale(400, 200)).toBe(80);
+	});
+
+	it.each([
+		[0, 0],
+		[400, 0],
+		[0, 200],
+		[Number.NaN, 200],
+	])('keeps an unmeasured %s by %s table usable', (rendered, layout) => {
+		expect(getTableResizeScale(rendered, layout)).toBe(1);
+	});
+});
 
 describe('computeColumnBoundaries', () => {
 	it('returns cumulative percentages for internal boundaries only', () => {

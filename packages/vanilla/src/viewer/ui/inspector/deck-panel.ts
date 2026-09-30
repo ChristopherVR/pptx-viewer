@@ -8,7 +8,6 @@ import { createThemeCard, createThemeOverrideCard } from './deck-theme-cards';
 import { createSlideBackgroundCard } from './slide-background-card';
 import { createSlideTransitionCard } from './slide-transition-card';
 import { createTagsCard } from './tags-card';
-import { createThemeEditorCard } from './theme-editor-card';
 import type { InspectorDeckState, InspectorHandlers } from './types';
 
 export interface DeckPanel {
@@ -81,9 +80,8 @@ function createDocumentCard(
 
 /**
  * The no-selection Properties view, mirroring React's
- * `PresentationPropertiesPanel` section order: PRESENTATION, THEME, THEME
- * EDITOR, THEME OVERRIDE, SLIDE BACKGROUND, SLIDE TRANSITION, SLIDE SIZE,
- * NOTES & HANDOUT, DOCUMENT, TAGS.
+ * `PresentationPropertiesPanel` section order. Theme editing is opened from
+ * Design > Edit Theme, separately from the no-selection inspector.
  */
 export function createDeckPanel(
 	doc: Document,
@@ -91,18 +89,18 @@ export function createDeckPanel(
 	handlers: DeckPanelHandlers,
 ): DeckPanel {
 	const el = createEl(doc, 'div', 'pptxv-inspector-deck');
+	el.dataset.pptxChrome = 'deck-properties';
 
 	const cards: DeckCard[] = [
 		createDeckPresentationCard(doc, t, handlers),
 		createThemeCard(doc, t, handlers),
-		createThemeEditorCard(doc, t, handlers),
 		createThemeOverrideCard(doc, t, handlers),
-		createSlideBackgroundCard(doc, t, handlers),
-		createSlideTransitionCard(doc, t, handlers),
 		createSlideSizeCard(doc, t, handlers),
+		createSlideTransitionCard(doc, t, handlers),
 		createNotesHandoutCard(doc, t),
 		createDocumentCard(doc, t, handlers),
 		createTagsCard(doc, t, handlers),
+		createSlideBackgroundCard(doc, t, handlers),
 	];
 	el.append(...cards.map((card) => card.el));
 

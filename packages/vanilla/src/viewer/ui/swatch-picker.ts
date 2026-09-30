@@ -78,6 +78,7 @@ export function makeSwatchPicker(
 	trigger.setAttribute('aria-expanded', 'false');
 	trigger.appendChild(createIcon(doc, options.icon));
 	const swab = createEl(doc, 'span', 'pptxv-swatch-swab');
+	swab.dataset.pptxChrome = 'color-swatch';
 	trigger.appendChild(swab);
 	el.appendChild(trigger);
 

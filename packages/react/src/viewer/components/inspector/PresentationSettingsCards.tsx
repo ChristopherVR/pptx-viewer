@@ -55,9 +55,9 @@ export function PresentationSettingsCard({
 }): React.ReactElement {
 	const { t } = useTranslation();
 	return (
-		<div className={CARD}>
+		<div className={`${CARD} pptx-editor-presentation-card`}>
 			<div className={HEADING}>{t('pptx.slideInspector.presentation')}</div>
-			<div className='space-y-1.5 text-[11px]'>
+			<div data-pptx-chrome='presentation-fields' className='space-y-1.5 text-[11px]'>
 				<label className='flex items-center justify-between gap-2'>
 					<span className='text-muted-foreground'>{t('pptx.presentationSettings.showType')}</span>
 					<WebSelect

@@ -1,8 +1,9 @@
-<div class="pptx-ng-spanel">
+<div class="pptx-ng-spanel" data-pptx-chrome="slides" [style.width.px]="railWidth">
 	<!-- Scrollable slide list -->
 	<div
 		#scrollViewport
 		class="pptx-ng-spanel-scroll"
+		data-pptx-chrome="slide-list"
 		role="listbox"
 		[attr.aria-label]="'pptx.sections.slides' | translate"
 		(scroll)="onScroll()"
@@ -14,6 +15,7 @@
 		>
 			<div
 				class="pptx-ng-spanel-window"
+				data-pptx-chrome="slide-window"
 				[class.is-virtualized]="shouldVirtualize()"
 				[style.top.px]="shouldVirtualize() ? virtualRange().offsetY : null"
 			>
@@ -84,6 +86,7 @@
 					@if (!item.section?.collapsed) {
 						<div
 							class="pptx-ng-spanel-card"
+							data-pptx-chrome="slide-wrapper"
 							[class.is-active]="i === activeIndex()"
 							[class.is-selected]="rail.isSelected(slide.id) && i !== activeIndex()"
 							[attr.data-pptx-slide-hidden]="hidden.marker ?? null"
@@ -97,6 +100,8 @@
 							<button
 								type="button"
 								class="pptx-ng-spanel-thumb-btn"
+								data-pptx-chrome="slide-row"
+								[attr.aria-current]="i === activeIndex() ? 'true' : null"
 								[attr.aria-label]="'pptx.slidesPanel.goToSlide' | translate: { n: i + 1 }"
 								[attr.aria-describedby]="hidden.labelId ?? null"
 								(click)="onThumbClick($event, i)"
@@ -106,13 +111,18 @@
 								     cue and, unlike the dimming, is not a colour-only signal. -->
 								<span
 									class="pptx-ng-spanel-num"
+									data-pptx-chrome="slide-number"
 									aria-hidden="true"
 									[style.background-image]="hidden.hidden ? slashGradient : null"
 									>{{ i + 1 }}</span
 								>
 
 								<!-- Clipping wrapper: neutralises the 1rem auto margin from SlideCanvas -->
-								<div class="pptx-ng-spanel-clip" [ngStyle]="clipStyle()">
+								<div
+									class="pptx-ng-spanel-clip"
+									data-pptx-chrome="slide-frame"
+									[ngStyle]="clipStyle()"
+								>
 									<pptx-slide-canvas
 										[slide]="slide"
 										[templateElements]="editor.templateElementsBySlideId()[slide.id] ?? []"
@@ -211,7 +221,7 @@
 	</div>
 
 	<!-- Footer: add new slide -->
-	<footer class="pptx-ng-spanel-footer">
+	<footer class="pptx-ng-spanel-footer" data-pptx-chrome="slide-footer">
 		<button
 			type="button"
 			class="pptx-ng-spanel-add"

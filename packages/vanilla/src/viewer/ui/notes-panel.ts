@@ -54,8 +54,10 @@ export function createNotesPanel(
 	onCommit: (notes: string, notesSegments?: TextSegment[]) => void,
 ): NotesPanel {
 	const el = createEl(doc, 'div', 'pptxv-notes');
+	el.dataset.pptxChrome = 'notes';
 
 	const header = createEl(doc, 'button', 'pptxv-notes-header');
+	header.dataset.pptxChrome = 'notes-header';
 	header.type = 'button';
 	header.setAttribute('aria-expanded', 'false');
 	// `slide-notes-content` matches the id/aria-controls pair the React/Vue

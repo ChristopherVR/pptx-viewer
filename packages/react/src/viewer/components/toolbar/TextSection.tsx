@@ -48,7 +48,6 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 	const canMut = hasSel && p.canEdit;
 	const isTextEl = hasSel && p.selectedElement !== null && hasTextProperties(p.selectedElement);
 	const isTable = hasSel && p.selectedElement?.type === 'table';
-	// Enable formatting for text elements AND table cells
 	const canFormat = isTextEl || isTable;
 	const effectiveTs = getEffectiveTextStyle(p.selectedElement, p.tableEditorState);
 	// Pressed state over the whole element (the DOM selection is only read at
@@ -111,13 +110,11 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 		},
 		[canFormat, p, pushColor],
 	);
-
 	return (
 		<>
-			{/* ── Font group ── */}
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.font')}>
-				<div className='flex items-center gap-1'>
-					<div className={grp}>
+				<div className='flex items-center gap-1' data-pptx-chrome='font-controls'>
+					<div className={grp} data-pptx-chrome='control-cluster'>
 						{FMT.map((b, i, a) => {
 							const flag = isTextDecorationFlag(b.id) ? b.id : undefined;
 							const handleClick = () => {
@@ -149,7 +146,6 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						})}
 					</div>
 
-					{/* Text Shadow toggle */}
 					<button
 						type='button'
 						disabled={!canMut}
@@ -206,8 +202,7 @@ export function TextSection(p: TextSectionProps): React.ReactElement {
 						</svg>
 					</button>
 
-					{/* Font size increase / decrease / clear formatting */}
-					<div className={grp}>
+					<div className={grp} data-pptx-chrome='control-cluster'>
 						<button
 							type='button'
 							disabled={!canMut}

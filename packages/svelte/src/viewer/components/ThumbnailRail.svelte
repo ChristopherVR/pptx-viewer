@@ -17,6 +17,10 @@
 		HIDDEN_SLIDE_SLASH_GRADIENT,
 		hiddenSlideCue,
 		SLIDE_VIRTUALIZATION_THRESHOLD,
+		EDITOR_SLIDE_RAIL_WIDTH,
+		EDITOR_THUMBNAIL_WIDTH,
+		editorThumbnailHeight,
+		editorThumbnailStep,
 	} from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
@@ -24,6 +28,7 @@
 	import ThumbnailContextMenu from './ThumbnailContextMenu.svelte';
 	import { ThumbnailRailMenu } from './thumbnail-rail-menu.svelte';
 	import type { ThumbnailRailProps } from './props';
+	import './thumbnail-rail.css';
 
 	const {
 		slides, canvasSize, mediaDataUrls, current, onselect, editable = false, onmove, onaddslide,
@@ -59,10 +64,10 @@
 		}
 	}
 
-	const THUMB_WIDTH = 148;
+	const THUMB_WIDTH = EDITOR_THUMBNAIL_WIDTH;
 	const thumbScale = $derived(canvasSize.width > 0 ? THUMB_WIDTH / canvasSize.width : 0.1);
-	const thumbHeight = $derived(Math.round(canvasSize.height * thumbScale));
-	const itemHeight = $derived(thumbHeight + 16);
+	const thumbHeight = $derived(editorThumbnailHeight(canvasSize.width, canvasSize.height));
+	const itemHeight = $derived(editorThumbnailStep(canvasSize.width, canvasSize.height));
 	const sectionGroups = $derived(groupSlidesBySection(sections, slides));
 	const hasSections = $derived(sections.length > 0);
 	const shouldVirtualize = $derived(!hasSections && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD);
@@ -129,7 +134,7 @@
 	{@const cue = hiddenSlideCue(slide.hidden, 'rail', index)}
 	<button
 		type="button"
-		class="pptx-svelte-thumb"
+		class="pptx-svelte-thumb" data-pptx-chrome="slide-row"
 		class:pptx-svelte-thumb-active={index === current}
 		class:pptx-svelte-thumb-selected={railMenu.isSelected(slide.id) && index !== current}
 		aria-label={t('pptx.slidesPanel.goToSlide', { n: index + 1 })}
@@ -147,11 +152,11 @@
 		ondrop={editable ? (event) => onDrop(index, event) : undefined}
 	>
 		<span
-			class="pptx-svelte-thumb-number"
+			class="pptx-svelte-thumb-number" data-pptx-chrome="slide-number"
 			style={cue.hidden ? `background-image: ${HIDDEN_SLIDE_SLASH_GRADIENT}` : undefined}
 			>{index + 1}</span
 		>
-		<span class="pptx-svelte-thumb-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
+		<span class="pptx-svelte-thumb-frame" data-pptx-chrome="slide-frame" style={`width: ${THUMB_WIDTH}px; height: ${thumbHeight}px`}>
 			<span class="pptx-svelte-thumb-stage" style={cue.hidden ? `opacity: ${HIDDEN_SLIDE_DIM_OPACITY}` : undefined}>
 				<SlideStage {slide} {canvasSize} {mediaDataUrls} scale={thumbScale} />
 			</span>
@@ -166,8 +171,8 @@
 {/snippet}
 
 <!-- svelte-ignore a11y_no_noninteractive_element_interactions -- Enter here only catches the keydown bubbled up from a focused (interactive) thumbnail button -->
-<nav class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onkeydown={onRailKeydown}>
-	<div bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs-scroll" onscroll={onScroll}>
+<nav data-pptx-chrome="slides" style={`width:${EDITOR_SLIDE_RAIL_WIDTH}px`} class="pptx-svelte-thumbs" aria-label={t('pptx.sections.slides')} onkeydown={onRailKeydown}>
+	<div bind:this={railEl} bind:clientHeight={viewportHeight} class="pptx-svelte-thumbs-scroll" data-pptx-chrome="slide-list" onscroll={onScroll}>
 	{#if hasSections}
 		{#each sectionGroups as group, groupIndex (group.section?.id ?? 'ungrouped')}
 			<section class="pptx-svelte-section" data-section-id={group.section?.id}>
@@ -200,7 +205,7 @@
 		{/each}
 	{:else}
 	<div class="pptx-svelte-thumbs-space" data-virtualized={shouldVirtualize ? 'true' : undefined} style={shouldVirtualize ? `height:${virtualRange.totalHeight}px` : undefined}>
-	<div class="pptx-svelte-thumbs-window" style={shouldVirtualize ? `position:absolute;inset-inline:0;top:${virtualRange.offsetY}px` : undefined}>
+	<div class="pptx-svelte-thumbs-window" data-pptx-chrome="slide-window" style={shouldVirtualize ? `position:absolute;inset-inline:0;top:${virtualRange.offsetY}px` : undefined}>
 	{#each renderedSlides as { slide, index } (slide.id)}
 		{@render thumbnail(slide, index)}
 	{/each}
@@ -210,7 +215,7 @@
 	</div>
 	{#if editable && onaddslide}
 		<!-- React SlidesPaneSidebar parity: "+ Add Slide" pinned below the list. -->
-		<div class="pptx-svelte-thumbs-add">
+		<div class="pptx-svelte-thumbs-add" data-pptx-chrome="slide-footer">
 			<button type="button" onclick={onaddslide}>
 				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" /></svg>
 				{t('pptx.sections.addSlide')}
@@ -233,152 +238,3 @@
 		}}
 	/>
 {/if}
-
-<style>
-	.pptx-svelte-thumbs {
-		display: flex;
-		flex-direction: column;
-		min-height: 0;
-		background: var(--pptx-card, #1e1e2e);
-		border-right: 1px solid var(--pptx-border, #33334d);
-		flex: none;
-	}
-
-	.pptx-svelte-thumbs-scroll {
-		flex: 1 1 auto;
-		min-height: 0;
-		padding: 10px;
-		overflow-y: auto;
-	}
-
-	.pptx-svelte-thumbs-add {
-		flex: none;
-		padding: 6px 8px;
-		border-top: 1px solid var(--pptx-border, #33334d);
-	}
-
-	.pptx-svelte-thumbs-add button {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		gap: 4px;
-		width: 100%;
-		padding: 4px 8px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: transparent;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		cursor: pointer;
-		font: inherit;
-		font-size: 11px;
-	}
-
-	.pptx-svelte-thumbs-add button:hover {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-thumbs-add svg {
-		width: 12px;
-		height: 12px;
-	}
-
-	.pptx-svelte-thumbs-space {
-		position: relative;
-	}
-
-	.pptx-svelte-thumbs-window {
-		display: flex;
-		flex-direction: column;
-		gap: 8px;
-	}
-
-	.pptx-svelte-section + .pptx-svelte-section { margin-top: 8px; }
-	.pptx-svelte-section-header { display:flex; align-items:center; gap:3px; min-height:28px; color:var(--pptx-muted-foreground,#94a3b8); }
-	.pptx-svelte-section-toggle { flex:1; display:flex; align-items:center; gap:5px; min-width:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
-	.pptx-svelte-section-toggle strong { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
-	.pptx-svelte-section-toggle small { margin-left:auto; font-size:9px; }
-	/* React's SectionBlock paints the same 10px `p15:sectionPr/@clr` dot. */
-	.pptx-svelte-section-color { display:inline-block; flex:none; width:10px; height:10px; border-radius:50%; }
-	/* React's SectionHeader rotates the same chevron -90deg when collapsed. */
-	.pptx-svelte-section-caret { display:inline-flex; flex:none; transition:transform .15s ease; }
-	.pptx-svelte-section-caret.is-collapsed { transform:rotate(-90deg); }
-	.pptx-svelte-section-actions { display:flex; }
-	.pptx-svelte-section-actions button { display:inline-flex; align-items:center; justify-content:center; width:20px; height:20px; padding:0; border:0; border-radius:3px; background:transparent; color:inherit; cursor:pointer; }
-	.pptx-svelte-section-actions button:hover:not(:disabled) { background:var(--pptx-accent,#33334d); color:var(--pptx-accent-foreground,#f8fafc); }
-	.pptx-svelte-section-actions button:disabled { opacity:.3; }
-	.pptx-svelte-section-slides { display:flex; flex-direction:column; gap:8px; }
-
-	.pptx-svelte-thumb {
-		display: flex;
-		align-items: flex-start;
-		gap: 6px;
-		padding: 4px;
-		border: none;
-		background: transparent;
-		cursor: pointer;
-		border-radius: var(--pptx-radius, 6px);
-	}
-
-	.pptx-svelte-thumb-number {
-		font-family: system-ui, sans-serif;
-		font-size: 11px;
-		color: var(--pptx-muted-foreground, #94a3b8);
-		min-width: 14px;
-		text-align: right;
-		padding-top: 2px;
-	}
-
-	.pptx-svelte-thumb-frame {
-		position: relative;
-		display: block;
-		overflow: hidden;
-		border-radius: 3px;
-		outline: 2px solid var(--pptx-border, #33334d);
-		background: #fff;
-		pointer-events: none;
-	}
-
-	.pptx-svelte-thumb-stage { display: block; }
-
-	/* Hidden-slide corner badge, matching React's SlideItem LuEyeOff marker. */
-	.pptx-svelte-thumb-hidden {
-		position: absolute;
-		right: 2px;
-		bottom: 2px;
-		z-index: 10;
-		display: inline-flex;
-		color: var(--pptx-muted-foreground, #94a3b8);
-	}
-
-	.pptx-svelte-sr-only {
-		position: absolute;
-		width: 1px;
-		height: 1px;
-		margin: -1px;
-		padding: 0;
-		overflow: hidden;
-		clip-path: inset(50%);
-		white-space: nowrap;
-		border: 0;
-	}
-
-	.pptx-svelte-thumb-active .pptx-svelte-thumb-frame {
-		outline: 2px solid var(--pptx-primary, #6366f1);
-	}
-
-	.pptx-svelte-thumb-selected {
-		background: color-mix(in srgb, var(--pptx-primary, #6366f1) 12%, transparent);
-	}
-	.pptx-svelte-thumb-selected .pptx-svelte-thumb-frame {
-		outline: 2px solid color-mix(in srgb, var(--pptx-primary, #6366f1) 50%, transparent);
-	}
-
-	.pptx-svelte-thumb:hover .pptx-svelte-thumb-frame {
-		outline-color: var(--pptx-ring, #6366f1);
-	}
-
-	.pptx-svelte-thumb[draggable='true'] { cursor: grab; }
-	.pptx-svelte-thumb-dragging { opacity: .45; }
-	.pptx-svelte-thumb-drop-target { border-top: 2px solid var(--pptx-primary, #6366f1); }
-</style>

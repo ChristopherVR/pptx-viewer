@@ -11,7 +11,7 @@
  */
 import { createInstance } from 'i18next';
 import type { PptxSlide } from 'pptx-viewer-core';
-import { HIDDEN_SLIDE_SLASH_GRADIENT } from 'pptx-viewer-shared';
+import { EDITOR_THUMBNAIL_WIDTH, HIDDEN_SLIDE_SLASH_GRADIENT } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -20,7 +20,6 @@ import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { translationsZhCN } from '../../../../locales/src';
-import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../constants';
 import { SlideCard } from './slide-sorter/SlideCard';
 import { SlideItem } from './slides-pane/SlideItem';
 
@@ -55,7 +54,7 @@ function slide(hidden: boolean): PptxSlide {
 	return { id: 's2', rId: 'rId2', slideNumber: 2, elements: [], hidden } as PptxSlide;
 }
 
-function renderRailItem(hidden: boolean): void {
+function renderRailItem(hidden: boolean, active = false): void {
 	act(() => {
 		root.render(
 			<I18nextProvider i18n={i18n}>
@@ -63,7 +62,7 @@ function renderRailItem(hidden: boolean): void {
 					slide={slide(hidden)}
 					templateElements={[]}
 					slideIndex={1}
-					isActive={false}
+					isActive={active}
 					canvasSize={canvasSize}
 					canEdit={false}
 					onSelectSlide={vi.fn()}
@@ -107,12 +106,23 @@ function renderSorterCard(hidden: boolean): void {
 }
 
 describe('slideItem hidden-slide cue', () => {
+	it('updates the shared active-row hook without leaving a stale highlight', () => {
+		renderRailItem(false, true);
+		const row = container.querySelector('[data-pptx-chrome="slide-row"]')!;
+		expect(row.getAttribute('aria-current')).toBe('true');
+		expect(row.querySelector('[data-pptx-chrome="slide-number"]')?.textContent).toBe('2');
+		expect(row.querySelector('[data-pptx-chrome="slide-frame"]')).not.toBeNull();
+		renderRailItem(false, false);
+		expect(row.hasAttribute('aria-current')).toBeFalsy();
+	});
+
 	it('keeps the thumbnail frame at the slide preview width', () => {
 		renderRailItem(false);
 		const frame = container.querySelector<HTMLElement>(
 			'[aria-label="Go to slide 2"] > div:nth-child(2)',
 		);
-		expect(frame?.style.width).toBe(`${SLIDE_NAV_THUMBNAIL_WIDTH}px`);
+		expect(frame?.style.width).toBe(`${EDITOR_THUMBNAIL_WIDTH}px`);
+		expect(frame?.style.height).toBe('74.25px');
 		expect(frame?.className).not.toContain('flex-1');
 	});
 

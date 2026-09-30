@@ -12,12 +12,14 @@ import type { PptxElement, PptxImageEffects, PptxSlide } from 'pptx-viewer-core'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
 
 import { translationsEn } from '../../../shared/src/i18n/translations-en';
+import { resolveViewerComponentResources } from './component-resources.test-support';
 import { EditorStateService } from './editor-state.service';
 import { RibbonContextualSectionComponent } from './ribbon-contextual-section.component';
 import { RibbonGalleryComponent } from './ribbon-gallery.component';
 
-beforeAll(() => {
+beforeAll(async () => {
 	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	await resolveViewerComponentResources();
 });
 afterEach(() => {
 	TestBed.resetTestingModule();

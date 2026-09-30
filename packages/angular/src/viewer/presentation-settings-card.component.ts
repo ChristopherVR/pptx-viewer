@@ -35,84 +35,90 @@ import { LoadContentService } from './load-content.service';
 	imports: [TranslatePipe],
 	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	template: `
-		<section class="icard">
-			<h3 class="icard__heading">{{ 'pptx.slideInspector.presentation' | translate }}</h3>
-			<label class="icard__row">
-				<span class="icard__label">{{ 'pptx.presentationSettings.showType' | translate }}</span>
-				<pptx-ui-select
-					[attr.aria-label]="'pptx.presentationSettings.showType' | translate"
-					class="icard__web-select"
-					[disabled]="!canEdit()"
-					[value]="props().showType ?? 'presented'"
-					(change)="onShowTypeChange($event)"
-				>
-					<option value="presented">
-						{{ 'pptx.presentationSettings.showTypePresented' | translate }}
-					</option>
-					<option value="browsed">
-						{{ 'pptx.presentationSettings.showTypeBrowsed' | translate }}
-					</option>
-					<option value="kiosk">
-						{{ 'pptx.presentationSettings.showTypeKiosk' | translate }}
-					</option>
-				</pptx-ui-select>
-			</label>
-			<label class="icard__row">
-				<span class="icard__label">
-					{{ 'pptx.presentationSettings.loopContinuously' | translate }}
-				</span>
-				<pptx-ui-checkbox
-					[attr.aria-label]="'pptx.presentationSettings.loopContinuously' | translate"
-					[disabled]="!canEdit()"
-					[checked]="!!props().loopContinuously"
-					(change)="onCheckbox($event, 'loopContinuously')"
-				/>
-			</label>
-			<label class="icard__row">
-				<span class="icard__label">
-					{{ 'pptx.presentationSettings.showNarration' | translate }}
-				</span>
-				<pptx-ui-checkbox
-					[attr.aria-label]="'pptx.presentationSettings.showNarration' | translate"
-					[disabled]="!canEdit()"
-					[checked]="props().showWithNarration !== false"
-					(change)="onCheckbox($event, 'showWithNarration')"
-				/>
-			</label>
-			<label class="icard__row">
-				<span class="icard__label">
-					{{ 'pptx.presentationSettings.showAnimation' | translate }}
-				</span>
-				<pptx-ui-checkbox
-					[attr.aria-label]="'pptx.presentationSettings.showAnimation' | translate"
-					[disabled]="!canEdit()"
-					[checked]="props().showWithAnimation !== false"
-					(change)="onCheckbox($event, 'showWithAnimation')"
-				/>
-			</label>
-			<label class="icard__row">
-				<span class="icard__label">{{ 'pptx.presentationSettings.frameSlides' | translate }}</span>
-				<pptx-ui-checkbox
-					[attr.aria-label]="'pptx.presentationSettings.frameSlides' | translate"
-					[disabled]="!canEdit()"
-					[checked]="frameSlides()"
-					(change)="onFrameSlidesChange($event)"
-				/>
-			</label>
-			<label class="icard__row">
-				<span class="icard__label">
-					{{ 'pptx.presentationSettings.slidesPerPage' | translate }}
-				</span>
-				<input
-					type="number"
-					class="icard__input icard__input--number"
-					min="1"
-					max="16"
-					[disabled]="!canEdit()"
-					[value]="slidesPerPage()"
-					(change)="onSlidesPerPageChange($event)"
-				/>
-			</label>
+		<section class="icard pptx-editor-presentation-card" data-pptx-chrome="inspector-card">
+			<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+				{{ 'pptx.slideInspector.presentation' | translate }}
+			</h3>
+			<div data-pptx-chrome="presentation-fields">
+				<label class="icard__row">
+					<span class="icard__label">{{ 'pptx.presentationSettings.showType' | translate }}</span>
+					<pptx-ui-select
+						[attr.aria-label]="'pptx.presentationSettings.showType' | translate"
+						class="icard__web-select"
+						[disabled]="!canEdit()"
+						[value]="props().showType ?? 'presented'"
+						(change)="onShowTypeChange($event)"
+					>
+						<option value="presented">
+							{{ 'pptx.presentationSettings.showTypePresented' | translate }}
+						</option>
+						<option value="browsed">
+							{{ 'pptx.presentationSettings.showTypeBrowsed' | translate }}
+						</option>
+						<option value="kiosk">
+							{{ 'pptx.presentationSettings.showTypeKiosk' | translate }}
+						</option>
+					</pptx-ui-select>
+				</label>
+				<label class="icard__row">
+					<span class="icard__label">
+						{{ 'pptx.presentationSettings.loopContinuously' | translate }}
+					</span>
+					<pptx-ui-checkbox
+						[attr.aria-label]="'pptx.presentationSettings.loopContinuously' | translate"
+						[disabled]="!canEdit()"
+						[checked]="!!props().loopContinuously"
+						(change)="onCheckbox($event, 'loopContinuously')"
+					/>
+				</label>
+				<label class="icard__row">
+					<span class="icard__label">
+						{{ 'pptx.presentationSettings.showNarration' | translate }}
+					</span>
+					<pptx-ui-checkbox
+						[attr.aria-label]="'pptx.presentationSettings.showNarration' | translate"
+						[disabled]="!canEdit()"
+						[checked]="props().showWithNarration !== false"
+						(change)="onCheckbox($event, 'showWithNarration')"
+					/>
+				</label>
+				<label class="icard__row">
+					<span class="icard__label">
+						{{ 'pptx.presentationSettings.showAnimation' | translate }}
+					</span>
+					<pptx-ui-checkbox
+						[attr.aria-label]="'pptx.presentationSettings.showAnimation' | translate"
+						[disabled]="!canEdit()"
+						[checked]="props().showWithAnimation !== false"
+						(change)="onCheckbox($event, 'showWithAnimation')"
+					/>
+				</label>
+				<label class="icard__row">
+					<span class="icard__label">{{
+						'pptx.presentationSettings.frameSlides' | translate
+					}}</span>
+					<pptx-ui-checkbox
+						[attr.aria-label]="'pptx.presentationSettings.frameSlides' | translate"
+						[disabled]="!canEdit()"
+						[checked]="frameSlides()"
+						(change)="onFrameSlidesChange($event)"
+					/>
+				</label>
+				<label class="icard__row">
+					<span class="icard__label">
+						{{ 'pptx.presentationSettings.slidesPerPage' | translate }}
+					</span>
+					<input
+						type="number"
+						class="icard__input icard__input--number"
+						min="1"
+						max="16"
+						[disabled]="!canEdit()"
+						[value]="slidesPerPage()"
+						(change)="onSlidesPerPageChange($event)"
+					/>
+				</label>
+			</div>
 		</section>
 	`,
 	styles: [INSPECTOR_CARD_STYLES],

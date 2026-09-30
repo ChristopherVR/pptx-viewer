@@ -25,6 +25,7 @@ import { ThemeSelectorCardComponent } from './theme-selector-card.component';
 
 @Component({
 	selector: 'pptx-presentation-properties-panel',
+	host: { 'data-pptx-chrome': 'deck-properties' },
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
@@ -42,8 +43,10 @@ import { ThemeSelectorCardComponent } from './theme-selector-card.component';
 		<pptx-presentation-settings-card [canEdit]="canEdit()" />
 		<pptx-theme-selector-card [canEdit]="canEdit()" />
 		@if (activeSlide(); as sl) {
-			<section class="icard">
-				<h3 class="icard__heading">{{ 'pptx.themeOverride.heading' | translate }}</h3>
+			<section class="icard" data-pptx-chrome="inspector-card">
+				<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+					{{ 'pptx.themeOverride.heading' | translate }}
+				</h3>
 				<pptx-slide-theme-override-panel
 					[slide]="sl"
 					[theme]="loader.theme()"

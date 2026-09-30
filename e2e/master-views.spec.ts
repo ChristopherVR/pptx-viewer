@@ -14,6 +14,7 @@ import {
 import { LAYOUT_SHAPE_TEXT, MASTER_SHAPE_TEXT } from './fixtures/generate-template-editing-fixture';
 import { GROUP_CHILD_NAMES } from './fixtures/generate-template-group-fixture';
 import { resetTabSession } from './support/deck';
+import { readFixtureLayout } from './support/fixture-layout';
 
 const fixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/master-views.pptx', import.meta.url)),
@@ -37,8 +38,6 @@ const templateFixturePath = resolve(
 const templateGroupFixturePath = resolve(
 	fileURLToPath(new URL('./fixtures/template-group.pptx', import.meta.url)),
 );
-/** The layout that carries the group, as the master-view rail names it. */
-const GROUP_LAYOUT_NAME = 'Title Slide';
 /** Arrow-key nudges applied to the inherited group; one press is one model px. */
 const GROUP_NUDGE_STEPS = 20;
 /**
@@ -260,7 +259,7 @@ test.describe('slide master tab parity', () => {
 		// have them stripped precisely so element queries hit the real canvas.
 		// The assertion could only ever have passed by matching a preview, so
 		// it proved nothing about the layout being paintable.
-		await selectMasterLayout(page, 'Title Slide');
+		await selectMasterLayout(page, (await readFixtureLayout(templateFixturePath)).name);
 		await expect(
 			masterPartShape(page, 'slide-layout-').filter({ hasText: LAYOUT_SHAPE_TEXT }).first(),
 		).toBeVisible();
@@ -402,6 +401,7 @@ test.describe('slide master tab parity', () => {
 		const savedPath = await saveDeck(page, `${testInfo.project.name}-layout-group-move`);
 		await openFixture(page, savedPath);
 		expect(await templateGroupOffset(page), 'the move survived the save').toBeCloseTo(nudged, 2);
+		const { stem } = await readFixtureLayout(savedPath);
 
 		// The group is still a group: all four children came back with it, and
 		// none of them was promoted into the layout's own shape tree. A group
@@ -413,7 +413,7 @@ test.describe('slide master tab parity', () => {
 		// canvas has a second copy off it.
 		for (const slot of ['shape-0', 'conn-0', 'shape-1', 'conn-1']) {
 			await expect
-				.poll(() => page.locator(`[data-element-id$="-group-slideLayout1-0-${slot}"]`).count())
+				.poll(() => page.locator(`[data-element-id$="-group-${stem}-0-${slot}"]`).count())
 				.toBeGreaterThan(0);
 		}
 
@@ -422,12 +422,12 @@ test.describe('slide master tab parity', () => {
 		// all `p:cxnSp`) comes back with `GroupBox2` in slot 0. The group is
 		// rebuilt on this path while the layout around it is passthrough, and the
 		// two carry document order differently.
-		await expect(
-			page.locator('[data-element-id$="-group-slideLayout1-0-shape-0"]').first(),
-		).toHaveText(GROUP_CHILD_NAMES[0]);
-		await expect(
-			page.locator('[data-element-id$="-group-slideLayout1-0-shape-1"]').first(),
-		).toHaveText(GROUP_CHILD_NAMES[2]);
+		await expect(page.locator(`[data-element-id$="-group-${stem}-0-shape-0"]`).first()).toHaveText(
+			GROUP_CHILD_NAMES[0],
+		);
+		await expect(page.locator(`[data-element-id$="-group-${stem}-0-shape-1"]`).first()).toHaveText(
+			GROUP_CHILD_NAMES[2],
+		);
 	});
 
 	/**
@@ -441,9 +441,10 @@ test.describe('slide master tab parity', () => {
 	 * `masterViewOwnerElementId` rule now.
 	 */
 	test('deletes a layout group in the master view', async ({ page }, testInfo) => {
+		const layout = await readFixtureLayout(templateGroupFixturePath);
 		await openFixture(page, templateGroupFixturePath);
 		await enterMasterView(page);
-		await selectMasterLayout(page, GROUP_LAYOUT_NAME);
+		await selectMasterLayout(page, layout.name);
 
 		await expect(masterLayoutGroup(page)).not.toHaveCount(0);
 		const group = masterPartShape(page, 'slide-layout-').filter({ hasText: GROUP_CHILD_NAMES[0] });
@@ -459,7 +460,7 @@ test.describe('slide master tab parity', () => {
 		const savedPath = await saveDeck(page, `${testInfo.project.name}-layout-group-delete`);
 		await openFixture(page, savedPath);
 		await enterMasterView(page);
-		await selectMasterLayout(page, GROUP_LAYOUT_NAME);
+		await selectMasterLayout(page, layout.name);
 		await expect(masterLayoutGroup(page)).toHaveCount(0);
 	});
 

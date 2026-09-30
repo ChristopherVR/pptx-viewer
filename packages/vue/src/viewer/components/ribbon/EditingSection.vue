@@ -3,11 +3,11 @@
  * EditingSection: Find, Replace, and Select controls for the Home ribbon tab.
  * Vue port matching the React EditingSection component.
  */
-import { ArrowRightLeft, ChevronDown, Search } from 'lucide-vue-next';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill, SEP } from './ribbon-constants';
+import RibbonIcon from './RibbonIcon';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
@@ -30,31 +30,32 @@ function handleSelectAll(): void {
 	<div :class="SEP" />
 
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
-		<div class="flex items-center gap-1">
-			<!-- Find -->
-			<button
-				type="button"
-				data-ribbon-control="home.editing.find"
-				:class="pill"
-				:title="t('pptx.editing.find')"
-				@mousedown.prevent
-				@click="props.onToggleFindReplace()"
-			>
-				<Search :class="ic" />
-			</button>
+		<div class="flex items-center gap-1" data-pptx-chrome="editing-controls">
+			<div data-pptx-chrome="control-cluster">
+				<!-- Find -->
+				<button
+					type="button"
+					data-ribbon-control="home.editing.find"
+					:class="pill"
+					:title="t('pptx.editing.find')"
+					@mousedown.prevent
+					@click="props.onToggleFindReplace()"
+				>
+					<RibbonIcon name="home.editing.find" :class="ic" />
+				</button>
 
-			<!-- Replace -->
-			<button
-				type="button"
-				data-ribbon-control="home.editing.replace"
-				:class="pill"
-				:title="t('pptx.ribbon.replace')"
-				@mousedown.prevent
-				@click="props.onToggleFindReplace()"
-			>
-				<ArrowRightLeft :class="ic" />
-			</button>
-
+				<!-- Replace -->
+				<button
+					type="button"
+					data-ribbon-control="home.editing.replace"
+					:class="pill"
+					:title="t('pptx.ribbon.replace')"
+					@mousedown.prevent
+					@click="props.onToggleFindReplace()"
+				>
+					<RibbonIcon name="home.editing.replace" :class="ic" />
+				</button>
+			</div>
 			<!-- Select dropdown -->
 			<div :ref="selectMenu.root" class="relative" data-ribbon-control="home.editing.select">
 				<button
@@ -64,8 +65,7 @@ function handleSelectAll(): void {
 					@mousedown.prevent
 					@click="selectMenu.toggle()"
 				>
-					{{ t('pptx.ribbon.tool.select') }}
-					<ChevronDown class="w-3 h-3" />
+					<RibbonIcon name="home.editing.select" :class="ic" />
 				</button>
 				<div
 					v-if="selectMenu.open.value"

@@ -4,6 +4,7 @@
 	 * spacing for the Home tab's Paragraph group. List state comes from semantic
 	 * paragraph bullets; other formatting uses the element's base text style.
 	 */
+	import RibbonIcon from '../RibbonIcon.svelte';
 	import type { TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
 	import { elementBulletKind, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
@@ -35,14 +36,14 @@
 	const NUMBERING = fixedGalleryPlacement('home.paragraph.numbering');
 
 	const ALIGN_BUTTONS = [
-		{ value: 'left', d: 'M2 4h12M2 8h8M2 12h10', key: 'pptx.ribbon.alignLeft', control: 'home.paragraph.alignLeft' },
-		{ value: 'center', d: 'M2 4h12M4 8h8M3 12h10', key: 'pptx.ribbon.alignCenter', control: 'home.paragraph.alignCenter' },
-		{ value: 'right', d: 'M2 4h12M6 8h8M4 12h10', key: 'pptx.ribbon.alignRight', control: 'home.paragraph.alignRight' },
-		{ value: 'justify', d: 'M2 4h12M2 8h12M2 12h12', key: 'pptx.ribbon.justify', control: 'home.paragraph.justify' },
+		{ value: 'left', key: 'pptx.ribbon.alignLeft', control: 'home.paragraph.alignLeft' },
+		{ value: 'center', key: 'pptx.ribbon.alignCenter', control: 'home.paragraph.alignCenter' },
+		{ value: 'right', key: 'pptx.ribbon.alignRight', control: 'home.paragraph.alignRight' },
+		{ value: 'justify', key: 'pptx.ribbon.justify', control: 'home.paragraph.justify' },
 	] as const;
 </script>
 
-<div class="pptx-svelte-para" role="group" aria-label={t('pptx.ribbon.paragraph')}>
+<div class="pptx-svelte-para" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.ribbon.paragraph')}>
 	<span class="pptx-svelte-para-split" data-ribbon-control={BULLETS.control}>
 	<button
 		type="button"
@@ -55,7 +56,7 @@
 		onmousedown={(event) => event.preventDefault()}
 	onclick={() => el && apply((current, snapshot) => toggleListTypePatch(current, 'bullet', snapshot))}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="3" cy="4" r="1" fill="currentColor" /><circle cx="3" cy="8" r="1" fill="currentColor" /><circle cx="3" cy="12" r="1" fill="currentColor" /><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+		<RibbonIcon name="home.paragraph.bullets" />
 	</button>
 	<RibbonGallery placement={BULLETS} chevronOnly tagControl={false} />
 	</span>
@@ -71,13 +72,14 @@
 		onmousedown={(event) => event.preventDefault()}
 	onclick={() => el && apply((current, snapshot) => toggleListTypePatch(current, 'numbered', snapshot))}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><text x="1" y="5.5" font-size="4" fill="currentColor">1</text><text x="1" y="9.5" font-size="4" fill="currentColor">2</text><text x="1" y="13.5" font-size="4" fill="currentColor">3</text><path d="M6 4h7M6 8h7M6 12h7" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+		<RibbonIcon name="home.paragraph.numbering" />
 	</button>
 	<RibbonGallery placement={NUMBERING} chevronOnly tagControl={false} />
 	</span>
 
-	<span class="pptx-svelte-para-sep" aria-hidden="true"></span>
 
+
+	<div data-pptx-chrome="control-cluster">
 	<button
 		type="button"
 		class="pptx-svelte-para-btn"
@@ -87,7 +89,7 @@
 		title={t('pptx.text.decreaseIndent')}
 		onclick={() => el && apply((current) => adjustIndentPatch(current, -1))}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4h8M6 12h8M6 8h8M2 8l2.5-2.5M2 8l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<RibbonIcon name="home.paragraph.decreaseIndent" />
 	</button>
 	<button
 		type="button"
@@ -98,11 +100,13 @@
 		title={t('pptx.text.increaseIndent')}
 		onclick={() => el && apply((current) => adjustIndentPatch(current, 1))}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M6 4h8M6 12h8M6 8h8M4.5 5.5 2 8l2.5 2.5" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" /></svg>
+		<RibbonIcon name="home.paragraph.increaseIndent" />
 	</button>
 
-	<span class="pptx-svelte-para-sep" aria-hidden="true"></span>
 
+
+	</div>
+	<div data-pptx-chrome="control-cluster">
 	{#each ALIGN_BUTTONS as btn (btn.value)}
 		<button
 			type="button"
@@ -115,11 +119,12 @@
 			title={t(btn.key)}
 			onclick={() => el && apply((current) => setAlignPatch(current, btn.value as TextStyle['align']))}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d={btn.d} stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+			<RibbonIcon name={btn.control} />
 		</button>
 	{/each}
 
-	<select
+	</div>
+	<pptx-ui-select variant="ribbon-icon"
 		class="pptx-svelte-ribbon-select"
 		disabled={!active}
 		data-ribbon-control="home.paragraph.lineSpacing"
@@ -131,13 +136,13 @@
 			}
 		}}
 	>
-		<option value="">{t('pptx.paragraph.lineSpacing')}</option>
+		<RibbonIcon slot="icon" name="home.paragraph.lineSpacing" />
 		{#each LINE_SPACING_OPTIONS as option (option.value)}
 			<option value={option.value} selected={style.lineSpacing === option.value}>
 				{option.label}
 			</option>
 		{/each}
-	</select>
+	</pptx-ui-select>
 </div>
 
 <style>

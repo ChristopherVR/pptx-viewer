@@ -11,7 +11,7 @@
 import type { PptxSlide } from 'pptx-viewer-core';
 import { HIDDEN_SLIDE_SLASH_GRADIENT } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import SlideSorterOverlay from './SlideSorterOverlay.svelte';
 import ThumbnailRail from './ThumbnailRail.svelte';
@@ -39,7 +39,11 @@ function deck(hidden: readonly number[]): PptxSlide[] {
 	);
 }
 
-function mountRail(hidden: readonly number[]): HTMLElement {
+function mountRail(
+	hidden: readonly number[],
+	current = 0,
+	onselect = () => undefined,
+): HTMLElement {
 	const target = document.createElement('div');
 	document.body.appendChild(target);
 	const instance = mount(ThumbnailRail, {
@@ -48,8 +52,8 @@ function mountRail(hidden: readonly number[]): HTMLElement {
 			slides: deck(hidden),
 			canvasSize: CANVAS,
 			mediaDataUrls: new Map<string, string>(),
-			current: 0,
-			onselect: () => undefined,
+			current,
+			onselect,
 		},
 	});
 	cleanup = () => {
@@ -84,6 +88,26 @@ function mountSorter(hidden: readonly number[]): HTMLElement {
 }
 
 describe('thumbnailRail hidden-slide cue', () => {
+	it('exposes the active row and forwards thumbnail navigation once', () => {
+		const onselect = vi.fn();
+		const target = mountRail([], 1, onselect);
+		const rows = target.querySelectorAll<HTMLButtonElement>('[data-pptx-chrome="slide-row"]');
+		expect(rows[0].hasAttribute('aria-current')).toBeFalsy();
+		expect(rows[1].getAttribute('aria-current')).toBe('true');
+		expect(rows[1].querySelector('[data-pptx-chrome="slide-number"]')?.textContent).toBe('2');
+		rows[2].click();
+		expect(onselect).toHaveBeenCalledExactlyOnceWith(2);
+	});
+
+	it('preserves slide aspect ratio inside the shared desktop rail', () => {
+		const target = mountRail([]);
+		const rail = target.querySelector<HTMLElement>('[data-pptx-chrome="slides"]');
+		const frame = target.querySelector<HTMLElement>('[data-pptx-chrome="slide-frame"]');
+		expect(rail?.style.width).toBe('180px');
+		expect(frame?.style.width).toBe('132px');
+		expect(frame?.style.height).toBe('74.25px');
+	});
+
 	it('lists every slide and marks only the hidden one', () => {
 		const target = mountRail([1]);
 		const thumbs = target.querySelectorAll<HTMLButtonElement>('.pptx-svelte-thumb');

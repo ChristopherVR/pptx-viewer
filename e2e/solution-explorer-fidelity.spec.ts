@@ -241,7 +241,8 @@ test.describe('issue #130 - solution-explorer deck fidelity', () => {
 		// rendering at the 18pt body default: 24px against the Arial one's 13px.
 		const sizes = await page.evaluate(() => {
 			const out: number[] = [];
-			for (const node of document.querySelectorAll<HTMLElement>('*')) {
+			const slide = document.querySelector('[data-pptx-viewport] [aria-roledescription="slide"]')!;
+			for (const node of slide.querySelectorAll<HTMLElement>('*')) {
 				if (node.children.length > 0) {
 					continue;
 				}
@@ -253,7 +254,7 @@ test.describe('issue #130 - solution-explorer deck fidelity', () => {
 					continue;
 				}
 				const box = node.getBoundingClientRect();
-				if (box.width * box.height < 20) {
+				if (box.width <= 0 || box.height <= 0) {
 					continue;
 				}
 				out.push(Number.parseFloat(getComputedStyle(node).fontSize));

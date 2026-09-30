@@ -93,8 +93,8 @@ watch(
 </script>
 
 <template>
-	<div class="space-y-3">
-		<div v-if="props.presentationProperties" :class="CARD">
+	<div data-pptx-chrome="deck-properties" class="space-y-3">
+		<div v-if="props.presentationProperties" :class="`${CARD} pptx-editor-presentation-card`">
 			<div :class="HEADING">{{ t('pptx.slideInspector.presentation') }}</div>
 			<PresentationSettingsCard
 				:presentation-properties="props.presentationProperties"

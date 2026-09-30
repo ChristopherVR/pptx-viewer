@@ -61,8 +61,10 @@ const CUSTOM_PRESET_VALUE = '';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe],
 	template: `
-		<section class="icard">
-			<h3 class="icard__heading">{{ 'pptx.slideSize.title' | translate }}</h3>
+		<section class="icard" data-pptx-chrome="inspector-card">
+			<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+				{{ 'pptx.slideSize.title' | translate }}
+			</h3>
 			<label class="icard__col">
 				<span class="icard__label">{{ 'pptx.slideSize.presets' | translate }}</span>
 				<pptx-ui-select

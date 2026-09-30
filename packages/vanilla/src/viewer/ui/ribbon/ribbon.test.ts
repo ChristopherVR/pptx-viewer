@@ -1,4 +1,5 @@
-import { EMPTY_RIBBON_TRANSITION_DRAFT } from 'pptx-viewer-shared';
+import type { PptxUiSelectElement } from 'pptx-viewer-shared';
+import { EMPTY_RIBBON_TRANSITION_DRAFT, createRibbonControlIcon } from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../../editor/editor-edit-ops';
@@ -112,6 +113,29 @@ function buildHandlers(): RibbonHandlers {
 }
 
 describe('createRibbon', () => {
+	it('uses canonical artwork for the Home commands and keeps action clusters joined', () => {
+		const ribbon = createRibbon(document, createTranslator(), buildHandlers());
+		for (const control of [
+			'clipboard.formatPainter',
+			'drawing.shapes',
+			'drawing.arrange',
+			'drawing.quickStyles',
+			'drawing.shapeEffects',
+		]) {
+			const host = ribbon.el.querySelector(`[data-ribbon-control="home.${control}"]`)!;
+			expect(host.querySelector('svg')?.innerHTML).toBe(
+				createRibbonControlIcon(document, `home.${control}`).innerHTML,
+			);
+		}
+		const indent = ribbon.el.querySelector(
+			'[data-ribbon-control="home.paragraph.decreaseIndent"]',
+		)!;
+		expect(indent.parentElement?.dataset.pptxChrome).toBe('control-cluster');
+		expect(indent.nextElementSibling?.getAttribute('data-ribbon-control')).toBe(
+			'home.paragraph.increaseIndent',
+		);
+	});
+
 	it('uses host translations for the custom-show quick action without changing its callback', () => {
 		const messages = {
 			'pptx.customShows.addShow': '+ 自定义放映',
@@ -493,13 +517,15 @@ describe('home font size', () => {
 			}),
 		});
 
-		const dropdown = group.el.querySelector<HTMLElement>('.pptxv-font-size-dd');
-		expect(dropdown?.querySelector('.pptxv-dropdown-text')?.textContent).toBe('48.1');
-		dropdown?.querySelector<HTMLButtonElement>('.pptxv-dropdown-trigger')?.click();
-		const tenPoint = [
-			...(dropdown?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []),
-		].find((option) => option.textContent === '10');
-		tenPoint?.click();
-		expect(setFontSize).toHaveBeenCalledWith(10);
+		document.body.append(group.el);
+		const dropdown = group.el.querySelector<PptxUiSelectElement>(
+			'pptx-ui-select[data-font-picker="size"]',
+		)!;
+		expect(dropdown.shadowRoot!.querySelector('[part="value"]')?.textContent).toBe('48.1');
+		dropdown.shadowRoot!.querySelector<HTMLButtonElement>('button')!.click();
+		const index = dropdown.options.findIndex((option) => option.value === '10');
+		dropdown.shadowRoot!.querySelector<HTMLElement>(`[data-index="${index}"]`)!.click();
+		expect(setFontSize).toHaveBeenCalledExactlyOnceWith(10);
+		group.el.remove();
 	});
 });

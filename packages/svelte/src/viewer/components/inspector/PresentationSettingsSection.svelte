@@ -27,7 +27,7 @@
 	const t = useTranslator();
 </script>
 
-<div class="pptx-svelte-presentation-settings">
+<div class="pptx-svelte-presentation-settings" data-pptx-chrome="presentation-fields">
 	<!-- svelte-ignore a11y_label_has_associated_control -- form-associated custom element -->
 	<label>
 		<span>{t('pptx.presentationSettings.showType')}</span>

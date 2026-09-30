@@ -10,13 +10,12 @@ import type { AnchoredPopupHandle } from '../../anchored-popup';
 import { attachAnchoredPopup } from '../../anchored-popup';
 import type { ButtonHandle } from '../../controls';
 import { makeButton } from '../../controls';
-import { createThemeEditorCard } from '../../inspector/theme-editor-card';
-import type { ThemeEditorCard, ThemeEditorCardState } from '../../inspector/theme-editor-card';
 import { createRibbonGroupShell } from '../gallery/contextual-tabs';
 import type { RibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGallery } from '../gallery/ribbon-gallery';
 import { tagRibbonControl, wrapRibbonGroup } from '../ribbon-tagging';
 import type { RibbonDesignHandlers } from '../ribbon-types';
+import { createThemeEditorLauncher } from './theme-editor-launcher';
 
 export interface DesignTab {
 	el: HTMLElement;
@@ -75,13 +74,9 @@ function withPreview(doc: Document, button: ButtonHandle, background: string): H
  * Background, the four commands React's `DesignSection` offers, plus the
  * Variants Colors / Fonts galleries.
  *
- * Both theme commands act on the PRESENTATION theme, as in React, Vue and
- * Angular. "Browse Themes" drops down the shared `GALLERY_THEME_PRESETS` (the
- * active one checked via `activeGalleryThemePreset`) and a pick re-themes the
- * deck; "Edit Theme" drops down the deck theme editor, the same THEME EDITOR
- * card the inspector hosts. Both hang off their buttons as popovers, which is
- * what keeps a dozen theme names out of the tab's flat control list. The
- * viewer chrome's own theme is `PptxViewer.setTheme` / Options, not Design.
+ * Both theme commands act on the presentation theme. Browse Themes opens
+ * the shared preset gallery. Edit Theme opens a panel docked to the right of
+ * the editor body below the ribbon, matching React's ThemeEditorPanel.
  *
  * `onOpenSlideSize` reveals the inspector's SLIDE SIZE card (see `ribbon.ts`),
  * the binding's only slide-size control. It used to open the Document
@@ -131,39 +126,7 @@ export function createDesignTab(
 		return button;
 	});
 
-	const editTheme = createGalleryControl(
-		doc,
-		makeButton(doc, {
-			label: t('pptx.ribbon.editTheme'),
-			icon: 'wrench',
-			textLabel: t('pptx.ribbon.editTheme'),
-			onClick: () => {},
-		}),
-		t('pptx.ribbon.editThemeTitle'),
-	);
-	editTheme.gallery.classList.add('pptxv-deck-theme-editor');
-	editTheme.gallery.dataset.deckThemeEditor = '';
-	// The editor card is a sizeable DOM tree (12 colour slots, two font
-	// lists), so it is built on first open rather than with every ribbon.
-	let themeEditor: ThemeEditorCard | null = null;
-	let themeState: ThemeEditorCardState = {
-		editable: false,
-		colorScheme: undefined,
-		fontScheme: undefined,
-		themeName: undefined,
-	};
-	editTheme.button.btn.addEventListener('click', () => {
-		if (!themeEditor) {
-			themeEditor = createThemeEditorCard(doc, t, {
-				applyThemeEdit: (payload) => {
-					handlers.applyThemeEdit(payload);
-					editTheme.close();
-				},
-			});
-			themeEditor.update(themeState);
-			editTheme.gallery.appendChild(themeEditor.el);
-		}
-	});
+	const editTheme = createThemeEditorLauncher(doc, t, handlers);
 
 	const slideSize = makeButton(doc, {
 		label: t('pptx.ribbon.slideSize'),
@@ -207,13 +170,12 @@ export function createDesignTab(
 						String(button.btn.dataset.themePreset === activeId),
 					);
 				}
-				themeState = {
+				editTheme.update({
 					editable,
 					colorScheme: ctx.theme?.colorScheme,
 					fontScheme: ctx.theme?.fontScheme,
 					themeName: ctx.theme?.name,
-				};
-				themeEditor?.update(themeState);
+				});
 			},
 			close() {},
 		});

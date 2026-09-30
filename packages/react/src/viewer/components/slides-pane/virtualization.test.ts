@@ -148,11 +148,11 @@ describe('estimateSlideItemHeight', () => {
 		expect(tall).toBeGreaterThan(wide);
 	});
 
-	it('always includes at least 56 + 30 = 86px (min preview + chrome)', () => {
-		// Even for extremely wide canvases where the thumbnail height
-		// would be very small, the floor of 56 + 30 chrome = 86
+	it('reserves the number line, row padding and gap for panoramic slides', () => {
+		// The actual row is 19px high when its 15px number is taller than the
+		// preview. The next virtual row starts after the remaining 4px gap.
 		const h = estimateSlideItemHeight(10000, 1);
-		expect(h).toBeGreaterThanOrEqual(86);
+		expect(h).toBe(23);
 	});
 });
 

@@ -1,3 +1,5 @@
+import { SELECT_RIBBON_STYLES } from './select-ribbon-styles';
+
 export const SELECT_STYLES = `
 :host {
 	display: inline-block;
@@ -47,6 +49,7 @@ button:disabled { cursor: not-allowed; }
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+.chevron svg { display: none; }
 .chevron {
 	flex: none;
 	width: 6px;
@@ -115,4 +118,5 @@ button:disabled { cursor: not-allowed; }
 		color: HighlightText;
 	}
 }
+${SELECT_RIBBON_STYLES}
 `;

@@ -19,6 +19,9 @@ import * as Y from 'yjs';
 const loadMock = vi.fn().mockResolvedValue({});
 const saveMock = vi.fn().mockResolvedValue(new Uint8Array([0x50, 0x4b, 0x03, 0x04]));
 
+// Web-control setup may preload the render barrel before this test installs its core mock.
+vi.hoisted(() => vi.resetModules());
+
 vi.mock(import('pptx-viewer-core'), async (importOriginal) => {
 	const actual = await importOriginal();
 	return {
