@@ -6,6 +6,32 @@ import type { SmartArtPptxElement } from '../../core/types/elements';
 import { readCorpusFixture } from './real-world-corpus-helpers';
 
 describe('powerPoint-authored SmartArt definition save', () => {
+	it.each(['intense', 'moderate', 'flat'] as const)(
+		'persists the %s gallery style in DiagramML',
+		async (style) => {
+			const handler = new PptxHandler();
+			const loaded = await handler.load(readCorpusFixture('smartart-chart-table-mix.pptx'));
+			const element = loaded.slides
+				.flatMap((slide) => slide.elements)
+				.find(
+					(candidate): candidate is SmartArtPptxElement =>
+						candidate.type === 'smartArt' && Boolean(candidate.smartArtData?.quickStyle),
+				)!;
+			element.smartArtData!.style = style;
+			element.smartArtData!.quickStyleDirty = true;
+			const reopened = await new PptxHandler().load(await handler.save(loaded.slides));
+			const saved = reopened.slides
+				.flatMap((slide) => slide.elements)
+				.find(
+					(candidate): candidate is SmartArtPptxElement =>
+						candidate.type === 'smartArt' && candidate.id === element.id,
+				);
+			expect(saved?.smartArtData?.quickStyle?.effectIntensity).toBe(
+				style === 'flat' ? 'subtle' : style,
+			);
+		},
+	);
+
 	it('round-trips typed quick-style edits without replacing the style payload', async () => {
 		const handler = new PptxHandler();
 		const loaded = await handler.load(readCorpusFixture('smartart-chart-table-mix.pptx'));

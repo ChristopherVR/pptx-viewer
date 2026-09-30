@@ -122,7 +122,10 @@ describe('slide master / layout shape trees (F1)', () => {
 	it('keeps master-view ids out of the slide-facing template namespace', async () => {
 		const { data } = await loadFixture();
 		const masterElements = data.slideMasters?.[0]?.elements ?? [];
-		const layoutElements = data.slideMasters?.[0]?.layouts?.[0]?.elements ?? [];
+		const decoratedLayout = data.slideMasters?.[0]?.layouts?.find((layout) =>
+			layout.elements?.some((element) => textOf(element) === LAYOUT_SHAPE_TEXT),
+		);
+		const layoutElements = decoratedLayout?.elements ?? [];
 		expect(masterElements.length).toBeGreaterThan(0);
 		expect(layoutElements.length).toBeGreaterThan(0);
 		// `master-` / `layout-` ids mean "inherited onto a slide" and every
@@ -134,7 +137,9 @@ describe('slide master / layout shape trees (F1)', () => {
 		}
 		for (const element of layoutElements) {
 			expect(element.id.startsWith('layout-')).toBeFalsy();
-			expect(element.id).toMatch(/^slide-layout-slideLayout1-/u);
+			expect(element.id).toContain(
+				`slide-layout-${decoratedLayout!.path.split('/').pop()!.replace('.xml', '')}-`,
+			);
 		}
 	});
 });

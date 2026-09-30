@@ -303,8 +303,11 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			'styleDef',
 			'quick style',
 			(styleDef) =>
-				applySmartArtQuickStyle(styleDef, quickStyle, (key) =>
-					this.compatibilityService.getXmlLocalName(key),
+				applySmartArtQuickStyle(
+					styleDef,
+					quickStyle,
+					(key) => this.compatibilityService.getXmlLocalName(key),
+					smartArtData.style,
 				),
 		);
 	}

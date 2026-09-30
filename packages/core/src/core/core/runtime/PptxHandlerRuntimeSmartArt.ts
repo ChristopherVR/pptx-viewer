@@ -8,6 +8,7 @@ import { MAX_SMARTART_NODES } from '../builders/smart-art-text-helpers';
 import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRuntimeSmartArtParsing';
 import { parseDrawingShapesFromPart } from './smartart-drawing-blip';
 import type { DrawingBlipDeps } from './smartart-drawing-blip';
+import { resolveSmartArtDrawingPart } from './smartart-drawing-part';
 import { resolveSmartArtLayoutCategory } from './smartart-layout-category';
 import {
 	firstParagraphRuns,
@@ -196,6 +197,10 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			chrome,
 			colorTransform,
 			quickStyle,
+			style:
+				quickStyle?.effectIntensity === 'moderate' || quickStyle?.effectIntensity === 'intense'
+					? quickStyle.effectIntensity
+					: undefined,
 			// The theme's own minor-Latin font: what SmartArt text actually
 			// renders in absent a per-run `a:latin` override (confirmed: every
 			// text-bearing shape across the whole 227-fixture gallery corpus
@@ -219,87 +224,18 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 		};
 	}
 
-	/**
-	 * Resolve the SmartArt drawing-shapes part path + relationship id.
-	 *
-	 * Strategy:
-	 *  1. Resolve `dsp:dataModelExt/@relId` in the owning slide's relationship
-	 *     scope, which is where PowerPoint writes diagramDrawing relationships.
-	 *  2. Fall back to the data part's rels file for compatibility with files
-	 *     emitted by older pptx-viewer versions.
-	 *  3. Return the matched part path (so the caller can load it
-	 *     directly) and the relationship id (for round-trip preservation).
-	 */
-	private async resolveSmartArtDrawingPart(
+	private resolveSmartArtDrawingPart(
 		slidePath: string,
 		diagramDataRelationshipId: string,
 		drawingExtensionRelId: string,
 	): Promise<{ relId: string; path: string } | undefined> {
-		if (diagramDataRelationshipId.length === 0) {
-			return undefined;
-		}
-		const slideRels = this.slideRelsMap.get(slidePath);
-		const slideDrawingTarget = drawingExtensionRelId
-			? slideRels?.get(drawingExtensionRelId)
-			: undefined;
-		if (slideDrawingTarget) {
-			return {
-				relId: drawingExtensionRelId,
-				path: this.resolveImagePath(slidePath, slideDrawingTarget),
-			};
-		}
-
-		// Some producers omit dataModelExt but still leave a single drawing part
-		// relationship on the slide. Recover it by its target path.
-		const inferredSlideDrawing = [...(slideRels?.entries() ?? [])].find(([, target]) =>
-			/(?:^|\/)diagrams\/drawing\d+\.xml$/u.test(target.replaceAll('\\', '/')),
-		);
-		if (inferredSlideDrawing) {
-			return {
-				relId: inferredSlideDrawing[0],
-				path: this.resolveImagePath(slidePath, inferredSlideDrawing[1]),
-			};
-		}
-
-		const dataTarget = slideRels?.get(diagramDataRelationshipId);
-		if (!dataTarget) {
-			return undefined;
-		}
-		const dataPath = this.resolveImagePath(slidePath, dataTarget);
-		// Compute the rels file alongside the data part:
-		//   ppt/diagrams/data1.xml → ppt/diagrams/_rels/data1.xml.rels
-		const dataDir = dataPath.replace(/\/[^/]+$/u, '');
-		const dataFile = dataPath.split('/').pop() ?? '';
-		const dataRelsPath = `${dataDir}/_rels/${dataFile}.rels`;
-
-		const relsXml = await this.zip.file(dataRelsPath)?.async('string');
-		if (!relsXml) {
-			return undefined;
-		}
-		try {
-			const parsed = this.parser.parse(relsXml) as XmlObject;
-			const relsRoot = parsed['Relationships'] as XmlObject | undefined;
-			if (!relsRoot) {
-				return undefined;
-			}
-			const rels = this.ensureArray(relsRoot['Relationship']) as XmlObject[];
-			const drawingRel = rels.find((rel) => {
-				const id = String(rel?.['@_Id'] || '').trim();
-				return (
-					(!drawingExtensionRelId || id === drawingExtensionRelId) &&
-					String(rel?.['@_Type'] || '').endsWith('/diagramDrawing')
-				);
-			});
-			const id = String(drawingRel?.['@_Id'] || '').trim();
-			const target = String(drawingRel?.['@_Target'] || '').trim();
-			if (id.length === 0 || target.length === 0) {
-				return undefined;
-			}
-			const drawingPath = this.resolveImagePath(dataPath, target);
-			return { relId: id, path: drawingPath };
-		} catch {
-			return undefined;
-		}
+		return resolveSmartArtDrawingPart(slidePath, diagramDataRelationshipId, drawingExtensionRelId, {
+			slideRelationships: (path) => this.slideRelsMap.get(path),
+			resolvePath: (base, target) => this.resolveImagePath(base, target),
+			readText: (path) => this.zip.file(path)?.async('string') ?? Promise.resolve(undefined),
+			parse: (xml) => this.parser.parse(xml) as XmlObject,
+			ensureArray: (value) => this.ensureArray(value),
+		});
 	}
 
 	/**

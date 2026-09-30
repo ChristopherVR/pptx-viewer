@@ -140,7 +140,7 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 				{ guidByNodeId, presentationGuidByNodeId, drawingRelId },
 			),
 			layout: buildFabricatedLayoutDefXml(family, layoutIdentity),
-			quickStyle: buildFabricatedQuickStyleXml(),
+			quickStyle: buildFabricatedQuickStyleXml(data.style),
 			colors: buildFabricatedColorsXml(data.colorScheme),
 		};
 

@@ -31,23 +31,34 @@ describe('layout inheritance for synthetic slides', () => {
 			elements: [],
 		} as unknown as PptxSlide;
 		const slides = [syntheticSlide];
-		const firstLayout = 'ppt/slideLayouts/slideLayout1.xml';
+		const firstLayout = data.slideMasters
+			?.flatMap((master) => master.layouts ?? [])
+			.find((layout) =>
+				layout.elements?.some((element) => 'text' in element && element.text === 'TPL-LAYOUT-ORIG'),
+			)?.path;
+		expect(firstLayout).toBeDefined();
 		const secondLayout = data.layoutOptions?.find((layout) => layout.path !== firstLayout)?.path;
 		expect(secondLayout).toBeDefined();
 
-		await handler.applyLayoutToSlide(0, firstLayout, slides);
+		await handler.applyLayoutToSlide(0, firstLayout!, slides);
 		const firstTemplate = await handler.getTemplateElementsForSlide('slide-new');
 		expect(firstTemplate.length).toBeGreaterThan(0);
-		expect(firstTemplate.some((element) => element.id.includes('slideLayout1'))).toBeTruthy();
+		expect(
+			firstTemplate.some((element) => 'text' in element && element.text === 'TPL-LAYOUT-ORIG'),
+		).toBeTruthy();
 
 		await handler.applyLayoutToSlide(0, secondLayout!, slides);
 		const secondTemplate = await handler.getTemplateElementsForSlide('slide-new');
 		expect(secondTemplate.length).toBeGreaterThan(0);
-		expect(secondTemplate.some((element) => element.id.includes('slideLayout1'))).toBeFalsy();
+		expect(
+			secondTemplate.some((element) => 'text' in element && element.text === 'TPL-LAYOUT-ORIG'),
+		).toBeFalsy();
 		expect(slides[0].layoutPath).toBe(secondLayout);
 
-		await handler.applyLayoutToSlide(0, firstLayout, slides);
+		await handler.applyLayoutToSlide(0, firstLayout!, slides);
 		const restoredTemplate = await handler.getTemplateElementsForSlide('slide-new');
-		expect(restoredTemplate.some((element) => element.id.includes('slideLayout1'))).toBeTruthy();
+		expect(
+			restoredTemplate.some((element) => 'text' in element && element.text === 'TPL-LAYOUT-ORIG'),
+		).toBeTruthy();
 	});
 });

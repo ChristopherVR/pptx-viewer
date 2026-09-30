@@ -6,7 +6,7 @@
  * in-memory {@link SmartArtColorScheme} onto theme accent colours so the
  * saved diagram respects the hosting deck's theme.
  */
-import type { SmartArtColorScheme } from '../../types';
+import type { SmartArtColorScheme, SmartArtStyle } from '../../types';
 import { XML_PROLOG, DGM_XMLNS, xmlEscape } from './smartart-fabrication-data';
 
 export const FABRICATED_QUICKSTYLE_UNIQUE_ID = 'urn:pptx-viewer/quickstyle/simple';
@@ -21,8 +21,15 @@ export function fabricatedColorsCategory(scheme: SmartArtColorScheme | undefined
 
 const STYLE_LABEL_NAMES = ['node0', 'node1', 'parChTrans1D2', 'sibTrans2D1'] as const;
 
-function quickStyleLabelXml(name: string): string {
+function quickStyleLabelXml(name: string, style: SmartArtStyle = 'flat'): string {
 	const isConnector = name === 'parChTrans1D2';
+	const effectIndex = name.startsWith('node')
+		? style === 'intense'
+			? 2
+			: style === 'moderate'
+				? 1
+				: 0
+		: 0;
 	return (
 		`<dgm:styleLbl name="${name}">` +
 		'<dgm:scene3d><a:camera prst="orthographicFront"/><a:lightRig rig="threePt" dir="t"/></dgm:scene3d>' +
@@ -30,8 +37,8 @@ function quickStyleLabelXml(name: string): string {
 		'<dgm:txPr/>' +
 		'<dgm:style>' +
 		`<a:lnRef idx="${isConnector ? '1' : '2'}"><a:scrgbClr r="0" g="0" b="0"/></a:lnRef>` +
-		'<a:fillRef idx="1"><a:scrgbClr r="0" g="0" b="0"/></a:fillRef>' +
-		'<a:effectRef idx="0"><a:scrgbClr r="0" g="0" b="0"/></a:effectRef>' +
+		`<a:fillRef idx="${effectIndex + 1}"><a:scrgbClr r="0" g="0" b="0"/></a:fillRef>` +
+		`<a:effectRef idx="${effectIndex}"><a:scrgbClr r="0" g="0" b="0"/></a:effectRef>` +
 		'<a:fontRef idx="minor"/>' +
 		'</dgm:style>' +
 		'</dgm:styleLbl>'
@@ -39,13 +46,13 @@ function quickStyleLabelXml(name: string): string {
 }
 
 /** Build the complete `quickStyleN.xml` payload. */
-export function buildFabricatedQuickStyleXml(): string {
+export function buildFabricatedQuickStyleXml(style?: SmartArtStyle): string {
 	return (
 		`${XML_PROLOG}\r\n<dgm:styleDef ${DGM_XMLNS} uniqueId="${FABRICATED_QUICKSTYLE_UNIQUE_ID}">` +
 		`<dgm:title val="Simple"/><dgm:desc val=""/>` +
 		`<dgm:catLst><dgm:cat type="simple" pri="10100"/></dgm:catLst>` +
 		`<dgm:scene3d><a:camera prst="orthographicFront"/><a:lightRig rig="threePt" dir="t"/></dgm:scene3d>${STYLE_LABEL_NAMES.map(
-			quickStyleLabelXml,
+			(name) => quickStyleLabelXml(name, style),
 		).join('')}</dgm:styleDef>`
 	);
 }
