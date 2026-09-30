@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.5.7](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.7) - 2026-09-30
+
+### Bug Fixes
+
+- **tools:** Preserve rich text edits and populate layout placeholders (by @ChristopherVR) ([8a0cbdc](https://github.com/ChristopherVR/pptx-viewer/commit/8a0cbdc577ce86bfd92b8c90fc3bab7a6a50e9a7))
+
 ## [2.5.6](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-viewer-mcp@2.5.6) - 2026-09-25
 
 ### Chores

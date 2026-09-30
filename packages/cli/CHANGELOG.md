@@ -7,6 +7,21 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.32.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.32.0) - 2026-09-30
+
+### Features
+
+- **shared:** Add subtitle settings and migrate Record ribbon (by @ChristopherVR) ([a1549a0](https://github.com/ChristopherVR/pptx-viewer/commit/a1549a09ffafc99297d04e3f2313a2fd22acb2c8))
+
+### Bug Fixes
+
+- **shared:** Preserve chained motion paths and animation triggers (by @ChristopherVR) ([41f3c4a](https://github.com/ChristopherVR/pptx-viewer/commit/41f3c4ab3ff922f0e3965d8c818be0406c3896ca))
+
+### Refactor
+
+- **shared:** Migrate slide show controls across bindings (by @ChristopherVR) ([263b007](https://github.com/ChristopherVR/pptx-viewer/commit/263b007666b90ad5c8d34d383689c91f6d6a65f8))
+- **shared:** Migrate Help ribbon across all five bindings (by @ChristopherVR) ([7df8fc9](https://github.com/ChristopherVR/pptx-viewer/commit/7df8fc9ab505f478e42c100fda8ef62ee8b0a48e))
+
 ## [2.31.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.31.0) - 2026-09-29
 
 ### Features

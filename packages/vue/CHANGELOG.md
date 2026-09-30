@@ -7,6 +7,23 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [4.15.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.15.0) - 2026-09-30
+
+### Features
+
+- **shared:** Add subtitle settings and migrate Record ribbon (by @ChristopherVR) ([a1549a0](https://github.com/ChristopherVR/pptx-viewer/commit/a1549a09ffafc99297d04e3f2313a2fd22acb2c8))
+
+### Bug Fixes
+
+- **core:** Preserve selected layouts and template break order (by @ChristopherVR) ([6b5af9b](https://github.com/ChristopherVR/pptx-viewer/commit/6b5af9bf5d471b2bca532128f89f88276963ff52))
+- **shared:** Preserve chained motion paths and animation triggers (by @ChristopherVR) ([41f3c4a](https://github.com/ChristopherVR/pptx-viewer/commit/41f3c4ab3ff922f0e3965d8c818be0406c3896ca))
+- **shared:** Restore modal focus to shadow-root openers (by @ChristopherVR) ([c95f465](https://github.com/ChristopherVR/pptx-viewer/commit/c95f4657a6206c3984b1d7f19c78d024b3414d0a))
+
+### Refactor
+
+- **shared:** Migrate slide show controls across bindings (by @ChristopherVR) ([263b007](https://github.com/ChristopherVR/pptx-viewer/commit/263b007666b90ad5c8d34d383689c91f6d6a65f8))
+- **shared:** Migrate Help ribbon across all five bindings (by @ChristopherVR) ([7df8fc9](https://github.com/ChristopherVR/pptx-viewer/commit/7df8fc9ab505f478e42c100fda8ef62ee8b0a48e))
+
 ## [4.14.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/pptx-vue-viewer@4.14.0) - 2026-09-29
 
 ### Features
