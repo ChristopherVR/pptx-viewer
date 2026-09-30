@@ -10,7 +10,7 @@
  */
 
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId } from 'pptx-viewer-shared';
+import { isTemplateElementId, slideSpaceMembers } from 'pptx-viewer-shared';
 import type { ComputedRef, Ref, ShallowRef } from 'vue';
 import { computed, ref } from 'vue';
 
@@ -73,18 +73,31 @@ export function useSelectionModel(options: UseSelectionModelOptions): UseSelecti
 		() => templateElementsBySlideId.value[activeSlide.value?.id ?? ''] ?? [],
 	);
 
+	/**
+	 * The members of the active slide's groups, in slide space (shared
+	 * `slideSpaceMembers`): a member selected by drilling into its group then
+	 * resolves -- for the chrome, drag, resize and inline editing -- like a
+	 * top-level element.
+	 */
+	const activeMembers = computed(() => slideSpaceMembers(activeSlide.value?.elements ?? []));
+
 	function findActiveElement(id: string): PptxElement | undefined {
 		if (isTemplateElementId(id)) {
 			return activeTemplateElements.value.find((el) => el.id === id);
 		}
-		return activeSlide.value?.elements.find((el) => el.id === id);
+		return activeSlide.value?.elements.find((el) => el.id === id) ?? activeMembers.value.get(id);
 	}
 
 	const selectedElements = computed<PptxElement[]>(() => {
 		const ids = new Set(selectedElementIds.value);
 		const slideHits = (activeSlide.value?.elements ?? []).filter((el) => ids.has(el.id));
 		const templateHits = activeTemplateElements.value.filter((el) => ids.has(el.id));
-		return [...templateHits, ...slideHits];
+		const topLevel = new Set(slideHits.map((el) => el.id));
+		const memberHits = selectedElementIds.value.flatMap((id) => {
+			const member = topLevel.has(id) ? undefined : activeMembers.value.get(id);
+			return member ? [member] : [];
+		});
+		return [...templateHits, ...slideHits, ...memberHits];
 	});
 
 	const rulerSelectedBounds = computed(() => {

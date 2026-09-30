@@ -15,7 +15,13 @@
  * @module composables/element-store-patch
  */
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { isTemplateElementId, walkAndPatchElements } from 'pptx-viewer-shared';
+import {
+	isGroupMember,
+	isTemplateElementId,
+	slideSpaceElement,
+	updateElementInTree,
+	walkAndPatchElements,
+} from 'pptx-viewer-shared';
 import type { Ref } from 'vue';
 
 import { setTemplateElements } from './template-editing';
@@ -61,7 +67,13 @@ export function useElementStorePatch(
 			);
 			return;
 		}
-		const nextElements = walkAndPatchElements(slide.elements, patch);
+		// A member selected inside its group (shared `group-drill`) is edited in
+		// slide space: map its slide-space view, then write the result back into
+		// the group's own space so it lands where it was dropped.
+		const member = isGroupMember(slide.elements, id) ? slideSpaceElement(slide.elements, id) : null;
+		const nextElements = member
+			? updateElementInTree(slide.elements, id, mapElement(member))
+			: walkAndPatchElements(slide.elements, patch);
 		const nextSlides = slides.value.slice();
 		nextSlides[index] = { ...slide, elements: nextElements };
 		slides.value = nextSlides;

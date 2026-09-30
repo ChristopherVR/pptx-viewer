@@ -609,6 +609,8 @@ const { requestElementEdit, onCanvasDoubleClick, onCanvasPointerDown, onEscape }
 		addAiPick: aiPanel.addPick,
 		startElementDrag: (id, event, wasSelected) => drag.startElementDrag(id, event, wasSelected),
 		beginMarquee,
+		slideElements: () => activeSlide.value?.elements,
+		canvasSize: () => canvasSize.value,
 	},
 );
 

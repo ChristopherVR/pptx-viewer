@@ -8,9 +8,11 @@ import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
 import {
 	bringForward as sharedBringForward,
 	bringToFront as sharedBringToFront,
+	isGroupMember,
 	isTemplateElementId,
 	sendBackward as sharedSendBackward,
 	sendToBack as sharedSendToBack,
+	updateElementInTree,
 } from 'pptx-viewer-shared';
 import { computed, ref } from 'vue';
 import type { ComputedRef, Ref } from 'vue';
@@ -221,9 +223,13 @@ export function useEditorOperations(input: UseEditorOperationsInput): EditorOper
 
 	const updateElement = (elementId: string, updates: Partial<PptxElement>): void => {
 		commitForId(elementId, (elements) =>
-			elements.map((el) =>
-				el.id === elementId ? ({ ...cloneElement(el), ...updates } as PptxElement) : el,
-			),
+			// A member selected inside its group (shared `group-drill`): `updates`
+			// are in slide space, written back into the group's own space.
+			isGroupMember(elements, elementId)
+				? updateElementInTree(elements, elementId, updates)
+				: elements.map((el) =>
+						el.id === elementId ? ({ ...cloneElement(el), ...updates } as PptxElement) : el,
+					),
 		);
 	};
 
