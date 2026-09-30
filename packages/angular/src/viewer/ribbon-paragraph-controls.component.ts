@@ -1,21 +1,12 @@
-/**
- * ribbon-paragraph-controls.component.ts: the ribbon's reusable Paragraph control
- * group (bullet/numbered lists, indent/outdent, and alignment). Split out of
- * {@link RibbonComponent}'s `paragraphControls` ng-template so the Home and Text
- * tabs share one implementation. Behaviour and markup are unchanged.
- */
 import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core';
 import {
-	LucideList,
-	LucideListIndentDecrease,
-	LucideListIndentIncrease,
-	LucideListOrdered,
-	LucideTextAlignCenter,
-	LucideTextAlignEnd,
-	LucideTextAlignJustify,
-	LucideTextAlignStart,
-} from '@lucide/angular';
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	computed,
+	inject,
+	input,
+} from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
@@ -27,6 +18,13 @@ import {
 } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { RibbonGalleryComponent } from './ribbon-gallery.component';
+/**
+ * ribbon-paragraph-controls.component.ts: the ribbon's reusable Paragraph control
+ * group (bullet/numbered lists, indent/outdent, and alignment). Split out of
+ * {@link RibbonComponent}'s `paragraphControls` ng-template so the Home and Text
+ * tabs share one implementation. Behaviour and markup are unchanged.
+ */
+import { RibbonIconDirective } from './ribbon-icon.directive';
 import { isTextElement, patchTextStyle, textStyleOf } from './ribbon-text-helpers';
 import { ViewerCanvasEditingService } from './viewer-canvas-editing.service';
 
@@ -49,174 +47,9 @@ const COLUMN_OPTIONS = [1, 2, 3];
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [
-		NgClass,
-		TranslatePipe,
-		LucideList,
-		LucideListOrdered,
-		LucideListIndentDecrease,
-		LucideListIndentIncrease,
-		LucideTextAlignStart,
-		LucideTextAlignCenter,
-		LucideTextAlignEnd,
-		LucideTextAlignJustify,
-		RibbonGalleryComponent,
-	],
-	template: `
-		<!-- List style: bullets + numbering -->
-		<div class="pptx-rb-grp">
-			<span class="contents" data-ribbon-control="home.paragraph.bullets">
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[disabled]="!canEdit() || !isText()"
-					[ngClass]="listKind() === 'bullet' ? 'bg-accent' : ''"
-					[attr.aria-pressed]="listKind() === 'bullet'"
-					[title]="'pptx.ribbon.bulletList' | translate"
-					(mousedown)="$event.preventDefault()"
-					(click)="toggleList('bullet')"
-				>
-					<svg lucideList class="h-4 w-4"></svg>
-				</button>
-				<pptx-ribbon-gallery
-					gallery="bullets"
-					[chevronOnly]="true"
-					[element]="selectedElement()"
-					[slideIndex]="slideIndex()"
-					[canEdit]="canEdit() && isText()"
-				/>
-			</span>
-			<span class="contents" data-ribbon-control="home.paragraph.numbering">
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[disabled]="!canEdit() || !isText()"
-					[ngClass]="listKind() === 'numbered' ? 'bg-accent' : ''"
-					[attr.aria-pressed]="listKind() === 'numbered'"
-					[title]="'pptx.notes.numberedList' | translate"
-					(mousedown)="$event.preventDefault()"
-					(click)="toggleList('numbered')"
-				>
-					<svg lucideListOrdered class="h-4 w-4"></svg>
-				</button>
-				<pptx-ribbon-gallery
-					gallery="numbering"
-					[chevronOnly]="true"
-					[element]="selectedElement()"
-					[slideIndex]="slideIndex()"
-					[canEdit]="canEdit() && isText()"
-				/>
-			</span>
-		</div>
-		<!-- Indent: outdent + indent -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!isText()"
-				[title]="'pptx.notes.outdent' | translate"
-				(click)="changeIndent(-24)"
-				data-ribbon-control="home.paragraph.decreaseIndent"
-			>
-				<svg lucideListIndentDecrease class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!isText()"
-				[title]="'pptx.notes.indent' | translate"
-				(click)="changeIndent(24)"
-				data-ribbon-control="home.paragraph.increaseIndent"
-			>
-				<svg lucideListIndentIncrease class="h-4 w-4"></svg>
-			</button>
-		</div>
-		<!-- Alignment -->
-		<div class="pptx-rb-grp">
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.align === 'left' ? 'bg-accent' : ''"
-				[title]="'pptx.ribbon.alignLeft' | translate"
-				(click)="setAlign('left')"
-				data-ribbon-control="home.paragraph.alignLeft"
-			>
-				<svg lucideTextAlignStart class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.align === 'center' ? 'bg-accent' : ''"
-				[title]="'pptx.ribbon.alignCenter' | translate"
-				(click)="setAlign('center')"
-				data-ribbon-control="home.paragraph.alignCenter"
-			>
-				<svg lucideTextAlignCenter class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gb"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.align === 'right' ? 'bg-accent' : ''"
-				[title]="'pptx.ribbon.alignRight' | translate"
-				(click)="setAlign('right')"
-				data-ribbon-control="home.paragraph.alignRight"
-			>
-				<svg lucideTextAlignEnd class="h-4 w-4"></svg>
-			</button>
-			<button
-				type="button"
-				class="pptx-rb-gl"
-				[disabled]="!isText()"
-				[ngClass]="curStyle()?.align === 'justify' ? 'bg-accent' : ''"
-				[title]="'pptx.ribbon.justify' | translate"
-				(click)="setAlign('justify')"
-				data-ribbon-control="home.paragraph.justify"
-			>
-				<svg lucideTextAlignJustify class="h-4 w-4"></svg>
-			</button>
-		</div>
-		<!-- Line Spacing -->
-		<select
-			class="pptx-rb-select w-14"
-			[attr.aria-label]="'pptx.paragraph.lineSpacing' | translate"
-			[disabled]="!isText()"
-			(change)="setLineSpacing($event)"
-			data-ribbon-control="home.paragraph.lineSpacing"
-		>
-			@for (ls of lineSpacingOptions; track ls) {
-				<option [value]="ls" [selected]="ls === curLineSpacing()">{{ ls }}</option>
-			}
-		</select>
-		<!-- Text Direction -->
-		<select
-			class="pptx-rb-select w-24"
-			[attr.aria-label]="'pptx.paragraph.textDirection' | translate"
-			[disabled]="!isText()"
-			(change)="setTextDirection($event)"
-			data-ribbon-control="home.paragraph.textDirection"
-		>
-			@for (dir of textDirectionOptions; track dir.value) {
-				<option [value]="dir.value" [selected]="dir.value === curTextDirection()">
-					{{ dir.labelKey | translate }}
-				</option>
-			}
-		</select>
-		<!-- Columns -->
-		<select
-			class="pptx-rb-select w-12"
-			[attr.aria-label]="'pptx.paragraph.columns' | translate"
-			[disabled]="!isText()"
-			(change)="setColumns($event)"
-			data-ribbon-control="home.paragraph.columns"
-		>
-			@for (c of columnOptions; track c) {
-				<option [value]="c" [selected]="c === curColumns()">{{ c }}</option>
-			}
-		</select>
-	`,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	imports: [RibbonIconDirective, NgClass, TranslatePipe, RibbonGalleryComponent],
+	templateUrl: './ribbon-paragraph-controls.component.html',
 })
 export class RibbonParagraphControlsComponent {
 	private readonly editor = inject(EditorStateService);

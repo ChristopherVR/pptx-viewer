@@ -112,10 +112,13 @@ export function createParagraphGroup(
 	galleryHub: RibbonGalleryHub = createRibbonGalleryHub(() => {}),
 ): ParagraphGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.paragraph');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'paragraph-controls';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.ribbon.paragraph');
 	el.appendChild(label);
 
@@ -163,7 +166,7 @@ export function createParagraphGroup(
 	const textDirection = makeDropdown(doc, {
 		triggerLabel: t('pptx.paragraph.textDirection'),
 		triggerText: '',
-		icon: 'change-case',
+		icon: 'text-direction',
 		items: TEXT_DIRECTIONS.map((d) => ({ label: t(d.labelKey), value: d.value })),
 		onSelect: handlers.setTextDirection,
 	});
@@ -189,12 +192,17 @@ export function createParagraphGroup(
 	tagRibbonControl(lineSpacing.el, 'home.paragraph.lineSpacing');
 	tagRibbonControl(textDirection.el, 'home.paragraph.textDirection');
 	tagRibbonControl(columns.el, 'home.paragraph.columns');
+	const indent = createEl(doc, 'div');
+	indent.dataset.pptxChrome = 'control-cluster';
+	indent.append(indentDec.btn, indentInc.btn);
+	const alignment = createEl(doc, 'div');
+	alignment.dataset.pptxChrome = 'control-cluster';
+	alignment.append(...alignButtons.map((button) => button.btn));
 	row.append(
 		listToggleWithGallery(doc, t, bullets.btn, 'home.paragraph.bullets', galleryHub),
 		listToggleWithGallery(doc, t, numbered.btn, 'home.paragraph.numbering', galleryHub),
-		indentDec.btn,
-		indentInc.btn,
-		...alignButtons.map((b) => b.btn),
+		indent,
+		alignment,
 		lineSpacing.el,
 		textDirection.el,
 		columns.el,

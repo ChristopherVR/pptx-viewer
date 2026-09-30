@@ -22,6 +22,10 @@ import {
 	resolveCustomization,
 	ribbonCustomizationCss,
 } from '../internal/shared';
+import {
+	readViewerTestResource,
+	resolveViewerComponentResources,
+} from './component-resources.test-support';
 import { componentSource } from './component-source.test-support';
 import { EditorStateService } from './editor-state.service';
 import { RecentColorsService } from './recent-colors.service';
@@ -31,8 +35,9 @@ import { RibbonCustomizationStyleDirective } from './ribbon-customization-style.
 import { RibbonDrawingGroupComponent } from './ribbon-drawing-group.component';
 import { RibbonTabListComponent } from './ribbon-tab-list.component';
 
-beforeAll(() => {
+beforeAll(async () => {
 	TestBed.initTestEnvironment(BrowserTestingModule, platformBrowserTesting());
+	await resolveViewerComponentResources();
 });
 afterEach(() => {
 	TestBed.resetTestingModule();
@@ -43,7 +48,11 @@ function shape(): ShapePptxElement {
 }
 
 /** Render `component` with signal inputs (this JIT runner has no signal-input transform). */
-function mount<T>(component: Type<T>, inputs: Record<string, unknown>): HTMLElement {
+function mount<T>(
+	component: Type<T>,
+	inputs: Record<string, unknown>,
+	templateFile?: string,
+): HTMLElement {
 	TestBed.configureTestingModule({
 		imports: [component],
 		providers: [
@@ -52,7 +61,18 @@ function mount<T>(component: Type<T>, inputs: Record<string, unknown>): HTMLElem
 			{ provide: RecentColorsService, useValue: { recent: () => [], push: () => undefined } },
 		],
 	});
-	TestBed.overrideComponent(component, { add: { inputs: Object.keys(inputs) } });
+	TestBed.overrideComponent(
+		component,
+		templateFile
+			? {
+					set: {
+						inputs: Object.keys(inputs),
+						templateUrl: '',
+						template: readViewerTestResource(templateFile),
+					},
+				}
+			: { add: { inputs: Object.keys(inputs) } },
+	);
 	TestBed.inject(TranslateService).setTranslation('en', translationsEn);
 	TestBed.inject(TranslateService).use('en');
 	TestBed.inject(EditorStateService).setSlides([
@@ -123,11 +143,15 @@ describe('contextual ribbon tabs', () => {
 
 describe('home > drawing galleries', () => {
 	it('replaces the Shape Effects placeholder with the shared gallery', () => {
-		const root = mount(RibbonDrawingGroupComponent, {
-			canEdit: true,
-			slideIndex: 0,
-			selectedElement: shape(),
-		});
+		const root = mount(
+			RibbonDrawingGroupComponent,
+			{
+				canEdit: true,
+				slideIndex: 0,
+				selectedElement: shape(),
+			},
+			'ribbon-drawing-group.component.html',
+		);
 		expect(
 			root.querySelector(
 				'[data-ribbon-control="home.drawing.shapeEffects"] [data-ribbon-gallery="shapeEffects"]',
@@ -188,6 +212,7 @@ describe('ribbon group/control customisation', () => {
 	it('tags the Home tab groups with the catalogue ids', () => {
 		const home = [
 			'ribbon-home-section.component.ts',
+			'ribbon-font-controls.component.ts',
 			'ribbon-clipboard-group.component.ts',
 			'ribbon-drawing-group.component.ts',
 			'ribbon-arrange-section.component.ts',

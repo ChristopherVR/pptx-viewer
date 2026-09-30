@@ -69,9 +69,14 @@ describe('editor chrome localization', () => {
 						</I18nextProvider>,
 					),
 				);
-				const buttons = [...container.querySelectorAll('button')];
+				const buttons = [...container.querySelectorAll('pptx-ui-ribbon-command')].map((host) =>
+					host.shadowRoot!.querySelector<HTMLButtonElement>('button')!,
+				);
 				expect(buttons.map((button) => button.textContent?.trim())).toStrictEqual(
 					recordKeys.map((key) => dictionary[key]),
+				);
+				const captions = [...container.querySelectorAll('pptx-ui-ribbon-group')].map((host) =>
+					host.shadowRoot!.querySelector('.caption')!.textContent?.trim(),
 				);
 				for (const key of [
 					'pptx.record.camera',
@@ -79,7 +84,7 @@ describe('editor chrome localization', () => {
 					'pptx.ribbon.tab.record',
 					'pptx.ribbon.tab.help',
 				]) {
-					expect(container.textContent).toContain(dictionary[key]);
+					expect(captions).toContain(dictionary[key]);
 				}
 				expect(buttons.map((button) => button.disabled)).toStrictEqual([
 					true,

@@ -116,7 +116,11 @@ describe('powerPointViewer ribbon group / control customisation', () => {
 		);
 		expect(css).toContain('display: none !important');
 		// The rules reach real markup: the style sits inside the scoped root.
-		expect(container.querySelector(`[${RIBBON_SCOPE_ATTR}="${token}"] style`)).toBe(styles[0]);
+		expect(
+			container.querySelector(
+				`[${RIBBON_SCOPE_ATTR}="${token}"] style[data-pptx-ribbon-customization]`,
+			),
+		).toBe(styles[0]);
 	});
 
 	it('tags every Home group and the Bullets control with the catalogue ids', async () => {

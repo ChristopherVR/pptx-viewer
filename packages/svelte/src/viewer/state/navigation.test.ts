@@ -12,8 +12,9 @@ import {
 } from './navigation';
 
 describe('viewport fit options', () => {
-	it('keeps positional fit padding compatible and allows an explicit ceiling', () => {
-		expect(fitScale(1920, 1080, 960, 540, 0)).toBe(2);
+	it('caps the editor at authored size and allows hosts to enlarge explicitly', () => {
+		expect(fitScale(1920, 1080, 960, 540, 0)).toBe(1);
+		expect(fitScale(1920, 1080, 960, 540, 0, null)).toBe(2);
 		expect(fitScale(1920, 1080, 960, 540, 0, 1.25)).toBe(1.25);
 	});
 
@@ -78,9 +79,9 @@ describe('zoom steps', () => {
 
 describe('fitScale', () => {
 	it('fits the canvas inside the viewport with padding', () => {
-		// 1280x720 canvas into a 1328x768 viewport with 24px padding -> exact fit.
+		// Decorative padding reserves 4px horizontally and 16px vertically.
 		expect(fitScale(1328, 768, 1280, 720)).toBe(1);
-		expect(fitScale(688, 768, 1280, 720)).toBeCloseTo(0.5);
+		expect(fitScale(648, 768, 1280, 720)).toBeCloseTo(0.5);
 	});
 
 	it('falls back to 1 while unmeasured', () => {

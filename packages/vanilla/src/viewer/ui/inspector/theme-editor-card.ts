@@ -39,9 +39,8 @@ const DEFAULT_MINOR_FONT = 'Calibri';
  * would spam the undo history with a dozen full-deck rewrites. "Reset" drops
  * the staged edits back to the deck's loaded theme.
  *
- * The inspector's deck panel hosts it, and so does Design > Edit Theme
- * (`ribbon/tabs/design-tab.ts`), as React, Vue and Angular open their
- * `ThemeEditorPanel` from that ribbon button.
+ * Design > Edit Theme hosts this card in the right-hand editor panel, as
+ * React opens its ThemeEditorPanel from that ribbon button.
  */
 export function createThemeEditorCard(
 	doc: Document,

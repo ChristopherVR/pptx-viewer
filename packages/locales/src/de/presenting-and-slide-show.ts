@@ -142,6 +142,10 @@ export const translations = {
 	'pptx.slideShow.useTimings': 'Gespeicherte Zeitabläufe verwenden',
 	'pptx.subtitles.listening': 'Hören…',
 	'pptx.subtitles.notSupported': 'Untertitel werden in diesem Browser nicht unterstützt.',
+	'pptx.subtitles.spokenLanguage': 'Gesprochene Sprache',
+	'pptx.subtitles.browserLanguage': 'Browsersprache',
+	'pptx.subtitles.settingsDescription':
+		'Wählen Sie die Sprache, in der Sie sprechen. Die Untertitel verwenden die Spracherkennung des Browsers; eine Übersetzung ist nicht verfügbar.',
 	'pptx.transition.advanceOnClick': 'Vorwärts per Klick',
 	'pptx.transition.direction': 'Richtung',
 	'pptx.transition.orientation': 'Orientierung',

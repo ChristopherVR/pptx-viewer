@@ -21,60 +21,15 @@ import { ChangeDetectionStrategy, Component, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
 import { AnchoredPopupDirective } from './anchored-popup.directive';
+import { RibbonIconDirective } from './ribbon-icon.directive';
 
 @Component({
 	selector: 'pptx-ribbon-editing-section',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [TranslatePipe, AnchoredPopupDirective],
-	template: `
-		<div class="flex items-center gap-1">
-			<div class="pptx-rb-grp">
-				<button
-					type="button"
-					class="pptx-rb-gb"
-					[title]="'pptx.editing.find' | translate"
-					data-ribbon-control="home.editing.find"
-					(click)="toggleFindReplace.emit()"
-				>
-					{{ 'pptx.editing.find' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-gl"
-					[title]="'pptx.ribbon.replace' | translate"
-					data-ribbon-control="home.editing.replace"
-					(click)="toggleFindReplace.emit()"
-				>
-					{{ 'pptx.ribbon.replace' | translate }}
-				</button>
-			</div>
-			<div class="group relative" data-ribbon-control="home.editing.select">
-				<button
-					#selectTrigger
-					type="button"
-					class="pptx-rb-pill"
-					[title]="'pptx.ribbon.tool.select' | translate"
-					(mousedown)="$event.preventDefault()"
-				>
-					{{ 'pptx.ribbon.tool.select' | translate }}
-				</button>
-				<div class="z-50 hidden w-32 pt-1 group-hover:block" [pptxAnchoredPopup]="selectTrigger">
-					<div class="rounded-lg border border-border bg-card py-1 shadow-2xl">
-						<button
-							type="button"
-							class="flex w-full items-center px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-muted"
-							(mousedown)="$event.preventDefault()"
-							(click)="selectAll.emit()"
-						>
-							{{ 'pptx.editing.selectAll' | translate }}
-						</button>
-					</div>
-				</div>
-			</div>
-		</div>
-	`,
+	imports: [RibbonIconDirective, TranslatePipe, AnchoredPopupDirective],
+	templateUrl: './ribbon-editing-section.component.html',
 })
 export class RibbonEditingSectionComponent {
 	readonly toggleFindReplace = output<void>();

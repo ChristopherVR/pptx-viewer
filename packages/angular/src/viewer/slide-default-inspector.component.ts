@@ -61,10 +61,12 @@ interface LayerRow {
 			(tabChange)="activeTab.set($event)"
 			(closePane)="inspectorPanel.toggleFormatPanel()"
 		/>
-		<div class="body">
+		<div class="body" data-pptx-chrome="inspector-body">
 			@switch (activeTab()) {
 				@case ('elements') {
-					<h3 class="icard__heading">{{ 'pptx.inspector.layerOrder' | translate }}</h3>
+					<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+						{{ 'pptx.inspector.layerOrder' | translate }}
+					</h3>
 					@if (layerRows(); as rows) {
 						@if (rows.length === 0) {
 							<span class="icard__label">{{ 'pptx.selectionPane.noObjects' | translate }}</span>
@@ -103,8 +105,14 @@ interface LayerRow {
 						-->
 						<pptx-slide-background-card [slideIndex]="slideIndex()" [canEdit]="canEdit()" />
 						@if (activeSlide(); as sl) {
-							<section class="icard" [attr.data-slide-key]="slideKey()">
-								<h3 class="icard__heading">{{ 'pptx.viewer.slide' | translate }}</h3>
+							<section
+								class="icard"
+								data-pptx-chrome="inspector-card"
+								[attr.data-slide-key]="slideKey()"
+							>
+								<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+									{{ 'pptx.viewer.slide' | translate }}
+								</h3>
 								<label class="icard__col">
 									<span class="icard__label">{{ 'pptx.notes.title' | translate }}</span>
 									<textarea

@@ -29,10 +29,13 @@ export function createClipboardGroup(
 	handlers: ClipboardGroupHandlers,
 ): ClipboardGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.clipboard');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'control-cluster';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.ribbon.clipboard');
 	el.appendChild(label);
 
@@ -49,7 +52,7 @@ export function createClipboardGroup(
 	});
 	const painter = makeButton(doc, {
 		label: t('pptx.arrange.formatPainter'),
-		icon: 'copy',
+		icon: 'paintbrush',
 		onClick: handlers.toggleFormatPainter,
 	});
 	painter.btn.dataset.testid = 'format-painter-toggle';

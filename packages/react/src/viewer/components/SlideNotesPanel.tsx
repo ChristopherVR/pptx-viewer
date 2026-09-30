@@ -128,6 +128,7 @@ export function SlideNotesPanel({
 			)}
 			<div
 				ref={rootRef}
+				data-pptx-chrome='notes'
 				className={cn(
 					'flex flex-col border-t border-border/60 bg-background select-none',
 					// On mobile, hide the entire notes strip when collapsed: the
@@ -154,6 +155,7 @@ export function SlideNotesPanel({
 				<button
 					type='button'
 					onClick={onToggle}
+					data-pptx-chrome='notes-header'
 					className='flex items-center gap-1.5 px-3 py-1 text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent/30 transition-colors w-full text-left shrink-0 max-md:hidden'
 					aria-expanded={isExpanded}
 					aria-controls='slide-notes-content'

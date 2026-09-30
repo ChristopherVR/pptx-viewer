@@ -65,10 +65,13 @@ export function createDrawingGroup(
 	galleryHub: RibbonGalleryHub = createRibbonGalleryHub(() => {}),
 ): DrawingGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.drawing');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'drawing-controls';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.ribbon.groupDrawing');
 	el.appendChild(label);
 
@@ -87,7 +90,7 @@ export function createDrawingGroup(
 	const arrange = makeDropdown<() => void>(doc, {
 		triggerLabel: t('pptx.ribbon.arrange'),
 		triggerText: t('pptx.ribbon.arrange'),
-		icon: 'bring-front',
+		icon: 'layers',
 		items: [
 			{ label: t('pptx.contextMenu.bringForward'), value: handlers.bringForward },
 			{ label: t('pptx.contextMenu.sendBackward'), value: handlers.sendBackward },
@@ -144,7 +147,8 @@ export function createDrawingGroup(
 	tagRibbonControl(arrange.el, 'home.drawing.arrange');
 	tagRibbonControl(fill.el, 'home.drawing.shapeFill');
 	tagRibbonControl(outline.el, 'home.drawing.shapeOutline');
-	row.append(shapes.el, arrange.el, quickStyles.el, fill.el, outline.el, effects.el);
+	row.dataset.pptxChrome = 'drawing-controls';
+	row.append(shapes.el, arrange.el, fill.el, outline.el, quickStyles.el, effects.el);
 
 	return {
 		el,

@@ -105,7 +105,7 @@ export function visibleOverflowItems(
 		LucideSparkles,
 	],
 	template: `
-		<div class="flex items-center gap-0.5 px-1.5 py-0.5">
+		<div data-pptx-chrome="ribbon-primary" class="flex items-center gap-0.5 px-1.5 py-0.5">
 			<!-- Left: slides pane toggle (undo/redo/find moved to the title bar) -->
 			<button
 				type="button"

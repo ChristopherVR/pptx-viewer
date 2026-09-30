@@ -26,7 +26,7 @@
 	} from '../editor';
 	import SwatchColorPicker from './ribbon/SwatchColorPicker.svelte';
 
-	const { editor }: { editor: EditorState } = $props();
+	const { editor, section = 'all' }: { editor: EditorState; section?: 'all' | 'colors' | 'width' } = $props();
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
@@ -61,8 +61,9 @@
 	}
 </script>
 
-<div class="pptx-svelte-fmt" role="group" aria-label={t('pptx.inspector.fillStroke')}>
-	<span class="pptx-svelte-fmt-label">{t('pptx.inspector.fill')}</span>
+<div class="pptx-svelte-fmt" data-pptx-chrome={section !== 'all' ? 'control-fragment' : undefined} role="group" aria-label={t('pptx.inspector.fillStroke')}>
+	{#if section !== 'width'}
+	<span class="pptx-svelte-fmt-label" data-pptx-chrome={section === 'colors' ? 'ribbon-inline-label' : undefined}>{t('pptx.inspector.fill')}</span>
 	<SwatchColorPicker
 		value={/^#/.test(fill) ? fill : '#ffffff'}
 		disabled={!active}
@@ -76,7 +77,7 @@
 		onselect={(hex) => setFill(hex)}
 		onselectTheme={(commit) => setFill(commit.hex, commit.ref)}
 	/>
-	<span class="pptx-svelte-fmt-label">{t('pptx.inspector.stroke')}</span>
+	<span class="pptx-svelte-fmt-label" data-pptx-chrome={section === 'colors' ? 'ribbon-inline-label' : undefined}>{t('pptx.inspector.stroke')}</span>
 	<SwatchColorPicker
 		value={/^#/.test(stroke) ? stroke : '#000000'}
 		disabled={!active}
@@ -90,6 +91,8 @@
 		onselect={(hex) => setStroke(hex)}
 		onselectTheme={(commit) => setStroke(commit.hex, commit.ref)}
 	/>
+	{/if}
+	{#if section !== 'colors'}
 	<input
 		class="pptx-svelte-fmt-size"
 		type="number"
@@ -103,6 +106,7 @@
 		value={strokeWidth}
 		onchange={(e) => setWidth(e.currentTarget.value)}
 	/>
+	{/if}
 </div>
 
 <style>

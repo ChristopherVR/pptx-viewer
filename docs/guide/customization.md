@@ -818,6 +818,7 @@ unit test fails if an id is missing here.
 | `save.defaultExportFormat`                   | string  | `'pptx'`         | Save files in this format                                       |
 | `save.cacheRetentionDays`                    | number  | `14`             | Days to keep files in the local document cache                  |
 | `save.clearCacheOnClose`                     | boolean | `false`          | Delete files from the local document cache when they are closed |
+| `accessibility.subtitleLanguage`             | string  | `'auto'`         | (not shown in the dialog)                                       |
 | `accessibility.showAccessibilityStatus`      | boolean | `true`           | Show accessibility status in the status bar                     |
 | `accessibility.feedbackWithSound`            | boolean | `false`          | Provide feedback with sound                                     |
 | `accessibility.soundScheme`                  | string  | `'modern'`       | Sound Scheme                                                    |

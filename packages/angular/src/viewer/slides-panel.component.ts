@@ -23,6 +23,9 @@ import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
 import {
 	computeVirtualRange,
+	EDITOR_THUMBNAIL_WIDTH,
+	EDITOR_SLIDE_RAIL_WIDTH,
+	editorThumbnailStep,
 	HIDDEN_SLIDE_DIM_OPACITY,
 	HIDDEN_SLIDE_LABEL_KEY,
 	HIDDEN_SLIDE_SLASH_GRADIENT,
@@ -39,8 +42,7 @@ import { thumbnailHeight, thumbnailZoom } from './slide-sorter-overlay-helpers';
 /** Pixel width of each thumbnail clipping box inside the panel. Slightly
  *  narrower than the panel so the slide-number column fits to its left
  *  (React SlideItem lays the number beside, not below, the preview). */
-const THUMB_W = 132;
-const THUMB_CARD_CHROME_HEIGHT = 12;
+const THUMB_W = EDITOR_THUMBNAIL_WIDTH;
 
 /**
  * SlidesPanelComponent: vertical slide-strip for the editor sidebar.
@@ -81,6 +83,7 @@ const THUMB_CARD_CHROME_HEIGHT = 12;
 	styleUrl: './slides-panel.component.css',
 })
 export class SlidesPanelComponent {
+	readonly railWidth = EDITOR_SLIDE_RAIL_WIDTH;
 	/** Natural (100 %) canvas dimensions, forwarded to each SlideCanvasComponent. */
 	readonly canvasSize = input.required<CanvasSize>();
 
@@ -126,7 +129,9 @@ export class SlidesPanelComponent {
 		height: `${this.thumbH()}px`,
 	}));
 
-	readonly itemHeight = computed(() => this.thumbH() + THUMB_CARD_CHROME_HEIGHT);
+	readonly itemHeight = computed(() =>
+		editorThumbnailStep(this.canvasSize().width, this.canvasSize().height),
+	);
 	readonly shouldVirtualize = computed(
 		() =>
 			this.editor.sections().length === 0 &&

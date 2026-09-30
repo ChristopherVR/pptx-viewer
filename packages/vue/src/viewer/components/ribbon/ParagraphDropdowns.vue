@@ -3,12 +3,12 @@
  * ParagraphDropdowns: Line Spacing, Text Direction, and Columns dropdowns
  * extracted from TextSection to keep file size under 300 LOC.
  */
-import { ChevronDown, Columns2, Columns3, RotateCw } from 'lucide-vue-next';
 import type { TextStyle } from 'pptx-viewer-core';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, MENU_ITEM, MENU_PANEL, pill } from './ribbon-constants';
+import RibbonIcon from './RibbonIcon';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
@@ -90,10 +90,7 @@ function handleColumns(value: number): void {
 			@mousedown.prevent
 			@click="lineSpacingMenu.toggle()"
 		>
-			<svg :class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M6 6h12M6 12h12M6 18h12M3 6v12M3 6l1.5-2M3 6l-1.5-2M3 18l1.5 2M3 18l-1.5 2" />
-			</svg>
-			<ChevronDown class="w-3 h-3" />
+			<RibbonIcon name="home.paragraph.lineSpacing" :class="ic" />
 		</button>
 		<div
 			v-if="lineSpacingMenu.open.value"
@@ -128,8 +125,7 @@ function handleColumns(value: number): void {
 			@mousedown.prevent
 			@click="textDirectionMenu.toggle()"
 		>
-			<RotateCw :class="ic" />
-			<ChevronDown class="w-3 h-3" />
+			<RibbonIcon name="home.paragraph.textDirection" :class="ic" />
 		</button>
 		<div
 			v-if="textDirectionMenu.open.value"
@@ -160,8 +156,7 @@ function handleColumns(value: number): void {
 			@mousedown.prevent
 			@click="columnsMenu.toggle()"
 		>
-			<Columns2 :class="ic" />
-			<ChevronDown class="w-3 h-3" />
+			<RibbonIcon name="home.paragraph.columns" :class="ic" />
 		</button>
 		<div
 			v-if="columnsMenu.open.value"

@@ -1,6 +1,5 @@
 import type { PptxLayoutPreview } from 'pptx-viewer-core';
-import { buildLayoutPreviewGeometry, isCurrentLayout } from 'pptx-viewer-shared';
-import type { LayoutPreviewGeometry, SlideTemplateId } from 'pptx-viewer-shared';
+import type { SlideTemplateId } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
@@ -8,7 +7,11 @@ import { makeButton } from '../../controls';
 import { createIcon } from '../../icons';
 import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
 import type { LayoutOption } from '../ribbon-types';
+import { createLayoutMenu } from './layout-menu';
+import type { LayoutPreviewRenderer } from './layout-menu';
 import { createSlideTemplateDialog } from './slide-template-dialog';
+
+export type { LayoutPreviewRenderer } from './layout-menu';
 
 export interface SlidesGroupHandlers {
 	addSlide(): void;
@@ -23,21 +26,6 @@ export interface SlidesGroupHandlers {
 	/** Renders one layout's artwork for a gallery thumbnail. */
 	renderLayoutPreview?: LayoutPreviewRenderer;
 }
-
-/**
- * Renders one layout's artwork into a detached element.
- *
- * Injected rather than imported so this module keeps to DOM assembly and the
- * host owns the element-renderer registry and theme wiring.
- */
-export type LayoutPreviewRenderer = (
-	preview: PptxLayoutPreview,
-	geometry: LayoutPreviewGeometry,
-) => HTMLElement | undefined;
-
-/** Thumbnail box size, matching PowerPoint's gallery tiles. */
-const THUMB_WIDTH = 128;
-const THUMB_HEIGHT = 72;
 
 export interface SlidesGroupState {
 	editable: boolean;
@@ -54,141 +42,6 @@ export interface SlidesGroup {
 	update(state: SlidesGroupState): void;
 }
 
-/** A layout picker popover: repopulated on every `setItems`, closes on select/outside. */
-interface LayoutMenu {
-	el: HTMLElement;
-	setItems(layouts: readonly LayoutOption[], context: LayoutMenuContext): void;
-	toggle(): void;
-	close(): void;
-}
-
-/** What the tiles need beyond the layout list itself. */
-interface LayoutMenuContext {
-	previews: ReadonlyMap<string, PptxLayoutPreview>;
-	/** Marks the active tile. Omitted by New Slide, which has no "current". */
-	currentLayoutPath?: string;
-	/** Renders one layout's artwork; supplied by the host so this file stays DOM-only. */
-	renderPreview?: LayoutPreviewRenderer;
-}
-
-function createLayoutMenu(
-	doc: Document,
-	ariaLabel: string,
-	onPick: (layout: LayoutOption) => void,
-): LayoutMenu {
-	const el = createEl(doc, 'div', 'pptxv-primary-menu pptxv-layout-menu');
-	// Shared cross-binding hook the framework-neutral e2e specs select on.
-	el.dataset.testid = 'layout-gallery-menu';
-	el.setAttribute('role', 'menu');
-	el.setAttribute('aria-label', ariaLabel);
-	el.hidden = true;
-
-	let open = false;
-	const setOpen = (next: boolean): void => {
-		open = next;
-		el.hidden = !next;
-	};
-
-	doc.addEventListener('pointerdown', (event) => {
-		if (open && !el.parentElement?.contains(event.target as Node)) {
-			setOpen(false);
-		}
-	});
-
-	/**
-	 * What the gallery currently shows. Each tile RENDERS a layout preview, and
-	 * the whole menu was rebuilt on every state sync - including while a slide
-	 * show is running and the ribbon is hidden. Skipping an unchanged gallery is
-	 * what keeps a slide advance from repainting the layouts it cannot see.
-	 */
-	let renderedSignature: string | null = null;
-
-	return {
-		el,
-		setItems(layouts, context) {
-			const signature = JSON.stringify([
-				layouts.map((layout) => [layout.path, layout.name]),
-				context.currentLayoutPath ?? '',
-				// A preview arriving later must repaint its tile.
-				layouts.map((layout) => (context.previews.get(layout.path) ? 1 : 0)),
-			]);
-			if (signature === renderedSignature) {
-				return;
-			}
-			renderedSignature = signature;
-			el.replaceChildren();
-			for (const layout of layouts) {
-				const btn = createEl(doc, 'button', 'pptxv-layout-tile');
-				btn.type = 'button';
-				btn.setAttribute('role', 'menuitem');
-				if (isCurrentLayout(layout, context.currentLayoutPath)) {
-					btn.classList.add('pptxv-layout-tile-current');
-					btn.setAttribute('aria-current', 'true');
-				}
-				btn.appendChild(
-					buildLayoutThumbnail(doc, context.previews.get(layout.path), context.renderPreview),
-				);
-				const name = createEl(doc, 'span', 'pptxv-layout-tile-name');
-				name.textContent = layout.name;
-				btn.appendChild(name);
-				btn.title = layout.name;
-				btn.addEventListener('click', () => {
-					setOpen(false);
-					onPick(layout);
-				});
-				el.appendChild(btn);
-			}
-		},
-		toggle: () => setOpen(!open),
-		close: () => setOpen(false),
-	};
-}
-
-/**
- * Build one thumbnail: the layout's artwork drawn at slide scale, with the
- * placeholder frames outlined on top.
- *
- * The artwork is rendered full size on an inner surface and the whole surface
- * is scaled, so element positions need no conversion. The shared geometry
- * helper decides the scale and pre-divides the outline width so it does not
- * shrink to an invisible hairline.
- */
-function buildLayoutThumbnail(
-	doc: Document,
-	preview: PptxLayoutPreview | undefined,
-	renderPreview: LayoutPreviewRenderer | undefined,
-): HTMLElement {
-	const geometry = buildLayoutPreviewGeometry(preview, THUMB_WIDTH, THUMB_HEIGHT);
-
-	const box = createEl(doc, 'div', 'pptxv-layout-tile-thumb');
-	box.style.width = `${geometry.boxWidth}px`;
-	box.style.height = `${geometry.boxHeight}px`;
-	box.style.backgroundColor = geometry.backgroundColor;
-
-	const surface = createEl(doc, 'div', 'pptxv-layout-tile-surface');
-	surface.style.width = `${geometry.surfaceWidth}px`;
-	surface.style.height = `${geometry.surfaceHeight}px`;
-	surface.style.transform = `scale(${geometry.scale})`;
-
-	const artwork = preview && renderPreview ? renderPreview(preview, geometry) : undefined;
-	if (artwork) {
-		surface.appendChild(artwork);
-	}
-
-	for (const frame of geometry.frames) {
-		const outline = createEl(doc, 'div', 'pptxv-layout-tile-frame');
-		outline.style.left = `${frame.left}px`;
-		outline.style.top = `${frame.top}px`;
-		outline.style.width = `${frame.width}px`;
-		outline.style.height = `${frame.height}px`;
-		outline.style.borderWidth = `${geometry.frameBorderWidth}px`;
-		surface.appendChild(outline);
-	}
-
-	box.appendChild(surface);
-	return box;
-}
-
 /**
  * The ribbon Home tab's Slides group, mirroring React's `SlidesGroup`: a New
  * Slide split button (with a layout dropdown), a Layout dropdown, a Reset
@@ -201,22 +54,28 @@ export function createSlidesGroup(
 	handlers: SlidesGroupHandlers,
 ): SlidesGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.slides');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'slides-controls';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.sections.slides');
 	el.appendChild(label);
 
 	// -- New Slide split button (main + layout-dropdown caret) ----------------
 	const newSlideSplit = createEl(doc, 'div', 'pptxv-slides-split');
+	newSlideSplit.dataset.pptxChrome = 'split-button';
 	const add = makeButton(doc, {
 		label: t('pptx.home.newSlide'),
-		icon: 'new-slide',
+		icon: 'plus',
 		textLabel: t('pptx.home.newSlide'),
 		onClick: handlers.addSlide,
 	});
 	const caret = createEl(doc, 'button', 'pptxv-slides-caret');
+	add.btn.dataset.pptxChrome = 'split-main';
+	caret.dataset.pptxChrome = 'split-caret';
 	caret.type = 'button';
 	caret.title = t('pptx.home.chooseLayout');
 	caret.setAttribute('aria-label', t('pptx.home.chooseLayout'));
@@ -265,7 +124,7 @@ export function createSlidesGroup(
 	// phrasing stays as the hover tooltip.
 	const reset = makeButton(doc, {
 		label: t('pptx.animations.reset'),
-		icon: 'undo',
+		icon: 'rotate-ccw',
 		textLabel: t('pptx.animations.reset'),
 		onClick: handlers.resetSlide,
 	});

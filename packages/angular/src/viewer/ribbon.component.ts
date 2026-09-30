@@ -37,6 +37,7 @@ import { injectResolvedCustomization } from './viewer-customization.service';
 	template: `
 		<div
 			role="toolbar"
+			data-pptx-chrome="ribbon"
 			[attr.aria-label]="'pptx.toolbar.presentationToolbarAria' | translate"
 			class="relative z-20 overflow-visible border-b border-border bg-secondary/50"
 		>
@@ -92,6 +93,7 @@ import { injectResolvedCustomization } from './viewer-customization.service';
 			/>
 
 			<div
+				data-pptx-chrome="ribbon-content"
 				class="flex min-h-[82px] flex-nowrap items-center gap-0 overflow-x-auto px-1 py-0.5 [&>*]:shrink-0"
 				[style.display]="ribbonExpanded() ? null : 'none'"
 			>

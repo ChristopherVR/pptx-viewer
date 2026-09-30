@@ -2,6 +2,7 @@ import { tableStyleAssignmentUpdate } from 'pptx-viewer-shared';
 
 import type { Translator } from '../../i18n';
 import { createEl } from '../../render';
+import { createIcon } from '../icons';
 import type { TableStyleEditorDeps } from '../table-style-editor';
 import { createAccessibilitySection } from './accessibility-section';
 import { createActionSection } from './action-section';
@@ -42,12 +43,17 @@ export function createInspector(
 ): Inspector {
 	const el = createEl(doc, 'aside', 'pptxv-inspector');
 	el.setAttribute('data-pptx-inspector', '');
+	el.dataset.pptxChrome = 'inspector';
 	el.setAttribute('aria-label', t('pptx.inspector.properties'));
 
 	// -- Tab strip (React's InspectorPaneHeader) ------------------------------
 	const header = createEl(doc, 'div', 'pptxv-inspector-tabs');
 	header.setAttribute('role', 'tablist');
-	el.appendChild(header);
+	header.dataset.pptxChrome = 'inspector-tabs';
+	const headerWrap = createEl(doc, 'div');
+	headerWrap.dataset.pptxChrome = 'inspector-header';
+	headerWrap.appendChild(header);
+	el.appendChild(headerWrap);
 	const tabButtons = new Map<InspectorTabId, HTMLButtonElement>();
 	const tabDefs: Array<{ id: InspectorTabId; label: string }> = [
 		{ id: 'elements', label: t('pptx.documentProperties.statistics.elements') },
@@ -58,7 +64,13 @@ export function createInspector(
 		const btn = createEl(doc, 'button', 'pptxv-inspector-tab');
 		btn.type = 'button';
 		btn.setAttribute('role', 'tab');
-		btn.textContent = tab.label;
+		btn.appendChild(
+			createIcon(
+				doc,
+				tab.id === 'elements' ? 'layers' : tab.id === 'properties' ? 'settings' : 'comment',
+			),
+		);
+		btn.appendChild(doc.createTextNode(tab.label));
 		btn.addEventListener('click', () => setActiveTab(tab.id));
 		header.appendChild(btn);
 		tabButtons.set(tab.id, btn);
@@ -70,6 +82,7 @@ export function createInspector(
 	el.appendChild(elementsTab.el);
 
 	const body = createEl(doc, 'div', 'pptxv-inspector-body');
+	body.dataset.pptxChrome = 'inspector-body';
 	el.appendChild(body);
 
 	const commentsTab = createCommentsTab(doc, t, handlers);

@@ -21,6 +21,7 @@ import { GALLERY_ICONS } from './gallery-icons';
 import { ic, pill } from './ribbon-constants';
 import RibbonGalleryPopup from './RibbonGalleryPopup.vue';
 import RibbonGalleryTile from './RibbonGalleryTile.vue';
+import RibbonIcon from './RibbonIcon';
 import { useDropdown } from './use-dropdown';
 import { useRibbonGallery } from './use-ribbon-gallery';
 
@@ -34,6 +35,13 @@ interface Props {
 const props = defineProps<Props>();
 const g = useRibbonGallery(() => props.gallery);
 const menu = useDropdown();
+const canonicalIcon = computed(() =>
+	props.gallery === 'shapeStyles'
+		? 'home.drawing.quickStyles'
+		: props.gallery === 'shapeEffects'
+			? 'home.drawing.shapeEffects'
+			: undefined,
+);
 const icon = computed(() => GALLERY_ICONS[props.gallery]);
 const moreLabel = computed(() => g.translate('pptx.gallery.more', { name: g.title.value }));
 
@@ -80,6 +88,7 @@ function onPick(itemId: string): void {
 		</template>
 		<button
 			v-else
+			:data-pptx-chrome="props.mode === 'chevron' ? 'gallery-caret' : undefined"
 			type="button"
 			:data-ribbon-gallery="props.gallery"
 			:disabled="g.disabled.value"
@@ -98,7 +107,8 @@ function onPick(itemId: string): void {
 			@click="menu.toggle()"
 		>
 			<template v-if="props.mode === 'dropdown'">
-				<component :is="icon" :class="ic" />
+				<RibbonIcon v-if="canonicalIcon" :name="canonicalIcon" :class="ic" />
+				<component v-else :is="icon" :class="ic" />
 				{{ g.title.value }}
 			</template>
 			<ChevronDown class="w-3 h-3" />

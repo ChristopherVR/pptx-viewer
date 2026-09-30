@@ -162,10 +162,10 @@
 	}
 </script>
 
-<section class="pptx-svelte-notes-panel" data-collapsed={collapsed} bind:this={rootEl}>
+<section class="pptx-svelte-notes-panel" data-pptx-chrome="notes" data-collapsed={collapsed} bind:this={rootEl}>
 	<button
 		type="button"
-		class="pptx-svelte-notes-header"
+		class="pptx-svelte-notes-header" data-pptx-chrome="notes-header"
 		aria-expanded={!collapsed}
 		aria-controls="slide-notes-content"
 		onclick={() => ontoggle?.()}

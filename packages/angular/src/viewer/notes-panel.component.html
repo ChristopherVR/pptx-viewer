@@ -1,11 +1,12 @@
-<section class="pptx-ng-notes-panel" [attr.data-collapsed]="collapsed()">
+<section class="pptx-ng-notes-panel" data-pptx-chrome="notes" [attr.data-collapsed]="collapsed()">
 	<button
 		type="button"
 		class="pptx-ng-notes-header"
+		data-pptx-chrome="notes-header"
 		[attr.aria-expanded]="!collapsed()"
 		(click)="toggle()"
 	>
-		<span class="pptx-ng-notes-label">{{ 'pptx.notes.speakerNotes' | translate }}</span>
+		<span class="pptx-ng-notes-label">{{ 'pptx.notes.title' | translate }}</span>
 		<span class="pptx-ng-notes-chevron" aria-hidden="true">
 			@if (collapsed()) {
 				<svg lucideChevronRight class="h-4 w-4"></svg>

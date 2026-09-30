@@ -40,6 +40,7 @@ export function RibbonTabBar(p: RibbonTabBarProps): React.ReactElement {
 	return (
 		<div
 			role='tablist'
+			data-pptx-chrome='ribbon-tabs'
 			className='flex items-center border-b border-border/60 px-1 max-md:overflow-x-auto max-md:scrollbar-none'
 		>
 			{TOOLBAR_SECTIONS.filter((s) => p.isTabVisible(s.id)).map((s) => {

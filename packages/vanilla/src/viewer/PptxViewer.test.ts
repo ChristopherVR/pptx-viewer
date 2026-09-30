@@ -145,7 +145,7 @@ describe('createPptxViewer', () => {
 		expect(concrete.renderer.effectiveScale()).toBe(2);
 	});
 
-	it('retains default CSS and ignores editor padding/caps while presenting', () => {
+	it('uses shared editor padding and ignores editor caps while presenting', () => {
 		const normal = mount();
 		const normalViewport = normal.container.querySelector<HTMLElement>('.pptxv-viewport')!;
 		Object.defineProperties(normalViewport, {
@@ -155,7 +155,7 @@ describe('createPptxViewer', () => {
 		const normalViewer = normal.viewer as PptxViewer;
 		normalViewer.store.set({ canvasSize: { width: 960, height: 540 } });
 		expect(normalViewer.renderer.fitScale()).toBeCloseTo(508 / 540);
-		expect(normalViewport.style.padding).toBe('');
+		expect(normalViewport.style.padding).toBe('16px 4px');
 		const custom = mount({ fitPadding: { horizontal: 4, vertical: 8 }, maxFitScale: 1 });
 		const customViewer = custom.viewer as PptxViewer;
 		const customViewport = custom.container.querySelector<HTMLElement>('.pptxv-viewport')!;

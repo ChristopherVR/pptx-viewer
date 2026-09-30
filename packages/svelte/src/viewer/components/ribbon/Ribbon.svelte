@@ -96,7 +96,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
+<div class="pptx-svelte-ribbon" data-pptx-chrome="ribbon" role="toolbar" aria-label={t('pptx.toolbar.presentationToolbarAria')}>
 	<RibbonPrimaryRow
 		chromeUi={props.chromeUi}
 		readOnly={props.readOnly}

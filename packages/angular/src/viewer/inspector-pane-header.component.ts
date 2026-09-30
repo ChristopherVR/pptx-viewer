@@ -16,12 +16,14 @@ export type SlideInspectorTab = 'elements' | 'properties' | 'comments';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [TranslatePipe, LucideLayers, LucideSettings2, LucideMessageSquare, LucideX],
 	template: `
-		<div class="hdr">
-			<div class="hdr__tabs">
+		<div class="hdr" data-pptx-chrome="inspector-header">
+			<div class="hdr__tabs" data-pptx-chrome="inspector-tabs" role="tablist">
 				<button
 					type="button"
 					class="hdr__tab"
 					[class.is-active]="activeTab() === 'elements'"
+					role="tab"
+					[attr.aria-selected]="activeTab() === 'elements'"
 					[title]="'pptx.documentProperties.statistics.elements' | translate"
 					(click)="tabChange.emit('elements')"
 				>
@@ -32,6 +34,8 @@ export type SlideInspectorTab = 'elements' | 'properties' | 'comments';
 					type="button"
 					class="hdr__tab"
 					[class.is-active]="activeTab() === 'properties'"
+					role="tab"
+					[attr.aria-selected]="activeTab() === 'properties'"
 					[title]="'pptx.inspector.properties' | translate"
 					(click)="tabChange.emit('properties')"
 				>
@@ -42,6 +46,8 @@ export type SlideInspectorTab = 'elements' | 'properties' | 'comments';
 					type="button"
 					class="hdr__tab"
 					[class.is-active]="activeTab() === 'comments'"
+					role="tab"
+					[attr.aria-selected]="activeTab() === 'comments'"
 					[title]="'pptx.toolbar.comments' | translate"
 					(click)="tabChange.emit('comments')"
 				>

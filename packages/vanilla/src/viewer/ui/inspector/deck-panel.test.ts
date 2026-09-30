@@ -63,7 +63,7 @@ function makeDeckState(overrides: Partial<InspectorDeckState> = {}): InspectorDe
 const LEDGER = { widthEmu: 12179300, heightEmu: 9134475, type: 'ledger' };
 
 describe('deck panel (no-selection Properties tab)', () => {
-	it('renders the React section order: presentation, theme, theme editor, override, transition, size, notes, document, tags', () => {
+	it('renders the React section order: presentation, theme, override, size, transition, notes, document, tags', () => {
 		const t = createTranslator();
 		const panel = createDeckPanel(document, t, makeHandlers());
 		panel.update(makeDeckState());
@@ -74,14 +74,13 @@ describe('deck panel (no-selection Properties tab)', () => {
 		expect(titles).toStrictEqual([
 			t('pptx.slideInspector.presentation'),
 			t('pptx.documentProperties.themeHeading'),
-			t('pptx.themeEditor.title'),
 			t('pptx.themeOverride.heading'),
-			t('pptx.slideBackground.templateBackgroundsHeading'),
-			t('pptx.slideInspector.slideTransition'),
 			t('pptx.slideSize.title'),
+			t('pptx.slideInspector.slideTransition'),
 			t('pptx.documentProperties.notesHandoutHeading'),
 			t('pptx.documentProperties.documentHeading'),
 			t('pptx.tags.title'),
+			t('pptx.slideBackground.templateBackgroundsHeading'),
 		]);
 	});
 
@@ -112,7 +111,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState());
 
-		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[6];
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[3];
 		const inputs = sizeSection.querySelectorAll<HTMLInputElement>('input[type="number"]');
 		expect(inputs[0].value).toBe('960');
 		expect(inputs[1].value).toBe('540');
@@ -136,7 +135,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState({ slideSize: LEDGER, canvasSize: { width: 1279, height: 959 } }));
 
-		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[6];
+		const sizeSection = panel.el.querySelectorAll('.pptxv-inspector-section')[3];
 		const preset = sizeSection.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
 		expect(preset.value).toBe('ledger');
 
@@ -170,7 +169,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		panel.update(makeDeckState({ slideSize: undefined, canvasSize: { width: 800, height: 600 } }));
 
 		const preset = panel.el
-			.querySelectorAll('.pptxv-inspector-section')[6]
+			.querySelectorAll('.pptxv-inspector-section')[3]
 			.querySelector<HTMLSelectElement>('[data-pptx-slide-size-preset]')!;
 		expect(preset.value).toBe('__custom__');
 	});
@@ -200,7 +199,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, createTranslator(), handlers);
 		panel.update(makeDeckState());
 
-		const overrideSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[3];
+		const overrideSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[2];
 		const toggle = overrideSection.querySelector<HTMLInputElement>('pptx-ui-checkbox');
 		expect(overrideSection.querySelectorAll('.pptxv-inspector-override-row')).toHaveLength(0);
 
@@ -229,7 +228,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		const panel = createDeckPanel(document, t, makeHandlers());
 		panel.update(makeDeckState());
 
-		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[7];
+		const notesSection = panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[5];
 		const values = Array.from(
 			notesSection.querySelectorAll<HTMLElement>('.pptxv-inspector-row-value'),
 		).map((el) => el.textContent);
@@ -261,7 +260,7 @@ describe('deck panel (no-selection Properties tab)', () => {
 		};
 
 		function backgroundSection(panel: ReturnType<typeof createDeckPanel>): HTMLElement {
-			return panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[4];
+			return panel.el.querySelectorAll<HTMLElement>('.pptxv-inspector-section')[8];
 		}
 
 		it('stays hidden while editTemplateMode is off, even with a layout/master to edit', () => {

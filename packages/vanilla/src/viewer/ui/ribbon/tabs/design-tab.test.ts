@@ -41,6 +41,29 @@ function button(root: HTMLElement, label: string): HTMLButtonElement {
 }
 
 describe('createDesignTab', () => {
+	it('docks the editor below the ribbon and restores focus on close', () => {
+		const { tab } = mountTab();
+		const root = document.createElement('div');
+		root.setAttribute('data-pptx-editor-chrome', '');
+		const body = document.createElement('div');
+		body.dataset.pptxChrome = 'body';
+		root.append(tab.el, body);
+		document.body.appendChild(root);
+		const launcher = button(tab.el, 'Edit Theme');
+		launcher.click();
+		const panel = body.querySelector<HTMLElement>('[data-pptx-chrome="theme-editor"]');
+		expect(panel?.hidden).toBeFalsy();
+		expect(launcher.getAttribute('aria-expanded')).toBe('true');
+		panel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(panel?.hidden).toBeTruthy();
+		expect(document.activeElement).toBe(launcher);
+		launcher.click();
+		button(panel!, 'Close').click();
+		expect(panel?.hidden).toBeTruthy();
+		expect(document.activeElement).toBe(launcher);
+		root.remove();
+	});
+
 	it('lists the shared gallery deck themes behind Browse Themes, the active one checked', () => {
 		const { tab } = mountTab();
 		const control = tab.el.querySelector<HTMLElement>(

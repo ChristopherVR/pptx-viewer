@@ -72,8 +72,10 @@ const MAX_SPOKES = 8;
 	],
 	template: `
 		@if (activeSlide()) {
-			<section class="icard">
-				<h3 class="icard__heading">{{ 'pptx.slideInspector.slideTransition' | translate }}</h3>
+			<section class="icard" data-pptx-chrome="inspector-card">
+				<h3 class="icard__heading" data-pptx-chrome="inspector-heading">
+					{{ 'pptx.slideInspector.slideTransition' | translate }}
+				</h3>
 
 				<label class="icard__col">
 					<span class="icard__label">{{ 'pptx.transition.type' | translate }}</span>

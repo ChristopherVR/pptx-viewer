@@ -1,4 +1,5 @@
 <script lang="ts">
+	import RibbonIcon from '../RibbonIcon.svelte';
 	/**
 	 * EditingGroup: the Home tab's Editing group. Find/Replace opens the
 	 * docked `FindReplacePanel` (both buttons toggle the same panel, matching
@@ -45,8 +46,8 @@
 <svelte:window onpointerdown={onWindowPointerDown} />
 
 <div class="pptx-svelte-rgroup" role="group" aria-label={t('pptx.editing.find')} data-ribbon-group="home.editing">
-	<div class="pptx-svelte-rgroup-cluster">
-		<div class="pptx-svelte-rgroup-row">
+	<div class="pptx-svelte-rgroup-cluster" data-pptx-chrome="editing-controls">
+		<div class="pptx-svelte-rgroup-row" data-pptx-chrome="control-cluster">
 			<button
 				type="button"
 				data-ribbon-control="home.editing.find"
@@ -55,7 +56,7 @@
 				aria-pressed={findReplace.open}
 				onclick={() => findReplace.toggle()}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="6.5" cy="6.5" r="4" fill="none" stroke="currentColor" stroke-width="1.3" /><path d="M9.5 9.5 13 13" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" /></svg>
+				<RibbonIcon name="home.editing.find" />
 			</button>
 			<button
 				type="button"
@@ -65,7 +66,7 @@
 				aria-pressed={findReplace.open}
 				onclick={() => findReplace.toggle()}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5h7l-2-2M13.5 11h-7l2 2" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /></svg>
+				<RibbonIcon name="home.editing.replace" />
 			</button>
 		</div>
 		<!-- Outside `.pptx-svelte-rgroup-row` on purpose: that row is
@@ -82,7 +83,7 @@
 				aria-expanded={selectMenuOpen}
 				onclick={() => (selectMenuOpen = !selectMenuOpen)}
 			>
-				<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 5.5 6 8l6-4" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" /><rect x="1.5" y="1.5" width="13" height="10" rx="1" fill="none" stroke="currentColor" stroke-width="1" /></svg>
+				<RibbonIcon name="home.editing.select" />
 			</button>
 			{#if selectMenuOpen}
 				<!-- `anchoredPopup` pins the menu with `position: fixed`, the pattern

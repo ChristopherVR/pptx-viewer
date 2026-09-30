@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import type { PptxElement, PptxSlide } from 'pptx-viewer-core';
-import { calculateViewportFit, getSlideBackgroundStyle } from 'pptx-viewer-shared';
+import {
+	calculateViewportFit,
+	EDITOR_VIEWPORT_FIT,
+	getSlideBackgroundStyle,
+} from 'pptx-viewer-shared';
 import type { ViewportFitPadding } from 'pptx-viewer-shared';
 import type { CSSProperties } from 'vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
@@ -134,7 +138,7 @@ function recomputeFit(): void {
 			horizontalGutter: gutter * 2,
 			verticalGutter: gutter,
 		},
-		{ fitPadding: { horizontal: 8, vertical: 16 }, maxFitScale: 1 },
+		EDITOR_VIEWPORT_FIT,
 	);
 	emit('update:fitScale', fit.scale);
 }

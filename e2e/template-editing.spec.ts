@@ -48,6 +48,7 @@ import {
 } from './fixtures/generate-template-editing-fixture';
 import { savePptxViaBackstage } from './save-pptx';
 import { resetTabSession, thumbnail } from './support/deck';
+import { readFixtureLayout } from './support/fixture-layout';
 import { slidePosition } from './support/keyboard';
 
 const fixturePath = resolve(
@@ -211,7 +212,11 @@ test.describe('template / master element editing', () => {
 			await secondSlide.click();
 			await page.getByRole('button', { name: 'Layout', exact: true }).click();
 		}
-		await gallery.locator('button').first().click();
+		const layout = await readFixtureLayout(fixturePath);
+		await gallery
+			.locator('button')
+			.filter({ has: page.getByText(layout.name, { exact: true }) })
+			.click();
 		await expect
 			.poll(() => page.getByRole('button', { name: /^Go to slide \d+$/u }).count())
 			.toBe(2);

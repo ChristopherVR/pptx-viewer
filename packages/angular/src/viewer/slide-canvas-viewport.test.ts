@@ -78,6 +78,12 @@ describe('canvas viewport fit policy', () => {
 		expect(service.fitScale()).toBe(1);
 	});
 
+	it('reserves the same horizontal allowance as the other editor bindings', () => {
+		const { service } = setup(488, 540);
+		service.recompute();
+		expect(service.fitScale()).toBe(0.5);
+	});
+
 	it('falls back safely for invalid options and unavailable measurements', () => {
 		const { service, state } = setup();
 		state.fitPadding = -10;

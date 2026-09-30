@@ -142,6 +142,10 @@ export const translations = {
 	'pptx.slideShow.useTimings': 'Usar tiempos, si están presentes',
 	'pptx.subtitles.listening': 'Escuchando…',
 	'pptx.subtitles.notSupported': 'Los subtítulos no son compatibles con este navegador.',
+	'pptx.subtitles.spokenLanguage': 'Idioma hablado',
+	'pptx.subtitles.browserLanguage': 'Idioma del navegador',
+	'pptx.subtitles.settingsDescription':
+		'Elige el idioma en el que hablarás. Los subtítulos usan el reconocimiento de voz del navegador; la traducción no está disponible.',
 	'pptx.transition.advanceOnClick': 'Avanzar al hacer clic',
 	'pptx.transition.direction': 'Dirección',
 	'pptx.transition.orientation': 'Orientación',

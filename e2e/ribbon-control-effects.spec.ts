@@ -237,7 +237,7 @@ test.describe('home tab commands act on the deck', () => {
 		await openRibbonTab(page, 'Home');
 		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
 		const pickers = ['Font family', 'Font size'].map((name) =>
-			toolbar.getByLabel(name, { exact: true }).first(),
+			toolbar.getByRole('combobox', { name, exact: true }),
 		);
 		for (const picker of pickers) {
 			await expect(picker).toBeDisabled();
@@ -271,7 +271,7 @@ test.describe('home tab commands act on the deck', () => {
 			.click();
 		const toolbar = page.getByRole('toolbar', { name: 'Presentation toolbar' });
 		for (const name of ['Font family', 'Font size']) {
-			await expect(toolbar.getByLabel(name, { exact: true }).first()).toBeDisabled();
+			await expect(toolbar.getByRole('combobox', { name, exact: true })).toBeDisabled();
 		}
 	});
 
@@ -322,7 +322,8 @@ test.describe('slide show options write to the deck', () => {
 
 		const useTimings = page.getByRole('checkbox', { name: 'Using timings, if present' }).first();
 		await expect(useTimings).toBeChecked();
-		await useTimings.uncheck();
+		await useTimings.click();
+		await expect(useTimings).not.toBeChecked();
 
 		const deck = await readDeckJson(page);
 		expect(deck.presentation?.presentationProperties?.advanceMode).toBe('manual');
@@ -333,7 +334,9 @@ test.describe('slide show options write to the deck', () => {
 		await openRibbonTab(page, 'Slide Show');
 
 		const narrations = page.getByRole('checkbox', { name: 'Play Narrations' }).first();
-		await narrations.uncheck();
+		await expect(narrations).toBeChecked();
+		await narrations.click();
+		await expect(narrations).not.toBeChecked();
 
 		const deck = await readDeckJson(page);
 		expect(deck.presentation?.presentationProperties?.showWithNarration).toBe(false);

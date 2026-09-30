@@ -1,9 +1,9 @@
 import type { PptxSection, PptxSlide, PptxSlideMaster } from 'pptx-viewer-core';
 import {
 	computeVirtualRange,
-	HIDDEN_SLIDE_ATTRIBUTE,
-	HIDDEN_SLIDE_LABEL_KEY,
-	hiddenSlideCue,
+	EDITOR_THUMBNAIL_WIDTH,
+	EDITOR_SLIDE_RAIL_WIDTH,
+	editorThumbnailStep,
 	SLIDE_VIRTUALIZATION_THRESHOLD,
 } from 'pptx-viewer-shared';
 import type { CanvasSize } from 'pptx-viewer-shared';
@@ -12,11 +12,16 @@ import type { EditActions } from '../editor';
 import type { Translator } from '../i18n';
 import { collectThreeViews, createEl, withReusableThreeViews } from '../render';
 import type { Store, ViewerState } from '../state';
-import { createIcon } from './icons';
 import { createThumbnailContextMenu } from './thumbnail-context-menu';
+import { wireThumbnailRowEvents } from './thumbnail-events';
 import { createThumbnailRailMenu } from './thumbnail-rail-menu';
 import type { ThumbnailSectionActions } from './thumbnail-sections';
 import { renderThumbnailSections } from './thumbnail-sections';
+import {
+	createThumbnailFooter,
+	createThumbnailMasterRows,
+	createThumbnailRow,
+} from './thumbnail-views';
 
 export type { ThumbnailSectionActions } from './thumbnail-sections';
 
@@ -30,8 +35,7 @@ export interface ThumbnailRailMenuDeps {
 	toggleHideSlides(indexes: number[]): void;
 }
 
-/** Rendered thumbnail rail width available for each slide preview, in px. */
-const THUMB_STAGE_WIDTH = 128;
+const THUMB_STAGE_WIDTH = EDITOR_THUMBNAIL_WIDTH;
 
 export interface ThumbnailRail {
 	el: HTMLElement;
@@ -71,6 +75,8 @@ export function createThumbnailRail(
 ): ThumbnailRail {
 	const el = createEl(doc, 'aside', 'pptxv-thumbs');
 	el.setAttribute('role', 'navigation');
+	el.dataset.pptxChrome = 'slides';
+	el.style.width = `${EDITOR_SLIDE_RAIL_WIDTH}px`;
 	el.setAttribute('aria-label', t('pptx.sections.slides'));
 
 	// ── Ctrl/Shift multi-select + thumbnail right-click menu ────────────────
@@ -102,6 +108,7 @@ export function createThumbnailRail(
 	// Scrollable slide list; the Add Slide footer stays pinned below it
 	// (mirrors React's SlidesPaneSidebar bottom button).
 	const list = createEl(doc, 'div', 'pptxv-thumbs-list');
+	list.dataset.pptxChrome = 'slide-list';
 	el.appendChild(list);
 	let footer: HTMLElement | null = null;
 	let addSlideVisible = false;
@@ -112,14 +119,7 @@ export function createThumbnailRail(
 		}
 	};
 	if (onAddSlide) {
-		footer = createEl(doc, 'div', 'pptxv-thumbs-footer');
-		footer.hidden = true;
-		const addBtn = createEl(doc, 'button', 'pptxv-thumbs-add');
-		addBtn.type = 'button';
-		addBtn.appendChild(createIcon(doc, 'plus'));
-		addBtn.appendChild(doc.createTextNode(t('pptx.sections.addSlide')));
-		addBtn.addEventListener('click', () => onAddSlide());
-		footer.appendChild(addBtn);
+		footer = createThumbnailFooter(doc, t, onAddSlide);
 		el.appendChild(footer);
 	}
 	let buttons = new Map<number, HTMLButtonElement>();
@@ -133,68 +133,27 @@ export function createThumbnailRail(
 	let virtualized = false;
 
 	const buildButton = (slide: PptxSlide, index: number, scale: number): HTMLButtonElement => {
-		const btn = createEl(doc, 'button', 'pptxv-thumb');
-		btn.type = 'button';
-		btn.dataset.slideIndex = String(index);
-		btn.setAttribute('aria-label', t('pptx.slidesPanel.goToSlide', { n: index + 1 }));
-		const num = createEl(doc, 'span', 'pptxv-thumb-num');
-		num.textContent = String(index + 1);
-		const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {
-			display: 'block',
-			width: `${THUMB_STAGE_WIDTH}px`,
-			height: `${Math.round(sourceCanvasSize.height * scale)}px`,
+		const btn = createThumbnailRow(
+			doc,
+			t,
+			slide,
+			index,
+			sourceCanvasSize,
+			sourceRenderStage!,
+			scale,
+		);
+		wireThumbnailRowEvents(btn, slide, index, {
+			selection: railMenu,
+			menu: contextMenu,
+			getSlides: () => sourceSlides,
+			getActive: () => activeIndex,
+			onSelect,
 		});
-		frame.appendChild(sourceRenderStage!(slide, scale));
-		btn.append(num, frame);
-		// A slide the author hid still lists here (hiding is a slide-show rule),
-		// so it needs the shared cue: the dim + number slash come off the marker
-		// attribute in CSS, and the description carries the state to assistive
-		// tech without disturbing the "Go to slide {{n}}" accessible name.
-		const cue = hiddenSlideCue(slide.hidden, 'rail', index);
-		if (cue.marker && cue.labelId) {
-			btn.setAttribute(HIDDEN_SLIDE_ATTRIBUTE, cue.marker);
-			btn.setAttribute('aria-describedby', cue.labelId);
-			const badge = createEl(doc, 'span', 'pptxv-thumb-hidden');
-			badge.id = cue.labelId;
-			badge.appendChild(createIcon(doc, 'eye-off'));
-			const word = createEl(doc, 'span', 'pptxv-sr-only');
-			word.textContent = t(HIDDEN_SLIDE_LABEL_KEY);
-			badge.appendChild(word);
-			frame.appendChild(badge);
-		}
-		if (railMenu.isSelected(slide.id) && index !== activeIndex) {
-			btn.classList.add('is-selected');
-		}
-		btn.addEventListener('click', (event) => {
-			railMenu.onClick(
-				event,
-				slide.id,
-				sourceSlides.map((s) => s.id),
-			);
-			btn.classList.toggle('is-selected', railMenu.isSelected(slide.id) && index !== activeIndex);
-			onSelect(index);
-		});
-		if (contextMenu) {
-			btn.addEventListener('contextmenu', (event) => {
-				event.preventDefault();
-				const state = railMenu.openContextMenu(
-					event.clientX,
-					event.clientY,
-					index,
-					sourceSlides.map((s) => s.id),
-				);
-				if (state) {
-					contextMenu.open(state, sourceSlides);
-				}
-			});
-		}
 		buttons.set(index, btn);
 		return btn;
 	};
 
-	// The rail rebuilds its window on every edit, selection and scroll: carry
-	// the live 3D thumbnails across (render/elements/three-view-reuse.ts) so a
-	// drag on the canvas does not reload every 3D thumbnail's scene per move.
+	// Keep live 3D thumbnail scenes across selection, edits and scrolling.
 	const renderWindow = (): void => withReusableThreeViews(collectThreeViews(list), renderWindowNow);
 
 	const renderWindowNow = (): void => {
@@ -215,6 +174,7 @@ export function createThumbnailRail(
 				}),
 			);
 			buttons.get(activeIndex)?.classList.add('is-active');
+			buttons.get(activeIndex)?.setAttribute('aria-current', 'page');
 			return;
 		}
 		const range = virtualized
@@ -234,8 +194,8 @@ export function createThumbnailRail(
 		const window = createEl(doc, 'div', 'pptxv-thumbs-window', {
 			display: 'flex',
 			flexDirection: 'column',
-			gap: '8px',
 		});
+		window.dataset.pptxChrome = 'slide-window';
 		if (virtualized) {
 			window.style.position = 'absolute';
 			window.style.insetInline = '0';
@@ -277,8 +237,7 @@ export function createThumbnailRail(
 			sourceRenderStage = renderStage;
 			sourceSections = sections ?? [];
 			sourceSectionActions = sectionActions;
-			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
-			itemHeight = Math.round(canvasSize.height * scale) + 8;
+			itemHeight = editorThumbnailStep(canvasSize.width, canvasSize.height);
 			virtualized = !sections?.length && slides.length >= SLIDE_VIRTUALIZATION_THRESHOLD;
 			// Class toggle (not an inline display) so the presenting-mode and
 			// mobile-layout `display: none` stylesheet rules can still hide the
@@ -328,69 +287,9 @@ export function createThumbnailRail(
 			buttons = new Map();
 			virtualized = false;
 			el.classList.remove('pptxv-thumbs-virtualized');
-			const scale = THUMB_STAGE_WIDTH / Math.max(canvasSize.width, 1);
-			const add = (
-				slide: PptxSlide,
-				label: string,
-				masterIndex: number,
-				layoutIndex: number | null,
-			) => {
-				const btn = createEl(
-					doc,
-					'button',
-					`pptxv-thumb${layoutIndex === null ? '' : ' pptxv-master-layout'}`,
-				);
-				btn.type = 'button';
-				btn.setAttribute('aria-label', label);
-				btn.classList.toggle(
-					'is-active',
-					active.masterIndex === masterIndex && active.layoutIndex === layoutIndex,
-				);
-				if (active.masterIndex === masterIndex && active.layoutIndex === layoutIndex) {
-					btn.setAttribute('aria-current', 'page');
-				}
-				const name = createEl(doc, 'span', 'pptxv-thumb-num');
-				name.textContent = label;
-				const frame = createEl(doc, 'span', 'pptxv-thumb-frame', {
-					display: 'block',
-					width: `${THUMB_STAGE_WIDTH}px`,
-					height: `${Math.round(canvasSize.height * scale)}px`,
-				});
-				frame.appendChild(renderStage(slide, scale));
-				btn.append(name, frame);
-				btn.addEventListener('click', () => select(masterIndex, layoutIndex));
-				list.appendChild(btn);
-			};
-			masters.forEach((master, masterIndex) => {
-				add(
-					{
-						id: master.path,
-						rId: '',
-						slideNumber: 0,
-						elements: master.elements ?? [],
-						backgroundColor: master.backgroundColor,
-						backgroundImage: master.backgroundImage,
-					},
-					master.name || t('pptx.master.master'),
-					masterIndex,
-					null,
-				);
-				master.layouts?.forEach((layout, layoutIndex) =>
-					add(
-						{
-							id: layout.path,
-							rId: '',
-							slideNumber: 0,
-							elements: [...(master.elements ?? []), ...(layout.elements ?? [])],
-							backgroundColor: layout.backgroundColor ?? master.backgroundColor,
-							backgroundImage: layout.backgroundImage ?? master.backgroundImage,
-						},
-						layout.name || t('pptx.master.layout'),
-						masterIndex,
-						layoutIndex,
-					),
-				);
-			});
+			list.append(
+				...createThumbnailMasterRows(doc, t, masters, canvasSize, renderStage, select, active),
+			);
 		},
 	};
 }

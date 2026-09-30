@@ -145,6 +145,10 @@ export const translations = {
 	'pptx.slideShow.useTimings': '使用计时（如果存在）',
 	'pptx.subtitles.listening': '正在聆听…',
 	'pptx.subtitles.notSupported': '此浏览器不支持字幕。',
+	'pptx.subtitles.spokenLanguage': '讲话语言',
+	'pptx.subtitles.browserLanguage': '浏览器语言',
+	'pptx.subtitles.settingsDescription':
+		'选择您讲话时使用的语言。字幕使用浏览器的语音识别功能，不支持翻译。',
 	'pptx.transition.advanceOnClick': '单击时换片',
 	'pptx.transition.direction': '方向',
 	'pptx.transition.orientation': '方向',

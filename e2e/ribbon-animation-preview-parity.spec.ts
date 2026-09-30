@@ -60,15 +60,34 @@ test.describe('cross-binding ribbon animation preview', () => {
 				// inspector's animation panel, which has a Preview button of its
 				// own, so an unscoped role query matched two buttons.
 				const preview = ribbon(page).getByRole('button', { name: 'Preview', exact: true });
+				const target = elementWithText(page, EFFECT_SOUND_SHAPE_TEXT);
+				// Record playback before clicking: the fixture's 500ms animation can
+				// finish before a busy runner resolves the next canvas locator.
+				await target.evaluate((el) => {
+					const doc = el.ownerDocument;
+					const elementId = el.getAttribute('data-element-id');
+					if (elementId === null) {
+						throw new Error('the preview target must identify its canvas element');
+					}
+					const record = (event: AnimationEvent): void => {
+						const node = event.target;
+						if (
+							!(node instanceof HTMLElement) ||
+							node.getAttribute('data-element-id') !== elementId ||
+							!node.closest('[data-pptx-viewport]')
+						) {
+							return;
+						}
+						doc.documentElement.setAttribute('data-ribbon-preview-animation', event.animationName);
+						doc.removeEventListener('animationstart', record, true);
+					};
+					doc.addEventListener('animationstart', record, true);
+				});
 				await preview.click();
 
-				const target = elementWithText(page, EFFECT_SOUND_SHAPE_TEXT);
-				// The shared player sets a real inline `animation` shorthand; poll
-				// rather than a fixed wait since the injected keyframes and the
-				// style write happen on the same tick as the click but are still
-				// async relative to Playwright's own event loop.
-				const playedInPlace = await target
-					.evaluate((el) => (el as HTMLElement).style.animation.length > 0)
+				const playedInPlace = await expect(page.locator('html'))
+					.toHaveAttribute('data-ribbon-preview-animation', /^pptx-/)
+					.then(() => true)
 					.catch(() => false);
 
 				// Never navigates away to a full-screen slide show: the ribbon,
@@ -86,7 +105,7 @@ test.describe('cross-binding ribbon animation preview', () => {
 		const problems = byBinding(results).flatMap(({ name, value }) => {
 			const issues: string[] = [];
 			if (!value.playedInPlace) {
-				issues.push('Preview did not set a real CSS animation on the selected element');
+				issues.push('Preview did not start a real CSS animation on the selected element');
 			}
 			if (!value.stillEditing) {
 				issues.push(

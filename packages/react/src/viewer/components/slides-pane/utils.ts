@@ -1,4 +1,5 @@
-import { SLIDE_NAV_THUMBNAIL_WIDTH } from '../../constants';
+import { EDITOR_THUMBNAIL_WIDTH, editorThumbnailStep } from 'pptx-viewer-shared';
+
 import type { SlideSectionGroup } from '../../types';
 
 /**
@@ -75,11 +76,10 @@ export function buildFlatPaneItems(
  * @param canvasHeight - Canvas height in px (clamped to >= 1).
  * @returns Estimated total height of one slide item row in px.
  */
-export function estimateSlideItemHeight(canvasWidth: number, canvasHeight: number): number {
-	const safeW = Math.max(canvasWidth, 1);
-	const safeH = Math.max(canvasHeight, 1);
-	const scale = SLIDE_NAV_THUMBNAIL_WIDTH / safeW;
-	const previewHeight = Math.max(56, Math.round(safeH * scale));
-	// item = border(2) + padding(4) + thumbnail(previewHeight) + footer(~20) + gap(4)
-	return previewHeight + 30;
+export function estimateSlideItemHeight(
+	canvasWidth: number,
+	canvasHeight: number,
+	width = EDITOR_THUMBNAIL_WIDTH,
+): number {
+	return editorThumbnailStep(canvasWidth, canvasHeight, width);
 }

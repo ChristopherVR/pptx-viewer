@@ -24,7 +24,7 @@ import type { RibbonGalleryHub, RibbonGalleryView } from './gallery-hub';
 import { createGalleryTile, renderGalleryPopup, translateOr } from './gallery-tiles';
 
 const GALLERY_ICONS: Record<RibbonGalleryId, IconName> = {
-	shapeStyles: 'paintbrush',
+	shapeStyles: 'palette',
 	shapeEffects: 'sparkles',
 	wordArtStyles: 'font-color',
 	pictureStyles: 'image',
@@ -91,6 +91,9 @@ export function createRibbonGallery(
 			: `pptxv-dropdown-trigger pptxv-gallery-trigger${options.chevronOnly ? ' pptxv-gallery-chevron' : ''}`,
 	);
 	trigger.type = 'button';
+	if (options.chevronOnly) {
+		trigger.dataset.pptxChrome = 'gallery-caret';
+	}
 	trigger.setAttribute(RIBBON_GALLERY_ATTR, placement.gallery);
 	trigger.setAttribute('aria-haspopup', 'true');
 	trigger.setAttribute('aria-expanded', 'false');

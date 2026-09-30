@@ -1,7 +1,11 @@
-import { calculateViewportFit, resolveViewportFitOptions } from 'pptx-viewer-shared';
+import {
+	calculateViewportFit,
+	EDITOR_VIEWPORT_FIT,
+	resolveViewportFitOptions,
+} from 'pptx-viewer-shared';
 import type { CanvasSize, ViewportFitOptions } from 'pptx-viewer-shared';
 
-const DEFAULT_FIT = { fitPadding: 16, maxFitScale: null };
+const DEFAULT_FIT = EDITOR_VIEWPORT_FIT;
 
 /** Apply explicit host padding to both the CSS box and its fit measurement. */
 export function fitViewerViewport(
@@ -11,7 +15,7 @@ export function fitViewerViewport(
 	presenting: boolean,
 ): number {
 	const policy = presenting ? { fitPadding: 0, maxFitScale: null } : options;
-	if (options.fitPadding !== undefined) {
+	{
 		const { horizontal, vertical } = resolveViewportFitOptions(policy, DEFAULT_FIT).fitPadding;
 		viewport.style.padding = `${vertical}px ${horizontal}px`;
 	}

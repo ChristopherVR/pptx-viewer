@@ -65,18 +65,20 @@
 		pickedThemePath ?? activeThemePath ?? effectiveThemeOptions[0]?.path ?? '',
 	);
 </script>
+<div data-pptx-chrome="deck-properties">
+
 
 {#if deck}
-	<div class="pptx-svelte-inspector-section">
-		<h4>{t('pptx.slideInspector.presentation')}</h4>
+	<div class="pptx-svelte-inspector-section pptx-editor-presentation-card" data-pptx-chrome="inspector-card">
+		<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideInspector.presentation')}</h4>
 		<PresentationSettingsSection
 			properties={editor.presentationProperties}
 			{canEdit}
 			onupdate={(patch) => deck.updatePresentationProperties(patch)}
 		/>
 	</div>
-	<div class="pptx-svelte-inspector-section">
-		<h4>{t('pptx.documentProperties.themeHeading')}</h4>
+	<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+		<h4 data-pptx-chrome="inspector-heading">{t('pptx.documentProperties.themeHeading')}</h4>
 		<ThemeSelectorSection
 			options={effectiveThemeOptions}
 			selectedPath={selectedThemePath}
@@ -86,14 +88,14 @@
 		/>
 	</div>
 	{#if handler && onthemechange}
-		<div class="pptx-svelte-inspector-section">
-			<h4>{t('pptx.themeOverride.heading')}</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.themeOverride.heading')}</h4>
 			<ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} />
 		</div>
 	{/if}
 	{#if effectiveCanvasSize}
-		<div class="pptx-svelte-inspector-section">
-			<h4>{t('pptx.slideSize.title')}</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideSize.title')}</h4>
 			<SlideSizeSection
 				canvasSize={effectiveCanvasSize}
 				slideSize={deck.slideSize}
@@ -106,14 +108,14 @@
 	{/if}
 	<!-- React pairs slide size + transition in `SlideProperties`; same order. -->
 	{#if activeSlide}
-		<div class="pptx-svelte-inspector-section">
-			<h4>{t('pptx.slideInspector.slideTransition')}</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideInspector.slideTransition')}</h4>
 			<SlideTransitionSection {editor} />
 		</div>
 	{/if}
 	{#if editor.editTemplateMode && activeSlide}
-		<div class="pptx-svelte-inspector-section">
-			<h4>{t('pptx.slideBackground.templateBackgroundsHeading')}</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideBackground.templateBackgroundsHeading')}</h4>
 			<TemplateBackgroundSection
 				{editor}
 				{activeSlide}
@@ -123,16 +125,16 @@
 			/>
 		</div>
 	{/if}
-	<div class="pptx-svelte-inspector-section">
-		<h4>{t('pptx.documentProperties.notesHandoutHeading')}</h4>
+	<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+		<h4 data-pptx-chrome="inspector-heading">{t('pptx.documentProperties.notesHandoutHeading')}</h4>
 		<NotesHandoutSection
 			notesCanvasSize={deck.notesCanvasSize}
 			notesMaster={editor.notesMaster}
 			handoutMaster={editor.handoutMaster}
 		/>
 	</div>
-	<div class="pptx-svelte-inspector-section">
-		<h4>{t('pptx.documentProperties.documentHeading')}</h4>
+	<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+		<h4 data-pptx-chrome="inspector-heading">{t('pptx.documentProperties.documentHeading')}</h4>
 		<DocumentPropertiesSection
 			coreProperties={editor.coreProperties}
 			appProperties={editor.appProperties}
@@ -144,7 +146,7 @@
 		/>
 	</div>
 	<!-- React renders TAGS from the same PresentationPropertiesPanel. -->
-	<div class="pptx-svelte-inspector-section">
+	<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
 		<TagsSection
 			tagCollections={editor.tagCollections}
 			{canEdit}
@@ -154,15 +156,15 @@
 	{#if activeSlide}
 		<!-- React's SLIDE card: the active slide's element count (literal
 		     "Slide" / "elements" copy, matching React which has no key here). -->
-		<div class="pptx-svelte-inspector-section">
-			<h4>Slide</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">Slide</h4>
 			<p class="pptx-svelte-inspector-meta">{activeSlide.elements?.length ?? 0} elements</p>
 		</div>
 	{/if}
 {:else}
 	{#if canvasSize}
-		<div class="pptx-svelte-inspector-section">
-			<h4>{t('pptx.slideSize.title')}</h4>
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
+			<h4 data-pptx-chrome="inspector-heading">{t('pptx.slideSize.title')}</h4>
 			<p class="pptx-svelte-inspector-meta">
 				{canvasSize.width} &times; {canvasSize.height} px &middot; {t(
 					'pptx.customShows.slideCount',
@@ -172,12 +174,14 @@
 		</div>
 	{/if}
 	{#if handler && onthemechange}
-		<div class="pptx-svelte-inspector-section">
+		<div class="pptx-svelte-inspector-section" data-pptx-chrome="inspector-card">
 			<ThemeSection {editor} {handler} theme={presentationTheme} {onthemechange} />
 		</div>
 	{/if}
 {/if}
 
+
+</div>
 <style>
 	.pptx-svelte-inspector-section {
 		margin-top: 12px;

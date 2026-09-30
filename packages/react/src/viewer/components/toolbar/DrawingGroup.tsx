@@ -63,7 +63,7 @@ export function DrawingGroup(p: DrawingGroupProps): React.ReactElement {
 	return (
 		<>
 			<div className='flex flex-col items-center gap-0.5' {...groupAttr('home.drawing')}>
-				<div className='flex items-center gap-1'>
+				<div className='flex items-center gap-1' data-pptx-chrome='drawing-controls'>
 					{/* Shapes dropdown */}
 					<div className='relative' ref={shapes.ref} {...controlAttr('home.drawing.shapes')}>
 						<button

@@ -1,7 +1,6 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
-import type { ChangeCaseMode, FontCatalogInput } from 'pptx-viewer-shared';
+import type { ChangeCaseMode } from 'pptx-viewer-shared';
 import {
-	buildFontCatalog,
 	CHANGE_CASE_OPTIONS,
 	CHARACTER_SPACING_OPTIONS,
 	COMMON_FONT_SIZES,
@@ -12,10 +11,10 @@ import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
-import type { DropdownItem } from '../../dropdown';
 import { makeDropdown } from '../../dropdown';
 import { makeSwatchPicker, OFFICE_STANDARD_SWATCHES } from '../../swatch-picker';
 import { tagRibbonControl, tagRibbonGroup } from '../ribbon-tagging';
+import { createFontSelect, setFontSelectCatalog } from './font-select';
 
 export interface FontGroupHandlers {
 	toggleBold(): void;
@@ -57,55 +56,42 @@ export interface FontGroup {
 
 const FONT_STEP = 2;
 
-/**
- * Flatten the shared font catalogue into dropdown items, tagging the first
- * entry of each group with its heading.
- *
- * The grouping and de-duplication decisions live in `pptx-viewer-shared` so
- * every binding offers the same list; this only maps them onto the vanilla
- * dropdown's item shape.
- */
-function buildFontItems(t: Translator, input: FontCatalogInput): DropdownItem<string>[] {
-	return buildFontCatalog(input).flatMap((group) =>
-		group.entries.map((entry, index) => ({
-			label: entry.family,
-			value: entry.family,
-			style: { fontFamily: entry.family },
-			...(index === 0 ? { groupLabel: t(group.labelKey) } : {}),
-			...(entry.themeRole ? { hint: t(`pptx.font.role.${entry.themeRole}`) } : {}),
-		})),
-	);
-}
-
 /** The ribbon Home tab's Font group: family/size, character toggles, colours, spacing, case. */
 export function createFontGroup(
 	doc: Document,
 	t: Translator,
 	handlers: FontGroupHandlers,
 ): FontGroup {
-	const el = createEl(doc, 'div', 'pptxv-rgroup');
-	tagRibbonGroup(el, 'home.font');
+	const el = createEl(doc, 'div');
+	el.dataset.pptxChrome = 'font-groups';
+	const pickers = createEl(doc, 'div', 'pptxv-rgroup');
+	const formatting = createEl(doc, 'div', 'pptxv-rgroup');
+	for (const group of [pickers, formatting]) {
+		group.dataset.pptxChrome = 'home-group';
+		tagRibbonGroup(group, 'home.font');
+	}
+	el.append(pickers, formatting);
+	const pickerRow = createEl(doc, 'div');
+	pickerRow.dataset.pptxChrome = 'font-picker-controls';
+	pickers.append(pickerRow);
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
-	el.appendChild(row);
+	row.dataset.pptxChrome = 'font-controls';
+	formatting.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.ribbon.font');
-	el.appendChild(label);
+	formatting.appendChild(label);
+	pickers.appendChild(label.cloneNode(true));
 
-	const fontFamily = makeDropdown(doc, {
-		triggerLabel: t('pptx.ribbon.fontFamily'),
-		triggerText: 'Segoe UI',
-		items: buildFontItems(t, {}),
-		onSelect: handlers.setFontFamily,
-	});
-	fontFamily.el.classList.add('pptxv-font-family-dd');
-
-	const fontSize = makeDropdown(doc, {
-		triggerLabel: t('pptx.ribbon.fontSize'),
-		triggerText: '24',
-		items: COMMON_FONT_SIZES.map((s) => ({ label: String(s), value: s })),
-		onSelect: handlers.setFontSize,
-	});
-	fontSize.el.classList.add('pptxv-font-size-dd');
+	const fontFamily = createFontSelect(doc, t, 'family', handlers.setFontFamily);
+	const fontSize = createFontSelect(doc, t, 'size', (value) => handlers.setFontSize(Number(value)));
+	fontSize.el.replaceChildren(
+		...COMMON_FONT_SIZES.map((size) => {
+			const option = doc.createElement('option');
+			option.value = option.textContent = String(size);
+			return option;
+		}),
+	);
 
 	const bold = makeButton(doc, {
 		label: t('pptx.textPanel.bold'),
@@ -197,17 +183,16 @@ export function createFontGroup(
 	tagRibbonControl(changeCase.el, 'home.font.changeCase');
 	tagRibbonControl(fontColor.el, 'home.font.fontColor');
 	tagRibbonControl(highlight.el, 'home.font.highlightColor');
+	pickerRow.append(fontFamily.el, fontSize.el);
+	const decoration = createEl(doc, 'div');
+	const growth = createEl(doc, 'div');
+	decoration.dataset.pptxChrome = growth.dataset.pptxChrome = 'control-cluster';
+	decoration.append(bold.btn, italic.btn, underline.btn, strike.btn);
+	growth.append(grow.btn, shrink.btn, clear.btn);
 	row.append(
-		fontFamily.el,
-		fontSize.el,
-		shrink.btn,
-		grow.btn,
-		bold.btn,
-		italic.btn,
-		underline.btn,
-		strike.btn,
+		decoration,
 		shadow.btn,
-		clear.btn,
+		growth,
 		charSpacing.el,
 		changeCase.el,
 		fontColor.el,
@@ -215,9 +200,7 @@ export function createFontGroup(
 	);
 
 	const toggles = [bold, italic, underline, strike] as const;
-	// The family/size pickers stay usable without a selection (they park a value
-	// the next edit uses), which is how every other binding gates them; only the
-	// mutating controls need something formattable selected.
+	// Formatting controls require an editable text or selected table cell.
 	const gated = [
 		shrink,
 		grow,
@@ -247,13 +230,11 @@ export function createFontGroup(
 		}) {
 			// Regroup per deck: the theme fonts and the embedded set are not
 			// known until a presentation has loaded.
-			fontFamily.setItems(
-				buildFontItems(t, {
-					themeFonts,
-					embeddedFonts: embeddedFontFamilies,
-					customFonts: customFontFamilies,
-				}),
-			);
+			setFontSelectCatalog(fontFamily.el, t, {
+				themeFonts,
+				embeddedFonts: embeddedFontFamilies,
+				customFonts: customFontFamilies,
+			});
 			bold.setActive(text.bold);
 			italic.setActive(text.italic);
 			underline.setActive(text.underline);
@@ -262,9 +243,7 @@ export function createFontGroup(
 			fontFamily.setTriggerText(
 				text.fontFamily ?? resolveDefaultFontFamily(text.placeholderType, themeFonts),
 			);
-			fontFamily.setSelected(text.fontFamily);
 			fontSize.setTriggerText(String(text.fontSize));
-			fontSize.setSelected(text.fontSize);
 			fontColor.setValue(text.color);
 			highlight.setValue(text.highlightColor);
 			fontColor.setRecentColors(recentColors ?? []);

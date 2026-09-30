@@ -117,6 +117,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 				/>
 			)}
 			<div
+				data-pptx-chrome='inspector'
 				className={cn(
 					// Shared styles
 					'bg-background flex flex-col text-xs text-foreground shadow-xl',
@@ -152,7 +153,7 @@ export function InspectorPane(props: InspectorPaneProps): React.ReactElement {
 				/>
 
 				{/* Tab content */}
-				<div className='flex-1 overflow-y-auto p-3 space-y-3'>
+				<div data-pptx-chrome='inspector-body' className='flex-1 overflow-y-auto p-3 space-y-3'>
 					{/* ── Elements ── */}
 					{activeTab === 'elements' && (
 						<InspectorElementsTab

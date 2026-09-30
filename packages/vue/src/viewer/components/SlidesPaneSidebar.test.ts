@@ -21,6 +21,25 @@ const base = {
 };
 
 describe('slidesPaneSidebar', () => {
+	it('moves the shared active-row hook when the current page changes', async () => {
+		const wrapper = mount(SlidesPaneSidebar, { props: base });
+		await wrapper.setProps({ activeIndex: 2 });
+		const rows = wrapper.findAll('[data-pptx-chrome="slide-row"]');
+		expect(rows[1].attributes('aria-current')).toBeUndefined();
+		expect(rows[2].attributes('aria-current')).toBe('true');
+		expect(rows[2].get('[data-pptx-chrome="slide-number"]').text()).toBe('3');
+		expect(wrapper.get('[data-pptx-chrome="slide-window"]').findAll('button')).toHaveLength(3);
+	});
+
+	it('preserves slide aspect ratio inside the shared desktop rail', () => {
+		const wrapper = mount(SlidesPaneSidebar, { props: base });
+		const rail = wrapper.get('[data-pptx-chrome="slides"]').element as HTMLElement;
+		const frame = wrapper.get('[data-pptx-chrome="slide-frame"]').element as HTMLElement;
+		expect(rail.style.width).toBe('180px');
+		expect(frame.style.width).toBe('132px');
+		expect(frame.style.height).toBe('74.25px');
+	});
+
 	it('renders one numbered row per slide', () => {
 		const wrapper = mount(SlidesPaneSidebar, { props: base });
 		const rows = wrapper.findAll('[aria-label^="Go to slide "]');

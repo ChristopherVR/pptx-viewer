@@ -48,6 +48,7 @@ import { LoadContentService } from './load-content.service';
 import { dispatchGalleryResult, galleryContextFor } from './ribbon-gallery-helpers';
 import { RibbonGalleryPopupComponent } from './ribbon-gallery-popup.component';
 import { RibbonGallerySvgPipe } from './ribbon-gallery-svg.pipe';
+import { RibbonIconDirective } from './ribbon-icon.directive';
 import { ViewerThemeGalleryService } from './viewer-theme-gallery.service';
 
 interface GalleryInputs {
@@ -76,70 +77,15 @@ type Translate = (key: string, params?: Readonly<Record<string, string | number>
 	selector: 'pptx-ribbon-gallery',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	imports: [TranslatePipe, LucideChevronDown, RibbonGalleryPopupComponent, RibbonGallerySvgPipe],
-	template: `
-		<div
-			#root
-			class="relative inline-flex shrink-0 items-center"
-			[attr.data-ribbon-control]="control || null"
-		>
-			@if (mode === 'inline') {
-				<div class="pptx-rb-gallery-strip">
-					@for (item of stripItems(); track item.id) {
-						<button
-							type="button"
-							class="pptx-rb-gallery-tile pptx-rb-gallery-tile-strip"
-							[class.pptx-rb-gallery-tile-applied]="item.applied"
-							[disabled]="isDisabled()"
-							[attr.data-gallery-item]="item.id"
-							[attr.aria-pressed]="item.applied ? 'true' : 'false'"
-							[attr.aria-label]="label(item)"
-							[title]="label(item)"
-							[innerHTML]="item.previewSvg | pptxGallerySvg"
-							(click)="pick(item)"
-						></button>
-					}
-					<button
-						type="button"
-						class="pptx-rb-gallery-more"
-						[disabled]="isDisabled()"
-						[attr.data-ribbon-gallery]="gallery"
-						[attr.aria-expanded]="open()"
-						[attr.aria-label]="'pptx.gallery.more' | translate: { name: title() }"
-						[title]="'pptx.gallery.more' | translate: { name: title() }"
-						(click)="toggle()"
-					>
-						<svg lucideChevronDown class="h-3 w-3"></svg>
-					</button>
-				</div>
-			} @else {
-				<button
-					type="button"
-					[class]="chevronOnly ? 'pptx-rb-gb px-1' : 'pptx-rb-pill'"
-					[disabled]="isDisabled()"
-					[attr.data-ribbon-gallery]="gallery"
-					[attr.aria-expanded]="open()"
-					[attr.aria-label]="title()"
-					[title]="title()"
-					(mousedown)="$event.preventDefault()"
-					(click)="toggle()"
-				>
-					@if (!chevronOnly) {
-						<span class="whitespace-nowrap">{{ title() }}</span>
-					}
-					<svg lucideChevronDown class="h-3 w-3"></svg>
-				</button>
-			}
-			@if (open()) {
-				<pptx-ribbon-gallery-popup
-					[descriptor]="descriptor()"
-					[name]="title()"
-					[anchor]="root"
-					(pick)="pick($event)"
-				/>
-			}
-		</div>
-	`,
+	host: { class: 'contents' },
+	imports: [
+		RibbonIconDirective,
+		TranslatePipe,
+		LucideChevronDown,
+		RibbonGalleryPopupComponent,
+		RibbonGallerySvgPipe,
+	],
+	templateUrl: './ribbon-gallery.component.html',
 })
 export class RibbonGalleryComponent {
 	private readonly editor = inject(EditorStateService);

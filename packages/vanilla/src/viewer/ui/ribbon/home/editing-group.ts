@@ -20,10 +20,13 @@ export function createEditingGroup(
 	handlers: EditingGroupHandlers,
 ): EditingGroup {
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
+	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.editing');
 	const row = createEl(doc, 'div', 'pptxv-rgroup-row');
+	row.dataset.pptxChrome = 'editing-controls';
 	el.appendChild(row);
 	const label = createEl(doc, 'span', 'pptxv-rgroup-label');
+	label.dataset.pptxChrome = 'ribbon-group-label';
 	label.textContent = t('pptx.shortcuts.group.editing');
 	el.appendChild(label);
 
@@ -49,7 +52,10 @@ export function createEditingGroup(
 	tagRibbonControl(find.btn, 'home.editing.find');
 	tagRibbonControl(replace.btn, 'home.editing.replace');
 	tagRibbonControl(select.el, 'home.editing.select');
-	row.append(find.btn, replace.btn, select.el);
+	const searchControls = createEl(doc, 'div');
+	searchControls.dataset.pptxChrome = 'control-cluster';
+	searchControls.append(find.btn, replace.btn);
+	row.append(searchControls, select.el);
 
 	return {
 		el,

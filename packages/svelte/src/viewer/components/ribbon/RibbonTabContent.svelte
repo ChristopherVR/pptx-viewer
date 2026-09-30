@@ -40,7 +40,7 @@
 	}
 </script>
 
-<div class="pptx-svelte-ribbon-content">
+<div class="pptx-svelte-ribbon-content" data-pptx-chrome="ribbon-content">
 	{#if tab === 'home'}
 		<HomeTab editor={ribbon.editor} findReplace={ribbon.findReplace} onnavigateslide={ribbon.onnavigateslide} hiddenActions={ribbon.hiddenActions} />
 	{:else if tab === 'insert'}

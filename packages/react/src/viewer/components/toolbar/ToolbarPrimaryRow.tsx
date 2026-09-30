@@ -37,7 +37,10 @@ export function ToolbarPrimaryRow(p: ToolbarProps): React.ReactElement {
 		'p-1 max-md:p-2 max-md:min-h-[40px] max-md:min-w-[40px] rounded-sm transition-colors hover:bg-accent/60 disabled:opacity-40 disabled:cursor-not-allowed active:scale-90 active:opacity-70';
 
 	return (
-		<div className='flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1'>
+		<div
+			data-pptx-chrome='ribbon-primary'
+			className='flex items-center gap-0.5 max-md:gap-0 px-1.5 py-0.5 max-md:px-1'
+		>
 			{/* Left: Slides pane toggle + Undo/Redo + Find */}
 			{mode !== 'present' && showSlidesToggle && (
 				<button

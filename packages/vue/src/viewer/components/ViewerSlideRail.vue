@@ -11,6 +11,7 @@
  * canvas to zero height; a phone navigates slides from the bottom bar instead.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
+import { EDITOR_THUMBNAIL_WIDTH } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
@@ -21,11 +22,9 @@ import SectionList from './SectionList.vue';
 import SlidesPaneSidebar from './SlidesPaneSidebar.vue';
 
 /**
- * px - matches the rail's content width (180px rail minus 2x0.75rem padding)
- * and React's `SLIDE_NAV_THUMBNAIL_WIDTH`, so thumbnails render at the same
- * size across bindings.
+ * Shared preview width inside the 180px rail, leaving room for slide numbers.
  */
-const THUMB_WIDTH = 156;
+const THUMB_WIDTH = EDITOR_THUMBNAIL_WIDTH;
 
 const props = defineProps<{
 	/** Slides with the template (master/layout) layer merged in. */

@@ -4,6 +4,7 @@ import {
 	computeResizedColumnWidths,
 	computeResizedRowHeight,
 	DEFAULT_ROW_HEIGHT,
+	getTableResizeScale,
 } from 'pptx-viewer-shared';
 
 /**
@@ -90,6 +91,7 @@ export class TableResizeController {
 		const rect = root.getBoundingClientRect();
 		const localX = event.clientX - rect.left;
 		const localY = event.clientY - rect.top;
+		const scaleY = getTableResizeScale(rect.height, root.offsetHeight);
 
 		for (let i = 0; i < this.colBoundaries.length; i++) {
 			const boundaryX = (this.colBoundaries[i] / 100) * rect.width;
@@ -105,7 +107,7 @@ export class TableResizeController {
 		}
 
 		for (let i = 0; i < this.rowBounds.length; i++) {
-			if (Math.abs(localY - this.rowBounds[i]) <= HANDLE_ZONE) {
+			if (Math.abs(localY - this.rowBounds[i] * scaleY) <= HANDLE_ZONE) {
 				const tr = root.querySelectorAll<HTMLElement>('table tbody > tr')[i];
 				this.#begin(event, {
 					type: 'row',

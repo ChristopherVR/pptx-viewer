@@ -27,6 +27,7 @@
 
 	import { useTranslator } from '../../../../i18n/context';
 	import { anchoredPopup, refocusViewerRoot } from '../anchored-popup';
+	import RibbonIcon from '../RibbonIcon.svelte';
 	import { strictTranslator, translatedOr } from './gallery-labels';
 	import { useRibbonGalleryHost } from './ribbon-gallery-host';
 
@@ -132,13 +133,14 @@
 			{disabled}
 			onclick={toggle}
 		>
-			<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
 		</button>
 	{:else}
 		<button
 			type="button"
 			class="pptx-svelte-rbgallery-trigger"
 			class:pptx-svelte-rbgallery-chevron={chevronOnly}
+			data-pptx-chrome={chevronOnly ? 'gallery-caret' : undefined}
 			data-ribbon-gallery={placement.gallery}
 			aria-haspopup="true"
 			aria-expanded={open}
@@ -149,10 +151,10 @@
 			onclick={toggle}
 		>
 			{#if !chevronOnly}
-				<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9" y="2" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="2" y="9" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor" opacity="0.5" /></svg>
+				{#if placement.gallery === 'shapeStyles' || placement.gallery === 'shapeEffects'}<RibbonIcon name={placement.gallery === 'shapeStyles' ? 'home.drawing.quickStyles' : 'home.drawing.shapeEffects'} />{:else}<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="2" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9" y="2" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="2" y="9" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.1" /><rect x="9" y="9" width="5" height="5" rx="1" fill="currentColor" opacity="0.5" /></svg>{/if}
 				<span>{title}</span>
 			{/if}
-			<svg class="pptx-svelte-rbgallery-caret" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+			<svg class="pptx-svelte-rbgallery-caret" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6" /></svg>
 		</button>
 	{/if}
 	{#if open}

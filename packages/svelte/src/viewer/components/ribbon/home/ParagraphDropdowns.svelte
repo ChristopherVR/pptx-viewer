@@ -12,6 +12,7 @@
 	 * because both controls need popup state and the group file is already at
 	 * the point where another popup would push it past the 300-LOC budget.
 	 */
+	import RibbonIcon from '../RibbonIcon.svelte';
 	import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
 
@@ -68,7 +69,7 @@
 		title={t('pptx.paragraph.textDirection')}
 		onclick={() => (openMenu = openMenu === 'direction' ? null : 'direction')}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><text x="1.5" y="11.5" font-size="8" fill="currentColor">A</text><path d="M11 4c2 0 2 2.6 0 2.6M11 6.6l1-1M11 6.6l-1-1" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" /></svg>
+		<RibbonIcon name="home.paragraph.textDirection" />
 	</button>
 	{#if openMenu === 'direction'}
 		<div class="pptx-svelte-paradd-pop" role="menu" use:anchoredPopup={{ anchor: directionAnchor }}>
@@ -92,7 +93,7 @@
 		title={t('pptx.paragraph.columns')}
 		onclick={() => (openMenu = openMenu === 'columns' ? null : 'columns')}
 	>
-		<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 2.5h3.5v11h-3.5zM10 2.5h3.5v11H10z" fill="none" stroke="currentColor" stroke-width="1.2" /></svg>
+		<RibbonIcon name="home.paragraph.columns" />
 	</button>
 	{#if openMenu === 'columns'}
 		<div class="pptx-svelte-paradd-pop" role="menu" use:anchoredPopup={{ anchor: columnsAnchor }}>

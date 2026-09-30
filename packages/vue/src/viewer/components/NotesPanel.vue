@@ -111,17 +111,19 @@ function toggle(): void {
 
 <template>
 	<section
+		data-pptx-chrome="notes"
 		class="pptx-vue-notes-panel flex flex-col border-t border-border/60 bg-background"
 		:data-collapsed="collapsed"
 	>
 		<button
 			v-if="!embedded"
 			type="button"
+			data-pptx-chrome="notes-header"
 			class="pptx-vue-notes-header flex w-full items-center justify-between px-3 py-2 text-left text-[0.8125rem] font-semibold text-muted-foreground transition-colors hover:bg-accent/30 hover:text-foreground"
 			:aria-expanded="!collapsed"
 			@click="toggle"
 		>
-			<span class="pptx-vue-notes-title select-none">{{ t('pptx.presenter.speakerNotes') }}</span>
+			<span class="pptx-vue-notes-title select-none">{{ t('pptx.notes.title') }}</span>
 			<component
 				:is="collapsed ? ChevronRight : ChevronDown"
 				class="pptx-vue-notes-chevron h-3.5 w-3.5 text-muted-foreground"

@@ -7,7 +7,6 @@
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
 import type { ThemeColorPickerCommit } from 'pptx-viewer-shared';
 import { RIBBON_SHAPE_SWATCHES } from 'pptx-viewer-shared';
-import type { Component } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { injectRecentColors } from '../../composables/recent-colors-context';
@@ -15,11 +14,12 @@ import ThemeColorSwatchGrid from '../inspector/ThemeColorSwatchGrid.vue';
 import RecentColorsRow from '../RecentColorsRow.vue';
 import { vAnchoredPopup } from './anchored-popup';
 import { ic, pill } from './ribbon-constants';
+import RibbonIcon from './RibbonIcon';
 import { useDropdown } from './use-dropdown';
 
 interface Props {
 	disabled: boolean;
-	icon: Component;
+	iconName: string;
 	/** i18n key of the button title. */
 	titleKey: string;
 	/** Prefix of each standard swatch's aria-label ("Fill colour", "Outline colour"). */
@@ -54,7 +54,7 @@ function onThemePick(commit: ThemeColorPickerCommit): void {
 			:title="t(props.titleKey)"
 			@click="menu.toggle()"
 		>
-			<component :is="props.icon" :class="ic" />
+			<RibbonIcon :name="props.iconName" :class="ic" />
 		</button>
 		<div v-if="menu.open.value" class="z-50 pt-1" v-anchored-popup="{ anchor: menu.root.value }">
 			<div class="rounded-lg border border-border bg-popover backdrop-blur-lg shadow-2xl p-2">
