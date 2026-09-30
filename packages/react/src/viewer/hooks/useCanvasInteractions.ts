@@ -365,7 +365,9 @@ export function useCanvasInteractions(
 			return;
 		}
 		if (hasTextProperties(el) && canInteractWithElement(el, 'textEdit')) {
-			setPendingCaretPoint(e);
+			// Caret at the END, as for any double-click (typing appends; see
+			// e2e/desktop-manipulation). Only a click on an already-selected
+			// shape's text puts it where the click landed.
 			setInlineEditingElementId(elementId);
 			setInlineEditingText(el.text ?? '');
 		}
