@@ -209,10 +209,10 @@ export function orderedTemplatePartXml(options: {
 		? orderShapeTreeChildren(rewrapped, (node) => rebuilt.get(node), getLocalName)
 		: orderContainer(rewrapped, sourceXml ? scanSpTreeDocumentOrder(sourceXml) : [], getLocalName);
 	if (ordered === spTree) {
-		return withOrderedTableParagraphs(xmlObj);
+		return withOrderedTableParagraphs(xmlObj, true);
 	}
 	const nextRoot: XmlObject = { ...root, 'p:cSld': { ...commonSlideData, 'p:spTree': ordered } };
 	const nextPart: XmlObject = { ...xmlObj };
 	setOwnXmlProperty(nextPart, rootTag, nextRoot);
-	return withOrderedTableParagraphs(nextPart);
+	return withOrderedTableParagraphs(nextPart, true);
 }

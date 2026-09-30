@@ -15,6 +15,7 @@ import { PptxHandlerRuntime as PptxHandlerRuntimeBase } from './PptxHandlerRunti
 import type { SlideShapeCollectors, SaveSlideContext } from './PptxHandlerRuntimeSaveElementWriter';
 import { applyShapeIdMapToSlide } from './save-structural-id-gate';
 import { fingerprintSlide, slideMatchesFingerprint } from './slide-fingerprint';
+import { updateSlideLayoutRelationship } from './slide-layout-relationship';
 import { buildOrderedSlideXml, SpTreeChildOrderTracker } from './slide-save-xml-order';
 import { reconcileSlideTiming } from './slide-timing-reconcile';
 import { reconcileSlideTransition } from './slide-transition-reconcile';
@@ -237,10 +238,16 @@ export class PptxHandlerRuntime extends PptxHandlerRuntimeBase {
 			slideRelsRoot['@_xmlns'] = constants.relationshipsNamespace;
 		}
 		const slideRelationships = this.ensureArray(slideRelsRoot['Relationship']) as XmlObject[];
+		updateSlideLayoutRelationship(
+			slideRelationships,
+			slide.layoutPath,
+			constants.slideLayoutRelationshipType,
+		);
 		const slideRelationshipRegistry: IPptxSlideRelationshipRegistry =
 			new PptxSlideRelationshipRegistry({
 				relationships: slideRelationships,
 			});
+		this.slideRelsMap.set(slide.id, slideRelationshipRegistry.toRelationshipMap());
 		const existingCommentRelationship = slideRelationshipRegistry.removeCommentRelationships(
 			constants.slideCommentRelationshipType,
 		);
