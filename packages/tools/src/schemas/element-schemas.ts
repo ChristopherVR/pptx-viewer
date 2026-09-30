@@ -76,6 +76,19 @@ export const UpdateElementSchema = z.object({
 	height: z.number().optional(),
 	rotation: z.number().optional(),
 	text: z.string().optional(),
+	textSegments: z
+		.array(
+			z
+				.object({
+					text: z.string(),
+					style: z.record(z.string(), z.any()),
+				})
+				.passthrough(),
+		)
+		.optional()
+		.describe(
+			'Rich text segments, including paragraph and bullet metadata. Takes precedence over text.',
+		),
 	fontSize: z.number().optional(),
 	fontFamily: z.string().optional(),
 	fontColor: z.string().optional(),

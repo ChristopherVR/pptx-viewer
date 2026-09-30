@@ -3,6 +3,7 @@ import type { PptxElementWithText, TablePptxElement } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex } from './helpers.js';
+import { replaceElementText } from './text-editing.js';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -223,19 +224,7 @@ export function replaceText(
 					if (after !== before) {
 						const matchCount = Array.from(before.matchAll(regex)).length;
 						count += matchCount;
-						textEl.text = after;
-						// update textSegments if present
-						if (textEl.textSegments && textEl.textSegments.length > 0) {
-							// rebuild first segment with updated text
-							const firstSeg = textEl.textSegments[0];
-							const updatedFirst = firstSeg.text.replace(regex, params.replacement);
-							if (updatedFirst !== firstSeg.text) {
-								firstSeg.text = updatedFirst;
-							} else {
-								// spread the whole new text across the first segment
-								textEl.textSegments = [{ text: after, style: firstSeg.style }];
-							}
-						}
+						replaceElementText(textEl, regex, params.replacement);
 					}
 				}
 			}

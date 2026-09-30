@@ -16,11 +16,13 @@ import type {
 	PptxElementWithText,
 	PptxElementAnimation,
 	PptxThemeColorRef,
+	TextSegment,
 } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
 import { validateSlideIndex, generateElementId } from './helpers.js';
 import { applyElementAltText, applyElementTitle } from './style-tools.js';
+import { setElementText } from './text-editing.js';
 
 // ── addElement ──────────────────────────────────────────────────────────────
 
@@ -240,6 +242,7 @@ export interface UpdateElementParams {
 	height?: number;
 	rotation?: number;
 	text?: string;
+	textSegments?: TextSegment[];
 	fontSize?: number;
 	fontFamily?: string;
 	fontColor?: string;
@@ -318,13 +321,11 @@ export function updateElement(
 
 	if (hasTextProperties(el)) {
 		const textEl = el as PptxElementWithText;
-		if (params.text !== undefined) {
-			textEl.text = params.text;
-			if (textEl.textSegments && textEl.textSegments.length > 0) {
-				textEl.textSegments[0].text = params.text;
-			} else {
-				textEl.textSegments = [{ text: params.text, style: {} }];
-			}
+		if (params.textSegments !== undefined) {
+			textEl.textSegments = structuredClone(params.textSegments);
+			textEl.text = textEl.textSegments.map((segment) => segment.text).join('');
+		} else if (params.text !== undefined) {
+			setElementText(textEl, params.text);
 		}
 		if (!textEl.textStyle) {
 			textEl.textStyle = {};

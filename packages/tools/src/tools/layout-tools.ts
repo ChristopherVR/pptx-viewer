@@ -1,7 +1,7 @@
 import { findLayoutByName, findLayoutByType } from 'pptx-viewer-core';
 
 import type { ToolContext, ToolResult } from '../types.js';
-import { validateSlideIndex } from './helpers.js';
+import { generateElementId, validateSlideIndex } from './helpers.js';
 
 // ── getLayouts ───────────────────────────────────────────────────────────────
 
@@ -90,6 +90,56 @@ export function applyLayout(
 	slide.layoutName = layout.name;
 	if (layout.path) {
 		slide.layoutPath = layout.path;
+	}
+	const master = ctx.pptxData.slideMasters?.find((candidate) =>
+		candidate.layouts?.some((definition) => definition.path === layout.path),
+	);
+	const definition = master?.layouts?.find((candidate) => candidate.path === layout.path);
+	for (const frame of definition?.placeholders ?? []) {
+		if (['dt', 'ftr', 'sldnum', 'hdr'].includes(frame.type)) {
+			continue;
+		}
+		const ph = {
+			'@_type': frame.type === 'ctrtitle' ? 'ctrTitle' : frame.type,
+			...(frame.idx !== undefined ? { '@_idx': frame.idx } : {}),
+		};
+		if (
+			slide.elements.some((element) => {
+				const nv = element.rawXml?.['p:nvSpPr'] as Record<string, unknown> | undefined;
+				const nvPr = nv?.['p:nvPr'] as Record<string, unknown> | undefined;
+				const existing = nvPr?.['p:ph'] as Record<string, unknown> | undefined;
+				return (
+					element.placeholderType === frame.type &&
+					String(existing?.['@_idx'] ?? '0') === String(frame.idx ?? '0')
+				);
+			})
+		) {
+			continue;
+		}
+		const inherited =
+			master?.placeholders?.find(
+				(candidate) =>
+					candidate.type === frame.type && (candidate.idx ?? '0') === (frame.idx ?? '0'),
+			) ?? master?.placeholders?.find((candidate) => candidate.type === frame.type);
+		slide.elements.push({
+			id: generateElementId(),
+			type: 'text',
+			placeholderType: frame.type,
+			x: frame.x ?? inherited?.x ?? 0,
+			y: frame.y ?? inherited?.y ?? 0,
+			width: frame.width ?? inherited?.width ?? ctx.pptxData.width,
+			height: frame.height ?? inherited?.height ?? ctx.pptxData.height,
+			text: '',
+			textSegments: [{ text: '', style: {} }],
+			rawXml: {
+				'p:nvSpPr': {
+					'p:cNvPr': { '@_name': frame.type },
+					'p:cNvSpPr': {},
+					'p:nvPr': { 'p:ph': ph },
+				},
+				'p:spPr': {},
+			},
+		});
 	}
 
 	return {
