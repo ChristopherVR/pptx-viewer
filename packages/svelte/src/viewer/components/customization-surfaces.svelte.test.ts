@@ -63,6 +63,28 @@ function navLabels(target: HTMLElement): string[] {
 }
 
 describe('settingsDialog customization', () => {
+	it('moves focus into Options, consumes Escape and restores the opener on cleanup', async () => {
+		const opener = document.createElement('button');
+		document.body.append(opener);
+		opener.focus();
+		const props = settingsProps();
+		const { target } = mountWith(
+			SettingsDialog as unknown as Component<Record<string, unknown>>,
+			props,
+			{},
+		);
+		await Promise.resolve();
+		expect(target.querySelector('[role="dialog"]')?.contains(document.activeElement)).toBeTruthy();
+		document.activeElement!.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }),
+		);
+		expect(props.onclose).toHaveBeenCalledOnce();
+		cleanup?.();
+		cleanup = undefined;
+		expect(document.activeElement).toBe(opener);
+		opener.remove();
+	});
+
 	it('drops a hidden Options page and the AI page when that page is hidden', () => {
 		const { target } = mountWith(
 			SettingsDialog as unknown as Component<Record<string, unknown>>,

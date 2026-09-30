@@ -4,6 +4,7 @@
 	import { untrack } from 'svelte';
 	import {
 		DEFAULT_QUICK_ACCESS_COMMAND_IDS,
+		activateModalFocus,
 		VIEWER_OPTIONS_TABS,
 		customizeOptionsTabs,
 		isOptionsPageVisible,
@@ -95,6 +96,9 @@
 		optionsState.restore(snapshot);
 		onclose();
 	}
+	function modalFocus(node: HTMLElement): { destroy(): void } {
+		return { destroy: activateModalFocus(node, { onEscape: onclose }) };
+	}
 	function clearCache(): void {
 		void optionsState.clearCache().catch(() => {
 			// Keep the options dialog usable when IndexedDB rejects cleanup.
@@ -112,7 +116,7 @@
 <div class="backdrop">
 	<button class="scrim" type="button" aria-label={t('pptx.settings.closeSettings')} onclick={onclose}></button>
 	<!-- svelte-ignore a11y_no_noninteractive_element_to_interactive_role -->
-	<section role="dialog" tabindex="-1" aria-modal="true" aria-label={t('pptx.options.title')}>
+	<section use:modalFocus role="dialog" tabindex="-1" aria-modal="true" aria-label={t('pptx.options.title')}>
 		<header>
 			<div><b><Settings size={20} aria-hidden="true" /></b><h2>{t('pptx.options.title')}</h2></div>
 			<button type="button" aria-label={t('pptx.settings.close')} onclick={onclose}><X size={16} aria-hidden="true" /></button>

@@ -42,7 +42,11 @@ export function activateModalFocus(
 	options: ModalFocusOptions = {},
 ): () => void {
 	const doc = panel.ownerDocument;
-	const opener = doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
+	let activeElement = doc.activeElement;
+	while (activeElement?.shadowRoot?.activeElement) {
+		activeElement = activeElement.shadowRoot.activeElement;
+	}
+	const opener = activeElement instanceof HTMLElement ? activeElement : null;
 	const restoreFocus = options.restoreFocus ?? true;
 
 	function focusInitial(): void {

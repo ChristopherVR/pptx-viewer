@@ -26,6 +26,21 @@ function setup(): {
 }
 
 describe('activateModalFocus', () => {
+	it('restores an opener inside nested open shadow roots', async () => {
+		const { panel } = setup();
+		const host = document.createElement('div');
+		const nested = document.createElement('div');
+		const button = document.createElement('button');
+		host.attachShadow({ mode: 'open' }).append(nested);
+		nested.attachShadow({ mode: 'open' }).append(button);
+		document.body.append(host);
+		button.focus();
+		const release = activateModalFocus(panel);
+		await Promise.resolve();
+		release();
+		expect(nested.shadowRoot!.activeElement).toBe(button);
+	});
+
 	it('moves focus into the modal and restores the opener', async () => {
 		const { opener, panel, controls } = setup();
 		const release = activateModalFocus(panel);
