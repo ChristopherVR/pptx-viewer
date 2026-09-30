@@ -161,6 +161,25 @@ afterEach(() => {
 });
 
 describe('mountElementContextMenu', () => {
+	it('runs a host command with the selected element and closes the menu', () => {
+		const onSelect = vi.fn();
+		const h = harness(shapeSlide(), {
+			customization: resolveCustomization({
+				contextMenu: { extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }] },
+			}),
+		});
+		h.target.dispatchEvent(
+			new MouseEvent('contextmenu', { bubbles: true, clientX: 10, clientY: 10 }),
+		);
+		const button = Array.from(
+			document.querySelectorAll<HTMLButtonElement>('[data-pptx-context-menu] button'),
+		).find((item) => item.textContent === 'Send to chat')!;
+		button.click();
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 0, elementIds: ['el-1'] });
+		expect(document.querySelector('[data-pptx-context-menu]')).toBeNull();
+		h.destroy();
+	});
+
 	it('drops the commands the host customisation hides', () => {
 		const customization = resolveCustomization({
 			contextMenu: { hiddenElementCommands: ['copy'] },

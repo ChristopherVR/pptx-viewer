@@ -41,10 +41,14 @@ import {
 } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 
-import type { CanvasContextMenuCommandId, CanvasContextMenuEntry } from '../internal/shared';
+import type {
+	CanvasContextMenuCommandId,
+	CustomizedCanvasContextMenuEntry,
+} from '../internal/shared';
 import {
 	buildCanvasContextMenuEntries,
 	customizeCanvasContextMenuEntries,
+	hostMenuLabel,
 } from '../internal/shared';
 import { clampedMenuPosition } from './context-menu-position';
 import { EDITOR_CONTEXT_MENU_STYLES } from './editor-context-menu.styles';
@@ -86,14 +90,14 @@ const CHECKBOX_ITEM_STYLES = `
 							[attr.role]="entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'"
 							[attr.aria-checked]="entry.checked === undefined ? null : entry.checked"
 							[disabled]="!!entry.disabled"
-							(click)="run(entry.id)"
+							(click)="run(entry)"
 						>
 							@if (entry.checked !== undefined) {
 								<span class="pptx-ctx__check" aria-hidden="true">{{
 									entry.checked ? '✓' : ''
 								}}</span>
 							}
-							{{ entry.labelKey | translate }}
+							{{ hostLabel(entry) ?? (entry.labelKey | translate) }}
 						</button>
 					</li>
 				}
@@ -107,8 +111,10 @@ const CHECKBOX_ITEM_STYLES = `
 	},
 })
 export class SlideCanvasContextMenuComponent {
+	protected readonly hostLabel = hostMenuLabel;
 	readonly x = input.required<number>();
 	readonly y = input.required<number>();
+	readonly slideIndex = input<number>(0);
 	readonly hasClipboard = input<boolean>(false);
 	readonly showGrid = input<boolean>(false);
 	readonly showRulers = input<boolean>(false);
@@ -129,7 +135,7 @@ export class SlideCanvasContextMenuComponent {
 
 	private readonly customization = injectResolvedCustomization();
 
-	protected readonly entries = computed<CanvasContextMenuEntry[]>(() =>
+	protected readonly entries = computed<CustomizedCanvasContextMenuEntry[]>(() =>
 		customizeCanvasContextMenuEntries(
 			buildCanvasContextMenuEntries({
 				hasClipboard: this.hasClipboard(),
@@ -137,6 +143,7 @@ export class SlideCanvasContextMenuComponent {
 				showRulers: this.showRulers(),
 			}),
 			this.customization(),
+			{ slideIndex: this.slideIndex() },
 		),
 	);
 
@@ -166,7 +173,15 @@ export class SlideCanvasContextMenuComponent {
 	}
 
 	/** Run the chosen command, then close: every item closes the menu. */
-	protected run(id: CanvasContextMenuCommandId): void {
+	protected run(id: CanvasContextMenuCommandId | CustomizedCanvasContextMenuEntry): void {
+		if (typeof id !== 'string') {
+			if ('host' in id) {
+				this.closed.emit();
+				id.onSelect();
+				return;
+			}
+			id = id.id;
+		}
 		runCanvasContextMenuCommand(id, this.actions);
 		this.closed.emit();
 	}

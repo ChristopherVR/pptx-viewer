@@ -898,6 +898,37 @@ unit test fails if an id is missing here.
 | `print`          | Print Presentation              |
 | `share`          | Share with People               |
 
+### Host context-menu commands
+
+All five bindings accept `contextMenu.extraElementCommands` and `contextMenu.extraCanvasCommands`. These arrays contain `{ id, label, group?, disabled?, onSelect }` commands. Labels are plain text supplied by the host. `group` is `"top"` (the default) or `"bottom"`, separated from the built-in commands. IDs are isolated from built-in IDs; duplicate host IDs keep the first entry.
+
+Element callbacks receive `{ slideIndex, elementIds }`; canvas callbacks receive `{ slideIndex }`. `slideIndex` is zero-based. Context is an immutable snapshot of the effective selection when the command was offered. `disabled` accepts a boolean or a predicate receiving that context. A disabled command cannot run. The menu closes before `onSelect` runs.
+
+```ts
+viewer.setCustomization({
+	contextMenu: {
+		extraElementCommands: [
+			{
+				id: 'send-to-chat',
+				label: 'Send to chat',
+				disabled: ({ elementIds }) => elementIds.length === 0,
+				onSelect: ({ slideIndex, elementIds }) => sendToChat(slideIndex, elementIds),
+			},
+		],
+		extraCanvasCommands: [
+			{
+				id: 'send-slide',
+				label: 'Send slide',
+				group: 'bottom',
+				onSelect: ({ slideIndex }) => sendSlide(slideIndex),
+			},
+		],
+	},
+});
+```
+
+Use the customization prop/input/option or `setCustomization` / `updateCustomization` to replace commands live. Callbacks remain in memory and are not persisted in viewer settings. Disabling the corresponding menu also removes host commands.
+
 ### Element context menu (`contextMenu.hiddenElementCommands`)
 
 | Id                       | Entry                |

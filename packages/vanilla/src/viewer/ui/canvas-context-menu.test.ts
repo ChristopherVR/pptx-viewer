@@ -1,4 +1,6 @@
 import type { PptxSlide } from 'pptx-viewer-core';
+import { resolveCustomization } from 'pptx-viewer-shared';
+import type { ViewerCustomization } from 'pptx-viewer-shared';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import type { EditActions } from '../editor';
@@ -34,7 +36,7 @@ interface Harness {
 	destroy(): void;
 }
 
-function harness(state: Partial<ViewerState> = {}): Harness {
+function harness(state: Partial<ViewerState> = {}, customization?: ViewerCustomization): Harness {
 	const viewport = document.createElement('div');
 	const stage = document.createElement('div');
 	stage.className = 'pptxv-stage';
@@ -58,6 +60,7 @@ function harness(state: Partial<ViewerState> = {}): Harness {
 		viewport,
 		getStageRoot: () => stage,
 		getEditActions: () => actions as unknown as EditActions,
+		getCustomization: () => resolveCustomization(customization),
 	});
 	return { actions, store, viewport, element, destroy: () => menu.destroy() };
 }
@@ -87,6 +90,19 @@ afterEach(() => {
 });
 
 describe('mountCanvasContextMenu', () => {
+	it('dispatches a host command with the slide and closes', () => {
+		const onSelect = vi.fn();
+		const context = harness(
+			{},
+			{ contextMenu: { extraCanvasCommands: [{ id: 'slide', label: 'Send slide', onSelect }] } },
+		);
+		rightClick(context.viewport);
+		clickCommand('Send slide');
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 0 });
+		expect(openMenu()).toBeNull();
+		context.destroy();
+	});
+
 	it('opens the shared six-command menu on a right-click over empty canvas', () => {
 		const context = harness();
 		rightClick(context.viewport);

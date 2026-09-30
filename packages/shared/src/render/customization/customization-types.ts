@@ -28,6 +28,11 @@ import type {
 } from '../options/viewer-options';
 import type { ViewerOptionsTabId } from '../options/viewer-options-controls';
 import type { RibbonContextualTabId, ToolbarButtonId, ToolbarTabId } from '../toolbar-actions';
+import type {
+	HostMenuCommand,
+	HostElementMenuContext,
+	HostCanvasMenuContext,
+} from './host-menu-commands';
 import type { RibbonControlId, RibbonGroupId } from './ribbon-control-ids';
 
 /** Keys of an options group whose value is a primitive (not an array). */
@@ -110,6 +115,9 @@ export interface BackstageCustomization {
 
 /** Right-click menu customisation. */
 export interface ContextMenuCustomization {
+	/** Additional host commands, independent of the viewer's AI connection. */
+	extraElementCommands?: readonly HostMenuCommand<HostElementMenuContext>[];
+	extraCanvasCommands?: readonly HostMenuCommand<HostCanvasMenuContext>[];
 	/** Entries to remove from the element (right-click on a shape) menu. */
 	hiddenElementCommands?: readonly ContextMenuCommandId[];
 	/** Entries to remove from the empty-canvas menu. */

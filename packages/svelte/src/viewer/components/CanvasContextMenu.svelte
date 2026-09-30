@@ -7,7 +7,7 @@
 	 * `buildCanvasMenuEntries`), this component only positions and renders it.
 	 */
 	import { clampFlyoutPosition, customizeCanvasContextMenuEntries } from 'pptx-viewer-shared';
-	import type { CanvasContextMenuCommandId } from 'pptx-viewer-shared';
+	import type { CustomizedCanvasContextMenuEntry } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import {
@@ -58,7 +58,7 @@
 	const customization = useViewerCustomization();
 	// Filtered through the host's customisation; empty means no menu, so close.
 	const entries = $derived(
-		customizeCanvasContextMenuEntries(buildCanvasMenuEntries(dispatch), customization.resolved),
+		customizeCanvasContextMenuEntries(buildCanvasMenuEntries(dispatch), customization.resolved, { slideIndex: editor.currentSlideIndex }),
 	);
 	$effect(() => {
 		if (entries.length === 0) {
@@ -66,8 +66,13 @@
 		}
 	});
 
-	function run(id: CanvasContextMenuCommandId): void {
-		runCanvasContextMenuCommand(id, dispatch);
+	function run(entry: CustomizedCanvasContextMenuEntry): void {
+		if ('host' in entry) {
+			onclose();
+			entry.onSelect();
+			return;
+		}
+		runCanvasContextMenuCommand(entry.id, dispatch);
 		onclose();
 	}
 </script>
@@ -98,10 +103,10 @@
 			role={entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
 			aria-checked={entry.checked === undefined ? undefined : entry.checked}
 			disabled={entry.disabled}
-			onclick={() => run(entry.id)}
+			onclick={() => run(entry)}
 		>
 			{#if entry.checked !== undefined}<span class="pptx-svelte-context-check" aria-hidden="true">{entry.checked ? '✓' : ''}</span>{/if}
-			{t(entry.labelKey)}
+			{'host' in entry ? entry.label : t(entry.labelKey)}
 		</button>
 	{/each}
 </div>

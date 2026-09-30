@@ -25,6 +25,7 @@ export interface CanvasContextMenuState {
 }
 
 export interface UseCanvasContextMenuInput {
+	slideIndex?: () => number;
 	hasClipboard: ComputedRef<boolean> | Ref<boolean>;
 	showGrid: Ref<boolean>;
 	showRulers: Ref<boolean>;
@@ -58,12 +59,15 @@ export function useCanvasContextMenu(input: UseCanvasContextMenuInput): UseCanva
 			showRulers: input.showRulers.value,
 		});
 		const entries = input.customization
-			? customizeCanvasContextMenuEntries(built, input.customization())
+			? customizeCanvasContextMenuEntries(built, input.customization(), {
+					slideIndex: input.slideIndex?.() ?? 0,
+				})
 			: built;
 		return entries.flatMap((entry, index) => {
 			const item: ContextMenuItem = {
 				id: entry.id,
-				label: t(entry.labelKey),
+				label: 'host' in entry ? entry.label : t(entry.labelKey),
+				onSelect: 'host' in entry ? entry.onSelect : undefined,
 				disabled: entry.disabled,
 				checked: entry.checked,
 			};

@@ -203,6 +203,9 @@ export type { SavedPresentationFormat } from 'pptx-viewer-shared';
 export type {
 	BackstageCustomization,
 	ContextMenuCustomization,
+	HostMenuCommand,
+	HostElementMenuContext,
+	HostCanvasMenuContext,
 	KeyboardCustomization,
 	OptionsCustomization,
 	OptionsPageId,

@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils';
 import type { PptxElement } from 'pptx-viewer-core';
 import { resolveCustomization } from 'pptx-viewer-shared';
 import type { ViewerCustomization } from 'pptx-viewer-shared';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { computed, defineComponent, h, ref } from 'vue';
 
 import { useCanvasContextMenu } from './useCanvasContextMenu';
@@ -65,6 +65,20 @@ function mountMenus(customization: ViewerCustomization) {
 }
 
 describe('context menus under UI customization', () => {
+	it('offers host commands on both menus with their callback context', () => {
+		const onSelect = vi.fn();
+		const { elementMenu, canvasMenu } = mountMenus({
+			contextMenu: {
+				extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }],
+				extraCanvasCommands: [{ id: 'chat', label: 'Discuss slide', onSelect }],
+			},
+		});
+		elementMenu.contextItems.value.find((entry) => entry.id === 'host:chat')!.onSelect!();
+		expect(onSelect).toHaveBeenLastCalledWith({ slideIndex: 0, elementIds: ['shape-1'] });
+		canvasMenu.canvasContextItems.value.find((entry) => entry.id === 'host:chat')!.onSelect!();
+		expect(onSelect).toHaveBeenLastCalledWith({ slideIndex: 0 });
+	});
+
 	it('omits hidden element commands and keeps the rest', () => {
 		const { elementMenu } = mountMenus({
 			contextMenu: { hiddenElementCommands: ['delete', 'duplicate'] },

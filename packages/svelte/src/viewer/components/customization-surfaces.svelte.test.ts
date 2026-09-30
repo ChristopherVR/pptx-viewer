@@ -151,6 +151,45 @@ function menuLabels(target: HTMLElement): string[] {
 }
 
 describe('context menu customization', () => {
+	it('dispatches a canvas host command with the slide and closes', () => {
+		const onSelect = vi.fn();
+		const onclose = vi.fn();
+		const editor = editorStub();
+		Object.defineProperty(editor, 'currentSlideIndex', { value: 2 });
+		const { target } = mountWith(
+			CanvasContextMenu as unknown as Component<Record<string, unknown>>,
+			{ x: 10, y: 10, editor, onclose },
+			{ contextMenu: { extraCanvasCommands: [{ id: 'slide', label: 'Send slide', onSelect }] } },
+		);
+		const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
+			(item) => item.textContent?.trim() === 'Send slide',
+		)!;
+		button.click();
+		flushSync();
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 2 });
+		expect(onclose).toHaveBeenCalledOnce();
+	});
+
+	it('runs a host command on the selected ids and closes the menu', () => {
+		const onSelect = vi.fn();
+		const onclose = vi.fn();
+		const editor = editorStub();
+		Object.defineProperty(editor, 'currentSlideIndex', { value: 3 });
+		editor.selection.ids = ['shape-1'];
+		const { target } = mountWith(
+			ElementContextMenu as unknown as Component<Record<string, unknown>>,
+			{ x: 10, y: 10, editor, onclose },
+			{ contextMenu: { extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }] } },
+		);
+		const button = Array.from(target.querySelectorAll<HTMLButtonElement>('button')).find(
+			(item) => item.textContent === 'Send to chat',
+		)!;
+		button.click();
+		flushSync();
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 3, elementIds: ['shape-1'] });
+		expect(onclose).toHaveBeenCalledOnce();
+	});
+
 	it('omits a hidden element command and closes when the menu is disabled', () => {
 		const onclose = vi.fn();
 		const { target, state } = mountWith(

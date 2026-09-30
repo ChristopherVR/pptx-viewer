@@ -64,6 +64,9 @@ export type { ToolbarActionId, ToolbarButtonId, ToolbarTabId } from 'pptx-viewer
 export type {
 	BackstageCustomization,
 	ContextMenuCustomization,
+	HostMenuCommand,
+	HostElementMenuContext,
+	HostCanvasMenuContext,
 	KeyboardCustomization,
 	OptionsCustomization,
 	OptionsPageId,

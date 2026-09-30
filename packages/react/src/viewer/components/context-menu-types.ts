@@ -8,6 +8,8 @@ import type {
 } from '../types';
 
 export interface ContextMenuProps {
+	slideIndex?: number;
+	elementIds?: readonly string[];
 	contextMenuState: ElementContextMenuState;
 	mode: string;
 	selectedElement: PptxElement | null;

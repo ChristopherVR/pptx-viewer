@@ -55,6 +55,7 @@ export function CanvasContextMenu(props: CanvasContextMenuProps): React.ReactEle
 	const entries = customizeCanvasContextMenuEntries(
 		buildCanvasContextMenuEntries(canvasContextMenuContext(props)),
 		customization,
+		{ slideIndex: props.slideIndex ?? 0 },
 	);
 	if (entries.length === 0) {
 		return null;
@@ -82,7 +83,13 @@ export function CanvasContextMenu(props: CanvasContextMenuProps): React.ReactEle
 				}}
 			>
 				{entries.map((entry) => {
-					const run = handlers[entry.id];
+					const run =
+						'host' in entry
+							? () => {
+									onClose();
+									entry.onSelect();
+								}
+							: handlers[entry.id];
 					return (
 						<Fragment key={entry.id}>
 							{entry.separatorBefore && <ContextMenuSeparator />}
@@ -91,7 +98,7 @@ export function CanvasContextMenu(props: CanvasContextMenuProps): React.ReactEle
 								checked={entry.checked}
 								onSelect={() => run?.()}
 							>
-								{t(entry.labelKey)}
+								{'host' in entry ? entry.label : t(entry.labelKey)}
 							</ContextMenuItem>
 						</Fragment>
 					);

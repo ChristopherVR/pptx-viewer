@@ -20,6 +20,13 @@ import type {
 } from '../options/viewer-options-controls';
 import type { ResolvedCustomization } from './customization-resolve';
 import type { OptionsPageId, OptionsSectionId, OptionsSettingId } from './customization-types';
+import { withHostMenuCommands } from './host-menu-commands';
+import type {
+	HostElementMenuContext,
+	HostCanvasMenuContext,
+	CustomizedContextMenuEntry,
+	CustomizedCanvasContextMenuEntry,
+} from './host-menu-commands';
 
 /** The `<group>.<key>` id of a schema control. */
 export function optionsSettingIdOf(control: ViewerOptionsControl): OptionsSettingId {
@@ -131,22 +138,34 @@ export function filterMenuEntries<E extends { id: string; separatorBefore?: bool
 export function customizeContextMenuEntries(
 	entries: readonly ContextMenuEntry[],
 	resolved: ResolvedCustomization,
-): ContextMenuEntry[] {
+	context?: HostElementMenuContext,
+): CustomizedContextMenuEntry[] {
 	if (!resolved.elementMenuEnabled) {
 		return [];
 	}
-	return filterMenuEntries(entries, resolved.hiddenElementCommands);
+	const built = filterMenuEntries(entries, resolved.hiddenElementCommands);
+	return context
+		? withHostMenuCommands(
+				built,
+				resolved.extraElementCommands ?? [],
+				Object.freeze({ ...context, elementIds: Object.freeze([...context.elementIds]) }),
+			)
+		: built;
 }
 
 /** The empty-canvas context menu after the host's customisation (empty when disabled). */
 export function customizeCanvasContextMenuEntries(
 	entries: readonly CanvasContextMenuEntry[],
 	resolved: ResolvedCustomization,
-): CanvasContextMenuEntry[] {
+	context?: HostCanvasMenuContext,
+): CustomizedCanvasContextMenuEntry[] {
 	if (!resolved.canvasMenuEnabled) {
 		return [];
 	}
-	return filterMenuEntries(entries, resolved.hiddenCanvasCommands);
+	const built = filterMenuEntries(entries, resolved.hiddenCanvasCommands);
+	return context
+		? withHostMenuCommands(built, resolved.extraCanvasCommands ?? [], Object.freeze({ ...context }))
+		: built;
 }
 
 /** True unless the host hid this File tab page. */

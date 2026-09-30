@@ -25,7 +25,7 @@ import {
 	resolveContextMenuElementId,
 	resolveEditPointsAvailability,
 } from 'pptx-viewer-shared';
-import type { ContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
+import type { CustomizedContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
 
 import { findActiveElement } from '../editor/editor-active-elements';
 import { resolveTopLevelElementId } from '../editor/element-hit';
@@ -102,7 +102,7 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 	};
 
 	const buildItem = (
-		entry: ContextMenuEntry,
+		entry: CustomizedContextMenuEntry,
 		table: ContextMenuTableTarget | null,
 	): HTMLElement => {
 		const button = createEl(
@@ -112,17 +112,21 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 		);
 		button.type = 'button';
 		button.setAttribute('role', 'menuitem');
-		button.textContent = deps.getTranslator()(entry.labelKey);
+		button.textContent = 'host' in entry ? entry.label : deps.getTranslator()(entry.labelKey);
 		button.disabled = entry.disabled === true;
 		button.addEventListener('click', () => {
 			close();
+			if ('host' in entry) {
+				entry.onSelect();
+				return;
+			}
 			runContextMenuCommand(entry.id, deps, table);
 		});
 		return button;
 	};
 
 	const open = (
-		entries: ContextMenuEntry[],
+		entries: CustomizedContextMenuEntry[],
 		table: ContextMenuTableTarget | null,
 		x: number,
 		y: number,
@@ -221,6 +225,7 @@ export function mountElementContextMenu(deps: ElementContextMenuDeps): ElementCo
 				canCrop: canCropElement(element),
 			}),
 			customization,
+			{ slideIndex: next.currentSlide, elementIds: [...next.selectedElementIds] },
 		);
 		if (entries.length > 0) {
 			open(entries, table, event.clientX, event.clientY);

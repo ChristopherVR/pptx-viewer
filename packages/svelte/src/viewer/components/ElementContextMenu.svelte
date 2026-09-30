@@ -10,7 +10,7 @@
 	 * Edit Hyperlink, and no table commands at all.
 	 */
 	import { clampFlyoutPosition, customizeContextMenuEntries } from 'pptx-viewer-shared';
-	import type { ContextMenuCommandId } from 'pptx-viewer-shared';
+	import type { CustomizedContextMenuEntry } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../i18n/context';
 	import {
@@ -71,7 +71,7 @@
 	// The host's customisation filters the shared list (hidden commands, repaired
 	// separators); an empty result means no menu at all, so close instead.
 	const entries = $derived(
-		customizeContextMenuEntries(buildEditorContextMenuEntries(dispatch), customization.resolved),
+		customizeContextMenuEntries(buildEditorContextMenuEntries(dispatch), customization.resolved, { slideIndex: editor.currentSlideIndex, elementIds: [...editor.selection.ids] }),
 	);
 	$effect(() => {
 		if (entries.length === 0) {
@@ -79,8 +79,13 @@
 		}
 	});
 
-	function run(id: ContextMenuCommandId): void {
-		runContextMenuCommand(id, dispatch);
+	function run(entry: CustomizedContextMenuEntry): void {
+		if ('host' in entry) {
+			onclose();
+			entry.onSelect();
+			return;
+		}
+		runContextMenuCommand(entry.id, dispatch);
 		onclose();
 	}
 </script>
@@ -108,7 +113,7 @@
 >
 	{#each entries as entry (entry.id)}
 		{#if entry.separatorBefore}<div class="pptx-svelte-context-separator" role="separator"></div>{/if}
-		<button type="button" role="menuitem" class:pptx-svelte-context-delete={entry.danger} disabled={entry.disabled} onclick={() => run(entry.id)}>{t(entry.labelKey)}</button>
+		<button type="button" role="menuitem" class:pptx-svelte-context-delete={entry.danger} disabled={entry.disabled} onclick={() => run(entry)}>{'host' in entry ? entry.label : t(entry.labelKey)}</button>
 	{/each}
 </div>
 {/if}

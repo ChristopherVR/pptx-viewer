@@ -1,5 +1,5 @@
 import { mount } from '@vue/test-utils';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import ContextMenu from './ContextMenu.vue';
 import type { ContextMenuItem } from './ContextMenu.vue';
@@ -25,6 +25,26 @@ afterEach(() => {
 });
 
 describe('contextMenu', () => {
+	it('closes before running a host callback without dispatching a built-in', async () => {
+		const events: string[] = [];
+		const onSelect = vi.fn(() => events.push('host'));
+		const wrapper = mount(ContextMenu, {
+			props: {
+				open: true,
+				x: 0,
+				y: 0,
+				items: [{ id: 'host:chat', label: 'Send to chat', onSelect }],
+				onClose: () => events.push('close'),
+			},
+			attachTo: document.body,
+		});
+		document.querySelector<HTMLButtonElement>('[data-item-id="host:chat"]')!.click();
+		await wrapper.vm.$nextTick();
+		expect(events).toStrictEqual(['close', 'host']);
+		expect(wrapper.emitted('select')).toBeUndefined();
+		wrapper.unmount();
+	});
+
 	it('renders nothing when closed', () => {
 		mountMenu(false);
 		expect(document.querySelector('.pptx-vue-context-menu')).toBeNull();

@@ -63,6 +63,9 @@ export { createImageElementFromFile } from './internal/shared';
 export type {
 	BackstageCustomization,
 	ContextMenuCustomization,
+	HostMenuCommand,
+	HostElementMenuContext,
+	HostCanvasMenuContext,
 	KeyboardCustomization,
 	OptionsCustomization,
 	OptionsPageId,

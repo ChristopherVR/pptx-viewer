@@ -137,6 +137,11 @@ export function buildCustomizationReference(): string {
 			['Id', 'Card'],
 			Object.values(BACKSTAGE_CARDS).map((card) => [code(card.id), label(card.titleKey)]),
 		),
+		'### Host context-menu commands',
+		'All five bindings accept `contextMenu.extraElementCommands` and `contextMenu.extraCanvasCommands`. These arrays contain `{ id, label, group?, disabled?, onSelect }` commands. Labels are plain text supplied by the host. `group` is `"top"` (the default) or `"bottom"`, separated from the built-in commands. IDs are isolated from built-in IDs; duplicate host IDs keep the first entry.',
+		'Element callbacks receive `{ slideIndex, elementIds }`; canvas callbacks receive `{ slideIndex }`. `slideIndex` is zero-based. Context is an immutable snapshot of the effective selection when the command was offered. `disabled` accepts a boolean or a predicate receiving that context. A disabled command cannot run. The menu closes before `onSelect` runs.',
+		"```ts\nviewer.setCustomization({\n\tcontextMenu: {\n\t\textraElementCommands: [\n\t\t\t{\n\t\t\t\tid: 'send-to-chat',\n\t\t\t\tlabel: 'Send to chat',\n\t\t\t\tdisabled: ({ elementIds }) => elementIds.length === 0,\n\t\t\t\tonSelect: ({ slideIndex, elementIds }) => sendToChat(slideIndex, elementIds),\n\t\t\t},\n\t\t],\n\t\textraCanvasCommands: [\n\t\t\t{\n\t\t\t\tid: 'send-slide',\n\t\t\t\tlabel: 'Send slide',\n\t\t\t\tgroup: 'bottom',\n\t\t\t\tonSelect: ({ slideIndex }) => sendSlide(slideIndex),\n\t\t\t},\n\t\t],\n\t},\n});\n```",
+		'Use the customization prop/input/option or `setCustomization` / `updateCustomization` to replace commands live. Callbacks remain in memory and are not persisted in viewer settings. Disabling the corresponding menu also removes host commands.',
 		'### Element context menu (`contextMenu.hiddenElementCommands`)',
 		table(
 			['Id', 'Entry'],

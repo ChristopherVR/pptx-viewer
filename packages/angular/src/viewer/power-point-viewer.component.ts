@@ -1075,6 +1075,7 @@ import { ZoomTargetService } from './zoom-target.service';
 
 			@if (canEdit() && canvasEditing.canvasContextMenuPos(); as cm) {
 				<pptx-slide-canvas-context-menu
+					[slideIndex]="activeSlideIndex()"
 					[x]="cm.x"
 					[y]="cm.y"
 					[hasClipboard]="editor.hasClipboard()"

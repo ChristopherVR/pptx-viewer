@@ -1,3 +1,4 @@
+import { resolveCustomization } from 'pptx-viewer-shared';
 // @vitest-environment happy-dom
 /**
  * The empty-canvas context menu: renders the shared six-command list, greys
@@ -8,6 +9,8 @@ import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ViewerCustomizationContext } from './viewer-customization-context';
 
 vi.mock(import('react-i18next'), () => ({
 	useTranslation: () => ({ t: (key: string) => key }),
@@ -51,6 +54,29 @@ function props(overrides: Partial<CanvasContextMenuProps> = {}): CanvasContextMe
 }
 
 describe('canvasContextMenu', () => {
+	it('dispatches a host command with the slide and closes', () => {
+		const onSelect = vi.fn();
+		const onClose = vi.fn();
+		const customization = resolveCustomization({
+			contextMenu: {
+				extraCanvasCommands: [{ id: 'slide', label: 'Send slide', onSelect }],
+			},
+		});
+		act(() =>
+			root.render(
+				<ViewerCustomizationContext.Provider value={customization}>
+					<CanvasContextMenu {...props({ slideIndex: 4, onClose })} />
+				</ViewerCustomizationContext.Provider>,
+			),
+		);
+		const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
+			(item) => item.textContent === 'Send slide',
+		)!;
+		act(() => button.click());
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 4 });
+		expect(onClose).toHaveBeenCalledOnce();
+	});
+
 	it('renders nothing when there is no menu state', () => {
 		act(() => {
 			root.render(<CanvasContextMenu {...props({ canvasContextMenuState: null as never })} />);

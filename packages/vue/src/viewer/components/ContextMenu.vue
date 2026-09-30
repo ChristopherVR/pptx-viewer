@@ -8,6 +8,7 @@
  * back to editor operations.
  */
 export interface ContextMenuItem {
+	onSelect?: () => void;
 	/** Stable id emitted via `select`. Ignored for separators. */
 	id: string;
 	/** Visible label. */
@@ -88,8 +89,13 @@ function onItemClick(item: ContextMenuItem): void {
 	if (item.separator || item.disabled) {
 		return;
 	}
-	emit('select', item.id);
-	emit('close');
+	if (item.onSelect) {
+		emit('close');
+		item.onSelect();
+	} else {
+		emit('select', item.id);
+		emit('close');
+	}
 }
 
 function close(): void {

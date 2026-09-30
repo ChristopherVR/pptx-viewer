@@ -54,6 +54,8 @@ export interface ResolvedCustomization {
 	hiddenBackstagePages: ReadonlySet<BackstagePage>;
 	hiddenBackstageCards: ReadonlySet<BackstageCardId>;
 	hiddenElementCommands: ReadonlySet<ContextMenuCommandId>;
+	extraElementCommands: NonNullable<ViewerCustomization['contextMenu']>['extraElementCommands'];
+	extraCanvasCommands: NonNullable<ViewerCustomization['contextMenu']>['extraCanvasCommands'];
 	hiddenCanvasCommands: ReadonlySet<CanvasContextMenuCommandId>;
 	hiddenEditPointsCommands: ReadonlySet<EditPointsCommandId>;
 	hiddenDrawingTools: ReadonlySet<ViewerDrawingToolId>;
@@ -144,6 +146,8 @@ export function resolveCustomization(
 		hiddenBackstagePages: pages,
 		hiddenBackstageCards: cards,
 		hiddenElementCommands: elementCommands,
+		extraElementCommands: c.contextMenu?.extraElementCommands ?? [],
+		extraCanvasCommands: c.contextMenu?.extraCanvasCommands ?? [],
 		hiddenCanvasCommands: new Set(c.contextMenu?.hiddenCanvasCommands ?? []),
 		hiddenEditPointsCommands: new Set(c.contextMenu?.hiddenEditPointsCommands ?? []),
 		hiddenDrawingTools: new Set(c.hiddenDrawingTools ?? []),

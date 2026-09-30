@@ -2,102 +2,21 @@
  * ViewerMainContent: The primary content area containing sidebars,
  * canvas, context menu, and side panels.
  */
-import type { PptxElement, PptxLayoutPreview, PptxSlide } from 'pptx-viewer-core';
-import {
-	resetSlideLayoutPath,
-	resolveEditPointsAvailability,
-	setMasterViewBackgroundColor,
-} from 'pptx-viewer-shared';
-import type { ToolbarActionId } from 'pptx-viewer-shared';
-import type { PptxAiBridge, PptxAiConfig } from 'pptx-viewer-shared/ai';
+import { setMasterViewBackgroundColor } from 'pptx-viewer-shared';
 import { useMemo, useRef, useState } from 'react';
-import type { ReactNode } from 'react';
 
-import { SlidesPaneSidebar, MasterViewSidebar, ContextMenu, CanvasContextMenu } from '.';
-import type { AiPanelController } from '../hooks/ai/useAiPanelController';
-import type { UseCommentsResult } from '../hooks/useComments-helpers';
-import type { EditorHistoryResult } from '../hooks/useEditorHistory';
-import type { EditorOperationsResult } from '../hooks/useEditorOperations';
+import { SlidesPaneSidebar, MasterViewSidebar } from '.';
 import { useLayoutPreviews } from '../hooks/useLayoutPreviews';
-import type { UseMasterViewCrudResult } from '../hooks/useMasterViewCrud';
-import type { UsePresentationAnnotationsResult } from '../hooks/usePresentationAnnotations';
-import type { UsePresentationModeResult } from '../hooks/usePresentationMode';
-import type { PropertyHandlersResult } from '../hooks/usePropertyHandlers';
-import type { ThemeHandlersResult } from '../hooks/useThemeHandlers';
-import type { ViewerDialogsResult } from '../hooks/useViewerDialogs';
-import type { ViewerState } from '../hooks/useViewerState';
-import type { UseZoomViewportResult } from '../hooks/useZoomViewport';
-import type { CanvasSize, SlideSectionGroup } from '../types';
-import type { ViewerMode } from '../types-core';
 import { AiChangeOverlay, AiFocusHighlightOverlay } from './ai';
 import { ChartPartSelectionProvider } from './chart-part-selection';
 import { ResizeHandle } from './ResizeHandle';
 import { LayoutGalleryMenu } from './toolbar/LayoutGalleryMenu';
+import type { ViewerMainContentProps } from './viewer-main-content-types';
 import { ViewerCanvasArea } from './ViewerCanvasArea';
+import { ViewerContextMenus } from './ViewerContextMenus';
 import { ViewerSidePanels } from './ViewerSidePanels';
 
-// ---------------------------------------------------------------------------
-// Props
-// ---------------------------------------------------------------------------
-
-export interface ViewerMainContentProps {
-	mode: ViewerMode;
-	canEdit: boolean;
-	slides: PptxSlide[];
-	activeSlide: PptxSlide | undefined;
-	masterPseudoSlide: PptxSlide | undefined;
-	activeSlideIndex: number;
-	canvasSize: CanvasSize;
-	gridSpacingPx: number;
-	slideSectionGroups: SlideSectionGroup[];
-	showSlidesPane: boolean;
-	showMasterPane: boolean;
-	selectedElement: PptxElement | null;
-	state: ViewerState;
-	editorOps: EditorOperationsResult;
-	dialogs: ViewerDialogsResult;
-	presentation: UsePresentationModeResult;
-	/** Show chrome mounted inside the fullscreen stage; see `ViewerCanvasArea`. */
-	presentationOverlay?: ReactNode;
-	annotations: UsePresentationAnnotationsResult;
-	propertyHandlers: PropertyHandlersResult;
-	themeHandlers: ThemeHandlersResult;
-	history: EditorHistoryResult;
-	comments: UseCommentsResult;
-	/** Slide Master view sidebar CRUD (Insert/Duplicate/Delete/Rename). */
-	masterViewCrud: UseMasterViewCrudResult;
-	zoom: UseZoomViewportResult;
-	/** Whether the viewport is mobile-sized (<768px). */
-	isMobile?: boolean;
-	/** Whether the device supports touch input. */
-	isTouchDevice?: boolean;
-	/** Called when the user clicks "end presentation" in the slide show toolbar. */
-	onEndPresentation?: () => void;
-	/** Width of the left slides pane in pixels. */
-	leftPanelWidth?: number;
-	/** Callback to resize the left panel. */
-	onResizeLeft?: (delta: number) => void;
-	/** Width of the right inspector panel in pixels. */
-	rightPanelWidth?: number;
-	/** Callback to resize the right panel. */
-	onResizeRight?: (delta: number) => void;
-	/** Host-supplied list of toolbar buttons/ribbon tabs to hide. */
-	hiddenActions?: readonly ToolbarActionId[];
-	/** AI assistant config (present only when the host passes the `ai` prop). */
-	aiConfig?: PptxAiConfig;
-	/** Bridge exposing the live deck to the AI core. */
-	aiBridge?: PptxAiBridge;
-	/** AI panel open state + focus/prefill controller (present when `ai` is set). */
-	aiPanel?: AiPanelController;
-	/** Applies a layout to the active slide; used by the canvas context menu's Layout entry. */
-	onApplyLayout?: (path: string) => void;
-	/** Fetches layout artwork for the canvas context menu's Layout gallery. */
-	loadLayoutPreviews?: () => Promise<PptxLayoutPreview[]>;
-}
-
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
+export type { ViewerMainContentProps } from './viewer-main-content-types';
 
 export function ViewerMainContent(props: ViewerMainContentProps) {
 	const {
@@ -146,8 +65,8 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 		canvasHandlers,
 		insertHandlers,
 		manipulation,
-		slideOps,
 		tableOps,
+		slideOps,
 		findReplace,
 	} = editorOps;
 
@@ -183,13 +102,6 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 	);
 	const layoutGalleryAnchorRef = useRef<HTMLDivElement>(null);
 	const layoutGalleryPreviews = useLayoutPreviews(loadLayoutPreviews, layoutGalleryAnchor !== null);
-
-	// Recent-colours ("Most Recently Used") support, shared by every colour
-	// picker in BOTH the ribbon toolbar and the inspector via context, is
-	// provided by `PowerPointViewer` above `ViewerToolbarSection` and this
-	// component (siblings in that tree), not here: a provider nested only
-	// inside this component would leave the ribbon reading the context's
-	// empty default (see `RecentColorsContext`'s doc).
 
 	return (
 		<ChartPartSelectionProvider>
@@ -329,76 +241,7 @@ export function ViewerMainContent(props: ViewerMainContentProps) {
 					}
 				/>
 
-				{state.contextMenuState && (
-					<ContextMenu
-						contextMenuState={state.contextMenuState}
-						mode={mode}
-						selectedElement={selectedElement}
-						tableEditorState={state.tableEditorState}
-						hasMultiSelection={state.effectiveSelectedIds.length > 1}
-						selectionGroupable={manipulation.selectionGroupable}
-						hasClipboard={Boolean(state.clipboardPayload)}
-						editPointsAvailability={resolveEditPointsAvailability(selectedElement)}
-						onAction={manipulation.handleContextMenuAction}
-						onInsertTableRow={tableOps.handleInsertTableRow}
-						onDeleteTableRow={tableOps.handleDeleteTableRow}
-						onInsertTableColumn={tableOps.handleInsertTableColumn}
-						onDeleteTableColumn={tableOps.handleDeleteTableColumn}
-						onMergeCellRight={tableOps.handleMergeCellRight}
-						onMergeCellDown={tableOps.handleMergeCellDown}
-						onMergeSelectedCells={tableOps.handleMergeSelectedCells}
-						onSplitCell={tableOps.handleSplitCell}
-						onAskAi={
-							aiPanel && selectedElement
-								? () => {
-										aiPanel.askAboutSelection();
-										state.setContextMenuState(null);
-									}
-								: undefined
-						}
-						onFixAi={
-							aiPanel && selectedElement
-								? () => {
-										aiPanel.fixSelection();
-										state.setContextMenuState(null);
-									}
-								: undefined
-						}
-						onClose={() => state.setContextMenuState(null)}
-					/>
-				)}
-
-				{state.canvasContextMenuState && (
-					<CanvasContextMenu
-						canvasContextMenuState={state.canvasContextMenuState}
-						mode={mode}
-						hasClipboard={Boolean(state.clipboardPayload)}
-						showGrid={state.showGrid}
-						showRulers={state.showRulers}
-						onPaste={() => manipulation.handlePaste()}
-						onOpenLayoutGallery={() => {
-							const pos = state.canvasContextMenuState;
-							if (pos) {
-								setLayoutGalleryAnchor(pos);
-							}
-						}}
-						onResetSlide={() => {
-							const path = resetSlideLayoutPath(activeSlide);
-							if (path) {
-								onApplyLayout?.(path);
-							}
-						}}
-						onOpenFormatBackground={() => {
-							state.setSelectedElementId(null);
-							state.setSelectedElementIds([]);
-							state.setSidebarPanelMode('properties');
-							state.setIsInspectorPaneOpen(true);
-						}}
-						onToggleGrid={() => state.setShowGrid((v) => !v)}
-						onToggleRulers={() => state.setShowRulers((v) => !v)}
-						onClose={() => state.setCanvasContextMenuState(null)}
-					/>
-				)}
+				<ViewerContextMenus {...props} setLayoutGalleryAnchor={setLayoutGalleryAnchor} />
 
 				{layoutGalleryAnchor && (
 					<>

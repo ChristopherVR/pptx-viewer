@@ -145,13 +145,28 @@ function menuProps(): ContextMenuProps {
 	};
 }
 
-function menuLabels(): string[] {
-	return Array.from(container.querySelectorAll('[data-pptx-context-menu="true"] button')).map(
-		(button) => button.textContent ?? '',
-	);
-}
-
 describe('element context menu customisation', () => {
+	it('runs a host element command with the effective selection and closes the menu', () => {
+		const onSelect = vi.fn();
+		const onClose = vi.fn();
+		renderWith(
+			{ contextMenu: { extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }] } },
+			<ContextMenu {...menuProps()} slideIndex={2} elementIds={['a', 'b']} onClose={onClose} />,
+		);
+		const button = Array.from(container.querySelectorAll<HTMLButtonElement>('button')).find(
+			(item) => item.textContent === 'Send to chat',
+		)!;
+		act(() => button.click());
+		expect(onSelect).toHaveBeenCalledExactlyOnceWith({ slideIndex: 2, elementIds: ['a', 'b'] });
+		expect(onClose).toHaveBeenCalledOnce();
+	});
+
+	function menuLabels(): string[] {
+		return Array.from(container.querySelectorAll('[data-pptx-context-menu="true"] button')).map(
+			(button) => button.textContent ?? '',
+		);
+	}
+
 	it('omits a hidden command and keeps the rest', () => {
 		renderWith({}, <ContextMenu {...menuProps()} />);
 		expect(menuLabels()).toContain('pptx.contextMenu.delete');

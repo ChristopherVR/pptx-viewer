@@ -57,6 +57,10 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 	const entries = customizeContextMenuEntries(
 		buildContextMenuEntries(contextMenuContext(props, shapeFormat)),
 		customization,
+		{
+			slideIndex: props.slideIndex ?? 0,
+			elementIds: props.elementIds ?? (props.selectedElement ? [props.selectedElement.id] : []),
+		},
 	);
 	if (entries.length === 0) {
 		return null;
@@ -85,7 +89,13 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 				}}
 			>
 				{entries.map((entry) => {
-					const run = handlers[entry.id];
+					const run =
+						'host' in entry
+							? () => {
+									onClose();
+									entry.onSelect();
+								}
+							: handlers[entry.id];
 					return (
 						<Fragment key={entry.id}>
 							{entry.separatorBefore && <ContextMenuSeparator />}
@@ -97,7 +107,7 @@ export function ContextMenu(props: ContextMenuProps): React.ReactElement | null 
 								disabled={entry.disabled || !run}
 								onSelect={() => run?.()}
 							>
-								{t(entry.labelKey)}
+								{'host' in entry ? entry.label : t(entry.labelKey)}
 							</ContextMenuItem>
 						</Fragment>
 					);

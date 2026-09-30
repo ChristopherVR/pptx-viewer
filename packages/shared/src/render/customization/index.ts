@@ -6,6 +6,7 @@ export * from './customization-resolve';
 export * from './customization-surfaces';
 export * from './customization-types';
 export * from './customization-descriptions';
+export * from './host-menu-commands';
 export * from './ribbon-control-catalog';
 export * from './ribbon-control-ids';
 export * from './ribbon-control-visibility';

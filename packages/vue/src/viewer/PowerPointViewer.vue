@@ -868,6 +868,7 @@ const {
 // cursor) -- a sibling of the element menu below, kept in its own composable.
 const layoutGalleryAnchor = ref<{ x: number; y: number } | null>(null);
 const canvasMenu = useCanvasContextMenu({
+	slideIndex: () => activeSlideIndex.value,
 	hasClipboard: clipboard.hasClipboard,
 	showGrid,
 	showRulers,
@@ -917,6 +918,7 @@ const layoutGalleryProps = computed(() => ({
 
 // -- Element context menu (right-click / long-press) -------------------
 const { contextMenu, contextItems, onCanvasContextMenu, onContextSelect } = useContextMenu({
+	slideIndex: () => activeSlideIndex.value,
 	canEdit: () => canEditEffective.value,
 	findActiveElement,
 	tableSelection,

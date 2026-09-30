@@ -269,6 +269,37 @@ describe('backstage under customisation', () => {
 });
 
 describe('context menus under customisation', () => {
+	it('dispatches host commands with the active slide and selection', () => {
+		const editor = new EditorStateService();
+		editor.selectedIds.set(['a', 'b']);
+		const injector = makeInjector([
+			{ provide: EditorStateService, useValue: editor },
+			{ provide: ViewerInspectorPanelService, useValue: {} },
+			{ provide: ElementRef, useValue: new ElementRef(document.createElement('div')) },
+		]);
+		const onSelect = vi.fn();
+		injector.get(ViewerCustomizationService).api.setCustomization({
+			contextMenu: {
+				extraElementCommands: [{ id: 'chat', label: 'Send to chat', onSelect }],
+				extraCanvasCommands: [{ id: 'slide', label: 'Send slide', onSelect }],
+			},
+		});
+		const element = construct(injector, () => new EditorContextMenuComponent());
+		const canvas = construct(injector, () => new SlideCanvasContextMenuComponent());
+		for (const menu of [element, canvas]) {
+			Object.defineProperty(menu, 'slideIndex', { value: () => 2 });
+			const view = menu as unknown as {
+				entries: () => { id: string }[];
+				run: (entry: unknown) => void;
+			};
+			const close = vi.spyOn(menu.closed, 'emit');
+			view.run(view.entries()[0]);
+			expect(close).toHaveBeenCalledOnce();
+		}
+		expect(onSelect).toHaveBeenNthCalledWith(1, { slideIndex: 2, elementIds: ['a', 'b'] });
+		expect(onSelect).toHaveBeenNthCalledWith(2, { slideIndex: 2 });
+	});
+
 	it('drops a hidden element command and renders nothing when disabled', () => {
 		const editor = new EditorStateService();
 		editor.setSlides([

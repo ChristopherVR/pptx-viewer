@@ -16,7 +16,7 @@ import {
 	isElementIdInteractive,
 	resolveContextMenuElementId,
 } from 'pptx-viewer-shared';
-import type { CanvasContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
+import type { CustomizedCanvasContextMenuEntry, ResolvedCustomization } from 'pptx-viewer-shared';
 
 import type { EditActions } from '../editor';
 import { collectLayoutOptions } from '../editor/editing-chrome-sync';
@@ -105,7 +105,11 @@ export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasConte
 		layoutPopup = list;
 	};
 
-	const buildItem = (entry: CanvasContextMenuEntry, x: number, y: number): HTMLElement => {
+	const buildItem = (
+		entry: CustomizedCanvasContextMenuEntry,
+		x: number,
+		y: number,
+	): HTMLElement => {
 		const button = createEl(doc, 'button', 'pptxv-context-menu-item');
 		button.type = 'button';
 		button.setAttribute('role', entry.checked === undefined ? 'menuitem' : 'menuitemcheckbox');
@@ -115,9 +119,14 @@ export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasConte
 			check.textContent = entry.checked ? '✓' : '';
 			button.appendChild(check);
 		}
-		button.append(deps.getTranslator()(entry.labelKey));
+		button.append('host' in entry ? entry.label : deps.getTranslator()(entry.labelKey));
 		button.disabled = entry.disabled === true;
 		button.addEventListener('click', () => {
+			if ('host' in entry) {
+				close();
+				entry.onSelect();
+				return;
+			}
 			const actions = deps.getEditActions();
 			switch (entry.id) {
 				case 'paste':
@@ -154,7 +163,7 @@ export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasConte
 		return button;
 	};
 
-	const open = (entries: CanvasContextMenuEntry[], x: number, y: number): void => {
+	const open = (entries: CustomizedCanvasContextMenuEntry[], x: number, y: number): void => {
 		menu = createEl(doc, 'div', 'pptxv-context-menu', { left: `${x}px`, top: `${y}px` });
 		menu.dataset.pptxContextMenu = 'true';
 		menu.dataset.pptxCanvasContextMenu = 'true';
@@ -209,6 +218,7 @@ export function mountCanvasContextMenu(deps: CanvasContextMenuDeps): CanvasConte
 				showRulers: state.showRulers,
 			}),
 			deps.getCustomization?.() ?? EMPTY_RESOLVED_CUSTOMIZATION,
+			{ slideIndex: state.currentSlide },
 		);
 		// An emptied (or host-disabled) menu behaves like no menu: the native one shows.
 		if (entries.length === 0) {

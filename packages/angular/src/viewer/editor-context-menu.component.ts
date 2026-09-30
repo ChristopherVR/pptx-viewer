@@ -1,26 +1,4 @@
-/**
- * editor-context-menu.component.ts: Right-click context menu for the Angular
- * PPTX editor.
- *
- * Selector: `pptx-editor-context-menu`
- *
- * The item list is NOT written here. It comes from
- * `buildContextMenuEntries` in `pptx-viewer-shared`, which is the one
- * definition of what the canvas menu contains across all five bindings. This
- * component's job is to describe what was right-clicked, render the entries it
- * gets back, and route a chosen command to an editor operation. That is why
- * Edit Hyperlink, Add Comment, Group and Ungroup are here at all: they were
- * missing for as long as the list was hand-written, and nothing failed when
- * they were.
- *
- * Renders a small floating panel at (x, y) viewport coordinates, wired to
- * EditorStateService. Closes on Escape or a pointerdown outside the host (the
- * host is mounted before that listener fires, so no first-event guard).
- *
- * The host's UI customisation (hidden commands, a disabled menu) is applied
- * through the shared `customizeContextMenuEntries`; an emptied menu renders
- * nothing. See `PowerPointViewerComponent`'s template for the usage.
- */
+/** Element menu: shared commands, host extensions and Angular operation routing. */
 
 import {
 	ChangeDetectionStrategy,
@@ -35,13 +13,14 @@ import {
 import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, TablePptxElement } from 'pptx-viewer-core';
 
-import type { ContextMenuCommandId, ContextMenuEntry } from '../internal/shared';
+import type { ContextMenuCommandId, CustomizedContextMenuEntry } from '../internal/shared';
 import {
 	buildContextMenuEntries,
 	canCropElement,
 	contextMenuInspectorAnchor,
 	MERGE_SHAPES_LABEL_KEY,
 	customizeContextMenuEntries,
+	hostMenuLabel,
 	isEditPointsEnabled,
 	resolveEditPointsAvailability,
 	scrollInspectorSectionIntoView,
@@ -88,9 +67,9 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 							[class.pptx-ctx__item--danger]="!!entry.danger"
 							role="menuitem"
 							[disabled]="!!entry.disabled"
-							(click)="run(entry.id)"
+							(click)="run(entry)"
 						>
-							{{ entry.labelKey | translate }}
+							{{ hostLabel(entry) ?? (entry.labelKey | translate) }}
 						</button>
 					</li>
 				}
@@ -104,6 +83,7 @@ import { ViewerInspectorPanelService } from './viewer-inspector-panel.service';
 	},
 })
 export class EditorContextMenuComponent {
+	protected readonly hostLabel = hostMenuLabel;
 	/** Horizontal viewport coordinate (px) of the top-left corner of the menu. */
 	readonly x = input.required<number>();
 	/** Vertical viewport coordinate (px) of the top-left corner of the menu. */
@@ -174,7 +154,7 @@ export class EditorContextMenuComponent {
 	);
 
 	/** The menu, as the shared command list builds it for this right-click. */
-	protected readonly entries = computed<ContextMenuEntry[]>(() => {
+	protected readonly entries = computed<CustomizedContextMenuEntry[]>(() => {
 		const table = this.tableCtx();
 		const built = buildContextMenuEntries({
 			elementType: this.selectedElement()?.type ?? null,
@@ -187,7 +167,10 @@ export class EditorContextMenuComponent {
 			canMergeShapes: canMergeSelection(this.editor, this.slideIndex()),
 			canCrop: canCropElement(this.selectedElement()),
 		});
-		return customizeContextMenuEntries(built, this.customization());
+		return customizeContextMenuEntries(built, this.customization(), {
+			slideIndex: this.slideIndex(),
+			elementIds: [...this.editor.selectedIds()],
+		});
 	});
 
 	/** Editor operations behind each command id (see the dispatch module). */
@@ -249,7 +232,15 @@ export class EditorContextMenuComponent {
 	// ── Command dispatch ─────────────────────────────────────────────────────
 
 	/** Run the chosen command, then close: every item closes the menu. */
-	protected run(id: ContextMenuCommandId): void {
+	protected run(id: ContextMenuCommandId | CustomizedContextMenuEntry): void {
+		if (typeof id !== 'string') {
+			if ('host' in id) {
+				this.closed.emit();
+				id.onSelect();
+				return;
+			}
+			id = id.id;
+		}
 		runContextMenuCommand(id, this.actions);
 		this.closed.emit();
 	}

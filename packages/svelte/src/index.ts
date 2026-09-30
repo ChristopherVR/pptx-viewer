@@ -124,6 +124,9 @@ export { renderToCanvas } from './viewer/export/render-to-canvas';
 export type {
 	BackstageCustomization,
 	ContextMenuCustomization,
+	HostMenuCommand,
+	HostElementMenuContext,
+	HostCanvasMenuContext,
 	KeyboardCustomization,
 	OptionsCustomization,
 	OptionsPageId,
