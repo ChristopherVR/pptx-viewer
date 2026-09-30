@@ -396,6 +396,15 @@ pptx-slide-canvas {
 	z-index: 10000;
 }
 
+/* The group a selected member sits in (selecting inside a group, shared group-drill). */
+.pptx-ng-entered-group {
+	position: absolute;
+	box-sizing: border-box;
+	outline: 1px dashed var(--pptx-selection-outline-color, #4f86ff);
+	pointer-events: none;
+	z-index: 9999;
+}
+
 .pptx-ng-handle {
 	--pptx-handle-hit-inset: 0px;
 	position: absolute;

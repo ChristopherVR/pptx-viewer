@@ -60,6 +60,7 @@ import {
 	setMasterViewBackgroundColor,
 	setMotionPath,
 	shouldAutoFollowBroadcaster,
+	slideSpaceElement,
 	templateSchemeFromTheme,
 	THEME_CATALOG,
 	viewerOptionsToPreferences,
@@ -2002,8 +2003,11 @@ export class PowerPointViewerComponent
 		const id = ids[0];
 		// A selected element may be a normal slide element or, in editTemplateMode,
 		// an inherited template element living in the separate template store.
+		// A group member (selected by drilling into its group) resolves in slide
+		// space, like the canvas chrome shows it (shared `group-drill`).
+		const slideElements = this.activeSlide()?.elements ?? [];
 		return (
-			this.activeSlide()?.elements.find((e) => e.id === id) ??
+			slideSpaceElement(slideElements, id) ??
 			this.activeTemplateElements().find((e) => e.id === id) ??
 			null
 		);
@@ -3442,7 +3446,9 @@ export class PowerPointViewerComponent
 	getElementById(elementId: string, slideIndex?: number): PptxElement | undefined {
 		const idx = slideIndex ?? this.activeSlideIndex();
 		const s = this.displaySlides()[idx];
-		return s?.elements.find((e) => e.id === elementId);
+		// A group member too (selected by drilling into its group), in slide space
+		// like the editor shows it.
+		return s ? (slideSpaceElement(s.elements, elementId) ?? undefined) : undefined;
 	}
 
 	/** Insert a defensive copy into the active ordinary editable slide. */

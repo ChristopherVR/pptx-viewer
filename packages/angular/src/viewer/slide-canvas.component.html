@@ -80,6 +80,19 @@
 			@if (aiChangeBatch(); as batch) {
 				<pptx-ai-change-overlay [batch]="batch" [activeSlideIndex]="aiActiveSlideIndex()" />
 			}
+			<!-- The group a selected member sits in ("entered" by drilling in): a dashed frame. -->
+			@if (enteredGroup(); as group) {
+				<div
+					class="pptx-ng-entered-group"
+					data-pptx-entered-group
+					data-export-ignore="true"
+					aria-hidden="true"
+					[style.left.px]="group.x"
+					[style.top.px]="group.y"
+					[style.width.px]="group.width"
+					[style.height.px]="group.height"
+				></div>
+			}
 			@for (box of selectionBoxes(); track box.id) {
 				<div
 					class="pptx-ng-selection"

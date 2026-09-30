@@ -58,6 +58,8 @@ import {
 	isTemplateElement,
 	mapInlineTextFormatKey,
 	resolveConnectorEndpointUpdate,
+	setPendingCaretPoint,
+	takePendingCaretPoint,
 	withConnectorEndpointUpdate,
 	RULER_FONT_SIZE,
 	RULER_THICKNESS,
@@ -77,6 +79,14 @@ import type { Box, ResizeHandle } from './drag-resize';
 import { ElementRendererComponent } from './element-renderer.component';
 import type { StyleMap } from './element-style';
 import { FieldContextService } from './field-context.service';
+import {
+	enteredGroupBox,
+	placeTextareaCaretAt,
+	renderedTextOffsetAt,
+	resolveGroupDoubleClickTarget,
+	resolveGroupPressTarget,
+	withGroupMembers,
+} from './group-drill-canvas';
 import { InkDrawingService } from './ink-drawing.service';
 import {
 	resolveCommitTextAutoFitHeight,
@@ -508,6 +518,13 @@ export class SlideCanvasComponent implements SlideContext {
 	private seededEditId: string | null = null;
 	/** Last-tap timestamp + element id, for synthetic double-tap detection on touch. */
 	private lastTap: { id: string; time: number } | null = null;
+	/**
+	 * A press on the already-selected group member: its text opens on release
+	 * unless the press turns into a drag (shared `group-drill`).
+	 */
+	private pendingClickTextEdit: { id: string; clientX: number; clientY: number } | null = null;
+	/** Where a click-to-edit landed in the element's text, read from its rendered node (see `renderedTextOffsetAt`). */
+	private pendingEditOffset: { id: string; offset: number } | null = null;
 	private lastGuideCommandId = 0;
 
 	constructor() {
@@ -518,7 +535,7 @@ export class SlideCanvasComponent implements SlideContext {
 			}
 			const previousId = this.listSessionId;
 			this.listSessionId = id;
-			const element = id ? this.allElements().find((candidate) => candidate.id === id) : undefined;
+			const element = id ? this.elementById(id) : undefined;
 			const seed = element
 				? createInlineListSeed(element, {
 						includePlain: Boolean(this.inlineCollaborationPatcher()?.isActive()),
@@ -559,10 +576,18 @@ export class SlideCanvasComponent implements SlideContext {
 			this.seededEditId = box.id;
 			editor.nativeElement.value = box.text;
 			editor.nativeElement.focus();
-			// Caret at end (do NOT select-all): typing appends to the existing text,
-			// matching React/Vue inline editors (and the shared inline-edit e2e spec).
-			const end = editor.nativeElement.value.length;
-			editor.nativeElement.setSelectionRange(end, end);
+			// Never select-all. The caret goes where the click that opened the
+			// editor landed (PowerPoint; the shared one-shot pending caret point),
+			// else at the end so typing appends, matching React/Vue inline editors
+			// (and the shared inline-edit e2e spec).
+			const pending = this.pendingEditOffset;
+			this.pendingEditOffset = null;
+			const point = takePendingCaretPoint();
+			if (pending && pending.id === box.id && pending.offset <= box.text.length) {
+				editor.nativeElement.setSelectionRange(pending.offset, pending.offset);
+			} else {
+				placeTextareaCaretAt(editor.nativeElement, point);
+			}
 		});
 
 		// Wire the fit-scale measurement accessors (viewport element, autoFit,
@@ -697,19 +722,38 @@ export class SlideCanvasComponent implements SlideContext {
 			.map((e) => ({ x: e.x, y: e.y, width: e.width, height: e.height })),
 	);
 
+	/**
+	 * {@link allElements} plus the members of the slide's enterable groups, in
+	 * slide space (shared `group-drill`), so a member selected by drilling into
+	 * its group resolves like a top-level element for the selection chrome,
+	 * drag, resize, rotate and the inline editor. Rendering and hit-testing
+	 * keep using the layers themselves.
+	 */
+	readonly lookupElements = computed<readonly PptxElement[]>(() =>
+		withGroupMembers(this.allElements(), this.elements()),
+	);
+
 	/** Bounding boxes (stage coords) for the selected elements. */
 	readonly selectionBoxes = computed(() =>
-		computeSelectionBoxes(this.allElements(), this.selectedIds()),
+		computeSelectionBoxes(this.lookupElements(), this.selectedIds()),
 	);
 
 	/** The single selected element's box, or null when 0 or >1 are selected. */
 	readonly singleSelected = computed<(Box & { id: string }) | null>(() =>
-		computeSingleSelected(this.allElements(), this.selectedIds()),
+		computeSingleSelected(this.lookupElements(), this.selectedIds()),
 	);
 
-	/** Look an element up by id across the slide + template layers. */
+	/**
+	 * The group a selected member sits in (slide space), framed with a dashed
+	 * outline so the user sees which group they have entered (PowerPoint).
+	 */
+	readonly enteredGroup = computed<(Box & { id: string }) | null>(() =>
+		this.editable() ? enteredGroupBox(this.elements(), this.selectedIds()) : null,
+	);
+
+	/** Look an element up by id across the slide + template layers and group members. */
 	private elementById(id: string): PptxElement | undefined {
-		return this.allElements().find((el) => el.id === id);
+		return this.lookupElements().find((el) => el.id === id);
 	}
 
 	/** The single selected element itself (not just its box), or null. */
@@ -846,7 +890,7 @@ export class SlideCanvasComponent implements SlideContext {
 	}
 
 	/** Pointer position in SLIDE px (the stage carries the scale as a transform). */
-	private stagePoint(event: PointerEvent): { x: number; y: number } {
+	private stagePoint(event: { clientX: number; clientY: number }): { x: number; y: number } {
 		const rect = this.stageRef()?.nativeElement.getBoundingClientRect();
 		const scale = this.effectiveScale() || 1;
 		return {
@@ -893,26 +937,29 @@ export class SlideCanvasComponent implements SlideContext {
 		// Template (master/layout) elements are inert unless editTemplateMode is on;
 		// the resolver returns null for them so they fall through to the marquee/
 		// background path instead of being selected or dragged.
-		const id = this.interactiveElementIdAt(event.target);
+		const pressedId = this.interactiveElementIdAt(event.target);
+		this.pendingClickTextEdit = null;
 		// Synthetic double-tap: two TOUCH/PEN presses on the same element within
 		// DOUBLE_TAP_MS begin inline text editing (native dblclick is unreliable
 		// on touch). Desktop dblclick is handled separately in onDblClick. Mouse
 		// presses are excluded so a touch select-tap immediately followed by a
 		// mouse drag (as e2e drives move/resize) is never misread as a double-tap.
-		if (id && event.pointerType !== 'mouse') {
+		if (pressedId && event.pointerType !== 'mouse') {
 			const now = event.timeStamp || Date.now();
-			if (this.lastTap && this.lastTap.id === id && now - this.lastTap.time < DOUBLE_TAP_MS) {
+			if (
+				this.lastTap &&
+				this.lastTap.id === pressedId &&
+				now - this.lastTap.time < DOUBLE_TAP_MS
+			) {
 				this.lastTap = null;
-				if (this.canTextEdit(id)) {
-					this.textEditStart.emit({ id });
-				}
+				this.beginTextEditFromDoubleClick(pressedId, event);
 				return;
 			}
-			this.lastTap = { id, time: now };
-		} else if (!id) {
+			this.lastTap = { id: pressedId, time: now };
+		} else if (!pressedId) {
 			this.lastTap = null;
 		}
-		if (!id) {
+		if (!pressedId) {
 			// Empty space: begin a marquee (rubber-band) selection.
 			const stage = this.stageRef()?.nativeElement;
 			if (stage) {
@@ -930,13 +977,34 @@ export class SlideCanvasComponent implements SlideContext {
 			}
 			return;
 		}
-		this.elementSelect.emit({ id, additive: event.shiftKey || event.ctrlKey || event.metaKey });
+		const additive = event.shiftKey || event.ctrlKey || event.metaKey;
+		// Selecting inside a group (shared `group-drill`): the first press selects
+		// the group; once it is selected, a press selects the member under the
+		// pointer, or moves to another member of the entered group. Additive
+		// presses and AI picks keep acting on the top-level element.
+		const id =
+			additive || this.aiPickMode()
+				? pressedId
+				: resolveGroupPressTarget(
+						this.elements(),
+						pressedId,
+						this.stagePoint(event),
+						this.selectedIds(),
+					);
+		// A press on the member that is already selected opens its text on
+		// release, with the caret where the click landed (PowerPoint); a drag that
+		// starts instead cancels it (see onPointerUp).
+		const selected = this.selectedIds();
+		if (id !== pressedId && selected.length === 1 && selected[0] === id && this.canTextEdit(id)) {
+			this.pendingClickTextEdit = { id, clientX: event.clientX, clientY: event.clientY };
+		}
+		this.elementSelect.emit({ id, additive });
 		// AI pick mode: the press hands this element to the assistant (via the
 		// parent's elementSelect handler); never begin a drag / inline edit.
 		if (this.aiPickMode()) {
 			return;
 		}
-		const el = this.allElements().find((e) => e.id === id);
+		const el = this.elementById(id);
 		if (!el) {
 			return;
 		}
@@ -985,7 +1053,7 @@ export class SlideCanvasComponent implements SlideContext {
 		if (!id || !this.editable()) {
 			return null;
 		}
-		const el = this.allElements().find((e) => e.id === id);
+		const el = this.elementById(id);
 		if (!el) {
 			return null;
 		}
@@ -1006,7 +1074,7 @@ export class SlideCanvasComponent implements SlideContext {
 	 * bindings enforced it: a locked caption opened an editable textarea here.
 	 */
 	private canTextEdit(id: string): boolean {
-		const element = this.allElements().find((el) => el.id === id);
+		const element = this.elementById(id);
 		return (
 			element !== undefined &&
 			hasTextProperties(element) &&
@@ -1018,11 +1086,35 @@ export class SlideCanvasComponent implements SlideContext {
 		if (!this.editable()) {
 			return;
 		}
-		const id = this.interactiveElementIdAt(event.target);
-		if (id && this.canTextEdit(id)) {
+		const pressedId = this.interactiveElementIdAt(event.target);
+		if (pressedId && this.beginTextEditFromDoubleClick(pressedId, event)) {
 			event.preventDefault();
+		}
+	}
+
+	/**
+	 * A double-click (or synthetic double-tap) on `pressedId`: inside a group it
+	 * goes straight to the innermost member under the pointer (selecting it), so
+	 * its text is edited without ungrouping, as PowerPoint does. Opens the inline
+	 * editor with the caret at the click point; true when it did.
+	 */
+	private beginTextEditFromDoubleClick(
+		pressedId: string,
+		event: { clientX: number; clientY: number },
+	): boolean {
+		const id = resolveGroupDoubleClickTarget(this.elements(), pressedId, this.stagePoint(event));
+		if (id !== pressedId && !(this.selectedIds().length === 1 && this.selectedIds()[0] === id)) {
+			this.elementSelect.emit({ id, additive: false });
+		}
+		if (!this.canTextEdit(id)) {
+			return false;
+		}
+		// The release of the second press may already have opened this editor.
+		if (this.editingId() !== id) {
+			// Caret at the END, as for any double-click (typing appends).
 			this.textEditStart.emit({ id });
 		}
+		return true;
 	}
 
 	onEditorKeydown(event: KeyboardEvent): void {
@@ -1073,7 +1165,7 @@ export class SlideCanvasComponent implements SlideContext {
 	/** Toggle bold/italic/underline for the element under inline edit. */
 	private emitTextFormat(property: InlineTextFormatProperty): void {
 		const id = this.editingId();
-		const el = id ? this.allElements().find((e) => e.id === id) : undefined;
+		const el = id ? this.elementById(id) : undefined;
 		if (!id || !el) {
 			return;
 		}
@@ -1102,12 +1194,12 @@ export class SlideCanvasComponent implements SlideContext {
 		// the text's natural content height after a real edit. `editor` is the
 		// live, still-mounted textarea (this handler runs off its own `blur`), so
 		// no separate DOM lookup is needed here.
-		const height = resolveCommitTextAutoFitHeight(this.allElements(), id, text, editor);
+		const height = resolveCommitTextAutoFitHeight(this.lookupElements(), id, text, editor);
 		// `a:normAutofit` ("Shrink text on overflow"): recompute the font
 		// scale/line-spacing reduction so the (possibly now longer or shorter)
 		// text still fits the shape. Mutually exclusive with the `spAutoFit`
 		// resize above (both read `autoFitMode`, only one mode is ever set).
-		const shrink = resolveCommitTextNormAutofitShrink(this.allElements(), id, text, editor);
+		const shrink = resolveCommitTextNormAutofitShrink(this.lookupElements(), id, text, editor);
 		this.textCommit.emit({
 			id,
 			text,
@@ -1239,7 +1331,7 @@ export class SlideCanvasComponent implements SlideContext {
 		event.preventDefault();
 		event.stopPropagation();
 		const box = this.singleSelected();
-		const element = box ? this.allElements().find((item) => item.id === box.id) : undefined;
+		const element = box ? this.elementById(box.id) : undefined;
 		if (!box || !element) {
 			return;
 		}
@@ -1516,6 +1608,24 @@ export class SlideCanvasComponent implements SlideContext {
 		const drag = this.drag;
 		this.drag = null;
 		this.snapGuides.set([]);
+		// A plain click (no drag) on the already-selected group member opens its
+		// text, caret at the click point (see onStagePointerDown).
+		const clickEdit = this.pendingClickTextEdit;
+		this.pendingClickTextEdit = null;
+		if (clickEdit && !drag?.started && this.editingId() !== clickEdit.id) {
+			// Read the caret's place from the rendered text now, while the member is
+			// still drawn (the plain textarea's own layout can't place it).
+			const node = this.stageRef()?.nativeElement.querySelector(
+				`[data-element-id="${CSS.escape(clickEdit.id)}"]`,
+			);
+			const text = (this.elementById(clickEdit.id) as { text?: string } | undefined)?.text ?? '';
+			const offset = node
+				? renderedTextOffsetAt(node, text, clickEdit.clientX, clickEdit.clientY)
+				: null;
+			this.pendingEditOffset = offset === null ? null : { id: clickEdit.id, offset };
+			setPendingCaretPoint(clickEdit);
+			this.textEditStart.emit({ id: clickEdit.id });
+		}
 		// A gesture that actually moved/resized a shape must let the parent reroute
 		// the connectors bound to it, otherwise every connector keeps pointing at
 		// where its shape used to be. Rotation leaves the box (and so every
@@ -1610,8 +1720,7 @@ export class SlideCanvasComponent implements SlideContext {
 		if (ids.length !== 1) {
 			return null;
 		}
-		const all = [...this.visibleTemplateElements(), ...(this.slide()?.elements ?? [])];
-		const element = all.find((candidate) => candidate.id === ids[0]);
+		const element = this.elementById(ids[0]);
 		return element
 			? { x: element.x, y: element.y, width: element.width, height: element.height }
 			: null;
