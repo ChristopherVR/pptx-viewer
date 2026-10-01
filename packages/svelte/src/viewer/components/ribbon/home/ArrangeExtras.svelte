@@ -1,10 +1,11 @@
 <script lang="ts">
 	import RibbonIcon from '../RibbonIcon.svelte';
+	import ArrangeHomeStrip from './ArrangeHomeStrip.svelte';
 	/**
 	 * ArrangeExtras: the multi-select-aware half of the Home tab's Arrange
-	 * group: align / distribute / flip / group / ungroup. Z-order (front /
-	 * forward / backward / back) stays in the existing `ArrangeGroup`; both
-	 * are composed together under one "Arrange" ribbon group in `HomeTab`.
+	 * group: the shared align / distribute and flip strips around the native Format
+	 * Painter and Group / Ungroup. Z-order, Duplicate and Delete are further shared
+	 * strips (`ArrangeHomeStrip`) composed in `HomeTab`.
 	 * Reads `editor.selectedElements`/`selection` (the ordered multi-select)
 	 * and routes every mutation through `EditorState.arrangeOps`.
 	 */
@@ -21,10 +22,6 @@
 	const t = useTranslator();
 
 	const count = $derived(editor.selection.size);
-	// One element aligns to the slide, two or more to each other (PowerPoint).
-	const canAlign = $derived(editor.editable && count >= 1);
-	const canDistribute = $derived(editor.editable && count >= 3);
-	const canFlip = $derived(editor.editable && count >= 1);
 	// G10: mirrors the a:spLocks/@noGrp guard editor.arrangeOps.groupSelected
 	// already enforces on the command, so a locked selection reads as disabled
 	// rather than a click that silently does nothing.
@@ -34,52 +31,10 @@
 	const canGroup = $derived(canGroupSelection(editor.editable, count, selectionGroupable));
 	const canUngroup = $derived(canUngroupSelection(editor.editable, editor.selectedElement ?? null));
 
-	const ALIGN_BUTTONS = [
-		{ edge: 'left', key: 'pptx.ribbon.alignLeft', d: 'M3 2v12M6 4h6v2H6zM6 10h4v2H6z' },
-		{ edge: 'centerH', key: 'pptx.ribbon.alignCenter', d: 'M8 2v12M4 4h8v2H4zM5 10h6v2H5z' },
-		{ edge: 'right', key: 'pptx.ribbon.alignRight', d: 'M13 2v12M4 4h6v2H4zM6 10h4v2H6z' },
-		{ edge: 'top', key: 'pptx.ribbon.alignTop', d: 'M2 3h12M4 6h2v6H4zM10 6h2v4h-2z' },
-		{ edge: 'middle', key: 'pptx.ribbon.alignMiddle', d: 'M2 8h12M4 5h2v6H4zM10 6h2v4h-2z' },
-		{ edge: 'bottom', key: 'pptx.ribbon.alignBottom', d: 'M2 13h12M4 4h2v6H4zM10 6h2v4h-2z' },
-	] as const;
 </script>
 
 <div class="pptx-svelte-arrangex" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.ribbon.arrange')}>
-<div data-pptx-chrome="align-controls">	{#each ALIGN_BUTTONS as btn (btn.edge)}
-		<button
-			type="button"
-			disabled={!canAlign}
-			data-ribbon-control="home.arrange.align"
-			aria-label={t(btn.key)}
-			title={t(btn.key)}
-			onclick={() => editor.arrangeOps.alignSelected(btn.edge)}
-		>
-			<RibbonIcon name={`home.arrange.align.${btn.edge === 'centerH' ? 'center' : btn.edge}`} />
-		</button>
-	{/each}</div>
-<div data-pptx-chrome="distribute-controls">
-
-	<button
-		type="button"
-		disabled={!canDistribute}
-		data-ribbon-control="home.arrange.align"
-		aria-label={t('pptx.arrange.distributeHorizontal')}
-		title={t('pptx.arrange.distributeHorizontal')}
-		onclick={() => editor.arrangeOps.distributeSelected('horizontal')}
-	>
-		<RibbonIcon name="home.arrange.distribute.horizontal" />
-	</button>
-	<button
-		type="button"
-		disabled={!canDistribute}
-		data-ribbon-control="home.arrange.align"
-		aria-label={t('pptx.arrange.distributeVertical')}
-		title={t('pptx.arrange.distributeVertical')}
-		onclick={() => editor.arrangeOps.distributeSelected('vertical')}
-	>
-		<RibbonIcon name="home.arrange.distribute.vertical" />
-	</button>
-	</div>
+<ArrangeHomeStrip {editor} strip="align" />
 	<!-- The Arrange group's labelled Format Painter, beside the Clipboard
 	     group's icon-only one. Both drive the same controller; PowerPoint (and
 	     React) offer it in both places because the Arrange group is where you
@@ -97,27 +52,8 @@
 	>
 		<RibbonIcon name="home.clipboard.formatPainter" />
 		<span>{t('pptx.arrange.format')}</span>
-	</button><div data-pptx-chrome="flip-controls">
-	<button
-		type="button"
-		disabled={!canFlip}
-		data-ribbon-control="home.arrange.flipHorizontal"
-		aria-label={t('pptx.arrange.flipH')}
-		title={t('pptx.arrange.flipHorizontally')}
-		onclick={() => editor.arrangeOps.flipSelected('horizontal')}
-	>
-		<span>{t('pptx.arrange.flipH')}</span>
 	</button>
-	<button
-		type="button"
-		disabled={!canFlip}
-		data-ribbon-control="home.arrange.flipVertical"
-		aria-label={t('pptx.arrange.flipV')}
-		title={t('pptx.arrange.flipVertically')}
-		onclick={() => editor.arrangeOps.flipSelected('vertical')}
-	>
-		<span>{t('pptx.arrange.flipV')}</span>
-	</button></div><div data-pptx-chrome="group-controls">
+<ArrangeHomeStrip {editor} strip="flip" /><div data-pptx-chrome="group-controls">
 
 	<button
 		type="button"
