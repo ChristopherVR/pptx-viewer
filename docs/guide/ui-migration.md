@@ -193,3 +193,27 @@ effect added through the gallery, the deck-level animation pane, undo/redo,
 save and reload, customization, touch targets, focus, theme tokens and forced
 colors. Comparable screenshots are `<binding>-animations.png` in the baseline
 and after directories.
+
+## Home
+
+Home (#373) is delivered in group families, one commit each, so the large tab
+stays reviewable. PR #359 had already moved the Home icon artwork
+(`RIBBON_CONTROL_ICONS`), the catalogue ids and the editor-chrome layout CSS
+into shared code; the markup, gating and callbacks of every group were still
+duplicated per binding. Each family below now uses one controlled shared view,
+`pptx-ui-ribbon-home-<family>`, that renders the buttons, icons, labels,
+pressed and disabled state, and emits one typed `home-request` intent with the
+public control id. Hosts keep every document mutation, history entry,
+persistence and native popup. Public customization ids are unchanged.
+
+- Clipboard: Paste, Cut, Copy and Format Painter (the whole `home.clipboard`
+  group). Gating is now identical in all five bindings; Angular's Format
+  Painter previously stayed live in a read-only viewer and now follows the
+  other four. The React and Vue "copied/cut" green flash was cosmetic and is not
+  carried over.
+
+`e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
+real copy/paste/cut with undo and redo, the Format Painter, customization,
+touch targets, theme tokens and forced colors across all five bindings.
+Comparable screenshots are `<binding>-home.png` in the baseline and after
+directories.

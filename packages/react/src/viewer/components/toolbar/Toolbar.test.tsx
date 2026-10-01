@@ -595,13 +595,11 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Paste"');
-		expect(html).toContain('title="Cut"');
-		expect(html).toContain('title="Copy"');
-		expect(html).toContain('title="Format Painter"');
+		// The shared element renders its buttons in the browser; see ClipboardGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
-	it('renders Clipboard group label', () => {
+	it('renders the shared Clipboard group host', () => {
 		const html = render(
 			React.createElement(HomeSection, {
 				canEdit: true,
@@ -615,7 +613,7 @@ describe('toolbar - Home tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders New Slide button', () => {
@@ -700,23 +698,6 @@ describe('toolbar - Home tab', () => {
 			'value="48.1"',
 		);
 		expect(html).not.toContain('64.133333');
-	});
-
-	it('paste is disabled when no clipboard payload', () => {
-		const html = render(
-			React.createElement(HomeSection, {
-				canEdit: true,
-				clipboardPayload: null,
-				onCopy: vi.fn<() => void>(),
-				onCut: vi.fn<() => void>(),
-				onPaste: vi.fn<() => void>(),
-				layoutOptions: [],
-				onInsertSlideFromLayout: vi.fn<() => void>(),
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Paste"/u);
 	});
 
 	it('font group label is present', () => {
@@ -1453,7 +1434,7 @@ describe('toolbar - section content rendering', () => {
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
 		expect(html).toContain('New Slide');
-		expect(html).toContain('Clipboard');
+		expect(html).toContain('<pptx-ui-ribbon-home-clipboard');
 	});
 
 	it('renders FileSection content when toolbarSection is file', () => {

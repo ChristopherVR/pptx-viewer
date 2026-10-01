@@ -6,6 +6,12 @@ import { definePptxRibbonCommand } from './ribbon-command';
 import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
+import {
+	definePptxRibbonHomeClipboard,
+	definePptxRibbonHomeEditing,
+	definePptxRibbonHomeFont,
+	definePptxRibbonHomeParagraph,
+} from './ribbon-home';
 import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxRibbonTransitions } from './ribbon-transitions';
@@ -24,6 +30,7 @@ export type {
 	RibbonAnimationsRequestEvent,
 } from './ribbon-animations';
 export type { PptxUiRibbonDrawElement, RibbonDrawRequestEvent } from './ribbon-draw';
+export type { PptxUiRibbonHomeElement, RibbonHomeRequestEvent } from './ribbon-home';
 export type {
 	PptxUiRibbonTransitionsElement,
 	RibbonTransitionsRequestEvent,
@@ -52,6 +59,10 @@ const controls = [
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-animations', definePptxRibbonAnimations],
 	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
+	['pptx-ui-ribbon-home-clipboard', definePptxRibbonHomeClipboard],
+	['pptx-ui-ribbon-home-font', definePptxRibbonHomeFont],
+	['pptx-ui-ribbon-home-paragraph', definePptxRibbonHomeParagraph],
+	['pptx-ui-ribbon-home-editing', definePptxRibbonHomeEditing],
 	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-transitions', definePptxRibbonTransitions],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],

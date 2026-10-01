@@ -339,3 +339,34 @@ binding; per-effect timing is authored in the Animation Panel (and, in Svelte
 and Vanilla, the timeline row), not from these fields. Effect Options and
 Trigger open the Animation Panel in React, Vue, Svelte and Angular; Vanilla's
 panel command is the inspector toggle.
+
+## Home ribbon
+
+Home (#373) migrates in group families. Each family is a light-DOM element
+`pptx-ui-ribbon-home-<family>` built from one declarative spec
+(`RIBBON_HOME_FAMILIES`) in shared render code, so ids, labels, order and icons
+cannot drift between bindings. Hosts assign `state`
+(`RibbonHomeViewState`: a `controls` map of `{ disabled, pressed, hidden }` per
+control id, plus an optional translator) and listen for the composed
+`home-request` event whose `detail` is `{ id: RibbonControlId }`. Setting state
+emits nothing; unknown, disabled and hidden ids are rejected. Controls are real
+`<button data-ribbon-control>` elements, so public customization hides them
+through the viewer's existing scoped styles. Pointer press keeps the slide text
+selection (the mousedown default is prevented) and Space/Enter stay out of the
+viewer's slide shortcuts. `pressed` is reflected as `aria-pressed` only when the
+host supplies it. Targets grow to 44px on coarse pointers and narrow widths,
+and forced colors outline the pressed state.
+
+| Family      | Element                         | Controls                                                           |
+| ----------- | ------------------------------- | ------------------------------------------------------------------ |
+| `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter |
+
+`clipboardHomeControls` fixes the gating once: Paste needs edit rights and a
+clipboard, Cut needs edit rights and a selection, Copy needs only a selection,
+and the Format Painter needs edit rights plus a formattable selection but stays
+enabled while armed so it can be cancelled. Hosts without a Format Painter hide
+it with `hidden`. The painter button keeps `data-testid="format-painter-toggle"`
+and mirrors its armed state in `data-active`. Native hosts retain every
+clipboard action, history and persistence. The former React and Vue green
+"copied/cut" flash was cosmetic, existed in two of five bindings, and is not
+carried over.

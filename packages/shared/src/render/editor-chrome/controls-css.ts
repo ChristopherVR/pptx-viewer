@@ -36,7 +36,6 @@ export const EDITOR_CONTROLS_CSS = `
     display: flex; align-items: center; gap: 4px;
   }
   [data-pptx-editor-chrome] [data-pptx-chrome="font-controls-fragment"] { display: contents; }
-  [data-pptx-editor-chrome] [data-ribbon-group="home.clipboard"] > :first-child { gap: 0; }
   [data-pptx-editor-chrome] [data-pptx-chrome="slides-controls"] {
     display: flex; align-items: center; gap: 4px;
   }

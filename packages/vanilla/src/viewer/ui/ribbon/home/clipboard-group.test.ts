@@ -18,6 +18,15 @@ describe('createClipboardGroup', () => {
 		const t = createTranslator();
 		const group = createClipboardGroup(document, t, h);
 		const [paste, cut, copy, painter] = group.el.querySelectorAll<HTMLButtonElement>('button');
+		// Nothing is available before the first sync, so rejected intents emit nothing.
+		paste.click();
+		expect(h.paste).not.toHaveBeenCalled();
+		group.update({
+			hasSelection: true,
+			hasClipboard: true,
+			editable: true,
+			formatPainterActive: false,
+		});
 
 		paste.click();
 		cut.click();

@@ -1,7 +1,6 @@
 /** Joined controls retain their background when the individual actions are disabled. */
 export const EDITOR_CLUSTER_CSS = `
 @media (min-width: 768px) {
-  [data-pptx-editor-chrome] [data-ribbon-group="home.clipboard"] > :first-child,
   [data-pptx-editor-chrome] [data-pptx-chrome="paragraph-controls"] [data-pptx-chrome="control-cluster"],
   [data-pptx-editor-chrome] [data-pptx-chrome="editing-controls"] [data-pptx-chrome="control-cluster"],
   [data-pptx-editor-chrome] [data-pptx-chrome="order-controls"],
