@@ -7,6 +7,12 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.33.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.33.1) - 2026-10-01
+
+### Refactor
+
+- **ui:** Share Design, Review and contextual ribbon views (by @ChristopherVR) ([17d7554](https://github.com/ChristopherVR/pptx-viewer/commit/17d75540e437c291345d6a6f3b9735b287cf76c7))
+
 ## [2.33.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.33.0) - 2026-09-30
 
 ### Features
