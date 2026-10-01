@@ -5,7 +5,7 @@
  * colour input are shared. Split out to keep the font controls under the 300-LOC
  * cap; behaviour and markup are unchanged.
  */
-import { NgClass } from '@angular/common';
+import { NgClass, NgTemplateOutlet } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { TranslatePipe } from '@ngx-translate/core';
 import type { PptxThemeColorRef } from 'pptx-viewer-core';
@@ -22,29 +22,18 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	imports: [
 		NgClass,
+		NgTemplateOutlet,
 		TranslatePipe,
 		AnchoredPopupDirective,
 		RecentColorsRowComponent,
 		ThemeColorSwatchGridComponent,
 	],
 	template: `
-		<div class="group relative">
-			<button
-				#colorTrigger
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="disabled()"
-				[title]="titleKey() | translate"
-				(mousedown)="$event.preventDefault()"
+		<ng-template #panel let-trigger>
+			<div
+				[ngClass]="anchor() ? 'z-50 pt-1' : 'z-50 hidden pt-1 group-hover:block'"
+				[pptxAnchoredPopup]="anchor() ?? trigger"
 			>
-				<ng-content />
-				<span
-					class="-mt-0.5 block h-1 w-4 rounded-sm"
-					data-pptx-chrome="color-swatch"
-					[style.background]="current()"
-				></span>
-			</button>
-			<div class="z-50 hidden pt-1 group-hover:block" [pptxAnchoredPopup]="colorTrigger">
 				<div
 					class="rounded-lg border border-border bg-card p-2 shadow-2xl"
 					[class.w-48]="showThemeColors()"
@@ -98,10 +87,42 @@ import { ThemeColorSwatchGridComponent } from './theme-color-swatch-grid.compone
 					</label>
 				</div>
 			</div>
-		</div>
+		</ng-template>
+		@if (hostTrigger()) {
+			@if (open() && anchor()) {
+				<ng-container *ngTemplateOutlet="panel" />
+			}
+		} @else {
+			<div class="group relative">
+				<button
+					#colorTrigger
+					type="button"
+					class="pptx-rb-pill"
+					[disabled]="disabled()"
+					[title]="titleKey() | translate"
+					(mousedown)="$event.preventDefault()"
+				>
+					<ng-content />
+					<span
+						class="-mt-0.5 block h-1 w-4 rounded-sm"
+						data-pptx-chrome="color-swatch"
+						[style.background]="current()"
+					></span>
+				</button>
+
+				<ng-container *ngTemplateOutlet="panel; context: { $implicit: colorTrigger }" />
+			</div>
+		}
 	`,
 })
 export class RibbonColorPopoverComponent {
+	/**
+	 * Host-owned trigger mode: when set, no trigger is rendered and the panel opens
+	 * below `anchor` (the shared Home trigger) while `open` is true.
+	 */
+	readonly hostTrigger = input<boolean>(false);
+	readonly anchor = input<HTMLElement | null>(null);
+	readonly open = input<boolean>(false);
 	readonly current = input<string>('#000000');
 	readonly presets = input<readonly string[]>([]);
 	readonly disabled = input<boolean>(false);

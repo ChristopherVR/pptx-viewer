@@ -219,9 +219,10 @@ describe('ribbon group/control customisation', () => {
 		]
 			.map((file) => componentSource(import.meta.dirname, file))
 			.join('\n');
-		// The Clipboard group's wrapper now comes from the shared Home view.
+		// The Clipboard and Slides group wrappers now come from the shared Home view.
 		expect(RIBBON_HOME_FAMILIES.clipboard.group?.id).toBe('home.clipboard');
-		for (const group of ['slides', 'font', 'paragraph', 'drawing', 'arrange', 'editing']) {
+		expect(RIBBON_HOME_FAMILIES.slides.group?.id).toBe('home.slides');
+		for (const group of ['font', 'paragraph', 'drawing', 'arrange', 'editing']) {
 			expect(home).toContain(`data-ribbon-group="home.${group}"`);
 		}
 		const paragraph = componentSource(
