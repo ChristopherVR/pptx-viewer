@@ -1,9 +1,22 @@
 import { mount } from '@vue/test-utils';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import { EFFECT_SOUND_CATALOGUE, TRANSITION_PREVIEW_ATTR } from 'pptx-viewer-shared';
+import {
+	EFFECT_SOUND_CATALOGUE,
+	registerPptxWebControls,
+	TRANSITION_PREVIEW_ATTR,
+} from 'pptx-viewer-shared';
 import { describe, expect, it, vi } from 'vitest';
 
 import TransitionsSection from './TransitionsSection.vue';
+
+registerPptxWebControls();
+
+/** The inner button of a shared command (it renders in the command's shadow root). */
+function commandButton(wrapper: { element: Element }, id: string): HTMLButtonElement {
+	return wrapper.element
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector('button')!;
+}
 
 const STOCK_IDS = EFFECT_SOUND_CATALOGUE.map((entry) => entry.id);
 
@@ -95,10 +108,7 @@ describe('transitionsSection commits to the deck', () => {
 		stage.setAttribute('aria-roledescription', 'slide');
 		document.body.appendChild(stage);
 
-		await wrapper
-			.findAll('button')
-			.find((button) => button.text().includes('Preview'))
-			?.trigger('click');
+		commandButton(wrapper, 'transitions.preview.preview').click();
 
 		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
 		// Preview used to re-commit the slide's own transition: an edit nobody
@@ -109,8 +119,7 @@ describe('transitionsSection commits to the deck', () => {
 
 	it('has a working Apply to All', async () => {
 		const { wrapper, onApplyTransitionToAll } = mountTab(slideWith({ type: 'fade' }));
-		const applyToAll = wrapper.findAll('button').find((b) => b.text().includes('Apply to All'));
-		await applyToAll?.trigger('click');
+		commandButton(wrapper, 'transitions.timing.applyToAll').click();
 		expect(onApplyTransitionToAll).toHaveBeenCalledOnce();
 	});
 });
@@ -202,5 +211,29 @@ describe('transitionsSection > Sound picker', () => {
 		);
 		const call = onTransitionChange.mock.calls[0][0] as Partial<PptxSlideTransition>;
 		expect(call.soundData).toMatch(/^data:/);
+	});
+});
+
+describe('transitionsSection gating and Inspector', () => {
+	it('is read-only when canEdit is false but Preview and Inspector stay available', async () => {
+		const onToggleInspector = vi.fn<() => void>();
+		const { wrapper, onTransitionChange, onApplyTransitionToAll } = mountTab(
+			slideWith({ type: 'push' }),
+		);
+		await wrapper.setProps({ canEdit: false, onToggleInspector });
+		const presets = wrapper.element.querySelectorAll<HTMLButtonElement>('.preset');
+		expect([...presets].every((button) => button.disabled)).toBeTruthy();
+		presets[1].click();
+		commandButton(wrapper, 'transitions.timing.applyToAll').click();
+		expect(onTransitionChange).not.toHaveBeenCalled();
+		expect(onApplyTransitionToAll).not.toHaveBeenCalled();
+		wrapper.element.querySelector('.inspector')!.shadowRoot!.querySelector('button')!.click();
+		expect(onToggleInspector).toHaveBeenCalledOnce();
+	});
+
+	it('reflects the open inspector as pressed state', async () => {
+		const { wrapper } = mountTab(slideWith());
+		await wrapper.setProps({ isInspectorPaneOpen: true });
+		expect(wrapper.element.querySelector('.inspector')!.getAttribute('pressed')).toBe('true');
 	});
 });

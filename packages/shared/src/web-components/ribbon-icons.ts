@@ -12,6 +12,7 @@ export const RIBBON_ICON_PATHS: Readonly<Record<string, string>> = {
 	globe: 'M3 10a7 7 0 1 0 14 0 7 7 0 1 0-14 0M3 10h14M10 3c-4 4-4 10 0 14 4-4 4-10 0-14',
 	languages: 'M2 5h9M6 3v2M4 5c0 5 5 7 7 8M9 5c0 5-5 7-7 8M11 17l4-9 4 9M12.5 14h5',
 	copy: 'M7 7h10v10H7ZM3 13V3h10',
+	panelRight: 'M3 4h14v12H3ZM12 4v12',
 	compare: 'M5 3v11M15 6v11M5 5h7l3 3M15 15H8l-3-3M3 14h4M13 6h4',
 	message: 'M3 4h14v9H8l-5 4z',
 	messagePlus: 'M3 4h14v9H8l-5 4zM10 6v5M7.5 8.5h5',

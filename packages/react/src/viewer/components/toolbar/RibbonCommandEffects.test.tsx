@@ -9,6 +9,7 @@
  * wrong dialog, a font preset emitting the wrong unit, and Transitions >
  * Preview re-committing the slide's existing transition.
  */
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import type { PptxUiSelectElement } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -24,6 +25,8 @@ const { HomeSection } = await import('./HomeSection');
 const { TextSection } = await import('./TextSection');
 const { TransitionsSection } = await import('./TransitionsSection');
 const { TRANSITION_PREVIEW_ATTR } = await import('pptx-viewer-shared');
+
+registerPptxWebControls();
 
 let container: HTMLDivElement;
 let root: Root;
@@ -314,7 +317,7 @@ describe('transitions > Preview', () => {
 			);
 		});
 
-		click('pptx.ribbon.previewTransition');
+		click('Preview transition');
 
 		expect(stage.getAttribute(TRANSITION_PREVIEW_ATTR)).toBe('push');
 		expect(onTransitionChange).not.toHaveBeenCalled();

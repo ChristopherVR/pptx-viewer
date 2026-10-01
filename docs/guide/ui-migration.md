@@ -51,7 +51,6 @@ do not claim that the remaining UI inventory has already migrated.
 | -------------------------------------------- | ----- | ------------- |
 | Remaining Home controls                      | #373  | ChristopherVR |
 | Insert                                       | #374  | ChristopherVR |
-| Transitions                                  | #377  | ChristopherVR |
 | Animations                                   | #378  | ChristopherVR |
 | Distinct non-ribbon buttons and icon-buttons | #386  | ChristopherVR |
 
@@ -137,3 +136,32 @@ native ruler effects, Outline/Normal switching, template state, preference
 persistence, customization, touch targets, theme tokens and forced colors.
 Comparable screenshots are `<binding>-view.png` in the baseline and after
 directories.
+
+## Transitions
+
+Transitions (#377) uses one controlled shared view, `pptx-ui-ribbon-transitions`,
+for the Preview, Transition to This Slide and Timing groups: the preset gallery,
+Duration, Sound (None, 19 stock sounds, Other Sound...), Apply to All, Advance
+Slide (On Mouse Click and After) and the Inspector toggle. Hosts derive the
+state from the active slide through the shared `readRibbonTransitionDraft` and
+route typed `transitions-request` intents. Slide mutation, undo history,
+persistence, the stage transition preview replay, audio playback, the sound
+file read into the save pipeline and the inspector pane stay native.
+
+Parity fixes: every binding now shows the same controls with pressed state on
+the active preset and gates edits when read-only (Angular previously never
+did). Duration commits live while the After time commits on blur or Enter:
+React and Vue used to commit the time per keystroke, and Vanilla and Angular
+committed Duration only on blur. Public customization ids are unchanged. The
+Effect Options catalogue id still has no control in any binding. Boundary:
+the Vanilla and Angular hosts do not track inspector open state, so their
+Inspector command never shows as pressed.
+
+`e2e/ribbon-transitions-migration.spec.ts` covers ids, keyboard activation,
+applying a preset, duration, a timed advance and a stock sound to the deck,
+undo/redo, save and reload, Apply to All across slides, the stage Preview,
+customization, touch targets, theme tokens, focus and forced colors.
+`ribbon-control-effects.spec.ts`, `ribbon-compact-layout.spec.ts` and
+`effect-sound-gallery.spec.ts` cover the same controls from earlier work.
+Comparable screenshots are `<binding>-transitions.png` in the baseline and
+after directories.

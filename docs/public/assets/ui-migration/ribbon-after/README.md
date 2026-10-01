@@ -27,7 +27,7 @@ e2e/ribbon-gallery-migration.spec.ts e2e/ribbon-review-migration.spec.ts
 
 The broader UI migration remains open. These results cover the completed
 Design, Review and contextual families; they do not claim completion of Home,
-Insert, Transitions, Animations, View or the non-ribbon inventory.
+Insert, Animations or the non-ribbon inventory.
 
 ## Draw (#375)
 
@@ -55,4 +55,23 @@ editing remain outside the shared controlled view.
 - React 18 and React 19 toolbar/View suites passed; Vue, Svelte, Angular and
   Vanilla ribbon suites passed.
 - View neutral browser suite: 30 tests across all five bindings passed.
+- Changed-file formatting/lint and neutral test contract: passed.
+
+## Transitions (#377)
+
+The five `*-transitions.png` captures use the baseline deck and viewport on the
+Transitions tab with the default (None) preset. Slide mutation, history,
+persistence, the stage preview replay and audio playback remain outside the
+shared controlled view.
+
+- Root build and typecheck (0 errors): passed.
+- Shared Transitions state/view: ten tests; the full shared suite passed.
+- React 18 and React 19, Vue, Svelte, Angular and Vanilla full unit suites
+  passed with the shared view mounted in each adapter.
+- Transitions neutral browser suite: 30 tests across all five bindings passed,
+  including a stock-sound save and reload. Existing `ribbon-control-effects`,
+  `effect-sound-gallery`, Draw and View suites also passed.
+- `ribbon-compact-layout.spec.ts` Design cases fail in all bindings on the
+  integration baseline before this change (Browse Themes centering) and are
+  unrelated to Transitions.
 - Changed-file formatting/lint and neutral test contract: passed.

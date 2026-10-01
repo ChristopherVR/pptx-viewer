@@ -1,30 +1,24 @@
 <script setup lang="ts">
-import { Copy, PanelRight, Play } from 'lucide-vue-next';
 import type { PptxSlide, PptxSlideTransition } from 'pptx-viewer-core';
-import type { RibbonTransitionDraft } from 'pptx-viewer-shared';
+import type { RibbonTransitionsRequestEvent } from 'pptx-viewer-shared';
 import {
 	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
-	RIBBON_TRANSITION_PRESETS,
+	ribbonTransitionsDraftPatch,
+	ribbonTransitionsSoundChange,
+	ribbonTransitionStockSoundUrl,
 	ribbonTransitionUpdates,
 } from 'pptx-viewer-shared';
-import { computed, ref } from 'vue';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
-import { cn } from '../../../utils';
-import { useTransitionSoundPicker } from '../../composables/useTransitionSoundPicker';
-import { ic, ics, pill, SEP } from './ribbon-constants';
+import { playAnimationSound } from '../../composables/animation-sound';
 
 /**
- * TransitionsSection: the Transitions ribbon tab.
- *
- * This used to be a line-for-line port of React's mock version: five local
- * `ref`s, no emits, and an Apply-to-All button with no handler, so a Vue user
- * could not author a slide transition from anywhere in the product (the
- * inspector equivalent was dead code at the same time). Every control now reads
- * the ACTIVE SLIDE through the shared `readRibbonTransitionDraft` and commits
- * through `ribbonTransitionUpdates`, which is the same decision function the
- * other four bindings use.
+ * TransitionsSection: a thin adapter over the shared `pptx-ui-ribbon-transitions`
+ * view. Every control reads the ACTIVE SLIDE through `readRibbonTransitionDraft`
+ * and commits through `ribbonTransitionUpdates`; Preview replays the transition
+ * on the stage without writing, and sound picks are raw transition patches.
  */
 interface Props {
 	isInspectorPaneOpen: boolean;
@@ -37,249 +31,53 @@ interface Props {
 }
 
 // `withDefaults` is load-bearing: Vue casts an ABSENT boolean prop to `false`,
-// so a bare `defineProps` would leave `canEdit` false whenever a caller omits
-// it and silently disable every control on the tab.
+// so a bare `defineProps` would disable the whole tab whenever a caller omits it.
 const props = withDefaults(defineProps<Props>(), { canEdit: true, activeSlide: undefined });
-
 const { t } = useI18n();
-
-const presets = RIBBON_TRANSITION_PRESETS;
 const draft = computed(() => readRibbonTransitionDraft(props.activeSlide));
-// NOT named `canEdit`: that is also a prop name, and a template reference would
-// then be ambiguous between the prop and this computed.
-const editable = computed(() => props.canEdit);
+const state = computed(() => ({
+	draft: draft.value,
+	transition: props.activeSlide?.transition,
+	editable: props.canEdit !== false,
+	inspectorOpen: props.isInspectorPaneOpen,
+	translate: t,
+}));
 
-// Each text field shows the model's value EXCEPT while it is being typed into,
-// so a half-typed "1." is not immediately reformatted back at the user.
-const durationBuffer = ref<string | null>(null);
-const advanceBuffer = ref<string | null>(null);
-
-function commit(changes: Partial<RibbonTransitionDraft>): void {
-	props.onTransitionChange(ribbonTransitionUpdates({ ...draft.value, ...changes }));
-}
-
-/**
- * Replay the slide's own transition ON THE STAGE, without touching the deck.
- * This used to re-commit the transition, which writes back the values the slide
- * already had: an edit the user cannot see and a spec cannot tell from a no-op.
- */
-function preview(): void {
-	playSlideTransitionPreview(props.activeSlide?.transition, document);
-}
-
-function onDurationInput(event: Event): void {
-	const raw = (event.target as HTMLInputElement).value;
-	durationBuffer.value = raw;
-	const seconds = Number(raw);
-	if (raw !== '' && Number.isFinite(seconds)) {
-		commit({ durationSec: seconds });
+function request(event: RibbonTransitionsRequestEvent): void {
+	const intent = event.detail;
+	const patch = ribbonTransitionsDraftPatch(intent);
+	if (patch) {
+		props.onTransitionChange(ribbonTransitionUpdates({ ...draft.value, ...patch }));
+		return;
+	}
+	switch (intent.kind) {
+		case 'preview':
+			playSlideTransitionPreview(props.activeSlide?.transition, document);
+			break;
+		case 'applyToAll':
+			props.onApplyTransitionToAll();
+			break;
+		case 'inspector':
+			props.onToggleInspector();
+			break;
+		case 'soundPreview': {
+			const url = ribbonTransitionStockSoundUrl(props.activeSlide?.transition);
+			if (url) {
+				playAnimationSound(url);
+			}
+			break;
+		}
+		default:
+			void ribbonTransitionsSoundChange(intent).then((change) => {
+				if (change) {
+					props.onTransitionChange(change);
+				}
+				return undefined;
+			});
 	}
 }
-
-function onAdvanceTextInput(event: Event): void {
-	const raw = (event.target as HTMLInputElement).value;
-	advanceBuffer.value = raw;
-	commit({ advanceAfter: true, advanceAfterText: raw });
-}
-
-// The Sound picker (stock gallery, "Other Sound...", None, Preview) lives in
-// its own composable; `onTransitionChange` takes a raw
-// `Partial<PptxSlideTransition>`, so a sound pick bypasses the ribbon draft.
-const {
-	soundFileInput,
-	soundSelectedValue,
-	soundOptions,
-	stockSoundId,
-	onSoundSelectChange,
-	onSoundPreview,
-	onSoundFileChange,
-} = useTransitionSoundPicker(
-	() => props.activeSlide,
-	(updates) => props.onTransitionChange(updates),
-);
 </script>
 
 <template>
-	<!-- Preview -->
-	<button
-		type="button"
-		data-ribbon-group="transitions.preview"
-		data-ribbon-control="transitions.preview.preview"
-		:class="pill"
-		:title="t('pptx.ribbon.previewTransition')"
-		@click="preview()"
-	>
-		<Play :class="ics" />
-		{{ t('pptx.ribbon.preview') }}
-	</button>
-
-	<div :class="SEP" />
-
-	<!-- Transition preset gallery -->
-	<div
-		class="inline-flex items-center gap-0.5 overflow-x-auto max-w-[420px]"
-		data-ribbon-group="transitions.transitionToThisSlide"
-		data-ribbon-control="transitions.transitionToThisSlide.gallery"
-	>
-		<button
-			v-for="preset in presets"
-			:key="preset.type"
-			type="button"
-			:disabled="!editable"
-			:class="
-				cn(
-					'flex-shrink-0 px-2 py-1 max-md:min-h-[44px] rounded border text-[11px] leading-tight transition-colors',
-					draft.type === preset.type
-						? 'border-primary bg-primary/10 text-primary font-medium'
-						: 'border-border bg-muted hover:bg-accent text-foreground',
-				)
-			"
-			:title="t('pptx.ribbon.transitionTitle', { name: t(preset.labelKey) })"
-			@click="commit({ type: preset.type })"
-		>
-			{{ t(preset.labelKey) }}
-		</button>
-	</div>
-
-	<div :class="SEP" />
-
-	<!-- Timing (Duration, Sound, Apply To All, Advance Slide) -->
-	<div class="contents [&>*]:shrink-0" data-ribbon-group="transitions.timing">
-		<!-- Duration -->
-		<label
-			class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-			data-ribbon-control="transitions.timing.duration"
-		>
-			<span class="whitespace-nowrap">{{ t('pptx.ribbon.duration') }}</span>
-			<input
-				type="number"
-				min="0"
-				max="20"
-				step="0.25"
-				:disabled="!editable"
-				:value="durationBuffer ?? String(draft.durationSec)"
-				class="w-16 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground text-center"
-				:title="t('pptx.ribbon.transitionDurationTitle')"
-				@input="onDurationInput"
-				@blur="durationBuffer = null"
-			/>
-		</label>
-
-		<div :class="SEP" />
-
-		<!-- Sound: "Other Sound..." opens a native file picker and the chosen file
-	     is embedded into the package on save (core's `embedTransitionSound`).
-	     "None" clears any sound the slide carries. -->
-		<label
-			class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-			data-ribbon-control="transitions.timing.sound"
-		>
-			<span class="whitespace-nowrap">{{ t('pptx.ribbon.sound') }}</span>
-			<select
-				:aria-label="t('pptx.ribbon.sound')"
-				:disabled="!editable"
-				:value="soundSelectedValue"
-				class="w-24 px-1.5 py-1 rounded border border-border bg-muted text-xs text-foreground disabled:opacity-50"
-				@change="onSoundSelectChange"
-			>
-				<option v-for="option in soundOptions" :key="option.value" :value="option.value">
-					{{ option.i18nKey ? t(option.i18nKey) : option.label }}
-				</option>
-			</select>
-			<button
-				type="button"
-				:aria-label="t('pptx.animation.sound.preview')"
-				:disabled="!stockSoundId"
-				class="shrink-0 rounded border border-border bg-muted p-1 disabled:opacity-40"
-				@click="onSoundPreview"
-			>
-				<Play class="h-3 w-3" />
-			</button>
-			<input
-				ref="soundFileInput"
-				type="file"
-				accept="audio/*"
-				class="hidden"
-				@change="onSoundFileChange"
-			/>
-		</label>
-
-		<div :class="SEP" />
-
-		<!-- Apply to All -->
-		<button
-			type="button"
-			data-ribbon-control="transitions.timing.applyToAll"
-			:disabled="!editable"
-			:class="pill"
-			:title="t('pptx.ribbon.applyTransitionToAll')"
-			@click="props.onApplyTransitionToAll()"
-		>
-			<Copy :class="ics" />
-			{{ t('pptx.headerFooter.applyToAll') }}
-		</button>
-
-		<div :class="SEP" />
-
-		<!-- Advance Slide group -->
-		<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
-			<span class="text-[10px] font-medium text-foreground">{{
-				t('pptx.ribbon.advanceSlide')
-			}}</span>
-			<label
-				class="inline-flex items-center gap-1.5 cursor-pointer"
-				data-ribbon-control="transitions.timing.advanceOnClick"
-			>
-				<input
-					type="checkbox"
-					:disabled="!editable"
-					:checked="draft.advanceOnClick"
-					class="accent-primary h-3 w-3"
-					@change="commit({ advanceOnClick: ($event.target as HTMLInputElement).checked })"
-				/>
-				<span class="whitespace-nowrap">{{ t('pptx.ribbon.onMouseClick') }}</span>
-			</label>
-			<!-- Two controls under one `<label>`: the label names only its FIRST
-		     labelable descendant, so without these the seconds field had an EMPTY
-		     accessible name and the checkbox took the field's value into its own
-		     ("After 5 seconds"). Both are named explicitly instead. -->
-			<label
-				class="inline-flex items-center gap-1.5 cursor-pointer"
-				data-ribbon-control="transitions.timing.advanceAfter"
-			>
-				<input
-					type="checkbox"
-					:aria-label="t('pptx.ribbon.afterDuration')"
-					:disabled="!editable"
-					:checked="draft.advanceAfter"
-					class="accent-primary h-3 w-3"
-					@change="commit({ advanceAfter: ($event.target as HTMLInputElement).checked })"
-				/>
-				<span class="whitespace-nowrap">{{ t('pptx.ribbon.afterDuration') }}</span>
-				<input
-					type="text"
-					:aria-label="t('pptx.ribbon.advanceAfterSeconds')"
-					:value="advanceBuffer ?? draft.advanceAfterText"
-					:disabled="!editable || !draft.advanceAfter"
-					class="w-16 px-1 py-0.5 rounded border border-border bg-muted text-xs text-foreground text-center disabled:opacity-50"
-					:title="t('pptx.ribbon.advanceAfterSeconds')"
-					@input="onAdvanceTextInput"
-					@blur="advanceBuffer = null"
-				/>
-			</label>
-		</div>
-	</div>
-
-	<div :class="SEP" />
-
-	<!-- Inspector -->
-	<button
-		type="button"
-		:class="cn(pill, props.isInspectorPaneOpen ? 'bg-primary hover:bg-primary/80 text-white' : '')"
-		:title="t('pptx.ribbon.openInspectorTransitions')"
-		@click="props.onToggleInspector()"
-	>
-		<PanelRight :class="ic" />
-		{{ t('pptx.ribbon.inspector') }}
-	</button>
+	<pptx-ui-ribbon-transitions :state.prop="state" @transitions-request="request" />
 </template>

@@ -1,54 +1,34 @@
 /**
- * ribbon-transitions-section.component.ts: the Transitions ribbon tab (preview,
- * preset gallery, duration, sound, Apply to all, Advance Slide, Inspector).
- *
- * Every control on this tab now commits through the ONE shared decision module
- * (`render/ribbon-transitions`): the tab holds a single
- * {@link RibbonTransitionDraft}, seeded from the active slide by
- * `readRibbonTransitionDraft`, and each change re-commits the whole draft with
- * `applyRibbonTransitionDraft`. Before that, the Advance Slide checkboxes and
- * the seconds field wrote component-local signals nothing ever read, so a timed
- * advance picked here never reached the deck (and never reached the saved
- * `.pptx`), while the preset/duration commits hard-coded `advanceOnClick: true`
- * and dropped whatever else the slide's `p:transition` carried.
- *
- * The draft is re-seeded whenever the active slide changes, so the tab reports
- * the slide it is looking at rather than the last preset the user clicked.
+ * ribbon-transitions-section.component.ts: the Transitions ribbon tab, a thin
+ * adapter for the shared `pptx-ui-ribbon-transitions`. The shared element owns
+ * every control, label, pressed state and read-only gating; this component
+ * derives the draft from the ACTIVE slide (`readRibbonTransitionDraft`), writes
+ * each change onto the targeted slides through the native editor service
+ * (history and persistence stay here), replays the transition on the stage for
+ * Preview without writing, and applies sound picks as raw transition patches.
  */
-import { NgClass } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
 	computed,
-	ElementRef,
+	CUSTOM_ELEMENTS_SCHEMA,
 	inject,
 	input,
 	output,
-	signal,
-	viewChild,
 } from '@angular/core';
-import { LucidePanelRight, LucidePlay } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
-import type { PptxSlideTransition, PptxTransitionType } from 'pptx-viewer-core';
+import { TranslateService } from '@ngx-translate/core';
+import type { PptxSlideTransition } from 'pptx-viewer-core';
 
-import type { RibbonTransitionDraft } from '../internal/shared';
+import type { RibbonTransitionDraft, RibbonTransitionsRequestEvent } from '../internal/shared';
 import {
 	applyRibbonTransitionDraft,
-	applyTransitionSoundFile,
-	applyTransitionStockSound,
-	clearTransitionSound,
-	getEffectSoundAsset,
 	mergeSlideTransition,
 	playSlideTransitionPreview,
 	readRibbonTransitionDraft,
-	readSoundFileAsDataUrl,
-	RIBBON_TRANSITION_PRESETS,
+	ribbonTransitionsDraftPatch,
+	ribbonTransitionsSoundChange,
+	ribbonTransitionStockSoundUrl,
 	ribbonTransitionTargets,
-	TRANSITION_SOUND_NONE_VALUE,
-	TRANSITION_SOUND_OTHER_VALUE,
-	transitionSoundOptions,
-	transitionSoundSelectedValue,
-	transitionStockSoundId,
 } from '../internal/shared';
 import { playAnimationSound } from './animation-sound';
 import { EditorStateService } from './editor-state.service';
@@ -58,333 +38,88 @@ import { EditorStateService } from './editor-state.service';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe, LucidePlay, LucidePanelRight],
-	template: `
-		<!--
-			Preview REPLAYS the transition on the editing stage (shared
-			playSlideTransitionPreview) and writes nothing. It used to emit "present",
-			i.e. it started the whole slide show: a different action under the same
-			name, in one binding out of five.
-		-->
-		<button
-			data-ribbon-group="transitions.preview"
-			data-ribbon-control="transitions.preview.preview"
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.ribbon.previewTransition' | translate"
-			(click)="preview()"
-		>
-			<svg lucidePlay class="h-4 w-4"></svg> {{ 'pptx.ribbon.preview' | translate }}
-		</button>
-		<span class="pptx-rb-sep"></span>
-		<!-- Preset gallery -->
-		<div
-			class="inline-flex max-w-[420px] items-center gap-0.5 overflow-x-auto"
-			data-ribbon-group="transitions.transitionToThisSlide"
-			data-ribbon-control="transitions.transitionToThisSlide.gallery"
-		>
-			@for (t of transitionPresets; track t.type) {
-				<button
-					type="button"
-					(click)="setTransition(t.type)"
-					class="flex-shrink-0 rounded border px-2 py-1 text-[11px] leading-tight transition-colors"
-					[ngClass]="
-						draft().type === t.type
-							? 'border-primary bg-primary/10 font-medium text-primary'
-							: 'border-border bg-muted text-foreground hover:bg-accent'
-					"
-					[title]="'pptx.ribbon.transitionTitle' | translate: { name: t.labelKey | translate }"
-				>
-					{{ t.labelKey | translate }}
-				</button>
-			}
-		</div>
-		<span class="pptx-rb-sep"></span>
-		<span class="contents" data-ribbon-group="transitions.timing">
-			<!-- Duration -->
-			<label
-				data-ribbon-control="transitions.timing.duration"
-				class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-			>
-				<span class="whitespace-nowrap">{{ 'pptx.ribbon.duration' | translate }}</span>
-				<input
-					type="number"
-					min="0"
-					max="10"
-					step="0.1"
-					[value]="draft().durationSec"
-					(change)="onDurationChange($event)"
-					class="pptx-rb-select w-16 text-center"
-					[title]="'pptx.ribbon.transitionDurationTitle' | translate"
-				/>
-				<span>s</span>
-			</label>
-			<span class="pptx-rb-sep"></span>
-			<!--
-			Sound. "Other Sound..." opens a native file picker and the chosen file
-			is embedded into the package on save (core's embedTransitionSound).
-			"None" clears any sound the slide carries.
-		-->
-			<label
-				data-ribbon-control="transitions.timing.sound"
-				class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
-			>
-				<span class="whitespace-nowrap">{{ 'pptx.ribbon.sound' | translate }}</span>
-				<select
-					[attr.aria-label]="'pptx.ribbon.sound' | translate"
-					class="pptx-rb-select w-24 disabled:opacity-50"
-					[value]="soundSelectedValue()"
-					(change)="onSoundSelectChange($event)"
-				>
-					@for (option of soundOptions(); track option.value) {
-						<option [value]="option.value" [selected]="option.value === soundSelectedValue()">
-							{{ option.i18nKey ? (option.i18nKey | translate) : option.label }}
-						</option>
-					}
-				</select>
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					[attr.aria-label]="'pptx.animation.sound.preview' | translate"
-					[disabled]="!stockSoundId()"
-					(click)="onSoundPreview()"
-				>
-					<svg lucidePlay class="h-3 w-3"></svg>
-				</button>
-				<input
-					#soundFileInput
-					type="file"
-					accept="audio/*"
-					class="hidden"
-					(change)="onSoundFileChange($event)"
-				/>
-			</label>
-			<span class="pptx-rb-sep"></span>
-			<!-- Apply to all -->
-			<button
-				data-ribbon-control="transitions.timing.applyToAll"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.ribbon.applyTransitionToAll' | translate"
-				[attr.aria-label]="'pptx.headerFooter.applyToAll' | translate"
-				(click)="applyToAll()"
-			>
-				<span aria-hidden="true">⧉</span> {{ 'pptx.headerFooter.applyToAll' | translate }}
-			</button>
-			<span class="pptx-rb-sep"></span>
-			<!-- Advance Slide -->
-			<div class="inline-flex flex-col gap-1 text-xs text-muted-foreground">
-				<span class="text-[10px] font-medium text-foreground">{{
-					'pptx.ribbon.advanceSlide' | translate
-				}}</span>
-				<label
-					data-ribbon-control="transitions.timing.advanceOnClick"
-					class="inline-flex cursor-pointer items-center gap-1.5"
-				>
-					<input
-						type="checkbox"
-						[checked]="draft().advanceOnClick"
-						(change)="onAdvanceOnClick($event)"
-						class="accent-primary h-3 w-3"
-					/>
-					<span class="whitespace-nowrap">{{ 'pptx.ribbon.onMouseClick' | translate }}</span>
-				</label>
-				<!--
-				Two controls under one label element: a label names only its FIRST
-				labelable descendant, so without these the seconds field had an EMPTY
-				accessible name and the checkbox took the field's value into its own
-				("After 5 seconds"). Both are named explicitly instead.
-			-->
-				<label
-					data-ribbon-control="transitions.timing.advanceAfter"
-					class="inline-flex cursor-pointer items-center gap-1.5"
-				>
-					<input
-						type="checkbox"
-						[attr.aria-label]="'pptx.ribbon.afterDuration' | translate"
-						[checked]="draft().advanceAfter"
-						(change)="onAdvanceAfter($event)"
-						class="accent-primary h-3 w-3"
-					/>
-					<span class="whitespace-nowrap">{{ 'pptx.ribbon.afterDuration' | translate }}</span>
-					<input
-						type="text"
-						[attr.aria-label]="'pptx.ribbon.advanceAfterSeconds' | translate"
-						[value]="draft().advanceAfterText"
-						(change)="onAdvanceAfterText($event)"
-						[disabled]="!draft().advanceAfter"
-						class="pptx-rb-select w-16 text-center disabled:opacity-50"
-						[title]="'pptx.ribbon.advanceAfterSeconds' | translate"
-					/>
-				</label>
-			</div>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Inspector -->
-		<button
-			type="button"
-			class="pptx-rb-pill"
-			[title]="'pptx.ribbon.openInspectorTransitions' | translate"
-			(click)="toggleInspector.emit()"
-		>
-			<svg lucidePanelRight class="h-4 w-4"></svg> {{ 'pptx.ribbon.inspector' | translate }}
-		</button>
-	`,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	template: `<pptx-ui-ribbon-transitions
+		[state]="view()"
+		(transitions-request)="request($event)"
+	/>`,
 })
 export class RibbonTransitionsSectionComponent {
 	private readonly editor = inject(EditorStateService);
+	private readonly translation = inject(TranslateService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
-
+	readonly canEdit = input<boolean>(true);
+	readonly inspectorOpen = input<boolean>(false);
 	readonly toggleInspector = output<void>();
 
-	protected readonly transitionPresets = RIBBON_TRANSITION_PRESETS;
+	private readonly slide = computed(() => this.editor.slides()[this.slideIndex()]);
+	/** `readRibbonTransitionDraft` answers the empty draft for a missing slide. */
+	protected readonly draft = computed(() => readRibbonTransitionDraft(this.slide()));
 
-	/**
-	 * The draft the user is editing, tagged with the slide it belongs to. Null
-	 * until a control is touched, and abandoned as soon as the active slide
-	 * changes, which is what makes the tab re-read the new slide.
-	 */
-	private readonly edited = signal<{ index: number; draft: RibbonTransitionDraft } | null>(null);
-
-	/**
-	 * What the tab's controls say: the live draft for THIS slide, otherwise the
-	 * slide's own transition read back through shared. Keeping the untouched
-	 * case derived from the deck is what stops the tab reporting the last preset
-	 * the user clicked after they navigate away.
-	 */
-	protected readonly draft = computed<RibbonTransitionDraft>(() => {
-		const index = this.slideIndex();
-		const slides = this.editor.slides();
-		const edit = this.edited();
-		if (edit && edit.index === index) {
-			return edit.draft;
-		}
-		// `readRibbonTransitionDraft` answers EMPTY_RIBBON_TRANSITION_DRAFT for a
-		// missing slide, so an empty deck needs no special case here.
-		return readRibbonTransitionDraft(slides[index]);
-	});
-
-	/** Replay the active slide's transition on the stage. Never writes. */
-	protected preview(): void {
-		playSlideTransitionPreview(this.editor.slides()[this.slideIndex()]?.transition, document);
+	protected view() {
+		return {
+			draft: this.draft(),
+			transition: this.slide()?.transition,
+			editable: this.canEdit(),
+			inspectorOpen: this.inspectorOpen(),
+			translate: (key: string, params?: Record<string, string>) =>
+				this.translation?.instant(key, params) ?? key,
+		};
 	}
 
-	/** Apply the chosen preset to the active slide. */
-	protected setTransition(type: PptxTransitionType): void {
-		this.commit({ type });
-	}
-
-	protected onDurationChange(event: Event): void {
-		const durationSec = Number((event.target as HTMLInputElement).value);
-		if (Number.isFinite(durationSec) && durationSec >= 0) {
-			this.commit({ durationSec });
-		}
-	}
-
-	protected onAdvanceOnClick(event: Event): void {
-		this.commit({ advanceOnClick: (event.target as HTMLInputElement).checked });
-	}
-
-	protected onAdvanceAfter(event: Event): void {
-		this.commit({ advanceAfter: (event.target as HTMLInputElement).checked });
-	}
-
-	protected onAdvanceAfterText(event: Event): void {
-		this.commit({ advanceAfterText: (event.target as HTMLInputElement).value });
-	}
-
-	/** Apply the current draft to every slide in the deck. */
-	protected applyToAll(): void {
-		this.commit({}, true);
-	}
-
-	private readonly soundFileInput = viewChild<ElementRef<HTMLInputElement>>('soundFileInput');
-
-	/** What the Sound `<select>` shows: the picked file's name, None, or the browse entry. */
-	protected readonly soundOptions = computed(() =>
-		transitionSoundOptions(this.editor.slides()[this.slideIndex()]?.transition),
-	);
-
-	protected readonly soundSelectedValue = computed(() =>
-		transitionSoundSelectedValue(this.editor.slides()[this.slideIndex()]?.transition),
-	);
-
-	protected readonly stockSoundId = computed(() =>
-		transitionStockSoundId(this.editor.slides()[this.slideIndex()]?.transition),
-	);
-
-	protected onSoundPreview(): void {
-		const id = this.stockSoundId();
-		if (!id) {
-			return;
-		}
-		const asset = getEffectSoundAsset(id);
-		if (asset) {
-			playAnimationSound(asset.dataUrl);
-		}
-	}
-
-	/**
-	 * Sound writes a raw `Partial<PptxSlideTransition>` straight onto the
-	 * active slide rather than going through the ribbon draft: the picked
-	 * file's `soundData` has no equivalent in {@link RibbonTransitionDraft},
-	 * and `updateSlide` replaces `transition` wholesale, so the change is
-	 * pre-merged with `mergeSlideTransition`.
-	 */
-	protected onSoundSelectChange(event: Event): void {
-		const select = event.target as HTMLSelectElement;
-		if (select.value === TRANSITION_SOUND_OTHER_VALUE) {
-			this.soundFileInput()?.nativeElement.click();
-			// The file input's own change (or a cancelled dialog) decides what
-			// happens next; put the select back to what the slide actually has.
-			select.value = this.soundSelectedValue();
-			return;
-		}
-		if (select.value === TRANSITION_SOUND_NONE_VALUE) {
-			this.commitSoundChange(clearTransitionSound());
-			return;
-		}
-		// One of PowerPoint's 19 built-in stock sounds (catalogue id).
-		const patch = applyTransitionStockSound(select.value);
+	protected request(event: Event): void {
+		const intent = (event as RibbonTransitionsRequestEvent).detail;
+		const patch = ribbonTransitionsDraftPatch(intent);
 		if (patch) {
-			this.commitSoundChange(patch);
-		}
-	}
-
-	protected onSoundFileChange(event: Event): void {
-		const fileInput = event.target as HTMLInputElement;
-		const file = fileInput.files?.[0];
-		fileInput.value = '';
-		if (!file) {
+			this.commit(patch);
 			return;
 		}
-		void readSoundFileAsDataUrl(file).then((dataUrl) => {
-			if (dataUrl) {
-				this.commitSoundChange(applyTransitionSoundFile({ name: file.name, dataUrl }));
+		switch (intent.kind) {
+			case 'preview':
+				playSlideTransitionPreview(this.slide()?.transition, document);
+				break;
+			case 'applyToAll':
+				this.commit({}, true);
+				break;
+			case 'inspector':
+				this.toggleInspector.emit();
+				break;
+			case 'soundPreview': {
+				const url = ribbonTransitionStockSoundUrl(this.slide()?.transition);
+				if (url) {
+					playAnimationSound(url);
+				}
+				break;
 			}
-			return undefined;
-		});
+			default:
+				void ribbonTransitionsSoundChange(intent).then((change) => {
+					if (change) {
+						this.commitSound(change);
+					}
+					return undefined;
+				});
+		}
 	}
 
-	private commitSoundChange(changes: Partial<PptxSlideTransition>): void {
+	/** `updateSlide` replaces `transition` wholesale, so a sound change is pre-merged. */
+	private commitSound(changes: Partial<PptxSlideTransition>): void {
 		const index = this.slideIndex();
 		const slide = this.editor.slides()[index];
-		if (!slide) {
-			return;
+		if (slide && this.canEdit()) {
+			this.editor.updateSlide(index, {
+				transition: mergeSlideTransition(slide.transition, changes),
+			});
 		}
-		this.editor.updateSlide(index, { transition: mergeSlideTransition(slide.transition, changes) });
 	}
 
-	/**
-	 * Merge a control's change into the draft and write the resulting transition
-	 * onto every targeted slide, preserving each slide's own direction / spokes /
-	 * sound / raw XML through the shared merge.
-	 */
+	/** Write the draft onto the targeted slides, keeping each one's direction/sound/raw XML. */
 	private commit(patch: Partial<RibbonTransitionDraft>, applyToAll = false): void {
+		if (!this.canEdit()) {
+			return;
+		}
 		const index = this.slideIndex();
 		const next: RibbonTransitionDraft = { ...this.draft(), ...patch };
-		this.edited.set({ index, draft: next });
 		const slides = this.editor.slides();
 		for (const target of ribbonTransitionTargets(slides.length, index, applyToAll)) {
 			this.editor.updateSlide(target, {

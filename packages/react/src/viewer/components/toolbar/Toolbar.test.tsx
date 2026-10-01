@@ -1006,74 +1006,14 @@ describe('toolbar - Design tab', () => {
 // ===========================================================================
 
 describe('toolbar - Transitions tab', () => {
-	it('renders Preview button', () => {
+	it('renders the shared Transitions placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(TransitionsSection, {
 				isInspectorPaneOpen: false,
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Preview transition"');
-		expect(html).toContain('>Preview</button>');
-	});
-
-	it('renders transition presets (None, Fade, Push, Wipe, etc.)', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		const presets = ['None', 'Fade', 'Push', 'Wipe', 'Split', 'Reveal', 'Cut', 'Cover', 'Uncover'];
-		for (const preset of presets) {
-			expect(html, `Preset "${preset}" should be rendered`).toContain(`>${preset}</button>`);
-		}
-		expect(presets).toHaveLength(9);
-	});
-
-	it('renders Duration input', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Duration:');
-		expect(html).toContain('title="Transition duration in seconds"');
-	});
-
-	it('renders Apply to All button', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Apply transition to all slides"');
-		expect(html).toContain('Apply to All');
-	});
-
-	it('renders Inspector button', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Open Inspector for full transition options"');
-		expect(html).toContain('>Inspector</button>');
-	});
-
-	it('inspector button has active styling when pane is open', () => {
-		const html = render(
-			React.createElement(TransitionsSection, {
-				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(
-			/bg-primary[^"]*"[^>]*title="Open Inspector for full transition options"/u,
-		);
+		expect(html).toContain('pptx-ui-ribbon-transitions');
 	});
 });
 
@@ -1639,8 +1579,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'transitions' })),
 		);
-		expect(html).toContain('>Preview</button>');
-		expect(html).toContain('Apply to All');
+		expect(html).toContain('pptx-ui-ribbon-transitions');
 	});
 
 	it('renders AnimationsSection content when toolbarSection is animations', () => {

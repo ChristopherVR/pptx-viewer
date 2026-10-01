@@ -2148,6 +2148,7 @@ export const translationsEn: Record<string, string> = {
 	'pptx.ribbon.formatBackground': 'Format Background',
 	'pptx.ribbon.formatBackgroundTitle': 'Format slide background - opens the Inspector',
 	'pptx.ribbon.preview': 'Preview',
+	'pptx.ribbon.transitionToThisSlide': 'Transition to This Slide',
 	'pptx.ribbon.previewTransition': 'Preview transition',
 	'pptx.ribbon.duration': 'Duration:',
 	'pptx.ribbon.transitionDurationTitle': 'Transition duration in seconds',

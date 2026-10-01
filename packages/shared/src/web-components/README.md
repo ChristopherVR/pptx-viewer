@@ -270,3 +270,41 @@ while read-only. Setting state emits no intent and checkbox rows are restored to
 the controlled value after each request. Native hosts retain persisted
 viewer options, view switching, the browser EyeDropper, template editing and
 history. Focus is preserved across updates and instances are isolated.
+
+## Transitions ribbon
+
+`pptx-ui-ribbon-transitions.state` is a controlled `RibbonTransitionsViewState`:
+the `RibbonTransitionDraft` read from the active slide (`readRibbonTransitionDraft`),
+that slide's raw `transition` (only used to list and select Sound entries),
+editability, the Inspector pane's open state and a translation callback that
+may take interpolation params (the preset title uses `{{name}}`). The light-DOM
+view renders the Preview, Transition to This Slide and Timing groups with the
+public customization ids (`transitions.preview.preview`,
+`transitions.transitionToThisSlide.gallery`, `transitions.timing.sound`,
+`duration`, `applyToAll`, `advanceOnClick`, `advanceAfter`); the Inspector
+toggle is an id-less command after the groups, as before. It owns the nine
+preset buttons (`aria-pressed` reflects the draft), the number and text
+fields, the checkbox rows, the Sound select with its preview button and the
+hidden audio file input. Presets are 28px tall, 44px on coarse pointers or
+narrow viewports.
+
+The composed `transitions-request` event carries a `RibbonTransitionsIntent`:
+`preview`, `preset`, `duration` (seconds, clamped 0 to 20), `advanceOnClick`,
+`advanceAfter`, `advanceAfterText`, `applyToAll`, `sound` (None or a stock
+catalogue id), `soundFile` (a picked `File`), `soundPreview` and `inspector`.
+Shared helpers turn intents into native work: `ribbonTransitionsDraftPatch`
+(commit through `ribbonTransitionUpdates`), `ribbonTransitionsSoundChange`
+(None, stock or file bytes as a `Partial<PptxSlideTransition>`) and
+`ribbonTransitionStockSoundUrl`. All edit intents are rejected while
+read-only; Preview, Inspector and sound preview are not edits. Choosing
+"Other Sound..." opens the owned file input and restores the select.
+
+Duration commits per `input` event; the After time commits on `change`
+(blur or Enter) so half-typed `mm:ss.hh` text never becomes a history step.
+Focused fields are not overwritten while typing, and a blur snaps a field back
+to the model. Hosts keep slide mutation, history, persistence, the transition
+preview replay (`playSlideTransitionPreview`, which needs the stage), audio
+playback and the inspector pane. The Effect Options catalogue id has no
+control in any binding yet, so none is rendered. Known boundary: the Vanilla
+host does not track inspector open state, so its Inspector command is never
+pressed, and Angular does not pass it either.
