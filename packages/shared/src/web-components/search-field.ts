@@ -60,6 +60,12 @@ export function definePptxSearchField(registry: CustomElementRegistry): void {
 				this.input.value = this.currentValue;
 			}
 		}
+		get placeholder(): string {
+			return this.getAttribute('placeholder') ?? '';
+		}
+		set placeholder(next: string) {
+			this.setAttribute('placeholder', String(next ?? ''));
+		}
 		get disabled(): boolean {
 			return this.hasAttribute('disabled');
 		}

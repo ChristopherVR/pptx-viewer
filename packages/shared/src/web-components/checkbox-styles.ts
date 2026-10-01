@@ -1,25 +1,26 @@
+import { FOCUS_RING, tok } from './control-tokens';
+
 export const CHECKBOX_STYLES = `
 :host {
 	display: inline-grid;
 	box-sizing: border-box;
-	width: 16px;
-	height: 16px;
+	width: ${tok('--pptx-checkbox-size')};
+	height: ${tok('--pptx-checkbox-size')};
 	flex: none;
 	place-items: center;
-	border: 1px solid var(--pptx-border, #374151);
-	border-radius: 3px;
-	background: var(--pptx-background, #030712);
-	color: var(--pptx-primary-foreground, #fff);
+	border: 1px solid ${tok('--pptx-checkbox-border')};
+	border-radius: ${tok('--pptx-checkbox-radius')};
+	background: ${tok('--pptx-checkbox-bg')};
+	color: ${tok('--pptx-checkbox-accent-fg')};
 	cursor: pointer;
 	vertical-align: middle;
 }
 :host([checked]) {
-	border-color: var(--pptx-primary, #6366f1);
-	background: var(--pptx-primary, #6366f1);
+	border-color: ${tok('--pptx-checkbox-accent')};
+	background: ${tok('--pptx-checkbox-accent')};
 }
 :host(:focus-visible) {
-	outline: 2px solid var(--pptx-ring, #6366f1);
-	outline-offset: 2px;
+	${FOCUS_RING}
 }
 :host([disabled]) {
 	opacity: .5;
@@ -32,7 +33,7 @@ svg {
 }
 :host([checked]) svg { display: block; }
 @media (pointer: coarse), (max-width: 767px) {
-	:host { width: 22px; height: 22px; }
+	:host { width: ${tok('--pptx-checkbox-size-touch')}; height: ${tok('--pptx-checkbox-size-touch')}; }
 	svg { width: 16px; height: 16px; }
 }
 @media (forced-colors: active) {
