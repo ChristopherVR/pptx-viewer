@@ -622,8 +622,8 @@ unit test fails if an id is missing here.
 | `draw.tools.select`                               | Select                              |
 | `draw.tools.pen`                                  | Pen                                 |
 | `draw.tools.highlighter`                          | Highlighter                         |
-| `draw.tools.eraser`                               | Eraser                              |
 | `draw.tools.freeform`                             | Freeform                            |
+| `draw.tools.eraser`                               | Eraser                              |
 | `draw.tools.penColor`                             | Pen colour                          |
 | `draw.tools.penWidth`                             | Pen width                           |
 | `draw.convert.inkToShape`                         | Ink to Shape                        |

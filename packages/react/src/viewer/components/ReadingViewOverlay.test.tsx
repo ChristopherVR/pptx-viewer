@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * Reading View, React binding.
  *
@@ -9,9 +10,14 @@
  * and that it is a windowed view rather than a second slide show.
  */
 import type { PptxSlide } from 'pptx-viewer-core';
-import { READING_VIEW_ATTR, READING_VIEW_COUNTER_ATTR } from 'pptx-viewer-shared';
+import {
+	READING_VIEW_ATTR,
+	READING_VIEW_COUNTER_ATTR,
+	registerPptxWebControls,
+} from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
-import React from 'react';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -73,6 +79,19 @@ function viewProps(overrides: Partial<ViewSectionProps> = {}): ViewSectionProps 
 	};
 }
 
+registerPptxWebControls();
+
+/** Mounts the View section and returns the shadow-root button of one shared View control. */
+function viewButton(props: ViewSectionProps, id: string): HTMLButtonElement {
+	const container = document.createElement('div');
+	document.body.appendChild(container);
+	const root = createRoot(container);
+	act(() => root.render(<ViewSection {...props} />));
+	return container
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+}
+
 describe('view tab Reading View control', () => {
 	/**
 	 * The regression this whole feature exists for: every binding rendered this
@@ -80,9 +99,9 @@ describe('view tab Reading View control', () => {
 	 * nothing at all.
 	 */
 	it('is enabled rather than an inert placeholder', () => {
-		const html = render(<ViewSection {...viewProps()} />);
-		expect(html).toContain('title="Reading View"');
-		expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*title="Reading View"/u);
+		const button = viewButton(viewProps(), 'view.presentationViews.readingView');
+		expect(button.textContent).toContain('Reading View');
+		expect(button.disabled).toBeFalsy();
 	});
 });
 

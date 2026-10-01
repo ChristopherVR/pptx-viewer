@@ -126,7 +126,9 @@ describe('powerPointViewer', () => {
 				doc.on('update', updates);
 				if (transition === 'sync loss') {
 					synced = false;
-					for (const listener of listeners) listener();
+					for (const listener of listeners) {
+						listener();
+					}
 				} else {
 					permission.set('editable', false);
 				}
@@ -155,7 +157,9 @@ describe('powerPointViewer', () => {
 				for (const listener of listeners) {
 					listener();
 				}
-				if (transition !== 'sync loss') permission.set('editable', true);
+				if (transition !== 'sync loss') {
+					permission.set('editable', true);
+				}
 				flushSync();
 				draftNode.dispatchEvent(new FocusEvent('blur'));
 				flushSync();
@@ -275,9 +279,10 @@ describe('powerPointViewer', () => {
 		flushSync();
 		// Accessible name is the visible "Slide Master" text (cross-binding e2e
 		// contract); the tooltip lives on title only.
-		const slideMasterButton = [...target.querySelectorAll<HTMLButtonElement>('button')].find(
-			(button) => button.textContent?.trim() === 'Slide Master',
-		);
+		// Each View control is a shared element (`data-ribbon-control`) with its own shadow root.
+		const slideMasterButton = target
+			.querySelector('[data-ribbon-control="view.masterViews.slideMaster"]')
+			?.shadowRoot?.querySelector<HTMLButtonElement>('button');
 		if (!slideMasterButton) {
 			throw new Error('Slide Master button not found');
 		}
