@@ -68,16 +68,6 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
 
-      - name: Check out ooxml-core (private, pinned revision)
-        env:
-          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
-          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
-        run: |
-          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
-          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
-          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
-          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
-
       - name: Install dependencies
         run: bun install
 
@@ -512,16 +502,6 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - uses: oven-sh/setup-bun@v2
-
-      - name: Check out ooxml-core (private, pinned revision)
-        env:
-          OOXML_CORE_TOKEN: ${{ secrets.OOXML_CORE_TOKEN }}
-          OOXML_CORE_REF: ${{ vars.OOXML_CORE_REF }}
-        run: |
-          : "${OOXML_CORE_REF:?set the OOXML_CORE_REF repository variable to a pinned ooxml-core revision}"
-          git clone "https://x-access-token:${OOXML_CORE_TOKEN}@github.com/ChristopherVR/ooxml-core.git" ../ooxml-core
-          git -C ../ooxml-core checkout "$OOXML_CORE_REF"
-          (cd ../ooxml-core && bun install --frozen-lockfile && bun run build)
 
       - name: Install dependencies
         run: bun install

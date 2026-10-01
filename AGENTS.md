@@ -6,7 +6,7 @@ This file provides guidance to Codex (Codex.ai/code) when working with code in t
 
 ```bash
 bun install                  # Install all workspace dependencies
-bun run build                # Build foundations, five bindings, installer, and React demo (needs ../ooxml-core built first)
+bun run build                # Build foundations, five bindings, installer, and React demo
 bun run test                 # Run vitest across all packages
 bun run typecheck            # Type-check all packages
 bun run fmt                  # Format all files with oxfmt
@@ -53,7 +53,7 @@ demos/
   demo-svelte/      Vite + Svelte 5 demo app (port 4177)
 ```
 
-The five bindings consume `core` and internal `shared` logic; shared also consumes browser-safe tools. The engine (parser, serializer, editing, converter, CLI, signatures) lives in the `pptx` area of the sibling private repository `../ooxml-core` (`@christophervr/ooxml-core/pptx`); `packages/core` is only its public entry point, depending on it through `file:../../../ooxml-core` during development. Build `../ooxml-core` (`bun install && bun run build`) before `bun install` here, and re-run `bun install --force` after rebuilding it. CI clones it at the revision in the `OOXML_CORE_REF` repository variable with the `OOXML_CORE_TOKEN` secret. `pptx-viewer-core` cannot be published until ooxml-core is (`scripts/publish-manifest.mjs` refuses a `file:` runtime dependency). `packages/core` keeps `jszip`, `fast-xml-parser` and `emf-converter` as devDependencies only so the e2e helpers (which resolve them from core's scope) and Vite's dev pre-bundle of the Angular demo still find them. Internal dependencies use `workspace:*`; the root workspaces include `packages/*` and `demos/*`. The documentation site installs separately in `docs/`.
+The five bindings consume `core` and internal `shared` logic; shared also consumes browser-safe tools. The engine (parser, serializer, editing, converter, CLI, signatures) lives in the `pptx` area of the published `@christophervr/ooxml-core` package (source in the public `ChristopherVR/ooxml-core` repository, sibling `../ooxml-core` when checked out) (`@christophervr/ooxml-core/pptx`); `packages/core` is only its public entry point, depending on it as `^0.1.0` (restore the range before committing if you switched it to `file:../../../ooxml-core`). To try core changes locally, build `../ooxml-core` (`bun install && bun run build`), switch to the `file:` dependency and re-run `bun install --force`. `packages/core` keeps `jszip`, `fast-xml-parser` and `emf-converter` as devDependencies only so the e2e helpers (which resolve them from core's scope) and Vite's dev pre-bundle of the Angular demo still find them. Internal dependencies use `workspace:*`; the root workspaces include `packages/*` and `demos/*`. The documentation site installs separately in `docs/`.
 
 ## Architecture
 
@@ -231,7 +231,7 @@ sibling `../ole2` repository (`@christophervr/ole2`). The former modules in
 and legacy PPT writer modules are compatibility re-exports. Shared binary crypto and PNG helpers also come from ole2. Viewer model conversion and modern OOXML packaging remain here. Change implementations and their format tests
 in `ole2`; never copy implementations back into either viewer.
 
-The ole2 codecs are inlined into the `pptx` bundle of `@christophervr/ooxml-core` (a versioned npm development dependency there), so downstream consumers need neither ole2 nor a sibling checkout of it. Developing this repository does need the sibling `../ooxml-core` checkout (see above).
+The ole2 codecs are inlined into the `pptx` bundle of `@christophervr/ooxml-core` (a versioned npm development dependency there), so downstream consumers need neither ole2 nor a sibling checkout of it.
 
 Modern DOCX handling stays outside ole2. Word's core offers an embedded API
 for future reuse, but the Word packages are not published yet. Keep the

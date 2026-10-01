@@ -55,15 +55,6 @@ function npm(args, cwd, capture = false) {
 }
 
 try {
-	// The engine lives in the unpublished sibling @christophervr/ooxml-core, which the core package
-	// reaches through a `file:` dependency; pack it and point the consumer's resolution at it.
-	const packedEngine = JSON.parse(
-		npm(
-			['pack', '--ignore-scripts', '--json', '--pack-destination', temporary],
-			resolve(root, '../ooxml-core'),
-			true,
-		),
-	)[0];
 	const tarballs = [];
 	const cjsBindings = [];
 	for (const target of packages) {
@@ -143,7 +134,6 @@ try {
 			name: 'pptx-binding-packed-consumer',
 			private: true,
 			type: 'module',
-			overrides: { '@christophervr/ooxml-core': `file:${join(temporary, packedEngine.filename)}` },
 		}),
 	);
 	npm(

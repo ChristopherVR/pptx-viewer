@@ -8,9 +8,8 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const core = join(root, 'packages/core');
-// The engine lives in the unpublished sibling @christophervr/ooxml-core (a `file:` dependency of
-// the core package): pack it too and point the consumer's resolution at that tarball.
-const ooxmlCore = resolve(root, '../ooxml-core');
+// The engine is the published @christophervr/ooxml-core, installed from the registry; its own
+// package smoke test covers the engine tarball.
 const consumer = await mkdtemp(join(tmpdir(), 'pptx-core-consumer-'));
 const npmCli =
 	process.platform === 'win32'
@@ -37,9 +36,6 @@ function npm(args, cwd, capture = false) {
 const packed = JSON.parse(
 	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], core, true),
 )[0];
-const packedEngine = JSON.parse(
-	npm(['pack', '--ignore-scripts', '--json', '--pack-destination', consumer], ooxmlCore, true),
-)[0];
 for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
 	assert(
 		packed.files.some((file) => file.path === `dist/${entry}.mjs`),
@@ -54,20 +50,7 @@ for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/in
 		`missing dist/${entry}.d.ts`,
 	);
 }
-for (const entry of ['index', 'converter/index', 'cli/index', 'signature-node/index']) {
-	assert(
-		packedEngine.files.some((file) => file.path === `dist/pptx/${entry}.mjs`),
-		`ooxml-core is missing dist/pptx/${entry}.mjs`,
-	);
-	assert(
-		packedEngine.files.some((file) => file.path === `dist/pptx/${entry}.cjs`),
-		`ooxml-core is missing dist/pptx/${entry}.cjs`,
-	);
-}
-for (const [directory, listing] of [
-	[core, packed],
-	[ooxmlCore, packedEngine],
-]) {
+for (const [directory, listing] of [[core, packed]]) {
 	for (const file of listing.files.filter((entry) =>
 		/\.(?:c?m?js|d\.ts|d\.cts|d\.mts)$/.test(entry.path),
 	)) {
@@ -84,8 +67,6 @@ await writeFile(
 		name: 'pptx-packed-regression',
 		private: true,
 		type: 'module',
-		// The core package depends on ooxml-core by `file:` path; resolve that to its tarball.
-		overrides: { '@christophervr/ooxml-core': `file:${join(consumer, packedEngine.filename)}` },
 	}),
 );
 npm(
