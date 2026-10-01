@@ -444,3 +444,54 @@ ordering and gating differ between bindings in ways a shared strip cannot
 unify without a behaviour change. They are tracked as the next Home batches.
 The font family and size selectors, character spacing, change case, font and
 highlight colour pickers stay native for the same reason.
+
+## Chrome controls (non-ribbon, #386)
+
+Four small non-ribbon families share one element each. They differ from a ribbon
+command because each owns a whole row or card (a banner with an inline password
+form, a floating strip, a stack, a dialog action row) with its own gating, so a
+per-button command would leave that gating duplicated five times. All four take a
+structured `state` DOM property (never an attribute), emit bubbling, composed
+events, are controlled (programmatic updates emit nothing), keep their text from
+`state.translate`, use 24px buttons that grow to 44px on coarse pointers, take
+colours from the `--pptx-*` tokens and use system colours in forced colors.
+
+| Element                     | `state` fields                                                                                                                                                                      | Events                                                                                                                | Host hooks stamped on the element                  |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| `pptx-ui-read-only-banner`  | `kind`, `messageKey`, `passwordPromptOpen`, `passwordError` (`wrong-password`, `unsupported-algorithm`), `checkingPassword`, `translate`                                            | `read-only-request`: `{ id: 'editAnyway' \| 'dismiss' \| 'cancelPassword' }` or `{ id: 'submitPassword', password }` | `data-testid="pptx-readonly-banner"`, `data-kind`  |
+| `pptx-ui-paste-options`     | `left`, `top` (bottom-right corner of the pasted element, viewport px), `translate`                                                                                                 | `paste-options-request`: `{ format }`; `paste-options-dismiss` (no detail)                                            | `data-pptx-paste-options`                          |
+| `pptx-ui-compat-toasts`     | `toasts` (first 5 render), `overflowCount`, `rightInset`, `bottomInset`, `translate`                                                                                                | `compat-toasts-request`: `{ id: 'dismissAll' }` or `{ id: 'dismiss', toastId }`                                       | `data-testid="pptx-compat-toasts"`                 |
+| `pptx-ui-dialog-footer`     | `actions`: `{ id, label, variant ('secondary' \| 'primary' \| 'warning'), icon, disabled, testId }[]` (labels already translated)                                                   | `dialog-footer-request`: `{ id }`                                                                                     | none; `focusAction(id)` method                     |
+
+Read-only banner. The element owns the lock icon, "Read-only recommended: message"
+text, Edit anyway and Dismiss, and the password form (labelled input, Unlock,
+Cancel, an `alert` error and `aria-invalid`/`aria-describedby`). The input takes
+focus when `passwordPromptOpen` turns on and is cleared when it turns off. Inner
+buttons keep the `pptx-readonly-*` test ids. Hosts own unlocking, dismissal and the
+password check (`checkModifyPassword`).
+
+Paste options. The host measures the pasted element with `findCanvasElementNode`
+(each binding waits its own number of frames for the node to render) and mounts
+the element only while a strip should show. The element fixes the strip 4px from
+the corner, names it from `pptx.pasteSpecial.optionsLabel`, stops mousedown from
+reaching the canvas and arms outside dismissal (pointerdown or keydown on the
+window, capture phase) one task after connecting so the paste's own gesture does
+not close it. A press inside the strip does not dismiss it (previously a press
+could unmount the strip before its click); Escape inside it does.
+
+Compat toasts. The element positions itself with `compatToastStackStyle`, so it
+must be a child of the viewer root. It rebuilds only when something visible
+changes, which keeps focus on a dismiss button while the notes strip resizes.
+Toasts never auto-hide; "Dismiss all" is always offered, including for one toast.
+
+Dialog footer. It is not a dialog shell: the host keeps the modal, backdrop,
+dismissal and focus trap. `activateModalFocus` now walks open shadow roots, so
+the footer buttons stay inside the Tab cycle of a trapped dialog. Hosts adopt it
+for the Cancel/OK style rows of Paste Special, Keep Annotations, the autosave
+recovery prompt and the signed-deck warning. Dialogs with form-like footers
+(Print, Options, Settings) stay native.
+
+Adapters: React uses `useWebControl` (a ref, `state` after every render and native
+listeners), Vue `.prop` and event directives, Angular schema-enabled bindings
+with a translations signal, Svelte `state=` and `on<event>` attributes, Vanilla
+direct property assignment and listeners.
