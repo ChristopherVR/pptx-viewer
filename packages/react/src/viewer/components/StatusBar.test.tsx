@@ -1,49 +1,17 @@
+// @vitest-environment happy-dom
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { translationsEn } from 'pptx-viewer-shared/i18n';
-import React from 'react';
-/**
- * Comprehensive tests for the StatusBar component.
- *
- * Uses react-dom/server renderToStaticMarkup to render the component,
- * then validates the resulting HTML output.
- */
-import { renderToStaticMarkup } from 'react-dom/server';
-import { describe, it, expect, vi } from 'vitest';
+import React, { act } from 'react';
+import { createRoot } from 'react-dom/client';
+import type { Root } from 'react-dom/client';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type { StatusBarProps } from './StatusBar';
+import { StatusBar } from './StatusBar';
 
-// Mock react-i18next before importing the component
 vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	useTranslation: () => ({
 		t: (key: string, opts?: Record<string, unknown>) => {
-			const translations: Record<string, string | ((o: Record<string, unknown>) => string)> = {
-				'pptx.autosave.saving': 'Saving...',
-				'pptx.autosave.error': 'Autosave error',
-				'pptx.autosave.justNow': 'just now',
-				'pptx.autosave.oneMinAgo': '1 minute ago',
-				'pptx.autosave.minutesAgo': (o: Record<string, unknown>) => `${o.count} minutes ago`,
-				'pptx.autosave.saved': (o: Record<string, unknown>) => `Saved ${o.time ?? ''}`,
-				'pptx.statusBar.unsavedChanges': 'Unsaved changes',
-				'pptx.statusBar.allSaved': 'All changes saved',
-				'pptx.statusBar.slideOf': (o: Record<string, unknown>) =>
-					`Slide ${o.current} of ${o.total}`,
-				'pptx.statusBar.noSlides': 'No slides',
-				'pptx.statusBar.language': 'English (U.S.)',
-				'pptx.statusBar.toggleNotes': 'Toggle notes',
-				'pptx.notes.title': 'Notes',
-				'pptx.statusBar.normalView': 'Normal view',
-				'pptx.statusBar.slideSorter': 'Slide sorter',
-				'pptx.statusBar.slideShow': 'Slide show',
-				'pptx.statusBar.zoomIn': 'Zoom in',
-				'pptx.statusBar.zoomOut': 'Zoom out',
-				'pptx.statusBar.zoomToFit': 'Zoom to fit',
-			};
-			const v = translations[key];
-			if (typeof v === 'function') {
-				return v(opts ?? {});
-			}
-			if (typeof v === 'string') {
-				return v;
-			}
 			const fallback = translationsEn[key];
 			if (fallback === undefined) {
 				return key;
@@ -55,23 +23,25 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 	}),
 }));
 
-const { StatusBar } = await import('./StatusBar');
+beforeAll(() => {
+	globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+	registerPptxWebControls();
+});
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const mounted: { root: Root; target: HTMLElement }[] = [];
+afterEach(() => {
+	for (const { root, target } of mounted.splice(0)) {
+		act(() => root.unmount());
+		target.remove();
+	}
+});
 
-function render(el: React.ReactElement): string {
-	return renderToStaticMarkup(el);
-}
-
-function createMockStatusBarProps(overrides: Partial<StatusBarProps> = {}): StatusBarProps {
+function props(overrides: Partial<StatusBarProps> = {}): StatusBarProps {
 	return {
 		slideCount: 10,
 		activeSlideIndex: 2,
 		isDirty: false,
-		autosaveStatus: undefined,
-		scale: 1.0,
+		scale: 1,
 		onZoomIn: vi.fn<() => void>(),
 		onZoomOut: vi.fn<() => void>(),
 		onZoomToFit: vi.fn<() => void>(),
@@ -84,372 +54,132 @@ function createMockStatusBarProps(overrides: Partial<StatusBarProps> = {}): Stat
 	};
 }
 
-// ===========================================================================
-// Slide count display
-// ===========================================================================
+function mount(overrides: Partial<StatusBarProps> = {}) {
+	const target = document.createElement('div');
+	document.body.append(target);
+	const root = createRoot(target);
+	mounted.push({ root, target });
+	const render = (next: Partial<StatusBarProps> = overrides) =>
+		act(() => root.render(<StatusBar {...props(next)} />));
+	render();
+	const host = target.querySelector('pptx-ui-status-bar')!;
+	const q = (selector: string) => host.shadowRoot!.querySelector<HTMLElement>(selector)!;
+	const button = (name: string) =>
+		host.shadowRoot!.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!;
+	return { host, q, button, render };
+}
 
-describe('statusBar - slide count', () => {
-	it('displays correct slide number and total', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ slideCount: 10, activeSlideIndex: 2 }),
-			),
+describe('react StatusBar adapter', () => {
+	it('renders the counter, language and save state from the shared element', () => {
+		const { q } = mount();
+		expect(q('.counter').textContent).toBe('Slide 3 of 10');
+		expect(q('.save').textContent).toBe(translationsEn['pptx.statusBar.allSaved']);
+		expect(q('.bar').textContent).toContain(translationsEn['pptx.statusBar.language']);
+	});
+
+	it('clamps the counter and reports an empty deck', () => {
+		expect(mount({ slideCount: 5, activeSlideIndex: 9 }).q('.counter').textContent).toBe(
+			'Slide 5 of 5',
 		);
-		expect(html).toContain('Slide 3 of 10');
+		expect(mount({ slideCount: 0 }).q('.counter').textContent).toBe('No slides');
 	});
 
-	it('displays "Slide 1 of 1" for single slide', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ slideCount: 1, activeSlideIndex: 0 }),
-			),
+	it('derives the save indicator from dirty and autosave state', () => {
+		expect(mount({ isDirty: true }).q('.save').textContent).toBe('Unsaved changes');
+		expect(
+			mount({ autosaveStatus: { state: 'saving' } })
+				.q('.save')
+				.classList.contains('saving'),
+		).toBeTruthy();
+		expect(
+			mount({ autosaveStatus: { state: 'error', message: 'x' } })
+				.q('.save')
+				.classList.contains('error'),
+		).toBeTruthy();
+		expect(
+			mount({ autosaveStatus: { state: 'saved', timestamp: Date.now() } }).q('.save').textContent,
+		).toContain('just now');
+	});
+
+	it('routes each control to its native handler exactly once', () => {
+		const p = props();
+		const target = document.createElement('div');
+		document.body.append(target);
+		const root = createRoot(target);
+		mounted.push({ root, target });
+		act(() => root.render(<StatusBar {...p} />));
+		const host = target.querySelector('pptx-ui-status-bar')!;
+		const click = (name: string) =>
+			host.shadowRoot!.querySelector<HTMLButtonElement>(`button[aria-label="${name}"]`)!.click();
+		for (const name of [
+			'Toggle notes',
+			'Normal view',
+			'Slide sorter',
+			'Slide show',
+			'Zoom out',
+			'Zoom to fit',
+			'Zoom in',
+		]) {
+			click(name);
+		}
+		expect(p.onToggleNotes).toHaveBeenCalledOnce();
+		expect(p.onSetMode).toHaveBeenNthCalledWith(1, 'edit');
+		expect(p.onSetMode).toHaveBeenNthCalledWith(2, 'present');
+		expect(p.onToggleSlideSorter).toHaveBeenCalledOnce();
+		expect(p.onZoomOut).toHaveBeenCalledOnce();
+		expect(p.onZoomToFit).toHaveBeenCalledOnce();
+		expect(p.onZoomIn).toHaveBeenCalledOnce();
+	});
+
+	it('reflects pressed state for notes and the current mode', () => {
+		const { button } = mount({ isNotesExpanded: true, mode: 'present' });
+		expect(button('Toggle notes').getAttribute('aria-pressed')).toBe('true');
+		expect(button('Normal view').getAttribute('aria-pressed')).toBe('false');
+		expect(button('Slide show').getAttribute('aria-pressed')).toBe('true');
+	});
+
+	it('shows the zoom percentage and drops the cluster when hidden', () => {
+		expect(mount({ scale: 0.75 }).button('Zoom to fit').textContent).toBe('75%');
+		expect(mount({ scale: undefined }).button('Zoom in').closest('.group')).toHaveProperty(
+			'hidden',
+			true,
 		);
-		expect(html).toContain('Slide 1 of 1');
-	});
-
-	it('displays "No slides" when slideCount is 0', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ slideCount: 0, activeSlideIndex: 0 }),
-			),
+		expect(mount({ hideZoomControls: true }).button('Zoom out').closest('.group')).toHaveProperty(
+			'hidden',
+			true,
 		);
-		expect(html).toContain('No slides');
 	});
 
-	it('clamps slide number to slideCount when index exceeds count', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ slideCount: 5, activeSlideIndex: 9 }),
-			),
+	it('gates notes, slide show, sorter and view modes', () => {
+		expect(mount({ onToggleNotes: undefined }).button('Toggle notes').hidden).toBeTruthy();
+		expect(mount({ hideNotesToggle: true }).button('Toggle notes').hidden).toBeTruthy();
+		const noShow = mount({ hideFullscreenToggle: true });
+		expect(noShow.button('Slide show').hidden).toBeTruthy();
+		expect(noShow.button('Normal view').hidden).toBeFalsy();
+		expect(mount({ onToggleSlideSorter: undefined }).button('Slide sorter').hidden).toBeTruthy();
+		expect(mount({ onSetMode: undefined }).button('Normal view').closest('.group')).toHaveProperty(
+			'hidden',
+			true,
 		);
-		expect(html).toContain('Slide 5 of 5');
-	});
-});
-
-// ===========================================================================
-// Language indicator
-// ===========================================================================
-
-describe('statusBar - language indicator', () => {
-	it('shows language indicator', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toContain('English (U.S.)');
-	});
-});
-
-// ===========================================================================
-// Autosave status
-// ===========================================================================
-
-describe('statusBar - autosave status', () => {
-	it('shows "Saving..." when autosave state is saving', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ autosaveStatus: { state: 'saving' } }),
-			),
-		);
-		expect(html).toContain('Saving...');
 	});
 
-	it('shows saved status with timestamp', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({
-					autosaveStatus: { state: 'saved', timestamp: Date.now() },
-				}),
-			),
-		);
-		expect(html).toContain('Saved');
-		expect(html).toContain('just now');
+	it('uses the latest callback after a re-render and stops listening on unmount', () => {
+		const first = vi.fn<() => void>();
+		const second = vi.fn<() => void>();
+		const { host, render, button } = mount({ onToggleNotes: first });
+		render({ onToggleNotes: second });
+		button('Toggle notes').click();
+		expect(first).not.toHaveBeenCalled();
+		expect(second).toHaveBeenCalledOnce();
+		const { root } = mounted[mounted.length - 1]!;
+		act(() => root.unmount());
+		host.dispatchEvent(new CustomEvent('status-request', { detail: { id: 'notes' } }));
+		expect(second).toHaveBeenCalledOnce();
+		mounted.pop();
 	});
 
-	it('shows error status', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({
-					autosaveStatus: { state: 'error', message: 'Network error' },
-				}),
-			),
-		);
-		expect(html).toContain('Autosave error');
-	});
-
-	it('shows "Unsaved changes" when dirty and no autosave', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ isDirty: true, autosaveStatus: undefined }),
-			),
-		);
-		expect(html).toContain('Unsaved changes');
-	});
-
-	it('shows "All changes saved" when not dirty and no autosave', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ isDirty: false, autosaveStatus: undefined }),
-			),
-		);
-		expect(html).toContain('All changes saved');
-	});
-
-	it('error status has red text styling', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({
-					autosaveStatus: { state: 'error', message: 'fail' },
-				}),
-			),
-		);
-		expect(html).toMatch(/text-red-400/u);
-	});
-
-	it('saving status has yellow text styling', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ autosaveStatus: { state: 'saving' } }),
-			),
-		);
-		expect(html).toMatch(/text-yellow-400/u);
-	});
-});
-
-// ===========================================================================
-// Notes toggle
-// ===========================================================================
-
-describe('statusBar - notes toggle', () => {
-	it('renders notes toggle button when handler is provided', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('aria-label="Toggle notes"');
-	});
-
-	it('does not render notes toggle when handler is undefined', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ onToggleNotes: undefined })),
-		);
-		expect(html).not.toContain('aria-label="Toggle notes"');
-	});
-
-	it('notes button shows "Notes" text', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('>Notes</span>');
-	});
-
-	it('notes button has primary text when expanded', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>(), isNotesExpanded: true }),
-			),
-		);
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Toggle notes"/u);
-	});
-});
-
-// ===========================================================================
-// View mode buttons
-// ===========================================================================
-
-describe('statusBar - view mode buttons', () => {
-	it('renders Normal view button', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toContain('aria-label="Normal view"');
-	});
-
-	it('renders Slide sorter button', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleSlideSorter: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('aria-label="Slide sorter"');
-	});
-
-	it('renders Slide show button', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toContain('aria-label="Slide show"');
-	});
-
-	it('normal view button has primary text when mode is edit', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ mode: 'edit' })));
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Normal view"/u);
-	});
-
-	it('slide show button has primary text when mode is present', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ mode: 'present' })),
-		);
-		expect(html).toMatch(/text-primary[^"]*"[^>]*title="Slide show"/u);
-	});
-
-	it('does not render view mode buttons when onSetMode is undefined', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ onSetMode: undefined })),
-		);
-		expect(html).not.toContain('aria-label="Normal view"');
-	});
-});
-
-// ===========================================================================
-// Zoom controls
-// ===========================================================================
-
-describe('statusBar - zoom controls', () => {
-	it('renders zoom out button', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ scale: 1.0, onZoomOut: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('aria-label="Zoom out"');
-	});
-
-	it('renders zoom in button', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ scale: 1.0, onZoomIn: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('aria-label="Zoom in"');
-	});
-
-	it('displays zoom percentage correctly at 100%', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ scale: 1.0 })));
-		expect(html).toContain('100%');
-	});
-
-	it('displays zoom percentage correctly at 75%', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ scale: 0.75 })));
-		expect(html).toContain('75%');
-	});
-
-	it('displays zoom percentage correctly at 150%', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ scale: 1.5 })));
-		expect(html).toContain('150%');
-	});
-
-	it('renders zoom to fit button with correct percentage', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps({ scale: 0.5 })));
-		expect(html).toContain('title="Zoom to fit"');
-		expect(html).toContain('50%');
-	});
-
-	it('does not render zoom controls when scale is undefined', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ scale: undefined })),
-		);
-		expect(html).not.toContain('aria-label="Zoom out"');
-		expect(html).not.toContain('aria-label="Zoom in"');
-	});
-
-	it('does not render zoom in button when onZoomIn is undefined', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ scale: 1.0, onZoomIn: undefined })),
-		);
-		expect(html).not.toContain('aria-label="Zoom in"');
-	});
-
-	it('does not render zoom out button when onZoomOut is undefined', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ scale: 1.0, onZoomOut: undefined }),
-			),
-		);
-		expect(html).not.toContain('aria-label="Zoom out"');
-	});
-});
-
-// ===========================================================================
-// Full width rendering
-// ===========================================================================
-
-// ===========================================================================
-// hiddenActions (issue #64: per-button toolbar visibility)
-// ===========================================================================
-
-describe('statusBar - hiddenActions gating', () => {
-	it('renders zoom controls, notes toggle, and fullscreen toggle by default', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('aria-label="Zoom in"');
-		expect(html).toContain('aria-label="Toggle notes"');
-		expect(html).toContain('aria-label="Slide show"');
-	});
-
-	it('hides the zoom cluster when hideZoomControls is true', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ hideZoomControls: true })),
-		);
-		expect(html).not.toContain('aria-label="Zoom in"');
-		expect(html).not.toContain('aria-label="Zoom out"');
-	});
-
-	it('hides the notes toggle when hideNotesToggle is true', () => {
-		const html = render(
-			React.createElement(
-				StatusBar,
-				createMockStatusBarProps({ onToggleNotes: vi.fn<() => void>(), hideNotesToggle: true }),
-			),
-		);
-		expect(html).not.toContain('aria-label="Toggle notes"');
-	});
-
-	it('hides the Slide Show (fullscreen) toggle when hideFullscreenToggle is true', () => {
-		const html = render(
-			React.createElement(StatusBar, createMockStatusBarProps({ hideFullscreenToggle: true })),
-		);
-		expect(html).not.toContain('aria-label="Slide show"');
-		// Sibling mode buttons stay visible: only the fullscreen toggle is gated.
-		expect(html).toContain('aria-label="Normal view"');
-	});
-});
-
-describe('statusBar - layout', () => {
-	it('has w-full class on the root element', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toMatch(/^<div class="[^"]*w-full/u);
-	});
-
-	it('has border-t class for top border', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		expect(html).toMatch(/^<div class="[^"]*border-t/u);
-	});
-
-	it('has flex layout', () => {
-		const html = render(React.createElement(StatusBar, createMockStatusBarProps()));
-		const rootClassMatch = html.match(/^<div class="(?<cls>[^"]*)"/u);
-		expect(rootClassMatch).not.toBeNull();
-		const className = rootClassMatch!.groups?.cls;
-		expect(className).toContain('flex');
-		expect(className).toContain('items-center');
+	it('projects the collaboration indicator into the named slot', () => {
+		const { host } = mount({ collaborationSlot: <span id='collab'>live</span> });
+		expect(host.querySelector('[slot="collaboration"] #collab')).not.toBeNull();
 	});
 });
