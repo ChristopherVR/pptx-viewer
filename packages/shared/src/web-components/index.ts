@@ -20,6 +20,7 @@ import { definePptxRibbonView } from './ribbon-view';
 import { definePptxSearchField } from './search-field';
 import { definePptxSelect } from './select';
 import { definePptxSlideShowOptions } from './slide-show-options';
+import { definePptxStatusBar } from './status-bar';
 import { definePptxSubtitleSettings } from './subtitle-settings';
 import { definePptxThemeEditor } from './theme-editor';
 
@@ -47,6 +48,7 @@ export type {
 	SubtitleSettingsChangeEvent,
 } from './subtitle-settings';
 
+export type { PptxUiStatusBarElement, StatusBarRequestEvent } from './status-bar';
 export type { PptxUiSelectElement } from './select-value';
 export type {
 	PptxUiSlideShowOptionsElement,
@@ -72,6 +74,7 @@ const controls = [
 	['pptx-ui-ribbon-section', definePptxRibbonSection],
 	['pptx-ui-ribbon-gallery', definePptxRibbonGallery],
 	['pptx-ui-ribbon-toggle', definePptxRibbonToggle],
+	['pptx-ui-status-bar', definePptxStatusBar],
 	['pptx-ui-subtitle-settings', definePptxSubtitleSettings],
 	['pptx-ui-theme-editor', definePptxThemeEditor],
 ] as const;

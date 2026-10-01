@@ -65,6 +65,37 @@ button's ARIA attributes. The command's open shadow root exposes `part="button"`
 Icons come from shared trusted paths. Group captions and command sizing share the
 existing theme tokens; compact commands and toggle rows expand on touch.
 
+## Status bar (non-ribbon, #386)
+
+`pptx-ui-status-bar` is the first non-ribbon family. It differs from a ribbon
+command because it owns a whole row of live readouts and three gated clusters.
+
+| Property or slot | Type and default                 | Meaning                                                                                                              |
+| ---------------- | -------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `state`          | `StatusBarViewState`, empty deck | Structured DOM property, never an attribute. Replace the object after updates.                                       |
+| `collaboration`  | named slot                       | Host connection indicator, between the view buttons and zoom. The separator appears only while the slot has content. |
+
+`StatusBarViewState` fields: `slideCount`, zero-based `activeSlideIndex` (clamped
+for display), already-translated `saveText` with `saveKind` (`idle`, `saving`,
+`error`), `zoomPercent` (omit to drop the zoom cluster), `showNotes` and
+`notesExpanded`, `showViewModes`, `showSorter` and `showSlideShow` (default true),
+`viewMode` (`normal`, `sorter` or `slideShow`, the pressed view button) and
+`translate`. Use `resolveStatusBarSave` for the save text and `statusBarViewMode`
+for the pressed view. The Notes, Normal, Sorter and Slide Show buttons expose
+`aria-pressed`; every button has an `aria-label` and a title; the percent readout
+is named by "Zoom to fit". The shadow root exposes `part="bar"`.
+
+User activation emits one bubbling, composed `status-request` event with
+`detail: { id }` where `id` is `notes`, `normal`, `sorter`, `slideShow`,
+`zoomOut`, `zoomFit` or `zoomIn`. State is controlled; programmatic updates emit
+nothing. Enter and Space stay inside the control. Buttons are 24px minimum and
+44px on coarse pointers, the row keeps the 29px minimum height, language and save
+text hide up to 767px, and forced colors use system colors. Every binding wraps
+it in a thin adapter (React ref and native listener, Vue `.prop` and event
+directive, Angular schema-enabled bindings, Svelte `onstatus-request`, Vanilla
+direct property and listener). Notes, view switching, presentation and zoom stay
+native.
+
 Requests bubble and are composed; programmatic attribute changes never emit
 requests. Toggle state remains controlled until the host commits it. Commands
 use native button focus, Enter, Space and disabled behavior. Both the group and
@@ -114,6 +145,7 @@ on mutation of the same object to trigger a refresh.
 | Ribbon command     | Enabled, ordinary size, inactive; no pressed/expanded state                                                      | Attributes label, icon, title, disabled, active, compact, pressed, expanded and customization id | One `command-request` with `{ id }`; host owns action                                             |
 | Ribbon toggle      | Unchecked, enabled                                                                                               | Attributes label, title, checked, disabled and customization id                                  | One `toggle-request` with `{ id, checked }`; host commits before display changes                  |
 | Ribbon group       | Empty label and content                                                                                          | Label and optional group id; default slot                                                        | None                                                                                              |
+| Status bar         | Empty deck, no zoom cluster, notes hidden, no pressed view unless `viewMode` is set                              | DOM `state` (counter, save text, zoom, gating, pressed view), `collaboration` slot               | One `status-request` with `{ id }`; host owns every action                                        |
 
 All user events bubble and cross open shadow roots. Programmatic changes emit
 no edits. Use `event.currentTarget` for native value events and `event.detail`
