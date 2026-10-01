@@ -75,4 +75,28 @@ describe('activateModalFocus', () => {
 		expect(onEscape).toHaveBeenCalledOnce();
 		release();
 	});
+
+	it('leaves Escape to an open select popup so the dialog stays open', () => {
+		const { panel } = setup();
+		const select = document.createElement('pptx-ui-select');
+		panel.append(select);
+		const onEscape = vi.fn();
+		const release = activateModalFocus(panel, { onEscape });
+		const press = (): KeyboardEvent => {
+			const event = new KeyboardEvent('keydown', {
+				key: 'Escape',
+				bubbles: true,
+				cancelable: true,
+			});
+			select.dispatchEvent(event);
+			return event;
+		};
+		select.setAttribute('open', '');
+		expect(press().defaultPrevented).toBeFalsy();
+		expect(onEscape).not.toHaveBeenCalled();
+		select.removeAttribute('open');
+		expect(press().defaultPrevented).toBeTruthy();
+		expect(onEscape).toHaveBeenCalledOnce();
+		release();
+	});
 });
