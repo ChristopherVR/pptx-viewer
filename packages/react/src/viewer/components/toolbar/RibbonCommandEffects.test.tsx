@@ -257,7 +257,7 @@ describe('text > font size stepper', () => {
 		});
 		act(() =>
 			container
-				.querySelector<HTMLButtonElement>('button[title="pptx.text.increaseFontSize"]')
+				.querySelector<HTMLButtonElement>('[data-ribbon-control="home.font.increaseFontSize"]')
 				?.click(),
 		);
 		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(50.1 * (96 / 72));
@@ -288,7 +288,7 @@ describe('text > font size stepper', () => {
 		});
 		act(() =>
 			container
-				.querySelector<HTMLButtonElement>('button[title="pptx.text.increaseFontSize"]')
+				.querySelector<HTMLButtonElement>('[data-ribbon-control="home.font.increaseFontSize"]')
 				?.click(),
 		);
 		expect(onUpdateTextStyle.mock.lastCall?.[0]?.fontSize).toBeCloseTo(20 * (96 / 72));

@@ -1381,10 +1381,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
-		expect(html).toContain('title="Underline"');
-		expect(html).toContain('title="Strikethrough"');
+		// The shared element renders its buttons in the browser; see FontFormatGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('renders text alignment buttons', () => {
@@ -1410,17 +1408,6 @@ describe('toolbar - Text tab', () => {
 			}),
 		);
 		expect(html).toContain('title="Font Color"');
-	});
-
-	it('formatting buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(TextSection, {
-				canEdit: true,
-				selectedElement: null,
-				onUpdateTextStyle: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/disabled[^>]*title="Bold"/u);
 	});
 });
 
@@ -1509,16 +1496,14 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'home' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Italic"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	it('text section renders TextSection content', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'text' })),
 		);
-		expect(html).toContain('title="Bold"');
-		expect(html).toContain('title="Underline"');
+		expect(html).toContain('<pptx-ui-ribbon-home-font');
 	});
 
 	// Narrow-viewport rendering moved to <MobileToolbar /> (see Toolbar.tsx

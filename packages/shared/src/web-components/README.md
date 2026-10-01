@@ -357,9 +357,10 @@ viewer's slide shortcuts. `pressed` is reflected as `aria-pressed` only when the
 host supplies it. Targets grow to 44px on coarse pointers and narrow widths,
 and forced colors outline the pressed state.
 
-| Family      | Element                         | Controls                                                           |
-| ----------- | ------------------------------- | ------------------------------------------------------------------ |
-| `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter |
+| Family      | Element                         | Controls                                                                                                                                       |
+| ----------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter                                                                             |
+| `font`      | `pptx-ui-ribbon-home-font`      | The character strip inside `home.font`: Bold, Italic, Underline, Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear Formatting |
 
 `clipboardHomeControls` fixes the gating once: Paste needs edit rights and a
 clipboard, Cut needs edit rights and a selection, Copy needs only a selection,
@@ -370,3 +371,14 @@ and mirrors its armed state in `data-active`. Native hosts retain every
 clipboard action, history and persistence. The former React and Vue green
 "copied/cut" flash was cosmetic, existed in two of five bindings, and is not
 carried over.
+
+`fontHomeControls` disables the whole strip unless a text selection is editable
+and reflects `aria-pressed` for the four decorations and Text Shadow. Native
+hosts keep how each edit is made: React reads the run-level tri-state at click
+time, Angular and Svelte patch the element's text style, and Vanilla uses the
+format mutations. The font family and size pickers, character spacing, change
+case and the colour pickers are native or app-owned popovers and stay outside
+the strip. Bindings still differ on the size ladder (React and Vue add 2pt,
+Angular steps through the preset list), which is an existing editing difference
+this change does not unify. The old React Font buttons stayed live for
+non-text selections; they now disable like the other four bindings.

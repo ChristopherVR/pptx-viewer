@@ -1,9 +1,15 @@
 <script setup lang="ts">
+/**
+ * FontDecorationControls: Home > Font character toggles, Text Shadow, size
+ * steps and Clear Formatting. The buttons come from the shared
+ * `pptx-ui-ribbon-home-font` element; this adapter reflects the effective text
+ * style into it and re-emits the one intent as the existing typed events.
+ */
 import type { TextStyle } from 'pptx-viewer-core';
+import { fontHomeControls } from 'pptx-viewer-shared';
+import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
-
-import { gB, gL, grp, FMT, pill, ic } from './ribbon-constants';
-import RibbonIcon from './RibbonIcon';
 
 const props = defineProps<{ disabled: boolean; textStyle?: TextStyle | null }>();
 const emit = defineEmits<{
@@ -14,73 +20,43 @@ const emit = defineEmits<{
 	clear: [];
 }>();
 const { t } = useI18n();
+
+const state = computed(() => ({
+	controls: fontHomeControls({
+		enabled: !props.disabled,
+		bold: Boolean(props.textStyle?.bold),
+		italic: Boolean(props.textStyle?.italic),
+		underline: Boolean(props.textStyle?.underline),
+		strikethrough: Boolean(props.textStyle?.strikethrough),
+		shadow: Boolean(props.textStyle?.textShadowColor),
+	}),
+	translate: t,
+}));
+
+function request(event: RibbonHomeRequestEvent): void {
+	const id = event.detail.id.replace('home.font.', '');
+	switch (id) {
+		case 'bold':
+		case 'italic':
+		case 'underline':
+		case 'strikethrough':
+			emit('format', id);
+			break;
+		case 'shadow':
+			emit('shadow');
+			break;
+		case 'increaseFontSize':
+			emit('increase');
+			break;
+		case 'decreaseFontSize':
+			emit('decrease');
+			break;
+		case 'clearFormatting':
+			emit('clear');
+	}
+}
 </script>
 
 <template>
-	<div :class="grp" data-pptx-chrome="control-cluster">
-		<button
-			v-for="(b, i) in FMT"
-			:key="b.id"
-			type="button"
-			:data-ribbon-control="`home.font.${b.id}`"
-			:disabled="props.disabled"
-			:class="i < FMT.length - 1 ? gB : gL"
-			:title="t(b.labelKey)"
-			@mousedown.prevent
-			@click="emit('format', b.id)"
-		>
-			<RibbonIcon :name="`home.font.${b.id}`" :class="ic" />
-		</button>
-	</div>
-
-	<!-- Text Shadow toggle -->
-	<button
-		type="button"
-		data-ribbon-control="home.font.shadow"
-		:disabled="props.disabled"
-		:class="[pill, props.textStyle?.textShadowColor ? 'bg-primary/20 ring-1 ring-primary' : '']"
-		:title="t('pptx.textEffects.shadow')"
-		:aria-label="t('pptx.textEffects.shadow')"
-		@mousedown.prevent
-		@click="emit('shadow')"
-	>
-		<RibbonIcon name="home.font.shadow" :class="ic" />
-	</button>
-
-	<!-- Font size increase / decrease / clear formatting -->
-	<div :class="grp" data-pptx-chrome="control-cluster">
-		<button
-			type="button"
-			data-ribbon-control="home.font.increaseFontSize"
-			:disabled="props.disabled"
-			:class="gB"
-			:title="t('pptx.text.increaseFontSize')"
-			@mousedown.prevent
-			@click="emit('increase')"
-		>
-			<RibbonIcon name="home.font.increaseFontSize" :class="ic" />
-		</button>
-		<button
-			type="button"
-			data-ribbon-control="home.font.decreaseFontSize"
-			:disabled="props.disabled"
-			:class="gB"
-			:title="t('pptx.text.decreaseFontSize')"
-			@mousedown.prevent
-			@click="emit('decrease')"
-		>
-			<RibbonIcon name="home.font.decreaseFontSize" :class="ic" />
-		</button>
-		<button
-			type="button"
-			data-ribbon-control="home.font.clearFormatting"
-			:disabled="props.disabled"
-			:class="gL"
-			:title="t('pptx.text.clearFormatting')"
-			@mousedown.prevent
-			@click="emit('clear')"
-		>
-			<RibbonIcon name="home.font.clearFormatting" :class="ic" />
-		</button>
-	</div>
+	<pptx-ui-ribbon-home-font :state.prop="state" @home-request="request" />
 </template>

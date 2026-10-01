@@ -212,6 +212,16 @@ persistence and native popup. Public customization ids are unchanged.
   other four. The React and Vue "copied/cut" green flash was cosmetic and is not
   carried over.
 
+- Font: the character strip in `home.font` (Bold, Italic, Underline,
+  Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear
+  Formatting) with pressed state for the toggles. The family and size
+  selectors, character spacing, change case and the colour pickers stay native:
+  they are app-owned selects and popovers that read the deck's theme fonts,
+  embedded fonts and recent colours. How each binding computes the toggle and
+  size-step edits is unchanged (React reads the run-level tri-state at click
+  time; the size ladder differs between bindings). React's Font buttons now
+  disable for non-text selections like the other four.
+
 `e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
 real copy/paste/cut with undo and redo, the Format Painter, customization,
 touch targets, theme tokens and forced colors across all five bindings.

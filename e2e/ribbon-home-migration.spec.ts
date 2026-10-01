@@ -1,8 +1,13 @@
+import { writeFile } from 'node:fs/promises';
+
 /* oxlint-disable vitest/prefer-importing-vitest-globals -- Playwright API */
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import JSZip from 'jszip';
 
+import { savePptxViaBackstage } from './save-pptx';
 import { elementWithText, loadDeck, ribbonTab, selectElement, slideElements } from './support/deck';
+import { downloadBytes } from './support/exports';
 
 test.use({ viewport: { width: 1440, height: 900 } });
 
@@ -99,6 +104,108 @@ test.describe('Home clipboard', () => {
 	});
 });
 
+const FONT = [
+	'bold',
+	'italic',
+	'underline',
+	'strikethrough',
+	'shadow',
+	'increaseFontSize',
+	'decreaseFontSize',
+	'clearFormatting',
+];
+
+const pressed = (page: Page, id: string) => control(page, `home.font.${id}`);
+
+async function savedSubtitleRun(
+	page: Page,
+	info: { outputPath: (name: string) => string },
+	name: string,
+) {
+	const bytes = await downloadBytes(await savePptxViaBackstage(page));
+	const saved = info.outputPath(name);
+	await writeFile(saved, bytes);
+	const zip = await JSZip.loadAsync(bytes);
+	const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+	const run = xml.split('<a:r>').find((chunk) => chunk.includes('Product Overview')) ?? '';
+	return { saved, run };
+}
+
+test.describe('Home font', () => {
+	test('exposes every character control once and gates them on a text selection', async ({
+		page,
+	}) => {
+		await openHome(page);
+		for (const id of FONT) {
+			await expect(page.locator(`[data-ribbon-control="home.font.${id}"]`)).toHaveCount(1);
+			await expect(pressed(page, id)).toBeDisabled();
+		}
+		await selectSubtitle(page);
+		for (const id of FONT) {
+			await expect(pressed(page, id)).toBeEnabled();
+		}
+		await expect(pressed(page, 'bold')).toHaveAttribute('aria-pressed', 'false');
+	});
+
+	test('character formatting edits the deck, undoes and survives save and reload', async ({
+		page,
+	}, info) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		const size = control(page, 'home.font.fontSize');
+		const readSize = () => size.evaluate((node) => Number((node as HTMLSelectElement).value));
+		const before = await readSize();
+		// Keyboard activation reaches the native edit.
+		await expect(pressed(page, 'bold')).toBeEnabled();
+		await pressed(page, 'bold').focus();
+		await expect(pressed(page, 'bold')).toBeFocused();
+		await page.keyboard.press('Space');
+		await expect(pressed(page, 'bold')).toHaveAttribute('aria-pressed', 'true');
+		await page.getByRole('button', { name: 'Undo', exact: true }).first().click();
+		// The undone edit never reaches the saved file.
+		expect((await savedSubtitleRun(page, info, 'home-font-undo.pptx')).run).not.toMatch(/\sb="1"/u);
+		await selectSubtitle(page);
+		await expect(pressed(page, 'bold')).toBeEnabled();
+		await pressed(page, 'bold').click();
+		await expect(pressed(page, 'bold')).toHaveAttribute('aria-pressed', 'true');
+		await pressed(page, 'italic').click();
+		await pressed(page, 'underline').click();
+		await expect(pressed(page, 'italic')).toHaveAttribute('aria-pressed', 'true');
+		await expect(pressed(page, 'underline')).toHaveAttribute('aria-pressed', 'true');
+		await pressed(page, 'increaseFontSize').click();
+		await expect.poll(readSize).toBeGreaterThan(before);
+		const saved = await savedSubtitleRun(page, info, 'home-font.pptx');
+		expect(saved.run).toMatch(/\sb="1"/u);
+		expect(saved.run).toMatch(/\si="1"/u);
+		expect(saved.run).toMatch(/\su="sng"/u);
+		expect(Number(/\ssz="(\d+)"/u.exec(saved.run)?.[1])).toBeGreaterThan(1500);
+		await pressed(page, 'clearFormatting').click();
+		await expect(pressed(page, 'bold')).toHaveAttribute('aria-pressed', 'false');
+		await expect(pressed(page, 'italic')).toHaveAttribute('aria-pressed', 'false');
+		await loadDeck(page, saved.saved);
+		await ribbonTab(page, 'Home').click();
+		await selectSubtitle(page);
+		await expect(pressed(page, 'bold')).toHaveAttribute('aria-pressed', 'true');
+		await expect(pressed(page, 'italic')).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('text shadow toggles and retains public customization ids', async ({ page }) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		await pressed(page, 'shadow').click();
+		await expect(pressed(page, 'shadow')).toHaveAttribute('aria-pressed', 'true');
+		await pressed(page, 'shadow').click();
+		await expect(pressed(page, 'shadow')).toHaveAttribute('aria-pressed', 'false');
+		const customization = {
+			ribbon: { hiddenButtons: ['home.font.bold', 'home.font.clearFormatting'] },
+		};
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		await expect(pressed(page, 'bold')).toBeHidden();
+		await expect(pressed(page, 'clearFormatting')).toBeHidden();
+		await expect(pressed(page, 'italic')).toBeVisible();
+	});
+});
+
 test.describe('touch Home controls', () => {
 	test.use({ hasTouch: true });
 	test('targets, theme tokens and forced colors remain usable', async ({ page }) => {
@@ -113,9 +220,11 @@ test.describe('touch Home controls', () => {
 			);
 		});
 		await expect(copy).toHaveCSS('color', 'rgb(18, 52, 86)');
-		const box = await copy.boundingBox();
-		expect(box!.width).toBeGreaterThanOrEqual(44);
-		expect(box!.height).toBeGreaterThanOrEqual(44);
+		for (const button of [copy, pressed(page, 'bold')]) {
+			const box = await button.boundingBox();
+			expect(box!.width).toBeGreaterThanOrEqual(44);
+			expect(box!.height).toBeGreaterThanOrEqual(44);
+		}
 		await page.emulateMedia({ forcedColors: 'active' });
 		await expect(copy).toBeVisible();
 	});
