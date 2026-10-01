@@ -480,6 +480,8 @@ test.describe('dense panels at 360x640: load at target size', () => {
 		['Inspector sub-panels + animation panel', null],
 	] as const) {
 		test(label, async ({ page }) => {
+			// Two full deck loads (phone and desktop) in one test: the default 60s is tight on a busy CI shard.
+			test.setTimeout(120_000);
 			const phoneNames = await inspectorControlNames(page, role, PHONE, `${label} (360px)`);
 			const desktopNames = await inspectorControlNames(page, role, DESKTOP, `${label} (1280px)`);
 			expect(
