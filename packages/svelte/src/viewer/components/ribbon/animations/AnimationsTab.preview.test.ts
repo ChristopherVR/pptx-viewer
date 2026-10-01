@@ -5,11 +5,14 @@
  * selection already carries an animation entry (the button click itself is a
  * safe no-op otherwise).
  */
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import AnimationsTab from './AnimationsTab.svelte';
+
+registerPptxWebControls();
 
 let cleanup: (() => void) | undefined;
 
@@ -52,8 +55,10 @@ function mountTab(editor: EditorState): HTMLElement {
 }
 
 function previewButton(target: HTMLElement): HTMLButtonElement | undefined {
-	return [...target.querySelectorAll('button')].find(
-		(button) => button.textContent?.trim() === 'Preview',
+	return (
+		target
+			.querySelector('[data-ribbon-control="animations.preview.preview"]')
+			?.shadowRoot?.querySelector('button') ?? undefined
 	);
 }
 

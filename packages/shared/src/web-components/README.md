@@ -308,3 +308,34 @@ playback and the inspector pane. The Effect Options catalogue id has no
 control in any binding yet, so none is rendered. Known boundary: the Vanilla
 host does not track inspector open state, so its Inspector command is never
 pressed, and Angular does not pass it either.
+
+## Animations ribbon
+
+`pptx-ui-ribbon-animations.state` is a controlled `RibbonAnimationsViewState`:
+`editable`, `hasSelection`, optional `paneOpen` (the Animation Pane's pressed
+state), optional `previewActive` (a transient Preview highlight, for hosts that
+track one) and a translation callback. The light-DOM view renders the five
+Animations groups (Preview, Animation, Motion Paths, Advanced Animation and
+Timing) with the public customization ids, including the entrance/emphasis/exit
+preset gallery and the five-family motion-path gallery. Every effect is a real
+button; the galleries scroll instead of growing so the ribbon stays one row.
+Exit Effects now carries `animations.advancedAnimation.addAnimation` in every
+binding (it was untagged in React, Svelte and Vanilla); Path Animation has no
+customization id in any binding.
+
+The composed `animations-request` event carries a `RibbonAnimationsIntent`:
+`add` (`group` is `entrance`, `emphasis`, `exit` or `motionPath`; `preset` is a
+preset name, or a motion-path catalogue id for `motionPath`) or `command`
+(`preview`, `effectOptions`, `animationPane`, `trigger`, `remove`). Intents are
+rejected while read-only or without a selection, except the Animation Pane,
+which stays reachable. Setting state emits no intent.
+
+Native hosts retain every effect edit (adding, removing and ordering effects,
+triggers, timing, direction, repeat), the play-order timeline and drag
+reordering (Svelte and Vanilla), the Animation Pane/inspector lifecycle,
+Preview playback, history and persistence. The Timing group's Start and
+Duration fields and Animation Painter remain disabled placeholders in every
+binding; per-effect timing is authored in the Animation Panel (and, in Svelte
+and Vanilla, the timeline row), not from these fields. Effect Options and
+Trigger open the Animation Panel in React, Vue, Svelte and Angular; Vanilla's
+panel command is the inspector toggle.

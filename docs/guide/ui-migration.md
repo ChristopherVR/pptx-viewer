@@ -165,3 +165,31 @@ customization, touch targets, theme tokens, focus and forced colors.
 `effect-sound-gallery.spec.ts` cover the same controls from earlier work.
 Comparable screenshots are `<binding>-transitions.png` in the baseline and
 after directories.
+
+## Animations
+
+Animations (#378) uses one controlled shared view, `pptx-ui-ribbon-animations`,
+for the Preview, Animation, Motion Paths, Advanced Animation and Timing groups.
+It owns the group markup, the always-visible entrance/emphasis/exit and
+motion-path galleries, icons, labels, pressed and disabled state. Hosts supply
+the selection, edit permission, Animation Pane state and a translator, and route
+typed `animations-request` intents (`add` or `command`) to native handlers.
+
+Native hosts keep every effect edit (adding, removing and reordering effects,
+triggers, timing, direction and repeat), the animation play-order timeline with
+drag reordering in Svelte and Vanilla, the Animation Pane/inspector lifecycle,
+in-canvas Preview playback, document history and persistence. All five bindings
+now share one control set: Exit Effects carries the catalogue's
+`animations.advancedAnimation.addAnimation` id everywhere, the Animation Pane
+shows its pressed state when the inspector is open, and the Angular Effect
+Options and Trigger commands open the Animation Panel like the other bindings.
+Animation Painter and the Timing Start/Duration fields remain disabled
+placeholders; Vanilla's panel commands still toggle the inspector.
+
+Public customization ids are unchanged. Boundary: the Svelte and Vanilla
+play-order timeline rows and the inspector Animation panel are native and not
+part of this change. `e2e/ribbon-animations-migration.spec.ts` covers ids, a real
+effect added through the gallery, the deck-level animation pane, undo/redo,
+save and reload, customization, touch targets, focus, theme tokens and forced
+colors. Comparable screenshots are `<binding>-animations.png` in the baseline
+and after directories.

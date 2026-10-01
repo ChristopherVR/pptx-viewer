@@ -36,7 +36,6 @@ vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
 }));
 
 const { HomeSection } = await import('./HomeSection');
-const { AnimationsSection } = await import('./AnimationsSection');
 const { HelpSection } = await import('./HelpSection');
 const { TextSection } = await import('./TextSection');
 
@@ -185,20 +184,6 @@ describe('home tab font controls', () => {
 		expect(html.match(/<pptx-ui-select[^>]*data-font-picker="size"[^>]*>/u)?.[0]).toContain(
 			'value="24"',
 		);
-	});
-});
-
-describe('animations tab timing fields', () => {
-	it('names the duration input, whose caption is a span rather than a label', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('aria-label="Duration"');
 	});
 });
 

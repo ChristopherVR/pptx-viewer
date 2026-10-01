@@ -23,7 +23,8 @@ import {
 	ENTRANCE_PRESET_VALUES,
 	EXIT_PRESET_VALUES,
 } from '../internal/shared-src/render/animation-authoring';
-import { ANIMATION_PRESET_CATEGORIES } from './ribbon-animation-gallery.component';
+import { animationPresetLabelKey } from '../internal/shared-src/render/animation-preset-labels';
+import { ANIMATION_RIBBON_CATEGORIES as ANIMATION_PRESET_CATEGORIES } from '../internal/shared-src/render/ribbon-animations-state';
 
 /** The label a ribbon control renders, resolved the way the Angular host does. */
 function label(key: string): string {
@@ -120,7 +121,11 @@ describe('ribbon control labels', () => {
 
 describe('animation preset gallery', () => {
 	const entries = ANIMATION_PRESET_CATEGORIES.flatMap((category) =>
-		category.presets.map((preset) => ({ ...preset, group: category.group })),
+		category.presets.map((preset) => ({
+			value: preset,
+			labelKey: animationPresetLabelKey(preset),
+			group: category.group,
+		})),
 	);
 
 	it('offers the whole shared catalogue, not a six-effect sample', () => {
@@ -139,7 +144,7 @@ describe('animation preset gallery', () => {
 					: category.group === 'emphasis'
 						? EMPHASIS_PRESET_VALUES
 						: EXIT_PRESET_VALUES;
-			expect(category.presets.map((preset) => preset.value)).toStrictEqual([...source]);
+			expect(category.presets).toStrictEqual([...source]);
 		}
 	});
 

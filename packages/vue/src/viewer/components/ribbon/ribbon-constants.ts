@@ -124,20 +124,6 @@ export const ATXT: Array<{ id: string; icon: Component; labelKey: string }> = [
 ];
 
 /**
- * Start-mode options of the Animations tab's Timing group.
- *
- * The preset gallery that used to live beside this table now sources its
- * effects from `pptx-viewer-shared` (see `AnimationPresetGallery.vue`), so a
- * preset added to the catalogue reaches every binding without a per-binding
- * table to forget to update.
- */
-export const ANIMATION_START_MODES = [
-	'pptx.animations.onClick',
-	'pptx.animations.withPrevious',
-	'pptx.animations.afterPrevious',
-];
-
-/**
  * Re-exported from `pptx-viewer-shared` rather than declared here.
  *
  * This binding kept its own copy of the family list, which is exactly how the

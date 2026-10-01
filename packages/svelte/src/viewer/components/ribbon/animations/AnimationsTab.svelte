@@ -1,88 +1,70 @@
 <script lang="ts">
 	/**
-	 * AnimationsTab: the ribbon's Animations tab, at React's `AnimationsSection`
-	 * control set (Preview / Animation gallery / Advanced Animation / Timing).
+	 * AnimationsTab: the ribbon's Animations tab, a thin adapter over the shared
+	 * `pptx-ui-ribbon-animations` view (Preview, the full preset and motion-path
+	 * galleries, Advanced Animation and the inert Timing fields).
 	 *
-	 * The gallery adds one of the three effect buckets to the currently selected
-	 * element through `EditorState.animationOps`, which writes
-	 * `PptxSlide.animations` (keyed by `elementId`), the exact field the
-	 * presentation-mode click-stepped playback already reads (see
-	 * `buildClickGroups` in `presentation/animation-playback.svelte.ts`). Every
-	 * gallery button is disabled without a selection, since an animation always
-	 * targets a specific element.
-	 *
-	 * Svelte's gallery deliberately offers the full shared preset catalogue
-	 * rather than React's six-effect sample; the Advanced Animation and Timing
-	 * groups beside it live in `AnimationsAdvancedGroup.svelte`.
+	 * Effects are added to the currently selected element through
+	 * `EditorState.animationOps`, which writes `PptxSlide.animations` (keyed by
+	 * `elementId`), the exact field the presentation-mode click-stepped playback
+	 * already reads (see `buildClickGroups` in
+	 * `presentation/animation-playback.svelte.ts`). Preview playback, the
+	 * inspector lifecycle and this binding's own play-order timeline stay native.
 	 */
+	import type { PptxAnimationPreset } from 'pptx-viewer-core';
+	import type { RibbonAnimationsRequestEvent } from 'pptx-viewer-shared';
+
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
 	import type { ChromeUiState } from '../../../state/chrome-ui.svelte';
-	import RibbonCommand from '../RibbonCommand.svelte';
-	import RibbonGroup from '../RibbonGroup.svelte';
-	import { ANIMATION_CATEGORIES } from './animation-categories';
-	import AnimationsAdvancedGroup from './AnimationsAdvancedGroup.svelte';
-	import AnimationTimeline from './AnimationTimeline.svelte';
 	import { previewElementAnimation } from './animation-preview-player';
-	import MotionPathGallery from './MotionPathGallery.svelte';
+	import AnimationTimeline from './AnimationTimeline.svelte';
 
 	const { editor, chromeUi }: { editor: EditorState; chromeUi?: ChromeUiState } = $props();
 	const t = useTranslator();
 
-	const disabled = $derived(!editor.editable || !editor.selectedElementId);
 	const selectedAnimation = $derived(
 		editor.slides[editor.currentSlideIndex]?.animations?.find(
 			(animation) => animation.elementId === editor.selectedElementId,
 		),
 	);
+	const state = $derived({
+		editable: editor.editable,
+		hasSelection: Boolean(editor.selectedElementId),
+		paneOpen: chromeUi?.inspectorOpen,
+		translate: t,
+	});
+
+	/** Reveal the inspector's Animation panel, the home of per-effect options. */
+	function openAnimationPanel(): void {
+		chromeUi?.setInspectorTab('properties');
+		if (chromeUi && !chromeUi.inspectorOpen) {
+			chromeUi.toggleInspector();
+		}
+	}
+
+	function request(event: RibbonAnimationsRequestEvent): void {
+		const intent = event.detail;
+		if (intent.kind === 'add') {
+			if (intent.group === 'motionPath') {
+				editor.animationOps.applyMotionPath(intent.preset);
+			} else {
+				editor.animationOps.addAnimation(intent.group, intent.preset as PptxAnimationPreset);
+			}
+		} else if (intent.value === 'preview') {
+			if (selectedAnimation) {
+				previewElementAnimation(selectedAnimation);
+			}
+		} else if (intent.value === 'remove') {
+			editor.animationOps.removeAnimation();
+		} else {
+			openAnimationPanel();
+		}
+	}
 </script>
 
 <div class="pptx-svelte-animationstab" role="group" aria-label={t('pptx.ribbon.tab.animations')}>
-	<RibbonGroup label={t('pptx.animations.preview')} group="animations.preview">
-		<RibbonCommand
-			control="animations.preview.preview"
-			label={t('pptx.animations.preview')}
-			disabled={disabled}
-			onclick={() => {
-				if (selectedAnimation) {
-					previewElementAnimation(selectedAnimation);
-				}
-			}}
-		>
-			{#snippet icon()}<svg viewBox="0 0 20 20"><path d="m5 3 11 7-11 7z" /></svg>{/snippet}
-		</RibbonCommand>
-	</RibbonGroup>
-
-	<RibbonGroup label={t('pptx.animations.animation')} maxWidth={500} group="animations.animation">
-		<div class="pptx-svelte-animationstab-galleries" data-ribbon-control="animations.animation.gallery">
-			{#each ANIMATION_CATEGORIES as category (category.group)}
-				<div class="pptx-svelte-animationstab-group">
-					<span class="pptx-svelte-animationstab-label">{t(category.labelKey)}</span>
-					<div class="pptx-svelte-animationstab-gallery">
-						{#each category.presets as preset (preset)}
-							<button
-								type="button"
-								{disabled}
-								title={t(`pptx.animation.preset.${preset}`)}
-								onclick={() => editor.animationOps.addAnimation(category.group, preset)}
-							>
-								{t(`pptx.animation.preset.${preset}`)}
-							</button>
-						{/each}
-					</div>
-				</div>
-			{/each}
-		</div>
-	</RibbonGroup>
-
-	<RibbonGroup label={t('pptx.animation.motionPath')} group="animations.motionPath">
-		<span class="pptx-svelte-rb-contents" data-ribbon-control="animations.motionPath.gallery"><MotionPathGallery
-			{disabled}
-			onapply={(presetId) => editor.animationOps.applyMotionPath(presetId)}
-		/></span>
-	</RibbonGroup>
-
-	<AnimationsAdvancedGroup {editor} {chromeUi} {disabled} />
+	<pptx-ui-ribbon-animations {state} onanimations-request={request}></pptx-ui-ribbon-animations>
 
 	<AnimationTimeline {editor} />
 </div>
@@ -95,65 +77,5 @@
 		gap: 4px;
 		max-width: 100%;
 		overflow-x: auto;
-	}
-
-	.pptx-svelte-animationstab-galleries {
-		display: flex;
-		align-items: flex-start;
-		gap: 8px;
-	}
-
-	.pptx-svelte-animationstab-group {
-		display: flex;
-		flex-direction: column;
-		gap: 3px;
-	}
-
-	.pptx-svelte-animationstab-label {
-		font-size: 10.5px;
-		font-weight: 600;
-		color: var(--pptx-muted-foreground, #94a3b8);
-	}
-
-	/*
-	 * 150px, not a round number: matches React's `AnimationPresetGallery`
-	 * (`max-w-[150px]`) exactly. This used to be 240px, which let each of the
-	 * three buckets (entrance/emphasis/exit) run noticeably wider than React's,
-	 * pushing the whole "Animation" RibbonGroup out to ~750px instead of the
-	 * ~480px React renders at (React additionally caps the group itself at
-	 * `max-w-[500px]`, see the `maxWidth` prop below). That extra width shoved
-	 * the Advanced Animation and Timing groups far enough right that they fell
-	 * off the ribbon's visible row, reachable only via a second, undiscoverable
-	 * nested horizontal scrollbar clipping/scroll region: the user-reported
-	 * "Animations tab clipping".
-	 */
-	.pptx-svelte-animationstab-gallery {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 4px;
-		max-width: 150px;
-	}
-
-	.pptx-svelte-animationstab-gallery button {
-		height: 22px;
-		padding: 0 6px;
-		border: none;
-		border-radius: var(--pptx-radius, 6px);
-		background: var(--pptx-muted, #2a2a3d);
-		color: inherit;
-		cursor: pointer;
-		font: inherit;
-		font-size: 10.5px;
-		white-space: nowrap;
-	}
-
-	.pptx-svelte-animationstab-gallery button:hover:not(:disabled) {
-		background: var(--pptx-accent, #33334d);
-		color: var(--pptx-accent-foreground, #f8fafc);
-	}
-
-	.pptx-svelte-animationstab-gallery button:disabled {
-		opacity: 0.35;
-		cursor: default;
 	}
 </style>

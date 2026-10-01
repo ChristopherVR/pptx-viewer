@@ -1022,7 +1022,7 @@ describe('toolbar - Transitions tab', () => {
 // ===========================================================================
 
 describe('toolbar - Animations tab', () => {
-	it('renders Preview button', () => {
+	it('renders the shared Animations placeholder before browser hydration', () => {
 		const html = render(
 			React.createElement(AnimationsSection, {
 				canEdit: true,
@@ -1031,94 +1031,7 @@ describe('toolbar - Animations tab', () => {
 				onToggleInspector: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Preview animation on selected element"');
-		expect(html).toContain('>Preview</span>');
-	});
-
-	it('renders the whole shared preset catalogue, not a six-effect sample', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		// One button per preset in `pptx-viewer-shared`'s catalogue: the gallery
-		// used to hard-code six, hiding twenty-one applicable effects.
-		expect(html).toContain('>Entrance<');
-		expect(html).toContain('>Emphasis<');
-		expect(html).toContain('>Exit<');
-		for (const label of ['Appear', 'Grow &amp; Turn', 'Bold Flash', 'Shrink Out', 'Disappear']) {
-			expect(html).toContain(`title="${label}"`);
-		}
-	});
-
-	it('renders Remove button', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Remove animation from selected element"');
-		expect(html).toContain('>Remove</span>');
-	});
-
-	it('renders Animation Panel button', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('title="Open Animation Panel in Inspector"');
-		expect(html).toContain('Animation Panel');
-	});
-
-	it('buttons are disabled when no element is selected', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toMatch(/title="Preview animation on selected element"[^>]*disabled/u);
-		expect(html).toMatch(/<button[^>]*disabled=""[^>]*title="Appear"/u);
-		expect(html).toMatch(/title="Remove animation from selected element"[^>]*disabled/u);
-	});
-
-	it('animation Panel button shows active state when inspector is open', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: true,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Open Animation Panel in Inspector"');
-	});
-
-	it('animation presets list includes Entrance, Emphasis, and Exit groups', () => {
-		const html = render(
-			React.createElement(AnimationsSection, {
-				canEdit: true,
-				selectedElement: null,
-				isInspectorPaneOpen: false,
-				onToggleInspector: vi.fn<() => void>(),
-			}),
-		);
-		expect(html).toContain('Entrance');
-		expect(html).toContain('Emphasis');
-		expect(html).toContain('Exit');
+		expect(html).toContain('pptx-ui-ribbon-animations');
 	});
 });
 
@@ -1586,8 +1499,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'animations' })),
 		);
-		expect(html).toContain('Add Animation');
-		expect(html).toContain('Animation Panel');
+		expect(html).toContain('pptx-ui-ribbon-animations');
 	});
 
 	it('renders SlideShowSection when toolbarSection is slideShow', () => {
