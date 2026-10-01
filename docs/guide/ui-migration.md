@@ -222,6 +222,22 @@ persistence and native popup. Public customization ids are unchanged.
   time; the size ladder differs between bindings). React's Font buttons now
   disable for non-text selections like the other four.
 
+- Paragraph: Decrease and Increase Indent and the four alignments in
+  `home.paragraph`, with alignment reflected as pressed when the viewer can
+  read an explicit alignment. The Bullets and Numbering toggles (with their
+  library galleries), line spacing, text direction and columns stay native.
+  Angular's indent and alignment buttons now follow read-only mode like the
+  other bindings.
+- Editing: Find and Replace in `home.editing` (both open the host's find
+  panel; Svelte mirrors an open panel as pressed). The Select menu and Select All
+  stay native.
+
+Boundary: Slides, Drawing and Arrange are not migrated in this change. They are
+labelled split buttons, galleries, dialogs and colour pickers anchored natively
+by each binding, with different labels, order and gating per binding, so
+sharing them would change behaviour. They remain open under #373 as the next
+Home batches (see the shared README for the detail); the issue is not complete.
+
 `e2e/ribbon-home-migration.spec.ts` covers ids, selection and clipboard gating,
 real copy/paste/cut with undo and redo, the Format Painter, customization,
 touch targets, theme tokens and forced colors across all five bindings.

@@ -3,6 +3,8 @@
  * EditingSection: Find, Replace, and Select controls for the Home ribbon tab.
  * Vue port matching the React EditingSection component.
  */
+import { editingHomeControls } from 'pptx-viewer-shared';
+import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { vAnchoredPopup } from './anchored-popup';
@@ -18,6 +20,8 @@ interface Props {
 const props = defineProps<Props>();
 const { t } = useI18n();
 
+const editingState = computed(() => ({ controls: editingHomeControls(), translate: t }));
+
 const selectMenu = useDropdown();
 
 function handleSelectAll(): void {
@@ -31,31 +35,11 @@ function handleSelectAll(): void {
 
 	<div class="flex flex-col items-center gap-0.5" data-ribbon-group="home.editing">
 		<div class="flex items-center gap-1" data-pptx-chrome="editing-controls">
-			<div data-pptx-chrome="control-cluster">
-				<!-- Find -->
-				<button
-					type="button"
-					data-ribbon-control="home.editing.find"
-					:class="pill"
-					:title="t('pptx.editing.find')"
-					@mousedown.prevent
-					@click="props.onToggleFindReplace()"
-				>
-					<RibbonIcon name="home.editing.find" :class="ic" />
-				</button>
-
-				<!-- Replace -->
-				<button
-					type="button"
-					data-ribbon-control="home.editing.replace"
-					:class="pill"
-					:title="t('pptx.ribbon.replace')"
-					@mousedown.prevent
-					@click="props.onToggleFindReplace()"
-				>
-					<RibbonIcon name="home.editing.replace" :class="ic" />
-				</button>
-			</div>
+			<!-- Find and Replace: the shared Editing strip; both open the find panel. -->
+			<pptx-ui-ribbon-home-editing
+				:state.prop="editingState"
+				@home-request="props.onToggleFindReplace()"
+			/>
 			<!-- Select dropdown -->
 			<div :ref="selectMenu.root" class="relative" data-ribbon-control="home.editing.select">
 				<button

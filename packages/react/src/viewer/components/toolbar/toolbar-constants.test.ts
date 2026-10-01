@@ -1,19 +1,6 @@
 import { describe, it, expect, expectTypeOf } from 'vitest';
 
-import {
-	_b,
-	gB,
-	gL,
-	grp,
-	pill,
-	ic,
-	ics,
-	MODES,
-	ALIGN_BTNS,
-	OV,
-	FMT,
-	ATXT,
-} from './toolbar-constants';
+import { _b, gB, gL, grp, pill, ic, ics, MODES, ALIGN_BTNS, OV } from './toolbar-constants';
 
 // ---------------------------------------------------------------------------
 // Style token strings
@@ -160,59 +147,5 @@ describe('oV', () => {
 		expect(keys).toContain('fontEmbedding');
 		expect(keys).toContain('digitalSignatures');
 		expect(keys).toContain('versionHistory');
-	});
-});
-
-// ---------------------------------------------------------------------------
-// FMT (formatting buttons)
-// ---------------------------------------------------------------------------
-
-describe('fMT', () => {
-	it('contains four formatting buttons', () => {
-		expect(FMT).toHaveLength(4);
-	});
-
-	it('each button has i and labelKey properties', () => {
-		for (const btn of FMT) {
-			expect(btn.i).toBeDefined();
-			expectTypeOf(btn.labelKey).toBeString();
-		}
-	});
-
-	it('includes Bold, Italic, Underline, and Strikethrough', () => {
-		const labelKeys = FMT.map((f) => f.labelKey);
-		expect(labelKeys).toStrictEqual([
-			'pptx.textPanel.bold',
-			'pptx.textPanel.italic',
-			'pptx.textPanel.underline',
-			'pptx.textPanel.strikethrough',
-		]);
-	});
-});
-
-// ---------------------------------------------------------------------------
-// ATXT (text alignment buttons)
-// ---------------------------------------------------------------------------
-
-describe('aTXT', () => {
-	it('contains four alignment buttons', () => {
-		expect(ATXT).toHaveLength(4);
-	});
-
-	it('each button has i and labelKey properties', () => {
-		for (const btn of ATXT) {
-			expect(btn.i).toBeDefined();
-			expectTypeOf(btn.labelKey).toBeString();
-		}
-	});
-
-	it('includes left, center, right, and justify', () => {
-		const labelKeys = ATXT.map((a) => a.labelKey);
-		expect(labelKeys).toStrictEqual([
-			'pptx.ribbon.alignLeft',
-			'pptx.ribbon.alignCenter',
-			'pptx.ribbon.alignRight',
-			'pptx.ribbon.justify',
-		]);
 	});
 });

@@ -192,7 +192,47 @@ export function paragraphHomeControls(input: ParagraphHomeInput): RibbonHomeView
 	};
 }
 
-/** Find and Replace open the host's find panel, so they are always available. */
-export function editingHomeControls(): RibbonHomeViewState['controls'] {
-	return { 'home.editing.find': {}, 'home.editing.replace': {} };
+/** Model-pixel step of one Decrease/Increase Indent press. */
+export const RIBBON_HOME_INDENT_STEP = 24;
+
+export type ParagraphHomeAction =
+	| { kind: 'indent'; delta: number }
+	| { kind: 'align'; align: RibbonHomeAlign };
+
+const PARAGRAPH_ALIGN_BY_ID: Readonly<Record<string, RibbonHomeAlign>> = {
+	'home.paragraph.alignLeft': 'left',
+	'home.paragraph.alignCenter': 'center',
+	'home.paragraph.alignRight': 'right',
+	'home.paragraph.justify': 'justify',
+};
+
+/** What a Paragraph intent asks the host to do; undefined for ids this strip does not own. */
+export function paragraphHomeAction(id: string): ParagraphHomeAction | undefined {
+	if (id === 'home.paragraph.decreaseIndent') {
+		return { kind: 'indent', delta: -RIBBON_HOME_INDENT_STEP };
+	}
+	if (id === 'home.paragraph.increaseIndent') {
+		return { kind: 'indent', delta: RIBBON_HOME_INDENT_STEP };
+	}
+	const align = PARAGRAPH_ALIGN_BY_ID[id];
+	return align ? { kind: 'align', align } : undefined;
+}
+
+/** Narrow a stored alignment to the four values the strip can show as pressed. */
+export function paragraphHomeAlign(value: unknown): RibbonHomeAlign | undefined {
+	return value === 'left' || value === 'center' || value === 'right' || value === 'justify'
+		? value
+		: undefined;
+}
+
+/**
+ * Find and Replace open the host's find panel, so they are always available.
+ * Pass `findOpen` when the host can tell whether that panel is showing and
+ * both buttons reflect it as pressed; omit it to show no pressed state.
+ */
+export function editingHomeControls(
+	input: { findOpen?: boolean } = {},
+): RibbonHomeViewState['controls'] {
+	const state = { pressed: input.findOpen };
+	return { 'home.editing.find': { ...state }, 'home.editing.replace': { ...state } };
 }

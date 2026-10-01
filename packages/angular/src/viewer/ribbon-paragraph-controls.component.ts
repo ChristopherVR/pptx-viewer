@@ -7,15 +7,19 @@ import {
 	inject,
 	input,
 } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement } from 'pptx-viewer-core';
 import { hasTextProperties } from 'pptx-viewer-core';
 
 import {
 	elementBulletKind,
 	getInlineEditorSelectionResult,
+	paragraphHomeAction,
+	paragraphHomeAlign,
+	paragraphHomeControls,
 	selectionBulletKind,
 } from '../internal/shared';
+import type { RibbonHomeRequestEvent } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 import { RibbonGalleryComponent } from './ribbon-gallery.component';
 /**
@@ -54,6 +58,7 @@ const COLUMN_OPTIONS = [1, 2, 3];
 export class RibbonParagraphControlsComponent {
 	private readonly editor = inject(EditorStateService);
 	private readonly inlineEditing = inject(ViewerCanvasEditingService, { optional: true });
+	private readonly translation = inject(TranslateService, { optional: true });
 
 	readonly slideIndex = input<number>(0);
 	readonly selectedElement = input<PptxElement | null>(null);
@@ -105,6 +110,24 @@ export class RibbonParagraphControlsComponent {
 		}
 		const current = selectionBulletKind(element, result.selection, result.snapshot?.textSegments);
 		this.patch({ listType: current === kind ? 'none' : kind });
+	}
+	/** State for the shared indent and alignment strip. */
+	protected paragraphView() {
+		return {
+			controls: paragraphHomeControls({
+				enabled: this.canEdit() && this.isText(),
+				align: paragraphHomeAlign(this.curStyle()?.align),
+			}),
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
+	protected paragraphRequest(event: Event): void {
+		const action = paragraphHomeAction((event as RibbonHomeRequestEvent).detail.id);
+		if (action?.kind === 'indent') {
+			this.changeIndent(action.delta);
+		} else if (action?.kind === 'align') {
+			this.setAlign(action.align);
+		}
 	}
 	/** Step the paragraph left-indent by `deltaPx` (clamped at 0). */
 	protected changeIndent(deltaPx: number): void {

@@ -1393,10 +1393,8 @@ describe('toolbar - Text tab', () => {
 				onUpdateTextStyle: vi.fn<() => void>(),
 			}),
 		);
-		expect(html).toContain('title="Align left"');
-		expect(html).toContain('title="Align center"');
-		expect(html).toContain('title="Align right"');
-		expect(html).toContain('title="Justify"');
+		// The shared element renders its buttons in the browser; see ParagraphGroup.test.tsx.
+		expect(html).toContain('<pptx-ui-ribbon-home-paragraph');
 	});
 
 	it('renders Font color button', () => {

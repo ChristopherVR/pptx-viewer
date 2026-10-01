@@ -17,9 +17,16 @@
  * inside a `flex-col` label stack by {@link RibbonHomeSectionComponent}, so a
  * second top-level sibling would drop onto its own row.
  */
-import { ChangeDetectionStrategy, Component, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	output,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 
+import { editingHomeControls } from '../internal/shared';
 import { AnchoredPopupDirective } from './anchored-popup.directive';
 import { RibbonIconDirective } from './ribbon-icon.directive';
 
@@ -28,10 +35,21 @@ import { RibbonIconDirective } from './ribbon-icon.directive';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [RibbonIconDirective, TranslatePipe, AnchoredPopupDirective],
 	templateUrl: './ribbon-editing-section.component.html',
 })
 export class RibbonEditingSectionComponent {
+	private readonly translation = inject(TranslateService, { optional: true });
+
 	readonly toggleFindReplace = output<void>();
 	readonly selectAll = output<void>();
+
+	/** State for the shared Find/Replace strip; both buttons open the find panel. */
+	protected view() {
+		return {
+			controls: editingHomeControls(),
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
 }

@@ -1,17 +1,10 @@
 /** Joined controls retain their background when the individual actions are disabled. */
 export const EDITOR_CLUSTER_CSS = `
 @media (min-width: 768px) {
-  [data-pptx-editor-chrome] [data-pptx-chrome="paragraph-controls"] [data-pptx-chrome="control-cluster"],
-  [data-pptx-editor-chrome] [data-pptx-chrome="editing-controls"] [data-pptx-chrome="control-cluster"],
   [data-pptx-editor-chrome] [data-pptx-chrome="order-controls"],
   [data-pptx-editor-chrome] [data-pptx-chrome="ribbon-content"] :is(
     [data-ribbon-control="home.paragraph.bullets"], [data-ribbon-control="home.paragraph.numbering"]
   ) { background: var(--pptx-muted); border-radius: 3px; }
-  [data-pptx-editor-chrome] [data-pptx-chrome="paragraph-controls"] [data-pptx-chrome="control-cluster"] {
-    display: inline-flex; align-items: center; gap: 0; overflow: hidden;
-  }
-  [data-pptx-editor-chrome] :is([data-pptx-chrome="paragraph-controls"], [data-pptx-chrome="editing-controls"])
-  [data-pptx-chrome="control-cluster"] > button { margin-right: 0; }
   [data-pptx-editor-chrome] [data-pptx-chrome="ribbon"] [data-pptx-chrome="ribbon-content"] :is(
     [data-ribbon-control="home.paragraph.bullets"], [data-ribbon-control="home.paragraph.numbering"]
   ) [data-pptx-chrome="gallery-caret"] { padding: 0 2px; }

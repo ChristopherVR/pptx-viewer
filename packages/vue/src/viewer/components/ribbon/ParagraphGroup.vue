@@ -3,20 +3,26 @@
  * ParagraphGroup: the Home tab's Paragraph group (list toggles with their
  * Bullets / Numbering library galleries, indent, alignment, and the line
  * spacing / direction / columns dropdowns). Split out of `TextSection.vue`.
+ * The indent and alignment buttons are the shared `pptx-ui-ribbon-home-paragraph`
+ * strip; this adapter maps its one intent onto the existing text-style edit.
  */
 import { hasTextProperties } from 'pptx-viewer-core';
 import type { PptxElement, TextStyle } from 'pptx-viewer-core';
 import {
 	elementBulletKind,
 	getInlineEditorSelectionResult,
+	paragraphHomeAction,
+	paragraphHomeAlign,
+	paragraphHomeControls,
 	selectionBulletKind,
 } from 'pptx-viewer-shared';
+import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import { getEffectiveTextStyle } from './effective-text-style';
 import ParagraphDropdowns from './ParagraphDropdowns.vue';
-import { ATXT, gB, gL, grp, ic } from './ribbon-constants';
+import { gB, grp, ic } from './ribbon-constants';
 import type { TableCellEditorState } from './ribbon-types';
 import RibbonGallery from './RibbonGallery.vue';
 import RibbonIcon from './RibbonIcon';
@@ -30,13 +36,6 @@ interface Props {
 
 const props = defineProps<Props>();
 const { t } = useI18n();
-
-const ALIGN_CONTROL: Record<string, string> = {
-	left: 'home.paragraph.alignLeft',
-	center: 'home.paragraph.alignCenter',
-	right: 'home.paragraph.alignRight',
-	justify: 'home.paragraph.justify',
-};
 
 const hasSel = computed(() => Boolean(props.selectedElement));
 const canMut = computed(() => hasSel.value && props.canEdit);
@@ -76,20 +75,24 @@ function toggleList(kind: 'bullet' | 'numbered'): void {
 	props.onUpdateTextStyle({ listType: current === kind ? 'none' : kind });
 }
 
-function stepIndent(delta: number): void {
-	if (!canFormat.value || !props.selectedElement) {
-		return;
-	}
-	const current = effectiveTs.value?.paragraphMarginLeft ?? 0;
-	props.onUpdateTextStyle({ paragraphMarginLeft: Math.max(0, current + delta) });
-}
+const paragraphState = computed(() => ({
+	controls: paragraphHomeControls({
+		enabled: canMut.value && canFormat.value,
+		align: paragraphHomeAlign(effectiveTs.value?.align),
+	}),
+	translate: t,
+}));
 
-function handleAlignClick(id: string): void {
-	if (!canFormat.value) {
+function requestParagraph(event: RibbonHomeRequestEvent): void {
+	const action = paragraphHomeAction(event.detail.id);
+	if (!canFormat.value || !props.selectedElement || !action) {
 		return;
 	}
-	if (id === 'left' || id === 'center' || id === 'right' || id === 'justify') {
-		props.onUpdateTextStyle({ align: id });
+	if (action.kind === 'indent') {
+		const current = effectiveTs.value?.paragraphMarginLeft ?? 0;
+		props.onUpdateTextStyle({ paragraphMarginLeft: Math.max(0, current + action.delta) });
+	} else {
+		props.onUpdateTextStyle({ align: action.align });
 	}
 }
 </script>
@@ -129,48 +132,11 @@ function handleAlignClick(id: string): void {
 				</div>
 			</div>
 
-			<!-- Indent decrease / increase -->
-			<div :class="grp" data-pptx-chrome="control-cluster">
-				<button
-					type="button"
-					data-ribbon-control="home.paragraph.decreaseIndent"
-					:disabled="!canMut"
-					:class="gB"
-					:title="t('pptx.text.decreaseIndent')"
-					@mousedown.prevent
-					@click="stepIndent(-24)"
-				>
-					<RibbonIcon name="home.paragraph.decreaseIndent" :class="ic" />
-				</button>
-				<button
-					type="button"
-					data-ribbon-control="home.paragraph.increaseIndent"
-					:disabled="!canMut"
-					:class="gL"
-					:title="t('pptx.text.increaseIndent')"
-					@mousedown.prevent
-					@click="stepIndent(24)"
-				>
-					<RibbonIcon name="home.paragraph.increaseIndent" :class="ic" />
-				</button>
-			</div>
-
-			<!-- Alignment -->
-			<div :class="grp" data-pptx-chrome="control-cluster">
-				<button
-					v-for="(b, i) in ATXT"
-					:key="b.id"
-					type="button"
-					:data-ribbon-control="ALIGN_CONTROL[b.id]"
-					:disabled="!canMut"
-					:class="i < ATXT.length - 1 ? gB : gL"
-					:title="t(b.labelKey)"
-					@mousedown.prevent
-					@click="handleAlignClick(b.id)"
-				>
-					<RibbonIcon :name="ALIGN_CONTROL[b.id]" :class="ic" />
-				</button>
-			</div>
+			<!-- Indent and alignment: the shared Paragraph strip -->
+			<pptx-ui-ribbon-home-paragraph
+				:state.prop="paragraphState"
+				@home-request="requestParagraph"
+			/>
 
 			<!-- Line Spacing / Text Direction / Columns -->
 			<ParagraphDropdowns :can-mut="canMut" :on-update-text-style="props.onUpdateTextStyle" />

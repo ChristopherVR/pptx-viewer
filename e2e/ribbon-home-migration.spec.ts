@@ -117,11 +117,9 @@ const FONT = [
 
 const pressed = (page: Page, id: string) => control(page, `home.font.${id}`);
 
-async function savedSubtitleRun(
-	page: Page,
-	info: { outputPath: (name: string) => string },
-	name: string,
-) {
+type Info = { outputPath: (name: string) => string };
+
+async function savedSubtitleRun(page: Page, info: Info, name: string) {
 	const bytes = await downloadBytes(await savePptxViaBackstage(page));
 	const saved = info.outputPath(name);
 	await writeFile(saved, bytes);
@@ -206,6 +204,94 @@ test.describe('Home font', () => {
 	});
 });
 
+const PARAGRAPH = [
+	'decreaseIndent',
+	'increaseIndent',
+	'alignLeft',
+	'alignCenter',
+	'alignRight',
+	'justify',
+];
+const para = (page: Page, id: string) => control(page, `home.paragraph.${id}`);
+
+/** The text body that holds the subtitle in the saved slide XML (paragraph defaults live in its list style). */
+async function savedSubtitleParagraph(page: Page, info: Info, name: string) {
+	const bytes = await downloadBytes(await savePptxViaBackstage(page));
+	const saved = info.outputPath(name);
+	await writeFile(saved, bytes);
+	const zip = await JSZip.loadAsync(bytes);
+	const xml = await zip.file('ppt/slides/slide1.xml')!.async('string');
+	const paragraph =
+		xml.split('<p:txBody>').find((chunk) => chunk.includes('Product Overview')) ?? '';
+	return { saved, paragraph };
+}
+
+test.describe('Home paragraph', () => {
+	test('exposes the indent and alignment controls once and gates them on a text selection', async ({
+		page,
+	}) => {
+		await openHome(page);
+		for (const id of PARAGRAPH) {
+			await expect(page.locator(`[data-ribbon-control="home.paragraph.${id}"]`)).toHaveCount(1);
+			await expect(para(page, id)).toBeDisabled();
+		}
+		await selectSubtitle(page);
+		for (const id of PARAGRAPH) {
+			await expect(para(page, id)).toBeEnabled();
+		}
+	});
+
+	test('alignment and indent edit the deck and survive save and reload', async ({ page }, info) => {
+		await openHome(page);
+		await selectSubtitle(page);
+		await expect(para(page, 'alignRight')).toBeEnabled();
+		// Keyboard activation reaches the native edit.
+		await para(page, 'alignCenter').focus();
+		await expect(para(page, 'alignCenter')).toBeFocused();
+		await page.keyboard.press('Space');
+		await expect(para(page, 'alignCenter')).toHaveAttribute('aria-pressed', 'true');
+		await para(page, 'alignRight').click();
+		await expect(para(page, 'alignRight')).toHaveAttribute('aria-pressed', 'true');
+		await expect(para(page, 'alignCenter')).toHaveAttribute('aria-pressed', 'false');
+		await para(page, 'increaseIndent').click();
+		const saved = await savedSubtitleParagraph(page, info, 'home-paragraph.pptx');
+		expect(saved.paragraph).toMatch(/\salgn="r"/u);
+		expect(Number(/\smarL="(\d+)"/u.exec(saved.paragraph)?.[1])).toBeGreaterThan(0);
+		await loadDeck(page, saved.saved);
+		await ribbonTab(page, 'Home').click();
+		await selectSubtitle(page);
+		await expect(para(page, 'alignRight')).toHaveAttribute('aria-pressed', 'true');
+	});
+
+	test('retains public customization ids', async ({ page }) => {
+		const customization = {
+			ribbon: { hiddenButtons: ['home.paragraph.justify', 'home.paragraph.alignLeft'] },
+		};
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		await expect(para(page, 'justify')).toBeHidden();
+		await expect(para(page, 'alignLeft')).toBeHidden();
+		await expect(para(page, 'alignCenter')).toBeVisible();
+	});
+});
+
+test.describe('Home editing', () => {
+	test('Find and Replace open the find panel and keep their ids', async ({ page }) => {
+		await openHome(page);
+		const find = page.locator('input[placeholder*="Find" i]').first();
+		for (const id of ['find', 'replace']) {
+			await expect(page.locator(`[data-ribbon-control="home.editing.${id}"]`)).toHaveCount(1);
+		}
+		await expect(find).toBeHidden();
+		await control(page, 'home.editing.find').click();
+		await expect(find).toBeVisible();
+		await control(page, 'home.editing.replace').click();
+		const customization = { ribbon: { hiddenButtons: ['home.editing.replace'] } };
+		await openHome(page, `/?customization=${encodeURIComponent(JSON.stringify(customization))}`);
+		await expect(control(page, 'home.editing.replace')).toBeHidden();
+		await expect(control(page, 'home.editing.find')).toBeVisible();
+	});
+});
+
 test.describe('touch Home controls', () => {
 	test.use({ hasTouch: true });
 	test('targets, theme tokens and forced colors remain usable', async ({ page }) => {
@@ -220,7 +306,7 @@ test.describe('touch Home controls', () => {
 			);
 		});
 		await expect(copy).toHaveCSS('color', 'rgb(18, 52, 86)');
-		for (const button of [copy, pressed(page, 'bold')]) {
+		for (const button of [copy, pressed(page, 'bold'), para(page, 'alignLeft')]) {
 			const box = await button.boundingBox();
 			expect(box!.width).toBeGreaterThanOrEqual(44);
 			expect(box!.height).toBeGreaterThanOrEqual(44);

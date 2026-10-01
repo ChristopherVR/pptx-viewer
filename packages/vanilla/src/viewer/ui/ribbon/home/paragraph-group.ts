@@ -1,13 +1,23 @@
 import type { TextStyle } from 'pptx-viewer-core';
-import type { RibbonControlId } from 'pptx-viewer-shared';
-import { FIXED_TAB_GALLERIES, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
+import type {
+	PptxUiRibbonHomeElement,
+	RibbonHomeAlign,
+	RibbonHomeRequestEvent,
+} from 'pptx-viewer-shared';
+import {
+	FIXED_TAB_GALLERIES,
+	LINE_SPACING_OPTIONS,
+	paragraphHomeAction,
+	paragraphHomeAlign,
+	paragraphHomeControls,
+	registerPptxWebControls,
+} from 'pptx-viewer-shared';
 
 import type { TextFormatState } from '../../../editor/editor-format-mutations';
 import type { Translator } from '../../../i18n';
 import { createEl } from '../../../render';
 import { makeButton } from '../../controls';
 import { makeDropdown } from '../../dropdown';
-import type { IconName } from '../../icons';
 import type { RibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGalleryHub } from '../gallery/gallery-hub';
 import { createRibbonGallery } from '../gallery/ribbon-gallery';
@@ -52,38 +62,6 @@ export interface ParagraphGroup {
 	update(state: ParagraphGroupState): void;
 }
 
-const ALIGN_BUTTONS: ReadonlyArray<{
-	align: NonNullable<TextStyle['align']>;
-	icon: IconName;
-	labelKey: string;
-	control: RibbonControlId;
-}> = [
-	{
-		align: 'left',
-		icon: 'align-left',
-		labelKey: 'pptx.ribbon.alignLeft',
-		control: 'home.paragraph.alignLeft',
-	},
-	{
-		align: 'center',
-		icon: 'align-center',
-		labelKey: 'pptx.ribbon.alignCenter',
-		control: 'home.paragraph.alignCenter',
-	},
-	{
-		align: 'right',
-		icon: 'align-right',
-		labelKey: 'pptx.ribbon.alignRight',
-		control: 'home.paragraph.alignRight',
-	},
-	{
-		align: 'justify',
-		icon: 'align-justify',
-		labelKey: 'pptx.ribbon.justify',
-		control: 'home.paragraph.justify',
-	},
-];
-
 /**
  * A list toggle plus the chevron that drops its shared library gallery
  * (Bullets / Numbering), tagged as one catalogue control.
@@ -111,6 +89,7 @@ export function createParagraphGroup(
 	handlers: ParagraphGroupHandlers,
 	galleryHub: RibbonGalleryHub = createRibbonGalleryHub(() => {}),
 ): ParagraphGroup {
+	registerPptxWebControls();
 	const el = createEl(doc, 'div', 'pptxv-rgroup');
 	el.dataset.pptxChrome = 'home-group';
 	tagRibbonGroup(el, 'home.paragraph');
@@ -137,23 +116,24 @@ export function createParagraphGroup(
 	for (const { btn } of [bullets, numbered]) {
 		btn.addEventListener('mousedown', (event) => event.preventDefault());
 	}
-	const indentDec = makeButton(doc, {
-		label: t('pptx.text.decreaseIndent'),
-		icon: 'indent-decrease',
-		onClick: handlers.decreaseIndent,
+	// Indent and alignment are the shared strip; its intent maps onto the handlers.
+	const strip = doc.createElement('pptx-ui-ribbon-home-paragraph') as PptxUiRibbonHomeElement;
+	let stripState = { enabled: false, align: undefined as RibbonHomeAlign | undefined };
+	const syncStrip = () => {
+		strip.state = {
+			controls: paragraphHomeControls({ enabled: stripState.enabled, align: stripState.align }),
+			translate: t,
+		};
+	};
+	strip.addEventListener('home-request', (event) => {
+		const action = paragraphHomeAction((event as RibbonHomeRequestEvent).detail.id);
+		if (action?.kind === 'indent') {
+			(action.delta > 0 ? handlers.increaseIndent : handlers.decreaseIndent)();
+		} else if (action?.kind === 'align') {
+			handlers.setTextAlign(action.align);
+		}
 	});
-	const indentInc = makeButton(doc, {
-		label: t('pptx.text.increaseIndent'),
-		icon: 'indent-increase',
-		onClick: handlers.increaseIndent,
-	});
-	const alignButtons = ALIGN_BUTTONS.map((def) =>
-		makeButton(doc, {
-			label: t(def.labelKey),
-			icon: def.icon,
-			onClick: () => handlers.setTextAlign(def.align),
-		}),
-	);
+	syncStrip();
 	const lineSpacing = makeDropdown(doc, {
 		triggerLabel: t('pptx.paragraph.lineSpacing'),
 		triggerText: '',
@@ -184,53 +164,31 @@ export function createParagraphGroup(
 	});
 	columns.el.querySelector('.pptxv-dropdown-text')?.remove();
 
-	tagRibbonControl(indentDec.btn, 'home.paragraph.decreaseIndent');
-	tagRibbonControl(indentInc.btn, 'home.paragraph.increaseIndent');
-	for (const [i, def] of ALIGN_BUTTONS.entries()) {
-		tagRibbonControl(alignButtons[i].btn, def.control);
-	}
 	tagRibbonControl(lineSpacing.el, 'home.paragraph.lineSpacing');
 	tagRibbonControl(textDirection.el, 'home.paragraph.textDirection');
 	tagRibbonControl(columns.el, 'home.paragraph.columns');
-	const indent = createEl(doc, 'div');
-	indent.dataset.pptxChrome = 'control-cluster';
-	indent.append(indentDec.btn, indentInc.btn);
-	const alignment = createEl(doc, 'div');
-	alignment.dataset.pptxChrome = 'control-cluster';
-	alignment.append(...alignButtons.map((button) => button.btn));
 	row.append(
 		listToggleWithGallery(doc, t, bullets.btn, 'home.paragraph.bullets', galleryHub),
 		listToggleWithGallery(doc, t, numbered.btn, 'home.paragraph.numbering', galleryHub),
-		indent,
-		alignment,
+		strip,
 		lineSpacing.el,
 		textDirection.el,
 		columns.el,
 	);
 
-	const gated = [
-		bullets,
-		numbered,
-		indentDec,
-		indentInc,
-		...alignButtons,
-		lineSpacing,
-		textDirection,
-		columns,
-	];
+	const gated = [bullets, numbered, lineSpacing, textDirection, columns];
 
 	return {
 		el,
 		update({ canFormat, editable, text }) {
 			bullets.setActive(text.listType === 'bullet');
 			numbered.setActive(text.listType === 'numbered');
-			for (const [i, def] of ALIGN_BUTTONS.entries()) {
-				alignButtons[i].setActive(text.align === def.align);
-			}
 			lineSpacing.setSelected(text.lineSpacing);
 			for (const c of gated) {
 				c.setDisabled(!editable || !canFormat);
 			}
+			stripState = { enabled: editable && canFormat, align: paragraphHomeAlign(text.align) };
+			syncStrip();
 		},
 	};
 }

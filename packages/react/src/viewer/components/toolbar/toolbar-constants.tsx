@@ -2,11 +2,9 @@ import React from 'react';
 import {
 	LuAlignCenter,
 	LuAlignHorizontalSpaceAround,
-	LuAlignJustify,
 	LuAlignLeft,
 	LuAlignRight,
 	LuAlignVerticalSpaceAround,
-	LuBold,
 	LuCheck,
 	LuChevronDown,
 	LuChevronUp,
@@ -17,15 +15,12 @@ import {
 	LuFileText,
 	LuImage,
 	LuInfo,
-	LuItalic,
 	LuLock,
 	LuPlay,
 	LuPrinter,
 	LuSearch,
 	LuShieldAlert,
-	LuStrikethrough,
 	LuType,
-	LuUnderline,
 	LuVideo,
 } from 'react-icons/lu';
 
@@ -153,22 +148,4 @@ export const OV: Array<{ labelKey: string; i: React.ReactNode; k: string }> = [
 		labelKey: 'pptx.viewer.digitalSignatures',
 		i: <LuShieldAlert className={`${ics} text-muted-foreground`} />,
 	},
-];
-
-export const FMT = [
-	{ id: 'bold', i: <LuBold className={ic} />, labelKey: 'pptx.textPanel.bold' },
-	{ id: 'italic', i: <LuItalic className={ic} />, labelKey: 'pptx.textPanel.italic' },
-	{ id: 'underline', i: <LuUnderline className={ic} />, labelKey: 'pptx.textPanel.underline' },
-	{
-		id: 'strikethrough',
-		i: <LuStrikethrough className={ic} />,
-		labelKey: 'pptx.textPanel.strikethrough',
-	},
-];
-
-export const ATXT = [
-	{ id: 'left', i: <LuAlignLeft className={ic} />, labelKey: 'pptx.ribbon.alignLeft' },
-	{ id: 'center', i: <LuAlignCenter className={ic} />, labelKey: 'pptx.ribbon.alignCenter' },
-	{ id: 'right', i: <LuAlignRight className={ic} />, labelKey: 'pptx.ribbon.alignRight' },
-	{ id: 'justify', i: <LuAlignJustify className={ic} />, labelKey: 'pptx.ribbon.justify' },
 ];

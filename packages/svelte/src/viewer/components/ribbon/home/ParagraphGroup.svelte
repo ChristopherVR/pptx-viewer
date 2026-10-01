@@ -7,7 +7,14 @@
 	import RibbonIcon from '../RibbonIcon.svelte';
 	import type { TextStyle } from 'pptx-viewer-core';
 	import { hasTextProperties } from 'pptx-viewer-core';
-	import { elementBulletKind, LINE_SPACING_OPTIONS } from 'pptx-viewer-shared';
+	import {
+		elementBulletKind,
+		LINE_SPACING_OPTIONS,
+		paragraphHomeAction,
+		paragraphHomeAlign,
+		paragraphHomeControls,
+	} from 'pptx-viewer-shared';
+	import type { RibbonHomeRequestEvent } from 'pptx-viewer-shared';
 
 	import { useTranslator } from '../../../../i18n/context';
 	import type { EditorState } from '../../../editor/editor-state.svelte';
@@ -35,12 +42,22 @@
 	const BULLETS = fixedGalleryPlacement('home.paragraph.bullets');
 	const NUMBERING = fixedGalleryPlacement('home.paragraph.numbering');
 
-	const ALIGN_BUTTONS = [
-		{ value: 'left', key: 'pptx.ribbon.alignLeft', control: 'home.paragraph.alignLeft' },
-		{ value: 'center', key: 'pptx.ribbon.alignCenter', control: 'home.paragraph.alignCenter' },
-		{ value: 'right', key: 'pptx.ribbon.alignRight', control: 'home.paragraph.alignRight' },
-		{ value: 'justify', key: 'pptx.ribbon.justify', control: 'home.paragraph.justify' },
-	] as const;
+	// Indent and alignment are the shared Paragraph strip; edits stay native.
+	const state = $derived({
+		controls: paragraphHomeControls({ enabled: active, align: paragraphHomeAlign(style.align) }),
+		translate: t,
+	});
+	function request(event: RibbonHomeRequestEvent): void {
+		const action = paragraphHomeAction(event.detail.id);
+		if (!el || !action) {
+			return;
+		}
+		if (action.kind === 'indent') {
+			apply((current) => adjustIndentPatch(current, action.delta > 0 ? 1 : -1));
+		} else {
+			apply((current) => setAlignPatch(current, action.align as TextStyle['align']));
+		}
+	}
 </script>
 
 <div class="pptx-svelte-para" data-pptx-chrome="control-fragment" role="group" aria-label={t('pptx.ribbon.paragraph')}>
@@ -79,51 +96,7 @@
 
 
 
-	<div data-pptx-chrome="control-cluster">
-	<button
-		type="button"
-		class="pptx-svelte-para-btn"
-		disabled={!active}
-		data-ribbon-control="home.paragraph.decreaseIndent"
-		aria-label={t('pptx.text.decreaseIndent')}
-		title={t('pptx.text.decreaseIndent')}
-		onclick={() => el && apply((current) => adjustIndentPatch(current, -1))}
-	>
-		<RibbonIcon name="home.paragraph.decreaseIndent" />
-	</button>
-	<button
-		type="button"
-		class="pptx-svelte-para-btn"
-		disabled={!active}
-		data-ribbon-control="home.paragraph.increaseIndent"
-		aria-label={t('pptx.text.increaseIndent')}
-		title={t('pptx.text.increaseIndent')}
-		onclick={() => el && apply((current) => adjustIndentPatch(current, 1))}
-	>
-		<RibbonIcon name="home.paragraph.increaseIndent" />
-	</button>
-
-
-
-	</div>
-	<div data-pptx-chrome="control-cluster">
-	{#each ALIGN_BUTTONS as btn (btn.value)}
-		<button
-			type="button"
-			class="pptx-svelte-para-btn"
-			class:pptx-svelte-para-on={style.align === btn.value}
-			disabled={!active}
-			aria-pressed={style.align === btn.value}
-			data-ribbon-control={btn.control}
-			aria-label={t(btn.key)}
-			title={t(btn.key)}
-			onclick={() => el && apply((current) => setAlignPatch(current, btn.value as TextStyle['align']))}
-		>
-			<RibbonIcon name={btn.control} />
-		</button>
-	{/each}
-
-	</div>
+	<pptx-ui-ribbon-home-paragraph {state} onhome-request={request}></pptx-ui-ribbon-home-paragraph>
 	<pptx-ui-select variant="ribbon-icon"
 		class="pptx-svelte-ribbon-select"
 		disabled={!active}

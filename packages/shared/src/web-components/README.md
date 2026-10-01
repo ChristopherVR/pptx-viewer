@@ -361,6 +361,8 @@ and forced colors outline the pressed state.
 | ----------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | `clipboard` | `pptx-ui-ribbon-home-clipboard` | The whole `home.clipboard` group: Paste, Cut, Copy, Format Painter                                                                             |
 | `font`      | `pptx-ui-ribbon-home-font`      | The character strip inside `home.font`: Bold, Italic, Underline, Strikethrough, Text Shadow, Increase and Decrease Font Size, Clear Formatting |
+| `paragraph` | `pptx-ui-ribbon-home-paragraph` | The indent and alignment strips inside `home.paragraph`: Decrease and Increase Indent, Align Left, Center, Align Right, Justify                |
+| `editing`   | `pptx-ui-ribbon-home-editing`   | The Find and Replace strip inside `home.editing`                                                                                               |
 
 `clipboardHomeControls` fixes the gating once: Paste needs edit rights and a
 clipboard, Cut needs edit rights and a selection, Copy needs only a selection,
@@ -382,3 +384,32 @@ the strip. Bindings still differ on the size ladder (React and Vue add 2pt,
 Angular steps through the preset list), which is an existing editing difference
 this change does not unify. The old React Font buttons stayed live for
 non-text selections; they now disable like the other four bindings.
+
+`paragraphHomeAction` decodes the indent and alignment ids (the shared
+24-model-pixel indent step, or an alignment) and `paragraphHomeAlign` narrows a
+stored alignment to the four values the strip can show; alignment is reflected
+as `aria-pressed` only when the host can read an explicit alignment. The Bullets
+and Numbering toggles keep their library galleries, and line spacing, text
+direction and columns stay native selects, so they sit outside the strip.
+Svelte keeps its own indent step (`adjustIndentPatch` by one level) because the
+shared indent id only tells it which direction to go.
+
+Find and Replace both open the host's find panel (the host owns that panel).
+`editingHomeControls({ findOpen })` mirrors an open panel on both buttons when a
+host can report it (Svelte does); other hosts omit it and show no pressed state.
+The Select menu and its Select All command are app-owned popovers and stay
+native.
+
+### Home groups that stay native
+
+Slides (New Slide split button, Slide Templates dialog, Layout and Reset menus,
+Section), Drawing (Shapes, Arrange, Shape Fill/Outline, Quick Styles and Shape
+Effects galleries and colour popovers) and Arrange (align/distribute/flip/order
+selects, Group/Ungroup, Merge Shapes, Crop, outline width, Duplicate, Delete and
+the second Format Painter) still live in each binding. They are built from
+labelled split buttons, galleries, anchored popovers, dialogs and colour
+pickers that each binding anchors and focuses natively, and their labels,
+ordering and gating differ between bindings in ways a shared strip cannot
+unify without a behaviour change. They are tracked as the next Home batches.
+The font family and size selectors, character spacing, change case, font and
+highlight colour pickers stay native for the same reason.
