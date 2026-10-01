@@ -1,10 +1,25 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
-import { LucideChevronDown } from '@lucide/angular';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	computed,
+	CUSTOM_ELEMENTS_SCHEMA,
+	ElementRef,
+	inject,
+	input,
+	signal,
+	viewChild,
+} from '@angular/core';
+import { TranslatePipe, TranslateService } from '@ngx-translate/core';
 import type { PptxElement, ShapeStyle } from 'pptx-viewer-core';
 
-import type { ShapePresetDef, ThemeColorPickerCommit } from '../internal/shared';
+import type {
+	PptxUiRibbonHomeElement,
+	RibbonHomeRequestEvent,
+	ShapePresetDef,
+	ThemeColorPickerCommit,
+} from '../internal/shared';
 import {
+	drawingHomeControls,
 	RIBBON_SHAPE_SWATCHES,
 	SHAPE_PRESET_DEFS,
 	shapeFillChange,
@@ -37,7 +52,6 @@ import { RibbonGalleryComponent } from './ribbon-gallery.component';
  * carry the `PptxThemeColorRef` so the colour follows later theme changes),
  * so the keys written cannot drift from the other bindings.
  */
-import { RibbonIconDirective } from './ribbon-icon.directive';
 
 // Re-exported for the existing test import surface (`./ribbon-drawing-group.component`).
 export {
@@ -68,11 +82,10 @@ const TOP_SHAPES: readonly ShapePresetDef[] = SHAPE_PRESET_DEFS.slice(0, 12);
 	selector: 'pptx-ribbon-drawing-group',
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	host: { class: 'contents' },
+	host: { class: 'contents', '(document:mousedown)': 'onDocumentMouseDown($event)' },
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
 	imports: [
-		RibbonIconDirective,
 		TranslatePipe,
-		LucideChevronDown,
 		RibbonColorPopoverComponent,
 		RibbonGalleryComponent,
 		AnchoredPopupDirective,
@@ -90,6 +103,10 @@ export class RibbonDrawingGroupComponent {
 	protected readonly shapes = TOP_SHAPES;
 	protected readonly shapesOpen = signal(false);
 	protected readonly arrangeOpen = signal(false);
+	protected readonly fillOpen = signal(false);
+	protected readonly outlineOpen = signal(false);
+	private readonly triggers = viewChild<ElementRef<PptxUiRibbonHomeElement>>('triggers');
+	private readonly translation = inject(TranslateService, { optional: true });
 	protected readonly swatches = RIBBON_SHAPE_SWATCHES;
 	protected readonly arrangeCommands = ARRANGE_COMMANDS;
 
@@ -101,24 +118,98 @@ export class RibbonDrawingGroupComponent {
 	protected readonly fillColorRef = computed(() => fillColorRefOf(this.selectedElement()));
 	protected readonly outlineColorRef = computed(() => outlineColorRefOf(this.selectedElement()));
 
+	/** Shared trigger strip state; Fill/Outline additionally need a shape-capable selection. */
+	protected drawingView() {
+		const controls = drawingHomeControls({
+			editable: this.canEdit(),
+			hasSelection: this.editor.hasSelection(),
+			open: {
+				shapes: this.shapesOpen(),
+				arrange: this.arrangeOpen(),
+				fill: this.fillOpen(),
+				outline: this.outlineOpen(),
+			},
+		});
+		const noShape = !this.canFormatShape();
+		return {
+			controls: {
+				...controls,
+				'home.drawing.shapeFill': { ...controls['home.drawing.shapeFill'], disabled: noShape },
+				'home.drawing.shapeOutline': {
+					...controls['home.drawing.shapeOutline'],
+					disabled: noShape,
+				},
+			},
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
+
+	/** Wrapper of a shared trigger, where its native popover hangs. */
+	protected anchorOf(id: string): HTMLElement | null {
+		return this.triggers()?.nativeElement.anchor(id) ?? null;
+	}
+
+	/** Toggle exactly one native popover per intent; the others close. */
+	protected onRequest(event: Event): void {
+		const id = (event as RibbonHomeRequestEvent).detail.id;
+		const next = {
+			'home.drawing.shapes': this.shapesOpen,
+			'home.drawing.arrange': this.arrangeOpen,
+			'home.drawing.shapeFill': this.fillOpen,
+			'home.drawing.shapeOutline': this.outlineOpen,
+		} as const;
+		const target = next[id as keyof typeof next];
+		if (!target) {
+			return;
+		}
+		const open = !target();
+		this.closePopups();
+		target.set(open);
+	}
+
+	private closePopups(): void {
+		this.shapesOpen.set(false);
+		this.arrangeOpen.set(false);
+		this.fillOpen.set(false);
+		this.outlineOpen.set(false);
+	}
+
+	protected onDocumentMouseDown(event: MouseEvent): void {
+		const target = event.target as Node | null;
+		const element = target instanceof Element ? target : target?.parentElement;
+		const anyOpen =
+			this.shapesOpen() || this.arrangeOpen() || this.fillOpen() || this.outlineOpen();
+		if (
+			anyOpen &&
+			!element?.closest('[data-pptx-home-popup]') &&
+			!this.triggers()?.nativeElement.contains(element ?? null)
+		) {
+			this.closePopups();
+		}
+	}
+
 	/** Commit a picked Fill swatch through the shared decision function; clears any stored ref. */
 	protected onFill(color: string): void {
 		this.patchShapeStyle(shapeFillChange(color));
+		this.fillOpen.set(false);
 	}
 
 	/** Commit a picked Outline swatch through the shared decision function; clears any stored ref. */
 	protected onOutline(color: string): void {
 		this.patchShapeStyle(shapeOutlineChange(color));
+		this.outlineOpen.set(false);
 	}
 
 	/** A theme-swatch Fill pick: commits BOTH the resolved hex and the ref. */
 	protected onFillThemePick(commit: ThemeColorPickerCommit): void {
 		this.patchShapeStyle(shapeFillChange(commit.hex, commit.ref));
+		this.fillOpen.set(false);
 	}
 
 	/** A theme-swatch Outline pick: commits BOTH the resolved hex and the ref. */
 	protected onOutlineThemePick(commit: ThemeColorPickerCommit): void {
 		this.patchShapeStyle(shapeOutlineChange(commit.hex, commit.ref));
+		this.outlineOpen.set(false);
 	}
 
 	/** Merge a Fill/Outline patch into the selection's shape style, if it has one. */
