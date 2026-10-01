@@ -26,7 +26,26 @@
 	} from '../editor';
 	import SwatchColorPicker from './ribbon/SwatchColorPicker.svelte';
 
-	const { editor, section = 'all' }: { editor: EditorState; section?: 'all' | 'colors' | 'width' } = $props();
+		let {
+		editor,
+		section = 'all',
+		fillAnchor,
+		outlineAnchor,
+		fillOpen = $bindable(false),
+		outlineOpen = $bindable(false),
+	}: {
+		editor: EditorState;
+		/**
+		 * `popovers` renders only the two colour popovers, hung from the shared Home
+		 * Drawing strip's Shape Fill / Shape Outline triggers (`fillAnchor`,
+		 * `outlineAnchor`) and opened through `fillOpen` / `outlineOpen`.
+		 */
+		section?: 'all' | 'colors' | 'width' | 'popovers';
+		fillAnchor?: HTMLElement;
+		outlineAnchor?: HTMLElement;
+		fillOpen?: boolean;
+		outlineOpen?: boolean;
+	} = $props();
 	const t = useTranslator();
 
 	const el = $derived(editor.selectedElement);
@@ -61,8 +80,41 @@
 	}
 </script>
 
-<div class="pptx-svelte-fmt" data-pptx-chrome={section !== 'all' ? 'control-fragment' : undefined} role="group" aria-label={t('pptx.inspector.fillStroke')}>
-	{#if section !== 'width'}
+<div class="pptx-svelte-fmt" class:pptx-svelte-fmt-contents={section === 'popovers'} data-pptx-chrome={section !== 'all' ? 'control-fragment' : undefined} role="group" aria-label={t('pptx.inspector.fillStroke')}>
+	{#if section === 'popovers'}
+		{#if fillAnchor}
+			<SwatchColorPicker
+				bind:open={fillOpen}
+				anchor={fillAnchor}
+				value={/^#/.test(fill) ? fill : '#ffffff'}
+				disabled={!active}
+				label={t('pptx.drawing.shapeFill')}
+				glyph="F"
+				swatches={RIBBON_SHAPE_SWATCHES}
+				recentColors={editor.mruColors}
+				themeColorMap={editor.themeColorMap}
+				currentRef={fillRef}
+				onselect={(hex) => setFill(hex)}
+				onselectTheme={(commit) => setFill(commit.hex, commit.ref)}
+			/>
+		{/if}
+		{#if outlineAnchor}
+			<SwatchColorPicker
+				bind:open={outlineOpen}
+				anchor={outlineAnchor}
+				value={/^#/.test(stroke) ? stroke : '#000000'}
+				disabled={!active}
+				label={t('pptx.drawing.shapeOutline')}
+				glyph="O"
+				swatches={RIBBON_SHAPE_SWATCHES}
+				recentColors={editor.mruColors}
+				themeColorMap={editor.themeColorMap}
+				currentRef={strokeRef}
+				onselect={(hex) => setStroke(hex)}
+				onselectTheme={(commit) => setStroke(commit.hex, commit.ref)}
+			/>
+		{/if}
+	{:else if section !== 'width'}
 	<span class="pptx-svelte-fmt-label" data-pptx-chrome={section === 'colors' ? 'ribbon-inline-label' : undefined}>{t('pptx.inspector.fill')}</span>
 	<SwatchColorPicker
 		value={/^#/.test(fill) ? fill : '#ffffff'}
@@ -92,7 +144,7 @@
 		onselectTheme={(commit) => setStroke(commit.hex, commit.ref)}
 	/>
 	{/if}
-	{#if section !== 'colors'}
+	{#if section !== 'colors' && section !== 'popovers'}
 	<input
 		class="pptx-svelte-fmt-size"
 		type="number"
@@ -114,6 +166,10 @@
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
+	}
+
+	.pptx-svelte-fmt-contents {
+		display: contents;
 	}
 
 	.pptx-svelte-fmt-label {
