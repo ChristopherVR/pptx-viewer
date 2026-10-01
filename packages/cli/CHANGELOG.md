@@ -7,6 +7,32 @@ A release listed with no entries carried no Conventional Commit in this package'
 scope: scripts/release-plan.mjs re-releases a package whenever any of its files
 change, not only on conventional ones.
 
+## [2.34.0](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.34.0) - 2026-10-01
+
+### Features
+
+- **shared,react:** Select inside a group like PowerPoint (by @pesnik) ([994f0a1](https://github.com/ChristopherVR/pptx-viewer/commit/994f0a11ade0e9fa8a0e34c300a382db90abeb7d))
+
+### Bug Fixes
+
+- **react:** Keep the caret at the end on double-click (by @pesnik) ([7e758c5](https://github.com/ChristopherVR/pptx-viewer/commit/7e758c59780b65a72df9a2a67975a3843128eddd))
+- **ui:** Update tests for the shared View controls and regenerate the customization reference (by @ChristopherVR) ([b663ba3](https://github.com/ChristopherVR/pptx-viewer/commit/b663ba35d0f30a1d309c3eb7c9e7e31b86020dbb))
+
+### Refactor
+
+- **ui:** Migrate Draw ribbon controls across five bindings (by @ChristopherVR) ([80f8d92](https://github.com/ChristopherVR/pptx-viewer/commit/80f8d9287069cd89e00f7fed4812ef3cfa318118))
+- **ui:** Migrate View ribbon controls across five bindings (by @ChristopherVR) ([7c2dd6e](https://github.com/ChristopherVR/pptx-viewer/commit/7c2dd6e09ced1fd4b672f46392181c0219ed99b5))
+- **ui:** Migrate Transitions ribbon controls across five bindings (by @ChristopherVR) ([1170313](https://github.com/ChristopherVR/pptx-viewer/commit/11703139c72f670c81cd7a26472068230320a458))
+- **ui:** Migrate Animations ribbon controls across five bindings (by @ChristopherVR) ([7fa9c6e](https://github.com/ChristopherVR/pptx-viewer/commit/7fa9c6e235c391006023ec8e5913531cc82b2f7f))
+- **ui:** Migrate Insert ribbon controls across five bindings (by @ChristopherVR) ([75e81ca](https://github.com/ChristopherVR/pptx-viewer/commit/75e81ca85f0bd87526ec455cc53a1aee738378a9))
+- **ui:** Migrate Home clipboard controls across five bindings (by @ChristopherVR) ([877f08b](https://github.com/ChristopherVR/pptx-viewer/commit/877f08b7e10e864d8d21b3afc1e078a9249a70c2))
+- **ui:** Migrate Home font controls across five bindings (by @ChristopherVR) ([b842cab](https://github.com/ChristopherVR/pptx-viewer/commit/b842cabcd903f521e54d27b5d757f8be13e1f885))
+- **ui:** Migrate Home paragraph and editing controls across five bindings (by @ChristopherVR) ([b5f26b4](https://github.com/ChristopherVR/pptx-viewer/commit/b5f26b4803bc5f5ff5382f8c07a696bee14827bf))
+
+### Build & CI
+
+- Build against ooxml-core, retarget scripts and docs at the moved engine (by @ChristopherVR) ([9b5146d](https://github.com/ChristopherVR/pptx-viewer/commit/9b5146d5f6af4afc2da623b929e81baa65e693c4))
+
 ## [2.33.1](https://github.com/ChristopherVR/pptx-viewer/releases/tag/@christophervr/pptx-viewer@2.33.1) - 2026-10-01
 
 ### Refactor
