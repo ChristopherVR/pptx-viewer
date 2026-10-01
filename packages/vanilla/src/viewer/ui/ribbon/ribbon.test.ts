@@ -460,10 +460,12 @@ describe('createRibbon', () => {
 				(button) => button.textContent === t('pptx.ribbon.tab.view'),
 			);
 			tabs[viewTabIndex].click();
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.view.zoomToFit')}"]`)).toBeNull();
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.slideSorter.zoom')}"]`)).toBeNull();
+			expect(ribbon.el.querySelector(`[data-ribbon-control="view.zoom.fitToWindow"]`)).toBeNull();
+			expect(ribbon.el.querySelector(`[data-ribbon-control="view.zoom.zoom"]`)).toBeNull();
 			// An unrelated View action stays, proving the hide is scoped to that id.
-			expect(ribbon.el.querySelector(`[aria-label="${t('pptx.view.normal')}"]`)).not.toBeNull();
+			expect(
+				ribbon.el.querySelector(`[data-ribbon-control="view.presentationViews.normal"]`),
+			).not.toBeNull();
 		});
 	});
 });

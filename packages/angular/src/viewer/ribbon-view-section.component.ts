@@ -1,31 +1,24 @@
 /**
- * ribbon-view-section.component.ts: the View ribbon tab (Presentation Views,
- * Master Views, Show, Zoom and Window groups). Split out of
- * {@link RibbonComponent}.
+ * ribbon-view-section.component.ts: the View ribbon tab, split out of
+ * {@link RibbonComponent}. A thin adapter for the shared `pptx-ui-ribbon-view`:
+ * the shared element owns groups, icons, labels and pressed/disabled state;
+ * this component supplies viewer options and routes typed intents to outputs.
  *
- * Grouped the way PowerPoint groups it, which is also how every other binding
- * renders it: a tab whose controls are in a different order, or under
- * different names, cannot be scripted or documented once for all five.
- *
- * Handout Master, Notes Master, Zoom and Macros render disabled: each is a view
- * or setting this viewer does not implement yet. Reading View used to sit in
- * that list; it is now a real view (see {@link ReadingViewOverlayComponent}),
- * so its pill opens the deck full-window with the chrome cut to a nav bar. Print,
- * Shortcuts and the Notes-pane toggle deliberately do NOT live here (PowerPoint
- * has none of them on View); they stay reachable from the File tab / overflow
- * menu, the Help tab, and the status bar respectively.
- *
- * Snap to Shape is NOT one of those: the viewer owns a real `snapToShape`
- * signal that the canvas reads while dragging, so this pill toggles it. A
- * previous parity wave rendered it permanently disabled and left the behaviour
- * with nowhere else to go, which took shape-edge snapping away from Angular
- * users entirely. Guides stays bound to `showGuides` (guide-overlay
- * visibility), which is the semantics all five bindings share.
+ * Guides stays bound to `showGuides` (guide-overlay visibility) and Snap to
+ * Shape to its own `snapToShape` signal, the semantics all five bindings share.
+ * Handout Master, Notes Master, Zoom and Macros render disabled in the shared view.
  */
-import { NgClass } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
-import { TranslatePipe } from '@ngx-translate/core';
+import {
+	ChangeDetectionStrategy,
+	Component,
+	CUSTOM_ELEMENTS_SCHEMA,
+	inject,
+	input,
+	output,
+} from '@angular/core';
+import { TranslateService } from '@ngx-translate/core';
 
+import type { RibbonViewRequestEvent } from '../internal/shared';
 import { EditorStateService } from './editor-state.service';
 
 @Component({
@@ -33,211 +26,12 @@ import { EditorStateService } from './editor-state.service';
 	standalone: true,
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	host: { class: 'contents' },
-	imports: [NgClass, TranslatePipe],
-	template: `
-		<!-- Presentation views -->
-		<span class="contents" data-ribbon-group="view.presentationViews">
-			<button
-				data-ribbon-control="view.presentationViews.normal"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.view.normal' | translate"
-				(click)="goToNormalView.emit()"
-			>
-				{{ 'pptx.view.normal' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.presentationViews.slideSorter"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.view.slideSorterTooltip' | translate"
-				(click)="openSorter.emit()"
-			>
-				{{ 'pptx.slideSorter.title' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.presentationViews.outline"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.view.outlineViewTooltip' | translate"
-				(click)="openOutlineView.emit()"
-			>
-				{{ 'pptx.view.outlineView' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.presentationViews.readingView"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.view.readingView' | translate"
-				(click)="openReadingView.emit()"
-			>
-				{{ 'pptx.view.readingView' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Master views -->
-		<span class="contents" data-ribbon-group="view.masterViews">
-			<button
-				data-ribbon-control="view.masterViews.slideMaster"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="!canEdit()"
-				[title]="'pptx.view.slideMasterTooltip' | translate"
-				(click)="openMasterView.emit()"
-			>
-				{{ 'pptx.master.title' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.masterViews.handoutMaster"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.master.handoutMasterTitle' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.masterViews.notesMaster"
-				type="button"
-				class="pptx-rb-pill"
-				disabled
-			>
-				{{ 'pptx.master.notesMasterTitle' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Show / Hide overlays -->
-		<span class="contents" data-ribbon-group="view.show">
-			<button
-				data-ribbon-control="view.show.ruler"
-				type="button"
-				class="pptx-rb-pill"
-				[ngClass]="showRulers() ? 'bg-primary text-primary-foreground' : ''"
-				[title]="'pptx.ruler.toggleRulers' | translate"
-				(click)="toggleRulers.emit()"
-			>
-				{{ 'pptx.ruler.rulers' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.show.gridlines"
-				type="button"
-				class="pptx-rb-pill"
-				[ngClass]="showGrid() ? 'bg-primary text-primary-foreground' : ''"
-				[title]="'pptx.ribbon.toggleGridOverlay' | translate"
-				(click)="toggleGrid.emit()"
-			>
-				{{ 'pptx.grid.grid' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.show.guides"
-				type="button"
-				class="pptx-rb-pill"
-				[ngClass]="showGuides() ? 'bg-primary text-primary-foreground' : ''"
-				[title]="'pptx.ribbon.toggleGuides' | translate"
-				(click)="toggleGuides.emit()"
-			>
-				{{ 'pptx.ribbon.guides' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.show.snapToGrid"
-				type="button"
-				class="pptx-rb-pill"
-				[ngClass]="snapToGrid() ? 'bg-primary text-primary-foreground' : ''"
-				[title]="'pptx.ribbon.snapToGridTitle' | translate"
-				(click)="toggleSnapToGrid.emit()"
-			>
-				{{ 'pptx.grid.snapToGrid' | translate }}
-			</button>
-			<span class="pptx-rb-sep"></span>
-			<button
-				data-ribbon-control="view.show.selectionPane"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.selectionPane.title' | translate"
-				(click)="toggleSelectionPane.emit()"
-			>
-				{{ 'pptx.view.selection' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.show.eyedropper"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="!canEdit()"
-				[ngClass]="eyedropperActive() ? 'pptx-rb-eyedropper-active' : ''"
-				[title]="'pptx.ribbon.eyedropperTitle' | translate"
-				(click)="toggleEyedropper.emit()"
-			>
-				{{ 'pptx.ribbon.eyedropper' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.show.snapToShape"
-				type="button"
-				class="pptx-rb-pill"
-				[ngClass]="snapToShape() ? 'bg-primary text-primary-foreground' : ''"
-				[title]="'pptx.grid.snapToShape' | translate"
-				(click)="toggleSnapToShape.emit()"
-			>
-				{{ 'pptx.grid.snapToShape' | translate }}
-			</button>
-			<span class="contents" data-ribbon-control="view.show.addGuide">
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					[title]="'pptx.view.addHorizontalGuide' | translate"
-					(click)="addGuide.emit('y')"
-				>
-					{{ 'pptx.view.hGuide' | translate }}
-				</button>
-				<button
-					type="button"
-					class="pptx-rb-pill"
-					[title]="'pptx.view.addVerticalGuide' | translate"
-					(click)="addGuide.emit('x')"
-				>
-					{{ 'pptx.view.vGuide' | translate }}
-				</button>
-			</span>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Zoom -->
-		<span class="contents" data-ribbon-group="view.zoom">
-			<button data-ribbon-control="view.zoom.zoom" type="button" class="pptx-rb-pill" disabled>
-				{{ 'pptx.slideSorter.zoom' | translate }}
-			</button>
-			<button
-				data-ribbon-control="view.zoom.fitToWindow"
-				type="button"
-				class="pptx-rb-pill"
-				[title]="'pptx.view.zoomToFitTooltip' | translate"
-				(click)="zoomToFit.emit()"
-			>
-				{{ 'pptx.view.zoomToFit' | translate }}
-			</button>
-		</span>
-		<span class="pptx-rb-sep"></span>
-		<!-- Window -->
-		<span class="contents" data-ribbon-group="view.window">
-			<button
-				data-ribbon-control="view.window.templateEditing"
-				type="button"
-				class="pptx-rb-pill"
-				[disabled]="!canEdit()"
-				[ngClass]="editor.editTemplateMode() ? 'pptx-rb-template-active' : ''"
-				[title]="'pptx.ribbon.editTemplateTitle' | translate"
-				(click)="editor.setEditTemplateMode(!editor.editTemplateMode())"
-			>
-				{{
-					(editor.editTemplateMode() ? 'pptx.ribbon.templatesOn' : 'pptx.ribbon.templatesOff')
-						| translate
-				}}
-			</button>
-			<button data-ribbon-control="view.window.macros" type="button" class="pptx-rb-pill" disabled>
-				{{ 'pptx.view.macros' | translate }}
-			</button>
-		</span>
-	`,
+	schemas: [CUSTOM_ELEMENTS_SCHEMA],
+	template: `<pptx-ui-ribbon-view [state]="view()" (view-request)="request($event)" />`,
 })
 export class RibbonViewSectionComponent {
 	protected readonly editor = inject(EditorStateService);
+	private readonly translation = inject(TranslateService, { optional: true });
 
 	readonly canEdit = input<boolean>(false);
 	readonly showGrid = input<boolean>(false);
@@ -268,4 +62,50 @@ export class RibbonViewSectionComponent {
 	readonly addGuide = output<'x' | 'y'>();
 	readonly zoomToFit = output<void>();
 	readonly toggleEyedropper = output<void>();
+
+	protected view() {
+		return {
+			editable: this.canEdit(),
+			showRulers: this.showRulers(),
+			showGrid: this.showGrid(),
+			showGuides: this.showGuides(),
+			snapToGrid: this.snapToGrid(),
+			snapToShape: this.snapToShape(),
+			templateEditing: this.editor.editTemplateMode(),
+			eyedropperActive: this.eyedropperActive(),
+			translate: (key: string) => this.translation?.instant(key) ?? key,
+		};
+	}
+
+	protected request(event: Event): void {
+		const intent = (event as RibbonViewRequestEvent).detail;
+		if (intent.kind === 'guide') {
+			this.addGuide.emit(intent.axis === 'h' ? 'y' : 'x');
+		} else if (intent.kind === 'option') {
+			const outputs = {
+				showRulers: this.toggleRulers,
+				showGrid: this.toggleGrid,
+				showGuides: this.toggleGuides,
+				snapToGrid: this.toggleSnapToGrid,
+				snapToShape: this.toggleSnapToShape,
+			};
+			if (intent.value === 'templateEditing') {
+				this.editor.setEditTemplateMode(intent.enabled);
+			} else {
+				outputs[intent.value].emit();
+			}
+		} else {
+			const commands = {
+				normal: this.goToNormalView,
+				slideSorter: this.openSorter,
+				outline: this.openOutlineView,
+				readingView: this.openReadingView,
+				slideMaster: this.openMasterView,
+				selectionPane: this.toggleSelectionPane,
+				eyedropper: this.toggleEyedropper,
+				zoomToFit: this.zoomToFit,
+			};
+			commands[intent.value].emit();
+		}
+	}
 }

@@ -53,7 +53,6 @@ do not claim that the remaining UI inventory has already migrated.
 | Insert                                       | #374  | ChristopherVR |
 | Transitions                                  | #377  | ChristopherVR |
 | Animations                                   | #378  | ChristopherVR |
-| View                                         | #380  | ChristopherVR |
 | Distinct non-ribbon buttons and icon-buttons | #386  | ChristopherVR |
 
 These are native children of #363 in the Thin UI adapters milestone. Each has
@@ -109,3 +108,32 @@ ink creation, undo/redo, InkML save/reload, customization, tokens, touch
 targets and dismissal. Saved InkML verifies width and color; rendered paths
 or pressure circles verify the reloaded stroke. Existing highlighter and
 tilt specs separately cover variable geometry.
+
+## View
+
+View (#380) uses one controlled shared view, `pptx-ui-ribbon-view`, for the
+Presentation Views, Master Views, Show, Zoom and Window groups. It owns the
+group markup, icons, labels, pressed/checked and disabled state. Hosts supply
+viewer options and route typed `view-request` intents (command, option or
+guide) to native handlers. Persisted viewer options (rulers, grid, guides,
+snapping), view switching (Normal, Slide Sorter, Outline, Reading, Slide
+Master), the browser EyeDropper and its selection patch, template-element
+editing and the editor history stay native in each binding.
+
+All five bindings now share one control set: Rulers, Grid, Guides and Snap to
+Grid are checkbox rows; Selection, Eyedropper, Snap to Shape, H/V Guide and
+the template toggle are commands with pressed state. Public customization ids
+are unchanged, including the single `view.show.addGuide` id that wraps both
+guide buttons. Hosts without Selection Pane or Eyedropper wiring hide those
+commands; hosts that hide the `zoom` action drop the Zoom group from the DOM.
+Slide Master, Eyedropper and template editing are disabled when read-only.
+Handout Master, Notes Master, Zoom and Macros remain disabled placeholders.
+
+Boundary: the full-window Outline, Reading and Slide Sorter views are native
+overlays and are not part of this change. Eyedropper active state is only
+reflected where the host exposes it (React, Vue and Angular).
+`e2e/ribbon-view-migration.spec.ts` covers ids, keyboard and pointer toggles,
+native ruler effects, Outline/Normal switching, template state, preference
+persistence, customization, touch targets, theme tokens and forced colors.
+Comparable screenshots are `<binding>-view.png` in the baseline and after
+directories.

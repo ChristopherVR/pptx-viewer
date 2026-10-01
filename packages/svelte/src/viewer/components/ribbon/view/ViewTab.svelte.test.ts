@@ -1,9 +1,11 @@
-import { DEFAULT_VIEWER_PREFERENCES } from 'pptx-viewer-shared';
+import { DEFAULT_VIEWER_PREFERENCES, registerPptxWebControls } from 'pptx-viewer-shared';
 import { flushSync, mount, unmount } from 'svelte';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { EditorState } from '../../../editor/editor-state.svelte';
 import ViewTab from './ViewTab.svelte';
+
+registerPptxWebControls();
 
 let cleanup: (() => void) | undefined;
 
@@ -14,6 +16,7 @@ afterEach(() => {
 
 function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 	const target = document.createElement('div');
+	document.body.appendChild(target);
 	const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 	editor.editable = true;
 	const noop = vi.fn();
@@ -34,18 +37,18 @@ function mountTab(overrides: Record<string, unknown> = {}): HTMLElement {
 			...overrides,
 		},
 	});
-	cleanup = () => unmount(instance);
+	flushSync();
+	cleanup = () => {
+		unmount(instance);
+		target.remove();
+	};
 	return target;
 }
 
-/** Every button on the tab, keyed by the accessible name the e2e inventory reads. */
-function buttons(target: HTMLElement): Map<string, HTMLButtonElement> {
-	return new Map(
-		[...target.querySelectorAll<HTMLButtonElement>('button')].map((button) => [
-			button.textContent?.trim() ?? '',
-			button,
-		]),
-	);
+function button(target: HTMLElement, id: string): HTMLButtonElement {
+	return target
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
 }
 
 describe('viewTab', () => {
@@ -53,92 +56,76 @@ describe('viewTab', () => {
 		const editor = new EditorState({ getCurrent: () => 0, getHandler: () => null });
 		editor.editable = false;
 		const target = mountTab({ editor });
-
-		const found = buttons(target);
-		expect(found.get('Eyedropper')?.disabled).toBeTruthy();
-		expect(
-			target.querySelector<HTMLButtonElement>('button[title="Edit slide masters and layouts"]')
-				?.disabled,
-		).toBeTruthy();
-		expect(
-			target.querySelector<HTMLButtonElement>('[data-testid="template-edit-toggle"]')?.disabled,
-		).toBeTruthy();
+		for (const id of [
+			'view.show.eyedropper',
+			'view.masterViews.slideMaster',
+			'view.window.templateEditing',
+		]) {
+			expect(button(target, id).disabled).toBeTruthy();
+		}
+		expect(target.querySelector('[data-testid="template-edit-toggle"]')).toBe(
+			target.querySelector('[data-ribbon-control="view.window.templateEditing"]'),
+		);
 	});
 
-	it('offers React’s presentation-view, master-view, zoom and window commands', () => {
+	it('offers the presentation-view, master-view, zoom and window commands in order', () => {
 		const target = mountTab();
-		const found = buttons(target);
-
 		// `e2e/ribbon-control-inventory.spec.ts` diffs every binding against React
-		// by accessible name, so the Presentation Views order is part of the
-		// contract, not a layout preference.
-		expect(
-			[...target.querySelectorAll('button')]
-				.slice(0, 4)
-				.map((button) => button.textContent?.trim()),
-		).toStrictEqual(['Normal', 'Slide Sorter', 'Outline View', 'Reading View']);
-		expect(found.get('Outline View')?.title).toBe('Outline view: edit the deck as indented text');
-
-		for (const name of [
+		// by accessible name, so the Presentation Views order is a contract.
+		const commands = [
+			...target.querySelectorAll(
+				'[data-ribbon-group="view.presentationViews"] pptx-ui-ribbon-command',
+			),
+		];
+		expect(commands.map((el) => el.getAttribute('label'))).toStrictEqual([
 			'Normal',
 			'Slide Sorter',
 			'Outline View',
 			'Reading View',
-			'Slide Master',
-			'Zoom to Fit',
-		]) {
-			expect(found.get(name), `${name} is missing from the View tab`).toBeDefined();
-			expect(found.get(name)?.disabled, `${name} should be usable`).toBeFalsy();
+		]);
+		for (const id of ['view.masterViews.slideMaster', 'view.zoom.fitToWindow']) {
+			expect(button(target, id).disabled).toBeFalsy();
 		}
-		for (const name of ['Handout Master', 'Notes Master', 'Zoom', 'Macros']) {
-			expect(found.get(name), `${name} is missing from the View tab`).toBeDefined();
-			expect(found.get(name)?.disabled, `${name} is a disabled placeholder in React`).toBeTruthy();
+		for (const id of [
+			'view.masterViews.handoutMaster',
+			'view.masterViews.notesMaster',
+			'view.zoom.zoom',
+			'view.window.macros',
+		]) {
+			expect(button(target, id).disabled).toBeTruthy();
 		}
 	});
 
 	it('routes every presentation view to its view switch', () => {
-		// Reading View shipped as a permanently disabled placeholder in all five
-		// bindings; this asserts the controls are really wired, not just enabled.
 		const onnormal = vi.fn();
 		const onslidesorter = vi.fn();
 		const onoutlineview = vi.fn();
 		const onreadingview = vi.fn();
 		const target = mountTab({ onnormal, onslidesorter, onoutlineview, onreadingview });
-
-		buttons(target).get('Normal')?.click();
-		buttons(target).get('Slide Sorter')?.click();
-		buttons(target).get('Outline View')?.click();
-		buttons(target).get('Reading View')?.click();
-
-		expect(onnormal).toHaveBeenCalledOnce();
-		expect(onslidesorter).toHaveBeenCalledOnce();
-		expect(onoutlineview).toHaveBeenCalledOnce();
-		expect(onreadingview).toHaveBeenCalledOnce();
+		button(target, 'view.presentationViews.normal').click();
+		button(target, 'view.presentationViews.slideSorter').click();
+		button(target, 'view.presentationViews.outline').click();
+		button(target, 'view.presentationViews.readingView').click();
+		expect(
+			[onnormal, onslidesorter, onoutlineview, onreadingview].map((fn) => fn.mock.calls.length),
+		).toStrictEqual([1, 1, 1, 1]);
 	});
 
 	it('drives guide visibility from Guides and snapping from Snap to Shape', () => {
-		// The two used to be crossed: one checkbox set both flags while the
-		// control actually labelled 'Snap to shape' was a disabled placeholder.
 		const onshowguideschange = vi.fn();
 		const onsnapToShapechange = vi.fn();
-		const target = mountTab({ onshowguideschange, onsnapToShapechange });
-
-		const guides = [...target.querySelectorAll('label')].find((label) =>
-			label.textContent?.includes('Guides'),
-		);
-		const input = guides?.querySelector('input');
-		expect(input).toBeTruthy();
-		input!.checked = true;
-		input!.dispatchEvent(new Event('change', { bubbles: true }));
-		flushSync();
-
-		expect(onshowguideschange).toHaveBeenCalledWith(true);
+		const onpreferenceschange = vi.fn();
+		const target = mountTab({ onshowguideschange, onsnapToShapechange, onpreferenceschange });
+		const row = target.querySelector('[data-ribbon-control="view.show.guides"]')!;
+		(row.shadowRoot!.querySelector('pptx-ui-checkbox') as HTMLElement).click();
+		expect(onshowguideschange).toHaveBeenCalledExactlyOnceWith(true);
 		expect(onsnapToShapechange).not.toHaveBeenCalled();
-
-		const snap = buttons(target).get('Snap to Shape');
-		expect(snap?.disabled).toBeFalsy();
-		snap?.click();
-		flushSync();
-		expect(onsnapToShapechange).toHaveBeenCalledWith(true);
+		button(target, 'view.show.snapToShape').click();
+		expect(onsnapToShapechange).toHaveBeenCalledExactlyOnceWith(true);
+		const grid = target.querySelector('[data-ribbon-control="view.show.gridlines"]')!;
+		(grid.shadowRoot!.querySelector('pptx-ui-checkbox') as HTMLElement).click();
+		expect(onpreferenceschange.mock.calls[0][0].showGrid).toBe(
+			!DEFAULT_VIEWER_PREFERENCES.showGrid,
+		);
 	});
 });

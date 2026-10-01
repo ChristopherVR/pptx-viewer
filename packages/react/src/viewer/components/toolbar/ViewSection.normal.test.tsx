@@ -1,27 +1,18 @@
 // @vitest-environment happy-dom
 /**
- * Regression test for View > Normal: the ribbon pill used to render with no
- * `onClick` at all in React (and, as it turned out while fixing this, in Vue
- * and Angular too), so it did nothing when clicked. See CLAUDE.md's editor
- * parity rule: a UI fix like this must be checked and applied in all five
- * bindings, not just the one an audit named.
+ * View tab adapter: the shared `pptx-ui-ribbon-view` owns markup and state
+ * reflection; this adapter only routes typed intents to the native handlers.
  */
-import { translationsEn } from 'pptx-viewer-shared/i18n';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
 import React, { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { ViewSection } from './ViewSection';
 import type { ViewSectionProps } from './ViewSection';
 
-// oxlint-disable-next-line prefer-ending-with-an-expect
-vi.mock<typeof import('react-i18next')>(import('react-i18next'), () => ({
-	useTranslation: () => ({
-		t: (key: string) => translationsEn[key] ?? key,
-	}),
-}));
-
-const { ViewSection } = await import('./ViewSection');
+registerPptxWebControls();
 
 let container: HTMLDivElement;
 let root: Root;
@@ -62,19 +53,57 @@ function baseProps(overrides: Partial<ViewSectionProps> = {}): ViewSectionProps 
 	};
 }
 
-describe('viewSection > Normal', () => {
-	it('calls onGoToNormalView when the Normal pill is clicked', () => {
+function render(overrides: Partial<ViewSectionProps> = {}) {
+	act(() => root.render(React.createElement(ViewSection, baseProps(overrides))));
+}
+function button(id: string): HTMLButtonElement {
+	return container
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector<HTMLButtonElement>('button')!;
+}
+
+describe('viewSection', () => {
+	it('routes view commands, including View > Normal, to the native handlers', () => {
 		const onGoToNormalView = vi.fn();
-		act(() => {
-			root.render(React.createElement(ViewSection, baseProps({ onGoToNormalView })));
-		});
-		const button = Array.from(container.querySelectorAll('button')).find(
-			(el) => el.textContent === translationsEn['pptx.view.normal'],
-		);
-		expect(button).toBeDefined();
-		act(() => {
-			button?.click();
-		});
+		const onOpenReadingView = vi.fn();
+		const onZoomToFit = vi.fn();
+		render({ onGoToNormalView, onOpenReadingView, onZoomToFit });
+		act(() => button('view.presentationViews.normal').click());
+		act(() => button('view.presentationViews.readingView').click());
+		act(() => button('view.zoom.fitToWindow').click());
 		expect(onGoToNormalView).toHaveBeenCalledOnce();
+		expect(onOpenReadingView).toHaveBeenCalledOnce();
+		expect(onZoomToFit).toHaveBeenCalledOnce();
+	});
+
+	it('routes option toggles and guides with the requested value', () => {
+		const onSetShowRulers = vi.fn();
+		const onSetSnapToShape = vi.fn();
+		const onAddGuide = vi.fn();
+		render({ onSetShowRulers, onSetSnapToShape, onAddGuide });
+		const row = container.querySelector('[data-ribbon-control="view.show.ruler"]')!;
+		act(() => (row.shadowRoot!.querySelector('pptx-ui-checkbox') as HTMLElement).click());
+		act(() => button('view.show.snapToShape').click());
+		const guides = container.querySelectorAll(
+			'[data-ribbon-control="view.show.addGuide"] pptx-ui-ribbon-command',
+		);
+		act(() => (guides[1] as HTMLElement).shadowRoot!.querySelector('button')!.click());
+		expect(onSetShowRulers).toHaveBeenCalledExactlyOnceWith(true);
+		expect(onSetSnapToShape).toHaveBeenCalledExactlyOnceWith(true);
+		expect(onAddGuide).toHaveBeenCalledExactlyOnceWith('v');
+	});
+
+	it('reflects controlled and read-only state without invoking edit handlers', () => {
+		const onEnterMasterView = vi.fn();
+		render({ canEdit: false, onEnterMasterView, snapToShape: true, editTemplateMode: true });
+		const master = button('view.masterViews.slideMaster');
+		expect(master.disabled).toBeTruthy();
+		act(() => master.click());
+		expect(onEnterMasterView).not.toHaveBeenCalled();
+		expect(button('view.show.snapToShape').getAttribute('aria-pressed')).toBe('true');
+		const first = container.querySelector('pptx-ui-ribbon-view');
+		render({ canEdit: true, snapToShape: false });
+		expect(container.querySelector('pptx-ui-ribbon-view')).toBe(first);
+		expect(button('view.masterViews.slideMaster').disabled).toBeFalsy();
 	});
 });

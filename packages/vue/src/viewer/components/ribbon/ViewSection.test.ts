@@ -1,14 +1,17 @@
 import { mount } from '@vue/test-utils';
-import { describe, expect, it, vi } from 'vitest';
+import { registerPptxWebControls } from 'pptx-viewer-shared';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
 
 import ViewSection from './ViewSection.vue';
 
 vi.mock(import('vue-i18n'), () => ({
 	useI18n: () => ({ t: (key: string) => key }),
 }));
+beforeAll(registerPptxWebControls);
 
 function mountViewSection(overrides: Record<string, unknown> = {}) {
 	return mount(ViewSection, {
+		attachTo: document.body,
 		props: {
 			canEdit: true,
 			editTemplateMode: false,
@@ -31,91 +34,75 @@ function mountViewSection(overrides: Record<string, unknown> = {}) {
 		},
 	});
 }
+function button(wrapper: ReturnType<typeof mountViewSection>, id: string): HTMLButtonElement {
+	return wrapper.element
+		.querySelector(`[data-ribbon-control="${id}"]`)!
+		.shadowRoot!.querySelector('button')!;
+}
 
 describe('view section', () => {
-	/**
-	 * Outline view shipped in no binding at all. The control has to be live and
-	 * named exactly as React names it: `e2e/ribbon-control-inventory.spec.ts`
-	 * diffs every binding's View tab against React's by accessible name.
-	 */
-	it('offers a live Outline View command', async () => {
+	it('offers live Outline, Reading and Zoom to Fit commands', () => {
 		const onOpenOutlineView = vi.fn();
-		const wrapper = mountViewSection({ onOpenOutlineView });
-
-		const button = wrapper.get('[title="pptx.view.outlineViewTooltip"]');
-		expect(button.attributes('disabled')).toBeUndefined();
-		await button.trigger('click');
-		expect(onOpenOutlineView).toHaveBeenCalledOnce();
-	});
-
-	it('shows and runs zoom to fit when wired by the ribbon host', async () => {
-		const onZoomToFit = vi.fn();
-		const wrapper = mountViewSection({ onZoomToFit });
-
-		await wrapper.get('[title="pptx.view.zoomToFitTooltip"]').trigger('click');
-
-		expect(onZoomToFit).toHaveBeenCalledOnce();
-	});
-
-	it('offers the master, zoom and window commands the reference offers', () => {
-		const wrapper = mountViewSection();
-		const labels = wrapper.findAll('button').map((b) => b.text());
-		for (const key of [
-			'pptx.master.handoutMasterTitle',
-			'pptx.master.notesMasterTitle',
-			'pptx.slideSorter.zoom',
-			'pptx.view.macros',
-		]) {
-			expect(labels).toContain(key);
-		}
-	});
-
-	/**
-	 * The regression this guards: Reading View shipped permanently `disabled` in
-	 * every binding, so a reader who found it in the ribbon got nothing at all.
-	 * Snap to shape used to be in the same category and is not any more.
-	 */
-	it('offers Reading View as a live control that opens the view', async () => {
 		const onOpenReadingView = vi.fn();
-		const wrapper = mountViewSection({ onOpenReadingView });
-		const reading = wrapper.findAll('button').find((b) => b.text() === 'pptx.view.readingView');
-
-		expect(reading?.attributes('disabled')).toBeUndefined();
-		await reading?.trigger('click');
+		const onZoomToFit = vi.fn();
+		const wrapper = mountViewSection({ onOpenOutlineView, onOpenReadingView, onZoomToFit });
+		for (const id of [
+			'view.presentationViews.outline',
+			'view.presentationViews.readingView',
+			'view.zoom.fitToWindow',
+		]) {
+			expect(button(wrapper, id).disabled).toBeFalsy();
+			button(wrapper, id).click();
+		}
+		expect(onOpenOutlineView).toHaveBeenCalledOnce();
 		expect(onOpenReadingView).toHaveBeenCalledOnce();
+		expect(onZoomToFit).toHaveBeenCalledOnce();
+		wrapper.unmount();
 	});
 
-	it('offers Snap to shape as a live toggle bound to the snapping flag', async () => {
+	it('keeps the placeholder master, zoom and window commands disabled', () => {
+		const wrapper = mountViewSection();
+		for (const id of [
+			'view.masterViews.handoutMaster',
+			'view.masterViews.notesMaster',
+			'view.zoom.zoom',
+			'view.window.macros',
+		]) {
+			expect(button(wrapper, id).disabled).toBeTruthy();
+		}
+		wrapper.unmount();
+	});
+
+	it('binds Snap to shape to its own flag and reflects it as pressed', () => {
 		const onSetSnapToShape = vi.fn();
-		const wrapper = mountViewSection({ onSetSnapToShape });
-		const snap = wrapper.findAll('button').find((b) => b.text() === 'pptx.view.snapToShape');
-
-		expect(snap?.attributes('disabled')).toBeUndefined();
-		expect(snap?.attributes('aria-pressed')).toBe('false');
-		await snap?.trigger('click');
-		expect(onSetSnapToShape).toHaveBeenCalledWith(true);
+		const wrapper = mountViewSection({ onSetSnapToShape, snapToShape: true });
+		expect(button(wrapper, 'view.show.snapToShape').getAttribute('aria-pressed')).toBe('true');
+		button(wrapper, 'view.show.snapToShape').click();
+		expect(onSetSnapToShape).toHaveBeenCalledExactlyOnceWith(false);
+		wrapper.unmount();
 	});
 
-	it('reflects the snapping flag on the Snap to shape control', () => {
-		const wrapper = mountViewSection({ snapToShape: true });
-		const snap = wrapper.findAll('button').find((b) => b.text() === 'pptx.view.snapToShape');
-		expect(snap?.attributes('aria-pressed')).toBe('true');
-	});
-
-	/**
-	 * Guides now controls guide VISIBILITY, nothing else. The regression this
-	 * guards is the old cross-wiring, where ticking Guides silently turned on
-	 * shape snapping instead.
-	 */
-	it('drives guide visibility, not snapping, from the Guides toggle', async () => {
+	it('drives guide visibility, not snapping, from the Guides toggle', () => {
 		const onSetShowGuides = vi.fn();
 		const onSetSnapToShape = vi.fn();
 		const wrapper = mountViewSection({ showGuides: false, onSetShowGuides, onSetSnapToShape });
-		const guides = wrapper.findAll('label').find((l) => l.text() === 'pptx.view.guides');
-
-		await guides?.find('input').setValue(true);
-
-		expect(onSetShowGuides).toHaveBeenCalledWith(true);
+		const row = wrapper.element.querySelector('[data-ribbon-control="view.show.guides"]')!;
+		(row.shadowRoot!.querySelector('pptx-ui-checkbox') as HTMLElement).click();
+		expect(onSetShowGuides).toHaveBeenCalledExactlyOnceWith(true);
 		expect(onSetSnapToShape).not.toHaveBeenCalled();
+		wrapper.unmount();
+	});
+
+	it('hides Selection and Eyedropper when the host does not wire them and gates read-only edits', () => {
+		const onEnterMasterView = vi.fn();
+		const wrapper = mountViewSection({ canEdit: false, onEnterMasterView });
+		expect(
+			wrapper.element
+				.querySelector('[data-ribbon-control="view.show.eyedropper"]')!
+				.hasAttribute('hidden'),
+		).toBeTruthy();
+		button(wrapper, 'view.masterViews.slideMaster').click();
+		expect(onEnterMasterView).not.toHaveBeenCalled();
+		wrapper.unmount();
 	});
 });

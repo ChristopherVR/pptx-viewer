@@ -1273,145 +1273,29 @@ describe('toolbar - Review tab', () => {
 // ===========================================================================
 
 describe('toolbar - View tab', () => {
-	const createViewProps = (overrides = {}) => ({
-		canEdit: true,
-		editTemplateMode: false,
-		onSetEditTemplateMode: vi.fn<() => void>(),
-		spellCheckEnabled: false,
-		onSetSpellCheckEnabled: vi.fn<() => void>(),
-		showGrid: false,
-		showRulers: false,
-		showGuides: false,
-		snapToGrid: false,
-		snapToShape: false,
-		onSetShowGrid: vi.fn<() => void>(),
-		onSetShowRulers: vi.fn<() => void>(),
-		onSetShowGuides: vi.fn<() => void>(),
-		onSetSnapToGrid: vi.fn<() => void>(),
-		onSetSnapToShape: vi.fn<() => void>(),
-		onAddGuide: vi.fn<() => void>(),
-		onEnterMasterView: vi.fn<() => void>(),
-		isSelectionPaneOpen: false,
-		onToggleSelectionPane: vi.fn<() => void>(),
-		eyedropperActive: false,
-		onToggleEyedropper: vi.fn<() => void>(),
-		onToggleSlideSorter: vi.fn<() => void>(),
-		onZoomToFit: vi.fn<() => void>(),
-		...overrides,
-	});
-
-	it('renders Presentation Views group (Normal, Slide Sorter, Reading View)', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Normal view"');
-		expect(html).toContain('title="Slide Sorter view"');
-		expect(html).toContain('title="Reading View"');
-		expect(html).toContain('Presentation Views');
-	});
-
-	it('renders Master Views group (Slide Master)', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Edit slide masters and layouts"');
-		expect(html).toContain('Slide Master');
-		expect(html).toContain('Master Views');
-	});
-
-	it('renders Grid button', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Grid<');
-	});
-
-	it('renders Rulers button', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Rulers<');
-	});
-
-	it('renders Snap controls', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Snap to grid<');
-		expect(html).toContain('>Snap to Shape<');
-	});
-
-	it('leaves Snap to Shape usable and gives Guides the guide overlay', () => {
-		// The pair used to be inverted: Guides drove shape snapping while
-		// Snap to Shape was a permanently disabled placeholder, so the visible
-		// label described a feature that lived on a different control.
-		const onSetSnapToShape = vi.fn<(enabled: boolean) => void>();
+	it('provides a shared view host during server rendering', () => {
 		const html = render(
-			React.createElement(ViewSection, createViewProps({ snapToShape: true, onSetSnapToShape })),
+			React.createElement(ViewSection, {
+				canEdit: true,
+				editTemplateMode: false,
+				onSetEditTemplateMode: vi.fn<() => void>(),
+				spellCheckEnabled: false,
+				onSetSpellCheckEnabled: vi.fn<() => void>(),
+				showGrid: false,
+				showRulers: false,
+				showGuides: false,
+				snapToGrid: false,
+				snapToShape: false,
+				onSetShowGrid: vi.fn<() => void>(),
+				onSetShowRulers: vi.fn<() => void>(),
+				onSetShowGuides: vi.fn<() => void>(),
+				onSetSnapToGrid: vi.fn<() => void>(),
+				onSetSnapToShape: vi.fn<() => void>(),
+				onAddGuide: vi.fn<() => void>(),
+				onEnterMasterView: vi.fn<() => void>(),
+			}),
 		);
-		expect(html).not.toMatch(/<button[^>]*disabled=""[^>]*title="Snap to Shape"/u);
-		expect(html).toMatch(/title="Toggle center guide lines"/u);
-	});
-
-	it('renders guide buttons', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('title="Add horizontal guide"');
-		expect(html).toContain('title="Add vertical guide"');
-	});
-
-	it('grid button has active styling when showGrid is true', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ showGrid: true })));
-		expect(html).toContain('bg-primary/15');
-		expect(html).toContain('title="Toggle grid"');
-	});
-
-	it('renders Selection pane button', () => {
-		const html = render(
-			React.createElement(
-				ViewSection,
-				createViewProps({ onToggleSelectionPane: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('title="Selection Pane"');
-		expect(html).toContain('Selection');
-	});
-
-	it('renders Eyedropper button', () => {
-		const html = render(
-			React.createElement(
-				ViewSection,
-				createViewProps({ onToggleEyedropper: vi.fn<() => void>() }),
-			),
-		);
-		expect(html).toContain('Eyedropper');
-	});
-
-	it('renders Zoom to Fit button', () => {
-		const html = render(
-			React.createElement(ViewSection, createViewProps({ onZoomToFit: vi.fn<() => void>() })),
-		);
-		expect(html).toContain('Zoom to Fit');
-	});
-
-	it('slide Master is disabled when canEdit is false', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Edit slide masters and layouts"/u);
-	});
-
-	// The template-mode toggle's accessible name is the e2e/UX contract shared
-	// with every other binding: it must read "Templates Off" while the mode is
-	// off and "Templates On" while it is on (e2e/template-editing.spec.ts
-	// queries the button by exactly that name). A static "Template Editing"
-	// label regressed the whole template-editing e2e flow for React once.
-	it('template-mode toggle reads "Templates Off" when the mode is off', () => {
-		const html = render(React.createElement(ViewSection, createViewProps()));
-		expect(html).toContain('>Templates Off<');
-		expect(html).not.toContain('>Templates On<');
-		expect(html).toContain('title="Toggle template/master element editing"');
-	});
-
-	it('template-mode toggle reads "Templates On" with active styling when on', () => {
-		const html = render(
-			React.createElement(ViewSection, createViewProps({ editTemplateMode: true })),
-		);
-		expect(html).toContain('>Templates On<');
-		expect(html).not.toContain('>Templates Off<');
-		expect(html).toMatch(/title="Toggle template\/master element editing"[^>]*bg-primary\/15/u);
-	});
-
-	it('template-mode toggle is disabled when canEdit is false', () => {
-		const html = render(React.createElement(ViewSection, createViewProps({ canEdit: false })));
-		expect(html).toMatch(/disabled[^>]*title="Toggle template\/master element editing"/u);
+		expect(html).toContain('pptx-ui-ribbon-view');
 	});
 });
 
@@ -1786,8 +1670,7 @@ describe('toolbar - section content rendering', () => {
 		const html = render(
 			React.createElement(Toolbar, createMockToolbarProps({ toolbarSection: 'view' })),
 		);
-		expect(html).toContain('Normal');
-		expect(html).toContain('Slide Master');
+		expect(html).toContain('pptx-ui-ribbon-view');
 	});
 
 	it('home section also renders TextSection content (B/I/U/S)', () => {

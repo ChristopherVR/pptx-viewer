@@ -43,3 +43,16 @@ outside the shared controlled view.
 - Draw neutral browser suite: 15 tests across all five bindings passed.
   Existing highlighter and live-tilt suites: 20 tests passed.
 - Changed-file formatting/lint and neutral test contract: passed.
+
+## View (#380)
+
+The five `*-view.png` captures use the baseline deck and viewport on the View
+tab. Native view switching, preference persistence, EyeDropper and template
+editing remain outside the shared controlled view.
+
+- Root build and typecheck: passed (0 errors).
+- Shared View state/view: eight tests; shared web-control suite passed.
+- React 18 and React 19 toolbar/View suites passed; Vue, Svelte, Angular and
+  Vanilla ribbon suites passed.
+- View neutral browser suite: 30 tests across all five bindings passed.
+- Changed-file formatting/lint and neutral test contract: passed.
