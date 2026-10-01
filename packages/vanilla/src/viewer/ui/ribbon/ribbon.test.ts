@@ -168,7 +168,7 @@ describe('createRibbon', () => {
 		const panes = ribbon.el.querySelectorAll<HTMLElement>('.pptxv-ribbon-tab-content');
 		const visible = Array.from(panes).filter((p) => !p.hidden);
 		expect(visible).toHaveLength(1);
-		expect(visible[0].querySelector('.pptxv-select-button')).toBeTruthy();
+		expect(visible[0].querySelector('pptx-ui-ribbon-insert')).toBeTruthy();
 	});
 
 	it('dispatches the supported Slide Show actions', () => {
@@ -416,7 +416,7 @@ describe('createRibbon', () => {
 				(btn) => btn.textContent,
 			);
 			expect(tabLabels).not.toContain(t('pptx.ribbon.tab.insert'));
-			expect(ribbon.el.querySelector('.pptxv-ribbon-insert-content')).toBeNull();
+			expect(ribbon.el.querySelector('pptx-ui-ribbon-insert')).toBeNull();
 		});
 
 		it('falls back to the first visible tab (File) when the default (Home) tab is hidden', () => {

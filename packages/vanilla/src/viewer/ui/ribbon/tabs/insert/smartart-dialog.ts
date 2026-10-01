@@ -8,7 +8,8 @@ import { buildSmartArtGalleryPreview } from './smartart-gallery-preview';
 
 export interface SmartArtDialog {
 	el: HTMLElement;
-	open(host: HTMLElement): void;
+	/** `restoreFocus` overrides returning focus to the opener (needed behind shadow roots). */
+	open(host: HTMLElement, restoreFocus?: () => void): void;
 	close(): void;
 }
 
@@ -66,6 +67,7 @@ export function createSmartArtDialog(
 	let activeCategory: SmartArtCategory = 'list';
 	let selectedPreset: SmartArtPreset | undefined;
 	let previousFocus: HTMLElement | null = null;
+	let restoreFocus: (() => void) | null = null;
 
 	function selectPreset(preset: SmartArtPreset): void {
 		selectedPreset = preset;
@@ -132,7 +134,12 @@ export function createSmartArtDialog(
 			return;
 		}
 		layer.hidden = true;
-		previousFocus?.focus();
+		if (restoreFocus) {
+			restoreFocus();
+		} else {
+			previousFocus?.focus();
+		}
+		restoreFocus = null;
 		previousFocus = null;
 	}
 
@@ -170,7 +177,8 @@ export function createSmartArtDialog(
 
 	return {
 		el: layer,
-		open(host) {
+		open(host, restore) {
+			restoreFocus = restore ?? null;
 			const HTMLElementCtor = doc.defaultView?.HTMLElement;
 			previousFocus =
 				HTMLElementCtor && doc.activeElement instanceof HTMLElementCtor

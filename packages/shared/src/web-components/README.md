@@ -339,3 +339,34 @@ binding; per-effect timing is authored in the Animation Panel (and, in Svelte
 and Vanilla, the timeline row), not from these fields. Effect Options and
 Trigger open the Animation Panel in React, Vue, Svelte and Angular; Vanilla's
 panel command is the inspector toggle.
+
+## Insert ribbon
+
+`pptx-ui-ribbon-insert.state` is a controlled `RibbonInsertState`: editability,
+`hasSelection` (Link tracks the selection, not editability), the staged
+`shapeType` and `chartKind`, the armed and visible Freeform tools, availability
+flags (`chartAvailable`, `fieldAvailable`, `headerFooterAvailable`) and a
+translation callback. The light-DOM view renders the seven Insert groups
+(tables, images, illustrations, links, text, symbols, media) with the public
+customization ids, in PowerPoint's group order. The Shape and Chart pickers are
+a native select beside an insert button; Action and Field are click/keyboard
+menus (Arrow keys, Escape and outside press dismiss; Escape returns focus to the
+opener) that replace the former hover-only popups. Header & Footer is a compact
+command in the text group without a catalogue id, so it cannot be customized
+away by id (unchanged). `focusControl(id)` returns focus after a native dialog.
+
+The composed `insert-request` event carries a `RibbonInsertIntent`: `command`
+(textBox, table, image, media, smartArt, equation, link, headerFooter),
+`shapeType`/`shape` (stage / insert), `chartType`/`chart`, `freeform` (a tool or
+`null` to disarm), `actionButton` or `field` (slidenum, datetime, header,
+footer). Intents are validated against the shared catalogues and rejected while
+read-only (Link only needs a selection). Setting state emits no intent and
+select values are restored to the controlled value after each request.
+
+Native hosts retain every document mutation and its undo history, the file
+pickers and FileReader/image-probe plumbing, the SmartArt gallery, equation
+editor, hyperlink and Header & Footer dialogs, and the Date/Time format picker
+(React, Vue and Angular open it for the `datetime` field; Svelte and Vanilla
+insert the current date directly, as before). Freeform arming and the canvas
+drawing overlay stay native. Focus is preserved across updates and instances are
+isolated.

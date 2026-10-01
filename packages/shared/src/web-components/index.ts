@@ -6,6 +6,7 @@ import { definePptxRibbonCommand } from './ribbon-command';
 import { definePptxRibbonDraw } from './ribbon-draw';
 import { definePptxRibbonGallery } from './ribbon-gallery';
 import { definePptxRibbonGroup } from './ribbon-group';
+import { definePptxRibbonInsert } from './ribbon-insert';
 import { definePptxRibbonSection } from './ribbon-section';
 import { definePptxRibbonToggle } from './ribbon-toggle';
 import { definePptxRibbonTransitions } from './ribbon-transitions';
@@ -28,6 +29,7 @@ export type {
 	PptxUiRibbonTransitionsElement,
 	RibbonTransitionsRequestEvent,
 } from './ribbon-transitions';
+export type { PptxUiRibbonInsertElement, RibbonInsertRequestEvent } from './ribbon-insert';
 export type { PptxUiRibbonViewElement, RibbonViewRequestEvent } from './ribbon-view';
 export type { PptxUiRibbonSectionElement } from './ribbon-section';
 export type { PptxUiRibbonGalleryElement, RibbonGalleryPickEvent } from './ribbon-gallery';
@@ -52,6 +54,7 @@ const controls = [
 	['pptx-ui-ribbon-command', definePptxRibbonCommand],
 	['pptx-ui-ribbon-animations', definePptxRibbonAnimations],
 	['pptx-ui-ribbon-draw', definePptxRibbonDraw],
+	['pptx-ui-ribbon-insert', definePptxRibbonInsert],
 	['pptx-ui-ribbon-view', definePptxRibbonView],
 	['pptx-ui-ribbon-transitions', definePptxRibbonTransitions],
 	['pptx-ui-ribbon-group', definePptxRibbonGroup],

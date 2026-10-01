@@ -118,6 +118,7 @@ import type { RibbonTab } from './ribbon-types';
 			}
 			@case ('insert') {
 				<pptx-ribbon-insert-section
+					[canEdit]="canEdit()"
 					[slideIndex]="slideIndex()"
 					[newChartType]="newChartType()"
 					[newShapeType]="newShapeType()"
