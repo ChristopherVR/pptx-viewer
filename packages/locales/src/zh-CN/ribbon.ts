@@ -5,6 +5,7 @@ export const translations = {
 	'pptx.ribbon.draw': '绘图',
 	'pptx.ribbon.arrange': '排列',
 	'pptx.ribbon.design': '设计',
+	'pptx.ribbon.transitionToThisSlide': '切换到此幻灯片',
 	'pptx.ribbon.transitions': '切换',
 	'pptx.ribbon.animations': '动画',
 	'pptx.ribbon.slideShow': '幻灯片放映',

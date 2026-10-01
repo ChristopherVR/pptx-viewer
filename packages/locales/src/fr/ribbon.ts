@@ -5,6 +5,7 @@ export const translations = {
 	'pptx.ribbon.draw': 'Dessiner',
 	'pptx.ribbon.arrange': 'Organiser',
 	'pptx.ribbon.design': 'Conception',
+	'pptx.ribbon.transitionToThisSlide': 'Transition vers cette diapositive',
 	'pptx.ribbon.transitions': 'Transitions',
 	'pptx.ribbon.animations': 'Animations',
 	'pptx.ribbon.slideShow': 'Diaporama',
